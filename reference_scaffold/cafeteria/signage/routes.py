@@ -1,31 +1,36 @@
 from __future__ import annotations
 
-from flask import Blueprint, current_app, render_template, request
+from flask import Blueprint, render_template, request
 
-from ..public.routes import effective_today, service
-from ..db import active_snapshot
+from ..public.routes import effective_today, published_snapshot, service
 
 bp = Blueprint('signage', __name__)
 
 
-def context(profile_code: str) -> dict:
+def no_store_failure(message: str, status_code: int):
+    response = render_template('signage/unavailable.html', message=message)
+    return response, status_code, {'Cache-Control': 'no-store'}
+
+
+@bp.before_request
+def reject_query_parameters():
     if request.args:
-        return {'error': 'Player-URLs akzeptieren keine Query-Parameter.'}
+        return no_store_failure('Player-URLs akzeptieren keine Query-Parameter.', 400)
+    return None
+
+
+def context(profile_code: str) -> dict:
     date_value = effective_today().isoformat()
-    snapshot = active_snapshot(
-        current_app.extensions['cafeteria_db'],
-        profile_code,
-        date_value,
-        last_good_dir=current_app.config['LAST_GOOD_DIR'],
-    )
+    snapshot = published_snapshot(profile_code)
     day = next((item for item in (snapshot or {}).get('days', []) if item.get('date') == date_value), None)
     return {'snapshot': snapshot, 'day': day, 'today': date_value, 'error': None}
 
 
 def signage_response(template: str, **values):
     if values.get('error'):
-        response = render_template('signage/unavailable.html', message=values['error'])
-        return response, 400, {'Cache-Control': 'no-store'}
+        return no_store_failure(values['error'], 400)
+    if not values.get('snapshot'):
+        return no_store_failure('Kein publizierter Menüplan für diesen Player.', 404)
     response = render_template(template, **values)
     headers = {'Cache-Control': 'public, max-age=60, stale-if-error=86400'}
     snapshot = values.get('snapshot')
