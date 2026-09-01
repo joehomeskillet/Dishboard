@@ -5,6 +5,18 @@ from pathlib import Path
 from urllib.parse import quote
 
 DEMO_SECRET = 'demo-only-not-for-production'
+_CONFIG_FILE = Path(__file__).resolve()
+
+
+def _default_sql_path(filename: str) -> str:
+    app_or_scaffold = _CONFIG_FILE.parent.parent
+    repo_candidate = app_or_scaffold.parent / 'database' / filename
+    packaged_candidate = app_or_scaffold / 'database' / filename
+    if repo_candidate.is_file():
+        return str(repo_candidate)
+    if packaged_candidate.is_file():
+        return str(packaged_candidate)
+    return str(repo_candidate)
 
 
 def _bool(name: str, default: bool = False) -> bool:
@@ -58,10 +70,10 @@ class Config:
         self.DEMO_TODAY = os.getenv('DEMO_TODAY', '2026-09-01' if self.DEMO_MODE else '')
         self.SECRET_KEY = _secret('FLASK_SECRET_KEY', DEMO_SECRET if self.DEMO_MODE else '')
         self.DATABASE_URL = _database_url()
-        self.SCHEMA_PATH = os.getenv('SCHEMA_PATH', '/app/database/schema.sql')
-        self.SEED_PATH = os.getenv('SEED_PATH', '/app/database/seed.sql')
-        self.DEMO_SEED_PATH = os.getenv('DEMO_SEED_PATH', '/app/database/seed_demo.sql')
-        self.PERMISSIONS_PATH = os.getenv('PERMISSIONS_PATH', '/app/database/permissions.sql')
+        self.SCHEMA_PATH = os.getenv('SCHEMA_PATH', _default_sql_path('schema.sql'))
+        self.SEED_PATH = os.getenv('SEED_PATH', _default_sql_path('seed.sql'))
+        self.DEMO_SEED_PATH = os.getenv('DEMO_SEED_PATH', _default_sql_path('seed_demo.sql'))
+        self.PERMISSIONS_PATH = os.getenv('PERMISSIONS_PATH', _default_sql_path('permissions.sql'))
         self.POSTGRES_APP_PASSWORD = _secret('POSTGRES_APP_PASSWORD')
         self.POSTGRES_BACKUP_PASSWORD = _secret('POSTGRES_BACKUP_PASSWORD')
         self.DB_POOL_SIZE = int(os.getenv('DB_POOL_SIZE', '5'))

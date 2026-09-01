@@ -1,65 +1,28 @@
--- Klinik Südhang Menüplanung – PostgreSQL-Baseline
--- Zwei fachlich getrennte Profile: patient und staff_guest.
--- Die Datei ist eine SQL-Baseline für eine leere Datenbank, keine behauptete Alembic-Migration.
-
+-- Schema v5: lokale Anmeldedaten, exakte Snapshots und unveränderliche Publikationen.
 BEGIN;
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-CREATE SCHEMA IF NOT EXISTS cafeteria;
 SET search_path TO cafeteria, public;
 
-CREATE TABLE IF NOT EXISTS schema_migrations (
-    version integer PRIMARY KEY,
-    name text NOT NULL CHECK (btrim(name) <> ''),
-    checksum_sha256 text NOT NULL CHECK (checksum_sha256 ~ '^[0-9a-f]{64}$'),
-    application_version text NOT NULL CHECK (btrim(application_version) <> ''),
-    applied_at timestamptz NOT NULL DEFAULT clock_timestamp()
-);
-
-CREATE TABLE IF NOT EXISTS users (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    public_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
-    auth_provider text NOT NULL DEFAULT 'entra' CHECK (auth_provider IN ('entra', 'local', 'system', 'demo')),
-    entra_tenant_id uuid,
-    entra_object_id uuid,
-    entra_subject_id text,
-    display_name text NOT NULL CHECK (btrim(display_name) <> ''),
-    email text,
-    preferred_username text,
-    last_seen_roles jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(last_seen_roles) = 'array'),
-    last_login_at timestamptz,
-    disabled_at timestamptz,
-    authz_version bigint NOT NULL DEFAULT 1 CHECK (authz_version > 0),
-    created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    CHECK (
+ALTER TABLE users
+    DROP CONSTRAINT IF EXISTS users_auth_provider_check;
+ALTER TABLE users
+    DROP CONSTRAINT IF EXISTS users_check;
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS authz_version bigint NOT NULL DEFAULT 1 CHECK (authz_version > 0),
+    ADD CONSTRAINT users_auth_provider_check
+        CHECK (auth_provider IN ('entra', 'local', 'system', 'demo')),
+    ADD CONSTRAINT users_provider_identity_check CHECK (
         (auth_provider = 'entra' AND entra_tenant_id IS NOT NULL AND entra_object_id IS NOT NULL)
         OR
         (auth_provider IN ('local', 'system', 'demo')
          AND entra_tenant_id IS NULL AND entra_object_id IS NULL AND entra_subject_id IS NULL)
-    )
-);
+    );
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_users_entra_identity
-    ON users(entra_tenant_id, entra_object_id)
-    WHERE auth_provider = 'entra';
-
-CREATE TABLE IF NOT EXISTS application_roles (
-    role_code text PRIMARY KEY CHECK (role_code ~ '^Cafeteria\.(Editor|Publisher|Admin)$'),
-    display_name text NOT NULL,
-    description text NOT NULL,
-    active boolean NOT NULL DEFAULT true,
-    created_at timestamptz NOT NULL DEFAULT clock_timestamp()
-);
-
-CREATE TABLE IF NOT EXISTS user_role_cache (
-    user_id bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role_code text NOT NULL REFERENCES application_roles(role_code),
-    source text NOT NULL DEFAULT 'entra_token' CHECK (source IN ('entra_token', 'local', 'demo')),
-    first_seen_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    last_seen_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    PRIMARY KEY (user_id, role_code)
-);
+ALTER TABLE user_role_cache
+    DROP CONSTRAINT IF EXISTS user_role_cache_source_check;
+ALTER TABLE user_role_cache
+    ADD CONSTRAINT user_role_cache_source_check
+        CHECK (source IN ('entra_token', 'local', 'demo'));
 
 CREATE TABLE IF NOT EXISTS local_credentials (
     user_id bigint PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -77,273 +40,6 @@ CREATE TABLE IF NOT EXISTS local_credentials (
     updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
     CHECK (locked_until IS NULL OR failed_login_count > 0)
 );
-
-CREATE TABLE IF NOT EXISTS locations (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    public_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
-    code text NOT NULL UNIQUE CHECK (code ~ '^[A-Z0-9_-]{2,32}$'),
-    name text NOT NULL CHECK (btrim(name) <> ''),
-    timezone text NOT NULL DEFAULT 'Europe/Zurich',
-    active boolean NOT NULL DEFAULT true,
-    created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
-);
-
-CREATE TABLE IF NOT EXISTS offer_profiles (
-    id smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    code text NOT NULL UNIQUE CHECK (code IN ('patient', 'staff_guest')),
-    display_name text NOT NULL,
-    allows_prices boolean NOT NULL,
-    allows_weekend boolean NOT NULL,
-    allowed_meals text[] NOT NULL,
-    CHECK (cardinality(allowed_meals) >= 1),
-    CHECK (
-        (code = 'patient' AND allows_prices = false AND allows_weekend = true AND allowed_meals @> ARRAY['LUNCH','DINNER']::text[])
-        OR
-        (code = 'staff_guest' AND allows_prices = true AND allows_weekend = false AND allowed_meals = ARRAY['LUNCH']::text[])
-    )
-);
-
-CREATE TABLE IF NOT EXISTS meal_periods (
-    id smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    code text NOT NULL UNIQUE CHECK (code IN ('LUNCH', 'DINNER')),
-    display_name text NOT NULL,
-    sort_order smallint NOT NULL UNIQUE CHECK (sort_order > 0)
-);
-
-CREATE TABLE IF NOT EXISTS menu_types (
-    id smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    code text NOT NULL UNIQUE CHECK (code IN ('MENU_1', 'VEGGIE')),
-    display_name text NOT NULL,
-    sort_order smallint NOT NULL UNIQUE CHECK (sort_order > 0)
-);
-
-CREATE TABLE IF NOT EXISTS menu_weeks (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    public_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
-    location_id bigint NOT NULL REFERENCES locations(id),
-    profile_id smallint NOT NULL REFERENCES offer_profiles(id),
-    week_start date NOT NULL,
-    workflow_state text NOT NULL DEFAULT 'draft' CHECK (workflow_state IN ('draft', 'ready', 'published', 'archived')),
-    title text,
-    shared_note text,
-    row_version bigint NOT NULL DEFAULT 1 CHECK (row_version > 0),
-    created_by bigint REFERENCES users(id),
-    updated_by bigint REFERENCES users(id),
-    created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    CHECK (EXTRACT(ISODOW FROM week_start) = 1),
-    UNIQUE (location_id, profile_id, week_start)
-);
-
-CREATE TABLE IF NOT EXISTS menu_services (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    public_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
-    menu_week_id bigint NOT NULL REFERENCES menu_weeks(id) ON DELETE CASCADE,
-    service_date date NOT NULL,
-    meal_period_id smallint NOT NULL REFERENCES meal_periods(id),
-    service_state text NOT NULL DEFAULT 'open' CHECK (service_state IN ('open', 'closed', 'holiday', 'company_holiday')),
-    notice text,
-    row_version bigint NOT NULL DEFAULT 1 CHECK (row_version > 0),
-    created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    CHECK ((service_state = 'open') OR (notice IS NOT NULL AND btrim(notice) <> '')),
-    UNIQUE (menu_week_id, service_date, meal_period_id)
-);
-
-CREATE TABLE IF NOT EXISTS dish_templates (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    public_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
-    menu_type_id smallint REFERENCES menu_types(id),
-    profile_scope text NOT NULL DEFAULT 'common' CHECK (profile_scope IN ('common', 'patient', 'staff_guest')),
-    title text NOT NULL CHECK (btrim(title) <> ''),
-    description text,
-    active boolean NOT NULL DEFAULT true,
-    created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
-);
-
-CREATE TABLE IF NOT EXISTS menu_items (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    public_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
-    service_id bigint NOT NULL REFERENCES menu_services(id) ON DELETE CASCADE,
-    menu_type_id smallint NOT NULL REFERENCES menu_types(id),
-    dish_template_id bigint REFERENCES dish_templates(id) ON DELETE SET NULL,
-    external_id text NOT NULL CHECK (btrim(external_id) <> ''),
-    title text NOT NULL CHECK (btrim(title) <> ''),
-    description text,
-    note text,
-    allergen_review_status text NOT NULL DEFAULT 'not_checked' CHECK (allergen_review_status IN ('not_checked', 'checked')),
-    sort_order smallint NOT NULL CHECK (sort_order > 0),
-    row_version bigint NOT NULL DEFAULT 1 CHECK (row_version > 0),
-    created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    UNIQUE (service_id, menu_type_id),
-    UNIQUE (external_id)
-);
-
-CREATE TABLE IF NOT EXISTS menu_item_prices (
-    menu_item_id bigint PRIMARY KEY REFERENCES menu_items(id) ON DELETE CASCADE,
-    internal_rappen integer NOT NULL CHECK (internal_rappen > 0),
-    external_rappen integer NOT NULL CHECK (external_rappen > 0),
-    currency char(3) NOT NULL DEFAULT 'CHF' CHECK (currency = 'CHF'),
-    created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    CHECK (external_rappen >= internal_rappen)
-);
-
-CREATE TABLE IF NOT EXISTS menu_item_components (
-    menu_item_id bigint NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
-    sort_order smallint NOT NULL CHECK (sort_order > 0),
-    component_text text NOT NULL CHECK (btrim(component_text) <> ''),
-    PRIMARY KEY (menu_item_id, sort_order)
-);
-
-CREATE TABLE IF NOT EXISTS dietary_labels (
-    id smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    code text NOT NULL UNIQUE CHECK (code ~ '^[A-Z0-9_]{2,32}$'),
-    display_name text NOT NULL,
-    active boolean NOT NULL DEFAULT true
-);
-
-CREATE TABLE IF NOT EXISTS menu_item_labels (
-    menu_item_id bigint NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
-    label_id smallint NOT NULL REFERENCES dietary_labels(id),
-    PRIMARY KEY (menu_item_id, label_id)
-);
-
-CREATE TABLE IF NOT EXISTS allergens (
-    id smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    code text NOT NULL UNIQUE CHECK (code ~ '^[A-Z0-9_]{1,32}$'),
-    display_name text NOT NULL,
-    eu_number smallint NOT NULL UNIQUE CHECK (eu_number BETWEEN 1 AND 14),
-    active boolean NOT NULL DEFAULT true
-);
-
-CREATE TABLE IF NOT EXISTS menu_item_allergens (
-    menu_item_id bigint NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
-    allergen_id smallint NOT NULL REFERENCES allergens(id),
-    presence text NOT NULL CHECK (presence IN ('contains', 'may_contain')),
-    PRIMARY KEY (menu_item_id, allergen_id, presence)
-);
-
-CREATE TABLE IF NOT EXISTS origin_declarations (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    menu_item_id bigint NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
-    ingredient text NOT NULL CHECK (btrim(ingredient) <> ''),
-    country_code char(2) NOT NULL CHECK (country_code ~ '^[A-Z]{2}$'),
-    declaration_text text NOT NULL CHECK (btrim(declaration_text) <> ''),
-    UNIQUE (menu_item_id, ingredient)
-);
-
-CREATE TABLE IF NOT EXISTS publication_revisions (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    public_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
-    menu_week_id bigint NOT NULL REFERENCES menu_weeks(id) ON DELETE RESTRICT,
-    profile_id smallint NOT NULL REFERENCES offer_profiles(id),
-    location_id bigint NOT NULL REFERENCES locations(id),
-    week_start date NOT NULL,
-    revision_number integer NOT NULL CHECK (revision_number > 0),
-    revision_code text NOT NULL CHECK (btrim(revision_code) <> ''),
-    snapshot_json jsonb NOT NULL CHECK (jsonb_typeof(snapshot_json) = 'object'),
-    content_hash_sha256 text NOT NULL DEFAULT repeat('0', 64),
-    published_by bigint NOT NULL REFERENCES users(id),
-    published_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    withdrawn_at timestamptz,
-    withdrawal_reason text,
-    created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    UNIQUE (menu_week_id, revision_number),
-    UNIQUE (revision_code),
-    CHECK ((withdrawn_at IS NULL) = (withdrawal_reason IS NULL))
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS uq_publication_one_active_per_profile_week
-    ON publication_revisions(menu_week_id)
-    WHERE withdrawn_at IS NULL;
-
-CREATE UNIQUE INDEX IF NOT EXISTS uq_publication_one_active_per_frozen_identity
-    ON publication_revisions(profile_id, location_id, week_start)
-    WHERE withdrawn_at IS NULL;
-
-CREATE TABLE IF NOT EXISTS publication_lifecycle_events (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    public_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
-    revision_id bigint NOT NULL REFERENCES publication_revisions(id) ON DELETE RESTRICT,
-    event_type text NOT NULL CHECK (event_type IN ('activated', 'withdrawn')),
-    reason text,
-    actor_user_id bigint REFERENCES users(id),
-    occurred_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    CHECK (
-        (event_type = 'activated' AND (reason IS NULL OR btrim(reason) = ''))
-        OR
-        (event_type = 'withdrawn' AND reason IS NOT NULL AND btrim(reason) <> '')
-    )
-);
-
-CREATE TABLE IF NOT EXISTS import_batches (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    public_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
-    profile_id smallint NOT NULL REFERENCES offer_profiles(id),
-    source_filename text NOT NULL CHECK (btrim(source_filename) <> ''),
-    source_sha256 text NOT NULL CHECK (source_sha256 ~ '^[0-9a-f]{64}$'),
-    status text NOT NULL DEFAULT 'validated' CHECK (status IN ('validated', 'rejected', 'imported')),
-    row_count integer NOT NULL DEFAULT 0 CHECK (row_count >= 0),
-    error_count integer NOT NULL DEFAULT 0 CHECK (error_count >= 0),
-    created_by bigint REFERENCES users(id),
-    created_at timestamptz NOT NULL DEFAULT clock_timestamp()
-);
-
-CREATE TABLE IF NOT EXISTS import_rows (
-    import_batch_id bigint NOT NULL REFERENCES import_batches(id) ON DELETE CASCADE,
-    row_number integer NOT NULL CHECK (row_number > 0),
-    row_payload jsonb NOT NULL CHECK (jsonb_typeof(row_payload) = 'object'),
-    validation_errors jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(validation_errors) = 'array'),
-    PRIMARY KEY (import_batch_id, row_number)
-);
-
-CREATE TABLE IF NOT EXISTS audit_events (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    public_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
-    occurred_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    actor_user_id bigint REFERENCES users(id),
-    action text NOT NULL CHECK (btrim(action) <> ''),
-    entity_type text NOT NULL CHECK (btrim(entity_type) <> ''),
-    entity_public_id uuid,
-    profile_code text CHECK (profile_code IN ('patient', 'staff_guest')),
-    details jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(details) = 'object')
-);
-
-CREATE TABLE IF NOT EXISTS settings (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    location_id bigint REFERENCES locations(id) ON DELETE CASCADE,
-    profile_id smallint REFERENCES offer_profiles(id) ON DELETE CASCADE,
-    setting_key text NOT NULL CHECK (setting_key ~ '^[a-z0-9_.-]{2,80}$'),
-    setting_value jsonb NOT NULL,
-    updated_by bigint REFERENCES users(id),
-    updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    UNIQUE NULLS NOT DISTINCT (location_id, profile_id, setting_key)
-);
-
-CREATE OR REPLACE FUNCTION set_updated_at()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    NEW.updated_at := clock_timestamp();
-    RETURN NEW;
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION bump_row_version_and_updated_at()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    NEW.row_version := OLD.row_version + 1;
-    NEW.updated_at := clock_timestamp();
-    RETURN NEW;
-END;
-$$;
 
 CREATE OR REPLACE FUNCTION validate_local_credential()
 RETURNS trigger
@@ -510,34 +206,6 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION validate_menu_item_price()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    v_profile text;
-    v_meal text;
-    v_service_date date;
-BEGIN
-    SELECT p.code, mp.code, s.service_date
-      INTO v_profile, v_meal, v_service_date
-      FROM menu_items i
-      JOIN menu_services s ON s.id = i.service_id
-      JOIN menu_weeks w ON w.id = s.menu_week_id
-      JOIN offer_profiles p ON p.id = w.profile_id
-      JOIN meal_periods mp ON mp.id = s.meal_period_id
-     WHERE i.id = NEW.menu_item_id;
-
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'Unbekannte Menüposition.' USING ERRCODE = '23503';
-    END IF;
-    IF v_profile <> 'staff_guest' OR v_meal <> 'LUNCH' OR EXTRACT(ISODOW FROM v_service_date) > 5 THEN
-        RAISE EXCEPTION 'Kosten sind nur im Cafeteria-Mittag von Montag bis Freitag zulässig.' USING ERRCODE = '23514';
-    END IF;
-    RETURN NEW;
-END;
-$$;
-
 CREATE OR REPLACE FUNCTION jsonb_has_patient_forbidden_key(v jsonb)
 RETURNS boolean
 LANGUAGE plpgsql
@@ -616,15 +284,6 @@ BEGIN
         END IF;
     END IF;
     RETURN false;
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION protect_audit_event()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    RAISE EXCEPTION 'Audit-Ereignisse sind unveränderlich.' USING ERRCODE = '55000';
 END;
 $$;
 
@@ -831,13 +490,75 @@ BEGIN
 END;
 $$;
 
-DROP TRIGGER IF EXISTS trg_users_updated_at ON users;
-CREATE TRIGGER trg_users_updated_at BEFORE UPDATE ON users
-FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+DROP TRIGGER IF EXISTS trg_publication_validate ON publication_revisions;
 
-DROP TRIGGER IF EXISTS trg_users_auth_provider ON users;
-CREATE TRIGGER trg_users_auth_provider BEFORE UPDATE ON users
-FOR EACH ROW EXECUTE FUNCTION validate_user_auth_provider();
+ALTER TABLE publication_revisions
+    ADD COLUMN IF NOT EXISTS profile_id smallint REFERENCES offer_profiles(id),
+    ADD COLUMN IF NOT EXISTS location_id bigint REFERENCES locations(id),
+    ADD COLUMN IF NOT EXISTS week_start date;
+
+UPDATE publication_revisions r
+SET profile_id = w.profile_id,
+    location_id = w.location_id,
+    week_start = w.week_start
+FROM menu_weeks w
+WHERE w.id = r.menu_week_id
+  AND (r.profile_id IS NULL OR r.location_id IS NULL OR r.week_start IS NULL);
+
+ALTER TABLE publication_revisions
+    ALTER COLUMN profile_id SET NOT NULL,
+    ALTER COLUMN location_id SET NOT NULL,
+    ALTER COLUMN week_start SET NOT NULL;
+
+ALTER TABLE publication_revisions
+    DROP CONSTRAINT IF EXISTS publication_revisions_menu_week_id_fkey;
+ALTER TABLE publication_revisions
+    ADD CONSTRAINT publication_revisions_menu_week_id_fkey
+        FOREIGN KEY (menu_week_id) REFERENCES menu_weeks(id) ON DELETE RESTRICT;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_publication_one_active_per_frozen_identity
+    ON publication_revisions(profile_id, location_id, week_start)
+    WHERE withdrawn_at IS NULL;
+
+UPDATE publication_revisions r
+SET withdrawn_at = clock_timestamp(),
+    withdrawal_reason = 'v4-Entwurf darf nicht öffentlich bleiben'
+FROM menu_weeks w
+WHERE w.id = r.menu_week_id
+  AND w.workflow_state IS DISTINCT FROM 'published'
+  AND r.withdrawn_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS publication_lifecycle_events (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    public_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    revision_id bigint NOT NULL REFERENCES publication_revisions(id) ON DELETE RESTRICT,
+    event_type text NOT NULL CHECK (event_type IN ('activated', 'withdrawn')),
+    reason text,
+    actor_user_id bigint REFERENCES users(id),
+    occurred_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    CHECK (
+        (event_type = 'activated' AND (reason IS NULL OR btrim(reason) = ''))
+        OR
+        (event_type = 'withdrawn' AND reason IS NOT NULL AND btrim(reason) <> '')
+    )
+);
+
+INSERT INTO publication_lifecycle_events(revision_id, event_type, actor_user_id, occurred_at)
+SELECT id, 'activated', published_by, published_at
+FROM publication_revisions
+WHERE NOT EXISTS (
+    SELECT 1 FROM publication_lifecycle_events e
+    WHERE e.revision_id = publication_revisions.id AND e.event_type = 'activated'
+);
+
+INSERT INTO publication_lifecycle_events(revision_id, event_type, reason, actor_user_id, occurred_at)
+SELECT id, 'withdrawn', withdrawal_reason, published_by, withdrawn_at
+FROM publication_revisions
+WHERE withdrawn_at IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1 FROM publication_lifecycle_events e
+      WHERE e.revision_id = publication_revisions.id AND e.event_type = 'withdrawn'
+  );
 
 DROP TRIGGER IF EXISTS trg_local_credentials_validate ON local_credentials;
 CREATE TRIGGER trg_local_credentials_validate BEFORE INSERT OR UPDATE ON local_credentials
@@ -847,6 +568,10 @@ DROP TRIGGER IF EXISTS trg_local_credentials_updated_at ON local_credentials;
 CREATE TRIGGER trg_local_credentials_updated_at BEFORE UPDATE ON local_credentials
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
+DROP TRIGGER IF EXISTS trg_users_auth_provider ON users;
+CREATE TRIGGER trg_users_auth_provider BEFORE UPDATE ON users
+FOR EACH ROW EXECUTE FUNCTION validate_user_auth_provider();
+
 DROP TRIGGER IF EXISTS trg_user_role_source ON user_role_cache;
 CREATE TRIGGER trg_user_role_source BEFORE INSERT OR UPDATE ON user_role_cache
 FOR EACH ROW EXECUTE FUNCTION validate_user_role_source();
@@ -855,45 +580,9 @@ DROP TRIGGER IF EXISTS trg_user_role_authz_version ON user_role_cache;
 CREATE TRIGGER trg_user_role_authz_version AFTER INSERT OR UPDATE OR DELETE ON user_role_cache
 FOR EACH ROW EXECUTE FUNCTION bump_user_authz_version();
 
-DROP TRIGGER IF EXISTS trg_locations_updated_at ON locations;
-CREATE TRIGGER trg_locations_updated_at BEFORE UPDATE ON locations
-FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
 DROP TRIGGER IF EXISTS trg_menu_weeks_identity ON menu_weeks;
 CREATE TRIGGER trg_menu_weeks_identity BEFORE UPDATE ON menu_weeks
 FOR EACH ROW EXECUTE FUNCTION validate_menu_week();
-
-DROP TRIGGER IF EXISTS trg_menu_weeks_version ON menu_weeks;
-CREATE TRIGGER trg_menu_weeks_version BEFORE UPDATE ON menu_weeks
-FOR EACH ROW EXECUTE FUNCTION bump_row_version_and_updated_at();
-
-DROP TRIGGER IF EXISTS trg_menu_services_validate ON menu_services;
-CREATE TRIGGER trg_menu_services_validate BEFORE INSERT OR UPDATE ON menu_services
-FOR EACH ROW EXECUTE FUNCTION validate_menu_service();
-
-DROP TRIGGER IF EXISTS trg_menu_services_version ON menu_services;
-CREATE TRIGGER trg_menu_services_version BEFORE UPDATE ON menu_services
-FOR EACH ROW EXECUTE FUNCTION bump_row_version_and_updated_at();
-
-DROP TRIGGER IF EXISTS trg_dish_templates_updated_at ON dish_templates;
-CREATE TRIGGER trg_dish_templates_updated_at BEFORE UPDATE ON dish_templates
-FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
-DROP TRIGGER IF EXISTS trg_menu_items_validate ON menu_items;
-CREATE TRIGGER trg_menu_items_validate BEFORE INSERT OR UPDATE ON menu_items
-FOR EACH ROW EXECUTE FUNCTION validate_menu_item();
-
-DROP TRIGGER IF EXISTS trg_menu_items_version ON menu_items;
-CREATE TRIGGER trg_menu_items_version BEFORE UPDATE ON menu_items
-FOR EACH ROW EXECUTE FUNCTION bump_row_version_and_updated_at();
-
-DROP TRIGGER IF EXISTS trg_menu_item_prices_validate ON menu_item_prices;
-CREATE TRIGGER trg_menu_item_prices_validate BEFORE INSERT OR UPDATE ON menu_item_prices
-FOR EACH ROW EXECUTE FUNCTION validate_menu_item_price();
-
-DROP TRIGGER IF EXISTS trg_menu_item_prices_updated_at ON menu_item_prices;
-CREATE TRIGGER trg_menu_item_prices_updated_at BEFORE UPDATE ON menu_item_prices
-FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 DROP TRIGGER IF EXISTS trg_publication_validate ON publication_revisions;
 CREATE TRIGGER trg_publication_validate BEFORE INSERT ON publication_revisions
@@ -910,28 +599,6 @@ FOR EACH ROW EXECUTE FUNCTION record_publication_lifecycle();
 DROP TRIGGER IF EXISTS trg_publication_lifecycle_immutable ON publication_lifecycle_events;
 CREATE TRIGGER trg_publication_lifecycle_immutable BEFORE UPDATE OR DELETE ON publication_lifecycle_events
 FOR EACH ROW EXECUTE FUNCTION protect_publication_lifecycle_event();
-
-DROP TRIGGER IF EXISTS trg_audit_no_update ON audit_events;
-CREATE TRIGGER trg_audit_no_update BEFORE UPDATE OR DELETE ON audit_events
-FOR EACH ROW EXECUTE FUNCTION protect_audit_event();
-
-ALTER FUNCTION set_updated_at() SET search_path = cafeteria, pg_temp;
-ALTER FUNCTION bump_row_version_and_updated_at() SET search_path = cafeteria, pg_temp;
-ALTER FUNCTION validate_menu_week() SET search_path = cafeteria, pg_temp;
-ALTER FUNCTION validate_menu_service() SET search_path = cafeteria, pg_temp;
-ALTER FUNCTION validate_menu_item() SET search_path = cafeteria, pg_temp;
-ALTER FUNCTION validate_menu_item_price() SET search_path = cafeteria, pg_temp;
-ALTER FUNCTION jsonb_has_patient_forbidden_key(jsonb) SET search_path = cafeteria, pg_temp;
-ALTER FUNCTION jsonb_has_patient_forbidden_value(jsonb) SET search_path = cafeteria, pg_temp;
-ALTER FUNCTION validate_publication_revision() SET search_path = cafeteria, pg_temp;
-ALTER FUNCTION protect_publication_revision() SET search_path = cafeteria, pg_temp;
-ALTER FUNCTION record_publication_lifecycle() SET search_path = cafeteria, pg_temp;
-ALTER FUNCTION protect_publication_lifecycle_event() SET search_path = cafeteria, pg_temp;
-ALTER FUNCTION protect_audit_event() SET search_path = cafeteria, pg_temp;
-ALTER FUNCTION validate_local_credential() SET search_path = cafeteria, pg_temp;
-ALTER FUNCTION validate_user_auth_provider() SET search_path = cafeteria, pg_temp;
-ALTER FUNCTION validate_user_role_source() SET search_path = cafeteria, pg_temp;
-ALTER FUNCTION bump_user_authz_version() SET search_path = cafeteria, pg_temp;
 
 CREATE OR REPLACE VIEW active_publications AS
 SELECT
@@ -954,5 +621,23 @@ JOIN offer_profiles p ON p.id = r.profile_id
 JOIN locations l ON l.id = r.location_id
 WHERE r.withdrawn_at IS NULL
   AND w.workflow_state = 'published';
+
+ALTER FUNCTION set_updated_at() SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION bump_row_version_and_updated_at() SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION validate_menu_week() SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION validate_menu_service() SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION validate_menu_item() SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION validate_menu_item_price() SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION jsonb_has_patient_forbidden_key(jsonb) SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION jsonb_has_patient_forbidden_value(jsonb) SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION validate_publication_revision() SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION protect_publication_revision() SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION record_publication_lifecycle() SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION protect_publication_lifecycle_event() SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION protect_audit_event() SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION validate_local_credential() SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION validate_user_auth_provider() SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION validate_user_role_source() SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION bump_user_authz_version() SET search_path = cafeteria, pg_temp;
 
 COMMIT;
