@@ -17,6 +17,7 @@ overlay = yaml.safe_load((root / 'docker-compose.caddy.yml').read_text(encoding=
 services = base.get('services', {})
 required = {'db', 'redis', 'migrate', 'app', 'backup', 'restore'}
 assert required <= set(services), required - set(services)
+assert base['x-app-image']['image'] == '${APP_IMAGE:?Set APP_IMAGE to an immutable image digest}'
 
 assert services['db']['image'].startswith('postgres:18.')
 assert services['db']['environment']['POSTGRES_USER'] == 'cafeteria_owner'
@@ -53,6 +54,7 @@ assert migrate['command'] == ['python', '/app/manage.py', 'init-db', '--wait-sec
 
 app = services['app']
 assert app['build']['dockerfile'] == 'deployment/Dockerfile'
+assert app['environment']['APP_IMAGE'] == '${APP_IMAGE}'
 assert app['environment']['POSTGRES_HOST'] == 'db'
 assert app['environment']['POSTGRES_USER'] == 'cafeteria_app'
 assert app['environment']['LAST_GOOD_DIR'] == '/var/lib/cafeteria/last-good'
@@ -67,6 +69,9 @@ assert set(app['secrets']) == {
 
 assert services['backup']['environment']['POSTGRES_USER'] == 'cafeteria_backup'
 assert services['restore']['environment']['POSTGRES_USER'] == 'cafeteria_owner'
+assert services['restore']['command'] == [
+    'restore-stage', '/backups/restore.dump', '/backups/restore.dump.sha256'
+]
 assert {'postgres_data', 'postgres_backups', 'redis_data', 'last_good_data'} <= set(base.get('volumes', {}))
 assert {
     'postgres_owner_password', 'postgres_app_password', 'postgres_backup_password',
@@ -78,7 +83,9 @@ assert overlay['services']['caddy']['environment']['CAFETERIA_DOMAIN'] == '${CAF
 
 example = (root / '.env.example').read_text(encoding='utf-8')
 for token in (
-    'APP_ENV=production', 'APP_PUBLIC_BASE_URL=https://dishboard.joelduss.xyz',
+    'APP_ENV=production',
+    'APP_IMAGE=registry.example.invalid/dishboard@sha256:REPLACE_WITH_IMAGE_DIGEST',
+    'APP_PUBLIC_BASE_URL=https://dishboard.joelduss.xyz',
     'DEMO_MODE=false', 'SEED_DEMO=false', 'DEMO_TODAY=', 'SESSION_COOKIE_SECURE=true',
     'LAST_GOOD_DIR=/var/lib/cafeteria/last-good',
     'ENTRA_ENABLED=false', 'CAFETERIA_DOMAIN=dishboard.joelduss.xyz',

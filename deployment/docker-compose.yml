@@ -4,7 +4,7 @@ x-app-image: &app-image
   build:
     context: ..
     dockerfile: deployment/Dockerfile
-  image: suedhang-cafeteria:${IMAGE_TAG:-local}
+  image: ${APP_IMAGE:?Set APP_IMAGE to an immutable image digest}
 
 x-common-database: &common-database
   POSTGRES_HOST: db
@@ -139,6 +139,7 @@ services:
     env_file: [.env]
     environment:
       <<: *common-database
+      APP_IMAGE: ${APP_IMAGE}
       POSTGRES_USER: cafeteria_app
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_app_password
       REDIS_HOST: redis
@@ -227,7 +228,7 @@ services:
       - postgres_backups:/backups
       - ./postgres-backup.sh:/usr/local/bin/postgres-backup.sh:ro
     entrypoint: ["/bin/sh", "/usr/local/bin/postgres-backup.sh"]
-    command: ["restore", "/backups/restore.dump"]
+    command: ["restore-stage", "/backups/restore.dump", "/backups/restore.dump.sha256"]
     networks: [cafeteria_internal]
     security_opt: ["no-new-privileges:true"]
     cap_drop: ["ALL"]

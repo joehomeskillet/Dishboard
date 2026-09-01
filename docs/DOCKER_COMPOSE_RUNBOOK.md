@@ -18,33 +18,37 @@
 cd deployment
 ./bootstrap.sh
 docker compose config
-docker compose up --build -d
+docker compose build app migrate
+docker compose up -d
 docker compose ps
 ```
 
-Die mit `bootstrap.sh` erzeugte `.env` ist produktionssicher. Für eine lokale Demo darin bewusst `APP_ENV=development`, `APP_PUBLIC_BASE_URL=http://localhost:8080`, `DEMO_MODE=true`, `SEED_DEMO=true`, `DEMO_TODAY=2026-09-01` und `SESSION_COOKIE_SECURE=false` setzen. Öffentliche URLs besitzen trotzdem keinen Datumsparameter.
+Die mit `bootstrap.sh` erzeugte `.env` ist produktionssicher. Für eine lokale Demo darin bewusst `APP_IMAGE=suedhang-cafeteria:local`, `APP_ENV=development`, `APP_PUBLIC_BASE_URL=http://localhost:8080`, `DEMO_MODE=true`, `SEED_DEMO=true`, `DEMO_TODAY=2026-09-01` und `SESSION_COOKIE_SECURE=false` setzen. Öffentliche URLs besitzen trotzdem keinen Datumsparameter.
 
 ## Produktionswerte
 
 ```dotenv
 APP_ENV=production
+APP_IMAGE=registry.example.invalid/dishboard@sha256:<64-hex-image-digest>
 DEMO_MODE=false
 SEED_DEMO=false
 DEMO_TODAY=
-APP_PUBLIC_BASE_URL=https://cafeteria.suedhang.ch
+APP_PUBLIC_BASE_URL=https://dishboard.joelduss.xyz
+CAFETERIA_DOMAIN=dishboard.joelduss.xyz
 SESSION_COOKIE_SECURE=true
 POSTGRES_SSLMODE=prefer
 ```
 
 Tenant-ID, Client-ID und Secrets müssen real gesetzt sein. Secrets liegen unter `deployment/secrets/` und nicht in `.env`. Der Redis-Healthcheck ruft ein Skript auf; das Passwort steht nicht im Healthcheck-Kommando.
 
-Der App-Entrypoint verweigert den Produktionsstart bei HTTP, einer Abweichung zwischen `APP_PUBLIC_BASE_URL` und `CAFETERIA_DOMAIN`, unsicheren Session-Cookies sowie bekannten Entra-Platzhaltern. `migrate` überschreibt die Laufzeitwerte mit `APP_ENV=migration`, ausgeschaltetem Demo-/Entra-Modus und erhält nur PostgreSQL-Secrets; Flask-, Redis- und Entra-Secrets werden dort nicht benötigt.
+Der App-Entrypoint akzeptiert in Produktion nur den exakten Ursprung `https://dishboard.joelduss.xyz` (ohne Port, Pfad, Query, Fragment oder Userinfo), die exakte Domain und ein per `@sha256:` fixiertes `APP_IMAGE`. Unsichere Session-Cookies und bekannte Entra-Platzhalter werden ebenfalls abgelehnt. `migrate` überschreibt die Laufzeitwerte mit `APP_ENV=migration`, ausgeschaltetem Demo-/Entra-Modus und erhält nur PostgreSQL-Secrets; Flask-, Redis- und Entra-Secrets werden dort nicht benötigt.
 
 ## Startprüfung
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.caddy.yml config
-docker compose -f docker-compose.yml -f docker-compose.caddy.yml up --build -d
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml pull app migrate
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d
 docker compose -f docker-compose.yml -f docker-compose.caddy.yml ps
 docker compose -f docker-compose.yml -f docker-compose.caddy.yml logs --tail=200 migrate app db redis caddy
 
@@ -69,20 +73,38 @@ Das Backup erhält SHA-256-Datei und JSON-Manifest. Mindestens eine Kopie wird a
 ./restore.sh /absoluter/pfad/cafeteria-YYYYMMDDTHHMMSSZ.dump
 ```
 
-Der Restore wird zuerst in einem separaten Testsystem ausgeführt. Anschliessend: Datenbankvalidator, beide Snapshot-APIs, Patienten-Sonntagabend und Cafeteria-Geschlossenfläche prüfen.
+Die gleichnamige `.dump.sha256` ist verpflichtend. Das Skript prüft den Hash, stellt zunächst eine isolierte Kandidaten-Datenbank wieder her und führt dort Migration und Datenbankvalidator aus. Erst danach stoppt es `app` und `backup`, tauscht die Datenbanknamen und validiert erneut. Jeder Fehler nach dem Stopp löst Datenbank-Rollback und Neustart aus; ein fehlerhafter Kandidat berührt die produktive Datenbank nicht. Anschliessend beide Snapshot-APIs, Patienten-Sonntagabend und Cafeteria-Geschlossenfläche prüfen.
 
 ## Update
 
 ```bash
-./backup.sh
-docker compose -f docker-compose.yml -f docker-compose.caddy.yml build --pull
+previous_image=$(sed -n 's/^APP_IMAGE=//p' .env)
+printf '%s\n' "$previous_image" > .previous-app-image
+backup_path=$(./backup.sh /srv/dishboard-backups)
+printf '%s\n' "$backup_path" > .previous-database-backup
+
+# APP_IMAGE in .env auf den neuen, unveränderlichen registry/repo@sha256:<digest> setzen.
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml pull app migrate
 docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d db redis
 docker compose -f docker-compose.yml -f docker-compose.caddy.yml run --rm migrate
 docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d app backup caddy
 docker compose -f docker-compose.yml -f docker-compose.caddy.yml ps
 ```
 
-Die mitgelieferte Migration ist eine versionierte SQL-Baseline. Das Paket behauptet kein Alembic-Verfahren. Spätere SQL-Migrationen müssen nummeriert, wiederholbar getestet und mit einem Restorepfad dokumentiert werden.
+`backup.sh` legt Dump, JSON-Manifest und Checksum im absoluten Host-Verzeichnis ab; die gleichnamige `.sha256` muss beim Dump bleiben. Image-Referenz und Backup-Pfad bilden gemeinsam den Rollback-Punkt. Tags wie `local`, `latest` oder `production` sind kein Ersatz für den Digest.
+
+Expliziter Rollback bei einer nicht rückwärtskompatiblen Datenbankänderung:
+
+```bash
+previous_image=$(cat .previous-app-image)
+previous_backup=$(cat .previous-database-backup)
+sed -i "s|^APP_IMAGE=.*$|APP_IMAGE=$previous_image|" .env
+./restore.sh "$previous_backup"
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d app backup caddy
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml ps
+```
+
+Ist die Migration nachweislich rückwärtskompatibel, darf der `restore.sh`-Schritt entfallen; die gespeicherte Image-Referenz bleibt trotzdem Pflicht. Die mitgelieferte Migration ist eine versionierte SQL-Baseline. Das Paket behauptet kein Alembic-Verfahren. Spätere SQL-Migrationen müssen nummeriert, wiederholbar getestet und mit einem Restorepfad dokumentiert werden.
 
 ## Störung
 

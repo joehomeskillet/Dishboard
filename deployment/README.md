@@ -4,12 +4,13 @@ Das Deployment startet PostgreSQL, Redis, SQL-Baseline, Flask/Gunicorn sowie Bac
 
 ## Lokale Demo
 
-Die Standarddatei `.env.example` ist fuer den oeffentlichen Host `dishboard.joelduss.xyz` produktionssicher vorbelegt. Fuer eine lokale Demo nach `bootstrap.sh` in `.env` bewusst `APP_ENV=development`, `APP_PUBLIC_BASE_URL=http://localhost:8080`, `DEMO_MODE=true`, `SEED_DEMO=true`, `DEMO_TODAY=2026-09-01` und `SESSION_COOKIE_SECURE=false` setzen.
+Die Standarddatei `.env.example` ist fuer den oeffentlichen Host `dishboard.joelduss.xyz` produktionssicher vorbelegt. Fuer eine lokale Demo nach `bootstrap.sh` in `.env` bewusst `APP_IMAGE=suedhang-cafeteria:local`, `APP_ENV=development`, `APP_PUBLIC_BASE_URL=http://localhost:8080`, `DEMO_MODE=true`, `SEED_DEMO=true`, `DEMO_TODAY=2026-09-01` und `SESSION_COOKIE_SECURE=false` setzen.
 
 ```bash
 ./bootstrap.sh
 docker compose config
-docker compose up --build -d
+docker compose build app migrate
+docker compose up -d
 ```
 
 | Ansicht | URL |
@@ -23,14 +24,15 @@ Der Demo-Modus darf nie mit `APP_ENV=production` verwendet werden. Player-URLs a
 
 ## Produktion
 
-`bootstrap.sh` erzeugt nur technische Secrets und kopiert die produktionssicheren Defaults nach `.env`. Es provisioniert weder Entra noch lokale Benutzer. Vor dem Produktionsstart hinterlegt der Betreiber reale Entra-IDs sowie das Client Secret; erst danach `ENTRA_ENABLED=true` setzen. Der App-Entrypoint lehnt Demo-Werte, unsichere oder abweichende oeffentliche URLs, unsichere Session-Cookies sowie bekannte Entra-Platzhalter ab. Der Migrationsdienst erzwingt separat `APP_ENV=migration` und erhaelt ausschliesslich die drei PostgreSQL-Secrets.
+`bootstrap.sh` erzeugt nur technische Secrets und kopiert die produktionssicheren Defaults nach `.env`. Es provisioniert weder Entra noch lokale Benutzer. Vor dem Produktionsstart hinterlegt der Betreiber reale Entra-IDs sowie das Client Secret, setzt `ENTRA_ENABLED=true` und ersetzt den `APP_IMAGE`-Platzhalter durch eine unveraenderliche `registry/repo@sha256:<digest>`-Referenz. Der App-Entrypoint lehnt Demo-Werte, jede Abweichung vom exakten oeffentlichen Ursprung, mutable Images, unsichere Session-Cookies sowie bekannte Entra-Platzhalter ab. Der Migrationsdienst erzwingt separat `APP_ENV=migration` und erhaelt ausschliesslich die drei PostgreSQL-Secrets.
 
 Der Produktionsstart verwendet immer Basisdatei und Caddy-Overlay:
 
 ```bash
 ./bootstrap.sh
 docker compose -f docker-compose.yml -f docker-compose.caddy.yml config
-docker compose -f docker-compose.yml -f docker-compose.caddy.yml up --build -d
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml pull app migrate
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d
 docker compose -f docker-compose.yml -f docker-compose.caddy.yml ps
 ```
 
