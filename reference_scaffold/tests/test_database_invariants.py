@@ -151,8 +151,9 @@ def test_migration_plan_is_ordered_and_preserves_0001_bytes() -> None:
     assert [(migration.version, migration.path.name) for migration in plan] == [
         (4, '0001_initial_postgresql.sql'),
         (5, '0002_profile_publication_and_local_auth.sql'),
+        (6, '0003_patient_key_and_withdrawal_contracts.sql'),
     ]
-    assert database.SCHEMA_VERSION == 5
+    assert database.SCHEMA_VERSION == 6
     baseline = ROOT / 'database' / 'migrations' / '0001_initial_postgresql.sql'
     assert hashlib.sha256(baseline.read_bytes()).hexdigest() == (
         'd1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0'
@@ -168,9 +169,10 @@ def test_empty_database_runs_0001_then_0002(database_engine: Engine) -> None:
         local_credentials = connection.execute(
             text("SELECT to_regclass('cafeteria.local_credentials')")
         ).scalar_one()
-    assert [row.version for row in rows] == [4, 5]
+    assert [row.version for row in rows] == [4, 5, 6]
     assert rows[0].name == '0001_initial_postgresql.sql'
     assert rows[1].name == '0002_profile_publication_and_local_auth.sql'
+    assert rows[2].name == '0003_patient_key_and_withdrawal_contracts.sql'
     assert local_credentials == 'cafeteria.local_credentials'
 
 
@@ -200,7 +202,7 @@ def test_v4_fixture_migrates_without_replaying_0001() -> None:
         versions = connection.execute(
             text('SELECT version FROM cafeteria.schema_migrations ORDER BY version')
         ).scalars().all()
-    assert versions == [4, 5]
+    assert versions == [4, 5, 6]
     _drop_schema(engine)
     engine.dispose()
 
@@ -470,19 +472,37 @@ def test_active_publications_bind_frozen_identity_and_published_state(
     assert row['profile_code'] == 'patient'
     assert str(row['week_start']) == '2026-08-31'
     assert int(row['n']) == 1
-    with database_engine.begin() as connection:
-        connection.execute(
-            text("UPDATE cafeteria.menu_weeks SET workflow_state='draft' WHERE id=:id"),
-            {'id': week_id},
-        )
+    with pytest.raises(DBAPIError, match='Publikationsrevision kann nicht'):
+        with database_engine.begin() as connection:
+            connection.execute(
+                text("UPDATE cafeteria.menu_weeks SET workflow_state='draft' WHERE id=:id"),
+                {'id': week_id},
+            )
     with database_engine.connect() as connection:
         visible = connection.execute(
             text('SELECT count(*) FROM cafeteria.active_publications')
         ).scalar_one()
-    assert int(visible) == 0
+    assert int(visible) == 1
 
 
-@pytest.mark.parametrize('key', ('cost', 'amount', 'kosten', 'betrag'))
+@pytest.mark.parametrize(
+    'key',
+    (
+        'cost',
+        'amount',
+        'kosten',
+        'betrag',
+        'unitPrice',
+        'internalRappen',
+        'totalAmount',
+        'mealCost',
+        'unit-price',
+        'unit\u200bPrice',
+        'total\u2060Amount',
+        'unitPri\u0600ce',
+        'mealCo\U000e0061st',
+    ),
+)
 @LIVE_DATABASE
 def test_patient_snapshot_rejects_price_key_aliases(database_engine: Engine, key: str) -> None:
     payload = copy.deepcopy(_snapshot('patient'))
@@ -492,12 +512,31 @@ def test_patient_snapshot_rejects_price_key_aliases(database_engine: Engine, key
         _insert_revision(database_engine, week_id, 'patient', snapshot=payload)
 
 
+@pytest.mark.parametrize(
+    'key',
+    (
+        'unitPrice', 'internalRappen', 'totalAmount', 'mealCost', 'unit-price',
+        'unit\u200bPrice', 'unitPri\u0600ce', 'mealCo\U000e0061st',
+    ),
+)
+def test_python_patient_snapshot_rejects_normalized_price_key_aliases(key: str) -> None:
+    payload = copy.deepcopy(_snapshot('patient'))
+    payload['days'][0]['services'][0]['options'][0][key] = 1100
+    with pytest.raises(ValueError, match='Kostenschlüssel'):
+        database.validate_snapshot_payload('patient', payload)
+
+
+@pytest.mark.parametrize(
+    'clock_text',
+    ('Ausgabe 11.30 Uhr', 'Ausgabe 11.00 Uhr', 'Mitternacht 00:00 Uhr', 'Mitternacht 00.00 Uhr'),
+)
 @LIVE_DATABASE
 def test_patient_snapshot_allows_serving_time_but_rejects_money_decimals(
     database_engine: Engine,
+    clock_text: str,
 ) -> None:
     allowed = copy.deepcopy(_snapshot('patient'))
-    allowed['days'][0]['services'][0]['options'][0]['note'] = 'Ausgabe 11.30 Uhr'
+    allowed['days'][0]['services'][0]['options'][0]['note'] = clock_text
     week_id = _insert_week(database_engine, 'patient', 'published')
     revision_id = _insert_revision(database_engine, week_id, 'patient', snapshot=allowed)
     assert revision_id > 0
@@ -506,6 +545,18 @@ def test_patient_snapshot_allows_serving_time_but_rejects_money_decimals(
     week_id_two = _insert_week(database_engine, 'patient', 'published', '2026-09-07')
     with pytest.raises(DBAPIError, match='Kosteninformationen'):
         _insert_revision(database_engine, week_id_two, 'patient', snapshot=rejected)
+
+
+def test_python_patient_snapshot_allows_clocks_but_rejects_prices() -> None:
+    for note in ('Ausgabe 11.00 Uhr', 'Mitternacht 00:00 Uhr', 'Mitternacht 00.00 Uhr'):
+        allowed = copy.deepcopy(_snapshot('patient'))
+        allowed['days'][0]['services'][0]['options'][0]['note'] = note
+        database.validate_snapshot_payload('patient', allowed)
+    for note in ('Menü 11.00', 'Menü CHF 11.00', 'Menü Fr. 11,00'):
+        rejected = copy.deepcopy(_snapshot('patient'))
+        rejected['days'][0]['services'][0]['options'][0]['note'] = note
+        with pytest.raises(ValueError, match='Kostenwerte'):
+            database.validate_snapshot_payload('patient', rejected)
 
 
 @LIVE_DATABASE
@@ -539,16 +590,43 @@ def test_withdrawal_history_allows_replacement_but_keeps_snapshot_bytes(
             text('SELECT content_hash_sha256 FROM cafeteria.publication_revisions WHERE id=:id'),
             {'id': first_id},
         ).scalar_one()
-        connection.execute(
-            text(
-                '''
-                UPDATE cafeteria.publication_revisions
-                SET withdrawn_at=clock_timestamp(), withdrawal_reason='Korrektur der Woche'
-                WHERE id=:id
-                '''
-            ),
-            {'id': first_id},
+        published_by = int(
+            connection.execute(
+                text('SELECT published_by FROM cafeteria.publication_revisions WHERE id=:id'),
+                {'id': first_id},
+            ).scalar_one()
         )
+        withdrawal_actor = int(
+            connection.execute(
+                text("SELECT id FROM cafeteria.users WHERE public_id='00000000-0000-0000-0000-000000000002'")
+            ).scalar_one()
+        )
+    assert withdrawal_actor != published_by
+    with pytest.raises(DBAPIError, match='Rückzugsakteur'):
+        with database_engine.begin() as connection:
+            connection.execute(
+                text('SELECT cafeteria.withdraw_publication_revision(:id, :actor, :reason)'),
+                {'id': first_id, 'actor': published_by, 'reason': 'Falscher Akteur'},
+            )
+    with pytest.raises(DBAPIError, match='kontrollierten Rückzug'):
+        with database_engine.begin() as connection:
+            connection.execute(
+                text(
+                    '''
+                    UPDATE cafeteria.publication_revisions
+                    SET withdrawn_at=clock_timestamp(), withdrawal_reason='Freitext', withdrawn_by=:actor
+                    WHERE id=:id
+                    '''
+                ),
+                {'actor': withdrawal_actor, 'id': first_id},
+            )
+    with database_engine.begin() as connection:
+        before = connection.execute(text('SELECT clock_timestamp()')).scalar_one()
+        returned_at = connection.execute(
+            text('SELECT cafeteria.withdraw_publication_revision(:id, :actor, :reason)'),
+            {'id': first_id, 'actor': withdrawal_actor, 'reason': 'Korrektur der Woche'},
+        ).scalar_one()
+        after = connection.execute(text('SELECT clock_timestamp()')).scalar_one()
     replacement = copy.deepcopy(_snapshot('patient'))
     replacement['revision_id'] = 'PAT-2026-KW36-R2'
     with database_engine.begin() as connection:
@@ -576,7 +654,7 @@ def test_withdrawal_history_allows_replacement_but_keeps_snapshot_bytes(
         events = connection.execute(
             text(
                 '''
-                SELECT revision_id, event_type
+                SELECT revision_id, event_type, reason, actor_user_id, occurred_at
                 FROM cafeteria.publication_lifecycle_events
                 ORDER BY id
                 '''
@@ -589,13 +667,42 @@ def test_withdrawal_history_allows_replacement_but_keeps_snapshot_bytes(
             text('SELECT content_hash_sha256 FROM cafeteria.publication_revisions WHERE id=:id'),
             {'id': first_id},
         ).scalar_one()
+        withdrawal_row = connection.execute(
+            text(
+                '''
+                SELECT withdrawn_at, withdrawn_by, withdrawal_reason
+                FROM cafeteria.publication_revisions WHERE id=:id
+                '''
+            ),
+            {'id': first_id},
+        ).one()
     assert [(int(row.revision_id), row.event_type) for row in events] == [
         (first_id, 'activated'),
         (first_id, 'withdrawn'),
         (second_id, 'activated'),
     ]
+    withdrawn_event = events[1]
+    assert int(withdrawn_event.actor_user_id) == withdrawal_actor
+    assert int(withdrawn_event.actor_user_id) != published_by
+    assert withdrawn_event.reason == 'Korrektur der Woche'
+    assert withdrawn_event.occurred_at == returned_at == withdrawal_row.withdrawn_at
+    assert before <= returned_at <= after
+    assert int(withdrawal_row.withdrawn_by) == withdrawal_actor
+    assert withdrawal_row.withdrawal_reason == 'Korrektur der Woche'
     assert active == ['PAT-2026-KW36-R2']
     assert frozen_hash == original_hash
+    with pytest.raises(DBAPIError, match='unveränderlich'):
+        with database_engine.begin() as connection:
+            connection.execute(
+                text(
+                    '''
+                    UPDATE cafeteria.publication_lifecycle_events
+                    SET reason='Manipuliert'
+                    WHERE revision_id=:id AND event_type='withdrawn'
+                    '''
+                ),
+                {'id': first_id},
+            )
     with pytest.raises(DBAPIError, match='unveränderlich'):
         with database_engine.begin() as connection:
             connection.execute(
@@ -805,13 +912,19 @@ def test_v4_draft_revision_is_withdrawn_and_not_public() -> None:
             )
         ).one()
         events = connection.execute(
-            text('SELECT event_type FROM cafeteria.publication_lifecycle_events ORDER BY id')
-        ).scalars().all()
-    assert versions == [4, 5]
+            text(
+                '''
+                SELECT event_type, actor_user_id
+                FROM cafeteria.publication_lifecycle_events ORDER BY id
+                '''
+            )
+        ).all()
+    assert versions == [4, 5, 6]
     assert int(public_rows) == 0
     assert withdrawn[0] is True
     assert 'v4' in withdrawn[1]
-    assert list(events) == ['activated', 'withdrawn']
+    assert [row.event_type for row in events] == ['activated', 'withdrawn']
+    assert events[1].actor_user_id is None
     _drop_schema(engine)
     engine.dispose()
 

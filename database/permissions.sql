@@ -14,8 +14,9 @@ TO cafeteria_app;
 
 GRANT SELECT, INSERT, UPDATE ON users, local_credentials TO cafeteria_app;
 GRANT SELECT, INSERT ON publication_revisions TO cafeteria_app;
-GRANT UPDATE (withdrawn_at, withdrawal_reason) ON publication_revisions TO cafeteria_app;
-GRANT SELECT, INSERT ON publication_lifecycle_events TO cafeteria_app;
+REVOKE UPDATE (withdrawn_at, withdrawal_reason, withdrawn_by) ON publication_revisions FROM cafeteria_app;
+REVOKE INSERT, UPDATE, DELETE ON publication_lifecycle_events FROM cafeteria_app;
+GRANT EXECUTE ON FUNCTION withdraw_publication_revision(bigint, bigint, text) TO cafeteria_app;
 
 GRANT SELECT ON
     schema_migrations, application_roles, locations, offer_profiles,

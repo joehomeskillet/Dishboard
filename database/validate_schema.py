@@ -11,6 +11,7 @@ import json
 import os
 import re
 import sys
+import unicodedata
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, NoReturn
@@ -19,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = ROOT / 'database' / 'schema.sql'
 MIGRATION_0001 = ROOT / 'database' / 'migrations' / '0001_initial_postgresql.sql'
 MIGRATION_0002 = ROOT / 'database' / 'migrations' / '0002_profile_publication_and_local_auth.sql'
+MIGRATION_0003 = ROOT / 'database' / 'migrations' / '0003_patient_key_and_withdrawal_contracts.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
 PAT_JSON = ROOT / 'demo' / 'snapshots' / 'patienten_kw36.json'
@@ -27,6 +29,10 @@ FORBIDDEN_PATIENT_KEYS = {
     'price', 'prices', 'preis', 'preise', 'internal_rappen', 'external_rappen',
     'preis_intern', 'preis_extern', 'currency', 'chf', 'rappen',
     'cost', 'costs', 'amount', 'amounts', 'kosten', 'betrag', 'fee', 'tarif', 'tariff', 'charge',
+}
+FORBIDDEN_PATIENT_KEY_PARTS = {
+    'price', 'prices', 'preis', 'preise', 'cost', 'costs', 'amount', 'amounts',
+    'kosten', 'betrag', 'rappen', 'currency', 'chf', 'fee', 'tarif', 'tariff', 'charge',
 }
 
 
@@ -46,15 +52,20 @@ def table_block(sql: str, name: str) -> str:
     return match.group(1)
 
 
+def normalize_patient_key(key: str) -> str:
+    without_format_chars = ''.join(char for char in key if unicodedata.category(char) != 'Cf')
+    snake_case = re.sub(r'(?<=[a-z0-9])(?=[A-Z])', '_', without_format_chars)
+    return re.sub(r'[\W_]+', '_', snake_case, flags=re.UNICODE).strip('_').lower()
+
+
 def forbidden_key_paths(value: Any, path: str = '$') -> list[str]:
     found: list[str] = []
     if isinstance(value, dict):
         for key, child in value.items():
-            lower = key.lower()
+            normalized = normalize_patient_key(key)
             if (
-                lower in FORBIDDEN_PATIENT_KEYS
-                or re.search(r'(^|_)(price|preis|cost|amount|kosten|betrag)(_|$)', lower)
-                or lower.endswith('_rappen')
+                normalized in FORBIDDEN_PATIENT_KEYS
+                or bool(set(normalized.split('_')) & FORBIDDEN_PATIENT_KEY_PARTS)
             ):
                 found.append(f'{path}.{key}')
             found.extend(forbidden_key_paths(child, f'{path}.{key}'))
@@ -96,8 +107,8 @@ def run_live_check() -> dict[str, Any]:
                     '''
                 )
             ).mappings().one()
-        if int(row['schema_version']) != 5:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 5.")
+        if int(row['schema_version']) != 6:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 6.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
         return {
@@ -176,6 +187,7 @@ def main() -> int:
     try:
         sql = SCHEMA.read_text(encoding='utf-8')
         migration_0002 = MIGRATION_0002.read_text(encoding='utf-8')
+        migration_0003 = MIGRATION_0003.read_text(encoding='utf-8')
         seed = SEED.read_text(encoding='utf-8')
         baseline_checksum = hashlib.sha256(MIGRATION_0001.read_bytes()).hexdigest()
         if baseline_checksum != 'd1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0':
@@ -206,6 +218,8 @@ def main() -> int:
             'validate_menu_week()',
             'r.profile_id',
             "w.workflow_state = 'published'",
+            'withdraw_publication_revision',
+            'withdrawn_by',
         ):
             if fragment not in sql:
                 fail(f'Pflichtfragment fehlt: {fragment}')
@@ -224,6 +238,16 @@ def main() -> int:
         ):
             if fragment not in migration_0002:
                 fail(f'Pflichtfragment in 0002 fehlt: {fragment}')
+
+        for fragment in (
+            'normalize_patient_key',
+            'withdraw_publication_revision',
+            'withdrawn_by',
+            'Publikationsrevision kann nicht zurückgestuft werden',
+            'SECURITY DEFINER',
+        ):
+            if fragment not in migration_0003:
+                fail(f'Pflichtfragment in 0003 fehlt: {fragment}')
 
         for name in ('menu_weeks', 'menu_services', 'menu_items', 'dish_templates'):
             block = table_block(sql, name).lower()
@@ -260,10 +284,11 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 5,
+            'schema_version': 6,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
+                '0003_patient_key_and_withdrawal_contracts.sql': hashlib.sha256(MIGRATION_0003.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -11,8 +13,8 @@ from psycopg import sql
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
-SCHEMA_VERSION = 5
-APPLICATION_VERSION = 'dishboard-schema-v5'
+SCHEMA_VERSION = 6
+APPLICATION_VERSION = 'dishboard-schema-v6'
 SYSTEM_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000001'
 DEMO_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000002'
 PROFILES = {'patient', 'staff_guest'}
@@ -20,6 +22,10 @@ PATIENT_FORBIDDEN_KEYS = {
     'price', 'prices', 'preis', 'preise', 'internal_rappen', 'external_rappen',
     'preis_intern', 'preis_extern', 'currency', 'chf', 'rappen',
     'cost', 'costs', 'amount', 'amounts', 'kosten', 'betrag', 'fee', 'tarif', 'tariff', 'charge',
+}
+PATIENT_FORBIDDEN_KEY_PARTS = {
+    'price', 'prices', 'preis', 'preise', 'cost', 'costs', 'amount', 'amounts',
+    'kosten', 'betrag', 'rappen', 'currency', 'chf', 'fee', 'tarif', 'tariff', 'charge',
 }
 
 
@@ -33,6 +39,7 @@ class Migration:
 MIGRATION_FILES = (
     (4, '0001_initial_postgresql.sql'),
     (5, '0002_profile_publication_and_local_auth.sql'),
+    (6, '0003_patient_key_and_withdrawal_contracts.sql'),
 )
 MIGRATION_LOCK_ID = 731_905_005
 
@@ -288,24 +295,50 @@ def validate_database(engine: Engine) -> dict[str, Any]:
     return result
 
 
+def _normalize_patient_key(key: str) -> str:
+    without_format_chars = ''.join(char for char in key if unicodedata.category(char) != 'Cf')
+    snake_case = re.sub(r'(?<=[a-z0-9])(?=[A-Z])', '_', without_format_chars)
+    return re.sub(r'[\W_]+', '_', snake_case, flags=re.UNICODE).strip('_').lower()
+
+
 def _forbidden_patient_paths(value: Any, path: str = '$') -> list[str]:
     found: list[str] = []
     if isinstance(value, dict):
         for key, child in value.items():
-            lower = key.lower()
+            normalized = _normalize_patient_key(key)
             if (
-                lower in PATIENT_FORBIDDEN_KEYS
-                or lower.endswith('_rappen')
-                or '_price' in lower or 'price_' in lower
-                or '_preis' in lower or 'preis_' in lower
-                or '_cost' in lower or 'cost_' in lower
-                or '_amount' in lower or 'amount_' in lower
+                normalized in PATIENT_FORBIDDEN_KEYS
+                or bool(set(normalized.split('_')) & PATIENT_FORBIDDEN_KEY_PARTS)
             ):
                 found.append(f'{path}.{key}')
             found.extend(_forbidden_patient_paths(child, f'{path}.{key}'))
     elif isinstance(value, list):
         for index, child in enumerate(value):
             found.extend(_forbidden_patient_paths(child, f'{path}[{index}]'))
+    return found
+
+
+def _forbidden_patient_value_paths(value: Any, path: str = '$') -> list[str]:
+    found: list[str] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            found.extend(_forbidden_patient_value_paths(child, f'{path}.{key}'))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            found.extend(_forbidden_patient_value_paths(child, f'{path}[{index}]'))
+    elif type(value) is float:
+        found.append(path)
+    elif isinstance(value, str):
+        without_clocks = re.sub(
+            r'(?<!\d)(?:[01]\d|2[0-3])(?::[0-5]\d(?:\s*Uhr)?|\.[0-5]\d\s*Uhr)(?!\d)',
+            '',
+            value,
+            flags=re.IGNORECASE,
+        )
+        if re.search(r'(?i)(?:\bCHF\b|\bFr\.)', without_clocks) or re.search(
+            r'(?<!\d)\d+[.,]\d{2}(?!\d)', without_clocks
+        ):
+            found.append(path)
     return found
 
 
@@ -337,9 +370,9 @@ def validate_snapshot_payload(profile_code: str, snapshot: dict[str, Any]) -> No
         paths = _forbidden_patient_paths(snapshot)
         if paths:
             raise ValueError('Patienten-Snapshot enthält unzulässige Kostenschlüssel: ' + ', '.join(paths[:5]))
-        text_payload = json.dumps(snapshot, ensure_ascii=False)
-        if 'CHF' in text_payload or '0.00' in text_payload:
-            raise ValueError('Patienten-Snapshot enthält unzulässige Kostenwerte.')
+        value_paths = _forbidden_patient_value_paths(snapshot)
+        if value_paths:
+            raise ValueError('Patienten-Snapshot enthält unzulässige Kostenwerte: ' + ', '.join(value_paths[:5]))
         for day in days:
             services = day.get('services', [])
             meals = {service.get('meal_code') for service in services}
