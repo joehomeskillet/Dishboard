@@ -27,13 +27,30 @@ PATIENT_ALLOWED_KEYS = frozenset({
 PATIENT_FORBIDDEN_KEYS = {
     'price', 'prices', 'preis', 'preise', 'internal_rappen', 'external_rappen',
     'preis_intern', 'preis_extern', 'currency', 'chf', 'rappen', 'cost', 'costs',
-    'billing', 'billing_label', 'intern', 'extern',
+    'amount', 'amounts', 'betrag', 'waehrung', 'währung', 'billing',
+    'billing_label', 'intern', 'extern',
 }
 PATIENT_FORBIDDEN_VALUE_RE = re.compile(
-    r'(?<![A-Za-zÄÖÜäöü])(?:CHF|Intern|Extern)(?![A-Za-zÄÖÜäöü])'
-    r'|(?<!\d)0\.00(?!\d)'
-    r'|Preis\s+\d+[.,]\d{2}',
-    re.IGNORECASE,
+    r'''
+    (?<![^\W_])
+    (?:
+        CHF|price|prices|cost|costs|amount|amounts|currency|Preis|Preise|Kosten|Betrag|
+        Währung|Waehrung|Rappen?|internal|external|intern(?:e[nrms]?)?|extern(?:e[nrms]?)?|
+        inkludiert|inbegriffen|gratis|kosten(?:los|frei)
+    )
+    (?![^\W_])
+    |
+    (?<![^\W_])
+    (?:EUR|USD|S?Fr\.?|Franken|Euro|€|\$)\s*\d+(?:[.,]\d{1,2}|[.,]?[–-])?
+    (?![^\W_])
+    |
+    (?<![^\W_])
+    \d+(?:[.,]\d{1,2}|[.,]?[–-])?\s*(?:CHF|EUR|USD|S?Fr\.?|Franken|Euro|€|\$|Rappen?)
+    (?![^\W_])
+    |
+    (?<![\d.,])0(?:[.,]00|[.,]?[–-])(?![\d.,])
+    ''',
+    re.IGNORECASE | re.VERBOSE,
 )
 
 
@@ -219,6 +236,11 @@ def _forbidden_patient_paths(value: Any, path: str = '$') -> list[str]:
                 or '_preis' in lower
                 or 'preis_' in lower
                 or 'cost' in lower
+                or 'amount' in lower
+                or 'currency' in lower
+                or 'betrag' in lower
+                or 'waehr' in lower
+                or 'währ' in lower
                 or 'billing' in lower
             ):
                 found.append(child_path)

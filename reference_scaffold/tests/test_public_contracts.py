@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'reference_scaffold'))
 sys.path.insert(0, str(ROOT / 'tools'))
 
+from cafeteria.admin import routes as admin_routes  # noqa: E402
 from cafeteria.api import routes as api_routes  # noqa: E402
 from cafeteria.db import validate_snapshot_payload  # noqa: E402
 from cafeteria.public import routes as public_routes  # noqa: E402
@@ -35,6 +36,36 @@ PUBLIC_QUERY_PATHS = (
     '/signage/patienten/woche',
 )
 
+PATIENT_OUTPUT_PATHS = (
+    '/patienten/heute/',
+    '/patienten/wochenplan/',
+    '/druck/patienten/woche',
+    '/api/v1/published/patienten',
+    '/signage/patienten/tag',
+    '/signage/patienten/woche',
+    '/admin/export/patienten.csv',
+)
+
+PATIENT_REVIEWER_PROBES = (
+    pytest.param('title', 'Preis: 12.50', id='preis-colon'),
+    pytest.param('title', 'Kosten 12.50', id='kosten'),
+    pytest.param('title', 'internal', id='internal'),
+    pytest.param('title', 'external', id='external'),
+    pytest.param('title', 'currency', id='currency'),
+    pytest.param('title', 'EUR 12.50', id='eur'),
+    pytest.param('title', '0,00', id='zero-comma'),
+    pytest.param('title', '50 Rappen', id='rappen'),
+    pytest.param('title', 'inkludiert', id='inkludiert'),
+    pytest.param('labels', [{'code': 'PRICE', 'name': '12.50'}], id='price-label'),
+)
+
+
+def patient_snapshot_with_probe(field: str, value: object) -> dict:
+    snapshot = deepcopy(patient_snapshot())
+    option = snapshot['days'][0]['services'][0]['options'][0]
+    option[field] = deepcopy(value)
+    return snapshot
+
 
 @pytest.fixture
 def app(monkeypatch: pytest.MonkeyPatch) -> Flask:
@@ -44,6 +75,7 @@ def app(monkeypatch: pytest.MonkeyPatch) -> Flask:
     )
     application.config.update(
         TESTING=True,
+        SECRET_KEY='public-contract-tests',
         DEMO_MODE=True,
         DEMO_TODAY='2026-09-01',
         LAST_GOOD_DIR=str(ROOT / '.test-last-good'),
@@ -56,6 +88,7 @@ def app(monkeypatch: pytest.MonkeyPatch) -> Flask:
     application.register_blueprint(public_routes.bp)
     application.register_blueprint(api_routes.bp)
     application.register_blueprint(signage_routes.bp)
+    application.register_blueprint(admin_routes.bp)
 
     snapshots = {
         'staff_guest': cafeteria_snapshot(),
@@ -185,7 +218,16 @@ def test_demo_snapshots_pass_payload_validation() -> None:
 @pytest.mark.parametrize(
     ('key', 'value'),
     (
+        ('price', 1250),
         ('cost', 1250),
+        ('amount', 1250),
+        ('currency', 'CHF'),
+        ('unitPrice', 1250),
+        ('meal_cost', 1250),
+        ('total-amount', 1250),
+        ('currencyCode', 'CHF'),
+        ('preis_betrag', 1250),
+        ('waehrung', 'CHF'),
         ('billing_label', 'Intern'),
     ),
 )
@@ -204,6 +246,29 @@ def test_patient_snapshot_rejects_price_keys(key: str, value: object) -> None:
         'Extern',
         'CHF',
         '0.00',
+        'Preis: 12.50',
+        'Kosten 12.50',
+        'Betrag: 12,50',
+        'price = 12.50',
+        'cost 12,50',
+        'amount 12.50',
+        'internal',
+        'external',
+        'currency',
+        'EUR 12.50',
+        'Fr. 12.50',
+        '12,50 CHF',
+        '€ 12,50',
+        '0,00',
+        '0.–',
+        '0.-',
+        '50 Rappen',
+        'inkludiert',
+        'inbegriffen',
+        'gratis',
+        'kostenlos',
+        'Interne',
+        'Externen',
     ),
 )
 def test_patient_snapshot_rejects_price_values(title: str) -> None:
@@ -224,13 +289,60 @@ def test_patient_snapshot_rejects_intern_label() -> None:
         validate_snapshot_payload('patient', snapshot)
 
 
-def test_patient_snapshot_allows_menu_text_and_opening_time() -> None:
-    snapshot = deepcopy(patient_snapshot())
-    option = snapshot['days'][0]['services'][0]['options'][0]
-    option['title'] = 'Internationale Gemüsepfanne'
-    option['note'] = 'Ausgabe bis 11.30 Uhr'
+def test_patient_snapshot_rejects_price_code_with_decimal_name() -> None:
+    snapshot = patient_snapshot_with_probe('labels', [{'code': 'PRICE', 'name': '12.50'}])
+
+    with pytest.raises(ValueError, match='unzulässig'):
+        validate_snapshot_payload('patient', snapshot)
+
+
+@pytest.mark.parametrize(
+    ('field', 'value'),
+    (
+        ('title', 'Internationale Gemüsepfanne'),
+        ('title', 'Preiselbeerkompott'),
+        ('title', 'Costine di maiale'),
+        ('description', 'International gewürzt'),
+        ('description', 'Externalitäten der Landwirtschaft'),
+        ('note', 'Ausgabe bis 11.30 Uhr'),
+    ),
+)
+def test_patient_snapshot_allows_menu_text_and_opening_time(field: str, value: str) -> None:
+    snapshot = patient_snapshot_with_probe(field, value)
 
     validate_snapshot_payload('patient', snapshot)
+
+
+@pytest.mark.parametrize(('field', 'value'), PATIENT_REVIEWER_PROBES)
+@pytest.mark.parametrize('path', PATIENT_OUTPUT_PATHS)
+def test_patient_price_probe_is_rejected_before_every_output_channel(
+    app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+    field: str,
+    value: object,
+) -> None:
+    tainted_snapshot = patient_snapshot_with_probe(field, value)
+
+    def active_tainted_snapshot(
+        _engine: object,
+        profile_code: str,
+        _requested_date: str,
+        *,
+        last_good_dir: str,
+    ) -> dict:
+        validate_snapshot_payload(profile_code, tainted_snapshot)
+        return deepcopy(tainted_snapshot)
+
+    monkeypatch.setattr(public_routes, 'active_snapshot', active_tainted_snapshot)
+    monkeypatch.setattr(admin_routes, 'active_snapshot', active_tainted_snapshot)
+    client = app.test_client()
+    with client.session_transaction() as flask_session:
+        flask_session['user'] = {'id': 1, 'name': 'Test'}
+        flask_session['roles'] = ['Cafeteria.Editor']
+
+    with pytest.raises(ValueError, match='unzulässig'):
+        client.get(path)
 
 
 def test_patient_api_and_signage_never_use_cafeteria_payload(app: Flask) -> None:
