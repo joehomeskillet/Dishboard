@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import re
+import unicodedata
 from pathlib import Path
 from typing import Any
 
@@ -16,42 +17,49 @@ APPLICATION_VERSION = 'fachmodell-2-profile'
 SYSTEM_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000001'
 DEMO_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000002'
 PROFILES = {'patient', 'staff_guest'}
-PATIENT_ALLOWED_KEYS = frozenset({
-    'schema_version', 'profile_code', 'channel', 'revision_id', 'location',
-    'code', 'name', 'week_start', 'week_end', 'title', 'shared_note', 'days',
-    'date', 'weekday', 'state', 'notice', 'services', 'meal_code', 'meal_name',
-    'options', 'external_id', 'type_code', 'type_name', 'description',
-    'components', 'labels', 'allergens', 'origins', 'note',
-    'allergen_review_status', 'presence', 'ingredient', 'country_code', 'text',
-})
-PATIENT_FORBIDDEN_KEYS = {
-    'price', 'prices', 'preis', 'preise', 'internal_rappen', 'external_rappen',
-    'preis_intern', 'preis_extern', 'currency', 'chf', 'rappen', 'cost', 'costs',
-    'amount', 'amounts', 'betrag', 'waehrung', 'währung', 'billing',
-    'billing_label', 'intern', 'extern',
+PATIENT_OBJECT_KEYS = {
+    'snapshot': frozenset({
+        'schema_version', 'profile_code', 'channel', 'revision_id', 'location',
+        'week_start', 'week_end', 'title', 'shared_note', 'days',
+    }),
+    'location': frozenset({'code', 'name'}),
+    'day': frozenset({'date', 'weekday', 'state', 'notice', 'services'}),
+    'service': frozenset({'meal_code', 'meal_name', 'options'}),
+    'option': frozenset({
+        'external_id', 'type_code', 'type_name', 'title', 'description',
+        'components', 'labels', 'allergens', 'origins', 'note',
+        'allergen_review_status',
+    }),
+    'label': frozenset({'code', 'name'}),
+    'allergen': frozenset({'code', 'name', 'presence'}),
+    'origin': frozenset({'ingredient', 'country_code', 'text'}),
 }
-PATIENT_FORBIDDEN_VALUE_RE = re.compile(
+PATIENT_SENSITIVE_TERM_RE = re.compile(
     r'''
     (?<![^\W_])
     (?:
-        CHF|price|prices|cost|costs|amount|amounts|currency|Preis|Preise|Kosten|Betrag|
-        Währung|Waehrung|Rappen?|internal|external|intern(?:e[nrms]?)?|extern(?:e[nrms]?)?|
-        inkludiert|inbegriffen|gratis|kosten(?:los|frei)
+        price|prices|preis|preise|cost|costs|kosten|amount|amounts|betrag|
+        currency|währung|waehrung|billing|CHF|EUR|USD|Franken|Euro|internal|external|
+        intern(?:e[nrms]?)?|extern(?:e[nrms]?)?|inkludiert|inklusive|included|
+        inbegriffen|gratis|kosten(?:los|frei)|gebühr|gebuehr|fees?|charges?|
+        tarif|tariff|rate|surcharge|aufpreis|rappen
     )
     (?![^\W_])
-    |
-    (?<![^\W_])
-    (?:EUR|USD|S?Fr\.?|Franken|Euro|€|\$)\s*\d+(?:[.,]\d{1,2}|[.,]?[–-])?
-    (?![^\W_])
-    |
-    (?<![^\W_])
-    \d+(?:[.,]\d{1,2}|[.,]?[–-])?\s*(?:CHF|EUR|USD|S?Fr\.?|Franken|Euro|€|\$|Rappen?)
-    (?![^\W_])
-    |
-    (?<![\d.,])0(?:[.,]00|[.,]?[–-])(?![\d.,])
     ''',
     re.IGNORECASE | re.VERBOSE,
 )
+PATIENT_AMOUNT = r'\d+(?:[.,]\d{1,2}|[.,]?[–—-]|[.,][–—-])'
+PATIENT_CURRENCY_AMOUNT_RE = re.compile(
+    rf'''
+    (?<![^\W_])(?:CHF|EUR|USD|S?Frs?\.?|Franken|Euro)(?![^\W_])\s*{PATIENT_AMOUNT}
+    |
+    {PATIENT_AMOUNT}\s*(?<![^\W_])(?:CHF|EUR|USD|S?Frs?\.?|Franken|Euro|Rappen)(?![^\W_])
+    |
+    (?:€|\$)\s*{PATIENT_AMOUNT}|{PATIENT_AMOUNT}\s*(?:€|\$)
+    ''',
+    re.IGNORECASE | re.VERBOSE,
+)
+PATIENT_STANDALONE_AMOUNT_RE = re.compile(rf'^\s*{PATIENT_AMOUNT}\s*$')
 
 
 def create_database_engine(
@@ -221,36 +229,79 @@ def validate_database(engine: Engine) -> dict[str, Any]:
     return result
 
 
-def _forbidden_patient_paths(value: Any, path: str = '$') -> list[str]:
+def _normalise_patient_text(value: str) -> tuple[str, bool]:
+    normalised = unicodedata.normalize('NFKC', value)
+    contains_control = any(unicodedata.category(character) in {'Cc', 'Cf'} for character in normalised)
+    visible = ''.join(
+        character
+        for character in normalised
+        if unicodedata.category(character) not in {'Cc', 'Cf'}
+    )
+    return visible.casefold(), contains_control
+
+
+def _patient_text_is_forbidden(value: str) -> bool:
+    normalised, contains_control = _normalise_patient_text(value)
+    return (
+        contains_control
+        or PATIENT_SENSITIVE_TERM_RE.search(normalised) is not None
+        or PATIENT_CURRENCY_AMOUNT_RE.search(normalised) is not None
+        or PATIENT_STANDALONE_AMOUNT_RE.fullmatch(normalised) is not None
+    )
+
+
+def _patient_list_paths(value: Any, item_kind: str, path: str) -> list[str]:
+    if not isinstance(value, list):
+        return [path]
     found: list[str] = []
-    if isinstance(value, dict):
-        for key, child in value.items():
-            lower = key.lower()
-            child_path = f'{path}.{key}'
-            if (
-                lower not in PATIENT_ALLOWED_KEYS
-                or lower in PATIENT_FORBIDDEN_KEYS
-                or lower.endswith('_rappen')
-                or '_price' in lower
-                or 'price_' in lower
-                or '_preis' in lower
-                or 'preis_' in lower
-                or 'cost' in lower
-                or 'amount' in lower
-                or 'currency' in lower
-                or 'betrag' in lower
-                or 'waehr' in lower
-                or 'währ' in lower
-                or 'billing' in lower
-            ):
-                found.append(child_path)
-            found.extend(_forbidden_patient_paths(child, child_path))
-    elif isinstance(value, list):
-        for index, child in enumerate(value):
-            found.extend(_forbidden_patient_paths(child, f'{path}[{index}]'))
-    elif isinstance(value, str) and PATIENT_FORBIDDEN_VALUE_RE.search(value):
-        found.append(path)
+    for index, item in enumerate(value):
+        item_path = f'{path}[{index}]'
+        if item_kind == 'text':
+            if not isinstance(item, str) or _patient_text_is_forbidden(item):
+                found.append(item_path)
+        else:
+            found.extend(_patient_object_paths(item, item_kind, item_path))
     return found
+
+
+def _patient_object_paths(value: Any, kind: str, path: str) -> list[str]:
+    if not isinstance(value, dict):
+        return [path]
+
+    expected_keys = PATIENT_OBJECT_KEYS[kind]
+    actual_keys = set(value)
+    found = [f'{path}.{key}' for key in sorted(expected_keys - actual_keys)]
+    found.extend(f'{path}.{key}' for key in sorted(actual_keys - expected_keys, key=str))
+
+    for key in expected_keys & actual_keys:
+        child = value[key]
+        child_path = f'{path}.{key}'
+        if kind == 'snapshot' and key == 'schema_version':
+            if type(child) is not int or child < 1:
+                found.append(child_path)
+        elif kind == 'snapshot' and key == 'location':
+            found.extend(_patient_object_paths(child, 'location', child_path))
+        elif kind == 'snapshot' and key == 'days':
+            found.extend(_patient_list_paths(child, 'day', child_path))
+        elif kind == 'day' and key == 'services':
+            found.extend(_patient_list_paths(child, 'service', child_path))
+        elif kind == 'service' and key == 'options':
+            found.extend(_patient_list_paths(child, 'option', child_path))
+        elif kind == 'option' and key == 'components':
+            found.extend(_patient_list_paths(child, 'text', child_path))
+        elif kind == 'option' and key == 'labels':
+            found.extend(_patient_list_paths(child, 'label', child_path))
+        elif kind == 'option' and key == 'allergens':
+            found.extend(_patient_list_paths(child, 'allergen', child_path))
+        elif kind == 'option' and key == 'origins':
+            found.extend(_patient_list_paths(child, 'origin', child_path))
+        elif not isinstance(child, str) or _patient_text_is_forbidden(child):
+            found.append(child_path)
+    return found
+
+
+def _forbidden_patient_paths(value: Any, path: str = '$') -> list[str]:
+    return _patient_object_paths(value, 'snapshot', path)
 
 
 def validate_snapshot_payload(profile_code: str, snapshot: dict[str, Any]) -> None:

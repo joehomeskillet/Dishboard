@@ -57,6 +57,22 @@ PATIENT_REVIEWER_PROBES = (
     pytest.param('title', '50 Rappen', id='rappen'),
     pytest.param('title', 'inkludiert', id='inkludiert'),
     pytest.param('labels', [{'code': 'PRICE', 'name': '12.50'}], id='price-label'),
+    pytest.param('title', 'Gebühr 12.50', id='gebuehr'),
+    pytest.param('title', 'Fee', id='fee'),
+    pytest.param('title', 'Charge', id='charge'),
+    pytest.param('title', 'Tarif 12,50', id='tarif'),
+    pytest.param('title', 'Aufpreis', id='aufpreis'),
+    pytest.param('title', 'Frs. 12.50', id='frs'),
+    pytest.param('title', '12.–', id='swiss-dash'),
+    pytest.param('title', 'inklusive', id='inklusive'),
+    pytest.param('title', 'included', id='included'),
+    pytest.param('title', 'Pre\u200bis', id='zero-width-preis'),
+    pytest.param('title', 'ＰＲＩＣＥ', id='nfkc-price'),
+    pytest.param('labels', [{'code': 'RATE', 'name': 'Spezial'}], id='rate-label'),
+    pytest.param('labels', [{'code': 'TARIF', 'name': 'Spezial'}], id='tarif-label'),
+    pytest.param('labels', [{'code': 'PRI\u200bCE', 'name': 'Spezial'}], id='split-price-label'),
+    pytest.param('origins', [{'country_code': 'CH', 'ingredient': 'Rind', 'text': 'Charge 12.50'}], id='nested-charge'),
+    pytest.param('title', 12.5, id='numeric-title'),
 )
 
 
@@ -291,6 +307,39 @@ def test_patient_snapshot_rejects_intern_label() -> None:
 
 def test_patient_snapshot_rejects_price_code_with_decimal_name() -> None:
     snapshot = patient_snapshot_with_probe('labels', [{'code': 'PRICE', 'name': '12.50'}])
+
+    with pytest.raises(ValueError, match='unzulässig'):
+        validate_snapshot_payload('patient', snapshot)
+
+
+@pytest.mark.parametrize(('field', 'value'), PATIENT_REVIEWER_PROBES)
+def test_patient_snapshot_rejects_reviewer_bypasses(field: str, value: object) -> None:
+    snapshot = patient_snapshot_with_probe(field, value)
+
+    with pytest.raises(ValueError, match='unzulässig'):
+        validate_snapshot_payload('patient', snapshot)
+
+
+@pytest.mark.parametrize(
+    ('container', 'key', 'value'),
+    (
+        ('option', 'weekday', 'Montag'),
+        ('option', 'pri\u200bce', '12.50'),
+        ('label', 'title', 'Vegan'),
+        ('label', 'rate', '12.50'),
+    ),
+)
+def test_patient_snapshot_rejects_keys_outside_exact_nested_schema(
+    container: str,
+    key: str,
+    value: object,
+) -> None:
+    snapshot = deepcopy(patient_snapshot())
+    option = snapshot['days'][0]['services'][0]['options'][0]
+    if container == 'label':
+        option['labels'] = [{'code': 'VEGAN', 'name': 'Vegan'}]
+    target = option if container == 'option' else option['labels'][0]
+    target[key] = value
 
     with pytest.raises(ValueError, match='unzulässig'):
         validate_snapshot_payload('patient', snapshot)
