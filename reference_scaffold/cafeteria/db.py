@@ -105,7 +105,7 @@ PATIENT_SENSITIVE_STEMS = (
     'charg', 'amount', 'currenc', 'bill', 'payabl', 'payment', 'includ', 'cout',
     'supplement', 'montant', 'factur', 'payant', 'paiement', 'prezz', 'importo',
     'pagat', 'compres', 'chf', 'rappen', 'franken', 'stutz', 'rappli', 'raeppli',
-    'frankli', 'fraenkli',
+    'frankli', 'fraenkli', 'betrag', 'wahrung', 'waehrung', 'zahlung',
 )
 PATIENT_SENSITIVE_EXACT = frozenset({
     'betrag', 'betrage', 'bezahlt', 'bezahlung', 'zahlung', 'zahlbar', 'wahrung',
@@ -120,6 +120,9 @@ PATIENT_SENSITIVE_EXACT = frozenset({
     'cny', 'sek', 'nok', 'dkk',
 })
 PATIENT_MAX_SEMANTIC_FORM_LENGTH = 64
+PATIENT_UNSAFE_BIDI_CLASSES = frozenset({
+    'LRE', 'RLE', 'LRO', 'RLO', 'PDF', 'LRI', 'RLI', 'FSI', 'PDI',
+})
 
 
 def create_database_engine(
@@ -319,10 +322,14 @@ def _patient_semantic_tokens(value: str) -> list[str]:
 def _patient_form_is_sensitive(form: str) -> bool:
     for safe_food_lexeme in ('preiselbeer', 'costine'):
         form = form.replace(safe_food_lexeme, '')
+    ascii_il_skeleton = re.sub(r'[il]+', 'i', form)
+    short_chf_skeleton = form.replace('i', '').replace('l', '')
     return (
         form in PATIENT_SENSITIVE_EXACT
         or form.startswith(('pric', 'surcharg'))
         or any(stem in form for stem in PATIENT_SENSITIVE_STEMS)
+        or any(stem in ascii_il_skeleton for stem in ('price', 'pricing'))
+        or (len(form) <= 5 and short_chf_skeleton == 'chf')
     )
 
 
@@ -341,6 +348,12 @@ def _patient_tokens_contain_sensitive_lexeme(tokens: list[str]) -> bool:
 
 
 def _patient_text_is_forbidden(value: str, *, allow_operational_time: bool = False) -> bool:
+    if any(
+        unicodedata.category(character) == 'Cf'
+        or unicodedata.bidirectional(character) in PATIENT_UNSAFE_BIDI_CLASSES
+        for character in value
+    ):
+        return True
     if any(character.isnumeric() and not character.isdecimal() for character in value):
         return True
     normalised = _normalise_patient_text(value)

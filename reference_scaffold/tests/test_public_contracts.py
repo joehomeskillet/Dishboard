@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import unicodedata
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -45,6 +46,30 @@ PATIENT_OUTPUT_PATHS = (
     '/signage/patienten/tag',
     '/signage/patienten/woche',
     '/admin/export/patienten.csv',
+)
+
+PATIENT_RESERVED_KEY_PROBES = (
+    pytest.param('Gesamtbetrag', 1250, id='gesamtbetrag'),
+    pytest.param('Endbetrag', 1250, id='endbetrag'),
+    pytest.param('Währungscode', 'CHF', id='waehrungscode-umlaut'),
+    pytest.param('Waehrungscode', 'CHF', id='waehrungscode-ascii'),
+    pytest.param('Zahlungsbetrag', 1250, id='zahlungsbetrag'),
+    pytest.param('Zahlungspflichtig', True, id='zahlungspflichtig'),
+    pytest.param('Rechnungsbetrag', 1250, id='rechnungsbetrag'),
+    pytest.param('Eurobetrag', 1250, id='eurobetrag'),
+    pytest.param('PRlCE', 1250, id='ascii-l-price'),
+    pytest.param('CHlF', '12.50', id='ascii-l-chf'),
+    pytest.param('PRI\u2066CE', 1250, id='bidi-isolate-price'),
+)
+
+PATIENT_UNSAFE_FORMAT_CHARACTERS = tuple(
+    chr(codepoint)
+    for codepoint in range(sys.maxunicode + 1)
+    if (
+        unicodedata.category(chr(codepoint)) == 'Cf'
+        or unicodedata.bidirectional(chr(codepoint))
+        in {'LRE', 'RLE', 'LRO', 'RLO', 'PDF', 'LRI', 'RLI', 'FSI', 'PDI'}
+    )
 )
 
 PATIENT_FREE_TEXT_BYPASSES = (
@@ -162,6 +187,23 @@ PATIENT_REVIEWER_PROBES = (
     pytest.param('note', 'Ausgabe bis 12.50\u200b Uhr', id='operational-time-format-control'),
     pytest.param('labels', [{'code': 'VEGAN', 'name': '12.50 Uhr pro Menü'}], id='clock-in-label'),
     pytest.param('title', 'Schonkost mit Menüpreis', id='food-term-with-price-semantics'),
+    pytest.param('title', 'Gesamtbetrag', id='gesamtbetrag-compound'),
+    pytest.param('title', 'Endbetrag', id='endbetrag-compound'),
+    pytest.param('title', 'Währungscode', id='waehrungscode-compound'),
+    pytest.param('title', 'Waehrungscode', id='waehrungscode-ascii-compound'),
+    pytest.param('title', 'Zahlungsbetrag', id='zahlungsbetrag-compound'),
+    pytest.param('title', 'Zahlungspflichtig', id='zahlungspflichtig-compound'),
+    pytest.param('title', 'Rechnungsbetrag', id='rechnungsbetrag-compound'),
+    pytest.param('title', 'Eurobetrag', id='eurobetrag-compound'),
+    pytest.param('title', 'PRlCE', id='ascii-l-price-value'),
+    pytest.param('title', 'PRLCE', id='ascii-uppercase-l-price-value'),
+    pytest.param('title', 'PRIlCE', id='ascii-il-run-price-value'),
+    pytest.param('title', 'PRlClNG', id='ascii-l-pricing-value'),
+    pytest.param('title', 'unitPRlCE', id='ascii-l-price-compound-value'),
+    pytest.param('title', 'CHlF', id='ascii-l-chf-value'),
+    pytest.param('title', 'CHIF', id='ascii-i-chf-value'),
+    pytest.param('title', 'C H l F', id='spaced-ascii-l-chf-value'),
+    pytest.param('description', 'Gemüse\u2066pfanne', id='bidi-isolate-in-text'),
     *PATIENT_FREE_TEXT_BYPASSES,
     *PATIENT_SEMANTIC_OBFUSCATIONS,
 )
@@ -466,6 +508,68 @@ def test_patient_snapshot_rejects_keys_outside_exact_nested_schema(
         validate_snapshot_payload('patient', snapshot)
 
 
+@pytest.mark.parametrize(('key', 'value'), PATIENT_RESERVED_KEY_PROBES)
+@pytest.mark.parametrize('path', PATIENT_OUTPUT_PATHS)
+def test_reserved_patient_key_is_rejected_before_every_output_channel(
+    app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+    key: str,
+    value: object,
+) -> None:
+    tainted_snapshot = deepcopy(patient_snapshot())
+    tainted_snapshot['days'][0]['services'][0]['options'][0][key] = value
+
+    def active_tainted_snapshot(
+        _engine: object,
+        profile_code: str,
+        _requested_date: str,
+        *,
+        last_good_dir: str,
+    ) -> dict:
+        validate_snapshot_payload(profile_code, tainted_snapshot)
+        return deepcopy(tainted_snapshot)
+
+    monkeypatch.setattr(public_routes, 'active_snapshot', active_tainted_snapshot)
+    monkeypatch.setattr(admin_routes, 'active_snapshot', active_tainted_snapshot)
+    client = app.test_client()
+    with client.session_transaction() as flask_session:
+        flask_session['user'] = {'id': 1, 'name': 'Test'}
+        flask_session['roles'] = ['Cafeteria.Editor']
+
+    with pytest.raises(ValueError, match='unzulässig'):
+        client.get(path)
+
+
+@pytest.mark.parametrize(
+    'character',
+    PATIENT_UNSAFE_FORMAT_CHARACTERS,
+    ids=lambda character: f'U+{ord(character):04X}',
+)
+def test_patient_snapshot_rejects_every_unicode_format_or_bidi_character(
+    character: str,
+) -> None:
+    snapshot = patient_snapshot_with_probe('description', f'Gemüse{character}pfanne')
+
+    with pytest.raises(ValueError, match='unzulässig'):
+        validate_snapshot_payload('patient', snapshot)
+
+
+@pytest.mark.parametrize(
+    'character',
+    PATIENT_UNSAFE_FORMAT_CHARACTERS,
+    ids=lambda character: f'U+{ord(character):04X}',
+)
+def test_patient_snapshot_rejects_every_unicode_format_or_bidi_character_in_key(
+    character: str,
+) -> None:
+    snapshot = deepcopy(patient_snapshot())
+    snapshot['days'][0]['services'][0]['options'][0][f'PRI{character}CE'] = 1250
+
+    with pytest.raises(ValueError, match='unzulässig'):
+        validate_snapshot_payload('patient', snapshot)
+
+
 @pytest.mark.parametrize('path', PATIENT_FREE_TEXT_PATHS)
 def test_patient_snapshot_rejects_numeric_tokens_in_every_free_text_field(
     path: tuple[str | int, ...],
@@ -512,6 +616,8 @@ def test_patient_snapshot_rejects_unknown_label_code() -> None:
         ('title', 'Gebratenes Gemüse'),
         ('title', 'Marinierte Costine di maiale'),
         ('title', 'Kompott aus Preiselbeeren'),
+        ('title', 'Aprikosenpraline'),
+        ('title', 'Chili sin Carne'),
         ('description', 'International gewürzt'),
         ('description', 'Externalitäten der Landwirtschaft'),
         ('note', 'Ausgabe bis 11.30 Uhr'),
