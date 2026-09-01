@@ -1,19 +1,37 @@
 #!/bin/sh
 set -eu
-if [ "$#" -ne 1 ]; then
-  echo "Verwendung: $0 /absoluter/pfad/cafeteria-YYYYMMDDTHHMMSSZ.dump" >&2
-  exit 2
-fi
-backup=$1
-[ -f "$backup" ] || { echo "Backup nicht gefunden: $backup" >&2; exit 1; }
-backup_dir=$(CDPATH= cd -- "$(dirname -- "$backup")" && pwd)
-backup_name=$(basename -- "$backup")
-cd "$(dirname "$0")"
 
-sha_file="$backup.sha256"
-[ -f "$sha_file" ] || { echo "Checksum-Datei fehlt: $sha_file" >&2; exit 1; }
+RECOVERY_MODE=false
+case "${1:-}" in
+  --recover)
+    [ "$#" -eq 1 ] || { echo "Verwendung: $0 --recover" >&2; exit 2; }
+    RECOVERY_MODE=true
+    ;;
+  '')
+    echo "Verwendung: $0 /absoluter/pfad/cafeteria-YYYYMMDDTHHMMSSZ.dump | --recover" >&2
+    exit 2
+    ;;
+  *)
+    [ "$#" -eq 1 ] || {
+      echo "Verwendung: $0 /absoluter/pfad/cafeteria-YYYYMMDDTHHMMSSZ.dump | --recover" >&2
+      exit 2
+    }
+    ;;
+esac
+
+cd "$(dirname "$0")"
+backup_dir=
+backup_name=
+sha_file=
 
 verify_checksum() {
+  backup=$1
+  [ -f "$backup" ] || { echo "Backup nicht gefunden: $backup" >&2; exit 1; }
+  backup_dir=$(CDPATH= cd -- "$(dirname -- "$backup")" && pwd)
+  backup_name=$(basename -- "$backup")
+  sha_file="$backup.sha256"
+  [ -f "$sha_file" ] || { echo "Checksum-Datei fehlt: $sha_file" >&2; exit 1; }
+
   exec 3< "$sha_file"
   if ! IFS=' ' read -r expected listed_name extra <&3; then
     exec 3<&-
@@ -42,39 +60,140 @@ verify_checksum() {
   [ "$actual" = "$expected" ] || { echo "SHA-256-Prüfung fehlgeschlagen: $backup" >&2; exit 1; }
 }
 
-verify_checksum
+restore_container() {
+  if [ -n "$backup_dir" ]; then
+    docker compose --profile ops run --rm --no-deps \
+      -v "$backup_dir:/restore-source:ro" restore "$@"
+  else
+    docker compose --profile ops run --rm --no-deps restore "$@"
+  fi
+}
 
-restore_run_id=${RESTORE_RUN_ID:-"$(date -u +%Y%m%dT%H%M%SZ)_$$"}
-case "$restore_run_id" in
-  ''|*[!A-Za-z0-9_]*)
-    echo "Unsichere Restore-Laufkennung: $restore_run_id" >&2
-    exit 1
-    ;;
-esac
-restore_lock_file=${RESTORE_LOCK_FILE:-/tmp/cafeteria-restore.lock}
-exec 9>"$restore_lock_file"
-if ! flock -n 9; then
-  echo 'Ein anderer Restore-Lauf hält bereits die exklusive Sperre.' >&2
-  exit 1
+validate_run_id() {
+  case "$restore_run_id" in
+    ''|*[!A-Za-z0-9_]*) echo "Unsichere Restore-Laufkennung: $restore_run_id" >&2; exit 1 ;;
+  esac
+}
+
+validate_owner_token() {
+  case "$owner_token" in
+    ''|*[!0-9a-fA-F-]*) echo 'Unsicherer Restore-Owner-Token.' >&2; exit 1 ;;
+  esac
+  [ "${#owner_token}" -eq 36 ] || { echo 'Ungültiger Restore-Owner-Token.' >&2; exit 1; }
+}
+
+lease_container=
+start_lease_holder() {
+  token_prefix=${owner_token%%-*}
+  lease_name="menuplan-restore-${restore_run_id}-$token_prefix"
+  lease_container=$(docker compose --profile ops run --detach --no-deps --name "$lease_name" \
+    restore restore-hold "$restore_run_id" "$owner_token")
+  [ -n "$lease_container" ] || { echo 'Restore-Lease-Container konnte nicht gestartet werden.' >&2; return 1; }
+  attempts=0
+  until restore_container restore-assert-held "$restore_run_id" "$owner_token" >/dev/null 2>&1; do
+    attempts=$((attempts + 1))
+    [ "$attempts" -lt 10 ] || {
+      echo 'PostgreSQL-weite Restore-Lease wurde nicht rechtzeitig aktiv.' >&2
+      return 1
+    }
+    sleep 1
+  done
+}
+
+stop_lease_holder() {
+  [ -n "$lease_container" ] || return 0
+  docker rm --force "$lease_container" >/dev/null
+  lease_container=
+}
+
+restore_run_id=
+owner_token=
+candidate_ready=false
+services_stop_started=false
+lease_acquired=false
+
+recover_on_exit() {
+  status=$?
+  trap - 0 1 2 15
+  [ "$status" -eq 0 ] && exit 0
+  set +e
+  cleanup_failed=false
+
+  if [ "$lease_acquired" = true ]; then
+    if [ "$services_stop_started" = true ]; then
+      stop_confirmed=true
+      docker compose stop app backup || stop_confirmed=false
+      recovery_proven=false
+      if restore_container restore-recover "$restore_run_id" "$owner_token" \
+        && docker compose run --rm --no-deps -e RESTORE_RECOVERY_VALIDATION=true \
+          app python /app/manage.py validate-db --wait-seconds 30
+      then
+        recovery_proven=true
+      fi
+      if [ "$stop_confirmed" = true ] && [ "$recovery_proven" = true ]; then
+        if docker compose up -d app backup \
+          && restore_container restore-state "$restore_run_id" "$owner_token" complete
+        then
+          services_stop_started=false
+        else
+          docker compose stop app backup >/dev/null 2>&1
+          cleanup_failed=true
+        fi
+      else
+        echo 'App und Backup bleiben gestoppt: der alte Datenbankstand ist nicht vollständig bewiesen.' >&2
+        cleanup_failed=true
+      fi
+    elif [ "$candidate_ready" = true ]; then
+      restore_container restore-abort "$restore_run_id" "$owner_token" || cleanup_failed=true
+    fi
+  fi
+  stop_lease_holder || cleanup_failed=true
+  [ "$cleanup_failed" = false ] || status=1
+  exit "$status"
+}
+
+trap recover_on_exit 0
+trap 'exit 130' 1 2 15
+
+if [ "$RECOVERY_MODE" = true ]; then
+  recovery_owner_run_id="recovery_$(date -u +%Y%m%dT%H%M%SZ)_$$"
+  takeover=$(restore_container restore-takeover "$recovery_owner_run_id")
+  set -- $takeover
+  [ "$#" -eq 2 ] || { echo 'Unerwartete Recovery-Takeover-Antwort.' >&2; exit 1; }
+  restore_run_id=$1
+  owner_token=$2
+  validate_run_id
+  validate_owner_token
+  lease_acquired=true
+  start_lease_holder
+  services_stop_started=true
+  docker compose stop app backup
+  restore_container restore-recover "$restore_run_id" "$owner_token"
+  docker compose run --rm --no-deps -e RESTORE_RECOVERY_VALIDATION=true \
+    app python /app/manage.py validate-db --wait-seconds 30
+  docker compose up -d app backup
+  restore_container restore-state "$restore_run_id" "$owner_token" complete
+  services_stop_started=false
+  stop_lease_holder
+  lease_acquired=false
+  trap - 0 1 2 15
+  exit 0
 fi
 
-restore_container() {
-  docker compose --profile ops run --rm \
-    -v "$backup_dir:/restore-source:ro" \
-    restore "$@"
-}
+backup=$1
+verify_checksum "$backup"
+restore_run_id=${RESTORE_RUN_ID:-"$(date -u +%Y%m%dT%H%M%SZ)_$$"}
+validate_run_id
+owner_token=$(restore_container restore-acquire "$restore_run_id")
+validate_owner_token
+lease_acquired=true
+start_lease_holder
 
-cleanup_candidate() {
-  restore_container restore-cleanup-candidate "$restore_run_id"
-}
-
-if ! candidate_database=$(restore_container restore-stage \
+candidate_database=$(restore_container restore-stage \
   "/restore-source/$backup_name" \
   "/restore-source/$(basename -- "$sha_file")" \
-  "$restore_run_id")
-then
-  exit 1
-fi
+  "$restore_run_id" \
+  "$owner_token")
 case "$candidate_database" in
   ''|[0-9]*|*[!A-Za-z0-9_]*|postgres|template0|template1)
     echo "Unsicherer Restore-Kandidat: $candidate_database" >&2
@@ -86,58 +205,33 @@ case "$candidate_database" in
   *) echo "Unerwarteter Restore-Kandidat: $candidate_database" >&2; exit 1 ;;
 esac
 [ "${#candidate_database}" -le 63 ] || { echo 'Restore-Kandidatname zu lang.' >&2; exit 1; }
+candidate_ready=true
 
-if ! docker compose run --rm --no-deps -e "POSTGRES_DB=$candidate_database" migrate
-then
-  cleanup_candidate
+if ! docker compose run --rm --no-deps -e "POSTGRES_DB=$candidate_database" migrate; then
+  restore_container restore-abort "$restore_run_id" "$owner_token"
+  candidate_ready=false
   exit 1
 fi
+restore_container restore-state "$restore_run_id" "$owner_token" migrated
 
 if ! docker compose run --rm --no-deps -e "POSTGRES_DB=$candidate_database" \
   app python /app/manage.py validate-db --wait-seconds 30
 then
-  cleanup_candidate
+  restore_container restore-abort "$restore_run_id" "$owner_token"
+  candidate_ready=false
   exit 1
 fi
+restore_container restore-state "$restore_run_id" "$owner_token" candidate_validated
 
-services_stopped=false
-database_promoted=false
-
-recover_on_exit() {
-  status=$?
-  trap - 0 1 2 15
-  [ "$status" -eq 0 ] && exit 0
-  set +e
-  recovery_failed=false
-  if [ "$database_promoted" = true ]; then
-    docker compose stop app backup || recovery_failed=true
-    if restore_container restore-rollback "$restore_run_id" \
-      && docker compose run --rm --no-deps -e RESTORE_ROLLBACK_VALIDATION=true app python /app/manage.py validate-db --wait-seconds 30
-    then
-      database_promoted=false
-    else
-      recovery_failed=true
-    fi
-  fi
-  if [ "$services_stopped" = true ]; then
-    if [ "$recovery_failed" = false ]; then
-      docker compose up -d app backup || recovery_failed=true
-    else
-      echo 'App und Backup bleiben gestoppt: der Datenbankzustand ist nicht validiert.' >&2
-    fi
-  fi
-  [ "$recovery_failed" = false ] || status=1
-  exit "$status"
-}
-
-trap recover_on_exit 0
-trap 'exit 130' 1 2 15
-
-services_stopped=true
+services_stop_started=true
 docker compose stop app backup
-restore_container restore-promote "$restore_run_id"
-database_promoted=true
+restore_container restore-state "$restore_run_id" "$owner_token" services_stopped
+restore_container restore-promote "$restore_run_id" "$owner_token"
 docker compose run --rm --no-deps app python /app/manage.py validate-db --wait-seconds 30
+restore_container restore-state "$restore_run_id" "$owner_token" live_validated
 docker compose up -d app backup
-services_stopped=false
+restore_container restore-state "$restore_run_id" "$owner_token" complete
+services_stop_started=false
+stop_lease_holder
+lease_acquired=false
 trap - 0 1 2 15

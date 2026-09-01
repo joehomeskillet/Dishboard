@@ -73,9 +73,17 @@ Das Backup erhält SHA-256-Datei und JSON-Manifest. Mindestens eine Kopie wird a
 ./restore.sh /absoluter/pfad/cafeteria-YYYYMMDDTHHMMSSZ.dump
 ```
 
-Die gleichnamige `.dump.sha256` ist verpflichtend. Das Skript prüft den Hash vor jeder Mutation und hält für die gesamte Ausführung eine exklusive Host-Sperre. Jeder Lauf verwendet eindeutige Kandidat-, Rollback- und Fehlerdatenbanken mit einem Eigentumsmarker; vorhandene oder fremde Namen werden weder beendet noch gelöscht. Der Kandidat entsteht aus `template0`, installiert und prüft deshalb `pgcrypto` inklusive `public.digest()` vor Migration und Datenbankvalidator.
+Die gleichnamige `.dump.sha256` ist verpflichtend. Das Skript prüft den Hash vor jeder Mutation und erwirbt danach eine PostgreSQL-weite Lease in der Kontroll-Datenbank `postgres`. Ein langlebiger Shared-Advisory-Lock und Heartbeats halten diese Lease über Stage, Migration, Promotion und Validierung; deshalb wird ein paralleler Lauf auch von einem zweiten Docker-Host abgewiesen. Owner- und Ressourcen-Token, Ablaufzeit und jeder Promotion-Zustand werden in `menuplan_restore_control` persistiert und in `menuplan_restore_audit` protokolliert. Jeder Lauf verwendet eindeutige Kandidat-, Rollback- und Fehlerdatenbanken mit tokengebundenen Eigentumsmarkern; vorhandene oder fremde Namen werden weder beendet noch umbenannt oder gelöscht. Der Kandidat entsteht aus `template0`, installiert und prüft deshalb `pgcrypto` inklusive `public.digest()` vor Migration und Datenbankvalidator.
 
-Erst danach stoppt das Skript `app` und `backup`, tauscht die Datenbanknamen über die Kontroll-Datenbank `postgres` und validiert erneut. Schlägt diese Prüfung fehl, wird der vorherige Datenbankstand zurückbenannt, `ALLOW_CONNECTIONS` wieder aktiviert und nochmals validiert. Nur nach erfolgreichem Rollback startet das Skript `app` und `backup` erneut. Bei einer fehlerhaften Rückkehr bleiben beide bewusst gestoppt; den Zustand erst nach manueller Datenbankprüfung und Incident-Freigabe starten. Anschliessend beide Snapshot-APIs, Patienten-Sonntagabend und Cafeteria-Geschlossenfläche prüfen.
+Erst danach stoppt das Skript `app` und `backup`, tauscht die Datenbanknamen über die Kontroll-Datenbank `postgres` und validiert erneut. Bei jedem Fehler oder Signal nach dem Stop werden beide Dienste nochmals gestoppt. Eine separate Control-DB-Recovery darf nur den markierten alten Datenbankstand zurückbenennen; der Kandidat gilt nie als Recovery. Erst wenn der alte Stand wieder `ALLOW_CONNECTIONS=true`, `pgcrypto`, `public.digest()` und ein gültiges Cafeteria-Schema liefert und auch der Anwendungsvalidator erfolgreich ist, startet das Skript `app` und `backup` erneut. Andernfalls bleiben beide bewusst gestoppt.
+
+Nach einem Host-Crash läuft die Lease aus, ein normaler Restore bleibt aber absichtlich gesperrt. Die explizite Recovery rotiert den Owner-Token, protokolliert `lease_expired_takeover`, stoppt beide Dienste und führt dieselben Beweise aus:
+
+```bash
+./restore.sh --recover
+```
+
+Nur bei Exitcode 0 sind die Dienste wieder freigegeben. Bei unbekanntem oder fremd markiertem Zustand nichts manuell umbenennen oder löschen; Audit-Tabelle und PostgreSQL-Katalog sichern und den Incident eskalieren. Anschliessend beide Snapshot-APIs, Patienten-Sonntagabend und Cafeteria-Geschlossenfläche prüfen.
 
 ## Update
 

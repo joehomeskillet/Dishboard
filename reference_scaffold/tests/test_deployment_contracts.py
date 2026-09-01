@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import fcntl
 import os
 from pathlib import Path
 import shutil
@@ -288,6 +287,8 @@ if [ -n "${DOCKER_FAIL_SECOND_MATCH:-}" ]; then
     esac
 fi
 case "$*" in
+    *restore-acquire*) printf '%s\\n' '11111111-1111-4111-8111-111111111111' ;;
+    *restore-hold*) printf '%s\\n' 'fake-lease-container' ;;
     *restore-stage*) printf '%s\\n' "$STAGED_DATABASE" ;;
 esac
 exit 0
@@ -362,12 +363,12 @@ def test_restore_cleans_an_invalid_candidate_before_stopping_production(tmp_path
     )
 
     assert result.returncode != 0
-    assert any("restore-cleanup-candidate" in call for call in calls)
+    assert any("restore-abort" in call for call in calls)
     assert not any("stop app backup" in call for call in calls)
 
 
 def test_restore_rolls_back_and_restarts_after_post_promotion_failure(tmp_path: Path) -> None:
-    """A failed live validation restores the old database and starts services again."""
+    """A failed live validation restarts only after control-DB recovery and revalidation."""
     result, calls = _run_restore(
         tmp_path,
         docker_fail_match="run --rm --no-deps app python /app/manage.py validate-db",
@@ -376,7 +377,10 @@ def test_restore_rolls_back_and_restarts_after_post_promotion_failure(tmp_path: 
     assert result.returncode != 0
     assert any("stop app backup" in call for call in calls)
     assert any("restore-promote" in call for call in calls)
-    assert any("restore-rollback" in call for call in calls)
+    recovery_index = next(index for index, call in enumerate(calls) if "restore-recover" in call)
+    restart_index = next(index for index, call in enumerate(calls) if "up -d app backup" in call)
+    assert recovery_index < restart_index
+    assert any("RESTORE_RECOVERY_VALIDATION=true" in call for call in calls)
     assert any("up -d app backup" in call for call in calls)
 
 
@@ -385,44 +389,68 @@ def test_restore_does_not_restart_the_app_when_rollback_cannot_be_validated(tmp_
     result, calls = _run_restore(
         tmp_path,
         docker_fail_match="run --rm --no-deps app python /app/manage.py validate-db",
-        docker_fail_second_match="restore-rollback",
+        docker_fail_second_match="restore-recover",
     )
 
     assert result.returncode != 0
-    assert any("restore-rollback" in call for call in calls)
+    assert any("restore-recover" in call for call in calls)
     assert not any("up -d app backup" in call for call in calls)
 
 
-def test_restore_refuses_a_concurrent_restore_before_contacting_docker(tmp_path: Path) -> None:
-    """The whole host-side restore transaction is serialized by an exclusive lock."""
-    lock_file = tmp_path / "restore.lock"
-    with lock_file.open("w", encoding="utf-8") as lock_handle:
-        fcntl.flock(lock_handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        result, calls = _run_restore(
-            tmp_path,
-            extra_environment={"RESTORE_LOCK_FILE": str(lock_file)},
-        )
+def test_restore_acquires_a_database_lease_before_staging(tmp_path: Path) -> None:
+    """The first PostgreSQL operation must acquire the cluster-wide restore lease."""
+    result, calls = _run_restore(tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    acquire_index = next(index for index, call in enumerate(calls) if "restore-acquire" in call)
+    stage_index = next(index for index, call in enumerate(calls) if "restore-stage" in call)
+    assert acquire_index < stage_index
+    assert "11111111-1111-4111-8111-111111111111" in calls[stage_index]
+
+
+def test_restore_stops_when_the_database_lease_is_held_elsewhere(tmp_path: Path) -> None:
+    """A foreign cluster-wide lease must block staging and service changes."""
+    result, calls = _run_restore(tmp_path, docker_fail_match="restore-acquire")
 
     assert result.returncode != 0
-    assert "exklusive sperre" in result.stderr.lower()
-    assert calls == []
+    assert any("restore-acquire" in call for call in calls)
+    assert not any("restore-stage" in call for call in calls)
+    assert not any("stop app backup" in call for call in calls)
 
 
-def test_restore_restarts_services_when_promotion_fails(tmp_path: Path) -> None:
-    """A failed database swap must not leave app and backup stopped."""
-    result, calls = _run_restore(tmp_path, docker_fail_match="restore-promote")
+def test_restore_keeps_services_stopped_when_promotion_recovery_is_unknown(tmp_path: Path) -> None:
+    """A failed database swap may not restart services unless control-DB recovery succeeds."""
+    result, calls = _run_restore(
+        tmp_path,
+        docker_fail_match="restore-promote",
+        docker_fail_second_match="restore-recover",
+    )
 
     assert result.returncode != 0
     assert any("stop app backup" in call for call in calls)
-    assert any("up -d app backup" in call for call in calls)
+    assert any("restore-recover" in call for call in calls)
+    assert not any("up -d app backup" in call for call in calls)
 
 
-def test_restore_attempts_restart_when_stopping_services_fails(tmp_path: Path) -> None:
-    """Even a partial stop failure must trigger the restart cleanup path."""
+def test_restore_restarts_after_failed_promotion_only_when_recovery_is_proven(tmp_path: Path) -> None:
+    """A separate successful recovery and old-database validation permit restart."""
+    result, calls = _run_restore(tmp_path, docker_fail_match="restore-promote")
+
+    assert result.returncode != 0
+    recovery_index = next(index for index, call in enumerate(calls) if "restore-recover" in call)
+    validation_index = next(
+        index for index, call in enumerate(calls) if "RESTORE_RECOVERY_VALIDATION=true" in call
+    )
+    restart_index = next(index for index, call in enumerate(calls) if "up -d app backup" in call)
+    assert recovery_index < validation_index < restart_index
+
+
+def test_restore_keeps_services_stopped_when_the_stop_state_is_unknown(tmp_path: Path) -> None:
+    """A partial stop failure may not be converted into an unconditional restart."""
     result, calls = _run_restore(tmp_path, docker_fail_match="stop app backup")
 
     assert result.returncode != 0
-    assert any("up -d app backup" in call for call in calls)
+    assert not any("up -d app backup" in call for call in calls)
 
 
 def test_backup_can_export_a_restore_ready_pair_to_an_absolute_host_path(tmp_path: Path) -> None:
@@ -493,6 +521,9 @@ case "$*" in
         ;;
     *'COMMENT ON DATABASE "cafeteria_restore_candidate_staging"'*) touch "$CANDIDATE_MARKER" ;;
 esac
+while IFS= read -r sql_line; do
+    printf '%s %s\\n' 'sql' "$sql_line" >> "$COMMAND_LOG"
+done
 """,
         encoding="utf-8",
     )
@@ -527,6 +558,8 @@ exit 23
             "restore-stage",
             str(backup),
             str(checksum),
+            "staging",
+            "11111111-1111-4111-8111-111111111111",
         ],
         check=False,
         capture_output=True,
@@ -534,15 +567,11 @@ exit 23
         text=True,
     )
     calls = command_log.read_text(encoding="utf-8").splitlines()
-    candidate_drops = [
-        call
-        for call in calls
-        if call.startswith("dropdb ") and call.endswith(" cafeteria_restore_candidate_staging")
-    ]
+    candidate_drops = [call for call in calls if 'DROP DATABASE :"candidate_db"' in call]
 
     assert result.returncode == 23
     assert len(candidate_drops) == 1
-    assert not any(call.startswith("dropdb ") and call.endswith(" cafeteria") for call in calls)
+    assert not any('DROP DATABASE :"database_name"' in call for call in calls)
 
 
 def test_runbook_documents_immutable_image_and_database_compatible_rollback() -> None:
