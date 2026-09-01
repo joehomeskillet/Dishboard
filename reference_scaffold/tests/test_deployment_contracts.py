@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import fcntl
 import os
 from pathlib import Path
 import shutil
@@ -260,7 +261,9 @@ def _run_restore(
     checksum: bool = True,
     checksum_digest: str | None = None,
     docker_fail_match: str = "",
-    staged_database: str = "cafeteria_restore_candidate",
+    docker_fail_second_match: str = "",
+    staged_database: str = "cafeteria_restore_candidate_test_run",
+    extra_environment: dict[str, str] | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], list[str]]:
     backup = tmp_path / "cafeteria.dump"
     backup.write_bytes(b"safe candidate archive")
@@ -279,6 +282,11 @@ if [ -n "${DOCKER_FAIL_MATCH:-}" ]; then
         *"$DOCKER_FAIL_MATCH"*) exit 42 ;;
     esac
 fi
+if [ -n "${DOCKER_FAIL_SECOND_MATCH:-}" ]; then
+    case "$*" in
+        *"$DOCKER_FAIL_SECOND_MATCH"*) exit 43 ;;
+    esac
+fi
 case "$*" in
     *restore-stage*) printf '%s\\n' "$STAGED_DATABASE" ;;
 esac
@@ -291,8 +299,12 @@ exit 0
         "PATH": f"{fake_bin}:{os.environ['PATH']}",
         "DOCKER_LOG": str(docker_log),
         "DOCKER_FAIL_MATCH": docker_fail_match,
+        "DOCKER_FAIL_SECOND_MATCH": docker_fail_second_match,
         "STAGED_DATABASE": staged_database,
+        "RESTORE_RUN_ID": "test_run",
     }
+    if extra_environment:
+        environment.update(extra_environment)
     result = subprocess.run(
         ["/bin/sh", str(DEPLOYMENT / "restore.sh"), str(backup)],
         check=False,
@@ -335,18 +347,18 @@ def test_restore_uses_the_candidate_name_returned_by_the_restore_container(tmp_p
     """A POSTGRES_DB value loaded from Compose .env must drive candidate validation."""
     result, calls = _run_restore(
         tmp_path,
-        staged_database="menuplan_restore_candidate",
+        staged_database="menuplan_restore_candidate_test_run",
     )
 
     assert result.returncode == 0, result.stderr
-    assert any("POSTGRES_DB=menuplan_restore_candidate migrate" in call for call in calls)
+    assert any("POSTGRES_DB=menuplan_restore_candidate_test_run migrate" in call for call in calls)
 
 
 def test_restore_cleans_an_invalid_candidate_before_stopping_production(tmp_path: Path) -> None:
     """Migration failure in staging must remove only the candidate database."""
     result, calls = _run_restore(
         tmp_path,
-        docker_fail_match="POSTGRES_DB=cafeteria_restore_candidate migrate",
+        docker_fail_match="POSTGRES_DB=cafeteria_restore_candidate_test_run migrate",
     )
 
     assert result.returncode != 0
@@ -366,6 +378,34 @@ def test_restore_rolls_back_and_restarts_after_post_promotion_failure(tmp_path: 
     assert any("restore-promote" in call for call in calls)
     assert any("restore-rollback" in call for call in calls)
     assert any("up -d app backup" in call for call in calls)
+
+
+def test_restore_does_not_restart_the_app_when_rollback_cannot_be_validated(tmp_path: Path) -> None:
+    """A failed rollback leaves services stopped instead of serving an unvalidated candidate."""
+    result, calls = _run_restore(
+        tmp_path,
+        docker_fail_match="run --rm --no-deps app python /app/manage.py validate-db",
+        docker_fail_second_match="restore-rollback",
+    )
+
+    assert result.returncode != 0
+    assert any("restore-rollback" in call for call in calls)
+    assert not any("up -d app backup" in call for call in calls)
+
+
+def test_restore_refuses_a_concurrent_restore_before_contacting_docker(tmp_path: Path) -> None:
+    """The whole host-side restore transaction is serialized by an exclusive lock."""
+    lock_file = tmp_path / "restore.lock"
+    with lock_file.open("w", encoding="utf-8") as lock_handle:
+        fcntl.flock(lock_handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        result, calls = _run_restore(
+            tmp_path,
+            extra_environment={"RESTORE_LOCK_FILE": str(lock_file)},
+        )
+
+    assert result.returncode != 0
+    assert "exklusive sperre" in result.stderr.lower()
+    assert calls == []
 
 
 def test_restore_restarts_services_when_promotion_fails(tmp_path: Path) -> None:
@@ -436,13 +476,27 @@ def test_staging_pg_restore_failure_drops_only_candidate_database(tmp_path: Path
     fake_bin = tmp_path / "postgres-bin"
     fake_bin.mkdir()
 
-    for command in ("createdb", "dropdb", "psql"):
+    for command in ("createdb", "dropdb"):
         executable = fake_bin / command
         executable.write_text(
             f"#!/bin/sh\nprintf '%s %s\\n' '{command}' \"$*\" >> \"$COMMAND_LOG\"\n",
             encoding="utf-8",
         )
         executable.chmod(0o755)
+    psql = fake_bin / "psql"
+    psql.write_text(
+        """#!/bin/sh
+printf '%s %s\\n' 'psql' "$*" >> "$COMMAND_LOG"
+case "$*" in
+    *"datname = 'cafeteria_restore_candidate_staging'"*)
+        if [ -f "$CANDIDATE_MARKER" ]; then printf '%s\\n' 'menuplan-restore:staging'; else printf '%s\\n' '<absent>'; fi
+        ;;
+    *'COMMENT ON DATABASE "cafeteria_restore_candidate_staging"'*) touch "$CANDIDATE_MARKER" ;;
+esac
+""",
+        encoding="utf-8",
+    )
+    psql.chmod(0o755)
     pg_restore = fake_bin / "pg_restore"
     pg_restore.write_text(
         """#!/bin/sh
@@ -462,6 +516,8 @@ exit 23
         "POSTGRES_HOST": "db",
         "POSTGRES_USER": "cafeteria_owner",
         "POSTGRES_PASSWORD_FILE": str(password_file),
+        "RESTORE_RUN_ID": "staging",
+        "CANDIDATE_MARKER": str(tmp_path / "candidate-owned"),
     }
 
     result = subprocess.run(
@@ -481,11 +537,11 @@ exit 23
     candidate_drops = [
         call
         for call in calls
-        if call.startswith("dropdb ") and call.endswith(" cafeteria_restore_candidate")
+        if call.startswith("dropdb ") and call.endswith(" cafeteria_restore_candidate_staging")
     ]
 
     assert result.returncode == 23
-    assert len(candidate_drops) >= 2
+    assert len(candidate_drops) == 1
     assert not any(call.startswith("dropdb ") and call.endswith(" cafeteria") for call in calls)
 
 

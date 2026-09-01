@@ -44,6 +44,20 @@ verify_checksum() {
 
 verify_checksum
 
+restore_run_id=${RESTORE_RUN_ID:-"$(date -u +%Y%m%dT%H%M%SZ)_$$"}
+case "$restore_run_id" in
+  ''|*[!A-Za-z0-9_]*)
+    echo "Unsichere Restore-Laufkennung: $restore_run_id" >&2
+    exit 1
+    ;;
+esac
+restore_lock_file=${RESTORE_LOCK_FILE:-/tmp/cafeteria-restore.lock}
+exec 9>"$restore_lock_file"
+if ! flock -n 9; then
+  echo 'Ein anderer Restore-Lauf hält bereits die exklusive Sperre.' >&2
+  exit 1
+fi
+
 restore_container() {
   docker compose --profile ops run --rm \
     -v "$backup_dir:/restore-source:ro" \
@@ -51,12 +65,13 @@ restore_container() {
 }
 
 cleanup_candidate() {
-  restore_container restore-cleanup-candidate
+  restore_container restore-cleanup-candidate "$restore_run_id"
 }
 
 if ! candidate_database=$(restore_container restore-stage \
   "/restore-source/$backup_name" \
-  "/restore-source/$(basename -- "$sha_file")")
+  "/restore-source/$(basename -- "$sha_file")" \
+  "$restore_run_id")
 then
   exit 1
 fi
@@ -67,7 +82,7 @@ case "$candidate_database" in
     ;;
 esac
 case "$candidate_database" in
-  *_restore_candidate) ;;
+  *"_restore_candidate_$restore_run_id") ;;
   *) echo "Unerwarteter Restore-Kandidat: $candidate_database" >&2; exit 1 ;;
 esac
 [ "${#candidate_database}" -le 63 ] || { echo 'Restore-Kandidatname zu lang.' >&2; exit 1; }
@@ -96,11 +111,20 @@ recover_on_exit() {
   recovery_failed=false
   if [ "$database_promoted" = true ]; then
     docker compose stop app backup || recovery_failed=true
-    restore_container restore-rollback || recovery_failed=true
-    database_promoted=false
+    if restore_container restore-rollback "$restore_run_id" \
+      && docker compose run --rm --no-deps -e RESTORE_ROLLBACK_VALIDATION=true app python /app/manage.py validate-db --wait-seconds 30
+    then
+      database_promoted=false
+    else
+      recovery_failed=true
+    fi
   fi
   if [ "$services_stopped" = true ]; then
-    docker compose up -d app backup || recovery_failed=true
+    if [ "$recovery_failed" = false ]; then
+      docker compose up -d app backup || recovery_failed=true
+    else
+      echo 'App und Backup bleiben gestoppt: der Datenbankzustand ist nicht validiert.' >&2
+    fi
   fi
   [ "$recovery_failed" = false ] || status=1
   exit "$status"
@@ -111,7 +135,7 @@ trap 'exit 130' 1 2 15
 
 services_stopped=true
 docker compose stop app backup
-restore_container restore-promote
+restore_container restore-promote "$restore_run_id"
 database_promoted=true
 docker compose run --rm --no-deps app python /app/manage.py validate-db --wait-seconds 30
 docker compose up -d app backup

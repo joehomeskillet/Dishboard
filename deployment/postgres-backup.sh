@@ -90,15 +90,23 @@ verify_checksum() {
 }
 
 validate_database_names() {
+  RESTORE_RUN_ID=${1:-${RESTORE_RUN_ID:-}}
+  case "$RESTORE_RUN_ID" in
+    ''|*[!A-Za-z0-9_]*)
+      echo 'Restore-Laufkennung fehlt oder ist unsicher.' >&2
+      exit 1
+      ;;
+  esac
   case "$DB" in
     ''|[0-9]*|*[!A-Za-z0-9_]*|postgres|template0|template1)
       echo "Unsicherer PostgreSQL-Datenbankname: $DB" >&2
       exit 1
       ;;
   esac
-  CANDIDATE_DB="${DB}_restore_candidate"
-  ROLLBACK_DB="${DB}_restore_rollback"
-  FAILED_DB="${DB}_restore_failed"
+  CANDIDATE_DB="${DB}_restore_candidate_${RESTORE_RUN_ID}"
+  ROLLBACK_DB="${DB}_restore_rollback_${RESTORE_RUN_ID}"
+  FAILED_DB="${DB}_restore_failed_${RESTORE_RUN_ID}"
+  RESTORE_OWNER_MARKER="menuplan-restore:${RESTORE_RUN_ID}"
   [ "${#CANDIDATE_DB}" -le 63 ] && [ "${#ROLLBACK_DB}" -le 63 ] && [ "${#FAILED_DB}" -le 63 ] || {
     echo 'PostgreSQL-Datenbankname ist für sichere Restore-Suffixe zu lang.' >&2
     exit 1
@@ -108,6 +116,34 @@ validate_database_names() {
 admin_sql() {
   psql --host="$HOST" --port="$PORT" --username="$USER" --dbname=postgres \
     --set=ON_ERROR_STOP=1 --command="$1"
+}
+
+database_state() {
+  psql --host="$HOST" --port="$PORT" --username="$USER" --dbname=postgres \
+    --set=ON_ERROR_STOP=1 --tuples-only --no-align \
+    --command="SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_database WHERE datname = '$1')
+      THEN COALESCE((SELECT shobj_description(oid, 'pg_database') FROM pg_database WHERE datname = '$1'), '<unmarked>')
+      ELSE '<absent>' END;"
+}
+
+require_absent_database() {
+  state=$(database_state "$1")
+  [ "$state" = '<absent>' ] || {
+    echo "Fremde oder vorhandene Restore-Datenbank wird nicht verändert: $1" >&2
+    exit 1
+  }
+}
+
+require_owned_database() {
+  state=$(database_state "$1")
+  [ "$state" = "$RESTORE_OWNER_MARKER" ] || {
+    echo "Fremde Restore-Datenbank wird nicht verändert: $1" >&2
+    exit 1
+  }
+}
+
+mark_owned_database() {
+  admin_sql "COMMENT ON DATABASE \"$1\" IS '$RESTORE_OWNER_MARKER';" >/dev/null
 }
 
 terminate_database() {
@@ -127,20 +163,41 @@ drop_database() {
   dropdb --host="$HOST" --port="$PORT" --username="$USER" --if-exists "$1"
 }
 
+drop_owned_database() {
+  require_owned_database "$1"
+  terminate_database "$1"
+  drop_database "$1"
+}
+
+verify_pgcrypto() {
+  psql --host="$HOST" --port="$PORT" --username="$USER" --dbname="$CANDIDATE_DB" \
+    --set=ON_ERROR_STOP=1 \
+    --command='CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;' >/dev/null
+  pgcrypto_state=$(psql --host="$HOST" --port="$PORT" --username="$USER" --dbname="$CANDIDATE_DB" \
+    --set=ON_ERROR_STOP=1 --tuples-only --no-align \
+    --command="SELECT CASE WHEN to_regprocedure('public.digest(bytea,text)') IS NOT NULL
+        AND encode(public.digest(convert_to('restore-candidate', 'UTF8'), 'sha256'), 'hex') ~ '^[0-9a-f]{64}$'
+      THEN 'ready' ELSE 'invalid' END;")
+  [ "$pgcrypto_state" = ready ] || {
+    echo 'Restore-Kandidat konnte pgcrypto/digest() nicht bereitstellen.' >&2
+    exit 1
+  }
+}
+
 restore_stage() {
-  verify_checksum "$@"
-  source_file=$2
-  validate_database_names
+  source_file=$1
+  checksum_file=$2
+  validate_database_names "$3"
+  verify_checksum restore-stage "$source_file" "$checksum_file"
   pg_restore --list "$source_file" >/dev/null
 
-  candidate_created=true
+  candidate_created=false
   cleanup_staging_failure() {
     status=$?
     trap - 0 1 2 15
     cleanup_failed=false
     if [ "$candidate_created" = true ]; then
-      terminate_database "$CANDIDATE_DB" || cleanup_failed=true
-      drop_database "$CANDIDATE_DB" || cleanup_failed=true
+      drop_owned_database "$CANDIDATE_DB" || cleanup_failed=true
     fi
     if [ "$cleanup_failed" = true ]; then
       echo "Restore-Kandidat konnte nicht bereinigt werden: $CANDIDATE_DB" >&2
@@ -151,9 +208,10 @@ restore_stage() {
   trap cleanup_staging_failure 0
   trap 'exit 130' 1 2 15
 
-  terminate_database "$CANDIDATE_DB"
-  drop_database "$CANDIDATE_DB"
+  require_absent_database "$CANDIDATE_DB"
   createdb --host="$HOST" --port="$PORT" --username="$USER" --template=template0 "$CANDIDATE_DB"
+  candidate_created=true
+  mark_owned_database "$CANDIDATE_DB"
 
   pg_restore \
     --host="$HOST" \
@@ -164,6 +222,8 @@ restore_stage() {
     --no-privileges \
     --exit-on-error \
     "$source_file"
+
+  verify_pgcrypto
 
   schema_state=$(psql --host="$HOST" --port="$PORT" --username="$USER" --dbname="$CANDIDATE_DB" \
     --set=ON_ERROR_STOP=1 --tuples-only --no-align \
@@ -179,18 +239,14 @@ restore_stage() {
 }
 
 restore_cleanup_candidate() {
-  validate_database_names
-  terminate_database "$CANDIDATE_DB"
-  drop_database "$CANDIDATE_DB"
+  validate_database_names "$1"
+  drop_owned_database "$CANDIDATE_DB"
 }
 
 restore_promote() {
-  validate_database_names
-  psql --host="$HOST" --port="$PORT" --username="$USER" --dbname="$CANDIDATE_DB" \
-    --set=ON_ERROR_STOP=1 --command='SELECT 1;' >/dev/null
-
-  terminate_database "$ROLLBACK_DB"
-  drop_database "$ROLLBACK_DB"
+  validate_database_names "$1"
+  require_owned_database "$CANDIDATE_DB"
+  require_absent_database "$ROLLBACK_DB"
 
   promotion_state=initial
   recover_promotion() {
@@ -245,11 +301,9 @@ restore_promote() {
 }
 
 restore_rollback() {
-  validate_database_names
-  psql --host="$HOST" --port="$PORT" --username="$USER" --dbname="$ROLLBACK_DB" \
-    --set=ON_ERROR_STOP=1 --command='SELECT 1;' >/dev/null
-  terminate_database "$FAILED_DB"
-  drop_database "$FAILED_DB"
+  validate_database_names "$1"
+  require_owned_database "$DB"
+  require_absent_database "$FAILED_DB"
 
   rollback_state=initial
   recover_rollback() {
@@ -303,16 +357,16 @@ case "$MODE" in
     done
     ;;
   restore-stage)
-    restore_stage "$@"
+    restore_stage "${2:-}" "${3:-}" "${4:-${RESTORE_RUN_ID:-}}"
     ;;
   restore-cleanup-candidate)
-    restore_cleanup_candidate
+    restore_cleanup_candidate "${2:-${RESTORE_RUN_ID:-}}"
     ;;
   restore-promote)
-    restore_promote
+    restore_promote "${2:-${RESTORE_RUN_ID:-}}"
     ;;
   restore-rollback)
-    restore_rollback
+    restore_rollback "${2:-${RESTORE_RUN_ID:-}}"
     ;;
   *)
     echo "Unbekannter Modus: $MODE" >&2

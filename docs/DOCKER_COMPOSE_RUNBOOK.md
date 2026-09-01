@@ -73,7 +73,9 @@ Das Backup erhält SHA-256-Datei und JSON-Manifest. Mindestens eine Kopie wird a
 ./restore.sh /absoluter/pfad/cafeteria-YYYYMMDDTHHMMSSZ.dump
 ```
 
-Die gleichnamige `.dump.sha256` ist verpflichtend. Das Skript prüft den Hash, stellt zunächst eine isolierte Kandidaten-Datenbank wieder her und führt dort Migration und Datenbankvalidator aus. Erst danach stoppt es `app` und `backup`, tauscht die Datenbanknamen und validiert erneut. Jeder Fehler nach dem Stopp löst Datenbank-Rollback und Neustart aus; ein fehlerhafter Kandidat berührt die produktive Datenbank nicht. Anschliessend beide Snapshot-APIs, Patienten-Sonntagabend und Cafeteria-Geschlossenfläche prüfen.
+Die gleichnamige `.dump.sha256` ist verpflichtend. Das Skript prüft den Hash vor jeder Mutation und hält für die gesamte Ausführung eine exklusive Host-Sperre. Jeder Lauf verwendet eindeutige Kandidat-, Rollback- und Fehlerdatenbanken mit einem Eigentumsmarker; vorhandene oder fremde Namen werden weder beendet noch gelöscht. Der Kandidat entsteht aus `template0`, installiert und prüft deshalb `pgcrypto` inklusive `public.digest()` vor Migration und Datenbankvalidator.
+
+Erst danach stoppt das Skript `app` und `backup`, tauscht die Datenbanknamen über die Kontroll-Datenbank `postgres` und validiert erneut. Schlägt diese Prüfung fehl, wird der vorherige Datenbankstand zurückbenannt, `ALLOW_CONNECTIONS` wieder aktiviert und nochmals validiert. Nur nach erfolgreichem Rollback startet das Skript `app` und `backup` erneut. Bei einer fehlerhaften Rückkehr bleiben beide bewusst gestoppt; den Zustand erst nach manueller Datenbankprüfung und Incident-Freigabe starten. Anschliessend beide Snapshot-APIs, Patienten-Sonntagabend und Cafeteria-Geschlossenfläche prüfen.
 
 ## Update
 
