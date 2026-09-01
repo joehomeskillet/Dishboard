@@ -56,10 +56,10 @@ PATIENT_FIXED_VALUES = {
     ('allergen', 'code'): PATIENT_ALLERGEN_CODES,
     ('allergen', 'presence'): frozenset({'contains', 'may_contain'}),
 }
-PATIENT_ISO_DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
-PATIENT_REVISION_RE = re.compile(r'^PAT-\d{4}-KW(?:0[1-9]|[1-4]\d|5[0-3])-R[1-9]\d*$')
+PATIENT_ISO_DATE_RE = re.compile(r'^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+PATIENT_REVISION_RE = re.compile(r'^PAT-[0-9]{4}-KW(?:0[1-9]|[1-4][0-9]|5[0-3])-R[1-9][0-9]*$')
 PATIENT_EXTERNAL_ID_RE = re.compile(
-    r'^PATIENT-\d{4}-\d{2}-\d{2}-(?:LUNCH|DINNER)-(?:1|2)$'
+    r'^PATIENT-[0-9]{4}-[0-9]{2}-[0-9]{2}-(?:LUNCH|DINNER)-(?:1|2)$'
 )
 PATIENT_LOCATION_CODE_RE = re.compile(r'^[A-Z][A-Z_]{1,31}$')
 PATIENT_COUNTRY_CODE_RE = re.compile(r'^[A-Z]{2}$')
@@ -76,44 +76,50 @@ PATIENT_MONTH = (
     r'(?:Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)'
 )
 PATIENT_WEEK_TITLE_RE = re.compile(
-    rf'^(?:[1-9]|[12]\d|3[01])\. {PATIENT_MONTH} bis '
-    rf'(?:[1-9]|[12]\d|3[01])\. {PATIENT_MONTH}$'
+    rf'^(?:[1-9]|[12][0-9]|3[01])\. {PATIENT_MONTH} bis '
+    rf'(?:[1-9]|[12][0-9]|3[01])\. {PATIENT_MONTH}$'
 )
-PATIENT_CLOCK_RE = re.compile(r'(?<!\w)(?:[01]\d|2[0-3])[.:][0-5]\d uhr(?!\w)')
+PATIENT_OPERATIONAL_NOTE_RE = re.compile(
+    r'^(?:ausgabe (?:ab|bis)|serviert um|therapie um) '
+    r'(?:[01][0-9]|2[0-3])[.:][0-5][0-9] uhr$'
+)
 PATIENT_CONFUSABLES = str.maketrans({
-    'а': 'a', 'е': 'e', 'о': 'o', 'р': 'p', 'с': 'c', 'х': 'x', 'і': 'i',
-    'ј': 'j', 'у': 'y', 'ѕ': 's', 'α': 'a', 'ε': 'e', 'ι': 'i', 'κ': 'k',
-    'ο': 'o', 'ρ': 'p', 'τ': 't', 'χ': 'x',
+    'ı': 'i', 'ſ': 's', 'ɩ': 'i', 'ɪ': 'i', 'ɾ': 'r',
+    'ᴀ': 'a', 'ʙ': 'b', 'ᴄ': 'c', 'ᴅ': 'd', 'ᴇ': 'e', 'ɢ': 'g', 'ʜ': 'h',
+    'ᴊ': 'j', 'ᴋ': 'k', 'ʟ': 'l', 'ᴍ': 'm', 'ɴ': 'n', 'ᴏ': 'o', 'ᴘ': 'p',
+    'ʀ': 'r', 'ꜱ': 's', 'ᴛ': 't', 'ᴜ': 'u', 'ᴠ': 'v', 'ᴡ': 'w', 'ʏ': 'y',
+    'ᴢ': 'z',
+    'а': 'a', 'в': 'b', 'с': 'c', 'ԁ': 'd', 'е': 'e', 'ғ': 'f', 'г': 'r',
+    'һ': 'h', 'і': 'i', 'ј': 'j', 'к': 'k', 'ӏ': 'l', 'м': 'm', 'н': 'h',
+    'о': 'o', 'р': 'p', 'ԛ': 'q', 'ѕ': 's', 'т': 't', 'у': 'y', 'х': 'x',
+    'α': 'a', 'β': 'b', 'ϲ': 'c', 'δ': 'd', 'ε': 'e', 'ϵ': 'e', 'ϝ': 'f',
+    'η': 'h', 'ι': 'i', 'κ': 'k', 'λ': 'l', 'μ': 'm', 'ν': 'v', 'ο': 'o',
+    'ρ': 'p', 'ϱ': 'p', 'σ': 's', 'ς': 's', 'τ': 't', 'υ': 'y', 'χ': 'x',
+    'ζ': 'z',
 })
-PATIENT_SENSITIVE_LEXEMES = frozenset({
-    # German
-    'preis', 'preise', 'preisen', 'preises', 'preislich', 'bepreist',
-    'kosten', 'kostenpflichtig', 'kostenpflichtige', 'kostenpflichtigen',
-    'kostenlos', 'kostenfrei', 'betrag', 'beträge', 'gebühr', 'gebühren',
-    'gebuehr', 'gebuehren', 'tarif', 'tarife', 'tarifen', 'tarifs',
-    'aufpreis', 'aufpreise', 'aufpreisen', 'bezahlt', 'bezahlung', 'zahlung',
-    'zahlbar', 'währung', 'waehrung', 'inklusive', 'inkludiert', 'inbegriffen',
-    'intern', 'interne', 'internen', 'interner', 'internes',
-    'extern', 'externe', 'externen', 'externer', 'externes', 'internal', 'external',
-    # English
-    'price', 'prices', 'priced', 'pricing', 'cost', 'costs', 'costly', 'costing',
-    'fee', 'fees', 'charge', 'charges', 'charged', 'charging', 'chargeable',
-    'rate', 'rates', 'rated', 'rating', 'tariff', 'tariffs', 'surcharge',
-    'surcharges', 'amount', 'amounts', 'currency', 'currencies', 'billing',
-    'paid', 'payable', 'payment', 'included', 'including', 'inclusive',
-    # French and Italian
-    'prix', 'coût', 'coûts', 'cout', 'couts', 'frais', 'supplément',
-    'suppléments', 'supplement', 'supplements', 'devise', 'monnaie',
-    'payant', 'payante', 'payants', 'payantes', 'payé', 'payée', 'paiement',
-    'inclus', 'incluse', 'incluses', 'compris', 'comprise', 'prezzo', 'prezzi',
-    'costo', 'costi', 'tariffa', 'tariffe', 'supplemento', 'supplementi',
-    'valuta', 'pagato', 'pagata', 'pagamento', 'incluso', 'inclusa',
-    'compreso', 'compresa', 'gratis',
-    # Currency names, codes and abbreviations
-    'chf', 'fr', 'frs', 'sfr', 'rp', 'rappen', 'franken', 'eur', 'euro', 'euros',
-    'usd', 'gbp', 'cad', 'aud', 'jpy', 'cny', 'sek', 'nok', 'dkk',
+PATIENT_NON_LATIN_CONFUSABLE_RE = re.compile(r'[\u0370-\u052f\u1c80-\u1cff\u2de0-\u2dff\ua640-\ua69f]')
+PATIENT_SENSITIVE_STEMS = (
+    'preis', 'price', 'pricing', 'kosten', 'kostet', 'gebuhr', 'gebuehr',
+    'tarif', 'zuschlag', 'pauschal', 'entgelt', 'selbstzahl', 'eigenanteil',
+    'verrechn', 'berechn', 'inklusiv', 'inkludier', 'inbegriffen', 'cost',
+    'charg', 'amount', 'currenc', 'bill', 'payabl', 'payment', 'includ', 'cout',
+    'supplement', 'montant', 'factur', 'payant', 'paiement', 'prezz', 'importo',
+    'pagat', 'compres', 'chf', 'rappen', 'franken', 'stutz', 'rappli', 'raeppli',
+    'frankli', 'fraenkli',
+)
+PATIENT_SENSITIVE_EXACT = frozenset({
+    'betrag', 'betrage', 'bezahlt', 'bezahlung', 'zahlung', 'zahlbar', 'wahrung',
+    'waehrung', 'intern', 'interne', 'internen', 'interner', 'internes',
+    'internal', 'extern', 'externe', 'externen', 'externer', 'externes',
+    'external', 'fee', 'fees', 'rate', 'rates', 'rated', 'rating', 'paid',
+    'prix', 'frais', 'devise', 'monnaie', 'paye', 'inclus', 'incluse',
+    'incluses', 'compris', 'comprise', 'valuta', 'incluso', 'inclusa', 'gratis',
+    'chf', 'fr', 'frs', 'sfr', 'rp', 'rappen', 'franken', 'stutz', 'rappli',
+    'raeppli', 'frankli', 'fraenkli', 'eur', 'euro', 'euros', 'usd', 'gbp',
+    'cad', 'aud', 'jpy',
+    'cny', 'sek', 'nok', 'dkk',
 })
-PATIENT_MAX_SENSITIVE_LEXEME_LENGTH = max(map(len, PATIENT_SENSITIVE_LEXEMES))
+PATIENT_MAX_SEMANTIC_FORM_LENGTH = 64
 
 
 def create_database_engine(
@@ -283,10 +289,22 @@ def validate_database(engine: Engine) -> dict[str, Any]:
     return result
 
 
+def _normalise_decimal_digits(value: str) -> str:
+    return ''.join(
+        str(unicodedata.decimal(character)) if character.isdecimal() else character
+        for character in value
+    )
+
+
 def _normalise_patient_text(value: str) -> str:
-    normalised = unicodedata.normalize('NFKC', value)
+    normalised = _normalise_decimal_digits(unicodedata.normalize('NFKC', value))
     camel_case_split = re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', normalised)
-    return camel_case_split.casefold().translate(PATIENT_CONFUSABLES)
+    skeleton = camel_case_split.casefold().translate(PATIENT_CONFUSABLES)
+    return ''.join(
+        character
+        for character in unicodedata.normalize('NFKD', skeleton)
+        if not unicodedata.category(character).startswith('M')
+    )
 
 
 def _patient_semantic_tokens(value: str) -> list[str]:
@@ -298,28 +316,45 @@ def _patient_semantic_tokens(value: str) -> list[str]:
     return semantic.split()
 
 
+def _patient_form_is_sensitive(form: str) -> bool:
+    for safe_food_lexeme in ('preiselbeer', 'costine'):
+        form = form.replace(safe_food_lexeme, '')
+    return (
+        form in PATIENT_SENSITIVE_EXACT
+        or form.startswith(('pric', 'surcharg'))
+        or any(stem in form for stem in PATIENT_SENSITIVE_STEMS)
+    )
+
+
 def _patient_tokens_contain_sensitive_lexeme(tokens: list[str]) -> bool:
+    if any(_patient_form_is_sensitive(token) for token in tokens):
+        return True
     for start in range(len(tokens)):
-        joined = ''
-        for token in tokens[start:]:
+        joined = tokens[start]
+        for token in tokens[start + 1:]:
             joined += token
-            if len(joined) > PATIENT_MAX_SENSITIVE_LEXEME_LENGTH:
+            if len(joined) > PATIENT_MAX_SEMANTIC_FORM_LENGTH:
                 break
-            if joined in PATIENT_SENSITIVE_LEXEMES:
+            if _patient_form_is_sensitive(joined):
                 return True
     return False
 
 
-def _patient_text_is_forbidden(value: str) -> bool:
+def _patient_text_is_forbidden(value: str, *, allow_operational_time: bool = False) -> bool:
     if any(character.isnumeric() and not character.isdecimal() for character in value):
         return True
     normalised = _normalise_patient_text(value)
-    without_clocks = PATIENT_CLOCK_RE.sub('', normalised)
-    if any(character.isnumeric() for character in without_clocks):
-        return True
+    if any(character.isnumeric() for character in normalised):
+        operational_note = _normalise_decimal_digits(unicodedata.normalize('NFKC', value)).casefold()
+        return not (
+            allow_operational_time
+            and PATIENT_OPERATIONAL_NOTE_RE.fullmatch(operational_note) is not None
+        )
     if any(unicodedata.category(character) == 'Sc' for character in normalised):
         return True
-    return _patient_tokens_contain_sensitive_lexeme(_patient_semantic_tokens(without_clocks))
+    if PATIENT_NON_LATIN_CONFUSABLE_RE.search(normalised):
+        return True
+    return _patient_tokens_contain_sensitive_lexeme(_patient_semantic_tokens(normalised))
 
 
 def _patient_scalar_is_invalid(kind: str, key: str, value: Any) -> bool:
@@ -336,7 +371,10 @@ def _patient_scalar_is_invalid(kind: str, key: str, value: Any) -> bool:
 
     if kind == 'snapshot' and key == 'title' and PATIENT_WEEK_TITLE_RE.fullmatch(value):
         return False
-    return _patient_text_is_forbidden(value)
+    return _patient_text_is_forbidden(
+        value,
+        allow_operational_time=kind == 'option' and key == 'note',
+    )
 
 
 def _patient_list_paths(value: Any, item_kind: str, path: str) -> list[str]:
