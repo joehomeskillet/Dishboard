@@ -17,13 +17,12 @@
 ```bash
 cd deployment
 ./bootstrap.sh
-cp .env.example .env
 docker compose config
 docker compose up --build -d
 docker compose ps
 ```
 
-Demo-Routen verwenden `DEMO_TODAY=2026-09-01`. Öffentliche URLs besitzen trotzdem keinen Datumsparameter.
+Die mit `bootstrap.sh` erzeugte `.env` ist produktionssicher. Für eine lokale Demo darin bewusst `APP_ENV=development`, `APP_PUBLIC_BASE_URL=http://localhost:8080`, `DEMO_MODE=true`, `SEED_DEMO=true`, `DEMO_TODAY=2026-09-01` und `SESSION_COOKIE_SECURE=false` setzen. Öffentliche URLs besitzen trotzdem keinen Datumsparameter.
 
 ## Produktionswerte
 
@@ -39,17 +38,19 @@ POSTGRES_SSLMODE=prefer
 
 Tenant-ID, Client-ID und Secrets müssen real gesetzt sein. Secrets liegen unter `deployment/secrets/` und nicht in `.env`. Der Redis-Healthcheck ruft ein Skript auf; das Passwort steht nicht im Healthcheck-Kommando.
 
+Der App-Entrypoint verweigert den Produktionsstart bei HTTP, einer Abweichung zwischen `APP_PUBLIC_BASE_URL` und `CAFETERIA_DOMAIN`, unsicheren Session-Cookies sowie bekannten Entra-Platzhaltern. `migrate` überschreibt die Laufzeitwerte mit `APP_ENV=migration`, ausgeschaltetem Demo-/Entra-Modus und erhält nur PostgreSQL-Secrets; Flask-, Redis- und Entra-Secrets werden dort nicht benötigt.
+
 ## Startprüfung
 
 ```bash
-docker compose config
-docker compose up --build -d
-docker compose ps
-docker compose logs --tail=200 migrate app db redis
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml config
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml up --build -d
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml ps
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml logs --tail=200 migrate app db redis caddy
 
-docker compose run --rm app python /app/manage.py validate-db --wait-seconds 30
-curl --fail http://127.0.0.1:8080/health/live
-curl --fail http://127.0.0.1:8080/health/ready
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml run --rm app python /app/manage.py validate-db --wait-seconds 30
+curl --fail https://dishboard.joelduss.xyz/health/live
+curl --fail https://dishboard.joelduss.xyz/health/ready
 ```
 
 Zusätzlich sind alle vier Player sowie beide API-Snapshots aufzurufen. Die Header `X-Snapshot-Revision` von Tag und Woche desselben Profils müssen übereinstimmen.
@@ -74,11 +75,11 @@ Der Restore wird zuerst in einem separaten Testsystem ausgeführt. Anschliessend
 
 ```bash
 ./backup.sh
-docker compose build --pull
-docker compose up -d db redis
-docker compose run --rm migrate
-docker compose up -d app backup
-docker compose ps
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml build --pull
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d db redis
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml run --rm migrate
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d app backup caddy
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml ps
 ```
 
 Die mitgelieferte Migration ist eine versionierte SQL-Baseline. Das Paket behauptet kein Alembic-Verfahren. Spätere SQL-Migrationen müssen nummeriert, wiederholbar getestet und mit einem Restorepfad dokumentiert werden.

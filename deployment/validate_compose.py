@@ -33,9 +33,22 @@ assert '--requirepass' not in (root / 'docker-compose.yml').read_text(encoding='
 assert '--aclfile /tmp/redis-users.acl' in (root / 'docker-compose.yml').read_text(encoding='utf-8')
 
 migrate = services['migrate']
+assert 'env_file' not in migrate
+assert migrate['environment']['APP_ENV'] == 'migration'
+assert migrate['environment']['DEMO_MODE'] == 'false'
+assert migrate['environment']['SEED_DEMO'] == 'false'
+assert migrate['environment']['DEMO_TODAY'] == ''
+assert migrate['environment']['ENTRA_ENABLED'] == 'false'
 assert migrate['environment']['POSTGRES_USER'] == 'cafeteria_owner'
 assert migrate['environment']['POSTGRES_APP_PASSWORD_FILE'] == '/run/secrets/postgres_app_password'
 assert migrate['environment']['POSTGRES_BACKUP_PASSWORD_FILE'] == '/run/secrets/postgres_backup_password'
+assert set(migrate['secrets']) == {
+    'postgres_owner_password', 'postgres_app_password', 'postgres_backup_password'
+}
+assert set(migrate['environment']).isdisjoint({
+    'ENTRA_TENANT_ID', 'ENTRA_CLIENT_ID', 'FLASK_SECRET_KEY_FILE',
+    'ENTRA_CLIENT_SECRET_FILE', 'REDIS_PASSWORD_FILE',
+})
 assert migrate['command'] == ['python', '/app/manage.py', 'init-db', '--wait-seconds', '60']
 
 app = services['app']
@@ -65,8 +78,9 @@ assert overlay['services']['caddy']['environment']['CAFETERIA_DOMAIN'] == '${CAF
 
 example = (root / '.env.example').read_text(encoding='utf-8')
 for token in (
-    'APP_ENV=development', 'APP_PUBLIC_BASE_URL=https://dishboard.joelduss.xyz',
-    'DEMO_TODAY=2026-09-01', 'LAST_GOOD_DIR=/var/lib/cafeteria/last-good',
+    'APP_ENV=production', 'APP_PUBLIC_BASE_URL=https://dishboard.joelduss.xyz',
+    'DEMO_MODE=false', 'SEED_DEMO=false', 'DEMO_TODAY=', 'SESSION_COOKIE_SECURE=true',
+    'LAST_GOOD_DIR=/var/lib/cafeteria/last-good',
     'ENTRA_ENABLED=false', 'CAFETERIA_DOMAIN=dishboard.joelduss.xyz',
 ):
     assert token in example, token

@@ -4,11 +4,10 @@ Das Deployment startet PostgreSQL, Redis, SQL-Baseline, Flask/Gunicorn sowie Bac
 
 ## Lokale Demo
 
-Die Standarddomain fuer Reverse Proxy und Entra ist `dishboard.joelduss.xyz`. Fuer einen lokalen Browserstart in `.env` mindestens `APP_PUBLIC_BASE_URL=http://localhost:8080` setzen; die Werte bleiben Operator-Overrides.
+Die Standarddatei `.env.example` ist fuer den oeffentlichen Host `dishboard.joelduss.xyz` produktionssicher vorbelegt. Fuer eine lokale Demo nach `bootstrap.sh` in `.env` bewusst `APP_ENV=development`, `APP_PUBLIC_BASE_URL=http://localhost:8080`, `DEMO_MODE=true`, `SEED_DEMO=true`, `DEMO_TODAY=2026-09-01` und `SESSION_COOKIE_SECURE=false` setzen.
 
 ```bash
 ./bootstrap.sh
-cp .env.example .env
 docker compose config
 docker compose up --build -d
 ```
@@ -24,6 +23,15 @@ Der Demo-Modus darf nie mit `APP_ENV=production` verwendet werden. Player-URLs a
 
 ## Produktion
 
-`bootstrap.sh` erzeugt nur technische Secrets. Es provisioniert weder Entra noch lokale Benutzer. Vor dem Produktionsstart setzt der Betreiber `APP_ENV=production`, deaktiviert `DEMO_MODE` und `SEED_DEMO`, leert `DEMO_TODAY` und hinterlegt reale Entra-IDs sowie das Client Secret. Erst danach `ENTRA_ENABLED=true` setzen. Der Entrypoint lehnt Demo-Werte, Standard-IDs und das Bootstrap-Platzhaltersecret in diesem Modus ab.
+`bootstrap.sh` erzeugt nur technische Secrets und kopiert die produktionssicheren Defaults nach `.env`. Es provisioniert weder Entra noch lokale Benutzer. Vor dem Produktionsstart hinterlegt der Betreiber reale Entra-IDs sowie das Client Secret; erst danach `ENTRA_ENABLED=true` setzen. Der App-Entrypoint lehnt Demo-Werte, unsichere oder abweichende oeffentliche URLs, unsichere Session-Cookies sowie bekannte Entra-Platzhalter ab. Der Migrationsdienst erzwingt separat `APP_ENV=migration` und erhaelt ausschliesslich die drei PostgreSQL-Secrets.
+
+Der Produktionsstart verwendet immer Basisdatei und Caddy-Overlay:
+
+```bash
+./bootstrap.sh
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml config
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml up --build -d
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml ps
+```
 
 Der App-Container speichert die Last-Good-Player-Snapshots im benannten Volume `last_good_data` unter `/var/lib/cafeteria/last-good`; sie ueberstehen Container-Neustarts. Redis- und PostgreSQL-Secrets werden aus Docker-Secret-Dateien gelesen und nicht als Prozessargumente an Healthchecks uebergeben.

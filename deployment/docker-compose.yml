@@ -98,9 +98,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    env_file: [.env]
     environment:
       <<: *common-database
+      APP_ENV: migration
+      DEMO_MODE: "false"
+      SEED_DEMO: "false"
+      DEMO_TODAY: ""
+      ENTRA_ENABLED: "false"
       POSTGRES_USER: cafeteria_owner
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_owner_password
       POSTGRES_APP_PASSWORD_FILE: /run/secrets/postgres_app_password
