@@ -83,21 +83,10 @@ PATIENT_OPERATIONAL_NOTE_RE = re.compile(
     r'^(?:ausgabe (?:ab|bis)|serviert um|therapie um) '
     r'(?:[01][0-9]|2[0-3])[.:][0-5][0-9] uhr$'
 )
-PATIENT_CONFUSABLES = str.maketrans({
-    'ı': 'i', 'ſ': 's', 'ɩ': 'i', 'ɪ': 'i', 'ɾ': 'r',
-    'ᴀ': 'a', 'ʙ': 'b', 'ᴄ': 'c', 'ᴅ': 'd', 'ᴇ': 'e', 'ɢ': 'g', 'ʜ': 'h',
-    'ᴊ': 'j', 'ᴋ': 'k', 'ʟ': 'l', 'ᴍ': 'm', 'ɴ': 'n', 'ᴏ': 'o', 'ᴘ': 'p',
-    'ʀ': 'r', 'ꜱ': 's', 'ᴛ': 't', 'ᴜ': 'u', 'ᴠ': 'v', 'ᴡ': 'w', 'ʏ': 'y',
-    'ᴢ': 'z',
-    'а': 'a', 'в': 'b', 'с': 'c', 'ԁ': 'd', 'е': 'e', 'ғ': 'f', 'г': 'r',
-    'һ': 'h', 'і': 'i', 'ј': 'j', 'к': 'k', 'ӏ': 'l', 'м': 'm', 'н': 'h',
-    'о': 'o', 'р': 'p', 'ԛ': 'q', 'ѕ': 's', 'т': 't', 'у': 'y', 'х': 'x',
-    'α': 'a', 'β': 'b', 'ϲ': 'c', 'δ': 'd', 'ε': 'e', 'ϵ': 'e', 'ϝ': 'f',
-    'η': 'h', 'ι': 'i', 'κ': 'k', 'λ': 'l', 'μ': 'm', 'ν': 'v', 'ο': 'o',
-    'ρ': 'p', 'ϱ': 'p', 'σ': 's', 'ς': 's', 'τ': 't', 'υ': 'y', 'χ': 'x',
-    'ζ': 'z',
-})
-PATIENT_NON_LATIN_CONFUSABLE_RE = re.compile(r'[\u0370-\u052f\u1c80-\u1cff\u2de0-\u2dff\ua640-\ua69f]')
+PATIENT_LATIN_ASCII_FOLDS = (
+    ('ı', 'i'), ('æ', 'ae'), ('œ', 'oe'), ('ø', 'o'), ('å', 'a'),
+    ('ł', 'l'), ('đ', 'd'), ('ð', 'd'), ('þ', 'th'),
+)
 PATIENT_SENSITIVE_STEMS = (
     'preis', 'price', 'pricing', 'kosten', 'kostet', 'gebuhr', 'gebuehr',
     'tarif', 'zuschlag', 'pauschal', 'entgelt', 'selbstzahl', 'eigenanteil',
@@ -116,13 +105,10 @@ PATIENT_SENSITIVE_EXACT = frozenset({
     'incluses', 'compris', 'comprise', 'valuta', 'incluso', 'inclusa', 'gratis',
     'chf', 'fr', 'frs', 'sfr', 'rp', 'rappen', 'franken', 'stutz', 'rappli',
     'raeppli', 'frankli', 'fraenkli', 'eur', 'euro', 'euros', 'usd', 'gbp',
-    'cad', 'aud', 'jpy',
-    'cny', 'sek', 'nok', 'dkk',
+    'cad', 'aud', 'jpy', 'cny', 'sek', 'nok', 'dkk',
 })
 PATIENT_MAX_SEMANTIC_FORM_LENGTH = 64
-PATIENT_UNSAFE_BIDI_CLASSES = frozenset({
-    'LRE', 'RLE', 'LRO', 'RLO', 'PDF', 'LRI', 'RLI', 'FSI', 'PDI',
-})
+PATIENT_UNSAFE_BIDI_CLASSES = frozenset({'LRE', 'RLE', 'LRO', 'RLO', 'PDF', 'LRI', 'RLI', 'FSI', 'PDI'})
 
 
 def create_database_engine(
@@ -301,26 +287,34 @@ def _normalise_decimal_digits(value: str) -> str:
 
 def _normalise_patient_text(value: str) -> str:
     normalised = _normalise_decimal_digits(unicodedata.normalize('NFKC', value))
-    camel_case_split = re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', normalised)
-    skeleton = camel_case_split.casefold().translate(PATIENT_CONFUSABLES)
+    skeleton = re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', normalised).casefold()
+    for source, target in PATIENT_LATIN_ASCII_FOLDS:
+        skeleton = skeleton.replace(source, target)
     return ''.join(
-        character
-        for character in unicodedata.normalize('NFKD', skeleton)
-        if not unicodedata.category(character).startswith('M')
+        ch for ch in unicodedata.normalize('NFKD', skeleton)
+        if not unicodedata.category(ch).startswith('M')
     )
+
+
+def _patient_ascii_skeleton(value: str) -> str | None:
+    pieces: list[str] = []
+    for character in value:
+        if not character.isascii() and character.isalnum():
+            return None
+        pieces.append(character if character.isascii() else ' ')
+    return ''.join(pieces)
 
 
 def _patient_semantic_tokens(value: str) -> list[str]:
-    semantic = ''.join(
-        character if character.isalnum() else ' '
-        for character in value
-        if not unicodedata.category(character).startswith('M')
-    )
-    return semantic.split()
+    return ''.join(
+        ch if ch.isalnum() else ' '
+        for ch in value
+        if not unicodedata.category(ch).startswith('M')
+    ).split()
 
 
 def _patient_form_is_sensitive(form: str) -> bool:
-    for safe_food_lexeme in ('preiselbeer', 'costine'):
+    for safe_food_lexeme in ('preiselbeer', 'costine', 'aufbewahrung'):
         form = form.replace(safe_food_lexeme, '')
     ascii_il_skeleton = re.sub(r'[il]+', 'i', form)
     short_chf_skeleton = form.replace('i', '').replace('l', '')
@@ -329,7 +323,7 @@ def _patient_form_is_sensitive(form: str) -> bool:
         or form.startswith(('pric', 'surcharg'))
         or any(stem in form for stem in PATIENT_SENSITIVE_STEMS)
         or any(stem in ascii_il_skeleton for stem in ('price', 'pricing'))
-        or (len(form) <= 5 and short_chf_skeleton == 'chf')
+        or len(form) <= 5 and short_chf_skeleton == 'chf'
     )
 
 
@@ -349,39 +343,33 @@ def _patient_tokens_contain_sensitive_lexeme(tokens: list[str]) -> bool:
 
 def _patient_text_is_forbidden(value: str, *, allow_operational_time: bool = False) -> bool:
     if any(
-        unicodedata.category(character) == 'Cf'
-        or unicodedata.bidirectional(character) in PATIENT_UNSAFE_BIDI_CLASSES
-        for character in value
+        unicodedata.category(ch) == 'Cf' or unicodedata.bidirectional(ch) in PATIENT_UNSAFE_BIDI_CLASSES
+        for ch in value
     ):
         return True
     if any(character.isnumeric() and not character.isdecimal() for character in value):
         return True
-    normalised = _normalise_patient_text(value)
-    if any(character.isnumeric() for character in normalised):
-        operational_note = _normalise_decimal_digits(unicodedata.normalize('NFKC', value)).casefold()
-        return not (
-            allow_operational_time
-            and PATIENT_OPERATIONAL_NOTE_RE.fullmatch(operational_note) is not None
-        )
-    if any(unicodedata.category(character) == 'Sc' for character in normalised):
+    nfkc_text = unicodedata.normalize('NFKC', value)
+    if any(unicodedata.category(ch) == 'Sc' for text in (value, nfkc_text) for ch in text):
         return True
-    if PATIENT_NON_LATIN_CONFUSABLE_RE.search(normalised):
+    ascii_text = _patient_ascii_skeleton(_normalise_patient_text(value))
+    if ascii_text is None:
         return True
-    return _patient_tokens_contain_sensitive_lexeme(_patient_semantic_tokens(normalised))
+    if any(character.isnumeric() for character in ascii_text):
+        operational_note = _normalise_decimal_digits(nfkc_text).casefold()
+        return not (allow_operational_time and PATIENT_OPERATIONAL_NOTE_RE.fullmatch(operational_note))
+    return _patient_tokens_contain_sensitive_lexeme(_patient_semantic_tokens(ascii_text))
 
 
 def _patient_scalar_is_invalid(kind: str, key: str, value: Any) -> bool:
     if not isinstance(value, str):
         return True
-
     fixed_values = PATIENT_FIXED_VALUES.get((kind, key))
     if fixed_values is not None:
         return value not in fixed_values
-
     pattern = PATIENT_STRUCTURAL_PATTERNS.get((kind, key))
     if pattern is not None:
         return pattern.fullmatch(value) is None
-
     if kind == 'snapshot' and key == 'title' and PATIENT_WEEK_TITLE_RE.fullmatch(value):
         return False
     return _patient_text_is_forbidden(
