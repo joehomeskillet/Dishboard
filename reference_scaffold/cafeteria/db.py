@@ -13,20 +13,23 @@ from psycopg import sql
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
-SCHEMA_VERSION = 6
-APPLICATION_VERSION = 'dishboard-schema-v6'
+SCHEMA_VERSION = 7
+APPLICATION_VERSION = 'dishboard-schema-v7'
 SYSTEM_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000001'
 DEMO_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000002'
 PROFILES = {'patient', 'staff_guest'}
-PATIENT_FORBIDDEN_KEYS = {
-    'price', 'prices', 'preis', 'preise', 'internal_rappen', 'external_rappen',
-    'preis_intern', 'preis_extern', 'currency', 'chf', 'rappen',
-    'cost', 'costs', 'amount', 'amounts', 'kosten', 'betrag', 'fee', 'tarif', 'tariff', 'charge',
-}
-PATIENT_FORBIDDEN_KEY_PARTS = {
+PATIENT_FORBIDDEN_COMPACT_TOKENS = (
     'price', 'prices', 'preis', 'preise', 'cost', 'costs', 'amount', 'amounts',
     'kosten', 'betrag', 'rappen', 'currency', 'chf', 'fee', 'tarif', 'tariff', 'charge',
-}
+)
+PATIENT_ALLOWED_COMPACT_KEYS = frozenset({
+    'channel', 'days', 'date', 'notice', 'services', 'mealcode', 'mealname',
+    'options', 'allergenreviewstatus', 'allergens', 'components', 'description',
+    'externalid', 'labels', 'note', 'origins', 'title', 'typecode', 'typename',
+    'code', 'name', 'presence', 'countrycode', 'ingredient', 'text', 'state',
+    'weekday', 'location', 'profilecode', 'revisionid', 'schemaversion',
+    'sharednote', 'weekend', 'weekstart', 'servicestate',
+})
 
 
 @dataclass(frozen=True)
@@ -40,6 +43,7 @@ MIGRATION_FILES = (
     (4, '0001_initial_postgresql.sql'),
     (5, '0002_profile_publication_and_local_auth.sql'),
     (6, '0003_patient_key_and_withdrawal_contracts.sql'),
+    (7, '0004_patient_key_lock_and_capability_contracts.sql'),
 )
 MIGRATION_LOCK_ID = 731_905_005
 
@@ -297,19 +301,21 @@ def validate_database(engine: Engine) -> dict[str, Any]:
 
 def _normalize_patient_key(key: str) -> str:
     without_format_chars = ''.join(char for char in key if unicodedata.category(char) != 'Cf')
-    snake_case = re.sub(r'(?<=[a-z0-9])(?=[A-Z])', '_', without_format_chars)
-    return re.sub(r'[\W_]+', '_', snake_case, flags=re.UNICODE).strip('_').lower()
+    return re.sub(r'[^A-Za-z0-9]+', '', without_format_chars).lower()
+
+
+def _patient_key_is_forbidden(key: str) -> bool:
+    compact = _normalize_patient_key(key)
+    return compact not in PATIENT_ALLOWED_COMPACT_KEYS or any(
+        token in compact for token in PATIENT_FORBIDDEN_COMPACT_TOKENS
+    )
 
 
 def _forbidden_patient_paths(value: Any, path: str = '$') -> list[str]:
     found: list[str] = []
     if isinstance(value, dict):
         for key, child in value.items():
-            normalized = _normalize_patient_key(key)
-            if (
-                normalized in PATIENT_FORBIDDEN_KEYS
-                or bool(set(normalized.split('_')) & PATIENT_FORBIDDEN_KEY_PARTS)
-            ):
+            if _patient_key_is_forbidden(key):
                 found.append(f'{path}.{key}')
             found.extend(_forbidden_patient_paths(child, f'{path}.{key}'))
     elif isinstance(value, list):
@@ -533,3 +539,35 @@ def demo_user(engine: Engine) -> dict[str, Any]:
                 {'id': SYSTEM_USER_PUBLIC_ID},
             ).mappings().one()
     return {'id': int(row['id']), 'name': row['display_name']}
+
+
+def issue_publication_capability(
+    engine: Engine,
+    actor_user_id: int,
+    revision_id: int,
+    ttl: str = '5 minutes',
+) -> str:
+    with engine.begin() as connection:
+        token = connection.execute(
+            text(
+                'SELECT cafeteria.issue_publication_capability('
+                ':actor, :revision, CAST(:ttl AS interval))'
+            ),
+            {'actor': actor_user_id, 'revision': revision_id, 'ttl': ttl},
+        ).scalar_one()
+    return str(token)
+
+
+def withdraw_publication_revision(
+    engine: Engine,
+    revision_id: int,
+    capability: str,
+    reason: str,
+) -> Any:
+    with engine.begin() as connection:
+        return connection.execute(
+            text(
+                'SELECT cafeteria.withdraw_publication_revision(:revision, :capability, :reason)'
+            ),
+            {'revision': revision_id, 'capability': capability, 'reason': reason},
+        ).scalar_one()

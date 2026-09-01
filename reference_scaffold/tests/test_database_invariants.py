@@ -4,10 +4,13 @@ import copy
 import hashlib
 import json
 import os
+import threading
+import time
 from collections.abc import Iterator
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 import pytest
 from sqlalchemy import Engine, create_engine, text
@@ -152,11 +155,18 @@ def test_migration_plan_is_ordered_and_preserves_0001_bytes() -> None:
         (4, '0001_initial_postgresql.sql'),
         (5, '0002_profile_publication_and_local_auth.sql'),
         (6, '0003_patient_key_and_withdrawal_contracts.sql'),
+        (7, '0004_patient_key_lock_and_capability_contracts.sql'),
     ]
-    assert database.SCHEMA_VERSION == 6
-    baseline = ROOT / 'database' / 'migrations' / '0001_initial_postgresql.sql'
-    assert hashlib.sha256(baseline.read_bytes()).hexdigest() == (
+    assert database.SCHEMA_VERSION == 7
+    migrations = ROOT / 'database' / 'migrations'
+    assert hashlib.sha256((migrations / '0001_initial_postgresql.sql').read_bytes()).hexdigest() == (
         'd1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0'
+    )
+    assert hashlib.sha256((migrations / '0002_profile_publication_and_local_auth.sql').read_bytes()).hexdigest() == (
+        '7f8696eb886a99d841ac82be1e4b3abf1b51080c18aac07ea5290325f3e5e863'
+    )
+    assert hashlib.sha256((migrations / '0003_patient_key_and_withdrawal_contracts.sql').read_bytes()).hexdigest() == (
+        'eda9c5e851525367af62a3f056b3592a521d871f6ac818d4d50c18d8f720d1de'
     )
 
 
@@ -169,10 +179,11 @@ def test_empty_database_runs_0001_then_0002(database_engine: Engine) -> None:
         local_credentials = connection.execute(
             text("SELECT to_regclass('cafeteria.local_credentials')")
         ).scalar_one()
-    assert [row.version for row in rows] == [4, 5, 6]
+    assert [row.version for row in rows] == [4, 5, 6, 7]
     assert rows[0].name == '0001_initial_postgresql.sql'
     assert rows[1].name == '0002_profile_publication_and_local_auth.sql'
     assert rows[2].name == '0003_patient_key_and_withdrawal_contracts.sql'
+    assert rows[3].name == '0004_patient_key_lock_and_capability_contracts.sql'
     assert local_credentials == 'cafeteria.local_credentials'
 
 
@@ -202,7 +213,7 @@ def test_v4_fixture_migrates_without_replaying_0001() -> None:
         versions = connection.execute(
             text('SELECT version FROM cafeteria.schema_migrations ORDER BY version')
         ).scalars().all()
-    assert versions == [4, 5, 6]
+    assert versions == [4, 5, 6, 7]
     _drop_schema(engine)
     engine.dispose()
 
@@ -501,6 +512,9 @@ def test_active_publications_bind_frozen_identity_and_published_state(
         'total\u2060Amount',
         'unitPri\u0600ce',
         'mealCo\U000e0061st',
+        'UNITPrice',
+        'PRICEValue',
+        'mysteryTariff',
     ),
 )
 @LIVE_DATABASE
@@ -517,6 +531,7 @@ def test_patient_snapshot_rejects_price_key_aliases(database_engine: Engine, key
     (
         'unitPrice', 'internalRappen', 'totalAmount', 'mealCost', 'unit-price',
         'unit\u200bPrice', 'unitPri\u0600ce', 'mealCo\U000e0061st',
+        'UNITPrice', 'PRICEValue', 'mysteryTariff',
     ),
 )
 def test_python_patient_snapshot_rejects_normalized_price_key_aliases(key: str) -> None:
@@ -602,12 +617,8 @@ def test_withdrawal_history_allows_replacement_but_keeps_snapshot_bytes(
             ).scalar_one()
         )
     assert withdrawal_actor != published_by
-    with pytest.raises(DBAPIError, match='Rückzugsakteur'):
-        with database_engine.begin() as connection:
-            connection.execute(
-                text('SELECT cafeteria.withdraw_publication_revision(:id, :actor, :reason)'),
-                {'id': first_id, 'actor': published_by, 'reason': 'Falscher Akteur'},
-            )
+    with pytest.raises(DBAPIError, match='nicht aktiv oder nicht zur Publikation berechtigt'):
+        database.issue_publication_capability(database_engine, published_by, first_id)
     with pytest.raises(DBAPIError, match='kontrollierten Rückzug'):
         with database_engine.begin() as connection:
             connection.execute(
@@ -620,12 +631,13 @@ def test_withdrawal_history_allows_replacement_but_keeps_snapshot_bytes(
                 ),
                 {'actor': withdrawal_actor, 'id': first_id},
             )
+    capability = database.issue_publication_capability(database_engine, withdrawal_actor, first_id)
     with database_engine.begin() as connection:
         before = connection.execute(text('SELECT clock_timestamp()')).scalar_one()
-        returned_at = connection.execute(
-            text('SELECT cafeteria.withdraw_publication_revision(:id, :actor, :reason)'),
-            {'id': first_id, 'actor': withdrawal_actor, 'reason': 'Korrektur der Woche'},
-        ).scalar_one()
+    returned_at = database.withdraw_publication_revision(
+        database_engine, first_id, capability, 'Korrektur der Woche'
+    )
+    with database_engine.begin() as connection:
         after = connection.execute(text('SELECT clock_timestamp()')).scalar_one()
     replacement = copy.deepcopy(_snapshot('patient'))
     replacement['revision_id'] = 'PAT-2026-KW36-R2'
@@ -919,7 +931,7 @@ def test_v4_draft_revision_is_withdrawn_and_not_public() -> None:
                 '''
             )
         ).all()
-    assert versions == [4, 5, 6]
+    assert versions == [4, 5, 6, 7]
     assert int(public_rows) == 0
     assert withdrawn[0] is True
     assert 'v4' in withdrawn[1]
@@ -927,6 +939,256 @@ def test_v4_draft_revision_is_withdrawn_and_not_public() -> None:
     assert events[1].actor_user_id is None
     _drop_schema(engine)
     engine.dispose()
+
+
+def _user_id(engine: Engine, public_id: str) -> int:
+    with engine.connect() as connection:
+        return int(
+            connection.execute(
+                text('SELECT id FROM cafeteria.users WHERE public_id=:public_id'),
+                {'public_id': public_id},
+            ).scalar_one()
+        )
+
+
+def _tamper_capability_field(token: str, index: int, value: str) -> str:
+    parts = token.split('.')
+    parts[index] = value
+    return '.'.join(parts)
+
+
+def _app_database_url() -> str:
+    assert DATABASE_URL is not None
+    parts = urlsplit(DATABASE_URL)
+    host = parts.hostname or '127.0.0.1'
+    port = parts.port or 5432
+    database_name = parts.path or '/postgres'
+    return urlunsplit(('postgresql+psycopg', f'cafeteria_app@{host}:{port}', database_name, '', ''))
+
+
+@LIVE_DATABASE
+def test_concurrent_insert_and_week_demotion_cannot_hide_revision(
+    database_engine: Engine,
+) -> None:
+    week_id = _insert_week(database_engine, 'patient', 'published', '2026-09-21')
+    payload = _dated_snapshot('patient', '2026-09-21')
+    payload['revision_id'] = 'PAT-2026-KW39-R1'
+    barrier = threading.Barrier(2)
+    outcomes: dict[str, str] = {}
+
+    def insert_revision() -> None:
+        barrier.wait(timeout=10)
+        try:
+            _insert_revision(database_engine, week_id, 'patient', snapshot=payload)
+            outcomes['insert'] = 'ok'
+        except DBAPIError as exc:
+            outcomes['insert'] = str(exc)
+
+    def demote_week() -> None:
+        barrier.wait(timeout=10)
+        try:
+            with database_engine.begin() as connection:
+                connection.execute(
+                    text("UPDATE cafeteria.menu_weeks SET workflow_state='draft' WHERE id=:id"),
+                    {'id': week_id},
+                )
+            outcomes['demote'] = 'ok'
+        except DBAPIError as exc:
+            outcomes['demote'] = str(exc)
+
+    insert_thread = threading.Thread(target=insert_revision)
+    demote_thread = threading.Thread(target=demote_week)
+    insert_thread.start()
+    demote_thread.start()
+    insert_thread.join(timeout=15)
+    demote_thread.join(timeout=15)
+    assert not insert_thread.is_alive()
+    assert not demote_thread.is_alive()
+    assert set(outcomes) == {'insert', 'demote'}
+    assert (outcomes['insert'] == 'ok') != (outcomes['demote'] == 'ok')
+    with database_engine.connect() as connection:
+        state = connection.execute(
+            text('SELECT workflow_state FROM cafeteria.menu_weeks WHERE id=:id'),
+            {'id': week_id},
+        ).scalar_one()
+        revision = connection.execute(
+            text(
+                '''
+                SELECT id, withdrawn_at
+                FROM cafeteria.publication_revisions
+                WHERE menu_week_id=:id
+                '''
+            ),
+            {'id': week_id},
+        ).first()
+        visible = int(
+            connection.execute(text('SELECT count(*) FROM cafeteria.active_publications')).scalar_one()
+        )
+        events = connection.execute(
+            text(
+                '''
+                SELECT event_type
+                FROM cafeteria.publication_lifecycle_events
+                ORDER BY id
+                '''
+            )
+        ).scalars().all()
+    if outcomes['insert'] == 'ok':
+        assert state == 'published'
+        assert revision is not None
+        assert revision.withdrawn_at is None
+        assert visible == 1
+        assert list(events) == ['activated']
+    else:
+        assert state == 'draft'
+        assert revision is None
+        assert visible == 0
+        assert list(events) == []
+
+
+@LIVE_DATABASE
+def test_publication_capability_rejects_replay_wrong_binding_expiry_and_role_race(
+    database_engine: Engine,
+) -> None:
+    week_id = _insert_week(database_engine, 'patient', 'published', '2026-09-28')
+    payload = _dated_snapshot('patient', '2026-09-28')
+    payload['revision_id'] = 'PAT-2026-KW40-R1'
+    first_id = _insert_revision(database_engine, week_id, 'patient', snapshot=payload)
+    actor_id = _user_id(database_engine, database.DEMO_USER_PUBLIC_ID)
+    other_week = _insert_week(database_engine, 'patient', 'published', '2026-10-05')
+    other_payload = _dated_snapshot('patient', '2026-10-05')
+    other_payload['revision_id'] = 'PAT-2026-KW41-R1'
+    other_id = _insert_revision(database_engine, other_week, 'patient', snapshot=other_payload)
+
+    replay_token = database.issue_publication_capability(database_engine, actor_id, first_id)
+    database.withdraw_publication_revision(database_engine, first_id, replay_token, 'Erster Rückzug')
+    with pytest.raises(DBAPIError, match='Nonce'):
+        database.withdraw_publication_revision(database_engine, first_id, replay_token, 'Replay')
+
+    replacement = copy.deepcopy(payload)
+    replacement['revision_id'] = 'PAT-2026-KW40-R2'
+    with database_engine.begin() as connection:
+        replacement_id = int(
+            connection.execute(
+                text(
+                    '''
+                    INSERT INTO cafeteria.publication_revisions(
+                        menu_week_id, revision_number, revision_code, snapshot_json, published_by
+                    )
+                    SELECT :week_id, 2, :revision_code, CAST(:snapshot AS jsonb), u.id
+                    FROM cafeteria.users u
+                    WHERE u.public_id='00000000-0000-0000-0000-000000000001'
+                    RETURNING id
+                    '''
+                ),
+                {
+                    'week_id': week_id,
+                    'revision_code': replacement['revision_id'],
+                    'snapshot': json.dumps(replacement, ensure_ascii=False),
+                },
+            ).scalar_one()
+        )
+
+    bound_token = database.issue_publication_capability(database_engine, actor_id, replacement_id)
+    with pytest.raises(DBAPIError, match='passt nicht zur Publikationsrevision'):
+        database.withdraw_publication_revision(database_engine, other_id, bound_token, 'Falsche Revision')
+    tampered_actor = _tamper_capability_field(bound_token, 2, '0')
+    with pytest.raises(DBAPIError, match='ungültig oder abgelaufen'):
+        database.withdraw_publication_revision(
+            database_engine, replacement_id, tampered_actor, 'Falscher Akteur'
+        )
+
+    expired = database.issue_publication_capability(
+        database_engine, actor_id, replacement_id, ttl='1 second'
+    )
+    time.sleep(2)
+    with pytest.raises(DBAPIError, match='ungültig oder abgelaufen'):
+        database.withdraw_publication_revision(database_engine, replacement_id, expired, 'Abgelaufen')
+
+    stale = database.issue_publication_capability(database_engine, actor_id, replacement_id)
+    with database_engine.begin() as connection:
+        connection.execute(
+            text('DELETE FROM cafeteria.user_role_cache WHERE user_id=:actor'),
+            {'actor': actor_id},
+        )
+    with pytest.raises(DBAPIError, match='Rollenänderung|nicht zur Publikation berechtigt'):
+        database.withdraw_publication_revision(database_engine, replacement_id, stale, 'Rollenentzug')
+    with database_engine.connect() as connection:
+        withdrawn = connection.execute(
+            text('SELECT withdrawn_at FROM cafeteria.publication_revisions WHERE id=:id'),
+            {'id': replacement_id},
+        ).scalar_one()
+        visible = connection.execute(
+            text('SELECT revision_code FROM cafeteria.active_publications ORDER BY revision_code')
+        ).scalars().all()
+    assert withdrawn is None
+    assert visible == ['PAT-2026-KW40-R2', 'PAT-2026-KW41-R1']
+
+
+@LIVE_DATABASE
+def test_cafeteria_app_cannot_spoof_actor_or_read_capability_secrets(
+    database_engine: Engine,
+) -> None:
+    week_id = _insert_week(database_engine, 'patient', 'published', '2026-10-12')
+    payload = _dated_snapshot('patient', '2026-10-12')
+    payload['revision_id'] = 'PAT-2026-KW42-R1'
+    revision_id = _insert_revision(database_engine, week_id, 'patient', snapshot=payload)
+    actor_id = _user_id(database_engine, database.DEMO_USER_PUBLIC_ID)
+    database.provision_database_roles(
+        database_engine,
+        app_password='test-app-secret',
+        backup_password='test-backup-secret',
+    )
+    database._execute_script(database_engine, str(ROOT / 'database' / 'permissions.sql'))
+    app_engine = create_engine(_app_database_url(), poolclass=NullPool, pool_pre_ping=True)
+    try:
+        with pytest.raises(DBAPIError, match='permission denied|42501'):
+            with app_engine.begin() as connection:
+                connection.execute(
+                    text(
+                        'SELECT cafeteria.issue_publication_capability(:actor, :revision, interval \'5 minutes\')'
+                    ),
+                    {'actor': actor_id, 'revision': revision_id},
+                )
+        with pytest.raises(DBAPIError, match='permission denied|42501'):
+            with app_engine.begin() as connection:
+                connection.execute(text('SELECT secret FROM cafeteria.auth_capability_secrets'))
+        with pytest.raises(DBAPIError, match='ungültig oder abgelaufen|permission denied|42501'):
+            with app_engine.begin() as connection:
+                connection.execute(
+                    text(
+                        'SELECT cafeteria.withdraw_publication_revision(:revision, :capability, :reason)'
+                    ),
+                    {
+                        'revision': revision_id,
+                        'capability': 'v1.1.1.1.1.0.00.00',
+                        'reason': 'Spoof',
+                    },
+                )
+        with pytest.raises(DBAPIError, match='kontrollierten Rückzug|permission denied|42501'):
+            with app_engine.begin() as connection:
+                connection.execute(
+                    text(
+                        '''
+                        UPDATE cafeteria.publication_revisions
+                        SET withdrawn_at=clock_timestamp(),
+                            withdrawal_reason='Direkt',
+                            withdrawn_by=:actor
+                        WHERE id=:id
+                        '''
+                    ),
+                    {'actor': actor_id, 'id': revision_id},
+                )
+    finally:
+        app_engine.dispose()
+    with database_engine.connect() as connection:
+        remaining = connection.execute(
+            text('SELECT withdrawn_at FROM cafeteria.publication_revisions WHERE id=:id'),
+            {'id': revision_id},
+        ).scalar_one()
+        visible = int(connection.execute(text('SELECT count(*) FROM cafeteria.active_publications')).scalar_one())
+    assert remaining is None
+    assert visible == 1
 
 
 def test_config_database_paths_are_repo_local(monkeypatch: pytest.MonkeyPatch) -> None:
