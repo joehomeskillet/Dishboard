@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Cafeteria-Woche – Klinik Südhang{% endblock %}
+{% block body %}
+<header class="site-header"><a class="wordmark" href="{{ url_for('public.cafeteria_today') }}"><span class="wordmark-mark"></span><span>Klinik Südhang</span></a><nav class="site-nav"><a href="{{ url_for('public.cafeteria_today') }}">Cafeteria heute</a><a class="active" href="{{ url_for('public.cafeteria_week') }}">Cafeteria Woche</a><span class="channel-links"><a href="{{ url_for('public.patient_week') }}">Patientenplan</a></span></nav></header>
+<main class="public-shell">
+<section class="hero"><div><p class="eyebrow">Cafeteria · Wochenangebot</p><h1>{{ snapshot.title if snapshot else 'Keine Publikation' }}</h1><p class="hero-copy">Mitarbeitende und externe Gäste sehen ausschliesslich das Cafeteria-Mittagessen von Montag bis Freitag.</p></div><div class="date-chip">{{ 'Revision ' ~ snapshot.revision_id if snapshot else 'Kein Datenstand' }}</div></section>
+<div class="profile-banner"><div><strong>Publikationskanal Cafeteria</strong><span>Keine Wochenendgerichte und kein Abendessen in dieser Ansicht</span></div><span class="profile-pill">Cafeteria</span></div>
+<section class="week-list">
+  {% for day in open_days %}{% set service = day.services[0] %}
+  <article class="week-day"><header><h2>{{ day.weekday }}</h2><span>{{ day.date|date_long }}</span></header><div class="week-day-grid"><div class="week-row"><div class="week-meal-label">Mittag</div>{% for option in service.options %}<div class="week-menu"><small class="week-menu-type">{{ option.type_name }}</small><strong>{{ option.title }}</strong><span>{{ option.components|join(' · ') }}</span><span class="week-price">Mitarbeitende CHF {{ option.prices.internal_rappen|chf }} · Externe CHF {{ option.prices.external_rappen|chf }}</span></div>{% endfor %}</div></div></article>
+  {% endfor %}
+</section>
+</main>
+{% endblock %}

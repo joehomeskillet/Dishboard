@@ -1,0 +1,7 @@
+roles:
+  Cafeteria.Editor:
+    capabilities: [draft.read, draft.write, csv.validate, csv.import, csv.export, preview.read]
+  Cafeteria.Publisher:
+    capabilities: [draft.read, draft.write, csv.validate, csv.import, csv.export, preview.read, publication.validate, publication.publish, publication.withdraw, audit.read]
+  Cafeteria.Admin:
+    capabilities: ['*']

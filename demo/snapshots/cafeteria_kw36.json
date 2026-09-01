@@ -1,0 +1,394 @@
+{
+  "channel": "cafeteria",
+  "days": [
+    {
+      "date": "2026-08-31",
+      "notice": "",
+      "services": [
+        {
+          "meal_code": "LUNCH",
+          "meal_name": "Mittag",
+          "options": [
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Kartoffelstock",
+                "Zucchetti"
+              ],
+              "description": "Kartoffelstock · Zucchetti",
+              "external_id": "STAFF_GUEST-2026-08-31-LUNCH-1",
+              "labels": [],
+              "note": "",
+              "origins": [
+                {
+                  "country_code": "CH",
+                  "ingredient": "Poulet",
+                  "text": "Poulet: Schweiz"
+                }
+              ],
+              "prices": {
+                "currency": "CHF",
+                "external_rappen": 1660,
+                "internal_rappen": 1100
+              },
+              "title": "Pouletbrust an Kräutersauce",
+              "type_code": "MENU_1",
+              "type_name": "Menü 1"
+            },
+            {
+              "allergen_review_status": "checked",
+              "allergens": [
+                {
+                  "code": "MILK",
+                  "name": "Milch",
+                  "presence": "contains"
+                },
+                {
+                  "code": "GLUTEN",
+                  "name": "Glutenhaltiges Getreide",
+                  "presence": "contains"
+                }
+              ],
+              "components": [
+                "Tomatensauce",
+                "Blattsalat"
+              ],
+              "description": "Tomatensauce · Blattsalat",
+              "external_id": "STAFF_GUEST-2026-08-31-LUNCH-2",
+              "labels": [
+                {
+                  "code": "VEGETARIAN",
+                  "name": "Vegetarisch"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "prices": {
+                "currency": "CHF",
+                "external_rappen": 1660,
+                "internal_rappen": 1100
+              },
+              "title": "Spinat-Ricotta-Ravioli",
+              "type_code": "VEGGIE",
+              "type_name": "Vegetarisch"
+            }
+          ]
+        }
+      ],
+      "state": "open",
+      "weekday": "Montag"
+    },
+    {
+      "date": "2026-09-01",
+      "notice": "",
+      "services": [
+        {
+          "meal_code": "LUNCH",
+          "meal_name": "Mittag",
+          "options": [
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Basmatireis",
+                "Broccoli"
+              ],
+              "description": "Basmatireis · Broccoli",
+              "external_id": "STAFF_GUEST-2026-09-01-LUNCH-1",
+              "labels": [],
+              "note": "",
+              "origins": [
+                {
+                  "country_code": "CH",
+                  "ingredient": "Rind",
+                  "text": "Rind: Schweiz"
+                }
+              ],
+              "prices": {
+                "currency": "CHF",
+                "external_rappen": 1660,
+                "internal_rappen": 1100
+              },
+              "title": "Rindsgeschnetzeltes Stroganoff",
+              "type_code": "MENU_1",
+              "type_name": "Menü 1"
+            },
+            {
+              "allergen_review_status": "checked",
+              "allergens": [
+                {
+                  "code": "NUTS",
+                  "name": "Schalenfrüchte",
+                  "presence": "may_contain"
+                }
+              ],
+              "components": [
+                "Basmatireis",
+                "Broccoli"
+              ],
+              "description": "Basmatireis · Broccoli",
+              "external_id": "STAFF_GUEST-2026-09-01-LUNCH-2",
+              "labels": [
+                {
+                  "code": "VEGAN",
+                  "name": "Vegan"
+                },
+                {
+                  "code": "LACTOSE_FREE",
+                  "name": "Laktosefrei"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "prices": {
+                "currency": "CHF",
+                "external_rappen": 1660,
+                "internal_rappen": 1100
+              },
+              "title": "Kichererbsen-Curry",
+              "type_code": "VEGGIE",
+              "type_name": "Vegetarisch"
+            }
+          ]
+        }
+      ],
+      "state": "open",
+      "weekday": "Dienstag"
+    },
+    {
+      "date": "2026-09-02",
+      "notice": "",
+      "services": [
+        {
+          "meal_code": "LUNCH",
+          "meal_name": "Mittag",
+          "options": [
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Rösti",
+                "Rüebli"
+              ],
+              "description": "Rösti · Rüebli",
+              "external_id": "STAFF_GUEST-2026-09-02-LUNCH-1",
+              "labels": [],
+              "note": "",
+              "origins": [
+                {
+                  "country_code": "CH",
+                  "ingredient": "Kalb",
+                  "text": "Kalb: Schweiz"
+                }
+              ],
+              "prices": {
+                "currency": "CHF",
+                "external_rappen": 1660,
+                "internal_rappen": 1100
+              },
+              "title": "Kalbsbratwurst mit Zwiebelsauce",
+              "type_code": "MENU_1",
+              "type_name": "Menü 1"
+            },
+            {
+              "allergen_review_status": "checked",
+              "allergens": [
+                {
+                  "code": "GLUTEN",
+                  "name": "Glutenhaltiges Getreide",
+                  "presence": "contains"
+                }
+              ],
+              "components": [
+                "Blattsalat"
+              ],
+              "description": "Blattsalat",
+              "external_id": "STAFF_GUEST-2026-09-02-LUNCH-2",
+              "labels": [
+                {
+                  "code": "VEGETARIAN",
+                  "name": "Vegetarisch"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "prices": {
+                "currency": "CHF",
+                "external_rappen": 1660,
+                "internal_rappen": 1100
+              },
+              "title": "Gemüse-Lasagne",
+              "type_code": "VEGGIE",
+              "type_name": "Vegetarisch"
+            }
+          ]
+        }
+      ],
+      "state": "open",
+      "weekday": "Mittwoch"
+    },
+    {
+      "date": "2026-09-03",
+      "notice": "",
+      "services": [
+        {
+          "meal_code": "LUNCH",
+          "meal_name": "Mittag",
+          "options": [
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Polenta",
+                "Bohnen"
+              ],
+              "description": "Polenta · Bohnen",
+              "external_id": "STAFF_GUEST-2026-09-03-LUNCH-1",
+              "labels": [],
+              "note": "",
+              "origins": [
+                {
+                  "country_code": "CH",
+                  "ingredient": "Schwein",
+                  "text": "Schwein: Schweiz"
+                }
+              ],
+              "prices": {
+                "currency": "CHF",
+                "external_rappen": 1660,
+                "internal_rappen": 1100
+              },
+              "title": "Schweinsragout Tessiner Art",
+              "type_code": "MENU_1",
+              "type_name": "Menü 1"
+            },
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Bohnen"
+              ],
+              "description": "Bohnen",
+              "external_id": "STAFF_GUEST-2026-09-03-LUNCH-2",
+              "labels": [
+                {
+                  "code": "VEGETARIAN",
+                  "name": "Vegetarisch"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "prices": {
+                "currency": "CHF",
+                "external_rappen": 1660,
+                "internal_rappen": 1100
+              },
+              "title": "Polenta mit Pilzragout",
+              "type_code": "VEGGIE",
+              "type_name": "Vegetarisch"
+            }
+          ]
+        }
+      ],
+      "state": "open",
+      "weekday": "Donnerstag"
+    },
+    {
+      "date": "2026-09-04",
+      "notice": "",
+      "services": [
+        {
+          "meal_code": "LUNCH",
+          "meal_name": "Mittag",
+          "options": [
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Salzkartoffeln",
+                "Rahmspinat"
+              ],
+              "description": "Salzkartoffeln · Rahmspinat",
+              "external_id": "STAFF_GUEST-2026-09-04-LUNCH-1",
+              "labels": [],
+              "note": "",
+              "origins": [
+                {
+                  "country_code": "DE",
+                  "ingredient": "Zander",
+                  "text": "Zander: Deutschland"
+                }
+              ],
+              "prices": {
+                "currency": "CHF",
+                "external_rappen": 1660,
+                "internal_rappen": 1100
+              },
+              "title": "Gebratenes Zanderfilet",
+              "type_code": "MENU_1",
+              "type_name": "Menü 1"
+            },
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Hummus",
+                "Ofengemüse"
+              ],
+              "description": "Hummus · Ofengemüse",
+              "external_id": "STAFF_GUEST-2026-09-04-LUNCH-2",
+              "labels": [
+                {
+                  "code": "VEGAN",
+                  "name": "Vegan"
+                },
+                {
+                  "code": "LACTOSE_FREE",
+                  "name": "Laktosefrei"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "prices": {
+                "currency": "CHF",
+                "external_rappen": 1660,
+                "internal_rappen": 1100
+              },
+              "title": "Falafel-Teller",
+              "type_code": "VEGGIE",
+              "type_name": "Vegetarisch"
+            }
+          ]
+        }
+      ],
+      "state": "open",
+      "weekday": "Freitag"
+    },
+    {
+      "date": "2026-09-05",
+      "notice": "Cafeteria geschlossen",
+      "services": [],
+      "state": "closed",
+      "weekday": "Samstag"
+    },
+    {
+      "date": "2026-09-06",
+      "notice": "Cafeteria geschlossen",
+      "services": [],
+      "state": "closed",
+      "weekday": "Sonntag"
+    }
+  ],
+  "location": {
+    "code": "KIRCHLINDACH",
+    "name": "Klinik Südhang Kirchlindach"
+  },
+  "profile_code": "staff_guest",
+  "revision_id": "CAF-2026-KW36-R1",
+  "schema_version": 2,
+  "shared_note": "Cafeteria-Mittag für Mitarbeitende und externe Gäste.",
+  "title": "31. August bis 4. September",
+  "week_end": "2026-09-06",
+  "week_start": "2026-08-31"
+}

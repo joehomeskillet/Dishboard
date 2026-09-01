@@ -1,0 +1,26 @@
+digraph csv_flow {
+  graph [rankdir=LR, bgcolor="white", pad=0.3, nodesep=0.55, ranksep=0.7, fontname="Arial"];
+  node [shape=box, style="rounded,filled", fillcolor="#f8fafc", color="#334155", fontname="Arial", fontsize=11];
+  edge [color="#64748b", fontname="Arial", fontsize=9];
+
+  patient_csv [label="Patienten-CSV\n28 Zeilen\nkeine Kostenspalten", fillcolor="#e8f1ef"];
+  cafeteria_csv [label="Cafeteria-CSV\n10 Zeilen\nMA + Externe", fillcolor="#fff3dc"];
+  detect [label="Profil und Header erkennen"];
+  validate [label="Fachregeln pruefen\nTag, Mahlzeit, 2 Menuearten\nIDs, Allergene, Kostenformat"];
+  reject [label="Vorschau mit\nZeile / Spalte / Fehler", fillcolor="#fdecec"];
+  apply [label="Transaktionaler Import\nin genau eine Profilwoche"];
+  db [label="PostgreSQL-Constraints"];
+  publish [label="Profilbezogene Publikation"];
+  patient_snapshot [label="Patienten-Snapshot\nohne Kostenschluessel", fillcolor="#e8f1ef"];
+  cafeteria_snapshot [label="Cafeteria-Snapshot\nmit CHF-Daten", fillcolor="#fff3dc"];
+
+  patient_csv -> detect;
+  cafeteria_csv -> detect;
+  detect -> validate;
+  validate -> reject [label="Fehler"];
+  validate -> apply [label="fehlerfrei"];
+  apply -> db;
+  db -> publish;
+  publish -> patient_snapshot [label="patient"];
+  publish -> cafeteria_snapshot [label="staff_guest"];
+}

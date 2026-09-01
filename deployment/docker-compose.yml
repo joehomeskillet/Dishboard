@@ -1,0 +1,246 @@
+name: suedhang-cafeteria
+
+x-app-image: &app-image
+  build:
+    context: ..
+    dockerfile: deployment/Dockerfile
+  image: suedhang-cafeteria:${IMAGE_TAG:-local}
+
+x-common-database: &common-database
+  POSTGRES_HOST: db
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: ${POSTGRES_DB:-cafeteria}
+  POSTGRES_SSLMODE: ${POSTGRES_SSLMODE:-disable}
+
+services:
+  db:
+    image: postgres:18.6-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cafeteria}
+      POSTGRES_USER: cafeteria_owner
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_owner_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_INITDB_ARGS: --data-checksums --encoding=UTF8
+    secrets:
+      - postgres_owner_password
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cafeteria_owner -d \"$${POSTGRES_DB}\" -h 127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    command:
+      - postgres
+      - -c
+      - max_connections=100
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - timezone=UTC
+      - -c
+      - log_timezone=UTC
+      - -c
+      - password_encryption=scram-sha-256
+      - -c
+      - idle_in_transaction_session_timeout=30s
+    networks: [cafeteria_internal]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  redis:
+    image: redis:7.4-alpine
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        exec redis-server \
+          --appendonly yes \
+          --appendfsync everysec \
+          --save 60 1000 \
+          --requirepass "$$(cat /run/secrets/redis_password)"
+    restart: unless-stopped
+    secrets:
+      - redis_password
+    volumes:
+      - redis_data:/data
+      - ./redis-healthcheck.sh:/usr/local/bin/redis-healthcheck.sh:ro
+    environment:
+      REDIS_PASSWORD_FILE: /run/secrets/redis_password
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/redis-healthcheck.sh"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks: [cafeteria_internal]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  migrate:
+    <<: *app-image
+    restart: "no"
+    init: true
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: [.env]
+    environment:
+      <<: *common-database
+      POSTGRES_USER: cafeteria_owner
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_owner_password
+      POSTGRES_APP_PASSWORD_FILE: /run/secrets/postgres_app_password
+      POSTGRES_BACKUP_PASSWORD_FILE: /run/secrets/postgres_backup_password
+      SCHEMA_PATH: /app/database/schema.sql
+      SEED_PATH: /app/database/seed.sql
+      DEMO_SEED_PATH: /app/database/seed_demo.sql
+      PERMISSIONS_PATH: /app/database/permissions.sql
+    secrets:
+      - postgres_owner_password
+      - postgres_app_password
+      - postgres_backup_password
+    command: ["python", "/app/manage.py", "init-db", "--wait-seconds", "60"]
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    networks: [cafeteria_internal]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+
+  app:
+    <<: *app-image
+    restart: unless-stopped
+    init: true
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    env_file: [.env]
+    environment:
+      <<: *common-database
+      POSTGRES_USER: cafeteria_app
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_app_password
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_DB: "0"
+      REDIS_PASSWORD_FILE: /run/secrets/redis_password
+      FLASK_SECRET_KEY_FILE: /run/secrets/flask_secret_key
+      ENTRA_CLIENT_SECRET_FILE: /run/secrets/entra_client_secret
+      LAST_GOOD_DIR: /tmp/cafeteria-last-good
+    secrets:
+      - postgres_app_password
+      - flask_secret_key
+      - entra_client_secret
+      - redis_password
+    ports:
+      - "127.0.0.1:${APP_HOST_PORT:-8080}:8000"
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    read_only: true
+    healthcheck:
+      test: ["CMD", "python", "/app/healthcheck.py"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    stop_grace_period: 30s
+    networks: [cafeteria_internal]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  backup:
+    image: postgres:18.6-alpine
+    restart: unless-stopped
+    init: true
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    env_file: [.env]
+    environment:
+      <<: *common-database
+      POSTGRES_USER: cafeteria_backup
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_backup_password
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-35}
+    secrets:
+      - postgres_backup_password
+    volumes:
+      - postgres_backups:/backups
+      - ./postgres-backup.sh:/usr/local/bin/postgres-backup.sh:ro
+    entrypoint: ["/bin/sh", "/usr/local/bin/postgres-backup.sh"]
+    command: ["loop"]
+    networks: [cafeteria_internal]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  restore:
+    image: postgres:18.6-alpine
+    profiles: ["ops"]
+    restart: "no"
+    init: true
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: [.env]
+    environment:
+      <<: *common-database
+      POSTGRES_USER: cafeteria_owner
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_owner_password
+    secrets:
+      - postgres_owner_password
+    volumes:
+      - postgres_backups:/backups
+      - ./postgres-backup.sh:/usr/local/bin/postgres-backup.sh:ro
+    entrypoint: ["/bin/sh", "/usr/local/bin/postgres-backup.sh"]
+    command: ["restore", "/backups/restore.dump"]
+    networks: [cafeteria_internal]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+
+networks:
+  cafeteria_internal:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  postgres_backups:
+  redis_data:
+
+secrets:
+  postgres_owner_password:
+    file: ./secrets/postgres_owner_password.txt
+  postgres_app_password:
+    file: ./secrets/postgres_app_password.txt
+  postgres_backup_password:
+    file: ./secrets/postgres_backup_password.txt
+  flask_secret_key:
+    file: ./secrets/flask_secret_key.txt
+  entra_client_secret:
+    file: ./secrets/entra_client_secret.txt
+  redis_password:
+    file: ./secrets/redis_password.txt

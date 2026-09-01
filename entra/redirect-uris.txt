@@ -1,0 +1,8 @@
+# Produktion
+https://cafeteria.suedhang.ch/auth/callback
+
+# Lokaler Test / Docker Compose
+http://localhost:8080/auth/callback
+
+# Front-Channel Logout URL
+https://cafeteria.suedhang.ch/auth/frontchannel-logout

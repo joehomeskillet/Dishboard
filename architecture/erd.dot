@@ -1,0 +1,26 @@
+digraph erd {
+  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.28, ranksep=0.4, fontname="Arial"];
+  node [shape=box, style="rounded,filled", fillcolor="#f8fafc", color="#334155", fontname="Arial", fontsize=13, margin="0.17,0.12"];
+  edge [color="#64748b", fontname="Arial", fontsize=10, arrowsize=0.7];
+
+  profiles [label="offer_profiles\npatient | staff_guest\nMahlzeiten, Wochenende, Preisfreigabe", fillcolor="#e8f1ef"];
+  locations [label="locations\nStandort und Zeitzone"];
+  weeks [label="menu_weeks\nStandort + Profil + Wochenbeginn\nworkflow_state", fillcolor="#e9eef8"];
+  services [label="menu_services\nDatum + Mahlzeit\nopen | closed | holiday | company_holiday"];
+  items [label="menu_items\nMENU_1 | VEGGIE\nTitel, Beschreibung, externe ID"];
+  prices [label="menu_item_prices\nMitarbeitende / Externe in Rappen\nNUR staff_guest", fillcolor="#fff3dc"];
+  details [label="Komponenten | Labels | Allergene | Herkunft"];
+  revisions [label="publication_revisions\nUnveraenderlicher Snapshot\naktive Revision je Profilwoche", fillcolor="#e8f1ef"];
+  imports [label="import_batches / import_rows\nProfilbezogene Validierung"];
+  audit [label="audit_events\nAktion, Objekt, Profil, Details"];
+
+  {rank=same; profiles; locations}
+  profiles -> weeks;
+  locations -> weeks;
+  weeks -> services -> items;
+  items -> prices [label="1:0..1"];
+  items -> details;
+  weeks -> revisions;
+  profiles -> imports;
+  weeks -> audit;
+}

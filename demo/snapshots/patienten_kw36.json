@@ -1,0 +1,831 @@
+{
+  "channel": "patienten",
+  "days": [
+    {
+      "date": "2026-08-31",
+      "notice": "",
+      "services": [
+        {
+          "meal_code": "LUNCH",
+          "meal_name": "Mittag",
+          "options": [
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Reis",
+                "Zucchetti"
+              ],
+              "description": "Reis · Zucchetti",
+              "external_id": "PATIENT-2026-08-31-LUNCH-1",
+              "labels": [],
+              "note": "",
+              "origins": [
+                {
+                  "country_code": "CH",
+                  "ingredient": "Poulet",
+                  "text": "Poulet: Schweiz"
+                }
+              ],
+              "title": "Pouletgeschnetzeltes Paprika",
+              "type_code": "MENU_1",
+              "type_name": "Menü 1"
+            },
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Reis",
+                "Zucchetti"
+              ],
+              "description": "Reis · Zucchetti",
+              "external_id": "PATIENT-2026-08-31-LUNCH-2",
+              "labels": [
+                {
+                  "code": "VEGETARIAN",
+                  "name": "Vegetarisch"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "title": "Gemüsegeschnetzeltes",
+              "type_code": "VEGGIE",
+              "type_name": "Vegetarisch"
+            }
+          ]
+        },
+        {
+          "meal_code": "DINNER",
+          "meal_name": "Abend",
+          "options": [
+            {
+              "allergen_review_status": "checked",
+              "allergens": [
+                {
+                  "code": "MILK",
+                  "name": "Milch",
+                  "presence": "contains"
+                },
+                {
+                  "code": "GLUTEN",
+                  "name": "Glutenhaltiges Getreide",
+                  "presence": "contains"
+                }
+              ],
+              "components": [
+                "Tomatensalat"
+              ],
+              "description": "Tomatensalat",
+              "external_id": "PATIENT-2026-08-31-DINNER-1",
+              "labels": [],
+              "note": "",
+              "origins": [
+                {
+                  "country_code": "CH",
+                  "ingredient": "Schwein",
+                  "text": "Schwein: Schweiz"
+                }
+              ],
+              "title": "Schinken-Käse-Toast",
+              "type_code": "MENU_1",
+              "type_name": "Menü 1"
+            },
+            {
+              "allergen_review_status": "checked",
+              "allergens": [
+                {
+                  "code": "GLUTEN",
+                  "name": "Glutenhaltiges Getreide",
+                  "presence": "contains"
+                }
+              ],
+              "components": [
+                "Tomatensalat"
+              ],
+              "description": "Tomatensalat",
+              "external_id": "PATIENT-2026-08-31-DINNER-2",
+              "labels": [
+                {
+                  "code": "VEGETARIAN",
+                  "name": "Vegetarisch"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "title": "Gemüse-Toast",
+              "type_code": "VEGGIE",
+              "type_name": "Vegetarisch"
+            }
+          ]
+        }
+      ],
+      "state": "open",
+      "weekday": "Montag"
+    },
+    {
+      "date": "2026-09-01",
+      "notice": "",
+      "services": [
+        {
+          "meal_code": "LUNCH",
+          "meal_name": "Mittag",
+          "options": [
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Kartoffelgratin",
+                "Broccoli"
+              ],
+              "description": "Kartoffelgratin · Broccoli",
+              "external_id": "PATIENT-2026-09-01-LUNCH-1",
+              "labels": [],
+              "note": "",
+              "origins": [
+                {
+                  "country_code": "CH",
+                  "ingredient": "Rind",
+                  "text": "Rind: Schweiz"
+                }
+              ],
+              "title": "Hackbraten an Rosmarinjus",
+              "type_code": "MENU_1",
+              "type_name": "Menü 1"
+            },
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Kartoffelgratin",
+                "Broccoli"
+              ],
+              "description": "Kartoffelgratin · Broccoli",
+              "external_id": "PATIENT-2026-09-01-LUNCH-2",
+              "labels": [
+                {
+                  "code": "VEGETARIAN",
+                  "name": "Vegetarisch"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "title": "Linsenbraten",
+              "type_code": "VEGGIE",
+              "type_name": "Vegetarisch"
+            }
+          ]
+        },
+        {
+          "meal_code": "DINNER",
+          "meal_name": "Abend",
+          "options": [
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Hausbrot"
+              ],
+              "description": "Hausbrot",
+              "external_id": "PATIENT-2026-09-01-DINNER-1",
+              "labels": [],
+              "note": "",
+              "origins": [
+                {
+                  "country_code": "CH",
+                  "ingredient": "Schwein",
+                  "text": "Schwein: Schweiz"
+                }
+              ],
+              "title": "Kartoffelsuppe mit Wienerli",
+              "type_code": "MENU_1",
+              "type_name": "Menü 1"
+            },
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Hausbrot"
+              ],
+              "description": "Hausbrot",
+              "external_id": "PATIENT-2026-09-01-DINNER-2",
+              "labels": [
+                {
+                  "code": "VEGETARIAN",
+                  "name": "Vegetarisch"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "title": "Kartoffelsuppe mit Kräutern",
+              "type_code": "VEGGIE",
+              "type_name": "Vegetarisch"
+            }
+          ]
+        }
+      ],
+      "state": "open",
+      "weekday": "Dienstag"
+    },
+    {
+      "date": "2026-09-02",
+      "notice": "",
+      "services": [
+        {
+          "meal_code": "LUNCH",
+          "meal_name": "Mittag",
+          "options": [
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Rösti",
+                "Rüebli"
+              ],
+              "description": "Rösti · Rüebli",
+              "external_id": "PATIENT-2026-09-02-LUNCH-1",
+              "labels": [],
+              "note": "",
+              "origins": [
+                {
+                  "country_code": "CH",
+                  "ingredient": "Kalb",
+                  "text": "Kalb: Schweiz"
+                }
+              ],
+              "title": "Kalbsbratwurst mit Zwiebelsauce",
+              "type_code": "MENU_1",
+              "type_name": "Menü 1"
+            },
+            {
+              "allergen_review_status": "checked",
+              "allergens": [
+                {
+                  "code": "GLUTEN",
+                  "name": "Glutenhaltiges Getreide",
+                  "presence": "contains"
+                }
+              ],
+              "components": [
+                "Blattsalat"
+              ],
+              "description": "Blattsalat",
+              "external_id": "PATIENT-2026-09-02-LUNCH-2",
+              "labels": [
+                {
+                  "code": "VEGETARIAN",
+                  "name": "Vegetarisch"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "title": "Gemüse-Lasagne",
+              "type_code": "VEGGIE",
+              "type_name": "Vegetarisch"
+            }
+          ]
+        },
+        {
+          "meal_code": "DINNER",
+          "meal_name": "Abend",
+          "options": [
+            {
+              "allergen_review_status": "checked",
+              "allergens": [
+                {
+                  "code": "GLUTEN",
+                  "name": "Glutenhaltiges Getreide",
+                  "presence": "contains"
+                }
+              ],
+              "components": [
+                "Apfelmus"
+              ],
+              "description": "Apfelmus",
+              "external_id": "PATIENT-2026-09-02-DINNER-1",
+              "labels": [],
+              "note": "",
+              "origins": [
+                {
+                  "country_code": "CH",
+                  "ingredient": "Schwein",
+                  "text": "Schwein: Schweiz"
+                }
+              ],
+              "title": "Älplermagronen mit Speck",
+              "type_code": "MENU_1",
+              "type_name": "Menü 1"
+            },
+            {
+              "allergen_review_status": "checked",
+              "allergens": [
+                {
+                  "code": "GLUTEN",
+                  "name": "Glutenhaltiges Getreide",
+                  "presence": "contains"
+                }
+              ],
+              "components": [
+                "Apfelmus"
+              ],
+              "description": "Apfelmus",
+              "external_id": "PATIENT-2026-09-02-DINNER-2",
+              "labels": [
+                {
+                  "code": "VEGETARIAN",
+                  "name": "Vegetarisch"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "title": "Älplermagronen vegetarisch",
+              "type_code": "VEGGIE",
+              "type_name": "Vegetarisch"
+            }
+          ]
+        }
+      ],
+      "state": "open",
+      "weekday": "Mittwoch"
+    },
+    {
+      "date": "2026-09-03",
+      "notice": "",
+      "services": [
+        {
+          "meal_code": "LUNCH",
+          "meal_name": "Mittag",
+          "options": [
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Polenta",
+                "Bohnen"
+              ],
+              "description": "Polenta · Bohnen",
+              "external_id": "PATIENT-2026-09-03-LUNCH-1",
+              "labels": [],
+              "note": "",
+              "origins": [
+                {
+                  "country_code": "CH",
+                  "ingredient": "Schwein",
+                  "text": "Schwein: Schweiz"
+                }
+              ],
+              "title": "Schweinsragout Tessiner Art",
+              "type_code": "MENU_1",
+              "type_name": "Menü 1"
+            },
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Bohnen"
+              ],
+              "description": "Bohnen",
+              "external_id": "PATIENT-2026-09-03-LUNCH-2",
+              "labels": [
+                {
+                  "code": "VEGETARIAN",
+                  "name": "Vegetarisch"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "title": "Polenta mit Pilzragout",
+              "type_code": "VEGGIE",
+              "type_name": "Vegetarisch"
+            }
+          ]
+        },
+        {
+          "meal_code": "DINNER",
+          "meal_name": "Abend",
+          "options": [
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Salzkartoffeln",
+                "Spinat"
+              ],
+              "description": "Salzkartoffeln · Spinat",
+              "external_id": "PATIENT-2026-09-03-DINNER-1",
+              "labels": [
+                {
+                  "code": "VEGETARIAN",
+                  "name": "Vegetarisch"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "title": "Rührei mit Kräutern",
+              "type_code": "MENU_1",
+              "type_name": "Menü 1"
+            },
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Salzkartoffeln",
+                "Spinat"
+              ],
+              "description": "Salzkartoffeln · Spinat",
+              "external_id": "PATIENT-2026-09-03-DINNER-2",
+              "labels": [
+                {
+                  "code": "VEGAN",
+                  "name": "Vegan"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "title": "Tofu-Rührei",
+              "type_code": "VEGGIE",
+              "type_name": "Vegetarisch"
+            }
+          ]
+        }
+      ],
+      "state": "open",
+      "weekday": "Donnerstag"
+    },
+    {
+      "date": "2026-09-04",
+      "notice": "",
+      "services": [
+        {
+          "meal_code": "LUNCH",
+          "meal_name": "Mittag",
+          "options": [
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Salzkartoffeln",
+                "Rahmspinat"
+              ],
+              "description": "Salzkartoffeln · Rahmspinat",
+              "external_id": "PATIENT-2026-09-04-LUNCH-1",
+              "labels": [],
+              "note": "",
+              "origins": [
+                {
+                  "country_code": "DE",
+                  "ingredient": "Zander",
+                  "text": "Zander: Deutschland"
+                }
+              ],
+              "title": "Gebratenes Zanderfilet",
+              "type_code": "MENU_1",
+              "type_name": "Menü 1"
+            },
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Hummus",
+                "Ofengemüse"
+              ],
+              "description": "Hummus · Ofengemüse",
+              "external_id": "PATIENT-2026-09-04-LUNCH-2",
+              "labels": [
+                {
+                  "code": "VEGAN",
+                  "name": "Vegan"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "title": "Falafel-Teller",
+              "type_code": "VEGGIE",
+              "type_name": "Vegetarisch"
+            }
+          ]
+        },
+        {
+          "meal_code": "DINNER",
+          "meal_name": "Abend",
+          "options": [
+            {
+              "allergen_review_status": "checked",
+              "allergens": [
+                {
+                  "code": "MILK",
+                  "name": "Milch",
+                  "presence": "contains"
+                },
+                {
+                  "code": "GLUTEN",
+                  "name": "Glutenhaltiges Getreide",
+                  "presence": "contains"
+                }
+              ],
+              "components": [
+                "Zwetschgenkompott"
+              ],
+              "description": "Zimt und Zucker",
+              "external_id": "PATIENT-2026-09-04-DINNER-1",
+              "labels": [
+                {
+                  "code": "VEGETARIAN",
+                  "name": "Vegetarisch"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "title": "Griessbrei mit Zwetschgenkompott",
+              "type_code": "MENU_1",
+              "type_name": "Menü 1"
+            },
+            {
+              "allergen_review_status": "checked",
+              "allergens": [
+                {
+                  "code": "MILK",
+                  "name": "Milch",
+                  "presence": "contains"
+                },
+                {
+                  "code": "GLUTEN",
+                  "name": "Glutenhaltiges Getreide",
+                  "presence": "contains"
+                }
+              ],
+              "components": [
+                "Zwetschgenkompott"
+              ],
+              "description": "Zwetschgenkompott",
+              "external_id": "PATIENT-2026-09-04-DINNER-2",
+              "labels": [
+                {
+                  "code": "VEGAN",
+                  "name": "Vegan"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "title": "Kokos-Griessbrei",
+              "type_code": "VEGGIE",
+              "type_name": "Vegetarisch"
+            }
+          ]
+        }
+      ],
+      "state": "open",
+      "weekday": "Freitag"
+    },
+    {
+      "date": "2026-09-05",
+      "notice": "",
+      "services": [
+        {
+          "meal_code": "LUNCH",
+          "meal_name": "Mittag",
+          "options": [
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Kartoffelwedges",
+                "Marktgemüse"
+              ],
+              "description": "Kartoffelwedges · Marktgemüse",
+              "external_id": "PATIENT-2026-09-05-LUNCH-1",
+              "labels": [],
+              "note": "",
+              "origins": [
+                {
+                  "country_code": "CH",
+                  "ingredient": "Poulet",
+                  "text": "Poulet: Schweiz"
+                }
+              ],
+              "title": "Ofen-Pouletschenkel",
+              "type_code": "MENU_1",
+              "type_name": "Menü 1"
+            },
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Kartoffelwedges",
+                "Marktgemüse"
+              ],
+              "description": "Kartoffelwedges · Marktgemüse",
+              "external_id": "PATIENT-2026-09-05-LUNCH-2",
+              "labels": [
+                {
+                  "code": "VEGAN",
+                  "name": "Vegan"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "title": "Kichererbsen-Eintopf",
+              "type_code": "VEGGIE",
+              "type_name": "Vegetarisch"
+            }
+          ]
+        },
+        {
+          "meal_code": "DINNER",
+          "meal_name": "Abend",
+          "options": [
+            {
+              "allergen_review_status": "checked",
+              "allergens": [
+                {
+                  "code": "GLUTEN",
+                  "name": "Glutenhaltiges Getreide",
+                  "presence": "contains"
+                }
+              ],
+              "components": [
+                "Hausbrot"
+              ],
+              "description": "Hausbrot",
+              "external_id": "PATIENT-2026-09-05-DINNER-1",
+              "labels": [],
+              "note": "",
+              "origins": [
+                {
+                  "country_code": "CH",
+                  "ingredient": "Rind",
+                  "text": "Rind: Schweiz"
+                }
+              ],
+              "title": "Bündner Gerstensuppe",
+              "type_code": "MENU_1",
+              "type_name": "Menü 1"
+            },
+            {
+              "allergen_review_status": "checked",
+              "allergens": [
+                {
+                  "code": "GLUTEN",
+                  "name": "Glutenhaltiges Getreide",
+                  "presence": "contains"
+                }
+              ],
+              "components": [
+                "Hausbrot"
+              ],
+              "description": "Hausbrot",
+              "external_id": "PATIENT-2026-09-05-DINNER-2",
+              "labels": [
+                {
+                  "code": "VEGETARIAN",
+                  "name": "Vegetarisch"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "title": "Gemüse-Gerstensuppe",
+              "type_code": "VEGGIE",
+              "type_name": "Vegetarisch"
+            }
+          ]
+        }
+      ],
+      "state": "open",
+      "weekday": "Samstag"
+    },
+    {
+      "date": "2026-09-06",
+      "notice": "",
+      "services": [
+        {
+          "meal_code": "LUNCH",
+          "meal_name": "Mittag",
+          "options": [
+            {
+              "allergen_review_status": "checked",
+              "allergens": [],
+              "components": [
+                "Kartoffelstock",
+                "Karotten"
+              ],
+              "description": "Kartoffelstock · Karotten",
+              "external_id": "PATIENT-2026-09-06-LUNCH-1",
+              "labels": [],
+              "note": "",
+              "origins": [
+                {
+                  "country_code": "CH",
+                  "ingredient": "Rind",
+                  "text": "Rind: Schweiz"
+                }
+              ],
+              "title": "Rindsschmorbraten",
+              "type_code": "MENU_1",
+              "type_name": "Menü 1"
+            },
+            {
+              "allergen_review_status": "checked",
+              "allergens": [
+                {
+                  "code": "NUTS",
+                  "name": "Schalenfrüchte",
+                  "presence": "may_contain"
+                }
+              ],
+              "components": [
+                "Kartoffelstock",
+                "Karotten"
+              ],
+              "description": "Kartoffelstock · Karotten",
+              "external_id": "PATIENT-2026-09-06-LUNCH-2",
+              "labels": [
+                {
+                  "code": "VEGETARIAN",
+                  "name": "Vegetarisch"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "title": "Nussbraten mit Kräutersauce",
+              "type_code": "VEGGIE",
+              "type_name": "Vegetarisch"
+            }
+          ]
+        },
+        {
+          "meal_code": "DINNER",
+          "meal_name": "Abend",
+          "options": [
+            {
+              "allergen_review_status": "checked",
+              "allergens": [
+                {
+                  "code": "GLUTEN",
+                  "name": "Glutenhaltiges Getreide",
+                  "presence": "contains"
+                }
+              ],
+              "components": [
+                "Erbsen und Rüebli",
+                "Blattsalat"
+              ],
+              "description": "Erbsen und Rüebli · Blattsalat",
+              "external_id": "PATIENT-2026-09-06-DINNER-1",
+              "labels": [],
+              "note": "",
+              "origins": [
+                {
+                  "country_code": "CH",
+                  "ingredient": "Kalb",
+                  "text": "Kalb: Schweiz"
+                }
+              ],
+              "title": "Pastetli mit Brätkügeli",
+              "type_code": "MENU_1",
+              "type_name": "Menü 1"
+            },
+            {
+              "allergen_review_status": "checked",
+              "allergens": [
+                {
+                  "code": "GLUTEN",
+                  "name": "Glutenhaltiges Getreide",
+                  "presence": "contains"
+                }
+              ],
+              "components": [
+                "Erbsen und Rüebli",
+                "Blattsalat"
+              ],
+              "description": "Erbsen und Rüebli · Blattsalat",
+              "external_id": "PATIENT-2026-09-06-DINNER-2",
+              "labels": [
+                {
+                  "code": "VEGETARIAN",
+                  "name": "Vegetarisch"
+                }
+              ],
+              "note": "",
+              "origins": [],
+              "title": "Gemüse-Pastetli",
+              "type_code": "VEGGIE",
+              "type_name": "Vegetarisch"
+            }
+          ]
+        }
+      ],
+      "state": "open",
+      "weekday": "Sonntag"
+    }
+  ],
+  "location": {
+    "code": "KIRCHLINDACH",
+    "name": "Klinik Südhang Kirchlindach"
+  },
+  "profile_code": "patient",
+  "revision_id": "PAT-2026-KW36-R1",
+  "schema_version": 2,
+  "shared_note": "Allgemeiner Speiseplan für Patientinnen und Patienten.",
+  "title": "31. August bis 6. September",
+  "week_end": "2026-09-06",
+  "week_start": "2026-08-31"
+}

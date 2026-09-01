@@ -1,0 +1,18 @@
+digraph auth_flow {
+  graph [rankdir=LR, bgcolor="white", pad=0.3, nodesep=0.55, ranksep=0.7, fontname="Arial"];
+  node [shape=box, style="rounded,filled", fillcolor="#f8fafc", color="#334155", fontname="Arial", fontsize=11];
+  edge [color="#64748b", fontname="Arial", fontsize=9];
+
+  user [label="Kueche / ICT"];
+  login [label="/auth/login"];
+  entra [label="Microsoft Entra ID\nSingle Tenant\nAssignment required", fillcolor="#e9eef8"];
+  callback [label="/auth/callback\niss/aud/nonce/tid pruefen"];
+  roles [label="roles claim\nEditor\nPublisher\nAdmin", fillcolor="#e8f1ef"];
+  session [label="Redis-Session\nSecure / HttpOnly / Lax"];
+  backend [label="Backend-Routen\nserverseitige Capability-Pruefung"];
+  public [label="Website / Druck / Signage / API\nnur publizierte Snapshots"];
+
+  user -> login -> entra -> callback -> roles -> session -> backend;
+  public [shape=box, style="rounded,dashed", fillcolor="white"];
+  public -> backend [style=invis];
+}

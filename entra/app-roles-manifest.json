@@ -1,0 +1,28 @@
+{
+  "appRoles": [
+    {
+      "allowedMemberTypes": ["User"],
+      "description": "Patienten- und Cafeteria-Entwürfe getrennt erfassen sowie profilbezogene CSV-Dateien prüfen und importieren.",
+      "displayName": "Menüplanung Redaktion",
+      "id": "f17d4b90-f59e-4a8f-a3a1-3a4dc1c52b01",
+      "isEnabled": true,
+      "value": "Cafeteria.Editor"
+    },
+    {
+      "allowedMemberTypes": ["User"],
+      "description": "Entwürfe bearbeiten, prüfen und pro Publikationsprofil freigeben oder zurückziehen.",
+      "displayName": "Menüplanung Publikation",
+      "id": "2c8bf9e4-28a8-48e3-a2dc-12e27fef1f11",
+      "isEnabled": true,
+      "value": "Cafeteria.Publisher"
+    },
+    {
+      "allowedMemberTypes": ["User"],
+      "description": "Alle Anwendungsrechte einschliesslich Konfiguration, Audit und Diagnose.",
+      "displayName": "Menüplanung Administration",
+      "id": "0a536e6d-b14f-4e7d-9f77-08a856b73c39",
+      "isEnabled": true,
+      "value": "Cafeteria.Admin"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+﻿schema_version;profil;datum;wochentag;mahlzeit;menueart;external_id;titel;beschreibung;beilagen;labels;allergene_enthaelt;allergene_spuren;herkunft;hinweis;zustand;zustand_text;preis_mitarbeitende_chf;preis_externe_chf
+2;staff_guest;2026-08-31;Montag;LUNCH;MENU_1;STAFF_GUEST-2026-08-31-LUNCH-1;Pouletbrust an Kräutersauce;Kartoffelstock · Zucchetti;Kartoffelstock|Zucchetti;;;;Poulet=CH;;offen;;11.00;16.60
+2;staff_guest;2026-08-31;Montag;LUNCH;VEGGIE;STAFF_GUEST-2026-08-31-LUNCH-2;Spinat-Ricotta-Ravioli;Tomatensauce · Blattsalat;Tomatensauce|Blattsalat;VEGETARIAN;MILK|GLUTEN;;;;offen;;11.00;16.60
+2;staff_guest;2026-09-01;Dienstag;LUNCH;MENU_1;STAFF_GUEST-2026-09-01-LUNCH-1;Rindsgeschnetzeltes Stroganoff;Basmatireis · Broccoli;Basmatireis|Broccoli;;;;Rind=CH;;offen;;11.00;16.60
+2;staff_guest;2026-09-01;Dienstag;LUNCH;VEGGIE;STAFF_GUEST-2026-09-01-LUNCH-2;Kichererbsen-Curry;Basmatireis · Broccoli;Basmatireis|Broccoli;VEGAN|LACTOSE_FREE;;NUTS;;;offen;;11.00;16.60
+2;staff_guest;2026-09-02;Mittwoch;LUNCH;MENU_1;STAFF_GUEST-2026-09-02-LUNCH-1;Kalbsbratwurst mit Zwiebelsauce;Rösti · Rüebli;Rösti|Rüebli;;;;Kalb=CH;;offen;;11.00;16.60
+2;staff_guest;2026-09-02;Mittwoch;LUNCH;VEGGIE;STAFF_GUEST-2026-09-02-LUNCH-2;Gemüse-Lasagne;Blattsalat;Blattsalat;VEGETARIAN;GLUTEN;;;;offen;;11.00;16.60
+2;staff_guest;2026-09-03;Donnerstag;LUNCH;MENU_1;STAFF_GUEST-2026-09-03-LUNCH-1;Schweinsragout Tessiner Art;Polenta · Bohnen;Polenta|Bohnen;;;;Schwein=CH;;offen;;11.00;16.60
+2;staff_guest;2026-09-03;Donnerstag;LUNCH;VEGGIE;STAFF_GUEST-2026-09-03-LUNCH-2;Polenta mit Pilzragout;Bohnen;Bohnen;VEGETARIAN;;;;;offen;;11.00;16.60
+2;staff_guest;2026-09-04;Freitag;LUNCH;MENU_1;STAFF_GUEST-2026-09-04-LUNCH-1;Gebratenes Zanderfilet;Salzkartoffeln · Rahmspinat;Salzkartoffeln|Rahmspinat;;;;Zander=DE;;offen;;11.00;16.60
+2;staff_guest;2026-09-04;Freitag;LUNCH;VEGGIE;STAFF_GUEST-2026-09-04-LUNCH-2;Falafel-Teller;Hummus · Ofengemüse;Hummus|Ofengemüse;VEGAN|LACTOSE_FREE;;;;;offen;;11.00;16.60

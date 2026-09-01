@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Cafeteria heute – Klinik Südhang{% endblock %}
+{% block body %}
+<header class="site-header">
+  <a class="wordmark" href="{{ url_for('public.cafeteria_today') }}"><span class="wordmark-mark" aria-hidden="true"></span><span>Klinik Südhang</span></a>
+  <nav class="site-nav" aria-label="Hauptnavigation">
+    <a class="active" href="{{ url_for('public.cafeteria_today') }}">Cafeteria heute</a>
+    <a href="{{ url_for('public.cafeteria_week') }}">Cafeteria Woche</a>
+    <span class="channel-links"><a href="{{ url_for('public.patient_today') }}">Patientenplan</a></span>
+  </nav>
+</header>
+<main class="public-shell">
+  <section class="hero">
+    <div><p class="eyebrow">Cafeteria · Mitarbeitende und Externe</p><h1>Was gibt es heute?</h1><p class="hero-copy">Zwei Mittagsmenüs von Montag bis Freitag. Die Beträge sind getrennt für Mitarbeitende und externe Gäste ausgewiesen.</p></div>
+    <div class="date-chip">{{ day.weekday if day else '' }}, {{ today|date_long }}</div>
+  </section>
+  <div class="profile-banner"><div><strong>Publikationskanal Cafeteria</strong><span>Nur Mittag · Montag bis Freitag · getrennte Ansätze für Mitarbeitende und externe Gäste</span></div><span class="profile-pill">Cafeteria</span></div>
+  {% if lunch %}
+  <section class="menu-grid" aria-label="Heutige Cafeteria-Menüs">
+    {% for option in lunch.options %}
+    <article class="menu-card {{ 'veggie' if option.type_code == 'VEGGIE' else 'meat' }}">
+      <header class="menu-card-head"><p class="menu-type">{{ option.type_name }}</p><span class="menu-icon {{ 'veg' if option.type_code == 'VEGGIE' else '' }}" aria-hidden="true">{{ '●' if option.type_code == 'VEGGIE' else '◐' }}</span></header>
+      <div class="menu-card-body">
+        <h2 class="menu-title">{{ option.title }}</h2><p class="menu-description">{{ option.description }}</p>
+        <ul class="components">{% for component in option.components %}<li>{{ component }}</li>{% endfor %}</ul>
+        <div class="labels">
+          {% for origin in option.origins %}<span class="label">{{ origin.text }}</span>{% endfor %}
+          {% for label in option.labels %}<span class="label green">{{ label.name }}</span>{% endfor %}
+          {% for allergen in option.allergens %}<span class="label amber">{{ 'Kann enthalten: ' if allergen.presence == 'may_contain' else 'Enthält: ' }}{{ allergen.name }}</span>{% endfor %}
+        </div>
+        <div class="price-row"><div class="price"><span>Mitarbeitende</span><strong>CHF {{ option.prices.internal_rappen|chf }}</strong></div><div class="price"><span>Externe Gäste</span><strong>CHF {{ option.prices.external_rappen|chf }}</strong></div></div>
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+  {% else %}
+  <aside class="detail-panel"><h2>Cafeteria geschlossen</h2><p>{{ day.notice if day and day.notice else 'Für diesen Tag ist kein öffentliches Cafeteria-Angebot publiziert.' }}</p></aside>
+  {% endif %}
+  <aside class="detail-panel"><h2>Allergene und Herkunft</h2><p>Die vollständige Deklaration ist beim Cafeteria-Team erhältlich. Änderungen bei kurzfristiger Warenverfügbarkeit bleiben vorbehalten.</p></aside>
+</main>
+{% endblock %}

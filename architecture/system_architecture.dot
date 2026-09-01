@@ -1,0 +1,26 @@
+digraph system_architecture {
+  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.35, ranksep=0.45, fontname="Arial"];
+  node [shape=box, style="rounded,filled", fillcolor="#f7f5ef", color="#334155", fontname="Arial", fontsize=14, margin="0.18,0.13"];
+  edge [color="#64748b", fontname="Arial", fontsize=11, arrowsize=0.75];
+
+  channels [label="PUBLIZIERTE KANAELE\nPatienten Web/Mobile/Druck | Cafeteria Web/Mobile/Druck\n4 feste Signage-URLs | 2 Snapshot-APIs", fillcolor="#e8f1ef"];
+  proxy [label="TLS Reverse Proxy"];
+  app [label="FLASK / JINJA / GUNICORN\nProfilbezogene Renderer und Routen\nKeine Player-Query-Parameter", fillcolor="#dceceb"];
+
+  postgres [label="POSTGRESQL\n2 Profile -> Wochen -> Services -> 2 Menuearten\nPreise nur in separater Cafeteria-Tabelle\nRevision pro Profil", fillcolor="#e9eef8"];
+  redis [label="REDIS\nServerseitige Backend-Sessions"];
+  lastgood [label="LAST-GOOD\nLokale letzte gueltige Revision\nje Profil getrennt"];
+  entra [label="MICROSOFT ENTRA ID\nEditor | Publisher | Admin"];
+
+  kitchen [label="KUECHEN-BACKEND\nPatientenraster 7 x 2\nCafeteriaraster 5 x 1", fillcolor="#fff3dc"];
+  csv [label="CSV-IMPORT\nPatientenformat ohne Kosten\nCafeteriaformat mit zwei Ansaetzen", fillcolor="#fff3dc"];
+  backup [label="BACKUP / RESTORE\npg_dump, SHA-256, externe Kopie"];
+
+  channels -> proxy -> app;
+  kitchen -> entra -> app;
+  csv -> app;
+  app -> postgres;
+  app -> redis;
+  app -> lastgood [dir=both, label="gleiches Profil"];
+  postgres -> backup;
+}

@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Druckansicht Wochenspeiseplan{% endblock %}
+{% block body %}
+<main class="public-shell"><section class="hero"><div><p class="eyebrow">Druck · Patienten-Speiseplan</p><h1>Montag bis Sonntag</h1><p class="hero-copy">Mittag und Abend mit je zwei Menüoptionen.</p></div></section>
+{% if snapshot %}<section class="week-list">{% for day in snapshot.days %}<article class="week-day"><header><h2>{{ day.weekday }}</h2><span>{{ day.date|date_long }}</span></header><div class="week-day-grid">{% for meal in day.services %}<div class="week-row"><div class="week-meal-label">{{ meal.meal_name }}</div>{% for option in meal.options %}<div class="week-menu"><small class="week-menu-type">{{ option.type_name }}</small><strong>{{ option.title }}</strong><span>{{ option.components|join(' · ') }}</span></div>{% endfor %}</div>{% endfor %}</div></article>{% endfor %}</section>{% else %}<section class="empty-state"><h2>Kein freigegebener Wochenplan</h2></section>{% endif %}
+</main>
+{% endblock %}

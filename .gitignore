@@ -1,0 +1,12 @@
+.worktrees/
+.claude/worktrees/
+.superpowers/
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+.env
+deployment/secrets/*.txt
+reference_scaffold/last_good/
+*.zip
