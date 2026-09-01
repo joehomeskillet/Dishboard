@@ -14,7 +14,7 @@ def no_store_failure(message: str, status_code: int):
 
 @bp.before_request
 def reject_query_parameters():
-    if request.args:
+    if request.query_string or request.args:
         return no_store_failure('Player-URLs akzeptieren keine Query-Parameter.', 400)
     return None
 

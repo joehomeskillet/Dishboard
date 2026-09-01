@@ -20,7 +20,7 @@ def no_store_failure(message: str, status_code: int):
 
 @bp.before_request
 def reject_query_parameters():
-    if request.args:
+    if request.query_string:
         return no_store_failure('Öffentliche Query-Parameter sind nicht erlaubt.', 400)
     return None
 

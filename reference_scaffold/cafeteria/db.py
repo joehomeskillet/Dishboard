@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -15,10 +16,25 @@ APPLICATION_VERSION = 'fachmodell-2-profile'
 SYSTEM_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000001'
 DEMO_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000002'
 PROFILES = {'patient', 'staff_guest'}
+PATIENT_ALLOWED_KEYS = frozenset({
+    'schema_version', 'profile_code', 'channel', 'revision_id', 'location',
+    'code', 'name', 'week_start', 'week_end', 'title', 'shared_note', 'days',
+    'date', 'weekday', 'state', 'notice', 'services', 'meal_code', 'meal_name',
+    'options', 'external_id', 'type_code', 'type_name', 'description',
+    'components', 'labels', 'allergens', 'origins', 'note',
+    'allergen_review_status', 'presence', 'ingredient', 'country_code', 'text',
+})
 PATIENT_FORBIDDEN_KEYS = {
     'price', 'prices', 'preis', 'preise', 'internal_rappen', 'external_rappen',
-    'preis_intern', 'preis_extern', 'currency', 'chf', 'rappen',
+    'preis_intern', 'preis_extern', 'currency', 'chf', 'rappen', 'cost', 'costs',
+    'billing', 'billing_label', 'intern', 'extern',
 }
+PATIENT_FORBIDDEN_VALUE_RE = re.compile(
+    r'(?<![A-Za-zÄÖÜäöü])(?:CHF|Intern|Extern)(?![A-Za-zÄÖÜäöü])'
+    r'|(?<!\d)0\.00(?!\d)'
+    r'|Preis\s+\d+[.,]\d{2}',
+    re.IGNORECASE,
+)
 
 
 def create_database_engine(
@@ -193,12 +209,25 @@ def _forbidden_patient_paths(value: Any, path: str = '$') -> list[str]:
     if isinstance(value, dict):
         for key, child in value.items():
             lower = key.lower()
-            if lower in PATIENT_FORBIDDEN_KEYS or lower.endswith('_rappen') or '_price' in lower or 'price_' in lower or '_preis' in lower or 'preis_' in lower:
-                found.append(f'{path}.{key}')
-            found.extend(_forbidden_patient_paths(child, f'{path}.{key}'))
+            child_path = f'{path}.{key}'
+            if (
+                lower not in PATIENT_ALLOWED_KEYS
+                or lower in PATIENT_FORBIDDEN_KEYS
+                or lower.endswith('_rappen')
+                or '_price' in lower
+                or 'price_' in lower
+                or '_preis' in lower
+                or 'preis_' in lower
+                or 'cost' in lower
+                or 'billing' in lower
+            ):
+                found.append(child_path)
+            found.extend(_forbidden_patient_paths(child, child_path))
     elif isinstance(value, list):
         for index, child in enumerate(value):
             found.extend(_forbidden_patient_paths(child, f'{path}[{index}]'))
+    elif isinstance(value, str) and PATIENT_FORBIDDEN_VALUE_RE.search(value):
+        found.append(path)
     return found
 
 
@@ -213,10 +242,7 @@ def validate_snapshot_payload(profile_code: str, snapshot: dict[str, Any]) -> No
     if profile_code == 'patient':
         paths = _forbidden_patient_paths(snapshot)
         if paths:
-            raise ValueError('Patienten-Snapshot enthält unzulässige Kostenschlüssel: ' + ', '.join(paths[:5]))
-        text_payload = json.dumps(snapshot, ensure_ascii=False)
-        if 'CHF' in text_payload or '0.00' in text_payload:
-            raise ValueError('Patienten-Snapshot enthält unzulässige Kostenwerte.')
+            raise ValueError('Patienten-Snapshot enthält unzulässige Kosteninformationen: ' + ', '.join(paths[:5]))
         for day in days:
             meals = {service.get('meal_code') for service in day.get('services', [])}
             if meals != {'LUNCH', 'DINNER'}:

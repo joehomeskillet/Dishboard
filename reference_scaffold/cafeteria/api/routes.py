@@ -12,7 +12,7 @@ def error_response(payload: dict[str, str], status_code: int):
 
 
 def response_for(profile_code: str):
-    if request.args:
+    if request.query_string:
         return error_response({'error': 'query_parameters_not_allowed'}, 400)
     snapshot = published_snapshot(profile_code)
     if not snapshot:
