@@ -59,11 +59,15 @@ services:
       - /bin/sh
       - -ec
       - |
+        umask 077
+        redis_password="$$(cat /run/secrets/redis_password)"
+        printf 'user default on >%s ~* &* +@all\n' "$$redis_password" > /tmp/redis-users.acl
+        unset redis_password
         exec redis-server \
           --appendonly yes \
           --appendfsync everysec \
           --save 60 1000 \
-          --requirepass "$$(cat /run/secrets/redis_password)"
+          --aclfile /tmp/redis-users.acl
     restart: unless-stopped
     secrets:
       - redis_password
@@ -139,7 +143,7 @@ services:
       REDIS_PASSWORD_FILE: /run/secrets/redis_password
       FLASK_SECRET_KEY_FILE: /run/secrets/flask_secret_key
       ENTRA_CLIENT_SECRET_FILE: /run/secrets/entra_client_secret
-      LAST_GOOD_DIR: /tmp/cafeteria-last-good
+      LAST_GOOD_DIR: /var/lib/cafeteria/last-good
     secrets:
       - postgres_app_password
       - flask_secret_key
@@ -147,6 +151,8 @@ services:
       - redis_password
     ports:
       - "127.0.0.1:${APP_HOST_PORT:-8080}:8000"
+    volumes:
+      - last_good_data:/var/lib/cafeteria
     tmpfs:
       - /tmp:size=64m,mode=1777
     read_only: true
@@ -230,6 +236,7 @@ volumes:
   postgres_data:
   postgres_backups:
   redis_data:
+  last_good_data:
 
 secrets:
   postgres_owner_password:

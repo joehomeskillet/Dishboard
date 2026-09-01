@@ -6,7 +6,7 @@ services:
       app:
         condition: service_healthy
     environment:
-      CAFETERIA_DOMAIN: ${CAFETERIA_DOMAIN:-cafeteria.example.invalid}
+      CAFETERIA_DOMAIN: ${CAFETERIA_DOMAIN:-dishboard.joelduss.xyz}
     ports:
       - "80:80"
       - "443:443"

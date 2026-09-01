@@ -1,5 +1,6 @@
 #!/bin/sh
 set -eu
+umask 077
 cd "$(dirname "$0")"
 
 [ -f .env ] || cp .env.example .env
@@ -9,7 +10,7 @@ generate_secret() {
   target=$1
   bytes=$2
   if [ ! -f "$target" ]; then
-    python - "$bytes" > "$target" <<'PY'
+    python3 - "$bytes" > "$target" <<'PY'
 import secrets, sys
 print(secrets.token_urlsafe(int(sys.argv[1])))
 PY
@@ -27,4 +28,5 @@ if [ ! -f secrets/entra_client_secret.txt ]; then
   printf '%s\n' 'REPLACE_WITH_ENTRA_CLIENT_SECRET_FOR_PRODUCTION' > secrets/entra_client_secret.txt
 fi
 chmod 600 secrets/*.txt
-printf '%s\n' 'Vorbereitet. Demo-Start: docker compose up --build -d'
+printf '%s\n' 'Vorbereitet. Entra und lokale Benutzer wurden nicht provisioniert.'
+printf '%s\n' 'Vor dem Produktionsstart reale Entra-Werte setzen und ENTRA_ENABLED=true aktivieren.'

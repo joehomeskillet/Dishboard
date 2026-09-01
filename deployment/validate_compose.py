@@ -29,7 +29,8 @@ assert redis['healthcheck']['test'] == ['CMD', '/usr/local/bin/redis-healthcheck
 assert './redis-healthcheck.sh:/usr/local/bin/redis-healthcheck.sh:ro' in redis['volumes']
 assert redis['environment']['REDIS_PASSWORD_FILE'] == '/run/secrets/redis_password'
 assert 'redis-cli -a' not in (root / 'docker-compose.yml').read_text(encoding='utf-8')
-assert '--requirepass "$$(cat /run/secrets/redis_password)"' in (root / 'docker-compose.yml').read_text(encoding='utf-8')
+assert '--requirepass' not in (root / 'docker-compose.yml').read_text(encoding='utf-8')
+assert '--aclfile /tmp/redis-users.acl' in (root / 'docker-compose.yml').read_text(encoding='utf-8')
 
 migrate = services['migrate']
 assert migrate['environment']['POSTGRES_USER'] == 'cafeteria_owner'
@@ -41,7 +42,8 @@ app = services['app']
 assert app['build']['dockerfile'] == 'deployment/Dockerfile'
 assert app['environment']['POSTGRES_HOST'] == 'db'
 assert app['environment']['POSTGRES_USER'] == 'cafeteria_app'
-assert app['environment']['LAST_GOOD_DIR'] == '/tmp/cafeteria-last-good'
+assert app['environment']['LAST_GOOD_DIR'] == '/var/lib/cafeteria/last-good'
+assert 'last_good_data:/var/lib/cafeteria' in app['volumes']
 assert app['depends_on']['db']['condition'] == 'service_healthy'
 assert app['depends_on']['redis']['condition'] == 'service_healthy'
 assert app['depends_on']['migrate']['condition'] == 'service_completed_successfully'
@@ -52,16 +54,21 @@ assert set(app['secrets']) == {
 
 assert services['backup']['environment']['POSTGRES_USER'] == 'cafeteria_backup'
 assert services['restore']['environment']['POSTGRES_USER'] == 'cafeteria_owner'
-assert {'postgres_data', 'postgres_backups', 'redis_data'} <= set(base.get('volumes', {}))
+assert {'postgres_data', 'postgres_backups', 'redis_data', 'last_good_data'} <= set(base.get('volumes', {}))
 assert {
     'postgres_owner_password', 'postgres_app_password', 'postgres_backup_password',
     'flask_secret_key', 'entra_client_secret', 'redis_password'
 } <= set(base.get('secrets', {}))
 assert 'caddy' in overlay.get('services', {})
 assert overlay['services']['caddy']['depends_on']['app']['condition'] == 'service_healthy'
+assert overlay['services']['caddy']['environment']['CAFETERIA_DOMAIN'] == '${CAFETERIA_DOMAIN:-dishboard.joelduss.xyz}'
 
 example = (root / '.env.example').read_text(encoding='utf-8')
-for token in ('APP_ENV=development', 'DEMO_TODAY=2026-09-01', 'LAST_GOOD_DIR=/tmp/cafeteria-last-good'):
+for token in (
+    'APP_ENV=development', 'APP_PUBLIC_BASE_URL=https://dishboard.joelduss.xyz',
+    'DEMO_TODAY=2026-09-01', 'LAST_GOOD_DIR=/var/lib/cafeteria/last-good',
+    'ENTRA_ENABLED=false', 'CAFETERIA_DOMAIN=dishboard.joelduss.xyz',
+):
     assert token in example, token
 assert not (root / '.env').exists()
 
