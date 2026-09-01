@@ -34,32 +34,86 @@ PATIENT_OBJECT_KEYS = {
     'allergen': frozenset({'code', 'name', 'presence'}),
     'origin': frozenset({'ingredient', 'country_code', 'text'}),
 }
-PATIENT_SENSITIVE_TERM_RE = re.compile(
-    r'''
-    (?<![^\W_])
-    (?:
-        price|prices|preis|preise|cost|costs|kosten|amount|amounts|betrag|
-        currency|währung|waehrung|billing|CHF|EUR|USD|Franken|Euro|internal|external|
-        intern(?:e[nrms]?)?|extern(?:e[nrms]?)?|inkludiert|inklusive|included|
-        inbegriffen|gratis|kosten(?:los|frei)|gebühr|gebuehr|fees?|charges?|
-        tarif|tariff|rate|surcharge|aufpreis|rappen
-    )
-    (?![^\W_])
-    ''',
-    re.IGNORECASE | re.VERBOSE,
+PATIENT_LABEL_CODES = frozenset({'VEGETARIAN', 'VEGAN', 'LACTOSE_FREE', 'GLUTEN_FREE'})
+PATIENT_ALLERGEN_CODES = frozenset({
+    'GLUTEN', 'CRUSTACEANS', 'EGGS', 'FISH', 'PEANUTS', 'SOY', 'MILK',
+    'NUTS', 'CELERY', 'MUSTARD', 'SESAME', 'SULPHITES', 'LUPIN', 'MOLLUSCS',
+})
+PATIENT_WEEKDAYS = frozenset({
+    'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag',
+})
+PATIENT_FIXED_VALUES = {
+    ('snapshot', 'profile_code'): frozenset({'patient'}),
+    ('snapshot', 'channel'): frozenset({'patienten'}),
+    ('day', 'weekday'): PATIENT_WEEKDAYS,
+    ('day', 'state'): frozenset({'open', 'closed'}),
+    ('service', 'meal_code'): frozenset({'LUNCH', 'DINNER'}),
+    ('service', 'meal_name'): frozenset({'Mittag', 'Abend'}),
+    ('option', 'type_code'): frozenset({'MENU_1', 'VEGGIE'}),
+    ('option', 'type_name'): frozenset({'Menü 1', 'Vegetarisch'}),
+    ('option', 'allergen_review_status'): frozenset({'not_checked', 'checked'}),
+    ('label', 'code'): PATIENT_LABEL_CODES,
+    ('allergen', 'code'): PATIENT_ALLERGEN_CODES,
+    ('allergen', 'presence'): frozenset({'contains', 'may_contain'}),
+}
+PATIENT_ISO_DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+PATIENT_REVISION_RE = re.compile(r'^PAT-\d{4}-KW(?:0[1-9]|[1-4]\d|5[0-3])-R[1-9]\d*$')
+PATIENT_EXTERNAL_ID_RE = re.compile(
+    r'^PATIENT-\d{4}-\d{2}-\d{2}-(?:LUNCH|DINNER)-(?:1|2)$'
 )
-PATIENT_AMOUNT = r'\d+(?:[.,]\d{1,2}|[.,]?[–—-]|[.,][–—-])'
-PATIENT_CURRENCY_AMOUNT_RE = re.compile(
-    rf'''
-    (?<![^\W_])(?:CHF|EUR|USD|S?Frs?\.?|Franken|Euro)(?![^\W_])\s*{PATIENT_AMOUNT}
-    |
-    {PATIENT_AMOUNT}\s*(?<![^\W_])(?:CHF|EUR|USD|S?Frs?\.?|Franken|Euro|Rappen)(?![^\W_])
-    |
-    (?:€|\$)\s*{PATIENT_AMOUNT}|{PATIENT_AMOUNT}\s*(?:€|\$)
-    ''',
-    re.IGNORECASE | re.VERBOSE,
+PATIENT_LOCATION_CODE_RE = re.compile(r'^[A-Z][A-Z_]{1,31}$')
+PATIENT_COUNTRY_CODE_RE = re.compile(r'^[A-Z]{2}$')
+PATIENT_STRUCTURAL_PATTERNS = {
+    ('snapshot', 'revision_id'): PATIENT_REVISION_RE,
+    ('snapshot', 'week_start'): PATIENT_ISO_DATE_RE,
+    ('snapshot', 'week_end'): PATIENT_ISO_DATE_RE,
+    ('location', 'code'): PATIENT_LOCATION_CODE_RE,
+    ('day', 'date'): PATIENT_ISO_DATE_RE,
+    ('option', 'external_id'): PATIENT_EXTERNAL_ID_RE,
+    ('origin', 'country_code'): PATIENT_COUNTRY_CODE_RE,
+}
+PATIENT_MONTH = (
+    r'(?:Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)'
 )
-PATIENT_STANDALONE_AMOUNT_RE = re.compile(rf'^\s*{PATIENT_AMOUNT}\s*$')
+PATIENT_WEEK_TITLE_RE = re.compile(
+    rf'^(?:[1-9]|[12]\d|3[01])\. {PATIENT_MONTH} bis '
+    rf'(?:[1-9]|[12]\d|3[01])\. {PATIENT_MONTH}$'
+)
+PATIENT_CLOCK_RE = re.compile(r'(?<!\w)(?:[01]\d|2[0-3])[.:][0-5]\d uhr(?!\w)')
+PATIENT_CONFUSABLES = str.maketrans({
+    'а': 'a', 'е': 'e', 'о': 'o', 'р': 'p', 'с': 'c', 'х': 'x', 'і': 'i',
+    'ј': 'j', 'у': 'y', 'ѕ': 's', 'α': 'a', 'ε': 'e', 'ι': 'i', 'κ': 'k',
+    'ο': 'o', 'ρ': 'p', 'τ': 't', 'χ': 'x',
+})
+PATIENT_SENSITIVE_LEXEMES = frozenset({
+    # German
+    'preis', 'preise', 'preisen', 'preises', 'preislich', 'bepreist',
+    'kosten', 'kostenpflichtig', 'kostenpflichtige', 'kostenpflichtigen',
+    'kostenlos', 'kostenfrei', 'betrag', 'beträge', 'gebühr', 'gebühren',
+    'gebuehr', 'gebuehren', 'tarif', 'tarife', 'tarifen', 'tarifs',
+    'aufpreis', 'aufpreise', 'aufpreisen', 'bezahlt', 'bezahlung', 'zahlung',
+    'zahlbar', 'währung', 'waehrung', 'inklusive', 'inkludiert', 'inbegriffen',
+    'intern', 'interne', 'internen', 'interner', 'internes',
+    'extern', 'externe', 'externen', 'externer', 'externes', 'internal', 'external',
+    # English
+    'price', 'prices', 'priced', 'pricing', 'cost', 'costs', 'costly', 'costing',
+    'fee', 'fees', 'charge', 'charges', 'charged', 'charging', 'chargeable',
+    'rate', 'rates', 'rated', 'rating', 'tariff', 'tariffs', 'surcharge',
+    'surcharges', 'amount', 'amounts', 'currency', 'currencies', 'billing',
+    'paid', 'payable', 'payment', 'included', 'including', 'inclusive',
+    # French and Italian
+    'prix', 'coût', 'coûts', 'cout', 'couts', 'frais', 'supplément',
+    'suppléments', 'supplement', 'supplements', 'devise', 'monnaie',
+    'payant', 'payante', 'payants', 'payantes', 'payé', 'payée', 'paiement',
+    'inclus', 'incluse', 'incluses', 'compris', 'comprise', 'prezzo', 'prezzi',
+    'costo', 'costi', 'tariffa', 'tariffe', 'supplemento', 'supplementi',
+    'valuta', 'pagato', 'pagata', 'pagamento', 'incluso', 'inclusa',
+    'compreso', 'compresa', 'gratis',
+    # Currency names, codes and abbreviations
+    'chf', 'fr', 'frs', 'sfr', 'rp', 'rappen', 'franken', 'eur', 'euro', 'euros',
+    'usd', 'gbp', 'cad', 'aud', 'jpy', 'cny', 'sek', 'nok', 'dkk',
+})
+PATIENT_MAX_SENSITIVE_LEXEME_LENGTH = max(map(len, PATIENT_SENSITIVE_LEXEMES))
 
 
 def create_database_engine(
@@ -229,25 +283,60 @@ def validate_database(engine: Engine) -> dict[str, Any]:
     return result
 
 
-def _normalise_patient_text(value: str) -> tuple[str, bool]:
+def _normalise_patient_text(value: str) -> str:
     normalised = unicodedata.normalize('NFKC', value)
-    contains_control = any(unicodedata.category(character) in {'Cc', 'Cf'} for character in normalised)
-    visible = ''.join(
-        character
-        for character in normalised
-        if unicodedata.category(character) not in {'Cc', 'Cf'}
+    camel_case_split = re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', normalised)
+    return camel_case_split.casefold().translate(PATIENT_CONFUSABLES)
+
+
+def _patient_semantic_tokens(value: str) -> list[str]:
+    semantic = ''.join(
+        character if character.isalnum() else ' '
+        for character in value
+        if not unicodedata.category(character).startswith('M')
     )
-    return visible.casefold(), contains_control
+    return semantic.split()
+
+
+def _patient_tokens_contain_sensitive_lexeme(tokens: list[str]) -> bool:
+    for start in range(len(tokens)):
+        joined = ''
+        for token in tokens[start:]:
+            joined += token
+            if len(joined) > PATIENT_MAX_SENSITIVE_LEXEME_LENGTH:
+                break
+            if joined in PATIENT_SENSITIVE_LEXEMES:
+                return True
+    return False
 
 
 def _patient_text_is_forbidden(value: str) -> bool:
-    normalised, contains_control = _normalise_patient_text(value)
-    return (
-        contains_control
-        or PATIENT_SENSITIVE_TERM_RE.search(normalised) is not None
-        or PATIENT_CURRENCY_AMOUNT_RE.search(normalised) is not None
-        or PATIENT_STANDALONE_AMOUNT_RE.fullmatch(normalised) is not None
-    )
+    if any(character.isnumeric() and not character.isdecimal() for character in value):
+        return True
+    normalised = _normalise_patient_text(value)
+    without_clocks = PATIENT_CLOCK_RE.sub('', normalised)
+    if any(character.isnumeric() for character in without_clocks):
+        return True
+    if any(unicodedata.category(character) == 'Sc' for character in normalised):
+        return True
+    return _patient_tokens_contain_sensitive_lexeme(_patient_semantic_tokens(without_clocks))
+
+
+def _patient_scalar_is_invalid(kind: str, key: str, value: Any) -> bool:
+    if not isinstance(value, str):
+        return True
+
+    fixed_values = PATIENT_FIXED_VALUES.get((kind, key))
+    if fixed_values is not None:
+        return value not in fixed_values
+
+    pattern = PATIENT_STRUCTURAL_PATTERNS.get((kind, key))
+    if pattern is not None:
+        return pattern.fullmatch(value) is None
+
+    if kind == 'snapshot' and key == 'title' and PATIENT_WEEK_TITLE_RE.fullmatch(value):
+        return False
+    return _patient_text_is_forbidden(value)
 
 
 def _patient_list_paths(value: Any, item_kind: str, path: str) -> list[str]:
@@ -295,7 +384,7 @@ def _patient_object_paths(value: Any, kind: str, path: str) -> list[str]:
             found.extend(_patient_list_paths(child, 'allergen', child_path))
         elif kind == 'option' and key == 'origins':
             found.extend(_patient_list_paths(child, 'origin', child_path))
-        elif not isinstance(child, str) or _patient_text_is_forbidden(child):
+        elif _patient_scalar_is_invalid(kind, key, child):
             found.append(child_path)
     return found
 

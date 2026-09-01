@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 from copy import deepcopy
 from pathlib import Path
+from typing import Any
 
 import pytest
 from flask import Flask
@@ -46,6 +47,56 @@ PATIENT_OUTPUT_PATHS = (
     '/admin/export/patienten.csv',
 )
 
+PATIENT_FREE_TEXT_BYPASSES = (
+    pytest.param('title', 'kostenpflichtig 12.50', id='kostenpflichtig'),
+    pytest.param('title', 'Gebühren 12.50', id='gebuehren-plural'),
+    pytest.param('title', 'Tarife 12.50', id='tarife-plural'),
+    pytest.param('title', 'Aufpreise 12.50', id='aufpreise-plural'),
+    pytest.param('title', 'Pricing 12.50', id='pricing'),
+    pytest.param('title', 'Chargeable 12.50', id='chargeable'),
+    pytest.param('title', 'P r e i s: 12.50', id='spaced-preis'),
+    pytest.param('title', 'P\u00a0r\u00a0e\u00a0i\u00a0s: 12.50', id='nbsp-preis'),
+    pytest.param('title', 'P\u2028r\u2028e\u2028i\u2028s: 12.50', id='line-separator-preis'),
+    pytest.param('title', 'P.r.e.i.s: 12.50', id='punctuated-preis'),
+    pytest.param('title', 'P/R/I/C/E 12.50', id='punctuated-price'),
+    pytest.param('title', 'P\u0332r\u0332e\u0332i\u0332s: 12.50', id='combining-preis'),
+    pytest.param('title', 'Pr\u0435is: 12.50', id='homoglyph-preis'),
+    pytest.param('title', 'Fr.: 12.50', id='fr-colon'),
+    pytest.param('title', 'Fr. 12', id='fr-whole-amount'),
+    pytest.param('title', 'CHF12.50', id='compact-chf-prefix'),
+    pytest.param('title', '12.50CHF', id='compact-chf-suffix'),
+    pytest.param('title', '12.50 pro Menü', id='amount-with-context'),
+    pytest.param('title', '12.50*', id='amount-with-footnote'),
+    pytest.param('title', '12.50 (inkl.)', id='swiss-included'),
+    pytest.param('title', '12 . 50 pro Menü', id='spaced-decimal'),
+    pytest.param('title', '12·50 pro Menü', id='middle-dot-decimal'),
+    pytest.param('title', "Fr. 12'50", id='apostrophe-decimal'),
+    pytest.param('title', '50 Rp.', id='rappen-abbreviation'),
+    pytest.param('title', 'Prix 12.50', id='french-price'),
+    pytest.param('title', 'Prezzo 12.50', id='italian-price'),
+    pytest.param('labels', [{'code': 'P R I C E', 'name': 'Spezial'}], id='spaced-price-label'),
+    pytest.param('labels', [{'code': 'unitPrice', 'name': 'Spezial'}], id='camel-price-label'),
+    pytest.param(
+        'origins',
+        [{'country_code': 'CH', 'ingredient': 'Rind', 'text': 'Prix 12.50'}],
+        id='nested-french-price',
+    ),
+)
+
+PATIENT_SEMANTIC_OBFUSCATIONS = (
+    pytest.param('title', 'P r e i s', id='spaced-preis-without-number'),
+    pytest.param('title', 'P\u00a0r\u00a0e\u00a0i\u00a0s', id='nbsp-preis-without-number'),
+    pytest.param('title', 'P\u2028r\u2028e\u2028i\u2028s', id='line-separator-preis-without-number'),
+    pytest.param('title', 'P.r.e.i.s', id='punctuated-preis-without-number'),
+    pytest.param('title', 'P/R/I/C/E', id='punctuated-price-without-number'),
+    pytest.param('title', 'P\u0332r\u0332e\u0332i\u0332s', id='combining-preis-without-number'),
+    pytest.param('title', 'Pr\u0435is', id='homoglyph-preis-without-number'),
+    pytest.param('title', 'C H F', id='spaced-chf'),
+    pytest.param('title', 'F r', id='spaced-fr'),
+    pytest.param('title', 'R p', id='spaced-rp'),
+    pytest.param('title', 'unitPrice', id='camel-price-value'),
+)
+
 PATIENT_REVIEWER_PROBES = (
     pytest.param('title', 'Preis: 12.50', id='preis-colon'),
     pytest.param('title', 'Kosten 12.50', id='kosten'),
@@ -73,6 +124,26 @@ PATIENT_REVIEWER_PROBES = (
     pytest.param('labels', [{'code': 'PRI\u200bCE', 'name': 'Spezial'}], id='split-price-label'),
     pytest.param('origins', [{'country_code': 'CH', 'ingredient': 'Rind', 'text': 'Charge 12.50'}], id='nested-charge'),
     pytest.param('title', 12.5, id='numeric-title'),
+    *PATIENT_FREE_TEXT_BYPASSES,
+    *PATIENT_SEMANTIC_OBFUSCATIONS,
+)
+
+PATIENT_FREE_TEXT_PATHS = (
+    pytest.param(('title',), id='snapshot-title'),
+    pytest.param(('shared_note',), id='shared-note'),
+    pytest.param(('location', 'name'), id='location-name'),
+    pytest.param(('days', 0, 'notice'), id='day-notice'),
+    pytest.param(('days', 0, 'services', 0, 'options', 0, 'title'), id='option-title'),
+    pytest.param(('days', 0, 'services', 0, 'options', 0, 'description'), id='option-description'),
+    pytest.param(('days', 0, 'services', 0, 'options', 0, 'components', 0), id='component'),
+    pytest.param(('days', 0, 'services', 0, 'options', 1, 'labels', 0, 'name'), id='label-name'),
+    pytest.param(
+        ('days', 0, 'services', 1, 'options', 0, 'allergens', 0, 'name'),
+        id='allergen-name',
+    ),
+    pytest.param(('days', 0, 'services', 0, 'options', 0, 'origins', 0, 'ingredient'), id='origin-ingredient'),
+    pytest.param(('days', 0, 'services', 0, 'options', 0, 'origins', 0, 'text'), id='origin-text'),
+    pytest.param(('days', 0, 'services', 0, 'options', 0, 'note'), id='option-note'),
 )
 
 
@@ -80,6 +151,15 @@ def patient_snapshot_with_probe(field: str, value: object) -> dict:
     snapshot = deepcopy(patient_snapshot())
     option = snapshot['days'][0]['services'][0]['options'][0]
     option[field] = deepcopy(value)
+    return snapshot
+
+
+def patient_snapshot_with_path(path: tuple[str | int, ...], value: object) -> dict:
+    snapshot = deepcopy(patient_snapshot())
+    target: Any = snapshot
+    for part in path[:-1]:
+        target = target[part]
+    target[path[-1]] = deepcopy(value)
     return snapshot
 
 
@@ -325,6 +405,9 @@ def test_patient_snapshot_rejects_reviewer_bypasses(field: str, value: object) -
     (
         ('option', 'weekday', 'Montag'),
         ('option', 'pri\u200bce', '12.50'),
+        ('option', 'unitPrice', '12.50'),
+        ('option', 'unit_price', '12.50'),
+        ('option', 'unit-price', '12.50'),
         ('label', 'title', 'Vegan'),
         ('label', 'rate', '12.50'),
     ),
@@ -345,6 +428,38 @@ def test_patient_snapshot_rejects_keys_outside_exact_nested_schema(
         validate_snapshot_payload('patient', snapshot)
 
 
+@pytest.mark.parametrize('path', PATIENT_FREE_TEXT_PATHS)
+def test_patient_snapshot_rejects_numeric_tokens_in_every_free_text_field(
+    path: tuple[str | int, ...],
+) -> None:
+    snapshot = patient_snapshot_with_path(path, '12.50 pro Menü')
+
+    with pytest.raises(ValueError, match='unzulässig'):
+        validate_snapshot_payload('patient', snapshot)
+
+
+@pytest.mark.parametrize(
+    ('code', 'name'),
+    (
+        ('VEGETARIAN', 'Vegetarisch'),
+        ('VEGAN', 'Vegan'),
+        ('LACTOSE_FREE', 'Laktosefrei'),
+        ('GLUTEN_FREE', 'Glutenfrei'),
+    ),
+)
+def test_patient_snapshot_allows_fixed_label_codes(code: str, name: str) -> None:
+    snapshot = patient_snapshot_with_probe('labels', [{'code': code, 'name': name}])
+
+    validate_snapshot_payload('patient', snapshot)
+
+
+def test_patient_snapshot_rejects_unknown_label_code() -> None:
+    snapshot = patient_snapshot_with_probe('labels', [{'code': 'CHEF_SPECIAL', 'name': 'Spezial'}])
+
+    with pytest.raises(ValueError, match='unzulässig'):
+        validate_snapshot_payload('patient', snapshot)
+
+
 @pytest.mark.parametrize(
     ('field', 'value'),
     (
@@ -354,12 +469,35 @@ def test_patient_snapshot_rejects_keys_outside_exact_nested_schema(
         ('description', 'International gewürzt'),
         ('description', 'Externalitäten der Landwirtschaft'),
         ('note', 'Ausgabe bis 11.30 Uhr'),
+        ('note', 'Ausgabe bis 11.00 Uhr'),
+        ('note', 'Ausgabe ab 11:30 Uhr'),
+        ('note', 'Ausgabe ab 00.00 Uhr'),
+        ('note', 'Ausgabe ab 23:59 Uhr'),
     ),
 )
 def test_patient_snapshot_allows_menu_text_and_opening_time(field: str, value: str) -> None:
     snapshot = patient_snapshot_with_probe(field, value)
 
     validate_snapshot_payload('patient', snapshot)
+
+
+@pytest.mark.parametrize(
+    'value',
+    (
+        'Ausgabe ab 24.00 Uhr',
+        'Ausgabe ab 11.60 Uhr',
+        'Ausgabe ab 7.30 Uhr',
+        'Ausgabe ab 11.30',
+        'Menü 12',
+        'Menü Ⅻ',
+        'Menü 十二',
+    ),
+)
+def test_patient_snapshot_rejects_invalid_or_non_clock_numeric_text(value: str) -> None:
+    snapshot = patient_snapshot_with_probe('note', value)
+
+    with pytest.raises(ValueError, match='unzulässig'):
+        validate_snapshot_payload('patient', snapshot)
 
 
 @pytest.mark.parametrize(('field', 'value'), PATIENT_REVIEWER_PROBES)
