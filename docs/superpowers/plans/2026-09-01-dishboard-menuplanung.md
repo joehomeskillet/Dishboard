@@ -198,6 +198,20 @@ def current_authorization(engine: Engine, user_public_id: str) -> tuple[bool, li
 - [ ] Create ZIP outside repository, extract into fresh directory, run validators/tests against extracted copy and verify no secrets/caches/worktrees.
 - [ ] Compute final ZIP SHA-256 and record exact path, size, commit and runtime evidence.
 
+### Task 11: Public GitHub repository and GitHub Pages
+
+**Files:**
+- Create: `.github/workflows/pages.yml`, `site/index.html`, `site/styles.css`
+- Generated during workflow: `site/assets/` copies of selected checked-in screenshots
+
+- [ ] Keep `joehomeskillet/Dishboard` public and push only orchestrator-reviewed `main` commits; worker branches never push.
+- [ ] Build a framework-free, responsive landing page in the existing clinic visual language: clear patient/cafeteria split, signage gallery, architecture summary, security boundaries and source link.
+- [ ] Use mapped CSS custom properties with no hard-coded hex colors, semantic headings, skip-link, visible focus, descriptive image alt text and reduced-motion support.
+- [ ] Add official GitHub Pages custom workflow using current major actions, minimal `pages: write`/`id-token: write` permissions and `main`-only deployment.
+- [ ] Validate HTML/CSS, scan workflow permissions, deploy Pages, open desktop/mobile screenshots and fix visual defects.
+- [ ] Set repository homepage URL and topics through GitHub API; verify public Pages URL and latest workflow conclusion.
+- [ ] Commit with prefix `pages:`; orchestrator pushes after review.
+
 ## Preflight Dependency Table
 
 | Producer | Consumer | Contract | Ruling |
@@ -209,5 +223,6 @@ def current_authorization(engine: Engine, user_public_id: str) -> tuple[bool, li
 | Tasks 1–7 | Task 8 | reviewed combined diff | Reviewer is read-only; fixes use different author. |
 | Tasks 1–8 | Task 9 | actual behavior/evidence | Docs run after implementation and review. |
 | Tasks 1–9 | Task 10 | release candidate | Integration cannot waive failed/skipped live gates. |
+| Tasks 6–7 | Task 11 | visual language and live screenshots | Pages uses reviewed screenshots and ships before final package. |
 
 No task may weaken profile separation, draft privacy, password handling or production secret checks to make tests pass.
