@@ -192,6 +192,7 @@ def current_authorization(engine: Engine, user_public_id: str) -> tuple[bool, li
 
 - [ ] Start PostgreSQL and Redis, run migrations from empty volume, seed demo explicitly and verify schema version/checksums.
 - [ ] Start application and Caddy configuration for `dishboard.joelduss.xyz`; prove local health and all core routes.
+- [ ] After each fully reviewed, secret-scanned and green integration checkpoint, deploy `main` to `https://dishboard.joelduss.xyz/`, verify health plus core public routes, and roll back immediately on failure; never deploy a branch with relevant skipped live gates.
 - [ ] Run full unit, rendered, live DB, local auth, security and acceptance suites. Report passed/failed/skipped counts; any relevant skip blocks completion.
 - [ ] Capture required live screenshots, open every image, log visual defects, route fixes, recapture and re-open.
 - [ ] Run package validator, regenerate `PACKAGE_CONTENTS.txt` and `MANIFEST_SHA256.txt`, then verify both.
