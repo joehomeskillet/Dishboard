@@ -150,6 +150,11 @@ WITH legacy_component_allergens AS (
     FROM menu_item_components mic
     JOIN menu_item_allergens mia ON mia.menu_item_id=mic.menu_item_id
     WHERE mic.component_id IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1 FROM menu_item_components sibling
+          WHERE sibling.menu_item_id=mic.menu_item_id
+            AND sibling.sort_order<>mic.sort_order
+      )
     GROUP BY mic.component_id, mia.allergen_id
 )
 INSERT INTO component_allergens(component_id, allergen_id, presence)
@@ -167,6 +172,11 @@ WITH legacy_component_labels AS (
     FROM menu_item_components mic
     JOIN menu_item_labels mil ON mil.menu_item_id=mic.menu_item_id
     WHERE mic.component_id IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1 FROM menu_item_components sibling
+          WHERE sibling.menu_item_id=mic.menu_item_id
+            AND sibling.sort_order<>mic.sort_order
+      )
 )
 INSERT INTO component_labels(component_id, label_id)
 SELECT legacy.component_id, legacy.label_id

@@ -224,25 +224,29 @@ def test_v13_migration_backfills_legacy_component_links_and_manual_modes(pg16: E
                     JOIN cafeteria.offer_profiles p ON p.code='patient'
                     WHERE l.code='KIRCHLINDACH'
                     RETURNING id
-                ), new_service AS (
+                ), new_services AS (
                     INSERT INTO cafeteria.menu_services(menu_week_id, service_date, meal_period_id)
                     SELECT w.id, DATE '2026-09-07', m.id
                     FROM new_week w
-                    JOIN cafeteria.meal_periods m ON m.code='LUNCH'
-                    RETURNING id
-                ), new_item AS (
+                    JOIN cafeteria.meal_periods m ON m.code IN ('LUNCH', 'DINNER')
+                    RETURNING id, meal_period_id
+                ), new_items AS (
                     INSERT INTO cafeteria.menu_items(
                         service_id, menu_type_id, external_id, title, sort_order
                     )
-                    SELECT s.id, t.id, 'V13-LEGACY-1', 'Poulet mit Reis', 1
-                    FROM new_service s
+                    SELECT s.id, t.id, 'V13-LEGACY-' || lower(m.code),
+                           CASE m.code WHEN 'LUNCH' THEN 'Poulet mit Reis' ELSE 'Kartoffel' END, 1
+                    FROM new_services s
+                    JOIN cafeteria.meal_periods m ON m.id=s.meal_period_id
                     JOIN cafeteria.menu_types t ON t.code='MENU_1'
-                    RETURNING id
+                    RETURNING id, external_id
                 )
                 INSERT INTO cafeteria.menu_item_components(menu_item_id, sort_order, component_text)
-                SELECT id, 1, 'Poulet' FROM new_item
+                SELECT id, 1,
+                       CASE external_id WHEN 'V13-LEGACY-lunch' THEN 'Poulet' ELSE 'Kartoffel' END
+                FROM new_items
                 UNION ALL
-                SELECT id, 2, 'Reis' FROM new_item
+                SELECT id, 2, 'Reis' FROM new_items WHERE external_id='V13-LEGACY-lunch'
                 '''
             )
         )
@@ -254,7 +258,7 @@ def test_v13_migration_backfills_legacy_component_links_and_manual_modes(pg16: E
                 FROM cafeteria.menu_items i
                 JOIN cafeteria.allergens a ON a.code='GLUTEN'
                 CROSS JOIN (VALUES ('may_contain'), ('contains')) AS v(presence)
-                WHERE i.external_id='V13-LEGACY-1'
+                WHERE i.external_id IN ('V13-LEGACY-lunch', 'V13-LEGACY-dinner')
                 '''
             )
         )
@@ -265,7 +269,7 @@ def test_v13_migration_backfills_legacy_component_links_and_manual_modes(pg16: E
                 SELECT i.id, l.id
                 FROM cafeteria.menu_items i
                 JOIN cafeteria.dietary_labels l ON l.code='VEGAN'
-                WHERE i.external_id='V13-LEGACY-1'
+                WHERE i.external_id IN ('V13-LEGACY-lunch', 'V13-LEGACY-dinner')
                 '''
             )
         )
@@ -276,7 +280,7 @@ def test_v13_migration_backfills_legacy_component_links_and_manual_modes(pg16: E
                     menu_item_id, ingredient, country_code, declaration_text
                 )
                 SELECT id, 'Poulet', 'CH', 'Poulet: CH'
-                FROM cafeteria.menu_items WHERE external_id='V13-LEGACY-1'
+                FROM cafeteria.menu_items WHERE external_id='V13-LEGACY-lunch'
                 '''
             )
         )
@@ -292,21 +296,24 @@ def test_v13_migration_backfills_legacy_component_links_and_manual_modes(pg16: E
                 FROM cafeteria.menu_item_components mic
                 JOIN cafeteria.menu_components mc ON mc.id=mic.component_id
                 JOIN cafeteria.menu_items i ON i.id=mic.menu_item_id
-                WHERE i.external_id='V13-LEGACY-1'
+                WHERE i.external_id='V13-LEGACY-lunch'
                 ORDER BY mic.sort_order
                 '''
             )
         ).all()
-        modes = connection.execute(
-            text(
+        legacy_rows = connection.execute(text(
                 '''
-                SELECT allergen_mode, origin_mode, label_mode
-                FROM cafeteria.menu_items WHERE external_id='V13-LEGACY-1'
+                SELECT i.external_id, i.allergen_mode, i.origin_mode, i.label_mode,
+                       (SELECT count(*) FROM cafeteria.menu_item_allergens mia
+                        WHERE mia.menu_item_id=i.id),
+                       (SELECT count(*) FROM cafeteria.menu_item_labels mil
+                        WHERE mil.menu_item_id=i.id)
+                FROM cafeteria.menu_items i
+                WHERE i.external_id IN ('V13-LEGACY-lunch', 'V13-LEGACY-dinner')
+                ORDER BY i.external_id
                 '''
-            )
-        ).one()
-        allergen_rows = connection.execute(
-            text(
+        )).all()
+        allergen_rows = connection.execute(text(
                 '''
                 SELECT mc.name, a.code, ca.presence
                 FROM cafeteria.component_allergens ca
@@ -314,10 +321,8 @@ def test_v13_migration_backfills_legacy_component_links_and_manual_modes(pg16: E
                 JOIN cafeteria.allergens a ON a.id=ca.allergen_id
                 ORDER BY mc.name
                 '''
-            )
-        ).all()
-        label_rows = connection.execute(
-            text(
+        )).all()
+        label_rows = connection.execute(text(
                 '''
                 SELECT mc.name, l.code
                 FROM cafeteria.component_labels cl
@@ -325,25 +330,21 @@ def test_v13_migration_backfills_legacy_component_links_and_manual_modes(pg16: E
                 JOIN cafeteria.dietary_labels l ON l.id=cl.label_id
                 ORDER BY mc.name
                 '''
-            )
-        ).all()
+        )).all()
 
-    assert [(row.component_text, row.name) for row in links] == [
-        ('Poulet', 'Poulet'),
-        ('Reis', 'Reis'),
+    assert [tuple(row) for row in links] == [
+        ('Poulet', 'Poulet', 'patient', 1, 1, 'CH'),
+        ('Reis', 'Reis', 'patient', 1, 1, None),
     ]
-    assert all(row.profile_scope == 'patient' for row in links)
-    assert all(row.component_row_version == row.row_version == 1 for row in links)
-    assert links[0].origin_country_code == 'CH'
-    assert links[1].origin_country_code is None
-    assert tuple(modes) == ('manual', 'manual', 'manual')
+    assert [tuple(row) for row in legacy_rows] == [
+        ('V13-LEGACY-dinner', 'manual', 'manual', 'manual', 2, 1),
+        ('V13-LEGACY-lunch', 'manual', 'manual', 'manual', 2, 1),
+    ]
     assert [(row.name, row.code, row.presence) for row in allergen_rows] == [
-        ('Poulet', 'GLUTEN', 'contains'),
-        ('Reis', 'GLUTEN', 'contains'),
+        ('Kartoffel', 'GLUTEN', 'contains'),
     ]
     assert [(row.name, row.code) for row in label_rows] == [
-        ('Poulet', 'VEGAN'),
-        ('Reis', 'VEGAN'),
+        ('Kartoffel', 'VEGAN'),
     ]
 
 
@@ -455,7 +456,7 @@ def test_v13_real_postgres_contract_covers_catalog_constraints_and_component_lin
     assert MIGRATION.read_text(encoding='utf-8').startswith('BEGIN;')
     assert MIGRATION.read_text(encoding='utf-8').rstrip().endswith('COMMIT;')
     validator = (ROOT / 'database' / 'validate_schema.py').read_text(encoding='utf-8')
-    assert "MIGRATION_0010: 'da8577d05fdfa6c92b6e8c927e18581b01484178ac4881f15a9942b4e5211a9c'" in validator
+    assert "MIGRATION_0010: '82f22cc0dd439a8b1ca1e0dc324616871411d67700723f1ebebedc06185a1a72'" in validator
     assert 'v13 conflicting legacy origin country codes' in validator
     assert all((table, column) in column_contract for table, names in expected_columns.items() for column in names)
     assert column_contract[('menu_components', 'id')] == ('bigint', 'NO', 'ALWAYS')

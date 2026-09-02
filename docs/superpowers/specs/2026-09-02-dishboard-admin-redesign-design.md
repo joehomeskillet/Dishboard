@@ -109,6 +109,10 @@ mit `contains`-Vorrang bereinigt. Erst nach Vollständigkeitsprüfungen folgen
 Constraints, FKs, Unique- und NOT-NULL-Regeln. Das SQL beginnt mit `BEGIN;`
 und endet mit einem nicht-leeren `COMMIT;`, dem kein Kommentar folgt; leerer
 und befüllter Bestand, Idempotenz, Rollback und Terminator sind getestet.
+Allergen- und Label-Metadaten werden nur bei einem Legacy-Item mit exakt einer
+Komponenten-Zeile auf dessen Komponente projiziert; bei mehreren Komponenten
+gibt es keine solche Projektion. Die bestehenden Item-Zeilen, alle `manual`-
+Modi und Herkunftswerte bleiben dabei unverändert.
 
 Vor Migration: benanntes PostgreSQL-Backup und Down-Probe-Kopie. Down-Probe
 prüft restaurierbare v12-Daten; sie behauptet keine magische Reversibilität.
