@@ -31,7 +31,7 @@ Das feste interne Netz reserviert `10.213.0.10` fuer das optionale
 Compose-Caddy-Overlay und `10.213.0.20` fuer die App. Bei einem Caddy auf dem
 Docker-Host erreicht der Proxy die App ueber den Loopback-Port und erscheint im
 Container ausschliesslich als exaktes Gateway `10.213.0.1`. Nur diese beiden
-Peers duerfen `X-Forwarded-For` liefern; direkte Clients und breite Docker-CIDRs
+Peers duerfen `X-Forwarded-For` liefern; die App nutzt den rechtesten nicht vertrauenstwuerdigen Hop. Direkte Clients und breite Docker-CIDRs
 werden nicht vertraut.
 Das Subnetz 10.213.0.0/24 liegt bewusst ausserhalb der Docker-Standard-Adressbereiche (172.16.0.0/12 und 192.168.0.0/16) und muss auf dem Host frei bleiben, um Kollisionen mit anderen Netzwerken zu vermeiden.
 
