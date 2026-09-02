@@ -25,7 +25,7 @@ APP_PASSWORD = 'Test-App-Role-2026-7VgJ9wL4pQ2xR8mK'
 BACKUP_PASSWORD = 'Test-Backup-Role-2026-5ZtN8cR3yH6qW1pL'
 ISSUER_PASSWORD = 'Test-Issuer-Role-2026-9QmK4xV7pR2wL8sN'
 V12_RESTORE_DATABASE = 'menuplan_task1_v12_restore'
-PG16_TEST_CONTAINER = 'menuplan-root-task1-pg16'
+PG16_TEST_CONTAINER = os.getenv('TEST_DATABASE_CONTAINER')
 LIVE_DATABASE = pytest.mark.skipif(
     not DATABASE_URL,
     reason='TEST_DATABASE_URL für eine isolierte PostgreSQL-16-Testdatenbank fehlt.',
@@ -75,6 +75,8 @@ def v12_restore_probe(pg16: Engine, tmp_path: Path) -> Iterator[Path]:
     assert DATABASE_URL is not None
     url = make_url(DATABASE_URL)
     assert docker is not None, 'PG16 down-probe requires Docker.'
+    assert PG16_TEST_CONTAINER is not None, 'PG16 down-probe requires TEST_DATABASE_CONTAINER.'
+    assert url.database is not None
     assert url.username is not None
     assert url.password is not None
     docker_environment = f'PGPASSWORD={url.password}'
@@ -86,7 +88,7 @@ def v12_restore_probe(pg16: Engine, tmp_path: Path) -> Iterator[Path]:
         dump = subprocess.run(
             [docker, 'exec', '-e', docker_environment, PG16_TEST_CONTAINER,
              'pg_dump', '--format=custom', '--username', url.username,
-             '--dbname', 'menuplan_task1'],
+             '--dbname', url.database],
             check=False, stdout=backup_file, stderr=subprocess.PIPE, text=True,
         )
     assert dump.returncode == 0, dump.stderr
@@ -188,6 +190,23 @@ def _assert_statement_rejected(engine: Engine, statement: str, parameters: dict[
     with pytest.raises(IntegrityError):
         with engine.begin() as connection:
             connection.execute(text(statement), parameters)
+
+
+def _assert_v13_schema_rolled_back(engine: Engine) -> None:
+    with engine.connect() as connection:
+        result = connection.execute(
+            text(
+                '''
+                SELECT
+                    to_regclass('cafeteria.menu_components'),
+                    (SELECT count(*) FROM information_schema.columns
+                     WHERE table_schema='cafeteria' AND table_name='menu_items'
+                       AND column_name IN ('allergen_mode', 'origin_mode', 'label_mode')),
+                    (SELECT max(version) FROM cafeteria.schema_migrations)
+                '''
+            )
+        ).one()
+    assert tuple(result) == (None, 0, 12)
 
 
 @LIVE_DATABASE
@@ -337,27 +356,7 @@ def test_v13_migration_rejects_conflicting_legacy_origins_and_rolls_back(pg16: E
     with pytest.raises(psycopg.Error, match='conflicting legacy origin country codes'):
         database._execute_migration(pg16, _v13_migration())
 
-    with pg16.connect() as connection:
-        component_table = connection.execute(
-            text("SELECT to_regclass('cafeteria.menu_components')")
-        ).scalar_one()
-        mode_columns = connection.execute(
-            text(
-                '''
-                SELECT count(*)
-                FROM information_schema.columns
-                WHERE table_schema='cafeteria' AND table_name='menu_items'
-                  AND column_name IN ('allergen_mode', 'origin_mode', 'label_mode')
-                '''
-            )
-        ).scalar_one()
-        latest_version = connection.execute(
-            text('SELECT max(version) FROM cafeteria.schema_migrations')
-        ).scalar_one()
-
-    assert component_table is None
-    assert mode_columns == 0
-    assert latest_version == 12
+    _assert_v13_schema_rolled_back(pg16)
 
 
 @LIVE_DATABASE
@@ -455,6 +454,9 @@ def test_v13_real_postgres_contract_covers_catalog_constraints_and_component_lin
     assert (plan[-1].version, plan[-1].path.name) == (13, '0010_v12_to_v13.sql')
     assert MIGRATION.read_text(encoding='utf-8').startswith('BEGIN;')
     assert MIGRATION.read_text(encoding='utf-8').rstrip().endswith('COMMIT;')
+    validator = (ROOT / 'database' / 'validate_schema.py').read_text(encoding='utf-8')
+    assert "MIGRATION_0010: 'da8577d05fdfa6c92b6e8c927e18581b01484178ac4881f15a9942b4e5211a9c'" in validator
+    assert 'v13 conflicting legacy origin country codes' in validator
     assert all((table, column) in column_contract for table, names in expected_columns.items() for column in names)
     assert column_contract[('menu_components', 'id')] == ('bigint', 'NO', 'ALWAYS')
     assert column_contract[('menu_components', 'public_id')][:2] == ('uuid', 'NO')
@@ -475,7 +477,13 @@ def test_v13_real_postgres_contract_covers_catalog_constraints_and_component_lin
         ("INSERT INTO cafeteria.menu_components(public_id, location_id, profile_scope, category, name) VALUES (:public_id, :location_id, 'patient', 'other', 'Duplikat UUID')", {'location_id': location_id, 'public_id': component_public_id}),
         ("INSERT INTO cafeteria.component_allergens(component_id, allergen_id, presence) VALUES (999999, :allergen_id, 'contains')", {'allergen_id': allergen_id}),
         ("INSERT INTO cafeteria.component_labels(component_id, label_id) VALUES (:component_id, 32767)", {'component_id': component_id}),
+        ("INSERT INTO cafeteria.menu_components(location_id, profile_scope, category, name) VALUES (:location_id, 'invalid', 'other', 'Ungueltiger Scope')", {'location_id': location_id}),
+        ("INSERT INTO cafeteria.menu_components(location_id, profile_scope, category, name) VALUES (:location_id, 'patient', 'other', '')", {'location_id': location_id}),
+        ("INSERT INTO cafeteria.menu_components(location_id, profile_scope, category, name, origin_country_code) VALUES (:location_id, 'patient', 'other', 'Ungueltiges Land', 'C1')", {'location_id': location_id}),
         ("UPDATE cafeteria.menu_items SET allergen_mode='invalid' WHERE external_id='V13-CONTRACT-ITEM'", {}),
+        ("UPDATE cafeteria.menu_items SET origin_mode='invalid' WHERE external_id='V13-CONTRACT-ITEM'", {}),
+        ("UPDATE cafeteria.menu_items SET label_mode='invalid' WHERE external_id='V13-CONTRACT-ITEM'", {}),
+        ("INSERT INTO cafeteria.component_allergens(component_id, allergen_id, presence) VALUES (:component_id, :allergen_id, 'invalid')", {'component_id': component_id, 'allergen_id': allergen_id}),
         ("INSERT INTO cafeteria.menu_item_components(menu_item_id, sort_order, component_text, component_id) VALUES (:menu_item_id, 1, 'Kichererbse', :component_id)", {'menu_item_id': menu_item_id, 'component_id': component_id}),
         ("INSERT INTO cafeteria.menu_item_components(menu_item_id, sort_order, component_text, component_row_version) VALUES (:menu_item_id, 2, 'Kichererbse', 1)", {'menu_item_id': menu_item_id}),
     )
@@ -491,6 +499,8 @@ def test_v12_backup_restore_down_probe_preserves_v12_without_claiming_reverse_mi
     assert DATABASE_URL is not None
     url = make_url(DATABASE_URL)
     assert docker is not None
+    assert PG16_TEST_CONTAINER is not None
+    assert url.database is not None
     assert url.username is not None
     assert url.password is not None
     query = subprocess.run(
@@ -527,27 +537,7 @@ def test_v13_migration_failure_rolls_back_every_schema_change(
     with pytest.raises(psycopg.Error):
         database._execute_migration(pg16, failing)
 
-    with pg16.connect() as connection:
-        component_table = connection.execute(
-            text("SELECT to_regclass('cafeteria.menu_components')")
-        ).scalar_one()
-        mode_columns = connection.execute(
-            text(
-                '''
-                SELECT count(*)
-                FROM information_schema.columns
-                WHERE table_schema='cafeteria' AND table_name='menu_items'
-                  AND column_name IN ('allergen_mode', 'origin_mode', 'label_mode')
-                '''
-            )
-        ).scalar_one()
-        latest_version = connection.execute(
-            text('SELECT max(version) FROM cafeteria.schema_migrations')
-        ).scalar_one()
-
-    assert component_table is None
-    assert mode_columns == 0
-    assert latest_version == 12
+    _assert_v13_schema_rolled_back(pg16)
 
 
 @LIVE_DATABASE
@@ -589,11 +579,21 @@ def test_v13_permissions_cover_component_tables_and_identity_sequence(pg16: Engi
                     ) AS backup_labels,
                     has_sequence_privilege(
                         'cafeteria_backup', 'cafeteria.menu_components_id_seq', 'SELECT'
-                    ) AS backup_sequence
+                    ) AS backup_sequence,
+                    ARRAY(
+                        SELECT has_table_privilege(
+                            'cafeteria_backup', 'cafeteria.' || tables.table_name, privileges.privilege
+                        )
+                        FROM unnest(
+                            ARRAY['menu_components', 'component_allergens', 'component_labels']
+                        ) AS tables(table_name)
+                        CROSS JOIN unnest(ARRAY['INSERT', 'UPDATE', 'DELETE']) AS privileges(privilege)
+                    ) AS backup_write_grants
                 '''
             )
         ).one()
 
     assert privileges.app_components
     assert not privileges.app_components_delete
-    assert all(privileges[index] for index in range(2, len(privileges)))
+    assert all(privileges[index] for index in range(2, 9))
+    assert privileges.backup_write_grants == [False] * 9
