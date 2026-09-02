@@ -28,6 +28,7 @@ PATIENT_ALLOWED_COMPACT_KEYS = frozenset(
     for keys in (*PATIENT_OBJECT_KEYS.values(), *PATIENT_OPTIONAL_KEYS.values())
     for key in keys
 )
+EXTERNAL_FORBIDDEN_IDENTIFIER_KEYS = frozenset({'componentid', 'componentpublicid'})
 PATIENT_LABEL_CODES = frozenset({'VEGETARIAN', 'VEGAN', 'LACTOSE_FREE', 'GLUTEN_FREE'})
 PATIENT_ALLERGEN_CODES = frozenset({
     'GLUTEN', 'CRUSTACEANS', 'EGGS', 'FISH', 'PEANUTS', 'SOY', 'MILK',
@@ -276,6 +277,22 @@ def _forbidden_patient_key_paths(value: Any, path: str = '$') -> list[str]:
     return found
 
 
+def _forbidden_external_identifier_key_paths(value: Any, path: str = '$') -> list[str]:
+    found: list[str] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if (
+                isinstance(key, str)
+                and _normalize_patient_key(key) in EXTERNAL_FORBIDDEN_IDENTIFIER_KEYS
+            ):
+                found.append(f'{path}.{key}')
+            found.extend(_forbidden_external_identifier_key_paths(child, f'{path}.{key}'))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            found.extend(_forbidden_external_identifier_key_paths(child, f'{path}[{index}]'))
+    return found
+
+
 def _forbidden_patient_paths(value: Any, path: str = '$') -> list[str]:
     return _patient_object_paths(value, 'snapshot', path)
 
@@ -308,6 +325,8 @@ def validate_snapshot_payload(profile_code: str, snapshot: dict[str, Any]) -> No
     days = snapshot.get('days')
     if not isinstance(days, list) or len(days) != 7:
         raise ValueError('Snapshot muss sieben Tage enthalten.')
+    if _forbidden_external_identifier_key_paths(snapshot):
+        raise ValueError('Snapshot enthält unzulässige Komponentenkennungen.')
     if profile_code == 'patient':
         try:
             key_paths = _forbidden_patient_key_paths(snapshot)
