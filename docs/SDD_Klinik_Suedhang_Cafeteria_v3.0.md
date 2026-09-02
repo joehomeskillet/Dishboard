@@ -301,8 +301,7 @@ Die folgenden Features gehören zur umgesetzten Welle 3.
 Gerichte erhalten Felder für:
 
 - **Labels**: Checkboxgruppe mit den Seed-Optionen Vegetarisch (`VEGETARIAN`), Vegan (`VEGAN`), laktosefrei (`LACTOSE_FREE`) und glutenfrei (`GLUTEN_FREE`)
-- **Allergene enthält**: Checkboxgruppe für bekannte Allergene
-- **Allergene Spuren**: Checkboxgruppe für mögliche Kreuzverunreinigungen
+- **Allergene**: zwei Mehrfachauswahlen für bekannte Allergene („enthält“) und mögliche Kreuzverunreinigungen („Spuren“)
 - **Herkunft**: wiederholte Segmente mit genau einem `=` pro Segment, z. B. `Zutat=CH|Zutat2=DE`
 - **Review-Status**: `not_checked` oder `checked` für jede Menüoption
 
@@ -324,7 +323,7 @@ Labels, Allergene und Herkunftsangaben werden in allen Kanälen als Pills (Tags)
 Das Erfassungs-Formular bietet:
 
 - Eine Checkbox für den Review-Status je Menüoption
-- Checkboxgruppen für Allergen- und Label-Kategorien
+- Eine Checkboxgruppe für Labels sowie zwei Mehrfachauswahlen für Allergene („enthält“ und „Spuren“)
 - Herkunfts-Freitextfeld mit Validierung
 
 ## Header und Branding (Welle 3)

@@ -44,12 +44,12 @@
 
 **Labels und Allergene:**
 - Label-Checkboxen mit den Seed-Optionen `VEGETARIAN`, `VEGAN`, `LACTOSE_FREE` und `GLUTEN_FREE`.
-- Allergen-Checkboxgruppen für „enthält" und „Spuren".
+- Zwei Allergen-Mehrfachauswahlen für „enthält" und „Spuren".
 - Herkunft als wiederholte Segmente mit genau einem `=` pro Segment, z. B. `Zutat=CH|Zutat2=DE`.
 - Review-Status `not_checked`/`checked` für jede Menüoption.
 - Publikation erfordert, dass alle Menüoptionen auf `checked` gesetzt sind (Review-Gate).
 - Rendering als Pills in Web-Ansichten, Signage, Druck und API.
-- Admin-Formular mit einer Checkbox für den Review-Status je Menüoption und Checkboxgruppen für Allergen- und Label-Kategorien.
+- Admin-Formular mit einer Checkbox für den Review-Status je Menüoption, einer Checkboxgruppe für Labels und zwei Mehrfachauswahlen für Allergene.
 
 ---
 
