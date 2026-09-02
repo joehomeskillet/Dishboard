@@ -16,43 +16,68 @@ class StaleDraftError(RuntimeError):
     pass
 
 
+def ensure_week_connection(
+    connection: Connection,
+    profile_code: str,
+    week_start: date,
+    actor_id: int,
+) -> bool:
+    inserted = connection.execute(
+        text(
+            '''
+            INSERT INTO cafeteria.menu_weeks(
+                location_id, profile_id, week_start, workflow_state, created_by, updated_by
+            )
+            SELECT l.id, p.id, :week_start, 'draft', :actor_id, :actor_id
+            FROM cafeteria.locations l
+            CROSS JOIN cafeteria.offer_profiles p
+            WHERE l.active AND p.code=:profile_code
+            ORDER BY l.id
+            LIMIT 1
+            ON CONFLICT (location_id, profile_id, week_start) DO NOTHING
+            RETURNING id
+            '''
+        ),
+        {'week_start': week_start, 'profile_code': profile_code, 'actor_id': actor_id},
+    ).scalar_one_or_none()
+    return inserted is not None
+
+
 def ensure_week(engine: Engine, profile_code: str, week_start: date, actor_id: int) -> None:
     with engine.begin() as connection:
-        connection.execute(
-            text(
-                '''
-                INSERT INTO cafeteria.menu_weeks(
-                    location_id, profile_id, week_start, workflow_state, created_by, updated_by
-                )
-                SELECT l.id, p.id, :week_start, 'draft', :actor_id, :actor_id
-                FROM cafeteria.locations l
-                CROSS JOIN cafeteria.offer_profiles p
-                WHERE l.active AND p.code=:profile_code
-                ORDER BY l.id
-                LIMIT 1
-                ON CONFLICT (location_id, profile_id, week_start) DO NOTHING
-                '''
-            ),
-            {'week_start': week_start, 'profile_code': profile_code, 'actor_id': actor_id},
-        )
+        ensure_week_connection(connection, profile_code, week_start, actor_id)
 
 
 def load_draft_connection(
     connection: Connection,
     profile_code: str,
     week_start: date,
+    *,
+    lock_week: bool = False,
 ) -> dict[str, Any]:
+    week_query = (
+        '''
+        SELECT w.id, w.week_start, w.workflow_state, w.title, w.shared_note, w.row_version,
+               l.code AS location_code, l.name AS location_name
+        FROM cafeteria.menu_weeks w
+        JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+        JOIN cafeteria.locations l ON l.id=w.location_id
+        WHERE p.code=:profile_code AND w.week_start=:week_start
+        FOR UPDATE OF w
+        '''
+        if lock_week
+        else
+        '''
+        SELECT w.id, w.week_start, w.workflow_state, w.title, w.shared_note, w.row_version,
+               l.code AS location_code, l.name AS location_name
+        FROM cafeteria.menu_weeks w
+        JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+        JOIN cafeteria.locations l ON l.id=w.location_id
+        WHERE p.code=:profile_code AND w.week_start=:week_start
+        '''
+    )
     week = connection.execute(
-        text(
-            '''
-            SELECT w.id, w.week_start, w.workflow_state, w.title, w.shared_note, w.row_version,
-                   l.code AS location_code, l.name AS location_name
-            FROM cafeteria.menu_weeks w
-            JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
-            JOIN cafeteria.locations l ON l.id=w.location_id
-            WHERE p.code=:profile_code AND w.week_start=:week_start
-            '''
-        ),
+        text(week_query),
         {'profile_code': profile_code, 'week_start': week_start},
     ).mappings().one()
     services = connection.execute(
@@ -272,6 +297,104 @@ def _insert_item(
         )
 
 
+def draft_row_version(engine: Engine, profile_code: str, week_start: date) -> int:
+    with engine.connect() as connection:
+        row_version = connection.execute(
+            text(
+                '''
+                SELECT w.row_version
+                FROM cafeteria.menu_weeks w
+                JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+                WHERE p.code=:profile_code AND w.week_start=:week_start
+                '''
+            ),
+            {'profile_code': profile_code, 'week_start': week_start},
+        ).scalar_one_or_none()
+    return int(row_version) if row_version is not None else 0
+
+
+def persist_draft_connection(
+    connection: Connection,
+    profile_code: str,
+    week_start: date,
+    *,
+    expected_row_version: int,
+    actor_id: int,
+    values: dict[str, Any],
+) -> int:
+    week = connection.execute(
+        text(
+            '''
+            SELECT w.id, w.row_version
+            FROM cafeteria.menu_weeks w
+            JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+            WHERE p.code=:profile_code AND w.week_start=:week_start
+            FOR UPDATE OF w
+            '''
+        ),
+        {'profile_code': profile_code, 'week_start': week_start},
+    ).mappings().one_or_none()
+    if week is None or int(week['row_version']) != expected_row_version:
+        raise StaleDraftError('Der Entwurf wurde zwischenzeitlich geändert.')
+    connection.execute(
+        text(
+            '''
+            UPDATE cafeteria.menu_weeks
+            SET title=:title, shared_note=:shared_note, updated_by=:actor_id
+            WHERE id=:week_id
+            '''
+        ),
+        {
+            'title': values['title'].strip(),
+            'shared_note': values['shared_note'].strip(),
+            'actor_id': actor_id,
+            'week_id': week['id'],
+        },
+    )
+    connection.execute(
+        text('DELETE FROM cafeteria.menu_services WHERE menu_week_id=:week_id'),
+        {'week_id': week['id']},
+    )
+    for day_value in values['days']:
+        for service_value in day_value['services']:
+            service_id = connection.execute(
+                text(
+                    '''
+                    INSERT INTO cafeteria.menu_services(
+                        menu_week_id, service_date, meal_period_id, service_state, notice
+                    )
+                    SELECT :week_id, CAST(:service_date AS date), mp.id, :state, NULLIF(:notice, '')
+                    FROM cafeteria.meal_periods mp WHERE mp.code=:meal_code
+                    RETURNING id
+                    '''
+                ),
+                {
+                    'week_id': week['id'],
+                    'service_date': day_value['date'],
+                    'state': service_value['service_state'],
+                    'notice': service_value['notice'].strip(),
+                    'meal_code': service_value['meal_code'],
+                },
+            ).scalar_one()
+            if service_value['service_state'] == 'open':
+                for sort_order, option in enumerate(service_value['options'], start=1):
+                    _insert_item(
+                        connection,
+                        profile_code,
+                        int(service_id),
+                        day_value['date'],
+                        service_value['meal_code'],
+                        option,
+                        sort_order,
+                    )
+    return int(
+        connection.execute(
+            text('SELECT row_version FROM cafeteria.menu_weeks WHERE id=:week_id'),
+            {'week_id': week['id']},
+        ).scalar_one()
+    )
+
+
 def persist_draft(
     engine: Engine,
     profile_code: str,
@@ -282,74 +405,11 @@ def persist_draft(
     values: dict[str, Any],
 ) -> int:
     with engine.begin() as connection:
-        week = connection.execute(
-            text(
-                '''
-                SELECT w.id, w.row_version
-                FROM cafeteria.menu_weeks w
-                JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
-                WHERE p.code=:profile_code AND w.week_start=:week_start
-                FOR UPDATE OF w
-                '''
-            ),
-            {'profile_code': profile_code, 'week_start': week_start},
-        ).mappings().one_or_none()
-        if week is None or int(week['row_version']) != expected_row_version:
-            raise StaleDraftError('Der Entwurf wurde zwischenzeitlich geändert.')
-        connection.execute(
-            text(
-                '''
-                UPDATE cafeteria.menu_weeks
-                SET title=:title, shared_note=:shared_note, updated_by=:actor_id
-                WHERE id=:week_id
-                '''
-            ),
-            {
-                'title': values['title'].strip(),
-                'shared_note': values['shared_note'].strip(),
-                'actor_id': actor_id,
-                'week_id': week['id'],
-            },
-        )
-        connection.execute(
-            text('DELETE FROM cafeteria.menu_services WHERE menu_week_id=:week_id'),
-            {'week_id': week['id']},
-        )
-        for day_value in values['days']:
-            for service_value in day_value['services']:
-                service_id = connection.execute(
-                    text(
-                        '''
-                        INSERT INTO cafeteria.menu_services(
-                            menu_week_id, service_date, meal_period_id, service_state, notice
-                        )
-                        SELECT :week_id, CAST(:service_date AS date), mp.id, :state, NULLIF(:notice, '')
-                        FROM cafeteria.meal_periods mp WHERE mp.code=:meal_code
-                        RETURNING id
-                        '''
-                    ),
-                    {
-                        'week_id': week['id'],
-                        'service_date': day_value['date'],
-                        'state': service_value['service_state'],
-                        'notice': service_value['notice'].strip(),
-                        'meal_code': service_value['meal_code'],
-                    },
-                ).scalar_one()
-                if service_value['service_state'] == 'open':
-                    for sort_order, option in enumerate(service_value['options'], start=1):
-                        _insert_item(
-                            connection,
-                            profile_code,
-                            int(service_id),
-                            day_value['date'],
-                            service_value['meal_code'],
-                            option,
-                            sort_order,
-                        )
-        return int(
-            connection.execute(
-                text('SELECT row_version FROM cafeteria.menu_weeks WHERE id=:week_id'),
-                {'week_id': week['id']},
-            ).scalar_one()
+        return persist_draft_connection(
+            connection,
+            profile_code,
+            week_start,
+            expected_row_version=expected_row_version,
+            actor_id=actor_id,
+            values=values,
         )

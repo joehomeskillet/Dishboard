@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sys
 import unicodedata
 from copy import deepcopy
@@ -352,20 +353,95 @@ def test_no_snapshot_returns_explicit_non_cacheable_failure(
     assert response.headers['Cache-Control'] == 'no-store'
 
 
+@pytest.mark.parametrize(
+    'path',
+    (
+        '/patienten/heute/',
+        '/patienten/wochenplan/',
+        '/druck/patienten/woche',
+        '/api/v1/published/patienten',
+        '/signage/patienten/tag',
+        '/signage/patienten/woche',
+    ),
+)
+def test_patient_http_outputs_hide_internal_validation_categories(
+    app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+) -> None:
+    def invalid_snapshot(*_args: object, **_kwargs: object) -> None:
+        raise ValueError('Patienten-Snapshot enthält unzulässige Kostenschlüssel.')
+
+    monkeypatch.setattr(public_routes, 'active_snapshot', invalid_snapshot)
+    response = app.test_client().get(path)
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 404
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert re.search(r'CHF|Intern|Extern|0\.00|Preis|price|rappen|kosten|cost', body, re.I) is None
+
+
 @pytest.mark.parametrize('demo_today', ('2026-09-05', '2026-09-06'))
+@pytest.mark.parametrize('path', ('/cafeteria/heute/', '/signage/cafeteria/tag'))
 def test_cafeteria_weekend_is_closed_without_patient_or_friday_fallback(
     app: Flask,
     demo_today: str,
+    path: str,
 ) -> None:
     app.config['DEMO_TODAY'] = demo_today
-    response = app.test_client().get('/signage/cafeteria/tag')
+    response = app.test_client().get(path)
     body = response.get_data(as_text=True)
 
     assert response.status_code == 200
-    assert 'Cafeteria' in body
-    assert 'geschlossen' in body
+    assert 'Cafeteria geschlossen' in body
     assert 'Gebratenes Zanderfilet' not in body
     assert 'Falafel-Teller' not in body
+    assert 'Griessbrei mit Zwetschgenkompott' not in body
+    assert 'Pastetli mit Brätkügeli' not in body
+
+
+@pytest.mark.parametrize(
+    'path',
+    (
+        '/cafeteria/heute/',
+        '/cafeteria/wochenangebot/',
+        '/druck/cafeteria/woche',
+        '/signage/cafeteria/tag',
+        '/signage/cafeteria/woche',
+    ),
+)
+def test_closed_cafeteria_weekday_renders_service_notice_without_patient_fallback(
+    app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+) -> None:
+    closed = deepcopy(cafeteria_snapshot())
+    closed['days'][0]['services'][0] = {
+        'meal_code': 'LUNCH',
+        'meal_name': 'Mittag',
+        'service_state': 'closed',
+        'notice': 'Cafeteria wegen Wartung geschlossen',
+        'options': [],
+    }
+    validate_snapshot_payload('staff_guest', closed)
+    app.config['DEMO_TODAY'] = closed['days'][0]['date']
+
+    def active_closed_snapshot(
+        _engine: object,
+        profile_code: str,
+        _requested_date: str,
+        *,
+        last_good_dir: str,
+    ) -> dict:
+        assert profile_code == 'staff_guest'
+        return deepcopy(closed)
+
+    monkeypatch.setattr(public_routes, 'active_snapshot', active_closed_snapshot)
+    response = app.test_client().get(path)
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert 'Cafeteria wegen Wartung geschlossen' in body
     assert 'Griessbrei mit Zwetschgenkompott' not in body
     assert 'Pastetli mit Brätkügeli' not in body
 
@@ -545,8 +621,15 @@ def test_reserved_patient_key_is_rejected_before_every_output_channel(
         flask_session['user'] = {'id': 1, 'name': 'Test'}
         flask_session['roles'] = ['Cafeteria.Editor']
 
-    with pytest.raises(ValueError, match='unzulässig'):
-        client.get(path)
+    response = client.get(path)
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 404
+    assert re.search(
+        r'CHF|Intern|Extern|0\.00|Preis|price|rappen|kosten|cost',
+        body,
+        re.I,
+    ) is None
 
 
 @pytest.mark.parametrize(
@@ -609,6 +692,75 @@ def test_patient_snapshot_rejects_unknown_label_code() -> None:
 
     with pytest.raises(ValueError, match='unzulässig'):
         validate_snapshot_payload('patient', snapshot)
+
+
+def test_patient_validation_error_never_reflects_injected_key_or_value() -> None:
+    """Returning key paths in validation errors creates a cross-channel reflection sink."""
+    injected_key = 'PRI\u2066CE'
+    injected_value = 'CHF Intern Extern 0.00 Rappen'
+    snapshot = deepcopy(patient_snapshot())
+    snapshot['days'][0]['services'][0]['options'][0][injected_key] = injected_value
+
+    with pytest.raises(ValueError) as captured:
+        validate_snapshot_payload('patient', snapshot)
+
+    message = str(captured.value)
+    assert injected_key not in message
+    assert injected_value not in message
+    assert re.search(r'CHF|Intern|Extern|0\.00|Preis|price|rappen', message, re.I) is None
+
+
+@pytest.mark.parametrize(
+    'path',
+    (
+        '/patienten/heute/',
+        '/patienten/wochenplan/',
+        '/druck/patienten/woche',
+        '/signage/patienten/tag',
+        '/signage/patienten/woche',
+    ),
+)
+def test_each_closed_patient_meal_renders_its_own_notice(
+    app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+) -> None:
+    """Using day.notice hides one of two independently closed services."""
+    closed = deepcopy(patient_snapshot())
+    closed['days'][0]['services'][0] = {
+        'meal_code': 'LUNCH',
+        'meal_name': 'Mittag',
+        'service_state': 'closed',
+        'notice': 'Mittagsservice geschlossen',
+        'options': [],
+    }
+    closed['days'][0]['services'][1] = {
+        'meal_code': 'DINNER',
+        'meal_name': 'Abend',
+        'service_state': 'holiday',
+        'notice': 'Abendservice entfällt',
+        'options': [],
+    }
+    validate_snapshot_payload('patient', closed)
+    app.config['DEMO_TODAY'] = closed['days'][0]['date']
+
+    def active_closed_snapshot(
+        _engine: object,
+        profile_code: str,
+        _requested_date: str,
+        *,
+        last_good_dir: str,
+    ) -> dict:
+        assert profile_code == 'patient'
+        return deepcopy(closed)
+
+    monkeypatch.setattr(public_routes, 'active_snapshot', active_closed_snapshot)
+    response = app.test_client().get(path)
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert 'Mittagsservice geschlossen' in body
+    assert 'Abendservice entfällt' in body
 
 
 @pytest.mark.parametrize(
@@ -695,8 +847,15 @@ def test_patient_price_probe_is_rejected_before_every_output_channel(
         flask_session['user'] = {'id': 1, 'name': 'Test'}
         flask_session['roles'] = ['Cafeteria.Editor']
 
-    with pytest.raises(ValueError, match='unzulässig'):
-        client.get(path)
+    response = client.get(path)
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 404
+    assert re.search(
+        r'CHF|Intern|Extern|0\.00|Preis|price|rappen|kosten|cost',
+        body,
+        re.I,
+    ) is None
 
 
 def test_patient_api_and_signage_never_use_cafeteria_payload(app: Flask) -> None:

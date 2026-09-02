@@ -11,6 +11,8 @@ from pathlib import Path
 from types import ModuleType
 from typing import BinaryIO
 
+from .workflow import validate_draft_values
+
 BASE_HEADERS = [
     'schema_version', 'profil', 'datum', 'wochentag', 'mahlzeit', 'menueart',
     'external_id', 'titel', 'beschreibung', 'beilagen', 'labels',
@@ -26,6 +28,7 @@ STATE_CODES = {
     'feiertag': 'holiday',
     'betriebsferien': 'company_holiday',
 }
+STATE_NAMES = {value: key for key, value in STATE_CODES.items()}
 MONTH_NAMES = (
     '',
     'Januar',
@@ -69,7 +72,13 @@ def snapshot_to_csv(snapshot: dict) -> bytes:
     writer.writeheader()
     for day in snapshot.get('days', []):
         for service in day.get('services', []):
-            for option in service.get('options', []):
+            state = service.get('service_state', 'open')
+            if state not in STATE_NAMES:
+                raise ValueError('Snapshot enthält einen ungültigen Servicestatus.')
+            options = service.get('options', [])
+            if state != 'open':
+                options = [{'type_code': type_code} for type_code in ('MENU_1', 'VEGGIE')]
+            for option in options:
                 contains = [a['code'] for a in option.get('allergens', []) if a.get('presence') == 'contains']
                 traces = [a['code'] for a in option.get('allergens', []) if a.get('presence') == 'may_contain']
                 row = {
@@ -81,17 +90,26 @@ def snapshot_to_csv(snapshot: dict) -> bytes:
                     'labels': '|'.join(label['code'] for label in option.get('labels', [])),
                     'allergene_enthaelt': '|'.join(contains), 'allergene_spuren': '|'.join(traces),
                     'herkunft': '|'.join(f"{origin['ingredient']}={origin['country_code']}" for origin in option.get('origins', [])),
-                    'hinweis': option.get('note', ''), 'zustand': 'offen', 'zustand_text': '',
+                    'hinweis': option.get('note', ''),
+                    'zustand': STATE_NAMES[state],
+                    'zustand_text': service.get('notice', '') if state != 'open' else '',
                 }
-                if profile == 'staff_guest':
+                if profile == 'staff_guest' and state == 'open':
                     costs = option['prices']
-                    row['preis_mitarbeitende_chf'] = f"{costs['internal_rappen'] / 100:.2f}"
-                    row['preis_externe_chf'] = f"{costs['external_rappen'] / 100:.2f}"
+                    internal = int(costs['internal_rappen'])
+                    external = int(costs['external_rappen'])
+                    row['preis_mitarbeitende_chf'] = f'{internal // 100}.{internal % 100:02d}'
+                    row['preis_externe_chf'] = f'{external // 100}.{external % 100:02d}'
                 writer.writerow({key: _excel_safe(value) for key, value in row.items()})
     return ('\ufeff' + buffer.getvalue()).encode('utf-8')
 
 
 def _column_for_error(message: str, headers: list[str]) -> int:
+    if 'zusätzliche Zelle' in message:
+        return len(headers) + 1
+    missing_column = re.search(r'Spalte (\d+) fehlt', message)
+    if missing_column:
+        return int(missing_column.group(1))
     formula_match = re.search(r' in ([^ ]+) ist unzulässig', message)
     if formula_match and formula_match.group(1) in headers:
         return headers.index(formula_match.group(1)) + 1
@@ -106,6 +124,7 @@ def _column_for_error(message: str, headers: list[str]) -> int:
         ('menueart', 'menueart'),
         ('external_id', 'external_id'),
         ('titel', 'titel'),
+        ('herkunft', 'herkunft'),
         ('Kostenfeld', 'preis_mitarbeitende_chf'),
     )
     for marker, header in mappings:
@@ -124,15 +143,20 @@ def _column_for_error(message: str, headers: list[str]) -> int:
     return 1
 
 
-def _issues(errors: list[str], headers: list[str], profile: str | None) -> list[dict[str, object]]:
+def _issues(
+    errors: list[str],
+    headers: list[str],
+    *,
+    patient_contract: bool,
+) -> list[dict[str, object]]:
     issues = []
     for error in errors:
         line_match = re.match(r'Zeile (\d+): (.*)', error)
         line = int(line_match.group(1)) if line_match else 1
         message = line_match.group(2) if line_match else error
         column = _column_for_error(message, headers)
-        if profile == 'patient' and ('Kostenspalten' in message or 'Header entspricht nicht' in message):
-            message = 'Unzulässige Spalte im Patientenformat.'
+        if patient_contract:
+            message = 'Patienten-CSV ist ungültig.'
         issues.append({'line': line, 'column': column, 'message': message})
     return issues
 
@@ -154,7 +178,11 @@ def _split(value: str) -> list[str]:
 def _origins(value: str) -> list[dict[str, str]]:
     origins = []
     for declaration in _split(value):
+        if declaration.count('=') != 1:
+            raise ValueError('Herkunftsangabe ist ungültig.')
         ingredient, country_code = declaration.rsplit('=', 1)
+        if not ingredient.strip() or re.fullmatch(r'[A-Z]{2}', country_code.strip()) is None:
+            raise ValueError('Herkunftsangabe ist ungültig.')
         origins.append(
             {
                 'ingredient': ingredient.strip(),
@@ -259,18 +287,42 @@ def validate_upload(stream: BinaryIO) -> dict[str, object]:
     validated = _validator().validate_text(text_value, '<upload>')
     reader = csv.DictReader(io.StringIO(text_value), delimiter=';')
     rows = list(reader)
-    headers = reader.fieldnames or []
+    headers = list(reader.fieldnames or [])
     profile = validated['profile']
+    patient_contract = profile == 'patient' or any(
+        isinstance(row.get('profil'), str) and row['profil'].strip() == 'patient'
+        for row in rows
+    )
     result: dict[str, object] = {
         'profile': profile,
         'rows': len(rows),
         'headers': headers,
-        'issues': _issues(validated['errors'], headers, profile),
+        'issues': _issues(
+            validated['errors'],
+            headers,
+            patient_contract=patient_contract,
+        ),
         'valid': bool(validated['valid']),
         'text': text_value,
     }
     if validated['valid']:
-        week_start, values = _draft_values(profile, rows)
-        result['week_start'] = week_start
-        result['values'] = values
+        try:
+            week_start, values = _draft_values(profile, rows)
+            validate_draft_values(str(profile), week_start, values)
+        except (ArithmeticError, KeyError, TypeError, ValueError):
+            result['issues'] = [
+                {
+                    'line': 1,
+                    'column': 1,
+                    'message': (
+                        'Patienten-CSV ist ungültig.'
+                        if patient_contract
+                        else 'CSV-Inhalt ist ungültig.'
+                    ),
+                }
+            ]
+            result['valid'] = False
+        else:
+            result['week_start'] = week_start
+            result['values'] = values
     return result
