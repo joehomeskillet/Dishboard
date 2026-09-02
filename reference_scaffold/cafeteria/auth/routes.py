@@ -60,6 +60,10 @@ def login():
             provider=authorization.auth_provider,
         )
         return redirect(url_for('admin.cafeteria'))
+    if not cfg.get('ENTRA_ENABLED', False):
+        if cfg.get('LOCAL_AUTH_ENABLED', False):
+            return redirect(url_for('auth.local_login'))
+        return render_template('auth/error.html', message='Keine Anmeldung konfiguriert.'), 503
     if not cfg['ENTRA_TENANT_ID'] or not cfg['ENTRA_CLIENT_ID'] or not cfg['ENTRA_CLIENT_SECRET']:
         return render_template('auth/error.html', message='Entra-Konfiguration ist unvollständig.'), 503
     flow = _client().initiate_auth_code_flow(scopes=[], redirect_uri=cfg['APP_PUBLIC_BASE_URL'] + url_for('auth.callback'))
@@ -116,6 +120,8 @@ def local_login():
 
 @bp.get('/callback')
 def callback():
+    if not current_app.config.get('ENTRA_ENABLED', False):
+        abort(404)
     flow = session.pop('auth_flow', None)
     if not flow:
         return render_template('auth/error.html', message='Anmeldezustand fehlt oder ist abgelaufen.'), 400
@@ -169,12 +175,18 @@ def logout():
     tenant = current_app.config.get('ENTRA_TENANT_ID')
     target = current_app.config['APP_PUBLIC_BASE_URL'] + url_for('public.cafeteria_today')
     session.clear()
-    if current_app.config['DEMO_MODE'] or not tenant:
+    if (
+        current_app.config['DEMO_MODE']
+        or not current_app.config.get('ENTRA_ENABLED', False)
+        or not tenant
+    ):
         return redirect(target)
     return redirect(f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/logout?post_logout_redirect_uri={quote(target, safe='')}")
 
 
 @bp.route('/frontchannel-logout', methods=['GET', 'POST'])
 def frontchannel_logout():
+    if not current_app.config.get('ENTRA_ENABLED', False):
+        abort(404)
     session.clear()
     return '', 200

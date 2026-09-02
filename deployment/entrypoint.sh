@@ -57,6 +57,7 @@ if [ "${APP_ENV:-development}" = "production" ]; then
 
   app_image=${APP_IMAGE:-}
   case "$app_image" in
+    sha256:*) image_digest=${app_image#sha256:} ;;
     *@sha256:*) image_digest=${app_image##*@sha256:} ;;
     *) reject "APP_IMAGE must use an immutable sha256 digest" ;;
   esac
@@ -65,15 +66,17 @@ if [ "${APP_ENV:-development}" = "production" ]; then
   esac
   [ "${#image_digest}" -eq 64 ] || reject "APP_IMAGE must use an immutable sha256 digest"
 
-  is_placeholder "${ENTRA_TENANT_ID:-}" && reject "ENTRA_TENANT_ID"
-  is_placeholder "${ENTRA_CLIENT_ID:-}" && reject "ENTRA_CLIENT_ID"
+  if [ "${ENTRA_ENABLED:-false}" = "true" ]; then
+    is_placeholder "${ENTRA_TENANT_ID:-}" && reject "ENTRA_TENANT_ID"
+    is_placeholder "${ENTRA_CLIENT_ID:-}" && reject "ENTRA_CLIENT_ID"
 
-  secret_file=${ENTRA_CLIENT_SECRET_FILE:-}
-  [ -n "$secret_file" ] && [ -r "$secret_file" ] || reject "ENTRA_CLIENT_SECRET_FILE"
-  entra_secret=$(cat "$secret_file")
-  [ -n "$entra_secret" ] || reject "ENTRA_CLIENT_SECRET_FILE"
-  is_placeholder "$entra_secret" && reject "ENTRA_CLIENT_SECRET_FILE"
-  unset entra_secret
+    secret_file=${ENTRA_CLIENT_SECRET_FILE:-}
+    [ -n "$secret_file" ] && [ -r "$secret_file" ] || reject "ENTRA_CLIENT_SECRET_FILE"
+    entra_secret=$(cat "$secret_file")
+    [ -n "$entra_secret" ] || reject "ENTRA_CLIENT_SECRET_FILE"
+    is_placeholder "$entra_secret" && reject "ENTRA_CLIENT_SECRET_FILE"
+    unset entra_secret
+  fi
 fi
 
 exec "$@"

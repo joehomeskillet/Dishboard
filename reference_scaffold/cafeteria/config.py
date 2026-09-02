@@ -117,6 +117,7 @@ class Config:
                 role='cafeteria_auth_issuer',
                 password=self.POSTGRES_AUTH_ISSUER_PASSWORD,
             )
+        self.ENTRA_ENABLED = _bool('ENTRA_ENABLED')
         self.LOCAL_AUTH_ENABLED = _bool('LOCAL_AUTH_ENABLED')
         self.DB_POOL_SIZE = int(os.getenv('DB_POOL_SIZE', '5'))
         self.DB_MAX_OVERFLOW = int(os.getenv('DB_MAX_OVERFLOW', '5'))
@@ -188,7 +189,11 @@ class Config:
                 raise RuntimeError('DEMO_MODE, SEED_DEMO und DEMO_TODAY sind in Produktion verboten.')
             if not self.SECRET_KEY or self.SECRET_KEY == DEMO_SECRET:
                 raise RuntimeError('In Produktion ist ein eigenes FLASK_SECRET_KEY erforderlich.')
-            if not self.ENTRA_TENANT_ID or not self.ENTRA_CLIENT_ID or not self.ENTRA_CLIENT_SECRET:
+            if self.ENTRA_ENABLED and (
+                not self.ENTRA_TENANT_ID
+                or not self.ENTRA_CLIENT_ID
+                or not self.ENTRA_CLIENT_SECRET
+            ):
                 raise RuntimeError('Entra-Konfiguration ist in Produktion unvollständig.')
             if not self.SESSION_REDIS_URL:
                 raise RuntimeError('SESSION_REDIS_URL ist in Produktion für Sessions und Rate-Limits erforderlich.')

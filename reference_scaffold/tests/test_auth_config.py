@@ -13,6 +13,7 @@ def _production_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
     monkeypatch.setenv('SEED_DEMO', 'false')
     monkeypatch.setenv('DEMO_TODAY', '')
     monkeypatch.setenv('FLASK_SECRET_KEY', 'production-only-long-flask-secret')
+    monkeypatch.setenv('ENTRA_ENABLED', 'true')
     monkeypatch.setenv('ENTRA_TENANT_ID', '00000000-0000-0000-0000-000000000001')
     monkeypatch.setenv('ENTRA_CLIENT_ID', '00000000-0000-0000-0000-000000000002')
     monkeypatch.setenv('ENTRA_CLIENT_SECRET', 'production-only-entra-secret')
@@ -74,6 +75,36 @@ def test_local_auth_is_disabled_by_default(monkeypatch: pytest.MonkeyPatch) -> N
 
     monkeypatch.setenv('LOCAL_AUTH_ENABLED', 'true')
     assert Config().LOCAL_AUTH_ENABLED is True
+
+
+def test_production_allows_local_auth_while_entra_is_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _production_environment(monkeypatch, tmp_path)
+    monkeypatch.setenv('ENTRA_ENABLED', 'false')
+    monkeypatch.setenv('LOCAL_AUTH_ENABLED', 'true')
+    monkeypatch.delenv('ENTRA_TENANT_ID')
+    monkeypatch.delenv('ENTRA_CLIENT_ID')
+    monkeypatch.delenv('ENTRA_CLIENT_SECRET')
+
+    config = Config()
+
+    assert config.ENTRA_ENABLED is False
+    assert config.LOCAL_AUTH_ENABLED is True
+
+
+@pytest.mark.parametrize('missing_name', ('ENTRA_TENANT_ID', 'ENTRA_CLIENT_ID', 'ENTRA_CLIENT_SECRET'))
+def test_production_requires_complete_entra_configuration_only_when_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    missing_name: str,
+) -> None:
+    _production_environment(monkeypatch, tmp_path)
+    monkeypatch.delenv(missing_name)
+
+    with pytest.raises(RuntimeError, match='Entra-Konfiguration'):
+        Config()
 
 
 def test_production_rejects_insecure_session_cookie(

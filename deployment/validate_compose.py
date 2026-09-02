@@ -70,6 +70,7 @@ assert app['depends_on']['db']['condition'] == 'service_healthy'
 assert app['depends_on']['redis']['condition'] == 'service_healthy'
 assert app['depends_on']['migrate']['condition'] == 'service_completed_successfully'
 assert app['healthcheck']
+assert app['ports'] == ['127.0.0.1:${APP_HOST_PORT:-8789}:8000']
 assert set(app['secrets']) == {
     'postgres_app_password', 'postgres_auth_issuer_password', 'flask_secret_key',
     'entra_client_secret', 'redis_password',
@@ -102,11 +103,12 @@ assert overlay['services']['caddy']['networks']['cafeteria_internal']['ipv4_addr
 example = (root / '.env.example').read_text(encoding='utf-8')
 for token in (
     'APP_ENV=production',
-    'APP_IMAGE=registry.example.invalid/dishboard@sha256:REPLACE_WITH_IMAGE_DIGEST',
+    'APP_IMAGE=sha256:REPLACE_WITH_LOCAL_IMAGE_ID',
+    'APP_HOST_PORT=8789',
     'APP_PUBLIC_BASE_URL=https://dishboard.joelduss.xyz',
     'DEMO_MODE=false', 'SEED_DEMO=false', 'DEMO_TODAY=', 'SESSION_COOKIE_SECURE=true',
     'TRUSTED_PROXY_PEERS=172.31.213.1,172.31.213.10',
-    'LOCAL_AUTH_ENABLED=false',
+    'LOCAL_AUTH_ENABLED=true',
     'LAST_GOOD_DIR=/var/lib/cafeteria/last-good',
     'RESTORE_CONTROLLER_HEARTBEAT_SECONDS=5',
     'RESTORE_CONTROLLER_TIMEOUT_SECONDS=30',
@@ -114,6 +116,9 @@ for token in (
     'ENTRA_ENABLED=false', 'CAFETERIA_DOMAIN=dishboard.joelduss.xyz',
 ):
     assert token in example, token
+host_caddy = (root / 'caddy' / 'Caddyfile.host.example').read_text(encoding='utf-8')
+assert 'reverse_proxy 127.0.0.1:8789' in host_caddy
+assert 'reverse_proxy app:8000' not in host_caddy
 retention_service = (root / 'systemd' / 'dishboard-retention-prune.service').read_text(
     encoding='utf-8'
 )

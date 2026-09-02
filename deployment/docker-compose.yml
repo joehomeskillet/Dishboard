@@ -160,7 +160,7 @@ services:
       - entra_client_secret
       - redis_password
     ports:
-      - "127.0.0.1:${APP_HOST_PORT:-8080}:8000"
+      - "127.0.0.1:${APP_HOST_PORT:-8789}:8000"
     volumes:
       - last_good_data:/var/lib/cafeteria
     tmpfs:
