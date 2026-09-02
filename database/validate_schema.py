@@ -25,6 +25,7 @@ MIGRATION_0004 = ROOT / 'database' / 'migrations' / '0004_patient_key_lock_and_c
 MIGRATION_0005 = ROOT / 'database' / 'migrations' / '0005_least_privilege_identity_contracts.sql'
 MIGRATION_0006 = ROOT / 'database' / 'migrations' / '0006_auth_issuer_and_local_login.sql'
 MIGRATION_0007 = ROOT / 'database' / 'migrations' / '0007_auth_security_hardening.sql'
+MIGRATION_0009 = ROOT / 'database' / 'migrations' / '0009_bootstrap_first_local_admin.sql'
 MIGRATION_0008 = ROOT / 'database' / 'migrations' / '0008_auth_final_hardening.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
@@ -179,8 +180,8 @@ def run_live_check() -> dict[str, Any]:
                     '''
                 )
             ).mappings().one()
-        if int(row['schema_version']) != 11:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 11.")
+        if int(row['schema_version']) != 12:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 12.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
         migrated_structure = structure('cafeteria')
@@ -425,6 +426,16 @@ def main() -> int:
             if fragment not in migration_0008:
                 fail(f'Pflichtfragment in 0008 fehlt: {fragment}')
 
+        migration_0009 = MIGRATION_0009.read_text(encoding='utf-8')
+        for fragment in (
+            'bootstrap_first_local_admin',
+            'pg_advisory_lock',
+            'auth.local_admin_bootstrapped',
+        ):
+            if fragment not in migration_0009:
+                fail(f'Pflichtfragment in 0009 fehlt: {fragment}')
+                fail(f'Pflichtfragment in 0008 fehlt: {fragment}')
+
         for name in ('menu_weeks', 'menu_services', 'menu_items', 'dish_templates'):
             block = table_block(sql, name).lower()
             if re.search(r'\b(price|preis|internal_rappen|external_rappen)\b', block):
@@ -460,7 +471,7 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 11,
+            'schema_version': 12,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
@@ -470,6 +481,7 @@ def main() -> int:
                 '0006_auth_issuer_and_local_login.sql': hashlib.sha256(MIGRATION_0006.read_bytes()).hexdigest(),
                 '0007_auth_security_hardening.sql': hashlib.sha256(MIGRATION_0007.read_bytes()).hexdigest(),
                 '0008_auth_final_hardening.sql': hashlib.sha256(MIGRATION_0008.read_bytes()).hexdigest(),
+                '0009_bootstrap_first_local_admin.sql': hashlib.sha256(MIGRATION_0009.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

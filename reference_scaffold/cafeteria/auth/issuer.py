@@ -141,3 +141,37 @@ def disable_local_user(
             {'actor_identifier': actor, 'username': username},
         ).scalar_one()
     return int(user_id)
+
+
+def bootstrap_first_local_admin(
+    issuer_engine: Engine,
+    *,
+    username: str,
+    display_name: str,
+    password: str,
+) -> int:
+    """Bootstrap the first local administrator on a fresh database without Entra.
+    
+    Fails if any active administrator already exists (race-safe via SQL advisory lock).
+    Uses the system user as the audit actor.
+    """
+    _validate_username(username)
+    if not isinstance(display_name, str) or not display_name.strip():
+        raise ValueError('Lokaler Anzeigename ist ungültig.')
+    validate_local_password(password, username)
+    with issuer_engine.begin() as connection:
+        user_id = connection.execute(
+            text(
+                '''
+                SELECT cafeteria.bootstrap_first_local_admin(
+                    :username, :display_name, :password_hash
+                )
+                '''
+            ),
+            {
+                'username': username,
+                'display_name': display_name.strip(),
+                'password_hash': generate_password_hash(password),
+            },
+        ).scalar_one()
+    return int(user_id)

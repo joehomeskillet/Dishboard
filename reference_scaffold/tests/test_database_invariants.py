@@ -166,8 +166,9 @@ def test_migration_plan_is_ordered_and_preserves_0001_bytes() -> None:
         (9, '0006_auth_issuer_and_local_login.sql'),
         (10, '0007_auth_security_hardening.sql'),
         (11, '0008_auth_final_hardening.sql'),
+        (12, '0009_bootstrap_first_local_admin.sql'),
     ]
-    assert database.SCHEMA_VERSION == 11
+    assert database.SCHEMA_VERSION == 12
     migrations = ROOT / 'database' / 'migrations'
     assert hashlib.sha256((migrations / '0001_initial_postgresql.sql').read_bytes()).hexdigest() == (
         'd1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0'
