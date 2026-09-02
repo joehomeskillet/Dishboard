@@ -163,6 +163,23 @@ CREATE TABLE IF NOT EXISTS dish_templates (
     updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
 );
 
+CREATE TABLE IF NOT EXISTS menu_components (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    public_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    location_id bigint NOT NULL REFERENCES locations(id),
+    profile_scope text NOT NULL CHECK (profile_scope IN ('common', 'patient', 'staff_guest')),
+    category text NOT NULL CHECK (category IN ('meat', 'side', 'vegetable', 'sauce', 'dessert', 'other')),
+    name text NOT NULL CHECK (btrim(name) <> ''),
+    origin_country_code char(2) CHECK (origin_country_code ~ '^[A-Z]{2}$'),
+    active boolean NOT NULL DEFAULT true,
+    row_version bigint NOT NULL DEFAULT 1 CHECK (row_version > 0),
+    created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_menu_components_location_scope_name
+    ON menu_components(location_id, profile_scope, lower(btrim(name)));
+
 CREATE TABLE IF NOT EXISTS menu_items (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     public_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
@@ -178,6 +195,9 @@ CREATE TABLE IF NOT EXISTS menu_items (
     row_version bigint NOT NULL DEFAULT 1 CHECK (row_version > 0),
     created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
     updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    allergen_mode text NOT NULL DEFAULT 'manual' CHECK (allergen_mode IN ('auto', 'manual')),
+    origin_mode text NOT NULL DEFAULT 'manual' CHECK (origin_mode IN ('auto', 'manual')),
+    label_mode text NOT NULL DEFAULT 'manual' CHECK (label_mode IN ('auto', 'manual')),
     UNIQUE (service_id, menu_type_id),
     UNIQUE (external_id)
 );
@@ -196,6 +216,12 @@ CREATE TABLE IF NOT EXISTS menu_item_components (
     menu_item_id bigint NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
     sort_order smallint NOT NULL CHECK (sort_order > 0),
     component_text text NOT NULL CHECK (btrim(component_text) <> ''),
+    component_id bigint REFERENCES menu_components(id) ON DELETE RESTRICT,
+    component_row_version bigint CHECK (component_row_version > 0),
+    CONSTRAINT menu_item_components_component_link_check CHECK (
+        (component_id IS NULL AND component_row_version IS NULL)
+        OR (component_id IS NOT NULL AND component_row_version IS NOT NULL)
+    ),
     PRIMARY KEY (menu_item_id, sort_order)
 );
 
@@ -212,6 +238,12 @@ CREATE TABLE IF NOT EXISTS menu_item_labels (
     PRIMARY KEY (menu_item_id, label_id)
 );
 
+CREATE TABLE IF NOT EXISTS component_labels (
+    component_id bigint NOT NULL REFERENCES menu_components(id) ON DELETE CASCADE,
+    label_id smallint NOT NULL REFERENCES dietary_labels(id),
+    PRIMARY KEY (component_id, label_id)
+);
+
 CREATE TABLE IF NOT EXISTS allergens (
     id smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     code text NOT NULL UNIQUE CHECK (code ~ '^[A-Z0-9_]{1,32}$'),
@@ -225,6 +257,13 @@ CREATE TABLE IF NOT EXISTS menu_item_allergens (
     allergen_id smallint NOT NULL REFERENCES allergens(id),
     presence text NOT NULL CHECK (presence IN ('contains', 'may_contain')),
     PRIMARY KEY (menu_item_id, allergen_id, presence)
+);
+
+CREATE TABLE IF NOT EXISTS component_allergens (
+    component_id bigint NOT NULL REFERENCES menu_components(id) ON DELETE CASCADE,
+    allergen_id smallint NOT NULL REFERENCES allergens(id),
+    presence text NOT NULL CHECK (presence IN ('contains', 'may_contain')),
+    PRIMARY KEY (component_id, allergen_id)
 );
 
 CREATE TABLE IF NOT EXISTS origin_declarations (

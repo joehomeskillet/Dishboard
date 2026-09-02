@@ -24,11 +24,12 @@ REVOKE ALL ON ALL TABLES IN SCHEMA cafeteria FROM cafeteria_app, cafeteria_backu
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA cafeteria FROM cafeteria_app, cafeteria_backup;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON
-    menu_weeks, menu_services, dish_templates,
+    menu_weeks, menu_services, dish_templates, component_allergens, component_labels,
     menu_items, menu_item_prices, menu_item_components, menu_item_labels,
     menu_item_allergens, origin_declarations,
     import_batches, import_rows, settings
 TO cafeteria_app;
+GRANT SELECT, INSERT, UPDATE ON menu_components TO cafeteria_app;
 
 GRANT SELECT ON users, user_role_cache, local_credentials TO cafeteria_app;
 GRANT UPDATE (last_login_at) ON users TO cafeteria_app;
@@ -69,14 +70,16 @@ TO cafeteria_app;
 
 GRANT USAGE, SELECT ON
     menu_weeks_id_seq, menu_services_id_seq, dish_templates_id_seq,
-    menu_items_id_seq, origin_declarations_id_seq, publication_revisions_id_seq,
+    menu_components_id_seq, menu_items_id_seq, origin_declarations_id_seq,
+    publication_revisions_id_seq,
     import_batches_id_seq, settings_id_seq
 TO cafeteria_app;
 
 GRANT SELECT ON
     schema_migrations, users, application_roles, user_role_cache, local_credentials,
     locations, offer_profiles, meal_periods, menu_types,
-    menu_weeks, menu_services, dish_templates, menu_items, menu_item_prices,
+    menu_weeks, menu_services, dish_templates, menu_components,
+    component_allergens, component_labels, menu_items, menu_item_prices,
     menu_item_components, dietary_labels, menu_item_labels, allergens,
     menu_item_allergens, origin_declarations, publication_revisions,
     publication_lifecycle_events, import_batches, import_rows, audit_events,
@@ -85,7 +88,8 @@ TO cafeteria_backup;
 GRANT SELECT ON
     users_id_seq, locations_id_seq, offer_profiles_id_seq, meal_periods_id_seq,
     menu_types_id_seq, menu_weeks_id_seq, menu_services_id_seq,
-    dish_templates_id_seq, menu_items_id_seq, dietary_labels_id_seq,
+    dish_templates_id_seq, menu_components_id_seq, menu_items_id_seq,
+    dietary_labels_id_seq,
     allergens_id_seq, origin_declarations_id_seq, publication_revisions_id_seq,
     publication_lifecycle_events_id_seq, import_batches_id_seq,
     audit_events_id_seq, settings_id_seq

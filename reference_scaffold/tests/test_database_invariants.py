@@ -167,8 +167,9 @@ def test_migration_plan_is_ordered_and_preserves_0001_bytes() -> None:
         (10, '0007_auth_security_hardening.sql'),
         (11, '0008_auth_final_hardening.sql'),
         (12, '0009_bootstrap_first_local_admin.sql'),
+        (13, '0010_v12_to_v13.sql'),
     ]
-    assert database.SCHEMA_VERSION == 12
+    assert database.SCHEMA_VERSION == 13
     migrations = ROOT / 'database' / 'migrations'
     assert hashlib.sha256((migrations / '0001_initial_postgresql.sql').read_bytes()).hexdigest() == (
         'd1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0'
@@ -193,7 +194,7 @@ def test_empty_database_runs_0001_then_0002(database_engine: Engine) -> None:
         local_credentials = connection.execute(
             text("SELECT to_regclass('cafeteria.local_credentials')")
         ).scalar_one()
-    assert [row.version for row in rows] == [4, 5, 6, 7, 8, 9, 10, 11, 12]
+    assert [row.version for row in rows] == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
     assert rows[0].name == '0001_initial_postgresql.sql'
     assert rows[1].name == '0002_profile_publication_and_local_auth.sql'
     assert rows[2].name == '0003_patient_key_and_withdrawal_contracts.sql'
@@ -203,6 +204,7 @@ def test_empty_database_runs_0001_then_0002(database_engine: Engine) -> None:
     assert rows[6].name == '0007_auth_security_hardening.sql'
     assert rows[7].name == '0008_auth_final_hardening.sql'
     assert rows[8].name == '0009_bootstrap_first_local_admin.sql'
+    assert rows[9].name == '0010_v12_to_v13.sql'
     assert local_credentials == 'cafeteria.local_credentials'
 
 
@@ -238,7 +240,7 @@ def test_v4_fixture_migrates_without_replaying_0001() -> None:
         versions = connection.execute(
             text('SELECT version FROM cafeteria.schema_migrations ORDER BY version')
         ).scalars().all()
-    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12]
+    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
     _drop_schema(engine)
     engine.dispose()
 
@@ -962,7 +964,7 @@ def test_v4_draft_revision_is_withdrawn_and_not_public() -> None:
                 '''
             )
         ).all()
-    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12]
+    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
     assert int(public_rows) == 0
     assert withdrawn[0] is True
     assert 'v4' in withdrawn[1]

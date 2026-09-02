@@ -19,8 +19,8 @@ from .database_roles import (
 )
 from .patient_payload import PROFILES, validate_snapshot_payload
 
-SCHEMA_VERSION = 12
-APPLICATION_VERSION = 'dishboard-schema-v12'
+SCHEMA_VERSION = 13
+APPLICATION_VERSION = 'dishboard-schema-v13'
 SYSTEM_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000001'
 DEMO_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000002'
 
@@ -42,6 +42,7 @@ MIGRATION_FILES = (
     (10, '0007_auth_security_hardening.sql'),
     (11, '0008_auth_final_hardening.sql'),
     (12, '0009_bootstrap_first_local_admin.sql'),
+    (13, '0010_v12_to_v13.sql'),
 )
 MIGRATION_LOCK_ID = 731_905_005
 DEFAULT_CAPABILITY_TTL = timedelta(minutes=5)

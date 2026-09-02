@@ -27,6 +27,7 @@ MIGRATION_0006 = ROOT / 'database' / 'migrations' / '0006_auth_issuer_and_local_
 MIGRATION_0007 = ROOT / 'database' / 'migrations' / '0007_auth_security_hardening.sql'
 MIGRATION_0009 = ROOT / 'database' / 'migrations' / '0009_bootstrap_first_local_admin.sql'
 MIGRATION_0008 = ROOT / 'database' / 'migrations' / '0008_auth_final_hardening.sql'
+MIGRATION_0010 = ROOT / 'database' / 'migrations' / '0010_v12_to_v13.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
 PAT_JSON = ROOT / 'demo' / 'snapshots' / 'patienten_kw36.json'
@@ -180,8 +181,8 @@ def run_live_check() -> dict[str, Any]:
                     '''
                 )
             ).mappings().one()
-        if int(row['schema_version']) != 12:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 12.")
+        if int(row['schema_version']) != 13:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 13.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
         migrated_structure = structure('cafeteria')
@@ -276,12 +277,18 @@ def main() -> int:
         migration_0006 = MIGRATION_0006.read_text(encoding='utf-8')
         migration_0007 = MIGRATION_0007.read_text(encoding='utf-8')
         migration_0008 = MIGRATION_0008.read_text(encoding='utf-8')
+        migration_0010 = MIGRATION_0010.read_text(encoding='utf-8')
         seed = SEED.read_text(encoding='utf-8')
         immutable_migration_checksums = {
             MIGRATION_0001: 'd1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0',
             MIGRATION_0002: '7f8696eb886a99d841ac82be1e4b3abf1b51080c18aac07ea5290325f3e5e863',
             MIGRATION_0003: 'eda9c5e851525367af62a3f056b3592a521d871f6ac818d4d50c18d8f720d1de',
             MIGRATION_0004: '7309069f1b52d41a756a315af8b6ccf0771afe113875a6c5f82d42775f74b066',
+            MIGRATION_0005: 'b33bdfebe621adfca3da98c85a1b0e8316040c55cf62542eda138099362f1818',
+            MIGRATION_0006: '60897aea8c7096f449a43a6cd2b79452f943cbbec75cc74a0bcf4514baaac233',
+            MIGRATION_0007: 'a25d5b6ca71bc11c582eef6e90f792979a88aa86dcc444b7b1ab1db90967595f',
+            MIGRATION_0008: '4311165d2dcd763cf9a462906d044000956eb11d16ac847ecf9351facae21e45',
+            MIGRATION_0009: '1b988c75b7ef3f333045d738fa29cd210a367eeaf30825a3005873cafc3b65ed',
         }
         for migration_path, expected_checksum in immutable_migration_checksums.items():
             actual_checksum = hashlib.sha256(migration_path.read_bytes()).hexdigest()
@@ -294,6 +301,7 @@ def main() -> int:
             'offer_profiles', 'menu_weeks', 'menu_services', 'menu_items',
             'menu_item_prices', 'publication_revisions', 'publication_lifecycle_events',
             'audit_events', 'local_credentials', 'auth_capability_secrets', 'auth_capability_nonces',
+            'menu_components', 'component_allergens', 'component_labels',
         }
         missing = required_tables - set(tables)
         if missing:
@@ -331,6 +339,12 @@ def main() -> int:
             'trg_local_credentials_login_lock_audit',
             'REVOKE ALL ON SCHEMA cafeteria',
             'REVOKE CREATE ON SCHEMA public FROM PUBLIC',
+            "profile_scope IN ('common', 'patient', 'staff_guest')",
+            "category IN ('meat', 'side', 'vegetable', 'sauce', 'dessert', 'other')",
+            'uq_menu_components_location_scope_name',
+            "allergen_mode IN ('auto', 'manual')",
+            "origin_mode IN ('auto', 'manual')",
+            "label_mode IN ('auto', 'manual')",
         ):
             if fragment not in sql:
                 fail(f'Pflichtfragment fehlt: {fragment}')
@@ -436,6 +450,22 @@ def main() -> int:
                 fail(f'Pflichtfragment in 0009 fehlt: {fragment}')
                 fail(f'Pflichtfragment in 0008 fehlt: {fragment}')
 
+        for fragment in (
+            'CREATE TABLE IF NOT EXISTS menu_components',
+            'CREATE TABLE IF NOT EXISTS component_allergens',
+            'CREATE TABLE IF NOT EXISTS component_labels',
+            "SET allergen_mode='manual'",
+            "SET origin_mode='manual'",
+            "SET label_mode='manual'",
+            "bool_or(mia.presence='contains')",
+            'uq_menu_components_location_scope_name',
+            'menu_item_components_component_link_check',
+        ):
+            if fragment not in migration_0010:
+                fail(f'Pflichtfragment in 0010 fehlt: {fragment}')
+        if not migration_0010.startswith('BEGIN;') or not migration_0010.rstrip().endswith('COMMIT;'):
+            fail('Migration 0010 hat keinen strikten BEGIN/COMMIT-Vertrag.')
+
         for name in ('menu_weeks', 'menu_services', 'menu_items', 'dish_templates'):
             block = table_block(sql, name).lower()
             if re.search(r'\b(price|preis|internal_rappen|external_rappen)\b', block):
@@ -471,7 +501,7 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 12,
+            'schema_version': 13,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
@@ -482,6 +512,7 @@ def main() -> int:
                 '0007_auth_security_hardening.sql': hashlib.sha256(MIGRATION_0007.read_bytes()).hexdigest(),
                 '0008_auth_final_hardening.sql': hashlib.sha256(MIGRATION_0008.read_bytes()).hexdigest(),
                 '0009_bootstrap_first_local_admin.sql': hashlib.sha256(MIGRATION_0009.read_bytes()).hexdigest(),
+                '0010_v12_to_v13.sql': hashlib.sha256(MIGRATION_0010.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

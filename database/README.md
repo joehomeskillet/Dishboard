@@ -1,6 +1,6 @@
 # PostgreSQL-Datenmodell
 
-Schema-Version 12 modelliert zwei getrennte Angebotsprofile:
+Schema-Version 13 modelliert zwei getrennte Angebotsprofile:
 
 | Profil | Zeitraum | Mahlzeiten | Kosteninformationen |
 |---|---|---|---|
@@ -50,8 +50,11 @@ Der `actor-identifier` wird gegen den aktiven Benutzernamen, die E-Mail-Adresse 
 7. `0007_auth_security_hardening.sql` (10)
 8. `0008_auth_final_hardening.sql` (11)
 9. `0009_bootstrap_first_local_admin.sql` (12)
+10. `0010_v12_to_v13.sql` (13)
 
-Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0004` bleiben byteidentisch. `schema.sql` beschreibt den aktuellen v12-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
+Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0009` bleiben byteidentisch. `schema.sql` beschreibt den aktuellen v13-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
+
+Vor `0010` wird im isolierten PostgreSQL-16-Wartungsfenster ein benanntes Backup wie `dishboard-v12-pre-v13-YYYYMMDDTHHMMSSZ.dump` erstellt und mit `pg_restore --list` geprüft. Zusätzlich wird eine separate Down-Probe-Kopie `dishboard-v12-down-probe-YYYYMMDDTHHMMSSZ.dump` angelegt. Die Down-Probe wird in einen frischen PostgreSQL-16-Cluster restauriert und als v12-Kopie geprüft; sie ist ein getesteter Restore-Pfad und behauptet keine automatische Rückwärtsmigration von v13 nach v12.
 
 `cafeteria_app` bleibt für die fachlichen Draft-Tabellen schreibberechtigt. Provider, lokale Credentials und Rollensource müssen zusammenpassen; eine Rollenverschiebung erhöht `authz_version` von altem und neuem Benutzer. Es besitzt keine Schreibrechte auf `schema_migrations`, keine direkten Sicherheitszustandsrechte und keine Löschrechte auf Publikationsrevisionen.
 

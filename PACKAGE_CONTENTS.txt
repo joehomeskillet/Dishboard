@@ -19,6 +19,15 @@ csv/menu_patient_template.csv
 csv/README.md
 csv/validate_menu_csv.py
 database/migrations/0001_initial_postgresql.sql
+database/migrations/0002_profile_publication_and_local_auth.sql
+database/migrations/0003_patient_key_and_withdrawal_contracts.sql
+database/migrations/0004_patient_key_lock_and_capability_contracts.sql
+database/migrations/0005_least_privilege_identity_contracts.sql
+database/migrations/0006_auth_issuer_and_local_login.sql
+database/migrations/0007_auth_security_hardening.sql
+database/migrations/0008_auth_final_hardening.sql
+database/migrations/0009_bootstrap_first_local_admin.sql
+database/migrations/0010_v12_to_v13.sql
 database/permissions.sql
 database/README.md
 database/schema.sql

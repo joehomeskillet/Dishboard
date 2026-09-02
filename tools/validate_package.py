@@ -76,6 +76,7 @@ REQUIRED_FILES = (
     'database/migrations/0007_auth_security_hardening.sql',
     'database/migrations/0008_auth_final_hardening.sql',
     'database/migrations/0009_bootstrap_first_local_admin.sql',
+    'database/migrations/0010_v12_to_v13.sql',
     'database/seed.sql', 'database/seed_demo.sql', 'database/permissions.sql',
     'demo/snapshots/patienten_kw36.json', 'demo/snapshots/cafeteria_kw36.json',
     'csv/menu_patient_template.csv', 'csv/menu_patient_example.csv',
@@ -94,6 +95,12 @@ MIGRATION_CHECKSUMS = {
     '0002_profile_publication_and_local_auth.sql': '7f8696eb886a99d841ac82be1e4b3abf1b51080c18aac07ea5290325f3e5e863',
     '0003_patient_key_and_withdrawal_contracts.sql': 'eda9c5e851525367af62a3f056b3592a521d871f6ac818d4d50c18d8f720d1de',
     '0004_patient_key_lock_and_capability_contracts.sql': '7309069f1b52d41a756a315af8b6ccf0771afe113875a6c5f82d42775f74b066',
+    '0005_least_privilege_identity_contracts.sql': 'b33bdfebe621adfca3da98c85a1b0e8316040c55cf62542eda138099362f1818',
+    '0006_auth_issuer_and_local_login.sql': '60897aea8c7096f449a43a6cd2b79452f943cbbec75cc74a0bcf4514baaac233',
+    '0007_auth_security_hardening.sql': 'a25d5b6ca71bc11c582eef6e90f792979a88aa86dcc444b7b1ab1db90967595f',
+    '0008_auth_final_hardening.sql': '4311165d2dcd763cf9a462906d044000956eb11d16ac847ecf9351facae21e45',
+    '0009_bootstrap_first_local_admin.sql': '1b988c75b7ef3f333045d738fa29cd210a367eeaf30825a3005873cafc3b65ed',
+    '0010_v12_to_v13.sql': 'b7c7bf87aad6e9da3f33124e49318518b895471796e63ebbf8751c1d273570c7',
 }
 
 
@@ -273,10 +280,10 @@ def main() -> int:
     check(db_result.returncode == 0, f'Schema-Validator fehlgeschlagen: {db_result.stderr or db_result.stdout}')
     if db_result.returncode == 0:
         status = json.loads(db_result.stdout)
-        check(status.get('tables') == 28, 'Schema enthaelt nicht 28 Tabellen.')
+        check(status.get('tables') == 31, 'Schema enthaelt nicht 31 Tabellen.')
         check(status.get('application_roles') == 3, 'Schema enthaelt nicht drei Rollen.')
         check(status.get('offer_profiles') == 2, 'Schema enthaelt nicht zwei Profile.')
-        check(status.get('schema_version') == 12, 'Schema-Version ist nicht 12.')
+        check(status.get('schema_version') == 13, 'Schema-Version ist nicht 13.')
         check(status.get('patient_services') == 14, 'Demo-Seed enthaelt nicht 14 Patienten-Services.')
         check(status.get('cafeteria_services') == 5, 'Demo-Seed enthaelt nicht 5 Cafeteria-Services.')
 
@@ -287,6 +294,7 @@ def main() -> int:
                       '0005_least_privilege_identity_contracts.sql', '0006_auth_issuer_and_local_login.sql',
                       '0007_auth_security_hardening.sql', '0008_auth_final_hardening.sql',
                       '0009_bootstrap_first_local_admin.sql']
+    migration_files.append('0010_v12_to_v13.sql')
 
     for mig_file in migration_files:
         mig_path = migrations_dir / mig_file
@@ -307,7 +315,7 @@ def main() -> int:
 
     requirements = (root / 'reference_scaffold/requirements.txt').read_text(encoding='utf-8')
     check('alembic' not in requirements.lower(), 'Alembic steht noch in den Laufzeitanforderungen.')
-    ok(f'PostgreSQL-Artefakte und 9 Migrationen geprueft; SHA-256 {sha256(schema)}')
+    ok(f'PostgreSQL-Artefakte und 10 Migrationen geprueft; SHA-256 {sha256(schema)}')
 
     # Routen, Jinja und Patientenkostenverbot
     route_text = (root / 'reference_scaffold/cafeteria/signage/routes.py').read_text(encoding='utf-8')
