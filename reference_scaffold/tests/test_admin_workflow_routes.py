@@ -335,6 +335,94 @@ def test_cafeteria_validation_error_is_adjacent_and_preserves_submitted_values(c
     assert 'role="alert"' in body
 
 
+def _workflow_state(database_engine: Engine, profile_code: str) -> tuple[object, ...]:
+    with database_engine.connect() as connection:
+        return tuple(
+            connection.execute(
+                text(
+                    '''
+                    SELECT w.row_version,
+                           w.workflow_state,
+                           (SELECT count(*) FROM cafeteria.menu_items),
+                           (SELECT count(*) FROM cafeteria.publication_revisions)
+                    FROM cafeteria.menu_weeks w
+                    JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+                    WHERE p.code=:profile_code AND w.week_start=:week_start
+                    '''
+                ),
+                {'profile_code': profile_code, 'week_start': WEEK_START},
+            ).one()
+        )
+
+
+@pytest.mark.parametrize(
+    ('profile_path', 'action_path', 'form_factory', 'profile_code', 'field_name', 'field_value'),
+    (
+        (
+            '/admin/patienten',
+            '/admin/patienten/save',
+            _patient_form,
+            'patient',
+            'week_start',
+            '2026-09-01',
+        ),
+        (
+            '/admin/patienten',
+            '/admin/patienten/publish',
+            _patient_form,
+            'patient',
+            'row_version',
+            'ungültig',
+        ),
+        (
+            '/admin/cafeteria',
+            '/admin/cafeteria/save',
+            _staff_form,
+            'staff_guest',
+            'row_version',
+            'ungültig',
+        ),
+        (
+            '/admin/cafeteria',
+            '/admin/cafeteria/publish',
+            _staff_form,
+            'staff_guest',
+            'week_start',
+            '2026-09-01',
+        ),
+    ),
+)
+def test_hidden_metadata_error_focuses_summary_and_keeps_draft_unchanged(
+    client,
+    database_engine: Engine,
+    profile_path: str,
+    action_path: str,
+    form_factory,
+    profile_code: str,
+    field_name: str,
+    field_value: str,
+) -> None:
+    assert client.get(profile_path).status_code == 200
+    before = _workflow_state(database_engine, profile_code)
+    form = form_factory()
+    form[field_name] = field_value
+    retained_title = f'Retained {profile_code} title'
+    form['title'] = retained_title
+
+    response = client.post(action_path, data=form)
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 400
+    assert re.search(
+        r'<div class="form-error-summary" role="alert" tabindex="-1" autofocus>',
+        body,
+    )
+    assert not re.search(r'<input[^>]+type="hidden"[^>]+autofocus', body)
+    assert f'name="{field_name}" value="{field_value}"' in body
+    assert retained_title in body
+    assert _workflow_state(database_engine, profile_code) == before
+
+
 @pytest.mark.parametrize(
     ('path', 'form_factory', 'field_name'),
     (

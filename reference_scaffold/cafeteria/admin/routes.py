@@ -111,6 +111,7 @@ def _form_error_response(profile_code: str, error: Exception, status_code: int):
     field_name = getattr(error, 'field_name', None)
     if field_name not in values:
         field_name = None
+    first_error = field_name if field_name not in {'week_start', 'row_version'} else None
     message = PATIENT_FORM_ERROR if profile_code == 'patient' else str(error)
     field_message = 'Eingabe prüfen.' if profile_code == 'patient' else str(error)
     return (
@@ -119,7 +120,7 @@ def _form_error_response(profile_code: str, error: Exception, status_code: int):
             form_values=values,
             form_errors={field_name: field_message} if field_name else {},
             form_message=message,
-            first_error=field_name,
+            first_error=first_error,
         ),
         status_code,
     )
