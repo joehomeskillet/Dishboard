@@ -88,14 +88,10 @@ def _parse_form(profile_code: str) -> ParsedDraft:
 
 
 def _master_data() -> tuple[list[dict], list[dict]]:
-    """Load dietary labels and allergens from store. Mockable for tests."""
-    try:
-        engine = current_app.extensions["cafeteria_db"]
-        with engine.connect() as conn:
-            return get_dietary_labels_and_allergens(conn)
-    except (AttributeError, TypeError):
-        # Fallback for tests or missing DB
-        return [], []
+    """Load dietary labels and allergens from store."""
+    engine = current_app.extensions["cafeteria_db"]
+    with engine.connect() as conn:
+        return get_dietary_labels_and_allergens(conn)
 
 def _render_editor(
     profile_code: str,
@@ -107,10 +103,6 @@ def _render_editor(
 ):
     template = 'admin/patienten.html' if profile_code == 'patient' else 'admin/cafeteria.html'
     dietary_labels, allergens = _master_data()
-
-    engine = current_app.extensions["cafeteria_db"]
-    with engine.connect() as conn:
-        dietary_labels, allergens = get_dietary_labels_and_allergens(conn)
 
     return render_template(
         template,
