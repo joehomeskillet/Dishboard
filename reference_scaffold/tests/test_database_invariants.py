@@ -166,6 +166,7 @@ def test_migration_plan_is_ordered_and_preserves_0001_bytes() -> None:
         (9, '0006_auth_issuer_and_local_login.sql'),
         (10, '0007_auth_security_hardening.sql'),
         (11, '0008_auth_final_hardening.sql'),
+            (12, '0009_bootstrap_first_local_admin.sql'),
         (12, '0009_bootstrap_first_local_admin.sql'),
     ]
     assert database.SCHEMA_VERSION == 12
@@ -1843,7 +1844,8 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
     assert privileges['public_capability_hard_reset_revoked'] is True
     assert {row['proname'] for row in definer_privileges} == {
         'bootstrap_auth_capability_secret',
-        'disable_local_user',
+        'bootstrap_first_local_admin',
+            'disable_local_user',
         'ensure_auth_capability_state',
         'hard_reset_auth_capability_state',
         'issue_publication_capability',
@@ -1852,7 +1854,8 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
         'record_publication_lifecycle',
         'resolve_auth_actor',
         'rotate_auth_capability_secret',
-        'set_local_password',
+        'bootstrap_first_local_admin',
+            'set_local_password',
         'sync_entra_user',
         'withdraw_publication_revision',
     }

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import subprocess
+import sys
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -841,6 +843,22 @@ def test_bootstrap_function_not_callable_by_app_roles(
 def test_bootstrap_admin_can_provision_second_user(
     owner_engine: Engine,
 ) -> None:
+    # Clean up any existing admin so bootstrap can proceed
+    with owner_engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                UPDATE cafeteria.users u
+                SET disabled_at = NOW()
+                WHERE u.disabled_at IS NULL
+                  AND EXISTS (
+                      SELECT 1 FROM cafeteria.user_role_cache urc
+                      WHERE urc.user_id = u.id
+                        AND urc.role_code = 'Cafeteria.Admin'
+                  )
+                """
+            )
+        )
     """After bootstrap, the bootstrapped admin can act as actor for provision_local_user."""
     issuer_engine = create_engine(
         _role_database_url('cafeteria_auth_issuer', ISSUER_PASSWORD),
@@ -853,7 +871,7 @@ def test_bootstrap_admin_can_provision_second_user(
             owner_engine,
             username='bootstrap.admin',
             display_name='Bootstrap Admin',
-            password='BootstrapKueche-AdminUser-2026!Secure',
+            password='KuecheAdmin-Boot-2026!Secure',
         )
         
         # Get the bootstrapped admin's public_id to use as actor
@@ -873,7 +891,7 @@ def test_bootstrap_admin_can_provision_second_user(
             actor_identifier=str(admin_public_id),
             username='second.user',
             display_name='Second User',
-            password='SecondUser-2026!Secure',
+            password='Kueche-SecondPass-2026!Secure',
             roles=['Cafeteria.Editor'],
         )
         assert user_id_2 > 0
