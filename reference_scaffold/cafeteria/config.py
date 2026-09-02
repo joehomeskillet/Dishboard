@@ -138,7 +138,9 @@ class Config:
         self.TRUSTED_PROXY_PEERS = _trusted_proxy_peers()
         self.MAX_CONTENT_LENGTH = int(os.getenv('MAX_UPLOAD_BYTES', str(5 * 1024 * 1024)))
         self.FRAME_ANCESTORS = os.getenv('FRAME_ANCESTORS', "'self'")
-        self.LAST_GOOD_DIR = os.getenv('LAST_GOOD_DIR', '/tmp/cafeteria-last-good')
+        configured_last_good_dir = os.getenv('LAST_GOOD_DIR')
+        # Development-only fallback; production rejects it below.
+        self.LAST_GOOD_DIR = configured_last_good_dir or '/tmp/cafeteria-last-good'  # nosec B108
 
         protected_database_boot = self.APP_ENV in {'production', 'migration'}
         if protected_database_boot:
@@ -167,6 +169,21 @@ class Config:
                 raise RuntimeError('PostgreSQL-Auth-Issuer benötigt ein eigenes, separates Secret.')
 
         if self.APP_ENV == 'production':
+            last_good_path = Path(self.LAST_GOOD_DIR)
+            # Security deny-list, not a storage destination.
+            temporary_roots = (Path('/tmp'), Path('/var/tmp'))  # nosec B108
+            if (
+                not configured_last_good_dir
+                or not last_good_path.is_absolute()
+                or any(
+                    last_good_path == root or root in last_good_path.parents
+                    for root in temporary_roots
+                )
+            ):
+                raise RuntimeError(
+                    'LAST_GOOD_DIR muss in Produktion explizit auf persistenten '
+                    'absoluten Speicher ausserhalb temporärer Verzeichnisse zeigen.'
+                )
             if self.DEMO_MODE or self.SEED_DEMO or self.DEMO_TODAY:
                 raise RuntimeError('DEMO_MODE, SEED_DEMO und DEMO_TODAY sind in Produktion verboten.')
             if not self.SECRET_KEY or self.SECRET_KEY == DEMO_SECRET:

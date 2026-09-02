@@ -2,9 +2,6 @@
 BEGIN;
 SET search_path TO cafeteria, public;
 
-REVOKE ALL ON SCHEMA cafeteria FROM PUBLIC;
-GRANT USAGE ON SCHEMA cafeteria TO cafeteria_app, cafeteria_backup;
-
 DO $require_auth_issuer$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='cafeteria_auth_issuer') THEN
@@ -12,6 +9,14 @@ BEGIN
     END IF;
 END;
 $require_auth_issuer$;
+
+REVOKE ALL ON SCHEMA cafeteria
+FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON SCHEMA public
+FROM cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
+GRANT USAGE ON SCHEMA cafeteria
+TO cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
 
 -- Jede erneute Anwendung entfernt frühere breite Grants, bevor der aktuelle
 -- Least-Privilege-Vertrag aufgebaut wird.
@@ -62,11 +67,10 @@ GRANT SELECT ON
     audit_events, publication_lifecycle_events
 TO cafeteria_app;
 
-GRANT INSERT ON audit_events TO cafeteria_app;
 GRANT USAGE, SELECT ON
     menu_weeks_id_seq, menu_services_id_seq, dish_templates_id_seq,
     menu_items_id_seq, origin_declarations_id_seq, publication_revisions_id_seq,
-    import_batches_id_seq, audit_events_id_seq, settings_id_seq
+    import_batches_id_seq, settings_id_seq
 TO cafeteria_app;
 
 GRANT SELECT ON
@@ -92,10 +96,13 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
 ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
     REVOKE ALL ON SEQUENCES FROM cafeteria_app, cafeteria_backup;
 
-REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA cafeteria FROM PUBLIC, cafeteria_auth_issuer;
-GRANT USAGE ON SCHEMA cafeteria TO cafeteria_auth_issuer;
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA cafeteria
+FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
 REVOKE ALL ON ALL TABLES IN SCHEMA cafeteria FROM cafeteria_auth_issuer;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA cafeteria FROM cafeteria_auth_issuer;
+GRANT EXECUTE ON FUNCTION
+    withdraw_publication_revision(bigint, text, text)
+TO cafeteria_app;
 GRANT EXECUTE ON FUNCTION
     sync_entra_user(uuid, uuid, text, text, text, text, text[]),
     issue_publication_capability(bigint, bigint, interval),
@@ -104,7 +111,8 @@ GRANT EXECUTE ON FUNCTION
     disable_local_user(text, text)
 TO cafeteria_auth_issuer;
 ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
-    REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, cafeteria_auth_issuer;
+    REVOKE EXECUTE ON FUNCTIONS
+    FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
 ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
     REVOKE ALL ON TABLES FROM cafeteria_auth_issuer;
 ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria

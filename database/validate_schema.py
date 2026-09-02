@@ -25,6 +25,7 @@ MIGRATION_0004 = ROOT / 'database' / 'migrations' / '0004_patient_key_lock_and_c
 MIGRATION_0005 = ROOT / 'database' / 'migrations' / '0005_least_privilege_identity_contracts.sql'
 MIGRATION_0006 = ROOT / 'database' / 'migrations' / '0006_auth_issuer_and_local_login.sql'
 MIGRATION_0007 = ROOT / 'database' / 'migrations' / '0007_auth_security_hardening.sql'
+MIGRATION_0008 = ROOT / 'database' / 'migrations' / '0008_auth_final_hardening.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
 PAT_JSON = ROOT / 'demo' / 'snapshots' / 'patienten_kw36.json'
@@ -178,8 +179,8 @@ def run_live_check() -> dict[str, Any]:
                     '''
                 )
             ).mappings().one()
-        if int(row['schema_version']) != 10:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 10.")
+        if int(row['schema_version']) != 11:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 11.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
         migrated_structure = structure('cafeteria')
@@ -273,6 +274,7 @@ def main() -> int:
         migration_0005 = MIGRATION_0005.read_text(encoding='utf-8')
         migration_0006 = MIGRATION_0006.read_text(encoding='utf-8')
         migration_0007 = MIGRATION_0007.read_text(encoding='utf-8')
+        migration_0008 = MIGRATION_0008.read_text(encoding='utf-8')
         seed = SEED.read_text(encoding='utf-8')
         immutable_migration_checksums = {
             MIGRATION_0001: 'd1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0',
@@ -324,6 +326,10 @@ def main() -> int:
             'provision_local_user',
             'set_local_password',
             'disable_local_user',
+            'record_local_login_lock',
+            'trg_local_credentials_login_lock_audit',
+            'REVOKE ALL ON SCHEMA cafeteria',
+            'REVOKE CREATE ON SCHEMA public FROM PUBLIC',
         ):
             if fragment not in sql:
                 fail(f'Pflichtfragment fehlt: {fragment}')
@@ -407,6 +413,18 @@ def main() -> int:
             if fragment not in migration_0007:
                 fail(f'Pflichtfragment in 0007 fehlt: {fragment}')
 
+        for fragment in (
+            'record_local_login_lock',
+            'SECURITY DEFINER',
+            'trg_local_credentials_login_lock_audit',
+            'REVOKE INSERT ON audit_events FROM cafeteria_app',
+            'REVOKE USAGE, SELECT, UPDATE ON SEQUENCE audit_events_id_seq FROM cafeteria_app',
+            'REVOKE ALL ON SCHEMA cafeteria',
+            'REVOKE CREATE ON SCHEMA public FROM PUBLIC',
+        ):
+            if fragment not in migration_0008:
+                fail(f'Pflichtfragment in 0008 fehlt: {fragment}')
+
         for name in ('menu_weeks', 'menu_services', 'menu_items', 'dish_templates'):
             block = table_block(sql, name).lower()
             if re.search(r'\b(price|preis|internal_rappen|external_rappen)\b', block):
@@ -442,7 +460,7 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 10,
+            'schema_version': 11,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
@@ -451,6 +469,7 @@ def main() -> int:
                 '0005_least_privilege_identity_contracts.sql': hashlib.sha256(MIGRATION_0005.read_bytes()).hexdigest(),
                 '0006_auth_issuer_and_local_login.sql': hashlib.sha256(MIGRATION_0006.read_bytes()).hexdigest(),
                 '0007_auth_security_hardening.sql': hashlib.sha256(MIGRATION_0007.read_bytes()).hexdigest(),
+                '0008_auth_final_hardening.sql': hashlib.sha256(MIGRATION_0008.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

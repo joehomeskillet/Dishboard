@@ -90,15 +90,23 @@ def owner_engine() -> Iterator[Engine]:
 def test_migration_plan_contains_auth_issuer_contract() -> None:
     plan = database.migration_plan(ROOT / 'database' / 'schema.sql')
 
-    assert database.SCHEMA_VERSION == 10
+    assert database.SCHEMA_VERSION == 11
     assert (plan[-1].version, plan[-1].path.name) == (
-        10,
-        '0007_auth_security_hardening.sql',
+        11,
+        '0008_auth_final_hardening.sql',
     )
 
 
 @LIVE_DATABASE
 def test_auth_issuer_role_has_function_only_identity_privileges(owner_engine: Engine) -> None:
+    with owner_engine.begin() as connection:
+        connection.execute(
+            text(
+                'GRANT CREATE ON SCHEMA cafeteria, public TO '
+                'cafeteria_app, cafeteria_backup, cafeteria_auth_issuer'
+            )
+        )
+    database._execute_script(owner_engine, str(ROOT / 'database' / 'permissions.sql'))
     issuer_engine = create_engine(
         _role_database_url('cafeteria_auth_issuer', ISSUER_PASSWORD),
         poolclass=NullPool,
@@ -138,7 +146,19 @@ def test_auth_issuer_role_has_function_only_identity_privileges(owner_engine: En
                         has_table_privilege(current_user, 'cafeteria.users', 'SELECT') AS users_select,
                         has_table_privilege(
                             current_user, 'cafeteria.local_credentials', 'SELECT'
-                        ) AS credentials_select
+                        ) AS credentials_select,
+                        has_schema_privilege(current_user, 'cafeteria', 'USAGE')
+                            AS cafeteria_usage,
+                        has_schema_privilege(current_user, 'cafeteria', 'CREATE')
+                            AS cafeteria_create,
+                        has_schema_privilege(current_user, 'public', 'CREATE')
+                            AS public_create,
+                        (SELECT count(*)
+                           FROM pg_proc p
+                           JOIN pg_namespace n ON n.oid=p.pronamespace
+                          WHERE n.nspname='cafeteria'
+                            AND has_function_privilege(current_user, p.oid, 'EXECUTE'))
+                            AS execute_count
                     '''
                 )
             ).mappings().one()
@@ -153,7 +173,22 @@ def test_auth_issuer_role_has_function_only_identity_privileges(owner_engine: En
         'disable_execute': True,
         'users_select': False,
         'credentials_select': False,
+        'cafeteria_usage': True,
+        'cafeteria_create': False,
+        'public_create': False,
+        'execute_count': 5,
     }
+    with pytest.raises(DBAPIError, match='permission denied'):
+        with issuer_engine.begin() as connection:
+            connection.execute(text('CREATE TABLE cafeteria.issuer_forged_table(id bigint)'))
+    with pytest.raises(DBAPIError, match='permission denied'):
+        with issuer_engine.begin() as connection:
+            connection.execute(
+                text(
+                    "CREATE FUNCTION cafeteria.issuer_forged_function() "
+                    "RETURNS integer LANGUAGE sql AS 'SELECT 1'"
+                )
+            )
 
 
 @LIVE_DATABASE
@@ -239,6 +274,28 @@ def test_cli_rejects_password_argument_without_echoing_value(
         )
     output = capsys.readouterr()
     assert secret not in output.out + output.err
+
+
+@pytest.mark.parametrize(
+    'argv',
+    (
+        [
+            'provision-local-user', '--username', 'missing.actor',
+            '--display-name', 'Missing Actor', '--role', 'Cafeteria.Editor',
+        ],
+        ['set-local-password', '--username', 'missing.actor'],
+        ['disable-local-user', '--username', 'missing.actor'],
+    ),
+)
+def test_local_account_commands_require_verified_actor_argument(
+    argv: list[str],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        manage.main(argv)
+
+    assert exc_info.value.code == 2
+    assert '--actor' in capsys.readouterr().err
 
 
 @LIVE_DATABASE
@@ -518,6 +575,11 @@ def test_database_validator_proves_dedicated_issuer_least_privilege(owner_engine
     assert status['auth_issuer_direct_table_privilege_count'] == 0
     assert status['auth_issuer_direct_sequence_privilege_count'] == 0
     assert status['auth_issuer_membership_count'] == 0
+    assert status['auth_issuer_can_create_cafeteria_schema'] is False
+    assert status['auth_issuer_can_create_public_schema'] is False
+    assert status['auth_issuer_connection_limit'] == -1
+    assert status['auth_issuer_valid_until_infinity'] is True
+    assert status['auth_issuer_role_config_valid'] is True
     assert status['ready'] is True
 
 

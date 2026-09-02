@@ -18,6 +18,7 @@ def _production_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
     monkeypatch.setenv('ENTRA_CLIENT_SECRET', 'production-only-entra-secret')
     monkeypatch.setenv('SESSION_REDIS_URL', 'redis://:production-only@redis:6379/0')
     monkeypatch.setenv('SESSION_COOKIE_SECURE', 'true')
+    monkeypatch.setenv('LAST_GOOD_DIR', '/var/lib/cafeteria/last-good')
     monkeypatch.setenv(
         'DATABASE_URL',
         'postgresql+psycopg://cafeteria_app:App-Role-2026-A7bQ9xV4kM2rP8tN@db/cafeteria',
@@ -141,3 +142,29 @@ def test_production_and_migration_reject_weak_or_reused_issuer_secret(
     monkeypatch.delenv('AUTH_ISSUER_DATABASE_URL', raising=False)
     with pytest.raises(RuntimeError, match='Issuer|POSTGRES_AUTH_ISSUER_PASSWORD'):
         Config()
+
+
+@pytest.mark.parametrize(
+    'last_good_dir',
+    (None, '/tmp/cafeteria-last-good', '/tmp/dishboard/nested-last-good', 'relative/cache'),
+)
+def test_production_requires_explicit_persistent_last_good_directory(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    last_good_dir: str | None,
+) -> None:
+    _production_environment(monkeypatch, tmp_path)
+    if last_good_dir is None:
+        monkeypatch.delenv('LAST_GOOD_DIR', raising=False)
+    else:
+        monkeypatch.setenv('LAST_GOOD_DIR', last_good_dir)
+
+    with pytest.raises(RuntimeError, match='LAST_GOOD_DIR'):
+        Config()
+
+
+def test_non_production_keeps_local_last_good_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv('APP_ENV', 'test')
+    monkeypatch.delenv('LAST_GOOD_DIR', raising=False)
+
+    assert Config().LAST_GOOD_DIR == '/tmp/cafeteria-last-good'

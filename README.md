@@ -43,15 +43,15 @@ Das Paket modelliert zwei getrennte Publikationskanäle:
 
 ## Anmeldung und lokale Konten
 
-Entra und lokal provisionierte Konten können parallel genutzt werden. Es gibt kein Self-Signup; lokale Anmeldung ist mit `LOCAL_AUTH_ENABLED=false` standardmäßig aus. Produktion benötigt getrennte, nicht voreingestellte Credentials: `DATABASE_URL` für `cafeteria_app`, `POSTGRES_AUTH_ISSUER_PASSWORD` für die Rollenprovisionierung und `AUTH_ISSUER_DATABASE_URL` mit dem Benutzer `cafeteria_auth_issuer` für Entra-Synchronisation und administrative Auth-Aktionen. `SESSION_REDIS_URL` ist für produktive Sessions und die fail-closed Login-Rate-Limitierung zwingend.
+Entra und lokal provisionierte Konten können parallel genutzt werden. Es gibt kein Self-Signup; lokale Anmeldung ist mit `LOCAL_AUTH_ENABLED=false` standardmäßig aus. Produktion benötigt getrennte, nicht voreingestellte Credentials: `DATABASE_URL` für `cafeteria_app` und `POSTGRES_AUTH_ISSUER_PASSWORD_FILE` als ausschließliche Quelle für das Issuer-Passwort. `AUTH_ISSUER_DATABASE_URL` darf nicht persistent konfiguriert werden; die Issuer-Verbindung wird erst im Prozess aus dem Password-File abgeleitet. `SESSION_REDIS_URL` ist für produktive Sessions und die fail-closed Login-Rate-Limitierung zwingend.
 
-Nach sicherer Bereitstellung der Issuer-URL werden lokale Konten ausschließlich interaktiv verwaltet:
+Nach sicherer Bereitstellung des Issuer-Password-Files werden lokale Konten ausschließlich interaktiv und mit einem bereits verifizierten Administrator als Akteur verwaltet:
 
 ```bash
 cd reference_scaffold
-python manage.py provision-local-user --username kueche.admin --display-name "Küche Admin" --role Cafeteria.Admin
-python manage.py set-local-password --username kueche.admin
-python manage.py disable-local-user --username kueche.admin
+python manage.py provision-local-user --actor admin@example.invalid --username kueche.admin --display-name "Küche Admin" --role Cafeteria.Admin
+python manage.py set-local-password --actor admin@example.invalid --username kueche.admin
+python manage.py disable-local-user --actor admin@example.invalid --username kueche.admin
 ```
 
 Die Passwortbefehle fragen das Passwort verdeckt zweimal ab; ein Passwort-CLI-Argument existiert nicht. Zulässige Rollen sind exakt `Cafeteria.Editor`, `Cafeteria.Publisher` und `Cafeteria.Admin`.

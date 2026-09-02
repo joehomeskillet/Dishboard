@@ -449,6 +449,116 @@ def test_entra_callback_purges_empty_roles_before_denial(
         assert 'user' not in flask_session
 
 
+@pytest.mark.parametrize(
+    'supplied_roles',
+    (
+        ['Cafeteria.Editor', 'Unexpected.Role'],
+        ['Cafeteria.Editor', 'Cafeteria.Editor'],
+    ),
+)
+def test_entra_callback_rejects_invalid_roles_without_identity_mutation(
+    auth_app: tuple[Any, Engine, Engine],
+    monkeypatch: pytest.MonkeyPatch,
+    supplied_roles: list[str],
+) -> None:
+    application, owner_engine, issuer_engine = auth_app
+    original_claims = {
+        'tid': '00000000-0000-0000-0000-000000000711',
+        'oid': '00000000-0000-0000-0000-000000000722',
+        'sub': 'entra-invalid-role-subject',
+        'name': 'Unveränderte Identität',
+        'preferred_username': 'unchanged@example.invalid',
+    }
+    application.config['ENTRA_TENANT_ID'] = original_claims['tid']
+    user_id = database.upsert_entra_user(
+        issuer_engine,
+        original_claims,
+        ['Cafeteria.Editor'],
+    )
+    with owner_engine.connect() as connection:
+        before = connection.execute(
+            text(
+                '''
+                SELECT display_name, preferred_username, last_seen_roles,
+                       last_login_at, authz_version,
+                       (SELECT array_agg(role_code ORDER BY role_code)
+                          FROM cafeteria.user_role_cache r WHERE r.user_id=u.id) AS roles
+                FROM cafeteria.users u WHERE id=:id
+                '''
+            ),
+            {'id': user_id},
+        ).one()
+    invalid_claims = original_claims | {
+        'name': 'Darf nicht gespeichert werden',
+        'preferred_username': 'mutated@example.invalid',
+        'roles': supplied_roles,
+    }
+    monkeypatch.setattr(auth_routes, '_client', lambda: FakeMsalClient(invalid_claims))
+    client = application.test_client()
+    with client.session_transaction() as flask_session:
+        flask_session['auth_flow'] = {'state': 'test-state'}
+
+    response = client.get('/auth/callback')
+
+    with owner_engine.connect() as connection:
+        after = connection.execute(
+            text(
+                '''
+                SELECT display_name, preferred_username, last_seen_roles,
+                       last_login_at, authz_version,
+                       (SELECT array_agg(role_code ORDER BY role_code)
+                          FROM cafeteria.user_role_cache r WHERE r.user_id=u.id) AS roles
+                FROM cafeteria.users u WHERE id=:id
+                '''
+            ),
+            {'id': user_id},
+        ).one()
+    assert response.status_code == 403
+    assert after == before
+    with client.session_transaction() as flask_session:
+        assert 'user' not in flask_session
+
+
+def test_entra_callback_accepts_exact_unique_application_roles(
+    auth_app: tuple[Any, Engine, Engine],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    application, owner_engine, _ = auth_app
+    claims = {
+        'tid': '00000000-0000-0000-0000-000000000811',
+        'oid': '00000000-0000-0000-0000-000000000822',
+        'sub': 'entra-valid-role-subject',
+        'name': 'Gültige Entra Identität',
+        'roles': ['Cafeteria.Publisher', 'Cafeteria.Editor'],
+    }
+    application.config['ENTRA_TENANT_ID'] = claims['tid']
+    monkeypatch.setattr(auth_routes, '_client', lambda: FakeMsalClient(claims))
+    client = application.test_client()
+    with client.session_transaction() as flask_session:
+        flask_session['auth_flow'] = {'state': 'test-state'}
+
+    response = client.get('/auth/callback')
+
+    with owner_engine.connect() as connection:
+        roles = connection.execute(
+            text(
+                '''
+                SELECT array_agg(r.role_code ORDER BY r.role_code)
+                FROM cafeteria.users u
+                JOIN cafeteria.user_role_cache r ON r.user_id=u.id
+                WHERE u.entra_tenant_id=CAST(:tid AS uuid)
+                  AND u.entra_object_id=CAST(:oid AS uuid)
+                '''
+            ),
+            {'tid': claims['tid'], 'oid': claims['oid']},
+        ).scalar_one()
+    assert response.status_code == 302
+    assert roles == ['Cafeteria.Editor', 'Cafeteria.Publisher']
+    with client.session_transaction() as flask_session:
+        assert flask_session['user']['provider'] == 'entra'
+        assert 'roles' not in flask_session
+
+
 def test_entra_callback_never_reactivates_disabled_user(
     auth_app: tuple[Any, Engine, Engine],
     monkeypatch: pytest.MonkeyPatch,

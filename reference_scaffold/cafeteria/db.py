@@ -9,15 +9,18 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
-from psycopg import sql
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
-from .credentials import validate_database_role_secret
+from .database_roles import (
+    RUNTIME_ROLE_READ_ONLY,
+    provision_database_roles as _provision_database_roles,
+    terminate_role_sessions as _default_terminate_role_sessions,
+)
 from .patient_payload import PROFILES, validate_snapshot_payload
 
-SCHEMA_VERSION = 10
-APPLICATION_VERSION = 'dishboard-schema-v10'
+SCHEMA_VERSION = 11
+APPLICATION_VERSION = 'dishboard-schema-v11'
 SYSTEM_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000001'
 DEMO_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000002'
 
@@ -37,6 +40,7 @@ MIGRATION_FILES = (
     (8, '0005_least_privilege_identity_contracts.sql'),
     (9, '0006_auth_issuer_and_local_login.sql'),
     (10, '0007_auth_security_hardening.sql'),
+    (11, '0008_auth_final_hardening.sql'),
 )
 MIGRATION_LOCK_ID = 731_905_005
 DEFAULT_CAPABILITY_TTL = timedelta(minutes=5)
@@ -47,6 +51,7 @@ ENTRA_APPLICATION_ROLES = frozenset({
     'Cafeteria.Admin',
 })
 LOCAL_USERNAME_PATTERN = re.compile(r'^[a-z0-9][a-z0-9._-]{2,63}$')
+_terminate_role_sessions = _default_terminate_role_sessions
 
 
 def create_database_engine(
@@ -221,65 +226,13 @@ def provision_database_roles(
     backup_password: str,
     auth_issuer_password: str = '',
 ) -> None:
-    credentials = (
-        ('cafeteria_app', app_password),
-        ('cafeteria_backup', backup_password),
-        ('cafeteria_auth_issuer', auth_issuer_password),
+    _provision_database_roles(
+        engine,
+        app_password=app_password,
+        backup_password=backup_password,
+        auth_issuer_password=auth_issuer_password,
+        terminate_sessions=_terminate_role_sessions,
     )
-    for role_name, password in credentials:
-        validate_database_role_secret(password, label=role_name)
-    if len({password for _, password in credentials}) != len(credentials):
-        raise RuntimeError('PostgreSQL-Rollen benötigen eigene, voneinander verschiedene Secrets.')
-    raw = engine.raw_connection()
-    try:
-        connection = _driver_connection(raw)
-        with connection.cursor() as cursor:
-            for role_name, password in credentials:
-                exists = cursor.execute(
-                    'SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = %s)', (role_name,)
-                ).fetchone()[0]
-                if exists:
-                    statement = sql.SQL(
-                        'ALTER ROLE {} WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE '
-                        'NOINHERIT NOREPLICATION NOBYPASSRLS PASSWORD {}'
-                    ).format(sql.Identifier(role_name), sql.Literal(password))
-                else:
-                    statement = sql.SQL(
-                        'CREATE ROLE {} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE '
-                        'NOINHERIT NOREPLICATION NOBYPASSRLS PASSWORD {}'
-                    ).format(sql.Identifier(role_name), sql.Literal(password))
-                cursor.execute(statement)
-                cursor.execute(sql.SQL('ALTER ROLE {} SET search_path = cafeteria, public').format(sql.Identifier(role_name)))
-                cursor.execute(sql.SQL("ALTER ROLE {} SET timezone = 'UTC'").format(sql.Identifier(role_name)))
-                read_only = 'on' if role_name == 'cafeteria_backup' else 'off'
-                cursor.execute(
-                    sql.SQL('ALTER ROLE {} SET default_transaction_read_only = {}').format(
-                        sql.Identifier(role_name), sql.SQL(read_only)
-                    )
-                )
-                memberships = cursor.execute(
-                    '''
-                    SELECT granted.rolname, member.rolname
-                    FROM pg_auth_members membership
-                    JOIN pg_roles granted ON granted.oid=membership.roleid
-                    JOIN pg_roles member ON member.oid=membership.member
-                    WHERE granted.rolname=%s OR member.rolname=%s
-                    ''',
-                    (role_name, role_name),
-                ).fetchall()
-                for granted_role, member_role in memberships:
-                    cursor.execute(
-                        sql.SQL('REVOKE {} FROM {}').format(
-                            sql.Identifier(granted_role),
-                            sql.Identifier(member_role),
-                        )
-                    )
-        connection.commit()
-    except Exception:
-        raw.rollback()
-        raise
-    finally:
-        raw.close()
 
 
 def init_database(
@@ -342,7 +295,8 @@ def validate_database(engine: Engine) -> dict[str, Any]:
                 '''
                 WITH issuer AS (
                     SELECT oid, rolcanlogin, rolsuper, rolcreatedb, rolcreaterole,
-                           rolinherit, rolreplication, rolbypassrls
+                           rolinherit, rolreplication, rolbypassrls, rolconnlimit,
+                           rolvaliduntil, rolconfig
                     FROM pg_roles WHERE rolname='cafeteria_auth_issuer'
                 ), allowed_functions(signature) AS (
                     VALUES
@@ -384,13 +338,71 @@ def validate_database(engine: Engine) -> dict[str, Any]:
                        AND p.oid <> ALL(
                            ARRAY(SELECT to_regprocedure(f.signature) FROM allowed_functions f)
                        )) AS unexpected_execute_count
+                    ,CASE WHEN EXISTS (SELECT 1 FROM issuer)
+                          THEN has_schema_privilege(
+                              'cafeteria_auth_issuer', 'cafeteria', 'CREATE'
+                          ) ELSE true END AS can_create_cafeteria_schema
+                    ,CASE WHEN EXISTS (SELECT 1 FROM issuer)
+                          THEN has_schema_privilege(
+                              'cafeteria_auth_issuer', 'public', 'CREATE'
+                          ) ELSE true END AS can_create_public_schema
+                    ,COALESCE((SELECT rolconnlimit FROM issuer), 0) AS connection_limit
+                    ,COALESCE(
+                        (SELECT rolvaliduntil='infinity'::timestamptz FROM issuer),
+                        false
+                    ) AS valid_until_infinity
                 '''
             )
         ).mappings().one()
+        runtime_roles = connection.execute(
+            text(
+                '''
+                SELECT rolname, rolconnlimit,
+                       rolvaliduntil='infinity'::timestamptz AS valid_until_infinity,
+                       rolconfig
+                FROM pg_roles
+                WHERE rolname IN (
+                    'cafeteria_app', 'cafeteria_backup', 'cafeteria_auth_issuer'
+                )
+                ORDER BY rolname
+                '''
+            )
+        ).mappings().all()
+    runtime_role_config_valid: dict[str, bool] = {}
+    for role in runtime_roles:
+        config = {
+            str(setting).split('=', 1)[0].casefold(): str(setting).split('=', 1)[1]
+            for setting in (role.rolconfig or [])
+            if '=' in str(setting)
+        }
+        runtime_role_config_valid[str(role.rolname)] = config == {
+            'search_path': 'cafeteria, public',
+            'timezone': 'UTC',
+            'default_transaction_read_only': RUNTIME_ROLE_READ_ONLY[str(role.rolname)],
+        }
+    runtime_role_hardening_ready = (
+        len(runtime_roles) == len(RUNTIME_ROLE_READ_ONLY)
+        and all(
+            role.rolconnlimit == -1
+            and role.valid_until_infinity
+            and runtime_role_config_valid[str(role.rolname)]
+            for role in runtime_roles
+        )
+    )
     result = dict(row)
     result['auth_issuer_direct_table_privilege_count'] = int(issuer.table_privilege_count)
     result['auth_issuer_direct_sequence_privilege_count'] = int(issuer.sequence_privilege_count)
     result['auth_issuer_membership_count'] = int(issuer.membership_count)
+    result['auth_issuer_can_create_cafeteria_schema'] = bool(
+        issuer.can_create_cafeteria_schema
+    )
+    result['auth_issuer_can_create_public_schema'] = bool(issuer.can_create_public_schema)
+    result['auth_issuer_connection_limit'] = int(issuer.connection_limit)
+    result['auth_issuer_valid_until_infinity'] = bool(issuer.valid_until_infinity)
+    result['auth_issuer_role_config_valid'] = runtime_role_config_valid.get(
+        'cafeteria_auth_issuer', False
+    )
+    result['runtime_role_hardening_ready'] = runtime_role_hardening_ready
     result['auth_issuer_ready'] = (
         issuer.role_exists
         and issuer.can_login
@@ -400,6 +412,11 @@ def validate_database(engine: Engine) -> dict[str, Any]:
         and issuer.sequence_privilege_count == 0
         and issuer.allowed_execute_count == 5
         and issuer.unexpected_execute_count == 0
+        and not issuer.can_create_cafeteria_schema
+        and not issuer.can_create_public_schema
+        and issuer.connection_limit == -1
+        and issuer.valid_until_infinity
+        and result['auth_issuer_role_config_valid']
     )
     result['ready'] = (
         result['schema_version'] >= SCHEMA_VERSION
@@ -408,6 +425,7 @@ def validate_database(engine: Engine) -> dict[str, Any]:
         and result['invalid_index_count'] == 0
         and result['unvalidated_constraint_count'] == 0
         and result['auth_issuer_ready']
+        and result['runtime_role_hardening_ready']
     )
     return result
 

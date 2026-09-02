@@ -186,24 +186,6 @@ def authenticate_local_user(
                         'user_id': row.id,
                     },
                 )
-                if starts_lock_cycle:
-                    connection.execute(
-                        text(
-                            '''
-                            INSERT INTO cafeteria.audit_events(
-                                actor_user_id, action, entity_type, details
-                            )
-                            VALUES (
-                                NULL, 'auth.local_login_locked', 'user',
-                                jsonb_build_object(
-                                    'user_id', CAST(:user_id AS bigint),
-                                    'failed_login_count', :failed_count
-                                )
-                            )
-                            '''
-                        ),
-                        {'user_id': row.id, 'failed_count': next_count},
-                    )
             return None
 
         roles = _active_roles(connection, int(row.id))

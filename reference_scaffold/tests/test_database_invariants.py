@@ -165,8 +165,9 @@ def test_migration_plan_is_ordered_and_preserves_0001_bytes() -> None:
         (8, '0005_least_privilege_identity_contracts.sql'),
         (9, '0006_auth_issuer_and_local_login.sql'),
         (10, '0007_auth_security_hardening.sql'),
+        (11, '0008_auth_final_hardening.sql'),
     ]
-    assert database.SCHEMA_VERSION == 10
+    assert database.SCHEMA_VERSION == 11
     migrations = ROOT / 'database' / 'migrations'
     assert hashlib.sha256((migrations / '0001_initial_postgresql.sql').read_bytes()).hexdigest() == (
         'd1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0'
@@ -191,7 +192,7 @@ def test_empty_database_runs_0001_then_0002(database_engine: Engine) -> None:
         local_credentials = connection.execute(
             text("SELECT to_regclass('cafeteria.local_credentials')")
         ).scalar_one()
-    assert [row.version for row in rows] == [4, 5, 6, 7, 8, 9, 10]
+    assert [row.version for row in rows] == [4, 5, 6, 7, 8, 9, 10, 11]
     assert rows[0].name == '0001_initial_postgresql.sql'
     assert rows[1].name == '0002_profile_publication_and_local_auth.sql'
     assert rows[2].name == '0003_patient_key_and_withdrawal_contracts.sql'
@@ -199,6 +200,7 @@ def test_empty_database_runs_0001_then_0002(database_engine: Engine) -> None:
     assert rows[4].name == '0005_least_privilege_identity_contracts.sql'
     assert rows[5].name == '0006_auth_issuer_and_local_login.sql'
     assert rows[6].name == '0007_auth_security_hardening.sql'
+    assert rows[7].name == '0008_auth_final_hardening.sql'
     assert local_credentials == 'cafeteria.local_credentials'
 
 
@@ -234,7 +236,7 @@ def test_v4_fixture_migrates_without_replaying_0001() -> None:
         versions = connection.execute(
             text('SELECT version FROM cafeteria.schema_migrations ORDER BY version')
         ).scalars().all()
-    assert versions == [4, 5, 6, 7, 8, 9, 10]
+    assert versions == [4, 5, 6, 7, 8, 9, 10, 11]
     _drop_schema(engine)
     engine.dispose()
 
@@ -958,7 +960,7 @@ def test_v4_draft_revision_is_withdrawn_and_not_public() -> None:
                 '''
             )
         ).all()
-    assert versions == [4, 5, 6, 7, 8, 9, 10]
+    assert versions == [4, 5, 6, 7, 8, 9, 10, 11]
     assert int(public_rows) == 0
     assert withdrawn[0] is True
     assert 'v4' in withdrawn[1]
@@ -1845,6 +1847,7 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
         'hard_reset_auth_capability_state',
         'issue_publication_capability',
         'provision_local_user',
+        'record_local_login_lock',
         'record_publication_lifecycle',
         'resolve_auth_actor',
         'rotate_auth_capability_secret',
@@ -1884,17 +1887,21 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
                 connection.execute(
                     text("SELECT nextval('cafeteria.auth_capability_secrets_id_seq')")
                 ).scalar_one()
-        with app_engine.begin() as connection:
-            audit_id = connection.execute(
-                text(
-                    '''
-                    INSERT INTO cafeteria.audit_events(action, entity_type)
-                    VALUES ('sequence-contract', 'test')
-                    RETURNING id
-                    '''
+        with pytest.raises(DBAPIError, match='permission denied|42501'):
+            with app_engine.begin() as connection:
+                connection.execute(
+                    text(
+                        '''
+                        INSERT INTO cafeteria.audit_events(action, entity_type)
+                        VALUES ('sequence-contract', 'test')
+                        '''
+                    )
                 )
-            ).scalar_one()
-        assert int(audit_id) > 0
+        with pytest.raises(DBAPIError, match='permission denied|42501'):
+            with app_engine.begin() as connection:
+                connection.execute(
+                    text("SELECT nextval('cafeteria.audit_events_id_seq')")
+                ).scalar_one()
         database.withdraw_publication_revision(
             app_engine,
             revision_id,

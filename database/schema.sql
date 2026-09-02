@@ -715,6 +715,32 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION record_local_login_lock()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = cafeteria, pg_temp
+AS $$
+BEGIN
+    IF NEW.failed_login_count >= 5
+       AND NEW.locked_until IS NOT NULL
+       AND NEW.locked_until > clock_timestamp()
+       AND (OLD.locked_until IS NULL OR OLD.locked_until <= clock_timestamp()) THEN
+        INSERT INTO audit_events(actor_user_id, action, entity_type, details)
+        VALUES (
+            NULL,
+            'auth.local_login_locked',
+            'user',
+            jsonb_build_object(
+                'user_id', NEW.user_id,
+                'failed_login_count', NEW.failed_login_count
+            )
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION validate_publication_revision()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -1640,6 +1666,11 @@ DROP TRIGGER IF EXISTS trg_local_credentials_updated_at ON local_credentials;
 CREATE TRIGGER trg_local_credentials_updated_at BEFORE UPDATE ON local_credentials
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
+DROP TRIGGER IF EXISTS trg_local_credentials_login_lock_audit ON local_credentials;
+CREATE TRIGGER trg_local_credentials_login_lock_audit
+AFTER UPDATE OF failed_login_count, locked_until ON local_credentials
+FOR EACH ROW EXECUTE FUNCTION record_local_login_lock();
+
 DROP TRIGGER IF EXISTS trg_user_role_source ON user_role_cache;
 CREATE TRIGGER trg_user_role_source BEFORE INSERT OR UPDATE ON user_role_cache
 FOR EACH ROW EXECUTE FUNCTION validate_user_role_source();
@@ -1736,6 +1767,7 @@ ALTER FUNCTION issue_publication_capability(bigint, bigint, interval) SET search
 ALTER FUNCTION withdraw_publication_revision(bigint, text, text) SET search_path = cafeteria, pg_temp;
 ALTER FUNCTION protect_publication_lifecycle_event() SET search_path = cafeteria, pg_temp;
 ALTER FUNCTION protect_audit_event() SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION record_local_login_lock() SET search_path = cafeteria, pg_temp;
 ALTER FUNCTION validate_local_credential() SET search_path = cafeteria, pg_temp;
 ALTER FUNCTION validate_user_auth_provider() SET search_path = cafeteria, pg_temp;
 ALTER FUNCTION validate_user_role_source() SET search_path = cafeteria, pg_temp;
@@ -1749,11 +1781,17 @@ BEGIN
 END;
 $auth_issuer_privileges$;
 
-REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA cafeteria FROM PUBLIC;
-REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA cafeteria FROM cafeteria_auth_issuer;
-ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
-ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria REVOKE EXECUTE ON FUNCTIONS FROM cafeteria_auth_issuer;
-GRANT USAGE ON SCHEMA cafeteria TO cafeteria_auth_issuer;
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA cafeteria
+FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
+ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria REVOKE EXECUTE ON FUNCTIONS
+FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
+REVOKE ALL ON SCHEMA cafeteria
+FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON SCHEMA public
+FROM cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
+GRANT USAGE ON SCHEMA cafeteria
+TO cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
 REVOKE ALL ON ALL TABLES IN SCHEMA cafeteria FROM cafeteria_auth_issuer;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA cafeteria FROM cafeteria_auth_issuer;
 GRANT EXECUTE ON FUNCTION

@@ -133,8 +133,15 @@ def callback():
         abort(403)
     supplied_roles = claims.get('roles') or []
     if not isinstance(supplied_roles, list) or any(not isinstance(role, str) for role in supplied_roles):
+        session.clear()
         abort(403)
-    roles = [role for role in supplied_roles if role in ROLE_CAPABILITIES]
+    if (
+        len(set(supplied_roles)) != len(supplied_roles)
+        or any(role not in ROLE_CAPABILITIES for role in supplied_roles)
+    ):
+        session.clear()
+        abort(403)
+    roles = supplied_roles
     issuer_engine = current_app.extensions.get('cafeteria_auth_issuer_db')
     if issuer_engine is None:
         return render_template('auth/error.html', message='Anmeldung vorübergehend nicht verfügbar.'), 503
