@@ -234,6 +234,75 @@ def _set_unbroken_signage_boundaries(
     return title, component
 
 
+@pytest.mark.parametrize('path', ('/admin/cafeteria', '/admin/patienten'))
+def test_admin_review_checkboxes_rehydrate_canonical_checked_status(
+    app: Flask,
+    path: str,
+) -> None:
+    html = _client(app).get(path).get_data(as_text=True)
+    review_inputs = re.findall(
+        r'<input type="checkbox" name="[^"]+_allergen_reviewed"([^>]*)>',
+        html,
+    )
+
+    assert review_inputs
+    assert all(re.search(r'\bchecked\b', attributes) for attributes in review_inputs)
+
+
+@pytest.mark.parametrize(
+    ('path', 'expected_pills'),
+    (
+        (
+            '/cafeteria/heute/',
+            {'Einmalig Vegan', 'Enthält: Einmalig Gluten', 'Einmalig Rind: Schweiz'},
+        ),
+        (
+            '/patienten/heute/',
+            {'Einmalig Vegan', 'Enthält: Einmalig Gluten', 'Einmalig Rind: Schweiz'},
+        ),
+        (
+            '/signage/patienten/tag',
+            {'Einmalig Vegan', 'Einmalig Gluten', 'Einmalig Rind: Schweiz'},
+        ),
+    ),
+)
+def test_today_channels_render_each_menu_metadata_pill_once(
+    app: Flask,
+    path: str,
+    expected_pills: set[str],
+) -> None:
+    for snapshot in app.config['TEST_SNAPSHOTS'].values():
+        for day in snapshot['days']:
+            for meal in day['services']:
+                for option in meal['options']:
+                    option['labels'] = []
+                    option['allergens'] = []
+                    option['origins'] = []
+
+        today = next(day for day in snapshot['days'] if day['date'] == '2026-09-02')
+        option = today['services'][0]['options'][0]
+        option['labels'] = [{'code': 'UNIQUE_LABEL', 'name': 'Einmalig Vegan'}]
+        option['allergens'] = [
+            {'code': 'UNIQUE_ALLERGEN', 'name': 'Einmalig Gluten', 'presence': 'contains'},
+        ]
+        option['origins'] = [
+            {
+                'ingredient': 'Einmalig Rind',
+                'country_code': 'CH',
+                'text': 'Einmalig Rind: Schweiz',
+            },
+        ]
+
+    html = _client(app).get(path).get_data(as_text=True)
+    pills = {
+        value.strip()
+        for value in re.findall(r'<span class="label(?: [^"]*)?">([^<]*)</span>', html)
+    }
+
+    assert len(re.findall(r'<span class="label(?: [^"]*)?">', html)) == 3
+    assert pills == expected_pills
+
+
 def test_real_routes_render_exact_profile_grids_without_cross_profile_data(app: Flask) -> None:
     client = _client(app)
     cafeteria = client.get('/signage/cafeteria/woche').get_data(as_text=True)

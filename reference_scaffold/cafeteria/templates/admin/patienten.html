@@ -132,7 +132,7 @@
                     {{ field_error(origins_field, origins_field ~ '_error') }}
                     {# Allergen Review Status #}
                     {% set review_field = option_prefix ~ '_allergen_reviewed' %}
-                    <label><input type="checkbox" name="{{ review_field }}"{% if submitted.get(review_field) == 'on' %} checked{% elif option.allergen_review_status == 'reviewed' %} checked{% endif %}> Allergene geprüft</label>
+                    <label><input type="checkbox" name="{{ review_field }}"{% if submitted.get(review_field) == 'on' %} checked{% elif option.allergen_review_status == 'checked' %} checked{% endif %}> Allergene geprüft</label>
                   </div>
                   {% endfor %}
                 </div>
