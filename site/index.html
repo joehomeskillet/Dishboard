@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="rgb(21 68 63)">
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'self'; img-src 'self' data:; font-src 'none'; script-src 'none'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    >
+    <meta
+      name="description"
+      content="Dishboard trennt Patienten-Speisepläne und Cafeteria-Angebote vom Küchenraster bis zur Publikation."
+    >
+    <title>Dishboard — Menüplanung mit klarer Kanaltrennung</title>
+    <link rel="stylesheet" href="foundation.css">
+    <link rel="stylesheet" href="components.css">
+    <link rel="stylesheet" href="responsive.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Zum Inhalt springen</a>
+
+    <header class="site-header">
+      <a class="brand" href="#main" aria-label="Dishboard Startseite">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i></span>
+        <span>Dishboard</span>
+      </a>
+      <nav aria-label="Seitennavigation">
+        <a href="#profiles">Profile</a>
+        <a href="#signage">Signage</a>
+        <a href="#architecture">Technik</a>
+      </nav>
+      <a class="header-link" href="https://github.com/joehomeskillet/Dishboard">GitHub</a>
+    </header>
+
+    <main id="main">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Menüplanung für Klinik &amp; Cafeteria</p>
+          <h1 id="hero-title">Zwei Zielgruppen.<br><em>Zwei Publikationen.</em><br>Kein Datenmix.</h1>
+          <p class="hero-intro">
+            Dishboard führt Küchenplanung, Freigabe und Ausgabe in einer Flask-/PostgreSQL-Anwendung zusammen — mit strikt getrennten Kanälen für Patienten und Cafeteria.
+          </p>
+          <div class="hero-actions" aria-label="Projektlinks">
+            <a class="button button-primary" href="https://github.com/joehomeskillet/Dishboard">Code auf GitHub</a>
+            <a class="button button-secondary" href="https://dishboard.joelduss.xyz/">Zieladresse öffnen</a>
+          </div>
+          <p class="project-note"><span aria-hidden="true"></span> Öffentliches Open-Source-Projekt in Entwicklung</p>
+        </div>
+
+        <div class="menu-board" aria-label="Schematische Darstellung der getrennten Menüprofile">
+          <article class="menu-sheet menu-sheet-patient">
+            <div class="sheet-heading">
+              <p>Patienten</p>
+              <span>Mo–So</span>
+            </div>
+            <h2>Mittag &amp; Abend</h2>
+            <div class="meal-row"><span>Menü 1</span><b aria-hidden="true"></b></div>
+            <div class="meal-row"><span>Vegetarisch</span><b aria-hidden="true"></b></div>
+            <p class="sheet-rule">ohne Kostenangaben</p>
+          </article>
+          <article class="menu-sheet menu-sheet-cafeteria">
+            <div class="sheet-heading">
+              <p>Cafeteria</p>
+              <span>Mo–Fr</span>
+            </div>
+            <h2>Mittagsangebot</h2>
+            <div class="meal-row"><span>Menü 1</span><b aria-hidden="true"></b></div>
+            <div class="meal-row"><span>Vegetarisch</span><b aria-hidden="true"></b></div>
+            <p class="sheet-rule">Mitarbeitende &amp; Externe</p>
+          </article>
+          <span class="board-label" aria-hidden="true">Woche</span>
+        </div>
+      </section>
+
+      <section class="profile-section" id="profiles" aria-labelledby="profiles-title">
+        <div class="section-heading">
+          <p class="eyebrow">Kanaltrennung als Grundprinzip</p>
+          <h2 id="profiles-title">Ein System, zwei klare Raster</h2>
+          <p>Jedes Profil hat eigene Regeln, Revisionen und öffentliche Ansichten. Entwürfe bleiben intern.</p>
+        </div>
+
+        <div class="profile-grid">
+          <article class="profile-card profile-patient">
+            <p class="card-index">01 / Patienten</p>
+            <h3>Die ganze Woche im Blick</h3>
+            <p>Montag bis Sonntag, Mittag und Abend, jeweils Menü 1 und vegetarische Auswahl.</p>
+            <ul>
+              <li>Web-, Mobile- und Druckansicht</li>
+              <li>Tages- und Wochen-Signage</li>
+              <li>Kanal technisch ohne Kostenfelder</li>
+            </ul>
+          </article>
+
+          <article class="profile-card profile-cafeteria">
+            <p class="card-index">02 / Cafeteria</p>
+            <h3>Fokussiert auf den Mittag</h3>
+            <p>Montag bis Freitag mit zwei Menüarten und getrennten Ansätzen für Mitarbeitende und externe Gäste.</p>
+            <ul>
+              <li>Samstag und Sonntag geschlossen</li>
+              <li>Eigene Publikation und Datenquelle</li>
+              <li>Kein Rückgriff auf Patientengerichte</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="signage-section" id="signage" aria-labelledby="signage-title">
+        <div class="signage-copy">
+          <p class="eyebrow">Vier feste Player</p>
+          <h2 id="signage-title">Ausgabe ohne Umwege</h2>
+          <p>Jeder Bildschirm besitzt eine feste Profil- und Zeitansicht — ohne Website-Navigation, Profilparameter oder Scrollen.</p>
+        </div>
+        <div class="route-list" aria-label="Signage-Routen">
+          <div><span>Cafeteria</span><code>/signage/cafeteria/tag</code><b>Tag</b></div>
+          <div><span>Cafeteria</span><code>/signage/cafeteria/woche</code><b>Woche</b></div>
+          <div><span>Patienten</span><code>/signage/patienten/tag</code><b>Tag</b></div>
+          <div><span>Patienten</span><code>/signage/patienten/woche</code><b>Woche · 4K</b></div>
+        </div>
+      </section>
+
+      <section class="architecture-section" id="architecture" aria-labelledby="architecture-title">
+        <div class="section-heading section-heading-light">
+          <p class="eyebrow">Solider, überschaubarer Stack</p>
+          <h2 id="architecture-title">Für den Küchenalltag gebaut</h2>
+        </div>
+        <div class="architecture-grid">
+          <article>
+            <span class="architecture-number">01</span>
+            <h3>Flask</h3>
+            <p>Serverseitige Ansichten und einfache Küchenraster statt unnötiger CMS-Komplexität.</p>
+          </article>
+          <article>
+            <span class="architecture-number">02</span>
+            <h3>PostgreSQL</h3>
+            <p>Profilregeln, Mahlzeiten und Publikationen werden bereits in der Datenbank abgesichert.</p>
+          </article>
+          <article>
+            <span class="architecture-number">03</span>
+            <h3>Lokale Konten + Entra</h3>
+            <p>Projektumfang für lokale Zugänge sowie Microsoft Entra ID mit rollenbasierter Küchenfreigabe.</p>
+          </article>
+          <article>
+            <span class="architecture-number">04</span>
+            <h3>Unabhängige Revisionen</h3>
+            <p>Tag und Woche eines Profils stammen aus derselben Publikation; das andere Profil bleibt unberührt.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="closing-section" aria-labelledby="closing-title">
+        <p class="eyebrow">Projekt ansehen</p>
+        <h2 id="closing-title">Transparenter Code.<br>Klare Grenzen.</h2>
+        <p>Quellcode, Architektur und fachliche Regeln sind im öffentlichen Repository dokumentiert.</p>
+        <a class="button button-primary" href="https://github.com/joehomeskillet/Dishboard">Repository öffnen</a>
+      </section>
+    </main>
+
+    <footer>
+      <a class="brand brand-footer" href="#main">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i></span>
+        <span>Dishboard</span>
+      </a>
+      <p>Menüplanung mit konsequenter Profiltrennung.</p>
+      <a href="https://github.com/joehomeskillet/Dishboard">GitHub-Projekt</a>
+    </footer>
+  </body>
+</html>

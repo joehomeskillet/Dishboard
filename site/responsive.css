@@ -1,0 +1,247 @@
+.architecture-section {
+  padding: var(--space-7) max(var(--space-4), calc((100vw - var(--content-width)) / 2));
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.section-heading-light {
+  width: 100%;
+}
+
+.section-heading-light .eyebrow {
+  color: var(--color-accent);
+}
+
+.architecture-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid color-mix(in oklch, var(--color-paper) 24%, transparent);
+}
+
+.architecture-grid article {
+  min-height: 19rem;
+  padding: var(--space-5) var(--space-4);
+  border-right: 1px solid color-mix(in oklch, var(--color-paper) 24%, transparent);
+}
+
+.architecture-grid article:last-child {
+  border-right: 0;
+}
+
+.architecture-number {
+  display: block;
+  margin-bottom: var(--space-7);
+  color: var(--color-accent);
+  font-family: var(--font-display);
+  font-style: italic;
+}
+
+.architecture-grid h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.architecture-grid p {
+  color: color-mix(in oklch, var(--color-paper) 72%, transparent);
+  font-size: 0.9rem;
+}
+
+.closing-section {
+  text-align: center;
+}
+
+.closing-section .eyebrow {
+  color: var(--color-cafeteria);
+}
+
+.closing-section h2 {
+  max-width: 14ch;
+  margin-inline: auto;
+}
+
+.closing-section p:not(.eyebrow) {
+  max-width: 38rem;
+  margin: var(--space-4) auto var(--space-5);
+  color: var(--color-ink-soft);
+}
+
+footer {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-4);
+  width: min(calc(100% - 3rem), var(--content-width));
+  min-height: 7rem;
+  margin-inline: auto;
+  border-top: 1px solid var(--color-line);
+  color: var(--color-ink-soft);
+  font-size: 0.82rem;
+}
+
+footer p {
+  text-align: center;
+}
+
+footer > a:last-child {
+  justify-self: end;
+  min-height: 2.75rem;
+  padding-block: 0.6rem;
+}
+
+.brand-footer {
+  color: var(--color-ink);
+}
+
+@media (max-width: 62rem) {
+  .site-header {
+    grid-template-columns: 1fr auto;
+  }
+
+  nav {
+    display: none;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-copy {
+    max-width: 48rem;
+  }
+
+  .menu-board {
+    width: min(100%, 38rem);
+    margin-inline: auto;
+  }
+
+  .architecture-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .architecture-grid article:nth-child(2) {
+    border-right: 0;
+  }
+
+  .architecture-grid article:nth-child(-n + 2) {
+    border-bottom: 1px solid color-mix(in oklch, var(--color-paper) 24%, transparent);
+  }
+}
+
+@media (max-width: 44rem) {
+  .site-header,
+  .hero,
+  .profile-section,
+  .signage-section,
+  .closing-section,
+  footer {
+    width: min(calc(100% - 2rem), var(--content-width));
+  }
+
+  .header-link {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .hero {
+    min-height: auto;
+    padding-block: var(--space-6);
+  }
+
+  h1 {
+    font-size: clamp(2.75rem, 16vw, 4.6rem);
+  }
+
+  .menu-board {
+    min-height: 29rem;
+    padding: var(--space-3);
+    transform: none;
+  }
+
+  .menu-sheet {
+    width: min(84%, 20rem);
+  }
+
+  .menu-sheet-patient {
+    left: 0;
+  }
+
+  .menu-sheet-cafeteria {
+    right: 0;
+  }
+
+  .board-label {
+    display: none;
+  }
+
+  .section-heading,
+  .profile-grid,
+  .signage-section {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-card {
+    min-height: auto;
+  }
+
+  .signage-copy {
+    position: static;
+  }
+
+  .route-list div {
+    grid-template-columns: 1fr auto;
+    padding-block: var(--space-3);
+  }
+
+  .route-list code {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .architecture-section {
+    padding-block: var(--space-6);
+  }
+
+  .architecture-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .architecture-grid article,
+  .architecture-grid article:nth-child(2) {
+    min-height: auto;
+    border-right: 0;
+    border-bottom: 1px solid color-mix(in oklch, var(--color-paper) 24%, transparent);
+  }
+
+  .architecture-grid article:last-child {
+    border-bottom: 0;
+  }
+
+  .architecture-number {
+    margin-bottom: var(--space-5);
+  }
+
+  footer {
+    grid-template-columns: 1fr;
+    padding-block: var(--space-4);
+    text-align: center;
+  }
+
+  footer .brand,
+  footer > a:last-child {
+    justify-self: center;
+  }
+
+  footer p {
+    margin: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .button {
+    transition-duration: 0.01ms;
+  }
+}
