@@ -40,16 +40,16 @@
 - Südhang-Logo oben rechts im Header.
 - Kanalnavigation (Patienten/Cafeteria) oben links.
 - Beilagen-Pills gleich hoch und in Menüart-Farbe gerendert.
-- Patienten-Wochenansicht: Datumsbereich (z. B. „Montag 31. Aug – Sonntag 6. Sept") als Seitentitel.
+- Patienten-Wochenansicht und Druck: vollständiger `date_long`-Datumsbereich (z. B. „31. August 2026 bis 6. September 2026") als Seitentitel.
 
 **Labels und Allergene:**
-- Labels-Feld für Gerichte (z. B. Regional, Bio, Vegetarisch).
-- Allergene-Felder: „enthält" und „Spuren" als Multi-Select.
-- Herkunft `Zutat=CH|EU|…` pro Gericht.
+- Label-Checkboxen mit den Seed-Optionen `VEGETARIAN`, `VEGAN`, `LACTOSE_FREE` und `GLUTEN_FREE`.
+- Allergen-Checkboxgruppen für „enthält" und „Spuren".
+- Herkunft als wiederholte Segmente mit genau einem `=` pro Segment, z. B. `Zutat=CH|Zutat2=DE`.
 - Review-Status `not_checked`/`checked` für jede Menüoption.
 - Publikation erfordert, dass alle Menüoptionen auf `checked` gesetzt sind (Review-Gate).
 - Rendering als Pills in Web-Ansichten, Signage, Druck und API.
-- Admin-Formular mit einer Checkbox für den Review-Status je Menüoption und Multi-Select für Allergen-/Label-Kategorien.
+- Admin-Formular mit einer Checkbox für den Review-Status je Menüoption und Checkboxgruppen für Allergen- und Label-Kategorien.
 
 ---
 
