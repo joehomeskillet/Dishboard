@@ -322,7 +322,6 @@ def build(source: Path, output: Path) -> None:
             continue
 
         if stripped.startswith('```'):
-            language = stripped[3:].strip()
             code: list[str] = []
             index += 1
             while index < len(raw_lines) and not raw_lines[index].strip().startswith('```'):
