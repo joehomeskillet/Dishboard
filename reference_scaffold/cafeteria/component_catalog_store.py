@@ -120,7 +120,7 @@ def find_components(
     clean_category = None if category is None else _category(category)
     if type(include_archived) is not bool:
         raise ComponentCatalogValidationError('Ungültiger Archivfilter.')
-    escaped_query = _escape_like(query)
+    escaped_query = _escape_like(query.strip())
     with engine.begin() as connection:
         _require_scope_location(connection, scope)
         rows = connection.execute(
