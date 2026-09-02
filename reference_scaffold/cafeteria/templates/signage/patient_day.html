@@ -7,7 +7,7 @@
 <main class="signage-shell" aria-label="Patienten-Tagesplayer">
   <header class="signage-header">
     <div class="signage-brand">
-      <div class="wordmark"><span class="wordmark-mark" aria-hidden="true"></span><span>Klinik Südhang</span></div>
+      <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="signage-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="205" height="40">
       <span class="signage-kicker">Speiseplan für Patientinnen und Patienten</span>
     </div>
     <div class="signage-date"><strong>{{ day.weekday if day else 'Heute' }}</strong><span>{{ today|date_long }}</span></div>

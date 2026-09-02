@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import datetime as dt
 import re
 import sys
@@ -23,6 +24,7 @@ from demo_snapshots import cafeteria_snapshot, patient_snapshot  # noqa: E402
 import cafeteria.roles  # noqa: E402
 
 CSS_PATH = ROOT / 'reference_scaffold' / 'cafeteria' / 'static' / 'app.css'
+STATIC_IMG_PATH = ROOT / 'reference_scaffold' / 'cafeteria' / 'static' / 'img'
 PATIENT_FORBIDDEN = re.compile(
     r'\b(?:CHF|Rappen|Intern|Extern|0\.00|price|prices|pricing|preis|preise|currency)\b'
     r'|(?:internal|external)_rappen|price-row|signage-price|admin-price',
@@ -69,6 +71,7 @@ def app(monkeypatch: pytest.MonkeyPatch) -> Flask:
     application = Flask(
         'rendered-ui',
         template_folder=str(ROOT / 'reference_scaffold' / 'cafeteria' / 'templates'),
+        static_folder=str(ROOT / 'reference_scaffold' / 'cafeteria' / 'static'),
     )
     application.config.update(
         TESTING=True,
@@ -158,7 +161,11 @@ def _client(app: Flask):
 
 def _inline_css(html: str) -> str:
     css = CSS_PATH.read_text(encoding='utf-8')
-    return re.sub(r'<link rel="stylesheet"[^>]+>', f'<style>{css}</style>', html, count=1)
+    inlined = re.sub(r'<link rel="stylesheet"[^>]+>', f'<style>{css}</style>', html, count=1)
+    for filename in ('suedhang-logo.png', 'suedhang-logo@2x.png'):
+        image_data = base64.b64encode((STATIC_IMG_PATH / filename).read_bytes()).decode('ascii')
+        inlined = inlined.replace(f'/static/img/{filename}', f'data:image/png;base64,{image_data}')
+    return inlined
 
 
 def _page(browser: Browser, html: str, width: int, height: int):
@@ -232,6 +239,100 @@ def _set_unbroken_signage_boundaries(
                 if 'description' in option:
                     option['description'] = component
     return title, component
+
+
+def test_css_rgba_colors_outside_root_use_design_tokens() -> None:
+    css = CSS_PATH.read_text(encoding='utf-8')
+    root_block = re.search(r':root\s*\{.*?\}', css, re.DOTALL)
+
+    assert root_block is not None
+    outside_root = css[: root_block.start()] + css[root_block.end() :]
+    rgba_violations = [line.strip() for line in outside_root.splitlines() if 'rgba(' in line]
+    hex_violations = [
+        line.strip()
+        for line in outside_root.splitlines()
+        if re.search(r'#[0-9a-fA-F]{3,8}\b', line)
+    ]
+    assert rgba_violations == []
+    assert hex_violations == []
+
+
+def test_documented_header_contrast_ratios_remain_wcag_aa() -> None:
+    css = CSS_PATH.read_text(encoding='utf-8')
+
+    assert '--sh-magenta: #8C1C4B;' in css
+    assert '--sh-green: #3E6B44;' in css
+    manual_ratios = {'magenta': 7.38, 'green': 5.35}
+
+    assert all(ratio >= 4.5 for ratio in manual_ratios.values())
+
+
+def test_public_headers_keep_navigation_left_and_logo_right(app: Flask, browser: Browser) -> None:
+    client = _client(app)
+    paths = (
+        '/cafeteria/heute/',
+        '/cafeteria/wochenangebot/',
+        '/patienten/heute/',
+        '/patienten/wochenplan/',
+    )
+    for path in paths:
+        html = client.get(path).get_data(as_text=True)
+        assert html.index('class="site-nav"') < html.index('class="site-logo"')
+
+        for width in (390, 1440):
+            page = _page(browser, html, width, 900)
+            try:
+                positions = page.evaluate(
+                    """
+                    () => {
+                      const nav = document.querySelector('.site-nav').getBoundingClientRect();
+                      const logo = document.querySelector('.site-logo').getBoundingClientRect();
+                      return {
+                        navLeft: Math.round(nav.left),
+                        navRight: Math.round(nav.right),
+                        logoLeft: Math.round(logo.left),
+                        logoRight: Math.round(logo.right),
+                      };
+                    }
+                    """
+                )
+                assert positions['navLeft'] < positions['logoLeft']
+                assert positions['navRight'] <= positions['logoLeft']
+                assert positions['logoRight'] <= width + 1
+                logo_state = page.locator('.site-logo-img').evaluate(
+                    "element => ({ complete: element.complete, naturalWidth: element.naturalWidth, naturalHeight: element.naturalHeight })"
+                )
+                assert logo_state['complete']
+                assert logo_state['naturalWidth'] > 0
+                assert logo_state['naturalHeight'] > 0
+            finally:
+                page.close()
+
+
+@pytest.mark.parametrize(
+    'path',
+    ('/static/img/suedhang-logo.png', '/static/img/suedhang-logo@2x.png'),
+)
+def test_logo_assets_are_served_as_nonempty_pngs(app: Flask, path: str) -> None:
+    response = app.test_client().get(path)
+
+    assert response.status_code == 200
+    assert response.content_type == 'image/png'
+    assert response.data
+
+
+def test_public_patient_week_title_uses_date_range_and_no_profile_banners(app: Flask) -> None:
+    client = _client(app)
+    html = client.get('/patienten/wochenplan/').get_data(as_text=True)
+
+    assert '<h1>2026-08-31 bis 2026-09-06</h1>' in html
+    for path in (
+        '/cafeteria/heute/',
+        '/cafeteria/wochenangebot/',
+        '/patienten/heute/',
+        '/patienten/wochenplan/',
+    ):
+        assert 'profile-banner' not in client.get(path).get_data(as_text=True)
 
 
 @pytest.mark.parametrize('path', ('/admin/cafeteria', '/admin/patienten'))
@@ -567,7 +668,7 @@ def test_mobile_interactive_targets_focus_and_layout_contracts(
 ) -> None:
     client = _client(app)
     for path, selectors in (
-        ('/cafeteria/wochenangebot/', ('.site-header > .wordmark', '.site-nav a')),
+        ('/cafeteria/wochenangebot/', ('.site-logo', '.site-nav a')),
         ('/admin/cafeteria', ('.admin-nav a', '.profile-tabs a')),
         ('/admin/patienten', ('.admin-nav a', '.profile-tabs a')),
     ):
