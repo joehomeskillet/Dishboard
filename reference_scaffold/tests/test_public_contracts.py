@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import unicodedata
 from copy import deepcopy
+from importlib import import_module, util
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +20,13 @@ from cafeteria.db import validate_snapshot_payload  # noqa: E402
 from cafeteria.public import routes as public_routes  # noqa: E402
 from cafeteria.signage import routes as signage_routes  # noqa: E402
 from demo_snapshots import cafeteria_snapshot, patient_snapshot  # noqa: E402
+
+
+def test_db_reexports_payload_validator_from_isolated_module() -> None:
+    spec = util.find_spec('cafeteria.patient_payload')
+    assert spec is not None
+    module = import_module('cafeteria.patient_payload')
+    assert validate_snapshot_payload is module.validate_snapshot_payload
 
 
 PUBLIC_QUERY_PATHS = (

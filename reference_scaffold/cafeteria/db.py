@@ -3,8 +3,6 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import re
-import unicodedata
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
@@ -14,23 +12,12 @@ from psycopg import sql
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
+from .patient_payload import PROFILES, validate_snapshot_payload
+
 SCHEMA_VERSION = 8
 APPLICATION_VERSION = 'dishboard-schema-v8'
 SYSTEM_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000001'
 DEMO_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000002'
-PROFILES = {'patient', 'staff_guest'}
-PATIENT_FORBIDDEN_COMPACT_TOKENS = (
-    'price', 'prices', 'preis', 'preise', 'cost', 'costs', 'amount', 'amounts',
-    'kosten', 'betrag', 'rappen', 'currency', 'chf', 'fee', 'tarif', 'tariff', 'charge',
-)
-PATIENT_ALLOWED_COMPACT_KEYS = frozenset({
-    'channel', 'days', 'date', 'notice', 'services', 'mealcode', 'mealname',
-    'options', 'allergenreviewstatus', 'allergens', 'components', 'description',
-    'externalid', 'labels', 'note', 'origins', 'title', 'typecode', 'typename',
-    'code', 'name', 'presence', 'countrycode', 'ingredient', 'text', 'state',
-    'weekday', 'location', 'profilecode', 'revisionid', 'schemaversion',
-    'sharednote', 'weekend', 'weekstart', 'servicestate',
-})
 
 
 @dataclass(frozen=True)
@@ -306,108 +293,6 @@ def validate_database(engine: Engine) -> dict[str, Any]:
         and result['unvalidated_constraint_count'] == 0
     )
     return result
-
-
-def _normalize_patient_key(key: str) -> str:
-    without_format_chars = ''.join(char for char in key if unicodedata.category(char) != 'Cf')
-    return re.sub(r'[^A-Za-z0-9]+', '', without_format_chars).lower()
-
-
-def _patient_key_is_forbidden(key: str) -> bool:
-    compact = _normalize_patient_key(key)
-    return compact not in PATIENT_ALLOWED_COMPACT_KEYS or any(
-        token in compact for token in PATIENT_FORBIDDEN_COMPACT_TOKENS
-    )
-
-
-def _forbidden_patient_paths(value: Any, path: str = '$') -> list[str]:
-    found: list[str] = []
-    if isinstance(value, dict):
-        for key, child in value.items():
-            if _patient_key_is_forbidden(key):
-                found.append(f'{path}.{key}')
-            found.extend(_forbidden_patient_paths(child, f'{path}.{key}'))
-    elif isinstance(value, list):
-        for index, child in enumerate(value):
-            found.extend(_forbidden_patient_paths(child, f'{path}[{index}]'))
-    return found
-
-
-def _forbidden_patient_value_paths(value: Any, path: str = '$') -> list[str]:
-    found: list[str] = []
-    if isinstance(value, dict):
-        for key, child in value.items():
-            found.extend(_forbidden_patient_value_paths(child, f'{path}.{key}'))
-    elif isinstance(value, list):
-        for index, child in enumerate(value):
-            found.extend(_forbidden_patient_value_paths(child, f'{path}[{index}]'))
-    elif type(value) is float:
-        found.append(path)
-    elif isinstance(value, str):
-        without_clocks = re.sub(
-            r'(?<!\d)(?:[01]\d|2[0-3])(?::[0-5]\d(?:\s*Uhr)?|\.[0-5]\d\s*Uhr)(?!\d)',
-            '',
-            value,
-            flags=re.IGNORECASE,
-        )
-        if re.search(r'(?i)(?:\bCHF\b|\bFr\.)', without_clocks) or re.search(
-            r'(?<!\d)\d+[.,]\d{2}(?!\d)', without_clocks
-        ):
-            found.append(path)
-    return found
-
-
-def _validate_service_states(services: list[Any]) -> None:
-    for service in services:
-        if not isinstance(service, dict):
-            raise ValueError('Service-Eintrag im Snapshot ist ungültig.')
-        state = service.get('service_state', 'open')
-        if state not in {'open', 'closed', 'holiday', 'company_holiday'}:
-            raise ValueError('service_state muss open, closed, holiday oder company_holiday sein.')
-        options = service.get('options')
-        if not isinstance(options, list):
-            raise ValueError('Jede Mahlzeit braucht ein Options-Array.')
-        if state == 'open' and len(options) != 2:
-            raise ValueError('Eine offene Mahlzeit braucht genau zwei Menüoptionen.')
-        if state != 'open' and options:
-            raise ValueError('Eine geschlossene Mahlzeit darf keine Gerichte enthalten.')
-
-
-def validate_snapshot_payload(profile_code: str, snapshot: dict[str, Any]) -> None:
-    if profile_code not in PROFILES:
-        raise ValueError('Unbekanntes Profil.')
-    if snapshot.get('profile_code') != profile_code:
-        raise ValueError('Snapshot-Profil stimmt nicht mit dem angeforderten Kanal überein.')
-    days = snapshot.get('days')
-    if not isinstance(days, list) or len(days) != 7:
-        raise ValueError('Snapshot muss sieben Tage enthalten.')
-    if profile_code == 'patient':
-        paths = _forbidden_patient_paths(snapshot)
-        if paths:
-            raise ValueError('Patienten-Snapshot enthält unzulässige Kostenschlüssel: ' + ', '.join(paths[:5]))
-        value_paths = _forbidden_patient_value_paths(snapshot)
-        if value_paths:
-            raise ValueError('Patienten-Snapshot enthält unzulässige Kostenwerte: ' + ', '.join(value_paths[:5]))
-        for day in days:
-            services = day.get('services', [])
-            meals = {service.get('meal_code') for service in services}
-            if meals != {'LUNCH', 'DINNER'}:
-                raise ValueError(f"Patiententag {day.get('date')} ist unvollständig.")
-            _validate_service_states(services)
-    else:
-        services = [service for day in days for service in day.get('services', [])]
-        if len(services) != 5 or any(service.get('meal_code') != 'LUNCH' for service in services):
-            raise ValueError('Cafeteria-Snapshot muss fünf Mittagsservices enthalten.')
-        _validate_service_states(services)
-        for service in services:
-            if service.get('service_state', 'open') != 'open':
-                continue
-            for option in service.get('options', []):
-                costs = option.get('prices')
-                if not isinstance(costs, dict) or not {'internal_rappen', 'external_rappen'} <= set(costs):
-                    raise ValueError('Cafeteria-Menü ohne vollständige Kostenstruktur.')
-                if type(costs.get('internal_rappen')) is not int or type(costs.get('external_rappen')) is not int:
-                    raise ValueError('Cafeteria-Rappenbeträge müssen JSON-Ganzzahlen sein.')
 
 
 def _cache_path(cache_dir: str | Path, profile_code: str) -> Path:
