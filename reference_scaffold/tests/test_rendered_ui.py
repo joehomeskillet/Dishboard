@@ -324,8 +324,10 @@ def test_logo_assets_are_served_as_nonempty_pngs(app: Flask, path: str) -> None:
 def test_public_patient_week_title_uses_date_range_and_no_profile_banners(app: Flask) -> None:
     client = _client(app)
     html = client.get('/patienten/wochenplan/').get_data(as_text=True)
+    print_html = client.get('/druck/patienten/woche').get_data(as_text=True)
 
     assert '<h1>2026-08-31 bis 2026-09-06</h1>' in html
+    assert '<h1>2026-08-31 bis 2026-09-06</h1>' in print_html
     for path in (
         '/cafeteria/heute/',
         '/cafeteria/wochenangebot/',
@@ -402,6 +404,73 @@ def test_today_channels_render_each_menu_metadata_pill_once(
 
     assert len(re.findall(r'<span class="label(?: [^"]*)?">', html)) == 3
     assert pills == expected_pills
+
+
+def test_week_and_signage_routes_render_canonical_metadata_once_and_contained(
+    app: Flask,
+    browser: Browser,
+) -> None:
+    route_contracts = (
+        ('patient', '/patienten/wochenplan/', '.week-menu'),
+        ('staff_guest', '/cafeteria/wochenangebot/', '.week-menu'),
+        ('patient', '/druck/patienten/woche', '.week-menu'),
+        ('staff_guest', '/druck/cafeteria/woche', '.week-menu'),
+        ('patient', '/signage/patienten/woche', '.patient-week-option'),
+        ('staff_guest', '/signage/cafeteria/woche', '.slot-body'),
+        ('staff_guest', '/signage/cafeteria/tag', 'footer'),
+    )
+    for profile, path, container_selector in route_contracts:
+        snapshot = app.config['TEST_SNAPSHOTS'][profile]
+        for day in snapshot['days']:
+            for meal in day['services']:
+                for option in meal['options']:
+                    option['labels'] = []
+                    option['allergens'] = []
+                    option['origins'] = []
+
+        target_day = next(
+            day for day in snapshot['days']
+            if '/tag' not in path or day['date'] == '2026-09-02'
+        )
+        first_option = next(
+            option
+            for meal in target_day['services']
+            if meal['options']
+            for option in meal['options']
+        )
+        first_option['labels'] = [{'code': 'ROUTE_LABEL', 'name': 'Route Vegan'}]
+        first_option['allergens'] = [
+            {'code': 'ROUTE_CONTAINS', 'name': 'Route Gluten', 'presence': 'contains'},
+            {'code': 'ROUTE_MAY', 'name': 'Route Nüsse', 'presence': 'may_contain'},
+        ]
+        first_option['origins'] = [
+            {'ingredient': 'Rind', 'country_code': 'CH', 'text': 'Route Rind: Schweiz'},
+        ]
+
+        html = _client(app).get(path).get_data(as_text=True)
+        assert html.count('Route Vegan') == 1, path
+        assert html.count('Enthält: Route Gluten') == 1, path
+        assert html.count('Kann enthalten: Route Nüsse') == 1, path
+        assert html.count('Route Rind: Schweiz') == 1, path
+        assert 'ROUTE_LABEL' not in html
+        assert 'ROUTE_CONTAINS' not in html
+        assert 'ROUTE_MAY' not in html
+        assert 'class="label green"' in html
+        assert 'class="label amber"' in html
+
+        page = _page(browser, html, 1920, 1080)
+        try:
+            assert page.locator('.signage-tags').count() >= 1
+            assert page.evaluate(
+                """
+                selector => [...document.querySelectorAll('.signage-tags')].every(tags =>
+                  Boolean(tags.closest(selector))
+                )
+                """,
+                container_selector,
+            ), path
+        finally:
+            page.close()
 
 
 def test_real_routes_render_exact_profile_grids_without_cross_profile_data(app: Flask) -> None:

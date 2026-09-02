@@ -83,3 +83,14 @@ def test_publication_components_limit_targets_components_input() -> None:
         validate_publication_fit('staff_guest', parsed.values)
 
     assert raised.value.field_name == 'service_0_LUNCH_MENU_1_components'
+
+
+def test_publication_rejects_unchecked_open_option() -> None:
+    parsed = parse_draft_form('staff_guest', MultiDict(_staff_form().items()))
+    option = parsed.values['days'][0]['services'][0]['options'][0]
+    option['allergen_review_status'] = 'not_checked'
+
+    with pytest.raises(WorkflowValidationError, match='nicht geprüft') as raised:
+        validate_publication_fit('staff_guest', parsed.values)
+
+    assert raised.value.field_name == 'service_0_LUNCH_MENU_1_allergen_reviewed'
