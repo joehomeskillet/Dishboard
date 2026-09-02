@@ -85,7 +85,7 @@
 /* Fira Sans self-hosted font-face declarations */
 @font-face {
   font-family: "Fira Sans";
-  src: local("Fira Sans"), url("/static/fonts/fira-sans-400.ttf") format("truetype");
+  src: local("Fira Sans"), url("/static/fonts/fira-sans-400.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -93,7 +93,7 @@
 
 @font-face {
   font-family: "Fira Sans";
-  src: local("Fira Sans Medium"), url("/static/fonts/fira-sans-500.ttf") format("truetype");
+  src: local("Fira Sans Medium"), url("/static/fonts/fira-sans-500.woff2") format("woff2");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -101,7 +101,7 @@
 
 @font-face {
   font-family: "Fira Sans";
-  src: local("Fira Sans SemiBold"), url("/static/fonts/fira-sans-600.ttf") format("truetype");
+  src: local("Fira Sans SemiBold"), url("/static/fonts/fira-sans-600.woff2") format("woff2");
   font-weight: 600;
   font-style: normal;
   font-display: swap;
@@ -109,7 +109,7 @@
 
 @font-face {
   font-family: "Fira Sans";
-  src: local("Fira Sans Bold"), url("/static/fonts/fira-sans-700.ttf") format("truetype");
+  src: local("Fira Sans Bold"), url("/static/fonts/fira-sans-700.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -145,11 +145,11 @@ p { text-wrap: pretty; }
 .wordmark.small { font-size: 1rem; }
 .site-header > .wordmark { min-height: 44px; }
 
-.site-header { position: sticky; z-index: 20; top: 0; display: flex; justify-content: space-between; align-items: center; min-height: 74px; padding: 0 clamp(1.1rem, 4vw, 4rem); color: var(--sh-white); background: var(--sh-teal-950); box-shadow: 0 1px 0 rgba(255,255,255,.08); }
+.site-header { position: sticky; z-index: 20; top: 0; display: flex; justify-content: space-between; align-items: center; min-height: 74px; padding: 0 clamp(1.1rem, 4vw, 4rem); color: var(--sh-magenta); background: var(--sh-panel); box-shadow: none; border-bottom: 3px solid var(--sh-magenta); }
 .site-nav { display: flex; align-items: center; gap: .35rem; }
-.site-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: .72rem .86rem; border-radius: 10px; color: rgba(255,255,255,.72); font-size: .92rem; font-weight: 720; text-decoration: none; white-space: nowrap; }
-.site-nav a:hover, .site-nav a.active { color: var(--sh-white); background: rgba(255,255,255,.12); }
-.channel-links { display: flex; gap: .5rem; margin-left: .75rem; padding-left: .75rem; border-left: 1px solid rgba(255,255,255,.2); }
+.site-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: .72rem .86rem; border-radius: 10px; color: var(--sh-ink); font-size: .92rem; font-weight: 720; text-decoration: none; white-space: nowrap; }
+.site-nav a:hover { color: var(--sh-magenta); background: transparent; }
+.site-nav a.active { color: var(--sh-magenta); background: var(--sh-magenta-soft); }
 .channel-links a { border: 1px solid rgba(255,255,255,.24); }
 
 .public-shell { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; padding: clamp(1.5rem, 4vw, 3.7rem) 0 4rem; }

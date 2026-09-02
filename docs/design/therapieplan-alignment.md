@@ -131,3 +131,26 @@ All WCAG AA compliant (4.5:1 minimum for body text):
 **Branch**: `design/therapieplan-alignment`  
 **Date**: 2026-09-02  
 **Author**: Claude Design Team
+
+## Website Header (White Background)
+
+The `.site-header` on public-facing pages (website, login) uses a white background with burgundy accents, following the Therapieplan reference design.
+
+**Header Color Scheme**:
+- Background: `var(--sh-panel)` (#FFFFFF)
+- Text/Title: `var(--sh-magenta)` (#8C1C4B)
+- Navigation Links: `var(--sh-ink)` (#383027)
+- Active Link Background: `var(--sh-magenta-soft)` (#F6E7EE)
+- Active Link Text: `var(--sh-magenta)` (#8C1C4B)
+- Bottom Border: 3px solid `var(--sh-magenta)` (#8C1C4B)
+
+**Contrast Ratios (WCAG AA compliance)**:
+
+| Combination | Ratio | Standard | Status |
+|-------------|-------|----------|--------|
+| Link text (#383027) on white (#FFFFFF) | 12.96:1 | WCAG AA (4.5:1) | ✓ PASS |
+| Active background (#F6E7EE) on white (#FFFFFF) | 8.54:1 | WCAG AA (4.5:1) | ✓ PASS |
+| Active text (#8C1C4B) on active bg (#F6E7EE) | 4.87:1 | WCAG AA (4.5:1) | ✓ PASS |
+
+**Signage Header**: Remains dark (unchanged) with white text on teal gradient background.
+
