@@ -203,7 +203,7 @@ def _insert_item(
     option: dict[str, Any],
     sort_order: int,
 ) -> None:
-    item_id = connection.execute(
+    item_insert = connection.execute(
         text(
             '''
             INSERT INTO cafeteria.menu_items(
@@ -227,7 +227,10 @@ def _insert_item(
             'sort_order': sort_order,
             'type_code': option['type_code'],
         },
-    ).scalar_one()
+    )
+    if item_insert.rowcount != 1:
+        raise ValueError('Menüart konnte nicht eindeutig zugeordnet werden.')
+    item_id = item_insert.scalar_one()
     for component_order, component in enumerate(option['components'], start=1):
         if component.strip():
             connection.execute(
@@ -241,7 +244,7 @@ def _insert_item(
                 {'item_id': item_id, 'sort_order': component_order, 'component': component.strip()},
             )
     for label in option.get('labels', []):
-        connection.execute(
+        label_insert = connection.execute(
             text(
                 '''
                 INSERT INTO cafeteria.menu_item_labels(menu_item_id, label_id)
@@ -250,8 +253,10 @@ def _insert_item(
             ),
             {'item_id': item_id, 'code': label['code']},
         )
+        if label_insert.rowcount != 1:
+            raise ValueError('Menülabel konnte nicht eindeutig zugeordnet werden.')
     for allergen in option.get('allergens', []):
-        connection.execute(
+        allergen_insert = connection.execute(
             text(
                 '''
                 INSERT INTO cafeteria.menu_item_allergens(menu_item_id, allergen_id, presence)
@@ -264,6 +269,8 @@ def _insert_item(
                 'presence': allergen['presence'],
             },
         )
+        if allergen_insert.rowcount != 1:
+            raise ValueError('Allergen konnte nicht eindeutig zugeordnet werden.')
     for origin in option.get('origins', []):
         connection.execute(
             text(
