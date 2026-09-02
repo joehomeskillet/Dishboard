@@ -292,6 +292,52 @@ Secrets als 0700-root-Verzeichnis mit 0444-Dateien pro Service (kein `.env`, kei
 
 
 
+# Welle 3: Labels, Allergene und Branding (In-Arbeit)
+
+Die folgenden Features befinden sich in aktiver Entwicklung (Branches `feat/labels-allergens` und `design/header-brand`) und werden in zukünftigen Versionen integriert.
+
+## Allergendeklaration und Labels
+
+Gerichte erhalten Felder für:
+
+- **Labels**: z. B. Regional, Bio, Vegetarisch, Vegan (Multi-Select)
+- **Allergene enthält**: Multi-Select für bekannte Allergene (Milch, Gluten, Erdnüsse, etc.)
+- **Allergene Spuren**: Multi-Select für mögliche Kreuzverunreinigungen
+- **Herkunft**: Angabe wie `Zutat=CH|EU|…` pro Gericht
+- **Review-Status**: `not_checked` oder `checked` für jedes Label/Allergen pro Item
+
+### Publikations-Gate
+
+Eine Publikation ist nur möglich, wenn für jedes Allergen und Label, das auf einem Gericht eingetragen ist, der Review-Status `checked` ist. Dies sperrt unvollständige Allergendeklarationen fail-closed ein.
+
+### Rendering und Anzeigeformat
+
+Labels, Allergene und Herkunftsangaben werden in allen Kanälen als Pills (Tags) angezeigt:
+
+- **Web und Mobile**: Pills neben oder unter dem Gerichtstitel
+- **Signage**: Pills in gerichte-spezifischer Farbe und Schrift
+- **Druck**: Pills im Gerichtsdatenblatt
+- **API**: Allergen- und Label-Felder im JSON-Snapshot
+
+### Admin-Interface
+
+Das Erfassungs-Formular bietet:
+
+- Checkboxen für Review-Status (jedes Allergen/Label einzeln)
+- Multi-Select-Dropdowns für Allergen- und Label-Kategorien
+- Herkunfts-Freitextfeld mit Validierung
+
+## Header und Branding (Welle 3)
+
+Die Header-Navigation wird überarbeitet:
+
+- **Südhang-Logo**: Oben rechts positioniert
+- **Kanalnavigation**: Oben links (Umschalter zwischen Patienten- und Cafeteria-Ansicht)
+- **Beilagen-Pills**: Beilagen werden gleich hoch und in der Menüart-Farbe (Menü-1-Farbe oder Vegetarisch-Farbe) gerenderrt
+- **Patienten-Wochenansicht**: Der Seitentitel zeigt den Datumsbereich (z. B. „Montag 31. Aug – Sonntag 6. Sept") statt nur „Wochenplan"
+
+Diese visuellen Verbesserungen stärken die Markenidentität Klinik Südhang und verbessern die Orientierung im System.
+
 # Prototypen und Referenzscreenshots
 
 ![Cafeteria Signage Tag](../design/screenshots/signage-cafeteria-tag-1920x1080.png)

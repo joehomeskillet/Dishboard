@@ -1,5 +1,58 @@
 # Änderungsprotokoll
 
+## Welle 3: Finalisierung vom 2. September 2026
+
+### Authentifizierung und Benutzer-Management
+
+- Lokale Anmeldung aktiviert: `/auth/login` leitet auf `/auth/local` um; Logout erfordert POST mit CSRF-Token.
+- Login-Rate-Limits in Redis pro normalisiertem Benutzernamen und vertrauenswürdiger Client-IP.
+- Session-Regeneration nach erfolgreichem Login.
+- Client-Adresse wird aus dem rechtesten nicht vertrauenswürdigen Hop von `X-Forwarded-For` aufgelöst (XFF-Hardening).
+
+### Erst-Administrator-Bootstrap
+
+- Migration `database/migrations/0009_bootstrap_first_local_admin.sql` etabliert fail-closed Bootstrap-Logik.
+- Befehl `python manage.py bootstrap-local-admin --username X --display-name Y` fragt Passwort zweimal ab oder liest aus `DISHBOARD_BOOTSTRAP_PASSWORD_FILE` (Modus 0400).
+- Bootstrap ist nur möglich, wenn kein aktiver Administrator (lokal oder Entra) existiert; danach sperrt sich die Funktion.
+- Weitere Benutzer werden von verifizierten Administratoren via `provision-local-user --actor <admin-uuid>` provisioniert.
+
+### Deployment und Infrastruktur
+
+- **Host-Caddy-Modus**: Caddy auf dem Docker-Host proxied ausschliesslich auf `127.0.0.1:8789` (keine Compose-interne Caddy).
+- Secrets-Verzeichnis `deployment/secrets/` mit Modus 0700; Secret-Dateien 0444 pro Service als Bind-Mount.
+- Compose-Netzwerk `10.213.0.0/24` reserviert ausserhalb Docker-Defaults (172.16.0.0/12, 192.168.0.0/16).
+- Redis läuft als UID 999:GID 1000.
+- App-Image ID fixiert: `APP_IMAGE` auf unveränderliche SHA-256-Hash setzen (kein Tag, kein Registry-Digest).
+- Redeploy-Ablauf: `docker build --iidfile /tmp/dishboard-image-id --file Dockerfile ..`, dann `APP_IMAGE` aus der IID-Datei setzen, `docker compose up -d --pull never --no-build`.
+- CSV-Validator unter `/app/csv/validate_menu_csv.py` im Docker-Image verpackt.
+
+### Benutzeroberfläche und Design
+
+- Moderne Login-Seite im Therapieplan-Stil: zentrierte Karte, Therapieplan-Magenta-Button mit Teal-Hover, Fehler inline statt Redirect, Benutzername erhalten bei Fehler.
+- Therapieplan-Designtokens (`--sh-*`) für konsistente Farben und Typografie.
+- Fira Sans selbstgehostet über `woff2`-Schriften.
+- Preiszeilen auf gleicher Höhe als Karten-Basiszeile via Flexbox (`.price-row`).
+- White Header mit verbessertem Kontrast pro Reference-Design.
+
+### In-Arbeit (Branches für Welle 3+)
+
+**design/header-brand:**
+- Südhang-Logo oben rechts im Header.
+- Kanalnavigation (Patienten/Cafeteria) oben links.
+- Beilagen-Pills gleich hoch und in Menüart-Farbe gerenderrt.
+- Patienten-Wochenansicht: Datumsbereich (z. B. „Montag 31. Aug – Sonntag 6. Sept") als Seitentitel.
+
+**feat/labels-allergens:**
+- Labels-Feld für Gerichte (z. B. Regional, Bio, Vegetarisch).
+- Allergene-Felder: „enthält" und „Spuren" als Multi-Select.
+- Herkunft `Zutat=CH|EU|…` pro Gericht.
+- Review-Status `not_checked`/`checked` für jedes Allergen/Label pro Item.
+- Publikation erfordert, dass alle offenen Allergen-Optionen auf `checked` gesetzt sind (Review-Gate).
+- Rendering als Pills in Web-Ansichten, Signage, Druck und API.
+- Admin-Formular mit Checkboxen für Review-Status und Multi-Select für Allergen-/Label-Kategorien.
+
+---
+
 ## Finalisierung vom 2. September 2026
 
 ### Datenbank und Migrations
@@ -62,7 +115,7 @@
 - Lokale Demo-Werte: DEMO_MODE=true, SEED_DEMO=true, APP_ENV=development, DEMO_TODAY=2026-09-01.
 - Produktion lehnt Demo-Konfiguration ab und verlangt: APP_ENV=production, reale Entra-Credentials (falls ENTRA_ENABLED=true), sichere Cookies, valide Ursprungs-URLs.
 - Backup-Skript: pg_dump mit Secret-Ausschlusstabellen, SHA-256-Validierung, automatische Rotation.
-- Restore-Skript: Kandidaten-Datenbank, Lease-Akquise, Lifecycle-Atomarität, explizite Recovery nach Host-Crash.
+- Restore-Skript: Kandidaten-Datenbank, Lease-Akquisa, Lifecycle-Atomarität, explizite Recovery nach Host-Crash.
 
 ### Dokumentation
 
