@@ -272,17 +272,21 @@ def test_patient_snapshot_still_rejects_ascii_il_cf_and_bidi_keys(key: str, valu
         validate_snapshot_payload('patient', snapshot)
 
 
-@pytest.mark.parametrize('profile_code', ('patient', 'staff_guest'))
+@pytest.mark.parametrize(
+    ('profile_code', 'error_message'),
+    (('patient', 'Kostenschlüssel'), ('staff_guest', 'Komponentenkennungen')),
+)
 @pytest.mark.parametrize(('key', 'value'), COMPONENT_IDENTIFIER_PROBES)
 def test_external_snapshots_reject_internal_and_homoglyph_component_identifiers(
     profile_code: str,
+    error_message: str,
     key: str,
     value: object,
 ) -> None:
     snapshot = deepcopy(patient_snapshot() if profile_code == 'patient' else cafeteria_snapshot())
     snapshot['days'][0]['services'][0]['options'][0][key] = value
 
-    with pytest.raises(ValueError, match='unzulässig'):
+    with pytest.raises(ValueError, match=error_message):
         validate_snapshot_payload(profile_code, snapshot)
 
 

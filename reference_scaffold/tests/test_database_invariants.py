@@ -2371,7 +2371,8 @@ def test_v13_backfill_keeps_locations_profiles_and_legacy_metadata_unambiguous(
         links = connection.execute(
             text(
                 '''
-                SELECT l.code, p.code, mic.component_text, mc.public_id, mc.profile_scope
+                SELECT l.code, component_location.code, p.code, mic.component_text,
+                       mc.name, mc.category, mc.public_id, mc.profile_scope
                 FROM cafeteria.menu_item_components mic
                 JOIN cafeteria.menu_items i ON i.id=mic.menu_item_id
                 JOIN cafeteria.menu_services s ON s.id=i.service_id
@@ -2379,6 +2380,7 @@ def test_v13_backfill_keeps_locations_profiles_and_legacy_metadata_unambiguous(
                 JOIN cafeteria.locations l ON l.id=w.location_id
                 JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
                 JOIN cafeteria.menu_components mc ON mc.id=mic.component_id
+                JOIN cafeteria.locations component_location ON component_location.id=mc.location_id
                 WHERE i.external_id LIKE 'T2-%'
                 ORDER BY l.code, p.code, mic.component_text
                 '''
@@ -2430,15 +2432,15 @@ def test_v13_backfill_keeps_locations_profiles_and_legacy_metadata_unambiguous(
             {'item_id': single_item},
         ).one()
 
-    assert [(row[0], row[1], row[2], row[4]) for row in links] == [
-        ('KIRCHLINDACH', 'patient', 'Aqua', 'patient'),
-        ('KIRCHLINDACH', 'patient', 'Linsen', 'patient'),
-        ('KIRCHLINDACH', 'patient', 'Reis', 'patient'),
-        ('KIRCHLINDACH', 'staff_guest', 'Pasta', 'staff_guest'),
-        ('WORB', 'patient', 'Pаsta', 'patient'),
-        ('WORB', 'staff_guest', 'Pasta', 'staff_guest'),
+    assert [(row[0], row[1], row[2], row[3], row[4], row[5], row[7]) for row in links] == [
+        ('KIRCHLINDACH', 'KIRCHLINDACH', 'patient', 'Aqua', 'Aqua', 'other', 'patient'),
+        ('KIRCHLINDACH', 'KIRCHLINDACH', 'patient', 'Linsen', 'Linsen', 'other', 'patient'),
+        ('KIRCHLINDACH', 'KIRCHLINDACH', 'patient', 'Reis', 'Reis', 'other', 'patient'),
+        ('KIRCHLINDACH', 'KIRCHLINDACH', 'staff_guest', 'Pasta', 'Pasta', 'other', 'staff_guest'),
+        ('WORB', 'WORB', 'patient', 'Pаsta', 'Pаsta', 'other', 'patient'),
+        ('WORB', 'WORB', 'staff_guest', 'Pasta', 'Pasta', 'other', 'staff_guest'),
     ]
-    public_ids = [str(row[3]) for row in links]
+    public_ids = [str(row[6]) for row in links]
     assert len(set(public_ids)) == len(public_ids)
     assert all(UUID(public_id).version == 4 for public_id in public_ids)
     assert [tuple(row) for row in modes] == [
