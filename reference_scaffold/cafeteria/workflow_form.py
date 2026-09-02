@@ -13,6 +13,19 @@ from .workflow import (
     WorkflowValidationError,
 )
 
+OPTIONAL_OPTION_SUFFIXES = frozenset({
+    'labels',
+    'allergen_contains',
+    'allergen_may_contain',
+    'origins',
+    'allergen_reviewed',
+})
+MULTI_VALUE_OPTION_SUFFIXES = frozenset({
+    'labels',
+    'allergen_contains',
+    'allergen_may_contain',
+})
+
 
 @dataclass(frozen=True)
 class ParsedDraft:
@@ -38,23 +51,37 @@ def _field_names(profile_code: str) -> set[str]:
     return names
 
 
-def _single_values(form: Mapping[str, str]) -> dict[str, str]:
+def _optional_field_names(profile_code: str) -> set[str]:
+    names = set()
+    for day_index in range(PROFILE_DAYS[profile_code]):
+        for meal_code in PROFILE_MEALS[profile_code]:
+            service = f'service_{day_index}_{meal_code}'
+            for type_code in MENU_TYPES:
+                option = f'{service}_{type_code}'
+                names |= {f'{option}_{suffix}' for suffix in OPTIONAL_OPTION_SUFFIXES}
+    return names
+
+
+def _form_value(form: Mapping[str, str], key: str) -> str:
     if hasattr(form, 'getlist'):
-        # Listenfelder (Checkboxes, multiple select) dürfen mehrfach gesendet werden
-        optional_list_fields = {
-            'labels',
-            'allergen_contains',
-            'allergen_may_contain',
-        }
+        return ','.join(str(value) for value in form.getlist(key))
+    return str(form[key])
+
+
+def _single_values(profile_code: str, form: Mapping[str, str]) -> dict[str, str]:
+    multi_value_fields = {
+        field
+        for field in _optional_field_names(profile_code)
+        if any(field.endswith(f'_{suffix}') for suffix in MULTI_VALUE_OPTION_SUFFIXES)
+    }
+    if hasattr(form, 'getlist'):
         for key in form:
-            count = len(form.getlist(key)) if hasattr(form, 'getlist') else 1
-            # Prüfe nur nicht-Listenfelder
-            if count != 1 and not any(suffix in key for suffix in optional_list_fields):
+            if len(form.getlist(key)) != 1 and key not in multi_value_fields:
                 raise WorkflowValidationError(
                     f'Formularfeld mehrfach gesendet: {key}',
                     field_name=key,
                 )
-    return {key: str(form[key]) for key in form}
+    return {key: _form_value(form, key) for key in form}
 
 
 def _positive_integer(value: str, label: str, field_name: str) -> int:
@@ -103,26 +130,21 @@ def submitted_form_values(
     form: Mapping[str, str],
 ) -> dict[str, str]:
     expected = _field_names(profile_code)
-    result = {key: str(form[key]) for key in expected if key in form}
-    # Auch optionale Felder einbeziehen, wenn vorhanden
-    optional_fields = {
-        'labels', 'allergen_contains', 'allergen_may_contain', 'origins', 'allergen_reviewed'
-    }
+    optional_fields = _optional_field_names(profile_code)
+    result = {key: _form_value(form, key) for key in expected if key in form}
     for key in form:
-        if any(suffix in key for suffix in optional_fields) and key not in result:
-            result[key] = str(form[key])
+        if key in optional_fields and key not in result:
+            result[key] = _form_value(form, key)
     return result
 
 
 def parse_draft_form(profile_code: str, form: Mapping[str, str]) -> ParsedDraft:
     if profile_code not in PROFILE_MEALS:
         raise WorkflowValidationError('Unbekanntes Profil.')
-    supplied = _single_values(form)
+    supplied = _single_values(profile_code, form)
     expected = _field_names(profile_code)
-    unexpected = set(supplied) - expected
-    # Entferne optionale Felder aus der "unexpected"-Prüfung
-    optional_field_suffixes = {'labels', 'allergen_contains', 'allergen_may_contain', 'origins', 'allergen_reviewed'}
-    unexpected = {k for k in unexpected if not any(suffix in k for suffix in optional_field_suffixes)}
+    optional_fields = _optional_field_names(profile_code)
+    unexpected = set(supplied) - expected - optional_fields
     if unexpected:
         raise WorkflowValidationError(f'Unzulässiges Formularfeld: {sorted(unexpected)[0]}')
     missing = expected - set(supplied)
@@ -233,8 +255,12 @@ def parse_draft_form(profile_code: str, form: Mapping[str, str]) -> ParsedDraft:
                             field_name=origins_field,
                         ) from error
 
-                # Parse allergen review status - optional, default: not_checked
-                allergen_reviewed = supplied.get(allergen_reviewed_field, '').lower() == 'on'
+                # "checked" is persisted canonically; retain the old UI value while forms migrate.
+                allergen_reviewed = supplied.get(allergen_reviewed_field, '').lower() in {
+                    'on',
+                    'checked',
+                    'reviewed',
+                }
                 option['allergen_review_status'] = 'checked' if allergen_reviewed else 'not_checked'
 
                 if profile_code == 'staff_guest':

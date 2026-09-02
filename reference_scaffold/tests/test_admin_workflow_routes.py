@@ -140,6 +140,7 @@ def _patient_form() -> dict[str, str]:
                 option = f'{service}_{type_code}'
                 form[f'{option}_title'] = title
                 form[f'{option}_components'] = 'Blattsalat'
+                form[f'{option}_allergen_reviewed'] = 'on'
     return form
 
 
@@ -161,6 +162,7 @@ def _staff_form() -> dict[str, str]:
             form[f'{option}_components'] = 'Salat'
             form[f'{option}_internal_rappen'] = '950'
             form[f'{option}_external_rappen'] = '1450'
+            form[f'{option}_allergen_reviewed'] = 'on'
     return form
 
 
