@@ -217,24 +217,54 @@ emits exactly `components: list[str]`, `labels: list[{code,name}]`,
 `origins: list[{ingredient,country_code,text}]` and
 `allergen_review_status: string`; it contains no internal IDs, modes or
 component versions. `get_component_review_token(engine: Engine, scope:
-AdminScope, item_id: int) -> str` returns `sha256:` followed by exactly 64
-lowercase hex characters. Its digest input is canonical UTF-8 JSON produced
-with `ensure_ascii=False`, `sort_keys=True`, `separators=(',', ':')`. The
-payload contains the item `row_version`, all three modes, and components ordered
-by `sort_order`; each component contains `sort_order`, its public component UUID
-or `null`, exact text, stored link version or `null`, and current component
-version or `null`. It also contains resolved labels ordered by `code`, allergens
-ordered by `code,presence`, and origins ordered by `ingredient`. Review status is
-excluded so the successful review write cannot poison its own input token.
+AdminScope, item_id: int) -> str` returns a Single-Use-Pre-Review-Token:
+`sha256:` followed by exactly 64 lowercase hex characters. It is an optimistic
+concurrency value, not an authorization secret. Its object has exactly these
+eight top-level keys and types: `item_row_version: int > 0`,
+`allergen_mode|origin_mode|label_mode: 'auto'|'manual'`, plus the four lists
+`components`, `labels`, `allergens`, `origins`. A component has exactly
+`sort_order: int > 0,component_public_id: str|null,component_text: str,stored_component_row_version: int|null,current_component_row_version: int|null`;
+a label exactly `code: str,name: str`; an allergen exactly
+`code: str,name: str,presence: 'contains'|'may_contain'`; an origin exactly
+`ingredient: str,country_code: str,text: str`. No other `null` is allowed.
+Components are ordered by `sort_order ASC`, labels by `(code ASC, name ASC)`,
+allergens by `(code ASC, presence ASC, name ASC)`, and origins by
+`(ingredient ASC, country_code ASC, text ASC)`. UUIDs use canonical lowercase;
+other strings are not trimmed, case-folded or Unicode-normalized. Digest bytes
+are exactly
+`json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False).encode('utf-8')`
+without BOM/trailing newline; prefix `sha256:` is not hashed. Review status is
+excluded.
+
+The mandatory golden test hashes this exact one-line UTF-8 JSON string:
+
+```json
+{"allergen_mode":"auto","allergens":[{"code":"A","name":"Gluten","presence":"contains"},{"code":"B","name":"Milch","presence":"may_contain"}],"components":[{"component_public_id":"11111111-1111-4111-8111-111111111111","component_text":"Rind & Crème","current_component_row_version":4,"sort_order":1,"stored_component_row_version":3},{"component_public_id":null,"component_text":"Freitext","current_component_row_version":null,"sort_order":2,"stored_component_row_version":null}],"item_row_version":7,"label_mode":"manual","labels":[{"code":"L1","name":"Hausgemacht"}],"origin_mode":"auto","origins":[{"country_code":"CH","ingredient":"Rind","text":"Schweiz"}]}
+```
+
+Expected result is exactly
+`sha256:46fe2582022c284f54706d9d57f8c2dd783154fd6d7d9bc434bcd22665542507`.
+
 `review_component(engine: Engine, scope: AdminScope, item_id: int,
-component_version: str, expected_row_version: int) -> int` locks and scope-checks
-the item, compares the expected row version and recomputes the token in the same
-transaction. Foreign scope is 404; stale row version or token is 409; both are
-atomic. On success it rematerializes current auto classes, advances stored link
-versions to current component versions, then marks the item checked, updates
-`menu_weeks.updated_by=scope.actor_id`, and returns the new item row version.
-It adds no immutable per-item audit history and requires no schema or permission
-expansion.
+component_version: str, expected_row_version: int) -> int` interprets
+`component_version` as that pre-review token. In one transaction it locks in
+this order: the scoped `menu_items` row `FOR UPDATE`; all current
+`menu_item_components` rows (including links to archived components) via
+`ORDER BY sort_order FOR UPDATE`; then every referenced `menu_components` row
+via `ORDER BY id FOR UPDATE`. All link mutators first lock the item, preventing
+phantom link insertion while review holds the item lock. Locks remain through
+commit/rollback. Only after all locks does review reread scope, expected item
+version, current component versions and effective Auto/Manual values, then
+recompute/compare the token. A concurrent write that wins before a required
+lock yields atomic 409; a later writer waits. Foreign scope yields atomic 404.
+On success review rematerializes current auto classes, advances stored link
+versions, marks checked, increments item row version exactly once, updates
+`menu_weeks.updated_by=scope.actor_id`, and returns the new row version. The
+route responds 303/PRG to the scoped item GET. Success consumes the submitted
+token because item/link versions change; repeating the old body yields 409
+without mutation. A component edit after commit makes publish stale until a
+new review. No immutable per-item audit history, schema change or permission
+expansion is added.
 The existing full
 `publish_draft(engine, profile_code, week_start, *, expected_row_version,
 actor_id, issuer_engine)` signature, replacement-publication capability flow,
@@ -242,17 +272,22 @@ actor_id, issuer_engine)` signature, replacement-publication capability flow,
 unreviewed/stale components and stores an immutable revision.
 
 - [ ] Add RED tests asserting exact snapshot keys/types, no forbidden metadata,
-  immutability after source edits, exact canonical ordered-complete-state review
-  token, atomic week actor attribution, cross-location/profile 404, review
-  invalidation, stale publish rejection, replacement-publication capability/
-  503 behavior and the existing App-role flow.
+  immutability after source edits, the literal golden input/digest above,
+  complete-state array ordering and exact key/type rejection. Add two-connection
+  races proving deterministic item→links→components locking, atomic 404/409,
+  successful new row version plus 303/PRG, old-token repeat-submit 409, atomic
+  week actor attribution, cross-location/profile 404, review invalidation,
+  stale publish rejection, replacement-publication capability/503 behavior and
+  the existing App-role flow.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_admin_workflow_db.py`; expected FAIL.
 - [ ] Implement deterministic snapshot materialization and review transaction.
-  Review locks and scope-checks the item, compares `expected_row_version`,
-  recomputes the complete-state token, rematerializes current auto classes,
-  advances stored link versions, then marks checked and updates the week actor.
-  Publish separately requires checked state plus every stored link version equal
-  to its current component version. Leave all tables unchanged on every 400/409.
+  Review locks item, current links by `sort_order`, then referenced components
+  by `id`, holds all locks, rereads state, compares `expected_row_version` and
+  the complete-state token, rematerializes current auto classes, advances
+  stored link versions, marks checked, increments item version once and updates
+  the week actor. Publish separately requires checked state plus every stored
+  link version equal to its current component version. Leave all tables
+  unchanged on every 400/409; reject exact repeat submission with 409.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_admin_workflow_db.py -v`; expected PASS.
 - [ ] Stage: `rtk git add reference_scaffold/cafeteria/workflow_snapshot.py reference_scaffold/cafeteria/workflow.py reference_scaffold/cafeteria/component_assignment_store.py reference_scaffold/tests/test_admin_workflow_db.py`.
 - [ ] Commit: `rtk git commit -m 'feat: enforce reviewed immutable menu snapshots'`.
@@ -322,7 +357,8 @@ Playwright patterns and fixtures in `test_rendered_ui.py` with no dependency.
   same-profile empty-copy lock/409/new IDs, and preview's LAST-SAVED source,
   no-store, and no-live-data fallback. Test empty copy as zero items and no
   active publication. Cover the review POST's exact keys, server-side item
-  resolution and stale-token 409 with no mutation. Dirty-state and `target="_blank"` assertions belong to
+  resolution, successful 303/PRG with the new checked row version, and
+  stale/single-use repeat-token 409 with no mutation. Dirty-state and `target="_blank"` assertions belong to
   the reused rendered/browser harness, not route-preview tests.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_catalog_routes.py tests/test_admin_week_routes.py tests/test_admin_workflow_routes.py tests/test_admin_draft_preview.py`; expected FAIL.
 - [ ] Implement the separate workflow blueprint and handlers for dashboard,

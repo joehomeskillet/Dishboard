@@ -85,24 +85,66 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
   rematerialisiert nur Auto-Klassen und setzt den Review-Status zurück.
 - Publish verweigert ungeprüfte oder stale Component-Versionen. Ein Review
   bestätigt die konkrete Version; bei Änderung muss neu geprüft werden.
-- `get_component_review_token(engine, scope, item_id)` liefert einen Token im
-  Format `sha256:` plus 64 Kleinbuchstaben-Hexzeichen. Gehasht wird kanonisches
-  UTF-8-JSON mit `ensure_ascii=False`, `sort_keys=True` und
-  `separators=(',', ':')`: Item-`row_version`, alle drei Modi, Komponenten nach
-  `sort_order` mit `sort_order`, öffentlicher Komponenten-UUID oder `null`,
-  exaktem Text, gespeicherter Link-Version oder `null` und aktueller
-  Komponenten-Version oder `null`, außerdem aufgelöste Labels nach `code`,
-  Allergene nach `code,presence` und Herkünfte nach `ingredient`. Der
-  Review-Status selbst ist ausgeschlossen.
+- `get_component_review_token(engine, scope, item_id)` liefert einen
+  **Single-Use-Pre-Review-Token** im Format `sha256:` plus 64
+  Kleinbuchstaben-Hexzeichen. Er ist ein Optimistic-Concurrency-Token und kein
+  Authentifizierungs- oder Capability-Ersatz. Sein kanonisches Tokenobjekt hat
+  exakt diese acht Top-Level-Keys und Typen: `item_row_version: int > 0`,
+  `allergen_mode|origin_mode|label_mode: 'auto'|'manual'`,
+  `components: list`, `labels: list`, `allergens: list` und `origins: list`.
+  Jedes Component-Objekt hat exakt
+  `sort_order: int > 0,component_public_id: str|null,component_text: str,stored_component_row_version: int|null,current_component_row_version: int|null`;
+  `null` ist nur bei den drei so markierten Component-Feldern erlaubt. Jedes
+  Label hat exakt `code: str,name: str`, jedes Allergen exakt
+  `code: str,name: str,presence: 'contains'|'may_contain'` und jede Herkunft
+  exakt `ingredient: str,country_code: str,text: str`.
+- Array-Reihenfolge ist ebenfalls Contract: Komponenten nach `sort_order ASC`
+  (der Primärschlüssel `(menu_item_id, sort_order)` macht sie eindeutig),
+  Labels nach `(code ASC, name ASC)`, Allergene nach
+  `(code ASC, presence ASC, name ASC)` und Herkünfte nach
+  `(ingredient ASC, country_code ASC, text ASC)`. UUIDs werden als kanonische
+  Lowercase-Strings serialisiert; sonst bleiben Strings byteinhaltlich erhalten
+  (kein Trim, Case-Folding oder Unicode-Normalisieren). Die Serialisierung ist
+  exakt
+  `json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False).encode('utf-8')`,
+  ohne BOM oder abschließenden Zeilenumbruch. `sha256:` gehört nicht zu den
+  gehashten Bytes. Der Review-Status selbst ist ausgeschlossen.
+- Der verpflichtende Golden-Test verwendet exakt diese eine UTF-8-JSON-Zeile:
+
+  ```json
+  {"allergen_mode":"auto","allergens":[{"code":"A","name":"Gluten","presence":"contains"},{"code":"B","name":"Milch","presence":"may_contain"}],"components":[{"component_public_id":"11111111-1111-4111-8111-111111111111","component_text":"Rind & Crème","current_component_row_version":4,"sort_order":1,"stored_component_row_version":3},{"component_public_id":null,"component_text":"Freitext","current_component_row_version":null,"sort_order":2,"stored_component_row_version":null}],"item_row_version":7,"label_mode":"manual","labels":[{"code":"L1","name":"Hausgemacht"}],"origin_mode":"auto","origins":[{"country_code":"CH","ingredient":"Rind","text":"Schweiz"}]}
+  ```
+
+  Erwarteter Token ist exakt
+  `sha256:46fe2582022c284f54706d9d57f8c2dd783154fd6d7d9bc434bcd22665542507`.
 - `review_component(engine, scope, item_id, component_version,
-  expected_row_version)` sperrt und prüft das scoped Item sowie seine
-  `row_version` in einer Transaktion, berechnet den Token neu und antwortet bei
-  fremdem Item mit 404 beziehungsweise bei stale Version/Token mit 409, ohne
-  Teilmutation. Bei Erfolg rematerialisiert es aktuelle Auto-Klassen, übernimmt
-  aktuelle Komponenten-Versionen in die Links, markiert erst danach geprüft,
-  schreibt `menu_weeks.updated_by=scope.actor_id` in derselben Transaktion und
-  liefert die neue Item-`row_version`. Es wird keine unveränderliche
-  Per-Item-Audit-Historie ergänzt.
+  expected_row_version)` verwendet `component_version` als den obigen
+  Pre-Review-Token. Es sperrt in genau einer Transaktion und in dieser stabilen
+  Reihenfolge: (1) das scoped `menu_items`-Item per `FOR UPDATE`, (2) alle
+  aktuell vorhandenen `menu_item_components`-Linkzeilen dieses Items per
+  `ORDER BY sort_order FOR UPDATE` — einschließlich Links auf archivierte
+  Komponenten — und (3) alle referenzierten `menu_components`-Zeilen per
+  `ORDER BY id FOR UPDATE`. Jeder Link-Mutator sperrt zuerst dasselbe Item;
+  dadurch kann zwischen Link-Lock und Tokenprüfung keine neue Linkzeile als
+  Phantom eingefügt werden. Alle Locks bleiben bis Commit oder Rollback.
+- Erst nach allen Locks werden Scope, erwartete Item-`row_version`, aktuelle
+  Komponenten-Versionen, effektive Auto-/Manual-Werte und Token aus den
+  gesperrten Zeilen erneut gelesen und geprüft. Ein vorher gewinnender
+  Concurrent-Write führt dadurch zu 409; ein späterer Write wartet. Fremder
+  Scope liefert 404. Beide Antworten erfolgen ohne Teilmutation. Bei Erfolg
+  rematerialisiert die Operation aktuelle Auto-Klassen, übernimmt aktuelle
+  Komponenten-Versionen in die Links, markiert danach geprüft, erhöht die
+  Item-`row_version` exakt einmal und schreibt
+  `menu_weeks.updated_by=scope.actor_id` in derselben Transaktion. Sie liefert
+  die neue Item-`row_version`; der HTTP-Handler antwortet per 303/PRG auf den
+  scoped Menü-GET, der den neuen geprüften Zustand rendert.
+- Der akzeptierte Token ist absichtlich verbraucht: Erfolg ändert mindestens
+  Item-`row_version` und gegebenenfalls gespeicherte Link-Versionen. Derselbe
+  POST mit alter `row_version` und altem `component_version` liefert deshalb
+  deterministisch 409 ohne Mutation. Ein nach dem Commit ändernder
+  Komponenten-Write macht gespeicherte und aktuelle Komponenten-Version wieder
+  verschieden; Publish bleibt bis zu einem neuen Review gesperrt. Es wird
+  keine unveränderliche Per-Item-Audit-Historie ergänzt.
 - Der Publish-Snapshot folgt exakt dem oben definierten externen verschachtelten
   Contract: `components` ist `list[str]`, `labels`, `allergens` und `origins`
   sind Listen von Dicts, und `allergen_review_status` ist ein String. Er enthält
@@ -163,7 +205,7 @@ Contract und ersetzt keinen Auth-Contract.
 | `GET /admin/cafeteria?week=` und `GET /admin/patienten?week=` | Wochenübersicht, Header, Service und Grid |
 | `GET /admin/{cafeteria\|patienten}/menu?week=&day=&meal=&option=` | fokussierte Menüzeile |
 | `POST /admin/{cafeteria\|patienten}/menu` | exact `_csrf,week,day,meal,option,row_version,fields` |
-| `POST /admin/{cafeteria\|patienten}/menu/review` | `draft.write`; exact `_csrf,week,day,meal,option,row_version,component_version`; Item wird serverseitig aus dem Raster aufgelöst, internes `item_id` ist verboten |
+| `POST /admin/{cafeteria\|patienten}/menu/review` | `draft.write`; exact `_csrf,week,day,meal,option,row_version,component_version`; `component_version` ist der Single-Use-Pre-Review-Token; Item wird serverseitig aus dem Raster aufgelöst, internes `item_id` ist verboten; Erfolg ist 303/PRG, Wiederholung mit altem Token 409 |
 | `GET /admin/{cafeteria\|patienten}/header?week=` | Header laden |
 | `POST /admin/{cafeteria\|patienten}/header` | Header speichern |
 | `GET /admin/{cafeteria\|patienten}/service?week=` | Service-Status laden |
@@ -238,7 +280,7 @@ Named RED-Tests (zuerst rot, danach grün) und Dateien:
 | Katalog CRUD/Archiv/Suche/Usage und Isolation | `reference_scaffold/tests/test_component_catalog_db.py`, `reference_scaffold/tests/test_component_catalog_routes.py` |
 | Komponenten-Zuweisung, Allergie-Union/contains, Herkunft-Konflikt, Diet-Intersection | `reference_scaffold/tests/test_component_assignment_db.py` |
 | Location/Profile-Isolation und Public-ID/404 | `reference_scaffold/tests/test_public_isolation_homoglyphs.py`, `reference_scaffold/tests/test_database_invariants.py` |
-| exakter immutable Snapshot | `reference_scaffold/tests/test_admin_workflow_db.py` |
+| exakter immutable Snapshot, Golden-Hash-Token, Lock-Reihenfolge und Concurrent-/Repeat-Review | `reference_scaffold/tests/test_admin_workflow_db.py` |
 | leerer Same-Profile-Copy, Lock/409, neue IDs | `reference_scaffold/tests/test_admin_workflow_routes.py`, `reference_scaffold/tests/test_workflow_form.py` |
 | LAST-SAVED Preview, no-store, Dirty-Guard | `reference_scaffold/tests/test_admin_draft_preview.py` |
 | Publish/PRG/Review/Stale/CSRF/400/409 | `reference_scaffold/tests/test_admin_workflow_routes.py`, `reference_scaffold/tests/test_workflow_form.py` |
