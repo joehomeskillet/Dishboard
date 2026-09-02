@@ -300,10 +300,10 @@ Die folgenden Features gehören zur umgesetzten Welle 3.
 
 Gerichte erhalten Felder für:
 
-- **Labels**: z. B. Regional, Bio, Vegetarisch, Vegan (Multi-Select)
-- **Allergene enthält**: Multi-Select für bekannte Allergene (Milch, Gluten, Erdnüsse, etc.)
-- **Allergene Spuren**: Multi-Select für mögliche Kreuzverunreinigungen
-- **Herkunft**: Angabe wie `Zutat=CH|EU|…` pro Gericht
+- **Labels**: Checkboxgruppe mit den Seed-Optionen Vegetarisch (`VEGETARIAN`), Vegan (`VEGAN`), laktosefrei (`LACTOSE_FREE`) und glutenfrei (`GLUTEN_FREE`)
+- **Allergene enthält**: Checkboxgruppe für bekannte Allergene
+- **Allergene Spuren**: Checkboxgruppe für mögliche Kreuzverunreinigungen
+- **Herkunft**: wiederholte Segmente mit genau einem `=` pro Segment, z. B. `Zutat=CH|Zutat2=DE`
 - **Review-Status**: `not_checked` oder `checked` für jede Menüoption
 
 ### Publikations-Gate
@@ -324,7 +324,7 @@ Labels, Allergene und Herkunftsangaben werden in allen Kanälen als Pills (Tags)
 Das Erfassungs-Formular bietet:
 
 - Eine Checkbox für den Review-Status je Menüoption
-- Multi-Select-Dropdowns für Allergen- und Label-Kategorien
+- Checkboxgruppen für Allergen- und Label-Kategorien
 - Herkunfts-Freitextfeld mit Validierung
 
 ## Header und Branding (Welle 3)
@@ -334,7 +334,7 @@ Die Header-Navigation ist in Welle 3 umgesetzt:
 - **Südhang-Logo**: Oben rechts positioniert
 - **Kanalnavigation**: Oben links (Umschalter zwischen Patienten- und Cafeteria-Ansicht)
 - **Beilagen-Pills**: Beilagen werden gleich hoch und in der Menüart-Farbe (Menü-1-Farbe oder Vegetarisch-Farbe) gerendert
-- **Patienten-Wochenansicht**: Der Seitentitel zeigt den Datumsbereich (z. B. „Montag 31. Aug – Sonntag 6. Sept") statt nur „Wochenplan"
+- **Patienten-Wochenansicht und Druck**: Der Seitentitel zeigt den vollständigen `date_long`-Datumsbereich (z. B. „31. August 2026 bis 6. September 2026") statt nur „Wochenplan"
 
 Diese visuellen Verbesserungen stärken die Markenidentität Klinik Südhang und verbessern die Orientierung im System.
 
