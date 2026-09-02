@@ -281,10 +281,9 @@ def _forbidden_external_identifier_key_paths(value: Any, path: str = '$') -> lis
     found: list[str] = []
     if isinstance(value, dict):
         for key, child in value.items():
-            if (
-                isinstance(key, str)
-                and _normalize_patient_key(key) in EXTERNAL_FORBIDDEN_IDENTIFIER_KEYS
-            ):
+            if not isinstance(key, str) or not key.isascii():
+                found.append(f'{path}.{key}')
+            elif _normalize_patient_key(key) in EXTERNAL_FORBIDDEN_IDENTIFIER_KEYS:
                 found.append(f'{path}.{key}')
             found.extend(_forbidden_external_identifier_key_paths(child, f'{path}.{key}'))
     elif isinstance(value, list):
