@@ -5,13 +5,13 @@
 {% set weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'] %}
 <div class="admin-shell">
   <aside class="admin-sidebar">
-    <div class="wordmark"><span class="wordmark-mark"></span><span>Südhang Menüplanung</span></div>
+    <div class="wordmark"><span class="wordmark-mark" aria-hidden="true"></span><span>Südhang Menüplanung</span></div>
     <div class="admin-user">
       <span class="avatar">{{ (user.name or 'DK')[:2]|upper }}</span>
       <div><strong>{{ user.name if user else 'Demo Küche' }}</strong><span>{{ roles|join(', ') }}</span></div>
     </div>
     <nav class="admin-nav" aria-label="Backend">
-      <a class="active" href="{{ url_for('admin.patienten') }}">Wochenpläne</a>
+      <a class="active" href="{{ url_for('admin.patienten') }}" aria-current="page">Wochenpläne</a>
       <a href="{{ url_for('admin.import_preview') }}">CSV Import</a>
       <a href="{{ url_for('auth.logout') }}">Abmelden</a>
     </nav>

@@ -3,9 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="rgb(6 52 59)">
+  <meta name="color-scheme" content="light">
   <title>{% block title %}Südhang Menüplanung{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
   {% block head %}{% endblock %}
 </head>
-<body class="{% block body_class %}{% endblock %}">{% block body %}{% endblock %}</body>
+<body class="{% block body_class %}{% endblock %}">
+  {% block skip_link %}<a class="skip-link" href="#main-content">Zum Inhalt springen</a>{% endblock %}
+  {% block body %}{% endblock %}
+</body>
 </html>

@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Cafeteria-Woche – Klinik Südhang{% endblock %}
 {% block body %}
-<header class="site-header"><a class="wordmark" href="{{ url_for('public.cafeteria_today') }}"><span class="wordmark-mark"></span><span>Klinik Südhang</span></a><nav class="site-nav"><a href="{{ url_for('public.cafeteria_today') }}">Cafeteria heute</a><a class="active" href="{{ url_for('public.cafeteria_week') }}">Cafeteria Woche</a><span class="channel-links"><a href="{{ url_for('public.patient_week') }}">Patientenplan</a></span></nav></header>
-<main class="public-shell">
+<header class="site-header"><a class="wordmark" href="{{ url_for('public.cafeteria_today') }}"><span class="wordmark-mark" aria-hidden="true"></span><span>Klinik Südhang</span></a><nav class="site-nav" aria-label="Hauptnavigation"><a href="{{ url_for('public.cafeteria_today') }}">Cafeteria heute</a><a class="active" href="{{ url_for('public.cafeteria_week') }}" aria-current="page">Cafeteria Woche</a><span class="channel-links"><a href="{{ url_for('public.patient_week') }}">Patientenplan</a></span></nav></header>
+<main class="public-shell" id="main-content">
 <section class="hero"><div><p class="eyebrow">Cafeteria · Wochenangebot</p><h1>{{ snapshot.title if snapshot else 'Keine Publikation' }}</h1><p class="hero-copy">Mitarbeitende und externe Gäste sehen ausschliesslich das Cafeteria-Mittagessen von Montag bis Freitag.</p></div><div class="date-chip">{{ 'Revision ' ~ snapshot.revision_id if snapshot else 'Kein Datenstand' }}</div></section>
 <div class="profile-banner"><div><strong>Publikationskanal Cafeteria</strong><span>Keine Wochenendgerichte und kein Abendessen in dieser Ansicht</span></div><span class="profile-pill">Cafeteria</span></div>
 <section class="week-list">
