@@ -8,6 +8,16 @@ from cafeteria.db import active_snapshot
 from cafeteria.workflow import StaleDraftError, load_draft, publish_draft, save_draft
 import test_admin_workflow_db as workflow_db_support
 
+import pytest
+import os
+
+DATABASE_URL = os.getenv('TEST_DATABASE_URL')
+pytestmark = pytest.mark.skipif(
+    not DATABASE_URL,
+    reason='TEST_DATABASE_URL für eine isolierte PostgreSQL-Testdatenbank fehlt.',
+)
+
+
 WEEK_START = workflow_db_support.WEEK_START
 database_engine = workflow_db_support.database_engine
 

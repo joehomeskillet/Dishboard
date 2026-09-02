@@ -13,7 +13,8 @@ import pytest
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.pool import NullPool
 
-from cafeteria.db import active_snapshot, init_database
+from cafeteria import db as database
+from cafeteria.db import active_snapshot
 from cafeteria.workflow import (
     StaleDraftError,
     WorkflowValidationError,
@@ -30,6 +31,11 @@ pytestmark = pytest.mark.skipif(
 )
 WEEK_START = date(2026, 8, 31)
 
+APP_PASSWORD = 'Test-App-Role-2026-7VgJ9wL4pQ2xR8mK'
+BACKUP_PASSWORD = 'Test-Backup-Role-2026-5ZtN8cR3yH6qW1pL'
+ISSUER_PASSWORD = 'Test-Issuer-Role-2026-9QmK4xV7pR2wL8sN'
+
+
 
 def _drop_schema(engine: Engine) -> None:
     with engine.begin() as connection:
@@ -41,10 +47,14 @@ def database_engine() -> Iterator[Engine]:
     assert DATABASE_URL is not None
     engine = create_engine(DATABASE_URL, poolclass=NullPool, pool_pre_ping=True)
     _drop_schema(engine)
-    init_database(
+    database.init_database(
         DATABASE_URL,
         str(ROOT / 'database' / 'schema.sql'),
         str(ROOT / 'database' / 'seed.sql'),
+        permissions_path=str(ROOT / 'database' / 'permissions.sql'),
+        app_password=APP_PASSWORD,
+        backup_password=BACKUP_PASSWORD,
+        auth_issuer_password=ISSUER_PASSWORD,
     )
     try:
         yield engine

@@ -18,7 +18,6 @@ from sqlalchemy.pool import NullPool
 from cafeteria.admin import routes as admin_routes
 from cafeteria.csvio import snapshot_to_csv, validate_upload
 from cafeteria.db import init_database
-from cafeteria.security import csrf_token
 from cafeteria.workflow_snapshot import build_snapshot
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -27,6 +26,10 @@ pytestmark = pytest.mark.skipif(
     not DATABASE_URL,
     reason='TEST_DATABASE_URL für eine isolierte PostgreSQL-Testdatenbank fehlt.',
 )
+
+APP_PASSWORD = 'Test-App-Role-2026-7VgJ9wL4pQ2xR8mK'
+BACKUP_PASSWORD = 'Test-Backup-Role-2026-5ZtN8cR3yH6qW1pL'
+ISSUER_PASSWORD = 'Test-Issuer-Role-2026-9QmK4xV7pR2wL8sN'
 
 
 def _drop_schema(engine: Engine) -> None:
@@ -39,10 +42,14 @@ def database_engine() -> Iterator[Engine]:
     assert DATABASE_URL is not None
     engine = create_engine(DATABASE_URL, poolclass=NullPool, pool_pre_ping=True)
     _drop_schema(engine)
-    init_database(
+    database.init_database(
         DATABASE_URL,
         str(ROOT / 'database' / 'schema.sql'),
         str(ROOT / 'database' / 'seed.sql'),
+        permissions_path=str(ROOT / 'database' / 'permissions.sql'),
+        app_password=APP_PASSWORD,
+        backup_password=BACKUP_PASSWORD,
+        auth_issuer_password=ISSUER_PASSWORD,
     )
     try:
         yield engine
@@ -91,14 +98,30 @@ def app(database_engine: Engine, tmp_path: Path) -> Flask:
 
 
 @pytest.fixture
-def client(app: Flask):
-    client = app.test_client()
-    with client.session_transaction() as current:
-        current['user'] = {'id': 1, 'name': 'Küche'}
-        current['roles'] = ['Cafeteria.Admin']
+def client(app: Flask, database_engine: Engine):
+    issuer_engine = app.extensions['cafeteria_auth_issuer_db']
+    user_id = database.upsert_entra_user(
+        issuer_engine,
+        {
+            'tid': '00000000-0000-0000-0000-000000000001',
+            'oid': '00000000-0000-0000-0000-000000000002',
+            'sub': 'csv-import-test-admin',
+            'name': 'Küche',
+            'preferred_username': 'csv.admin@example.invalid',
+        },
+        ['Cafeteria.Admin'],
+    )
+    with database_engine.begin() as connection:
+        authz_version = connection.execute(
+            text('SELECT authz_version FROM cafeteria.users WHERE id=:id'),
+            {'id': user_id},
+        ).scalar_one()
+    client_obj = app.test_client()
+    with client_obj.session_transaction() as current:
+        current['user'] = {'id': user_id, 'name': 'Küche'}
+        current['authz_version'] = authz_version
         current['_csrf_token'] = 'csv-import-csrf'
-    return client
-
+    return client_obj
 
 def _example(name: str) -> bytes:
     return (ROOT / 'csv' / name).read_bytes()

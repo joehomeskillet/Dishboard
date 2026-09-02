@@ -17,7 +17,8 @@ sys.path.insert(0, str(ROOT / 'tools'))
 
 from cafeteria.admin import routes as admin_routes  # noqa: E402
 from cafeteria.public import routes as public_routes  # noqa: E402
-from cafeteria.security import csrf_token  # noqa: E402
+from cafeteria.security import csrf_token
+from cafeteria.auth import service as auth_service  # noqa: E402
 from cafeteria.signage import routes as signage_routes  # noqa: E402
 from demo_snapshots import cafeteria_snapshot, patient_snapshot  # noqa: E402
 
@@ -89,6 +90,17 @@ def app(monkeypatch: pytest.MonkeyPatch) -> Flask:
     def fake_draft(profile_code: str) -> dict[str, Any]:
         return _draft(snapshots[profile_code], profile_code)
 
+    # Mock load_user_authorization to return authorized user without DB
+    class MockAuthorization:
+        def __init__(self):
+            self.authz_version = 1
+            self.roles = ['Cafeteria.Admin']
+
+    def mock_load_user_authorization(db_engine, user_id):
+        return MockAuthorization()
+
+    import cafeteria.roles
+    monkeypatch.setattr(cafeteria.roles, 'load_user_authorization', mock_load_user_authorization)
     monkeypatch.setattr(public_routes, 'active_snapshot', fake_active_snapshot)
     monkeypatch.setattr(admin_routes, '_draft', fake_draft)
 
@@ -116,7 +128,7 @@ def _client(app: Flask):
     client = app.test_client()
     with client.session_transaction() as current:
         current['user'] = {'id': 1, 'name': 'Küche'}
-        current['roles'] = ['Cafeteria.Admin']
+        current['authz_version'] = 1
         current['_csrf_token'] = 'rendered-ui-csrf'
     return client
 
