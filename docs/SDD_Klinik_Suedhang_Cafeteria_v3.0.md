@@ -234,7 +234,7 @@ Das Backend unterstützt zwei Auth-Provider: Microsoft Entra ID (optional, produ
 
 ## Lokale Benutzer
 
-Die erste lokale Administration wird mit `python manage.py bootstrap-local-admin --username X --display-name Y` auf der Owner-Datenbankverbindung bereitgestellt. Passwörter werden zweimal interaktiv abgefragt oder aus `DISHBOARD_BOOTSTRAP_PASSWORD_FILE` (Modus 0400) gelesen. Weitere Benutzer werden von verifizierten Administratoren provisioniert: `python manage.py provision-local-user --actor <admin> --username ... --display-name ... --role Cafeteria.Editor|Publisher|Admin`. Passwort-Änderungen und Deaktivierungen erfolgen ebenfalls über diese verifizierten Administratoren.
+Die erste lokale Administration wird mit `python manage.py bootstrap-local-admin --username X --display-name Y` auf der Owner-Datenbankverbindung bereitgestellt. Das Passwort wird zweimal interaktiv abgefragt; der Compose-Migrate-Service übernimmt keine externe Passwortdatei. Weitere Benutzer werden von verifizierten Administratoren provisioniert: `python manage.py provision-local-user --actor <actor-identifier> --username ... --display-name ... --role Cafeteria.Editor|Publisher|Admin`. Der Identifier ist ein aktiver Benutzername, eine E-Mail-Adresse oder ein `preferred_username`. Passwort-Änderungen und Deaktivierungen erfolgen ebenfalls über diese verifizierten Administratoren.
 
 ## Microsoft Entra ID (Optional)
 
@@ -278,7 +278,7 @@ PostgreSQL 18.6 mit Schema-Version 12 (Migrationen 0001–0009 mit SHA-256-Valid
 | `db` | PostgreSQL 18.6 mit Constraints und Audit |
 | `redis` | Redis 7.4 für Serverseitige Sessions (UID 999:1000) |
 | `migrate` | Versionierte SQL-Baseline, Seed, Permissions und Capability-Reset (UID 10001) |
-| `app` | Flask 3 + Gunicorn 26 auf 127.0.0.1:8789 (UID 10001); zwei Worker sind Betriebswert, kein Skalierungsnachweis |
+| `app` | Flask 3 + Gunicorn 26 auf Container-Port 8000, veröffentlicht am Host auf 127.0.0.1:8789 (UID 10001); zwei Worker sind Betriebswert, kein Skalierungsnachweis |
 | `backup` | Periodischer `pg_dump` mit Secrets-Ausschlüssen, Hash und Manifest |
 | `restore` | Manueller Restore im Compose-Profil `ops`; Kandidaten-DB, Lease-Akquise, Lifecycle-Atomarität |
 
@@ -292,9 +292,9 @@ Secrets als 0700-root-Verzeichnis mit 0444-Dateien pro Service (kein `.env`, kei
 
 
 
-# Welle 3: Labels, Allergene und Branding (In-Arbeit)
+# Welle 3: Labels, Allergene und Branding (umgesetzt)
 
-Die folgenden Features befinden sich in aktiver Entwicklung (Branches `feat/labels-allergens` und `design/header-brand`) und werden in zukünftigen Versionen integriert.
+Die folgenden Features gehören zur umgesetzten Welle 3.
 
 ## Allergendeklaration und Labels
 
@@ -304,11 +304,11 @@ Gerichte erhalten Felder für:
 - **Allergene enthält**: Multi-Select für bekannte Allergene (Milch, Gluten, Erdnüsse, etc.)
 - **Allergene Spuren**: Multi-Select für mögliche Kreuzverunreinigungen
 - **Herkunft**: Angabe wie `Zutat=CH|EU|…` pro Gericht
-- **Review-Status**: `not_checked` oder `checked` für jedes Label/Allergen pro Item
+- **Review-Status**: `not_checked` oder `checked` für jede Menüoption
 
 ### Publikations-Gate
 
-Eine Publikation ist nur möglich, wenn für jedes Allergen und Label, das auf einem Gericht eingetragen ist, der Review-Status `checked` ist. Dies sperrt unvollständige Allergendeklarationen fail-closed ein.
+Eine Publikation ist nur möglich, wenn jede Menüoption den Review-Status `checked` trägt. Dies sperrt unvollständige Allergendeklarationen fail-closed ein.
 
 ### Rendering und Anzeigeformat
 
@@ -323,17 +323,17 @@ Labels, Allergene und Herkunftsangaben werden in allen Kanälen als Pills (Tags)
 
 Das Erfassungs-Formular bietet:
 
-- Checkboxen für Review-Status (jedes Allergen/Label einzeln)
+- Eine Checkbox für den Review-Status je Menüoption
 - Multi-Select-Dropdowns für Allergen- und Label-Kategorien
 - Herkunfts-Freitextfeld mit Validierung
 
 ## Header und Branding (Welle 3)
 
-Die Header-Navigation wird überarbeitet:
+Die Header-Navigation ist in Welle 3 umgesetzt:
 
 - **Südhang-Logo**: Oben rechts positioniert
 - **Kanalnavigation**: Oben links (Umschalter zwischen Patienten- und Cafeteria-Ansicht)
-- **Beilagen-Pills**: Beilagen werden gleich hoch und in der Menüart-Farbe (Menü-1-Farbe oder Vegetarisch-Farbe) gerenderrt
+- **Beilagen-Pills**: Beilagen werden gleich hoch und in der Menüart-Farbe (Menü-1-Farbe oder Vegetarisch-Farbe) gerendert
 - **Patienten-Wochenansicht**: Der Seitentitel zeigt den Datumsbereich (z. B. „Montag 31. Aug – Sonntag 6. Sept") statt nur „Wochenplan"
 
 Diese visuellen Verbesserungen stärken die Markenidentität Klinik Südhang und verbessern die Orientierung im System.

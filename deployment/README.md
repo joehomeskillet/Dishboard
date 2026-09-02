@@ -61,7 +61,7 @@ docker compose up -d --pull never --no-build
 docker compose ps
 ```
 
-Der `--pull never`-Flag sperrt Registry-Zugriffe; `--no-build` verhindert lokales Rebuild. Healthchecks prüfen PostgreSQL auf 5432, Redis auf 6379 und die App auf 127.0.0.1:8789.
+Der `--pull never`-Flag sperrt Registry-Zugriffe; `--no-build` verhindert lokales Rebuild. Healthchecks prüfen PostgreSQL auf 5432, Redis auf 6379 und die App intern auf `127.0.0.1:8000`; der Host-Port bleibt 8789.
 
 ### Erst-Administrator-Bootstrap
 
@@ -73,19 +73,7 @@ docker compose run --rm --no-deps migrate python /app/manage.py bootstrap-local-
   --display-name Administrator
 ```
 
-Der Befehl fragt das Passwort zweimal interaktiv ab, oder liest es aus der Datei `DISHBOARD_BOOTSTRAP_PASSWORD_FILE` (Modus 0400), falls diese gesetzt ist:
-
-```bash
-# Optional: Passwort-Datei für automatisierte Bootstrap
-echo "mein-sicheres-passwort" > /tmp/dishboard-bootstrap.pwd
-chmod 0400 /tmp/dishboard-bootstrap.pwd
-export DISHBOARD_BOOTSTRAP_PASSWORD_FILE=/tmp/dishboard-bootstrap.pwd
-
-# Bootstrap mit Datei-Passwort
-docker compose run --rm --no-deps migrate python /app/manage.py bootstrap-local-admin \
-  --username admin \
-  --display-name Administrator
-```
+Der Befehl fragt das Passwort zweimal interaktiv ab. Der Compose-Migrate-Service mountet und übernimmt keine externe Bootstrap-Passwortdatei; die Datei-Variante ist in diesem Container daher nicht unterstützt.
 
 Nach erfolgreichem Bootstrap sperrt sich die Bootstrap-Funktion fail-closed: weitere Aufrufe schlagen fehl, wenn bereits ein aktiver Administrator (lokal oder Entra) existiert.
 
@@ -93,15 +81,17 @@ Danach leitet `/auth/login` auf `/auth/local` um. Weitere Benutzer können von v
 
 ```bash
 docker compose exec -it app python /app/manage.py provision-local-user \
-  --actor admin \
+  --actor <actor-identifier> \
   --username operator \
   --display-name Betreiber \
   --role Cafeteria.Publisher
 ```
 
+`<actor-identifier>` wird gegen den aktiven Benutzernamen, die E-Mail-Adresse oder `preferred_username` aufgelöst.
+
 ### Host-Caddy-Konfiguration
 
-Falls Caddy bereits auf dem Docker-Host läuft, wird nur die Basisdatei `docker-compose.yml` verwendet (nicht `compose.caddy.yml`). Der Host-Caddy proxied ausschliesslich auf `127.0.0.1:8789`:
+Falls Caddy bereits auf dem Docker-Host läuft, wird nur die Basisdatei `docker-compose.yml` verwendet (nicht `docker-compose.caddy.yml`). Der Host-Caddy proxied ausschliesslich auf `127.0.0.1:8789`:
 
 ```caddyfile
 # Excerpt from /etc/caddy/Caddyfile
@@ -120,7 +110,7 @@ sudo caddy reload --config /etc/caddy/Caddyfile
 
 Nur das Gateway `10.213.0.1` darf `X-Forwarded-For` liefern; die App wertet den rechtesten nicht vertrauenswürdigen Hop aus.
 
-Das Compose-Caddy-Overlay (`compose.caddy.yml`) ist nur für Hosts ohne bestehenden Listener auf 80/443 bestimmt.
+Das Compose-Caddy-Overlay (`docker-compose.caddy.yml`) ist nur für Hosts ohne bestehenden Listener auf 80/443 bestimmt.
 
 ### Datenspeicherung und Restore
 
@@ -163,11 +153,13 @@ Beim Redeploy nach Code-Updates:
 
 Das Verzeichnis `deployment/secrets/` gehört root mit Modus 0700; die Secret-Dateien sind 0444 und werden pro Service als Bind-Mount eingebunden:
 
-- `secrets/pg_password_cafeteria_app`: PostgreSQL-Passwort für `cafeteria_app`
-- `secrets/pg_password_cafeteria_owner`: PostgreSQL-Passwort für Owner (Migrationslauf)
-- `secrets/pg_password_cafeteria_backup`: PostgreSQL-Passwort für `cafeteria_backup`
-- `secrets/pg_password_cafeteria_auth_issuer`: PostgreSQL-Passwort für `cafeteria_auth_issuer`
-- `secrets/redis_password`: Redis-Passwort (falls AUTH aktiv)
+- `secrets/postgres_owner_password.txt`: PostgreSQL-Passwort für Owner, Migration und Restore
+- `secrets/postgres_app_password.txt`: PostgreSQL-Passwort für `cafeteria_app`
+- `secrets/postgres_backup_password.txt`: PostgreSQL-Passwort für `cafeteria_backup`
+- `secrets/postgres_auth_issuer_password.txt`: PostgreSQL-Passwort für `cafeteria_auth_issuer`
+- `secrets/flask_secret_key.txt`: Signierung der Session-ID
+- `secrets/entra_client_secret.txt`: Entra-Client-Secret
+- `secrets/redis_password.txt`: Redis-Authentisierung
 
 Keine Geheimnisse in `.env`, in Git oder in Prozessargumenten (besonders nicht in Healthcheck-Befehlen).
 

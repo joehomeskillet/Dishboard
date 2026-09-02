@@ -12,9 +12,9 @@
 ### Erst-Administrator-Bootstrap
 
 - Migration `database/migrations/0009_bootstrap_first_local_admin.sql` etabliert fail-closed Bootstrap-Logik.
-- Befehl `python manage.py bootstrap-local-admin --username X --display-name Y` fragt Passwort zweimal ab oder liest aus `DISHBOARD_BOOTSTRAP_PASSWORD_FILE` (Modus 0400).
+- Befehl `python manage.py bootstrap-local-admin --username X --display-name Y` fragt das Passwort zweimal interaktiv ab; der Compose-Migrate-Service nimmt keine externe Passwortdatei entgegen.
 - Bootstrap ist nur möglich, wenn kein aktiver Administrator (lokal oder Entra) existiert; danach sperrt sich die Funktion.
-- Weitere Benutzer werden von verifizierten Administratoren via `provision-local-user --actor <admin-uuid>` provisioniert.
+- Weitere Benutzer werden von verifizierten Administratoren via `provision-local-user --actor <actor-identifier>` provisioniert. Der Identifier ist ein aktiver Benutzername, eine E-Mail-Adresse oder ein `preferred_username`.
 
 ### Deployment und Infrastruktur
 
@@ -34,22 +34,22 @@
 - Preiszeilen auf gleicher Höhe als Karten-Basiszeile via Flexbox (`.price-row`).
 - White Header mit verbessertem Kontrast pro Reference-Design.
 
-### In-Arbeit (Branches für Welle 3+)
+### Welle 3: umgesetzt
 
-**design/header-brand:**
+**Branding und Navigation:**
 - Südhang-Logo oben rechts im Header.
 - Kanalnavigation (Patienten/Cafeteria) oben links.
-- Beilagen-Pills gleich hoch und in Menüart-Farbe gerenderrt.
+- Beilagen-Pills gleich hoch und in Menüart-Farbe gerendert.
 - Patienten-Wochenansicht: Datumsbereich (z. B. „Montag 31. Aug – Sonntag 6. Sept") als Seitentitel.
 
-**feat/labels-allergens:**
+**Labels und Allergene:**
 - Labels-Feld für Gerichte (z. B. Regional, Bio, Vegetarisch).
 - Allergene-Felder: „enthält" und „Spuren" als Multi-Select.
 - Herkunft `Zutat=CH|EU|…` pro Gericht.
-- Review-Status `not_checked`/`checked` für jedes Allergen/Label pro Item.
-- Publikation erfordert, dass alle offenen Allergen-Optionen auf `checked` gesetzt sind (Review-Gate).
+- Review-Status `not_checked`/`checked` für jede Menüoption.
+- Publikation erfordert, dass alle Menüoptionen auf `checked` gesetzt sind (Review-Gate).
 - Rendering als Pills in Web-Ansichten, Signage, Druck und API.
-- Admin-Formular mit Checkboxen für Review-Status und Multi-Select für Allergen-/Label-Kategorien.
+- Admin-Formular mit einer Checkbox für den Review-Status je Menüoption und Multi-Select für Allergen-/Label-Kategorien.
 
 ---
 
@@ -65,9 +65,9 @@
 ### Authentifizierung und Bootstrap
 
 - Lokale Benutzer-Bootstrap: `python manage.py bootstrap-local-admin --username X --display-name Y` auf der Migrate-Verbindung (Owner-Rolle).
-- Weitere Benutzer über verifizierte Administratoren: `provision-local-user --actor <bootstrap-admin-username>`.
+- Weitere Benutzer über verifizierte Administratoren: `provision-local-user --actor <actor-identifier>`; akzeptiert werden Benutzername, E-Mail-Adresse oder `preferred_username`.
 - Auth-Issuer-Rolle mit restriktiven Ausführungsrechten auf schmale Provisioning-Funktionen.
-- Passwortbefehle fragen interaktiv oder lesen aus `DISHBOARD_BOOTSTRAP_PASSWORD_FILE` (Mode 0400).
+- Lokale Admin-Befehle fragen Passwörter interaktiv ab; eine externe Bootstrap-Passwortdatei wird nicht in den Container durchgereicht.
 
 ### Kitchen Workflows und Publikation
 
@@ -84,7 +84,7 @@
 
 ### Deployment-Hardening
 
-- Interne App-Port: 8789 (nicht 8080).
+- Host-Port der App: 8789; Container-Port und Healthcheck: 8000.
 - App läuft als UID 10001 (nicht root).
 - Netzwerk: reserviertes 10.213.0.0/24-Subnetz (ausserhalb Docker-Defaults 172.16.0.0/12 und 192.168.0.0/16).
 - Secrets als 0700-root-Verzeichnis mit 0444-Dateien pro Service.
@@ -115,7 +115,7 @@
 - Lokale Demo-Werte: DEMO_MODE=true, SEED_DEMO=true, APP_ENV=development, DEMO_TODAY=2026-09-01.
 - Produktion lehnt Demo-Konfiguration ab und verlangt: APP_ENV=production, reale Entra-Credentials (falls ENTRA_ENABLED=true), sichere Cookies, valide Ursprungs-URLs.
 - Backup-Skript: pg_dump mit Secret-Ausschlusstabellen, SHA-256-Validierung, automatische Rotation.
-- Restore-Skript: Kandidaten-Datenbank, Lease-Akquisa, Lifecycle-Atomarität, explizite Recovery nach Host-Crash.
+- Restore-Skript: Kandidaten-Datenbank, Lease-Akquise, Lifecycle-Atomarität, explizite Recovery nach Host-Crash.
 
 ### Dokumentation
 
@@ -125,7 +125,7 @@
 - Screenshot-Index mit Live-Satz (18 Dateien) und Capture-Kommando.
 - ENTRA_SSO_BETRIEBSKONZEPT: Koexistenz von lokal und Entra, Bootstrap, Abnahmetestvorgaben.
 - ABNAHME_CHECKLISTE: Fachmodell, Website/Mobile, Signage, Datenbank, Sicherheit und Betrieb.
-- DOCKER_COMPOSE_RUNBOOK: Health-Check auf 8789, Image-ID-Format, Restore-Reihenfolge mit Capability-State.
+- DOCKER_COMPOSE_RUNBOOK: Healthcheck auf Container-Port 8000, Image-ID-Format, Restore-Reihenfolge mit Capability-State.
 
 ## Rework vom 1. September 2026
 

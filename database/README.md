@@ -28,14 +28,14 @@ Lokale Anmeldung ist mit `LOCAL_AUTH_ENABLED=false` standardmäßig ausgeschalte
 
 ### Bootstrap des ersten Administrators
 
-Der erste Administrator wird fail-closed mit `python manage.py bootstrap-local-admin --username X --display-name Y` interaktiv oder aus `DISHBOARD_BOOTSTRAP_PASSWORD_FILE` (Modus 0400) bootstrapped. Das Passwort wird zweimal abgefragt oder gelesen; die Audit-Aktion `auth.local_admin_bootstrapped` wird geschrieben. Bootstrap schlägt fehl, wenn bereits ein aktiver Administrator (lokal oder aus Entra) existiert.
+Der erste Administrator wird fail-closed mit `python manage.py bootstrap-local-admin --username X --display-name Y` gebootstrapped. Das Passwort wird zweimal interaktiv über `getpass` abgefragt; der Compose-Migrate-Service nimmt keine externe Passwortdatei entgegen. Die Audit-Aktion `auth.local_admin_bootstrapped` wird geschrieben. Bootstrap schlägt fehl, wenn bereits ein aktiver Administrator (lokal oder aus Entra) existiert.
 
 Weitere Befehle:
-- `python manage.py provision-local-user --actor <admin-uuid> --username ... --display-name ... --role Cafeteria.Editor|Publisher|Admin`
-- `python manage.py set-local-password --username X --actor <admin-uuid>`
-- `python manage.py disable-local-user --username X --actor <admin-uuid>`
+- `python manage.py provision-local-user --actor <actor-identifier> --username ... --display-name ... --role Cafeteria.Editor|Publisher|Admin`
+- `python manage.py set-local-password --username X --actor <actor-identifier>`
+- `python manage.py disable-local-user --username X --actor <actor-identifier>`
 
-Passwörter werden ausschließlich zweimal interaktiv über `getpass` eingelesen; es gibt kein Passwort-Argument und kein Self-Signup.
+Der `actor-identifier` wird gegen den aktiven Benutzernamen, die E-Mail-Adresse oder `preferred_username` aufgelöst. Es gibt kein Passwort-Argument und kein Self-Signup.
 
 ## Migration
 
