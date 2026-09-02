@@ -48,6 +48,26 @@ UPDATE menu_items
 SET label_mode='manual'
 WHERE label_mode IS NULL;
 
+DO $v13_legacy_origin_conflicts$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM menu_item_components mic
+        JOIN menu_items i ON i.id=mic.menu_item_id
+        JOIN menu_services s ON s.id=i.service_id
+        JOIN menu_weeks w ON w.id=s.menu_week_id
+        JOIN offer_profiles p ON p.id=w.profile_id
+        JOIN origin_declarations o
+          ON o.menu_item_id=i.id
+         AND lower(btrim(o.ingredient))=lower(btrim(mic.component_text))
+        GROUP BY w.location_id, p.code, lower(btrim(mic.component_text))
+        HAVING count(DISTINCT o.country_code) > 1
+    ) THEN
+        RAISE EXCEPTION 'v13 conflicting legacy origin country codes';
+    END IF;
+END;
+$v13_legacy_origin_conflicts$;
+
 WITH legacy_components AS (
     SELECT
         w.location_id,
