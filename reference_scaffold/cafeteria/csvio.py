@@ -9,8 +9,9 @@ from decimal import Decimal
 from functools import cache
 from pathlib import Path
 from types import ModuleType
-from typing import BinaryIO
+from typing import BinaryIO, cast
 
+from . import patient_payload
 from .workflow import validate_draft_values
 
 BASE_HEADERS = [
@@ -104,60 +105,23 @@ def snapshot_to_csv(snapshot: dict) -> bytes:
     return ('\ufeff' + buffer.getvalue()).encode('utf-8')
 
 
-def _column_for_error(message: str, headers: list[str]) -> int:
-    if 'zusätzliche Zelle' in message:
-        return len(headers) + 1
-    missing_column = re.search(r'Spalte (\d+) fehlt', message)
-    if missing_column:
-        return int(missing_column.group(1))
-    formula_match = re.search(r' in ([^ ]+) ist unzulässig', message)
-    if formula_match and formula_match.group(1) in headers:
-        return headers.index(formula_match.group(1)) + 1
-    mappings = (
-        ('schema_version', 'schema_version'),
-        ('profil', 'profil'),
-        ('datum', 'datum'),
-        ('wochentag', 'wochentag'),
-        ('zustand_text', 'zustand_text'),
-        ('zustand', 'zustand'),
-        ('mahlzeit', 'mahlzeit'),
-        ('menueart', 'menueart'),
-        ('external_id', 'external_id'),
-        ('titel', 'titel'),
-        ('herkunft', 'herkunft'),
-        ('Kostenfeld', 'preis_mitarbeitende_chf'),
-    )
-    for marker, header in mappings:
-        if marker in message and header in headers:
-            return headers.index(header) + 1
-    if 'Header entspricht nicht' in message:
-        expected = PATIENT_HEADERS if 'preis_mitarbeitende_chf' not in headers else CAFETERIA_HEADERS
-        for index, header in enumerate(headers):
-            if index >= len(expected) or header != expected[index]:
-                return index + 1
-        return min(len(headers), len(expected)) + 1
-    if 'Kostenspalten' in message:
-        for index, header in enumerate(headers):
-            if re.search(r'preis|price|chf|rappen|kosten', header, re.I):
-                return index + 1
-    return 1
-
-
 def _issues(
-    errors: list[str],
-    headers: list[str],
+    exact_issues: list[dict[str, object]],
     *,
     patient_contract: bool,
 ) -> list[dict[str, object]]:
     issues = []
-    for error in errors:
-        line_match = re.match(r'Zeile (\d+): (.*)', error)
-        line = int(line_match.group(1)) if line_match else 1
-        message = line_match.group(2) if line_match else error
-        column = _column_for_error(message, headers)
+    for issue in exact_issues:
+        message = str(issue['message'])
         if patient_contract:
             message = 'Patienten-CSV ist ungültig.'
-        issues.append({'line': line, 'column': column, 'message': message})
+        issues.append(
+            {
+                'line': cast(int, issue['line']),
+                'column': cast(int, issue['column']),
+                'message': message,
+            }
+        )
     return issues
 
 
@@ -191,6 +155,51 @@ def _origins(value: str) -> list[dict[str, str]]:
             }
         )
     return origins
+
+
+def _patient_semantic_issues(
+    rows: list[dict[str, str]],
+    headers: list[str],
+) -> list[dict[str, object]]:
+    issues: list[dict[str, object]] = []
+
+    def add(line: int, field: str) -> None:
+        issues.append(
+            {
+                'line': line,
+                'column': headers.index(field) + 1,
+                'message': 'Patienten-CSV ist ungültig.',
+            }
+        )
+
+    for line_number, row in enumerate(rows, start=2):
+        if row['zustand'] == 'offen':
+            external_id = row['external_id'].strip()
+            if patient_payload.PATIENT_EXTERNAL_ID_RE.fullmatch(external_id) is None:
+                add(line_number, 'external_id')
+            fields = {
+                'titel': [row['titel'].strip()],
+                'beschreibung': [row['beschreibung'].strip()],
+                'beilagen': _split(row['beilagen']),
+                'herkunft': [origin['ingredient'] for origin in _origins(row['herkunft'])],
+            }
+            for field, values in fields.items():
+                if any(
+                    patient_payload._patient_text_is_forbidden(value)
+                    for value in values
+                    if value
+                ):
+                    add(line_number, field)
+            note = row['hinweis'].strip()
+            if note and patient_payload._patient_text_is_forbidden(
+                note,
+                allow_operational_time=True,
+            ):
+                add(line_number, 'hinweis')
+        notice = row['zustand_text'].strip()
+        if notice and patient_payload._patient_text_is_forbidden(notice):
+            add(line_number, 'zustand_text')
+    return issues
 
 
 def _option(row: dict[str, str], profile: str) -> dict[str, object]:
@@ -298,14 +307,19 @@ def validate_upload(stream: BinaryIO) -> dict[str, object]:
         'rows': len(rows),
         'headers': headers,
         'issues': _issues(
-            validated['errors'],
-            headers,
+            validated['issues'],
             patient_contract=patient_contract,
         ),
         'valid': bool(validated['valid']),
         'text': text_value,
     }
     if validated['valid']:
+        if profile == 'patient':
+            semantic_issues = _patient_semantic_issues(rows, headers)
+            if semantic_issues:
+                result['issues'] = semantic_issues
+                result['valid'] = False
+                return result
         try:
             week_start, values = _draft_values(profile, rows)
             validate_draft_values(str(profile), week_start, values)

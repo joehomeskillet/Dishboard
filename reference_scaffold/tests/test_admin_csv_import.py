@@ -518,3 +518,40 @@ def test_import_week_creation_and_persistence_roll_back_together_on_database_err
         ).one()
     assert response.status_code == 500
     assert tuple(counts) == (0, 0, 0)
+
+
+@pytest.mark.parametrize(
+    'delete_statement',
+    (
+        "DELETE FROM cafeteria.dietary_labels WHERE code='VEGETARIAN'",
+        "DELETE FROM cafeteria.allergens WHERE code='MILK'",
+    ),
+)
+def test_missing_reference_row_rolls_back_complete_import_as_bad_request(
+    client,
+    database_engine: Engine,
+    delete_statement: str,
+) -> None:
+    """INSERT SELECT with zero rows used to commit an incomplete draft silently."""
+    preview = _preview(client, _example('menu_patient_example.csv'))
+    with database_engine.begin() as connection:
+        connection.execute(text(delete_statement))
+
+    response = client.post(
+        '/admin/import',
+        data={'_csrf': 'csv-import-csrf', 'import_token': _token(preview)},
+    )
+
+    with database_engine.connect() as connection:
+        counts = connection.execute(
+            text(
+                '''
+                SELECT (SELECT count(*) FROM cafeteria.menu_weeks),
+                       (SELECT count(*) FROM cafeteria.menu_services),
+                       (SELECT count(*) FROM cafeteria.menu_items),
+                       (SELECT count(*) FROM cafeteria.menu_item_labels)
+                '''
+            )
+        ).one()
+    assert response.status_code == 400
+    assert tuple(counts) == (0, 0, 0, 0)
