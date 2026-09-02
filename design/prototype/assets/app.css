@@ -1,29 +1,84 @@
 :root {
-  --sh-teal-950: #06343b;
-  --sh-teal-900: #0a4149;
-  --sh-teal-800: #15555e;
-  --sh-teal-700: #2d6a72;
-  --sh-teal-100: #dfeeed;
-  --sh-teal-050: #eff7f6;
-  --sh-magenta: #c20b61;
-  --sh-magenta-soft: #f7e4ed;
-  --sh-green: #247a53;
-  --sh-green-soft: #e4f3ea;
+  /* Primary color - from Therapieplan magenta/burgundy */
+  --sh-primary: #8C1C4B;
+  --sh-primary-2: #A50044;
+  --sh-primary-3: #B0496F;
+  --sh-primary-4: #CC82A0;
+  --sh-primary-5: #D5A6B9;
+  
+  /* Teal scale - from Therapieplan secondary */
+  --sh-teal-950: #1A363A;
+  --sh-teal-900: #224449;
+  --sh-teal-800: #2B545C;
+  --sh-teal-700: #35666F;
+  --sh-teal-100: #DCEDF0;
+  --sh-teal-050: #F1F7F8;
+  
+  /* Secondary color - Therapieplan teal */
+  --sh-secondary: #35666F;
+  --sh-secondary-2: #007088;
+  --sh-secondary-3: #9BC1C9;
+  
+  /* Magenta alias for backwards compatibility */
+  --sh-magenta: #8C1C4B;
+  --sh-magenta-soft: #F6E7EE;
+  
+  /* Green - from Therapieplan accent */
+  --sh-green: #3E6B44;
+  --sh-green-soft: #EAF0E8;
+  
+  /* Amber - kept but harmonised */
   --sh-amber: #986500;
   --sh-amber-soft: #fff0c9;
-  --sh-blue: #276b92;
-  --sh-blue-soft: #e3f0f7;
-  --sh-canvas: #edf4f2;
+  --sh-amber-ink: #715000;
+  
+  /* Blue - mapped to Therapieplan secondary-2 */
+  --sh-blue: #007088;
+  --sh-blue-soft: #DCEDF0;
+  
+  /* Neutral scale - from Therapieplan */
+  --sh-neutral: #383027;
+  --sh-neutral-2: #59503F;
+  --sh-neutral-3: #747068;
+  --sh-neutral-4: #B7B3AA;
+  --sh-neutral-5: #D5D1CB;
+  
+  /* Canvas and panel backgrounds */
+  --sh-canvas: #F8F8F7;
+  --sh-canvas-strong: #EFEDE9;
   --sh-panel: #ffffff;
-  --sh-panel-soft: #f4f8f7;
-  --sh-border: #ccdcda;
-  --sh-ink: #12363b;
-  --sh-ink-muted: #58757a;
-  --sh-shadow: 0 20px 48px rgba(6, 52, 59, .12);
-  --sh-radius-sm: 10px;
-  --sh-radius-md: 16px;
-  --sh-radius-lg: 28px;
-  --sh-font: Aptos, "Segoe UI", Arial, Helvetica, sans-serif;
+  --sh-panel-soft: #FBFAF8;
+  --sh-panel-quiet: #F8F8F7;
+  
+  /* Border and text colors */
+  --sh-border: #D5D1CB;
+  --sh-border-warm: #e7ce86;
+  --sh-ink: #383027;
+  --sh-ink-muted: #747068;
+  --sh-white: #ffffff;
+  
+  /* Signage dark gradient - from Therapieplan teal scale */
+  --sh-signage-start: #1A363A;
+  --sh-signage-middle: #224449;
+  --sh-signage-end: #2B545C;
+  
+  /* Status accent */
+  --sh-status: #62d996;
+  
+  /* Shadows - from Therapieplan reference */
+  --sh-shadow: 0 2px 10px rgba(56, 48, 39, .06), 0 3px 14px rgba(56, 48, 39, .07);
+  --sh-shadow-soft: 0 2px 10px rgba(56, 48, 39, .06);
+  
+  /* Focus ring - uses primary */
+  --sh-focus: 0 0 0 3px var(--sh-panel), 0 0 0 6px var(--sh-primary);
+  
+  /* Border radius - from Therapieplan */
+  --sh-radius-sm: 6px;
+  --sh-radius-md: 10px;
+  --sh-radius-lg: 16px;
+  
+  /* Typography - Fira Sans self-hosted */
+  --sh-font: "Fira Sans", Aptos, "Segoe UI", Arial, Helvetica, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -36,10 +91,11 @@ button, input, select, textarea { font: inherit; }
 .wordmark-mark { display: inline-block; width: 1.02em; height: 1.02em; border: .17em solid var(--sh-magenta); border-right-color: transparent; border-radius: 50%; transform: rotate(-19deg); }
 .wordmark.small { font-size: 1rem; }
 
-.site-header { display: flex; justify-content: space-between; align-items: center; min-height: 74px; padding: 0 clamp(1.1rem, 4vw, 4rem); color: #fff; background: var(--sh-teal-950); }
+.site-header { display: flex; justify-content: space-between; align-items: center; min-height: 74px; padding: 0 clamp(1.1rem, 4vw, 4rem); color: var(--sh-magenta); background: var(--sh-panel); border-bottom: 3px solid var(--sh-magenta); }
 .site-nav { display: flex; align-items: center; gap: .35rem; }
-.site-nav a { padding: .72rem .86rem; border-radius: 10px; color: rgba(255,255,255,.72); font-size: .92rem; font-weight: 720; text-decoration: none; }
-.site-nav a:hover, .site-nav a.active { color: #fff; background: rgba(255,255,255,.12); }
+.site-nav a { padding: .72rem .86rem; border-radius: 10px; color: var(--sh-ink); font-size: .92rem; font-weight: 720; text-decoration: none; }
+.site-nav a:hover { color: var(--sh-magenta); background: transparent; }
+.site-nav a.active { color: var(--sh-magenta); background: var(--sh-magenta-soft); }
 .channel-links { display: flex; gap: .5rem; margin-left: .75rem; padding-left: .75rem; border-left: 1px solid rgba(255,255,255,.2); }
 .channel-links a { border: 1px solid rgba(255,255,255,.24); }
 
@@ -55,15 +111,15 @@ button, input, select, textarea { font: inherit; }
 .profile-pill { flex: 0 0 auto; padding: .48rem .72rem; border-radius: 999px; color: #fff !important; background: var(--sh-teal-800); font-size: .76rem !important; font-weight: 850; letter-spacing: .04em; text-transform: uppercase; }
 .profile-pill.patient { background: var(--sh-blue); }
 
-.menu-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.35rem; }
-.menu-card { overflow: hidden; border: 1px solid var(--sh-border); border-radius: var(--sh-radius-lg); background: var(--sh-panel); box-shadow: var(--sh-shadow); }
+.menu-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.35rem; align-items: stretch; }
+.menu-card { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--sh-border); border-radius: var(--sh-radius-lg); background: var(--sh-panel); box-shadow: var(--sh-shadow); }
 .menu-card.meat { border-top: 7px solid var(--sh-magenta); }
 .menu-card.veggie { border-top: 7px solid var(--sh-green); }
 .menu-card-head { display: flex; justify-content: space-between; align-items: center; min-height: 70px; padding: 1rem 1.35rem; border-bottom: 1px solid var(--sh-border); }
 .menu-type { margin: 0; color: var(--sh-teal-800); font-size: .77rem; font-weight: 900; letter-spacing: .115em; text-transform: uppercase; }
 .menu-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; color: var(--sh-teal-800); background: var(--sh-teal-100); font-size: 1.18rem; }
 .menu-icon.veg { color: var(--sh-green); background: var(--sh-green-soft); }
-.menu-card-body { padding: 1.35rem; }
+.menu-card-body { display: flex; flex-direction: column; flex: 1; padding: 1.35rem; }
 .menu-title { margin: 0 0 .6rem; font-size: clamp(1.55rem, 3.2vw, 2.55rem); line-height: 1.03; letter-spacing: -.045em; }
 .menu-description { margin: 0 0 1rem; color: var(--sh-ink-muted); font-size: 1.02rem; line-height: 1.48; }
 .components { display: flex; flex-wrap: wrap; gap: .48rem; margin: 0; padding: 0; list-style: none; }
@@ -73,7 +129,7 @@ button, input, select, textarea { font: inherit; }
 .label.green { color: var(--sh-green); background: var(--sh-green-soft); }
 .label.amber { color: var(--sh-amber); background: var(--sh-amber-soft); }
 .label.blue { color: var(--sh-blue); background: var(--sh-blue-soft); }
-.price-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin-top: 1.15rem; padding-top: 1rem; border-top: 1px solid var(--sh-border); }
+.price-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--sh-border); }
 .price { padding: .82rem .9rem; border-radius: 14px; background: var(--sh-panel-soft); }
 .price span { display: block; color: var(--sh-ink-muted); font-size: .69rem; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
 .price strong { display: block; margin-top: .25rem; font-size: 1.35rem; letter-spacing: -.02em; }

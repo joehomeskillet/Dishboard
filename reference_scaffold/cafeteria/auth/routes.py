@@ -77,9 +77,11 @@ def local_login():
         abort(404)
     if request.method == 'GET':
         return render_template('auth/local_login.html')
-    validate_csrf(request.form.get('csrf_token'))
+
     username = request.form.get('username', '')
     password = request.form.get('password', '')
+
+    validate_csrf(request.form.get('csrf_token'))
     remote_address = trusted_client_address(
         request.environ,
         request.remote_addr or 'unknown',
@@ -87,28 +89,36 @@ def local_login():
     )
     key = login_rate_key(username, remote_address)
     redis_client = current_app.extensions.get('cafeteria_rate_redis')
+
     try:
         consume_login_attempt(redis_client, key)
     except RateLimitUnavailable:
         session.clear()
-        return render_template('auth/error.html', message='Anmeldung vorübergehend nicht verfügbar.'), 503
+        error = 'Anmeldung vorübergehend nicht verfügbar.'
+        return render_template('auth/local_login.html', error=error, username=username), 503
     except RateLimitExceeded:
         session.clear()
-        return render_template('auth/error.html', message='Anmeldung fehlgeschlagen.'), 429
+        error = 'Anmeldung fehlgeschlagen.'
+        return render_template('auth/local_login.html', error=error, username=username), 429
 
     identity = authenticate_local_user(
         current_app.extensions['cafeteria_db'],
         username=username,
         password=password,
     )
+
     if identity is None:
         session.clear()
-        return render_template('auth/error.html', message='Anmeldung fehlgeschlagen.'), 401
+        error = 'Anmeldung fehlgeschlagen.'
+        return render_template('auth/local_login.html', error=error, username=username), 401
+
     try:
         clear_login_attempts(redis_client, key)
     except RateLimitUnavailable:
         session.clear()
-        return render_template('auth/error.html', message='Anmeldung vorübergehend nicht verfügbar.'), 503
+        error = 'Anmeldung vorübergehend nicht verfügbar.'
+        return render_template('auth/local_login.html', error=error, username=username), 503
+
     _establish_session(
         identity.user_id,
         identity.display_name,
@@ -170,8 +180,9 @@ def callback():
     return redirect(url_for('admin.cafeteria'))
 
 
-@bp.get('/logout')
+@bp.post('/logout')
 def logout():
+    validate_csrf(request.form.get("_csrf"))
     tenant = current_app.config.get('ENTRA_TENANT_ID')
     target = current_app.config['APP_PUBLIC_BASE_URL'] + url_for('public.cafeteria_today')
     session.clear()

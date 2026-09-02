@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import json
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -79,7 +80,7 @@ def owner_engine() -> Iterator[Engine]:
     try:
         _provision_entra_admin(issuer_engine, '801')
     finally:
-        issuer_engine.dispose()
+        pass
     try:
         yield engine
     finally:
@@ -90,10 +91,10 @@ def owner_engine() -> Iterator[Engine]:
 def test_migration_plan_contains_auth_issuer_contract() -> None:
     plan = database.migration_plan(ROOT / 'database' / 'schema.sql')
 
-    assert database.SCHEMA_VERSION == 11
+    assert database.SCHEMA_VERSION == 12
     assert (plan[-1].version, plan[-1].path.name) == (
-        11,
-        '0008_auth_final_hardening.sql',
+        12,
+        '0009_bootstrap_first_local_admin.sql',
     )
 
 
@@ -163,7 +164,7 @@ def test_auth_issuer_role_has_function_only_identity_privileges(owner_engine: En
                 )
             ).mappings().one()
     finally:
-        issuer_engine.dispose()
+        pass
 
     assert privileges == {
         'sync_execute': True,
@@ -242,7 +243,7 @@ def test_local_user_provisioning_hashes_password_and_rejects_duplicate_roles(
                 roles=['Cafeteria.Admin', 'Cafeteria.Admin'],
             )
     finally:
-        issuer_engine.dispose()
+        pass
 
 
 @pytest.mark.parametrize(
@@ -396,7 +397,7 @@ def test_entra_empty_roles_purge_and_bump_without_reactivating_disabled_user(
                 {'id': user_id},
             ).mappings().one()
     finally:
-        issuer_engine.dispose()
+        pass
 
     assert row.disabled_at is not None
     assert row.authz_version > disabled_version
@@ -608,7 +609,7 @@ def test_entra_role_changes_are_audited_by_verified_target_without_pii(
             ['Cafeteria.Admin', 'Cafeteria.Publisher'],
         )
     finally:
-        issuer_engine.dispose()
+        pass
     with owner_engine.connect() as connection:
         event = connection.execute(
             text(
@@ -630,3 +631,374 @@ def test_entra_role_changes_are_audited_by_verified_target_without_pii(
     serialized = str(event.details).casefold()
     assert 'audit-target@example.invalid' not in serialized
     assert 'entra-audit-subject' not in serialized
+
+
+def test_bootstrap_first_local_admin_succeeds_on_fresh_db(
+    owner_engine: Engine,
+) -> None:
+    """Bootstrap creates first admin with Cafeteria.Admin role and audit events."""
+    # Clean up any existing admin so bootstrap can proceed
+    with owner_engine.begin() as connection:
+        # Disable any existing admin users
+        connection.execute(
+            text(
+                '''
+                UPDATE cafeteria.users u
+                SET disabled_at = NOW()
+                WHERE u.disabled_at IS NULL
+                  AND EXISTS (
+                      SELECT 1 FROM cafeteria.user_role_cache urc
+                      WHERE urc.user_id = u.id
+                        AND urc.role_code = 'Cafeteria.Admin'
+                  )
+                '''
+            )
+        )
+    try:
+        user_id = auth_issuer.bootstrap_first_local_admin(
+            owner_engine,
+            username='bootstrap.admin',
+            display_name='BootstrapAdministrator',
+            password='Bootstrap-Kueche-2026!Secure',
+        )
+        
+        # Verify user created
+        with owner_engine.connect() as connection:
+            row = connection.execute(
+                text(
+                    '''
+                    SELECT u.id, u.auth_provider, u.disabled_at, c.username, c.password_hash,
+                           array_agg(r.role_code ORDER BY r.role_code) AS roles
+                    FROM cafeteria.users u
+                    JOIN cafeteria.local_credentials c ON c.user_id=u.id
+                    JOIN cafeteria.user_role_cache r ON r.user_id=u.id
+                    WHERE u.id=:user_id
+                    GROUP BY u.id, u.auth_provider, u.disabled_at, c.username, c.password_hash
+                    '''
+                ),
+                {'user_id': user_id},
+            ).mappings().one()
+
+        assert row.auth_provider == 'local'
+        assert row.disabled_at is None
+        assert row.username == 'bootstrap.admin'
+        assert check_password_hash(row.password_hash, 'Bootstrap-Kueche-2026!Secure')
+        assert row.roles == ['Cafeteria.Admin']
+
+        # Verify audit events with system actor
+        with owner_engine.connect() as connection:
+            system_user = connection.execute(
+                text(
+                    '''
+                    SELECT id FROM cafeteria.users
+                    WHERE auth_provider='system'
+                      AND public_id='00000000-0000-0000-0000-000000000001'
+                    '''
+                )
+            ).scalar_one()
+            
+            events = connection.execute(
+                text(
+                    '''
+                    SELECT action, entity_type, details
+                    FROM cafeteria.audit_events
+                    WHERE actor_user_id=:system_actor
+                      AND details->>'target_user_id'=:target_user
+                    ORDER BY id
+                    '''
+                ),
+                {'system_actor': system_user, 'target_user': str(user_id)},
+            ).mappings().all()
+
+        assert len(events) == 2
+        assert events[0].action == 'auth.local_admin_bootstrapped'
+        assert events[1].action == 'auth.local_role_granted'
+        assert events[0].entity_type == 'user'
+        assert events[1].entity_type == 'user'
+    finally:
+        pass
+
+
+def test_bootstrap_second_call_is_rejected_with_lock_error(
+    owner_engine: Engine,
+) -> None:
+    """Second bootstrap call is rejected because an admin already exists."""
+    # Clean up any existing admin so bootstrap can proceed
+    with owner_engine.begin() as connection:
+        connection.execute(
+            text(
+                '''
+                UPDATE cafeteria.users u
+                SET disabled_at = NOW()
+                WHERE u.disabled_at IS NULL
+                  AND EXISTS (
+                      SELECT 1 FROM cafeteria.user_role_cache urc
+                      WHERE urc.user_id = u.id
+                        AND urc.role_code = 'Cafeteria.Admin'
+                  )
+                '''
+            )
+        )
+    try:
+        # First bootstrap succeeds
+        user_id_1 = auth_issuer.bootstrap_first_local_admin(
+            owner_engine,
+            username='kupfer.user',
+            display_name='Administrator One',
+            password='KuecheOne-2026!Secure123',
+        )
+        assert user_id_1 > 0
+
+        # Second bootstrap fails
+        with pytest.raises(Exception, match='Bootstrap ist gesperrt'):
+            auth_issuer.bootstrap_first_local_admin(
+                owner_engine,
+                username='silber.user',
+                display_name='Administrator Two',
+                password='KuecheTwo-2026!Secure456',
+            )
+    finally:
+        pass
+
+
+def test_bootstrap_is_rejected_when_entra_admin_exists(
+    owner_engine: Engine,
+) -> None:
+    """Bootstrap is rejected if an Entra admin already exists."""
+    issuer_engine = create_engine(
+        _role_database_url('cafeteria_auth_issuer', ISSUER_PASSWORD),
+        poolclass=NullPool,
+        pool_pre_ping=True,
+    )
+    try:
+        # Create Entra admin first
+        claims = {
+            'tid': '00000000-0000-0000-0000-000000000421',
+            'oid': '00000000-0000-0000-0000-000000000422',
+            'sub': 'entra.bootstrap.admin@example.invalid',
+            'name': 'Entra Bootstrap Admin',
+            'preferred_username': 'entra.bootstrap.admin',
+        }
+        entra_user_id = database.upsert_entra_user(
+            issuer_engine,
+            claims,
+            ['Cafeteria.Admin'],
+        )
+        assert entra_user_id > 0
+
+        # Bootstrap should be rejected because an active admin exists
+        with pytest.raises(Exception, match='Bootstrap ist gesperrt'):
+            auth_issuer.bootstrap_first_local_admin(
+                owner_engine,
+                username='nachbootstrap.user',
+                display_name='NachBootstrap User',
+                password='NachBootstrap-2026!Secure',
+            )
+
+        # Verify no new local user was created
+        with owner_engine.connect() as connection:
+            local_user_count = connection.execute(
+                text('SELECT count(*) FROM cafeteria.users WHERE auth_provider = :auth_prov'),
+                {'auth_prov': 'local'},
+            ).scalar_one()
+        assert local_user_count == 0
+    finally:
+        issuer_engine.dispose()
+
+
+def test_bootstrap_function_not_callable_by_app_roles(
+    owner_engine: Engine,
+) -> None:
+    """bootstrap_first_local_admin is not executable by cafeteria_app or cafeteria_auth_issuer."""
+    app_engine = create_engine(
+        _role_database_url('cafeteria_app', APP_PASSWORD),
+        poolclass=NullPool,
+        pool_pre_ping=True,
+    )
+    auth_issuer_engine = create_engine(
+        _role_database_url('cafeteria_auth_issuer', ISSUER_PASSWORD),
+        poolclass=NullPool,
+        pool_pre_ping=True,
+    )
+    try:
+        for role_name, engine in [('cafeteria_app', app_engine), ('cafeteria_auth_issuer', auth_issuer_engine)]:
+            with pytest.raises(Exception, match='permission denied'):
+                with engine.begin() as connection:
+                    connection.execute(
+                        text(
+                            'SELECT cafeteria.bootstrap_first_local_admin(:u, :d, :p)'
+                        ),
+                        {
+                            'u': 'test.user',
+                            'd': 'Test User',
+                            'p': 'scrypt:32768:8:1$salt$hash',
+                        },
+                    )
+    finally:
+        app_engine.dispose()
+        auth_issuer_engine.dispose()
+
+
+def test_bootstrap_admin_can_provision_second_user(
+    owner_engine: Engine,
+) -> None:
+    # Clean up any existing admin so bootstrap can proceed
+    with owner_engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                UPDATE cafeteria.users u
+                SET disabled_at = NOW()
+                WHERE u.disabled_at IS NULL
+                  AND EXISTS (
+                      SELECT 1 FROM cafeteria.user_role_cache urc
+                      WHERE urc.user_id = u.id
+                        AND urc.role_code = 'Cafeteria.Admin'
+                  )
+                """
+            )
+        )
+    """After bootstrap, the bootstrapped admin can act as actor for provision_local_user."""
+    issuer_engine = create_engine(
+        _role_database_url('cafeteria_auth_issuer', ISSUER_PASSWORD),
+        poolclass=NullPool,
+        pool_pre_ping=True,
+    )
+    try:
+        # Bootstrap first admin
+        admin_id = auth_issuer.bootstrap_first_local_admin(
+            owner_engine,
+            username='bootstrap.admin',
+            display_name='Bootstrap Admin',
+            password='KuecheAdmin-Boot-2026!Secure',
+        )
+        
+        # Provision second user with bootstrap admin as actor
+        user_id_2 = auth_issuer.provision_local_user(
+            issuer_engine,
+            actor_identifier='bootstrap.admin',
+            username='second.user',
+            display_name='Second User',
+            password='Kueche-SecondPass-2026!Secure',
+            roles=['Cafeteria.Editor'],
+        )
+        assert user_id_2 > 0
+        assert user_id_2 != admin_id
+    finally:
+        pass
+
+
+
+
+@LIVE_DATABASE
+def test_cli_bootstrap_local_admin_via_password_file(
+    owner_engine: Engine,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    """Bootstrap first admin using DISHBOARD_BOOTSTRAP_PASSWORD_FILE."""
+    assert DATABASE_URL is not None
+    
+    # Clean up any existing admins from previous tests
+    with owner_engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                UPDATE cafeteria.users u
+                SET disabled_at = NOW()
+                WHERE u.disabled_at IS NULL
+                  AND EXISTS (
+                      SELECT 1 FROM cafeteria.user_role_cache urc
+                      WHERE urc.user_id = u.id
+                        AND urc.role_code = 'Cafeteria.Admin'
+                  )
+                """
+            )
+        )
+    
+    password_file = tmp_path / 'bootstrap_password.txt'
+    password_file.write_text('BootstrapKueche-2026!Secure', encoding='utf-8')
+
+    monkeypatch.setenv('DATABASE_URL', DATABASE_URL)
+    monkeypatch.setenv('POSTGRES_AUTH_ISSUER_PASSWORD', ISSUER_PASSWORD)
+    monkeypatch.setenv('APP_ENV', 'test')
+    monkeypatch.setenv('DEMO_MODE', 'false')
+    monkeypatch.setenv('DISHBOARD_BOOTSTRAP_PASSWORD_FILE', str(password_file))
+
+    result = manage.main(
+        [
+            'bootstrap-local-admin',
+            '--username', 'cli.admin',
+            '--display-name', 'CLI Admin',
+        ]
+    )
+
+    output = capsys.readouterr()
+    assert result == 0, f'CLI failed: {output.err}'
+    output_json = json.loads(output.out)
+    assert output_json['action'] == 'bootstrapped'
+    assert output_json['username'] == 'cli.admin'
+    user_id = output_json['user_id']
+
+    # Verify password not echoed
+    assert 'BootstrapKueche-2026!Secure' not in output.out
+    assert 'BootstrapKueche-2026!Secure' not in output.err
+
+    # Verify in database
+    with owner_engine.connect() as connection:
+        user = connection.execute(
+            text(
+                '''
+                SELECT u.id, u.auth_provider, c.username, c.password_hash
+                FROM cafeteria.users u
+                JOIN cafeteria.local_credentials c ON c.user_id=u.id
+                WHERE u.id=:user_id
+                '''
+            ),
+            {'user_id': user_id},
+        ).mappings().one()
+    assert user.auth_provider == 'local'
+    assert check_password_hash(user.password_hash, 'BootstrapKueche-2026!Secure')
+
+
+@LIVE_DATABASE
+def test_cli_bootstrap_rejects_password_argument(
+    owner_engine: Engine,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Bootstrap command must reject --password argument."""
+    assert DATABASE_URL is not None
+    
+    # Clean up any existing admins from previous tests
+    with owner_engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                UPDATE cafeteria.users u
+                SET disabled_at = NOW()
+                WHERE u.disabled_at IS NULL
+                  AND EXISTS (
+                      SELECT 1 FROM cafeteria.user_role_cache urc
+                      WHERE urc.user_id = u.id
+                        AND urc.role_code = 'Cafeteria.Admin'
+                  )
+                """
+            )
+        )
+    
+    monkeypatch.setenv('DATABASE_URL', DATABASE_URL)
+    monkeypatch.setenv('POSTGRES_AUTH_ISSUER_PASSWORD', ISSUER_PASSWORD)
+    monkeypatch.setenv('APP_ENV', 'test')
+    monkeypatch.setenv('DEMO_MODE', 'false')
+
+    with pytest.raises(RuntimeError, match='interaktiv'):
+        manage.main(
+            [
+                'bootstrap-local-admin',
+                '--username', 'second.admin',
+                '--display-name', 'Second Admin',
+                '--password', 'ShouldBeForbidden-2026!Secure',
+            ]
+        )

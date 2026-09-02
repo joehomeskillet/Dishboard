@@ -104,6 +104,12 @@ GRANT EXECUTE ON FUNCTION
     withdraw_publication_revision(bigint, text, text)
 TO cafeteria_app;
 GRANT EXECUTE ON FUNCTION
+    normalize_patient_key(text),
+    patient_key_is_forbidden(text),
+    jsonb_has_patient_forbidden_key(jsonb),
+    jsonb_has_patient_forbidden_value(jsonb)
+TO cafeteria_app;
+GRANT EXECUTE ON FUNCTION
     sync_entra_user(uuid, uuid, text, text, text, text, text[]),
     issue_publication_capability(bigint, bigint, interval),
     provision_local_user(text, text, text, text, text[]),

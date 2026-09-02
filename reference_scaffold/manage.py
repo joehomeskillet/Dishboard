@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import getpass
 import json
+import os
 import sys
 import time
 
@@ -11,7 +12,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.pool import NullPool
 
-from cafeteria.auth.issuer import disable_local_user, provision_local_user, set_local_password
+from cafeteria.auth.issuer import bootstrap_first_local_admin, disable_local_user, provision_local_user, set_local_password
 from cafeteria.config import Config
 from cafeteria.db import ENTRA_APPLICATION_ROLES, init_database, validate_database
 
@@ -68,6 +69,10 @@ def main(argv: list[str] | None = None) -> int:
         required=True,
         choices=sorted(ENTRA_APPLICATION_ROLES),
     )
+    bootstrap_cmd = sub.add_parser('bootstrap-local-admin')
+    bootstrap_cmd.add_argument('--wait-seconds', type=int, default=10)
+    bootstrap_cmd.add_argument('--username', required=True)
+    bootstrap_cmd.add_argument('--display-name', required=True)
     password_cmd = sub.add_parser('set-local-password')
     password_cmd.add_argument('--wait-seconds', type=int, default=10)
     password_cmd.add_argument('--actor', required=True)
@@ -113,6 +118,37 @@ def main(argv: list[str] | None = None) -> int:
                     username=args.username,
                 )
                 action = 'disabled'
+        finally:
+            engine.dispose()
+        print(json.dumps({'action': action, 'user_id': user_id, 'username': args.username}, ensure_ascii=False))
+        return 0
+
+    if args.command == 'bootstrap-local-admin':
+        if not cfg.DATABASE_URL:
+            raise RuntimeError('DATABASE_URL fehlt.')
+        wait_for_database(cfg.DATABASE_URL, args.wait_seconds)
+        engine = create_engine(
+            cfg.DATABASE_URL,
+            poolclass=NullPool,
+            pool_pre_ping=True,
+        )
+        try:
+            # Read password from file if specified, otherwise interactively
+            password_file = os.getenv('DISHBOARD_BOOTSTRAP_PASSWORD_FILE', '').strip()
+            if password_file:
+                if not os.path.isfile(password_file):
+                    raise RuntimeError(f'DISHBOARD_BOOTSTRAP_PASSWORD_FILE ist keine lesbare Datei: {password_file}')
+                with open(password_file, 'r', encoding='utf-8') as f:
+                    password = f.read().rstrip('\n')
+            else:
+                password = _prompt_confirmed_password()
+            user_id = bootstrap_first_local_admin(
+                engine,
+                username=args.username,
+                display_name=args.display_name,
+                password=password,
+            )
+            action = 'bootstrapped'
         finally:
             engine.dispose()
         print(json.dumps({'action': action, 'user_id': user_id, 'username': args.username}, ensure_ascii=False))

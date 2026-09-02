@@ -49,12 +49,20 @@ def login_rate_key(username: str, remote_address: str) -> str:
     return f'dishboard:auth:local:{hashlib.sha256(identity).hexdigest()}'
 
 
+
 def trusted_client_address(
     environ: Mapping[str, Any],
     effective_address: str,
     trusted_proxy_peers: tuple[str, ...],
 ) -> str:
-    """Use leftmost validated XFF only for an exact trusted socket peer."""
+    """Use rightmost untrusted IP from X-Forwarded-For chain for trusted socket peer.
+    
+    Resolves the client address by walking the X-Forwarded-For chain from right to left,
+    skipping entries that are themselves trusted proxy peers, and returning the first
+    entry that is not a trusted peer. If the chain consists only of trusted peers or
+    is empty/invalid, returns the socket peer. Non-IP tokens cause fallback to the
+    socket peer.
+    """
     socket_peer = environ.get('REMOTE_ADDR', effective_address)
     if not isinstance(socket_peer, str):
         return 'unknown'
@@ -79,7 +87,12 @@ def trusted_client_address(
         ]
     except ValueError:
         return peer
-    return chain[0] if chain else peer
+    # Walk from the right, skip trusted peers, return the first untrusted one
+    for ip in reversed(chain):
+        if ip not in trusted:
+            return ip
+    # If all entries are trusted peers, return socket peer
+    return peer
 
 
 def consume_login_attempt(redis_client: Any, key: str) -> None:

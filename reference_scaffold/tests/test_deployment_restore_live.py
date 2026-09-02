@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import ipaddress
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -42,6 +44,118 @@ def wait_for_postgres(container_name: str) -> None:
             return
         time.sleep(1)
     pytest.fail("PostgreSQL 16 drill database did not become ready within 60 seconds")
+
+
+def get_used_subnets() -> set:
+    """Collect all subnets in use by existing Docker networks and host routes."""
+    used = set()
+
+    # Get Docker network subnets
+    try:
+        networks_result = docker("network", "ls", "--quiet", check=True)
+        for net_id in networks_result.stdout.strip().split("\n"):
+            if not net_id.strip():
+                continue
+            try:
+                inspect_result = docker("network", "inspect", net_id, check=True)
+                net_info = json.loads(inspect_result.stdout)
+                # net_info is a list with one element
+                if isinstance(net_info, list) and len(net_info) > 0:
+                    net_data = net_info[0]
+                    if "IPAM" in net_data and "Config" in net_data["IPAM"]:
+                        for config in net_data["IPAM"]["Config"]:
+                            if "Subnet" in config:
+                                used.add(config["Subnet"])
+            except (json.JSONDecodeError, subprocess.CalledProcessError, KeyError, TypeError):
+                pass
+    except subprocess.CalledProcessError:
+        pass
+
+    # Get host routes
+    try:
+        route_result = docker("run", "--rm", "--net=host", "alpine:latest", "ip", "-4", "route", check=True)
+        for line in route_result.stdout.strip().split("\n"):
+            if line.strip():
+                parts = line.split()
+                if parts:
+                    subnet = parts[0]
+                    if "/" in subnet:
+                        used.add(subnet)
+    except subprocess.CalledProcessError:
+        # Host routes may not be accessible or alpine image not available
+        pass
+
+    return used
+
+
+def overlaps_with_used(subnet: ipaddress.IPv4Network, used_subnets: set) -> bool:
+    """Check if a subnet overlaps with any used subnet."""
+    for used in used_subnets:
+        try:
+            used_net = ipaddress.IPv4Network(used, strict=False)
+            if subnet.overlaps(used_net):
+                return True
+        except ValueError:
+            pass
+    return False
+
+
+def allocate_and_create_network(network_name: str) -> None:
+    """Create a Docker network with an explicit subnet from the 10.214.0.0/16 range.
+
+    Tries candidates from 10.214.0.0/24 to 10.214.255.0/24, checking against:
+    - Existing Docker network subnets
+    - Host routes
+
+    Retries up to 32 times on collision/race conditions.
+    """
+    used_subnets = get_used_subnets()
+
+    # Generate candidates in the 10.214.0.0/16 range
+    candidates = [ipaddress.IPv4Network(f"10.214.{i}.0/24") for i in range(256)]
+
+    max_attempts = 32
+    for attempt in range(max_attempts):
+        # Find a candidate that doesn't overlap
+        found_free = False
+        for candidate in candidates:
+            if overlaps_with_used(candidate, used_subnets):
+                continue
+
+            # Use .1 as gateway
+            gateway = str(candidate.network_address + 1)
+
+            try:
+                docker(
+                    "network",
+                    "create",
+                    network_name,
+                    "--subnet",
+                    str(candidate),
+                    "--gateway",
+                    gateway,
+                    check=True,
+                )
+                return
+            except subprocess.CalledProcessError as e:
+                if "all predefined address pools have been fully subnetted" in e.stderr:
+                    # Docker's internal pool exhausted; can't fix by retrying subnets
+                    raise
+                # Otherwise it's likely a collision; refresh and retry
+                used_subnets = get_used_subnets()
+                found_free = True
+                break
+
+        if not found_free:
+            # All candidates overlap; refresh and retry
+            used_subnets = get_used_subnets()
+
+    # All retries exhausted
+    raise subprocess.CalledProcessError(
+        1,
+        f"docker network create {network_name}",
+        stderr="Failed to allocate subnet after 32 attempts",
+    )
 
 
 @dataclass(frozen=True)
@@ -174,7 +288,7 @@ def postgres16_restore_drill_fixture(tmp_path: Path) -> RestoreDrill:
         "POSTGRES_PASSWORD_FILE=/work/backup-password.txt",
     )
 
-    docker("network", "create", network_name)
+    allocate_and_create_network(network_name)
     try:
         docker(
             "run",
