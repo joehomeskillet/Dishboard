@@ -145,7 +145,7 @@ services:
       POSTGRES_USER: cafeteria_app
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_app_password
       POSTGRES_AUTH_ISSUER_PASSWORD_FILE: /run/secrets/postgres_auth_issuer_password
-      TRUSTED_PROXY_PEERS: 172.31.213.1,172.31.213.10
+      TRUSTED_PROXY_PEERS: 10.213.0.1,10.213.0.10
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_DB: "0"
@@ -175,7 +175,7 @@ services:
     stop_grace_period: 30s
     networks:
       cafeteria_internal:
-        ipv4_address: 172.31.213.20
+        ipv4_address: 10.213.0.20
     security_opt: ["no-new-privileges:true"]
     cap_drop: ["ALL"]
     logging:
@@ -247,8 +247,8 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.31.213.0/24
-          gateway: 172.31.213.1
+        - subnet: 10.213.0.0/24
+          gateway: 10.213.0.1
 
 volumes:
   postgres_data:

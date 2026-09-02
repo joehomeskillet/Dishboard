@@ -320,15 +320,15 @@ def test_proxy_network_uses_exact_deterministic_peers_without_broad_cidr() -> No
     network = compose['networks']['cafeteria_internal']
     subnet = network['ipam']['config'][0]
 
-    assert subnet == {'subnet': '172.31.213.0/24', 'gateway': '172.31.213.1'}
+    assert subnet == {'subnet': '10.213.0.0/24', 'gateway': '10.213.0.1'}
     assert compose['services']['app']['networks']['cafeteria_internal']['ipv4_address'] == (
-        '172.31.213.20'
+        '10.213.0.20'
     )
     assert overlay['services']['caddy']['networks']['cafeteria_internal']['ipv4_address'] == (
-        '172.31.213.10'
+        '10.213.0.10'
     )
     assert compose['services']['app']['environment']['TRUSTED_PROXY_PEERS'] == (
-        '172.31.213.1,172.31.213.10'
+        '10.213.0.1,10.213.0.10'
     )
     assert 'TRUSTED_PROXY_CIDRS' not in compose['services']['app']['environment']
     assert 'TRUSTED_PROXY_HOPS' not in compose['services']['app']['environment']

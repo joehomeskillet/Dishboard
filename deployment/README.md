@@ -26,12 +26,13 @@ Der Demo-Modus darf nie mit `APP_ENV=production` verwendet werden. Player-URLs a
 
 `bootstrap.sh` erzeugt nur technische Secrets und kopiert die produktionssicheren Defaults nach `.env`. Es provisioniert keine Benutzer. Der lokale Provider ist fuer den ersten Start aktiv; Entra bleibt deaktiviert, bis reale Tenant-ID, Client-ID und Client Secret gesetzt sind. Sobald `ENTRA_ENABLED=true` gilt, lehnt der App-Entrypoint fehlende oder bekannte Entra-Platzhalter ab. Demo-Werte, Abweichungen vom exakten oeffentlichen Ursprung, mutable Images und unsichere Session-Cookies werden immer abgelehnt. Der Migrationsdienst erzwingt separat `APP_ENV=migration` und erhaelt ausschliesslich die vier PostgreSQL-Secrets fuer Owner, App, Backup und Auth-Issuer. Die Issuer-Verbindungs-URL wird nur im Speicher aus dem dedizierten Passwort-File und dem normalen Datenbankziel gebildet; eine persistierte `AUTH_ISSUER_DATABASE_URL` ist verboten.
 
-Das feste interne Netz reserviert `172.31.213.10` fuer das optionale
-Compose-Caddy-Overlay und `172.31.213.20` fuer die App. Bei einem Caddy auf dem
+Das feste interne Netz reserviert `10.213.0.10` fuer das optionale
+Compose-Caddy-Overlay und `10.213.0.20` fuer die App. Bei einem Caddy auf dem
 Docker-Host erreicht der Proxy die App ueber den Loopback-Port und erscheint im
-Container ausschliesslich als exaktes Gateway `172.31.213.1`. Nur diese beiden
+Container ausschliesslich als exaktes Gateway `10.213.0.1`. Nur diese beiden
 Peers duerfen `X-Forwarded-For` liefern; direkte Clients und breite Docker-CIDRs
 werden nicht vertraut.
+Das Subnetz 10.213.0.0/24 liegt bewusst ausserhalb der Docker-Standard-Adressbereiche (172.16.0.0/12 und 192.168.0.0/16) und muss auf dem Host frei bleiben, um Kollisionen mit anderen Netzwerken zu vermeiden.
 
 Auf einem Host mit bereits laufendem Caddy wird nur die Basisdatei verwendet. Das App-Image wird lokal gebaut und ueber seine von Docker ausgegebene, unveraenderliche `sha256:<64-hex>`-ID gestartet; Tags sind nicht erlaubt. `APP_IMAGE` in `.env` auf den Inhalt der IID-Datei setzen:
 

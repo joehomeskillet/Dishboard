@@ -4,7 +4,7 @@ from cafeteria.auth.service import trusted_client_address
 
 
 def test_exact_trusted_peer_uses_leftmost_validated_forwarded_ip() -> None:
-    trusted_peer = '172.31.213.10'
+    trusted_peer = '10.213.0.10'
     forwarded = {
         'REMOTE_ADDR': trusted_peer,
         'HTTP_X_FORWARDED_FOR': '203.0.113.44, 198.51.100.9',

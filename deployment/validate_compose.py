@@ -75,7 +75,7 @@ assert set(app['secrets']) == {
     'postgres_app_password', 'postgres_auth_issuer_password', 'flask_secret_key',
     'entra_client_secret', 'redis_password',
 }
-assert app['networks']['cafeteria_internal']['ipv4_address'] == '172.31.213.20'
+assert app['networks']['cafeteria_internal']['ipv4_address'] == '10.213.0.20'
 
 assert services['backup']['environment']['POSTGRES_USER'] == 'cafeteria_backup'
 assert services['restore']['environment']['POSTGRES_USER'] == 'cafeteria_owner'
@@ -93,12 +93,12 @@ assert {
 network = base['networks']['cafeteria_internal']
 assert network['driver'] == 'bridge'
 assert network['ipam']['config'] == [
-    {'subnet': '172.31.213.0/24', 'gateway': '172.31.213.1'}
+    {'subnet': '10.213.0.0/24', 'gateway': '10.213.0.1'}
 ]
 assert 'caddy' in overlay.get('services', {})
 assert overlay['services']['caddy']['depends_on']['app']['condition'] == 'service_healthy'
 assert overlay['services']['caddy']['environment']['CAFETERIA_DOMAIN'] == '${CAFETERIA_DOMAIN:-dishboard.joelduss.xyz}'
-assert overlay['services']['caddy']['networks']['cafeteria_internal']['ipv4_address'] == '172.31.213.10'
+assert overlay['services']['caddy']['networks']['cafeteria_internal']['ipv4_address'] == '10.213.0.10'
 
 example = (root / '.env.example').read_text(encoding='utf-8')
 for token in (
@@ -107,7 +107,7 @@ for token in (
     'APP_HOST_PORT=8789',
     'APP_PUBLIC_BASE_URL=https://dishboard.joelduss.xyz',
     'DEMO_MODE=false', 'SEED_DEMO=false', 'DEMO_TODAY=', 'SESSION_COOKIE_SECURE=true',
-    'TRUSTED_PROXY_PEERS=172.31.213.1,172.31.213.10',
+    'TRUSTED_PROXY_PEERS=10.213.0.1,10.213.0.10',
     'LOCAL_AUTH_ENABLED=true',
     'LAST_GOOD_DIR=/var/lib/cafeteria/last-good',
     'RESTORE_CONTROLLER_HEARTBEAT_SECONDS=5',
