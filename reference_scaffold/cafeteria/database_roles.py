@@ -4,7 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 from psycopg import sql
-from sqlalchemy import Engine
+from sqlalchemy import Connection, Engine, text
 
 from .credentials import validate_database_role_secret
 
@@ -13,6 +13,61 @@ RUNTIME_ROLE_READ_ONLY = {
     'cafeteria_backup': 'on',
     'cafeteria_auth_issuer': 'off',
 }
+
+
+def runtime_role_hardening_status(
+    connection: Connection,
+) -> tuple[bool, dict[str, bool]]:
+    rows = connection.execute(
+        text(
+            '''
+            SELECT rolname, rolcanlogin, rolsuper, rolcreatedb, rolcreaterole,
+                   rolinherit, rolreplication, rolbypassrls, rolconnlimit,
+                   rolvaliduntil='infinity'::timestamptz AS valid_until_infinity,
+                   rolconfig,
+                   (SELECT count(*) FROM pg_auth_members membership
+                    WHERE membership.member=role.oid OR membership.roleid=role.oid)
+                       AS membership_count
+            FROM pg_roles role
+            WHERE rolname IN (
+                'cafeteria_app', 'cafeteria_backup', 'cafeteria_auth_issuer'
+            )
+            ORDER BY rolname
+            '''
+        )
+    ).mappings().all()
+    roles = {str(row.rolname): row for row in rows}
+    config_valid: dict[str, bool] = {}
+    for role_name, read_only in RUNTIME_ROLE_READ_ONLY.items():
+        role = roles.get(role_name)
+        if role is None:
+            config_valid[role_name] = False
+            continue
+        config = {
+            str(setting).split('=', 1)[0].casefold(): str(setting).split('=', 1)[1]
+            for setting in (role.rolconfig or [])
+            if '=' in str(setting)
+        }
+        config_valid[role_name] = config == {
+            'search_path': 'cafeteria, public',
+            'timezone': 'UTC',
+            'default_transaction_read_only': read_only,
+        }
+    ready = set(roles) == set(RUNTIME_ROLE_READ_ONLY) and all(
+        role.rolcanlogin
+        and not role.rolsuper
+        and not role.rolcreatedb
+        and not role.rolcreaterole
+        and not role.rolinherit
+        and not role.rolreplication
+        and not role.rolbypassrls
+        and role.rolconnlimit == -1
+        and role.valid_until_infinity
+        and role.membership_count == 0
+        and config_valid[role_name]
+        for role_name, role in roles.items()
+    )
+    return ready, config_valid
 
 
 def _driver_connection(raw: Any) -> Any:

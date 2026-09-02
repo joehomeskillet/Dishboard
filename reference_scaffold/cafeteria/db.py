@@ -13,8 +13,8 @@ from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from .database_roles import (
-    RUNTIME_ROLE_READ_ONLY,
     provision_database_roles as _provision_database_roles,
+    runtime_role_hardening_status,
     terminate_role_sessions as _default_terminate_role_sessions,
 )
 from .patient_payload import PROFILES, validate_snapshot_payload
@@ -354,41 +354,9 @@ def validate_database(engine: Engine) -> dict[str, Any]:
                 '''
             )
         ).mappings().one()
-        runtime_roles = connection.execute(
-            text(
-                '''
-                SELECT rolname, rolconnlimit,
-                       rolvaliduntil='infinity'::timestamptz AS valid_until_infinity,
-                       rolconfig
-                FROM pg_roles
-                WHERE rolname IN (
-                    'cafeteria_app', 'cafeteria_backup', 'cafeteria_auth_issuer'
-                )
-                ORDER BY rolname
-                '''
-            )
-        ).mappings().all()
-    runtime_role_config_valid: dict[str, bool] = {}
-    for role in runtime_roles:
-        config = {
-            str(setting).split('=', 1)[0].casefold(): str(setting).split('=', 1)[1]
-            for setting in (role.rolconfig or [])
-            if '=' in str(setting)
-        }
-        runtime_role_config_valid[str(role.rolname)] = config == {
-            'search_path': 'cafeteria, public',
-            'timezone': 'UTC',
-            'default_transaction_read_only': RUNTIME_ROLE_READ_ONLY[str(role.rolname)],
-        }
-    runtime_role_hardening_ready = (
-        len(runtime_roles) == len(RUNTIME_ROLE_READ_ONLY)
-        and all(
-            role.rolconnlimit == -1
-            and role.valid_until_infinity
-            and runtime_role_config_valid[str(role.rolname)]
-            for role in runtime_roles
+        runtime_role_hardening_ready, runtime_role_config_valid = (
+            runtime_role_hardening_status(connection)
         )
-    )
     result = dict(row)
     result['auth_issuer_direct_table_privilege_count'] = int(issuer.table_privilege_count)
     result['auth_issuer_direct_sequence_privilege_count'] = int(issuer.sequence_privilege_count)
