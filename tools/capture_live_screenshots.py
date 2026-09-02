@@ -131,6 +131,19 @@ def read_password_file(path: str) -> str:
     return Path(path).read_text(encoding="utf-8").strip()
 
 
+def _is_critical_request(url: str) -> bool:
+    """Check if a request URL is for a critical resource (not favicon, etc)."""
+    # Ignore non-critical assets
+    ignore_patterns = [
+        "/favicon.ico",
+        ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".woff", ".woff2", ".ttf", ".eot",
+    ]
+    for pattern in ignore_patterns:
+        if pattern in url:
+            return False
+    return True
+
+
 def perform_local_login(
     page: Page, base_url: str, username: str, password: str
 ) -> bool:
@@ -152,9 +165,12 @@ def perform_local_login(
         # Fill and submit the login form
         page.fill('input[name="username"]', username)
         page.fill('input[name="password"]', password)
-        page.click('button[type="submit"]')
         
-        # Wait for navigation to complete (redirects after POST)
+        # Use expect_navigation to handle redirect
+        with page.expect_navigation():
+            page.click('button[type="submit"]')
+        
+        # Wait for load to complete
         page.wait_for_load_state("load")
         
         # Check if we're now on an admin page (successful login redirects to /admin/cafeteria)
@@ -173,10 +189,24 @@ def capture_screenshot(
     def_: ScreenshotDef,
     username: str | None = None,
     password: str | None = None,
-) -> tuple[bytes, int] | None:
+) -> tuple[bytes, int, list[str], list[str]] | None:
     """
-    Capture a screenshot. Returns (png_data, http_status) or None on failure.
+    Capture a screenshot. Returns (png_data, http_status, console_errors, failed_requests) or None on failure.
     """
+    console_errors = []
+    failed_requests = []
+
+    def on_console(msg):
+        if msg.type == "error" and "Failed to load resource" not in msg.text:
+                console_errors.append(msg.text)
+
+    def on_response(resp):
+        if resp.status >= 400 and _is_critical_request(resp.url):
+            failed_requests.append(f"{resp.url} ({resp.status})")
+
+    page.on("console", on_console)
+    page.on("response", on_response)
+
     try:
         # For admin pages, perform login if needed
         if def_.requires_auth:
@@ -197,7 +227,16 @@ def capture_screenshot(
         if http_status not in (200, 204):
             return None
 
+        # Fail if there are console errors or failed requests
+        if console_errors or failed_requests:
+            return None
+
         body_text = page.text_content("body") or ""
+
+        # Special validation for login-1440x900.png: final URL must end with /auth/local
+        if def_.name == "login-1440x900.png":
+            if not page.url.endswith("/auth/local"):
+                return None
 
         # Check for viewport overflow on signage pages
         if "signage" in def_.name:
@@ -241,7 +280,7 @@ def capture_screenshot(
 
         # Capture screenshot
         png_data = page.screenshot(full_page=False)
-        return (png_data, http_status)
+        return (png_data, http_status, console_errors, failed_requests)
 
     except Exception:
         return None
@@ -351,21 +390,6 @@ def main() -> int:
                 )
                 page = context.new_page()
 
-                # Collect console errors and failed requests
-                console_errors = []
-                failed_requests = []
-
-                def on_console(msg):
-                    if msg.type == "error":
-                        console_errors.append(msg.text)
-
-                def on_response(resp):
-                    if resp.status >= 400:
-                        failed_requests.append(f"{resp.url} ({resp.status})")
-
-                page.on("console", on_console)
-                page.on("response", on_response)
-
                 try:
                     # Disable animations
                     page.emulate_media(reduced_motion="reduce")
@@ -384,7 +408,7 @@ def main() -> int:
                         context.close()
                         continue
 
-                    png_data, http_status = result
+                    png_data, http_status, console_errors, failed_requests = result
 
                     # Validate PNG dimensions
                     dims = get_png_dimensions(png_data)
@@ -426,19 +450,30 @@ def main() -> int:
         finally:
             browser.close()
 
-    # Write INDEX.json
+    # Write INDEX.json as a sorted list
     try:
         index_path = output / "INDEX.json"
-        existing_index = {}
+        existing_list = []
         if index_path.exists():
-            existing_index = json.loads(index_path.read_text(encoding="utf-8"))
+            content = json.loads(index_path.read_text(encoding="utf-8"))
+            # Handle both old dict format and new list format
+            if isinstance(content, dict):
+                existing_list = list(content.values())
+            else:
+                existing_list = content
+
+        # Create a dict for easier merging
+        existing_dict = {item["name"]: item for item in existing_list}
 
         # Update with new results
         for result in results:
-            existing_index[result.name] = asdict(result)
+            existing_dict[result.name] = asdict(result)
+
+        # Convert back to sorted list by name
+        final_list = sorted(existing_dict.values(), key=lambda x: x["name"])
 
         index_path.write_text(
-            json.dumps(existing_index, indent=2, ensure_ascii=False, sort_keys=True),
+            json.dumps(final_list, indent=2, ensure_ascii=False),
             encoding="utf-8",
         )
     except Exception as e:

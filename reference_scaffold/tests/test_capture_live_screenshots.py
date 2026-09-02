@@ -5,11 +5,11 @@ import os
 import socket
 import struct
 import subprocess
+import sys
 import threading
 import time
 from hashlib import sha256
 from pathlib import Path
-from typing import Iterator
 
 import pytest
 from redis import Redis
@@ -58,14 +58,13 @@ def _cleanup_database(database_url: str) -> None:
     owner_engine = create_engine(database_url, poolclass=NullPool, pool_pre_ping=True)
     try:
         with owner_engine.begin() as connection:
-            # Skip grant when schema might not exist
             connection.execute(text('DROP SCHEMA IF EXISTS cafeteria CASCADE'))
     finally:
         owner_engine.dispose()
 
 
 @pytest.fixture
-def live_server(monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
+def live_server(monkeypatch: pytest.MonkeyPatch):
     """Start the Flask app in a background thread on a free port."""
     assert DATABASE_URL is not None
     assert REDIS_URL is not None
@@ -151,7 +150,7 @@ def live_server(monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
 
 
 @pytest.fixture
-def live_server_closed_day(monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
+def live_server_closed_day(monkeypatch: pytest.MonkeyPatch):
     """Start the Flask app with a closed day (Sunday 2026-09-06)."""
     assert DATABASE_URL is not None
     assert REDIS_URL is not None
@@ -248,7 +247,7 @@ def test_capture_live_screenshots(live_server: str, tmp_path: Path) -> None:
     tool_path = ROOT / 'tools' / 'capture_live_screenshots.py'
     result = subprocess.run(
         [
-            '/tmp/dishboard-shared-venv/bin/python',
+            sys.executable,
             str(tool_path),
             '--base-url', live_server,
             '--output', str(output_dir),
@@ -263,15 +262,16 @@ def test_capture_live_screenshots(live_server: str, tmp_path: Path) -> None:
     # Should succeed with exit code 0
     assert result.returncode == 0, f"Tool failed: {result.stdout}\n{result.stderr}"
 
-    # Verify INDEX.json exists and has correct entries
+    # Verify INDEX.json exists and is a list
     index_path = output_dir / 'INDEX.json'
     assert index_path.exists(), "INDEX.json not created"
 
     index_data = json.loads(index_path.read_text(encoding='utf-8'))
+    assert isinstance(index_data, list), f"INDEX.json must be a list, got {type(index_data)}"
 
     for capture_name in captures:
-        assert capture_name in index_data, f"{capture_name} not in INDEX.json"
-        entry = index_data[capture_name]
+        entry = next((item for item in index_data if item['name'] == capture_name), None)
+        assert entry is not None, f"{capture_name} not in INDEX.json"
 
         # Verify PNG file exists
         png_path = output_dir / capture_name
@@ -290,6 +290,10 @@ def test_capture_live_screenshots(live_server: str, tmp_path: Path) -> None:
         # Verify HTTP status is 200
         assert entry['http_status'] == 200, f"HTTP status {entry['http_status']} != 200 for {capture_name}"
 
+        # Verify no console errors or failed requests
+        assert entry['console_errors'] == [], f"Console errors in {capture_name}: {entry['console_errors']}"
+        assert entry['failed_requests'] == [], f"Failed requests in {capture_name}: {entry['failed_requests']}"
+
 
 def test_capture_with_wrong_password_fails(live_server: str, tmp_path: Path) -> None:
     """Test that wrong password causes admin capture to fail."""
@@ -302,7 +306,7 @@ def test_capture_with_wrong_password_fails(live_server: str, tmp_path: Path) -> 
     tool_path = ROOT / 'tools' / 'capture_live_screenshots.py'
     result = subprocess.run(
         [
-            '/tmp/dishboard-shared-venv/bin/python',
+            sys.executable,
             str(tool_path),
             '--base-url', live_server,
             '--output', str(output_dir),
@@ -329,7 +333,7 @@ def test_capture_closed_day_fails_without_flag(live_server: str, tmp_path: Path)
     tool_path = ROOT / 'tools' / 'capture_live_screenshots.py'
     result = subprocess.run(
         [
-            '/tmp/dishboard-shared-venv/bin/python',
+            sys.executable,
             str(tool_path),
             '--base-url', live_server,
             '--output', str(output_dir),
@@ -352,7 +356,7 @@ def test_capture_closed_day_succeeds_on_closed_server(
     tool_path = ROOT / 'tools' / 'capture_live_screenshots.py'
     result = subprocess.run(
         [
-            '/tmp/dishboard-shared-venv/bin/python',
+            sys.executable,
             str(tool_path),
             '--base-url', live_server_closed_day,
             '--output', str(output_dir),
