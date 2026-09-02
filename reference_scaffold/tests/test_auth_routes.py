@@ -185,6 +185,32 @@ def test_local_login_succeeds_without_session_roles(auth_app: tuple[Any, Engine,
         assert 'roles' not in flask_session
 
 
+def test_entra_login_redirects_to_local_login_when_entra_is_disabled(
+    auth_app: tuple[Any, Engine, Engine],
+) -> None:
+    application, _, _ = auth_app
+    application.config.update(ENTRA_ENABLED=False, LOCAL_AUTH_ENABLED=True)
+    client = application.test_client()
+
+    response = client.get('/auth/login')
+
+    assert response.status_code == 302
+    assert response.headers['Location'].endswith('/auth/local')
+    assert client.get('/auth/callback').status_code == 404
+    assert client.get('/auth/frontchannel-logout').status_code == 404
+
+
+def test_entra_login_fails_closed_when_all_login_providers_are_disabled(
+    auth_app: tuple[Any, Engine, Engine],
+) -> None:
+    application, _, _ = auth_app
+    application.config.update(ENTRA_ENABLED=False, LOCAL_AUTH_ENABLED=False)
+
+    response = application.test_client().get('/auth/login')
+
+    assert response.status_code == 503
+
+
 def test_local_login_is_default_off_and_get_renders_dedicated_template(
     auth_app: tuple[Any, Engine, Engine],
 ) -> None:

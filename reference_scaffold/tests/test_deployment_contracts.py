@@ -16,6 +16,7 @@ DEPLOYMENT = ROOT / "deployment"
 PRODUCTION_HOST = "dishboard.joelduss.xyz"
 PRODUCTION_ORIGIN = f"https://{PRODUCTION_HOST}"
 PINNED_APP_IMAGE = "registry.example.invalid/dishboard@sha256:" + ("1" * 64)
+LOCAL_APP_IMAGE = "sha256:" + ("2" * 64)
 
 
 def load_compose(name: str) -> dict:
@@ -84,6 +85,9 @@ def test_deployment_defaults_to_dishboard_and_persists_last_good() -> None:
     assert compose["services"]["app"]["environment"]["LAST_GOOD_DIR"] == "/var/lib/cafeteria/last-good"
     assert "last_good_data:/var/lib/cafeteria" in compose["services"]["app"]["volumes"]
     assert "last_good_data" in compose["volumes"]
+    assert compose["services"]["app"]["ports"] == [
+        "127.0.0.1:${APP_HOST_PORT:-8789}:8000"
+    ]
 
 
 def test_default_public_host_environment_is_production_safe() -> None:
@@ -97,7 +101,10 @@ def test_default_public_host_environment_is_production_safe() -> None:
     assert environment["SEED_DEMO"] == "false"
     assert environment["DEMO_TODAY"] == ""
     assert environment["SESSION_COOKIE_SECURE"] == "true"
-    assert environment["APP_IMAGE"].endswith("@sha256:REPLACE_WITH_IMAGE_DIGEST")
+    assert environment["APP_IMAGE"] == "sha256:REPLACE_WITH_LOCAL_IMAGE_ID"
+    assert environment["APP_HOST_PORT"] == "8789"
+    assert environment["LOCAL_AUTH_ENABLED"] == "true"
+    assert environment["ENTRA_ENABLED"] == "false"
 
 
 def test_compose_requires_an_explicit_app_image_digest() -> None:
@@ -235,6 +242,12 @@ def test_production_entrypoint_accepts_secure_matching_public_origin(tmp_path: P
     assert result.returncode == 0, result.stderr
 
 
+def test_production_entrypoint_accepts_local_content_addressed_image(tmp_path: Path) -> None:
+    result = run_entrypoint(tmp_path, APP_IMAGE=LOCAL_APP_IMAGE)
+
+    assert result.returncode == 0, result.stderr
+
+
 def test_compose_mounts_one_dedicated_auth_issuer_secret_and_no_url() -> None:
     compose = load_compose('docker-compose.yml')
     issuer_secret = 'postgres_auth_issuer_password'
@@ -321,6 +334,15 @@ def test_proxy_network_uses_exact_deterministic_peers_without_broad_cidr() -> No
     assert 'TRUSTED_PROXY_HOPS' not in compose['services']['app']['environment']
 
 
+def test_host_caddy_example_proxies_only_to_loopback_app_port() -> None:
+    caddyfile = (DEPLOYMENT / 'caddy' / 'Caddyfile.host.example').read_text(encoding='utf-8')
+
+    assert 'dishboard.joelduss.xyz {' in caddyfile
+    assert 'reverse_proxy 127.0.0.1:8789' in caddyfile
+    assert 'reverse_proxy app:8000' not in caddyfile
+    assert 'import authelia' not in caddyfile
+
+
 @pytest.mark.parametrize(
     "app_image",
     (
@@ -328,6 +350,8 @@ def test_proxy_network_uses_exact_deterministic_peers_without_broad_cidr() -> No
         "suedhang-cafeteria:latest",
         "registry.example.invalid/dishboard:production",
         "registry.example.invalid/dishboard@sha256:short",
+        "sha256:short",
+        "sha256:" + ("A" * 64),
         "",
     ),
 )
@@ -768,16 +792,17 @@ def test_production_entrypoint_rejects_placeholder_entra_secret(tmp_path: Path) 
     assert "ENTRA_CLIENT_SECRET_FILE" in result.stderr
 
 
-def test_production_entrypoint_rejects_entra_placeholders_while_disabled(tmp_path: Path) -> None:
-    """Disabling Entra must not make placeholder credentials valid for production startup."""
+def test_production_entrypoint_allows_entra_placeholders_while_disabled(tmp_path: Path) -> None:
+    """A disabled Entra provider must not block a local-only production deployment."""
     result = run_entrypoint(
         tmp_path,
         secret_text="REPLACE_WITH_ENTRA_CLIENT_SECRET_FOR_PRODUCTION\n",
         ENTRA_ENABLED="false",
+        ENTRA_TENANT_ID="00000000-0000-0000-0000-000000000000",
+        ENTRA_CLIENT_ID="00000000-0000-0000-0000-000000000000",
     )
 
-    assert result.returncode != 0
-    assert "ENTRA_CLIENT_SECRET_FILE" in result.stderr
+    assert result.returncode == 0, result.stderr
 
 
 def test_entra_callbacks_and_healthchecks_do_not_expose_secret_arguments() -> None:
