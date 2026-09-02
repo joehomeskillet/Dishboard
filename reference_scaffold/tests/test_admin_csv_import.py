@@ -18,7 +18,6 @@ from sqlalchemy.pool import NullPool
 from cafeteria.admin import routes as admin_routes
 from cafeteria.csvio import snapshot_to_csv, validate_upload
 from cafeteria import db as database
-from cafeteria.db import init_database
 from cafeteria.security import csrf_token
 from cafeteria.workflow_snapshot import build_snapshot
 
