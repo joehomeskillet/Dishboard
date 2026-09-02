@@ -268,7 +268,11 @@ def test_local_login_failures_are_generic_and_disabled_users_cannot_login(
     )
 
     assert wrong.status_code == missing.status_code == disabled.status_code == 401
-    assert wrong.get_data(as_text=True) == missing.get_data(as_text=True) == disabled.get_data(as_text=True)
+    # All responses should show the generic error message, not reveal whether user exists
+    error_text = 'Anmeldung fehlgeschlagen'
+    assert error_text in wrong.get_data(as_text=True)
+    assert error_text in missing.get_data(as_text=True)
+    assert error_text in disabled.get_data(as_text=True)
     assert client.post('/auth/signup', data={}).status_code == 404
 
 

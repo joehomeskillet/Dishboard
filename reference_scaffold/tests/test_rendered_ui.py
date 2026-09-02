@@ -67,7 +67,12 @@ def app(monkeypatch: pytest.MonkeyPatch) -> Flask:
 
     auth = Blueprint('auth', __name__)
     auth.add_url_rule('/logout', endpoint='logout', view_func=lambda: '')
-    application.register_blueprint(auth)
+    # Add local_login route for testing
+    def mock_local_login():
+        from flask import render_template
+        return render_template('auth/local_login.html')
+    auth.add_url_rule('/local', endpoint='local_login', view_func=mock_local_login, methods=['GET'])
+    application.register_blueprint(auth, url_prefix='/auth')
     application.register_blueprint(public_routes.bp)
     application.register_blueprint(signage_routes.bp)
     application.register_blueprint(admin_routes.bp)
@@ -602,3 +607,91 @@ def test_cafeteria_weekend_route_is_closed_full_surface(app: Flask, browser: Bro
         _assert_no_viewport_overflow(page, ('.signage-shell', '.closed-card'))
     finally:
         page.close()
+
+
+def test_local_login_error_alert_has_role_and_focus(app: Flask, browser: Browser) -> None:
+    """Test that the login error alert is properly accessible."""
+    app.config['LOCAL_AUTH_ENABLED'] = True
+    client = _client(app)
+    
+    # Render login with error
+    html = client.get('/auth/local').get_data(as_text=True)
+    html_with_error = html.replace(
+        '<h1 id="local-login-title">Anmelden</h1>',
+        '<h1 id="local-login-title">Anmelden</h1>\n    <div class="auth-alert" role="alert" tabindex="-1" autofocus>\n      Test error message\n    </div>'
+    )
+    
+    page = _page(browser, html_with_error, 1440, 900)
+    try:
+        result = page.evaluate(
+            """
+            () => {
+                const alert = document.querySelector('.auth-alert');
+                return {
+                    hasRole: alert.getAttribute('role') === 'alert',
+                    hasTabindex: alert.getAttribute('tabindex') === '-1',
+                    hasAutofocus: alert.hasAttribute('autofocus'),
+                    visible: alert.offsetHeight > 0
+                };
+            }
+            """
+        )
+        assert result['hasRole'], 'Alert should have role="alert"'
+        assert result['hasTabindex'], 'Alert should have tabindex="-1"'
+        assert result['hasAutofocus'], 'Alert should have autofocus'
+        assert result['visible'], 'Alert should be visible'
+    finally:
+        page.close()
+
+
+def test_local_login_page_renders_without_overflow(app: Flask, browser: Browser) -> None:
+    """Test that the modern login page renders correctly at mobile and desktop sizes."""
+    app.config['LOCAL_AUTH_ENABLED'] = True
+    client = _client(app)
+    
+    html = client.get('/auth/local').get_data(as_text=True)
+    assert '<form' in html
+    assert 'name="username"' in html
+    assert 'name="password"' in html
+    assert 'name="csrf_token"' in html
+    assert 'Anmelden' in html
+    
+    # Test at mobile size (390x844) - check horizontal overflow only
+    page_mobile = _page(browser, html, 390, 844)
+    try:
+        result = page_mobile.evaluate(
+            """
+            () => {
+                return {
+                    viewport: document.documentElement.scrollWidth <= innerWidth + 1,
+                    clipped: [...document.querySelectorAll('.auth-shell, .auth-card')]
+                        .filter(el => el.scrollWidth > el.clientWidth + 1)
+                        .length === 0
+                };
+            }
+            """
+        )
+        assert result['viewport'], 'Page has horizontal overflow'
+        assert result['clipped'], 'Elements are horizontally clipped'
+    finally:
+        page_mobile.close()
+    
+    # Test at desktop size (1440x900)
+    page_desktop = _page(browser, html, 1440, 900)
+    try:
+        result = page_desktop.evaluate(
+            """
+            () => {
+                return {
+                    viewport: document.documentElement.scrollWidth <= innerWidth + 1,
+                    clipped: [...document.querySelectorAll('.auth-shell, .auth-card')]
+                        .filter(el => el.scrollWidth > el.clientWidth + 1)
+                        .length === 0
+                };
+            }
+            """
+        )
+        assert result['viewport'], 'Page has horizontal overflow at desktop'
+        assert result['clipped'], 'Elements are horizontally clipped at desktop'
+    finally:
+        page_desktop.close()

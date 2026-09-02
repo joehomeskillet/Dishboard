@@ -7,37 +7,54 @@
     Südhang Menüplanung
   </a>
 </header>
-<main id="main" class="public-shell">
-  <section class="hero" aria-labelledby="local-login-title">
-    <div>
-      <p class="eyebrow">Geschützter Küchenbereich</p>
-      <h1 id="local-login-title">Lokal anmelden</h1>
-      <p class="hero-copy">Für durch die Administration eingerichtete lokale Konten.</p>
+<main id="main" class="auth-shell">
+  <section class="auth-card" aria-labelledby="local-login-title">
+    <div class="auth-card-header">
+      <p class="auth-eyebrow">Küchenbereich</p>
+      <h1 id="local-login-title">Anmelden</h1>
+      <p class="auth-lead">Für durch die Administration eingerichtete lokale Konten.</p>
     </div>
-  </section>
-  <section class="menu-card" aria-label="Lokale Zugangsdaten">
-    <div class="menu-card-body">
-      <form method="post" action="{{ url_for('auth.local_login') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <p>
-          <label for="username"><strong>Benutzername</strong></label><br>
-          <input id="username" name="username" type="text" autocomplete="username"
-                 autocapitalize="none" spellcheck="false" required autofocus>
-        </p>
-        <p>
-          <label for="password"><strong>Passwort</strong></label><br>
-          <input id="password" name="password" type="password"
-                 autocomplete="current-password" required>
-        </p>
-        <button class="btn primary" type="submit">Lokal anmelden</button>
-      </form>
-      {% if config.ENTRA_ENABLED %}
-      <p class="menu-description">
-        Organisationskonto vorhanden?
-        <a href="{{ url_for('auth.login') }}">Mit Microsoft Entra anmelden</a>
-      </p>
-      {% endif %}
+    {% if error %}
+    <div class="auth-alert" role="alert" tabindex="-1" autofocus>
+      {{ error }}
     </div>
+    {% endif %}
+    <form method="post" action="{{ url_for('auth.local_login') }}" class="auth-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="auth-field">
+        <label for="username">Benutzername</label>
+        <input 
+          id="username" 
+          name="username" 
+          type="text" 
+          autocomplete="username"
+          autocapitalize="none" 
+          spellcheck="false" 
+          required
+          {% if not error %}autofocus{% endif %}
+          value="{{ username or '' }}"
+          class="auth-input">
+      </div>
+      <div class="auth-field">
+        <label for="password">Passwort</label>
+        <input 
+          id="password" 
+          name="password" 
+          type="password"
+          autocomplete="current-password" 
+          required
+          class="auth-input">
+      </div>
+      <button type="submit" class="auth-submit">Anmelden</button>
+    </form>
+    {% if config.ENTRA_ENABLED %}
+    <div class="auth-footer">
+      <p class="auth-divider">oder</p>
+      <a href="{{ url_for('auth.login') }}" class="auth-entra-link">Mit Microsoft Entra anmelden</a>
+      <p class="auth-note">Organisationskonto vorhanden?</p>
+    </div>
+    {% endif %}
+    <p class="auth-copyright">Konten werden von der Administration eingerichtet.</p>
   </section>
 </main>
 {% endblock %}
