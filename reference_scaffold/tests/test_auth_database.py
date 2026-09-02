@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import os
-import subprocess
-import sys
+import json
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -92,10 +91,10 @@ def owner_engine() -> Iterator[Engine]:
 def test_migration_plan_contains_auth_issuer_contract() -> None:
     plan = database.migration_plan(ROOT / 'database' / 'schema.sql')
 
-    assert database.SCHEMA_VERSION == 11
+    assert database.SCHEMA_VERSION == 12
     assert (plan[-1].version, plan[-1].path.name) == (
-        11,
-        '0008_auth_final_hardening.sql',
+        12,
+        '0009_bootstrap_first_local_admin.sql',
     )
 
 
@@ -874,21 +873,10 @@ def test_bootstrap_admin_can_provision_second_user(
             password='KuecheAdmin-Boot-2026!Secure',
         )
         
-        # Get the bootstrapped admin's public_id to use as actor
-        with owner_engine.connect() as connection:
-            admin_public_id = connection.execute(
-                text(
-                    '''
-                    SELECT public_id FROM cafeteria.users WHERE id=:user_id
-                    '''
-                ),
-                {'user_id': admin_id},
-            ).scalar_one()
-
         # Provision second user with bootstrap admin as actor
         user_id_2 = auth_issuer.provision_local_user(
             issuer_engine,
-            actor_identifier=str(admin_public_id),
+            actor_identifier='bootstrap.admin',
             username='second.user',
             display_name='Second User',
             password='Kueche-SecondPass-2026!Secure',
@@ -900,80 +888,117 @@ def test_bootstrap_admin_can_provision_second_user(
         pass
 
 
-def test_cli_bootstrap_local_admin_via_password_file_and_rejects_password_argument(
+
+
+@LIVE_DATABASE
+def test_cli_bootstrap_local_admin_via_password_file(
     owner_engine: Engine,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
 ) -> None:
-    """CLI bootstrap command accepts password via DISHBOARD_BOOTSTRAP_PASSWORD_FILE."""
-    import os
+    """Bootstrap first admin using DISHBOARD_BOOTSTRAP_PASSWORD_FILE."""
+    assert DATABASE_URL is not None
     
-    password_file = '/tmp/test_bootstrap_password.txt'
-    try:
-        with open(password_file, 'w', encoding='utf-8') as f:
-            f.write('BootstrapKueche-2026!Secure')
-        os.chmod(password_file, 0o400)
-
-        # Test with DISHBOARD_BOOTSTRAP_PASSWORD_FILE
-        result = subprocess.run(
-            [
-                sys.executable,
-                str(MANAGE_PY),
-                'bootstrap-local-admin',
-                '--username', 'cli.admin',
-                '--display-name', 'CLI Admin',
-            ],
-            env={
-                **os.environ,
-                'DATABASE_URL': _get_database_url('postgres', 'postgres', OWNER_PASSWORD),
-                'AUTH_ISSUER_DATABASE_URL': _get_database_url('postgres', 'cafeteria_auth_issuer', ISSUER_PASSWORD),
-                'DISHBOARD_BOOTSTRAP_PASSWORD_FILE': password_file,
-            },
-            capture_output=True,
-            text=True,
-            cwd=str(REFERENCE_SCAFFOLD),
+    # Clean up any existing admins from previous tests
+    with owner_engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                UPDATE cafeteria.users u
+                SET disabled_at = NOW()
+                WHERE u.disabled_at IS NULL
+                  AND EXISTS (
+                      SELECT 1 FROM cafeteria.user_role_cache urc
+                      WHERE urc.user_id = u.id
+                        AND urc.role_code = 'Cafeteria.Admin'
+                  )
+                """
+            )
         )
-        assert result.returncode == 0, f'CLI failed: {result.stderr}'
-        output = json.loads(result.stdout)
-        assert output['action'] == 'bootstrapped'
-        assert output['username'] == 'cli.admin'
-        user_id = output['user_id']
+    
+    password_file = tmp_path / 'bootstrap_password.txt'
+    password_file.write_text('BootstrapKueche-2026!Secure', encoding='utf-8')
 
-        # Verify in database
-        with owner_engine.connect() as connection:
-            user = connection.execute(
-                text(
-                    '''
-                    SELECT u.id, u.auth_provider, c.username, c.password_hash
-                    FROM cafeteria.users u
-                    JOIN cafeteria.local_credentials c ON c.user_id=u.id
-                    WHERE u.id=:user_id
-                    '''
-                ),
-                {'user_id': user_id},
-            ).mappings().one()
-        assert user.auth_provider == 'local'
-        assert check_password_hash(user.password_hash, 'BootstrapKueche-2026!Secure')
+    monkeypatch.setenv('DATABASE_URL', DATABASE_URL)
+    monkeypatch.setenv('POSTGRES_AUTH_ISSUER_PASSWORD', ISSUER_PASSWORD)
+    monkeypatch.setenv('APP_ENV', 'test')
+    monkeypatch.setenv('DEMO_MODE', 'false')
+    monkeypatch.setenv('DISHBOARD_BOOTSTRAP_PASSWORD_FILE', str(password_file))
 
-        # Test --password argument is rejected
-        result = subprocess.run(
+    result = manage.main(
+        [
+            'bootstrap-local-admin',
+            '--username', 'cli.admin',
+            '--display-name', 'CLI Admin',
+        ]
+    )
+
+    output = capsys.readouterr()
+    assert result == 0, f'CLI failed: {output.err}'
+    output_json = json.loads(output.out)
+    assert output_json['action'] == 'bootstrapped'
+    assert output_json['username'] == 'cli.admin'
+    user_id = output_json['user_id']
+
+    # Verify password not echoed
+    assert 'BootstrapKueche-2026!Secure' not in output.out
+    assert 'BootstrapKueche-2026!Secure' not in output.err
+
+    # Verify in database
+    with owner_engine.connect() as connection:
+        user = connection.execute(
+            text(
+                '''
+                SELECT u.id, u.auth_provider, c.username, c.password_hash
+                FROM cafeteria.users u
+                JOIN cafeteria.local_credentials c ON c.user_id=u.id
+                WHERE u.id=:user_id
+                '''
+            ),
+            {'user_id': user_id},
+        ).mappings().one()
+    assert user.auth_provider == 'local'
+    assert check_password_hash(user.password_hash, 'BootstrapKueche-2026!Secure')
+
+
+@LIVE_DATABASE
+def test_cli_bootstrap_rejects_password_argument(
+    owner_engine: Engine,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Bootstrap command must reject --password argument."""
+    assert DATABASE_URL is not None
+    
+    # Clean up any existing admins from previous tests
+    with owner_engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                UPDATE cafeteria.users u
+                SET disabled_at = NOW()
+                WHERE u.disabled_at IS NULL
+                  AND EXISTS (
+                      SELECT 1 FROM cafeteria.user_role_cache urc
+                      WHERE urc.user_id = u.id
+                        AND urc.role_code = 'Cafeteria.Admin'
+                  )
+                """
+            )
+        )
+    
+    monkeypatch.setenv('DATABASE_URL', DATABASE_URL)
+    monkeypatch.setenv('POSTGRES_AUTH_ISSUER_PASSWORD', ISSUER_PASSWORD)
+    monkeypatch.setenv('APP_ENV', 'test')
+    monkeypatch.setenv('DEMO_MODE', 'false')
+
+    with pytest.raises(RuntimeError, match='interaktiv'):
+        manage.main(
             [
-                sys.executable,
-                str(MANAGE_PY),
                 'bootstrap-local-admin',
                 '--username', 'second.admin',
                 '--display-name', 'Second Admin',
                 '--password', 'ShouldBeForbidden-2026!Secure',
-            ],
-            env={
-                **os.environ,
-                'DATABASE_URL': _get_database_url('postgres', 'postgres', OWNER_PASSWORD),
-                'AUTH_ISSUER_DATABASE_URL': _get_database_url('postgres', 'cafeteria_auth_issuer', ISSUER_PASSWORD),
-            },
-            capture_output=True,
-            text=True,
-            cwd=str(REFERENCE_SCAFFOLD),
+            ]
         )
-        assert result.returncode != 0
-        assert 'dürfen nur interaktiv' in result.stderr or 'must be entered interactively' in result.stderr
-    finally:
-        if os.path.exists(password_file):
-            os.unlink(password_file)
