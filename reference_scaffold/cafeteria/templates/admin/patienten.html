@@ -99,6 +99,40 @@
                     <label for="{{ components_field }}">Komponenten, eine pro Zeile</label>
                     <textarea id="{{ components_field }}" name="{{ components_field }}" rows="2"{{ error_attributes(components_field, components_field ~ '_error') }}>{{ submitted.get(components_field, option.components|join('\n')) }}</textarea>
                     {{ field_error(components_field, components_field ~ '_error') }}
+                    {# Dietary Labels #}
+                    {% set labels_field = option_prefix ~ '_labels' %}
+                    <fieldset>
+                      <legend>Ernährungskennzeichnung</legend>
+                      {% for label in dietary_labels %}
+                      <label><input type="checkbox" name="{{ labels_field }}" value="{{ label.code }}"{% if submitted.get(labels_field) and label.code in submitted.get(labels_field, '').split(',') %} checked{% elif option.labels and label.code in (option.labels|map(attribute='code')|list) %} checked{% endif %}> {{ label.display_name }}</label>
+                      {% endfor %}
+                    </fieldset>
+                    {# Allergens - Contains #}
+                    {% set allergen_contains_field = option_prefix ~ '_allergen_contains' %}
+                    <label for="{{ allergen_contains_field }}">Enthält Allergene (EU-Nummern)</label>
+                    <select id="{{ allergen_contains_field }}" name="{{ allergen_contains_field }}" multiple size="3"{{ error_attributes(allergen_contains_field, allergen_contains_field ~ '_error') }}>
+                      {% for allergen in allergens %}
+                      <option value="{{ allergen.code }}"{% if submitted.get(allergen_contains_field) and allergen.code in submitted.get(allergen_contains_field, '').split(',') %} selected{% elif option.allergens and allergen.code in (option.allergens|selectattr('presence', 'equalto', 'contains')|map(attribute='code')|list) %} selected{% endif %}>{{ allergen.eu_number }} {{ allergen.display_name }}</option>
+                      {% endfor %}
+                    </select>
+                    {{ field_error(allergen_contains_field, allergen_contains_field ~ '_error') }}
+                    {# Allergens - May Contain #}
+                    {% set allergen_may_field = option_prefix ~ '_allergen_may_contain' %}
+                    <label for="{{ allergen_may_field }}">Kann Spuren enthalten (EU-Nummern)</label>
+                    <select id="{{ allergen_may_field }}" name="{{ allergen_may_field }}" multiple size="3"{{ error_attributes(allergen_may_field, allergen_may_field ~ '_error') }}>
+                      {% for allergen in allergens %}
+                      <option value="{{ allergen.code }}"{% if submitted.get(allergen_may_field) and allergen.code in submitted.get(allergen_may_field, '').split(',') %} selected{% elif option.allergens and allergen.code in (option.allergens|selectattr('presence', 'equalto', 'may_contain')|map(attribute='code')|list) %} selected{% endif %}>{{ allergen.eu_number }} {{ allergen.display_name }}</option>
+                      {% endfor %}
+                    </select>
+                    {{ field_error(allergen_may_field, allergen_may_field ~ '_error') }}
+                    {# Origins #}
+                    {% set origins_field = option_prefix ~ '_origins' %}
+                    <label for="{{ origins_field }}">Herkunftsangaben (Zutat=Land|...)</label>
+                    <input id="{{ origins_field }}" name="{{ origins_field }}" value="{% if submitted.get(origins_field) %}{{ submitted.get(origins_field) }}{% elif option.origins %}{% for o in option.origins %}{{ o.text }}{% if not loop.last %}|{% endif %}{% endfor %}{% endif %}" autocomplete="off"{{ error_attributes(origins_field, origins_field ~ '_error') }}>
+                    {{ field_error(origins_field, origins_field ~ '_error') }}
+                    {# Allergen Review Status #}
+                    {% set review_field = option_prefix ~ '_allergen_reviewed' %}
+                    <label><input type="checkbox" name="{{ review_field }}"{% if submitted.get(review_field) == 'on' %} checked{% elif option.allergen_review_status == 'checked' %} checked{% endif %}> Allergene geprüft</label>
                   </div>
                   {% endfor %}
                 </div>

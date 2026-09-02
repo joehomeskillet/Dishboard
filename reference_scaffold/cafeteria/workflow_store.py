@@ -420,3 +420,35 @@ def persist_draft(
             actor_id=actor_id,
             values=values,
         )
+
+
+def get_dietary_labels_and_allergens(
+    connection: Connection,
+) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    """Get active dietary labels and allergens for form controls."""
+    dietary_labels = connection.execute(
+        text(
+            '''
+            SELECT code, display_name
+            FROM cafeteria.dietary_labels
+            WHERE active
+            ORDER BY code
+            '''
+        )
+    ).mappings().all()
+
+    allergens = connection.execute(
+        text(
+            '''
+            SELECT code, display_name, eu_number
+            FROM cafeteria.allergens
+            WHERE active
+            ORDER BY eu_number, code
+            '''
+        )
+    ).mappings().all()
+
+    return (
+        [dict(row) for row in dietary_labels],
+        [dict(row) for row in allergens],
+    )

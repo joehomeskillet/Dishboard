@@ -22,6 +22,7 @@
       <header class="menu-card-head"><p class="menu-type">{{ option.type_name }}</p><span class="menu-icon {{ 'veg' if option.type_code == 'VEGGIE' else '' }}" aria-hidden="true">{{ '●' if option.type_code == 'VEGGIE' else '◐' }}</span></header>
       <div class="menu-card-body">
         <h2 class="menu-title">{{ option.title }}</h2><p class="menu-description">{{ option.description }}</p>
+
         <ul class="components">{% for component in option.components %}<li>{{ component }}</li>{% endfor %}</ul>
         <div class="labels">
           {% for origin in option.origins %}<span class="label">{{ origin.text }}</span>{% endfor %}

@@ -33,6 +33,7 @@ from ..workflow import (
     save_draft,
     validate_publication_fit,
 )
+from ..workflow_store import get_dietary_labels_and_allergens
 from ..workflow_form import ParsedDraft, parse_draft_form, submitted_form_values
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -85,6 +86,13 @@ def _parse_form(profile_code: str) -> ParsedDraft:
     return parsed
 
 
+
+def _master_data() -> tuple[list[dict], list[dict]]:
+    """Load dietary labels and allergens from store."""
+    engine = current_app.extensions["cafeteria_db"]
+    with engine.connect() as conn:
+        return get_dietary_labels_and_allergens(conn)
+
 def _render_editor(
     profile_code: str,
     *,
@@ -94,8 +102,12 @@ def _render_editor(
     first_error: str | None = None,
 ):
     template = 'admin/patienten.html' if profile_code == 'patient' else 'admin/cafeteria.html'
+    dietary_labels, allergens = _master_data()
+
     return render_template(
         template,
+        dietary_labels=dietary_labels,
+        allergens=allergens,
         draft=_draft(profile_code),
         user=session.get('user'),
         roles=session.get('roles', []),

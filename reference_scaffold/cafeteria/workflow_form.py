@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Any, Mapping
@@ -28,7 +29,10 @@ def _field_names(profile_code: str) -> set[str]:
             names |= {f'{service}_state', f'{service}_notice'}
             for type_code in MENU_TYPES:
                 option = f'{service}_{type_code}'
-                names |= {f'{option}_title', f'{option}_components'}
+                names |= {
+                    f'{option}_title',
+                    f'{option}_components',
+                }
                 if profile_code == 'staff_guest':
                     names |= {f'{option}_internal_rappen', f'{option}_external_rappen'}
     return names
@@ -36,8 +40,16 @@ def _field_names(profile_code: str) -> set[str]:
 
 def _single_values(form: Mapping[str, str]) -> dict[str, str]:
     if hasattr(form, 'getlist'):
+        # Listenfelder (Checkboxes, multiple select) dürfen mehrfach gesendet werden
+        optional_list_fields = {
+            'labels',
+            'allergen_contains',
+            'allergen_may_contain',
+        }
         for key in form:
-            if len(form.getlist(key)) != 1:  # type: ignore[attr-defined]
+            count = len(form.getlist(key)) if hasattr(form, 'getlist') else 1
+            # Prüfe nur nicht-Listenfelder
+            if count != 1 and not any(suffix in key for suffix in optional_list_fields):
                 raise WorkflowValidationError(
                     f'Formularfeld mehrfach gesendet: {key}',
                     field_name=key,
@@ -61,12 +73,45 @@ def _positive_integer(value: str, label: str, field_name: str) -> int:
     return parsed
 
 
+def _parse_origins(value: str) -> list[dict[str, str]]:
+    """Parse origin declarations from format 'Ingredient=CountryCode|...'"""
+    origins = []
+    if not value.strip():
+        return origins
+
+    for declaration in value.split('|'):
+        declaration = declaration.strip()
+        if not declaration:
+            continue
+        if declaration.count('=') != 1:
+            raise ValueError('Herkunftsangabe ist ungültig.')
+        ingredient, country_code = declaration.rsplit('=', 1)
+        ingredient = ingredient.strip()
+        country_code = country_code.strip()
+        if not ingredient or re.fullmatch(r'[A-Z]{2}', country_code) is None:
+            raise ValueError('Herkunftsangabe ist ungültig.')
+        origins.append({
+            'ingredient': ingredient,
+            'country_code': country_code,
+            'text': declaration,
+        })
+    return origins
+
+
 def submitted_form_values(
     profile_code: str,
     form: Mapping[str, str],
 ) -> dict[str, str]:
     expected = _field_names(profile_code)
-    return {key: str(form[key]) for key in expected if key in form}
+    result = {key: str(form[key]) for key in expected if key in form}
+    # Auch optionale Felder einbeziehen, wenn vorhanden
+    optional_fields = {
+        'labels', 'allergen_contains', 'allergen_may_contain', 'origins', 'allergen_reviewed'
+    }
+    for key in form:
+        if any(suffix in key for suffix in optional_fields) and key not in result:
+            result[key] = str(form[key])
+    return result
 
 
 def parse_draft_form(profile_code: str, form: Mapping[str, str]) -> ParsedDraft:
@@ -75,6 +120,9 @@ def parse_draft_form(profile_code: str, form: Mapping[str, str]) -> ParsedDraft:
     supplied = _single_values(form)
     expected = _field_names(profile_code)
     unexpected = set(supplied) - expected
+    # Entferne optionale Felder aus der "unexpected"-Prüfung
+    optional_field_suffixes = {'labels', 'allergen_contains', 'allergen_may_contain', 'origins', 'allergen_reviewed'}
+    unexpected = {k for k in unexpected if not any(suffix in k for suffix in optional_field_suffixes)}
     if unexpected:
         raise WorkflowValidationError(f'Unzulässiges Formularfeld: {sorted(unexpected)[0]}')
     missing = expected - set(supplied)
@@ -130,6 +178,12 @@ def parse_draft_form(profile_code: str, form: Mapping[str, str]) -> ParsedDraft:
                 option_prefix = f'{service_prefix}_{type_code}'
                 title_field = f'{option_prefix}_title'
                 components_field = f'{option_prefix}_components'
+                labels_field = f'{option_prefix}_labels'
+                allergen_contains_field = f'{option_prefix}_allergen_contains'
+                allergen_may_contain_field = f'{option_prefix}_allergen_may_contain'
+                origins_field = f'{option_prefix}_origins'
+                allergen_reviewed_field = f'{option_prefix}_allergen_reviewed'
+
                 title = supplied[title_field].strip()
                 if service_state == 'open' and not title:
                     raise WorkflowValidationError(
@@ -145,6 +199,44 @@ def parse_draft_form(profile_code: str, form: Mapping[str, str]) -> ParsedDraft:
                         if line.strip()
                     ],
                 }
+
+                # Parse labels (optional, comma-separated codes)
+                labels_str = supplied.get(labels_field, '').strip()
+                if labels_str:
+                    label_codes = [code.strip() for code in labels_str.split(',') if code.strip()]
+                    if label_codes:
+                        option['labels'] = [{'code': code, 'name': code} for code in label_codes]
+
+                # Parse allergens - optional
+                allergen_contains_str = supplied.get(allergen_contains_field, '').strip()
+                allergen_may_contain_str = supplied.get(allergen_may_contain_field, '').strip()
+                allergens = []
+                if allergen_contains_str:
+                    contains_codes = [code.strip() for code in allergen_contains_str.split(',') if code.strip()]
+                    for code in contains_codes:
+                        allergens.append({'code': code, 'name': code, 'presence': 'contains'})
+                if allergen_may_contain_str:
+                    may_contain_codes = [code.strip() for code in allergen_may_contain_str.split(',') if code.strip()]
+                    for code in may_contain_codes:
+                        allergens.append({'code': code, 'name': code, 'presence': 'may_contain'})
+                if allergens:
+                    option['allergens'] = allergens
+
+                # Parse origins - optional
+                origins_str = supplied.get(origins_field, '').strip()
+                if origins_str:
+                    try:
+                        option['origins'] = _parse_origins(origins_str)
+                    except ValueError as error:
+                        raise WorkflowValidationError(
+                            str(error),
+                            field_name=origins_field,
+                        ) from error
+
+                # Parse allergen review status - optional, default: not_checked
+                allergen_reviewed = supplied.get(allergen_reviewed_field, '').lower() == 'on'
+                option['allergen_review_status'] = 'checked' if allergen_reviewed else 'not_checked'
+
                 if profile_code == 'staff_guest':
                     if service_state == 'open':
                         internal_field = f'{option_prefix}_internal_rappen'

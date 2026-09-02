@@ -30,6 +30,24 @@ PATIENT_FORBIDDEN = re.compile(
 )
 
 
+
+def _fixture_master_data() -> tuple[list[dict], list[dict]]:
+    """Return realistic fixture labels and allergens for UI testing."""
+    labels = [
+        {'code': 'vegan', 'display_name': 'Vegan'},
+        {'code': 'vegetarian', 'display_name': 'Vegetarisch'},
+        {'code': 'gluten_free', 'display_name': 'Glutenfrei'},
+        {'code': 'lactose_free', 'display_name': 'Laktosefrei'},
+    ]
+    allergens = [
+        {'code': 'gluten', 'display_name': 'Gluten', 'eu_number': '1', 'presence': 'contains'},
+        {'code': 'milk', 'display_name': 'Milch', 'eu_number': '7', 'presence': 'contains'},
+        {'code': 'eggs', 'display_name': 'Eier', 'eu_number': '3', 'presence': 'contains'},
+        {'code': 'nuts', 'display_name': 'Nüsse', 'eu_number': '8', 'presence': 'contains'},
+        {'code': 'soy', 'display_name': 'Soja', 'eu_number': '11', 'presence': 'contains'},
+    ]
+    return labels, allergens
+
 def _draft(snapshot: dict[str, Any], profile_code: str) -> dict[str, Any]:
     draft = deepcopy(snapshot)
     if profile_code == 'staff_guest':
@@ -107,6 +125,7 @@ def app(monkeypatch: pytest.MonkeyPatch) -> Flask:
     monkeypatch.setattr(cafeteria.roles, 'load_user_authorization', mock_load_user_authorization)
     monkeypatch.setattr(public_routes, 'active_snapshot', fake_active_snapshot)
     monkeypatch.setattr(admin_routes, '_draft', fake_draft)
+    monkeypatch.setattr(admin_routes, '_master_data', _fixture_master_data)
 
     @application.context_processor
     def inject_csrf() -> dict[str, object]:
@@ -213,6 +232,75 @@ def _set_unbroken_signage_boundaries(
                 if 'description' in option:
                     option['description'] = component
     return title, component
+
+
+@pytest.mark.parametrize('path', ('/admin/cafeteria', '/admin/patienten'))
+def test_admin_review_checkboxes_rehydrate_canonical_checked_status(
+    app: Flask,
+    path: str,
+) -> None:
+    html = _client(app).get(path).get_data(as_text=True)
+    review_inputs = re.findall(
+        r'<input type="checkbox" name="[^"]+_allergen_reviewed"([^>]*)>',
+        html,
+    )
+
+    assert review_inputs
+    assert all(re.search(r'\bchecked\b', attributes) for attributes in review_inputs)
+
+
+@pytest.mark.parametrize(
+    ('path', 'expected_pills'),
+    (
+        (
+            '/cafeteria/heute/',
+            {'Einmalig Vegan', 'Enthält: Einmalig Gluten', 'Einmalig Rind: Schweiz'},
+        ),
+        (
+            '/patienten/heute/',
+            {'Einmalig Vegan', 'Enthält: Einmalig Gluten', 'Einmalig Rind: Schweiz'},
+        ),
+        (
+            '/signage/patienten/tag',
+            {'Einmalig Vegan', 'Einmalig Gluten', 'Einmalig Rind: Schweiz'},
+        ),
+    ),
+)
+def test_today_channels_render_each_menu_metadata_pill_once(
+    app: Flask,
+    path: str,
+    expected_pills: set[str],
+) -> None:
+    for snapshot in app.config['TEST_SNAPSHOTS'].values():
+        for day in snapshot['days']:
+            for meal in day['services']:
+                for option in meal['options']:
+                    option['labels'] = []
+                    option['allergens'] = []
+                    option['origins'] = []
+
+        today = next(day for day in snapshot['days'] if day['date'] == '2026-09-02')
+        option = today['services'][0]['options'][0]
+        option['labels'] = [{'code': 'UNIQUE_LABEL', 'name': 'Einmalig Vegan'}]
+        option['allergens'] = [
+            {'code': 'UNIQUE_ALLERGEN', 'name': 'Einmalig Gluten', 'presence': 'contains'},
+        ]
+        option['origins'] = [
+            {
+                'ingredient': 'Einmalig Rind',
+                'country_code': 'CH',
+                'text': 'Einmalig Rind: Schweiz',
+            },
+        ]
+
+    html = _client(app).get(path).get_data(as_text=True)
+    pills = {
+        value.strip()
+        for value in re.findall(r'<span class="label(?: [^"]*)?">([^<]*)</span>', html)
+    }
+
+    assert len(re.findall(r'<span class="label(?: [^"]*)?">', html)) == 3
+    assert pills == expected_pills
 
 
 def test_real_routes_render_exact_profile_grids_without_cross_profile_data(app: Flask) -> None:

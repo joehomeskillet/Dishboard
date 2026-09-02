@@ -15,7 +15,17 @@
     {% set meal = day.services[0] %}
     <article class="week-day">
       <header><h2>{{ day.weekday }}</h2><span>{{ day.date|date_long }}</span></header>
-      <div class="week-day-grid"><div class="week-row"><div class="week-meal-label">Mittag</div>{% if meal.service_state|default('open') == 'open' %}{% for option in meal.options %}<div class="week-menu"><small class="week-menu-type">{{ option.type_name }}</small><strong>{{ option.title }}</strong><span>{{ option.components|join(' · ') }}</span><span class="week-price">Mitarbeitende CHF {{ option.prices.internal_rappen|chf }} · Externe CHF {{ option.prices.external_rappen|chf }}</span></div>{% endfor %}{% else %}<div class="closed-row"><strong>{{ meal.notice }}</strong></div>{% endif %}</div></div>
+      <div class="week-day-grid"><div class="week-row"><div class="week-meal-label">Mittag</div>{% if meal.service_state|default('open') == 'open' %}{% for option in meal.options %}<div class="week-menu"><small class="week-menu-type">{{ option.type_name }}</small><strong>{{ option.title }}</strong><span>{{ option.components|join(' · ') }}</span>
+        <div class="signage-tags">
+          {# Labels: green pills #}
+          {% for label in option.labels %}<span class="label label-green">{{ label.display_name or label.code }}</span>{% endfor %}
+          {# Allergens - Contains: amber pills with EU number #}
+          {% for allergen in option.allergens %}{% if allergen.presence == 'contains' %}<span class="label label-amber">{{ allergen.eu_number }} {{ allergen.display_name or allergen.code }}</span>{% endif %}{% endfor %}
+          {# Allergens - May Contain: muted with Spuren prefix #}
+          {% set may_contain = option.allergens|selectattr('presence', 'equalto', 'may_contain')|list %}{% if may_contain %}<span class="label label-muted">Spuren: {% for a in may_contain %}{{ a.eu_number }} {{ a.display_name or a.code }}{% if not loop.last %}, {% endif %}{% endfor %}</span>{% endif %}
+          {# Origins: plain labels #}
+          {% for origin in option.origins %}<span class="label">{{ origin.ingredient }} ({{ origin.country_code }})</span>{% endfor %}
+        </div><span class="week-price">Mitarbeitende CHF {{ option.prices.internal_rappen|chf }} · Externe CHF {{ option.prices.external_rappen|chf }}</span></div>{% endfor %}{% else %}<div class="closed-row"><strong>{{ meal.notice }}</strong></div>{% endif %}</div></div>
     </article>
     {% endfor %}
   </section>
