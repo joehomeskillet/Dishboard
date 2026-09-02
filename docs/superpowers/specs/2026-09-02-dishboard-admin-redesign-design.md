@@ -104,11 +104,14 @@ UUIDs werden in URLs verwendet; `profile` kommt ausschließlich aus der Route.
 | `GET /admin/dishboard/<profile>/overview?week=` | Wochenübersicht, Header, Service und Grid |
 | `GET /admin/dishboard/<profile>/menu?week=&day=&meal=&option=` | fokussierte Menüzeile |
 | `POST /admin/dishboard/<profile>/menu` | exact `csrf,week,day,meal,option,version,fields` |
-| `GET /admin/dishboard/<profile>/header?week=` / `POST .../header` | Header laden/speichern |
-| `GET /admin/dishboard/<profile>/service?week=` / `POST .../service` | Service-Status laden/speichern |
+| `GET /admin/dishboard/<profile>/header?week=` | Header laden |
+| `POST /admin/dishboard/<profile>/header` | Header speichern |
+| `GET /admin/dishboard/<profile>/service?week=` | Service-Status laden |
+| `POST /admin/dishboard/<profile>/service` | Service-Status speichern |
 | `GET /admin/dishboard/catalog?profile=&q=&category=&archived=` | Suche, Kategorie, Archivfilter, Nutzung und Sortierung |
 | `POST /admin/dishboard/catalog` | Komponente mit exact Feldern anlegen |
-| `GET /admin/dishboard/catalog/<uuid>` / `POST .../<uuid>` | anzeigen/bearbeiten, row_version erforderlich |
+| `GET /admin/dishboard/catalog/<uuid>` | Komponente anzeigen |
+| `POST /admin/dishboard/catalog/<uuid>` | Komponente bearbeiten, row_version erforderlich |
 | `POST /admin/dishboard/catalog/<uuid>/archive` | archivieren, keine Löschung |
 | `POST /admin/dishboard/catalog/<uuid>/unarchive` | reaktivieren, Name bleibt reserviert |
 | `GET /admin/dishboard/<profile>/copy?week=` | leere Zielwochen anbieten |
