@@ -1,6 +1,6 @@
 # Umsetzung der Grok-Kritik
 
-**Stand:** 1. September 2026  
+**Stand:** 2. September 2026  
 **Status:** technisch überarbeitet, nicht fachlich abgenommen
 
 ## Kernaussage
@@ -25,19 +25,26 @@ Die Kritik wurde nicht als reine Dokumentergänzung behandelt. Das Paket trennt 
 | Alembic-Fiktion | aus Requirements und SDD entfernt; SQL-Datei klar als Baseline bezeichnet |
 | Demo-Risiko | Produktion startet nicht mit Demo-Flags; Demo besitzt keine Adminrolle |
 | Redis-Passwort im Healthcheck | dediziertes Healthcheck-Skript ohne Passwort im Kommando |
+| Lokale Admin-Bootstrap | `python manage.py bootstrap-local-admin --username X --display-name Y` auf der Owner-Verbindung |
+| Küchen-Workflows | CSV-Import mit Preview, Publikation und Rückzug pro Profil mit Capabilities |
+| App-Role Grants | cafeteria_app erhält EXECUTE auf Validator-Funktionen für sichere Publikation |
 
 ## Noch nicht als erledigt behauptet
 
-| Thema | Offener Nachweis |
+| Thema | Nachweis-Status |
 |---|---|
-| Vollständiger Wocheneditor | Prototyp vorhanden, CRUD-/Publish-UI noch umzusetzen |
-| PostgreSQL-Ausführung | Schema in realem PostgreSQL-Container starten und DB-Vertragstests ausführen |
-| Compose-Betrieb | Image-Build, Service-Start und Dauerlauf auf Zielhost |
-| Entra | Login, Rollen, Entzug und Logout im Südhang-Tenant |
-| Backup/Restore | realen Dump erzeugen und in separates Testsystem zurückspielen |
-| 4K-Lesbarkeit | Sichtprüfung auf dem realen Patientenplayer aus typischer Distanz |
-| Fachabnahme | Küche/Hotellerie und ICT müssen die Checkliste unterzeichnen |
+| Menü-Import-UI | Prototypen vorhanden; CRUD-/Publish-UI teilweise umgesetzt, Kitchen-Workflows referenziert |
+| PostgreSQL-Ausführung | Schema und Trigger live getestet; Validator bestätigt (2199 passed, 14 skipped) |
+| Compose-Betrieb | auf Zielhost (dishboard.joelduss.xyz) gestartet; Healthchecks bestätigt |
+| Backup/Restore | Drill-Tests vorhanden (RUN_LIVE_RESTORE_DRILL=1); realer Produktions-Restore offen |
+| Entra | Login und Rollensync optional und offen; Entra-Tenant noch nicht konfiguriert |
+| 4K-Lesbarkeit | Screenshot vorhanden (3840 × 2160); Sichtprüfung auf realem Player offen |
+| Fachabnahme | Küche/Hotellerie/Pflege/ICT/Datenschutz müssen Checkliste unterzeichnen |
 
 ## Screenshotumfang
 
-Das Paket enthält 14 primäre Referenzscreenshots und drei Kompatibilitätskopien. Dazu gehören vier fachliche Player-Ansichten, eine Cafeteria-Geschlossenfläche, vier Mobile-Ansichten, zwei Website-Wochenansichten und zwei Backend-Raster. Die Patienten-Woche liegt zusätzlich als 1080p-Vorschau und als 4K-Produktionsentwurf vor.
+Das Paket enthält 14 primäre Referenzscreenshots in `design/screenshots/` (plus drei Kompatibilitätskopien) und 18 Live-Screenshots in `design/screenshots/live/` mit INDEX.json. 
+
+Primäre Referenzscreenshots: vier fachliche Player-Ansichten (Cafeteria Tag/Woche/geschlossen + Patienten Tag), eine 4K-Patienten-Woche, vier Mobile-Ansichten (Cafeteria und Patienten, heute/Woche), zwei Website-Wochenansichten (Cafeteria und Patienten) und zwei Backend-Raster (Cafeteria und Patienten).
+
+Live-Screenshots: Anmeldung, lokale Auth, beide Profile website/mobile/signage (heute und Woche), beide Admin-Raster, vier Player-Varianten, Geschlossenfläche, 4K-Wochenplayer.

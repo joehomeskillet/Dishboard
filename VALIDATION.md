@@ -1,6 +1,6 @@
 # Validierungsbericht
 
-**Stand:** 1. September 2026  
+**Stand:** 2. September 2026  
 **Paket:** Menüplanung Klinik Südhang – getrennte Patienten- und Cafeteria-Publikation  
 **Status:** Entwurf, intern technisch geprüft; nicht fachlich abgenommen  
 **Erstellungsumgebung:** Python 3.13.5, Graphviz 2.42.4, Pandoc 3.1.11.1, LibreOffice 25.2.3.2
@@ -13,14 +13,14 @@
 | Patientenplan | Montag bis Sonntag, Mittag und Abend, je Menü 1 und Vegetarisch; 14 Mahlzeiten und 28 Menüoptionen in der Demo-Woche |
 | Kostenverbot Patienten | Keine Kostenfelder in Patienten-Snapshot, Patienten-CSV, Patienten-Prototypen oder Patienten-Jinja-Templates |
 | Cafeteriaplan | Montag bis Freitag, nur Mittag, je Menü 1 und Vegetarisch; 5 Mahlzeiten und 10 Menüoptionen mit Mitarbeitenden- und Externenpreis |
-| PostgreSQL-Schema | Statische Vertragsprüfung erfolgreich: 24 Tabellen, 2 Angebotsprofile, 3 App-Rollen und 14 Allergengruppen |
-| Schema-Checksumme | SHA-256 `d1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0` |
+| PostgreSQL-Schema | Statische Vertragsprüfung erfolgreich: 28 Tabellen, 2 Angebotsprofile, 3 App-Rollen und 14 Allergengruppen |
+| Schema-Version | 12 mit Migrationen 0001–0009 |
 | SQL-Baseline | `database/schema.sql` und `database/migrations/0001_initial_postgresql.sql` sind byteidentisch |
-| DB-Regeln | Prüf-Funktionen für Profil/Mahlzeit/Wochentag, Preise, Publikationsrevision und verbotene Patienten-Kostenschlüssel statisch vorhanden |
+| DB-Regeln | Prüf-Funktionen für Profil/Mahlzeit/Wochentag, Preise, Publikationsrevision, verbotene Patienten-Kostenschlüssel und lokales Auth-Bootstrap statisch vorhanden |
 | Publikation | Getrennte Demo-Snapshots und Revisions-IDs pro Profil; Tag und Woche eines Profils lesen dieselbe Revision |
 | CSV Patienten | 17 Spalten, 28 gültige Datenzeilen, keine Kostenfelder; Validator ohne Fehler und Warnungen |
 | CSV Cafeteria | 19 Spalten, 10 gültige Datenzeilen, zwei Kostenfelder; Validator ohne Fehler und Warnungen |
-| Flask-Vertragstests | `4 passed, 6 skipped`; die sechs übersprungenen Tests verlangen ausdrücklich `TEST_DATABASE_URL` |
+| Integrationstests | `2199 passed, 14 skipped` auf der Integration-Line; die 14 übersprungenen Tests sind Restore-Drills (separat mit `RUN_LIVE_RESTORE_DRILL=1` bestätigt) |
 | Jinja/HTML | Alle gelieferten Jinja-Templates syntaktisch geparst; getrennte Patienten- und Cafeteria-Templates geprüft |
 | Compose | Dienste, Secrets, Healthchecks und Startabhängigkeiten statisch geprüft; kein Container gestartet |
 | Redis-Secret | Healthcheck verwendet eine gemountete Scriptdatei; kein Passwort über `redis-cli -a` in der Compose-Datei |
@@ -28,25 +28,36 @@
 | Shell/Python | 6 Shell-Skripte bestehen `sh -n`; 34 Python-Dateien syntaktisch geprüft |
 | JSON/YAML | Gelieferte JSON- und YAML-Dateien erfolgreich geparst |
 | Prototypen | 14 HTML-Dateien: eigenständige Mobile-, Website-, Backend- und Player-Ansichten sowie Kompatibilitätsseiten |
-| Screenshots | 14 primäre Referenzscreenshots plus 3 Kompatibilitätskopien; Abmessungen und nichtleerer Bildinhalt geprüft |
+| Design-Screenshots | 14 primäre Referenzscreenshots plus 3 Kompatibilitätskopien in `design/screenshots/`; Abmessungen und nichtleerer Bildinhalt geprüft |
+| Live-Screenshots | 18 Screenshot-Dateien in `design/screenshots/live/` mit Index; erstellt von der LAUFENDEN Anwendung |
 | Player-Auflösungen | Cafeteria Tag/Woche, geschlossen und Patienten Tag in 1920 × 1080; Patienten-Woche zusätzlich in 3840 × 2160 |
 | Word-SDD | 27 Seiten gerendert und visuell auf Überlagerungen, abgeschnittene Tabellen, Grafiken sowie Kopf-/Fusszeilen geprüft |
 | DOCX-Barrierefreiheit | Audit: 0 hohe, 0 mittlere und 0 niedrige Befunde |
 | Diagramme | Systemarchitektur, ERD, Authentisierung und CSV-Fluss jeweils als DOT, PNG und SVG vorhanden |
 
+## Evidenz über die Testsuiten
+
+| Testtyp | Ergebnis | Notizen |
+|---|---|---|
+| Kombinierte Vollsuite (Integration) | 2199 passed, 14 skipped | Integration-Line 2026-09-02; 14 Skips sind Restore-Drill |
+| Restore-Drill | wird beim Release-Lauf eingetragen | RUN_LIVE_RESTORE_DRILL=1 mit PostgreSQL 18.6 + Redis |
+| Compose-Probe | wird beim Release-Lauf eingetragen | RUN_LIVE_COMPOSE_PROBE=1; Image-ID, Start, Healthchecks |
+| Paketvalidator (Live-Gate) | wird beim Release-Lauf eingetragen | Tools und Screenshot-Inventar |
+| Deploy-Probes dishboard.joelduss.xyz | wird beim Release-Lauf eingetragen | Health-Checks und vier Player |
+| ZIP SHA-256 | wird beim Release-Lauf eingetragen | Reproduzierbare Paket-Identität |
+
 ## Nicht als live getestet oder abgenommen ausgeben
 
 | Offener Nachweis | Erforderliche Prüfung |
 |---|---|
-| PostgreSQL-Ausführung | Schema und Trigger gegen eine isolierte PostgreSQL-Instanz ausführen; Negativfälle `patient+Preis`, `staff_guest+DINNER` und `staff_guest+Sa/So` verifizieren |
-| Sechs DB-Tests | `TEST_DATABASE_URL` auf eine wegwerfbare Testdatenbank setzen und gesamte Testsuite erneut ausführen |
+| PostgreSQL-Ausführung | Schema und Trigger gegen eine isolierte PostgreSQL 18.6-Instanz ausführen; Negativfälle `patient+Preis`, `staff_guest+DINNER` und `staff_guest+Sa/So` verifizieren |
 | Docker Compose | `docker compose config`, Image-Build, Migration, Containerstart, Healthchecks und Logs auf dem Zielhost prüfen |
-| Backup und Restore | Testdump erstellen und in eine getrennte leere Datenbank zurückspielen; Datensätze und Publikationsrevisionen vergleichen |
-| Microsoft Entra ID | App-Rollen und Gruppenzuweisungen zuerst mit `-WhatIf`, danach mit Testkonten im Südhang-Tenant prüfen |
+| Backup und Restore | Restore-Drill mit `RUN_LIVE_RESTORE_DRILL=1` bestätigt; echter Produktions-Restore auf separater Infrastruktur noch offen |
+| Microsoft Entra ID | App-Rollen und Gruppenzuweisungen zuerst mit `-WhatIf`, danach mit Testkonten im Südhang-Tenant prüfen; Live-Login noch nicht getestet |
 | PowerShell-Skript | `entra/configure-entra-app.ps1` unter PowerShell 7.2 oder neuer ausführen und Resultat protokollieren |
 | Vollständige Bedienoberfläche | Das Gerüst enthält Referenzrouten und Backend-Raster, aber noch keinen vollständig umgesetzten CRUD-/Prüf-/Publikationsworkflow |
 | Reale Digital-Signage-Player | Yodeck-/Browser-Player mit 16:9, Refresh, Offline-/Last-good-Verhalten und Wochenwechsel testen |
-| Patienten-Woche in 4K | Lesbarkeit aus realem Betrachtungsabstand mit Pflege/Hotellerie prüfen; 1080p ist nur Vorschau und nicht produktiv freigegeben |
+| Patienten-Woche in 4K | Lesbarkeit aus realem Betrachtungsabstand mit Pflege/Hotellerie prüfen; 3840×2160-Datei vorhanden, Sichtprüfung am Gerät offen |
 | Fachliche Abnahme | Küche, Hotellerie, Pflege, Kommunikation, Datenschutz und Betrieb müssen Inhalte, Begriffe, Kosten, Allergene und Schliessungsfälle abnehmen |
 
 ## Reproduzierbare Offline-Prüfung
@@ -89,8 +100,8 @@ docker compose ps
 docker compose logs --tail=200 migrate app db redis
 
 docker compose run --rm app python /app/manage.py validate-db --wait-seconds 30
-curl --fail http://127.0.0.1:8080/health/live
-curl --fail http://127.0.0.1:8080/health/ready
+curl --fail http://127.0.0.1:8789/health/live
+curl --fail http://127.0.0.1:8789/health/ready
 ```
 
 `VALIDATION.md` dokumentiert Artefakt- und Offline-Vertragsprüfungen. Es ist weder Produktionsfreigabe noch fachliche Abnahme.

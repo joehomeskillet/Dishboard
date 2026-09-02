@@ -1,6 +1,6 @@
 # PostgreSQL-Datenmodell
 
-Schema-Version 9 modelliert zwei getrennte Angebotsprofile:
+Schema-Version 12 modelliert zwei getrennte Angebotsprofile:
 
 | Profil | Zeitraum | Mahlzeiten | Kosteninformationen |
 |---|---|---|---|
@@ -26,11 +26,11 @@ Der separate Login-Role `cafeteria_auth_issuer` besitzt keine Tabellen- oder Seq
 
 Lokale Anmeldung ist mit `LOCAL_AUTH_ENABLED=false` standardmäßig ausgeschaltet und benötigt Redis für Session und Rate-Limit; Redis-Ausfall sperrt den Login fail-closed. Limits sind nach normalisiertem Benutzernamen und vertrauenswürdig ermittelter Client-IP getrennt. Rollen und `authz_version` werden bei jedem geschützten Request aus PostgreSQL gelesen, sodass Entzug, Deaktivierung und Passwortwechsel bestehende Sessions sofort invalidieren. Provisionierung, Rollenzuweisung, Passwortwechsel, Sperre und Deaktivierung erzeugen die Audit-Aktionen `auth.local_user_provisioned`, `auth.local_role_granted`, `auth.local_password_changed`, `auth.local_login_locked` und `auth.local_user_disabled` ohne Passwort oder Client-IP in den Details.
 
-Die drei administrativen Befehle lauten `python manage.py provision-local-user`, `python manage.py set-local-password` und `python manage.py disable-local-user`. Passwörter werden ausschließlich zweimal interaktiv über `getpass` eingelesen; es gibt kein Passwort-Argument und kein Self-Signup.
+Der erste Administrator wird mit `python manage.py bootstrap-local-admin --username X --display-name Y` interaktiv oder aus `DISHBOARD_BOOTSTRAP_PASSWORD_FILE` (Mode 0400) bootstrapped; das Passwort wird zweimal abgefragt oder gelesen und die Audit-Aktion `auth.local_admin_bootstrapped` geschrieben. Weitere Befehle sind: `python manage.py provision-local-user` mit `--actor <verified-admin>`, `python manage.py set-local-password` und `python manage.py disable-local-user`. Die drei administrativen Befehle lauten `python manage.py provision-local-user`, `python manage.py set-local-password` und `python manage.py disable-local-user`. Passwörter werden ausschließlich zweimal interaktiv über `getpass` eingelesen; es gibt kein Passwort-Argument und kein Self-Signup.
 
 ## Migration
 
-`cafeteria.db.run_migrations` führt ausschließlich die feste Reihenfolge `0001_initial_postgresql.sql` (Schema-Version 4), `0002_profile_publication_and_local_auth.sql` (5), `0003_patient_key_and_withdrawal_contracts.sql` (6), `0004_patient_key_lock_and_capability_contracts.sql` (7), `0005_least_privilege_identity_contracts.sql` (8) und `0006_auth_issuer_and_local_login.sql` (9) aus. Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0004` bleiben byteidentisch. `schema.sql` beschreibt den aktuellen v9-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
+`cafeteria.db.run_migrations` führt ausschließlich die feste Reihenfolge `0001_initial_postgresql.sql (Schema-Version 4), 0002_profile_publication_and_local_auth.sql (5), 0003_patient_key_and_withdrawal_contracts.sql (6), 0004_patient_key_lock_and_capability_contracts.sql (7), 0005_least_privilege_identity_contracts.sql (8), 0006_auth_issuer_and_local_login.sql (9), 0007_auth_security_hardening.sql (10), 0008_auth_final_hardening.sql (11) und 0009_bootstrap_first_local_admin.sql (12) aus. Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0004` bleiben byteidentisch. `schema.sql` beschreibt den aktuellen v12-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
 
 `cafeteria_app` bleibt für die fachlichen Draft-Tabellen schreibberechtigt. Provider, lokale Credentials und Rollensource müssen zusammenpassen; eine Rollenverschiebung erhöht `authz_version` von altem und neuem Benutzer. Es besitzt keine Schreibrechte auf `schema_migrations`, keine direkten Sicherheitszustandsrechte und keine Löschrechte auf Publikationsrevisionen.
 

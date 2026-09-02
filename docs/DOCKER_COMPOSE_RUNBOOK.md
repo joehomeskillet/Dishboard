@@ -40,7 +40,7 @@ POSTGRES_SSLMODE=prefer
 ```
 
 Tenant-ID, Client-ID und Secrets müssen real gesetzt sein. Secrets liegen unter `deployment/secrets/` und nicht in `.env`. Der Redis-Healthcheck ruft ein Skript auf; das Passwort steht nicht im Healthcheck-Kommando.
-Das secrets-Verzeichnis ist 0700 root-gehörtet; Dateien 0444 und pro Service bind-mounted; App und Migrate laufen UID 10001, Redis 999:1000, Healthchecks via `sh`.
+Das Verzeichnis `secrets/` gehört root mit Modus 0700; die Secret-Dateien sind 0444 und werden pro Service als Bind-Mount eingebunden. App und Migrate laufen als UID 10001, Redis als 999:1000; Healthchecks werden über `sh` aufgerufen.
 
 Der App-Entrypoint akzeptiert in Produktion nur den exakten Ursprung `https://dishboard.joelduss.xyz` (ohne Port, Pfad, Query, Fragment oder Userinfo), die exakte Domain und ein per `@sha256:` fixiertes `APP_IMAGE`. Unsichere Session-Cookies und bekannte Entra-Platzhalter werden ebenfalls abgelehnt. `migrate` überschreibt die Laufzeitwerte mit `APP_ENV=migration`, ausgeschaltetem Demo-/Entra-Modus und erhält nur PostgreSQL-Secrets; Flask-, Redis- und Entra-Secrets werden dort nicht benötigt.
 

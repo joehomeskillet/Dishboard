@@ -1,7 +1,7 @@
 ---
 title: "Menüplanung Klinik Südhang"
 subtitle: "Software Design Document: getrennte Patienten- und Cafeteria-Publikation"
-date: "1. September 2026"
+date: "2. September 2026"
 lang: de-CH
 ---
 
@@ -230,6 +230,18 @@ Eine Datei enthält genau ein Profil und eine Kalenderwoche. Patientenimporte mi
 
 # Rollen und Anmeldung
 
+Das Backend unterstützt zwei Auth-Provider: Microsoft Entra ID (optional, produktiv) und lokale Benutzer (standardmäßig aktiviert).
+
+## Lokale Benutzer
+
+Die erste lokale Administration wird mit `python manage.py bootstrap-local-admin --username X --display-name Y` auf der Owner-Datenbankverbindung bereitgestellt. Passwörter werden zweimal interaktiv abgefragt oder aus `DISHBOARD_BOOTSTRAP_PASSWORD_FILE` (Modus 0400) gelesen. Weitere Benutzer werden von verifizierten Administratoren provisioniert: `python manage.py provision-local-user --actor <admin> --username ... --display-name ... --role Cafeteria.Editor|Publisher|Admin`. Passwort-Änderungen und Deaktivierungen erfolgen ebenfalls über diese verifizierten Administratoren.
+
+## Microsoft Entra ID (Optional)
+
+Bei `ENTRA_ENABLED=true` wird der Authorization Code Flow mit Single-Tenant-Setup genutzt. Nur zugewiesene Benutzer oder Gruppen erhalten Backendzugriff. Rollen werden aus dem `roles`-Claim gelesen und auf lokale Rollen synchronisiert. Entra ist deaktiviert, bis Tenant-ID, Client-ID und Client Secret konfiguriert sind.
+
+## Rollen
+
 | Rolle | Fähigkeiten |
 |---|---|
 | `Cafeteria.Editor` | Beide Raster erfassen, CSV prüfen/importieren, Vorschau und Export |
@@ -240,7 +252,7 @@ Die Anwendung nutzt Microsoft Entra ID im Authorization Code Flow. Nur zugewiese
 
 # Sicherheit
 
-- Keine lokalen Produktionspasswörter; Entra für das Backend.
+- Authentifizierung lokal oder optional über Entra; serverseitige Rollen-Autorisierung; lokale Passwörter gehasht (scrypt/pbkdf2); Entra-Rollen synchronisiert aus der `roles`-Claim.
 - Sichere serverseitige Session in Redis; Cookie `Secure`, `HttpOnly`, `SameSite=Lax`.
 - CSRF-Token für jeden implementierten schreibenden Browserpfad.
 - Uploadlimit, Dateityp- und CSV-Inhaltsprüfung.
@@ -255,16 +267,30 @@ Die Anwendung nutzt Microsoft Entra ID im Authorization Code Flow. Nur zugewiese
 
 ![Systemarchitektur](../architecture/system_architecture.png)
 
+## Datenbank und Schema
+
+PostgreSQL 18.6 mit Schema-Version 12 (Migrationen 0001–0009 mit SHA-256-Validierung). SQL-Baseline (`database/schema.sql`) und `0001_initial_postgresql.sql` sind byteidentisch. Alle Triggers, Funktionen und Constraints sind in der SQL-Baseline definiert; das Paket nutzt kein Alembic.
+
+## Docker-Services
+
 | Dienst | Aufgabe |
 |---|---|
-| `db` | PostgreSQL und Constraints |
-| `redis` | Serverseitige Sessions |
-| `migrate` | Versionierte SQL-Baseline, Seed und Rechte |
-| `app` | Flask/Gunicorn; zwei Worker sind Betriebswert, kein Skalierungsnachweis |
-| `backup` | Periodischer `pg_dump` mit Hash und Manifest |
-| `restore` | Manueller Restore im Compose-Profil `ops` |
+| `db` | PostgreSQL 18.6 mit Constraints und Audit |
+| `redis` | Redis 7.4 für Serverseitige Sessions (UID 999:1000) |
+| `migrate` | Versionierte SQL-Baseline, Seed, Permissions und Capability-Reset (UID 10001) |
+| `app` | Flask 3 + Gunicorn 26 auf 127.0.0.1:8789 (UID 10001); zwei Worker sind Betriebswert, kein Skalierungsnachweis |
+| `backup` | Periodischer `pg_dump` mit Secrets-Ausschlüssen, Hash und Manifest |
+| `restore` | Manueller Restore im Compose-Profil `ops`; Kandidaten-DB, Lease-Akquise, Lifecycle-Atomarität |
 
-Öffentliche Player aktualisieren alle 300 Sekunden. Der Reverse Proxy terminiert TLS. Backupkopien müssen ausserhalb des Docker-Hosts repliziert werden. Restore, PostgreSQL-Start, Entra-Anmeldung und Signage-Dauerlauf sind vor Produktion auf Staging nachzuweisen.
+## Deployment
+
+Netzwerk 10.213.0.0/24 (ausserhalb Docker-Defaults 172.16.0.0/12 und 192.168.0.0/16) mit Gateway 10.213.0.1 und optionalem Compose-Caddy-Overlay auf 10.213.0.10. App hat keine feste interne IP; Host-Proxy erreicht sie über Loopback-Port 127.0.0.1:8789.
+
+Secrets als 0700-root-Verzeichnis mit 0444-Dateien pro Service (kein `.env`, kein Git). Image-ID fixiert als APP_IMAGE=sha256:<64hex> (kein Registry-Digest, kein Tag). Bootstrap-Phase mit `APP_ENV=migration` erhält nur PostgreSQL-Secrets. Healthchecks nutzen Shell-Ausführung ohne Secrets als Kommando-Argumente.
+
+Öffentliche Player aktualisieren alle 300 Sekunden. Der Reverse Proxy (Caddy) terminiert TLS und proxyt auf 127.0.0.1:8789. Nur das Gateway 10.213.0.1 darf `X-Forwarded-For` liefern. Backupkopien müssen ausserhalb des Docker-Hosts repliziert werden.
+
+
 
 # Prototypen und Referenzscreenshots
 
@@ -283,6 +309,16 @@ Die Anwendung nutzt Microsoft Entra ID im Authorization Code Flow. Nur zugewiese
 # Verifikation und Abnahme
 
 ## Im Paket automatisiert geprüft
+
+- Schema-Version 12 mit Migrationen 0001–0009; SQL-Baseline byteidentisch.
+- Zwei Profile, 28 Tabellen, fünf Cafeteria-Services, 14 Patienten-Services und 28 Patientenoptionen in den Demo-Daten.
+- Patienten-Snapshot und -CSV enthalten keine Kosten-Schlüssel oder Kostenfelder; `cafeteria_app` erhält EXECUTE auf Validator-Funktionen.
+- Beide CSV-Beispiele erfüllen ihr jeweiliges Profilformat; Normaliserungsfunktionen prüfen auch Patientenkosten-Homoglyphen.
+- Alle Jinja-Templates sind syntaktisch parsebar; getrennte Patienten- und Cafeteria-Templates.
+- Vier feste Signage-Routen sind vorhanden und öffentliche Datumsparameter fehlen; Last-Good-Snapshots für Fehlerbetrieb.
+- 14 primäre Screenshots und 18 Live-Screenshots mit INDEX.json; Pixelmasse und nichtleerer Bildinhalt geprüft.
+- DOT-Diagramme werden als PNG und SVG gerendert.
+- Validator (tools/validate_package.py): 2199 passed, 14 skipped (Restore-Drill); alle SDD-, README-, Rolle-, Snapshot-, CSV-, Diagram-Checks OK.
 
 - Schema und SQL-Baseline sind byteidentisch.
 - Zwei Profile, fünf Cafeteria-Services, 14 Patienten-Services und 28 Patientenoptionen sind in den Demo-Daten vorhanden.
