@@ -378,10 +378,15 @@ def test_restore_rolls_back_and_restarts_after_post_promotion_failure(tmp_path: 
     assert any("stop app backup" in call for call in calls)
     assert any("restore-promote" in call for call in calls)
     recovery_index = next(index for index, call in enumerate(calls) if "restore-recover" in call)
-    restart_index = next(index for index, call in enumerate(calls) if "up -d app backup" in call)
-    assert recovery_index < restart_index
+    restart_index = next(
+        index for index, call in enumerate(calls) if "up -d --wait --no-deps app" in call
+    )
+    backup_index = next(
+        index for index, call in enumerate(calls) if "up -d --no-deps backup" in call
+    )
+    assert recovery_index < restart_index < backup_index
     assert any("RESTORE_RECOVERY_VALIDATION=true" in call for call in calls)
-    assert any("up -d app backup" in call for call in calls)
+    assert any("restore-state test_run" in call and " complete" in call for call in calls)
 
 
 def test_restore_does_not_restart_the_app_when_rollback_cannot_be_validated(tmp_path: Path) -> None:
@@ -394,7 +399,7 @@ def test_restore_does_not_restart_the_app_when_rollback_cannot_be_validated(tmp_
 
     assert result.returncode != 0
     assert any("restore-recover" in call for call in calls)
-    assert not any("up -d app backup" in call for call in calls)
+    assert not any("up -d --wait --no-deps app" in call for call in calls)
 
 
 def test_restore_acquires_a_database_lease_before_staging(tmp_path: Path) -> None:
@@ -429,7 +434,7 @@ def test_restore_keeps_services_stopped_when_promotion_recovery_is_unknown(tmp_p
     assert result.returncode != 0
     assert any("stop app backup" in call for call in calls)
     assert any("restore-recover" in call for call in calls)
-    assert not any("up -d app backup" in call for call in calls)
+    assert not any("up -d --wait --no-deps app" in call for call in calls)
 
 
 def test_restore_restarts_after_failed_promotion_only_when_recovery_is_proven(tmp_path: Path) -> None:
@@ -441,8 +446,13 @@ def test_restore_restarts_after_failed_promotion_only_when_recovery_is_proven(tm
     validation_index = next(
         index for index, call in enumerate(calls) if "RESTORE_RECOVERY_VALIDATION=true" in call
     )
-    restart_index = next(index for index, call in enumerate(calls) if "up -d app backup" in call)
-    assert recovery_index < validation_index < restart_index
+    restart_index = next(
+        index for index, call in enumerate(calls) if "up -d --wait --no-deps app" in call
+    )
+    backup_index = next(
+        index for index, call in enumerate(calls) if "up -d --no-deps backup" in call
+    )
+    assert recovery_index < validation_index < restart_index < backup_index
 
 
 def test_restore_keeps_services_stopped_when_the_stop_state_is_unknown(tmp_path: Path) -> None:
@@ -450,7 +460,7 @@ def test_restore_keeps_services_stopped_when_the_stop_state_is_unknown(tmp_path:
     result, calls = _run_restore(tmp_path, docker_fail_match="stop app backup")
 
     assert result.returncode != 0
-    assert not any("up -d app backup" in call for call in calls)
+    assert not any("up -d --wait --no-deps app" in call for call in calls)
 
 
 def test_backup_can_export_a_restore_ready_pair_to_an_absolute_host_path(tmp_path: Path) -> None:
@@ -590,6 +600,53 @@ def test_direct_operator_scripts_are_executable() -> None:
     for name in ("bootstrap.sh", "backup.sh", "restore.sh"):
         mode = stat.S_IMODE((DEPLOYMENT / name).stat().st_mode)
         assert mode == 0o755, f"{name}: expected mode 0755, got {mode:04o}"
+
+
+def test_restore_control_library_is_packaged_and_shell_parseable() -> None:
+    """Both PostgreSQL utility services must see the sourced lease implementation."""
+    compose = load_compose("docker-compose.yml")
+    mount = "./postgres-restore-control.sh:/usr/local/bin/postgres-restore-control.sh:ro"
+
+    assert mount in compose["services"]["backup"]["volumes"]
+    assert mount in compose["services"]["restore"]["volumes"]
+    for name in ("postgres-backup.sh", "postgres-restore-control.sh", "restore.sh"):
+        result = subprocess.run(
+            ["/bin/sh", "-n", str(DEPLOYMENT / name)],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, f"{name}: {result.stderr}"
+
+
+def test_restore_rejects_a_watchdog_period_that_can_expire_its_holder(tmp_path: Path) -> None:
+    """The controller must pulse faster than the holder's configured timeout."""
+    result, calls = _run_restore(
+        tmp_path,
+        extra_environment={
+            "RESTORE_CONTROLLER_HEARTBEAT_SECONDS": "30",
+            "RESTORE_CONTROLLER_TIMEOUT_SECONDS": "30",
+        },
+    )
+
+    assert result.returncode != 0
+    assert "RESTORE_CONTROLLER_HEARTBEAT_SECONDS" in result.stderr
+    assert calls == []
+
+
+def test_retention_prune_is_installed_as_a_bounded_daily_oneshot() -> None:
+    """Expired owned rollback databases must not depend on operator memory."""
+    service = DEPLOYMENT / "systemd" / "dishboard-retention-prune.service"
+    timer = DEPLOYMENT / "systemd" / "dishboard-retention-prune.timer"
+    runbook = (ROOT / "docs" / "DOCKER_COMPOSE_RUNBOOK.md").read_text(encoding="utf-8")
+
+    service_text = service.read_text(encoding="utf-8")
+    timer_text = timer.read_text(encoding="utf-8")
+    assert "restore.sh --prune-retained" in service_text
+    assert "Type=oneshot" in service_text
+    assert "OnCalendar=daily" in timer_text
+    assert "Persistent=true" in timer_text
+    assert "dishboard-retention-prune.timer" in runbook
 
 
 def test_production_entrypoint_rejects_demo_and_placeholder_entra_values(tmp_path: Path) -> None:

@@ -73,9 +73,11 @@ Das Backup erhält SHA-256-Datei und JSON-Manifest. Mindestens eine Kopie wird a
 ./restore.sh /absoluter/pfad/cafeteria-YYYYMMDDTHHMMSSZ.dump
 ```
 
-Die gleichnamige `.dump.sha256` ist verpflichtend. Das Skript prüft den Hash vor jeder Mutation und erwirbt danach eine PostgreSQL-weite Lease in der Kontroll-Datenbank `postgres`. Ein langlebiger Shared-Advisory-Lock und Heartbeats halten diese Lease über Stage, Migration, Promotion und Validierung; deshalb wird ein paralleler Lauf auch von einem zweiten Docker-Host abgewiesen. Owner- und Ressourcen-Token, Ablaufzeit und jeder Promotion-Zustand werden in `menuplan_restore_control` persistiert und in `menuplan_restore_audit` protokolliert. Jeder Lauf verwendet eindeutige Kandidat-, Rollback- und Fehlerdatenbanken mit tokengebundenen Eigentumsmarkern; vorhandene oder fremde Namen werden weder beendet noch umbenannt oder gelöscht. Der Kandidat entsteht aus `template0`, installiert und prüft deshalb `pgcrypto` inklusive `public.digest()` vor Migration und Datenbankvalidator.
+Die gleichnamige `.dump.sha256` ist verpflichtend. Das Skript prüft Hash und Archivliste vor jeder Lifecycle-Mutation und erwirbt danach eine PostgreSQL-weite Lease in der Kontroll-Datenbank `postgres`. Ein langlebiger Shared-Advisory-Lock gehört genau einem Backend; ein Controller-Watchdog beweist Backend-Identität, Lock und Heartbeat vor jedem destruktiven Schritt. Stirbt Holder oder Controller, werden `app` und `backup` gestoppt und der Lauf bricht geschlossen ab. Owner- und Ressourcen-Token, Ablaufzeit und jeder Promotion-Zustand werden in `menuplan_restore_control` persistiert und in `menuplan_restore_audit` protokolliert. Jeder Lauf verwendet eindeutige Kandidat-, Rollback- und Fehlerdatenbanken mit tokengebundenen Eigentumsmarkern; vorhandene oder fremde Namen werden weder beendet noch umbenannt oder gelöscht. Der Kandidat entsteht aus `template0`, installiert und prüft deshalb `pgcrypto` inklusive `public.digest()` vor Migration und Datenbankvalidator.
 
-Erst danach stoppt das Skript `app` und `backup`, tauscht die Datenbanknamen über die Kontroll-Datenbank `postgres` und validiert erneut. Bei jedem Fehler oder Signal nach dem Stop werden beide Dienste nochmals gestoppt. Eine separate Control-DB-Recovery darf nur den markierten alten Datenbankstand zurückbenennen; der Kandidat gilt nie als Recovery. Erst wenn der alte Stand wieder `ALLOW_CONNECTIONS=true`, `pgcrypto`, `public.digest()` und ein gültiges Cafeteria-Schema liefert und auch der Anwendungsvalidator erfolgreich ist, startet das Skript `app` und `backup` erneut. Andernfalls bleiben beide bewusst gestoppt.
+Capability-Secret- und Replay-Nonce-Tabellen samt Sequenz werden wegen der bewusst entzogenen Backup-Leserechte vollständig vom Dump ausgeschlossen. Die feste Reihenfolge ist: Migration inklusive erster `permissions.sql`-Anwendung (schliesst die durch `--no-privileges` entstandenen PUBLIC-EXECUTE-Rechte), Owner-Aufruf von `cafeteria.ensure_auth_capability_state()`, erneute Migration/Permissions-Anwendung, Owner-Aufruf von `cafeteria.hard_reset_auth_capability_state()`, Datenbankvalidator, erst danach Writer. Beide Funktionen müssen exakt `1` liefern. Das Skript beweist anschliessend genau ein frisches aktives Secret und null Nonces. Dieselbe Kette läuft nach alter oder Candidate-Recovery sowie beim Wiederaufnehmen eines bereits `complete` markierten Laufs gegen die gewählte Produktionsdatenbank. Fehlt ein DB-Vertrag oder ACL-Beweis, bleiben `app` und `backup` gestoppt; alte und bereits konsumierte Tokens erhalten keine Grace Period.
+
+Erst danach stoppt das Skript `app` und `backup`, tauscht die Datenbanknamen über die Kontroll-Datenbank `postgres` und validiert erneut. `writer_release_committed` ist der dauerhaft protokollierte Point of no return: davor stellt Recovery ausschliesslich den verifizierten alten Stand wieder her; danach behält und finalisiert sie zwingend den Kandidaten, damit bereits angenommene Writes nie durch automatisches Zurückschalten verloren gehen. `app` startet erst nach diesem Zustand. Erst nach App-Healthcheck wird `complete` persistiert; erst danach startet `backup`. Bei unbekanntem Zustand bleiben beide Dienste gestoppt.
 
 Nach einem Host-Crash läuft die Lease aus, ein normaler Restore bleibt aber absichtlich gesperrt. Die explizite Recovery rotiert den Owner-Token, protokolliert `lease_expired_takeover`, stoppt beide Dienste und führt dieselben Beweise aus:
 
@@ -84,6 +86,20 @@ Nach einem Host-Crash läuft die Lease aus, ein normaler Restore bleibt aber abs
 ```
 
 Nur bei Exitcode 0 sind die Dienste wieder freigegeben. Bei unbekanntem oder fremd markiertem Zustand nichts manuell umbenennen oder löschen; Audit-Tabelle und PostgreSQL-Katalog sichern und den Incident eskalieren. Anschliessend beide Snapshot-APIs, Patienten-Sonntagabend und Cafeteria-Geschlossenfläche prüfen.
+
+Erfolgreiche Restores behalten die markierte alte Datenbank standardmässig sieben Tage (`RESTORE_ROLLBACK_RETENTION_SECONDS=604800`). Die tägliche, persistente systemd-Zeitsteuerung wird auf Hosts mit Deployment-Pfad `/opt/dishboard/deployment` einmalig installiert und geprüft:
+
+```bash
+sudo install -m 0644 systemd/dishboard-retention-prune.service /etc/systemd/system/
+sudo install -m 0644 systemd/dishboard-retention-prune.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now dishboard-retention-prune.timer
+systemctl list-timers dishboard-retention-prune.timer
+sudo systemctl start dishboard-retention-prune.service
+systemctl status dishboard-retention-prune.service
+```
+
+Der One-shot verwendet nur den bestehenden Owner-Ops-Restore-Container; der kontinuierliche Backup-Dienst erhält keine Owner-Credentials. Er löscht ausschliesslich abgelaufene, exakt tokenmarkierte Rollback-Datenbanken und schreibt `rollback_retention_pruned` ins Audit. Eine fremde oder fehlende Eigentumsmarke bricht den Lauf ab. Wiederholte Timer-Fehler sind ein Incident; nicht mit manuellen `DROP DATABASE`-Befehlen umgehen.
 
 ## Update
 

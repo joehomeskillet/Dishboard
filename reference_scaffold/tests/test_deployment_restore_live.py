@@ -12,6 +12,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 RESTORE_SCRIPT = ROOT / "deployment" / "postgres-backup.sh"
+RESTORE_CONTROL_LIBRARY = ROOT / "deployment" / "postgres-restore-control.sh"
 RUN_LIVE_DRILL = os.getenv("RUN_LIVE_RESTORE_DRILL") == "1"
 PG_IMAGE = "postgres:16-alpine"
 
@@ -49,6 +50,9 @@ class RestoreDrill:
     network_name: str
     work_dir: Path
     environment: tuple[str, ...]
+    backup_environment: tuple[str, ...]
+    old_token: str
+    unused_token: str
 
     def script(
         self,
@@ -65,6 +69,8 @@ class RestoreDrill:
             f"{self.work_dir}:/work",
             "--volume",
             f"{RESTORE_SCRIPT}:/usr/local/bin/postgres-backup.sh:ro",
+            "--volume",
+            f"{RESTORE_CONTROL_LIBRARY}:/usr/local/bin/postgres-restore-control.sh:ro",
             *self.environment,
             *extra_environment,
             PG_IMAGE,
@@ -88,7 +94,12 @@ class RestoreDrill:
         )
         return result.stdout.strip()
 
-    def start_holder(self, run_id: str, owner_token: str) -> str:
+    def start_holder(
+        self,
+        run_id: str,
+        owner_token: str,
+        extra_environment: tuple[str, ...] = (),
+    ) -> str:
         holder_name = f"menuplan-holder-{uuid4().hex[:12]}"
         docker(
             "run",
@@ -102,7 +113,10 @@ class RestoreDrill:
             f"{self.work_dir}:/work",
             "--volume",
             f"{RESTORE_SCRIPT}:/usr/local/bin/postgres-backup.sh:ro",
+            "--volume",
+            f"{RESTORE_CONTROL_LIBRARY}:/usr/local/bin/postgres-restore-control.sh:ro",
             *self.environment,
+            *extra_environment,
             PG_IMAGE,
             "/bin/sh",
             "/usr/local/bin/postgres-backup.sh",
@@ -130,13 +144,15 @@ class RestoreDrill:
         return f"{self.dump_name}.sha256"
 
 
-@pytest.fixture
-def postgres16_restore_drill(tmp_path: Path) -> RestoreDrill:
+@pytest.fixture(name="postgres16_restore_drill")
+def postgres16_restore_drill_fixture(tmp_path: Path) -> RestoreDrill:
     resource_id = uuid4().hex[:12]
     network_name = f"menuplan-restore-{resource_id}"
     container_name = f"menuplan-pg16-{resource_id}"
     password_file = tmp_path / "owner-password.txt"
     password_file.write_text("restore-drill-owner\n", encoding="utf-8")
+    backup_password_file = tmp_path / "backup-password.txt"
+    backup_password_file.write_text("restore-drill-backup\n", encoding="utf-8")
     environment = (
         "--env",
         "POSTGRES_HOST=pg",
@@ -150,6 +166,12 @@ def postgres16_restore_drill(tmp_path: Path) -> RestoreDrill:
         "POSTGRES_PASSWORD_FILE=/work/owner-password.txt",
         "--env",
         "RESTORE_LEASE_SECONDS=60",
+    )
+    backup_environment = (
+        "--env",
+        "POSTGRES_USER=cafeteria_backup",
+        "--env",
+        "POSTGRES_PASSWORD_FILE=/work/backup-password.txt",
     )
 
     docker("network", "create", network_name)
@@ -173,6 +195,98 @@ def postgres16_restore_drill(tmp_path: Path) -> RestoreDrill:
             PG_IMAGE,
         )
         wait_for_postgres(container_name)
+        setup_sql = """
+CREATE EXTENSION pgcrypto;
+CREATE SCHEMA cafeteria;
+CREATE TABLE cafeteria.restore_drill (value text);
+INSERT INTO cafeteria.restore_drill VALUES ('original');
+CREATE TABLE cafeteria.auth_capability_secrets (
+    secret_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    secret bytea NOT NULL,
+    active boolean NOT NULL DEFAULT true
+);
+CREATE TABLE cafeteria.auth_capability_nonces (
+    nonce text PRIMARY KEY,
+    consumed_at timestamptz NOT NULL DEFAULT clock_timestamp()
+);
+INSERT INTO cafeteria.auth_capability_secrets (secret) VALUES (public.gen_random_bytes(32));
+CREATE FUNCTION cafeteria.issue_auth_capability_token(p_nonce text) RETURNS text
+LANGUAGE sql SECURITY DEFINER
+SET search_path TO pg_catalog, cafeteria, public
+AS $$ SELECT p_nonce || '.' || encode(public.hmac(convert_to(p_nonce, 'UTF8'), secret, 'sha256'), 'hex')
+     FROM cafeteria.auth_capability_secrets WHERE active ORDER BY secret_id DESC LIMIT 1 $$;
+CREATE FUNCTION cafeteria.consume_auth_capability_token(p_token text) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path TO pg_catalog, cafeteria, public
+AS $$
+DECLARE
+    token_nonce text := split_part(p_token, '.', 1);
+    token_mac text := split_part(p_token, '.', 2);
+    current_secret bytea;
+    inserted_count integer;
+BEGIN
+    SELECT secret INTO current_secret FROM cafeteria.auth_capability_secrets
+    WHERE active ORDER BY secret_id DESC LIMIT 1;
+    IF current_secret IS NULL OR token_mac <> encode(public.hmac(
+        convert_to(token_nonce, 'UTF8'), current_secret, 'sha256'), 'hex') THEN
+        RETURN false;
+    END IF;
+    INSERT INTO cafeteria.auth_capability_nonces (nonce) VALUES (token_nonce)
+    ON CONFLICT DO NOTHING;
+    GET DIAGNOSTICS inserted_count = ROW_COUNT;
+    RETURN inserted_count = 1;
+END
+$$;
+CREATE FUNCTION cafeteria.ensure_auth_capability_state() RETURNS smallint
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path TO pg_catalog, cafeteria, public
+AS $$
+BEGIN
+    CREATE TABLE IF NOT EXISTS cafeteria.auth_capability_secrets (
+        secret_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        secret bytea NOT NULL,
+        active boolean NOT NULL DEFAULT true
+    );
+    CREATE TABLE IF NOT EXISTS cafeteria.auth_capability_nonces (
+        nonce text PRIMARY KEY,
+        consumed_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+    RETURN 1::smallint;
+END
+$$;
+CREATE FUNCTION cafeteria.hard_reset_auth_capability_state() RETURNS smallint
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path TO pg_catalog, cafeteria, public
+AS $$
+BEGIN
+    DELETE FROM cafeteria.auth_capability_nonces;
+    DELETE FROM cafeteria.auth_capability_secrets;
+    INSERT INTO cafeteria.auth_capability_secrets (secret, active)
+    VALUES (public.gen_random_bytes(32), true);
+    RETURN 1::smallint;
+END
+$$;
+REVOKE ALL ON FUNCTION cafeteria.ensure_auth_capability_state() FROM PUBLIC;
+REVOKE ALL ON FUNCTION cafeteria.hard_reset_auth_capability_state() FROM PUBLIC;
+CREATE FUNCTION cafeteria.bootstrap_auth_capability_secret() RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER AS $$ BEGIN NULL; END $$;
+CREATE FUNCTION cafeteria.rotate_auth_capability_secret() RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER AS $$ BEGIN NULL; END $$;
+CREATE FUNCTION cafeteria.sync_auth_capability_state() RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER AS $$ BEGIN NULL; END $$;
+CREATE FUNCTION cafeteria.withdraw_auth_capability() RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER AS $$ BEGIN NULL; END $$;
+CREATE ROLE cafeteria_app;
+CREATE ROLE cafeteria_backup LOGIN PASSWORD 'restore-drill-backup';
+GRANT CONNECT ON DATABASE cafeteria TO cafeteria_backup;
+GRANT USAGE ON SCHEMA cafeteria TO cafeteria_backup;
+GRANT SELECT ON ALL TABLES IN SCHEMA cafeteria TO cafeteria_backup;
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA cafeteria TO cafeteria_backup;
+REVOKE ALL ON TABLE cafeteria.auth_capability_secrets FROM cafeteria_backup;
+REVOKE ALL ON TABLE cafeteria.auth_capability_nonces FROM cafeteria_backup;
+REVOKE ALL ON SEQUENCE cafeteria.auth_capability_secrets_secret_id_seq FROM cafeteria_backup;
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA cafeteria FROM PUBLIC, cafeteria_app, cafeteria_backup;
+"""
         docker(
             "exec",
             container_name,
@@ -180,10 +294,52 @@ def postgres16_restore_drill(tmp_path: Path) -> RestoreDrill:
             "--username=cafeteria_owner",
             "--dbname=cafeteria",
             "--set=ON_ERROR_STOP=1",
-            "--command=CREATE EXTENSION pgcrypto; CREATE SCHEMA cafeteria; CREATE TABLE cafeteria.restore_drill (value text); INSERT INTO cafeteria.restore_drill VALUES ('original');",
+            f"--command={setup_sql}",
         )
-        drill = RestoreDrill(container_name, network_name, tmp_path, environment)
-        drill.script("once", extra_environment=("--env", "BACKUP_DIR=/work"))
+        old_token = docker(
+            "exec",
+            container_name,
+            "psql",
+            "--username=cafeteria_owner",
+            "--dbname=cafeteria",
+            "--tuples-only",
+            "--no-align",
+            "--command=SELECT cafeteria.issue_auth_capability_token('consumed-before-backup');",
+        ).stdout.strip()
+        consumed = docker(
+            "exec",
+            container_name,
+            "psql",
+            "--username=cafeteria_owner",
+            "--dbname=cafeteria",
+            "--tuples-only",
+            "--no-align",
+            f"--command=SELECT cafeteria.consume_auth_capability_token('{old_token}');",
+        ).stdout.strip()
+        assert consumed == "t"
+        unused_token = docker(
+            "exec",
+            container_name,
+            "psql",
+            "--username=cafeteria_owner",
+            "--dbname=cafeteria",
+            "--tuples-only",
+            "--no-align",
+            "--command=SELECT cafeteria.issue_auth_capability_token('unused-before-backup');",
+        ).stdout.strip()
+        drill = RestoreDrill(
+            container_name,
+            network_name,
+            tmp_path,
+            environment,
+            backup_environment,
+            old_token,
+            unused_token,
+        )
+        drill.script(
+            "once",
+            extra_environment=("--env", "BACKUP_DIR=/work", *backup_environment),
+        )
         yield drill
     finally:
         docker("rm", "--force", container_name, check=False)
@@ -210,9 +366,9 @@ def test_postgres16_cluster_lease_denies_a_second_restore_host(
             "SELECT owner_run_id FROM public.menuplan_restore_control WHERE database_name='cafeteria';",
         )
         assert owner == "host_one"
+        drill.script("restore-abort", "host_one", owner_token)
     finally:
         docker("rm", "--force", holder_name, check=False)
-    drill.script("restore-abort", "host_one", owner_token)
 
 
 @pytest.mark.skipif(not RUN_LIVE_DRILL, reason="set RUN_LIVE_RESTORE_DRILL=1 for the PostgreSQL 16 drill")
@@ -259,7 +415,11 @@ def test_postgres16_expired_lease_requires_an_audited_recovery_takeover(
         "postgres",
         "SELECT event FROM public.menuplan_restore_audit WHERE database_name='cafeteria' ORDER BY event_id DESC LIMIT 1;",
     ) == "lease_expired_takeover"
-    drill.script("restore-abort", restore_run_id, replacement_token)
+    holder_name = drill.start_holder(restore_run_id, replacement_token)
+    try:
+        drill.script("restore-abort", restore_run_id, replacement_token)
+    finally:
+        docker("rm", "--force", holder_name, check=False)
 
 
 @pytest.mark.skipif(not RUN_LIVE_DRILL, reason="set RUN_LIVE_RESTORE_DRILL=1 for the PostgreSQL 16 drill")
@@ -270,51 +430,55 @@ def test_postgres16_partial_promotion_failure_recovers_only_the_old_database(
     drill = postgres16_restore_drill
     run_id = "partial_failure"
     owner_token = drill.script("restore-acquire", run_id).stdout.strip()
-    stage = drill.script(
-        "restore-stage",
-        f"/work/{drill.dump_name}",
-        f"/work/{drill.checksum_name}",
-        run_id,
-        owner_token,
-    )
-    assert stage.stdout.strip() == f"cafeteria_restore_candidate_{run_id}"
-    drill.script("restore-state", run_id, owner_token, "migrated")
-    drill.script("restore-state", run_id, owner_token, "candidate_validated")
+    holder_name = drill.start_holder(run_id, owner_token)
+    try:
+        stage = drill.script(
+            "restore-stage",
+            f"/work/{drill.dump_name}",
+            f"/work/{drill.checksum_name}",
+            run_id,
+            owner_token,
+        )
+        assert stage.stdout.strip() == f"cafeteria_restore_candidate_{run_id}"
+        drill.script("restore-state", run_id, owner_token, "migrated")
+        drill.script("restore-state", run_id, owner_token, "candidate_validated")
 
-    promotion = drill.script(
-        "restore-promote",
-        run_id,
-        owner_token,
-        check=False,
-        extra_environment=(
-            "--env",
-            "RESTORE_FAIL_AFTER_STATE=production_renamed",
-            "--env",
-            "RESTORE_TESTING=true",
-        ),
-    )
-    assert promotion.returncode != 0
-    assert drill.sql(
-        "postgres",
-        "SELECT NOT EXISTS (SELECT 1 FROM pg_database WHERE datname='cafeteria');",
-    ) == "t"
+        promotion = drill.script(
+            "restore-promote",
+            run_id,
+            owner_token,
+            check=False,
+            extra_environment=(
+                "--env",
+                "RESTORE_FAIL_AFTER_STATE=production_renamed",
+                "--env",
+                "RESTORE_TESTING=true",
+            ),
+        )
+        assert promotion.returncode != 0
+        assert drill.sql(
+            "postgres",
+            "SELECT NOT EXISTS (SELECT 1 FROM pg_database WHERE datname='cafeteria');",
+        ) == "t"
 
-    drill.script("restore-recover", run_id, owner_token)
-    drill.script("restore-recover", run_id, owner_token)
+        drill.script("restore-recover", run_id, owner_token)
+        drill.script("restore-recover", run_id, owner_token)
 
-    assert drill.sql("cafeteria", "SELECT value FROM cafeteria.restore_drill;") == "original"
-    assert drill.sql(
-        "postgres",
-        "SELECT datallowconn FROM pg_database WHERE datname='cafeteria';",
-    ) == "t"
-    assert drill.sql(
-        "cafeteria",
-        "SELECT to_regprocedure('public.digest(bytea,text)') IS NOT NULL AND to_regnamespace('cafeteria') IS NOT NULL;",
-    ) == "t"
-    assert drill.sql(
-        "postgres",
-        "SELECT lifecycle FROM public.menuplan_restore_control WHERE database_name='cafeteria';",
-    ) == "recovery_ready"
+        assert drill.sql("cafeteria", "SELECT value FROM cafeteria.restore_drill;") == "original"
+        assert drill.sql(
+            "postgres",
+            "SELECT datallowconn FROM pg_database WHERE datname='cafeteria';",
+        ) == "t"
+        assert drill.sql(
+            "cafeteria",
+            "SELECT to_regprocedure('public.digest(bytea,text)') IS NOT NULL AND to_regnamespace('cafeteria') IS NOT NULL;",
+        ) == "t"
+        assert drill.sql(
+            "postgres",
+            "SELECT lifecycle FROM public.menuplan_restore_control WHERE database_name='cafeteria';",
+        ) == "recovery_ready"
+    finally:
+        docker("rm", "--force", holder_name, check=False)
 
 
 @pytest.mark.skipif(not RUN_LIVE_DRILL, reason="set RUN_LIVE_RESTORE_DRILL=1 for the PostgreSQL 16 drill")
@@ -325,28 +489,32 @@ def test_postgres16_promotion_refuses_a_foreign_rollback_database(
     drill = postgres16_restore_drill
     run_id = "foreign_marker"
     owner_token = drill.script("restore-acquire", run_id).stdout.strip()
-    drill.script(
-        "restore-stage",
-        f"/work/{drill.dump_name}",
-        f"/work/{drill.checksum_name}",
-        run_id,
-        owner_token,
-    )
-    drill.script("restore-state", run_id, owner_token, "migrated")
-    drill.script("restore-state", run_id, owner_token, "candidate_validated")
-    rollback = f"cafeteria_restore_rollback_{run_id}"
-    drill.sql("postgres", f'CREATE DATABASE "{rollback}";')
-    drill.sql("postgres", f'COMMENT ON DATABASE "{rollback}" IS \'foreign-owner\';')
+    holder_name = drill.start_holder(run_id, owner_token)
+    try:
+        drill.script(
+            "restore-stage",
+            f"/work/{drill.dump_name}",
+            f"/work/{drill.checksum_name}",
+            run_id,
+            owner_token,
+        )
+        drill.script("restore-state", run_id, owner_token, "migrated")
+        drill.script("restore-state", run_id, owner_token, "candidate_validated")
+        rollback = f"cafeteria_restore_rollback_{run_id}"
+        drill.sql("postgres", f'CREATE DATABASE "{rollback}";')
+        drill.sql("postgres", f'COMMENT ON DATABASE "{rollback}" IS \'foreign-owner\';')
 
-    promotion = drill.script("restore-promote", run_id, owner_token, check=False)
+        promotion = drill.script("restore-promote", run_id, owner_token, check=False)
 
-    assert promotion.returncode != 0
-    assert "foreign" in promotion.stderr.lower() or "vorhanden" in promotion.stderr.lower()
-    assert drill.sql("cafeteria", "SELECT value FROM cafeteria.restore_drill;") == "original"
-    assert drill.sql(
-        "postgres",
-        f"SELECT shobj_description(oid, 'pg_database') FROM pg_database WHERE datname='{rollback}';",
-    ) == "foreign-owner"
+        assert promotion.returncode != 0
+        assert "foreign" in promotion.stderr.lower() or "vorhanden" in promotion.stderr.lower()
+        assert drill.sql("cafeteria", "SELECT value FROM cafeteria.restore_drill;") == "original"
+        assert drill.sql(
+            "postgres",
+            f"SELECT shobj_description(oid, 'pg_database') FROM pg_database WHERE datname='{rollback}';",
+        ) == "foreign-owner"
+    finally:
+        docker("rm", "--force", holder_name, check=False)
 
 
 @pytest.mark.skipif(not RUN_LIVE_DRILL, reason="set RUN_LIVE_RESTORE_DRILL=1 for the PostgreSQL 16 drill")
@@ -357,19 +525,23 @@ def test_postgres16_abort_refuses_a_foreign_pending_candidate(
     drill = postgres16_restore_drill
     run_id = "foreign_pending"
     owner_token = drill.script("restore-acquire", run_id).stdout.strip()
-    candidate = f"cafeteria_restore_candidate_{run_id}"
-    drill.sql(
-        "postgres",
-        "UPDATE public.menuplan_restore_control SET lifecycle='candidate_create_pending' "
-        "WHERE database_name='cafeteria';",
-    )
-    drill.sql("postgres", f'CREATE DATABASE "{candidate}";')
-    drill.sql("postgres", f'COMMENT ON DATABASE "{candidate}" IS \'foreign-owner\';')
+    holder_name = drill.start_holder(run_id, owner_token)
+    try:
+        candidate = f"cafeteria_restore_candidate_{run_id}"
+        drill.sql(
+            "postgres",
+            "UPDATE public.menuplan_restore_control SET lifecycle='candidate_create_pending' "
+            "WHERE database_name='cafeteria';",
+        )
+        drill.sql("postgres", f'CREATE DATABASE "{candidate}";')
+        drill.sql("postgres", f'COMMENT ON DATABASE "{candidate}" IS \'foreign-owner\';')
 
-    abort = drill.script("restore-abort", run_id, owner_token, check=False)
+        abort = drill.script("restore-abort", run_id, owner_token, check=False)
 
-    assert abort.returncode != 0
-    assert drill.sql(
-        "postgres",
-        f"SELECT shobj_description(oid, 'pg_database') FROM pg_database WHERE datname='{candidate}';",
-    ) == "foreign-owner"
+        assert abort.returncode != 0
+        assert drill.sql(
+            "postgres",
+            f"SELECT shobj_description(oid, 'pg_database') FROM pg_database WHERE datname='{candidate}';",
+        ) == "foreign-owner"
+    finally:
+        docker("rm", "--force", holder_name, check=False)

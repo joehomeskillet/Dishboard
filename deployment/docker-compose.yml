@@ -198,6 +198,7 @@ services:
     volumes:
       - postgres_backups:/backups
       - ./postgres-backup.sh:/usr/local/bin/postgres-backup.sh:ro
+      - ./postgres-restore-control.sh:/usr/local/bin/postgres-restore-control.sh:ro
     entrypoint: ["/bin/sh", "/usr/local/bin/postgres-backup.sh"]
     command: ["loop"]
     networks: [cafeteria_internal]
@@ -227,6 +228,7 @@ services:
     volumes:
       - postgres_backups:/backups
       - ./postgres-backup.sh:/usr/local/bin/postgres-backup.sh:ro
+      - ./postgres-restore-control.sh:/usr/local/bin/postgres-restore-control.sh:ro
     entrypoint: ["/bin/sh", "/usr/local/bin/postgres-backup.sh"]
     command: ["restore-stage", "/backups/restore.dump", "/backups/restore.dump.sha256"]
     networks: [cafeteria_internal]

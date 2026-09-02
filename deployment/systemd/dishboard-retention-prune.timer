@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Dishboard rollback-database retention enforcement
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=30m
+Unit=dishboard-retention-prune.service
+
+[Install]
+WantedBy=timers.target

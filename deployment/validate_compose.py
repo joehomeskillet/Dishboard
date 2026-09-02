@@ -69,6 +69,9 @@ assert set(app['secrets']) == {
 
 assert services['backup']['environment']['POSTGRES_USER'] == 'cafeteria_backup'
 assert services['restore']['environment']['POSTGRES_USER'] == 'cafeteria_owner'
+restore_control_mount = './postgres-restore-control.sh:/usr/local/bin/postgres-restore-control.sh:ro'
+assert restore_control_mount in services['backup']['volumes']
+assert restore_control_mount in services['restore']['volumes']
 assert services['restore']['command'] == [
     'restore-stage', '/backups/restore.dump', '/backups/restore.dump.sha256'
 ]
@@ -88,9 +91,22 @@ for token in (
     'APP_PUBLIC_BASE_URL=https://dishboard.joelduss.xyz',
     'DEMO_MODE=false', 'SEED_DEMO=false', 'DEMO_TODAY=', 'SESSION_COOKIE_SECURE=true',
     'LAST_GOOD_DIR=/var/lib/cafeteria/last-good',
+    'RESTORE_CONTROLLER_HEARTBEAT_SECONDS=5',
+    'RESTORE_CONTROLLER_TIMEOUT_SECONDS=30',
+    'RESTORE_ROLLBACK_RETENTION_SECONDS=604800',
     'ENTRA_ENABLED=false', 'CAFETERIA_DOMAIN=dishboard.joelduss.xyz',
 ):
     assert token in example, token
+retention_service = (root / 'systemd' / 'dishboard-retention-prune.service').read_text(
+    encoding='utf-8'
+)
+retention_timer = (root / 'systemd' / 'dishboard-retention-prune.timer').read_text(
+    encoding='utf-8'
+)
+assert 'restore.sh --prune-retained' in retention_service
+assert 'Type=oneshot' in retention_service
+assert 'OnCalendar=daily' in retention_timer
+assert 'Persistent=true' in retention_timer
 assert not (root / '.env').exists()
 
 print('Compose-Struktur: OK (statisch; kein Containerstart)')
