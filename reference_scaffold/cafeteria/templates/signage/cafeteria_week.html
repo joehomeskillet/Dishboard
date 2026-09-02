@@ -21,17 +21,12 @@
       {% for option in meal.options %}
       <section class="cafe-week-slot {{ 'veggie' if option.type_code == 'VEGGIE' else '' }}">
         <div class="slot-type">{{ option.type_name }}</div>
-        <div class="slot-body"><h3>{{ option.title }}</h3><p>{{ option.components|join(' · ') }}</p></div>
-
-        <div class="signage-tags">
-          {# Labels: green pills #}
-          {% for label in option.labels %}<span class="label label-green">{{ label.display_name or label.code }}</span>{% endfor %}
-          {# Allergens - Contains: amber pills with EU number #}
-          {% for allergen in option.allergens %}{% if allergen.presence == 'contains' %}<span class="label label-amber">{{ allergen.eu_number }} {{ allergen.display_name or allergen.code }}</span>{% endif %}{% endfor %}
-          {# Allergens - May Contain: muted with Spuren prefix #}
-          {% set may_contain = option.allergens|selectattr('presence', 'equalto', 'may_contain')|list %}{% if may_contain %}<span class="label label-muted">Spuren: {% for a in may_contain %}{{ a.eu_number }} {{ a.display_name or a.code }}{% if not loop.last %}, {% endif %}{% endfor %}</span>{% endif %}
-          {# Origins: plain labels #}
-          {% for origin in option.origins %}<span class="label">{{ origin.ingredient }} ({{ origin.country_code }})</span>{% endfor %}
+        <div class="slot-body"><h3>{{ option.title }}</h3><p>{{ option.components|join(' · ') }}</p>
+          <div class="signage-tags">
+            {% for label in option.labels %}<span class="label green">{{ label.name }}</span>{% endfor %}
+            {% for allergen in option.allergens %}<span class="label amber">{{ 'Kann enthalten: ' if allergen.presence == 'may_contain' else 'Enthält: ' }}{{ allergen.name }}</span>{% endfor %}
+            {% for origin in option.origins %}<span class="label">{{ origin.text }}</span>{% endfor %}
+          </div>
         </div>
         <footer>Mitarbeitende CHF {{ option.prices.internal_rappen|chf }} · Externe CHF {{ option.prices.external_rappen|chf }}</footer>
       </section>

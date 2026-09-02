@@ -26,12 +26,10 @@
         <ul class="signage-components">{% for component in option.components %}<li>{{ component }}</li>{% endfor %}</ul>
       </div>
       <footer>
-                <div class="signage-tags" style="display: flex; flex-wrap: nowrap; min-width: 0; white-space: nowrap; font-size: 0.9em; gap: 0.25em;">
-          {# Labels: short form #}
-          {% for label in option.labels %}<span class="label label-green">{{ label.code }}</span>{% endfor %}
-          {# Allergens - Contains only: EU numbers #}
-          {% set allergen_codes = option.allergens|selectattr('presence', 'equalto', 'contains')|map(attribute='eu_number')|list|sort %}
-          {% if allergen_codes %}<span class="label label-amber">Allergene {{ allergen_codes|join(' · ') }}</span>{% endif %}
+                <div class="signage-tags">
+          {% for label in option.labels %}<span class="label green">{{ label.name }}</span>{% endfor %}
+          {% for allergen in option.allergens %}<span class="label amber">{{ 'Kann enthalten: ' if allergen.presence == 'may_contain' else 'Enthält: ' }}{{ allergen.name }}</span>{% endfor %}
+          {% for origin in option.origins %}<span class="label">{{ origin.text }}</span>{% endfor %}
         </div>
         <div class="signage-price">Mitarbeitende CHF {{ option.prices.internal_rappen|chf }} · Externe CHF {{ option.prices.external_rappen|chf }}</div>
       </footer>
