@@ -54,6 +54,7 @@ p { text-wrap: pretty; }
 .wordmark { display: inline-flex; align-items: center; gap: .72rem; color: inherit; font-size: 1.26rem; font-weight: 850; text-decoration: none; letter-spacing: -.025em; }
 .wordmark-mark { display: inline-block; width: 1.02em; height: 1.02em; border: .17em solid var(--sh-magenta); border-right-color: transparent; border-radius: 50%; transform: rotate(-19deg); }
 .wordmark.small { font-size: 1rem; }
+.site-header > .wordmark { min-height: 44px; }
 
 .site-header { position: sticky; z-index: 20; top: 0; display: flex; justify-content: space-between; align-items: center; min-height: 74px; padding: 0 clamp(1.1rem, 4vw, 4rem); color: var(--sh-white); background: var(--sh-teal-950); box-shadow: 0 1px 0 rgba(255,255,255,.08); }
 .site-nav { display: flex; align-items: center; gap: .35rem; }
@@ -157,7 +158,6 @@ body.signage { width: 100vw; height: 100vh; overflow: hidden; color: var(--sh-wh
 .signage-menu-card .content { display: flex; flex-direction: column; justify-content: center; min-height: 0; padding: 2vh 2vw; }
 .signage-menu-card .content h3 { margin: 0 0 1.2vh; font-size: clamp(42px, 4vw, 80px); line-height: .98; letter-spacing: -.055em; }
 .signage-menu-card .content p { margin: 0 0 1.5vh; color: var(--sh-ink-muted); font-size: clamp(20px, 1.52vw, 33px); line-height: 1.25; }
-.signage-menu-card .content h3, .signage-menu-card .content p { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .signage-components { display: flex; flex-wrap: wrap; gap: .65vw; margin: 0; padding: 0; list-style: none; }
 .signage-components li { padding: .68vh .72vw; border-radius: 999px; background: var(--sh-panel-soft); font-size: clamp(15px, 1.02vw, 23px); font-weight: 800; }
 .signage-menu-card > footer { display: flex; justify-content: space-between; align-items: center; gap: 1vw; min-height: 6.2vh; padding: 1.25vh 1.8vw; border-top: 1px solid var(--sh-border); background: var(--sh-teal-050); }
@@ -174,7 +174,6 @@ body.signage { width: 100vw; height: 100vh; overflow: hidden; color: var(--sh-wh
 .cafe-week-slot .slot-type { padding: .72vh .7vw; color: var(--sh-teal-800); border-bottom: 1px solid var(--sh-border); font-size: clamp(12px, .72vw, 17px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
 .cafe-week-slot .slot-body { display: flex; flex-direction: column; justify-content: center; min-height: 0; padding: .7vh .75vw; }
 .cafe-week-slot h3 { margin: 0; font-size: clamp(20px, 1.52vw, 34px); line-height: 1.02; letter-spacing: -.035em; }
-.cafe-week-slot h3, .cafe-week-slot p { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .cafe-week-slot p { margin: .55vh 0 0; color: var(--sh-ink-muted); font-size: clamp(17px, .88vw, 20px); line-height: 1.24; }
 .cafe-week-slot footer { padding: .65vh .72vw; color: var(--sh-teal-950); border-top: 1px solid var(--sh-border); background: var(--sh-panel-soft); font-size: clamp(17px, .9vw, 20px); font-weight: 900; line-height: 1.16; }
 
@@ -187,9 +186,9 @@ body.signage { width: 100vw; height: 100vh; overflow: hidden; color: var(--sh-wh
 .patient-signage-option { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 1.3vh 1.55vw; }
 .patient-signage-option + .patient-signage-option { border-left: 1px solid var(--sh-border); }
 .patient-signage-option .slot-type { color: var(--sh-teal-700); font-size: clamp(13px, .78vw, 18px); font-weight: 900; letter-spacing: .09em; text-transform: uppercase; }
-.patient-signage-option h3 { margin: .65vh 0 .7vh; font-size: clamp(30px, 2.65vw, 56px); line-height: 1; letter-spacing: -.045em; }
+.patient-signage-option h3 { margin: .65vh 0 .7vh; font-size: clamp(30px, 2.65vw, 56px); line-height: 1.04; letter-spacing: -.045em; }
 .patient-signage-option p { margin: 0; color: var(--sh-ink-muted); font-size: clamp(16px, 1.15vw, 25px); line-height: 1.25; }
-.patient-signage-option h3, .patient-signage-option p { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.patient-signage-option h3, .patient-signage-option p { flex-shrink: 0; }
 .patient-signage-option .signage-tags { margin-top: 1vh; }
 
 .patient-week-shell { gap: 1.5vh; padding: 2.25vh 1.6vw 1.7vh; }
@@ -200,16 +199,15 @@ body.signage { width: 100vw; height: 100vh; overflow: hidden; color: var(--sh-wh
 .patient-week-day > header { padding: .62vh .45vw; border-radius: 12px; text-align: center; background: rgba(255,255,255,.14); }
 .patient-week-day > header strong { display: block; font-size: clamp(18px, 1.15vw, 30px); }
 .patient-week-day > header span { display: block; color: rgba(255,255,255,.7); font-size: clamp(11px, .67vw, 17px); }
-.patient-week-cell { min-height: 0; overflow: hidden; color: var(--sh-ink); background: rgba(255,255,255,.985); border-radius: clamp(12px, .8vw, 19px); }
+.patient-week-cell { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; overflow: hidden; color: var(--sh-ink); background: rgba(255,255,255,.985); border-radius: clamp(12px, .8vw, 19px); }
 .patient-week-cell .meal-name { padding: .5vh .48vw; color: var(--sh-white); background: var(--sh-blue); font-size: clamp(12px, .72vw, 19px); font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }
 .patient-week-cell.dinner .meal-name { background: var(--sh-teal-800); }
-.patient-week-options { display: grid; grid-template-rows: repeat(2, minmax(0,1fr)); height: calc(100% - 2.2vh); }
+.patient-week-options { display: grid; grid-template-rows: repeat(2, minmax(0,1fr)); min-height: 0; }
 .patient-week-option { display: flex; flex-direction: column; justify-content: center; min-height: 0; padding: .52vh .55vw; }
 .patient-week-option + .patient-week-option { border-top: 1px solid var(--sh-border); }
 .patient-week-option small { color: var(--sh-teal-700); font-size: clamp(10px, .58vw, 15px); font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
 .patient-week-option strong { display: block; margin-top: .18vh; font-size: clamp(15px, 1.01vw, 26px); line-height: 1.05; letter-spacing: -.025em; }
 .patient-week-option span { display: block; margin-top: .2vh; color: var(--sh-ink-muted); font-size: clamp(10px, .58vw, 15px); line-height: 1.15; }
-.patient-week-option strong, .patient-week-option span { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .resolution-note { padding: .3em .6em; border-radius: 999px; color: var(--sh-white); background: rgba(194,11,97,.72); font-weight: 800; }
 .signage-empty { display: grid; place-content: center; gap: 1vh; min-height: 0; border: 2px dashed rgba(255,255,255,.34); border-radius: clamp(20px, 1.5vw, 34px); text-align: center; }
 .signage-empty strong { font-size: clamp(42px, 4vw, 86px); line-height: 1; }
@@ -231,7 +229,7 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
 .admin-user strong, .admin-user span { display: block; }
 .admin-user span { margin-top: .12rem; color: rgba(255,255,255,.62); font-size: .72rem; }
 .admin-nav { display: grid; gap: .3rem; }
-.admin-nav a { padding: .72rem .8rem; border-radius: 10px; color: rgba(255,255,255,.72); font-size: .84rem; font-weight: 720; text-decoration: none; }
+.admin-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: .72rem .8rem; border-radius: 10px; color: rgba(255,255,255,.72); font-size: .84rem; font-weight: 720; text-decoration: none; }
 .admin-nav a.active, .admin-nav a:hover { color: var(--sh-white); background: rgba(255,255,255,.12); }
 .admin-main { min-width: 0; }
 .admin-topbar { position: sticky; z-index: 10; top: 0; display: flex; justify-content: space-between; align-items: center; min-height: 72px; padding: .75rem 1.5rem; background: rgba(255,255,255,.96); border-bottom: 1px solid var(--sh-border); backdrop-filter: blur(10px); }
@@ -244,7 +242,7 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
 .admin-content { padding: 1.2rem 1.5rem 2rem; }
 .admin-notice { margin-bottom: .85rem; padding: .7rem .85rem; border: 1px solid var(--sh-border-warm); border-radius: 11px; color: var(--sh-amber-ink); background: var(--sh-amber-soft); font-size: .78rem; }
 .profile-tabs { display: inline-flex; gap: .3rem; margin-bottom: .85rem; padding: .3rem; border-radius: 12px; background: var(--sh-teal-100); }
-.profile-tabs a { padding: .58rem .75rem; border-radius: 9px; color: var(--sh-ink-muted); font-size: .78rem; font-weight: 850; text-decoration: none; }
+.profile-tabs a { display: inline-flex; align-items: center; min-height: 44px; padding: .58rem .75rem; border-radius: 9px; color: var(--sh-ink-muted); font-size: .78rem; font-weight: 850; text-decoration: none; }
 .profile-tabs a.active { color: var(--sh-white); background: var(--sh-teal-800); }
 .profile-tabs a.patient.active { background: var(--sh-blue); }
 .weekbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: .9rem; padding: .8rem .9rem; border: 1px solid var(--sh-border); border-radius: 14px; background: var(--sh-white); }
@@ -274,6 +272,9 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
 .admin-dish input:hover, .admin-dish textarea:hover, .admin-dish select:hover,
 .patient-admin-meal > input:hover, .patient-admin-meal > select:hover,
 .patient-admin-option input:hover, .patient-admin-option textarea:hover, .field input:hover { border-color: var(--sh-teal-700); }
+.form-error-summary { margin-bottom: .85rem; padding: .78rem .9rem; border: 2px solid var(--sh-magenta); border-radius: 11px; color: var(--sh-ink); background: var(--sh-magenta-soft); font-weight: 800; }
+.field-error { display: block; margin-top: .3rem; color: var(--sh-magenta); font-size: .72rem; font-weight: 800; }
+[aria-invalid="true"] { border-color: var(--sh-magenta) !important; }
 .patient-admin-table { display: grid; gap: .55rem; }
 .patient-admin-day { overflow: hidden; border: 1px solid var(--sh-border); border-radius: 14px; background: var(--sh-white); box-shadow: var(--sh-shadow-soft); }
 .patient-admin-day > header { display: flex; justify-content: space-between; align-items: center; padding: .55rem .7rem; color: var(--sh-white); background: var(--sh-blue); }
@@ -291,9 +292,9 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
 @media (max-width: 900px) {
   .site-header { flex-wrap: wrap; min-height: 64px; padding: .65rem 1rem .55rem; }
   .site-header .wordmark { font-size: 1.15rem; }
-  .site-nav { order: 3; width: 100%; margin-top: .45rem; padding-bottom: .12rem; overflow-x: auto; scrollbar-width: thin; }
+  .site-nav { order: 3; flex-wrap: wrap; width: 100%; margin-top: .45rem; padding-bottom: .12rem; }
   .site-nav a { min-height: 44px; }
-  .channel-links { margin-left: .35rem; padding-left: .35rem; }
+  .channel-links { flex-wrap: wrap; margin-left: .35rem; padding-left: .35rem; }
   .public-shell { width: calc(100% - 2rem); padding-top: 1.3rem; }
   .hero { grid-template-columns: 1fr; align-items: start; gap: 1rem; }
   .date-chip { justify-self: start; }

@@ -31,8 +31,9 @@ from ..workflow import (
     load_draft,
     publish_draft,
     save_draft,
+    validate_publication_fit,
 )
-from ..workflow_form import ParsedDraft, parse_draft_form
+from ..workflow_form import ParsedDraft, parse_draft_form, submitted_form_values
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
 PATIENT_FORM_ERROR = 'Patientenformular ist ungültig.'
@@ -73,24 +74,62 @@ def _draft(profile_code: str):
     )
 
 
-def _parse_form() -> ParsedDraft:
+def _parse_form(profile_code: str) -> ParsedDraft:
     validate_csrf(request.form.get('_csrf'))
-    profile_code = 'patient' if request.path.startswith('/admin/patienten') else 'staff_guest'
-    try:
-        parsed = parse_draft_form(profile_code, request.form)
-    except WorkflowValidationError as error:
-        abort(
-            400,
-            description=PATIENT_FORM_ERROR if profile_code == 'patient' else str(error),
-        )
+    parsed = parse_draft_form(profile_code, request.form)
     if parsed.week_start != _current_week_start():
-        abort(400, description='Formularwoche stimmt nicht mit dem aktuellen Raster überein.')
+        raise WorkflowValidationError(
+            'Formularwoche stimmt nicht mit dem aktuellen Raster überein.',
+            field_name='week_start',
+        )
     return parsed
 
 
+def _render_editor(
+    profile_code: str,
+    *,
+    form_values: dict[str, str] | None = None,
+    form_errors: dict[str, str] | None = None,
+    form_message: str | None = None,
+    first_error: str | None = None,
+):
+    template = 'admin/patienten.html' if profile_code == 'patient' else 'admin/cafeteria.html'
+    return render_template(
+        template,
+        draft=_draft(profile_code),
+        user=session.get('user'),
+        roles=session.get('roles', []),
+        form_values=form_values or {},
+        form_errors=form_errors or {},
+        form_message=form_message,
+        first_error=first_error,
+    )
+
+
+def _form_error_response(profile_code: str, error: Exception, status_code: int):
+    values = submitted_form_values(profile_code, request.form)
+    field_name = getattr(error, 'field_name', None)
+    if field_name not in values:
+        field_name = None
+    message = PATIENT_FORM_ERROR if profile_code == 'patient' else str(error)
+    field_message = 'Eingabe prüfen.' if profile_code == 'patient' else str(error)
+    return (
+        _render_editor(
+            profile_code,
+            form_values=values,
+            form_errors={field_name: field_message} if field_name else {},
+            form_message=message,
+            first_error=field_name,
+        ),
+        status_code,
+    )
+
+
 def _save(profile_code: str, endpoint: str, *, publish: bool = False):
-    parsed = _parse_form()
     try:
+        parsed = _parse_form(profile_code)
+        if publish:
+            validate_publication_fit(profile_code, parsed.values)
         row_version = save_draft(
             current_app.extensions['cafeteria_db'],
             profile_code,
@@ -109,12 +148,9 @@ def _save(profile_code: str, endpoint: str, *, publish: bool = False):
                 issuer_engine=current_app.extensions.get('cafeteria_auth_issuer_db'),
             )
     except (WorkflowValidationError, ValueError) as error:
-        abort(
-            400,
-            description=PATIENT_FORM_ERROR if profile_code == 'patient' else str(error),
-        )
+        return _form_error_response(profile_code, error, 400)
     except StaleDraftError as error:
-        abort(409, description=str(error))
+        return _form_error_response(profile_code, error, 409)
     except PublicationConfigurationError as error:
         abort(503, description=str(error))
     return redirect(url_for(endpoint), code=303)
@@ -129,27 +165,16 @@ def dashboard():
 @bp.get('/cafeteria')
 @require_capability('draft.read')
 def cafeteria():
-    return render_template(
-        'admin/cafeteria.html',
-        draft=_draft('staff_guest'),
-        user=session.get('user'),
-        roles=session.get('roles', []),
-    )
+    return _render_editor('staff_guest')
 
 
 @bp.get('/patienten')
 @require_capability('draft.read')
 def patienten():
     try:
-        draft = _draft('patient')
+        return _render_editor('patient')
     except ValueError:
         abort(422, description=PATIENT_FORM_ERROR)
-    return render_template(
-        'admin/patienten.html',
-        draft=draft,
-        user=session.get('user'),
-        roles=session.get('roles', []),
-    )
 
 
 @bp.post('/cafeteria/save')

@@ -22,10 +22,24 @@ PROFILE_MEALS = {'patient': ('LUNCH', 'DINNER'), 'staff_guest': ('LUNCH',)}
 PROFILE_DAYS = {'patient': 7, 'staff_guest': 5}
 MENU_TYPES = ('MENU_1', 'VEGGIE')
 SERVICE_STATES = {'open', 'closed', 'holiday', 'company_holiday'}
+SIGNAGE_LIMITS = {
+    'staff_guest': {
+        'day': {'title': 46, 'description': 70, 'components': 70},
+        'week': {'title': 36, 'components': 48},
+    },
+    'patient': {
+        'day': {'title': 42, 'components': 62},
+        'week': {'title': 36, 'components': 48},
+    },
+}
+PUBLICATION_TITLE_LIMIT = 36
+PUBLICATION_COMPONENTS_LIMIT = 48
 
 
 class WorkflowValidationError(ValueError):
-    pass
+    def __init__(self, message: str, *, field_name: str | None = None) -> None:
+        super().__init__(message)
+        self.field_name = field_name
 
 
 class PublicationConfigurationError(RuntimeError):
@@ -187,6 +201,36 @@ def validate_draft_values(
     )
 
 
+def validate_publication_fit(profile_code: str, values: dict[str, Any]) -> None:
+    if profile_code not in SIGNAGE_LIMITS:
+        raise WorkflowValidationError('Unbekanntes Profil.')
+    for day_index, day in enumerate(values['days']):
+        for service in day['services']:
+            if service['service_state'] != 'open':
+                continue
+            meal_code = service['meal_code']
+            for option in service['options']:
+                prefix = f"service_{day_index}_{meal_code}_{option['type_code']}"
+                if len(option['title']) > PUBLICATION_TITLE_LIMIT:
+                    raise WorkflowValidationError(
+                        'Gericht überschreitet die gemeinsame Playergrenze von 36 Zeichen.',
+                        field_name=f'{prefix}_title',
+                    )
+                rendered_components = ' · '.join(option['components'])
+                if len(rendered_components) > PUBLICATION_COMPONENTS_LIMIT:
+                    raise WorkflowValidationError(
+                        'Komponenten überschreiten die gemeinsame Playergrenze von 48 Zeichen.',
+                        field_name=f'{prefix}_components',
+                    )
+                description = option.get('description', '')
+                if profile_code == 'staff_guest' and len(description) > SIGNAGE_LIMITS[
+                    'staff_guest'
+                ]['day']['description']:
+                    raise WorkflowValidationError(
+                        'Beschreibung überschreitet die Tagesplayergrenze von 70 Zeichen.'
+                    )
+
+
 def import_draft(
     engine: Engine,
     profile_code: str,
@@ -278,6 +322,7 @@ def publish_draft(
             raise StaleDraftError('Der Entwurf wurde zwischenzeitlich geändert.')
         values = _draft_values(draft)
         _validate_values(profile_code, week_start, values)
+        validate_publication_fit(profile_code, values)
         revision_number = int(
             connection.execute(
                 text(

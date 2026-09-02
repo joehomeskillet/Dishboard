@@ -15,7 +15,13 @@ from sqlalchemy import Engine, create_engine, event, text
 from sqlalchemy.pool import NullPool
 
 from cafeteria.db import active_snapshot, init_database
-from cafeteria.workflow import StaleDraftError, load_draft, publish_draft, save_draft
+from cafeteria.workflow import (
+    StaleDraftError,
+    WorkflowValidationError,
+    load_draft,
+    publish_draft,
+    save_draft,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 DATABASE_URL = os.getenv('TEST_DATABASE_URL')
@@ -595,3 +601,81 @@ def test_snapshot_keeps_distinct_notice_for_each_closed_meal(
         ('DINNER', 'holiday', 'Abendservice entfällt'),
     ]
     assert all(service['options'] == [] for service in services)
+
+
+@pytest.mark.parametrize('profile_code', ('patient', 'staff_guest'))
+@pytest.mark.parametrize('overflow_kind', ('title', 'components'))
+def test_publish_rejects_signage_overflow_without_replacing_active_revision(
+    database_engine: Engine,
+    profile_code: str,
+    overflow_kind: str,
+) -> None:
+    actor_id = _actor_id(database_engine)
+    values_factory = _patient_values if profile_code == 'patient' else _staff_values
+    initial_version = _save(database_engine, profile_code, values_factory())
+    initial = publish_draft(
+        database_engine,
+        profile_code,
+        WEEK_START,
+        expected_row_version=initial_version,
+        actor_id=actor_id,
+        issuer_engine=database_engine,
+    )
+    draft = load_draft(database_engine, profile_code, WEEK_START, actor_id=actor_id)
+    changed = values_factory()
+    option = changed['days'][0]['services'][0]['options'][0]
+    if overflow_kind == 'title':
+        option['title'] = 'G' * 37
+    else:
+        option['components'] = ['B' * 49]
+    changed_version = save_draft(
+        database_engine,
+        profile_code,
+        WEEK_START,
+        expected_row_version=draft['row_version'],
+        actor_id=actor_id,
+        values=changed,
+    )
+
+    with pytest.raises(WorkflowValidationError):
+        publish_draft(
+            database_engine,
+            profile_code,
+            WEEK_START,
+            expected_row_version=changed_version,
+            actor_id=actor_id,
+            issuer_engine=database_engine,
+        )
+
+    with database_engine.connect() as connection:
+        revision_count = connection.execute(
+            text('SELECT count(*) FROM cafeteria.publication_revisions')
+        ).scalar_one()
+    assert revision_count == 1
+    assert active_snapshot(database_engine, profile_code, '2026-09-02') == initial
+
+
+@pytest.mark.parametrize('profile_code', ('patient', 'staff_guest'))
+def test_publish_accepts_strict_shared_signage_boundaries(
+    database_engine: Engine,
+    profile_code: str,
+) -> None:
+    actor_id = _actor_id(database_engine)
+    values = _patient_values() if profile_code == 'patient' else _staff_values()
+    option = values['days'][0]['services'][0]['options'][0]
+    option['title'] = 'G' * 36
+    option['components'] = ['B' * 48]
+    version = _save(database_engine, profile_code, values)
+
+    published = publish_draft(
+        database_engine,
+        profile_code,
+        WEEK_START,
+        expected_row_version=version,
+        actor_id=actor_id,
+        issuer_engine=database_engine,
+    )
+
+    published_option = published['days'][0]['services'][0]['options'][0]
+    assert published_option['title'] == 'G' * 36
+    assert published_option['components'] == ['B' * 48]

@@ -299,3 +299,84 @@ def test_patient_csv_export_never_reflects_internal_validation_category(
     assert response.status_code == 404
     assert 'Keine publizierte Revision für dieses Profil.' in body
     assert re.search(r'CHF|Intern|Extern|0\.00|Preis|price|rappen|kosten|cost', body, re.I) is None
+
+
+def test_patient_validation_error_renders_at_field_and_preserves_safe_input(client) -> None:
+    assert client.get('/admin/patienten').status_code == 200
+    form = _patient_form()
+    form['title'] = ''
+    retained_field = 'service_6_DINNER_VEGGIE_components'
+    form[retained_field] = 'Blattsalat\nWurzelgemüse'
+
+    response = client.post('/admin/patienten/save', data=form)
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 400
+    assert 'Patientenformular ist ungültig.' in body
+    assert 'id="patient-title_error"' in body
+    assert re.search(r'<input[^>]+id="patient-title"[^>]+autofocus', body)
+    assert 'Blattsalat\nWurzelgemüse' in body
+    assert 'role="alert"' in body
+
+
+def test_cafeteria_validation_error_is_adjacent_and_preserves_submitted_values(client) -> None:
+    assert client.get('/admin/cafeteria').status_code == 200
+    form = _staff_form()
+    field_name = 'service_0_LUNCH_MENU_1_external_rappen'
+    form[field_name] = '900'
+
+    response = client.post('/admin/cafeteria/save', data=form)
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 400
+    assert f'id="{field_name}_error"' in body
+    assert re.search(rf'<input[^>]+id="{field_name}"[^>]+value="900"[^>]+autofocus', body)
+    assert 'Cafeteria Herbst' in body
+    assert 'role="alert"' in body
+
+
+@pytest.mark.parametrize(
+    ('path', 'form_factory', 'field_name'),
+    (
+        (
+            '/admin/patienten/publish',
+            _patient_form,
+            'service_0_LUNCH_MENU_1_title',
+        ),
+        (
+            '/admin/cafeteria/publish',
+            _staff_form,
+            'service_0_LUNCH_MENU_1_title',
+        ),
+    ),
+)
+def test_overlong_publish_is_atomic_and_focuses_exact_field(
+    client,
+    database_engine: Engine,
+    path: str,
+    form_factory,
+    field_name: str,
+) -> None:
+    profile_path = '/admin/patienten' if 'patienten' in path else '/admin/cafeteria'
+    assert client.get(profile_path).status_code == 200
+    form = form_factory()
+    form[field_name] = 'G' * 37
+
+    response = client.post(path, data=form)
+    body = response.get_data(as_text=True)
+
+    with database_engine.connect() as connection:
+        persisted = connection.execute(
+            text(
+                '''
+                SELECT count(i.id), count(r.id)
+                FROM cafeteria.menu_items i
+                FULL JOIN cafeteria.publication_revisions r ON FALSE
+                '''
+            )
+        ).one()
+    assert response.status_code == 400
+    assert tuple(persisted) == (0, 0)
+    assert f'id="{field_name}_error"' in body
+    assert re.search(rf'<input[^>]+id="{field_name}"[^>]+autofocus', body)
+    assert 'G' * 37 in body

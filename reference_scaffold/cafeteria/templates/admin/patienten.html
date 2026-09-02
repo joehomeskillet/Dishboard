@@ -3,6 +3,10 @@
 {% block body_class %}admin-body{% endblock %}
 {% block body %}
 {% set weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'] %}
+{% set submitted = form_values|default({}) %}
+{% set errors = form_errors|default({}) %}
+{% macro error_attributes(name, error_id) %}{% if errors.get(name) %} aria-invalid="true" aria-describedby="{{ error_id }}"{% if first_error == name %} autofocus{% endif %}{% endif %}{% endmacro %}
+{% macro field_error(name, error_id) %}{% if errors.get(name) %}<span class="field-error" id="{{ error_id }}">{{ errors[name] }}</span>{% endif %}{% endmacro %}
 <div class="admin-shell">
   <aside class="admin-sidebar">
     <div class="wordmark"><span class="wordmark-mark" aria-hidden="true"></span><span>Südhang Menüplanung</span></div>
@@ -28,6 +32,7 @@
     </header>
     <div class="admin-content">
       <div class="admin-notice"><strong>Getrenntes Raster:</strong> Montag bis Sonntag mit Mittag und Abend. Dieser Kanal enthält ausschliesslich Speiseplandaten.</div>
+      {% if form_message %}<div class="form-error-summary" role="alert"{% if not first_error %} tabindex="-1" autofocus{% endif %}>{{ form_message }}</div>{% endif %}
       <nav class="profile-tabs" aria-label="Profil">
         <a href="{{ url_for('admin.cafeteria') }}">Cafeteria</a>
         <a class="patient active" href="{{ url_for('admin.patienten') }}" aria-current="page">Patienten</a>
@@ -38,18 +43,20 @@
       </div>
       <form id="patient-grid" method="post">
         <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-        <input type="hidden" name="week_start" value="{{ draft.week_start }}">
-        <input type="hidden" name="row_version" value="{{ draft.row_version }}">
+        <input type="hidden" name="week_start" value="{{ submitted.get('week_start', draft.week_start) }}">
+        <input type="hidden" name="row_version" value="{{ submitted.get('row_version', draft.row_version) }}">
         <section class="grid-card" aria-labelledby="patient-week-heading">
           <div class="admin-grid-row">
             <div class="admin-day"><strong id="patient-week-heading">Woche</strong></div>
             <div class="admin-dish">
               <label for="patient-title">Titel</label>
-              <input id="patient-title" name="title" value="{{ draft.title }}" required autocomplete="off">
+              <input id="patient-title" name="title" value="{{ submitted.get('title', draft.title) }}" required autocomplete="off"{{ error_attributes('title', 'patient-title_error') }}>
+              {{ field_error('title', 'patient-title_error') }}
             </div>
             <div class="admin-dish">
               <label for="patient-note">Hinweis</label>
-              <input id="patient-note" name="shared_note" value="{{ draft.shared_note }}" autocomplete="off">
+              <input id="patient-note" name="shared_note" value="{{ submitted.get('shared_note', draft.shared_note) }}" autocomplete="off"{{ error_attributes('shared_note', 'patient-note_error') }}>
+              {{ field_error('shared_note', 'patient-note_error') }}
             </div>
           </div>
         </section>
@@ -61,25 +68,34 @@
             <div class="patient-admin-meals">
               {% for meal in day.services %}
               {% set service_prefix = 'service_' ~ day_index ~ '_' ~ meal.meal_code %}
+              {% set state_field = service_prefix ~ '_state' %}
+              {% set notice_field = service_prefix ~ '_notice' %}
+              {% set selected_state = submitted.get(state_field, meal.service_state) %}
               <section class="patient-admin-meal">
                 <strong>{{ meal.meal_name }}</strong>
-                <label for="{{ service_prefix }}_state">Betrieb</label>
-                <select id="{{ service_prefix }}_state" name="{{ service_prefix }}_state">
+                <label for="{{ state_field }}">Betrieb</label>
+                <select id="{{ state_field }}" name="{{ state_field }}"{{ error_attributes(state_field, state_field ~ '_error') }}>
                   {% for value, label in [('open', 'Offen'), ('closed', 'Geschlossen'), ('holiday', 'Feiertag'), ('company_holiday', 'Betriebsfeiertag')] %}
-                  <option value="{{ value }}"{% if meal.service_state == value %} selected{% endif %}>{{ label }}</option>
+                  <option value="{{ value }}"{% if selected_state == value %} selected{% endif %}>{{ label }}</option>
                   {% endfor %}
                 </select>
-                <label for="{{ service_prefix }}_notice">Servicehinweis</label>
-                <input id="{{ service_prefix }}_notice" name="{{ service_prefix }}_notice" value="{{ meal.notice }}" autocomplete="off">
+                {{ field_error(state_field, state_field ~ '_error') }}
+                <label for="{{ notice_field }}">Servicehinweis</label>
+                <input id="{{ notice_field }}" name="{{ notice_field }}" value="{{ submitted.get(notice_field, meal.notice) }}" autocomplete="off"{{ error_attributes(notice_field, notice_field ~ '_error') }}>
+                {{ field_error(notice_field, notice_field ~ '_error') }}
                 <div class="patient-admin-options">
                   {% for option in meal.options %}
                   {% set option_prefix = service_prefix ~ '_' ~ option.type_code %}
+                  {% set title_field = option_prefix ~ '_title' %}
+                  {% set components_field = option_prefix ~ '_components' %}
                   <div class="patient-admin-option">
                     <small>{{ 'Menü 1' if option.type_code == 'MENU_1' else 'Vegetarisch' }}</small>
-                    <label for="{{ option_prefix }}_title">Gericht</label>
-                    <input id="{{ option_prefix }}_title" name="{{ option_prefix }}_title" value="{{ option.title }}" autocomplete="off">
-                    <label for="{{ option_prefix }}_components">Komponenten, eine pro Zeile</label>
-                    <textarea id="{{ option_prefix }}_components" name="{{ option_prefix }}_components" rows="2">{{ option.components|join('\n') }}</textarea>
+                    <label for="{{ title_field }}">Gericht</label>
+                    <input id="{{ title_field }}" name="{{ title_field }}" value="{{ submitted.get(title_field, option.title) }}" autocomplete="off"{{ error_attributes(title_field, title_field ~ '_error') }}>
+                    {{ field_error(title_field, title_field ~ '_error') }}
+                    <label for="{{ components_field }}">Komponenten, eine pro Zeile</label>
+                    <textarea id="{{ components_field }}" name="{{ components_field }}" rows="2"{{ error_attributes(components_field, components_field ~ '_error') }}>{{ submitted.get(components_field, option.components|join('\n')) }}</textarea>
+                    {{ field_error(components_field, components_field ~ '_error') }}
                   </div>
                   {% endfor %}
                 </div>
