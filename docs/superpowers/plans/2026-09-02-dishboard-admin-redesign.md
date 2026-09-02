@@ -68,6 +68,23 @@ parse_draft_form(profile_code: str, form: Mapping[str, str]) -> ParsedDraft
 
 Location resolution is fail-closed under the current single-location contract: `resolve_single_active_location_connection` returns the sole active location globally; zero or multiple active locations fail. Capability gates still validate the actor separately. For every operation on an existing week, load that week's `location_id` and require it to equal that sole active location.
 
+Every writer that creates, replaces or removes `menu_item_components` follows
+one global lock order. This includes single assignment, full replacement, T6
+partial persistence and full Import/Recovery whenever it writes component
+links. It first locks each scoped `menu_items` row `FOR UPDATE`; a multi-item
+path locks all affected items by numeric `menu_items.id ASC`. Under those locks
+it resolves the union of existing references, including archived and removed
+links, plus every requested new public ID. Public IDs are resolved and
+validated against Location plus `common`/current profile; a new archived
+component is rejected, an existing archived link remains valid, free text has
+no component row, and no caller supplies or receives an internal component ID.
+Before touching link rows, the writer locks the full component union by numeric
+`menu_components.id ASC FOR SHARE`, then locks existing links by
+`(menu_item_id, sort_order ASC) FOR UPDATE`, mutates/deletes them in that order
+and inserts requested links in the same deterministic order. Review follows
+the identical `items → components → links` order and compatible `FOR SHARE`
+component lock. Caller or form ordering never changes lock acquisition.
+
 `create_component` receives `engine`, `scope`, category, name and origin plus
 `target_scope: Literal['common', 'current']`; `current` maps only to the
 URL-derived `scope.profile_code`, and no API accepts another concrete profile.
@@ -200,9 +217,16 @@ backfill remains in `database/migrations/0010_v12_to_v13.sql`, not `db.py`.
   profile 404 assignment and effects, allergen union with `contains` winning,
   origin conflict, diet intersection, nullable/free-text non-inheritance, and
   auto-only rematerialization. Prove the connection helper neither commits nor
-  changes item/review/version outside its caller's single locked update.
+  changes item/review/version outside its caller's single locked update. Add a
+  mandatory real-PG16 two-connection race: both transactions target the same
+  two scoped items but submit reversed item and assignment orders. Coordinate
+  them without sleep-based timing and prove numeric item/component/link lock
+  order, no deadlock/`40P01`, one deterministic winner, the second writer's
+  wait followed by stale 409 without partial mutation, and exact winner links.
+  Exercise single assignment, full replacement and the shared connection
+  helper used later by Partial/Import/Recovery.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_assignment_db.py`; expected FAIL.
-- [ ] Implement assignment validation and deterministic effects. Reject injected patient prices before any write. Route single-link and full-replace assignment through `replace_component_links_connection`; the caller performs exactly one locked item update, review reset and version bump. On component/link change rematerialize only auto classes; manual values remain untouched.
+- [ ] Implement assignment validation and deterministic effects. Reject injected patient prices before any write. Route single-link and full-replace assignment through `replace_component_links_connection`; the caller performs exactly one locked item update, review reset and version bump. Before link locks or writes, resolve the complete existing-plus-requested component set, lock it by numeric internal ID, then lock and mutate links in the global order above; caller-supplied internal IDs are forbidden. On component/link change rematerialize only auto classes; manual values remain untouched.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_assignment_db.py -v`; expected PASS.
 - [ ] Stage: `rtk git add reference_scaffold/cafeteria/component_assignment_store.py reference_scaffold/cafeteria/workflow.py reference_scaffold/tests/test_component_assignment_db.py`.
 - [ ] Commit: `rtk git commit -m 'feat: resolve scoped component assignments'`.
@@ -248,11 +272,14 @@ Expected result is exactly
 `review_component(engine: Engine, scope: AdminScope, item_id: int,
 component_version: str, expected_row_version: int) -> int` interprets
 `component_version` as that pre-review token. In one transaction it locks in
-this order: the scoped `menu_items` row `FOR UPDATE`; all current
-`menu_item_components` rows (including links to archived components) via
-`ORDER BY sort_order FOR UPDATE`; then every referenced `menu_components` row
-via `ORDER BY id FOR UPDATE`. All link mutators first lock the item, preventing
-phantom link insertion while review holds the item lock. Locks remain through
+this order: the scoped `menu_items` row `FOR UPDATE`; all components resolved
+from its current links, including archived components, by numeric
+`menu_components.id ASC FOR SHARE`; then all current
+`menu_item_components` rows via
+`ORDER BY menu_item_id, sort_order FOR UPDATE`. This is the same
+`item → components → links` order and compatible component-lock mode required
+of every link writer. The item lock prevents phantom link insertion while
+review derives the component set and verifies the token. Locks remain through
 commit/rollback. Only after all locks does review reread scope, expected item
 version, current component versions and effective Auto/Manual values, then
 recompute/compare the token. A concurrent write that wins before a required
@@ -274,15 +301,16 @@ unreviewed/stale components and stores an immutable revision.
 - [ ] Add RED tests asserting exact snapshot keys/types, no forbidden metadata,
   immutability after source edits, the literal golden input/digest above,
   complete-state array ordering and exact key/type rejection. Add two-connection
-  races proving deterministic item→links→components locking, atomic 404/409,
+  races proving deterministic item→components→links locking, atomic 404/409,
   successful new row version plus 303/PRG, old-token repeat-submit 409, atomic
   week actor attribution, cross-location/profile 404, review invalidation,
   stale publish rejection, replacement-publication capability/503 behavior and
   the existing App-role flow.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_admin_workflow_db.py`; expected FAIL.
 - [ ] Implement deterministic snapshot materialization and review transaction.
-  Review locks item, current links by `sort_order`, then referenced components
-  by `id`, holds all locks, rereads state, compares `expected_row_version` and
+  Review locks item, resolves and locks current referenced components by
+  numeric `id ASC FOR SHARE`, then locks current links by
+  `(menu_item_id, sort_order ASC)`, holds all locks, rereads state, compares `expected_row_version` and
   the complete-state token, rematerializes current auto classes, advances
   stored link versions, marks checked, increments item version once and updates
   the week actor. Publish separately requires checked state plus every stored
@@ -316,7 +344,10 @@ modes. Do not grow `workflow_form.py`; partial modules never call full replace.
   raster rejection and German field-path errors.
 - [ ] Add RED real-PG16 App-role tests for stale and concurrent partial writes,
   byte-identical neighbours, no implicit deletes, and preserved full
-  Import/Recovery behavior in `test_workflow_partial_store_db.py`.
+  Import/Recovery behavior in `test_workflow_partial_store_db.py`. When either
+  path writes component links, assert it uses the T4 helper and the global
+  item/component/link lock order for existing archived, removed and new refs;
+  extend the mandatory reversed-order two-connection race to both paths.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_workflow_form.py tests/test_workflow_partial_store_db.py`; expected FAIL.
 - [ ] Implement whitelist parsing and route-derived raster validation in the new
   partial modules. Each partial handler derives the existing week's location,
@@ -329,7 +360,9 @@ modes. Do not grow `workflow_form.py`; partial modules never call full replace.
   defaults are safely `manual` for all three modes. Component replacement uses
   T4's `replace_component_links_connection`; T6 duplicates no assignment SQL,
   and its caller performs exactly one locked item update, review reset and
-  version bump.
+  version bump. Full Import/Recovery uses the same helper for every component
+  link it creates; multi-item work is normalized by numeric item ID before any
+  component locks, and neither path accepts internal component IDs.
 - [ ] With cwd `reference_scaffold` and disposable PG16 App-role fixture configured, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_workflow_form.py tests/test_workflow_partial_store_db.py -v`; expected PASS.
 - [ ] Stage: `rtk git add reference_scaffold/cafeteria/workflow_partial_form.py reference_scaffold/cafeteria/workflow_partial_store.py reference_scaffold/cafeteria/workflow_store.py reference_scaffold/tests/test_workflow_form.py reference_scaffold/tests/test_workflow_partial_store_db.py`.
 - [ ] Commit: `rtk git commit -m 'feat: parse exact partial admin forms'`.

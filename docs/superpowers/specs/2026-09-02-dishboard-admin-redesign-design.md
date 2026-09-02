@@ -117,16 +117,41 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
 
   Erwarteter Token ist exakt
   `sha256:46fe2582022c284f54706d9d57f8c2dd783154fd6d7d9bc434bcd22665542507`.
+- Jede Transaktion, die `menu_item_components` erzeugt, ersetzt oder löscht,
+  verwendet dieselbe globale Lock-Reihenfolge. Das gilt für
+  `assign_component`, vollständigen Replace über
+  `replace_component_links_connection`, Partial-Persistenz und
+  Import/Recovery, sobald dieser Pfad Komponenten-Links schreibt. Sie sperrt
+  zuerst das scoped `menu_items`-Item per `FOR UPDATE`; ein Batch-Pfad sperrt
+  alle betroffenen Items nach numerischer `menu_items.id ASC`, bevor er
+  Komponenten sperrt. Unter diesen Item-Locks bildet sie die Vereinigungsmenge
+  aus allen bisher verlinkten Komponenten — einschließlich archivierter und
+  beim Replace entfernter Links — sowie allen neu angeforderten Komponenten.
+  Freitext-Links haben keine Komponenten-Zeile. Angeforderte Public-IDs werden
+  ausschließlich über Location plus `common`/aktuelles Profil aufgelöst und
+  validiert; neue archivierte Komponenten sind unzulässig, bestehende
+  archivierte Links bleiben auflösbar. Kein Caller darf interne Komponenten-IDs
+  liefern oder aus dem Scope heraustragen.
+- Vor jedem Link-Lock oder Link-Write sperrt der Writer diese vollständige
+  Komponentenmenge mit einem nach numerischer `menu_components.id ASC`
+  geordneten `SELECT ... FOR SHARE`. Danach sperrt er bestehende Linkzeilen per
+  `ORDER BY menu_item_id, sort_order FOR UPDATE`, löscht oder aktualisiert sie
+  in derselben Reihenfolge und fügt neue Links nach
+  `(menu_item_id, sort_order ASC)` ein. Alle Locks bleiben bis Commit oder
+  Rollback. Diese Reihenfolge ist auch bei umgekehrter Caller- oder
+  Assignment-Reihenfolge verbindlich.
 - `review_component(engine, scope, item_id, component_version,
   expected_row_version)` verwendet `component_version` als den obigen
   Pre-Review-Token. Es sperrt in genau einer Transaktion und in dieser stabilen
-  Reihenfolge: (1) das scoped `menu_items`-Item per `FOR UPDATE`, (2) alle
-  aktuell vorhandenen `menu_item_components`-Linkzeilen dieses Items per
-  `ORDER BY sort_order FOR UPDATE` — einschließlich Links auf archivierte
-  Komponenten — und (3) alle referenzierten `menu_components`-Zeilen per
-  `ORDER BY id FOR UPDATE`. Jeder Link-Mutator sperrt zuerst dasselbe Item;
-  dadurch kann zwischen Link-Lock und Tokenprüfung keine neue Linkzeile als
-  Phantom eingefügt werden. Alle Locks bleiben bis Commit oder Rollback.
+  Reihenfolge: (1) das scoped `menu_items`-Item per `FOR UPDATE`, (2) die unter
+  diesem Item-Lock aus allen aktuellen Links ermittelten Komponenten —
+  einschließlich archivierter — per numerischer `menu_components.id ASC FOR
+  SHARE` und (3) alle aktuellen `menu_item_components`-Linkzeilen per
+  `ORDER BY menu_item_id, sort_order FOR UPDATE`. Damit verwendet Review
+  dieselbe `Item → Komponenten → Links`-Reihenfolge und denselben kompatiblen
+  Komponenten-Lock wie jeder Link-Writer; der Item-Lock verhindert während der
+  Ermittlung und Tokenprüfung Phantom-Links. Alle Locks bleiben bis Commit oder
+  Rollback.
 - Erst nach allen Locks werden Scope, erwartete Item-`row_version`, aktuelle
   Komponenten-Versionen, effektive Auto-/Manual-Werte und Token aus den
   gesperrten Zeilen erneut gelesen und geprüft. Ein vorher gewinnender
@@ -138,6 +163,14 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
   `menu_weeks.updated_by=scope.actor_id` in derselben Transaktion. Sie liefert
   die neue Item-`row_version`; der HTTP-Handler antwortet per 303/PRG auf den
   scoped Menü-GET, der den neuen geprüften Zustand rendert.
+- Ein verpflichtender Real-PG16-Test öffnet zwei unabhängige Connections und
+  lässt beide dieselben zwei scoped Items mit umgekehrter Item- und
+  Assignment-Reihenfolge ändern. Kontrollierte Synchronisation beweist ohne
+  Timing-Annahme: kein Deadlock/`40P01`, ein deterministischer Gewinner, Warten
+  des zweiten Writers und danach dessen stale 409 ohne Teilmutation; der
+  Endzustand enthält exakt die Links des Gewinners. Derselbe Test deckt
+  Single-Assign, Full-Replace und den von Partial-/Import-/Recovery genutzten
+  Connection-Helper ab.
 - Der akzeptierte Token ist absichtlich verbraucht: Erfolg ändert mindestens
   Item-`row_version` und gegebenenfalls gespeicherte Link-Versionen. Derselbe
   POST mit alter `row_version` und altem `component_version` liefert deshalb
