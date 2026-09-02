@@ -181,6 +181,24 @@ def _set_signage_boundaries(
                     option['description'] = _bounded_text(description_length)
 
 
+def _set_unbroken_signage_boundaries(
+    snapshot: dict[str, Any],
+    *,
+    title_length: int,
+    component_length: int,
+) -> tuple[str, str]:
+    title = 'W' * title_length
+    component = 'W' * component_length
+    for day in snapshot['days']:
+        for meal in day['services']:
+            for option in meal['options']:
+                option['title'] = title
+                option['components'] = [component]
+                if 'description' in option:
+                    option['description'] = component
+    return title, component
+
+
 def test_real_routes_render_exact_profile_grids_without_cross_profile_data(app: Flask) -> None:
     client = _client(app)
     cafeteria = client.get('/signage/cafeteria/woche').get_data(as_text=True)
@@ -267,6 +285,84 @@ def test_signage_surface_boundaries_render_without_hidden_clipping(
         page.close()
 
 
+@pytest.mark.parametrize(
+    ('profile', 'path'),
+    (
+        ('staff_guest', '/signage/cafeteria/tag'),
+        ('staff_guest', '/signage/cafeteria/woche'),
+        ('patient', '/signage/patienten/tag'),
+        ('patient', '/signage/patienten/woche'),
+    ),
+)
+@pytest.mark.parametrize(('width', 'height'), ((1920, 1080), (3840, 2160)))
+@pytest.mark.parametrize(('title_length', 'component_length'), ((36, 48), (37, 49)))
+def test_unbroken_signage_text_remains_visible_without_clipping(
+    app: Flask,
+    browser: Browser,
+    profile: str,
+    path: str,
+    width: int,
+    height: int,
+    title_length: int,
+    component_length: int,
+) -> None:
+    snapshot = app.config['TEST_SNAPSHOTS'][profile]
+    title, component = _set_unbroken_signage_boundaries(
+        snapshot,
+        title_length=title_length,
+        component_length=component_length,
+    )
+    html = _client(app).get(path).get_data(as_text=True)
+
+    assert title in html
+    assert component in html
+    page = _page(browser, html, width, height)
+    selectors = (
+        '.signage-menu-card .content h3',
+        '.signage-menu-card .content p',
+        '.signage-components li',
+        '.cafe-week-slot h3',
+        '.cafe-week-slot p',
+        '.patient-signage-option h3',
+        '.patient-signage-option p',
+        '.patient-week-option strong',
+        '.patient-week-option span',
+    )
+    try:
+        _assert_no_viewport_overflow(
+            page,
+            (
+                '.signage-shell',
+                '.signage-menu-card',
+                '.cafe-week-slot',
+                '.patient-signage-meal',
+                '.patient-week-cell',
+                *selectors,
+            ),
+        )
+        text_state = page.evaluate(
+            """
+            selectors => selectors.flatMap(selector =>
+              [...document.querySelectorAll(selector)].map(element => {
+                const style = getComputedStyle(element);
+                const rect = element.getBoundingClientRect();
+                return {
+                  visible: style.display !== 'none' && style.visibility !== 'hidden' &&
+                    Number(style.opacity) > 0 && rect.width > 0 && rect.height > 0,
+                  clamp: style.webkitLineClamp,
+                  ellipsis: style.textOverflow === 'ellipsis',
+                };
+              })
+            )
+            """,
+            selectors,
+        )
+        assert text_state
+        assert all(item == {'visible': True, 'clamp': 'none', 'ellipsis': False} for item in text_state)
+    finally:
+        page.close()
+
+
 @pytest.mark.parametrize('path', ('/cafeteria/wochenangebot/', '/patienten/wochenplan/'))
 @pytest.mark.parametrize(('width', 'height'), ((390, 844), (1440, 1100)))
 def test_public_week_routes_have_no_horizontal_viewport_overflow(
@@ -324,6 +420,87 @@ def test_mobile_interactive_targets_focus_and_layout_contracts(
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         finally:
             page.close()
+
+
+@pytest.mark.parametrize('path', ('/admin/cafeteria', '/admin/patienten'))
+@pytest.mark.parametrize(('width', 'height'), ((390, 844), (1440, 1100)))
+def test_every_admin_control_is_reachable_sized_and_non_overlapping(
+    app: Flask,
+    browser: Browser,
+    path: str,
+    width: int,
+    height: int,
+) -> None:
+    page = _page(browser, _client(app).get(path).get_data(as_text=True), width, height)
+    try:
+        result = page.evaluate(
+            """
+            () => {
+              const selector = 'a[href], button, input:not([type="hidden"]), select, textarea';
+              const controls = [...document.querySelectorAll(selector)].filter(element => {
+                const style = getComputedStyle(element);
+                return style.display !== 'none' && style.visibility !== 'hidden';
+              });
+              const reachable = controls.map(element => {
+                element.focus({preventScroll: true});
+                element.scrollIntoView({block: 'center', inline: 'center'});
+                const rect = element.getBoundingClientRect();
+                const hit = document.elementFromPoint(
+                  Math.min(innerWidth - 1, Math.max(0, rect.left + rect.width / 2)),
+                  Math.min(innerHeight - 1, Math.max(0, rect.top + rect.height / 2)),
+                );
+                return {
+                  target: element.id || element.name || element.textContent.trim(),
+                  width: rect.width,
+                  height: rect.height,
+                  reachable: Boolean(hit && (hit === element || element.contains(hit))),
+                };
+              });
+              scrollTo(0, 0);
+              const boxes = controls.map(element => {
+                const rect = element.getBoundingClientRect();
+                const cell = element.closest(
+                  '.admin-day, .admin-dish, .patient-admin-meal, .patient-admin-option, .toolbar, .admin-nav, .profile-tabs'
+                );
+                const cellRect = cell?.getBoundingClientRect();
+                return {
+                  target: element.id || element.name || element.textContent.trim(),
+                  left: rect.left,
+                  top: rect.top,
+                  right: rect.right,
+                  bottom: rect.bottom,
+                  contained: !cellRect || (
+                    rect.left >= cellRect.left - 1 && rect.right <= cellRect.right + 1 &&
+                    rect.top >= cellRect.top - 1 && rect.bottom <= cellRect.bottom + 1
+                  ),
+                };
+              });
+              const overlaps = [];
+              for (let left = 0; left < boxes.length; left += 1) {
+                for (let right = left + 1; right < boxes.length; right += 1) {
+                  const a = boxes[left];
+                  const b = boxes[right];
+                  if (
+                    Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 &&
+                    Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1
+                  ) {
+                    overlaps.push(`${a.target} <> ${b.target}`);
+                  }
+                }
+              }
+              return {reachable, contained: boxes.filter(box => !box.contained), overlaps};
+            }
+            """
+        )
+        assert result['reachable']
+        assert all(
+            item['width'] >= 44 and item['height'] >= 44 for item in result['reachable']
+        ), result['reachable']
+        assert all(item['reachable'] for item in result['reachable']), result['reachable']
+        assert result['contained'] == []
+        assert result['overlaps'] == []
+    finally:
+        page.close()
 
 
 def test_cafeteria_weekend_route_is_closed_full_surface(app: Flask, browser: Browser) -> None:
