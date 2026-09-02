@@ -49,9 +49,11 @@ reserviert; es gibt kein DELETE.
 
 Labels und Allergene sind Child-Zuordnungen und referenzieren mit ihren
 `component_id`-FKs die interne `menu_components.id`-Bigint-ID. Die Allergen-PK ist
-`(component_id, allergen)` und enthält zusätzlich `presence` (`contains` oder
-`may_contain`). Label-Zuordnungen tragen den Labelwert und den jeweils nötigen
-Klassenschlüssel. `menu_item_components` erhält nullable `component_id` und
+`(component_id, allergen_id)`; `allergen_id` referenziert die bestehende
+Allergen-Masterzeile und enthält zusätzlich `presence` (`contains` oder
+`may_contain`). Die Label-Kindzeile hat den Primärschlüssel
+`(component_id, label_id)` und referenziert die bestehende Label-Masterzeile;
+der Labelwert wird nicht dupliziert. `menu_item_components` erhält nullable `component_id` und
 `component_row_version`; `component_text` bleibt exakt erhalten und ist bei
 freien Texten der alleinige Inhalt.
 
@@ -97,8 +99,14 @@ rollbackbar.
 
 ## 6. Exakte Admin-Routen und Berechtigungen
 
-Alle Routen verlangen Session-Admin, `draft.read` bzw. `draft.write`, CSRF bei
-POST und `Cache-Control: no-store`. Bestehende URL-Familien bleiben erhalten:
+Alle Routen verlangen eine gültige authentifizierte Session sowie die jeweils
+aufgeführten bestehenden Capabilities: Übersichts-, Menü-, Header-, Service-,
+Preview- und Kataloglisten-GETs benötigen `draft.read`; Menü-, Header-,
+Service- und Katalog-Create/Edit/Archive/Unarchive/Copy-POSTs benötigen
+`draft.write`; Publish benötigt `publication.publish`. Das bestehende
+Rollen-/Capability-Modell bleibt unverändert; es gibt keinen neuen
+Admin-only-Bypass. Alle POSTs verlangen CSRF und `Cache-Control: no-store`.
+Bestehende URL-Familien bleiben erhalten:
 `/admin/cafeteria` wird serverseitig fest auf `staff_guest` und
 `/admin/patienten` fest auf `patient` abgebildet. Das Profil kommt ausschließlich
 aus dieser URL-Familie; kein Handler akzeptiert es im Body oder Query-String.
@@ -176,15 +184,15 @@ Named RED-Tests (zuerst rot, danach grün) und Dateien:
 | Test | Datei / Beweis |
 |---|---|
 | reale PG16-Migration, Grants, Schema 13 | `reference_scaffold/tests/test_component_catalog_migration_db.py` |
-| Katalog CRUD/Archiv/Suche/Usage und Isolation | `reference_scaffold/tests/test_component_catalog_db.py`, `test_component_catalog_routes.py` |
+| Katalog CRUD/Archiv/Suche/Usage und Isolation | `reference_scaffold/tests/test_component_catalog_db.py`, `reference_scaffold/tests/test_component_catalog_routes.py` |
 | Komponenten-Zuweisung, Allergie-Union/contains, Herkunft-Konflikt, Diet-Intersection | `reference_scaffold/tests/test_component_assignment_db.py` |
-| Location/Profile-Isolation und Public-ID/404 | `test_public_isolation_homoglyphs.py`, `test_database_invariants.py` |
-| exakter immutable Snapshot | `test_admin_workflow_db.py` |
-| leerer Same-Profile-Copy, Lock/409, neue IDs | `test_admin_workflow_routes.py`, `test_workflow_form.py` |
-| LAST-SAVED Preview, no-store, Dirty-Guard | `test_admin_draft_preview.py` |
-| Publish/PRG/Review/Stale/CSRF/400/409 | `test_admin_workflow_routes.py`, `test_workflow_form.py` |
-| CHF Parsing/Rappen/Patient-Preisverbot und Wochen-Familien | `test_admin_week_routes.py` |
-| Browser-A11y und Viewport-Matrix | `test_admin_ux_browser.py` (bestehender Python-Browser-Harness) |
+| Location/Profile-Isolation und Public-ID/404 | `reference_scaffold/tests/test_public_isolation_homoglyphs.py`, `reference_scaffold/tests/test_database_invariants.py` |
+| exakter immutable Snapshot | `reference_scaffold/tests/test_admin_workflow_db.py` |
+| leerer Same-Profile-Copy, Lock/409, neue IDs | `reference_scaffold/tests/test_admin_workflow_routes.py`, `reference_scaffold/tests/test_workflow_form.py` |
+| LAST-SAVED Preview, no-store, Dirty-Guard | `reference_scaffold/tests/test_admin_draft_preview.py` |
+| Publish/PRG/Review/Stale/CSRF/400/409 | `reference_scaffold/tests/test_admin_workflow_routes.py`, `reference_scaffold/tests/test_workflow_form.py` |
+| CHF Parsing/Rappen/Patient-Preisverbot und Wochen-Familien | `reference_scaffold/tests/test_admin_week_routes.py` |
+| Browser-A11y und Viewport-Matrix | `reference_scaffold/tests/test_admin_ux_browser.py` (bestehender Python-Browser-Harness) |
 
 Gates mit verbatim Receipts: vollständiges `pytest`, reale PG16-
 Compose-/Migrationsprüfung, Schema- und Package-Validatoren, Ruff, Bandit,
