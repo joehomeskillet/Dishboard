@@ -93,6 +93,7 @@ def _patient_values(title: str = 'Herbstküche') -> dict[str, Any]:
                             'type_code': type_code,
                             'title': dish_title,
                             'components': ['Blattsalat'],
+                            'allergen_review_status': 'checked',
                         }
                         for type_code, dish_title in types
                     ],
@@ -119,6 +120,7 @@ def _staff_values(title: str = 'Cafeteria Herbst') -> dict[str, Any]:
                                 'type_code': 'MENU_1',
                                 'title': f'Tagesmenü {offset + 1}',
                                 'components': ['Salat'],
+                                'allergen_review_status': 'checked',
                                 'internal_rappen': 950,
                                 'external_rappen': 1450,
                             },
@@ -126,6 +128,7 @@ def _staff_values(title: str = 'Cafeteria Herbst') -> dict[str, Any]:
                                 'type_code': 'VEGGIE',
                                 'title': f'Vegetarisch {offset + 1}',
                                 'components': ['Gemüse'],
+                                'allergen_review_status': 'checked',
                                 'internal_rappen': 850,
                                 'external_rappen': 1350,
                             },
@@ -359,6 +362,31 @@ def test_published_payloads_keep_profile_shapes_and_patient_has_no_cost_tokens(
         for day in staff['days'][:5]
         for option in day['services'][0]['options']
     )
+
+
+def test_publish_rejects_open_option_without_allergen_review_status(
+    database_engine: Engine,
+) -> None:
+    actor_id = _actor_id(database_engine)
+    values = _patient_values()
+    option = values['days'][0]['services'][0]['options'][0]
+    del option['allergen_review_status']
+    version = _save(database_engine, 'patient', values)
+
+    with pytest.raises(
+        WorkflowValidationError,
+        match='Allergendeklaration ist nicht geprüft',
+    ) as error:
+        publish_draft(
+            database_engine,
+            'patient',
+            WEEK_START,
+            expected_row_version=version,
+            actor_id=actor_id,
+            issuer_engine=database_engine,
+        )
+
+    assert error.value.field_name == 'service_0_LUNCH_MENU_1_allergen_reviewed'
 
 
 def test_closure_is_scoped_to_date_profile_and_meal(database_engine: Engine) -> None:
