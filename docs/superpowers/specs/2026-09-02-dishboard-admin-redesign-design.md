@@ -85,9 +85,10 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
   rematerialisiert nur Auto-Klassen und setzt den Review-Status zurück.
 - Publish verweigert ungeprüfte oder stale Component-Versionen. Ein Review
   bestätigt die konkrete Version; bei Änderung muss neu geprüft werden.
-- Der Publish-Snapshot enthält exakt die bestehenden externen Schlüssel und
-  `list[str]`-Werte. Er enthält keine internen IDs, Modi oder Versionen und ist
-  nach Publish unveränderlich.
+- Der Publish-Snapshot folgt exakt dem oben definierten externen verschachtelten
+  Contract: `components` ist `list[str]`, `labels`, `allergens` und `origins`
+  sind Listen von Dicts, und `allergen_review_status` ist ein String. Er enthält
+  keine IDs, Modi oder Versionen und ist nach Publish unveränderlich.
 
 ## 5. Migration und Rückwärtskompatibilität
 
@@ -219,7 +220,7 @@ Named RED-Tests (zuerst rot, danach grün) und Dateien:
 | LAST-SAVED Preview, no-store, Dirty-Guard | `reference_scaffold/tests/test_admin_draft_preview.py` |
 | Publish/PRG/Review/Stale/CSRF/400/409 | `reference_scaffold/tests/test_admin_workflow_routes.py`, `reference_scaffold/tests/test_workflow_form.py` |
 | CHF Parsing/Rappen/Patient-Preisverbot und Wochen-Familien | `reference_scaffold/tests/test_admin_week_routes.py` |
-| Browser-A11y und Viewport-Matrix | `reference_scaffold/tests/test_admin_ux_browser.py` (bestehender Python-Browser-Harness) |
+| Browser-A11y und Viewport-Matrix | `reference_scaffold/tests/test_admin_ux_browser.py` (neu erstellt durch Wiederverwendung der bestehenden Playwright-Muster/Fixtures aus `test_rendered_ui.py`) |
 
 Gates mit verbatim Receipts: vollständiges `pytest`, reale PG16-
 Compose-/Migrationsprüfung, Schema- und Package-Validatoren, Ruff, Bandit,
@@ -249,8 +250,8 @@ oder fehlender Auth-/Browser-Evidenz: BLOCKED, kein Push/Deploy.
 
 ## 11. Selbstprüfung
 
-Diese SDD enthält keine TBD/TODO-Platzhalter und keine pauschale
-„alle Tests pass“-Behauptung. Patient-Raster, Cafeteria-Raster, Preisregeln,
+Diese SDD enthält keine ungelösten oder undefinierten Anweisungen und keine
+pauschale „alle Tests pass“-Behauptung. Patient-Raster, Cafeteria-Raster, Preisregeln,
 Full-Replace-Ausnahme, drei Modi, Preview-Quelle und Publish-Guards sind
 explizit getrennt; `dish_templates` bleibt unangetastet. Jede Implementierung
 muss die oben genannten exact keys, Statuswerte, Fehlercodes und named

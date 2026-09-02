@@ -280,7 +280,7 @@ Playwright patterns and fixtures in `test_rendered_ui.py` with no dependency.
   active publication. Dirty-state and `target="_blank"` assertions belong to
   the reused rendered/browser harness, not route-preview tests.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_catalog_routes.py tests/test_admin_week_routes.py tests/test_admin_workflow_routes.py tests/test_admin_draft_preview.py`; expected FAIL.
-- [ ] Implement the separate workflow blueprint and handlers for dashboard, menu, header, service, component CRUD/search, copy and preview. Resolve `AdminScope` server-side; existing-week handlers derive and verify the week's location, while catalog/create fail if permitted active locations are zero or multiple. Enforce `draft.read`, `draft.write`, `publication.publish`; use public IDs; copy excludes patient prices, resets reviews and never publishes.
+- [ ] Implement the separate workflow blueprint and handlers for dashboard, menu, header, service, component CRUD/search, copy and preview. Resolve `AdminScope` server-side; existing-week handlers derive and verify the week's location, while catalog/create fail if globally active locations are zero or multiple under the current single-location contract. Keep the capability gate separate. Enforce `draft.read`, `draft.write`, `publication.publish`; use public IDs; copy excludes patient prices, resets reviews and never publishes.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_catalog_routes.py tests/test_admin_week_routes.py tests/test_admin_workflow_routes.py tests/test_admin_draft_preview.py -v`; expected PASS.
 - [ ] Stage: `rtk git add reference_scaffold/cafeteria/__init__.py reference_scaffold/cafeteria/admin/routes.py reference_scaffold/cafeteria/admin/workflow_routes.py reference_scaffold/tests/test_component_catalog_routes.py reference_scaffold/tests/test_admin_week_routes.py reference_scaffold/tests/test_admin_workflow_routes.py reference_scaffold/tests/test_admin_draft_preview.py reference_scaffold/tests/test_admin_ux_browser.py`.
 - [ ] Commit: `rtk git commit -m 'feat: add secure scoped admin routes'`.
@@ -339,7 +339,7 @@ Playwright patterns and fixtures in `test_rendered_ui.py` with no dependency.
 
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q`; preserve verbatim output and exit code.
 - [ ] Discovery gate: from the repository root run `rtk rg --files -g 'pyproject.toml' -g 'pytest.ini' -g 'tox.ini' -g '.ruff.toml' -g '.bandit' -g 'Makefile' -g 'package.json' -g 'requirements*.txt' -g '*secret*'`. For every discovered project-configured schema/package validator, Ruff, Bandit, or secret-scan command, run its exact configured command and retain its verbatim receipt. If a required validator has no discovered configuration or executable command, mark that gate BLOCKED with the missing configuration or executable named; do not claim the gate passed.
-- [ ] Run `gitnexus_detect_changes()` and confirm only planned symbols/flows changed. Run `rtk ocr review --repo /nvmetank1/projects/menuplan --from origin/main --to docs/admin-redesign-plan-v1 --format json --audience agent` and record `OCR:` summary.
+- [ ] Run `gitnexus_detect_changes()` and confirm only planned symbols/flows changed. Run `rtk ocr review --repo /nvmetank1/projects/menuplan --from github/main --to docs/admin-redesign-plan-v1 --format json --audience agent` and record `OCR:` summary.
 - [ ] Obtain independent read-only AGY and Grok reviews of the diff/plan; HIGH/CRITICAL finding blocks progression.
 
 ### Task 12: PG16 migration, restore and deployment proof
@@ -350,7 +350,7 @@ Playwright patterns and fixtures in `test_rendered_ui.py` with no dependency.
 - [ ] Restore v12 probe data, run the documented restore path, verify exact legacy/free-text behavior and no accidental `dish_templates` change.
 - [ ] Run Chromium and existing CI-browser checks over all four viewports, keyboard/focus, errors/retry, Copy/Preview/Publish; capture authenticated admin smoke screenshots and a proof ZIP.
 - [ ] Deploy only after all receipts exist: backup ID, schema-13 migration, immutable image digest, healthcheck and authenticated admin smoke. Record rollback/restore probe; no claim from `pytest` alone.
-- [ ] Final verification: `rtk claude-wp-verify --branch docs/admin-redesign-plan-v1 --base origin/main`; confirm non-empty plan diff, no staged-leak, and exact ownership.
+- [ ] Final verification: `rtk claude-wp-verify --branch docs/admin-redesign-plan-v1 --base github/main`; confirm non-empty plan diff, no staged-leak, and exact ownership.
 
 ## Self-review checklist
 
