@@ -10,6 +10,7 @@ from collections.abc import Iterator
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 import pytest
 from sqlalchemy import Engine, create_engine, text
@@ -57,6 +58,30 @@ def database_engine() -> Iterator[Engine]:
         backup_password=BACKUP_PASSWORD,
         auth_issuer_password=ISSUER_PASSWORD,
     )
+    try:
+        yield engine
+    finally:
+        _drop_schema(engine)
+        engine.dispose()
+
+
+@pytest.fixture
+def v12_database_engine() -> Iterator[Engine]:
+    if not DATABASE_URL:
+        pytest.skip('TEST_DATABASE_URL für eine isolierte PostgreSQL-Testdatenbank fehlt.')
+    engine = create_engine(DATABASE_URL, poolclass=NullPool, pool_pre_ping=True)
+    _drop_schema(engine)
+    database.provision_database_roles(
+        engine,
+        app_password=APP_PASSWORD,
+        backup_password=BACKUP_PASSWORD,
+        auth_issuer_password=ISSUER_PASSWORD,
+    )
+    for migration in database.migration_plan(ROOT / 'database' / 'schema.sql'):
+        if migration.version > 12:
+            break
+        database._execute_migration(engine, migration)
+    database._execute_script(engine, str(ROOT / 'database' / 'seed.sql'))
     try:
         yield engine
     finally:
@@ -122,6 +147,88 @@ def _insert_item(engine: Engine, service_id: int) -> int:
                 {'service_id': service_id, 'external_id': f'TEST-{service_id}'},
             ).scalar_one()
         )
+
+
+def _insert_legacy_item(
+    engine: Engine,
+    location_code: str,
+    profile_code: str,
+    external_id: str,
+    components: tuple[str, ...],
+    week_start: str,
+) -> int:
+    with engine.begin() as connection:
+        week_id = int(
+            connection.execute(
+                text(
+                    '''
+                    INSERT INTO cafeteria.menu_weeks(location_id, profile_id, week_start)
+                    SELECT l.id, p.id, CAST(:week_start AS date)
+                    FROM cafeteria.locations l
+                    JOIN cafeteria.offer_profiles p ON p.code=:profile_code
+                    WHERE l.code=:location_code
+                    RETURNING id
+                    '''
+                ),
+                {
+                    'location_code': location_code,
+                    'profile_code': profile_code,
+                    'week_start': week_start,
+                },
+            ).scalar_one()
+        )
+        service_id = int(
+            connection.execute(
+                text(
+                    '''
+                    INSERT INTO cafeteria.menu_services(menu_week_id, service_date, meal_period_id)
+                    SELECT :week_id, CAST(:week_start AS date), id
+                    FROM cafeteria.meal_periods WHERE code='LUNCH'
+                    RETURNING id
+                    '''
+                ),
+                {'week_id': week_id, 'week_start': week_start},
+            ).scalar_one()
+        )
+        item_id = int(
+            connection.execute(
+                text(
+                    '''
+                    INSERT INTO cafeteria.menu_items(
+                        service_id, menu_type_id, external_id, title, sort_order
+                    )
+                    SELECT :service_id, id, :external_id, 'Legacy-Gericht', 1
+                    FROM cafeteria.menu_types WHERE code='MENU_1'
+                    RETURNING id
+                    '''
+                ),
+                {'service_id': service_id, 'external_id': external_id},
+            ).scalar_one()
+        )
+        for sort_order, component_text in enumerate(components, start=1):
+            connection.execute(
+                text(
+                    '''
+                    INSERT INTO cafeteria.menu_item_components(menu_item_id, sort_order, component_text)
+                    VALUES (:item_id, :sort_order, :component_text)
+                    '''
+                ),
+                {
+                    'item_id': item_id,
+                    'sort_order': sort_order,
+                    'component_text': component_text,
+                },
+            )
+    return item_id
+
+
+def _migrate_v13(engine: Engine) -> None:
+    migration = next(
+        migration
+        for migration in database.migration_plan(ROOT / 'database' / 'schema.sql')
+        if migration.version == 13
+    )
+    database._execute_migration(engine, migration)
 
 
 def _insert_revision(
@@ -2174,3 +2281,238 @@ def test_config_database_paths_are_repo_local(monkeypatch: pytest.MonkeyPatch) -
         assert resolved.is_file(), path
         assert '/app/' not in resolved.as_posix()
         assert 'database' in resolved.parts
+
+
+@LIVE_DATABASE
+def test_v13_backfill_keeps_locations_profiles_and_legacy_metadata_unambiguous(
+    v12_database_engine: Engine,
+) -> None:
+    with v12_database_engine.begin() as connection:
+        connection.execute(
+            text("INSERT INTO cafeteria.locations(code, name) VALUES ('WORB', 'Klinik Worb')")
+        )
+    single_item = _insert_legacy_item(
+        v12_database_engine,
+        'KIRCHLINDACH',
+        'patient',
+        'T2-K-P-SINGLE',
+        ('Aqua',),
+        '2026-09-07',
+    )
+    multi_item = _insert_legacy_item(
+        v12_database_engine,
+        'KIRCHLINDACH',
+        'patient',
+        'T2-K-P-MULTI',
+        ('Reis', 'Linsen'),
+        '2026-09-14',
+    )
+    _insert_legacy_item(
+        v12_database_engine,
+        'KIRCHLINDACH',
+        'staff_guest',
+        'T2-K-S',
+        ('Pasta',),
+        '2026-09-21',
+    )
+    _insert_legacy_item(
+        v12_database_engine,
+        'WORB',
+        'patient',
+        'T2-W-P',
+        ('Pаsta',),
+        '2026-09-07',
+    )
+    _insert_legacy_item(
+        v12_database_engine,
+        'WORB',
+        'staff_guest',
+        'T2-W-S',
+        ('Pasta',),
+        '2026-09-14',
+    )
+    with v12_database_engine.begin() as connection:
+        for item_id in (single_item, multi_item):
+            connection.execute(
+                text(
+                    '''
+                    INSERT INTO cafeteria.menu_item_allergens(menu_item_id, allergen_id, presence)
+                    SELECT :item_id, a.id, v.presence
+                    FROM cafeteria.allergens a
+                    CROSS JOIN (VALUES ('may_contain'), ('contains')) AS v(presence)
+                    WHERE a.code='GLUTEN'
+                    '''
+                ),
+                {'item_id': item_id},
+            )
+            connection.execute(
+                text(
+                    '''
+                    INSERT INTO cafeteria.menu_item_labels(menu_item_id, label_id)
+                    SELECT :item_id, id FROM cafeteria.dietary_labels WHERE code='VEGAN'
+                    '''
+                ),
+                {'item_id': item_id},
+            )
+
+    _migrate_v13(v12_database_engine)
+
+    with v12_database_engine.begin() as connection:
+        connection.execute(
+            text(
+                '''
+                INSERT INTO cafeteria.menu_item_components(menu_item_id, sort_order, component_text)
+                VALUES (:item_id, 2, 'Nicht katalogisiert')
+                '''
+            ),
+            {'item_id': single_item},
+        )
+    with v12_database_engine.connect() as connection:
+        links = connection.execute(
+            text(
+                '''
+                SELECT l.code, p.code, mic.component_text, mc.public_id, mc.profile_scope
+                FROM cafeteria.menu_item_components mic
+                JOIN cafeteria.menu_items i ON i.id=mic.menu_item_id
+                JOIN cafeteria.menu_services s ON s.id=i.service_id
+                JOIN cafeteria.menu_weeks w ON w.id=s.menu_week_id
+                JOIN cafeteria.locations l ON l.id=w.location_id
+                JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+                JOIN cafeteria.menu_components mc ON mc.id=mic.component_id
+                WHERE i.external_id LIKE 'T2-%'
+                ORDER BY l.code, p.code, mic.component_text
+                '''
+            )
+        ).all()
+        modes = connection.execute(
+            text(
+                '''
+                SELECT external_id, allergen_mode, origin_mode, label_mode
+                FROM cafeteria.menu_items
+                WHERE external_id IN ('T2-K-P-SINGLE', 'T2-K-P-MULTI')
+                ORDER BY external_id
+                '''
+            )
+        ).all()
+        metadata = connection.execute(
+            text(
+                '''
+                SELECT mc.name, ca.presence, dl.code
+                FROM cafeteria.menu_components mc
+                LEFT JOIN cafeteria.component_allergens ca ON ca.component_id=mc.id
+                LEFT JOIN cafeteria.component_labels cl ON cl.component_id=mc.id
+                LEFT JOIN cafeteria.dietary_labels dl ON dl.id=cl.label_id
+                WHERE mc.name IN ('Aqua', 'Reis', 'Linsen')
+                ORDER BY mc.name
+                '''
+            )
+        ).all()
+        legacy_counts = connection.execute(
+            text(
+                '''
+                SELECT i.external_id,
+                       (SELECT count(*) FROM cafeteria.menu_item_allergens mia WHERE mia.menu_item_id=i.id),
+                       (SELECT count(*) FROM cafeteria.menu_item_labels mil WHERE mil.menu_item_id=i.id)
+                FROM cafeteria.menu_items i
+                WHERE i.external_id IN ('T2-K-P-SINGLE', 'T2-K-P-MULTI')
+                ORDER BY i.external_id
+                '''
+            )
+        ).all()
+        unmatched = connection.execute(
+            text(
+                '''
+                SELECT component_id, component_row_version, component_text
+                FROM cafeteria.menu_item_components
+                WHERE menu_item_id=:item_id AND sort_order=2
+                '''
+            ),
+            {'item_id': single_item},
+        ).one()
+
+    assert [(row[0], row[1], row[2], row[4]) for row in links] == [
+        ('KIRCHLINDACH', 'patient', 'Aqua', 'patient'),
+        ('KIRCHLINDACH', 'patient', 'Linsen', 'patient'),
+        ('KIRCHLINDACH', 'patient', 'Reis', 'patient'),
+        ('KIRCHLINDACH', 'staff_guest', 'Pasta', 'staff_guest'),
+        ('WORB', 'patient', 'Pаsta', 'patient'),
+        ('WORB', 'staff_guest', 'Pasta', 'staff_guest'),
+    ]
+    public_ids = [str(row[3]) for row in links]
+    assert len(set(public_ids)) == len(public_ids)
+    assert all(UUID(public_id).version == 4 for public_id in public_ids)
+    assert [tuple(row) for row in modes] == [
+        ('T2-K-P-MULTI', 'manual', 'manual', 'manual'),
+        ('T2-K-P-SINGLE', 'manual', 'manual', 'manual'),
+    ]
+    assert [tuple(row) for row in metadata] == [
+        ('Aqua', 'contains', 'VEGAN'),
+        ('Linsen', None, None),
+        ('Reis', None, None),
+    ]
+    assert [tuple(row) for row in legacy_counts] == [
+        ('T2-K-P-MULTI', 2, 1),
+        ('T2-K-P-SINGLE', 2, 1),
+    ]
+    assert tuple(unmatched) == (None, None, 'Nicht katalogisiert')
+
+
+@LIVE_DATABASE
+def test_component_links_require_same_location_and_common_or_matching_scope(
+    database_engine: Engine,
+) -> None:
+    staff_week = _insert_week(database_engine, 'staff_guest')
+    staff_service = _insert_service(database_engine, staff_week, '2026-08-31', 'LUNCH')
+    staff_item = _insert_item(database_engine, staff_service)
+    with database_engine.begin() as connection:
+        location_id = int(
+            connection.execute(
+                text("SELECT id FROM cafeteria.locations WHERE code='KIRCHLINDACH'")
+            ).scalar_one()
+        )
+        common_component = int(
+            connection.execute(
+                text(
+                    '''
+                    INSERT INTO cafeteria.menu_components(location_id, profile_scope, category, name)
+                    VALUES (:location_id, 'common', 'other', 'Gemeinsam')
+                    RETURNING id
+                    '''
+                ),
+                {'location_id': location_id},
+            ).scalar_one()
+        )
+        patient_component = int(
+            connection.execute(
+                text(
+                    '''
+                    INSERT INTO cafeteria.menu_components(location_id, profile_scope, category, name)
+                    VALUES (:location_id, 'patient', 'other', 'Nur Patient')
+                    RETURNING id
+                    '''
+                ),
+                {'location_id': location_id},
+            ).scalar_one()
+        )
+        connection.execute(
+            text(
+                '''
+                INSERT INTO cafeteria.menu_item_components(
+                    menu_item_id, sort_order, component_text, component_id, component_row_version
+                ) VALUES (:item_id, 1, 'Gemeinsam', :component_id, 1)
+                '''
+            ),
+            {'item_id': staff_item, 'component_id': common_component},
+        )
+    with pytest.raises(DBAPIError, match='Location|Profil|Scope'):
+        with database_engine.begin() as connection:
+            connection.execute(
+                text(
+                    '''
+                    INSERT INTO cafeteria.menu_item_components(
+                        menu_item_id, sort_order, component_text, component_id, component_row_version
+                    ) VALUES (:item_id, 2, 'Nur Patient', :component_id, 1)
+                    '''
+                ),
+                {'item_id': staff_item, 'component_id': patient_component},
+            )

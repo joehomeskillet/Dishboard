@@ -112,6 +112,20 @@ ASCII_IL_AND_FORMAT_KEYS = (
     pytest.param('PRI\u2066CE', 1250, id='bidi-isolate-price-key'),
 )
 
+COMPONENT_IDENTIFIER_PROBES = (
+    pytest.param('component_id', 42, id='internal-numeric-id'),
+    pytest.param(
+        'component_public_id',
+        '00000000-0000-4000-8000-00000000000а',
+        id='public-id-cyrillic-a-homoglyph',
+    ),
+    pytest.param(
+        'component_publіc_id',
+        '00000000-0000-4000-8000-000000000001',
+        id='public-id-cyrillic-i-key',
+    ),
+)
+
 
 def patient_snapshot_with_probe(field: str, value: object) -> dict:
     snapshot = deepcopy(patient_snapshot())
@@ -256,6 +270,20 @@ def test_patient_snapshot_still_rejects_ascii_il_cf_and_bidi_keys(key: str, valu
 
     with pytest.raises(ValueError, match='unzulässig'):
         validate_snapshot_payload('patient', snapshot)
+
+
+@pytest.mark.parametrize('profile_code', ('patient', 'staff_guest'))
+@pytest.mark.parametrize(('key', 'value'), COMPONENT_IDENTIFIER_PROBES)
+def test_external_snapshots_reject_internal_and_homoglyph_component_identifiers(
+    profile_code: str,
+    key: str,
+    value: object,
+) -> None:
+    snapshot = deepcopy(patient_snapshot() if profile_code == 'patient' else cafeteria_snapshot())
+    snapshot['days'][0]['services'][0]['options'][0][key] = value
+
+    with pytest.raises(ValueError, match='unzulässig'):
+        validate_snapshot_payload(profile_code, snapshot)
 
 
 @pytest.mark.parametrize(('field', 'value'), CURRENCY_SYMBOL_VALUE_PROBES)
