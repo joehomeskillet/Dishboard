@@ -498,4 +498,53 @@ BEFORE INSERT OR UPDATE OF menu_item_id, component_id ON menu_item_components
 FOR EACH ROW
 EXECUTE FUNCTION validate_menu_item_component_scope();
 
+CREATE OR REPLACE FUNCTION protect_menu_component_identity()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = cafeteria, pg_temp
+AS $protect_menu_component_identity$
+BEGIN
+    IF NEW.location_id IS DISTINCT FROM OLD.location_id THEN
+        RAISE EXCEPTION 'Die Komponenten-Location ist unveraenderlich.'
+            USING ERRCODE='23514',
+                  CONSTRAINT='menu_components_location_identity';
+    END IF;
+    IF NEW.profile_scope IS DISTINCT FROM OLD.profile_scope THEN
+        RAISE EXCEPTION 'Der Komponenten-Profil-Scope ist unveraenderlich.'
+            USING ERRCODE='23514',
+                  CONSTRAINT='menu_components_profile_scope_identity';
+    END IF;
+    RETURN NEW;
+END;
+$protect_menu_component_identity$;
+
+CREATE OR REPLACE FUNCTION protect_menu_week_location_identity()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = cafeteria, pg_temp
+AS $protect_menu_week_location_identity$
+BEGIN
+    IF NEW.location_id IS DISTINCT FROM OLD.location_id THEN
+        RAISE EXCEPTION 'Die Wochen-Location ist unveraenderlich.'
+            USING ERRCODE='23514',
+                  CONSTRAINT='menu_weeks_location_identity';
+    END IF;
+    RETURN NEW;
+END;
+$protect_menu_week_location_identity$;
+
+DROP TRIGGER IF EXISTS trg_menu_components_identity ON menu_components;
+CREATE TRIGGER trg_menu_components_identity
+BEFORE UPDATE OF location_id, profile_scope ON menu_components
+FOR EACH ROW
+EXECUTE FUNCTION protect_menu_component_identity();
+
+DROP TRIGGER IF EXISTS trg_menu_weeks_location_identity ON menu_weeks;
+CREATE TRIGGER trg_menu_weeks_location_identity
+BEFORE UPDATE OF location_id ON menu_weeks
+FOR EACH ROW
+EXECUTE FUNCTION protect_menu_week_location_identity();
+
 COMMIT;

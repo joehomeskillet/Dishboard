@@ -600,6 +600,105 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION validate_menu_item_component_scope()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = cafeteria, pg_temp
+AS $validate_menu_item_component_scope$
+DECLARE
+    item_location_id bigint;
+    item_profile_scope text;
+    component_location_id bigint;
+    component_profile_scope text;
+BEGIN
+    IF NEW.component_id IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT week_row.location_id, profile.code
+    INTO item_location_id, item_profile_scope
+    FROM menu_items item
+    JOIN menu_services service ON service.id=item.service_id
+    JOIN menu_weeks week_row ON week_row.id=service.menu_week_id
+    JOIN offer_profiles profile ON profile.id=week_row.profile_id
+    WHERE item.id=NEW.menu_item_id
+    FOR KEY SHARE OF item, service, week_row;
+
+    IF NOT FOUND THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT component.location_id, component.profile_scope
+    INTO component_location_id, component_profile_scope
+    FROM menu_components component
+    WHERE component.id=NEW.component_id
+    FOR KEY SHARE OF component;
+
+    IF NOT FOUND THEN
+        RETURN NEW;
+    END IF;
+
+    IF component_location_id IS DISTINCT FROM item_location_id THEN
+        RAISE EXCEPTION
+            'Komponenten-Location % passt nicht zur Menue-Location %.',
+            component_location_id,
+            item_location_id
+            USING ERRCODE='23514',
+                  CONSTRAINT='menu_item_components_scope';
+    END IF;
+
+    IF component_profile_scope <> 'common'
+       AND component_profile_scope IS DISTINCT FROM item_profile_scope THEN
+        RAISE EXCEPTION
+            'Komponenten-Profil-Scope % ist fuer Menueprofil % nicht erlaubt.',
+            component_profile_scope,
+            item_profile_scope
+            USING ERRCODE='23514',
+                  CONSTRAINT='menu_item_components_scope';
+    END IF;
+
+    RETURN NEW;
+END;
+$validate_menu_item_component_scope$;
+
+CREATE OR REPLACE FUNCTION protect_menu_component_identity()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = cafeteria, pg_temp
+AS $protect_menu_component_identity$
+BEGIN
+    IF NEW.location_id IS DISTINCT FROM OLD.location_id THEN
+        RAISE EXCEPTION 'Die Komponenten-Location ist unveraenderlich.'
+            USING ERRCODE='23514',
+                  CONSTRAINT='menu_components_location_identity';
+    END IF;
+    IF NEW.profile_scope IS DISTINCT FROM OLD.profile_scope THEN
+        RAISE EXCEPTION 'Der Komponenten-Profil-Scope ist unveraenderlich.'
+            USING ERRCODE='23514',
+                  CONSTRAINT='menu_components_profile_scope_identity';
+    END IF;
+    RETURN NEW;
+END;
+$protect_menu_component_identity$;
+
+CREATE OR REPLACE FUNCTION protect_menu_week_location_identity()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = cafeteria, pg_temp
+AS $protect_menu_week_location_identity$
+BEGIN
+    IF NEW.location_id IS DISTINCT FROM OLD.location_id THEN
+        RAISE EXCEPTION 'Die Wochen-Location ist unveraenderlich.'
+            USING ERRCODE='23514',
+                  CONSTRAINT='menu_weeks_location_identity';
+    END IF;
+    RETURN NEW;
+END;
+$protect_menu_week_location_identity$;
+
 CREATE OR REPLACE FUNCTION validate_menu_item_price()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -1828,6 +1927,12 @@ DROP TRIGGER IF EXISTS trg_menu_weeks_identity ON menu_weeks;
 CREATE TRIGGER trg_menu_weeks_identity BEFORE UPDATE ON menu_weeks
 FOR EACH ROW EXECUTE FUNCTION validate_menu_week();
 
+DROP TRIGGER IF EXISTS trg_menu_weeks_location_identity ON menu_weeks;
+CREATE TRIGGER trg_menu_weeks_location_identity
+BEFORE UPDATE OF location_id ON menu_weeks
+FOR EACH ROW
+EXECUTE FUNCTION protect_menu_week_location_identity();
+
 DROP TRIGGER IF EXISTS trg_menu_weeks_version ON menu_weeks;
 CREATE TRIGGER trg_menu_weeks_version BEFORE UPDATE ON menu_weeks
 FOR EACH ROW EXECUTE FUNCTION bump_row_version_and_updated_at();
@@ -1843,6 +1948,18 @@ FOR EACH ROW EXECUTE FUNCTION bump_row_version_and_updated_at();
 DROP TRIGGER IF EXISTS trg_dish_templates_updated_at ON dish_templates;
 CREATE TRIGGER trg_dish_templates_updated_at BEFORE UPDATE ON dish_templates
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_menu_components_identity ON menu_components;
+CREATE TRIGGER trg_menu_components_identity
+BEFORE UPDATE OF location_id, profile_scope ON menu_components
+FOR EACH ROW
+EXECUTE FUNCTION protect_menu_component_identity();
+
+DROP TRIGGER IF EXISTS trg_menu_item_components_scope ON menu_item_components;
+CREATE TRIGGER trg_menu_item_components_scope
+BEFORE INSERT OR UPDATE OF menu_item_id, component_id ON menu_item_components
+FOR EACH ROW
+EXECUTE FUNCTION validate_menu_item_component_scope();
 
 DROP TRIGGER IF EXISTS trg_menu_items_validate ON menu_items;
 CREATE TRIGGER trg_menu_items_validate BEFORE INSERT OR UPDATE ON menu_items
