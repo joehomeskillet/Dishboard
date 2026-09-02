@@ -132,16 +132,8 @@ def read_password_file(path: str) -> str:
 
 
 def _is_critical_request(url: str) -> bool:
-    """Check if a request URL is for a critical resource (not favicon, etc)."""
-    # Ignore non-critical assets
-    ignore_patterns = [
-        "/favicon.ico",
-        ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".woff", ".woff2", ".ttf", ".eot",
-    ]
-    for pattern in ignore_patterns:
-        if pattern in url:
-            return False
-    return True
+    """Every failed response counts, except the browser's implicit favicon probe."""
+    return not url.rstrip("/").endswith("/favicon.ico")
 
 
 def perform_local_login(
