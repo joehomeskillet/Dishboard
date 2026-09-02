@@ -1,42 +1,131 @@
 :root {
-  --sh-teal-950: #06343b;
-  --sh-teal-900: #0a4149;
-  --sh-teal-800: #15555e;
-  --sh-teal-700: #2d6a72;
-  --sh-teal-100: #dfeeed;
-  --sh-teal-050: #eff7f6;
-  --sh-magenta: #c20b61;
-  --sh-magenta-soft: #f7e4ed;
-  --sh-green: #247a53;
-  --sh-green-soft: #e4f3ea;
+  /* Primary color - from Therapieplan magenta/burgundy */
+  --sh-primary: #8C1C4B;
+  --sh-primary-2: #A50044;
+  --sh-primary-3: #B0496F;
+  --sh-primary-4: #CC82A0;
+  --sh-primary-5: #D5A6B9;
+  
+  /* Teal scale - from Therapieplan secondary */
+  --sh-teal-950: #1A363A;
+  --sh-teal-900: #224449;
+  --sh-teal-800: #2B545C;
+  --sh-teal-700: #35666F;
+  --sh-teal-100: #DCEDF0;
+  --sh-teal-050: #F1F7F8;
+  
+  /* Secondary color - Therapieplan teal */
+  --sh-secondary: #35666F;
+  --sh-secondary-2: #007088;
+  --sh-secondary-3: #9BC1C9;
+  
+  /* Magenta alias for backwards compatibility */
+  --sh-magenta: #8C1C4B;
+  --sh-magenta-soft: #F6E7EE;
+  
+  /* Green - from Therapieplan accent */
+  --sh-green: #3E6B44;
+  --sh-green-soft: #EAF0E8;
+  
+  /* Amber - kept but harmonised */
   --sh-amber: #986500;
   --sh-amber-soft: #fff0c9;
-  --sh-blue: #276b92;
-  --sh-blue-soft: #e3f0f7;
-  --sh-canvas: #edf4f2;
-  --sh-canvas-strong: #edf2f1;
-  --sh-panel: #ffffff;
-  --sh-panel-soft: #f4f8f7;
-  --sh-panel-quiet: #f8fbfa;
-  --sh-border: #ccdcda;
-  --sh-border-warm: #e7ce86;
-  --sh-ink: #12363b;
-  --sh-ink-muted: #58757a;
   --sh-amber-ink: #715000;
+  
+  /* Blue - mapped to Therapieplan secondary-2 */
+  --sh-blue: #007088;
+  --sh-blue-soft: #DCEDF0;
+  
+  /* Neutral scale - from Therapieplan */
+  --sh-neutral: #383027;
+  --sh-neutral-2: #59503F;
+  --sh-neutral-3: #747068;
+  --sh-neutral-4: #B7B3AA;
+  --sh-neutral-5: #D5D1CB;
+  
+  /* Canvas and panel backgrounds */
+  --sh-canvas: #F8F8F7;
+  --sh-canvas-strong: #EFEDE9;
+  --sh-panel: #ffffff;
+  --sh-panel-soft: #FBFAF8;
+  --sh-panel-quiet: #F8F8F7;
+  
+  /* Border and text colors */
+  --sh-border: #D5D1CB;
+  --sh-border-warm: #e7ce86;
+  --sh-ink: #383027;
+  --sh-ink-muted: #747068;
   --sh-white: #ffffff;
-  --sh-signage-start: #052f36;
-  --sh-signage-middle: #0a4850;
-  --sh-signage-end: #123b55;
+  
+  /* Signage dark gradient - from Therapieplan teal scale */
+  --sh-signage-start: #1A363A;
+  --sh-signage-middle: #224449;
+  --sh-signage-end: #2B545C;
+  
+  /* Status accent */
   --sh-status: #62d996;
-  --sh-shadow: 0 1px 2px rgba(6, 52, 59, .06), 0 20px 48px rgba(6, 52, 59, .12);
-  --sh-shadow-soft: 0 1px 2px rgba(6, 52, 59, .05), 0 12px 30px rgba(6, 52, 59, .08);
-  --sh-focus: 0 0 0 3px var(--sh-panel), 0 0 0 6px var(--sh-magenta);
-  --sh-radius-sm: 10px;
-  --sh-radius-md: 16px;
-  --sh-radius-lg: 28px;
-  --sh-font: Aptos, "Segoe UI Variable", "Segoe UI", ui-sans-serif, sans-serif;
-  --sh-font-display: "Aptos Display", Aptos, "Segoe UI Variable Display", "Segoe UI", ui-sans-serif, sans-serif;
+  
+  /* Shadows - from Therapieplan reference */
+  --sh-shadow: 0 2px 10px rgba(56, 48, 39, .06), 0 3px 14px rgba(56, 48, 39, .07);
+  --sh-shadow-soft: 0 2px 10px rgba(56, 48, 39, .06);
+  
+  /* Focus ring - uses primary */
+  --sh-focus: 0 0 0 3px var(--sh-panel), 0 0 0 6px var(--sh-primary);
+  
+  /* Border radius - from Therapieplan */
+  --sh-radius-sm: 6px;
+  --sh-radius-md: 10px;
+  --sh-radius-lg: 16px;
+  
+  /* Typography - Fira Sans self-hosted */
+  --sh-font: "Fira Sans", Aptos, "Segoe UI Variable", "Segoe UI", ui-sans-serif, sans-serif;
+  --sh-font-display: "Fira Sans", Aptos, "Segoe UI Variable Display", "Segoe UI", ui-sans-serif, sans-serif;
 }
+
+/* Fira Sans self-hosted font-face declarations */
+@font-face {
+  font-family: "Fira Sans";
+  src: local("Fira Sans"), url("/static/fonts/fira-sans-400.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Fira Sans";
+  src: local("Fira Sans Medium"), url("/static/fonts/fira-sans-500.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Fira Sans";
+  src: local("Fira Sans SemiBold"), url("/static/fonts/fira-sans-600.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Fira Sans";
+  src: local("Fira Sans Bold"), url("/static/fonts/fira-sans-700.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+
+
+/* Fira Sans font-face declarations */
+
+
+
+
+
+
+
+
 
 * { box-sizing: border-box; }
 html { min-height: 100%; color-scheme: light; background: var(--sh-canvas); }
