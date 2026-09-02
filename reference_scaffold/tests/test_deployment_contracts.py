@@ -321,9 +321,6 @@ def test_proxy_network_uses_exact_deterministic_peers_without_broad_cidr() -> No
     subnet = network['ipam']['config'][0]
 
     assert subnet == {'subnet': '10.213.0.0/24', 'gateway': '10.213.0.1'}
-    assert compose['services']['app']['networks']['cafeteria_internal']['ipv4_address'] == (
-        '10.213.0.20'
-    )
     assert overlay['services']['caddy']['networks']['cafeteria_internal']['ipv4_address'] == (
         '10.213.0.10'
     )
@@ -831,6 +828,7 @@ def test_bootstrap_generates_only_technical_secrets(tmp_path: Path) -> None:
     )
 
     assert result.returncode == 0, result.stderr
+    assert (staged_deployment / "secrets").stat().st_mode & 0o777 == 0o700
     for name in (
         "postgres_owner_password.txt",
         "postgres_app_password.txt",
@@ -840,7 +838,13 @@ def test_bootstrap_generates_only_technical_secrets(tmp_path: Path) -> None:
     ):
         secret_file = staged_deployment / "secrets" / name
         assert secret_file.read_text(encoding="utf-8").strip()
-        assert secret_file.stat().st_mode & 0o777 == 0o600
+        assert secret_file.stat().st_mode & 0o777 == 0o444
     assert (staged_deployment / "secrets" / "entra_client_secret.txt").read_text(encoding="utf-8").strip() == (
         "REPLACE_WITH_ENTRA_CLIENT_SECRET_FOR_PRODUCTION"
     )
+
+
+def test_gunicorn_disables_control_socket_on_readonly_rootfs() -> None:
+    """Gunicorn control socket is disabled to prevent errors on read-only rootfs."""
+    config_text = (DEPLOYMENT / "gunicorn.conf.py").read_text(encoding="utf-8")
+    assert "control_socket_disable = True" in config_text

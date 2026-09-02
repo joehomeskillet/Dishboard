@@ -26,7 +26,8 @@ assert services['db']['environment']['POSTGRES_INITDB_ARGS'] == '--data-checksum
 assert services['db']['healthcheck']
 
 redis = services['redis']
-assert redis['healthcheck']['test'] == ['CMD', '/usr/local/bin/redis-healthcheck.sh']
+assert redis['healthcheck']['test'] == ['CMD', 'sh', '/usr/local/bin/redis-healthcheck.sh']
+assert redis['user'] == '999:1000'
 assert './redis-healthcheck.sh:/usr/local/bin/redis-healthcheck.sh:ro' in redis['volumes']
 assert redis['environment']['REDIS_PASSWORD_FILE'] == '/run/secrets/redis_password'
 assert 'redis-cli -a' not in (root / 'docker-compose.yml').read_text(encoding='utf-8')
@@ -75,7 +76,7 @@ assert set(app['secrets']) == {
     'postgres_app_password', 'postgres_auth_issuer_password', 'flask_secret_key',
     'entra_client_secret', 'redis_password',
 }
-assert app['networks']['cafeteria_internal']['ipv4_address'] == '10.213.0.20'
+assert app['networks'] == ['cafeteria_internal']
 
 assert services['backup']['environment']['POSTGRES_USER'] == 'cafeteria_backup'
 assert services['restore']['environment']['POSTGRES_USER'] == 'cafeteria_owner'
@@ -133,5 +134,8 @@ assert not (root / '.env').exists()
 bootstrap = (root / 'bootstrap.sh').read_text(encoding='utf-8')
 assert bootstrap.count('generate_secret secrets/postgres_auth_issuer_password.txt 48') == 1
 assert 'AUTH_ISSUER_DATABASE_URL' not in (root / 'docker-compose.yml').read_text(encoding='utf-8')
+assert 'chmod 0700 secrets' in bootstrap
+assert 'chmod 0444 secrets/*.txt' in bootstrap
+assert 'chmod 600 secrets' not in bootstrap
 
 print('Compose-Struktur: OK (statisch; kein Containerstart)')

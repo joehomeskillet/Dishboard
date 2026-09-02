@@ -25,6 +25,7 @@ Der Demo-Modus darf nie mit `APP_ENV=production` verwendet werden. Player-URLs a
 ## Produktion
 
 `bootstrap.sh` erzeugt nur technische Secrets und kopiert die produktionssicheren Defaults nach `.env`. Es provisioniert keine Benutzer. Der lokale Provider ist fuer den ersten Start aktiv; Entra bleibt deaktiviert, bis reale Tenant-ID, Client-ID und Client Secret gesetzt sind. Sobald `ENTRA_ENABLED=true` gilt, lehnt der App-Entrypoint fehlende oder bekannte Entra-Platzhalter ab. Demo-Werte, Abweichungen vom exakten oeffentlichen Ursprung, mutable Images und unsichere Session-Cookies werden immer abgelehnt. Der Migrationsdienst erzwingt separat `APP_ENV=migration` und erhaelt ausschliesslich die vier PostgreSQL-Secrets fuer Owner, App, Backup und Auth-Issuer. Die Issuer-Verbindungs-URL wird nur im Speicher aus dem dedizierten Passwort-File und dem normalen Datenbankziel gebildet; eine persistierte `AUTH_ISSUER_DATABASE_URL` ist verboten.
+Secrets werden als 0700-Verzeichnis vom root gehörtet und als 0444-Dateien pro Service bind-mounted; App und Migrate laufen als UID 10001, Redis als 999:1000, Healthchecks via `sh` executable.
 
 Das feste interne Netz reserviert `10.213.0.10` fuer das optionale
 Compose-Caddy-Overlay und `10.213.0.20` fuer die App. Bei einem Caddy auf dem
@@ -42,7 +43,7 @@ docker build --iidfile /tmp/dishboard-image-id --file Dockerfile ..
 docker compose config
 docker compose up -d --pull never
 docker compose ps
-docker compose run --rm app python /app/manage.py provision-local-user --actor deployment-bootstrap --username admin --display-name Administrator --role Cafeteria.Admin
+docker compose run --rm --no-deps app python /app/manage.py provision-local-user --actor deployment-bootstrap --username admin --display-name Administrator --role Cafeteria.Admin
 ```
 
 Der letzte Befehl fragt das Passwort interaktiv ab. Danach leitet `/auth/login` auf `/auth/local` um. `caddy/Caddyfile.host.example` ersetzt den bisherigen statischen Dishboard-VHost und proxyt ausschliesslich auf `127.0.0.1:8789`. Vor dem Reload die vorhandene VHost-Datei sichern und `caddy validate --config /etc/caddy/Caddyfile` ausfuehren. Das Compose-Caddy-Overlay ist nur fuer Hosts ohne bestehenden Listener auf 80/443 bestimmt.

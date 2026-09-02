@@ -28,6 +28,7 @@ generate_secret secrets/redis_password.txt 48
 if [ ! -f secrets/entra_client_secret.txt ]; then
   printf '%s\n' 'REPLACE_WITH_ENTRA_CLIENT_SECRET_FOR_PRODUCTION' > secrets/entra_client_secret.txt
 fi
-chmod 600 secrets/*.txt
+chmod 0700 secrets
+chmod 0444 secrets/*.txt
 printf '%s\n' 'Vorbereitet. Entra und lokale Benutzer wurden nicht provisioniert.'
 printf '%s\n' 'Vor dem Produktionsstart reale Entra-Werte setzen und ENTRA_ENABLED=true aktivieren.'
