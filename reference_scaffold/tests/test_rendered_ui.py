@@ -17,10 +17,10 @@ sys.path.insert(0, str(ROOT / 'tools'))
 
 from cafeteria.admin import routes as admin_routes  # noqa: E402
 from cafeteria.public import routes as public_routes  # noqa: E402
-from cafeteria.security import csrf_token
-from cafeteria.auth import service as auth_service  # noqa: E402
+from cafeteria.security import csrf_token  # noqa: E402
 from cafeteria.signage import routes as signage_routes  # noqa: E402
 from demo_snapshots import cafeteria_snapshot, patient_snapshot  # noqa: E402
+import cafeteria.roles  # noqa: E402
 
 CSS_PATH = ROOT / 'reference_scaffold' / 'cafeteria' / 'static' / 'app.css'
 PATIENT_FORBIDDEN = re.compile(
@@ -99,7 +99,6 @@ def app(monkeypatch: pytest.MonkeyPatch) -> Flask:
     def mock_load_user_authorization(db_engine, user_id):
         return MockAuthorization()
 
-    import cafeteria.roles
     monkeypatch.setattr(cafeteria.roles, 'load_user_authorization', mock_load_user_authorization)
     monkeypatch.setattr(public_routes, 'active_snapshot', fake_active_snapshot)
     monkeypatch.setattr(admin_routes, '_draft', fake_draft)
