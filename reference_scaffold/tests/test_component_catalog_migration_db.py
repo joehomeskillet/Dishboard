@@ -456,7 +456,7 @@ def test_v13_real_postgres_contract_covers_catalog_constraints_and_component_lin
     assert MIGRATION.read_text(encoding='utf-8').startswith('BEGIN;')
     assert MIGRATION.read_text(encoding='utf-8').rstrip().endswith('COMMIT;')
     validator = (ROOT / 'database' / 'validate_schema.py').read_text(encoding='utf-8')
-    assert "MIGRATION_0010: '82f22cc0dd439a8b1ca1e0dc324616871411d67700723f1ebebedc06185a1a72'" in validator
+    assert "MIGRATION_0010: '316e92589fe4d210150e10dc1575f767282542995ecb4020891194c68efbd346'" in validator
     assert 'v13 conflicting legacy origin country codes' in validator
     assert all((table, column) in column_contract for table, names in expected_columns.items() for column in names)
     assert column_contract[('menu_components', 'id')] == ('bigint', 'NO', 'ALWAYS')

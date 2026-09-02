@@ -100,7 +100,7 @@ MIGRATION_CHECKSUMS = {
     '0007_auth_security_hardening.sql': 'a25d5b6ca71bc11c582eef6e90f792979a88aa86dcc444b7b1ab1db90967595f',
     '0008_auth_final_hardening.sql': '4311165d2dcd763cf9a462906d044000956eb11d16ac847ecf9351facae21e45',
     '0009_bootstrap_first_local_admin.sql': '1b988c75b7ef3f333045d738fa29cd210a367eeaf30825a3005873cafc3b65ed',
-    '0010_v12_to_v13.sql': '82f22cc0dd439a8b1ca1e0dc324616871411d67700723f1ebebedc06185a1a72',
+    '0010_v12_to_v13.sql': '316e92589fe4d210150e10dc1575f767282542995ecb4020891194c68efbd346',
 }
 
 

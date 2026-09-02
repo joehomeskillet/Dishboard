@@ -430,4 +430,72 @@ ALTER TABLE menu_items
     ALTER COLUMN label_mode SET DEFAULT 'manual',
     ALTER COLUMN label_mode SET NOT NULL;
 
+CREATE OR REPLACE FUNCTION validate_menu_item_component_scope()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = cafeteria, pg_temp
+AS $validate_menu_item_component_scope$
+DECLARE
+    item_location_id bigint;
+    item_profile_scope text;
+    component_location_id bigint;
+    component_profile_scope text;
+BEGIN
+    IF NEW.component_id IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT week_row.location_id, profile.code
+    INTO item_location_id, item_profile_scope
+    FROM menu_items item
+    JOIN menu_services service ON service.id=item.service_id
+    JOIN menu_weeks week_row ON week_row.id=service.menu_week_id
+    JOIN offer_profiles profile ON profile.id=week_row.profile_id
+    WHERE item.id=NEW.menu_item_id
+    FOR KEY SHARE OF item, service, week_row;
+
+    IF NOT FOUND THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT component.location_id, component.profile_scope
+    INTO component_location_id, component_profile_scope
+    FROM menu_components component
+    WHERE component.id=NEW.component_id
+    FOR KEY SHARE OF component;
+
+    IF NOT FOUND THEN
+        RETURN NEW;
+    END IF;
+
+    IF component_location_id IS DISTINCT FROM item_location_id THEN
+        RAISE EXCEPTION
+            'Komponenten-Location % passt nicht zur Menue-Location %.',
+            component_location_id,
+            item_location_id
+            USING ERRCODE='23514',
+                  CONSTRAINT='menu_item_components_scope';
+    END IF;
+
+    IF component_profile_scope <> 'common'
+       AND component_profile_scope IS DISTINCT FROM item_profile_scope THEN
+        RAISE EXCEPTION
+            'Komponenten-Profil-Scope % ist fuer Menueprofil % nicht erlaubt.',
+            component_profile_scope,
+            item_profile_scope
+            USING ERRCODE='23514',
+                  CONSTRAINT='menu_item_components_scope';
+    END IF;
+
+    RETURN NEW;
+END;
+$validate_menu_item_component_scope$;
+
+DROP TRIGGER IF EXISTS trg_menu_item_components_scope ON menu_item_components;
+CREATE TRIGGER trg_menu_item_components_scope
+BEFORE INSERT OR UPDATE OF menu_item_id, component_id ON menu_item_components
+FOR EACH ROW
+EXECUTE FUNCTION validate_menu_item_component_scope();
+
 COMMIT;
