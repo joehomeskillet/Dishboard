@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import re
 from html.parser import HTMLParser
 from pathlib import Path
@@ -15,6 +16,51 @@ STYLES = (
     SITE / 'responsive.css',
 )
 WORKFLOW = ROOT / '.github' / 'workflows' / 'pages.yml'
+
+
+def parse_oklch_token(source: str, name: str) -> tuple[float, float, float]:
+    match = re.search(
+        rf'--color-{re.escape(name)}:\s*oklch\('
+        r'([0-9.]+)%\s+([0-9.]+)\s+([0-9.]+)deg\)',
+        source,
+    )
+    assert match is not None, f'missing semantic token --color-{name}'
+    lightness, chroma, hue = (float(value) for value in match.groups())
+    return lightness / 100, chroma, math.radians(hue)
+
+
+def relative_luminance(color: tuple[float, float, float]) -> float:
+    lightness, chroma, hue = color
+    a = chroma * math.cos(hue)
+    b = chroma * math.sin(hue)
+    light = (lightness + 0.3963377774 * a + 0.2158037573 * b) ** 3
+    medium = (lightness - 0.1055613458 * a - 0.0638541728 * b) ** 3
+    short = (lightness - 0.0894841775 * a - 1.291485548 * b) ** 3
+    red = 4.0767416621 * light - 3.3077115913 * medium + 0.2309699292 * short
+    green = -1.2684380046 * light + 2.6097574011 * medium - 0.3413193965 * short
+    blue = -0.0041960863 * light - 0.7034186147 * medium + 1.707614701 * short
+    return (
+        0.2126 * min(1, max(0, red))
+        + 0.7152 * min(1, max(0, green))
+        + 0.0722 * min(1, max(0, blue))
+    )
+
+
+def contrast_ratio(
+    foreground: tuple[float, float, float],
+    background: tuple[float, float, float],
+) -> float:
+    lighter, darker = sorted(
+        (relative_luminance(foreground), relative_luminance(background)),
+        reverse=True,
+    )
+    return (lighter + 0.05) / (darker + 0.05)
+
+
+def css_block(source: str, selector: str) -> str:
+    match = re.search(rf'{re.escape(selector)}\s*\{{([^}}]+)\}}', source)
+    assert match is not None, f'missing CSS block {selector}'
+    return match.group(1)
 
 
 class PageContractParser(HTMLParser):
@@ -92,6 +138,52 @@ def test_styles_are_local_tokenized_and_accessible() -> None:
     assert all(len(stylesheet.splitlines()) < 400 for stylesheet in sources)
 
 
+def test_semantic_color_tokens_meet_calculated_contrast_ratios() -> None:
+    source = (SITE / 'foundation.css').read_text(encoding='utf-8')
+    colors = {
+        name: parse_oklch_token(source, name)
+        for name in (
+            'paper',
+            'paper-warm',
+            'patient-soft',
+            'cafeteria-soft',
+            'white',
+            'focus',
+            'patient-label',
+            'cafeteria-label',
+        )
+    }
+
+    for background in ('paper', 'paper-warm', 'patient-soft', 'cafeteria-soft', 'white'):
+        assert contrast_ratio(colors['focus'], colors[background]) >= 3, background
+    assert contrast_ratio(colors['patient-label'], colors['paper']) >= 4.5
+    assert contrast_ratio(colors['cafeteria-label'], colors['paper']) >= 4.5
+
+    assert 'var(--color-focus)' in css_block(source, 'a:focus-visible')
+    assert 'var(--color-patient-label)' in css_block(source, '.eyebrow')
+    responsive = (SITE / 'responsive.css').read_text(encoding='utf-8')
+    assert 'var(--color-cafeteria-label)' in css_block(
+        responsive,
+        '.closing-section .eyebrow',
+    )
+
+
+def test_mobile_menu_profiles_stack_without_overlap() -> None:
+    source = (SITE / 'responsive.css').read_text(encoding='utf-8')
+    mobile = source[
+        source.index('@media (max-width: 44rem)'):
+        source.index('@media (prefers-reduced-motion: reduce)')
+    ]
+    board = css_block(mobile, '.menu-board')
+    sheet = css_block(mobile, '.menu-sheet')
+
+    assert 'display: grid;' in board
+    assert 'min-height: auto;' in board
+    assert 'position: static;' in sheet
+    assert 'width: 100%;' in sheet
+    assert 'transform: none;' in sheet
+
+
 def test_pages_workflow_is_least_privilege_and_deploys_only_site() -> None:
     source = WORKFLOW.read_text(encoding='utf-8')
     assert re.search(r'^on:\n\s{2}push:\n\s{4}branches:\n\s{6}- main$', source, re.MULTILINE)
@@ -103,10 +195,10 @@ def test_pages_workflow_is_least_privilege_and_deploys_only_site() -> None:
         re.MULTILINE,
     )
     assert 'group: pages' in source
-    assert 'cancel-in-progress: true' in source
+    assert 'cancel-in-progress: false' in source
     assert 'actions/checkout@v4' in source
     assert 'actions/configure-pages@v5' in source
     assert 'actions/upload-pages-artifact@v3' in source
-    assert 'actions/deploy-pages@v4' in source
+    assert 'actions/deploy-pages@v5' in source
     assert re.search(r'^\s{10}path: site$', source, re.MULTILINE)
     assert 'secrets.' not in source

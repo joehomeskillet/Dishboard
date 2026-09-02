@@ -51,7 +51,7 @@
 }
 
 .closing-section .eyebrow {
-  color: var(--color-cafeteria);
+  color: var(--color-cafeteria-label);
 }
 
 .closing-section h2 {
@@ -152,13 +152,17 @@ footer > a:last-child {
   }
 
   .menu-board {
-    min-height: 29rem;
+    display: grid;
+    gap: var(--space-3);
+    min-height: auto;
     padding: var(--space-3);
     transform: none;
   }
 
   .menu-sheet {
-    width: min(84%, 20rem);
+    position: static;
+    width: 100%;
+    transform: none;
   }
 
   .menu-sheet-patient {

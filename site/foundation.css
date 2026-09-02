@@ -6,10 +6,13 @@
   --color-paper-warm: oklch(95% 0.025 87deg);
   --color-line: oklch(84% 0.025 175deg);
   --color-patient: oklch(54% 0.105 188deg);
+  --color-patient-label: oklch(52% 0.105 188deg);
   --color-patient-soft: oklch(92% 0.045 188deg);
   --color-cafeteria: oklch(63% 0.145 43deg);
+  --color-cafeteria-label: oklch(56% 0.145 43deg);
   --color-cafeteria-soft: oklch(93% 0.055 70deg);
   --color-accent: oklch(72% 0.16 80deg);
+  --color-focus: oklch(60% 0.16 80deg);
   --color-white: oklch(100% 0 0deg);
   --shadow-board: 0 2rem 5rem color-mix(in oklch, var(--color-ink) 18%, transparent);
   --radius-small: 0.5rem;
@@ -56,7 +59,7 @@ a {
 
 a:focus-visible {
   border-radius: var(--radius-small);
-  outline: 0.2rem solid var(--color-accent);
+  outline: 0.2rem solid var(--color-focus);
   outline-offset: 0.2rem;
 }
 
@@ -155,7 +158,7 @@ nav a:hover,
 
 .eyebrow {
   margin: 0 0 var(--space-3);
-  color: var(--color-patient);
+  color: var(--color-patient-label);
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.14em;
