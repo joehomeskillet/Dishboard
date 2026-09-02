@@ -21,6 +21,7 @@ generate_secret secrets/postgres_owner_password.txt 48
 [ -s secrets/postgres_owner_password.txt ] || exit 1
 generate_secret secrets/postgres_app_password.txt 48
 generate_secret secrets/postgres_backup_password.txt 48
+generate_secret secrets/postgres_auth_issuer_password.txt 48
 generate_secret secrets/flask_secret_key.txt 64
 generate_secret secrets/redis_password.txt 48
 

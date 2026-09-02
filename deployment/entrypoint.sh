@@ -17,6 +17,31 @@ is_placeholder() {
   esac
 }
 
+require_strong_secret_file() {
+  label=$1
+  secret_file=$2
+  [ -n "$secret_file" ] && [ -r "$secret_file" ] || reject "$label"
+  role_secret=$(cat "$secret_file")
+  [ "${#role_secret}" -ge 32 ] || reject "$label"
+  compact_secret=$(printf '%s' "$role_secret" | tr -cd '[:alnum:]' | tr '[:upper:]' '[:lower:]')
+  case "$compact_secret" in
+    *changeme*|*change*|*default*|*password*|*secret*|*demo*|*example*|*placeholder*)
+      unset role_secret compact_secret
+      reject "$label"
+      ;;
+  esac
+  unset role_secret compact_secret
+}
+
+case "${APP_ENV:-development}" in
+  production|migration)
+    [ -z "${AUTH_ISSUER_DATABASE_URL:-}" ] || reject "AUTH_ISSUER_DATABASE_URL is forbidden"
+    require_strong_secret_file \
+      "POSTGRES_AUTH_ISSUER_PASSWORD_FILE" \
+      "${POSTGRES_AUTH_ISSUER_PASSWORD_FILE:-}"
+    ;;
+esac
+
 if [ "${APP_ENV:-development}" = "production" ]; then
   [ "${DEMO_MODE:-false}" != "true" ] || reject "DEMO_MODE=true"
   [ "${SEED_DEMO:-false}" != "true" ] || reject "SEED_DEMO=true"

@@ -13,10 +13,11 @@ from psycopg import sql
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
+from .credentials import validate_database_role_secret
 from .patient_payload import PROFILES, validate_snapshot_payload
 
-SCHEMA_VERSION = 9
-APPLICATION_VERSION = 'dishboard-schema-v9'
+SCHEMA_VERSION = 10
+APPLICATION_VERSION = 'dishboard-schema-v10'
 SYSTEM_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000001'
 DEMO_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000002'
 
@@ -35,6 +36,7 @@ MIGRATION_FILES = (
     (7, '0004_patient_key_lock_and_capability_contracts.sql'),
     (8, '0005_least_privilege_identity_contracts.sql'),
     (9, '0006_auth_issuer_and_local_login.sql'),
+    (10, '0007_auth_security_hardening.sql'),
 )
 MIGRATION_LOCK_ID = 731_905_005
 DEFAULT_CAPABILITY_TTL = timedelta(minutes=5)
@@ -219,29 +221,32 @@ def provision_database_roles(
     backup_password: str,
     auth_issuer_password: str = '',
 ) -> None:
-    if not app_password or not backup_password:
-        raise RuntimeError('PostgreSQL-App- oder Backup-Passwort fehlt.')
+    credentials = (
+        ('cafeteria_app', app_password),
+        ('cafeteria_backup', backup_password),
+        ('cafeteria_auth_issuer', auth_issuer_password),
+    )
+    for role_name, password in credentials:
+        validate_database_role_secret(password, label=role_name)
+    if len({password for _, password in credentials}) != len(credentials):
+        raise RuntimeError('PostgreSQL-Rollen benötigen eigene, voneinander verschiedene Secrets.')
     raw = engine.raw_connection()
     try:
         connection = _driver_connection(raw)
         with connection.cursor() as cursor:
-            credentials = [
-                ('cafeteria_app', app_password),
-                ('cafeteria_backup', backup_password),
-            ]
-            if auth_issuer_password:
-                credentials.append(('cafeteria_auth_issuer', auth_issuer_password))
             for role_name, password in credentials:
                 exists = cursor.execute(
                     'SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = %s)', (role_name,)
                 ).fetchone()[0]
                 if exists:
                     statement = sql.SQL(
-                        'ALTER ROLE {} WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT PASSWORD {}'
+                        'ALTER ROLE {} WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE '
+                        'NOINHERIT NOREPLICATION NOBYPASSRLS PASSWORD {}'
                     ).format(sql.Identifier(role_name), sql.Literal(password))
                 else:
                     statement = sql.SQL(
-                        'CREATE ROLE {} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT PASSWORD {}'
+                        'CREATE ROLE {} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE '
+                        'NOINHERIT NOREPLICATION NOBYPASSRLS PASSWORD {}'
                     ).format(sql.Identifier(role_name), sql.Literal(password))
                 cursor.execute(statement)
                 cursor.execute(sql.SQL('ALTER ROLE {} SET search_path = cafeteria, public').format(sql.Identifier(role_name)))
@@ -252,6 +257,23 @@ def provision_database_roles(
                         sql.Identifier(role_name), sql.SQL(read_only)
                     )
                 )
+                memberships = cursor.execute(
+                    '''
+                    SELECT granted.rolname, member.rolname
+                    FROM pg_auth_members membership
+                    JOIN pg_roles granted ON granted.oid=membership.roleid
+                    JOIN pg_roles member ON member.oid=membership.member
+                    WHERE granted.rolname=%s OR member.rolname=%s
+                    ''',
+                    (role_name, role_name),
+                ).fetchall()
+                for granted_role, member_role in memberships:
+                    cursor.execute(
+                        sql.SQL('REVOKE {} FROM {}').format(
+                            sql.Identifier(granted_role),
+                            sql.Identifier(member_role),
+                        )
+                    )
         connection.commit()
     except Exception:
         raw.rollback()
@@ -274,13 +296,12 @@ def init_database(
 ) -> dict[str, Any]:
     engine = create_engine(database_url, pool_pre_ping=True)
     try:
-        if app_password and backup_password:
-            provision_database_roles(
-                engine,
-                app_password=app_password,
-                backup_password=backup_password,
-                auth_issuer_password=auth_issuer_password,
-            )
+        provision_database_roles(
+            engine,
+            app_password=app_password,
+            backup_password=backup_password,
+            auth_issuer_password=auth_issuer_password,
+        )
         run_migrations(engine, schema_path)
         _execute_script(engine, seed_path)
         if seed_demo:
@@ -316,13 +337,77 @@ def validate_database(engine: Engine) -> dict[str, Any]:
                 '''
             )
         ).mappings().one()
+        issuer = connection.execute(
+            text(
+                '''
+                WITH issuer AS (
+                    SELECT oid, rolcanlogin, rolsuper, rolcreatedb, rolcreaterole,
+                           rolinherit, rolreplication, rolbypassrls
+                    FROM pg_roles WHERE rolname='cafeteria_auth_issuer'
+                ), allowed_functions(signature) AS (
+                    VALUES
+                      ('cafeteria.sync_entra_user(uuid,uuid,text,text,text,text,text[])'),
+                      ('cafeteria.issue_publication_capability(bigint,bigint,interval)'),
+                      ('cafeteria.provision_local_user(text,text,text,text,text[])'),
+                      ('cafeteria.set_local_password(text,text,text)'),
+                      ('cafeteria.disable_local_user(text,text)')
+                )
+                SELECT
+                    EXISTS (SELECT 1 FROM issuer) AS role_exists,
+                    COALESCE((SELECT rolcanlogin FROM issuer), false) AS can_login,
+                    COALESCE((SELECT rolsuper OR rolcreatedb OR rolcreaterole OR rolinherit
+                                      OR rolreplication OR rolbypassrls FROM issuer), true)
+                        AS has_powerful_attribute,
+                    (SELECT count(*) FROM pg_auth_members m, issuer i
+                     WHERE m.member=i.oid OR m.roleid=i.oid) AS membership_count,
+                    (SELECT count(*) FROM pg_class c
+                     JOIN pg_namespace n ON n.oid=c.relnamespace
+                     WHERE n.nspname='cafeteria' AND c.relkind IN ('r','p','v','m','f')
+                       AND has_table_privilege(
+                           'cafeteria_auth_issuer', c.oid,
+                           'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'
+                       )) AS table_privilege_count,
+                    (SELECT count(*) FROM pg_class c
+                     JOIN pg_namespace n ON n.oid=c.relnamespace
+                        WHERE n.nspname='cafeteria'
+                          AND CASE WHEN c.relkind='S' THEN has_sequence_privilege(
+                              'cafeteria_auth_issuer', c.oid, 'USAGE,SELECT,UPDATE'
+                          ) ELSE false END) AS sequence_privilege_count,
+                    (SELECT count(*) FROM allowed_functions f
+                     WHERE has_function_privilege(
+                         'cafeteria_auth_issuer', to_regprocedure(f.signature), 'EXECUTE'
+                     )) AS allowed_execute_count,
+                    (SELECT count(*) FROM pg_proc p
+                     JOIN pg_namespace n ON n.oid=p.pronamespace
+                     WHERE n.nspname='cafeteria'
+                       AND has_function_privilege('cafeteria_auth_issuer', p.oid, 'EXECUTE')
+                       AND p.oid <> ALL(
+                           ARRAY(SELECT to_regprocedure(f.signature) FROM allowed_functions f)
+                       )) AS unexpected_execute_count
+                '''
+            )
+        ).mappings().one()
     result = dict(row)
+    result['auth_issuer_direct_table_privilege_count'] = int(issuer.table_privilege_count)
+    result['auth_issuer_direct_sequence_privilege_count'] = int(issuer.sequence_privilege_count)
+    result['auth_issuer_membership_count'] = int(issuer.membership_count)
+    result['auth_issuer_ready'] = (
+        issuer.role_exists
+        and issuer.can_login
+        and not issuer.has_powerful_attribute
+        and issuer.membership_count == 0
+        and issuer.table_privilege_count == 0
+        and issuer.sequence_privilege_count == 0
+        and issuer.allowed_execute_count == 5
+        and issuer.unexpected_execute_count == 0
+    )
     result['ready'] = (
         result['schema_version'] >= SCHEMA_VERSION
         and result['profile_count'] == 2
         and result['allergen_count'] == 14
         and result['invalid_index_count'] == 0
         and result['unvalidated_constraint_count'] == 0
+        and result['auth_issuer_ready']
     )
     return result
 

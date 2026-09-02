@@ -1,8 +1,15 @@
 from __future__ import annotations
 
+import ipaddress
 import os
 from pathlib import Path
-from urllib.parse import quote, unquote, urlsplit
+from urllib.parse import quote
+
+from .credentials import (
+    build_role_database_url,
+    database_url_password,
+    validate_database_role_secret,
+)
 
 DEMO_SECRET = 'demo-only-not-for-production'
 _PLACEHOLDER_SECRETS = frozenset({
@@ -71,25 +78,21 @@ def _database_url() -> str:
     return f'postgresql+psycopg://{credentials}@{host}:{port}/{quote(database, safe="")}?sslmode={quote(sslmode, safe="")}'
 
 
-def _validate_auth_issuer_url(database_url: str) -> None:
-    try:
-        parsed = urlsplit(database_url)
-        username = unquote(parsed.username or '')
-        password = unquote(parsed.password or '')
-    except ValueError as exc:
-        raise RuntimeError('AUTH_ISSUER_DATABASE_URL ist ungültig.') from exc
-    if parsed.scheme not in {'postgresql', 'postgresql+psycopg'} or not parsed.hostname:
-        raise RuntimeError('AUTH_ISSUER_DATABASE_URL ist ungültig.')
-    if username != 'cafeteria_auth_issuer':
-        raise RuntimeError('AUTH_ISSUER_DATABASE_URL muss cafeteria_auth_issuer verwenden.')
-    normalized_password = password.strip().lower()
-    placeholder_markers = ('change-me', 'changeme', 'default', 'demo', 'example', 'placeholder')
-    if (
-        not password
-        or normalized_password in _PLACEHOLDER_SECRETS
-        or any(marker in normalized_password for marker in placeholder_markers)
-    ):
-        raise RuntimeError('AUTH_ISSUER_DATABASE_URL benötigt ein eigenes Issuer-Secret.')
+def _trusted_proxy_peers() -> tuple[str, ...]:
+    peers: list[str] = []
+    for value in os.getenv('TRUSTED_PROXY_PEERS', '').split(','):
+        candidate = value.strip()
+        if not candidate:
+            continue
+        if '/' in candidate:
+            raise RuntimeError('TRUSTED_PROXY_PEERS akzeptiert nur einzelne IP-Adressen.')
+        try:
+            normalized = ipaddress.ip_address(candidate).compressed
+        except ValueError as exc:
+            raise RuntimeError('TRUSTED_PROXY_PEERS enthält eine ungültige IP-Adresse.') from exc
+        if normalized not in peers:
+            peers.append(normalized)
+    return tuple(peers)
 
 
 class Config:
@@ -107,7 +110,13 @@ class Config:
         self.POSTGRES_APP_PASSWORD = _secret('POSTGRES_APP_PASSWORD')
         self.POSTGRES_BACKUP_PASSWORD = _secret('POSTGRES_BACKUP_PASSWORD')
         self.POSTGRES_AUTH_ISSUER_PASSWORD = _secret('POSTGRES_AUTH_ISSUER_PASSWORD')
-        self.AUTH_ISSUER_DATABASE_URL = _secret('AUTH_ISSUER_DATABASE_URL')
+        self.AUTH_ISSUER_DATABASE_URL = ''
+        if self.POSTGRES_AUTH_ISSUER_PASSWORD:
+            self.AUTH_ISSUER_DATABASE_URL = build_role_database_url(
+                self.DATABASE_URL,
+                role='cafeteria_auth_issuer',
+                password=self.POSTGRES_AUTH_ISSUER_PASSWORD,
+            )
         self.LOCAL_AUTH_ENABLED = _bool('LOCAL_AUTH_ENABLED')
         self.DB_POOL_SIZE = int(os.getenv('DB_POOL_SIZE', '5'))
         self.DB_MAX_OVERFLOW = int(os.getenv('DB_MAX_OVERFLOW', '5'))
@@ -126,15 +135,36 @@ class Config:
         self.ENTRA_TENANT_ID = os.getenv('ENTRA_TENANT_ID', '')
         self.ENTRA_CLIENT_ID = os.getenv('ENTRA_CLIENT_ID', '')
         self.ENTRA_CLIENT_SECRET = _secret('ENTRA_CLIENT_SECRET')
-        self.TRUSTED_PROXY_HOPS = int(os.getenv('TRUSTED_PROXY_HOPS', '1'))
-        self.TRUSTED_PROXY_CIDRS = tuple(
-            value.strip()
-            for value in os.getenv('TRUSTED_PROXY_CIDRS', '127.0.0.0/8,::1/128').split(',')
-            if value.strip()
-        )
+        self.TRUSTED_PROXY_PEERS = _trusted_proxy_peers()
         self.MAX_CONTENT_LENGTH = int(os.getenv('MAX_UPLOAD_BYTES', str(5 * 1024 * 1024)))
         self.FRAME_ANCESTORS = os.getenv('FRAME_ANCESTORS', "'self'")
         self.LAST_GOOD_DIR = os.getenv('LAST_GOOD_DIR', '/tmp/cafeteria-last-good')
+
+        protected_database_boot = self.APP_ENV in {'production', 'migration'}
+        if protected_database_boot:
+            if _secret('AUTH_ISSUER_DATABASE_URL'):
+                raise RuntimeError(
+                    'AUTH_ISSUER_DATABASE_URL ist verboten; '
+                    'POSTGRES_AUTH_ISSUER_PASSWORD_FILE verwenden.'
+                )
+            if not os.getenv('POSTGRES_AUTH_ISSUER_PASSWORD_FILE'):
+                raise RuntimeError('POSTGRES_AUTH_ISSUER_PASSWORD_FILE ist erforderlich.')
+            validate_database_role_secret(
+                self.POSTGRES_AUTH_ISSUER_PASSWORD,
+                label='PostgreSQL-Auth-Issuer',
+            )
+            sibling_secrets = {
+                value
+                for value in (
+                    self.POSTGRES_APP_PASSWORD,
+                    self.POSTGRES_BACKUP_PASSWORD,
+                    _secret('POSTGRES_PASSWORD'),
+                    database_url_password(self.DATABASE_URL),
+                )
+                if value
+            }
+            if self.POSTGRES_AUTH_ISSUER_PASSWORD in sibling_secrets:
+                raise RuntimeError('PostgreSQL-Auth-Issuer benötigt ein eigenes, separates Secret.')
 
         if self.APP_ENV == 'production':
             if self.DEMO_MODE or self.SEED_DEMO or self.DEMO_TODAY:
@@ -145,6 +175,5 @@ class Config:
                 raise RuntimeError('Entra-Konfiguration ist in Produktion unvollständig.')
             if not self.SESSION_REDIS_URL:
                 raise RuntimeError('SESSION_REDIS_URL ist in Produktion für Sessions und Rate-Limits erforderlich.')
-            if not self.AUTH_ISSUER_DATABASE_URL:
-                raise RuntimeError('AUTH_ISSUER_DATABASE_URL ist in Produktion erforderlich.')
-            _validate_auth_issuer_url(self.AUTH_ISSUER_DATABASE_URL)
+            if not self.SESSION_COOKIE_SECURE:
+                raise RuntimeError('SESSION_COOKIE_SECURE muss in Produktion true sein.')

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from sqlalchemy import Engine, text
 from werkzeug.security import generate_password_hash
 
@@ -14,6 +16,8 @@ _COMMON_WEAK_PASSWORDS = frozenset(
         'passwordpassword',
     }
 )
+_WEAK_PASSWORD_MARKERS = ('changeme', 'default', 'password')
+_ACTOR_IDENTIFIER_PATTERN = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._@+-]{2,127}$')
 
 
 def validate_local_password(password: str, username: str) -> None:
@@ -31,6 +35,7 @@ def validate_local_password(password: str, username: str) -> None:
     )
     if (
         compact_password in _COMMON_WEAK_PASSWORDS
+        or any(marker in compact_password for marker in _WEAK_PASSWORD_MARKERS)
         or len(set(password)) < 4
         or classes < 3
         or (len(compact_username) >= 3 and compact_username in compact_password)
@@ -52,9 +57,19 @@ def _validate_roles(roles: list[str]) -> None:
         raise ValueError('Lokale Rollenliste enthält doppelte Rollen.')
 
 
+def _validate_actor_identifier(actor_identifier: str) -> str:
+    if not isinstance(actor_identifier, str):
+        raise ValueError('Actor-Identifier ist ungültig.')
+    normalized = actor_identifier.strip().casefold()
+    if not _ACTOR_IDENTIFIER_PATTERN.fullmatch(normalized):
+        raise ValueError('Actor-Identifier ist ungültig.')
+    return normalized
+
+
 def provision_local_user(
     issuer_engine: Engine,
     *,
+    actor_identifier: str,
     username: str,
     display_name: str,
     password: str,
@@ -65,16 +80,19 @@ def provision_local_user(
         raise ValueError('Lokaler Anzeigename ist ungültig.')
     validate_local_password(password, username)
     _validate_roles(roles)
+    actor = _validate_actor_identifier(actor_identifier)
     with issuer_engine.begin() as connection:
         user_id = connection.execute(
             text(
                 '''
                 SELECT cafeteria.provision_local_user(
-                    :username, :display_name, :password_hash, CAST(:roles AS text[])
+                    :actor_identifier, :username, :display_name,
+                    :password_hash, CAST(:roles AS text[])
                 )
                 '''
             ),
             {
+                'actor_identifier': actor,
                 'username': username,
                 'display_name': display_name.strip(),
                 'password_hash': generate_password_hash(password),
@@ -84,22 +102,42 @@ def provision_local_user(
     return int(user_id)
 
 
-def set_local_password(issuer_engine: Engine, *, username: str, password: str) -> int:
+def set_local_password(
+    issuer_engine: Engine,
+    *,
+    actor_identifier: str,
+    username: str,
+    password: str,
+) -> int:
     _validate_username(username)
     validate_local_password(password, username)
+    actor = _validate_actor_identifier(actor_identifier)
     with issuer_engine.begin() as connection:
         user_id = connection.execute(
-            text('SELECT cafeteria.set_local_password(:username, :password_hash)'),
-            {'username': username, 'password_hash': generate_password_hash(password)},
+            text(
+                'SELECT cafeteria.set_local_password('
+                ':actor_identifier, :username, :password_hash)'
+            ),
+            {
+                'actor_identifier': actor,
+                'username': username,
+                'password_hash': generate_password_hash(password),
+            },
         ).scalar_one()
     return int(user_id)
 
 
-def disable_local_user(issuer_engine: Engine, *, username: str) -> int:
+def disable_local_user(
+    issuer_engine: Engine,
+    *,
+    actor_identifier: str,
+    username: str,
+) -> int:
     _validate_username(username)
+    actor = _validate_actor_identifier(actor_identifier)
     with issuer_engine.begin() as connection:
         user_id = connection.execute(
-            text('SELECT cafeteria.disable_local_user(:username)'),
-            {'username': username},
+            text('SELECT cafeteria.disable_local_user(:actor_identifier, :username)'),
+            {'actor_identifier': actor, 'username': username},
         ).scalar_one()
     return int(user_id)

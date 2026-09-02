@@ -109,6 +109,7 @@ services:
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_owner_password
       POSTGRES_APP_PASSWORD_FILE: /run/secrets/postgres_app_password
       POSTGRES_BACKUP_PASSWORD_FILE: /run/secrets/postgres_backup_password
+      POSTGRES_AUTH_ISSUER_PASSWORD_FILE: /run/secrets/postgres_auth_issuer_password
       SCHEMA_PATH: /app/database/schema.sql
       SEED_PATH: /app/database/seed.sql
       DEMO_SEED_PATH: /app/database/seed_demo.sql
@@ -117,6 +118,7 @@ services:
       - postgres_owner_password
       - postgres_app_password
       - postgres_backup_password
+      - postgres_auth_issuer_password
     command: ["python", "/app/manage.py", "init-db", "--wait-seconds", "60"]
     read_only: true
     tmpfs:
@@ -142,6 +144,8 @@ services:
       APP_IMAGE: ${APP_IMAGE}
       POSTGRES_USER: cafeteria_app
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_app_password
+      POSTGRES_AUTH_ISSUER_PASSWORD_FILE: /run/secrets/postgres_auth_issuer_password
+      TRUSTED_PROXY_PEERS: 172.31.213.1,172.31.213.10
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_DB: "0"
@@ -151,6 +155,7 @@ services:
       LAST_GOOD_DIR: /var/lib/cafeteria/last-good
     secrets:
       - postgres_app_password
+      - postgres_auth_issuer_password
       - flask_secret_key
       - entra_client_secret
       - redis_password
@@ -168,7 +173,9 @@ services:
       retries: 5
       start_period: 30s
     stop_grace_period: 30s
-    networks: [cafeteria_internal]
+    networks:
+      cafeteria_internal:
+        ipv4_address: 172.31.213.20
     security_opt: ["no-new-privileges:true"]
     cap_drop: ["ALL"]
     logging:
@@ -238,6 +245,10 @@ services:
 networks:
   cafeteria_internal:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.31.213.0/24
+          gateway: 172.31.213.1
 
 volumes:
   postgres_data:
@@ -252,6 +263,8 @@ secrets:
     file: ./secrets/postgres_app_password.txt
   postgres_backup_password:
     file: ./secrets/postgres_backup_password.txt
+  postgres_auth_issuer_password:
+    file: ./secrets/postgres_auth_issuer_password.txt
   flask_secret_key:
     file: ./secrets/flask_secret_key.txt
   entra_client_secret:

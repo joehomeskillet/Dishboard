@@ -7,6 +7,7 @@ from flask import Blueprint, abort, current_app, redirect, render_template, requ
 
 from ..db import demo_user, upsert_entra_user
 from ..roles import ROLE_CAPABILITIES
+from ..security import validate_csrf
 from .service import (
     RateLimitExceeded,
     RateLimitUnavailable,
@@ -72,12 +73,13 @@ def local_login():
         abort(404)
     if request.method == 'GET':
         return render_template('auth/local_login.html')
+    validate_csrf(request.form.get('csrf_token'))
     username = request.form.get('username', '')
     password = request.form.get('password', '')
     remote_address = trusted_client_address(
         request.environ,
         request.remote_addr or 'unknown',
-        tuple(current_app.config.get('TRUSTED_PROXY_CIDRS', ())),
+        tuple(current_app.config.get('TRUSTED_PROXY_PEERS', ())),
     )
     key = login_rate_key(username, remote_address)
     redis_client = current_app.extensions.get('cafeteria_rate_redis')

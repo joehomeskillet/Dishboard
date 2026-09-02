@@ -24,7 +24,14 @@ Der Demo-Modus darf nie mit `APP_ENV=production` verwendet werden. Player-URLs a
 
 ## Produktion
 
-`bootstrap.sh` erzeugt nur technische Secrets und kopiert die produktionssicheren Defaults nach `.env`. Es provisioniert weder Entra noch lokale Benutzer. Vor dem Produktionsstart hinterlegt der Betreiber reale Entra-IDs sowie das Client Secret, setzt `ENTRA_ENABLED=true` und ersetzt den `APP_IMAGE`-Platzhalter durch eine unveraenderliche `registry/repo@sha256:<digest>`-Referenz. Der App-Entrypoint lehnt Demo-Werte, jede Abweichung vom exakten oeffentlichen Ursprung, mutable Images, unsichere Session-Cookies sowie bekannte Entra-Platzhalter ab. Der Migrationsdienst erzwingt separat `APP_ENV=migration` und erhaelt ausschliesslich die drei PostgreSQL-Secrets.
+`bootstrap.sh` erzeugt nur technische Secrets und kopiert die produktionssicheren Defaults nach `.env`. Es provisioniert weder Entra noch lokale Benutzer. Vor dem Produktionsstart hinterlegt der Betreiber reale Entra-IDs sowie das Client Secret, setzt `ENTRA_ENABLED=true` und ersetzt den `APP_IMAGE`-Platzhalter durch eine unveraenderliche `registry/repo@sha256:<digest>`-Referenz. Der App-Entrypoint lehnt Demo-Werte, jede Abweichung vom exakten oeffentlichen Ursprung, mutable Images, unsichere Session-Cookies sowie bekannte Entra-Platzhalter ab. Der Migrationsdienst erzwingt separat `APP_ENV=migration` und erhaelt ausschliesslich die vier PostgreSQL-Secrets fuer Owner, App, Backup und Auth-Issuer. Die Issuer-Verbindungs-URL wird nur im Speicher aus dem dedizierten Passwort-File und dem normalen Datenbankziel gebildet; eine persistierte `AUTH_ISSUER_DATABASE_URL` ist verboten.
+
+Das feste interne Netz reserviert `172.31.213.10` fuer das optionale
+Compose-Caddy-Overlay und `172.31.213.20` fuer die App. Bei einem Caddy auf dem
+Docker-Host erreicht der Proxy die App ueber den Loopback-Port und erscheint im
+Container ausschliesslich als exaktes Gateway `172.31.213.1`. Nur diese beiden
+Peers duerfen `X-Forwarded-For` liefern; direkte Clients und breite Docker-CIDRs
+werden nicht vertraut.
 
 Der Produktionsstart verwendet immer Basisdatei und Caddy-Overlay:
 

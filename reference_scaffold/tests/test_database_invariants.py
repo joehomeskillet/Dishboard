@@ -22,6 +22,9 @@ from cafeteria import db as database
 
 ROOT = Path(__file__).resolve().parents[2]
 DATABASE_URL = os.getenv('TEST_DATABASE_URL')
+APP_PASSWORD = 'Test-App-Role-2026-7VgJ9wL4pQ2xR8mK'
+BACKUP_PASSWORD = 'Test-Backup-Role-2026-5ZtN8cR3yH6qW1pL'
+ISSUER_PASSWORD = 'Test-Issuer-Role-2026-9QmK4xV7pR2wL8sN'
 LIVE_DATABASE = pytest.mark.skipif(
     not DATABASE_URL,
     reason='TEST_DATABASE_URL für eine isolierte PostgreSQL-Testdatenbank fehlt.',
@@ -50,6 +53,9 @@ def database_engine() -> Iterator[Engine]:
         database_url,
         str(ROOT / 'database' / 'schema.sql'),
         str(ROOT / 'database' / 'seed.sql'),
+        app_password=APP_PASSWORD,
+        backup_password=BACKUP_PASSWORD,
+        auth_issuer_password=ISSUER_PASSWORD,
     )
     try:
         yield engine
@@ -158,8 +164,9 @@ def test_migration_plan_is_ordered_and_preserves_0001_bytes() -> None:
         (7, '0004_patient_key_lock_and_capability_contracts.sql'),
         (8, '0005_least_privilege_identity_contracts.sql'),
         (9, '0006_auth_issuer_and_local_login.sql'),
+        (10, '0007_auth_security_hardening.sql'),
     ]
-    assert database.SCHEMA_VERSION == 9
+    assert database.SCHEMA_VERSION == 10
     migrations = ROOT / 'database' / 'migrations'
     assert hashlib.sha256((migrations / '0001_initial_postgresql.sql').read_bytes()).hexdigest() == (
         'd1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0'
@@ -184,13 +191,14 @@ def test_empty_database_runs_0001_then_0002(database_engine: Engine) -> None:
         local_credentials = connection.execute(
             text("SELECT to_regclass('cafeteria.local_credentials')")
         ).scalar_one()
-    assert [row.version for row in rows] == [4, 5, 6, 7, 8, 9]
+    assert [row.version for row in rows] == [4, 5, 6, 7, 8, 9, 10]
     assert rows[0].name == '0001_initial_postgresql.sql'
     assert rows[1].name == '0002_profile_publication_and_local_auth.sql'
     assert rows[2].name == '0003_patient_key_and_withdrawal_contracts.sql'
     assert rows[3].name == '0004_patient_key_lock_and_capability_contracts.sql'
     assert rows[4].name == '0005_least_privilege_identity_contracts.sql'
     assert rows[5].name == '0006_auth_issuer_and_local_login.sql'
+    assert rows[6].name == '0007_auth_security_hardening.sql'
     assert local_credentials == 'cafeteria.local_credentials'
 
 
@@ -215,12 +223,18 @@ def test_v4_fixture_migrates_without_replaying_0001() -> None:
         driver.commit()
     finally:
         raw.close()
+    database.provision_database_roles(
+        engine,
+        app_password=APP_PASSWORD,
+        backup_password=BACKUP_PASSWORD,
+        auth_issuer_password=ISSUER_PASSWORD,
+    )
     database.run_migrations(engine, ROOT / 'database' / 'schema.sql')
     with engine.connect() as connection:
         versions = connection.execute(
             text('SELECT version FROM cafeteria.schema_migrations ORDER BY version')
         ).scalars().all()
-    assert versions == [4, 5, 6, 7, 8, 9]
+    assert versions == [4, 5, 6, 7, 8, 9, 10]
     _drop_schema(engine)
     engine.dispose()
 
@@ -914,6 +928,12 @@ def test_v4_draft_revision_is_withdrawn_and_not_public() -> None:
             text('SELECT count(*) FROM cafeteria.active_publications')
         ).scalar_one()
     assert int(v4_public) == 1
+    database.provision_database_roles(
+        engine,
+        app_password=APP_PASSWORD,
+        backup_password=BACKUP_PASSWORD,
+        auth_issuer_password=ISSUER_PASSWORD,
+    )
     database.run_migrations(engine, ROOT / 'database' / 'schema.sql')
     with engine.connect() as connection:
         versions = connection.execute(
@@ -938,7 +958,7 @@ def test_v4_draft_revision_is_withdrawn_and_not_public() -> None:
                 '''
             )
         ).all()
-    assert versions == [4, 5, 6, 7, 8, 9]
+    assert versions == [4, 5, 6, 7, 8, 9, 10]
     assert int(public_rows) == 0
     assert withdrawn[0] is True
     assert 'v4' in withdrawn[1]
@@ -975,8 +995,9 @@ def _role_database_url(role_name: str, password: str) -> str:
 def _apply_role_permissions(engine: Engine) -> None:
     database.provision_database_roles(
         engine,
-        app_password='test-app-secret',
-        backup_password='test-backup-secret',
+        app_password=APP_PASSWORD,
+        backup_password=BACKUP_PASSWORD,
+        auth_issuer_password=ISSUER_PASSWORD,
     )
     database._execute_script(engine, str(ROOT / 'database' / 'permissions.sql'))
 
@@ -1056,6 +1077,12 @@ def test_schema_baseline_matches_sequential_migration_structure() -> None:
     engine = create_engine(DATABASE_URL, poolclass=NullPool, pool_pre_ping=True)
     _drop_schema(engine)
     try:
+        database.provision_database_roles(
+            engine,
+            app_password=APP_PASSWORD,
+            backup_password=BACKUP_PASSWORD,
+            auth_issuer_password=ISSUER_PASSWORD,
+        )
         database.run_migrations(engine, ROOT / 'database' / 'schema.sql')
         with engine.begin() as connection:
             connection.execute(text('ALTER SCHEMA cafeteria RENAME TO migrated_contract'))
@@ -1240,7 +1267,7 @@ def test_capability_consumption_rolls_back_with_withdrawal(database_engine: Engi
     capability = database.issue_publication_capability(database_engine, actor_id, revision_id)
     _apply_role_permissions(database_engine)
     app_engine = create_engine(
-        _role_database_url('cafeteria_app', 'test-app-secret'),
+        _role_database_url('cafeteria_app', APP_PASSWORD),
         poolclass=NullPool,
         pool_pre_ping=True,
     )
@@ -1441,7 +1468,7 @@ def test_committed_empty_entra_role_sync_wins_against_in_flight_withdrawal(
     token_authz_version = int(capability.split('.')[4])
     _apply_role_permissions(database_engine)
     app_engine = create_engine(
-        _role_database_url('cafeteria_app', 'test-app-secret'),
+        _role_database_url('cafeteria_app', APP_PASSWORD),
         poolclass=NullPool,
         pool_pre_ping=True,
     )
@@ -1550,7 +1577,7 @@ def test_cafeteria_app_cannot_spoof_actor_or_read_capability_secrets(
     actor_id = _user_id(database_engine, database.DEMO_USER_PUBLIC_ID)
     _apply_role_permissions(database_engine)
     app_engine = create_engine(
-        _role_database_url('cafeteria_app', 'test-app-secret'),
+        _role_database_url('cafeteria_app', APP_PASSWORD),
         poolclass=NullPool,
         pool_pre_ping=True,
     )
@@ -1620,7 +1647,7 @@ def test_database_roles_use_real_password_authentication(database_engine: Engine
         wrong_password_engine.dispose()
 
     app_engine = create_engine(
-        _role_database_url('cafeteria_app', 'test-app-secret'),
+        _role_database_url('cafeteria_app', APP_PASSWORD),
         poolclass=NullPool,
         pool_pre_ping=True,
     )
@@ -1656,7 +1683,7 @@ def test_app_cannot_restore_revoked_roles_or_authorization_version(
         )
 
     app_engine = create_engine(
-        _role_database_url('cafeteria_app', 'test-app-secret'),
+        _role_database_url('cafeteria_app', APP_PASSWORD),
         poolclass=NullPool,
         pool_pre_ping=True,
     )
@@ -1819,6 +1846,7 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
         'issue_publication_capability',
         'provision_local_user',
         'record_publication_lifecycle',
+        'resolve_auth_actor',
         'rotate_auth_capability_secret',
         'set_local_password',
         'sync_entra_user',
@@ -1836,7 +1864,7 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
     actor_id = _user_id(database_engine, database.DEMO_USER_PUBLIC_ID)
     capability = database.issue_publication_capability(database_engine, actor_id, revision_id)
     app_engine = create_engine(
-        _role_database_url('cafeteria_app', 'test-app-secret'),
+        _role_database_url('cafeteria_app', APP_PASSWORD),
         poolclass=NullPool,
         pool_pre_ping=True,
     )
@@ -1955,7 +1983,7 @@ def test_capability_ttl_is_positive_and_at_most_fifteen_minutes(
 def test_backup_role_excludes_capability_secrets_and_nonces(database_engine: Engine) -> None:
     _apply_role_permissions(database_engine)
     backup_engine = create_engine(
-        _role_database_url('cafeteria_backup', 'test-backup-secret'),
+        _role_database_url('cafeteria_backup', BACKUP_PASSWORD),
         poolclass=NullPool,
         pool_pre_ping=True,
     )
@@ -2111,7 +2139,7 @@ def test_entra_identity_sync_is_owner_only_and_does_not_reenable_user(
 
     _apply_role_permissions(database_engine)
     app_engine = create_engine(
-        _role_database_url('cafeteria_app', 'test-app-secret'),
+        _role_database_url('cafeteria_app', APP_PASSWORD),
         poolclass=NullPool,
         pool_pre_ping=True,
     )

@@ -5,6 +5,9 @@ import os
 import pytest
 
 DATABASE_URL = os.getenv('TEST_DATABASE_URL')
+APP_PASSWORD = 'Test-App-Role-2026-7VgJ9wL4pQ2xR8mK'
+BACKUP_PASSWORD = 'Test-Backup-Role-2026-5ZtN8cR3yH6qW1pL'
+ISSUER_PASSWORD = 'Test-Issuer-Role-2026-9QmK4xV7pR2wL8sN'
 pytestmark = pytest.mark.skipif(
     not DATABASE_URL,
     reason='TEST_DATABASE_URL für eine isolierte PostgreSQL-Testdatenbank fehlt.',
@@ -18,6 +21,7 @@ if DATABASE_URL:
     os.environ['SESSION_COOKIE_SECURE'] = 'false'
     os.environ['SESSION_REDIS_URL'] = ''
     os.environ['FLASK_SECRET_KEY'] = 'test-only-secret'
+    os.environ['POSTGRES_AUTH_ISSUER_PASSWORD'] = ISSUER_PASSWORD
 
     from cafeteria import create_app
     from cafeteria.config import Config
@@ -32,6 +36,10 @@ def app():
         cfg.SCHEMA_PATH,
         cfg.SEED_PATH,
         demo_seed_path=cfg.DEMO_SEED_PATH,
+        permissions_path=cfg.PERMISSIONS_PATH,
+        app_password=APP_PASSWORD,
+        backup_password=BACKUP_PASSWORD,
+        auth_issuer_password=ISSUER_PASSWORD,
         seed_demo=True,
     )
     application = create_app()

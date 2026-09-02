@@ -5,7 +5,6 @@ import datetime as dt
 from flask import Flask
 from flask_session import Session
 from redis import Redis
-from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import Config
 from .db import init_app_database
@@ -24,9 +23,6 @@ def _date(value: str) -> dt.date:
 def create_app() -> Flask:
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object(Config())
-
-    hops = int(app.config.get('TRUSTED_PROXY_HOPS', 1))
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=hops, x_proto=hops, x_host=hops, x_port=hops)
 
     redis_url = app.config.get('SESSION_REDIS_URL')
     redis_client = None

@@ -5,6 +5,14 @@ SET search_path TO cafeteria, public;
 REVOKE ALL ON SCHEMA cafeteria FROM PUBLIC;
 GRANT USAGE ON SCHEMA cafeteria TO cafeteria_app, cafeteria_backup;
 
+DO $require_auth_issuer$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='cafeteria_auth_issuer') THEN
+        RAISE EXCEPTION 'Required role cafeteria_auth_issuer is missing.' USING ERRCODE = '42501';
+    END IF;
+END;
+$require_auth_issuer$;
+
 -- Jede erneute Anwendung entfernt frühere breite Grants, bevor der aktuelle
 -- Least-Privilege-Vertrag aufgebaut wird.
 REVOKE ALL ON ALL TABLES IN SCHEMA cafeteria FROM cafeteria_app, cafeteria_backup;
@@ -34,11 +42,13 @@ REVOKE EXECUTE ON FUNCTION hard_reset_auth_capability_state()
 FROM PUBLIC, cafeteria_app, cafeteria_backup;
 REVOKE EXECUTE ON FUNCTION sync_entra_user(uuid, uuid, text, text, text, text, text[])
 FROM PUBLIC, cafeteria_app, cafeteria_backup;
-REVOKE EXECUTE ON FUNCTION provision_local_user(text, text, text, text[])
+REVOKE EXECUTE ON FUNCTION resolve_auth_actor(text)
 FROM PUBLIC, cafeteria_app, cafeteria_backup;
-REVOKE EXECUTE ON FUNCTION set_local_password(text, text)
+REVOKE EXECUTE ON FUNCTION provision_local_user(text, text, text, text, text[])
 FROM PUBLIC, cafeteria_app, cafeteria_backup;
-REVOKE EXECUTE ON FUNCTION disable_local_user(text)
+REVOKE EXECUTE ON FUNCTION set_local_password(text, text, text)
+FROM PUBLIC, cafeteria_app, cafeteria_backup;
+REVOKE EXECUTE ON FUNCTION disable_local_user(text, text)
 FROM PUBLIC, cafeteria_app, cafeteria_backup;
 REVOKE EXECUTE ON FUNCTION issue_publication_capability(bigint, bigint, interval)
 FROM PUBLIC, cafeteria_app, cafeteria_backup;
@@ -82,32 +92,22 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
 ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
     REVOKE ALL ON SEQUENCES FROM cafeteria_app, cafeteria_backup;
 
-DO $auth_issuer_privileges$
-BEGIN
-    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='cafeteria_auth_issuer') THEN
-        GRANT USAGE ON SCHEMA cafeteria TO cafeteria_auth_issuer;
-        REVOKE ALL ON ALL TABLES IN SCHEMA cafeteria FROM cafeteria_auth_issuer;
-        REVOKE ALL ON ALL SEQUENCES IN SCHEMA cafeteria FROM cafeteria_auth_issuer;
-        GRANT EXECUTE ON FUNCTION
-            sync_entra_user(uuid, uuid, text, text, text, text, text[]),
-            issue_publication_capability(bigint, bigint, interval),
-            provision_local_user(text, text, text, text[]),
-            set_local_password(text, text),
-            disable_local_user(text)
-        TO cafeteria_auth_issuer;
-        REVOKE EXECUTE ON FUNCTION
-            ensure_auth_capability_state(),
-            hard_reset_auth_capability_state(),
-            bootstrap_auth_capability_secret(),
-            rotate_auth_capability_secret(),
-            withdraw_publication_revision(bigint, text, text)
-        FROM cafeteria_auth_issuer;
-        ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
-            REVOKE ALL ON TABLES FROM cafeteria_auth_issuer;
-        ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
-            REVOKE ALL ON SEQUENCES FROM cafeteria_auth_issuer;
-    END IF;
-END;
-$auth_issuer_privileges$;
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA cafeteria FROM PUBLIC, cafeteria_auth_issuer;
+GRANT USAGE ON SCHEMA cafeteria TO cafeteria_auth_issuer;
+REVOKE ALL ON ALL TABLES IN SCHEMA cafeteria FROM cafeteria_auth_issuer;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA cafeteria FROM cafeteria_auth_issuer;
+GRANT EXECUTE ON FUNCTION
+    sync_entra_user(uuid, uuid, text, text, text, text, text[]),
+    issue_publication_capability(bigint, bigint, interval),
+    provision_local_user(text, text, text, text, text[]),
+    set_local_password(text, text, text),
+    disable_local_user(text, text)
+TO cafeteria_auth_issuer;
+ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
+    REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, cafeteria_auth_issuer;
+ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
+    REVOKE ALL ON TABLES FROM cafeteria_auth_issuer;
+ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
+    REVOKE ALL ON SEQUENCES FROM cafeteria_auth_issuer;
 
 COMMIT;

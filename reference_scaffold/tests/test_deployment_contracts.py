@@ -11,7 +11,6 @@ import sys
 import pytest
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[2]
 DEPLOYMENT = ROOT / "deployment"
 PRODUCTION_HOST = "dishboard.joelduss.xyz"
@@ -41,6 +40,11 @@ def run_entrypoint(
 ) -> subprocess.CompletedProcess[str]:
     secret_file = tmp_path / "entra_client_secret.txt"
     secret_file.write_text(secret_text, encoding="utf-8")
+    issuer_secret_file = tmp_path / "postgres_auth_issuer_password.txt"
+    issuer_secret_file.write_text(
+        "Issuer-Role-2026-Z8yW6uT4sR2qP9nM\n",
+        encoding="utf-8",
+    )
     environment = os.environ | {
         "APP_ENV": "production",
         "APP_PUBLIC_BASE_URL": PRODUCTION_ORIGIN,
@@ -54,6 +58,7 @@ def run_entrypoint(
         "ENTRA_TENANT_ID": "11111111-1111-1111-1111-111111111111",
         "ENTRA_CLIENT_ID": "22222222-2222-2222-2222-222222222222",
         "ENTRA_CLIENT_SECRET_FILE": str(secret_file),
+        "POSTGRES_AUTH_ISSUER_PASSWORD_FILE": str(issuer_secret_file),
     }
     environment.update(overrides)
     return subprocess.run(
@@ -119,6 +124,7 @@ def test_migrate_service_uses_only_database_secrets_and_safe_runtime_flags() -> 
         "postgres_owner_password",
         "postgres_app_password",
         "postgres_backup_password",
+        "postgres_auth_issuer_password",
     }
     assert "FLASK_SECRET_KEY_FILE" not in migrate["environment"]
     assert "ENTRA_CLIENT_SECRET_FILE" not in migrate["environment"]
@@ -168,13 +174,15 @@ def test_migrate_configuration_loads_without_flask_or_entra_secrets(tmp_path: Pa
             for key in ("APP_ENV", "DEMO_MODE", "SEED_DEMO", "DEMO_TODAY", "ENTRA_ENABLED")
         }
     )
-    for variable in (
-        "POSTGRES_PASSWORD_FILE",
-        "POSTGRES_APP_PASSWORD_FILE",
-        "POSTGRES_BACKUP_PASSWORD_FILE",
-    ):
+    role_secrets = {
+        "POSTGRES_PASSWORD_FILE": "Owner-Role-2026-A7bQ9xV4kM2rP8tN",
+        "POSTGRES_APP_PASSWORD_FILE": "App-Role-2026-B8cR7yW5uN3sQ9vK",
+        "POSTGRES_BACKUP_PASSWORD_FILE": "Backup-Role-2026-C9dS8zX6vP4tR2wL",
+        "POSTGRES_AUTH_ISSUER_PASSWORD_FILE": "Issuer-Role-2026-D2eT9aY7wQ5uS3xM",
+    }
+    for variable, role_secret in role_secrets.items():
         secret_file = tmp_path / f"{variable.lower()}.txt"
-        secret_file.write_text("database-secret\n", encoding="utf-8")
+        secret_file.write_text(role_secret + "\n", encoding="utf-8")
         environment[variable] = str(secret_file)
 
     result = subprocess.run(
@@ -225,6 +233,92 @@ def test_production_entrypoint_accepts_secure_matching_public_origin(tmp_path: P
     result = run_entrypoint(tmp_path, SESSION_COOKIE_SECURE="true")
 
     assert result.returncode == 0, result.stderr
+
+
+def test_compose_mounts_one_dedicated_auth_issuer_secret_and_no_url() -> None:
+    compose = load_compose('docker-compose.yml')
+    issuer_secret = 'postgres_auth_issuer_password'
+
+    assert compose['secrets'][issuer_secret]['file'] == (
+        './secrets/postgres_auth_issuer_password.txt'
+    )
+    for service_name in ('migrate', 'app'):
+        service = compose['services'][service_name]
+        assert service['environment']['POSTGRES_AUTH_ISSUER_PASSWORD_FILE'] == (
+            '/run/secrets/postgres_auth_issuer_password'
+        )
+        assert service['secrets'].count(issuer_secret) == 1
+        assert 'AUTH_ISSUER_DATABASE_URL' not in service['environment']
+    for service_name in ('db', 'backup', 'restore'):
+        assert issuer_secret not in compose['services'][service_name].get('secrets', [])
+
+
+def test_bootstrap_generates_one_stable_strong_auth_issuer_secret(tmp_path: Path) -> None:
+    deployment = tmp_path / 'deployment'
+    deployment.mkdir()
+    shutil.copy2(DEPLOYMENT / 'bootstrap.sh', deployment / 'bootstrap.sh')
+    shutil.copy2(DEPLOYMENT / '.env.example', deployment / '.env.example')
+
+    first = subprocess.run(
+        ['/bin/sh', str(deployment / 'bootstrap.sh')],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert first.returncode == 0, first.stderr
+    issuer_files = list((deployment / 'secrets').glob('postgres_auth_issuer_password*.txt'))
+    assert len(issuer_files) == 1
+    first_value = issuer_files[0].read_text(encoding='utf-8').strip()
+    assert len(first_value) >= 32
+
+    second = subprocess.run(
+        ['/bin/sh', str(deployment / 'bootstrap.sh')],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert second.returncode == 0, second.stderr
+    assert issuer_files[0].read_text(encoding='utf-8').strip() == first_value
+
+
+def test_production_entrypoint_rejects_missing_or_weak_auth_issuer_secret(
+    tmp_path: Path,
+) -> None:
+    missing = run_entrypoint(
+        tmp_path,
+        POSTGRES_AUTH_ISSUER_PASSWORD_FILE=str(tmp_path / 'missing-issuer-secret.txt'),
+    )
+    assert missing.returncode != 0
+    assert 'POSTGRES_AUTH_ISSUER_PASSWORD_FILE' in missing.stderr
+
+    weak_file = tmp_path / 'weak-issuer-secret.txt'
+    weak_file.write_text('x\n', encoding='utf-8')
+    weak = run_entrypoint(
+        tmp_path,
+        POSTGRES_AUTH_ISSUER_PASSWORD_FILE=str(weak_file),
+    )
+    assert weak.returncode != 0
+    assert 'POSTGRES_AUTH_ISSUER_PASSWORD_FILE' in weak.stderr
+
+
+def test_proxy_network_uses_exact_deterministic_peers_without_broad_cidr() -> None:
+    compose = load_compose('docker-compose.yml')
+    overlay = load_compose('docker-compose.caddy.yml')
+    network = compose['networks']['cafeteria_internal']
+    subnet = network['ipam']['config'][0]
+
+    assert subnet == {'subnet': '172.31.213.0/24', 'gateway': '172.31.213.1'}
+    assert compose['services']['app']['networks']['cafeteria_internal']['ipv4_address'] == (
+        '172.31.213.20'
+    )
+    assert overlay['services']['caddy']['networks']['cafeteria_internal']['ipv4_address'] == (
+        '172.31.213.10'
+    )
+    assert compose['services']['app']['environment']['TRUSTED_PROXY_PEERS'] == (
+        '172.31.213.1,172.31.213.10'
+    )
+    assert 'TRUSTED_PROXY_CIDRS' not in compose['services']['app']['environment']
+    assert 'TRUSTED_PROXY_HOPS' not in compose['services']['app']['environment']
 
 
 @pytest.mark.parametrize(

@@ -15,9 +15,12 @@ import manage
 from cafeteria import db as database
 from cafeteria.auth import issuer as auth_issuer
 
-
 ROOT = Path(__file__).resolve().parents[2]
 DATABASE_URL = os.getenv('TEST_DATABASE_URL')
+APP_PASSWORD = 'Test-App-Role-2026-7VgJ9wL4pQ2xR8mK'
+BACKUP_PASSWORD = 'Test-Backup-Role-2026-5ZtN8cR3yH6qW1pL'
+ISSUER_PASSWORD = 'Test-Issuer-Role-2026-9QmK4xV7pR2wL8sN'
+DEFAULT_ACTOR = 'admin.801@example.invalid'
 LIVE_DATABASE = pytest.mark.skipif(
     not DATABASE_URL,
     reason='TEST_DATABASE_URL für eine isolierte PostgreSQL-Testdatenbank fehlt.',
@@ -37,6 +40,22 @@ def _role_database_url(role: str, password: str) -> str:
     ).render_as_string(hide_password=False)
 
 
+def _provision_entra_admin(issuer_engine: Engine, suffix: str) -> tuple[int, str]:
+    actor = f'admin.{suffix}@example.invalid'
+    user_id = database.upsert_entra_user(
+        issuer_engine,
+        {
+            'tid': '00000000-0000-0000-0000-000000000811',
+            'oid': f'00000000-0000-0000-0000-{int(suffix):012d}',
+            'sub': f'admin-actor-{suffix}',
+            'name': f'Admin Actor {suffix}',
+            'preferred_username': actor,
+        },
+        ['Cafeteria.Admin'],
+    )
+    return user_id, actor
+
+
 @pytest.fixture
 def owner_engine() -> Iterator[Engine]:
     if not DATABASE_URL:
@@ -48,10 +67,19 @@ def owner_engine() -> Iterator[Engine]:
         str(ROOT / 'database' / 'schema.sql'),
         str(ROOT / 'database' / 'seed.sql'),
         permissions_path=str(ROOT / 'database' / 'permissions.sql'),
-        app_password='test-app-secret',
-        backup_password='test-backup-secret',
-        auth_issuer_password='test-auth-issuer-secret',
+        app_password=APP_PASSWORD,
+        backup_password=BACKUP_PASSWORD,
+        auth_issuer_password=ISSUER_PASSWORD,
     )
+    issuer_engine = create_engine(
+        _role_database_url('cafeteria_auth_issuer', ISSUER_PASSWORD),
+        poolclass=NullPool,
+        pool_pre_ping=True,
+    )
+    try:
+        _provision_entra_admin(issuer_engine, '801')
+    finally:
+        issuer_engine.dispose()
     try:
         yield engine
     finally:
@@ -62,17 +90,17 @@ def owner_engine() -> Iterator[Engine]:
 def test_migration_plan_contains_auth_issuer_contract() -> None:
     plan = database.migration_plan(ROOT / 'database' / 'schema.sql')
 
-    assert database.SCHEMA_VERSION == 9
+    assert database.SCHEMA_VERSION == 10
     assert (plan[-1].version, plan[-1].path.name) == (
-        9,
-        '0006_auth_issuer_and_local_login.sql',
+        10,
+        '0007_auth_security_hardening.sql',
     )
 
 
 @LIVE_DATABASE
 def test_auth_issuer_role_has_function_only_identity_privileges(owner_engine: Engine) -> None:
     issuer_engine = create_engine(
-        _role_database_url('cafeteria_auth_issuer', 'test-auth-issuer-secret'),
+        _role_database_url('cafeteria_auth_issuer', ISSUER_PASSWORD),
         poolclass=NullPool,
         pool_pre_ping=True,
     )
@@ -94,17 +122,17 @@ def test_auth_issuer_role_has_function_only_identity_privileges(owner_engine: En
                         ) AS issue_execute,
                         has_function_privilege(
                             current_user,
-                            'cafeteria.provision_local_user(text,text,text,text[])',
+                            'cafeteria.provision_local_user(text,text,text,text,text[])',
                             'EXECUTE'
                         ) AS provision_execute,
                         has_function_privilege(
                             current_user,
-                            'cafeteria.set_local_password(text,text)',
+                            'cafeteria.set_local_password(text,text,text)',
                             'EXECUTE'
                         ) AS password_execute,
                         has_function_privilege(
                             current_user,
-                            'cafeteria.disable_local_user(text)',
+                            'cafeteria.disable_local_user(text,text)',
                             'EXECUTE'
                         ) AS disable_execute,
                         has_table_privilege(current_user, 'cafeteria.users', 'SELECT') AS users_select,
@@ -133,13 +161,14 @@ def test_local_user_provisioning_hashes_password_and_rejects_duplicate_roles(
     owner_engine: Engine,
 ) -> None:
     issuer_engine = create_engine(
-        _role_database_url('cafeteria_auth_issuer', 'test-auth-issuer-secret'),
+        _role_database_url('cafeteria_auth_issuer', ISSUER_PASSWORD),
         poolclass=NullPool,
         pool_pre_ping=True,
     )
     try:
         user_id = auth_issuer.provision_local_user(
             issuer_engine,
+            actor_identifier=DEFAULT_ACTOR,
             username='kueche.admin',
             display_name='Küche Admin',
             password='Kueche-2026!Sicher',
@@ -171,6 +200,7 @@ def test_local_user_provisioning_hashes_password_and_rejects_duplicate_roles(
         with pytest.raises(ValueError, match='doppelte'):
             auth_issuer.provision_local_user(
                 issuer_engine,
+                actor_identifier=DEFAULT_ACTOR,
                 username='zweiter.admin',
                 display_name='Zweiter Admin',
                 password='Zweiter-2026!Sicher',
@@ -203,7 +233,7 @@ def test_cli_rejects_password_argument_without_echoing_value(
     with pytest.raises(RuntimeError, match='interaktiv'):
         manage.main(
             [
-                'set-local-password', '--username', 'local.editor',
+                'set-local-password', '--actor', DEFAULT_ACTOR, '--username', 'local.editor',
                 '--password', secret,
             ]
         )
@@ -214,7 +244,7 @@ def test_cli_rejects_password_argument_without_echoing_value(
 @LIVE_DATABASE
 def test_app_role_cannot_provision_or_issue_identity_functions(owner_engine: Engine) -> None:
     app_engine = create_engine(
-        _role_database_url('cafeteria_app', 'test-app-secret'),
+        _role_database_url('cafeteria_app', APP_PASSWORD),
         poolclass=NullPool,
         pool_pre_ping=True,
     )
@@ -225,7 +255,7 @@ def test_app_role_cannot_provision_or_issue_identity_functions(owner_engine: Eng
                     text(
                         '''
                         SELECT cafeteria.provision_local_user(
-                            'app.attacker', 'App Attacker',
+                            'admin.actor', 'app.attacker', 'App Attacker',
                             'scrypt:32768:8:1$salt$0123456789abcdef',
                             ARRAY['Cafeteria.Admin']::text[]
                         )
@@ -245,12 +275,15 @@ def test_app_role_cannot_provision_or_issue_identity_functions(owner_engine: Eng
         with pytest.raises(DBAPIError, match='permission denied'):
             with app_engine.begin() as connection:
                 connection.execute(
-                    text("SELECT cafeteria.set_local_password('app.attacker', 'scrypt:1:1:1$s$x')")
+                    text(
+                        "SELECT cafeteria.set_local_password("
+                        "'admin.actor', 'app.attacker', 'scrypt:1:1:1$s$x')"
+                    )
                 ).scalar_one()
         with pytest.raises(DBAPIError, match='permission denied'):
             with app_engine.begin() as connection:
                 connection.execute(
-                    text("SELECT cafeteria.disable_local_user('app.attacker')")
+                    text("SELECT cafeteria.disable_local_user('admin.actor', 'app.attacker')")
                 ).scalar_one()
     finally:
         app_engine.dispose()
@@ -261,7 +294,7 @@ def test_entra_empty_roles_purge_and_bump_without_reactivating_disabled_user(
     owner_engine: Engine,
 ) -> None:
     issuer_engine = create_engine(
-        _role_database_url('cafeteria_auth_issuer', 'test-auth-issuer-secret'),
+        _role_database_url('cafeteria_auth_issuer', ISSUER_PASSWORD),
         poolclass=NullPool,
         pool_pre_ping=True,
     )
@@ -320,9 +353,9 @@ def test_cli_provisions_local_user_via_getpass_without_logging_password(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    issuer_url = _role_database_url('cafeteria_auth_issuer', 'test-auth-issuer-secret')
-    monkeypatch.setenv('AUTH_ISSUER_DATABASE_URL', issuer_url)
-    monkeypatch.setenv('DATABASE_URL', issuer_url)
+    assert DATABASE_URL is not None
+    monkeypatch.setenv('DATABASE_URL', DATABASE_URL)
+    monkeypatch.setenv('POSTGRES_AUTH_ISSUER_PASSWORD', ISSUER_PASSWORD)
     monkeypatch.setenv('APP_ENV', 'test')
     monkeypatch.setenv('DEMO_MODE', 'false')
     passwords = iter(['CLI-Only-2026!Sicher', 'CLI-Only-2026!Sicher'])
@@ -331,6 +364,8 @@ def test_cli_provisions_local_user_via_getpass_without_logging_password(
     result = manage.main(
         [
             'provision-local-user',
+            '--actor',
+            DEFAULT_ACTOR,
             '--username',
             'cli.admin',
             '--display-name',
@@ -366,16 +401,16 @@ def test_cli_sets_password_then_disables_local_user_with_audit_and_revocation(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    issuer_url = _role_database_url('cafeteria_auth_issuer', 'test-auth-issuer-secret')
-    monkeypatch.setenv('AUTH_ISSUER_DATABASE_URL', issuer_url)
-    monkeypatch.setenv('DATABASE_URL', issuer_url)
+    assert DATABASE_URL is not None
+    monkeypatch.setenv('DATABASE_URL', DATABASE_URL)
+    monkeypatch.setenv('POSTGRES_AUTH_ISSUER_PASSWORD', ISSUER_PASSWORD)
     monkeypatch.setenv('APP_ENV', 'test')
     monkeypatch.setenv('DEMO_MODE', 'false')
     original = iter(['Original-2026!Sicher', 'Original-2026!Sicher'])
     monkeypatch.setattr(manage.getpass, 'getpass', lambda prompt: next(original))
     assert manage.main(
         [
-            'provision-local-user', '--username', 'cli.operator',
+            'provision-local-user', '--actor', DEFAULT_ACTOR, '--username', 'cli.operator',
             '--display-name', 'CLI Operator', '--role', 'Cafeteria.Editor',
         ]
     ) == 0
@@ -393,8 +428,12 @@ def test_cli_sets_password_then_disables_local_user_with_audit_and_revocation(
 
     changed = iter(['Changed-2026!Sicher', 'Changed-2026!Sicher'])
     monkeypatch.setattr(manage.getpass, 'getpass', lambda prompt: next(changed))
-    assert manage.main(['set-local-password', '--username', 'cli.operator']) == 0
-    assert manage.main(['disable-local-user', '--username', 'cli.operator']) == 0
+    assert manage.main(
+        ['set-local-password', '--actor', DEFAULT_ACTOR, '--username', 'cli.operator']
+    ) == 0
+    assert manage.main(
+        ['disable-local-user', '--actor', DEFAULT_ACTOR, '--username', 'cli.operator']
+    ) == 0
 
     output = capsys.readouterr()
     assert 'Original-2026!Sicher' not in output.out + output.err
@@ -408,7 +447,7 @@ def test_cli_sets_password_then_disables_local_user_with_audit_and_revocation(
                 FROM cafeteria.users u
                 JOIN cafeteria.local_credentials c ON c.user_id=u.id
                 JOIN cafeteria.audit_events a
-                  ON (a.details->>'user_id')::bigint=u.id
+                  ON (a.details->>'target_user_id')::bigint=u.id
                 WHERE c.username='cli.operator'
                 GROUP BY u.authz_version, u.disabled_at, c.password_hash
                 '''
@@ -424,3 +463,108 @@ def test_cli_sets_password_then_disables_local_user_with_audit_and_revocation(
         'auth.local_user_disabled',
         'auth.local_user_provisioned',
     ]
+
+
+@pytest.mark.parametrize(
+    'password',
+    (
+        'ChangeMe-ChangeMe1!',
+        'Default-Password1!',
+        'Password-Password1!',
+    ),
+)
+def test_local_password_policy_rejects_blocklisted_markers_with_suffixes(password: str) -> None:
+    with pytest.raises(ValueError, match='Passwort'):
+        auth_issuer.validate_local_password(password, 'kueche.operator')
+
+
+@LIVE_DATABASE
+def test_database_role_provisioning_rejects_weak_or_reused_issuer_secret(
+    owner_engine: Engine,
+) -> None:
+    with pytest.raises(RuntimeError, match='Issuer|32|stark'):
+        database.provision_database_roles(
+            owner_engine,
+            app_password=APP_PASSWORD,
+            backup_password=BACKUP_PASSWORD,
+            auth_issuer_password='x',
+        )
+    with pytest.raises(RuntimeError, match='eigene|unterscheiden|Issuer'):
+        database.provision_database_roles(
+            owner_engine,
+            app_password=APP_PASSWORD,
+            backup_password=BACKUP_PASSWORD,
+            auth_issuer_password=APP_PASSWORD,
+        )
+
+
+@LIVE_DATABASE
+def test_init_database_rejects_missing_role_credentials(owner_engine: Engine) -> None:
+    assert DATABASE_URL is not None
+    with pytest.raises(RuntimeError, match='cafeteria_app|32|stark'):
+        database.init_database(
+            DATABASE_URL,
+            str(ROOT / 'database' / 'schema.sql'),
+            str(ROOT / 'database' / 'seed.sql'),
+            permissions_path=str(ROOT / 'database' / 'permissions.sql'),
+        )
+
+
+@LIVE_DATABASE
+def test_database_validator_proves_dedicated_issuer_least_privilege(owner_engine: Engine) -> None:
+    status = database.validate_database(owner_engine)
+
+    assert status['auth_issuer_ready'] is True
+    assert status['auth_issuer_direct_table_privilege_count'] == 0
+    assert status['auth_issuer_direct_sequence_privilege_count'] == 0
+    assert status['auth_issuer_membership_count'] == 0
+    assert status['ready'] is True
+
+
+@LIVE_DATABASE
+def test_entra_role_changes_are_audited_by_verified_target_without_pii(
+    owner_engine: Engine,
+) -> None:
+    issuer_engine = create_engine(
+        _role_database_url('cafeteria_auth_issuer', ISSUER_PASSWORD),
+        poolclass=NullPool,
+        pool_pre_ping=True,
+    )
+    claims = {
+        'tid': '00000000-0000-0000-0000-000000000911',
+        'oid': '00000000-0000-0000-0000-000000000922',
+        'sub': 'entra-audit-subject',
+        'name': 'Audit Target',
+        'email': 'audit-target@example.invalid',
+        'preferred_username': 'audit-target@example.invalid',
+    }
+    try:
+        user_id = database.upsert_entra_user(issuer_engine, claims, ['Cafeteria.Editor'])
+        database.upsert_entra_user(
+            issuer_engine,
+            claims,
+            ['Cafeteria.Admin', 'Cafeteria.Publisher'],
+        )
+    finally:
+        issuer_engine.dispose()
+    with owner_engine.connect() as connection:
+        event = connection.execute(
+            text(
+                '''
+                SELECT actor_user_id, details
+                FROM cafeteria.audit_events
+                WHERE action='auth.entra_roles_changed'
+                  AND (details->>'target_user_id')::bigint=:user_id
+                ORDER BY id DESC LIMIT 1
+                '''
+            ),
+            {'user_id': user_id},
+        ).mappings().one()
+
+    assert event.actor_user_id == user_id
+    assert event.details['old_roles'] == ['Cafeteria.Editor']
+    assert event.details['new_roles'] == ['Cafeteria.Admin', 'Cafeteria.Publisher']
+    assert event.details['authz_version'] > 0
+    serialized = str(event.details).casefold()
+    assert 'audit-target@example.invalid' not in serialized
+    assert 'entra-audit-subject' not in serialized

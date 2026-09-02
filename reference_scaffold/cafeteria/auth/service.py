@@ -52,22 +52,34 @@ def login_rate_key(username: str, remote_address: str) -> str:
 def trusted_client_address(
     environ: Mapping[str, Any],
     effective_address: str,
-    trusted_proxy_cidrs: tuple[str, ...],
+    trusted_proxy_peers: tuple[str, ...],
 ) -> str:
-    """Use forwarded client IP only when the direct socket peer is trusted."""
-    original = environ.get('werkzeug.proxy_fix.orig')
-    if isinstance(original, Mapping):
-        socket_peer = original.get('REMOTE_ADDR')
-    else:
-        socket_peer = environ.get('REMOTE_ADDR')
+    """Use leftmost validated XFF only for an exact trusted socket peer."""
+    socket_peer = environ.get('REMOTE_ADDR', effective_address)
     if not isinstance(socket_peer, str):
         return 'unknown'
     try:
-        peer = ipaddress.ip_address(socket_peer)
-        trusted = any(peer in ipaddress.ip_network(cidr, strict=False) for cidr in trusted_proxy_cidrs)
+        peer = ipaddress.ip_address(socket_peer).compressed
+        trusted = {
+            ipaddress.ip_address(value).compressed
+            for value in trusted_proxy_peers
+        }
     except ValueError:
         return 'unknown'
-    return effective_address if trusted else socket_peer
+    if peer not in trusted:
+        return peer
+    forwarded = environ.get('HTTP_X_FORWARDED_FOR')
+    if not isinstance(forwarded, str) or not forwarded.strip():
+        return peer
+    try:
+        chain = [
+            ipaddress.ip_address(value.strip()).compressed
+            for value in forwarded.split(',')
+            if value.strip()
+        ]
+    except ValueError:
+        return peer
+    return chain[0] if chain else peer
 
 
 def consume_login_attempt(redis_client: Any, key: str) -> None:
@@ -133,7 +145,7 @@ def authenticate_local_user(
                 '''
                 SELECT u.id, u.display_name, u.auth_provider, u.authz_version,
                        u.disabled_at, c.password_hash,
-                       c.failed_login_count,
+                       c.failed_login_count, c.locked_until,
                        c.locked_until IS NOT NULL
                            AND c.locked_until > clock_timestamp() AS locked
                 FROM cafeteria.local_credentials c
@@ -152,6 +164,7 @@ def authenticate_local_user(
         if row.disabled_at is not None or row.locked or not valid_password:
             if row.disabled_at is None:
                 next_count = int(row.failed_login_count) + 1
+                starts_lock_cycle = not bool(row.locked) and next_count >= DATABASE_LOCK_THRESHOLD
                 connection.execute(
                     text(
                         '''
@@ -159,7 +172,7 @@ def authenticate_local_user(
                         SET failed_login_count=:count,
                             last_failed_at=clock_timestamp(),
                             locked_until=CASE
-                                WHEN :count >= :threshold
+                                WHEN :starts_lock_cycle
                                 THEN clock_timestamp() + make_interval(mins => :minutes)
                                 ELSE locked_until
                             END
@@ -168,12 +181,12 @@ def authenticate_local_user(
                     ),
                     {
                         'count': next_count,
-                        'threshold': DATABASE_LOCK_THRESHOLD,
+                        'starts_lock_cycle': starts_lock_cycle,
                         'minutes': DATABASE_LOCK_MINUTES,
                         'user_id': row.id,
                     },
                 )
-                if next_count == DATABASE_LOCK_THRESHOLD:
+                if starts_lock_cycle:
                     connection.execute(
                         text(
                             '''

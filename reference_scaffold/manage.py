@@ -59,6 +59,7 @@ def main(argv: list[str] | None = None) -> int:
     wait_cmd.add_argument('--wait-seconds', type=int, default=60)
     local_cmd = sub.add_parser('provision-local-user')
     local_cmd.add_argument('--wait-seconds', type=int, default=10)
+    local_cmd.add_argument('--actor', required=True)
     local_cmd.add_argument('--username', required=True)
     local_cmd.add_argument('--display-name', required=True)
     local_cmd.add_argument(
@@ -69,9 +70,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     password_cmd = sub.add_parser('set-local-password')
     password_cmd.add_argument('--wait-seconds', type=int, default=10)
+    password_cmd.add_argument('--actor', required=True)
     password_cmd.add_argument('--username', required=True)
     disable_cmd = sub.add_parser('disable-local-user')
     disable_cmd.add_argument('--wait-seconds', type=int, default=10)
+    disable_cmd.add_argument('--actor', required=True)
     disable_cmd.add_argument('--username', required=True)
     args = parser.parse_args(arguments)
 
@@ -88,6 +91,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.command == 'provision-local-user':
                 user_id = provision_local_user(
                     engine,
+                    actor_identifier=args.actor,
                     username=args.username,
                     display_name=args.display_name,
                     password=_prompt_confirmed_password(),
@@ -97,12 +101,17 @@ def main(argv: list[str] | None = None) -> int:
             elif args.command == 'set-local-password':
                 user_id = set_local_password(
                     engine,
+                    actor_identifier=args.actor,
                     username=args.username,
                     password=_prompt_confirmed_password(),
                 )
                 action = 'password_changed'
             else:
-                user_id = disable_local_user(engine, username=args.username)
+                user_id = disable_local_user(
+                    engine,
+                    actor_identifier=args.actor,
+                    username=args.username,
+                )
                 action = 'disabled'
         finally:
             engine.dispose()

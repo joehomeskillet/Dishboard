@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -16,12 +17,15 @@ from cafeteria import create_app
 from cafeteria import db as database
 from cafeteria.auth import issuer as auth_issuer
 from cafeteria.auth import routes as auth_routes
-from cafeteria.auth.service import trusted_client_address
-
+from cafeteria.auth.service import login_rate_key, trusted_client_address
 
 ROOT = Path(__file__).resolve().parents[2]
 DATABASE_URL = os.getenv('TEST_DATABASE_URL')
 REDIS_URL = os.getenv('TEST_REDIS_URL')
+APP_PASSWORD = 'Test-App-Role-2026-7VgJ9wL4pQ2xR8mK'
+BACKUP_PASSWORD = 'Test-Backup-Role-2026-5ZtN8cR3yH6qW1pL'
+ISSUER_PASSWORD = 'Test-Issuer-Role-2026-9QmK4xV7pR2wL8sN'
+ACTOR_IDENTIFIER = 'routes.admin@example.invalid'
 pytestmark = pytest.mark.skipif(
     not DATABASE_URL or not REDIS_URL,
     reason='TEST_DATABASE_URL und TEST_REDIS_URL für isolierte Auth-Tests fehlen.',
@@ -97,14 +101,13 @@ def auth_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[tuple[Any, Engine, Eng
         str(ROOT / 'database' / 'schema.sql'),
         str(ROOT / 'database' / 'seed.sql'),
         permissions_path=str(ROOT / 'database' / 'permissions.sql'),
-        app_password='test-app-secret',
-        backup_password='test-backup-secret',
-        auth_issuer_password='test-auth-issuer-secret',
+        app_password=APP_PASSWORD,
+        backup_password=BACKUP_PASSWORD,
+        auth_issuer_password=ISSUER_PASSWORD,
     )
-    app_url = _role_database_url('cafeteria_app', 'test-app-secret')
-    issuer_url = _role_database_url('cafeteria_auth_issuer', 'test-auth-issuer-secret')
+    app_url = _role_database_url('cafeteria_app', APP_PASSWORD)
     monkeypatch.setenv('DATABASE_URL', app_url)
-    monkeypatch.setenv('AUTH_ISSUER_DATABASE_URL', issuer_url)
+    monkeypatch.setenv('POSTGRES_AUTH_ISSUER_PASSWORD', ISSUER_PASSWORD)
     assert REDIS_URL is not None
     redis_client = Redis.from_url(REDIS_URL)
     redis_client.flushdb()
@@ -119,6 +122,17 @@ def auth_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[tuple[Any, Engine, Eng
     application = create_app()
     application.config.update(TESTING=True)
     issuer_engine = application.extensions['cafeteria_auth_issuer_db']
+    database.upsert_entra_user(
+        issuer_engine,
+        {
+            'tid': '00000000-0000-0000-0000-000000000611',
+            'oid': '00000000-0000-0000-0000-000000000622',
+            'sub': 'routes-admin-actor',
+            'name': 'Routes Admin',
+            'preferred_username': ACTOR_IDENTIFIER,
+        },
+        ['Cafeteria.Admin'],
+    )
     try:
         yield application, owner_engine, issuer_engine
     finally:
@@ -134,11 +148,19 @@ def auth_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[tuple[Any, Engine, Eng
 def _provision(issuer_engine: Engine, username: str = 'local.editor') -> int:
     return auth_issuer.provision_local_user(
         issuer_engine,
+        actor_identifier=ACTOR_IDENTIFIER,
         username=username,
         display_name='Lokale Redaktion',
         password='Correct-Horse-2026!Battery',
         roles=['Cafeteria.Editor'],
     )
+
+
+def _csrf_payload(client: Any, **values: str) -> dict[str, str]:
+    assert client.get('/auth/local').status_code == 200
+    with client.session_transaction() as flask_session:
+        token = flask_session['_csrf_token']
+    return {'csrf_token': token, **values}
 
 
 def test_local_login_succeeds_without_session_roles(auth_app: tuple[Any, Engine, Engine]) -> None:
@@ -148,7 +170,11 @@ def test_local_login_succeeds_without_session_roles(auth_app: tuple[Any, Engine,
 
     response = client.post(
         '/auth/local',
-        data={'username': 'local.editor', 'password': 'Correct-Horse-2026!Battery'},
+        data=_csrf_payload(
+            client,
+            username='local.editor',
+            password='Correct-Horse-2026!Battery',
+        ),
     )
 
     assert response.status_code == 302
@@ -170,6 +196,7 @@ def test_local_login_is_default_off_and_get_renders_dedicated_template(
     assert '<form' in enabled.get_data(as_text=True)
     assert 'name="username"' in enabled.get_data(as_text=True)
     assert 'name="password"' in enabled.get_data(as_text=True)
+    assert 'name="csrf_token"' in enabled.get_data(as_text=True)
 
     application.config['LOCAL_AUTH_ENABLED'] = False
     assert client.get('/auth/local').status_code == 404
@@ -185,11 +212,19 @@ def test_local_login_failures_are_generic_and_disabled_users_cannot_login(
 
     wrong = client.post(
         '/auth/local',
-        data={'username': 'local.editor', 'password': 'wrong-password-value'},
+        data=_csrf_payload(
+            client,
+            username='local.editor',
+            password='wrong-password-value',
+        ),
     )
     missing = client.post(
         '/auth/local',
-        data={'username': 'unknown.user', 'password': 'wrong-password-value'},
+        data=_csrf_payload(
+            client,
+            username='unknown.user',
+            password='wrong-password-value',
+        ),
     )
     with owner_engine.begin() as connection:
         connection.execute(
@@ -198,7 +233,11 @@ def test_local_login_failures_are_generic_and_disabled_users_cannot_login(
         )
     disabled = client.post(
         '/auth/local',
-        data={'username': 'local.editor', 'password': 'Correct-Horse-2026!Battery'},
+        data=_csrf_payload(
+            client,
+            username='local.editor',
+            password='Correct-Horse-2026!Battery',
+        ),
     )
 
     assert wrong.status_code == missing.status_code == disabled.status_code == 401
@@ -216,7 +255,11 @@ def test_local_login_fails_closed_when_redis_is_unavailable(
 
     response = client.post(
         '/auth/local',
-        data={'username': 'local.editor', 'password': 'Correct-Horse-2026!Battery'},
+        data=_csrf_payload(
+            client,
+            username='local.editor',
+            password='Correct-Horse-2026!Battery',
+        ),
     )
 
     assert response.status_code == 503
@@ -229,19 +272,25 @@ def test_real_redis_rate_limit_isolated_by_username_and_socket_ip(
 ) -> None:
     application, _, _ = auth_app
     client = application.test_client()
-    data = {'username': 'unknown.user', 'password': 'wrong-password-value'}
-
     for spoofed_ip in ('203.0.113.1', '203.0.113.2', '203.0.113.3', '203.0.113.4', '203.0.113.5'):
         response = client.post(
             '/auth/local',
-            data=data,
+            data=_csrf_payload(
+                client,
+                username='unknown.user',
+                password='wrong-password-value',
+            ),
             environ_base={'REMOTE_ADDR': '198.51.100.10'},
             headers={'X-Forwarded-For': spoofed_ip},
         )
         assert response.status_code == 401
     limited = client.post(
         '/auth/local',
-        data=data,
+        data=_csrf_payload(
+            client,
+            username='unknown.user',
+            password='wrong-password-value',
+        ),
         environ_base={'REMOTE_ADDR': '198.51.100.10'},
         headers={'X-Forwarded-For': '203.0.113.99'},
     )
@@ -249,12 +298,20 @@ def test_real_redis_rate_limit_isolated_by_username_and_socket_ip(
 
     other_ip = client.post(
         '/auth/local',
-        data=data,
+        data=_csrf_payload(
+            client,
+            username='unknown.user',
+            password='wrong-password-value',
+        ),
         environ_base={'REMOTE_ADDR': '198.51.100.11'},
     )
     other_user = client.post(
         '/auth/local',
-        data={'username': 'another.user', 'password': 'wrong-password-value'},
+        data=_csrf_payload(
+            client,
+            username='another.user',
+            password='wrong-password-value',
+        ),
         environ_base={'REMOTE_ADDR': '198.51.100.10'},
     )
     assert other_ip.status_code == 401
@@ -262,18 +319,18 @@ def test_real_redis_rate_limit_isolated_by_username_and_socket_ip(
 
 
 def test_forwarded_client_ip_is_used_only_for_trusted_loopback_proxy() -> None:
-    cidrs = ('127.0.0.0/8', '::1/128')
+    peers = ('127.0.0.1', '::1')
     trusted_environ = {
-        'REMOTE_ADDR': '203.0.113.20',
-        'werkzeug.proxy_fix.orig': {'REMOTE_ADDR': '127.0.0.1'},
+        'REMOTE_ADDR': '127.0.0.1',
+        'HTTP_X_FORWARDED_FOR': '203.0.113.20',
     }
     direct_environ = {
-        'REMOTE_ADDR': '203.0.113.20',
-        'werkzeug.proxy_fix.orig': {'REMOTE_ADDR': '198.51.100.10'},
+        'REMOTE_ADDR': '198.51.100.10',
+        'HTTP_X_FORWARDED_FOR': '203.0.113.20',
     }
 
-    assert trusted_client_address(trusted_environ, '203.0.113.20', cidrs) == '203.0.113.20'
-    assert trusted_client_address(direct_environ, '203.0.113.20', cidrs) == '198.51.100.10'
+    assert trusted_client_address(trusted_environ, '127.0.0.1', peers) == '203.0.113.20'
+    assert trusted_client_address(direct_environ, '198.51.100.10', peers) == '198.51.100.10'
 
 
 def test_fifth_failed_login_locks_and_audits_local_user(
@@ -286,7 +343,11 @@ def test_fifth_failed_login_locks_and_audits_local_user(
     for _ in range(5):
         response = client.post(
             '/auth/local',
-            data={'username': 'local.editor', 'password': 'Wrong-2026!Password'},
+            data=_csrf_payload(
+                client,
+                username='local.editor',
+                password='Wrong-2026!Password',
+            ),
         )
         assert response.status_code == 401
 
@@ -316,7 +377,11 @@ def test_role_revocation_invalidates_live_session(auth_app: tuple[Any, Engine, E
     client = application.test_client()
     login = client.post(
         '/auth/local',
-        data={'username': 'local.editor', 'password': 'Correct-Horse-2026!Battery'},
+        data=_csrf_payload(
+            client,
+            username='local.editor',
+            password='Correct-Horse-2026!Battery',
+        ),
     )
     assert login.status_code == 302
 
@@ -417,5 +482,114 @@ def test_entra_callback_never_reactivates_disabled_user(
         ).scalar_one()
     assert response.status_code == 403
     assert disabled_at is not None
+    with client.session_transaction() as flask_session:
+        assert 'user' not in flask_session
+
+
+def test_local_login_requires_csrf_before_rate_limit_or_auth(
+    auth_app: tuple[Any, Engine, Engine],
+) -> None:
+    application, _, issuer_engine = auth_app
+    _provision(issuer_engine)
+    client = application.test_client()
+    valid = _csrf_payload(
+        client,
+        username='local.editor',
+        password='Correct-Horse-2026!Battery',
+    )
+    with client.session_transaction() as flask_session:
+        flask_session['sentinel'] = 'preserved-before-validation'
+    redis_client = application.extensions['cafeteria_rate_redis']
+    rate_key = login_rate_key('local.editor', '127.0.0.1')
+
+    missing = client.post(
+        '/auth/local',
+        data={'username': 'local.editor', 'password': 'Correct-Horse-2026!Battery'},
+    )
+    assert missing.status_code == 400
+    assert redis_client.exists(rate_key) == 0
+    with client.session_transaction() as flask_session:
+        assert flask_session['sentinel'] == 'preserved-before-validation'
+
+    wrong = client.post(
+        '/auth/local',
+        data={
+            'csrf_token': '0' * 64,
+            'username': 'local.editor',
+            'password': 'Correct-Horse-2026!Battery',
+        },
+    )
+    assert wrong.status_code == 400
+    assert redis_client.exists(rate_key) == 0
+    with client.session_transaction() as flask_session:
+        assert flask_session['sentinel'] == 'preserved-before-validation'
+
+    accepted = client.post('/auth/local', data=valid)
+    assert accepted.status_code == 302
+    with client.session_transaction() as flask_session:
+        assert flask_session['user']['id'] > 0
+        assert 'sentinel' not in flask_session
+
+
+def test_csrf_tokens_are_patient_safe_fixed_hex(
+    auth_app: tuple[Any, Engine, Engine],
+) -> None:
+    application, _, _ = auth_app
+    client = application.test_client()
+    forbidden = ('chf', 'intern', 'extern', '0.00', 'price', 'preis')
+
+    for _ in range(128):
+        with client.session_transaction() as flask_session:
+            flask_session.pop('_csrf_token', None)
+        response = client.get('/auth/local')
+        assert response.status_code == 200
+        body = response.get_data(as_text=True).casefold()
+        with client.session_transaction() as flask_session:
+            token = flask_session['_csrf_token']
+        assert re.fullmatch(r'[0-9a-f]{64}', token)
+        assert token in body
+        assert all(marker not in token.casefold() for marker in forbidden)
+        for path in ('/patienten/heute/', '/patienten/wochenplan/'):
+            patient_body = client.get(path).get_data(as_text=True).casefold()
+            assert all(marker not in patient_body for marker in forbidden)
+
+
+def test_secure_cookie_flags_are_emitted(
+    auth_app: tuple[Any, Engine, Engine],
+) -> None:
+    application, _, _ = auth_app
+    application.config['SESSION_COOKIE_SECURE'] = True
+
+    response = application.test_client().get('/auth/local')
+    cookie = response.headers.get('Set-Cookie', '')
+
+    assert 'Secure' in cookie
+    assert 'HttpOnly' in cookie
+    assert 'SameSite=Lax' in cookie
+
+
+def test_real_redis_connection_failure_blocks_local_login(
+    auth_app: tuple[Any, Engine, Engine],
+) -> None:
+    application, _, issuer_engine = auth_app
+    _provision(issuer_engine)
+    application.extensions['cafeteria_rate_redis'] = Redis(
+        host='127.0.0.1',
+        port=1,
+        socket_connect_timeout=0.05,
+        socket_timeout=0.05,
+    )
+    client = application.test_client()
+
+    response = client.post(
+        '/auth/local',
+        data=_csrf_payload(
+            client,
+            username='local.editor',
+            password='Correct-Horse-2026!Battery',
+        ),
+    )
+
+    assert response.status_code == 503
     with client.session_transaction() as flask_session:
         assert 'user' not in flask_session

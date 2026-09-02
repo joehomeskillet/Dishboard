@@ -939,8 +939,10 @@ SET search_path = cafeteria, pg_temp
 AS $$
 DECLARE
     v_roles text[];
+    v_old_roles text[];
     v_role_count integer;
     v_user_id bigint;
+    v_authz_version bigint;
 BEGIN
     IF p_tenant_id IS NULL
        OR p_object_id IS NULL
@@ -994,6 +996,10 @@ BEGIN
         last_seen_roles=EXCLUDED.last_seen_roles,
         last_login_at=clock_timestamp()
     RETURNING id INTO v_user_id;
+    SELECT COALESCE(array_agg(role_code ORDER BY role_code), ARRAY[]::text[])
+      INTO v_old_roles
+      FROM user_role_cache
+     WHERE user_id=v_user_id AND source='entra_token';
     DELETE FROM user_role_cache
      WHERE user_id=v_user_id
        AND source='entra_token'
@@ -1004,11 +1010,61 @@ BEGIN
     ON CONFLICT (user_id, role_code) DO UPDATE
     SET last_seen_at=clock_timestamp()
     WHERE user_role_cache.source='entra_token';
+    IF v_old_roles IS DISTINCT FROM v_roles THEN
+        SELECT authz_version INTO v_authz_version FROM users WHERE id=v_user_id;
+        INSERT INTO audit_events(actor_user_id, action, entity_type, details)
+        VALUES (
+            v_user_id,
+            'auth.entra_roles_changed',
+            'user',
+            jsonb_build_object(
+                'target_user_id', v_user_id,
+                'old_roles', to_jsonb(v_old_roles),
+                'new_roles', to_jsonb(v_roles),
+                'authz_version', v_authz_version
+            )
+        );
+    END IF;
     RETURN v_user_id;
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION resolve_auth_actor(p_actor_identifier text)
+RETURNS bigint
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = cafeteria, pg_temp
+AS $$
+DECLARE
+    v_actor_ids bigint[];
+BEGIN
+    IF p_actor_identifier IS NULL
+       OR btrim(p_actor_identifier) !~ '^[A-Za-z0-9][A-Za-z0-9._@+-]{2,127}$' THEN
+        RAISE EXCEPTION 'Actor-Identifier ist ungültig.' USING ERRCODE = '22023';
+    END IF;
+    SELECT array_agg(DISTINCT u.id ORDER BY u.id)
+      INTO v_actor_ids
+      FROM users u
+      JOIN user_role_cache ur ON ur.user_id=u.id
+      JOIN application_roles ar ON ar.role_code=ur.role_code AND ar.active
+      LEFT JOIN local_credentials lc ON lc.user_id=u.id
+     WHERE u.disabled_at IS NULL
+       AND ar.role_code='Cafeteria.Admin'
+       AND (
+           lower(COALESCE(lc.username, ''))=lower(btrim(p_actor_identifier))
+           OR lower(COALESCE(u.email, ''))=lower(btrim(p_actor_identifier))
+           OR lower(COALESCE(u.preferred_username, ''))=lower(btrim(p_actor_identifier))
+       );
+    IF COALESCE(cardinality(v_actor_ids), 0) <> 1 THEN
+        RAISE EXCEPTION 'Actor-Identifier bezeichnet keinen eindeutigen aktiven Administrator.'
+            USING ERRCODE = '42501';
+    END IF;
+    RETURN v_actor_ids[1];
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION provision_local_user(
+    p_actor_identifier text,
     p_username text,
     p_display_name text,
     p_password_hash text,
@@ -1020,10 +1076,12 @@ SECURITY DEFINER
 SET search_path = cafeteria, pg_temp
 AS $$
 DECLARE
+    v_actor_user_id bigint;
     v_roles text[];
     v_role_count integer;
     v_user_id bigint;
 BEGIN
+    v_actor_user_id := resolve_auth_actor(p_actor_identifier);
     IF p_username IS NULL
        OR p_username <> lower(p_username)
        OR p_username !~ '^[a-z0-9][a-z0-9._-]{2,63}$'
@@ -1074,28 +1132,34 @@ BEGIN
 
     INSERT INTO audit_events(actor_user_id, action, entity_type, details)
     VALUES (
-        NULL,
+        v_actor_user_id,
         'auth.local_user_provisioned',
         'user',
-        jsonb_build_object('user_id', v_user_id, 'role_count', cardinality(v_roles))
+        jsonb_build_object('target_user_id', v_user_id, 'role_count', cardinality(v_roles))
     );
     INSERT INTO audit_events(actor_user_id, action, entity_type, details)
-    SELECT NULL, 'auth.local_role_granted', 'user',
-           jsonb_build_object('user_id', v_user_id, 'role_code', requested.role_code)
+    SELECT v_actor_user_id, 'auth.local_role_granted', 'user',
+           jsonb_build_object('target_user_id', v_user_id, 'role_code', requested.role_code)
     FROM unnest(v_roles) AS requested(role_code);
     RETURN v_user_id;
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION set_local_password(p_username text, p_password_hash text)
+CREATE OR REPLACE FUNCTION set_local_password(
+    p_actor_identifier text,
+    p_username text,
+    p_password_hash text
+)
 RETURNS bigint
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = cafeteria, pg_temp
 AS $$
 DECLARE
+    v_actor_user_id bigint;
     v_user_id bigint;
 BEGIN
+    v_actor_user_id := resolve_auth_actor(p_actor_identifier);
     IF p_username IS NULL
        OR p_username <> lower(p_username)
        OR p_username !~ '^[a-z0-9][a-z0-9._-]{2,63}$'
@@ -1124,25 +1188,27 @@ BEGIN
     UPDATE users SET authz_version=authz_version + 1 WHERE id=v_user_id;
     INSERT INTO audit_events(actor_user_id, action, entity_type, details)
     VALUES (
-        NULL,
+        v_actor_user_id,
         'auth.local_password_changed',
         'user',
-        jsonb_build_object('user_id', v_user_id)
+        jsonb_build_object('target_user_id', v_user_id)
     );
     RETURN v_user_id;
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION disable_local_user(p_username text)
+CREATE OR REPLACE FUNCTION disable_local_user(p_actor_identifier text, p_username text)
 RETURNS bigint
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = cafeteria, pg_temp
 AS $$
 DECLARE
+    v_actor_user_id bigint;
     v_user_id bigint;
     v_disabled_at timestamptz;
 BEGIN
+    v_actor_user_id := resolve_auth_actor(p_actor_identifier);
     IF p_username IS NULL
        OR p_username <> lower(p_username)
        OR p_username !~ '^[a-z0-9][a-z0-9._-]{2,63}$' THEN
@@ -1163,10 +1229,10 @@ BEGIN
         UPDATE users SET disabled_at=clock_timestamp() WHERE id=v_user_id;
         INSERT INTO audit_events(actor_user_id, action, entity_type, details)
         VALUES (
-            NULL,
+            v_actor_user_id,
             'auth.local_user_disabled',
             'user',
-            jsonb_build_object('user_id', v_user_id)
+            jsonb_build_object('target_user_id', v_user_id)
         );
     END IF;
     RETURN v_user_id;
@@ -1657,10 +1723,11 @@ ALTER FUNCTION protect_publication_revision() SET search_path = cafeteria, pg_te
 ALTER FUNCTION record_publication_lifecycle() SET search_path = cafeteria, pg_temp;
 ALTER FUNCTION sync_entra_user(uuid, uuid, text, text, text, text, text[])
     SET search_path = cafeteria, pg_temp;
-ALTER FUNCTION provision_local_user(text, text, text, text[])
+ALTER FUNCTION resolve_auth_actor(text) SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION provision_local_user(text, text, text, text, text[])
     SET search_path = cafeteria, pg_temp;
-ALTER FUNCTION set_local_password(text, text) SET search_path = cafeteria, pg_temp;
-ALTER FUNCTION disable_local_user(text) SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION set_local_password(text, text, text) SET search_path = cafeteria, pg_temp;
+ALTER FUNCTION disable_local_user(text, text) SET search_path = cafeteria, pg_temp;
 ALTER FUNCTION bootstrap_auth_capability_secret() SET search_path = cafeteria, pg_temp;
 ALTER FUNCTION rotate_auth_capability_secret() SET search_path = cafeteria, pg_temp;
 ALTER FUNCTION ensure_auth_capability_state() SET search_path = cafeteria, pg_temp;
@@ -1674,34 +1741,28 @@ ALTER FUNCTION validate_user_auth_provider() SET search_path = cafeteria, pg_tem
 ALTER FUNCTION validate_user_role_source() SET search_path = cafeteria, pg_temp;
 ALTER FUNCTION bump_user_authz_version() SET search_path = cafeteria, pg_temp;
 
-REVOKE EXECUTE ON FUNCTION bootstrap_auth_capability_secret() FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION rotate_auth_capability_secret() FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION ensure_auth_capability_state() FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION hard_reset_auth_capability_state() FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION record_publication_lifecycle() FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION sync_entra_user(uuid, uuid, text, text, text, text, text[]) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION provision_local_user(text, text, text, text[]) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION set_local_password(text, text) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION disable_local_user(text) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION issue_publication_capability(bigint, bigint, interval) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION withdraw_publication_revision(bigint, text, text) FROM PUBLIC;
-
 DO $auth_issuer_privileges$
 BEGIN
-    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='cafeteria_auth_issuer') THEN
-        GRANT USAGE ON SCHEMA cafeteria TO cafeteria_auth_issuer;
-        REVOKE ALL ON ALL TABLES IN SCHEMA cafeteria FROM cafeteria_auth_issuer;
-        REVOKE ALL ON ALL SEQUENCES IN SCHEMA cafeteria FROM cafeteria_auth_issuer;
-        GRANT EXECUTE ON FUNCTION
-            sync_entra_user(uuid, uuid, text, text, text, text, text[]),
-            issue_publication_capability(bigint, bigint, interval),
-            provision_local_user(text, text, text, text[]),
-            set_local_password(text, text),
-            disable_local_user(text)
-        TO cafeteria_auth_issuer;
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='cafeteria_auth_issuer') THEN
+        RAISE EXCEPTION 'Required role cafeteria_auth_issuer is missing.' USING ERRCODE = '42501';
     END IF;
 END;
 $auth_issuer_privileges$;
+
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA cafeteria FROM PUBLIC;
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA cafeteria FROM cafeteria_auth_issuer;
+ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria REVOKE EXECUTE ON FUNCTIONS FROM cafeteria_auth_issuer;
+GRANT USAGE ON SCHEMA cafeteria TO cafeteria_auth_issuer;
+REVOKE ALL ON ALL TABLES IN SCHEMA cafeteria FROM cafeteria_auth_issuer;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA cafeteria FROM cafeteria_auth_issuer;
+GRANT EXECUTE ON FUNCTION
+    sync_entra_user(uuid, uuid, text, text, text, text, text[]),
+    issue_publication_capability(bigint, bigint, interval),
+    provision_local_user(text, text, text, text, text[]),
+    set_local_password(text, text, text),
+    disable_local_user(text, text)
+TO cafeteria_auth_issuer;
 
 CREATE OR REPLACE VIEW active_publications AS
 SELECT

@@ -43,8 +43,12 @@ assert migrate['environment']['ENTRA_ENABLED'] == 'false'
 assert migrate['environment']['POSTGRES_USER'] == 'cafeteria_owner'
 assert migrate['environment']['POSTGRES_APP_PASSWORD_FILE'] == '/run/secrets/postgres_app_password'
 assert migrate['environment']['POSTGRES_BACKUP_PASSWORD_FILE'] == '/run/secrets/postgres_backup_password'
+assert migrate['environment']['POSTGRES_AUTH_ISSUER_PASSWORD_FILE'] == (
+    '/run/secrets/postgres_auth_issuer_password'
+)
 assert set(migrate['secrets']) == {
-    'postgres_owner_password', 'postgres_app_password', 'postgres_backup_password'
+    'postgres_owner_password', 'postgres_app_password', 'postgres_backup_password',
+    'postgres_auth_issuer_password',
 }
 assert set(migrate['environment']).isdisjoint({
     'ENTRA_TENANT_ID', 'ENTRA_CLIENT_ID', 'FLASK_SECRET_KEY_FILE',
@@ -57,6 +61,9 @@ assert app['build']['dockerfile'] == 'deployment/Dockerfile'
 assert app['environment']['APP_IMAGE'] == '${APP_IMAGE}'
 assert app['environment']['POSTGRES_HOST'] == 'db'
 assert app['environment']['POSTGRES_USER'] == 'cafeteria_app'
+assert app['environment']['POSTGRES_AUTH_ISSUER_PASSWORD_FILE'] == (
+    '/run/secrets/postgres_auth_issuer_password'
+)
 assert app['environment']['LAST_GOOD_DIR'] == '/var/lib/cafeteria/last-good'
 assert 'last_good_data:/var/lib/cafeteria' in app['volumes']
 assert app['depends_on']['db']['condition'] == 'service_healthy'
@@ -64,8 +71,10 @@ assert app['depends_on']['redis']['condition'] == 'service_healthy'
 assert app['depends_on']['migrate']['condition'] == 'service_completed_successfully'
 assert app['healthcheck']
 assert set(app['secrets']) == {
-    'postgres_app_password', 'flask_secret_key', 'entra_client_secret', 'redis_password'
+    'postgres_app_password', 'postgres_auth_issuer_password', 'flask_secret_key',
+    'entra_client_secret', 'redis_password',
 }
+assert app['networks']['cafeteria_internal']['ipv4_address'] == '172.31.213.20'
 
 assert services['backup']['environment']['POSTGRES_USER'] == 'cafeteria_backup'
 assert services['restore']['environment']['POSTGRES_USER'] == 'cafeteria_owner'
@@ -78,11 +87,17 @@ assert services['restore']['command'] == [
 assert {'postgres_data', 'postgres_backups', 'redis_data', 'last_good_data'} <= set(base.get('volumes', {}))
 assert {
     'postgres_owner_password', 'postgres_app_password', 'postgres_backup_password',
-    'flask_secret_key', 'entra_client_secret', 'redis_password'
+    'postgres_auth_issuer_password', 'flask_secret_key', 'entra_client_secret', 'redis_password'
 } <= set(base.get('secrets', {}))
+network = base['networks']['cafeteria_internal']
+assert network['driver'] == 'bridge'
+assert network['ipam']['config'] == [
+    {'subnet': '172.31.213.0/24', 'gateway': '172.31.213.1'}
+]
 assert 'caddy' in overlay.get('services', {})
 assert overlay['services']['caddy']['depends_on']['app']['condition'] == 'service_healthy'
 assert overlay['services']['caddy']['environment']['CAFETERIA_DOMAIN'] == '${CAFETERIA_DOMAIN:-dishboard.joelduss.xyz}'
+assert overlay['services']['caddy']['networks']['cafeteria_internal']['ipv4_address'] == '172.31.213.10'
 
 example = (root / '.env.example').read_text(encoding='utf-8')
 for token in (
@@ -90,6 +105,8 @@ for token in (
     'APP_IMAGE=registry.example.invalid/dishboard@sha256:REPLACE_WITH_IMAGE_DIGEST',
     'APP_PUBLIC_BASE_URL=https://dishboard.joelduss.xyz',
     'DEMO_MODE=false', 'SEED_DEMO=false', 'DEMO_TODAY=', 'SESSION_COOKIE_SECURE=true',
+    'TRUSTED_PROXY_PEERS=172.31.213.1,172.31.213.10',
+    'LOCAL_AUTH_ENABLED=false',
     'LAST_GOOD_DIR=/var/lib/cafeteria/last-good',
     'RESTORE_CONTROLLER_HEARTBEAT_SECONDS=5',
     'RESTORE_CONTROLLER_TIMEOUT_SECONDS=30',
@@ -108,5 +125,8 @@ assert 'Type=oneshot' in retention_service
 assert 'OnCalendar=daily' in retention_timer
 assert 'Persistent=true' in retention_timer
 assert not (root / '.env').exists()
+bootstrap = (root / 'bootstrap.sh').read_text(encoding='utf-8')
+assert bootstrap.count('generate_secret secrets/postgres_auth_issuer_password.txt 48') == 1
+assert 'AUTH_ISSUER_DATABASE_URL' not in (root / 'docker-compose.yml').read_text(encoding='utf-8')
 
 print('Compose-Struktur: OK (statisch; kein Containerstart)')
