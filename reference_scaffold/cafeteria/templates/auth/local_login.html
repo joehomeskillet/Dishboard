@@ -31,10 +31,12 @@
         </p>
         <button class="btn primary" type="submit">Lokal anmelden</button>
       </form>
+      {% if config.ENTRA_ENABLED %}
       <p class="menu-description">
         Organisationskonto vorhanden?
         <a href="{{ url_for('auth.login') }}">Mit Microsoft Entra anmelden</a>
       </p>
+      {% endif %}
     </div>
   </section>
 </main>

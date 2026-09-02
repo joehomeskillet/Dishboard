@@ -373,6 +373,83 @@ def test_unbroken_signage_text_remains_visible_without_clipping(
     finally:
         page.close()
 
+@pytest.mark.parametrize(
+    ('profile', 'path', 'width', 'height', 'title_limit', 'component_limit'),
+    (
+        ('staff_guest', '/signage/cafeteria/tag', 1920, 1080, 46, 70),
+        ('staff_guest', '/signage/cafeteria/woche', 1920, 1080, 36, 48),
+        ('patient', '/signage/patienten/tag', 1920, 1080, 42, 62),
+        ('patient', '/signage/patienten/woche', 1920, 1080, 36, 48),
+        ('patient', '/signage/patienten/woche', 3840, 2160, 36, 48),
+    ),
+)
+def test_unbroken_signage_text_at_surface_maxima_remains_visible_without_clipping(
+    app: Flask,
+    browser: Browser,
+    profile: str,
+    path: str,
+    width: int,
+    height: int,
+    title_limit: int,
+    component_limit: int,
+) -> None:
+    snapshot = app.config['TEST_SNAPSHOTS'][profile]
+    title, component = _set_unbroken_signage_boundaries(
+        snapshot,
+        title_length=title_limit,
+        component_length=component_limit,
+    )
+    html = _client(app).get(path).get_data(as_text=True)
+
+    assert title in html
+    assert component in html
+    page = _page(browser, html, width, height)
+    selectors = (
+        '.signage-menu-card .content h3',
+        '.signage-menu-card .content p',
+        '.signage-components li',
+        '.cafe-week-slot h3',
+        '.cafe-week-slot p',
+        '.patient-signage-option h3',
+        '.patient-signage-option p',
+        '.patient-week-option strong',
+        '.patient-week-option span',
+    )
+    try:
+        _assert_no_viewport_overflow(
+            page,
+            (
+                '.signage-shell',
+                '.signage-menu-card',
+                '.cafe-week-slot',
+                '.patient-signage-meal',
+                '.patient-week-cell',
+                *selectors,
+            ),
+        )
+        text_state = page.evaluate(
+            """
+            selectors => selectors.flatMap(selector =>
+              [...document.querySelectorAll(selector)].map(element => {
+                const style = getComputedStyle(element);
+                const rect = element.getBoundingClientRect();
+                return {
+                  visible: style.display !== 'none' && style.visibility !== 'hidden' &&
+                    Number(style.opacity) > 0 && rect.width > 0 && rect.height > 0,
+                  clamp: style.webkitLineClamp,
+                  ellipsis: style.textOverflow === 'ellipsis',
+                };
+              })
+            )
+            """,
+            selectors,
+        )
+        assert text_state
+        assert all(item == {'visible': True, 'clamp': 'none', 'ellipsis': False} for item in text_state)
+    finally:
+        page.close()
+
+
 
 @pytest.mark.parametrize('path', ('/cafeteria/wochenangebot/', '/patienten/wochenplan/'))
 @pytest.mark.parametrize(('width', 'height'), ((390, 844), (1440, 1100)))

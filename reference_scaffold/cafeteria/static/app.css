@@ -235,6 +235,8 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
 .admin-nav { display: grid; gap: .3rem; }
 .admin-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: .72rem .8rem; border-radius: 10px; color: rgba(255,255,255,.72); font-size: .84rem; font-weight: 720; text-decoration: none; }
 .admin-nav a.active, .admin-nav a:hover { color: var(--sh-white); background: rgba(255,255,255,.12); }
+.admin-nav button { display: inline-flex; align-items: center; min-height: 44px; padding: .72rem .8rem; border: none; border-radius: 10px; color: rgba(255,255,255,.72); background: transparent; font-size: .84rem; font-weight: 720; cursor: pointer; }
+.admin-nav button:hover { color: var(--sh-white); background: rgba(255,255,255,.12); }
 .admin-main { min-width: 0; }
 .admin-topbar { position: sticky; z-index: 10; top: 0; display: flex; justify-content: space-between; align-items: center; min-height: 72px; padding: .75rem 1.5rem; background: rgba(255,255,255,.96); border-bottom: 1px solid var(--sh-border); backdrop-filter: blur(10px); }
 .admin-topbar h1 { margin: 0; font-size: 1.3rem; letter-spacing: -.03em; }

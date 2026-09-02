@@ -170,8 +170,9 @@ def callback():
     return redirect(url_for('admin.cafeteria'))
 
 
-@bp.get('/logout')
+@bp.post('/logout')
 def logout():
+    validate_csrf(request.form.get("_csrf"))
     tenant = current_app.config.get('ENTRA_TENANT_ID')
     target = current_app.config['APP_PUBLIC_BASE_URL'] + url_for('public.cafeteria_today')
     session.clear()
