@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Any, Mapping
@@ -28,7 +29,15 @@ def _field_names(profile_code: str) -> set[str]:
             names |= {f'{service}_state', f'{service}_notice'}
             for type_code in MENU_TYPES:
                 option = f'{service}_{type_code}'
-                names |= {f'{option}_title', f'{option}_components'}
+                names |= {
+                    f'{option}_title',
+                    f'{option}_components',
+                    f'{option}_labels',
+                    f'{option}_allergen_contains',
+                    f'{option}_allergen_may_contain',
+                    f'{option}_origins',
+                    f'{option}_allergen_reviewed',
+                }
                 if profile_code == 'staff_guest':
                     names |= {f'{option}_internal_rappen', f'{option}_external_rappen'}
     return names
@@ -59,6 +68,31 @@ def _positive_integer(value: str, label: str, field_name: str) -> int:
             field_name=field_name,
         )
     return parsed
+
+
+def _parse_origins(value: str) -> list[dict[str, str]]:
+    """Parse origin declarations from format 'Ingredient=CountryCode|...'"""
+    origins = []
+    if not value.strip():
+        return origins
+
+    for declaration in value.split('|'):
+        declaration = declaration.strip()
+        if not declaration:
+            continue
+        if declaration.count('=') != 1:
+            raise ValueError('Herkunftsangabe ist ungültig.')
+        ingredient, country_code = declaration.rsplit('=', 1)
+        ingredient = ingredient.strip()
+        country_code = country_code.strip()
+        if not ingredient or re.fullmatch(r'[A-Z]{2}', country_code) is None:
+            raise ValueError('Herkunftsangabe ist ungültig.')
+        origins.append({
+            'ingredient': ingredient,
+            'country_code': country_code,
+            'text': declaration,
+        })
+    return origins
 
 
 def submitted_form_values(
@@ -130,6 +164,12 @@ def parse_draft_form(profile_code: str, form: Mapping[str, str]) -> ParsedDraft:
                 option_prefix = f'{service_prefix}_{type_code}'
                 title_field = f'{option_prefix}_title'
                 components_field = f'{option_prefix}_components'
+                labels_field = f'{option_prefix}_labels'
+                allergen_contains_field = f'{option_prefix}_allergen_contains'
+                allergen_may_contain_field = f'{option_prefix}_allergen_may_contain'
+                origins_field = f'{option_prefix}_origins'
+                allergen_reviewed_field = f'{option_prefix}_allergen_reviewed'
+
                 title = supplied[title_field].strip()
                 if service_state == 'open' and not title:
                     raise WorkflowValidationError(
@@ -145,6 +185,44 @@ def parse_draft_form(profile_code: str, form: Mapping[str, str]) -> ParsedDraft:
                         if line.strip()
                     ],
                 }
+
+                # Parse labels (comma-separated codes)
+                labels_str = supplied[labels_field].strip()
+                if labels_str:
+                    label_codes = [code.strip() for code in labels_str.split(',') if code.strip()]
+                    if label_codes:
+                        option['labels'] = [{'code': code, 'name': code} for code in label_codes]
+
+                # Parse allergens - contains
+                allergen_contains_str = supplied[allergen_contains_field].strip()
+                allergen_may_contain_str = supplied[allergen_may_contain_field].strip()
+                allergens = []
+                if allergen_contains_str:
+                    contains_codes = [code.strip() for code in allergen_contains_str.split(',') if code.strip()]
+                    for code in contains_codes:
+                        allergens.append({'code': code, 'name': code, 'presence': 'contains'})
+                if allergen_may_contain_str:
+                    may_contain_codes = [code.strip() for code in allergen_may_contain_str.split(',') if code.strip()]
+                    for code in may_contain_codes:
+                        allergens.append({'code': code, 'name': code, 'presence': 'may_contain'})
+                if allergens:
+                    option['allergens'] = allergens
+
+                # Parse origins
+                origins_str = supplied[origins_field].strip()
+                if origins_str:
+                    try:
+                        option['origins'] = _parse_origins(origins_str)
+                    except ValueError as error:
+                        raise WorkflowValidationError(
+                            str(error),
+                            field_name=origins_field,
+                        ) from error
+
+                # Parse allergen review status
+                allergen_reviewed = supplied[allergen_reviewed_field].lower() == 'on'
+                option['allergen_review_status'] = 'reviewed' if allergen_reviewed else 'not_checked'
+
                 if profile_code == 'staff_guest':
                     if service_state == 'open':
                         internal_field = f'{option_prefix}_internal_rappen'

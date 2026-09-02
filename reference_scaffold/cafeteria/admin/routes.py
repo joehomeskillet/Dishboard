@@ -23,6 +23,7 @@ from ..public.routes import effective_today
 from ..roles import require_capability
 from ..security import validate_csrf
 from ..workflow import (
+from ..workflow_store import get_dietary_labels_and_allergens
     PublicationConfigurationError,
     StaleDraftError,
     WorkflowValidationError,
@@ -94,8 +95,15 @@ def _render_editor(
     first_error: str | None = None,
 ):
     template = 'admin/patienten.html' if profile_code == 'patient' else 'admin/cafeteria.html'
+    # Load master data for form controls
+    engine = current_app.extensions["cafeteria_db"]
+    with engine.connect() as conn:
+        dietary_labels, allergens = get_dietary_labels_and_allergens(conn)
+
     return render_template(
         template,
+        dietary_labels=dietary_labels,
+        allergens=allergens,
         draft=_draft(profile_code),
         user=session.get('user'),
         roles=session.get('roles', []),
