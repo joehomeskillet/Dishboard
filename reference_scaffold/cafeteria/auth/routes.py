@@ -77,19 +77,11 @@ def local_login():
         abort(404)
     if request.method == 'GET':
         return render_template('auth/local_login.html')
-    
-    # POST
-    error = None
+
     username = request.form.get('username', '')
     password = request.form.get('password', '')
-    
-    try:
-        validate_csrf(request.form.get('csrf_token'))
-    except ValueError:
-        error = 'Anmeldung fehlgeschlagen.'
-        session.clear()
-        return render_template('auth/local_login.html', error=error, username=username), 400
-    
+
+    validate_csrf(request.form.get('csrf_token'))
     remote_address = trusted_client_address(
         request.environ,
         request.remote_addr or 'unknown',
@@ -97,7 +89,7 @@ def local_login():
     )
     key = login_rate_key(username, remote_address)
     redis_client = current_app.extensions.get('cafeteria_rate_redis')
-    
+
     try:
         consume_login_attempt(redis_client, key)
     except RateLimitUnavailable:
@@ -114,35 +106,19 @@ def local_login():
         username=username,
         password=password,
     )
-    
+
     if identity is None:
         session.clear()
         error = 'Anmeldung fehlgeschlagen.'
         return render_template('auth/local_login.html', error=error, username=username), 401
-    
+
     try:
         clear_login_attempts(redis_client, key)
     except RateLimitUnavailable:
         session.clear()
         error = 'Anmeldung vorübergehend nicht verfügbar.'
         return render_template('auth/local_login.html', error=error, username=username), 503
-    
-    _establish_session(
-        identity.user_id,
-        identity.display_name,
-        identity.authz_version,
-        provider=identity.auth_provider,
-    )
-    return redirect(url_for('admin.cafeteria'))
 
-    if identity is None:
-        session.clear()
-        return render_template('auth/error.html', message='Anmeldung fehlgeschlagen.'), 401
-    try:
-        clear_login_attempts(redis_client, key)
-    except RateLimitUnavailable:
-        session.clear()
-        return render_template('auth/error.html', message='Anmeldung vorübergehend nicht verfügbar.'), 503
     _establish_session(
         identity.user_id,
         identity.display_name,
