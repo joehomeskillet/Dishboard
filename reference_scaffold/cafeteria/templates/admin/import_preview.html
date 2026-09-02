@@ -3,11 +3,11 @@
 {% block body %}
 <header class="site-header">
   <a class="wordmark" href="{{ url_for('admin.cafeteria') }}">
-    <span class="wordmark-mark"></span>
+    <span class="wordmark-mark" aria-hidden="true"></span>
     <span>Südhang Menüplanung</span>
   </a>
 </header>
-<main class="public-shell">
+<main class="public-shell" id="main-content">
   <section class="hero">
     <div>
       <p class="eyebrow">Backend</p>
