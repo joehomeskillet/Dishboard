@@ -75,6 +75,7 @@ REQUIRED_FILES = (
     'database/migrations/0006_auth_issuer_and_local_login.sql',
     'database/migrations/0007_auth_security_hardening.sql',
     'database/migrations/0008_auth_final_hardening.sql',
+    'database/migrations/0009_bootstrap_first_local_admin.sql',
     'database/seed.sql', 'database/seed_demo.sql', 'database/permissions.sql',
     'demo/snapshots/patienten_kw36.json', 'demo/snapshots/cafeteria_kw36.json',
     'csv/menu_patient_template.csv', 'csv/menu_patient_example.csv',
@@ -275,7 +276,7 @@ def main() -> int:
         check(status.get('tables') == 28, 'Schema enthaelt nicht 28 Tabellen.')
         check(status.get('application_roles') == 3, 'Schema enthaelt nicht drei Rollen.')
         check(status.get('offer_profiles') == 2, 'Schema enthaelt nicht zwei Profile.')
-        check(status.get('schema_version') == 11, 'Schema-Version ist nicht 11.')
+        check(status.get('schema_version') == 12, 'Schema-Version ist nicht 12.')
         check(status.get('patient_services') == 14, 'Demo-Seed enthaelt nicht 14 Patienten-Services.')
         check(status.get('cafeteria_services') == 5, 'Demo-Seed enthaelt nicht 5 Cafeteria-Services.')
 
@@ -284,7 +285,8 @@ def main() -> int:
     migration_files = ['0001_initial_postgresql.sql', '0002_profile_publication_and_local_auth.sql',
                       '0003_patient_key_and_withdrawal_contracts.sql', '0004_patient_key_lock_and_capability_contracts.sql',
                       '0005_least_privilege_identity_contracts.sql', '0006_auth_issuer_and_local_login.sql',
-                      '0007_auth_security_hardening.sql', '0008_auth_final_hardening.sql']
+                      '0007_auth_security_hardening.sql', '0008_auth_final_hardening.sql',
+                      '0009_bootstrap_first_local_admin.sql']
 
     for mig_file in migration_files:
         mig_path = migrations_dir / mig_file
@@ -298,13 +300,14 @@ def main() -> int:
     schema_text = schema.read_text(encoding='utf-8')
     contract_functions = ('validate_menu_service', 'validate_menu_item_price', 'validate_publication_revision',
                          'jsonb_has_patient_forbidden_key', 'withdraw_publication_revision', 'issue_publication_capability',
-                         'sync_entra_user', 'ensure_auth_capability_state', 'hard_reset_auth_capability_state')
+                         'sync_entra_user', 'ensure_auth_capability_state', 'hard_reset_auth_capability_state',
+                         'bootstrap_first_local_admin')
     for token in contract_functions:
         check(token in schema_text, f'DB-Vertragsfunktion fehlt: {token}')
 
     requirements = (root / 'reference_scaffold/requirements.txt').read_text(encoding='utf-8')
     check('alembic' not in requirements.lower(), 'Alembic steht noch in den Laufzeitanforderungen.')
-    ok(f'PostgreSQL-Artefakte und 8 Migrationen geprueft; SHA-256 {sha256(schema)}')
+    ok(f'PostgreSQL-Artefakte und 9 Migrationen geprueft; SHA-256 {sha256(schema)}')
 
     # Routen, Jinja und Patientenkostenverbot
     route_text = (root / 'reference_scaffold/cafeteria/signage/routes.py').read_text(encoding='utf-8')
