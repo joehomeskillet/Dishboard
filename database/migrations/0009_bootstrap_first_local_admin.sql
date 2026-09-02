@@ -29,8 +29,8 @@ BEGIN
     END IF;
 
     -- Lock and check that NO active user holds Cafeteria.Admin
-    -- Race-safe via advisory lock on a fixed key for bootstrap
-    PERFORM pg_advisory_lock(2903847293::bigint);  -- Fixed key for bootstrap lock
+    -- Race-safe via transaction-scoped advisory lock (auto-releases at txn end)
+    PERFORM pg_advisory_xact_lock(2903847293::bigint);  -- Fixed key for bootstrap lock
 
     -- Check if any active admin exists
     SELECT EXISTS (
@@ -44,7 +44,6 @@ BEGIN
     ) INTO v_admin_exists;
 
     IF v_admin_exists THEN
-        PERFORM pg_advisory_unlock(2903847293::bigint);
         RAISE EXCEPTION 'Es existiert bereits ein aktiver Administrator; Bootstrap ist gesperrt.' USING ERRCODE = '42501';
     END IF;
 
@@ -54,7 +53,6 @@ BEGIN
     WHERE auth_provider = 'system'
       AND public_id = '00000000-0000-0000-0000-000000000001';
     IF v_system_actor_id IS NULL THEN
-        PERFORM pg_advisory_unlock(2903847293::bigint);
         RAISE EXCEPTION 'System-Benutzer fehlt in der Datenbank.' USING ERRCODE = '22023';
     END IF;
 
@@ -95,7 +93,6 @@ BEGIN
         )
     );
 
-    PERFORM pg_advisory_unlock(2903847293::bigint);
     RETURN v_user_id;
 END;
 $$;

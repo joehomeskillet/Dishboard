@@ -429,7 +429,7 @@ def main() -> int:
         migration_0009 = MIGRATION_0009.read_text(encoding='utf-8')
         for fragment in (
             'bootstrap_first_local_admin',
-            'pg_advisory_lock',
+            'pg_advisory_xact_lock',
             'auth.local_admin_bootstrapped',
         ):
             if fragment not in migration_0009:

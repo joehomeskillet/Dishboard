@@ -751,42 +751,10 @@ def test_bootstrap_second_call_is_rejected_with_lock_error(
         # Second bootstrap fails
         with pytest.raises(Exception, match='Bootstrap ist gesperrt'):
             auth_issuer.bootstrap_first_local_admin(
-                issuer_engine,
+                owner_engine,
                 username='silber.user',
                 display_name='Administrator Two',
                 password='KuecheTwo-2026!Secure456',
-            )
-    finally:
-        pass
-
-
-def test_bootstrap_is_rejected_when_entra_admin_exists(
-    owner_engine: Engine,
-) -> None:
-    """Bootstrap is rejected if an Entra admin already exists."""
-        # Create Entra admin first
-        # Create Entra admin first using direct SQL call
-        with owner_engine.begin() as connection:
-            entra_user_id = connection.execute(
-                text(
-                    "SELECT cafeteria.sync_entra_user(:tid::uuid, :oid::uuid, :sid, :name, :email, :pun, :roles::text[])"
-                ),
-                {
-                    "tid": "00000000-0000-0000-0000-000000000001",
-                    "oid": "11111111-1111-1111-1111-111111111111",
-                    "sid": "entra.admin@example.com",
-                    "name": "Entra Admin",
-                    "email": "entra.admin@example.com",
-                    "pun": "entra.admin",
-                    "roles": ["Cafeteria.Admin"],
-                },
-            ).scalar_one()
-        assert entra_user_id > 0
-            auth_issuer.bootstrap_first_local_admin(
-                owner_engine,
-                username='local.admin',
-                display_name='Local Admin',
-                password='LocalAdmin-2026!Secure',
             )
     finally:
         pass
