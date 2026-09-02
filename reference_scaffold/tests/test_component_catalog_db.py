@@ -71,12 +71,15 @@ def _verify_test_target(database_url: str | None, container: str | None) -> URL:
         url.get_backend_name() != 'postgresql'
         or url.host not in {'127.0.0.1', '::1'}
         or url.port is None
+        or url.query
         or re.fullmatch(test_name, url.database or '') is None
         or re.fullmatch(test_name, url.username or '') is None
     ):
         raise RuntimeError('Unsichere Testdatenbank: URL ist nicht explizit test-lokal.')
     identity = _docker_inspect(container, '{{.Name}}|{{.State.Running}}|{{.Config.Image}}').split('|', 2)
-    valid_image = len(identity) == 3 and re.match(r'postgres:16(?:$|[.@-])', identity[2])
+    if len(identity) != 3:
+        raise RuntimeError('Unsichere Testdatenbank: Container stimmt nicht.')
+    valid_image = re.fullmatch(r'postgres:16(?:-alpine)?(?:@sha256:[0-9a-f]{64})?', identity[2])
     if identity[:2] != [f'/{container}', 'true'] or valid_image is None:
         raise RuntimeError('Unsichere Testdatenbank: Container stimmt nicht.')
     try:
@@ -101,9 +104,7 @@ def _validate_database_identity(url: URL, identity: tuple[object, ...]) -> None:
         raise RuntimeError('Unsichere Testdatenbank: PostgreSQL-Identität stimmt nicht.')
 
 
-def test_database_guard_uses_argv_only_inspect_and_accepts_exact_test_target(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_database_guard_uses_argv_only_inspect_and_accepts_exact_test_target(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[list[str]] = []
 
     def inspect(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
@@ -121,15 +122,39 @@ def test_database_guard_uses_argv_only_inspect_and_accepts_exact_test_target(
     _validate_database_identity(url, ('menuplan_task1', 'menuplan_test_owner', 160_015, 'on'))
 
 
+@pytest.mark.parametrize('identity',
+    ['/menuplan-catalog-test|true\n', '/menuplan-catalog-test|true|postgres:16-alpine-junk\n'],
+)
+def test_database_guard_rejects_malformed_container_identity(
+    monkeypatch: pytest.MonkeyPatch, identity: str,
+) -> None:
+    def inspect(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(argv, 0, identity, '')
+
+    monkeypatch.setattr(subprocess, 'run', inspect)
+    with pytest.raises(RuntimeError, match='Container'):
+        _verify_test_target(
+            'postgresql+psycopg://menuplan_test_owner@127.0.0.1:32778/menuplan_task1',
+            'menuplan-catalog-test',
+        )
+
+
 @pytest.mark.parametrize(
     'unsafe_url',
     [
         'postgresql+psycopg://menuplan_test_owner@db:5432/menuplan_task1',
         'postgresql+psycopg://menuplan_test_owner@127.0.0.1:5432/menuplan',
         'postgresql+psycopg://menuplan_owner@127.0.0.1:5432/menuplan_task1',
+        'postgresql+psycopg://menuplan_test_owner@127.0.0.1:32778/menuplan_task1?host=db',
+        'postgresql+psycopg://menuplan_test_owner@127.0.0.1:32778/menuplan_task1?port=5432',
     ],
 )
-def test_database_guard_rejects_non_test_targets_before_inspect(unsafe_url: str) -> None:
+def test_database_guard_rejects_non_test_targets_before_inspect(
+    monkeypatch: pytest.MonkeyPatch, unsafe_url: str,
+) -> None:
+    monkeypatch.setattr(
+        subprocess, 'run', lambda *_args, **_kwargs: pytest.fail('docker inspect called')
+    )
     with pytest.raises(RuntimeError, match='Testdatenbank'):
         _verify_test_target(unsafe_url, 'menuplan-catalog-test')
 
@@ -208,12 +233,7 @@ def _create(
     profile: str = 'patient',
 ) -> dict[str, object]:
     return create_component(
-        database.app,
-        _scope(database, profile),
-        category,
-        name,
-        origin,
-        target,
+        database.app, _scope(database, profile), category, name, origin, target,
     )
 
 
@@ -277,9 +297,7 @@ def _link_component(database: CatalogDatabase, public_id: str) -> None:
         )
 
 
-def test_create_maps_scope_and_returns_only_public_contract(
-    catalog_database: CatalogDatabase,
-) -> None:
+def test_create_maps_scope_and_returns_only_public_contract(catalog_database: CatalogDatabase) -> None:
     common = _create(catalog_database, name='  Rösti  ', origin='')
     current = _create(catalog_database, name='Poulet', category='meat', profile='staff_guest')
     assert set(common) == OUTPUT_KEYS
@@ -332,9 +350,7 @@ def test_create_rejects_non_exact_input_without_mutation(
         assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_components')).scalar_one() == 0
 
 
-def test_resolver_requires_exactly_one_active_location(
-    catalog_database: CatalogDatabase,
-) -> None:
+def test_resolver_requires_exactly_one_active_location(catalog_database: CatalogDatabase) -> None:
     with catalog_database.app.begin() as connection:
         assert resolve_single_active_location_connection(connection) == catalog_database.location_id
 
@@ -351,9 +367,7 @@ def test_resolver_requires_exactly_one_active_location(
             resolve_single_active_location_connection(connection)
 
 
-def test_get_and_find_hide_foreign_location_profile_and_unknown_ids(
-    catalog_database: CatalogDatabase,
-) -> None:
+def test_get_and_find_hide_foreign_location_profile_and_unknown_ids(catalog_database: CatalogDatabase) -> None:
     visible = _create(catalog_database)
     foreign_profile = _insert_foreign_component(
         catalog_database,
@@ -383,9 +397,7 @@ def test_get_and_find_hide_foreign_location_profile_and_unknown_ids(
                 operation(catalog_database.app, _scope(catalog_database), hidden, 1)
 
 
-def test_find_uses_literal_case_insensitive_search_exact_filter_and_business_sort(
-    catalog_database: CatalogDatabase,
-) -> None:
+def test_find_uses_literal_case_insensitive_search_exact_filter_and_business_sort(catalog_database: CatalogDatabase) -> None:
     for category, name in (
         ('other', 'z Schluss'),
         ('side', 'Älpler Beilage'),
@@ -447,18 +459,14 @@ def test_find_rejects_invalid_filter_types(
         )
 
 
-def test_usage_count_is_derived_from_assignments(
-    catalog_database: CatalogDatabase,
-) -> None:
+def test_usage_count_is_derived_from_assignments(catalog_database: CatalogDatabase) -> None:
     component = _create(catalog_database)
     _link_component(catalog_database, str(component['public_id']))
     found = get_component(catalog_database.app, _scope(catalog_database), str(component['public_id']))
     assert found['usage_count'] == 1
 
 
-def test_update_requires_exact_payload_and_optimistic_version(
-    catalog_database: CatalogDatabase,
-) -> None:
+def test_update_requires_exact_payload_and_optimistic_version(catalog_database: CatalogDatabase) -> None:
     component = _create(catalog_database)
     public_id = str(component['public_id'])
     version = int(component['row_version'])
@@ -490,9 +498,7 @@ def test_update_requires_exact_payload_and_optimistic_version(
     assert get_component(catalog_database.app, _scope(catalog_database), public_id)['row_version'] == 2
 
 
-def test_two_concurrent_updates_allow_exactly_one_version_winner(
-    catalog_database: CatalogDatabase,
-) -> None:
+def test_two_concurrent_updates_allow_exactly_one_version_winner(catalog_database: CatalogDatabase) -> None:
     component = _create(catalog_database)
     public_id = str(component['public_id'])
     version = int(component['row_version'])
@@ -515,9 +521,7 @@ def test_two_concurrent_updates_allow_exactly_one_version_winner(
     assert sum(isinstance(result, StaleComponentError) for result in outcomes) == 1
 
 
-def test_archive_unarchive_conflicts_do_not_bump_and_name_stays_reserved(
-    catalog_database: CatalogDatabase,
-) -> None:
+def test_archive_unarchive_conflicts_do_not_bump_and_name_stays_reserved(catalog_database: CatalogDatabase) -> None:
     component = _create(catalog_database)
     public_id = str(component['public_id'])
     before = _updated_at(catalog_database, public_id)
@@ -543,9 +547,7 @@ def test_archive_unarchive_conflicts_do_not_bump_and_name_stays_reserved(
     assert get_component(catalog_database.app, _scope(catalog_database), public_id)['row_version'] == 3
 
 
-def test_unique_conflict_translation_is_narrow_for_update(
-    catalog_database: CatalogDatabase,
-) -> None:
+def test_unique_conflict_translation_is_narrow_for_update(catalog_database: CatalogDatabase) -> None:
     first = _create(catalog_database, name='Erbsen')
     second = _create(catalog_database, name='Karotten')
 
@@ -580,9 +582,7 @@ def test_mutations_reject_non_positive_real_integer_versions(
         )
 
 
-def test_every_operation_rejects_scope_outside_single_active_location(
-    catalog_database: CatalogDatabase,
-) -> None:
+def test_every_operation_rejects_scope_outside_single_active_location(catalog_database: CatalogDatabase) -> None:
     foreign_scope = AdminScope(actor_id=1, location_id=catalog_database.other_location_id, profile_code='patient')
     component = _create(catalog_database)
     public_id = str(component['public_id'])
