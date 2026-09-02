@@ -1,4 +1,96 @@
 {% extends "base.html" %}
 {% block title %}Backend Patienten-Raster{% endblock %}
 {% block body_class %}admin-body{% endblock %}
-{% block body %}<div class="admin-shell"><aside class="admin-sidebar"><div class="wordmark"><span class="wordmark-mark"></span><span>Südhang Menüplanung</span></div><div class="admin-user"><span class="avatar">{{ (user.name or 'DK')[:2]|upper }}</span><div><strong>{{ user.name if user else 'Demo Küche' }}</strong><span>{{ roles|join(', ') }}</span></div></div><nav class="admin-nav"><a class="active" href="{{ url_for('admin.patienten') }}">Wochenpläne</a><a href="{{ url_for('admin.import_preview') }}">CSV Import</a><a href="#">Publikationen</a><a href="#">Audit</a><a href="{{ url_for('auth.logout') }}">Abmelden</a></nav></aside><main class="admin-main"><header class="admin-topbar"><h1>Patientenplan bearbeiten</h1><div class="toolbar"><a class="btn" href="{{ url_for('signage.patient_week') }}">Vorschau</a><a class="btn" href="{{ url_for('admin.export_csv', profile_code='patienten') }}">CSV</a><a class="btn primary" href="#">Prüfen und publizieren</a></div></header><div class="admin-content"><div class="admin-notice"><strong>Getrenntes Raster:</strong> Patienten umfasst Montag bis Sonntag sowie Mittag und Abend. Dieses Raster enthält ausschliesslich Speiseplandaten.</div><nav class="profile-tabs"><a href="{{ url_for('admin.cafeteria') }}">Cafeteria</a><a class="patient active" href="{{ url_for('admin.patienten') }}">Patienten</a></nav><div class="weekbar"><div><strong>KW {{ snapshot.week_start|iso_week }} · Patienten</strong><span>{{ snapshot.title }} · publizierter Demo-Datenstand</span></div><div><strong>28 Menükarten</strong><span>7 Tage × 2 Mahlzeiten × 2 Menüarten</span></div></div><section class="patient-admin-table">{% for day in snapshot.days %}<article class="patient-admin-day"><header><strong>{{ day.weekday }} · {{ day.date|date_short }}</strong><span>vollständig</span></header><div class="patient-admin-meals">{% for meal in day.services %}<section class="patient-admin-meal"><strong>{{ meal.meal_name }}</strong><div class="patient-admin-options">{% for option in meal.options %}<div class="patient-admin-option"><small>{{ option.type_name }}</small><strong>{{ option.title }}</strong></div>{% endfor %}</div></section>{% endfor %}</div></article>{% endfor %}</section></div></main></div>{% endblock %}
+{% block body %}
+{% set weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'] %}
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="wordmark"><span class="wordmark-mark"></span><span>Südhang Menüplanung</span></div>
+    <div class="admin-user">
+      <span class="avatar">{{ (user.name or 'DK')[:2]|upper }}</span>
+      <div><strong>{{ user.name if user else 'Demo Küche' }}</strong><span>{{ roles|join(', ') }}</span></div>
+    </div>
+    <nav class="admin-nav" aria-label="Backend">
+      <a class="active" href="{{ url_for('admin.patienten') }}">Wochenpläne</a>
+      <a href="{{ url_for('admin.import_preview') }}">CSV Import</a>
+      <a href="{{ url_for('auth.logout') }}">Abmelden</a>
+    </nav>
+  </aside>
+  <main class="admin-main" id="main-content">
+    <header class="admin-topbar">
+      <h1>Patientenplan bearbeiten</h1>
+      <div class="toolbar">
+        <a class="btn" href="{{ url_for('signage.patient_week') }}">Vorschau</a>
+        <a class="btn" href="{{ url_for('admin.export_csv', profile_code='patienten') }}">CSV</a>
+        <button class="btn" type="submit" form="patient-grid" formaction="{{ url_for('admin.save_patienten') }}">Entwurf speichern</button>
+        <button class="btn primary" type="submit" form="patient-grid" formaction="{{ url_for('admin.publish_patienten') }}">Publizieren</button>
+      </div>
+    </header>
+    <div class="admin-content">
+      <div class="admin-notice"><strong>Getrenntes Raster:</strong> Montag bis Sonntag mit Mittag und Abend. Dieser Kanal enthält ausschliesslich Speiseplandaten.</div>
+      <nav class="profile-tabs" aria-label="Profil">
+        <a href="{{ url_for('admin.cafeteria') }}">Cafeteria</a>
+        <a class="patient active" href="{{ url_for('admin.patienten') }}" aria-current="page">Patienten</a>
+      </nav>
+      <div class="weekbar">
+        <div><strong>KW {{ draft.week_start|iso_week }} · Patienten</strong><span>Arbeitsstand {{ draft.row_version }}</span></div>
+        <div><strong>28 Menükarten</strong><span>7 Tage × 2 Mahlzeiten × 2 Menüarten</span></div>
+      </div>
+      <form id="patient-grid" method="post">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="week_start" value="{{ draft.week_start }}">
+        <input type="hidden" name="row_version" value="{{ draft.row_version }}">
+        <section class="grid-card" aria-labelledby="patient-week-heading">
+          <div class="admin-grid-row">
+            <div class="admin-day"><strong id="patient-week-heading">Woche</strong></div>
+            <div class="admin-dish">
+              <label for="patient-title">Titel</label>
+              <input id="patient-title" name="title" value="{{ draft.title }}" required autocomplete="off">
+            </div>
+            <div class="admin-dish">
+              <label for="patient-note">Hinweis</label>
+              <input id="patient-note" name="shared_note" value="{{ draft.shared_note }}" autocomplete="off">
+            </div>
+          </div>
+        </section>
+        <section class="patient-admin-table" aria-label="Patienten-Wochenraster">
+          {% for day in draft.days %}
+          {% set day_index = loop.index0 %}
+          <article class="patient-admin-day">
+            <header><strong>{{ weekdays[day_index] }} · {{ day.date|date_short }}</strong><span>Mittag und Abend</span></header>
+            <div class="patient-admin-meals">
+              {% for meal in day.services %}
+              {% set service_prefix = 'service_' ~ day_index ~ '_' ~ meal.meal_code %}
+              <section class="patient-admin-meal">
+                <strong>{{ meal.meal_name }}</strong>
+                <label for="{{ service_prefix }}_state">Betrieb</label>
+                <select id="{{ service_prefix }}_state" name="{{ service_prefix }}_state">
+                  {% for value, label in [('open', 'Offen'), ('closed', 'Geschlossen'), ('holiday', 'Feiertag'), ('company_holiday', 'Betriebsfeiertag')] %}
+                  <option value="{{ value }}"{% if meal.service_state == value %} selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <label for="{{ service_prefix }}_notice">Servicehinweis</label>
+                <input id="{{ service_prefix }}_notice" name="{{ service_prefix }}_notice" value="{{ meal.notice }}" autocomplete="off">
+                <div class="patient-admin-options">
+                  {% for option in meal.options %}
+                  {% set option_prefix = service_prefix ~ '_' ~ option.type_code %}
+                  <div class="patient-admin-option">
+                    <small>{{ 'Menü 1' if option.type_code == 'MENU_1' else 'Vegetarisch' }}</small>
+                    <label for="{{ option_prefix }}_title">Gericht</label>
+                    <input id="{{ option_prefix }}_title" name="{{ option_prefix }}_title" value="{{ option.title }}" autocomplete="off">
+                    <label for="{{ option_prefix }}_components">Komponenten, eine pro Zeile</label>
+                    <textarea id="{{ option_prefix }}_components" name="{{ option_prefix }}_components" rows="2">{{ option.components|join('\n') }}</textarea>
+                  </div>
+                  {% endfor %}
+                </div>
+              </section>
+              {% endfor %}
+            </div>
+          </article>
+          {% endfor %}
+        </section>
+      </form>
+    </div>
+  </main>
+</div>
+{% endblock %}
