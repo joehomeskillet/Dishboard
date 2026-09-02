@@ -214,13 +214,11 @@ def validate_publication_fit(profile_code: str, values: dict[str, Any]) -> None:
                 if len(option['title']) > PUBLICATION_TITLE_LIMIT:
                     raise WorkflowValidationError(
                         'Gericht überschreitet die gemeinsame Playergrenze von 36 Zeichen.',
-                        field_name=f'{prefix}_title',
                     )
                 rendered_components = ' · '.join(option['components'])
                 if len(rendered_components) > PUBLICATION_COMPONENTS_LIMIT:
                     raise WorkflowValidationError(
                         'Komponenten überschreiten die gemeinsame Playergrenze von 48 Zeichen.',
-                        field_name=f'{prefix}_components',
                     )
                 description = option.get('description', '')
                 if profile_code == 'staff_guest' and len(description) > SIGNAGE_LIMITS[
@@ -230,14 +228,11 @@ def validate_publication_fit(profile_code: str, values: dict[str, Any]) -> None:
                         'Beschreibung überschreitet die Tagesplayergrenze von 70 Zeichen.'
                     )
 
-                # Validate allergen review status if allergens or labels are declared
-                has_allergens_or_labels = bool(
-                    option.get('allergens') or option.get('labels')
-                )
-                if has_allergens_or_labels and option.get('allergen_review_status') != 'reviewed':
+                # Validate allergen review status before publishing
+                if option.get("allergen_review_status") != "checked":
                     raise WorkflowValidationError(
-                        'Allergendeklaration muss geprüft werden.',
-                        field_name=f'{prefix}_allergen_reviewed',
+                        "Allergendeklaration ist nicht geprüft.",
+                        field_name=f"{prefix}_allergen_reviewed",
                     )
 
 
