@@ -760,6 +760,51 @@ def test_bootstrap_second_call_is_rejected_with_lock_error(
         pass
 
 
+def test_bootstrap_is_rejected_when_entra_admin_exists(
+    owner_engine: Engine,
+) -> None:
+    """Bootstrap is rejected if an Entra admin already exists."""
+    issuer_engine = create_engine(
+        _role_database_url('cafeteria_auth_issuer', ISSUER_PASSWORD),
+        poolclass=NullPool,
+        pool_pre_ping=True,
+    )
+    try:
+        # Create Entra admin first
+        claims = {
+            'tid': '00000000-0000-0000-0000-000000000421',
+            'oid': '00000000-0000-0000-0000-000000000422',
+            'sub': 'entra.bootstrap.admin@example.invalid',
+            'name': 'Entra Bootstrap Admin',
+            'preferred_username': 'entra.bootstrap.admin',
+        }
+        entra_user_id = database.upsert_entra_user(
+            issuer_engine,
+            claims,
+            ['Cafeteria.Admin'],
+        )
+        assert entra_user_id > 0
+
+        # Bootstrap should be rejected because an active admin exists
+        with pytest.raises(Exception, match='Bootstrap ist gesperrt'):
+            auth_issuer.bootstrap_first_local_admin(
+                owner_engine,
+                username='nachbootstrap.user',
+                display_name='NachBootstrap User',
+                password='NachBootstrap-2026!Secure',
+            )
+
+        # Verify no new local user was created
+        with owner_engine.connect() as connection:
+            local_user_count = connection.execute(
+                text('SELECT count(*) FROM cafeteria.users WHERE auth_provider = :auth_prov'),
+                {'auth_prov': 'local'},
+            ).scalar_one()
+        assert local_user_count == 0
+    finally:
+        issuer_engine.dispose()
+
+
 def test_bootstrap_function_not_callable_by_app_roles(
     owner_engine: Engine,
 ) -> None:
