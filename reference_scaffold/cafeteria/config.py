@@ -2,9 +2,18 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, unquote, urlsplit
 
 DEMO_SECRET = 'demo-only-not-for-production'
+_PLACEHOLDER_SECRETS = frozenset({
+    'change-me',
+    'changeme',
+    'default',
+    'demo',
+    'password',
+    'secret',
+    '***',
+})
 _CONFIG_FILE = Path(__file__).resolve()
 
 
@@ -62,6 +71,27 @@ def _database_url() -> str:
     return f'postgresql+psycopg://{credentials}@{host}:{port}/{quote(database, safe="")}?sslmode={quote(sslmode, safe="")}'
 
 
+def _validate_auth_issuer_url(database_url: str) -> None:
+    try:
+        parsed = urlsplit(database_url)
+        username = unquote(parsed.username or '')
+        password = unquote(parsed.password or '')
+    except ValueError as exc:
+        raise RuntimeError('AUTH_ISSUER_DATABASE_URL ist ungültig.') from exc
+    if parsed.scheme not in {'postgresql', 'postgresql+psycopg'} or not parsed.hostname:
+        raise RuntimeError('AUTH_ISSUER_DATABASE_URL ist ungültig.')
+    if username != 'cafeteria_auth_issuer':
+        raise RuntimeError('AUTH_ISSUER_DATABASE_URL muss cafeteria_auth_issuer verwenden.')
+    normalized_password = password.strip().lower()
+    placeholder_markers = ('change-me', 'changeme', 'default', 'demo', 'example', 'placeholder')
+    if (
+        not password
+        or normalized_password in _PLACEHOLDER_SECRETS
+        or any(marker in normalized_password for marker in placeholder_markers)
+    ):
+        raise RuntimeError('AUTH_ISSUER_DATABASE_URL benötigt ein eigenes Issuer-Secret.')
+
+
 class Config:
     def __init__(self) -> None:
         self.APP_ENV = os.getenv('APP_ENV', 'development').strip().lower()
@@ -76,6 +106,9 @@ class Config:
         self.PERMISSIONS_PATH = os.getenv('PERMISSIONS_PATH', _default_sql_path('permissions.sql'))
         self.POSTGRES_APP_PASSWORD = _secret('POSTGRES_APP_PASSWORD')
         self.POSTGRES_BACKUP_PASSWORD = _secret('POSTGRES_BACKUP_PASSWORD')
+        self.POSTGRES_AUTH_ISSUER_PASSWORD = _secret('POSTGRES_AUTH_ISSUER_PASSWORD')
+        self.AUTH_ISSUER_DATABASE_URL = _secret('AUTH_ISSUER_DATABASE_URL')
+        self.LOCAL_AUTH_ENABLED = _bool('LOCAL_AUTH_ENABLED')
         self.DB_POOL_SIZE = int(os.getenv('DB_POOL_SIZE', '5'))
         self.DB_MAX_OVERFLOW = int(os.getenv('DB_MAX_OVERFLOW', '5'))
         self.DB_POOL_TIMEOUT_SECONDS = int(os.getenv('DB_POOL_TIMEOUT_SECONDS', '10'))
@@ -94,6 +127,11 @@ class Config:
         self.ENTRA_CLIENT_ID = os.getenv('ENTRA_CLIENT_ID', '')
         self.ENTRA_CLIENT_SECRET = _secret('ENTRA_CLIENT_SECRET')
         self.TRUSTED_PROXY_HOPS = int(os.getenv('TRUSTED_PROXY_HOPS', '1'))
+        self.TRUSTED_PROXY_CIDRS = tuple(
+            value.strip()
+            for value in os.getenv('TRUSTED_PROXY_CIDRS', '127.0.0.0/8,::1/128').split(',')
+            if value.strip()
+        )
         self.MAX_CONTENT_LENGTH = int(os.getenv('MAX_UPLOAD_BYTES', str(5 * 1024 * 1024)))
         self.FRAME_ANCESTORS = os.getenv('FRAME_ANCESTORS', "'self'")
         self.LAST_GOOD_DIR = os.getenv('LAST_GOOD_DIR', '/tmp/cafeteria-last-good')
@@ -105,3 +143,8 @@ class Config:
                 raise RuntimeError('In Produktion ist ein eigenes FLASK_SECRET_KEY erforderlich.')
             if not self.ENTRA_TENANT_ID or not self.ENTRA_CLIENT_ID or not self.ENTRA_CLIENT_SECRET:
                 raise RuntimeError('Entra-Konfiguration ist in Produktion unvollständig.')
+            if not self.SESSION_REDIS_URL:
+                raise RuntimeError('SESSION_REDIS_URL ist in Produktion für Sessions und Rate-Limits erforderlich.')
+            if not self.AUTH_ISSUER_DATABASE_URL:
+                raise RuntimeError('AUTH_ISSUER_DATABASE_URL ist in Produktion erforderlich.')
+            _validate_auth_issuer_url(self.AUTH_ISSUER_DATABASE_URL)

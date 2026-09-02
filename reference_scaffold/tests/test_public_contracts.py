@@ -16,8 +16,10 @@ sys.path.insert(0, str(ROOT / 'tools'))
 
 from cafeteria.admin import routes as admin_routes  # noqa: E402
 from cafeteria.api import routes as api_routes  # noqa: E402
+from cafeteria.auth.service import AuthorizationState  # noqa: E402
 from cafeteria.db import validate_snapshot_payload  # noqa: E402
 from cafeteria.public import routes as public_routes  # noqa: E402
+from cafeteria import roles as role_module  # noqa: E402
 from cafeteria.signage import routes as signage_routes  # noqa: E402
 from demo_snapshots import cafeteria_snapshot, patient_snapshot  # noqa: E402
 
@@ -273,6 +275,13 @@ def app(monkeypatch: pytest.MonkeyPatch) -> Flask:
     application.register_blueprint(api_routes.bp)
     application.register_blueprint(signage_routes.bp)
     application.register_blueprint(admin_routes.bp)
+    monkeypatch.setattr(
+        role_module,
+        'load_user_authorization',
+        lambda _engine, user_id: AuthorizationState(
+            user_id, 'Test', 'local', 1, ('Cafeteria.Editor',)
+        ),
+    )
 
     snapshots = {
         'staff_guest': cafeteria_snapshot(),
@@ -543,7 +552,7 @@ def test_reserved_patient_key_is_rejected_before_every_output_channel(
     client = app.test_client()
     with client.session_transaction() as flask_session:
         flask_session['user'] = {'id': 1, 'name': 'Test'}
-        flask_session['roles'] = ['Cafeteria.Editor']
+        flask_session['authz_version'] = 1
 
     with pytest.raises(ValueError, match='unzulässig'):
         client.get(path)
@@ -693,7 +702,7 @@ def test_patient_price_probe_is_rejected_before_every_output_channel(
     client = app.test_client()
     with client.session_transaction() as flask_session:
         flask_session['user'] = {'id': 1, 'name': 'Test'}
-        flask_session['roles'] = ['Cafeteria.Editor']
+        flask_session['authz_version'] = 1
 
     with pytest.raises(ValueError, match='unzulässig'):
         client.get(path)

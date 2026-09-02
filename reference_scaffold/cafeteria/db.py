@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
@@ -14,8 +15,8 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .patient_payload import PROFILES, validate_snapshot_payload
 
-SCHEMA_VERSION = 8
-APPLICATION_VERSION = 'dishboard-schema-v8'
+SCHEMA_VERSION = 9
+APPLICATION_VERSION = 'dishboard-schema-v9'
 SYSTEM_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000001'
 DEMO_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000002'
 
@@ -33,6 +34,7 @@ MIGRATION_FILES = (
     (6, '0003_patient_key_and_withdrawal_contracts.sql'),
     (7, '0004_patient_key_lock_and_capability_contracts.sql'),
     (8, '0005_least_privilege_identity_contracts.sql'),
+    (9, '0006_auth_issuer_and_local_login.sql'),
 )
 MIGRATION_LOCK_ID = 731_905_005
 DEFAULT_CAPABILITY_TTL = timedelta(minutes=5)
@@ -42,6 +44,7 @@ ENTRA_APPLICATION_ROLES = frozenset({
     'Cafeteria.Publisher',
     'Cafeteria.Admin',
 })
+LOCAL_USERNAME_PATTERN = re.compile(r'^[a-z0-9][a-z0-9._-]{2,63}$')
 
 
 def create_database_engine(
@@ -82,6 +85,17 @@ def init_app_database(app: Any) -> Engine:
         idle_in_transaction_timeout_ms=app.config['DB_IDLE_IN_TRANSACTION_TIMEOUT_MS'],
     )
     app.extensions['cafeteria_db'] = engine
+    issuer_url = app.config.get('AUTH_ISSUER_DATABASE_URL')
+    if issuer_url:
+        app.extensions['cafeteria_auth_issuer_db'] = create_database_engine(
+            issuer_url,
+            pool_size=max(1, min(2, app.config['DB_POOL_SIZE'])),
+            max_overflow=1,
+            pool_timeout=app.config['DB_POOL_TIMEOUT_SECONDS'],
+            statement_timeout_ms=app.config['DB_STATEMENT_TIMEOUT_MS'],
+            lock_timeout_ms=app.config['DB_LOCK_TIMEOUT_MS'],
+            idle_in_transaction_timeout_ms=app.config['DB_IDLE_IN_TRANSACTION_TIMEOUT_MS'],
+        )
     return engine
 
 
@@ -198,14 +212,26 @@ def run_migrations(engine: Engine, schema_path: str | Path) -> tuple[Migration, 
     return plan
 
 
-def provision_database_roles(engine: Engine, *, app_password: str, backup_password: str) -> None:
+def provision_database_roles(
+    engine: Engine,
+    *,
+    app_password: str,
+    backup_password: str,
+    auth_issuer_password: str = '',
+) -> None:
     if not app_password or not backup_password:
         raise RuntimeError('PostgreSQL-App- oder Backup-Passwort fehlt.')
     raw = engine.raw_connection()
     try:
         connection = _driver_connection(raw)
         with connection.cursor() as cursor:
-            for role_name, password in (('cafeteria_app', app_password), ('cafeteria_backup', backup_password)):
+            credentials = [
+                ('cafeteria_app', app_password),
+                ('cafeteria_backup', backup_password),
+            ]
+            if auth_issuer_password:
+                credentials.append(('cafeteria_auth_issuer', auth_issuer_password))
+            for role_name, password in credentials:
                 exists = cursor.execute(
                     'SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = %s)', (role_name,)
                 ).fetchone()[0]
@@ -243,12 +269,18 @@ def init_database(
     demo_seed_path: str | None = None,
     app_password: str = '',
     backup_password: str = '',
+    auth_issuer_password: str = '',
     seed_demo: bool = False,
 ) -> dict[str, Any]:
     engine = create_engine(database_url, pool_pre_ping=True)
     try:
         if app_password and backup_password:
-            provision_database_roles(engine, app_password=app_password, backup_password=backup_password)
+            provision_database_roles(
+                engine,
+                app_password=app_password,
+                backup_password=backup_password,
+                auth_issuer_password=auth_issuer_password,
+            )
         run_migrations(engine, schema_path)
         _execute_script(engine, seed_path)
         if seed_demo:

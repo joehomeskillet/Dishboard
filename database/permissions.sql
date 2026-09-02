@@ -34,6 +34,12 @@ REVOKE EXECUTE ON FUNCTION hard_reset_auth_capability_state()
 FROM PUBLIC, cafeteria_app, cafeteria_backup;
 REVOKE EXECUTE ON FUNCTION sync_entra_user(uuid, uuid, text, text, text, text, text[])
 FROM PUBLIC, cafeteria_app, cafeteria_backup;
+REVOKE EXECUTE ON FUNCTION provision_local_user(text, text, text, text[])
+FROM PUBLIC, cafeteria_app, cafeteria_backup;
+REVOKE EXECUTE ON FUNCTION set_local_password(text, text)
+FROM PUBLIC, cafeteria_app, cafeteria_backup;
+REVOKE EXECUTE ON FUNCTION disable_local_user(text)
+FROM PUBLIC, cafeteria_app, cafeteria_backup;
 REVOKE EXECUTE ON FUNCTION issue_publication_capability(bigint, bigint, interval)
 FROM PUBLIC, cafeteria_app, cafeteria_backup;
 REVOKE EXECUTE ON FUNCTION withdraw_publication_revision(bigint, text, text)
@@ -75,5 +81,33 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
     REVOKE ALL ON TABLES FROM cafeteria_app, cafeteria_backup;
 ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
     REVOKE ALL ON SEQUENCES FROM cafeteria_app, cafeteria_backup;
+
+DO $auth_issuer_privileges$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='cafeteria_auth_issuer') THEN
+        GRANT USAGE ON SCHEMA cafeteria TO cafeteria_auth_issuer;
+        REVOKE ALL ON ALL TABLES IN SCHEMA cafeteria FROM cafeteria_auth_issuer;
+        REVOKE ALL ON ALL SEQUENCES IN SCHEMA cafeteria FROM cafeteria_auth_issuer;
+        GRANT EXECUTE ON FUNCTION
+            sync_entra_user(uuid, uuid, text, text, text, text, text[]),
+            issue_publication_capability(bigint, bigint, interval),
+            provision_local_user(text, text, text, text[]),
+            set_local_password(text, text),
+            disable_local_user(text)
+        TO cafeteria_auth_issuer;
+        REVOKE EXECUTE ON FUNCTION
+            ensure_auth_capability_state(),
+            hard_reset_auth_capability_state(),
+            bootstrap_auth_capability_secret(),
+            rotate_auth_capability_secret(),
+            withdraw_publication_revision(bigint, text, text)
+        FROM cafeteria_auth_issuer;
+        ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
+            REVOKE ALL ON TABLES FROM cafeteria_auth_issuer;
+        ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
+            REVOKE ALL ON SEQUENCES FROM cafeteria_auth_issuer;
+    END IF;
+END;
+$auth_issuer_privileges$;
 
 COMMIT;

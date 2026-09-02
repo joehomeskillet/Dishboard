@@ -29,11 +29,14 @@ def create_app() -> Flask:
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=hops, x_proto=hops, x_host=hops, x_port=hops)
 
     redis_url = app.config.get('SESSION_REDIS_URL')
+    redis_client = None
     if redis_url:
+        redis_client = Redis.from_url(redis_url)
         app.config['SESSION_TYPE'] = 'redis'
-        app.config['SESSION_REDIS'] = Redis.from_url(redis_url)
+        app.config['SESSION_REDIS'] = redis_client
         app.config['SESSION_USE_SIGNER'] = True
         Session(app)
+    app.extensions['cafeteria_rate_redis'] = redis_client
 
     init_app_database(app)
 
