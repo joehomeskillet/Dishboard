@@ -79,6 +79,7 @@ assert set(app['secrets']) == {
 assert app['networks'] == ['cafeteria_internal']
 
 assert services['backup']['environment']['POSTGRES_USER'] == 'cafeteria_backup'
+assert 'user' not in services['backup']
 assert services['restore']['environment']['POSTGRES_USER'] == 'cafeteria_owner'
 restore_control_mount = './postgres-restore-control.sh:/usr/local/bin/postgres-restore-control.sh:ro'
 assert restore_control_mount in services['backup']['volumes']
