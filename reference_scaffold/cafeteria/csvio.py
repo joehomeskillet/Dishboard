@@ -47,9 +47,44 @@ MONTH_NAMES = (
 )
 
 
+
+def _validator_path() -> Path:
+    """Resolve the CSV validator module path for both repo and packaged layouts.
+    
+    In repo layout: reference_scaffold/../csv/validate_menu_csv.py
+    In packaged layout (Docker): reference_scaffold/csv/validate_menu_csv.py
+    """
+    import os
+    
+    # Check for explicit override
+    override = os.getenv('CSV_VALIDATOR_PATH')
+    if override:
+        path = Path(override)
+        if not path.is_file():
+            raise RuntimeError('CSV_VALIDATOR_PATH zeigt auf eine nicht vorhandene Datei.')
+        return path
+    
+    # Determine the scaffold root
+    csvio_file = Path(__file__).resolve()
+    scaffold_root = csvio_file.parents[1]  # cafeteria -> reference_scaffold
+    
+    # Try repo candidate first: reference_scaffold/../csv/validate_menu_csv.py
+    repo_candidate = scaffold_root.parent / 'csv' / 'validate_menu_csv.py'
+    if repo_candidate.is_file():
+        return repo_candidate
+    
+    # Try packaged candidate: reference_scaffold/csv/validate_menu_csv.py
+    packaged_candidate = scaffold_root / 'csv' / 'validate_menu_csv.py'
+    if packaged_candidate.is_file():
+        return packaged_candidate
+    
+    # If neither exists, raise a clear error
+    raise RuntimeError('CSV-Validator konnte nicht geladen werden.')
+
+
 @cache
 def _validator() -> ModuleType:
-    path = Path(__file__).resolve().parents[2] / 'csv' / 'validate_menu_csv.py'
+    path = _validator_path()
     spec = importlib.util.spec_from_file_location('dishboard_menu_csv_validator', path)
     if spec is None or spec.loader is None:
         raise RuntimeError('CSV-Validator konnte nicht geladen werden.')
