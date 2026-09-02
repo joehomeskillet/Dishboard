@@ -324,8 +324,6 @@ def validate_snapshot_payload(profile_code: str, snapshot: dict[str, Any]) -> No
     days = snapshot.get('days')
     if not isinstance(days, list) or len(days) != 7:
         raise ValueError('Snapshot muss sieben Tage enthalten.')
-    if _forbidden_external_identifier_key_paths(snapshot):
-        raise ValueError('Snapshot enthält unzulässige Komponentenkennungen.')
     if profile_code == 'patient':
         try:
             key_paths = _forbidden_patient_key_paths(snapshot)
@@ -346,6 +344,8 @@ def validate_snapshot_payload(profile_code: str, snapshot: dict[str, Any]) -> No
         except (KeyError, TypeError, ValueError):
             raise ValueError('Patienten-Snapshot enthält unzulässige Daten.') from None
     else:
+        if _forbidden_external_identifier_key_paths(snapshot):
+            raise ValueError('Snapshot enthält unzulässige Komponentenkennungen.')
         services = [service for day in days for service in day.get('services', [])]
         if len(services) != 5 or any(service.get('meal_code') != 'LUNCH' for service in services):
             raise ValueError('Cafeteria-Snapshot muss fünf Mittagsservices enthalten.')
