@@ -46,7 +46,7 @@ Das Paket modelliert zwei getrennte Publikationskanäle:
 
 ## Anmeldung und lokale Konten
 
-Entra und lokal provisionierte Konten können parallel genutzt werden. Es gibt kein Self-Signup; lokale Anmeldung ist mit `LOCAL_AUTH_ENABLED=false` standardmäßig aus. Produktion benötigt getrennte, nicht voreingestellte Credentials: `DATABASE_URL` für `cafeteria_app` und `POSTGRES_AUTH_ISSUER_PASSWORD_FILE` als ausschließliche Quelle für das Issuer-Passwort. `AUTH_ISSUER_DATABASE_URL` darf nicht persistent konfiguriert werden; die Issuer-Verbindung wird erst im Prozess aus dem Password-File abgeleitet. `SESSION_REDIS_URL` ist für produktive Sessions und die fail-closed Login-Rate-Limitierung zwingend.
+Entra und lokal provisionierte Konten können parallel genutzt werden. Es gibt kein Self-Signup; der Code-Default ist `LOCAL_AUTH_ENABLED=false`, aber die produktive `.env.example` setzt `LOCAL_AUTH_ENABLED=true` und `ENTRA_ENABLED=false`. Produktion benötigt getrennte, nicht voreingestellte Credentials: `DATABASE_URL` für `cafeteria_app` und `POSTGRES_AUTH_ISSUER_PASSWORD_FILE` als ausschließliche Quelle für das Issuer-Passwort. `AUTH_ISSUER_DATABASE_URL` darf nicht persistent konfiguriert werden; die Issuer-Verbindung wird erst im Prozess aus dem Password-File abgeleitet. `SESSION_REDIS_URL` ist für produktive Sessions und die fail-closed Login-Rate-Limitierung zwingend.
 
 Beim ersten Start wird der erste lokale Administrator über die Migrate-Verbindung (Owner-Rolle) interaktiv provisioniert:
 
@@ -75,9 +75,12 @@ python database/validate_schema.py
 python csv/validate_menu_csv.py csv/menu_patient_example.csv --json
 python csv/validate_menu_csv.py csv/menu_cafeteria_example.csv --json
 python deployment/validate_compose.py
-pytest -q reference_scaffold/tests
-python tools/validate_package.py
+cd reference_scaffold && python -m pytest -q tests
+cd ..
+python tools/validate_package.py --offline
 ```
+
+Die Test-Suites verlangen `TEST_DATABASE_URL` und `TEST_REDIS_URL`; ohne sie werden ~2000 Tests übersprungen. `python tools/validate_package.py` verlangt das Live-Gate; `--offline` läuft mit Warnung.
 
 ## Artefakte neu erzeugen
 
@@ -95,11 +98,11 @@ Für einen abweichenden Browserpfad akzeptiert das Screenshot-Skript `--browser-
 ```bash
 cd deployment
 ./bootstrap.sh
-cp .env.example .env
-# Nur für die lokale Demo: DEMO_MODE=true und SEED_DEMO=true.
+# .env wird von bootstrap.sh angelegt; für lokale Demo optional APP_HOST_PORT=8080 setzen.
+# Nur für die Demo: DEMO_MODE=true und SEED_DEMO=true.
 docker compose config
 docker compose up --build -d
 docker compose ps
 ```
 
-Die Lieferung ist kein Produktionsfreigabebeleg. Live-PostgreSQL, vollständige CRUD-/Publish-Oberfläche, Entra, Backup/Restore, 4K-Player und fachliche Abnahme bleiben zwingende nächste Nachweise.
+Entra-Login im Tenant, produktiver Restore, Sichtprüfung am 4K-Player und die fachliche Abnahme bleiben offene Nachweise; Live-PostgreSQL, Compose-Betrieb und der Küchenworkflow sind seit 2. September 2026 auf https://dishboard.joelduss.xyz im Betrieb.
