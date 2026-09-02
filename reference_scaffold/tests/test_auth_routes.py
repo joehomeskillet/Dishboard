@@ -119,6 +119,7 @@ def auth_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[tuple[Any, Engine, Eng
     monkeypatch.setenv('DEMO_MODE', 'false')
     monkeypatch.setenv('SEED_DEMO', 'false')
     monkeypatch.setenv('DEMO_TODAY', '')
+    monkeypatch.setenv('ENTRA_ENABLED', 'true')
     application = create_app()
     application.config.update(TESTING=True)
     issuer_engine = application.extensions['cafeteria_auth_issuer_db']
