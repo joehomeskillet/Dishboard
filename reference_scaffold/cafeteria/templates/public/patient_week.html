@@ -1,10 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Wochenspeiseplan – Klinik Südhang{% endblock %}
 {% block body %}
-<header class="site-header"><a class="wordmark" href="{{ url_for('public.patient_today') }}"><span class="wordmark-mark" aria-hidden="true"></span><span>Klinik Südhang</span></a><nav class="site-nav" aria-label="Hauptnavigation"><a href="{{ url_for('public.patient_today') }}">Patienten heute</a><a class="active" href="{{ url_for('public.patient_week') }}" aria-current="page">Patienten Woche</a><span class="channel-links"><a href="{{ url_for('public.cafeteria_week') }}">Cafeteria</a></span></nav></header>
+<header class="site-header"><nav class="site-nav" aria-label="Hauptnavigation"><a href="{{ url_for('public.patient_today') }}">Patienten heute</a><a class="active" href="{{ url_for('public.patient_week') }}" aria-current="page">Patienten Woche</a><span class="channel-links"><a href="{{ url_for('public.cafeteria_week') }}">Cafeteria</a></span></nav><a class="site-logo" href="{{ url_for('public.cafeteria_today') }}"><img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="site-logo-img" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="205" height="40"></a></header>
 <main class="public-shell" id="main-content">
-<section class="hero"><div><p class="eyebrow">Patienten-Speiseplan · Wochenübersicht</p><h1>Montag bis Sonntag</h1><p class="hero-copy">Jeder Tag enthält Mittag- und Abendessen mit zwei Menüoptionen. Individuelle Kostformen werden separat gesteuert.</p></div><div class="date-chip">{{ snapshot.title if snapshot else 'Keine Publikation' }}</div></section>
-<div class="profile-banner"><div><strong>Publikationskanal Patienten</strong><span>14 Mahlzeitenblöcke · sieben Tage · zwei Menüoptionen je Mahlzeit</span></div><span class="profile-pill patient">Patienten</span></div>
+<section class="hero"><div><p class="eyebrow">Patienten-Speiseplan · Wochenübersicht</p><h1>{{ (snapshot.week_start|date_long) ~ ' bis ' ~ (snapshot.week_end|date_long) if snapshot else 'Keine Publikation' }}</h1><p class="hero-copy">Montag bis Sonntag · Mittag und Abend</p></div><div class="date-chip">{{ 'Kalenderwoche ' ~ (snapshot.days[0].date|iso_week) if snapshot and snapshot.days else 'KW ?' }}</div></section>
 {% if snapshot %}
 <section class="week-list">
 {% for day in snapshot.days %}

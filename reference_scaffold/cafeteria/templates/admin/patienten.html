@@ -9,7 +9,7 @@
 {% macro field_error(name, error_id) %}{% if errors.get(name) %}<span class="field-error" id="{{ error_id }}">{{ errors[name] }}</span>{% endif %}{% endmacro %}
 <div class="admin-shell">
   <aside class="admin-sidebar">
-    <div class="wordmark"><span class="wordmark-mark" aria-hidden="true"></span><span>Südhang Menüplanung</span></div>
+    <div class="admin-brand"><img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="admin-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="164" height="32"><span>Menüplanung</span></div>
     <div class="admin-user">
       <span class="avatar">{{ (user.name or 'DK')[:2]|upper }}</span>
       <div><strong>{{ user.name if user else 'Demo Küche' }}</strong><span>{{ roles|join(', ') }}</span></div>

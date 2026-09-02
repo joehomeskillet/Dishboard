@@ -7,7 +7,7 @@
 <main class="signage-shell patient-week-shell" aria-label="Patienten-Wochenplayer">
   <header class="signage-header">
     <div class="signage-brand">
-      <div class="wordmark"><span class="wordmark-mark" aria-hidden="true"></span><span>Klinik Südhang</span></div>
+      <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="signage-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="205" height="40">
       <span class="signage-kicker">Patienten-Speiseplan · Mittag und Abend</span>
     </div>
     <div class="signage-date"><strong>{{ snapshot.week_label if snapshot and snapshot.week_label else 'Wochenplan' }}</strong><span>{{ snapshot.title if snapshot else '' }}</span></div>

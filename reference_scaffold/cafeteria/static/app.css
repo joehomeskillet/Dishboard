@@ -68,6 +68,30 @@
   /* Shadows - from Therapieplan reference */
   --sh-shadow: 0 2px 10px rgba(56, 48, 39, .06), 0 3px 14px rgba(56, 48, 39, .07);
   --sh-shadow-soft: 0 2px 10px rgba(56, 48, 39, .06);
+
+  /* Alpha surfaces */
+  --sh-tap-highlight: rgba(194, 11, 97, .18);
+  --sh-white-062: rgba(255, 255, 255, .62);
+  --sh-white-070: rgba(255, 255, 255, .7);
+  --sh-white-072: rgba(255, 255, 255, .72);
+  --sh-white-075: rgba(255, 255, 255, .75);
+  --sh-white-076: rgba(255, 255, 255, .76);
+  --sh-white-078: rgba(255, 255, 255, .78);
+  --sh-white-096: rgba(255, 255, 255, .96);
+  --sh-white-098: rgba(255, 255, 255, .98);
+  --sh-white-0985: rgba(255, 255, 255, .985);
+  --sh-white-border-024: rgba(255, 255, 255, .24);
+  --sh-white-border-034: rgba(255, 255, 255, .34);
+  --sh-white-surface-008: rgba(255, 255, 255, .08);
+  --sh-white-surface-012: rgba(255, 255, 255, .12);
+  --sh-white-surface-014: rgba(255, 255, 255, .14);
+  --sh-primary-glow: rgba(194, 11, 97, .38);
+  --sh-primary-badge: rgba(194, 11, 97, .72);
+  --sh-status-glow: rgba(98, 217, 150, .16);
+  --sh-logo-shadow: rgba(0, 0, 0, .1);
+  --sh-card-shadow: rgba(0, 0, 0, .16);
+  --sh-card-shadow-strong: rgba(0, 0, 0, .18);
+  --sh-card-shadow-heavy: rgba(0, 0, 0, .2);
   
   /* Focus ring - uses primary */
   --sh-focus: 0 0 0 3px var(--sh-panel), 0 0 0 6px var(--sh-primary);
@@ -129,7 +153,7 @@
 
 * { box-sizing: border-box; }
 html { min-height: 100%; color-scheme: light; background: var(--sh-canvas); }
-body { margin: 0; min-height: 100%; color: var(--sh-ink); background: radial-gradient(circle at 92% 0, var(--sh-blue-soft), transparent 32rem), var(--sh-canvas); font-family: var(--sh-font); line-height: 1.4; -webkit-tap-highlight-color: rgba(194, 11, 97, .18); }
+body { margin: 0; min-height: 100%; color: var(--sh-ink); background: radial-gradient(circle at 92% 0, var(--sh-blue-soft), transparent 32rem), var(--sh-canvas); font-family: var(--sh-font); line-height: 1.4; -webkit-tap-highlight-color: var(--sh-tap-highlight); }
 a { color: inherit; }
 button, input, select, textarea { font: inherit; }
 button, a, input, select, textarea { touch-action: manipulation; }
@@ -143,14 +167,20 @@ p { text-wrap: pretty; }
 .wordmark { display: inline-flex; align-items: center; gap: .72rem; color: inherit; font-size: 1.26rem; font-weight: 850; text-decoration: none; letter-spacing: -.025em; }
 .wordmark-mark { display: inline-block; width: 1.02em; height: 1.02em; border: .17em solid var(--sh-magenta); border-right-color: transparent; border-radius: 50%; transform: rotate(-19deg); }
 .wordmark.small { font-size: 1rem; }
-.site-header > .wordmark { min-height: 44px; }
+.admin-brand { display: flex; align-items: center; gap: .8rem; padding: 1rem 1.25rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--sh-border); background: var(--sh-panel); }
+.admin-logo { display: block; width: auto; height: clamp(32px, 4vw, 40px); }
+.admin-brand span { color: var(--sh-ink); font-size: .86rem; font-weight: 720; white-space: nowrap; }
 
-.site-header { position: sticky; z-index: 20; top: 0; display: flex; justify-content: space-between; align-items: center; min-height: 74px; padding: 0 clamp(1.1rem, 4vw, 4rem); color: var(--sh-magenta); background: var(--sh-panel); box-shadow: none; border-bottom: 3px solid var(--sh-magenta); }
-.site-nav { display: flex; align-items: center; gap: .35rem; }
+.signage-logo { display: block; width: auto; height: clamp(36px, 6vw, 54px); filter: drop-shadow(0 2px 4px var(--sh-logo-shadow)); }
+
+.site-header { position: sticky; z-index: 20; top: 0; display: flex; align-items: center; min-height: 74px; gap: 1rem; padding: .9rem clamp(1.1rem, 4vw, 4rem); color: var(--sh-magenta); background: var(--sh-panel); box-shadow: none; border-bottom: 3px solid var(--sh-magenta); }
+.site-nav { display: flex; flex: 0 1 auto; align-items: center; gap: .35rem; }
+.site-logo { display: inline-flex; flex: 0 0 auto; align-items: center; min-width: 44px; min-height: 44px; margin-left: auto; }
+.site-logo-img { display: block; width: clamp(130px, 20vw, 205px); height: auto; }
 .site-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: .72rem .86rem; border-radius: 10px; color: var(--sh-ink); font-size: .92rem; font-weight: 720; text-decoration: none; white-space: nowrap; }
 .site-nav a:hover { color: var(--sh-magenta); background: transparent; }
 .site-nav a.active { color: var(--sh-magenta); background: var(--sh-magenta-soft); }
-.channel-links a { border: 1px solid rgba(255,255,255,.24); }
+.channel-links a { border: 1px solid var(--sh-white-border-024); }
 
 .public-shell { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; padding: clamp(1.5rem, 4vw, 3.7rem) 0 4rem; }
 .hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 2rem; margin-bottom: 2rem; }
@@ -158,11 +188,6 @@ p { text-wrap: pretty; }
 .hero h1 { margin: 0; max-width: 820px; font-size: clamp(2rem, 5vw, 4.5rem); font-weight: 860; line-height: .98; letter-spacing: -.055em; }
 .hero-copy { max-width: 720px; margin: 1rem 0 0; color: var(--sh-ink-muted); font-size: clamp(1rem, 1.8vw, 1.22rem); line-height: 1.5; }
 .date-chip { align-self: center; padding: .9rem 1.15rem; border-radius: 999px; color: var(--sh-teal-900); background: var(--sh-teal-100); font-size: .96rem; font-weight: 850; white-space: nowrap; }
-.profile-banner { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.2rem; padding: .9rem 1rem; border: 1px solid var(--sh-border); border-radius: 14px; background: rgba(255,255,255,.78); backdrop-filter: blur(8px); }
-.profile-banner strong { display: block; }
-.profile-banner span { color: var(--sh-ink-muted); font-size: .86rem; }
-.profile-pill { flex: 0 0 auto; padding: .48rem .72rem; border-radius: 999px; color: var(--sh-white) !important; background: var(--sh-teal-800); font-size: .76rem !important; font-weight: 850; letter-spacing: .04em; text-transform: uppercase; }
-.profile-pill.patient { background: var(--sh-blue); }
 
 .menu-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.35rem; align-items: stretch; }
 .menu-card { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--sh-border); border-radius: var(--sh-radius-lg); background: var(--sh-panel); box-shadow: var(--sh-shadow); }
@@ -177,6 +202,8 @@ p { text-wrap: pretty; }
 .menu-description { margin: 0 0 1rem; color: var(--sh-ink-muted); font-size: 1.02rem; line-height: 1.48; }
 .components { display: flex; flex-wrap: wrap; gap: .48rem; margin: 0; padding: 0; list-style: none; }
 .components li { padding: .48rem .68rem; border-radius: 999px; background: var(--sh-panel-soft); font-size: .88rem; font-weight: 780; }
+.menu-card.meat .components li, .signage-menu-card.meat .signage-components li { color: var(--sh-magenta); background: var(--sh-magenta-soft); border: 1px solid var(--sh-magenta); }
+.menu-card.veggie .components li, .signage-menu-card.veggie .signage-components li { color: var(--sh-green); background: var(--sh-green-soft); border: 1px solid var(--sh-green); }
 .labels { display: flex; flex-wrap: wrap; gap: .42rem; margin-top: 1rem; }
 .label { display: inline-flex; align-items: center; padding: .38rem .55rem; border-radius: 999px; color: var(--sh-teal-800); background: var(--sh-teal-100); font-size: .74rem; font-weight: 820; }
 .label.green { color: var(--sh-green); background: var(--sh-green-soft); }
@@ -195,7 +222,7 @@ p { text-wrap: pretty; }
 .patient-meal-card > header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; color: var(--sh-white); background: var(--sh-blue); }
 .patient-meal-card.dinner > header { background: var(--sh-teal-800); }
 .patient-meal-card > header h2 { margin: 0; font-size: 1.22rem; }
-.patient-meal-card > header span { color: rgba(255,255,255,.78); font-size: .84rem; }
+.patient-meal-card > header span { color: var(--sh-white-078); font-size: .84rem; }
 .patient-options { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); }
 .patient-option { min-width: 0; padding: 1.2rem 1.25rem 1.3rem; }
 .patient-option + .patient-option { border-left: 1px solid var(--sh-border); }
@@ -204,7 +231,7 @@ p { text-wrap: pretty; }
 .patient-option p { margin: 0; color: var(--sh-ink-muted); line-height: 1.4; }
 .patient-notice, .detail-panel { margin-top: 1.25rem; padding: 1.15rem 1.3rem; border-radius: 18px; color: var(--sh-white); background: var(--sh-teal-950); }
 .patient-notice h2, .detail-panel h2 { margin: 0 0 .35rem; font-size: 1rem; }
-.patient-notice p, .detail-panel p { margin: 0; color: rgba(255,255,255,.76); line-height: 1.48; }
+.patient-notice p, .detail-panel p { margin: 0; color: var(--sh-white-076); line-height: 1.48; }
 
 .week-list { display: grid; gap: .9rem; }
 .week-day { overflow: hidden; border: 1px solid var(--sh-border); border-radius: 20px; background: var(--sh-panel); box-shadow: var(--sh-shadow-soft); }
@@ -226,21 +253,21 @@ p { text-wrap: pretty; }
 .empty-state p { margin: .55rem 0 0; color: var(--sh-ink-muted); }
 
 /* Digital Signage */
-body.signage { width: 100vw; height: 100vh; overflow: hidden; color: var(--sh-white); background: radial-gradient(circle at 92% -12%, rgba(194,11,97,.38), transparent 32%), linear-gradient(135deg, var(--sh-signage-start) 0%, var(--sh-signage-middle) 58%, var(--sh-signage-end) 100%); }
+body.signage { width: 100vw; height: 100vh; overflow: hidden; color: var(--sh-white); background: radial-gradient(circle at 92% -12%, var(--sh-primary-glow), transparent 32%), linear-gradient(135deg, var(--sh-signage-start) 0%, var(--sh-signage-middle) 58%, var(--sh-signage-end) 100%); }
 .signage-shell { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; width: 100vw; height: 100vh; aspect-ratio: 16 / 9; gap: 2.1vh; padding: 3vh 2.8vw 2.3vh; overflow: hidden; }
 .signage-header { display: flex; justify-content: space-between; align-items: center; gap: 2vw; }
 .signage-brand { display: grid; gap: .42vh; }
 .signage-brand .wordmark { font-size: clamp(28px, 2.15vw, 46px); }
-.signage-kicker { color: rgba(255,255,255,.7); font-size: clamp(15px, 1.04vw, 23px); font-weight: 720; }
+.signage-kicker { color: var(--sh-white-070); font-size: clamp(15px, 1.04vw, 23px); font-weight: 720; }
 .signage-date { text-align: right; }
 .signage-date strong { display: block; font-size: clamp(34px, 3.2vw, 66px); line-height: .92; letter-spacing: -.055em; }
-.signage-date span { display: block; margin-top: .45vh; color: rgba(255,255,255,.7); font-size: clamp(16px, 1.1vw, 24px); }
-.signage-footer { display: flex; justify-content: space-between; align-items: center; gap: 2vw; color: rgba(255,255,255,.76); font-size: clamp(14px, .94vw, 22px); }
+.signage-date span { display: block; margin-top: .45vh; color: var(--sh-white-070); font-size: clamp(16px, 1.1vw, 24px); }
+.signage-footer { display: flex; justify-content: space-between; align-items: center; gap: 2vw; color: var(--sh-white-076); font-size: clamp(14px, .94vw, 22px); }
 .status-line { display: inline-flex; align-items: center; gap: .55em; white-space: nowrap; }
-.status-dot { width: .72em; height: .72em; border-radius: 50%; background: var(--sh-status); box-shadow: 0 0 0 .38em rgba(98,217,150,.16); }
+.status-dot { width: .72em; height: .72em; border-radius: 50%; background: var(--sh-status); box-shadow: 0 0 0 .38em var(--sh-status-glow); }
 
 .cafe-day-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.9vw; min-height: 0; }
-.signage-menu-card { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; overflow: hidden; color: var(--sh-ink); background: rgba(255,255,255,.985); border-radius: clamp(22px, 1.8vw, 38px); box-shadow: 0 25px 70px rgba(0,0,0,.18); border-top: clamp(9px, .7vw, 14px) solid var(--sh-magenta); }
+.signage-menu-card { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; overflow: hidden; color: var(--sh-ink); background: var(--sh-white-0985); border-radius: clamp(22px, 1.8vw, 38px); box-shadow: 0 25px 70px var(--sh-card-shadow-strong); border-top: clamp(9px, .7vw, 14px) solid var(--sh-magenta); }
 .signage-menu-card.veggie { border-top-color: var(--sh-green); }
 .signage-menu-card > header { display: flex; justify-content: space-between; align-items: center; padding: 1.8vh 1.8vw 1.2vh; border-bottom: 1px solid var(--sh-border); }
 .signage-menu-card > header h2 { margin: 0; color: var(--sh-teal-800); font-size: clamp(20px, 1.42vw, 31px); letter-spacing: .09em; text-transform: uppercase; }
@@ -255,10 +282,10 @@ body.signage { width: 100vw; height: 100vh; overflow: hidden; color: var(--sh-wh
 
 .cafe-week-layout { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1vw; min-height: 0; }
 .cafe-week-day { display: grid; grid-template-rows: auto 1fr 1fr; gap: .8vh; min-height: 0; }
-.cafe-week-day > header { padding: .8vh .8vw; border-radius: 14px; text-align: center; background: rgba(255,255,255,.14); }
+.cafe-week-day > header { padding: .8vh .8vw; border-radius: 14px; text-align: center; background: var(--sh-white-surface-014); }
 .cafe-week-day > header strong { display: block; font-size: clamp(20px, 1.35vw, 31px); }
-.cafe-week-day > header span { display: block; margin-top: .2vh; color: rgba(255,255,255,.7); font-size: clamp(13px, .82vw, 19px); }
-.cafe-week-slot { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; overflow: hidden; color: var(--sh-ink); background: rgba(255,255,255,.98); border-radius: clamp(15px, 1vw, 22px); border-top: .45vh solid var(--sh-magenta); }
+.cafe-week-day > header span { display: block; margin-top: .2vh; color: var(--sh-white-070); font-size: clamp(13px, .82vw, 19px); }
+.cafe-week-slot { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; overflow: hidden; color: var(--sh-ink); background: var(--sh-white-098); border-radius: clamp(15px, 1vw, 22px); border-top: .45vh solid var(--sh-magenta); }
 .cafe-week-slot.veggie { border-top-color: var(--sh-green); }
 .cafe-week-slot .slot-type { padding: .72vh .7vw; color: var(--sh-teal-800); border-bottom: 1px solid var(--sh-border); font-size: clamp(12px, .72vw, 17px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
 .cafe-week-slot .slot-body { display: flex; flex-direction: column; justify-content: center; min-width: 0; min-height: 0; padding: .7vh .75vw; }
@@ -267,10 +294,10 @@ body.signage { width: 100vw; height: 100vh; overflow: hidden; color: var(--sh-wh
 .cafe-week-slot footer { padding: .65vh .72vw; color: var(--sh-teal-950); border-top: 1px solid var(--sh-border); background: var(--sh-panel-soft); font-size: clamp(17px, .9vw, 20px); font-weight: 900; line-height: 1.16; }
 
 .patient-day-layout { display: grid; grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 1.6vh; min-height: 0; }
-.patient-signage-meal { display: grid; grid-template-columns: clamp(160px, 12vw, 250px) repeat(2, minmax(0, 1fr)); min-height: 0; overflow: hidden; color: var(--sh-ink); background: rgba(255,255,255,.985); border-radius: clamp(22px, 1.5vw, 34px); box-shadow: 0 22px 60px rgba(0,0,0,.16); }
+.patient-signage-meal { display: grid; grid-template-columns: clamp(160px, 12vw, 250px) repeat(2, minmax(0, 1fr)); min-height: 0; overflow: hidden; color: var(--sh-ink); background: var(--sh-white-0985); border-radius: clamp(22px, 1.5vw, 34px); box-shadow: 0 22px 60px var(--sh-card-shadow); }
 .patient-signage-meal .meal-label { display: flex; flex-direction: column; justify-content: center; padding: 1.5vh 1.3vw; color: var(--sh-white); background: var(--sh-blue); }
 .patient-signage-meal.dinner .meal-label { background: var(--sh-teal-800); }
-.patient-signage-meal .meal-label small { color: rgba(255,255,255,.72); font-size: clamp(14px, .86vw, 20px); font-weight: 750; }
+.patient-signage-meal .meal-label small { color: var(--sh-white-072); font-size: clamp(14px, .86vw, 20px); font-weight: 750; }
 .patient-signage-meal .meal-label strong { margin-top: .35vh; font-size: clamp(30px, 2.2vw, 48px); line-height: .96; letter-spacing: -.04em; }
 .patient-signage-option { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 1.3vh 1.55vw; }
 .patient-signage-option + .patient-signage-option { border-left: 1px solid var(--sh-border); }
@@ -280,17 +307,17 @@ body.signage { width: 100vw; height: 100vh; overflow: hidden; color: var(--sh-wh
 .patient-signage-option h3, .patient-signage-option p { flex-shrink: 0; }
 .patient-signage-option .signage-tags { margin-top: 1vh; flex-shrink: 0; max-height: 2.2vh; overflow: hidden; }
 .signage-tags .label { font-size: clamp(10px, .55vw, 14px); padding: .22vh .32vw; }
-.signage-tags .label-muted { color: rgba(255,255,255,.6); background: transparent; font-size: clamp(10px, .55vw, 14px); }
+.signage-tags .label-muted { color: var(--sh-white-062); background: transparent; font-size: clamp(10px, .55vw, 14px); }
 
 .patient-week-shell { gap: 1.5vh; padding: 2.25vh 1.6vw 1.7vh; }
 .patient-week-shell .signage-header .wordmark { font-size: clamp(26px, 1.7vw, 42px); }
 .patient-week-shell .signage-date strong { font-size: clamp(31px, 2.55vw, 62px); }
 .patient-week-layout { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: .62vw; min-height: 0; }
 .patient-week-day { display: grid; grid-template-rows: auto repeat(2, minmax(0,1fr)); gap: .65vh; min-width: 0; min-height: 0; }
-.patient-week-day > header { padding: .62vh .45vw; border-radius: 12px; text-align: center; background: rgba(255,255,255,.14); }
+.patient-week-day > header { padding: .62vh .45vw; border-radius: 12px; text-align: center; background: var(--sh-white-surface-014); }
 .patient-week-day > header strong { display: block; font-size: clamp(18px, 1.15vw, 30px); }
-.patient-week-day > header span { display: block; color: rgba(255,255,255,.7); font-size: clamp(11px, .67vw, 17px); }
-.patient-week-cell { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; overflow: hidden; color: var(--sh-ink); background: rgba(255,255,255,.985); border-radius: clamp(12px, .8vw, 19px); }
+.patient-week-day > header span { display: block; color: var(--sh-white-070); font-size: clamp(11px, .67vw, 17px); }
+.patient-week-cell { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; overflow: hidden; color: var(--sh-ink); background: var(--sh-white-0985); border-radius: clamp(12px, .8vw, 19px); }
 .patient-week-cell .meal-name { padding: .5vh .48vw; color: var(--sh-white); background: var(--sh-blue); font-size: clamp(12px, .72vw, 19px); font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }
 .patient-week-cell.dinner .meal-name { background: var(--sh-teal-800); }
 .patient-week-options { display: grid; grid-template-rows: repeat(2, minmax(0,1fr)); min-height: 0; }
@@ -303,13 +330,13 @@ body.signage { width: 100vw; height: 100vh; overflow: hidden; color: var(--sh-wh
 .cafe-week-slot h3, .cafe-week-slot p,
 .patient-signage-option h3, .patient-signage-option p,
 .patient-week-option strong, .patient-week-option span { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
-.resolution-note { padding: .3em .6em; border-radius: 999px; color: var(--sh-white); background: rgba(194,11,97,.72); font-weight: 800; }
-.signage-empty { display: grid; place-content: center; gap: 1vh; min-height: 0; border: 2px dashed rgba(255,255,255,.34); border-radius: clamp(20px, 1.5vw, 34px); text-align: center; }
+.resolution-note { padding: .3em .6em; border-radius: 999px; color: var(--sh-white); background: var(--sh-primary-badge); font-weight: 800; }
+.signage-empty { display: grid; place-content: center; gap: 1vh; min-height: 0; border: 2px dashed var(--sh-white-border-034); border-radius: clamp(20px, 1.5vw, 34px); text-align: center; }
 .signage-empty strong { font-size: clamp(42px, 4vw, 86px); line-height: 1; }
-.signage-empty span { color: rgba(255,255,255,.76); font-size: clamp(20px, 1.45vw, 34px); }
+.signage-empty span { color: var(--sh-white-076); font-size: clamp(20px, 1.45vw, 34px); }
 
 .closed-signage { display: grid; place-items: center; min-height: 0; }
-.closed-card { width: min(1150px, 82vw); padding: 7vh 5vw; border-radius: 42px; text-align: center; color: var(--sh-ink); background: rgba(255,255,255,.985); box-shadow: 0 28px 90px rgba(0,0,0,.2); }
+.closed-card { width: min(1150px, 82vw); padding: 7vh 5vw; border-radius: 42px; text-align: center; color: var(--sh-ink); background: var(--sh-white-0985); box-shadow: 0 28px 90px var(--sh-card-shadow-heavy); }
 .closed-card .closed-icon { display: grid; place-items: center; width: 1.4em; height: 1.4em; margin: 0 auto 1.5vh; border-radius: 50%; color: var(--sh-white); background: var(--sh-magenta); font-size: clamp(48px, 5vw, 96px); font-weight: 900; }
 .closed-card h1 { margin: 0; font-size: clamp(60px, 6vw, 116px); line-height: .95; letter-spacing: -.06em; }
 .closed-card p { margin: 2vh auto 0; color: var(--sh-ink-muted); font-size: clamp(24px, 2vw, 42px); line-height: 1.35; }
@@ -318,19 +345,18 @@ body.signage { width: 100vw; height: 100vh; overflow: hidden; color: var(--sh-wh
 body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
 .admin-shell { display: grid; grid-template-columns: 270px minmax(0,1fr); min-height: 100vh; }
 .admin-sidebar { position: sticky; top: 0; align-self: start; height: 100vh; padding: 1.35rem 1rem; color: var(--sh-white); background: var(--sh-teal-950); }
-.admin-sidebar .wordmark { margin: .3rem .6rem 1.35rem; }
-.admin-user { display: flex; align-items: center; gap: .7rem; margin-bottom: 1.1rem; padding: .8rem; border-radius: 13px; background: rgba(255,255,255,.08); }
+.admin-user { display: flex; align-items: center; gap: .7rem; margin-bottom: 1.1rem; padding: .8rem; border-radius: 13px; background: var(--sh-white-surface-008); }
 .avatar { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--sh-magenta); font-size: .78rem; font-weight: 900; }
 .admin-user strong, .admin-user span { display: block; }
-.admin-user span { margin-top: .12rem; color: rgba(255,255,255,.62); font-size: .72rem; }
+.admin-user span { margin-top: .12rem; color: var(--sh-white-062); font-size: .72rem; }
 .admin-nav { display: grid; gap: .3rem; }
-.admin-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: .72rem .8rem; border-radius: 10px; color: rgba(255,255,255,.72); font-size: .84rem; font-weight: 720; text-decoration: none; }
-.admin-nav a.active, .admin-nav a:hover { color: var(--sh-white); background: rgba(255,255,255,.12); }
+.admin-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: .72rem .8rem; border-radius: 10px; color: var(--sh-white-072); font-size: .84rem; font-weight: 720; text-decoration: none; }
+.admin-nav a.active, .admin-nav a:hover { color: var(--sh-white); background: var(--sh-white-surface-012); }
 .admin-nav form { display: contents; }
-.admin-nav button { display: inline-flex; align-items: center; min-height: 44px; padding: .72rem .8rem; border: none; border-radius: 10px; color: rgba(255,255,255,.72); background: transparent; font-size: .84rem; font-weight: 720; cursor: pointer; }
-.admin-nav button:hover { color: var(--sh-white); background: rgba(255,255,255,.12); }
+.admin-nav button { display: inline-flex; align-items: center; min-height: 44px; padding: .72rem .8rem; border: none; border-radius: 10px; color: var(--sh-white-072); background: transparent; font-size: .84rem; font-weight: 720; cursor: pointer; }
+.admin-nav button:hover { color: var(--sh-white); background: var(--sh-white-surface-012); }
 .admin-main { min-width: 0; }
-.admin-topbar { position: sticky; z-index: 10; top: 0; display: flex; justify-content: space-between; align-items: center; min-height: 72px; padding: .75rem 1.5rem; background: rgba(255,255,255,.96); border-bottom: 1px solid var(--sh-border); backdrop-filter: blur(10px); }
+.admin-topbar { position: sticky; z-index: 10; top: 0; display: flex; justify-content: space-between; align-items: center; min-height: 72px; padding: .75rem 1.5rem; background: var(--sh-white-096); border-bottom: 1px solid var(--sh-border); backdrop-filter: blur(10px); }
 .admin-topbar h1 { margin: 0; font-size: 1.3rem; letter-spacing: -.03em; }
 .toolbar { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .55rem; }
 .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .58rem .8rem; border: 1px solid var(--sh-border); border-radius: 10px; color: var(--sh-ink); background: var(--sh-white); font-size: .8rem; font-weight: 820; text-decoration: none; cursor: pointer; }
@@ -379,7 +405,7 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
 .patient-admin-day { overflow: hidden; border: 1px solid var(--sh-border); border-radius: 14px; background: var(--sh-white); box-shadow: var(--sh-shadow-soft); }
 .patient-admin-day > header { display: flex; justify-content: space-between; align-items: center; padding: .55rem .7rem; color: var(--sh-white); background: var(--sh-blue); }
 .patient-admin-day > header strong { font-size: .82rem; }
-.patient-admin-day > header span { color: rgba(255,255,255,.75); font-size: .67rem; }
+.patient-admin-day > header span { color: var(--sh-white-075); font-size: .67rem; }
 .patient-admin-meals { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); }
 .patient-admin-meal { padding: .62rem .72rem; }
 .patient-admin-meal + .patient-admin-meal { border-left: 1px solid var(--sh-border); }
@@ -391,8 +417,7 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
 
 @media (max-width: 900px) {
   .site-header { flex-wrap: wrap; min-height: 64px; padding: .65rem 1rem .55rem; }
-  .site-header .wordmark { font-size: 1.15rem; }
-  .site-nav { order: 3; flex-wrap: wrap; width: 100%; margin-top: .45rem; padding-bottom: .12rem; }
+  .site-nav { flex: 0 1 10rem; flex-wrap: wrap; max-width: 10rem; min-width: 0; }
   .site-nav a { min-height: 44px; }
   .channel-links { flex-wrap: wrap; margin-left: .35rem; padding-left: .35rem; }
   .public-shell { width: calc(100% - 2rem); padding-top: 1.3rem; }
@@ -402,7 +427,6 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
   .patient-option + .patient-option { border-top: 1px solid var(--sh-border); border-left: 0; }
   .admin-shell { grid-template-columns: 1fr; }
   .admin-sidebar { position: static; display: grid; grid-template-columns: minmax(0, 1fr) auto; height: auto; padding: .8rem 1rem; }
-  .admin-sidebar .wordmark { margin: 0; }
   .admin-user { margin: 0; padding: .55rem; }
   .admin-nav { grid-column: 1 / -1; grid-auto-flow: column; grid-auto-columns: max-content; margin-top: .65rem; overflow-x: auto; }
   .admin-topbar { position: static; align-items: flex-start; flex-direction: column; gap: .75rem; padding: 1rem; }
@@ -415,13 +439,12 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
 
 @media (max-width: 560px) {
   .public-shell { width: calc(100% - 1.5rem); padding-bottom: 2.4rem; }
-  .site-header { align-items: flex-start; }
+  .site-header { align-items: center; }
   .site-nav { gap: .1rem; }
   .site-nav a { padding-inline: .65rem; font-size: .82rem; }
   .hero h1 { font-size: 2.18rem; }
   .hero-copy { margin-top: .72rem; font-size: 1rem; }
   .date-chip { width: 100%; text-align: center; }
-  .profile-banner { align-items: flex-start; }
   .menu-card { border-radius: 24px; }
   .menu-card-head { min-height: 62px; padding: .8rem 1rem; }
   .menu-card-body { padding: 1rem; }

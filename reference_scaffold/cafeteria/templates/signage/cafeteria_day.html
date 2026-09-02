@@ -7,7 +7,7 @@
 <main class="signage-shell" aria-label="Cafeteria-Tagesplayer">
   <header class="signage-header">
     <div class="signage-brand">
-      <div class="wordmark"><span class="wordmark-mark" aria-hidden="true"></span><span>Klinik Südhang</span></div>
+      <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="signage-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="205" height="40">
       <span class="signage-kicker">Cafeteria · Mittag für Mitarbeitende und externe Gäste</span>
     </div>
     <div class="signage-date"><strong>Heute</strong><span>{{ day.weekday }}, {{ today|date_long }}</span></div>
@@ -15,7 +15,7 @@
   {% if lunch.service_state|default('open') == 'open' %}
   <section class="cafe-day-grid" aria-label="Zwei Mittagsmenüs">
     {% for option in lunch.options %}
-    <article class="signage-menu-card {{ 'veggie' if option.type_code == 'VEGGIE' else '' }}">
+    <article class="signage-menu-card {{ 'veggie' if option.type_code == 'VEGGIE' else 'meat' }}">
       <header>
         <h2>{{ option.type_name }}</h2>
         <span class="menu-icon {{ 'veg' if option.type_code == 'VEGGIE' else '' }}" aria-hidden="true">{{ '●' if option.type_code == 'VEGGIE' else '◐' }}</span>
