@@ -37,6 +37,14 @@ Partial-Saves ändern nur die adressierte Zeile bzw. den Header/Service-Status.
 Transaktion: lock, nochmals lesen, validieren, schreiben, Version erhöhen,
 Review-Status zurücksetzen, commit.
 
+Der vollständige externe Draft-/Snapshot-Contract bleibt exakt:
+`components: list[str]`, `labels: list[{code,name}]`,
+`allergens: list[{code,name,presence}]`,
+`origins: list[{ingredient,country_code,text}]` und
+`allergen_review_status: string`. Er enthält keine internen IDs, Modi oder
+Component-Versionen. `build_snapshot(profile_code, draft, revision_code)`
+bleibt die Full-Snapshot-Schnittstelle.
+
 ## 3. Datenmodell (Migration 0010, Schema v12 → v13)
 
 `menu_components` erhält: `id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY`
@@ -77,20 +85,30 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
   rematerialisiert nur Auto-Klassen und setzt den Review-Status zurück.
 - Publish verweigert ungeprüfte oder stale Component-Versionen. Ein Review
   bestätigt die konkrete Version; bei Änderung muss neu geprüft werden.
-- Der Publish-Snapshot enthält exakt die bestehenden externen Schlüssel und
-  `list[str]`-Werte. Er enthält keine internen IDs, Modi oder Versionen und ist
-  nach Publish unveränderlich.
+- Der Publish-Snapshot folgt exakt dem oben definierten externen verschachtelten
+  Contract: `components` ist `list[str]`, `labels`, `allergens` und `origins`
+  sind Listen von Dicts, und `allergen_review_status` ist ein String. Er enthält
+  keine IDs, Modi oder Versionen und ist nach Publish unveränderlich.
 
 ## 5. Migration und Rückwärtskompatibilität
 
 Migration `0010_v12_to_v13` ist die einzige Schemaänderung; `0001` bis `0009`
-bleiben byte-identisch. Sie aktualisiert Schema-/DB-Konstanten, Grants,
-Validatoren und Tests. Legacy-Zeilen werden je Location, Profile und Kategorie
-`other` getrennt backgefüllt; der exakte alte Text wird einmalig angelegt und
-exakt verlinkt. Unmatched-Referenzen bleiben gültig und als freier Text
-erhalten. Bestehende Menüs werden in allen drei Klassen auf `manual` gesetzt.
-Bei Legacy-Allergenen bereinigt die Migration Duplikate mit
-`contains`-Vorrang.
+bleiben byte-identisch. Sie aktualisiert `SCHEMA_VERSION 13`,
+`APPLICATION_VERSION dishboard-schema-v13`, Registry-Eintrag `0010`,
+Schema-/Package-Validatoren, die Tabellenanzahl sowie Checksums und Manifeste.
+`database/permissions.sql` erteilt den App-/Backup-Rollen ACLs für alle drei
+neuen Tabellen sowie die erforderliche `menu_components`-Sequence und wird in
+der bestehenden Restore-Reihenfolge erneut angewendet. Legacy-Backfill gehört
+ausschließlich in die Migration, nie nach `db.py`: Sie erstellt zuerst die
+Tabellen, ergänzt Mode-/Link-Spalten nullable oder mit sicherem Default,
+setzt alle Legacy-Modi auf `manual`, legt danach pro Location, Profile und
+Kategorie `other` deterministisch exakt eine Komponente für jeden alten Text
+an und verlinkt Text, Link und Version exakt. Unmatched-Referenzen bleiben
+gültig und als freier Text erhalten. Bei Legacy-Allergenen werden Duplikate
+mit `contains`-Vorrang bereinigt. Erst nach Vollständigkeitsprüfungen folgen
+Constraints, FKs, Unique- und NOT-NULL-Regeln. Das SQL beginnt mit `BEGIN;`
+und endet mit einem nicht-leeren `COMMIT;`, dem kein Kommentar folgt; leerer
+und befüllter Bestand, Idempotenz, Rollback und Terminator sind getestet.
 
 Vor Migration: benanntes PostgreSQL-Backup und Down-Probe-Kopie. Down-Probe
 prüft restaurierbare v12-Daten; sie behauptet keine magische Reversibilität.
@@ -114,6 +132,9 @@ Komponenten-URLs verwenden `public_id`, nie die interne Bigint-ID.
 Jede POST-Form enthält den aktuellen Feldnamen `_csrf` (nie `csrf`) sowie nur
 die für ihre Operation explizit erlaubten Felder und, wo sie schreibt, die
 erwartete `row_version`.
+Login, Session-Cookie und der bestehende Auth-CSRF-Token `csrf_token` bleiben
+unverändert; der neue `_csrf`-Name gilt ausschließlich für den Admin-POST-
+Contract und ersetzt keinen Auth-Contract.
 
 | Methode und Route | Zweck / erlaubte Eingabe |
 |---|---|
@@ -159,8 +180,15 @@ native `confirm()` vor dem Absenden. Server prüft gespeicherten Draft,
 Rasterschema, Review und Component-Versionen, erzeugt immutable Snapshot und
 antwortet PRG mit Revision/Flash in `aria-live`. 400/409 darf nichts ändern.
 
-Statuswerte sind exakt `empty`, `incomplete`, `review_open`, `ready`, `live`,
-`changed`. Deutsche Novice-Texte nennen Tag, Mahlzeit, Option und Feld, z.B.
+Die UI berechnet `derive_admin_status` unabhängig vom DB-Enum: `empty`, wenn
+es null Menüeinträge und keine aktive Veröffentlichung gibt; `incomplete`,
+wenn Draft-Validierung fehlschlägt; `review_open`, wenn ein vollständiger Draft
+unchecked oder stale ist; `live`, wenn der aktive Snapshot dem frisch aus dem
+gespeicherten Draft mit derselben Revisionsidentität gebauten Snapshot gleicht;
+`changed`, wenn eine aktive Veröffentlichung abweicht; sonst `ready`. Der
+DB-Workflow-State bleibt ausschließlich `draft|ready|published|archived`.
+Statuswerte der UI sind damit exakt `empty`, `incomplete`, `review_open`,
+`ready`, `live`, `changed`. Deutsche Novice-Texte nennen Tag, Mahlzeit, Option und Feld, z.B.
 „Mittwoch, Abend, Vegetarisch: Preis darf höchstens zwei Nachkommastellen haben.“
 CHF akzeptiert Punkt oder Komma, normalisiert zu Decimal und speichert exakt
 positive Rappen; Cafeteria erfordert `external >= internal` sowie beide
@@ -183,7 +211,7 @@ Named RED-Tests (zuerst rot, danach grün) und Dateien:
 
 | Test | Datei / Beweis |
 |---|---|
-| reale PG16-Migration, Grants, Schema 13 | `reference_scaffold/tests/test_component_catalog_migration_db.py` |
+| reale PG16-Migration, Grants, Schema 13, Backfill-/Terminator-Contract | `reference_scaffold/tests/test_component_catalog_migration_db.py`, `reference_scaffold/tests/test_auth_database.py`, `reference_scaffold/tests/test_database_invariants.py` |
 | Katalog CRUD/Archiv/Suche/Usage und Isolation | `reference_scaffold/tests/test_component_catalog_db.py`, `reference_scaffold/tests/test_component_catalog_routes.py` |
 | Komponenten-Zuweisung, Allergie-Union/contains, Herkunft-Konflikt, Diet-Intersection | `reference_scaffold/tests/test_component_assignment_db.py` |
 | Location/Profile-Isolation und Public-ID/404 | `reference_scaffold/tests/test_public_isolation_homoglyphs.py`, `reference_scaffold/tests/test_database_invariants.py` |
@@ -192,7 +220,7 @@ Named RED-Tests (zuerst rot, danach grün) und Dateien:
 | LAST-SAVED Preview, no-store, Dirty-Guard | `reference_scaffold/tests/test_admin_draft_preview.py` |
 | Publish/PRG/Review/Stale/CSRF/400/409 | `reference_scaffold/tests/test_admin_workflow_routes.py`, `reference_scaffold/tests/test_workflow_form.py` |
 | CHF Parsing/Rappen/Patient-Preisverbot und Wochen-Familien | `reference_scaffold/tests/test_admin_week_routes.py` |
-| Browser-A11y und Viewport-Matrix | `reference_scaffold/tests/test_admin_ux_browser.py` (bestehender Python-Browser-Harness) |
+| Browser-A11y und Viewport-Matrix | `reference_scaffold/tests/test_admin_ux_browser.py` (neu erstellt durch Wiederverwendung der bestehenden Playwright-Muster/Fixtures aus `test_rendered_ui.py`) |
 
 Gates mit verbatim Receipts: vollständiges `pytest`, reale PG16-
 Compose-/Migrationsprüfung, Schema- und Package-Validatoren, Ruff, Bandit,
@@ -208,7 +236,11 @@ durch „alle Tests pass“ ohne Kommandoausgabe ersetzt werden.
 ## 10. Umsetzungseigentum und Stop-Bedingungen
 
 Phase 1 (Schema, 0010, Grants, Validator) und Phase 2 (Store, Modelle,
-Inheritance) werden seriell am gemeinsamen Contract bearbeitet. Phase 3
+Inheritance) werden seriell am gemeinsamen Contract bearbeitet.
+`component_assignment_store` ist erst T4 und danach T5 zugeordnet;
+`workflow_store.py` hat T6 als einzigen seriellen Owner und erhält dort nur
+minimale Kompatibilitätsedits für Full-Import/Recovery (kein Partial-Write und
+kein Full-Replace aus Partial-Modulen). Phase 3
 (Routen/Workflow/Publish) folgt erst nach Contract-Receipt. Phase 4
 (Jinja/Vanilla JS/CSS) folgt danach; Test- und Review-Lanes dürfen parallel
 lesen, aber niemals dieselben Dateien schreiben. CSV-Import bleibt Freitext
@@ -218,8 +250,8 @@ oder fehlender Auth-/Browser-Evidenz: BLOCKED, kein Push/Deploy.
 
 ## 11. Selbstprüfung
 
-Diese SDD enthält keine TBD/TODO-Platzhalter und keine pauschale
-„alle Tests pass“-Behauptung. Patient-Raster, Cafeteria-Raster, Preisregeln,
+Diese SDD enthält keine ungelösten oder undefinierten Anweisungen und keine
+pauschale „alle Tests pass“-Behauptung. Patient-Raster, Cafeteria-Raster, Preisregeln,
 Full-Replace-Ausnahme, drei Modi, Preview-Quelle und Publish-Guards sind
 explizit getrennt; `dish_templates` bleibt unangetastet. Jede Implementierung
 muss die oben genannten exact keys, Statuswerte, Fehlercodes und named
