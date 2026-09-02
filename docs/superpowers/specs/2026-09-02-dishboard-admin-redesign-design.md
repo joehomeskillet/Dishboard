@@ -39,14 +39,16 @@ Review-Status zurücksetzen, commit.
 
 ## 3. Datenmodell (Migration 0010, Schema v12 → v13)
 
-`menu_components` erhält: `id UUID` (interne PK), `location_id`,
+`menu_components` erhält: `id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY`
+(interne PK), `public_id uuid UNIQUE` (externe URL-ID), `location_id`,
 `profile_scope` (`common|patient|staff_guest`), `category`
 (`meat|side|vegetable|sauce|dessert|other`), `name`, `origin_country_code`,
 `active`, `row_version`, `created_at`, `updated_at`. Unique ist
 `(location_id, profile_scope, lower(trim(name)))`. Ein archivierter Name bleibt
 reserviert; es gibt kein DELETE.
 
-Labels und Allergene sind Child-Zuordnungen. Die Allergen-PK ist
+Labels und Allergene sind Child-Zuordnungen und referenzieren mit ihren
+`component_id`-FKs die interne `menu_components.id`-Bigint-ID. Die Allergen-PK ist
 `(component_id, allergen)` und enthält zusätzlich `presence` (`contains` oder
 `may_contain`). Label-Zuordnungen tragen den Labelwert und den jeweils nötigen
 Klassenschlüssel. `menu_item_components` erhält nullable `component_id` und
@@ -95,36 +97,46 @@ rollbackbar.
 
 ## 6. Exakte Admin-Routen und Berechtigungen
 
-Alle Routen liegen unter `/admin/dishboard`, verlangen Session-Admin,
-`draft.read` bzw. `draft.write`, CSRF bei POST und `Cache-Control: no-store`.
-UUIDs werden in URLs verwendet; `profile` kommt ausschließlich aus der Route.
+Alle Routen verlangen Session-Admin, `draft.read` bzw. `draft.write`, CSRF bei
+POST und `Cache-Control: no-store`. Bestehende URL-Familien bleiben erhalten:
+`/admin/cafeteria` wird serverseitig fest auf `staff_guest` und
+`/admin/patienten` fest auf `patient` abgebildet. Das Profil kommt ausschließlich
+aus dieser URL-Familie; kein Handler akzeptiert es im Body oder Query-String.
+Komponenten-URLs verwenden `public_id`, nie die interne Bigint-ID.
+Jede POST-Form enthält den aktuellen Feldnamen `_csrf` (nie `csrf`) sowie nur
+die für ihre Operation explizit erlaubten Felder und, wo sie schreibt, die
+erwartete `row_version`.
 
 | Methode und Route | Zweck / erlaubte Eingabe |
 |---|---|
-| `GET /admin/dishboard/<profile>/overview?week=` | Wochenübersicht, Header, Service und Grid |
-| `GET /admin/dishboard/<profile>/menu?week=&day=&meal=&option=` | fokussierte Menüzeile |
-| `POST /admin/dishboard/<profile>/menu` | exact `csrf,week,day,meal,option,version,fields` |
-| `GET /admin/dishboard/<profile>/header?week=` | Header laden |
-| `POST /admin/dishboard/<profile>/header` | Header speichern |
-| `GET /admin/dishboard/<profile>/service?week=` | Service-Status laden |
-| `POST /admin/dishboard/<profile>/service` | Service-Status speichern |
-| `GET /admin/dishboard/catalog?profile=&q=&category=&archived=` | Suche, Kategorie, Archivfilter, Nutzung und Sortierung |
-| `POST /admin/dishboard/catalog` | Komponente mit exact Feldern anlegen |
-| `GET /admin/dishboard/catalog/<uuid>` | Komponente anzeigen |
-| `POST /admin/dishboard/catalog/<uuid>` | Komponente bearbeiten, row_version erforderlich |
-| `POST /admin/dishboard/catalog/<uuid>/archive` | archivieren, keine Löschung |
-| `POST /admin/dishboard/catalog/<uuid>/unarchive` | reaktivieren, Name bleibt reserviert |
-| `GET /admin/dishboard/<profile>/copy?week=` | leere Zielwochen anbieten |
-| `POST /admin/dishboard/<profile>/copy` | `csrf,source_week,target_week,target_version` |
-| `GET /admin/dishboard/<profile>/preview?week=` | zuletzt gespeicherten Draft anzeigen |
-| `POST /admin/dishboard/<profile>/publish` | `csrf,week,version` exakt; Publish |
+| `GET /admin/cafeteria?week=` und `GET /admin/patienten?week=` | Wochenübersicht, Header, Service und Grid |
+| `GET /admin/{cafeteria\|patienten}/menu?week=&day=&meal=&option=` | fokussierte Menüzeile |
+| `POST /admin/{cafeteria\|patienten}/menu` | exact `_csrf,week,day,meal,option,row_version,fields` |
+| `GET /admin/{cafeteria\|patienten}/header?week=` | Header laden |
+| `POST /admin/{cafeteria\|patienten}/header` | Header speichern |
+| `GET /admin/{cafeteria\|patienten}/service?week=` | Service-Status laden |
+| `POST /admin/{cafeteria\|patienten}/service` | Service-Status speichern |
+| `GET /admin/{cafeteria\|patienten}/komponenten?q=&category=&include_archived=` | Suche, Kategorie, Archivfilter, Nutzung und Sortierung; Profil aus URL-Familie |
+| `POST /admin/{cafeteria\|patienten}/komponenten` | Komponente mit exact Feldern anlegen |
+| `GET /admin/{cafeteria\|patienten}/komponenten/<public_id>` | Komponente anzeigen |
+| `POST /admin/{cafeteria\|patienten}/komponenten/<public_id>` | Komponente bearbeiten, row_version erforderlich |
+| `POST /admin/{cafeteria\|patienten}/komponenten/<public_id>/archive` | archivieren, keine Löschung |
+| `POST /admin/{cafeteria\|patienten}/komponenten/<public_id>/unarchive` | reaktivieren, Name bleibt reserviert |
+| `GET /admin/{cafeteria\|patienten}/copy?week=` | leere Zielwochen anbieten |
+| `POST /admin/{cafeteria\|patienten}/copy` | `_csrf,source_week,target_week,target_row_version` |
+| `GET /admin/{cafeteria\|patienten}/preview?week=` | zuletzt gespeicherten Draft anzeigen |
+| `POST /admin/{cafeteria\|patienten}/publish` | `_csrf,week,row_version` exakt; Publish |
 
-`<profile>` ist nur `patient` oder `staff_guest`; andere Werte 404. Katalog-
-CRUD, Zuweisung, Copy und Publish erzwingen Location- und Scope-Isolation.
+Die Komponentensuche für eine Zuweisung zeigt nur aktive Komponenten mit
+`common`- oder passendem Scope; die Katalogverwaltung darf mit
+`include_archived=1` zusätzlich archivierte Komponenten anzeigen. Katalog-CRUD,
+Zuweisung, Copy und Publish erzwingen Location- und Scope-Isolation.
 Copy ist nur für eine wirklich leere Zielwoche desselben Profils erlaubt,
 läuft atomar unter Locks, erzeugt neue `external_id`s, setzt Reviews zurück,
 publiziert nicht und kopiert beim Patient keine Preise. Nicht leere oder
 gleichzeitig geänderte Ziele liefern 409 ohne Teilmutation.
+„Wirklich leer“ bedeutet dabei exakt: null `menu_items` für Zielwoche und
+Profil sowie keine aktive Veröffentlichung für dieses Ziel.
 
 ## 7. Preview, Save, Publish und Fehlertexte
 
@@ -134,16 +146,16 @@ Preview zeigt ausschließlich den LAST-SAVED-Draft, nie Dirty-Client-State;
 keinen Fallback auf Live-Daten. `no-store` ist Pflicht. Dirty-State blockiert
 Preview und Publish bis zum Speichern.
 
-Publish ist ausschließlich POST mit den drei Feldern `csrf`, `week`, `version`;
+Publish ist ausschließlich POST mit den drei Feldern `_csrf`, `week`, `row_version`;
 native `confirm()` vor dem Absenden. Server prüft gespeicherten Draft,
 Rasterschema, Review und Component-Versionen, erzeugt immutable Snapshot und
 antwortet PRG mit Revision/Flash in `aria-live`. 400/409 darf nichts ändern.
 
 Statuswerte sind exakt `empty`, `incomplete`, `review_open`, `ready`, `live`,
 `changed`. Deutsche Novice-Texte nennen Tag, Mahlzeit, Option und Feld, z.B.
-„Mittwoch, Abend, Menü 2: Preis darf höchstens zwei Nachkommastellen haben.“
+„Mittwoch, Abend, Vegetarisch: Preis darf höchstens zwei Nachkommastellen haben.“
 CHF akzeptiert Punkt oder Komma, normalisiert zu Decimal und speichert exakt
-positive Rappen; Cafeteria erfordert `external > internal` sowie beide
+positive Rappen; Cafeteria erfordert `external >= internal` sowie beide
 positiv. Patienten senden und speichern keine Preisfelder.
 
 ## 8. UI- und Accessibility-Vertrag
@@ -163,16 +175,16 @@ Named RED-Tests (zuerst rot, danach grün) und Dateien:
 
 | Test | Datei / Beweis |
 |---|---|
-| reale PG16-Migration, Grants, Schema 13 | `tests/db/test_migration_0010.py` |
-| Katalog CRUD/Archiv/Suche/Usage und Isolation | `tests/admin/test_catalog.py` |
-| Allergie-Union/contains, Herkunft-Konflikt, Diet-Intersection | `tests/menu/test_component_inheritance.py` |
-| Location/Profile-Isolation und UUID/404 | `tests/admin/test_isolation.py` |
-| exakter immutable Snapshot | `tests/menu/test_snapshot.py` |
-| leerer Same-Profile-Copy, Lock/409, neue IDs | `tests/admin/test_copy.py` |
-| LAST-SAVED Preview, no-store, Dirty-Guard | `tests/admin/test_preview.py` |
-| Publish/PRG/Review/Stale/CSRF/400/409 | `tests/admin/test_publish.py` |
-| CHF Parsing/Rappen/Patient-Preisverbot | `tests/menu/test_prices.py` |
-| Browser-A11y und Viewport-Matrix | `tests/e2e/admin_dishboard.spec.ts` |
+| reale PG16-Migration, Grants, Schema 13 | `reference_scaffold/tests/test_component_catalog_migration_db.py` |
+| Katalog CRUD/Archiv/Suche/Usage und Isolation | `reference_scaffold/tests/test_component_catalog_db.py`, `test_component_catalog_routes.py` |
+| Komponenten-Zuweisung, Allergie-Union/contains, Herkunft-Konflikt, Diet-Intersection | `reference_scaffold/tests/test_component_assignment_db.py` |
+| Location/Profile-Isolation und Public-ID/404 | `test_public_isolation_homoglyphs.py`, `test_database_invariants.py` |
+| exakter immutable Snapshot | `test_admin_workflow_db.py` |
+| leerer Same-Profile-Copy, Lock/409, neue IDs | `test_admin_workflow_routes.py`, `test_workflow_form.py` |
+| LAST-SAVED Preview, no-store, Dirty-Guard | `test_admin_draft_preview.py` |
+| Publish/PRG/Review/Stale/CSRF/400/409 | `test_admin_workflow_routes.py`, `test_workflow_form.py` |
+| CHF Parsing/Rappen/Patient-Preisverbot und Wochen-Familien | `test_admin_week_routes.py` |
+| Browser-A11y und Viewport-Matrix | `test_admin_ux_browser.py` (bestehender Python-Browser-Harness) |
 
 Gates mit verbatim Receipts: vollständiges `pytest`, reale PG16-
 Compose-/Migrationsprüfung, Schema- und Package-Validatoren, Ruff, Bandit,
