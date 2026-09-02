@@ -29,7 +29,7 @@
 |---|---|---|
 | 1 | `database/schema.sql`, `database/migrations/0010_v12_to_v13.sql`, `database/permissions.sql`, `database/validate_schema.py`, `database/README.md`, `tools/validate_package.py`, `PACKAGE_CONTENTS.txt`, `MANIFEST_SHA256.txt`, `reference_scaffold/cafeteria/db.py`, `reference_scaffold/tests/test_component_catalog_migration_db.py`, `reference_scaffold/tests/test_auth_database.py`, `reference_scaffold/tests/test_database_invariants.py` | Schema v13, idempotente Migration, Restore-ACLs, Validator-/Package-Pins und Migration-Backfill; je Wave genau ein serialer Owner für `schema.sql` und `db.py`. |
 | 2 | `reference_scaffold/cafeteria/component_catalog_store.py`, `reference_scaffold/cafeteria/component_assignment_store.py`, `reference_scaffold/cafeteria/workflow.py`, `reference_scaffold/cafeteria/workflow_snapshot.py`, `reference_scaffold/tests/test_component_catalog_db.py`, `reference_scaffold/tests/test_component_assignment_db.py`, `reference_scaffold/tests/test_admin_workflow_db.py` | Katalog, Scope/Location, Assignment, Auto/Manual-Auflösung, Review und Snapshot. Katalog- und Assignment-Operationen bleiben in den jeweiligen Stores; `workflow.py` verdrahtet sie. |
-| 3 | `reference_scaffold/cafeteria/__init__.py`, `reference_scaffold/cafeteria/admin/routes.py`, `reference_scaffold/cafeteria/admin/workflow_routes.py`, `reference_scaffold/cafeteria/workflow_partial_form.py`, `reference_scaffold/cafeteria/workflow_partial_store.py`, `reference_scaffold/cafeteria/workflow_store.py`, `reference_scaffold/tests/test_component_catalog_routes.py`, `reference_scaffold/tests/test_admin_workflow_routes.py`, `reference_scaffold/tests/test_admin_week_routes.py`, `reference_scaffold/tests/test_admin_draft_preview.py`, `reference_scaffold/tests/test_admin_ux_browser.py` | URL-Familien, exact Form Keys, Partial-Saves, Copy, Preview, Publish/PRG, 400/409/CSRF. `admin/routes.py` ist ein kleiner serieller Adapter; `workflow_routes.py` trägt die neuen Routen und `__init__.py` registriert das Blueprint einmal. CSV-Import/Recovery bleiben erhalten; `persist_draft_connection` nur für vollständigen Import/Recovery. |
+| 3 | `reference_scaffold/cafeteria/__init__.py`, `reference_scaffold/cafeteria/admin/routes.py`, `reference_scaffold/cafeteria/admin/workflow_routes.py`, `reference_scaffold/cafeteria/workflow_partial_form.py`, `reference_scaffold/cafeteria/workflow_partial_store.py`, `reference_scaffold/cafeteria/workflow_store.py`, `reference_scaffold/tests/test_component_catalog_routes.py`, `reference_scaffold/tests/test_admin_workflow_routes.py`, `reference_scaffold/tests/test_admin_week_routes.py`, `reference_scaffold/tests/test_admin_draft_preview.py`, `reference_scaffold/tests/test_admin_ux_browser.py`, `reference_scaffold/tests/test_workflow_partial_store_db.py` | URL-Familien, exact Form Keys, Partial-Saves, Copy, Preview, Publish/PRG, 400/409/CSRF. `admin/routes.py` ist ein kleiner serieller Adapter; `workflow_routes.py` trägt die neuen Routen und `__init__.py` registriert das Blueprint einmal. CSV-Import/Recovery bleiben erhalten; `persist_draft_connection` nur für vollständigen Import/Recovery. |
 | 4 | `reference_scaffold/cafeteria/templates/admin/cafeteria.html`, `reference_scaffold/cafeteria/templates/admin/patienten.html`, `reference_scaffold/cafeteria/templates/admin/components.html`, `reference_scaffold/cafeteria/templates/admin/component_editor.html`, `reference_scaffold/cafeteria/templates/admin/preview.html`, `reference_scaffold/cafeteria/static/admin.js`, `reference_scaffold/cafeteria/static/app.css`, `reference_scaffold/tests/test_admin_ux_browser.py` | Novice-Übersicht/Editor, Templates, JS-State/Dirty-Guard, CSS und Browser-A11y. Neue Templates nur nach bestehendem Projekt-Generator prüfen. |
 | 5 | alle vorgenannten Tests plus `reference_scaffold/tests/test_deployment_compose_probe_live.py`, `test_deployment_restore_live.py`, `test_deployment_restore_recovery.py`, `test_capture_live_screenshots.py`, `reference_scaffold/README.md` | Integration, unabhängige Reviews, Backup/Migration/Restore, Compose, unveränderlicher Digest, Live-Proof. |
 
@@ -57,8 +57,9 @@ assign_component(engine: Engine, scope: AdminScope, item_id: int,
 replace_component_links_connection(connection, scope: AdminScope, item_id: int,
                                    assignments: Sequence[Mapping[str, object]]) -> None
 resolve_component_effects(engine: Engine, scope: AdminScope, item_id: int) -> dict[str, object]
+get_component_review_token(engine: Engine, scope: AdminScope, item_id: int) -> str
 review_component(engine: Engine, scope: AdminScope, item_id: int,
-                 component_version: str) -> None
+                 component_version: str, expected_row_version: int) -> int
 build_snapshot(profile_code: str, draft: dict[str, Any], revision_code: str) -> dict[str, Any]
 parse_draft_form(profile_code: str, form: Mapping[str, str]) -> ParsedDraft
 ```
@@ -74,9 +75,10 @@ URL-derived `scope.profile_code`, and no API accepts another concrete profile.
 `public_id,profile_scope,category,name,origin_country_code,active,row_version,usage_count`;
 it exposes no internal IDs or timestamps.
 Every component API receives an engine/connection and `AdminScope`; assignment,
-effects and review never accept an unscoped `item_id`, and review writes
-`scope.actor_id` as reviewer. Cross-location and cross-profile attempts return
-404.
+effects and review never accept an unscoped `item_id`. Review writes
+`menu_weeks.updated_by=scope.actor_id` in derselben Transaktion; es ergänzt
+keine unveränderliche Per-Item-Audit-Historie. Cross-location and cross-profile
+attempts return 404.
 
 ### Dependency DAG and shared-file ownership
 
@@ -214,11 +216,25 @@ emits exactly `components: list[str]`, `labels: list[{code,name}]`,
 `allergens: list[{code,name,presence}]`,
 `origins: list[{ingredient,country_code,text}]` and
 `allergen_review_status: string`; it contains no internal IDs, modes or
-component versions. `review_component(engine: Engine, scope: AdminScope,
-item_id: int, component_version: str) -> None` accepts an opaque SHA-256
-aggregate token over the ordered complete review state. It records
-`scope.actor_id` in an immutable existing `audit_events` row tied to the menu
-item's public ID, never accepts an unscoped item and requires no schema change.
+component versions. `get_component_review_token(engine: Engine, scope:
+AdminScope, item_id: int) -> str` returns `sha256:` followed by exactly 64
+lowercase hex characters. Its digest input is canonical UTF-8 JSON produced
+with `ensure_ascii=False`, `sort_keys=True`, `separators=(',', ':')`. The
+payload contains the item `row_version`, all three modes, and components ordered
+by `sort_order`; each component contains `sort_order`, its public component UUID
+or `null`, exact text, stored link version or `null`, and current component
+version or `null`. It also contains resolved labels ordered by `code`, allergens
+ordered by `code,presence`, and origins ordered by `ingredient`. Review status is
+excluded so the successful review write cannot poison its own input token.
+`review_component(engine: Engine, scope: AdminScope, item_id: int,
+component_version: str, expected_row_version: int) -> int` locks and scope-checks
+the item, compares the expected row version and recomputes the token in the same
+transaction. Foreign scope is 404; stale row version or token is 409; both are
+atomic. On success it rematerializes current auto classes, advances stored link
+versions to current component versions, then marks the item checked, updates
+`menu_weeks.updated_by=scope.actor_id`, and returns the new item row version.
+It adds no immutable per-item audit history and requires no schema or permission
+expansion.
 The existing full
 `publish_draft(engine, profile_code, week_start, *, expected_row_version,
 actor_id, issuer_engine)` signature, replacement-publication capability flow,
@@ -226,14 +242,17 @@ actor_id, issuer_engine)` signature, replacement-publication capability flow,
 unreviewed/stale components and stores an immutable revision.
 
 - [ ] Add RED tests asserting exact snapshot keys/types, no forbidden metadata,
-  immutability after source edits, opaque ordered-complete-state review token,
-  immutable audit actor plus item public ID, cross-location/profile 404, review
+  immutability after source edits, exact canonical ordered-complete-state review
+  token, atomic week actor attribution, cross-location/profile 404, review
   invalidation, stale publish rejection, replacement-publication capability/
   503 behavior and the existing App-role flow.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_admin_workflow_db.py`; expected FAIL.
-- [ ] Implement deterministic snapshot materialization and publish transaction;
-  recompute the ordered complete review-state token at publish, require an
-  exact match, and leave all tables unchanged on every 400/409.
+- [ ] Implement deterministic snapshot materialization and review transaction.
+  Review locks and scope-checks the item, compares `expected_row_version`,
+  recomputes the complete-state token, rematerializes current auto classes,
+  advances stored link versions, then marks checked and updates the week actor.
+  Publish separately requires checked state plus every stored link version equal
+  to its current component version. Leave all tables unchanged on every 400/409.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_admin_workflow_db.py -v`; expected PASS.
 - [ ] Stage: `rtk git add reference_scaffold/cafeteria/workflow_snapshot.py reference_scaffold/cafeteria/workflow.py reference_scaffold/cafeteria/component_assignment_store.py reference_scaffold/tests/test_admin_workflow_db.py`.
 - [ ] Commit: `rtk git commit -m 'feat: enforce reviewed immutable menu snapshots'`.
@@ -295,7 +314,7 @@ old mega-form GET/save/publish routes without collisions, preserve CSV
 Import/Recovery, and create the browser test by reusing the existing
 Playwright patterns and fixtures in `test_rendered_ui.py` with no dependency.
 
-**Interfaces:** Register GET/POST routes exactly as specified in the SDD. `profile_from_endpoint('cafeteria') == 'staff_guest'`, `profile_from_endpoint('patienten') == 'patient'`; copy accepts `_csrf,source_week,target_week,target_row_version`; preview renders last-saved draft only. Component detail handlers use only T3's scoped `get_component`, never route-local detail SQL. `POST /admin/{cafeteria|patienten}/menu/review` accepts exactly `_csrf,week,day,meal,option,row_version,component_version`; the server resolves the scoped item from the raster fields and rejects any `item_id`.
+**Interfaces:** Register GET/POST routes exactly as specified in the SDD. `profile_from_endpoint('cafeteria') == 'staff_guest'`, `profile_from_endpoint('patienten') == 'patient'`; copy accepts `_csrf,source_week,target_week,target_row_version`; preview renders last-saved draft only. Component detail handlers use only T3's scoped `get_component`, never route-local detail SQL. T7 calls `get_component_review_token` to render the review token. `POST /admin/{cafeteria|patienten}/menu/review` requires `draft.write`, accepts exactly `_csrf,week,day,meal,option,row_version,component_version`, resolves the scoped item from the raster fields, rejects any `item_id`, and passes both token and row version to `review_component`; scope failures are atomic 404 and stale row/token failures atomic 409.
 
 - [ ] Add RED route tests for auth/capabilities, fixed URL profiles, no body/query
   profile override, unchanged login/session-cookie/`csrf_token` Auth contract,

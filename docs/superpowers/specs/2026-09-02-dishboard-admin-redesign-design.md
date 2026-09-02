@@ -85,6 +85,24 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
   rematerialisiert nur Auto-Klassen und setzt den Review-Status zurück.
 - Publish verweigert ungeprüfte oder stale Component-Versionen. Ein Review
   bestätigt die konkrete Version; bei Änderung muss neu geprüft werden.
+- `get_component_review_token(engine, scope, item_id)` liefert einen Token im
+  Format `sha256:` plus 64 Kleinbuchstaben-Hexzeichen. Gehasht wird kanonisches
+  UTF-8-JSON mit `ensure_ascii=False`, `sort_keys=True` und
+  `separators=(',', ':')`: Item-`row_version`, alle drei Modi, Komponenten nach
+  `sort_order` mit `sort_order`, öffentlicher Komponenten-UUID oder `null`,
+  exaktem Text, gespeicherter Link-Version oder `null` und aktueller
+  Komponenten-Version oder `null`, außerdem aufgelöste Labels nach `code`,
+  Allergene nach `code,presence` und Herkünfte nach `ingredient`. Der
+  Review-Status selbst ist ausgeschlossen.
+- `review_component(engine, scope, item_id, component_version,
+  expected_row_version)` sperrt und prüft das scoped Item sowie seine
+  `row_version` in einer Transaktion, berechnet den Token neu und antwortet bei
+  fremdem Item mit 404 beziehungsweise bei stale Version/Token mit 409, ohne
+  Teilmutation. Bei Erfolg rematerialisiert es aktuelle Auto-Klassen, übernimmt
+  aktuelle Komponenten-Versionen in die Links, markiert erst danach geprüft,
+  schreibt `menu_weeks.updated_by=scope.actor_id` in derselben Transaktion und
+  liefert die neue Item-`row_version`. Es wird keine unveränderliche
+  Per-Item-Audit-Historie ergänzt.
 - Der Publish-Snapshot folgt exakt dem oben definierten externen verschachtelten
   Contract: `components` ist `list[str]`, `labels`, `allergens` und `origins`
   sind Listen von Dicts, und `allergen_review_status` ist ein String. Er enthält
@@ -124,7 +142,7 @@ rollbackbar.
 Alle Routen verlangen eine gültige authentifizierte Session sowie die jeweils
 aufgeführten bestehenden Capabilities: Übersichts-, Menü-, Header-, Service-,
 Preview- und Kataloglisten-GETs benötigen `draft.read`; Menü-, Header-,
-Service- und Katalog-Create/Edit/Archive/Unarchive/Copy-POSTs benötigen
+Service-, Review- und Katalog-Create/Edit/Archive/Unarchive/Copy-POSTs benötigen
 `draft.write`; Publish benötigt `publication.publish`. Das bestehende
 Rollen-/Capability-Modell bleibt unverändert; es gibt keinen neuen
 Admin-only-Bypass. Alle POSTs verlangen CSRF und `Cache-Control: no-store`.
@@ -145,6 +163,7 @@ Contract und ersetzt keinen Auth-Contract.
 | `GET /admin/cafeteria?week=` und `GET /admin/patienten?week=` | Wochenübersicht, Header, Service und Grid |
 | `GET /admin/{cafeteria\|patienten}/menu?week=&day=&meal=&option=` | fokussierte Menüzeile |
 | `POST /admin/{cafeteria\|patienten}/menu` | exact `_csrf,week,day,meal,option,row_version,fields` |
+| `POST /admin/{cafeteria\|patienten}/menu/review` | `draft.write`; exact `_csrf,week,day,meal,option,row_version,component_version`; Item wird serverseitig aus dem Raster aufgelöst, internes `item_id` ist verboten |
 | `GET /admin/{cafeteria\|patienten}/header?week=` | Header laden |
 | `POST /admin/{cafeteria\|patienten}/header` | Header speichern |
 | `GET /admin/{cafeteria\|patienten}/service?week=` | Service-Status laden |
