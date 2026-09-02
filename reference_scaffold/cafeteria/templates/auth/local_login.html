@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Lokale Anmeldung · Südhang Menüplanung{% endblock %}
+{% block body %}
+<header class="site-header">
+  <a class="wordmark" href="{{ url_for('public.cafeteria_today') }}">
+    <span class="wordmark-mark" aria-hidden="true"></span>
+    Südhang Menüplanung
+  </a>
+</header>
+<main id="main" class="public-shell">
+  <section class="hero" aria-labelledby="local-login-title">
+    <div>
+      <p class="eyebrow">Geschützter Küchenbereich</p>
+      <h1 id="local-login-title">Lokal anmelden</h1>
+      <p class="hero-copy">Für durch die Administration eingerichtete lokale Konten.</p>
+    </div>
+  </section>
+  <section class="menu-card" aria-label="Lokale Zugangsdaten">
+    <div class="menu-card-body">
+      <form method="post" action="{{ url_for('auth.local_login') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <p>
+          <label for="username"><strong>Benutzername</strong></label><br>
+          <input id="username" name="username" type="text" autocomplete="username"
+                 autocapitalize="none" spellcheck="false" required autofocus>
+        </p>
+        <p>
+          <label for="password"><strong>Passwort</strong></label><br>
+          <input id="password" name="password" type="password"
+                 autocomplete="current-password" required>
+        </p>
+        <button class="btn primary" type="submit">Lokal anmelden</button>
+      </form>
+      <p class="menu-description">
+        Organisationskonto vorhanden?
+        <a href="{{ url_for('auth.login') }}">Mit Microsoft Entra anmelden</a>
+      </p>
+    </div>
+  </section>
+</main>
+{% endblock %}

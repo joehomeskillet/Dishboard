@@ -2,8 +2,41 @@
 {% block title %}Patienten Signage Woche{% endblock %}
 {% block head %}<meta http-equiv="refresh" content="300">{% endblock %}
 {% block body_class %}signage{% endblock %}
+{% block skip_link %}{% endblock %}
 {% block body %}
-<main class="signage-shell patient-week-shell"><header class="signage-header"><div class="signage-brand"><div class="wordmark"><span class="wordmark-mark"></span><span>Klinik Südhang</span></div><span class="signage-kicker">Patienten-Speiseplan · Mittag und Abend</span></div><div class="signage-date"><strong>{{ snapshot.week_label if snapshot and snapshot.week_label else 'Wochenplan' }}</strong><span>{{ snapshot.title if snapshot else '' }}</span></div></header>
-{% if snapshot %}<section class="patient-week-layout">{% for day in snapshot.days %}<article class="patient-week-day"><header><strong>{{ day.weekday }}</strong><span>{{ day.date|date_short }}</span></header>{% for meal in day.services %}<section class="patient-week-cell {{ 'dinner' if meal.meal_code == 'DINNER' else '' }}"><div class="meal-name">{{ meal.meal_name }}</div><div class="patient-week-options">{% for option in meal.options %}<div class="patient-week-option"><small>{{ option.type_name }}</small><strong>{{ option.title }}</strong><span>{{ option.components|join(' · ') }}</span></div>{% endfor %}</div></section>{% endfor %}</article>{% endfor %}</section>{% else %}<section class="signage-empty"><strong>Kein publizierter Patienten-Wochenplan</strong><span>Der Player zeigt keine Daten aus einem anderen Kanal.</span></section>{% endif %}
-<footer class="signage-footer"><span>Kanal: Patienten Woche · Revision {{ snapshot.revision_id if snapshot else '-' }}</span><span class="resolution-note">Produktiver Wochenplayer: 3840 × 2160</span><span class="status-line"><span class="status-dot"></span>Publizierter Datenstand</span></footer></main>
+<main class="signage-shell patient-week-shell" aria-label="Patienten-Wochenplayer">
+  <header class="signage-header">
+    <div class="signage-brand">
+      <div class="wordmark"><span class="wordmark-mark" aria-hidden="true"></span><span>Klinik Südhang</span></div>
+      <span class="signage-kicker">Patienten-Speiseplan · Mittag und Abend</span>
+    </div>
+    <div class="signage-date"><strong>{{ snapshot.week_label if snapshot and snapshot.week_label else 'Wochenplan' }}</strong><span>{{ snapshot.title if snapshot else '' }}</span></div>
+  </header>
+  {% if snapshot %}
+  <section class="patient-week-layout" aria-label="Montag bis Sonntag mit Mittag und Abend">
+    {% for day in snapshot.days %}
+    <article class="patient-week-day">
+      <header><strong>{{ day.weekday }}</strong><span>{{ day.date|date_short }}</span></header>
+      {% for meal in day.services %}
+      <section class="patient-week-cell {{ 'dinner' if meal.meal_code == 'DINNER' else '' }}">
+        <div class="meal-name">{{ meal.meal_name }}</div>
+        <div class="patient-week-options">
+          {% if meal.service_state|default('open') == 'open' %}
+          {% for option in meal.options %}
+          <div class="patient-week-option"><small>{{ option.type_name }}</small><strong>{{ option.title }}</strong><span>{{ option.components|join(' · ') }}</span></div>
+          {% endfor %}
+          {% else %}
+          <div class="patient-week-option"><small>Geschlossen</small><strong>{{ meal.notice }}</strong></div>
+          {% endif %}
+        </div>
+      </section>
+      {% endfor %}
+    </article>
+    {% endfor %}
+  </section>
+  {% else %}
+  <section class="signage-empty"><strong>Kein publizierter Patienten-Wochenplan</strong><span>Dieser Kanal bleibt bis zur nächsten Freigabe leer.</span></section>
+  {% endif %}
+  <footer class="signage-footer"><span>Kanal: Patienten Woche · Revision {{ snapshot.revision_id if snapshot else '-' }}</span><span class="resolution-note">Produktiver Wochenplayer: 3840 × 2160</span><span class="status-line"><span class="status-dot" aria-hidden="true"></span>Publizierter Datenstand</span></footer>
+</main>
 {% endblock %}

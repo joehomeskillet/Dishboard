@@ -1,7 +1,22 @@
 {% extends "base.html" %}
 {% block title %}Druckansicht Wochenspeiseplan{% endblock %}
+{% block body_class %}print-body{% endblock %}
 {% block body %}
-<main class="public-shell"><section class="hero"><div><p class="eyebrow">Druck · Patienten-Speiseplan</p><h1>Montag bis Sonntag</h1><p class="hero-copy">Mittag und Abend mit je zwei Menüoptionen.</p></div></section>
-{% if snapshot %}<section class="week-list">{% for day in snapshot.days %}<article class="week-day"><header><h2>{{ day.weekday }}</h2><span>{{ day.date|date_long }}</span></header><div class="week-day-grid">{% for meal in day.services %}<div class="week-row"><div class="week-meal-label">{{ meal.meal_name }}</div>{% for option in meal.options %}<div class="week-menu"><small class="week-menu-type">{{ option.type_name }}</small><strong>{{ option.title }}</strong><span>{{ option.components|join(' · ') }}</span></div>{% endfor %}</div>{% endfor %}</div></article>{% endfor %}</section>{% else %}<section class="empty-state"><h2>Kein freigegebener Wochenplan</h2></section>{% endif %}
+<main class="public-shell print-shell" id="main-content">
+  <header class="print-header">
+    <div class="wordmark"><span class="wordmark-mark" aria-hidden="true"></span><span>Klinik Südhang</span></div>
+    <span>Patienten-Speiseplan</span>
+  </header>
+  <section class="hero"><div><p class="eyebrow">Druck · Patienten-Speiseplan</p><h1>Montag bis Sonntag</h1><p class="hero-copy">Mittag und Abend mit je zwei Menüoptionen.</p></div></section>
+  {% if snapshot %}
+  <section class="week-list" aria-label="Patienten-Wochenplan">
+    {% for day in snapshot.days %}
+    <article class="week-day"><header><h2>{{ day.weekday }}</h2><span>{{ day.date|date_long }}</span></header><div class="week-day-grid">{% for meal in day.services %}<div class="week-row"><div class="week-meal-label">{{ meal.meal_name }}</div>{% if meal.service_state|default('open') == 'open' %}{% for option in meal.options %}<div class="week-menu"><small class="week-menu-type">{{ option.type_name }}</small><strong>{{ option.title }}</strong><span>{{ option.components|join(' · ') }}</span></div>{% endfor %}{% else %}<div class="week-menu"><small class="week-menu-type">Geschlossen</small><strong>{{ meal.notice }}</strong></div>{% endif %}</div>{% endfor %}</div></article>
+    {% endfor %}
+  </section>
+  {% else %}
+  <section class="empty-state"><h2>Kein freigegebener Wochenplan</h2><p>Bitte wenden Sie sich an das Stationspersonal.</p></section>
+  {% endif %}
+  <footer class="print-footer"><span>Kanal: Patienten Woche</span><span>Revision {{ snapshot.revision_id if snapshot else '–' }}</span></footer>
 </main>
 {% endblock %}

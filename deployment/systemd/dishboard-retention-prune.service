@@ -1,0 +1,10 @@
+[Unit]
+Description=Prune expired Dishboard rollback databases
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/dishboard/deployment
+ExecStart=/usr/bin/env /opt/dishboard/deployment/restore.sh --prune-retained
+NoNewPrivileges=true

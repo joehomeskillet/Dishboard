@@ -2,14 +2,39 @@
 {% block title %}Cafeteria Signage Tag{% endblock %}
 {% block head %}<meta http-equiv="refresh" content="300">{% endblock %}
 {% block body_class %}signage{% endblock %}
+{% block skip_link %}{% endblock %}
 {% block body %}
-<main class="signage-shell">
-<header class="signage-header"><div class="signage-brand"><div class="wordmark"><span class="wordmark-mark"></span><span>Klinik Südhang</span></div><span class="signage-kicker">Cafeteria · Mittag für Mitarbeitende und externe Gäste</span></div><div class="signage-date"><strong>Heute</strong><span>{{ day.weekday }}, {{ today|date_long }}</span></div></header>
-<section class="cafe-day-grid">
-{% for option in lunch.options %}
-<article class="signage-menu-card {{ 'veggie' if option.type_code == 'VEGGIE' else '' }}"><header><h2>{{ option.type_name }}</h2><span class="menu-icon {{ 'veg' if option.type_code == 'VEGGIE' else '' }}">{{ '●' if option.type_code == 'VEGGIE' else '◐' }}</span></header><div class="content"><h3>{{ option.title }}</h3><p>{{ option.description }}</p><ul class="signage-components">{% for component in option.components %}<li>{{ component }}</li>{% endfor %}</ul></div><footer><div class="signage-tags">{% for origin in option.origins %}<span class="label">{{ origin.text }}</span>{% endfor %}{% for label in option.labels %}<span class="label green">{{ label.name }}</span>{% endfor %}{% for allergen in option.allergens %}<span class="label amber">{{ allergen.name }}</span>{% endfor %}</div><div class="signage-price">Mitarbeitende {{ option.prices.internal_rappen|chf }} · Externe {{ option.prices.external_rappen|chf }}</div></footer></article>
-{% endfor %}
-</section>
-<footer class="signage-footer"><span>Kanal: Cafeteria Tag · Revision {{ snapshot.revision_id }}</span><span class="status-line"><span class="status-dot"></span>Publizierter Datenstand</span></footer>
+<main class="signage-shell" aria-label="Cafeteria-Tagesplayer">
+  <header class="signage-header">
+    <div class="signage-brand">
+      <div class="wordmark"><span class="wordmark-mark" aria-hidden="true"></span><span>Klinik Südhang</span></div>
+      <span class="signage-kicker">Cafeteria · Mittag für Mitarbeitende und externe Gäste</span>
+    </div>
+    <div class="signage-date"><strong>Heute</strong><span>{{ day.weekday }}, {{ today|date_long }}</span></div>
+  </header>
+  {% if lunch.service_state|default('open') == 'open' %}
+  <section class="cafe-day-grid" aria-label="Zwei Mittagsmenüs">
+    {% for option in lunch.options %}
+    <article class="signage-menu-card {{ 'veggie' if option.type_code == 'VEGGIE' else '' }}">
+      <header>
+        <h2>{{ option.type_name }}</h2>
+        <span class="menu-icon {{ 'veg' if option.type_code == 'VEGGIE' else '' }}" aria-hidden="true">{{ '●' if option.type_code == 'VEGGIE' else '◐' }}</span>
+      </header>
+      <div class="content">
+        <h3>{{ option.title }}</h3>
+        <p>{{ option.description }}</p>
+        <ul class="signage-components">{% for component in option.components %}<li>{{ component }}</li>{% endfor %}</ul>
+      </div>
+      <footer>
+        <div class="signage-tags">{% for origin in option.origins %}<span class="label">{{ origin.text }}</span>{% endfor %}{% for label in option.labels %}<span class="label green">{{ label.name }}</span>{% endfor %}{% for allergen in option.allergens %}<span class="label amber">{{ allergen.name }}</span>{% endfor %}</div>
+        <div class="signage-price">Mitarbeitende CHF {{ option.prices.internal_rappen|chf }} · Externe CHF {{ option.prices.external_rappen|chf }}</div>
+      </footer>
+    </article>
+    {% endfor %}
+  </section>
+  {% else %}
+  <section class="closed-signage"><div class="closed-card"><span class="closed-icon" aria-hidden="true">×</span><h1>Cafeteria geschlossen</h1><p>{{ lunch.notice }}</p></div></section>
+  {% endif %}
+  <footer class="signage-footer"><span>Kanal: Cafeteria Tag · Revision {{ snapshot.revision_id }}</span><span class="status-line"><span class="status-dot" aria-hidden="true"></span>Publizierter Datenstand</span></footer>
 </main>
 {% endblock %}

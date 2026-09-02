@@ -15,6 +15,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY --chown=cafeteria:cafeteria reference_scaffold/ /app/
 COPY --chown=cafeteria:cafeteria database/ /app/database/
+COPY --chown=cafeteria:cafeteria csv/validate_menu_csv.py /app/csv/validate_menu_csv.py
 COPY --chown=cafeteria:cafeteria deployment/gunicorn.conf.py /app/gunicorn.conf.py
 COPY --chown=cafeteria:cafeteria deployment/healthcheck.py /app/healthcheck.py
 COPY --chown=cafeteria:cafeteria deployment/entrypoint.sh /entrypoint.sh

@@ -13,3 +13,4 @@ capture_output = True
 preload_app = False
 max_requests = 2000
 max_requests_jitter = 200
+control_socket_disable = True  # Disable control socket on read-only rootfs

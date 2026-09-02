@@ -27,7 +27,7 @@ Die Publikationsrolle enthält bewusst Erfassungsrechte. Eine Person, die fachli
 Install-Module Microsoft.Graph -Scope CurrentUser
 ./configure-entra-app.ps1 `
   -TenantId '<TENANT-ID>' `
-  -BaseUrl 'https://cafeteria.suedhang.ch' `
+  -BaseUrl 'https://dishboard.joelduss.xyz' `
   -AllowLocalhostRedirect `
   -WhatIf
 ```
@@ -40,4 +40,4 @@ Das Compose-Beispiel liest das Client Secret aus einem Docker Secret. Es gehört
 
 ## Redirect und Logout
 
-Die erlaubten URLs stehen in `redirect-uris.txt`. Änderungen am Hostnamen oder Reverse-Proxy-Pfad müssen gleichzeitig in Entra und `APP_PUBLIC_BASE_URL` nachgeführt werden.
+Die erlaubten URLs stehen in `redirect-uris.txt`: `https://dishboard.joelduss.xyz/auth/callback` und `https://dishboard.joelduss.xyz/auth/frontchannel-logout`. Änderungen am Hostnamen oder Reverse-Proxy-Pfad müssen gleichzeitig in Entra und `APP_PUBLIC_BASE_URL` nachgeführt werden. Beim Produktionsstart mit `ENTRA_ENABLED=true` lehnt der Entrypoint Platzhalter-IDs sowie das Bootstrap-Platzhaltersecret ab.

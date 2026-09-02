@@ -33,12 +33,15 @@ def effective_today() -> dt.date:
 
 
 def published_snapshot(profile_code: str) -> dict | None:
-    return active_snapshot(
-        current_app.extensions['cafeteria_db'],
-        profile_code,
-        effective_today().isoformat(),
-        last_good_dir=current_app.config['LAST_GOOD_DIR'],
-    )
+    try:
+        return active_snapshot(
+            current_app.extensions['cafeteria_db'],
+            profile_code,
+            effective_today().isoformat(),
+            last_good_dir=current_app.config['LAST_GOOD_DIR'],
+        )
+    except ValueError:
+        return None
 
 
 def load_context(profile_code: str) -> dict:

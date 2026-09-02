@@ -4,7 +4,7 @@ x-app-image: &app-image
   build:
     context: ..
     dockerfile: deployment/Dockerfile
-  image: suedhang-cafeteria:${IMAGE_TAG:-local}
+  image: ${APP_IMAGE:?Set APP_IMAGE to an immutable image digest}
 
 x-common-database: &common-database
   POSTGRES_HOST: db
@@ -59,12 +59,17 @@ services:
       - /bin/sh
       - -ec
       - |
+        umask 077
+        redis_password="$$(cat /run/secrets/redis_password)"
+        printf 'user default on >%s ~* &* +@all\n' "$$redis_password" > /tmp/redis-users.acl
+        unset redis_password
         exec redis-server \
           --appendonly yes \
           --appendfsync everysec \
           --save 60 1000 \
-          --requirepass "$$(cat /run/secrets/redis_password)"
+          --aclfile /tmp/redis-users.acl
     restart: unless-stopped
+    user: "999:1000"
     secrets:
       - redis_password
     volumes:
@@ -73,7 +78,7 @@ services:
     environment:
       REDIS_PASSWORD_FILE: /run/secrets/redis_password
     healthcheck:
-      test: ["CMD", "/usr/local/bin/redis-healthcheck.sh"]
+      test: ["CMD", "sh", "/usr/local/bin/redis-healthcheck.sh"]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -94,13 +99,18 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    env_file: [.env]
     environment:
       <<: *common-database
+      APP_ENV: migration
+      DEMO_MODE: "false"
+      SEED_DEMO: "false"
+      DEMO_TODAY: ""
+      ENTRA_ENABLED: "false"
       POSTGRES_USER: cafeteria_owner
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_owner_password
       POSTGRES_APP_PASSWORD_FILE: /run/secrets/postgres_app_password
       POSTGRES_BACKUP_PASSWORD_FILE: /run/secrets/postgres_backup_password
+      POSTGRES_AUTH_ISSUER_PASSWORD_FILE: /run/secrets/postgres_auth_issuer_password
       SCHEMA_PATH: /app/database/schema.sql
       SEED_PATH: /app/database/seed.sql
       DEMO_SEED_PATH: /app/database/seed_demo.sql
@@ -109,6 +119,7 @@ services:
       - postgres_owner_password
       - postgres_app_password
       - postgres_backup_password
+      - postgres_auth_issuer_password
     command: ["python", "/app/manage.py", "init-db", "--wait-seconds", "60"]
     read_only: true
     tmpfs:
@@ -131,22 +142,28 @@ services:
     env_file: [.env]
     environment:
       <<: *common-database
+      APP_IMAGE: ${APP_IMAGE}
       POSTGRES_USER: cafeteria_app
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_app_password
+      POSTGRES_AUTH_ISSUER_PASSWORD_FILE: /run/secrets/postgres_auth_issuer_password
+      TRUSTED_PROXY_PEERS: 10.213.0.1,10.213.0.10
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_DB: "0"
       REDIS_PASSWORD_FILE: /run/secrets/redis_password
       FLASK_SECRET_KEY_FILE: /run/secrets/flask_secret_key
       ENTRA_CLIENT_SECRET_FILE: /run/secrets/entra_client_secret
-      LAST_GOOD_DIR: /tmp/cafeteria-last-good
+      LAST_GOOD_DIR: /var/lib/cafeteria/last-good
     secrets:
       - postgres_app_password
+      - postgres_auth_issuer_password
       - flask_secret_key
       - entra_client_secret
       - redis_password
     ports:
-      - "127.0.0.1:${APP_HOST_PORT:-8080}:8000"
+      - "127.0.0.1:${APP_HOST_PORT:-8789}:8000"
+    volumes:
+      - last_good_data:/var/lib/cafeteria
     tmpfs:
       - /tmp:size=64m,mode=1777
     read_only: true
@@ -187,6 +204,7 @@ services:
     volumes:
       - postgres_backups:/backups
       - ./postgres-backup.sh:/usr/local/bin/postgres-backup.sh:ro
+      - ./postgres-restore-control.sh:/usr/local/bin/postgres-restore-control.sh:ro
     entrypoint: ["/bin/sh", "/usr/local/bin/postgres-backup.sh"]
     command: ["loop"]
     networks: [cafeteria_internal]
@@ -216,20 +234,25 @@ services:
     volumes:
       - postgres_backups:/backups
       - ./postgres-backup.sh:/usr/local/bin/postgres-backup.sh:ro
+      - ./postgres-restore-control.sh:/usr/local/bin/postgres-restore-control.sh:ro
     entrypoint: ["/bin/sh", "/usr/local/bin/postgres-backup.sh"]
-    command: ["restore", "/backups/restore.dump"]
+    command: ["restore-stage", "/backups/restore.dump", "/backups/restore.dump.sha256"]
     networks: [cafeteria_internal]
     security_opt: ["no-new-privileges:true"]
     cap_drop: ["ALL"]
-
 networks:
   cafeteria_internal:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 10.213.0.0/24
+          gateway: 10.213.0.1
 
 volumes:
   postgres_data:
   postgres_backups:
   redis_data:
+  last_good_data:
 
 secrets:
   postgres_owner_password:
@@ -238,6 +261,8 @@ secrets:
     file: ./secrets/postgres_app_password.txt
   postgres_backup_password:
     file: ./secrets/postgres_backup_password.txt
+  postgres_auth_issuer_password:
+    file: ./secrets/postgres_auth_issuer_password.txt
   flask_secret_key:
     file: ./secrets/flask_secret_key.txt
   entra_client_secret:
