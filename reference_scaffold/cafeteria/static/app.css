@@ -278,7 +278,9 @@ body.signage { width: 100vw; height: 100vh; overflow: hidden; color: var(--sh-wh
 .patient-signage-option h3 { margin: .65vh 0 .7vh; font-size: clamp(30px, 2.65vw, 56px); line-height: 1.1; letter-spacing: -.045em; }
 .patient-signage-option p { margin: 0; color: var(--sh-ink-muted); font-size: clamp(16px, 1.15vw, 25px); line-height: 1.25; }
 .patient-signage-option h3, .patient-signage-option p { flex-shrink: 0; }
-.patient-signage-option .signage-tags { margin-top: 1vh; }
+.patient-signage-option .signage-tags { margin-top: 1vh; flex-shrink: 0; max-height: 2.2vh; overflow: hidden; }
+.signage-tags .label { font-size: clamp(10px, .55vw, 14px); padding: .22vh .32vw; }
+.signage-tags .label-muted { color: rgba(255,255,255,.6); background: transparent; font-size: clamp(10px, .55vw, 14px); }
 
 .patient-week-shell { gap: 1.5vh; padding: 2.25vh 1.6vw 1.7vh; }
 .patient-week-shell .signage-header .wordmark { font-size: clamp(26px, 1.7vw, 42px); }
