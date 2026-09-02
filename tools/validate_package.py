@@ -328,25 +328,27 @@ def main() -> int:
     # Pytest with proper cwd and offline support
     if not offline:
         if 'TEST_DATABASE_URL' not in os.environ:
-            print('live gate required')
-            return 1
-        pytest_result = run([sys.executable, '-m', 'pytest', '-q', '-rs', '-p', 'no:cacheprovider', 'tests'],
-                           root / 'reference_scaffold')
+            check(False, 'Live-Gate erforderlich: TEST_DATABASE_URL fehlt (oder --offline explizit setzen)')
+        else:
+            pytest_result = run([sys.executable, '-m', 'pytest', '-q', '-rs', '-p', 'no:cacheprovider', 'tests'],
+                               root / 'reference_scaffold')
+            check(pytest_result.returncode == 0, f'Vertragstests fehlgeschlagen: {pytest_result.stderr or pytest_result.stdout}')
+            ok('Flask-Routen, Jinja-Templates und Vertragstests geprueft')
     else:
         pytest_result = run([sys.executable, '-m', 'pytest', '-q', '-rs', '-p', 'no:cacheprovider', 'tests'],
                            root / 'reference_scaffold')
-        # Parse pytest output for skipped count
-        if pytest_result.returncode == 5:  # pytest exit code 5 = no tests collected or all skipped
-            output = pytest_result.stdout + pytest_result.stderr
-            if 'skipped' in output.lower():
-                skipped_match = re.search(r'(\d+)\s+skipped', output)
-                if skipped_match:
-                    print(f'[WARNING] {skipped_match.group(1)} tests skipped in offline mode')
+        # Always parse pytest output for skipped count in offline mode
+        output = pytest_result.stdout + pytest_result.stderr
+        skipped_match = re.search(r'(\d+)\s+skipped', output)
+        skipped_count = int(skipped_match.group(1)) if skipped_match else 0
 
-    if pytest_result.returncode not in (0, 5):
-        check(False, f'Vertragstests fehlgeschlagen: {pytest_result.stderr or pytest_result.stdout}')
-    else:
-        ok('Flask-Routen, Jinja-Templates und Vertragstests geprueft')
+        if skipped_count > 0:
+            print(f'[WARNUNG] offline: {skipped_count} Tests uebersprungen, Live-Gate nicht bestanden')
+            ok(f'Flask-Routen, Jinja-Templates und Vertragstests geprueft (offline, {skipped_count} uebersprungen)')
+        elif pytest_result.returncode == 0:
+            ok('Flask-Routen, Jinja-Templates und Vertragstests geprueft')
+        else:
+            check(False, f'Vertragstests fehlgeschlagen: {pytest_result.stderr or pytest_result.stdout}')
 
     # Compose, Shell und Python
     compose_result = run([sys.executable, 'deployment/validate_compose.py'], root)
@@ -473,7 +475,7 @@ def main() -> int:
                     check(ImageStat.Stat(grayscale).var[0] > 10, f'Live-Screenshot wirkt leer/einfarbig: {name}')
         ok('Live-Screenshot-Inventory mit 18 Bildern, SHA-256 und Metadaten geprueft')
     else:
-        ok('Live-Screenshot-Verzeichnis noch nicht vorhanden (wird von anderem Worker erstellt)')
+        check(False, 'design/screenshots/live: Verzeichnis fehlt')
 
     # Diagramme und DOCX-Struktur
     for stem in ('system_architecture', 'erd', 'auth_flow', 'csv_flow'):
