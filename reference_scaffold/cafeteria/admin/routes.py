@@ -23,7 +23,6 @@ from ..public.routes import effective_today
 from ..roles import require_capability
 from ..security import validate_csrf
 from ..workflow import (
-from ..workflow_store import get_dietary_labels_and_allergens
     PublicationConfigurationError,
     StaleDraftError,
     WorkflowValidationError,
@@ -34,6 +33,7 @@ from ..workflow_store import get_dietary_labels_and_allergens
     save_draft,
     validate_publication_fit,
 )
+from ..workflow_store import get_dietary_labels_and_allergens
 from ..workflow_form import ParsedDraft, parse_draft_form, submitted_form_values
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
