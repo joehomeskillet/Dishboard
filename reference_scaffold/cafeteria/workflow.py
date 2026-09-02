@@ -230,8 +230,11 @@ def validate_publication_fit(profile_code: str, values: dict[str, Any]) -> None:
                         'Beschreibung überschreitet die Tagesplayergrenze von 70 Zeichen.'
                     )
 
-                # Validate allergen review status for OPEN options
-                if option.get('allergen_review_status') != 'reviewed':
+                # Validate allergen review status if allergens or labels are declared
+                has_allergens_or_labels = bool(
+                    option.get('allergens') or option.get('labels')
+                )
+                if has_allergens_or_labels and option.get('allergen_review_status') != 'reviewed':
                     raise WorkflowValidationError(
                         'Allergendeklaration muss geprüft werden.',
                         field_name=f'{prefix}_allergen_reviewed',
