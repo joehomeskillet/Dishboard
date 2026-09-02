@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sys
 from copy import deepcopy
 from pathlib import Path
@@ -179,8 +180,15 @@ def assert_channel_rejects(app: Flask, monkeypatch: pytest.MonkeyPatch, path: st
         flask_session['user'] = {'id': 1, 'name': 'Test'}
         flask_session['authz_version'] = 1
 
-    with pytest.raises(ValueError, match='unzulässig'):
-        client.get(path)
+    response = client.get(path)
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 404
+    assert re.search(
+        r'CHF|Intern|Extern|0\.00|Preis|price|rappen|kosten|cost',
+        body,
+        re.I,
+    ) is None
 
 
 @pytest.mark.parametrize(('field', 'value'), HOMOGLYPH_VALUE_PROBES)

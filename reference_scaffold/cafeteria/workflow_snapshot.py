@@ -23,7 +23,7 @@ def _option(
     value: dict[str, Any],
 ) -> dict[str, Any]:
     type_code = str(value['type_code'])
-    option = {
+    option: dict[str, Any] = {
         'external_id': str(
             value.get('external_id')
             or external_id(profile_code, service_date, meal_code, type_code)
@@ -74,6 +74,7 @@ def build_snapshot(
                     'meal_code': meal_code,
                     'meal_name': MEAL_NAMES[meal_code],
                     'service_state': state,
+                    'notice': str(value.get('notice', '')).strip(),
                     'options': options,
                 }
             )

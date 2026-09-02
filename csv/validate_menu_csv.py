@@ -8,10 +8,8 @@ import datetime as dt
 import io
 import json
 import re
-import sys
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Iterable
 
 BASE_HEADERS = [
     'schema_version', 'profil', 'datum', 'wochentag', 'mahlzeit', 'menueart',
@@ -45,9 +43,24 @@ def _parse_decimal(value: str) -> int:
 def validate_text(text: str, source: str = '<stream>') -> dict:
     reader = csv.DictReader(io.StringIO(text), delimiter=';')
     headers = reader.fieldnames or []
-    rows = list(reader)
+    raw_rows = list(reader)
     errors: list[str] = []
     warnings: list[str] = []
+    rows: list[dict[str, str]] = []
+
+    for line_number, raw_row in enumerate(raw_rows, start=2):
+        prefix = f'Zeile {line_number}: '
+        if raw_row.get(None):
+            errors.append(prefix + 'zusätzliche Zelle nach letzter Spalte.')
+        row: dict[str, str] = {}
+        for column, header in enumerate(headers, start=1):
+            value = raw_row.get(header)
+            if not isinstance(value, str):
+                errors.append(prefix + f'Spalte {column} fehlt.')
+                row[header] = ''
+            else:
+                row[header] = value
+        rows.append(row)
 
     if len(headers) != len(set(headers)):
         errors.append('Header enthält doppelte Spalten.')
@@ -81,7 +94,7 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
     for line_number, row in enumerate(rows, start=2):
         prefix = f'Zeile {line_number}: '
         for key, value in row.items():
-            if value and value.startswith(DANGEROUS_PREFIXES):
+            if value.startswith(DANGEROUS_PREFIXES):
                 errors.append(prefix + f'Formel-/Befehlspräfix in {key} ist unzulässig.')
 
         if row.get('schema_version') != '2':
@@ -102,19 +115,36 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
         state = row.get('zustand', '')
         if state not in {'offen', 'geschlossen', 'feiertag', 'betriebsferien'}:
             errors.append(prefix + 'zustand ist ungültig.')
-        if state != 'offen':
-            if not row.get('zustand_text', '').strip():
-                errors.append(prefix + 'geschlossener Zustand braucht zustand_text.')
-            if any(row.get(field, '').strip() for field in ('menueart', 'external_id', 'titel')):
-                errors.append(prefix + 'geschlossene Zeile darf keine Menüposition enthalten.')
-            continue
-
         meal = row.get('mahlzeit', '')
         menu_type = row.get('menueart', '')
         if meal not in MEALS:
             errors.append(prefix + 'mahlzeit muss LUNCH oder DINNER sein.')
         if menu_type not in MENU_TYPES:
             errors.append(prefix + 'menueart muss MENU_1 oder VEGGIE sein.')
+
+        if date_value is not None:
+            weekday = date_value.isoweekday()
+            if profile == 'staff_guest' and (weekday > 5 or meal != 'LUNCH'):
+                errors.append(prefix + 'staff_guest erlaubt nur Montag bis Freitag und LUNCH.')
+            if profile == 'patient' and meal not in {'LUNCH', 'DINNER'}:
+                errors.append(prefix + 'patient erlaubt nur LUNCH und DINNER.')
+
+        slot = (row.get('datum', ''), meal, menu_type)
+        slots[slot] += 1
+        rows_by_date_meal[(row.get('datum', ''), meal)].append(row)
+
+        if state != 'offen':
+            if not row.get('zustand_text', '').strip():
+                errors.append(prefix + 'geschlossener Zustand braucht zustand_text.')
+            closed_fields = (
+                'external_id', 'titel', 'beschreibung', 'beilagen', 'labels',
+                'allergene_enthaelt', 'allergene_spuren', 'herkunft', 'hinweis',
+                'preis_mitarbeitende_chf', 'preis_externe_chf',
+            )
+            if any(row.get(field, '').strip() for field in closed_fields):
+                errors.append(prefix + 'geschlossene Zeile enthält unzulässige Menüwerte.')
+            continue
+
         if not row.get('external_id', '').strip():
             errors.append(prefix + 'external_id fehlt.')
         elif row['external_id'] in seen_external:
@@ -124,12 +154,13 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
         if not row.get('titel', '').strip():
             errors.append(prefix + 'titel fehlt.')
 
-        if date_value is not None:
-            weekday = date_value.isoweekday()
-            if profile == 'staff_guest' and (weekday > 5 or meal != 'LUNCH'):
-                errors.append(prefix + 'staff_guest erlaubt nur Montag bis Freitag und LUNCH.')
-            if profile == 'patient' and meal not in {'LUNCH', 'DINNER'}:
-                errors.append(prefix + 'patient erlaubt nur LUNCH und DINNER.')
+        for declaration in [part.strip() for part in row.get('herkunft', '').split('|') if part.strip()]:
+            if declaration.count('=') != 1:
+                errors.append(prefix + 'herkunft hat ungültiges Format.')
+                continue
+            ingredient, country_code = (part.strip() for part in declaration.split('=', 1))
+            if not ingredient or re.fullmatch(r'[A-Z]{2}', country_code) is None:
+                errors.append(prefix + 'herkunft hat ungültiges Format.')
 
         if profile == 'staff_guest':
             try:
@@ -139,10 +170,6 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
                     errors.append(prefix + 'externer Betrag darf nicht kleiner sein als Mitarbeitenden-Betrag.')
             except ValueError as exc:
                 errors.append(prefix + f'Kostenfeld ungültig: {exc}.')
-
-        slot = (row.get('datum', ''), meal, menu_type)
-        slots[slot] += 1
-        rows_by_date_meal[(row.get('datum', ''), meal)].append(row)
 
     duplicates = [slot for slot, count in slots.items() if count > 1]
     if duplicates:
@@ -154,23 +181,21 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
             errors.append('CSV darf nur eine ISO-Kalenderwoche enthalten.')
 
     if profile == 'staff_guest' and rows:
-        open_rows = [row for row in rows if row.get('zustand') == 'offen']
         expected_dates = {value for value in dates.values() if value.isoweekday() <= 5}
-        if len(open_rows) != 10 or len(expected_dates) != 5:
+        if len(rows) != 10 or len(expected_dates) != 5:
             errors.append('Cafeteria-Beispiel muss fünf Werktage × zwei Menüarten enthalten.')
-        for key, group in rows_by_date_meal.items():
+        for slot_key, group in rows_by_date_meal.items():
             if {row.get('menueart') for row in group} != MENU_TYPES:
-                errors.append(f'Slot {key[0]}/{key[1]} braucht MENU_1 und VEGGIE.')
+                errors.append(f'Slot {slot_key[0]}/{slot_key[1]} braucht MENU_1 und VEGGIE.')
 
     if profile == 'patient' and rows:
-        open_rows = [row for row in rows if row.get('zustand') == 'offen']
-        if len(open_rows) != 28 or len(dates) != 7:
+        if len(rows) != 28 or len(dates) != 7:
             errors.append('Patienten-Beispiel muss sieben Tage × zwei Mahlzeiten × zwei Menüarten enthalten.')
-        for date_value in dates:
+        for date_text in dates:
             for meal in ('LUNCH', 'DINNER'):
-                group = rows_by_date_meal[(date_value, meal)]
+                group = rows_by_date_meal[(date_text, meal)]
                 if {row.get('menueart') for row in group} != MENU_TYPES:
-                    errors.append(f'Slot {date_value}/{meal} braucht MENU_1 und VEGGIE.')
+                    errors.append(f'Slot {date_text}/{meal} braucht MENU_1 und VEGGIE.')
 
     if len(rows) > 10_000:
         errors.append('Mehr als 10 000 Datenzeilen sind nicht erlaubt.')

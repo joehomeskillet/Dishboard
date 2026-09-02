@@ -22,7 +22,7 @@ PATIENT_OBJECT_KEYS = {
     'allergen': frozenset({'code', 'name', 'presence'}),
     'origin': frozenset({'ingredient', 'country_code', 'text'}),
 }
-PATIENT_OPTIONAL_KEYS = {'service': frozenset({'service_state'})}
+PATIENT_OPTIONAL_KEYS = {'service': frozenset({'service_state', 'notice'})}
 PATIENT_ALLOWED_COMPACT_KEYS = frozenset(
     key.replace('_', '')
     for keys in (*PATIENT_OBJECT_KEYS.values(), *PATIENT_OPTIONAL_KEYS.values())
@@ -294,6 +294,10 @@ def _validate_service_states(services: list[Any]) -> None:
             raise ValueError('Eine offene Mahlzeit braucht genau zwei Menüoptionen.')
         if state != 'open' and options:
             raise ValueError('Eine geschlossene Mahlzeit darf keine Gerichte enthalten.')
+        if state != 'open' and (
+            not isinstance(service.get('notice'), str) or not service['notice'].strip()
+        ):
+            raise ValueError('Eine geschlossene Mahlzeit braucht einen Hinweis.')
 
 
 def validate_snapshot_payload(profile_code: str, snapshot: dict[str, Any]) -> None:
@@ -305,18 +309,24 @@ def validate_snapshot_payload(profile_code: str, snapshot: dict[str, Any]) -> No
     if not isinstance(days, list) or len(days) != 7:
         raise ValueError('Snapshot muss sieben Tage enthalten.')
     if profile_code == 'patient':
-        key_paths = _forbidden_patient_key_paths(snapshot)
+        try:
+            key_paths = _forbidden_patient_key_paths(snapshot)
+            paths = _forbidden_patient_paths(snapshot)
+        except (KeyError, TypeError, ValueError):
+            raise ValueError('Patienten-Snapshot enthält unzulässige Daten.') from None
         if key_paths:
-            raise ValueError('Patienten-Snapshot enthält unzulässige Kostenschlüssel: ' + ', '.join(key_paths[:5]))
-        paths = _forbidden_patient_paths(snapshot)
+            raise ValueError('Patienten-Snapshot enthält unzulässige Kostenschlüssel.')
         if paths:
-            raise ValueError('Patienten-Snapshot enthält unzulässige Kostenwerte: ' + ', '.join(paths[:5]))
-        for day in days:
-            services = day.get('services', [])
-            meals = {service.get('meal_code') for service in services}
-            if meals != {'LUNCH', 'DINNER'}:
-                raise ValueError(f"Patiententag {day.get('date')} ist unvollständig.")
-            _validate_service_states(services)
+            raise ValueError('Patienten-Snapshot enthält unzulässige Kostenwerte.')
+        try:
+            for day in days:
+                services = day.get('services', [])
+                meals = {service.get('meal_code') for service in services}
+                if meals != {'LUNCH', 'DINNER'}:
+                    raise ValueError
+                _validate_service_states(services)
+        except (KeyError, TypeError, ValueError):
+            raise ValueError('Patienten-Snapshot enthält unzulässige Daten.') from None
     else:
         services = [service for day in days for service in day.get('services', [])]
         if len(services) != 5 or any(service.get('meal_code') != 'LUNCH' for service in services):

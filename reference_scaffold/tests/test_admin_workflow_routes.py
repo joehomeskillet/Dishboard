@@ -145,7 +145,7 @@ def test_patient_editor_html_contains_no_cost_vocabulary(client) -> None:
     body = response.get_data(as_text=True)
 
     forbidden = re.compile(
-        r'\b(CHF|Rappen|Intern|Extern|0\.00)\b|prices|price-row|signage-price|admin-price',
+        r'\b(CHF|Rappen|Intern|Extern|0\.00)\b|preise?|prices|kosten|cost|price-row|signage-price|admin-price',
         re.I,
     )
     assert response.status_code == 200
@@ -171,7 +171,7 @@ def test_patient_post_rejects_cost_field_before_database_write(client, database_
     with database_engine.connect() as connection:
         item_count = connection.execute(text('SELECT count(*) FROM cafeteria.menu_items')).scalar_one()
     assert response.status_code == 400
-    assert 'Unzulässiges Formularfeld' in response.get_data(as_text=True)
+    assert response.get_data(as_text=True).count('Patientenformular ist ungültig.') == 1
     assert item_count == 0
 
 
@@ -256,3 +256,46 @@ def test_cafeteria_closed_lunch_does_not_require_dish_or_cost_input(
         ).one()
     assert response.status_code == 303
     assert tuple(shape) == (5, 8, 8)
+
+
+@pytest.mark.parametrize(
+    ('field_name', 'field_value'),
+    (
+        ('internal_rappen', '1250'),
+        ('PRI\u2066CE', 'CHF Intern Extern 0.00'),
+        ('unitPrice', 'CHF'),
+    ),
+)
+def test_patient_form_error_never_reflects_sensitive_field_or_value(
+    client,
+    field_name: str,
+    field_value: str,
+) -> None:
+    """Including the unexpected key in abort text leaks attacker-controlled vocabulary."""
+    assert client.get('/admin/patienten').status_code == 200
+    form = _patient_form()
+    form[field_name] = field_value
+
+    response = client.post('/admin/patienten/save', data=form)
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 400
+    assert field_name not in body
+    assert field_value not in body
+    assert re.search(r'CHF|Intern|Extern|0\.00|Preis|price|rappen|kosten|cost', body, re.I) is None
+
+
+def test_patient_csv_export_never_reflects_internal_validation_category(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def invalid_snapshot(*_args: object, **_kwargs: object) -> None:
+        raise ValueError('Patienten-Snapshot enthält unzulässige Kostenwerte.')
+
+    monkeypatch.setattr(admin_routes, 'active_snapshot', invalid_snapshot)
+    response = client.get('/admin/export/patienten.csv')
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 404
+    assert 'Keine publizierte Revision für dieses Profil.' in body
+    assert re.search(r'CHF|Intern|Extern|0\.00|Preis|price|rappen|kosten|cost', body, re.I) is None

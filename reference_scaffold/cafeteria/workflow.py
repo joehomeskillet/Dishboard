@@ -8,7 +8,15 @@ from sqlalchemy import Engine, text
 
 from .db import issue_publication_capability
 from .workflow_snapshot import build_snapshot
-from .workflow_store import StaleDraftError, ensure_week, load_draft_connection, persist_draft
+from .workflow_store import (
+    StaleDraftError,
+    draft_row_version,
+    ensure_week,
+    ensure_week_connection,
+    load_draft_connection,
+    persist_draft,
+    persist_draft_connection,
+)
 
 PROFILE_MEALS = {'patient': ('LUNCH', 'DINNER'), 'staff_guest': ('LUNCH',)}
 PROFILE_DAYS = {'patient': 7, 'staff_guest': 5}
@@ -150,6 +158,22 @@ def save_draft(
     actor_id: int,
     values: dict[str, Any],
 ) -> int:
+    validate_draft_values(profile_code, week_start, values)
+    return persist_draft(
+        engine,
+        profile_code,
+        week_start,
+        expected_row_version=expected_row_version,
+        actor_id=actor_id,
+        values=values,
+    )
+
+
+def validate_draft_values(
+    profile_code: str,
+    week_start: date,
+    values: dict[str, Any],
+) -> None:
     _validate_values(profile_code, week_start, values)
     candidate = {
         **values,
@@ -161,14 +185,38 @@ def save_draft(
         candidate,
         f"{'PAT' if profile_code == 'patient' else 'CAF'}-{week_start.year}-KW{week_start.isocalendar().week:02d}-R1",
     )
-    return persist_draft(
-        engine,
-        profile_code,
-        week_start,
-        expected_row_version=expected_row_version,
-        actor_id=actor_id,
-        values=values,
-    )
+
+
+def import_draft(
+    engine: Engine,
+    profile_code: str,
+    week_start: date,
+    *,
+    expected_row_version: int,
+    actor_id: int,
+    values: dict[str, Any],
+) -> int:
+    validate_draft_values(profile_code, week_start, values)
+    with engine.begin() as connection:
+        persisted_version = expected_row_version
+        if expected_row_version == 0:
+            if not ensure_week_connection(connection, profile_code, week_start, actor_id):
+                raise StaleDraftError('Der Entwurf wurde zwischenzeitlich geändert.')
+            persisted_version = 1
+        return persist_draft_connection(
+            connection,
+            profile_code,
+            week_start,
+            expected_row_version=persisted_version,
+            actor_id=actor_id,
+            values=values,
+        )
+
+
+def current_draft_row_version(engine: Engine, profile_code: str, week_start: date) -> int:
+    if profile_code not in PROFILE_MEALS or week_start.isoweekday() != 1:
+        raise WorkflowValidationError('Profil oder Wochenbeginn ist ungültig.')
+    return draft_row_version(engine, profile_code, week_start)
 
 
 def _draft_values(draft: dict[str, Any]) -> dict[str, Any]:
@@ -220,7 +268,12 @@ def publish_draft(
             raise PublicationConfigurationError('Publikations-Issuer ist nicht konfiguriert.')
         capability = issue_publication_capability(issuer_engine, actor_id, int(previous_id))
     with engine.begin() as connection:
-        draft = load_draft_connection(connection, profile_code, week_start)
+        draft = load_draft_connection(
+            connection,
+            profile_code,
+            week_start,
+            lock_week=True,
+        )
         if draft['row_version'] != expected_row_version:
             raise StaleDraftError('Der Entwurf wurde zwischenzeitlich geändert.')
         values = _draft_values(draft)

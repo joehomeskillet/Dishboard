@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 from datetime import date, timedelta
+from typing import cast
 
 from flask import (
     Blueprint,
@@ -25,6 +26,8 @@ from ..workflow import (
     PublicationConfigurationError,
     StaleDraftError,
     WorkflowValidationError,
+    current_draft_row_version,
+    import_draft,
     load_draft,
     publish_draft,
     save_draft,
@@ -32,15 +35,20 @@ from ..workflow import (
 from ..workflow_form import ParsedDraft, parse_draft_form
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
+PATIENT_FORM_ERROR = 'Patientenformular ist ungültig.'
+PATIENT_CSV_ERROR = 'Patienten-CSV ist ungültig.'
 
 
 def snapshot(profile_code: str):
-    return active_snapshot(
-        current_app.extensions['cafeteria_db'],
-        profile_code,
-        effective_today().isoformat(),
-        last_good_dir=current_app.config['LAST_GOOD_DIR'],
-    )
+    try:
+        return active_snapshot(
+            current_app.extensions['cafeteria_db'],
+            profile_code,
+            effective_today().isoformat(),
+            last_good_dir=current_app.config['LAST_GOOD_DIR'],
+        )
+    except ValueError:
+        return None
 
 
 def _current_week_start() -> date:
@@ -53,7 +61,7 @@ def _actor_id() -> int:
     actor_id = user.get('id')
     if type(actor_id) is not int or actor_id <= 0:
         abort(401)
-    return actor_id
+    return cast(int, actor_id)
 
 
 def _draft(profile_code: str):
@@ -71,7 +79,10 @@ def _parse_form() -> ParsedDraft:
     try:
         parsed = parse_draft_form(profile_code, request.form)
     except WorkflowValidationError as error:
-        abort(400, description=str(error))
+        abort(
+            400,
+            description=PATIENT_FORM_ERROR if profile_code == 'patient' else str(error),
+        )
     if parsed.week_start != _current_week_start():
         abort(400, description='Formularwoche stimmt nicht mit dem aktuellen Raster überein.')
     return parsed
@@ -98,7 +109,10 @@ def _save(profile_code: str, endpoint: str, *, publish: bool = False):
                 issuer_engine=current_app.extensions.get('cafeteria_auth_issuer_db'),
             )
     except (WorkflowValidationError, ValueError) as error:
-        abort(400, description=str(error))
+        abort(
+            400,
+            description=PATIENT_FORM_ERROR if profile_code == 'patient' else str(error),
+        )
     except StaleDraftError as error:
         abort(409, description=str(error))
     except PublicationConfigurationError as error:
@@ -128,8 +142,8 @@ def cafeteria():
 def patienten():
     try:
         draft = _draft('patient')
-    except ValueError as error:
-        abort(422, description=str(error))
+    except ValueError:
+        abort(422, description=PATIENT_FORM_ERROR)
     return render_template(
         'admin/patienten.html',
         draft=draft,
@@ -195,7 +209,21 @@ def import_preview():
                 current_app.secret_key,
                 salt='dishboard-csv-import-v1',
             )
-            import_token = serializer.dumps(result['text'])
+            profile_code = str(result['profile'])
+            week_start = result['week_start']
+            signed_token = serializer.dumps(
+                {
+                    'text': result['text'],
+                    'profile_code': profile_code,
+                    'week_start': week_start.isoformat(),
+                    'expected_row_version': current_draft_row_version(
+                        current_app.extensions['cafeteria_db'],
+                        profile_code,
+                        week_start,
+                    ),
+                }
+            )
+            import_token = signed_token.encode('ascii').hex()
     return render_template(
         'admin/import_preview.html',
         result=result,
@@ -216,33 +244,53 @@ def import_csv():
         salt='dishboard-csv-import-v1',
     )
     try:
-        text_value = serializer.loads(request.form['import_token'], max_age=15 * 60)
-    except BadData:
+        signed_token = bytes.fromhex(request.form['import_token']).decode('ascii')
+        token_payload = serializer.loads(signed_token, max_age=15 * 60)
+    except (BadData, UnicodeDecodeError, ValueError):
         abort(400, description='Importvorschau ist ungültig oder abgelaufen.')
-    if not isinstance(text_value, str):
+    if not isinstance(token_payload, dict) or set(token_payload) != {
+        'text',
+        'profile_code',
+        'week_start',
+        'expected_row_version',
+    }:
+        abort(400, description='Importvorschau ist ungültig.')
+    text_value = token_payload['text']
+    token_profile = token_payload['profile_code']
+    token_week_start = token_payload['week_start']
+    expected_row_version = token_payload['expected_row_version']
+    if (
+        not isinstance(text_value, str)
+        or token_profile not in {'patient', 'staff_guest'}
+        or not isinstance(token_week_start, str)
+        or type(expected_row_version) is not int
+        or expected_row_version < 0
+    ):
         abort(400, description='Importvorschau ist ungültig.')
     result = validate_upload(io.BytesIO(text_value.encode('utf-8')))
     if not result['valid']:
-        abort(400, description='CSV-Datei ist nicht mehr gültig.')
+        abort(
+            400,
+            description=PATIENT_CSV_ERROR if token_profile == 'patient' else 'CSV-Datei ist ungültig.',
+        )
     profile_code = str(result['profile'])
     week_start = result['week_start']
-    draft = load_draft(
-        current_app.extensions['cafeteria_db'],
-        profile_code,
-        week_start,
-        actor_id=_actor_id(),
-    )
+    if profile_code != token_profile or week_start.isoformat() != token_week_start:
+        abort(400, description='Importvorschau ist ungültig.')
     try:
-        save_draft(
+        import_draft(
             current_app.extensions['cafeteria_db'],
             profile_code,
             week_start,
-            expected_row_version=draft['row_version'],
+            expected_row_version=expected_row_version,
             actor_id=_actor_id(),
             values=result['values'],
         )
     except (WorkflowValidationError, ValueError) as error:
-        abort(400, description=str(error))
+        abort(
+            400,
+            description=PATIENT_CSV_ERROR if profile_code == 'patient' else str(error),
+        )
     except StaleDraftError as error:
         abort(409, description=str(error))
     endpoint = 'admin.patienten' if profile_code == 'patient' else 'admin.cafeteria'
