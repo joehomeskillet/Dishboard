@@ -26,18 +26,47 @@ Der separate Login-Role `cafeteria_auth_issuer` besitzt keine Tabellen- oder Seq
 
 Lokale Anmeldung ist mit `LOCAL_AUTH_ENABLED=false` standardmäßig ausgeschaltet und benötigt Redis für Session und Rate-Limit; Redis-Ausfall sperrt den Login fail-closed. Limits sind nach normalisiertem Benutzernamen und vertrauenswürdig ermittelter Client-IP getrennt. Rollen und `authz_version` werden bei jedem geschützten Request aus PostgreSQL gelesen, sodass Entzug, Deaktivierung und Passwortwechsel bestehende Sessions sofort invalidieren. Provisionierung, Rollenzuweisung, Passwortwechsel, Sperre und Deaktivierung erzeugen die Audit-Aktionen `auth.local_user_provisioned`, `auth.local_role_granted`, `auth.local_password_changed`, `auth.local_login_locked` und `auth.local_user_disabled` ohne Passwort oder Client-IP in den Details.
 
-Der erste Administrator wird mit `python manage.py bootstrap-local-admin --username X --display-name Y` interaktiv oder aus `DISHBOARD_BOOTSTRAP_PASSWORD_FILE` (Mode 0400) bootstrapped; das Passwort wird zweimal abgefragt oder gelesen und die Audit-Aktion `auth.local_admin_bootstrapped` geschrieben. Weitere Befehle sind: `python manage.py provision-local-user` mit `--actor <verified-admin>`, `python manage.py set-local-password` und `python manage.py disable-local-user`. Die drei administrativen Befehle lauten `python manage.py provision-local-user`, `python manage.py set-local-password` und `python manage.py disable-local-user`. Passwörter werden ausschließlich zweimal interaktiv über `getpass` eingelesen; es gibt kein Passwort-Argument und kein Self-Signup.
+### Bootstrap des ersten Administrators
 
+Der erste Administrator wird fail-closed mit `python manage.py bootstrap-local-admin --username X --display-name Y` gebootstrapped. Das Passwort wird zweimal interaktiv über `getpass` abgefragt; der Compose-Migrate-Service nimmt keine externe Passwortdatei entgegen. Die Audit-Aktion `auth.local_admin_bootstrapped` wird geschrieben. Bootstrap schlägt fehl, wenn bereits ein aktiver Administrator (lokal oder aus Entra) existiert.
+
+Weitere Befehle:
+- `python manage.py provision-local-user --actor <actor-identifier> --username ... --display-name ... --role Cafeteria.Editor|Publisher|Admin`
+- `python manage.py set-local-password --username X --actor <actor-identifier>`
+- `python manage.py disable-local-user --username X --actor <actor-identifier>`
+
+Der `actor-identifier` wird gegen den aktiven Benutzernamen, die E-Mail-Adresse oder `preferred_username` aufgelöst. Es gibt kein Passwort-Argument und kein Self-Signup.
 
 ## Migration
 
-`cafeteria.db.run_migrations` führt ausschließlich die feste Reihenfolge `0001_initial_postgresql.sql` (Schema-Version 4), `0002_profile_publication_and_local_auth.sql` (5), `0003_patient_key_and_withdrawal_contracts.sql` (6), `0004_patient_key_lock_and_capability_contracts.sql` (7), `0005_least_privilege_identity_contracts.sql` (8), `0006_auth_issuer_and_local_login.sql` (9), `0007_auth_security_hardening.sql` (10), `0008_auth_final_hardening.sql` (11) und `0009_bootstrap_first_local_admin.sql` (12) aus. Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0004` bleiben byteidentisch. `schema.sql` beschreibt den aktuellen v12-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
+`cafeteria.db.run_migrations` führt ausschließlich die feste Reihenfolge in SHA-256-validierter Reihenfolge aus:
+
+1. `0001_initial_postgresql.sql` (Schema-Version 4)
+2. `0002_profile_publication_and_local_auth.sql` (5)
+3. `0003_patient_key_and_withdrawal_contracts.sql` (6)
+4. `0004_patient_key_lock_and_capability_contracts.sql` (7)
+5. `0005_least_privilege_identity_contracts.sql` (8)
+6. `0006_auth_issuer_and_local_login.sql` (9)
+7. `0007_auth_security_hardening.sql` (10)
+8. `0008_auth_final_hardening.sql` (11)
+9. `0009_bootstrap_first_local_admin.sql` (12)
+
+Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0004` bleiben byteidentisch. `schema.sql` beschreibt den aktuellen v12-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
 
 `cafeteria_app` bleibt für die fachlichen Draft-Tabellen schreibberechtigt. Provider, lokale Credentials und Rollensource müssen zusammenpassen; eine Rollenverschiebung erhöht `authz_version` von altem und neuem Benutzer. Es besitzt keine Schreibrechte auf `schema_migrations`, keine direkten Sicherheitszustandsrechte und keine Löschrechte auf Publikationsrevisionen.
 
-`cafeteria_backup` erhält eine explizite Leseliste statt `SELECT ON ALL TABLES`. `auth_capability_secrets` und `auth_capability_nonces` müssen bei `pg_dump` vollständig mit `--exclude-table=cafeteria.auth_capability_secrets --exclude-table=cafeteria.auth_capability_nonces` ausgeschlossen bleiben, damit weder Schlüssel noch Replay-Zustand in Standardbackups gelangen. `--exclude-table-data` genügt nicht: `pg_dump` sperrt die Tabellen trotzdem und scheitert mit dem absichtlich fehlenden Leserecht. Die sichere Reihenfolge bei gestoppten Writern lautet exakt: `pg_restore` → `run_migrations` → `permissions.sql` → `SELECT cafeteria.ensure_auth_capability_state();` → `permissions.sql` → `SELECT cafeteria.hard_reset_auth_capability_state();` → Validator → Writer-Start. Der erste Permissions-Lauf schliesst die durch `pg_dump --no-privileges` sonst wieder geöffneten `PUBLIC`-Ausführungsrechte; bei Backups vor Version 8 legt `run_migrations` die Reparaturfunktion zunächst an. Die owner-geguardete Ensure-Funktion stellt `pgcrypto` sowie die beiden ausgelassenen Tabellen samt Identity-Sequenz, Constraints, Index und restriktiver ACL wieder her, auch wenn `schema_migrations` bereits Version 11 ausweist. Der zweite Permissions-Lauf beweist den endgültigen ACL-Zustand und entzieht `PUBLIC`, `cafeteria_app` und `cafeteria_backup` explizit die Ausführung aller `SECURITY DEFINER`-Funktionen. Der atomare Hard-Reset verwirft alle Nonces sowie aktive und pensionierte Secrets, legt genau ein neues 32-Byte-Secret mit ID 1 an und protokolliert das Ereignis. Alte Capability-Tokens werden dadurch auch bei wiederverwendeter Secret-ID kryptografisch ungültig. Das Deployment muss diese Ausschlüsse und Reihenfolge vor dem Merge dieser DB-Änderung übernehmen; ein älteres Backup-/Restore-Skript ist nicht kompatibel.
+`cafeteria_backup` erhält eine explizite Leseliste statt `SELECT ON ALL TABLES`. `auth_capability_secrets` und `auth_capability_nonces` müssen bei `pg_dump` vollständig mit `--exclude-table=cafeteria.auth_capability_secrets --exclude-table=cafeteria.auth_capability_nonces` ausgeschlossen bleiben, damit weder Schlüssel noch Replay-Zustand in Standardbackups gelangen. `--exclude-table-data` genügt nicht: `pg_dump` sperrt die Tabellen trotzdem und scheitert mit dem absichtlich fehlenden Leserecht.
 
-## Lokale Anmeldung
+Die sichere Restore-Reihenfolge bei gestoppten Writern lautet exakt:
 
-Auf lokalen Deployments ohne Entra provisioniert `bootstrap-local-admin` den ersten Administrator fail-closed: die Funktion schlägt fehl, wenn bereits ein aktiver Administrator (lokal oder aus Entra) existiert. Der Aufruf erfolgt einmalig nach `run_migrations`, danach können weitere Benutzer via `provision-local-user --actor <admin-uuid>` hinzugefügt werden.
+1. `pg_restore` aus dem Backup
+2. `run_migrations`
+3. `permissions.sql`
+4. `SELECT cafeteria.ensure_auth_capability_state();`
+5. `permissions.sql` (wieder, um endgültige ACLs zu beweisen)
+6. `SELECT cafeteria.hard_reset_auth_capability_state();`
+7. Validator und Writer-Start
 
+Der erste Permissions-Lauf schliesst die durch `pg_dump --no-privileges` sonst wieder geöffneten `PUBLIC`-Ausführungsrechte. Bei Backups vor Version 8 legt `run_migrations` die Reparaturfunktion zunächst an. Die owner-geguardete Ensure-Funktion stellt `pgcrypto` sowie die beiden ausgelassenen Tabellen samt Identity-Sequenz, Constraints, Index und restriktiver ACL wieder her, auch wenn `schema_migrations` bereits Version 11 ausweist. Der zweite Permissions-Lauf beweist den endgültigen ACL-Zustand und entzieht `PUBLIC`, `cafeteria_app` und `cafeteria_backup` explizit die Ausführung aller `SECURITY DEFINER`-Funktionen.
+
+Der atomare Hard-Reset verwirft alle Nonces sowie aktive und pensionierte Secrets, legt genau ein neues 32-Byte-Secret mit ID 1 an und protokolliert das Ereignis. Alte Capability-Tokens werden dadurch auch bei wiederverwendeter Secret-ID kryptografisch ungültig. Das Deployment muss diese Ausschlüsse und Reihenfolge vor dem Merge dieser DB-Änderung übernehmen; ein älteres Backup-/Restore-Skript ist nicht kompatibel.

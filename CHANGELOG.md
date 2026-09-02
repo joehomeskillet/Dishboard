@@ -1,5 +1,58 @@
 # Änderungsprotokoll
 
+## Welle 3: Finalisierung vom 2. September 2026
+
+### Authentifizierung und Benutzer-Management
+
+- Lokale Anmeldung aktiviert: `/auth/login` leitet auf `/auth/local` um; Logout erfordert POST mit CSRF-Token.
+- Login-Rate-Limits in Redis pro normalisiertem Benutzernamen und vertrauenswürdiger Client-IP.
+- Session-Regeneration nach erfolgreichem Login.
+- Client-Adresse wird aus dem rechtesten nicht vertrauenswürdigen Hop von `X-Forwarded-For` aufgelöst (XFF-Hardening).
+
+### Erst-Administrator-Bootstrap
+
+- Migration `database/migrations/0009_bootstrap_first_local_admin.sql` etabliert fail-closed Bootstrap-Logik.
+- Befehl `python manage.py bootstrap-local-admin --username X --display-name Y` fragt das Passwort zweimal interaktiv ab; der Compose-Migrate-Service nimmt keine externe Passwortdatei entgegen.
+- Bootstrap ist nur möglich, wenn kein aktiver Administrator (lokal oder Entra) existiert; danach sperrt sich die Funktion.
+- Weitere Benutzer werden von verifizierten Administratoren via `provision-local-user --actor <actor-identifier>` provisioniert. Der Identifier ist ein aktiver Benutzername, eine E-Mail-Adresse oder ein `preferred_username`.
+
+### Deployment und Infrastruktur
+
+- **Host-Caddy-Modus**: Caddy auf dem Docker-Host proxied ausschliesslich auf `127.0.0.1:8789` (keine Compose-interne Caddy).
+- Secrets-Verzeichnis `deployment/secrets/` mit Modus 0700; Secret-Dateien 0444 pro Service als Bind-Mount.
+- Compose-Netzwerk `10.213.0.0/24` reserviert ausserhalb Docker-Defaults (172.16.0.0/12, 192.168.0.0/16).
+- Redis läuft als UID 999:GID 1000.
+- App-Image ID fixiert: `APP_IMAGE` auf unveränderliche SHA-256-Hash setzen (kein Tag, kein Registry-Digest).
+- Redeploy-Ablauf: `docker build --iidfile /tmp/dishboard-image-id --file Dockerfile ..`, dann `APP_IMAGE` aus der IID-Datei setzen, `docker compose up -d --pull never --no-build`.
+- CSV-Validator unter `/app/csv/validate_menu_csv.py` im Docker-Image verpackt.
+
+### Benutzeroberfläche und Design
+
+- Moderne Login-Seite im Therapieplan-Stil: zentrierte Karte, Therapieplan-Magenta-Button mit Teal-Hover, Fehler inline statt Redirect, Benutzername erhalten bei Fehler.
+- Therapieplan-Designtokens (`--sh-*`) für konsistente Farben und Typografie.
+- Fira Sans selbstgehostet über `woff2`-Schriften.
+- Preiszeilen auf gleicher Höhe als Karten-Basiszeile via Flexbox (`.price-row`).
+- White Header mit verbessertem Kontrast pro Reference-Design.
+
+### Welle 3: umgesetzt
+
+**Branding und Navigation:**
+- Südhang-Logo oben rechts im Header.
+- Kanalnavigation (Patienten/Cafeteria) oben links.
+- Beilagen-Pills gleich hoch und in Menüart-Farbe gerendert.
+- Patienten-Wochenansicht: Datumsbereich (z. B. „Montag 31. Aug – Sonntag 6. Sept") als Seitentitel.
+
+**Labels und Allergene:**
+- Labels-Feld für Gerichte (z. B. Regional, Bio, Vegetarisch).
+- Allergene-Felder: „enthält" und „Spuren" als Multi-Select.
+- Herkunft `Zutat=CH|EU|…` pro Gericht.
+- Review-Status `not_checked`/`checked` für jede Menüoption.
+- Publikation erfordert, dass alle Menüoptionen auf `checked` gesetzt sind (Review-Gate).
+- Rendering als Pills in Web-Ansichten, Signage, Druck und API.
+- Admin-Formular mit einer Checkbox für den Review-Status je Menüoption und Multi-Select für Allergen-/Label-Kategorien.
+
+---
+
 ## Finalisierung vom 2. September 2026
 
 ### Datenbank und Migrations
@@ -12,9 +65,9 @@
 ### Authentifizierung und Bootstrap
 
 - Lokale Benutzer-Bootstrap: `python manage.py bootstrap-local-admin --username X --display-name Y` auf der Migrate-Verbindung (Owner-Rolle).
-- Weitere Benutzer über verifizierte Administratoren: `provision-local-user --actor <bootstrap-admin-username>`.
+- Weitere Benutzer über verifizierte Administratoren: `provision-local-user --actor <actor-identifier>`; akzeptiert werden Benutzername, E-Mail-Adresse oder `preferred_username`.
 - Auth-Issuer-Rolle mit restriktiven Ausführungsrechten auf schmale Provisioning-Funktionen.
-- Passwortbefehle fragen interaktiv oder lesen aus `DISHBOARD_BOOTSTRAP_PASSWORD_FILE` (Mode 0400).
+- Lokale Admin-Befehle fragen Passwörter interaktiv ab; eine externe Bootstrap-Passwortdatei wird nicht in den Container durchgereicht.
 
 ### Kitchen Workflows und Publikation
 
@@ -31,7 +84,7 @@
 
 ### Deployment-Hardening
 
-- Interne App-Port: 8789 (nicht 8080).
+- Host-Port der App: 8789; Container-Port und Healthcheck: 8000.
 - App läuft als UID 10001 (nicht root).
 - Netzwerk: reserviertes 10.213.0.0/24-Subnetz (ausserhalb Docker-Defaults 172.16.0.0/12 und 192.168.0.0/16).
 - Secrets als 0700-root-Verzeichnis mit 0444-Dateien pro Service.
@@ -72,7 +125,7 @@
 - Screenshot-Index mit Live-Satz (18 Dateien) und Capture-Kommando.
 - ENTRA_SSO_BETRIEBSKONZEPT: Koexistenz von lokal und Entra, Bootstrap, Abnahmetestvorgaben.
 - ABNAHME_CHECKLISTE: Fachmodell, Website/Mobile, Signage, Datenbank, Sicherheit und Betrieb.
-- DOCKER_COMPOSE_RUNBOOK: Health-Check auf 8789, Image-ID-Format, Restore-Reihenfolge mit Capability-State.
+- DOCKER_COMPOSE_RUNBOOK: Healthcheck auf Container-Port 8000, Image-ID-Format, Restore-Reihenfolge mit Capability-State.
 
 ## Rework vom 1. September 2026
 
