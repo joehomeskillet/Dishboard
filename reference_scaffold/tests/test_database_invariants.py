@@ -10,10 +10,10 @@ from collections.abc import Iterator
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit, urlunsplit
 
 import pytest
 from sqlalchemy import Engine, create_engine, text
+from sqlalchemy.engine import make_url
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.pool import NullPool
 from werkzeug.security import generate_password_hash
@@ -156,8 +156,9 @@ def test_migration_plan_is_ordered_and_preserves_0001_bytes() -> None:
         (5, '0002_profile_publication_and_local_auth.sql'),
         (6, '0003_patient_key_and_withdrawal_contracts.sql'),
         (7, '0004_patient_key_lock_and_capability_contracts.sql'),
+        (8, '0005_least_privilege_identity_contracts.sql'),
     ]
-    assert database.SCHEMA_VERSION == 7
+    assert database.SCHEMA_VERSION == 8
     migrations = ROOT / 'database' / 'migrations'
     assert hashlib.sha256((migrations / '0001_initial_postgresql.sql').read_bytes()).hexdigest() == (
         'd1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0'
@@ -167,6 +168,9 @@ def test_migration_plan_is_ordered_and_preserves_0001_bytes() -> None:
     )
     assert hashlib.sha256((migrations / '0003_patient_key_and_withdrawal_contracts.sql').read_bytes()).hexdigest() == (
         'eda9c5e851525367af62a3f056b3592a521d871f6ac818d4d50c18d8f720d1de'
+    )
+    assert hashlib.sha256((migrations / '0004_patient_key_lock_and_capability_contracts.sql').read_bytes()).hexdigest() == (
+        '7309069f1b52d41a756a315af8b6ccf0771afe113875a6c5f82d42775f74b066'
     )
 
 
@@ -179,11 +183,12 @@ def test_empty_database_runs_0001_then_0002(database_engine: Engine) -> None:
         local_credentials = connection.execute(
             text("SELECT to_regclass('cafeteria.local_credentials')")
         ).scalar_one()
-    assert [row.version for row in rows] == [4, 5, 6, 7]
+    assert [row.version for row in rows] == [4, 5, 6, 7, 8]
     assert rows[0].name == '0001_initial_postgresql.sql'
     assert rows[1].name == '0002_profile_publication_and_local_auth.sql'
     assert rows[2].name == '0003_patient_key_and_withdrawal_contracts.sql'
     assert rows[3].name == '0004_patient_key_lock_and_capability_contracts.sql'
+    assert rows[4].name == '0005_least_privilege_identity_contracts.sql'
     assert local_credentials == 'cafeteria.local_credentials'
 
 
@@ -213,7 +218,7 @@ def test_v4_fixture_migrates_without_replaying_0001() -> None:
         versions = connection.execute(
             text('SELECT version FROM cafeteria.schema_migrations ORDER BY version')
         ).scalars().all()
-    assert versions == [4, 5, 6, 7]
+    assert versions == [4, 5, 6, 7, 8]
     _drop_schema(engine)
     engine.dispose()
 
@@ -931,7 +936,7 @@ def test_v4_draft_revision_is_withdrawn_and_not_public() -> None:
                 '''
             )
         ).all()
-    assert versions == [4, 5, 6, 7]
+    assert versions == [4, 5, 6, 7, 8]
     assert int(public_rows) == 0
     assert withdrawn[0] is True
     assert 'v4' in withdrawn[1]
@@ -957,13 +962,111 @@ def _tamper_capability_field(token: str, index: int, value: str) -> str:
     return '.'.join(parts)
 
 
-def _app_database_url() -> str:
+def _role_database_url(role_name: str, password: str) -> str:
     assert DATABASE_URL is not None
-    parts = urlsplit(DATABASE_URL)
-    host = parts.hostname or '127.0.0.1'
-    port = parts.port or 5432
-    database_name = parts.path or '/postgres'
-    return urlunsplit(('postgresql+psycopg', f'cafeteria_app@{host}:{port}', database_name, '', ''))
+    return make_url(DATABASE_URL).set(
+        username=role_name,
+        password=password,
+    ).render_as_string(hide_password=False)
+
+
+def _apply_role_permissions(engine: Engine) -> None:
+    database.provision_database_roles(
+        engine,
+        app_password='test-app-secret',
+        backup_password='test-backup-secret',
+    )
+    database._execute_script(engine, str(ROOT / 'database' / 'permissions.sql'))
+
+
+def _normalize_catalog_value(value: Any, schema_name: str) -> Any:
+    if not isinstance(value, str):
+        return value
+    normalized = value.replace(f'{schema_name}.', '<schema>.')
+    return normalized.replace('cafeteria.', '<schema>.').replace(
+        'migrated_contract.', '<schema>.'
+    )
+
+
+def _schema_structure(engine: Engine, schema_name: str) -> dict[str, list[tuple[Any, ...]]]:
+    queries = {
+        'columns': '''
+            SELECT table_name, ordinal_position, column_name, data_type, udt_name,
+                   is_nullable, column_default
+            FROM information_schema.columns
+            WHERE table_schema=:schema_name
+            ORDER BY table_name, ordinal_position
+        ''',
+        'constraints': '''
+            SELECT rel.relname, con.conname, con.contype, pg_get_constraintdef(con.oid, true)
+            FROM pg_constraint con
+            JOIN pg_class rel ON rel.oid=con.conrelid
+            JOIN pg_namespace ns ON ns.oid=rel.relnamespace
+            WHERE ns.nspname=:schema_name
+            ORDER BY rel.relname, con.conname
+        ''',
+        'indexes': '''
+            SELECT tab.relname, idx.relname, pg_get_indexdef(i.indexrelid)
+            FROM pg_index i
+            JOIN pg_class tab ON tab.oid=i.indrelid
+            JOIN pg_class idx ON idx.oid=i.indexrelid
+            JOIN pg_namespace ns ON ns.oid=tab.relnamespace
+            WHERE ns.nspname=:schema_name
+            ORDER BY tab.relname, idx.relname
+        ''',
+        'functions': '''
+            SELECT p.proname, pg_get_function_identity_arguments(p.oid), p.prokind,
+                   p.prosecdef, p.proconfig, p.prosrc
+            FROM pg_proc p
+            JOIN pg_namespace ns ON ns.oid=p.pronamespace
+            WHERE ns.nspname=:schema_name
+            ORDER BY p.proname, pg_get_function_identity_arguments(p.oid)
+        ''',
+        'triggers': '''
+            SELECT rel.relname, trg.tgname, pg_get_triggerdef(trg.oid, true)
+            FROM pg_trigger trg
+            JOIN pg_class rel ON rel.oid=trg.tgrelid
+            JOIN pg_namespace ns ON ns.oid=rel.relnamespace
+            WHERE ns.nspname=:schema_name AND NOT trg.tgisinternal
+            ORDER BY rel.relname, trg.tgname
+        ''',
+        'views': '''
+            SELECT viewname, definition
+            FROM pg_views
+            WHERE schemaname=:schema_name
+            ORDER BY viewname
+        ''',
+    }
+    structure: dict[str, list[tuple[Any, ...]]] = {}
+    with engine.connect() as connection:
+        for name, query in queries.items():
+            rows = connection.execute(text(query), {'schema_name': schema_name}).tuples().all()
+            structure[name] = [
+                tuple(_normalize_catalog_value(value, schema_name) for value in row)
+                for row in rows
+            ]
+    return structure
+
+
+@LIVE_DATABASE
+def test_schema_baseline_matches_sequential_migration_structure() -> None:
+    assert DATABASE_URL is not None
+    engine = create_engine(DATABASE_URL, poolclass=NullPool, pool_pre_ping=True)
+    _drop_schema(engine)
+    try:
+        database.run_migrations(engine, ROOT / 'database' / 'schema.sql')
+        with engine.begin() as connection:
+            connection.execute(text('ALTER SCHEMA cafeteria RENAME TO migrated_contract'))
+        database._execute_script(engine, str(ROOT / 'database' / 'schema.sql'))
+        migrated = _schema_structure(engine, 'migrated_contract')
+        baseline = _schema_structure(engine, 'cafeteria')
+        for object_type in migrated:
+            assert baseline[object_type] == migrated[object_type], object_type
+    finally:
+        with engine.begin() as connection:
+            connection.execute(text('DROP SCHEMA IF EXISTS cafeteria CASCADE'))
+            connection.execute(text('DROP SCHEMA IF EXISTS migrated_contract CASCADE'))
+        engine.dispose()
 
 
 @LIVE_DATABASE
@@ -1099,7 +1202,7 @@ def test_publication_capability_rejects_replay_wrong_binding_expiry_and_role_rac
         )
 
     expired = database.issue_publication_capability(
-        database_engine, actor_id, replacement_id, ttl='1 second'
+        database_engine, actor_id, replacement_id, ttl=timedelta(seconds=1)
     )
     time.sleep(2)
     with pytest.raises(DBAPIError, match='ungültig oder abgelaufen'):
@@ -1126,6 +1229,315 @@ def test_publication_capability_rejects_replay_wrong_binding_expiry_and_role_rac
 
 
 @LIVE_DATABASE
+def test_capability_consumption_rolls_back_with_withdrawal(database_engine: Engine) -> None:
+    week_id = _insert_week(database_engine, 'patient', 'published', '2026-11-09')
+    payload = _dated_snapshot('patient', '2026-11-09')
+    payload['revision_id'] = 'PAT-2026-KW46-R1'
+    revision_id = _insert_revision(database_engine, week_id, 'patient', snapshot=payload)
+    actor_id = _user_id(database_engine, database.DEMO_USER_PUBLIC_ID)
+    capability = database.issue_publication_capability(database_engine, actor_id, revision_id)
+    _apply_role_permissions(database_engine)
+    app_engine = create_engine(
+        _role_database_url('cafeteria_app', 'test-app-secret'),
+        poolclass=NullPool,
+        pool_pre_ping=True,
+    )
+    try:
+        connection = app_engine.connect()
+        transaction = connection.begin()
+        try:
+            connection.execute(
+                text(
+                    'SELECT cafeteria.withdraw_publication_revision('
+                    ':revision, :capability, :reason)'
+                ),
+                {
+                    'revision': revision_id,
+                    'capability': capability,
+                    'reason': 'Absichtlich zurückgerollt',
+                },
+            ).scalar_one()
+            transaction.rollback()
+        finally:
+            connection.close()
+        database.withdraw_publication_revision(
+            app_engine,
+            revision_id,
+            capability,
+            'Nach Rollback gültig',
+        )
+    finally:
+        app_engine.dispose()
+
+    with database_engine.connect() as connection:
+        nonce_count = int(
+            connection.execute(text('SELECT count(*) FROM cafeteria.auth_capability_nonces')).scalar_one()
+        )
+        event_count = int(
+            connection.execute(
+                text(
+                    '''
+                    SELECT count(*) FROM cafeteria.publication_lifecycle_events
+                    WHERE revision_id=:revision AND event_type='withdrawn'
+                    '''
+                ),
+                {'revision': revision_id},
+            ).scalar_one()
+        )
+    assert nonce_count == 1
+    assert event_count == 1
+
+
+@LIVE_DATABASE
+def test_capability_hard_reset_invalidates_history_and_bootstraps_one_secret(
+    database_engine: Engine,
+) -> None:
+    first_week_id = _insert_week(database_engine, 'patient', 'published', '2026-11-16')
+    first_payload = _dated_snapshot('patient', '2026-11-16')
+    first_payload['revision_id'] = 'PAT-2026-KW47-R1'
+    first_revision_id = _insert_revision(
+        database_engine,
+        first_week_id,
+        'patient',
+        snapshot=first_payload,
+    )
+    second_week_id = _insert_week(database_engine, 'patient', 'published', '2026-11-23')
+    second_payload = _dated_snapshot('patient', '2026-11-23')
+    second_payload['revision_id'] = 'PAT-2026-KW48-R1'
+    second_revision_id = _insert_revision(
+        database_engine,
+        second_week_id,
+        'patient',
+        snapshot=second_payload,
+    )
+    actor_id = _user_id(database_engine, database.DEMO_USER_PUBLIC_ID)
+
+    old_capability = database.issue_publication_capability(
+        database_engine,
+        actor_id,
+        first_revision_id,
+    )
+    database.withdraw_publication_revision(
+        database_engine,
+        first_revision_id,
+        old_capability,
+        'Vor Wiederherstellung verbraucht',
+    )
+    unused_old_capability = database.issue_publication_capability(
+        database_engine,
+        actor_id,
+        second_revision_id,
+    )
+    assert old_capability.split('.')[1] == unused_old_capability.split('.')[1] == '1'
+
+    with database_engine.begin() as connection:
+        connection.execute(
+            text(
+                'DROP TABLE cafeteria.auth_capability_nonces, '
+                'cafeteria.auth_capability_secrets'
+            )
+        )
+        assert int(
+            connection.execute(
+                text('SELECT cafeteria.ensure_auth_capability_state()')
+            ).scalar_one()
+        ) == 1
+        assert int(
+            connection.execute(
+                text('SELECT cafeteria.ensure_auth_capability_state()')
+            ).scalar_one()
+        ) == 1
+        new_secret_id = int(
+            connection.execute(
+                text('SELECT cafeteria.hard_reset_auth_capability_state()')
+            ).scalar_one()
+        )
+        state = connection.execute(
+            text(
+                '''
+                SELECT count(*) AS secret_count,
+                       count(*) FILTER (WHERE active) AS active_count,
+                       min(octet_length(secret)) AS secret_bytes
+                FROM cafeteria.auth_capability_secrets
+                '''
+            )
+        ).one()
+        nonce_count = int(
+            connection.execute(
+                text('SELECT count(*) FROM cafeteria.auth_capability_nonces')
+            ).scalar_one()
+        )
+        reset_events = int(
+            connection.execute(
+                text(
+                    '''
+                    SELECT count(*)
+                    FROM cafeteria.audit_events
+                    WHERE action='auth_capability.hard_reset'
+                      AND entity_type='auth_capability_state'
+                    '''
+                )
+            ).scalar_one()
+        )
+    assert new_secret_id == 1
+    assert tuple(state) == (1, 1, 32)
+    assert nonce_count == 0
+    assert reset_events == 1
+
+    with pytest.raises(DBAPIError, match='ungültig oder abgelaufen'):
+        database.withdraw_publication_revision(
+            database_engine,
+            first_revision_id,
+            old_capability,
+            'Replay nach Wiederherstellung',
+        )
+    with pytest.raises(DBAPIError, match='ungültig oder abgelaufen'):
+        database.withdraw_publication_revision(
+            database_engine,
+            second_revision_id,
+            unused_old_capability,
+            'Unverbrauchte Alt-Capability nach Wiederherstellung',
+        )
+
+    new_capability = database.issue_publication_capability(
+        database_engine,
+        actor_id,
+        second_revision_id,
+    )
+    assert new_capability.split('.')[1] == '1'
+    withdrawn_at = database.withdraw_publication_revision(
+        database_engine,
+        second_revision_id,
+        new_capability,
+        'Nach Wiederherstellung gültig',
+    )
+    assert withdrawn_at is not None
+
+
+@LIVE_DATABASE
+def test_committed_empty_entra_role_sync_wins_against_in_flight_withdrawal(
+    database_engine: Engine,
+) -> None:
+    week_id = _insert_week(database_engine, 'patient', 'published', '2026-11-16')
+    payload = _dated_snapshot('patient', '2026-11-16')
+    payload['revision_id'] = 'PAT-2026-KW47-R1'
+    revision_id = _insert_revision(database_engine, week_id, 'patient', snapshot=payload)
+    claims = {
+        'tid': '33333333-3333-3333-3333-333333333333',
+        'oid': '44444444-4444-4444-4444-444444444444',
+        'sub': 'entra-role-revocation-race',
+        'name': 'Entra Rollenentzug',
+        'email': 'revoked@example.invalid',
+        'preferred_username': 'revoked@example.invalid',
+    }
+    actor_id = database.upsert_entra_user(
+        database_engine,
+        claims,
+        ['Cafeteria.Publisher'],
+    )
+    capability = database.issue_publication_capability(database_engine, actor_id, revision_id)
+    token_authz_version = int(capability.split('.')[4])
+    _apply_role_permissions(database_engine)
+    app_engine = create_engine(
+        _role_database_url('cafeteria_app', 'test-app-secret'),
+        poolclass=NullPool,
+        pool_pre_ping=True,
+    )
+    revocation_locked = threading.Event()
+    allow_commit = threading.Event()
+    withdrawal_started = threading.Event()
+    outcomes: dict[str, str] = {}
+
+    def revoke_role() -> None:
+        connection = database_engine.connect()
+        transaction = connection.begin()
+        try:
+            connection.execute(
+                text(
+                    '''
+                    SELECT cafeteria.sync_entra_user(
+                        CAST(:tenant_id AS uuid),
+                        CAST(:object_id AS uuid),
+                        :subject_id,
+                        :display_name,
+                        :email,
+                        :preferred_username,
+                        CAST(:roles AS text[])
+                    )
+                    '''
+                ),
+                {
+                    'tenant_id': claims['tid'],
+                    'object_id': claims['oid'],
+                    'subject_id': claims['sub'],
+                    'display_name': claims['name'],
+                    'email': claims['email'],
+                    'preferred_username': claims['preferred_username'],
+                    'roles': [],
+                },
+            ).scalar_one()
+            revocation_locked.set()
+            assert allow_commit.wait(timeout=10)
+            transaction.commit()
+            outcomes['revoke'] = 'committed'
+        finally:
+            if transaction.is_active:
+                transaction.rollback()
+            connection.close()
+
+    def withdraw() -> None:
+        assert revocation_locked.wait(timeout=10)
+        withdrawal_started.set()
+        try:
+            database.withdraw_publication_revision(
+                app_engine,
+                revision_id,
+                capability,
+                'Rennen gegen Rollenentzug',
+            )
+            outcomes['withdraw'] = 'unexpected-success'
+        except DBAPIError as exc:
+            outcomes['withdraw'] = str(exc)
+
+    revoke_thread = threading.Thread(target=revoke_role)
+    withdraw_thread = threading.Thread(target=withdraw)
+    revoke_thread.start()
+    withdraw_thread.start()
+    assert withdrawal_started.wait(timeout=10)
+    time.sleep(0.2)
+    assert withdraw_thread.is_alive()
+    allow_commit.set()
+    revoke_thread.join(timeout=10)
+    withdraw_thread.join(timeout=10)
+    app_engine.dispose()
+    assert not revoke_thread.is_alive()
+    assert not withdraw_thread.is_alive()
+    assert outcomes['revoke'] == 'committed'
+    assert 'Rollenänderung' in outcomes['withdraw'] or 'nicht zur Publikation berechtigt' in outcomes['withdraw']
+    with database_engine.connect() as connection:
+        withdrawn_at, role_count, authz_version = connection.execute(
+            text(
+                '''
+                SELECT p.withdrawn_at,
+                       (SELECT count(*) FROM cafeteria.user_role_cache r WHERE r.user_id=:actor),
+                       u.authz_version
+                FROM cafeteria.publication_revisions p
+                JOIN cafeteria.users u ON u.id=:actor
+                WHERE p.id=:revision
+                '''
+            ),
+            {'actor': actor_id, 'revision': revision_id},
+        ).one()
+        nonce_count = int(
+            connection.execute(text('SELECT count(*) FROM cafeteria.auth_capability_nonces')).scalar_one()
+        )
+    assert withdrawn_at is None
+    assert int(role_count) == 0
+    assert int(authz_version) > token_authz_version
+    assert nonce_count == 0
+
+
+@LIVE_DATABASE
 def test_cafeteria_app_cannot_spoof_actor_or_read_capability_secrets(
     database_engine: Engine,
 ) -> None:
@@ -1134,13 +1546,12 @@ def test_cafeteria_app_cannot_spoof_actor_or_read_capability_secrets(
     payload['revision_id'] = 'PAT-2026-KW42-R1'
     revision_id = _insert_revision(database_engine, week_id, 'patient', snapshot=payload)
     actor_id = _user_id(database_engine, database.DEMO_USER_PUBLIC_ID)
-    database.provision_database_roles(
-        database_engine,
-        app_password='test-app-secret',
-        backup_password='test-backup-secret',
+    _apply_role_permissions(database_engine)
+    app_engine = create_engine(
+        _role_database_url('cafeteria_app', 'test-app-secret'),
+        poolclass=NullPool,
+        pool_pre_ping=True,
     )
-    database._execute_script(database_engine, str(ROOT / 'database' / 'permissions.sql'))
-    app_engine = create_engine(_app_database_url(), poolclass=NullPool, pool_pre_ping=True)
     try:
         with pytest.raises(DBAPIError, match='permission denied|42501'):
             with app_engine.begin() as connection:
@@ -1189,6 +1600,521 @@ def test_cafeteria_app_cannot_spoof_actor_or_read_capability_secrets(
         visible = int(connection.execute(text('SELECT count(*) FROM cafeteria.active_publications')).scalar_one())
     assert remaining is None
     assert visible == 1
+
+
+@LIVE_DATABASE
+def test_database_roles_use_real_password_authentication(database_engine: Engine) -> None:
+    _apply_role_permissions(database_engine)
+    wrong_password_engine = create_engine(
+        _role_database_url('cafeteria_app', 'wrong-app-secret'),
+        poolclass=NullPool,
+        pool_pre_ping=True,
+    )
+    try:
+        with pytest.raises(DBAPIError, match='password authentication failed|28P01'):
+            with wrong_password_engine.connect():
+                pass
+    finally:
+        wrong_password_engine.dispose()
+
+    app_engine = create_engine(
+        _role_database_url('cafeteria_app', 'test-app-secret'),
+        poolclass=NullPool,
+        pool_pre_ping=True,
+    )
+    try:
+        with app_engine.connect() as connection:
+            assert connection.execute(text('SELECT current_user')).scalar_one() == 'cafeteria_app'
+    finally:
+        app_engine.dispose()
+
+
+@LIVE_DATABASE
+def test_app_cannot_restore_revoked_roles_or_authorization_version(
+    database_engine: Engine,
+) -> None:
+    week_id = _insert_week(database_engine, 'patient', 'published', '2026-10-19')
+    payload = _dated_snapshot('patient', '2026-10-19')
+    payload['revision_id'] = 'PAT-2026-KW43-R1'
+    revision_id = _insert_revision(database_engine, week_id, 'patient', snapshot=payload)
+    actor_id = _user_id(database_engine, database.DEMO_USER_PUBLIC_ID)
+    capability = database.issue_publication_capability(database_engine, actor_id, revision_id)
+    token_authz_version = int(capability.split('.')[4])
+    _apply_role_permissions(database_engine)
+
+    with database_engine.begin() as connection:
+        connection.execute(
+            text(
+                '''
+                DELETE FROM cafeteria.user_role_cache
+                WHERE user_id=:actor AND role_code='Cafeteria.Publisher'
+                '''
+            ),
+            {'actor': actor_id},
+        )
+
+    app_engine = create_engine(
+        _role_database_url('cafeteria_app', 'test-app-secret'),
+        poolclass=NullPool,
+        pool_pre_ping=True,
+    )
+    try:
+        with pytest.raises(DBAPIError, match='permission denied|42501'):
+            with app_engine.begin() as connection:
+                connection.execute(
+                    text(
+                        '''
+                        INSERT INTO cafeteria.user_role_cache(user_id, role_code, source)
+                        VALUES (:actor, 'Cafeteria.Publisher', 'demo')
+                        '''
+                    ),
+                    {'actor': actor_id},
+                )
+        with pytest.raises(DBAPIError, match='permission denied|42501'):
+            with app_engine.begin() as connection:
+                connection.execute(
+                    text('UPDATE cafeteria.users SET authz_version=:version WHERE id=:actor'),
+                    {'actor': actor_id, 'version': token_authz_version},
+                )
+        with pytest.raises(DBAPIError, match='permission denied|42501'):
+            with app_engine.begin() as connection:
+                connection.execute(
+                    text('UPDATE cafeteria.users SET disabled_at=NULL WHERE id=:actor'),
+                    {'actor': actor_id},
+                )
+        with pytest.raises(DBAPIError, match='Rollenänderung|nicht zur Publikation berechtigt'):
+            database.withdraw_publication_revision(
+                app_engine,
+                revision_id,
+                capability,
+                'Gestohlene Capability',
+            )
+    finally:
+        app_engine.dispose()
+
+    with database_engine.connect() as connection:
+        state = connection.execute(
+            text(
+                '''
+                SELECT u.authz_version,
+                       EXISTS (
+                           SELECT 1 FROM cafeteria.user_role_cache r
+                           WHERE r.user_id=u.id AND r.role_code='Cafeteria.Publisher'
+                       ) AS publisher,
+                       p.withdrawn_at
+                FROM cafeteria.users u
+                CROSS JOIN cafeteria.publication_revisions p
+                WHERE u.id=:actor AND p.id=:revision
+                '''
+            ),
+            {'actor': actor_id, 'revision': revision_id},
+        ).one()
+    assert int(state.authz_version) > token_authz_version
+    assert state.publisher is False
+    assert state.withdrawn_at is None
+
+
+@LIVE_DATABASE
+def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
+    database_engine: Engine,
+) -> None:
+    _apply_role_permissions(database_engine)
+    _apply_role_permissions(database_engine)
+    with database_engine.connect() as connection:
+        privileges = connection.execute(
+            text(
+                '''
+                SELECT
+                        has_table_privilege('cafeteria_app', 'cafeteria.users', 'SELECT') AS users_select,
+                        has_table_privilege('cafeteria_app', 'cafeteria.users', 'INSERT') AS users_insert,
+                        has_column_privilege('cafeteria_app', 'cafeteria.users', 'authz_version', 'UPDATE') AS authz_update,
+                    has_column_privilege('cafeteria_app', 'cafeteria.users', 'disabled_at', 'UPDATE') AS disabled_update,
+                    has_table_privilege('cafeteria_app', 'cafeteria.user_role_cache', 'INSERT') AS role_insert,
+                    has_table_privilege('cafeteria_app', 'cafeteria.user_role_cache', 'UPDATE') AS role_update,
+                    has_table_privilege('cafeteria_app', 'cafeteria.user_role_cache', 'DELETE') AS role_delete,
+                        has_column_privilege('cafeteria_app', 'cafeteria.local_credentials', 'password_hash', 'UPDATE') AS password_update,
+                        has_table_privilege('cafeteria_app', 'cafeteria.local_credentials', 'INSERT') AS credentials_insert,
+                    has_table_privilege('cafeteria_app', 'cafeteria.auth_capability_nonces', 'INSERT') AS nonce_insert,
+                    has_sequence_privilege(
+                        'cafeteria_app',
+                        'cafeteria.auth_capability_secrets_id_seq',
+                        'USAGE'
+                    ) AS secret_sequence_usage,
+                    has_function_privilege(
+                        'cafeteria_app',
+                        'cafeteria.issue_publication_capability(bigint,bigint,interval)',
+                        'EXECUTE'
+                    ) AS capability_issue,
+                    has_function_privilege(
+                        'cafeteria_app',
+                        'cafeteria.sync_entra_user(uuid,uuid,text,text,text,text,text[])',
+                        'EXECUTE'
+                    ) AS entra_sync,
+                    has_function_privilege(
+                        'cafeteria_app',
+                        'cafeteria.ensure_auth_capability_state()',
+                        'EXECUTE'
+                    ) AS capability_state_ensure,
+                    has_function_privilege(
+                        'cafeteria_app',
+                        'cafeteria.hard_reset_auth_capability_state()',
+                        'EXECUTE'
+                    ) AS capability_hard_reset,
+                    NOT EXISTS (
+                        SELECT 1
+                        FROM pg_proc p
+                        JOIN pg_namespace n ON n.oid=p.pronamespace
+                        CROSS JOIN LATERAL aclexplode(
+                            COALESCE(p.proacl, acldefault('f', p.proowner))
+                        ) acl
+                        WHERE n.nspname='cafeteria'
+                          AND p.proname='hard_reset_auth_capability_state'
+                          AND acl.grantee=0
+                          AND acl.privilege_type='EXECUTE'
+                    ) AS public_capability_hard_reset_revoked
+                '''
+            )
+        ).mappings().one()
+        definer_privileges = connection.execute(
+            text(
+                '''
+                SELECT p.proname,
+                       EXISTS (
+                           SELECT 1
+                           FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) acl
+                           WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE'
+                       ) AS public_execute,
+                       has_function_privilege('cafeteria_app', p.oid, 'EXECUTE') AS app_execute,
+                       has_function_privilege('cafeteria_backup', p.oid, 'EXECUTE') AS backup_execute
+                FROM pg_proc p
+                JOIN pg_namespace n ON n.oid=p.pronamespace
+                WHERE n.nspname='cafeteria' AND p.prosecdef
+                ORDER BY p.proname
+                '''
+            )
+        ).mappings().all()
+    assert privileges['users_select'] is True
+    assert privileges['users_insert'] is False
+    assert privileges['authz_update'] is False
+    assert privileges['disabled_update'] is False
+    assert privileges['role_insert'] is False
+    assert privileges['role_update'] is False
+    assert privileges['role_delete'] is False
+    assert privileges['password_update'] is False
+    assert privileges['credentials_insert'] is False
+    assert privileges['nonce_insert'] is False
+    assert privileges['secret_sequence_usage'] is False
+    assert privileges['capability_issue'] is False
+    assert privileges['entra_sync'] is False
+    assert privileges['capability_state_ensure'] is False
+    assert privileges['capability_hard_reset'] is False
+    assert privileges['public_capability_hard_reset_revoked'] is True
+    assert {row['proname'] for row in definer_privileges} == {
+        'bootstrap_auth_capability_secret',
+        'ensure_auth_capability_state',
+        'hard_reset_auth_capability_state',
+        'issue_publication_capability',
+        'record_publication_lifecycle',
+        'rotate_auth_capability_secret',
+        'sync_entra_user',
+        'withdraw_publication_revision',
+    }
+    for row in definer_privileges:
+        assert row['public_execute'] is False
+        assert row['backup_execute'] is False
+        assert row['app_execute'] is (row['proname'] == 'withdraw_publication_revision')
+
+    week_id = _insert_week(database_engine, 'patient', 'published', '2026-10-26')
+    payload = _dated_snapshot('patient', '2026-10-26')
+    payload['revision_id'] = 'PAT-2026-KW44-R1'
+    revision_id = _insert_revision(database_engine, week_id, 'patient', snapshot=payload)
+    actor_id = _user_id(database_engine, database.DEMO_USER_PUBLIC_ID)
+    capability = database.issue_publication_capability(database_engine, actor_id, revision_id)
+    app_engine = create_engine(
+        _role_database_url('cafeteria_app', 'test-app-secret'),
+        poolclass=NullPool,
+        pool_pre_ping=True,
+    )
+    try:
+        with pytest.raises(DBAPIError, match='permission denied|42501'):
+            with app_engine.begin() as connection:
+                connection.execute(
+                    text('SELECT cafeteria.ensure_auth_capability_state()')
+                ).scalar_one()
+        with pytest.raises(DBAPIError, match='permission denied|42501'):
+            with app_engine.begin() as connection:
+                connection.execute(
+                    text('SELECT cafeteria.hard_reset_auth_capability_state()')
+                ).scalar_one()
+        with pytest.raises(DBAPIError, match='permission denied|42501'):
+            with app_engine.begin() as connection:
+                connection.execute(
+                    text("SELECT nextval('cafeteria.auth_capability_secrets_id_seq')")
+                ).scalar_one()
+        with app_engine.begin() as connection:
+            audit_id = connection.execute(
+                text(
+                    '''
+                    INSERT INTO cafeteria.audit_events(action, entity_type)
+                    VALUES ('sequence-contract', 'test')
+                    RETURNING id
+                    '''
+                )
+            ).scalar_one()
+        assert int(audit_id) > 0
+        database.withdraw_publication_revision(
+            app_engine,
+            revision_id,
+            capability,
+            'Kontrollierter Rückzug',
+        )
+    finally:
+        app_engine.dispose()
+
+
+@LIVE_DATABASE
+def test_authorization_version_is_monotonic_for_privileged_writers(
+    database_engine: Engine,
+) -> None:
+    actor_id = _user_id(database_engine, database.DEMO_USER_PUBLIC_ID)
+    with database_engine.connect() as connection:
+        current_version = int(
+            connection.execute(
+                text('SELECT authz_version FROM cafeteria.users WHERE id=:actor'),
+                {'actor': actor_id},
+            ).scalar_one()
+        )
+    assert current_version > 1
+    with pytest.raises(DBAPIError, match='authz_version darf nicht zurückgesetzt werden|42501'):
+        with database_engine.begin() as connection:
+            connection.execute(
+                text('UPDATE cafeteria.users SET authz_version=:version WHERE id=:actor'),
+                {'actor': actor_id, 'version': current_version - 1},
+            )
+    with database_engine.connect() as connection:
+        actual_version = int(
+            connection.execute(
+                text('SELECT authz_version FROM cafeteria.users WHERE id=:actor'),
+                {'actor': actor_id},
+            ).scalar_one()
+        )
+    assert actual_version == current_version
+
+
+@LIVE_DATABASE
+def test_capability_ttl_is_positive_and_at_most_fifteen_minutes(
+    database_engine: Engine,
+) -> None:
+    week_id = _insert_week(database_engine, 'patient', 'published', '2026-11-02')
+    payload = _dated_snapshot('patient', '2026-11-02')
+    payload['revision_id'] = 'PAT-2026-KW45-R1'
+    revision_id = _insert_revision(database_engine, week_id, 'patient', snapshot=payload)
+    actor_id = _user_id(database_engine, database.DEMO_USER_PUBLIC_ID)
+
+    for invalid_ttl in (
+        timedelta(0),
+        timedelta(seconds=-1),
+        timedelta(minutes=15, microseconds=1),
+        timedelta(days=36_500),
+    ):
+        with pytest.raises(ValueError, match='0.*15 Minuten'):
+            database.issue_publication_capability(
+                database_engine,
+                actor_id,
+                revision_id,
+                ttl=invalid_ttl,
+            )
+
+    token = database.issue_publication_capability(
+        database_engine,
+        actor_id,
+        revision_id,
+        ttl=timedelta(minutes=15),
+    )
+    assert token.startswith('v1.')
+    with pytest.raises(DBAPIError, match='höchstens 15 Minuten|22023'):
+        with database_engine.begin() as connection:
+            connection.execute(
+                text(
+                    '''
+                    SELECT cafeteria.issue_publication_capability(
+                        :actor, :revision, interval '100 years'
+                    )
+                    '''
+                ),
+                {'actor': actor_id, 'revision': revision_id},
+            )
+
+
+@LIVE_DATABASE
+def test_backup_role_excludes_capability_secrets_and_nonces(database_engine: Engine) -> None:
+    _apply_role_permissions(database_engine)
+    backup_engine = create_engine(
+        _role_database_url('cafeteria_backup', 'test-backup-secret'),
+        poolclass=NullPool,
+        pool_pre_ping=True,
+    )
+    try:
+        with backup_engine.connect() as connection:
+            connection.execute(text('SELECT count(*) FROM cafeteria.menu_weeks')).scalar_one()
+            connection.execute(text('SELECT last_value FROM cafeteria.menu_weeks_id_seq')).scalar_one()
+        with pytest.raises(DBAPIError, match='permission denied|42501|read-only'):
+            with backup_engine.connect() as connection:
+                connection.execute(
+                    text("SELECT nextval('cafeteria.auth_capability_secrets_id_seq')")
+                ).scalar_one()
+        with pytest.raises(DBAPIError, match='permission denied|42501'):
+            with backup_engine.connect() as connection:
+                connection.execute(
+                    text('SELECT cafeteria.ensure_auth_capability_state()')
+                ).scalar_one()
+        with pytest.raises(DBAPIError, match='permission denied|42501'):
+            with backup_engine.connect() as connection:
+                connection.execute(
+                    text('SELECT cafeteria.hard_reset_auth_capability_state()')
+                ).scalar_one()
+        denied_queries = (
+            text('SELECT count(*) FROM cafeteria.auth_capability_secrets'),
+            text('SELECT count(*) FROM cafeteria.auth_capability_nonces'),
+        )
+        for denied_query in denied_queries:
+            with pytest.raises(DBAPIError, match='permission denied|42501'):
+                with backup_engine.connect() as connection:
+                    connection.execute(denied_query).scalar_one()
+    finally:
+        backup_engine.dispose()
+
+    with database_engine.connect() as connection:
+        (
+            secret_select,
+            nonce_select,
+            secret_sequence_select,
+            hard_reset_execute,
+            ensure_execute,
+        ) = connection.execute(
+            text(
+                '''
+                SELECT
+                    has_table_privilege(
+                        'cafeteria_backup', 'cafeteria.auth_capability_secrets', 'SELECT'
+                    ),
+                    has_table_privilege(
+                        'cafeteria_backup', 'cafeteria.auth_capability_nonces', 'SELECT'
+                    ),
+                    has_sequence_privilege(
+                        'cafeteria_backup',
+                        'cafeteria.auth_capability_secrets_id_seq',
+                        'SELECT'
+                    ),
+                    has_function_privilege(
+                        'cafeteria_backup',
+                        'cafeteria.hard_reset_auth_capability_state()',
+                        'EXECUTE'
+                    ),
+                    has_function_privilege(
+                        'cafeteria_backup',
+                        'cafeteria.ensure_auth_capability_state()',
+                        'EXECUTE'
+                    )
+                '''
+            )
+        ).one()
+    assert secret_select is False
+    assert nonce_select is False
+    assert secret_sequence_select is False
+    assert hard_reset_execute is False
+    assert ensure_execute is False
+
+
+@LIVE_DATABASE
+def test_entra_identity_sync_is_owner_only_and_does_not_reenable_user(
+    database_engine: Engine,
+) -> None:
+    claims = {
+        'tid': '11111111-1111-1111-1111-111111111111',
+        'oid': '22222222-2222-2222-2222-222222222222',
+        'sub': 'entra-subject',
+        'name': 'Entra Test',
+        'email': 'entra@example.invalid',
+        'preferred_username': 'entra@example.invalid',
+    }
+    roles = ['Cafeteria.Publisher']
+    invalid_role_inputs: tuple[object, ...] = (
+        None,
+        ('Cafeteria.Publisher',),
+        ['Cafeteria.Publisher', 'Cafeteria.Publisher'],
+        [' Cafeteria.Publisher'],
+        ['cafeteria.publisher'],
+        ['Cafeteria.\u200bPublisher'],
+        ['Cafeteria.Future'],
+        [None],
+    )
+    for invalid_roles in invalid_role_inputs:
+        with pytest.raises(ValueError, match='Entra-Rollen'):
+            database.upsert_entra_user(
+                database_engine,
+                claims,
+                invalid_roles,  # type: ignore[arg-type]
+            )
+
+    user_id = database.upsert_entra_user(database_engine, claims, roles)
+    with database_engine.begin() as connection:
+        connection.execute(
+            text('UPDATE cafeteria.users SET disabled_at=clock_timestamp() WHERE id=:user_id'),
+            {'user_id': user_id},
+        )
+    database.upsert_entra_user(database_engine, claims, roles)
+    with database_engine.connect() as connection:
+        disabled, assigned_roles = connection.execute(
+            text(
+                '''
+                SELECT u.disabled_at IS NOT NULL,
+                       array_agg(r.role_code ORDER BY r.role_code)
+                FROM cafeteria.users u
+                JOIN cafeteria.user_role_cache r ON r.user_id=u.id
+                WHERE u.id=:user_id
+                GROUP BY u.id
+                '''
+            ),
+            {'user_id': user_id},
+        ).one()
+    assert disabled is True
+    assert assigned_roles == ['Cafeteria.Publisher']
+
+    with pytest.raises(DBAPIError, match='unbekannte|doppelte|42501'):
+        with database_engine.begin() as connection:
+            connection.execute(
+                text(
+                    '''
+                    SELECT cafeteria.sync_entra_user(
+                        CAST(:tenant_id AS uuid), CAST(:object_id AS uuid),
+                        :subject_id, :display_name, :email, :preferred_username,
+                        CAST(:roles AS text[])
+                    )
+                    '''
+                ),
+                {
+                    'tenant_id': claims['tid'],
+                    'object_id': claims['oid'],
+                    'subject_id': claims['sub'],
+                    'display_name': claims['name'],
+                    'email': claims['email'],
+                    'preferred_username': claims['preferred_username'],
+                    'roles': ['Cafeteria.Publisher', 'Cafeteria.Publisher'],
+                },
+            ).scalar_one()
+
+    _apply_role_permissions(database_engine)
+    app_engine = create_engine(
+        _role_database_url('cafeteria_app', 'test-app-secret'),
+        poolclass=NullPool,
+        pool_pre_ping=True,
+    )
+    try:
+        with pytest.raises(DBAPIError, match='permission denied|42501'):
+            database.upsert_entra_user(app_engine, claims, roles)
+    finally:
+        app_engine.dispose()
 
 
 def test_config_database_paths_are_repo_local(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -6,6 +6,7 @@ import os
 import re
 import unicodedata
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -13,8 +14,8 @@ from psycopg import sql
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
-SCHEMA_VERSION = 7
-APPLICATION_VERSION = 'dishboard-schema-v7'
+SCHEMA_VERSION = 8
+APPLICATION_VERSION = 'dishboard-schema-v8'
 SYSTEM_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000001'
 DEMO_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000002'
 PROFILES = {'patient', 'staff_guest'}
@@ -44,8 +45,16 @@ MIGRATION_FILES = (
     (5, '0002_profile_publication_and_local_auth.sql'),
     (6, '0003_patient_key_and_withdrawal_contracts.sql'),
     (7, '0004_patient_key_lock_and_capability_contracts.sql'),
+    (8, '0005_least_privilege_identity_contracts.sql'),
 )
 MIGRATION_LOCK_ID = 731_905_005
+DEFAULT_CAPABILITY_TTL = timedelta(minutes=5)
+MAX_CAPABILITY_TTL = timedelta(minutes=15)
+ENTRA_APPLICATION_ROLES = frozenset({
+    'Cafeteria.Editor',
+    'Cafeteria.Publisher',
+    'Cafeteria.Admin',
+})
 
 
 def create_database_engine(
@@ -475,27 +484,29 @@ def active_snapshot(
         raise
 
 
-def upsert_entra_user(engine: Engine, claims: dict[str, Any], roles: list[str]) -> int:
-    roles_json = json.dumps(sorted(set(roles)), ensure_ascii=False)
-    with engine.begin() as connection:
+def upsert_entra_user(issuer_engine: Engine, claims: dict[str, Any], roles: list[str]) -> int:
+    """Synchronize an Entra identity through an owner/issuer database connection."""
+
+    if not isinstance(roles, list):
+        raise ValueError('Entra-Rollen müssen als Liste übergeben werden.')
+    if any(not isinstance(role, str) or role not in ENTRA_APPLICATION_ROLES for role in roles):
+        raise ValueError('Entra-Rollenliste enthält unbekannte oder ungültige Rollen.')
+    if len(set(roles)) != len(roles):
+        raise ValueError('Entra-Rollenliste enthält doppelte Rollen.')
+
+    with issuer_engine.begin() as connection:
         user_id = connection.execute(
             text(
                 '''
-                INSERT INTO cafeteria.users(
-                    auth_provider, entra_tenant_id, entra_object_id, entra_subject_id,
-                    display_name, email, preferred_username, last_seen_roles, last_login_at
+                SELECT cafeteria.sync_entra_user(
+                    CAST(:tenant_id AS uuid),
+                    CAST(:object_id AS uuid),
+                    :subject_id,
+                    :display_name,
+                    :email,
+                    :preferred_username,
+                    CAST(:roles AS text[])
                 )
-                VALUES ('entra', CAST(:tenant_id AS uuid), CAST(:object_id AS uuid), :subject_id,
-                        :display_name, :email, :preferred_username, CAST(:roles AS jsonb), clock_timestamp())
-                ON CONFLICT (entra_tenant_id, entra_object_id) WHERE auth_provider='entra' DO UPDATE
-                SET entra_subject_id=EXCLUDED.entra_subject_id,
-                    display_name=EXCLUDED.display_name,
-                    email=EXCLUDED.email,
-                    preferred_username=EXCLUDED.preferred_username,
-                    last_seen_roles=EXCLUDED.last_seen_roles,
-                    last_login_at=clock_timestamp(),
-                    disabled_at=NULL
-                RETURNING id
                 '''
             ),
             {
@@ -505,25 +516,9 @@ def upsert_entra_user(engine: Engine, claims: dict[str, Any], roles: list[str]) 
                 'display_name': claims.get('name') or claims.get('preferred_username') or 'Unbekannt',
                 'email': claims.get('email'),
                 'preferred_username': claims.get('preferred_username'),
-                'roles': roles_json,
+                'roles': roles,
             },
         ).scalar_one()
-        connection.execute(
-            text("DELETE FROM cafeteria.user_role_cache WHERE user_id=:user_id AND source='entra_token'"),
-            {'user_id': user_id},
-        )
-        for role in sorted(set(roles)):
-            connection.execute(
-                text(
-                    '''
-                    INSERT INTO cafeteria.user_role_cache(user_id, role_code, source, first_seen_at, last_seen_at)
-                    VALUES (:user_id, :role, 'entra_token', clock_timestamp(), clock_timestamp())
-                    ON CONFLICT (user_id, role_code) DO UPDATE
-                    SET source='entra_token', last_seen_at=clock_timestamp()
-                    '''
-                ),
-                {'user_id': user_id, 'role': role},
-            )
     return int(user_id)
 
 
@@ -542,12 +537,16 @@ def demo_user(engine: Engine) -> dict[str, Any]:
 
 
 def issue_publication_capability(
-    engine: Engine,
+    issuer_engine: Engine,
     actor_user_id: int,
     revision_id: int,
-    ttl: str = '5 minutes',
+    ttl: timedelta = DEFAULT_CAPABILITY_TTL,
 ) -> str:
-    with engine.begin() as connection:
+    """Issue a withdrawal capability through an owner/issuer connection."""
+
+    if not isinstance(ttl, timedelta) or not timedelta(0) < ttl <= MAX_CAPABILITY_TTL:
+        raise ValueError('Capability-Gültigkeit muss > 0 und höchstens 15 Minuten sein.')
+    with issuer_engine.begin() as connection:
         token = connection.execute(
             text(
                 'SELECT cafeteria.issue_publication_capability('

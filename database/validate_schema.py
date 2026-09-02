@@ -22,6 +22,7 @@ MIGRATION_0001 = ROOT / 'database' / 'migrations' / '0001_initial_postgresql.sql
 MIGRATION_0002 = ROOT / 'database' / 'migrations' / '0002_profile_publication_and_local_auth.sql'
 MIGRATION_0003 = ROOT / 'database' / 'migrations' / '0003_patient_key_and_withdrawal_contracts.sql'
 MIGRATION_0004 = ROOT / 'database' / 'migrations' / '0004_patient_key_lock_and_capability_contracts.sql'
+MIGRATION_0005 = ROOT / 'database' / 'migrations' / '0005_least_privilege_identity_contracts.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
 PAT_JSON = ROOT / 'demo' / 'snapshots' / 'patienten_kw36.json'
@@ -52,7 +53,6 @@ def table_block(sql: str, name: str) -> str:
     )
     if not match:
         fail(f'Tabelle fehlt oder kann nicht gelesen werden: {name}')
-    assert match is not None
     return match.group(1)
 
 
@@ -89,7 +89,70 @@ def run_live_check() -> dict[str, Any]:
     from sqlalchemy import create_engine, text
     from sqlalchemy.pool import NullPool
 
-    from cafeteria.db import run_migrations
+    from cafeteria.db import _execute_script, run_migrations
+
+    catalog_queries = {
+        'columns': '''
+            SELECT table_name, ordinal_position, column_name, data_type, udt_name,
+                   is_nullable, column_default
+            FROM information_schema.columns
+            WHERE table_schema=:schema_name
+            ORDER BY table_name, ordinal_position
+        ''',
+        'constraints': '''
+            SELECT rel.relname, con.conname, con.contype, pg_get_constraintdef(con.oid, true)
+            FROM pg_constraint con
+            JOIN pg_class rel ON rel.oid=con.conrelid
+            JOIN pg_namespace ns ON ns.oid=rel.relnamespace
+            WHERE ns.nspname=:schema_name
+            ORDER BY rel.relname, con.conname
+        ''',
+        'indexes': '''
+            SELECT tab.relname, idx.relname, pg_get_indexdef(i.indexrelid)
+            FROM pg_index i
+            JOIN pg_class tab ON tab.oid=i.indrelid
+            JOIN pg_class idx ON idx.oid=i.indexrelid
+            JOIN pg_namespace ns ON ns.oid=tab.relnamespace
+            WHERE ns.nspname=:schema_name
+            ORDER BY tab.relname, idx.relname
+        ''',
+        'functions': '''
+            SELECT p.proname, pg_get_function_identity_arguments(p.oid), p.prokind,
+                   p.prosecdef, p.proconfig, p.prosrc
+            FROM pg_proc p
+            JOIN pg_namespace ns ON ns.oid=p.pronamespace
+            WHERE ns.nspname=:schema_name
+            ORDER BY p.proname, pg_get_function_identity_arguments(p.oid)
+        ''',
+        'triggers': '''
+            SELECT rel.relname, trg.tgname, pg_get_triggerdef(trg.oid, true)
+            FROM pg_trigger trg
+            JOIN pg_class rel ON rel.oid=trg.tgrelid
+            JOIN pg_namespace ns ON ns.oid=rel.relnamespace
+            WHERE ns.nspname=:schema_name AND NOT trg.tgisinternal
+            ORDER BY rel.relname, trg.tgname
+        ''',
+        'views': '''
+            SELECT viewname, definition FROM pg_views
+            WHERE schemaname=:schema_name ORDER BY viewname
+        ''',
+    }
+
+    def structure(schema_name: str) -> dict[str, list[tuple[Any, ...]]]:
+        result: dict[str, list[tuple[Any, ...]]] = {}
+        with engine.connect() as connection:
+            for name, query in catalog_queries.items():
+                rows = connection.execute(text(query), {'schema_name': schema_name}).tuples().all()
+                result[name] = [
+                    tuple(
+                        value.replace(f'{schema_name}.', '<schema>.')
+                        if isinstance(value, str)
+                        else value
+                        for value in row
+                    )
+                    for row in rows
+                ]
+        return result
 
     engine = create_engine(database_url, poolclass=NullPool, pool_pre_ping=True)
     try:
@@ -113,18 +176,29 @@ def run_live_check() -> dict[str, Any]:
                     '''
                 )
             ).mappings().one()
-        if int(row['schema_version']) != 7:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 7.")
+        if int(row['schema_version']) != 8:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 8.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
+        migrated_structure = structure('cafeteria')
+        with engine.begin() as connection:
+            connection.execute(text('ALTER SCHEMA cafeteria RENAME TO cafeteria_migrated_contract'))
+        _execute_script(engine, str(SCHEMA))
+        baseline_structure = structure('cafeteria')
+        for object_type, expected in migrated_structure.items():
+            actual = baseline_structure[object_type]
+            if actual != expected:
+                fail(f'Schema-Baseline weicht bei {object_type} vom Migrationsergebnis ab.')
         return {
             'live_postgresql_executed': True,
             'server_version': row['server_version'],
             'live_schema_version': int(row['schema_version']),
+            'baseline_migration_equivalent': True,
         }
     finally:
         with engine.begin() as connection:
             connection.execute(text('DROP SCHEMA IF EXISTS cafeteria CASCADE'))
+            connection.execute(text('DROP SCHEMA IF EXISTS cafeteria_migrated_contract CASCADE'))
         engine.dispose()
 
 
@@ -194,10 +268,19 @@ def main() -> int:
         sql = SCHEMA.read_text(encoding='utf-8')
         migration_0002 = MIGRATION_0002.read_text(encoding='utf-8')
         migration_0003 = MIGRATION_0003.read_text(encoding='utf-8')
+        migration_0005 = MIGRATION_0005.read_text(encoding='utf-8')
         seed = SEED.read_text(encoding='utf-8')
-        baseline_checksum = hashlib.sha256(MIGRATION_0001.read_bytes()).hexdigest()
-        if baseline_checksum != 'd1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0':
-            fail('0001_initial_postgresql.sql wurde nachträglich verändert.')
+        immutable_migration_checksums = {
+            MIGRATION_0001: 'd1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0',
+            MIGRATION_0002: '7f8696eb886a99d841ac82be1e4b3abf1b51080c18aac07ea5290325f3e5e863',
+            MIGRATION_0003: 'eda9c5e851525367af62a3f056b3592a521d871f6ac818d4d50c18d8f720d1de',
+            MIGRATION_0004: '7309069f1b52d41a756a315af8b6ccf0771afe113875a6c5f82d42775f74b066',
+        }
+        for migration_path, expected_checksum in immutable_migration_checksums.items():
+            actual_checksum = hashlib.sha256(migration_path.read_bytes()).hexdigest()
+            if actual_checksum != expected_checksum:
+                fail(f'{migration_path.name} wurde nachträglich verändert.')
+        baseline_checksum = immutable_migration_checksums[MIGRATION_0001]
 
         tables = re.findall(r'^CREATE TABLE IF NOT EXISTS\s+([a-z_]+)', sql, re.M | re.I)
         required_tables = {
@@ -230,6 +313,10 @@ def main() -> int:
             'FOR UPDATE OF w',
             'patient_key_is_forbidden',
             'withdrawn_by',
+            'sync_entra_user',
+            'ensure_auth_capability_state',
+            'hard_reset_auth_capability_state',
+            "interval '15 minutes'",
         ):
             if fragment not in sql:
                 fail(f'Pflichtfragment fehlt: {fragment}')
@@ -272,6 +359,18 @@ def main() -> int:
             if fragment not in migration_0004:
                 fail(f'Pflichtfragment in 0004 fehlt: {fragment}')
 
+        for fragment in (
+            'sync_entra_user',
+            'ensure_auth_capability_state',
+            'hard_reset_auth_capability_state',
+            "interval '15 minutes'",
+            'authz_version darf nicht zurückgesetzt werden',
+            'REVOKE ALL ON cafeteria.users',
+            'cafeteria.auth_capability_secrets',
+        ):
+            if fragment not in migration_0005:
+                fail(f'Pflichtfragment in 0005 fehlt: {fragment}')
+
         for name in ('menu_weeks', 'menu_services', 'menu_items', 'dish_templates'):
             block = table_block(sql, name).lower()
             if re.search(r'\b(price|preis|internal_rappen|external_rappen)\b', block):
@@ -307,12 +406,13 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 7,
+            'schema_version': 8,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
                 '0003_patient_key_and_withdrawal_contracts.sql': hashlib.sha256(MIGRATION_0003.read_bytes()).hexdigest(),
                 '0004_patient_key_lock_and_capability_contracts.sql': hashlib.sha256(MIGRATION_0004.read_bytes()).hexdigest(),
+                '0005_least_privilege_identity_contracts.sql': hashlib.sha256(MIGRATION_0005.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))
