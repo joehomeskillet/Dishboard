@@ -349,6 +349,10 @@ def test_host_caddy_example_proxies_only_to_loopback_app_port() -> None:
         "registry.example.invalid/dishboard@sha256:short",
         "sha256:short",
         "sha256:" + ("A" * 64),
+        "sha256:" + ("a" * 63),
+        "sha256:" + ("a" * 65),
+        "registry.example.invalid/dishboard@sha256:" + ("a" * 63),
+        "registry.example.invalid/dishboard@sha256:" + ("a" * 65),
         "",
     ),
 )

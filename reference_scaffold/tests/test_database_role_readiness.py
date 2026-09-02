@@ -179,3 +179,34 @@ def test_validator_rejects_runtime_role_membership_drift_until_reprovisioned(
     finally:
         with owner_engine.begin() as connection:
             connection.execute(text('DROP ROLE IF EXISTS readiness_parent_test'))
+
+
+@pytest.mark.parametrize('role_name,_password', RUNTIME_ROLE_CREDENTIALS)
+def test_validator_rejects_reverse_runtime_role_membership_drift_until_reprovisioned(
+    owner_engine: Engine,
+    role_name: str,
+    _password: str,
+) -> None:
+    """Test that granting the runtime role TO another role is detected as drift."""
+    with owner_engine.begin() as connection:
+        connection.execute(text('DROP ROLE IF EXISTS readiness_child_test'))
+        connection.execute(text('CREATE ROLE readiness_child_test NOLOGIN'))
+        _grant_role(connection, role_name, 'readiness_child_test')
+    try:
+        before_repair = database.validate_database(owner_engine)
+        assert before_repair['runtime_role_hardening_ready'] is False
+        assert before_repair['ready'] is False
+
+        database.provision_database_roles(
+            owner_engine,
+            app_password=APP_PASSWORD,
+            backup_password=BACKUP_PASSWORD,
+            auth_issuer_password=ISSUER_PASSWORD,
+        )
+
+        after_repair = database.validate_database(owner_engine)
+        assert after_repair['runtime_role_hardening_ready'] is True
+        assert after_repair['ready'] is True
+    finally:
+        with owner_engine.begin() as connection:
+            connection.execute(text('DROP ROLE IF EXISTS readiness_child_test'))
