@@ -36,14 +36,8 @@ from cafeteria.component_catalog_store import (
 ROOT = Path(__file__).resolve().parents[2]
 DATABASE_URL = os.getenv('TEST_DATABASE_URL')
 OUTPUT_KEYS = {
-    'public_id',
-    'profile_scope',
-    'category',
-    'name',
-    'origin_country_code',
-    'active',
-    'row_version',
-    'usage_count',
+    'public_id', 'profile_scope', 'category', 'name', 'origin_country_code',
+    'active', 'row_version', 'usage_count', 'labels', 'allergens',
 }
 
 
@@ -231,9 +225,11 @@ def _create(
     origin: str | None = 'CH',
     target: str = 'current',
     profile: str = 'patient',
+    labels: tuple[str, ...] = (),
+    allergens: tuple[tuple[str, str], ...] = (),
 ) -> dict[str, object]:
     return create_component(
-        database.app, _scope(database, profile), category, name, origin, target,
+        database.app, _scope(database, profile), category, name, origin, target, labels, allergens,
     )
 
 
@@ -312,6 +308,8 @@ def test_create_maps_scope_and_returns_only_public_contract(catalog_database: Ca
         'active': True,
         'row_version': 1,
         'usage_count': 0,
+        'labels': [],
+        'allergens': [],
     }
     assert current['profile_scope'] == 'staff_guest'
 
@@ -344,7 +342,7 @@ def test_create_rejects_non_exact_input_without_mutation(
             AdminScope(**scope_args)  # type: ignore[arg-type]
         else:
             assert call_args is not None
-            create_component(catalog_database.app, _scope(catalog_database), *call_args)
+            create_component(catalog_database.app, _scope(catalog_database), *call_args, (), ())
 
     with catalog_database.owner.connect() as connection:
         assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_components')).scalar_one() == 0
@@ -391,7 +389,7 @@ def test_get_and_find_hide_foreign_location_profile_and_unknown_ids(catalog_data
             get_component(catalog_database.app, _scope(catalog_database), hidden)
     for hidden in (foreign_profile, foreign_location):
         with pytest.raises(ComponentNotFoundError):
-            update_component(catalog_database.app, _scope(catalog_database), hidden, {'category': 'side', 'name': 'X', 'origin_country_code': None}, 1)
+            update_component(catalog_database.app, _scope(catalog_database), hidden, {'category': 'side', 'name': 'X', 'origin_country_code': None, 'label_codes': (), 'allergens': ()}, 1)
         for operation in (archive_component, unarchive_component):
             with pytest.raises(ComponentNotFoundError):
                 operation(catalog_database.app, _scope(catalog_database), hidden, 1)
@@ -475,7 +473,7 @@ def test_update_requires_exact_payload_and_optimistic_version(catalog_database: 
         catalog_database.app,
         _scope(catalog_database),
         public_id,
-        {'category': 'vegetable', 'name': '  Wirz  ', 'origin_country_code': None},
+        {'category': 'vegetable', 'name': '  Wirz  ', 'origin_country_code': None, 'label_codes': (), 'allergens': ()},
         version,
     ) == 2
     assert _updated_at(catalog_database, public_id) > before
@@ -483,7 +481,7 @@ def test_update_requires_exact_payload_and_optimistic_version(catalog_database: 
 
     for payload in (
         {'name': 'Missing fields'},
-        {'category': 'side', 'name': 'Extra', 'origin_country_code': None, 'active': False},
+        {'category': 'side', 'name': 'Extra', 'origin_country_code': None, 'label_codes': (), 'allergens': (), 'active': False},
     ):
         with pytest.raises(ComponentCatalogValidationError):
             update_component(catalog_database.app, _scope(catalog_database), public_id, payload, 2)
@@ -492,7 +490,7 @@ def test_update_requires_exact_payload_and_optimistic_version(catalog_database: 
             catalog_database.app,
             _scope(catalog_database),
             public_id,
-            {'category': 'side', 'name': 'Stale', 'origin_country_code': 'CH'},
+            {'category': 'side', 'name': 'Stale', 'origin_country_code': 'CH', 'label_codes': (), 'allergens': ()},
             version,
         )
     assert get_component(catalog_database.app, _scope(catalog_database), public_id)['row_version'] == 2
@@ -509,7 +507,7 @@ def test_two_concurrent_updates_allow_exactly_one_version_winner(catalog_databas
                 catalog_database.app,
                 _scope(catalog_database),
                 public_id,
-                {'category': 'side', 'name': name, 'origin_country_code': 'CH'},
+                {'category': 'side', 'name': name, 'origin_country_code': 'CH', 'label_codes': (), 'allergens': ()},
                 version,
             )
         except StaleComponentError as error:
@@ -556,7 +554,7 @@ def test_unique_conflict_translation_is_narrow_for_update(catalog_database: Cata
             catalog_database.app,
             _scope(catalog_database),
             str(second['public_id']),
-            {'category': 'side', 'name': ' ERBSEN ', 'origin_country_code': None},
+            {'category': 'side', 'name': ' ERBSEN ', 'origin_country_code': None, 'label_codes': (), 'allergens': ()},
             int(second['row_version']),
         )
     assert get_component(
@@ -588,13 +586,13 @@ def test_every_operation_rejects_scope_outside_single_active_location(catalog_da
     public_id = str(component['public_id'])
 
     with pytest.raises(ComponentCatalogConfigurationError):
-        create_component(catalog_database.app, foreign_scope, 'side', 'Fremd', None, 'current')
+        create_component(catalog_database.app, foreign_scope, 'side', 'Fremd', None, 'current', (), ())
     with pytest.raises(ComponentCatalogConfigurationError):
         find_components(catalog_database.app, foreign_scope, '', None, False)
     with pytest.raises(ComponentCatalogConfigurationError):
         get_component(catalog_database.app, foreign_scope, public_id)
     with pytest.raises(ComponentCatalogConfigurationError):
-        update_component(catalog_database.app, foreign_scope, public_id, {'category': 'side', 'name': 'X', 'origin_country_code': None}, 1)
+        update_component(catalog_database.app, foreign_scope, public_id, {'category': 'side', 'name': 'X', 'origin_country_code': None, 'label_codes': (), 'allergens': ()}, 1)
     for operation in (archive_component, unarchive_component):
         with pytest.raises(ComponentCatalogConfigurationError):
             operation(catalog_database.app, foreign_scope, public_id, 1)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Literal
 from uuid import UUID
@@ -9,20 +9,35 @@ from uuid import UUID
 from sqlalchemy import Connection, Engine, text
 from sqlalchemy.exc import IntegrityError
 
+from cafeteria.component_catalog_metadata import (
+    AllergenInput,
+    MetadataValidationError,
+    NormalizedMetadata,
+    category as _category,
+    component_name as _name,
+    escape_like as _escape_like,
+    load_public_metadata,
+    normalize_metadata,
+    origin_country_code as _origin_country_code,
+    positive_integer as _positive_integer,
+    public_component as _public_component,
+    replace_metadata,
+    resolve_metadata,
+)
 
-_CATEGORIES = ('meat', 'side', 'vegetable', 'sauce', 'dessert', 'other')
+
 _PROFILES = ('patient', 'staff_guest')
 _TARGET_SCOPES = ('common', 'current')
-_UPDATE_KEYS = frozenset({'category', 'name', 'origin_country_code'})
+_UPDATE_KEYS = frozenset(
+    {'category', 'name', 'origin_country_code', 'label_codes', 'allergens'}
+)
 _UUID_PATTERN = re.compile(
     r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', re.IGNORECASE
 )
-_COUNTRY_PATTERN = re.compile(r'[A-Z]{2}')
 _NAME_UNIQUE_CONSTRAINT = 'uq_menu_components_location_scope_name'
 
 
-class ComponentCatalogValidationError(ValueError):
-    pass
+ComponentCatalogValidationError = MetadataValidationError
 
 
 class ComponentCatalogConfigurationError(RuntimeError):
@@ -72,10 +87,13 @@ def create_component(
     name: str,
     origin_country_code: str | None,
     target_scope: Literal['common', 'current'],
+    label_codes: Sequence[str],
+    allergens: Sequence[AllergenInput],
 ) -> dict[str, object]:
     clean_category = _category(category)
     clean_name = _name(name)
     clean_origin = _origin_country_code(origin_country_code)
+    clean_metadata = normalize_metadata(label_codes, allergens)
     if type(target_scope) is not str or target_scope not in _TARGET_SCOPES:
         raise ComponentCatalogValidationError('Ungültiger Komponenten-Scope.')
     profile_scope = 'common' if target_scope == 'common' else scope.profile_code
@@ -90,7 +108,7 @@ def create_component(
                     ) VALUES (
                         :location_id, :profile_scope, :category, :name, :origin_country_code
                     )
-                    RETURNING public_id::text AS public_id, profile_scope, category, name,
+                    RETURNING id, public_id::text AS public_id, profile_scope, category, name,
                               origin_country_code, active, row_version, 0::bigint AS usage_count
                     '''
                 ),
@@ -102,7 +120,11 @@ def create_component(
                     'origin_country_code': clean_origin,
                 },
             ).mappings().one()
-            return _public_component(row)
+            component_id = int(row['id'])
+            resolved = resolve_metadata(connection, component_id, clean_metadata)
+            replace_metadata(connection, component_id, resolved)
+            public_metadata = load_public_metadata(connection, [component_id])[component_id]
+            return _public_component(row, public_metadata)
     except IntegrityError as error:
         _raise_name_conflict(error)
         raise
@@ -126,7 +148,7 @@ def find_components(
         rows = connection.execute(
             text(
                 '''
-                SELECT c.public_id::text AS public_id, c.profile_scope, c.category, c.name,
+                SELECT c.id, c.public_id::text AS public_id, c.profile_scope, c.category, c.name,
                        c.origin_country_code, c.active, c.row_version,
                        (SELECT count(*) FROM cafeteria.menu_item_components mic
                         WHERE mic.component_id=c.id) AS usage_count
@@ -157,7 +179,8 @@ def find_components(
                 'query': f'%{escaped_query}%',
             },
         ).mappings().all()
-        return [_public_component(row) for row in rows]
+        metadata = load_public_metadata(connection, [int(row['id']) for row in rows])
+        return [_public_component(row, metadata[int(row['id'])]) for row in rows]
 
 
 def get_component(
@@ -175,7 +198,7 @@ def get_component(
         row = connection.execute(
             text(
                 '''
-                SELECT c.public_id::text AS public_id, c.profile_scope, c.category, c.name,
+                SELECT c.id, c.public_id::text AS public_id, c.profile_scope, c.category, c.name,
                        c.origin_country_code, c.active, c.row_version,
                        (SELECT count(*) FROM cafeteria.menu_item_components mic
                         WHERE mic.component_id=c.id) AS usage_count
@@ -195,7 +218,10 @@ def get_component(
         ).mappings().one_or_none()
         if row is None:
             raise ComponentNotFoundError('Komponente nicht gefunden.')
-        return _public_component(row)
+        component_id = int(row['id'])
+        return _public_component(
+            row, load_public_metadata(connection, [component_id])[component_id]
+        )
 
 
 def update_component(
@@ -206,13 +232,23 @@ def update_component(
     version: int,
 ) -> int:
     canonical_public_id = _public_id(public_id)
-    clean_category, clean_name, clean_origin = _update_payload(payload)
+    clean_category, clean_name, clean_origin, clean_metadata = _update_payload(payload)
     expected_version = _positive_integer(version, 'row_version')
     try:
         with engine.begin() as connection:
-            component_id = _lock_component(
+            row = _lock_component(
                 connection, scope, canonical_public_id, expected_version
-            )['id']
+            )
+            component_id = int(row['id'])
+            resolved = resolve_metadata(connection, component_id, clean_metadata)
+            scalar_changed = (
+                str(row['category']) != clean_category
+                or str(row['name']) != clean_name
+                or row['origin_country_code'] != clean_origin
+            )
+            if not scalar_changed and not resolved.changed:
+                return int(row['row_version'])
+            replace_metadata(connection, component_id, resolved)
             return int(
                 connection.execute(
                     text(
@@ -299,7 +335,7 @@ def _lock_component(
     row = connection.execute(
         text(
             '''
-            SELECT id, active, row_version
+            SELECT id, active, row_version, category, name, origin_country_code
             FROM cafeteria.menu_components
             WHERE public_id=CAST(:public_id AS uuid)
               AND location_id=:location_id
@@ -325,44 +361,17 @@ def _require_scope_location(connection: Connection, scope: AdminScope) -> None:
         raise ComponentCatalogConfigurationError('Standort-Scope ist nicht aktiv.')
 
 
-def _update_payload(payload: Mapping[str, object]) -> tuple[str, str, str | None]:
+def _update_payload(
+    payload: Mapping[str, object],
+) -> tuple[str, str, str | None, NormalizedMetadata]:
     if not isinstance(payload, Mapping) or frozenset(payload) != _UPDATE_KEYS:
         raise ComponentCatalogValidationError('Ungültige Bearbeitungsfelder.')
     return (
         _category(payload['category']),
         _name(payload['name']),
         _origin_country_code(payload['origin_country_code']),
+        normalize_metadata(payload['label_codes'], payload['allergens']),
     )
-
-
-def _positive_integer(value: object, field_name: str) -> int:
-    if type(value) is not int or value <= 0:
-        raise ComponentCatalogValidationError(f'Ungültiges Feld: {field_name}.')
-    return value
-
-
-def _category(value: object) -> str:
-    if type(value) is not str or value not in _CATEGORIES:
-        raise ComponentCatalogValidationError('Ungültige Kategorie.')
-    return value
-
-
-def _name(value: object) -> str:
-    if type(value) is not str or not value.strip():
-        raise ComponentCatalogValidationError('Name darf nicht leer sein.')
-    return value.strip()
-
-
-def _origin_country_code(value: object) -> str | None:
-    if value is None:
-        return None
-    if type(value) is not str:
-        raise ComponentCatalogValidationError('Ungültiges Herkunftsland.')
-    if not value.strip():
-        return None
-    if _COUNTRY_PATTERN.fullmatch(value) is None:
-        raise ComponentCatalogValidationError('Herkunftsland muss ein ISO-Ländercode sein.')
-    return value
 
 
 def _public_id(value: object) -> str:
@@ -371,21 +380,6 @@ def _public_id(value: object) -> str:
     return str(UUID(value))
 
 
-def _escape_like(value: str) -> str:
-    return value.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
-
-
-def _public_component(row: Mapping[str, object]) -> dict[str, object]:
-    return {
-        'public_id': str(UUID(str(row['public_id']))),
-        'profile_scope': str(row['profile_scope']),
-        'category': str(row['category']),
-        'name': str(row['name']),
-        'origin_country_code': row['origin_country_code'],
-        'active': bool(row['active']),
-        'row_version': int(row['row_version']),
-        'usage_count': int(row['usage_count']),
-    }
 
 
 def _raise_name_conflict(error: IntegrityError) -> None:
