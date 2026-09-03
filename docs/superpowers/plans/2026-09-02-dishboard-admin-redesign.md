@@ -34,7 +34,7 @@
 |---|---|---|
 | 1 | `database/schema.sql`, `database/migrations/0010_v12_to_v13.sql`, `database/permissions.sql`, `database/validate_schema.py`, `database/README.md`, `tools/validate_package.py`, `PACKAGE_CONTENTS.txt`, `MANIFEST_SHA256.txt`, `reference_scaffold/cafeteria/db.py`, `reference_scaffold/tests/test_component_catalog_migration_db.py`, `reference_scaffold/tests/test_auth_database.py`, `reference_scaffold/tests/test_database_invariants.py` | Schema v13, idempotente Migration, Restore-ACLs, Validator-/Package-Pins und Migration-Backfill; je Wave genau ein serialer Owner für `schema.sql` und `db.py`. |
 | 2 | `reference_scaffold/cafeteria/component_catalog_store.py`, `reference_scaffold/cafeteria/component_catalog_metadata.py`, `reference_scaffold/cafeteria/component_assignment_store.py`, `reference_scaffold/cafeteria/workflow.py`, `reference_scaffold/cafeteria/workflow_snapshot.py`, `reference_scaffold/tests/test_component_catalog_db.py`, `reference_scaffold/tests/test_component_catalog_metadata_db.py`, `reference_scaffold/tests/test_component_assignment_db.py`, `reference_scaffold/tests/test_admin_workflow_db.py` | Katalog samt atomaren Label-/Allergen-Metadaten, Scope/Location, Assignment, Auto/Manual-Auflösung, Review und Snapshot. Katalog- und Assignment-Operationen bleiben in den jeweiligen Stores; die private Metadatenhilfe hält Produktionsmodule unter 400 Zeilen; `workflow.py` verdrahtet sie. |
-| 3 | `reference_scaffold/cafeteria/__init__.py`, `reference_scaffold/cafeteria/admin/routes.py`, `reference_scaffold/cafeteria/admin/workflow_routes.py`, `reference_scaffold/cafeteria/workflow_partial_form.py`, `reference_scaffold/cafeteria/workflow_partial_store.py`, `reference_scaffold/cafeteria/workflow_copy_store.py`, `reference_scaffold/cafeteria/workflow_store.py`, `reference_scaffold/tests/test_component_catalog_routes.py`, `reference_scaffold/tests/test_admin_workflow_routes.py`, `reference_scaffold/tests/test_admin_week_routes.py`, `reference_scaffold/tests/test_admin_draft_preview.py`, `reference_scaffold/tests/test_admin_ux_browser.py`, `reference_scaffold/tests/test_workflow_partial_store_db.py`, `reference_scaffold/tests/test_workflow_copy_store_db.py` | URL-Familien, exact Form Keys, scoped Resolver, Partial-Saves, route-unabhängige Vorwochen-Copy, Preview, Publish/PRG, 400/404/409/503/CSRF. `admin/routes.py` ist ein kleiner serieller Adapter; `workflow_routes.py` trägt die neuen Routen und `__init__.py` registriert das Blueprint einmal. CSV-Import/Recovery bleiben erhalten; `persist_draft_connection` nur für vollständigen Import/Recovery. |
+| 3 | `reference_scaffold/cafeteria/__init__.py`, `reference_scaffold/cafeteria/admin/routes.py`, `reference_scaffold/cafeteria/admin/workflow_routes.py`, `reference_scaffold/cafeteria/workflow_partial_form.py`, `reference_scaffold/cafeteria/workflow_partial_store.py`, `reference_scaffold/cafeteria/workflow_copy_store.py`, `reference_scaffold/cafeteria/workflow_store.py`, `reference_scaffold/tests/test_component_catalog_routes.py`, `reference_scaffold/tests/test_admin_workflow_routes.py`, `reference_scaffold/tests/test_admin_week_routes.py`, `reference_scaffold/tests/test_admin_draft_preview.py`, `reference_scaffold/tests/test_workflow_partial_store_db.py`, `reference_scaffold/tests/test_workflow_copy_store_db.py` | URL-Familien, exact Form Keys, scoped Resolver, Partial-Saves, route-unabhängige Vorwochen-Copy, Preview, Publish/PRG, 400/404/409/503/CSRF. `admin/routes.py` ist ein kleiner serieller Adapter; `workflow_routes.py` trägt die neuen Routen und `__init__.py` registriert das Blueprint einmal. CSV-Import/Recovery bleiben erhalten; `persist_draft_connection` nur für vollständigen Import/Recovery. |
 | 4 | `reference_scaffold/cafeteria/templates/admin/cafeteria.html`, `reference_scaffold/cafeteria/templates/admin/patienten.html`, `reference_scaffold/cafeteria/templates/admin/components.html`, `reference_scaffold/cafeteria/templates/admin/component_editor.html`, `reference_scaffold/cafeteria/templates/admin/preview.html`, `reference_scaffold/cafeteria/static/admin.js`, `reference_scaffold/cafeteria/static/app.css`, `reference_scaffold/tests/test_rendered_ui.py`, `reference_scaffold/tests/test_admin_ux_browser.py` | Novice-Übersicht/Editor, Templates, JS-State/Dirty-Guard, CSS, Render- und Browser-A11y. Neue Templates nur nach bestehendem Projekt-Generator prüfen. |
 | 5 | alle vorgenannten Tests plus `reference_scaffold/tests/test_deployment_compose_probe_live.py`, `reference_scaffold/tests/test_deployment_restore_live.py`, `reference_scaffold/tests/test_deployment_restore_recovery.py`, `reference_scaffold/tests/test_capture_live_screenshots.py`, `reference_scaffold/README.md` | Integration, unabhängige Reviews, Backup/Migration/Restore, Compose, unveränderlicher Digest, Live-Proof. |
 
@@ -309,7 +309,8 @@ arrays; T3b adds atomically managed metadata without changing the record shape.
 ### Task 3b: Atomic component labels and allergens
 
 **Files:** Modify
-`reference_scaffold/cafeteria/component_catalog_store.py`; create the private
+`reference_scaffold/cafeteria/component_catalog_store.py` and
+`reference_scaffold/tests/test_component_catalog_db.py`; create the private
 `reference_scaffold/cafeteria/component_catalog_metadata.py`; create
 `reference_scaffold/tests/test_component_catalog_metadata_db.py`. Keep each
 production module below 400 lines.
@@ -326,6 +327,10 @@ Each label is exactly `code,name`; each allergen exactly
 `code,name,presence`. Sort labels by `(code ASC, name ASC)` and allergens by
 `(code ASC, presence ASC, name ASC)`; expose no internal IDs or timestamps.
 
+- [ ] Migrate `reference_scaffold/tests/test_component_catalog_db.py`:
+  expand `OUTPUT_KEYS` from 8 to the exact 10 public keys above, update
+  expected records and `create_component` helper calls, and add `label_codes`
+  and `allergens` to every old 3-field update payload.
 - [ ] Add focused RED real-PG16 tests for parent-plus-children atomicity,
   stable ordering, exact public keysets, duplicate/unknown/invalid labels,
   duplicate/unknown/invalid allergen pairs and stale update 409. Every metadata
@@ -349,7 +354,7 @@ Each label is exactly `code,name`; each allergen exactly
   rematerialization-on-catalog-edit behavior; catalog writes touch only the
   locked component and child rows and advance the parent version once.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_catalog_db.py tests/test_component_catalog_metadata_db.py -v`; expected PASS.
-- [ ] Stage: `rtk git add reference_scaffold/cafeteria/component_catalog_store.py reference_scaffold/cafeteria/component_catalog_metadata.py reference_scaffold/tests/test_component_catalog_metadata_db.py`.
+- [ ] Stage: `rtk git add reference_scaffold/cafeteria/component_catalog_store.py reference_scaffold/cafeteria/component_catalog_metadata.py reference_scaffold/tests/test_component_catalog_db.py reference_scaffold/tests/test_component_catalog_metadata_db.py`.
 - [ ] Commit: `rtk git commit -m 'feat: add atomic component metadata'`.
 
 ### Task 4: Assignment resolution and independent modes
