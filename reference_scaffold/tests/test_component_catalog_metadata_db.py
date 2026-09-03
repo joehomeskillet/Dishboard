@@ -249,10 +249,37 @@ def test_metadata_size_cap_rejects_65_before_db_and_allows_64_to_normal_validati
     catalog_database: CatalogDatabase,
 ) -> None:
     codes_65 = tuple(f'X{i:02d}' for i in range(65))
-    with pytest.raises(ComponentCatalogValidationError, match='Zu viele'):
-        _create(catalog_database, labels=codes_65, allergens=())
-    with pytest.raises(ComponentCatalogValidationError, match='Unbekanntes'):
-        _create(catalog_database, labels=codes_65[:64], allergens=())
+    helper_calls: list[dict[str, object]] = []
+
+    def capture(
+        _connection: object,
+        clause: object,
+        _multiparams: object,
+        parameters: dict[str, object],
+        _options: object,
+    ) -> None:
+        if 'lock_component_metadata_masters' in str(clause):
+            helper_calls.append(dict(parameters))
+
+    event.listen(catalog_database.app, 'before_execute', capture)
+    try:
+        with pytest.raises(ComponentCatalogValidationError, match='Zu viele'):
+            _create(catalog_database, labels=codes_65, allergens=())
+        assert helper_calls == []
+        with pytest.raises(ComponentCatalogValidationError, match='Unbekanntes'):
+            _create(catalog_database, labels=codes_65[:64], allergens=())
+        assert helper_calls == [{'label_codes': list(codes_65[:64]), 'allergen_codes': []}]
+
+        helper_calls.clear()
+        allergens_65 = tuple((code, 'contains') for code in codes_65)
+        with pytest.raises(ComponentCatalogValidationError, match='Zu viele'):
+            _create(catalog_database, labels=(), allergens=allergens_65)
+        assert helper_calls == []
+        with pytest.raises(ComponentCatalogValidationError, match='Unbekanntes'):
+            _create(catalog_database, labels=(), allergens=allergens_65[:64])
+        assert helper_calls == [{'label_codes': [], 'allergen_codes': list(codes_65[:64])}]
+    finally:
+        event.remove(catalog_database.app, 'before_execute', capture)
     with catalog_database.owner.connect() as connection:
         assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_components')).scalar_one() == 0
 
