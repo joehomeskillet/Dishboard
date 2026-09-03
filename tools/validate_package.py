@@ -77,6 +77,7 @@ REQUIRED_FILES = (
     'database/migrations/0008_auth_final_hardening.sql',
     'database/migrations/0009_bootstrap_first_local_admin.sql',
     'database/migrations/0010_v12_to_v13.sql',
+    'database/migrations/0011_v13_to_v14.sql',
     'database/seed.sql', 'database/seed_demo.sql', 'database/permissions.sql',
     'demo/snapshots/patienten_kw36.json', 'demo/snapshots/cafeteria_kw36.json',
     'csv/menu_patient_template.csv', 'csv/menu_patient_example.csv',
@@ -101,6 +102,7 @@ MIGRATION_CHECKSUMS = {
     '0008_auth_final_hardening.sql': '4311165d2dcd763cf9a462906d044000956eb11d16ac847ecf9351facae21e45',
     '0009_bootstrap_first_local_admin.sql': '1b988c75b7ef3f333045d738fa29cd210a367eeaf30825a3005873cafc3b65ed',
     '0010_v12_to_v13.sql': 'dba21c2ba10406985a0069d193e1f08e65aaa9c0a27b04102b2626003d83dd8f',
+    '0011_v13_to_v14.sql': '75c6d6cc777f1dbf3d2bb914688b8ff9529ddca51fc9250ea91170b5482d0953',
 }
 
 
@@ -283,7 +285,7 @@ def main() -> int:
         check(status.get('tables') == 31, 'Schema enthaelt nicht 31 Tabellen.')
         check(status.get('application_roles') == 3, 'Schema enthaelt nicht drei Rollen.')
         check(status.get('offer_profiles') == 2, 'Schema enthaelt nicht zwei Profile.')
-        check(status.get('schema_version') == 13, 'Schema-Version ist nicht 13.')
+        check(status.get('schema_version') == 14, 'Schema-Version ist nicht 14.')
         check(status.get('patient_services') == 14, 'Demo-Seed enthaelt nicht 14 Patienten-Services.')
         check(status.get('cafeteria_services') == 5, 'Demo-Seed enthaelt nicht 5 Cafeteria-Services.')
 
@@ -295,6 +297,7 @@ def main() -> int:
                       '0007_auth_security_hardening.sql', '0008_auth_final_hardening.sql',
                       '0009_bootstrap_first_local_admin.sql']
     migration_files.append('0010_v12_to_v13.sql')
+    migration_files.append('0011_v13_to_v14.sql')
 
     for mig_file in migration_files:
         mig_path = migrations_dir / mig_file
@@ -309,13 +312,13 @@ def main() -> int:
     contract_functions = ('validate_menu_service', 'validate_menu_item_price', 'validate_publication_revision',
                          'jsonb_has_patient_forbidden_key', 'withdraw_publication_revision', 'issue_publication_capability',
                          'sync_entra_user', 'ensure_auth_capability_state', 'hard_reset_auth_capability_state',
-                         'bootstrap_first_local_admin')
+                         'bootstrap_first_local_admin', 'lock_component_metadata_masters')
     for token in contract_functions:
         check(token in schema_text, f'DB-Vertragsfunktion fehlt: {token}')
 
     requirements = (root / 'reference_scaffold/requirements.txt').read_text(encoding='utf-8')
     check('alembic' not in requirements.lower(), 'Alembic steht noch in den Laufzeitanforderungen.')
-    ok(f'PostgreSQL-Artefakte und 10 Migrationen geprueft; SHA-256 {sha256(schema)}')
+    ok(f'PostgreSQL-Artefakte und 11 Migrationen geprueft; SHA-256 {sha256(schema)}')
 
     # Routen, Jinja und Patientenkostenverbot
     route_text = (root / 'reference_scaffold/cafeteria/signage/routes.py').read_text(encoding='utf-8')

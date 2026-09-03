@@ -28,6 +28,7 @@ database/migrations/0007_auth_security_hardening.sql
 database/migrations/0008_auth_final_hardening.sql
 database/migrations/0009_bootstrap_first_local_admin.sql
 database/migrations/0010_v12_to_v13.sql
+database/migrations/0011_v13_to_v14.sql
 database/permissions.sql
 database/README.md
 database/schema.sql

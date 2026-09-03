@@ -108,6 +108,9 @@ GRANT EXECUTE ON FUNCTION
     withdraw_publication_revision(bigint, text, text)
 TO cafeteria_app;
 GRANT EXECUTE ON FUNCTION
+    lock_component_metadata_masters(text[], text[])
+TO cafeteria_app;
+GRANT EXECUTE ON FUNCTION
     normalize_patient_key(text),
     patient_key_is_forbidden(text),
     jsonb_has_patient_forbidden_key(jsonb),

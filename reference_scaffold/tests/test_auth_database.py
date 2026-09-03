@@ -91,10 +91,10 @@ def owner_engine() -> Iterator[Engine]:
 def test_migration_plan_contains_auth_issuer_contract() -> None:
     plan = database.migration_plan(ROOT / 'database' / 'schema.sql')
 
-    assert database.SCHEMA_VERSION == 13
+    assert database.SCHEMA_VERSION == 14
     assert (plan[-1].version, plan[-1].path.name) == (
-        13,
-        '0010_v12_to_v13.sql',
+        14,
+        '0011_v13_to_v14.sql',
     )
 
 
@@ -190,6 +190,88 @@ def test_auth_issuer_role_has_function_only_identity_privileges(owner_engine: En
                     "RETURNS integer LANGUAGE sql AS 'SELECT 1'"
                 )
             )
+
+
+@LIVE_DATABASE
+def test_metadata_master_lock_permissions_repair_to_app_only(owner_engine: Engine) -> None:
+    signature = 'cafeteria.lock_component_metadata_masters(text[],text[])'
+    with owner_engine.begin() as connection:
+        connection.execute(text(
+            'GRANT UPDATE ON cafeteria.dietary_labels, cafeteria.allergens TO cafeteria_app'
+        ))
+        connection.execute(text(
+            f'GRANT EXECUTE ON FUNCTION {signature} '
+            'TO PUBLIC, cafeteria_backup, cafeteria_auth_issuer'
+        ))
+    permissions = str(ROOT / 'database' / 'permissions.sql')
+    database._execute_script(owner_engine, permissions)
+    database._execute_script(owner_engine, permissions)
+    with owner_engine.connect() as connection:
+        privileges = tuple(connection.execute(text('''
+            SELECT
+                has_function_privilege('cafeteria_app', :signature, 'EXECUTE'),
+                has_function_privilege('cafeteria_backup', :signature, 'EXECUTE'),
+                has_function_privilege('cafeteria_auth_issuer', :signature, 'EXECUTE'),
+                EXISTS (
+                    SELECT 1
+                    FROM pg_proc p,
+                         aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) acl
+                    WHERE p.oid=to_regprocedure(:signature)
+                      AND acl.grantee=0 AND acl.privilege_type='EXECUTE'
+                ),
+                has_table_privilege('cafeteria_app', 'cafeteria.dietary_labels', 'SELECT'),
+                has_table_privilege('cafeteria_app', 'cafeteria.dietary_labels', 'UPDATE'),
+                has_table_privilege('cafeteria_app', 'cafeteria.allergens', 'SELECT'),
+                has_table_privilege('cafeteria_app', 'cafeteria.allergens', 'UPDATE')
+        '''), {'signature': signature}).one())
+    assert privileges == (True, False, False, False, True, False, True, False)
+
+
+@LIVE_DATABASE
+def test_metadata_master_lock_exact_execute_denials_and_null_contract(owner_engine: Engine) -> None:
+    empty_call = (
+        'SELECT * FROM cafeteria.lock_component_metadata_masters('
+        'CAST(ARRAY[] AS text[]), CAST(ARRAY[] AS text[]))'
+    )
+    app_engine = create_engine(
+        _role_database_url('cafeteria_app', APP_PASSWORD),
+        poolclass=NullPool,
+        pool_pre_ping=True,
+    )
+    try:
+        with app_engine.connect() as connection:
+            assert connection.execute(text(empty_call)).all() == []
+        for statement in (
+            "UPDATE cafeteria.dietary_labels SET active=active WHERE code='VEGAN'",
+            "SELECT id FROM cafeteria.dietary_labels WHERE code='VEGAN' FOR SHARE",
+        ):
+            with pytest.raises(DBAPIError, match='permission denied'):
+                with app_engine.begin() as connection:
+                    connection.execute(text(statement))
+        for labels, allergens in ((None, []), ([], None), ([None], []), ([], [None])):
+            with pytest.raises(DBAPIError) as error:
+                with app_engine.begin() as connection:
+                    connection.execute(
+                        text('SELECT * FROM cafeteria.lock_component_metadata_masters(:l, :a)'),
+                        {'l': labels, 'a': allergens},
+                    ).all()
+            assert getattr(error.value.orig, 'sqlstate', None) == '22023'
+    finally:
+        app_engine.dispose()
+
+    for role, password in (
+        ('cafeteria_backup', BACKUP_PASSWORD),
+        ('cafeteria_auth_issuer', ISSUER_PASSWORD),
+    ):
+        denied_engine = create_engine(
+            _role_database_url(role, password), poolclass=NullPool, pool_pre_ping=True
+        )
+        try:
+            with pytest.raises(DBAPIError, match='permission denied'):
+                with denied_engine.begin() as connection:
+                    connection.execute(text(empty_call))
+        finally:
+            denied_engine.dispose()
 
 
 @LIVE_DATABASE
