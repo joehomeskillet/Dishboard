@@ -640,3 +640,86 @@ def test_active_and_inflight_withdrawal_are_conservative_and_atomic(catalog_data
                                        'cafeteria.publication_revisions WHERE id=:id'),
                                   {'id': row['revision_id']}).scalar_one() is True
     assert _target_counts(catalog_database) == (2, 1, 1)
+
+
+def test_publish_maps_direct_withdrawal_race_to_stale_draft(
+    catalog_database: CatalogDatabase,
+) -> None:
+    workflow.ensure_week(catalog_database.app, 'patient', TARGET_WEEK, 2)
+    first_version = workflow.save_draft(
+        catalog_database.app,
+        'patient',
+        TARGET_WEEK,
+        expected_row_version=1,
+        actor_id=2,
+        values=_patient_values(TARGET_WEEK, 'Erste Revision'),
+    )
+    workflow.publish_draft(
+        catalog_database.app,
+        'patient',
+        TARGET_WEEK,
+        expected_row_version=first_version,
+        actor_id=2,
+        issuer_engine=None,
+    )
+    current_version = workflow.draft_row_version(catalog_database.app, 'patient', TARGET_WEEK)
+    second_version = workflow.save_draft(
+        catalog_database.app,
+        'patient',
+        TARGET_WEEK,
+        expected_row_version=current_version,
+        actor_id=2,
+        values=_patient_values(TARGET_WEEK, 'Zweite Revision'),
+    )
+    with catalog_database.owner.begin() as connection:
+        revision_id = int(connection.execute(text(
+            'SELECT id FROM cafeteria.publication_revisions WHERE withdrawn_at IS NULL'
+        )).scalar_one())
+        direct_capability = str(connection.execute(text(
+            'SELECT cafeteria.issue_publication_capability(:actor_id, :revision_id)'
+        ), {'actor_id': 2, 'revision_id': revision_id}).scalar_one())
+
+    publish_engine = _separate_engine(catalog_database)
+    withdraw_engine = _separate_engine(catalog_database)
+    withdrawal_attempted, release = Event(), Event()
+
+    def before_publish_withdraw(_conn, _cursor, statement, _params, _ctx, _many):
+        if 'withdraw_publication_revision' in statement:
+            withdrawal_attempted.set()
+            assert release.wait(10)
+
+    event.listen(publish_engine, 'before_cursor_execute', before_publish_withdraw)
+    try:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            publishing = pool.submit(
+                workflow.publish_draft,
+                publish_engine,
+                'patient',
+                TARGET_WEEK,
+                expected_row_version=second_version,
+                actor_id=2,
+                issuer_engine=catalog_database.owner,
+            )
+            assert withdrawal_attempted.wait(10)
+            withdraw_publication_revision(
+                withdraw_engine,
+                revision_id,
+                direct_capability,
+                'Direkter paralleler Rückzug',
+            )
+            release.set()
+            with pytest.raises(workflow.StaleDraftError):
+                publishing.result(timeout=10)
+    finally:
+        release.set()
+        event.remove(publish_engine, 'before_cursor_execute', before_publish_withdraw)
+        publish_engine.dispose()
+        withdraw_engine.dispose()
+
+    with catalog_database.owner.connect() as connection:
+        assert connection.execute(text(
+            'SELECT count(*) FROM cafeteria.publication_revisions'
+        )).scalar_one() == 1
+        assert connection.execute(text(
+            'SELECT count(*) FROM cafeteria.publication_revisions WHERE withdrawn_at IS NULL'
+        )).scalar_one() == 0

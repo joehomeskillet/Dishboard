@@ -24,7 +24,7 @@ from ..security import csrf_token, validate_csrf
 from ..workflow import (
     MENU_TYPES, PROFILE_DAYS, PROFILE_MEALS, AutoOriginConflictError,
     PublicationConfigurationError, StaleDraftError, StaleItemError, WorkflowValidationError,
-    derive_admin_status, get_component_review_token, publish_draft, review_component,
+    derive_admin_status, get_component_review_token, publish_draft_scoped as publish_draft, review_component,
 )
 from ..workflow_copy_store import copy_previous_week
 from ..workflow_partial_form import (
@@ -594,6 +594,6 @@ def publish(family: str):
     week, expected = _monday(request.form['week']), _version_field('row_version')
     snapshot = _call(lambda: publish_draft(
         _db(), profile, week, expected_row_version=expected, actor_id=scope.actor_id,
-        issuer_engine=current_app.extensions.get('cafeteria_auth_issuer_db')))
+        issuer_engine=current_app.extensions.get('cafeteria_auth_issuer_db'), expected_location_id=scope.location_id))
     flash(f'Publiziert: {snapshot["revision_id"]}')
     return redirect(url_for(f'admin.{family}', week=week.isoformat()), 303)

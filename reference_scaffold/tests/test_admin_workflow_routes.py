@@ -537,6 +537,13 @@ def test_publish_prg_flashes_revision_in_live_region(
     assert (called['profile'], called['week'], called['expected_row_version']) == (
         'patient', WEEK, 7,
     )
+    with database_engine.connect() as connection:
+        location_id = int(
+            connection.execute(
+                text("SELECT id FROM cafeteria.locations WHERE code='KIRCHLINDACH'")
+            ).scalar_one()
+        )
+    assert called['expected_location_id'] == location_id
 
 
 @pytest.mark.parametrize(

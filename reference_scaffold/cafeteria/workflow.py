@@ -25,6 +25,11 @@ from .workflow_review import (
     review_component as review_component,
     review_open as review_open,
 )
+from .workflow_publication import (
+    next_revision_number,
+    require_expected_active_location,
+    withdraw_replaced_publication,
+)
 from .workflow_store import (
     StaleDraftError,
     draft_row_version,
@@ -493,7 +498,7 @@ def _active_publication_id(
     return None if value is None else int(value)
 
 
-def publish_draft(
+def publish_draft_scoped(
     engine: Engine,
     profile_code: str,
     week_start: date,
@@ -501,8 +506,10 @@ def publish_draft(
     expected_row_version: int,
     actor_id: int,
     issuer_engine: Engine | None,
+    expected_location_id: int,
 ) -> dict[str, Any]:
     with engine.connect() as connection:
+        require_expected_active_location(connection, expected_location_id, lock=False)
         unlocked_draft = load_draft_connection(connection, profile_code, week_start)
         previous_id = _active_publication_id(connection, int(unlocked_draft['id']))
     capability = None
@@ -511,6 +518,7 @@ def publish_draft(
             raise PublicationConfigurationError('Publikations-Issuer ist nicht konfiguriert.')
         capability = issue_publication_capability(issuer_engine, actor_id, int(previous_id))
     with engine.begin() as connection:
+        require_expected_active_location(connection, expected_location_id, lock=True)
         draft = load_draft_connection(
             connection,
             profile_code,
@@ -529,36 +537,16 @@ def publish_draft(
         validate_publication_fit(profile_code, values)
         if any(_review_open_connection(connection, item_id) for item_id in item_ids):
             raise WorkflowValidationError('Allergendeklaration ist nicht geprüft.')
-        revision_number = int(
-            connection.execute(
-                text(
-                    'SELECT COALESCE(max(revision_number), 0) + 1 '
-                    'FROM cafeteria.publication_revisions WHERE menu_week_id=:week_id'
-                ),
-                {'week_id': draft['id']},
-            ).scalar_one()
-        )
+        revision_number = next_revision_number(connection, profile_code, week_start)
         prefix = 'PAT' if profile_code == 'patient' else 'CAF'
-        revision_code = (
-            f'{prefix}-{week_start.year}-KW{week_start.isocalendar().week:02d}-R{revision_number}'
-        )
+        revision_code = f'{prefix}-{week_start.year}-KW{week_start.isocalendar().week:02d}-R{revision_number}'
         snapshot = build_snapshot(profile_code, draft, revision_code)
         if current_id is not None:
             if capability is None:
                 raise PublicationConfigurationError(
                     'Publikations-Capability ist nicht verfügbar.'
                 )
-            connection.execute(
-                text(
-                    'SELECT cafeteria.withdraw_publication_revision('
-                    ':revision_id, :capability, :reason)'
-                ),
-                {
-                    'revision_id': current_id,
-                    'capability': capability,
-                    'reason': 'Durch neue Küchenrevision ersetzt.',
-                },
-            ).scalar_one()
+            withdraw_replaced_publication(connection, current_id, capability)
         connection.execute(
             text(
                 "UPDATE cafeteria.menu_weeks SET workflow_state='published', updated_by=:actor_id "
@@ -585,3 +573,27 @@ def publish_draft(
             },
         )
     return snapshot
+
+
+def publish_draft(
+    engine: Engine,
+    profile_code: str,
+    week_start: date,
+    *,
+    expected_row_version: int,
+    actor_id: int,
+    issuer_engine: Engine | None,
+) -> dict[str, Any]:
+    with engine.connect() as connection:
+        expected_location_id = int(connection.execute(
+            text("SELECT id FROM cafeteria.locations WHERE active=true")
+        ).scalar_one())
+    return publish_draft_scoped(
+        engine,
+        profile_code,
+        week_start,
+        expected_row_version=expected_row_version,
+        actor_id=actor_id,
+        issuer_engine=issuer_engine,
+        expected_location_id=expected_location_id,
+    )

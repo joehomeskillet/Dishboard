@@ -22,6 +22,7 @@ from cafeteria.workflow import (
     derive_admin_status,
     load_draft,
     publish_draft,
+    publish_draft_scoped,
     save_draft,
 )
 from cafeteria.workflow_snapshot import build_snapshot
@@ -457,6 +458,81 @@ def test_publish_ignores_multiple_active_revisions_from_inactive_locations(
         ).scalar_one()
     assert still_active == historical_ids
     assert active_location_code == 'KIRCHLINDACH'
+
+
+def test_publish_scope_rejects_location_cutover_without_mutation(
+    database_engine: Engine,
+) -> None:
+    actor_id = _actor_id(database_engine)
+    version = _save(database_engine, 'patient', _patient_values('Alter Standort'))
+    with database_engine.begin() as connection:
+        old_location_id = int(
+            connection.execute(
+                text("SELECT id FROM cafeteria.locations WHERE code='KIRCHLINDACH'")
+            ).scalar_one()
+        )
+        connection.execute(text('UPDATE cafeteria.locations SET active=false'))
+        connection.execute(
+            text("INSERT INTO cafeteria.locations(code, name) VALUES ('NORD', 'Nordküche')")
+        )
+
+    with pytest.raises(StaleDraftError, match='Standort'):
+        publish_draft_scoped(
+            database_engine,
+            'patient',
+            WEEK_START,
+            expected_row_version=version,
+            actor_id=actor_id,
+            issuer_engine=database_engine,
+            expected_location_id=old_location_id,
+        )
+
+    with database_engine.connect() as connection:
+        assert connection.execute(
+            text('SELECT count(*) FROM cafeteria.publication_revisions')
+        ).scalar_one() == 0
+
+
+def test_revision_sequence_is_global_across_location_cutover(
+    database_engine: Engine,
+) -> None:
+    actor_id = _actor_id(database_engine)
+    first_values = _staff_values('Süd')
+    first_version = _save(database_engine, 'staff_guest', first_values)
+    first = publish_draft(
+        database_engine,
+        'staff_guest',
+        WEEK_START,
+        expected_row_version=first_version,
+        actor_id=actor_id,
+        issuer_engine=database_engine,
+    )
+    with database_engine.begin() as connection:
+        connection.execute(text('UPDATE cafeteria.locations SET active=false'))
+        connection.execute(
+            text("INSERT INTO cafeteria.locations(code, name) VALUES ('NORD', 'Nordküche')")
+        )
+
+    north_values = _staff_values('Nord')
+    for day in north_values['days']:
+        for service in day['services']:
+            for option in service['options']:
+                option['external_id'] = (
+                    f"NORD-{day['date']}-{service['meal_code']}-{option['type_code']}"
+                )
+    second_version = _save(database_engine, 'staff_guest', north_values)
+    second = publish_draft(
+        database_engine,
+        'staff_guest',
+        WEEK_START,
+        expected_row_version=second_version,
+        actor_id=actor_id,
+        issuer_engine=database_engine,
+    )
+
+    assert first['revision_id'] == 'CAF-2026-KW36-R1'
+    assert second['revision_id'] == 'CAF-2026-KW36-R2'
+    assert re.fullmatch(r'(?:PAT|CAF)-\d{4}-KW\d{2}-R[1-9]\d*', second['revision_id'])
 
 
 def test_published_payloads_keep_profile_shapes_and_patient_has_no_cost_tokens(
