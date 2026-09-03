@@ -611,7 +611,9 @@ defines the shared predicate and snapshot/review behavior it consumes.
 - [ ] Add RED tests asserting exact snapshot keys/types, no forbidden metadata,
   immutability after source edits, the literal golden input/digest above,
   complete-state array ordering and exact key/type rejection. Add two-connection
-  races proving deterministic week→item→components→links locking, atomic 404/409,
+  races proving deterministic `week → owning service → item → complete
+  component union by numeric id ASC FOR SHARE → links by (menu_item_id,
+  sort_order) FOR UPDATE` locking, atomic 404/409,
   successful new row version plus 303/PRG, old-token repeat-submit 409, atomic
   week actor attribution, cross-location/profile 404, review invalidation,
   and exact predicate results. Assert that review refreshes catalog-backed
@@ -630,9 +632,9 @@ defines the shared predicate and snapshot/review behavior it consumes.
   never conceals a current/stored component-version mismatch.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_admin_workflow_db.py`; expected FAIL.
 - [ ] Implement deterministic snapshot materialization and review transaction.
-  Review locks week then item, resolves and locks current referenced components by
-  numeric `id ASC FOR SHARE`, then locks current links by
-  `(menu_item_id, sort_order ASC)`, holds all locks, rereads state, compares `expected_item_row_version` and
+  Review locks `week → owning service → item → complete component union by
+  numeric id ASC FOR SHARE → links by (menu_item_id, sort_order) FOR UPDATE`,
+  holds all locks, rereads state, compares `expected_item_row_version` and
   the complete-state token, rematerializes current auto classes, advances
   stored link versions, marks checked, increments item version once and updates
   the week actor reentrantly. Expose the shared
