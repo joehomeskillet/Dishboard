@@ -155,12 +155,19 @@ TO cafeteria_app;
 
 Damit werden immer zuerst alle angeforderten Label-Master nach `id ASC`, dann
 alle angeforderten Allergen-Master nach `id ASC` gesperrt. Leere Arrays sind
-gültig. Der Store weist doppelte Codes vor dem Aufruf zurück, vergleicht die
-zurückgegebenen Codes mit dem vollständigen Request und weist dadurch unbekannte
-Codes zurück; inaktive Treffer werden bewusst zurückgegeben und nach der
-bestehenden Retention-Regel bewertet. Interne `master_id`-Werte bleiben
-ausschließlich DB-intern. Es gibt keinen direkten Master-`FOR SHARE` aus der
-App-Rolle und keinen `UPDATE`-Grant auf Mastertabellen.
+gültig. Der Store weist doppelte Request-Codes vor dem Aufruf **je Namespace
+unabhängig** zurück; derselbe Code darf einmal als Label und einmal als
+Allergen angefordert werden. Die Antwort wird nach `master_kind` in `label`
+und `allergen` partitioniert. Ein anderer `master_kind` oder ein doppeltes
+`(master_kind, code)` ist ein kontrollierter Validierungsfehler. Danach muss
+die Menge der angeforderten Label-Codes exakt der Menge der zurückgegebenen
+Label-Codes und getrennt davon die Menge der angeforderten Allergen-Codes
+exakt der Menge der zurückgegebenen Allergen-Codes entsprechen; so werden
+unbekannte Codes ohne Namespace-Kollision zurückgewiesen. Inaktive Treffer
+werden bewusst zurückgegeben und nach der bestehenden Retention-Regel
+bewertet. Interne `master_id`-Werte bleiben ausschließlich DB-intern. Es gibt
+keinen direkten Master-`FOR SHARE` aus der App-Rolle und keinen
+`UPDATE`-Grant auf Mastertabellen.
 
 Verpflichtende Real-PG16-Sicherheitstests beweisen denselben Owner-/ACL-Zustand
 für Fresh Schema, v13→v14-Migration und Restore. Direkter Master-`UPDATE` und
@@ -222,6 +229,19 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
   Versions-Mismatch. Die Katalog-UI weist nach
   Metadatenänderung, Archive oder Unarchive darauf hin, dass betroffene Gerichte
   erneut geprüft werden müssen.
+- Erzeugt eine Katalogänderung für ein bereits verknüpftes Item mit
+  `origin_mode='auto'` zwei aktuelle Komponenten gleichen Namens, aber mit
+  verschiedenen Ländern, bleibt die Katalogänderung gemäß Architektur A
+  erlaubt: Der Komponenten-Versions-Mismatch erzeugt dynamisch `needs-review`
+  und blockiert Publish. Erst die Auto-Herkunftsauflösung in
+  `get_component_review_token` oder `review_component` wirft den benannten,
+  kontrollierten Domain-Konflikt `AutoOriginConflictError`. Dieser Fehler lässt
+  Links, effektive Werte, Review, Item und Woche atomar unverändert. Die Route
+  bildet ihn immer auf HTTP 409 mit der handlungsorientierten deutschen
+  Meldung `Herkunftskonflikt: Komponente bearbeiten oder Herkunft dieses Menüs
+  auf manuell stellen.` ab, nie auf 500. Bei `origin_mode='manual'` wird keine
+  Auto-Herkunft aufgelöst: manuelle Herkunft bleibt byte-identisch und das
+  Item kann trotz desselben Katalogkonflikts geprüft werden.
 - Load, Status und Publish verwenden zentral exakt
   `review_open/needs_review = allergen_review_status != 'checked' OR EXISTS(stored linked_component_version <> current component row_version)`.
   Ein persistiertes `checked` überschreibt daher nie einen Versions-Mismatch.
@@ -253,11 +273,11 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
 - Der verpflichtende Golden-Test verwendet exakt diese eine UTF-8-JSON-Zeile:
 
   ```json
-  {"allergen_mode":"auto","allergens":[{"code":"A","name":"Gluten","presence":"contains"},{"code":"B","name":"Milch","presence":"may_contain"}],"components":[{"component_public_id":"11111111-1111-4111-8111-111111111111","component_text":"Rind & Crème","current_component_row_version":4,"sort_order":1,"stored_component_row_version":3},{"component_public_id":null,"component_text":"Freitext","current_component_row_version":null,"sort_order":2,"stored_component_row_version":null}],"item_row_version":7,"label_mode":"manual","labels":[{"code":"L1","name":"Hausgemacht"}],"origin_mode":"auto","origins":[{"country_code":"CH","ingredient":"Rind","text":"Schweiz"}]}
+  {"allergen_mode":"auto","allergens":[{"code":"A","name":"Gluten","presence":"contains"},{"code":"B","name":"Milch","presence":"may_contain"}],"components":[{"component_public_id":"11111111-1111-4111-8111-111111111111","component_text":"Rind & Crème","current_component_row_version":4,"sort_order":1,"stored_component_row_version":3},{"component_public_id":null,"component_text":"Freitext","current_component_row_version":null,"sort_order":2,"stored_component_row_version":null}],"item_row_version":7,"label_mode":"manual","labels":[{"code":"L1","name":"Hausgemacht"}],"origin_mode":"auto","origins":[{"country_code":"CH","ingredient":"Rind","text":"Rind: CH"}]}
   ```
 
   Erwarteter Token ist exakt
-  `sha256:46fe2582022c284f54706d9d57f8c2dd783154fd6d7d9bc434bcd22665542507`.
+  `sha256:b3526f90550974218338f0f890d8f02a524cfad0dee40ae387074883691e7428`.
 - Eine einzige globale Lock-Hierarchie gilt überall:
   `menu_weeks → menu_services → menu_items → menu_components →
   menu_item_components → publication_revisions`. Jede Transaktion sperrt den

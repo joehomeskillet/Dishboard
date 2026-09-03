@@ -399,10 +399,15 @@ Each label is exactly `code,name`; each allergen exactly
 `(code ASC, presence ASC, name ASC)`; expose no internal IDs or timestamps.
 For Create and Update, invoke
 `cafeteria.lock_component_metadata_masters(:label_codes, :allergen_codes)`
-exactly once with bound arrays in the same outer transaction. Reject duplicate
-codes before that call, compare the complete returned code sets to reject
-unknowns, and apply inactive-master retention rules before any child delete.
-T3b may not edit schema, migration or grant files.
+exactly once with bound arrays in the same outer transaction. Before that call,
+reject duplicate Label request codes and duplicate Allergen request codes
+independently; an identical code occurring once in each namespace remains
+valid. Partition returned rows by `master_kind`; reject every kind except
+`label|allergen` and every duplicate `(master_kind, code)`. Compare requested
+Label codes exactly to returned Label codes and, separately, requested Allergen
+codes exactly to returned Allergen codes before applying inactive-master
+retention rules or deleting any child. T3b may not edit schema, migration or
+grant files.
 
 - [ ] Migrate `reference_scaffold/tests/test_component_catalog_db.py`:
   expand `OUTPUT_KEYS` from 8 to the exact 10 public keys above, update
@@ -410,11 +415,15 @@ T3b may not edit schema, migration or grant files.
   and `allergens` to every old 3-field update payload.
 - [ ] Add focused RED real-PG16 tests for parent-plus-children atomicity,
   stable ordering, exact public keysets, duplicate/unknown/invalid labels,
-  duplicate/unknown/invalid allergen pairs and stale update 409. Every metadata
-  child writer locks its parent component `FOR UPDATE`, validates the complete
-  replacement before any delete and replaces children deterministically. New
-  links require active masters; already-linked inactive masters may remain
-  unchanged but cannot be added or have presence changed.
+  duplicate/unknown/invalid allergen pairs and stale update 409. Include one
+  valid request whose Label and Allergen namespaces contain the identical code,
+  plus controlled failures for an unknown `master_kind` and duplicate
+  `(master_kind, code)` helper rows; prove the two exact per-kind returned sets
+  are compared independently. Every metadata child writer locks its parent
+  component `FOR UPDATE`, validates the complete replacement before any delete
+  and replaces children deterministically. New links require active masters;
+  already-linked inactive masters may remain unchanged but cannot be added or
+  have presence changed.
 - [ ] Add tests proving a changed full payload increments component
   `row_version` exactly once, while an identical full payload is a true no-op
   with the same returned version. Cover exact scoped output and active/inactive
@@ -538,11 +547,11 @@ excluded.
 The mandatory golden test hashes this exact one-line UTF-8 JSON string:
 
 ```json
-{"allergen_mode":"auto","allergens":[{"code":"A","name":"Gluten","presence":"contains"},{"code":"B","name":"Milch","presence":"may_contain"}],"components":[{"component_public_id":"11111111-1111-4111-8111-111111111111","component_text":"Rind & Crème","current_component_row_version":4,"sort_order":1,"stored_component_row_version":3},{"component_public_id":null,"component_text":"Freitext","current_component_row_version":null,"sort_order":2,"stored_component_row_version":null}],"item_row_version":7,"label_mode":"manual","labels":[{"code":"L1","name":"Hausgemacht"}],"origin_mode":"auto","origins":[{"country_code":"CH","ingredient":"Rind","text":"Schweiz"}]}
+{"allergen_mode":"auto","allergens":[{"code":"A","name":"Gluten","presence":"contains"},{"code":"B","name":"Milch","presence":"may_contain"}],"components":[{"component_public_id":"11111111-1111-4111-8111-111111111111","component_text":"Rind & Crème","current_component_row_version":4,"sort_order":1,"stored_component_row_version":3},{"component_public_id":null,"component_text":"Freitext","current_component_row_version":null,"sort_order":2,"stored_component_row_version":null}],"item_row_version":7,"label_mode":"manual","labels":[{"code":"L1","name":"Hausgemacht"}],"origin_mode":"auto","origins":[{"country_code":"CH","ingredient":"Rind","text":"Rind: CH"}]}
 ```
 
 Expected result is exactly
-`sha256:46fe2582022c284f54706d9d57f8c2dd783154fd6d7d9bc434bcd22665542507`.
+`sha256:b3526f90550974218338f0f890d8f02a524cfad0dee40ae387074883691e7428`.
 
 `review_component(engine: Engine, scope: AdminScope, item_id: int,
 component_version: str, expected_item_row_version: int) -> int` interprets
@@ -571,6 +580,17 @@ token because item/link versions change; repeating the old body yields 409
 without mutation. A component edit after commit makes publish stale until a
 new review. No immutable per-item audit history, schema change or permission
 expansion is added.
+
+A catalog edit may create two current linked components with the same name but
+different origin countries without touching the linked item. The stored/current
+component-version mismatch still yields dynamic `needs_review` and blocks
+Publish. When `origin_mode == 'auto'`, both
+`get_component_review_token` and `review_component` raise the named controlled
+domain conflict `AutoOriginConflictError` while resolving those current origins.
+That failure atomically writes no link, effective value, review, item or week
+row. When `origin_mode == 'manual'`, origin resolution is skipped: manual
+origins remain byte-identical and Review can succeed despite the same catalog
+auto-origin conflict.
 The existing full
 `publish_draft(engine, profile_code, week_start, *, expected_row_version,
 actor_id, issuer_engine)` signature, replacement-publication capability flow,
@@ -597,6 +617,11 @@ defines the shared predicate and snapshot/review behavior it consumes.
   and exact predicate results. Assert that review refreshes catalog-backed
   `component_text`, preserves free text and every manual class byte-identically,
   and heals only the reviewed item.
+- [ ] Add real-PG16 tests where a catalog edit creates same-name/different-country
+  origins on an already linked item. Assert dynamic `needs_review` plus Publish
+  block; `get_component_review_token` and `review_component` each raise
+  `AutoOriginConflictError` only in Auto mode with zero link/effect/review/item/week
+  writes. Assert Manual mode keeps origins byte-identical and Review succeeds.
 - [ ] Add synchronized barrier/event real-PG16 catalog-edit versus Review tests
   in both winner orders, including one `common` component shared across
   profiles/weeks. Assert Review first locks the week, no `40P01` or partial
@@ -763,6 +788,12 @@ Import/Recovery.
 
 **Interfaces:** Register GET/POST routes exactly as specified in the SDD. `profile_from_endpoint('cafeteria') == 'staff_guest'`, `profile_from_endpoint('patienten') == 'patient'`; copy accepts `_csrf,source_week,target_week,target_row_version`, requires `source_week == target_week - 7 days` and calls only T6's route-independent `copy_previous_week` with the target. Preview renders last-saved draft only. Component detail handlers use only T3/T3b's scoped `get_component`, never route-local detail SQL. Component Create accepts exact scalar `_csrf,category,name,origin_country_code,target_scope` plus repeated `label_code,allergen_code,allergen_presence`; Update adds `row_version`, omits `target_scope` and submits the complete payload; Archive/Unarchive accept exactly `_csrf,row_version`. Reject duplicate scalar keys, mismatched repeated arrays, unexpected keys, `profile`, `profile_scope`, internal IDs and master IDs. T7 calls `get_component_review_token` to render the review token. `POST /admin/{cafeteria|patienten}/menu/review` requires `draft.write`, accepts exactly `_csrf,week,day,meal,option,row_version,component_version`, resolves the scoped item from the raster fields, rejects any `item_id`, and passes both token and row version to `review_component`; missing Review item/scope failures are atomic 404 and stale row/token failures atomic 409. Zero/multiple configured active locations map to 503; missing saved draft/preview resources and invalid/out-of-scope slots map to 404, while a valid missing menu slot renders virtual `row_version=0`.
 
+Both review-token GET rendering and review POST catch only the named
+`AutoOriginConflictError` domain error and map it to controlled HTTP 409, never 500.
+The rendered error region shows exactly the actionable German recovery
+`Herkunftskonflikt: Komponente bearbeiten oder Herkunft dieses Menüs auf manuell stellen.`
+and preserves the submitted/saved page context without any write.
+
 - [ ] Add RED route tests for auth/capabilities, fixed URL profiles, no body/query
   profile override, unchanged login/session-cookie/`csrf_token` Auth contract,
   `_csrf` Admin spelling, `Cache-Control: no-store`, 400/409 no mutation,
@@ -774,7 +805,10 @@ Import/Recovery.
   `row_version=0`, invalid/out-of-scope slot 404, and the full first-save
   1/404/409 matrix. Cover the review POST's exact keys, server-side item
   resolution, successful 303/PRG with the new checked row version, and
-  stale/single-use repeat-token 409 with no mutation. Dirty-state and `target="_blank"` assertions belong to
+  stale/single-use repeat-token 409 with no mutation. Cover token GET and
+  review POST `AutoOriginConflictError` as controlled 409 (never 500), the exact
+  German recovery text, zero link/effect/review/item/week mutation, and a
+  successful Manual-origin Review with byte-identical origins. Dirty-state and `target="_blank"` assertions belong to
   the reused rendered/browser harness, not route-preview tests.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_catalog_routes.py tests/test_admin_week_routes.py tests/test_admin_workflow_routes.py tests/test_admin_draft_preview.py`; expected FAIL.
 - [ ] Implement the separate workflow blueprint and handlers for dashboard,
@@ -786,6 +820,9 @@ Import/Recovery.
   `publication.publish`; use public IDs; copy excludes patient prices, resets
   reviews and never publishes. After component edit/archive/unarchive, tell the
   user that affected dishes require review; do not fan out writes to dishes.
+  Map only `AutoOriginConflictError` to the specified 409 recovery response in both
+  review-token rendering and Review POST; do not convert unexpected failures
+  into that response.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_catalog_routes.py tests/test_admin_week_routes.py tests/test_admin_workflow_routes.py tests/test_admin_draft_preview.py -v`; expected PASS.
 - [ ] Stage: `rtk git add reference_scaffold/cafeteria/__init__.py reference_scaffold/cafeteria/admin/routes.py reference_scaffold/cafeteria/admin/workflow_routes.py reference_scaffold/tests/test_component_catalog_routes.py reference_scaffold/tests/test_admin_week_routes.py reference_scaffold/tests/test_admin_workflow_routes.py reference_scaffold/tests/test_admin_draft_preview.py`.
 - [ ] Commit: `rtk git commit -m 'feat: add secure scoped admin routes'`.
