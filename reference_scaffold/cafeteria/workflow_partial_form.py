@@ -21,6 +21,10 @@ _ALLERGEN_PRESENCES = frozenset({'contains', 'may_contain'})
 _ISO_DATE = re.compile(r'\d{4}-\d{2}-\d{2}')
 _COUNTRY_CODE = re.compile(r'[A-Z]{2}')
 _CHF = re.compile(r'\d+(?:[.,]\d+)?')
+_COMPONENT_CATEGORIES = frozenset({'meat', 'side', 'vegetable', 'sauce', 'dessert', 'other'})
+_COMPONENT_TARGET_SCOPES = frozenset({'common', 'current'})
+_LABEL_CODE = re.compile(r'[A-Z0-9_]{2,32}')
+_ALLERGEN_CODE = re.compile(r'[A-Z0-9_]{1,32}')
 
 _MENU_REQUIRED = frozenset(
     '_csrf week day meal option row_version title allergen_mode origin_mode label_mode'.split()
@@ -63,6 +67,22 @@ class ParsedMenuItem:
     option: str
     expected_item_row_version: int
     payload: dict[str, object]
+
+
+@dataclass(frozen=True)
+class ParsedComponentCreate:
+    payload: dict[str, object]
+
+
+@dataclass(frozen=True)
+class ParsedComponentUpdate:
+    expected_component_row_version: int
+    payload: dict[str, object]
+
+
+@dataclass(frozen=True)
+class ParsedComponentStatus:
+    expected_component_row_version: int
 
 
 def _values(form: Mapping[str, object], key: str) -> list[str]:
@@ -393,3 +413,98 @@ def parse_menu_item_form(
         expected_item_row_version=_version(form),
         payload=payload,
     )
+
+
+def _component_metadata(form: Mapping[str, object]) -> dict[str, object]:
+    category = _scalar(form, 'category').strip()
+    if category not in _COMPONENT_CATEGORIES:
+        raise WorkflowValidationError('Komponentenkategorie ist ungültig.', field_name='category')
+    name = _scalar(form, 'name').strip()
+    if not name:
+        raise WorkflowValidationError('Komponentenname fehlt.', field_name='name')
+    origin = _scalar(form, 'origin_country_code').strip()
+    if origin and _COUNTRY_CODE.fullmatch(origin) is None:
+        raise WorkflowValidationError(
+            'Herkunftsland muss ein ISO-Ländercode sein.',
+            field_name='origin_country_code',
+        )
+    labels = []
+    for raw_label in _repeated(form, 'label_code'):
+        label = raw_label.strip()
+        if _LABEL_CODE.fullmatch(label) is None or label in labels:
+            raise WorkflowValidationError('Kennzeichnung ist ungültig.', field_name='label_code')
+        labels.append(label)
+    codes = _repeated(form, 'allergen_code')
+    presences = _repeated(form, 'allergen_presence')
+    if len(codes) != len(presences):
+        raise WorkflowValidationError(
+            'Zusammengehörige Allergenfelder sind unvollständig.',
+            field_name='allergen_presence',
+        )
+    allergens = []
+    seen_codes = set()
+    for raw_code, presence in zip(codes, presences, strict=True):
+        code = raw_code.strip()
+        if _ALLERGEN_CODE.fullmatch(code) is None or code in seen_codes:
+            raise WorkflowValidationError('Allergen ist ungültig.', field_name='allergen_code')
+        if presence not in _ALLERGEN_PRESENCES:
+            raise WorkflowValidationError(
+                'Allergen-Angabe ist ungültig.',
+                field_name='allergen_presence',
+            )
+        seen_codes.add(code)
+        allergens.append((code, presence))
+    return {
+        'category': category,
+        'name': name,
+        'origin_country_code': origin or None,
+        'label_codes': labels,
+        'allergens': allergens,
+    }
+
+
+def _component_version(form: Mapping[str, object]) -> int:
+    version = _version(form)
+    if version == 0:
+        raise WorkflowValidationError(
+            'Komponentenversion muss grösser als 0 sein.',
+            field_name='row_version',
+        )
+    return version
+
+
+def parse_component_create_form(form: Mapping[str, object]) -> ParsedComponentCreate:
+    _validate_shape(
+        form,
+        frozenset({'_csrf', 'category', 'name', 'origin_country_code', 'target_scope'}),
+        repeated=frozenset({'label_code', 'allergen_code', 'allergen_presence'}),
+    )
+    target_scope = _scalar(form, 'target_scope')
+    if target_scope not in _COMPONENT_TARGET_SCOPES:
+        raise WorkflowValidationError('Komponenten-Scope ist ungültig.', field_name='target_scope')
+    return ParsedComponentCreate(payload={**_component_metadata(form), 'target_scope': target_scope})
+
+
+def parse_component_update_form(form: Mapping[str, object]) -> ParsedComponentUpdate:
+    _validate_shape(
+        form,
+        frozenset({'_csrf', 'category', 'name', 'origin_country_code', 'row_version'}),
+        repeated=frozenset({'label_code', 'allergen_code', 'allergen_presence'}),
+    )
+    return ParsedComponentUpdate(
+        expected_component_row_version=_component_version(form),
+        payload=_component_metadata(form),
+    )
+
+
+def _parse_component_status_form(form: Mapping[str, object]) -> ParsedComponentStatus:
+    _validate_shape(form, frozenset({'_csrf', 'row_version'}))
+    return ParsedComponentStatus(expected_component_row_version=_component_version(form))
+
+
+def parse_component_archive_form(form: Mapping[str, object]) -> ParsedComponentStatus:
+    return _parse_component_status_form(form)
+
+
+def parse_component_unarchive_form(form: Mapping[str, object]) -> ParsedComponentStatus:
+    return _parse_component_status_form(form)

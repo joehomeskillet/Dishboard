@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 from werkzeug.datastructures import MultiDict
 
+from cafeteria import workflow_partial_form as partial_form
 from cafeteria.workflow import WorkflowValidationError, validate_publication_fit
 from cafeteria.workflow_form import parse_draft_form
 from cafeteria.workflow_partial_form import (
@@ -396,3 +397,203 @@ def test_partial_forms_reject_duplicate_scalar() -> None:
         parse_menu_item_form('patient', form)
 
     assert raised.value.field_name == 'title'
+
+
+def _component_create_form() -> MultiDict[str, str]:
+    return MultiDict([
+        ('_csrf', 'test-csrf'), ('category', 'meat'), ('name', '  Rindsragout  '),
+        ('origin_country_code', ' CH '), ('target_scope', 'current'),
+        ('label_code', ' HIGH_PROTEIN '), ('label_code', 'GLUTEN_FREE'),
+        ('allergen_code', ' A '), ('allergen_presence', 'contains'),
+        ('allergen_code', 'C'), ('allergen_presence', 'may_contain'),
+    ])
+
+
+def _component_update_form() -> MultiDict[str, str]:
+    form = _component_create_form()
+    form.pop('target_scope')
+    form.add('row_version', '7')
+    return form
+
+
+def _component_status_form() -> MultiDict[str, str]:
+    return MultiDict([('_csrf', 'test-csrf'), ('row_version', '7')])
+
+
+def _header_partial_form() -> MultiDict[str, str]:
+    return MultiDict([
+        ('_csrf', 'test-csrf'), ('week', '2026-08-31'), ('row_version', '0'),
+        ('title', 'Woche'), ('shared_note', ''),
+    ])
+
+
+def _service_partial_form(**updates: str) -> MultiDict[str, str]:
+    form = MultiDict([
+        ('_csrf', 'test-csrf'), ('week', '2026-08-31'), ('day', '2026-09-02'),
+        ('meal', 'LUNCH'), ('row_version', '0'), ('service_state', 'open'), ('notice', ''),
+    ])
+    for key, value in updates.items():
+        form.setlist(key, [value])
+    return form
+
+
+def test_component_create_and_update_forms_return_exact_complete_payloads() -> None:
+    create = partial_form.parse_component_create_form(_component_create_form())
+    update = partial_form.parse_component_update_form(_component_update_form())
+    metadata = {
+        'category': 'meat',
+        'name': 'Rindsragout',
+        'origin_country_code': 'CH',
+        'label_codes': ['HIGH_PROTEIN', 'GLUTEN_FREE'],
+        'allergens': [('A', 'contains'), ('C', 'may_contain')],
+    }
+    assert create.payload == {**metadata, 'target_scope': 'current'}
+    assert update.expected_component_row_version == 7
+    assert update.payload == metadata
+
+
+def test_component_archive_and_unarchive_forms_return_only_version() -> None:
+    archive = partial_form.parse_component_archive_form(_component_status_form())
+    unarchive = partial_form.parse_component_unarchive_form(_component_status_form())
+
+    assert archive.expected_component_row_version == 7
+    assert unarchive.expected_component_row_version == 7
+
+
+_COMPONENT_FORM_CASES = (
+    ('parse_component_create_form', _component_create_form,
+     ('_csrf', 'category', 'name', 'origin_country_code', 'target_scope')),
+    ('parse_component_update_form', _component_update_form,
+     ('_csrf', 'category', 'name', 'origin_country_code', 'row_version')),
+    ('parse_component_archive_form', _component_status_form, ('_csrf', 'row_version')),
+    ('parse_component_unarchive_form', _component_status_form, ('_csrf', 'row_version')),
+)
+
+
+@pytest.mark.parametrize(('parser_name', 'factory', 'scalar_fields'), _COMPONENT_FORM_CASES)
+def test_component_forms_reject_every_duplicate_scalar(
+    parser_name: str, factory: object, scalar_fields: tuple[str, ...],
+) -> None:
+    parser = getattr(partial_form, parser_name)
+    for field in scalar_fields:
+        form = factory()
+        form.add(field, 'duplicate')
+        with pytest.raises(WorkflowValidationError, match='mehrfach') as raised:
+            parser(form)
+        assert raised.value.field_name == field
+
+
+@pytest.mark.parametrize(('parser_name', 'factory'), [
+    ('parse_component_create_form', _component_create_form), ('parse_component_update_form', _component_update_form),
+])
+def test_component_forms_reject_both_misaligned_allergen_array_directions(
+    parser_name: str, factory: object,
+) -> None:
+    parser = getattr(partial_form, parser_name)
+    for extra_field in ('allergen_code', 'allergen_presence'):
+        form = factory()
+        form.add(extra_field, 'A' if extra_field == 'allergen_code' else 'contains')
+        with pytest.raises(WorkflowValidationError, match='unvollständig') as raised:
+            parser(form)
+        assert raised.value.field_name == 'allergen_presence'
+
+
+@pytest.mark.parametrize(
+    ('parser_name', 'factory'),
+    [(name, factory) for name, factory, _fields in _COMPONENT_FORM_CASES],
+)
+def test_component_forms_reject_every_forbidden_identity_family(parser_name: str, factory: object) -> None:
+    parser = getattr(partial_form, parser_name)
+    forbidden = (
+        'profile', 'profile_scope', 'id', 'public_id', 'location_id', 'profile_id',
+        'component_id', 'label_id', 'allergen_id', 'master_id',
+        'label_master_id', 'allergen_master_id',
+    )
+    for field in forbidden:
+        form = factory()
+        form.add(field, '7')
+        with pytest.raises(WorkflowValidationError, match='Unzulässiges') as raised:
+            parser(form)
+        assert raised.value.field_name == field
+
+
+_PARTIAL_FORM_CASES = (
+    (parse_week_header_form, _header_partial_form,
+     ('_csrf', 'week', 'row_version', 'title', 'shared_note'),
+     ('_csrf', 'week', 'row_version', 'title', 'shared_note')),
+    (parse_service_form, _service_partial_form,
+     ('_csrf', 'week', 'day', 'meal', 'row_version', 'service_state', 'notice'),
+     ('_csrf', 'week', 'day', 'meal', 'row_version', 'service_state', 'notice')),
+    (parse_menu_item_form, _menu_form,
+     ('_csrf', 'week', 'day', 'meal', 'option', 'row_version', 'title',
+      'allergen_mode', 'origin_mode', 'label_mode'),
+     ('_csrf', 'week', 'day', 'meal', 'option', 'row_version', 'title',
+      'description', 'note', 'allergen_mode', 'origin_mode', 'label_mode')),
+)
+
+
+@pytest.mark.parametrize(('parser', 'factory', 'required', 'scalars'), _PARTIAL_FORM_CASES)
+def test_partial_form_required_and_scalar_contract_matrix(
+    parser: object, factory: object, required: tuple[str, ...], scalars: tuple[str, ...],
+) -> None:
+    for field in required:
+        missing = factory()
+        missing.pop(field)
+        with pytest.raises(WorkflowValidationError, match='Fehlendes') as raised:
+            parser('patient', missing)
+        assert raised.value.field_name == field
+    for field in scalars:
+        duplicate = factory()
+        duplicate.add(field, 'duplicate')
+        with pytest.raises(WorkflowValidationError, match='mehrfach') as raised:
+            parser('patient', duplicate)
+        assert raised.value.field_name == field
+
+
+@pytest.mark.parametrize(
+    ('parser', 'factory'),
+    [(parser, factory) for parser, factory, _required, _scalars in _PARTIAL_FORM_CASES],
+)
+def test_partial_forms_reject_forbidden_profile_internal_and_master_ids(
+    parser: object, factory: object,
+) -> None:
+    forbidden = (
+        'profile', 'profile_scope', 'week_id', 'service_id', 'item_id', 'location_id',
+        'profile_id', 'menu_week_id', 'meal_period_id', 'menu_type_id', 'component_id',
+        'label_id', 'allergen_id', 'master_id', 'label_master_id', 'allergen_master_id',
+    )
+    for field in forbidden:
+        form = factory()
+        form.add(field, '7')
+        with pytest.raises(WorkflowValidationError, match='Unzulässiges') as raised:
+            parser('patient', form)
+        assert raised.value.field_name == field
+
+
+def test_menu_form_rejects_reverse_misalignment_for_every_repeated_pair() -> None:
+    for left_key, right_key in (
+        ('component_public_id', 'component_text'),
+        ('allergen_code', 'allergen_presence'),
+        ('origin_ingredient', 'origin_country_code'),
+    ):
+        form = _menu_form()
+        form.add(left_key, 'A')
+        with pytest.raises(WorkflowValidationError, match='unvollständig') as raised:
+            parse_menu_item_form('patient', form)
+        assert raised.value.field_name == right_key
+
+
+@pytest.mark.parametrize(
+    ('parser', 'profile_code', 'form', 'field_name'),
+    [
+        (parse_week_header_form, 'foreign', _header_partial_form(), 'profile'),
+        (parse_service_form, 'staff_guest', _service_partial_form(meal='DINNER'), 'meal'),
+        (parse_service_form, 'staff_guest', _service_partial_form(day='2026-09-05'), 'day'),
+    ],
+)
+def test_header_and_service_forms_reject_invalid_profile_raster(
+    parser: object, profile_code: str, form: MultiDict[str, str], field_name: str,
+) -> None:
+    with pytest.raises(WorkflowValidationError) as raised:
+        parser(profile_code, form)
+    assert raised.value.field_name == field_name
