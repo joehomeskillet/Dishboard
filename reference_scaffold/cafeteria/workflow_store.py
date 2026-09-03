@@ -365,17 +365,18 @@ def persist_draft_connection(
     values: dict[str, Any],
     reject_catalog_assignments: bool = False,
 ) -> int:
+    location_id = resolve_single_active_location_connection(connection)
     week = connection.execute(
         text(
             '''
             SELECT w.id, w.row_version, w.location_id
             FROM cafeteria.menu_weeks w
             JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
-            WHERE p.code=:profile_code AND w.week_start=:week_start
+            WHERE w.location_id=:location_id AND p.code=:profile_code AND w.week_start=:week_start
             FOR UPDATE OF w
             '''
         ),
-        {'profile_code': profile_code, 'week_start': week_start},
+        {'location_id': location_id, 'profile_code': profile_code, 'week_start': week_start},
     ).mappings().one_or_none()
     if week is None or int(week['row_version']) != expected_row_version:
         raise StaleDraftError('Der Entwurf wurde zwischenzeitlich geändert.')

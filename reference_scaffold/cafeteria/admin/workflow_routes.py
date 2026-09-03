@@ -1,19 +1,17 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import re
 from datetime import date, timedelta
 from html import escape
 from typing import Literal, cast
 
-from flask import (
-    abort, current_app, flash, get_flashed_messages, make_response, redirect, request, url_for,
-)
+from flask import abort, current_app, flash, get_flashed_messages, make_response, redirect, request, url_for
 from sqlalchemy import text
 from sqlalchemy.exc import NoResultFound
 
-from ..component_assignment_store import (
-    ComponentAssignmentConflictError, ComponentAssignmentValidationError,
-)
+from ..component_assignment_store import ComponentAssignmentConflictError, ComponentAssignmentValidationError
 from ..component_catalog_store import (
     AdminScope, ComponentCatalogConfigurationError, ComponentCatalogValidationError,
     ComponentConflictError, ComponentNotFoundError, StaleComponentError, archive_component,
@@ -26,18 +24,15 @@ from ..security import csrf_token, validate_csrf
 from ..workflow import (
     MENU_TYPES, PROFILE_DAYS, PROFILE_MEALS, AutoOriginConflictError,
     PublicationConfigurationError, StaleDraftError, StaleItemError, WorkflowValidationError,
-    get_component_review_token, publish_draft, review_component,
+    derive_admin_status, get_component_review_token, publish_draft, review_component,
 )
 from ..workflow_copy_store import copy_previous_week
 from ..workflow_partial_form import (
     parse_component_archive_form, parse_component_create_form, parse_component_unarchive_form,
-    parse_component_update_form, parse_menu_item_form, parse_service_form, parse_week_header_form,
-)
+    parse_component_update_form, parse_menu_item_form, parse_service_form, parse_week_header_form)
 from ..workflow_partial_store import (
     PartialWorkflowConflictError, PartialWorkflowNotFoundError, PartialWorkflowValidationError,
-    persist_menu_item, persist_service_state, persist_week_header, resolve_item_id,
-    resolve_week_ref,
-)
+    persist_menu_item, persist_service_state, persist_week_header, resolve_item_id, resolve_week_ref)
 from ..workflow_store import load_draft_connection
 from .routes import _actor_id, bp
 
@@ -145,12 +140,41 @@ def _exact(required: set[str]) -> None:
 
 def _version_field(name: str) -> int:
     raw = request.form[name]
-    if re.fullmatch(r'\d+', raw) is None:
+    if re.fullmatch(r'\d{1,19}', raw) is None:
         abort(400, description='Versionsnummer muss eine nichtnegative ganze Zahl sein.')
-    return int(raw, 10)
+    value = int(raw, 10)
+    if value > 2**63 - 1:
+        abort(400, description='Versionsnummer ist zu gross.')
+    return value
 
 def _db():
     return current_app.extensions['cafeteria_db']
+
+def _csrf_digest(scope: AdminScope, profile: str, purpose: str, raw: str) -> str:
+    secret = current_app.secret_key
+    if not isinstance(secret, (str, bytes)) or not secret:
+        abort(503, description='Formularsignatur ist nicht konfiguriert.')
+    key = secret.encode('utf-8') if isinstance(secret, str) else secret
+    binding = f'dishboard-admin-v1\0{raw}\0{scope.actor_id}\0{profile}\0{purpose}\0{scope.location_id}'
+    return hmac.new(key, binding.encode(), hashlib.sha256).hexdigest()
+
+def _scoped_csrf(profile: str, purpose: str, scope: AdminScope) -> str:
+    raw = csrf_token()
+    return f'{raw}.{purpose}.{_csrf_digest(scope, profile, purpose, raw)}'
+
+def _validate_scoped_csrf(profile: str, purposes: set[str]) -> AdminScope:
+    candidate = request.form.get('_csrf', '')
+    try:
+        raw, purpose, digest = candidate.rsplit('.', 2)
+    except ValueError:
+        abort(400, description='CSRF-Prüfung fehlgeschlagen.')
+    validate_csrf(raw)
+    if purpose not in purposes:
+        abort(400, description='Formularzweck ist ungültig.')
+    scope = _scope(profile)
+    if not hmac.compare_digest(digest, _csrf_digest(scope, profile, purpose, raw)):
+        abort(409, description='Der aktive Standort wurde zwischenzeitlich geändert.')
+    return scope
 
 def _flash() -> str:
     return ''.join(f'<p class="notice">{escape(message)}</p>' for message in get_flashed_messages())
@@ -164,7 +188,6 @@ def _menu_context(week: date, day: str, meal: str, option: str, title: str, vers
         f'<span class="title">{escape(title)}</span></div>'
     )
 
-
 def _load_item(scope: AdminScope, week: date, day: str, meal: str, option: str):
     with _db().connect() as connection:
         week_ref = resolve_week_ref(connection, scope, week)
@@ -175,11 +198,11 @@ def _load_item(scope: AdminScope, week: date, day: str, meal: str, option: str):
         ).mappings().one()
     return item_id, int(row['row_version']), str(row['title'])
 
-
 def _week_overview(profile: str):
     _reject_override()
     week = _week_arg()
-    _scope(profile)
+    scope = _scope(profile)
+    status = derive_admin_status(_db(), profile, week)
     draft = None
     versions: dict[tuple[str, str, str], int] = {}
     try:
@@ -196,9 +219,7 @@ def _week_overview(profile: str):
                 ),
                 {'week_id': int(draft['id'])},
             )
-            versions = {
-                (str(row.day), str(row.meal), str(row.option)): int(row.row_version) for row in rows
-            }
+            versions = {(str(row.day), str(row.meal), str(row.option)): int(row.row_version) for row in rows}
     except ComponentCatalogConfigurationError as error:
         abort(503, description=str(error))
     except NoResultFound:
@@ -209,8 +230,9 @@ def _week_overview(profile: str):
         for service in entry['services']
         for item in service['options']
     }
-    parts = [_flash(), f'<div data-profile="{profile}" data-week="{week.isoformat()}">',
-             _hidden('_csrf', csrf_token()), _hidden('week', week.isoformat())]
+    parts = [f'<div aria-live="polite">{_flash()}</div>',
+             f'<div data-profile="{profile}" data-status="{status}" data-week="{week.isoformat()}">',
+             _hidden('_csrf', _scoped_csrf(profile, 'overview', scope)), _hidden('week', week.isoformat())]
     if profile == 'staff_guest':
         parts.append('<p>Samstag und Sonntag: Cafeteria geschlossen.</p>')
     for offset in range(PROFILE_DAYS[profile]):
@@ -224,30 +246,25 @@ def _week_overview(profile: str):
                 )
     return _page(''.join(parts) + '</div>')
 
-
 @bp.after_request
 def _admin_no_store(response):
     response.headers['Cache-Control'] = 'no-store'
     return response
-
 
 @bp.get('/')
 @require_capability('draft.read')
 def dashboard():
     return redirect(url_for('admin.cafeteria'))
 
-
 @bp.get('/cafeteria')
 @require_capability('draft.read')
 def cafeteria():
     return _week_overview('staff_guest')
 
-
 @bp.get('/patienten')
 @require_capability('draft.read')
 def patienten():
     return _week_overview('patient')
-
 
 @bp.get('/<any(cafeteria, patienten):family>/menu')
 @require_capability('draft.read')
@@ -266,7 +283,7 @@ def menu_get(family: str):
         abort(503, description=str(error))
     except (PartialWorkflowNotFoundError, NoResultFound):
         context = _menu_context(week, day, meal, option, '', 0)
-        return _page(f'{_hidden("_csrf", csrf_token())}{context}')
+        return _page(f'{_hidden("_csrf", _scoped_csrf(profile, "menu", scope))}{context}')
     context = _menu_context(week, day, meal, option, title, version)
     try:
         token = get_component_review_token(_db(), scope, item_id)
@@ -275,20 +292,20 @@ def menu_get(family: str):
     except _STORE_ERRORS as error:
         _abort_store(error)
     return _page(
-        f'{_hidden("_csrf", csrf_token())}{context}{_hidden("component_version", token)}'
+        f'{_hidden("_csrf", _scoped_csrf(profile, "menu", scope))}{context}'
+        f'{_hidden("component_version", token)}'
     )
-
 
 @bp.post('/<any(cafeteria, patienten):family>/menu')
 @require_capability('draft.write')
 def menu_post(family: str):
     profile = profile_from_endpoint(family)
     _reject_override()
-    validate_csrf(request.form.get('_csrf'))
+    scope = _validate_scoped_csrf(profile, {'overview', 'menu'})
     try:
         parsed = parse_menu_item_form(profile, request.form)
         version = persist_menu_item(
-            _db(), _scope(profile), parsed.week_start, parsed.day, parsed.meal,
+            _db(), scope, parsed.week_start, parsed.day, parsed.meal,
             parsed.option, parsed.payload, parsed.expected_item_row_version,
         )
     except AutoOriginConflictError:
@@ -300,18 +317,16 @@ def menu_post(family: str):
         day=parsed.day, meal=parsed.meal, option=parsed.option, row_version=version,
     ), code=303)
 
-
 @bp.post('/<any(cafeteria, patienten):family>/menu/review')
 @require_capability('draft.write')
 def menu_review(family: str):
     profile = profile_from_endpoint(family)
     _reject_override()
-    validate_csrf(request.form.get('_csrf'))
+    scope = _validate_scoped_csrf(profile, {'overview', 'menu'})
     _exact({'_csrf', 'week', 'day', 'meal', 'option', 'row_version', 'component_version'})
     week, day, meal, option = _monday(request.form['week']), request.form['day'], request.form['meal'], request.form['option']
     _raster(profile, week, day, meal, option)
     expected, token = _version_field('row_version'), request.form['component_version']
-    scope = _scope(profile)
     context = _menu_context(week, day, meal, option, '', expected)
     try:
         item_id, _, title = _load_item(scope, week, day, meal, option)
@@ -326,7 +341,6 @@ def menu_review(family: str):
         option=option, row_version=version,
     ), code=303)
 
-
 @bp.get('/<any(cafeteria, patienten):family>/header')
 @require_capability('draft.read')
 def header_get(family: str):
@@ -340,26 +354,24 @@ def header_get(family: str):
             return load_draft_connection(connection, profile, week)
     draft = _call(load)
     return _page(
-        f'<div data-week="{week.isoformat()}">{_hidden("_csrf", csrf_token())}'
+        f'<div data-week="{week.isoformat()}">{_hidden("_csrf", _scoped_csrf(profile, "header", scope))}'
         f'{_hidden("week", week.isoformat())}{_hidden("row_version", draft["row_version"])}'
         f'<span class="title">{escape(str(draft["title"]))}</span>'
         f'<span class="shared-note">{escape(str(draft["shared_note"]))}</span></div>'
     )
-
 
 @bp.post('/<any(cafeteria, patienten):family>/header')
 @require_capability('draft.write')
 def header_post(family: str):
     profile = profile_from_endpoint(family)
     _reject_override()
-    validate_csrf(request.form.get('_csrf'))
+    scope = _validate_scoped_csrf(profile, {'overview', 'header'})
     parsed = _call(lambda: parse_week_header_form(profile, request.form))
     _call(lambda: persist_week_header(
-        _db(), _scope(profile), parsed.week_start, parsed.payload,
+        _db(), scope, parsed.week_start, parsed.payload,
         parsed.expected_week_row_version,
     ))
     return redirect(url_for('admin.header_get', family=family, week=parsed.week_start.isoformat()), 303)
-
 
 @bp.get('/<any(cafeteria, patienten):family>/service')
 @require_capability('draft.read')
@@ -385,21 +397,21 @@ def service_get(family: str):
         abort(404)
     return _page(
         f'<div data-week="{week.isoformat()}" data-day="{escape(day)}" data-meal="{escape(meal)}">'
-        f'{_hidden("_csrf", csrf_token())}{_hidden("row_version", int(row["row_version"]))}'
+        f'{_hidden("_csrf", _scoped_csrf(profile, "service", scope))}'
+        f'{_hidden("row_version", int(row["row_version"]))}'
         f'<span class="service-state">{escape(str(row["service_state"]))}</span>'
         f'<span class="notice">{escape(str(row["notice"]))}</span></div>'
     )
-
 
 @bp.post('/<any(cafeteria, patienten):family>/service')
 @require_capability('draft.write')
 def service_post(family: str):
     profile = profile_from_endpoint(family)
     _reject_override()
-    validate_csrf(request.form.get('_csrf'))
+    scope = _validate_scoped_csrf(profile, {'overview', 'service'})
     parsed = _call(lambda: parse_service_form(profile, request.form))
     _call(lambda: persist_service_state(
-        _db(), _scope(profile), parsed.week_start, parsed.day, parsed.meal,
+        _db(), scope, parsed.week_start, parsed.day, parsed.meal,
         parsed.payload, parsed.expected_service_row_version,
     ))
     return redirect(url_for(
@@ -407,33 +419,34 @@ def service_post(family: str):
         day=parsed.day, meal=parsed.meal,
     ), 303)
 
-
 @bp.get('/<any(cafeteria, patienten):family>/komponenten')
 @require_capability('draft.read')
 def components_get(family: str):
     profile = profile_from_endpoint(family)
     _reject_override()
+    scope = _scope(profile)
     query, category, archived = request.args.get('q', ''), request.args.get('category'), request.args.get('include_archived', '')
     if archived not in {'', '0', '1'} or len(request.args.getlist('q')) > 1:
         abort(400, description='Suchfelder sind ungültig.')
-    rows = _call(lambda: find_components(_db(), _scope(profile), query, category, archived == '1'))
+    rows = _call(lambda: find_components(_db(), scope, query, category, archived == '1'))
     items = ''.join(
         f'<li data-public-id="{escape(str(row["public_id"]))}" data-active="{int(bool(row["active"]))}">'
         f'{escape(str(row["name"]))} usage={row["usage_count"]}</li>'
         for row in rows
     )
-    return _page(f'<div data-profile="{profile}">{_flash()}{_hidden("_csrf", csrf_token())}<ul>{items}</ul></div>')
-
+    return _page(f'<div data-profile="{profile}">{_flash()}'
+                 f'{_hidden("_csrf", _scoped_csrf(profile, "component-create", scope))}'
+                 f'<ul>{items}</ul></div>')
 
 @bp.post('/<any(cafeteria, patienten):family>/komponenten')
 @require_capability('draft.write')
 def components_create(family: str):
     profile = profile_from_endpoint(family)
     _reject_override()
-    validate_csrf(request.form.get('_csrf'))
+    scope = _validate_scoped_csrf(profile, {'component-create'})
     parsed = _call(lambda: parse_component_create_form(request.form))
     created = _call(lambda: create_component(
-        _db(), _scope(profile), str(parsed.payload['category']), str(parsed.payload['name']),
+        _db(), scope, str(parsed.payload['category']), str(parsed.payload['name']),
         None if parsed.payload['origin_country_code'] is None else str(parsed.payload['origin_country_code']),
         cast(Literal['common', 'current'], parsed.payload['target_scope']),
         list(parsed.payload['label_codes']), list(parsed.payload['allergens']),
@@ -441,31 +454,31 @@ def components_create(family: str):
     flash(REVIEW_HINT)
     return redirect(url_for('admin.component_detail', family=family, public_id=created['public_id']), 303)
 
-
 @bp.get('/<any(cafeteria, patienten):family>/komponenten/<public_id>')
 @require_capability('draft.read')
 def component_detail(family: str, public_id: str):
     profile = profile_from_endpoint(family)
     _reject_override()
-    row = _call(lambda: get_component(_db(), _scope(profile), public_id, include_archived=True))
+    scope = _scope(profile)
+    row = _call(lambda: get_component(_db(), scope, public_id, include_archived=True))
     return _page(
         f'{_flash()}<div data-public-id="{escape(str(row["public_id"]))}" '
         f'data-profile-scope="{escape(str(row["profile_scope"]))}" data-active="{int(bool(row["active"]))}">'
-        f'{_hidden("_csrf", csrf_token())}{_hidden("row_version", row["row_version"])}'
+        f'{_hidden("_csrf", _scoped_csrf(profile, "component", scope))}'
+        f'{_hidden("row_version", row["row_version"])}'
         f'<span class="name">{escape(str(row["name"]))}</span></div>'
     )
-
 
 @bp.post('/<any(cafeteria, patienten):family>/komponenten/<public_id>')
 @require_capability('draft.write')
 def component_update(family: str, public_id: str):
     profile = profile_from_endpoint(family)
     _reject_override()
-    validate_csrf(request.form.get('_csrf'))
+    scope = _validate_scoped_csrf(profile, {'component'})
     parsed = _call(lambda: parse_component_update_form(request.form))
-    _call(lambda: get_component(_db(), _scope(profile), public_id, include_archived=True))
+    _call(lambda: get_component(_db(), scope, public_id, include_archived=True))
     _call(lambda: update_component(
-        _db(), _scope(profile), public_id,
+        _db(), scope, public_id,
         {
             'category': parsed.payload['category'], 'name': parsed.payload['name'],
             'origin_country_code': parsed.payload['origin_country_code'],
@@ -476,30 +489,26 @@ def component_update(family: str, public_id: str):
     flash(REVIEW_HINT)
     return redirect(url_for('admin.component_detail', family=family, public_id=public_id), 303)
 
-
 def _component_status(family: str, public_id: str, *, archive: bool):
     profile = profile_from_endpoint(family)
     _reject_override()
-    validate_csrf(request.form.get('_csrf'))
+    scope = _validate_scoped_csrf(profile, {'component'})
     parser = parse_component_archive_form if archive else parse_component_unarchive_form
     writer = archive_component if archive else unarchive_component
     parsed = _call(lambda: parser(request.form))
-    _call(lambda: writer(_db(), _scope(profile), public_id, parsed.expected_component_row_version))
+    _call(lambda: writer(_db(), scope, public_id, parsed.expected_component_row_version))
     flash(REVIEW_HINT)
     return redirect(url_for('admin.component_detail', family=family, public_id=public_id), 303)
-
 
 @bp.post('/<any(cafeteria, patienten):family>/komponenten/<public_id>/archive')
 @require_capability('draft.write')
 def component_archive(family: str, public_id: str):
     return _component_status(family, public_id, archive=True)
 
-
 @bp.post('/<any(cafeteria, patienten):family>/komponenten/<public_id>/unarchive')
 @require_capability('draft.write')
 def component_unarchive(family: str, public_id: str):
     return _component_status(family, public_id, archive=False)
-
 
 @bp.get('/<any(cafeteria, patienten):family>/copy')
 @require_capability('draft.read')
@@ -509,14 +518,13 @@ def copy_get(family: str):
     target = _week_arg()
     source = target - timedelta(days=7)
     scope = _scope(profile)
-
-    def target_version() -> int:
+    def versions() -> tuple[int, int]:
         with _db().connect() as connection:
-            resolve_week_ref(connection, scope, source)
+            source_ref = resolve_week_ref(connection, scope, source)
             try:
                 target_ref = resolve_week_ref(connection, scope, target)
             except PartialWorkflowNotFoundError:
-                return 0
+                return source_ref.row_version, 0
             blocked = connection.execute(
                 text('SELECT EXISTS (SELECT 1 FROM cafeteria.menu_services s '
                      'JOIN cafeteria.menu_items i ON i.service_id=s.id WHERE s.menu_week_id=:week_id) '
@@ -526,32 +534,33 @@ def copy_get(family: str):
             ).scalar_one()
             if blocked:
                 raise PartialWorkflowConflictError('Zielwoche ist nicht leer oder publiziert.')
-            return target_ref.row_version
-
-    version = _call(target_version)
+            return source_ref.row_version, target_ref.row_version
+    source_version, target_version = _call(versions)
     return _page(
         f'<div data-profile="{profile}" data-source-week="{source.isoformat()}" '
-        f'data-target-week="{target.isoformat()}">{_hidden("_csrf", csrf_token())}'
-        f'{_hidden("source_week", source.isoformat())}{_hidden("target_week", target.isoformat())}{_hidden("target_row_version", version)}</div>'
+        f'data-target-week="{target.isoformat()}">{_hidden("_csrf", _scoped_csrf(profile, "copy", scope))}'
+        f'{_hidden("source_week", source.isoformat())}{_hidden("target_week", target.isoformat())}'
+        f'{_hidden("source_row_version", source_version)}{_hidden("target_row_version", target_version)}</div>'
     )
-
 
 @bp.post('/<any(cafeteria, patienten):family>/copy')
 @require_capability('draft.write')
 def copy_post(family: str):
     profile = profile_from_endpoint(family)
     _reject_override()
-    validate_csrf(request.form.get('_csrf'))
-    _exact({'_csrf', 'source_week', 'target_week', 'target_row_version'})
+    scope = _validate_scoped_csrf(profile, {'copy'})
+    _exact({'_csrf', 'source_week', 'target_week', 'source_row_version', 'target_row_version'})
     source, target = _monday(request.form['source_week']), _monday(request.form['target_week'])
     if source != target - timedelta(days=7):
         abort(400, description='source_week muss genau die Vorwoche sein.')
-    _call(lambda: copy_previous_week(_db(), _scope(profile), target, _version_field('target_row_version')))
+    _call(lambda: copy_previous_week(
+        _db(), scope, target, _version_field('target_row_version'),
+        _version_field('source_row_version'),
+    ))
     return redirect(url_for(f'admin.{family}', week=target.isoformat()), 303)
 
-
 @bp.get('/<any(cafeteria, patienten):family>/preview')
-@require_capability('draft.read')
+@require_capability('preview.read')
 def preview(family: str):
     profile = profile_from_endpoint(family)
     _reject_override()
@@ -567,32 +576,24 @@ def preview(family: str):
     state = str(draft['workflow_state'])
     if state not in {'draft', 'ready', 'published', 'archived'}:
         abort(404)
-    titles = [
-        escape(str(item['title']))
-        for entry in draft['days']
-        for service in entry['services']
-        for item in service['options']
-    ]
+    titles = [escape(str(item['title'])) for entry in draft['days']
+              for service in entry['services'] for item in service['options']]
     return _page(
-        f'<div class="preview-banner">PREVIEW</div>'
-        f'<div data-preview="last-saved" data-workflow-state="{escape(state)}" '
-        f'data-week="{week.isoformat()}" data-profile="{profile}">'
-        f'<span class="title">{escape(str(draft["title"]))}</span>'
-        f'<div class="dishes">{" ".join(titles)}</div></div>'
-    )
-
+        f'<div class="preview-banner">PREVIEW</div><div data-preview="last-saved" '
+        f'data-workflow-state="{escape(state)}" data-week="{week.isoformat()}" '
+        f'data-profile="{profile}"><span class="title">{escape(str(draft["title"]))}</span>'
+        f'<div class="dishes">{" ".join(titles)}</div></div>')
 
 @bp.post('/<any(cafeteria, patienten):family>/publish')
 @require_capability('publication.publish')
 def publish(family: str):
     profile = profile_from_endpoint(family)
     _reject_override()
-    validate_csrf(request.form.get('_csrf'))
+    scope = _validate_scoped_csrf(profile, {'overview'})
     _exact({'_csrf', 'week', 'row_version'})
     week, expected = _monday(request.form['week']), _version_field('row_version')
-    _call(lambda: publish_draft(
-        _db(), profile, week, expected_row_version=expected,
-        actor_id=_scope(profile).actor_id,
-        issuer_engine=current_app.extensions.get('cafeteria_auth_issuer_db'),
-    ))
+    snapshot = _call(lambda: publish_draft(
+        _db(), profile, week, expected_row_version=expected, actor_id=scope.actor_id,
+        issuer_engine=current_app.extensions.get('cafeteria_auth_issuer_db')))
+    flash(f'Publiziert: {snapshot["revision_id"]}')
     return redirect(url_for(f'admin.{family}', week=week.isoformat()), 303)

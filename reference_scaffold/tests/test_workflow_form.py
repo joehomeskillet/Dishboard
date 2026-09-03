@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import pytest
+from flask import Flask
 from werkzeug.datastructures import MultiDict
+from werkzeug.exceptions import BadRequest
 
 from cafeteria import workflow_partial_form as partial_form
+from cafeteria.admin.workflow_routes import _version_field
 from cafeteria.workflow import WorkflowValidationError, validate_publication_fit
 from cafeteria.workflow_form import parse_draft_form
 from cafeteria.workflow_partial_form import (
@@ -100,6 +103,14 @@ def test_publication_rejects_unchecked_open_option() -> None:
         validate_publication_fit('staff_guest', parsed.values)
 
     assert raised.value.field_name == 'service_0_LUNCH_MENU_1_allergen_reviewed'
+
+
+@pytest.mark.parametrize('raw', ['9' * 5000, '9223372036854775808'])
+def test_route_version_rejects_values_outside_bigint_without_500(raw: str) -> None:
+    app = Flask(__name__)
+    with app.test_request_context(method='POST', data={'row_version': raw}):
+        with pytest.raises(BadRequest):
+            _version_field('row_version')
 
 
 def _menu_form(**updates: str) -> MultiDict[str, str]:

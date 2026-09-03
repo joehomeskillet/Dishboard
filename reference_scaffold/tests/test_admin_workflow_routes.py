@@ -13,6 +13,7 @@ from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.pool import NullPool
 
 from cafeteria import db as database
+from cafeteria import roles
 from cafeteria.admin import routes as admin_routes
 from cafeteria.admin import workflow_routes
 from cafeteria.admin.workflow_routes import ORIGIN_CONFLICT, profile_from_endpoint
@@ -136,6 +137,12 @@ def _hidden(body: str, name: str) -> str:
     return match.group(1)
 
 
+def _overview_csrf(client, family: str = 'patienten') -> str:
+    page = client.get(f'/admin/{family}?week={DAY}')
+    assert page.status_code == 200
+    return _hidden(page.get_data(as_text=True), '_csrf')
+
+
 def _counts(engine: Engine) -> tuple[int, int, int]:
     with engine.connect() as connection:
         return tuple(
@@ -226,8 +233,9 @@ def test_editor_cannot_publish(app: Flask, database_engine: Engine) -> None:
 
 
 def test_admin_post_uses_underscore_csrf_not_auth_spelling(client) -> None:
+    token = _overview_csrf(client)
     rejected = client.post('/admin/patienten/header', data={
-        'csrf_token': 'workflow-csrf',
+        'csrf_token': token,
         'week': DAY,
         'row_version': '0',
         'title': 'Herbstküche',
@@ -240,7 +248,7 @@ def test_admin_post_uses_underscore_csrf_not_auth_spelling(client) -> None:
         'shared_note': '',
     })
     saved = client.post('/admin/patienten/header', data={
-        '_csrf': 'workflow-csrf',
+        '_csrf': token,
         'week': DAY,
         'row_version': '0',
         'title': 'Herbstküche',
@@ -274,20 +282,21 @@ def test_first_save_matrix_and_virtual_slot(client, database_engine: Engine, app
     assert virtual.status_code == 200
     assert 'name="row_version" value="0"' in virtual.get_data(as_text=True)
     assert virtual.get_data(as_text=True).count('name="row_version"') == 1
+    token = _hidden(virtual.get_data(as_text=True), '_csrf')
     assert client.get(
         f'/admin/cafeteria/menu?week={DAY}&day={DAY}&meal=DINNER&option=MENU_1'
     ).status_code == 404
-    created = client.post('/admin/patienten/menu', data=_menu_form())
+    created = client.post('/admin/patienten/menu', data=_menu_form(_csrf=token))
     assert created.status_code == 303
     with database_engine.connect() as connection:
         version = connection.execute(text('SELECT row_version FROM cafeteria.menu_items')).scalar_one()
     assert version == 1
-    assert client.post('/admin/patienten/menu', data=_menu_form()).status_code == 409
-    missing = _menu_form(row_version='2', day='2026-09-01')
+    assert client.post('/admin/patienten/menu', data=_menu_form(_csrf=token)).status_code == 409
+    missing = _menu_form(_csrf=token, row_version='2', day='2026-09-01')
     assert client.post('/admin/patienten/menu', data=missing).status_code == 404
-    stale = _menu_form(row_version='9', title='Neu')
+    stale = _menu_form(_csrf=token, row_version='9', title='Neu')
     assert client.post('/admin/patienten/menu', data=stale).status_code == 409
-    updated = client.post('/admin/patienten/menu', data=_menu_form(row_version='1', title='Update'))
+    updated = client.post('/admin/patienten/menu', data=_menu_form(_csrf=token, row_version='1', title='Update'))
     assert updated.status_code == 303
     with database_engine.connect() as connection:
         row = connection.execute(text('SELECT row_version, title FROM cafeteria.menu_items')).one()
@@ -301,11 +310,14 @@ def test_copy_exact_prior_week_and_empty_source(client, database_engine: Engine,
     target = WEEK + dt.timedelta(days=7)
     offered = client.get(f'/admin/patienten/copy?week={target.isoformat()}')
     assert offered.status_code == 200
-    assert _hidden(offered.get_data(as_text=True), 'target_row_version') == '0'
+    offered_body = offered.get_data(as_text=True)
+    assert _hidden(offered_body, 'target_row_version') == '0'
+    source_version = _hidden(offered_body, 'source_row_version')
     empty = client.post('/admin/patienten/copy', data={
-        '_csrf': 'workflow-csrf',
+        '_csrf': _hidden(offered_body, '_csrf'),
         'source_week': WEEK.isoformat(),
         'target_week': target.isoformat(),
+        'source_row_version': source_version,
         'target_row_version': '0',
     })
     assert empty.status_code == 303
@@ -320,16 +332,18 @@ def test_copy_exact_prior_week_and_empty_source(client, database_engine: Engine,
     assert existing.status_code == 200
     assert _hidden(existing.get_data(as_text=True), 'target_row_version') == '1'
     mismatch = client.post('/admin/patienten/copy', data={
-        '_csrf': 'workflow-csrf',
+        '_csrf': _hidden(existing.get_data(as_text=True), '_csrf'),
         'source_week': WEEK.isoformat(),
         'target_week': (target + dt.timedelta(days=7)).isoformat(),
+        'source_row_version': source_version,
         'target_row_version': '0',
     })
     assert mismatch.status_code == 400
     exists = client.post('/admin/patienten/copy', data={
-        '_csrf': 'workflow-csrf',
+        '_csrf': _hidden(existing.get_data(as_text=True), '_csrf'),
         'source_week': WEEK.isoformat(),
         'target_week': target.isoformat(),
+        'source_row_version': source_version,
         'target_row_version': '0',
     })
     assert exists.status_code == 409
@@ -340,9 +354,10 @@ def test_copy_exact_prior_week_and_empty_source(client, database_engine: Engine,
     assert client.get(f'/admin/patienten/copy?week={target.isoformat()}').status_code == 409
     assert client.get('/admin/patienten/copy?week=2026-09-21').status_code == 404
     missing = client.post('/admin/patienten/copy', data={
-        '_csrf': 'workflow-csrf',
+        '_csrf': _hidden(existing.get_data(as_text=True), '_csrf'),
         'source_week': '2026-09-14',
         'target_week': '2026-09-21',
+        'source_row_version': '1',
         'target_row_version': '1',
     })
     assert missing.status_code == 404
@@ -368,9 +383,11 @@ def test_review_token_is_single_use_and_server_resolved(
             {'id': item_id},
         ).scalar_one()
     page = client.get(f'/admin/patienten/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1')
-    token = _hidden(page.get_data(as_text=True), 'component_version')
+    page_body = page.get_data(as_text=True)
+    token = _hidden(page_body, 'component_version')
+    scoped_csrf = _hidden(page_body, '_csrf')
     rejected = client.post('/admin/patienten/menu/review', data={
-        '_csrf': 'workflow-csrf',
+        '_csrf': scoped_csrf,
         'week': DAY,
         'day': DAY,
         'meal': 'LUNCH',
@@ -381,7 +398,7 @@ def test_review_token_is_single_use_and_server_resolved(
     })
     assert rejected.status_code == 400
     success = client.post('/admin/patienten/menu/review', data={
-        '_csrf': 'workflow-csrf',
+        '_csrf': scoped_csrf,
         'week': DAY,
         'day': DAY,
         'meal': 'LUNCH',
@@ -391,7 +408,7 @@ def test_review_token_is_single_use_and_server_resolved(
     })
     assert success.status_code == 303
     repeat = client.post('/admin/patienten/menu/review', data={
-        '_csrf': 'workflow-csrf',
+        '_csrf': scoped_csrf,
         'week': DAY,
         'day': DAY,
         'meal': 'LUNCH',
@@ -417,6 +434,7 @@ def test_review_token_is_single_use_and_server_resolved(
 
 
 def test_origin_conflict_is_controlled_409(client, database_engine: Engine, app: Flask) -> None:
+    scoped_csrf = _overview_csrf(client)
     user_id = _session_actor_id(client)
     scope = _scope(database_engine, user_id)
     engine = app.extensions['cafeteria_db']
@@ -452,7 +470,7 @@ def test_origin_conflict_is_controlled_409(client, database_engine: Engine, app:
     with database_engine.connect() as connection:
         version = connection.execute(text('SELECT row_version FROM cafeteria.menu_items')).scalar_one()
     posted = client.post('/admin/patienten/menu/review', data={
-        '_csrf': 'workflow-csrf',
+        '_csrf': scoped_csrf,
         'week': DAY,
         'day': DAY,
         'meal': 'LUNCH',
@@ -482,13 +500,140 @@ def test_patient_csv_export_never_reflects_internal_validation_category(
 
 def test_publish_requires_exact_keys(client, database_engine: Engine) -> None:
     extra = client.post('/admin/patienten/publish', data={
-        '_csrf': 'workflow-csrf',
+        '_csrf': _overview_csrf(client),
         'week': DAY,
         'row_version': '1',
         'title': 'nope',
     })
     assert extra.status_code == 400
     assert _counts(database_engine) == (0, 0, 0)
+
+
+def test_publish_prg_flashes_revision_in_live_region(
+    client,
+    database_engine: Engine,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    called: dict[str, object] = {}
+
+    def publish_stub(engine: Engine, profile: str, week: dt.date, **kwargs: object):
+        called.update(engine=engine, profile=profile, week=week, **kwargs)
+        return {'revision_id': 'PAT-2026-KW36-R7'}
+
+    monkeypatch.setattr(workflow_routes, 'publish_draft', publish_stub)
+    response = client.post('/admin/patienten/publish', data={
+        '_csrf': _overview_csrf(client),
+        'week': DAY,
+        'row_version': '7',
+    })
+    assert response.status_code == 303
+    assert response.location.endswith(f'/admin/patienten?week={DAY}')
+    page = client.get(response.location)
+    body = page.get_data(as_text=True)
+    assert page.status_code == 200
+    assert 'aria-live="polite"' in body
+    assert 'PAT-2026-KW36-R7' in body
+    assert called['engine'] is database_engine
+    assert (called['profile'], called['week'], called['expected_row_version']) == (
+        'patient', WEEK, 7,
+    )
+
+
+@pytest.mark.parametrize(
+    ('error', 'status'),
+    [
+        (workflow_routes.WorkflowValidationError('invalid'), 400),
+        (workflow_routes.NoResultFound(), 404),
+        (workflow_routes.StaleDraftError('stale'), 409),
+        (workflow_routes.PublicationConfigurationError('issuer'), 503),
+    ],
+)
+def test_publish_maps_only_documented_error_statuses(
+    client,
+    database_engine: Engine,
+    monkeypatch: pytest.MonkeyPatch,
+    error: BaseException,
+    status: int,
+) -> None:
+    before = _counts(database_engine)
+
+    def reject(*_args: object, **_kwargs: object) -> None:
+        raise error
+
+    monkeypatch.setattr(workflow_routes, 'publish_draft', reject)
+    response = client.post('/admin/patienten/publish', data={
+        '_csrf': _overview_csrf(client), 'week': DAY, 'row_version': '1',
+    })
+    assert response.status_code == status
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert _counts(database_engine) == before
+
+
+def test_scoped_csrf_rejects_location_cutover_without_mutation(
+    client,
+    database_engine: Engine,
+) -> None:
+    token = _overview_csrf(client)
+    with database_engine.begin() as connection:
+        connection.execute(text('UPDATE cafeteria.locations SET active=false'))
+        connection.execute(
+            text("INSERT INTO cafeteria.locations(code, name) VALUES ('NORD', 'Nordküche')")
+        )
+
+    response = client.post('/admin/patienten/header', data={
+        '_csrf': token, 'week': DAY, 'row_version': '0',
+        'title': 'Darf nicht wechseln', 'shared_note': '',
+    })
+    assert response.status_code == 409
+    with database_engine.connect() as connection:
+        assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_weeks')).scalar_one() == 0
+
+
+def test_copy_rejects_source_changed_after_confirmation(
+    client,
+    database_engine: Engine,
+    app: Flask,
+) -> None:
+    scope = _scope(database_engine, _session_actor_id(client))
+    persist_week_header(app.extensions['cafeteria_db'], scope, WEEK, {
+        'title': 'Bestätigte Quelle', 'shared_note': '',
+    }, 0)
+    target = WEEK + dt.timedelta(days=7)
+    offered = client.get(f'/admin/patienten/copy?week={target.isoformat()}')
+    body = offered.get_data(as_text=True)
+    source_version = _hidden(body, 'source_row_version')
+    persist_week_header(app.extensions['cafeteria_db'], scope, WEEK, {
+        'title': 'Nach Bestätigung geändert', 'shared_note': '',
+    }, int(source_version))
+
+    response = client.post('/admin/patienten/copy', data={
+        '_csrf': _hidden(body, '_csrf'),
+        'source_week': WEEK.isoformat(),
+        'target_week': target.isoformat(),
+        'source_row_version': source_version,
+        'target_row_version': '0',
+    })
+    assert response.status_code == 409
+    with database_engine.connect() as connection:
+        assert connection.execute(
+            text('SELECT count(*) FROM cafeteria.menu_weeks WHERE week_start=:target'),
+            {'target': target},
+        ).scalar_one() == 0
+
+
+def test_preview_uses_preview_read_capability(
+    app: Flask,
+    database_engine: Engine,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client_obj, user_id = _login(app, database_engine, ['Cafeteria.Editor'])
+    persist_week_header(
+        app.extensions['cafeteria_db'], _scope(database_engine, user_id), WEEK,
+        {'title': 'Vorschau', 'shared_note': ''}, 0,
+    )
+    monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Editor', {'preview.read'})
+    response = client_obj.get(f'/admin/patienten/preview?week={DAY}')
+    assert response.status_code == 200
 
 
 def test_zero_active_locations_are_503(client, database_engine: Engine) -> None:

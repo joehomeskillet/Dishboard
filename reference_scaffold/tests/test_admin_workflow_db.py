@@ -19,10 +19,12 @@ from cafeteria.workflow import (
     PublicationConfigurationError,
     StaleDraftError,
     WorkflowValidationError,
+    derive_admin_status,
     load_draft,
     publish_draft,
     save_draft,
 )
+from cafeteria.workflow_snapshot import build_snapshot
 
 ROOT = Path(__file__).resolve().parents[2]
 DATABASE_URL = os.getenv('TEST_DATABASE_URL')
@@ -152,6 +154,58 @@ def _save(engine: Engine, profile: str, values: dict[str, Any]) -> int:
         actor_id=actor_id,
         values=values,
     )
+
+
+def _historical_publication(engine: Engine, actor_id: int, suffix: str) -> int:
+    revision_number = {'R1': 8, 'R2': 9}[suffix]
+    revision_code = f'PAT-2026-KW36-R{revision_number}'
+    location = {
+        'R1': {'code': 'OLD_NORD', 'name': 'Altstandort Nord'},
+        'R2': {'code': 'OLD_SUED', 'name': 'Altstandort Sued'},
+    }[suffix]
+    snapshot = build_snapshot(
+        'patient',
+        {**_patient_values(), 'week_start': WEEK_START.isoformat(), 'location': location},
+        revision_code,
+    )
+    with engine.begin() as connection:
+        location_id = connection.execute(
+            text(
+                'INSERT INTO cafeteria.locations(code, name, active) '
+                'VALUES (:code, :name, false) RETURNING id'
+            ),
+            location,
+        ).scalar_one()
+        week_id = connection.execute(
+            text(
+                "INSERT INTO cafeteria.menu_weeks(location_id, profile_id, week_start, "
+                "workflow_state, title, created_by, updated_by) "
+                "SELECT :location_id, id, :week_start, 'published', :title, :actor_id, :actor_id "
+                "FROM cafeteria.offer_profiles WHERE code='patient' RETURNING id"
+            ),
+            {
+                'location_id': location_id,
+                'week_start': WEEK_START,
+                'title': snapshot['title'],
+                'actor_id': actor_id,
+            },
+        ).scalar_one()
+        return int(
+            connection.execute(
+                text(
+                    'INSERT INTO cafeteria.publication_revisions('
+                    'menu_week_id, revision_number, revision_code, snapshot_json, published_by) '
+                'VALUES (:week_id, :number, :code, CAST(:snapshot AS jsonb), :actor_id) RETURNING id'
+                ),
+                {
+                    'week_id': week_id,
+                    'number': revision_number,
+                    'code': revision_code,
+                    'snapshot': json.dumps(snapshot, ensure_ascii=False),
+                    'actor_id': actor_id,
+                },
+            ).scalar_one()
+        )
 
 
 def test_patient_draft_persists_sunday_lunch_and_dinner_without_cost_rows(
@@ -325,6 +379,84 @@ def test_profile_publications_are_independent_and_unsent_draft_is_not_public(
     assert active_snapshot(database_engine, 'staff_guest', '2026-09-02') == staff_first
     assert active_snapshot(database_engine, 'patient')['revision_id'] == patient_second['revision_id']
     assert active_snapshot(database_engine, 'patient', '2026-09-06')['revision_id'] == patient_second['revision_id']
+
+
+def test_admin_status_is_derived_from_saved_content_not_workflow_enum(
+    database_engine: Engine,
+) -> None:
+    actor_id = _actor_id(database_engine)
+    load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id)
+    assert derive_admin_status(database_engine, 'patient', WEEK_START) == 'empty'
+
+    _save(database_engine, 'patient', _patient_values())
+    assert derive_admin_status(database_engine, 'patient', WEEK_START) == 'ready'
+    with database_engine.begin() as connection:
+        connection.execute(
+            text(
+                "UPDATE cafeteria.menu_items SET allergen_review_status='not_checked' "
+                'WHERE id=(SELECT min(id) FROM cafeteria.menu_items)'
+            )
+        )
+    assert derive_admin_status(database_engine, 'patient', WEEK_START) == 'review_open'
+    with database_engine.begin() as connection:
+        connection.execute(text("UPDATE cafeteria.menu_items SET allergen_review_status='checked'"))
+
+    current = load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id)
+    publish_draft(
+        database_engine, 'patient', WEEK_START,
+        expected_row_version=current['row_version'], actor_id=actor_id,
+        issuer_engine=database_engine,
+    )
+    assert derive_admin_status(database_engine, 'patient', WEEK_START) == 'live'
+    changed = load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id)
+    save_draft(
+        database_engine, 'patient', WEEK_START,
+        expected_row_version=changed['row_version'], actor_id=actor_id,
+        values=_patient_values('Geänderte Woche'),
+    )
+    assert derive_admin_status(database_engine, 'patient', WEEK_START) == 'changed'
+    with database_engine.begin() as connection:
+        connection.execute(
+            text('DELETE FROM cafeteria.menu_items WHERE id=(SELECT min(id) FROM cafeteria.menu_items)')
+        )
+    assert derive_admin_status(database_engine, 'patient', WEEK_START) == 'incomplete'
+
+
+def test_publish_ignores_multiple_active_revisions_from_inactive_locations(
+    database_engine: Engine,
+) -> None:
+    actor_id = _actor_id(database_engine)
+    historical_ids = {
+        _historical_publication(database_engine, actor_id, 'R1'),
+        _historical_publication(database_engine, actor_id, 'R2'),
+    }
+    version = _save(database_engine, 'patient', _patient_values('Aktiver Standort'))
+
+    published = publish_draft(
+        database_engine, 'patient', WEEK_START,
+        expected_row_version=version, actor_id=actor_id, issuer_engine=None,
+    )
+
+    with database_engine.connect() as connection:
+        still_active = set(
+            connection.execute(
+                text(
+                    'SELECT id FROM cafeteria.publication_revisions '
+                    'WHERE id=ANY(CAST(:ids AS bigint[])) AND withdrawn_at IS NULL'
+                ),
+                {'ids': sorted(historical_ids)},
+            ).scalars()
+        )
+        active_location_code = connection.execute(
+            text(
+                'SELECT l.code FROM cafeteria.publication_revisions r '
+                'JOIN cafeteria.locations l ON l.id=r.location_id '
+                'WHERE r.revision_code=:code'
+            ),
+            {'code': published['revision_id']},
+        ).scalar_one()
+    assert still_active == historical_ids
+    assert active_location_code == 'KIRCHLINDACH'
 
 
 def test_published_payloads_keep_profile_shapes_and_patient_has_no_cost_tokens(

@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 from datetime import date, timedelta
-from typing import Any
+from typing import Any, Literal
 
 from sqlalchemy import Connection, Engine, text
+from sqlalchemy.exc import NoResultFound
 
 from .component_assignment_store import (
     AutoOriginConflictError as AutoOriginConflictError,
@@ -217,7 +218,12 @@ def validate_draft_values(
     )
 
 
-def validate_publication_fit(profile_code: str, values: dict[str, Any]) -> None:
+def validate_publication_fit(
+    profile_code: str,
+    values: dict[str, Any],
+    *,
+    require_review: bool = True,
+) -> None:
     if profile_code not in SIGNAGE_LIMITS:
         raise WorkflowValidationError('Unbekanntes Profil.')
     for day_index, day in enumerate(values['days']):
@@ -247,7 +253,7 @@ def validate_publication_fit(profile_code: str, values: dict[str, Any]) -> None:
                     )
 
                 # Validate allergen review status before publishing
-                if option.get("allergen_review_status") != "checked":
+                if require_review and option.get("allergen_review_status") != "checked":
                     raise WorkflowValidationError(
                         "Allergendeklaration ist nicht geprüft.",
                         field_name=f"{prefix}_allergen_reviewed",
@@ -426,6 +432,67 @@ def _lock_publish_review_state(connection: Connection, week_id: int) -> list[int
     return item_ids
 
 
+def derive_admin_status(
+    engine: Engine,
+    profile_code: str,
+    week_start: date,
+) -> Literal['empty', 'incomplete', 'review_open', 'live', 'changed', 'ready']:
+    if profile_code not in PROFILE_MEALS or week_start.isoweekday() != 1:
+        raise WorkflowValidationError('Profil oder Wochenbeginn ist ungültig.')
+    with engine.connect().execution_options(isolation_level='REPEATABLE READ') as connection:
+        with connection.begin():
+            try:
+                draft = load_draft_connection(connection, profile_code, week_start)
+            except NoResultFound:
+                return 'empty'
+            item_ids = [
+                int(value)
+                for value in connection.execute(
+                    text(
+                        'SELECT i.id FROM cafeteria.menu_items i '
+                        'JOIN cafeteria.menu_services s ON s.id=i.service_id '
+                        'WHERE s.menu_week_id=:week_id ORDER BY i.id'
+                    ),
+                    {'week_id': draft['id']},
+                ).scalars()
+            ]
+            active = connection.execute(
+                text(
+                    'SELECT revision_code, snapshot_json FROM cafeteria.publication_revisions '
+                    'WHERE menu_week_id=:week_id AND withdrawn_at IS NULL'
+                ),
+                {'week_id': draft['id']},
+            ).mappings().one_or_none()
+            if not item_ids and active is None:
+                return 'empty'
+            try:
+                values = _draft_values(draft)
+                _validate_values(profile_code, week_start, values)
+                validate_publication_fit(profile_code, values, require_review=False)
+            except (KeyError, TypeError, ValueError):
+                return 'incomplete'
+            if any(_review_open_connection(connection, item_id) for item_id in item_ids):
+                return 'review_open'
+            if active is None:
+                return 'ready'
+            candidate = build_snapshot(profile_code, draft, str(active['revision_code']))
+            return 'live' if candidate == active['snapshot_json'] else 'changed'
+
+
+def _active_publication_id(
+    connection: Connection,
+    week_id: int,
+) -> int | None:
+    value = connection.execute(
+        text(
+            'SELECT r.id FROM cafeteria.publication_revisions r '
+            'WHERE r.menu_week_id=:week_id AND r.withdrawn_at IS NULL'
+        ),
+        {'week_id': week_id},
+    ).scalar_one_or_none()
+    return None if value is None else int(value)
+
+
 def publish_draft(
     engine: Engine,
     profile_code: str,
@@ -436,18 +503,8 @@ def publish_draft(
     issuer_engine: Engine | None,
 ) -> dict[str, Any]:
     with engine.connect() as connection:
-        previous_id = connection.execute(
-            text(
-                '''
-                SELECT r.id
-                FROM cafeteria.publication_revisions r
-                JOIN cafeteria.menu_weeks w ON w.id=r.menu_week_id
-                JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
-                WHERE p.code=:profile_code AND w.week_start=:week_start AND r.withdrawn_at IS NULL
-                '''
-            ),
-            {'profile_code': profile_code, 'week_start': week_start},
-        ).scalar_one_or_none()
+        unlocked_draft = load_draft_connection(connection, profile_code, week_start)
+        previous_id = _active_publication_id(connection, int(unlocked_draft['id']))
     capability = None
     if previous_id is not None:
         if issuer_engine is None:
@@ -460,9 +517,12 @@ def publish_draft(
             week_start,
             lock_week=True,
         )
+        item_ids = _lock_publish_review_state(connection, int(draft['id']))
+        current_id = _active_publication_id(connection, int(draft['id']))
         if draft['row_version'] != expected_row_version:
             raise StaleDraftError('Der Entwurf wurde zwischenzeitlich geändert.')
-        item_ids = _lock_publish_review_state(connection, int(draft['id']))
+        if current_id != previous_id:
+            raise StaleDraftError('Die aktive Publikation wurde zwischenzeitlich geändert.')
         draft = load_draft_connection(connection, profile_code, week_start)
         values = _draft_values(draft)
         _validate_values(profile_code, week_start, values)
@@ -483,15 +543,6 @@ def publish_draft(
             f'{prefix}-{week_start.year}-KW{week_start.isocalendar().week:02d}-R{revision_number}'
         )
         snapshot = build_snapshot(profile_code, draft, revision_code)
-        current_id = connection.execute(
-            text(
-                'SELECT id FROM cafeteria.publication_revisions '
-                'WHERE menu_week_id=:week_id AND withdrawn_at IS NULL'
-            ),
-            {'week_id': draft['id']},
-        ).scalar_one_or_none()
-        if current_id != previous_id:
-            raise StaleDraftError('Die aktive Publikation wurde zwischenzeitlich geändert.')
         if current_id is not None:
             if capability is None:
                 raise PublicationConfigurationError(
