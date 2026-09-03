@@ -24,6 +24,7 @@ from test_admin_workflow_routes import (
     _menu_form,
     _payload,
     _register,
+    _session_actor_id,
     _scope,
 )
 
@@ -92,9 +93,13 @@ def test_preview_is_last_saved_without_publication_fallback(
     assert 'data-preview="last-saved"' in body
     assert 'Gespeicherter Titel' in body
     assert 'profile=patient' not in body
+    published_snapshot = json.loads(
+        (ROOT / 'demo' / 'snapshots' / 'patienten_kw36.json').read_text(encoding='utf-8')
+    )
+    published_snapshot['title'] = 'LIVE-SNAPSHOT-TITEL'
     with database_engine.begin() as connection:
         week_id = connection.execute(text('SELECT id FROM cafeteria.menu_weeks')).scalar_one()
-        actor_id = connection.execute(text('SELECT id FROM cafeteria.users ORDER BY id DESC')).scalar_one()
+        actor_id = _session_actor_id(client)
         connection.execute(text(
             "UPDATE cafeteria.menu_weeks SET workflow_state='published' WHERE id=:id"
         ), {'id': week_id})
@@ -111,7 +116,7 @@ def test_preview_is_last_saved_without_publication_fallback(
         ), {
             'week_id': week_id,
             'actor_id': actor_id,
-            'snapshot': json.dumps({'title': 'LIVE-SNAPSHOT-TITEL', 'days': []}),
+            'snapshot': json.dumps(published_snapshot, ensure_ascii=False),
         })
     live = client.get(f'/admin/patienten/preview?week={DAY}')
     live_body = live.get_data(as_text=True)
@@ -125,8 +130,7 @@ def test_preview_is_last_saved_without_publication_fallback(
 def test_preview_allows_every_persisted_workflow_state(
     client, database_engine: Engine, app: Flask, state: str,
 ) -> None:
-    with database_engine.connect() as connection:
-        user_id = int(connection.execute(text('SELECT id FROM cafeteria.users ORDER BY id DESC')).scalar_one())
+    user_id = _session_actor_id(client)
     persist_menu_item(
         app.extensions['cafeteria_db'],
         _scope(database_engine, user_id),
