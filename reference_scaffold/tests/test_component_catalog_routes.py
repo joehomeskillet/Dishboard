@@ -7,6 +7,7 @@ import pytest
 from flask import Flask
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.pool import NullPool
+from werkzeug.datastructures import MultiDict
 
 from cafeteria import db as database
 from cafeteria.admin.workflow_routes import REVIEW_HINT
@@ -72,8 +73,8 @@ def client(app: Flask, database_engine: Engine):
     return client_obj
 
 
-def _create_fields() -> list[tuple[str, str]]:
-    return [
+def _create_fields() -> MultiDict[str, str]:
+    return MultiDict([
         ('_csrf', 'workflow-csrf'),
         ('category', 'side'),
         ('name', 'Kartoffelstock'),
@@ -82,7 +83,7 @@ def _create_fields() -> list[tuple[str, str]]:
         ('label_code', 'VEGAN'),
         ('allergen_code', 'GLUTEN'),
         ('allergen_presence', 'contains'),
-    ]
+    ])
 
 
 def test_component_create_update_archive_unarchive_exact_forms(client, database_engine: Engine) -> None:
@@ -90,14 +91,13 @@ def test_component_create_update_archive_unarchive_exact_forms(client, database_
     assert created.status_code == 303
     location = created.headers['Location']
     detail = client.get(location, follow_redirects=False)
-    followed = client.get(location)
     assert detail.status_code == 200
-    assert REVIEW_HINT in followed.get_data(as_text=True)
-    body = followed.get_data(as_text=True)
+    assert REVIEW_HINT in detail.get_data(as_text=True)
+    body = detail.get_data(as_text=True)
     assert 'data-profile-scope="patient"' in body
     version = _hidden(body, 'row_version')
     public_id = body.split('data-public-id="', 1)[1].split('"', 1)[0]
-    updated = client.post(f'/admin/patienten/komponenten/{public_id}', data=[
+    updated = client.post(f'/admin/patienten/komponenten/{public_id}', data=MultiDict([
         ('_csrf', 'workflow-csrf'),
         ('category', 'side'),
         ('name', 'Kartoffelstock'),
@@ -106,16 +106,16 @@ def test_component_create_update_archive_unarchive_exact_forms(client, database_
         ('label_code', 'VEGAN'),
         ('allergen_code', 'GLUTEN'),
         ('allergen_presence', 'contains'),
-    ])
+    ]))
     assert updated.status_code == 303
-    with_target = client.post(f'/admin/patienten/komponenten/{public_id}', data=[
+    with_target = client.post(f'/admin/patienten/komponenten/{public_id}', data=MultiDict([
         ('_csrf', 'workflow-csrf'),
         ('category', 'side'),
         ('name', 'Kartoffelstock'),
         ('origin_country_code', 'CH'),
         ('row_version', version),
         ('target_scope', 'common'),
-    ])
+    ]))
     assert with_target.status_code == 400
     shown = client.get(f'/admin/patienten/komponenten/{public_id}')
     version = _hidden(shown.get_data(as_text=True), 'row_version')
@@ -142,8 +142,9 @@ def test_component_create_update_archive_unarchive_exact_forms(client, database_
 
 
 def test_component_create_rejects_duplicate_and_profile_keys(client, database_engine: Engine) -> None:
-    duplicate = _create_fields() + [('category', 'meat')]
-    mismatched = [
+    duplicate = _create_fields()
+    duplicate.add('category', 'meat')
+    mismatched = MultiDict([
         ('_csrf', 'workflow-csrf'),
         ('category', 'side'),
         ('name', 'Reis'),
@@ -152,10 +153,13 @@ def test_component_create_rejects_duplicate_and_profile_keys(client, database_en
         ('allergen_code', 'GLUTEN'),
         ('allergen_code', 'MILK'),
         ('allergen_presence', 'contains'),
-    ]
-    profiled = _create_fields() + [('profile', 'staff_guest')]
-    scoped = _create_fields() + [('profile_scope', 'patient')]
-    internal = _create_fields() + [('id', '1')]
+    ])
+    profiled = _create_fields()
+    profiled.add('profile', 'staff_guest')
+    scoped = _create_fields()
+    scoped.add('profile_scope', 'patient')
+    internal = _create_fields()
+    internal.add('id', '1')
     before = None
     with database_engine.connect() as connection:
         before = connection.execute(text('SELECT count(*) FROM cafeteria.menu_components')).scalar_one()

@@ -39,8 +39,7 @@ def create_app() -> Flask:
     from .public.routes import bp as public_bp
     from .signage.routes import bp as signage_bp
     from .auth.routes import bp as auth_bp
-    from .admin.routes import bp as admin_bp
-    from .admin import workflow_routes as _admin_workflow_routes  # noqa: F401
+    from .admin.workflow_routes import bp as admin_bp
     from .api.routes import bp as api_bp
     from .health.routes import bp as health_bp
 

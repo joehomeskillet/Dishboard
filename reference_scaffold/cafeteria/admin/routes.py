@@ -171,6 +171,3 @@ def import_csv():
         abort(409, description=str(error))
     endpoint = 'admin.patienten' if profile_code == 'patient' else 'admin.cafeteria'
     return redirect(url_for(endpoint), code=303)
-
-
-from . import workflow_routes as _workflow_routes  # noqa: E402,F401

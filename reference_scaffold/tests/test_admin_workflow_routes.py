@@ -7,12 +7,14 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
+import cafeteria
 from flask import Blueprint, Flask
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.pool import NullPool
 
 from cafeteria import db as database
 from cafeteria.admin import routes as admin_routes
+from cafeteria.admin import workflow_routes
 from cafeteria.admin.workflow_routes import ORIGIN_CONFLICT, profile_from_endpoint
 from cafeteria.component_catalog_store import AdminScope, create_component, update_component
 from cafeteria.security import csrf_token
@@ -65,7 +67,7 @@ def _register(application: Flask) -> Flask:
     signage.add_url_rule('/preview/patient', endpoint='patient_week', view_func=lambda: '')
     application.register_blueprint(auth)
     application.register_blueprint(signage)
-    application.register_blueprint(admin_routes.bp)
+    application.register_blueprint(workflow_routes.bp)
     application.context_processor(lambda: {'csrf_token': csrf_token})
     return application
 
@@ -111,6 +113,15 @@ def _login(app: Flask, database_engine: Engine, roles: list[str], csrf: str = 'w
         current['authz_version'] = authz_version
         current['_csrf_token'] = csrf
     return client, user_id
+
+
+def _session_actor_id(client) -> int:
+    with client.session_transaction() as current:
+        user = current.get('user')
+    assert isinstance(user, dict)
+    actor_id = user.get('id')
+    assert type(actor_id) is int
+    return actor_id
 
 
 @pytest.fixture
@@ -186,6 +197,19 @@ def test_profile_from_endpoint_is_fixed() -> None:
     assert profile_from_endpoint('patienten') == 'patient'
 
 
+def test_app_factory_registers_workflow_and_csv_rules_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv('DEMO_MODE', 'true')
+    monkeypatch.setenv('SESSION_REDIS_URL', '')
+    monkeypatch.setattr(cafeteria, 'init_app_database', lambda _app: None)
+    application = cafeteria.create_app()
+    rules = [rule.rule for rule in application.url_map.iter_rules()]
+    assert rules.count('/admin/cafeteria') == 1
+    assert rules.count('/admin/patienten') == 1
+    assert rules.count('/admin/export/<profile_code>.csv') == 1
+
+
 def test_unauthenticated_admin_is_401(app: Flask) -> None:
     response = app.test_client().get('/admin/cafeteria')
     assert response.status_code == 401
@@ -249,6 +273,7 @@ def test_first_save_matrix_and_virtual_slot(client, database_engine: Engine, app
     virtual = client.get(f'/admin/patienten/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1')
     assert virtual.status_code == 200
     assert 'name="row_version" value="0"' in virtual.get_data(as_text=True)
+    assert virtual.get_data(as_text=True).count('name="row_version"') == 1
     assert client.get(
         f'/admin/cafeteria/menu?week={DAY}&day={DAY}&meal=DINNER&option=MENU_1'
     ).status_code == 404
@@ -270,11 +295,13 @@ def test_first_save_matrix_and_virtual_slot(client, database_engine: Engine, app
 
 
 def test_copy_exact_prior_week_and_empty_source(client, database_engine: Engine, app: Flask) -> None:
-    with database_engine.connect() as connection:
-        user_id = int(connection.execute(text('SELECT id FROM cafeteria.users ORDER BY id DESC')).scalar_one())
+    user_id = _session_actor_id(client)
     scope = _scope(database_engine, user_id)
     persist_week_header(app.extensions['cafeteria_db'], scope, WEEK, {'title': 'Vorwoche', 'shared_note': ''}, 0)
     target = WEEK + dt.timedelta(days=7)
+    offered = client.get(f'/admin/patienten/copy?week={target.isoformat()}')
+    assert offered.status_code == 200
+    assert _hidden(offered.get_data(as_text=True), 'target_row_version') == '0'
     empty = client.post('/admin/patienten/copy', data={
         '_csrf': 'workflow-csrf',
         'source_week': WEEK.isoformat(),
@@ -289,6 +316,9 @@ def test_copy_exact_prior_week_and_empty_source(client, database_engine: Engine,
         ).scalar_one()
     assert items == 0
     assert pubs == 0
+    existing = client.get(f'/admin/patienten/copy?week={target.isoformat()}')
+    assert existing.status_code == 200
+    assert _hidden(existing.get_data(as_text=True), 'target_row_version') == '1'
     mismatch = client.post('/admin/patienten/copy', data={
         '_csrf': 'workflow-csrf',
         'source_week': WEEK.isoformat(),
@@ -303,6 +333,12 @@ def test_copy_exact_prior_week_and_empty_source(client, database_engine: Engine,
         'target_row_version': '0',
     })
     assert exists.status_code == 409
+    persist_menu_item(
+        app.extensions['cafeteria_db'], scope, target, target.isoformat(),
+        'LUNCH', 'MENU_1', _payload(), 0,
+    )
+    assert client.get(f'/admin/patienten/copy?week={target.isoformat()}').status_code == 409
+    assert client.get('/admin/patienten/copy?week=2026-09-21').status_code == 404
     missing = client.post('/admin/patienten/copy', data={
         '_csrf': 'workflow-csrf',
         'source_week': '2026-09-14',
@@ -315,8 +351,7 @@ def test_copy_exact_prior_week_and_empty_source(client, database_engine: Engine,
 def test_review_token_is_single_use_and_server_resolved(
     client, database_engine: Engine, app: Flask,
 ) -> None:
-    with database_engine.connect() as connection:
-        user_id = int(connection.execute(text('SELECT id FROM cafeteria.users ORDER BY id DESC')).scalar_one())
+    user_id = _session_actor_id(client)
     scope = _scope(database_engine, user_id)
     persist_menu_item(app.extensions['cafeteria_db'], scope, WEEK, DAY, 'LUNCH', 'MENU_1', _payload(), 0)
     with database_engine.connect() as connection:
@@ -382,8 +417,7 @@ def test_review_token_is_single_use_and_server_resolved(
 
 
 def test_origin_conflict_is_controlled_409(client, database_engine: Engine, app: Flask) -> None:
-    with database_engine.connect() as connection:
-        user_id = int(connection.execute(text('SELECT id FROM cafeteria.users ORDER BY id DESC')).scalar_one())
+    user_id = _session_actor_id(client)
     scope = _scope(database_engine, user_id)
     engine = app.extensions['cafeteria_db']
     potato = create_component(engine, scope, 'side', 'Kartoffel', 'CH', 'common', (), ())
@@ -462,3 +496,4 @@ def test_zero_active_locations_are_503(client, database_engine: Engine) -> None:
         connection.execute(text('UPDATE cafeteria.locations SET active=false'))
     response = client.get('/admin/patienten')
     assert response.status_code == 503
+    assert client.get('/admin/patienten/copy?week=2026-09-07').status_code == 503

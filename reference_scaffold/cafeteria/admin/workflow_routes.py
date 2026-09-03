@@ -42,36 +42,21 @@ from ..workflow_store import load_draft_connection
 from .routes import _actor_id, bp
 
 FAMILIES = {'cafeteria': 'staff_guest', 'patienten': 'patient'}
-ORIGIN_CONFLICT = (
-    'Herkunftskonflikt: Komponente bearbeiten oder Herkunft dieses Menüs auf manuell stellen.'
-)
+ORIGIN_CONFLICT = 'Herkunftskonflikt: Komponente bearbeiten oder Herkunft dieses Menüs auf manuell stellen.'
 REVIEW_HINT = 'Betroffene Gerichte müssen erneut geprüft werden.'
 _ISO = re.compile(r'\d{4}-\d{2}-\d{2}')
-_SLOT_404 = {
-    'Tag liegt ausserhalb des Menürasters.',
-    'Mahlzeit ist für dieses Profil ungültig.',
-    'Menüoption ist ungültig.',
-}
+_SLOT_404 = {'Tag liegt ausserhalb des Menürasters.', 'Mahlzeit ist für dieses Profil ungültig.', 'Menüoption ist ungültig.'}
 _STORE_ERRORS = (
     WorkflowValidationError, ComponentCatalogValidationError, ComponentCatalogConfigurationError,
-    ComponentConflictError, ComponentNotFoundError, StaleComponentError,
-    ComponentAssignmentValidationError, ComponentAssignmentConflictError, PartialWorkflowValidationError,
-    PartialWorkflowNotFoundError, PartialWorkflowConflictError, StaleDraftError, StaleItemError,
-    PublicationConfigurationError, NoResultFound, ValueError,
+    ComponentConflictError, ComponentNotFoundError, StaleComponentError, ComponentAssignmentValidationError,
+    ComponentAssignmentConflictError, PartialWorkflowValidationError, PartialWorkflowNotFoundError,
+    PartialWorkflowConflictError, StaleDraftError, StaleItemError, PublicationConfigurationError, NoResultFound,
 )
-Profile = Literal['patient', 'staff_guest']
-
 def profile_from_endpoint(endpoint: str) -> str:
     profile = FAMILIES.get(endpoint)
     if profile is None:
         raise ValueError('Unbekannte URL-Familie.')
     return profile
-
-def _profile(family: str) -> str:
-    try:
-        return profile_from_endpoint(family)
-    except ValueError:
-        abort(404)
 
 def _reject_override() -> None:
     form = request.form if request.method in {'POST', 'PUT', 'PATCH'} else {}
@@ -117,12 +102,10 @@ def _scope(profile: str) -> AdminScope:
             location_id = resolve_single_active_location_connection(connection)
     except ComponentCatalogConfigurationError as error:
         abort(503, description=str(error))
-    return AdminScope(_actor_id(), location_id, cast(Profile, profile))
+    return AdminScope(_actor_id(), location_id, cast(Literal['patient', 'staff_guest'], profile))
 
 def _page(body: str, status: int = 200):
-    response = make_response(f'<!doctype html><html lang="de"><body>{body}</body></html>', status)
-    response.headers['Cache-Control'] = 'no-store'
-    return response
+    return make_response(f'<!doctype html><html lang="de"><body>{body}</body></html>', status)
 
 def _hidden(name: str, value: object) -> str:
     return f'<input type="hidden" name="{escape(name)}" value="{escape(str(value))}">'
@@ -141,7 +124,7 @@ def _abort_store(error: BaseException) -> None:
                           PartialWorkflowConflictError, StaleDraftError, StaleItemError)):
         abort(409, description=str(error))
     if isinstance(error, (WorkflowValidationError, ComponentCatalogValidationError,
-                          PartialWorkflowValidationError, ComponentAssignmentValidationError, ValueError)):
+                          PartialWorkflowValidationError, ComponentAssignmentValidationError)):
         abort(400, description=str(error))
     raise error
 
@@ -269,7 +252,7 @@ def patienten():
 @bp.get('/<any(cafeteria, patienten):family>/menu')
 @require_capability('draft.read')
 def menu_get(family: str):
-    profile = _profile(family)
+    profile = profile_from_endpoint(family)
     _reject_override()
     week = _week_arg()
     day, meal, option = request.args.get('day'), request.args.get('meal'), request.args.get('option')
@@ -283,7 +266,7 @@ def menu_get(family: str):
         abort(503, description=str(error))
     except (PartialWorkflowNotFoundError, NoResultFound):
         context = _menu_context(week, day, meal, option, '', 0)
-        return _page(f'{_hidden("_csrf", csrf_token())}{context}<input name="row_version" value="0">')
+        return _page(f'{_hidden("_csrf", csrf_token())}{context}')
     context = _menu_context(week, day, meal, option, title, version)
     try:
         token = get_component_review_token(_db(), scope, item_id)
@@ -293,14 +276,13 @@ def menu_get(family: str):
         _abort_store(error)
     return _page(
         f'{_hidden("_csrf", csrf_token())}{context}{_hidden("component_version", token)}'
-        f'<input name="row_version" value="{version}">'
     )
 
 
 @bp.post('/<any(cafeteria, patienten):family>/menu')
 @require_capability('draft.write')
 def menu_post(family: str):
-    profile = _profile(family)
+    profile = profile_from_endpoint(family)
     _reject_override()
     validate_csrf(request.form.get('_csrf'))
     try:
@@ -322,7 +304,7 @@ def menu_post(family: str):
 @bp.post('/<any(cafeteria, patienten):family>/menu/review')
 @require_capability('draft.write')
 def menu_review(family: str):
-    profile = _profile(family)
+    profile = profile_from_endpoint(family)
     _reject_override()
     validate_csrf(request.form.get('_csrf'))
     _exact({'_csrf', 'week', 'day', 'meal', 'option', 'row_version', 'component_version'})
@@ -348,7 +330,7 @@ def menu_review(family: str):
 @bp.get('/<any(cafeteria, patienten):family>/header')
 @require_capability('draft.read')
 def header_get(family: str):
-    profile = _profile(family)
+    profile = profile_from_endpoint(family)
     _reject_override()
     week = _week_arg()
     scope = _scope(profile)
@@ -368,7 +350,7 @@ def header_get(family: str):
 @bp.post('/<any(cafeteria, patienten):family>/header')
 @require_capability('draft.write')
 def header_post(family: str):
-    profile = _profile(family)
+    profile = profile_from_endpoint(family)
     _reject_override()
     validate_csrf(request.form.get('_csrf'))
     parsed = _call(lambda: parse_week_header_form(profile, request.form))
@@ -382,7 +364,7 @@ def header_post(family: str):
 @bp.get('/<any(cafeteria, patienten):family>/service')
 @require_capability('draft.read')
 def service_get(family: str):
-    profile = _profile(family)
+    profile = profile_from_endpoint(family)
     _reject_override()
     week = _week_arg()
     day, meal = request.args.get('day'), request.args.get('meal')
@@ -412,7 +394,7 @@ def service_get(family: str):
 @bp.post('/<any(cafeteria, patienten):family>/service')
 @require_capability('draft.write')
 def service_post(family: str):
-    profile = _profile(family)
+    profile = profile_from_endpoint(family)
     _reject_override()
     validate_csrf(request.form.get('_csrf'))
     parsed = _call(lambda: parse_service_form(profile, request.form))
@@ -429,7 +411,7 @@ def service_post(family: str):
 @bp.get('/<any(cafeteria, patienten):family>/komponenten')
 @require_capability('draft.read')
 def components_get(family: str):
-    profile = _profile(family)
+    profile = profile_from_endpoint(family)
     _reject_override()
     query, category, archived = request.args.get('q', ''), request.args.get('category'), request.args.get('include_archived', '')
     if archived not in {'', '0', '1'} or len(request.args.getlist('q')) > 1:
@@ -446,7 +428,7 @@ def components_get(family: str):
 @bp.post('/<any(cafeteria, patienten):family>/komponenten')
 @require_capability('draft.write')
 def components_create(family: str):
-    profile = _profile(family)
+    profile = profile_from_endpoint(family)
     _reject_override()
     validate_csrf(request.form.get('_csrf'))
     parsed = _call(lambda: parse_component_create_form(request.form))
@@ -463,7 +445,7 @@ def components_create(family: str):
 @bp.get('/<any(cafeteria, patienten):family>/komponenten/<public_id>')
 @require_capability('draft.read')
 def component_detail(family: str, public_id: str):
-    profile = _profile(family)
+    profile = profile_from_endpoint(family)
     _reject_override()
     row = _call(lambda: get_component(_db(), _scope(profile), public_id, include_archived=True))
     return _page(
@@ -477,7 +459,7 @@ def component_detail(family: str, public_id: str):
 @bp.post('/<any(cafeteria, patienten):family>/komponenten/<public_id>')
 @require_capability('draft.write')
 def component_update(family: str, public_id: str):
-    profile = _profile(family)
+    profile = profile_from_endpoint(family)
     _reject_override()
     validate_csrf(request.form.get('_csrf'))
     parsed = _call(lambda: parse_component_update_form(request.form))
@@ -496,7 +478,7 @@ def component_update(family: str, public_id: str):
 
 
 def _component_status(family: str, public_id: str, *, archive: bool):
-    profile = _profile(family)
+    profile = profile_from_endpoint(family)
     _reject_override()
     validate_csrf(request.form.get('_csrf'))
     parser = parse_component_archive_form if archive else parse_component_unarchive_form
@@ -522,21 +504,42 @@ def component_unarchive(family: str, public_id: str):
 @bp.get('/<any(cafeteria, patienten):family>/copy')
 @require_capability('draft.read')
 def copy_get(family: str):
-    profile = _profile(family)
+    profile = profile_from_endpoint(family)
     _reject_override()
     target = _week_arg()
     source = target - timedelta(days=7)
+    scope = _scope(profile)
+
+    def target_version() -> int:
+        with _db().connect() as connection:
+            resolve_week_ref(connection, scope, source)
+            try:
+                target_ref = resolve_week_ref(connection, scope, target)
+            except PartialWorkflowNotFoundError:
+                return 0
+            blocked = connection.execute(
+                text('SELECT EXISTS (SELECT 1 FROM cafeteria.menu_services s '
+                     'JOIN cafeteria.menu_items i ON i.service_id=s.id WHERE s.menu_week_id=:week_id) '
+                     'OR EXISTS (SELECT 1 FROM cafeteria.publication_revisions r '
+                     'WHERE r.menu_week_id=:week_id AND r.withdrawn_at IS NULL)'),
+                {'week_id': target_ref.week_id},
+            ).scalar_one()
+            if blocked:
+                raise PartialWorkflowConflictError('Zielwoche ist nicht leer oder publiziert.')
+            return target_ref.row_version
+
+    version = _call(target_version)
     return _page(
         f'<div data-profile="{profile}" data-source-week="{source.isoformat()}" '
         f'data-target-week="{target.isoformat()}">{_hidden("_csrf", csrf_token())}'
-        f'{_hidden("source_week", source.isoformat())}{_hidden("target_week", target.isoformat())}</div>'
+        f'{_hidden("source_week", source.isoformat())}{_hidden("target_week", target.isoformat())}{_hidden("target_row_version", version)}</div>'
     )
 
 
 @bp.post('/<any(cafeteria, patienten):family>/copy')
 @require_capability('draft.write')
 def copy_post(family: str):
-    profile = _profile(family)
+    profile = profile_from_endpoint(family)
     _reject_override()
     validate_csrf(request.form.get('_csrf'))
     _exact({'_csrf', 'source_week', 'target_week', 'target_row_version'})
@@ -550,7 +553,7 @@ def copy_post(family: str):
 @bp.get('/<any(cafeteria, patienten):family>/preview')
 @require_capability('draft.read')
 def preview(family: str):
-    profile = _profile(family)
+    profile = profile_from_endpoint(family)
     _reject_override()
     week = _week_arg()
     _scope(profile)
@@ -582,7 +585,7 @@ def preview(family: str):
 @bp.post('/<any(cafeteria, patienten):family>/publish')
 @require_capability('publication.publish')
 def publish(family: str):
-    profile = _profile(family)
+    profile = profile_from_endpoint(family)
     _reject_override()
     validate_csrf(request.form.get('_csrf'))
     _exact({'_csrf', 'week', 'row_version'})

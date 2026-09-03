@@ -22,6 +22,7 @@ from test_admin_workflow_routes import (
     _login,
     _menu_form,
     _register,
+    _session_actor_id,
     _scope,
 )
 
@@ -144,8 +145,7 @@ def test_header_and_service_partial_persistence(client, database_engine: Engine)
 
 
 def test_stale_header_is_409_without_mutation(client, database_engine: Engine, app: Flask) -> None:
-    with database_engine.connect() as connection:
-        user_id = int(connection.execute(text('SELECT id FROM cafeteria.users ORDER BY id DESC')).scalar_one())
+    user_id = _session_actor_id(client)
     persist_week_header(
         app.extensions['cafeteria_db'],
         _scope(database_engine, user_id),
