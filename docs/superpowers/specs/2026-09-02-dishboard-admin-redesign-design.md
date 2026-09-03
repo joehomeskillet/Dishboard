@@ -26,9 +26,9 @@ Der vorhandene Full-Week-Replace bleibt ausschließlich als explizite
 Full-Grid-Operation für Import/Recovery erhalten. Partial-Forms dürfen ihn
 nie aufrufen. Neue Transaktionen sind atomar und optimistisch gesperrt:
 
-- `persist_menu_item(week_id, profile, day, meal, option, payload, version)`
-- `persist_week_header(week_id, profile, payload, version)`
-- `persist_service_state(week_id, profile, payload, version)`
+- `persist_menu_item(engine: Engine, scope: AdminScope, week_start: date, day: str, meal: str, option: str, payload: Mapping[str, object], expected_item_row_version: int) -> int`
+- `persist_week_header(engine: Engine, scope: AdminScope, week_start: date, payload: Mapping[str, object], expected_week_row_version: int) -> int`
+- `persist_service_state(engine: Engine, scope: AdminScope, week_start: date, day: str, meal: str, payload: Mapping[str, object], expected_service_row_version: int) -> int`
 
 Jede Operation prüft route-abgeleitetes Profil, validierte ISO-Montag-Woche
 (`?week=YYYY-MM-DD`), erwartete `row_version` und exact allowed keys. Ein
@@ -36,6 +36,27 @@ Konflikt liefert 409 ohne Mutation; ein Validierungsfehler 400 mit Feldpfad.
 Partial-Saves ändern nur die adressierte Zeile bzw. den Header/Service-Status.
 Transaktion: lock, nochmals lesen, validieren, schreiben, Version erhöhen,
 Review-Status zurücksetzen, commit.
+
+Bei Menüformularen bezeichnet `row_version` ausschließlich
+`menu_items.row_version`; nach dem Parsen heißt das Argument durchgehend
+`expected_item_row_version`. Die vollständige Slot-Identität
+`(location_id,profile_id,week_start,service_date,meal_period_id,menu_type_id)`
+wird serverseitig aus `AdminScope`, URL und Raster aufgelöst. Formulare liefern
+keine internen IDs. Ein gültiger fehlender Raster-Slot wird als virtuelles Item
+mit `row_version=0` gerendert, nicht als 404; ein ungültiger oder scope-fremder
+Slot bleibt 404. Exakte Writes: 0+fehlend fügt Version 1 ein und liefert 1;
+vorhanden+0 ist 409; fehlend+positiv ist 404; positiv aber stale ist 409; exakt
+passend erhöht einmal und liefert alt+1.
+
+Bei einem ersten validen Item-Write darf die scoped Woche mit Version 1 per
+`ON CONFLICT` angelegt werden; danach sperrt die Transaktion die gewinnende
+Wochenzeile. Ein fehlender Service wird `open` mit Version 1 angelegt. Einen
+vorhandenen geschlossenen Service öffnet Item-Save nie wieder, sondern liefert
+atomar 409. Bei vorhandener Woche wird `updated_by` exakt einmal geschrieben;
+eine neue Woche erhält den Actor bereits beim Insert und wird nicht redundant
+aktualisiert. Ein synchronisiertes Same-Slot-v0-Race hat exakt einen Gewinner
+und einen 409-Verlierer. Zwei verschiedene gültige v0-Slots serialisieren am
+Wochen-Lock und gewinnen beide ohne Nachbaränderung.
 
 Der vollständige externe Draft-/Snapshot-Contract bleibt exakt:
 `components: list[str]`, `labels: list[{code,name}]`,
@@ -143,46 +164,57 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
 
   Erwarteter Token ist exakt
   `sha256:46fe2582022c284f54706d9d57f8c2dd783154fd6d7d9bc434bcd22665542507`.
-- Jede Transaktion, die `menu_item_components` erzeugt, ersetzt oder löscht,
-  verwendet dieselbe globale Lock-Reihenfolge. Das gilt für
-  `assign_component`, vollständigen Replace über `replace_component_links`,
-  dessen internen `replace_component_links_connection`-Helper,
-  Partial-Persistenz und
-  Import/Recovery, sobald dieser Pfad Komponenten-Links schreibt. Sie sperrt
-  zuerst das scoped `menu_items`-Item per `FOR UPDATE`; ein Batch-Pfad sperrt
-  alle betroffenen Items nach numerischer `menu_items.id ASC`, bevor er
-  Komponenten sperrt. Unter diesen Item-Locks bildet sie die Vereinigungsmenge
-  aus allen bisher verlinkten Komponenten — einschließlich archivierter und
-  beim Replace entfernter Links — sowie allen neu angeforderten Komponenten.
-  Freitext-Links haben keine Komponenten-Zeile. Angeforderte Public-IDs werden
-  ausschließlich über Location plus `common`/aktuelles Profil aufgelöst und
-  validiert; neue archivierte Komponenten sind unzulässig, bestehende
-  archivierte Links bleiben auflösbar. Kein Caller darf interne Komponenten-IDs
-  liefern oder aus dem Scope heraustragen.
-- Vor jedem Link-Lock oder Link-Write sperrt der Writer diese vollständige
-  Komponentenmenge mit einem nach numerischer `menu_components.id ASC`
-  geordneten `SELECT ... FOR SHARE`. Danach sperrt er bestehende Linkzeilen per
-  `ORDER BY menu_item_id, sort_order FOR UPDATE`, löscht oder aktualisiert sie
-  in derselben Reihenfolge und fügt neue Links nach
-  `(menu_item_id, sort_order ASC)` ein. Alle Locks bleiben bis Commit oder
-  Rollback. Diese Reihenfolge ist auch bei umgekehrter Caller- oder
-  Assignment-Reihenfolge verbindlich.
-- Ein Multi-Item-Import/Recovery-Pfad sperrt global alle betroffenen Items,
-  danach die Komponenten-Vereinigungsmenge und danach **alle bereits
-  vorhandenen Linkzeilen aller betroffenen Items** in
-  `(menu_item_id, sort_order)`-Reihenfolge, bevor er
-  `replace_component_links_connection` zum ersten Mal aufruft. Erst danach
-  folgen die deterministischen Mutationen. Kein Helper-Aufruf darf diese
-  Batch-Prelocks teilweise vorwegnehmen.
+- Eine einzige globale Lock-Hierarchie gilt überall:
+  `menu_weeks → menu_services → menu_items → menu_components →
+  menu_item_components → publication_revisions`. Jede Transaktion sperrt den
+  kompletten Mehrzeilen-Satz einer Klasse, bevor sie zur nächsten Klasse
+  übergeht. Innerhalb einer Klasse ist die Reihenfolge exakt: Wochen
+  `(location_id,profile_id,week_start,id)`, Services
+  `(menu_week_id,service_date,meal_period_id,id)`, Items numerische `id ASC`,
+  Komponenten numerische `id ASC`, Links `(menu_item_id,sort_order)` und
+  Publikationen `(menu_week_id,id)`. Caller-, Formular- oder Assignment-
+  Reihenfolge darf das nie verändern; alle Locks bleiben bis Commit/Rollback.
+- Die Lock-Modi je Operation sind verbindlich: Header sperrt die Woche
+  `FOR UPDATE`. Service sperrt Woche → Service → alle betroffenen Items
+  `FOR UPDATE`. Item-Create/Update sperrt Woche → Service → Item `FOR UPDATE`
+  und, falls Assignments ändern, die Komponentenmenge `FOR SHARE` → Links
+  `FOR UPDATE`. Assign/Unassign/Replace sperren Woche → Item → vollständige
+  bestehende-plus-angeforderte Komponentenmenge `FOR SHARE` → Links
+  `FOR UPDATE`. Review verwendet dieselbe Folge und sperrt die Woche vor dem
+  Item; sein späteres `menu_weeks.updated_by` ist reentrant. Full
+  Import/Recovery sperrt Woche → alle Services → alle Items → vollständige
+  Komponentenmenge → alle Links. Publish sperrt Woche → alle Services → alle
+  Items → vollständige Komponentenmenge → alle Links → aktive Publikationszeile.
+  Copy sperrt Source- und Target-Woche gemeinsam in kanonischer Wochenordnung,
+  danach alle relevanten Source-/Target-Services als vollständigen kanonischen
+  Satz, alle relevanten Source-/Target-Items als vollständigen numerischen Satz,
+  die Source-Komponentenmenge, Source-Links und zuletzt die aktive
+  Target-Publikationszeile.
+- Katalog-Update/Archive/Unarchive sperrt ausschließlich die Komponente
+  `FOR UPDATE` sowie ihre Metadaten-Children und darf danach nie einen früheren
+  Lock der Hierarchie erwerben; Create fügt nur seine neue Komponente/Children
+  ein. Ein eigenständiger Withdrawal sperrt nur seine
+  Publikationszeile und danach nie eine Woche. Publish darf die Capability vor
+  der Transaktion ohne Lock nachschlagen; in der Transaktion sperrt und
+  revalidiert es den aktiven Publikationszustand zuletzt.
+- Für jeden Link-Writer umfasst die Komponentenmenge alle bestehenden,
+  archivierten, beim Replace entfernten und neu angeforderten Referenzen;
+  Freitext hat keine Komponenten-Zeile. Public IDs werden nur über Location
+  plus `common`/aktuelles Profil aufgelöst; neue archivierte Komponenten sind
+  unzulässig und interne Komponenten-IDs nie Caller-Input oder Output. Ein
+  Multi-Item-Import/Recovery-Pfad sperrt alle Items, danach die vollständige
+  Komponentenmenge und danach **alle vorhandenen Links aller Items**, bevor
+  `replace_component_links_connection` erstmals läuft.
 - `review_component(engine, scope, item_id, component_version,
-  expected_row_version)` verwendet `component_version` als den obigen
+  expected_item_row_version)` verwendet `component_version` als den obigen
   Pre-Review-Token. Es sperrt in genau einer Transaktion und in dieser stabilen
-  Reihenfolge: (1) das scoped `menu_items`-Item per `FOR UPDATE`, (2) die unter
+  Reihenfolge: (1) die scoped Woche per `FOR UPDATE`, (2) das scoped
+  `menu_items`-Item per `FOR UPDATE`, (3) die unter
   diesem Item-Lock aus allen aktuellen Links ermittelten Komponenten —
   einschließlich archivierter — per numerischer `menu_components.id ASC FOR
-  SHARE` und (3) alle aktuellen `menu_item_components`-Linkzeilen per
+  SHARE` und (4) alle aktuellen `menu_item_components`-Linkzeilen per
   `ORDER BY menu_item_id, sort_order FOR UPDATE`. Damit verwendet Review
-  dieselbe `Item → Komponenten → Links`-Reihenfolge und denselben kompatiblen
+  dieselbe `Woche → Item → Komponenten → Links`-Reihenfolge und denselben kompatiblen
   Komponenten-Lock wie jeder Link-Writer; der Item-Lock verhindert während der
   Ermittlung und Tokenprüfung Phantom-Links. Alle Locks bleiben bis Commit oder
   Rollback.
@@ -196,13 +228,14 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
   aktualisiert `component_text` bei Kataloglinks aus dem aktuellen Katalognamen,
   lässt freie Texte byte-identisch, markiert danach geprüft, erhöht die
   Item-`row_version` exakt einmal und schreibt
-  `menu_weeks.updated_by=scope.actor_id` in derselben Transaktion. Sie liefert
-  die neue Item-`row_version`; der HTTP-Handler antwortet per 303/PRG auf den
+  `menu_weeks.updated_by=scope.actor_id` reentrant unter dem bereits gehaltenen
+  Wochen-Lock in derselben Transaktion. Sie liefert die neue Item-`row_version`;
+  der HTTP-Handler antwortet per 303/PRG auf den
   scoped Menü-GET, der den neuen geprüften Zustand rendert.
 - Der Engine-Level-One-Item-Full-Replace ist exakt
   `replace_component_links(engine: Engine, scope: AdminScope, item_id: int,
-  assignments: Sequence[Mapping[str, object]], version: int) -> int`. Er öffnet
-  eine Transaktion, sperrt genau das scoped Item, prüft dessen erwartete
+  assignments: Sequence[Mapping[str, object]], expected_item_row_version: int) -> int`. Er öffnet
+  eine Transaktion, sperrt die scoped Woche vor genau dem scoped Item, prüft dessen erwartete
   `row_version` und ruft den Connection-Helper auf, der Assignments validiert
   und alle Links ersetzt. Danach rematerialisiert die Engine-API die
   Auto-Klassen, setzt den Review-Status zurück, erhöht die Item-`row_version`
@@ -221,15 +254,16 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
   zurücksetzt, alle Auto-Effekte rematerialisiert und jede manuelle Klasse
   byte-identisch erhält.
 - Ein eigener Multi-Item-Test verwendet ausschließlich einen echten
-  Full-Import/Recovery-Transaktionspfad. Dieser löst vor jedem Aufruf des
-  Connection-Helpers alle betroffenen Items vorab auf, sperrt sie nach
+  Full-Import/Recovery-Transaktionspfad. Dieser sperrt vor jedem Aufruf des
+  Connection-Helpers die Woche und alle Services, löst alle betroffenen Items
+  vorab auf, sperrt sie nach
   numerischer `menu_items.id ASC` und sperrt danach die vollständige
   Komponenten-Vereinigungsmenge nach numerischer `menu_components.id ASC`.
   Zwei Connections reichen dieselben zwei scoped Items mit umgekehrter
   Item-/Assignment-Reihenfolge und derselben erwarteten Version ein. Der Pfad
   sperrt alle bestehenden Linkzeilen beider Items global geordnet, bevor der
   erste Helper läuft. Ohne Timing-Sleeps beweist der Test die globale
-  Item-/Komponenten-/Link-Lock-Reihenfolge, kein Deadlock/`40P01`, exakt einen
+  Woche-/Service-/Item-/Komponenten-/Link-Lock-Reihenfolge, kein Deadlock/`40P01`, exakt einen
   Gewinner und einen stale-409-Verlierer mit null Mutation. Keine Single-Item-
   oder erfundene Task-4-Batch-API wird dabei als Multi-Item-Transaktion
   dargestellt.
@@ -247,21 +281,27 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
   Contract: `components` ist `list[str]`, `labels`, `allergens` und `origins`
   sind Listen von Dicts, und `allergen_review_status` ist ein String. Er enthält
   keine IDs, Modi oder Versionen und ist nach Publish unveränderlich.
-- Publish sperrt vor der Snapshot-Erzeugung alle scoped Items der Woche nach
-  numerischer `menu_items.id ASC FOR UPDATE`, danach die vollständige
-  Komponenten-Vereinigungsmenge nach numerischer `menu_components.id ASC FOR
-  SHARE` und danach alle Linkzeilen global nach
-  `(menu_item_id, sort_order) FOR UPDATE`. Unter diesen Locks liest es
-  Reviewstatus und gespeicherte/aktuelle Versionen erneut und wendet den
-  zentralen `review_open/needs_review`-Predicate an. Erst dann darf es den unveränderlichen
-  Snapshot bauen.
-- Synchronisierte Real-PG16-Races ohne Timing-Sleeps decken Katalogedit gegen
-  Assign, Unassign, Review und Publish in beiden Gewinnerreihenfolgen ab. Sie
-  beweisen: kein `40P01`, kein gemischter Zustand und keine Teilmutation. Eine
-  gemeinsame `common`-Komponente über Profile und Wochen verändert beim Edit
-  keine Item-/Wochenzeile; Review heilt genau ein Item. Publish-vor-Edit bewahrt
-  den alten unveränderlichen Snapshot, Edit-vor-Publish blockiert Publish, und
-  persistiertes `checked` überstimmt nie einen Versions-Mismatch.
+- Publish sperrt vor der Snapshot-Erzeugung die Woche, alle Services in
+  kanonischer Ordnung, alle scoped Items nach numerischer
+  `menu_items.id ASC FOR UPDATE`, danach die vollständige Komponentenmenge nach
+  numerischer `menu_components.id ASC FOR SHARE`, alle Linkzeilen global nach
+  `(menu_item_id, sort_order) FOR UPDATE` und zuletzt die aktive
+  Publikationszeile. Unter diesen Locks revalidiert es Publikationszustand,
+  Reviewstatus und gespeicherte/aktuelle Versionen und
+  wendet den zentralen `review_open/needs_review`-Predicate an. Erst dann darf
+  es den unveränderlichen Snapshot bauen.
+- Synchronisierte Real-PG16-Races verwenden Barrieren/Events statt Timing-
+  Sleeps und testen beide Gewinnerreihenfolgen für Katalogedit gegen Assign,
+  Unassign, Review und Publish, außerdem Review gegen Publish, Partial Save
+  gegen Publish sowie Copy gegen Source-Save, Target-Save und Target-Publish.
+  Sie beweisen: kein `40P01`, kein gemischter Zustand, keine Teilmutation und
+  der Verlierer blockiert am kanonischen Wochen-Lock, sofern beide Operationen
+  eine Woche sperren. Eine gemeinsame `common`-Komponente über Profile und
+  Wochen verändert beim Edit keine Item-/Wochenzeile; Review heilt genau ein
+  Item und bewahrt Manual-Werte byte-identisch. Publish-vor-Edit bewahrt den
+  alten unveränderlichen Snapshot, Edit-vor-Publish blockiert Publish, und
+  persistiertes `checked` überstimmt nie einen Versions-Mismatch. Die bereits
+  vorgeschriebenen Assignment- und Import/Recovery-Races bleiben bestehen.
 
 ## 5. Migration und Rückwärtskompatibilität
 
@@ -317,7 +357,11 @@ Contract und ersetzt keinen Auth-Contract.
 `WeekRef(week_id,location_id,profile_code,week_start,row_version)` sowie die
 scoped Resolver `resolve_week_ref(connection, scope, week_start, *,
 for_update=False) -> WeekRef` und `resolve_item_id(connection, scope, week_ref,
-day, meal, option, *, for_update=False) -> int`. Die Resolver validieren
+day, meal, option, *, for_update=False) -> int`. Ein Read-Resolver darf für
+eine gültige fehlende Woche/einen gültigen fehlenden Slot einen virtuellen
+Raster-View liefern; die oben definierten Engine/AdminScope-Persistenz-APIs
+identifizieren Writes über `week_start` und erzeugen keine internen Form-IDs.
+Die Resolver validieren
 ISO-Montag, Profilraster, Location und URL-abgeleitetes Profil. Routes leiten
 Wochen- und Item-Identität ausschließlich daraus ab; Formulare dürfen weder
 `week_id` noch `item_id` oder eine andere interne ID liefern.
@@ -372,23 +416,50 @@ Die Komponentensuche für eine Zuweisung zeigt nur aktive Komponenten mit
 `include_archived=1` zusätzlich archivierte Komponenten anzeigen. Katalog-CRUD,
 Zuweisung, Copy und Publish erzwingen Location- und Scope-Isolation.
 Die route-unabhängige Implementierung liegt in `workflow_copy_store.py`.
-Quelle ist ausschließlich die Vorwoche, also exakt Ziel-Montag minus sieben
-Tage, in derselben Location und demselben URL-abgeleiteten Profil; eine
-abweichende übermittelte `source_week` wird als 400 zurückgewiesen. Der Store
-leitet die Quelle aus dem Ziel ab und akzeptiert keine internen IDs.
-`target_row_version=0` bedeutet, dass die Zielwoche noch nicht existiert. Ein
-positiver Wert bedeutet eine bereits vorhandene, leere Zielwoche mit exakt
-dieser Version. Eine vorhandene Zielwoche bei erwarteter Version 0, eine stale
-positive Version, Ziel-Items oder eine aktive Ziel-Publikation liefern 409 ohne
-Teilmutation. Der Copy schreibt atomar, erzeugt neue Item-`external_id`s, setzt
-Reviews zurück, lässt Patientenpreise aus und publiziert nie. „Leer“ bedeutet
-exakt null `menu_items` des Zielprofils und keine aktive Veröffentlichung.
+Die exakte API ist `copy_previous_week(engine: Engine, scope: AdminScope,
+target_week_start: date, target_row_version: int) -> int`. Quelle ist der
+neueste committed gespeicherte Draft der Vorwoche, also exakt Ziel-Montag minus
+sieben Tage, in derselben Location und demselben URL-abgeleiteten Profil; es
+gibt keinen Source-Token. Eine abweichende übermittelte `source_week` wird als
+400 zurückgewiesen. Der Store leitet die Quelle aus dem Ziel ab und akzeptiert
+keine internen IDs.
+
+Copy übernimmt `title` und `shared_note`, setzt die Zielwoche auf `draft` und
+kopiert nie Source-IDs, `public_id`, Versionen, Zeitstempel, Workflow-State oder
+Actors. Bei einem item-freien vorhandenen Target ersetzt es dessen Service-
+Skeleton vollständig. Services übernehmen `service_state`, Notice und
+Meal-Period mit Datum +7, erhalten aber neue IDs/Public-IDs und Version 1.
+Items übernehmen Menu-Type, `dish_template_id`, Titel, Beschreibung, Note,
+`sort_order` und alle drei Modi, erhalten aber neue IDs/Public-IDs, eine zum
+Target gehörige `external_id` und Version 1. Jeder Review ist `not_checked`.
+
+Aktive Kataloglinks werden unter Komponenten-Locks neu aufgelöst und als neue
+Assignments mit aktuellem Namen und aktueller Version geschrieben. Ein stale
+aktiver Source-Link wird sicher rebased, bleibt aber ungeprüft; ein archivierter
+Source-Link macht den gesamten Copy atomar 409. Freitext bleibt byte-identisch.
+Manuelle Metadaten werden für jede manuelle Klasse byte-semantisch kopiert;
+Auto-Metadaten werden unter den Komponenten-Locks neu berechnet und nie
+geklont. `staff_guest` übernimmt interne/externe Rappen und Currency;
+`patient` erzeugt keinerlei Preis. Ein anomaler Patientenpreis in der Quelle
+ist 409.
+
+Copy übernimmt weder Publikationen noch Lifecycle-State. Eine aktive
+Target-Publikation ist 409; withdrawn Target-Historie bleibt unberührt.
+`target_row_version=0` plus fehlendes Target erzeugt Version 1 und liefert 1;
+0 plus vorhandenes Target ist 409; positive Version plus fehlendes Target ist
+404; exakt positives `v` plus vorhandenes item-freies Target ohne aktive
+Publikation aktualisiert die Woche einmal und liefert `v+1`. Stale, nichtleere
+oder anderweitig ungültige Targets scheitern ohne Teilmutation. Zwei Copies mit
+derselben Erwartung haben exakt einen Gewinner. Copy gegen den ersten
+Target-Item-Save liefert einen vollständigen Gewinnerzustand ohne Hybrid.
 
 Null oder mehrere konfigurierte aktive Locations werden für jede betroffene
 HTTP-Operation einheitlich als 503 abgebildet. Eine fehlende scoped Woche, ein
-fehlendes scoped Item, ein fehlender gespeicherter Draft oder eine nicht
-vorhandene Preview-Ressource liefert 404; Scope-Leaks werden ebenfalls als 404
-maskiert.
+fehlender gespeicherter Draft oder eine nicht vorhandene Preview-Ressource
+liefert als angeforderte gespeicherte Ressource 404; der Menü-GET für einen
+gültigen Raster-Slot einer noch fehlenden Woche ist dagegen die oben definierte
+virtuelle Version-0-Zeile. Ungültige/out-of-scope Slots und Scope-Leaks werden
+als 404 maskiert.
 
 ## 7. Preview, Save, Publish und Fehlertexte
 
@@ -439,10 +510,12 @@ Named RED-Tests (zuerst rot, danach grün) und Dateien:
 | Komponenten-Zuweisung, Allergie-Union/contains, Herkunft-Konflikt, Diet-Intersection | `reference_scaffold/tests/test_component_assignment_db.py` |
 | Location/Profile-Isolation und Public-ID/404 | `reference_scaffold/tests/test_public_isolation_homoglyphs.py`, `reference_scaffold/tests/test_database_invariants.py` |
 | exakter immutable Snapshot, Golden-Hash-Token, Lock-Reihenfolge und Concurrent-/Repeat-Review | `reference_scaffold/tests/test_admin_workflow_db.py` |
+| virtuelle/absente/partielle/geschlossene Slots, exakte Item-Versionen und Same-/Different-Slot-Races | `reference_scaffold/tests/test_workflow_partial_store_db.py` |
 | exakte Vorwochen-Copy, absent/existing-empty Target-Version, Lock/409, neue IDs | `reference_scaffold/tests/test_workflow_copy_store_db.py`, `reference_scaffold/tests/test_admin_workflow_routes.py`, `reference_scaffold/tests/test_workflow_form.py` |
 | LAST-SAVED Preview, no-store, Dirty-Guard | `reference_scaffold/tests/test_admin_draft_preview.py` |
 | Publish/PRG/Review/Stale/CSRF/400/409 | `reference_scaffold/tests/test_admin_workflow_routes.py`, `reference_scaffold/tests/test_workflow_form.py` |
 | CHF Parsing/Rappen/Patient-Preisverbot und Wochen-Familien | `reference_scaffold/tests/test_admin_week_routes.py` |
+| servergerenderte 28/10-Raster, Katalogzustand, deutsche Labels und PREVIEW-Banner | `reference_scaffold/tests/test_rendered_ui.py` |
 | Browser-A11y und Viewport-Matrix | `reference_scaffold/tests/test_admin_ux_browser.py` (neu erstellt durch Wiederverwendung der bestehenden Playwright-Muster/Fixtures aus `test_rendered_ui.py`) |
 
 Gates mit verbatim Receipts: vollständiges `pytest`, reale PG16-
@@ -450,6 +523,12 @@ Compose-/Migrationsprüfung, Schema- und Package-Validatoren, Ruff, Bandit,
 Secret-Scan, GitNexus `detect_changes`, OCR-Review sowie unabhängige AGY- und
 Grok-Reviews. Browser: Chromium und vorhandene CI-Browser bei allen vier
 Viewports, Tastatur/Fokus, Fehler/Retry, Copy/Preview/Publish.
+Der finale OCR-Lauf vergleicht ausschließlich die Implementation gegen den
+akzeptierten Plan:
+`rtk ocr review --repo /nvmetank1/projects/menuplan --from docs/admin-redesign-plan-v1 --to feat/admin-redesign-impl-v1 --format json --audience agent`.
+Die finale Eigentumsprüfung lautet exakt
+`rtk claude-wp-verify --branch feat/admin-redesign-impl-v1 --base docs/admin-redesign-plan-v1`.
+Kein finales Gate darf nur den Docs-Branch prüfen.
 
 Deployment-Gate: Backup-ID, Migration auf Schema 13, unveränderlicher
 Image-Digest, Healthcheck, authentifizierter Admin-Smoke, Screenshots und
@@ -460,6 +539,9 @@ durch „alle Tests pass“ ohne Kommandoausgabe ersetzt werden.
 
 Phase 1 (Schema, 0010, Grants, Validator) und Phase 2 (Store, Modelle,
 Inheritance) werden seriell am gemeinsamen Contract bearbeitet.
+Task 1 ist alleiniger Owner von `database/schema.sql` und
+`reference_scaffold/cafeteria/db.py`; Task 2 verändert und staged ausschließlich
+seine beiden Testdateien.
 `component_assignment_store` ist erst T4 und danach T5 zugeordnet;
 `workflow_store.py` hat T6 als einzigen seriellen Owner und erhält dort nur
 minimale Kompatibilitätsedits für Full-Import/Recovery (kein Partial-Write und
