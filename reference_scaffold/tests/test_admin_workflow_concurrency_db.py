@@ -4,9 +4,22 @@ import threading
 
 from sqlalchemy import Engine, event, text
 
+from cafeteria import workflow
+from cafeteria.component_assignment_store import StaleItemError
+from cafeteria.component_catalog_store import update_component
 from cafeteria.db import active_snapshot
 from cafeteria.workflow import StaleDraftError, load_draft, publish_draft, save_draft
 import test_admin_workflow_db as workflow_db_support
+from test_component_assignment_db import (
+    CatalogDatabase,
+    _assignment,
+    _component,
+    _item,
+    _item_state,
+    _links,
+    _set_manual_effects,
+    catalog_database,
+)
 
 import pytest
 import os
@@ -199,3 +212,169 @@ def test_concurrent_publishes_are_serialized_as_one_revision_and_one_stale_error
             )
         ).all()
     assert revisions == [(1, 'PAT-2026-KW36-R1', 1)]
+
+
+@pytest.mark.parametrize('winner', ['review', 'catalog'])
+def test_common_component_catalog_edit_and_review_serialize_in_both_orders(
+    catalog_database: CatalogDatabase,
+    winner: str,
+) -> None:
+    reviewed_item = _item(
+        catalog_database,
+        modes=('auto', 'manual', 'manual'),
+        suffix=f'RACE-{winner}',
+    )
+    other_profile_item = _item(
+        catalog_database,
+        profile='staff_guest',
+        modes=('auto', 'manual', 'manual'),
+        suffix=f'RACE-STAFF-{winner}',
+    )
+    component = _component(
+        catalog_database,
+        'Gemeinsam alt',
+        target='common',
+        allergens=(('MILK', 'contains'),),
+    )
+    public_id = str(component['public_id'])
+    reviewed_version = workflow.replace_component_links(
+        catalog_database.app,
+        reviewed_item.scope,
+        reviewed_item.id,
+        [_assignment(public_id, None)],
+        reviewed_item.version,
+    )
+    workflow.replace_component_links(
+        catalog_database.app,
+        other_profile_item.scope,
+        other_profile_item.id,
+        [_assignment(public_id, None)],
+        other_profile_item.version,
+    )
+    manual_before = _set_manual_effects(catalog_database, reviewed_item.id)
+    token = workflow.get_component_review_token(
+        catalog_database.app, reviewed_item.scope, reviewed_item.id
+    )
+    item_before = _item_state(catalog_database, reviewed_item.id)
+    first_locked = threading.Event()
+    second_attempted = threading.Event()
+    release_first = threading.Event()
+    second_done = threading.Event()
+    results: dict[str, object] = {}
+
+    def pause_first(
+        _connection: object,
+        _cursor: object,
+        statement: str,
+        _parameters: object,
+        _context: object,
+        _executemany: bool,
+    ) -> None:
+        thread_name = threading.current_thread().name
+        review_hit = winner == 'review' and thread_name == 'race-review'
+        catalog_hit = winner == 'catalog' and thread_name == 'race-catalog'
+        if review_hit and 'review_component_lock' in statement:
+            first_locked.set()
+        elif catalog_hit and 'FROM cafeteria.menu_components' in statement and 'FOR UPDATE' in statement:
+            first_locked.set()
+        else:
+            return
+        if not release_first.wait(timeout=10):
+            raise AssertionError('first transaction barrier timed out')
+
+    def observe_second(
+        _connection: object,
+        _cursor: object,
+        statement: str,
+        _parameters: object,
+        _context: object,
+        _executemany: bool,
+    ) -> None:
+        thread_name = threading.current_thread().name
+        if (
+            winner == 'review'
+            and thread_name == 'race-catalog'
+            and 'FROM cafeteria.menu_components' in statement
+            and 'FOR UPDATE' in statement
+        ) or (
+            winner == 'catalog'
+            and thread_name == 'race-review'
+            and 'review_component_lock' in statement
+        ):
+            second_attempted.set()
+
+    def review() -> None:
+        try:
+            results['review'] = workflow.review_component(
+                catalog_database.app,
+                reviewed_item.scope,
+                reviewed_item.id,
+                token,
+                reviewed_version,
+            )
+        except Exception as error:  # pragma: no cover - asserted below
+            results['review'] = error
+        finally:
+            if winner == 'catalog':
+                second_done.set()
+
+    def edit_catalog() -> None:
+        try:
+            results['catalog'] = update_component(
+                catalog_database.app,
+                reviewed_item.scope,
+                public_id,
+                {
+                    'category': 'side',
+                    'name': 'Gemeinsam neu',
+                    'origin_country_code': 'DE',
+                    'label_codes': [],
+                    'allergens': [('GLUTEN', 'may_contain')],
+                },
+                int(component['row_version']),
+            )
+        except Exception as error:  # pragma: no cover - asserted below
+            results['catalog'] = error
+        finally:
+            if winner == 'review':
+                second_done.set()
+
+    event.listen(catalog_database.app, 'after_cursor_execute', pause_first)
+    event.listen(catalog_database.app, 'before_cursor_execute', observe_second)
+    first_target = review if winner == 'review' else edit_catalog
+    second_target = edit_catalog if winner == 'review' else review
+    first = threading.Thread(target=first_target, name=f'race-{winner}')
+    second_name = 'race-catalog' if winner == 'review' else 'race-review'
+    second = threading.Thread(target=second_target, name=second_name)
+    try:
+        first.start()
+        assert first_locked.wait(timeout=10)
+        second.start()
+        assert second_attempted.wait(timeout=10)
+        assert not second_done.wait(timeout=1), 'second transaction crossed held component lock'
+    finally:
+        release_first.set()
+        first.join(timeout=15)
+        second.join(timeout=15)
+        event.remove(catalog_database.app, 'after_cursor_execute', pause_first)
+        event.remove(catalog_database.app, 'before_cursor_execute', observe_second)
+
+    assert not first.is_alive() and not second.is_alive()
+    assert results['catalog'] == 2
+    if winner == 'review':
+        assert results['review'] == reviewed_version + 1
+        assert _links(catalog_database, reviewed_item.id) == [
+            (1, public_id, 'Gemeinsam alt', 1)
+        ]
+    else:
+        assert isinstance(results['review'], StaleItemError)
+        assert _item_state(catalog_database, reviewed_item.id) == item_before
+    reviewed_state = _item_state(catalog_database, reviewed_item.id)
+    assert reviewed_state[2] == manual_before[0]
+    assert reviewed_state[4] == manual_before[2]
+    assert _links(catalog_database, other_profile_item.id) == [
+        (1, public_id, 'Gemeinsam alt', 1)
+    ]
+    with catalog_database.app.connect() as connection:
+        assert workflow.review_open(connection, reviewed_item.id)
+        assert workflow.review_open(connection, other_profile_item.id)

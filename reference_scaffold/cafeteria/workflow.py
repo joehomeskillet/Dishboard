@@ -18,6 +18,11 @@ from .component_assignment_store import (
 )
 from .db import issue_publication_capability
 from .workflow_snapshot import build_snapshot
+from .workflow_review import (
+    get_component_review_token as get_component_review_token,
+    review_component as review_component,
+    review_open as review_open,
+)
 from .workflow_store import (
     StaleDraftError,
     draft_row_version,

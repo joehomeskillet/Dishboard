@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import date, timedelta
 from typing import Any
 
@@ -8,6 +9,27 @@ from .patient_payload import validate_snapshot_payload
 WEEKDAYS = ('Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag')
 MEAL_NAMES = {'LUNCH': 'Mittag', 'DINNER': 'Abend'}
 TYPE_NAMES = {'MENU_1': 'Menü 1', 'VEGGIE': 'Vegetarisch'}
+
+
+def _public_rows(
+    values: object,
+    fields: tuple[str, ...],
+    label: str,
+) -> list[dict[str, str]]:
+    if not isinstance(values, list):
+        raise ValueError(f'{label} müssen eine Liste sein.')
+    result = []
+    for value in values:
+        if not isinstance(value, Mapping):
+            raise ValueError(f'{label} enthalten einen ungültigen Eintrag.')
+        projected = {}
+        for field in fields:
+            field_value = value.get(field)
+            if type(field_value) is not str:
+                raise ValueError(f'{label} enthalten einen ungültigen Wert.')
+            projected[field] = field_value
+        result.append(projected)
+    return result
 
 
 def external_id(profile_code: str, service_date: str, meal_code: str, type_code: str) -> str:
@@ -33,12 +55,21 @@ def _option(
         'title': str(value['title']).strip(),
         'description': str(value.get('description', '')).strip(),
         'components': [str(component).strip() for component in value.get('components', []) if str(component).strip()],
-        'labels': [dict(label) for label in value.get('labels', [])],
-        'allergens': [dict(allergen) for allergen in value.get('allergens', [])],
-        'origins': [dict(origin) for origin in value.get('origins', [])],
+        'labels': _public_rows(value.get('labels', []), ('code', 'name'), 'Labels'),
+        'allergens': _public_rows(
+            value.get('allergens', []), ('code', 'name', 'presence'), 'Allergene'
+        ),
+        'origins': _public_rows(
+            value.get('origins', []), ('ingredient', 'country_code', 'text'), 'Herkünfte'
+        ),
         'note': str(value.get('note', '')).strip(),
         'allergen_review_status': str(value.get('allergen_review_status', 'not_checked')),
     }
+    if any(
+        allergen['presence'] not in {'contains', 'may_contain'}
+        for allergen in option['allergens']
+    ):
+        raise ValueError('Allergen-Präsenz ist ungültig.')
     if profile_code == 'staff_guest':
         option['prices'] = {
             'internal_rappen': value['internal_rappen'],
