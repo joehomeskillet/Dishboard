@@ -6,6 +6,16 @@ from typing import Any
 
 from sqlalchemy import Engine, text
 
+from .component_assignment_store import (
+    AutoOriginConflictError as AutoOriginConflictError,
+    ComponentAssignmentConflictError as ComponentAssignmentConflictError,
+    ComponentAssignmentValidationError as ComponentAssignmentValidationError,
+    StaleItemError as StaleItemError,
+    assign_component as assign_component,
+    replace_component_links as replace_component_links,
+    replace_component_links_connection as replace_component_links_connection,
+    resolve_component_effects as resolve_component_effects,
+)
 from .db import issue_publication_capability
 from .workflow_snapshot import build_snapshot
 from .workflow_store import (
