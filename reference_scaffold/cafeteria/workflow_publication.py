@@ -15,8 +15,20 @@ def require_expected_active_location(
     *,
     lock: bool,
 ) -> None:
-    active_id = resolve_single_active_location_connection(connection)
-    if active_id != expected_location_id:
+    if lock:
+        matches = bool(
+            connection.execute(
+                text(
+                    'SELECT cafeteria.lock_expected_active_location(:expected_location_id)'
+                ),
+                {'expected_location_id': expected_location_id},
+            ).scalar_one()
+        )
+    else:
+        matches = (
+            resolve_single_active_location_connection(connection) == expected_location_id
+        )
+    if not matches:
         raise StaleDraftError('Der aktive Standort wurde zwischenzeitlich geändert.')
 
 
@@ -25,11 +37,12 @@ def next_revision_number(
     profile_code: str,
     week_start: date,
 ) -> int:
+    iso_calendar = week_start.isocalendar()
     connection.execute(
         text('SELECT pg_advisory_xact_lock(:profile_key, :week_key)'),
         {
             'profile_key': 1 if profile_code == 'patient' else 2,
-            'week_key': week_start.year * 100 + week_start.isocalendar().week,
+            'week_key': iso_calendar.year * 100 + iso_calendar.week,
         },
     )
     return int(

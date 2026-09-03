@@ -10,6 +10,7 @@ from threading import Event
 
 import pytest
 from sqlalchemy import Engine, create_engine, event, text
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.pool import NullPool
 
 from cafeteria import workflow
@@ -642,9 +643,9 @@ def test_active_and_inflight_withdrawal_are_conservative_and_atomic(catalog_data
     assert _target_counts(catalog_database) == (2, 1, 1)
 
 
-def test_publish_maps_direct_withdrawal_race_to_stale_draft(
+def _prepare_replacement(
     catalog_database: CatalogDatabase,
-) -> None:
+) -> tuple[int, int, str]:
     workflow.ensure_week(catalog_database.app, 'patient', TARGET_WEEK, 2)
     first_version = workflow.save_draft(
         catalog_database.app,
@@ -678,17 +679,162 @@ def test_publish_maps_direct_withdrawal_race_to_stale_draft(
         direct_capability = str(connection.execute(text(
             'SELECT cafeteria.issue_publication_capability(:actor_id, :revision_id)'
         ), {'actor_id': 2, 'revision_id': revision_id}).scalar_one())
+    return second_version, revision_id, direct_capability
+
+
+def test_publish_location_lock_serializes_real_cutover(
+    catalog_database: CatalogDatabase,
+) -> None:
+    workflow.ensure_week(catalog_database.app, 'patient', TARGET_WEEK, 2)
+    version = workflow.save_draft(
+        catalog_database.app,
+        'patient',
+        TARGET_WEEK,
+        expected_row_version=1,
+        actor_id=2,
+        values=_patient_values(TARGET_WEEK, 'Standort-Lock'),
+    )
+    publish_engine = _separate_engine(catalog_database)
+    cutover_engine = create_engine(
+        catalog_database.owner.url,
+        poolclass=NullPool,
+        pool_pre_ping=True,
+    )
+    location_locked, release, cutover_attempted = Event(), Event(), Event()
+
+    def after_location_lock(_conn, _cursor, statement, _params, _ctx, _many):
+        if 'lock_expected_active_location' in statement:
+            location_locked.set()
+            assert release.wait(10)
+
+    def before_cutover(_conn, _cursor, statement, _params, _ctx, _many):
+        if 'UPDATE cafeteria.locations' in statement:
+            cutover_attempted.set()
+
+    def cutover() -> None:
+        with cutover_engine.begin() as connection:
+            connection.execute(
+                text('UPDATE cafeteria.locations SET active=(id=:new_location_id)'),
+                {'new_location_id': catalog_database.other_location_id},
+            )
+
+    event.listen(publish_engine, 'after_cursor_execute', after_location_lock)
+    event.listen(cutover_engine, 'before_cursor_execute', before_cutover)
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            publishing = pool.submit(
+                workflow.publish_draft_scoped,
+                publish_engine,
+                'patient',
+                TARGET_WEEK,
+                expected_row_version=version,
+                actor_id=2,
+                issuer_engine=None,
+                expected_location_id=catalog_database.location_id,
+            )
+            assert location_locked.wait(5)
+            changing_location = pool.submit(cutover)
+            assert cutover_attempted.wait(5)
+            assert not changing_location.done()
+            release.set()
+            snapshot = publishing.result(timeout=10)
+            changing_location.result(timeout=10)
+    finally:
+        release.set()
+        event.remove(publish_engine, 'after_cursor_execute', after_location_lock)
+        event.remove(cutover_engine, 'before_cursor_execute', before_cutover)
+        publish_engine.dispose()
+        cutover_engine.dispose()
+
+    assert snapshot['location']['code'] == 'KIRCHLINDACH'
+    with catalog_database.owner.connect() as connection:
+        assert connection.execute(
+            text('SELECT id FROM cafeteria.locations WHERE active')
+        ).scalar_one() == catalog_database.other_location_id
+
+
+def test_late_direct_withdrawal_waits_for_replacement_and_leaves_one_active(
+    catalog_database: CatalogDatabase,
+) -> None:
+    second_version, revision_id, direct_capability = _prepare_replacement(catalog_database)
 
     publish_engine = _separate_engine(catalog_database)
     withdraw_engine = _separate_engine(catalog_database)
-    withdrawal_attempted, release = Event(), Event()
+    publication_locked, withdrawal_attempted, release = Event(), Event(), Event()
 
-    def before_publish_withdraw(_conn, _cursor, statement, _params, _ctx, _many):
-        if 'withdraw_publication_revision' in statement:
-            withdrawal_attempted.set()
+    def after_publication_lock(_conn, _cursor, statement, _params, _ctx, _many):
+        if 'lock_active_publication' in statement:
+            publication_locked.set()
             assert release.wait(10)
 
-    event.listen(publish_engine, 'before_cursor_execute', before_publish_withdraw)
+    def before_direct_withdrawal(_conn, _cursor, statement, _params, _ctx, _many):
+        if 'withdraw_publication_revision' in statement:
+            withdrawal_attempted.set()
+
+    event.listen(publish_engine, 'after_cursor_execute', after_publication_lock)
+    event.listen(withdraw_engine, 'before_cursor_execute', before_direct_withdrawal)
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            publishing = pool.submit(
+                workflow.publish_draft,
+                publish_engine,
+                'patient',
+                TARGET_WEEK,
+                expected_row_version=second_version,
+                actor_id=2,
+                issuer_engine=catalog_database.owner,
+            )
+            assert publication_locked.wait(5)
+            withdrawal = pool.submit(
+                withdraw_publication_revision,
+                withdraw_engine,
+                revision_id,
+                direct_capability,
+                'Direkter paralleler Rückzug',
+            )
+            assert withdrawal_attempted.wait(10)
+            assert not withdrawal.done()
+            release.set()
+            published = publishing.result(timeout=10)
+            with pytest.raises(DBAPIError, match='bereits zurückgezogen|55000'):
+                withdrawal.result(timeout=10)
+    finally:
+        release.set()
+        event.remove(publish_engine, 'after_cursor_execute', after_publication_lock)
+        event.remove(withdraw_engine, 'before_cursor_execute', before_direct_withdrawal)
+        publish_engine.dispose()
+        withdraw_engine.dispose()
+
+    with catalog_database.owner.connect() as connection:
+        assert connection.execute(text(
+            'SELECT count(*) FROM cafeteria.publication_revisions'
+        )).scalar_one() == 2
+        assert connection.execute(text(
+            'SELECT count(*) FROM cafeteria.publication_revisions WHERE withdrawn_at IS NULL'
+        )).scalar_one() == 1
+        assert connection.execute(text(
+            'SELECT id FROM cafeteria.publication_revisions WHERE withdrawn_at IS NULL'
+        )).scalar_one() != revision_id
+    assert published['revision_id'].endswith('-R2')
+
+
+def test_pre_won_direct_withdrawal_stale_aborts_with_zero_active(
+    catalog_database: CatalogDatabase,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    second_version, revision_id, direct_capability = _prepare_replacement(catalog_database)
+    publish_engine = _separate_engine(catalog_database)
+    withdraw_engine = _separate_engine(catalog_database)
+    capability_issued, release = Event(), Event()
+    real_issue = workflow.issue_publication_capability
+
+    def issue_then_pause(issuer_engine: Engine, actor_id: int, target_revision_id: int) -> str:
+        capability = real_issue(issuer_engine, actor_id, target_revision_id)
+        capability_issued.set()
+        assert release.wait(10)
+        return capability
+
+    monkeypatch.setattr(workflow, 'issue_publication_capability', issue_then_pause)
     try:
         with ThreadPoolExecutor(max_workers=1) as pool:
             publishing = pool.submit(
@@ -700,19 +846,18 @@ def test_publish_maps_direct_withdrawal_race_to_stale_draft(
                 actor_id=2,
                 issuer_engine=catalog_database.owner,
             )
-            assert withdrawal_attempted.wait(10)
+            assert capability_issued.wait(5)
             withdraw_publication_revision(
                 withdraw_engine,
                 revision_id,
                 direct_capability,
-                'Direkter paralleler Rückzug',
+                'Vorgezogener direkter Rückzug',
             )
             release.set()
             with pytest.raises(workflow.StaleDraftError):
                 publishing.result(timeout=10)
     finally:
         release.set()
-        event.remove(publish_engine, 'before_cursor_execute', before_publish_withdraw)
         publish_engine.dispose()
         withdraw_engine.dispose()
 

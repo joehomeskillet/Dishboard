@@ -1929,7 +1929,10 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
                            WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE'
                        ) AS public_execute,
                        has_function_privilege('cafeteria_app', p.oid, 'EXECUTE') AS app_execute,
-                       has_function_privilege('cafeteria_backup', p.oid, 'EXECUTE') AS backup_execute
+                       has_function_privilege('cafeteria_backup', p.oid, 'EXECUTE') AS backup_execute,
+                       has_function_privilege(
+                           'cafeteria_auth_issuer', p.oid, 'EXECUTE'
+                       ) AS issuer_execute
                 FROM pg_proc p
                 JOIN pg_namespace n ON n.oid=p.pronamespace
                 WHERE n.nspname='cafeteria' AND p.prosecdef
@@ -1960,7 +1963,9 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
         'ensure_auth_capability_state',
         'hard_reset_auth_capability_state',
         'issue_publication_capability',
+        'lock_active_publication',
         'lock_component_metadata_masters',
+        'lock_expected_active_location',
         'provision_local_user',
         'record_local_login_lock',
         'record_publication_lifecycle',
@@ -1974,8 +1979,22 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
     for row in definer_privileges:
         assert row['public_execute'] is False
         assert row['backup_execute'] is False
+        assert row['issuer_execute'] is (
+            row['proname'] in {
+                'disable_local_user',
+                'issue_publication_capability',
+                'provision_local_user',
+                'set_local_password',
+                'sync_entra_user',
+            }
+        )
         assert row['app_execute'] is (
-            row['proname'] in {'lock_component_metadata_masters', 'withdraw_publication_revision'}
+            row['proname'] in {
+                'lock_component_metadata_masters',
+                'lock_active_publication',
+                'lock_expected_active_location',
+                'withdraw_publication_revision',
+            }
         )
 
     week_id = _insert_week(database_engine, 'patient', 'published', '2026-10-26')

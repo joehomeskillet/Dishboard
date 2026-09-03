@@ -11,7 +11,7 @@ import psycopg
 import pytest
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.engine import make_url
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.pool import NullPool
 
 from cafeteria import db as database
@@ -515,6 +515,76 @@ def test_v12_backup_restore_down_probe_preserves_v12_without_claiming_reverse_mi
     assert query.returncode == 0, query.stderr
     assert v12_restore_probe.name == 'menuplan-task1-v12-pre-migration.dump'
     assert query.stdout.strip().split('|') == [V12_RESTORE_DATABASE, '12', '1']
+
+
+@LIVE_DATABASE
+def test_v14_migration_installs_role_scoped_active_location_lock(pg16: Engine) -> None:
+    _run_v12_migrations(pg16)
+    for version in (13, 14):
+        migration = next(
+            item for item in database.migration_plan(SCHEMA) if item.version == version
+        )
+        database._execute_migration(pg16, migration)
+    database._execute_script(pg16, str(ROOT / 'database' / 'permissions.sql'))
+
+    with pg16.begin() as connection:
+        location_id = int(
+            connection.execute(
+                text(
+                    "INSERT INTO cafeteria.locations(code, name) "
+                    "VALUES ('LOCK-LOCATION', 'Lock Location') RETURNING id"
+                )
+            ).scalar_one()
+        )
+        contract = connection.execute(
+            text(
+                '''
+                SELECT p.prosecdef,
+                       p.provolatile,
+                       p.proparallel,
+                       p.proconfig,
+                       EXISTS (
+                           SELECT 1
+                           FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) acl
+                           WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE'
+                       ) AS public_execute,
+                       has_function_privilege('cafeteria_app', p.oid, 'EXECUTE') AS app_execute,
+                       has_function_privilege('cafeteria_backup', p.oid, 'EXECUTE') AS backup_execute,
+                       has_function_privilege(
+                           'cafeteria_auth_issuer', p.oid, 'EXECUTE'
+                       ) AS issuer_execute
+                FROM pg_proc p
+                JOIN pg_namespace n ON n.oid=p.pronamespace
+                WHERE n.nspname='cafeteria'
+                  AND p.proname='lock_expected_active_location'
+                '''
+            )
+        ).one()
+        assert connection.execute(
+            text('SELECT cafeteria.lock_expected_active_location(:location_id)'),
+            {'location_id': location_id},
+        ).scalar_one() is True
+        assert connection.execute(
+            text('SELECT cafeteria.lock_expected_active_location(:location_id)'),
+            {'location_id': location_id + 1},
+        ).scalar_one() is False
+
+    assert contract == (
+        True,
+        'v',
+        'u',
+        ['search_path=pg_catalog, cafeteria, pg_temp'],
+        False,
+        True,
+        False,
+        False,
+    )
+    with pytest.raises(DBAPIError) as invalid:
+        with pg16.begin() as connection:
+            connection.execute(
+                text('SELECT cafeteria.lock_expected_active_location(NULL)')
+            ).scalar_one()
+    assert getattr(invalid.value.orig, 'sqlstate', None) == '22023'
 
 
 @LIVE_DATABASE

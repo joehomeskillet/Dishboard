@@ -1823,6 +1823,25 @@ BEGIN
         RAISE EXCEPTION 'Capability ist ungültig oder abgelaufen.' USING ERRCODE = '42501';
     END IF;
 
+    SELECT withdrawn_at
+      INTO v_existing_withdrawal
+      FROM publication_revisions
+     WHERE id = p_revision_id
+     FOR UPDATE;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Unbekannte Publikationsrevision.' USING ERRCODE = 'P0002';
+    END IF;
+    IF EXISTS (
+        SELECT 1
+        FROM auth_capability_nonces
+        WHERE nonce = decode(v_nonce_hex, 'hex')
+    ) THEN
+        RAISE EXCEPTION 'Capability-Nonce wurde bereits verwendet.' USING ERRCODE = '42501';
+    END IF;
+    IF v_existing_withdrawal IS NOT NULL THEN
+        RAISE EXCEPTION 'Publikationsrevision wurde bereits zurückgezogen.' USING ERRCODE = '55000';
+    END IF;
+
     BEGIN
         INSERT INTO auth_capability_nonces(nonce, actor_user_id, revision_id)
         VALUES (decode(v_nonce_hex, 'hex'), v_actor_id, v_token_revision);
@@ -1839,17 +1858,6 @@ BEGIN
         RAISE EXCEPTION 'Capability ist ungültig oder abgelaufen.' USING ERRCODE = '42501';
     END IF;
     PERFORM 1 FROM user_role_cache WHERE user_id = v_actor_id FOR UPDATE;
-    SELECT withdrawn_at
-      INTO v_existing_withdrawal
-      FROM publication_revisions
-     WHERE id = p_revision_id
-     FOR UPDATE;
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'Unbekannte Publikationsrevision.' USING ERRCODE = 'P0002';
-    END IF;
-    IF v_existing_withdrawal IS NOT NULL THEN
-        RAISE EXCEPTION 'Publikationsrevision wurde bereits zurückgezogen.' USING ERRCODE = '55000';
-    END IF;
     IF v_authz_version IS DISTINCT FROM v_token_authz THEN
         RAISE EXCEPTION 'Capability ist durch eine Rollenänderung ungültig geworden.'
             USING ERRCODE = '42501';
@@ -1936,6 +1944,64 @@ BEGIN
     WHERE allergen.code = ANY (p_allergen_codes)
     ORDER BY allergen.id
     FOR SHARE OF allergen;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION cafeteria.lock_expected_active_location(
+    p_expected_location_id bigint
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+VOLATILE
+PARALLEL UNSAFE
+SET search_path = pg_catalog, cafeteria, pg_temp
+AS $function$
+DECLARE
+    v_active_count bigint;
+    v_active_id bigint;
+BEGIN
+    IF p_expected_location_id IS NULL OR p_expected_location_id <= 0 THEN
+        RAISE EXCEPTION 'expected location id must be a positive bigint'
+            USING ERRCODE = '22023';
+    END IF;
+
+    LOCK TABLE cafeteria.locations IN SHARE MODE;
+    SELECT count(*), min(location.id)
+      INTO v_active_count, v_active_id
+      FROM cafeteria.locations AS location
+     WHERE location.active;
+    RETURN v_active_count = 1 AND v_active_id = p_expected_location_id;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION cafeteria.lock_active_publication(
+    p_menu_week_id bigint
+)
+RETURNS bigint
+LANGUAGE plpgsql
+SECURITY DEFINER
+VOLATILE
+PARALLEL UNSAFE
+SET search_path = pg_catalog, cafeteria, pg_temp
+AS $function$
+DECLARE
+    v_revision_id bigint;
+BEGIN
+    IF p_menu_week_id IS NULL OR p_menu_week_id <= 0 THEN
+        RAISE EXCEPTION 'menu week id must be a positive bigint'
+            USING ERRCODE = '22023';
+    END IF;
+
+    SELECT revision.id
+      INTO v_revision_id
+      FROM cafeteria.publication_revisions AS revision
+     WHERE revision.menu_week_id = p_menu_week_id
+       AND revision.withdrawn_at IS NULL
+     ORDER BY revision.id
+     LIMIT 1
+     FOR UPDATE;
+    RETURN v_revision_id;
 END;
 $function$;
 
@@ -2109,7 +2175,9 @@ GRANT EXECUTE ON FUNCTION
     disable_local_user(text, text)
 TO cafeteria_auth_issuer;
 GRANT EXECUTE ON FUNCTION
-    lock_component_metadata_masters(text[], text[])
+    lock_component_metadata_masters(text[], text[]),
+    lock_expected_active_location(bigint),
+    lock_active_publication(bigint)
 TO cafeteria_app;
 
 CREATE OR REPLACE VIEW active_publications AS

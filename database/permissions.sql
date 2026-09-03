@@ -60,6 +60,10 @@ REVOKE EXECUTE ON FUNCTION issue_publication_capability(bigint, bigint, interval
 FROM PUBLIC, cafeteria_app, cafeteria_backup;
 REVOKE EXECUTE ON FUNCTION withdraw_publication_revision(bigint, text, text)
 FROM PUBLIC, cafeteria_app, cafeteria_backup;
+REVOKE EXECUTE ON FUNCTION lock_expected_active_location(bigint)
+FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
+REVOKE EXECUTE ON FUNCTION lock_active_publication(bigint)
+FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
 GRANT EXECUTE ON FUNCTION withdraw_publication_revision(bigint, text, text) TO cafeteria_app;
 
 GRANT SELECT ON
@@ -108,7 +112,9 @@ GRANT EXECUTE ON FUNCTION
     withdraw_publication_revision(bigint, text, text)
 TO cafeteria_app;
 GRANT EXECUTE ON FUNCTION
-    lock_component_metadata_masters(text[], text[])
+    lock_component_metadata_masters(text[], text[]),
+    lock_expected_active_location(bigint),
+    lock_active_publication(bigint)
 TO cafeteria_app;
 GRANT EXECUTE ON FUNCTION
     normalize_patient_key(text),

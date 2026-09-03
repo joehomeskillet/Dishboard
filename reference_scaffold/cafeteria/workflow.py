@@ -180,7 +180,7 @@ def load_draft(
         build_snapshot(
             profile_code,
             draft,
-            f'PAT-{week_start.year}-KW{week_start.isocalendar().week:02d}-R1',
+            f'PAT-{week_start.isocalendar().year}-KW{week_start.isocalendar().week:02d}-R1',
         )
     return draft
 
@@ -219,7 +219,7 @@ def validate_draft_values(
     build_snapshot(
         profile_code,
         candidate,
-        f"{'PAT' if profile_code == 'patient' else 'CAF'}-{week_start.year}-KW{week_start.isocalendar().week:02d}-R1",
+        f"{'PAT' if profile_code == 'patient' else 'CAF'}-{week_start.isocalendar().year}-KW{week_start.isocalendar().week:02d}-R1",
     )
 
 
@@ -487,14 +487,13 @@ def derive_admin_status(
 def _active_publication_id(
     connection: Connection,
     week_id: int,
+    *,
+    lock: bool = True,
 ) -> int | None:
-    value = connection.execute(
-        text(
-            'SELECT r.id FROM cafeteria.publication_revisions r '
-            'WHERE r.menu_week_id=:week_id AND r.withdrawn_at IS NULL'
-        ),
-        {'week_id': week_id},
-    ).scalar_one_or_none()
+    query = ('SELECT cafeteria.lock_active_publication(:week_id)' if lock else
+             'SELECT r.id FROM cafeteria.publication_revisions r '
+             'WHERE r.menu_week_id=:week_id AND r.withdrawn_at IS NULL')
+    value = connection.execute(text(query), {'week_id': week_id}).scalar_one_or_none()
     return None if value is None else int(value)
 
 
@@ -511,7 +510,7 @@ def publish_draft_scoped(
     with engine.connect() as connection:
         require_expected_active_location(connection, expected_location_id, lock=False)
         unlocked_draft = load_draft_connection(connection, profile_code, week_start)
-        previous_id = _active_publication_id(connection, int(unlocked_draft['id']))
+        previous_id = _active_publication_id(connection, int(unlocked_draft['id']), lock=False)
     capability = None
     if previous_id is not None:
         if issuer_engine is None:
@@ -539,7 +538,7 @@ def publish_draft_scoped(
             raise WorkflowValidationError('Allergendeklaration ist nicht geprüft.')
         revision_number = next_revision_number(connection, profile_code, week_start)
         prefix = 'PAT' if profile_code == 'patient' else 'CAF'
-        revision_code = f'{prefix}-{week_start.year}-KW{week_start.isocalendar().week:02d}-R{revision_number}'
+        revision_code = f'{prefix}-{week_start.isocalendar().year}-KW{week_start.isocalendar().week:02d}-R{revision_number}'
         snapshot = build_snapshot(profile_code, draft, revision_code)
         if current_id is not None:
             if capability is None:

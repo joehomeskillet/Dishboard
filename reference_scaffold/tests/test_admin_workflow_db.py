@@ -535,6 +535,45 @@ def test_revision_sequence_is_global_across_location_cutover(
     assert re.fullmatch(r'(?:PAT|CAF)-\d{4}-KW\d{2}-R[1-9]\d*', second['revision_id'])
 
 
+def test_revision_code_uses_iso_year_across_december_30_boundary(
+    database_engine: Engine,
+) -> None:
+    actor_id = _actor_id(database_engine)
+    snapshots = []
+    for week_start, title, expected_code in (
+        (date(2024, 1, 1), 'Winterwoche', 'PAT-2024-KW01-R1'),
+        (date(2024, 12, 30), 'Jahreswechsel', 'PAT-2025-KW01-R1'),
+    ):
+        values = _patient_values(title)
+        for offset, day in enumerate(values['days']):
+            day['date'] = (week_start + timedelta(days=offset)).isoformat()
+        draft = load_draft(database_engine, 'patient', week_start, actor_id=actor_id)
+        version = save_draft(
+            database_engine,
+            'patient',
+            week_start,
+            expected_row_version=int(draft['row_version']),
+            actor_id=actor_id,
+            values=values,
+        )
+        snapshots.append(
+            publish_draft(
+                database_engine,
+                'patient',
+                week_start,
+                expected_row_version=version,
+                actor_id=actor_id,
+                issuer_engine=database_engine,
+            )
+        )
+        assert snapshots[-1]['revision_id'] == expected_code
+
+    assert [snapshot['revision_id'] for snapshot in snapshots] == [
+        'PAT-2024-KW01-R1',
+        'PAT-2025-KW01-R1',
+    ]
+
+
 def test_published_payloads_keep_profile_shapes_and_patient_has_no_cost_tokens(
     database_engine: Engine,
 ) -> None:
