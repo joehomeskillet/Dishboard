@@ -1,0 +1,181 @@
+from __future__ import annotations
+
+from collections.abc import Iterator
+from pathlib import Path
+
+import pytest
+from flask import Flask
+from sqlalchemy import Engine, create_engine, text
+from sqlalchemy.pool import NullPool
+
+from cafeteria import db as database
+from cafeteria.admin.workflow_routes import REVIEW_HINT
+from test_admin_workflow_routes import (
+    APP_PASSWORD,
+    BACKUP_PASSWORD,
+    DATABASE_URL,
+    ISSUER_PASSWORD,
+    ROOT,
+    _drop_schema,
+    _hidden,
+    _login,
+    _register,
+)
+
+pytestmark = pytest.mark.skipif(
+    not DATABASE_URL,
+    reason='TEST_DATABASE_URL für eine isolierte PostgreSQL-Testdatenbank fehlt.',
+)
+
+
+@pytest.fixture
+def database_engine() -> Iterator[Engine]:
+    assert DATABASE_URL is not None
+    engine = create_engine(DATABASE_URL, poolclass=NullPool, pool_pre_ping=True)
+    _drop_schema(engine)
+    database.init_database(
+        DATABASE_URL,
+        str(ROOT / 'database' / 'schema.sql'),
+        str(ROOT / 'database' / 'seed.sql'),
+        permissions_path=str(ROOT / 'database' / 'permissions.sql'),
+        app_password=APP_PASSWORD,
+        backup_password=BACKUP_PASSWORD,
+        auth_issuer_password=ISSUER_PASSWORD,
+    )
+    try:
+        yield engine
+    finally:
+        _drop_schema(engine)
+        engine.dispose()
+
+
+@pytest.fixture
+def app(database_engine: Engine, tmp_path: Path) -> Flask:
+    application = Flask(
+        __name__,
+        template_folder=str(ROOT / 'reference_scaffold' / 'cafeteria' / 'templates'),
+    )
+    application.config.update(
+        SECRET_KEY='workflow-test-secret',
+        LAST_GOOD_DIR=str(tmp_path),
+        DEMO_MODE=True,
+        DEMO_TODAY='2026-09-02',
+    )
+    application.extensions['cafeteria_db'] = database_engine
+    application.extensions['cafeteria_auth_issuer_db'] = database_engine
+    return _register(application)
+
+
+@pytest.fixture
+def client(app: Flask, database_engine: Engine):
+    client_obj, _ = _login(app, database_engine, ['Cafeteria.Admin'])
+    return client_obj
+
+
+def _create_fields() -> list[tuple[str, str]]:
+    return [
+        ('_csrf', 'workflow-csrf'),
+        ('category', 'side'),
+        ('name', 'Kartoffelstock'),
+        ('origin_country_code', 'CH'),
+        ('target_scope', 'current'),
+        ('label_code', 'VEGAN'),
+        ('allergen_code', 'GLUTEN'),
+        ('allergen_presence', 'contains'),
+    ]
+
+
+def test_component_create_update_archive_unarchive_exact_forms(client, database_engine: Engine) -> None:
+    created = client.post('/admin/patienten/komponenten', data=_create_fields())
+    assert created.status_code == 303
+    location = created.headers['Location']
+    detail = client.get(location, follow_redirects=False)
+    followed = client.get(location)
+    assert detail.status_code == 200
+    assert REVIEW_HINT in followed.get_data(as_text=True)
+    body = followed.get_data(as_text=True)
+    assert 'data-profile-scope="patient"' in body
+    version = _hidden(body, 'row_version')
+    public_id = body.split('data-public-id="', 1)[1].split('"', 1)[0]
+    updated = client.post(f'/admin/patienten/komponenten/{public_id}', data=[
+        ('_csrf', 'workflow-csrf'),
+        ('category', 'side'),
+        ('name', 'Kartoffelstock'),
+        ('origin_country_code', 'CH'),
+        ('row_version', version),
+        ('label_code', 'VEGAN'),
+        ('allergen_code', 'GLUTEN'),
+        ('allergen_presence', 'contains'),
+    ])
+    assert updated.status_code == 303
+    with_target = client.post(f'/admin/patienten/komponenten/{public_id}', data=[
+        ('_csrf', 'workflow-csrf'),
+        ('category', 'side'),
+        ('name', 'Kartoffelstock'),
+        ('origin_country_code', 'CH'),
+        ('row_version', version),
+        ('target_scope', 'common'),
+    ])
+    assert with_target.status_code == 400
+    shown = client.get(f'/admin/patienten/komponenten/{public_id}')
+    version = _hidden(shown.get_data(as_text=True), 'row_version')
+    archived = client.post(
+        f'/admin/patienten/komponenten/{public_id}/archive',
+        data={'_csrf': 'workflow-csrf', 'row_version': version},
+    )
+    assert archived.status_code == 303
+    shown = client.get(f'/admin/patienten/komponenten/{public_id}')
+    assert 'data-active="0"' in shown.get_data(as_text=True)
+    version = _hidden(shown.get_data(as_text=True), 'row_version')
+    restored = client.post(
+        f'/admin/patienten/komponenten/{public_id}/unarchive',
+        data={'_csrf': 'workflow-csrf', 'row_version': version},
+    )
+    assert restored.status_code == 303
+    with database_engine.connect() as connection:
+        count = connection.execute(text('SELECT count(*) FROM cafeteria.menu_components')).scalar_one()
+        deleted = connection.execute(
+            text('SELECT count(*) FROM cafeteria.menu_components WHERE active')
+        ).scalar_one()
+    assert count == 1
+    assert deleted == 1
+
+
+def test_component_create_rejects_duplicate_and_profile_keys(client, database_engine: Engine) -> None:
+    duplicate = _create_fields() + [('category', 'meat')]
+    mismatched = [
+        ('_csrf', 'workflow-csrf'),
+        ('category', 'side'),
+        ('name', 'Reis'),
+        ('origin_country_code', 'CH'),
+        ('target_scope', 'current'),
+        ('allergen_code', 'GLUTEN'),
+        ('allergen_code', 'MILK'),
+        ('allergen_presence', 'contains'),
+    ]
+    profiled = _create_fields() + [('profile', 'staff_guest')]
+    scoped = _create_fields() + [('profile_scope', 'patient')]
+    internal = _create_fields() + [('id', '1')]
+    before = None
+    with database_engine.connect() as connection:
+        before = connection.execute(text('SELECT count(*) FROM cafeteria.menu_components')).scalar_one()
+    assert client.post('/admin/patienten/komponenten', data=duplicate).status_code == 400
+    assert client.post('/admin/patienten/komponenten', data=mismatched).status_code == 400
+    assert client.post('/admin/patienten/komponenten', data=profiled).status_code == 400
+    assert client.post('/admin/patienten/komponenten', data=scoped).status_code == 400
+    assert client.post('/admin/patienten/komponenten', data=internal).status_code == 400
+    with database_engine.connect() as connection:
+        after = connection.execute(text('SELECT count(*) FROM cafeteria.menu_components')).scalar_one()
+    assert after == before
+
+
+def test_component_detail_uses_public_id_and_masks_unknown(client) -> None:
+    created = client.post('/admin/cafeteria/komponenten', data=_create_fields())
+    public_id = created.headers['Location'].rsplit('/', 1)[-1]
+    found = client.get(f'/admin/cafeteria/komponenten/{public_id}')
+    missing = client.get('/admin/cafeteria/komponenten/00000000-0000-0000-0000-000000000099')
+    other = client.get(f'/admin/patienten/komponenten/{public_id}')
+    assert found.status_code == 200
+    assert 'data-profile-scope="staff_guest"' in found.get_data(as_text=True)
+    assert missing.status_code == 404
+    assert other.status_code == 404
