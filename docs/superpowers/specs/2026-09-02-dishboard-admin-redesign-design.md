@@ -620,7 +620,7 @@ No-op und behält die Version. Die private Auflösung und Validierung liegt in
 | `POST /admin/{cafeteria\|patienten}/komponenten/<public_id>/unarchive` | exact `_csrf,row_version`; reaktivieren, Name bleibt reserviert |
 | `GET /admin/{cafeteria\|patienten}/copy?week=` | leere Zielwochen anbieten |
 | `POST /admin/{cafeteria\|patienten}/copy` | `_csrf,source_week,target_week,target_row_version` |
-| `GET /admin/{cafeteria\|patienten}/preview?week=` | zuletzt gespeicherten Draft anzeigen |
+| `GET /admin/{cafeteria\|patienten}/preview?week=` | zuletzt gespeicherten Zustand der vorhandenen scoped Woche in `draft|ready|published|archived` anzeigen; kein Publikations-Fallback |
 | `POST /admin/{cafeteria\|patienten}/publish` | `_csrf,week,row_version` exakt; Publish |
 
 Die Komponentensuche für eine Zuweisung zeigt nur aktive Komponenten mit
@@ -666,9 +666,9 @@ derselben Erwartung haben exakt einen Gewinner. Copy gegen den ersten
 Target-Item-Save liefert einen vollständigen Gewinnerzustand ohne Hybrid.
 
 Null oder mehrere konfigurierte aktive Locations werden für jede betroffene
-HTTP-Operation einheitlich als 503 abgebildet. Eine fehlende scoped Woche, ein
-fehlender gespeicherter Draft oder eine nicht vorhandene Preview-Ressource
-liefert als angeforderte gespeicherte Ressource 404; der Menü-GET für einen
+HTTP-Operation einheitlich als 503 abgebildet. Eine fehlende scoped Woche oder
+eine sonstige nicht vorhandene gespeicherte Preview-Ressource liefert als
+angeforderte gespeicherte Ressource 404; der Menü-GET für einen
 gültigen Raster-Slot einer noch fehlenden Woche ist dagegen die oben definierte
 virtuelle Version-0-Zeile. Ungültige/out-of-scope Slots und Scope-Leaks werden
 als 404 maskiert.
