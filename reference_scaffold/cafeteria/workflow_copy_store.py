@@ -26,7 +26,7 @@ def copy_previous_week(
         weeks = _lock_weeks(connection, scope.location_id, profile_id,
                             source_week_start, target_week_start)
         source = weeks.get(source_week_start)
-        if source is None or str(source['workflow_state']) != 'draft':
+        if source is None:
             raise ComponentNotFoundError('Gespeicherte Vorwoche nicht gefunden.')
         target = _resolve_target(connection, scope, profile_id, target_week_start,
                                  target_row_version, source, weeks.get(target_week_start))
@@ -86,7 +86,7 @@ def _lock_weeks(
     rows = connection.execute(
         text(
             '''
-            SELECT id, week_start, workflow_state, title, shared_note, row_version
+            /* copy_week_lock */ SELECT id, week_start, workflow_state, title, shared_note, row_version
             FROM cafeteria.menu_weeks
             WHERE location_id=:location_id AND profile_id=:profile_id
               AND week_start=ANY(CAST(:week_starts AS date[]))
@@ -236,7 +236,7 @@ def _lock_source_children(
 
 
 def _reject_active_publication(connection: Connection, target_id: int) -> None:
-    active = connection.execute(
+    active = connection.execute(  # Week lock serializes inserts; withdrawals only reject safely.
         text(
             '''SELECT id FROM cafeteria.publication_revisions
                WHERE menu_week_id=:week_id AND withdrawn_at IS NULL
