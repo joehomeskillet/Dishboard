@@ -216,15 +216,22 @@ backfill remains in `database/migrations/0010_v12_to_v13.sql`, not `db.py`.
 - [ ] Add RED tests for same-location/common-or-profile scope, cross-location/
   profile 404 assignment and effects, allergen union with `contains` winning,
   origin conflict, diet intersection, nullable/free-text non-inheritance, and
-  auto-only rematerialization. Prove the connection helper neither commits nor
-  changes item/review/version outside its caller's single locked update. Add a
-  mandatory real-PG16 two-connection race: both transactions target the same
-  two scoped items but submit reversed item and assignment orders. Coordinate
-  them without sleep-based timing and prove numeric item/component/link lock
-  order, no deadlock/`40P01`, one deterministic winner, the second writer's
-  wait followed by stale 409 without partial mutation, and exact winner links.
-  Exercise single assignment, full replacement and the shared connection
-  helper used later by Partial/Import/Recovery.
+  auto-only rematerialization. Directly test the connection helper inside one
+  caller-owned transaction and prove it neither commits nor changes
+  item/review/version itself.
+- [ ] Add separate mandatory real-PG16 synchronized two-connection SAME-item
+  races for `assign_component` and the one-item full-replace caller. Use no
+  timing sleeps. Each proves no deadlock/`40P01`, loser waits for winner then
+  returns stale 409 without partial mutation, and final links exactly match the
+  winner.
+- [ ] Add a separate real-PG16 multi-item race through an actual multi-item
+  transaction path only: Full Import/Recovery or an explicit batch caller that
+  invokes `replace_component_links_connection` twice inside one transaction.
+  Two connections submit the same two scoped items with reversed caller/item/
+  assignment order. Without timing sleeps, prove numeric item/component/link
+  lock order, no deadlock/`40P01`, and a deterministic serialized result. Do
+  not claim `assign_component` or another single-item API participates in this
+  multi-item transaction.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_assignment_db.py`; expected FAIL.
 - [ ] Implement assignment validation and deterministic effects. Reject injected patient prices before any write. Route single-link and full-replace assignment through `replace_component_links_connection`; the caller performs exactly one locked item update, review reset and version bump. Before link locks or writes, resolve the complete existing-plus-requested component set, lock it by numeric internal ID, then lock and mutate links in the global order above; caller-supplied internal IDs are forbidden. On component/link change rematerialize only auto classes; manual values remain untouched.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_assignment_db.py -v`; expected PASS.

@@ -163,14 +163,23 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
   `menu_weeks.updated_by=scope.actor_id` in derselben Transaktion. Sie liefert
   die neue Item-`row_version`; der HTTP-Handler antwortet per 303/PRG auf den
   scoped Menü-GET, der den neuen geprüften Zustand rendert.
-- Ein verpflichtender Real-PG16-Test öffnet zwei unabhängige Connections und
-  lässt beide dieselben zwei scoped Items mit umgekehrter Item- und
-  Assignment-Reihenfolge ändern. Kontrollierte Synchronisation beweist ohne
-  Timing-Annahme: kein Deadlock/`40P01`, ein deterministischer Gewinner, Warten
-  des zweiten Writers und danach dessen stale 409 ohne Teilmutation; der
-  Endzustand enthält exakt die Links des Gewinners. Derselbe Test deckt
-  Single-Assign, Full-Replace und den von Partial-/Import-/Recovery genutzten
-  Connection-Helper ab.
+- Verpflichtende Real-PG16-Race-Tests öffnen je zwei unabhängige Connections
+  und synchronisieren sie kontrolliert ohne Timing-Sleeps. Ein Test lässt zwei
+  `assign_component`-Aufrufe dasselbe scoped Item ändern; ein separater Test
+  macht dasselbe über den One-Item-Full-Replace-Caller. Beide beweisen: kein
+  Deadlock/`40P01`, der Verlierer wartet auf den Gewinner und liefert danach
+  stale 409 ohne Teilmutation; der Endzustand enthält exakt die Gewinner-Links.
+- Ein eigener Multi-Item-Test verwendet ausschließlich einen echten
+  Multi-Item-Transaktionspfad: Full Import/Recovery oder einen expliziten
+  Batch-Caller, der innerhalb einer Caller-Transaktion den Connection-Helper
+  für zwei Items aufruft. Zwei Connections reichen dieselben zwei scoped Items
+  mit umgekehrter Caller-/Item-/Assignment-Reihenfolge ein. Ohne Timing-Sleeps
+  beweist der Test numerische Item-/Komponenten-/Link-Lock-Reihenfolge, kein
+  Deadlock/`40P01` und ein deterministisch serialisiertes Ergebnis. Die
+  Single-Item-API wird dabei nicht als Multi-Item-Transaktion dargestellt.
+- Ein direkter Test des Connection-Helpers läuft in genau einer vom Caller
+  kontrollierten Transaktion und beweist, dass der Helper selbst weder committet
+  noch Item-, Review- oder Versionszustand verändert.
 - Der akzeptierte Token ist absichtlich verbraucht: Erfolg ändert mindestens
   Item-`row_version` und gegebenenfalls gespeicherte Link-Versionen. Derselbe
   POST mit alter `row_version` und altem `component_version` liefert deshalb
