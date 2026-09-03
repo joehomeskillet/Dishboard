@@ -264,6 +264,7 @@ def import_draft(
     values: dict[str, Any],
 ) -> int:
     validate_draft_values(profile_code, week_start, values)
+    import_values = _full_replace_values(values)
     with engine.begin() as connection:
         persisted_version = expected_row_version
         if expected_row_version == 0:
@@ -276,7 +277,8 @@ def import_draft(
             week_start,
             expected_row_version=persisted_version,
             actor_id=actor_id,
-            values=values,
+            values=import_values,
+            reject_catalog_assignments=True,
         )
 
 
@@ -284,6 +286,48 @@ def current_draft_row_version(engine: Engine, profile_code: str, week_start: dat
     if profile_code not in PROFILE_MEALS or week_start.isoweekday() != 1:
         raise WorkflowValidationError('Profil oder Wochenbeginn ist ungültig.')
     return draft_row_version(engine, profile_code, week_start)
+
+
+def _full_replace_values(values: dict[str, Any]) -> dict[str, Any]:
+    result = {
+        'title': values['title'],
+        'shared_note': values['shared_note'],
+        'days': [],
+    }
+    for day in values['days']:
+        services = []
+        for service in day['services']:
+            options = []
+            for option in service['options']:
+                internal = {
+                    **option,
+                    'allergen_mode': 'manual',
+                    'origin_mode': 'manual',
+                    'label_mode': 'manual',
+                    'assignments': [
+                        {'component_public_id': None, 'component_text': component}
+                        for component in option['components']
+                        if component.strip()
+                    ],
+                }
+                options.append(internal)
+            services.append({**service, 'options': options})
+        result['days'].append({'date': day['date'], 'services': services})
+    return result
+
+
+def _public_option(option: dict[str, Any]) -> dict[str, Any]:
+    projected = {
+        key: option[key]
+        for key in (
+            'type_code', 'external_id', 'title', 'description', 'components',
+            'labels', 'allergens', 'origins', 'note', 'allergen_review_status',
+        )
+    }
+    for key in ('internal_rappen', 'external_rappen'):
+        if key in option:
+            projected[key] = option[key]
+    return projected
 
 
 def _draft_values(draft: dict[str, Any]) -> dict[str, Any]:
@@ -296,7 +340,7 @@ def _draft_values(draft: dict[str, Any]) -> dict[str, Any]:
                     'meal_code': service['meal_code'],
                     'service_state': service['service_state'],
                     'notice': service['notice'],
-                    'options': service['options'],
+                    'options': [_public_option(option) for option in service['options']],
                 }
             )
         days.append({'date': day['date'], 'services': services})
