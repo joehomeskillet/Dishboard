@@ -32,7 +32,7 @@
 
 | Phase | Files | Responsibility / owner boundary |
 |---|---|---|
-| 1 | `database/schema.sql`, `database/migrations/0010_v12_to_v13.sql`, `database/permissions.sql`, `database/validate_schema.py`, `database/README.md`, `tools/validate_package.py`, `PACKAGE_CONTENTS.txt`, `MANIFEST_SHA256.txt`, `reference_scaffold/cafeteria/db.py`, `reference_scaffold/tests/test_component_catalog_migration_db.py`, `reference_scaffold/tests/test_auth_database.py`, `reference_scaffold/tests/test_database_invariants.py` | Schema v13, idempotente Migration, Restore-ACLs, Validator-/Package-Pins und Migration-Backfill; je Wave genau ein serialer Owner für `schema.sql` und `db.py`. |
+| 1 | `database/schema.sql`, `database/migrations/0010_v12_to_v13.sql`, `database/migrations/0011_v13_to_v14.sql`, `database/permissions.sql`, `database/validate_schema.py`, `database/README.md`, `tools/validate_package.py`, `PACKAGE_CONTENTS.txt`, `MANIFEST_SHA256.txt`, `reference_scaffold/cafeteria/db.py`, `reference_scaffold/tests/test_component_catalog_migration_db.py`, `reference_scaffold/tests/test_component_metadata_master_lock_db.py`, `reference_scaffold/tests/test_auth_database.py`, `reference_scaffold/tests/test_database_invariants.py` | Schema v14, idempotente Migrationen, Restore-ACLs, Validator-/Package-Pins, Migration-Backfill und schmaler Metadata-Master-Lock; je Wave genau ein serialer Owner für `schema.sql` und `db.py`. |
 | 2 | `reference_scaffold/cafeteria/component_catalog_store.py`, `reference_scaffold/cafeteria/component_catalog_metadata.py`, `reference_scaffold/cafeteria/component_assignment_store.py`, `reference_scaffold/cafeteria/workflow.py`, `reference_scaffold/cafeteria/workflow_snapshot.py`, `reference_scaffold/tests/test_component_catalog_db.py`, `reference_scaffold/tests/test_component_catalog_metadata_db.py`, `reference_scaffold/tests/test_component_assignment_db.py`, `reference_scaffold/tests/test_admin_workflow_db.py` | Katalog samt atomaren Label-/Allergen-Metadaten, Scope/Location, Assignment, Auto/Manual-Auflösung, Review und Snapshot. Katalog- und Assignment-Operationen bleiben in den jeweiligen Stores; die private Metadatenhilfe hält Produktionsmodule unter 400 Zeilen; `workflow.py` verdrahtet sie. |
 | 3 | `reference_scaffold/cafeteria/__init__.py`, `reference_scaffold/cafeteria/admin/routes.py`, `reference_scaffold/cafeteria/admin/workflow_routes.py`, `reference_scaffold/cafeteria/workflow_partial_form.py`, `reference_scaffold/cafeteria/workflow_partial_store.py`, `reference_scaffold/cafeteria/workflow_copy_store.py`, `reference_scaffold/cafeteria/workflow_store.py`, `reference_scaffold/tests/test_component_catalog_routes.py`, `reference_scaffold/tests/test_admin_workflow_routes.py`, `reference_scaffold/tests/test_admin_week_routes.py`, `reference_scaffold/tests/test_admin_draft_preview.py`, `reference_scaffold/tests/test_workflow_partial_store_db.py`, `reference_scaffold/tests/test_workflow_copy_store_db.py` | URL-Familien, exact Form Keys, scoped Resolver, Partial-Saves, route-unabhängige Vorwochen-Copy, Preview, Publish/PRG, 400/404/409/503/CSRF. `admin/routes.py` ist ein kleiner serieller Adapter; `workflow_routes.py` trägt die neuen Routen und `__init__.py` registriert das Blueprint einmal. CSV-Import/Recovery bleiben erhalten; `persist_draft_connection` nur für vollständigen Import/Recovery. |
 | 4 | `reference_scaffold/cafeteria/templates/admin/cafeteria.html`, `reference_scaffold/cafeteria/templates/admin/patienten.html`, `reference_scaffold/cafeteria/templates/admin/components.html`, `reference_scaffold/cafeteria/templates/admin/component_editor.html`, `reference_scaffold/cafeteria/templates/admin/preview.html`, `reference_scaffold/cafeteria/static/admin.js`, `reference_scaffold/cafeteria/static/app.css`, `reference_scaffold/tests/test_rendered_ui.py`, `reference_scaffold/tests/test_admin_ux_browser.py` | Novice-Übersicht/Editor, Templates, JS-State/Dirty-Guard, CSS, Render- und Browser-A11y. Neue Templates nur nach bestehendem Projekt-Generator prüfen. |
@@ -120,9 +120,10 @@ Operation modes are binding: Header locks its week `FOR UPDATE`; Service locks
 week → service → every affected item `FOR UPDATE`; Item create/update locks
 week → service → item `FOR UPDATE`, then the component union `FOR SHARE`
 and links `FOR UPDATE` if assignments change. Assign, Unassign and Replace lock
-week → item → the complete existing-plus-requested component union
-`FOR SHARE` → links `FOR UPDATE`. Review uses the same sequence, locks the
-week before the item, and its later week-actor update is reentrant. Full
+week → owning service → item → the complete existing-plus-requested
+component union `FOR SHARE` → links `FOR UPDATE`. Review uses the same
+sequence, locks week and service before the item, and its later week-actor
+update is reentrant. Full
 Import/Recovery locks week → all services → all items → the full component
 union → all links. Publish locks week → all services → all items → the
 full component union → all links → the active publication row. Copy locks
@@ -164,6 +165,16 @@ writes are atomic. A changed payload increments component `row_version`
 exactly once; an identical complete payload is a true no-op and returns the
 unchanged version.
 
+Master validation uses exactly one call per outer catalog transaction to
+`cafeteria.lock_component_metadata_masters(label_codes text[], allergen_codes
+text[])`, with bound arrays. Schema v14 owns that SECURITY-DEFINER function;
+it returns exactly `master_kind,master_id,code,active`, locks every requested
+label by numeric ID before every requested allergen by numeric ID, and exposes
+only `EXECUTE` to `cafeteria_app`. No App-role receives direct Master-`UPDATE`
+or direct Master-`FOR SHARE` permission. T3b compares the complete returned
+code set and evaluates inactive retention while keeping every internal
+`master_id` DB-only.
+
 Architecture A is binding. A catalog metadata update, archive or unarchive
 mutates only the component and its child metadata and advances only the
 component version. It never mutates linked items, reviews, weeks or any
@@ -180,11 +191,13 @@ attempts return 404.
 
 ### Dependency DAG and shared-file ownership
 
-`T1 → T2 → T3 → T3b → T4 → T5 → T6 → T7 → T8 → T9 → T10 → T11 → T12`. A task may start only after all predecessors have their committed receipt; review lanes are read-only and never unblock a failed prerequisite. T7, T8 and T9 form one serialized integration wave. No intermediate full-suite or deploy-ready claim is permitted after T7 removes legacy routes and before T9 lands the complete replacement surface.
+`T1 → T2 → T3 → T3a → T3b → T4 → T5 → T6 → T7 → T8 → T9 → T10 → T11 → T12`. A task may start only after all predecessors have their committed receipt; review lanes are read-only and never unblock a failed prerequisite. T7, T8 and T9 form one serialized integration wave. No intermediate full-suite or deploy-ready claim is permitted after T7 removes legacy routes and before T9 lands the complete replacement surface.
 
 | Shared file | Sole serial implementation owner and prerequisite |
 |---|---|
-| `database/schema.sql`, `reference_scaffold/cafeteria/db.py` | T1 only; T2 is tests-only and must not modify either file |
+| `database/schema.sql`, `database/permissions.sql`, `reference_scaffold/cafeteria/db.py` | T1, then T3a; T2 is tests-only and T3b never modifies schema/grants |
+| `database/migrations/0010_v12_to_v13.sql` | T1 only; T3a and every later task preserve its bytes and registered checksum |
+| `database/migrations/0011_v13_to_v14.sql` | T3a only |
 | `reference_scaffold/cafeteria/component_catalog_store.py` | T3, then T3b; no parallel writer |
 | `reference_scaffold/cafeteria/component_catalog_metadata.py` | T3b only; private helper, production modules each remain under 400 lines |
 | `reference_scaffold/cafeteria/component_assignment_store.py` | T4, then T5; no parallel writer |
@@ -306,6 +319,64 @@ arrays; T3b adds atomically managed metadata without changing the record shape.
 - [ ] Stage: `rtk git add reference_scaffold/cafeteria/component_catalog_store.py reference_scaffold/tests/test_component_catalog_db.py`.
 - [ ] Commit: `rtk git commit -m 'feat: add scoped component catalog store'`.
 
+### Task 3a: Schema-v14 metadata-master lock capability
+
+**Files:** Create `database/migrations/0011_v13_to_v14.sql` and
+`reference_scaffold/tests/test_component_metadata_master_lock_db.py`; modify
+`database/schema.sql`, `database/permissions.sql`, `database/validate_schema.py`,
+`database/README.md`, `tools/validate_package.py`, `PACKAGE_CONTENTS.txt`,
+`MANIFEST_SHA256.txt`, `reference_scaffold/cafeteria/db.py`,
+`reference_scaffold/tests/test_component_catalog_migration_db.py`,
+`reference_scaffold/tests/test_auth_database.py` and
+`reference_scaffold/tests/test_database_invariants.py`. Migration
+`database/migrations/0010_v12_to_v13.sql` and its registered checksum are
+immutable.
+
+**Interfaces:** Register `SCHEMA_VERSION = 14`, `APPLICATION_VERSION =
+'dishboard-schema-v14'` and migration `0011`. Fresh schema and migration create
+exactly the SDD-defined
+`cafeteria.lock_component_metadata_masters(text[], text[]) RETURNS TABLE
+(master_kind text, master_id smallint, code text, active boolean)`. It is
+`LANGUAGE plpgsql SECURITY DEFINER VOLATILE PARALLEL UNSAFE`, has fixed
+`search_path = pg_catalog, cafeteria, pg_temp`, uses only fully qualified
+static SQL, rejects null arrays and null elements with SQLSTATE `22023`, and
+locks label rows by `id ASC` before allergen rows by `id ASC`. The function
+owner equals the `cafeteria` schema owner and is never `cafeteria_app`.
+`PUBLIC`, `cafeteria_backup` and `cafeteria_auth_issuer` have no Execute;
+`cafeteria_app` has only Execute on the helper and receives no Master-table
+Update grant. Internal IDs returned by the helper never cross an HTTP or
+public Store boundary.
+
+- [ ] Add RED real-PG16 tests for v13→v14 migration, fresh-schema and restore
+  parity: exact version/application/registry values, function definition,
+  owner, fixed search path, volatility/parallel flags, return columns and
+  ACLs. Assert the v13 migration file and registered checksum remain
+  byte-identical.
+- [ ] Prove direct `cafeteria_app` Master `UPDATE` and direct `SELECT ... FOR
+  SHARE` stay denied, while exact helper Execute succeeds. Prove
+  `PUBLIC`, `cafeteria_backup` and `cafeteria_auth_issuer` cannot execute it;
+  rerunning `database/permissions.sql` idempotently removes accidental broad
+  grants and restores only the narrow App Execute grant.
+- [ ] With two independently synchronized PG16 connections and no timing
+  sleeps, pass reversed requested-code arrays and prove locks are nevertheless
+  acquired as all labels by `id ASC`, then all allergens by `id ASC`. A schema-
+  owner update to one requested Master must block until the App transaction
+  commits, while an unrelated Master stays writable; opposite-order calls must
+  complete without `40P01`.
+- [ ] Cover empty arrays, duplicates (one result per matching Master row),
+  unknown codes (omitted for T3b's full-set comparison), inactive rows
+  (returned for T3b's retention policy), null arrays/elements, SQL-looking code
+  strings and `pg_temp` shadow objects. Calls bind arrays and never interpolate
+  code text. Update the SECURITY-DEFINER allowlist to contain this exact
+  signature and no wildcard.
+- [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_metadata_master_lock_db.py tests/test_component_catalog_migration_db.py tests/test_auth_database.py tests/test_database_invariants.py`; expected initial FAIL, then PASS after implementation.
+- [ ] Implement migration, fresh-schema function, narrow Restore permissions,
+  v14 registry/validators/package metadata and owner parity. Callers are not
+  added here; T3b consumes the helper once per outer transaction. Never grant
+  Master `UPDATE`, never weaken row security, and never edit migration `0010`.
+- [ ] Stage: `rtk git add database/schema.sql database/migrations/0011_v13_to_v14.sql database/permissions.sql database/validate_schema.py database/README.md tools/validate_package.py PACKAGE_CONTENTS.txt MANIFEST_SHA256.txt reference_scaffold/cafeteria/db.py reference_scaffold/tests/test_component_metadata_master_lock_db.py reference_scaffold/tests/test_component_catalog_migration_db.py reference_scaffold/tests/test_auth_database.py reference_scaffold/tests/test_database_invariants.py`.
+- [ ] Commit: `rtk git commit -m 'feat: add narrow component metadata master locks'`.
+
 ### Task 3b: Atomic component labels and allergens
 
 **Files:** Modify
@@ -326,6 +397,12 @@ all return the same exact public keys:
 Each label is exactly `code,name`; each allergen exactly
 `code,name,presence`. Sort labels by `(code ASC, name ASC)` and allergens by
 `(code ASC, presence ASC, name ASC)`; expose no internal IDs or timestamps.
+For Create and Update, invoke
+`cafeteria.lock_component_metadata_masters(:label_codes, :allergen_codes)`
+exactly once with bound arrays in the same outer transaction. Reject duplicate
+codes before that call, compare the complete returned code sets to reject
+unknowns, and apply inactive-master retention rules before any child delete.
+T3b may not edit schema, migration or grant files.
 
 - [ ] Migrate `reference_scaffold/tests/test_component_catalog_db.py`:
   expand `OUTPUT_KEYS` from 8 to the exact 10 public keys above, update
@@ -350,7 +427,9 @@ Each label is exactly `code,name`; each allergen exactly
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_catalog_metadata_db.py`; expected FAIL.
 - [ ] Implement the private metadata resolver/validator and transactional
   parent/child replacement. Reject duplicates, unknown codes, invalid presence
-  and inactive-master changes before deleting. Remove any fanout or
+  and inactive-master changes before deleting. Use only T3a's helper for the
+  privileged Master locks; do not add a direct `FOR SHARE`, grant or schema
+  edit. Remove any fanout or
   rematerialization-on-catalog-edit behavior; catalog writes touch only the
   locked component and child rows and advance the parent version once.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_catalog_db.py tests/test_component_catalog_metadata_db.py -v`; expected PASS.
@@ -361,14 +440,52 @@ Each label is exactly `code,name`; each allergen exactly
 
 **Files:** Create `reference_scaffold/cafeteria/component_assignment_store.py`; modify `reference_scaffold/cafeteria/workflow.py`; test `reference_scaffold/tests/test_component_assignment_db.py`.
 
-**Interfaces:** `assign_component(engine: Engine, scope: AdminScope, item_id: int, component_public_id: str | None, component_text: str | None, expected_item_row_version: int) -> int`; `replace_component_links(engine: Engine, scope: AdminScope, item_id: int, assignments: Sequence[Mapping[str, object]], expected_item_row_version: int) -> int`; `replace_component_links_connection(connection, scope, item_id, assignments) -> None`; `resolve_component_effects(engine: Engine, scope: AdminScope, item_id: int) -> dict[str, object]`; modes are independently `allergen_mode`, `origin_mode`, `label_mode`. No assignment/effects API accepts an unscoped `item_id`. The engine-level replace API starts one transaction, locks the scoped week before the scoped item, version-checks the item, calls the connection helper, rematerializes auto classes, resets review, bumps the item version exactly once and returns the new version. The connection helper validates every assignment, enforces location/profile scope and replaces all links inside its caller's transaction; it never commits or updates the item/review/version. T4 single-link/full-replace assignment and T6 partial/full Import/Recovery persistence use this helper; each one-item caller performs exactly one locked item update, review reset and version bump.
+**Interfaces:** `assign_component(engine: Engine, scope: AdminScope, item_id: int, component_public_id: str | None, component_text: str | None, expected_item_row_version: int) -> int`; `replace_component_links(engine: Engine, scope: AdminScope, item_id: int, assignments: Sequence[Mapping[str, object]], expected_item_row_version: int) -> int`; `replace_component_links_connection(connection, scope, item_id, assignments) -> None`; `resolve_component_effects(engine: Engine, scope: AdminScope, item_id: int) -> dict[str, object]`; modes are independently `allergen_mode`, `origin_mode`, `label_mode`. No assignment/effects API accepts an unscoped `item_id`. The engine-level replace API starts one transaction, locks the scoped week, then its owning service, then the scoped item, version-checks the item, calls the connection helper, rematerializes auto classes, resets review, bumps the item version exactly once and returns the new version. The connection helper validates every assignment, enforces location/profile scope and replaces all links inside its caller's transaction; it never commits or updates the item/review/version. T4 single-link/full-replace assignment and T6 partial/full Import/Recovery persistence use this helper; each one-item caller performs exactly one locked item update, review reset and version bump.
+
+Every `assignments` element has exactly the two keys
+`component_public_id` and `component_text`, with exactly one non-null value. A
+catalog entry is `{"component_public_id": str, "component_text": None}`; the
+server resolves it under scope and stores the component's current `name` and
+`row_version`. A free-text entry is `{"component_public_id": None,
+"component_text": str}`; `btrim(component_text)` must be nonblank, but the
+original string is stored byte-identically. Reject both/neither values and all
+unexpected keys, including internal IDs, supplied component versions, prices
+and `sort_order`. Sequence position alone maps to persisted `sort_order` 1..n.
+`assign_component` atomically appends exactly one valid entry to the existing
+ordered list. Unassign is a full `replace_component_links` whose target list
+omits the entry; `[]` removes all links. Reject duplicate newly requested
+active catalog components. For an already-linked archived component, requested
+multiplicity may not exceed its existing multiplicity, so no new archived
+assignment can be introduced.
+
+Every one-item engine caller locks the scoped week, its owning service, the
+item, the complete existing-plus-requested component union, then links. On
+success it updates links, rematerializes auto classes, resets review and bumps
+only the item `row_version` exactly once. It never updates week/service rows or
+versions and never changes a component. The connection helper performs only
+validated link replacement inside those caller-held locks.
+
+Auto origins exclude catalog components whose `origin_country_code` is
+`NULL` and every free-text link. Each remaining component yields exactly
+`ingredient = current component.name`, `country_code = origin_country_code`
+using the canonical ISO code, and
+`text = f"{component.name}: {origin_country_code}"`. Equal current component
+names with different countries abort the whole mutation; no partial link,
+effect, review or version write survives.
 
 - [ ] Add RED tests for same-location/common-or-profile scope, cross-location/
   profile 404 assignment and effects, allergen union with `contains` winning,
-  origin conflict, diet intersection, nullable/free-text non-inheritance, and
+  exact origin mapping/NULL exclusion and atomic same-name/different-country
+  conflict, diet intersection, nullable/free-text non-inheritance, and
   auto-only rematerialization. Directly test the connection helper inside one
   caller-owned transaction and prove it neither commits nor changes
   item/review/version itself.
+- [ ] Test the exact two-key assignment mapping, exactly-one-non-null rule,
+  byte-preserved nonblank free text, current catalog name/version capture,
+  sequence-to-`sort_order` mapping, rejection of every extra/internal/version/
+  price/sort key, atomic append, omission/empty-list Unassign, active duplicate
+  rejection and archived-multiplicity cap. Assert invalid inputs cause zero
+  mutation.
 - [ ] For `replace_component_links`, assert the winner returns exactly
   `old_row_version + 1`, resets review, rematerializes every auto effect and
   preserves every manual class byte-identically.
@@ -384,7 +501,7 @@ Each label is exactly `code,name`; each allergen exactly
   fans out to an item/week, and surviving assignments retain the version they
   actually bound.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_assignment_db.py`; expected FAIL.
-- [ ] Implement assignment validation and deterministic effects. Reject injected patient prices before any write. Route `assign_component` and `replace_component_links` through `replace_component_links_connection`; each engine-level caller locks the scoped week before the scoped item, checks `expected_item_row_version`, then performs exactly one review reset and item-version bump and returns the new version. Before link locks or writes, resolve the complete existing-plus-requested component set, lock it by numeric internal ID, then lock and mutate links in the global order above; caller-supplied internal IDs are forbidden. On component/link change rematerialize only auto classes; manual values remain untouched.
+- [ ] Implement assignment validation and deterministic effects. Reject injected patient prices before any write. Route `assign_component` and `replace_component_links` through `replace_component_links_connection`; each engine-level caller locks the scoped week, owning service and scoped item in that order, checks `expected_item_row_version`, then performs exactly one review reset and item-version bump and returns the new version. Before link locks or writes, resolve the complete existing-plus-requested component set, lock it by numeric internal ID, then lock and mutate links in the global order above; caller-supplied internal IDs are forbidden. On component/link change rematerialize only auto classes; manual values remain untouched. Assert the week, service and component rows remain byte- and version-identical.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_assignment_db.py -v`; expected PASS.
 - [ ] Stage: `rtk git add reference_scaffold/cafeteria/component_assignment_store.py reference_scaffold/cafeteria/workflow.py reference_scaffold/tests/test_component_assignment_db.py`.
 - [ ] Commit: `rtk git commit -m 'feat: resolve scoped component assignments'`.
@@ -430,13 +547,14 @@ Expected result is exactly
 `review_component(engine: Engine, scope: AdminScope, item_id: int,
 component_version: str, expected_item_row_version: int) -> int` interprets
 `component_version` as that pre-review token. In one transaction it locks in
-this order: the scoped week `FOR UPDATE`; the scoped `menu_items` row
-`FOR UPDATE`; all components resolved
+this order: the scoped week `FOR UPDATE`; its owning scoped
+`menu_services` row `FOR UPDATE`; the scoped `menu_items` row `FOR UPDATE`;
+all components resolved
 from its current links, including archived components, by numeric
 `menu_components.id ASC FOR SHARE`; then all current
 `menu_item_components` rows via
 `ORDER BY menu_item_id, sort_order FOR UPDATE`. This is the same
-`week → item → components → links` order and compatible component-lock mode required
+`week → service → item → components → links` order and compatible component-lock mode required
 of every link writer. The item lock prevents phantom link insertion while
 review derives the component set and verifies the token. Locks remain through
 commit/rollback. Only after all locks does review reread scope, expected item
@@ -765,11 +883,11 @@ claim deployment readiness for the T7-T9 integration wave.
 
 **Files:** `reference_scaffold/tests/test_deployment_compose_probe_live.py`, `reference_scaffold/tests/test_deployment_restore_live.py`, `reference_scaffold/tests/test_deployment_restore_recovery.py`, `reference_scaffold/tests/test_capture_live_screenshots.py`, `reference_scaffold/README.md`.
 
-- [ ] Take and record a named PostgreSQL backup plus a down-probe copy before migration; execute Compose PG16 migration and verify schema 13, grants, idempotence and rollback.
+- [ ] Take and record a named PostgreSQL backup plus a down-probe copy before migration; execute Compose PG16 migrations through schema 14 and verify versions, narrow helper grants, idempotence and rollback while proving migration 0010's checksum unchanged.
 - [ ] Restore v12 probe data, run the documented restore path, verify exact legacy/free-text behavior and no accidental `dish_templates` change.
 - [ ] Run Chromium and existing CI-browser checks over all four viewports, keyboard/focus, errors/retry, Copy/Preview/Publish; capture authenticated admin smoke screenshots and a proof ZIP.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_deployment_compose_probe_live.py tests/test_deployment_restore_live.py tests/test_deployment_restore_recovery.py tests/test_capture_live_screenshots.py -v`; preserve verbatim output and exit code.
-- [ ] Deploy only after all receipts exist: backup ID, schema-13 migration, immutable image digest, healthcheck and authenticated admin smoke. Record rollback/restore probe; no claim from `pytest` alone.
+- [ ] Deploy only after all receipts exist: backup ID, schema-14 migration including Fresh/Migration/Restore owner-and-ACL parity, immutable image digest, healthcheck and authenticated admin smoke. Record rollback/restore probe; no claim from `pytest` alone.
 - [ ] Stage: `rtk git add reference_scaffold/tests/test_deployment_compose_probe_live.py reference_scaffold/tests/test_deployment_restore_live.py reference_scaffold/tests/test_deployment_restore_recovery.py reference_scaffold/tests/test_capture_live_screenshots.py reference_scaffold/README.md`.
 - [ ] Commit: `rtk git commit -m 'test: prove admin migration and deployment'`.
 - [ ] Final verification: `rtk claude-wp-verify --branch feat/admin-redesign-impl-v1 --base docs/admin-redesign-plan-v1`; confirm a non-empty implementation diff, no staged-leak, and exact ownership. No final gate may verify only the docs branch.

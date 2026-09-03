@@ -66,7 +66,7 @@ Der vollständige externe Draft-/Snapshot-Contract bleibt exakt:
 Component-Versionen. `build_snapshot(profile_code, draft, revision_code)`
 bleibt die Full-Snapshot-Schnittstelle.
 
-## 3. Datenmodell (Migration 0010, Schema v12 → v13)
+## 3. Datenmodell (Migrationen 0010 und 0011, Schema v12 → v14)
 
 `menu_components` erhält: `id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY`
 (interne PK), `public_id uuid UNIQUE` (externe URL-ID), `location_id`,
@@ -85,6 +85,95 @@ Allergen-Masterzeile und enthält zusätzlich `presence` (`contains` oder
 der Labelwert wird nicht dupliziert. `menu_item_components` erhält nullable `component_id` und
 `component_row_version`; `component_text` bleibt exakt erhalten und ist bei
 freien Texten der alleinige Inhalt.
+
+Schema v14 ergänzt ausschließlich den schmalen Master-Lock-Helper
+`cafeteria.lock_component_metadata_masters(text[], text[])`. Der
+Funktions-Owner ist identisch mit dem Owner des Schemas `cafeteria` und darf
+nie `cafeteria_app` sein. Der Katalog-Store ruft ihn genau einmal innerhalb
+derselben äußeren Create-/Update-Transaktion mit gebundenen Arrays auf; die
+erworbenen Locks bleiben damit bis Commit/Rollback erhalten. Sein verbindlicher
+SQL-Contract ist:
+
+```sql
+CREATE OR REPLACE FUNCTION cafeteria.lock_component_metadata_masters(
+    p_label_codes text[],
+    p_allergen_codes text[]
+)
+RETURNS TABLE (
+    master_kind text,
+    master_id smallint,
+    code text,
+    active boolean
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+VOLATILE
+PARALLEL UNSAFE
+SET search_path = pg_catalog, cafeteria, pg_temp
+AS $function$
+BEGIN
+    IF p_label_codes IS NULL
+       OR p_allergen_codes IS NULL
+       OR EXISTS (
+           SELECT 1
+           FROM pg_catalog.unnest(p_label_codes) AS requested(code)
+           WHERE requested.code IS NULL
+       )
+       OR EXISTS (
+           SELECT 1
+           FROM pg_catalog.unnest(p_allergen_codes) AS requested(code)
+           WHERE requested.code IS NULL
+       ) THEN
+        RAISE EXCEPTION 'metadata code arrays must be non-null and contain no nulls'
+            USING ERRCODE = '22023';
+    END IF;
+
+    RETURN QUERY
+    SELECT 'label'::text, label.id, label.code, label.active
+    FROM cafeteria.dietary_labels AS label
+    WHERE label.code = ANY (p_label_codes)
+    ORDER BY label.id
+    FOR SHARE OF label;
+
+    RETURN QUERY
+    SELECT 'allergen'::text, allergen.id, allergen.code, allergen.active
+    FROM cafeteria.allergens AS allergen
+    WHERE allergen.code = ANY (p_allergen_codes)
+    ORDER BY allergen.id
+    FOR SHARE OF allergen;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION
+    cafeteria.lock_component_metadata_masters(text[], text[])
+FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
+
+GRANT EXECUTE ON FUNCTION
+    cafeteria.lock_component_metadata_masters(text[], text[])
+TO cafeteria_app;
+```
+
+Damit werden immer zuerst alle angeforderten Label-Master nach `id ASC`, dann
+alle angeforderten Allergen-Master nach `id ASC` gesperrt. Leere Arrays sind
+gültig. Der Store weist doppelte Codes vor dem Aufruf zurück, vergleicht die
+zurückgegebenen Codes mit dem vollständigen Request und weist dadurch unbekannte
+Codes zurück; inaktive Treffer werden bewusst zurückgegeben und nach der
+bestehenden Retention-Regel bewertet. Interne `master_id`-Werte bleiben
+ausschließlich DB-intern. Es gibt keinen direkten Master-`FOR SHARE` aus der
+App-Rolle und keinen `UPDATE`-Grant auf Mastertabellen.
+
+Verpflichtende Real-PG16-Sicherheitstests beweisen denselben Owner-/ACL-Zustand
+für Fresh Schema, v13→v14-Migration und Restore. Direkter Master-`UPDATE` und
+direktes `SELECT ... FOR SHARE` als `cafeteria_app` scheitern, der exakte
+Helper-Aufruf gelingt; `PUBLIC`, `cafeteria_backup` und
+`cafeteria_auth_issuer` können ihn nicht ausführen. Zwei synchronisierte
+Connections ohne Timing-Sleeps beweisen auch bei umgekehrter Input-Reihenfolge
+`Label id ASC → Allergen id ASC`, blockierende Owner-Updates nur für
+angeforderte Master und keinen `40P01`. Abgedeckt sind leere, doppelte,
+unbekannte und inaktive Codes, Null-Arrays/-Elemente, SQL-looking Werte,
+gebundene Arrays und `pg_temp`-Shadowing. `database/permissions.sql` entfernt
+breite Grants bei jedem Lauf idempotent; die SECURITY-DEFINER-Allowlist nennt
+nur die exakte Signatur.
 
 Die öffentlichen Create-, Find- und Get-Records einer Komponente haben
 einheitlich exakt die Keys `public_id,profile_scope,category,name,`
@@ -105,8 +194,13 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
 
 - Allergene: Union aller verknüpften Komponenten; bei gleichem Allergen
   gewinnt `contains` gegen `may_contain`.
-- Herkunft: pro Komponentenname genau eine Country-Zeile; gleicher Name mit
-  verschiedenen Ländern ist ein harter Fehler.
+- Herkunft: Verknüpfte Katalogkomponenten mit `NULL`-Herkunft werden
+  ausgeschlossen. Jede andere erzeugt exakt
+  `ingredient = current component.name`, `country_code = origin_country_code`
+  (kanonischer ISO-Code) und
+  `text = f"{component.name}: {origin_country_code}"`. Pro aktuellem
+  Komponentenname ist genau ein Land erlaubt; derselbe Name mit verschiedenen
+  Ländern bricht die gesamte Mutation atomar ab.
 - Ernährung: Intersection über alle verknüpften Komponenten. Ein nullable
   Link/freier `component_text` erbt keine Allergene, Herkunft oder Labels.
 - Architektur A ist verbindlich: Eine Katalog-Metadatenänderung mutiert nur die
@@ -178,10 +272,11 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
   `FOR UPDATE`. Service sperrt Woche → Service → alle betroffenen Items
   `FOR UPDATE`. Item-Create/Update sperrt Woche → Service → Item `FOR UPDATE`
   und, falls Assignments ändern, die Komponentenmenge `FOR SHARE` → Links
-  `FOR UPDATE`. Assign/Unassign/Replace sperren Woche → Item → vollständige
-  bestehende-plus-angeforderte Komponentenmenge `FOR SHARE` → Links
-  `FOR UPDATE`. Review verwendet dieselbe Folge und sperrt die Woche vor dem
-  Item; sein späteres `menu_weeks.updated_by` ist reentrant. Full
+  `FOR UPDATE`. Assign/Unassign/Replace sperren Woche → zugehörigen Service
+  → Item → vollständige bestehende-plus-angeforderte Komponentenmenge
+  `FOR SHARE` → Links `FOR UPDATE`. Review verwendet dieselbe Folge und
+  sperrt Woche und Service vor dem Item; sein späteres
+  `menu_weeks.updated_by` ist reentrant. Full
   Import/Recovery sperrt Woche → alle Services → alle Items → vollständige
   Komponentenmenge → alle Links. Publish sperrt Woche → alle Services → alle
   Items → vollständige Komponentenmenge → alle Links → aktive Publikationszeile.
@@ -208,13 +303,14 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
 - `review_component(engine, scope, item_id, component_version,
   expected_item_row_version)` verwendet `component_version` als den obigen
   Pre-Review-Token. Es sperrt in genau einer Transaktion und in dieser stabilen
-  Reihenfolge: (1) die scoped Woche per `FOR UPDATE`, (2) das scoped
-  `menu_items`-Item per `FOR UPDATE`, (3) die unter
+  Reihenfolge: (1) die scoped Woche per `FOR UPDATE`, (2) den zugehörigen
+  scoped `menu_services`-Service per `FOR UPDATE`, (3) das scoped
+  `menu_items`-Item per `FOR UPDATE`, (4) die unter
   diesem Item-Lock aus allen aktuellen Links ermittelten Komponenten —
   einschließlich archivierter — per numerischer `menu_components.id ASC FOR
-  SHARE` und (4) alle aktuellen `menu_item_components`-Linkzeilen per
+  SHARE` und (5) alle aktuellen `menu_item_components`-Linkzeilen per
   `ORDER BY menu_item_id, sort_order FOR UPDATE`. Damit verwendet Review
-  dieselbe `Woche → Item → Komponenten → Links`-Reihenfolge und denselben kompatiblen
+  dieselbe `Woche → Service → Item → Komponenten → Links`-Reihenfolge und denselben kompatiblen
   Komponenten-Lock wie jeder Link-Writer; der Item-Lock verhindert während der
   Ermittlung und Tokenprüfung Phantom-Links. Alle Locks bleiben bis Commit oder
   Rollback.
@@ -235,13 +331,37 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
 - Der Engine-Level-One-Item-Full-Replace ist exakt
   `replace_component_links(engine: Engine, scope: AdminScope, item_id: int,
   assignments: Sequence[Mapping[str, object]], expected_item_row_version: int) -> int`. Er öffnet
-  eine Transaktion, sperrt die scoped Woche vor genau dem scoped Item, prüft dessen erwartete
+  eine Transaktion, sperrt die scoped Woche, danach den zugehörigen scoped
+  Service und erst danach genau das scoped Item, prüft dessen erwartete
   `row_version` und ruft den Connection-Helper auf, der Assignments validiert
   und alle Links ersetzt. Danach rematerialisiert die Engine-API die
   Auto-Klassen, setzt den Review-Status zurück, erhöht die Item-`row_version`
   exakt einmal und liefert die neue Version. Der Connection-Helper läuft in
   der Caller-Transaktion; er committet nie und ändert selbst weder Review- noch
   Item-Versionszustand.
+- Jedes Element von `assignments` ist ein Mapping mit exakt den beiden Keys
+  `component_public_id` und `component_text`; genau ein Wert ist nicht `null`.
+  Beim Kataloglink ist `component_public_id` ein String und
+  `component_text=null`; der Server speichert den aktuellen Katalognamen und
+  die aktuelle Komponenten-`row_version`. Beim Freitext ist
+  `component_public_id=null` und `component_text` ein String, dessen
+  `btrim()`-Ergebnis nicht leer sein darf; gespeichert wird der ursprüngliche
+  String byte-identisch. Unerwartete Keys, interne IDs, caller-gelieferte
+  Versionen, Preise oder `sort_order` sind ungültig. Ausschließlich die
+  Sequenzreihenfolge bestimmt den persistierten `sort_order` `1..n`.
+- `assign_component` hängt atomar genau ein nach denselben Regeln validiertes
+  Element an die bestehende geordnete Liste an. Unassign besitzt keine
+  separate Mutationssemantik: Der Caller sendet die vollständige Zielliste an
+  `replace_component_links` und lässt den entfernten Eintrag aus; `[]` entfernt
+  alle Links. Doppelte neu angeforderte aktive Katalogkomponenten sind
+  unzulässig. Bei bereits verknüpften archivierten Komponenten darf deren
+  angeforderte Multiplizität den bestehenden Wert nicht übersteigen; dadurch
+  entsteht nie eine neue archivierte Zuweisung.
+- Ein erfolgreicher Assign/Unassign/Replace schreibt nur die Linkzeilen und
+  das Item: Er rematerialisiert Auto-Werte, setzt dessen Review zurück und
+  erhöht dessen `row_version` exakt einmal. Woche, Service und Komponenten
+  bleiben unverändert; insbesondere wird keine Wochenversion erhöht. Fehler
+  und Konflikte hinterlassen alle diese Zeilen unverändert.
 - Verpflichtende Real-PG16-Race-Tests öffnen je zwei unabhängige Connections
   und synchronisieren sie kontrolliert ohne Timing-Sleeps. Ein Test lässt zwei
   `assign_component`-Aufrufe dasselbe scoped Item ändern; ein separater Test
@@ -305,14 +425,21 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
 
 ## 5. Migration und Rückwärtskompatibilität
 
-Migration `0010_v12_to_v13` ist die einzige Schemaänderung; `0001` bis `0009`
-bleiben byte-identisch. Sie aktualisiert `SCHEMA_VERSION 13`,
-`APPLICATION_VERSION dishboard-schema-v13`, Registry-Eintrag `0010`,
-Schema-/Package-Validatoren, die Tabellenanzahl sowie Checksums und Manifeste.
+Migration `0010_v12_to_v13` bleibt einschließlich ihrer registrierten Checksum
+byte-identisch; auch `0001` bis `0009` bleiben unverändert. Die neue,
+transaktionale und idempotente Migration `0011_v13_to_v14` installiert den
+oben definierten SECURITY-DEFINER-Helper und aktualisiert `SCHEMA_VERSION 14`,
+`APPLICATION_VERSION dishboard-schema-v14`, Registry-Eintrag `0011`,
+Schema-/Package-Validatoren, SECURITY-DEFINER-Allowlist sowie Checksums und
+Manifeste. Fresh Schema, v13→v14-Migration und Restore müssen denselben
+Funktions-Owner und dieselben restriktiven ACLs ergeben.
 `database/permissions.sql` erteilt den App-/Backup-Rollen ACLs für alle drei
 neuen Tabellen sowie die erforderliche `menu_components`-Sequence und wird in
-der bestehenden Restore-Reihenfolge erneut angewendet. Legacy-Backfill gehört
-ausschließlich in die Migration, nie nach `db.py`: Sie erstellt zuerst die
+der bestehenden Restore-Reihenfolge erneut angewendet. Es entfernt bei jedem
+Lauf idempotent etwaige breite Execute-/Master-Rechte, gewährt für den Helper
+ausschließlich `cafeteria_app` `EXECUTE` und gewährt keiner App-Rolle
+Master-`UPDATE`. Legacy-Backfill gehört ausschließlich in Migration `0010`,
+nie nach `db.py`: `0010` erstellt zuerst die
 Tabellen, ergänzt Mode-/Link-Spalten nullable oder mit sicherem Default,
 setzt alle Legacy-Modi auf `manual`, legt danach pro Location, Profile und
 Kategorie `other` deterministisch exakt eine Komponente für jeden alten Text
@@ -505,9 +632,10 @@ Named RED-Tests (zuerst rot, danach grün) und Dateien:
 
 | Test | Datei / Beweis |
 |---|---|
-| reale PG16-Migration, Grants, Schema 13, Backfill-/Terminator-Contract | `reference_scaffold/tests/test_component_catalog_migration_db.py`, `reference_scaffold/tests/test_auth_database.py`, `reference_scaffold/tests/test_database_invariants.py` |
+| reale PG16-Migrationen, Grants, Schema 14, unveränderte 0010-Checksum, Backfill-/Terminator-Contract | `reference_scaffold/tests/test_component_catalog_migration_db.py`, `reference_scaffold/tests/test_auth_database.py`, `reference_scaffold/tests/test_database_invariants.py` |
+| schmaler Metadata-Master-Lock: Owner/ACL, feste Search-Path, Lock-Reihenfolge, App-Caller-Validierung, Fresh/Migration/Restore-Parität | `reference_scaffold/tests/test_component_metadata_master_lock_db.py`, `reference_scaffold/tests/test_component_catalog_migration_db.py`, `reference_scaffold/tests/test_auth_database.py`, `reference_scaffold/tests/test_database_invariants.py` |
 | Katalog CRUD/Archiv/Suche/Usage, atomare Label-/Allergen-Metadaten, No-op und Isolation | `reference_scaffold/tests/test_component_catalog_db.py`, `reference_scaffold/tests/test_component_catalog_metadata_db.py`, `reference_scaffold/tests/test_component_catalog_routes.py` |
-| Komponenten-Zuweisung, Allergie-Union/contains, Herkunft-Konflikt, Diet-Intersection | `reference_scaffold/tests/test_component_assignment_db.py` |
+| exakte Komponenten-Zuweisungsmappings, Append/Full-Replace-Unassign, Duplikat-/Archiv-Multiplizität, Lock-Reihenfolge, Allergie-Union/contains, deterministische Herkunft und Diet-Intersection | `reference_scaffold/tests/test_component_assignment_db.py` |
 | Location/Profile-Isolation und Public-ID/404 | `reference_scaffold/tests/test_public_isolation_homoglyphs.py`, `reference_scaffold/tests/test_database_invariants.py` |
 | exakter immutable Snapshot, Golden-Hash-Token, Lock-Reihenfolge und Concurrent-/Repeat-Review | `reference_scaffold/tests/test_admin_workflow_db.py` |
 | virtuelle/absente/partielle/geschlossene Slots, exakte Item-Versionen und Same-/Different-Slot-Races | `reference_scaffold/tests/test_workflow_partial_store_db.py` |
@@ -530,18 +658,21 @@ Die finale Eigentumsprüfung lautet exakt
 `rtk claude-wp-verify --branch feat/admin-redesign-impl-v1 --base docs/admin-redesign-plan-v1`.
 Kein finales Gate darf nur den Docs-Branch prüfen.
 
-Deployment-Gate: Backup-ID, Migration auf Schema 13, unveränderlicher
+Deployment-Gate: Backup-ID, Migration auf Schema 14, unveränderlicher
 Image-Digest, Healthcheck, authentifizierter Admin-Smoke, Screenshots und
 Proof-ZIP; anschließend dokumentierter Rollback-/Restore-Probe. Kein Gate darf
 durch „alle Tests pass“ ohne Kommandoausgabe ersetzt werden.
 
 ## 10. Umsetzungseigentum und Stop-Bedingungen
 
-Phase 1 (Schema, 0010, Grants, Validator) und Phase 2 (Store, Modelle,
+Phase 1 (Schema, 0010, Grants, Validator), Task 3 und Task 3a (Schema 0011,
+schmaler SECURITY-DEFINER-Lock, Grants, Validator) sowie Phase 2 (Store, Modelle,
 Inheritance) werden seriell am gemeinsamen Contract bearbeitet.
-Task 1 ist alleiniger Owner von `database/schema.sql` und
-`reference_scaffold/cafeteria/db.py`; Task 2 verändert und staged ausschließlich
-seine beiden Testdateien.
+Task 1 ist bis zum Abschluss von T3 alleiniger Owner von `database/schema.sql`
+und `reference_scaffold/cafeteria/db.py`; danach übernimmt T3a diese Dateien
+seriell für Schema v14. Task 2 verändert und staged ausschließlich seine beiden
+Testdateien. T3b startet erst nach dem committed T3a-Receipt und verwendet den
+Helper, ohne Schema oder Grants zu ändern.
 `component_assignment_store` ist erst T4 und danach T5 zugeordnet;
 `workflow_store.py` hat T6 als einzigen seriellen Owner und erhält dort nur
 minimale Kompatibilitätsedits für Full-Import/Recovery (kein Partial-Write und
