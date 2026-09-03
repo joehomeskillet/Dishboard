@@ -16,6 +16,7 @@ from sqlalchemy.pool import NullPool
 from cafeteria import db as database
 from cafeteria.db import active_snapshot
 from cafeteria.workflow import (
+    PublicationConfigurationError,
     StaleDraftError,
     WorkflowValidationError,
     load_draft,
@@ -439,6 +440,47 @@ def test_failed_publish_does_not_withdraw_previous_revision(database_engine: Eng
         )
 
     assert active_snapshot(database_engine, 'patient', '2026-09-02') == first
+
+
+def test_missing_replacement_capability_fails_explicitly_without_mutation(
+    database_engine: Engine,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    actor_id = _actor_id(database_engine)
+    first_version = _save(database_engine, 'patient', _patient_values('Erste Revision'))
+    first = publish_draft(
+        database_engine,
+        'patient',
+        WEEK_START,
+        expected_row_version=first_version,
+        actor_id=actor_id,
+        issuer_engine=database_engine,
+    )
+    second_version = _save(database_engine, 'patient', _patient_values('Zweite Revision'))
+    monkeypatch.setattr(
+        'cafeteria.workflow.issue_publication_capability',
+        lambda *_args: None,
+    )
+
+    with pytest.raises(PublicationConfigurationError, match='Capability'):
+        publish_draft(
+            database_engine,
+            'patient',
+            WEEK_START,
+            expected_row_version=second_version,
+            actor_id=actor_id,
+            issuer_engine=database_engine,
+        )
+
+    assert active_snapshot(database_engine, 'patient', '2026-09-02') == first
+    with database_engine.connect() as connection:
+        revisions = connection.execute(
+            text(
+                'SELECT count(*), count(*) FILTER (WHERE withdrawn_at IS NULL) '
+                'FROM cafeteria.publication_revisions'
+            )
+        ).one()
+    assert tuple(revisions) == (1, 1)
 
 
 def test_snapshot_keeps_distinct_notice_for_each_closed_meal(

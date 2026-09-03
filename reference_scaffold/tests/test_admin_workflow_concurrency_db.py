@@ -119,6 +119,43 @@ def test_publish_rejects_persisted_checked_item_after_catalog_edit(
         ).scalar_one() == 0
 
 
+def test_publish_rejects_metadata_only_catalog_edit_without_revision(
+    catalog_database: CatalogDatabase,
+) -> None:
+    actor_id, week_version, item_id, scope, component = (
+        _prepare_reviewed_publish_component(catalog_database, 'metadata-stale')
+    )
+    update_component(
+        catalog_database.app,
+        scope,
+        str(component['public_id']),
+        {
+            'category': component['category'],
+            'name': component['name'],
+            'origin_country_code': component['origin_country_code'],
+            'label_codes': ['VEGETARIAN'],
+            'allergens': [('MILK', 'contains')],
+        },
+        int(component['row_version']),
+    )
+
+    with pytest.raises(workflow.WorkflowValidationError, match='nicht geprüft'):
+        publish_draft(
+            catalog_database.app,
+            'patient',
+            WEEK_START,
+            expected_row_version=week_version,
+            actor_id=actor_id,
+            issuer_engine=None,
+        )
+
+    assert workflow.review_open(catalog_database.app, scope, item_id)
+    with catalog_database.owner.connect() as connection:
+        assert connection.execute(
+            text('SELECT count(*) FROM cafeteria.publication_revisions')
+        ).scalar_one() == 0
+
+
 @pytest.mark.parametrize('winner', ['publish', 'catalog'])
 def test_catalog_edit_and_publish_hold_real_component_locks_in_both_orders(
     catalog_database: CatalogDatabase,

@@ -108,6 +108,28 @@ def test_review_open_is_bound_to_location_profile_and_item(
         )
 
 
+def test_review_open_conceals_wrong_location_and_missing_item_identically(
+    catalog_database: CatalogDatabase,
+) -> None:
+    item = _item(catalog_database, review='checked', suffix='SCOPED-NOT-FOUND')
+    wrong_location = AdminScope(
+        item.scope.actor_id,
+        item.scope.location_id + 1,
+        item.scope.profile_code,
+    )
+
+    messages = []
+    for scope, item_id in (
+        (wrong_location, item.id),
+        (item.scope, 9_223_372_036_854_775_807),
+    ):
+        with pytest.raises(ComponentNotFoundError) as caught:
+            workflow.review_open(catalog_database.app, scope, item_id)
+        messages.append(str(caught.value))
+
+    assert messages == ['Menü nicht gefunden.', 'Menü nicht gefunden.']
+
+
 def test_review_rebases_catalog_state_once_and_heals_only_scoped_item(
     catalog_database: CatalogDatabase,
 ) -> None:

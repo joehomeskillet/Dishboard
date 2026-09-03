@@ -449,7 +449,10 @@ def publish_draft(
         if current_id != previous_id:
             raise StaleDraftError('Die aktive Publikation wurde zwischenzeitlich geändert.')
         if current_id is not None:
-            assert capability is not None
+            if capability is None:
+                raise PublicationConfigurationError(
+                    'Publikations-Capability ist nicht verfügbar.'
+                )
             connection.execute(
                 text(
                     'SELECT cafeteria.withdraw_publication_revision('

@@ -169,8 +169,11 @@ def _review_open_connection(connection: Connection, item_id: int) -> bool:
 def review_open(engine: Engine, scope: AdminScope, item_id: int) -> bool:
     clean_item_id = _positive(item_id, 'item_id')
     with engine.begin() as connection:
-        _require_location(connection, scope)
-        _find_scoped_item(connection, scope, clean_item_id)
+        try:
+            _require_location(connection, scope)
+            _find_scoped_item(connection, scope, clean_item_id)
+        except ComponentNotFoundError:
+            raise ComponentNotFoundError('Menü nicht gefunden.') from None
         return _review_open_connection(connection, clean_item_id)
 
 
