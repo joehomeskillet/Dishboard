@@ -33,8 +33,8 @@
 | Phase | Files | Responsibility / owner boundary |
 |---|---|---|
 | 1 | `database/schema.sql`, `database/migrations/0010_v12_to_v13.sql`, `database/migrations/0011_v13_to_v14.sql`, `database/permissions.sql`, `database/validate_schema.py`, `database/README.md`, `tools/validate_package.py`, `PACKAGE_CONTENTS.txt`, `MANIFEST_SHA256.txt`, `reference_scaffold/cafeteria/db.py`, `reference_scaffold/tests/test_component_catalog_migration_db.py`, `reference_scaffold/tests/test_component_metadata_master_lock_db.py`, `reference_scaffold/tests/test_auth_database.py`, `reference_scaffold/tests/test_database_invariants.py` | Schema v14, idempotente Migrationen, Restore-ACLs, Validator-/Package-Pins, Migration-Backfill und schmaler Metadata-Master-Lock; je Wave genau ein serialer Owner für `schema.sql` und `db.py`. |
-| 2 | `reference_scaffold/cafeteria/component_catalog_store.py`, `reference_scaffold/cafeteria/component_catalog_metadata.py`, `reference_scaffold/cafeteria/component_assignment_store.py`, `reference_scaffold/cafeteria/workflow.py`, `reference_scaffold/cafeteria/workflow_snapshot.py`, `reference_scaffold/tests/test_component_catalog_db.py`, `reference_scaffold/tests/test_component_catalog_metadata_db.py`, `reference_scaffold/tests/test_component_assignment_db.py`, `reference_scaffold/tests/test_admin_workflow_db.py` | Katalog samt atomaren Label-/Allergen-Metadaten, Scope/Location, Assignment, Auto/Manual-Auflösung, Review und Snapshot. Katalog- und Assignment-Operationen bleiben in den jeweiligen Stores; die private Metadatenhilfe hält Produktionsmodule unter 400 Zeilen; `workflow.py` verdrahtet sie. |
-| 3 | `reference_scaffold/cafeteria/__init__.py`, `reference_scaffold/cafeteria/admin/routes.py`, `reference_scaffold/cafeteria/admin/workflow_routes.py`, `reference_scaffold/cafeteria/workflow_partial_form.py`, `reference_scaffold/cafeteria/workflow_partial_store.py`, `reference_scaffold/cafeteria/workflow_copy_store.py`, `reference_scaffold/cafeteria/workflow_store.py`, `reference_scaffold/tests/test_component_catalog_routes.py`, `reference_scaffold/tests/test_admin_workflow_routes.py`, `reference_scaffold/tests/test_admin_week_routes.py`, `reference_scaffold/tests/test_admin_draft_preview.py`, `reference_scaffold/tests/test_workflow_partial_store_db.py`, `reference_scaffold/tests/test_workflow_copy_store_db.py` | URL-Familien, exact Form Keys, scoped Resolver, Partial-Saves, route-unabhängige Vorwochen-Copy, Preview, Publish/PRG, 400/404/409/503/CSRF. `admin/routes.py` ist ein kleiner serieller Adapter; `workflow_routes.py` trägt die neuen Routen und `__init__.py` registriert das Blueprint einmal. CSV-Import/Recovery bleiben erhalten; `persist_draft_connection` nur für vollständigen Import/Recovery. |
+| 2 | `reference_scaffold/cafeteria/component_catalog_store.py`, `reference_scaffold/cafeteria/component_catalog_metadata.py`, `reference_scaffold/cafeteria/component_assignment_store.py`, `reference_scaffold/cafeteria/component_effects.py`, `reference_scaffold/cafeteria/workflow.py`, `reference_scaffold/cafeteria/workflow_snapshot.py`, `reference_scaffold/tests/test_component_catalog_db.py`, `reference_scaffold/tests/test_component_catalog_metadata_db.py`, `reference_scaffold/tests/test_component_assignment_db.py`, `reference_scaffold/tests/test_component_assignment_races_db.py`, `reference_scaffold/tests/test_admin_workflow_db.py` | Katalog samt atomaren Label-/Allergen-Metadaten, Scope/Location, Assignment, Auto/Manual-Auflösung, Review und Snapshot. Katalog- und Assignment-Operationen bleiben in den jeweiligen Stores; private Metadaten-/Effekthilfen halten Produktionsmodule unter 400 Zeilen; `workflow.py` verdrahtet sie. |
+| 3 | `reference_scaffold/cafeteria/__init__.py`, `reference_scaffold/cafeteria/admin/routes.py`, `reference_scaffold/cafeteria/admin/workflow_routes.py`, `reference_scaffold/cafeteria/workflow.py`, `reference_scaffold/cafeteria/workflow_partial_form.py`, `reference_scaffold/cafeteria/workflow_partial_store.py`, `reference_scaffold/cafeteria/workflow_copy_store.py`, `reference_scaffold/cafeteria/workflow_store.py`, `reference_scaffold/tests/test_component_catalog_routes.py`, `reference_scaffold/tests/test_admin_workflow_routes.py`, `reference_scaffold/tests/test_admin_week_routes.py`, `reference_scaffold/tests/test_admin_draft_preview.py`, `reference_scaffold/tests/test_workflow_partial_store_db.py`, `reference_scaffold/tests/test_workflow_copy_store_db.py` | URL-Familien, exact Form Keys, scoped Resolver, Partial-Saves, route-unabhängige Vorwochen-Copy, Preview, Publish/PRG, 400/404/409/503/CSRF. `admin/routes.py` ist ein kleiner serieller Adapter; `workflow_routes.py` trägt die neuen Routen und `__init__.py` registriert das Blueprint einmal. CSV-Import/Recovery bleiben erhalten; `persist_draft_connection` nur für vollständigen Import/Recovery. T6 ändert `workflow.py` nur für Import/Recovery-Adapter und private/öffentliche Projektion. |
 | 4 | `reference_scaffold/cafeteria/templates/admin/cafeteria.html`, `reference_scaffold/cafeteria/templates/admin/patienten.html`, `reference_scaffold/cafeteria/templates/admin/components.html`, `reference_scaffold/cafeteria/templates/admin/component_editor.html`, `reference_scaffold/cafeteria/templates/admin/preview.html`, `reference_scaffold/cafeteria/static/admin.js`, `reference_scaffold/cafeteria/static/app.css`, `reference_scaffold/tests/test_rendered_ui.py`, `reference_scaffold/tests/test_admin_ux_browser.py` | Novice-Übersicht/Editor, Templates, JS-State/Dirty-Guard, CSS, Render- und Browser-A11y. Neue Templates nur nach bestehendem Projekt-Generator prüfen. |
 | 5 | alle vorgenannten Tests plus `reference_scaffold/tests/test_deployment_compose_probe_live.py`, `reference_scaffold/tests/test_deployment_restore_live.py`, `reference_scaffold/tests/test_deployment_restore_recovery.py`, `reference_scaffold/tests/test_capture_live_screenshots.py`, `reference_scaffold/README.md` | Integration, unabhängige Reviews, Backup/Migration/Restore, Compose, unveränderlicher Digest, Live-Proof. |
 
@@ -90,10 +90,15 @@ parse_draft_form(profile_code: str, form: Mapping[str, str]) -> ParsedDraft
 `parse_draft_form(profile_code, form)` and `build_snapshot(profile_code, draft, revision_code)` retain these existing full-form/full-snapshot signatures. They are not reused as partial mutation APIs.
 
 `WeekRef`, `resolve_week_ref` und `resolve_item_id` liegen in
-`workflow_partial_store.py`. Sie prüfen ISO-Montag, Location,
-URL-abgeleitetes Profil und Profilraster. Routes leiten Wochen- und
-Item-Identität serverseitig ab; Formulare liefern weder `week_id` noch
-`item_id` oder andere interne IDs.
+`workflow_partial_store.py`. Beide Resolver liefern nur vorhandene scoped
+Datensätze und sind nichtoptional; eine fehlende Woche oder ein fehlendes Item
+ist 404. Ein gültiger fehlender Menüslot erhält nur im getrennten internen
+GET-Rendering-Modell `row_version=0` und keine interne ID; dafür wird keine
+öffentliche API erfunden. Nur Engine-Write-APIs erzeugen bei erwarteter Version
+0 Zeilen unter Locks. Sie prüfen ISO-`week`/`day` `YYYY-MM-DD`, Montag als
+`week`, `day` innerhalb dieser Woche, `meal=LUNCH|DINNER` mit Lunch-only für
+`staff_guest`, `option=MENU_1|VEGGIE`, Location und URL-Profil. Formulare
+liefern weder `week_id` noch `item_id` oder andere interne IDs.
 
 Location resolution is fail-closed under the current single-location contract: `resolve_single_active_location_connection` returns the sole active location globally; zero or multiple active locations fail. Capability gates still validate the actor separately. For every operation on an existing week, load that week's `location_id` and require it to equal that sole active location.
 
@@ -200,8 +205,10 @@ attempts return 404.
 | `database/migrations/0011_v13_to_v14.sql` | T3a only |
 | `reference_scaffold/cafeteria/component_catalog_store.py` | T3, then T3b; no parallel writer |
 | `reference_scaffold/cafeteria/component_catalog_metadata.py` | T3b only; private helper, production modules each remain under 400 lines |
-| `reference_scaffold/cafeteria/component_assignment_store.py` | T4, then T5; no parallel writer |
-| `reference_scaffold/cafeteria/workflow.py` | T4, then T5, then T8; no parallel writer |
+| `reference_scaffold/cafeteria/component_assignment_store.py` | T4 only; no parallel writer |
+| `reference_scaffold/cafeteria/component_effects.py` | T4 only; no parallel writer |
+| `reference_scaffold/cafeteria/workflow.py` | T4, then T5, then T6, then T8; T6 owns only Import/Recovery adapter plus private/public projection, never Publish/Review/Status |
+| `reference_scaffold/cafeteria/workflow_review.py` | T5 only |
 | `reference_scaffold/cafeteria/workflow_store.py` | T6 only; minimal Full-Import/Recovery compatibility edits, never Partial-Store |
 | `reference_scaffold/cafeteria/workflow_partial_store.py`, `reference_scaffold/cafeteria/workflow_copy_store.py` | T6 only; scoped identity/persistence and route-independent Copy |
 | `reference_scaffold/cafeteria/workflow_snapshot.py` | T5 only |
@@ -447,7 +454,11 @@ grant files.
 
 ### Task 4: Assignment resolution and independent modes
 
-**Files:** Create `reference_scaffold/cafeteria/component_assignment_store.py`; modify `reference_scaffold/cafeteria/workflow.py`; test `reference_scaffold/tests/test_component_assignment_db.py`.
+**Files:** Create `reference_scaffold/cafeteria/component_assignment_store.py`
+and `reference_scaffold/cafeteria/component_effects.py`; modify
+`reference_scaffold/cafeteria/workflow.py`; test
+`reference_scaffold/tests/test_component_assignment_db.py` and
+`reference_scaffold/tests/test_component_assignment_races_db.py`.
 
 **Interfaces:** `assign_component(engine: Engine, scope: AdminScope, item_id: int, component_public_id: str | None, component_text: str | None, expected_item_row_version: int) -> int`; `replace_component_links(engine: Engine, scope: AdminScope, item_id: int, assignments: Sequence[Mapping[str, object]], expected_item_row_version: int) -> int`; `replace_component_links_connection(connection, scope, item_id, assignments) -> None`; `resolve_component_effects(engine: Engine, scope: AdminScope, item_id: int) -> dict[str, object]`, returning exactly the keys `labels`, `allergens` and `origins`; modes are independently `allergen_mode`, `origin_mode`, `label_mode`. No assignment/effects API accepts an unscoped `item_id`. The engine-level replace API starts one transaction, locks the scoped week, then its owning service, then the scoped item, version-checks the item, calls the connection helper, rematerializes auto classes, resets review, bumps the item version exactly once and returns the new version. The connection helper validates every assignment, enforces location/profile scope and replaces all links inside its caller's transaction; it never commits or updates the item/review/version. T4 single-link/full-replace assignment and T6 partial/full Import/Recovery persistence use this helper; each one-item caller performs exactly one locked item update, review reset and version bump.
 
@@ -512,15 +523,20 @@ effect, review or version write survives.
   state and no partial mutation under the global hierarchy; catalog edit never
   fans out to an item/week, and surviving assignments retain the version they
   actually bound.
-- [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_assignment_db.py`; expected FAIL.
+- [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_assignment_db.py tests/test_component_assignment_races_db.py`; expected FAIL.
 - [ ] Implement assignment validation and deterministic effects. Reject injected patient prices before any write. Route `assign_component` and `replace_component_links` through `replace_component_links_connection`; each engine-level caller locks the scoped week, owning service and scoped item in that order, checks `expected_item_row_version`, then performs exactly one review reset and item-version bump and returns the new version. Before link locks or writes, resolve the complete existing-plus-requested component set, lock it by numeric internal ID, then lock and mutate links in the global order above; caller-supplied internal IDs are forbidden. On component/link change rematerialize only auto classes; manual values remain untouched. Assert the week, service and component rows remain byte- and version-identical.
-- [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_assignment_db.py -v`; expected PASS.
-- [ ] Stage: `rtk git add reference_scaffold/cafeteria/component_assignment_store.py reference_scaffold/cafeteria/workflow.py reference_scaffold/tests/test_component_assignment_db.py`.
+- [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_assignment_db.py tests/test_component_assignment_races_db.py -v`; expected PASS.
+- [ ] Stage: `rtk git add reference_scaffold/cafeteria/component_assignment_store.py reference_scaffold/cafeteria/component_effects.py reference_scaffold/cafeteria/workflow.py reference_scaffold/tests/test_component_assignment_db.py reference_scaffold/tests/test_component_assignment_races_db.py`.
 - [ ] Commit: `rtk git commit -m 'feat: resolve scoped component assignments'`.
 
 ### Task 5: Exact immutable snapshots and review gate
 
-**Files:** Modify `reference_scaffold/cafeteria/workflow_snapshot.py`, `reference_scaffold/cafeteria/workflow.py`, `reference_scaffold/cafeteria/component_assignment_store.py`; test `reference_scaffold/tests/test_admin_workflow_db.py`.
+**Files:** Modify `reference_scaffold/cafeteria/workflow.py` and
+`reference_scaffold/cafeteria/workflow_snapshot.py`; create
+`reference_scaffold/cafeteria/workflow_review.py`; test
+`reference_scaffold/tests/test_admin_workflow_concurrency_db.py`,
+`reference_scaffold/tests/test_admin_workflow_review_db.py`, and
+`reference_scaffold/tests/test_admin_workflow_snapshot_contract.py`.
 
 **Interfaces:** The existing `build_snapshot(profile_code, draft, revision_code)`
 emits exactly `components: list[str]`, `labels: list[{code,name}]`,
@@ -634,7 +650,7 @@ defines the shared predicate and snapshot/review behavior it consumes.
   mutation occurs, only the reviewed item heals, Auto classes rematerialize,
   every Manual class stays byte-identical, and a persisted `checked` value
   never conceals a current/stored component-version mismatch.
-- [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_admin_workflow_db.py`; expected FAIL.
+- [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_admin_workflow_concurrency_db.py tests/test_admin_workflow_review_db.py tests/test_admin_workflow_snapshot_contract.py`; expected FAIL.
 - [ ] Implement deterministic snapshot materialization and review transaction.
   Review locks `scoped week FOR UPDATE → owning scoped service FOR UPDATE →
   scoped item FOR UPDATE → complete current referenced component union by
@@ -647,8 +663,8 @@ defines the shared predicate and snapshot/review behavior it consumes.
   `review_open/needs_review` predicate for T8's locked Publish path.
   Leave all tables unchanged on every 400/409; reject exact repeat submission
   with 409.
-- [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_admin_workflow_db.py -v`; expected PASS.
-- [ ] Stage: `rtk git add reference_scaffold/cafeteria/workflow_snapshot.py reference_scaffold/cafeteria/workflow.py reference_scaffold/cafeteria/component_assignment_store.py reference_scaffold/tests/test_admin_workflow_db.py`.
+- [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_admin_workflow_concurrency_db.py tests/test_admin_workflow_review_db.py tests/test_admin_workflow_snapshot_contract.py -v`; expected PASS.
+- [ ] Stage: `rtk git add reference_scaffold/cafeteria/workflow.py reference_scaffold/cafeteria/workflow_review.py reference_scaffold/cafeteria/workflow_snapshot.py reference_scaffold/tests/test_admin_workflow_concurrency_db.py reference_scaffold/tests/test_admin_workflow_review_db.py reference_scaffold/tests/test_admin_workflow_snapshot_contract.py`.
 - [ ] Commit: `rtk git commit -m 'feat: enforce reviewed immutable menu snapshots'`.
 
 ## Wave 3 — Partial Parser, Store Routes, Copy, Preview and Publish Security
@@ -659,7 +675,9 @@ defines the shared predicate and snapshot/review behavior it consumes.
 `reference_scaffold/cafeteria/workflow_partial_store.py`; create
 `reference_scaffold/cafeteria/workflow_copy_store.py` and
 `reference_scaffold/tests/test_workflow_copy_store_db.py`; minimally modify
-the 454-line `reference_scaffold/cafeteria/workflow_store.py`; test
+the 454-line `reference_scaffold/cafeteria/workflow_store.py`; modify
+`reference_scaffold/cafeteria/workflow.py` only for the existing Import/Recovery
+adapter and the explicit internal-to-public payload projection; test
 `reference_scaffold/tests/test_workflow_form.py` and create
 `reference_scaffold/tests/test_workflow_partial_store_db.py`. T6 is the sole serial owner
 of `workflow_store.py`: retain full-form/full-replace Import/Recovery behavior,
@@ -667,9 +685,47 @@ replace its `ORDER BY ... LIMIT 1` location selection with
 `resolve_single_active_location_connection` requiring exactly one globally
 active location, make `_insert_item` explicitly write all three modes
 `manual` for CSV/Recovery, and make `load_draft_connection` load all three
-modes. Do not grow `workflow_form.py`; partial modules never call full replace.
+modes. Task 6 must not change Publish, Review or Status logic in `workflow.py`.
+Do not grow `workflow_form.py`; partial modules never call full replace.
 
-**Interfaces:** Keep the existing full-form `parse_draft_form(profile_code, form) -> ParsedDraft` unchanged. `workflow_partial_form.py` provides separate exact partial parsers. `workflow_partial_store.py` owns scoped `WeekRef(week_id,location_id,profile_code,week_start,row_version)`, `resolve_week_ref(connection, scope, week_start, *, for_update=False) -> WeekRef`, `resolve_item_id(connection, scope, week_ref, day, meal, option, *, for_update=False) -> int`, and the exact Engine/AdminScope persistence APIs declared above. Resolvers enforce Location, URL-derived profile, ISO-Monday and raster; forms never supply internal week/item IDs. Menu requires exactly `_csrf,week,day,meal,option,row_version,title,allergen_mode,origin_mode,label_mode`; its `row_version` is exclusively the addressed `menu_items.row_version`, named `expected_item_row_version` after parsing. Permitted optional keys are `description,note,component_public_id[],component_text[],allergen_code[],allergen_presence[],origin_ingredient[],origin_country_code[],label_code[]`; cafeteria additionally requires `internal_chf,external_chf`, while patient rejects every price key. Header requires exactly `_csrf,week,row_version,title,shared_note`. Service requires exactly `_csrf,week,day,meal,row_version,service_state,notice`.
+**Interfaces:** Keep the existing full-form
+`parse_draft_form(profile_code, form) -> ParsedDraft` unchanged.
+`workflow_partial_form.py` provides separate exact partial parsers.
+`workflow_partial_store.py` owns scoped
+`WeekRef(week_id,location_id,profile_code,week_start,row_version)`,
+`resolve_week_ref(connection, scope, week_start, *, for_update=False) -> WeekRef`,
+`resolve_item_id(connection, scope, week_ref, day, meal, option, *,
+for_update=False) -> int`, and the exact Engine/AdminScope persistence APIs
+declared above. Both resolvers are existing-only and nonoptional: missing week
+or item is 404, never `None`, Sentinel or virtual return. A separate internal
+GET rendering model represents a valid absent slot with `row_version=0` and
+without internal IDs; do not expose or invent a public API for it. The parsed
+internal patient item payload has exactly
+`title,description,note,allergen_mode,origin_mode,label_mode,assignments,labels,allergens,origins`;
+the `staff_guest` payload adds exactly `internal_rappen,external_rappen`.
+All three modes are independent `auto|manual` values. The public
+Draft/Publish payload is an explicit allowlist projection, never a direct
+serialization of this internal mapping. Only the Engine write APIs create
+missing rows at expected version 0 under the canonical locks. Parsers require
+`week` and `day` as ISO `YYYY-MM-DD`, Monday for `week`, `day` inside that
+week, `meal=LUNCH|DINNER` with only `LUNCH` for `staff_guest`, and
+`option=MENU_1|VEGGIE`.
+
+Menu requires exactly
+`_csrf,week,day,meal,option,row_version,title,allergen_mode,origin_mode,label_mode`;
+its `row_version` is exclusively the addressed `menu_items.row_version`, named
+`expected_item_row_version` after parsing. Permitted optional keys are
+`description,note,component_public_id[],component_text[],allergen_code[],allergen_presence[],origin_ingredient[],origin_country_code[],label_code[]`.
+Manual origins require equally long ingredient/country arrays, trim both
+values, require nonempty ingredients and country codes matching
+`^[A-Z]{2}$`, and set `text` exactly to
+`f"{ingredient}: {country_code}"`. A byte-identical duplicate ingredient after
+trim invalidates the whole request; no case-folding or Unicode normalization
+is applied. Component and allergen pair arrays are likewise length-checked;
+cafeteria additionally requires `internal_chf,external_chf`, while patient
+rejects every price key. Header requires exactly
+`_csrf,week,row_version,title,shared_note`. Service requires exactly
+`_csrf,week,day,meal,row_version,service_state,notice`.
 
 The scoped slot identity is derived entirely server-side as
 `(location_id, profile_id, week_start, service_date, meal_period_id,
@@ -681,9 +737,15 @@ returns 1; existing plus 0 is 409; missing plus positive is 404; mismatched
 positive is 409; matching positive updates once and returns old+1. A missing
 week is inserted in scope at version 1 with `ON CONFLICT`, after which the
 winning row is locked; its missing service is created `open` at version 1.
-An existing closed service yields atomic 409 and is never reopened. Existing
-weeks set `updated_by` exactly once per successful item save; a newly inserted
-week receives its actor during insert and is not redundantly updated.
+Header CAS uses only `menu_weeks.row_version`: expected 0 plus absent creates
+and returns 1; expected 0 plus existing is 409; positive plus absent is 404;
+stale positive is 409; matching positive `v` updates once and returns `v+1`.
+Service CAS applies the same matrix to `menu_services.row_version`. Closing a
+service that contains any item is 409 with no mutation. Only an explicit,
+version-matching Service POST with `service_state=open` may reopen a closed
+service; Header, Item, Import and Copy never reopen it. Existing weeks set
+`updated_by` exactly once per successful item save; a newly inserted week
+receives its actor during insert and is not redundantly updated.
 
 Component Create has exact scalar keys
 `_csrf,category,name,origin_country_code,target_scope` and repeated
@@ -769,16 +831,23 @@ winner with no hybrid target.
   defaults are safely `manual` for all three modes. Component replacement uses
   T4's `replace_component_links_connection`; T6 duplicates no assignment SQL,
   and its caller performs exactly one locked item update, review reset and
-  version bump. Full Import/Recovery locks its week and all services first,
+  version bump. CSV Full Import treats every component as free text, writes all
+  three modes as `manual`, and returns atomic 409 when any item in the target
+  week already has a catalog-backed assignment; no destructive confirmation
+  or override exists. Recovery may restore catalog assignments only through
+  public Component UUIDs and never accepts internal component IDs. Full
+  Import/Recovery locks its week and all services first,
   then pre-resolves and locks all affected items by numeric `menu_items.id ASC`,
   then resolves and locks the full component
   union by numeric `menu_components.id ASC`, then locks **all existing link
   rows for all affected items** globally by `(menu_item_id, sort_order)` before
   invoking the connection helper for the first item. It uses that helper for
   every component link it creates, preserves deterministic mutation order, and
-  neither path accepts internal component IDs.
+  neither path accepts internal component IDs. Task 6 changes `workflow.py`
+  only for the Import/Recovery adapter and explicit internal/public payload
+  projection; Publish, Review and Status remain untouched.
 - [ ] With cwd `reference_scaffold` and disposable PG16 App-role fixture configured, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_workflow_form.py tests/test_workflow_partial_store_db.py tests/test_workflow_copy_store_db.py -v`; expected PASS.
-- [ ] Stage: `rtk git add reference_scaffold/cafeteria/workflow_partial_form.py reference_scaffold/cafeteria/workflow_partial_store.py reference_scaffold/cafeteria/workflow_copy_store.py reference_scaffold/cafeteria/workflow_store.py reference_scaffold/tests/test_workflow_form.py reference_scaffold/tests/test_workflow_partial_store_db.py reference_scaffold/tests/test_workflow_copy_store_db.py`.
+- [ ] Stage: `rtk git add reference_scaffold/cafeteria/workflow_partial_form.py reference_scaffold/cafeteria/workflow_partial_store.py reference_scaffold/cafeteria/workflow_copy_store.py reference_scaffold/cafeteria/workflow_store.py reference_scaffold/cafeteria/workflow.py reference_scaffold/tests/test_workflow_form.py reference_scaffold/tests/test_workflow_partial_store_db.py reference_scaffold/tests/test_workflow_copy_store_db.py`.
 - [ ] Commit: `rtk git commit -m 'feat: parse exact partial admin forms'`.
 
 ### Task 7: URL families, capabilities, Copy and Preview (serialized integration 1/3)
@@ -794,7 +863,7 @@ and `reference_scaffold/tests/test_admin_draft_preview.py`.
 old mega-form GET/save/publish routes without collisions, preserve CSV
 Import/Recovery.
 
-**Interfaces:** Register GET/POST routes exactly as specified in the SDD. `profile_from_endpoint('cafeteria') == 'staff_guest'`, `profile_from_endpoint('patienten') == 'patient'`; copy accepts `_csrf,source_week,target_week,target_row_version`, requires `source_week == target_week - 7 days` and calls only T6's route-independent `copy_previous_week` with the target. Preview renders last-saved draft only. Component detail handlers use only T3/T3b's scoped `get_component`, never route-local detail SQL. Component Create accepts exact scalar `_csrf,category,name,origin_country_code,target_scope` plus repeated `label_code,allergen_code,allergen_presence`; Update adds `row_version`, omits `target_scope` and submits the complete payload; Archive/Unarchive accept exactly `_csrf,row_version`. Reject duplicate scalar keys, mismatched repeated arrays, unexpected keys, `profile`, `profile_scope`, internal IDs and master IDs. T7 calls `get_component_review_token` to render the review token. `POST /admin/{cafeteria|patienten}/menu/review` requires `draft.write`, accepts exactly `_csrf,week,day,meal,option,row_version,component_version`, resolves the scoped item from the raster fields, rejects any `item_id`, and passes both token and row version to `review_component`; missing Review item/scope failures are atomic 404 and stale row/token failures atomic 409. Zero/multiple configured active locations map to 503; missing saved draft/preview resources and invalid/out-of-scope slots map to 404, while a valid missing menu slot renders virtual `row_version=0`.
+**Interfaces:** Register GET/POST routes exactly as specified in the SDD. `profile_from_endpoint('cafeteria') == 'staff_guest'`, `profile_from_endpoint('patienten') == 'patient'`; copy accepts `_csrf,source_week,target_week,target_row_version`, requires `source_week == target_week - 7 days` and calls only T6's route-independent `copy_previous_week` with the target. Preview renders only the last-saved state of an existing scoped week in any persisted DB state `draft|ready|published|archived`; a missing week is 404, and no active-publication fallback is allowed. Component detail handlers use only T3/T3b's scoped `get_component`, never route-local detail SQL. Component Create accepts exact scalar `_csrf,category,name,origin_country_code,target_scope` plus repeated `label_code,allergen_code,allergen_presence`; Update adds `row_version`, omits `target_scope` and submits the complete payload; Archive/Unarchive accept exactly `_csrf,row_version`. Reject duplicate scalar keys, mismatched repeated arrays, unexpected keys, `profile`, `profile_scope`, internal IDs and master IDs. T7 calls `get_component_review_token` to render the review token. `POST /admin/{cafeteria|patienten}/menu/review` requires `draft.write`, accepts exactly `_csrf,week,day,meal,option,row_version,component_version`, resolves the scoped item from the raster fields, rejects any `item_id`, and passes both token and row version to `review_component`; missing Review item/scope failures are atomic 404 and stale row/token failures atomic 409. Zero/multiple configured active locations map to 503; missing saved draft/preview resources and invalid/out-of-scope slots map to 404, while a valid missing menu slot renders virtual `row_version=0`.
 
 Both review-token GET rendering and review POST catch only the named
 `AutoOriginConflictError` domain error and map it to controlled HTTP 409, never 500.
@@ -942,3 +1011,6 @@ claim deployment readiness for the T7-T9 integration wave.
 - [ ] Cross-check every SDD section: 28/10 raster, no patient prices, full-replace exception, three modes, location/profile isolation, migration/backfill/down-probe, exact routes/keys/statuses, last-saved Preview, review/stale immutable Snapshot, A11y viewport matrix, backup/restore and stop conditions.
 - [ ] Scan this plan for vague or undefined instructions; replace each with exact keys, signatures, test names and commands before commit; configured fallback wording must name the concrete fallback and its trigger.
 - [ ] Verify shared-file serial ownership: `schema.sql`, `db.py`, `component_catalog_store.py`, `component_assignment_store.py`, `workflow.py`, `workflow_snapshot.py`, and the `admin/routes.py` adapter plus `admin/workflow_routes.py` have one owner per wave; review lanes are read-only.
+- [ ] Verify Task 4 file sync names `component_effects.py` and
+  `test_component_assignment_races_db.py` in phase ownership, Task 4 Files,
+  RED/PASS gates, Stage and the SDD named-test table.

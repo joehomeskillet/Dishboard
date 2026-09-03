@@ -30,6 +30,12 @@ nie aufrufen. Neue Transaktionen sind atomar und optimistisch gesperrt:
 - `persist_week_header(engine: Engine, scope: AdminScope, week_start: date, payload: Mapping[str, object], expected_week_row_version: int) -> int`
 - `persist_service_state(engine: Engine, scope: AdminScope, week_start: date, day: str, meal: str, payload: Mapping[str, object], expected_service_row_version: int) -> int`
 
+`week` und `day` sind strikt geparste ISO-Daten `YYYY-MM-DD`; `week` muss ein
+Montag sein und `day` muss zwischen diesem Montag und Sonntag liegen. `meal`
+ist exakt `LUNCH|DINNER`, wobei `staff_guest` nur `LUNCH` akzeptiert. `option`
+ist exakt `MENU_1|VEGGIE`. Jeder andere Wert ist 400, bevor eine Transaktion
+schreibt.
+
 Jede Operation prüft route-abgeleitetes Profil, validierte ISO-Montag-Woche
 (`?week=YYYY-MM-DD`), erwartete `row_version` und exact allowed keys. Ein
 Konflikt liefert 409 ohne Mutation; ein Validierungsfehler 400 mit Feldpfad.
@@ -47,6 +53,43 @@ mit `row_version=0` gerendert, nicht als 404; ein ungültiger oder scope-fremder
 Slot bleibt 404. Exakte Writes: 0+fehlend fügt Version 1 ein und liefert 1;
 vorhanden+0 ist 409; fehlend+positiv ist 404; positiv aber stale ist 409; exakt
 passend erhöht einmal und liefert alt+1.
+
+Header-CAS bezieht sich ausschließlich auf `menu_weeks.row_version`: 0 plus
+fehlende Woche erzeugt Version 1 und liefert 1; 0 plus vorhandene Woche ist
+409; positiv plus fehlende Woche ist 404; stale positiv ist 409; exakt
+passendes positives `v` schreibt einmal und liefert `v+1`. Service-CAS bezieht
+sich ausschließlich auf `menu_services.row_version` und verwendet dieselbe
+Matrix: 0 plus fehlender Raster-Service erzeugt Version 1 und liefert 1; 0
+plus vorhandener Service ist 409; positiv plus fehlender Service ist 404;
+stale positiv ist 409; exakt passendes positives `v` schreibt einmal und
+liefert `v+1`. Nur die drei Engine-Write-APIs dürfen fehlende Zeilen erzeugen.
+Sie serialisieren eine fehlende Woche per `ON CONFLICT`, sperren sofort die
+gewinnende Wochenzeile und erzeugen Service oder Item erst unter den bereits
+gehaltenen Parent-Locks. Read-Resolver erzeugen nie Daten.
+
+Ein Service-POST mit `service_state=closed` liefert 409, sobald der Service
+mindestens ein Item enthält; er löscht oder versteckt keine Items. Einen
+geschlossenen Service öffnet ausschließlich ein expliziter, versionspassender
+Service-POST mit `service_state=open`. Header- oder Item-Saves, Import und Copy
+öffnen ihn nicht implizit.
+
+Nach dem Form-Parser hat ein internes Patienten-Item exakt die Top-Level-Keys
+`title,description,note,allergen_mode,origin_mode,label_mode,assignments,labels,allergens,origins`.
+Ein internes `staff_guest`-Item hat zusätzlich exakt
+`internal_rappen,external_rappen`; kein anderes internes Preis- oder
+Currency-Feld ist erlaubt. `assignments` folgt dem exakten Zwei-Key-Vertrag,
+`labels` ist eine Liste von Codes, `allergens` eine Liste aus exakt
+`code,presence` und `origins` eine Liste aus exakt
+`ingredient,country_code,text`. Alle drei Modi sind unabhängig `auto|manual`.
+Der externe Draft/Publish-Snapshot wird daraus über eine explizite Allowlist
+projiziert; kein internes Item-Mapping wird direkt serialisiert.
+
+Bei manueller Herkunft müssen `origin_ingredient[]` und
+`origin_country_code[]` gleich lang sein. Der Parser trimmt beide Werte,
+verlangt eine nichtleere Zutat und einen Code nach `^[A-Z]{2}$` und bildet
+`text` exakt als `f"{ingredient}: {country_code}"`. Eine nach diesem Trim
+byte-identisch doppelte Zutat macht den gesamten Request ungültig; es gibt
+keine Casefold- oder Unicode-Normalisierung.
 
 Bei einem ersten validen Item-Write darf die scoped Woche mit Version 1 per
 `ON CONFLICT` angelegt werden; danach sperrt die Transaktion die gewinnende
@@ -504,14 +547,36 @@ Contract und ersetzt keinen Auth-Contract.
 `WeekRef(week_id,location_id,profile_code,week_start,row_version)` sowie die
 scoped Resolver `resolve_week_ref(connection, scope, week_start, *,
 for_update=False) -> WeekRef` und `resolve_item_id(connection, scope, week_ref,
-day, meal, option, *, for_update=False) -> int`. Ein Read-Resolver darf für
-eine gültige fehlende Woche/einen gültigen fehlenden Slot einen virtuellen
-Raster-View liefern; die oben definierten Engine/AdminScope-Persistenz-APIs
-identifizieren Writes über `week_start` und erzeugen keine internen Form-IDs.
-Die Resolver validieren
-ISO-Montag, Profilraster, Location und URL-abgeleitetes Profil. Routes leiten
-Wochen- und Item-Identität ausschließlich daraus ab; Formulare dürfen weder
-`week_id` noch `item_id` oder eine andere interne ID liefern.
+day, meal, option, *, for_update=False) -> int`. Beide Resolver sind
+nichtoptional und lösen ausschließlich vorhandene, scoped Daten auf: Eine
+fehlende Woche oder ein fehlendes Item ist immer 404; sie liefern weder `None`
+noch Sentinel noch ein virtuelles Objekt und erzeugen keine Zeile. Für den
+Menü-GET existiert getrennt davon ein internes reines Rendering-Modell für
+einen gültigen fehlenden Raster-Slot. Es enthält `row_version=0`, aber keine
+interne Woche-, Service- oder Item-ID, und ist keine neue öffentliche Store-
+API. Nur die oben definierten Engine/AdminScope-Write-APIs dürfen bei
+`expected_*_row_version=0` fehlende Zeilen unter der kanonischen Lock-
+Hierarchie erzeugen. Die Resolver validieren ISO-Montag, ISO-Tag im
+Wochenraster, `LUNCH|DINNER`, das `staff_guest`-Lunch-only-Raster,
+`MENU_1|VEGGIE`, Location und URL-abgeleitetes Profil. Routes leiten Wochen-
+und Item-Identität ausschließlich daraus ab; Formulare dürfen weder `week_id`
+noch `item_id` oder eine andere interne ID liefern.
+
+CSV-Full-Import behandelt jede Komponente ausschließlich als Freitext und
+setzt `allergen_mode`, `origin_mode` und `label_mode` für jedes importierte
+Item exakt auf `manual`; er erzeugt oder bindet keine Katalogkomponente. Hat
+die Zielwoche vor dem Replace irgendwo bereits eine Zuweisung mit
+`component_id IS NOT NULL`, scheitert der gesamte Full Import unter den
+kanonischen Locks atomar mit 409. Es gibt dafür weder ein destruktives
+Bestätigungsfeld noch einen Confirm-Override. Recovery ist davon getrennt und
+darf Katalogzuweisungen ausschließlich über öffentliche Component-UUIDs
+wiederherstellen; auch Recovery akzeptiert nie interne Komponenten-IDs und
+verwendet den gemeinsamen Assignment-Helper.
+
+Task 6 darf `workflow.py` seriell nur für den bestehenden Import-/Recovery-
+Adapter sowie für die explizite Projektion zwischen internem Payload und
+öffentlichem Draft-/Snapshot-Contract ändern. Publish-, Review- und Status-
+Logik in `workflow.py` gehört nicht zu Task 6.
 
 Komponenten-Create akzeptiert exakt die skalaren Felder
 `_csrf,category,name,origin_country_code,target_scope`, wiederholtes
@@ -610,11 +675,14 @@ als 404 maskiert.
 
 ## 7. Preview, Save, Publish und Fehlertexte
 
-Preview zeigt ausschließlich den LAST-SAVED-Draft, nie Dirty-Client-State;
-`draft.read` ist erforderlich. Sie ist Admin-only, nicht Signage/Public,
+Preview zeigt ausschließlich den LAST-SAVED-Zustand einer vorhandenen scoped
+Woche, nie Dirty-Client-State. Sie ist für jeden persistierten DB-Workflow-
+State `draft|ready|published|archived` verfügbar; eine fehlende Woche ist 404.
+`draft.read` ist erforderlich. Preview ist Admin-only, nicht Signage/Public,
 öffnet per `target="_blank"`, trägt einen eindeutigen PREVIEW-Banner und hat
-keinen Fallback auf Live-Daten. `no-store` ist Pflicht. Dirty-State blockiert
-Preview und Publish bis zum Speichern.
+keinen Fallback auf Live-Daten oder den aktiven Publikationssnapshot.
+`no-store` ist Pflicht. Dirty-State blockiert Preview und Publish bis zum
+Speichern.
 
 Publish ist ausschließlich POST mit den drei Feldern `_csrf`, `week`, `row_version`;
 native `confirm()` vor dem Absenden. Server prüft gespeicherten Draft,
@@ -655,9 +723,9 @@ Named RED-Tests (zuerst rot, danach grün) und Dateien:
 | reale PG16-Migrationen, Grants, Schema 14, unveränderte 0010-Checksum, Backfill-/Terminator-Contract | `reference_scaffold/tests/test_component_catalog_migration_db.py`, `reference_scaffold/tests/test_auth_database.py`, `reference_scaffold/tests/test_database_invariants.py` |
 | schmaler Metadata-Master-Lock: Owner/ACL, feste Search-Path, Lock-Reihenfolge, App-Caller-Validierung, Fresh/Migration/Restore-Parität | `reference_scaffold/tests/test_component_metadata_master_lock_db.py`, `reference_scaffold/tests/test_component_catalog_migration_db.py`, `reference_scaffold/tests/test_auth_database.py`, `reference_scaffold/tests/test_database_invariants.py` |
 | Katalog CRUD/Archiv/Suche/Usage, atomare Label-/Allergen-Metadaten, No-op und Isolation | `reference_scaffold/tests/test_component_catalog_db.py`, `reference_scaffold/tests/test_component_catalog_metadata_db.py`, `reference_scaffold/tests/test_component_catalog_routes.py` |
-| exakte Komponenten-Zuweisungsmappings, Append/Full-Replace-Unassign, Duplikat-/Archiv-Multiplizität, Lock-Reihenfolge, Allergie-Union/contains, deterministische Herkunft und Diet-Intersection | `reference_scaffold/tests/test_component_assignment_db.py` |
+| exakte Komponenten-Zuweisungsmappings, Append/Full-Replace-Unassign, Duplikat-/Archiv-Multiplizität, Lock-Reihenfolge, Allergie-Union/contains, deterministische Herkunft und Diet-Intersection | `reference_scaffold/tests/test_component_assignment_db.py`, `reference_scaffold/tests/test_component_assignment_races_db.py` |
 | Location/Profile-Isolation und Public-ID/404 | `reference_scaffold/tests/test_public_isolation_homoglyphs.py`, `reference_scaffold/tests/test_database_invariants.py` |
-| exakter immutable Snapshot, Golden-Hash-Token, Lock-Reihenfolge und Concurrent-/Repeat-Review | `reference_scaffold/tests/test_admin_workflow_db.py` |
+| exakter immutable Snapshot, Golden-Hash-Token, Lock-Reihenfolge und Concurrent-/Repeat-Review | `reference_scaffold/tests/test_admin_workflow_concurrency_db.py`, `reference_scaffold/tests/test_admin_workflow_review_db.py`, `reference_scaffold/tests/test_admin_workflow_snapshot_contract.py` |
 | virtuelle/absente/partielle/geschlossene Slots, exakte Item-Versionen und Same-/Different-Slot-Races | `reference_scaffold/tests/test_workflow_partial_store_db.py` |
 | exakte Vorwochen-Copy, absent/existing-empty Target-Version, Lock/409, neue IDs | `reference_scaffold/tests/test_workflow_copy_store_db.py`, `reference_scaffold/tests/test_admin_workflow_routes.py`, `reference_scaffold/tests/test_workflow_form.py` |
 | LAST-SAVED Preview, no-store, Dirty-Guard | `reference_scaffold/tests/test_admin_draft_preview.py` |
@@ -693,14 +761,20 @@ und `reference_scaffold/cafeteria/db.py`; danach übernimmt T3a diese Dateien
 seriell für Schema v14. Task 2 verändert und staged ausschließlich seine beiden
 Testdateien. T3b startet erst nach dem committed T3a-Receipt und verwendet den
 Helper, ohne Schema oder Grants zu ändern.
-`component_assignment_store` ist erst T4 und danach T5 zugeordnet;
+`component_assignment_store` und `component_effects` sind ausschließlich T4
+zugeordnet; `workflow_review.py` ist ausschließlich T5 zugeordnet.
+`workflow.py` gehört seriell T4, danach T5, T6 und T8; T6 darf
+dort ausschließlich Import/Recovery-Adapter und private/öffentliche Payload-
+Projektion ändern, nicht Publish, Review oder Status.
 `workflow_store.py` hat T6 als einzigen seriellen Owner und erhält dort nur
 minimale Kompatibilitätsedits für Full-Import/Recovery (kein Partial-Write und
 kein Full-Replace aus Partial-Modulen). Phase 3
 (Routen/Workflow/Publish) folgt erst nach Contract-Receipt. Phase 4
 (Jinja/Vanilla JS/CSS) folgt danach; Test- und Review-Lanes dürfen parallel
-lesen, aber niemals dieselben Dateien schreiben. CSV-Import bleibt Freitext
-plus `manual`; er führt keine stillen Katalogeinträge ein. Bei fehlendem
+lesen, aber niemals dieselben Dateien schreiben. CSV-Import bleibt vollständig
+Freitext plus drei Modi `manual`; jede vorhandene Katalogzuweisung im Ziel
+blockiert den Full Import atomar mit 409, ohne destruktiven Confirm. Recovery
+darf öffentliche Component-UUIDs verwenden. Bei fehlendem
 Backup, unklarem Scope, stale Version, nicht bestandenem HIGH/CRITICAL-Review
 oder fehlender Auth-/Browser-Evidenz: BLOCKED, kein Push/Deploy.
 
