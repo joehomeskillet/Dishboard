@@ -144,8 +144,7 @@ def _review_token(payload: object) -> str:
     return f'sha256:{hashlib.sha256(encoded).hexdigest()}'
 
 
-def review_open(connection: Connection, item_id: int) -> bool:
-    clean_item_id = _positive(item_id, 'item_id')
+def _review_open_connection(connection: Connection, item_id: int) -> bool:
     value = connection.execute(
         text(
             '''
@@ -160,11 +159,19 @@ def review_open(connection: Connection, item_id: int) -> bool:
             WHERE i.id=:item_id
             '''
         ),
-        {'item_id': clean_item_id},
+        {'item_id': item_id},
     ).scalar_one_or_none()
     if value is None:
         raise ComponentNotFoundError('Menü nicht gefunden.')
     return bool(value)
+
+
+def review_open(engine: Engine, scope: AdminScope, item_id: int) -> bool:
+    clean_item_id = _positive(item_id, 'item_id')
+    with engine.begin() as connection:
+        _require_location(connection, scope)
+        _find_scoped_item(connection, scope, clean_item_id)
+        return _review_open_connection(connection, clean_item_id)
 
 
 def _review_payload(

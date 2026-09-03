@@ -4,7 +4,7 @@ import json
 from datetime import date, timedelta
 from typing import Any
 
-from sqlalchemy import Engine, text
+from sqlalchemy import Connection, Engine, text
 
 from .component_assignment_store import (
     AutoOriginConflictError as AutoOriginConflictError,
@@ -19,6 +19,7 @@ from .component_assignment_store import (
 from .db import issue_publication_capability
 from .workflow_snapshot import build_snapshot
 from .workflow_review import (
+    _review_open_connection,
     get_component_review_token as get_component_review_token,
     review_component as review_component,
     review_open as review_open,
@@ -306,6 +307,81 @@ def _draft_values(draft: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _lock_publish_review_state(connection: Connection, week_id: int) -> list[int]:
+    connection.execute(
+        text(
+            '''
+            /* publish_service_lock */
+            SELECT s.id
+            FROM cafeteria.menu_services s
+            JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id
+            WHERE s.menu_week_id=:week_id
+            ORDER BY s.service_date, mp.sort_order, s.id
+            FOR UPDATE OF s
+            '''
+        ),
+        {'week_id': week_id},
+    ).all()
+    item_ids = [
+        int(value)
+        for value in connection.execute(
+            text(
+                '''
+                /* publish_item_lock */
+                SELECT i.id
+                FROM cafeteria.menu_items i
+                JOIN cafeteria.menu_services s ON s.id=i.service_id
+                WHERE s.menu_week_id=:week_id
+                ORDER BY i.id
+                FOR UPDATE OF i
+                '''
+            ),
+            {'week_id': week_id},
+        ).scalars()
+    ]
+    component_ids = sorted(
+        {
+            int(value)
+            for value in connection.execute(
+                text(
+                    '''
+                    SELECT mic.component_id
+                    FROM cafeteria.menu_item_components mic
+                    WHERE mic.menu_item_id=ANY(CAST(:item_ids AS bigint[]))
+                      AND mic.component_id IS NOT NULL
+                    '''
+                ),
+                {'item_ids': item_ids},
+            ).scalars()
+        }
+    )
+    connection.execute(
+        text(
+            '''
+            /* publish_component_lock */
+            SELECT id FROM cafeteria.menu_components
+            WHERE id=ANY(CAST(:component_ids AS bigint[]))
+            ORDER BY id FOR SHARE
+            '''
+        ),
+        {'component_ids': component_ids},
+    ).all()
+    connection.execute(
+        text(
+            '''
+            /* publish_link_lock */
+            SELECT menu_item_id, sort_order
+            FROM cafeteria.menu_item_components
+            WHERE menu_item_id=ANY(CAST(:item_ids AS bigint[]))
+            ORDER BY menu_item_id, sort_order
+            FOR UPDATE
+            '''
+        ),
+        {'item_ids': item_ids},
+    ).all()
+    return item_ids
+
+
 def publish_draft(
     engine: Engine,
     profile_code: str,
@@ -342,9 +418,13 @@ def publish_draft(
         )
         if draft['row_version'] != expected_row_version:
             raise StaleDraftError('Der Entwurf wurde zwischenzeitlich geändert.')
+        item_ids = _lock_publish_review_state(connection, int(draft['id']))
+        draft = load_draft_connection(connection, profile_code, week_start)
         values = _draft_values(draft)
         _validate_values(profile_code, week_start, values)
         validate_publication_fit(profile_code, values)
+        if any(_review_open_connection(connection, item_id) for item_id in item_ids):
+            raise WorkflowValidationError('Allergendeklaration ist nicht geprüft.')
         revision_number = int(
             connection.execute(
                 text(

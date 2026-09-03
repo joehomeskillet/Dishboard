@@ -150,6 +150,67 @@ def test_snapshot_projects_exact_public_metadata_and_detaches_source() -> None:
     assert snapshot == frozen
 
 
+def test_snapshot_location_is_an_exact_detached_public_projection() -> None:
+    draft = _staff_draft()
+    draft['location'] = {
+        'code': 'KIRCHLINDACH',
+        'name': 'Südhang',
+        'id': 42,
+        'internal': {'tenant': 'secret'},
+    }
+
+    snapshot = build_snapshot('staff_guest', draft, 'CAF-2026-KW37-R1')
+
+    assert snapshot['location'] == {'code': 'KIRCHLINDACH', 'name': 'Südhang'}
+    draft['location']['code'] = 'CHANGED'
+    draft['location']['internal']['tenant'] = 'changed'
+    assert snapshot['location'] == {'code': 'KIRCHLINDACH', 'name': 'Südhang'}
+
+
+def test_snapshot_preserves_component_bytes_and_semantic_order() -> None:
+    draft = _staff_draft()
+    source = draft['days'][0]['services'][0]['options'][0]
+    source['components'] = ['  Freitext\t', 'Sauce']
+
+    snapshot = build_snapshot('staff_guest', draft, 'CAF-2026-KW37-R1')
+    option = snapshot['days'][0]['services'][0]['options'][0]
+
+    assert option['components'] == ['  Freitext\t', 'Sauce']
+
+
+def test_snapshot_canonicalizes_only_unordered_public_metadata_arrays() -> None:
+    draft = _staff_draft()
+    source = draft['days'][0]['services'][0]['options'][0]
+    source['labels'] = [
+        {'code': 'Z', 'name': 'Zuletzt'},
+        {'code': 'A', 'name': 'Zuerst'},
+    ]
+    source['allergens'] = [
+        {'code': 'B', 'name': 'Milch', 'presence': 'may_contain'},
+        {'code': 'A', 'name': 'Gluten', 'presence': 'contains'},
+    ]
+    source['origins'] = [
+        {'ingredient': 'Rind', 'country_code': 'CH', 'text': 'Rind: CH'},
+        {'ingredient': 'Kartoffel', 'country_code': 'DE', 'text': 'Kartoffel: DE'},
+    ]
+
+    snapshot = build_snapshot('staff_guest', draft, 'CAF-2026-KW37-R1')
+    option = snapshot['days'][0]['services'][0]['options'][0]
+
+    assert option['labels'] == [
+        {'code': 'A', 'name': 'Zuerst'},
+        {'code': 'Z', 'name': 'Zuletzt'},
+    ]
+    assert option['allergens'] == [
+        {'code': 'A', 'name': 'Gluten', 'presence': 'contains'},
+        {'code': 'B', 'name': 'Milch', 'presence': 'may_contain'},
+    ]
+    assert option['origins'] == [
+        {'ingredient': 'Kartoffel', 'country_code': 'DE', 'text': 'Kartoffel: DE'},
+        {'ingredient': 'Rind', 'country_code': 'CH', 'text': 'Rind: CH'},
+    ]
+
+
 @pytest.mark.parametrize(
     ('collection', 'field', 'value'),
     [

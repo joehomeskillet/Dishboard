@@ -74,8 +74,7 @@ def _full_state(database: CatalogDatabase, item_id: int) -> tuple[object, ...]:
 
 
 def _is_review_open(database: CatalogDatabase, item_id: int) -> bool:
-    with database.app.connect() as connection:
-        return workflow.review_open(connection, item_id)
+    return workflow.review_open(database.app, _scope(database), item_id)
 
 
 def _allergens(database: CatalogDatabase, item_id: int) -> tuple[tuple[str, str], ...]:
@@ -92,6 +91,20 @@ def _allergens(database: CatalogDatabase, item_id: int) -> tuple[tuple[str, str]
                 ),
                 {'item_id': item_id},
             ).all()
+        )
+
+
+def test_review_open_is_bound_to_location_profile_and_item(
+    catalog_database: CatalogDatabase,
+) -> None:
+    item = _item(catalog_database, review='checked', suffix='SCOPED-PREDICATE')
+
+    assert not workflow.review_open(catalog_database.app, item.scope, item.id)
+    with pytest.raises(ComponentNotFoundError):
+        workflow.review_open(
+            catalog_database.app,
+            AdminScope(item.scope.actor_id, item.scope.location_id, 'staff_guest'),
+            item.id,
         )
 
 

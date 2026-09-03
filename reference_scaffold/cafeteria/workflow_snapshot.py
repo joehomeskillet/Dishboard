@@ -14,9 +14,10 @@ TYPE_NAMES = {'MENU_1': 'Menü 1', 'VEGGIE': 'Vegetarisch'}
 def _public_rows(
     values: object,
     fields: tuple[str, ...],
+    sort_fields: tuple[str, ...],
     label: str,
 ) -> list[dict[str, str]]:
-    if not isinstance(values, list):
+    if type(values) is not list:
         raise ValueError(f'{label} müssen eine Liste sein.')
     result = []
     for value in values:
@@ -29,7 +30,25 @@ def _public_rows(
                 raise ValueError(f'{label} enthalten einen ungültigen Wert.')
             projected[field] = field_value
         result.append(projected)
+    return sorted(result, key=lambda row: tuple(row[field] for field in sort_fields))
+
+
+def _public_location(value: object) -> dict[str, str]:
+    if not isinstance(value, Mapping):
+        raise ValueError('Standort ist ungültig.')
+    result = {}
+    for field in ('code', 'name'):
+        field_value = value.get(field)
+        if type(field_value) is not str:
+            raise ValueError('Standort ist ungültig.')
+        result[field] = field_value
     return result
+
+
+def _components(value: object) -> list[str]:
+    if type(value) is not list or any(type(component) is not str for component in value):
+        raise ValueError('Komponenten müssen eine Liste aus Text sein.')
+    return list(value)
 
 
 def external_id(profile_code: str, service_date: str, meal_code: str, type_code: str) -> str:
@@ -54,13 +73,21 @@ def _option(
         'type_name': TYPE_NAMES[type_code],
         'title': str(value['title']).strip(),
         'description': str(value.get('description', '')).strip(),
-        'components': [str(component).strip() for component in value.get('components', []) if str(component).strip()],
-        'labels': _public_rows(value.get('labels', []), ('code', 'name'), 'Labels'),
+        'components': _components(value.get('components', [])),
+        'labels': _public_rows(
+            value.get('labels', []), ('code', 'name'), ('code', 'name'), 'Labels'
+        ),
         'allergens': _public_rows(
-            value.get('allergens', []), ('code', 'name', 'presence'), 'Allergene'
+            value.get('allergens', []),
+            ('code', 'name', 'presence'),
+            ('code', 'presence', 'name'),
+            'Allergene',
         ),
         'origins': _public_rows(
-            value.get('origins', []), ('ingredient', 'country_code', 'text'), 'Herkünfte'
+            value.get('origins', []),
+            ('ingredient', 'country_code', 'text'),
+            ('ingredient', 'country_code', 'text'),
+            'Herkünfte',
         ),
         'note': str(value.get('note', '')).strip(),
         'allergen_review_status': str(value.get('allergen_review_status', 'not_checked')),
@@ -131,7 +158,7 @@ def build_snapshot(
         'profile_code': profile_code,
         'channel': 'patienten' if profile_code == 'patient' else 'cafeteria',
         'revision_id': revision_code,
-        'location': dict(draft['location']),
+        'location': _public_location(draft['location']),
         'week_start': week_start.isoformat(),
         'week_end': (week_start + timedelta(days=6)).isoformat(),
         'title': str(draft['title']).strip(),
