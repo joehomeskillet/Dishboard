@@ -65,6 +65,14 @@ der Labelwert wird nicht dupliziert. `menu_item_components` erhält nullable `co
 `component_row_version`; `component_text` bleibt exakt erhalten und ist bei
 freien Texten der alleinige Inhalt.
 
+Die öffentlichen Create-, Find- und Get-Records einer Komponente haben
+einheitlich exakt die Keys `public_id,profile_scope,category,name,`
+`origin_country_code,active,row_version,usage_count,labels,allergens`. Ein
+Label-Objekt hat exakt `code,name`, ein Allergen-Objekt exakt
+`code,name,presence`. Labels sind stabil nach `(code ASC, name ASC)`, Allergene
+nach `(code ASC, presence ASC, name ASC)` sortiert. Interne IDs und Zeitstempel
+werden nie ausgegeben.
+
 `menu_items` erhält drei unabhängige Modi: `allergen_mode`, `origin_mode`,
 `label_mode`, jeweils `auto|manual`. Es gibt keinen gemeinsamen `mode`.
 
@@ -80,11 +88,29 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
   verschiedenen Ländern ist ein harter Fehler.
 - Ernährung: Intersection über alle verknüpften Komponenten. Ein nullable
   Link/freier `component_text` erbt keine Allergene, Herkunft oder Labels.
-- In `auto` rematerialisiert jede Änderung die effektiven bestehenden Tabellen;
-  `manual` bewahrt die Werte je Klasse. Eine Komponenten- oder Linkänderung
-  rematerialisiert nur Auto-Klassen und setzt den Review-Status zurück.
-- Publish verweigert ungeprüfte oder stale Component-Versionen. Ein Review
-  bestätigt die konkrete Version; bei Änderung muss neu geprüft werden.
+- Architektur A ist verbindlich: Eine Katalog-Metadatenänderung mutiert nur die
+  Komponente und ihre Label-/Allergen-Childzeilen und erhöht die
+  Komponenten-`row_version` exakt einmal. Sie mutiert weder verknüpfte Items,
+  Review-Zeilen oder Wochen noch auto-materialisierte oder manuelle Itemwerte.
+  Bestehende Assignments behalten ihre gespeicherte `component_row_version`;
+  die dynamisch erkannte Abweichung zur aktuellen Komponenten-Version bedeutet
+  `needs-review` und blockiert Publish. Archive und Unarchive verwenden dieselbe
+  Stale-Link-Regel. Jeder Metadaten-Child-Writer sperrt zuerst die Parent-
+  Komponente `FOR UPDATE`, validiert den gesamten Payload vor einem Delete und
+  ersetzt Childzeilen deterministisch.
+- Eine Linkänderung rematerialisiert nur die Auto-Klassen und setzt den
+  Review-Status zurück. Der spätere Review eines einzelnen Items
+  rematerialisiert dessen aktuelle Auto-Effekte, bewahrt jede manuelle Klasse
+  byte-identisch, übernimmt die aktuellen Komponenten-Versionen in dessen
+  Links, aktualisiert bei Kataloglinks `component_text` aus dem aktuellen
+  Katalognamen, lässt freien Text byte-identisch und beseitigt damit den
+  Versions-Mismatch. Die Katalog-UI weist nach
+  Metadatenänderung, Archive oder Unarchive darauf hin, dass betroffene Gerichte
+  erneut geprüft werden müssen.
+- Load, Status und Publish verwenden zentral exakt
+  `review_open/needs_review = allergen_review_status != 'checked' OR EXISTS(stored linked_component_version <> current component row_version)`.
+  Ein persistiertes `checked` überschreibt daher nie einen Versions-Mismatch.
+  Publish verweigert `needs_review`; ein Review bestätigt die konkrete Version.
 - `get_component_review_token(engine, scope, item_id)` liefert einen
   **Single-Use-Pre-Review-Token** im Format `sha256:` plus 64
   Kleinbuchstaben-Hexzeichen. Er ist ein Optimistic-Concurrency-Token und kein
@@ -141,6 +167,13 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
   `(menu_item_id, sort_order ASC)` ein. Alle Locks bleiben bis Commit oder
   Rollback. Diese Reihenfolge ist auch bei umgekehrter Caller- oder
   Assignment-Reihenfolge verbindlich.
+- Ein Multi-Item-Import/Recovery-Pfad sperrt global alle betroffenen Items,
+  danach die Komponenten-Vereinigungsmenge und danach **alle bereits
+  vorhandenen Linkzeilen aller betroffenen Items** in
+  `(menu_item_id, sort_order)`-Reihenfolge, bevor er
+  `replace_component_links_connection` zum ersten Mal aufruft. Erst danach
+  folgen die deterministischen Mutationen. Kein Helper-Aufruf darf diese
+  Batch-Prelocks teilweise vorwegnehmen.
 - `review_component(engine, scope, item_id, component_version,
   expected_row_version)` verwendet `component_version` als den obigen
   Pre-Review-Token. Es sperrt in genau einer Transaktion und in dieser stabilen
@@ -158,8 +191,10 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
   gesperrten Zeilen erneut gelesen und geprüft. Ein vorher gewinnender
   Concurrent-Write führt dadurch zu 409; ein späterer Write wartet. Fremder
   Scope liefert 404. Beide Antworten erfolgen ohne Teilmutation. Bei Erfolg
-  rematerialisiert die Operation aktuelle Auto-Klassen, übernimmt aktuelle
-  Komponenten-Versionen in die Links, markiert danach geprüft, erhöht die
+  rematerialisiert die Operation aktuelle Auto-Klassen, bewahrt jede manuelle
+  Klasse byte-identisch, übernimmt aktuelle Komponenten-Versionen in die Links,
+  aktualisiert `component_text` bei Kataloglinks aus dem aktuellen Katalognamen,
+  lässt freie Texte byte-identisch, markiert danach geprüft, erhöht die
   Item-`row_version` exakt einmal und schreibt
   `menu_weeks.updated_by=scope.actor_id` in derselben Transaktion. Sie liefert
   die neue Item-`row_version`; der HTTP-Handler antwortet per 303/PRG auf den
@@ -180,17 +215,24 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
   macht dasselbe über `replace_component_links`. Beide beweisen: kein
   Deadlock/`40P01`, der Verlierer wartet auf den Gewinner und liefert danach
   stale 409 ohne Teilmutation; der Endzustand enthält exakt die Gewinner-Links.
+  Beide Aufrufe eines Race verwenden dieselbe erwartete Item-`row_version`;
+  exakt einer gewinnt. Die `replace_component_links`-Tests beweisen zusätzlich,
+  dass der Gewinner exakt `old_row_version + 1` zurückgibt, den Review-Status
+  zurücksetzt, alle Auto-Effekte rematerialisiert und jede manuelle Klasse
+  byte-identisch erhält.
 - Ein eigener Multi-Item-Test verwendet ausschließlich einen echten
   Full-Import/Recovery-Transaktionspfad. Dieser löst vor jedem Aufruf des
   Connection-Helpers alle betroffenen Items vorab auf, sperrt sie nach
   numerischer `menu_items.id ASC` und sperrt danach die vollständige
   Komponenten-Vereinigungsmenge nach numerischer `menu_components.id ASC`.
   Zwei Connections reichen dieselben zwei scoped Items mit umgekehrter
-  Item-/Assignment-Reihenfolge ein. Ohne Timing-Sleeps beweist der Test die
-  globale Item-/Komponenten-/Link-Lock-Reihenfolge, kein Deadlock/`40P01`,
-  deterministische Serialisierung beziehungsweise stale 409 und keine
-  Teilmutation. Keine Single-Item- oder erfundene Task-4-Batch-API wird dabei
-  als Multi-Item-Transaktion dargestellt.
+  Item-/Assignment-Reihenfolge und derselben erwarteten Version ein. Der Pfad
+  sperrt alle bestehenden Linkzeilen beider Items global geordnet, bevor der
+  erste Helper läuft. Ohne Timing-Sleeps beweist der Test die globale
+  Item-/Komponenten-/Link-Lock-Reihenfolge, kein Deadlock/`40P01`, exakt einen
+  Gewinner und einen stale-409-Verlierer mit null Mutation. Keine Single-Item-
+  oder erfundene Task-4-Batch-API wird dabei als Multi-Item-Transaktion
+  dargestellt.
 - Ein direkter Test des Connection-Helpers läuft in genau einer vom Caller
   kontrollierten Transaktion und beweist, dass der Helper selbst weder committet
   noch Item-, Review- oder Versionszustand verändert.
@@ -205,6 +247,21 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
   Contract: `components` ist `list[str]`, `labels`, `allergens` und `origins`
   sind Listen von Dicts, und `allergen_review_status` ist ein String. Er enthält
   keine IDs, Modi oder Versionen und ist nach Publish unveränderlich.
+- Publish sperrt vor der Snapshot-Erzeugung alle scoped Items der Woche nach
+  numerischer `menu_items.id ASC FOR UPDATE`, danach die vollständige
+  Komponenten-Vereinigungsmenge nach numerischer `menu_components.id ASC FOR
+  SHARE` und danach alle Linkzeilen global nach
+  `(menu_item_id, sort_order) FOR UPDATE`. Unter diesen Locks liest es
+  Reviewstatus und gespeicherte/aktuelle Versionen erneut und wendet den
+  zentralen `review_open/needs_review`-Predicate an. Erst dann darf es den unveränderlichen
+  Snapshot bauen.
+- Synchronisierte Real-PG16-Races ohne Timing-Sleeps decken Katalogedit gegen
+  Assign, Unassign, Review und Publish in beiden Gewinnerreihenfolgen ab. Sie
+  beweisen: kein `40P01`, kein gemischter Zustand und keine Teilmutation. Eine
+  gemeinsame `common`-Komponente über Profile und Wochen verändert beim Edit
+  keine Item-/Wochenzeile; Review heilt genau ein Item. Publish-vor-Edit bewahrt
+  den alten unveränderlichen Snapshot, Edit-vor-Publish blockiert Publish, und
+  persistiertes `checked` überstimmt nie einen Versions-Mismatch.
 
 ## 5. Migration und Rückwärtskompatibilität
 
@@ -256,6 +313,39 @@ Login, Session-Cookie und der bestehende Auth-CSRF-Token `csrf_token` bleiben
 unverändert; der neue `_csrf`-Name gilt ausschließlich für den Admin-POST-
 Contract und ersetzt keinen Auth-Contract.
 
+`workflow_partial_store.py` definiert den privaten, unveränderlichen
+`WeekRef(week_id,location_id,profile_code,week_start,row_version)` sowie die
+scoped Resolver `resolve_week_ref(connection, scope, week_start, *,
+for_update=False) -> WeekRef` und `resolve_item_id(connection, scope, week_ref,
+day, meal, option, *, for_update=False) -> int`. Die Resolver validieren
+ISO-Montag, Profilraster, Location und URL-abgeleitetes Profil. Routes leiten
+Wochen- und Item-Identität ausschließlich daraus ab; Formulare dürfen weder
+`week_id` noch `item_id` oder eine andere interne ID liefern.
+
+Komponenten-Create akzeptiert exakt die skalaren Felder
+`_csrf,category,name,origin_country_code,target_scope`, wiederholtes
+`label_code` sowie paarweise wiederholtes `allergen_code,allergen_presence`.
+Komponenten-Update akzeptiert den identischen vollständigen Metadaten-Payload
+plus skalares `row_version`, aber kein `target_scope`. Archive und Unarchive
+akzeptieren jeweils exakt `_csrf,row_version`. Alle vier Parser verwerfen
+doppelte skalare Keys, ungleich lange Allergen-Arrays und jeden unerwarteten
+Key; ausdrücklich verboten sind `profile`, `profile_scope`, interne IDs und
+Master-IDs.
+
+Create nimmt programmatisch Kategorie, Name, Herkunft, `target_scope`, eine
+`label_codes`-Sequence und eine `allergens`-Sequence aus
+`(code, contains|may_contain)` entgegen. Update nimmt den vollständigen
+entsprechenden Metadaten-Payload plus erwartete Version. Doppelte, unbekannte
+oder ungültige Codes/Presence-Werte werden vor jedem Delete zurückgewiesen.
+Neue Child-Links erfordern aktive Masterzeilen. Bereits verlinkte inaktive
+Master dürfen unverändert erhalten bleiben, aber weder neu hinzugefügt noch in
+ihrer Presence geändert werden. Parent und Children schreiben atomar und
+erhöhen die Komponenten-Version bei einer Änderung exakt einmal; ein zum
+gespeicherten Zustand byte-identischer vollständiger Payload ist ein echter
+No-op und behält die Version. Die private Auflösung und Validierung liegt in
+`component_catalog_metadata.py`, damit die Produktionsmodule jeweils unter
+400 Zeilen bleiben.
+
 | Methode und Route | Zweck / erlaubte Eingabe |
 |---|---|
 | `GET /admin/cafeteria?week=` und `GET /admin/patienten?week=` | Wochenübersicht, Header, Service und Grid |
@@ -267,11 +357,11 @@ Contract und ersetzt keinen Auth-Contract.
 | `GET /admin/{cafeteria\|patienten}/service?week=` | Service-Status laden |
 | `POST /admin/{cafeteria\|patienten}/service` | Service-Status speichern |
 | `GET /admin/{cafeteria\|patienten}/komponenten?q=&category=&include_archived=` | Suche, Kategorie, Archivfilter, Nutzung und Sortierung; Profil aus URL-Familie |
-| `POST /admin/{cafeteria\|patienten}/komponenten` | Komponente mit exact Feldern anlegen |
+| `POST /admin/{cafeteria\|patienten}/komponenten` | exact `_csrf,category,name,origin_country_code,target_scope` plus repeated `label_code,allergen_code,allergen_presence` |
 | `GET /admin/{cafeteria\|patienten}/komponenten/<public_id>` | Komponente anzeigen |
-| `POST /admin/{cafeteria\|patienten}/komponenten/<public_id>` | Komponente bearbeiten, row_version erforderlich |
-| `POST /admin/{cafeteria\|patienten}/komponenten/<public_id>/archive` | archivieren, keine Löschung |
-| `POST /admin/{cafeteria\|patienten}/komponenten/<public_id>/unarchive` | reaktivieren, Name bleibt reserviert |
+| `POST /admin/{cafeteria\|patienten}/komponenten/<public_id>` | exact `_csrf,category,name,origin_country_code,row_version` plus repeated `label_code,allergen_code,allergen_presence`; kein `target_scope` |
+| `POST /admin/{cafeteria\|patienten}/komponenten/<public_id>/archive` | exact `_csrf,row_version`; archivieren, keine Löschung |
+| `POST /admin/{cafeteria\|patienten}/komponenten/<public_id>/unarchive` | exact `_csrf,row_version`; reaktivieren, Name bleibt reserviert |
 | `GET /admin/{cafeteria\|patienten}/copy?week=` | leere Zielwochen anbieten |
 | `POST /admin/{cafeteria\|patienten}/copy` | `_csrf,source_week,target_week,target_row_version` |
 | `GET /admin/{cafeteria\|patienten}/preview?week=` | zuletzt gespeicherten Draft anzeigen |
@@ -281,12 +371,24 @@ Die Komponentensuche für eine Zuweisung zeigt nur aktive Komponenten mit
 `common`- oder passendem Scope; die Katalogverwaltung darf mit
 `include_archived=1` zusätzlich archivierte Komponenten anzeigen. Katalog-CRUD,
 Zuweisung, Copy und Publish erzwingen Location- und Scope-Isolation.
-Copy ist nur für eine wirklich leere Zielwoche desselben Profils erlaubt,
-läuft atomar unter Locks, erzeugt neue `external_id`s, setzt Reviews zurück,
-publiziert nicht und kopiert beim Patient keine Preise. Nicht leere oder
-gleichzeitig geänderte Ziele liefern 409 ohne Teilmutation.
-„Wirklich leer“ bedeutet dabei exakt: null `menu_items` für Zielwoche und
-Profil sowie keine aktive Veröffentlichung für dieses Ziel.
+Die route-unabhängige Implementierung liegt in `workflow_copy_store.py`.
+Quelle ist ausschließlich die Vorwoche, also exakt Ziel-Montag minus sieben
+Tage, in derselben Location und demselben URL-abgeleiteten Profil; eine
+abweichende übermittelte `source_week` wird als 400 zurückgewiesen. Der Store
+leitet die Quelle aus dem Ziel ab und akzeptiert keine internen IDs.
+`target_row_version=0` bedeutet, dass die Zielwoche noch nicht existiert. Ein
+positiver Wert bedeutet eine bereits vorhandene, leere Zielwoche mit exakt
+dieser Version. Eine vorhandene Zielwoche bei erwarteter Version 0, eine stale
+positive Version, Ziel-Items oder eine aktive Ziel-Publikation liefern 409 ohne
+Teilmutation. Der Copy schreibt atomar, erzeugt neue Item-`external_id`s, setzt
+Reviews zurück, lässt Patientenpreise aus und publiziert nie. „Leer“ bedeutet
+exakt null `menu_items` des Zielprofils und keine aktive Veröffentlichung.
+
+Null oder mehrere konfigurierte aktive Locations werden für jede betroffene
+HTTP-Operation einheitlich als 503 abgebildet. Eine fehlende scoped Woche, ein
+fehlendes scoped Item, ein fehlender gespeicherter Draft oder eine nicht
+vorhandene Preview-Ressource liefert 404; Scope-Leaks werden ebenfalls als 404
+maskiert.
 
 ## 7. Preview, Save, Publish und Fehlertexte
 
@@ -333,11 +435,11 @@ Named RED-Tests (zuerst rot, danach grün) und Dateien:
 | Test | Datei / Beweis |
 |---|---|
 | reale PG16-Migration, Grants, Schema 13, Backfill-/Terminator-Contract | `reference_scaffold/tests/test_component_catalog_migration_db.py`, `reference_scaffold/tests/test_auth_database.py`, `reference_scaffold/tests/test_database_invariants.py` |
-| Katalog CRUD/Archiv/Suche/Usage und Isolation | `reference_scaffold/tests/test_component_catalog_db.py`, `reference_scaffold/tests/test_component_catalog_routes.py` |
+| Katalog CRUD/Archiv/Suche/Usage, atomare Label-/Allergen-Metadaten, No-op und Isolation | `reference_scaffold/tests/test_component_catalog_db.py`, `reference_scaffold/tests/test_component_catalog_metadata_db.py`, `reference_scaffold/tests/test_component_catalog_routes.py` |
 | Komponenten-Zuweisung, Allergie-Union/contains, Herkunft-Konflikt, Diet-Intersection | `reference_scaffold/tests/test_component_assignment_db.py` |
 | Location/Profile-Isolation und Public-ID/404 | `reference_scaffold/tests/test_public_isolation_homoglyphs.py`, `reference_scaffold/tests/test_database_invariants.py` |
 | exakter immutable Snapshot, Golden-Hash-Token, Lock-Reihenfolge und Concurrent-/Repeat-Review | `reference_scaffold/tests/test_admin_workflow_db.py` |
-| leerer Same-Profile-Copy, Lock/409, neue IDs | `reference_scaffold/tests/test_admin_workflow_routes.py`, `reference_scaffold/tests/test_workflow_form.py` |
+| exakte Vorwochen-Copy, absent/existing-empty Target-Version, Lock/409, neue IDs | `reference_scaffold/tests/test_workflow_copy_store_db.py`, `reference_scaffold/tests/test_admin_workflow_routes.py`, `reference_scaffold/tests/test_workflow_form.py` |
 | LAST-SAVED Preview, no-store, Dirty-Guard | `reference_scaffold/tests/test_admin_draft_preview.py` |
 | Publish/PRG/Review/Stale/CSRF/400/409 | `reference_scaffold/tests/test_admin_workflow_routes.py`, `reference_scaffold/tests/test_workflow_form.py` |
 | CHF Parsing/Rappen/Patient-Preisverbot und Wochen-Familien | `reference_scaffold/tests/test_admin_week_routes.py` |
@@ -368,6 +470,13 @@ lesen, aber niemals dieselben Dateien schreiben. CSV-Import bleibt Freitext
 plus `manual`; er führt keine stillen Katalogeinträge ein. Bei fehlendem
 Backup, unklarem Scope, stale Version, nicht bestandenem HIGH/CRITICAL-Review
 oder fehlender Auth-/Browser-Evidenz: BLOCKED, kein Push/Deploy.
+
+Tasks 7, 8 und 9 bilden eine einzige serialisierte Integrationswelle. Nachdem
+Task 7 Legacy-Routen entfernt oder deaktiviert, darf weder ein Zwischenstand
+als Full-Suite-grün noch als deploy-ready bezeichnet werden, bis Task 8 die
+Publish-/Statussemantik und Task 9 die zugehörigen servergerenderten
+Oberflächen vollständig integriert haben. Erst danach sind Full-Regression-
+und Deployment-Gates zulässig.
 
 ## 11. Selbstprüfung
 
