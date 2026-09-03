@@ -449,7 +449,7 @@ grant files.
 
 **Files:** Create `reference_scaffold/cafeteria/component_assignment_store.py`; modify `reference_scaffold/cafeteria/workflow.py`; test `reference_scaffold/tests/test_component_assignment_db.py`.
 
-**Interfaces:** `assign_component(engine: Engine, scope: AdminScope, item_id: int, component_public_id: str | None, component_text: str | None, expected_item_row_version: int) -> int`; `replace_component_links(engine: Engine, scope: AdminScope, item_id: int, assignments: Sequence[Mapping[str, object]], expected_item_row_version: int) -> int`; `replace_component_links_connection(connection, scope, item_id, assignments) -> None`; `resolve_component_effects(engine: Engine, scope: AdminScope, item_id: int) -> dict[str, object]`; modes are independently `allergen_mode`, `origin_mode`, `label_mode`. No assignment/effects API accepts an unscoped `item_id`. The engine-level replace API starts one transaction, locks the scoped week, then its owning service, then the scoped item, version-checks the item, calls the connection helper, rematerializes auto classes, resets review, bumps the item version exactly once and returns the new version. The connection helper validates every assignment, enforces location/profile scope and replaces all links inside its caller's transaction; it never commits or updates the item/review/version. T4 single-link/full-replace assignment and T6 partial/full Import/Recovery persistence use this helper; each one-item caller performs exactly one locked item update, review reset and version bump.
+**Interfaces:** `assign_component(engine: Engine, scope: AdminScope, item_id: int, component_public_id: str | None, component_text: str | None, expected_item_row_version: int) -> int`; `replace_component_links(engine: Engine, scope: AdminScope, item_id: int, assignments: Sequence[Mapping[str, object]], expected_item_row_version: int) -> int`; `replace_component_links_connection(connection, scope, item_id, assignments) -> None`; `resolve_component_effects(engine: Engine, scope: AdminScope, item_id: int) -> dict[str, object]`, returning exactly the keys `labels`, `allergens` and `origins`; modes are independently `allergen_mode`, `origin_mode`, `label_mode`. No assignment/effects API accepts an unscoped `item_id`. The engine-level replace API starts one transaction, locks the scoped week, then its owning service, then the scoped item, version-checks the item, calls the connection helper, rematerializes auto classes, resets review, bumps the item version exactly once and returns the new version. The connection helper validates every assignment, enforces location/profile scope and replaces all links inside its caller's transaction; it never commits or updates the item/review/version. T4 single-link/full-replace assignment and T6 partial/full Import/Recovery persistence use this helper; each one-item caller performs exactly one locked item update, review reset and version bump.
 
 Every `assignments` element has exactly the two keys
 `component_public_id` and `component_text`, with exactly one non-null value. A
@@ -473,6 +473,9 @@ success it updates links, rematerializes auto classes, resets review and bumps
 only the item `row_version` exactly once. It never updates week/service rows or
 versions and never changes a component. The connection helper performs only
 validated link replacement inside those caller-held locks.
+
+The dietary-label intersection over zero linked catalog components is exactly
+an empty list. Free-text links never contribute to that intersection.
 
 Auto origins exclude catalog components whose `origin_country_code` is
 `NULL` and every free-text link. Each remaining component yields exactly
