@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Event
 
 import pytest
-from sqlalchemy import Engine, create_engine, event
+from sqlalchemy import Engine, create_engine, event, text
 from sqlalchemy.pool import NullPool
 
 from cafeteria.component_assignment_store import (
@@ -32,6 +32,7 @@ def _separate_engine(database: CatalogDatabase) -> Engine:
 
 
 def _ordered_same_item_race(
+    observer_engine: Engine,
     first_engine: Engine,
     second_engine: Engine,
     first: Callable[[], int],
@@ -40,14 +41,17 @@ def _ordered_same_item_race(
     week_locked = Event()
     release = Event()
     loser_attempted = Event()
+    backend_pids: dict[str, int] = {}
 
     def first_after(_conn, _cursor, statement, _params, _ctx, _many):
         if '/* assignment_week_lock */' in statement:
+            backend_pids['winner'] = int(_cursor.connection.info.backend_pid)
             week_locked.set()
             assert release.wait(10)
 
     def second_before(_conn, _cursor, statement, _params, _ctx, _many):
         if '/* assignment_week_lock */' in statement:
+            backend_pids['loser'] = int(_cursor.connection.info.backend_pid)
             loser_attempted.set()
 
     event.listen(first_engine, 'after_cursor_execute', first_after)
@@ -65,7 +69,20 @@ def _ordered_same_item_race(
             assert week_locked.wait(10)
             loser = pool.submit(result, second)
             assert loser_attempted.wait(10)
-            release.set()
+            try:
+                blockers: list[int] = []
+                with observer_engine.connect() as connection:
+                    for _ in range(1_000):
+                        blockers = connection.execute(
+                            text('SELECT pg_blocking_pids(:pid)'),
+                            {'pid': backend_pids['loser']},
+                        ).scalar_one()
+                        if blockers:
+                            break
+                assert blockers == [backend_pids['winner']]
+                assert not loser.done()
+            finally:
+                release.set()
             return [winner.result(timeout=15), loser.result(timeout=15)]
     finally:
         event.remove(first_engine, 'after_cursor_execute', first_after)
@@ -108,7 +125,9 @@ def test_same_item_races_have_one_winner_and_stale_loser_without_deadlock(
                     [_assignment(None, 'zweiter')],
                     item.version,
                 )
-        results = _ordered_same_item_race(first_engine, second_engine, first, second)
+        results = _ordered_same_item_race(
+            catalog_database.owner, first_engine, second_engine, first, second
+        )
     finally:
         first_engine.dispose()
         second_engine.dispose()
