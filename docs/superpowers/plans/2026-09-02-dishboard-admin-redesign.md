@@ -54,6 +54,9 @@ persist_service_state(engine: Engine, scope: AdminScope, week_id: int,
 assign_component(engine: Engine, scope: AdminScope, item_id: int,
                  component_public_id: str | None, component_text: str | None,
                  version: int) -> int
+replace_component_links(engine: Engine, scope: AdminScope, item_id: int,
+                        assignments: Sequence[Mapping[str, object]],
+                        version: int) -> int
 replace_component_links_connection(connection, scope: AdminScope, item_id: int,
                                    assignments: Sequence[Mapping[str, object]]) -> None
 resolve_component_effects(engine: Engine, scope: AdminScope, item_id: int) -> dict[str, object]
@@ -211,7 +214,7 @@ backfill remains in `database/migrations/0010_v12_to_v13.sql`, not `db.py`.
 
 **Files:** Create `reference_scaffold/cafeteria/component_assignment_store.py`; modify `reference_scaffold/cafeteria/workflow.py`; test `reference_scaffold/tests/test_component_assignment_db.py`.
 
-**Interfaces:** `assign_component(engine: Engine, scope: AdminScope, item_id: int, component_public_id: str | None, component_text: str | None, version: int) -> int`; `replace_component_links_connection(connection, scope, item_id, assignments) -> None`; `resolve_component_effects(engine: Engine, scope: AdminScope, item_id: int) -> dict[str, object]`; modes are independently `allergen_mode`, `origin_mode`, `label_mode`. No assignment/effects API accepts an unscoped `item_id`. The connection-scoped replace helper validates every assignment, enforces location/profile scope, replaces all links and rematerializes auto classes inside its caller's transaction. It never commits or updates the item/review/version. T4 single-link assignment and T6 partial persistence both use this helper; their caller performs exactly one locked item update, review reset and version bump.
+**Interfaces:** `assign_component(engine: Engine, scope: AdminScope, item_id: int, component_public_id: str | None, component_text: str | None, version: int) -> int`; `replace_component_links(engine: Engine, scope: AdminScope, item_id: int, assignments: Sequence[Mapping[str, object]], version: int) -> int`; `replace_component_links_connection(connection, scope, item_id, assignments) -> None`; `resolve_component_effects(engine: Engine, scope: AdminScope, item_id: int) -> dict[str, object]`; modes are independently `allergen_mode`, `origin_mode`, `label_mode`. No assignment/effects API accepts an unscoped `item_id`. The engine-level replace API starts one transaction, locks and version-checks one scoped item, calls the connection helper, rematerializes auto classes, resets review, bumps the item version exactly once and returns the new version. The connection helper validates every assignment, enforces location/profile scope and replaces all links inside its caller's transaction; it never commits or updates the item/review/version. T4 single-link/full-replace assignment and T6 partial/full Import/Recovery persistence use this helper; each one-item caller performs exactly one locked item update, review reset and version bump.
 
 - [ ] Add RED tests for same-location/common-or-profile scope, cross-location/
   profile 404 assignment and effects, allergen union with `contains` winning,
@@ -220,20 +223,12 @@ backfill remains in `database/migrations/0010_v12_to_v13.sql`, not `db.py`.
   caller-owned transaction and prove it neither commits nor changes
   item/review/version itself.
 - [ ] Add separate mandatory real-PG16 synchronized two-connection SAME-item
-  races for `assign_component` and the one-item full-replace caller. Use no
+  races for `assign_component` and `replace_component_links`. Use no
   timing sleeps. Each proves no deadlock/`40P01`, loser waits for winner then
   returns stale 409 without partial mutation, and final links exactly match the
   winner.
-- [ ] Add a separate real-PG16 multi-item race through an actual multi-item
-  transaction path only: Full Import/Recovery or an explicit batch caller that
-  invokes `replace_component_links_connection` twice inside one transaction.
-  Two connections submit the same two scoped items with reversed caller/item/
-  assignment order. Without timing sleeps, prove numeric item/component/link
-  lock order, no deadlock/`40P01`, and a deterministic serialized result. Do
-  not claim `assign_component` or another single-item API participates in this
-  multi-item transaction.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_assignment_db.py`; expected FAIL.
-- [ ] Implement assignment validation and deterministic effects. Reject injected patient prices before any write. Route single-link and full-replace assignment through `replace_component_links_connection`; the caller performs exactly one locked item update, review reset and version bump. Before link locks or writes, resolve the complete existing-plus-requested component set, lock it by numeric internal ID, then lock and mutate links in the global order above; caller-supplied internal IDs are forbidden. On component/link change rematerialize only auto classes; manual values remain untouched.
+- [ ] Implement assignment validation and deterministic effects. Reject injected patient prices before any write. Route `assign_component` and `replace_component_links` through `replace_component_links_connection`; each engine-level caller locks and checks one scoped item/version, then performs exactly one review reset and item-version bump and returns the new version. Before link locks or writes, resolve the complete existing-plus-requested component set, lock it by numeric internal ID, then lock and mutate links in the global order above; caller-supplied internal IDs are forbidden. On component/link change rematerialize only auto classes; manual values remain untouched.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_component_assignment_db.py -v`; expected PASS.
 - [ ] Stage: `rtk git add reference_scaffold/cafeteria/component_assignment_store.py reference_scaffold/cafeteria/workflow.py reference_scaffold/tests/test_component_assignment_db.py`.
 - [ ] Commit: `rtk git commit -m 'feat: resolve scoped component assignments'`.
@@ -353,8 +348,12 @@ modes. Do not grow `workflow_form.py`; partial modules never call full replace.
   byte-identical neighbours, no implicit deletes, and preserved full
   Import/Recovery behavior in `test_workflow_partial_store_db.py`. When either
   path writes component links, assert it uses the T4 helper and the global
-  item/component/link lock order for existing archived, removed and new refs;
-  extend the mandatory reversed-order two-connection race to both paths.
+  item/component/link lock order for existing archived, removed and new refs.
+  Add the multi-item race here through the actual Full Import/Recovery batch
+  implementation: two independent connections submit the same two scoped
+  items with reversed item/assignment order, synchronized without timing
+  sleeps. Prove no deadlock/`40P01`, deterministic serialization or stale 409,
+  and no partial mutation. Do not invent or test a T4 batch API.
 - [ ] With cwd `reference_scaffold`, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_workflow_form.py tests/test_workflow_partial_store_db.py`; expected FAIL.
 - [ ] Implement whitelist parsing and route-derived raster validation in the new
   partial modules. Each partial handler derives the existing week's location,
@@ -367,9 +366,12 @@ modes. Do not grow `workflow_form.py`; partial modules never call full replace.
   defaults are safely `manual` for all three modes. Component replacement uses
   T4's `replace_component_links_connection`; T6 duplicates no assignment SQL,
   and its caller performs exactly one locked item update, review reset and
-  version bump. Full Import/Recovery uses the same helper for every component
-  link it creates; multi-item work is normalized by numeric item ID before any
-  component locks, and neither path accepts internal component IDs.
+  version bump. Full Import/Recovery pre-resolves and locks all affected items
+  by numeric `menu_items.id ASC`, then resolves and locks the full component
+  union by numeric `menu_components.id ASC`, before invoking the connection
+  helper for any item. It uses that helper for every component link it creates,
+  preserves deterministic link order, and neither path accepts internal
+  component IDs.
 - [ ] With cwd `reference_scaffold` and disposable PG16 App-role fixture configured, run: `rtk /tmp/dishboard-test-venv/bin/python -m pytest -q tests/test_workflow_form.py tests/test_workflow_partial_store_db.py -v`; expected PASS.
 - [ ] Stage: `rtk git add reference_scaffold/cafeteria/workflow_partial_form.py reference_scaffold/cafeteria/workflow_partial_store.py reference_scaffold/cafeteria/workflow_store.py reference_scaffold/tests/test_workflow_form.py reference_scaffold/tests/test_workflow_partial_store_db.py`.
 - [ ] Commit: `rtk git commit -m 'feat: parse exact partial admin forms'`.

@@ -119,8 +119,9 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
   `sha256:46fe2582022c284f54706d9d57f8c2dd783154fd6d7d9bc434bcd22665542507`.
 - Jede Transaktion, die `menu_item_components` erzeugt, ersetzt oder löscht,
   verwendet dieselbe globale Lock-Reihenfolge. Das gilt für
-  `assign_component`, vollständigen Replace über
-  `replace_component_links_connection`, Partial-Persistenz und
+  `assign_component`, vollständigen Replace über `replace_component_links`,
+  dessen internen `replace_component_links_connection`-Helper,
+  Partial-Persistenz und
   Import/Recovery, sobald dieser Pfad Komponenten-Links schreibt. Sie sperrt
   zuerst das scoped `menu_items`-Item per `FOR UPDATE`; ein Batch-Pfad sperrt
   alle betroffenen Items nach numerischer `menu_items.id ASC`, bevor er
@@ -163,20 +164,33 @@ zugewiesene Komponenten bleiben sichtbar, sind aber nicht neu auswählbar.
   `menu_weeks.updated_by=scope.actor_id` in derselben Transaktion. Sie liefert
   die neue Item-`row_version`; der HTTP-Handler antwortet per 303/PRG auf den
   scoped Menü-GET, der den neuen geprüften Zustand rendert.
+- Der Engine-Level-One-Item-Full-Replace ist exakt
+  `replace_component_links(engine: Engine, scope: AdminScope, item_id: int,
+  assignments: Sequence[Mapping[str, object]], version: int) -> int`. Er öffnet
+  eine Transaktion, sperrt genau das scoped Item, prüft dessen erwartete
+  `row_version` und ruft den Connection-Helper auf, der Assignments validiert
+  und alle Links ersetzt. Danach rematerialisiert die Engine-API die
+  Auto-Klassen, setzt den Review-Status zurück, erhöht die Item-`row_version`
+  exakt einmal und liefert die neue Version. Der Connection-Helper läuft in
+  der Caller-Transaktion; er committet nie und ändert selbst weder Review- noch
+  Item-Versionszustand.
 - Verpflichtende Real-PG16-Race-Tests öffnen je zwei unabhängige Connections
   und synchronisieren sie kontrolliert ohne Timing-Sleeps. Ein Test lässt zwei
   `assign_component`-Aufrufe dasselbe scoped Item ändern; ein separater Test
-  macht dasselbe über den One-Item-Full-Replace-Caller. Beide beweisen: kein
+  macht dasselbe über `replace_component_links`. Beide beweisen: kein
   Deadlock/`40P01`, der Verlierer wartet auf den Gewinner und liefert danach
   stale 409 ohne Teilmutation; der Endzustand enthält exakt die Gewinner-Links.
 - Ein eigener Multi-Item-Test verwendet ausschließlich einen echten
-  Multi-Item-Transaktionspfad: Full Import/Recovery oder einen expliziten
-  Batch-Caller, der innerhalb einer Caller-Transaktion den Connection-Helper
-  für zwei Items aufruft. Zwei Connections reichen dieselben zwei scoped Items
-  mit umgekehrter Caller-/Item-/Assignment-Reihenfolge ein. Ohne Timing-Sleeps
-  beweist der Test numerische Item-/Komponenten-/Link-Lock-Reihenfolge, kein
-  Deadlock/`40P01` und ein deterministisch serialisiertes Ergebnis. Die
-  Single-Item-API wird dabei nicht als Multi-Item-Transaktion dargestellt.
+  Full-Import/Recovery-Transaktionspfad. Dieser löst vor jedem Aufruf des
+  Connection-Helpers alle betroffenen Items vorab auf, sperrt sie nach
+  numerischer `menu_items.id ASC` und sperrt danach die vollständige
+  Komponenten-Vereinigungsmenge nach numerischer `menu_components.id ASC`.
+  Zwei Connections reichen dieselben zwei scoped Items mit umgekehrter
+  Item-/Assignment-Reihenfolge ein. Ohne Timing-Sleeps beweist der Test die
+  globale Item-/Komponenten-/Link-Lock-Reihenfolge, kein Deadlock/`40P01`,
+  deterministische Serialisierung beziehungsweise stale 409 und keine
+  Teilmutation. Keine Single-Item- oder erfundene Task-4-Batch-API wird dabei
+  als Multi-Item-Transaktion dargestellt.
 - Ein direkter Test des Connection-Helpers läuft in genau einer vom Caller
   kontrollierten Transaktion und beweist, dass der Helper selbst weder committet
   noch Item-, Review- oder Versionszustand verändert.
