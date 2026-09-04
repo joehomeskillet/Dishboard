@@ -4,6 +4,7 @@ import base64
 import datetime as dt
 import re
 import sys
+from collections.abc import Iterator
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -11,17 +12,37 @@ from typing import Any
 import pytest
 from flask import Blueprint, Flask
 from playwright.sync_api import Browser, sync_playwright
+from sqlalchemy import Engine, create_engine
+from sqlalchemy.pool import NullPool
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'reference_scaffold'))
 sys.path.insert(0, str(ROOT / 'tools'))
 
+from cafeteria import db as database  # noqa: E402
 from cafeteria.admin import routes as admin_routes  # noqa: E402
+from cafeteria.admin import workflow_routes as workflow_routes  # noqa: E402
+from cafeteria.component_catalog_store import archive_component, create_component  # noqa: E402
 from cafeteria.public import routes as public_routes  # noqa: E402
 from cafeteria.security import csrf_token  # noqa: E402
 from cafeteria.signage import routes as signage_routes  # noqa: E402
+from cafeteria.workflow_partial_store import persist_menu_item  # noqa: E402
 from demo_snapshots import cafeteria_snapshot, patient_snapshot  # noqa: E402
 import cafeteria.roles  # noqa: E402
+from test_admin_workflow_routes import (  # noqa: E402
+    APP_PASSWORD,
+    BACKUP_PASSWORD,
+    DATABASE_URL,
+    DAY,
+    ISSUER_PASSWORD,
+    WEEK,
+    _drop_schema,
+    _hidden,
+    _login,
+    _payload,
+    _register,
+    _scope,
+)
 
 CSS_PATH = ROOT / 'reference_scaffold' / 'cafeteria' / 'static' / 'app.css'
 STATIC_IMG_PATH = ROOT / 'reference_scaffold' / 'cafeteria' / 'static' / 'img'
@@ -33,37 +54,14 @@ PATIENT_FORBIDDEN = re.compile(
 
 
 
-def _fixture_master_data() -> tuple[list[dict], list[dict]]:
-    """Return realistic fixture labels and allergens for UI testing."""
-    labels = [
-        {'code': 'vegan', 'display_name': 'Vegan'},
-        {'code': 'vegetarian', 'display_name': 'Vegetarisch'},
-        {'code': 'gluten_free', 'display_name': 'Glutenfrei'},
-        {'code': 'lactose_free', 'display_name': 'Laktosefrei'},
-    ]
-    allergens = [
-        {'code': 'gluten', 'display_name': 'Gluten', 'eu_number': '1', 'presence': 'contains'},
-        {'code': 'milk', 'display_name': 'Milch', 'eu_number': '7', 'presence': 'contains'},
-        {'code': 'eggs', 'display_name': 'Eier', 'eu_number': '3', 'presence': 'contains'},
-        {'code': 'nuts', 'display_name': 'Nüsse', 'eu_number': '8', 'presence': 'contains'},
-        {'code': 'soy', 'display_name': 'Soja', 'eu_number': '11', 'presence': 'contains'},
-    ]
-    return labels, allergens
-
-def _draft(snapshot: dict[str, Any], profile_code: str) -> dict[str, Any]:
-    draft = deepcopy(snapshot)
-    if profile_code == 'staff_guest':
-        draft['days'] = draft['days'][:5]
-    draft['row_version'] = 1
-    draft['shared_note'] = ''
-    for day in draft['days']:
-        for meal in day['services']:
-            meal.setdefault('notice', '')
-            for option in meal['options']:
-                if profile_code == 'staff_guest':
-                    option['internal_rappen'] = option['prices']['internal_rappen']
-                    option['external_rappen'] = option['prices']['external_rappen']
-    return draft
+_NEEDS_DB = pytest.mark.skipif(
+    not DATABASE_URL,
+    reason='TEST_DATABASE_URL für eine isolierte PostgreSQL-Testdatenbank fehlt.',
+)
+_SLOT = re.compile(
+    r'<article class="menu-slot" data-day="([^"]+)" data-meal="([^"]+)" '
+    r'data-option="([^"]+)" data-row-version="([^"]+)">',
+)
 
 
 @pytest.fixture
@@ -97,6 +95,7 @@ def app(monkeypatch: pytest.MonkeyPatch) -> Flask:
     application.register_blueprint(public_routes.bp)
     application.register_blueprint(signage_routes.bp)
     application.register_blueprint(admin_routes.bp)
+    assert workflow_routes.bp is admin_routes.bp
 
     snapshots = {
         'staff_guest': cafeteria_snapshot(),
@@ -113,10 +112,6 @@ def app(monkeypatch: pytest.MonkeyPatch) -> Flask:
     ) -> dict[str, Any]:
         return deepcopy(snapshots[profile_code])
 
-    def fake_draft(profile_code: str) -> dict[str, Any]:
-        return _draft(snapshots[profile_code], profile_code)
-
-    # Mock load_user_authorization to return authorized user without DB
     class MockAuthorization:
         def __init__(self):
             self.authz_version = 1
@@ -127,14 +122,51 @@ def app(monkeypatch: pytest.MonkeyPatch) -> Flask:
 
     monkeypatch.setattr(cafeteria.roles, 'load_user_authorization', mock_load_user_authorization)
     monkeypatch.setattr(public_routes, 'active_snapshot', fake_active_snapshot)
-    monkeypatch.setattr(admin_routes, '_draft', fake_draft)
-    monkeypatch.setattr(admin_routes, '_master_data', _fixture_master_data)
 
     @application.context_processor
     def inject_csrf() -> dict[str, object]:
         return {'csrf_token': csrf_token}
 
     return application
+
+
+@pytest.fixture
+def admin_engine() -> Iterator[Engine]:
+    assert DATABASE_URL is not None
+    engine = create_engine(DATABASE_URL, poolclass=NullPool, pool_pre_ping=True)
+    _drop_schema(engine)
+    database.init_database(
+        DATABASE_URL,
+        str(ROOT / 'database' / 'schema.sql'),
+        str(ROOT / 'database' / 'seed.sql'),
+        permissions_path=str(ROOT / 'database' / 'permissions.sql'),
+        app_password=APP_PASSWORD,
+        backup_password=BACKUP_PASSWORD,
+        auth_issuer_password=ISSUER_PASSWORD,
+    )
+    try:
+        yield engine
+    finally:
+        _drop_schema(engine)
+        engine.dispose()
+
+
+@pytest.fixture
+def admin_app(admin_engine: Engine, tmp_path: Path) -> Flask:
+    application = Flask(
+        __name__,
+        template_folder=str(ROOT / 'reference_scaffold' / 'cafeteria' / 'templates'),
+        static_folder=str(ROOT / 'reference_scaffold' / 'cafeteria' / 'static'),
+    )
+    application.config.update(
+        SECRET_KEY='workflow-test-secret',
+        LAST_GOOD_DIR=str(tmp_path),
+        DEMO_MODE=True,
+        DEMO_TODAY='2026-09-02',
+    )
+    application.extensions['cafeteria_db'] = admin_engine
+    application.extensions['cafeteria_auth_issuer_db'] = admin_engine
+    return _register(application)
 
 
 @pytest.fixture(scope='module')
@@ -337,19 +369,40 @@ def test_public_patient_week_title_uses_date_range_and_no_profile_banners(app: F
         assert 'profile-banner' not in client.get(path).get_data(as_text=True)
 
 
+@_NEEDS_DB
 @pytest.mark.parametrize('path', ('/admin/cafeteria', '/admin/patienten'))
 def test_admin_review_checkboxes_rehydrate_canonical_checked_status(
-    app: Flask,
+    admin_app: Flask,
+    admin_engine: Engine,
     path: str,
 ) -> None:
-    html = _client(app).get(path).get_data(as_text=True)
-    review_inputs = re.findall(
-        r'<input type="checkbox" name="[^"]+_allergen_reviewed"([^>]*)>',
-        html,
+    client, user_id = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    family = path.rsplit('/', 1)[-1]
+    profile = 'staff_guest' if family == 'cafeteria' else 'patient'
+    persist_menu_item(
+        admin_app.extensions['cafeteria_db'],
+        _scope(admin_engine, user_id, profile),
+        WEEK, DAY, 'LUNCH', 'MENU_1', _payload(staff=profile == 'staff_guest'), 0,
     )
-
-    assert review_inputs
-    assert all(re.search(r'\bchecked\b', attributes) for attributes in review_inputs)
+    menu = client.get(
+        f'{path}/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1',
+    )
+    body = menu.get_data(as_text=True)
+    review = client.post(f'{path}/menu/review', data={
+        '_csrf': _hidden(body, '_csrf'),
+        'week': DAY,
+        'day': DAY,
+        'meal': 'LUNCH',
+        'option': 'MENU_1',
+        'row_version': _hidden(body, 'row_version'),
+        'component_version': _hidden(body, 'component_version'),
+    })
+    assert review.status_code == 303
+    html = client.get(f'{path}?week={DAY}').get_data(as_text=True)
+    assert 'data-review="checked"' in html
+    assert 'Geprüft' in html
+    assert 'data-review="open"' in html
+    assert 'Prüfung offen' in html
 
 
 @pytest.mark.parametrize(
@@ -738,8 +791,6 @@ def test_mobile_interactive_targets_focus_and_layout_contracts(
     client = _client(app)
     for path, selectors in (
         ('/cafeteria/wochenangebot/', ('.site-logo', '.site-nav a')),
-        ('/admin/cafeteria', ('.admin-nav a', '.profile-tabs a')),
-        ('/admin/patienten', ('.admin-nav a', '.profile-tabs a')),
     ):
         page = _page(browser, client.get(path).get_data(as_text=True), 390, 844)
         try:
@@ -773,16 +824,19 @@ def test_mobile_interactive_targets_focus_and_layout_contracts(
             page.close()
 
 
+@_NEEDS_DB
 @pytest.mark.parametrize('path', ('/admin/cafeteria', '/admin/patienten'))
 @pytest.mark.parametrize(('width', 'height'), ((390, 844), (1440, 1100)))
 def test_every_admin_control_is_reachable_sized_and_non_overlapping(
-    app: Flask,
+    admin_app: Flask,
+    admin_engine: Engine,
     browser: Browser,
     path: str,
     width: int,
     height: int,
 ) -> None:
-    page = _page(browser, _client(app).get(path).get_data(as_text=True), width, height)
+    client, _ = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    page = _page(browser, client.get(f'{path}?week={DAY}').get_data(as_text=True), width, height)
     try:
         result = page.evaluate(
             """
@@ -811,7 +865,7 @@ def test_every_admin_control_is_reachable_sized_and_non_overlapping(
               const boxes = controls.map(element => {
                 const rect = element.getBoundingClientRect();
                 const cell = element.closest(
-                  '.admin-day, .admin-dish, .patient-admin-meal, .patient-admin-option, .toolbar, .admin-nav, .profile-tabs'
+                  '.admin-day, .admin-dish, .patient-admin-meal, .patient-admin-option, .toolbar, .admin-nav, .profile-tabs, .menu-slot, .admin-actions'
                 );
                 const cellRect = cell?.getBoundingClientRect();
                 return {
@@ -953,3 +1007,102 @@ def test_local_login_page_renders_without_overflow(app: Flask, browser: Browser)
         assert result['clipped'], 'Elements are horizontally clipped at desktop'
     finally:
         page_desktop.close()
+
+
+@_NEEDS_DB
+def test_admin_overviews_render_exact_profile_grids(admin_app: Flask, admin_engine: Engine) -> None:
+    client, _ = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    cafeteria = client.get(f'/admin/cafeteria?week={DAY}').get_data(as_text=True)
+    patienten = client.get(f'/admin/patienten?week={DAY}').get_data(as_text=True)
+    cafe_slots = _SLOT.findall(cafeteria)
+    patient_slots = _SLOT.findall(patienten)
+    assert 'data-profile="staff_guest"' in cafeteria
+    assert 'data-profile="patient"' in patienten
+    assert len(cafe_slots) == 10
+    assert len(patient_slots) == 28
+    assert cafe_slots[0] == (DAY, 'LUNCH', 'MENU_1', '0')
+    assert cafe_slots[1][2] == 'VEGGIE'
+    assert [slot[0] for slot in cafe_slots] == sorted(slot[0] for slot in cafe_slots)
+    assert patient_slots[0][0] == DAY
+    assert patient_slots[-1][0] == (WEEK + dt.timedelta(days=6)).isoformat()
+    assert [slot[1:] for slot in cafe_slots[:2]] == [('LUNCH', 'MENU_1', '0'), ('LUNCH', 'VEGGIE', '0')]
+
+
+@_NEEDS_DB
+def test_admin_patient_overview_has_no_cost_vocabulary(admin_app: Flask, admin_engine: Engine) -> None:
+    client, _ = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    html = client.get(f'/admin/patienten?week={DAY}').get_data(as_text=True)
+    assert re.search(r'preis|chf|rappen|kosten|price', html, re.I) is None
+
+
+@_NEEDS_DB
+def test_admin_overview_actions_and_regions(admin_app: Flask, admin_engine: Engine) -> None:
+    client, _ = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    for family, heading in (
+        ('cafeteria', 'Cafeteria-Plan bearbeiten'),
+        ('patienten', 'Patientenplan bearbeiten'),
+    ):
+        html = client.get(f'/admin/{family}?week={DAY}').get_data(as_text=True)
+        assert f'<h1>{heading}</h1>' in html
+        assert 'class="skip-link"' in html
+        assert 'href="#main-content"' in html
+        assert 'aria-live="polite"' in html
+        assert f'/admin/{family}/preview?week={DAY}' in html
+        assert 'target="_blank"' in html
+        publish = re.search(
+            rf'<form[^>]*action="[^"]*/admin/{family}/publish"[^>]*>(.*?)</form>',
+            html,
+            re.S,
+        )
+        assert publish is not None
+        assert publish.group(0).count('name="') == 3
+        assert _hidden(publish.group(1), '_csrf')
+        assert _hidden(publish.group(1), 'week') == DAY
+        assert _hidden(publish.group(1), 'row_version') == '0'
+        assert '<button type="submit">' in publish.group(1) or 'type="submit"' in publish.group(1)
+
+
+@_NEEDS_DB
+def test_admin_preview_renders_last_saved_banner(admin_app: Flask, admin_engine: Engine) -> None:
+    client, user_id = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    persist_menu_item(
+        admin_app.extensions['cafeteria_db'],
+        _scope(admin_engine, user_id),
+        WEEK, DAY, 'LUNCH', 'MENU_1', _payload(), 0,
+    )
+    html = client.get(f'/admin/patienten/preview?week={DAY}').get_data(as_text=True)
+    assert 'class="preview-banner"' in html
+    assert 'role="status"' in html
+    assert 'PREVIEW' in html
+    assert 'data-preview="last-saved"' in html
+    assert 'Kartoffelgratin' in html
+
+
+@_NEEDS_DB
+def test_admin_components_list_marks_archived_and_usage(
+    admin_app: Flask, admin_engine: Engine,
+) -> None:
+    client, user_id = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    engine = admin_app.extensions['cafeteria_db']
+    scope = _scope(admin_engine, user_id)
+    potato = create_component(engine, scope, 'side', 'Kartoffelstock', 'CH', 'common', (), ())
+    rice = create_component(engine, scope, 'side', 'Reis', 'DE', 'common', (), ())
+    payload = _payload()
+    payload['assignments'] = [
+        {'component_public_id': str(potato['public_id']), 'component_text': None},
+    ]
+    persist_menu_item(engine, scope, WEEK, DAY, 'LUNCH', 'MENU_1', payload, 0)
+    archive_component(engine, scope, str(rice['public_id']), int(rice['row_version']))
+    html = client.get('/admin/patienten/komponenten?include_archived=1').get_data(as_text=True)
+    assert 'Archiviert' in html
+    assert 'verwendet in 1 Gerichten' in html
+    assert f'data-public-id="{potato["public_id"]}"' in html
+    assert 'data-active="1"' in html
+    assert 'data-active="0"' in html
+
+
+def test_admin_templates_use_no_hardcoded_hex() -> None:
+    folder = ROOT / 'reference_scaffold' / 'cafeteria' / 'templates' / 'admin'
+    pattern = re.compile(r'style\s*=\s*["\'][^"\']*#[0-9a-fA-F]{3,6}', re.I)
+    for path in sorted(folder.glob('*.html')):
+        assert pattern.search(path.read_text(encoding='utf-8')) is None, path.name
