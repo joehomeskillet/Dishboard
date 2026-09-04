@@ -315,13 +315,14 @@ def main() -> int:
     contract_functions = ('validate_menu_service', 'validate_menu_item_price', 'validate_publication_revision',
                          'jsonb_has_patient_forbidden_key', 'withdraw_publication_revision', 'issue_publication_capability',
                          'sync_entra_user', 'ensure_auth_capability_state', 'hard_reset_auth_capability_state',
-                         'bootstrap_first_local_admin', 'lock_component_metadata_masters')
+                         'bootstrap_first_local_admin', 'lock_component_metadata_masters',
+                         'lock_expected_active_location', 'lock_active_publication')
     for token in contract_functions:
         check(token in schema_text, f'DB-Vertragsfunktion fehlt: {token}')
 
     requirements = (root / 'reference_scaffold/requirements.txt').read_text(encoding='utf-8')
     check('alembic' not in requirements.lower(), 'Alembic steht noch in den Laufzeitanforderungen.')
-    ok(f'PostgreSQL-Artefakte und 11 Migrationen geprueft; SHA-256 {sha256(schema)}')
+    ok(f'PostgreSQL-Artefakte und {len(migration_files)} Migrationen geprueft; SHA-256 {sha256(schema)}')
 
     # Routen, Jinja und Patientenkostenverbot
     route_text = (root / 'reference_scaffold/cafeteria/signage/routes.py').read_text(encoding='utf-8')

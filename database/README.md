@@ -1,6 +1,6 @@
 # PostgreSQL-Datenmodell
 
-Schema-Version 14 modelliert zwei getrennte Angebotsprofile:
+Schema-Version 15 modelliert zwei getrennte Angebotsprofile:
 
 | Profil | Zeitraum | Mahlzeiten | Kosteninformationen |
 |---|---|---|---|
