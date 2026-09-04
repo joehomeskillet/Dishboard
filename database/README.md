@@ -52,10 +52,13 @@ Der `actor-identifier` wird gegen den aktiven Benutzernamen, die E-Mail-Adresse 
 9. `0009_bootstrap_first_local_admin.sql` (12)
 10. `0010_v12_to_v13.sql` (13)
 11. `0011_v13_to_v14.sql` (14)
+12. `0012_v14_to_v15.sql` (15)
 
-Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0010` bleiben byteidentisch. `schema.sql` beschreibt den aktuellen v14-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
+Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0011` bleiben byteidentisch. `schema.sql` beschreibt den aktuellen v15-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
 
 Schema v14 ergänzt `cafeteria.lock_component_metadata_masters(text[], text[])`. Der SECURITY-DEFINER-Helper sperrt angeforderte Ernährungslabel nach ID vor angeforderten Allergenen nach ID. Nur `cafeteria_app` darf ihn ausführen; direkte Schreibrechte oder `SELECT ... FOR SHARE` auf den Mastertabellen bleiben verweigert.
+
+Schema v15 ergänzt die SECURITY-DEFINER-Lockhelfer `cafeteria.lock_expected_active_location(bigint)` (SHARE-Lock auf `locations`, prüft genau einen aktiven Standort) und `cafeteria.lock_active_publication(bigint)` (aktive Revision `FOR UPDATE`) und bringt `issue_publication_capability` sowie `withdraw_publication_revision` auf die globale Lock-Reihenfolge `publication_revisions -> users -> user_role_cache (ORDER BY role_code) -> auth_capability_secrets -> auth_capability_nonces`; nur `cafeteria_app` darf die Lockhelfer ausführen, die Issuer-only-Rechte bleiben unverändert.
 
 Vor `0010` wird im isolierten PostgreSQL-16-Wartungsfenster ein benanntes Backup wie `dishboard-v12-pre-v13-YYYYMMDDTHHMMSSZ.dump` erstellt und mit `pg_restore --list` geprüft. Zusätzlich wird eine separate Down-Probe-Kopie `dishboard-v12-down-probe-YYYYMMDDTHHMMSSZ.dump` angelegt. Die Down-Probe wird in einen frischen PostgreSQL-16-Cluster restauriert und als v12-Kopie geprüft; sie ist ein getesteter Restore-Pfad und behauptet keine automatische Rückwärtsmigration von v13 nach v12.
 

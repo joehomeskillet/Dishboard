@@ -78,6 +78,7 @@ REQUIRED_FILES = (
     'database/migrations/0009_bootstrap_first_local_admin.sql',
     'database/migrations/0010_v12_to_v13.sql',
     'database/migrations/0011_v13_to_v14.sql',
+    'database/migrations/0012_v14_to_v15.sql',
     'database/seed.sql', 'database/seed_demo.sql', 'database/permissions.sql',
     'demo/snapshots/patienten_kw36.json', 'demo/snapshots/cafeteria_kw36.json',
     'csv/menu_patient_template.csv', 'csv/menu_patient_example.csv',
@@ -103,6 +104,7 @@ MIGRATION_CHECKSUMS = {
     '0009_bootstrap_first_local_admin.sql': '1b988c75b7ef3f333045d738fa29cd210a367eeaf30825a3005873cafc3b65ed',
     '0010_v12_to_v13.sql': 'dba21c2ba10406985a0069d193e1f08e65aaa9c0a27b04102b2626003d83dd8f',
     '0011_v13_to_v14.sql': '75c6d6cc777f1dbf3d2bb914688b8ff9529ddca51fc9250ea91170b5482d0953',
+    '0012_v14_to_v15.sql': '3ff265067a1119f927d995251386a58ba648c4f26f9d4ff6059cce4d97bb9140',
 }
 
 
@@ -285,7 +287,7 @@ def main() -> int:
         check(status.get('tables') == 31, 'Schema enthaelt nicht 31 Tabellen.')
         check(status.get('application_roles') == 3, 'Schema enthaelt nicht drei Rollen.')
         check(status.get('offer_profiles') == 2, 'Schema enthaelt nicht zwei Profile.')
-        check(status.get('schema_version') == 14, 'Schema-Version ist nicht 14.')
+        check(status.get('schema_version') == 15, 'Schema-Version ist nicht 15.')
         check(status.get('patient_services') == 14, 'Demo-Seed enthaelt nicht 14 Patienten-Services.')
         check(status.get('cafeteria_services') == 5, 'Demo-Seed enthaelt nicht 5 Cafeteria-Services.')
 
@@ -298,6 +300,7 @@ def main() -> int:
                       '0009_bootstrap_first_local_admin.sql']
     migration_files.append('0010_v12_to_v13.sql')
     migration_files.append('0011_v13_to_v14.sql')
+    migration_files.append('0012_v14_to_v15.sql')
 
     for mig_file in migration_files:
         mig_path = migrations_dir / mig_file

@@ -1670,6 +1670,7 @@ DECLARE
     v_authz_version bigint;
     v_disabled_at timestamptz;
     v_withdrawn_at timestamptz;
+    v_revision_found boolean;
     v_secret_id smallint;
     v_secret bytea;
     v_nonce bytea;
@@ -1683,6 +1684,12 @@ BEGIN
         RAISE EXCEPTION 'Capability-Gültigkeit muss positiv und höchstens 15 Minuten sein.'
             USING ERRCODE = '22023';
     END IF;
+    SELECT withdrawn_at
+      INTO v_withdrawn_at
+      FROM publication_revisions
+     WHERE id = p_revision_id
+     FOR UPDATE;
+    v_revision_found := FOUND;
     SELECT authz_version, disabled_at
       INTO v_authz_version, v_disabled_at
       FROM users
@@ -1692,18 +1699,11 @@ BEGIN
         RAISE EXCEPTION 'Rückzugsakteur ist nicht aktiv oder nicht zur Publikation berechtigt.'
             USING ERRCODE = '42501';
     END IF;
-    PERFORM 1 FROM user_role_cache WHERE user_id = p_actor_user_id FOR UPDATE;
-    SELECT withdrawn_at
-      INTO v_withdrawn_at
-      FROM publication_revisions
-     WHERE id = p_revision_id
+    PERFORM 1
+      FROM user_role_cache
+     WHERE user_id = p_actor_user_id
+     ORDER BY role_code
      FOR UPDATE;
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'Unbekannte Publikationsrevision.' USING ERRCODE = 'P0002';
-    END IF;
-    IF v_withdrawn_at IS NOT NULL THEN
-        RAISE EXCEPTION 'Publikationsrevision wurde bereits zurückgezogen.' USING ERRCODE = '55000';
-    END IF;
     IF v_disabled_at IS NOT NULL
        OR NOT EXISTS (
            SELECT 1
@@ -1714,6 +1714,12 @@ BEGIN
        ) THEN
         RAISE EXCEPTION 'Rückzugsakteur ist nicht aktiv oder nicht zur Publikation berechtigt.'
             USING ERRCODE = '42501';
+    END IF;
+    IF NOT v_revision_found THEN
+        RAISE EXCEPTION 'Unbekannte Publikationsrevision.' USING ERRCODE = 'P0002';
+    END IF;
+    IF v_withdrawn_at IS NOT NULL THEN
+        RAISE EXCEPTION 'Publikationsrevision wurde bereits zurückgezogen.' USING ERRCODE = '55000';
     END IF;
     SELECT id, secret
       INTO v_secret_id, v_secret
@@ -1842,13 +1848,6 @@ BEGIN
         RAISE EXCEPTION 'Publikationsrevision wurde bereits zurückgezogen.' USING ERRCODE = '55000';
     END IF;
 
-    BEGIN
-        INSERT INTO auth_capability_nonces(nonce, actor_user_id, revision_id)
-        VALUES (decode(v_nonce_hex, 'hex'), v_actor_id, v_token_revision);
-    EXCEPTION WHEN unique_violation THEN
-        RAISE EXCEPTION 'Capability-Nonce wurde bereits verwendet.' USING ERRCODE = '42501';
-    END;
-
     SELECT authz_version, disabled_at
       INTO v_authz_version, v_disabled_at
       FROM users
@@ -1857,7 +1856,11 @@ BEGIN
     IF NOT FOUND THEN
         RAISE EXCEPTION 'Capability ist ungültig oder abgelaufen.' USING ERRCODE = '42501';
     END IF;
-    PERFORM 1 FROM user_role_cache WHERE user_id = v_actor_id FOR UPDATE;
+    PERFORM 1
+      FROM user_role_cache
+     WHERE user_id = v_actor_id
+     ORDER BY role_code
+     FOR UPDATE;
     IF v_authz_version IS DISTINCT FROM v_token_authz THEN
         RAISE EXCEPTION 'Capability ist durch eine Rollenänderung ungültig geworden.'
             USING ERRCODE = '42501';
@@ -1873,6 +1876,13 @@ BEGIN
         RAISE EXCEPTION 'Rückzugsakteur ist nicht aktiv oder nicht zur Publikation berechtigt.'
             USING ERRCODE = '42501';
     END IF;
+
+    BEGIN
+        INSERT INTO auth_capability_nonces(nonce, actor_user_id, revision_id)
+        VALUES (decode(v_nonce_hex, 'hex'), v_actor_id, v_token_revision);
+    EXCEPTION WHEN unique_violation THEN
+        RAISE EXCEPTION 'Capability-Nonce wurde bereits verwendet.' USING ERRCODE = '42501';
+    END;
 
     v_withdrawn_at := clock_timestamp();
     INSERT INTO publication_lifecycle_events(
