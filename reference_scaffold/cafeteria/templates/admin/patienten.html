@@ -1,148 +1,178 @@
 {% extends "base.html" %}
-{% block title %}Backend Patienten-Raster{% endblock %}
+
+{% block title %}Backend Patienten-Übersicht{% endblock %}
 {% block body_class %}admin-body{% endblock %}
+
 {% block body %}
 {% set weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'] %}
-{% set submitted = form_values|default({}) %}
-{% set errors = form_errors|default({}) %}
-{% macro error_attributes(name, error_id) %}{% if errors.get(name) %} aria-invalid="true" aria-describedby="{{ error_id }}"{% if first_error == name %} autofocus{% endif %}{% endif %}{% endmacro %}
-{% macro field_error(name, error_id) %}{% if errors.get(name) %}<span class="field-error" id="{{ error_id }}">{{ errors[name] }}</span>{% endif %}{% endmacro %}
+{% set publish_blocked = status in ('review_open', 'incomplete', 'empty') %}
+{% set publish_empty = status == 'empty' %}
+{% set action_message = 'Bitte Raster zuerst vervollständigen' if publish_empty else ('Bitte Freigabe prüfen' if publish_blocked else '') %}
 <div class="admin-shell">
   <aside class="admin-sidebar">
-    <div class="admin-brand"><img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="admin-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="164" height="32"><span>Menüplanung</span></div>
+    <div class="admin-brand">
+      <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="admin-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="164" height="32">
+      <span>Menüplanung</span>
+    </div>
     <div class="admin-user">
       <span class="avatar">{{ (user.name or 'DK')[:2]|upper }}</span>
-      <div><strong>{{ user.name if user else 'Demo Küche' }}</strong><span>{{ roles|join(', ') }}</span></div>
+      <div>
+        <strong>{{ user.name if user else 'Demo Küche' }}</strong>
+        <span>{{ roles|join(', ') }}</span>
+      </div>
     </div>
     <nav class="admin-nav" aria-label="Backend">
       <a class="active" href="{{ url_for('admin.patienten') }}" aria-current="page">Wochenpläne</a>
       <a href="{{ url_for('admin.import_preview') }}">CSV Import</a>
       <form method="post" action="{{ url_for('auth.logout') }}">
-        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
         <button type="submit">Abmelden</button>
       </form>
     </nav>
   </aside>
-  <main class="admin-main" id="main-content">
+
+  <main class="admin-main" id="main-content" data-profile="patient" data-family="{{ family }}" data-week="{{ week|default('') }}" data-status="{{ status }}">
     <header class="admin-topbar">
       <h1>Patientenplan bearbeiten</h1>
       <div class="toolbar">
-        <a class="btn" href="{{ url_for('signage.patient_week') }}">Vorschau</a>
+        <a class="btn" href="/admin/{{ family }}/preview?week={{ week }}" target="_blank" rel="noopener">Vorschau</a>
         <a class="btn" href="{{ url_for('admin.export_csv', profile_code='patienten') }}">CSV</a>
-        <button class="btn" type="submit" form="patient-grid" formaction="{{ url_for('admin.save_patienten') }}">Entwurf speichern</button>
-        <button class="btn primary" type="submit" form="patient-grid" formaction="{{ url_for('admin.publish_patienten') }}">Publizieren</button>
       </div>
     </header>
     <div class="admin-content">
-      <div class="admin-notice"><strong>Getrenntes Raster:</strong> Montag bis Sonntag mit Mittag und Abend. Dieser Kanal enthält ausschliesslich Speiseplandaten.</div>
-      {% if form_message %}<div class="form-error-summary" role="alert"{% if not first_error %} tabindex="-1" autofocus{% endif %}>{{ form_message }}</div>{% endif %}
+      <div class="admin-notice">
+        <strong>Getrenntes Raster:</strong> Montag bis Sonntag, Mittag und Abend. Dieses Raster enthält ausschliesslich Speiseplandaten.
+      </div>
+      <div class="flash-region" aria-live="polite">{{ flashes | safe }}</div>
+      {% if status == 'error' %}
+      <div class="error-region" role="alert" tabindex="-1">{{ flashes | safe }}</div>
+      {% endif %}
       <nav class="profile-tabs" aria-label="Profil">
         <a href="{{ url_for('admin.cafeteria') }}">Cafeteria</a>
         <a class="patient active" href="{{ url_for('admin.patienten') }}" aria-current="page">Patienten</a>
       </nav>
       <div class="weekbar">
-        <div><strong>KW {{ draft.week_start|iso_week }} · Patienten</strong><span>Arbeitsstand {{ draft.row_version }}</span></div>
+        <div><strong>KW {{ iso_week }} · Patienten</strong><span>Arbeitsstand {{ week_row_version }}</span></div>
         <div><strong>28 Menükarten</strong><span>7 Tage × 2 Mahlzeiten × 2 Menüarten</span></div>
       </div>
-      <form id="patient-grid" method="post">
-        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-        <input type="hidden" name="week_start" value="{{ submitted.get('week_start', draft.week_start) }}">
-        <input type="hidden" name="row_version" value="{{ submitted.get('row_version', draft.row_version) }}">
-        <section class="grid-card" aria-labelledby="patient-week-heading">
-          <div class="admin-grid-row">
-            <div class="admin-day"><strong id="patient-week-heading">Woche</strong></div>
-            <div class="admin-dish">
-              <label for="patient-title">Titel</label>
-              <input id="patient-title" name="title" value="{{ submitted.get('title', draft.title) }}" required autocomplete="off"{{ error_attributes('title', 'patient-title_error') }}>
-              {{ field_error('title', 'patient-title_error') }}
-            </div>
-            <div class="admin-dish">
-              <label for="patient-note">Hinweis</label>
-              <input id="patient-note" name="shared_note" value="{{ submitted.get('shared_note', draft.shared_note) }}" autocomplete="off"{{ error_attributes('shared_note', 'patient-note_error') }}>
-              {{ field_error('shared_note', 'patient-note_error') }}
-            </div>
+
+      <form id="patient-header" method="post" action="/admin/{{ family }}/header">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <input type="hidden" name="week" value="{{ week }}">
+        <input type="hidden" name="row_version" value="{{ week_row_version }}">
+        <div class="admin-grid-row">
+          <div class="admin-dish">
+            <label for="patient-title">Titel</label>
+            <input id="patient-title" name="title" value="{{ title }}">
           </div>
-        </section>
-        <section class="patient-admin-table" aria-label="Patienten-Wochenraster">
-          {% for day in draft.days %}
-          {% set day_index = loop.index0 %}
-          <article class="patient-admin-day">
-            <header><strong>{{ weekdays[day_index] }} · {{ day.date|date_short }}</strong><span>Mittag und Abend</span></header>
-            <div class="patient-admin-meals">
-              {% for meal in day.services %}
-              {% set service_prefix = 'service_' ~ day_index ~ '_' ~ meal.meal_code %}
-              {% set state_field = service_prefix ~ '_state' %}
-              {% set notice_field = service_prefix ~ '_notice' %}
-              {% set selected_state = submitted.get(state_field, meal.service_state) %}
-              <section class="patient-admin-meal">
-                <strong>{{ meal.meal_name }}</strong>
-                <label for="{{ state_field }}">Betrieb</label>
-                <select id="{{ state_field }}" name="{{ state_field }}"{{ error_attributes(state_field, state_field ~ '_error') }}>
-                  {% for value, label in [('open', 'Offen'), ('closed', 'Geschlossen'), ('holiday', 'Feiertag'), ('company_holiday', 'Betriebsfeiertag')] %}
-                  <option value="{{ value }}"{% if selected_state == value %} selected{% endif %}>{{ label }}</option>
-                  {% endfor %}
+          <div class="admin-dish">
+            <label for="patient-shared-note">Hinweis</label>
+            <input id="patient-shared-note" name="shared_note" value="{{ shared_note }}">
+          </div>
+        </div>
+      </form>
+
+      <section class="patient-admin-table" aria-label="Patienten-Wochenraster">
+        {% for day_name in weekdays %}
+        {% set day_cells = cells | selectattr('day_label', 'equalto', day_name) | list %}
+        {% set lunch_cells = day_cells | selectattr('meal', 'equalto', 'LUNCH') | list %}
+        {% set dinner_cells = day_cells | selectattr('meal', 'equalto', 'DINNER') | list %}
+        {% set lunch = lunch_cells | first %}
+        {% set dinner = dinner_cells | first %}
+        <article class="patient-admin-day">
+          <header>
+            <strong>{{ day_name }} · {{ day_cells and day_cells[0].day_short }}</strong>
+            <span>{{ 'vollständig' if (lunch and dinner and lunch.title is not none and dinner.title is not none) else 'offen' }}</span>
+          </header>
+          <div class="patient-admin-meals">
+            <div class="patient-admin-meal">
+              <strong>Mittag</strong>
+              <form method="post" action="/admin/{{ family }}/service">
+                <input type="hidden" name="_csrf" value="{{ csrf }}">
+                <input type="hidden" name="week" value="{{ week }}">
+                <input type="hidden" name="day" value="{{ day_cells and day_cells[0].day }}">
+                <input type="hidden" name="meal" value="LUNCH">
+                <input type="hidden" name="row_version" value="{{ lunch.row_version if lunch else 0 }}">
+                <label for="patient-service-state-{{ loop.index0 }}-LUNCH">Betriebsstatus</label>
+                <select id="patient-service-state-{{ loop.index0 }}-LUNCH" name="service_state">
+                  <option value="open"{% if lunch and lunch.service_state == 'open' %} selected{% endif %}>Offen</option>
+                  <option value="closed"{% if lunch and lunch.service_state == 'closed' %} selected{% endif %}>Geschlossen</option>
+                  <option value="holiday"{% if lunch and lunch.service_state == 'holiday' %} selected{% endif %}>Feiertag</option>
+                  <option value="company_holiday"{% if lunch and lunch.service_state == 'company_holiday' %} selected{% endif %}>Betriebsfeiertag</option>
                 </select>
-                {{ field_error(state_field, state_field ~ '_error') }}
-                <label for="{{ notice_field }}">Servicehinweis</label>
-                <input id="{{ notice_field }}" name="{{ notice_field }}" value="{{ submitted.get(notice_field, meal.notice) }}" autocomplete="off"{{ error_attributes(notice_field, notice_field ~ '_error') }}>
-                {{ field_error(notice_field, notice_field ~ '_error') }}
-                <div class="patient-admin-options">
-                  {% for option in meal.options %}
-                  {% set option_prefix = service_prefix ~ '_' ~ option.type_code %}
-                  {% set title_field = option_prefix ~ '_title' %}
-                  {% set components_field = option_prefix ~ '_components' %}
-                  <div class="patient-admin-option">
-                    <small>{{ 'Menü 1' if option.type_code == 'MENU_1' else 'Vegetarisch' }}</small>
-                    <label for="{{ title_field }}">Gericht</label>
-                    <input id="{{ title_field }}" name="{{ title_field }}" value="{{ submitted.get(title_field, option.title) }}" autocomplete="off"{{ error_attributes(title_field, title_field ~ '_error') }}>
-                    {{ field_error(title_field, title_field ~ '_error') }}
-                    <label for="{{ components_field }}">Komponenten, eine pro Zeile</label>
-                    <textarea id="{{ components_field }}" name="{{ components_field }}" rows="2"{{ error_attributes(components_field, components_field ~ '_error') }}>{{ submitted.get(components_field, option.components|join('\n')) }}</textarea>
-                    {{ field_error(components_field, components_field ~ '_error') }}
-                    {# Dietary Labels #}
-                    {% set labels_field = option_prefix ~ '_labels' %}
-                    <fieldset>
-                      <legend>Ernährungskennzeichnung</legend>
-                      {% for label in dietary_labels %}
-                      <label><input type="checkbox" name="{{ labels_field }}" value="{{ label.code }}"{% if submitted.get(labels_field) and label.code in submitted.get(labels_field, '').split(',') %} checked{% elif option.labels and label.code in (option.labels|map(attribute='code')|list) %} checked{% endif %}> {{ label.display_name }}</label>
-                      {% endfor %}
-                    </fieldset>
-                    {# Allergens - Contains #}
-                    {% set allergen_contains_field = option_prefix ~ '_allergen_contains' %}
-                    <label for="{{ allergen_contains_field }}">Enthält Allergene (EU-Nummern)</label>
-                    <select id="{{ allergen_contains_field }}" name="{{ allergen_contains_field }}" multiple size="3"{{ error_attributes(allergen_contains_field, allergen_contains_field ~ '_error') }}>
-                      {% for allergen in allergens %}
-                      <option value="{{ allergen.code }}"{% if submitted.get(allergen_contains_field) and allergen.code in submitted.get(allergen_contains_field, '').split(',') %} selected{% elif option.allergens and allergen.code in (option.allergens|selectattr('presence', 'equalto', 'contains')|map(attribute='code')|list) %} selected{% endif %}>{{ allergen.eu_number }} {{ allergen.display_name }}</option>
-                      {% endfor %}
-                    </select>
-                    {{ field_error(allergen_contains_field, allergen_contains_field ~ '_error') }}
-                    {# Allergens - May Contain #}
-                    {% set allergen_may_field = option_prefix ~ '_allergen_may_contain' %}
-                    <label for="{{ allergen_may_field }}">Kann Spuren enthalten (EU-Nummern)</label>
-                    <select id="{{ allergen_may_field }}" name="{{ allergen_may_field }}" multiple size="3"{{ error_attributes(allergen_may_field, allergen_may_field ~ '_error') }}>
-                      {% for allergen in allergens %}
-                      <option value="{{ allergen.code }}"{% if submitted.get(allergen_may_field) and allergen.code in submitted.get(allergen_may_field, '').split(',') %} selected{% elif option.allergens and allergen.code in (option.allergens|selectattr('presence', 'equalto', 'may_contain')|map(attribute='code')|list) %} selected{% endif %}>{{ allergen.eu_number }} {{ allergen.display_name }}</option>
-                      {% endfor %}
-                    </select>
-                    {{ field_error(allergen_may_field, allergen_may_field ~ '_error') }}
-                    {# Origins #}
-                    {% set origins_field = option_prefix ~ '_origins' %}
-                    <label for="{{ origins_field }}">Herkunftsangaben (Zutat=Land|...)</label>
-                    <input id="{{ origins_field }}" name="{{ origins_field }}" value="{% if submitted.get(origins_field) %}{{ submitted.get(origins_field) }}{% elif option.origins %}{% for o in option.origins %}{{ o.text }}{% if not loop.last %}|{% endif %}{% endfor %}{% endif %}" autocomplete="off"{{ error_attributes(origins_field, origins_field ~ '_error') }}>
-                    {{ field_error(origins_field, origins_field ~ '_error') }}
-                    {# Allergen Review Status #}
-                    {% set review_field = option_prefix ~ '_allergen_reviewed' %}
-                    <label><input type="checkbox" name="{{ review_field }}"{% if submitted.get(review_field) == 'on' %} checked{% elif option.allergen_review_status == 'checked' %} checked{% endif %}> Allergene geprüft</label>
-                  </div>
-                  {% endfor %}
+                <label for="patient-service-notice-{{ loop.index0 }}-LUNCH">Servicehinweis</label>
+                <input id="patient-service-notice-{{ loop.index0 }}-LUNCH" name="notice" value="{{ lunch.notice if lunch and lunch.notice is defined else '' }}">
+              </form>
+              {% for cell in lunch_cells %}
+              <article class="menu-slot" data-day="{{ cell.day }}" data-meal="{{ cell.meal }}" data-option="{{ cell.option }}" data-row-version="{{ cell.row_version }}">
+                <div class="patient-admin-option">
+                  <small>{{ cell.option_label }}</small>
+                  <h3>{{ cell.title if cell.title else 'Noch kein Gericht' }}</h3>
+                  <ul>
+                    {% for component in cell.components %}
+                    <li>{{ component }}</li>
+                    {% endfor %}
+                  </ul>
+                  <span class="slot-badge" data-review="{{ 'open' if cell.review_open else 'checked' }}">{{ 'Prüfung offen' if cell.review_open else 'Prüfung abgeschlossen' }}</span>
+                  <a class="btn" href="{{ cell.edit_url }}">Bearbeiten</a>
                 </div>
-              </section>
+              </article>
               {% endfor %}
             </div>
-          </article>
-          {% endfor %}
-        </section>
-      </form>
+            <div class="patient-admin-meal">
+              <strong>Abend</strong>
+              <form method="post" action="/admin/{{ family }}/service">
+                <input type="hidden" name="_csrf" value="{{ csrf }}">
+                <input type="hidden" name="week" value="{{ week }}">
+                <input type="hidden" name="day" value="{{ day_cells and day_cells[0].day }}">
+                <input type="hidden" name="meal" value="DINNER">
+                <input type="hidden" name="row_version" value="{{ dinner.row_version if dinner else 0 }}">
+                <label for="patient-service-state-{{ loop.index0 }}-DINNER">Betriebsstatus</label>
+                <select id="patient-service-state-{{ loop.index0 }}-DINNER" name="service_state">
+                  <option value="open"{% if dinner and dinner.service_state == 'open' %} selected{% endif %}>Offen</option>
+                  <option value="closed"{% if dinner and dinner.service_state == 'closed' %} selected{% endif %}>Geschlossen</option>
+                  <option value="holiday"{% if dinner and dinner.service_state == 'holiday' %} selected{% endif %}>Feiertag</option>
+                  <option value="company_holiday"{% if dinner and dinner.service_state == 'company_holiday' %} selected{% endif %}>Betriebsfeiertag</option>
+                </select>
+                <label for="patient-service-notice-{{ loop.index0 }}-DINNER">Servicehinweis</label>
+                <input id="patient-service-notice-{{ loop.index0 }}-DINNER" name="notice" value="{{ dinner.notice if dinner and dinner.notice is defined else '' }}">
+              </form>
+              {% for cell in dinner_cells %}
+              <article class="menu-slot" data-day="{{ cell.day }}" data-meal="{{ cell.meal }}" data-option="{{ cell.option }}" data-row-version="{{ cell.row_version }}">
+                <div class="patient-admin-option">
+                  <small>{{ cell.option_label }}</small>
+                  <h3>{{ cell.title if cell.title else 'Noch kein Gericht' }}</h3>
+                  <ul>
+                    {% for component in cell.components %}
+                    <li>{{ component }}</li>
+                    {% endfor %}
+                  </ul>
+                  <span class="slot-badge" data-review="{{ 'open' if cell.review_open else 'checked' }}">{{ 'Prüfung offen' if cell.review_open else 'Prüfung abgeschlossen' }}</span>
+                  <a class="btn" href="{{ cell.edit_url }}">Bearbeiten</a>
+                </div>
+              </article>
+              {% endfor %}
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </section>
+
+      <div class="admin-actions" data-sticky>
+        <a class="btn{% if publish_blocked %} disabled{% endif %}" href="/admin/{{ family }}/preview?week={{ week }}" target="_blank" rel="noopener"{% if publish_blocked %} aria-disabled="true"{% endif %}>Vorschau</a>
+        <a class="btn{% if publish_blocked %} disabled{% endif %}" href="/admin/{{ family }}/copy?week={{ week }}"{% if publish_blocked %} aria-disabled="true" tabindex="-1"{% endif %}>Vorwoche kopieren</a>
+        <form method="post" action="/admin/{{ family }}/publish" data-confirm="Bitte prüfen, ob alle Angaben korrekt sind">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <input type="hidden" name="week" value="{{ week }}">
+          <input type="hidden" name="row_version" value="{{ week_row_version }}">
+          <button type="submit" class="btn primary"{% if publish_blocked %} disabled{% endif %}>Publizieren</button>
+        </form>
+        {% if publish_blocked %}
+        <p>{{ action_message }}</p>
+        {% elif publish_empty %}
+        <p>{{ action_message }}</p>
+        {% endif %}
+      </div>
     </div>
   </main>
 </div>
