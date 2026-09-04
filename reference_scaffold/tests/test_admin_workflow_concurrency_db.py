@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# ruff: noqa: F811
+
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
@@ -20,7 +22,7 @@ from test_component_assignment_db import (
     _item_state,
     _links,
     _set_manual_effects,
-    catalog_database,
+    catalog_database,  # noqa: F401
 )
 
 import pytest
@@ -306,6 +308,7 @@ def test_publish_locks_week_before_snapshot_reads_against_concurrent_save(
         if (
             threading.current_thread().name == 'workflow-publisher'
             and 'SELECT w.id, w.week_start' in statement
+            and 'FOR UPDATE' in statement
         ):
             week_read.set()
             if not release_publish.wait(timeout=10):
@@ -399,6 +402,7 @@ def test_concurrent_publishes_are_serialized_as_one_revision_and_one_stale_error
         workflow_db_support._patient_values(),
     )
     initial_read_barrier = threading.Barrier(2)
+    initial_read_seen = threading.local()
     outcomes: list[object] = []
 
     def synchronize_initial_revision_read(
@@ -412,7 +416,9 @@ def test_concurrent_publishes_are_serialized_as_one_revision_and_one_stale_error
         if (
             threading.current_thread().name.startswith('parallel-publisher-')
             and 'FROM cafeteria.publication_revisions r' in statement
+            and not getattr(initial_read_seen, 'value', False)
         ):
+            initial_read_seen.value = True
             initial_read_barrier.wait(timeout=10)
 
     def publish() -> None:

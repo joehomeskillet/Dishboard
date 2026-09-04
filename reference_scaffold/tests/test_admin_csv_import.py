@@ -19,7 +19,9 @@ from cafeteria.admin import routes as admin_routes
 from cafeteria.csvio import snapshot_to_csv, validate_upload
 from cafeteria import db as database
 from cafeteria.security import csrf_token
+from cafeteria.workflow_partial_store import persist_week_header
 from cafeteria.workflow_snapshot import build_snapshot
+from test_admin_workflow_routes import _scope, _session_actor_id
 
 ROOT = Path(__file__).resolve().parents[2]
 DATABASE_URL = os.getenv('TEST_DATABASE_URL')
@@ -471,7 +473,27 @@ def test_preview_token_binds_profile_week_and_missing_week_version_then_rejects_
     assert payload['expected_row_version'] == 0
     assert isinstance(payload['text'], str)
 
-    assert client.get('/admin/patienten').status_code == 200
+    # Reads erzeugen seit SDD §6 keine Woche mehr; die nach der Preview
+    # angelegte Woche wird deshalb explizit persistiert.
+    persist_week_header(
+        database_engine,
+        _scope(database_engine, _session_actor_id(client)),
+        dt.date(2026, 8, 31),
+        {'title': 'Nach Preview angelegt', 'shared_note': ''},
+        0,
+    )
+    with database_engine.connect() as connection:
+        before = connection.execute(
+            text(
+                '''
+                SELECT w.row_version, w.title, count(i.id)
+                FROM cafeteria.menu_weeks w
+                LEFT JOIN cafeteria.menu_services s ON s.menu_week_id=w.id
+                LEFT JOIN cafeteria.menu_items i ON i.service_id=s.id
+                GROUP BY w.id
+                '''
+            )
+        ).one()
     response = client.post(
         '/admin/import',
         data={'_csrf': 'csv-import-csrf', 'import_token': token},
@@ -490,7 +512,8 @@ def test_preview_token_binds_profile_week_and_missing_week_version_then_rejects_
             )
         ).one()
     assert response.status_code == 409
-    assert tuple(shape) == (1, None, 0)
+    assert tuple(before) == (1, 'Nach Preview angelegt', 0)
+    assert shape == before
 
 
 def test_import_week_creation_and_persistence_roll_back_together_on_database_error(

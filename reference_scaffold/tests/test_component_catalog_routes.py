@@ -86,8 +86,16 @@ def _create_fields() -> MultiDict[str, str]:
     ])
 
 
+def _create_csrf(client, family: str) -> str:
+    page = client.get(f'/admin/{family}/komponenten')
+    assert page.status_code == 200
+    return _hidden(page.get_data(as_text=True), '_csrf')
+
+
 def test_component_create_update_archive_unarchive_exact_forms(client, database_engine: Engine) -> None:
-    created = client.post('/admin/patienten/komponenten', data=_create_fields())
+    fields = _create_fields()
+    fields['_csrf'] = _create_csrf(client, 'patienten')
+    created = client.post('/admin/patienten/komponenten', data=fields)
     assert created.status_code == 303
     location = created.headers['Location']
     detail = client.get(location, follow_redirects=False)
@@ -95,10 +103,11 @@ def test_component_create_update_archive_unarchive_exact_forms(client, database_
     assert REVIEW_HINT in detail.get_data(as_text=True)
     body = detail.get_data(as_text=True)
     assert 'data-profile-scope="patient"' in body
+    detail_csrf = _hidden(body, '_csrf')
     version = _hidden(body, 'row_version')
     public_id = body.split('data-public-id="', 1)[1].split('"', 1)[0]
     updated = client.post(f'/admin/patienten/komponenten/{public_id}', data=MultiDict([
-        ('_csrf', 'workflow-csrf'),
+        ('_csrf', detail_csrf),
         ('category', 'side'),
         ('name', 'Kartoffelstock'),
         ('origin_country_code', 'CH'),
@@ -109,7 +118,7 @@ def test_component_create_update_archive_unarchive_exact_forms(client, database_
     ]))
     assert updated.status_code == 303
     with_target = client.post(f'/admin/patienten/komponenten/{public_id}', data=MultiDict([
-        ('_csrf', 'workflow-csrf'),
+        ('_csrf', detail_csrf),
         ('category', 'side'),
         ('name', 'Kartoffelstock'),
         ('origin_country_code', 'CH'),
@@ -121,7 +130,7 @@ def test_component_create_update_archive_unarchive_exact_forms(client, database_
     version = _hidden(shown.get_data(as_text=True), 'row_version')
     archived = client.post(
         f'/admin/patienten/komponenten/{public_id}/archive',
-        data={'_csrf': 'workflow-csrf', 'row_version': version},
+        data={'_csrf': detail_csrf, 'row_version': version},
     )
     assert archived.status_code == 303
     shown = client.get(f'/admin/patienten/komponenten/{public_id}')
@@ -129,7 +138,7 @@ def test_component_create_update_archive_unarchive_exact_forms(client, database_
     version = _hidden(shown.get_data(as_text=True), 'row_version')
     restored = client.post(
         f'/admin/patienten/komponenten/{public_id}/unarchive',
-        data={'_csrf': 'workflow-csrf', 'row_version': version},
+        data={'_csrf': detail_csrf, 'row_version': version},
     )
     assert restored.status_code == 303
     with database_engine.connect() as connection:
@@ -142,10 +151,12 @@ def test_component_create_update_archive_unarchive_exact_forms(client, database_
 
 
 def test_component_create_rejects_duplicate_and_profile_keys(client, database_engine: Engine) -> None:
+    token = _create_csrf(client, 'patienten')
     duplicate = _create_fields()
+    duplicate['_csrf'] = token
     duplicate.add('category', 'meat')
     mismatched = MultiDict([
-        ('_csrf', 'workflow-csrf'),
+        ('_csrf', token),
         ('category', 'side'),
         ('name', 'Reis'),
         ('origin_country_code', 'CH'),
@@ -155,10 +166,13 @@ def test_component_create_rejects_duplicate_and_profile_keys(client, database_en
         ('allergen_presence', 'contains'),
     ])
     profiled = _create_fields()
+    profiled['_csrf'] = token
     profiled.add('profile', 'staff_guest')
     scoped = _create_fields()
+    scoped['_csrf'] = token
     scoped.add('profile_scope', 'patient')
     internal = _create_fields()
+    internal['_csrf'] = token
     internal.add('id', '1')
     before = None
     with database_engine.connect() as connection:
@@ -174,7 +188,9 @@ def test_component_create_rejects_duplicate_and_profile_keys(client, database_en
 
 
 def test_component_detail_uses_public_id_and_masks_unknown(client) -> None:
-    created = client.post('/admin/cafeteria/komponenten', data=_create_fields())
+    fields = _create_fields()
+    fields['_csrf'] = _create_csrf(client, 'cafeteria')
+    created = client.post('/admin/cafeteria/komponenten', data=fields)
     public_id = created.headers['Location'].rsplit('/', 1)[-1]
     found = client.get(f'/admin/cafeteria/komponenten/{public_id}')
     missing = client.get('/admin/cafeteria/komponenten/00000000-0000-0000-0000-000000000099')

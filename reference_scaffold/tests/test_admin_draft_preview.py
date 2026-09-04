@@ -22,6 +22,7 @@ from test_admin_workflow_routes import (
     _drop_schema,
     _login,
     _menu_form,
+    _overview_csrf,
     _payload,
     _register,
     _session_actor_id,
@@ -83,7 +84,10 @@ def test_preview_is_last_saved_without_publication_fallback(
 ) -> None:
     missing = client.get(f'/admin/patienten/preview?week={DAY}')
     assert missing.status_code == 404
-    saved = client.post('/admin/patienten/menu', data=_menu_form(title='Gespeicherter Titel'))
+    saved = client.post(
+        '/admin/patienten/menu',
+        data=_menu_form(_csrf=_overview_csrf(client), title='Gespeicherter Titel'),
+    )
     assert saved.status_code == 303
     preview = client.get(f'/admin/patienten/preview?week={DAY}')
     body = preview.get_data(as_text=True)

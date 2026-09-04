@@ -21,6 +21,7 @@ from test_admin_workflow_routes import (
     _drop_schema,
     _login,
     _menu_form,
+    _overview_csrf,
     _register,
     _session_actor_id,
     _scope,
@@ -94,7 +95,11 @@ def test_week_families_expose_fixed_profiles_and_grids(client) -> None:
 
 
 def test_patient_menu_rejects_price_fields_without_write(client, database_engine: Engine) -> None:
-    form = _menu_form(internal_chf='9.50', external_chf='14.50')
+    form = _menu_form(
+        _csrf=_overview_csrf(client),
+        internal_chf='9.50',
+        external_chf='14.50',
+    )
     response = client.post('/admin/patienten/menu', data=form)
     with database_engine.connect() as connection:
         count = connection.execute(text('SELECT count(*) FROM cafeteria.menu_item_prices')).scalar_one()
@@ -105,7 +110,11 @@ def test_patient_menu_rejects_price_fields_without_write(client, database_engine
 
 
 def test_cafeteria_menu_persists_rappen_from_chf(client, database_engine: Engine) -> None:
-    form = _menu_form(internal_chf='9.50', external_chf='14.50')
+    form = _menu_form(
+        _csrf=_overview_csrf(client, 'cafeteria'),
+        internal_chf='9.50',
+        external_chf='14.50',
+    )
     response = client.post('/admin/cafeteria/menu', data=form)
     assert response.status_code == 303
     with database_engine.connect() as connection:
@@ -116,8 +125,9 @@ def test_cafeteria_menu_persists_rappen_from_chf(client, database_engine: Engine
 
 
 def test_header_and_service_partial_persistence(client, database_engine: Engine) -> None:
+    token = _overview_csrf(client)
     header = client.post('/admin/patienten/header', data={
-        '_csrf': 'workflow-csrf',
+        '_csrf': token,
         'week': DAY,
         'row_version': '0',
         'title': 'Herbstküche',
@@ -128,7 +138,7 @@ def test_header_and_service_partial_persistence(client, database_engine: Engine)
     assert loaded.status_code == 200
     assert 'Herbstküche' in loaded.get_data(as_text=True)
     service = client.post('/admin/patienten/service', data={
-        '_csrf': 'workflow-csrf',
+        '_csrf': token,
         'week': DAY,
         'day': DAY,
         'meal': 'LUNCH',
@@ -159,7 +169,7 @@ def test_stale_header_is_409_without_mutation(client, database_engine: Engine, a
             text('SELECT title, row_version FROM cafeteria.menu_weeks')
         ).one()
     response = client.post('/admin/patienten/header', data={
-        '_csrf': 'workflow-csrf',
+        '_csrf': _overview_csrf(client),
         'week': DAY,
         'row_version': '9',
         'title': 'Neu',
