@@ -518,9 +518,9 @@ def test_v12_backup_restore_down_probe_preserves_v12_without_claiming_reverse_mi
 
 
 @LIVE_DATABASE
-def test_v14_migration_installs_role_scoped_active_location_lock(pg16: Engine) -> None:
+def test_v15_migration_installs_role_scoped_active_location_lock(pg16: Engine) -> None:
     _run_v12_migrations(pg16)
-    for version in (13, 14):
+    for version in (13, 14, 15):
         migration = next(
             item for item in database.migration_plan(SCHEMA) if item.version == version
         )
