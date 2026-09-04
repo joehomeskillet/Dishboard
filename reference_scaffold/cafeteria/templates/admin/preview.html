@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Vorschau · {{ 'Cafeteria-Speiseplan' if profile == 'staff_guest' else 'Patienten-Speiseplan' }}{% endblock %}
+{% block body %}
+<div class="preview-banner" role="status">PREVIEW</div>
+<section data-preview="last-saved" data-workflow-state="{{ state }}" data-week="{{ week }}" data-profile="{{ profile }}">
+  <h1>Vorschau &middot; {{ 'Cafeteria-Speiseplan' if profile == 'staff_guest' else 'Patienten-Speiseplan' }}</h1>
+  
+  {% if draft.title %}
+    <h2>{{ draft.title }}</h2>
+  {% endif %}
+  {% if draft.shared_note %}
+    <p class="shared-note">{{ draft.shared_note }}</p>
+  {% endif %}
+
+  <div class="preview-grid">
+    {% for day in draft.days %}
+      <div class="preview-day">
+        <h3>{{ day.date|date_long }}</h3>
+        {% for service in day.services %}
+          <div class="preview-service">
+            <h4>{{ 'Mittagessen' if service.meal_code == 'LUNCH' else 'Abendessen' }}</h4>
+            {% if service.service_state != 'open' %}
+              <p class="service-notice">{{ service.notice }}</p>
+            {% else %}
+              <div class="preview-options">
+                {% for option in service.options %}
+                  <div class="preview-option">
+                    <h5>{{ option.title }}</h5>
+                    {% if option.components %}
+                      <ul>
+                        {% for comp in option.components %}
+                          <li>{{ comp }}</li>
+                        {% endfor %}
+                      </ul>
+                    {% endif %}
+                    {% if profile == 'staff_guest' %}
+                      <p class="prices">
+                        Mitarbeitende: {{ option.internal_rappen|default(0)|chf }} | 
+                        Externe: {{ option.external_rappen|default(0)|chf }}
+                      </p>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

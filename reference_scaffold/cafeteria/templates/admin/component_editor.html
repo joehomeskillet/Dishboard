@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}{{ component.name }}{% endblock %}
+{% block body_class %}admin-body{% endblock %}
+{% block body %}
+{% set submitted = form_values|default({}) %}
+{% set errors = form_errors|default({}) %}
+{% macro error_attributes(name, error_id) %}{% if errors.get(name) %} aria-invalid="true" aria-describedby="{{ error_id }}"{% endif %}{% endmacro %}
+{% macro field_error(name, error_id) %}{% if errors.get(name) %}<span class="field-error" id="{{ error_id }}">{{ errors[name] }}</span>{% endif %}{% endmacro %}
+
+<div class="admin-shell">
+  <main id="main-content" class="admin-main" data-profile="{{ profile }}" data-family="{{ family }}">
+    
+    <div class="flash-region" aria-live="polite">
+      {% for message in flashes %}
+        <div class="flash-message">{{ message }}</div>
+      {% endfor %}
+    </div>
+
+    {% if errors %}
+    <div class="error-region" role="alert" tabindex="-1">
+      <p>Bitte korrigieren Sie die Fehler im Formular.</p>
+    </div>
+    {% endif %}
+
+    <div class="admin-header">
+      <h1>{{ component.name }}</h1>
+      <a class="btn" href="/admin/{{ family }}/komponenten">Zurück zur Liste</a>
+    </div>
+
+    <p class="usage">verwendet in {{ component.usage_count }} Gerichten</p>
+
+    <form method="post" action="/admin/{{ family }}/komponenten/{{ component.public_id }}">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <input type="hidden" name="row_version" value="{{ component.row_version }}">
+
+      <div class="admin-actions" data-sticky>
+        <button type="submit" class="btn">Speichern</button>
+      </div>
+
+      <label for="c-name">Name</label>
+      <input id="c-name" name="name" value="{{ submitted.get('name', component.name) }}" required{{ error_attributes('name', 'err-name') }}>
+      {{ field_error('name', 'err-name') }}
+
+      <label for="c-cat">Kategorie</label>
+      <select id="c-cat" name="category" required{{ error_attributes('category', 'err-cat') }}>
+        <option value="">Bitte wählen</option>
+        {% for cat_val, cat_label in categories.items() %}
+          <option value="{{ cat_val }}"{% if submitted.get('category', component.category) == cat_val %} selected{% endif %}>{{ cat_label }}</option>
+        {% endfor %}
+      </select>
+      {{ field_error('category', 'err-cat') }}
+
+      <label for="c-origin">Herkunft (ISO-Code)</label>
+      <input id="c-origin" name="origin_country_code" pattern="[A-Z]{2}" maxlength="2" placeholder="CH" value="{{ submitted.get('origin_country_code', component.origin_country_code or '') }}"{{ error_attributes('origin_country_code', 'err-origin') }}>
+      {{ field_error('origin_country_code', 'err-origin') }}
+
+      <fieldset>
+        <legend>Labels</legend>
+        {% set l_codes = submitted.getlist('label_code[]') if submitted.getlist else submitted.get('label_code[]') %}
+        {% if l_codes is none %}
+          {% set l_codes = component.labels|map(attribute='code')|list %}
+        {% endif %}
+        {% for label in labels|default([]) %}
+          <label><input type="checkbox" name="label_code[]" value="{{ label.code }}"{% if label.code in l_codes %} checked{% endif %}> {{ label.name|default(label.code) }}</label>
+        {% endfor %}
+      </fieldset>
+
+      <fieldset>
+        <legend>Allergene</legend>
+        <div class="allergen-list">
+          {% set a_codes = submitted.getlist('allergen_code[]') if submitted.getlist else submitted.get('allergen_code[]') %}
+          {% set a_pres = submitted.getlist('allergen_presence[]') if submitted.getlist else submitted.get('allergen_presence[]') %}
+          
+          {% if a_codes is none %}
+            {% set a_codes = component.allergens|map(attribute='code')|list %}
+            {% set a_pres = component.allergens|map(attribute='presence')|list %}
+          {% endif %}
+          
+          {% for allergen in allergens|default([]) %}
+            {% set idx = a_codes.index(allergen.code) if allergen.code in a_codes else -1 %}
+            {% set presence = a_pres[idx] if idx >= 0 and idx < a_pres|length else 'contains' %}
+            <div class="allergen-row">
+              <label><input type="checkbox" name="allergen_code[]" value="{{ allergen.code }}"{% if idx >= 0 %} checked{% endif %}> {{ allergen.name|default(allergen.code) }}</label>
+              <select name="allergen_presence[]" aria-label="Präsenz für {{ allergen.name|default(allergen.code) }}">
+                <option value="contains"{% if presence == 'contains' %} selected{% endif %}>enthält</option>
+                <option value="may_contain"{% if presence == 'may_contain' %} selected{% endif %}>kann Spuren enthalten</option>
+              </select>
+            </div>
+          {% endfor %}
+        </div>
+      </fieldset>
+    </form>
+
+    <div class="archive-actions">
+      {% if component.active %}
+      <form method="post" action="/admin/{{ family }}/komponenten/{{ component.public_id }}/archive" data-confirm="Komponente wirklich archivieren?">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <input type="hidden" name="row_version" value="{{ component.row_version }}">
+        <button type="submit" class="btn">Archivieren</button>
+      </form>
+      {% else %}
+      <form method="post" action="/admin/{{ family }}/komponenten/{{ component.public_id }}/unarchive" data-confirm="Komponente reaktivieren?">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <input type="hidden" name="row_version" value="{{ component.row_version }}">
+        <button type="submit" class="btn">Reaktivieren</button>
+      </form>
+      {% endif %}
+    </div>
+
+  </main>
+</div>
+{% endblock %}
