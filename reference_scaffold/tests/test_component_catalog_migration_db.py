@@ -450,9 +450,9 @@ def test_v13_real_postgres_contract_covers_catalog_constraints_and_component_lin
     catalog_columns = 'id public_id location_id profile_scope category name origin_country_code active row_version created_at updated_at'.split()
     expected_columns = {'menu_components': catalog_columns, 'component_allergens': 'component_id allergen_id presence'.split(), 'component_labels': 'component_id label_id'.split(), 'menu_items': 'allergen_mode origin_mode label_mode'.split(), 'menu_item_components': 'component_id component_row_version'.split()}
     column_contract = {(row[0], row[1]): row[2:] for row in columns}
-    assert database.SCHEMA_VERSION == version == 14
-    assert database.APPLICATION_VERSION == 'dishboard-schema-v14'
-    assert (plan[-1].version, plan[-1].path.name) == (14, '0011_v13_to_v14.sql')
+    assert database.SCHEMA_VERSION == version == 15
+    assert database.APPLICATION_VERSION == 'dishboard-schema-v15'
+    assert (plan[-1].version, plan[-1].path.name) == (15, '0012_v14_to_v15.sql')
     assert MIGRATION.read_text(encoding='utf-8').startswith('BEGIN;')
     assert MIGRATION.read_text(encoding='utf-8').rstrip().endswith('COMMIT;')
     validator = (ROOT / 'database' / 'validate_schema.py').read_text(encoding='utf-8')
