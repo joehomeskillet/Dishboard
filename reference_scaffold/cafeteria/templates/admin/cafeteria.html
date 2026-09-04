@@ -2,148 +2,138 @@
 {% block title %}Backend Cafeteria-Raster{% endblock %}
 {% block body_class %}admin-body{% endblock %}
 {% block body %}
-{% set weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag'] %}
-{% set submitted = form_values|default({}) %}
-{% set errors = form_errors|default({}) %}
-{% macro error_attributes(name, error_id) %}{% if errors.get(name) %} aria-invalid="true" aria-describedby="{{ error_id }}"{% if first_error == name %} autofocus{% endif %}{% endif %}{% endmacro %}
-{% macro field_error(name, error_id) %}{% if errors.get(name) %}<span class="field-error" id="{{ error_id }}">{{ errors[name] }}</span>{% endif %}{% endmacro %}
+{% set csrf_value = csrf if csrf is defined else csrf_token() %}
+{% set week_value = week.isoformat() if week is not none and week.isoformat is defined else week %}
+{% set day_cells = cells|selectattr("meal", "equalto", "LUNCH")|list %}
+{% set first_slot = day_cells|first %}
 <div class="admin-shell">
   <aside class="admin-sidebar">
-    <div class="admin-brand"><img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="admin-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="164" height="32"><span>Menüplanung</span></div>
+    <div class="admin-brand">
+      <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="admin-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="164" height="32">
+      <span>Menüplanung</span>
+    </div>
     <div class="admin-user">
-      <span class="avatar">{{ (user.name or 'DK')[:2]|upper }}</span>
-      <div><strong>{{ user.name if user else 'Demo Küche' }}</strong><span>{{ roles|join(', ') }}</span></div>
+      {% set user_name = (user.name if user is not none else 'Demo Küche') if user is not none else 'Demo Küche' %}
+      <span class="avatar">{{ (user_name[:2])|upper }}</span>
+      <div>
+        <strong>{{ user_name }}</strong>
+        <span>{{ roles|default([])|join(', ') }}</span>
+      </div>
     </div>
     <nav class="admin-nav" aria-label="Backend">
       <a class="active" href="{{ url_for('admin.cafeteria') }}" aria-current="page">Wochenpläne</a>
+      <a href="/admin/{{ family }}/komponenten">Komponenten</a>
       <a href="{{ url_for('admin.import_preview') }}">CSV Import</a>
       <form method="post" action="{{ url_for('auth.logout') }}">
-        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="_csrf" value="{{ csrf_value }}">
         <button type="submit">Abmelden</button>
       </form>
     </nav>
   </aside>
-  <main class="admin-main" id="main-content">
+
+  <main class="admin-main" id="main-content" data-profile="{{ profile }}" data-family="{{ family }}" data-week="{{ week_value }}" data-status="{{ status }}" data-loading-region aria-busy="{{ 'true' if status == 'loading' else 'false' }}">
     <header class="admin-topbar">
       <h1>Cafeteria-Plan bearbeiten</h1>
-      <div class="toolbar">
-        <a class="btn" href="{{ url_for('signage.cafeteria_week') }}">Vorschau</a>
-        <a class="btn" href="{{ url_for('admin.export_csv', profile_code='cafeteria') }}">CSV</a>
-        <button class="btn" type="submit" form="cafeteria-grid" formaction="{{ url_for('admin.save_cafeteria') }}">Entwurf speichern</button>
-        <button class="btn primary" type="submit" form="cafeteria-grid" formaction="{{ url_for('admin.publish_cafeteria') }}">Publizieren</button>
-      </div>
     </header>
+
     <div class="admin-content">
-      <div class="admin-notice"><strong>Getrenntes Raster:</strong> Montag bis Freitag, nur Mittag. Samstag und Sonntag: Cafeteria geschlossen.</div>
-      {% if form_message %}<div class="form-error-summary" role="alert"{% if not first_error %} tabindex="-1" autofocus{% endif %}>{{ form_message }}</div>{% endif %}
+      <div class="flash-region" aria-live="polite">{{ flashes|default('')|safe }}</div>
+      {% if status == 'error' and flashes %}
+      <div class="error-region" role="alert" tabindex="-1">{{ flashes|safe }}</div>
+      {% endif %}
+
+      <div class="admin-notice">
+        Getrenntes Raster: Montag bis Freitag, nur Mittag. Samstag und Sonntag: Cafeteria geschlossen.
+      </div>
+
       <nav class="profile-tabs" aria-label="Profil">
         <a class="active" href="{{ url_for('admin.cafeteria') }}" aria-current="page">Cafeteria</a>
-        <a class="patient" href="{{ url_for('admin.patienten') }}">Patienten</a>
+        <a href="{{ url_for('admin.patienten') }}">Patienten</a>
       </nav>
+
       <div class="weekbar">
-        <div><strong>KW {{ draft.week_start|iso_week }} · Cafeteria</strong><span>Arbeitsstand {{ draft.row_version }}</span></div>
-        <div><strong>10 Menükarten</strong><span>5 Tage × 2 Menüarten</span></div>
+        <div>
+          <strong>KW {{ iso_week }} · Cafeteria</strong>
+          <span>10 Menükarten · 5 Tage × 2 Menüarten</span>
+        </div>
+        <span class="status-pill" data-status="{{ status }}">{{ status_label }}</span>
       </div>
-      <form id="cafeteria-grid" method="post">
-        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-        <input type="hidden" name="week_start" value="{{ submitted.get('week_start', draft.week_start) }}">
-        <input type="hidden" name="row_version" value="{{ submitted.get('row_version', draft.row_version) }}">
-        <section class="grid-card" aria-labelledby="cafeteria-week-heading">
-          <div class="admin-grid-row">
-            <div class="admin-day"><strong id="cafeteria-week-heading">Woche</strong></div>
-            <div class="admin-dish">
-              <label for="cafeteria-title">Titel</label>
-              <input id="cafeteria-title" name="title" value="{{ submitted.get('title', draft.title) }}" required autocomplete="off"{{ error_attributes('title', 'cafeteria-title_error') }}>
-              {{ field_error('title', 'cafeteria-title_error') }}
-            </div>
-            <div class="admin-dish">
-              <label for="cafeteria-note">Hinweis</label>
-              <input id="cafeteria-note" name="shared_note" value="{{ submitted.get('shared_note', draft.shared_note) }}" autocomplete="off"{{ error_attributes('shared_note', 'cafeteria-note_error') }}>
-              {{ field_error('shared_note', 'cafeteria-note_error') }}
-            </div>
-          </div>
-          <div class="admin-grid-head"><div>Tag</div><div>Menü 1</div><div>Vegetarisch</div></div>
-          {% for day in draft.days %}
-          {% set day_index = loop.index0 %}
-          {% set meal = day.services[0] %}
-          {% set service_prefix = 'service_' ~ day_index ~ '_LUNCH' %}
-          {% set state_field = service_prefix ~ '_state' %}
-          {% set notice_field = service_prefix ~ '_notice' %}
-          {% set selected_state = submitted.get(state_field, meal.service_state) %}
-          <div class="admin-grid-row">
-            <div class="admin-day">
-              <strong>{{ weekdays[day_index] }}</strong><span>{{ day.date|date_short }}</span>
-              <label for="{{ state_field }}">Betrieb</label>
-              <select id="{{ state_field }}" name="{{ state_field }}"{{ error_attributes(state_field, state_field ~ '_error') }}>
-                {% for value, label in [('open', 'Offen'), ('closed', 'Geschlossen'), ('holiday', 'Feiertag'), ('company_holiday', 'Betriebsfeiertag')] %}
-                <option value="{{ value }}"{% if selected_state == value %} selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-              </select>
-              {{ field_error(state_field, state_field ~ '_error') }}
-              <label for="{{ notice_field }}">Servicehinweis</label>
-              <input id="{{ notice_field }}" name="{{ notice_field }}" value="{{ submitted.get(notice_field, meal.notice) }}" autocomplete="off"{{ error_attributes(notice_field, notice_field ~ '_error') }}>
-              {{ field_error(notice_field, notice_field ~ '_error') }}
-            </div>
-            {% for option in meal.options %}
-            {% set option_prefix = service_prefix ~ '_' ~ option.type_code %}
-            {% set title_field = option_prefix ~ '_title' %}
-            {% set components_field = option_prefix ~ '_components' %}
-            {% set internal_field = option_prefix ~ '_internal_rappen' %}
-            {% set external_field = option_prefix ~ '_external_rappen' %}
-            <div class="admin-dish">
-              <span class="dish-type">Mittag</span>
-              <label for="{{ title_field }}">Gericht</label>
-              <input id="{{ title_field }}" name="{{ title_field }}" value="{{ submitted.get(title_field, option.title) }}" autocomplete="off"{{ error_attributes(title_field, title_field ~ '_error') }}>
-              {{ field_error(title_field, title_field ~ '_error') }}
-              <label for="{{ components_field }}">Komponenten, eine pro Zeile</label>
-              <textarea id="{{ components_field }}" name="{{ components_field }}" rows="2"{{ error_attributes(components_field, components_field ~ '_error') }}>{{ submitted.get(components_field, option.components|join('\n')) }}</textarea>
-              {{ field_error(components_field, components_field ~ '_error') }}
-              {# Dietary Labels #}
-              {% set labels_field = option_prefix ~ '_labels' %}
-              <fieldset>
-                <legend>Ernährungskennzeichnung</legend>
-                {% for label in dietary_labels %}
-                <label><input type="checkbox" name="{{ labels_field }}" value="{{ label.code }}"{% if submitted.get(labels_field) and label.code in submitted.get(labels_field, '').split(',') %} checked{% elif option.labels and label.code in (option.labels|map(attribute='code')|list) %} checked{% endif %}> {{ label.display_name }}</label>
-                {% endfor %}
-              </fieldset>
-              {# Allergens - Contains #}
-              {% set allergen_contains_field = option_prefix ~ '_allergen_contains' %}
-              <label for="{{ allergen_contains_field }}">Enthält Allergene (EU-Nummern)</label>
-              <select id="{{ allergen_contains_field }}" name="{{ allergen_contains_field }}" multiple size="3"{{ error_attributes(allergen_contains_field, allergen_contains_field ~ '_error') }}>
-                {% for allergen in allergens %}
-                <option value="{{ allergen.code }}"{% if submitted.get(allergen_contains_field) and allergen.code in submitted.get(allergen_contains_field, '').split(',') %} selected{% elif option.allergens and allergen.code in (option.allergens|selectattr('presence', 'equalto', 'contains')|map(attribute='code')|list) %} selected{% endif %}>{{ allergen.eu_number }} {{ allergen.display_name }}</option>
-                {% endfor %}
-              </select>
-              {{ field_error(allergen_contains_field, allergen_contains_field ~ '_error') }}
-              {# Allergens - May Contain #}
-              {% set allergen_may_field = option_prefix ~ '_allergen_may_contain' %}
-              <label for="{{ allergen_may_field }}">Kann Spuren enthalten (EU-Nummern)</label>
-              <select id="{{ allergen_may_field }}" name="{{ allergen_may_field }}" multiple size="3"{{ error_attributes(allergen_may_field, allergen_may_field ~ '_error') }}>
-                {% for allergen in allergens %}
-                <option value="{{ allergen.code }}"{% if submitted.get(allergen_may_field) and allergen.code in submitted.get(allergen_may_field, '').split(',') %} selected{% elif option.allergens and allergen.code in (option.allergens|selectattr('presence', 'equalto', 'may_contain')|map(attribute='code')|list) %} selected{% endif %}>{{ allergen.eu_number }} {{ allergen.display_name }}</option>
-                {% endfor %}
-              </select>
-              {{ field_error(allergen_may_field, allergen_may_field ~ '_error') }}
-              {# Origins #}
-              {% set origins_field = option_prefix ~ '_origins' %}
-              <label for="{{ origins_field }}">Herkunftsangaben (Zutat=Land|...)</label>
-              <input id="{{ origins_field }}" name="{{ origins_field }}" value="{% if submitted.get(origins_field) %}{{ submitted.get(origins_field) }}{% elif option.origins %}{% for o in option.origins %}{{ o.text }}{% if not loop.last %}|{% endif %}{% endfor %}{% endif %}" autocomplete="off"{{ error_attributes(origins_field, origins_field ~ '_error') }}>
-              {{ field_error(origins_field, origins_field ~ '_error') }}
-              {# Allergen Review Status #}
-              {% set review_field = option_prefix ~ '_allergen_reviewed' %}
-              <label><input type="checkbox" name="{{ review_field }}"{% if submitted.get(review_field) == 'on' %} checked{% elif option.allergen_review_status == 'checked' %} checked{% endif %}> Allergene geprüft</label>
-              <label for="{{ internal_field }}">Mitarbeitende in Rappen</label>
-              <input id="{{ internal_field }}" name="{{ internal_field }}" type="number" min="1" step="1" inputmode="numeric" value="{{ submitted.get(internal_field, option.internal_rappen) }}"{{ error_attributes(internal_field, internal_field ~ '_error') }}>
-              {{ field_error(internal_field, internal_field ~ '_error') }}
-              <label for="{{ external_field }}">Externe in Rappen</label>
-              <input id="{{ external_field }}" name="{{ external_field }}" type="number" min="1" step="1" inputmode="numeric" value="{{ submitted.get(external_field, option.external_rappen) }}"{{ error_attributes(external_field, external_field ~ '_error') }}>
-              {{ field_error(external_field, external_field ~ '_error') }}
-            </div>
-            {% endfor %}
-          </div>
-          {% endfor %}
-        </section>
+
+      <form method="post" action="/admin/{{ family }}/header" class="admin-overview-form">
+        <input type="hidden" name="_csrf" value="{{ csrf_value }}">
+        <input type="hidden" name="week" value="{{ week_value }}">
+        <input type="hidden" name="row_version" value="{{ week_row_version }}">
+        <label for="week_title">Wochentitel</label>
+        <input id="week_title" name="title" value="{{ title }}">
+        <label for="week_shared_note">Hinweis für alle Tage</label>
+        <input id="week_shared_note" name="shared_note" value="{{ shared_note }}">
       </form>
+
+      {% if status == 'empty' %}
+      <div class="admin-notice">
+        Noch keine Gerichte erfasst
+        {% if first_slot %}
+        <p><a class="btn primary" href="{{ first_slot.edit_url }}">Zum ersten Slot</a></p>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <section class="grid-card" aria-label="Wochenübersicht Cafeteria">
+        {% for day, grouped in day_cells|groupby('day') %}
+        {% set day_row = grouped|first %}
+        <div class="admin-grid-row">
+          <div class="admin-day">
+            <strong>{{ day_row.day_label }}</strong>
+            <span>{{ day_row.day_short }}</span>
+            <form method="post" action="/admin/{{ family }}/service">
+              <input type="hidden" name="_csrf" value="{{ csrf_value }}">
+              <input type="hidden" name="week" value="{{ week_value }}">
+              <input type="hidden" name="day" value="{{ day }}">
+              <input type="hidden" name="meal" value="LUNCH">
+              <input type="hidden" name="row_version" value="{{ day_row.row_version }}">
+              <label for="service_state_{{ day }}">Betrieb</label>
+              <select id="service_state_{{ day }}" name="service_state">
+                <option value="open"{% if day_row.service_state == 'open' %} selected{% endif %}>Offen</option>
+                <option value="closed"{% if day_row.service_state == 'closed' %} selected{% endif %}>Geschlossen</option>
+              </select>
+              <label for="service_notice_{{ day }}">Servicehinweis</label>
+              <input id="service_notice_{{ day }}" name="notice" value="{{ day_row.notice|default('') }}">
+            </form>
+          </div>
+
+          {% for cell in grouped %}
+          <article class="menu-slot" data-day="{{ cell.day }}" data-meal="LUNCH" data-option="{{ cell.option }}" data-row-version="{{ cell.row_version }}">
+            <span class="dish-type">{{ cell.option_label }}</span>
+            <h3>{{ cell.title if cell.title else 'Noch kein Gericht' }}</h3>
+            <p>{{ cell.components|default([])|join(' · ') }}</p>
+            <p>
+              {% if cell.internal_chf and cell.external_chf %}
+              Mitarbeitende CHF {{ cell.internal_chf }} · Externe CHF {{ cell.external_chf }}
+              {% else %}
+              Preis fehlt
+              {% endif %}
+            </p>
+            <span class="slot-badge" data-review="{{ 'open' if cell.review_open else 'checked' }}">{{ 'Prüfung offen' if cell.review_open else 'Geprüft' }}</span>
+            <a class="btn" href="{{ cell.edit_url }}">Bearbeiten</a>
+          </article>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </section>
+
+      <div class="admin-actions" data-sticky>
+        <a class="btn" target="_blank" rel="noopener" href="/admin/{{ family }}/preview?week={{ week_value }}">Vorschau</a>
+        <a class="btn" href="/admin/{{ family }}/copy?week={{ week_value }}">Vorwoche kopieren</a>
+        <form method="post" action="/admin/{{ family }}/publish" data-confirm="Woche jetzt publizieren?">
+          <input type="hidden" name="_csrf" value="{{ csrf_value }}">
+          <input type="hidden" name="week" value="{{ week_value }}">
+          <input type="hidden" name="row_version" value="{{ week_row_version }}">
+          <button type="submit" class="btn primary"{% if status in ['review_open', 'incomplete'] %} disabled{% endif %}>Publizieren</button>
+          {% if status in ['review_open', 'incomplete'] %}
+          <span>Publizieren ist bei diesem Status gesperrt.</span>
+          {% endif %}
+        </form>
+      </div>
     </div>
   </main>
 </div>
