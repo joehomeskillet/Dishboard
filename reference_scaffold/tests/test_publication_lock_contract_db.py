@@ -166,7 +166,7 @@ def test_capability_issue_blocks_behind_direct_withdrawal_without_deadlock(catal
     second_version, revision_id, direct_capability = _prepare_replacement(catalog_database)
 
     with catalog_database.owner.connect() as conn:
-        week_id = conn.execute(
+        conn.execute(
             text("SELECT menu_week_id FROM cafeteria.publication_revisions WHERE id=:id"),
             {"id": revision_id}
         ).scalar_one()

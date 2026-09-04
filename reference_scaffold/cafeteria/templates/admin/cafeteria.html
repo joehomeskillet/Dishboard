@@ -25,7 +25,7 @@
       <a href="/admin/{{ family }}/komponenten">Komponenten</a>
       <a href="{{ url_for('admin.import_preview') }}">CSV Import</a>
       <form method="post" action="{{ url_for('auth.logout') }}">
-        <input type="hidden" name="_csrf" value="{{ csrf_value }}">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
         <button type="submit">Abmelden</button>
       </form>
     </nav>
