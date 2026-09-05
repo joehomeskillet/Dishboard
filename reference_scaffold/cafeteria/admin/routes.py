@@ -176,4 +176,4 @@ def import_csv():
     except StaleDraftError as error:
         abort(409, description=str(error))
     endpoint = 'admin.patienten' if profile_code == 'patient' else 'admin.cafeteria'
-    return redirect(url_for(endpoint), code=303)
+    return redirect(url_for(endpoint, week=week_start.isoformat()), code=303)

@@ -185,7 +185,7 @@ def test_patient_import_persists_complete_grid_without_prices(client, database_e
             )
         ).one()
     assert response.status_code == 303
-    assert response.headers['Location'].endswith('/admin/patienten')
+    assert response.headers['Location'].endswith('/admin/patienten?week=2026-08-31')
     assert tuple(shape) == (14, 28, 0, 28)
 
 
@@ -221,6 +221,7 @@ def test_cafeteria_import_persists_five_lunches_and_both_prices(
             )
         ).scalars().all()
     assert response.status_code == 303
+    assert response.headers['Location'].endswith('/admin/cafeteria?week=2026-08-31')
     assert tuple(shape[:3]) == (5, 10, 10)
     assert shape[3] > 0
     assert shape[4] >= shape[3]
