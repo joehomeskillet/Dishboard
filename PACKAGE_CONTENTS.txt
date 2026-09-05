@@ -204,6 +204,7 @@ docs/ENTRA_SSO_BETRIEBSKONZEPT.md
 docs/GROK_KRITIK_UMSETZUNG.md
 docs/SDD_Klinik_Suedhang_Cafeteria_v3.0.docx
 docs/SDD_Klinik_Suedhang_Cafeteria_v3.0.md
+docs/superpowers/metadata-visibility-0905.md
 docs/superpowers/plans/2026-09-01-dishboard-menuplanung.md
 docs/superpowers/plans/2026-09-02-dishboard-admin-redesign.md
 docs/superpowers/specs/2026-09-02-dishboard-admin-redesign-design.md
@@ -255,6 +256,7 @@ reference_scaffold/cafeteria/static/fonts/OFL.txt
 reference_scaffold/cafeteria/static/img/suedhang-logo.png
 reference_scaffold/cafeteria/static/img/suedhang-logo@2x.png
 reference_scaffold/cafeteria/template_filters.py
+reference_scaffold/cafeteria/templates/_menu_metadata.html
 reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html
 reference_scaffold/cafeteria/templates/admin/cafeteria.html
 reference_scaffold/cafeteria/templates/admin/component_editor.html
@@ -336,6 +338,7 @@ reference_scaffold/tests/test_deployment_restore_live.py
 reference_scaffold/tests/test_deployment_restore_ponr_live.py
 reference_scaffold/tests/test_deployment_restore_recovery.py
 reference_scaffold/tests/test_github_pages.py
+reference_scaffold/tests/test_menu_metadata_visibility.py
 reference_scaffold/tests/test_patient_preview_access.py
 reference_scaffold/tests/test_public_contracts.py
 reference_scaffold/tests/test_public_isolation_homoglyphs.py
