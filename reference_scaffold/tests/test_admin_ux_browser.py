@@ -320,6 +320,17 @@ def test_menu_catalog_pair_errors_and_archived_assignment_survive(
     expect(page.locator('[name="component_public_id"]')).to_have_value(public_id)
     expect(page.locator(f'option[value="{public_id}"]')).to_be_enabled()
     assert _submit_menu(page)['component_public_id'] == [public_id]
+    page.get_by_role('button', name='Komponente hinzufügen').click()
+    rows = page.locator('#components-list .component-row')
+    expect(rows.first.locator(f'option[value="{public_id}"]')).to_be_enabled()
+    expect(rows.last.locator('[name="component_public_id"]')).to_have_value('')
+    expect(rows.last.locator(f'option[value="{public_id}"]')).to_be_disabled()
+    rows.last.locator('[name="component_text"]').fill('Neue freie Beilage')
+    payload = _submit_menu(page)
+    assert payload['component_public_id'] == [public_id, '']
+    assert payload['component_text'] == ['', 'Neue freie Beilage']
+    expect(rows.first.locator('[name="component_public_id"]')).to_have_value(public_id)
+    expect(rows.last.locator('[name="component_text"]')).to_have_value('Neue freie Beilage')
 
 
 def test_cancelled_archive_confirm_keeps_unsaved_changes_guard(

@@ -167,6 +167,9 @@
             }
         });
         if (menuEditor) {
+            form.querySelectorAll('select[name="component_public_id"] option[data-active="0"]').forEach(option => {
+                option.disabled = !option.selected;
+            });
             form.querySelectorAll('[name="label_code"]').forEach(control => {
                 control.disabled = !manual('label');
             });

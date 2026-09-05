@@ -76,7 +76,7 @@
               <select name="component_public_id" aria-label="Komponente aus Katalog"{{ error_attributes('component_public_id', 'err-component-id') }}>
                 <option value="">(Freitext verwenden)</option>
                 {% for choice in catalog_choices %}
-                  <option value="{{ choice.public_id }}"{% if choice.public_id == c_id %} selected{% endif %}{% if not choice.active and choice.public_id != c_id %} disabled{% endif %}>{{ choice.name }}</option>
+                  <option value="{{ choice.public_id }}" data-active="{{ '1' if choice.active else '0' }}"{% if choice.public_id == c_id %} selected{% endif %}{% if not choice.active and choice.public_id != c_id %} disabled{% endif %}>{{ choice.name }}</option>
                 {% endfor %}
               </select>
               <input name="component_text" aria-label="Freitext-Komponente" value="{{ c_text|default('') }}"{{ error_attributes('component_text', 'err-component-text') }}>

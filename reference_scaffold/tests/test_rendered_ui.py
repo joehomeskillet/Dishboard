@@ -1141,7 +1141,7 @@ def test_menu_editor_prefills_saved_item_and_masters(
     assert '>Mit Sauce</textarea>' in body
     assert '>Ohne Pfeffer</textarea>' in body
     assert re.search(
-        rf'<option value="{re.escape(str(potato["public_id"]))}" selected>', body
+        rf'<option value="{re.escape(str(potato["public_id"]))}" data-active="1" selected>', body
     )
     assert 'name="component_text" aria-label="Freitext-Komponente" value="Blattsalat"' in body
     assert 'Kartoffelstock' in body
@@ -1185,7 +1185,7 @@ def test_menu_editor_keeps_archived_assignment_visible_but_not_selectable(
     ).get_data(as_text=True)
 
     assert re.search(
-        rf'<option value="{re.escape(str(component["public_id"]))}" selected disabled>'
+        rf'<option value="{re.escape(str(component["public_id"]))}" data-active="0" selected>'
         r'Archivierte Rösti</option>',
         body,
     )
