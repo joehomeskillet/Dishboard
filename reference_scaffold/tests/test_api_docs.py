@@ -4,6 +4,8 @@ import os
 import re
 
 import pytest
+from sqlalchemy import create_engine, text
+from sqlalchemy.pool import NullPool
 
 DATABASE_URL = os.getenv('TEST_DATABASE_URL')
 APP_PASSWORD = 'Test-App-Role-2026-7VgJ9wL4pQ2xR8mK'
@@ -40,8 +42,16 @@ if DATABASE_URL:
     from cafeteria.db import init_database
 
 
+def _drop_schema(engine) -> None:
+    # Demo seed cannot be re-applied over published revisions; start and end from an empty schema.
+    with engine.begin() as connection:
+        connection.execute(text('DROP SCHEMA IF EXISTS cafeteria CASCADE'))
+
+
 @pytest.fixture(scope='module')
 def app():
+    engine = create_engine(DATABASE_URL, poolclass=NullPool)
+    _drop_schema(engine)
     cfg = Config()
     init_database(
         cfg.DATABASE_URL,
@@ -56,7 +66,9 @@ def app():
     )
     application = create_app()
     application.config.update(TESTING=True)
-    return application
+    yield application
+    _drop_schema(engine)
+    engine.dispose()
 
 
 def test_docs_page_renders_swagger_ui(app):

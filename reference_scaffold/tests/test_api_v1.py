@@ -1,11 +1,49 @@
 from __future__ import annotations
 
-# ruff: noqa: F401, F811
 import pytest
-from test_smoke import app as smoke_app_fixture, pytestmark as smoke_pytestmark
-
+from sqlalchemy import create_engine, text
+from sqlalchemy.pool import NullPool
+from test_smoke import (
+    APP_PASSWORD,
+    BACKUP_PASSWORD,
+    DATABASE_URL,
+    ISSUER_PASSWORD,
+    pytestmark as smoke_pytestmark,
+)
 
 pytestmark = smoke_pytestmark
+
+if DATABASE_URL:
+    from test_smoke import Config, create_app, init_database
+
+
+def _drop_schema(engine) -> None:
+    # Demo seed cannot be re-applied over published revisions; start and end from an empty schema.
+    with engine.begin() as connection:
+        connection.execute(text('DROP SCHEMA IF EXISTS cafeteria CASCADE'))
+
+
+@pytest.fixture(scope='module')
+def smoke_app_fixture():
+    engine = create_engine(DATABASE_URL, poolclass=NullPool)
+    _drop_schema(engine)
+    cfg = Config()
+    init_database(
+        cfg.DATABASE_URL,
+        cfg.SCHEMA_PATH,
+        cfg.SEED_PATH,
+        demo_seed_path=cfg.DEMO_SEED_PATH,
+        permissions_path=cfg.PERMISSIONS_PATH,
+        app_password=APP_PASSWORD,
+        backup_password=BACKUP_PASSWORD,
+        auth_issuer_password=ISSUER_PASSWORD,
+        seed_demo=True,
+    )
+    application = create_app()
+    application.config.update(TESTING=True)
+    yield application
+    _drop_schema(engine)
+    engine.dispose()
 
 
 def _channel_status(payload: dict, channel: str) -> dict:
