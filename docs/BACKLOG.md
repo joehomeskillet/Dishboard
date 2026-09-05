@@ -4,12 +4,14 @@ Stand: **5./6. September 2026**. Diese Übersicht führt die offenen Nutzerwüns
 
 **Verbindlicher Nutzerentscheid: Alles im Admin bleibt Tabler.** Das gilt für Formulare, Felder, Buttons, Dialoge, Navigation und sämtliche Fremdeditoren. Eine Tabler-Shell um eine fremde Bedienoberfläche genügt nicht. Tandoor und Pauli sind Funktionsvorbilder, kein Vue-/Vuetify-Ersatz für den Admin. GrapesJS, pdfme und andere Editor-Kandidaten dürfen erst nach nachgewiesener vollständiger Tabler-Bedienoberfläche freigegeben werden.
 
-## Aktuelle Umsetzung
+## Zuletzt ausgeliefert
 
 | ID | Auftrag | Status / Abnahme |
 |---|---|---|
-| UI-001 | Menüs: umschaltbare kompakte Listenansicht wie bei Komponenten, für beide Bereiche | In Arbeit; vorhandene Filter und Editorlinks erhalten, aktueller Prüfstatus, keine Patientenpreise; Browserprüfung bei 390 und 1440 px. |
-| UI-002 | Öffentliche Seiten und Signage von technischen Angaben bereinigen | In Arbeit; Kanal, Revision, Auflösung und «Publizierter Datenstand» aus sichtbaren Ausgaben entfernen. Menüdaten, fachliche Hinweise, interne Header, Statuscodes und Veröffentlichungsschutz erhalten. |
+| UI-001 | Menüs: umschaltbare kompakte Listenansicht wie bei Komponenten, für beide Bereiche | Produktiv mit `6828138` seit 06.09.2026, 00:06 Uhr Schweiz. Vorhandene Filter und Editorlinks erhalten, aktueller Prüfstatus, keine Patientenpreise; Live-Prüfung bei 390 und 1440 px. |
+| UI-002 | Öffentliche Seiten und Signage von technischen Angaben bereinigen | Produktiv mit `6828138`. Kanal, Revision, Auflösung und «Publizierter Datenstand» aus sichtbaren Ausgaben entfernt. Fachliche Inhalte, interne Header, Statuscodes und Veröffentlichungsschutz erhalten. |
+
+Gemeinsamer Nachweis: 284 unabhängige lokale Regressionstests bestanden; Live-Prüfung mit 130 Checks und 20 Screenshots ohne Fehler. Diese Lieferung beinhaltet keine der nachfolgend geplanten Erweiterungen.
 
 ## Geplante Erweiterungen
 
@@ -50,7 +52,7 @@ Gemeinsamer Entwurf mit Dateizuordnung und Arbeitspaketen: [Screens, Vorlagen un
 | TRN-001 | Gastro-Übersetzer | Fachbegriffe und Rezept-/Menütexte für Deutsch, Französisch, Englisch, Italienisch und Spanisch. Quellen, Synonyme und Fachprüfung; Anbieterumfang von rund 50'000 Begriffen als Referenz, keine ungeprüfte Übernahme eines geschützten Wörterbuchbestands. |
 | API-001 | REST-API v1, MCP, FHIR R5 und API-Schlüssel | Weiterhin zurückgestellt; bereits vorhandene Lanes erhalten. Ablauf unten. |
 
-**Lieferfolge:** UI-001/UI-002 unabhängig fertigstellen und geprüft deployen; parallel Editor-Auswahl und Vorlagenentwurf konkretisieren. Danach Screens-/Vorlagen-Navigation, globale Darstellung und gemeinsame Symbolbasis; Branding, Bereiche/Zeiten und Benutzer/Entra in getrennten geprüften Paketen. API-001 wird durch diese Liste nicht automatisch wieder aufgenommen. Schemaänderungen vor Vergabe der nächsten Migration mit der reservierten API-Migration 16→17 abstimmen.
+**Lieferfolge:** UI-001/UI-002 sind ausgeliefert. Als Nächstes Editor-Auswahl und Vorlagenentwurf konkretisieren; Screens-/Vorlagen-Navigation, globale Darstellung, Komponentenfilter und gemeinsame Symbolbasis in kleinen Paketen umsetzen. Branding, Bereiche/Zeiten, Benutzer/Entra sowie Rezept-/Lager-/Kalkulationsfunktionen folgen in getrennten geprüften Paketen. API-001 wird durch diese Liste nicht automatisch wieder aufgenommen. Schemaänderungen vor Vergabe der nächsten Migration mit der reservierten API-Migration 16→17 abstimmen.
 
 ## REC-001 bis REC-007 — Tandoor als Referenz
 
