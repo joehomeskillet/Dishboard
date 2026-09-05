@@ -150,6 +150,37 @@ def capture_viewport(
         for family, profile, slots in [('cafeteria', 'staff_guest', 10), ('patienten', 'patient', 28)]:
             prefix = f'{viewport}.{family}'
             patient = family == 'patienten'
+            # These pages must still run when existing data blocks a later workflow.
+            for route_name, page_name in [('menues', 'menus'), ('wochen', 'weeks')]:
+                stage = f'{prefix}.{page_name}'
+                path = f'/admin/{family}/{route_name}'
+                try:
+                    response = page.goto(f'{base}{path}', wait_until='load')
+                    capture(page, response, stage, patient)
+                    check(f'{stage}.route', urlsplit(page.url).path == path)
+                    main = page.locator('main.admin-main')
+                    check(f'{stage}.profile', main.count() == 1 and main.get_attribute('data-profile') == profile)
+                    sidebar = page.locator('nav[aria-label="Backend"]')
+                    for destination in ('menues', 'wochen', 'komponenten'):
+                        check(f'{stage}.nav_{destination}', sidebar.locator(
+                            f'a[href="/admin/{family}/{destination}"]',
+                        ).count() == 1)
+                    check(f'{stage}.nav_current', sidebar.locator(
+                        f'a[href="{path}"][aria-current="page"]',
+                    ).count() == 1)
+                    active_profile = page.locator('nav[aria-label="Profil"] a[aria-current="page"]')
+                    check(f'{stage}.profile_tab', active_profile.count() == 1
+                          and active_profile.get_attribute('href') == path)
+                    links = main.locator('.menu-card a[href]').evaluate_all(
+                        'elements => elements.map(element => element.getAttribute("href"))',
+                    )
+                    check(f'{stage}.row_scope', all(
+                        _admin_url(urljoin(base, href), base)
+                        and urlsplit(urljoin(base, href)).path.split('/')[2] == family
+                        for href in links
+                    ))
+                except Exception as error:
+                    failures.append(f'{stage}.{type(error).__name__}')
             try:
                 stage = f'{prefix}.overview'
                 overview = f'{base}/admin/{family}'
