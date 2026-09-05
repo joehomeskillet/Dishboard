@@ -89,7 +89,7 @@ def _create_fields() -> MultiDict[str, str]:
 def _create_csrf(client, family: str) -> str:
     page = client.get(f'/admin/{family}/komponenten')
     assert page.status_code == 200
-    return _hidden(page.get_data(as_text=True), '_csrf')
+    return _hidden(page.get_data(as_text=True), '_csrf', form_action=f'/admin/{family}/komponenten')
 
 
 def test_component_create_update_archive_unarchive_exact_forms(client, database_engine: Engine) -> None:
@@ -103,7 +103,7 @@ def test_component_create_update_archive_unarchive_exact_forms(client, database_
     assert REVIEW_HINT in detail.get_data(as_text=True)
     body = detail.get_data(as_text=True)
     assert 'data-profile-scope="patient"' in body
-    detail_csrf = _hidden(body, '_csrf')
+    detail_csrf = _hidden(body, '_csrf', form_action=location)
     version = _hidden(body, 'row_version')
     public_id = body.split('data-public-id="', 1)[1].split('"', 1)[0]
     updated = client.post(f'/admin/patienten/komponenten/{public_id}', data=MultiDict([

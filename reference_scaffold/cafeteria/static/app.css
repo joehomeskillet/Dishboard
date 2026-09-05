@@ -170,6 +170,9 @@ p { text-wrap: pretty; }
 .admin-brand { display: flex; align-items: center; gap: .8rem; padding: 1rem 1.25rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--sh-border); background: var(--sh-panel); }
 .admin-logo { display: block; width: auto; height: clamp(32px, 4vw, 40px); }
 .admin-brand span { color: var(--sh-ink); font-size: .86rem; font-weight: 720; white-space: nowrap; }
+.admin-sidebar .admin-brand { flex-direction: column; align-items: flex-start; min-width: 0; }
+.admin-sidebar .admin-brand .admin-logo { max-width: 100%; height: auto; }
+.admin-sidebar .admin-brand span { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 
 .signage-logo { display: block; width: auto; height: clamp(36px, 6vw, 54px); filter: drop-shadow(0 2px 4px var(--sh-logo-shadow)); }
 

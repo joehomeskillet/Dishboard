@@ -6,12 +6,31 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from flask import Flask, url_for
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Locator, Page, expect
 
 from test_admin_ux_browser import (  # noqa: F401
     admin_app, admin_engine, browser, catalog_component, live_server, page_context,
 )
 from test_admin_workflow_routes import DAY
+
+
+def _assert_brand_contained(sidebar: Locator) -> None:
+    sidebar_box = sidebar.bounding_box()
+    brand = sidebar.locator('.admin-brand')
+    brand_box = brand.bounding_box()
+    assert sidebar_box is not None and brand_box is not None
+    boxes = [
+        (brand_box, sidebar_box),
+        (brand.locator('img').bounding_box(), brand_box),
+        (brand.locator('span').bounding_box(), brand_box),
+    ]
+    for box, bounds in boxes:
+        assert box is not None
+        assert box['width'] > 0 and box['height'] > 0
+        assert box['x'] >= bounds['x'] - 1
+        assert box['x'] + box['width'] <= bounds['x'] + bounds['width'] + 1
+        assert box['y'] >= bounds['y'] - 1
+        assert box['y'] + box['height'] <= bounds['y'] + bounds['height'] + 1
 
 
 @pytest.mark.parametrize('family', ('cafeteria', 'patienten'))
@@ -36,6 +55,7 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
     main = page.locator('.admin-workflow-shell > main#main-content')
     expect(sidebar).to_be_visible()
     expect(main).to_be_visible()
+    _assert_brand_contained(sidebar)
     expect(main).to_have_attribute('data-family', family)
     expect(main).to_have_attribute('data-profile', 'patient' if family == 'patienten' else 'staff_guest')
 
@@ -164,3 +184,14 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
     weeks.click()
     page.wait_for_url(f'**{week_href}')
     expect(page.locator('main#main-content')).to_have_attribute('data-family', family)
+
+
+@pytest.mark.parametrize('family', ('cafeteria', 'patienten'))
+@pytest.mark.parametrize(('width', 'height'), ((390, 844), (1440, 1100)))
+def test_overview_brand_stays_inside_sidebar(
+    page_context: Page, family: str, width: int, height: int,  # noqa: F811
+) -> None:
+    page_context.set_viewport_size({'width': width, 'height': height})
+    response = page_context.goto(f'/admin/{family}?week={DAY}')
+    assert response is not None and response.status == 200
+    _assert_brand_contained(page_context.locator('.admin-shell > aside.admin-sidebar'))

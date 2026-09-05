@@ -131,7 +131,16 @@ def client(app: Flask, database_engine: Engine):
     return client_obj
 
 
-def _hidden(body: str, name: str) -> str:
+def _hidden(body: str, name: str, *, form_action: str | None = None) -> str:
+    if form_action is not None:
+        forms = re.findall(
+            rf'<form\b(?=[^>]*\bmethod="post")(?=[^>]*\baction="{re.escape(form_action)}")'
+            r'[^>]*>(.*?)</form>',
+            body,
+            re.S,
+        )
+        assert len(forms) == 1, f'Expected one POST form for {form_action}'
+        body = forms[0]
     match = re.search(rf'name="{re.escape(name)}" value="([^"]*)"', body)
     assert match is not None
     return match.group(1)
@@ -288,7 +297,7 @@ def test_first_save_matrix_and_virtual_slot(client, database_engine: Engine, app
     assert virtual.status_code == 200
     assert 'name="row_version" value="0"' in virtual.get_data(as_text=True)
     assert virtual.get_data(as_text=True).count('name="row_version"') == 1
-    token = _hidden(virtual.get_data(as_text=True), '_csrf')
+    token = _hidden(virtual.get_data(as_text=True), '_csrf', form_action='/admin/patienten/menu')
     assert client.get(
         f'/admin/cafeteria/menu?week={DAY}&day={DAY}&meal=DINNER&option=MENU_1'
     ).status_code == 404
@@ -394,7 +403,7 @@ def test_review_token_is_single_use_and_server_resolved(
     page = client.get(f'/admin/patienten/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1')
     page_body = page.get_data(as_text=True)
     token = _hidden(page_body, 'component_version')
-    scoped_csrf = _hidden(page_body, '_csrf')
+    scoped_csrf = _hidden(page_body, '_csrf', form_action='/admin/patienten/menu/review')
     rejected = client.post('/admin/patienten/menu/review', data={
         '_csrf': scoped_csrf,
         'week': DAY,
@@ -668,7 +677,7 @@ def test_menu_post_error_rerenders_editor_with_values(
     )
     before = _counts(database_engine)
     response = client.post('/admin/cafeteria/menu', data=_menu_form(
-        _csrf=_hidden(page.get_data(as_text=True), '_csrf'),
+        _csrf=_hidden(page.get_data(as_text=True), '_csrf', form_action='/admin/cafeteria/menu'),
         title='Wiederanzeige',
         internal_chf='ungueltig',
         external_chf='14.50',

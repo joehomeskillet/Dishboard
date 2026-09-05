@@ -385,7 +385,7 @@ def test_admin_review_checkboxes_rehydrate_canonical_checked_status(
     )
     body = menu.get_data(as_text=True)
     review = client.post(f'{path}/menu/review', data={
-        '_csrf': _hidden(body, '_csrf'),
+        '_csrf': _hidden(body, '_csrf', form_action=f'{path}/menu/review'),
         'week': DAY,
         'day': DAY,
         'meal': 'LUNCH',
