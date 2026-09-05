@@ -172,7 +172,7 @@ def build_openapi() -> dict:
                         },
                     ],
                     'responses': {
-                        '200': {'description': 'OK', 'content': {'application/json': {'schema': {'$ref': '#/components/schemas/DayResponse'}}}},
+                        '200': {'description': 'OK', 'content': {'application/json': {'schema': {'$ref': '#/components/schemas/Snapshot'}}}},
                         '404': {'description': 'Kein publiziertes Menü', 'content': {'application/json': {'schema': {'$ref': '#/components/schemas/Error'}}}},
                     },
                 },

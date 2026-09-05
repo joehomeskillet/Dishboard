@@ -17,6 +17,8 @@ from .routes import _actor_id, bp
 
 _ISO = re.compile(r'^\d{4}-\d{2}-\d{2}$')
 _CREATE_FIELDS = frozenset({'_csrf', 'label', 'scopes', 'expires_at'})
+# An unchecked scope checkbox is simply absent from the form; the store reports the validation error.
+_CREATE_REQUIRED = frozenset({'_csrf', 'label', 'expires_at'})
 
 
 def _db():
@@ -86,7 +88,8 @@ def api_key_create() -> Response | tuple[str, int]:
     if request.args:
         abort(400, description='Formularparameter gehören in das Formular.')
     validate_csrf(request.form.get('_csrf'))
-    if set(request.form) != _CREATE_FIELDS:
+    submitted = set(request.form)
+    if not _CREATE_REQUIRED <= submitted <= _CREATE_FIELDS:
         abort(400, description='Formularfelder sind ungültig.')
     values = _form_values()
     try:

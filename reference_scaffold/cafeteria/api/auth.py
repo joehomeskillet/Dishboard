@@ -54,6 +54,7 @@ def require_api_scope(scope: str) -> Callable[[Callable[..., Any]], Callable[...
                 return _insufficient_scope()
             g.api_key = identity
             response = make_response(function(*args, **kwargs))
+            response.mimetype = 'application/json'
             response.headers['Cache-Control'] = 'no-store'
             return response
 

@@ -156,7 +156,9 @@ def authenticate_api_key(engine: Engine, presented: str | None) -> ApiKeyIdentit
                 ),
                 {'key_prefix': key_prefix},
             ).mappings().one_or_none()
-            if row is None or not hmac.compare_digest(str(row['key_hash']), expected_hash):
+            # Compare even without a row so unknown and wrong prefixes cost the same time.
+            stored_hash = str(row['key_hash']) if row is not None else f'sha256:{"0" * 64}'
+            if not hmac.compare_digest(stored_hash, expected_hash) or row is None:
                 return None
             expires_at = row['expires_at']
             if row['revoked_at'] is not None or (

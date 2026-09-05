@@ -61,13 +61,6 @@ def _fetch_json_optional(client: httpx.Client, path: str) -> dict[str, Any] | li
     return payload
 
 
-def _find_day(snapshot: Mapping[str, Any], date: str) -> Mapping[str, Any]:
-    for day in snapshot.get("days", []):
-        if day.get("date") == date:
-            return day
-    raise _tool_error("invalid_date", f"Tag {date} nicht gefunden")
-
-
 def _contains_casefold(haystack: Any, needle: str) -> bool:
     if haystack is None:
         return False
