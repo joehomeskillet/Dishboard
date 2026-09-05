@@ -92,6 +92,15 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
     assert week_url.path == f'/admin/{family}'
     assert parse_qs(week_url.query) == ({'week': [DAY]} if page_kind == 'editor' else {})
     expect(catalog).to_have_attribute('href', f'/admin/{family}/komponenten')
+    for channel, label in [('tag', 'Signage Tagesplan'), ('woche', 'Signage Wochenplan')]:
+        signage = navigation.get_by_role('link', name=label, exact=True)
+        expect(signage).to_have_attribute('href', f'/signage/{family}/{channel}')
+        expect(signage).to_have_attribute('target', '_blank')
+        expect(signage).to_have_attribute('rel', 'noopener')
+        expect(signage).to_be_visible()
+        signage_box = signage.bounding_box()
+        assert signage_box is not None and signage_box['height'] >= 48
+        assert signage.evaluate('(element) => element.scrollWidth <= element.clientWidth + 1')
     expect(navigation.locator('[aria-current="page"]')).to_have_text(
         'Wochenpläne' if page_kind == 'editor' else 'Komponenten',
     )
@@ -125,6 +134,11 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         }];
     })''')
     assert small_targets == []
+    if collapsed:
+        # Finish navigation before checking the main form's initial viewport.
+        toggle.click()
+        expect(navigation).to_be_hidden()
+        expect(page.locator('#sidebar-menu')).not_to_have_class(re.compile(r'\bcollapsing\b'))
 
     if page_kind == 'editor':
         heading = main.get_by_role('heading', level=1)
@@ -236,3 +250,62 @@ def test_overview_brand_stays_inside_sidebar(
     response = page_context.goto(f'/admin/{family}?week={DAY}')
     assert response is not None and response.status == 200
     _assert_brand_contained(page_context.locator('.page > aside.admin-sidebar'))
+
+
+@pytest.fixture
+def signage_page(admin_app: Flask, request: pytest.FixtureRequest) -> Page:  # noqa: F811
+    from cafeteria.signage.routes import bp
+    # The shared workflow fixture reserves "signage" for two preview placeholders.
+    admin_app.register_blueprint(bp, name='actual_signage')
+    return request.getfixturevalue('page_context')
+
+
+@pytest.mark.parametrize('family', ('cafeteria', 'patienten'))
+@pytest.mark.parametrize(('width', 'height'), ((390, 844), (1440, 1100)))
+def test_signage_links_open_current_profile_without_admin_window_access(
+    signage_page: Page, family: str, width: int, height: int,
+) -> None:
+    page = signage_page
+    page.set_viewport_size({'width': width, 'height': height})
+    assert page.goto(f'/admin/{family}?week={DAY}').status == 200
+    admin_url = page.url
+    navigation = page.get_by_role('navigation', name='Backend')
+    toggle = page.get_by_role('button', name='Menü', exact=True)
+    if width < 1200:
+        expect(navigation).to_be_hidden()
+        toggle.click()
+        expect(navigation).to_be_visible()
+    else:
+        expect(toggle).to_be_hidden()
+        expect(navigation).to_be_visible()
+    for channel, label, icon_name in [
+        ('tag', 'Signage Tagesplan', 'eye'),
+        ('woche', 'Signage Wochenplan', 'calendar-week'),
+    ]:
+        link = navigation.get_by_role('link', name=label, exact=True)
+        expect(link).to_have_attribute('href', f'/signage/{family}/{channel}')
+        expect(link).to_have_attribute('target', '_blank')
+        expect(link).to_have_attribute('rel', 'noopener')
+        expect(link.locator('svg use')).to_have_attribute(
+            'href', f'/static/vendor/tabler-icons/tabler-icons.svg#tabler-{icon_name}',
+        )
+        box = link.bounding_box()
+        assert box is not None and box['height'] >= 48
+        assert link.evaluate('(element) => element.scrollWidth <= element.clientWidth + 1')
+        with page.expect_popup() as opened:
+            link.click()
+        popup = opened.value
+        try:
+            popup.wait_for_url(f'**/signage/{family}/{channel}')
+            destination = urlsplit(popup.url)
+            assert destination.path == f'/signage/{family}/{channel}'
+            assert destination.query == destination.fragment == ''
+            expect(popup.locator('main')).to_be_visible()
+            assert popup.evaluate('window.opener === null')
+        finally:
+            popup.close()
+        assert page.url == admin_url
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+    if width < 1200:
+        toggle.click()
+        expect(navigation).to_be_hidden()

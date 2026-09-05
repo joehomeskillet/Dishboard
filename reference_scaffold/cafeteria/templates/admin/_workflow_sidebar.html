@@ -1,4 +1,5 @@
 {% from 'admin/_macros.html' import icon %}
+{% set signage_links = [('tag', 'eye', 'Signage Tagesplan'), ('woche', 'calendar-week', 'Signage Wochenplan')] %}
 {% if not tabler_admin %}
 <aside class="admin-sidebar">
   <div class="admin-brand">
@@ -10,6 +11,9 @@
     {% set weeks_url = url_for('admin.' ~ family, week=week) if week is defined and week else url_for('admin.' ~ family) %}
     {% for key, href, label in [('weeks', weeks_url, 'Wochenpläne'), ('management', url_for('admin.week_management', family=family), 'Wochenverwaltung'), ('menus', '/admin/' ~ family ~ '/menues', 'Menüs'), ('components', '/admin/' ~ family ~ '/komponenten', 'Komponenten'), ('import', url_for('admin.import_preview'), 'CSV Import')] %}
     <a href="{{ href }}"{% if workflow_nav == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
+    {% endfor %}
+    {% for channel, icon_name, label in signage_links %}
+    <a href="/signage/{{ family }}/{{ channel }}" target="_blank" rel="noopener">{{ label }}</a>
     {% endfor %}
     <form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button type="submit">Abmelden</button></form>
   </nav>
@@ -46,6 +50,14 @@
           {% for key, href, icon_name, label in nav_items %}
           <li class="nav-item{% if workflow_nav == key %} active{% endif %}">
             <a href="{{ href }}" class="nav-link{% if workflow_nav == key %} active{% endif %}"{% if workflow_nav == key %} aria-current="page"{% endif %}>
+              <span class="nav-link-icon">{{ icon(icon_name) }}</span>
+              <span class="nav-link-title">{{ label }}</span>
+            </a>
+          </li>
+          {% endfor %}
+          {% for channel, icon_name, label in signage_links %}
+          <li class="nav-item">
+            <a href="/signage/{{ family }}/{{ channel }}" class="nav-link" target="_blank" rel="noopener">
               <span class="nav-link-icon">{{ icon(icon_name) }}</span>
               <span class="nav-link-title">{{ label }}</span>
             </a>
