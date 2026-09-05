@@ -50,21 +50,21 @@ def menu_form_values(profile: str, option: dict[str, Any]) -> dict[str, Any]:
         'allergen_mode': str(option.get('allergen_mode') or 'manual'),
         'origin_mode': str(option.get('origin_mode') or 'manual'),
         'label_mode': str(option.get('label_mode') or 'manual'),
-        'component_public_id[]': [
+        'component_public_id': [
             str(assignment.get('component_public_id') or '') for assignment in assignments
         ],
-        'component_text[]': [
+        'component_text': [
             str(assignment.get('component_text') or '') for assignment in assignments
         ],
-        'allergen_code[]': [str(allergen.get('code') or '') for allergen in allergens],
-        'allergen_presence[]': [
+        'allergen_code': [str(allergen.get('code') or '') for allergen in allergens],
+        'allergen_presence': [
             str(allergen.get('presence') or '') for allergen in allergens
         ],
-        'origin_ingredient[]': [str(origin.get('ingredient') or '') for origin in origins],
-        'origin_country_code[]': [
+        'origin_ingredient': [str(origin.get('ingredient') or '') for origin in origins],
+        'origin_country_code': [
             str(origin.get('country_code') or '') for origin in origins
         ],
-        'label_code[]': [str(label.get('code') or '') for label in labels],
+        'label_code': [str(label.get('code') or '') for label in labels],
     }
     if profile == 'staff_guest':
         values['internal_chf'] = _chf(option.get('internal_rappen'))
@@ -87,6 +87,7 @@ def _lookup(draft: dict[str, Any] | None) -> dict[tuple[str, str, str], dict[str
 def _cells(
     profile: str, family: str, week: date, draft: dict[str, Any] | None,
     versions: dict[tuple[str, str, str], int],
+    services: dict[tuple[str, str], dict[str, Any]],
 ) -> list[dict[str, Any]]:
     options = _lookup(draft)
     cells: list[dict[str, Any]] = []
@@ -94,6 +95,7 @@ def _cells(
         service_day = week + timedelta(days=offset)
         day = service_day.isoformat()
         for meal in PROFILE_MEALS[profile]:
+            service = services.get((day, meal), {})
             for option_code in MENU_TYPES:
                 option = options.get((day, meal, option_code), {})
                 cell: dict[str, Any] = {
@@ -102,10 +104,12 @@ def _cells(
                     'meal': meal, 'meal_label': MEAL_LABELS[meal],
                     'option': option_code, 'option_label': OPTION_LABELS[option_code],
                     'row_version': versions.get((day, meal, option_code), 0),
+                    'service_row_version': int(service.get('row_version', 0)),
                     'title': option.get('title', ''),
                     'components': list(option.get('components') or []),
                     'review_open': option.get('allergen_review_status', 'not_checked') != 'checked',
-                    'service_state': option.get('service_state', 'open'),
+                    'service_state': service.get('service_state', 'open'),
+                    'notice': str(service.get('notice') or ''),
                     'edit_url': url_for(
                         'admin.menu_get', family=family, week=week.isoformat(),
                         day=day, meal=meal, option=option_code,
@@ -121,6 +125,7 @@ def _cells(
 def render_admin_week(
     profile: str, family: str, week: date, scope: AdminScope, status: str,
     draft: dict[str, Any] | None, versions: dict[tuple[str, str, str], int],
+    services: dict[tuple[str, str], dict[str, Any]],
     csrf: str, flashes: list[str],
 ) -> str:
     return render_template(
@@ -130,7 +135,7 @@ def render_admin_week(
         draft=draft, week_row_version=0 if draft is None else int(draft.get('row_version', 0)),
         title='' if draft is None else str(draft.get('title') or ''),
         shared_note='' if draft is None else str(draft.get('shared_note') or ''),
-        cells=_cells(profile, family, week, draft, versions),
+        cells=_cells(profile, family, week, draft, versions, services),
         **_template_context(),
     )
 
@@ -156,12 +161,12 @@ def render_menu_editor(
 def render_components(
     profile: str, family: str, rows: list[dict[str, Any]], query: str,
     category: str | None, include_archived: bool, csrf: str, flashes: list[str],
-    categories: dict[str, str],
+    categories: dict[str, str], allergens: list[dict[str, Any]], labels: list[dict[str, Any]],
 ) -> str:
     return render_template(
         'admin/components.html', profile=profile, family=family, rows=rows,
         query=query, category=category, include_archived=include_archived,
-        csrf=csrf, flashes=flashes, categories=categories,
+        csrf=csrf, flashes=flashes, categories=categories, allergens=allergens, labels=labels,
         **_template_context(),
     )
 
@@ -169,10 +174,12 @@ def render_components(
 def render_component_detail(
     profile: str, family: str, component: dict[str, Any], csrf: str,
     flashes: list[str], categories: dict[str, str],
+    allergens: list[dict[str, Any]], labels: list[dict[str, Any]],
 ) -> str:
     return render_template(
         'admin/component_editor.html', profile=profile, family=family,
         component=component, csrf=csrf, flashes=flashes, categories=categories,
+        allergens=allergens, labels=labels,
         **_template_context(),
     )
 

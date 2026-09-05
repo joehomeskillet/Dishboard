@@ -75,6 +75,7 @@
             <input id="patient-shared-note" name="shared_note" value="{{ shared_note }}">
           </div>
         </div>
+        <button type="submit" class="btn primary">Wochenangaben speichern</button>
       </form>
 
       <section class="patient-admin-table" aria-label="Patienten-Wochenraster">
@@ -97,7 +98,7 @@
                 <input type="hidden" name="week" value="{{ week }}">
                 <input type="hidden" name="day" value="{{ day_cells and day_cells[0].day }}">
                 <input type="hidden" name="meal" value="LUNCH">
-                <input type="hidden" name="row_version" value="{{ lunch.row_version if lunch else 0 }}">
+                <input type="hidden" name="row_version" value="{{ lunch.service_row_version if lunch else 0 }}">
                 <label for="patient-service-state-{{ loop.index0 }}-LUNCH">Betriebsstatus</label>
                 <select id="patient-service-state-{{ loop.index0 }}-LUNCH" name="service_state">
                   <option value="open"{% if lunch and lunch.service_state == 'open' %} selected{% endif %}>Offen</option>
@@ -107,6 +108,7 @@
                 </select>
                 <label for="patient-service-notice-{{ loop.index0 }}-LUNCH">Servicehinweis</label>
                 <input id="patient-service-notice-{{ loop.index0 }}-LUNCH" name="notice" value="{{ lunch.notice if lunch and lunch.notice is defined else '' }}">
+                <button type="submit" class="btn">Service speichern</button>
               </form>
               {% for cell in lunch_cells %}
               <article class="menu-slot" data-day="{{ cell.day }}" data-meal="{{ cell.meal }}" data-option="{{ cell.option }}" data-row-version="{{ cell.row_version }}">
@@ -131,7 +133,7 @@
                 <input type="hidden" name="week" value="{{ week }}">
                 <input type="hidden" name="day" value="{{ day_cells and day_cells[0].day }}">
                 <input type="hidden" name="meal" value="DINNER">
-                <input type="hidden" name="row_version" value="{{ dinner.row_version if dinner else 0 }}">
+                <input type="hidden" name="row_version" value="{{ dinner.service_row_version if dinner else 0 }}">
                 <label for="patient-service-state-{{ loop.index0 }}-DINNER">Betriebsstatus</label>
                 <select id="patient-service-state-{{ loop.index0 }}-DINNER" name="service_state">
                   <option value="open"{% if dinner and dinner.service_state == 'open' %} selected{% endif %}>Offen</option>
@@ -141,6 +143,7 @@
                 </select>
                 <label for="patient-service-notice-{{ loop.index0 }}-DINNER">Servicehinweis</label>
                 <input id="patient-service-notice-{{ loop.index0 }}-DINNER" name="notice" value="{{ dinner.notice if dinner and dinner.notice is defined else '' }}">
+                <button type="submit" class="btn">Service speichern</button>
               </form>
               {% for cell in dinner_cells %}
               <article class="menu-slot" data-day="{{ cell.day }}" data-meal="{{ cell.meal }}" data-option="{{ cell.option }}" data-row-version="{{ cell.row_version }}">
@@ -165,7 +168,7 @@
 
       <div class="admin-actions" data-sticky>
         <a class="btn{% if publish_blocked %} disabled{% endif %}" href="/admin/{{ family }}/preview?week={{ week }}" target="_blank" rel="noopener"{% if publish_blocked %} aria-disabled="true"{% endif %}>Vorschau</a>
-        <a class="btn{% if publish_blocked %} disabled{% endif %}" href="/admin/{{ family }}/copy?week={{ week }}"{% if publish_blocked %} aria-disabled="true" tabindex="-1"{% endif %}>Vorwoche kopieren</a>
+        <a class="btn" href="/admin/{{ family }}/copy?week={{ week }}">Vorwoche kopieren</a>
         <form method="post" action="/admin/{{ family }}/publish" data-confirm="Bitte prüfen, ob alle Angaben korrekt sind">
           <input type="hidden" name="_csrf" value="{{ csrf }}">
           <input type="hidden" name="week" value="{{ week }}">

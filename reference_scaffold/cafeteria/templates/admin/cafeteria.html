@@ -71,6 +71,7 @@
         <input id="week_title" name="title" value="{{ title }}">
         <label for="week_shared_note">Hinweis für alle Tage</label>
         <input id="week_shared_note" name="shared_note" value="{{ shared_note }}">
+        <button type="submit" class="btn primary">Wochenangaben speichern</button>
       </form>
 
       {% if status == 'empty' %}
@@ -94,14 +95,17 @@
               <input type="hidden" name="week" value="{{ week_value }}">
               <input type="hidden" name="day" value="{{ day }}">
               <input type="hidden" name="meal" value="LUNCH">
-              <input type="hidden" name="row_version" value="{{ day_row.row_version }}">
+              <input type="hidden" name="row_version" value="{{ day_row.service_row_version }}">
               <label for="service_state_{{ day }}">Betrieb</label>
               <select id="service_state_{{ day }}" name="service_state">
                 <option value="open"{% if day_row.service_state == 'open' %} selected{% endif %}>Offen</option>
                 <option value="closed"{% if day_row.service_state == 'closed' %} selected{% endif %}>Geschlossen</option>
+                <option value="holiday"{% if day_row.service_state == 'holiday' %} selected{% endif %}>Feiertag</option>
+                <option value="company_holiday"{% if day_row.service_state == 'company_holiday' %} selected{% endif %}>Betriebsfeiertag</option>
               </select>
               <label for="service_notice_{{ day }}">Servicehinweis</label>
               <input id="service_notice_{{ day }}" name="notice" value="{{ day_row.notice|default('') }}">
+              <button type="submit" class="btn">Service speichern</button>
             </form>
           </div>
 

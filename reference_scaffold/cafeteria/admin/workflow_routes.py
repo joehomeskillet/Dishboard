@@ -392,9 +392,17 @@ def _week_overview(profile: str):
     status = derive_admin_status(_db(), profile, week)
     draft = None
     versions: dict[tuple[str, str, str], int] = {}
+    services: dict[tuple[str, str], dict[str, object]] = {}
     try:
         with _db().connect() as connection:
             draft = load_draft_connection(connection, profile, week)
+            service_rows = connection.execute(text(
+                'SELECT s.service_date::text AS day, mp.code AS meal, '
+                's.row_version, s.service_state, s.notice FROM cafeteria.menu_services s '
+                'JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id '
+                'WHERE s.menu_week_id=:week_id'
+            ), {'week_id': int(draft['id'])}).mappings()
+            services = {(str(row['day']), str(row['meal'])): dict(row) for row in service_rows}
             rows = connection.execute(
                 text(
                     'SELECT s.service_date::text AS day, mp.code AS meal, mt.code AS option, '
@@ -413,7 +421,7 @@ def _week_overview(profile: str):
         draft = None
     family = 'cafeteria' if profile == 'staff_guest' else 'patienten'
     return render_admin_week(
-        profile, family, week, scope, status, draft, versions,
+        profile, family, week, scope, status, draft, versions, services,
         _scoped_csrf(profile, 'overview', scope), _flash(),
     )
 
@@ -603,9 +611,11 @@ def components_get(family: str):
     if archived not in {'', '0', '1'} or len(request.args.getlist('q')) > 1:
         abort(400, description='Suchfelder sind ungültig.')
     rows = _call(lambda: find_components(_db(), scope, query, category, archived == '1'))
+    allergens, labels = _master_choices()
     return render_components(
         profile, family, rows, query, category, archived == '1',
         _scoped_csrf(profile, 'component-create', scope), _flash(), CATEGORY_LABELS,
+        allergens, labels,
     )
 
 @bp.post('/<any(cafeteria, patienten):family>/komponenten')
@@ -631,8 +641,14 @@ def component_detail(family: str, public_id: str):
     _reject_override()
     scope = _scope(profile)
     row = _call(lambda: get_component(_db(), scope, public_id, include_archived=True))
+    allergens, labels = _master_choices()
+    allergen_codes = {choice['code'] for choice in allergens}
+    label_codes = {choice['code'] for choice in labels}
+    allergens.extend(choice for choice in row['allergens'] if choice['code'] not in allergen_codes)
+    labels.extend(choice for choice in row['labels'] if choice['code'] not in label_codes)
     return render_component_detail(
         profile, family, row, _scoped_csrf(profile, 'component', scope), _flash(), CATEGORY_LABELS,
+        allergens, labels,
     )
 
 @bp.post('/<any(cafeteria, patienten):family>/komponenten/<public_id>')
@@ -703,10 +719,17 @@ def copy_get(family: str):
             return target_ref.row_version
     target_version = _call(versions)
     return _page(
-        f'<div data-profile="{profile}" data-source-week="{source.isoformat()}" '
-        f'data-target-week="{target.isoformat()}">{_hidden("_csrf", _scoped_csrf(profile, "copy", scope))}'
+        f'<main id="main-content" data-profile="{profile}" data-source-week="{source.isoformat()}" '
+        f'data-target-week="{target.isoformat()}"><h1>Vorwoche kopieren</h1>'
+        f'<p>Woche vom {source.strftime("%d.%m.%Y")} in die leere Woche vom '
+        f'{target.strftime("%d.%m.%Y")} kopieren.</p>'
+        f'<form method="post" action="{escape(url_for("admin.copy_post", family=family))}">'
+        f'{_hidden("_csrf", _scoped_csrf(profile, "copy", scope))}'
         f'{_hidden("source_week", source.isoformat())}{_hidden("target_week", target.isoformat())}'
-        f'{_hidden("target_row_version", target_version)}</div>'
+        f'{_hidden("target_row_version", target_version)}'
+        f'<button type="submit">Vorwoche kopieren</button></form>'
+        f'<a href="{escape(url_for(f"admin.{family}", week=target.isoformat()))}">'
+        f'Zurück zur Wochenübersicht</a></main>'
     )
 
 @bp.post('/<any(cafeteria, patienten):family>/copy')

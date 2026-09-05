@@ -1143,19 +1143,19 @@ def test_menu_editor_prefills_saved_item_and_masters(
     assert re.search(
         rf'<option value="{re.escape(str(potato["public_id"]))}" selected>', body
     )
-    assert 'name="component_text[]" aria-label="Freitext-Komponente" value="Blattsalat"' in body
+    assert 'name="component_text" aria-label="Freitext-Komponente" value="Blattsalat"' in body
     assert 'Kartoffelstock' in body
     assert 'Reis' in body
     for code in (
         'GLUTEN', 'CRUSTACEANS', 'EGGS', 'FISH', 'PEANUTS', 'SOY', 'MILK',
         'NUTS', 'CELERY', 'MUSTARD', 'SESAME', 'SULPHITES', 'LUPIN', 'MOLLUSCS',
     ):
-        assert f'name="allergen_code[]" value="{code}"' in body
+        assert f'name="allergen_code" value="{code}"' in body
     for code in ('VEGETARIAN', 'VEGAN', 'LACTOSE_FREE', 'GLUTEN_FREE'):
-        assert f'name="label_code[]" value="{code}"' in body
-    assert re.search(r'name="allergen_code\[\]" value="MILK" checked', body)
-    assert 'name="origin_ingredient[]" placeholder="Zutat" aria-label="Zutat" value="Kartoffel"' in body
-    assert 'name="origin_country_code[]" pattern="[A-Z]{2}" maxlength="2" placeholder="CH" aria-label="Ländercode" value="CH"' in body
+        assert f'name="label_code" value="{code}"' in body
+    assert re.search(r'name="allergen_code" value="MILK" checked', body)
+    assert 'name="origin_ingredient" placeholder="Zutat" aria-label="Zutat" value="Kartoffel"' in body
+    assert 'name="origin_country_code" pattern="[A-Z]{2}" maxlength="2" placeholder="CH" aria-label="Ländercode" value="CH"' in body
     assert re.fullmatch(r'sha256:[0-9a-f]{64}', _hidden(body, 'component_version'))
     assert str(rice['public_id']) in body
 

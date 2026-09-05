@@ -9,9 +9,13 @@ Dieses Dokument friert Kontext-Keys, Statuswerte und die DOM-Selektoren ein.
 Reine Rendering-Funktionen, kein DB-Zugriff. Datenbeschaffung bleibt in den Handlern.
 `family` ist `cafeteria` für `staff_guest` und `patienten` für `patient`.
 
-### `render_admin_week(profile, family, week, scope, status, draft, versions, csrf, flashes)`
+### `render_admin_week(profile, family, week, scope, status, draft, versions, services, csrf, flashes)`
 
 Template: `admin/cafeteria.html` bzw. `admin/patienten.html`.
+`versions` enthält Item-Versionen nach `(day, meal, option)`; `services` enthält
+gespeicherte Service-Zeilen nach `(day, meal)`, auch ohne Items. Beide werden im
+Handler geladen. Service-Version, Status und Hinweis stammen ausschließlich aus
+`menu_services`, nie aus einer Item-Zeile.
 
 | Key | Inhalt |
 |---|---|
@@ -40,11 +44,13 @@ Zelle:
 | `meal_label` | `Mittag` \| `Abend` |
 | `option` | `MENU_1` \| `VEGGIE` |
 | `option_label` | `Menü 1` \| `Vegetarisch` |
-| `row_version` | int, `0` = virtueller Slot |
+| `row_version` | Item-Version, int, `0` = virtueller Slot |
+| `service_row_version` | Service-Version, int, `0` = virtueller Service |
 | `title` | Gerichtstitel, sonst leer |
 | `components` | Liste von Strings |
 | `review_open` | bool |
 | `service_state` | `open` \| `closed` \| … |
+| `notice` | gespeicherter Servicehinweis, sonst leer |
 | `edit_url` | GET `/admin/{family}/menu?week=&day=&meal=&option=` |
 | `internal_chf` / `external_chf` | nur `staff_guest`; formatiert `9.50`, leer wenn 0 |
 
@@ -55,13 +61,18 @@ Patient-Kontext enthält keine Preis-Keys.
 Template: `admin/menu_editor.html`. Formularfelder exakt gemäss `workflow_partial_form.py`.
 Bei Herkunftskonflikt: HTTP 409, `error-region` mit dem kanonischen `ORIGIN_CONFLICT`-Text.
 
-### `render_components(profile, family, rows, query, category, include_archived, csrf, flashes, categories)`
+### `render_components(profile, family, rows, query, category, include_archived, csrf, flashes, categories, allergens, labels)`
 
 Template: `admin/components.html`.
+`allergens` (`code,name,eu_number`) und `labels` (`code,name`) kommen aus der
+bestehenden aktiven Stammdatenauswahl des Handlers.
 
-### `render_component_detail(profile, family, component, csrf, flashes, categories)`
+### `render_component_detail(profile, family, component, csrf, flashes, categories, allergens, labels)`
 
 Template: `admin/component_editor.html`.
+Auswahl wie beim Katalog, ergänzt um bereits verknüpfte inaktive Codes aus
+`component.labels`/`component.allergens`, damit erlaubte Bestandswerte erhalten
+bleiben. Diese ergänzten Altzuordnungen haben keinen `eu_number`-Schlüssel.
 
 ### `render_admin_preview(profile, family, week, state, draft)`
 
@@ -75,6 +86,9 @@ Template: `admin/preview.html`. Nur LAST-SAVED, kein Publikations-Fallback.
 - Flash-Region `<div class="flash-region" aria-live="polite">` immer vorhanden.
 - Fehlerregion `<div class="error-region" role="alert" tabindex="-1">` nur bei Fehlern.
 - Hidden `_csrf` und `week` im Übersichts-Formular (`name` vor `value`).
+- Header und jeder Service haben einen expliziten Submit-Button
+  „Wochenangaben speichern“ bzw. „Service speichern“. Service-Formulare senden
+  `service_row_version` als `row_version` und erhalten gespeicherte Hinweise.
 - Genau 10 (`staff_guest`) bzw. 28 (`patient`) Slots:
   `<article class="menu-slot" data-day="…" data-meal="…" data-option="…" data-row-version="…">`
   mit `<h3>` (leer → „Noch kein Gericht"), `<a class="btn" href="{edit_url}">Bearbeiten</a>`,
@@ -93,6 +107,9 @@ Template: `admin/preview.html`. Nur LAST-SAVED, kein Publikations-Fallback.
 - Skip-Link aus `base.html` (`class="skip-link"`, `href="#main-content"`).
 
 `_page` bleibt für alle übrigen Handler (Header, Service, Copy, Publish, Review-POST, CSV).
+Copy-GET zeigt ein echtes POST-Formular mit exakt `_csrf,source_week,target_week,target_row_version`
+und Submit-Button „Vorwoche kopieren“. Der Kopierlink bleibt auch bei leerem
+Patientenraster erreichbar; Server prüft Zielwoche und Version unverändert.
 
 ### Vorschau (`GET /admin/{family}/preview?week=`)
 
@@ -107,7 +124,8 @@ Template: `admin/preview.html`. Nur LAST-SAVED, kein Publikations-Fallback.
 - Liste `<li class="component-row" data-public-id="…" data-active="0|1">` mit Name,
   Kategorie (deutsch), Nutzung „verwendet in n Gerichten" und Archiv-Badge.
 - Create-Formular POST: exakt `_csrf,category,name,origin_country_code,target_scope`
-  plus `label_code[]`, `allergen_code[]` / `allergen_presence[]` (Fieldset/Legend, native Controls).
+  plus `label_code`, `allergen_code` / `allergen_presence` (Fieldset/Legend, native Controls),
+  `target_scope=current` für das URL-abgeleitete Profil.
 
 ### Komponentendetail
 
@@ -122,6 +140,9 @@ Pflicht: `_csrf, week, day, meal, option, row_version, title, allergen_mode, ori
 Optional: `description`, `note`.
 Wiederholt: `component_public_id`, `component_text`, `allergen_code`, `allergen_presence`,
 `origin_ingredient`, `origin_country_code`, `label_code`.
+Formularnamen und `menu_form_values`-Keys sind kanonisch ohne `[]`-Suffix;
+wiederholte Werte bleiben Listen. Unangekreuzte Allergene senden keine Presence,
+Auto-Modi senden keine manuellen Metadaten, leere optionale Zeilen kein leeres Paar.
 Nur Cafeteria: `internal_chf`, `external_chf`.
 Review-Token: `component_version` (nur wenn vorhanden).
 
