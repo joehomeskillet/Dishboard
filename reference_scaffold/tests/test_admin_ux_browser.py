@@ -318,7 +318,7 @@ def test_menu_catalog_pair_errors_and_archived_assignment_survive(
     archive_component(admin_engine, scope, public_id, int(component['row_version']))
     page.reload()
     expect(page.locator('[name="component_public_id"]')).to_have_value(public_id)
-    assert page.locator(f'option[value="{public_id}"]').is_disabled()
+    expect(page.locator(f'option[value="{public_id}"]')).to_be_enabled()
     assert _submit_menu(page)['component_public_id'] == [public_id]
 
 
