@@ -211,6 +211,7 @@ docs/superpowers/metadata-visibility-0905.md
 docs/superpowers/plans/2026-09-01-dishboard-menuplanung.md
 docs/superpowers/plans/2026-09-02-dishboard-admin-redesign.md
 docs/superpowers/specs/2026-09-02-dishboard-admin-redesign-design.md
+docs/superpowers/week-management-0905.md
 entra/app-roles-manifest.json
 entra/configure-entra-app.ps1
 entra/group-assignments.example.json
@@ -226,6 +227,7 @@ reference_scaffold/cafeteria/admin/menu_collection_routes.py
 reference_scaffold/cafeteria/admin/menu_collection_store.py
 reference_scaffold/cafeteria/admin/rendering.py
 reference_scaffold/cafeteria/admin/routes.py
+reference_scaffold/cafeteria/admin/week_management_routes.py
 reference_scaffold/cafeteria/admin/workflow_routes.py
 reference_scaffold/cafeteria/api/__init__.py
 reference_scaffold/cafeteria/api/routes.py
@@ -272,6 +274,7 @@ reference_scaffold/cafeteria/templates/admin/menu_collection.html
 reference_scaffold/cafeteria/templates/admin/menu_editor.html
 reference_scaffold/cafeteria/templates/admin/patienten.html
 reference_scaffold/cafeteria/templates/admin/preview.html
+reference_scaffold/cafeteria/templates/admin/week_management.html
 reference_scaffold/cafeteria/templates/auth/error.html
 reference_scaffold/cafeteria/templates/auth/local_login.html
 reference_scaffold/cafeteria/templates/base.html
@@ -354,6 +357,8 @@ reference_scaffold/tests/test_publication_lock_contract_db.py
 reference_scaffold/tests/test_rendered_ui.py
 reference_scaffold/tests/test_smoke.py
 reference_scaffold/tests/test_ui_contracts.py
+reference_scaffold/tests/test_week_management.py
+reference_scaffold/tests/test_week_management_browser.py
 reference_scaffold/tests/test_workflow_copy_store_db.py
 reference_scaffold/tests/test_workflow_form.py
 reference_scaffold/tests/test_workflow_partial_store_db.py
