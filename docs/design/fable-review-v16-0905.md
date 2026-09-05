@@ -77,7 +77,31 @@ korrekt und getestet. H1 betrifft nur die Auslieferung des neuen Bildschirms.
   v15-Binary ist nach Migration kein sicherer Rollback (Belege würden ignoriert).
 - Keine Prüfung der Signage-/PDF-Pfade; sie lesen weiterhin nur `active_publications`.
 
+## Nachtrag Integration (read-only geprüft an `fc30d79`, `94a3abe`)
+
+H1 und M1 waren Abhängigkeitsbefunde des isolierten Backend-Branchs, keine Fehler in `1db4275` selbst.
+In der Root-Integration sind beide statisch aufgelöst:
+
+- **H1 aufgelöst:** `fc30d79` liefert `templates/admin/base_tabler.html` (33 Zeilen) mit genau den
+  Blöcken, die `week_review.html` nutzt (`title`, `main_attributes`, `page_header`, `content`) sowie
+  `page_styles`/`page_scripts`; Assets `tokens.css`, `vendor/tabler/tabler.min.css`, `admin-tabler.css`,
+  `menu-images.css`, `vendor/tabler/tabler.min.js`, `admin.js` existieren an `94a3abe` (`git ls-tree`).
+  `_macros.html` enthält `icon`, `field`, `profile_tabs`, `flash_region` (`:3`, `:7`, `:45`, `:55`).
+  `week_review.html` und `week_review_routes.py` sind zwischen `1db4275` und `94a3abe` diffgleich;
+  `profile` wird von der Route an die Basis (`data-profile`) übergeben. Keine Legacy-Umstellung nötig.
+- **M1 aufgelöst:** `94a3abe` migriert `cafeteria.html` und `patienten.html` auf `base_tabler.html` und
+  verlinkt im Seitenkopf `/admin/<family>/wochen/pruefung?week=<week>` («Wochenangaben prüfen»);
+  `test_week_review_link_points_to_saved_week` (`test_admin_week_tabler_browser.py:92-98`) prüft den Link.
+
+**Explizit noch offen (Browser-Evidenz):** Kein Test in `94a3abe` rendert `week_review.html` mit echtem
+Flask-Loader und echter DB oder führt eine reale Wochenprüfung durch den Browser aus; die Route-Tests
+stubben weiterhin `render_template` bzw. die Basis. Die angekündigte native QA (12 Fälle, 360/768/1024/1280,
+beide Familien, echte Prüfung) schliesst diese Lücke erst, wenn ihr Lauf mit Ausgabe vorliegt. Bis dahin
+gilt H1 als statisch aufgelöst, nicht als dynamisch nachgewiesen. Root-DB-Gate 34 PASS deckt Backend, nicht
+das Rendering.
+
 ## Empfehlung an Root
 
-H1 vor Commit beheben (Extends auf `base.html` oder UI-Tranche gemeinsam ausliefern), M1 im selben
-Commit, dann Route-Test mit echtem Loader. Danach Freigabe für Migration im kontrollierten Fenster.
+Statisch freigabefähig auf Integrationsstand `94a3abe`. Migration im kontrollierten Fenster erst nach
+vorliegender Browser-Evidenz für die Wochenprüfung (echter Loader, echte DB, beide Familien, mindestens
+360 und 1280).
