@@ -1,0 +1,17 @@
+.dishboard-menu-table { table-layout: fixed; width: 100%; }
+.dishboard-menu-table th:first-child { width: 30%; }
+.dishboard-menu-table :is(th, td) { white-space: normal; overflow-wrap: anywhere; }
+.dishboard-menu-cell-label { display: none; }
+@media (max-width: 1199.98px) {
+  .dishboard-menu-results { border: 0; background: transparent; box-shadow: none; }
+  .dishboard-menu-table, .dishboard-menu-table tbody { display: block; }
+  .dishboard-menu-table thead { display: none; }
+  .dishboard-menu-table tr {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;
+    margin-bottom: 16px; padding: 16px; background: var(--sh-panel);
+    border: 1px solid var(--sh-border); border-radius: var(--sh-radius-md);
+  }
+  .dishboard-admin .dishboard-menu-table tr > :is(th, td) { display: block; width: auto; padding: 0; border: 0; }
+  .dishboard-menu-table tr > th, .dishboard-menu-table td[colspan] { grid-column: 1 / -1; }
+  .dishboard-menu-cell-label { display: block; color: var(--sh-ink-muted); font-size: .875rem; margin-bottom: 4px; }
+}

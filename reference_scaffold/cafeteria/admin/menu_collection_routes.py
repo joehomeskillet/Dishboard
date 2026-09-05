@@ -5,6 +5,7 @@ import re
 from flask import abort, render_template, request
 
 from ..roles import require_capability
+from ..workflow_review import review_open
 from .menu_collection_store import find_menus
 from .rendering import MEAL_LABELS, OPTION_LABELS, _template_context
 from .workflow_routes import _call, _db, _reject_override, _scope, bp, profile_from_endpoint
@@ -28,6 +29,8 @@ def menu_collection(family: str) -> str:
         abort(400, description='Seitennummer ist zu gross.')
     scope = _scope(profile)
     rows, has_next = _call(lambda: find_menus(_db(), scope, query, page))
+    for row in rows:
+        row['review_open'] = _call(lambda: review_open(_db(), scope, row['id']))
     return render_template(
         'admin/menu_collection.html', profile=profile, family=family,
         rows=rows, query=query, page=page, has_next=has_next,
