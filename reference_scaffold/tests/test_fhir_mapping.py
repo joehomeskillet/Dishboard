@@ -7,8 +7,8 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tools'))
 
-from demo_snapshots import cafeteria_snapshot, patient_snapshot
-from cafeteria.fhir import mapping
+from demo_snapshots import cafeteria_snapshot, patient_snapshot  # noqa: E402
+from cafeteria.fhir import mapping  # noqa: E402
 
 BASE_URL = "http://localhost:8080"
 
