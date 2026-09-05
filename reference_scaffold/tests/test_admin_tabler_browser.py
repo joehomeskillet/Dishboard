@@ -46,6 +46,20 @@ def test_tabler_lists_preserve_navigation_and_tablet_layout(page_context, admin_
         assert '/menu?' in page.url if route == 'menues' else f'/admin/{family}?' in page.url
 
 
+@pytest.mark.parametrize('family', ('cafeteria', 'patienten'))
+def test_legacy_week_sidebar_keeps_content_beside_it(page_context, admin_engine, family):
+    _save(admin_engine, 'staff_guest', _staff_values())
+    _save(admin_engine, 'patient', _patient_values())
+    page = page_context
+    page.set_viewport_size({'width': 1280, 'height': 800})
+    assert page.goto(f'/admin/{family}').status == 200
+    main = page.locator('main.admin-main').bounding_box()
+    sidebar = page.locator('.admin-sidebar').bounding_box()
+    assert main['y'] < 120, 'The existing week must not move below a full-height sidebar.'
+    assert main['x'] >= sidebar['x'] + sidebar['width'] - 1
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+
+
 def test_tabler_styles_do_not_load_on_public_or_login_pages(app):
     client = app.test_client()
     for route in ('/auth/local', '/cafeteria/wochenangebot/', '/patienten/wochenplan/'):

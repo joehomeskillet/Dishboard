@@ -24,14 +24,14 @@
 }
 
 /* Shell: fixed Tabler sidebar plus page wrapper. Neutralises the legacy grid in app.css. */
-.admin-body .admin-shell { display: block; min-height: 100vh; }
+.admin-body .admin-shell:has(> .navbar-vertical) { display: block; min-height: 100vh; }
 .admin-body .admin-sidebar { padding: 0; }
 .admin-body .admin-workflow-main.page-wrapper { padding: 0; }
 .admin-body .menu-grid.row { gap: 0; }
 .admin-body .search-form.card { align-items: stretch; gap: 0; }
 .admin-body .skip-link { z-index: 1100; }
 @media (min-width: 992px) {
-  .admin-body .admin-sidebar ~ .admin-main { margin-inline-start: var(--tblr-sidebar-width); }
+  .admin-body .navbar-vertical ~ .admin-main { margin-inline-start: var(--tblr-sidebar-width); }
   .admin-sidebar > .container-fluid { flex-direction: column; align-items: stretch; min-height: 100%; }
   .admin-sidebar .navbar-collapse { flex-direction: column; }
   .admin-sidebar .admin-nav { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
