@@ -56,20 +56,20 @@
 
       <fieldset>
         <legend>Labels</legend>
-        {% set l_codes = submitted.getlist('label_code[]') if submitted.getlist else submitted.get('label_code[]') %}
+        {% set l_codes = submitted.getlist('label_code') if submitted.getlist else submitted.get('label_code') %}
         {% if l_codes is none %}
           {% set l_codes = component.labels|map(attribute='code')|list %}
         {% endif %}
         {% for label in labels|default([]) %}
-          <label><input type="checkbox" name="label_code[]" value="{{ label.code }}"{% if label.code in l_codes %} checked{% endif %}> {{ label.name|default(label.code) }}</label>
+          <label><input type="checkbox" name="label_code" value="{{ label.code }}"{% if label.code in l_codes %} checked{% endif %}> {{ label.name|default(label.code) }}</label>
         {% endfor %}
       </fieldset>
 
       <fieldset>
         <legend>Allergene</legend>
         <div class="allergen-list">
-          {% set a_codes = submitted.getlist('allergen_code[]') if submitted.getlist else submitted.get('allergen_code[]') %}
-          {% set a_pres = submitted.getlist('allergen_presence[]') if submitted.getlist else submitted.get('allergen_presence[]') %}
+          {% set a_codes = submitted.getlist('allergen_code') if submitted.getlist else submitted.get('allergen_code') %}
+          {% set a_pres = submitted.getlist('allergen_presence') if submitted.getlist else submitted.get('allergen_presence') %}
           
           {% if a_codes is none %}
             {% set a_codes = component.allergens|map(attribute='code')|list %}
@@ -80,8 +80,8 @@
             {% set idx = a_codes.index(allergen.code) if allergen.code in a_codes else -1 %}
             {% set presence = a_pres[idx] if idx >= 0 and idx < a_pres|length else 'contains' %}
             <div class="allergen-row">
-              <label><input type="checkbox" name="allergen_code[]" value="{{ allergen.code }}"{% if idx >= 0 %} checked{% endif %}> {{ allergen.name|default(allergen.code) }}</label>
-              <select name="allergen_presence[]" aria-label="Präsenz für {{ allergen.name|default(allergen.code) }}">
+              <label><input type="checkbox" name="allergen_code" value="{{ allergen.code }}"{% if idx >= 0 %} checked{% endif %}> {{ allergen.name|default(allergen.code) }}</label>
+              <select name="allergen_presence" aria-label="Präsenz für {{ allergen.name|default(allergen.code) }}"{% if idx < 0 %} disabled{% endif %}>
                 <option value="contains"{% if presence == 'contains' %} selected{% endif %}>enthält</option>
                 <option value="may_contain"{% if presence == 'may_contain' %} selected{% endif %}>kann Spuren enthalten</option>
               </select>
