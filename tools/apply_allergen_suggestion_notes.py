@@ -167,7 +167,7 @@ class NetworkGate:
 
     def post(self, request: APIRequestContext, url: str, data: list[list[str]]) -> APIResponse:
         # Browser route hooks do not govern API requests: authorize before transmission.
-        body = urlencode([tuple(pair) for pair in data])
+        body = urlencode([(key, value) for key, value in data])
         if self.blocked or not self.allow('POST', url, body):
             self.blocked = True
             raise RuntimeError('post_not_authorized')
