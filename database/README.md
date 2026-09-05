@@ -54,8 +54,11 @@ Der `actor-identifier` wird gegen den aktiven Benutzernamen, die E-Mail-Adresse 
 11. `0011_v13_to_v14.sql` (14)
 12. `0012_v14_to_v15.sql` (15)
 13. `0013_v15_to_v16.sql` (16)
+14. `0014_v16_to_v17.sql` (17)
 
-Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0012` bleiben byteidentisch. `schema.sql` beschreibt den aktuellen v16-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
+Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0013` bleiben byteidentisch. `schema.sql` beschreibt den aktuellen v17-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
+
+Schema v17 ergänzt verwaltete API-Schlüssel für `preview.read`. Klartextschlüssel werden nur beim Erstellen ausgegeben; gespeichert werden Präfix und SHA-256-Hash. Nur aktive `Cafeteria.Admin`-Akteure dürfen über die `SECURITY DEFINER`-Funktionen Schlüssel erstellen oder widerrufen. `cafeteria_app` darf Schlüssel lesen und ausschliesslich `last_used_at` direkt aktualisieren; `cafeteria_backup` erhält nur Leserechte. Audit-Ereignisse enthalten Label, Präfix, Scopes und Ablaufzeit, aber keinen Schlüsselhash.
 
 Schema v16 trennt Menüprüfung und Wochenprüfung. Menübelege binden die gespeicherte Item-Version und den Komponenten-/Deklarationstoken; Wochenbelege binden Titel, Wochenhinweis und alle gespeicherten Services mit ihren Versionen. `header_revision` erhöht sich nur bei geänderten Kopfwerten; die allgemeine Wochen-`row_version` gehört nicht zur Wochenprüfung. Ein anderer Menüedit entwertet deshalb keine fremde Menüprüfung und keine unveränderte Wochenprüfung. Ein Kopf-Edit mit anschliessender Rückkehr zum alten Text verlangt eine neue Prüfung.
 
