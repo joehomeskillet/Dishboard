@@ -1,11 +1,30 @@
 {% from 'admin/_macros.html' import icon %}
-<aside class="navbar navbar-vertical navbar-expand-lg admin-sidebar" data-bs-theme="dark">
+{% if not tabler_admin %}
+<aside class="admin-sidebar">
+  <div class="admin-brand">
+    <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="admin-logo" width="164" height="32">
+    <span>Menüplanung</span>
+  </div>
+  <div class="admin-user"><div><strong>{{ user.name if user else 'Küche Administration' }}</strong><span>{{ roles|default([])|join(', ') }}</span></div></div>
+  <nav class="admin-nav" aria-label="Backend">
+    {% set weeks_url = url_for('admin.' ~ family, week=week) if week is defined and week else url_for('admin.' ~ family) %}
+    {% for key, href, label in [('weeks', weeks_url, 'Wochenpläne'), ('management', url_for('admin.week_management', family=family), 'Wochenverwaltung'), ('menus', '/admin/' ~ family ~ '/menues', 'Menüs'), ('components', '/admin/' ~ family ~ '/komponenten', 'Komponenten'), ('import', url_for('admin.import_preview'), 'CSV Import')] %}
+    <a href="{{ href }}"{% if workflow_nav == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
+    {% endfor %}
+    <form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button type="submit">Abmelden</button></form>
+  </nav>
+</aside>
+{% else %}
+<aside class="navbar navbar-vertical navbar-expand-xl admin-sidebar" data-bs-theme="dark">
   <div class="container-fluid">
+    <button class="navbar-toggler btn" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu" aria-controls="sidebar-menu" aria-expanded="false" aria-label="Menü">
+      <span class="navbar-toggler-icon" aria-hidden="true"></span><span>Menü</span>
+    </button>
     <div class="navbar-brand admin-brand">
       <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="admin-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="164" height="32">
       <span>Menüplanung</span>
     </div>
-    <div class="navbar-collapse admin-nav-collapse" id="sidebar-menu">
+    <div class="collapse navbar-collapse admin-nav-collapse" id="sidebar-menu">
       {% set user_name = user.name if user else 'Küche Administration' %}
       <div class="admin-user">
         <span class="avatar bg-primary text-white" aria-hidden="true">{{ user_name[:2]|upper }}</span>
@@ -50,3 +69,4 @@
     </div>
   </div>
 </aside>
+{% endif %}

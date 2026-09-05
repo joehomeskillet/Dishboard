@@ -4,6 +4,26 @@
 <svg class="icon{% if class %} {{ class }}{% endif %}"{% if label %} role="img" aria-label="{{ label }}"{% else %} aria-hidden="true"{% endif %} focusable="false"><use href="{{ url_for('static', filename='vendor/tabler-icons/tabler-icons.svg') }}#tabler-{{ name }}"></use></svg>
 {%- endmacro %}
 
+{%- macro field(name, label, value='', type='text', id=none, required=false, error=none, hint=none) -%}
+{% set field_id = id or name %}
+<label class="form-label" for="{{ field_id }}">{{ label }}</label>
+<input class="form-control{% if error %} is-invalid{% endif %}" id="{{ field_id }}" name="{{ name }}" type="{{ type }}" value="{{ value }}"{% if required %} required{% endif %}{% if error %} aria-invalid="true" aria-describedby="{{ field_id }}-error"{% elif hint %} aria-describedby="{{ field_id }}-hint"{% endif %}>
+{% if hint %}<div class="form-hint" id="{{ field_id }}-hint">{{ hint }}</div>{% endif %}
+{% if error %}<div class="invalid-feedback d-block field-error" id="{{ field_id }}-error">{{ error }}</div>{% endif %}
+{%- endmacro %}
+
+{%- macro check(name, label, value='1', checked=false, id=none, type='checkbox') -%}
+<label class="form-check"{% if id %} for="{{ id }}"{% endif %}>
+  <input class="form-check-input"{% if id %} id="{{ id }}"{% endif %} type="{{ type }}" name="{{ name }}" value="{{ value }}"{% if checked %} checked{% endif %}>
+  <span class="form-check-label">{{ label }}</span>
+</label>
+{%- endmacro %}
+
+{%- macro status(value, label) -%}
+{% set colors = {'live': 'green', 'ready': 'teal', 'review_open': 'yellow', 'incomplete': 'orange', 'changed': 'yellow'} %}
+<span class="badge bg-{{ colors.get(value, 'secondary') }}-lt" data-status="{{ value }}">{{ label }}</span>
+{%- endmacro %}
+
 {%- macro page_header(title, pretitle=none) %}
 <div class="page-header">
   <div class="container-xl">

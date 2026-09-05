@@ -1,15 +1,9 @@
-{% extends "base.html" %}
-{% from 'admin/_macros.html' import icon, page_header, profile_tabs, pagination %}
+{% extends "admin/base_tabler.html" %}
+{% from 'admin/_macros.html' import icon, page_header, profile_tabs, pagination, field, status %}
 {% block title %}Wochenverwaltung {{ 'Cafeteria' if profile == 'staff_guest' else 'Patienten' }}{% endblock %}
-{% block body_class %}admin-body{% endblock %}
-{% block body %}
-{% set status_badges = {'live': 'bg-green-lt', 'ready': 'bg-teal-lt', 'review_open': 'bg-yellow-lt', 'incomplete': 'bg-orange-lt'} %}
-<div class="admin-shell admin-workflow-shell">
-  {% with workflow_nav='management' %}{% include 'admin/_workflow_sidebar.html' %}{% endwith %}
-  <main id="main-content" class="page-wrapper admin-main admin-workflow-main" data-profile="{{ profile }}">
-    {{ page_header('Wochenverwaltung') }}
-    <div class="page-body">
-      <div class="container-xl">
+{% set workflow_nav = 'management' %}
+{% block page_header %}{{ page_header('Wochenverwaltung') }}{% endblock %}
+{% block content %}
         {{ profile_tabs({
           'cafeteria': url_for('admin.week_management', family='cafeteria'),
           'patienten': url_for('admin.week_management', family='patienten'),
@@ -24,12 +18,10 @@
               <input type="hidden" name="row_version" value="0">
               <div class="row g-3">
                 <div class="col-12 col-sm-5 col-lg-3">
-                  <label class="form-label" for="new-week-date">Wochenbeginn (Montag)</label>
-                  <input id="new-week-date" class="form-control" name="week" type="date" value="{{ values.week }}" required>
+                  {{ field('week', 'Wochenbeginn (Montag)', values.week, type='date', id='new-week-date', required=true) }}
                 </div>
                 <div class="col-12 col-sm-7 col-lg-5">
-                  <label class="form-label" for="new-week-name">Wochentitel</label>
-                  <input id="new-week-name" class="form-control" name="title" value="{{ values.title }}" required>
+                  {{ field('title', 'Wochentitel', values.title, id='new-week-name', required=true) }}
                 </div>
                 <div class="col-12 col-lg-8">
                   <label class="form-label" for="new-week-note">Wochenhinweis<span class="form-label-description">optional</span></label>
@@ -56,7 +48,7 @@
                 <td data-label="Woche"><strong>KW {{ row.week_start.isocalendar().week }}</strong><div class="text-secondary small">{{ row.week_start.strftime('%d.%m.%Y') }}</div></td>
                 <td data-label="Titel">{{ row.title }}</td>
                 <td data-label="Status">
-                  <span class="badge {{ status_badges.get(row.status, 'bg-secondary-lt') }}">{{ status_labels[row.status] }}</span>
+                  {{ status(row.status, status_labels[row.status]) }}
                   {% if row.workflow_state == 'archived' %}<span class="badge bg-secondary-lt">Archiviert</span>{% endif %}
                 </td>
                 <td data-label="Aktionen">
@@ -81,8 +73,4 @@
           url_for('admin.week_management', family=family, page=page-1),
           url_for('admin.week_management', family=family, page=page+1),
           'Wochenseiten') }}
-      </div>
-    </div>
-  </main>
-</div>
 {% endblock %}

@@ -1,20 +1,27 @@
 # Admin-UI-Vertrag: Tabler-Integration (v1.0, 2026-09-05)
 
-Gilt für alle Backend-Ansichten mit `body_class = admin-body`. Öffentliche Tages-/Wochenseiten,
+Gilt für migrierte Backend-Ansichten mit `admin/base_tabler.html` und `.dishboard-admin`. Öffentliche Tages-/Wochenseiten,
 Signage und Druck bleiben ohne Framework. Grundlage ist das offizielle, selbst gehostete
 `@tabler/core` 1.5.0 plus Tabler Icons 3.46.0 (`static/vendor/README.md`, pinned, SHA256).
 Erste Tranche: gemeinsamer Admin-Rahmen, Menülisten und Wochenverwaltung.
 Bestehende Editor-, Komponenten-, CSV-, Kopier- und Wochenformulare bleiben
 funktional erhalten; ihre vollständige Tabler-Konvertierung ist eine Folgetranche.
 Neue Listen-Steuerelemente nutzen echte Tabler-Klassen; der Adapter
-`static/admin-tabler.css` liefert nur Marken-Tokens, 44-px-Touchziele und die Shell-Verdrahtung.
+`static/admin-tabler.css` liefert Marken-Zuordnung, 48-px-Touchziele und die Shell-Verdrahtung.
+Die eigenständige Basis lädt `tokens.css` (inklusive Fonts), Tabler-CSS, Admin-CSS,
+`menu-images.css` und `page_styles` in dieser Reihenfolge. `app.css` wird nicht geladen.
+Deferred JavaScript: gepinntes lokales Tabler, `admin.js`, `page_scripts`.
+Blöcke: `title`, `sidebar`, `page_header`, `content`, `page_styles`, `page_scripts`.
+`main_attributes` erhält bestehende `data-*`-Verträge zukünftiger migrierter Formulare;
+Werte bleiben Jinja-escaped, es wird kein zweites `main` benötigt.
+Noch nicht migrierte Seiten behalten die Legacy-Basis und den Legacy-Zweig der Sidebar.
 
 ## PAGE
 
 | Baustein | Markup |
 |---|---|
-| Shell | `<div class="admin-shell …">` → `{% include 'admin/_workflow_sidebar.html' %}` + `<main id="main-content" class="page-wrapper admin-main …">` |
-| Sidebar | `aside.navbar.navbar-vertical.navbar-expand-lg.admin-sidebar[data-bs-theme=dark]`; ab 992 px fest links (16 rem), darunter horizontale Leiste mit umbrechenden Einträgen; keine Klapp-Navigation |
+| Shell | Eigenständige `admin/base_tabler.html`: `.page` mit Sidebar und `main#main-content.page-wrapper.admin-main`, semantischem Header und Content-Block |
+| Sidebar | `aside.navbar.navbar-vertical.navbar-expand-xl.admin-sidebar[data-bs-theme=dark]`; ab 1200 px fest links, darunter Tabler-Collapse mit sichtbarem Menü-Button, `aria-expanded` und `aria-controls`; vollständige Linktexte |
 | Kopf | Makro `page_header(title)` → `.page-header > .container-xl`, `h1.page-title`; Aktionen rechts per `{% call page_header(...) %}…{% endcall %}` in `.btn-list` |
 | Inhalt | `.page-body > .container-xl`; Profilwechsel per Makro `profile_tabs(links, family)` (`nav.profile-tabs > ul.nav.nav-pills`) |
 | Seitenwechsel | Makro `pagination(page, has_next, prev_url, next_url, label)` → `ul.pagination` |
@@ -53,8 +60,12 @@ Neue Listen-Steuerelemente nutzen echte Tabler-Klassen; der Adapter
 | Gefährlich | `btn btn-outline-danger` | Archivieren, Entfernen (mit `data-confirm`) |
 | Gruppe | `.btn-list` | mehrere Aktionen nebeneinander, bricht um |
 
-Alle `.btn`, `.form-control`, `.form-select`, `.page-link`, `.nav-link` sind mindestens 44 px hoch,
+Alle `.btn`, `.form-control`, `.form-select`, `.page-link`, `.nav-link` und beschrifteten `.form-check`-Zeilen sind mindestens 48 px hoch,
 Text 16 px (Adapter). Kein `style`, keine Inline-Skripte, keine Hex-Farben in Templates.
+Aktionsgruppen haben mindestens 8 px Abstand. Wiederverwendbare Makros `field`, `check`
+und `status` liegen in `_macros.html`; `field` verknüpft Fehler/Hinweise über IDs und ARIA.
+Wiederholte Felder müssen explizit eindeutige IDs erhalten. Dynamische Formularhandler bleiben
+in der bestehenden Admin-JavaScript-Datei; keine zweite Framework-Initialisierung.
 
 ## ICONS
 
@@ -75,6 +86,9 @@ in `static/vendor/README.md`.
 
 ## Prüfmatrix
 
-Tablets 768×1024, 800×1280, 1024×768, 1280×800; Rückfall 390×844 und 1440×1100.
+Breiten 360, 768, 820, 1024, 1199, 1200 und 1280 CSS-Pixel.
 Keine horizontale Dokumentbreite über den Viewport, primäre Aktion im ersten Viewport,
-alle Ziele ≥ 44 px, sichtbarer Fokusring auf jedem Control.
+alle Ziele ≥ 48 px, sichtbarer Fokusring auf jedem Control. Collapse mehrfach per
+Tastatur öffnen/schliessen; Navigation bei Rotation und am 1200-px-Umschaltpunkt prüfen.
+Zielgerät Samsung Galaxy XCover/Android: echtes Modell, Browser-Version und Bildschirmtastatur
+müssen in der Geräteabnahme dokumentiert werden; Chromium-Emulation ersetzt diese nicht.

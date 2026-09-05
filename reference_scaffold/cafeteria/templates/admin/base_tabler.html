@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>{% block title %}Südhang Menüplanung{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin-tabler.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='menu-images.css') }}">
+  {% block page_styles %}{% endblock %}
+</head>
+{% set user = session.get('user') %}
+{% set tabler_admin = true %}
+{% from 'admin/_macros.html' import flash_region %}
+<body class="admin-body dishboard-admin">
+  <a class="skip-link" href="#main-content">Zum Inhalt springen</a>
+  <div class="page">
+    {% block sidebar %}{% include 'admin/_workflow_sidebar.html' %}{% endblock %}
+    <main id="main-content" class="page-wrapper admin-main" data-profile="{{ profile }}" tabindex="-1" {% block main_attributes %}{% endblock %}>
+      <header>{% block page_header %}{% endblock %}</header>
+      <div class="page-body"><div class="container-xl">
+        {{ flash_region(get_flashed_messages()) }}
+        {% block content %}{% endblock %}
+      </div></div>
+    </main>
+  </div>
+  <script src="{{ url_for('static', filename='vendor/tabler/tabler.min.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='admin.js') }}" defer></script>
+  {% block page_scripts %}{% endblock %}
+</body>
+</html>

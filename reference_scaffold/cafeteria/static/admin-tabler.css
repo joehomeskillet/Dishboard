@@ -1,15 +1,12 @@
-/* Admin adapter for Tabler core 1.5.0 (vendor/tabler). Brand tokens, tablet touch targets,
-   shell wiring. Loaded after app.css and tabler.min.css for admin-body views only.
-   Contract: docs/design/admin-tabler-contract.md */
-
-.admin-body {
+/* Tabler 1.5.0 adapter; tokens.css supplies fonts and brand tokens. No app.css dependency. */
+.dishboard-admin {
   --tblr-font-sans-serif: var(--sh-font);
   --tblr-body-font-family: var(--sh-font);
   --tblr-body-font-size: 1rem;
   --tblr-body-color: var(--sh-ink);
   --tblr-secondary: var(--sh-ink-muted);
   --tblr-primary: var(--sh-primary);
-  --tblr-primary-rgb: 140, 28, 75; /* rgb of --sh-primary for Tabler's rgba() helpers */
+  --tblr-primary-rgb: 140, 28, 75;
   --tblr-primary-fg: var(--sh-white);
   --tblr-primary-lt: var(--sh-magenta-soft);
   --tblr-primary-lt-fg: var(--sh-primary);
@@ -17,77 +14,56 @@
   --tblr-link-hover-color: var(--sh-teal-950);
   --tblr-border-radius: var(--sh-radius-sm);
   --tblr-border-radius-lg: var(--sh-radius-md);
-  color: var(--sh-ink);
-  background: var(--sh-canvas-strong);
-  font-family: var(--sh-font);
-  font-size: var(--tblr-body-font-size);
+  color: var(--sh-ink); background: var(--sh-canvas-strong);
+  font-family: var(--sh-font); font-size: 16px;
 }
-
-/* Shell: fixed Tabler sidebar plus page wrapper. Neutralises the legacy grid in app.css. */
-.admin-body .admin-shell:has(> .navbar-vertical) { display: block; min-height: 100vh; }
-.admin-body .admin-sidebar { padding: 0; }
-.admin-body .admin-workflow-main.page-wrapper { padding: 0; }
-.admin-body .menu-grid.row { gap: 0; }
-.admin-body .search-form.card { align-items: stretch; gap: 0; }
-.admin-body .skip-link { z-index: 1100; }
-@media (min-width: 992px) {
-  .admin-body .navbar-vertical ~ .admin-main { margin-inline-start: var(--tblr-sidebar-width); }
-  .admin-sidebar > .container-fluid { flex-direction: column; align-items: stretch; min-height: 100%; }
-  .admin-sidebar .navbar-collapse { flex-direction: column; }
-  .admin-sidebar .admin-nav { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
-  .admin-sidebar .admin-nav > .navbar-nav { flex: 1 1 auto; }
-}
-@media (max-width: 991.98px) {
-  .admin-body .admin-sidebar { position: static; height: auto; }
-  .admin-sidebar .navbar-collapse { display: block; }
-  .admin-sidebar .admin-nav { display: flex; flex-wrap: wrap; align-items: center; }
-  .admin-sidebar .navbar-nav { flex-direction: row; flex-wrap: wrap; gap: .25rem; }
-  .admin-sidebar .navbar-footer { margin-inline-start: auto; }
-}
-
-/* Sidebar brand block and user row. */
-.admin-sidebar { --tblr-navbar-bg: var(--sh-teal-950); --tblr-navbar-border-color: var(--sh-teal-900); }
-.admin-sidebar .navbar-brand.admin-brand {
-  display: flex; flex-direction: column; align-items: flex-start; gap: .35rem;
-  margin: .75rem; padding: .75rem 1rem; border-radius: var(--tblr-border-radius);
+.dishboard-admin .admin-main { min-width: 0; }
+.dishboard-admin .admin-sidebar { --tblr-navbar-bg: var(--sh-teal-950); --tblr-navbar-border-color: var(--sh-teal-900); }
+.dishboard-admin .admin-brand {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  margin: 8px; padding: 8px; border-radius: var(--sh-radius-sm);
   color: var(--sh-ink); background: var(--sh-panel); white-space: normal;
 }
-.admin-sidebar .admin-brand .admin-logo { display: block; width: 164px; max-width: 100%; height: auto; }
-.admin-sidebar .admin-brand span { font-size: .875rem; font-weight: var(--tblr-font-weight-medium); }
-.admin-sidebar .admin-user { display: flex; align-items: center; gap: .75rem; min-width: 0; padding: .5rem 1.5rem .75rem; }
-.admin-sidebar .admin-user-text { display: grid; min-width: 0; font-size: .875rem; line-height: 1.3; }
-.admin-sidebar .admin-user-text > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.admin-sidebar .admin-user-text span { opacity: .75; }
-.admin-sidebar .nav-link { display: flex; align-items: center; min-height: 2.75rem; }
-.admin-sidebar button.nav-link { width: 100%; text-align: start; }
-.admin-body .admin-sidebar .navbar-nav button.nav-link { min-height: 44px; }
-.admin-body .admin-sidebar .navbar-footer .nav-link-title { display: inline; }
-.admin-sidebar .nav-item.active .nav-link { background: var(--sh-white-surface-012); }
-
-/* Consistent 44px touch targets and 16px control text across every admin control. */
-.admin-body .btn,
-.admin-body .form-control,
-.admin-body .form-select,
-.admin-body .page-link,
-.admin-body .nav-link,
-.admin-body .admin-form .form-control { min-height: 44px; }
-.admin-body .btn,
-.admin-body .form-control,
-.admin-body .form-select { font-size: 1rem; }
-.admin-body .page-link { display: inline-flex; align-items: center; gap: .25rem; }
-.admin-body .form-label { display: block; min-height: 0; gap: 0; }
-.admin-body .form-check { display: flex; align-items: center; gap: .625rem; min-height: 2.75rem; padding-inline-start: 0; margin-bottom: 0; }
-.admin-body .form-check .form-check-input { float: none; flex: none; margin: 0; }
-.admin-body .form-check-label { opacity: 1; cursor: pointer; }
-.admin-body textarea.form-control { min-height: 2.75rem; resize: vertical; }
-
-/* One visible focus ring for every control. */
-.admin-body :is(a, button, summary, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--tblr-primary);
-  outline-offset: 2px;
-  box-shadow: none;
+.dishboard-admin .admin-logo { width: 164px; max-width: 100%; height: auto; }
+.dishboard-admin .admin-brand span { font-size: .875rem; }
+.dishboard-admin .admin-user { display: flex; align-items: center; gap: 8px; padding: 16px; }
+.dishboard-admin .admin-user-text { display: grid; min-width: 0; }
+.dishboard-admin .admin-user-text > * { overflow-wrap: anywhere; }
+.dishboard-admin .admin-sidebar .nav-link-title { white-space: normal; overflow: visible; }
+.dishboard-admin .admin-sidebar .navbar-footer .nav-link-title { display: inline; }
+.dishboard-admin .admin-sidebar .navbar-nav .nav-link,
+.dishboard-admin :is(.btn, .form-control, .form-select, .page-link, .nav-link, .form-check) { min-height: 48px; }
+.dishboard-admin :is(.btn, .form-control, .form-select) { font-size: 16px; }
+.dishboard-admin .navbar-toggler { width: auto; min-width: 48px; padding: 8px 12px; margin: 8px; gap: 8px; color: var(--sh-white); }
+.dishboard-admin .btn-list { gap: 8px; }
+.dishboard-admin .btn-list > * { margin: 0; }
+.dishboard-admin :is(.pagination, .nav-pills, .navbar-nav) { gap: 8px; }
+.dishboard-admin .page-link { display: inline-flex; align-items: center; gap: 8px; }
+.dishboard-admin .form-check { display: flex; align-items: center; gap: 8px; padding-left: 0; cursor: pointer; }
+.dishboard-admin .form-check-input { float: none; flex: none; margin: 0; }
+/* Existing admin.js inserts this labelled density control into main. */
+.dishboard-admin .admin-main > label:has(input[type="checkbox"]) { display: flex; align-items: center; align-self: flex-start; gap: 8px; min-height: 48px; margin: 0 16px; cursor: pointer; }
+.dishboard-admin .admin-main > label input[type="checkbox"] { width: 20px; height: 20px; }
+.dishboard-admin .card-body { padding: 16px; }
+.dishboard-admin .card-title { font-size: 1.125rem; }
+.dishboard-admin .badge { white-space: normal; text-align: start; line-height: 1.4; }
+.dishboard-admin [data-menu-metadata] .labels { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.dishboard-admin [data-menu-metadata] .label { padding: 4px 8px; border-radius: var(--sh-radius-sm); background: var(--sh-panel-soft); }
+.dishboard-admin [data-menu-metadata] :is(p, .label), .dishboard-admin .card-title { overflow-wrap: anywhere; }
+.dishboard-admin :is(a, button, summary, input, select, textarea, [tabindex]):focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+.dishboard-admin .admin-sidebar :is(a, button):focus-visible { outline-color: var(--sh-white); }
+.dishboard-admin .skip-link { position: fixed; top: 8px; left: 8px; z-index: 1100; padding: 12px; color: var(--sh-white); background: var(--sh-primary); transform: translateY(-200%); }
+.dishboard-admin .skip-link:focus { transform: translateY(0); }
+@media (min-width: 1200px) {
+  .dishboard-admin .admin-sidebar .navbar-collapse { flex-direction: column; align-items: stretch; }
+  .dishboard-admin .admin-nav { display: flex; flex: 1; flex-direction: column; }
+  .dishboard-admin .navbar-footer { margin-top: auto; }
+  .dishboard-admin .card-body { padding: 24px; }
 }
-
-/* Cards and badges: readable text on tablets, wrapping component chips. */
-.admin-body .card-title { font-size: 1.125rem; }
-.admin-body .badge { white-space: normal; text-align: start; line-height: 1.3; }
+@media (max-width: 1199.98px) {
+  .dishboard-admin .admin-sidebar .navbar-nav { flex-direction: column; }
+  .dishboard-admin .admin-sidebar .nav-link { padding: 12px 16px; }
+  .dishboard-admin .admin-brand span { display: none; }
+  .dishboard-admin .admin-brand { margin: 8px 0; }
+}
+.dishboard-admin [data-state="dense"] .card-body { padding: 12px; }
