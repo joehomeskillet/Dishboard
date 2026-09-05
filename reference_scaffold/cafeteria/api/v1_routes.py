@@ -1,16 +1,26 @@
 from __future__ import annotations
 
 import datetime as dt
+import re
+from typing import Any
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, jsonify, current_app, request
+from flask import Blueprint, current_app, g, jsonify, request
+from sqlalchemy import Engine, text
+from sqlalchemy.exc import NoResultFound
 
+from ..component_catalog_store import resolve_single_active_location_connection
 from ..public import routes as public_routes
+from ..workflow import derive_admin_status
+from ..workflow_snapshot import build_snapshot
+from ..workflow_store import load_draft_connection
+from .auth import require_api_scope
 
 bp = Blueprint('api_v1', __name__, url_prefix='/api/v1')
 
 CHANNEL_TO_PROFILE = {'cafeteria': 'staff_guest', 'patienten': 'patient'}
 API_CACHE_CONTROL = 'public, max-age=60, stale-if-error=86400'
+_ISO_DATE = re.compile(r'\d{4}-\d{2}-\d{2}')
 
 
 def _error(code: str, detail: str, status_code: int):
@@ -98,6 +108,50 @@ def _day_payload(profile: str, requested_date: str, snapshot: dict | None) -> di
     return None
 
 
+def list_weeks(engine: Engine, profile_code: str) -> list[dict[str, Any]]:
+    with engine.connect() as connection:
+        location_id = resolve_single_active_location_connection(connection)
+        rows = connection.execute(
+            text(
+                '''
+                SELECT w.week_start, w.title, w.workflow_state
+                FROM cafeteria.menu_weeks w
+                JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+                WHERE w.location_id=:location_id AND p.code=:profile_code
+                ORDER BY w.week_start DESC, w.id DESC
+                LIMIT 12
+                '''
+            ),
+            {'location_id': location_id, 'profile_code': profile_code},
+        ).mappings().all()
+    return [
+        {
+            'week_start': row['week_start'].isoformat(),
+            'week_end': (row['week_start'] + dt.timedelta(days=6)).isoformat(),
+            'title': row['title'] or '',
+            'workflow_state': str(row['workflow_state']),
+            'status': derive_admin_status(engine, profile_code, row['week_start']),
+        }
+        for row in rows
+    ]
+
+
+def _week_start(raw: str) -> dt.date | None:
+    if _ISO_DATE.fullmatch(raw) is None:
+        return None
+    try:
+        parsed = dt.date.fromisoformat(raw)
+    except ValueError:
+        return None
+    return parsed if parsed.isoweekday() == 1 else None
+
+
+def _preview_revision(profile_code: str, week_start: dt.date) -> str:
+    prefix = 'PAT' if profile_code == 'patient' else 'CAF'
+    iso_calendar = week_start.isocalendar()
+    return f'{prefix}-{iso_calendar.year}-KW{iso_calendar.week:02d}-R1'
+
+
 @bp.before_request
 def reject_query_parameters():
     if request.query_string:
@@ -113,6 +167,55 @@ def status():
     response = jsonify(status_payload())
     response.headers['Cache-Control'] = 'no-store'
     return response
+
+
+@bp.get('/keys/me')
+@require_api_scope('')
+def key_identity():
+    identity = g.api_key
+    return jsonify(
+        {
+            'label': identity.label,
+            'scopes': list(identity.scopes),
+            'expires_at': (
+                identity.expires_at.isoformat() if identity.expires_at is not None else None
+            ),
+            'public_id': identity.public_id,
+        }
+    )
+
+
+@bp.get('/weeks/<any(cafeteria, patienten):channel>')
+@require_api_scope('preview.read')
+def weeks(channel: str):
+    profile = CHANNEL_TO_PROFILE[channel]
+    return jsonify({'channel': channel, 'weeks': list_weeks(_database(), profile)})
+
+
+@bp.get('/weeks/<any(cafeteria, patienten):channel>/<date>/preview')
+@require_api_scope('preview.read')
+def weeks_preview(channel: str, date: str):
+    week_start = _week_start(date)
+    if week_start is None:
+        return _error(
+            'invalid_week_start',
+            'Der Wochenbeginn muss ein Montag im Format YYYY-MM-DD sein.',
+            400,
+        )
+    profile = CHANNEL_TO_PROFILE[channel]
+    try:
+        with _database().connect() as connection:
+            draft = load_draft_connection(connection, profile, week_start)
+    except NoResultFound:
+        return _error('week_not_found', 'Die angeforderte Woche wurde nicht gefunden.', 404)
+    snapshot = build_snapshot(profile, draft, _preview_revision(profile, week_start))
+    response = jsonify(snapshot)
+    response.headers['X-Draft-Row-Version'] = str(draft['row_version'])
+    return response
+
+
+def _database() -> Engine:
+    return current_app.extensions['cafeteria_db']
 
 
 @bp.get('/published/<any(cafeteria, patienten):channel>')

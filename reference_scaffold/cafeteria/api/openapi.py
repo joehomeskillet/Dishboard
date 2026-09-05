@@ -20,8 +20,145 @@ def build_openapi() -> dict:
             {'name': 'published', 'description': 'Publizierte Menüpläne'},
             {'name': 'status', 'description': 'Systemstatus'},
             {'name': 'docs', 'description': 'Dokumentation'},
+            {'name': 'weeks', 'description': 'Lesende Entwurfsvorschau'},
+            {'name': 'keys', 'description': 'API-Schlüssel'},
         ],
         'paths': {
+            '/api/v1/keys/me': {
+                'get': {
+                    'tags': ['keys'],
+                    'summary': 'Identität des API-Schlüssels',
+                    'security': [{'ApiKeyBearer': []}],
+                    'responses': {
+                        '200': {
+                            'description': 'OK',
+                            'content': {
+                                'application/json': {
+                                    'schema': {'$ref': '#/components/schemas/KeyIdentity'},
+                                },
+                            },
+                        },
+                        '401': {
+                            'description': 'Nicht autorisiert',
+                            'content': {
+                                'application/json': {
+                                    'schema': {'$ref': '#/components/schemas/Error'},
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            '/api/v1/weeks/{channel}': {
+                'get': {
+                    'tags': ['weeks'],
+                    'summary': 'Zwölf jüngste Wochen',
+                    'security': [{'ApiKeyBearer': []}],
+                    'parameters': [
+                        {
+                            'name': 'channel',
+                            'in': 'path',
+                            'required': True,
+                            'schema': {'type': 'string', 'enum': ['cafeteria', 'patienten']},
+                        },
+                    ],
+                    'responses': {
+                        '200': {
+                            'description': 'OK',
+                            'content': {
+                                'application/json': {
+                                    'schema': {'$ref': '#/components/schemas/WeeksResponse'},
+                                },
+                            },
+                        },
+                        '401': {
+                            'description': 'Nicht autorisiert',
+                            'content': {
+                                'application/json': {
+                                    'schema': {'$ref': '#/components/schemas/Error'},
+                                },
+                            },
+                        },
+                        '403': {
+                            'description': 'Scope fehlt',
+                            'content': {
+                                'application/json': {
+                                    'schema': {'$ref': '#/components/schemas/Error'},
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            '/api/v1/weeks/{channel}/{date}/preview': {
+                'get': {
+                    'tags': ['weeks'],
+                    'summary': 'Entwurf einer Woche im Snapshot-Format',
+                    'security': [{'ApiKeyBearer': []}],
+                    'parameters': [
+                        {
+                            'name': 'channel',
+                            'in': 'path',
+                            'required': True,
+                            'schema': {'type': 'string', 'enum': ['cafeteria', 'patienten']},
+                        },
+                        {
+                            'name': 'date',
+                            'in': 'path',
+                            'required': True,
+                            'description': 'Wochenbeginn (Montag)',
+                            'schema': {'type': 'string', 'format': 'date'},
+                        },
+                    ],
+                    'responses': {
+                        '200': {
+                            'description': 'OK',
+                            'headers': {
+                                'X-Draft-Row-Version': {
+                                    'schema': {'type': 'integer'},
+                                },
+                            },
+                            'content': {
+                                'application/json': {
+                                    'schema': {'$ref': '#/components/schemas/Snapshot'},
+                                },
+                            },
+                        },
+                        '400': {
+                            'description': 'Ungültiger Wochenbeginn',
+                            'content': {
+                                'application/json': {
+                                    'schema': {'$ref': '#/components/schemas/Error'},
+                                },
+                            },
+                        },
+                        '401': {
+                            'description': 'Nicht autorisiert',
+                            'content': {
+                                'application/json': {
+                                    'schema': {'$ref': '#/components/schemas/Error'},
+                                },
+                            },
+                        },
+                        '403': {
+                            'description': 'Scope fehlt',
+                            'content': {
+                                'application/json': {
+                                    'schema': {'$ref': '#/components/schemas/Error'},
+                                },
+                            },
+                        },
+                        '404': {
+                            'description': 'Woche nicht gefunden',
+                            'content': {
+                                'application/json': {
+                                    'schema': {'$ref': '#/components/schemas/Error'},
+                                },
+                            },
+                        },
+                    },
+                },
+            },
             '/api/v1/published/{channel}': {
                 'get': {
                     'tags': ['published'],
@@ -129,7 +266,61 @@ def build_openapi() -> dict:
             },
         },
         'components': {
+            'securitySchemes': {
+                'ApiKeyBearer': {
+                    'type': 'http',
+                    'scheme': 'bearer',
+                    'bearerFormat': 'dbk_…',
+                },
+            },
             'schemas': {
+                'WeekSummary': {
+                    'type': 'object',
+                    'required': [
+                        'week_start',
+                        'week_end',
+                        'title',
+                        'workflow_state',
+                        'status',
+                    ],
+                    'properties': {
+                        'week_start': {'type': 'string', 'format': 'date'},
+                        'week_end': {'type': 'string', 'format': 'date'},
+                        'title': {'type': 'string'},
+                        'workflow_state': {
+                            'type': 'string',
+                            'enum': ['draft', 'ready', 'published', 'archived'],
+                        },
+                        'status': {
+                            'type': 'string',
+                            'enum': ['empty', 'incomplete', 'review_open', 'live', 'changed', 'ready'],
+                        },
+                    },
+                },
+                'WeeksResponse': {
+                    'type': 'object',
+                    'required': ['channel', 'weeks'],
+                    'properties': {
+                        'channel': {'type': 'string', 'enum': ['cafeteria', 'patienten']},
+                        'weeks': {
+                            'type': 'array',
+                            'items': {'$ref': '#/components/schemas/WeekSummary'},
+                        },
+                    },
+                },
+                'KeyIdentity': {
+                    'type': 'object',
+                    'required': ['label', 'scopes', 'expires_at', 'public_id'],
+                    'properties': {
+                        'label': {'type': 'string'},
+                        'scopes': {
+                            'type': 'array',
+                            'items': {'type': 'string', 'enum': ['preview.read']},
+                        },
+                        'expires_at': {'type': ['string', 'null'], 'format': 'date-time'},
+                        'public_id': {'type': 'string', 'format': 'uuid'},
+                    },
+                },
                 'Snapshot': {
                     'type': 'object',
                     'required': [
