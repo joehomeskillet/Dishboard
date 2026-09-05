@@ -1,0 +1,558 @@
+{
+  "captured_at": "2026-09-05T08:38:31.449336+00:00",
+  "base_url": "https://dishboard.joelduss.xyz",
+  "checks": {
+    "mobile.login.authenticated": true,
+    "mobile.cafeteria.overview.authenticated": true,
+    "mobile.cafeteria.overview.http_200": true,
+    "mobile.cafeteria.overview.csp_self_scripts": true,
+    "mobile.cafeteria.overview.no_inline_script": true,
+    "mobile.cafeteria.overview.no_inline_style": true,
+    "mobile.cafeteria.overview.no_horizontal_overflow": true,
+    "mobile.cafeteria.overview.slots": true,
+    "mobile.cafeteria.editor.authenticated": true,
+    "mobile.cafeteria.editor.http_200": true,
+    "mobile.cafeteria.editor.csp_self_scripts": true,
+    "mobile.cafeteria.editor.no_inline_script": true,
+    "mobile.cafeteria.editor.no_inline_style": true,
+    "mobile.cafeteria.editor.no_horizontal_overflow": true,
+    "mobile.cafeteria.editor.menu_form": true,
+    "mobile.cafeteria.editor.one_item_version": true,
+    "mobile.cafeteria.preview.noopener": true,
+    "mobile.cafeteria.preview.authenticated": true,
+    "mobile.cafeteria.preview.http_200": true,
+    "mobile.cafeteria.preview.csp_self_scripts": true,
+    "mobile.cafeteria.preview.no_inline_script": true,
+    "mobile.cafeteria.preview.no_inline_style": true,
+    "mobile.cafeteria.preview.no_horizontal_overflow": true,
+    "mobile.cafeteria.preview.new_tab": true,
+    "mobile.cafeteria.preview.banner": true,
+    "mobile.cafeteria.preview.last_saved": true,
+    "mobile.cafeteria.preview.saved_scope": true,
+    "mobile.cafeteria.preview.saved_state": true,
+    "mobile.cafeteria.catalog.authenticated": true,
+    "mobile.cafeteria.catalog.http_200": true,
+    "mobile.cafeteria.catalog.csp_self_scripts": true,
+    "mobile.cafeteria.catalog.no_inline_script": true,
+    "mobile.cafeteria.catalog.no_inline_style": true,
+    "mobile.cafeteria.catalog.no_horizontal_overflow": true,
+    "mobile.cafeteria.component_detail.authenticated": true,
+    "mobile.cafeteria.component_detail.http_200": true,
+    "mobile.cafeteria.component_detail.csp_self_scripts": true,
+    "mobile.cafeteria.component_detail.no_inline_script": true,
+    "mobile.cafeteria.component_detail.no_inline_style": true,
+    "mobile.cafeteria.component_detail.no_horizontal_overflow": true,
+    "mobile.cafeteria.component_detail.public_id": true,
+    "mobile.cafeteria.copy.authenticated": true,
+    "mobile.cafeteria.copy.http_200": true,
+    "mobile.cafeteria.copy.csp_self_scripts": true,
+    "mobile.cafeteria.copy.no_inline_script": true,
+    "mobile.cafeteria.copy.no_inline_style": true,
+    "mobile.cafeteria.copy.no_horizontal_overflow": true,
+    "mobile.cafeteria.copy.form": true,
+    "mobile.cafeteria.copy.exact_fields": true,
+    "mobile.cafeteria.copy.source_week": true,
+    "mobile.cafeteria.copy.target_week": true,
+    "mobile.patienten.overview.authenticated": true,
+    "mobile.patienten.overview.http_200": true,
+    "mobile.patienten.overview.csp_self_scripts": true,
+    "mobile.patienten.overview.no_inline_script": true,
+    "mobile.patienten.overview.no_inline_style": true,
+    "mobile.patienten.overview.no_horizontal_overflow": true,
+    "mobile.patienten.overview.no_price_vocabulary": true,
+    "mobile.patienten.overview.slots": true,
+    "mobile.patienten.editor.authenticated": true,
+    "mobile.patienten.editor.http_200": true,
+    "mobile.patienten.editor.csp_self_scripts": true,
+    "mobile.patienten.editor.no_inline_script": true,
+    "mobile.patienten.editor.no_inline_style": true,
+    "mobile.patienten.editor.no_horizontal_overflow": true,
+    "mobile.patienten.editor.no_price_vocabulary": true,
+    "mobile.patienten.editor.menu_form": true,
+    "mobile.patienten.editor.one_item_version": true,
+    "mobile.patienten.preview.noopener": true,
+    "mobile.patienten.preview.authenticated": true,
+    "mobile.patienten.preview.http_200": true,
+    "mobile.patienten.preview.csp_self_scripts": true,
+    "mobile.patienten.preview.no_inline_script": true,
+    "mobile.patienten.preview.no_inline_style": true,
+    "mobile.patienten.preview.no_horizontal_overflow": true,
+    "mobile.patienten.preview.no_price_vocabulary": true,
+    "mobile.patienten.preview.new_tab": true,
+    "mobile.patienten.preview.banner": true,
+    "mobile.patienten.preview.last_saved": true,
+    "mobile.patienten.preview.saved_scope": true,
+    "mobile.patienten.preview.saved_state": true,
+    "mobile.patienten.catalog.authenticated": true,
+    "mobile.patienten.catalog.http_200": true,
+    "mobile.patienten.catalog.csp_self_scripts": true,
+    "mobile.patienten.catalog.no_inline_script": true,
+    "mobile.patienten.catalog.no_inline_style": true,
+    "mobile.patienten.catalog.no_horizontal_overflow": true,
+    "mobile.patienten.catalog.no_price_vocabulary": true,
+    "mobile.patienten.component_detail.authenticated": true,
+    "mobile.patienten.component_detail.http_200": true,
+    "mobile.patienten.component_detail.csp_self_scripts": true,
+    "mobile.patienten.component_detail.no_inline_script": true,
+    "mobile.patienten.component_detail.no_inline_style": true,
+    "mobile.patienten.component_detail.no_horizontal_overflow": true,
+    "mobile.patienten.component_detail.no_price_vocabulary": true,
+    "mobile.patienten.component_detail.public_id": true,
+    "mobile.patienten.copy.authenticated": true,
+    "mobile.patienten.copy.http_200": true,
+    "mobile.patienten.copy.csp_self_scripts": true,
+    "mobile.patienten.copy.no_inline_script": true,
+    "mobile.patienten.copy.no_inline_style": true,
+    "mobile.patienten.copy.no_horizontal_overflow": true,
+    "mobile.patienten.copy.no_price_vocabulary": true,
+    "mobile.patienten.copy.form": true,
+    "mobile.patienten.copy.exact_fields": true,
+    "mobile.patienten.copy.source_week": true,
+    "mobile.patienten.copy.target_week": true,
+    "mobile.no_csp_console_errors": true,
+    "desktop.login.authenticated": true,
+    "desktop.cafeteria.overview.authenticated": true,
+    "desktop.cafeteria.overview.http_200": true,
+    "desktop.cafeteria.overview.csp_self_scripts": true,
+    "desktop.cafeteria.overview.no_inline_script": true,
+    "desktop.cafeteria.overview.no_inline_style": true,
+    "desktop.cafeteria.overview.no_horizontal_overflow": true,
+    "desktop.cafeteria.overview.slots": true,
+    "desktop.cafeteria.editor.authenticated": true,
+    "desktop.cafeteria.editor.http_200": true,
+    "desktop.cafeteria.editor.csp_self_scripts": true,
+    "desktop.cafeteria.editor.no_inline_script": true,
+    "desktop.cafeteria.editor.no_inline_style": true,
+    "desktop.cafeteria.editor.no_horizontal_overflow": true,
+    "desktop.cafeteria.editor.menu_form": true,
+    "desktop.cafeteria.editor.one_item_version": true,
+    "desktop.cafeteria.preview.noopener": true,
+    "desktop.cafeteria.preview.authenticated": true,
+    "desktop.cafeteria.preview.http_200": true,
+    "desktop.cafeteria.preview.csp_self_scripts": true,
+    "desktop.cafeteria.preview.no_inline_script": true,
+    "desktop.cafeteria.preview.no_inline_style": true,
+    "desktop.cafeteria.preview.no_horizontal_overflow": true,
+    "desktop.cafeteria.preview.new_tab": true,
+    "desktop.cafeteria.preview.banner": true,
+    "desktop.cafeteria.preview.last_saved": true,
+    "desktop.cafeteria.preview.saved_scope": true,
+    "desktop.cafeteria.preview.saved_state": true,
+    "desktop.cafeteria.catalog.authenticated": true,
+    "desktop.cafeteria.catalog.http_200": true,
+    "desktop.cafeteria.catalog.csp_self_scripts": true,
+    "desktop.cafeteria.catalog.no_inline_script": true,
+    "desktop.cafeteria.catalog.no_inline_style": true,
+    "desktop.cafeteria.catalog.no_horizontal_overflow": true,
+    "desktop.cafeteria.component_detail.authenticated": true,
+    "desktop.cafeteria.component_detail.http_200": true,
+    "desktop.cafeteria.component_detail.csp_self_scripts": true,
+    "desktop.cafeteria.component_detail.no_inline_script": true,
+    "desktop.cafeteria.component_detail.no_inline_style": true,
+    "desktop.cafeteria.component_detail.no_horizontal_overflow": true,
+    "desktop.cafeteria.component_detail.public_id": true,
+    "desktop.cafeteria.copy.authenticated": true,
+    "desktop.cafeteria.copy.http_200": true,
+    "desktop.cafeteria.copy.csp_self_scripts": true,
+    "desktop.cafeteria.copy.no_inline_script": true,
+    "desktop.cafeteria.copy.no_inline_style": true,
+    "desktop.cafeteria.copy.no_horizontal_overflow": true,
+    "desktop.cafeteria.copy.form": true,
+    "desktop.cafeteria.copy.exact_fields": true,
+    "desktop.cafeteria.copy.source_week": true,
+    "desktop.cafeteria.copy.target_week": true,
+    "desktop.patienten.overview.authenticated": true,
+    "desktop.patienten.overview.http_200": true,
+    "desktop.patienten.overview.csp_self_scripts": true,
+    "desktop.patienten.overview.no_inline_script": true,
+    "desktop.patienten.overview.no_inline_style": true,
+    "desktop.patienten.overview.no_horizontal_overflow": true,
+    "desktop.patienten.overview.no_price_vocabulary": true,
+    "desktop.patienten.overview.slots": true,
+    "desktop.patienten.editor.authenticated": true,
+    "desktop.patienten.editor.http_200": true,
+    "desktop.patienten.editor.csp_self_scripts": true,
+    "desktop.patienten.editor.no_inline_script": true,
+    "desktop.patienten.editor.no_inline_style": true,
+    "desktop.patienten.editor.no_horizontal_overflow": true,
+    "desktop.patienten.editor.no_price_vocabulary": true,
+    "desktop.patienten.editor.menu_form": true,
+    "desktop.patienten.editor.one_item_version": true,
+    "desktop.patienten.preview.noopener": true,
+    "desktop.patienten.preview.authenticated": true,
+    "desktop.patienten.preview.http_200": true,
+    "desktop.patienten.preview.csp_self_scripts": true,
+    "desktop.patienten.preview.no_inline_script": true,
+    "desktop.patienten.preview.no_inline_style": true,
+    "desktop.patienten.preview.no_horizontal_overflow": true,
+    "desktop.patienten.preview.no_price_vocabulary": true,
+    "desktop.patienten.preview.new_tab": true,
+    "desktop.patienten.preview.banner": true,
+    "desktop.patienten.preview.last_saved": true,
+    "desktop.patienten.preview.saved_scope": true,
+    "desktop.patienten.preview.saved_state": true,
+    "desktop.patienten.catalog.authenticated": true,
+    "desktop.patienten.catalog.http_200": true,
+    "desktop.patienten.catalog.csp_self_scripts": true,
+    "desktop.patienten.catalog.no_inline_script": true,
+    "desktop.patienten.catalog.no_inline_style": true,
+    "desktop.patienten.catalog.no_horizontal_overflow": true,
+    "desktop.patienten.catalog.no_price_vocabulary": true,
+    "desktop.patienten.component_detail.authenticated": true,
+    "desktop.patienten.component_detail.http_200": true,
+    "desktop.patienten.component_detail.csp_self_scripts": true,
+    "desktop.patienten.component_detail.no_inline_script": true,
+    "desktop.patienten.component_detail.no_inline_style": true,
+    "desktop.patienten.component_detail.no_horizontal_overflow": true,
+    "desktop.patienten.component_detail.no_price_vocabulary": true,
+    "desktop.patienten.component_detail.public_id": true,
+    "desktop.patienten.copy.authenticated": true,
+    "desktop.patienten.copy.http_200": true,
+    "desktop.patienten.copy.csp_self_scripts": true,
+    "desktop.patienten.copy.no_inline_script": true,
+    "desktop.patienten.copy.no_inline_style": true,
+    "desktop.patienten.copy.no_horizontal_overflow": true,
+    "desktop.patienten.copy.no_price_vocabulary": true,
+    "desktop.patienten.copy.form": true,
+    "desktop.patienten.copy.exact_fields": true,
+    "desktop.patienten.copy.source_week": true,
+    "desktop.patienten.copy.target_week": true,
+    "desktop.no_csp_console_errors": true
+  },
+  "pages": [
+    {
+      "name": "mobile.cafeteria.overview",
+      "http_status": 200,
+      "screenshot": "mobile.cafeteria.overview-390x844.png",
+      "sha256": "0547c7d66310c447b99dd2fd517babbd1df36582cd409d32c2bf375af32d8ff6",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 0,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "mobile.cafeteria.editor",
+      "http_status": 200,
+      "screenshot": "mobile.cafeteria.editor-390x844.png",
+      "sha256": "1a8ed1349fe4e55aaf65ca0d6c3dc968c211c244315ce2ec35ef6bc15fd9903b",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 0,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "mobile.cafeteria.preview",
+      "http_status": 200,
+      "screenshot": "mobile.cafeteria.preview-390x844.png",
+      "sha256": "8adab78d7b44ef40516013f02d5d18c7b008fe84355c91d243582b3474e449df",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 0,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "mobile.cafeteria.catalog",
+      "http_status": 200,
+      "screenshot": "mobile.cafeteria.catalog-390x844.png",
+      "sha256": "1ac0db40b70f6e9b0f2fa5b5ea3927861e53d513534949afe663415c19a41362",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 15,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "mobile.cafeteria.component_detail",
+      "http_status": 200,
+      "screenshot": "mobile.cafeteria.component_detail-390x844.png",
+      "sha256": "51b7e1be4eb7cc50079b8dbb1ce3d8cb10ab78ad5f96c199a42011bc81c591c3",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 0,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "mobile.cafeteria.copy",
+      "http_status": 200,
+      "screenshot": "mobile.cafeteria.copy-390x844.png",
+      "sha256": "63702596ca7631843d828d27c8c6290c2516f5138d5c7de3afc8d2c1214eb028",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 2,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "mobile.patienten.overview",
+      "http_status": 200,
+      "screenshot": "mobile.patienten.overview-390x844.png",
+      "sha256": "a2f273d2ee1186be2328032655c5692dbf7499c1590402b95485d97dadbabc8a",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 0,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "mobile.patienten.editor",
+      "http_status": 200,
+      "screenshot": "mobile.patienten.editor-390x844.png",
+      "sha256": "54316da6eb473e9c923f50de40f34b729dd4da626aa5824560b7d394fa3a9048",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 0,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "mobile.patienten.preview",
+      "http_status": 200,
+      "screenshot": "mobile.patienten.preview-390x844.png",
+      "sha256": "3a0825f955225b6d8d40f4a7971f62105ba5fee7509ea0e1d7d6e00e7519bafa",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 0,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "mobile.patienten.catalog",
+      "http_status": 200,
+      "screenshot": "mobile.patienten.catalog-390x844.png",
+      "sha256": "b4bf9c1b71ef7df068cfad373ee69875e5b7f965ab1504fa6ebd79068b4cbaca",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 24,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "mobile.patienten.component_detail",
+      "http_status": 200,
+      "screenshot": "mobile.patienten.component_detail-390x844.png",
+      "sha256": "958055b9441f95e2c8b97c2d071da409d5c80455ad2ba44ec6facd71dd00e19f",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 0,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "mobile.patienten.copy",
+      "http_status": 200,
+      "screenshot": "mobile.patienten.copy-390x844.png",
+      "sha256": "63702596ca7631843d828d27c8c6290c2516f5138d5c7de3afc8d2c1214eb028",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 2,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "desktop.cafeteria.overview",
+      "http_status": 200,
+      "screenshot": "desktop.cafeteria.overview-1440x1100.png",
+      "sha256": "84feb7b847e5cddca39b6bd4b07b1ba4745782e0ac189c6ff62b17e56c4c3acb",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 0,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "desktop.cafeteria.editor",
+      "http_status": 200,
+      "screenshot": "desktop.cafeteria.editor-1440x1100.png",
+      "sha256": "9f705575859c76d9847574f420f475147548881bc3dfa3dec78ad84479132c5a",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 0,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "desktop.cafeteria.preview",
+      "http_status": 200,
+      "screenshot": "desktop.cafeteria.preview-1440x1100.png",
+      "sha256": "27dab38aa19c83b934eda0063dc30c0aa8b40259ccdf640883b037e14e3d57f4",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 0,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "desktop.cafeteria.catalog",
+      "http_status": 200,
+      "screenshot": "desktop.cafeteria.catalog-1440x1100.png",
+      "sha256": "f128c6c38551175673ae49882596d9a8c17a80d2a0ec8df588b17b8cf42185ef",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 15,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "desktop.cafeteria.component_detail",
+      "http_status": 200,
+      "screenshot": "desktop.cafeteria.component_detail-1440x1100.png",
+      "sha256": "2f16cf8def1d6823a1ae49f57ca660657af745ec2bc96ba48dcc25e6507f6b58",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 0,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "desktop.cafeteria.copy",
+      "http_status": 200,
+      "screenshot": "desktop.cafeteria.copy-1440x1100.png",
+      "sha256": "f264dcaf82570b087abb282c78c20806fbe318a3a3cbd40a83fcd174e50c4dd0",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 2,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "desktop.patienten.overview",
+      "http_status": 200,
+      "screenshot": "desktop.patienten.overview-1440x1100.png",
+      "sha256": "ac7d53b8985478cc2446df3695379fe2336ed0ffbd958ba7b38255c01e4d9f26",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 0,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "desktop.patienten.editor",
+      "http_status": 200,
+      "screenshot": "desktop.patienten.editor-1440x1100.png",
+      "sha256": "1620fbc73ee682b4174b40967c6eae4ae82a9d8a3e6d2790f1b6d711f716603b",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 0,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "desktop.patienten.preview",
+      "http_status": 200,
+      "screenshot": "desktop.patienten.preview-1440x1100.png",
+      "sha256": "f999dc141bc80823b6eaf60bec7c1218fbd1a55cbf583abcf033a21054dca3f9",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 0,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "desktop.patienten.catalog",
+      "http_status": 200,
+      "screenshot": "desktop.patienten.catalog-1440x1100.png",
+      "sha256": "137a745b26420633effcc389afcdfe6b97f04f9ac19abee31b86f02f03321ed5",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 24,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "desktop.patienten.component_detail",
+      "http_status": 200,
+      "screenshot": "desktop.patienten.component_detail-1440x1100.png",
+      "sha256": "b51c56e549e14fa04fb6016ea33e9f865845b8bdceed935b2d2d5ceffa0cff75",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 0,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    },
+    {
+      "name": "desktop.patienten.copy",
+      "http_status": 200,
+      "screenshot": "desktop.patienten.copy-1440x1100.png",
+      "sha256": "f264dcaf82570b087abb282c78c20806fbe318a3a3cbd40a83fcd174e50c4dd0",
+      "diagnostics": {
+        "overflow_px": 0,
+        "controls_below_44px": 2,
+        "inline_scripts": 0,
+        "inline_handlers": 0,
+        "inline_styles": 0
+      }
+    }
+  ],
+  "catalogs": {
+    "mobile.cafeteria": {
+      "existing_components": 14,
+      "detail_available": true
+    },
+    "mobile.patienten": {
+      "existing_components": 23,
+      "detail_available": true
+    },
+    "desktop.cafeteria": {
+      "existing_components": 14,
+      "detail_available": true
+    },
+    "desktop.patienten": {
+      "existing_components": 23,
+      "detail_available": true
+    }
+  },
+  "unavailable": [],
+  "failures": [],
+  "control_size_audit": "diagnostic only; does not establish complete UI acceptance",
+  "status": "passed"
+}
