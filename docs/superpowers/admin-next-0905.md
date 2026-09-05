@@ -38,6 +38,11 @@ die Umsetzung, soweit sie dieselben bestehenden Abläufe nutzen.
 
 ## Abnahme
 
+Mobile Admin-Ansichten werden primär für 8–10-Zoll-Tablets optimiert
+(Nutzerpräzisierung vom 5. September): 768×1024 und 800×1280 sowie beide
+Querformate. Bedienelemente mindestens 44 px, lesbare Inhalte, kein horizontaler
+Überlauf. Smartphone-Ansichten bleiben ein zusätzlicher Fallback.
+
 Profil- und Standortgrenzen, Berechtigungen und CSRF bleiben erhalten.
 GET-Aufrufe verändern keine Daten. Speichern respektiert bestehende Versionen.
 Tests laufen gegen isoliertes PostgreSQL, jeweils eine schwere Test-/Browser-
