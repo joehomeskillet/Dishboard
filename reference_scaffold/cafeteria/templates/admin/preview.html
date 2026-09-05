@@ -8,7 +8,7 @@
   <h1>Vorschau &middot; {{ 'Cafeteria-Speiseplan' if profile == 'staff_guest' else 'Patienten-Speiseplan' }}</h1>
   <p class="preview-context">KW {{ week_iso|iso_week }} / {{ week.isocalendar().year }} · Woche ab <time datetime="{{ week_iso }}">{{ week_iso|date_long }}</time></p>
   <p class="preview-saved">Zuletzt gespeicherter Stand · {{ {'draft': 'Entwurf', 'ready': 'Bereit', 'published': 'Publiziert', 'archived': 'Archiviert'}[state] }}</p>
-  <p><a class="btn" href="{{ url_for('admin.print_week', family=family, week=week_iso) }}">Wochenplan drucken / PDF</a></p>
+  <p><a class="btn" href="{{ url_for('admin.print_week', family=family, week=week_iso) }}">Wochenplan als PDF öffnen</a></p>
 
   {% if draft.title %}
     <h2>{{ draft.title }}</h2>

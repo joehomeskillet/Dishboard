@@ -1,0 +1,444 @@
+[
+  {
+    "date": "2026-08-31",
+    "profile": "staff_guest",
+    "meal": "LUNCH",
+    "code": "MENU_1",
+    "title": "Pouletbrust an Kräutersauce",
+    "components": [
+      "Kartoffelstock",
+      "Zucchetti"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Kräutersauce und Kartoffelstock Milch, bei Saucenbindung Weizen und bei Bouillon Sellerie prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-08-31",
+    "profile": "staff_guest",
+    "meal": "LUNCH",
+    "code": "VEGGIE",
+    "title": "Spinat-Ricotta-Ravioli",
+    "components": [
+      "Tomatensauce",
+      "Blattsalat"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Ravioli Weizen, Ei und Milch, bei Salatdressing Senf prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-01",
+    "profile": "staff_guest",
+    "meal": "LUNCH",
+    "code": "MENU_1",
+    "title": "Rindsgeschnetzeltes Stroganoff",
+    "components": [
+      "Basmatireis",
+      "Broccoli"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Stroganoffsauce Milch und Senf, bei Bindung Weizen und bei Bouillon Sellerie prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-01",
+    "profile": "staff_guest",
+    "meal": "LUNCH",
+    "code": "VEGGIE",
+    "title": "Kichererbsen-Curry",
+    "components": [
+      "Basmatireis",
+      "Broccoli"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Currypaste Senf, bei Bouillon Sellerie und bei einer Rahm- oder Joghurtzugabe Milch prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-02",
+    "profile": "staff_guest",
+    "meal": "LUNCH",
+    "code": "MENU_1",
+    "title": "Kalbsbratwurst mit Zwiebelsauce",
+    "components": [
+      "Rösti",
+      "Rüebli"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Bratwurst Milch und Senf, bei Zwiebelsauce Weizen und Sellerie, bei Rösti Butterzugabe prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-02",
+    "profile": "staff_guest",
+    "meal": "LUNCH",
+    "code": "VEGGIE",
+    "title": "Gemüse-Lasagne",
+    "components": [
+      "Blattsalat"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Lasagne Weizen, Ei und Milch, bei Gemüsefond Sellerie und bei Salatdressing Senf prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-03",
+    "profile": "staff_guest",
+    "meal": "LUNCH",
+    "code": "MENU_1",
+    "title": "Schweinsragout Tessiner Art",
+    "components": [
+      "Polenta",
+      "Bohnen"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Ragoutsauce Weizen und Sellerie, bei Weinzugabe Sulfite und bei Polenta Milch oder Käse prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-03",
+    "profile": "staff_guest",
+    "meal": "LUNCH",
+    "code": "VEGGIE",
+    "title": "Polenta mit Pilzragout",
+    "components": [
+      "Bohnen"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Polenta und Pilzrahmsauce Milch, bei Saucenbindung Weizen und bei Bouillon Sellerie prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-04",
+    "profile": "staff_guest",
+    "meal": "LUNCH",
+    "code": "MENU_1",
+    "title": "Gebratenes Zanderfilet",
+    "components": [
+      "Salzkartoffeln",
+      "Rahmspinat"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Beim Zander Fisch, bei Rahmspinat und Bratbutter Milch sowie bei einer Mehlierung Weizen prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-04",
+    "profile": "staff_guest",
+    "meal": "LUNCH",
+    "code": "VEGGIE",
+    "title": "Falafel-Teller",
+    "components": [
+      "Hummus",
+      "Ofengemüse"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Hummus Tahini und damit Sesam, bei Falafel eine Weizenbindung prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-08-31",
+    "profile": "patient",
+    "meal": "LUNCH",
+    "code": "MENU_1",
+    "title": "Pouletgeschnetzeltes Paprika",
+    "components": [
+      "Reis",
+      "Zucchetti"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Paprikasauce Milch, bei Saucenbindung Weizen und bei Bouillon Sellerie prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-08-31",
+    "profile": "patient",
+    "meal": "LUNCH",
+    "code": "VEGGIE",
+    "title": "Gemüsegeschnetzeltes",
+    "components": [
+      "Reis",
+      "Zucchetti"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Sauce Milch, bei Bindung Weizen und bei Bouillon Sellerie prüfen; falls Fleischersatz verwendet wird, dessen Soja- und Weizenbestandteile prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-08-31",
+    "profile": "patient",
+    "meal": "DINNER",
+    "code": "MENU_1",
+    "title": "Schinken-Käse-Toast",
+    "components": [
+      "Tomatensalat"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Toastbrot Weizen, bei Käse Milch, bei Schinken dessen Zutaten und bei Salatdressing Senf prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-08-31",
+    "profile": "patient",
+    "meal": "DINNER",
+    "code": "VEGGIE",
+    "title": "Gemüse-Toast",
+    "components": [
+      "Tomatensalat"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Toastbrot Weizen, bei Käse- oder Butterzugabe Milch und bei Salatdressing Senf prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-01",
+    "profile": "patient",
+    "meal": "LUNCH",
+    "code": "MENU_1",
+    "title": "Hackbraten an Rosmarinjus",
+    "components": [
+      "Kartoffelgratin",
+      "Broccoli"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Hackbraten Ei, Weizen und Senf, bei Gratin Milch und bei Jus Sellerie prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-01",
+    "profile": "patient",
+    "meal": "LUNCH",
+    "code": "VEGGIE",
+    "title": "Linsenbraten",
+    "components": [
+      "Kartoffelgratin",
+      "Broccoli"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Linsenbraten Ei oder Weizen als Bindung, bei Gratin Milch und bei Bouillon Sellerie prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-01",
+    "profile": "patient",
+    "meal": "DINNER",
+    "code": "MENU_1",
+    "title": "Kartoffelsuppe mit Wienerli",
+    "components": [
+      "Hausbrot"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Suppe Milch und Sellerie, bei Wienerli Senf und bei Hausbrot die Getreidearten sowie Sesam prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-01",
+    "profile": "patient",
+    "meal": "DINNER",
+    "code": "VEGGIE",
+    "title": "Kartoffelsuppe mit Kräutern",
+    "components": [
+      "Hausbrot"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Suppe Milch und Sellerie und bei Hausbrot die Getreidearten sowie Sesam prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-02",
+    "profile": "patient",
+    "meal": "LUNCH",
+    "code": "MENU_1",
+    "title": "Kalbsbratwurst mit Zwiebelsauce",
+    "components": [
+      "Rösti",
+      "Rüebli"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Bratwurst Milch und Senf, bei Zwiebelsauce Weizen und Sellerie, bei Rösti Butterzugabe prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-02",
+    "profile": "patient",
+    "meal": "LUNCH",
+    "code": "VEGGIE",
+    "title": "Gemüse-Lasagne",
+    "components": [
+      "Blattsalat"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Lasagne Weizen, Ei und Milch, bei Gemüsefond Sellerie und bei Salatdressing Senf prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-02",
+    "profile": "patient",
+    "meal": "DINNER",
+    "code": "MENU_1",
+    "title": "Älplermagronen mit Speck",
+    "components": [
+      "Apfelmus"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Magronen Weizen und Ei, bei Käse und Rahm Milch sowie bei Speck dessen Zutaten prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-02",
+    "profile": "patient",
+    "meal": "DINNER",
+    "code": "VEGGIE",
+    "title": "Älplermagronen vegetarisch",
+    "components": [
+      "Apfelmus"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Magronen Weizen und Ei und bei Käse und Rahm Milch prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-03",
+    "profile": "patient",
+    "meal": "LUNCH",
+    "code": "MENU_1",
+    "title": "Schweinsragout Tessiner Art",
+    "components": [
+      "Polenta",
+      "Bohnen"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Ragoutsauce Weizen und Sellerie, bei Weinzugabe Sulfite und bei Polenta Milch oder Käse prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-03",
+    "profile": "patient",
+    "meal": "LUNCH",
+    "code": "VEGGIE",
+    "title": "Polenta mit Pilzragout",
+    "components": [
+      "Bohnen"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Polenta und Pilzrahmsauce Milch, bei Saucenbindung Weizen und bei Bouillon Sellerie prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-03",
+    "profile": "patient",
+    "meal": "DINNER",
+    "code": "MENU_1",
+    "title": "Rührei mit Kräutern",
+    "components": [
+      "Salzkartoffeln",
+      "Spinat"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Rührei Ei, bei Rahm- oder Butterzugabe Milch und bei gewürztem Spinat die Produktzutaten prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-03",
+    "profile": "patient",
+    "meal": "DINNER",
+    "code": "VEGGIE",
+    "title": "Tofu-Rührei",
+    "components": [
+      "Salzkartoffeln",
+      "Spinat"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Tofu Soja, bei Sojasauce zusätzlich Weizen und bei Butter- oder Rahmzugabe Milch prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-04",
+    "profile": "patient",
+    "meal": "LUNCH",
+    "code": "MENU_1",
+    "title": "Gebratenes Zanderfilet",
+    "components": [
+      "Salzkartoffeln",
+      "Rahmspinat"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Beim Zander Fisch, bei Rahmspinat und Bratbutter Milch sowie bei einer Mehlierung Weizen prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-04",
+    "profile": "patient",
+    "meal": "LUNCH",
+    "code": "VEGGIE",
+    "title": "Falafel-Teller",
+    "components": [
+      "Hummus",
+      "Ofengemüse"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Hummus Tahini und damit Sesam, bei Falafel eine Weizenbindung prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-04",
+    "profile": "patient",
+    "meal": "DINNER",
+    "code": "MENU_1",
+    "title": "Griessbrei mit Zwetschgenkompott",
+    "components": [
+      "Zwetschgenkompott"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Beim Griess die Getreideart, insbesondere Weizen, und beim Brei Milch sowie eine mögliche Eizugabe prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-04",
+    "profile": "patient",
+    "meal": "DINNER",
+    "code": "VEGGIE",
+    "title": "Kokos-Griessbrei",
+    "components": [
+      "Zwetschgenkompott"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Beim Griess die Getreideart, insbesondere Weizen, und beim Brei zusätzliche Milch oder Ei prüfen; Kokos im Namen belegt keine Milchfreiheit. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-05",
+    "profile": "patient",
+    "meal": "LUNCH",
+    "code": "MENU_1",
+    "title": "Ofen-Pouletschenkel",
+    "components": [
+      "Kartoffelwedges",
+      "Marktgemüse"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Marinade Senf und Soja, bei gewürzten Kartoffelwedges Weizen und bei Gemüse Butterzugabe prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-05",
+    "profile": "patient",
+    "meal": "LUNCH",
+    "code": "VEGGIE",
+    "title": "Kichererbsen-Eintopf",
+    "components": [
+      "Kartoffelwedges",
+      "Marktgemüse"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Eintopfbouillon Sellerie, bei gewürzten Kartoffelwedges Weizen und bei Gemüse Butterzugabe prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-05",
+    "profile": "patient",
+    "meal": "DINNER",
+    "code": "MENU_1",
+    "title": "Bündner Gerstensuppe",
+    "components": [
+      "Hausbrot"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Suppe Gerste, Sellerie und Rahmzugabe, bei Hausbrot weitere Getreidearten sowie Sesam prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-05",
+    "profile": "patient",
+    "meal": "DINNER",
+    "code": "VEGGIE",
+    "title": "Gemüse-Gerstensuppe",
+    "components": [
+      "Hausbrot"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Suppe Gerste, Sellerie und Rahmzugabe, bei Hausbrot weitere Getreidearten sowie Sesam prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-06",
+    "profile": "patient",
+    "meal": "LUNCH",
+    "code": "MENU_1",
+    "title": "Rindsschmorbraten",
+    "components": [
+      "Kartoffelstock",
+      "Karotten"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Bratensauce Sellerie und Weizen, bei Weinzugabe Sulfite und bei Kartoffelstock Milch prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-06",
+    "profile": "patient",
+    "meal": "LUNCH",
+    "code": "VEGGIE",
+    "title": "Nussbraten mit Kräutersauce",
+    "components": [
+      "Kartoffelstock",
+      "Karotten"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Beim Nussbraten die konkreten Schalenfruchtarten sowie Ei oder Weizen als Bindung, bei Kräutersauce und Kartoffelstock Milch prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-06",
+    "profile": "patient",
+    "meal": "DINNER",
+    "code": "MENU_1",
+    "title": "Pastetli mit Brätkügeli",
+    "components": [
+      "Erbsen und Rüebli",
+      "Blattsalat"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Pastetliteig Weizen, Milch und Ei, bei Brätkügeli Milch und Senf, bei Sauce Sellerie und bei Salatdressing Senf prüfen. Rezeptur und Produktdeklaration prüfen."
+  },
+  {
+    "date": "2026-09-06",
+    "profile": "patient",
+    "meal": "DINNER",
+    "code": "VEGGIE",
+    "title": "Gemüse-Pastetli",
+    "components": [
+      "Erbsen und Rüebli",
+      "Blattsalat"
+    ],
+    "note": "Ungeprüfter Rezepturhinweis: Bei Pastetliteig Weizen, Milch und Ei, bei Sauce Milch und Sellerie und bei Salatdressing Senf prüfen. Rezeptur und Produktdeklaration prüfen."
+  }
+]

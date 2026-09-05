@@ -1,43 +1,68 @@
-# Saved-week print
+# Saved-week PDF
 
-Purpose: print the selected saved admin week using the supplied Südhang cafeteria
-sheet as the visual reference. Primary action: print or save as PDF.
+The selected saved admin week opens as a real server-generated PDF using
+`fpdf2==2.8.8`. It replaces the previous HTML/browser-print implementation.
+The browser PDF viewer provides printing and downloading without a browser
+pagination or CSS dependency. Tabler governs the admin UI, not the PDF.
 
-The A4 portrait sheet preserves the reference photo, three-column day/menu grid,
-blue headings, logo and footer. Existing brand blue and dedicated reference
-colour tokens reproduce the PDF drawing colours. Complete Carlito Regular and
-Bold, already bundled locally with Apache Guacamole, provide Calibri-compatible
-metrics. Their original SIL OFL 1.1 license is bundled beside the fonts.
-Patient sheets use a patient heading and one section per meal, with no prices.
+## Contract
 
 GET `/admin/<family>/preview/print?week=YYYY-MM-DD` requires `preview.read`,
-rejects profile overrides and invalid/non-Monday weeks, uses only the scoped
-saved draft, returns 404 if missing, 503 for invalid active location, and no-store.
-No database mutation or publication occurs. Labels, origins, allergen presence
-and unchecked/missing declarations remain explicit. Empty slots stay empty.
-Prices come from saved menus; shared prices appear in the footer, differing
-prices beside the relevant menu. No unverified origin or inclusion claim is added.
+rejects profile overrides and invalid/non-Monday weeks, reads only the scoped
+saved draft, returns 404 if missing and 503 for an invalid active location.
+The response is `application/pdf`, `Content-Disposition: inline` with a dated
+filename, and `Cache-Control: no-store`. No database mutation, live fallback,
+publication or unpersisted form values are involved.
 
-Normal cafeteria content fits one A4 page. Long content may add pages; no hidden
-overflow, line clamp or truncation. Browser printing waits for fonts and images.
-Tests cover auth, scope, saved-source isolation, metadata, closed/empty slots,
-dynamic prices and real Chromium PDF geometry/page count/content retention.
-Screen controls retain 44px touch targets on 768×1024, 800×1280, 1024×768 and
-1280×800 tablets in addition to phone width. Printed A4 geometry is unchanged.
+- Cafeteria: exactly one A4 portrait page, Monday–Friday, two menu columns.
+- Patients: exactly one A4 landscape page, Monday–Sunday, four columns:
+  lunch menu 1, lunch vegetarian, dinner menu 1, dinner vegetarian (28 menus).
+- Titles, components, descriptions, notes, labels, origins, allergen names and
+  presence are retained. Missing declarations and pending review stay explicit.
+  Closed services retain their notice; missing slots remain explicitly empty.
+- Patients contain no generated prices or cafeteria heading. Cafeteria shared
+  prices appear in the footer; differing prices appear with each saved menu.
+  There is no fixed reference price or unverified origin/inclusion claim.
+
+## Layout and fit policy
+
+The renderer measures the exact wrapped lines before drawing. Each day's row
+height covers its tallest cell. There are no automatic page breaks, clipping,
+line limits or text truncation. Every accepted output is one complete page.
+Patient text uses 9pt or 8.5pt; the dense patient layout joins components and
+declarations into a continuous paragraph after the bold title. Cafeteria body
+uses 12/11/10pt and details 10/9/8.5pt, choosing the largest fitting pair.
+The footer note is 10pt for cafeteria and 8.5pt for patients.
+
+The realistic fixture contains all 38 current menu titles/components and the
+complete proposed recipe notes from `allergen-proposals-0905.md`. Those notes
+are unreviewed proposals, not confirmed allergen declarations. The fixture
+does not write them to any database. Both complete profiles fit one page.
+
+Unbounded text beyond the physical capacity of one readable A4 page returns
+HTTP 422 with a request to shorten descriptions/notes, preserve required
+declarations, save, and reopen. Unsupported font glyphs also return an
+actionable 422 instead of silently disappearing. This is intentionally not
+an overflow-to-a-second-page mode.
+
+## Reference and assets
 
 Reference: https://www.suedhang.ch/wp-content/uploads/2025/01/Aktuelles_Wochenangebot_Cafeteria_Klinik_Suedhang.pdf
 Retrieved 2026-09-05; SHA-256
 `b9c0a608410f3db6e732ffbf8392dc063b3a253c0bdeee55523de0e1a0c6108e`.
-Header and logo JPEGs are embedded image assets extracted from this reference.
-No reference menu text, prices or blanket Swiss-origin statement is copied.
 
-Typography limit: the source PDF embeds Calibri subsets with `fsType=8`, but
-their glyph data omits characters needed by new labels (including uppercase A).
-Browser validation exposed blank glyphs. Those subsets are not shipped. No
-complete Calibri font was available in local font directories or project/host
-assets; Carlito preserves line metrics but is not a pixel-identical typeface.
+Original header/photo and logo JPEGs are extracted from that supplied document.
+The cafeteria table starts at x=21pt/y=203pt, width approximately 553pt, with
+a 31pt blue header. Footer starts at y=756pt. Row heights adapt to the saved
+declarations. Colour constants are named print tokens sampled from the PDF.
 
-Asset checksums:
+The source Calibri subsets omit glyphs required by the application. The complete
+Carlito Regular/Bold fonts supply metric-compatible typography; this is not a
+claim of pixel-identical Calibri. The bundled WOFF files came from the existing
+Apache Guacamole distribution, `webapps/ROOT/fonts/carlito/`. TTF files were
+converted from those WOFFs with FontTools (remove the WOFF flavor, save SFNT),
+with no glyph-subsetting. Original SIL OFL 1.1 license remains at
+`reference_scaffold/cafeteria/static/fonts/Carlito-LICENSE.txt`.
 
 | Asset | SHA-256 |
 | --- | --- |
@@ -46,31 +71,44 @@ Asset checksums:
 | weekly-print-carlito.woff | 550cd5fa32077c2db8c5ccd50edecd5f6fc344e4fd919601b76e57828bc18548 |
 | weekly-print-carlito-bold.woff | 6292892e0f09dd80ccc510280831d1ecffe512b95558be1699ca5d4154889657 |
 
-Carlito source: existing Apache Guacamole distribution,
-`webapps/ROOT/fonts/carlito/`; files copied unchanged. Copyright 2010–2013,
-tyPoland Lukasz Dziedzic. License: `static/fonts/Carlito-LICENSE.txt`.
+## Evidence
 
-## Verification, 2026-09-05
+`design/screenshots/weekly-print/2026-09-05/` contains four new actual fpdf2
+PDFs (`*-normal-server.pdf`, `*-notes-server.pdf`) and PNG renders of both
+note-dense PDFs made with `pdftoppm`. All four PDFs have exactly one page.
+The previous Chromium two-page patient/dense artifacts are superseded and removed.
 
-Isolated PostgreSQL plus real Chromium:
-`test_admin_week_print.py`, `test_admin_draft_preview.py`,
-`test_admin_preview_ui.py`: **16 passed in 18.06s**, `GATE_EXIT=0`.
-Ruff passed; scoped mypy reported no issues; `node --check week-print.js` passed.
+Pure PDF tests use pypdf for page count, text retention and minimum font size;
+Poppler word bounding boxes verify page bounds and pairwise non-overlap. Tests
+also cover all 28 unique patient menu sentinels, declarations, empty slots,
+variable prices and explicit overflow/glyph errors.
 
-Committed fixture proofs: `design/screenshots/weekly-print/2026-09-05/`.
-The PDFs are actual Chromium output; PNGs were rendered from those PDFs.
+Initial integrated gate on the server-PDF implementation:
 
-| Fixture | Pages | Verified text |
-| --- | --- | --- |
-| cafeteria-normal.pdf | 1 | All 10 menus and missing-allergen notices |
-| patienten-normal.pdf | 2 | All 28 menus and missing-allergen notices; both meals |
-| cafeteria-dense.pdf | 2 | All 10 unique end markers, including Friday vegetarian |
+```text
+.......................                                                  [100%]
+23 passed in 17.61s
+GATE_EXIT=0 cwd=/nvmetank1/projects/menuplan/.claude/worktrees/admin-print-0905/reference_scaffold
+```
 
-Every PDF page measures 594.95996 × 841.91998 pt (Chromium A4 rounding).
-No data clipping, row-height truncation or hidden content is used. Repeated table
-headings remain visible on overflow pages. PDF text extraction confirms complete
-new-label/date glyphs after rejecting the incomplete Calibri subsets.
-The normal cafeteria and second patient page were visually inspected after
-matching the reference's measured 12pt body, 15pt headings, 10pt notes and 17pt date.
-OCR first-pass service was unavailable in this wave after actual provider HTTP429;
-this is not an OCR pass. Root performs independent diff review and re-gating.
+After the final footer geometry and glyph guard, pure PDF gate:
+
+```text
+..........                                                               [100%]
+10 passed in 2.99s
+```
+
+Ruff: `All checks passed!`
+Scoped mypy: `Success: no issues found in 2 source files`.
+Final route/PDF gate, including before/after draft equality on successful PDFs
+and HTTP 422:
+
+```text
+..............                                                           [100%]
+14 passed in 6.70s
+GATE_EXIT=0 cwd=/nvmetank1/projects/menuplan/.claude/worktrees/admin-print-0905/reference_scaffold
+```
+
+The lane report records the OCR result. Full application
+suite, production deployment, live PDF retrieval and cross-vendor review are
+orchestrator gates; they are not claimed by this work package.
