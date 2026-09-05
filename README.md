@@ -15,12 +15,14 @@ Das Paket modelliert zwei getrennte Publikationskanäle:
 | Pfad | Inhalt |
 |---|---|
 | `docs/SDD_Klinik_Suedhang_Cafeteria_v3.0.md/.docx` | korrigiertes SDD mit Produktregeln, Informationsarchitektur, Fit-Regeln und Backlog |
+| `docs/API.md` | REST-API v1, FHIR R5, MCP-Server und API-Schlüssel |
 | `docs/GROK_KRITIK_UMSETZUNG.md` | Punkt-für-Punkt-Umsetzung und verbleibende Nachweise |
 | `review/Grok_Kritik_original.txt` | unveränderte Reviewgrundlage |
 | `database/` | PostgreSQL-Schema, SQL-Baseline, Seeds, Rechte und statischer Validator |
 | `demo/snapshots/` | getrennte publizierte Demo-Revisionen für dieselbe Kalenderwoche |
 | `csv/` | je eine Vorlage und ein Beispiel für Patienten und Cafeteria, plus Validator |
 | `reference_scaffold/` | Flask-Referenzgerüst mit Website, Druck, API, Backend-Prototypen und vier Signage-Routen |
+| `reference_scaffold/dishboard_mcp/` | MCP-Server (stdio) für LLM-Clients |
 | `design/prototype/` | elf eigenständige HTML-Prototypen plus Kompatibilitätskopien |
 | `design/screenshots/` | 14 primäre Screenshots plus drei Kompatibilitätskopien; 18 Live-Screenshots in `design/screenshots/live` |
 | `architecture/` | System-, Daten-, Auth- und CSV-Fluss als DOT, PNG und SVG |
@@ -38,6 +40,9 @@ Das Paket modelliert zwei getrennte Publikationskanäle:
 | Signage Cafeteria Tag / Woche | `/signage/cafeteria/tag` · `/signage/cafeteria/woche` |
 | Signage Patienten Tag / Woche | `/signage/patienten/tag` · `/signage/patienten/woche` |
 | Veröffentlichte API | `/api/v1/published/cafeteria` · `/api/v1/published/patienten` |
+| API-Status und Dokumentation | `/api/v1/status` · `/api/v1/docs` · `/api/v1/openapi.json` |
+| FHIR | `/fhir/metadata` · `/fhir/NutritionProduct` · `/fhir/Composition` |
+| Admin: API & Schlüssel | `/admin/api` |
 | Anmeldung und Authentifizierung | `/auth/login` · `/auth/local` · `/auth/logout` |
 | Admin- und Operator-Backend | `/admin/cafeteria` · `/admin/patienten` · `/admin/import-preview` · `/admin/import` · `/admin/export/<profile>.csv` |
 | Health-Checks | `/health/live` · `/health/ready` |
