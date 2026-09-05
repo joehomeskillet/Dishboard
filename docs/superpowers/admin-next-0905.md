@@ -38,6 +38,28 @@ die Umsetzung, soweit sie dieselben bestehenden Abläufe nutzen.
 
 ## Abnahme
 
+## Verbindliche Ergänzungen des Nutzers
+
+- Admin nutzt das bestehende Framework **Tabler** und **Tabler Icons**. Kein
+  selbst erfundenes CSS-Framework. Gemeinsame Layouts und Formularbausteine,
+  lokal eingebundene, versionierte Assets und Südhang-Thementokens. Die vom
+  Nutzer verlinkten Tabler-Skills sind für ihre Komponenten-/Layoutregeln zu
+  berücksichtigen; Flask/Jinja bleibt das Anwendungsframework.
+- PDF entsteht direkt mit **fpdf2** im Python-Backend. **Beide Profile passen
+  jeweils auf eine Seite**: Cafeteria A4 hoch nach Referenz, Patienten eigene
+  kompakte A4-Querformatvorlage mit allen sieben Tagen und beiden Mahlzeiten.
+  Kein Abschneiden, keine still ausgelassenen Angaben; physisch überlange
+  Inhalte führen zu einer verständlichen Fehlermeldung statt einer zweiten Seite.
+- Menüs erhalten von **AGY** generierte Serviervorschläge. Gemeinsames Referenzbild
+  fixiert Teller, Hintergrund, Kamera, Position und Licht. Ein Projekt-Skill
+  dokumentiert diesen Bildstil. Fotos belegen keine Zutaten oder Allergene.
+- Claude Code übernimmt Tabler, Fach-Lanes PDF und Datenabläufe; einfache
+  Dokumentations-/Asset-Aufgaben gehen an OpenCode mit OpenRouter **Free**.
+  Cursor kann abgegrenzte Fixes übernehmen. Keine kostenpflichtigen Fallbacks
+  für Free-Aufgaben und keine gleichzeitigen Besitzer derselben Dateien.
+
+## Abnahme der aktuellen Umsetzung
+
 Mobile Admin-Ansichten werden primär für 8–10-Zoll-Tablets optimiert
 (Nutzerpräzisierung vom 5. September): 768×1024 und 800×1280 sowie beide
 Querformate. Bedienelemente mindestens 44 px, lesbare Inhalte, kein horizontaler
