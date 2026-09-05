@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
   {% block head %}{% endblock %}
 </head>
+{% set user = session.get('user') %}
 <body class="{% block body_class %}{% endblock %}">
   {% block skip_link %}<a class="skip-link" href="#main-content">Zum Inhalt springen</a>{% endblock %}
   {% block body %}{% endblock %}
