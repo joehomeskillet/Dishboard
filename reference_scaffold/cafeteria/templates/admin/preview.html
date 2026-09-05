@@ -1,16 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Vorschau · {{ 'Cafeteria-Speiseplan' if profile == 'staff_guest' else 'Patienten-Speiseplan' }}{% endblock %}
 {% block body %}
+<main class="admin-preview" id="main-content">
 <div class="preview-banner" role="status">PREVIEW</div>
 <section data-preview="last-saved" data-workflow-state="{{ state }}" data-week="{{ week }}" data-profile="{{ profile }}">
+  <header class="preview-heading">
   <h1>Vorschau &middot; {{ 'Cafeteria-Speiseplan' if profile == 'staff_guest' else 'Patienten-Speiseplan' }}</h1>
-  
+  <p class="preview-context">KW {{ week_iso|iso_week }} / {{ week.isocalendar().year }} · Woche ab <time datetime="{{ week_iso }}">{{ week_iso|date_long }}</time></p>
+  <p class="preview-saved">Zuletzt gespeicherter Stand · {{ {'draft': 'Entwurf', 'ready': 'Bereit', 'published': 'Publiziert', 'archived': 'Archiviert'}[state] }}</p>
+
   {% if draft.title %}
     <h2>{{ draft.title }}</h2>
   {% endif %}
   {% if draft.shared_note %}
     <p class="shared-note">{{ draft.shared_note }}</p>
   {% endif %}
+  </header>
 
   <div class="preview-grid">
     {% for day in draft.days %}
@@ -49,4 +54,5 @@
     {% endfor %}
   </div>
 </section>
+</main>
 {% endblock %}

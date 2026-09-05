@@ -706,3 +706,64 @@ body {
   .admin-copy-actions { flex-direction: column; }
   .admin-copy-actions .btn { width: 100%; }
 }
+
+/* Last-saved admin preview */
+.admin-preview {
+  width: min(88rem, 100%);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: clamp(1rem, 3vw, 2rem);
+  color: var(--sh-ink);
+}
+.admin-preview .preview-banner {
+  display: inline-flex;
+  padding: .5rem .75rem;
+  border: 1px solid var(--sh-primary);
+  border-radius: var(--sh-radius-sm);
+  color: var(--sh-primary);
+  background: var(--sh-magenta-soft);
+  font-size: .875rem;
+  font-weight: 600;
+}
+.admin-preview .preview-heading { margin: 1rem 0 1.5rem; }
+.admin-preview h1 { margin: 0 0 .75rem; font-size: clamp(1.5rem, 3vw, 2.25rem); }
+.admin-preview .preview-context,
+.admin-preview .preview-saved { margin: .4rem 0; line-height: 1.5; }
+.admin-preview .preview-saved { color: var(--sh-teal-800); }
+.admin-preview .preview-heading h2 { margin: 1.25rem 0 .5rem; font-size: 1.25rem; }
+.admin-preview .shared-note { margin: .5rem 0 0; max-width: 70ch; line-height: 1.5; }
+.admin-preview .preview-grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+.admin-preview .preview-day {
+  min-width: 0;
+  align-self: start;
+  border: 1px solid var(--sh-border);
+  border-radius: var(--sh-radius-md);
+  background: var(--sh-panel);
+}
+.admin-preview .preview-day > h3 {
+  margin: 0;
+  padding: 1rem;
+  border-radius: var(--sh-radius-sm) var(--sh-radius-sm) 0 0;
+  color: var(--sh-white);
+  background: var(--sh-teal-800);
+  font-size: 1.125rem;
+}
+.admin-preview .preview-service { padding: 1rem; }
+.admin-preview .preview-service + .preview-service { border-top: 1px solid var(--sh-border); }
+.admin-preview .preview-service h4 {
+  margin: 0 0 .9rem;
+  color: var(--sh-teal-800);
+  font-size: 1rem;
+}
+.admin-preview .preview-option + .preview-option { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--sh-border); }
+.admin-preview .preview-option h5 { margin: 0; font-size: 1.0625rem; line-height: 1.4; }
+.admin-preview .preview-option ul { margin: .5rem 0 0; padding-left: 1.2rem; line-height: 1.5; }
+.admin-preview .prices,
+.admin-preview .service-notice { margin: .75rem 0 0; font-size: .9375rem; line-height: 1.5; }
+.admin-preview :is(h1, h2, h3, h4, h5, p, li) { overflow-wrap: anywhere; }
+@media (min-width: 800px) {
+  .admin-preview .preview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1200px) {
+  .admin-preview .preview-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
