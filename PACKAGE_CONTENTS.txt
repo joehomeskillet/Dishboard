@@ -103,6 +103,7 @@ docs/design/2026-09-05-admin-csv-import-return.md
 docs/design/2026-09-05-admin-csv-preview-polish.md
 docs/design/2026-09-05-admin-go-live-form-repair.md
 docs/design/2026-09-05-admin-preview-polish.md
+docs/design/2026-09-05-admin-workflow-shell.md
 docs/design/admin-redesign-ui.md
 docs/design/therapieplan-alignment.md
 docs/DOCKER_COMPOSE_RUNBOOK.md
@@ -161,6 +162,7 @@ reference_scaffold/cafeteria/static/fonts/OFL.txt
 reference_scaffold/cafeteria/static/img/suedhang-logo.png
 reference_scaffold/cafeteria/static/img/suedhang-logo@2x.png
 reference_scaffold/cafeteria/template_filters.py
+reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html
 reference_scaffold/cafeteria/templates/admin/cafeteria.html
 reference_scaffold/cafeteria/templates/admin/component_editor.html
 reference_scaffold/cafeteria/templates/admin/components.html
@@ -203,6 +205,7 @@ reference_scaffold/tests/test_admin_csv_preview_ui.py
 reference_scaffold/tests/test_admin_draft_preview.py
 reference_scaffold/tests/test_admin_overview_forms.py
 reference_scaffold/tests/test_admin_preview_ui.py
+reference_scaffold/tests/test_admin_shell_ui.py
 reference_scaffold/tests/test_admin_ux_browser.py
 reference_scaffold/tests/test_admin_week_routes.py
 reference_scaffold/tests/test_admin_workflow_concurrency_db.py
