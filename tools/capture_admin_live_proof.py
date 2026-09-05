@@ -14,9 +14,11 @@ import re
 import stat
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any
 from urllib.parse import parse_qsl, urljoin, urlsplit
 
 from playwright.sync_api import Browser, Page, Response, Route, sync_playwright
+from admin_tabler_proof import audit_tabler
 
 USER = 'kueche.admin'
 PASSWORD_FILE = Path('/root/.dishboard/kueche.admin.initial-password')
@@ -76,13 +78,14 @@ def _profile_tab_matches(href: str | None, base: str, path: str) -> bool:
 
 def capture_viewport(
     browser: Browser, base: str, outdir: Path, viewport: str,
-    password: str, proof: dict[str, object], csv_preview: bool = False,
+    password: str, proof: dict[str, Any], csv_preview: bool = False,
 ) -> None:
     width, height = VIEWPORTS[viewport]
     checks, failures = proof['checks'], proof['failures']
     login_pending = True
     stage = f'{viewport}.login'
     csp_errors = 0
+    asset_status: dict[str, bool] = {}
 
     def check(name: str, passed: bool) -> None:
         checks[name] = bool(passed)
@@ -120,6 +123,11 @@ def capture_viewport(
         check(f'{name}.no_inline_script', audit['inline_scripts'] == 0 and audit['inline_handlers'] == 0)
         check(f'{name}.no_inline_style', audit['inline_styles'] == 0)
         check(f'{name}.no_horizontal_overflow', audit['overflow_px'] <= 1)
+        # Audit original markup before Bootstrap collapse adds its transient style attribute.
+        # The saved-plan preview intentionally renders the public presentation shell.
+        if not name.endswith('.preview'):
+            for key, passed in audit_tabler(page, base, asset_status).items():
+                check(f'{name}.{key}', passed)
         if patient:
             check(f'{name}.no_price_vocabulary', re.search(r'preis|chf|rappen|kosten|price', page.content(), re.I) is None)
         filename = f'{name}-{width}x{height}.png'
@@ -236,7 +244,7 @@ def capture_viewport(
                 stage = f'{prefix}.catalog'
                 response = page.goto(f'{base}/admin/{family}/komponenten', wait_until='load')
                 capture(page, response, stage, patient)
-                rows = page.locator('li.component-row[data-public-id]')
+                rows = page.locator('.component-row[data-public-id]')
                 proof['catalogs'][prefix] = {'existing_components': rows.count(), 'detail_available': rows.count() > 0}
                 if rows.count():
                     stage = f'{prefix}.component_detail'
@@ -244,6 +252,21 @@ def capture_viewport(
                         rows.first.locator('a').first.click()
                     capture(page, detail_response.value, stage, patient)
                     check(f'{stage}.public_id', bool(page.locator('main').get_attribute('data-public-id')))
+
+                stage = f'{prefix}.week_review'
+                response = page.goto(
+                    f'{base}/admin/{family}/wochen/pruefung?week={week.isoformat()}', wait_until='load')
+                capture(page, response, stage, patient)
+                check(f'{stage}.week', page.locator('main').get_attribute('data-week') == week.isoformat())
+                check(f'{stage}.heading', page.get_by_role(
+                    'heading', name='Wochenkopf und Servicehinweise prüfen', exact=True).is_visible())
+                review_form = page.locator('form:has(input[name="context_version"])')
+                if review_form.count():
+                    check(f'{stage}.exact_fields', sorted(review_form.locator('input[name]').evaluate_all(
+                        'nodes => nodes.map(node => node.name)')) == ['_csrf', 'context_version', 'week'])
+                    check(f'{stage}.token_present', bool(review_form.locator('[name="context_version"]').input_value()))
+                else:
+                    check(f'{stage}.review_status', page.get_by_role('status').count() == 1)
 
                 stage = f'{prefix}.copy'
                 target = week + timedelta(days=7)
@@ -272,7 +295,7 @@ def capture_viewport(
                 response = page.goto(f'{base}/admin/import-preview', wait_until='load')
                 capture(page, response, stage, False)
                 check(f'{stage}.state', page.locator('main[data-state="empty"]').count() == 1)
-                check(f'{stage}.primary_visible', page.locator('#csv-upload button.primary').is_visible())
+                check(f'{stage}.primary_visible', page.locator('#csv-upload button.btn-primary').is_visible())
                 for family, label, filename in [
                     ('cafeteria', 'Cafeteria', 'menu_cafeteria_example.csv'),
                     ('patienten', 'Patientenplan', 'menu_patient_example.csv'),
@@ -295,7 +318,7 @@ def capture_viewport(
                         'elements => elements.map(element => element.name)'
                     )
                     check(f'{stage}.exact_fields', sorted(names) == ['_csrf', 'import_token'])
-                    check(f'{stage}.primary_visible', form.locator('button.primary[type="submit"]').is_visible())
+                    check(f'{stage}.primary_visible', form.locator('button.btn-primary[type="submit"]').is_visible())
             except Exception as error:
                 failures.append(f'{stage}.{type(error).__name__}')
         check(f'{viewport}.no_csp_console_errors', csp_errors == 0)
@@ -315,7 +338,7 @@ def main() -> int:
     base = f'{parsed.scheme}://{parsed.netloc}'
     outdir = args.outdir.resolve()
     outdir.mkdir(mode=0o700, parents=True, exist_ok=True)
-    proof: dict[str, object] = {
+    proof: dict[str, Any] = {
         'captured_at': datetime.now(timezone.utc).isoformat(), 'base_url': base,
         'checks': {}, 'pages': [], 'catalogs': {}, 'unavailable': [], 'failures': [],
         'control_size_audit': 'diagnostic only; does not establish complete UI acceptance',

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 from urllib.parse import urlsplit
@@ -8,6 +9,7 @@ from urllib.parse import urlsplit
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'tools'))
 SPEC = importlib.util.spec_from_file_location('capture_admin_live_proof', ROOT / 'tools/capture_admin_live_proof.py')
 assert SPEC is not None and SPEC.loader is not None
 capture_tool = importlib.util.module_from_spec(SPEC)
@@ -16,7 +18,9 @@ BASE = 'https://dishboard.example.invalid'
 
 
 @pytest.mark.parametrize('fault', [None, 'empty_query', 'empty_weeks', 'http_500', 'wrong_profile', 'missing_nav', 'wrong_row_scope', 'missing_row_links'])
-def test_planning_pages_are_required_even_when_legacy_workflow_fails(tmp_path: Path, fault: str | None) -> None:
+def test_planning_pages_are_required_even_when_legacy_workflow_fails(tmp_path: Path, fault: str | None, monkeypatch) -> None:
+    # Real Tabler behavior/assets are exercised by test_capture_admin_tabler_browser.py.
+    monkeypatch.setattr(capture_tool, 'audit_tabler', lambda *_: {})
     browser = MagicMock()
     context = browser.new_context.return_value.__enter__.return_value
     page = context.new_page.return_value
@@ -117,3 +121,38 @@ def test_planning_pages_are_required_even_when_legacy_workflow_fails(tmp_path: P
 ])
 def test_profile_tab_only_accepts_same_route_and_empty_search(href, expected):
     assert capture_tool._profile_tab_matches(href, BASE, '/admin/cafeteria/menues') is expected
+
+
+@pytest.mark.parametrize(('fault', 'failed_check'), [
+    ('legacy_css', 'no_legacy_app_css'), ('duplicate_js', 'one_tabler_no_extra_bootstrap'),
+    ('bootstrap', 'one_tabler_no_extra_bootstrap'), ('external', 'local_assets_http_200'),
+    ('http_404', 'local_assets_http_200'),
+])
+def test_tabler_asset_audit_rejects_legacy_duplicate_external_and_missing_assets(fault, failed_check):
+    from admin_tabler_proof import audit_tabler
+    page = MagicMock()
+    styles = ['/static/tokens.css', '/static/vendor/tabler/tabler.min.css',
+              '/static/admin-tabler.css', '/static/menu-images.css']
+    scripts = ['/static/vendor/tabler/tabler.min.js', '/static/admin.js']
+    if fault == 'legacy_css':
+        styles.append('/static/app.css')
+    elif fault == 'duplicate_js':
+        scripts.append(scripts[0])
+    elif fault == 'bootstrap':
+        scripts.append('/static/bootstrap.bundle.min.js')
+    elif fault == 'external':
+        styles.append('https://other.example.invalid/theme.css')
+    def locator(selector):
+        result = MagicMock()
+        result.count.return_value = 1
+        result.is_visible.return_value = True
+        result.evaluate_all.return_value = styles if selector.startswith('link') else scripts
+        result.evaluate.return_value = True
+        return result
+    page.locator.side_effect = locator
+    page.get_by_role.return_value.is_visible.return_value = False
+    page.evaluate.return_value = 1440
+    page.request.get.return_value.status = 404 if fault == 'http_404' else 200
+    result = audit_tabler(page, BASE, {})
+    assert result[failed_check] is False
+    assert all(call.args[0].startswith(BASE + '/static/') for call in page.request.get.call_args_list)
