@@ -16,6 +16,7 @@ from cafeteria import db as database
 from cafeteria import roles
 from cafeteria.admin import routes as admin_routes
 from cafeteria.admin import workflow_routes
+from cafeteria.admin import menu_collection_routes, week_management_routes  # noqa: F401 - complete shared blueprint
 from cafeteria.admin.workflow_routes import ORIGIN_CONFLICT, profile_from_endpoint
 from cafeteria.component_catalog_store import AdminScope, create_component, update_component
 from cafeteria.security import csrf_token
