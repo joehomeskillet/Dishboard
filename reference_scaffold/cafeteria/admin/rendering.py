@@ -7,6 +7,7 @@ from flask import g, render_template, session, url_for
 from werkzeug.datastructures import MultiDict
 
 from ..component_catalog_store import AdminScope
+from ..component_catalog_filters import ComponentFilters
 from ..workflow import MENU_TYPES, PROFILE_DAYS, PROFILE_MEALS
 
 DAY_NAMES = ('Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag')
@@ -170,12 +171,14 @@ def render_components(
     category: str | None, include_archived: bool, csrf: str, flashes: list[str],
     categories: dict[str, str], allergens: list[dict[str, Any]], labels: list[dict[str, Any]],
     *, form_values: MultiDict[str, str] | None = None, form_errors: dict[str, str] | None = None,
+    filters: ComponentFilters | None = None,
 ) -> str:
     return render_template(
         'admin/components.html', profile=profile, family=family, rows=rows,
         query=query, category=category, include_archived=include_archived,
         csrf=csrf, flashes=flashes, categories=categories, allergens=allergens, labels=labels,
         form_values=form_values if form_values is not None else {}, form_errors=form_errors or {},
+        filters=filters,
         **_template_context(),
     )
 

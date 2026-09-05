@@ -9,6 +9,7 @@ from uuid import UUID
 from sqlalchemy import Connection, Engine, text
 from sqlalchemy.exc import IntegrityError
 
+from cafeteria.component_catalog_filters import ComponentFilters
 from cafeteria.component_catalog_metadata import (
     AllergenInput,
     MetadataValidationError,
@@ -136,15 +137,31 @@ def find_components(
     query: str,
     category: str | None,
     include_archived: bool,
+    *,
+    filters: ComponentFilters | None = None,
 ) -> list[dict[str, object]]:
-    if type(query) is not str:
+    if type(query) is not str or len(query) > 200:
         raise ComponentCatalogValidationError('Ungültige Suche.')
     clean_category = None if category is None else _category(category)
     if type(include_archived) is not bool:
         raise ComponentCatalogValidationError('Ungültiger Archivfilter.')
+    if filters is None:
+        filters = ComponentFilters()
+    if type(filters) is not ComponentFilters:
+        raise ComponentCatalogValidationError('Komponentenfilter sind ungültig.')
+    status = filters.status or ('all' if include_archived else 'active')
     escaped_query = _escape_like(query.strip())
     with engine.begin() as connection:
         _require_scope_location(connection, scope)
+        if filters.label or filters.allergen not in {'', 'unknown'}:
+            known = connection.execute(text('''
+                SELECT (:label='' OR EXISTS (
+                    SELECT 1 FROM cafeteria.dietary_labels WHERE code=:label))
+                  AND (:allergen IN ('', 'unknown') OR EXISTS (
+                    SELECT 1 FROM cafeteria.allergens WHERE code=:allergen))
+            '''), {'label': filters.label, 'allergen': filters.allergen}).scalar_one()
+            if not known:
+                raise ComponentCatalogValidationError('Unbekanntes Label oder Allergen im Filter.')
         rows = connection.execute(
             text(
                 '''
@@ -155,9 +172,25 @@ def find_components(
                 FROM cafeteria.menu_components c
                 WHERE c.location_id=:location_id
                   AND c.profile_scope IN ('common', :profile_code)
-                  AND (:include_archived OR c.active)
+                  AND (:status='all' OR (:status='active' AND c.active)
+                       OR (:status='archived' AND NOT c.active))
                   AND (CAST(:category AS text) IS NULL OR c.category=CAST(:category AS text))
                   AND c.name ILIKE :query ESCAPE E'\\\\'
+                  AND (:usage='' OR (:usage='used') = EXISTS (
+                      SELECT 1 FROM cafeteria.menu_item_components mic WHERE mic.component_id=c.id))
+                  AND (:origin='' OR (:origin='unknown' AND c.origin_country_code IS NULL)
+                       OR c.origin_country_code=:origin)
+                  AND (:label='' OR EXISTS (
+                      SELECT 1 FROM cafeteria.component_labels cl
+                      JOIN cafeteria.dietary_labels l ON l.id=cl.label_id
+                      WHERE cl.component_id=c.id AND l.code=:label))
+                  AND (:allergen='' OR (:allergen='unknown' AND NOT EXISTS (
+                      SELECT 1 FROM cafeteria.component_allergens ca WHERE ca.component_id=c.id))
+                      OR EXISTS (
+                          SELECT 1 FROM cafeteria.component_allergens ca
+                          JOIN cafeteria.allergens a ON a.id=ca.allergen_id
+                          WHERE ca.component_id=c.id AND a.code=:allergen
+                            AND (:presence='' OR ca.presence=:presence)))
                 ORDER BY CASE c.category
                              WHEN 'meat' THEN 1
                              WHEN 'side' THEN 2
@@ -174,9 +207,11 @@ def find_components(
             {
                 'location_id': scope.location_id,
                 'profile_code': scope.profile_code,
-                'include_archived': include_archived,
+                'status': status,
                 'category': clean_category,
                 'query': f'%{escaped_query}%',
+                'usage': filters.usage, 'origin': filters.origin, 'label': filters.label,
+                'allergen': filters.allergen, 'presence': filters.presence,
             },
         ).mappings().all()
         metadata = load_public_metadata(connection, [int(row['id']) for row in rows])
