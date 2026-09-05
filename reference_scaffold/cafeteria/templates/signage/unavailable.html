@@ -1,11 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Player-Aufruf abgewiesen{% endblock %}
+{% block title %}Speiseplan nicht verfügbar{% endblock %}
 {% block body_class %}signage{% endblock %}
 {% block skip_link %}{% endblock %}
 {% block body %}
-<main class="signage-shell" aria-label="Player-Aufruf abgewiesen">
+<main class="signage-shell" aria-label="Speiseplan nicht verfügbar">
   <header class="signage-header"><img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="signage-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="205" height="40"></header>
-  <section class="closed-signage"><div class="closed-card"><span class="closed-icon" aria-hidden="true">×</span><h1>Aufruf<br>abgewiesen</h1><p>{{ message }}</p></div></section>
-  <footer class="signage-footer"><span>Feste Player-URL erforderlich</span></footer>
+  <section class="closed-signage"><div class="closed-card"><span class="closed-icon" aria-hidden="true">×</span><h1>Speiseplan<br>nicht verfügbar</h1><p>Der Speiseplan kann zurzeit nicht angezeigt werden.</p></div></section>
 </main>
 {% endblock %}

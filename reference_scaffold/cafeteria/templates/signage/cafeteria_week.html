@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Cafeteria Signage Woche{% endblock %}
+{% block title %}Cafeteria-Wochenplan{% endblock %}
 {% block head %}<meta http-equiv="refresh" content="300">{% endblock %}
 {% block body_class %}signage{% endblock %}
 {% block skip_link %}{% endblock %}
 {% block body %}
-<main class="signage-shell" aria-label="Cafeteria-Wochenplayer">
+<main class="signage-shell" aria-label="Cafeteria-Wochenplan">
   <header class="signage-header">
     <div class="signage-brand">
       <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="signage-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="205" height="40">
@@ -43,6 +43,5 @@
     </article>
     {% endfor %}
   </section>
-  <footer class="signage-footer"><span>Kanal: Cafeteria Woche · Revision {{ snapshot.revision_id }}</span><span class="status-line"><span class="status-dot" aria-hidden="true"></span>Publizierter Datenstand</span></footer>
 </main>
 {% endblock %}

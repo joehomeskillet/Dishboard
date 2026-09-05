@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Speiseplan nicht verfügbar – Klinik Südhang{% endblock %}
+{% block body %}
+<header class="site-header">
+  <a class="site-logo" href="{{ url_for('public.cafeteria_today') }}"><img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="site-logo-img" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="205" height="40"></a>
+</header>
+<main class="public-shell" id="main-content">
+  <section class="empty-state"><h1>Speiseplan nicht verfügbar</h1><p>Der Speiseplan kann zurzeit nicht angezeigt werden.</p></section>
+</main>
+{% endblock %}

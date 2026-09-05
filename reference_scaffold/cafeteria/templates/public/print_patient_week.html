@@ -7,7 +7,7 @@
     <div class="wordmark"><span class="wordmark-mark" aria-hidden="true"></span><span>Klinik Südhang</span></div>
     <span>Patienten-Speiseplan</span>
   </header>
-  <section class="hero"><div><p class="eyebrow">Druck · Patienten-Speiseplan</p><h1>{{ (snapshot.week_start|date_long) ~ ' bis ' ~ (snapshot.week_end|date_long) if snapshot else 'Keine Publikation' }}</h1><p class="hero-copy">Mittag und Abend mit je zwei Menüoptionen.</p></div></section>
+  <section class="hero"><div><p class="eyebrow">Druck · Patienten-Speiseplan</p><h1>{{ (snapshot.week_start|date_long) ~ ' bis ' ~ (snapshot.week_end|date_long) if snapshot else 'Wochenplan nicht verfügbar' }}</h1><p class="hero-copy">Mittag und Abend mit je zwei Menüoptionen.</p></div></section>
   {% if snapshot %}
   <section class="week-list" aria-label="Patienten-Wochenplan">
     {% for day in snapshot.days %}
@@ -20,8 +20,7 @@
     {% endfor %}
   </section>
   {% else %}
-  <section class="empty-state"><h2>Kein freigegebener Wochenplan</h2><p>Bitte wenden Sie sich an das Stationspersonal.</p></section>
+  <section class="empty-state"><h2>Kein Wochenplan verfügbar</h2><p>Bitte wenden Sie sich an das Stationspersonal.</p></section>
   {% endif %}
-  <footer class="print-footer"><span>Kanal: Patienten Woche</span><span>Revision {{ snapshot.revision_id if snapshot else '–' }}</span></footer>
 </main>
 {% endblock %}

@@ -13,7 +13,7 @@ PUBLIC_CACHE_CONTROL = 'public, max-age=60, stale-if-error=86400'
 
 
 def no_store_failure(message: str, status_code: int):
-    response = make_response(message, status_code)
+    response = make_response(render_template('public/unavailable.html'), status_code)
     response.headers['Cache-Control'] = 'no-store'
     return response
 
