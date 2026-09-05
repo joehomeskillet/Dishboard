@@ -149,11 +149,14 @@
 
     <div class="review-block">
       <h2>Prüfung</h2>
+      <p>Zuletzt gespeicherter Stand. Änderungen vor der Prüfung speichern.</p>
+      {% if not origin_conflict %}
       <ul>
-        <li>Labels: {% if effects and effects.labels %}{{ effects.labels|join(', ') }}{% else %}Keine{% endif %}</li>
-        <li>Allergene: {% if effects and effects.allergens %}{{ effects.allergens|join(', ') }}{% else %}Keine{% endif %}</li>
-        <li>Herkunft: {% if effects and effects.origins %}{{ effects.origins|join(', ') }}{% else %}Keine{% endif %}</li>
+        <li>Labels: {% if effects and effects.labels %}{{ effects.labels|join(', ') }}{% else %}Nicht erfasst{% endif %}</li>
+        <li>{% if effects and effects.allergens %}Allergene: {{ effects.allergens|join(', ') }}{% else %}Allergenangaben nicht erfasst{% endif %}</li>
+        <li>Herkunft: {% if effects and effects.origins %}{{ effects.origins|join(', ') }}{% else %}Nicht erfasst{% endif %}</li>
       </ul>
+      {% endif %}
       {% if origin_conflict %}
       <div class="error-region" role="alert">
         {{ origin_conflict }}

@@ -141,6 +141,7 @@
             <span class="dish-type">{{ cell.option_label }}</span>
             <h3>{{ cell.title if cell.title else 'Noch kein Gericht' }}</h3>
             <p>{{ cell.components|default([])|join(' · ') }}</p>
+            {% if cell.title %}{% with option=cell %}{% include '_menu_metadata.html' %}{% endwith %}{% endif %}
             <p>
               {% if cell.internal_chf and cell.external_chf %}
               Mitarbeitende CHF {{ cell.internal_chf }} · Externe CHF {{ cell.external_chf }}

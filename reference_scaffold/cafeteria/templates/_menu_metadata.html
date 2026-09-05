@@ -1,0 +1,14 @@
+<div data-menu-metadata>
+  {% if option.description %}<p class="menu-description">{{ option.description }}</p>{% endif %}
+  {% if option.note %}<p class="shared-note">{{ option.note }}</p>{% endif %}
+  <div class="{{ metadata_class|default('labels') }}">
+    {% for origin in option.origins %}<span class="label">{{ origin.text }}</span>{% endfor %}
+    {% for label in option.labels %}<span class="label green">{{ label.name }}</span>{% endfor %}
+    {% for allergen in option.allergens %}<span class="label amber">{{ 'Kann enthalten: ' if allergen.presence == 'may_contain' else 'Enthält: ' }}{{ allergen.name }}</span>{% endfor %}
+  </div>
+  {% if not option.allergens %}
+    <p>Allergenangaben nicht erfasst</p>
+  {% elif option.allergen_review_status|default('not_checked') != 'checked' %}
+    <p>Allergenprüfung offen</p>
+  {% endif %}
+</div>

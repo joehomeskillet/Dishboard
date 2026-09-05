@@ -280,7 +280,8 @@ def _display_effects(effects: dict[str, object]) -> dict[str, list[str]]:
     return {
         'labels': [str(row.get('name') or row.get('code') or '') for row in rows['labels']],
         'allergens': [
-            str(row.get('name') or row.get('code') or '') for row in rows['allergens']
+            ('Kann enthalten: ' if row.get('presence') == 'may_contain' else 'Enthält: ')
+            + str(row.get('name') or row.get('code') or '') for row in rows['allergens']
         ],
         'origins': [str(row.get('text') or '') for row in rows['origins']],
     }

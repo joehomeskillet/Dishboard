@@ -133,6 +133,7 @@
                     <li>{{ component }}</li>
                     {% endfor %}
                   </ul>
+                  {% if cell.title %}{% with option=cell %}{% include '_menu_metadata.html' %}{% endwith %}{% endif %}
                   <span class="slot-badge" data-review="{{ 'open' if cell.review_open else 'checked' }}">{{ 'Prüfung offen' if cell.review_open else 'Geprüft' }}</span>
                   <a class="btn" href="{{ cell.edit_url }}">Bearbeiten</a>
                 </div>
@@ -168,6 +169,7 @@
                     <li>{{ component }}</li>
                     {% endfor %}
                   </ul>
+                  {% if cell.title %}{% with option=cell %}{% include '_menu_metadata.html' %}{% endwith %}{% endif %}
                   <span class="slot-badge" data-review="{{ 'open' if cell.review_open else 'checked' }}">{{ 'Prüfung offen' if cell.review_open else 'Geprüft' }}</span>
                   <a class="btn" href="{{ cell.edit_url }}">Bearbeiten</a>
                 </div>

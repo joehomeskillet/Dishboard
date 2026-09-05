@@ -29,6 +29,7 @@
             {% else %}
               <div class="preview-options">
                 {% for option in service.options %}
+                  {% if option.title %}
                   <div class="preview-option">
                     <h5>{{ option.title }}</h5>
                     {% if option.components %}
@@ -38,6 +39,7 @@
                         {% endfor %}
                       </ul>
                     {% endif %}
+                    {% include '_menu_metadata.html' %}
                     {% if profile == 'staff_guest' %}
                       <p class="prices">
                         Mitarbeitende: {{ option.internal_rappen|default(0)|chf }} | 
@@ -45,6 +47,7 @@
                       </p>
                     {% endif %}
                   </div>
+                  {% endif %}
                 {% endfor %}
               </div>
             {% endif %}

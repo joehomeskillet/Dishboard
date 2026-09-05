@@ -8,11 +8,7 @@
 <section class="week-list">
 {% for day in snapshot.days %}
 <article class="week-day"><header><h2>{{ day.weekday }}</h2><span>{{ day.date|date_long }}</span></header><div class="week-day-grid">{% for meal in day.services %}<div class="week-row"><div class="week-meal-label">{{ meal.meal_name }}</div>{% if meal.service_state|default('open') == 'open' %}{% for option in meal.options %}<div class="week-menu"><small class="week-menu-type">{{ option.type_name }}</small><strong>{{ option.title }}</strong><span>{{ option.components|join(' · ') }}</span>
-        <div class="signage-tags">
-          {% for label in option.labels %}<span class="label green">{{ label.name }}</span>{% endfor %}
-          {% for allergen in option.allergens %}<span class="label amber">{{ 'Kann enthalten: ' if allergen.presence == 'may_contain' else 'Enthält: ' }}{{ allergen.name }}</span>{% endfor %}
-          {% for origin in option.origins %}<span class="label">{{ origin.text }}</span>{% endfor %}
-        </div></div>
+        {% with metadata_class='signage-tags' %}{% include '_menu_metadata.html' %}{% endwith %}</div>
 {% endfor %}{% else %}<div class="week-menu"><small class="week-menu-type">Geschlossen</small><strong>{{ meal.notice }}</strong></div>{% endif %}</div>{% endfor %}</div></article>
 {% endfor %}
 </section>
