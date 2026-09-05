@@ -19,8 +19,15 @@
                 updateDirtyState();
             }
         });
-        form.addEventListener('submit', () => {
-            isDirty = false;
+        form.addEventListener('submit', (e) => {
+            const confirmation = form.getAttribute('data-confirm');
+            if (confirmation && !window.confirm(confirmation)) {
+                e.preventDefault();
+                return;
+            }
+            if (!e.defaultPrevented) {
+                isDirty = false;
+            }
         });
     });
 
@@ -32,7 +39,7 @@
     });
 
     function updateDirtyState() {
-        const previewLinks = document.querySelectorAll('.admin-actions a[target="_blank"]');
+        const previewLinks = document.querySelectorAll('a[href*="/preview"]');
         const publishForms = document.querySelectorAll('form[action*="/publish"]');
         
         previewLinks.forEach(link => {
@@ -59,16 +66,6 @@
     function preventDefaultClick(e) {
         e.preventDefault();
     }
-
-    // 2. Publizieren / Archivieren confirm
-    const confirmForms = document.querySelectorAll('form[data-confirm]');
-    confirmForms.forEach(form => {
-        form.addEventListener('submit', (e) => {
-            if (!window.confirm(form.getAttribute('data-confirm'))) {
-                e.preventDefault();
-            }
-        });
-    });
 
     // 3. Fehlerfokus
     const errorRegion = document.querySelector('.error-region');
@@ -156,33 +153,85 @@
         }
     }
 
-    // 5. Menü-Editor "Zeile hinzufügen" & Escape für Details
-    const buttons = document.querySelectorAll('button');
-    buttons.forEach(btn => {
-        if (btn.textContent.trim() === 'Zeile hinzufügen') {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const container = btn.closest('fieldset, tbody');
-                if (container) {
-                    // find rows that are typically cloned
-                    const rows = container.querySelectorAll('.cloneable-row, tr, .row, .field-row, .component-row');
-                    if (rows.length > 0) {
-                        const lastRow = rows[rows.length - 1];
-                        const clone = lastRow.cloneNode(true);
-                        const inputs = clone.querySelectorAll('input, select, textarea');
-                        inputs.forEach(input => {
-                            if (input.type === 'checkbox' || input.type === 'radio') {
-                                input.checked = false;
-                            } else {
-                                input.value = '';
-                            }
-                            input.removeAttribute('aria-invalid');
-                        });
-                        lastRow.parentNode.insertBefore(clone, lastRow.nextSibling);
-                    }
-                }
+    // Native successful controls must match the strict repeated-field contract.
+    function syncMetadataControls(form) {
+        const menuEditor = form.matches('[data-menu-editor]');
+        const manual = name => !menuEditor ||
+            form.querySelector(`input[name="${name}_mode"]:checked`)?.value === 'manual';
+        form.querySelectorAll('.allergen-row').forEach(row => {
+            const checkbox = row.querySelector('input[name="allergen_code"]');
+            const presence = row.querySelector('select[name="allergen_presence"]');
+            if (checkbox && presence) {
+                checkbox.disabled = !manual('allergen');
+                presence.disabled = checkbox.disabled || !checkbox.checked;
+            }
+        });
+        if (menuEditor) {
+            form.querySelectorAll('[name="label_code"]').forEach(control => {
+                control.disabled = !manual('label');
+            });
+            form.querySelectorAll('.origin-row input, .origin-row button, [data-add-row="origins-list"]').forEach(control => {
+                control.disabled = !manual('origin');
             });
         }
+    }
+
+    forms.forEach(form => {
+        syncMetadataControls(form);
+        form.addEventListener('change', () => syncMetadataControls(form));
+    });
+
+    document.querySelectorAll('form[data-menu-editor]').forEach(form => {
+        form.addEventListener('formdata', (e) => {
+            for (const [selector, names] of [
+                ['.component-row', ['component_public_id', 'component_text']],
+                ['.origin-row', ['origin_ingredient', 'origin_country_code']],
+            ]) {
+                names.forEach(name => e.formData.delete(name));
+                form.querySelectorAll(selector).forEach(row => {
+                    const controls = names.map(name => row.querySelector(`[name="${name}"]`));
+                    if (controls.every(control => !control.disabled) &&
+                        controls.some(control => control.value.trim() !== '')) {
+                        controls.forEach((control, index) => {
+                            e.formData.append(names[index], control.value);
+                        });
+                    }
+                });
+            }
+        });
+
+        form.addEventListener('click', (e) => {
+            const addButton = e.target.closest('[data-add-row]');
+            const removeButton = e.target.closest('[data-remove-row]');
+            if (!addButton && !removeButton) return;
+            let focusTarget;
+            if (addButton) {
+                const list = document.getElementById(addButton.dataset.addRow);
+                const clone = list.lastElementChild.cloneNode(true);
+                clone.querySelectorAll('input, select').forEach(control => {
+                    control.value = '';
+                    control.removeAttribute('aria-invalid');
+                    control.removeAttribute('aria-describedby');
+                });
+                list.appendChild(clone);
+                focusTarget = clone.querySelector('input, select');
+            } else {
+                const row = removeButton.closest('.component-row, .origin-row');
+                const list = row.parentElement;
+                if (list.children.length > 1) {
+                    row.remove();
+                    focusTarget = list.lastElementChild.querySelector('input, select');
+                } else {
+                    row.querySelectorAll('input, select').forEach(control => {
+                        control.value = '';
+                    });
+                    focusTarget = row.querySelector('input, select');
+                }
+            }
+            syncMetadataControls(form);
+            form.dispatchEvent(new Event('input', { bubbles: true }));
+            focusTarget.focus();
+        });
     });
 
     document.addEventListener('keydown', (e) => {

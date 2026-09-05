@@ -28,7 +28,7 @@
       <a class="btn" href="/admin/{{ family }}?week={{ week }}">Zurück</a>
     </div>
 
-    <form method="post" action="/admin/{{ family }}/menu">
+    <form method="post" action="/admin/{{ family }}/menu" data-menu-editor>
       <input type="hidden" name="_csrf" value="{{ csrf }}">
       <input type="hidden" name="week" value="{{ week }}">
       <input type="hidden" name="day" value="{{ cell.day }}">
@@ -66,46 +66,41 @@
 
         <h2>Komponenten</h2>
         <div id="components-list">
-          {% set c_ids = submitted.getlist('component_public_id[]') if submitted.getlist else submitted.get('component_public_id[]', []) %}
-          {% set c_texts = submitted.getlist('component_text[]') if submitted.getlist else submitted.get('component_text[]', []) %}
-          {% set row_count = [c_ids|length, c_texts|length, cell.components|length, 1]|max %}
+          {% set c_ids = submitted.getlist('component_public_id') if submitted.getlist else submitted.get('component_public_id', []) %}
+          {% set c_texts = submitted.getlist('component_text') if submitted.getlist else submitted.get('component_text', []) %}
+          {% set row_count = [c_ids|length, c_texts|length, 1]|max %}
           {% for i in range(row_count) %}
             {% set c_id = c_ids[i] if i < c_ids|length else '' %}
             {% set c_text = c_texts[i] if i < c_texts|length else '' %}
-            {% if not c_ids and not c_texts and i < cell.components|length %}
-              {% set orig = cell.components[i] %}
-              {% if orig is mapping %}
-                {% set c_id = orig.public_id|default('') %}
-                {% set c_text = orig.text|default('') %}
-              {% else %}
-                {% set c_text = orig %}
-              {% endif %}
-            {% endif %}
             <div class="component-row">
-              <select name="component_public_id[]" aria-label="Komponente aus Katalog">
+              <select name="component_public_id" aria-label="Komponente aus Katalog"{{ error_attributes('component_public_id', 'err-component-id') }}>
                 <option value="">(Freitext verwenden)</option>
                 {% for choice in catalog_choices %}
                   <option value="{{ choice.public_id }}"{% if choice.public_id == c_id %} selected{% endif %}{% if not choice.active %} disabled{% endif %}>{{ choice.name }}</option>
                 {% endfor %}
               </select>
-              <input name="component_text[]" aria-label="Freitext-Komponente" value="{{ c_text|default('') }}">
+              <input name="component_text" aria-label="Freitext-Komponente" value="{{ c_text|default('') }}"{{ error_attributes('component_text', 'err-component-text') }}>
+              <button type="button" class="btn" data-remove-row>Komponente entfernen</button>
             </div>
           {% endfor %}
         </div>
+        {{ field_error('component_public_id', 'err-component-id') }}
+        {{ field_error('component_text', 'err-component-text') }}
+        <button type="button" class="btn" data-add-row="components-list">Komponente hinzufügen</button>
 
         <fieldset>
           <legend>Allergene</legend>
           <label><input type="radio" name="allergen_mode" value="auto"{% if submitted.get('allergen_mode', 'auto') == 'auto' %} checked{% endif %}> automatisch aus den Komponenten geerbt</label>
           <label><input type="radio" name="allergen_mode" value="manual"{% if submitted.get('allergen_mode') == 'manual' %} checked{% endif %}> manuell festgelegt</label>
           <div class="allergen-list">
-            {% set a_codes = submitted.getlist('allergen_code[]') if submitted.getlist else submitted.get('allergen_code[]', []) %}
-            {% set a_pres = submitted.getlist('allergen_presence[]') if submitted.getlist else submitted.get('allergen_presence[]', []) %}
+            {% set a_codes = submitted.getlist('allergen_code') if submitted.getlist else submitted.get('allergen_code', []) %}
+            {% set a_pres = submitted.getlist('allergen_presence') if submitted.getlist else submitted.get('allergen_presence', []) %}
             {% for allergen in allergens %}
             {% set idx = a_codes.index(allergen.code) if allergen.code in a_codes else -1 %}
             {% set presence = a_pres[idx] if idx >= 0 and idx < a_pres|length else 'contains' %}
             <div class="allergen-row">
-              <label><input type="checkbox" name="allergen_code[]" value="{{ allergen.code }}"{% if idx >= 0 %} checked{% endif %}> {{ allergen.name|default(allergen.code) }}</label>
-              <select name="allergen_presence[]" aria-label="Präsenz für {{ allergen.name|default(allergen.code) }}">
+              <label><input type="checkbox" name="allergen_code" value="{{ allergen.code }}"{% if idx >= 0 %} checked{% endif %}{% if submitted.get('allergen_mode', 'auto') == 'auto' %} disabled{% endif %}> {{ allergen.name|default(allergen.code) }}</label>
+              <select name="allergen_presence" aria-label="Präsenz für {{ allergen.name|default(allergen.code) }}"{% if idx < 0 or submitted.get('allergen_mode', 'auto') == 'auto' %} disabled{% endif %}>
                 <option value="contains"{% if presence == 'contains' %} selected{% endif %}>enthält</option>
                 <option value="may_contain"{% if presence == 'may_contain' %} selected{% endif %}>kann Spuren enthalten</option>
               </select>
@@ -118,26 +113,30 @@
           <legend>Herkunft</legend>
           <label><input type="radio" name="origin_mode" value="auto"{% if submitted.get('origin_mode', 'auto') == 'auto' %} checked{% endif %}> automatisch aus den Komponenten geerbt</label>
           <label><input type="radio" name="origin_mode" value="manual"{% if submitted.get('origin_mode') == 'manual' %} checked{% endif %}> manuell festgelegt</label>
-          <div class="origin-list">
-            {% set o_ings = submitted.getlist('origin_ingredient[]') if submitted.getlist else submitted.get('origin_ingredient[]', []) %}
-            {% set o_ccs = submitted.getlist('origin_country_code[]') if submitted.getlist else submitted.get('origin_country_code[]', []) %}
+          <div class="origin-list" id="origins-list">
+            {% set o_ings = submitted.getlist('origin_ingredient') if submitted.getlist else submitted.get('origin_ingredient', []) %}
+            {% set o_ccs = submitted.getlist('origin_country_code') if submitted.getlist else submitted.get('origin_country_code', []) %}
             {% set o_count = [o_ings|length, o_ccs|length, 1]|max %}
             {% for i in range(o_count) %}
             <div class="origin-row">
-              <input name="origin_ingredient[]" placeholder="Zutat" aria-label="Zutat" value="{{ o_ings[i] if i < o_ings|length else '' }}">
-              <input name="origin_country_code[]" pattern="[A-Z]{2}" maxlength="2" placeholder="CH" aria-label="Ländercode" value="{{ o_ccs[i] if i < o_ccs|length else '' }}">
+              <input name="origin_ingredient" placeholder="Zutat" aria-label="Zutat" value="{{ o_ings[i] if i < o_ings|length else '' }}"{{ error_attributes('origin_ingredient', 'err-origin-ingredient') }}{% if submitted.get('origin_mode', 'auto') == 'auto' %} disabled{% endif %}>
+              <input name="origin_country_code" pattern="[A-Z]{2}" maxlength="2" placeholder="CH" aria-label="Ländercode" value="{{ o_ccs[i] if i < o_ccs|length else '' }}"{{ error_attributes('origin_country_code', 'err-origin-country') }}{% if submitted.get('origin_mode', 'auto') == 'auto' %} disabled{% endif %}>
+              <button type="button" class="btn" data-remove-row{% if submitted.get('origin_mode', 'auto') == 'auto' %} disabled{% endif %}>Herkunft entfernen</button>
             </div>
             {% endfor %}
           </div>
+          {{ field_error('origin_ingredient', 'err-origin-ingredient') }}
+          {{ field_error('origin_country_code', 'err-origin-country') }}
+          <button type="button" class="btn" data-add-row="origins-list"{% if submitted.get('origin_mode', 'auto') == 'auto' %} disabled{% endif %}>Herkunft hinzufügen</button>
         </fieldset>
 
         <fieldset>
           <legend>Labels</legend>
           <label><input type="radio" name="label_mode" value="auto"{% if submitted.get('label_mode', 'auto') == 'auto' %} checked{% endif %}> automatisch aus den Komponenten geerbt</label>
           <label><input type="radio" name="label_mode" value="manual"{% if submitted.get('label_mode') == 'manual' %} checked{% endif %}> manuell festgelegt</label>
-          {% set l_codes = submitted.getlist('label_code[]') if submitted.getlist else submitted.get('label_code[]', []) %}
+          {% set l_codes = submitted.getlist('label_code') if submitted.getlist else submitted.get('label_code', []) %}
           {% for label in labels %}
-          <label><input type="checkbox" name="label_code[]" value="{{ label.code }}"{% if label.code in l_codes %} checked{% endif %}> {{ label.name|default(label.code) }}</label>
+          <label><input type="checkbox" name="label_code" value="{{ label.code }}"{% if label.code in l_codes %} checked{% endif %}{% if submitted.get('label_mode', 'auto') == 'auto' %} disabled{% endif %}> {{ label.name|default(label.code) }}</label>
           {% endfor %}
         </fieldset>
       </div>
