@@ -533,6 +533,19 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
 }
 
 /* === Admin-Redesign === */
+/* CSV preview: destination and the next action stay together. */
+.admin-csv { width: min(48rem, calc(100% - 2rem)); margin: 0 auto; padding: 1.5rem 0 2rem; }
+.admin-csv h1 { margin: 0; font-size: 1.6rem; line-height: 1.2; }
+.admin-csv h2 { margin: 0; font-size: 1.15rem; }
+.admin-csv p { margin: .65rem 0; }
+.admin-csv .menu-card { margin: 1rem 0; }
+.admin-csv .menu-card-body { gap: .5rem; }
+.admin-csv .csv-target { font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+.admin-csv .csv-preview-result { border-color: var(--sh-teal-700); }
+.admin-csv .error-region { border-color: var(--sh-magenta); }
+.admin-csv .btn { min-width: 44px; }
+.admin-csv li { margin: .5rem 0; overflow-wrap: anywhere; }
+
 .menu-slot {
   position: relative;
 }

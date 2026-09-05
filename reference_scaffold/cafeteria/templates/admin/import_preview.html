@@ -1,52 +1,63 @@
 {% extends "base.html" %}
 {% block title %}CSV-Importvorschau{% endblock %}
+{% block body_class %}admin-body{% endblock %}
 {% block body %}
-<header class="site-header">
-  <a class="wordmark" href="{{ url_for('admin.cafeteria') }}">
-    <span class="wordmark-mark" aria-hidden="true"></span>
-    <span>Südhang Menüplanung</span>
-  </a>
-</header>
-<main class="public-shell" id="main-content">
-  <section class="hero">
-    <div>
-      <p class="eyebrow">Backend</p>
-      <h1>CSV-Import prüfen</h1>
-      <p class="hero-copy">Cafeteria und Patientenplan verwenden getrennte Formate. Eine Datei darf genau ein Profil und eine Kalenderwoche enthalten.</p>
+{% set ready = result and result.valid and import_token %}
+{% set invalid = result and not result.valid %}
+{% set family = 'patienten' if result and result.profile == 'patient' else 'cafeteria' %}
+{% set profile_label = 'Patientenplan' if family == 'patienten' else 'Cafeteria' %}
+<main class="admin-main admin-csv" id="main-content" data-state="{{ 'ready' if ready else 'error' if invalid else 'empty' }}">
+  <header>
+    <h1>CSV-Import prüfen</h1>
+    <p>Cafeteria und Patientenplan verwenden getrennte Formate. Eine Datei enthält genau einen Plan und eine Kalenderwoche.</p>
+  </header>
+  <div class="flash-region" aria-live="polite"></div>
+
+  {% if ready %}
+  <section class="menu-card csv-preview-result" aria-labelledby="csv-result-title">
+    <div class="menu-card-body">
+      <div role="status">
+        <h2 id="csv-result-title">Bereit zum Import</h2>
+        <p class="csv-target"><strong>{{ profile_label }}</strong><br>KW {{ result.week_start.isocalendar().week }} · ab {{ result.week_start.strftime('%d.%m.%Y') }}</p>
+        <p>{{ result.rows }} Datenzeilen geprüft</p>
+      </div>
+      <p>Die geprüfte Datei wird erst mit dem nächsten Schritt als Entwurf übernommen.</p>
+      <form method="post" action="{{ url_for('admin.import_csv') }}">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="import_token" value="{{ import_token }}">
+        <button class="btn primary" type="submit">Geprüfte Datei importieren</button>
+      </form>
     </div>
   </section>
-  <form method="post" enctype="multipart/form-data" class="menu-card">
+  {% elif invalid %}
+  <section class="menu-card error-region" role="alert" tabindex="-1" autofocus aria-labelledby="csv-result-title">
+    <div class="menu-card-body">
+      <h2 id="csv-result-title">Datei korrigieren</h2>
+      <p>Korrigieren Sie die genannten Stellen in der CSV-Datei. Wählen Sie danach die korrigierte Datei erneut aus und prüfen Sie sie.</p>
+      <ul>
+        {% for issue in result.issues %}
+        <li><strong>Zeile {{ issue.line }}, Spalte {{ issue.column }}:</strong> {{ issue.message }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </section>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('admin.import_preview') }}" enctype="multipart/form-data" class="menu-card" id="csv-upload">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <div class="menu-card-body">
+      {% if ready %}<h2>Andere Datei prüfen</h2>{% endif %}
+      <p>Die Vorschau speichert noch keinen Entwurf.</p>
       <div class="field">
-        <label for="file">CSV-Datei</label>
+        <label for="file">{{ 'Korrigierte CSV-Datei' if invalid else 'CSV-Datei' }}</label>
         <input id="file" name="file" type="file" accept=".csv,text/csv" required>
       </div>
       <div class="editor-actions">
-        <button class="btn primary" type="submit">Vorschau prüfen</button>
+        <button class="btn{% if not ready %} primary{% endif %}" type="submit">Vorschau prüfen</button>
       </div>
     </div>
   </form>
-  {% if result %}
-  <aside class="detail-panel" aria-live="polite">
-    <h2>{{ 'Bereit zum Import' if result.valid else 'Datei korrigieren' }}</h2>
-    <p>Profil {{ result.profile or '–' }} · {{ result.rows }} Datenzeilen</p>
-    {% if result.issues %}
-    <ul>
-      {% for issue in result.issues %}
-      <li><strong>Zeile {{ issue.line }}, Spalte {{ issue.column }}:</strong> {{ issue.message }}</li>
-      {% endfor %}
-    </ul>
-    {% endif %}
-    {% if result.valid and import_token %}
-    <p>Die geprüfte Datei wird erst mit dem nächsten Schritt als Entwurf übernommen.</p>
-    <form method="post" action="{{ url_for('admin.import_csv') }}">
-      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-      <input type="hidden" name="import_token" value="{{ import_token }}">
-      <button class="btn primary" type="submit">Geprüfte Datei importieren</button>
-    </form>
-    {% endif %}
-  </aside>
-  {% endif %}
+  <a class="btn" href="{{ url_for('admin.' ~ family, week=result.week_start.isoformat()) if ready else url_for('admin.' ~ family) }}">Zurück zur Wochenübersicht</a>
 </main>
 {% endblock %}
+{% block scripts %}{% endblock %}
