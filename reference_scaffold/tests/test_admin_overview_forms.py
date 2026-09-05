@@ -30,7 +30,7 @@ def test_overview_header_submits_native_form_and_reloads_saved_values(
     with page.expect_response(lambda response: response.request.method == 'POST') as saved:
         form.get_by_role('button', name='Wochenangaben speichern', exact=True).click()
     assert saved.value.status == 303
-    page.goto(f'/admin/{family}?week={DAY}')
+    page.wait_for_url(f'**/admin/{family}?week={DAY}')
     assert form.locator('[name="row_version"]').input_value() == '1'
     assert form.locator('[name="title"]').input_value() == 'Wochenangebot September'
     assert form.locator('[name="shared_note"]').input_value() == 'Hinweis für alle Tage'
@@ -78,7 +78,7 @@ def test_overview_service_uses_own_version_and_preserves_notice_without_items(
         with page.expect_response(lambda response: response.request.method == 'POST') as saved:
             form.get_by_role('button', name='Service speichern', exact=True).click()
         assert saved.value.status == 303
-        page.goto(f'/admin/{family}?week={DAY}')
+        page.wait_for_url(f'**/admin/{family}?week={DAY}')
         assert form.locator('[name="row_version"]').input_value() == '2'
         assert form.locator('[name="service_state"]').input_value() == state
         assert form.locator('[name="notice"]').input_value() == notice

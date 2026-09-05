@@ -25,6 +25,7 @@ from ..component_catalog_store import (
     create_component, find_components, get_component, resolve_single_active_location_connection,
     unarchive_component, update_component,
 )
+from ..component_catalog_metadata import AllergenInput
 from ..public.routes import effective_today
 from ..roles import require_capability
 from ..security import csrf_token, validate_csrf
@@ -477,6 +478,10 @@ def menu_get(family: str):
 def menu_post(family: str):
     profile = profile_from_endpoint(family)
     _reject_override()
+    if request.args and (
+        set(request.args) != {'return_to'} or request.args.getlist('return_to') != ['week']
+    ):
+        abort(400, description='Rückkehrziel ist ungültig.')
     scope = _validate_scoped_csrf(profile, {'overview', 'menu'})
     try:
         parsed = parse_menu_item_form(profile, request.form)
@@ -499,6 +504,9 @@ def menu_post(family: str):
         )
     except _STORE_ERRORS as error:
         _abort_store(error)
+    if request.args.get('return_to') == 'week':
+        flash('Menü gespeichert.')
+        return redirect(url_for(f'admin.{family}', week=parsed.week_start.isoformat()), 303)
     return redirect(url_for(
         'admin.menu_get', family=family, week=parsed.week_start.isoformat(),
         day=parsed.day, meal=parsed.meal, option=parsed.option, row_version=version,
@@ -567,7 +575,8 @@ def header_post(family: str):
         _db(), scope, parsed.week_start, parsed.payload,
         parsed.expected_week_row_version,
     ))
-    return redirect(url_for('admin.header_get', family=family, week=parsed.week_start.isoformat()), 303)
+    flash('Wochenangaben gespeichert.')
+    return redirect(url_for(f'admin.{family}', week=parsed.week_start.isoformat()), 303)
 
 @bp.get('/<any(cafeteria, patienten):family>/service')
 @require_capability('draft.read')
@@ -610,10 +619,31 @@ def service_post(family: str):
         _db(), scope, parsed.week_start, parsed.day, parsed.meal,
         parsed.payload, parsed.expected_service_row_version,
     ))
-    return redirect(url_for(
-        'admin.service_get', family=family, week=parsed.week_start.isoformat(),
-        day=parsed.day, meal=parsed.meal,
-    ), 303)
+    flash('Service gespeichert.')
+    return redirect(url_for(f'admin.{family}', week=parsed.week_start.isoformat()), 303)
+
+
+def _component_error_response(profile: str, family: str, scope: AdminScope, error: BaseException,
+                              public_id: str | None = None):
+    allergens, labels = _master_choices()
+    values, errors = request.form.copy(), _menu_errors(error)
+    if public_id is None:
+        rows = _call(lambda: find_components(_db(), scope, '', None, False))
+        return render_components(
+            profile, family, rows, '', None, False,
+            _scoped_csrf(profile, 'component-create', scope), _flash(), CATEGORY_LABELS,
+            allergens, labels, form_values=values, form_errors=errors,
+        ), 400
+    row = _call(lambda: get_component(_db(), scope, public_id, include_archived=True))
+    allergen_codes, label_codes = {choice['code'] for choice in allergens}, {choice['code'] for choice in labels}
+    allergens.extend(choice for choice in row['allergens'] if choice['code'] not in allergen_codes)
+    labels.extend(choice for choice in row['labels'] if choice['code'] not in label_codes)
+    # Keep the submitted revision: a validation error must not approve a newer edit.
+    row['row_version'] = values.get('row_version', '')
+    return render_component_detail(
+        profile, family, row, _scoped_csrf(profile, 'component', scope), _flash(), CATEGORY_LABELS,
+        allergens, labels, form_values=values, form_errors=errors,
+    ), 400
 
 @bp.get('/<any(cafeteria, patienten):family>/komponenten')
 @require_capability('draft.read')
@@ -638,13 +668,18 @@ def components_create(family: str):
     profile = profile_from_endpoint(family)
     _reject_override()
     scope = _validate_scoped_csrf(profile, {'component-create'})
-    parsed = _call(lambda: parse_component_create_form(request.form))
-    created = _call(lambda: create_component(
-        _db(), scope, str(parsed.payload['category']), str(parsed.payload['name']),
-        None if parsed.payload['origin_country_code'] is None else str(parsed.payload['origin_country_code']),
-        cast(Literal['common', 'current'], parsed.payload['target_scope']),
-        list(parsed.payload['label_codes']), list(parsed.payload['allergens']),
-    ))
+    try:
+        parsed = parse_component_create_form(request.form)
+        created = create_component(
+            _db(), scope, str(parsed.payload['category']), str(parsed.payload['name']),
+            None if parsed.payload['origin_country_code'] is None else str(parsed.payload['origin_country_code']),
+            cast(Literal['common', 'current'], parsed.payload['target_scope']),
+            cast(list[str], parsed.payload['label_codes']), cast(list[AllergenInput], parsed.payload['allergens']),
+        )
+    except (WorkflowValidationError, ComponentCatalogValidationError) as error:
+        return _component_error_response(profile, family, scope, error)
+    except _STORE_ERRORS as error:
+        _abort_store(error)
     flash(REVIEW_HINT)
     return redirect(url_for('admin.component_detail', family=family, public_id=created['public_id']), 303)
 
@@ -671,17 +706,22 @@ def component_update(family: str, public_id: str):
     profile = profile_from_endpoint(family)
     _reject_override()
     scope = _validate_scoped_csrf(profile, {'component'})
-    parsed = _call(lambda: parse_component_update_form(request.form))
-    _call(lambda: get_component(_db(), scope, public_id, include_archived=True))
-    _call(lambda: update_component(
-        _db(), scope, public_id,
-        {
-            'category': parsed.payload['category'], 'name': parsed.payload['name'],
-            'origin_country_code': parsed.payload['origin_country_code'],
-            'label_codes': parsed.payload['label_codes'], 'allergens': parsed.payload['allergens'],
-        },
-        parsed.expected_component_row_version,
-    ))
+    try:
+        parsed = parse_component_update_form(request.form)
+        get_component(_db(), scope, public_id, include_archived=True)
+        update_component(
+            _db(), scope, public_id,
+            {
+                'category': parsed.payload['category'], 'name': parsed.payload['name'],
+                'origin_country_code': parsed.payload['origin_country_code'],
+                'label_codes': parsed.payload['label_codes'], 'allergens': parsed.payload['allergens'],
+            },
+            parsed.expected_component_row_version,
+        )
+    except (WorkflowValidationError, ComponentCatalogValidationError) as error:
+        return _component_error_response(profile, family, scope, error, public_id)
+    except _STORE_ERRORS as error:
+        _abort_store(error)
     flash(REVIEW_HINT)
     return redirect(url_for('admin.component_detail', family=family, public_id=public_id), 303)
 
