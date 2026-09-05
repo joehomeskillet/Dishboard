@@ -90,6 +90,7 @@ REQUIRED_FILES = (
     'reference_scaffold/requirements.txt', 'design/SCREENSHOT_INDEX.md',
     'tools/capture_screenshots.py', 'tools/build_sdd_docx.py',
     'tools/build_manifest.py', 'tools/capture_live_screenshots.py',
+    'tools/vendor_tabler.py', 'reference_scaffold/cafeteria/static/vendor/tabler.lock.json',
     'design/screenshots/live/INDEX.json',
     'PACKAGE_CONTENTS.txt', 'MANIFEST_SHA256.txt',
 )
@@ -165,6 +166,12 @@ def main() -> int:
     # Paket und Geheimnisse
     for relative in REQUIRED_FILES:
         check((root / relative).is_file(), f'Pflichtdatei fehlt: {relative}')
+
+    tabler_result = run([sys.executable, 'tools/vendor_tabler.py', '--verify'], root)
+    check(tabler_result.returncode == 0,
+          f'Tabler-Artefakte stimmen nicht mit dem Lock überein: {tabler_result.stderr or tabler_result.stdout}')
+    if tabler_result.returncode == 0:
+        ok(tabler_result.stdout.strip())
 
     # Check for forbidden paths and files
     forbidden_names = {'.git', '.claude', '.gitnexus', '.superpowers', '.mypy_cache', '.ruff_cache'}
@@ -395,33 +402,37 @@ def main() -> int:
     # CSS contract: token superset and no hex outside :root
     prototype = root / 'design/prototype'
     css_a = prototype / 'assets/app.css'
-    css_b = root / 'reference_scaffold/cafeteria/static/app.css'
-    check(css_a.is_file() and css_b.is_file(), 'CSS-Dateien fehlen')
-    if css_a.is_file() and css_b.is_file():
+    scaffold_css = [root / 'reference_scaffold/cafeteria/static' / name for name in ('tokens.css', 'app.css')]
+    css_files_exist = css_a.is_file() and all(path.is_file() for path in scaffold_css)
+    check(css_files_exist, 'CSS-Dateien fehlen')
+    if css_files_exist:
         try:
             css_a_text = css_a.read_text(encoding='utf-8')
-            css_b_text = css_b.read_text(encoding='utf-8')
-            # Extract prototype tokens
-            proto_tokens = set(re.findall(r'--sh-[a-z0-9-]+', css_a_text))
-            scaffold_tokens = set(re.findall(r'--sh-[a-z0-9-]+', css_b_text))
+            css_texts = [(path, path.read_text(encoding='utf-8')) for path in scaffold_css]
+            # Declarations are required; var() references and comments cannot define a token.
+            definition_pattern = r'(--sh-[a-z0-9-]+)\s*:'
+            proto_tokens = set(re.findall(definition_pattern, re.sub(r'/\*.*?\*/', '', css_a_text, flags=re.S)))
+            scaffold_tokens = set(re.findall(definition_pattern, re.sub(
+                r'/\*.*?\*/', '', '\n'.join(value for _path, value in css_texts), flags=re.S,
+            )))
             missing_tokens = proto_tokens - scaffold_tokens
             check(not missing_tokens, f'Scaffold-CSS fehlen Prototype-Tokens: {sorted(missing_tokens)}')
 
             # Check for hex colors outside :root in scaffold
-            lines = css_b_text.split('\n')
-            in_root = False
-            root_depth = 0
             hex_violations = []
-            for i, line in enumerate(lines, 1):
-                if ':root' in line and '{' in line:
-                    in_root = True
-                    root_depth = line.count('{') - line.count('}')
-                elif in_root:
-                    root_depth += line.count('{') - line.count('}')
-                    if root_depth <= 0:
-                        in_root = False
-                elif re.search(r'#[0-9a-fA-F]{3,6}', line):
-                    hex_violations.append(f'Line {i}: {line.strip()}')
+            for css_path, css_text in css_texts:
+                in_root = False
+                root_depth = 0
+                for i, line in enumerate(css_text.split('\n'), 1):
+                    if ':root' in line and '{' in line:
+                        in_root = True
+                        root_depth = line.count('{') - line.count('}')
+                    elif in_root:
+                        root_depth += line.count('{') - line.count('}')
+                        if root_depth <= 0:
+                            in_root = False
+                    elif re.search(r'#[0-9a-fA-F]{3,6}', line):
+                        hex_violations.append(f'{css_path.name} Line {i}: {line.strip()}')
 
             if hex_violations:
                 errors.append('Scaffold-CSS enthaelt Hard-Coded Hex-Farben ausserhalb :root:\n' + '\n'.join(hex_violations))
