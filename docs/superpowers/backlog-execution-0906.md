@@ -13,6 +13,50 @@ Stand: 6. September 2026. Aktives Nutzerziel: **«arbeite alles ab an was du jet
 
 ## Erste Ausführungswelle
 
+### Übernahme und nächste Lieferung am 6. September
+
+Die vorige Codex-Session wurde kontrolliert beendet und ihre Writer-Sperre freigegeben.
+Die Weiterarbeit erfolgt in `integrate/backlog-takeover-0906`, Worktree
+`.claude/worktrees/backlog-takeover-0906`. Basis ist der frisch abgeglichene
+`github/main`-Commit `0ebea64`; fremde Worktrees bleiben erhalten.
+
+- CAT-001 und DSP-001 befinden sich auf `main` und im laufenden Produktionsrelease
+  `0ebea64`. Der gespeicherte Live-Receipt bleibt `incomplete`: keine Fehler,
+  aber sechs nicht verfügbare positive Label-Prüfungen mangels gepflegter Daten.
+- Das vorbereitete Symbolpaket `63fe3fb` + `7458cb1` wurde in den eigenen
+  Integrationsbranch übernommen. Unabhängig bestanden: 1774 fokussierte Tests,
+  Offline-Assetprüfung, Ruff und Mypy für die geänderten Module. OCR und
+  Release-/Live-Abnahme laufen separat. Legenden-Verbraucher und PDF-Einbindung
+  sind weiterhin offen; ICO-001/ICO-002 sind insgesamt nicht abgeschlossen.
+- Der neuere Nutzerauftrag und die Übergabe vom 06.09.2026, 01:55 ersetzen die
+  Aufteilung von 01:40: Codex übernimmt API und alle Public-Screens-Pakete WP1–5
+  vollständig. Der Nachtrag 02:00 meldet API-Gate 4 auf `37d00b7` bereits detached
+  auf Pool `test-api-int2`; diesen laufenden Prozess auswerten, nicht duplizieren.
+  PS1 und die unterbrochene PS5-Lane werden in ihren bestehenden Worktrees
+  überprüft und fertiggestellt. PS2–PS4 folgen auf dem geprüften PS1-Commit.
+
+| Paket | Eigentum und Ergebnis | Abnahme / Abhängigkeit |
+|---|---|---|
+| Symbol-Release | Root integriert die vorbereiteten Assets und gemeinsamen Metadaten-Makros. | Unabhängige Gates, OCR, Manifest, Paketprüfung, Build und Live-Beweis; keine erfundene PDF-/Legenden-Fertigmeldung. |
+| SCR-001 / TPL-001 Einstieg | Eine Lane besitzt neue Admin-Übersichten für vorhandene Screen- und Vorlagenziele samt Routenregistrierung, Sidebar und Tests. | Bestehende Rollen-/CSRF-Verträge, echte funktionierende Links, Tabler, 390/820/1440 px; vorhandenen API-Sidebar-Eintrag bei Integration erhalten. Keine neue Migration und keine Platzhalter-Editoren. |
+| Backlog-Abgleich | Eine Docs-Lane besitzt ausschließlich `docs/BACKLOG.md`. | Aktueller Status, AGY-Referenz, HugeRTE als Rezepteditor-Prüfkandidat, aktuelle Claude/Codex-Grenzen. |
+| Ruff-Bestandsfehler | Eine Lane besitzt ausschließlich `workflow_partial_store.py` und die beiden Komponenten-Katalogtests mit bestehenden Ruff-Befunden. | Verhaltensgleiche Korrekturen, Fixture-Registrierung erhalten, Ruff und passende vorhandene Tests. |
+
+AGYs Analyse wird als Integrations-Abnahmekatalog verwendet: flackerfreier
+GET ohne Queryparameter, Datumswechsel auch bei gleicher Wochenrevision,
+serverseitiges Datum/Europe-Zurich, erreichbare 404/410 entfernen alte Inhalte,
+Wiederanlauf auch nach initialer 404, keine endlose Gültigkeitszusage bei
+Offline-Anzeige. Eine Renderprüfung per `set_content` ersetzt keinen echten
+Browsernachweis für Skript, CSP und Polling. Generisches FHD/Yodeck bleibt
+gemeinsames Ziel; Patientenwoche muss dabei vollständig und lesbar bleiben.
+
+Die vollständige Funktionsliste und nachfolgende Lieferfolge bleiben bestehen.
+Die späteren Absätze zur ursprünglichen Claude/Codex-Aufteilung sind historisch;
+massgeblich ist die vollständige Übernahme von 01:55. Die vier Public-URLs sind
+am 06.09. live noch ohne Tabler verifiziert und bleiben ausdrücklich in PS5:
+`/cafeteria/heute/`, `/cafeteria/wochenangebot/`, `/patienten/heute/` und
+`/patienten/wochenplan/`.
+
 | Paket | Verantwortung / Vertragsdateien | Unabhängiger Nachweis |
 |---|---|---|
 | CAT-001 / wp-40505b9bf3d7 | Eigener WT `component-filters-0906`: Katalog-Store, Komponentenroute, Rendering, Komponenten- und Ländermakro, zugehörige Tests. Keine Sidebar/Base/Settings. | Kombinierte Filter, validierte Querywerte, archivierte/inaktive Daten, kompatible Editor-Auswahl; 390/820/1440 px, GET/Reset/Trefferzahl und bestehendes CRUD. |
