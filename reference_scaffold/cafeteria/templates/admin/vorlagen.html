@@ -1,0 +1,42 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header, icon %}
+{% set workflow_nav = 'vorlagen' %}
+{% block title %}Vorlagen · Menüplanung{% endblock %}
+{% block page_header %}{{ page_header('Vorlagen') }}{% endblock %}
+{% block content %}
+<p>Bestehende Druckausgaben öffnen und Menüinhalte pflegen.</p>
+<form class="card mb-4" method="get" action="{{ url_for('admin.vorlagen') }}">
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <div class="col-12 col-sm-6 col-lg-4">
+        <label class="form-label" for="output-week">Woche ab Montag</label>
+        <input class="form-control" type="date" id="output-week" name="week" value="{{ week }}" required aria-describedby="output-week-hint">
+      </div>
+      <div class="col-12 col-sm-auto"><button class="btn btn-primary" type="submit">Woche anzeigen</button></div>
+    </div>
+    <p class="form-hint mb-0 mt-2" id="output-week-hint">Die gewählte Woche gilt für Wochenpflege und PDF. Öffentliche Druckansichten zeigen weiterhin den aktuell publizierten Plan.</p>
+  </div>
+</form>
+<div class="row row-cards">
+  {% for output_family, label, endpoint in [('cafeteria', 'Cafeteria', 'cafeteria'), ('patienten', 'Patienten', 'patient')] %}
+  <div class="col-12 col-md-6">
+    <article class="card h-100">
+      <div class="card-header"><h2 class="card-title">{{ label }}</h2></div>
+      <div class="card-body">
+        <h3 class="h4">Wochenplan drucken</h3>
+        <p>Das PDF verwendet die gespeicherte Woche ab {{ week|date_long }}. Vor dem ersten PDF-Download die Woche anlegen und speichern.</p>
+        <div class="btn-list mb-4">
+          <a class="btn" href="{{ url_for('admin.print_week', family=output_family, week=week) }}" aria-label="{{ label }} PDF der gespeicherten Woche öffnen">PDF öffnen</a>
+          <a class="btn" href="{{ url_for('public.print_' ~ endpoint ~ '_week') }}" aria-label="{{ label }} publizierten Wochenplan drucken">Publizierten Plan drucken</a>
+        </div>
+        <h3 class="h4">Inhalte pflegen</h3>
+        <div class="btn-list">
+          <a class="btn" href="{{ url_for('admin.' ~ output_family, week=week) }}" aria-label="{{ label }} gewählte Woche öffnen">{{ icon('calendar-week') }}Woche öffnen</a>
+          <a class="btn" href="{{ url_for('admin.menu_collection', family=output_family) }}" aria-label="{{ label }} Menüs öffnen">{{ icon('tools-kitchen-2') }}Menüs öffnen</a>
+        </div>
+      </div>
+    </article>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

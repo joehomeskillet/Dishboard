@@ -840,3 +840,4 @@ def publish(family: str):
 # Register saved-week printing after the shared workflow helpers are defined.
 from . import print_routes as print_routes  # noqa: E402, F401
 from . import week_review_routes as week_review_routes  # noqa: E402, F401
+from . import output_routes as output_routes  # noqa: E402, F401

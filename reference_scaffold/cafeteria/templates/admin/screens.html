@@ -1,0 +1,26 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header, icon %}
+{% set workflow_nav = 'screens' %}
+{% block title %}Screens · Menüplanung{% endblock %}
+{% block page_header %}{{ page_header('Screens') }}{% endblock %}
+{% block content %}
+<p class="mb-4">Tages- und Wochenpläne für Web und Bildschirme öffnen. Die Ansichten zeigen den aktuell publizierten Menüplan. Ohne Publikation erscheint ein Hinweis.</p>
+<div class="row row-cards">
+  {% for label, endpoint in [('Cafeteria', 'cafeteria'), ('Patienten', 'patient')] %}
+  {% for channel, channel_label, day_suffix in [('public', 'Web', 'today'), ('signage', 'TV / Signage', 'day')] %}
+  <div class="col-12 col-md-6">
+    <article class="card h-100">
+      <div class="card-header"><h2 class="card-title">{{ label }} · {{ channel_label }}</h2></div>
+      <div class="card-body">
+        <p>{% if channel == 'signage' %}Feste Player-Adressen für Tages- und Wochenanzeige.{% else %}Öffentliche Menüansichten für Gäste, Patienten und Mitarbeitende.{% endif %}</p>
+        <div class="btn-list">
+          <a class="btn" href="{{ url_for(channel ~ '.' ~ endpoint ~ '_' ~ day_suffix) }}" aria-label="{{ label }} {{ channel_label }} Tagesplan öffnen">{{ icon('eye') }}Tagesplan öffnen</a>
+          <a class="btn" href="{{ url_for(channel ~ '.' ~ endpoint ~ '_week') }}" aria-label="{{ label }} {{ channel_label }} Wochenplan öffnen">{{ icon('calendar-week') }}Wochenplan öffnen</a>
+        </div>
+      </div>
+    </article>
+  </div>
+  {% endfor %}
+  {% endfor %}
+</div>
+{% endblock %}

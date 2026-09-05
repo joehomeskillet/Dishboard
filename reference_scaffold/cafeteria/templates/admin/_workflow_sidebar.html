@@ -17,6 +17,9 @@
     {% for key, href, label in [('weeks', weeks_url, 'Wochenpläne'), ('management', url_for('admin.week_management', family=family), 'Wochenverwaltung'), ('menus', '/admin/' ~ family ~ '/menues', 'Menüs'), ('components', '/admin/' ~ family ~ '/komponenten', 'Komponenten'), ('import', url_for('admin.import_preview'), 'CSV Import')] %}
     <a href="{{ href }}"{% if workflow_nav == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
     {% endfor %}
+    {% for key, label in [('screens', 'Screens'), ('vorlagen', 'Vorlagen')] %}
+    <a href="{{ url_for('admin.' ~ key) }}"{% if workflow_nav == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
+    {% endfor %}
     <p>Signage</p>
     {% for signage_family, channel, icon_name, label in signage_links %}
     <a href="/signage/{{ signage_family }}/{{ channel }}" target="_blank" rel="noopener">{{ label }}</a>
@@ -50,6 +53,8 @@
         ('menus', '/admin/' ~ family ~ '/menues', 'tools-kitchen-2', 'Menüs'),
         ('components', '/admin/' ~ family ~ '/komponenten', 'components', 'Komponenten'),
         ('import', url_for('admin.import_preview'), 'file-import', 'CSV Import'),
+        ('screens', url_for('admin.screens'), 'eye', 'Screens'),
+        ('vorlagen', url_for('admin.vorlagen'), 'copy', 'Vorlagen'),
       ] %}
       <nav class="admin-nav" aria-label="Backend">
         <ul class="navbar-nav">
