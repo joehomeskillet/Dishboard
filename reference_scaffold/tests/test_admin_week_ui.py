@@ -114,7 +114,8 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
         '_csrf', 'week', 'row_version',
     ]
     expect(form.locator('[name="week"]')).to_have_value(DAY)
-    publish = form.get_by_role('button', name='Publizieren', exact=True)
+    publish = form.locator('button[type="submit"]')
+    expect(publish).to_have_text('Publizieren')
     if state == 'ready':
         expect(publish).to_be_enabled()
     else:
@@ -151,8 +152,14 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
         page.keyboard.press('Tab')
         expect(copy).to_be_focused()
         assert copy.evaluate('element => getComputedStyle(element).outlineStyle !== "none"')
-        page.locator('input[name="title"]').fill('Angepasste Woche')
-        focused_box = page.locator('input[name="title"]').bounding_box()
+        title = page.locator('input[name="title"]')
+        for _ in range(4):
+            page.keyboard.press('Tab')
+            if title.evaluate('element => element === document.activeElement'):
+                break
+        expect(title).to_be_focused()
+        title.fill('Angepasste Woche')
+        focused_box = title.bounding_box()
         actions_box = page.locator('.admin-week-controls').bounding_box()
         assert focused_box is not None and actions_box is not None
         assert focused_box['y'] >= actions_box['y'] + actions_box['height']
