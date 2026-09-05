@@ -17,6 +17,8 @@ BLUE = (0, 82, 147)
 FILL = (222, 234, 246)
 BORDER = (174, 170, 170)
 INK = (0, 0, 0)
+DATE_BLUE = (0, 112, 136)
+DATE_FILL = (242, 242, 242)
 LEFT = 21.0
 PAD = 4.0
 
@@ -184,10 +186,15 @@ def render_week_pdf(draft: dict[str, Any], profile: str, week: date) -> bytes:
         _draw(pdf, Block([_date_label(week, True)], 11), LEFT, 37)
         pdf.image(ASSETS / 'img/weekly-print-logo.jpg', pdf.w - LEFT - 145, 17, w=145)
     else:
-        pdf.image(ASSETS / 'img/weekly-print-header.jpg', LEFT, 12, w=width)
-        pdf.set_text_color(*INK)
+        pdf.image(ASSETS / 'img/weekly-print-header.jpg', 0, 0, w=pdf.w, h=201.96)
         date_block = _wrap(pdf, _date_label(week, False), width, 17)
-        _draw(pdf, date_block, pdf.w - LEFT - pdf.get_string_width(date_block.lines[0]), 180)
+        # Reference strip geometry; longer month-crossing dates extend it left.
+        strip_width = max(250.44, pdf.get_string_width(date_block.lines[0]) + 15.12)
+        strip_x = 572.28 - strip_width
+        pdf.set_fill_color(*DATE_FILL)
+        pdf.rect(strip_x, 145.56, strip_width, 26.28, style='F')
+        pdf.set_text_color(*DATE_BLUE)
+        _draw(pdf, date_block, strip_x + 7.56, 148.84)
     pdf.set_fill_color(*FILL)
     pdf.set_draw_color(*BORDER)
     pdf.set_line_width(0.55)

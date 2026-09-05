@@ -4,7 +4,7 @@ import json
 import re
 import subprocess
 import xml.etree.ElementTree as ET
-from datetime import date
+from datetime import date, timedelta
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -130,3 +130,43 @@ def test_unsupported_glyph_is_rejected_instead_of_silently_dropped() -> None:
     draft['days'][0]['services'][0]['options'][0]['note'] = 'Hinweis 🥜'
     with pytest.raises(WeekPdfFitError, match='Druckschrift'):
         render_week_pdf(draft, 'patient', WEEK)
+
+
+@pytest.mark.parametrize('week', [date(2026, 9, 7), WEEK])
+def test_cafeteria_header_matches_reference_geometry(week: date, tmp_path: Path) -> None:
+    draft = saved_week('staff_guest', False)
+    for offset, day in enumerate(draft['days']):
+        day['date'] = (week + timedelta(days=offset)).isoformat()
+    payload = render_week_pdf(draft, 'staff_guest', week)
+    page = PdfReader(BytesIO(payload)).pages[0]
+    width, height = float(page.mediabox.width), float(page.mediabox.height)
+    operations = page.get_contents().operations
+    first_image = next(i for i, (_, operator) in enumerate(operations) if operator == b'Do')
+    image_matrix = next(args for args, operator in reversed(operations[:first_image]) if operator == b'cm')
+    # Measured from the supplied reference: full-bleed photo ending at y=201.96pt.
+    assert [float(value) for value in image_matrix] == pytest.approx(
+        [width, 0, 0, 201.96, 0, height - 201.96], abs=0.02,
+    )
+    first_text = next(i for i, (_, operator) in enumerate(operations) if operator == b'Tj')
+    date_color = next(args for args, operator in reversed(operations[:first_text]) if operator == b'rg')
+    assert [float(value) for value in date_color] == pytest.approx([0, 112 / 255, 136 / 255], abs=0.001)
+    strips = [
+        args for i, (args, operator) in enumerate(operations)
+        if operator == b're' and operations[i + 1][1] == b'f'
+    ]
+    strip = next(args for args in strips if abs(height - float(args[1]) - 145.56) < 0.02)
+    x, bottom, strip_width, negative_height = (float(value) for value in strip)
+    assert x + strip_width == pytest.approx(572.28, abs=0.02)
+    assert negative_height == pytest.approx(-26.28, abs=0.02)
+    assert strip_width >= 250.43
+    if week.month == (week + timedelta(days=4)).month:
+        assert x == pytest.approx(321.84, abs=0.02)
+    path = tmp_path / 'reference-header.pdf'
+    path.write_bytes(payload)
+    result = subprocess.run(['pdftotext', '-bbox', str(path), '-'], capture_output=True, check=True, text=True)
+    words = ET.fromstring(result.stdout).findall('.//{http://www.w3.org/1999/xhtml}word')
+    date_words = [word for word in words if float(word.attrib['yMax']) < 203]
+    assert date_words
+    for word in date_words:
+        assert x <= float(word.attrib['xMin']) < float(word.attrib['xMax']) <= x + strip_width
+        assert height - bottom <= float(word.attrib['yMin']) < float(word.attrib['yMax']) <= height - bottom - negative_height
