@@ -19,7 +19,7 @@ sys.path.insert(0, str(ROOT / 'tools'))
 
 from test_rendered_ui import _login, admin_app, admin_engine, browser  # noqa: E402, F401
 from test_admin_workflow_routes import DAY, _scope  # noqa: E402
-from test_admin_workflow_db import _save, _staff_values  # noqa: E402
+from test_admin_workflow_db import _save_reviewed, _staff_values  # noqa: E402
 from cafeteria.component_catalog_store import (  # noqa: E402
     AdminScope, archive_component, create_component,
 )
@@ -116,27 +116,27 @@ def test_admin_editor_dirty_state_blocks_preview_and_publish(page_context: Page,
 
 
 def test_admin_publish_uses_native_confirm(page_context: Page, admin_app: Flask):  # noqa: F811
-    _save(admin_app.extensions['cafeteria_db'], 'staff_guest', _staff_values())
+    _save_reviewed(admin_app.extensions['cafeteria_db'], 'staff_guest', _staff_values())
     page = page_context
     page.goto(f'/admin/cafeteria?week={DAY}')
 
-    publish_btn = page.locator('form[action*="/publish"] button[type="submit"]')
+    publish_btn = page.locator('[data-bs-target="#week-publish-modal"]')
     assert publish_btn.is_enabled()
     assert page.locator('.status-pill').get_attribute('data-status') == 'ready'
 
-    dialogs: list[str] = []
-
-    def dismiss(dialog) -> None:
-        dialogs.append(dialog.type)
-        dialog.dismiss()
-
-    page.once('dialog', dismiss)
     publish_btn.click()
-    assert dialogs == ['confirm']
+    modal = page.locator('#week-publish-modal')
+    expect(modal).to_be_visible()
+    expect(modal).to_contain_text('Gespeicherte Woche')
+    modal.get_by_role('button', name='Abbrechen', exact=True).click()
+    expect(modal).to_be_hidden()
+    expect(publish_btn).to_be_focused()
     assert page.locator('.status-pill').get_attribute('data-status') == 'ready'
 
-    page.once('dialog', lambda dialog: dialog.accept())
     publish_btn.click()
+    with page.expect_response(lambda response: response.request.method == 'POST') as published:
+        modal.get_by_role('button', name='Publizieren', exact=True).click()
+    assert published.value.status == 303
     assert page.locator('.status-pill').get_attribute('data-status') == 'live'
 
 def test_admin_error_state_focuses_first_error_and_offers_retry(page_context: Page):

@@ -174,15 +174,34 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         else:
             assert select_box['y'] >= label_box['y'] + label_box['height']
 
-    expect(primary).to_have_class(re.compile(r'\bprimary\b'))
+    if page_kind == 'catalog' and shell == '.page':
+        expect(primary).to_have_class(re.compile(r'\bcard-header\b'))
+        expect(primary).to_have_class(re.compile(r'\bdishboard-component-summary\b'))
+    else:
+        expect(primary).to_have_class(re.compile(r'\bprimary\b'))
     primary_box = primary.bounding_box()
     assert primary_box is not None
+    assert primary_box['height'] >= 48
     assert 0 <= primary_box['y'] < primary_box['y'] + primary_box['height'] <= height
+
+    if page_kind == 'catalog':
+        primary.focus()
+        page.keyboard.press('Enter')
+        expect(creation).to_have_attribute('open', '')
+        expect(creation.locator('[name="name"]')).to_be_visible()
+        create_form = creation.locator('form')
+        expect(create_form).to_have_attribute('method', 'post')
+        expect(create_form).to_have_attribute('action', f'/admin/{family}/komponenten')
+        assert create_form.locator('[name="_csrf"]').input_value()
+        expect(create_form.get_by_role('button', name='Komponente erstellen')).to_be_visible()
+        primary.focus()
+        page.keyboard.press('Enter')
+        expect(creation).not_to_have_attribute('open', '')
 
     if family == 'patienten':
         assert not re.search(r'preis|chf|rappen|kosten|price', page.content(), re.IGNORECASE)
 
-    if collapsed:
+    if collapsed or page_kind == 'catalog':
         # Fresh load so sequential focus starts at the document: skip link, menu button, then navigation.
         page.goto(routes[page_kind])
     page.keyboard.press('Tab')
@@ -216,4 +235,4 @@ def test_overview_brand_stays_inside_sidebar(
     page_context.set_viewport_size({'width': width, 'height': height})
     response = page_context.goto(f'/admin/{family}?week={DAY}')
     assert response is not None and response.status == 200
-    _assert_brand_contained(page_context.locator('.admin-shell > aside.admin-sidebar'))
+    _assert_brand_contained(page_context.locator('.page > aside.admin-sidebar'))

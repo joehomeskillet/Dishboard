@@ -10,7 +10,7 @@ from playwright.sync_api import Page, expect
 from test_admin_ux_browser import (  # noqa: F401
     admin_app, admin_engine, browser, live_server, page_context,
 )
-from test_admin_workflow_db import _patient_values, _save, _staff_values
+from test_admin_workflow_db import _patient_values, _save, _save_reviewed, _staff_values
 from test_admin_workflow_routes import DAY, DATABASE_URL
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
@@ -124,7 +124,7 @@ def test_publish_modal_shows_summary_and_submits_exact_form(
     page_context: Page, admin_app: Flask, family: str, profile: str, values, width: int,  # noqa: F811
     tmp_path,
 ) -> None:  # noqa: F811
-    _save(admin_app.extensions['cafeteria_db'], profile, values())
+    _save_reviewed(admin_app.extensions['cafeteria_db'], profile, values())
     page = page_context
     page.set_default_timeout(3000)
     page.set_viewport_size({'width': width, 'height': 800})
@@ -164,7 +164,7 @@ def test_publish_modal_shows_summary_and_submits_exact_form(
 def test_week_header_and_service_save_keep_dirty_guard_and_exact_payloads(
     page_context: Page, admin_app: Flask, family: str, profile: str, values,  # noqa: F811
 ) -> None:
-    _save(admin_app.extensions['cafeteria_db'], profile, values())
+    _save_reviewed(admin_app.extensions['cafeteria_db'], profile, values())
     page = page_context
     page.set_viewport_size({'width': 360, 'height': 800})
     page.goto(f'/admin/{family}?week={DAY}')
