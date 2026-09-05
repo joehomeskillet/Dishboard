@@ -68,7 +68,7 @@ korrekt und getestet. H1 betrifft nur die Auslieferung des neuen Bildschirms.
 
 ## Coverage-Grenzen (nicht geprüft, kein Befund)
 
-- Kein Test rendert `week_review.html` mit dem echten Template-Loader (siehe H1).
+- Rendering mit echtem Loader: seit `8add9ce` durch die native QA abgedeckt (siehe Nachtrag).
 - Kein Test für Service-Save gleichzeitig mit Wochenprüfung (nur Header-Save in beiden Reihenfolgen);
   Sperrreihenfolge ist aus dem Code konsistent.
 - `require_workflow_review_actor` sperrt `users`/`user_role_cache` `FOR SHARE` nach Wochen-/Service-Sperren;
@@ -93,15 +93,34 @@ In der Root-Integration sind beide statisch aufgelöst:
   verlinkt im Seitenkopf `/admin/<family>/wochen/pruefung?week=<week>` («Wochenangaben prüfen»);
   `test_week_review_link_points_to_saved_week` (`test_admin_week_tabler_browser.py:92-98`) prüft den Link.
 
-**Explizit noch offen (Browser-Evidenz):** Kein Test in `94a3abe` rendert `week_review.html` mit echtem
-Flask-Loader und echter DB oder führt eine reale Wochenprüfung durch den Browser aus; die Route-Tests
-stubben weiterhin `render_template` bzw. die Basis. Die angekündigte native QA (12 Fälle, 360/768/1024/1280,
-beide Familien, echte Prüfung) schliesst diese Lücke erst, wenn ihr Lauf mit Ausgabe vorliegt. Bis dahin
-gilt H1 als statisch aufgelöst, nicht als dynamisch nachgewiesen. Root-DB-Gate 34 PASS deckt Backend, nicht
-das Rendering.
+**Browser-Evidenz (native QA, read-only geprüft an `29a1e64` → integriert `8add9ce`):**
+`reference_scaffold/tests/test_week_review_browser.py` (189 Zeilen) läuft gegen echte Flask-App,
+echte Datenbank und den regulären Template-Loader ohne Stub; gemeldet 14 PASS in 26.10 s. Abdeckung:
+
+- 8 Fälle Cafeteria/Patienten × 360/768/1024/1280: HTTP 200, `Cache-Control: no-store`, Titel,
+  Wochenhinweis und alle Servicehinweise vollständig sichtbar, kein `app.css`, kein Inline-Skript/-Style,
+  kein horizontales Scrollen, `dd`-Text innerhalb der Box, Bestätigungsbutton ≥ 48 px mit Fokusring,
+  Patienten ohne Kostenvokabular; Enter sendet exakt `{_csrf, week, context_version}`, 303 auf dieselbe
+  URL, danach Belegstatus «Dieser Stand wurde von Küche …», Button verschwunden, genau ein
+  `workflow.week_context_reviewed` mit Profil und dem gesendeten Token, keine `publication_revisions`.
+- 4 Fälle: nach Header- bzw. Service-Änderung liefert der alte Browser-Token 409 ohne Beleg;
+  leeres `_csrf` liefert 400.
+- 2 Fälle bei 360 px: komplett geschlossene Woche ohne Menüs mit `draft.read`-only zeigt keinen Button
+  und kein `context_version`; `Cafeteria.Admin` bestätigt danach mit 303 und genau einem Beleg.
+  Die Read-only-Lage wird per Monkeypatch der Rollen-Capabilities hergestellt, da keine ausgelieferte
+  Rolle read-only ist; das prüft die bestehende Capability-Grenze, keine neue Rolle.
+
+18 Screenshots unter `design/screenshots/admin-tabler/week-review-2026-09-05/` (8 offen, 8 Beleg,
+2 read-only geschlossen; alle nicht leer, 139–378 KB). Stichprobe gesichtet: `cafeteria-360-open.png`
+zeigt eingeklappte Navigation mit Button «Menü», einspaltige Karten, escaped `<script>` als Text und
+den Bestätigungsbutton in voller Breite; `patienten-1280-receipt.png` zeigt feste Sidebar,
+zweispaltige Services, Erfolgsmeldung und Beleg mit Akteur und Zeit. Damit ist H1 auch dynamisch
+nachgewiesen. L2 (roher `occurred_at`-Zeitstempel im Beleg) ist im Screenshot sichtbar und bleibt kosmetisch.
 
 ## Empfehlung an Root
 
-Statisch freigabefähig auf Integrationsstand `94a3abe`. Migration im kontrollierten Fenster erst nach
-vorliegender Browser-Evidenz für die Wochenprüfung (echter Loader, echte DB, beide Familien, mindestens
-360 und 1280).
+**Abschliessendes Verdict: FREIGABE, kein HIGH offen.** Backend `1db4275` korrekt, Abhängigkeiten in
+`fc30d79`/`94a3abe` aufgelöst, Rendering und echte Wochenprüfung durch die native QA in `8add9ce`
+nachgewiesen. Offen bleiben nur L1–L3 (kosmetisch/dokumentarisch) und die unter Coverage-Grenzen
+genannten Parallelitätsfälle. Migration im kontrollierten Fenster (alte App stoppen → 0013 → v16 starten)
+kann erfolgen, sobald der unabhängige integrierte Nachlauf grün ist.
