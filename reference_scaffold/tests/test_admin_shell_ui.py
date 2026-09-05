@@ -13,6 +13,13 @@ from test_admin_ux_browser import (  # noqa: F401
 )
 from test_admin_workflow_routes import DAY
 
+SIGNAGE_LINKS = (
+    ('cafeteria', 'tag', 'Cafeteria Tagesplan', 'eye'),
+    ('cafeteria', 'woche', 'Cafeteria Wochenplan', 'calendar-week'),
+    ('patienten', 'tag', 'Patienten Tagesplan', 'eye'),
+    ('patienten', 'woche', 'Patienten Wochenplan', 'calendar-week'),
+)
+
 
 def _assert_brand_contained(sidebar: Locator) -> None:
     sidebar_box = sidebar.bounding_box()
@@ -92,9 +99,11 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
     assert week_url.path == f'/admin/{family}'
     assert parse_qs(week_url.query) == ({'week': [DAY]} if page_kind == 'editor' else {})
     expect(catalog).to_have_attribute('href', f'/admin/{family}/komponenten')
-    for channel, label in [('tag', 'Signage Tagesplan'), ('woche', 'Signage Wochenplan')]:
+    expect(navigation.get_by_text('Signage', exact=True)).to_be_visible()
+    assert navigation.locator('a[href^="/signage/"]').count() == 4
+    for signage_family, channel, label, _ in SIGNAGE_LINKS:
         signage = navigation.get_by_role('link', name=label, exact=True)
-        expect(signage).to_have_attribute('href', f'/signage/{family}/{channel}')
+        expect(signage).to_have_attribute('href', f'/signage/{signage_family}/{channel}')
         expect(signage).to_have_attribute('target', '_blank')
         expect(signage).to_have_attribute('rel', 'noopener')
         expect(signage).to_be_visible()
@@ -278,12 +287,11 @@ def test_signage_links_open_current_profile_without_admin_window_access(
     else:
         expect(toggle).to_be_hidden()
         expect(navigation).to_be_visible()
-    for channel, label, icon_name in [
-        ('tag', 'Signage Tagesplan', 'eye'),
-        ('woche', 'Signage Wochenplan', 'calendar-week'),
-    ]:
+    expect(navigation.get_by_text('Signage', exact=True)).to_be_visible()
+    assert navigation.locator('a[href^="/signage/"]').count() == 4
+    for signage_family, channel, label, icon_name in SIGNAGE_LINKS:
         link = navigation.get_by_role('link', name=label, exact=True)
-        expect(link).to_have_attribute('href', f'/signage/{family}/{channel}')
+        expect(link).to_have_attribute('href', f'/signage/{signage_family}/{channel}')
         expect(link).to_have_attribute('target', '_blank')
         expect(link).to_have_attribute('rel', 'noopener')
         expect(link.locator('svg use')).to_have_attribute(
@@ -296,9 +304,9 @@ def test_signage_links_open_current_profile_without_admin_window_access(
             link.click()
         popup = opened.value
         try:
-            popup.wait_for_url(f'**/signage/{family}/{channel}')
+            popup.wait_for_url(f'**/signage/{signage_family}/{channel}')
             destination = urlsplit(popup.url)
-            assert destination.path == f'/signage/{family}/{channel}'
+            assert destination.path == f'/signage/{signage_family}/{channel}'
             assert destination.query == destination.fragment == ''
             expect(popup.locator('main')).to_be_visible()
             assert popup.evaluate('window.opener === null')

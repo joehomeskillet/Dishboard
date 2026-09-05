@@ -1,5 +1,10 @@
 {% from 'admin/_macros.html' import icon %}
-{% set signage_links = [('tag', 'eye', 'Signage Tagesplan'), ('woche', 'calendar-week', 'Signage Wochenplan')] %}
+{% set signage_links = [
+  ('cafeteria', 'tag', 'eye', 'Cafeteria Tagesplan'),
+  ('cafeteria', 'woche', 'calendar-week', 'Cafeteria Wochenplan'),
+  ('patienten', 'tag', 'eye', 'Patienten Tagesplan'),
+  ('patienten', 'woche', 'calendar-week', 'Patienten Wochenplan'),
+] %}
 {% if not tabler_admin %}
 <aside class="admin-sidebar">
   <div class="admin-brand">
@@ -12,8 +17,9 @@
     {% for key, href, label in [('weeks', weeks_url, 'Wochenpläne'), ('management', url_for('admin.week_management', family=family), 'Wochenverwaltung'), ('menus', '/admin/' ~ family ~ '/menues', 'Menüs'), ('components', '/admin/' ~ family ~ '/komponenten', 'Komponenten'), ('import', url_for('admin.import_preview'), 'CSV Import')] %}
     <a href="{{ href }}"{% if workflow_nav == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
     {% endfor %}
-    {% for channel, icon_name, label in signage_links %}
-    <a href="/signage/{{ family }}/{{ channel }}" target="_blank" rel="noopener">{{ label }}</a>
+    <p>Signage</p>
+    {% for signage_family, channel, icon_name, label in signage_links %}
+    <a href="/signage/{{ signage_family }}/{{ channel }}" target="_blank" rel="noopener">{{ label }}</a>
     {% endfor %}
     <form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button type="submit">Abmelden</button></form>
   </nav>
@@ -55,9 +61,10 @@
             </a>
           </li>
           {% endfor %}
-          {% for channel, icon_name, label in signage_links %}
+          <li class="nav-item"><div class="subheader px-3 pt-3 pb-2">Signage</div></li>
+          {% for signage_family, channel, icon_name, label in signage_links %}
           <li class="nav-item">
-            <a href="/signage/{{ family }}/{{ channel }}" class="nav-link" target="_blank" rel="noopener">
+            <a href="/signage/{{ signage_family }}/{{ channel }}" class="nav-link" target="_blank" rel="noopener">
               <span class="nav-link-icon">{{ icon(icon_name) }}</span>
               <span class="nav-link-title">{{ label }}</span>
             </a>
