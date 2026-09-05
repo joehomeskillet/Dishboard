@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Vorwoche kopieren · {{ 'Cafeteria' if family == 'cafeteria' else 'Patienten' }}{% endblock %}
+{% block body_class %}admin-body{% endblock %}
+{% block body %}
+<main class="admin-main admin-copy" id="main-content" data-profile="{{ profile }}" data-source-week="{{ source.isoformat() }}" data-target-week="{{ target.isoformat() }}">
+  <header class="admin-copy-brand">
+    <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="164" height="32">
+    <span>Menüplanung</span>
+  </header>
+
+  <div class="admin-copy-content">
+    <h1>Vorwoche kopieren</h1>
+    <p class="admin-copy-profile">{{ 'Cafeteria' if family == 'cafeteria' else 'Patienten' }}</p>
+
+    <dl class="admin-copy-weeks">
+      <div>
+        <dt>Quellwoche</dt>
+        <dd>
+          <span>KW {{ source.isocalendar().week }} / {{ source.isocalendar().year }}</span>
+          <time datetime="{{ source.isoformat() }}">{{ source.strftime('%d.%m.%Y') }}</time>
+        </dd>
+      </div>
+      <div class="admin-copy-target">
+        <dt>Zielwoche</dt>
+        <dd>
+          <span>KW {{ target.isocalendar().week }} / {{ target.isocalendar().year }}</span>
+          <time datetime="{{ target.isoformat() }}">{{ target.strftime('%d.%m.%Y') }}</time>
+        </dd>
+      </div>
+    </dl>
+
+    <p id="copy-description">Woche vom {{ source.strftime('%d.%m.%Y') }} in die leere Woche vom {{ target.strftime('%d.%m.%Y') }} kopieren.</p>
+    <form method="post" action="{{ url_for('admin.copy_post', family=family) }}" class="admin-copy-actions" aria-describedby="copy-description">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <input type="hidden" name="source_week" value="{{ source.isoformat() }}">
+      <input type="hidden" name="target_week" value="{{ target.isoformat() }}">
+      <input type="hidden" name="target_row_version" value="{{ target_row_version }}">
+      <button type="submit" class="btn primary">Vorwoche kopieren</button>
+      <a class="btn" href="{{ url_for('admin.' ~ family, week=target.isoformat()) }}">Zurück zur Wochenübersicht</a>
+    </form>
+  </div>
+</main>
+{% endblock %}
+{% block scripts %}{% endblock %}

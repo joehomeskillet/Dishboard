@@ -106,9 +106,12 @@ Template: `admin/preview.html`. Nur LAST-SAVED, kein Publikations-Fallback.
   „28 Menükarten · 7 Tage × 2 Mahlzeiten × 2 Menüarten".
 - Skip-Link aus `base.html` (`class="skip-link"`, `href="#main-content"`).
 
-`_page` bleibt für alle übrigen Handler (Header, Service, Copy, Publish, Review-POST, CSV).
-Copy-GET zeigt ein echtes POST-Formular mit exakt `_csrf,source_week,target_week,target_row_version`
-und Submit-Button „Vorwoche kopieren“. Der Kopierlink bleibt auch bei leerem
+`_page` bleibt für die übrigen Legacy-Handler (Header, Service, Publish, Review-POST, CSV).
+Copy-GET rendert `admin/copy.html` auf Basis von `base.html` mit Profil,
+Quell-/Zielwoche, ISO-KW und Wochenjahr. Das native POST-Formular enthält exakt
+`_csrf,source_week,target_week,target_row_version` und den Submit-Button
+„Vorwoche kopieren“. „Zurück zur Wochenübersicht“ führt zur selben Zielwoche
+im selben Profil zurück. Der Kopierlink bleibt auch bei leerem
 Patientenraster erreichbar; Server prüft Zielwoche und Version unverändert.
 
 ### Vorschau (`GET /admin/{family}/preview?week=`)

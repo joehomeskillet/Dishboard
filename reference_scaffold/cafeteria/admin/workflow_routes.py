@@ -7,7 +7,10 @@ from datetime import date, timedelta
 from html import escape
 from typing import Literal, cast
 
-from flask import abort, current_app, flash, get_flashed_messages, make_response, redirect, request, url_for
+from flask import (
+    abort, current_app, flash, get_flashed_messages, make_response, redirect,
+    render_template, request, url_for,
+)
 from sqlalchemy import text
 from sqlalchemy.exc import NoResultFound
 
@@ -718,18 +721,9 @@ def copy_get(family: str):
                 raise PartialWorkflowConflictError('Zielwoche ist nicht leer oder publiziert.')
             return target_ref.row_version
     target_version = _call(versions)
-    return _page(
-        f'<main id="main-content" data-profile="{profile}" data-source-week="{source.isoformat()}" '
-        f'data-target-week="{target.isoformat()}"><h1>Vorwoche kopieren</h1>'
-        f'<p>Woche vom {source.strftime("%d.%m.%Y")} in die leere Woche vom '
-        f'{target.strftime("%d.%m.%Y")} kopieren.</p>'
-        f'<form method="post" action="{escape(url_for("admin.copy_post", family=family))}">'
-        f'{_hidden("_csrf", _scoped_csrf(profile, "copy", scope))}'
-        f'{_hidden("source_week", source.isoformat())}{_hidden("target_week", target.isoformat())}'
-        f'{_hidden("target_row_version", target_version)}'
-        f'<button type="submit">Vorwoche kopieren</button></form>'
-        f'<a href="{escape(url_for(f"admin.{family}", week=target.isoformat()))}">'
-        f'Zurück zur Wochenübersicht</a></main>'
+    return render_template(
+        'admin/copy.html', profile=profile, family=family, source=source, target=target,
+        target_row_version=target_version, csrf=_scoped_csrf(profile, 'copy', scope),
     )
 
 @bp.post('/<any(cafeteria, patienten):family>/copy')
