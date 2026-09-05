@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 
 from flask import Flask
+from .food_symbols import food_legend, food_symbol
 from .menu_images import menu_image
 
 MONTHS = {
@@ -34,6 +35,8 @@ def iso_week(value: str) -> int:
 
 
 def register_template_filters(app: Flask) -> None:
+    app.add_template_filter(food_symbol, 'food_symbol')
+    app.add_template_filter(food_legend, 'food_legend')
     app.add_template_filter(menu_image, 'menu_image')
     app.add_template_filter(date_long, 'date_long')
     app.add_template_filter(date_short, 'date_short')

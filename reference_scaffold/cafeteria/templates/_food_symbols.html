@@ -1,0 +1,26 @@
+{% macro symbol(kind, code, tabler=false) -%}
+  {%- set item = code|food_symbol(kind) -%}
+  {%- if item -%}
+    <img class="food-symbol{% if tabler %} icon flex-shrink-0 object-fit-contain{% if kind == 'countries' %} w-auto{% endif %}{% elif kind == 'countries' %} food-symbol--country{% endif %}" src="{{ url_for('static', filename=item.filename) }}" width="{{ 32 if kind == 'countries' else 24 }}" height="24" alt="" aria-hidden="true" decoding="async">
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro allergen_text(item) -%}
+  {{- 'Enthält: ' if item.presence == 'contains' else 'Kann enthalten: ' if item.presence == 'may_contain' else 'Allergenangabe ungeklärt: ' -}}{{ item.name }}
+{%- endmacro %}
+
+{% macro legend(options, heading='Legende', tabler=false) -%}
+  {% set content = options|food_legend %}
+  {% if content.entries or content.allergens_unknown or content.review_open %}
+    <section class="food-legend{% if tabler %} mt-3{% endif %}" aria-label="{{ heading }}">
+      <h2{% if tabler %} class="h4"{% endif %}>{{ heading }}</h2>
+      <div class="labels{% if tabler %} badge-list{% endif %}">
+        {% for item in content.entries %}
+          <span class="label{% if item.kind == 'allergens' %} amber{% elif item.kind == 'labels' %} green{% endif %} {% if tabler %}badge mw-100 text-wrap text-start {{ 'bg-yellow-lt' if item.kind == 'allergens' else 'bg-green-lt' if item.kind == 'labels' else 'bg-secondary-lt' }}{% else %}food-declaration{% endif %}">{{ symbol(item.kind, item.code, tabler) }}<span{% if tabler %} class="text-break"{% endif %}>{{ allergen_text(item) if item.kind == 'allergens' else item.name }}</span></span>
+        {% endfor %}
+      </div>
+      {% if content.allergens_unknown %}<p>Allergenangaben nicht erfasst</p>{% endif %}
+      {% if content.review_open %}<p>Allergenprüfung offen</p>{% endif %}
+    </section>
+  {% endif %}
+{%- endmacro %}

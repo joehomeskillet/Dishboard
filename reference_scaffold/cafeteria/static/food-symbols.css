@@ -1,0 +1,23 @@
+/* Public pages do not load Tabler. Admin uses its native badge/icon utilities. */
+.food-declaration {
+  display: inline-flex;
+  align-items: center;
+  max-inline-size: 100%;
+  white-space: normal;
+}
+.food-declaration > span {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+.food-symbol {
+  display: inline-block;
+  inline-size: 1.5em;
+  block-size: 1.5em;
+  flex: none;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-inline-end: .375em;
+}
+.food-symbol--country { inline-size: 2em; }
+.food-legend { margin-block-start: 1rem; }
+.food-legend h2 { font-size: 1rem; }

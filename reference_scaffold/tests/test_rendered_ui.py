@@ -439,6 +439,7 @@ def test_admin_review_checkboxes_rehydrate_canonical_checked_status(
 )
 def test_today_channels_render_each_menu_metadata_pill_once(
     app: Flask,
+    browser: Browser,
     path: str,
     expected_pills: set[str],
 ) -> None:
@@ -465,13 +466,13 @@ def test_today_channels_render_each_menu_metadata_pill_once(
         ]
 
     html = _client(app).get(path).get_data(as_text=True)
-    pills = {
-        value.strip()
-        for value in re.findall(r'<span class="label(?: [^"]*)?">([^<]*)</span>', html)
-    }
-
-    assert len(re.findall(r'<span class="label(?: [^"]*)?">', html)) == 3
-    assert pills == expected_pills
+    page = _page(browser, html, 1440, 1100)
+    try:
+        pills = page.locator('.label')
+        assert pills.count() == 3
+        assert {value.strip() for value in pills.all_text_contents()} == expected_pills
+    finally:
+        page.close()
 
 
 def test_week_and_signage_routes_render_canonical_metadata_once_and_contained(
@@ -523,11 +524,12 @@ def test_week_and_signage_routes_render_canonical_metadata_once_and_contained(
         assert 'ROUTE_LABEL' not in html
         assert 'ROUTE_CONTAINS' not in html
         assert 'ROUTE_MAY' not in html
-        assert 'class="label green"' in html
-        assert 'class="label amber"' in html
-
         page = _page(browser, html, 1920, 1080)
         try:
+            assert page.locator('.label.green').all_text_contents() == ['Route Vegan']
+            assert page.locator('.label.amber').all_text_contents() == [
+                'Enthält: Route Gluten', 'Kann enthalten: Route Nüsse',
+            ]
             assert page.locator('.signage-tags').count() >= 1
             assert page.evaluate(
                 """

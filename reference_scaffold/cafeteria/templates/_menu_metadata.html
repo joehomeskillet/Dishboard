@@ -1,10 +1,12 @@
+{% from '_food_symbols.html' import symbol, allergen_text %}
+{% set tabler = tabler_admin|default(false) %}
 <div data-menu-metadata>
   {% if option.description %}<p class="menu-description">{{ option.description }}</p>{% endif %}
   {% if option.note %}<p class="shared-note">{{ option.note }}</p>{% endif %}
-  <div class="{{ metadata_class|default('labels') }}">
-    {% for origin in option.origins %}<span class="label">{{ origin.text }}</span>{% endfor %}
-    {% for label in option.labels %}<span class="label green">{{ label.name }}</span>{% endfor %}
-    {% for allergen in option.allergens %}<span class="label amber">{{ 'Kann enthalten: ' if allergen.presence == 'may_contain' else 'Enthält: ' }}{{ allergen.name }}</span>{% endfor %}
+  <div class="{{ metadata_class|default('labels') }}{% if tabler %} badge-list{% endif %}">
+    {% for origin in option.origins %}<span class="label {% if tabler %}badge bg-secondary-lt mw-100 text-wrap text-start{% else %}food-declaration{% endif %}">{{ symbol('countries', origin.country_code, tabler) }}<span{% if tabler %} class="text-break"{% endif %}>{{ origin.text }}</span></span>{% endfor %}
+    {% for label in option.labels %}<span class="label green{% if tabler %} badge bg-green-lt mw-100 text-wrap text-break{% endif %}">{{ label.name }}</span>{% endfor %}
+    {% for allergen in option.allergens %}<span class="label amber {% if tabler %}badge bg-yellow-lt mw-100 text-wrap text-start{% else %}food-declaration{% endif %}">{{ symbol('allergens', allergen.code, tabler) }}<span{% if tabler %} class="text-break"{% endif %}>{{ allergen_text(allergen) }}</span></span>{% endfor %}
   </div>
   {% if not option.allergens %}
     <p>Allergenangaben nicht erfasst</p>
