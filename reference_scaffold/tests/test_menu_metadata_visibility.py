@@ -105,12 +105,23 @@ def test_saved_metadata_reaches_overview_preview_editor_and_error_response(
     })
     assert invalid.status_code == 400
     for body in (editor_body, invalid.get_data(as_text=True)):
-        review = body.split('<div class="review-block">', 1)[1]
-        assert 'Enthält: Milch' in review
-        assert 'Kann enthalten: Sellerie' in review
-        assert 'Enthält: Sellerie' not in review
-        assert MISSING not in review
-        assert 'Zuletzt gespeicherter Stand' in review
+        if profile == 'patient':
+            assert PATIENT_FORBIDDEN.search(body) is None
+        for width in (390, 1440):
+            page = _page(browser, body, width, 1100)
+            try:
+                review = page.locator('.review-block')
+                expect(review).to_have_count(1)
+                expect(review).to_be_visible()
+                expect(review).to_contain_text('Enthält: Milch')
+                expect(review).to_contain_text('Kann enthalten: Sellerie')
+                expect(review).not_to_contain_text('Enthält: Sellerie')
+                expect(review).not_to_contain_text(MISSING)
+                expect(review).to_contain_text('Zuletzt gespeicherter Stand')
+                expect(review.locator('li').filter(has_text='Allergene:')).to_be_visible()
+                assert review.evaluate('el => el.scrollWidth <= el.clientWidth + 1')
+            finally:
+                page.close()
     empty_editor = client.get(
         f'/admin/{family}/menu?week={DAY}&day={DAY}&meal=LUNCH&option=VEGGIE'
     )

@@ -3,7 +3,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from jinja2 import Environment, FileSystemLoader
+import pytest
+from jinja2 import Environment, FileSystemLoader, nodes
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -55,10 +56,29 @@ def test_patient_templates_are_structurally_cost_free() -> None:
         r"|(?:internal|external)_rappen|price-row|signage-price|admin-price",
         re.IGNORECASE,
     )
-    for relative_path in PATIENT_TEMPLATES:
+    pending = list(PATIENT_TEMPLATES)
+    checked = set()
+    while pending:
+        relative_path = pending.pop()
+        if relative_path in checked:
+            continue
+        checked.add(relative_path)
         source = _template(relative_path)
         assert forbidden.search(source) is None, relative_path
-        assert "{% include" not in source, relative_path
+        for include in Environment().parse(source).find_all(nodes.Include):
+            assert isinstance(include.template, nodes.Const), relative_path
+            assert isinstance(include.template.value, str), relative_path
+            pending.append(include.template.value)
+
+
+@pytest.mark.parametrize('included_source', ['<span>CHF</span>', "{% include unknown_template %}"])
+def test_patient_include_guard_rejects_hidden_costs_and_dynamic_templates(monkeypatch, included_source):
+    original = _template
+    monkeypatch.setitem(globals(), '_template', lambda path: (
+        included_source if path == '_menu_metadata.html' else original(path)
+    ))
+    with pytest.raises(AssertionError, match='_menu_metadata.html'):
+        test_patient_templates_are_structurally_cost_free()
 
 
 def test_signage_players_are_fixed_noninteractive_surfaces() -> None:
