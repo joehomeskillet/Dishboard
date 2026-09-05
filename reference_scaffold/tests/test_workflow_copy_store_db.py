@@ -25,6 +25,7 @@ from cafeteria.component_catalog_store import (
 from cafeteria.db import withdraw_publication_revision
 from cafeteria.workflow_copy_store import copy_previous_week
 import test_admin_workflow_db as workflow_support
+from review_support import review_saved_week
 from test_component_catalog_db import CatalogDatabase, catalog_database
 
 
@@ -526,6 +527,7 @@ def test_copy_and_target_publish_block_on_week_without_hybrid(catalog_database: 
             catalog_database.app, 'patient', TARGET_WEEK, expected_row_version=1, actor_id=2,
             values=_patient_values(TARGET_WEEK, 'Publizierbares Ziel'),
         )
+        expected = review_saved_week(catalog_database.app, 'patient', TARGET_WEEK, 2)
     copy_engine, publish_engine = _separate_engine(catalog_database), _separate_engine(catalog_database)
     calls = {
         'copy': (copy_engine, '/* copy_week_lock */', lambda: copy_previous_week(
@@ -554,6 +556,7 @@ def test_active_and_inflight_withdrawal_are_conservative_and_atomic(catalog_data
         catalog_database.app, 'patient', TARGET_WEEK, expected_row_version=1, actor_id=2,
         values=_patient_values(TARGET_WEEK, 'Publiziertes Ziel'),
     )
+    version = review_saved_week(catalog_database.app, 'patient', TARGET_WEEK, 2)
     workflow.publish_draft(
         catalog_database.app, 'patient', TARGET_WEEK,
         expected_row_version=version, actor_id=2, issuer_engine=None,
@@ -669,6 +672,7 @@ def test_publish_location_lock_serializes_real_cutover(
         actor_id=2,
         values=_patient_values(TARGET_WEEK, 'Standort-Lock'),
     )
+    version = review_saved_week(catalog_database.app, 'patient', TARGET_WEEK, 2)
     publish_engine = _separate_engine(catalog_database)
     cutover_engine = create_engine(
         catalog_database.owner.url,
