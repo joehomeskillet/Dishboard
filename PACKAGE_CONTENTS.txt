@@ -1,10 +1,5 @@
 .github/workflows/pages.yml
 .gitignore
-.gitnexus/.gitignore
-.gitnexus/lbug
-.gitnexus/meta.json
-.gitnexus/parse-cache/1f040c7e403995f55071b934a534f63bb11058dc44c304aae540ccfb8c16897f.json
-.gitnexus/parse-cache/index.json
 architecture/auth_flow.dot
 architecture/auth_flow.png
 architecture/auth_flow.svg
@@ -103,6 +98,7 @@ design/screenshots/website-cafeteria-woche-1440x1100.png
 design/screenshots/website-patienten-woche-1440x1100.png
 docs/ABNAHME_CHECKLISTE.md
 docs/CSV_IMPORT_EXPORT.md
+docs/design/2026-09-05-admin-go-live-form-repair.md
 docs/design/admin-redesign-ui.md
 docs/design/therapieplan-alignment.md
 docs/DOCKER_COMPOSE_RUNBOOK.md
@@ -198,6 +194,7 @@ reference_scaffold/README.md
 reference_scaffold/requirements.txt
 reference_scaffold/tests/test_admin_csv_import.py
 reference_scaffold/tests/test_admin_draft_preview.py
+reference_scaffold/tests/test_admin_overview_forms.py
 reference_scaffold/tests/test_admin_ux_browser.py
 reference_scaffold/tests/test_admin_week_routes.py
 reference_scaffold/tests/test_admin_workflow_concurrency_db.py
@@ -214,6 +211,7 @@ reference_scaffold/tests/test_auth_routes.py
 reference_scaffold/tests/test_capture_live_screenshots.py
 reference_scaffold/tests/test_component_assignment_db.py
 reference_scaffold/tests/test_component_assignment_races_db.py
+reference_scaffold/tests/test_component_catalog_browser.py
 reference_scaffold/tests/test_component_catalog_db.py
 reference_scaffold/tests/test_component_catalog_metadata_db.py
 reference_scaffold/tests/test_component_catalog_migration_db.py
@@ -254,9 +252,11 @@ tools/build_csv_examples.py
 tools/build_demo_seed.py
 tools/build_manifest.py
 tools/build_sdd_docx.py
+tools/capture_admin_live_proof.py
 tools/capture_live_screenshots.py
 tools/capture_screenshots.py
 tools/demo_snapshots.py
+tools/rotate_admin_password.py
 tools/validate_package.py
 UEBERGABE-CLAUDE-2026-09-02.md
 VALIDATION.md
