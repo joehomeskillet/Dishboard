@@ -30,12 +30,25 @@ _SERVICE_QUERY_FOR_UPDATE = 'SELECT s.id,s.row_version,s.service_state FROM cafe
 _ITEM_QUERY = 'SELECT i.id,i.row_version,i.allergen_mode,i.origin_mode,i.label_mode FROM cafeteria.menu_items i JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id WHERE i.service_id=:service_id AND mt.code=:option'
 _ITEM_QUERY_FOR_UPDATE = 'SELECT i.id,i.row_version,i.allergen_mode,i.origin_mode,i.label_mode FROM cafeteria.menu_items i JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id WHERE i.service_id=:service_id AND mt.code=:option FOR UPDATE OF i'
 
-class PartialWorkflowValidationError(ValueError): pass
-class PartialWorkflowNotFoundError(LookupError): pass
-class PartialWorkflowConflictError(RuntimeError): pass
+class PartialWorkflowValidationError(ValueError):
+    pass
+
+
+class PartialWorkflowNotFoundError(LookupError):
+    pass
+
+
+class PartialWorkflowConflictError(RuntimeError):
+    pass
+
+
 @dataclass(frozen=True)
 class WeekRef:
-    week_id: int; location_id: int; profile_code: str; week_start: date; row_version: int
+    week_id: int
+    location_id: int
+    profile_code: str
+    week_start: date
+    row_version: int
 
 def _expected(value: int, label: str) -> int:
     if type(value) is not int or value < 0:

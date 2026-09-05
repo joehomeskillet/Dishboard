@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
-from types import SimpleNamespace
 
 import pytest
 from sqlalchemy import event, text
@@ -24,7 +23,7 @@ from cafeteria.component_catalog_store import (
     unarchive_component,
     update_component,
 )
-from test_component_catalog_db import CatalogDatabase, _link_component, _scope, catalog_database
+from test_component_catalog_db import CatalogDatabase, _link_component, _scope, catalog_database  # noqa: F401 - registers pytest fixture
 
 
 FULL_KEYS = {
@@ -131,7 +130,7 @@ def _set_master_active(database: CatalogDatabase, table: str, code: str, active:
 
 
 def test_metadata_exact_contract_and_stable_order_across_create_get_find(
-    catalog_database: CatalogDatabase,
+    catalog_database: CatalogDatabase,  # noqa: F811 - pytest fixture injection
 ) -> None:
     component = _create(
         catalog_database,
@@ -230,7 +229,7 @@ def test_resolver_rejects_broken_or_missing_helper_contract_before_child_reads(
     ],
 )
 def test_create_rejects_invalid_metadata_without_parent_or_child_mutation(
-    catalog_database: CatalogDatabase,
+    catalog_database: CatalogDatabase,  # noqa: F811 - pytest fixture injection
     labels: object,
     allergens: object,
 ) -> None:
@@ -246,7 +245,7 @@ def test_create_rejects_invalid_metadata_without_parent_or_child_mutation(
 
 
 def test_metadata_size_cap_rejects_65_before_db_and_allows_64_to_normal_validation(
-    catalog_database: CatalogDatabase,
+    catalog_database: CatalogDatabase,  # noqa: F811 - pytest fixture injection
 ) -> None:
     codes_65 = tuple(f'X{i:02d}' for i in range(65))
     helper_calls: list[dict[str, object]] = []
@@ -285,7 +284,7 @@ def test_metadata_size_cap_rejects_65_before_db_and_allows_64_to_normal_validati
 
 
 def test_create_and_update_each_call_helper_once_with_bound_arrays(
-    catalog_database: CatalogDatabase,
+    catalog_database: CatalogDatabase,  # noqa: F811 - pytest fixture injection
 ) -> None:
     calls: list[dict[str, object]] = []
 
@@ -314,7 +313,7 @@ def test_create_and_update_each_call_helper_once_with_bound_arrays(
 
 
 def test_update_replaces_clears_and_noop_preserves_version_and_timestamp(
-    catalog_database: CatalogDatabase,
+    catalog_database: CatalogDatabase,  # noqa: F811 - pytest fixture injection
 ) -> None:
     component = _create(
         catalog_database,
@@ -344,7 +343,7 @@ def test_update_replaces_clears_and_noop_preserves_version_and_timestamp(
 
 
 def test_update_validates_complete_replacement_before_delete(
-    catalog_database: CatalogDatabase,
+    catalog_database: CatalogDatabase,  # noqa: F811 - pytest fixture injection
 ) -> None:
     component = _create(catalog_database)
     public_id = str(component['public_id'])
@@ -362,7 +361,7 @@ def test_update_validates_complete_replacement_before_delete(
 
 
 def test_inactive_existing_links_may_remain_or_be_removed_but_not_added_or_changed(
-    catalog_database: CatalogDatabase,
+    catalog_database: CatalogDatabase,  # noqa: F811 - pytest fixture injection
 ) -> None:
     component = _create(catalog_database)
     public_id = str(component['public_id'])
@@ -386,7 +385,7 @@ def test_inactive_existing_links_may_remain_or_be_removed_but_not_added_or_chang
 
 
 def test_inactive_allergen_presence_cannot_change_while_linked(
-    catalog_database: CatalogDatabase,
+    catalog_database: CatalogDatabase,  # noqa: F811 - pytest fixture injection
 ) -> None:
     component = _create(catalog_database)
     public_id = str(component['public_id'])
@@ -400,7 +399,7 @@ def test_inactive_allergen_presence_cannot_change_while_linked(
 
 
 def test_stale_and_name_conflict_roll_back_both_child_sets(
-    catalog_database: CatalogDatabase,
+    catalog_database: CatalogDatabase,  # noqa: F811 - pytest fixture injection
 ) -> None:
     first = _create(catalog_database, name='Erste')
     second = _create(catalog_database, name='Zweite', labels=('VEGETARIAN',), allergens=(('EGGS', 'contains'),))
@@ -421,7 +420,7 @@ def test_stale_and_name_conflict_roll_back_both_child_sets(
 
 
 def test_synchronized_updates_have_one_winner_and_no_mixed_child_state(
-    catalog_database: CatalogDatabase,
+    catalog_database: CatalogDatabase,  # noqa: F811 - pytest fixture injection
 ) -> None:
     component = _create(catalog_database, labels=(), allergens=())
     public_id = str(component['public_id'])
@@ -451,7 +450,7 @@ def test_synchronized_updates_have_one_winner_and_no_mixed_child_state(
 
 
 def test_archive_unarchive_retains_metadata_and_never_mutates_linked_item_state(
-    catalog_database: CatalogDatabase,
+    catalog_database: CatalogDatabase,  # noqa: F811 - pytest fixture injection
 ) -> None:
     component = _create(catalog_database)
     public_id = str(component['public_id'])

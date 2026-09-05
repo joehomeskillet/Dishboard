@@ -18,7 +18,7 @@ from cafeteria.component_catalog_store import (
     unarchive_component,
     update_component,
 )
-from test_component_catalog_db import CatalogDatabase, _scope, catalog_database
+from test_component_catalog_db import CatalogDatabase, _scope, catalog_database  # noqa: F401 - registers pytest fixture
 
 
 Operation = Callable[[], object]
@@ -115,7 +115,7 @@ def _component_state(
 
 @pytest.mark.parametrize('winner', [0, 1])
 def test_create_race_is_atomic_in_both_winner_orders(
-    catalog_database: CatalogDatabase,
+    catalog_database: CatalogDatabase,  # noqa: F811 - pytest fixture injection
     winner: int,
 ) -> None:
     candidates = (
@@ -157,7 +157,7 @@ def test_create_race_is_atomic_in_both_winner_orders(
 
 @pytest.mark.parametrize('winner', [0, 1])
 def test_update_race_is_atomic_in_both_winner_orders(
-    catalog_database: CatalogDatabase,
+    catalog_database: CatalogDatabase,  # noqa: F811 - pytest fixture injection
     winner: int,
 ) -> None:
     component = create_component(
@@ -203,7 +203,7 @@ def test_update_race_is_atomic_in_both_winner_orders(
 
 @pytest.mark.parametrize('winner', [0, 1])
 def test_update_archive_race_is_atomic_in_both_winner_orders(
-    catalog_database: CatalogDatabase,
+    catalog_database: CatalogDatabase,  # noqa: F811 - pytest fixture injection
     winner: int,
 ) -> None:
     component = create_component(
@@ -242,7 +242,7 @@ def test_update_archive_race_is_atomic_in_both_winner_orders(
 
 @pytest.mark.parametrize('winner', [0, 1])
 def test_update_unarchive_race_is_atomic_in_both_winner_orders(
-    catalog_database: CatalogDatabase,
+    catalog_database: CatalogDatabase,  # noqa: F811 - pytest fixture injection
     winner: int,
 ) -> None:
     component = create_component(
