@@ -98,6 +98,7 @@ design/screenshots/website-cafeteria-woche-1440x1100.png
 design/screenshots/website-patienten-woche-1440x1100.png
 docs/ABNAHME_CHECKLISTE.md
 docs/CSV_IMPORT_EXPORT.md
+docs/design/2026-09-05-admin-copy-polish.md
 docs/design/2026-09-05-admin-csv-import-return.md
 docs/design/2026-09-05-admin-csv-preview-polish.md
 docs/design/2026-09-05-admin-go-live-form-repair.md
@@ -162,6 +163,7 @@ reference_scaffold/cafeteria/template_filters.py
 reference_scaffold/cafeteria/templates/admin/cafeteria.html
 reference_scaffold/cafeteria/templates/admin/component_editor.html
 reference_scaffold/cafeteria/templates/admin/components.html
+reference_scaffold/cafeteria/templates/admin/copy.html
 reference_scaffold/cafeteria/templates/admin/import_preview.html
 reference_scaffold/cafeteria/templates/admin/menu_editor.html
 reference_scaffold/cafeteria/templates/admin/patienten.html
@@ -194,6 +196,7 @@ reference_scaffold/cafeteria/workflow_store.py
 reference_scaffold/manage.py
 reference_scaffold/README.md
 reference_scaffold/requirements.txt
+reference_scaffold/tests/test_admin_copy_ui.py
 reference_scaffold/tests/test_admin_csv_import.py
 reference_scaffold/tests/test_admin_csv_preview_ui.py
 reference_scaffold/tests/test_admin_draft_preview.py
