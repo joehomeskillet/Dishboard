@@ -774,3 +774,7 @@ def publish(family: str):
         issuer_engine=current_app.extensions.get('cafeteria_auth_issuer_db'), expected_location_id=scope.location_id))
     flash(f'Publiziert: {snapshot["revision_id"]}')
     return redirect(url_for(f'admin.{family}', week=week.isoformat()), 303)
+
+
+# Register saved-week printing after the shared workflow helpers are defined.
+from . import print_routes as print_routes  # noqa: E402, F401
