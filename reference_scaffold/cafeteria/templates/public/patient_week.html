@@ -3,7 +3,7 @@
 {% block body %}
 <header class="site-header"><nav class="site-nav" aria-label="Hauptnavigation"><a href="{{ url_for('public.patient_today') }}">Patienten heute</a><a class="active" href="{{ url_for('public.patient_week') }}" aria-current="page">Patienten Woche</a><span class="channel-links"><a href="{{ url_for('public.cafeteria_week') }}">Cafeteria</a></span></nav><a class="site-logo" href="{{ url_for('public.cafeteria_today') }}"><img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="site-logo-img" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="205" height="40"></a></header>
 <main class="public-shell" id="main-content">
-<section class="hero"><div><p class="eyebrow">Patienten-Speiseplan · Wochenübersicht</p><h1>{{ (snapshot.week_start|date_long) ~ ' bis ' ~ (snapshot.week_end|date_long) if snapshot else 'Keine Publikation' }}</h1><p class="hero-copy">Montag bis Sonntag · Mittag und Abend</p></div><div class="date-chip">{{ 'Kalenderwoche ' ~ (snapshot.days[0].date|iso_week) if snapshot and snapshot.days else 'KW ?' }}</div></section>
+<section class="hero"><div><p class="eyebrow">Patienten-Speiseplan · Wochenübersicht</p><h1>{{ (snapshot.week_start|date_long) ~ ' bis ' ~ (snapshot.week_end|date_long) if snapshot else 'Wochenplan nicht verfügbar' }}</h1><p class="hero-copy">Montag bis Sonntag · Mittag und Abend</p></div>{% if snapshot %}<div class="date-chip">Kalenderwoche {{ snapshot.week_start|iso_week }}</div>{% endif %}</section>
 {% if snapshot %}
 <section class="week-list">
 {% for day in snapshot.days %}
@@ -14,7 +14,7 @@
 {% endfor %}
 </section>
 {% else %}
-<section class="empty-state"><h2>Kein veröffentlichter Patienten-Speiseplan</h2><p>Für diese Kalenderwoche liegt noch keine freigegebene Revision vor.</p></section>
+<section class="empty-state"><h2>Kein Patienten-Speiseplan verfügbar</h2><p>Für diese Woche ist noch kein Speiseplan verfügbar.</p></section>
 {% endif %}
 <aside class="patient-notice"><h2>Allgemeiner Speiseplan</h2><p>Die Übersicht ersetzt keine individuelle Ernährungsberatung und keine verordnete Kostform.</p></aside>
 </main>

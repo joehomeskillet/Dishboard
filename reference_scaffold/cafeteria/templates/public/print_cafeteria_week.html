@@ -8,7 +8,7 @@
     <span>Cafeteria · Mitarbeitende und externe Gäste</span>
   </header>
   <section class="hero">
-    <div><p class="eyebrow">Druck · Cafeteria</p><h1>{{ snapshot.title if snapshot else 'Keine Publikation' }}</h1><p class="hero-copy">Mittag von Montag bis Freitag.</p></div>
+    <div><p class="eyebrow">Druck · Cafeteria</p><h1>{{ snapshot.title if snapshot else 'Wochenplan nicht verfügbar' }}</h1><p class="hero-copy">Mittag von Montag bis Freitag.</p></div>
   </section>
   <section class="week-list" aria-label="Cafeteria-Wochenplan">
     {% for day in open_days %}
@@ -24,6 +24,5 @@
     </article>
     {% endfor %}
   </section>
-  <footer class="print-footer"><span>Kanal: Cafeteria Woche</span><span>Revision {{ snapshot.revision_id if snapshot else '–' }}</span></footer>
 </main>
 {% endblock %}

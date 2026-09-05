@@ -10,7 +10,7 @@
         {% include '_menu_image.html' %}
         {% include '_menu_metadata.html' %}</article>{% endfor %}</div>{% else %}<aside class="patient-notice"><h3>{{ meal.meal_name }} geschlossen</h3><p>{{ meal.notice }}</p></aside>{% endif %}</section>
 {% endfor %}
-{% else %}<aside class="patient-notice"><h2>Kein Speiseplan verfügbar</h2><p>Für diesen Kalendertag liegt keine vollständige Freigabe vor.</p></aside>{% endif %}
+{% else %}<aside class="patient-notice"><h2>Kein Speiseplan verfügbar</h2><p>Für diesen Tag ist noch kein vollständiger Speiseplan verfügbar.</p></aside>{% endif %}
 <aside class="patient-notice"><h2>Hinweis</h2><p>Dies ist der allgemeine Stationsspeiseplan. Individuelle Kostformen und ärztlich verordnete Ernährungsformen werden separat berücksichtigt.</p></aside>
 </main>
 {% endblock %}

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Patienten Signage Woche{% endblock %}
+{% block title %}Patienten-Wochenplan{% endblock %}
 {% block head %}<meta http-equiv="refresh" content="300">{% endblock %}
 {% block body_class %}signage{% endblock %}
 {% block skip_link %}{% endblock %}
 {% block body %}
-<main class="signage-shell patient-week-shell" aria-label="Patienten-Wochenplayer">
+<main class="signage-shell patient-week-shell" aria-label="Patienten-Wochenplan">
   <header class="signage-header">
     <div class="signage-brand">
       <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="signage-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="205" height="40">
@@ -41,8 +41,7 @@
     {% endfor %}
   </section>
   {% else %}
-  <section class="signage-empty"><strong>Kein publizierter Patienten-Wochenplan</strong><span>Dieser Kanal bleibt bis zur nächsten Freigabe leer.</span></section>
+  <section class="signage-empty"><strong>Wochenplan nicht verfügbar</strong><span>Für diese Woche ist noch kein Patienten-Speiseplan verfügbar.</span></section>
   {% endif %}
-  <footer class="signage-footer"><span>Kanal: Patienten Woche · Revision {{ snapshot.revision_id if snapshot else '-' }}</span><span class="resolution-note">Produktiver Wochenplayer: 3840 × 2160</span><span class="status-line"><span class="status-dot" aria-hidden="true"></span>Publizierter Datenstand</span></footer>
 </main>
 {% endblock %}

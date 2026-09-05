@@ -17,7 +17,29 @@ SPEC.loader.exec_module(capture_tool)
 BASE = 'https://dishboard.example.invalid'
 
 
-@pytest.mark.parametrize('fault', [None, 'empty_query', 'empty_weeks', 'http_500', 'wrong_profile', 'missing_nav', 'wrong_row_scope', 'missing_row_links'])
+@pytest.mark.parametrize('content', [
+    'CHF12', '12CHF', 'CHF 12', '12 CHF', 'chf', 'chf12.50', '12.50cHf',
+    'CHF\u00a012.50', '12\u202fCHF', 'Preiselbeeren CHF12',
+    'Preis', 'Preise', 'Menüpreis', 'Preisangaben', 'price', 'prices', 'Kosten', 'Rappen',
+    '<input type="hidden" name="internal_rappen" value="1200">',
+    '<input name="external_rappen">', '<input name="internalPrice">',
+    '<input name="preis_intern">', '<div class="price-row"></div>',
+    '<div data-chf="12"></div>', '<div data-price="12">Preiselbeeren</div>',
+])
+def test_patient_price_guard_rejects_currency_vocabulary_and_structural_fields(content: str) -> None:
+    assert capture_tool.PATIENT_PRICE_VOCABULARY.search(content) is not None
+
+
+@pytest.mark.parametrize('content', [
+    'Milchfreiheit', 'Milchfrei', 'MILCHFREIHEIT prüfen', 'Fleischfond',
+    'Preiselbeeren', 'PREISELBEEREN', 'Preiselbeere', 'Preiselbeerkompott',
+    '<main><p>Milchfreiheit prüfen; Fleischfond und Preiselbeeren.</p></main>',
+])
+def test_patient_price_guard_accepts_food_names_and_notes(content: str) -> None:
+    assert capture_tool.PATIENT_PRICE_VOCABULARY.search(content) is None
+
+
+@pytest.mark.parametrize('fault', [None, 'empty_query', 'empty_weeks', 'http_500', 'wrong_profile', 'missing_nav', 'wrong_row_scope', 'missing_row_links', 'food_note', 'berries', 'patient_price'])
 def test_planning_pages_are_required_even_when_legacy_workflow_fails(tmp_path: Path, fault: str | None, monkeypatch) -> None:
     # Real Tabler behavior/assets are exercised by test_capture_admin_tabler_browser.py.
     monkeypatch.setattr(capture_tool, 'audit_tabler', lambda *_: {})
@@ -43,7 +65,12 @@ def test_planning_pages_are_required_even_when_legacy_workflow_fails(tmp_path: P
         'inline_scripts': 0, 'inline_handlers': 0, 'inline_styles': 0,
         'overflow_px': 0, 'controls_below_44px': 0,
     }
-    page.content.return_value = '<html><main>Menüplanung</main></html>'
+    content = {
+        'food_note': 'Milchfreiheit prüfen; Fleischfond enthalten.',
+        'berries': 'Preiselbeeren mit Preiselbeerkompott',
+        'patient_price': 'CHF12.50',
+    }.get(fault or '', 'Menüplanung')
+    page.content.return_value = f'<html><main>{content}</main></html>'
 
     def screenshot(path: str, **kwargs) -> bytes:
         data = b'mocked screenshot, no browser launched'
@@ -93,9 +120,13 @@ def test_planning_pages_are_required_even_when_legacy_workflow_fails(tmp_path: P
         assert f'{name}.profile' in proof['checks']
         assert f'{name}.nav_current' in proof['checks']
     failures = [name for name in proof['failures'] if '.overview.' not in name]
-    if fault in (None, 'empty_query', 'empty_weeks'):
+    if fault in (None, 'empty_query', 'empty_weeks', 'food_note', 'berries'):
         assert failures == []
         assert all(proof['checks'].values())
+    elif fault == 'patient_price':
+        assert set(failures) == {
+            f'desktop.patienten.{section}.no_price_vocabulary' for section in ('menus', 'weeks')
+        }
     else:
         suffix = {
             'http_500': 'http_200', 'wrong_profile': 'profile',

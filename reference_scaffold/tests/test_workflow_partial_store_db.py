@@ -316,7 +316,7 @@ def test_item_payload_effects_prices_and_neighbour_isolation(
         ['GLUTEN_FREE'],
         [('MILK', 'contains')],
     )
-    assignments = [
+    assignments: list[dict[str, object]] = [
         {'component_public_id': str(component['public_id']), 'component_text': None},
         {'component_public_id': None, 'component_text': '  Freitext\t'},
     ]
@@ -331,7 +331,7 @@ def test_item_payload_effects_prices_and_neighbour_isolation(
         '2026-09-01',
         'DINNER',
         'VEGGIE',
-        _payload(title='Nachbar'),
+        _payload(title='Nachbar', assignments=assignments[:1], modes=('auto', 'auto', 'auto')),
         0,
     ) == 1
     with db.owner.connect() as connection:
@@ -360,7 +360,9 @@ def test_item_payload_effects_prices_and_neighbour_isolation(
         assert rows[0:3] == ('Rindsgeschnetzeltes', 1, 'not_checked')
         assert rows[3] == ['Rind', '  Freitext\t']
         assert str(component['public_id']) in rows[4]
-        assert 'GLUTEN_FREE' in rows[5] and 'MILK' in rows[6] and 'Rind: CH' in rows[7]
+        # Unknown free text prevents dietary claims, but known allergens/origins remain.
+        assert rows[5] == [None]
+        assert 'MILK' in rows[6] and 'Rind: CH' in rows[7]
 
     manual = _payload(title='Geändert')
     assert persist_menu_item(
@@ -376,7 +378,11 @@ def test_item_payload_effects_prices_and_neighbour_isolation(
         neighbour = connection.execute(
             text(
                 '''
-                SELECT i.title, i.row_version FROM cafeteria.menu_items i
+                SELECT i.title, i.row_version,
+                       ARRAY(SELECT dl.code FROM cafeteria.menu_item_labels il
+                             JOIN cafeteria.dietary_labels dl ON dl.id=il.label_id
+                             WHERE il.menu_item_id=i.id ORDER BY dl.code)
+                FROM cafeteria.menu_items i
                 JOIN cafeteria.menu_services s ON s.id=i.service_id
                 JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id
                 JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id
@@ -384,7 +390,7 @@ def test_item_payload_effects_prices_and_neighbour_isolation(
                 '''
             )
         ).one()
-        assert neighbour == ('Nachbar', 1)
+        assert neighbour == ('Nachbar', 1, ['GLUTEN_FREE'])
 
     staff = _scope(db, 'staff_guest')
     assert persist_menu_item(

@@ -328,8 +328,9 @@ def test_copy_exact_prior_week_and_empty_source(client, database_engine: Engine,
     assert offered.status_code == 200
     offered_body = offered.get_data(as_text=True)
     assert _hidden(offered_body, 'target_row_version') == '0'
+    offered_csrf = _hidden(offered_body, '_csrf', form_action='/admin/patienten/copy')
     extra = client.post('/admin/patienten/copy', data={
-        '_csrf': _hidden(offered_body, '_csrf'),
+        '_csrf': offered_csrf,
         'source_week': WEEK.isoformat(),
         'target_week': target.isoformat(),
         'target_row_version': '0',
@@ -337,7 +338,7 @@ def test_copy_exact_prior_week_and_empty_source(client, database_engine: Engine,
     })
     assert extra.status_code == 400
     empty = client.post('/admin/patienten/copy', data={
-        '_csrf': _hidden(offered_body, '_csrf'),
+        '_csrf': offered_csrf,
         'source_week': WEEK.isoformat(),
         'target_week': target.isoformat(),
         'target_row_version': '0',
@@ -353,15 +354,16 @@ def test_copy_exact_prior_week_and_empty_source(client, database_engine: Engine,
     existing = client.get(f'/admin/patienten/copy?week={target.isoformat()}')
     assert existing.status_code == 200
     assert _hidden(existing.get_data(as_text=True), 'target_row_version') == '1'
+    existing_csrf = _hidden(existing.get_data(as_text=True), '_csrf', form_action='/admin/patienten/copy')
     mismatch = client.post('/admin/patienten/copy', data={
-        '_csrf': _hidden(existing.get_data(as_text=True), '_csrf'),
+        '_csrf': existing_csrf,
         'source_week': WEEK.isoformat(),
         'target_week': (target + dt.timedelta(days=7)).isoformat(),
         'target_row_version': '0',
     })
     assert mismatch.status_code == 400
     exists = client.post('/admin/patienten/copy', data={
-        '_csrf': _hidden(existing.get_data(as_text=True), '_csrf'),
+        '_csrf': existing_csrf,
         'source_week': WEEK.isoformat(),
         'target_week': target.isoformat(),
         'target_row_version': '0',
@@ -374,7 +376,7 @@ def test_copy_exact_prior_week_and_empty_source(client, database_engine: Engine,
     assert client.get(f'/admin/patienten/copy?week={target.isoformat()}').status_code == 409
     assert client.get('/admin/patienten/copy?week=2026-09-21').status_code == 404
     missing = client.post('/admin/patienten/copy', data={
-        '_csrf': _hidden(existing.get_data(as_text=True), '_csrf'),
+        '_csrf': existing_csrf,
         'source_week': '2026-09-14',
         'target_week': '2026-09-21',
         'target_row_version': '1',
@@ -632,7 +634,7 @@ def test_copy_uses_latest_saved_source_draft(
     }, 1)
 
     response = client.post('/admin/patienten/copy', data={
-        '_csrf': _hidden(body, '_csrf'),
+        '_csrf': _hidden(body, '_csrf', form_action='/admin/patienten/copy'),
         'source_week': WEEK.isoformat(),
         'target_week': target.isoformat(),
         'target_row_version': '0',

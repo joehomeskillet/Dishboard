@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Patienten Signage Tag{% endblock %}
+{% block title %}Patienten-Tagesplan{% endblock %}
 {% block head %}<meta http-equiv="refresh" content="300">{% endblock %}
 {% block body_class %}signage{% endblock %}
 {% block skip_link %}{% endblock %}
 {% block body %}
-<main class="signage-shell" aria-label="Patienten-Tagesplayer">
+<main class="signage-shell" aria-label="Patienten-Tagesplan">
   <header class="signage-header">
     <div class="signage-brand">
       <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="signage-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="205" height="40">
@@ -33,8 +33,7 @@
     {% endfor %}
   </section>
   {% else %}
-  <section class="closed-signage"><div class="closed-card"><span class="closed-icon" aria-hidden="true">×</span><h1>Speiseplan<br>nicht verfügbar</h1><p>Für diesen Kalendertag liegt keine vollständige Freigabe vor.</p></div></section>
+  <section class="closed-signage"><div class="closed-card"><span class="closed-icon" aria-hidden="true">×</span><h1>Speiseplan<br>nicht verfügbar</h1><p>Für diesen Tag ist noch kein vollständiger Speiseplan verfügbar.</p></div></section>
   {% endif %}
-  <footer class="signage-footer"><span>Kanal: Patienten Tag · Revision {{ snapshot.revision_id if snapshot else '-' }}</span><span class="status-line"><span class="status-dot" aria-hidden="true"></span>Publizierter Datenstand</span></footer>
 </main>
 {% endblock %}

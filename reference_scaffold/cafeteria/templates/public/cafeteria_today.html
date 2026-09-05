@@ -33,7 +33,7 @@
   {% elif lunch %}
   <aside class="detail-panel"><h2>Cafeteria geschlossen</h2><p>{{ lunch.notice }}</p></aside>
   {% else %}
-  <aside class="detail-panel"><h2>Cafeteria geschlossen</h2><p>{{ day.notice if day and day.notice else 'Für diesen Tag ist kein öffentliches Cafeteria-Angebot publiziert.' }}</p></aside>
+  <aside class="detail-panel"><h2>Cafeteria geschlossen</h2><p>{{ day.notice if day and day.notice else 'Für diesen Tag ist kein Cafeteria-Angebot verfügbar.' }}</p></aside>
   {% endif %}
   <aside class="detail-panel"><h2>Allergene und Herkunft</h2><p>Die vollständige Deklaration ist beim Cafeteria-Team erhältlich. Änderungen bei kurzfristiger Warenverfügbarkeit bleiben vorbehalten.</p></aside>
 </main>

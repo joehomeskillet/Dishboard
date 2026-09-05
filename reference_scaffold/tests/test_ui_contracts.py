@@ -114,7 +114,7 @@ def test_signage_grids_and_readability_are_explicit() -> None:
         assert "Externe CHF" in source
 
     patient_week = _template("signage/patient_week.html")
-    assert "3840 × 2160" in patient_week
+    assert "3840 × 2160" not in patient_week
     assert "snapshot.days" in patient_week
     assert "day.services" in patient_week
 
@@ -137,7 +137,8 @@ def test_print_views_use_dedicated_print_surface() -> None:
         source = _template(relative_path)
         assert "{% block body_class %}print-body{% endblock %}" in source, relative_path
         assert 'class="print-header"' in source, relative_path
-        assert 'class="print-footer"' in source, relative_path
+        assert 'class="public-shell print-shell"' in source, relative_path
+        assert 'class="week-list"' in source, relative_path
 
     css = _compact((STATIC_ROOT / "app.css").read_text(encoding="utf-8"))
     assert "@page {" in css
