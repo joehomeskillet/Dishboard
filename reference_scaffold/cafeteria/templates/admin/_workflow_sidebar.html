@@ -14,6 +14,7 @@
   {% set weeks_url = url_for('admin.' ~ family, week=week) if week is defined and week else url_for('admin.' ~ family) %}
   <nav class="admin-nav" aria-label="Backend">
     <a href="{{ weeks_url }}"{% if workflow_nav == 'weeks' %} class="active" aria-current="page"{% endif %}>Wochenpläne</a>
+    <a href="{{ url_for('admin.week_management', family=family) }}"{% if workflow_nav == 'management' %} class="active" aria-current="page"{% endif %}>Wochenverwaltung</a>
     <a href="/admin/{{ family }}/menues"{% if workflow_nav == 'menus' %} class="active" aria-current="page"{% endif %}>Menüs</a>
     <a href="/admin/{{ family }}/komponenten"{% if workflow_nav == 'components' %} class="active" aria-current="page"{% endif %}>Komponenten</a>
     <a href="{{ url_for('admin.import_preview') }}">CSV Import</a>

@@ -23,6 +23,7 @@
     </div>
     <nav class="admin-nav" aria-label="Backend">
       <a class="active" href="{{ url_for('admin.patienten') }}" aria-current="page">Wochenpläne</a>
+      <a href="{{ url_for('admin.week_management', family=family) }}">Wochenverwaltung</a>
       <a href="/admin/{{ family }}/menues">Menüs</a>
       <a href="/admin/{{ family }}/komponenten">Komponenten</a>
       <a href="{{ url_for('admin.import_preview') }}">CSV Import</a>
