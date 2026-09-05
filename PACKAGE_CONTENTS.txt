@@ -307,6 +307,10 @@ design/screenshots/admin-tabler/week-review-2026-09-05/patienten-360-read-only-c
 design/screenshots/admin-tabler/week-review-2026-09-05/patienten-360-receipt.png
 design/screenshots/admin-tabler/week-review-2026-09-05/patienten-768-open.png
 design/screenshots/admin-tabler/week-review-2026-09-05/patienten-768-receipt.png
+design/screenshots/global-density-2026-09-06/display-compact-390-js-True.png
+design/screenshots/global-density-2026-09-06/display-compact-820-js-True.png
+design/screenshots/global-density-2026-09-06/display-global-comfortable-1440.png
+design/screenshots/global-density-2026-09-06/display-global-compact-1440.png
 design/screenshots/live/admin-cafeteria-1440x900.png
 design/screenshots/live/admin-patienten-1440x900.png
 design/screenshots/live/auth-local-1440x900.png
@@ -379,6 +383,8 @@ docs/superpowers/admin-menu-collection-0905.md
 docs/superpowers/admin-next-0905.md
 docs/superpowers/admin-week-print-0905.md
 docs/superpowers/allergen-proposals-0905.md
+docs/superpowers/api-claude-handoff-0906.md
+docs/superpowers/backlog-execution-0906.md
 docs/superpowers/metadata-visibility-0905.md
 docs/superpowers/plans/2026-09-01-dishboard-menuplanung.md
 docs/superpowers/plans/2026-09-02-dishboard-admin-redesign.md
@@ -396,6 +402,7 @@ PACKAGE_CONTENTS.txt
 README.md
 reference_scaffold/cafeteria/__init__.py
 reference_scaffold/cafeteria/admin/__init__.py
+reference_scaffold/cafeteria/admin/display_routes.py
 reference_scaffold/cafeteria/admin/menu_collection_routes.py
 reference_scaffold/cafeteria/admin/menu_collection_store.py
 reference_scaffold/cafeteria/admin/print_routes.py
@@ -412,6 +419,7 @@ reference_scaffold/cafeteria/auth/issuer.py
 reference_scaffold/cafeteria/auth/routes.py
 reference_scaffold/cafeteria/auth/service.py
 reference_scaffold/cafeteria/component_assignment_store.py
+reference_scaffold/cafeteria/component_catalog_filters.py
 reference_scaffold/cafeteria/component_catalog_metadata.py
 reference_scaffold/cafeteria/component_catalog_store.py
 reference_scaffold/cafeteria/component_effects.py
@@ -420,6 +428,7 @@ reference_scaffold/cafeteria/credentials.py
 reference_scaffold/cafeteria/csvio.py
 reference_scaffold/cafeteria/database_roles.py
 reference_scaffold/cafeteria/db.py
+reference_scaffold/cafeteria/display_settings.py
 reference_scaffold/cafeteria/health/__init__.py
 reference_scaffold/cafeteria/health/routes.py
 reference_scaffold/cafeteria/menu_images.py
@@ -505,6 +514,7 @@ reference_scaffold/cafeteria/templates/admin/cafeteria.html
 reference_scaffold/cafeteria/templates/admin/component_editor.html
 reference_scaffold/cafeteria/templates/admin/components.html
 reference_scaffold/cafeteria/templates/admin/copy.html
+reference_scaffold/cafeteria/templates/admin/display_settings.html
 reference_scaffold/cafeteria/templates/admin/import_preview.html
 reference_scaffold/cafeteria/templates/admin/menu_collection.html
 reference_scaffold/cafeteria/templates/admin/menu_editor.html
@@ -547,6 +557,8 @@ reference_scaffold/tests/review_support.py
 reference_scaffold/tests/test_admin_copy_ui.py
 reference_scaffold/tests/test_admin_csv_import.py
 reference_scaffold/tests/test_admin_csv_preview_ui.py
+reference_scaffold/tests/test_admin_display_browser.py
+reference_scaffold/tests/test_admin_display_settings.py
 reference_scaffold/tests/test_admin_draft_preview.py
 reference_scaffold/tests/test_admin_form_contracts.py
 reference_scaffold/tests/test_admin_menu_editor_browser.py
@@ -583,6 +595,9 @@ reference_scaffold/tests/test_component_catalog_metadata_db.py
 reference_scaffold/tests/test_component_catalog_migration_db.py
 reference_scaffold/tests/test_component_catalog_race_db.py
 reference_scaffold/tests/test_component_catalog_routes.py
+reference_scaffold/tests/test_component_filters_browser.py
+reference_scaffold/tests/test_component_filters_db.py
+reference_scaffold/tests/test_component_filters_routes.py
 reference_scaffold/tests/test_component_metadata_master_lock_db.py
 reference_scaffold/tests/test_component_scope_invariants_db.py
 reference_scaffold/tests/test_contracts.py
@@ -640,6 +655,7 @@ tools/build_demo_seed.py
 tools/build_manifest.py
 tools/build_sdd_docx.py
 tools/capture_admin_live_proof.py
+tools/capture_admin_settings_live_proof.py
 tools/capture_live_screenshots.py
 tools/capture_screenshots.py
 tools/demo_snapshots.py
