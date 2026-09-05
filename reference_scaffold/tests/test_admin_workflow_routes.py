@@ -318,12 +318,18 @@ def test_copy_exact_prior_week_and_empty_source(client, database_engine: Engine,
     assert offered.status_code == 200
     offered_body = offered.get_data(as_text=True)
     assert _hidden(offered_body, 'target_row_version') == '0'
-    source_version = _hidden(offered_body, 'source_row_version')
+    extra = client.post('/admin/patienten/copy', data={
+        '_csrf': _hidden(offered_body, '_csrf'),
+        'source_week': WEEK.isoformat(),
+        'target_week': target.isoformat(),
+        'target_row_version': '0',
+        'source_row_version': '1',
+    })
+    assert extra.status_code == 400
     empty = client.post('/admin/patienten/copy', data={
         '_csrf': _hidden(offered_body, '_csrf'),
         'source_week': WEEK.isoformat(),
         'target_week': target.isoformat(),
-        'source_row_version': source_version,
         'target_row_version': '0',
     })
     assert empty.status_code == 303
@@ -341,7 +347,6 @@ def test_copy_exact_prior_week_and_empty_source(client, database_engine: Engine,
         '_csrf': _hidden(existing.get_data(as_text=True), '_csrf'),
         'source_week': WEEK.isoformat(),
         'target_week': (target + dt.timedelta(days=7)).isoformat(),
-        'source_row_version': source_version,
         'target_row_version': '0',
     })
     assert mismatch.status_code == 400
@@ -349,7 +354,6 @@ def test_copy_exact_prior_week_and_empty_source(client, database_engine: Engine,
         '_csrf': _hidden(existing.get_data(as_text=True), '_csrf'),
         'source_week': WEEK.isoformat(),
         'target_week': target.isoformat(),
-        'source_row_version': source_version,
         'target_row_version': '0',
     })
     assert exists.status_code == 409
@@ -363,7 +367,6 @@ def test_copy_exact_prior_week_and_empty_source(client, database_engine: Engine,
         '_csrf': _hidden(existing.get_data(as_text=True), '_csrf'),
         'source_week': '2026-09-14',
         'target_week': '2026-09-21',
-        'source_row_version': '1',
         'target_row_version': '1',
     })
     assert missing.status_code == 404
@@ -602,7 +605,7 @@ def test_scoped_csrf_rejects_location_cutover_without_mutation(
         assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_weeks')).scalar_one() == 0
 
 
-def test_copy_rejects_source_changed_after_confirmation(
+def test_copy_uses_latest_saved_source_draft(
     client,
     database_engine: Engine,
     app: Flask,
@@ -614,24 +617,23 @@ def test_copy_rejects_source_changed_after_confirmation(
     target = WEEK + dt.timedelta(days=7)
     offered = client.get(f'/admin/patienten/copy?week={target.isoformat()}')
     body = offered.get_data(as_text=True)
-    source_version = _hidden(body, 'source_row_version')
     persist_week_header(app.extensions['cafeteria_db'], scope, WEEK, {
         'title': 'Nach Bestätigung geändert', 'shared_note': '',
-    }, int(source_version))
+    }, 1)
 
     response = client.post('/admin/patienten/copy', data={
         '_csrf': _hidden(body, '_csrf'),
         'source_week': WEEK.isoformat(),
         'target_week': target.isoformat(),
-        'source_row_version': source_version,
         'target_row_version': '0',
     })
-    assert response.status_code == 409
+    assert response.status_code == 303
     with database_engine.connect() as connection:
-        assert connection.execute(
-            text('SELECT count(*) FROM cafeteria.menu_weeks WHERE week_start=:target'),
+        title = connection.execute(
+            text('SELECT title FROM cafeteria.menu_weeks WHERE week_start=:target'),
             {'target': target},
-        ).scalar_one() == 0
+        ).scalar_one()
+    assert title == 'Nach Bestätigung geändert'
 
 
 def test_preview_uses_preview_read_capability(

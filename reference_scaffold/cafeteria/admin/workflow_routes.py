@@ -684,13 +684,13 @@ def copy_get(family: str):
     target = _week_arg()
     source = target - timedelta(days=7)
     scope = _scope(profile)
-    def versions() -> tuple[int, int]:
+    def versions() -> int:
         with _db().connect() as connection:
-            source_ref = resolve_week_ref(connection, scope, source)
+            resolve_week_ref(connection, scope, source)
             try:
                 target_ref = resolve_week_ref(connection, scope, target)
             except PartialWorkflowNotFoundError:
-                return source_ref.row_version, 0
+                return 0
             blocked = connection.execute(
                 text('SELECT EXISTS (SELECT 1 FROM cafeteria.menu_services s '
                      'JOIN cafeteria.menu_items i ON i.service_id=s.id WHERE s.menu_week_id=:week_id) '
@@ -700,13 +700,13 @@ def copy_get(family: str):
             ).scalar_one()
             if blocked:
                 raise PartialWorkflowConflictError('Zielwoche ist nicht leer oder publiziert.')
-            return source_ref.row_version, target_ref.row_version
-    source_version, target_version = _call(versions)
+            return target_ref.row_version
+    target_version = _call(versions)
     return _page(
         f'<div data-profile="{profile}" data-source-week="{source.isoformat()}" '
         f'data-target-week="{target.isoformat()}">{_hidden("_csrf", _scoped_csrf(profile, "copy", scope))}'
         f'{_hidden("source_week", source.isoformat())}{_hidden("target_week", target.isoformat())}'
-        f'{_hidden("source_row_version", source_version)}{_hidden("target_row_version", target_version)}</div>'
+        f'{_hidden("target_row_version", target_version)}</div>'
     )
 
 @bp.post('/<any(cafeteria, patienten):family>/copy')
@@ -715,13 +715,12 @@ def copy_post(family: str):
     profile = profile_from_endpoint(family)
     _reject_override()
     scope = _validate_scoped_csrf(profile, {'copy'})
-    _exact({'_csrf', 'source_week', 'target_week', 'source_row_version', 'target_row_version'})
+    _exact({'_csrf', 'source_week', 'target_week', 'target_row_version'})
     source, target = _monday(request.form['source_week']), _monday(request.form['target_week'])
     if source != target - timedelta(days=7):
         abort(400, description='source_week muss genau die Vorwoche sein.')
     _call(lambda: copy_previous_week(
         _db(), scope, target, _version_field('target_row_version'),
-        _version_field('source_row_version'),
     ))
     return redirect(url_for(f'admin.{family}', week=target.isoformat()), 303)
 

@@ -20,11 +20,8 @@ def copy_previous_week(
     scope: AdminScope,
     target_week_start: date,
     target_row_version: int,
-    expected_source_row_version: int,
 ) -> int:
     _validate_request(scope, target_week_start, target_row_version)
-    if type(expected_source_row_version) is not int or expected_source_row_version <= 0:
-        raise ComponentCatalogValidationError('Ungültige Quellversion.')
     source_week_start = target_week_start - timedelta(days=7)
     with engine.begin() as connection:
         _require_scope(connection, scope)
@@ -34,8 +31,6 @@ def copy_previous_week(
         source = weeks.get(source_week_start)
         if source is None:
             raise ComponentNotFoundError('Gespeicherte Vorwoche nicht gefunden.')
-        if int(source['row_version']) != expected_source_row_version:
-            raise ComponentConflictError('Vorwoche wurde zwischenzeitlich geändert.')
         target = _resolve_target(connection, scope, profile_id, target_week_start,
                                  target_row_version, source, weeks.get(target_week_start))
         source_id = int(source['id'])
