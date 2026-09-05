@@ -1,0 +1,136 @@
+{% extends "admin/base_tabler.html" %}
+{% from 'admin/_macros.html' import icon, page_header, field, check, status as status_badge %}
+{% block title %}API &amp; Schnittstellen{% endblock %}
+{% set workflow_nav = 'api' %}
+{% block main_attributes %}data-page="api"{% endblock %}
+{% block page_header %}{{ page_header('API & Schnittstellen') }}{% endblock %}
+{% block content %}
+        <section class="card mb-3" aria-labelledby="api-interfaces-title">
+          <div class="card-header"><h2 class="card-title" id="api-interfaces-title">Schnittstellen</h2></div>
+          <div class="card-body">
+            <p>Die REST- und FHIR-Schnittstellen sind öffentlich lesbar. Für Vorschau-Endpunkte ist ein API-Schlüssel mit Scope <code>preview.read</code> erforderlich.</p>
+            <p>Technische Details und Beispiele stehen in der Datei <code>docs/API.md</code>.</p>
+            <ul class="list-unstyled mb-0">
+              <li><a href="/api/v1/docs" target="_blank" rel="noopener">{{ icon('eye') }}Swagger UI</a></li>
+              <li><a href="/api/v1/openapi.json">{{ icon('info-circle') }}OpenAPI JSON</a></li>
+              <li><a href="/fhir/metadata">{{ icon('info-circle') }}FHIR CapabilityStatement</a></li>
+              <li><span class="text-secondary">Doku: <code>docs/API.md</code></span></li>
+            </ul>
+          </div>
+        </section>
+        <section class="card mb-3" aria-labelledby="api-status-title" data-api-status>
+          <div class="card-header"><h2 class="card-title" id="api-status-title">Status</h2></div>
+          <table class="table table-vcenter card-table table-mobile-lg">
+            <thead>
+              <tr><th>Kanal</th><th>Publiziert</th><th>Revision</th><th>Woche</th></tr>
+            </thead>
+            <tbody>
+              {% for channel in status.channels %}
+              <tr>
+                <td data-label="Kanal">{{ 'Cafeteria' if channel.channel == 'cafeteria' else 'Patienten' }}</td>
+                <td data-label="Publiziert">
+                  {% if channel.published %}{{ status_badge('live', 'Publiziert') }}{% else %}{{ status_badge('incomplete', 'Nicht publiziert') }}{% endif %}
+                </td>
+                <td data-label="Revision" class="text-secondary">{{ channel.revision_id or '—' }}</td>
+                <td data-label="Woche" class="text-secondary">
+                  {% if channel.week_start and channel.week_end %}{{ channel.week_start }} – {{ channel.week_end }}{% else %}—{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+              <tr>
+                <td data-label="Kanal">Schema-Version</td>
+                <td data-label="Publiziert" colspan="3" class="text-secondary">{{ schema_version }}</td>
+              </tr>
+              <tr>
+                <td data-label="Kanal">API-Version</td>
+                <td data-label="Publiziert" colspan="3" class="text-secondary">{{ api_version }}</td>
+              </tr>
+              <tr>
+                <td data-label="Kanal">FHIR-Version</td>
+                <td data-label="Publiziert" colspan="3" class="text-secondary">{{ fhir_version }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+        <section class="card mb-3" aria-labelledby="api-key-create-title">
+          <form method="post" action="{{ url_for('admin.api_key_create') }}" id="api-key-create" class="admin-form">
+            <div class="card-header"><h2 class="card-title" id="api-key-create-title">Neuer Schlüssel</h2></div>
+            <div class="card-body">
+              {% if error %}<div class="alert alert-danger error" role="alert">{{ icon('alert-triangle') }} {{ error }}</div>{% endif %}
+              <input type="hidden" name="_csrf" value="{{ csrf }}">
+              <div class="row g-3">
+                <div class="col-12 col-md-6">
+                  {{ field('label', 'Bezeichnung', values.label, id='api-key-label', required=true) }}
+                </div>
+                <div class="col-12 col-sm-5 col-lg-3">
+                  <label class="form-label" for="api-key-expires">Läuft ab<span class="form-label-description">optional</span></label>
+                  <input class="form-control" id="api-key-expires" name="expires_at" type="date" value="{{ values.expires_at }}">
+                </div>
+                <div class="col-12">
+                  {{ check('scopes', 'Vorschau lesen (preview.read)', value='preview.read', checked=values.scopes_preview, id='api-key-scope-preview') }}
+                </div>
+              </div>
+            </div>
+            <div class="card-footer d-flex">
+              <div class="btn-list ms-auto"><button type="submit" class="btn btn-primary">{{ icon('plus') }}Schlüssel erstellen</button></div>
+            </div>
+          </form>
+        </section>
+        {% if new_key %}
+        <div class="alert alert-success mb-3" data-new-key role="alert">
+          <p>Neuer API-Schlüssel erstellt. <code class="text-reset">{{ new_key.plaintext }}</code></p>
+          <p class="mb-0">Dieser Schlüssel wird nur einmal angezeigt.</p>
+        </div>
+        {% endif %}
+        <section class="card" aria-labelledby="api-keys-title">
+          <div class="card-header"><h2 class="card-title" id="api-keys-title">API-Schlüssel</h2></div>
+          <table class="table table-vcenter card-table table-mobile-lg" data-api-keys>
+            <thead>
+              <tr>
+                <th>Bezeichnung</th><th>Präfix</th><th>Scopes</th><th>Erstellt</th><th>Läuft ab</th>
+                <th>Zuletzt verwendet</th><th>Status</th><th>Aktionen</th>
+              </tr>
+            </thead>
+            {% if keys %}
+            <tbody>
+              {% for key in keys %}
+              <tr data-key-id="{{ key.public_id }}" data-key-state="{{ key.state }}">
+                <td data-label="Bezeichnung">{{ key.label }}</td>
+                <td data-label="Präfix"><code class="text-reset">{{ key.key_prefix }}…</code></td>
+                <td data-label="Scopes">
+                  <ul class="list-inline mb-0">
+                    {% for scope in key.scopes %}<li class="list-inline-item badge bg-secondary-lt">{{ scope }}</li>{% endfor %}
+                  </ul>
+                </td>
+                <td data-label="Erstellt">
+                  <span class="text-secondary">{{ key.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                  <div class="text-secondary small">von {{ key.created_by_name }}</div>
+                </td>
+                <td data-label="Läuft ab" class="text-secondary">{% if key.expires_at %}{{ key.expires_at.strftime('%d.%m.%Y') }}{% else %}—{% endif %}</td>
+                <td data-label="Zuletzt verwendet" class="text-secondary">{% if key.last_used_at %}{{ key.last_used_at.strftime('%d.%m.%Y %H:%M') }}{% else %}—{% endif %}</td>
+                <td data-label="Status">
+                  {% if key.state == 'active' %}{{ status_badge('live', 'Aktiv') }}
+                  {% elif key.state == 'expired' %}{{ status_badge('incomplete', 'Abgelaufen') }}
+                  {% else %}<span class="badge bg-secondary-lt" data-status="revoked">Widerrufen</span>{% endif %}
+                </td>
+                <td data-label="Aktionen">
+                  {% if key.state == 'active' %}
+                  <form method="post" action="{{ url_for('admin.api_key_revoke', public_id=key.public_id) }}" data-confirm="Schlüssel wirklich widerrufen?">
+                    <input type="hidden" name="_csrf" value="{{ csrf }}">
+                    <button type="submit" class="btn btn-outline-danger">{{ icon('trash') }}Widerrufen</button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            {% endif %}
+          </table>
+          {% if not keys %}
+          <div class="empty">
+            <div class="empty-icon">{{ icon('info-circle') }}</div>
+            <p class="empty-title">Noch keine API-Schlüssel vorhanden.</p>
+          </div>
+          {% endif %}
+        </section>
+{% endblock %}
