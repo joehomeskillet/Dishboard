@@ -1,165 +1,193 @@
-{% extends "base.html" %}
+{% extends "admin/base_tabler.html" %}
+{% from 'admin/_macros.html' import icon, profile_tabs, field %}
 {% block title %}Backend Cafeteria-Raster{% endblock %}
-{% block body_class %}admin-body{% endblock %}
-{% block body %}
 {% set csrf_value = csrf if csrf is defined else csrf_token() %}
 {% set week_value = week.isoformat() if week is not none and week.isoformat is defined else week %}
 {% set day_cells = cells|selectattr("meal", "equalto", "LUNCH")|list %}
 {% set first_slot = day_cells|first %}
 {% set publish_blocked = status in ('review_open', 'incomplete', 'empty') %}
 {% set open_checks = cells|selectattr('row_version', 'gt', 0)|selectattr('review_open')|list|length %}
-<div class="admin-shell admin-week-shell">
-  <aside class="admin-sidebar">
-    <div class="admin-brand">
-      <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="admin-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="164" height="32">
-      <span>Menüplanung</span>
-    </div>
-    <div class="admin-user">
-      {% set user_name = user.name if user else 'Demo Küche' %}
-      <span class="avatar">{{ (user_name[:2])|upper }}</span>
-      <div>
-        <strong>{{ user_name }}</strong>
-        <span>{{ roles|default([])|join(', ') }}</span>
+{% set filled_slots = cells|selectattr('row_version', 'gt', 0)|list|length %}
+{% set workflow_nav = 'weeks' %}
+{% block main_attributes %}data-family="{{ family }}" data-week="{{ week_value }}" data-status="{{ status }}" data-loading-region aria-busy="{{ 'true' if status == 'loading' else 'false' }}"{% endblock %}
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin-week-tabler.css') }}">
+{% endblock %}
+{% block page_header %}
+<div class="page-header">
+  <div class="container-xl">
+    <div class="row g-2 align-items-center">
+      <div class="col">
+        <h1>Cafeteria-Plan bearbeiten</h1>
       </div>
-    </div>
-    <nav class="admin-nav" aria-label="Backend">
-      <a class="active" href="{{ url_for('admin.cafeteria') }}" aria-current="page">Wochenpläne</a>
-      <a href="{{ url_for('admin.week_management', family=family) }}">Wochenverwaltung</a>
-      <a href="/admin/{{ family }}/menues">Menüs</a>
-      <a href="/admin/{{ family }}/komponenten">Komponenten</a>
-      <a href="{{ url_for('admin.import_preview') }}">CSV Import</a>
-      <form method="post" action="{{ url_for('auth.logout') }}">
-        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-        <button type="submit">Abmelden</button>
-      </form>
-    </nav>
-  </aside>
-
-  <main class="admin-main admin-week" id="main-content" data-profile="{{ profile }}" data-family="{{ family }}" data-week="{{ week_value }}" data-status="{{ status }}" data-loading-region aria-busy="{{ 'true' if status == 'loading' else 'false' }}">
-    <header class="admin-topbar">
-      <h1>Cafeteria-Plan bearbeiten</h1>
-    </header>
-
-    <div class="admin-content">
-      <div class="flash-region" aria-live="polite">
-        {% for message in flashes %}<p class="flash">{{ message }}</p>{% endfor %}
-      </div>
-      {% if status == 'error' and flashes %}
-      <div class="error-region" role="alert" tabindex="-1">
-        {% for message in flashes %}<p class="flash">{{ message }}</p>{% endfor %}
-      </div>
-      {% endif %}
-
-      <nav class="profile-tabs" aria-label="Profil">
-        <a class="active" href="{{ url_for('admin.cafeteria') }}" aria-current="page">Cafeteria</a>
-        <a href="{{ url_for('admin.patienten') }}">Patienten</a>
-      </nav>
-
-      <section class="admin-week-controls" aria-label="Wochenstatus und Aktionen">
-        <div class="weekbar">
-          <div>
-            <strong>KW {{ iso_week }} · Cafeteria</strong>
-            <span>10 Menükarten · 5 Tage × 2 Menüarten</span>
-          </div>
-          <div class="admin-week-status" role="status">
-            <strong class="status-pill" data-status="{{ status }}">{{ status_label }}</strong>
-            <span>{% if open_checks %}{{ open_checks }} {{ 'Menükarte' if open_checks == 1 else 'Menükarten' }} mit offener Prüfung{% elif status == 'review_open' %}Erneute Prüfung erforderlich{% else %}Keine offenen Prüfungen{% endif %}</span>
-          </div>
+      <div class="col-12 col-md-auto ms-auto">
+        <div class="btn-list">
+          <a class="btn" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}">{{ icon('clipboard-check') }}Wochenangaben prüfen</a>
         </div>
-        <div class="admin-actions" data-sticky>
-          <form method="post" action="/admin/{{ family }}/publish" data-confirm="Woche jetzt publizieren?">
-            <input type="hidden" name="_csrf" value="{{ csrf_value }}">
-            <input type="hidden" name="week" value="{{ week_value }}">
-            <input type="hidden" name="row_version" value="{{ week_row_version }}">
-            <button type="submit" class="btn primary"{% if publish_blocked %} disabled aria-describedby="week-publish-guidance"{% endif %}>Publizieren</button>
-          </form>
-          <a class="btn" target="_blank" rel="noopener" href="/admin/{{ family }}/preview?week={{ week_value }}">Vorschau</a>
-          <a class="btn" href="/admin/{{ family }}/copy?week={{ week_value }}">Vorwoche kopieren</a>
-          {% if publish_blocked %}
-          <p id="week-publish-guidance" class="admin-week-guidance">{% if status == 'empty' %}Zuerst Gerichte erfassen, danach die Woche prüfen und publizieren.{% elif status == 'incomplete' %}Zuerst die Woche vervollständigen, danach publizieren.{% else %}Zuerst offene Prüfungen abschliessen, danach publizieren.{% endif %}</p>
-          {% endif %}
-        </div>
-      </section>
-
-      <div class="admin-notice">
-        Getrenntes Raster: Montag bis Freitag, nur Mittag. Samstag und Sonntag: Cafeteria geschlossen.
       </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+{% if status == 'error' and flashes %}
+<div class="error-region alert alert-danger" role="alert" tabindex="-1">
+  {% for message in flashes %}<p class="flash mb-0">{{ message }}</p>{% endfor %}
+</div>
+{% endif %}
 
-      <form method="post" action="/admin/{{ family }}/header" class="admin-overview-form">
+{{ profile_tabs({
+  'cafeteria': url_for('admin.cafeteria'),
+  'patienten': url_for('admin.patienten'),
+}, 'cafeteria') }}
+
+<section class="admin-week-controls" aria-label="Wochenstatus und Aktionen">
+  <div class="weekbar">
+    <div>
+      <strong>KW {{ iso_week }} · Cafeteria</strong>
+      <span>10 Menükarten · 5 Tage × 2 Menüarten</span>
+    </div>
+    <div class="admin-week-status" role="status">
+      <strong class="status-pill" data-status="{{ status }}">{{ status_label }}</strong>
+      <span>{% if open_checks %}{{ open_checks }} {{ 'Menükarte' if open_checks == 1 else 'Menükarten' }} mit offener Prüfung{% elif status == 'review_open' %}Erneute Prüfung erforderlich{% else %}Keine offenen Prüfungen{% endif %}</span>
+    </div>
+  </div>
+  <div class="admin-actions btn-list" data-sticky>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#week-publish-modal"{% if publish_blocked %} disabled aria-describedby="week-publish-guidance"{% endif %}>Publizieren</button>
+    <a class="btn" target="_blank" rel="noopener" href="/admin/{{ family }}/preview?week={{ week_value }}">{{ icon('eye') }}Vorschau</a>
+    <a class="btn" href="/admin/{{ family }}/copy?week={{ week_value }}">{{ icon('copy') }}Vorwoche kopieren</a>
+    {% if publish_blocked %}
+    <p id="week-publish-guidance" class="admin-week-guidance">{% if status == 'empty' %}Zuerst Gerichte erfassen, danach die Woche prüfen und publizieren.{% elif status == 'incomplete' %}Zuerst die Woche vervollständigen, danach publizieren.{% else %}Zuerst offene Prüfungen abschliessen, danach publizieren.{% endif %}</p>
+    {% endif %}
+  </div>
+</section>
+
+<div class="modal modal-blur fade" id="week-publish-modal" tabindex="-1" aria-labelledby="week-publish-title" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <form method="post" action="/admin/{{ family }}/publish" class="modal-content" id="week-publish-form">
+      <input type="hidden" name="_csrf" value="{{ csrf_value }}">
+      <input type="hidden" name="week" value="{{ week_value }}">
+      <input type="hidden" name="row_version" value="{{ week_row_version }}">
+      <div class="modal-header">
+        <h5 class="modal-title" id="week-publish-title">Woche publizieren</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schliessen"></button>
+      </div>
+      <div class="modal-body">
+        <p>Woche jetzt publizieren?</p>
+        <ul class="list-unstyled mb-0">
+          <li><strong>Gespeicherte Woche:</strong> KW {{ iso_week }}{% if title %} · {{ title }}{% endif %}</li>
+          <li><strong>Erfasste Menükarten:</strong> {{ filled_slots }} von 10</li>
+          <li><strong>Prüfstatus:</strong> {% if open_checks %}{{ open_checks }} offene Prüfung{{ 'en' if open_checks != 1 else '' }}{% elif status == 'review_open' %}Erneute Prüfung erforderlich{% else %}Keine offenen Prüfungen{% endif %}</li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" data-bs-dismiss="modal">Abbrechen</button>
+        <button type="submit" class="btn btn-primary"{% if publish_blocked %} disabled{% endif %}>{{ icon('check') }}Publizieren</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<p class="admin-week-review-link">
+  <a class="btn" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}">{{ icon('clipboard-check') }}Wochenangaben prüfen</a>
+</p>
+
+<div class="alert alert-info admin-notice" role="note">
+  Getrenntes Raster: Montag bis Freitag, nur Mittag. Samstag und Sonntag: Cafeteria geschlossen.
+</div>
+
+<form method="post" action="/admin/{{ family }}/header" class="admin-overview-form card mb-3">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-12 col-md-6">
+        {{ field('title', 'Wochentitel', title, id='week_title') }}
+      </div>
+      <div class="col-12 col-md-6">
+        {{ field('shared_note', 'Hinweis für alle Tage', shared_note, id='week_shared_note') }}
+      </div>
+    </div>
+  </div>
+  <div class="card-footer">
+    <button type="submit" class="btn btn-primary">{{ icon('device-floppy') }}Wochenangaben speichern</button>
+  </div>
+  <input type="hidden" name="_csrf" value="{{ csrf_value }}">
+  <input type="hidden" name="week" value="{{ week_value }}">
+  <input type="hidden" name="row_version" value="{{ week_row_version }}">
+</form>
+
+{% if status == 'empty' %}
+<div class="alert alert-info admin-notice">
+  Noch keine Gerichte erfasst
+  {% if first_slot %}
+  <p class="mb-0 mt-2"><a class="btn" href="{{ first_slot.edit_url }}">Zum ersten Slot</a></p>
+  {% endif %}
+</div>
+{% endif %}
+
+<section class="admin-week-days" aria-label="Wochenübersicht Cafeteria">
+  {% for day, grouped in day_cells|groupby('day') %}
+  {% set day_row = grouped|first %}
+  <article class="card admin-day-card">
+    <div class="card-header">
+      <div class="day-heading">
+        <strong>{{ day_row.day_label }}</strong>
+        <span>{{ day_row.day_short }}</span>
+      </div>
+      <form method="post" action="/admin/{{ family }}/service" class="admin-week-service">
         <input type="hidden" name="_csrf" value="{{ csrf_value }}">
         <input type="hidden" name="week" value="{{ week_value }}">
-        <input type="hidden" name="row_version" value="{{ week_row_version }}">
-        <div class="field">
-          <label for="week_title">Wochentitel</label>
-          <input id="week_title" name="title" value="{{ title }}">
-        </div>
-        <div class="field">
-          <label for="week_shared_note">Hinweis für alle Tage</label>
-          <input id="week_shared_note" name="shared_note" value="{{ shared_note }}">
-        </div>
-        <button type="submit" class="btn">Wochenangaben speichern</button>
-      </form>
-
-      {% if status == 'empty' %}
-      <div class="admin-notice">
-        Noch keine Gerichte erfasst
-        {% if first_slot %}
-        <p><a class="btn" href="{{ first_slot.edit_url }}">Zum ersten Slot</a></p>
-        {% endif %}
-      </div>
-      {% endif %}
-
-      <section class="grid-card" aria-label="Wochenübersicht Cafeteria">
-        {% for day, grouped in day_cells|groupby('day') %}
-        {% set day_row = grouped|first %}
-        <div class="admin-grid-row">
-          <div class="admin-day">
-            <div><strong>{{ day_row.day_label }}</strong><span>{{ day_row.day_short }}</span></div>
-            <form method="post" action="/admin/{{ family }}/service" class="admin-week-service">
-              <input type="hidden" name="_csrf" value="{{ csrf_value }}">
-              <input type="hidden" name="week" value="{{ week_value }}">
-              <input type="hidden" name="day" value="{{ day }}">
-              <input type="hidden" name="meal" value="LUNCH">
-              <input type="hidden" name="row_version" value="{{ day_row.service_row_version }}">
-              <div class="field">
-                <label for="service_state_{{ day }}">Betrieb</label>
-                <select id="service_state_{{ day }}" name="service_state">
-                <option value="open"{% if day_row.service_state == 'open' %} selected{% endif %}>Offen</option>
-                <option value="closed"{% if day_row.service_state == 'closed' %} selected{% endif %}>Geschlossen</option>
-                <option value="holiday"{% if day_row.service_state == 'holiday' %} selected{% endif %}>Feiertag</option>
-                <option value="company_holiday"{% if day_row.service_state == 'company_holiday' %} selected{% endif %}>Betriebsfeiertag</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="service_notice_{{ day }}">Servicehinweis</label>
-                <input id="service_notice_{{ day }}" name="notice" value="{{ day_row.notice|default('') }}">
-              </div>
-              <button type="submit" class="btn">Service speichern</button>
-            </form>
+        <input type="hidden" name="day" value="{{ day }}">
+        <input type="hidden" name="meal" value="LUNCH">
+        <input type="hidden" name="row_version" value="{{ day_row.service_row_version }}">
+        <div class="row g-3 align-items-end">
+          <div class="col-12 col-sm-6 col-md-4">
+            <label class="form-label" for="service_state_{{ day }}">Betrieb</label>
+            <select id="service_state_{{ day }}" class="form-select" name="service_state">
+              <option value="open"{% if day_row.service_state == 'open' %} selected{% endif %}>Offen</option>
+              <option value="closed"{% if day_row.service_state == 'closed' %} selected{% endif %}>Geschlossen</option>
+              <option value="holiday"{% if day_row.service_state == 'holiday' %} selected{% endif %}>Feiertag</option>
+              <option value="company_holiday"{% if day_row.service_state == 'company_holiday' %} selected{% endif %}>Betriebsfeiertag</option>
+            </select>
           </div>
-
-          {% for cell in grouped %}
-          <article class="menu-slot" data-day="{{ cell.day }}" data-meal="LUNCH" data-option="{{ cell.option }}" data-row-version="{{ cell.row_version }}">
-            <span class="dish-type">{{ cell.option_label }}</span>
-            <h3>{{ cell.title if cell.title else 'Noch kein Gericht' }}</h3>
-            <p>{{ cell.components|default([])|join(' · ') }}</p>
-            {% if cell.title %}{% with option=cell %}{% include '_menu_metadata.html' %}{% endwith %}{% endif %}
-            <p>
-              {% if cell.internal_chf and cell.external_chf %}
-              Mitarbeitende CHF {{ cell.internal_chf }} · Externe CHF {{ cell.external_chf }}
-              {% else %}
-              Preis fehlt
-              {% endif %}
-            </p>
-            <span class="slot-badge" data-review="{{ 'open' if cell.review_open else 'checked' }}">{{ 'Prüfung offen' if cell.review_open else 'Geprüft' }}</span>
-            <a class="btn" href="{{ cell.edit_url }}">Bearbeiten</a>
+          <div class="col-12 col-sm-6 col-md-5">
+            <label class="form-label" for="service_notice_{{ day }}">Servicehinweis</label>
+            <input id="service_notice_{{ day }}" class="form-control" name="notice" value="{{ day_row.notice|default('') }}">
+          </div>
+          <div class="col-12 col-md-auto">
+            <button type="submit" class="btn">{{ icon('device-floppy') }}Service speichern</button>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        {% for cell in grouped %}
+        <div class="col-12 col-md-6">
+          <article class="card menu-slot h-100" data-day="{{ cell.day }}" data-meal="LUNCH" data-option="{{ cell.option }}" data-row-version="{{ cell.row_version }}">
+            <div class="card-body">
+              <span class="dish-type">{{ cell.option_label }}</span>
+              <h3>{{ cell.title if cell.title else 'Noch kein Gericht' }}</h3>
+              <p>{{ cell.components|default([])|join(' · ') }}</p>
+              {% if cell.title %}{% with option=cell %}{% include '_menu_metadata.html' %}{% endwith %}{% endif %}
+              <p>
+                {% if cell.internal_chf and cell.external_chf %}
+                Mitarbeitende CHF {{ cell.internal_chf }} · Externe CHF {{ cell.external_chf }}
+                {% else %}
+                Preis fehlt
+                {% endif %}
+              </p>
+              <span class="slot-badge badge bg-{{ 'yellow' if cell.review_open else 'green' }}-lt" data-review="{{ 'open' if cell.review_open else 'checked' }}">{{ 'Prüfung offen' if cell.review_open else 'Geprüft' }}</span>
+              <div class="mt-auto">
+                <a class="btn" href="{{ cell.edit_url }}">{{ icon('pencil') }}Bearbeiten</a>
+              </div>
+            </div>
           </article>
-          {% endfor %}
         </div>
         {% endfor %}
-      </section>
-
+      </div>
     </div>
-  </main>
-</div>
+  </article>
+  {% endfor %}
+</section>
+
 {% endblock %}

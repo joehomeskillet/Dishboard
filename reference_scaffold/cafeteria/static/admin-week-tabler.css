@@ -1,0 +1,163 @@
+/* Week overview layout for Tabler-migrated cafeteria/patienten pages. */
+.dishboard-admin #week-publish-modal .btn-close { min-width: 48px; min-height: 48px; }
+.dishboard-admin .admin-actions > label { display: flex; align-items: center; gap: 8px; min-height: 48px; }
+.dishboard-admin .admin-week-controls {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 20;
+  margin-bottom: 1rem;
+  padding: 16px;
+  border: 1px solid var(--tblr-border-color);
+  border-radius: var(--tblr-border-radius-lg);
+  background: var(--tblr-bg-surface);
+}
+.dishboard-admin .admin-week-controls .weekbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--tblr-border-color);
+}
+.dishboard-admin .admin-week-controls .weekbar strong,
+.dishboard-admin .admin-week-controls .weekbar span {
+  display: block;
+}
+.dishboard-admin .admin-week-controls .weekbar span {
+  margin-top: 4px;
+  color: var(--tblr-secondary);
+  font-size: .875rem;
+}
+.dishboard-admin .admin-week-status {
+  text-align: right;
+}
+.dishboard-admin .admin-week-status .status-pill {
+  display: inline-block;
+  margin-bottom: 4px;
+}
+.dishboard-admin .admin-actions[data-sticky] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0 0 env(safe-area-inset-bottom, 0px);
+}
+.dishboard-admin .admin-actions form {
+  margin: 0;
+}
+.dishboard-admin .admin-week-guidance {
+  flex-basis: 100%;
+  order: 1;
+  margin: 0;
+  color: var(--tblr-secondary);
+}
+.dishboard-admin .admin-overview-form {
+  margin: 1rem 0;
+}
+.dishboard-admin .admin-week-review-link {
+  margin: 0 0 1rem;
+}
+.dishboard-admin .admin-week-days {
+  display: grid;
+  gap: 16px;
+}
+.dishboard-admin .admin-day-card .card-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.dishboard-admin .admin-day-card .day-heading strong {
+  display: block;
+}
+.dishboard-admin .admin-day-card .day-heading span {
+  display: block;
+  color: var(--tblr-secondary);
+  font-size: .875rem;
+}
+.dishboard-admin .admin-week-service {
+  flex: 1 1 100%;
+}
+@media (min-width: 768px) {
+  .dishboard-admin .admin-week-service {
+    flex: 1 1 auto;
+    min-width: min(100%, 520px);
+  }
+}
+.dishboard-admin .menu-slot {
+  min-width: 0;
+  height: 100%;
+}
+.dishboard-admin .menu-slot .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dishboard-admin .menu-slot .dish-type {
+  color: var(--tblr-secondary);
+  font-size: .875rem;
+}
+.dishboard-admin .menu-slot h3 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+.dishboard-admin .menu-slot p {
+  margin: 0;
+}
+.dishboard-admin .slot-badge {
+  align-self: flex-start;
+}
+.dishboard-admin .patient-admin-table {
+  display: grid;
+  gap: 16px;
+}
+.dishboard-admin .patient-admin-day > .card > .card-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+}
+.dishboard-admin .patient-admin-meals {
+  display: grid;
+  gap: 16px;
+}
+@media (min-width: 768px) {
+  .dishboard-admin .patient-admin-meals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.dishboard-admin .patient-admin-meal > strong {
+  display: block;
+  margin-bottom: 8px;
+}
+.dishboard-admin .patient-admin-option {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dishboard-admin .patient-admin-option ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+.dishboard-admin :is(.admin-week-controls, .admin-overview-form, .menu-slot, .patient-admin-day)
+  :is(a, button, input, select, textarea) {
+  scroll-margin-top: 12rem;
+}
+@media (max-width: 767.98px) {
+  .dishboard-admin .admin-week-status {
+    text-align: left;
+  }
+}
+@media (max-width: 1199.98px) {
+  .dishboard-admin .admin-week-controls {
+    position: static;
+  }
+  .dishboard-admin :is(.admin-week-controls, .admin-overview-form, .menu-slot, .patient-admin-day)
+    :is(a, button, input, select, textarea) {
+    scroll-margin-top: 1rem;
+  }
+}
