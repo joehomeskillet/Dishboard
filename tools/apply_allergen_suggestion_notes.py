@@ -50,6 +50,56 @@ SELECT jsonb_agg(x ORDER BY x.id) FROM (
 ) x;
 COMMIT;"""
 FORM_DATA = '(form) => [...new FormData(form)].map(([k,v]) => [k,String(v)])'
+FORM_FIELDS = frozenset(('week day meal option title description note component_public_id '
+    'component_text allergen_mode allergen_code allergen_presence origin_mode origin_ingredient '
+    'origin_country_code label_mode label_code internal_chf external_chf').split())
+ROW_FIELDS = frozenset('id profile week day meal option title components note review version state'.split())
+STATE_FIELDS = frozenset('item location week_id service_id service_state links allergens labels origins prices'.split())
+
+
+class SavedStateMismatch(RuntimeError):
+    def __init__(self, fields: list[str]) -> None:
+        super().__init__('saved_state_mismatch')
+        allowed = ({'form.' + key for key in FORM_FIELDS}
+                   | {'database.' + key for key in ROW_FIELDS}
+                   | {'database.state.' + key for key in STATE_FIELDS}
+                   | {'form.unrecognized_field', 'database.unrecognized_field'})
+        self.changed_fields = sorted(set(fields) & allowed)
+
+
+def saved_state_fields(proposal: Proposal, before: dict[str, Any], after: dict[str, Any],
+                       data: list[list[str]], after_data: list[list[str]]) -> list[str]:
+    """Names only; never retain values, arbitrary keys or authentication fields."""
+    fields = set()
+    left = [(k, v) for k, v in data if k not in {'_csrf', 'row_version', 'note'}]
+    right = [(k, v) for k, v in after_data if k not in {'_csrf', 'row_version', 'note'}]
+    for index in range(max(len(left), len(right))):
+        old = left[index] if index < len(left) else None
+        new = right[index] if index < len(right) else None
+        if old != new:
+            for pair in (old, new):
+                if pair:
+                    fields.add('form.' + (pair[0] if pair[0] in FORM_FIELDS else 'unrecognized_field'))
+    if [v for k, v in after_data if k == 'note'] != [proposal.note]:
+        fields.add('form.note')
+    for key in before.keys() | after.keys():
+        if key in {'note', 'review', 'version'}:
+            continue
+        if key in before and key in after and before[key] == after[key]:
+            continue
+        if key == 'state' and isinstance(before.get(key), dict) and isinstance(after.get(key), dict):
+            for child in before[key].keys() | after[key].keys():
+                if child not in before[key] or child not in after[key] or before[key][child] != after[key][child]:
+                    fields.add('database.state.' + child if child in STATE_FIELDS else 'database.state')
+        else:
+            fields.add('database.' + (key if key in ROW_FIELDS else 'unrecognized_field'))
+    if after.get('note') != proposal.note:
+        fields.add('database.note')
+    if after.get('review') != 'not_checked':
+        fields.add('database.review')
+    if not isinstance(after.get('version'), int) or after['version'] <= before['version']:
+        fields.add('database.version')
+    return sorted(fields)
 
 
 @dataclass(frozen=True)
@@ -279,7 +329,7 @@ def process(page: Page, gate: NetworkGate, proposal: Proposal, apply: bool) -> s
     _, after_data = load_form(page, proposal)
     after = read_rows().get(proposal.id, {})
     if not form_unchanged(data, after_data, proposal.note) or not verified_save(proposal, before, after):
-        raise RuntimeError('saved_state_mismatch')
+        raise SavedStateMismatch(saved_state_fields(proposal, before, after, data, after_data))
     return 'saved'
 
 
@@ -345,6 +395,8 @@ def main() -> int:
         except Exception as error:
             # Exception text, HTTP payloads, credentials and cookies never enter artifacts.
             report.update(status='stopped', error_type=type(error).__name__, stopped_id=current_id)
+            if isinstance(error, SavedStateMismatch):
+                report.update(error_code='saved_state_mismatch', changed_fields=error.changed_fields)
         checkpoint()
     print(json.dumps({'status': report['status'], 'counts': report['counts']}))
     return 0 if report['status'] == 'completed' else 1

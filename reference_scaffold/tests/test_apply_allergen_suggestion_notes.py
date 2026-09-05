@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 import sys
 from copy import deepcopy
 from pathlib import Path
@@ -24,6 +25,49 @@ def baseline(proposal):
         'title': proposal.title, 'components': list(proposal.components),
         'note': '', 'review': 'not_checked', 'version': 4, 'state': {'price': 1250},
     }
+
+
+def test_mismatch_diagnostics_distinguish_form_order_and_database_fields_without_values():
+    tool = module()
+    proposal = tool.parse_proposals(tool.DOCUMENT.read_bytes())[2]
+    before = baseline(proposal)
+    after = deepcopy(before)
+    after.update(note=proposal.note, version=5)
+    data = [['_csrf', 'SECRET'], ['note', ''], ['origin_ingredient', 'A'], ['origin_country_code', 'CH']]
+    readback = [['_csrf', 'NEW_SECRET'], ['note', proposal.note], ['origin_country_code', 'CH'], ['origin_ingredient', 'A']]
+    assert tool.verified_save(proposal, before, after)
+    assert not tool.form_unchanged(data, readback, proposal.note)
+    assert tool.saved_state_fields(proposal, before, after, data, readback) == [
+        'form.origin_country_code', 'form.origin_ingredient',
+    ]
+    after['state']['origins'] = [{'ingredient': 'SENSITIVE_VALUE'}]
+    after['UNTRUSTED_FIELD_NAME'] = 'PRIVATE'
+    fields = tool.saved_state_fields(proposal, before, after, data, readback)
+    assert fields == ['database.state.origins', 'database.unrecognized_field',
+                      'form.origin_country_code', 'form.origin_ingredient']
+    assert 'SECRET' not in json.dumps(fields)
+    assert 'SENSITIVE_VALUE' not in json.dumps(fields)
+    assert 'UNTRUSTED_FIELD_NAME' not in json.dumps(fields)
+
+
+def test_main_records_only_allowlisted_mismatch_code_and_names(monkeypatch, tmp_path):
+    tool = module()
+    report = tmp_path / 'diagnostic.json'
+    monkeypatch.setattr(tool, 'arguments', lambda: tool.argparse.Namespace(apply=True, report=report))
+    monkeypatch.setattr(tool, 'sync_playwright', MagicMock())
+    monkeypatch.setattr(tool, 'login', lambda *args: None)
+    def mismatch(*args):
+        raise tool.SavedStateMismatch(['database.state.origins', 'form.note',
+                                      '_csrf', 'password=SECRET', 'form._csrf'])
+    run = MagicMock(side_effect=mismatch)
+    monkeypatch.setattr(tool, 'process', run)
+    assert tool.main() == 1
+    assert run.call_count == 1
+    result = json.loads(report.read_text())
+    assert result['status'] == 'stopped'
+    assert result['error_code'] == 'saved_state_mismatch'
+    assert result['changed_fields'] == ['database.state.origins', 'form.note']
+    assert not any(value in report.read_text() for value in ('SECRET', '_csrf', 'password'))
 
 
 def test_reviewed_document_has_exact_scope_and_rejects_changed_text():
