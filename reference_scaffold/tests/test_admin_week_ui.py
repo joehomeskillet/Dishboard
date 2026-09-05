@@ -15,10 +15,11 @@ from sqlalchemy import Engine, text
 from test_admin_ux_browser import (  # noqa: F401
     admin_app, admin_engine, browser, live_server, page_context,
 )
-from test_admin_workflow_db import _patient_values, _save, _staff_values
+from test_admin_workflow_db import _patient_values, _save_reviewed, _staff_values
 from test_admin_workflow_routes import DAY, _login, _scope
 from cafeteria.component_assignment_store import replace_component_links
 from cafeteria.component_catalog_store import create_component, update_component
+from cafeteria.workflow_review import get_component_review_token, review_component, review_open
 
 ROOT = Path(__file__).resolve().parents[2]
 BASE_REVISION = '77422d91cf1eedbf29404db3fdeb941c9b0d4056'
@@ -66,6 +67,7 @@ def _assert_layout(page: Page, height: int) -> None:
     assert box is not None and box['y'] >= 0 and box['y'] + box['height'] <= height
     bad_targets = page.locator('main a, main button, main input:not([type="hidden"]), main select').evaluate_all('''elements => elements.flatMap(element => {
         const target = element.type === 'checkbox' ? element.closest('label') : element;
+        if (!target.getClientRects().length || getComputedStyle(target).visibility === 'hidden') return [];
         const box = target.getBoundingClientRect();
         return box.width < 44 || box.height < 44 || box.x < 0 || box.right > innerWidth + 1
             ? [element.outerHTML] : [];
@@ -84,7 +86,7 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
 ) -> None:
     if state != 'empty':
         values = _staff_values() if profile == 'staff_guest' else _patient_values()
-        _save(admin_app.extensions['cafeteria_db'], profile, values)
+        _save_reviewed(admin_app.extensions['cafeteria_db'], profile, values)
         with admin_engine.begin() as connection:
             if state == 'incomplete':
                 connection.execute(text(
@@ -115,11 +117,14 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
     ]
     expect(form.locator('[name="week"]')).to_have_value(DAY)
     publish = form.locator('button[type="submit"]')
+    publish_trigger = page.locator('[data-bs-target="#week-publish-modal"]')
     expect(publish).to_have_text('Publizieren')
     if state == 'ready':
         expect(publish).to_be_enabled()
+        expect(publish_trigger).to_be_enabled()
     else:
         expect(publish).to_be_disabled()
+        expect(publish_trigger).to_be_disabled()
         expect(page.locator('#week-publish-guidance')).to_contain_text({
             'empty': 'Zuerst Gerichte erfassen',
             'incomplete': 'Zuerst die Woche vervollständigen',
@@ -130,30 +135,40 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
     if family == 'patienten':
         assert re.search(r'preis|chf|rappen|kosten|price', page.content(), re.I) is None
         if state == 'empty':
-            expect(page.locator('.patient-admin-day > header span').first).to_have_text('0 von 4 Menükarten erfasst')
+            expect(page.locator('.patient-admin-day > .card-header span').first).to_have_text('0 von 4 Menükarten erfasst')
     page.locator('.menu-slot').last.scroll_into_view_if_needed()
+    if width < 1200:
+        controls = page.locator('.admin-week-controls')
+        assert controls.evaluate('element => getComputedStyle(element).position') == 'static'
+        expect(controls).not_to_be_in_viewport()
+        controls.scroll_into_view_if_needed()
     _assert_layout(page, height)
     if state == 'ready':
         _capture(page, 'after', family, 'sticky', width)
-        dialogs: list[str] = []
-
-        def dismiss(dialog) -> None:
-            dialogs.append(dialog.type)
-            dialog.dismiss()
-
-        page.once('dialog', dismiss)
-        publish.click()
-        assert dialogs == ['confirm']
+        requests: list[str] = []
+        page.on('request', lambda request: requests.append(request.method))
+        publish_trigger.click()
+        modal = page.get_by_role('dialog')
+        expect(modal).to_be_visible()
+        expect(modal).to_contain_text('Woche publizieren')
+        expect(publish).to_be_visible()
+        assert modal.locator('button').evaluate_all('''buttons => buttons.every(button => {
+            const box = button.getBoundingClientRect();
+            return box.width >= 44 && box.height >= 44 && box.left >= 0 && box.right <= innerWidth + 1;
+        })''')
+        modal.get_by_role('button', name='Abbrechen', exact=True).click()
+        expect(modal).not_to_be_visible()
+        assert 'POST' not in requests
         expect(page.locator('main')).to_have_attribute('data-status', 'ready')
         copy = page.get_by_role('link', name='Vorwoche kopieren', exact=True)
-        publish.focus()
+        publish_trigger.focus()
         page.keyboard.press('Tab')
         expect(page.locator('a[href*="/preview"]')).to_be_focused()
         page.keyboard.press('Tab')
         expect(copy).to_be_focused()
         assert copy.evaluate('element => getComputedStyle(element).outlineStyle !== "none"')
         title = page.locator('input[name="title"]')
-        for _ in range(4):
+        for _ in range(8):
             page.keyboard.press('Tab')
             if title.evaluate('element => element === document.activeElement'):
                 break
@@ -214,19 +229,21 @@ def test_changed_catalog_never_reports_no_open_week_checks(
     family: str, profile: str,
 ) -> None:
     engine = admin_app.extensions['cafeteria_db']
-    _save(engine, profile, _staff_values() if profile == 'staff_guest' else _patient_values())
+    _save_reviewed(engine, profile, _staff_values() if profile == 'staff_guest' else _patient_values())
     _, user_id = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
     scope = _scope(admin_engine, user_id, profile)
     component = create_component(engine, scope, 'side', 'Salat', 'CH', 'common', (), ())
     with admin_engine.connect() as connection:
         item = connection.execute(text('SELECT id, row_version FROM cafeteria.menu_items ORDER BY id LIMIT 1')).one()
-    replace_component_links(
+    item_version = replace_component_links(
         engine, scope, item.id,
         [{'component_public_id': str(component['public_id']), 'component_text': None}],
         item.row_version,
     )
-    with admin_engine.begin() as connection:
-        connection.execute(text("UPDATE cafeteria.menu_items SET allergen_review_status='checked'"))
+    review_component(
+        engine, scope, item.id, get_component_review_token(engine, scope, item.id), item_version,
+    )
+    assert not review_open(engine, scope, item.id)
     update_component(engine, scope, str(component['public_id']), {
         'category': 'side', 'name': 'Gemischter Salat', 'origin_country_code': 'CH',
         'label_codes': [], 'allergens': [],
@@ -234,7 +251,12 @@ def test_changed_catalog_never_reports_no_open_week_checks(
     page = page_context
     page.goto(f'/admin/{family}?week={DAY}')
     expect(page.locator('main')).to_have_attribute('data-status', 'review_open')
-    assert page.locator('.slot-badge[data-review="open"]').count() == 0
-    expect(page.get_by_role('status')).to_contain_text('Erneute Prüfung erforderlich')
+    assert review_open(engine, scope, item.id)
+    with admin_engine.connect() as connection:
+        assert connection.execute(text(
+            'SELECT allergen_review_status FROM cafeteria.menu_items WHERE id=:id'
+        ), {'id': item.id}).scalar_one() == 'checked'
+    assert page.locator('.slot-badge[data-review="open"]').count() == 1
+    expect(page.get_by_role('status')).to_contain_text('1 Menükarte mit offener Prüfung')
     expect(page.get_by_role('status')).not_to_contain_text('Keine offenen Prüfungen')
     expect(page.get_by_role('button', name='Publizieren', exact=True)).to_be_disabled()
