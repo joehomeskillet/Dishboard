@@ -61,7 +61,26 @@
         if (flashRegion) {
             flashRegion.textContent = 'Zuerst speichern';
         }
+        keepWeekFieldVisible();
     }
+
+    // Native focus scrolling can leave a field partly visible after the status row grows.
+    function keepWeekFieldVisible() {
+        const field = document.activeElement;
+        if (!field || !field.matches('.admin-overview-form input, .admin-overview-form textarea, .admin-overview-form select')) return;
+        window.requestAnimationFrame(() => {
+            if (document.activeElement !== field) return;
+            const viewport = window.visualViewport;
+            const top = viewport ? viewport.offsetTop : 0;
+            const bottom = top + (viewport ? viewport.height : window.innerHeight);
+            const box = field.getBoundingClientRect();
+            if (box.height > bottom - top - 16) return;
+            const shift = box.bottom > bottom - 8 ? box.bottom - bottom + 8
+                : box.top < top + 8 ? box.top - top - 8 : 0;
+            if (shift) window.scrollBy({ top: shift, behavior: 'instant' });
+        });
+    }
+    document.addEventListener('focusin', keepWeekFieldVisible);
 
     function preventDefaultClick(e) {
         e.preventDefault();
