@@ -261,9 +261,6 @@ def init_database(
             auth_issuer_password=auth_issuer_password,
         )
         run_migrations(engine, schema_path)
-        with engine.connect() as connection:
-            connection.execute(text('TRUNCATE TABLE cafeteria.publication_revisions, cafeteria.menu_weeks CASCADE'))
-            connection.commit()
         _execute_script(engine, seed_path)
         if seed_demo:
             if not demo_seed_path:
