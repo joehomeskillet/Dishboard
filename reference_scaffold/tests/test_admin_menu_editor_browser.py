@@ -312,3 +312,49 @@ def test_prices_only_for_staff_and_compact_view_keeps_targets(page_context: Page
     expect(page.locator('main#main-content')).to_have_attribute('data-state', 'dense')
     page.get_by_label('Kompakte Ansicht', exact=True).uncheck()
     expect(page.locator('main#main-content')).not_to_have_attribute('data-state', 'dense')
+
+
+def test_primary_button_states_keep_brand_colours(page_context: Page) -> None:  # noqa: F811
+    page = page_context
+    page.set_viewport_size({'width': 1280, 'height': 800})
+    page.goto(_editor('cafeteria'))
+    save = page.locator('form[data-menu-editor] [data-sticky] button.btn-primary')
+    resolve = '''([name]) => {
+        const probe = document.createElement('span');
+        probe.style.color = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        document.body.appendChild(probe);
+        const value = getComputedStyle(probe).color;
+        probe.remove();
+        return value;
+    }'''
+    brand = page.evaluate(resolve, ['--sh-primary'])
+    brand_hover = page.evaluate(resolve, ['--sh-primary-2'])
+    assert brand != brand_hover
+    style = 'el => [getComputedStyle(el).backgroundColor, getComputedStyle(el).borderColor, getComputedStyle(el).color]'
+    background, _, colour = save.evaluate(style)
+    assert background == brand
+    assert colour == 'rgb(255, 255, 255)'
+    save.hover()
+    background, border, colour = save.evaluate(style)
+    assert background == brand_hover, background
+    assert border == brand_hover, border
+    assert colour == 'rgb(255, 255, 255)'
+    page.mouse.move(0, 0)
+    page.get_by_role('link', name='Abbrechen').focus()
+    page.keyboard.press('Shift+Tab')
+    expect(save).to_be_focused()
+    focus = save.evaluate('el => ({outline: getComputedStyle(el).outlineStyle, width: getComputedStyle(el).outlineWidth, colour: getComputedStyle(el).outlineColor, shadow: getComputedStyle(el).boxShadow, bg: getComputedStyle(el).backgroundColor})')
+    assert focus['outline'] != 'none' and float(focus['width'].rstrip('px')) >= 2
+    assert focus['colour'] == brand
+    assert brand in focus['shadow'] or brand_hover in focus['shadow'] or focus['bg'] in (brand, brand_hover)
+    assert 'rgb(5, 100, 188)' not in focus['shadow']
+    # Active: mouse down keeps the bordeaux scale.
+    box = save.bounding_box()
+    assert box is not None
+    page.mouse.move(box['x'] + box['width'] / 2, box['y'] + box['height'] / 2)
+    page.mouse.down()
+    active = save.evaluate('el => getComputedStyle(el).backgroundColor')
+    page.mouse.move(0, 0)  # release outside the button so no click submits the form
+    page.mouse.up()
+    assert active in (brand, brand_hover), active
+    assert page.locator('form[data-menu-editor]').count() == 1

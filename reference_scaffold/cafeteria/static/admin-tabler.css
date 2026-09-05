@@ -12,6 +12,7 @@
   --tblr-primary-lt-fg: var(--sh-primary);
   --tblr-link-color: var(--sh-primary);
   --tblr-link-hover-color: var(--sh-teal-950);
+  --tblr-primary-darken: var(--sh-primary-2);
   --tblr-border-radius: var(--sh-radius-sm);
   --tblr-border-radius-lg: var(--sh-radius-md);
   color: var(--sh-ink); background: var(--sh-canvas-strong);
@@ -35,6 +36,12 @@
 .dishboard-admin :is(.btn, .form-control, .form-select, .page-link, .nav-link, .form-check) { min-height: 48px; }
 .dishboard-admin :is(.btn, .form-control, .form-select) { font-size: 16px; }
 .dishboard-admin .navbar-toggler { width: auto; min-width: 48px; padding: 8px 12px; margin: 8px; gap: 8px; color: var(--sh-white); }
+/* Primary button states stay bordeaux: Tabler's hover/active default to its blue --tblr-primary-darken. */
+.dishboard-admin .btn-primary {
+  --tblr-btn-hover-bg: var(--sh-primary-2); --tblr-btn-active-bg: var(--sh-primary-2);
+  --tblr-btn-hover-border-color: var(--sh-primary-2); --tblr-btn-active-border-color: var(--sh-primary-2);
+  --tblr-btn-focus-box-shadow: 0 0 0 2px var(--sh-panel), 0 0 0 4px var(--sh-primary);
+}
 .dishboard-admin .btn-list { gap: 8px; }
 .dishboard-admin .btn-list > * { margin: 0; }
 .dishboard-admin :is(.pagination, .nav-pills, .navbar-nav) { gap: 8px; }
