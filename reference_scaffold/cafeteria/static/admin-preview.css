@@ -1,0 +1,43 @@
+/* Shared tracks make every saved menu card as tall as the longest one. */
+.admin-preview .preview-grid {
+  grid-auto-rows: auto auto 1fr 1fr;
+}
+.admin-preview .preview-day {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 4;
+  align-self: stretch;
+}
+.admin-preview [data-profile="patient"] .preview-grid {
+  grid-auto-rows: auto auto 1fr 1fr auto 1fr 1fr;
+}
+.admin-preview [data-profile="patient"] .preview-day {
+  grid-row: span 7;
+}
+.admin-preview .preview-service {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 3;
+  padding-block: 0;
+}
+.admin-preview .preview-service > h4 {
+  margin-bottom: 0;
+  padding-top: 1rem;
+}
+.admin-preview .preview-options {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 2;
+}
+.admin-preview .preview-option {
+  min-width: 0;
+  padding-block: .9rem;
+}
+.admin-preview .preview-option + .preview-option {
+  margin-top: 0;
+  padding-top: .9rem;
+}
+.admin-preview .service-notice {
+  grid-row: span 2;
+  padding-bottom: 1rem;
+}

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Vorschau · {{ 'Cafeteria-Speiseplan' if profile == 'staff_guest' else 'Patienten-Speiseplan' }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-preview.css') }}">{% endblock %}
 {% block body %}
 <main class="admin-preview" id="main-content">
 <div class="preview-banner" role="status">PREVIEW</div>
