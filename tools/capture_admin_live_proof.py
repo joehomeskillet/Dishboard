@@ -67,7 +67,7 @@ def _admin_url(url: str, base: str) -> bool:
 
 def capture_viewport(
     browser: Browser, base: str, outdir: Path, viewport: str,
-    password: str, proof: dict[str, object],
+    password: str, proof: dict[str, object], csv_preview: bool = False,
 ) -> None:
     width, height = VIEWPORTS[viewport]
     checks, failures = proof['checks'], proof['failures']
@@ -83,7 +83,9 @@ def capture_viewport(
     def guard(route: Route) -> None:
         request = route.request
         login_post = login_pending and request.method == 'POST' and request.url == f'{base}/auth/local'
-        if request.method in {'GET', 'HEAD'} or login_post:
+        preview_post = (csv_preview and not login_pending and request.method == 'POST'
+                        and request.url == f'{base}/admin/import-preview')
+        if request.method in {'GET', 'HEAD'} or login_post or preview_post:
             route.continue_()
         else:
             failures.append(f'{viewport}.unexpected_write_blocked')
@@ -221,6 +223,38 @@ def capture_viewport(
                 for extra in context.pages:
                     if extra != page:
                         extra.close()
+        if csv_preview:
+            try:
+                stage = f'{viewport}.csv.empty'
+                response = page.goto(f'{base}/admin/import-preview', wait_until='load')
+                capture(page, response, stage, False)
+                check(f'{stage}.state', page.locator('main[data-state="empty"]').count() == 1)
+                check(f'{stage}.primary_visible', page.locator('#csv-upload button.primary').is_visible())
+                for family, label, filename in [
+                    ('cafeteria', 'Cafeteria', 'menu_cafeteria_example.csv'),
+                    ('patienten', 'Patientenplan', 'menu_patient_example.csv'),
+                ]:
+                    stage = f'{viewport}.csv.{family}'
+                    upload = page.locator('form#csv-upload[action="/admin/import-preview"]')
+                    example = Path(__file__).resolve().parents[1] / 'csv' / filename
+                    upload.locator('input[name="file"]').set_input_files(str(example))
+                    with page.expect_navigation(wait_until='load') as csv_response:
+                        upload.get_by_role('button', name='Vorschau prüfen', exact=True).click()
+                    capture(page, csv_response.value, stage, family == 'patienten')
+                    check(f'{stage}.state', page.locator('main[data-state="ready"]').count() == 1)
+                    result = page.locator('.csv-preview-result')
+                    target = result.locator('.csv-target')
+                    check(f'{stage}.profile', target.locator('strong').inner_text() == label)
+                    check(f'{stage}.week', re.search(r'\bKW 36\b.*31\.08\.2026', target.inner_text(), re.S) is not None)
+                    form = result.locator('form[method="post"][action="/admin/import"]')
+                    check(f'{stage}.import_form', form.count() == 1)
+                    names = form.locator('input[name], select[name], textarea[name], button[name]').evaluate_all(
+                        'elements => elements.map(element => element.name)'
+                    )
+                    check(f'{stage}.exact_fields', sorted(names) == ['_csrf', 'import_token'])
+                    check(f'{stage}.primary_visible', form.locator('button.primary[type="submit"]').is_visible())
+            except Exception as error:
+                failures.append(f'{stage}.{type(error).__name__}')
         check(f'{viewport}.no_csp_console_errors', csp_errors == 0)
 
 
@@ -228,6 +262,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--outdir', type=Path, required=True)
     parser.add_argument('--base-url', default='https://dishboard.joelduss.xyz')
+    parser.add_argument('--csv-preview', action='store_true', help='Preview example CSV uploads; never import them')
     args = parser.parse_args()
     parsed = urlsplit(args.base_url)
     if (parsed.scheme not in {'http', 'https'} or not parsed.hostname
@@ -250,7 +285,7 @@ def main() -> int:
         with sync_playwright() as playwright:
             with playwright.chromium.launch(args=['--no-sandbox', '--disable-dev-shm-usage']) as browser:
                 for viewport in VIEWPORTS:
-                    capture_viewport(browser, base, outdir, viewport, password, proof)
+                    capture_viewport(browser, base, outdir, viewport, password, proof, args.csv_preview)
     except Exception as error:
         # Deliberately omit exception text, request details, console text and headers.
         proof['failures'].append(f'runner.{type(error).__name__}')
