@@ -262,7 +262,12 @@ def test_menu_manual_metadata_and_optional_rows_roundtrip(
     }
     page.reload()
     expect(page.locator('[name="component_text"]').nth(1)).to_have_value('Gebäck')
-    expect(page.locator('[name="origin_country_code"]').nth(1)).to_have_value('DE')
+    origins = zip(
+        (field.input_value() for field in page.locator('[name="origin_ingredient"]').all()),
+        (field.input_value() for field in page.locator('[name="origin_country_code"]').all()),
+        strict=True,
+    )
+    assert sorted(origins) == [('Kartoffel', 'DE'), ('Rind', 'CH')]
     expect(page.locator('[name="allergen_code"][value="MILK"]')).to_be_checked()
     expect(page.locator('.allergen-row').filter(has=page.locator('[value="MILK"]')).locator('select')).to_have_value('may_contain')
     expect(page.locator('[name="label_code"][value="VEGAN"]')).to_be_checked()

@@ -290,7 +290,7 @@ def _request_menu_values() -> dict[str, object]:
     }
     for name in _MENU_LIST_FIELDS:
         request_name = name if name in request.form else f'{name}[]'
-        values[f'{name}[]'] = request.form.getlist(request_name)
+        values[name] = request.form.getlist(request_name)
     return values
 
 
