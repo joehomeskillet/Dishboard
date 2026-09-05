@@ -103,6 +103,7 @@ docs/design/2026-09-05-admin-csv-import-return.md
 docs/design/2026-09-05-admin-csv-preview-polish.md
 docs/design/2026-09-05-admin-go-live-form-repair.md
 docs/design/2026-09-05-admin-preview-polish.md
+docs/design/2026-09-05-admin-week-actions.md
 docs/design/2026-09-05-admin-workflow-shell.md
 docs/design/admin-redesign-ui.md
 docs/design/therapieplan-alignment.md
@@ -208,6 +209,7 @@ reference_scaffold/tests/test_admin_preview_ui.py
 reference_scaffold/tests/test_admin_shell_ui.py
 reference_scaffold/tests/test_admin_ux_browser.py
 reference_scaffold/tests/test_admin_week_routes.py
+reference_scaffold/tests/test_admin_week_ui.py
 reference_scaffold/tests/test_admin_workflow_concurrency_db.py
 reference_scaffold/tests/test_admin_workflow_db.py
 reference_scaffold/tests/test_admin_workflow_review_db.py
@@ -242,6 +244,7 @@ reference_scaffold/tests/test_deployment_restore_live.py
 reference_scaffold/tests/test_deployment_restore_ponr_live.py
 reference_scaffold/tests/test_deployment_restore_recovery.py
 reference_scaffold/tests/test_github_pages.py
+reference_scaffold/tests/test_patient_preview_access.py
 reference_scaffold/tests/test_public_contracts.py
 reference_scaffold/tests/test_public_isolation_homoglyphs.py
 reference_scaffold/tests/test_publication_lock_contract_db.py
