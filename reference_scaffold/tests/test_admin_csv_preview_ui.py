@@ -75,8 +75,12 @@ def _assert_accessible_layout(page: Page) -> None:
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
     controls = page.locator('main a, main button, main input:not([type="hidden"])')
     for control in controls.all():
+        if control.get_attribute('type') in {'checkbox', 'radio'}:
+            control = control.locator('xpath=ancestor::label')
         box = control.bounding_box()
-        assert box is not None and box['width'] >= 44 and box['height'] >= 44
+        assert box is not None and box['width'] >= 48 and box['height'] >= 48
+    assert page.locator('link[href$="/app.css"]').count() == 0
+    assert page.locator('main').count() == 1
     back = page.get_by_role('link', name='Zurück zur Wochenübersicht')
     back.focus()
     expect(back).to_be_focused()
@@ -84,7 +88,7 @@ def _assert_accessible_layout(page: Page) -> None:
     assert page.locator('[style], [onclick], script:not([src])').count() == 0
 
 
-@pytest.mark.parametrize(('width', 'height'), ((390, 844), (1440, 1100)))
+@pytest.mark.parametrize(('width', 'height'), ((360, 844), (1280, 1100)))
 def test_csv_preview_empty_and_invalid_have_clear_next_actions(
     page_context: Page, admin_app: Flask, width: int, height: int,  # noqa: F811
 ) -> None:
@@ -94,7 +98,7 @@ def test_csv_preview_empty_and_invalid_have_clear_next_actions(
     page.goto('/admin/import-preview')
     expect(page.locator('main')).to_have_attribute('data-state', 'empty')
     expect(page.get_by_text('Die Vorschau speichert noch keinen Entwurf.')).to_be_visible()
-    expect(page.locator('main .primary')).to_have_text('Vorschau prüfen')
+    expect(page.locator('main .btn-primary')).to_have_text('Vorschau prüfen')
     expect(page.get_by_label('CSV-Datei', exact=True)).to_be_visible()
     assert page.locator('input[name="import_token"]').count() == 0
     _capture(page, 'after', 'empty', width)
@@ -105,18 +109,20 @@ def test_csv_preview_empty_and_invalid_have_clear_next_actions(
     _upload(page, INVALID_CSV)
     expect(page.locator('main')).to_have_attribute('data-state', 'error')
     alert = page.get_by_role('alert')
-    expect(alert).to_be_focused()
+    expect(page.get_by_label('Korrigierte CSV-Datei')).to_be_focused()
+    expect(page.get_by_label('Korrigierte CSV-Datei')).to_have_attribute('aria-describedby', 'file-error')
+    expect(page.get_by_label('Korrigierte CSV-Datei')).to_have_attribute('aria-invalid', 'true')
     expect(alert).to_contain_text('Datei korrigieren')
     expect(alert).to_contain_text('erneut aus')
     expect(alert).to_contain_text('Zeile 1, Spalte')
     expect(page.get_by_label('Korrigierte CSV-Datei')).to_be_visible()
-    expect(page.locator('main .primary')).to_have_text('Vorschau prüfen')
+    expect(page.locator('main .btn-primary')).to_have_text('Vorschau prüfen')
     assert page.locator('input[name="import_token"]').count() == 0
     _capture(page, 'after', 'invalid', width)
     _assert_accessible_layout(page)
 
 
-@pytest.mark.parametrize(('width', 'height'), ((390, 844), (1440, 1100)))
+@pytest.mark.parametrize(('width', 'height'), ((360, 844), (1280, 1100)))
 @pytest.mark.parametrize(('family', 'filename', 'label', 'rows'), (
     ('patienten', 'menu_patient_example.csv', 'Patientenplan', 28),
     ('cafeteria', 'menu_cafeteria_example.csv', 'Cafeteria', 10),
@@ -137,7 +143,7 @@ def test_csv_preview_ready_exposes_destination_before_import(
     expect(summary).to_contain_text(f'{rows} Datenzeilen geprüft')
     assert 'staff_guest' not in page.locator('main').inner_text()
     assert 'Profil patient' not in page.locator('main').inner_text()
-    primary = page.locator('main .primary')
+    primary = page.locator('main .btn-primary')
     expect(primary).to_have_text('Geprüfte Datei importieren')
     for element in (summary, primary):
         box = element.bounding_box()

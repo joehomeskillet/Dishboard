@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import datetime as dt
+import os
 import re
+from pathlib import Path
 
 import pytest
 from flask import Flask
@@ -19,7 +21,7 @@ pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehl
 @pytest.mark.parametrize('family,profile,label', [
     ('cafeteria', 'staff_guest', 'Cafeteria'), ('patienten', 'patient', 'Patienten'),
 ])
-@pytest.mark.parametrize('viewport', [(390, 844), (1440, 1100)])
+@pytest.mark.parametrize('viewport', [(360, 844), (1280, 1100)])
 def test_copy_confirmation_is_readable_and_submits_without_javascript(
     browser: Browser, live_server: str, admin_app: Flask, admin_engine: Engine,  # noqa: F811
     family: str, profile: str, label: str, viewport: tuple[int, int],
@@ -58,12 +60,14 @@ def test_copy_confirmation_is_readable_and_submits_without_javascript(
         assert page.locator('main').get_attribute('data-profile') == profile
         assert page.locator('main').get_attribute('data-source-week') == source.isoformat()
         assert page.locator('main').get_attribute('data-target-week') == target.isoformat()
-        assert page.locator('script, style, [style], [onclick], [onsubmit]').count() == 0
+        assert page.locator('script:not([src]), style, [style], [onclick], [onsubmit]').count() == 0
+        assert page.locator('link[href$="/app.css"]').count() == 0
+        assert page.locator('main').count() == 1
         assert page.locator('body').evaluate(
             "el => getComputedStyle(el).fontFamily.includes('Fira Sans')"
         )
         assert page.locator('.admin-copy-weeks').evaluate(
-            "el => getComputedStyle(el).display === 'grid'"
+            "el => getComputedStyle(el).display === 'flex'"
         )
         assert page.evaluate(
             'document.documentElement.scrollWidth <= document.documentElement.clientWidth'
@@ -83,7 +87,11 @@ def test_copy_confirmation_is_readable_and_submits_without_javascript(
         cancel = form.get_by_role('link', name='Zurück zur Wochenübersicht', exact=True)
         for action in (primary, cancel):
             box = action.bounding_box()
-            assert box is not None and box['width'] >= 44 and box['height'] >= 44
+            assert box is not None and box['width'] >= 48 and box['height'] >= 48
+        if proof_dir := os.environ.get('COPY_TABLER_PROOF_DIR'):
+            directory = Path(proof_dir)
+            directory.mkdir(parents=True, exist_ok=True)
+            page.screenshot(path=str(directory / f'copy-{family}-{viewport[0]}.png'), full_page=True)
         cancel.click()
         page.wait_for_url(f'**/admin/{family}?week={target.isoformat()}')
         with admin_engine.connect() as connection:
@@ -92,6 +100,7 @@ def test_copy_confirmation_is_readable_and_submits_without_javascript(
         page.goto(copy_url)
         page.keyboard.press('Tab')
         expect(page.locator('.skip-link')).to_be_focused()
+        page.keyboard.press('Enter')
         page.keyboard.press('Tab')
         expect(primary).to_be_focused()
         assert primary.evaluate("el => getComputedStyle(el).outlineStyle !== 'none'")

@@ -1,44 +1,41 @@
-{% extends "base.html" %}
+{% extends "admin/base_tabler.html" %}
+{% from 'admin/_macros.html' import page_header %}
+{% set workflow_nav = 'weeks' %}
+{% set week = target.isoformat() %}
 {% block title %}Vorwoche kopieren · {{ 'Cafeteria' if family == 'cafeteria' else 'Patienten' }}{% endblock %}
-{% block body_class %}admin-body{% endblock %}
-{% block body %}
-<main class="admin-main admin-copy" id="main-content" data-profile="{{ profile }}" data-source-week="{{ source.isoformat() }}" data-target-week="{{ target.isoformat() }}">
-  <header class="admin-copy-brand">
-    <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="164" height="32">
-    <span>Menüplanung</span>
-  </header>
-
-  <div class="admin-copy-content">
-    <h1>Vorwoche kopieren</h1>
+{% block main_attributes %}data-source-week="{{ source.isoformat() }}" data-target-week="{{ target.isoformat() }}"{% endblock %}
+{% block page_header %}{{ page_header('Vorwoche kopieren', 'Menüplanung') }}{% endblock %}
+{% block content %}
+  <section class="card admin-copy-content">
+   <div class="card-body">
     <p class="admin-copy-profile">{{ 'Cafeteria' if family == 'cafeteria' else 'Patienten' }}</p>
 
-    <dl class="admin-copy-weeks">
-      <div>
+    <dl class="admin-copy-weeks row g-3">
+      <div class="col-12 col-sm-6">
         <dt>Quellwoche</dt>
         <dd>
           <span>KW {{ source.isocalendar().week }} / {{ source.isocalendar().year }}</span>
-          <time datetime="{{ source.isoformat() }}">{{ source.strftime('%d.%m.%Y') }}</time>
+          <time class="d-block" datetime="{{ source.isoformat() }}">{{ source.strftime('%d.%m.%Y') }}</time>
         </dd>
       </div>
-      <div class="admin-copy-target">
+      <div class="admin-copy-target col-12 col-sm-6">
         <dt>Zielwoche</dt>
         <dd>
           <span>KW {{ target.isocalendar().week }} / {{ target.isocalendar().year }}</span>
-          <time datetime="{{ target.isoformat() }}">{{ target.strftime('%d.%m.%Y') }}</time>
+          <time class="d-block" datetime="{{ target.isoformat() }}">{{ target.strftime('%d.%m.%Y') }}</time>
         </dd>
       </div>
     </dl>
 
     <p id="copy-description">Woche vom {{ source.strftime('%d.%m.%Y') }} in die leere Woche vom {{ target.strftime('%d.%m.%Y') }} kopieren.</p>
-    <form method="post" action="{{ url_for('admin.copy_post', family=family) }}" class="admin-copy-actions" aria-describedby="copy-description">
+    <form method="post" action="{{ url_for('admin.copy_post', family=family) }}" class="admin-copy-actions btn-list" aria-describedby="copy-description">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
       <input type="hidden" name="source_week" value="{{ source.isoformat() }}">
       <input type="hidden" name="target_week" value="{{ target.isoformat() }}">
       <input type="hidden" name="target_row_version" value="{{ target_row_version }}">
-      <button type="submit" class="btn primary">Vorwoche kopieren</button>
+      <button type="submit" class="btn btn-primary">Vorwoche kopieren</button>
       <a class="btn" href="{{ url_for('admin.' ~ family, week=target.isoformat()) }}">Zurück zur Wochenübersicht</a>
     </form>
-  </div>
-</main>
+   </div>
+  </section>
 {% endblock %}
-{% block scripts %}{% endblock %}
