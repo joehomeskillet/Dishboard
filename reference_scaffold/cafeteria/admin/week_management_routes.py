@@ -32,8 +32,6 @@ def find_weeks(engine: Engine, scope: AdminScope, page: int = 1) -> tuple[list[d
     if not 1 <= page <= 10000:
         raise ValueError('Ungültige Seitennummer.')
     with engine.connect() as connection:
-        # Keep the active location stable while the existing status helper reads it.
-        connection.execute(text('SELECT id FROM cafeteria.locations WHERE id=:id FOR SHARE'), {'id': scope.location_id})
         if resolve_single_active_location_connection(connection) != scope.location_id:
             raise ComponentCatalogConfigurationError('Der aktive Standort wurde geändert.')
         result = connection.execute(text('''
@@ -51,6 +49,9 @@ def find_weeks(engine: Engine, scope: AdminScope, page: int = 1) -> tuple[list[d
         for row in rows:
             row['status'] = derive_admin_status(engine, scope.profile_code, row['week_start'])
             row['next_week'] = row['week_start'] + timedelta(days=7) if row['week_start'] <= date.max - timedelta(days=7) else None
+        # Runtime only has SELECT on locations; reject a cutover without row locks.
+        if resolve_single_active_location_connection(connection) != scope.location_id:
+            raise ComponentCatalogConfigurationError('Der aktive Standort wurde geändert.')
     return rows, len(result) > PAGE_SIZE
 
 
