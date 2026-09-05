@@ -300,6 +300,25 @@ def test_exact_mapping_append_replace_unassign_and_archived_rules(
         )
 
 
+@pytest.mark.parametrize('free_text', [False, True])
+def test_auto_labels_require_every_assignment_to_be_known(
+    catalog_database: CatalogDatabase, free_text: bool,
+) -> None:
+    item = _item(catalog_database)
+    component = _component(catalog_database, 'Reis', labels=('VEGAN', 'GLUTEN_FREE'))
+    assignments = [_assignment(str(component['public_id']), None)]
+    if free_text:
+        assignments.append(_assignment(None, 'Unbekannte Sauce'))
+    replace_component_links(
+        catalog_database.app, item.scope, item.id, assignments, item.version,
+    )
+    effects = resolve_component_effects(catalog_database.app, item.scope, item.id)
+    assert [label['code'] for label in effects['labels']] == (
+        [] if free_text else ['GLUTEN_FREE', 'VEGAN']
+    )
+    assert len(_item_state(catalog_database, item.id)[2]) == (0 if free_text else 2)
+
+
 def test_scope_effect_resolution_and_independent_auto_manual_modes(
     catalog_database: CatalogDatabase,
 ) -> None:
@@ -333,7 +352,7 @@ def test_scope_effect_resolution_and_independent_auto_manual_modes(
     )
     effects = resolve_component_effects(catalog_database.app, item.scope, item.id)
     assert effects == {
-        'labels': [{'code': 'VEGETARIAN', 'name': 'Vegetarisch'}],
+        'labels': [],
         'allergens': [
             {'code': 'GLUTEN', 'name': 'Glutenhaltiges Getreide', 'presence': 'contains'},
             {'code': 'MILK', 'name': 'Milch', 'presence': 'contains'},
@@ -344,6 +363,18 @@ def test_scope_effect_resolution_and_independent_auto_manual_modes(
         ],
     }
     assert _item_state(catalog_database, item.id)[0] == (version, 'not_checked')
+    assert _item_state(catalog_database, item.id)[2] == ()
+    version = replace_component_links(
+        catalog_database.app, item.scope, item.id,
+        [_assignment(str(common['public_id']), None),
+         _assignment(str(current['public_id']), None),
+         _assignment(str(no_origin['public_id']), None)],
+        version,
+    )
+    known_effects = resolve_component_effects(catalog_database.app, item.scope, item.id)
+    assert known_effects['labels'] == [{'code': 'VEGETARIAN', 'name': 'Vegetarisch'}]
+    assert known_effects['allergens'] == effects['allergens']
+    assert known_effects['origins'] == effects['origins']
 
     manual = _item(
         catalog_database,
@@ -356,7 +387,7 @@ def test_scope_effect_resolution_and_independent_auto_manual_modes(
         catalog_database.app,
         manual.scope,
         manual.id,
-        [_assignment(str(common['public_id']), None)],
+        [_assignment(str(common['public_id']), None), _assignment(None, 'Unbekannte Sauce')],
         manual.version,
     )
     after = _item_state(catalog_database, manual.id)[2:]

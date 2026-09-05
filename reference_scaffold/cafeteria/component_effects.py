@@ -14,21 +14,20 @@ class AutoOriginConflictError(ComponentConflictError):
 def effective_rows(
     connection: Connection, item_id: int, item: Mapping[str, object]
 ) -> dict[str, list[dict[str, object]]]:
-    component_ids = sorted(
-        {
-            int(value)
-            for value in connection.execute(
-                text(
-                    'SELECT component_id FROM cafeteria.menu_item_components '
-                    'WHERE menu_item_id=:item_id AND component_id IS NOT NULL'
-                ),
-                {'item_id': item_id},
-            ).scalars()
-        }
-    )
+    assignments = list(connection.execute(
+        text(
+            'SELECT c.id FROM cafeteria.menu_item_components mic '
+            'LEFT JOIN cafeteria.menu_components c ON c.id=mic.component_id '
+            'WHERE mic.menu_item_id=:item_id'
+        ),
+        {'item_id': item_id},
+    ).scalars())
+    component_ids = sorted({int(value) for value in assignments if value is not None})
+    # Freitext/unresolved assignments cannot substantiate automatic dietary labels.
+    label_component_ids = component_ids if None not in assignments else []
     return {
         'labels': (
-            _auto_labels(connection, component_ids)
+            _auto_labels(connection, label_component_ids)
             if item['label_mode'] == 'auto'
             else _manual_labels(connection, item_id)
         ),
