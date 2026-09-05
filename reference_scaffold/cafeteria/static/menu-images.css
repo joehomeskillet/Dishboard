@@ -1,0 +1,26 @@
+/* The original plate remains fully visible at every card width. */
+.menu-photo {
+  width: 100%;
+  max-width: 22rem;
+  margin: .75rem 0;
+}
+.menu-photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 75 / 56;
+  object-fit: contain;
+}
+.menu-photo figcaption {
+  margin-top: .25rem;
+  color: var(--sh-ink-muted);
+  font-size: .75rem;
+  line-height: 1.4;
+}
+.week-menu .menu-photo,
+.preview-option .menu-photo {
+  max-width: 14rem;
+}
+@media print {
+  .menu-photo { display: none; }
+}

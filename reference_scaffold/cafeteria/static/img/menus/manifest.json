@@ -1,0 +1,310 @@
+[
+  {
+    "title": "Pouletbrust an Kräutersauce",
+    "components": [
+      "Kartoffelstock",
+      "Zucchetti"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-077-9be37fd4812b.jpg",
+    "sha256": "9be37fd4812b99df5b5ef0fc55b120a36d2df871b7cb201cc49ad351d806c7e5"
+  },
+  {
+    "title": "Spinat-Ricotta-Ravioli",
+    "components": [
+      "Tomatensauce",
+      "Blattsalat"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-078-3026d8317b84.jpg",
+    "sha256": "3026d8317b84ce17e7fad5e72fa4357ffd47f918a1c8b0302ce7d807c3e3d7cd"
+  },
+  {
+    "title": "Rindsgeschnetzeltes Stroganoff",
+    "components": [
+      "Basmatireis",
+      "Broccoli"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-079-d7cb94ccdb71.jpg",
+    "sha256": "d7cb94ccdb711d501794d723179633b643ae6dc516523b360e4f5d99a95843f3"
+  },
+  {
+    "title": "Kichererbsen-Curry",
+    "components": [
+      "Basmatireis",
+      "Broccoli"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-080-411edc052e3e.jpg",
+    "sha256": "411edc052e3ea7d6568783f8b2fca3a5f49e8a28670f0905f6964e07ab365eca"
+  },
+  {
+    "title": "Kalbsbratwurst mit Zwiebelsauce",
+    "components": [
+      "Rösti",
+      "Rüebli"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-081-d38f94f8fd6e.jpg",
+    "sha256": "d38f94f8fd6ec20acca9c621b4693b72db6e24f89be0b500e4d4032aff9b8ffa"
+  },
+  {
+    "title": "Gemüse-Lasagne",
+    "components": [
+      "Blattsalat"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-082-bbb66c2d69b7.jpg",
+    "sha256": "bbb66c2d69b7b8d852a45e48857c27da9e30536db7f8b7ee3797c2c72b181760"
+  },
+  {
+    "title": "Schweinsragout Tessiner Art",
+    "components": [
+      "Polenta",
+      "Bohnen"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-083-6bd4394562ab.jpg",
+    "sha256": "6bd4394562ab30548ab07bf0cc7107b5e5d560914287c47ed0ef82c90e07ff99"
+  },
+  {
+    "title": "Polenta mit Pilzragout",
+    "components": [
+      "Bohnen"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-084-864bd4c843e4.jpg",
+    "sha256": "864bd4c843e46994ae14257595eb2a695b0e24886633d179321171f7338af362"
+  },
+  {
+    "title": "Gebratenes Zanderfilet",
+    "components": [
+      "Salzkartoffeln",
+      "Rahmspinat"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-085-46a87b43e859.jpg",
+    "sha256": "46a87b43e859c7c11b34261248f11153d069e0dad07bd95af48c4949fe7000d6"
+  },
+  {
+    "title": "Falafel-Teller",
+    "components": [
+      "Hummus",
+      "Ofengemüse"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-086-0df06dc7da13.jpg",
+    "sha256": "0df06dc7da1341106f2881da950b06f5948e6a1f8e06900368d3f60b6e61648a"
+  },
+  {
+    "title": "Pouletgeschnetzeltes Paprika",
+    "components": [
+      "Reis",
+      "Zucchetti"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-087-e64269006083.jpg",
+    "sha256": "e64269006083b67defe983a6d1ba821c8bb362acd73e12f5170e9a3bbb8efb59"
+  },
+  {
+    "title": "Gemüsegeschnetzeltes",
+    "components": [
+      "Reis",
+      "Zucchetti"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-088-f467fc3a56a1.jpg",
+    "sha256": "f467fc3a56a18986b078fe8fa6b9e314004094a29d14dd6a9b68134e7516387d"
+  },
+  {
+    "title": "Schinken-Käse-Toast",
+    "components": [
+      "Tomatensalat"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-089-b2872ac79400.jpg",
+    "sha256": "b2872ac79400ab6fc5f24642388ae4ea5bb8cfb6330e58915506f799ff745f20"
+  },
+  {
+    "title": "Gemüse-Toast",
+    "components": [
+      "Tomatensalat"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-090-b4a4a00d9d44.jpg",
+    "sha256": "b4a4a00d9d444ee099c685cf202696f0c35fad069c8c1c93a7bae8f4c992176a"
+  },
+  {
+    "title": "Hackbraten an Rosmarinjus",
+    "components": [
+      "Kartoffelgratin",
+      "Broccoli"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-091-146286cbedb6.jpg",
+    "sha256": "146286cbedb65076736e37a7865d4bd97ced3851df370e8accaf0eb4cc53ae70"
+  },
+  {
+    "title": "Linsenbraten",
+    "components": [
+      "Kartoffelgratin",
+      "Broccoli"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-092-e7c0c4871ecb.jpg",
+    "sha256": "e7c0c4871ecbbce910fe80e4c9b22b1218d34bff68650b509bde7c0b44e0f65c"
+  },
+  {
+    "title": "Kartoffelsuppe mit Wienerli",
+    "components": [
+      "Hausbrot"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-093-28ae2571f980.jpg",
+    "sha256": "28ae2571f9803c69d173909ef7d9610fae071158deb31a170a660bc569a23221"
+  },
+  {
+    "title": "Kartoffelsuppe mit Kräutern",
+    "components": [
+      "Hausbrot"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-094-4edc49f5a04e.jpg",
+    "sha256": "4edc49f5a04e385a91bad6392ffc19a2de438eee80afd2e7ae2bb1574de87146"
+  },
+  {
+    "title": "Älplermagronen mit Speck",
+    "components": [
+      "Apfelmus"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-097-3db93c028f4c.jpg",
+    "sha256": "3db93c028f4cc1e04e95ee15a6fae3d0e9df5557eae5d385c11e163789b18cfa"
+  },
+  {
+    "title": "Älplermagronen vegetarisch",
+    "components": [
+      "Apfelmus"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-098-736a5910cfa6.jpg",
+    "sha256": "736a5910cfa6b47ff6c234168e5d454d9126ad340d7e6b13237fb18ccda86fde"
+  },
+  {
+    "title": "Rührei mit Kräutern",
+    "components": [
+      "Salzkartoffeln",
+      "Spinat"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-101-8e9fe0b3ed02.jpg",
+    "sha256": "8e9fe0b3ed02f3048066ee910759d38206bdb772330cfcba36b4451135e29c76"
+  },
+  {
+    "title": "Tofu-Rührei",
+    "components": [
+      "Salzkartoffeln",
+      "Spinat"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-102-f56f0e4ea9bf.jpg",
+    "sha256": "f56f0e4ea9bff1246672eec8e6feeb819eb6431986a49a3a00124b23de37c16f"
+  },
+  {
+    "title": "Griessbrei mit Zwetschgenkompott",
+    "components": [
+      "Zwetschgenkompott"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-105-262000e5bc38.jpg",
+    "sha256": "262000e5bc3895c156326f0097fdb583ca7c331b80fb47aea2f969041074c4dc"
+  },
+  {
+    "title": "Kokos-Griessbrei",
+    "components": [
+      "Zwetschgenkompott"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-106-405febbc16ee.jpg",
+    "sha256": "405febbc16eee161cec7877e82c3d48cf71fd86907a5cce9b416aa625bdadeef"
+  },
+  {
+    "title": "Ofen-Pouletschenkel",
+    "components": [
+      "Kartoffelwedges",
+      "Marktgemüse"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-107-e15ba2d1fb3f.jpg",
+    "sha256": "e15ba2d1fb3f0d5ac5812c1d7fd0b2e66e9b4ea7a2978d24f044fc2de499b11d"
+  },
+  {
+    "title": "Kichererbsen-Eintopf",
+    "components": [
+      "Kartoffelwedges",
+      "Marktgemüse"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-108-0a77077b6bf2.jpg",
+    "sha256": "0a77077b6bf2f59411923e87b4af37c3f1b1d3669b0cc621e10f16054e02ab56"
+  },
+  {
+    "title": "Bündner Gerstensuppe",
+    "components": [
+      "Hausbrot"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-109-27ad8d243f45.jpg",
+    "sha256": "27ad8d243f457b2068c841b3f18e1af15de23572bb9a770489888601d4052828"
+  },
+  {
+    "title": "Gemüse-Gerstensuppe",
+    "components": [
+      "Hausbrot"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-110-4e60e2eb401f.jpg",
+    "sha256": "4e60e2eb401f5bc959c80c743bea2b720110bd88de846d8132b52099fbdbc4ab"
+  },
+  {
+    "title": "Rindsschmorbraten",
+    "components": [
+      "Kartoffelstock",
+      "Karotten"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-111-089378bcd597.jpg",
+    "sha256": "089378bcd597a97410b7dd51f6df7c5ddbd53d3121411ab3d603edcc8c6c654e"
+  },
+  {
+    "title": "Nussbraten mit Kräutersauce",
+    "components": [
+      "Kartoffelstock",
+      "Karotten"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-112-030ca4907fba.jpg",
+    "sha256": "030ca4907fbafc37c5a80ddbd0a0b37d766309ad8d9cfc8bf0cce49238ae923d"
+  },
+  {
+    "title": "Pastetli mit Brätkügeli",
+    "components": [
+      "Erbsen und Rüebli",
+      "Blattsalat"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-113-9a212a1e6b81.jpg",
+    "sha256": "9a212a1e6b816b0ea8f7d775523d599594f15626e888e7acbfe59868b5b3df14"
+  },
+  {
+    "title": "Gemüse-Pastetli",
+    "components": [
+      "Erbsen und Rüebli",
+      "Blattsalat"
+    ],
+    "status": "ready",
+    "file": "img/menus/menu-114-0aa2c54e02ed.jpg",
+    "sha256": "0aa2c54e02edecf8dd73371296ff3370dae7fe10a399310b42cd06b2ea0d0540"
+  }
+]

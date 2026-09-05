@@ -23,6 +23,7 @@
         <div class="menu-card-body">
         <p>{{ row.service_date.strftime('%d.%m.%Y') }} · {{ meal_labels[row.meal_code] }} · {{ option_labels[row.type_code] }}{% if row.workflow_state == 'archived' %} · Archivierte Woche{% endif %}</p>
         <h2>{{ row.title }}</h2>
+        {% with option=row %}{% include '_menu_image.html' %}{% endwith %}
         {% if row.components %}<ul class="components">{% for component in row.components %}<li>{{ component }}</li>{% endfor %}</ul>{% endif %}
         {% with option=row %}{% include '_menu_metadata.html' %}{% endwith %}
         {% if row.stale_components %}<p>Komponenten geändert · Erneute Prüfung erforderlich</p>{% endif %}

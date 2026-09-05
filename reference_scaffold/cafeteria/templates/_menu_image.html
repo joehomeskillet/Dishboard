@@ -1,0 +1,7 @@
+{% set image_file = option|menu_image %}
+{% if image_file %}
+<figure class="menu-photo">
+  <img src="{{ url_for('static', filename=image_file) }}" alt="Serviervorschlag: {{ option.title }}" width="1200" height="896" loading="lazy" decoding="async">
+  <figcaption>KI-generierter Serviervorschlag</figcaption>
+</figure>
+{% endif %}

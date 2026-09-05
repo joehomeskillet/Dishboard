@@ -9,6 +9,7 @@
     <link rel="preload" as="font" type="font/woff2" href="{{ url_for('static', filename='fonts/fira-sans-400.woff2') }}" crossorigin>
   <link rel="preload" as="font" type="font/woff2" href="{{ url_for('static', filename='fonts/fira-sans-600.woff2') }}" crossorigin>
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='menu-images.css') }}">
   {% block head %}{% endblock %}
 </head>
 {% set user = session.get('user') %}

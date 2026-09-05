@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 
 from flask import Flask
+from .menu_images import menu_image
 
 MONTHS = {
     1: 'Januar', 2: 'Februar', 3: 'März', 4: 'April', 5: 'Mai', 6: 'Juni',
@@ -33,6 +34,7 @@ def iso_week(value: str) -> int:
 
 
 def register_template_filters(app: Flask) -> None:
+    app.add_template_filter(menu_image, 'menu_image')
     app.add_template_filter(date_long, 'date_long')
     app.add_template_filter(date_short, 'date_short')
     app.add_template_filter(chf, 'chf')
