@@ -102,6 +102,7 @@ docs/design/2026-09-05-admin-copy-polish.md
 docs/design/2026-09-05-admin-csv-import-return.md
 docs/design/2026-09-05-admin-csv-preview-polish.md
 docs/design/2026-09-05-admin-go-live-form-repair.md
+docs/design/2026-09-05-admin-preview-polish.md
 docs/design/admin-redesign-ui.md
 docs/design/therapieplan-alignment.md
 docs/DOCKER_COMPOSE_RUNBOOK.md
@@ -201,6 +202,7 @@ reference_scaffold/tests/test_admin_csv_import.py
 reference_scaffold/tests/test_admin_csv_preview_ui.py
 reference_scaffold/tests/test_admin_draft_preview.py
 reference_scaffold/tests/test_admin_overview_forms.py
+reference_scaffold/tests/test_admin_preview_ui.py
 reference_scaffold/tests/test_admin_ux_browser.py
 reference_scaffold/tests/test_admin_week_routes.py
 reference_scaffold/tests/test_admin_workflow_concurrency_db.py
