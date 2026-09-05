@@ -63,7 +63,7 @@
             <input type="hidden" name="row_version" value="{{ week_row_version }}">
             <button type="submit" class="btn primary"{% if publish_blocked %} disabled aria-describedby="week-publish-guidance"{% endif %}>Publizieren</button>
           </form>
-          <a class="btn{% if publish_blocked %} disabled{% endif %}" href="/admin/{{ family }}/preview?week={{ week }}" target="_blank" rel="noopener"{% if publish_blocked %} aria-disabled="true"{% endif %}>Vorschau</a>
+          <a class="btn" href="/admin/{{ family }}/preview?week={{ week }}" target="_blank" rel="noopener">Vorschau</a>
           <a class="btn" href="/admin/{{ family }}/copy?week={{ week }}">Vorwoche kopieren</a>
           {% if publish_blocked %}
           <p id="week-publish-guidance" class="admin-week-guidance">{% if status == 'empty' %}Zuerst Gerichte erfassen, danach die Woche prüfen und publizieren.{% elif status == 'incomplete' %}Zuerst die Woche vervollständigen, danach publizieren.{% else %}Zuerst offene Prüfungen abschliessen, danach publizieren.{% endif %}</p>
