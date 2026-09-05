@@ -326,6 +326,10 @@ design/screenshots/live/website-cafeteria-heute-1440x1100.png
 design/screenshots/live/website-cafeteria-woche-1440x1100.png
 design/screenshots/live/website-patienten-heute-1440x1100.png
 design/screenshots/live/website-patienten-woche-1440x1100.png
+design/screenshots/menu-list-2026-09-05/cafeteria-list-1440.png
+design/screenshots/menu-list-2026-09-05/cafeteria-list-390.png
+design/screenshots/menu-list-2026-09-05/patienten-list-1440.png
+design/screenshots/menu-list-2026-09-05/patienten-list-390.png
 design/screenshots/mobile-390x844.png
 design/screenshots/mobile-cafeteria-heute-390x844.png
 design/screenshots/mobile-cafeteria-woche-390x844.png
@@ -426,6 +430,7 @@ reference_scaffold/cafeteria/security.py
 reference_scaffold/cafeteria/signage/__init__.py
 reference_scaffold/cafeteria/signage/routes.py
 reference_scaffold/cafeteria/static/admin-components.css
+reference_scaffold/cafeteria/static/admin-menu-collection.css
 reference_scaffold/cafeteria/static/admin-menu-editor.css
 reference_scaffold/cafeteria/static/admin-preview.css
 reference_scaffold/cafeteria/static/admin-tabler.css
@@ -516,6 +521,7 @@ reference_scaffold/cafeteria/templates/public/patient_today.html
 reference_scaffold/cafeteria/templates/public/patient_week.html
 reference_scaffold/cafeteria/templates/public/print_cafeteria_week.html
 reference_scaffold/cafeteria/templates/public/print_patient_week.html
+reference_scaffold/cafeteria/templates/public/unavailable.html
 reference_scaffold/cafeteria/templates/signage/cafeteria_closed.html
 reference_scaffold/cafeteria/templates/signage/cafeteria_day.html
 reference_scaffold/cafeteria/templates/signage/cafeteria_week.html
@@ -599,6 +605,7 @@ reference_scaffold/tests/test_menu_metadata_visibility.py
 reference_scaffold/tests/test_patient_preview_access.py
 reference_scaffold/tests/test_preview_equal_cards_browser.py
 reference_scaffold/tests/test_public_contracts.py
+reference_scaffold/tests/test_public_display_copy.py
 reference_scaffold/tests/test_public_isolation_homoglyphs.py
 reference_scaffold/tests/test_publication_lock_contract_db.py
 reference_scaffold/tests/test_rendered_ui.py
