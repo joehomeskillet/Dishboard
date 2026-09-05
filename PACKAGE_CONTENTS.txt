@@ -204,6 +204,9 @@ docs/ENTRA_SSO_BETRIEBSKONZEPT.md
 docs/GROK_KRITIK_UMSETZUNG.md
 docs/SDD_Klinik_Suedhang_Cafeteria_v3.0.docx
 docs/SDD_Klinik_Suedhang_Cafeteria_v3.0.md
+docs/superpowers/admin-menu-collection-0905.md
+docs/superpowers/admin-next-0905.md
+docs/superpowers/allergen-proposals-0905.md
 docs/superpowers/metadata-visibility-0905.md
 docs/superpowers/plans/2026-09-01-dishboard-menuplanung.md
 docs/superpowers/plans/2026-09-02-dishboard-admin-redesign.md
@@ -219,6 +222,8 @@ PACKAGE_CONTENTS.txt
 README.md
 reference_scaffold/cafeteria/__init__.py
 reference_scaffold/cafeteria/admin/__init__.py
+reference_scaffold/cafeteria/admin/menu_collection_routes.py
+reference_scaffold/cafeteria/admin/menu_collection_store.py
 reference_scaffold/cafeteria/admin/rendering.py
 reference_scaffold/cafeteria/admin/routes.py
 reference_scaffold/cafeteria/admin/workflow_routes.py
@@ -263,6 +268,7 @@ reference_scaffold/cafeteria/templates/admin/component_editor.html
 reference_scaffold/cafeteria/templates/admin/components.html
 reference_scaffold/cafeteria/templates/admin/copy.html
 reference_scaffold/cafeteria/templates/admin/import_preview.html
+reference_scaffold/cafeteria/templates/admin/menu_collection.html
 reference_scaffold/cafeteria/templates/admin/menu_editor.html
 reference_scaffold/cafeteria/templates/admin/patienten.html
 reference_scaffold/cafeteria/templates/admin/preview.html
@@ -338,6 +344,8 @@ reference_scaffold/tests/test_deployment_restore_live.py
 reference_scaffold/tests/test_deployment_restore_ponr_live.py
 reference_scaffold/tests/test_deployment_restore_recovery.py
 reference_scaffold/tests/test_github_pages.py
+reference_scaffold/tests/test_menu_collection.py
+reference_scaffold/tests/test_menu_collection_browser.py
 reference_scaffold/tests/test_menu_metadata_visibility.py
 reference_scaffold/tests/test_patient_preview_access.py
 reference_scaffold/tests/test_public_contracts.py
