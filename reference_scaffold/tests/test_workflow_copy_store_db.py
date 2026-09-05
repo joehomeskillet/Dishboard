@@ -509,7 +509,7 @@ def test_copy_and_real_save_block_without_hybrid(catalog_database: CatalogDataba
         expected_error = workflow.StaleDraftError if first_name == 'copy' else ComponentConflictError
         assert second[0] == 'error' and isinstance(second[1], expected_error)
     expected_counts = (
-        (2, 1, 1) if first_name == 'copy' or saved_week == 'source' else (14, 28, 28)
+        (2, 1, 1) if first_name == 'copy' else (14, 28, 28)
     )
     assert _target_counts(catalog_database) == expected_counts
 
