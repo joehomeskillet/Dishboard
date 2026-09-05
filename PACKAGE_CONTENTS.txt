@@ -347,6 +347,7 @@ design/screenshots/weekly-print/2026-09-05/patienten-normal-server.pdf
 design/screenshots/weekly-print/2026-09-05/patienten-notes-server.pdf
 design/screenshots/weekly-print/2026-09-05/patienten-notes-server.png
 docs/ABNAHME_CHECKLISTE.md
+docs/BACKLOG.md
 docs/CSV_IMPORT_EXPORT.md
 docs/design/2026-09-05-admin-copy-polish.md
 docs/design/2026-09-05-admin-csv-import-return.md
