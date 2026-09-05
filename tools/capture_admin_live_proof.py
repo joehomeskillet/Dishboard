@@ -14,7 +14,7 @@ import re
 import stat
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import parse_qsl, urljoin, urlsplit
 
 from playwright.sync_api import Browser, Page, Response, Route, sync_playwright
 
@@ -63,6 +63,15 @@ def _admin_url(url: str, base: str) -> bool:
     return (parsed.scheme, parsed.netloc) == (origin.scheme, origin.netloc) and (
         parsed.path == '/admin' or parsed.path.startswith('/admin/')
     )
+
+
+def _profile_tab_matches(href: str | None, base: str, path: str) -> bool:
+    resolved = urljoin(base, href or '')
+    parsed = urlsplit(resolved)
+    harmless_query = not parsed.query or (
+        path.endswith('/menues') and parse_qsl(parsed.query, keep_blank_values=True) == [('q', '')]
+    )
+    return _admin_url(resolved, base) and parsed.path == path and harmless_query and not parsed.fragment
 
 
 def capture_viewport(
@@ -170,11 +179,14 @@ def capture_viewport(
                     ).count() == 1)
                     active_profile = page.locator('nav[aria-label="Profil"] a[aria-current="page"]')
                     check(f'{stage}.profile_tab', active_profile.count() == 1
-                          and active_profile.get_attribute('href') == path)
-                    links = main.locator('.menu-card a[href]').evaluate_all(
+                          and _profile_tab_matches(active_profile.get_attribute('href'), base, path))
+                    rows = main.locator('[data-menu-id], [data-week-id]')
+                    linked_rows = main.locator('[data-menu-id]:has(a[href]), [data-week-id]:has(a[href])')
+                    check(f'{stage}.row_links', rows.count() == linked_rows.count())
+                    links = main.locator('[data-menu-id] a[href], [data-week-id] a[href]').evaluate_all(
                         'elements => elements.map(element => element.getAttribute("href"))',
                     )
-                    check(f'{stage}.row_scope', all(
+                    check(f'{stage}.row_scope', len(links) >= rows.count() and all(
                         _admin_url(urljoin(base, href), base)
                         and urlsplit(urljoin(base, href)).path.split('/')[2] == family
                         for href in links
