@@ -4,7 +4,7 @@
 {% block body %}
 {% set submitted = form_values|default({}) %}
 {% set errors = form_errors|default({}) %}
-{% macro error_attributes(name, error_id) %}{% if errors.get(name) %} aria-invalid="{{ 'true' }}" aria-describedby="{{ error_id }}"{% endif %}{% endmacro %}
+{% macro error_attributes(name, error_id) %}{% if errors.get(name) %} aria-invalid="true" aria-describedby="{{ error_id }}"{% endif %}{% endmacro %}
 {% macro field_error(name, error_id) %}{% if errors.get(name) %}<span class="field-error" id="{{ error_id }}">{{ errors[name] }}</span>{% endif %}{% endmacro %}
 
 <div class="admin-shell">
