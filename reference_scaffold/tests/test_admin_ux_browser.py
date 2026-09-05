@@ -143,7 +143,7 @@ def test_admin_error_state_focuses_first_error_and_offers_retry(page_context: Pa
     page = page_context
     page.goto(f'/admin/cafeteria/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1')
     page.fill('input[name="internal_chf"]', 'invalid')
-    page.click('button[type="submit"]')
+    page.click('form[data-menu-editor] button[type="submit"]')
     
     page.wait_for_selector('.error-region[role="alert"]')
     page.wait_for_function(

@@ -5,6 +5,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
+from flask import Flask, url_for
 from playwright.sync_api import Page, expect
 
 from test_admin_ux_browser import (  # noqa: F401
@@ -17,7 +18,7 @@ from test_admin_workflow_routes import DAY
 @pytest.mark.parametrize('page_kind', ('editor', 'catalog', 'detail'))
 @pytest.mark.parametrize(('width', 'height'), ((390, 844), (1440, 1100)))
 def test_workflow_shell_has_navigation_readable_main_and_native_targets(
-    page_context: Page, catalog_component: tuple, tmp_path: Path,  # noqa: F811
+    page_context: Page, catalog_component: tuple, tmp_path: Path, admin_app: Flask,  # noqa: F811
     family: str, page_kind: str, width: int, height: int,
 ) -> None:
     page = page_context
@@ -64,10 +65,12 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
     )
 
     logout = navigation.locator('form')
+    with admin_app.test_request_context():
+        logout_url = url_for('auth.logout')
     expect(logout).to_have_attribute('method', 'post')
-    expect(logout).to_have_attribute('action', '/auth/logout')
+    expect(logout).to_have_attribute('action', logout_url)
     assert logout.locator('input[name="_csrf"]').input_value()
-    assert main.locator('form[action="/auth/logout"]').count() == 0
+    assert main.locator(f'form[action="{logout_url}"]').count() == 0
     assert page.locator('[onclick], [onsubmit], [style], script:not([src])').count() == 0
 
     small_targets = page.locator(
