@@ -1,0 +1,20 @@
+{
+  "menu_id": 83,
+  "model": "google/gemini-3.1-flash-image",
+  "provider": "google-ai-studio",
+  "status": "generated",
+  "reserved_usd": "0.30",
+  "created_at": "2026-09-05T16:57:05.501142+00:00",
+  "reference_sha256": "9bee05b69c5f85a70c82940ec7d1a69f17a53d7e062713483e3472ca8f8b714a",
+  "prompt": "Edit the supplied canonical empty-plate photograph. Preserve exactly its warm off-white matte background, identical plain white round deep ceramic plate, centered position and scale, exact 90-degree overhead camera and soft upper-left daylight. Change only food inside the plate. Ordinary Swiss cafeteria portion: Schweinsragout Tessiner Art. All required side components: Polenta, Bohnen. Show the named main dish and every side component clearly. No invented extra side dish. No garnish, decorative herb leaves, herb sprigs or green flecks unless herbs are explicitly part of the menu title. No utensils, hands, text, logos, napkins, extra containers or food on the tabletop. Soup uses this same deep plate, with named bread on its upper rim. Fruit puree or compote goes inside this same plate, no extra bowl. Vegetarian dishes must visibly contain no meat or fish. Natural food texture and modest portions, no icons or luxury styling. This is an illustrative serving suggestion, not proof of ingredients or allergens.",
+  "resolution": "1K",
+  "aspect_ratio": "4:3",
+  "cost_usd": "0.0686535",
+  "file": "design/menu-images/openrouter/menu-083-google-or.jpg",
+  "sha256": "6bd4394562ab30548ab07bf0cc7107b5e5d560914287c47ed0ef82c90e07ff99",
+  "bytes": 366136,
+  "width": 1200,
+  "height": 896,
+  "total_cost_usd": "0.2053690",
+  "exceeds_budget": false
+}

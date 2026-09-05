@@ -1,0 +1,20 @@
+{
+  "menu_id": 112,
+  "model": "google/gemini-3.1-flash-image",
+  "provider": "google-ai-studio",
+  "status": "generated",
+  "reserved_usd": "0.30",
+  "created_at": "2026-09-05T17:00:37.009288+00:00",
+  "reference_sha256": "9bee05b69c5f85a70c82940ec7d1a69f17a53d7e062713483e3472ca8f8b714a",
+  "prompt": "Edit the supplied canonical empty-plate photograph. Preserve exactly its warm off-white matte background, identical plain white round deep ceramic plate, centered position and scale, exact 90-degree overhead camera and soft upper-left daylight. Change only food inside the plate. Ordinary Swiss cafeteria portion: Nussbraten mit Kräutersauce. All required side components: Kartoffelstock, Karotten. Show the named main dish and every side component clearly. No invented extra side dish. No garnish, decorative herb leaves, herb sprigs or green flecks unless herbs are explicitly part of the menu title. No utensils, hands, text, logos, napkins, extra containers or food on the tabletop. Soup uses this same deep plate, with named bread on its upper rim. Fruit puree or compote goes inside this same plate, no extra bowl. Vegetarian dishes must visibly contain no meat or fish. Natural food texture and modest portions, no icons or luxury styling. This is an illustrative serving suggestion, not proof of ingredients or allergens.",
+  "resolution": "1K",
+  "aspect_ratio": "4:3",
+  "cost_usd": "0.0684945",
+  "file": "design/menu-images/openrouter/menu-112-google-or.jpg",
+  "sha256": "030ca4907fbafc37c5a80ddbd0a0b37d766309ad8d9cfc8bf0cce49238ae923d",
+  "bytes": 351864,
+  "width": 1200,
+  "height": 896,
+  "total_cost_usd": "1.4375270",
+  "exceeds_budget": false
+}

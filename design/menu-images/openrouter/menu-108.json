@@ -1,0 +1,20 @@
+{
+  "menu_id": 108,
+  "model": "google/gemini-3.1-flash-image",
+  "provider": "google-ai-studio",
+  "status": "generated",
+  "reserved_usd": "0.30",
+  "created_at": "2026-09-05T17:06:41.882437+00:00",
+  "reference_sha256": "9bee05b69c5f85a70c82940ec7d1a69f17a53d7e062713483e3472ca8f8b714a",
+  "prompt": "Edit the supplied canonical empty-plate photograph. Preserve exactly its warm off-white matte background, identical plain white round deep ceramic plate, centered position and scale, exact 90-degree overhead camera and soft upper-left daylight. Change only food inside the plate. Ordinary Swiss cafeteria portion: Kichererbsen-Eintopf. All required side components: Kartoffelwedges, Marktgemüse. Show the named main dish and every side component clearly. No invented extra side dish. No garnish, decorative herb leaves, herb sprigs or green flecks unless herbs are explicitly part of the menu title. No utensils, hands, text, logos, napkins, extra containers or food on the tabletop. Vegetarian dishes must visibly contain no meat or fish. Natural food texture and modest portions, no icons or luxury styling. Output only a pure photograph: no writing anywhere, including the plate rim. Exactly three sections: chickpea stew, potato wedges, mixed market vegetables. Absolutely no bread, fruit, fruit puree, compote, herbs, letters, captions or markings. The entire white rim must stay empty.",
+  "resolution": "1K",
+  "aspect_ratio": "4:3",
+  "cost_usd": "0.068569",
+  "file": "design/menu-images/openrouter/menu-108-google-or.jpg",
+  "sha256": "0a77077b6bf2f59411923e87b4af37c3f1b1d3669b0cc621e10f16054e02ab56",
+  "bytes": 370180,
+  "width": 1200,
+  "height": 896,
+  "total_cost_usd": "1.6431540",
+  "exceeds_budget": false
+}

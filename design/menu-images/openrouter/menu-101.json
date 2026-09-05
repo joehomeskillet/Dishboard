@@ -1,0 +1,20 @@
+{
+  "menu_id": 101,
+  "model": "google/gemini-3.1-flash-image",
+  "provider": "google-ai-studio",
+  "status": "generated",
+  "reserved_usd": "0.30",
+  "created_at": "2026-09-05T16:59:24.718633+00:00",
+  "reference_sha256": "9bee05b69c5f85a70c82940ec7d1a69f17a53d7e062713483e3472ca8f8b714a",
+  "prompt": "Edit the supplied canonical empty-plate photograph. Preserve exactly its warm off-white matte background, identical plain white round deep ceramic plate, centered position and scale, exact 90-degree overhead camera and soft upper-left daylight. Change only food inside the plate. Ordinary Swiss cafeteria portion: Rührei mit Kräutern. All required side components: Salzkartoffeln, Spinat. Show the named main dish and every side component clearly. No invented extra side dish. No garnish, decorative herb leaves, herb sprigs or green flecks unless herbs are explicitly part of the menu title. No utensils, hands, text, logos, napkins, extra containers or food on the tabletop. Soup uses this same deep plate, with named bread on its upper rim. Fruit puree or compote goes inside this same plate, no extra bowl. Vegetarian dishes must visibly contain no meat or fish. Natural food texture and modest portions, no icons or luxury styling. This is an illustrative serving suggestion, not proof of ingredients or allergens.",
+  "resolution": "1K",
+  "aspect_ratio": "4:3",
+  "cost_usd": "0.0683935",
+  "file": "design/menu-images/openrouter/menu-101-google-or.jpg",
+  "sha256": "8e9fe0b3ed02f3048066ee910759d38206bdb772330cfcba36b4451135e29c76",
+  "bytes": 365905,
+  "width": 1200,
+  "height": 896,
+  "total_cost_usd": "1.0265660",
+  "exceeds_budget": false
+}
