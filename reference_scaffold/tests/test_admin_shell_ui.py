@@ -19,11 +19,10 @@ def _assert_brand_contained(sidebar: Locator) -> None:
     brand = sidebar.locator('.admin-brand')
     brand_box = brand.bounding_box()
     assert sidebar_box is not None and brand_box is not None
-    boxes = [
-        (brand_box, sidebar_box),
-        (brand.locator('img').bounding_box(), brand_box),
-        (brand.locator('span').bounding_box(), brand_box),
-    ]
+    boxes = [(brand_box, sidebar_box), (brand.locator('img').bounding_box(), brand_box)]
+    # The Tabler shell hides the brand caption below 1200 px; only a visible caption must fit.
+    if brand.locator('span').is_visible():
+        boxes.append((brand.locator('span').bounding_box(), brand_box))
     for box, bounds in boxes:
         assert box is not None
         assert box['width'] > 0 and box['height'] > 0
@@ -68,12 +67,23 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         assert main_box['width'] >= width * 0.65
     else:
         assert main_box['y'] >= sidebar_box['y'] + sidebar_box['height'] - 1
-        assert main_box['width'] >= width - 2
+        shell_box = page.locator(shell).bounding_box()
+        assert shell_box is not None
+        assert main_box['width'] >= shell_box['width'] - 2
     assert main_box['x'] + main_box['width'] <= width + 1
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
     assert main.evaluate('(element) => element.scrollWidth <= element.clientWidth + 1')
 
     navigation = sidebar.get_by_role('navigation', name='Backend')
+    toggle = sidebar.get_by_role('button', name='Menü', exact=True)
+    collapsed = shell == '.page' and width < 1200
+    if collapsed:
+        expect(toggle).to_be_visible()
+        toggle.click()
+        expect(toggle).to_have_attribute('aria-expanded', 'true')
+        expect(page.locator('#sidebar-menu')).to_have_class(re.compile(r'\bshow\b'))
+        expect(page.locator('#sidebar-menu')).not_to_have_class(re.compile(r'\bcollapsing\b'))
+        expect(navigation).to_be_visible()
     weeks = navigation.get_by_role('link', name='Wochenpläne')
     catalog = navigation.get_by_role('link', name='Komponenten', exact=True)
     week_href = weeks.get_attribute('href')
@@ -93,7 +103,8 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
     expect(logout).to_have_attribute('action', logout_url)
     assert logout.locator('input[name="_csrf"]').input_value()
     assert main.locator(f'form[action="{logout_url}"]').count() == 0
-    assert page.locator('[onclick], [onsubmit], [style], script:not([src])').count() == 0
+    # Bootstrap's collapse leaves an emptied style attribute behind after the transition.
+    assert page.locator('[onclick], [onsubmit], [style]:not([style=""]), script:not([src])').count() == 0
 
     small_targets = page.locator(
         f'{shell} .admin-nav a, {shell} .admin-nav button, '
@@ -171,11 +182,20 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
     if family == 'patienten':
         assert not re.search(r'preis|chf|rappen|kosten|price', page.content(), re.IGNORECASE)
 
+    if collapsed:
+        # Fresh load so sequential focus starts at the document: skip link, menu button, then navigation.
+        page.goto(routes[page_kind])
     page.keyboard.press('Tab')
     skip = page.get_by_role('link', name='Zum Inhalt springen')
     expect(skip).to_be_focused()
     expect(skip).to_have_attribute('href', '#main-content')
     page.keyboard.press('Tab')
+    if collapsed:
+        expect(toggle).to_be_focused()
+        page.keyboard.press('Enter')
+        expect(toggle).to_have_attribute('aria-expanded', 'true')
+        expect(page.locator('#sidebar-menu')).not_to_have_class(re.compile(r'\bcollapsing\b'))
+        page.keyboard.press('Tab')
     expect(weeks).to_be_focused()
     assert weeks.evaluate('''element => {
         const style = getComputedStyle(element);

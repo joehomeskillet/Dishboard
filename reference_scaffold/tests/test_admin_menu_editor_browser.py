@@ -69,14 +69,13 @@ def test_editor_viewport_matrix_split_touch_and_sticky_bar(page_context: Page, f
 
         _open_sections(page)
         for control in main.locator(CONTROLS).all():
+            if control.evaluate('el => el.matches("input[type=checkbox], input[type=radio]")'):
+                control = control.locator('xpath=ancestor::label[1]')
             box = control.bounding_box()
             if box is None or not box['width']:
                 continue
             assert box['height'] >= 48, (width, control.evaluate('el => el.outerHTML'))
             assert box['x'] + box['width'] <= width + 1, (width, control.evaluate('el => el.outerHTML'))
-        for check in main.locator('input[type="checkbox"], input[type="radio"]').all():
-            if check.is_visible():
-                assert _box(check.locator('xpath=ancestor::label[1]'))['height'] >= 48
 
         bar = form.locator('[data-sticky]')
         page.evaluate('window.scrollTo(0, 0)')
@@ -208,8 +207,10 @@ def test_field_error_opens_only_affected_accordion_and_summary_links_to_field(pa
     page.goto(_editor('patienten'))
     page.get_by_label('Titel', exact=True).fill('Fehlerfall')
     origin = page.locator('details[data-mode-section="origin"]')
-    assert origin.get_attribute('open') is None
-    origin.locator('summary').click()
+    _open_sections(page)
+    # Unsaved cells prefill every mode as manual; only origin stays manual for this error case.
+    page.locator('[name="allergen_mode"][value="auto"]').check()
+    page.locator('[name="label_mode"][value="auto"]').check()
     page.locator('[name="origin_mode"][value="manual"]').check()
     expect(origin.locator('[data-mode-badge]')).to_have_text('manuell festgelegt')
     page.locator('[name="origin_ingredient"]').fill('Rind')
@@ -244,9 +245,17 @@ def test_modes_and_accordion_state_survive_save_and_reload(page_context: Page) -
     page.set_viewport_size({'width': 820, 'height': 1180})
     page.goto(_editor('patienten'))
     page.get_by_label('Titel', exact=True).fill('Modus')
+    # Unsaved cells prefill every mode as manual, so all accordions start open.
+    for key in ('allergen', 'origin', 'label'):
+        assert page.locator(f'details[data-mode-section="{key}"]').get_attribute('open') is not None
+        expect(page.locator(f'details[data-mode-section="{key}"] [data-mode-badge]')).to_have_text('manuell festgelegt')
+        page.locator(f'[name="{key}_mode"][value="auto"]').check()
+        expect(page.locator(f'details[data-mode-section="{key}"] [data-mode-badge]')).to_have_text('automatisch geerbt')
+    _submit_menu(page)
+    page.reload()
     for key in ('allergen', 'origin', 'label'):
         assert page.locator(f'details[data-mode-section="{key}"]').get_attribute('open') is None
-        expect(page.locator(f'details[data-mode-section="{key}"] [data-mode-badge]')).to_have_text('automatisch geerbt')
+        expect(page.locator(f'[name="{key}_mode"][value="auto"]')).to_be_checked()
     allergen = page.locator('details[data-mode-section="allergen"]')
     allergen.locator('summary').click()
     page.locator('[name="allergen_mode"][value="manual"]').check()
@@ -294,6 +303,8 @@ def test_prices_only_for_staff_and_compact_view_keeps_targets(page_context: Page
     expect(page.locator('main#main-content')).to_have_attribute('data-state', 'dense')
     _open_sections(page)
     for control in page.locator(f'main#main-content :is({CONTROLS})').all():
+        if control.evaluate('el => el.matches("input[type=checkbox], input[type=radio]")'):
+            control = control.locator('xpath=ancestor::label[1]')
         box = control.bounding_box()
         if box and box['width']:
             assert box['height'] >= 48, control.evaluate('el => el.outerHTML')

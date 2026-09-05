@@ -45,6 +45,7 @@ from test_admin_workflow_routes import (  # noqa: E402
 )
 
 CSS_PATH = ROOT / 'reference_scaffold' / 'cafeteria' / 'static' / 'app.css'
+TOKENS_PATH = CSS_PATH.with_name('tokens.css')
 STATIC_IMG_PATH = ROOT / 'reference_scaffold' / 'cafeteria' / 'static' / 'img'
 PATIENT_FORBIDDEN = re.compile(
     r'\b(?:CHF|Rappen|Intern|Extern|0\.00|price|prices|pricing|preis|preise|currency)\b'
@@ -282,11 +283,15 @@ def _set_unbroken_signage_boundaries(
 
 
 def test_css_rgba_colors_outside_root_use_design_tokens() -> None:
-    css = CSS_PATH.read_text(encoding='utf-8')
-    root_block = re.search(r':root\s*\{.*?\}', css, re.DOTALL)
+    # Tokens live in tokens.css (shared by app.css and the Tabler admin base); raw colours
+    # are only allowed inside that :root block.
+    tokens = TOKENS_PATH.read_text(encoding='utf-8')
+    root_block = re.search(r':root\s*\{.*?\}', tokens, re.DOTALL)
 
     assert root_block is not None
-    outside_root = css[: root_block.start()] + css[root_block.end() :]
+    assert re.search(r':root\s*\{', CSS_PATH.read_text(encoding='utf-8')) is None
+    outside_root = tokens[: root_block.start()] + tokens[root_block.end() :]
+    outside_root += CSS_PATH.read_text(encoding='utf-8')
     rgba_violations = [line.strip() for line in outside_root.splitlines() if 'rgba(' in line]
     hex_violations = [
         line.strip()
@@ -298,7 +303,7 @@ def test_css_rgba_colors_outside_root_use_design_tokens() -> None:
 
 
 def test_documented_header_contrast_ratios_remain_wcag_aa() -> None:
-    css = CSS_PATH.read_text(encoding='utf-8')
+    css = TOKENS_PATH.read_text(encoding='utf-8')
 
     assert '--sh-magenta: #8C1C4B;' in css
     assert '--sh-green: #3E6B44;' in css
