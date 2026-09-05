@@ -360,6 +360,7 @@ docs/design/2026-09-05-admin-go-live-form-repair.md
 docs/design/2026-09-05-admin-preview-polish.md
 docs/design/2026-09-05-admin-week-actions.md
 docs/design/2026-09-05-admin-workflow-shell.md
+docs/design/2026-09-05-screens-vorlagen-verwaltung.md
 docs/design/admin-redesign-ui.md
 docs/design/admin-tabler-contract.md
 docs/design/country-select-source.md
