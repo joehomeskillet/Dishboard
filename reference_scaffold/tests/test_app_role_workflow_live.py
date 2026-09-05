@@ -143,6 +143,7 @@ def test_app_role_publishes_patient_and_cafeteria_without_privilege_error(
     issuer_engine: Engine,
 ) -> None:
     """Verify app role can publish both profiles without InsufficientPrivilege on trigger validators."""
+    from review_support import review_saved_week
 
     # Create an Entra user through issuer engine
     actor_id = upsert_entra_user(
@@ -189,6 +190,7 @@ def test_app_role_publishes_patient_and_cafeteria_without_privilege_error(
         values=patient_draft_values,
     )
     assert row_version >= 1
+    row_version = review_saved_week(app_engine, 'patient', patient_week_start, actor_id)
 
     # Publish patient profile through app engine
     # This triggers validate_publication_revision() which calls jsonb_has_patient_forbidden_key()
@@ -271,6 +273,7 @@ def test_app_role_publishes_patient_and_cafeteria_without_privilege_error(
         values=cafeteria_draft_values,
     )
     assert caf_row_version >= 1
+    caf_row_version = review_saved_week(app_engine, 'staff_guest', cafeteria_week_start, actor_id)
 
     # Publish cafeteria profile through app engine
     cafeteria_snapshot = publish_draft(

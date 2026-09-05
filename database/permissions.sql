@@ -137,4 +137,10 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
 ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
     REVOKE ALL ON SEQUENCES FROM cafeteria_auth_issuer;
 
+GRANT EXECUTE ON FUNCTION
+    workflow_week_context(bigint),
+    record_menu_review(bigint, bigint, text, bigint, bigint, text, text),
+    record_week_context_review(bigint, bigint, text, bigint, text, jsonb)
+TO cafeteria_app;
+
 COMMIT;

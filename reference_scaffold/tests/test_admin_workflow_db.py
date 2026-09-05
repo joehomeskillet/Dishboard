@@ -26,6 +26,7 @@ from cafeteria.workflow import (
     save_draft,
 )
 from cafeteria.workflow_snapshot import build_snapshot
+from review_support import review_saved_week
 
 ROOT = Path(__file__).resolve().parents[2]
 DATABASE_URL = os.getenv('TEST_DATABASE_URL')
@@ -155,6 +156,11 @@ def _save(engine: Engine, profile: str, values: dict[str, Any]) -> int:
         actor_id=actor_id,
         values=values,
     )
+
+
+def _save_reviewed(engine: Engine, profile: str, values: dict[str, Any]) -> int:
+    _save(engine, profile, values)
+    return review_saved_week(engine, profile, WEEK_START, _actor_id(engine))
 
 
 def _historical_publication(engine: Engine, actor_id: int, suffix: str) -> int:
@@ -331,8 +337,8 @@ def test_profile_publications_are_independent_and_unsent_draft_is_not_public(
     database_engine: Engine,
 ) -> None:
     actor_id = _actor_id(database_engine)
-    patient_version = _save(database_engine, 'patient', _patient_values())
-    staff_version = _save(database_engine, 'staff_guest', _staff_values())
+    patient_version = _save_reviewed(database_engine, 'patient', _patient_values())
+    staff_version = _save_reviewed(database_engine, 'staff_guest', _staff_values())
 
     patient_first = publish_draft(
         database_engine,
@@ -363,6 +369,7 @@ def test_profile_publications_are_independent_and_unsent_draft_is_not_public(
         values=_patient_values('Winterküche'),
     )
     still_public = active_snapshot(database_engine, 'patient', '2026-09-02')
+    draft_version = review_saved_week(database_engine, 'patient', WEEK_START, actor_id)
     patient_second = publish_draft(
         database_engine,
         'patient',
@@ -389,7 +396,7 @@ def test_admin_status_is_derived_from_saved_content_not_workflow_enum(
     load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id)
     assert derive_admin_status(database_engine, 'patient', WEEK_START) == 'empty'
 
-    _save(database_engine, 'patient', _patient_values())
+    _save_reviewed(database_engine, 'patient', _patient_values())
     assert derive_admin_status(database_engine, 'patient', WEEK_START) == 'ready'
     with database_engine.begin() as connection:
         connection.execute(
@@ -401,6 +408,7 @@ def test_admin_status_is_derived_from_saved_content_not_workflow_enum(
     assert derive_admin_status(database_engine, 'patient', WEEK_START) == 'review_open'
     with database_engine.begin() as connection:
         connection.execute(text("UPDATE cafeteria.menu_items SET allergen_review_status='checked'"))
+    review_saved_week(database_engine, 'patient', WEEK_START, actor_id)
 
     current = load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id)
     publish_draft(
@@ -415,6 +423,8 @@ def test_admin_status_is_derived_from_saved_content_not_workflow_enum(
         expected_row_version=changed['row_version'], actor_id=actor_id,
         values=_patient_values('Geänderte Woche'),
     )
+    assert derive_admin_status(database_engine, 'patient', WEEK_START) == 'review_open'
+    review_saved_week(database_engine, 'patient', WEEK_START, actor_id)
     assert derive_admin_status(database_engine, 'patient', WEEK_START) == 'changed'
     with database_engine.begin() as connection:
         connection.execute(
@@ -431,7 +441,7 @@ def test_publish_ignores_multiple_active_revisions_from_inactive_locations(
         _historical_publication(database_engine, actor_id, 'R1'),
         _historical_publication(database_engine, actor_id, 'R2'),
     }
-    version = _save(database_engine, 'patient', _patient_values('Aktiver Standort'))
+    version = _save_reviewed(database_engine, 'patient', _patient_values('Aktiver Standort'))
 
     published = publish_draft(
         database_engine, 'patient', WEEK_START,
@@ -498,7 +508,7 @@ def test_revision_sequence_is_global_across_location_cutover(
 ) -> None:
     actor_id = _actor_id(database_engine)
     first_values = _staff_values('Süd')
-    first_version = _save(database_engine, 'staff_guest', first_values)
+    first_version = _save_reviewed(database_engine, 'staff_guest', first_values)
     first = publish_draft(
         database_engine,
         'staff_guest',
@@ -520,7 +530,7 @@ def test_revision_sequence_is_global_across_location_cutover(
                 option['external_id'] = (
                     f"NORD-{day['date']}-{service['meal_code']}-{option['type_code']}"
                 )
-    second_version = _save(database_engine, 'staff_guest', north_values)
+    second_version = _save_reviewed(database_engine, 'staff_guest', north_values)
     second = publish_draft(
         database_engine,
         'staff_guest',
@@ -556,6 +566,7 @@ def test_revision_code_uses_iso_year_across_december_30_boundary(
             actor_id=actor_id,
             values=values,
         )
+        version = review_saved_week(database_engine, 'patient', week_start, actor_id)
         snapshots.append(
             publish_draft(
                 database_engine,
@@ -578,8 +589,8 @@ def test_published_payloads_keep_profile_shapes_and_patient_has_no_cost_tokens(
     database_engine: Engine,
 ) -> None:
     actor_id = _actor_id(database_engine)
-    patient_version = _save(database_engine, 'patient', _patient_values())
-    staff_version = _save(database_engine, 'staff_guest', _staff_values())
+    patient_version = _save_reviewed(database_engine, 'patient', _patient_values())
+    staff_version = _save_reviewed(database_engine, 'staff_guest', _staff_values())
     patient = publish_draft(
         database_engine,
         'patient',
@@ -663,7 +674,7 @@ def test_closure_is_scoped_to_date_profile_and_meal(database_engine: Engine) -> 
 
 def test_failed_publish_does_not_withdraw_previous_revision(database_engine: Engine) -> None:
     actor_id = _actor_id(database_engine)
-    version = _save(database_engine, 'patient', _patient_values())
+    version = _save_reviewed(database_engine, 'patient', _patient_values())
     first = publish_draft(
         database_engine,
         'patient',
@@ -694,7 +705,7 @@ def test_missing_replacement_capability_fails_explicitly_without_mutation(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     actor_id = _actor_id(database_engine)
-    first_version = _save(database_engine, 'patient', _patient_values('Erste Revision'))
+    first_version = _save_reviewed(database_engine, 'patient', _patient_values('Erste Revision'))
     first = publish_draft(
         database_engine,
         'patient',
@@ -703,7 +714,7 @@ def test_missing_replacement_capability_fails_explicitly_without_mutation(
         actor_id=actor_id,
         issuer_engine=database_engine,
     )
-    second_version = _save(database_engine, 'patient', _patient_values('Zweite Revision'))
+    second_version = _save_reviewed(database_engine, 'patient', _patient_values('Zweite Revision'))
     monkeypatch.setattr(
         'cafeteria.workflow.issue_publication_capability',
         lambda *_args: None,
@@ -739,7 +750,7 @@ def test_snapshot_keeps_distinct_notice_for_each_closed_meal(
     lunch, dinner = values['days'][0]['services']
     lunch.update(service_state='closed', notice='Mittagsservice geschlossen')
     dinner.update(service_state='holiday', notice='Abendservice entfällt')
-    version = _save(database_engine, 'patient', values)
+    version = _save_reviewed(database_engine, 'patient', values)
 
     published = publish_draft(
         database_engine,
@@ -767,7 +778,7 @@ def test_publish_rejects_signage_overflow_without_replacing_active_revision(
 ) -> None:
     actor_id = _actor_id(database_engine)
     values_factory = _patient_values if profile_code == 'patient' else _staff_values
-    initial_version = _save(database_engine, profile_code, values_factory())
+    initial_version = _save_reviewed(database_engine, profile_code, values_factory())
     initial = publish_draft(
         database_engine,
         profile_code,
@@ -820,7 +831,7 @@ def test_publish_accepts_strict_shared_signage_boundaries(
     option = values['days'][0]['services'][0]['options'][0]
     option['title'] = 'G' * 36
     option['components'] = ['B' * 48]
-    version = _save(database_engine, profile_code, values)
+    version = _save_reviewed(database_engine, profile_code, values)
 
     published = publish_draft(
         database_engine,

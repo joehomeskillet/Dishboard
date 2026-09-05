@@ -44,7 +44,7 @@ def _prepare_reviewed_publish_component(
 ) -> tuple[int, int, int, AdminScope, dict[str, object]]:
     actor_id = workflow_db_support._actor_id(database.app)
     values = workflow_db_support._patient_values(f'Komponentenwoche {suffix}')
-    week_version = workflow_db_support._save(database.app, 'patient', values)
+    week_version = workflow_db_support._save_reviewed(database.app, 'patient', values)
     with database.owner.connect() as connection:
         item = connection.execute(
             text(
@@ -286,7 +286,7 @@ def test_publish_locks_week_before_snapshot_reads_against_concurrent_save(
 ) -> None:
     """Removing the week-row lock lets save finish while publish holds an old week row."""
     actor_id = workflow_db_support._actor_id(database_engine)
-    expected_version = workflow_db_support._save(
+    expected_version = workflow_db_support._save_reviewed(
         database_engine,
         'patient',
         workflow_db_support._patient_values('Herbstküche'),
@@ -396,7 +396,7 @@ def test_concurrent_publishes_are_serialized_as_one_revision_and_one_stale_error
 ) -> None:
     """Removing serialization makes both publishers allocate revision one."""
     actor_id = workflow_db_support._actor_id(database_engine)
-    expected_version = workflow_db_support._save(
+    expected_version = workflow_db_support._save_reviewed(
         database_engine,
         'patient',
         workflow_db_support._patient_values(),
@@ -557,7 +557,8 @@ def test_common_component_catalog_edit_and_review_serialize_in_both_orders(
         try:
             results['review'] = workflow.review_component(
                 catalog_database.app,
-                reviewed_item.scope,
+                AdminScope(workflow_db_support._actor_id(catalog_database.app),
+                           catalog_database.location_id, reviewed_item.scope.profile_code),
                 reviewed_item.id,
                 token,
                 reviewed_version,

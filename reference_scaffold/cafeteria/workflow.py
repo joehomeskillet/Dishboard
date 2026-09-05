@@ -25,6 +25,7 @@ from .workflow_review import (
     review_component as review_component,
     review_open as review_open,
 )
+from .workflow_review_context import week_context_review_open_connection
 from .workflow_publication import (
     next_revision_number,
     require_expected_active_location,
@@ -468,7 +469,9 @@ def derive_admin_status(
                 ),
                 {'week_id': draft['id']},
             ).mappings().one_or_none()
-            if not item_ids and active is None:
+            if not item_ids and active is None and not connection.execute(text(
+                'SELECT EXISTS(SELECT 1 FROM cafeteria.menu_services WHERE menu_week_id=:week_id)'
+            ), {'week_id': draft['id']}).scalar_one():
                 return 'empty'
             try:
                 values = _draft_values(draft)
@@ -477,6 +480,8 @@ def derive_admin_status(
             except (KeyError, TypeError, ValueError):
                 return 'incomplete'
             if any(_review_open_connection(connection, item_id) for item_id in item_ids):
+                return 'review_open'
+            if week_context_review_open_connection(connection, int(draft['id'])):
                 return 'review_open'
             if active is None:
                 return 'ready'
@@ -536,6 +541,8 @@ def publish_draft_scoped(
         validate_publication_fit(profile_code, values)
         if any(_review_open_connection(connection, item_id) for item_id in item_ids):
             raise WorkflowValidationError('Allergendeklaration ist nicht geprüft.')
+        if week_context_review_open_connection(connection, int(draft['id'])):
+            raise WorkflowValidationError('Wochenkopf und Servicehinweise müssen erneut geprüft werden.')
         revision_number = next_revision_number(connection, profile_code, week_start)
         prefix = 'PAT' if profile_code == 'patient' else 'CAF'
         revision_code = f'{prefix}-{week_start.isocalendar().year}-KW{week_start.isocalendar().week:02d}-R{revision_number}'

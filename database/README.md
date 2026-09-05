@@ -53,8 +53,17 @@ Der `actor-identifier` wird gegen den aktiven Benutzernamen, die E-Mail-Adresse 
 10. `0010_v12_to_v13.sql` (13)
 11. `0011_v13_to_v14.sql` (14)
 12. `0012_v14_to_v15.sql` (15)
+13. `0013_v15_to_v16.sql` (16)
 
-Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0011` bleiben byteidentisch. `schema.sql` beschreibt den aktuellen v15-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
+Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0012` bleiben byteidentisch. `schema.sql` beschreibt den aktuellen v16-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
+
+Schema v16 trennt Menüprüfung und Wochenprüfung. Menübelege binden die gespeicherte Item-Version und den Komponenten-/Deklarationstoken; Wochenbelege binden Titel, Wochenhinweis und alle gespeicherten Services mit ihren Versionen. `header_revision` erhöht sich nur bei geänderten Kopfwerten; die allgemeine Wochen-`row_version` gehört nicht zur Wochenprüfung. Ein anderer Menüedit entwertet deshalb keine fremde Menüprüfung und keine unveränderte Wochenprüfung. Ein Kopf-Edit mit anschliessender Rückkehr zum alten Text verlangt eine neue Prüfung.
+
+Die explizite Wochenprüfung unter `/admin/<family>/wochen/pruefung?week=YYYY-MM-DD` zeigt auch geschlossene Services und vollständig geschlossene Wochen. Beide Prüfaktionen schreiben unveränderliche `audit_events` mit Akteur, Datenbankzeit, Objekt und Revision/Token. `cafeteria_app` erhält nur die eng begrenzten `record_menu_review`-/`record_week_context_review`-Funktionen; direkte Audit-Schreibrechte bleiben entzogen. Die Funktionen prüfen den aktiven Standort, das Profil, die aktuelle Version und bestehende aktive Bearbeitungsrollen.
+
+Die Migration erzeugt keine historischen Prüfbelege und verändert keine gespeicherten Prüfstatus, Notizen oder Publikationssnapshotbytes. Ein bisheriges `checked` bleibt gespeichert, genügt aber für eine neue Publikation ohne Beleg nicht mehr. Die bestehende öffentliche Publikation bleibt erhalten. Neue Veröffentlichung ist erst nach ausdrücklichen Menü- und Wochenprüfungen des aktuellen gespeicherten Stands möglich. Migration, Backend und neuer Prüfbildschirm müssen gemeinsam ausgerollt werden; ein alter Code-Rollback darf die v16-Prüfschranken nicht umgehen.
+
+Der Wechsel erfolgt ohne überlappenden alten Publisher: alte Anwendung stoppen, v16-Migration transaktional ausführen, v16-Anwendung starten. Ein v15-Binary ist nach dieser Migration kein sicherer Backend-Rollback. Ein vorbereiteter UI-Rollback muss das v16-Backend beibehalten; nach neuen Schreibvorgängen ist ansonsten eine vorwärts gerichtete Korrektur nötig.
 
 Schema v14 ergänzt `cafeteria.lock_component_metadata_masters(text[], text[])`. Der SECURITY-DEFINER-Helper sperrt angeforderte Ernährungslabel nach ID vor angeforderten Allergenen nach ID. Nur `cafeteria_app` darf ihn ausführen; direkte Schreibrechte oder `SELECT ... FOR SHARE` auf den Mastertabellen bleiben verweigert.
 

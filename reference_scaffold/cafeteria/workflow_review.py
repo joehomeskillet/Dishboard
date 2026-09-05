@@ -18,6 +18,7 @@ from .component_assignment_store import (
 )
 from .component_catalog_store import AdminScope, ComponentNotFoundError
 from .component_effects import effective_rows, public_effects, rematerialize_auto_effects
+from .workflow_publication import require_expected_active_location
 
 
 _TOKEN_KEYS = frozenset(
@@ -163,7 +164,20 @@ def _review_open_connection(connection: Connection, item_id: int) -> bool:
     ).scalar_one_or_none()
     if value is None:
         raise ComponentNotFoundError('Menü nicht gefunden.')
-    return bool(value)
+    if value:
+        return True
+    receipt_token = connection.execute(text('''
+        SELECT a.details->>'reviewed_token'
+        FROM cafeteria.audit_events a
+        JOIN cafeteria.menu_items i ON i.public_id=a.entity_public_id
+        WHERE i.id=:item_id AND a.action='workflow.menu_reviewed'
+          AND a.entity_type='menu_item'
+          AND a.details->>'reviewed_item_row_version'=i.row_version::text
+        ORDER BY a.id DESC LIMIT 1
+    '''), {'item_id': item_id}).scalar_one_or_none()
+    if receipt_token is None:
+        return True
+    return receipt_token != _review_token(_review_payload(connection, None, item_id))
 
 
 def review_open(engine: Engine, scope: AdminScope, item_id: int) -> bool:
@@ -179,10 +193,16 @@ def review_open(engine: Engine, scope: AdminScope, item_id: int) -> bool:
 
 def _review_payload(
     connection: Connection,
-    scope: AdminScope,
+    scope: AdminScope | None,
     item_id: int,
 ) -> dict[str, object]:
-    item = _find_scoped_item(connection, scope, item_id)
+    item = (
+        _find_scoped_item(connection, scope, item_id) if scope is not None else
+        dict(connection.execute(text(
+            'SELECT id,row_version,allergen_mode,origin_mode,label_mode '
+            'FROM cafeteria.menu_items WHERE id=:item_id'
+        ), {'item_id': item_id}).mappings().one())
+    )
     components = [
         {
             'sort_order': int(row['sort_order']),
@@ -300,6 +320,7 @@ def review_component(
     if type(component_version) is not str or _TOKEN_PATTERN.fullmatch(component_version) is None:
         raise ValueError('component_version ist ungültig.')
     with engine.begin() as connection:
+        require_expected_active_location(connection, scope.location_id, lock=True)
         _lock_scoped_item(connection, scope, clean_item_id)
         _lock_components_and_links(connection, clean_item_id)
         item = _find_scoped_item(connection, scope, clean_item_id)
@@ -338,4 +359,15 @@ def review_component(
             ),
             {'actor_id': scope.actor_id, 'item_id': clean_item_id},
         )
+        reviewed_token = _review_token(_review_payload(connection, scope, clean_item_id))
+        connection.execute(text('''
+            SELECT cafeteria.record_menu_review(
+                :actor, :location, :profile, :item_id, :source_version,
+                :submitted_token, :reviewed_token
+            )
+        '''), {
+            'actor': scope.actor_id, 'location': scope.location_id, 'profile': scope.profile_code,
+            'item_id': clean_item_id, 'source_version': expected_version,
+            'submitted_token': component_version, 'reviewed_token': reviewed_token,
+        }).scalar_one()
         return new_version

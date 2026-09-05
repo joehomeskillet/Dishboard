@@ -98,7 +98,9 @@ def test_review_open_is_bound_to_location_profile_and_item(
     catalog_database: CatalogDatabase,
 ) -> None:
     item = _item(catalog_database, review='checked', suffix='SCOPED-PREDICATE')
-
+    assert workflow.review_open(catalog_database.app, item.scope, item.id)
+    token = workflow.get_component_review_token(catalog_database.app, item.scope, item.id)
+    workflow.review_component(catalog_database.app, _scope(catalog_database), item.id, token, item.version)
     assert not workflow.review_open(catalog_database.app, item.scope, item.id)
     with pytest.raises(ComponentNotFoundError):
         workflow.review_open(
@@ -346,7 +348,7 @@ def test_auto_origin_conflict_is_atomic_while_manual_origin_review_succeeds(
     )
     workflow.review_component(
         catalog_database.app,
-        manual_item.scope,
+        _scope(catalog_database),
         manual_item.id,
         manual_token,
         manual_version,

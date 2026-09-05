@@ -41,6 +41,7 @@ from ..workflow_partial_store import (
     PartialWorkflowConflictError, PartialWorkflowNotFoundError, PartialWorkflowValidationError,
     persist_menu_item, persist_service_state, persist_week_header, resolve_item_id, resolve_week_ref)
 from ..workflow_store import load_draft_connection
+from ..workflow_review import _review_open_connection
 from .rendering import (
     CATEGORY_LABELS, render_admin_preview, render_admin_week,
     menu_form_values, render_component_detail, render_components, render_menu_editor)
@@ -410,15 +411,24 @@ def _week_overview(profile: str):
             rows = connection.execute(
                 text(
                     'SELECT s.service_date::text AS day, mp.code AS meal, mt.code AS option, '
-                    'i.row_version FROM cafeteria.menu_items i '
+                    'i.id,i.row_version FROM cafeteria.menu_items i '
                     'JOIN cafeteria.menu_services s ON s.id=i.service_id '
                     'JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id '
                     'JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id '
                     'WHERE s.menu_week_id=:week_id'
                 ),
                 {'week_id': int(draft['id'])},
-            )
+            ).all()
             versions = {(str(row.day), str(row.meal), str(row.option)): int(row.row_version) for row in rows}
+            reviews = {
+                (str(row.day), str(row.meal), str(row.option)): _review_open_connection(connection, int(row.id))
+                for row in rows
+            }
+            for day in draft['days']:
+                for service in day['services']:
+                    for option in service['options']:
+                        key = (str(day['date']), str(service['meal_code']), str(option['type_code']))
+                        option['review_open'] = reviews.get(key, True)
     except ComponentCatalogConfigurationError as error:
         abort(503, description=str(error))
     except NoResultFound:
@@ -778,3 +788,4 @@ def publish(family: str):
 
 # Register saved-week printing after the shared workflow helpers are defined.
 from . import print_routes as print_routes  # noqa: E402, F401
+from . import week_review_routes as week_review_routes  # noqa: E402, F401

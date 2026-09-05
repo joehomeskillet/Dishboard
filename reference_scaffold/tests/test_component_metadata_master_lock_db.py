@@ -165,6 +165,8 @@ def test_migration_fresh_schema_and_restore_share_exact_function_contract(
     database._execute_migration(pg16, v14)
     v15 = next(migration for migration in database.migration_plan(SCHEMA) if migration.version == 15)
     database._execute_migration(pg16, v15)
+    v16 = next(migration for migration in database.migration_plan(SCHEMA) if migration.version == 16)
+    database._execute_migration(pg16, v16)
     database._execute_script(pg16, str(PERMISSIONS))
     migrated = _function_contract(pg16)
     with pg16.connect() as connection:
@@ -190,8 +192,8 @@ def test_migration_fresh_schema_and_restore_share_exact_function_contract(
         True, False, False, False,
     )
     assert migrated[4] != 'cafeteria_app'
-    assert migration_row == (14, '0011_v13_to_v14.sql', 'dishboard-schema-v15')
-    assert migration_row_v15 == (15, '0012_v14_to_v15.sql', 'dishboard-schema-v15')
+    assert migration_row == (14, '0011_v13_to_v14.sql', database.APPLICATION_VERSION)
+    assert migration_row_v15 == (15, '0012_v14_to_v15.sql', database.APPLICATION_VERSION)
 
 
 def _call_helper(engine: Engine, labels: list[str | None], allergens: list[str | None]) -> list[tuple]:

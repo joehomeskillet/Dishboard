@@ -618,6 +618,7 @@ def test_active_and_inflight_withdrawal_are_conservative_and_atomic(catalog_data
 def _prepare_replacement(
     catalog_database: CatalogDatabase,
 ) -> tuple[int, int, str]:
+    from review_support import review_saved_week
     workflow.ensure_week(catalog_database.app, 'patient', TARGET_WEEK, 2)
     first_version = workflow.save_draft(
         catalog_database.app,
@@ -627,6 +628,7 @@ def _prepare_replacement(
         actor_id=2,
         values=_patient_values(TARGET_WEEK, 'Erste Revision'),
     )
+    first_version = review_saved_week(catalog_database.app, 'patient', TARGET_WEEK, 2)
     workflow.publish_draft(
         catalog_database.app,
         'patient',
@@ -644,6 +646,7 @@ def _prepare_replacement(
         actor_id=2,
         values=_patient_values(TARGET_WEEK, 'Zweite Revision'),
     )
+    second_version = review_saved_week(catalog_database.app, 'patient', TARGET_WEEK, 2)
     with catalog_database.owner.begin() as connection:
         revision_id = int(connection.execute(text(
             'SELECT id FROM cafeteria.publication_revisions WHERE withdrawn_at IS NULL'

@@ -60,7 +60,7 @@ def test_v14_database_with_original_0011_checksum_upgrades_with_exactly_0012(pg1
         versions = conn.execute(text(
             "SELECT version FROM cafeteria.schema_migrations ORDER BY version"
         )).scalars().all()
-        assert versions == list(range(4, 16))
+        assert versions == list(range(4, 17))
 
         v15_row = conn.execute(text(
             "SELECT name, application_version, checksum_sha256 FROM cafeteria.schema_migrations WHERE version=15"
@@ -69,7 +69,7 @@ def test_v14_database_with_original_0011_checksum_upgrades_with_exactly_0012(pg1
     m12_path = SCHEMA.parent / 'migrations' / '0012_v14_to_v15.sql'
     m12_hash = hashlib.sha256(m12_path.read_bytes()).hexdigest()
 
-    assert v15_row == ('0012_v14_to_v15.sql', 'dishboard-schema-v15', m12_hash)
+    assert v15_row == ('0012_v14_to_v15.sql', database.APPLICATION_VERSION, m12_hash)
 
     database.run_migrations(pg16, SCHEMA)
     with pg16.connect() as conn:
@@ -137,7 +137,7 @@ def test_v14_registry_drift_on_0011_aborts_upgrade(pg16: Engine) -> None:
 
 def test_fresh_install_reaches_schema_15_with_narrow_lock_helper_grants(catalog_database: CatalogDatabase) -> None:
     with catalog_database.owner.connect() as conn:
-        assert conn.execute(text("SELECT max(version) FROM cafeteria.schema_migrations")).scalar_one() == 15
+        assert conn.execute(text("SELECT max(version) FROM cafeteria.schema_migrations")).scalar_one() == 16
 
     funcs = [
         'cafeteria.lock_expected_active_location(bigint)',

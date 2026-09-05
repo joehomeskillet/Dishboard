@@ -113,7 +113,7 @@ def _cells(
                     'labels': list(option.get('labels') or []),
                     'origins': list(option.get('origins') or []),
                     'allergen_review_status': option.get('allergen_review_status', 'not_checked'),
-                    'review_open': option.get('allergen_review_status', 'not_checked') != 'checked',
+                    'review_open': option.get('review_open', True),
                     'service_state': service.get('service_state', 'open'),
                     'notice': str(service.get('notice') or ''),
                     'edit_url': url_for(

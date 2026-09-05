@@ -30,6 +30,7 @@ MIGRATION_0008 = ROOT / 'database' / 'migrations' / '0008_auth_final_hardening.s
 MIGRATION_0010 = ROOT / 'database' / 'migrations' / '0010_v12_to_v13.sql'
 MIGRATION_0011 = ROOT / 'database' / 'migrations' / '0011_v13_to_v14.sql'
 MIGRATION_0012 = ROOT / 'database' / 'migrations' / '0012_v14_to_v15.sql'
+MIGRATION_0013 = ROOT / 'database' / 'migrations' / '0013_v15_to_v16.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
 PAT_JSON = ROOT / 'demo' / 'snapshots' / 'patienten_kw36.json'
@@ -183,8 +184,8 @@ def run_live_check() -> dict[str, Any]:
                     '''
                 )
             ).mappings().one()
-        if int(row['schema_version']) != 15:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 15.")
+        if int(row['schema_version']) != 16:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 16.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
         migrated_structure = structure('cafeteria')
@@ -282,6 +283,11 @@ def main() -> int:
         migration_0010 = MIGRATION_0010.read_text(encoding='utf-8')
         migration_0011 = MIGRATION_0011.read_text(encoding='utf-8')
         migration_0012 = MIGRATION_0012.read_text(encoding='utf-8')
+        migration_0013 = MIGRATION_0013.read_text(encoding='utf-8')
+        for fragment in ('header_revision', 'record_menu_review', 'record_week_context_review',
+                         'require_workflow_review_actor', 'uq_workflow_review_submission'):
+            if fragment not in migration_0013 or fragment not in sql:
+                fail(f'Prüfbeleg-Vertrag fehlt: {fragment}')
         seed = SEED.read_text(encoding='utf-8')
         immutable_migration_checksums = {
             MIGRATION_0001: 'd1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0',
@@ -296,6 +302,7 @@ def main() -> int:
             MIGRATION_0010: 'dba21c2ba10406985a0069d193e1f08e65aaa9c0a27b04102b2626003d83dd8f',
             MIGRATION_0011: '75c6d6cc777f1dbf3d2bb914688b8ff9529ddca51fc9250ea91170b5482d0953',
             MIGRATION_0012: '3ff265067a1119f927d995251386a58ba648c4f26f9d4ff6059cce4d97bb9140',
+            MIGRATION_0013: 'f1582e226ee1150bfc83c31427ae08fc82f3f939809fa588f53d0e1532c2219a',
         }
         for migration_path, expected_checksum in immutable_migration_checksums.items():
             actual_checksum = hashlib.sha256(migration_path.read_bytes()).hexdigest()
@@ -547,7 +554,7 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 15,
+            'schema_version': 16,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
@@ -561,6 +568,7 @@ def main() -> int:
                 '0010_v12_to_v13.sql': hashlib.sha256(MIGRATION_0010.read_bytes()).hexdigest(),
                 '0011_v13_to_v14.sql': hashlib.sha256(MIGRATION_0011.read_bytes()).hexdigest(),
                 '0012_v14_to_v15.sql': hashlib.sha256(MIGRATION_0012.read_bytes()).hexdigest(),
+                '0013_v15_to_v16.sql': hashlib.sha256(MIGRATION_0013.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

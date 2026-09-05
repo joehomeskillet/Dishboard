@@ -450,9 +450,9 @@ def test_v13_real_postgres_contract_covers_catalog_constraints_and_component_lin
     catalog_columns = 'id public_id location_id profile_scope category name origin_country_code active row_version created_at updated_at'.split()
     expected_columns = {'menu_components': catalog_columns, 'component_allergens': 'component_id allergen_id presence'.split(), 'component_labels': 'component_id label_id'.split(), 'menu_items': 'allergen_mode origin_mode label_mode'.split(), 'menu_item_components': 'component_id component_row_version'.split()}
     column_contract = {(row[0], row[1]): row[2:] for row in columns}
-    assert database.SCHEMA_VERSION == version == 15
-    assert database.APPLICATION_VERSION == 'dishboard-schema-v15'
-    assert (plan[-1].version, plan[-1].path.name) == (15, '0012_v14_to_v15.sql')
+    assert database.SCHEMA_VERSION == version == 16
+    assert database.APPLICATION_VERSION == 'dishboard-schema-v16'
+    assert (plan[-1].version, plan[-1].path.name) == (16, '0013_v15_to_v16.sql')
     assert MIGRATION.read_text(encoding='utf-8').startswith('BEGIN;')
     assert MIGRATION.read_text(encoding='utf-8').rstrip().endswith('COMMIT;')
     validator = (ROOT / 'database' / 'validate_schema.py').read_text(encoding='utf-8')
@@ -520,7 +520,7 @@ def test_v12_backup_restore_down_probe_preserves_v12_without_claiming_reverse_mi
 @LIVE_DATABASE
 def test_v15_migration_installs_role_scoped_active_location_lock(pg16: Engine) -> None:
     _run_v12_migrations(pg16)
-    for version in (13, 14, 15):
+    for version in (13, 14, 15, 16):
         migration = next(
             item for item in database.migration_plan(SCHEMA) if item.version == version
         )
