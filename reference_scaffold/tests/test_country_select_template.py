@@ -68,3 +68,14 @@ def test_required_and_error_are_accessibly_linked_and_escaped():
     assert 'is-invalid' in markup.select['class'].split()
     assert any(tag == 'div' and attrs.get('id') == 'origin-country-error' for tag, attrs in markup.tags)
     assert not any(tag == 'script' for tag, _ in markup.tags)
+
+
+@pytest.mark.parametrize('value', ['', 'unknown', 'CH'])
+def test_filter_country_options_distinguish_all_unknown_and_country(value):
+    markup = render(value, empty_label='Alle Länder', include_unknown=True)
+    assert len(markup.options) == 251
+    assert markup.options[0]['label'] == 'Alle Länder'
+    assert markup.options[1]['label'] == 'Nicht erfasst'
+    selected = [row for row in markup.options if 'selected' in row['attributes']]
+    assert len(selected) == 1
+    assert selected[0]['attributes']['value'] == value

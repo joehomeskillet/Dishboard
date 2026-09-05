@@ -4,6 +4,7 @@
 {% set workflow_nav = 'components' %}
 {% set submitted = form_values|default({}) %}
 {% set errors = form_errors|default({}) %}
+{% set active_filters = filters|default(none) %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-components.css') }}">{% endblock %}
 {% block title %}Komponenten {{ 'Cafeteria' if profile == 'staff_guest' else 'Patienten' }}{% endblock %}
 {% block main_attributes %}data-family="{{ family }}" data-week="{{ week|default('') }}"{% endblock %}
@@ -84,20 +85,71 @@
   </div>
 </details>
 
-<form method="get" action="/admin/{{ family }}/komponenten" class="search-form card mb-3">
+<form method="get" action="/admin/{{ family }}/komponenten" class="search-form card mb-3" aria-labelledby="component-filter-heading">
+  <div class="card-header"><h2 class="card-title" id="component-filter-heading">Komponenten filtern</h2></div>
   <div class="card-body">
     <div class="row g-3 align-items-end">
-      <div class="col-12 col-md-6">{{ field('q', 'Suche', value=query|default(''), type='search', id='f-q') }}</div>
-      <div class="col-12 col-md-6">
+      <div class="col-12 col-md-6 col-xl-4">{{ field('q', 'Suche', value=query|default(''), type='search', id='f-q') }}</div>
+      <div class="col-12 col-md-6 col-xl-4">
         <label class="form-label" for="f-cat">Kategorie</label>
         <select class="form-select" id="f-cat" name="category">
           <option value="">Alle</option>
           {% for cat_val, cat_label in categories.items() %}<option value="{{ cat_val }}"{% if category == cat_val %} selected{% endif %}>{{ cat_label }}</option>{% endfor %}
         </select>
       </div>
-      <div class="col-12 col-md">{{ check('include_archived', 'Archivierte anzeigen', checked=include_archived, id='f-archived') }}</div>
-      <div class="col-12 col-md-auto"><button type="submit" class="btn">{{ icon('search') }}Suchen</button></div>
+      <div class="col-12 col-md-6 col-xl-4">
+        <label class="form-label" for="f-usage">Verwendung in Menüs</label>
+        <select class="form-select" id="f-usage" name="usage">
+          {% for value, label in [('', 'Alle'), ('used', 'Verwendet'), ('unused', 'Nicht verwendet')] %}
+          <option value="{{ value }}"{% if active_filters and active_filters.usage == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-6 col-xl-4">
+        <label class="form-label" for="f-allergen">Allergen</label>
+        <select class="form-select" id="f-allergen" name="allergen" aria-describedby="component-allergen-filter-hint">
+          <option value="">Alle</option>
+          <option value="unknown"{% if active_filters and active_filters.allergen == 'unknown' %} selected{% endif %}>Nicht erfasst</option>
+          {% if active_filters and active_filters.allergen not in ['', 'unknown'] and active_filters.allergen not in (allergens|default([])|map(attribute='code')|list) %}<option value="{{ active_filters.allergen }}" selected>{{ active_filters.allergen }} (inaktiv)</option>{% endif %}
+          {% for allergen in allergens|default([]) %}<option value="{{ allergen.code }}"{% if active_filters and active_filters.allergen == allergen.code %} selected{% endif %}>{{ allergen.name|default(allergen.code) }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-6 col-xl-4">
+        <label class="form-label" for="f-presence">Allergenpräsenz</label>
+        <select class="form-select" id="f-presence" name="presence" aria-describedby="component-allergen-filter-hint">
+          {% for value, label in [('', 'Enthält oder kann enthalten'), ('contains', 'Enthält'), ('may_contain', 'Kann Spuren enthalten')] %}
+          <option value="{{ value }}"{% if active_filters and active_filters.presence == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-6 col-xl-4">
+        <label class="form-label" for="f-label">Label</label>
+        <select class="form-select" id="f-label" name="label">
+          <option value="">Alle</option>
+          {% if active_filters and active_filters.label and active_filters.label not in (labels|default([])|map(attribute='code')|list) %}<option value="{{ active_filters.label }}" selected>{{ active_filters.label }} (inaktiv)</option>{% endif %}
+          {% for label in labels|default([]) %}<option value="{{ label.code }}"{% if active_filters and active_filters.label == label.code %} selected{% endif %}>{{ label.name|default(label.code) }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-6 col-xl-4">
+        <label class="form-label" for="f-origin">Herkunft</label>
+        {{ country_select('origin', active_filters.origin if active_filters else '', 'f-origin', empty_label='Alle Länder', include_unknown=true) }}
+      </div>
+      <div class="col-12 col-md-6 col-xl-4">
+        <label class="form-label" for="f-status">Status</label>
+        {% set selected_status = active_filters.status if active_filters else ('all' if include_archived else 'active') %}
+        <select class="form-select" id="f-status" name="status">
+          {% for value, label in [('active', 'Aktiv'), ('archived', 'Archiviert'), ('all', 'Aktiv und archiviert')] %}
+          <option value="{{ value }}"{% if selected_status == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
+        <button type="submit" class="btn btn-primary">{{ icon('search') }}Suchen</button>
+        <a class="btn btn-outline-secondary" href="/admin/{{ family }}/komponenten">Zurücksetzen</a>
+        <span id="component-result-count" role="status">{{ rows|length }} Treffer</span>
+      </div>
     </div>
+    <p class="form-hint mt-3 mb-0" id="component-allergen-filter-hint">Die Filter gelten gemeinsam. Die Präsenz bezieht sich auf das ausgewählte Allergen. Nicht erfasst bedeutet keine bestätigte Allergenfreiheit.</p>
   </div>
 </form>
 

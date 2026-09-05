@@ -1,5 +1,5 @@
 {# iso-codes 4.20.1, German catalogue; LGPL-2.1-or-later. See docs/design/country-select-source.md. #}
-{% macro country_select(name, value, id, required=false, error=none) -%}
+{% macro country_select(name, value, id, required=false, error=none, empty_label='Nicht erfasst', include_unknown=false) -%}
 {% set countries = {
   "AF": "Afghanistan",
   "AL": "Albanien",
@@ -253,8 +253,9 @@
 } %}
 {% set selected = value if value is not none else "" %}
 <select class="form-select{% if error %} is-invalid{% endif %}" name="{{ name }}" id="{{ id }}"{% if required %} required{% endif %}{% if error %} aria-invalid="true" aria-describedby="{{ id }}-error"{% endif %}>
-  <option value=""{% if not selected %} selected{% endif %}>Nicht erfasst</option>
-  {% if selected and selected not in countries %}<option value="{{ selected }}" selected>Gespeicherter Wert: {{ selected }}</option>{% endif %}
+  <option value=""{% if not selected %} selected{% endif %}>{{ empty_label }}</option>
+  {% if include_unknown %}<option value="unknown"{% if selected == 'unknown' %} selected{% endif %}>Nicht erfasst</option>{% endif %}
+  {% if selected and selected not in countries and not (include_unknown and selected == 'unknown') %}<option value="{{ selected }}" selected>Gespeicherter Wert: {{ selected }}</option>{% endif %}
   {% for code, label in countries.items() %}<option value="{{ code }}"{% if selected == code %} selected{% endif %}>{{ label }}</option>{% endfor %}
 </select>
 {% if error %}<div class="invalid-feedback d-block field-error" id="{{ id }}-error">{{ error }}</div>{% endif %}

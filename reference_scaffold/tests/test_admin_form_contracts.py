@@ -7,7 +7,7 @@ from flask import Flask, request
 from werkzeug.datastructures import MultiDict
 
 from cafeteria import roles
-from cafeteria.admin import rendering, workflow_routes as routes
+from cafeteria.admin import display_routes, rendering, workflow_routes as routes
 from cafeteria.component_catalog_store import AdminScope, ComponentNotFoundError, StaleComponentError
 from cafeteria.workflow_partial_store import PartialWorkflowConflictError
 from test_admin_workflow_routes import DAY, ROOT, _menu_form, _register
@@ -23,7 +23,8 @@ def form_client(monkeypatch):
         authz_version=3, roles=['Cafeteria.Editor'],
     ))
     monkeypatch.setattr(routes, '_scope', lambda profile: AdminScope(7, 5, profile))
-    state = {'writes': [], 'renders': [], 'overview': []}
+    state = {'writes': [], 'renders': [], 'overview': [], 'density': 'compact'}
+    monkeypatch.setattr(display_routes, 'get_admin_density', lambda *_: state['density'])
 
     def write(*args):
         state['writes'].append(args)
@@ -74,6 +75,15 @@ def form_client(monkeypatch):
         return f'form-test-csrf.{purpose}.{digest}'
 
     return client, token, state
+
+
+@pytest.mark.parametrize('density', ['compact', 'comfortable'])
+def test_component_render_uses_display_context_density(form_client, density):
+    client, _, state = form_client
+    state['density'] = density
+    result = client.get('/admin/patienten/komponenten/component-id')
+    assert result.status_code == 200
+    assert f'data-density="{density}"' in result.text
 
 
 @pytest.mark.parametrize('family', ['cafeteria', 'patienten'])

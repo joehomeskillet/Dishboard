@@ -26,6 +26,7 @@ from ..component_catalog_store import (
     unarchive_component, update_component,
 )
 from ..component_catalog_metadata import AllergenInput
+from ..component_catalog_filters import ComponentFilters
 from ..public.routes import effective_today
 from ..roles import require_capability
 from ..security import csrf_token, validate_csrf
@@ -651,15 +652,25 @@ def components_get(family: str):
     profile = profile_from_endpoint(family)
     _reject_override()
     scope = _scope(profile)
-    query, category, archived = request.args.get('q', ''), request.args.get('category') or None, request.args.get('include_archived', '')
-    if archived not in {'', '0', '1'} or len(request.args.getlist('q')) > 1:
+    allowed = {'q', 'category', 'include_archived', 'status', 'usage', 'allergen', 'presence', 'label', 'origin'}
+    if set(request.args) - allowed or any(len(request.args.getlist(key)) != 1 for key in request.args):
         abort(400, description='Suchfelder sind ungültig.')
-    rows = _call(lambda: find_components(_db(), scope, query, category, archived == '1'))
+    query, category = request.args.get('q', ''), request.args.get('category') or None
+    archived = request.args.get('include_archived', '')
+    if archived not in {'', '0', '1'} or ('include_archived' in request.args and 'status' in request.args):
+        abort(400, description='Archivfilter ist ungültig.')
+    filters = _call(lambda: ComponentFilters(
+        usage=request.args.get('usage', ''), allergen=request.args.get('allergen', ''),
+        presence=request.args.get('presence', ''), label=request.args.get('label', ''),
+        origin=request.args.get('origin', ''),
+        status=request.args.get('status') or ('all' if archived == '1' else 'active'),
+    ))
+    rows = _call(lambda: find_components(_db(), scope, query, category, archived == '1', filters=filters))
     allergens, labels = _master_choices()
     return render_components(
         profile, family, rows, query, category, archived == '1',
         _scoped_csrf(profile, 'component-create', scope), _flash(), CATEGORY_LABELS,
-        allergens, labels,
+        allergens, labels, filters=filters,
     )
 
 @bp.post('/<any(cafeteria, patienten):family>/komponenten')
