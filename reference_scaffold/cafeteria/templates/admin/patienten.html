@@ -6,10 +6,9 @@
 {% block body %}
 {% set weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'] %}
 {% set publish_blocked = status in ('review_open', 'incomplete', 'empty') %}
-{% set publish_empty = status == 'empty' %}
-{% set action_message = 'Bitte Raster zuerst vervollständigen' if publish_empty else ('Bitte Freigabe prüfen' if publish_blocked else '') %}
+{% set open_checks = cells|selectattr('row_version', 'gt', 0)|selectattr('review_open')|list|length %}
 {% set user_name = user.name if user else 'Demo Küche' %}
-<div class="admin-shell">
+<div class="admin-shell admin-week-shell">
   <aside class="admin-sidebar">
     <div class="admin-brand">
       <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="admin-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="164" height="32">
@@ -32,18 +31,11 @@
     </nav>
   </aside>
 
-  <main class="admin-main" id="main-content" data-profile="patient" data-family="{{ family }}" data-week="{{ week|default('') }}" data-status="{{ status }}">
+  <main class="admin-main admin-week" id="main-content" data-profile="patient" data-family="{{ family }}" data-week="{{ week|default('') }}" data-status="{{ status }}">
     <header class="admin-topbar">
       <h1>Patientenplan bearbeiten</h1>
-      <div class="toolbar">
-        <a class="btn" href="/admin/{{ family }}/preview?week={{ week }}" target="_blank" rel="noopener">Vorschau</a>
-        <a class="btn" href="{{ url_for('admin.export_csv', profile_code='patienten') }}">CSV</a>
-      </div>
     </header>
     <div class="admin-content">
-      <div class="admin-notice">
-        <strong>Getrenntes Raster:</strong> Montag bis Sonntag, Mittag und Abend. Dieses Raster enthält ausschliesslich Speiseplandaten.
-      </div>
       <div class="flash-region" aria-live="polite">
         {% for message in flashes %}<p class="flash">{{ message }}</p>{% endfor %}
       </div>
@@ -56,26 +48,47 @@
         <a href="{{ url_for('admin.cafeteria') }}">Cafeteria</a>
         <a class="patient active" href="{{ url_for('admin.patienten') }}" aria-current="page">Patienten</a>
       </nav>
-      <div class="weekbar">
-        <div><strong>KW {{ iso_week }} · Patienten</strong><span>Arbeitsstand {{ week_row_version }}</span></div>
-        <div><strong>28 Menükarten</strong><span>7 Tage × 2 Mahlzeiten × 2 Menüarten</span></div>
-      </div>
+      <section class="admin-week-controls" aria-label="Wochenstatus und Aktionen">
+        <div class="weekbar">
+          <div><strong>KW {{ iso_week }} · Patienten</strong><span>28 Menükarten · 7 Tage × 2 Mahlzeiten × 2 Menüarten</span></div>
+          <div class="admin-week-status" role="status">
+            <strong class="status-pill" data-status="{{ status }}">{{ status_label }}</strong>
+            <span>{% if open_checks %}{{ open_checks }} {{ 'Menükarte' if open_checks == 1 else 'Menükarten' }} mit offener Prüfung{% elif status == 'review_open' %}Erneute Prüfung erforderlich{% else %}Keine offenen Prüfungen{% endif %}</span>
+          </div>
+        </div>
+        <div class="admin-actions" data-sticky>
+          <form method="post" action="/admin/{{ family }}/publish" data-confirm="Bitte prüfen, ob alle Angaben korrekt sind">
+            <input type="hidden" name="_csrf" value="{{ csrf }}">
+            <input type="hidden" name="week" value="{{ week }}">
+            <input type="hidden" name="row_version" value="{{ week_row_version }}">
+            <button type="submit" class="btn primary"{% if publish_blocked %} disabled aria-describedby="week-publish-guidance"{% endif %}>Publizieren</button>
+          </form>
+          <a class="btn{% if publish_blocked %} disabled{% endif %}" href="/admin/{{ family }}/preview?week={{ week }}" target="_blank" rel="noopener"{% if publish_blocked %} aria-disabled="true"{% endif %}>Vorschau</a>
+          <a class="btn" href="/admin/{{ family }}/copy?week={{ week }}">Vorwoche kopieren</a>
+          {% if publish_blocked %}
+          <p id="week-publish-guidance" class="admin-week-guidance">{% if status == 'empty' %}Zuerst Gerichte erfassen, danach die Woche prüfen und publizieren.{% elif status == 'incomplete' %}Zuerst die Woche vervollständigen, danach publizieren.{% else %}Zuerst offene Prüfungen abschliessen, danach publizieren.{% endif %}</p>
+          {% endif %}
+        </div>
+      </section>
 
-      <form id="patient-header" method="post" action="/admin/{{ family }}/header">
+      <div class="admin-notice">
+        <strong>Getrenntes Raster:</strong> Montag bis Sonntag, Mittag und Abend. Dieses Raster enthält ausschliesslich Speiseplandaten.
+      </div>
+      <p><a class="btn" href="{{ url_for('admin.export_csv', profile_code='patienten') }}">CSV exportieren</a></p>
+
+      <form id="patient-header" method="post" action="/admin/{{ family }}/header" class="admin-overview-form">
         <input type="hidden" name="_csrf" value="{{ csrf }}">
         <input type="hidden" name="week" value="{{ week }}">
         <input type="hidden" name="row_version" value="{{ week_row_version }}">
-        <div class="admin-grid-row">
-          <div class="admin-dish">
+          <div class="field">
             <label for="patient-title">Titel</label>
             <input id="patient-title" name="title" value="{{ title }}">
           </div>
-          <div class="admin-dish">
+          <div class="field">
             <label for="patient-shared-note">Hinweis</label>
             <input id="patient-shared-note" name="shared_note" value="{{ shared_note }}">
           </div>
-        </div>
-        <button type="submit" class="btn primary">Wochenangaben speichern</button>
+        <button type="submit" class="btn">Wochenangaben speichern</button>
       </form>
 
       <section class="patient-admin-table" aria-label="Patienten-Wochenraster">
@@ -88,7 +101,7 @@
         <article class="patient-admin-day">
           <header>
             <strong>{{ day_name }} · {{ day_cells and day_cells[0].day_short }}</strong>
-            <span>{{ 'vollständig' if (lunch and dinner and lunch.title is not none and dinner.title is not none) else 'offen' }}</span>
+            <span>{{ day_cells|selectattr('row_version', 'gt', 0)|list|length }} von 4 Menükarten erfasst</span>
           </header>
           <div class="patient-admin-meals">
             <div class="patient-admin-meal">
@@ -166,21 +179,6 @@
         {% endfor %}
       </section>
 
-      <div class="admin-actions" data-sticky>
-        <a class="btn{% if publish_blocked %} disabled{% endif %}" href="/admin/{{ family }}/preview?week={{ week }}" target="_blank" rel="noopener"{% if publish_blocked %} aria-disabled="true"{% endif %}>Vorschau</a>
-        <a class="btn" href="/admin/{{ family }}/copy?week={{ week }}">Vorwoche kopieren</a>
-        <form method="post" action="/admin/{{ family }}/publish" data-confirm="Bitte prüfen, ob alle Angaben korrekt sind">
-          <input type="hidden" name="_csrf" value="{{ csrf }}">
-          <input type="hidden" name="week" value="{{ week }}">
-          <input type="hidden" name="row_version" value="{{ week_row_version }}">
-          <button type="submit" class="btn primary"{% if publish_blocked %} disabled{% endif %}>Publizieren</button>
-        </form>
-        {% if publish_blocked %}
-        <p>{{ action_message }}</p>
-        {% elif publish_empty %}
-        <p>{{ action_message }}</p>
-        {% endif %}
-      </div>
     </div>
   </main>
 </div>

@@ -6,7 +6,9 @@
 {% set week_value = week.isoformat() if week is not none and week.isoformat is defined else week %}
 {% set day_cells = cells|selectattr("meal", "equalto", "LUNCH")|list %}
 {% set first_slot = day_cells|first %}
-<div class="admin-shell">
+{% set publish_blocked = status in ('review_open', 'incomplete', 'empty') %}
+{% set open_checks = cells|selectattr('row_version', 'gt', 0)|selectattr('review_open')|list|length %}
+<div class="admin-shell admin-week-shell">
   <aside class="admin-sidebar">
     <div class="admin-brand">
       <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="admin-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="164" height="32">
@@ -31,7 +33,7 @@
     </nav>
   </aside>
 
-  <main class="admin-main" id="main-content" data-profile="{{ profile }}" data-family="{{ family }}" data-week="{{ week_value }}" data-status="{{ status }}" data-loading-region aria-busy="{{ 'true' if status == 'loading' else 'false' }}">
+  <main class="admin-main admin-week" id="main-content" data-profile="{{ profile }}" data-family="{{ family }}" data-week="{{ week_value }}" data-status="{{ status }}" data-loading-region aria-busy="{{ 'true' if status == 'loading' else 'false' }}">
     <header class="admin-topbar">
       <h1>Cafeteria-Plan bearbeiten</h1>
     </header>
@@ -46,39 +48,61 @@
       </div>
       {% endif %}
 
-      <div class="admin-notice">
-        Getrenntes Raster: Montag bis Freitag, nur Mittag. Samstag und Sonntag: Cafeteria geschlossen.
-      </div>
-
       <nav class="profile-tabs" aria-label="Profil">
         <a class="active" href="{{ url_for('admin.cafeteria') }}" aria-current="page">Cafeteria</a>
         <a href="{{ url_for('admin.patienten') }}">Patienten</a>
       </nav>
 
-      <div class="weekbar">
-        <div>
-          <strong>KW {{ iso_week }} · Cafeteria</strong>
-          <span>10 Menükarten · 5 Tage × 2 Menüarten</span>
+      <section class="admin-week-controls" aria-label="Wochenstatus und Aktionen">
+        <div class="weekbar">
+          <div>
+            <strong>KW {{ iso_week }} · Cafeteria</strong>
+            <span>10 Menükarten · 5 Tage × 2 Menüarten</span>
+          </div>
+          <div class="admin-week-status" role="status">
+            <strong class="status-pill" data-status="{{ status }}">{{ status_label }}</strong>
+            <span>{% if open_checks %}{{ open_checks }} {{ 'Menükarte' if open_checks == 1 else 'Menükarten' }} mit offener Prüfung{% elif status == 'review_open' %}Erneute Prüfung erforderlich{% else %}Keine offenen Prüfungen{% endif %}</span>
+          </div>
         </div>
-        <span class="status-pill" data-status="{{ status }}">{{ status_label }}</span>
+        <div class="admin-actions" data-sticky>
+          <form method="post" action="/admin/{{ family }}/publish" data-confirm="Woche jetzt publizieren?">
+            <input type="hidden" name="_csrf" value="{{ csrf_value }}">
+            <input type="hidden" name="week" value="{{ week_value }}">
+            <input type="hidden" name="row_version" value="{{ week_row_version }}">
+            <button type="submit" class="btn primary"{% if publish_blocked %} disabled aria-describedby="week-publish-guidance"{% endif %}>Publizieren</button>
+          </form>
+          <a class="btn" target="_blank" rel="noopener" href="/admin/{{ family }}/preview?week={{ week_value }}">Vorschau</a>
+          <a class="btn" href="/admin/{{ family }}/copy?week={{ week_value }}">Vorwoche kopieren</a>
+          {% if publish_blocked %}
+          <p id="week-publish-guidance" class="admin-week-guidance">{% if status == 'empty' %}Zuerst Gerichte erfassen, danach die Woche prüfen und publizieren.{% elif status == 'incomplete' %}Zuerst die Woche vervollständigen, danach publizieren.{% else %}Zuerst offene Prüfungen abschliessen, danach publizieren.{% endif %}</p>
+          {% endif %}
+        </div>
+      </section>
+
+      <div class="admin-notice">
+        Getrenntes Raster: Montag bis Freitag, nur Mittag. Samstag und Sonntag: Cafeteria geschlossen.
       </div>
 
       <form method="post" action="/admin/{{ family }}/header" class="admin-overview-form">
         <input type="hidden" name="_csrf" value="{{ csrf_value }}">
         <input type="hidden" name="week" value="{{ week_value }}">
         <input type="hidden" name="row_version" value="{{ week_row_version }}">
-        <label for="week_title">Wochentitel</label>
-        <input id="week_title" name="title" value="{{ title }}">
-        <label for="week_shared_note">Hinweis für alle Tage</label>
-        <input id="week_shared_note" name="shared_note" value="{{ shared_note }}">
-        <button type="submit" class="btn primary">Wochenangaben speichern</button>
+        <div class="field">
+          <label for="week_title">Wochentitel</label>
+          <input id="week_title" name="title" value="{{ title }}">
+        </div>
+        <div class="field">
+          <label for="week_shared_note">Hinweis für alle Tage</label>
+          <input id="week_shared_note" name="shared_note" value="{{ shared_note }}">
+        </div>
+        <button type="submit" class="btn">Wochenangaben speichern</button>
       </form>
 
       {% if status == 'empty' %}
       <div class="admin-notice">
         Noch keine Gerichte erfasst
         {% if first_slot %}
-        <p><a class="btn primary" href="{{ first_slot.edit_url }}">Zum ersten Slot</a></p>
+        <p><a class="btn" href="{{ first_slot.edit_url }}">Zum ersten Slot</a></p>
         {% endif %}
       </div>
       {% endif %}
@@ -88,23 +112,26 @@
         {% set day_row = grouped|first %}
         <div class="admin-grid-row">
           <div class="admin-day">
-            <strong>{{ day_row.day_label }}</strong>
-            <span>{{ day_row.day_short }}</span>
-            <form method="post" action="/admin/{{ family }}/service">
+            <div><strong>{{ day_row.day_label }}</strong><span>{{ day_row.day_short }}</span></div>
+            <form method="post" action="/admin/{{ family }}/service" class="admin-week-service">
               <input type="hidden" name="_csrf" value="{{ csrf_value }}">
               <input type="hidden" name="week" value="{{ week_value }}">
               <input type="hidden" name="day" value="{{ day }}">
               <input type="hidden" name="meal" value="LUNCH">
               <input type="hidden" name="row_version" value="{{ day_row.service_row_version }}">
-              <label for="service_state_{{ day }}">Betrieb</label>
-              <select id="service_state_{{ day }}" name="service_state">
+              <div class="field">
+                <label for="service_state_{{ day }}">Betrieb</label>
+                <select id="service_state_{{ day }}" name="service_state">
                 <option value="open"{% if day_row.service_state == 'open' %} selected{% endif %}>Offen</option>
                 <option value="closed"{% if day_row.service_state == 'closed' %} selected{% endif %}>Geschlossen</option>
                 <option value="holiday"{% if day_row.service_state == 'holiday' %} selected{% endif %}>Feiertag</option>
                 <option value="company_holiday"{% if day_row.service_state == 'company_holiday' %} selected{% endif %}>Betriebsfeiertag</option>
-              </select>
-              <label for="service_notice_{{ day }}">Servicehinweis</label>
-              <input id="service_notice_{{ day }}" name="notice" value="{{ day_row.notice|default('') }}">
+                </select>
+              </div>
+              <div class="field">
+                <label for="service_notice_{{ day }}">Servicehinweis</label>
+                <input id="service_notice_{{ day }}" name="notice" value="{{ day_row.notice|default('') }}">
+              </div>
               <button type="submit" class="btn">Service speichern</button>
             </form>
           </div>
@@ -129,19 +156,6 @@
         {% endfor %}
       </section>
 
-      <div class="admin-actions" data-sticky>
-        <a class="btn" target="_blank" rel="noopener" href="/admin/{{ family }}/preview?week={{ week_value }}">Vorschau</a>
-        <a class="btn" href="/admin/{{ family }}/copy?week={{ week_value }}">Vorwoche kopieren</a>
-        <form method="post" action="/admin/{{ family }}/publish" data-confirm="Woche jetzt publizieren?">
-          <input type="hidden" name="_csrf" value="{{ csrf_value }}">
-          <input type="hidden" name="week" value="{{ week_value }}">
-          <input type="hidden" name="row_version" value="{{ week_row_version }}">
-          <button type="submit" class="btn primary"{% if status in ['review_open', 'incomplete'] %} disabled{% endif %}>Publizieren</button>
-          {% if status in ['review_open', 'incomplete'] %}
-          <span>Publizieren ist bei diesem Status gesperrt.</span>
-          {% endif %}
-        </form>
-      </div>
     </div>
   </main>
 </div>

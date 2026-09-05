@@ -868,3 +868,43 @@ body {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Week overviews: status and native actions stay beside the working week. */
+.admin-week .admin-topbar { position: static; }
+.admin-week-controls { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; margin-bottom: 1rem; padding: .75rem; border: 1px solid var(--sh-border); border-radius: var(--sh-radius-md); background: var(--sh-panel); }
+.admin-week-controls .weekbar { margin: 0; padding: 0 0 .65rem; border: 0; border-radius: 0; background: transparent; }
+.admin-week-status { text-align: right; }
+.admin-week-status .status-pill { color: var(--sh-teal-800); }
+.admin-week .admin-actions[data-sticky] { margin: 0; padding: .65rem 0 env(safe-area-inset-bottom, 0px); align-items: center; }
+.admin-week .admin-actions form { margin: 0; }
+.admin-week .admin-actions > label { margin-left: auto; }
+.admin-week-guidance { flex-basis: 100%; order: 1; margin: 0; color: var(--sh-ink-muted); }
+.admin-week .admin-overview-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem 1rem; margin: 1rem 0; }
+.admin-week .admin-overview-form > button { grid-column: 1 / -1; justify-self: start; }
+.admin-week .field { min-width: 0; }
+.admin-week .field label { margin: 0; }
+.admin-week .admin-grid-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.admin-week .admin-day { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(110px, .3fr) minmax(0, 1fr); align-items: center; gap: 1rem; }
+.admin-week-service { display: grid; grid-template-columns: minmax(140px, .75fr) minmax(0, 1fr) auto; align-items: end; gap: .75rem; }
+.admin-week .admin-grid-row > .menu-slot { min-width: 0; padding: .5rem .85rem; }
+.admin-week .admin-grid-row > .menu-slot :is(h3, p) { margin: .5rem 0; }
+.admin-week .admin-grid-row > .menu-slot + .menu-slot { border-left: 1px solid var(--sh-border); }
+.admin-week :is(a, button, input, select, textarea) { scroll-margin-top: 20rem; }
+@media (max-width: 900px) {
+  .admin-week-shell .admin-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-week .admin-day { grid-template-columns: 1fr; gap: .25rem; }
+}
+@media (max-width: 560px) {
+  .admin-week-controls .weekbar { gap: .5rem; }
+  .admin-week-status { text-align: left; }
+  .admin-week .admin-actions > label { margin-left: 0; }
+  .admin-week .admin-overview-form,
+  .admin-week .admin-grid-row { grid-template-columns: 1fr; }
+  .admin-week-service { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-week-service > button { grid-column: 1 / -1; justify-self: start; }
+  .admin-week .admin-grid-row > .menu-slot + .menu-slot { border-top: 1px solid var(--sh-border); border-left: 0; }
+}
+@media (max-height: 600px) {
+  .admin-week-controls { position: static; }
+  .admin-week :is(a, button, input, select, textarea) { scroll-margin-top: 1rem; }
+}

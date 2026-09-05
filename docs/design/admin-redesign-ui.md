@@ -94,11 +94,19 @@ Template: `admin/preview.html`. Nur LAST-SAVED, kein Publikations-Fallback.
   mit `<h3>` (leer → „Noch kein Gericht"), `<a class="btn" href="{edit_url}">Bearbeiten</a>`,
   `<span class="slot-badge" data-review="open|checked">` plus deutschem Text
   (`Prüfung offen` / `Geprüft`).
-- Aktionsleiste `<div class="admin-actions" data-sticky>`:
+- Genau eine Aktionsleiste `<div class="admin-actions" data-sticky>` direkt beim
+  Wochenstatus vor Formularen und Raster, gemeinsam in `.admin-week-controls`.
+  Diese Gruppe bleibt bei ausreichender Viewporthöhe am oberen Rand sichtbar:
   Vorschau `<a class="btn" target="_blank" rel="noopener" href="/admin/{family}/preview?week=…">`,
   Kopieren `<a class="btn" href="/admin/{family}/copy?week=…">`,
   Publizieren `<form method="post" action="/admin/{family}/publish" data-confirm="…">`
   mit exakt `_csrf`, `week`, `row_version` (Wochen-Row-Version) und `<button type="submit">`.
+  `empty`, `incomplete` und `review_open` sperren Publizieren mit konkreter Anleitung.
+- Beide Übersichten zeigen den gelieferten `status_label` und zählen als
+  „Menükarten mit offener Prüfung“ nur Zellen mit `row_version > 0` und `review_open`.
+  Bei Wochenstatus `review_open` und Zählwert 0 erscheint „Erneute Prüfung erforderlich“.
+  Die Anzeige leitet keinen eigenen Wochenstatus ab und zeigt keine technische
+  Wochenversion als benannten Arbeitsstand.
 - Patientenseite: keine Zeichenfolge `preis|chf|rappen|kosten|price` (case-insensitiv), auch nicht in Attributen.
 - Cafeteria: Preisfelder `internal_chf` / `external_chf`, Beschriftung „Mitarbeitende" / „Externe".
 - `<h1>` „Cafeteria-Plan bearbeiten" bzw. „Patientenplan bearbeiten".
