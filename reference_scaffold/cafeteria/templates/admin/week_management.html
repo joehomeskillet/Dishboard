@@ -1,52 +1,88 @@
 {% extends "base.html" %}
+{% from 'admin/_macros.html' import icon, page_header, profile_tabs, pagination %}
 {% block title %}Wochenverwaltung {{ 'Cafeteria' if profile == 'staff_guest' else 'Patienten' }}{% endblock %}
 {% block body_class %}admin-body{% endblock %}
 {% block body %}
+{% set status_badges = {'live': 'bg-green-lt', 'ready': 'bg-teal-lt', 'review_open': 'bg-yellow-lt', 'incomplete': 'bg-orange-lt'} %}
 <div class="admin-shell admin-workflow-shell">
   {% with workflow_nav='management' %}{% include 'admin/_workflow_sidebar.html' %}{% endwith %}
-  <main id="main-content" class="admin-main admin-workflow-main" data-profile="{{ profile }}">
-    <header class="admin-header"><h1>Wochenverwaltung</h1></header>
-    <nav class="profile-tabs" aria-label="Profil">
-      {% for profile_family, label in [('cafeteria', 'Cafeteria'), ('patienten', 'Patienten')] %}
-      <a href="{{ url_for('admin.week_management', family=profile_family) }}"{% if family == profile_family %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
-      {% endfor %}
-    </nav>
-    {% if can_write %}
-    <section aria-labelledby="new-week-title">
-      <h2 id="new-week-title">Neue Woche</h2>
-      {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
-      <form method="post" action="{{ url_for('admin.week_create', family=family) }}" class="admin-form">
-        <input type="hidden" name="_csrf" value="{{ csrf }}">
-        <input type="hidden" name="row_version" value="0">
-        <p><label for="new-week-date">Wochenbeginn (Montag)</label><input id="new-week-date" name="week" type="date" value="{{ values.week }}" required></p>
-        <p><label for="new-week-name">Wochentitel</label><input id="new-week-name" name="title" value="{{ values.title }}" required></p>
-        <p><label for="new-week-note">Wochenhinweis (optional)</label><textarea id="new-week-note" name="shared_note" rows="2">{{ values.shared_note }}</textarea></p>
-        <div class="admin-actions"><button type="submit" class="btn primary">Woche anlegen</button></div>
-      </form>
-    </section>
-    {% endif %}
-    <section aria-labelledby="saved-weeks-title">
-      <h2 id="saved-weeks-title">Gespeicherte Wochen</h2>
-      {% for row in rows %}
-      <article class="menu-card" data-week-id="{{ row.id }}" data-status="{{ row.status }}">
-        <div class="menu-card-body">
-          <h3>KW {{ row.week_start.isocalendar().week }} · {{ row.week_start.strftime('%d.%m.%Y') }}</h3>
-          <p>{{ row.title }}</p>
-          <p>{{ status_labels[row.status] }}{% if row.workflow_state == 'archived' %} · Archiviert{% endif %}</p>
-          <div class="admin-actions">
-            <a class="btn" href="{{ url_for('admin.' ~ family, week=row.week_start.isoformat()) }}">{{ 'Bearbeiten' if can_write else 'Öffnen' }}</a>
-            {% if can_preview %}<a class="btn" href="{{ url_for('admin.preview', family=family, week=row.week_start.isoformat()) }}">Vorschau</a>{% endif %}
-            {% if can_write and row.next_week %}<a class="btn" href="{{ url_for('admin.copy_get', family=family, week=row.next_week.isoformat()) }}">In Folgewoche kopieren</a>{% endif %}
+  <main id="main-content" class="page-wrapper admin-main admin-workflow-main" data-profile="{{ profile }}">
+    {{ page_header('Wochenverwaltung') }}
+    <div class="page-body">
+      <div class="container-xl">
+        {{ profile_tabs({
+          'cafeteria': url_for('admin.week_management', family='cafeteria'),
+          'patienten': url_for('admin.week_management', family='patienten'),
+        }, family) }}
+        {% if can_write %}
+        <section class="card mb-3" aria-labelledby="new-week-title">
+          <form method="post" action="{{ url_for('admin.week_create', family=family) }}" class="admin-form">
+            <div class="card-header"><h2 class="card-title" id="new-week-title">Neue Woche</h2></div>
+            <div class="card-body">
+              {% if error %}<div class="alert alert-danger error" role="alert">{{ icon('alert-triangle') }} {{ error }}</div>{% endif %}
+              <input type="hidden" name="_csrf" value="{{ csrf }}">
+              <input type="hidden" name="row_version" value="0">
+              <div class="row g-3">
+                <div class="col-12 col-sm-5 col-lg-3">
+                  <label class="form-label" for="new-week-date">Wochenbeginn (Montag)</label>
+                  <input id="new-week-date" class="form-control" name="week" type="date" value="{{ values.week }}" required>
+                </div>
+                <div class="col-12 col-sm-7 col-lg-5">
+                  <label class="form-label" for="new-week-name">Wochentitel</label>
+                  <input id="new-week-name" class="form-control" name="title" value="{{ values.title }}" required>
+                </div>
+                <div class="col-12 col-lg-8">
+                  <label class="form-label" for="new-week-note">Wochenhinweis<span class="form-label-description">optional</span></label>
+                  <textarea id="new-week-note" class="form-control" name="shared_note" rows="2">{{ values.shared_note }}</textarea>
+                </div>
+              </div>
+            </div>
+            <div class="card-footer d-flex">
+              <div class="btn-list ms-auto"><button type="submit" class="btn btn-primary">{{ icon('calendar-plus') }}Woche anlegen</button></div>
+            </div>
+          </form>
+        </section>
+        {% endif %}
+        <section class="card" aria-labelledby="saved-weeks-title">
+          <div class="card-header"><h2 class="card-title" id="saved-weeks-title">Gespeicherte Wochen</h2></div>
+          {% if rows %}
+          <table class="table table-vcenter card-table table-mobile-lg">
+            <thead>
+              <tr><th>Woche</th><th>Titel</th><th>Status</th><th>Aktionen</th></tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+              <tr data-week-id="{{ row.id }}" data-status="{{ row.status }}">
+                <td data-label="Woche"><strong>KW {{ row.week_start.isocalendar().week }}</strong><div class="text-secondary small">{{ row.week_start.strftime('%d.%m.%Y') }}</div></td>
+                <td data-label="Titel">{{ row.title }}</td>
+                <td data-label="Status">
+                  <span class="badge {{ status_badges.get(row.status, 'bg-secondary-lt') }}">{{ status_labels[row.status] }}</span>
+                  {% if row.workflow_state == 'archived' %}<span class="badge bg-secondary-lt">Archiviert</span>{% endif %}
+                </td>
+                <td data-label="Aktionen">
+                  <div class="btn-list">
+                    <a class="btn" href="{{ url_for('admin.' ~ family, week=row.week_start.isoformat()) }}">{{ icon('pencil') }}{{ 'Bearbeiten' if can_write else 'Öffnen' }}</a>
+                    {% if can_preview %}<a class="btn" href="{{ url_for('admin.preview', family=family, week=row.week_start.isoformat()) }}">{{ icon('eye') }}Vorschau</a>{% endif %}
+                    {% if can_write and row.next_week %}<a class="btn" href="{{ url_for('admin.copy_get', family=family, week=row.next_week.isoformat()) }}">{{ icon('copy') }}In Folgewoche kopieren</a>{% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="empty">
+            <div class="empty-icon">{{ icon('calendar-week') }}</div>
+            <p class="empty-title">Noch keine gespeicherten Wochen auf dieser Seite.</p>
           </div>
-        </div>
-      </article>
-      {% else %}<p>Noch keine gespeicherten Wochen auf dieser Seite.</p>{% endfor %}
-    </section>
-    <nav class="admin-actions" aria-label="Wochenseiten">
-      {% if page > 1 %}<a class="btn" href="{{ url_for('admin.week_management', family=family, page=page-1) }}">Zurück</a>{% endif %}
-      <span>Seite {{ page }}</span>
-      {% if has_next %}<a class="btn" href="{{ url_for('admin.week_management', family=family, page=page+1) }}">Weiter</a>{% endif %}
-    </nav>
+          {% endif %}
+        </section>
+        {{ pagination(page, has_next,
+          url_for('admin.week_management', family=family, page=page-1),
+          url_for('admin.week_management', family=family, page=page+1),
+          'Wochenseiten') }}
+      </div>
+    </div>
   </main>
 </div>
 {% endblock %}

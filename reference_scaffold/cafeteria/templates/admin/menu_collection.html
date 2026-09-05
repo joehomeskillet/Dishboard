@@ -1,44 +1,74 @@
 {% extends "base.html" %}
+{% from 'admin/_macros.html' import icon, page_header, profile_tabs, pagination %}
 {% block title %}Menüs {{ 'Cafeteria' if profile == 'staff_guest' else 'Patienten' }}{% endblock %}
 {% block body_class %}admin-body{% endblock %}
 {% block body %}
 <div class="admin-shell admin-workflow-shell">
   {% with workflow_nav='menus' %}{% include 'admin/_workflow_sidebar.html' %}{% endwith %}
-  <main id="main-content" class="admin-main admin-workflow-main" data-profile="{{ profile }}">
-    <header class="admin-header"><h1>Menüs</h1></header>
-    <nav class="profile-tabs" aria-label="Profil">
-      <a href="{{ url_for('admin.menu_collection', family='cafeteria', q=query) }}"{% if family == 'cafeteria' %} class="active" aria-current="page"{% endif %}>Cafeteria</a>
-      <a href="{{ url_for('admin.menu_collection', family='patienten', q=query) }}"{% if family == 'patienten' %} class="active" aria-current="page"{% endif %}>Patienten</a>
-    </nav>
-    <p>Gespeicherte Menüs aus allen Wochen. Öffnen führt direkt zum jeweiligen Menü im Wochenplan.</p>
-    <form method="get" class="search-form" action="{{ url_for('admin.menu_collection', family=family) }}">
-      <label for="menu-query">Menü oder Komponente suchen</label>
-      <input id="menu-query" type="search" name="q" maxlength="200" value="{{ query }}">
-      <button type="submit" class="btn primary">Suchen</button>
-      {% if query %}<a class="btn" href="{{ url_for('admin.menu_collection', family=family) }}">Suche zurücksetzen</a>{% endif %}
-    </form>
-    <section class="menu-grid" aria-label="Gespeicherte Menüs">
-      {% for row in rows %}
-      <article class="menu-card" data-menu-id="{{ row.id }}">
-        <div class="menu-card-body">
-        <p>{{ row.service_date.strftime('%d.%m.%Y') }} · {{ meal_labels[row.meal_code] }} · {{ option_labels[row.type_code] }}{% if row.workflow_state == 'archived' %} · Archivierte Woche{% endif %}</p>
-        <h2>{{ row.title }}</h2>
-        {% if row.components %}<ul class="components">{% for component in row.components %}<li>{{ component }}</li>{% endfor %}</ul>{% endif %}
-        {% with option=row %}{% include '_menu_metadata.html' %}{% endwith %}
-        {% if row.stale_components %}<p>Komponenten geändert · Erneute Prüfung erforderlich</p>{% endif %}
-        <a class="btn" href="{{ url_for('admin.menu_get', family=family, week=row.week_start.isoformat(), day=row.service_date.isoformat(), meal=row.meal_code, option=row.type_code) }}" aria-label="{{ row.title }} vom {{ row.service_date.strftime('%d.%m.%Y') }} öffnen">Öffnen</a>
-        </div>
-      </article>
-      {% else %}
-      <p>{{ 'Keine Menüs für diese Suche gefunden.' if query else 'Noch keine Menüs auf dieser Seite.' }}</p>
-      <a class="btn" href="{{ url_for('admin.' ~ family) }}">Zum Wochenplan</a>
-      {% endfor %}
-    </section>
-    <nav class="admin-actions" aria-label="Ergebnisseiten">
-      {% if page > 1 %}<a class="btn" href="{{ url_for('admin.menu_collection', family=family, q=query, page=page-1) }}">Zurück</a>{% endif %}
-      <span>Seite {{ page }}</span>
-      {% if has_next %}<a class="btn" href="{{ url_for('admin.menu_collection', family=family, q=query, page=page+1) }}">Weiter</a>{% endif %}
-    </nav>
+  <main id="main-content" class="page-wrapper admin-main admin-workflow-main" data-profile="{{ profile }}">
+    {{ page_header('Menüs') }}
+    <div class="page-body">
+      <div class="container-xl">
+        {{ profile_tabs({
+          'cafeteria': url_for('admin.menu_collection', family='cafeteria', q=query),
+          'patienten': url_for('admin.menu_collection', family='patienten', q=query),
+        }, family) }}
+        <p class="text-secondary">Gespeicherte Menüs aus allen Wochen. Öffnen führt direkt zum jeweiligen Menü im Wochenplan.</p>
+        <form method="get" class="search-form card mb-3" action="{{ url_for('admin.menu_collection', family=family) }}">
+          <div class="card-body">
+            <div class="row g-2 align-items-end">
+              <div class="col-12 col-md-6 col-xl-5">
+                <label class="form-label" for="menu-query">Menü oder Komponente suchen</label>
+                <div class="input-icon">
+                  <span class="input-icon-addon">{{ icon('search') }}</span>
+                  <input id="menu-query" class="form-control" type="search" name="q" maxlength="200" value="{{ query }}">
+                </div>
+              </div>
+              <div class="col-12 col-md-auto">
+                <div class="btn-list">
+                  <button type="submit" class="btn btn-primary">{{ icon('search') }}Suchen</button>
+                  {% if query %}<a class="btn" href="{{ url_for('admin.menu_collection', family=family) }}">{{ icon('x') }}Suche zurücksetzen</a>{% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+        <section class="row row-cards menu-grid" aria-label="Gespeicherte Menüs">
+          {% for row in rows %}
+          <div class="col-12 col-md-6 col-xl-4">
+            <article class="card h-100" data-menu-id="{{ row.id }}">
+              <div class="card-body">
+                <p class="text-secondary small mb-1">{{ row.service_date.strftime('%d.%m.%Y') }} · {{ meal_labels[row.meal_code] }} · {{ option_labels[row.type_code] }}{% if row.workflow_state == 'archived' %} · Archivierte Woche{% endif %}</p>
+                <h2 class="card-title mb-2">{{ row.title }}</h2>
+                {% if row.components %}
+                <ul class="list-inline mb-1">{% for component in row.components %}<li class="list-inline-item badge bg-secondary-lt">{{ component }}</li>{% endfor %}</ul>
+                {% endif %}
+                {% with option=row %}{% include '_menu_metadata.html' %}{% endwith %}
+                {% if row.stale_components %}<div class="alert alert-warning mt-2 mb-0">{{ icon('alert-triangle') }} Komponenten geändert · Erneute Prüfung erforderlich</div>{% endif %}
+              </div>
+              <div class="card-footer">
+                <a class="btn w-100" href="{{ url_for('admin.menu_get', family=family, week=row.week_start.isoformat(), day=row.service_date.isoformat(), meal=row.meal_code, option=row.type_code) }}" aria-label="{{ row.title }} vom {{ row.service_date.strftime('%d.%m.%Y') }} öffnen">{{ icon('pencil') }}Öffnen</a>
+              </div>
+            </article>
+          </div>
+          {% else %}
+          <div class="col-12">
+            <div class="card">
+              <div class="empty">
+                <div class="empty-icon">{{ icon('tools-kitchen-2') }}</div>
+                <p class="empty-title">{{ 'Keine Menüs für diese Suche gefunden.' if query else 'Noch keine Menüs auf dieser Seite.' }}</p>
+                <div class="empty-action"><a class="btn btn-primary" href="{{ url_for('admin.' ~ family) }}">{{ icon('calendar-week') }}Zum Wochenplan</a></div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </section>
+        {{ pagination(page, has_next,
+          url_for('admin.menu_collection', family=family, q=query, page=page-1),
+          url_for('admin.menu_collection', family=family, q=query, page=page+1),
+          'Ergebnisseiten') }}
+      </div>
+    </div>
   </main>
 </div>
 {% endblock %}

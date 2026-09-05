@@ -9,6 +9,10 @@
     <link rel="preload" as="font" type="font/woff2" href="{{ url_for('static', filename='fonts/fira-sans-400.woff2') }}" crossorigin>
   <link rel="preload" as="font" type="font/woff2" href="{{ url_for('static', filename='fonts/fira-sans-600.woff2') }}" crossorigin>
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  {% if self.body_class() == 'admin-body' %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin-tabler.css') }}">
+  {% endif %}
   {% block head %}{% endblock %}
 </head>
 {% set user = session.get('user') %}

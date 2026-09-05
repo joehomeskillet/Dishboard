@@ -1,0 +1,53 @@
+{#- Central Tabler building blocks for admin views. Contract: docs/design/admin-tabler-contract.md -#}
+
+{%- macro icon(name, class='', label=none) -%}
+<svg class="icon{% if class %} {{ class }}{% endif %}"{% if label %} role="img" aria-label="{{ label }}"{% else %} aria-hidden="true"{% endif %} focusable="false"><use href="{{ url_for('static', filename='vendor/tabler-icons/tabler-icons.svg') }}#tabler-{{ name }}"></use></svg>
+{%- endmacro %}
+
+{%- macro page_header(title, pretitle=none) %}
+<div class="page-header">
+  <div class="container-xl">
+    <div class="row g-2 align-items-center">
+      <div class="col">
+        {% if pretitle %}<div class="page-pretitle">{{ pretitle }}</div>{% endif %}
+        <h1 class="page-title">{{ title }}</h1>
+      </div>
+      {% if caller %}
+      <div class="col-12 col-md-auto ms-auto">
+        <div class="btn-list">{{ caller() }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{%- endmacro %}
+
+{%- macro profile_tabs(links, current) %}
+<nav class="profile-tabs mb-3" aria-label="Profil">
+  <ul class="nav nav-pills">
+    {% for key, label in [('cafeteria', 'Cafeteria'), ('patienten', 'Patienten')] %}
+    <li class="nav-item"><a class="nav-link{% if key == current %} active{% endif %}" href="{{ links[key] }}"{% if key == current %} aria-current="page"{% endif %}>{{ label }}</a></li>
+    {% endfor %}
+  </ul>
+</nav>
+{%- endmacro %}
+
+{%- macro flash_region(messages) %}
+<div class="flash-region" aria-live="polite">
+  {% for message in messages %}<div class="alert alert-info flash">{{ message }}</div>{% endfor %}
+</div>
+{%- endmacro %}
+
+{%- macro pagination(page, has_next, prev_url, next_url, label) %}
+<nav class="mt-3" aria-label="{{ label }}">
+  <ul class="pagination mb-0">
+    <li class="page-item{% if page <= 1 %} disabled{% endif %}">
+      {% if page > 1 %}<a class="page-link" href="{{ prev_url }}">{{ icon('chevron-left') }}Zurück</a>{% else %}<span class="page-link" aria-disabled="true">{{ icon('chevron-left') }}Zurück</span>{% endif %}
+    </li>
+    <li class="page-item active"><span class="page-link" aria-current="page">Seite {{ page }}</span></li>
+    <li class="page-item{% if not has_next %} disabled{% endif %}">
+      {% if has_next %}<a class="page-link" href="{{ next_url }}">Weiter{{ icon('chevron-right') }}</a>{% else %}<span class="page-link" aria-disabled="true">Weiter{{ icon('chevron-right') }}</span>{% endif %}
+    </li>
+  </ul>
+</nav>
+{%- endmacro %}

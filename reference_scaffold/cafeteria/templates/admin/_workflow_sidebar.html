@@ -1,26 +1,52 @@
-<aside class="admin-sidebar">
-  <div class="admin-brand">
-    <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="admin-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="164" height="32">
-    <span>Menüplanung</span>
-  </div>
-  <div class="admin-user">
-    {% set user_name = user.name if user else 'Küche Administration' %}
-    <span class="avatar">{{ user_name[:2]|upper }}</span>
-    <div>
-      <strong>{{ user_name }}</strong>
-      <span>{{ roles|default([])|join(', ') }}</span>
+{% from 'admin/_macros.html' import icon %}
+<aside class="navbar navbar-vertical navbar-expand-lg admin-sidebar" data-bs-theme="dark">
+  <div class="container-fluid">
+    <div class="navbar-brand admin-brand">
+      <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="admin-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="164" height="32">
+      <span>Menüplanung</span>
+    </div>
+    <div class="navbar-collapse admin-nav-collapse" id="sidebar-menu">
+      {% set user_name = user.name if user else 'Küche Administration' %}
+      <div class="admin-user">
+        <span class="avatar bg-primary text-white" aria-hidden="true">{{ user_name[:2]|upper }}</span>
+        <div class="admin-user-text">
+          <strong>{{ user_name }}</strong>
+          <span>{{ roles|default([])|join(', ') }}</span>
+        </div>
+      </div>
+      {% set weeks_url = url_for('admin.' ~ family, week=week) if week is defined and week else url_for('admin.' ~ family) %}
+      {% set nav_items = [
+        ('weeks', weeks_url, 'calendar-week', 'Wochenpläne'),
+        ('management', url_for('admin.week_management', family=family), 'calendar-cog', 'Wochenverwaltung'),
+        ('menus', '/admin/' ~ family ~ '/menues', 'tools-kitchen-2', 'Menüs'),
+        ('components', '/admin/' ~ family ~ '/komponenten', 'components', 'Komponenten'),
+        ('import', url_for('admin.import_preview'), 'file-import', 'CSV Import'),
+      ] %}
+      <nav class="admin-nav" aria-label="Backend">
+        <ul class="navbar-nav">
+          {% for key, href, icon_name, label in nav_items %}
+          <li class="nav-item{% if workflow_nav == key %} active{% endif %}">
+            <a href="{{ href }}" class="nav-link{% if workflow_nav == key %} active{% endif %}"{% if workflow_nav == key %} aria-current="page"{% endif %}>
+              <span class="nav-link-icon">{{ icon(icon_name) }}</span>
+              <span class="nav-link-title">{{ label }}</span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        <div class="navbar-footer">
+          <ul class="navbar-nav">
+            <li class="nav-item">
+              <form method="post" action="{{ url_for('auth.logout') }}">
+                <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                <button type="submit" class="nav-link">
+                  <span class="nav-link-icon">{{ icon('logout') }}</span>
+                  <span class="nav-link-title">Abmelden</span>
+                </button>
+              </form>
+            </li>
+          </ul>
+        </div>
+      </nav>
     </div>
   </div>
-  {% set weeks_url = url_for('admin.' ~ family, week=week) if week is defined and week else url_for('admin.' ~ family) %}
-  <nav class="admin-nav" aria-label="Backend">
-    <a href="{{ weeks_url }}"{% if workflow_nav == 'weeks' %} class="active" aria-current="page"{% endif %}>Wochenpläne</a>
-    <a href="{{ url_for('admin.week_management', family=family) }}"{% if workflow_nav == 'management' %} class="active" aria-current="page"{% endif %}>Wochenverwaltung</a>
-    <a href="/admin/{{ family }}/menues"{% if workflow_nav == 'menus' %} class="active" aria-current="page"{% endif %}>Menüs</a>
-    <a href="/admin/{{ family }}/komponenten"{% if workflow_nav == 'components' %} class="active" aria-current="page"{% endif %}>Komponenten</a>
-    <a href="{{ url_for('admin.import_preview') }}">CSV Import</a>
-    <form method="post" action="{{ url_for('auth.logout') }}">
-      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-      <button type="submit">Abmelden</button>
-    </form>
-  </nav>
 </aside>
