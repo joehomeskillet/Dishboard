@@ -7,8 +7,9 @@
 {% macro error_attributes(name, error_id) %}{% if errors.get(name) %} aria-invalid="true" aria-describedby="{{ error_id }}"{% endif %}{% endmacro %}
 {% macro field_error(name, error_id) %}{% if errors.get(name) %}<span class="field-error" id="{{ error_id }}">{{ errors[name] }}</span>{% endif %}{% endmacro %}
 
-<div class="admin-shell">
-  <main id="main-content" class="admin-main" data-profile="{{ profile }}" data-family="{{ family }}" data-week="{{ week|default('') }}">
+<div class="admin-shell admin-workflow-shell">
+  {% with workflow_nav='components' %}{% include 'admin/_workflow_sidebar.html' %}{% endwith %}
+  <main id="main-content" class="admin-main admin-workflow-main" data-profile="{{ profile }}" data-family="{{ family }}" data-week="{{ week|default('') }}">
     
     <div class="flash-region" aria-live="polite">
       {% for message in flashes %}
@@ -20,71 +21,33 @@
       <h1>Komponenten {{ 'Cafeteria' if profile == 'staff_guest' else 'Patienten' }}</h1>
     </div>
 
-    <form method="get" action="/admin/{{ family }}/komponenten" class="search-form">
-      <label for="f-q">Suche</label>
-      <input id="f-q" type="search" name="q" value="{{ query|default('') }}">
-
-      <label for="f-cat">Kategorie</label>
-      <select id="f-cat" name="category">
-        <option value="">Alle</option>
-        {% for cat_val, cat_label in categories.items() %}
-          <option value="{{ cat_val }}"{% if category == cat_val %} selected{% endif %}>{{ cat_label }}</option>
-        {% endfor %}
-      </select>
-
-      <label><input type="checkbox" name="include_archived" value="1"{% if include_archived %} checked{% endif %}> Archivierte anzeigen</label>
-      <button type="submit" class="btn">Suchen</button>
-    </form>
-
-    <div class="component-list-container">
-      {% if rows %}
-        <ul>
-        {% for row in rows %}
-          <li class="component-row" data-public-id="{{ row.public_id }}" data-active="{{ '1' if row.active else '0' }}">
-            <a href="/admin/{{ family }}/komponenten/{{ row.public_id }}">{{ row.name }}</a>
-            <span class="category">{{ categories.get(row.category, row.category) }}</span>
-            <span class="scope">
-              {% if row.profile_scope == 'common' %}
-                gemeinsam
-              {% elif row.profile_scope == 'staff_guest' %}
-                nur Cafeteria
-              {% else %}
-                nur Patienten
-              {% endif %}
-            </span>
-            <span class="usage">verwendet in {{ row.usage_count }} Gerichten</span>
-            {% if not row.active %}
-              <span class="badge badge-archived">archiviert</span>
-            {% endif %}
-          </li>
-        {% endfor %}
-        </ul>
-      {% else %}
-        <p>Keine Komponenten gefunden. <a href="#create-component">Neue Komponente</a></p>
-      {% endif %}
-    </div>
-
     <details id="create-component"{% if errors %} open{% endif %}>
-      <summary>Neue Komponente</summary>
-      <form method="post" action="/admin/{{ family }}/komponenten">
+      <summary class="btn primary">Neue Komponente</summary>
+      <form method="post" action="/admin/{{ family }}/komponenten" class="admin-workflow-form">
         <input type="hidden" name="_csrf" value="{{ csrf }}">
 
-        <label for="c-name">Name</label>
-        <input id="c-name" name="name" value="{{ submitted.get('name', '') }}" required{{ error_attributes('name', 'err-name') }}>
-        {{ field_error('name', 'err-name') }}
+        <div class="admin-workflow-field">
+          <label for="c-name">Name</label>
+          <input id="c-name" name="name" value="{{ submitted.get('name', '') }}" required{{ error_attributes('name', 'err-name') }}>
+          {{ field_error('name', 'err-name') }}
+        </div>
 
-        <label for="c-cat">Kategorie</label>
-        <select id="c-cat" name="category" required{{ error_attributes('category', 'err-cat') }}>
-          <option value="">Bitte wählen</option>
-          {% for cat_val, cat_label in categories.items() %}
-            <option value="{{ cat_val }}"{% if submitted.get('category') == cat_val %} selected{% endif %}>{{ cat_label }}</option>
-          {% endfor %}
-        </select>
-        {{ field_error('category', 'err-cat') }}
+        <div class="admin-workflow-field">
+          <label for="c-cat">Kategorie</label>
+          <select id="c-cat" name="category" required{{ error_attributes('category', 'err-cat') }}>
+            <option value="">Bitte wählen</option>
+            {% for cat_val, cat_label in categories.items() %}
+              <option value="{{ cat_val }}"{% if submitted.get('category') == cat_val %} selected{% endif %}>{{ cat_label }}</option>
+            {% endfor %}
+          </select>
+          {{ field_error('category', 'err-cat') }}
+        </div>
 
-        <label for="c-origin">Herkunft (ISO-Code)</label>
-        <input id="c-origin" name="origin_country_code" pattern="[A-Z]{2}" maxlength="2" placeholder="CH" value="{{ submitted.get('origin_country_code', '') }}"{{ error_attributes('origin_country_code', 'err-origin') }}>
-        {{ field_error('origin_country_code', 'err-origin') }}
+        <div class="admin-workflow-field">
+          <label for="c-origin">Herkunft (ISO-Code)</label>
+          <input id="c-origin" name="origin_country_code" pattern="[A-Z]{2}" maxlength="2" placeholder="CH" value="{{ submitted.get('origin_country_code', '') }}"{{ error_attributes('origin_country_code', 'err-origin') }}>
+          {{ field_error('origin_country_code', 'err-origin') }}
+        </div>
 
         <fieldset>
           <legend>Gültigkeit</legend>
@@ -119,9 +82,54 @@
           </div>
         </fieldset>
 
-        <button type="submit" class="btn">Komponente erstellen</button>
+        <button type="submit" class="btn primary">Komponente erstellen</button>
       </form>
     </details>
+
+    <form method="get" action="/admin/{{ family }}/komponenten" class="search-form">
+      <label for="f-q">Suche</label>
+      <input id="f-q" type="search" name="q" value="{{ query|default('') }}">
+
+      <label for="f-cat">Kategorie</label>
+      <select id="f-cat" name="category">
+        <option value="">Alle</option>
+        {% for cat_val, cat_label in categories.items() %}
+          <option value="{{ cat_val }}"{% if category == cat_val %} selected{% endif %}>{{ cat_label }}</option>
+        {% endfor %}
+      </select>
+
+      <label><input type="checkbox" name="include_archived" value="1"{% if include_archived %} checked{% endif %}> Archivierte anzeigen</label>
+      <button type="submit" class="btn">Suchen</button>
+    </form>
+
+    <div class="component-list-container">
+      {% if rows %}
+        <ul role="list">
+        {% for row in rows %}
+          <li class="component-row" data-public-id="{{ row.public_id }}" data-active="{{ '1' if row.active else '0' }}">
+            <a href="/admin/{{ family }}/komponenten/{{ row.public_id }}">{{ row.name }}</a>
+            <span class="category">{{ categories.get(row.category, row.category) }}</span>
+            <span class="scope">
+              {% if row.profile_scope == 'common' %}
+                gemeinsam
+              {% elif row.profile_scope == 'staff_guest' %}
+                nur Cafeteria
+              {% else %}
+                nur Patienten
+              {% endif %}
+            </span>
+            <span class="usage">verwendet in {{ row.usage_count }} Gerichten</span>
+            {% if not row.active %}
+              <span class="badge badge-archived">archiviert</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+        </ul>
+      {% else %}
+        <p>Keine Komponenten gefunden. <a href="#create-component">Neue Komponente</a></p>
+      {% endif %}
+    </div>
+
 
   </main>
 </div>

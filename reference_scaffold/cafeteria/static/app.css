@@ -767,3 +767,104 @@ body {
 @media (min-width: 1200px) {
   .admin-preview .preview-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* Admin workflow shell: editor, catalog and component detail. */
+.admin-workflow-main {
+  min-width: 0;
+  padding: 1.25rem 1.5rem;
+}
+.admin-workflow-main .admin-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.admin-workflow-main .admin-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.3;
+}
+.admin-workflow-main #create-component {
+  margin-block: 1.25rem;
+}
+.admin-workflow-main #create-component > summary {
+  min-width: 44px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.admin-workflow-main .search-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem;
+  margin-block: 1.25rem;
+}
+.admin-workflow-main .component-list-container ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.admin-workflow-main .component-list-container .component-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: .5rem 1rem;
+  padding-block: .75rem;
+  border-bottom: 1px solid var(--sh-border);
+}
+.admin-workflow-main .component-list-container .component-row > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.admin-workflow-main .component-list-container .component-row > a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.admin-workflow-main .component-list-container .component-row > span {
+  color: var(--sh-ink-muted);
+  font-size: .875rem;
+}
+.admin-workflow-form {
+  max-width: 52rem;
+  margin-top: 1rem;
+}
+.admin-workflow-field {
+  display: grid;
+  gap: .25rem;
+  margin-bottom: 1rem;
+}
+.admin-workflow-field input,
+.admin-workflow-field select {
+  width: 100%;
+}
+.admin-workflow-main .allergen-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  gap: .5rem 1rem;
+  margin-block: .5rem;
+}
+.admin-workflow-main .allergen-row input {
+  flex-shrink: 0;
+}
+.admin-workflow-main .allergen-row select {
+  width: 100%;
+}
+@media (max-width: 900px) {
+  .admin-workflow-main {
+    padding: 1rem;
+  }
+  .admin-workflow-main .component-list-container .component-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .admin-workflow-main .component-list-container .component-row > a,
+  .admin-workflow-main .component-list-container .component-row > .usage {
+    grid-column: 1 / -1;
+  }
+  .admin-workflow-main .allergen-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

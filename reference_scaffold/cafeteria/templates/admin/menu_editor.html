@@ -1,5 +1,9 @@
 {% extends "base.html" %}
-{% block title %}{{ cell.day_label|default(cell.day) }}, {{ cell.meal_label|default(cell.meal) }}, {{ cell.option_label|default(cell.option) }} bearbeiten{% endblock %}
+{% set day_title = cell.day_label|default(cell.day|date_long) %}
+{% set meal_title = cell.meal_label|default({'LUNCH': 'Mittag', 'DINNER': 'Abend'}.get(cell.meal, cell.meal)) %}
+{% set option_title = cell.option_label|default({'MENU_1': 'Menü 1', 'VEGGIE': 'Vegetarisch'}.get(cell.option, cell.option)) %}
+{% set slot_title = day_title ~ ' · ' ~ meal_title ~ ' · ' ~ option_title %}
+{% block title %}{{ slot_title }} bearbeiten{% endblock %}
 {% block body_class %}admin-body{% endblock %}
 {% block body %}
 {% set submitted = form_values|default({}) %}
@@ -7,8 +11,9 @@
 {% macro error_attributes(name, error_id) %}{% if errors.get(name) %} aria-invalid="true" aria-describedby="{{ error_id }}"{% endif %}{% endmacro %}
 {% macro field_error(name, error_id) %}{% if errors.get(name) %}<span class="field-error" id="{{ error_id }}">{{ errors[name] }}</span>{% endif %}{% endmacro %}
 
-<div class="admin-shell">
-  <main id="main-content" class="admin-main" data-profile="{{ profile }}" data-family="{{ family }}" data-week="{{ week }}">
+<div class="admin-shell admin-workflow-shell">
+  {% with workflow_nav='weeks' %}{% include 'admin/_workflow_sidebar.html' %}{% endwith %}
+  <main id="main-content" class="admin-main admin-workflow-main" data-profile="{{ profile }}" data-family="{{ family }}" data-week="{{ week }}">
     
     <div class="flash-region" aria-live="polite">
       {% for message in flashes %}
@@ -24,7 +29,7 @@
     {% endif %}
 
     <div class="admin-header">
-      <h1>{{ cell.day_label|default(cell.day) }}, {{ cell.meal_label|default(cell.meal) }}, {{ cell.option_label|default(cell.option) }} bearbeiten</h1>
+      <h1>{{ slot_title }} bearbeiten</h1>
       <a class="btn" href="/admin/{{ family }}?week={{ week }}">Zurück</a>
     </div>
 
@@ -37,7 +42,7 @@
       <input type="hidden" name="row_version" value="{{ cell.row_version }}">
 
       <div class="admin-actions" data-sticky>
-        <button type="submit" class="btn">Speichern</button>
+        <button type="submit" class="btn primary">Speichern</button>
         <a class="btn" href="/admin/{{ family }}?week={{ week }}">Abbrechen</a>
       </div>
 
