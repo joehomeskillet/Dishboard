@@ -28,6 +28,7 @@ from cafeteria.security import csrf_token  # noqa: E402
 from cafeteria.signage import routes as signage_routes  # noqa: E402
 from cafeteria.workflow_partial_store import persist_menu_item  # noqa: E402
 from demo_snapshots import cafeteria_snapshot, patient_snapshot  # noqa: E402
+from test_admin_workflow_db import _patient_values, _save_reviewed, _staff_values  # noqa: E402
 import cafeteria.roles  # noqa: E402
 from test_admin_workflow_routes import (  # noqa: E402
     APP_PASSWORD,
@@ -60,7 +61,7 @@ _NEEDS_DB = pytest.mark.skipif(
     reason='TEST_DATABASE_URL für eine isolierte PostgreSQL-Testdatenbank fehlt.',
 )
 _SLOT = re.compile(
-    r'<article class="menu-slot" data-day="([^"]+)" data-meal="([^"]+)" '
+    r'<article class="[^\"]*\bmenu-slot\b[^\"]*" data-day="([^"]+)" data-meal="([^"]+)" '
     r'data-option="([^"]+)" data-row-version="([^"]+)">',
 )
 
@@ -189,10 +190,10 @@ def _client(app: Flask):
 
 def _inline_css(html: str) -> str:
     inlined = html
-    for filename in ('tokens.css', 'app.css'):
-        css = CSS_PATH.with_name(filename).read_text(encoding='utf-8')
+    for link in re.finditer(r'<link rel="stylesheet" href="/static/([^\"]+)">', html):
+        css = (CSS_PATH.parent / link.group(1)).read_text(encoding='utf-8')
         inlined = inlined.replace(
-            f'<link rel="stylesheet" href="/static/{filename}">', f'<style>{css}</style>',
+            link.group(0), f'<style>{css}</style>',
         )
     for filename in ('suedhang-logo.png', 'suedhang-logo@2x.png'):
         image_data = base64.b64encode((STATIC_IMG_PATH / filename).read_bytes()).decode('ascii')
@@ -850,15 +851,18 @@ def test_every_admin_control_is_reachable_sized_and_non_overlapping(
     height: int,
 ) -> None:
     client, _ = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    profile = 'staff_guest' if path.endswith('/cafeteria') else 'patient'
+    _save_reviewed(admin_engine, profile,
+                   _staff_values() if profile == 'staff_guest' else _patient_values())
     page = _page(browser, client.get(f'{path}?week={DAY}').get_data(as_text=True), width, height)
+    page.add_script_tag(path=str(CSS_PATH.parent / 'vendor/tabler/tabler.min.js'))
     try:
-        result = page.evaluate(
-            """
-            () => {
+        metrics_script = """
+            rootSelector => {
               const selector = 'a[href], button, input:not([type="hidden"]), select, textarea';
-              const controls = [...document.querySelectorAll(selector)].filter(element => {
+              const controls = [...document.querySelector(rootSelector).querySelectorAll(selector)].filter(element => {
                 const style = getComputedStyle(element);
-                return style.display !== 'none' && style.visibility !== 'hidden';
+                return element.getClientRects().length && style.visibility !== 'hidden';
               });
               const reachable = controls.map(element => {
                 element.focus({preventScroll: true});
@@ -910,14 +914,33 @@ def test_every_admin_control_is_reachable_sized_and_non_overlapping(
               return {reachable, contained: boxes.filter(box => !box.contained), overlaps};
             }
             """
-        )
-        assert result['reachable']
-        assert all(
-            item['width'] >= 44 and item['height'] >= 44 for item in result['reachable']
-        ), result['reachable']
-        assert all(item['reachable'] for item in result['reachable']), result['reachable']
-        assert result['contained'] == []
-        assert result['overlaps'] == []
+
+        def assert_controls(root_selector: str = 'body') -> None:
+            result = page.evaluate(metrics_script, root_selector)
+            assert result['reachable']
+            assert all(
+                item['width'] >= 44 and item['height'] >= 44 for item in result['reachable']
+            ), [item for item in result['reachable'] if item['width'] < 44 or item['height'] < 44]
+            assert all(item['reachable'] for item in result['reachable']), [
+                item for item in result['reachable'] if not item['reachable']
+            ]
+            assert result['contained'] == []
+            assert result['overlaps'] == []
+
+        assert_controls()
+        toggle = page.locator('[data-bs-target="#sidebar-menu"]')
+        if toggle.is_visible():
+            toggle.click()
+            page.wait_for_selector('#sidebar-menu.show')
+            assert_controls()
+            toggle.click()
+            page.wait_for_selector('#sidebar-menu', state='hidden')
+        # Hidden navigation/modal descendants are checked in their actual open state.
+        page.locator('[data-bs-target="#week-publish-modal"]').click()
+        page.wait_for_selector('#week-publish-modal.show')
+        assert_controls('#week-publish-modal')
+        page.locator('#week-publish-modal').get_by_role('button', name='Abbrechen', exact=True).click()
+        page.wait_for_selector('#week-publish-modal', state='hidden')
     finally:
         page.close()
 
