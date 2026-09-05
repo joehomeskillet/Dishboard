@@ -40,6 +40,7 @@
               <div class="card-body">
                 <p class="text-secondary small mb-1">{{ row.service_date.strftime('%d.%m.%Y') }} · {{ meal_labels[row.meal_code] }} · {{ option_labels[row.type_code] }}{% if row.workflow_state == 'archived' %} · Archivierte Woche{% endif %}</p>
                 <h2 class="card-title mb-2">{{ row.title }}</h2>
+                {% with option=row %}{% include '_menu_image.html' %}{% endwith %}
                 {% if row.components %}
                 <ul class="list-inline mb-1">{% for component in row.components %}<li class="list-inline-item badge bg-secondary-lt">{{ component }}</li>{% endfor %}</ul>
                 {% endif %}
