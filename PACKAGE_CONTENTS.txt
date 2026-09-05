@@ -1,5 +1,10 @@
 .github/workflows/pages.yml
 .gitignore
+.gitnexus/.gitignore
+.gitnexus/lbug
+.gitnexus/meta.json
+.gitnexus/parse-cache/1f040c7e403995f55071b934a534f63bb11058dc44c304aae540ccfb8c16897f.json
+.gitnexus/parse-cache/index.json
 architecture/auth_flow.dot
 architecture/auth_flow.png
 architecture/auth_flow.svg
@@ -98,6 +103,7 @@ design/screenshots/website-cafeteria-woche-1440x1100.png
 design/screenshots/website-patienten-woche-1440x1100.png
 docs/ABNAHME_CHECKLISTE.md
 docs/CSV_IMPORT_EXPORT.md
+docs/design/admin-redesign-ui.md
 docs/design/therapieplan-alignment.md
 docs/DOCKER_COMPOSE_RUNBOOK.md
 docs/ENTRA_SSO_BETRIEBSKONZEPT.md
@@ -118,6 +124,7 @@ PACKAGE_CONTENTS.txt
 README.md
 reference_scaffold/cafeteria/__init__.py
 reference_scaffold/cafeteria/admin/__init__.py
+reference_scaffold/cafeteria/admin/rendering.py
 reference_scaffold/cafeteria/admin/routes.py
 reference_scaffold/cafeteria/admin/workflow_routes.py
 reference_scaffold/cafeteria/api/__init__.py
@@ -144,6 +151,7 @@ reference_scaffold/cafeteria/roles.py
 reference_scaffold/cafeteria/security.py
 reference_scaffold/cafeteria/signage/__init__.py
 reference_scaffold/cafeteria/signage/routes.py
+reference_scaffold/cafeteria/static/admin.js
 reference_scaffold/cafeteria/static/app.css
 reference_scaffold/cafeteria/static/fonts/fira-sans-400.woff2
 reference_scaffold/cafeteria/static/fonts/fira-sans-500.woff2
@@ -152,9 +160,14 @@ reference_scaffold/cafeteria/static/fonts/fira-sans-700.woff2
 reference_scaffold/cafeteria/static/fonts/OFL.txt
 reference_scaffold/cafeteria/static/img/suedhang-logo.png
 reference_scaffold/cafeteria/static/img/suedhang-logo@2x.png
+reference_scaffold/cafeteria/template_filters.py
 reference_scaffold/cafeteria/templates/admin/cafeteria.html
+reference_scaffold/cafeteria/templates/admin/component_editor.html
+reference_scaffold/cafeteria/templates/admin/components.html
 reference_scaffold/cafeteria/templates/admin/import_preview.html
+reference_scaffold/cafeteria/templates/admin/menu_editor.html
 reference_scaffold/cafeteria/templates/admin/patienten.html
+reference_scaffold/cafeteria/templates/admin/preview.html
 reference_scaffold/cafeteria/templates/auth/error.html
 reference_scaffold/cafeteria/templates/auth/local_login.html
 reference_scaffold/cafeteria/templates/base.html
@@ -185,6 +198,7 @@ reference_scaffold/README.md
 reference_scaffold/requirements.txt
 reference_scaffold/tests/test_admin_csv_import.py
 reference_scaffold/tests/test_admin_draft_preview.py
+reference_scaffold/tests/test_admin_ux_browser.py
 reference_scaffold/tests/test_admin_week_routes.py
 reference_scaffold/tests/test_admin_workflow_concurrency_db.py
 reference_scaffold/tests/test_admin_workflow_db.py
@@ -221,6 +235,7 @@ reference_scaffold/tests/test_deployment_restore_recovery.py
 reference_scaffold/tests/test_github_pages.py
 reference_scaffold/tests/test_public_contracts.py
 reference_scaffold/tests/test_public_isolation_homoglyphs.py
+reference_scaffold/tests/test_publication_lock_contract_db.py
 reference_scaffold/tests/test_rendered_ui.py
 reference_scaffold/tests/test_smoke.py
 reference_scaffold/tests/test_ui_contracts.py
