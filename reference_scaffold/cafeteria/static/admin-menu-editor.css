@@ -1,0 +1,27 @@
+/* Menu editor on the Tabler admin base (page_styles). Tokens from tokens.css and Tabler variables only. */
+.dishboard-admin details.admin-accordion { display: block; }
+.dishboard-admin summary.card-header {
+  display: flex; align-items: center; gap: 8px; min-height: 48px;
+  cursor: pointer; list-style: none;
+}
+.dishboard-admin summary.card-header::-webkit-details-marker { display: none; }
+.dishboard-admin summary.card-header .admin-accordion-marker { margin-inline-start: auto; flex: none; transition: transform 200ms cubic-bezier(.2, 0, 0, 1); }
+.dishboard-admin details[open] > summary.card-header .admin-accordion-marker { transform: rotate(90deg); }
+.dishboard-admin :is(.component-row, .origin-row) { padding: 12px 0; border-top: 1px solid var(--tblr-border-color); }
+.dishboard-admin :is(.component-row, .origin-row):first-child { padding-top: 0; border-top: 0; }
+.dishboard-admin .allergen-row + .allergen-row { margin-top: 8px; }
+.dishboard-admin textarea.form-control { min-height: 96px; resize: vertical; }
+.dishboard-admin [data-state="dense"] textarea.form-control { min-height: 48px; }
+.dishboard-admin [data-state="dense"] .form-hint { display: none; }
+.dishboard-admin .admin-actions {
+  position: sticky; bottom: 0; z-index: 5;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 12px 0; margin-top: 8px;
+  background: var(--sh-canvas-strong); border-top: 1px solid var(--tblr-border-color);
+}
+.dishboard-admin .admin-actions.is-static { position: static; }
+.dishboard-admin .admin-actions .form-check { margin-inline-start: auto; }
+.dishboard-admin .review-block:target { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
+/* Landscape phone or open keyboard on a resized layout viewport: keep the bar in document flow. */
+@media (max-height: 480px) { .dishboard-admin .admin-actions { position: static; } }
+@media (prefers-reduced-motion: reduce) { .dishboard-admin summary.card-header .admin-accordion-marker { transition: none; } }

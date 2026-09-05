@@ -1,38 +1,59 @@
-{% extends "base.html" %}
+{% extends "admin/base_tabler.html" %}
+{% from 'admin/_macros.html' import icon, page_header, check %}
+{% from 'admin/_country_select.html' import country_select %}
 {% set day_title = cell.day_label|default(cell.day|date_long) %}
 {% set meal_title = cell.meal_label|default({'LUNCH': 'Mittag', 'DINNER': 'Abend'}.get(cell.meal, cell.meal)) %}
 {% set option_title = cell.option_label|default({'MENU_1': 'Menü 1', 'VEGGIE': 'Vegetarisch'}.get(cell.option, cell.option)) %}
 {% set slot_title = day_title ~ ' · ' ~ meal_title ~ ' · ' ~ option_title %}
+{% set workflow_nav = 'weeks' %}
+{% set back_url = '/admin/' ~ family ~ '?week=' ~ week %}
 {% block title %}{{ slot_title }} bearbeiten{% endblock %}
-{% block body_class %}admin-body{% endblock %}
-{% block body %}
+{% block main_attributes %}data-family="{{ family }}" data-week="{{ week }}"{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-menu-editor.css') }}">{% endblock %}
+{% block page_header %}
+{% call page_header(slot_title ~ ' bearbeiten', pretitle='Menüeditor') %}
+<a class="btn" href="{{ back_url }}">{{ icon('arrow-left') }}Zurück</a>
+{% endcall %}
+{% endblock %}
+{% block content %}
 {% set submitted = form_values|default({}) %}
 {% set errors = form_errors|default({}) %}
+{% set is_auto = {'allergen': submitted.get('allergen_mode', 'auto') == 'auto', 'origin': submitted.get('origin_mode', 'auto') == 'auto', 'label': submitted.get('label_mode', 'auto') == 'auto'} %}
+{% set error_targets = {'title': 'f-title', 'description': 'f-desc', 'note': 'f-note', 'internal_chf': 'f-int', 'external_chf': 'f-ext', 'component_public_id': 'component-0-id', 'component_text': 'component-0-text', 'allergen_code': 'allergen-mode-manual', 'allergen_presence': 'allergen-mode-manual', 'origin_ingredient': 'origin-0-ingredient', 'origin_country_code': 'origin-0-country', 'label_code': 'label-mode-manual'} %}
 {% macro error_attributes(name, error_id) %}{% if errors.get(name) %} aria-invalid="true" aria-describedby="{{ error_id }}"{% endif %}{% endmacro %}
-{% macro field_error(name, error_id) %}{% if errors.get(name) %}<span class="field-error" id="{{ error_id }}">{{ errors[name] }}</span>{% endif %}{% endmacro %}
+{% macro invalid_class(name) %}{% if errors.get(name) %} is-invalid{% endif %}{% endmacro %}
+{% macro field_error(name, error_id) %}{% if errors.get(name) %}<div class="invalid-feedback d-block field-error" id="{{ error_id }}">{{ errors[name] }}</div>{% endif %}{% endmacro %}
+{% macro mode_summary(key, title, badge_id) %}
+<summary class="card-header">
+  <h2 class="card-title mb-0">{{ title }}</h2>
+  <span class="badge bg-secondary-lt" id="{{ badge_id }}" data-mode-badge="{{ key }}">{{ 'automatisch geerbt' if is_auto[key] else 'manuell festgelegt' }}</span>
+  {{ icon('chevron-right', 'admin-accordion-marker') }}
+</summary>
+{% endmacro %}
+{% macro mode_radios(key) %}
+<fieldset class="mb-3">
+  <legend class="form-label">Erfassungsmodus</legend>
+  <div class="row g-2">
+    <div class="col-12 col-md-6">{{ check(key ~ '_mode', 'automatisch aus den Komponenten geerbt', 'auto', checked=is_auto[key], id=key ~ '-mode-auto', type='radio') }}</div>
+    <div class="col-12 col-md-6">{{ check(key ~ '_mode', 'manuell festgelegt', 'manual', checked=not is_auto[key], id=key ~ '-mode-manual', type='radio') }}</div>
+  </div>
+</fieldset>
+{% endmacro %}
 
-<div class="admin-shell admin-workflow-shell">
-  {% with workflow_nav='weeks' %}{% include 'admin/_workflow_sidebar.html' %}{% endwith %}
-  <main id="main-content" class="admin-main admin-workflow-main" data-profile="{{ profile }}" data-family="{{ family }}" data-week="{{ week }}">
-    
-    <div class="flash-region" aria-live="polite">
-      {% for message in flashes %}
-        <p class="flash">{{ message }}</p>
-      {% endfor %}
-    </div>
+{% if errors %}
+<div class="alert alert-danger error-region" role="alert" tabindex="-1">
+  <p class="mb-2">Bitte korrigieren Sie die Fehler im Formular.</p>
+  <ul class="mb-2">
+    {% for name, message in errors.items() %}
+    <li><a href="#{{ error_targets.get(name, 'f-title') }}" data-error-link>{{ message }}</a></li>
+    {% endfor %}
+  </ul>
+  <button type="button" class="btn" data-retry-page>{{ icon('refresh') }}Erneut versuchen</button>
+</div>
+{% endif %}
 
-    {% if errors %}
-    <div class="error-region" role="alert" tabindex="-1">
-      <p>Bitte korrigieren Sie die Fehler im Formular.</p>
-      <button type="button" class="btn" data-retry-page>Erneut versuchen</button>
-    </div>
-    {% endif %}
-
-    <div class="admin-header">
-      <h1>{{ slot_title }} bearbeiten</h1>
-      <a class="btn" href="/admin/{{ family }}?week={{ week }}">Zurück</a>
-    </div>
-
+<div class="row g-3 admin-editor-layout">
+  <div class="col-12 col-xl-8">
     <form method="post" action="/admin/{{ family }}/menu" data-menu-editor>
       <input type="hidden" name="_csrf" value="{{ csrf }}">
       <input type="hidden" name="week" value="{{ week }}">
@@ -41,62 +62,99 @@
       <input type="hidden" name="option" value="{{ cell.option }}">
       <input type="hidden" name="row_version" value="{{ cell.row_version }}">
 
-      <div class="admin-actions" data-sticky>
-        <button type="submit" class="btn primary">Speichern</button>
-        <a class="btn" href="/admin/{{ family }}?week={{ week }}">Abbrechen</a>
-      </div>
-
-      <div class="admin-dish">
-        <label for="f-title">Titel</label>
-        <input id="f-title" name="title" value="{{ submitted.get('title', '') }}"{{ error_attributes('title', 'err-title') }}>
-        {{ field_error('title', 'err-title') }}
-
-        <label for="f-desc">Beschreibung</label>
-        <textarea id="f-desc" name="description"{{ error_attributes('description', 'err-desc') }}>{{ submitted.get('description', '') }}</textarea>
-        {{ field_error('description', 'err-desc') }}
-
-        <label for="f-note">Hinweis</label>
-        <textarea id="f-note" name="note"{{ error_attributes('note', 'err-note') }}>{{ submitted.get('note', '') }}</textarea>
-        {{ field_error('note', 'err-note') }}
-
-        {% if profile == 'staff_guest' %}
-        <label for="f-int">Mitarbeitende CHF</label>
-        <input id="f-int" name="internal_chf" inputmode="decimal" value="{{ submitted.get('internal_chf', '') }}"{{ error_attributes('internal_chf', 'err-int') }}{% if errors.get('internal_chf') %} autofocus{% endif %}>
-        {{ field_error('internal_chf', 'err-int') }}
-
-        <label for="f-ext">Externe CHF</label>
-        <input id="f-ext" name="external_chf" inputmode="decimal" value="{{ submitted.get('external_chf', '') }}"{{ error_attributes('external_chf', 'err-ext') }}>
-        {{ field_error('external_chf', 'err-ext') }}
-        {% endif %}
-
-        <h2>Komponenten</h2>
-        <div id="components-list">
-          {% set c_ids = submitted.getlist('component_public_id') if submitted.getlist else submitted.get('component_public_id', []) %}
-          {% set c_texts = submitted.getlist('component_text') if submitted.getlist else submitted.get('component_text', []) %}
-          {% set row_count = [c_ids|length, c_texts|length, 1]|max %}
-          {% for i in range(row_count) %}
-            {% set c_id = c_ids[i] if i < c_ids|length else '' %}
-            {% set c_text = c_texts[i] if i < c_texts|length else '' %}
-            <div class="component-row">
-              <select name="component_public_id" aria-label="Komponente aus Katalog"{{ error_attributes('component_public_id', 'err-component-id') }}>
-                <option value="">(Freitext verwenden)</option>
-                {% for choice in catalog_choices %}
-                  <option value="{{ choice.public_id }}" data-active="{{ '1' if choice.active else '0' }}"{% if choice.public_id == c_id %} selected{% endif %}{% if not choice.active and choice.public_id != c_id %} disabled{% endif %}>{{ choice.name }}</option>
-                {% endfor %}
-              </select>
-              <input name="component_text" aria-label="Freitext-Komponente" value="{{ c_text|default('') }}"{{ error_attributes('component_text', 'err-component-text') }}>
-              <button type="button" class="btn" data-remove-row>Komponente entfernen</button>
+      <section class="card mb-3" aria-labelledby="sec-base">
+        <div class="card-header"><h2 class="card-title mb-0" id="sec-base">Grunddaten</h2></div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label" for="f-title">Titel</label>
+              <input class="form-control{{ invalid_class('title') }}" id="f-title" name="title" value="{{ submitted.get('title', '') }}"{{ error_attributes('title', 'err-title') }}>
+              {{ field_error('title', 'err-title') }}
             </div>
-          {% endfor %}
+            <div class="col-12">
+              <label class="form-label" for="f-desc">Beschreibung</label>
+              <textarea class="form-control{{ invalid_class('description') }}" id="f-desc" name="description" rows="3"{{ error_attributes('description', 'err-desc') }}>{{ submitted.get('description', '') }}</textarea>
+              {{ field_error('description', 'err-desc') }}
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="f-note">Hinweis</label>
+              <textarea class="form-control{{ invalid_class('note') }}" id="f-note" name="note" rows="2"{{ error_attributes('note', 'err-note') }}>{{ submitted.get('note', '') }}</textarea>
+              {{ field_error('note', 'err-note') }}
+            </div>
+          </div>
         </div>
-        {{ field_error('component_public_id', 'err-component-id') }}
-        {{ field_error('component_text', 'err-component-text') }}
-        <button type="button" class="btn" data-add-row="components-list">Komponente hinzufügen</button>
+      </section>
 
-        <fieldset>
-          <legend>Allergene</legend>
-          <label><input type="radio" name="allergen_mode" value="auto"{% if submitted.get('allergen_mode', 'auto') == 'auto' %} checked{% endif %}> automatisch aus den Komponenten geerbt</label>
-          <label><input type="radio" name="allergen_mode" value="manual"{% if submitted.get('allergen_mode') == 'manual' %} checked{% endif %}> manuell festgelegt</label>
+      {% if profile == 'staff_guest' %}
+      <section class="card mb-3" aria-labelledby="sec-prices">
+        <div class="card-header"><h2 class="card-title mb-0" id="sec-prices">Preise</h2></div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12 col-sm-6 col-lg-4">
+              <label class="form-label" for="f-int">Mitarbeitende CHF</label>
+              <input class="form-control{{ invalid_class('internal_chf') }}" id="f-int" name="internal_chf" inputmode="decimal" value="{{ submitted.get('internal_chf', '') }}"{{ error_attributes('internal_chf', 'err-int') }}{% if errors.get('internal_chf') %} autofocus{% endif %}>
+              {{ field_error('internal_chf', 'err-int') }}
+            </div>
+            <div class="col-12 col-sm-6 col-lg-4">
+              <label class="form-label" for="f-ext">Externe CHF</label>
+              <input class="form-control{{ invalid_class('external_chf') }}" id="f-ext" name="external_chf" inputmode="decimal" value="{{ submitted.get('external_chf', '') }}"{{ error_attributes('external_chf', 'err-ext') }}>
+              {{ field_error('external_chf', 'err-ext') }}
+            </div>
+          </div>
+        </div>
+      </section>
+      {% endif %}
+
+      <section class="card mb-3" aria-labelledby="sec-components">
+        <div class="card-header"><h2 class="card-title mb-0" id="sec-components">Komponenten</h2></div>
+        <div class="card-body">
+          <p class="form-hint mb-3">Aus dem Katalog wählen oder als Freitext erfassen. Die Reihenfolge entspricht der Anzeige.</p>
+          <div id="components-list" data-row-list="component" data-row-title="Komponente">
+            {% set c_ids = submitted.getlist('component_public_id') if submitted.getlist else submitted.get('component_public_id', []) %}
+            {% set c_texts = submitted.getlist('component_text') if submitted.getlist else submitted.get('component_text', []) %}
+            {% set row_count = [c_ids|length, c_texts|length, 1]|max %}
+            {% for i in range(row_count) %}
+              {% set c_id = c_ids[i] if i < c_ids|length else '' %}
+              {% set c_text = c_texts[i] if i < c_texts|length else '' %}
+              <fieldset class="component-row" data-row>
+                <legend class="form-label" data-row-legend>Komponente {{ i + 1 }}</legend>
+                <div class="row g-2">
+                  <div class="col-12 col-lg-6">
+                    <label class="visually-hidden" for="component-{{ i }}-id">Komponente aus Katalog</label>
+                    <select class="form-select{{ invalid_class('component_public_id') }}" id="component-{{ i }}-id" name="component_public_id" aria-label="Komponente aus Katalog"{{ error_attributes('component_public_id', 'err-component-id') }}>
+                      <option value="">(Freitext verwenden)</option>
+                      {% for choice in catalog_choices %}
+                        <option value="{{ choice.public_id }}" data-active="{{ '1' if choice.active else '0' }}"{% if choice.public_id == c_id %} selected{% endif %}{% if not choice.active and choice.public_id != c_id %} disabled{% endif %}>{{ choice.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-12 col-lg-6">
+                    <label class="visually-hidden" for="component-{{ i }}-text">Freitext-Komponente</label>
+                    <input class="form-control{{ invalid_class('component_text') }}" id="component-{{ i }}-text" name="component_text" aria-label="Freitext-Komponente" value="{{ c_text|default('') }}" placeholder="Freitext"{{ error_attributes('component_text', 'err-component-text') }}>
+                  </div>
+                  <div class="col-12">
+                    <div class="btn-list">
+                      <button type="button" class="btn" data-move-row="up">Nach oben</button>
+                      <button type="button" class="btn" data-move-row="down">Nach unten</button>
+                      <button type="button" class="btn btn-outline-danger" data-remove-row>{{ icon('trash') }}Komponente entfernen</button>
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+            {% endfor %}
+          </div>
+          {{ field_error('component_public_id', 'err-component-id') }}
+          {{ field_error('component_text', 'err-component-text') }}
+          <button type="button" class="btn mt-3" data-add-row="components-list">{{ icon('plus') }}Komponente hinzufügen</button>
+        </div>
+      </section>
+
+      <details class="card mb-3 admin-accordion" data-mode-section="allergen"{% if not is_auto['allergen'] or errors.get('allergen_code') or errors.get('allergen_presence') %} open{% endif %}>
+        {{ mode_summary('allergen', 'Allergene', 'allergen-mode-badge') }}
+        <div class="card-body">
+          {{ mode_radios('allergen') }}
+          {{ field_error('allergen_code', 'err-allergen-code') }}
+          {{ field_error('allergen_presence', 'err-allergen-presence') }}
           <div class="allergen-list">
             {% set a_codes = submitted.getlist('allergen_code') if submitted.getlist else submitted.get('allergen_code', []) %}
             {% set a_pres = submitted.getlist('allergen_presence') if submitted.getlist else submitted.get('allergen_presence', []) %}
@@ -104,78 +162,110 @@
             {% set idx = a_codes.index(allergen.code) if allergen.code in a_codes else -1 %}
             {% set presence = a_pres[idx] if idx >= 0 and idx < a_pres|length else 'contains' %}
             <div class="allergen-row">
-              <label><input type="checkbox" name="allergen_code" value="{{ allergen.code }}"{% if idx >= 0 %} checked{% endif %}{% if submitted.get('allergen_mode', 'auto') == 'auto' %} disabled{% endif %}> {{ allergen.name|default(allergen.code) }}</label>
-              <select name="allergen_presence" aria-label="Präsenz für {{ allergen.name|default(allergen.code) }}"{% if idx < 0 or submitted.get('allergen_mode', 'auto') == 'auto' %} disabled{% endif %}>
-                <option value="contains"{% if presence == 'contains' %} selected{% endif %}>enthält</option>
-                <option value="may_contain"{% if presence == 'may_contain' %} selected{% endif %}>kann Spuren enthalten</option>
-              </select>
+              <div class="row g-2 align-items-center">
+                <div class="col-12 col-sm-6">
+                  <label class="form-check" for="allergen-{{ allergen.code|lower }}"><input class="form-check-input" id="allergen-{{ allergen.code|lower }}" type="checkbox" name="allergen_code" value="{{ allergen.code }}"{% if idx >= 0 %} checked{% endif %}{% if is_auto['allergen'] %} disabled{% endif %}><span class="form-check-label">{{ allergen.name|default(allergen.code) }}</span></label>
+                </div>
+                <div class="col-12 col-sm-6">
+                  <select class="form-select" id="allergen-{{ allergen.code|lower }}-presence" name="allergen_presence" aria-label="Präsenz für {{ allergen.name|default(allergen.code) }}"{% if idx < 0 or is_auto['allergen'] %} disabled{% endif %}>
+                    <option value="contains"{% if presence == 'contains' %} selected{% endif %}>enthält</option>
+                    <option value="may_contain"{% if presence == 'may_contain' %} selected{% endif %}>kann Spuren enthalten</option>
+                  </select>
+                </div>
+              </div>
             </div>
             {% endfor %}
           </div>
-        </fieldset>
+        </div>
+      </details>
 
-        <fieldset>
-          <legend>Herkunft</legend>
-          <label><input type="radio" name="origin_mode" value="auto"{% if submitted.get('origin_mode', 'auto') == 'auto' %} checked{% endif %}> automatisch aus den Komponenten geerbt</label>
-          <label><input type="radio" name="origin_mode" value="manual"{% if submitted.get('origin_mode') == 'manual' %} checked{% endif %}> manuell festgelegt</label>
-          <div class="origin-list" id="origins-list">
+      <details class="card mb-3 admin-accordion" data-mode-section="origin"{% if not is_auto['origin'] or errors.get('origin_ingredient') or errors.get('origin_country_code') %} open{% endif %}>
+        {{ mode_summary('origin', 'Herkunft', 'origin-mode-badge') }}
+        <div class="card-body">
+          {{ mode_radios('origin') }}
+          <div class="origin-list" id="origins-list" data-row-list="origin" data-row-title="Herkunft">
             {% set o_ings = submitted.getlist('origin_ingredient') if submitted.getlist else submitted.get('origin_ingredient', []) %}
             {% set o_ccs = submitted.getlist('origin_country_code') if submitted.getlist else submitted.get('origin_country_code', []) %}
             {% set o_count = [o_ings|length, o_ccs|length, 1]|max %}
             {% for i in range(o_count) %}
-            <div class="origin-row">
-              <input name="origin_ingredient" placeholder="Zutat" aria-label="Zutat" value="{{ o_ings[i] if i < o_ings|length else '' }}"{{ error_attributes('origin_ingredient', 'err-origin-ingredient') }}{% if submitted.get('origin_mode', 'auto') == 'auto' %} disabled{% endif %}>
-              <input name="origin_country_code" pattern="[A-Z]{2}" maxlength="2" placeholder="CH" aria-label="Ländercode" value="{{ o_ccs[i] if i < o_ccs|length else '' }}"{{ error_attributes('origin_country_code', 'err-origin-country') }}{% if submitted.get('origin_mode', 'auto') == 'auto' %} disabled{% endif %}>
-              <button type="button" class="btn" data-remove-row{% if submitted.get('origin_mode', 'auto') == 'auto' %} disabled{% endif %}>Herkunft entfernen</button>
-            </div>
+            <fieldset class="origin-row" data-row>
+              <legend class="form-label" data-row-legend>Herkunft {{ i + 1 }}</legend>
+              <div class="row g-2">
+                <div class="col-12 col-lg-6">
+                  <label class="visually-hidden" for="origin-{{ i }}-ingredient">Zutat</label>
+                  <input class="form-control{{ invalid_class('origin_ingredient') }}" id="origin-{{ i }}-ingredient" name="origin_ingredient" placeholder="Zutat" aria-label="Zutat" value="{{ o_ings[i] if i < o_ings|length else '' }}"{{ error_attributes('origin_ingredient', 'err-origin-ingredient') }}{% if is_auto['origin'] %} disabled{% endif %}>
+                </div>
+                <div class="col-12 col-lg-6">
+                  <label class="visually-hidden" for="origin-{{ i }}-country">Land</label>
+                  {{ country_select('origin_country_code', o_ccs[i] if i < o_ccs|length else '', 'origin-' ~ i ~ '-country', error=errors.get('origin_country_code')) }}
+                </div>
+                <div class="col-12">
+                  <button type="button" class="btn btn-outline-danger" data-remove-row{% if is_auto['origin'] %} disabled{% endif %}>{{ icon('trash') }}Herkunft entfernen</button>
+                </div>
+              </div>
+            </fieldset>
             {% endfor %}
           </div>
           {{ field_error('origin_ingredient', 'err-origin-ingredient') }}
-          {{ field_error('origin_country_code', 'err-origin-country') }}
-          <button type="button" class="btn" data-add-row="origins-list"{% if submitted.get('origin_mode', 'auto') == 'auto' %} disabled{% endif %}>Herkunft hinzufügen</button>
-        </fieldset>
+          <button type="button" class="btn mt-3" data-add-row="origins-list"{% if is_auto['origin'] %} disabled{% endif %}>{{ icon('plus') }}Herkunft hinzufügen</button>
+        </div>
+      </details>
 
-        <fieldset>
-          <legend>Labels</legend>
-          <label><input type="radio" name="label_mode" value="auto"{% if submitted.get('label_mode', 'auto') == 'auto' %} checked{% endif %}> automatisch aus den Komponenten geerbt</label>
-          <label><input type="radio" name="label_mode" value="manual"{% if submitted.get('label_mode') == 'manual' %} checked{% endif %}> manuell festgelegt</label>
+      <details class="card mb-3 admin-accordion" data-mode-section="label"{% if not is_auto['label'] or errors.get('label_code') %} open{% endif %}>
+        {{ mode_summary('label', 'Labels', 'label-mode-badge') }}
+        <div class="card-body">
+          {{ mode_radios('label') }}
+          {{ field_error('label_code', 'err-label-code') }}
           {% set l_codes = submitted.getlist('label_code') if submitted.getlist else submitted.get('label_code', []) %}
-          {% for label in labels %}
-          <label><input type="checkbox" name="label_code" value="{{ label.code }}"{% if label.code in l_codes %} checked{% endif %}{% if submitted.get('label_mode', 'auto') == 'auto' %} disabled{% endif %}> {{ label.name|default(label.code) }}</label>
-          {% endfor %}
-        </fieldset>
+          <div class="row g-2">
+            {% for label in labels %}
+            <div class="col-12 col-sm-6">
+              <label class="form-check" for="label-{{ label.code|lower }}"><input class="form-check-input" id="label-{{ label.code|lower }}" type="checkbox" name="label_code" value="{{ label.code }}"{% if label.code in l_codes %} checked{% endif %}{% if is_auto['label'] %} disabled{% endif %}><span class="form-check-label">{{ label.name|default(label.code) }}</span></label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </details>
+
+      <div class="admin-actions" data-sticky>
+        <button type="submit" class="btn btn-primary">{{ icon('device-floppy') }}Speichern</button>
+        <a class="btn" href="{{ back_url }}">Abbrechen</a>
+        <a class="btn" href="#review">{{ icon('clipboard-check') }}Prüfung öffnen</a>
       </div>
     </form>
+  </div>
 
-    <div class="review-block">
-      <h2>Prüfung</h2>
-      <p>Zuletzt gespeicherter Stand. Änderungen vor der Prüfung speichern.</p>
-      {% if not origin_conflict %}
-      <ul>
-        <li>Labels: {% if effects and effects.labels %}{{ effects.labels|join(', ') }}{% else %}Nicht erfasst{% endif %}</li>
-        <li>{% if effects and effects.allergens %}Allergene: {{ effects.allergens|join(', ') }}{% else %}Allergenangaben nicht erfasst{% endif %}</li>
-        <li>Herkunft: {% if effects and effects.origins %}{{ effects.origins|join(', ') }}{% else %}Nicht erfasst{% endif %}</li>
-      </ul>
-      {% endif %}
-      {% if origin_conflict %}
-      <div class="error-region" role="alert">
-        {{ origin_conflict }}
+  <div class="col-12 col-xl-4">
+    <section class="card review-block" id="review" aria-labelledby="sec-review" tabindex="-1">
+      <div class="card-header"><h2 class="card-title mb-0" id="sec-review">Prüfung</h2></div>
+      <div class="card-body">
+        <p class="form-hint">Zuletzt gespeicherter Stand. Änderungen vor der Prüfung speichern.</p>
+        {% if not origin_conflict %}
+        <ul class="list-unstyled mb-0">
+          <li>Labels: {% if effects and effects.labels %}{{ effects.labels|join(', ') }}{% else %}Nicht erfasst{% endif %}</li>
+          <li>{% if effects and effects.allergens %}Allergene: {{ effects.allergens|join(', ') }}{% else %}Allergenangaben nicht erfasst{% endif %}</li>
+          <li>Herkunft: {% if effects and effects.origins %}{{ effects.origins|join(', ') }}{% else %}Nicht erfasst{% endif %}</li>
+        </ul>
+        {% endif %}
+        {% if origin_conflict %}
+        <div class="alert alert-danger error-region mb-0" role="alert">{{ icon('alert-triangle') }} {{ origin_conflict }}</div>
+        {% endif %}
+      </div>
+      {% if review_token %}
+      <div class="card-footer">
+        <form method="post" action="/admin/{{ family }}/menu/review">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <input type="hidden" name="week" value="{{ week }}">
+          <input type="hidden" name="day" value="{{ cell.day }}">
+          <input type="hidden" name="meal" value="{{ cell.meal }}">
+          <input type="hidden" name="option" value="{{ cell.option }}">
+          <input type="hidden" name="row_version" value="{{ cell.row_version }}">
+          <input type="hidden" name="component_version" value="{{ review_token }}">
+          <button type="submit" class="btn w-100">{{ icon('check') }}Als geprüft bestätigen</button>
+        </form>
       </div>
       {% endif %}
-      {% if review_token %}
-      <form method="post" action="/admin/{{ family }}/menu/review">
-        <input type="hidden" name="_csrf" value="{{ csrf }}">
-        <input type="hidden" name="week" value="{{ week }}">
-        <input type="hidden" name="day" value="{{ cell.day }}">
-        <input type="hidden" name="meal" value="{{ cell.meal }}">
-        <input type="hidden" name="option" value="{{ cell.option }}">
-        <input type="hidden" name="row_version" value="{{ cell.row_version }}">
-        <input type="hidden" name="component_version" value="{{ review_token }}">
-        <button type="submit" class="btn">Als geprüft bestätigen</button>
-      </form>
-      {% endif %}
-    </div>
-
-  </main>
+    </section>
+  </div>
 </div>
 {% endblock %}

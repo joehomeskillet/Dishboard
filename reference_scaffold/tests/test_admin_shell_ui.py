@@ -51,8 +51,10 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
     response = page.goto(routes[page_kind])
     assert response is not None and response.status == 200
 
-    sidebar = page.locator('.admin-workflow-shell > aside.admin-sidebar')
-    main = page.locator('.admin-workflow-shell > main#main-content')
+    # Migrated Tabler pages use `.page`; legacy workflow pages keep `.admin-workflow-shell`.
+    shell = '.page' if page.locator('body.dishboard-admin > .page').count() else '.admin-workflow-shell'
+    sidebar = page.locator(f'{shell} > aside.admin-sidebar')
+    main = page.locator(f'{shell} > main#main-content')
     expect(sidebar).to_be_visible()
     expect(main).to_be_visible()
     _assert_brand_contained(sidebar)
@@ -94,11 +96,11 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
     assert page.locator('[onclick], [onsubmit], [style], script:not([src])').count() == 0
 
     small_targets = page.locator(
-        '.admin-workflow-shell .admin-nav a, .admin-workflow-shell .admin-nav button, '
-        '.admin-workflow-main input:not([type="hidden"]), '
-        '.admin-workflow-main select, .admin-workflow-main textarea, '
-        '.admin-workflow-main button, .admin-workflow-main a.btn, '
-        '.admin-workflow-main summary, .admin-workflow-main .component-row > a',
+        f'{shell} .admin-nav a, {shell} .admin-nav button, '
+        'main#main-content input:not([type="hidden"]), '
+        'main#main-content select, main#main-content textarea, '
+        'main#main-content button, main#main-content a.btn, '
+        'main#main-content summary, main#main-content .component-row > a',
     ).evaluate_all('''elements => elements.flatMap(element => {
         const rect = element.getBoundingClientRect();
         if (!rect.width || !rect.height) return [];

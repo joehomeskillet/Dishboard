@@ -186,6 +186,8 @@ def _open_menu(page: Page, family: str, width: int, height: int) -> None:
     if family == 'cafeteria':
         page.locator('[name="internal_chf"]').fill('9.50')
         page.locator('[name="external_chf"]').fill('14.50')
+    for summary in page.locator('details.admin-accordion:not([open]) > summary').all():
+        summary.click()
     for mode in ('allergen', 'origin', 'label'):
         page.locator(f'[name="{mode}_mode"][value="auto"]').check()
 
@@ -243,7 +245,7 @@ def test_menu_manual_metadata_and_optional_rows_roundtrip(
         if index:
             page.get_by_role('button', name='Herkunft hinzufügen').click()
         page.locator('[name="origin_ingredient"]').nth(index).fill(ingredient)
-        page.locator('[name="origin_country_code"]').nth(index).fill(country)
+        page.locator('[name="origin_country_code"]').nth(index).select_option(country)
     page.get_by_role('button', name='Herkunft hinzufügen').click()
     page.get_by_role('button', name='Herkunft entfernen').last.click()
     page.get_by_role('button', name='Herkunft hinzufügen').click()
@@ -293,7 +295,7 @@ def test_menu_partial_origin_stays_invalid_and_preserves_input(
     expect(page.get_by_label('Titel', exact=True)).to_have_value('Herbstteller')
     expect(page.locator('[name="origin_ingredient"]')).to_have_value('Rind')
     expect(page.locator('[name="origin_country_code"]')).to_be_focused()
-    page.locator('[name="origin_country_code"]').fill('CH')
+    page.locator('[name="origin_country_code"]').select_option('CH')
     _submit_menu(page)
 
 

@@ -67,6 +67,13 @@
         e.preventDefault();
     }
 
+    // Native accordions: reveal every closed ancestor before a field is focused.
+    function revealAncestors(element) {
+        for (let details = element && element.closest('details'); details; details = details.parentElement.closest('details')) {
+            details.open = true;
+        }
+    }
+
     // 3. Fehlerfokus
     const errorRegion = document.querySelector('.error-region');
     const retryBtn = errorRegion ? errorRegion.querySelector('[data-retry-page]') : null;
@@ -76,6 +83,7 @@
         }
         errorRegion.focus();
         let firstInvalid = document.querySelector('[aria-invalid="true"]');
+        revealAncestors(firstInvalid);
         if (!firstInvalid) {
             const menuForm = document.querySelector('form[action$="/menu"]');
             const focusableFields = menuForm ? Array.from(menuForm.elements).filter(control => {
@@ -100,6 +108,15 @@
     if (retryBtn) {
         retryBtn.addEventListener('click', () => window.location.reload());
     }
+    document.querySelectorAll('.error-region a[data-error-link]').forEach(link => {
+        link.addEventListener('click', (e) => {
+            const target = document.getElementById(link.getAttribute('href').slice(1));
+            if (!target) return;
+            e.preventDefault();
+            revealAncestors(target);
+            target.focus();
+        });
+    });
 
     // 4. Loading State Skeleton Delay & Error Retry
     const mainContent = document.getElementById('main-content');
@@ -123,11 +140,16 @@
             }
         }
         
-        // dense toggle
+        // dense toggle (Tabler form-check markup, 48px label target)
         const denseToggleLabel = document.createElement('label');
-        denseToggleLabel.textContent = 'Kompakte Ansicht';
+        denseToggleLabel.className = 'form-check';
+        const denseToggleText = document.createElement('span');
+        denseToggleText.className = 'form-check-label';
+        denseToggleText.textContent = 'Kompakte Ansicht';
+        denseToggleLabel.appendChild(denseToggleText);
         const denseToggle = document.createElement('input');
         denseToggle.type = 'checkbox';
+        denseToggle.className = 'form-check-input';
         denseToggle.checked = localStorage.getItem('admin-dense') === 'true';
         
         if (denseToggle.checked) {
@@ -173,10 +195,31 @@
             form.querySelectorAll('[name="label_code"]').forEach(control => {
                 control.disabled = !manual('label');
             });
-            form.querySelectorAll('.origin-row input, .origin-row button, [data-add-row="origins-list"]').forEach(control => {
+            form.querySelectorAll('.origin-row input, .origin-row select, .origin-row button, [data-add-row="origins-list"]').forEach(control => {
                 control.disabled = !manual('origin');
             });
+            form.querySelectorAll('[data-mode-badge]').forEach(badge => {
+                badge.textContent = manual(badge.dataset.modeBadge) ? 'manuell festgelegt' : 'automatisch geerbt';
+            });
         }
+    }
+
+    // Repeated rows keep unique ids, label targets and a numbered legend.
+    function renumberRows(list) {
+        const prefix = list.dataset.rowList;
+        const title = list.dataset.rowTitle;
+        Array.from(list.children).forEach((row, index) => {
+            row.querySelectorAll('[id], [for]').forEach(element => {
+                for (const attribute of ['id', 'for']) {
+                    const value = element.getAttribute(attribute);
+                    if (value && value.startsWith(prefix + '-')) {
+                        element.setAttribute(attribute, value.replace(/^([a-z]+)-\d+-/, `$1-${index}-`));
+                    }
+                }
+            });
+            const legend = row.querySelector('[data-row-legend]');
+            if (legend) legend.textContent = `${title} ${index + 1}`;
+        });
     }
 
     forms.forEach(form => {
@@ -206,21 +249,32 @@
         form.addEventListener('click', (e) => {
             const addButton = e.target.closest('[data-add-row]');
             const removeButton = e.target.closest('[data-remove-row]');
-            if (!addButton && !removeButton) return;
+            const moveButton = e.target.closest('[data-move-row]');
+            if (!addButton && !removeButton && !moveButton) return;
             let focusTarget;
+            let list;
             if (addButton) {
-                const list = document.getElementById(addButton.dataset.addRow);
+                list = document.getElementById(addButton.dataset.addRow);
                 const clone = list.lastElementChild.cloneNode(true);
                 clone.querySelectorAll('input, select').forEach(control => {
                     control.value = '';
+                    control.classList.remove('is-invalid');
                     control.removeAttribute('aria-invalid');
                     control.removeAttribute('aria-describedby');
                 });
                 list.appendChild(clone);
                 focusTarget = clone.querySelector('input, select');
+            } else if (moveButton) {
+                const row = moveButton.closest('.component-row, .origin-row');
+                list = row.parentElement;
+                const sibling = moveButton.dataset.moveRow === 'up' ? row.previousElementSibling : row.nextElementSibling;
+                if (sibling) {
+                    sibling[moveButton.dataset.moveRow === 'up' ? 'before' : 'after'](row);
+                }
+                focusTarget = moveButton;
             } else {
                 const row = removeButton.closest('.component-row, .origin-row');
-                const list = row.parentElement;
+                list = row.parentElement;
                 if (list.children.length > 1) {
                     row.remove();
                     focusTarget = list.lastElementChild.querySelector('input, select');
@@ -231,15 +285,43 @@
                     focusTarget = row.querySelector('input, select');
                 }
             }
+            if (list.dataset.rowList) renumberRows(list);
             syncMetadataControls(form);
             form.dispatchEvent(new Event('input', { bubbles: true }));
             focusTarget.focus();
         });
     });
 
+    // Sticky save bar: leave the flow while a virtual keyboard shrinks the visual viewport,
+    // and keep focused controls clear of the bar.
+    const stickyBar = document.querySelector('form[data-menu-editor] [data-sticky]');
+    if (stickyBar) {
+        const viewport = window.visualViewport;
+        const syncSticky = () => {
+            if (!viewport) return;
+            stickyBar.classList.toggle('is-static', viewport.height < window.innerHeight - 120);
+        };
+        if (viewport) {
+            viewport.addEventListener('resize', syncSticky);
+            syncSticky();
+        }
+        document.addEventListener('focusin', (e) => {
+            if (!e.target.closest('form[data-menu-editor]') || stickyBar.contains(e.target)) return;
+            window.requestAnimationFrame(() => {
+                if (getComputedStyle(stickyBar).position !== 'sticky') return;
+                const bar = stickyBar.getBoundingClientRect();
+                const field = e.target.getBoundingClientRect();
+                if (bar.top < window.innerHeight && field.bottom > bar.top) {
+                    window.scrollBy(0, field.bottom - bar.top + 8);
+                }
+            });
+        });
+    }
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            const openDetails = document.querySelectorAll('details[open]');
+            const active = document.activeElement && document.activeElement.closest('details[open]');
+            const openDetails = active ? [active] : document.querySelectorAll('details[open]');
             openDetails.forEach(details => {
                 details.removeAttribute('open');
                 const summary = details.querySelector('summary');
