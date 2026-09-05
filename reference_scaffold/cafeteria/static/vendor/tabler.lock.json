@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "packages": {
+    "@tabler/core": "1.5.0",
+    "@tabler/icons": "3.46.0"
+  },
+  "sources": [
+    {
+      "id": "core",
+      "url": "https://registry.npmjs.org/@tabler/core/-/core-1.5.0.tgz",
+      "sha256": "8bb0fa17e34f711628364456159e148bae3f7ec013d0eefd202740731121799e",
+      "integrity": "sha512-nXFwOF0jlH6cH57eCRDI6uxhlQGtN92hBmkSwgIsUNg+hQBwnK9clAv3dEcSkVkXY+lKpDq8hpCvDT1AwPIzZw=="
+    },
+    {
+      "id": "icons",
+      "url": "https://registry.npmjs.org/@tabler/icons/-/icons-3.46.0.tgz",
+      "sha256": "6d727ad0489854d2d7d07ba9baa6476af7ee415aaa2eba1adc0deab48556852b",
+      "integrity": "sha512-f2RYFl3fzPwj5WO82x6en0dmkjefxEfOm16D1ByM6cj/McNiwOkL4VaPUoP9VVIrXAD9WnTSVFr70px703b//A=="
+    },
+    {
+      "id": "core_license",
+      "url": "https://raw.githubusercontent.com/tabler/tabler/refs/tags/@tabler/core@1.5.0/LICENSE",
+      "sha256": "4f88a82d13be3c5c63a12c5631eae914aa4381b6dc17641bf1ab85f3f8f6c8a5"
+    }
+  ],
+  "files": [
+    {
+      "path": "tabler/tabler.min.css",
+      "source": "core",
+      "member": "package/dist/css/tabler.min.css",
+      "sha256": "4cdeade29286540dff94acfeb6ea9ea6a16bad4a64ff5604f659414b7c954cd5"
+    },
+    {
+      "path": "tabler/tabler.min.js",
+      "source": "core",
+      "member": "package/dist/js/tabler.min.js",
+      "sha256": "0273fadc362ae4ddc8b68e9bd1fd98ae7c835b82fd9b6a4ff6ae2b7064839e55"
+    },
+    {
+      "path": "tabler/LICENSE",
+      "source": "core_license",
+      "sha256": "4f88a82d13be3c5c63a12c5631eae914aa4381b6dc17641bf1ab85f3f8f6c8a5"
+    },
+    {
+      "path": "tabler-icons/LICENSE",
+      "source": "icons",
+      "member": "package/LICENSE",
+      "sha256": "b740a1d46122672da62833e97f7e7c8a13fa85cbc7445b584b297cc00dde93db"
+    },
+    {
+      "path": "tabler-icons/tabler-icons.svg",
+      "source": "icons",
+      "icons": [
+        "calendar-week",
+        "calendar-cog",
+        "calendar-plus",
+        "tools-kitchen-2",
+        "components",
+        "file-import",
+        "logout",
+        "search",
+        "x",
+        "plus",
+        "trash",
+        "arrow-left",
+        "check",
+        "eye",
+        "copy",
+        "device-floppy",
+        "alert-triangle",
+        "pencil",
+        "chevron-left",
+        "chevron-right",
+        "upload",
+        "archive",
+        "archive-off",
+        "file-check",
+        "info-circle",
+        "circle-check",
+        "refresh",
+        "clipboard-check"
+      ],
+      "sha256": "a9448ddd3ce423d890c93a4a8c944692c185d9ddba009d6d07eb056d608740e1"
+    }
+  ]
+}

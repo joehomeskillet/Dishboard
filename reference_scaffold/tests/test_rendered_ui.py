@@ -187,12 +187,25 @@ def _client(app: Flask):
 
 
 def _inline_css(html: str) -> str:
-    css = CSS_PATH.read_text(encoding='utf-8')
-    inlined = re.sub(r'<link rel="stylesheet"[^>]+>', f'<style>{css}</style>', html, count=1)
+    inlined = html
+    for filename in ('tokens.css', 'app.css'):
+        css = CSS_PATH.with_name(filename).read_text(encoding='utf-8')
+        inlined = inlined.replace(
+            f'<link rel="stylesheet" href="/static/{filename}">', f'<style>{css}</style>',
+        )
     for filename in ('suedhang-logo.png', 'suedhang-logo@2x.png'):
         image_data = base64.b64encode((STATIC_IMG_PATH / filename).read_bytes()).decode('ascii')
         inlined = inlined.replace(f'/static/img/{filename}', f'data:image/png;base64,{image_data}')
     return inlined
+
+
+def test_inline_css_preserves_shared_tokens_and_font_faces(app: Flask) -> None:
+    html = app.test_client().get('/cafeteria/heute/').get_data(as_text=True)
+    inlined = _inline_css(html)
+    for filename in ('tokens.css', 'app.css'):
+        assert CSS_PATH.with_name(filename).read_text(encoding='utf-8') in inlined
+        assert f'href="/static/{filename}"' not in inlined
+    assert inlined.count('@font-face') == 4
 
 
 def _page(browser: Browser, html: str, width: int, height: int):

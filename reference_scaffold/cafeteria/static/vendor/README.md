@@ -1,33 +1,55 @@
-# Vendored frontend assets (admin only)
+# Lokale Tabler-Assets
 
-Self-hosted, pinned, no CDN. Loaded only for `admin-body` views via `templates/base.html`.
+Gepinnt: **@tabler/core 1.5.0** und **@tabler/icons 3.46.0**, beide MIT.
+Die maschinenlesbare Paketdefinition und Lockdatei `tabler.lock.json` enthält
+Quell-URLs, Versionen, npm-SHA-512-Integrität, SHA-256 aller Quellen und Ausgaben
+sowie die geordnete Auswahl von 28 Icons. Keine `latest`-Abhängigkeit.
 
-## @tabler/core 1.5.0 (MIT)
+## Reproduzieren
 
-- Source tarball: https://registry.npmjs.org/@tabler/core/-/core-1.5.0.tgz
-- Tarball SHA256: 8bb0fa17e34f711628364456159e148bae3f7ec013d0eefd202740731121799e
-- Vendored file: `tabler/tabler.min.css` = `package/dist/css/tabler.min.css`
-- File SHA256: 4cdeade29286540dff94acfeb6ea9ea6a16bad4a64ff5604f659414b7c954cd5
-- License text: `tabler/LICENSE` from https://raw.githubusercontent.com/tabler/tabler/refs/tags/@tabler/core@1.5.0/LICENSE (SHA256 4f88a82d13be3c5c63a12c5631eae914aa4381b6dc17641bf1ab85f3f8f6c8a5)
-- Release notes: https://github.com/tabler/tabler/releases/tag/@tabler/core@1.5.0
-- Docs: https://docs.tabler.io/ui/getting-started/installation
-- Not vendored: `tabler.min.js` (no collapse/dropdown behaviour is used yet).
+Vom Projektverzeichnis:
 
-## @tabler/icons 3.46.0 (MIT)
+```sh
+rtk python3 tools/vendor_tabler.py --build
+rtk python3 tools/vendor_tabler.py --verify
+```
 
-- Source tarball: https://registry.npmjs.org/@tabler/icons/-/icons-3.46.0.tgz
-- Tarball SHA256: 6d727ad0489854d2d7d07ba9baa6476af7ee415aaa2eba1adc0deab48556852b
-- Vendored file: `tabler-icons/tabler-icons.svg`, a sprite built from the official
-  `package/icons/outline/<name>.svg` files (symbol id `tabler-<name>`).
-- Sprite SHA256: a9448ddd3ce423d890c93a4a8c944692c185d9ddba009d6d07eb056d608740e1
-- License text: `tabler-icons/LICENSE` = `package/LICENSE` (SHA256 b740a1d46122672da62833e97f7e7c8a13fa85cbc7445b584b297cc00dde93db)
-- Icons included: calendar-week, calendar-cog, calendar-plus, tools-kitchen-2, components, file-import, logout, search, x, plus, trash, arrow-left, check, eye, copy, device-floppy, alert-triangle, pencil, chevron-left, chevron-right, upload, archive, archive-off, file-check, info-circle, circle-check, refresh, clipboard-check
+Ein frischer Build ausserhalb des Projekts:
 
-Both cached tarballs were verified against the SHA512 integrity values from the
-official npm registry version endpoints before extraction. No package install.
-To reproduce: download the pinned tarballs, verify registry integrity, extract
-the CSS unchanged, and wrap the inner content of each listed outline SVG in a
-`symbol` with its `tabler-<name>` id, viewBox `0 0 24 24`, fill `none`, stroke
-`currentColor`, stroke-width `2`, round linecap and linejoin. Join these symbols
-inside one SVG document without inline styles/scripts. Update file hashes after
-any deliberate change. No framework JavaScript or runtime CDN is required.
+```sh
+rtk python3 tools/vendor_tabler.py --build --output-dir /tmp/dishboard-tabler-build --cache-dir /tmp/dishboard-tabler-sources
+rtk python3 tools/vendor_tabler.py --verify --output-dir /tmp/dishboard-tabler-build
+```
+
+`--build` prüft sämtliche Quellen und Ausgaben vor dem ersten Dateiersatz und
+schreibt nur Änderungen. `--verify` arbeitet ohne Netzwerk und Schreibzugriff.
+Der optionale Cache wird bei jeder Verwendung erneut geprüft. Hashfehler brechen
+ab; das Werkzeug passt Lockwerte nie automatisch an. Nur Python-Standardbibliothek,
+kein npm-Installieren oder Ausführen von Paketskripten. Einzelne bekannte
+Tar-Mitglieder werden im Speicher gelesen, niemals mit `extractall` ausgepackt.
+
+## Ausgelieferte Dateien
+
+- `tabler/tabler.min.css`: unverändertes `package/dist/css/tabler.min.css`.
+- `tabler/tabler.min.js`: unverändertes `package/dist/js/tabler.min.js`;
+  SHA-256 `0273fadc362ae4ddc8b68e9bd1fd98ae7c835b82fd9b6a4ff6ae2b7064839e55`.
+- `tabler/LICENSE`: MIT-Lizenz aus dem offiziellen Core-1.5.0-Tag.
+- `tabler-icons/tabler-icons.svg`: deterministischer Sprite aus den offiziellen
+  Outline-SVGs; Namen und Reihenfolge im Lock.
+- `tabler-icons/LICENSE`: unveränderte Paketlizenz.
+
+Bestehende CSS-, Sprite- und Lizenzbytes bleiben erhalten. Keine Kerndatei wird
+umgeschrieben. Source Maps sind Entwicklungsdateien und werden nicht ausgeliefert.
+Tabler enthält die Bootstrap-Komponenten; kein zweites Bootstrap-Bundle laden.
+
+## Einbindung
+
+Die neue Admin-Basis lädt `tokens.css`, Tabler-CSS, `admin-tabler.css` und
+`menu-images.css`; danach Tabler-JS und `admin.js` geordnet mit `defer`.
+Public, Login, Vorschau und Signage laden `tokens.css`, `app.css` und
+`menu-images.css`, ohne Tabler-Kerndateien. Assets und Fira-Sans-Schriften sind lokal.
+
+[Tabler 1.5.0](https://github.com/tabler/tabler/releases/tag/@tabler%2Fcore@1.5.0)
+nennt Chrome 123, Firefox 128 und Safari 17.5 als Mindestversionen. Die tatsächliche
+XCover-Browserversion gehört ins Geräteabnahmeprotokoll.
+[Installationsdokumentation](https://docs.tabler.io/ui/getting-started/installation).
