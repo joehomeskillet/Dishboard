@@ -1,0 +1,1639 @@
+{
+  "renderer": "fpdf2",
+  "version": "2.8.8",
+  "results": {
+    "allergens/GLUTEN": {
+      "file": "allergens/gluten.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "allergens/CRUSTACEANS": {
+      "file": "allergens/crustaceans.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "allergens/EGGS": {
+      "file": "allergens/eggs.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "allergens/FISH": {
+      "file": "allergens/fish.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "allergens/PEANUTS": {
+      "file": "allergens/peanuts.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "allergens/SOY": {
+      "file": "allergens/soya.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "allergens/MILK": {
+      "file": "allergens/milk.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "allergens/NUTS": {
+      "file": "allergens/nuts.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "allergens/CELERY": {
+      "file": "allergens/celery.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "allergens/MUSTARD": {
+      "file": "allergens/mustard.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "allergens/SESAME": {
+      "file": "allergens/sesame.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "allergens/SULPHITES": {
+      "file": "allergens/so2.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "allergens/LUPIN": {
+      "file": "allergens/lupin.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "allergens/MOLLUSCS": {
+      "file": "allergens/molluscs.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/AF": {
+      "file": "flags/af.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/AL": {
+      "file": "flags/al.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/DZ": {
+      "file": "flags/dz.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/AS": {
+      "file": "flags/as.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/VI": {
+      "file": "flags/vi.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/AD": {
+      "file": "flags/ad.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/AO": {
+      "file": "flags/ao.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/AI": {
+      "file": "flags/ai.svg",
+      "status": "requires_conversion",
+      "error": "Could not parse file: /nvmetank1/projects/menuplan/.claude/worktrees/food-symbol-assets-0906/reference_scaffold/cafeteria/static/vendor/food-symbols/flags/ai.svg",
+      "warnings": [
+        "Ignoring unsupported SVG tag: <clipPath> (contributions are welcome to add support for it)"
+      ]
+    },
+    "countries/AQ": {
+      "file": "flags/aq.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/AG": {
+      "file": "flags/ag.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/AR": {
+      "file": "flags/ar.svg",
+      "status": "requires_conversion",
+      "error": "Could not parse file: /nvmetank1/projects/menuplan/.claude/worktrees/food-symbol-assets-0906/reference_scaffold/cafeteria/static/vendor/food-symbols/flags/ar.svg",
+      "warnings": []
+    },
+    "countries/AM": {
+      "file": "flags/am.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/AW": {
+      "file": "flags/aw.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/AZ": {
+      "file": "flags/az.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/AU": {
+      "file": "flags/au.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/EG": {
+      "file": "flags/eg.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/GQ": {
+      "file": "flags/gq.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/ET": {
+      "file": "flags/et.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/AX": {
+      "file": "flags/ax.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BS": {
+      "file": "flags/bs.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BH": {
+      "file": "flags/bh.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BD": {
+      "file": "flags/bd.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BB": {
+      "file": "flags/bb.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BY": {
+      "file": "flags/by.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BE": {
+      "file": "flags/be.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BZ": {
+      "file": "flags/bz.svg",
+      "status": "requires_conversion",
+      "error": null,
+      "warnings": [
+        "Radial gradient '#bz-c' has no valid stops, skipping",
+        "Radial gradient '#bz-d' has no valid stops, skipping",
+        "Radial gradient '#bz-e' has no valid stops, skipping",
+        "Radial gradient '#bz-f' has no valid stops, skipping"
+      ]
+    },
+    "countries/BJ": {
+      "file": "flags/bj.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BM": {
+      "file": "flags/bm.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BT": {
+      "file": "flags/bt.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BO": {
+      "file": "flags/bo.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BQ": {
+      "file": "flags/bq.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BA": {
+      "file": "flags/ba.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BW": {
+      "file": "flags/bw.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BV": {
+      "file": "flags/bv.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BR": {
+      "file": "flags/br.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/VG": {
+      "file": "flags/vg.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/IO": {
+      "file": "flags/io.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BN": {
+      "file": "flags/bn.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BG": {
+      "file": "flags/bg.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BF": {
+      "file": "flags/bf.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BI": {
+      "file": "flags/bi.svg",
+      "status": "requires_conversion",
+      "error": "expected a nonnegative input, got -3.746613194099651e-16",
+      "warnings": []
+    },
+    "countries/KY": {
+      "file": "flags/ky.svg",
+      "status": "requires_conversion",
+      "error": "Could not parse file: /nvmetank1/projects/menuplan/.claude/worktrees/food-symbol-assets-0906/reference_scaffold/cafeteria/static/vendor/food-symbols/flags/ky.svg",
+      "warnings": []
+    },
+    "countries/CL": {
+      "file": "flags/cl.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/CN": {
+      "file": "flags/cn.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/CK": {
+      "file": "flags/ck.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/CR": {
+      "file": "flags/cr.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/CI": {
+      "file": "flags/ci.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/CW": {
+      "file": "flags/cw.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/DK": {
+      "file": "flags/dk.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/CD": {
+      "file": "flags/cd.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/DE": {
+      "file": "flags/de.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/DM": {
+      "file": "flags/dm.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/DO": {
+      "file": "flags/do.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/DJ": {
+      "file": "flags/dj.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/EC": {
+      "file": "flags/ec.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/SV": {
+      "file": "flags/sv.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/ER": {
+      "file": "flags/er.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/EE": {
+      "file": "flags/ee.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/SZ": {
+      "file": "flags/sz.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/FK": {
+      "file": "flags/fk.svg",
+      "status": "requires_conversion",
+      "error": "Could not parse file: /nvmetank1/projects/menuplan/.claude/worktrees/food-symbol-assets-0906/reference_scaffold/cafeteria/static/vendor/food-symbols/flags/fk.svg",
+      "warnings": [
+        "Linear gradient '#fk-b' has no valid stops, skipping",
+        "Linear gradient '#fk-c' has no valid stops, skipping",
+        "Linear gradient '#fk-d' has no valid stops, skipping",
+        "Linear gradient '#fk-e' has no valid stops, skipping",
+        "Linear gradient '#fk-f' has no valid stops, skipping",
+        "Linear gradient '#fk-g' has no valid stops, skipping",
+        "Linear gradient '#fk-h' has no valid stops, skipping",
+        "Linear gradient '#fk-i' has no valid stops, skipping",
+        "Linear gradient '#fk-j' has no valid stops, skipping",
+        "Linear gradient '#fk-k' has no valid stops, skipping"
+      ]
+    },
+    "countries/FO": {
+      "file": "flags/fo.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/FJ": {
+      "file": "flags/fj.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/FI": {
+      "file": "flags/fi.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/FR": {
+      "file": "flags/fr.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/GF": {
+      "file": "flags/gf.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/PF": {
+      "file": "flags/pf.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/TF": {
+      "file": "flags/tf.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/GA": {
+      "file": "flags/ga.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/GM": {
+      "file": "flags/gm.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/GE": {
+      "file": "flags/ge.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/GH": {
+      "file": "flags/gh.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/GI": {
+      "file": "flags/gi.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/GD": {
+      "file": "flags/gd.svg",
+      "status": "requires_conversion",
+      "error": "Could not parse file: /nvmetank1/projects/menuplan/.claude/worktrees/food-symbol-assets-0906/reference_scaffold/cafeteria/static/vendor/food-symbols/flags/gd.svg",
+      "warnings": []
+    },
+    "countries/GR": {
+      "file": "flags/gr.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/GL": {
+      "file": "flags/gl.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/GP": {
+      "file": "flags/gp.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/GU": {
+      "file": "flags/gu.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/GT": {
+      "file": "flags/gt.svg",
+      "status": "requires_conversion",
+      "error": null,
+      "warnings": [
+        "Radial gradient '#gt-d' has no valid stops, skipping",
+        "Radial gradient '#gt-e' has no valid stops, skipping",
+        "Radial gradient '#gt-f' has no valid stops, skipping",
+        "Radial gradient '#gt-g' has no valid stops, skipping",
+        "Radial gradient '#gt-j' has no valid stops, skipping"
+      ]
+    },
+    "countries/GG": {
+      "file": "flags/gg.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/GN": {
+      "file": "flags/gn.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/GW": {
+      "file": "flags/gw.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/GY": {
+      "file": "flags/gy.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/HT": {
+      "file": "flags/ht.svg",
+      "status": "requires_conversion",
+      "error": "Could not parse file: /nvmetank1/projects/menuplan/.claude/worktrees/food-symbol-assets-0906/reference_scaffold/cafeteria/static/vendor/food-symbols/flags/ht.svg",
+      "warnings": []
+    },
+    "countries/HM": {
+      "file": "flags/hm.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/VA": {
+      "file": "flags/va.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/HN": {
+      "file": "flags/hn.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/HK": {
+      "file": "flags/hk.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/IN": {
+      "file": "flags/in.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/ID": {
+      "file": "flags/id.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/IM": {
+      "file": "flags/im.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/IQ": {
+      "file": "flags/iq.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/IR": {
+      "file": "flags/ir.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/IE": {
+      "file": "flags/ie.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/IS": {
+      "file": "flags/is.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/IL": {
+      "file": "flags/il.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/IT": {
+      "file": "flags/it.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/JM": {
+      "file": "flags/jm.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/JP": {
+      "file": "flags/jp.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/YE": {
+      "file": "flags/ye.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/JE": {
+      "file": "flags/je.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/JO": {
+      "file": "flags/jo.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/KH": {
+      "file": "flags/kh.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/CM": {
+      "file": "flags/cm.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/CA": {
+      "file": "flags/ca.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/CV": {
+      "file": "flags/cv.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/KZ": {
+      "file": "flags/kz.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/QA": {
+      "file": "flags/qa.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/KE": {
+      "file": "flags/ke.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/KG": {
+      "file": "flags/kg.svg",
+      "status": "requires_conversion",
+      "error": "expected a nonnegative input, got -2.633427539869388e-16",
+      "warnings": []
+    },
+    "countries/KI": {
+      "file": "flags/ki.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/CC": {
+      "file": "flags/cc.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/CO": {
+      "file": "flags/co.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/KM": {
+      "file": "flags/km.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/CG": {
+      "file": "flags/cg.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/HR": {
+      "file": "flags/hr.svg",
+      "status": "requires_conversion",
+      "error": "expected a nonnegative input, got -3.4830090852125326e-16",
+      "warnings": []
+    },
+    "countries/CU": {
+      "file": "flags/cu.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/KW": {
+      "file": "flags/kw.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/LA": {
+      "file": "flags/la.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/LS": {
+      "file": "flags/ls.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/LV": {
+      "file": "flags/lv.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/LB": {
+      "file": "flags/lb.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/LR": {
+      "file": "flags/lr.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/LY": {
+      "file": "flags/ly.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/LI": {
+      "file": "flags/li.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/LT": {
+      "file": "flags/lt.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/LU": {
+      "file": "flags/lu.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MO": {
+      "file": "flags/mo.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MG": {
+      "file": "flags/mg.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MW": {
+      "file": "flags/mw.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MY": {
+      "file": "flags/my.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MV": {
+      "file": "flags/mv.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/ML": {
+      "file": "flags/ml.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MT": {
+      "file": "flags/mt.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MA": {
+      "file": "flags/ma.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MH": {
+      "file": "flags/mh.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MQ": {
+      "file": "flags/mq.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MR": {
+      "file": "flags/mr.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MU": {
+      "file": "flags/mu.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/YT": {
+      "file": "flags/yt.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MX": {
+      "file": "flags/mx.svg",
+      "status": "requires_conversion",
+      "error": null,
+      "warnings": [
+        "Radial gradient '#mx-b' has no valid stops, skipping",
+        "Radial gradient '#mx-c' has no valid stops, skipping",
+        "Radial gradient '#mx-d' has no valid stops, skipping"
+      ]
+    },
+    "countries/FM": {
+      "file": "flags/fm.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MD": {
+      "file": "flags/md.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MC": {
+      "file": "flags/mc.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MN": {
+      "file": "flags/mn.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/ME": {
+      "file": "flags/me.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MS": {
+      "file": "flags/ms.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MZ": {
+      "file": "flags/mz.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MM": {
+      "file": "flags/mm.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/NA": {
+      "file": "flags/na.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/NR": {
+      "file": "flags/nr.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/NP": {
+      "file": "flags/np.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/NC": {
+      "file": "flags/nc.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/NZ": {
+      "file": "flags/nz.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/NI": {
+      "file": "flags/ni.svg",
+      "status": "requires_conversion",
+      "error": null,
+      "warnings": [
+        "Linear gradient '#ni-h' has no valid stops, skipping",
+        "Linear gradient '#ni-i' has no valid stops, skipping",
+        "Linear gradient '#ni-j' has no valid stops, skipping",
+        "Linear gradient '#ni-l' has no valid stops, skipping",
+        "Linear gradient '#ni-m' has no valid stops, skipping",
+        "Linear gradient '#ni-o' has no valid stops, skipping",
+        "Linear gradient '#ni-p' has no valid stops, skipping",
+        "Linear gradient '#ni-q' has no valid stops, skipping",
+        "Linear gradient '#ni-r' has no valid stops, skipping",
+        "Linear gradient '#ni-s' has no valid stops, skipping",
+        "Linear gradient '#ni-u' has no valid stops, skipping",
+        "Linear gradient '#ni-v' has no valid stops, skipping",
+        "Linear gradient '#ni-x' has no valid stops, skipping",
+        "Linear gradient '#ni-y' has no valid stops, skipping"
+      ]
+    },
+    "countries/NL": {
+      "file": "flags/nl.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/NE": {
+      "file": "flags/ne.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/NG": {
+      "file": "flags/ng.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/NU": {
+      "file": "flags/nu.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/KP": {
+      "file": "flags/kp.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MK": {
+      "file": "flags/mk.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/NF": {
+      "file": "flags/nf.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/NO": {
+      "file": "flags/no.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MP": {
+      "file": "flags/mp.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/OM": {
+      "file": "flags/om.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/AT": {
+      "file": "flags/at.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/PK": {
+      "file": "flags/pk.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/PW": {
+      "file": "flags/pw.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/PS": {
+      "file": "flags/ps.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/PA": {
+      "file": "flags/pa.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/PG": {
+      "file": "flags/pg.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/PY": {
+      "file": "flags/py.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/PE": {
+      "file": "flags/pe.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/PH": {
+      "file": "flags/ph.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/PN": {
+      "file": "flags/pn.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/PL": {
+      "file": "flags/pl.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/PT": {
+      "file": "flags/pt.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/PR": {
+      "file": "flags/pr.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/RE": {
+      "file": "flags/re.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/RW": {
+      "file": "flags/rw.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/RO": {
+      "file": "flags/ro.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/RU": {
+      "file": "flags/ru.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/MF": {
+      "file": "flags/mf.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/BL": {
+      "file": "flags/bl.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/SX": {
+      "file": "flags/sx.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/SB": {
+      "file": "flags/sb.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/ZM": {
+      "file": "flags/zm.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/WS": {
+      "file": "flags/ws.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/SM": {
+      "file": "flags/sm.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/SA": {
+      "file": "flags/sa.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/ST": {
+      "file": "flags/st.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/SE": {
+      "file": "flags/se.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/CH": {
+      "file": "flags/ch.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/SN": {
+      "file": "flags/sn.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/RS": {
+      "file": "flags/rs.svg",
+      "status": "requires_conversion",
+      "error": "Could not parse file: /nvmetank1/projects/menuplan/.claude/worktrees/food-symbol-assets-0906/reference_scaffold/cafeteria/static/vendor/food-symbols/flags/rs.svg",
+      "warnings": []
+    },
+    "countries/SC": {
+      "file": "flags/sc.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/SL": {
+      "file": "flags/sl.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/ZW": {
+      "file": "flags/zw.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/SG": {
+      "file": "flags/sg.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/SK": {
+      "file": "flags/sk.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/SI": {
+      "file": "flags/si.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/SO": {
+      "file": "flags/so.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/GS": {
+      "file": "flags/gs.svg",
+      "status": "requires_conversion",
+      "error": null,
+      "warnings": [
+        "Linear gradient '#gs-c' has no valid stops, skipping",
+        "Linear gradient '#gs-e' has no valid stops, skipping",
+        "Linear gradient '#gs-f' has no valid stops, skipping",
+        "Linear gradient '#gs-g' has no valid stops, skipping",
+        "Linear gradient '#gs-h' has no valid stops, skipping"
+      ]
+    },
+    "countries/ES": {
+      "file": "flags/es.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/LK": {
+      "file": "flags/lk.svg",
+      "status": "requires_conversion",
+      "error": "Could not parse file: /nvmetank1/projects/menuplan/.claude/worktrees/food-symbol-assets-0906/reference_scaffold/cafeteria/static/vendor/food-symbols/flags/lk.svg",
+      "warnings": []
+    },
+    "countries/SH": {
+      "file": "flags/sh.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/KN": {
+      "file": "flags/kn.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/LC": {
+      "file": "flags/lc.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/PM": {
+      "file": "flags/pm.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/VC": {
+      "file": "flags/vc.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/SD": {
+      "file": "flags/sd.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/SR": {
+      "file": "flags/sr.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/ZA": {
+      "file": "flags/za.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/KR": {
+      "file": "flags/kr.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/SS": {
+      "file": "flags/ss.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/SJ": {
+      "file": "flags/sj.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/SY": {
+      "file": "flags/sy.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/TJ": {
+      "file": "flags/tj.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/TW": {
+      "file": "flags/tw.svg",
+      "status": "requires_conversion",
+      "error": null,
+      "warnings": [
+        "Ignoring unsupported SVG tag: <clipPath> (contributions are welcome to add support for it)"
+      ]
+    },
+    "countries/TZ": {
+      "file": "flags/tz.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/TH": {
+      "file": "flags/th.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/TL": {
+      "file": "flags/tl.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/TG": {
+      "file": "flags/tg.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/TK": {
+      "file": "flags/tk.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/TO": {
+      "file": "flags/to.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/TT": {
+      "file": "flags/tt.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/TD": {
+      "file": "flags/td.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/CZ": {
+      "file": "flags/cz.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/TN": {
+      "file": "flags/tn.svg",
+      "status": "requires_conversion",
+      "error": "expected a nonnegative input, got -4.798327179672546e-17",
+      "warnings": []
+    },
+    "countries/TM": {
+      "file": "flags/tm.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/TC": {
+      "file": "flags/tc.svg",
+      "status": "requires_conversion",
+      "error": "Could not parse file: /nvmetank1/projects/menuplan/.claude/worktrees/food-symbol-assets-0906/reference_scaffold/cafeteria/static/vendor/food-symbols/flags/tc.svg",
+      "warnings": []
+    },
+    "countries/TV": {
+      "file": "flags/tv.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/TR": {
+      "file": "flags/tr.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/UG": {
+      "file": "flags/ug.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/UA": {
+      "file": "flags/ua.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/HU": {
+      "file": "flags/hu.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/UM": {
+      "file": "flags/um.svg",
+      "status": "requires_conversion",
+      "error": null,
+      "warnings": [
+        "Ignoring unsupported SVG tag: <marker> (contributions are welcome to add support for it)"
+      ]
+    },
+    "countries/UY": {
+      "file": "flags/uy.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/UZ": {
+      "file": "flags/uz.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/VU": {
+      "file": "flags/vu.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/VE": {
+      "file": "flags/ve.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/AE": {
+      "file": "flags/ae.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/US": {
+      "file": "flags/us.svg",
+      "status": "requires_conversion",
+      "error": null,
+      "warnings": [
+        "Ignoring unsupported SVG tag: <marker> (contributions are welcome to add support for it)"
+      ]
+    },
+    "countries/GB": {
+      "file": "flags/gb.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/VN": {
+      "file": "flags/vn.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/WF": {
+      "file": "flags/wf.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/CX": {
+      "file": "flags/cx.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/EH": {
+      "file": "flags/eh.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/CF": {
+      "file": "flags/cf.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "countries/CY": {
+      "file": "flags/cy.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    }
+  }
+}
