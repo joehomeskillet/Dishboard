@@ -24,7 +24,36 @@ def baseline(proposal):
         'day': proposal.day, 'meal': proposal.meal, 'option': proposal.option,
         'title': proposal.title, 'components': list(proposal.components),
         'note': '', 'review': 'not_checked', 'version': 4, 'state': {'price': 1250},
+        'stale_components': False,
     }
+
+
+@pytest.mark.parametrize('stale', [True, None])
+@pytest.mark.parametrize('apply', [False, True])
+def test_stale_or_unknown_component_preflight_never_opens_form_or_posts(monkeypatch, stale, apply):
+    tool = module()
+    proposal = tool.parse_proposals(tool.DOCUMENT.read_bytes())[2]
+    row = baseline(proposal)
+    row['stale_components'] = stale
+    monkeypatch.setattr(tool, 'read_rows', lambda: {proposal.id: row})
+    load = MagicMock()
+    monkeypatch.setattr(tool, 'load_form', load)
+    page, gate = MagicMock(), MagicMock()
+    assert tool.process(page, gate, proposal, apply) == 'conflict'
+    load.assert_not_called()
+    gate.post.assert_not_called()
+    page.assert_not_called()
+
+
+def test_component_refresh_after_preflight_still_fails_strict_verification():
+    tool = module()
+    proposal = tool.parse_proposals(tool.DOCUMENT.read_bytes())[2]
+    before = baseline(proposal)
+    before['state']['links'] = [{'component_id': 19, 'component_row_version': 1}]
+    after = deepcopy(before)
+    after.update(note=proposal.note, version=5)
+    after['state']['links'][0]['component_row_version'] = 2
+    assert not tool.verified_save(proposal, before, after)
 
 
 def test_mismatch_diagnostics_distinguish_form_order_and_database_fields_without_values():

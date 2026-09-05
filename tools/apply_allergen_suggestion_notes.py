@@ -26,6 +26,12 @@ SELECT jsonb_agg(x ORDER BY x.id) FROM (
  SELECT i.id,p.code AS profile,w.week_start AS week,s.service_date AS day,
  mp.code AS meal,mt.code AS option,i.title,COALESCE(i.note,'') AS note,
  i.allergen_review_status AS review,i.row_version AS version,
+ EXISTS(SELECT 1 FROM cafeteria.menu_item_components link
+        LEFT JOIN cafeteria.menu_components current ON current.id=link.component_id
+        WHERE link.menu_item_id=i.id AND link.component_id IS NOT NULL
+          AND (current.id IS NULL OR NOT current.active
+               OR link.component_row_version IS DISTINCT FROM current.row_version
+               OR link.component_text IS DISTINCT FROM current.name)) AS stale_components,
  ARRAY(SELECT c.component_text FROM cafeteria.menu_item_components c
        WHERE c.menu_item_id=i.id ORDER BY c.sort_order) AS components,
  jsonb_build_object(
@@ -159,6 +165,8 @@ def classify(proposal: Proposal, row: dict[str, Any]) -> str:
         return 'conflict'
     if row.get('note') == proposal.note:
         return 'already_present'
+    if row.get('stale_components') is not False:
+        return 'conflict'
     if row.get('note') != '' or row.get('review') != 'not_checked' or row.get('version') != 4:
         return 'conflict'
     return 'eligible'
