@@ -35,6 +35,7 @@ class SettingsProof:
         self.data: dict[str, Any] = {
             'captured_at': datetime.now(timezone.utc).isoformat(), 'base_url': base,
             'expected_density': 'compact', 'checks': {}, 'failures': [], 'unavailable': [], 'pages': [],
+            'coverage_limits': [],
             'limits': 'GET-only product coverage; does not prove settings writes or unavailable catalog data.',
         }
         self.blocked = False
@@ -182,20 +183,30 @@ class SettingsProof:
         )
         if not labels or not allergens:
             self.data['unavailable'].append(name + '.active_filter_metadata')
-        label = labels[0] if labels else {'value': '', 'text': ''}
+        used_labels = {text for row in baseline for text in row['labels']}
+        label = next((item for item in labels if item['text'] in used_labels), {'value': '', 'text': ''})
+        if not label['value']:
+            self.data['unavailable'].append(name + '.positive_active_label_filter')
         combined = DEFAULT_FILTERS | {'usage': 'used', 'origin': 'CH', 'label': label['value'],
                                      'allergen': allergens[0] if allergens else '',
                                      'presence': 'contains' if allergens else ''}
         selected = self.submit_filters(page, combined, name + '.combined', profile)
         eligible = {row['id'] for row in baseline if row['usage'] > 0 and row['origin'] == 'CH'
                     and (not label['value'] or label['text'] in row['labels'])}
-        self.check(name + '.combined_matches_visible_metadata', {row['id'] for row in selected} <= eligible)
+        if selected:
+            self.check(name + '.combined_matches_visible_metadata', {row['id'] for row in selected} <= eligible)
+        else:
+            self.data['coverage_limits'].append(name + '.combined_empty_results_no_positive_semantic_proof')
 
         selected = self.submit_filters(page, DEFAULT_FILTERS | {'label': label['value']}, name + '.label', profile)
-        expected = {row['id'] for row in baseline if not label['value'] or label['text'] in row['labels']}
-        self.check(name + '.label_exact_results', {row['id'] for row in selected} == expected)
+        if label['value']:
+            expected = {row['id'] for row in baseline if label['text'] in row['labels']}
+            self.check(name + '.label_exact_results', bool(selected) and {row['id'] for row in selected} == expected)
         archived = self.submit_filters(page, DEFAULT_FILTERS | {'status': 'archived'}, name + '.archived', profile)
-        self.check(name + '.archived_results', all(not row['active'] for row in archived))
+        if archived:
+            self.check(name + '.archived_results', all(not row['active'] for row in archived))
+        else:
+            self.data['coverage_limits'].append(name + '.archived_empty_results_no_positive_semantic_proof')
 
         with page.expect_navigation(wait_until='load') as reset:
             page.get_by_role('form', name='Komponenten filtern').get_by_role('link', name='Zurücksetzen').click()
