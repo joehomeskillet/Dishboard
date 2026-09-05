@@ -98,6 +98,8 @@ design/screenshots/website-cafeteria-woche-1440x1100.png
 design/screenshots/website-patienten-woche-1440x1100.png
 docs/ABNAHME_CHECKLISTE.md
 docs/CSV_IMPORT_EXPORT.md
+docs/design/2026-09-05-admin-csv-import-return.md
+docs/design/2026-09-05-admin-csv-preview-polish.md
 docs/design/2026-09-05-admin-go-live-form-repair.md
 docs/design/admin-redesign-ui.md
 docs/design/therapieplan-alignment.md
@@ -193,6 +195,7 @@ reference_scaffold/manage.py
 reference_scaffold/README.md
 reference_scaffold/requirements.txt
 reference_scaffold/tests/test_admin_csv_import.py
+reference_scaffold/tests/test_admin_csv_preview_ui.py
 reference_scaffold/tests/test_admin_draft_preview.py
 reference_scaffold/tests/test_admin_overview_forms.py
 reference_scaffold/tests/test_admin_ux_browser.py
