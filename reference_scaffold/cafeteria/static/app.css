@@ -426,9 +426,11 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
   .menu-grid, .patient-options { grid-template-columns: 1fr; }
   .patient-option + .patient-option { border-top: 1px solid var(--sh-border); border-left: 0; }
   .admin-shell { grid-template-columns: 1fr; }
-  .admin-sidebar { position: static; display: grid; grid-template-columns: minmax(0, 1fr) auto; height: auto; padding: .8rem 1rem; }
+  .admin-sidebar { position: static; width: 100%; display: block; height: auto; padding: .8rem 1rem; }
   .admin-user { margin: 0; padding: .55rem; }
-  .admin-nav { grid-column: 1 / -1; grid-auto-flow: column; grid-auto-columns: max-content; margin-top: .65rem; overflow-x: auto; }
+  .admin-nav { width: 100%; min-width: 0; margin-top: .65rem; overflow-x: auto; }
+  .admin-nav a,
+  .admin-nav button { width: 100%; max-width: 100%; transform: none; }
   .admin-topbar { position: static; align-items: flex-start; flex-direction: column; gap: .75rem; padding: 1rem; }
   .toolbar { justify-content: flex-start; width: 100%; }
   .admin-content { padding: 1rem; }
@@ -542,18 +544,62 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
   content: "⚠️ ";
 }
 .admin-actions[data-sticky] {
-  position: sticky;
-  bottom: 0;
+  position: static;
   padding-bottom: env(safe-area-inset-bottom);
   z-index: 20;
   background: var(--sh-panel);
   border-top: 1px solid var(--sh-border);
   padding-top: 1rem;
   margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
 }
-input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
+.admin-main select,
+.admin-main input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+.admin-main textarea {
+  min-height: 44px;
+  min-width: 44px;
+}
+.admin-main input[type="checkbox"],
+.admin-main input[type="radio"] {
+  width: 24px;
+  height: 24px;
+  padding: 10px;
+  box-sizing: border-box;
+}
+.admin-main label:has(input[type="checkbox"]),
+.admin-main label:has(input[type="radio"]) {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.admin-nav a,
+.admin-nav button,
+.weekbar a,
+.toolbar a,
+.toolbar button,
+.menu-slot a,
+.admin-actions a,
+.admin-actions button,
+.profile-tabs a {
+  min-height: 44px;
+  min-width: 44px;
+}
+.admin-nav a,
+.admin-nav button,
+.admin-nav form,
+.toolbar a,
+.toolbar button,
+.weekbar a,
+.menu-slot a,
+.admin-actions a,
+.admin-actions button,
+.profile-tabs a {
+  display: inline-flex;
+  align-items: center;
 }
 label {
   min-height: 44px;

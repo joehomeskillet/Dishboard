@@ -17,8 +17,9 @@
     </div>
 
     {% if errors %}
-    <div class="error-region" role="alert" tabindex="-1">
+    <div class="error-region" role="alert" tabindex="-1" aria-invalid="true">
       <p>Bitte korrigieren Sie die Fehler im Formular.</p>
+      <button type="button" class="btn">Erneut versuchen</button>
     </div>
     {% endif %}
 
@@ -55,7 +56,7 @@
 
         {% if profile == 'staff_guest' %}
         <label for="f-int">Mitarbeitende CHF</label>
-        <input id="f-int" name="internal_chf" inputmode="decimal" value="{{ submitted.get('internal_chf', '') }}"{{ error_attributes('internal_chf', 'err-int') }}>
+        <input id="f-int" name="internal_chf" inputmode="decimal" value="{{ submitted.get('internal_chf', '') }}"{{ error_attributes('internal_chf', 'err-int') }}{% if errors.get('internal_chf') %} autofocus{% endif %}>
         {{ field_error('internal_chf', 'err-int') }}
 
         <label for="f-ext">Externe CHF</label>
@@ -167,6 +168,50 @@
       </form>
       {% endif %}
     </div>
+
+    <div class="admin-actions" data-sticky>
+      <a class="btn" href="/admin/{{ family }}/preview?week={{ week }}&state=ready" target="_blank" rel="noopener" disabled>Vorschau</a>
+      <form id="menu-publish" method="post" action="/admin/{{ family }}/publish">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <input type="hidden" name="week" value="{{ week }}">
+        <input type="hidden" name="row_version" value="{{ cell.row_version }}">
+        <button type="submit" class="btn primary" form="menu-publish" disabled>Publizieren</button>
+      </form>
+    </div>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const firstInvalid = document.querySelector('[aria-invalid="true"]');
+        if (firstInvalid && firstInvalid.focus) {
+          firstInvalid.focus();
+          if (firstInvalid.getAttribute('aria-invalid') === 'true' && document.activeElement === firstInvalid) {
+            return;
+          }
+        }
+
+        const alert = document.querySelector('.error-region[role="alert"]');
+        if (!alert) {
+          return;
+        }
+
+        const menuForm = document.querySelector('form[action*="/menu"]');
+        if (!menuForm) {
+          return;
+        }
+
+        const focusables = Array.from(menuForm.elements || []).filter((control) => {
+          if (!control.matches || !control.focus) {
+            return false;
+          }
+          return control.matches('input:not([type="hidden"]), select, textarea') && !control.disabled && control.offsetParent !== null;
+        });
+
+        const firstField = focusables[0];
+        if (firstField) {
+          firstField.setAttribute('aria-invalid', 'true');
+          firstField.focus();
+        }
+      });
+    </script>
   </main>
 </div>
 {% endblock %}

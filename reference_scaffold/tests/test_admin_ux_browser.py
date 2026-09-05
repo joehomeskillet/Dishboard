@@ -92,7 +92,6 @@ def test_admin_overview_keyboard_order_focus_and_targets(page_context: Page):
     outline = page.evaluate('window.getComputedStyle(document.activeElement).outlineStyle')
     assert outline != 'none', "Focus outline is not visible"
 
-@pytest.mark.xfail(strict=False, reason='ui5-routes pending')
 def test_admin_editor_dirty_state_blocks_preview_and_publish(page_context: Page):
     page = page_context
     page.goto(f'/admin/cafeteria/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1')
@@ -122,7 +121,6 @@ def test_admin_publish_uses_native_confirm(page_context: Page):
     except Exception:
         pass
 
-@pytest.mark.xfail(strict=False, reason='ui5-routes pending')
 def test_admin_error_state_focuses_first_error_and_offers_retry(page_context: Page):
     page = page_context
     page.goto(f'/admin/cafeteria/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1')
@@ -133,7 +131,6 @@ def test_admin_error_state_focuses_first_error_and_offers_retry(page_context: Pa
     assert page.evaluate('document.activeElement.getAttribute("aria-invalid")') == 'true'
     assert page.locator('.error-region button:has-text("Erneut versuchen")').is_visible()
 
-@pytest.mark.xfail(strict=False, reason='ui5-routes pending')
 def test_admin_escape_closes_details_and_restores_focus(page_context: Page):
     page = page_context
     page.goto(f'/admin/cafeteria/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1')
