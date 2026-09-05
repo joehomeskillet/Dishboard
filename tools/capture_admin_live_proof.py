@@ -24,6 +24,11 @@ USER = 'kueche.admin'
 PASSWORD_FILE = Path('/root/.dishboard/kueche.admin.initial-password')
 VIEWPORTS = {'mobile': (390, 844), 'desktop': (1440, 1100)}
 COPY_FIELDS = ['_csrf', 'source_week', 'target_row_version', 'target_week']
+# CHF may adjoin numbers or field separators, but not letters in food names.
+# Keep German price compounds; Preiselbeer... is the unrelated food stem.
+PATIENT_PRICE_VOCABULARY = re.compile(
+    r'preis(?!elbeer)|(?<![^\W\d_])chf(?![^\W\d_])|rappen|kosten|price', re.I,
+)
 LAYOUT_AUDIT = """() => {
     const visible = element => {
         const rect = element.getBoundingClientRect();
@@ -129,7 +134,7 @@ def capture_viewport(
             for key, passed in audit_tabler(page, base, asset_status).items():
                 check(f'{name}.{key}', passed)
         if patient:
-            check(f'{name}.no_price_vocabulary', re.search(r'preis|chf|rappen|kosten|price', page.content(), re.I) is None)
+            check(f'{name}.no_price_vocabulary', PATIENT_PRICE_VOCABULARY.search(page.content()) is None)
         filename = f'{name}-{width}x{height}.png'
         path = outdir / filename
         screenshot = page.screenshot(path=str(path), full_page=True)
