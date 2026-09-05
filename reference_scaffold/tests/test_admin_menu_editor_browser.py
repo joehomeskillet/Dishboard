@@ -340,8 +340,11 @@ def test_primary_button_states_keep_brand_colours(page_context: Page) -> None:  
     assert border == brand_hover, border
     assert colour == 'rgb(255, 255, 255)'
     page.mouse.move(0, 0)
-    page.get_by_role('link', name='Abbrechen').focus()
-    page.keyboard.press('Shift+Tab')
+    page.get_by_label('Titel', exact=True).focus()
+    for _ in range(80):
+        page.keyboard.press('Tab')
+        if page.evaluate('() => document.activeElement.matches("[data-sticky] button.btn-primary")'):
+            break
     expect(save).to_be_focused()
     focus = save.evaluate('el => ({outline: getComputedStyle(el).outlineStyle, width: getComputedStyle(el).outlineWidth, colour: getComputedStyle(el).outlineColor, shadow: getComputedStyle(el).boxShadow, bg: getComputedStyle(el).backgroundColor})')
     assert focus['outline'] != 'none' and float(focus['width'].rstrip('px')) >= 2

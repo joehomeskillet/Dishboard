@@ -229,6 +229,8 @@
 
       <div class="admin-actions" data-sticky>
         <button type="submit" class="btn btn-primary">{{ icon('device-floppy') }}Speichern</button>
+        {# Native submit input: same form data and _csrf, only the action differs (return_to=week → 303 to the week). #}
+        <input type="submit" class="btn" formaction="/admin/{{ family }}/menu?return_to=week" value="Speichern und zurück">
         <a class="btn" href="{{ back_url }}">Abbrechen</a>
         <a class="btn" href="#review">{{ icon('clipboard-check') }}Prüfung öffnen</a>
       </div>
