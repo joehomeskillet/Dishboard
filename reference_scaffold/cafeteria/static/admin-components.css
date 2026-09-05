@@ -1,0 +1,23 @@
+.dishboard-component-summary { min-height: 48px; gap: 8px; cursor: pointer; }
+.dishboard-component-table { table-layout: fixed; width: 100%; }
+.dishboard-component-table th:first-child { width: 26%; }
+.dishboard-component-table :is(th, td) { white-space: normal; overflow-wrap: anywhere; }
+.dishboard-component-link { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 48px; }
+.dishboard-component-link .icon { flex: none; }
+.dishboard-cell-label { display: none; }
+.dishboard-component-actions { position: sticky; bottom: 0; z-index: 5; background: var(--sh-panel); }
+@media (max-width: 1199.98px) {
+  .dishboard-component-results { border: 0; background: transparent; box-shadow: none; }
+  .dishboard-component-table, .dishboard-component-table tbody { display: block; }
+  .dishboard-component-table thead { display: none; }
+  .dishboard-component-table .component-row {
+    display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px;
+    margin-bottom: 16px; padding: 16px; background: var(--sh-panel);
+    border: 1px solid var(--sh-border); border-radius: var(--sh-radius-md);
+  }
+  .dishboard-admin .dishboard-component-table .component-row > :is(th, td) { display: block; width: auto; padding: 0; border: 0; }
+  .dishboard-cell-label { display: block; color: var(--sh-ink-muted); font-size: .875rem; margin-bottom: 4px; }
+}
+@media (max-height: 500px) {
+  .dishboard-component-actions { position: static; }
+}
