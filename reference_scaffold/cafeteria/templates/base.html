@@ -15,5 +15,6 @@
 <body class="{% block body_class %}{% endblock %}">
   {% block skip_link %}<a class="skip-link" href="#main-content">Zum Inhalt springen</a>{% endblock %}
   {% block body %}{% endblock %}
+  {% block scripts %}{% if self.body_class() == 'admin-body' %}<script src="{{ url_for('static', filename='admin.js') }}" defer></script>{% endif %}{% endblock %}
 </body>
 </html>
