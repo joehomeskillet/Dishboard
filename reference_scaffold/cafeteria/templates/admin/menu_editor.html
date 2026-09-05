@@ -4,7 +4,7 @@
 {% block body %}
 {% set submitted = form_values|default({}) %}
 {% set errors = form_errors|default({}) %}
-{% macro error_attributes(name, error_id) %}{% if errors.get(name) %} aria-invalid="true" aria-describedby="{{ error_id }}"{% endif %}{% endmacro %}
+{% macro error_attributes(name, error_id) %}{% if errors.get(name) %} aria-invalid="{{ 'true' }}" aria-describedby="{{ error_id }}"{% endif %}{% endmacro %}
 {% macro field_error(name, error_id) %}{% if errors.get(name) %}<span class="field-error" id="{{ error_id }}">{{ errors[name] }}</span>{% endif %}{% endmacro %}
 
 <div class="admin-shell">
@@ -17,9 +17,9 @@
     </div>
 
     {% if errors %}
-    <div class="error-region" role="alert" tabindex="-1" aria-invalid="true">
+    <div class="error-region" role="alert" tabindex="-1">
       <p>Bitte korrigieren Sie die Fehler im Formular.</p>
-      <button type="button" class="btn">Erneut versuchen</button>
+      <button type="button" class="btn" data-retry-page>Erneut versuchen</button>
     </div>
     {% endif %}
 
@@ -169,49 +169,6 @@
       {% endif %}
     </div>
 
-    <div class="admin-actions" data-sticky>
-      <a class="btn" href="/admin/{{ family }}/preview?week={{ week }}&state=ready" target="_blank" rel="noopener" disabled>Vorschau</a>
-      <form id="menu-publish" method="post" action="/admin/{{ family }}/publish">
-        <input type="hidden" name="_csrf" value="{{ csrf }}">
-        <input type="hidden" name="week" value="{{ week }}">
-        <input type="hidden" name="row_version" value="{{ cell.row_version }}">
-        <button type="submit" class="btn primary" form="menu-publish" disabled>Publizieren</button>
-      </form>
-    </div>
-    <script>
-      document.addEventListener('DOMContentLoaded', () => {
-        const firstInvalid = document.querySelector('[aria-invalid="true"]');
-        if (firstInvalid && firstInvalid.focus) {
-          firstInvalid.focus();
-          if (firstInvalid.getAttribute('aria-invalid') === 'true' && document.activeElement === firstInvalid) {
-            return;
-          }
-        }
-
-        const alert = document.querySelector('.error-region[role="alert"]');
-        if (!alert) {
-          return;
-        }
-
-        const menuForm = document.querySelector('form[action*="/menu"]');
-        if (!menuForm) {
-          return;
-        }
-
-        const focusables = Array.from(menuForm.elements || []).filter((control) => {
-          if (!control.matches || !control.focus) {
-            return false;
-          }
-          return control.matches('input:not([type="hidden"]), select, textarea') && !control.disabled && control.offsetParent !== null;
-        });
-
-        const firstField = focusables[0];
-        if (firstField) {
-          firstField.setAttribute('aria-invalid', 'true');
-          firstField.focus();
-        }
-      });
-    </script>
   </main>
 </div>
 {% endblock %}

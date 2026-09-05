@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT / 'tools'))
 
 from test_rendered_ui import _login, admin_app, admin_engine, browser  # noqa: E402, F401
 from test_admin_workflow_routes import DAY  # noqa: E402, F401
+from test_admin_workflow_db import _save, _staff_values  # noqa: E402
 
 @pytest.fixture
 def live_server(admin_app: Flask) -> str:  # noqa: F811
@@ -94,32 +95,39 @@ def test_admin_overview_keyboard_order_focus_and_targets(page_context: Page):
 
 def test_admin_editor_dirty_state_blocks_preview_and_publish(page_context: Page):
     page = page_context
-    page.goto(f'/admin/cafeteria/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1')
+    page.goto(f'/admin/cafeteria?week={DAY}')
     page.fill('input[name="title"]', 'Neuer Titel')
-    
-    assert page.locator('.admin-actions a[target="_blank"]').evaluate('el => el.hasAttribute("disabled")')
-    assert page.locator('form[action*="/publish"] button[type="submit"]').evaluate('el => el.hasAttribute("disabled")')
 
-def test_admin_publish_uses_native_confirm(page_context: Page):
+    preview_link = page.locator('.admin-actions a[target="_blank"]')
+    publish_button = page.locator('form[action*="/publish"] button[type="submit"]')
+    assert preview_link.get_attribute('aria-disabled') == 'true'
+    assert publish_button.is_disabled()
+    assert page.get_by_text('Zuerst speichern', exact=True).first.is_visible()
+
+
+def test_admin_publish_uses_native_confirm(page_context: Page, admin_app: Flask):
+    _save(admin_app.extensions['cafeteria_db'], 'staff_guest', _staff_values())
     page = page_context
     page.goto(f'/admin/cafeteria?week={DAY}')
-    
+
     publish_btn = page.locator('form[action*="/publish"] button[type="submit"]')
-    if not publish_btn.is_visible():
-        page.evaluate('document.body.innerHTML += `<form action="/admin/cafeteria/publish" data-confirm="Sicher?"><button type="submit">Publizieren</button></form>`')
-        page.evaluate('const s = document.createElement("script"); s.src = "/static/admin.js"; document.body.appendChild(s);')
-        page.wait_for_timeout(100)
-        publish_btn = page.locator('form[action*="/publish"] button[type="submit"]')
-        
-    page.once('dialog', lambda dialog: dialog.dismiss())
-    publish_btn.click(force=True)
-    assert '/admin/cafeteria' in page.url
-    
+    assert publish_btn.is_enabled()
+    assert page.locator('.status-pill').get_attribute('data-status') == 'ready'
+
+    dialogs: list[str] = []
+
+    def dismiss(dialog) -> None:
+        dialogs.append(dialog.type)
+        dialog.dismiss()
+
+    page.once('dialog', dismiss)
+    publish_btn.click()
+    assert dialogs == ['confirm']
+    assert page.locator('.status-pill').get_attribute('data-status') == 'ready'
+
     page.once('dialog', lambda dialog: dialog.accept())
-    try:
-        publish_btn.click(force=True)
-    except Exception:
-        pass
+    publish_btn.click()
+    assert page.locator('.status-pill').get_attribute('data-status') == 'live'
 
 def test_admin_error_state_focuses_first_error_and_offers_retry(page_context: Page):
     page = page_context
@@ -128,13 +136,23 @@ def test_admin_error_state_focuses_first_error_and_offers_retry(page_context: Pa
     page.click('button[type="submit"]')
     
     page.wait_for_selector('.error-region[role="alert"]')
+    page.wait_for_function(
+        'document.activeElement.getAttribute("aria-invalid") === "true"'
+    )
     assert page.evaluate('document.activeElement.getAttribute("aria-invalid")') == 'true'
     assert page.locator('.error-region button:has-text("Erneut versuchen")').is_visible()
 
 def test_admin_escape_closes_details_and_restores_focus(page_context: Page):
     page = page_context
     page.goto(f'/admin/cafeteria/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1')
-    page.evaluate('document.body.innerHTML += "<details open><summary>Test</summary></details>"')
+    page.evaluate('''() => {
+        const details = document.createElement('details');
+        details.open = true;
+        const summary = document.createElement('summary');
+        summary.textContent = 'Test';
+        details.appendChild(summary);
+        document.body.appendChild(details);
+    }''')
     page.keyboard.press('Escape')
     assert not page.locator('details').evaluate('el => el.hasAttribute("open")')
 

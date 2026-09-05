@@ -36,7 +36,7 @@
         const publishForms = document.querySelectorAll('form[action*="/publish"]');
         
         previewLinks.forEach(link => {
-            link.setAttribute('disabled', 'true');
+            link.setAttribute('aria-disabled', 'true');
             link.classList.add('disabled');
             link.addEventListener('click', preventDefaultClick);
             link.textContent = 'Zuerst speichern';
@@ -72,12 +72,36 @@
 
     // 3. Fehlerfokus
     const errorRegion = document.querySelector('.error-region');
-    if (errorRegion) {
+    const retryBtn = errorRegion ? errorRegion.querySelector('[data-retry-page]') : null;
+    function focusFirstError() {
+        if (!errorRegion) {
+            return;
+        }
         errorRegion.focus();
-        const firstInvalid = document.querySelector('[aria-invalid="true"]');
+        let firstInvalid = document.querySelector('[aria-invalid="true"]');
+        if (!firstInvalid) {
+            const menuForm = document.querySelector('form[action$="/menu"]');
+            const focusableFields = menuForm ? Array.from(menuForm.elements).filter(control => {
+                return control.matches(
+                    'input:not([type="hidden"]), select, textarea'
+                ) && !control.disabled && control.offsetParent !== null;
+            }) : [];
+            firstInvalid = focusableFields[0];
+            if (firstInvalid) {
+                firstInvalid.setAttribute('aria-invalid', 'true');
+            }
+        }
         if (firstInvalid) {
             firstInvalid.focus();
         }
+    }
+    if (document.readyState === 'complete') {
+        focusFirstError();
+    } else {
+        document.addEventListener('DOMContentLoaded', focusFirstError, { once: true });
+    }
+    if (retryBtn) {
+        retryBtn.addEventListener('click', () => window.location.reload());
     }
 
     // 4. Loading State Skeleton Delay & Error Retry
@@ -91,13 +115,14 @@
                 }
             }, 150);
         }
-        if (state === 'error') {
-            const retryBtn = document.createElement('button');
-            retryBtn.textContent = 'Erneut versuchen';
-            retryBtn.className = 'btn';
-            retryBtn.addEventListener('click', () => window.location.reload());
+        if (state === 'error' && !retryBtn) {
+            const generatedRetryBtn = document.createElement('button');
+            generatedRetryBtn.type = 'button';
+            generatedRetryBtn.textContent = 'Erneut versuchen';
+            generatedRetryBtn.className = 'btn';
+            generatedRetryBtn.addEventListener('click', () => window.location.reload());
             if (errorRegion) {
-                errorRegion.appendChild(retryBtn);
+                errorRegion.appendChild(generatedRetryBtn);
             }
         }
         
