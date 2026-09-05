@@ -12,10 +12,10 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qsl, urlencode, urlsplit
+from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit
 
 from capture_admin_live_proof import USER, _password
-from playwright.sync_api import Page, Route, sync_playwright
+from playwright.sync_api import APIRequestContext, APIResponse, Page, Route, sync_playwright
 
 BASE = 'https://dishboard.joelduss.xyz'
 WEEK = '2026-08-31'
@@ -155,13 +155,55 @@ class NetworkGate:
                 return True
         return False
 
+    def allow_redirect(self, method: str, from_url: str, status: int, location: str) -> bool:
+        if method != 'POST' or not location:
+            return False
+        target = urljoin(from_url, location)
+        if not self.allow('GET', target):
+            return False
+        if from_url == BASE + '/auth/local':
+            return status == 302 and target == BASE + '/admin/cafeteria'
+        return status == 303 and urlsplit(target).path == urlsplit(from_url).path
+
+    def post(self, request: APIRequestContext, url: str, data: list[list[str]]) -> APIResponse:
+        # Browser route hooks do not govern API requests: authorize before transmission.
+        body = urlencode([tuple(pair) for pair in data])
+        if self.blocked or not self.allow('POST', url, body):
+            self.blocked = True
+            raise RuntimeError('post_not_authorized')
+        try:
+            response = request.post(
+                url, data=body, max_redirects=0, max_retries=0, timeout=15000,
+                headers={'Content-Type': 'application/x-www-form-urlencoded',
+                         'Origin': BASE, 'Referer': url},
+            )
+        except Exception:
+            self.blocked = True
+            raise RuntimeError('post_failed_or_uncertain') from None
+        if 300 <= response.status < 400 and not self.allow_redirect(
+                'POST', url, response.status, response.headers.get('location', '')):
+            self.blocked = True
+            raise RuntimeError('post_redirect_rejected')
+        return response
+
     def route(self, route: Route) -> None:
         request = route.request
-        if self.allow(request.method, request.url, request.post_data or ''):
-            route.continue_()
-        else:
+        if self.blocked or request.method not in {'GET', 'HEAD'} or not self.allow(request.method, request.url):
             self.blocked = True
             route.abort()
+            return
+        try:
+            response = route.fetch(max_redirects=0)
+        except Exception:
+            self.blocked = True
+            route.abort()
+            return
+        # Never hand a 3xx back to Chromium: it can follow without another route hook.
+        if 300 <= response.status < 400:
+            self.blocked = True
+            route.abort()
+            return
+        route.fulfill(response=response)
 
 
 def read_rows() -> dict[int, dict[str, Any]]:
@@ -226,18 +268,40 @@ def process(page: Page, gate: NetworkGate, proposal: Proposal, apply: bool) -> s
     if not form_unchanged(data, changed, proposal.note):
         raise RuntimeError('form_mutation_detected')
     gate.pending = (proposal.action, [tuple(pair) for pair in changed])
-    with page.expect_response(lambda r: r.url == proposal.action and r.request.method == 'POST') as saved:
-        form.get_by_role('button', name='Speichern', exact=True).click()
-    gate.pending = None
-    if saved.value.status == 409:
+    try:
+        saved = gate.post(page.context.request, proposal.action, changed)
+    finally:
+        gate.pending = None
+    if saved.status == 409:
         return 'conflict'
-    if gate.blocked or saved.value.status != 303:
+    if gate.blocked or saved.status != 303:
         raise RuntimeError('save_failed_or_uncertain')
     _, after_data = load_form(page, proposal)
     after = read_rows().get(proposal.id, {})
     if not form_unchanged(data, after_data, proposal.note) or not verified_save(proposal, before, after):
         raise RuntimeError('saved_state_mismatch')
     return 'saved'
+
+
+def login(page: Page, gate: NetworkGate) -> None:
+    login_url = BASE + '/auth/local'
+    response = page.goto(login_url, wait_until='load')
+    if gate.blocked or response is None or response.status != 200 or page.url != login_url:
+        raise RuntimeError('login_page_failed')
+    form = page.locator('form[method="post"][action="/auth/local"]')
+    if form.count() != 1:
+        raise RuntimeError('login_form_missing')
+    form.locator('[name="username"]').fill(USER)
+    form.locator('[name="password"]').fill(_password())
+    response = gate.post(page.context.request, login_url, form.evaluate(FORM_DATA))
+    if gate.blocked or response.status != 302:
+        raise RuntimeError('login_failed')
+    # Discard Location; cookies are shared with context.request. Navigate only here.
+    overview = BASE + '/admin/cafeteria'
+    response = page.goto(overview, wait_until='load')
+    if (gate.blocked or response is None or response.status != 200 or page.url != overview
+            or page.locator('main[data-profile="staff_guest"]').count() != 1):
+        raise RuntimeError('login_failed')
 
 
 def arguments(argv: list[str] | None = None) -> argparse.Namespace:
@@ -271,16 +335,7 @@ def main() -> int:
                         gate = NetworkGate()
                         context.route('**/*', gate.route)
                         page = context.new_page()
-                        response = page.goto(BASE + '/auth/local', wait_until='load')
-                        if response is None or response.status != 200 or page.url != BASE + '/auth/local':
-                            raise RuntimeError('login_page_failed')
-                        page.locator('[name="username"]').fill(USER)
-                        page.locator('[name="password"]').fill(_password())
-                        with page.expect_navigation(wait_until='load'):
-                            page.get_by_role('button', name='Anmelden', exact=True).click()
-                        if gate.blocked or not page.url.startswith(BASE + '/admin'):
-                            raise RuntimeError('login_failed')
-                        gate.login_pending = False
+                        login(page, gate)
                         for proposal in proposals:
                             current_id = proposal.id
                             status = process(page, gate, proposal, args.apply)
