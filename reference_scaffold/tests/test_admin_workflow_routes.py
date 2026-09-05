@@ -140,7 +140,13 @@ def _hidden(body: str, name: str) -> str:
 def _overview_csrf(client, family: str = 'patienten') -> str:
     page = client.get(f'/admin/{family}?week={DAY}')
     assert page.status_code == 200
-    return _hidden(page.get_data(as_text=True), '_csrf')
+    form = re.search(
+        rf'<form[^>]+action="/admin/{re.escape(family)}/header"[^>]*>(.*?)</form>',
+        page.get_data(as_text=True),
+        re.S,
+    )
+    assert form is not None
+    return _hidden(form.group(1), '_csrf')
 
 
 def _counts(engine: Engine) -> tuple[int, int, int]:
@@ -649,3 +655,39 @@ def test_zero_active_locations_are_503(client, database_engine: Engine) -> None:
     response = client.get('/admin/patienten')
     assert response.status_code == 503
     assert client.get('/admin/patienten/copy?week=2026-09-07').status_code == 503
+
+
+def test_menu_post_error_rerenders_editor_with_values(
+    client,
+    database_engine: Engine,
+) -> None:
+    page = client.get(
+        f'/admin/cafeteria/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1'
+    )
+    before = _counts(database_engine)
+    response = client.post('/admin/cafeteria/menu', data=_menu_form(
+        _csrf=_hidden(page.get_data(as_text=True), '_csrf'),
+        title='Wiederanzeige',
+        internal_chf='ungueltig',
+        external_chf='14.50',
+    ))
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 400
+    assert 'error-region' in body
+    assert 'name="title" value="Wiederanzeige"' in body
+    assert 'name="internal_chf" inputmode="decimal" value="ungueltig"' in body
+    assert 'aria-invalid="true" aria-describedby="err-int"' in body
+    assert _counts(database_engine) == before
+
+
+def test_menu_post_rejects_raw_session_csrf_without_mutation(
+    client,
+    database_engine: Engine,
+) -> None:
+    before = _counts(database_engine)
+
+    response = client.post('/admin/patienten/menu', data=_menu_form())
+
+    assert response.status_code == 400
+    assert _counts(database_engine) == before

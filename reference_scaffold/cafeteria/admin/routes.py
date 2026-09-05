@@ -21,6 +21,7 @@ from ..db import active_snapshot
 from ..public.routes import effective_today
 from ..roles import require_capability
 from ..security import validate_csrf
+from ..template_filters import register_template_filters
 from ..workflow import (
     StaleDraftError,
     WorkflowValidationError,
@@ -30,6 +31,11 @@ from ..workflow import (
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
 PATIENT_CSV_ERROR = 'Patienten-CSV ist ungültig.'
+
+
+@bp.record_once
+def _register_template_filters(state) -> None:
+    register_template_filters(state.app)
 
 
 def snapshot(profile_code: str):

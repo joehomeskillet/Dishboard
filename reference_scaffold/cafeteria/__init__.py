@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import datetime as dt
-
 from flask import Flask
 from flask_session import Session
 from redis import Redis
@@ -9,20 +7,13 @@ from redis import Redis
 from .config import Config
 from .db import init_app_database
 from .security import csrf_token
-
-MONTHS = {
-    1: 'Januar', 2: 'Februar', 3: 'März', 4: 'April', 5: 'Mai', 6: 'Juni',
-    7: 'Juli', 8: 'August', 9: 'September', 10: 'Oktober', 11: 'November', 12: 'Dezember',
-}
-
-
-def _date(value: str) -> dt.date:
-    return dt.date.fromisoformat(value)
+from .template_filters import register_template_filters
 
 
 def create_app() -> Flask:
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object(Config())
+    register_template_filters(app)
 
     redis_url = app.config.get('SESSION_REDIS_URL')
     redis_client = None
@@ -49,24 +40,6 @@ def create_app() -> Flask:
     app.register_blueprint(admin_bp)
     app.register_blueprint(api_bp)
     app.register_blueprint(health_bp)
-
-    @app.template_filter('date_long')
-    def date_long(value: str) -> str:
-        parsed = _date(value)
-        return f'{parsed.day}. {MONTHS[parsed.month]} {parsed.year}'
-
-    @app.template_filter('date_short')
-    def date_short(value: str) -> str:
-        parsed = _date(value)
-        return f'{parsed.day}. {MONTHS[parsed.month]}'
-
-    @app.template_filter('chf')
-    def chf(value: int) -> str:
-        return f'{int(value) / 100:.2f}'
-
-    @app.template_filter('iso_week')
-    def iso_week(value: str) -> int:
-        return _date(value).isocalendar().week
 
     @app.context_processor
     def inject_security_helpers():

@@ -8,6 +8,7 @@
 {% set publish_blocked = status in ('review_open', 'incomplete', 'empty') %}
 {% set publish_empty = status == 'empty' %}
 {% set action_message = 'Bitte Raster zuerst vervollständigen' if publish_empty else ('Bitte Freigabe prüfen' if publish_blocked else '') %}
+{% set user_name = user.name if user else 'Demo Küche' %}
 <div class="admin-shell">
   <aside class="admin-sidebar">
     <div class="admin-brand">
@@ -15,10 +16,10 @@
       <span>Menüplanung</span>
     </div>
     <div class="admin-user">
-      <span class="avatar">{{ (user.name or 'DK')[:2]|upper }}</span>
+      <span class="avatar">{{ user_name[:2]|upper }}</span>
       <div>
-        <strong>{{ user.name if user else 'Demo Küche' }}</strong>
-        <span>{{ roles|join(', ') }}</span>
+        <strong>{{ user_name }}</strong>
+        <span>{{ roles|default([])|join(', ') }}</span>
       </div>
     </div>
     <nav class="admin-nav" aria-label="Backend">
@@ -43,9 +44,13 @@
       <div class="admin-notice">
         <strong>Getrenntes Raster:</strong> Montag bis Sonntag, Mittag und Abend. Dieses Raster enthält ausschliesslich Speiseplandaten.
       </div>
-      <div class="flash-region" aria-live="polite">{{ flashes | safe }}</div>
+      <div class="flash-region" aria-live="polite">
+        {% for message in flashes %}<p class="flash">{{ message }}</p>{% endfor %}
+      </div>
       {% if status == 'error' %}
-      <div class="error-region" role="alert" tabindex="-1">{{ flashes | safe }}</div>
+      <div class="error-region" role="alert" tabindex="-1">
+        {% for message in flashes %}<p class="flash">{{ message }}</p>{% endfor %}
+      </div>
       {% endif %}
       <nav class="profile-tabs" aria-label="Profil">
         <a href="{{ url_for('admin.cafeteria') }}">Cafeteria</a>
@@ -113,7 +118,7 @@
                     <li>{{ component }}</li>
                     {% endfor %}
                   </ul>
-                  <span class="slot-badge" data-review="{{ 'open' if cell.review_open else 'checked' }}">{{ 'Prüfung offen' if cell.review_open else 'Prüfung abgeschlossen' }}</span>
+                  <span class="slot-badge" data-review="{{ 'open' if cell.review_open else 'checked' }}">{{ 'Prüfung offen' if cell.review_open else 'Geprüft' }}</span>
                   <a class="btn" href="{{ cell.edit_url }}">Bearbeiten</a>
                 </div>
               </article>
@@ -147,7 +152,7 @@
                     <li>{{ component }}</li>
                     {% endfor %}
                   </ul>
-                  <span class="slot-badge" data-review="{{ 'open' if cell.review_open else 'checked' }}">{{ 'Prüfung offen' if cell.review_open else 'Prüfung abgeschlossen' }}</span>
+                  <span class="slot-badge" data-review="{{ 'open' if cell.review_open else 'checked' }}">{{ 'Prüfung offen' if cell.review_open else 'Geprüft' }}</span>
                   <a class="btn" href="{{ cell.edit_url }}">Bearbeiten</a>
                 </div>
               </article>

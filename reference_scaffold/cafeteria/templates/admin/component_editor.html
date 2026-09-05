@@ -8,11 +8,11 @@
 {% macro field_error(name, error_id) %}{% if errors.get(name) %}<span class="field-error" id="{{ error_id }}">{{ errors[name] }}</span>{% endif %}{% endmacro %}
 
 <div class="admin-shell">
-  <main id="main-content" class="admin-main" data-profile="{{ profile }}" data-family="{{ family }}">
+  <main id="main-content" class="admin-main" data-profile="{{ profile }}" data-family="{{ family }}" data-public-id="{{ component.public_id }}" data-profile-scope="{{ component.profile_scope }}" data-active="{{ '1' if component.active else '0' }}">
     
     <div class="flash-region" aria-live="polite">
       {% for message in flashes %}
-        <div class="flash-message">{{ message }}</div>
+        <p class="flash">{{ message }}</p>
       {% endfor %}
     </div>
 

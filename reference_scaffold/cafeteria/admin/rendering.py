@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Any
 
-from flask import render_template, url_for
+from flask import g, render_template, session, url_for
 
 from ..component_catalog_store import AdminScope
 from ..workflow import MENU_TYPES, PROFILE_DAYS, PROFILE_MEALS
@@ -29,6 +29,47 @@ def _chf(rappen: object) -> str:
     if rappen in (None, '', 0):
         return ''
     return f'{int(rappen) / 100:.2f}'
+
+
+def _template_context() -> dict[str, Any]:
+    return {
+        'user': session.get('user'),
+        'roles': list(getattr(g, 'auth_roles', ())),
+    }
+
+
+def menu_form_values(profile: str, option: dict[str, Any]) -> dict[str, Any]:
+    assignments = list(option.get('assignments') or [])
+    allergens = list(option.get('allergens') or [])
+    origins = list(option.get('origins') or [])
+    labels = list(option.get('labels') or [])
+    values: dict[str, Any] = {
+        'title': str(option.get('title') or ''),
+        'description': str(option.get('description') or ''),
+        'note': str(option.get('note') or ''),
+        'allergen_mode': str(option.get('allergen_mode') or 'manual'),
+        'origin_mode': str(option.get('origin_mode') or 'manual'),
+        'label_mode': str(option.get('label_mode') or 'manual'),
+        'component_public_id[]': [
+            str(assignment.get('component_public_id') or '') for assignment in assignments
+        ],
+        'component_text[]': [
+            str(assignment.get('component_text') or '') for assignment in assignments
+        ],
+        'allergen_code[]': [str(allergen.get('code') or '') for allergen in allergens],
+        'allergen_presence[]': [
+            str(allergen.get('presence') or '') for allergen in allergens
+        ],
+        'origin_ingredient[]': [str(origin.get('ingredient') or '') for origin in origins],
+        'origin_country_code[]': [
+            str(origin.get('country_code') or '') for origin in origins
+        ],
+        'label_code[]': [str(label.get('code') or '') for label in labels],
+    }
+    if profile == 'staff_guest':
+        values['internal_chf'] = _chf(option.get('internal_rappen'))
+        values['external_chf'] = _chf(option.get('external_rappen'))
+    return values
 
 
 def _lookup(draft: dict[str, Any] | None) -> dict[tuple[str, str, str], dict[str, Any]]:
@@ -80,7 +121,7 @@ def _cells(
 def render_admin_week(
     profile: str, family: str, week: date, scope: AdminScope, status: str,
     draft: dict[str, Any] | None, versions: dict[tuple[str, str, str], int],
-    csrf: str, flashes: str,
+    csrf: str, flashes: list[str],
 ) -> str:
     return render_template(
         f'admin/{family}.html', profile=profile, family=family, week=week,
@@ -90,6 +131,7 @@ def render_admin_week(
         title='' if draft is None else str(draft.get('title') or ''),
         shared_note='' if draft is None else str(draft.get('shared_note') or ''),
         cells=_cells(profile, family, week, draft, versions),
+        **_template_context(),
     )
 
 
@@ -97,7 +139,8 @@ def render_menu_editor(
     profile: str, family: str, week: date, cell: dict[str, Any],
     form_values: dict[str, Any], form_errors: dict[str, Any], csrf: str,
     review_token: str | None, catalog_choices: list[dict[str, Any]],
-    allergens: list[dict[str, Any]], labels: list[dict[str, Any]], flashes: str,
+    allergens: list[dict[str, Any]], labels: list[dict[str, Any]],
+    effects: dict[str, Any], flashes: list[str],
     origin_conflict: str | None = None,
 ) -> str:
     return render_template(
@@ -105,29 +148,32 @@ def render_menu_editor(
         week_iso=week.isoformat(), cell=cell, form_values=form_values,
         form_errors=form_errors, csrf=csrf, review_token=review_token,
         catalog_choices=catalog_choices, allergens=allergens, labels=labels,
-        flashes=flashes, origin_conflict=origin_conflict,
+        effects=effects, flashes=flashes, origin_conflict=origin_conflict,
+        **_template_context(),
     )
 
 
 def render_components(
     profile: str, family: str, rows: list[dict[str, Any]], query: str,
-    category: str | None, include_archived: bool, csrf: str, flashes: str,
+    category: str | None, include_archived: bool, csrf: str, flashes: list[str],
     categories: dict[str, str],
 ) -> str:
     return render_template(
         'admin/components.html', profile=profile, family=family, rows=rows,
         query=query, category=category, include_archived=include_archived,
         csrf=csrf, flashes=flashes, categories=categories,
+        **_template_context(),
     )
 
 
 def render_component_detail(
     profile: str, family: str, component: dict[str, Any], csrf: str,
-    flashes: str, categories: dict[str, str],
+    flashes: list[str], categories: dict[str, str],
 ) -> str:
     return render_template(
         'admin/component_editor.html', profile=profile, family=family,
         component=component, csrf=csrf, flashes=flashes, categories=categories,
+        **_template_context(),
     )
 
 
@@ -141,4 +187,5 @@ def render_admin_preview(
     return render_template(
         'admin/preview.html', profile=profile, family=family, week=week,
         week_iso=week.isoformat(), state=state, draft=draft, titles=titles,
+        **_template_context(),
     )

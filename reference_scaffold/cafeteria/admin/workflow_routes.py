@@ -11,7 +11,11 @@ from flask import abort, current_app, flash, get_flashed_messages, make_response
 from sqlalchemy import text
 from sqlalchemy.exc import NoResultFound
 
-from ..component_assignment_store import ComponentAssignmentConflictError, ComponentAssignmentValidationError
+from ..component_assignment_store import (
+    ComponentAssignmentConflictError,
+    ComponentAssignmentValidationError,
+    resolve_component_effects,
+)
 from ..component_catalog_store import (
     AdminScope, ComponentCatalogConfigurationError, ComponentCatalogValidationError,
     ComponentConflictError, ComponentNotFoundError, StaleComponentError, archive_component,
@@ -36,7 +40,7 @@ from ..workflow_partial_store import (
 from ..workflow_store import load_draft_connection
 from .rendering import (
     CATEGORY_LABELS, render_admin_preview, render_admin_week,
-    render_component_detail, render_components, render_menu_editor)
+    menu_form_values, render_component_detail, render_components, render_menu_editor)
 from .routes import _actor_id, bp
 
 FAMILIES = {'cafeteria': 'staff_guest', 'patienten': 'patient'}
@@ -49,6 +53,28 @@ _STORE_ERRORS = (
     ComponentConflictError, ComponentNotFoundError, StaleComponentError, ComponentAssignmentValidationError,
     ComponentAssignmentConflictError, PartialWorkflowValidationError, PartialWorkflowNotFoundError,
     PartialWorkflowConflictError, StaleDraftError, StaleItemError, PublicationConfigurationError, NoResultFound,
+)
+_MENU_VALIDATION_ERRORS = (
+    WorkflowValidationError,
+    ComponentCatalogValidationError,
+    PartialWorkflowValidationError,
+    ComponentAssignmentValidationError,
+)
+_MENU_CONFLICT_ERRORS = (
+    StaleComponentError,
+    ComponentConflictError,
+    ComponentAssignmentConflictError,
+    PartialWorkflowConflictError,
+    StaleDraftError,
+    StaleItemError,
+)
+_MENU_VALUE_FIELDS = (
+    'title', 'description', 'note', 'allergen_mode', 'origin_mode', 'label_mode',
+    'internal_chf', 'external_chf',
+)
+_MENU_LIST_FIELDS = (
+    'component_public_id', 'component_text', 'allergen_code', 'allergen_presence',
+    'origin_ingredient', 'origin_country_code', 'label_code',
 )
 def profile_from_endpoint(endpoint: str) -> str:
     profile = FAMILIES.get(endpoint)
@@ -107,9 +133,6 @@ def _page(body: str, status: int = 200):
 
 def _hidden(name: str, value: object) -> str:
     return f'<input type="hidden" name="{escape(name)}" value="{escape(str(value))}">'
-
-def _origin_page(context: str):
-    return _page(f'<div class="error-region" role="alert">{ORIGIN_CONFLICT}</div>{context}', 409)
 
 def _abort_store(error: BaseException) -> None:
     if isinstance(error, (ComponentCatalogConfigurationError, PublicationConfigurationError)):
@@ -170,8 +193,7 @@ def _validate_scoped_csrf(profile: str, purposes: set[str]) -> AdminScope:
     try:
         raw, purpose, digest = candidate.rsplit('.', 2)
     except ValueError:
-        validate_csrf(candidate)
-        return _scope(profile)
+        abort(400, description='CSRF-Prüfung fehlgeschlagen.')
     validate_csrf(raw)
     if purpose not in purposes:
         abort(400, description='Formularzweck ist ungültig.')
@@ -180,17 +202,8 @@ def _validate_scoped_csrf(profile: str, purposes: set[str]) -> AdminScope:
         abort(409, description='Der aktive Standort wurde zwischenzeitlich geändert.')
     return scope
 
-def _flash() -> str:
-    return ''.join(f'<p class="notice">{escape(message)}</p>' for message in get_flashed_messages())
-
-def _menu_context(week: date, day: str, meal: str, option: str, title: str, version: int) -> str:
-    return (
-        f'<div data-week="{week.isoformat()}" data-day="{escape(day)}" '
-        f'data-meal="{escape(meal)}" data-option="{escape(option)}">'
-        f'{_hidden("week", week.isoformat())}{_hidden("day", day)}{_hidden("meal", meal)}'
-        f'{_hidden("option", option)}{_hidden("row_version", version)}'
-        f'<span class="title">{escape(title)}</span></div>'
-    )
+def _flash() -> list[str]:
+    return get_flashed_messages()
 
 def _load_item(scope: AdminScope, week: date, day: str, meal: str, option: str):
     with _db().connect() as connection:
@@ -201,6 +214,176 @@ def _load_item(scope: AdminScope, week: date, day: str, meal: str, option: str):
             {'id': item_id},
         ).mappings().one()
     return item_id, int(row['row_version']), str(row['title'])
+
+
+def _load_draft_option(
+    profile: str,
+    week: date,
+    day: str,
+    meal: str,
+    option_code: str,
+) -> dict[str, object]:
+    with _db().connect() as connection:
+        draft = load_draft_connection(connection, profile, week)
+    return next(
+        option
+        for day_row in draft['days'] if day_row['date'] == day
+        for service in day_row['services'] if service['meal_code'] == meal
+        for option in service['options'] if option['type_code'] == option_code
+    )
+
+
+def _master_choices() -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    with _db().connect() as connection:
+        allergens = [
+            dict(row)
+            for row in connection.execute(text(
+                'SELECT code, display_name AS name, eu_number '
+                'FROM cafeteria.allergens WHERE active ORDER BY eu_number, code'
+            )).mappings()
+        ]
+        labels = [
+            dict(row)
+            for row in connection.execute(text(
+                'SELECT code, display_name AS name '
+                'FROM cafeteria.dietary_labels WHERE active ORDER BY code'
+            )).mappings()
+        ]
+    return allergens, labels
+
+
+def _catalog_choices(
+    scope: AdminScope,
+    assignments: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    choices = _call(lambda: find_components(_db(), scope, '', None, False))
+    visible_ids = {str(choice['public_id']) for choice in choices}
+    for assignment in assignments:
+        public_id = str(assignment.get('component_public_id') or '')
+        if not public_id or public_id in visible_ids:
+            continue
+        archived = _call(
+            lambda public_id=public_id: get_component(
+                _db(), scope, public_id, include_archived=True,
+            )
+        )
+        choices.append({**archived, 'active': False})
+        visible_ids.add(public_id)
+    return choices
+
+
+def _display_effects(effects: dict[str, object]) -> dict[str, list[str]]:
+    rows = cast(dict[str, list[dict[str, object]]], effects)
+    return {
+        'labels': [str(row.get('name') or row.get('code') or '') for row in rows['labels']],
+        'allergens': [
+            str(row.get('name') or row.get('code') or '') for row in rows['allergens']
+        ],
+        'origins': [str(row.get('text') or '') for row in rows['origins']],
+    }
+
+
+def _request_menu_values() -> dict[str, object]:
+    values: dict[str, object] = {
+        name: request.form.get(name, '') for name in _MENU_VALUE_FIELDS
+        if name in request.form
+    }
+    for name in _MENU_LIST_FIELDS:
+        request_name = name if name in request.form else f'{name}[]'
+        values[f'{name}[]'] = request.form.getlist(request_name)
+    return values
+
+
+def _menu_errors(error: BaseException) -> dict[str, str]:
+    field_name = getattr(error, 'field_name', None)
+    return {str(field_name or 'form'): str(error)}
+
+
+def _render_menu_page(
+    profile: str,
+    family: str,
+    scope: AdminScope,
+    week: date,
+    day: str,
+    meal: str,
+    option_code: str,
+    *,
+    form_values: dict[str, object] | None = None,
+    form_errors: dict[str, str] | None = None,
+    status: int = 200,
+    force_origin_conflict: bool = False,
+):
+    version, title, item_id = 0, '', None
+    option: dict[str, object] = {
+        'title': '', 'description': '', 'note': '',
+        'allergen_mode': 'manual', 'origin_mode': 'manual', 'label_mode': 'manual',
+        'assignments': [], 'allergens': [], 'origins': [], 'labels': [],
+    }
+    if profile == 'staff_guest':
+        option.update(internal_rappen='', external_rappen='')
+    try:
+        item_id, version, title = _load_item(scope, week, day, meal, option_code)
+        option = _load_draft_option(profile, week, day, meal, option_code)
+    except ComponentCatalogConfigurationError as error:
+        abort(503, description=str(error))
+    except (PartialWorkflowNotFoundError, NoResultFound):
+        pass
+
+    assignments = cast(list[dict[str, object]], option.get('assignments') or [])
+    catalog_choices = _catalog_choices(scope, assignments)
+    allergens, labels = _master_choices()
+    review_token = None
+    effects: dict[str, list[str]] = {'labels': [], 'allergens': [], 'origins': []}
+    origin_conflict = ORIGIN_CONFLICT if force_origin_conflict else None
+    if item_id is not None and origin_conflict is None:
+        try:
+            review_token = get_component_review_token(_db(), scope, item_id)
+            effects = _display_effects(resolve_component_effects(_db(), scope, item_id))
+        except AutoOriginConflictError:
+            origin_conflict = ORIGIN_CONFLICT
+        except _STORE_ERRORS as error:
+            _abort_store(error)
+
+    cell = {
+        'day': day,
+        'meal': meal,
+        'option': option_code,
+        'row_version': version,
+        'title': title,
+        'components': list(option.get('assignments') or []),
+    }
+    html = render_menu_editor(
+        profile, family, week, cell,
+        menu_form_values(profile, option) if form_values is None else form_values,
+        form_errors or {}, _scoped_csrf(profile, 'menu', scope), review_token,
+        catalog_choices, allergens, labels, effects, _flash(),
+        origin_conflict=origin_conflict,
+    )
+    response_status = 409 if origin_conflict is not None and status == 200 else status
+    return html if response_status == 200 else make_response(html, response_status)
+
+
+def _menu_error_response(
+    profile: str,
+    family: str,
+    scope: AdminScope,
+    error: BaseException,
+    status: int,
+    *,
+    keep_request_values: bool,
+    origin_conflict: bool = False,
+):
+    week = _monday(request.form.get('week'))
+    day = request.form.get('day', '')
+    meal = request.form.get('meal', '')
+    option = request.form.get('option', '')
+    _raster(profile, week, day, meal, option)
+    return _render_menu_page(
+        profile, family, scope, week, day, meal, option,
+        form_values=_request_menu_values() if keep_request_values else None,
+        form_errors=_menu_errors(error), status=status,
+        force_origin_conflict=origin_conflict,
+    )
 
 def _week_overview(profile: str):
     _reject_override()
@@ -265,29 +448,7 @@ def menu_get(family: str):
         abort(400, description='Menüslot ist unvollständig.')
     _raster(profile, week, day, meal, option)
     scope = _scope(profile)
-    csrf = _scoped_csrf(profile, 'menu', scope)
-    version, title, token, conflict = 0, '', None, None
-    try:
-        item_id, version, title = _load_item(scope, week, day, meal, option)
-        try:
-            token = get_component_review_token(_db(), scope, item_id)
-        except AutoOriginConflictError:
-            conflict = ORIGIN_CONFLICT
-        except _STORE_ERRORS as error:
-            _abort_store(error)
-    except ComponentCatalogConfigurationError as error:
-        abort(503, description=str(error))
-    except (PartialWorkflowNotFoundError, NoResultFound):
-        version, title, token, conflict = 0, '', None, None
-    cell = {'day': day, 'meal': meal, 'option': option, 'row_version': version, 'title': title}
-    values = {'row_version': str(version), 'title': title}
-    if profile == 'staff_guest':
-        values.update(internal_chf='', external_chf='')
-    html = render_menu_editor(
-        profile, family, week, cell, values, {}, csrf, token, [], [], [], _flash(),
-        origin_conflict=conflict,
-    )
-    return html if conflict is None else make_response(html, 409)
+    return _render_menu_page(profile, family, scope, week, day, meal, option)
 
 @bp.post('/<any(cafeteria, patienten):family>/menu')
 @require_capability('draft.write')
@@ -301,8 +462,19 @@ def menu_post(family: str):
             _db(), scope, parsed.week_start, parsed.day, parsed.meal,
             parsed.option, parsed.payload, parsed.expected_item_row_version,
         )
-    except AutoOriginConflictError:
-        return _origin_page('')
+    except AutoOriginConflictError as error:
+        return _menu_error_response(
+            profile, family, scope, error, 409,
+            keep_request_values=True, origin_conflict=True,
+        )
+    except _MENU_VALIDATION_ERRORS as error:
+        return _menu_error_response(
+            profile, family, scope, error, 400, keep_request_values=True,
+        )
+    except _MENU_CONFLICT_ERRORS as error:
+        return _menu_error_response(
+            profile, family, scope, error, 409, keep_request_values=True,
+        )
     except _STORE_ERRORS as error:
         _abort_store(error)
     return redirect(url_for(
@@ -320,13 +492,22 @@ def menu_review(family: str):
     week, day, meal, option = _monday(request.form['week']), request.form['day'], request.form['meal'], request.form['option']
     _raster(profile, week, day, meal, option)
     expected, token = _version_field('row_version'), request.form['component_version']
-    context = _menu_context(week, day, meal, option, '', expected)
     try:
-        item_id, _, title = _load_item(scope, week, day, meal, option)
-        context = _menu_context(week, day, meal, option, title, expected)
+        item_id, _, _ = _load_item(scope, week, day, meal, option)
         version = review_component(_db(), scope, item_id, token, expected)
-    except AutoOriginConflictError:
-        return _origin_page(context)
+    except AutoOriginConflictError as error:
+        return _menu_error_response(
+            profile, family, scope, error, 409,
+            keep_request_values=False, origin_conflict=True,
+        )
+    except _MENU_VALIDATION_ERRORS as error:
+        return _menu_error_response(
+            profile, family, scope, error, 400, keep_request_values=False,
+        )
+    except _MENU_CONFLICT_ERRORS as error:
+        return _menu_error_response(
+            profile, family, scope, error, 409, keep_request_values=False,
+        )
     except _STORE_ERRORS as error:
         _abort_store(error)
     return redirect(url_for(

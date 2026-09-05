@@ -79,11 +79,6 @@ def app(monkeypatch: pytest.MonkeyPatch) -> Flask:
         LAST_GOOD_DIR=str(ROOT / '.test-last-good'),
     )
     application.extensions['cafeteria_db'] = object()
-    application.add_template_filter(lambda value: value, 'date_long')
-    application.add_template_filter(lambda value: value, 'date_short')
-    application.add_template_filter(lambda value: f'{int(value) / 100:.2f}', 'chf')
-    application.add_template_filter(lambda _value: 36, 'iso_week')
-
     auth = Blueprint('auth', __name__)
     auth.add_url_rule('/logout', endpoint='logout', view_func=lambda: '')
     # Add local_login route for testing
@@ -358,8 +353,9 @@ def test_public_patient_week_title_uses_date_range_and_no_profile_banners(app: F
     html = client.get('/patienten/wochenplan/').get_data(as_text=True)
     print_html = client.get('/druck/patienten/woche').get_data(as_text=True)
 
-    assert '<h1>2026-08-31 bis 2026-09-06</h1>' in html
-    assert '<h1>2026-08-31 bis 2026-09-06</h1>' in print_html
+    expected_heading = '<h1>31. August 2026 bis 6. September 2026</h1>'
+    assert expected_heading in html
+    assert expected_heading in print_html
     for path in (
         '/cafeteria/heute/',
         '/cafeteria/wochenangebot/',
@@ -1106,3 +1102,114 @@ def test_admin_templates_use_no_hardcoded_hex() -> None:
     pattern = re.compile(r'style\s*=\s*["\'][^"\']*#[0-9a-fA-F]{3,6}', re.I)
     for path in sorted(folder.glob('*.html')):
         assert pattern.search(path.read_text(encoding='utf-8')) is None, path.name
+
+
+@_NEEDS_DB
+def test_menu_editor_prefills_saved_item_and_masters(
+    admin_app: Flask,
+    admin_engine: Engine,
+) -> None:
+    client, user_id = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    engine = admin_app.extensions['cafeteria_db']
+    scope = _scope(admin_engine, user_id)
+    potato = create_component(engine, scope, 'side', 'Kartoffelstock', 'CH', 'common', (), ())
+    rice = create_component(engine, scope, 'side', 'Reis', 'DE', 'common', (), ())
+    payload = _payload()
+    payload.update({
+        'title': 'Herbstteller',
+        'description': 'Mit Sauce',
+        'note': 'Ohne Pfeffer',
+        'assignments': [
+            {'component_public_id': str(potato['public_id']), 'component_text': None},
+            {'component_public_id': None, 'component_text': 'Blattsalat'},
+        ],
+        'labels': ['VEGAN'],
+        'allergens': [{'code': 'MILK', 'presence': 'may_contain'}],
+        'origins': [
+            {'ingredient': 'Kartoffel', 'country_code': 'CH', 'text': 'Kartoffel: CH'},
+        ],
+    })
+    persist_menu_item(engine, scope, WEEK, DAY, 'LUNCH', 'MENU_1', payload, 0)
+
+    response = client.get(
+        f'/admin/patienten/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1'
+    )
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert 'name="title" value="Herbstteller"' in body
+    assert '>Mit Sauce</textarea>' in body
+    assert '>Ohne Pfeffer</textarea>' in body
+    assert re.search(
+        rf'<option value="{re.escape(str(potato["public_id"]))}" selected>', body
+    )
+    assert 'name="component_text[]" aria-label="Freitext-Komponente" value="Blattsalat"' in body
+    assert 'Kartoffelstock' in body
+    assert 'Reis' in body
+    for code in (
+        'GLUTEN', 'CRUSTACEANS', 'EGGS', 'FISH', 'PEANUTS', 'SOY', 'MILK',
+        'NUTS', 'CELERY', 'MUSTARD', 'SESAME', 'SULPHITES', 'LUPIN', 'MOLLUSCS',
+    ):
+        assert f'name="allergen_code[]" value="{code}"' in body
+    for code in ('VEGETARIAN', 'VEGAN', 'LACTOSE_FREE', 'GLUTEN_FREE'):
+        assert f'name="label_code[]" value="{code}"' in body
+    assert re.search(r'name="allergen_code\[\]" value="MILK" checked', body)
+    assert 'name="origin_ingredient[]" placeholder="Zutat" aria-label="Zutat" value="Kartoffel"' in body
+    assert 'name="origin_country_code[]" pattern="[A-Z]{2}" maxlength="2" placeholder="CH" aria-label="Ländercode" value="CH"' in body
+    assert re.fullmatch(r'sha256:[0-9a-f]{64}', _hidden(body, 'component_version'))
+    assert str(rice['public_id']) in body
+
+
+@_NEEDS_DB
+def test_menu_editor_keeps_archived_assignment_visible_but_not_selectable(
+    admin_app: Flask,
+    admin_engine: Engine,
+) -> None:
+    client, user_id = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    engine = admin_app.extensions['cafeteria_db']
+    scope = _scope(admin_engine, user_id)
+    component = create_component(
+        engine, scope, 'side', 'Archivierte Rösti', 'CH', 'common', (), (),
+    )
+    payload = _payload()
+    payload['assignments'] = [
+        {'component_public_id': str(component['public_id']), 'component_text': None},
+    ]
+    persist_menu_item(engine, scope, WEEK, DAY, 'LUNCH', 'MENU_1', payload, 0)
+    archive_component(
+        engine, scope, str(component['public_id']), int(component['row_version']),
+    )
+
+    body = client.get(
+        f'/admin/patienten/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1'
+    ).get_data(as_text=True)
+
+    assert re.search(
+        rf'<option value="{re.escape(str(component["public_id"]))}" selected disabled>'
+        r'Archivierte Rösti</option>',
+        body,
+    )
+
+
+@_NEEDS_DB
+def test_menu_editor_patient_has_no_cost_fields(
+    admin_app: Flask,
+    admin_engine: Engine,
+) -> None:
+    client, user_id = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    persist_menu_item(
+        admin_app.extensions['cafeteria_db'],
+        _scope(admin_engine, user_id),
+        WEEK,
+        DAY,
+        'LUNCH',
+        'MENU_1',
+        _payload(),
+        0,
+    )
+
+    body = client.get(
+        f'/admin/patienten/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1'
+    ).get_data(as_text=True)
+
+    assert PATIENT_FORBIDDEN.search(body) is None

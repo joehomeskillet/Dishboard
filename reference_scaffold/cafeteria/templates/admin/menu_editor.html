@@ -12,7 +12,7 @@
     
     <div class="flash-region" aria-live="polite">
       {% for message in flashes %}
-        <div class="flash-message">{{ message }}</div>
+        <p class="flash">{{ message }}</p>
       {% endfor %}
     </div>
 
@@ -84,7 +84,7 @@
               <select name="component_public_id[]" aria-label="Komponente aus Katalog">
                 <option value="">(Freitext verwenden)</option>
                 {% for choice in catalog_choices %}
-                  <option value="{{ choice.public_id }}"{% if choice.public_id == c_id %} selected{% elif not choice.active %} disabled{% endif %}>{{ choice.name }}</option>
+                  <option value="{{ choice.public_id }}"{% if choice.public_id == c_id %} selected{% endif %}{% if not choice.active %} disabled{% endif %}>{{ choice.name }}</option>
                 {% endfor %}
               </select>
               <input name="component_text[]" aria-label="Freitext-Komponente" value="{{ c_text|default('') }}">
@@ -151,9 +151,10 @@
       </ul>
       {% if origin_conflict %}
       <div class="error-region" role="alert">
-        Herkunftskonflikt: Komponente bearbeiten oder Herkunft dieses Menüs auf manuell stellen.
+        {{ origin_conflict }}
       </div>
       {% endif %}
+      {% if review_token %}
       <form method="post" action="/admin/{{ family }}/menu/review">
         <input type="hidden" name="_csrf" value="{{ csrf }}">
         <input type="hidden" name="week" value="{{ week }}">
@@ -164,6 +165,7 @@
         <input type="hidden" name="component_version" value="{{ review_token }}">
         <button type="submit" class="btn">Als geprüft bestätigen</button>
       </form>
+      {% endif %}
     </div>
   </main>
 </div>
