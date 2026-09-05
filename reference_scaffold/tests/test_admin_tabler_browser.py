@@ -77,7 +77,8 @@ def test_tabler_lists_preserve_navigation_and_tablet_layout(page_context, admin_
                 expect(toggle).to_be_hidden()
                 expect(nav).to_be_visible()
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), (route, width)
-            assert page.get_by_label('Kompakte Ansicht', exact=True).locator('..').bounding_box()['height'] >= 48
+            expect(page.get_by_label('Kompakte Ansicht', exact=True)).to_have_count(0)
+            expect(page.locator('main')).to_have_attribute('data-density', 'compact')
             for control in page.locator('input[type="date"], input[name="title"], textarea, button[type="submit"]').all():
                 assert control.bounding_box()['height'] >= 48, (width, control.evaluate('(el) => el.outerHTML'))
             for link in page.get_by_role('navigation', name='Backend').get_by_role('link').all():

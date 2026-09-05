@@ -158,40 +158,6 @@
                 errorRegion.appendChild(generatedRetryBtn);
             }
         }
-        
-        // dense toggle (Tabler form-check markup, 48px label target)
-        const denseToggleLabel = document.createElement('label');
-        denseToggleLabel.className = 'form-check';
-        const denseToggleText = document.createElement('span');
-        denseToggleText.className = 'form-check-label';
-        denseToggleText.textContent = 'Kompakte Ansicht';
-        denseToggleLabel.appendChild(denseToggleText);
-        const denseToggle = document.createElement('input');
-        denseToggle.type = 'checkbox';
-        denseToggle.className = 'form-check-input';
-        denseToggle.checked = localStorage.getItem('admin-dense') === 'true';
-        
-        if (denseToggle.checked) {
-            mainContent.setAttribute('data-state', 'dense');
-        }
-        
-        denseToggle.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                mainContent.setAttribute('data-state', 'dense');
-                localStorage.setItem('admin-dense', 'true');
-            } else {
-                mainContent.removeAttribute('data-state');
-                localStorage.setItem('admin-dense', 'false');
-            }
-        });
-        denseToggleLabel.prepend(denseToggle);
-        
-        const actions = document.querySelector('.admin-actions');
-        if (actions) {
-            actions.appendChild(denseToggleLabel);
-        } else {
-            mainContent.prepend(denseToggleLabel);
-        }
     }
 
     // Native successful controls must match the strict repeated-field contract.

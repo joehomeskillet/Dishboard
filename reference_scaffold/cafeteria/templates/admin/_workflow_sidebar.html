@@ -61,6 +61,14 @@
             </a>
           </li>
           {% endfor %}
+          {% if can_configure_display %}
+          <li class="nav-item{% if workflow_nav == 'design' %} active{% endif %}">
+            <a href="{{ url_for('admin.display_settings') }}" class="nav-link{% if workflow_nav == 'design' %} active{% endif %}"{% if workflow_nav == 'design' %} aria-current="page"{% endif %}>
+              <span class="nav-link-icon">{{ icon('eye') }}</span>
+              <span class="nav-link-title">Design & Marke</span>
+            </a>
+          </li>
+          {% endif %}
           <li class="nav-item"><div class="subheader px-3 pt-3 pb-2">Signage</div></li>
           {% for signage_family, channel, icon_name, label in signage_links %}
           <li class="nav-item">

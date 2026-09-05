@@ -1,0 +1,24 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header %}
+{% set workflow_nav = 'design' %}
+{% block title %}Darstellung · Design & Marke{% endblock %}
+{% block page_header %}{{ page_header('Design & Marke') }}{% endblock %}
+{% block content %}
+<div class="row"><div class="col-12 col-lg-8 col-xl-6">
+  <form method="post" action="{{ url_for('admin.display_settings') }}" class="card">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <div class="card-header"><h2 class="card-title">Darstellung</h2></div>
+    <div class="card-body">
+      <p>Die Einstellung gilt für alle Benutzer und Geräte im Adminbereich. Geöffnete Seiten übernehmen sie beim nächsten Laden.</p>
+      <label class="form-label" for="admin-density">Abstände</label>
+      <select class="form-select{% if density_error %} is-invalid{% endif %}" name="admin_density" id="admin-density" aria-describedby="admin-density-hint{% if density_error %} admin-density-error{% endif %}"{% if density_error %} aria-invalid="true"{% endif %}>
+        <option value="compact"{% if admin_density == 'compact' %} selected{% endif %}>Kompakt</option>
+        <option value="comfortable"{% if admin_density == 'comfortable' %} selected{% endif %}>Komfortabel</option>
+      </select>
+      <p class="form-hint" id="admin-density-hint">Kompakt zeigt kleinere Kartenabstände. Schrift, Bedienflächen und wichtige Hinweise bleiben gut lesbar.</p>
+      {% if density_error %}<p class="invalid-feedback d-block" id="admin-density-error" role="alert">{{ density_error }}</p>{% endif %}
+    </div>
+    <div class="card-footer"><button type="submit" class="btn btn-primary">Darstellung speichern</button></div>
+  </form>
+</div></div>
+{% endblock %}

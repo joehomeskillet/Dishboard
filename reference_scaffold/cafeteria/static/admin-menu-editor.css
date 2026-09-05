@@ -11,8 +11,7 @@
 .dishboard-admin :is(.component-row, .origin-row):first-child { padding-top: 0; border-top: 0; }
 .dishboard-admin .allergen-row + .allergen-row { margin-top: 8px; }
 .dishboard-admin textarea.form-control { min-height: 96px; resize: vertical; }
-.dishboard-admin [data-state="dense"] textarea.form-control { min-height: 48px; }
-.dishboard-admin [data-state="dense"] .form-hint { display: none; }
+.dishboard-admin [data-density="compact"] textarea.form-control { min-height: 48px; }
 .dishboard-admin .admin-actions {
   position: sticky; bottom: 0; z-index: 5;
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px;

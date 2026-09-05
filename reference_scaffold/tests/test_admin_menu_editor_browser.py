@@ -89,10 +89,8 @@ def test_editor_viewport_matrix_split_touch_and_sticky_bar(page_context: Page, f
             assert button_box['x'] >= bar_box['x'] - 1 and button_box['x'] + button_box['width'] <= width + 1
         if width == 360:
             assert bar_box['height'] >= 2 * 48, 'Save bar must wrap at 360 px instead of overflowing.'
-        dense = bar.get_by_label('Kompakte Ansicht', exact=True)
-        dense_label = dense.locator('xpath=ancestor::label[1]')
-        expect(dense_label).to_have_class(re.compile(r'\bform-check\b'))
-        assert _box(dense_label)['height'] >= 48
+        expect(main).to_have_attribute('data-density', 'compact')
+        expect(page.get_by_label('Kompakte Ansicht', exact=True)).to_have_count(0)
 
         page.evaluate('window.scrollTo(0, document.documentElement.scrollHeight)')
         _settle(page)
@@ -298,9 +296,8 @@ def test_prices_only_for_staff_and_compact_view_keeps_targets(page_context: Page
         expect(prices).to_have_count(0)
         assert PATIENT_FORBIDDEN.search(page.content()) is None
 
-    dense = page.get_by_label('Kompakte Ansicht', exact=True)
-    dense.check()
-    expect(page.locator('main#main-content')).to_have_attribute('data-state', 'dense')
+    expect(page.get_by_label('Kompakte Ansicht', exact=True)).to_have_count(0)
+    expect(page.locator('main#main-content')).to_have_attribute('data-density', 'compact')
     _open_sections(page)
     for control in page.locator(f'main#main-content :is({CONTROLS})').all():
         if control.evaluate('el => el.matches("input[type=checkbox], input[type=radio]")'):
@@ -309,9 +306,8 @@ def test_prices_only_for_staff_and_compact_view_keeps_targets(page_context: Page
         if box and box['width']:
             assert box['height'] >= 48, control.evaluate('el => el.outerHTML')
     page.reload()
-    expect(page.locator('main#main-content')).to_have_attribute('data-state', 'dense')
-    page.get_by_label('Kompakte Ansicht', exact=True).uncheck()
-    expect(page.locator('main#main-content')).not_to_have_attribute('data-state', 'dense')
+    expect(page.locator('main#main-content')).to_have_attribute('data-density', 'compact')
+    assert page.locator('main#main-content').get_attribute('data-state') is None
 
 
 def test_primary_button_states_keep_brand_colours(page_context: Page) -> None:  # noqa: F811

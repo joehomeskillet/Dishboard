@@ -33,6 +33,7 @@ def create_app() -> Flask:
     from .admin.workflow_routes import bp as admin_bp
     from .admin import menu_collection_routes  # noqa: F401 - register collection routes
     from .admin import week_management_routes  # noqa: F401 - register week management
+    from .admin import display_routes  # noqa: F401 - register global display settings
     from .api.routes import bp as api_bp
     from .health.routes import bp as health_bp
 
