@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT / 'tools'))
 
 from cafeteria.admin import routes as admin_routes  # noqa: E402
 from cafeteria.api import routes as api_routes  # noqa: E402
+from cafeteria.api.v1_routes import bp as api_v1_bp  # noqa: E402
 from cafeteria.auth.service import AuthorizationState  # noqa: E402
 from cafeteria.db import validate_snapshot_payload  # noqa: E402
 from cafeteria.public import routes as public_routes  # noqa: E402
@@ -43,6 +44,10 @@ PUBLIC_QUERY_PATHS = (
     '/cafeteria/legende/',
     '/api/v1/published/cafeteria',
     '/api/v1/published/patienten',
+    '/api/v1/status',
+    '/api/v1/published/cafeteria/today',
+    '/api/v1/published/patienten/today',
+    '/api/v1/published/patienten/days/2026-09-01',
     '/signage/cafeteria/tag',
     '/signage/cafeteria/woche',
     '/signage/patienten/tag',
@@ -54,6 +59,8 @@ PATIENT_OUTPUT_PATHS = (
     '/patienten/wochenplan/',
     '/druck/patienten/woche',
     '/api/v1/published/patienten',
+    '/api/v1/published/patienten/today',
+    '/api/v1/published/patienten/days/2026-09-01',
     '/signage/patienten/tag',
     '/signage/patienten/woche',
     '/admin/export/patienten.csv',
@@ -274,6 +281,7 @@ def app(monkeypatch: pytest.MonkeyPatch) -> Flask:
     application.add_template_filter(lambda value: 36, 'iso_week')
     application.register_blueprint(public_routes.bp)
     application.register_blueprint(api_routes.bp)
+    application.register_blueprint(api_v1_bp)
     application.register_blueprint(signage_routes.bp)
     application.register_blueprint(admin_routes.bp)
     monkeypatch.setattr(
