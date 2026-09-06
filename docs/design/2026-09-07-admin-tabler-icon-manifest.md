@@ -39,9 +39,10 @@ für Status, Navigation und Formulare nicht auf. Fachliche Änderungen benötige
 ## 2. Eine visuelle Sprache
 
 Alle Adminflächen einschliesslich Menü-, Komponenten-, Druckvorlagen- und zukünftiger
-Rezepteditoren bleiben Tabler. Vorhandene `admin/base_tabler.html`, `_macros.html`,
-`_workflow_sidebar.html` und `static/admin-tabler.css` sind die gemeinsame Oberfläche.
-Dateinamen ohne Präfix beziehen sich hier auf `reference_scaffold/cafeteria/`.
+Rezepteditoren bleiben Tabler. Vorhandene `templates/admin/base_tabler.html`, `templates/admin/_macros.html`,
+`templates/admin/_workflow_sidebar.html` und `static/admin-tabler.css` sind die gemeinsame Oberfläche.
+Produktdateipfade beziehen sich hier auf `reference_scaffold/cafeteria/`; `tools/`-Pfade
+beziehen sich auf die Repositorywurzel. Für Testpfade gilt die Basis in Abschnitt 8.
 Kein neues Framework, keine Dependency und keine fremde Editor-Skin als Paralleloberfläche.
 
 | Entscheidung | Verbindliche Anwendung |
@@ -123,7 +124,7 @@ OPS darf ein inzwischen integriertes `clock` verwenden, wenn dieser Zielstand es
 
 `food_symbol` unterstützt auf dieser Basis nur exakte bekannte Codes in `allergens` und
 `countries`; `labels` werden von `food_legend` textuell erhalten, haben aber **noch kein SVG**.
-`_food_symbols.html` ist der bestehende gemeinsame Renderer. Keine Pfade aus Formwerten bauen.
+`templates/_food_symbols.html` ist der bestehende gemeinsame Renderer. Keine Pfade aus Formwerten bauen.
 
 | Fachbedeutung | Vertrag für die Darstellung |
 |---|---|
@@ -280,11 +281,11 @@ OPS-Kandidaten, bevor Root dessen Freeze/Integration bestätigt hat.
 
 | Welle | Eigentum und Ergebnis | Abhängigkeit |
 |---|---|---|
-| P0 – Vertrags-/Assetowner | `tools/vendor_tabler.py`, lokaler Tabler-Sprite und zugehörige Vendorbelege; bestätigte neue Icon-IDs und VEG/VGN-Zuordnung festlegen. Bei Labelhelper-Änderung auch alleiniger Besitz `food_symbols.py`, `_food_symbols.html` samt Symboltests. Keine Dateninferenz. | Root bestätigt Target-HEAD und Code-Impact; Vendor/Paketmanifest-Wiring ausschliesslich Root. |
-| P1 – Shell-/Interaktionsowner | `templates/admin/_macros.html`, `base_tabler.html`, `_workflow_sidebar.html`, `static/admin.js`, `static/admin-tabler.css`; Namen/Tooltip/Legende, 48-px-Geometrie, Fallback und Fokus zentral. | Nach P0; OPS-Sidebaränderungen zuerst integrieren. Diese Dateien danach für Folgelanes gesperrt. |
-| P2a – Wochen-/Menüowner | `cafeteria.html`, `patienten.html`, `menu_editor.html`, `week_review.html` und genau deren Styles/Tests nach Zuweisung. Gleiche Karten, unveränderte Formverträge. | P1, OPS-Freeze. Kein `admin/rendering.py` ohne separaten Vertragsowner. |
-| P2b – Katalogowner | `components.html`, `component_editor.html`, `menu_collection.html`, zugehörige exklusive Styles/Tests. | Parallel P2a, nur gefrorene Makros konsumieren. |
-| P2c – Ausgabe-/Einstellungsowner | `screens.html`, `vorlagen.html`, `print_template_editor.html`, `display_settings.html`, `branding_editor.html`, zugehörige exklusive Styles/Tests. Vorschauen und bildloser Modus. | Parallel P2a/b; keine Public-/Signage-/PDF-Datenänderungen. |
+| P0 – Vertrags-/Assetowner | `tools/vendor_tabler.py`, lokaler Tabler-Sprite und zugehörige Vendorbelege; bestätigte neue Icon-IDs und VEG/VGN-Zuordnung festlegen. Bei Labelhelper-Änderung auch alleiniger Besitz `food_symbols.py`, `templates/_food_symbols.html` samt Symboltests. Keine Dateninferenz. | Root bestätigt Target-HEAD und Code-Impact; Vendor/Paketmanifest-Wiring ausschliesslich Root. |
+| P1 – Shell-/Interaktionsowner | `templates/admin/_macros.html`, `templates/admin/base_tabler.html`, `templates/admin/_workflow_sidebar.html`, `static/admin.js`, `static/admin-tabler.css`; Namen/Tooltip/Legende, 48-px-Geometrie, Fallback und Fokus zentral. | Nach P0; OPS-Sidebaränderungen zuerst integrieren. Diese Dateien danach für Folgelanes gesperrt. |
+| P2a – Wochen-/Menüowner | `templates/admin/cafeteria.html`, `templates/admin/patienten.html`, `templates/admin/menu_editor.html`, `templates/admin/week_review.html` und genau deren Styles/Tests nach Zuweisung. Gleiche Karten, unveränderte Formverträge. | P1, OPS-Freeze. Kein `admin/rendering.py` ohne separaten Vertragsowner. |
+| P2b – Katalogowner | `templates/admin/components.html`, `templates/admin/component_editor.html`, `templates/admin/menu_collection.html`, zugehörige exklusive Styles/Tests. | Parallel P2a, nur gefrorene Makros konsumieren. |
+| P2c – Ausgabe-/Einstellungsowner | `templates/admin/screens.html`, `templates/admin/vorlagen.html`, `templates/admin/print_template_editor.html`, `templates/admin/display_settings.html`, `templates/admin/branding_editor.html`, zugehörige exklusive Styles/Tests. Vorschauen und bildloser Modus. | Parallel P2a/b; keine Public-/Signage-/PDF-Datenänderungen. |
 | P3 – Rest-/Zukunftsowner | Copy/Import, Benutzer/API, dann OPS-Restpolitur und später BAS/REC jeweils als eigene kleine file-disjoint WPs. | Daten-/Rechteverträge zuerst; keine vorgetäuschten Zukunftsrouten. |
 | R – Root Integration | Renderer-Kontext, Routenregistrierung, Paketmanifest und gemeinsame Testfixtures; Diffs/GitNexus, echte Browser-/Touch-/Fachgates, anschliessend freigegebene Auslieferung. | Nach jeder kleinen abgeschlossenen Welle; kein paralleles Schreiben derselben Vertragsdatei. |
 
