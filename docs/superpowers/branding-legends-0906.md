@@ -35,3 +35,11 @@ Die deterministische WP-Erzeugung klassifizierte diese Integrationspakete unzutr
 - Root liest Diffs und wiederholt passende Gates unabhängig: semantische Legendenfälle, PDF-Grenzen/Einseitigkeit, Admin-/Rollen-/Konflikt-/Uploadgrenzen, aktuelle Schrift-/CSP-/Equal-Card-Regressionsprüfungen und echte Browserbilder.
 - OCR bleibt ein gesonderter Nachweis. Frühere 429/Timeouts sind kein CLEAN; ein nicht durchgeführter Review wird benannt. Keine stillen Providerwechsel.
 - Integration, frisches Backup, Migration 17→18, Paket-/Manifestprüfung aus sauberem Git-Export, Deploy und neue Live-Belege durch Root. Nur diese Welle gilt nach ihren tatsächlichen Nachweisen als geliefert; Gesamtziel bleibt bis zur vollständigen Backlog-Abnahme aktiv.
+
+## Zwischenstand der unabhängigen Integration
+
+`65d3d75` integriert die Worker-Commits `0ad84ee` und `36d4230`: stabile Legendensortierung und Legenden auf den vier öffentlichen Webseiten. Root hat die Diffs gelesen und auf seinem Pool `test-api-int2` selbst geprüft: `46 passed in 26.46s`, `GATE_EXIT=0`; Ruff: `All checks passed!`; GitNexus staged: LOW, acht Dateien, zwei bekannte Symbole, keine erkannten Python-Aufrufketten. Die Jinja-Verbraucher wurden zusätzlich durch echte HTTP-/Browserprüfungen abgedeckt. Keine Produktivänderung durch diesen Zwischenstand.
+
+OCR für genau diesen Worker-Stand scheiterte zweimal mit Exit 1: `Review failed: 0 finding(s); 8 of 8 selected item(s) failed.` und `Error: review failed: all 8 file review(s) failed — check your LLM configuration and API key`. Tatsächlich ausgewählter Provider: SambaNova, Modell `Meta-Llama-3.3-70B-Instruct`, jeweils null Tokens. **ESCALATE: OCR nicht verfügbar; kein CLEAN-Nachweis.** Rohbelege: `/tmp/dishboard-food-legends-web-ocr-first-0906.log` und `/tmp/dishboard-food-legends-web-ocr-0906.log`; unabhängiger Gate-Beleg: `/tmp/dishboard-brand-legends-web-gate-0906.log`.
+
+UI-003 ist anhand der Originalbilder konkretisiert: [MiseOS-/Tabler-Übertragung](../design/2026-09-06-miseos-tabler-adaption.md). Dies ist Vorbereitung; laufende Verbraucher- und Branding-Arbeit bleibt vorrangig.
