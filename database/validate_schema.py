@@ -34,6 +34,7 @@ MIGRATION_0013 = ROOT / 'database' / 'migrations' / '0013_v15_to_v16.sql'
 MIGRATION_0014 = ROOT / 'database' / 'migrations' / '0014_v16_to_v17.sql'
 MIGRATION_0015 = ROOT / 'database' / 'migrations' / '0015_v17_to_v18.sql'
 MIGRATION_0016 = ROOT / 'database' / 'migrations' / '0016_v18_to_v19.sql'
+MIGRATION_0017 = ROOT / 'database' / 'migrations' / '0017_v19_to_v20.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
 PAT_JSON = ROOT / 'demo' / 'snapshots' / 'patienten_kw36.json'
@@ -187,8 +188,8 @@ def run_live_check() -> dict[str, Any]:
                     '''
                 )
             ).mappings().one()
-        if int(row['schema_version']) != 19:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 19.")
+        if int(row['schema_version']) != 20:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 20.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
         migrated_structure = structure('cafeteria')
@@ -290,6 +291,23 @@ def main() -> int:
         migration_0014 = MIGRATION_0014.read_text(encoding='utf-8')
         migration_0015 = MIGRATION_0015.read_text(encoding='utf-8')
         migration_0016 = MIGRATION_0016.read_text(encoding='utf-8')
+        migration_0017 = MIGRATION_0017.read_text(encoding='utf-8')
+        for fragment in ('menu_services_time_window_check', 'offer_profiles_display_name_check',
+                         'GRANT UPDATE (display_name, allows_weekend) ON offer_profiles TO cafeteria_app',
+                         'offer_profiles_profile_contract_check',
+                         'lock_operations_actor(p_actor bigint, p_actor_version bigint)',
+                         'ORDER BY role_code FOR SHARE',
+                         'WHERE id=p_actor ORDER BY id FOR UPDATE',
+                         'Cafeteria-Wochenende erlaubt höchstens einen Mittagsservice.',
+                         'Kosten sind nur im Cafeteria-Mittag zulässig.',
+                         "'servicestart', 'serviceend', 'areaname'",
+                         'jsonb_strip_nulls(jsonb_build_object(',
+                         "to_char(s.service_start, 'HH24:MI')",
+                         "to_char(s.service_end, 'HH24:MI')"):
+            if fragment not in migration_0017 or fragment not in sql:
+                fail(f'Betriebszeiten-Vertrag fehlt: {fragment}')
+        if not migration_0017.startswith('BEGIN;') or not migration_0017.rstrip().endswith('COMMIT;'):
+            fail('Migration 0017 hat keinen strikten BEGIN/COMMIT-Vertrag.')
         for fragment in ('local_user_command_context_v19(bigint,text,uuid,text)',
                          'create_local_user_v19(bigint,bigint,text,text,text,text[])',
                          'replace_local_roles_v19(bigint,bigint,uuid,bigint,text[])',
@@ -337,6 +355,7 @@ def main() -> int:
             MIGRATION_0014: 'd767c2446e6cfab10daf073056ec1f9a9570293e76ee0a8f9638036f5460dae0',
             MIGRATION_0015: 'da49d671a6dbfef768330a894f217f5ec4d37addf9bd3c2064ae60a815f8ac9e',
             MIGRATION_0016: 'e195aac3c6b53fb08f733723cd8ef12e6e40fb7abdc5fe58bf1f88585015c6c1',
+            MIGRATION_0017: '186422d38d9094751f4a55086876bbdada32d8b16b4deed758ab3446eec03228',
         }
         for migration_path, expected_checksum in immutable_migration_checksums.items():
             actual_checksum = hashlib.sha256(migration_path.read_bytes()).hexdigest()
@@ -589,7 +608,7 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 19,
+            'schema_version': 20,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
@@ -607,6 +626,7 @@ def main() -> int:
                 '0014_v16_to_v17.sql': hashlib.sha256(MIGRATION_0014.read_bytes()).hexdigest(),
                 '0015_v17_to_v18.sql': hashlib.sha256(MIGRATION_0015.read_bytes()).hexdigest(),
                 '0016_v18_to_v19.sql': hashlib.sha256(MIGRATION_0016.read_bytes()).hexdigest(),
+                '0017_v19_to_v20.sql': hashlib.sha256(MIGRATION_0017.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

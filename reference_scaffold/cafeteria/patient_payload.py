@@ -22,7 +22,10 @@ PATIENT_OBJECT_KEYS = {
     'allergen': frozenset({'code', 'name', 'presence'}),
     'origin': frozenset({'ingredient', 'country_code', 'text'}),
 }
-PATIENT_OPTIONAL_KEYS = {'service': frozenset({'service_state', 'notice'})}
+PATIENT_OPTIONAL_KEYS = {
+    'snapshot': frozenset({'area_name'}),
+    'service': frozenset({'service_state', 'notice', 'service_start', 'service_end'}),
+}
 PATIENT_ALLOWED_COMPACT_KEYS = frozenset(
     key.replace('_', '')
     for keys in (*PATIENT_OBJECT_KEYS.values(), *PATIENT_OPTIONAL_KEYS.values())
@@ -59,12 +62,15 @@ PATIENT_EXTERNAL_ID_RE = re.compile(
 )
 PATIENT_LOCATION_CODE_RE = re.compile(r'^[A-Z][A-Z_]{1,31}$')
 PATIENT_COUNTRY_CODE_RE = re.compile(r'^[A-Z]{2}$')
+PATIENT_TIME_RE = re.compile(r'^(?:[01][0-9]|2[0-3]):[0-5][0-9]$')
 PATIENT_STRUCTURAL_PATTERNS = {
     ('snapshot', 'revision_id'): PATIENT_REVISION_RE,
     ('snapshot', 'week_start'): PATIENT_ISO_DATE_RE,
     ('snapshot', 'week_end'): PATIENT_ISO_DATE_RE,
     ('location', 'code'): PATIENT_LOCATION_CODE_RE,
     ('day', 'date'): PATIENT_ISO_DATE_RE,
+    ('service', 'service_start'): PATIENT_TIME_RE,
+    ('service', 'service_end'): PATIENT_TIME_RE,
     ('option', 'external_id'): PATIENT_EXTERNAL_ID_RE,
     ('origin', 'country_code'): PATIENT_COUNTRY_CODE_RE,
 }
@@ -188,6 +194,11 @@ def _patient_text_is_forbidden(value: str, *, allow_operational_time: bool = Fal
         operational_note = _normalise_decimal_digits(nfkc_text).casefold()
         return not (allow_operational_time and PATIENT_OPERATIONAL_NOTE_RE.fullmatch(operational_note))
     return _patient_tokens_contain_sensitive_lexeme(_patient_semantic_tokens(ascii_text))
+
+
+def patient_text_is_forbidden(value: str) -> bool:
+    """Öffentlicher Freitextfilter für Bereichsnamen und Hinweise ohne Zeitfreigabe."""
+    return _patient_text_is_forbidden(value)
 
 
 def _patient_scalar_is_invalid(kind: str, key: str, value: Any) -> bool:
@@ -314,6 +325,14 @@ def _validate_service_states(services: list[Any]) -> None:
             not isinstance(service.get('notice'), str) or not service['notice'].strip()
         ):
             raise ValueError('Eine geschlossene Mahlzeit braucht einen Hinweis.')
+        start, end = service.get('service_start'), service.get('service_end')
+        for key in ('service_start', 'service_end'):
+            if key in service and (
+                not isinstance(service[key], str) or PATIENT_TIME_RE.fullmatch(service[key]) is None
+            ):
+                raise ValueError('Servicezeiten müssen als HH:MM angegeben werden.')
+        if isinstance(start, str) and isinstance(end, str) and end <= start:
+            raise ValueError('Das Serviceende muss nach dem Servicebeginn liegen.')
 
 
 def validate_snapshot_payload(profile_code: str, snapshot: dict[str, Any]) -> None:
@@ -324,6 +343,11 @@ def validate_snapshot_payload(profile_code: str, snapshot: dict[str, Any]) -> No
     days = snapshot.get('days')
     if not isinstance(days, list) or len(days) != 7:
         raise ValueError('Snapshot muss sieben Tage enthalten.')
+    if 'area_name' in snapshot and (
+        not isinstance(snapshot['area_name'], str) or not snapshot['area_name'].strip()
+        or len(snapshot['area_name']) > 80
+    ):
+        raise ValueError('Der Bereichsname muss 1 bis 80 Zeichen enthalten.')
     if profile_code == 'patient':
         try:
             key_paths = _forbidden_patient_key_paths(snapshot)
@@ -346,9 +370,15 @@ def validate_snapshot_payload(profile_code: str, snapshot: dict[str, Any]) -> No
     else:
         if _forbidden_external_identifier_key_paths(snapshot):
             raise ValueError('Snapshot enthält unzulässige Komponentenkennungen.')
-        services = [service for day in days for service in day.get('services', [])]
-        if len(services) != 5 or any(service.get('meal_code') != 'LUNCH' for service in services):
-            raise ValueError('Cafeteria-Snapshot muss fünf Mittagsservices enthalten.')
+        services = []
+        for index, day in enumerate(days):
+            day_services = day.get('services') if isinstance(day, dict) else None
+            if not isinstance(day_services, list) or (
+                len(day_services) != 1 if index < 5 else len(day_services) > 1
+            ) or any(not isinstance(service, dict) or service.get('meal_code') != 'LUNCH'
+                     for service in day_services):
+                raise ValueError('Cafeteria braucht werktags einen, am Wochenende höchstens einen Mittagsservice.')
+            services.extend(day_services)
         _validate_service_states(services)
         for service in services:
             if service.get('service_state', 'open') != 'open':

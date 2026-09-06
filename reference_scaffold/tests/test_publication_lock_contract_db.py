@@ -60,7 +60,7 @@ def test_v14_database_with_original_0011_checksum_upgrades_with_exactly_0012(pg1
         versions = conn.execute(text(
             "SELECT version FROM cafeteria.schema_migrations ORDER BY version"
         )).scalars().all()
-        assert versions == list(range(4, 20))
+        assert versions == list(range(4, 21))
 
         v15_row = conn.execute(text(
             "SELECT name, application_version, checksum_sha256 FROM cafeteria.schema_migrations WHERE version=15"
@@ -137,7 +137,7 @@ def test_v14_registry_drift_on_0011_aborts_upgrade(pg16: Engine) -> None:
 
 def test_fresh_install_reaches_schema_15_with_narrow_lock_helper_grants(catalog_database: CatalogDatabase) -> None:
     with catalog_database.owner.connect() as conn:
-        assert conn.execute(text("SELECT max(version) FROM cafeteria.schema_migrations")).scalar_one() == 19
+        assert conn.execute(text("SELECT max(version) FROM cafeteria.schema_migrations")).scalar_one() == 20
 
     funcs = [
         'cafeteria.lock_expected_active_location(bigint)',

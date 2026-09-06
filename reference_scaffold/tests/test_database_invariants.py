@@ -281,8 +281,9 @@ def test_migration_plan_is_ordered_and_preserves_0001_bytes() -> None:
         (17, '0014_v16_to_v17.sql'),
         (18, '0015_v17_to_v18.sql'),
         (19, '0016_v18_to_v19.sql'),
+        (20, '0017_v19_to_v20.sql'),
     ]
-    assert database.SCHEMA_VERSION == 19
+    assert database.SCHEMA_VERSION == 20
     migrations = ROOT / 'database' / 'migrations'
     assert hashlib.sha256((migrations / '0001_initial_postgresql.sql').read_bytes()).hexdigest() == (
         'd1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0'
@@ -313,7 +314,7 @@ def test_empty_database_runs_0001_then_0002(database_engine: Engine) -> None:
         local_credentials = connection.execute(
             text("SELECT to_regclass('cafeteria.local_credentials')")
         ).scalar_one()
-    assert [row.version for row in rows] == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    assert [row.version for row in rows] == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
     assert rows[0].name == '0001_initial_postgresql.sql'
     assert rows[1].name == '0002_profile_publication_and_local_auth.sql'
     assert rows[2].name == '0003_patient_key_and_withdrawal_contracts.sql'
@@ -330,6 +331,7 @@ def test_empty_database_runs_0001_then_0002(database_engine: Engine) -> None:
     assert rows[13].name == '0014_v16_to_v17.sql'
     assert rows[14].name == '0015_v17_to_v18.sql'
     assert rows[15].name == '0016_v18_to_v19.sql'
+    assert rows[16].name == '0017_v19_to_v20.sql'
     assert local_credentials == 'cafeteria.local_credentials'
 
 
@@ -365,7 +367,7 @@ def test_v4_fixture_migrates_without_replaying_0001() -> None:
         versions = connection.execute(
             text('SELECT version FROM cafeteria.schema_migrations ORDER BY version')
         ).scalars().all()
-    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
     _drop_schema(engine)
     engine.dispose()
 
@@ -1089,7 +1091,7 @@ def test_v4_draft_revision_is_withdrawn_and_not_public() -> None:
                 '''
             )
         ).all()
-    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
     assert int(public_rows) == 0
     assert withdrawn[0] is True
     assert 'v4' in withdrawn[1]
@@ -1973,6 +1975,7 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
     assert privileges['capability_hard_reset'] is False
     assert privileges['public_capability_hard_reset_revoked'] is True
     assert {row['proname'] for row in definer_privileges} == {
+        'lock_operations_actor',
         'begin_local_admin_v19',
         'lock_local_user_v19',
         'require_remaining_local_admin_v19',
@@ -2026,6 +2029,7 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
         )
         assert row['app_execute'] is (
             row['proname'] in {
+                'lock_operations_actor',
                 'lock_component_metadata_masters',
                 'lock_active_publication',
                 'lock_expected_active_location',

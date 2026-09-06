@@ -74,6 +74,9 @@ GRANT SELECT ON
     meal_periods, menu_types, dietary_labels, allergens, active_publications,
     audit_events, publication_lifecycle_events
 TO cafeteria_app;
+-- Anzeigenamen und Wochenendschalter sind pflegbar; Patientenschalter bleibt per CHECK fest.
+-- Code, Preisflag und Mahlzeiten bleiben ohne Schreibrecht.
+GRANT UPDATE (display_name, allows_weekend) ON offer_profiles TO cafeteria_app;
 
 GRANT USAGE, SELECT ON
     menu_weeks_id_seq, menu_services_id_seq, dish_templates_id_seq,
@@ -159,5 +162,7 @@ GRANT EXECUTE ON FUNCTION
     create_api_key(bigint, text, text, text, text[], timestamptz),
     revoke_api_key(bigint, uuid)
 TO cafeteria_app;
+
+GRANT EXECUTE ON FUNCTION lock_operations_actor(bigint,bigint) TO cafeteria_app;
 
 COMMIT;

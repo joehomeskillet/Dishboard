@@ -28,15 +28,15 @@ INSERT INTO offer_profiles(code, display_name, allows_prices, allows_weekend, al
 VALUES
     ('patient', 'Patientinnen und Patienten', false, true, ARRAY['LUNCH','DINNER']::text[]),
     ('staff_guest', 'Mitarbeitende und externe Gäste', true, false, ARRAY['LUNCH']::text[])
+-- Gepflegte Anzeigenamen bleiben erhalten; nur die harten Rasterflags werden erneut durchgesetzt.
 ON CONFLICT (code) DO UPDATE
-SET display_name = EXCLUDED.display_name,
-    allows_prices = EXCLUDED.allows_prices,
-    allows_weekend = EXCLUDED.allows_weekend,
+SET allows_prices = EXCLUDED.allows_prices,
+    allows_weekend = CASE WHEN offer_profiles.code = 'patient' THEN true ELSE offer_profiles.allows_weekend END,
     allowed_meals = EXCLUDED.allowed_meals;
 
 INSERT INTO meal_periods(code, display_name, sort_order)
 VALUES ('LUNCH', 'Mittag', 10), ('DINNER', 'Abend', 20)
-ON CONFLICT (code) DO UPDATE SET display_name = EXCLUDED.display_name, sort_order = EXCLUDED.sort_order;
+ON CONFLICT (code) DO UPDATE SET sort_order = EXCLUDED.sort_order;
 
 INSERT INTO menu_types(code, display_name, sort_order)
 VALUES ('MENU_1', 'Menü 1', 10), ('VEGGIE', 'Vegetarisch', 20)
