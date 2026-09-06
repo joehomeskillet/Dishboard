@@ -1975,6 +1975,7 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
     assert privileges['capability_hard_reset'] is False
     assert privileges['public_capability_hard_reset_revoked'] is True
     assert {row['proname'] for row in definer_privileges} == {
+        'lock_operations_actor',
         'begin_local_admin_v19',
         'lock_local_user_v19',
         'require_remaining_local_admin_v19',
@@ -2028,6 +2029,7 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
         )
         assert row['app_execute'] is (
             row['proname'] in {
+                'lock_operations_actor',
                 'lock_component_metadata_masters',
                 'lock_active_publication',
                 'lock_expected_active_location',
