@@ -9,8 +9,13 @@ from typing import Any, cast
 from fpdf import FPDF
 from fpdf.fonts import TTFFont
 
+from ..food_symbols import food_legend
 from ..print_template_config import default_config, validate_config
 from .rendering import DAY_NAMES, MONTHS
+from .week_pdf_symbols import (
+    ICON_GAP, ICON_HEIGHT, SymbolMark, draw_symbol, draw_symbols, legend_text,
+    measure_symbols, origin_text, symbol_mark,
+)
 
 ASSETS = Path(__file__).resolve().parents[1] / 'static'
 # Print tokens sampled from the supplied Südhang PDF (independent of admin CSS).
@@ -40,13 +45,21 @@ class Block:
     lines: list[str]
     size: float
     bold: bool = False
+    leading: float = 1.0
 
     @property
     def height(self) -> float:
-        return len(self.lines) * (self.size + 1)
+        return len(self.lines) * (self.size + self.leading)
 
 
-def _wrap(pdf: FPDF, text: str, width: float, size: float, bold: bool = False) -> Block:
+@dataclass
+class MenuCell:
+    paragraphs: tuple[str, str, str]
+    option: dict[str, Any] | None = None
+
+
+def _wrap(pdf: FPDF, text: str, width: float, size: float, bold: bool = False,
+          leading: float = 1.0) -> Block:
     pdf.set_font('Weekly', 'B' if bold else '', size)
     text = ' '.join(text.split())
     font = cast(TTFFont, pdf.current_font)
@@ -57,9 +70,9 @@ def _wrap(pdf: FPDF, text: str, width: float, size: float, bold: bool = False) -
             'speichern und das PDF erneut öffnen.'
         )
     lines = cast(list[str], pdf.multi_cell(
-        width, size + 1, text, dry_run=True, output='LINES', align='L',
+        width, size + leading, text, dry_run=True, output='LINES', align='L',
     ))
-    return Block(lines, size, bold)
+    return Block(lines, size, bold, leading)
 
 
 def _draw(pdf: FPDF, block: Block, x: float, y: float) -> float:
@@ -67,7 +80,7 @@ def _draw(pdf: FPDF, block: Block, x: float, y: float) -> float:
     for line in block.lines:
         # Explicit baselines, identical to preflight: no auto page break or clipping.
         pdf.text(x, y + block.size, line)
-        y += block.size + 1
+        y += block.size + block.leading
     return y
 
 
@@ -94,7 +107,7 @@ def _paragraphs(option: dict[str, Any], individual_prices: bool) -> tuple[str, s
     components = ' · '.join(option.get('components') or [])
     details = [str(option.get(key) or '') for key in ('description', 'note')]
     details.extend(label['name'] for label in option.get('labels', []))
-    details.extend(origin['text'] for origin in option.get('origins', []))
+    details.extend(origin_text(origin) for origin in option.get('origins', []))
     allergens = option.get('allergens') or []
     for presence, label in (('contains', 'Enthält'), ('may_contain', 'Kann enthalten')):
         names = [item['name'] for item in allergens if item['presence'] == presence]
@@ -109,7 +122,7 @@ def _paragraphs(option: dict[str, Any], individual_prices: bool) -> tuple[str, s
     return title, components, ' · '.join(part for part in details if part)
 
 
-def _rows(draft: dict[str, Any], patient: bool, week: date, prices: bool) -> list[list[tuple[str, str, str]]]:
+def _rows(draft: dict[str, Any], patient: bool, week: date, prices: bool) -> list[list[MenuCell]]:
     days = {str(day['date']): day for day in draft['days']}
     rows = []
     for offset in range(7 if patient else 5):
@@ -121,11 +134,34 @@ def _rows(draft: dict[str, Any], patient: bool, week: date, prices: bool) -> lis
             options = {option['type_code']: option for option in service.get('options', [])}
             for index, code in enumerate(('MENU_1', 'VEGGIE')):
                 if service and service['service_state'] != 'open':
-                    row.append((str(service.get('notice') or 'Kein Angebot') if index == 0 else '', '', ''))
+                    row.append(MenuCell((str(service.get('notice') or 'Kein Angebot') if index == 0 else '', '', '')))
                 else:
-                    row.append(_paragraphs(options.get(code, {}), prices))
+                    option = options.get(code, {})
+                    row.append(MenuCell(_paragraphs(option, prices), option if option.get('title') else None))
         rows.append(row)
     return rows
+
+
+def _legend(pdf: FPDF, content: list[list[MenuCell]], width: float, patient: bool) -> tuple[
+    Block, list[list[tuple[Block, SymbolMark | None]]], list[float], float,
+]:
+    legend = food_legend(cell.option for row in content for cell in row if cell.option is not None)
+    columns = 4 if patient else 3
+    cell_width = width / columns
+    items: list[tuple[Block, SymbolMark | None]] = []
+    for entry in legend.entries:
+        mark = symbol_mark(entry)
+        text_width = cell_width - 2 * PAD - (mark.width + ICON_GAP if mark else 0)
+        items.append((_wrap(pdf, legend_text(entry), text_width, 8.5), mark))
+    for flag, text in ((legend.allergens_unknown, 'Allergenangaben nicht erfasst'),
+                       (legend.review_open, 'Allergenprüfung offen')):
+        if flag:
+            items.append((_wrap(pdf, text, cell_width - 2 * PAD, 8.5), None))
+    rows = [items[index:index + columns] for index in range(0, len(items), columns)]
+    heights = [max(max(block.height, ICON_HEIGHT if mark else 0) for block, mark in row) + PAD
+               for row in rows]
+    heading = _wrap(pdf, 'Legende der gedruckten Menüs', width - 2 * PAD, 9, True)
+    return heading, rows, heights, cell_width
 
 
 def _date_label(week: date, patient: bool) -> str:
@@ -167,7 +203,7 @@ def render_week_pdf(
     pdf.set_creator('Dishboard · fpdf2')
     width = pdf.w - 2 * margin
     day_width = 60.0 if patient else 104.0
-    padding = 2.5 if patient else PAD
+    padding = 2.0 if patient else PAD
     if config['spacing'] == 'roomy':
         padding += 1.5
     cell_width = (width - day_width) / (4 if patient else 2)
@@ -178,9 +214,14 @@ def render_week_pdf(
         table_y += custom_header.height + 2 * padding
     common_prices = _common_prices(draft, patient)
     content = _rows(draft, patient, week, not patient and common_prices is None)
+    legend_heading, legend_rows, legend_heights, legend_width = _legend(pdf, content, width, patient)
+    legend_height = legend_heading.height + sum(legend_heights) + 2 * PAD if legend_rows else 0.0
+    symbols = [[measure_symbols(cell.option, cell_width - 2 * padding) for cell in row] for row in content]
     if patient:
-        content = [[(title, '', ' · '.join(part for part in (components, details) if part))
-                    for title, components, details in row] for row in content]
+        for content_row in content:
+            for content_cell in content_row:
+                title, components, details = content_cell.paragraphs
+                content_cell.paragraphs = (title, '', ' · '.join(part for part in (components, details) if part))
     candidates: tuple[tuple[float, float], ...] = ((9.0, 9.0), (8.5, 8.5)) if patient else ((12.0, 10.0), (11.0, 9.0), (10.0, 8.5))
     if config['text_size'] == 'standard':
         candidates = ((9.0, 9.0),) if patient else ((12.0, 10.0),)
@@ -188,14 +229,17 @@ def render_week_pdf(
         candidates = ((10.0, 10.0),) if patient else ((14.0, 12.0),)
     for body_size, detail_size in candidates:
         rows = [
-                [[_wrap(pdf, text, cell_width - 2 * padding, body_size if i < 2 else detail_size, i == 0)
-              for i, text in enumerate(cell) if text] for cell in row]
+                [[_wrap(pdf, text, cell_width - 2 * padding, body_size if i < 2 else detail_size,
+                        i == 0, 0.5 if patient else 1.0)
+              for i, text in enumerate(cell.paragraphs) if text] for cell in row]
             for row in content
         ]
-        heights = [max(sum(block.height for block in cell) for cell in row) + 2 * padding for row in rows]
+        heights = [max(sum(block.height for block in cell) + strip.height
+                       for cell, strip in zip(row, strips, strict=True)) + 2 * padding
+                   for row, strips in zip(rows, symbols, strict=True)]
         notes_text = ' · '.join(part for part in (_notes(draft), config['footer_text']) if part)
         notes = _wrap(pdf, notes_text, width - 2 * PAD, 8.5 if patient else 10)
-        available = bottom - table_y - header_h - notes.height - 2 * PAD
+        available = bottom - table_y - header_h - notes.height - 2 * PAD - legend_height
         if sum(heights) <= available:
             break
     else:
@@ -242,12 +286,26 @@ def render_week_pdf(
         for index, cell in enumerate(row):
             x = margin + day_width + index * cell_width
             pdf.rect(x, y, cell_width, height)
-            text_y = y + padding + (height - 2 * padding - sum(block.height for block in cell)) / 2
+            strip = symbols[offset][index]
+            text_y = y + padding + (height - 2 * padding - sum(block.height for block in cell) - strip.height) / 2
             for block in cell:
                 text_y = _draw(pdf, block, x + padding, text_y)
+            draw_symbols(pdf, strip, x + padding, text_y)
         y += height
     pdf.rect(margin, y, width, notes.height + 2 * PAD)
     _draw(pdf, notes, margin + PAD, y + PAD)
+    y += notes.height + 2 * PAD
+    if legend_rows:
+        pdf.rect(margin, y, width, legend_height)
+        y = _draw(pdf, legend_heading, margin + PAD, y + PAD)
+        for legend_row, height in zip(legend_rows, legend_heights, strict=True):
+            for index, (block, mark) in enumerate(legend_row):
+                x = margin + index * legend_width + PAD
+                if mark:
+                    draw_symbol(pdf, mark, x, y)
+                    x += mark.width + ICON_GAP
+                _draw(pdf, block, x, y)
+            y += height
     if not patient:
         if config['logo'] != 'none':
             pdf.image(ASSETS / 'img' / LOGOS[config['logo']], pdf.w - margin - 145, 720, w=145)

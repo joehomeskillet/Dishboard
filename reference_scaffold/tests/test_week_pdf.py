@@ -57,7 +57,8 @@ def test_complete_week_is_one_readable_page(profile: str, notes: bool, tmp_path:
                     assert component in body
                 if notes:
                     assert option['note'] in body
-    assert body.count('Allergenangaben nicht erfasst') == (28 if profile == 'patient' else 10)
+    # One declaration for every menu, plus the shared legend's unknown-status entry.
+    assert body.count('Allergenangaben nicht erfasst') == (29 if profile == 'patient' else 11)
     if profile == 'patient':
         assert all(label in body for label in ('Mittag · Menü 1', 'Mittag · Vegetarisch', 'Abend · Menü 1', 'Abend · Vegetarisch', 'SONNTAG'))
         assert re.search(r'\b(?:preise?|chf|rappen|kosten|prices?|cafeteria)\b', body, re.I) is None

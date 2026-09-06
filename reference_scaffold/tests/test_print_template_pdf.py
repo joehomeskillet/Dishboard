@@ -48,7 +48,8 @@ def test_every_control_changes_real_pdf_without_losing_week(profile: str, field:
             for option in service['options']:
                 assert option['title'] in body
                 assert all(component in body for component in option['components'])
-    assert body.count('Allergenangaben nicht erfasst') == (28 if profile == 'patient' else 10)
+    # Every menu retains its warning; the additional occurrence belongs to the legend.
+    assert body.count('Allergenangaben nicht erfasst') == (29 if profile == 'patient' else 11)
     if profile == 'patient':
         assert re.search(r'preis|chf|rappen|kosten|price', body, re.I) is None
         assert 'SONNTAG' in body
