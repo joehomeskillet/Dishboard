@@ -1,4 +1,4 @@
-/* Public pages do not load Tabler. Admin uses its native badge/icon utilities. */
+/* Shared food declarations; Admin also uses native Tabler badge/icon utilities. */
 .food-declaration {
   display: inline-flex;
   align-items: center;
@@ -21,3 +21,37 @@
 .food-symbol--country { inline-size: 2em; }
 .food-legend { margin-block-start: 1rem; }
 .food-legend h2 { font-size: 1rem; }
+
+/* Keep a complete page-specific legend readable alongside the TV menu grid. */
+.signage-shell .food-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  flex-shrink: 0;
+  gap: .3vh .6vw;
+  margin: .5vh 0 0;
+  color: var(--sh-white);
+  font-size: clamp(18px, .94vw, 36px);
+  line-height: 1.2;
+}
+.signage-shell .food-legend .labels { display: contents; }
+.signage-shell .food-legend h2,
+.signage-shell .food-legend p { margin: 0; color: inherit; font: inherit; }
+.signage-shell .food-legend h2 { font-weight: 600; }
+.signage-shell .food-legend .label {
+  padding: .2vh .35vw;
+  font: inherit;
+  font-weight: 500;
+}
+.signage-shell .food-legend .food-symbol { inline-size: 1.2em; block-size: 1.2em; }
+.signage-shell .food-legend .food-symbol--country { inline-size: 1.6em; }
+
+/* Reserve legend space by tightening gaps, keeping every existing font size. */
+.signage-shell .patient-duo-components { margin-bottom: 0; }
+.signage-shell .patient-duo .meal-label.card-header { min-height: 5.5vh; padding-block: .7vh; }
+.signage-shell .patient-duo-options { padding-block: .5vh; gap: .5vh; }
+.signage-shell .patient-board .patient-week-option { padding-block: .35vh; gap: .15vh; }
+.signage-shell .cafe-week-board .slot-type { padding-block: .3vh .1vh; }
+.signage-shell .cafe-week-board .slot-body { gap: .1vh; }
+.signage-shell .cafe-week-board [data-menu-metadata] p { margin-block: 0; }
+.signage-shell .cafe-week-board .card-footer { padding-block: .25vh; }
