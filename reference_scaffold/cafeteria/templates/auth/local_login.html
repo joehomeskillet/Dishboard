@@ -1,10 +1,10 @@
 {% extends "base.html" %}
+{% from '_brand_logo.html' import brand_logo %}
 {% block title %}Lokale Anmeldung · Südhang Menüplanung{% endblock %}
 {% block body %}
 <header class="site-header">
-  <a class="wordmark" href="{{ url_for('public.cafeteria_today') }}">
-    <span class="wordmark-mark" aria-hidden="true"></span>
-    Südhang Menüplanung
+  <a class="site-logo" href="{{ url_for('public.cafeteria_today') }}">
+    {{ brand_logo(brand, 'site-logo-img') }}
   </a>
 </header>
 <main id="main" class="auth-shell">

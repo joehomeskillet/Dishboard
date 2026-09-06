@@ -468,9 +468,18 @@ def test_today_channels_render_each_menu_metadata_pill_once(
     html = _client(app).get(path).get_data(as_text=True)
     page = _page(browser, html, 1440, 1100)
     try:
-        pills = page.locator('.label')
+        pills = page.locator('[data-menu-metadata] .label')
         assert pills.count() == 3
         assert {value.strip() for value in pills.all_text_contents()} == expected_pills
+        legend = page.locator('.food-legend')
+        legend_pills = legend.locator('.label')
+        assert legend_pills.count() == 3
+        assert {value.strip() for value in legend_pills.all_text_contents()} == {
+            'Einmalig Vegan', 'Enthält: Einmalig Gluten', 'Schweiz',
+        }
+        assert legend.locator(
+            'img[src="/static/vendor/food-symbols/flags/ch.svg"]',
+        ).count() == 1
     finally:
         page.close()
 
@@ -517,24 +526,36 @@ def test_week_and_signage_routes_render_canonical_metadata_once_and_contained(
         ]
 
         html = _client(app).get(path).get_data(as_text=True)
-        assert html.count('Route Vegan') == 1, path
-        assert html.count('Enthält: Route Gluten') == 1, path
-        assert html.count('Kann enthalten: Route Nüsse') == 1, path
-        assert html.count('Route Rind: Schweiz') == 1, path
         assert 'ROUTE_LABEL' not in html
         assert 'ROUTE_CONTAINS' not in html
         assert 'ROUTE_MAY' not in html
         page = _page(browser, html, 1920, 1080)
         try:
-            assert page.locator('.label.green').all_text_contents() == ['Route Vegan']
-            assert page.locator('.label.amber').all_text_contents() == [
+            metadata = page.locator('[data-menu-metadata]')
+            metadata_text = '\n'.join(metadata.all_text_contents())
+            assert metadata_text.count('Route Vegan') == 1, path
+            assert metadata_text.count('Enthält: Route Gluten') == 1, path
+            assert metadata_text.count('Kann enthalten: Route Nüsse') == 1, path
+            assert metadata_text.count('Route Rind: Schweiz') == 1, path
+            assert metadata.locator('.label.green').all_text_contents() == ['Route Vegan']
+            assert metadata.locator('.label.amber').all_text_contents() == [
                 'Enthält: Route Gluten', 'Kann enthalten: Route Nüsse',
             ]
-            assert page.locator('.signage-tags').count() >= 1
-            assert page.evaluate(
+            legend = page.locator('.food-legend')
+            legend_pills = legend.locator('.label')
+            assert legend_pills.count() == 4, path
+            assert {value.strip() for value in legend_pills.all_text_contents()} == {
+                'Route Vegan', 'Enthält: Route Gluten', 'Kann enthalten: Route Nüsse',
+                'Schweiz',
+            }, path
+            assert legend.locator(
+                'img[src="/static/vendor/food-symbols/flags/ch.svg"]',
+            ).count() == 1, path
+            assert metadata.count() >= 1, path
+            assert metadata.evaluate_all(
                 """
-                selector => [...document.querySelectorAll('.signage-tags')].every(tags =>
-                  Boolean(tags.closest(selector))
+                (blocks, selector) => blocks.every(block =>
+                  Boolean(block.closest(selector))
                 )
                 """,
                 container_selector,

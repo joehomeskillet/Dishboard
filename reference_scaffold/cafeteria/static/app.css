@@ -25,8 +25,11 @@ p { text-wrap: pretty; }
 
 .site-header { position: sticky; z-index: 20; top: 0; display: flex; align-items: center; min-height: 74px; gap: 1rem; padding: .9rem clamp(1.1rem, 4vw, 4rem); color: var(--sh-magenta); background: var(--sh-panel); box-shadow: none; border-bottom: 3px solid var(--sh-magenta); }
 .site-nav { display: flex; flex: 0 1 auto; align-items: center; gap: .35rem; }
-.site-logo { display: inline-flex; flex: 0 0 auto; align-items: center; min-width: 44px; min-height: 44px; margin-left: auto; }
+.site-logo { display: inline-flex; flex: 0 0 auto; align-items: center; min-width: 48px; min-height: 48px; margin-left: auto; }
 .site-logo-img { display: block; width: clamp(130px, 20vw, 205px); height: auto; }
+.site-header .brand-logo, .print-header .brand-logo { height: 40px; }
+.site-header .brand-logo { object-position: right center; }
+.print-header .brand-logo { object-position: left center; }
 .site-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: .72rem .86rem; border-radius: 10px; color: var(--sh-ink); font-size: .92rem; font-weight: 720; text-decoration: none; white-space: nowrap; }
 .site-nav a:hover { color: var(--sh-magenta); background: transparent; }
 .site-nav a.active { color: var(--sh-magenta); background: var(--sh-magenta-soft); }

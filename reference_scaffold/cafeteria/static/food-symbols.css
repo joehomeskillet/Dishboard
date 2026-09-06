@@ -43,14 +43,12 @@
   font: inherit;
   font-weight: 500;
 }
-.signage-shell .food-legend .food-symbol { inline-size: 1.2em; block-size: 1.2em; }
-.signage-shell .food-legend .food-symbol--country { inline-size: 1.6em; }
 
 /* Reserve legend space by tightening gaps, keeping every existing font size. */
 .signage-shell .patient-duo-components { margin-bottom: 0; }
 .signage-shell .patient-duo .meal-label.card-header { min-height: 5.5vh; padding-block: .7vh; }
-.signage-shell .patient-duo-options { padding-block: .5vh; gap: .5vh; }
-.signage-shell .patient-board .patient-week-option { padding-block: .35vh; gap: .15vh; }
+.signage-shell .patient-duo-options { padding-block: .3vh; gap: .3vh; }
+.signage-shell .patient-board .patient-week-option { padding-block: .25vh; gap: .1vh; }
 .signage-shell .cafe-week-board .slot-type { padding-block: .3vh .1vh; }
 .signage-shell .cafe-week-board .slot-body { gap: .1vh; }
 .signage-shell .cafe-week-board [data-menu-metadata] p { margin-block: 0; }

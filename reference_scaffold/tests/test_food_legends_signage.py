@@ -23,6 +23,16 @@ def _assert_legend_fits(page: Page) -> None:
         'nodes => nodes.every(node => parseFloat(getComputedStyle(node).fontSize) >= 18)',
     )
     assert legend.locator('img').evaluate_all('nodes => nodes.every(n => n.complete && n.naturalWidth > 0)')
+    symbols = legend.locator('.food-symbol').evaluate_all('''nodes => nodes.map(node => {
+        const box = node.getBoundingClientRect();
+        return {width: box.width, height: box.height,
+            font: parseFloat(getComputedStyle(node).fontSize),
+            country: node.classList.contains('food-symbol--country')};
+    })''')
+    assert symbols
+    for symbol in symbols:
+        assert abs(symbol['height'] - 1.5 * symbol['font']) <= 1, symbol
+        assert abs(symbol['width'] - (2 if symbol['country'] else 1.5) * symbol['font']) <= 1, symbol
 
 
 @pytest.mark.parametrize('width,height', [(1920, 1080), (3840, 2160)])

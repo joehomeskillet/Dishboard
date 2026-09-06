@@ -85,3 +85,34 @@ Nachtrag: Der gemeinsame unveränderte UI-/Signage-/PDF-Zwischenstand bestand `2
 Auch Cache-Fix `2d50acb` wurde durch Root gelesen und unabhängig geprüft: `24 passed in 28.40s`, `GATE_EXIT=0`, Log `/tmp/dishboard-root-brand-cache-fix-gate-0906.log`; Ruff und Mypy bestanden. Das unveränderliche Bundle bewahrt zusammengehörige Revision, Tokens und Logo bei überlappenden Anfragen und im begrenzten Ausfallfallback. GitNexus meldete HIGH für die zusammenhängenden Ausgabepfade; Warnung kommuniziert. Die zwei ursprünglichen Review-Befunde sind damit korrigiert. Weiter offen: abschliessendes Logo-Wiring, vollständiger Release-Gate, Paket/Manifest und tatsächlicher Deploy.
 
 Reviewberichte: `wp-87f84a0db539.md` (Store/HTTP, Register 11986) und `wp-7a5475ab6b94.md` (PDF, Register 11987) unter `/nvmetank1/projects/rag-stack/.claude/reports`. OCR bleibt wegen tatsächlich beobachteter SambaNova-HTTP429 dieser Welle nicht verfügbar; Provider wurde erst danach als ausgefallen markiert. Keine weitere Anfrage an denselben erschöpften Provider, kein Ersatzprovider und kein CLEAN-Nachweis.
+
+## Schlussintegration ab `41eb022`
+
+`41eb022` integriert die oben unabhängig geprüfte Branding-/PDF-Anbindung samt Cache-, Standardlogo- und Typkorrektur. Gitleaks: `10 commits scanned.`, `no leaks found`, Exit 0. Der Schema-Validator bestätigt weiterhin Version 18 und den unveränderten Checksum der Migration `0015`.
+
+Logo-Wiring `d77548a` ist zur Root-Abnahme vorgemerkt: elf Templates, begrenzte alte Web-/Druckköpfe und vier neue Browserfälle. Die Lane belegt 75 Bilder, meldet aber korrekt noch einen bereits auf Root `41eb022` reproduzierten Integrationsfehler. Vorläufige Lane-Ausgaben sind kein gemeinsames PASS.
+
+- `wp-881ce6360166`, print_editor, eigener WT `signage-symbol-dimensions-0906`, Basis `41eb022`: nur `food-symbols.css` und gezielte Signage-Tests. Die neuen Legenden-Overrides verkleinerten Symbole auf 1.2 em beziehungsweise Länder auf 1.6 em; der bestehende Vertrag verlangt 1.5 em Höhe und 2 em Länderbreite. Root reproduzierte zweimal denselben Fehler: `1 failed, 3 passed in 6.86s` beziehungsweise `6.05s`, `GATE_EXIT=1`; Symbolhöhe 21.65625 px statt 27.072 px bei Schriftgrösse 18.048 px. Korrektur bewahrt vollständige Legenden und Kartentexte durch passende bestehende Abstände, ohne Schriftgrössen oder Testtoleranzen zu reduzieren.
+- `wp-721744ff56d9`, ps1_recovery, eigener WT `branding-header-logo-fix-0906`, Basis `41eb022` mit `d77548a` als separater Testbasis: feste 32-px-Admin-/40-px-Public-Logoboxen in vorhandenen Selektoren, mindestens 48-px-Linkfläche im alten Login-/Publicrahmen, passende Browserregression. Ausgangsfehler: `height:auto` überstimmt die HTML-Abmessungen; das tatsächlich gesichtete mobile Adminlogo war 164 × 164 statt 164 × 32 px. Die fremden bereits abgeschlossenen Web-/Druckregeln aus `d77548a` bleiben erhalten.
+- `wp-b3b772c3ff7b`, admin_equal_cards: kleiner lesender Live-Prüfer für Editor, revisionierte Ressourcen und Ausgaben, basierend auf bestehendem Auth-/Browser-Prüfer. Keine Aktivierung, Uploads, Veröffentlichung oder Änderung fachlicher Daten in Produktion. Ausführung nach Deploy durch Root; nicht vorhandene Live-Zustände gesondert benennen.
+
+Der externe Design-Validator `wp-f5d4c4481b64` ist **nicht verfügbar**. Beide tatsächlichen PNG-Aufrufe kopierten die Bilder, übersprangen aber Gemini: `skipping gemini (no screenshot or gemini not installed)`. `shutil.which` bestätigt fehlendes Gemini-Binary. Der Runner endete dennoch mit Exit 0 und schrieb `dimensions=[]`/Dummy-GREEN; das ist ausdrücklich kein visueller Review-Nachweis. Native Sichtprüfung bleibt separat. Bericht `wp-f5d4c4481b64.md`, Register 11991; kein Providerwechsel und keine Installation.
+
+SCR-001 wurde als unabhängige nächste Architekturaufgabe kartiert (`wp-05a869009127`, Register 11992). Für jedes Profil/Kanal/Zeitraum existiert genau ein Layout. Ein Zuordnungseditor mit nur einer Auswahl wäre kein fachlicher Abschluss; ein nutzbarer Vorlagenkatalog ist Voraussetzung. Jede spätere Zuordnung benötigt ein eigenes Revisionssignal im laufenden Signage, auch bei unveränderter Menürevision. Keine Produktänderung durch diesen Recherchebericht.
+
+## Vollständiger Integrationslauf und abschliessende Testkorrekturen
+
+Root prüfte den eingefrorenen Quell-Tree `55f5f384e40f667c173507297b26cfe0c917c766` mit allen 3825 gesammelten Fällen aus 133 Modulen auf vier exklusiven Pools. Ergebnis: 3798 bestanden, zwölf fehlgeschlagen, 15 bewusst nicht aktivierte Live-Drills/Compose-Probe, 22 Warnungen. Genau eine identische Wiederholung jedes Shards bestätigt dieselben zwölf Fehler, keine Setup-Errors. Beide vollständigen Ergebnisse bleiben als Fehlernachweise erhalten; kein nachträglich behauptetes PASS. Logs und JUnit: `/tmp/dishboard-brand-legends-shard-{0,1,2,3}-{first-,}0906.{log,xml}`; exakte Befehle und Ausgaben im Root-Report `wp-6102b5a04b76.md`.
+
+Alle Fehler betrafen überholte Testannahmen: globale H2-/Metadaten-Locatoren zählten die hinzugefügte Legende mit; historische Schemafixtures und vollständige Versionslisten endeten bei 17. Die Produktkorrekturen `d77548a`, `c7f5f51` und `9bfde88` bestanden ihre neuen Logo-/Symbol-/Geometriefälle im Gesamtlauf. Nach Abschluss aller Wiederholungen integrierte Root die separaten Testkorrekturen `78e0467` und `c195623`: historische Assertions bleiben vollständig erhalten; tatsächliche Menümetadaten und deduplizierte Legende werden getrennt exakt geprüft, einschliesslich ihrer Kartencontainment-Grenze.
+
+Unabhängige Root-Wiederholung beider jeweils vollständigen Module:
+
+```text
+Schemafixtures: 79 passed in 43.77s
+GATE_EXIT=0
+Vorschau-/Metadaten-Locatoren: 69 passed in 37.56s
+GATE_EXIT=0
+```
+
+Logs `/tmp/dishboard-root-schema18-fixtures-gate-0906.log` und `/tmp/dishboard-root-legend-locators-gate-0906.log`. Anschliessend wird der abschliessende Stand aus sauberem Git-Export vollständig durch den Paketvalidator geprüft. Branding-Live-Prüfer `3491a21` bleibt bis zur Korrektur seiner unabhängigen Reviewbefunde ausserhalb des Release-Pakets; kein Live-PASS aus unzureichenden Mengen-/Legendenprüfungen. UI-003-Feldbeschriftungen und Kontextnamen der Bearbeiten-Links gehören in den getrennten Folgestand.

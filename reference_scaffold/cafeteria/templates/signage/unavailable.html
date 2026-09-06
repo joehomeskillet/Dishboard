@@ -1,8 +1,9 @@
 {% extends "signage/base_signage.html" %}
+{% from '_brand_logo.html' import brand_logo %}
 {% block title %}Speiseplan nicht verfügbar{% endblock %}
 {% block main_label %}Speiseplan nicht verfügbar{% endblock %}
 {% block channel %}
-<img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="signage-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="205" height="40">
+{{ brand_logo(brand, 'signage-logo') }}
 {% endblock %}
 {% block content %}
 {% set neutral_message = 'Der Speiseplan kann zurzeit nicht angezeigt werden.' %}

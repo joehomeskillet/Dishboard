@@ -1,9 +1,10 @@
 {% extends "signage/base_signage.html" %}
+{% from '_brand_logo.html' import brand_logo %}
 {% block title %}Cafeteria geschlossen{% endblock %}
 {% block main_label %}Cafeteria geschlossen{% endblock %}
 {% block channel %}
 <div class="signage-brand">
-  <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="signage-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="205" height="40">
+  {{ brand_logo(brand, 'signage-logo') }}
   <span class="signage-kicker">Cafeteria · Tagesinformation</span>
 </div>
 {% endblock %}

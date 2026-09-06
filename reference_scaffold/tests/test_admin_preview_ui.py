@@ -71,7 +71,9 @@ def test_preview_preserves_saved_week_and_uses_readable_responsive_grid(
         expect(page.locator('.preview-context')).to_have_text(
             'KW 36 / 2026 · Woche ab 31. August 2026'
         )
-        expect(page.get_by_role('heading', level=2)).to_have_text(values['title'])
+        expect(page.get_by_role('heading', level=2, name=values['title'], exact=True)).to_have_text(
+            values['title']
+        )
         expect(page.locator('.shared-note')).to_have_text(values['shared_note'])
         assert page.locator('[data-preview]').get_attribute('data-preview') == 'last-saved'
         assert page.locator('[data-preview]').get_attribute('data-profile') == profile

@@ -1,10 +1,11 @@
 {% extends "signage/base_signage.html" %}
+{% from '_brand_logo.html' import brand_logo %}
 {% from '_food_symbols.html' import legend %}
 {% block title %}Patienten-Tagesplan{% endblock %}
 {% block main_label %}Patienten-Tagesplan{% endblock %}
 {% block channel %}
 <div class="signage-brand">
-  <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="signage-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="205" height="40">
+  {{ brand_logo(brand, 'signage-logo') }}
   <h1 class="signage-kicker m-0">Speiseplan für Patientinnen und Patienten</h1>
 </div>
 {% endblock %}
