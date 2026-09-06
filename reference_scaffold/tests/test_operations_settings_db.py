@@ -63,7 +63,7 @@ _V20_FUNCTION_SQL = """
            has_function_privilege('cafeteria_backup', oid, 'EXECUTE') AS backup
     FROM pg_proc WHERE pronamespace='cafeteria'::regnamespace
       AND proname IN ('patient_key_is_forbidden', 'validate_publication_revision',
-                      'workflow_week_context')
+                      'workflow_week_context', 'validate_menu_service', 'lock_operations_actor')
     ORDER BY proname
 """
 
@@ -148,11 +148,11 @@ def _publication_attempt(
 
 def _invalid_schedules() -> list[tuple[str, dict[str, Any], str]]:
     weekend = _raw_slots('staff_guest')
-    weekend['6'] = {'LUNCH': _slot()}
+    weekend['8'] = {'LUNCH': _slot()}
     missing_meal = _raw_slots('patient')
     del missing_meal['1']['DINNER']
     return [
-        ('staff_guest', weekend, 'cafeteria-samstag'),
+        ('staff_guest', weekend, 'fremder-wochentag'),
         ('patient', missing_meal, 'fehlende-mahlzeit'),
         ('staff_guest', _raw_slots('staff_guest', {(1, 'LUNCH'): _slot(state='holiday', notice='Feiertag')}), 'unbekannter-status'),
         ('staff_guest', _raw_slots('staff_guest', {(1, 'LUNCH'): _slot(start='24:00')}), 'stunde-24'),
@@ -173,11 +173,14 @@ def test_missing_row_yields_open_grid_without_cafeteria_weekend(database_engine)
         assert schedule == default_schedule(profile)
         assert schedule.profile_code == profile and schedule.revision == 0
         assert set(schedule.slots) == set(PROFILE_SLOTS[profile])
-        assert all(rule == SlotRule('open', None, None, '') for rule in schedule.slots.values())
+        assert all(rule == SlotRule('open', None, None, '')
+                   for (day, _), rule in schedule.slots.items() if profile == 'patient' or day <= 5)
     cafeteria = get_schedule(database_engine, location, 'staff_guest')
     patient = get_schedule(database_engine, location, 'patient')
-    assert len(cafeteria.slots) == 5 and len(patient.slots) == 14
-    assert not [day for day, _ in cafeteria.slots if day > 5]
+    assert len(cafeteria.slots) == 7 and len(patient.slots) == 14
+    assert cafeteria.allows_weekend is False and patient.allows_weekend is True
+    assert all(cafeteria.slots[(day, 'LUNCH')] == SlotRule('closed', None, None, 'Am Wochenende geschlossen')
+               for day in (6, 7))
     assert slot_defaults(cafeteria, WEEK_START, 'LUNCH') == SlotRule('open', None, None, '')
     with pytest.raises(KeyError):
         slot_defaults(cafeteria, WEEK_START, 'DINNER')
@@ -347,10 +350,10 @@ def test_area_names_are_compare_and_set_with_narrow_column_privilege(app, databa
                 has_column_privilege('cafeteria_app','cafeteria.offer_profiles','allows_weekend','UPDATE') AS allows_weekend,
                 has_column_privilege('cafeteria_app','cafeteria.offer_profiles','allowed_meals','UPDATE') AS allowed_meals
         """)).mappings().one()
-    assert privileges['display_name'] is True
+    assert privileges['display_name'] is True and privileges['allows_weekend'] is True
     assert not any(
         privileges[column]
-        for column in ('code', 'allows_prices', 'allows_weekend', 'allowed_meals')
+        for column in ('code', 'allows_prices', 'allowed_meals')
     )
 
 
@@ -373,7 +376,7 @@ def test_runtime_role_can_write_schedule_and_area_name(app, database_engine):  #
         with pytest.raises(DBAPIError):
             with runtime.begin() as connection:
                 connection.execute(
-                    text("UPDATE cafeteria.offer_profiles SET allows_weekend=true WHERE code='staff_guest'")
+                    text("UPDATE cafeteria.offer_profiles SET allows_prices=false WHERE code='staff_guest'")
                 )
     finally:
         runtime.dispose()

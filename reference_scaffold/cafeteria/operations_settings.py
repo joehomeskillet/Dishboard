@@ -4,7 +4,7 @@ Vorgaben liegen als JSONB im vorhandenen Settings-Namensraum je Standort und Pro
 Sie verändern niemals bestehende `menu_services`-Zeilen; sie liefern nur Standardwerte
 für Slots, die noch keine Zeile haben. Schreiben ist Compare-and-Set über `revision`
 beziehungsweise über den bisherigen Anzeigenamen, jeweils mit Akteur-, `authz_version`-
-und Adminnachweis in derselben Anweisung wie in `display_settings`.
+und Adminnachweis unter bis zum Transaktionsende gehaltenen IAM-Sperren.
 """
 from __future__ import annotations
 
@@ -12,10 +12,11 @@ import datetime as dt
 import json
 import re
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from sqlalchemy import Connection, Engine, text
+from sqlalchemy.exc import DBAPIError
 
 from .patient_payload import PROFILES, patient_text_is_forbidden
 
@@ -28,36 +29,33 @@ MAX_NOTICE_LENGTH = 200
 MAX_AREA_NAME_LENGTH = 80
 TIME_RE = re.compile(r'^(?:[01][0-9]|2[0-3]):[0-5][0-9]$')
 PROFILE_SLOTS: dict[str, tuple[tuple[int, str], ...]] = {
-    'staff_guest': tuple((day, 'LUNCH') for day in range(1, 6)),
+    'staff_guest': tuple((day, 'LUNCH') for day in range(1, 8)),
     'patient': tuple((day, meal) for day in range(1, 8) for meal in MEALS),
 }
 
-_ADMIN_ACTOR_SQL = """
-    SELECT 1 FROM cafeteria.users u
-    WHERE u.id=:actor_id AND u.authz_version=:authz_version AND u.disabled_at IS NULL
-      AND EXISTS (
-        SELECT 1 FROM cafeteria.user_role_cache r
-        JOIN cafeteria.application_roles a ON a.role_code=r.role_code AND a.active
-        WHERE r.user_id=u.id AND r.role_code='Cafeteria.Admin'
-      )
-"""
 _SAVE_SCHEDULE_SQL = """
     INSERT INTO cafeteria.settings(location_id, profile_id, setting_key, setting_value, updated_by)
     SELECT :location_id, p.id, 'operations_schedule', CAST(:value AS jsonb), u.id
     FROM cafeteria.users u CROSS JOIN cafeteria.offer_profiles p
     WHERE p.code=:profile AND u.id=:actor_id AND u.authz_version=:authz_version
       AND u.disabled_at IS NULL
+      AND CAST(:expected_revision AS integer) = 0
       AND EXISTS (
         SELECT 1 FROM cafeteria.user_role_cache r
         JOIN cafeteria.application_roles a ON a.role_code=r.role_code AND a.active
         WHERE r.user_id=u.id AND r.role_code='Cafeteria.Admin'
       )
-    ON CONFLICT (location_id, profile_id, setting_key) DO UPDATE
-    SET setting_value=EXCLUDED.setting_value, updated_by=EXCLUDED.updated_by,
-        updated_at=clock_timestamp()
-    WHERE (cafeteria.settings.setting_value->>'revision')::int = :expected_revision
-      AND CAST(:expected_revision AS integer) > 0
+    ON CONFLICT (location_id, profile_id, setting_key) DO NOTHING
     RETURNING id
+"""
+_UPDATE_SCHEDULE_SQL = """
+    UPDATE cafeteria.settings s
+    SET setting_value=CAST(:value AS jsonb), updated_by=:actor_id, updated_at=clock_timestamp()
+    FROM cafeteria.offer_profiles p
+    WHERE p.code=:profile AND s.profile_id=p.id AND s.location_id=:location_id
+      AND s.setting_key='operations_schedule'
+      AND (s.setting_value->>'revision')::int=:expected_revision
+    RETURNING s.id
 """
 _SAVE_AREA_NAME_SQL = """
     UPDATE cafeteria.offer_profiles p SET display_name=:new_name
@@ -90,6 +88,7 @@ class OperationsSchedule:
     profile_code: str
     revision: int
     slots: dict[tuple[int, str], SlotRule]
+    allows_weekend: bool = False
 
 
 def _profile_slots(profile: str) -> tuple[tuple[int, str], ...]:
@@ -111,7 +110,11 @@ def default_schedule(profile: str) -> OperationsSchedule:
     return OperationsSchedule(
         profile_code=profile,
         revision=0,
-        slots={slot: SlotRule('open', None, None, '') for slot in _profile_slots(profile)},
+        slots={slot: (
+            SlotRule('closed', None, None, 'Am Wochenende geschlossen')
+            if profile == 'staff_guest' and slot[0] > 5 else SlotRule('open', None, None, '')
+        ) for slot in _profile_slots(profile)},
+        allows_weekend=profile == 'patient',
     )
 
 
@@ -155,7 +158,9 @@ def parse_schedule(profile: str, value: Any) -> OperationsSchedule:
         if not isinstance(day_value, dict) or set(day_value) != expected_meals:
             raise ValueError('Jeder Wochentag braucht genau die Mahlzeiten des Bereichs.')
         slots[(day, meal)] = _parse_slot(profile, day_value[meal])
-    return OperationsSchedule(profile_code=profile, revision=revision, slots=slots)
+    return OperationsSchedule(
+        profile_code=profile, revision=revision, slots=slots, allows_weekend=profile == 'patient'
+    )
 
 
 def _schedule_payload(schedule: OperationsSchedule) -> dict[str, Any]:
@@ -172,12 +177,12 @@ def get_schedule_connection(
 ) -> OperationsSchedule:
     _profile_slots(profile)
     stored = connection.execute(text("""
-        SELECT s.setting_value FROM cafeteria.settings s
-        JOIN cafeteria.offer_profiles p ON p.id=s.profile_id
-        WHERE s.location_id=:location_id AND p.code=:profile
+        SELECT s.setting_value, p.allows_weekend FROM cafeteria.offer_profiles p
+        LEFT JOIN cafeteria.settings s ON s.profile_id=p.id AND s.location_id=:location_id
           AND s.setting_key='operations_schedule'
-    """), {'location_id': location_id, 'profile': profile}).scalar_one_or_none()
-    return parse_schedule(profile, stored)
+        WHERE p.code=:profile
+    """), {'location_id': location_id, 'profile': profile}).one()
+    return replace(parse_schedule(profile, stored.setting_value), allows_weekend=stored.allows_weekend)
 
 
 def get_schedule(engine: Engine, location_id: int, profile: str) -> OperationsSchedule:
@@ -186,7 +191,10 @@ def get_schedule(engine: Engine, location_id: int, profile: str) -> OperationsSc
 
 
 def slot_defaults(schedule: OperationsSchedule, service_date: dt.date, meal: str) -> SlotRule:
-    return schedule.slots[(service_date.isoweekday(), meal)]
+    rule = schedule.slots[(service_date.isoweekday(), meal)]
+    if schedule.profile_code == 'staff_guest' and service_date.isoweekday() > 5 and not schedule.allows_weekend:
+        return SlotRule('closed', None, None, 'Am Wochenende geschlossen')
+    return rule
 
 
 def _require_actor_shape(actor_id: int, authz_version: int) -> None:
@@ -198,9 +206,14 @@ def _require_actor_shape(actor_id: int, authz_version: int) -> None:
 
 
 def _actor_is_active_admin(connection: Connection, actor_id: int, authz_version: int) -> bool:
-    return connection.execute(
-        text(_ADMIN_ACTOR_SQL), {'actor_id': actor_id, 'authz_version': authz_version}
-    ).scalar_one_or_none() is not None
+    try:
+        connection.execute(text('SELECT cafeteria.lock_operations_actor(:actor_id, :authz_version)'),
+                           {'actor_id': actor_id, 'authz_version': authz_version})
+    except DBAPIError as exc:
+        if getattr(exc.orig, 'sqlstate', None) == '42501':
+            raise PermissionError('Aktuelle Admin-Berechtigung erforderlich.') from None
+        raise
+    return True
 
 
 def save_schedule(
@@ -226,7 +239,8 @@ def save_schedule(
     }
     with engine.begin() as connection:
         actor_is_admin = _actor_is_active_admin(connection, actor_id, authz_version)
-        saved = connection.execute(text(_SAVE_SCHEDULE_SQL), parameters).scalar_one_or_none()
+        statement = _SAVE_SCHEDULE_SQL if expected_revision == 0 else _UPDATE_SCHEDULE_SQL
+        saved = connection.execute(text(statement), parameters).scalar_one_or_none()
         if saved is None:
             if not actor_is_admin:
                 raise PermissionError('Aktuelle Admin-Berechtigung erforderlich.')
@@ -245,6 +259,37 @@ def get_area_names(engine_or_connection: Engine | Connection) -> dict[str, str]:
     if set(names) != PROFILES:
         raise RuntimeError('Die Bereichsnamen sind unvollständig.')
     return names
+
+
+def get_area_profiles(engine_or_connection: Engine | Connection) -> dict[str, dict[str, Any]]:
+    statement = text('SELECT code, display_name, allows_weekend, allows_prices, allowed_meals '
+                     'FROM cafeteria.offer_profiles')
+    if isinstance(engine_or_connection, Engine):
+        with engine_or_connection.connect() as connection:
+            rows = connection.execute(statement).mappings().all()
+    else:
+        rows = engine_or_connection.execute(statement).mappings().all()
+    profiles = {row['code']: {key: value for key, value in row.items() if key != 'code'} for row in rows}
+    if set(profiles) != PROFILES:
+        raise RuntimeError('Die Bereiche sind unvollständig.')
+    return profiles
+
+
+def save_weekend_switch(
+    engine: Engine, actor_id: int, authz_version: int, profile: str, expected: bool, value: bool
+) -> bool:
+    _require_actor_shape(actor_id, authz_version)
+    if profile != 'staff_guest' or type(expected) is not bool or type(value) is not bool:
+        raise ValueError('Nur der Cafeteria-Wochenendbetrieb ist mit booleschen Werten schaltbar.')
+    with engine.begin() as connection:
+        _actor_is_active_admin(connection, actor_id, authz_version)
+        saved = connection.execute(text('''
+            UPDATE cafeteria.offer_profiles SET allows_weekend=:value
+            WHERE code=:profile AND allows_weekend=:expected RETURNING id
+        '''), {'profile': profile, 'expected': expected, 'value': value}).scalar_one_or_none()
+        if saved is None:
+            raise OperationsConflictError('Wochenendbetrieb wurde zwischenzeitlich geändert.')
+    return value
 
 
 def _normalise_area_name(profile: str, value: Any) -> str:

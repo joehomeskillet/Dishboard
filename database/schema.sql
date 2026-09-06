@@ -100,10 +100,10 @@ CREATE TABLE IF NOT EXISTS offer_profiles (
     CONSTRAINT offer_profiles_display_name_check
         CHECK (btrim(display_name) <> '' AND length(display_name) <= 80),
     CHECK (cardinality(allowed_meals) >= 1),
-    CHECK (
+    CONSTRAINT offer_profiles_profile_contract_check CHECK (
         (code = 'patient' AND allows_prices = false AND allows_weekend = true AND allowed_meals @> ARRAY['LUNCH','DINNER']::text[])
         OR
-        (code = 'staff_guest' AND allows_prices = true AND allows_weekend = false AND allowed_meals = ARRAY['LUNCH']::text[])
+        (code = 'staff_guest' AND allows_prices = true AND allowed_meals = ARRAY['LUNCH']::text[])
     )
 );
 
@@ -573,18 +573,20 @@ AS $$
 DECLARE
     v_profile text;
     v_meal text;
+    v_allows_weekend boolean;
     v_week_start date;
 BEGIN
     IF TG_OP = 'UPDATE' AND NEW.menu_week_id IS DISTINCT FROM OLD.menu_week_id THEN
         RAISE EXCEPTION 'Ein Service kann nicht in eine andere Woche verschoben werden.' USING ERRCODE = '23514';
     END IF;
 
-    SELECT p.code, m.code, w.week_start
-      INTO v_profile, v_meal, v_week_start
+    SELECT p.code, m.code, w.week_start, p.allows_weekend
+      INTO v_profile, v_meal, v_week_start, v_allows_weekend
       FROM menu_weeks w
       JOIN offer_profiles p ON p.id = w.profile_id
       JOIN meal_periods m ON m.id = NEW.meal_period_id
-     WHERE w.id = NEW.menu_week_id;
+     WHERE w.id = NEW.menu_week_id
+     FOR SHARE OF p;
 
     IF NOT FOUND THEN
         RAISE EXCEPTION 'Unbekannte Woche oder Mahlzeit.' USING ERRCODE = '23503';
@@ -598,8 +600,10 @@ BEGIN
         IF v_meal <> 'LUNCH' THEN
             RAISE EXCEPTION 'Cafeteria erlaubt ausschliesslich LUNCH.' USING ERRCODE = '23514';
         END IF;
-        IF EXTRACT(ISODOW FROM NEW.service_date) > 5 THEN
-            RAISE EXCEPTION 'Cafeteria-Services am Wochenende sind unzulässig.' USING ERRCODE = '23514';
+        IF EXTRACT(ISODOW FROM NEW.service_date) > 5 AND NOT v_allows_weekend
+           AND (TG_OP = 'INSERT' OR NEW.service_date IS DISTINCT FROM OLD.service_date
+                OR NEW.meal_period_id IS DISTINCT FROM OLD.meal_period_id) THEN
+            RAISE EXCEPTION 'Cafeteria-Services am Wochenende sind nicht freigegeben.' USING ERRCODE = '23514';
         END IF;
     ELSIF v_profile = 'patient' THEN
         IF v_meal NOT IN ('LUNCH', 'DINNER') THEN
@@ -1013,8 +1017,10 @@ BEGIN
                OR jsonb_array_length(v_day->'services') <> 1 THEN
                 RAISE EXCEPTION 'Jeder Cafeteria-Werktag braucht genau einen Mittagsservice.' USING ERRCODE = '23514';
             END IF;
-        ELSIF jsonb_array_length(v_day->'services') <> 0 THEN
-            RAISE EXCEPTION 'Cafeteria-Snapshot darf am Wochenende keine Services enthalten.' USING ERRCODE = '23514';
+        ELSIF jsonb_array_length(v_day->'services') > 1
+           OR (jsonb_array_length(v_day->'services') = 1
+               AND v_meals IS DISTINCT FROM ARRAY['LUNCH']::text[]) THEN
+            RAISE EXCEPTION 'Cafeteria-Wochenende erlaubt höchstens einen Mittagsservice.' USING ERRCODE = '23514';
         END IF;
 
         FOR v_service IN SELECT value FROM jsonb_array_elements(v_day->'services')
@@ -2931,6 +2937,34 @@ REVOKE EXECUTE ON FUNCTION bootstrap_first_local_admin(text,text,text)
 FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
 
 -- Anzeigenamen sind das einzige durch die Anwendung pflegbare Feld der Profile.
-GRANT UPDATE (display_name) ON offer_profiles TO cafeteria_app;
+GRANT UPDATE (display_name, allows_weekend) ON offer_profiles TO cafeteria_app;
+
+-- Settings writers hold IAM role definitions and the original actor until commit.
+-- No credentials, bootstrap state or roles are changed by this guard.
+CREATE OR REPLACE FUNCTION lock_operations_actor(p_actor bigint, p_actor_version bigint)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = cafeteria, pg_temp AS $$
+BEGIN
+    IF current_setting('transaction_isolation') <> 'read committed' THEN
+        RAISE EXCEPTION 'READ COMMITTED required.' USING ERRCODE='25001';
+    END IF;
+    PERFORM set_config('lock_timeout', '5s', true);
+    PERFORM role_code FROM application_roles ORDER BY role_code FOR SHARE;
+    PERFORM id FROM users WHERE id=p_actor ORDER BY id FOR UPDATE;
+    IF p_actor IS NULL OR p_actor <= 0 OR p_actor_version IS NULL OR p_actor_version <= 0
+       OR NOT EXISTS (
+        SELECT 1 FROM users u WHERE u.id=p_actor AND u.authz_version=p_actor_version
+          AND u.disabled_at IS NULL AND EXISTS (
+            SELECT 1 FROM user_role_cache r
+            JOIN application_roles a ON a.role_code=r.role_code AND a.active
+            WHERE r.user_id=u.id AND r.role_code='Cafeteria.Admin'
+          )
+       ) THEN
+        RAISE EXCEPTION 'Current administrator required.' USING ERRCODE='42501';
+    END IF;
+END;
+$$;
+REVOKE ALL ON FUNCTION lock_operations_actor(bigint,bigint)
+FROM PUBLIC, cafeteria_app, cafeteria_auth_issuer, cafeteria_backup;
+GRANT EXECUTE ON FUNCTION lock_operations_actor(bigint,bigint) TO cafeteria_app;
 
 COMMIT;

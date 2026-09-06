@@ -38,7 +38,7 @@ Verbindlicher Ablauf, gleichzeitig Akzeptanzfall 13:
 
 **Raster und Sichtbarkeit.** Cafeteria-Werktage Mo–Fr werden immer angezeigt (geschlossen → Geschlossen-Karte wie heute). Sa/So werden nur angezeigt, wenn ein
 Service existiert **und** `open` ist; geschlossene Wochenend-Services liefern nur ihren Hinweis an Geschlossen-Ansichten. Patienten bleiben Mo–So sichtbar.
-Schalter aus → Sa/So-Vorgaben bleiben gespeichert, aber unwirksam; bestehende Wochenendzeilen bleiben lesbar.
+Schalter aus → Sa/So-Vorgaben bleiben gespeichert, aber unwirksam; bestehende Wochenendzeilen bleiben lesbar und am gleichen Datum/Mahlzeit aktualisierbar. Nur neue oder auf einen anderen Wochenendslot verschobene Zeilen werden abgelehnt.
 
 **5/7-Tage-Druckakzeptanz.** Das Cafeteria-Wochen-PDF (A4 hoch) muss für 5, 6 und 7 offene Tage je genau eine Seite liefern; Zeilenhöhe skaliert mit der
 Tagesanzahl, Mindestschrift und Überlauf-Verweigerung (kein Abschneiden, kein unlesbares Verkleinern) bleiben; Patienten-PDF (A4 quer, 7 Tage) unverändert.
@@ -71,9 +71,12 @@ Tests decken 5 Tage (Standard), 6 Tage (Samstag frei) und 7 Tage (alle offen) mi
 - Fehlender Datensatz = Standard: `patient` alle Slots `open`; `staff_guest` Mo–Fr `open`, Sa/So `closed` mit Hinweis «Am Wochenende geschlossen»; keine Zeiten; `revision 0` — identisch zum heutigen Verhalten.
 - Wochenend-Slots der Cafeteria sind nur wirksam, wenn `allows_weekend` gesetzt ist (§1a); `slot_defaults` liefert bei ausgeschaltetem Schalter für Sa/So stets den geschlossenen Standard.
 - Profilflags: `get_area_profiles(connection|engine) -> dict[code, {'display_name','allows_weekend','allows_prices','allowed_meals'}]`; `save_weekend_switch(engine, actor_id, authz_version, profile, expected: bool, value: bool)` (nur `staff_guest`; `patient` → `ValueError`; Compare-and-Set; Admin-Nachweis wie oben).
+- `get_schedule_connection`/`get_schedule` liefern das aktuelle Profilflag als additive Eigenschaft `allows_weekend`; `default_schedule`/`parse_schedule` setzen ohne DB für Cafeteria `false`, für Patienten `true`. `slot_defaults` behält genau drei Argumente.
+- Alle OPS-Schreiber halten unter READ COMMITTED sortierte IAM-Rollensperren und die Actorsperre bis zum Commit; danach prüfen sie die ursprünglich übergebene Actorversion und aktive Adminrolle (`settings.write`). Die historischen IAM-Mutatoren und Credentialdaten bleiben unberührt.
+- Eine fehlende Settingszeile darf ausschliesslich mit erwarteter Version 0 angelegt werden; jede höhere Erwartung führt ohne vorhandene passende Zeile zum Konflikt.
 - Speichern ist Compare-and-Set über `revision` in derselben SQL-Anweisung, mit Akteur-/`authz_version`-/aktivem-Admin-Nachweis wie `display_settings._save_admin_display`. Konflikt → `OperationsConflictError`; fehlende Berechtigung → `PermissionError`; ungültig → `ValueError`.
 - Öffentliche API des Moduls (Vertrag für O-B/O-C):
-  `PROFILE_SLOTS`, `TIME_RE`, `SlotRule(state,start,end,notice)`, `OperationsSchedule(profile_code,revision,slots)`, `default_schedule(profile)`, `parse_schedule(profile, value)`, `get_schedule_connection(connection, location_id, profile)`, `get_schedule(engine, location_id, profile)`, `save_schedule(engine, actor_id, authz_version, location_id, profile, expected_revision, slots) -> int`, `slot_defaults(schedule, service_date, meal) -> SlotRule`, `normalise_time(value) -> str | None` (`''`/`None` → `None`, sonst strikt `HH:MM`), `get_area_names(connection|engine) -> dict[code, name]`, `save_area_name(engine, actor_id, authz_version, profile, expected_name, new_name)` (Compare-and-Set auf den bisherigen Namen; Patientenname durch `patient_text_is_forbidden`).
+  `PROFILE_SLOTS`, `TIME_RE`, `SlotRule(state,start,end,notice)`, `OperationsSchedule(profile_code,revision,slots,allows_weekend=False)`, `default_schedule(profile)`, `parse_schedule(profile, value)`, `get_schedule_connection(connection, location_id, profile)`, `get_schedule(engine, location_id, profile)`, `save_schedule(engine, actor_id, authz_version, location_id, profile, expected_revision, slots) -> int`, `slot_defaults(schedule, service_date, meal) -> SlotRule`, `normalise_time(value) -> str | None` (`''`/`None` → `None`, sonst strikt `HH:MM`), `get_area_names(connection|engine) -> dict[code, name]`, `save_area_name(engine, actor_id, authz_version, profile, expected_name, new_name)` (Compare-and-Set auf den bisherigen Namen; Patientenname durch `patient_text_is_forbidden`).
 
 ## 4. Vorrang und Materialisierung
 
@@ -122,9 +125,9 @@ Integration, Manifest (`tools/build_manifest.py`), Paketprüfung und Gesamtgate:
 
 ## 8. Akzeptanzfälle (echte Gates)
 
-1. Migration 19→20 auf leerer und auf seedierter PostgreSQL; Baseline `schema.sql` strukturgleich; Rollen-Readiness; `cafeteria_app` darf nur `display_name` in `offer_profiles` ändern.
+1. Migration 19→20 auf leerer und auf seedierter PostgreSQL; Baseline `schema.sql` strukturgleich; Rollen-Readiness; `cafeteria_app` darf nur `display_name` und `allows_weekend` in `offer_profiles` ändern; `patient.allows_weekend` bleibt per CHECK wahr.
 2. Seed zweimal: gepflegte Anzeigenamen bleiben erhalten; Rasterflags werden weiterhin durchgesetzt.
-3. Vorgaben speichern: ungültige Slots, Nachtfenster, `24:00`, fehlender Hinweis bei `closed`, fremde Wochentage (Cafeteria Sa) → 400/ValueError; Konflikt bei veralteter `revision`; Editor/Publisher → 403; abgelaufene `authz_version` → 401/403.
+3. Vorgaben speichern: ungültige Slots, Nachtfenster, `24:00`, fehlender Hinweis bei `closed`, fremde Wochentage (z. B. ISO-Tag 8) → 400/ValueError; Konflikt bei veralteter `revision`; Editor/Publisher → 403; abgelaufene `authz_version` → 401/403.
 4. Nicht rückwirkend: bestehende Woche mit Zeilen bleibt nach Vorgabenänderung unverändert (Status, Hinweis, Zeiten, Review-Beleg); neue Woche zeigt Vorgaben als synthetische Zellen; erste Speicherung materialisiert sie.
 5. Menü in vorgabe-geschlossenem Slot ohne Zeile → Konfliktmeldung, kein Insert.
 6. Vollersatz/CSV-Import erhält manuelle Zeiten; Kopie übernimmt Zeiten der Quelle.
