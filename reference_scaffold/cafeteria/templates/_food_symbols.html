@@ -16,7 +16,7 @@
       <h2{% if tabler %} class="h4"{% endif %}>{{ heading }}</h2>
       <div class="labels{% if tabler %} badge-list{% endif %}">
         {% for item in content.entries %}
-          <span class="label{% if item.kind == 'allergens' %} amber{% elif item.kind == 'labels' %} green{% endif %} {% if tabler %}badge mw-100 text-wrap text-start {{ 'bg-yellow-lt' if item.kind == 'allergens' else 'bg-green-lt' if item.kind == 'labels' else 'bg-secondary-lt' }}{% else %}food-declaration{% endif %}">{{ symbol(item.kind, item.code, tabler) }}<span{% if tabler %} class="text-break"{% endif %}>{{ allergen_text(item) if item.kind == 'allergens' else item.name }}</span></span>
+          <span class="label{% if item.kind == 'allergens' %} amber{% elif item.kind == 'labels' %} green{% endif %} {% if tabler %}badge mw-100 text-wrap text-start {{ 'bg-yellow-lt' if item.kind == 'allergens' else 'bg-green-lt' if item.kind == 'labels' else 'bg-secondary-lt' }}{% else %}food-declaration{% endif %}">{{ symbol(item.kind, item.code) }}<span{% if tabler %} class="text-break"{% endif %}>{{ allergen_text(item) if item.kind == 'allergens' else item.name }}</span></span>
         {% endfor %}
       </div>
       {% if content.allergens_unknown %}<p>Allergenangaben nicht erfasst</p>{% endif %}

@@ -52,10 +52,11 @@ def test_legend_deduplicates_codes_but_preserves_presence_and_unknown_state() ->
     original = deepcopy([first, second])
     legend = food_legend([first, second, {}])
     assert [(item.kind, item.code, item.presence) for item in legend.entries] == [
-        ('allergens', 'MILK', 'contains'), ('allergens', 'CELERY', 'may_contain'),
+        ('allergens', 'MILK', 'contains'), ('allergens', 'MILK', 'may_contain'),
+        ('allergens', 'CELERY', 'may_contain'),
         ('countries', 'CH', ''), ('labels', 'VEGETARIAN', ''),
-        ('allergens', 'MILK', 'may_contain'),
     ]
+    assert food_legend([{}, second, first]) == legend
     assert legend.allergens_unknown and legend.review_open
     assert [first, second] == original
     assert food_legend([]).entries == ()

@@ -59,7 +59,7 @@ def food_symbol(code: object, kind: str = 'allergens') -> FoodSymbol | None:
 
 
 def food_legend(options: Iterable[Mapping[str, Any]]) -> FoodLegend:
-    """Collect only the supplied visible options, in first-occurrence order.
+    """Collect only supplied visible options, sorted by kind, name and presence.
 
     Presence remains part of allergen identity. The caller selects the displayed
     day/services/page; this helper neither loads nor mutates a snapshot.
@@ -82,4 +82,10 @@ def food_legend(options: Iterable[Mapping[str, Any]]) -> FoodLegend:
                 # Missing codes must not collapse distinct unrecognized declarations.
                 key = kind, code or name, presence
                 entries.setdefault(key, LegendEntry(kind, code, name, presence, symbol))
-    return FoodLegend(tuple(entries.values()), unknown, review_open)
+    kind_order = {'allergens': 0, 'countries': 1, 'labels': 2}
+    presence_order = {'contains': 0, 'may_contain': 1}
+    ordered = sorted(entries.values(), key=lambda item: (
+        kind_order[item.kind], item.name.casefold(), item.code,
+        presence_order.get(item.presence, 2), item.presence,
+    ))
+    return FoodLegend(tuple(ordered), unknown, review_open)
