@@ -28,8 +28,8 @@
       {% block content %}{% endblock %}
     </main>
     <footer class="signage-statusbar" data-signage-footer>
-      <span class="signage-revision">{% if snapshot %}{{ snapshot.revision_id }}{% endif %}</span>
-      <span class="signage-status" data-signage-status></span>
+      <span class="signage-revision" hidden></span>
+      <span class="signage-status ms-auto" data-signage-status></span>
     </footer>
   </div>
   <script src="{{ url_for('static', filename='signage.js') }}" defer></script>

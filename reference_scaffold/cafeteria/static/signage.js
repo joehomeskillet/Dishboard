@@ -4,6 +4,7 @@ const TIME_ZONE = 'Europe/Zurich';
 const DEFAULT_INTERVAL_MS = 60000;
 const FADE_MS = 300;
 const PAGE_INTERVAL_MS = 30000;
+const MAX_BUFFER_MS = 5 * 60000;
 
 function readIntervalMs(root) {
   const raw = root.dataset.signageInterval;
@@ -109,7 +110,36 @@ async function fetchDocument(pathname) {
   }
 }
 
-async function applyDocumentSwap(parsed, revision) {
+function contentDeadline(now) {
+  let start = now.getTime();
+  let end = start + MAX_BUFFER_MS;
+  const date = zurichDateString(now);
+  if (zurichDateString(new Date(end)) === date) return end;
+  // Locate Zurich midnight inside this five-minute window without assuming a UTC offset.
+  while (end - start > 1) {
+    const middle = Math.floor((start + end) / 2);
+    if (zurichDateString(new Date(middle)) === date) start = middle;
+    else end = middle;
+  }
+  return end;
+}
+
+function showUnavailable() {
+  const currentMain = document.querySelector('[data-signage-root]');
+  const section = document.createElement('section');
+  section.className = 'signage-empty';
+  const title = document.createElement(document.querySelector('[data-signage-header] h1') ? 'h2' : 'h1');
+  title.textContent = 'Speiseplan nicht verfügbar';
+  const message = document.createElement('p');
+  message.textContent = 'Der Speiseplan kann zurzeit nicht angezeigt werden.';
+  section.append(title, message);
+  currentMain.replaceChildren(section);
+  document.documentElement.dataset.signageRevision = '';
+  document.documentElement.dataset.signageDate = zurichDateString(new Date());
+  document.querySelector('.signage-revision').textContent = '';
+}
+
+async function applyDocumentSwap(parsed, revision, deadline = Infinity) {
   const frameNode = document.querySelector('[data-signage-frame]');
   const nextRoot = parsed.documentElement;
   const nextHeader = parsed.querySelector('[data-signage-header]');
@@ -121,17 +151,7 @@ async function applyDocumentSwap(parsed, revision) {
 
   if (!nextMain || !currentMain || (!revision && nextRoot.dataset.signageRevision)) {
     // A client error or a withdrawn publication must never retain the old menu.
-    const section = document.createElement('section');
-    section.className = 'signage-empty';
-    const title = document.createElement('h1');
-    title.textContent = 'Speiseplan nicht verfügbar';
-    const message = document.createElement('p');
-    message.textContent = 'Der Speiseplan kann zurzeit nicht angezeigt werden.';
-    section.append(title, message);
-    currentMain.replaceChildren(section);
-    document.documentElement.dataset.signageRevision = '';
-    document.documentElement.dataset.signageDate = zurichDateString(new Date());
-    document.querySelector('.signage-revision').textContent = '';
+    showUnavailable();
     return;
   }
 
@@ -140,6 +160,9 @@ async function applyDocumentSwap(parsed, revision) {
     frameNode.classList.add('is-updating');
     await new Promise(resolve => window.setTimeout(resolve, FADE_MS));
   }
+
+  // A response that was checked before midnight must not reappear after its expiry during the fade.
+  if (Date.now() >= deadline) return;
 
   replaceSection(currentHeader, nextHeader);
   replaceSection(currentMain, nextMain);
@@ -167,6 +190,21 @@ function initSignageEngine() {
   let activePage = 0;
   let pageTimer;
   let pageFadeTimer;
+  let contentTimer;
+
+  function scheduleContentExpiry(revision) {
+    window.clearTimeout(contentTimer);
+    if (!revision) return Infinity;
+    const deadline = contentDeadline(new Date());
+    contentTimer = window.setTimeout(() => {
+      stopPaging();
+      activePage = 0;
+      showUnavailable();
+      markOffline();
+      updateClock();
+    }, Math.max(0, deadline - Date.now()));
+    return deadline;
+  }
 
   function selectPage(index) {
     // Resolve the current DOM every time: a withdrawal must never revive detached menus.
@@ -205,20 +243,23 @@ function initSignageEngine() {
   clearOffline();
   selectPage(activePage);
   schedulePage();
+  scheduleContentExpiry(root.dataset.signageRevision);
 
   async function pollOnce() {
     try {
       const { parsed, revision } = await fetchDocument(pathname);
+      const deadline = scheduleContentExpiry(revision);
       const localRevision = root.dataset.signageRevision || '';
       const localDate = root.dataset.signageDate || '';
       // The server owns the display date; its Zurich date can change within one revision.
       const remoteDate = parsed.documentElement.dataset.signageDate || '';
       if (!revision || revision !== localRevision || remoteDate !== localDate) {
         stopPaging();
-        await applyDocumentSwap(parsed, revision);
+        await applyDocumentSwap(parsed, revision, deadline);
         selectPage(activePage);
         schedulePage();
       }
+      if (revision && Date.now() >= deadline) return;
       clearOffline();
       updateClock();
     } catch (_error) {

@@ -61,13 +61,15 @@ def test_public_pages_show_menu_information_without_technical_copy(
         if path.startswith('/druck/'):
             page.emulate_media(media='print')
         visible_text = _assert_plain_display(page)
-        if path != '/cafeteria/legende/' and path not in SIGNAGE_PAGES:
+        if path != '/cafeteria/legende/':
             assert revision not in visible_text
         elif path == '/cafeteria/legende/':
             assert 'Allergene und Herkunft' in visible_text
             assert 'Eine leere Allergenliste bedeutet nicht automatisch allergenfrei.' in visible_text
-        else:
-            assert page.locator('[data-signage-footer] .signage-revision').inner_text() == revision
+        if path in SIGNAGE_PAGES:
+            assert page.locator('html').get_attribute('data-signage-revision') == revision
+            assert page.locator('[data-signage-footer] .signage-revision').text_content() == ''
+            assert not page.locator('[data-signage-footer] .signage-revision').is_visible()
         if path in ('/cafeteria/wochenangebot/', '/patienten/wochenplan/'):
             assert page.locator('.date-chip').inner_text() == 'Kalenderwoche 36'
     finally:
