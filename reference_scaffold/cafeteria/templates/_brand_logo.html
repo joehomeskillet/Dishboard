@@ -1,0 +1,7 @@
+{% macro brand_logo(brand=none, css_class='', alt='Logo', width=205, height=40, preview=false) -%}
+{% if brand and brand.config.logo_sha256 %}
+<img src="{{ url_for('admin.branding_preview_logo' if preview else 'branding.logo', sha256=brand.config.logo_sha256) }}" width="{{ width }}" height="{{ height }}" alt="{{ alt }}" class="brand-logo {{ css_class }}">
+{% else %}
+<img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="{{ width }}" height="{{ height }}" alt="Klinik Südhang" class="brand-logo {{ css_class }}">
+{% endif %}
+{%- endmacro %}

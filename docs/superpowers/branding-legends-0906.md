@@ -43,3 +43,45 @@ Die deterministische WP-Erzeugung klassifizierte diese Integrationspakete unzutr
 OCR für genau diesen Worker-Stand scheiterte zweimal mit Exit 1: `Review failed: 0 finding(s); 8 of 8 selected item(s) failed.` und `Error: review failed: all 8 file review(s) failed — check your LLM configuration and API key`. Tatsächlich ausgewählter Provider: SambaNova, Modell `Meta-Llama-3.3-70B-Instruct`, jeweils null Tokens. **ESCALATE: OCR nicht verfügbar; kein CLEAN-Nachweis.** Rohbelege: `/tmp/dishboard-food-legends-web-ocr-first-0906.log` und `/tmp/dishboard-food-legends-web-ocr-0906.log`; unabhängiger Gate-Beleg: `/tmp/dishboard-brand-legends-web-gate-0906.log`.
 
 UI-003 ist anhand der Originalbilder konkretisiert: [MiseOS-/Tabler-Übertragung](../design/2026-09-06-miseos-tabler-adaption.md). Dies ist Vorbereitung; laufende Verbraucher- und Branding-Arbeit bleibt vorrangig.
+
+## Weitere unabhängige Prüfungen und Review-Fixes
+
+Die folgenden Integrationen sind lokal geprüft, noch nicht produktiv. Produktiv bleibt `118a644`, Checkout `25c5984`, Schema 17.
+
+| Root-Commit | Umfang | Unabhängiger Root-Gate auf `test-api-int2` |
+|---|---|---|
+| `efa7222` | Vier Signage-Legenden und Seitenwechsel | `54 passed in 55.05s`, `GATE_EXIT=0` |
+| `8ee1516` | PDF-Symbole, gemessene vollständige Legende und HTML-Druck | `97 passed in 58.48s`, `GATE_EXIT=0`; Ruff und Mypy bestanden |
+| `b830415` | Markenrevisionen, normalisierte Logo-Assets, Schema 18 | `43 passed in 43.15s`, `GATE_EXIT=0`; Ruff/Mypy bestanden; statischer Validator: 33 Tabellen, Schema 18 |
+| `17fd00c` | Admin-Legenden und leere HTML-Druckplätze | `49 passed in 76.79s`, `GATE_EXIT=0`; Ruff bestanden |
+| `1cbc650` | Keine Deklaration für leere Menüplätze im gemeinsamen Partial | `62 passed in 41.70s`, `GATE_EXIT=0`; Ruff bestanden |
+| `100f9da` | Vollständiger Schema-18-Vertrag im Paketvalidator | `16 passed in 24.01s`, `GATE_EXIT=0`; Ruff bestanden |
+
+Diese Testmengen überschneiden sich; sie werden nicht als eindeutige Gesamtsumme addiert. Vollständige Suite und Paketprüfung folgen erst auf dem endgültigen Integrationsstand. Rohlogs: `/tmp/dishboard-root-{signage-legends,pdf-legends,branding-core,admin-print-legends,final-legends,schema18-package}-gate-0906.log`. Aktuelle Legendenbilder liegen unter `/tmp/dishboard-root-final-legends-0906`, PDF-Bilder unter `/tmp/dishboard-root-pdf-legends-0906`. Jeder weitere Testlauf verwendet einen eigenen Basetemp ausserhalb des gemeinsam bereinigten `/tmp/pytest-of-root`.
+
+Die Worker-Commits `aed1b6d`, `c4d8950`, `c774ad9` und `8d5b9f2` sind im Root-Worktree zur gemeinsamen Prüfung vorgemerkt: lokales Favicon, Tabler-Markeneditor, revisionierter CSS-Wechsel und explizite PDF-Auswahl `active_brand`. Bestehendes `palette=brand` bezeichnet weiterhin die feste Südhang-Palette; gespeicherte Vorlagenrevisionen bleiben unverändert. GitNexus meldete für die gemeinsame Branding-Oberfläche CRITICAL und für den PDF-Renderer HIGH; beide Warnungen wurden vor weiterer Integration kommuniziert.
+
+Unabhängige Reviews fanden zwei konkrete P2-/MEDIUM-Probleme. Ihre Korrekturen übernimmt jeweils ein anderer Agent als der ursprüngliche Autor:
+
+| Paket | Verantwortung / Basis | Abnahme |
+|---|---|---|
+| `wp-61d33861b568` | print_editor, eigener WT `branding-cache-fix-0906`, Basis `c4d8950`; nur öffentlicher Branding-Cache und gezielte Regression | Revision und passendes Logo als ein atomar ersetztes Bundle veröffentlichen. Überlappende Anfragen und DB-Ausfall dürfen Marke und Logo nicht vermischen. Bestehende Freigabe- und Ausfallgrenzen erhalten. |
+| `wp-472ddfbb5ce7` | ps1_recovery, eigener WT `branding-pdf-review-fix-0906`, Basis `8d5b9f2`; PDF-Logoausgabe, zugehöriger Hilfetext und gezielte PDF-/HTTP-Tests | `active_brand` ohne eigenes Logo zeigt das vorhandene Südhang-Standardlogo; ausdrücklich `none` bleibt ohne Logo. Initialzustand und Rücksetzen, beide Profile sowie Vorschau/Aktivierung/Download prüfen. Zusätzlicher separater Commit korrigiert die durch Root-Mypy gefundene Response-Annotation. |
+| `wp-5dadb04847c8` | admin_equal_cards, eigener WT `branding-logo-wiring-0906`, Basis `100f9da` plus separate Basiscommits `aed1b6d` und `c4d8950` | Elf vorhandene Signage-/Public-/HTML-Druck-/Login-Templates konsumieren `brand_logo`; bestehende Legenden, Seitenwechsel, Maße und Ausfallzustände erhalten. Customlogo und Standardfallback mit echten Browserbildern prüfen. Keine Änderungen an PDF-Overrides, Cache, Store oder Schema. |
+
+Logo-Wiring besitzt `signage/{cafeteria_day,cafeteria_week,patient_day,patient_week,cafeteria_closed,unavailable}.html`, `public/{legend,unavailable,print_cafeteria_week,print_patient_week}.html` und `auth/local_login.html`, gezielte Tests sowie nur bei tatsächlichem Layoutbedarf vorhandene CSS-Regeln. Damit bleibt kein notwendiger Verbraucher zwischen den Paketen unzugeordnet.
+
+Root-Mypy auf zwölf gemeinsam integrierten Modulen scheiterte zweimal identisch mit Exit 1:
+
+```text
+cafeteria/admin/print_template_routes.py:137: error: Incompatible return value type (got "werkzeug.wrappers.response.Response", expected "flask.wrappers.Response")  [return-value]
+Found 1 error in 1 file (checked 12 source files)
+```
+
+**ESCALATE: Typprüfung noch nicht bestanden; Korrektur ist dem separaten PDF-Fix zugeordnet.** Root-Ruff und `node --check` für diesen gemeinsamen Zwischenstand bestanden. Bandit mit `/usr/bin/python3.13 -m bandit` prüfte sieben Branding-Module: Exit 0, 610 LOC, keine Befunde, keine Analysefehler, keine übersprungenen Tests; JSON `/tmp/dishboard-root-branding-bandit-0906.json`.
+
+Nachtrag: Der gemeinsame unveränderte UI-/Signage-/PDF-Zwischenstand bestand `212 passed in 170.23s (0:02:50)`, `GATE_EXIT=0`; Log `/tmp/dishboard-root-branding-combined-gate-0906.log`. Root prüfte das mobile Editorbild und die echte Cafeteria-PDF-Ausgabe visuell. Danach wurden `eeda473` (Standardlogo und Hilfetext) sowie `e2a3b90` (Response-Import entsprechend Repo-Konvention) gelesen und vorgemerkt. Ihr unabhängiger Root-Gate bestand `75 passed in 32.25s`, `GATE_EXIT=0`, Log `/tmp/dishboard-root-brand-pdf-fix-gate-0906.log`; Ruff bestand. Derselbe Mypy-Aufruf über zwölf Module meldet nun `Success: no issues found in 12 source files`. Der oben dokumentierte Typfehler ist damit behoben; Cache-Fix und Logo-Wiring bleiben bis zu ihren eigenen Nachweisen offen.
+
+Auch Cache-Fix `2d50acb` wurde durch Root gelesen und unabhängig geprüft: `24 passed in 28.40s`, `GATE_EXIT=0`, Log `/tmp/dishboard-root-brand-cache-fix-gate-0906.log`; Ruff und Mypy bestanden. Das unveränderliche Bundle bewahrt zusammengehörige Revision, Tokens und Logo bei überlappenden Anfragen und im begrenzten Ausfallfallback. GitNexus meldete HIGH für die zusammenhängenden Ausgabepfade; Warnung kommuniziert. Die zwei ursprünglichen Review-Befunde sind damit korrigiert. Weiter offen: abschliessendes Logo-Wiring, vollständiger Release-Gate, Paket/Manifest und tatsächlicher Deploy.
+
+Reviewberichte: `wp-87f84a0db539.md` (Store/HTTP, Register 11986) und `wp-7a5475ab6b94.md` (PDF, Register 11987) unter `/nvmetank1/projects/rag-stack/.claude/reports`. OCR bleibt wegen tatsächlich beobachteter SambaNova-HTTP429 dieser Welle nicht verfügbar; Provider wurde erst danach als ausgefallen markiert. Keine weitere Anfrage an denselben erschöpften Provider, kein Ersatzprovider und kein CLEAN-Nachweis.

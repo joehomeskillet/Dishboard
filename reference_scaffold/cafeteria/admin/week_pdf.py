@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
+from io import BytesIO
 from pathlib import Path
 from typing import Any, cast
 
@@ -10,7 +11,8 @@ from fpdf import FPDF
 from fpdf.fonts import TTFFont
 
 from ..food_symbols import food_legend
-from ..print_template_config import default_config, validate_config
+from ..print_branding import PdfBranding
+from ..print_template_config import PrintTemplateValidationError, default_config, validate_config
 from .rendering import DAY_NAMES, MONTHS
 from .week_pdf_symbols import (
     ICON_GAP, ICON_HEIGHT, SymbolMark, draw_symbol, draw_symbols, legend_text,
@@ -63,6 +65,7 @@ def _wrap(pdf: FPDF, text: str, width: float, size: float, bold: bool = False,
     pdf.set_font('Weekly', 'B' if bold else '', size)
     text = ' '.join(text.split())
     font = cast(TTFFont, pdf.current_font)
+    leading = max(leading, size * (font.desc.ascent - font.desc.descent) / 1000 - size + 0.2)
     if any(ord(char) not in font.cmap for char in text):
         raise WeekPdfFitError(
             'Der gespeicherte Text enthält ein Zeichen, das die Druckschrift nicht unterstützt. '
@@ -77,10 +80,12 @@ def _wrap(pdf: FPDF, text: str, width: float, size: float, bold: bool = False,
 
 def _draw(pdf: FPDF, block: Block, x: float, y: float) -> float:
     pdf.set_font('Weekly', 'B' if block.bold else '', block.size)
+    font = cast(TTFFont, pdf.current_font)
+    line_height = max(block.size + block.leading, block.size * (font.desc.ascent - font.desc.descent) / 1000 + 0.2)
     for line in block.lines:
         # Explicit baselines, identical to preflight: no auto page break or clipping.
         pdf.text(x, y + block.size, line)
-        y += block.size + block.leading
+        y += line_height
     return y
 
 
@@ -183,12 +188,22 @@ def _notes(draft: dict[str, Any]) -> str:
 
 def render_week_pdf(
     draft: dict[str, Any], profile: str, week: date, config: dict[str, str] | None = None,
+    *, branding: PdfBranding | None = None,
 ) -> bytes:
     """Render all saved declarations, or raise an actionable fit error before output."""
     config = validate_config(default_config() if config is None else config, profile)
+    inherits = any(config[field] == 'active_brand' for field in ('palette', 'font', 'logo'))
+    if inherits and branding is None:
+        raise PrintTemplateValidationError('Die aktive Marke muss vor dem PDF-Druck geladen werden.')
+    if not inherits:
+        branding = None
+    brand_palette = branding is not None and config['palette'] == 'active_brand'
     patient = profile == 'patient'
     margin = {'standard': LEFT, 'wide': 28.0, 'wider': 36.0}[config['margin']]
-    blue, fill = PALETTES[config['palette']]
+    blue, fill = (branding.primary, branding.surface) if brand_palette and branding else PALETTES[config['palette']]
+    ink = branding.text if brand_palette and branding else INK
+    body_font = branding.font_body if branding and config['font'] == 'active_brand' else config['font']
+    heading_font = branding.font_heading if branding and config['font'] == 'active_brand' else config['font']
     pdf = FPDF(orientation='L' if patient else 'P', unit='pt', format='A4')
     # Canonical export metadata makes identical saved content/config byte-stable.
     # Actual save times belong to the explicit template revision history.
@@ -197,10 +212,13 @@ def render_week_pdf(
     pdf.set_margins(0, 0, 0)
     pdf.c_margin = 0
     for style, suffix in (('', ''), ('B', '-bold')):
-        pdf.add_font('Weekly', style, ASSETS / 'fonts' / f'weekly-print-{config["font"]}{suffix}.ttf')
+        font = heading_font if style else body_font
+        pdf.add_font('Weekly', style, ASSETS / 'fonts' / f'weekly-print-{font}{suffix}.ttf')
     pdf.add_page()
     pdf.set_title('Wochenangebot Patienten' if patient else 'Wochenangebot Cafeteria')
     pdf.set_creator('Dishboard · fpdf2')
+    if branding:
+        pdf.set_subject(f'Dishboard Markenrevision {branding.revision_id}')
     width = pdf.w - 2 * margin
     day_width = 60.0 if patient else 104.0
     padding = 2.0 if patient else PAD
@@ -251,27 +269,38 @@ def render_week_pdf(
     # Give spare space to the day rows, preserving all measured content heights.
     extra = (available - sum(heights)) / len(heights)
     heights = [height + extra for height in heights]
+    if brand_palette:
+        pdf.set_fill_color(*fill)
+        pdf.rect(0, 0, pdf.w, pdf.h, style='F')
     pdf.set_text_color(*blue)
     if patient:
         _draw(pdf, Block(['Wochenangebot Patienten'], 19, True), margin, 15)
         _draw(pdf, Block([_date_label(week, True)], 11), margin, 37)
-        if config['logo'] != 'none':
+        if config['logo'] == 'active_brand':
+            logo = BytesIO(branding.logo_png) if branding and branding.logo_png else ASSETS / 'img' / LOGOS['print']
+            pdf.image(logo, pdf.w - margin - 145, 17, w=145, h=24, keep_aspect_ratio=True)
+        elif config['logo'] != 'none':
             pdf.image(ASSETS / 'img' / LOGOS[config['logo']], pdf.w - margin - 145, 17, w=145)
     else:
-        pdf.image(ASSETS / 'img/weekly-print-header.jpg', 0, 0, w=pdf.w, h=201.96)
+        if branding:
+            # The old raster contains an embedded Südhang brand: never combine it with an inherited brand.
+            _draw(pdf, Block(['WOCHENANGEBOT'], 27, True), margin, 50)
+            _draw(pdf, Block(['CAFETERIA'], 18, True), margin, 85)
+        else:
+            pdf.image(ASSETS / 'img/weekly-print-header.jpg', 0, 0, w=pdf.w, h=201.96)
         date_block = _wrap(pdf, _date_label(week, False), width, 17)
         # Reference strip geometry; longer month-crossing dates extend it left.
         strip_width = max(250.44, pdf.get_string_width(date_block.lines[0]) + 15.12)
         strip_x = 572.28 - strip_width
-        pdf.set_fill_color(*DATE_FILL)
+        pdf.set_fill_color(*(fill if brand_palette else DATE_FILL))
         pdf.rect(strip_x, 145.56, strip_width, 26.28, style='F')
-        pdf.set_text_color(*DATE_BLUE)
+        pdf.set_text_color(*(branding.accent if brand_palette and branding else DATE_BLUE))
         _draw(pdf, date_block, strip_x + 7.56, 148.84)
     pdf.set_text_color(*blue)
     if custom_header:
         _draw(pdf, custom_header, margin, custom_y + padding)
     pdf.set_fill_color(*fill)
-    pdf.set_draw_color(*BORDER)
+    pdf.set_draw_color(*(branding.accent if brand_palette and branding else BORDER))
     pdf.set_line_width(0.55)
     pdf.rect(margin, table_y, width, header_h, style='DF')
     headings = ('Mittag · Menü 1', 'Mittag · Vegetarisch', 'Abend · Menü 1', 'Abend · Vegetarisch') if patient else ('MENÜ 1', 'VEGETARISCH')
@@ -279,7 +308,7 @@ def render_week_pdf(
     for index, heading in enumerate(headings):
         _draw(pdf, Block([heading], 11 if patient else 15, True), margin + day_width + index * cell_width + PAD, table_y + 7)
     y = table_y + header_h
-    pdf.set_text_color(*INK)
+    pdf.set_text_color(*ink)
     for offset, (row, height) in enumerate(zip(rows, heights, strict=True)):
         pdf.rect(margin, y, day_width, height)
         _draw(pdf, Block([DAY_NAMES[offset].upper()], 9 if patient else 15, True), margin + PAD, y + (height - 16) / 2)
@@ -290,6 +319,9 @@ def render_week_pdf(
             text_y = y + padding + (height - 2 * padding - sum(block.height for block in cell) - strip.height) / 2
             for block in cell:
                 text_y = _draw(pdf, block, x + padding, text_y)
+            if brand_palette and strip.height:
+                with pdf.local_context(fill_color=(255, 255, 255)):
+                    pdf.rect(x + padding, text_y, cell_width - 2 * padding, strip.height, style='F')
             draw_symbols(pdf, strip, x + padding, text_y)
         y += height
     pdf.rect(margin, y, width, notes.height + 2 * PAD)
@@ -302,12 +334,18 @@ def render_week_pdf(
             for index, (block, mark) in enumerate(legend_row):
                 x = margin + index * legend_width + PAD
                 if mark:
+                    if brand_palette:
+                        with pdf.local_context(fill_color=(255, 255, 255)):
+                            pdf.rect(x, y, mark.width, ICON_HEIGHT, style='F')
                     draw_symbol(pdf, mark, x, y)
                     x += mark.width + ICON_GAP
                 _draw(pdf, block, x, y)
             y += height
     if not patient:
-        if config['logo'] != 'none':
+        if config['logo'] == 'active_brand':
+            logo = BytesIO(branding.logo_png) if branding and branding.logo_png else ASSETS / 'img' / LOGOS['print']
+            pdf.image(logo, pdf.w - margin - 145, 720, w=145, h=28, keep_aspect_ratio=True)
+        elif config['logo'] != 'none':
             pdf.image(ASSETS / 'img' / LOGOS[config['logo']], pdf.w - margin - 145, 720, w=145)
         pdf.rect(margin, 756, width, 39, style='DF')
         pdf.set_text_color(*blue)

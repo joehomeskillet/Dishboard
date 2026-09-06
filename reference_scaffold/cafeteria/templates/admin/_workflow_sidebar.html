@@ -1,8 +1,9 @@
 {% from 'admin/_macros.html' import icon %}
+{% from '_brand_logo.html' import brand_logo %}
 {% if not tabler_admin %}
 <aside class="admin-sidebar">
   <div class="admin-brand">
-    <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="admin-logo" width="164" height="32">
+    {{ brand_logo(brand, 'admin-logo', width=164, height=32) }}
     <span>Menüplanung</span>
   </div>
   <div class="admin-user"><div><strong>{{ user.name if user else 'Küche Administration' }}</strong><span>{{ roles|default([])|join(', ') }}</span></div></div>
@@ -24,7 +25,7 @@
       <span class="navbar-toggler-icon" aria-hidden="true"></span><span>Menü</span>
     </button>
     <div class="navbar-brand admin-brand">
-      <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="admin-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="164" height="32">
+      {{ brand_logo(brand, 'admin-logo', width=164, height=32) }}
       <span>Menüplanung</span>
     </div>
     <div class="collapse navbar-collapse admin-nav-collapse" id="sidebar-menu">
@@ -59,7 +60,7 @@
           {% endfor %}
           {% if can_configure_display %}
           <li class="nav-item{% if workflow_nav == 'design' %} active{% endif %}">
-            <a href="{{ url_for('admin.display_settings') }}" class="nav-link{% if workflow_nav == 'design' %} active{% endif %}"{% if workflow_nav == 'design' %} aria-current="page"{% endif %}>
+            <a href="{{ url_for('admin.branding_editor') }}" class="nav-link{% if workflow_nav == 'design' %} active{% endif %}"{% if workflow_nav == 'design' %} aria-current="page"{% endif %}>
               <span class="nav-link-icon">{{ icon('eye') }}</span>
               <span class="nav-link-title">Design & Marke</span>
             </a>

@@ -1,18 +1,21 @@
 <!doctype html>
 <html lang="de"
       data-signage-revision="{{ snapshot.revision_id if snapshot else '' }}"
+      data-brand-revision="{{ brand.id if brand is defined else 1 }}"
       data-signage-date="{{ today if today is defined else '' }}"
       data-signage-interval="60000">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/suedhang-logo.png') }}">
   <title>{% block title %}Südhang Menüplanung{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='menu-images.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='food-symbols.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='signage.css') }}">
+  {% if brand is defined %}<link rel="stylesheet" data-brand-stylesheet href="{{ url_for('branding.stylesheet', revision=brand.id) }}">{% endif %}
 </head>
 <body class="signage-body">
   <div class="signage-shell {% block shell_class %}{% endblock %}" data-signage-frame>

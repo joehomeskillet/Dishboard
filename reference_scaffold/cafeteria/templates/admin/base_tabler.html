@@ -4,12 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/suedhang-logo.png') }}">
   <title>{% block title %}Südhang Menüplanung{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='admin-tabler.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='menu-images.css') }}">
   {% block page_styles %}{% endblock %}
+  {% if brand is defined %}<link rel="stylesheet" data-brand-stylesheet href="{{ url_for('branding.stylesheet', revision=brand.id) }}">{% endif %}
 </head>
 {% set user = session.get('user') %}
 {% set tabler_admin = true %}

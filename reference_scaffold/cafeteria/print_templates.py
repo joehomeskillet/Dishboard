@@ -199,10 +199,11 @@ def change_template(
 
 def _validate_week(connection: Connection, profile: str, week: date | None, config: dict[str, str]) -> None:
     from .admin.week_pdf import render_week_pdf
+    from .print_branding import load_pdf_branding
     from .workflow_store import load_draft_connection
 
     if type(week) is not date or week.isoweekday() != 1:
         raise PrintTemplateValidationError('Bitte eine gespeicherte Woche ab Montag auswählen.', 'week')
     # Reuse the scoped week lock used by all menu writes.
     draft = load_draft_connection(connection, profile, week, lock_week=True)
-    render_week_pdf(draft, profile, week, config)
+    render_week_pdf(draft, profile, week, config, branding=load_pdf_branding(connection, profile, config))

@@ -33,7 +33,7 @@ class BrandingValidationError(ValueError):
 
 def default_config() -> BrandConfig:
     return {'logo_sha256': None, 'font_body': 'fira', 'font_heading': 'fira',
-            'primary': '#8c1c4b', 'accent': '#35666f', 'surface': '#ffffff', 'text': '#203233'}
+            'primary': '#8c1c4b', 'accent': '#35666f', 'surface': '#ffffff', 'text': '#383027'}
 
 
 def contrast(first: str, second: str) -> float:

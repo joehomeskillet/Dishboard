@@ -4,10 +4,13 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
-from flask import Response, abort, flash, g, make_response, redirect, render_template, request, url_for
+from flask import abort, flash, g, make_response, redirect, render_template, request, url_for
 from sqlalchemy.exc import NoResultFound
+from werkzeug.wrappers import Response
 
 from ..component_catalog_store import ComponentCatalogConfigurationError
+from ..branding import BrandingStateError
+from ..print_branding import load_pdf_branding
 from ..print_template_config import CHOICES, TEXT_LIMITS, PrintTemplateValidationError, default_config
 from ..print_templates import (
     PrintTemplateConflictError, PrintTemplateStateError, change_template, read_templates, template_revision,
@@ -46,10 +49,11 @@ def _selected(document: dict[str, Any], template_id: str, revision_id: int | Non
         return abort(404, description='Vorlagenrevision nicht gefunden.')
 
 
-def _pdf(profile: str, week: date, config: dict[str, str]) -> bytes:
+def _pdf(profile: str, week: date, config: dict[str, str]) -> tuple[bytes, int | None]:
     with _db().connect() as connection:
         draft = load_draft_connection(connection, profile, week)
-    return render_week_pdf(draft, profile, week, config)
+        branding = load_pdf_branding(connection, profile, config)
+    return render_week_pdf(draft, profile, week, config, branding=branding), branding.revision_id if branding else None
 
 
 def _render_editor(
@@ -71,7 +75,7 @@ def _render_editor(
         _pdf(profile, week, revision['config'])
     except NoResultFound:
         preview_error = 'Für diese Woche sind noch keine gespeicherten Menüs vorhanden. Bitte zuerst die Woche anlegen.'
-    except (ComponentCatalogConfigurationError, WeekPdfFitError) as fit_error:
+    except (ComponentCatalogConfigurationError, WeekPdfFitError, BrandingStateError) as fit_error:
         preview_error = str(fit_error)
     response = make_response(render_template(
         'admin/print_template_editor.html', family=family, profile=profile, week=week.isoformat(),
@@ -111,7 +115,7 @@ def print_template_editor(family: str) -> Response:
         )
     except PermissionError:
         abort(403)
-    except PrintTemplateStateError as error:
+    except (PrintTemplateStateError, BrandingStateError) as error:
         abort(503, description=str(error))
     except (PrintTemplateValidationError, PrintTemplateConflictError, WeekPdfFitError, NoResultFound) as error:
         status = 409 if isinstance(error, PrintTemplateConflictError) else 422 if isinstance(error, WeekPdfFitError) else 400
@@ -141,10 +145,10 @@ def print_template_preview(family: str) -> Response:
     profile = profile_from_endpoint(family)
     revision = _selected(_document(profile), template_id, revision_id)
     try:
-        payload = _pdf(profile, week, revision['config'])
+        payload, brand_revision = _pdf(profile, week, revision['config'])
     except NoResultFound:
         abort(404, description='Bitte zuerst die gewählte Woche speichern.')
-    except ComponentCatalogConfigurationError as error:
+    except (ComponentCatalogConfigurationError, BrandingStateError) as error:
         abort(503, description=str(error))
     except WeekPdfFitError as error:
         abort(422, description=str(error))
@@ -152,4 +156,5 @@ def print_template_preview(family: str) -> Response:
         'Cache-Control': 'no-store',
         'Content-Disposition': f'inline; filename="vorlage-{family}-{week.isoformat()}.pdf"',
         'X-Print-Template-Revision': f'{template_id}:{revision["id"]}',
+        **({'X-Brand-Revision': str(brand_revision)} if brand_revision is not None else {}),
     })

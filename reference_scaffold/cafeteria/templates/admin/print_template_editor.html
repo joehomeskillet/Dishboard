@@ -45,6 +45,7 @@
           {% for value, choice in choices[field].items() %}<option value="{{ value }}" {% if values[field] == value %}selected{% endif %}>{{ choice }}</option>{% endfor %}
         </select></div>
         {% endfor %}
+        <p class="form-hint">„Aktive Marke übernehmen“ verwendet die jeweils aktivierte Marke: Text- und Überschriftenschrift, Farben oder Logo. Jede andere Auswahl bleibt ein fester Vorlagenwert. Ohne individuelles Markenlogo erscheint das Südhang-Standardlogo. Mit „Ohne Logo“ bleibt der Logobereich leer. Spätere Markenaktivierungen wirken auf diese Auswahl; alte Vorlagenrevisionen werden dabei nicht geändert.</p>
         <p class="form-hint">Standard: {{ '9 pt' if profile == 'patient' else '12 pt, Details 10 pt' }}. Gross: {{ '10 pt' if profile == 'patient' else '14 pt, Details 12 pt' }}. Zu grosse Inhalte werden abgelehnt; es wird nichts abgeschnitten.</p>
         {% for field, field_label in [('header_text', 'Zusatz unter dem Kopfbereich'), ('footer_text', 'Zusatz in der Fusszeile')] %}
         <div class="mb-3"><label class="form-label" for="template-{{ field }}">{{ field_label }}</label><textarea class="form-control" id="template-{{ field }}" name="{{ field }}" maxlength="{{ text_limits[field] }}" rows="2" {% if error_field == field %}aria-invalid="true" aria-describedby="template-error"{% endif %}>{{ values[field] }}</textarea><p class="form-hint">Optional, höchstens {{ text_limits[field] }} Zeichen. Nur einfacher Text.</p></div>

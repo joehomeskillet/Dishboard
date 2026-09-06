@@ -320,6 +320,7 @@ def main() -> int:
             MIGRATION_0012: '3ff265067a1119f927d995251386a58ba648c4f26f9d4ff6059cce4d97bb9140',
             MIGRATION_0013: 'f1582e226ee1150bfc83c31427ae08fc82f3f939809fa588f53d0e1532c2219a',
             MIGRATION_0014: 'd767c2446e6cfab10daf073056ec1f9a9570293e76ee0a8f9638036f5460dae0',
+            MIGRATION_0015: 'da49d671a6dbfef768330a894f217f5ec4d37addf9bd3c2064ae60a815f8ac9e',
         }
         for migration_path, expected_checksum in immutable_migration_checksums.items():
             actual_checksum = hashlib.sha256(migration_path.read_bytes()).hexdigest()

@@ -1,0 +1,15 @@
+{% from '_brand_logo.html' import brand_logo %}
+<!doctype html>
+<html lang="de-CH"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Markenvorschau {{ brand.name }}</title>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='img/suedhang-logo.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='public.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin-branding.css') }}">
+<link rel="stylesheet" href="{{ url_for('admin.branding_preview_css', revision=brand.id) }}">
+</head><body class="public-page brand-preview-body"><main class="p-3">
+{{ brand_logo(brand, 'mb-4', alt=brand.name, preview=true) }}
+<p class="text-secondary">Speiseplan · Guten Appetit</p><h1>Frisch zubereitet</h1>
+<article class="card"><div class="card-body"><h2 class="card-title">Gemüse mit Kräutern</h2><p>Reis · saisonales Gemüse</p><p>Ein Beispiel für Text, Überschriften und Farben.</p><button class="btn btn-primary" type="button">Primärfarbe</button> <span class="brand-accent">Akzentfarbe</span></div></article>
+</main></body></html>

@@ -8,10 +8,12 @@ from .patient_payload import _patient_text_is_forbidden
 
 PROFILES = ('staff_guest', 'patient')
 CHOICES = {
-    'palette': {'reference': 'Druckvorlage Blau', 'brand': 'Südhang Magenta', 'teal': 'Südhang Petrol'},
-    'font': {'carlito': 'Carlito', 'fira': 'Fira Sans'},
+    'palette': {'reference': 'Druckvorlage Blau', 'brand': 'Südhang Magenta', 'teal': 'Südhang Petrol',
+                'active_brand': 'Aktive Marke übernehmen'},
+    'font': {'carlito': 'Carlito', 'fira': 'Fira Sans', 'active_brand': 'Aktive Marke übernehmen'},
     'text_size': {'auto': 'Automatisch, mindestens 8,5 pt', 'standard': 'Standard', 'large': 'Gross'},
-    'logo': {'print': 'Südhang Drucklogo', 'wordmark': 'Südhang Wortmarke', 'none': 'Ohne Logo'},
+    'logo': {'print': 'Südhang Drucklogo', 'wordmark': 'Südhang Wortmarke', 'none': 'Ohne Logo',
+             'active_brand': 'Aktive Marke übernehmen'},
     'margin': {'standard': 'Standard · 21 pt', 'wide': 'Breit · 28 pt', 'wider': 'Sehr breit · 36 pt'},
     'spacing': {'standard': 'Standard', 'roomy': 'Mehr Abstand'},
 }

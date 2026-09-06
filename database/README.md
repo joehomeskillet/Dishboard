@@ -55,8 +55,11 @@ Der `actor-identifier` wird gegen den aktiven Benutzernamen, die E-Mail-Adresse 
 12. `0012_v14_to_v15.sql` (15)
 13. `0013_v15_to_v16.sql` (16)
 14. `0014_v16_to_v17.sql` (17)
+15. `0015_v17_to_v18.sql` (18)
 
-Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0013` bleiben byteidentisch. `schema.sql` beschreibt den aktuellen v17-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
+Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0014` bleiben byteidentisch. `schema.sql` beschreibt den aktuellen v18-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
+
+Schema v18 ergänzt unveränderliche Logo-Assets in `branding_assets`: normalisierte PNG-Daten mit SHA-256-Schlüssel, maximal 1 MiB, Dimensionen bis 2048 × 2048, Ersteller und Zeit. Datenbank-Constraints prüfen Signatur, Inhalts-Hash und Grenzen. `cafeteria_app` erhält ausschliesslich SELECT/INSERT, `cafeteria_backup` SELECT; Auth-Issuer und PUBLIC erhalten keinen Zugriff. Es gibt keine neue Sequenz. Markenrevisionen liegen im vorhandenen Settings-Namespace `branding.v1`; Speichern von Asset und Revision sowie Aktivierung erfolgen unter aktueller Adminberechtigung und Versionsprüfung in einer Transaktion. Die Migration verändert keine vorhandenen Menüs oder Publikationssnapshots. Vor dem Wechsel 17→18 ein geprüftes Backup erstellen; danach Migration, Schema- und Berechtigungsprüfung sowie ein neues Backup mit enthaltenen Logo-Assets nachweisen.
 
 Schema v17 ergänzt verwaltete API-Schlüssel für `preview.read`. Klartextschlüssel werden nur beim Erstellen ausgegeben; gespeichert werden Präfix und SHA-256-Hash. Nur aktive `Cafeteria.Admin`-Akteure dürfen über die `SECURITY DEFINER`-Funktionen Schlüssel erstellen oder widerrufen. `cafeteria_app` darf Schlüssel lesen und ausschliesslich `last_used_at` direkt aktualisieren; `cafeteria_backup` erhält nur Leserechte. Audit-Ereignisse enthalten Label, Präfix, Scopes und Ablaufzeit, aber keinen Schlüsselhash.
 

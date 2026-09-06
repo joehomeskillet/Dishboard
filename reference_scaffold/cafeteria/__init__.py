@@ -36,6 +36,7 @@ def create_app() -> Flask:
     from .api.docs_routes import bp as api_docs_bp
     from .fhir.routes import bp as fhir_bp
     from .health.routes import bp as health_bp
+    from .branding_routes import bp as branding_bp
 
     app.register_blueprint(public_bp)
     app.register_blueprint(signage_bp)
@@ -46,6 +47,7 @@ def create_app() -> Flask:
     app.register_blueprint(api_docs_bp)
     app.register_blueprint(fhir_bp)
     app.register_blueprint(health_bp)
+    app.register_blueprint(branding_bp)
 
     @app.context_processor
     def inject_security_helpers():

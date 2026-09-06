@@ -1,0 +1,68 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header %}
+{% set workflow_nav = 'design' %}
+{% block title %}Marke · Design & Marke{% endblock %}
+{% block page_header %}{{ page_header('Design & Marke') }}{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-branding.css') }}">{% endblock %}
+{% block content %}
+<nav class="nav nav-tabs mb-4" aria-label="Designbereiche">
+  <a class="nav-link active" href="{{ url_for('admin.branding_editor') }}" aria-current="page">Logo, Farben & Schrift</a>
+  <a class="nav-link" href="{{ url_for('admin.display_settings') }}">Darstellung</a>
+</nav>
+<div class="alert brand-status" role="status">Aktiv: {{ document.revisions[document.active_revision - 1].name }} · Revision {{ document.active_revision }}. Entwürfe werden erst nach Aktivierung öffentlich sichtbar.</div>
+{% if brand_error %}<div class="alert alert-danger" role="alert">{{ brand_error }}{% if brand_values.logo_sha256 and brand_values.logo_sha256 != selected.config.logo_sha256 %} Bitte das neue Logo erneut auswählen.{% endif %}</div>{% endif %}
+<div class="row g-4">
+  <section class="col-12 col-xl-6" aria-labelledby="brand-edit-title">
+    <form method="post" action="{{ url_for('admin.branding_editor') }}" enctype="multipart/form-data" class="card">
+      <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}">
+      <div class="card-header"><h2 class="card-title" id="brand-edit-title">Markenentwurf</h2></div>
+      <div class="card-body">
+        <label class="form-label" for="brand-name">Name der Revision</label>
+        <input class="form-control mb-3" id="brand-name" name="name" value="{{ brand_name }}" maxlength="60" required>
+        <label class="form-label" for="brand-logo-select">Logo</label>
+        <select class="form-select mb-3" id="brand-logo-select" name="logo_sha256">
+          <option value="">Südhang Standard</option>
+          {% set seen = namespace(hashes=[]) %}{% for item in document.revisions|reverse %}{% if item.config.logo_sha256 and item.config.logo_sha256 not in seen.hashes %}
+          <option value="{{ item.config.logo_sha256 }}"{% if brand_values.logo_sha256 == item.config.logo_sha256 %} selected{% endif %}>{{ item.name }} · Revision {{ item.id }}</option>
+          {% set seen.hashes = seen.hashes + [item.config.logo_sha256] %}{% endif %}{% endfor %}
+        </select>
+        <label class="form-label" for="brand-upload">Neues Logo hochladen</label>
+        <input class="form-control" type="file" id="brand-upload" name="logo" accept="image/png,image/jpeg,image/webp" aria-describedby="brand-upload-hint">
+        <p class="form-hint mb-4" id="brand-upload-hint">PNG, JPEG oder WebP, höchstens 1 MiB und 2048 × 2048 Pixel. Ein neues Logo ersetzt die Auswahl im Entwurf. Es wird vollständig und ohne Verzerrung dargestellt.</p>
+        <fieldset><legend class="form-label">Farbpalette</legend>
+          <p class="form-hint">Text, Primär- und Akzentfarbe müssen zum Hintergrund ausreichend Kontrast haben (mindestens 4.5:1).</p>
+          <div class="row g-3 mb-4">{% for key, label in [('primary','Primärfarbe'),('accent','Akzentfarbe'),('surface','Hintergrund'),('text','Textfarbe')] %}
+            <div class="col-6"><label class="form-label" for="brand-{{ key }}">{{ label }}</label>
+              <input class="form-control" id="brand-{{ key }}" name="{{ key }}" value="{{ brand_values[key] }}" pattern="#[0-9a-fA-F]{6}" maxlength="7" required spellcheck="false" aria-describedby="brand-color-hint">
+            </div>{% endfor %}</div><p id="brand-color-hint" class="form-hint">Farbwert im Format #8c1c4b.</p>
+        </fieldset>
+        <div class="row g-3">{% for key, label in [('font_body','Textschrift'),('font_heading','Überschriften')] %}
+          <div class="col-12 col-md-6"><label class="form-label" for="brand-{{ key }}">{{ label }}</label>
+            <select class="form-select" name="{{ key }}" id="brand-{{ key }}">{% for value,label in fonts.items() %}<option value="{{ value }}"{% if brand_values[key] == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+          </div>{% endfor %}</div>
+      </div>
+      <div class="card-footer"><button class="btn btn-primary" name="action" value="save">Entwurf speichern & Vorschau</button></div>
+    </form>
+  </section>
+  <section class="col-12 col-xl-6" aria-labelledby="brand-preview-title">
+    <div class="card mb-4"><div class="card-header"><h2 class="card-title" id="brand-preview-title">Vorschau · Revision {{ selected.id }}</h2></div>
+      <div class="card-body"><p>{{ selected.name }} · {% if selected.id == document.active_revision %}Aktiv{% else %}Gespeicherte Revision{% endif %}</p>
+        <iframe class="brand-preview-frame" src="{{ url_for('admin.branding_preview', revision=selected.id) }}" title="Markenvorschau {{ selected.name }}"></iframe>
+        <p class="form-hint mt-2">Die Vorschau zeigt die gespeicherte Revision. Neue Eingaben zuerst als Entwurf speichern.</p>
+      </div>
+      <div class="card-footer"><form method="post" action="{{ url_for('admin.branding_editor') }}">
+        <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}"><input type="hidden" name="revision" value="{{ selected.id }}">
+        <div class="btn-list"><button class="btn btn-primary" name="action" value="activate"{% if selected.id == document.active_revision %} disabled{% endif %}>Revision {{ selected.id }} aktivieren</button>
+          <button class="btn" name="action" value="restore">Als neuen Entwurf übernehmen</button></div>
+      </form></div>
+    </div>
+    <div class="card"><div class="card-header"><h2 class="card-title">Revisionsverlauf</h2></div>
+      <div class="list-group list-group-flush">{% for item in document.revisions|reverse %}<a class="list-group-item list-group-item-action{% if item.id == selected.id %} active{% endif %}" href="{{ url_for('admin.branding_editor', revision=item.id) }}"{% if item.id == selected.id %} aria-current="true"{% endif %}>{{ item.name }} · Revision {{ item.id }} <span class="ms-2">{% if item.id == document.active_revision %}Aktiv{% elif item.published %}Früher aktiv{% else %}Entwurf{% endif %}</span></a>{% endfor %}</div>
+      <div class="card-footer"><form method="post" action="{{ url_for('admin.branding_editor') }}">
+        <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}"><button class="btn" name="action" value="reset">Südhang Standard als Entwurf</button>
+        <p class="form-hint mt-2 mb-0">Vorherige Revisionen und Logos bleiben erhalten. Zum Zurücksetzen den Standardentwurf prüfen und aktivieren.</p>
+      </form></div>
+    </div>
+  </section>
+</div>
+{% endblock %}

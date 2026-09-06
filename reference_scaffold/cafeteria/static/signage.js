@@ -84,6 +84,32 @@ function syncRootAttributes(currentRoot, nextRoot) {
   currentRoot.dataset.signageRevision = nextRoot.dataset.signageRevision || '';
   currentRoot.dataset.signageDate = nextRoot.dataset.signageDate || '';
   currentRoot.dataset.signageInterval = nextRoot.dataset.signageInterval || String(DEFAULT_INTERVAL_MS);
+  currentRoot.dataset.brandRevision = nextRoot.dataset.brandRevision || '1';
+}
+
+async function prepareBrandStylesheet(parsed) {
+  const current = document.querySelector('link[data-brand-stylesheet]');
+  const next = parsed.querySelector('link[data-brand-stylesheet]');
+  if (!next || next.getAttribute('href') === current?.getAttribute('href')) return () => {};
+  const url = new URL(next.getAttribute('href'), window.location.origin);
+  if (url.origin !== window.location.origin || !/^\/branding\/revisions\/[1-9][0-9]*\.css$/.test(url.pathname)
+      || url.search || url.hash) throw new Error('invalid-brand-stylesheet');
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = url.href;
+  link.media = 'not all';
+  await new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => { link.remove(); reject(new Error('brand-stylesheet-timeout')); }, 15000);
+    link.onload = () => { window.clearTimeout(timer); resolve(); };
+    link.onerror = () => { window.clearTimeout(timer); link.remove(); reject(new Error('brand-stylesheet-load')); };
+    document.head.append(link);
+  });
+  return commit => {
+    if (!commit) { link.remove(); return; }
+    link.media = 'all';
+    link.dataset.brandStylesheet = '';
+    current?.remove();
+  };
 }
 
 async function fetchDocument(pathname) {
@@ -155,6 +181,9 @@ async function applyDocumentSwap(parsed, revision, deadline = Infinity) {
     return;
   }
 
+  // Retraction must clear menus even if a cosmetic stylesheet cannot be loaded.
+  const changeBrand = revision ? await prepareBrandStylesheet(parsed) : () => {};
+
   const useFade = Boolean(revision) && !prefersReducedMotion();
   if (useFade && frameNode) {
     frameNode.classList.add('is-updating');
@@ -162,8 +191,9 @@ async function applyDocumentSwap(parsed, revision, deadline = Infinity) {
   }
 
   // A response that was checked before midnight must not reappear after its expiry during the fade.
-  if (Date.now() >= deadline) return;
+  if (Date.now() >= deadline) { changeBrand(false); return; }
 
+  changeBrand(true);
   replaceSection(currentHeader, nextHeader);
   replaceSection(currentMain, nextMain);
   replaceSection(currentFooter, nextFooter);
@@ -192,10 +222,9 @@ function initSignageEngine() {
   let pageFadeTimer;
   let contentTimer;
 
-  function scheduleContentExpiry(revision) {
+  function scheduleContentExpiry(revision, deadline = contentDeadline(new Date())) {
     window.clearTimeout(contentTimer);
     if (!revision) return Infinity;
-    const deadline = contentDeadline(new Date());
     contentTimer = window.setTimeout(() => {
       stopPaging();
       activePage = 0;
@@ -248,18 +277,20 @@ function initSignageEngine() {
   async function pollOnce() {
     try {
       const { parsed, revision } = await fetchDocument(pathname);
-      const deadline = scheduleContentExpiry(revision);
+      const deadline = revision ? contentDeadline(new Date()) : Infinity;
       const localRevision = root.dataset.signageRevision || '';
       const localDate = root.dataset.signageDate || '';
       // The server owns the display date; its Zurich date can change within one revision.
       const remoteDate = parsed.documentElement.dataset.signageDate || '';
-      if (!revision || revision !== localRevision || remoteDate !== localDate) {
+      const remoteBrand = parsed.documentElement.dataset.brandRevision || '1';
+      if (!revision || revision !== localRevision || remoteDate !== localDate || remoteBrand !== (root.dataset.brandRevision || '1')) {
         stopPaging();
         await applyDocumentSwap(parsed, revision, deadline);
         selectPage(activePage);
         schedulePage();
       }
       if (revision && Date.now() >= deadline) return;
+      scheduleContentExpiry(revision, deadline);
       clearOffline();
       updateClock();
     } catch (_error) {

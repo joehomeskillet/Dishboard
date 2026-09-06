@@ -164,7 +164,8 @@ def change_branding(
                 name, config = selected.name, selected.config
             elif action == 'reset':
                 name, config = 'Südhang Standard', default_config()
-            assert config is not None
+            if config is None:
+                raise BrandingValidationError('Markeneinstellungen fehlen.')
             if logo is not None:
                 store_logo(connection, logo, actor_id)
             if config['logo_sha256']:

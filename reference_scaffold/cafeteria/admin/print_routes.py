@@ -4,6 +4,8 @@ from flask import Response, abort
 from sqlalchemy.exc import NoResultFound
 
 from ..component_catalog_store import ComponentCatalogConfigurationError
+from ..branding import BrandingStateError
+from ..print_branding import load_pdf_branding
 from ..roles import require_capability
 from ..print_templates import PrintTemplateStateError, active_template
 from ..workflow_store import load_draft_connection
@@ -22,14 +24,15 @@ def print_week(family: str) -> Response:
         with _db().connect() as connection:
             draft = load_draft_connection(connection, profile, week)
             config, revision = active_template(connection, profile)
-    except (ComponentCatalogConfigurationError, PrintTemplateStateError) as error:
+            branding = load_pdf_branding(connection, profile, config)
+    except (ComponentCatalogConfigurationError, PrintTemplateStateError, BrandingStateError) as error:
         abort(503, description=str(error))
     except NoResultFound:
         abort(404)
     if draft['workflow_state'] not in {'draft', 'ready', 'published', 'archived'}:
         abort(404)
     try:
-        document = render_week_pdf(draft, profile, week, config)
+        document = render_week_pdf(draft, profile, week, config, branding=branding)
     except WeekPdfFitError as error:
         abort(422, description=str(error))
     return Response(
@@ -37,5 +40,6 @@ def print_week(family: str) -> Response:
             'Content-Disposition': f'inline; filename="wochenplan-{family}-{week.isoformat()}.pdf"',
             'Cache-Control': 'no-store',
             'X-Print-Template-Revision': revision,
+            **({'X-Brand-Revision': str(branding.revision_id)} if branding else {}),
         },
     )
