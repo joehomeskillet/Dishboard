@@ -8,6 +8,7 @@ import json
 import os
 import threading
 from copy import deepcopy
+from datetime import timedelta
 from typing import Any
 
 import pytest
@@ -67,6 +68,138 @@ _V20_FUNCTION_SQL = """
                       'lock_operations_actor')
     ORDER BY proname
 """
+
+
+_V19_WEEK_SQL = """
+    INSERT INTO cafeteria.menu_weeks(
+        location_id, profile_id, week_start, workflow_state, title, created_by, updated_by
+    )
+    SELECT l.id, p.id, :week_start, 'draft', :title, :actor, :actor
+    FROM cafeteria.locations l CROSS JOIN cafeteria.offer_profiles p
+    WHERE l.code='KIRCHLINDACH' AND p.code='staff_guest'
+    RETURNING id
+"""
+_V19_SERVICE_SQL = """
+    INSERT INTO cafeteria.menu_services(menu_week_id, service_date, meal_period_id, service_state)
+    SELECT :week_id, CAST(:service_date AS date), mp.id, 'open'
+    FROM cafeteria.meal_periods mp WHERE mp.code='LUNCH'
+    RETURNING id
+"""
+_V19_ITEM_SQL = """
+    INSERT INTO cafeteria.menu_items(
+        service_id, menu_type_id, external_id, title, allergen_review_status, sort_order
+    )
+    SELECT :service_id, mt.id, :external_id, :title, 'checked', :sort_order
+    FROM cafeteria.menu_types mt WHERE mt.code=:type_code
+    RETURNING id
+"""
+_V19_PRICE_SQL = """
+    INSERT INTO cafeteria.menu_item_prices(menu_item_id, internal_rappen, external_rappen)
+    VALUES (:item_id, :internal, :external)
+"""
+_V19_WEEK_TITLE = 'Cafeteria Herbst'
+_V19_OPTIONS = (
+    ('MENU_1', 'Tagesmenü', 950, 1450),
+    ('VEGGIE', 'Vegetarisch', 850, 1350),
+)
+_WEEKDAY_NAMES = ('Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag')
+
+
+def _v19_week(engine: Engine, actor_id: int) -> int:
+    """Legt eine echte Cafeteria-Woche mit Schema-19-Mitteln an.
+
+    Bewusst über rohes SQL statt über `load_draft`/`save_draft`: die heutigen Schreiber
+    lesen `menu_services.service_start` und `service_end`, die es auf Schema 19 noch nicht
+    gibt. Eine Fixture, die die aktuellen Schreiber benutzt, könnte den Aufstieg von 19 auf
+    20 deshalb gar nicht mehr belegen.
+    """
+    with engine.begin() as connection:
+        week_id = int(connection.execute(text(_V19_WEEK_SQL), {
+            'week_start': WEEK_START, 'title': _V19_WEEK_TITLE, 'actor': actor_id,
+        }).scalar_one())
+        for offset in range(5):
+            service_date = (WEEK_START + timedelta(days=offset)).isoformat()
+            service_id = int(connection.execute(text(_V19_SERVICE_SQL), {
+                'week_id': week_id, 'service_date': service_date,
+            }).scalar_one())
+            for sort_order, (type_code, title, internal, external) in enumerate(
+                _V19_OPTIONS, start=1
+            ):
+                item_id = int(connection.execute(text(_V19_ITEM_SQL), {
+                    'service_id': service_id, 'type_code': type_code,
+                    'external_id': f'STAFF-GUEST-{service_date}-LUNCH-{sort_order}',
+                    'title': f'{title} {offset + 1}', 'sort_order': sort_order,
+                }).scalar_one())
+                connection.execute(text(_V19_PRICE_SQL), {
+                    'item_id': item_id, 'internal': internal, 'external': external,
+                })
+    return week_id
+
+
+def _v19_snapshot(engine: Engine, revision_code: str) -> dict[str, Any]:
+    """Ein Schema-1-Snapshot, wie ihn Schema 19 veröffentlicht hat.
+
+    `build_snapshot` liefert heute Schema 2 mit `area_name` und Servicezeiten und verlangt
+    einen Draft der aktuellen Schreiber. Für den historischen Beleg zählt genau der alte
+    Aufbau, deshalb stehen die Werte hier als Fixture-Daten.
+    """
+    with engine.connect() as connection:
+        location = connection.execute(text(
+            "SELECT code, name FROM cafeteria.locations WHERE code='KIRCHLINDACH'"
+        )).mappings().one()
+    days = []
+    for offset, weekday in enumerate(_WEEKDAY_NAMES):
+        service_date = (WEEK_START + timedelta(days=offset)).isoformat()
+        services: list[dict[str, Any]] = []
+        if offset < 5:
+            services.append({
+                'meal_code': 'LUNCH',
+                'meal_name': 'Mittag',
+                'service_state': 'open',
+                'notice': '',
+                'options': [
+                    {
+                        'external_id': f'STAFF-GUEST-{service_date}-LUNCH-{sort_order}',
+                        'type_code': type_code,
+                        'type_name': 'Menü 1' if type_code == 'MENU_1' else 'Vegetarisch',
+                        'title': f'{title} {offset + 1}',
+                        'description': '',
+                        'components': [],
+                        'labels': [],
+                        'allergens': [],
+                        'origins': [],
+                        'note': '',
+                        'allergen_review_status': 'checked',
+                        'prices': {
+                            'internal_rappen': internal,
+                            'external_rappen': external,
+                            'currency': 'CHF',
+                        },
+                    }
+                    for sort_order, (type_code, title, internal, external) in enumerate(
+                        _V19_OPTIONS, start=1
+                    )
+                ],
+            })
+        days.append({
+            'date': service_date,
+            'weekday': weekday,
+            'state': 'open' if services else 'closed',
+            'notice': '',
+            'services': services,
+        })
+    return {
+        'schema_version': 1,
+        'profile_code': 'staff_guest',
+        'channel': 'cafeteria',
+        'revision_id': revision_code,
+        'location': {'code': location['code'], 'name': location['name']},
+        'week_start': WEEK_START.isoformat(),
+        'week_end': (WEEK_START + timedelta(days=6)).isoformat(),
+        'title': _V19_WEEK_TITLE,
+        'shared_note': '',
+        'days': days,
+    }
 
 
 def _slot(state: str = 'open', start: Any = None, end: Any = None, notice: str = '') -> dict[str, Any]:
@@ -419,14 +552,19 @@ def test_v19_upgrade_adds_times_without_touching_rows_or_receipts(pg16):  # noqa
         if migration.version <= 19:
             database._execute_migration(pg16, migration)
     database._execute_script(pg16, str(SCHEMA.parent / 'seed.sql'))
-    _save(pg16, 'staff_guest', _staff_values())
     actor = _actor_id(pg16)
-    draft = load_draft(pg16, 'staff_guest', WEEK_START, actor_id=actor)
-    snapshot = build_snapshot('staff_guest', draft, 'CAF-2026-KW36-R1')
+    week_id = _v19_week(pg16, actor)
+    snapshot = _v19_snapshot(pg16, 'CAF-2026-KW36-R1')
+    with pg16.connect() as connection:
+        assert connection.execute(text(
+            "SELECT count(*) FROM information_schema.columns "
+            "WHERE table_schema='cafeteria' AND table_name='menu_services' "
+            "AND column_name IN ('service_start','service_end')"
+        )).scalar_one() == 0
     with pg16.begin() as connection:
         connection.execute(text("UPDATE cafeteria.menu_weeks SET workflow_state='published'"))
         connection.execute(text(_INSERT_REVISION_SQL), {
-            'week_id': draft['id'], 'revision_number': 1,
+            'week_id': week_id, 'revision_number': 1,
             'revision_code': 'CAF-2026-KW36-R1',
             'snapshot': json.dumps(snapshot, ensure_ascii=False), 'actor': actor,
         })
@@ -437,8 +575,9 @@ def test_v19_upgrade_adds_times_without_touching_rows_or_receipts(pg16):  # noqa
             text('SELECT to_jsonb(r) FROM cafeteria.publication_revisions r ORDER BY id')
         ).scalars().all()
         context_before = connection.execute(
-            text('SELECT cafeteria.workflow_week_context(:id)::text'), {'id': draft['id']}
+            text('SELECT cafeteria.workflow_week_context(:id)::text'), {'id': week_id}
         ).scalar_one()
+    assert len(services) == 5 and len(revisions) == 1
 
     applied = database.run_migrations(pg16, SCHEMA)
     assert [entry.version for entry in applied] == list(range(4, 21))
@@ -455,7 +594,7 @@ def test_v19_upgrade_adds_times_without_touching_rows_or_receipts(pg16):  # noqa
             'SELECT to_jsonb(r) FROM cafeteria.publication_revisions r ORDER BY id'
         )).scalars().all() == revisions
         assert connection.execute(
-            text('SELECT cafeteria.workflow_week_context(:id)::text'), {'id': draft['id']}
+            text('SELECT cafeteria.workflow_week_context(:id)::text'), {'id': week_id}
         ).scalar_one() == context_before
         assert connection.execute(text(
             'SELECT name, application_version, checksum_sha256 '
