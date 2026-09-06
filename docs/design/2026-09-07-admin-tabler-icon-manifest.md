@@ -1,4 +1,4 @@
-# Dishboard Admin: Tablet- und Symbolmanifest
+# Dishboard Admin: Tabler- und Symbolmanifest
 
 Stand: 7. September 2026. Designautor: **GPT-6 Astra**. WP `wp-e6846db6f07d`.
 Verbindlicher Sollvertrag für spätere UI-Arbeit; **keine Produktimplementierung oder Freigabe**.
@@ -9,6 +9,12 @@ Geprüfte Dokumentbasis: `e9d9f5a9e5c5df395f0475cbc6a9be6adf6ba7cb`, Branch
 
 «überal symbole verwenden wo es geht, auch für vega usw. ich möchte mehr symbole statt text.
 beim drüberfahren soll es aber ersichtlich sein.» Dazu gilt: **«KARTEN IMMER GLEICH GROSS»**.
+
+Präzisierung des Nutzers: **«nein tabler framework nid tablet....»**. Ziel ist eine
+vollständige, einheitliche **Tabler-Oberfläche**, keine Tablet-Priorisierung. Worktree- und
+Branchname enthalten aus Koordinationsgründen noch die frühere Bezeichnung. Die folgenden
+Responsive-/Touchregeln stammen aus bestehenden Qualitätsverträgen, nicht aus einer neuen
+Nutzerforderung nach einem bevorzugten Gerät.
 
 Dishboard soll sich wie ein ruhiges Küchenarbeitsbrett bedienen: Woche erkennen, Gericht
 finden, bearbeiten, prüfen und gezielt veröffentlichen. Wiederholte Bedienwörter weichen
@@ -49,7 +55,7 @@ Kein neues Framework, keine Dependency und keine fremde Editor-Skin als Parallel
 | Dichte | Vorhandene serverseitige `data-density`, `data-font-size`, `data-content-width` beachten. Kompakt reduziert Zwischenraum, niemals 48-px-Ziele oder Lesbarkeit. Kein zweiter lokaler Dichtespeicher. |
 | Bewegung | Nur kurze funktionsbezogene Übergänge. `prefers-reduced-motion` ohne dekorative Bewegung; Statuswechsel auch ohne Animation erkennbar. |
 
-## 3. Tablet zuerst und gleiche Karten
+## 3. Responsive Tabler-Layouts und gleiche Karten
 
 | CSS-Breite | Navigation / Arbeitsfläche | Karten und Editor |
 |---|---|---|
