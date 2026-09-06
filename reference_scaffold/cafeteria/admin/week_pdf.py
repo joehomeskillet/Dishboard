@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from io import BytesIO
+from itertools import product
 from pathlib import Path
 from typing import Any, cast
 
@@ -13,6 +14,7 @@ from fpdf.fonts import TTFFont
 from ..food_symbols import food_legend
 from ..print_branding import PdfBranding
 from ..print_template_config import PrintTemplateValidationError, default_config, validate_config
+from ..template_filters import service_time_label
 from .rendering import DAY_NAMES, MONTHS
 from .week_pdf_symbols import (
     ICON_GAP, ICON_HEIGHT, SymbolMark, draw_symbol, draw_symbols, legend_text,
@@ -29,6 +31,8 @@ DATE_BLUE = (0, 112, 136)
 DATE_FILL = (242, 242, 242)
 LEFT = 21.0
 PAD = 4.0
+# Table top of the compact cafeteria header that replaces the raster for six or seven days.
+COMPACT_TOP = 134.0
 # Approved print counterparts of the existing Südhang color tokens.
 PALETTES = {
     'reference': (BLUE, FILL),
@@ -127,11 +131,58 @@ def _paragraphs(option: dict[str, Any], individual_prices: bool) -> tuple[str, s
     return title, components, ' · '.join(part for part in details if part)
 
 
-def _rows(draft: dict[str, Any], patient: bool, week: date, prices: bool) -> list[list[MenuCell]]:
-    days = {str(day['date']): day for day in draft['days']}
+def _day(draft: dict[str, Any], week: date, offset: int) -> dict[str, Any]:
+    days = {str(item['date']): item for item in draft['days']}
+    return days.get((week + timedelta(days=offset)).isoformat(), {})
+
+
+def _day_offsets(draft: dict[str, Any], patient: bool, week: date) -> list[int]:
+    """Printed rows: patients always seven days, the cafeteria five plus open weekend days."""
+    if patient:
+        return list(range(7))
+    offsets = list(range(5))
+    offsets.extend(
+        offset for offset in (5, 6)
+        if any(str(service.get('service_state') or 'open') == 'open'
+               for service in _day(draft, week, offset).get('services', []))
+    )
+    return offsets
+
+
+def _time_labels(draft: dict[str, Any], patient: bool, week: date, offset: int) -> list[str]:
+    """Serving times of one printed day, in service order and without repetition."""
+    profile = 'patient' if patient else 'staff_guest'
+    labels: list[str] = []
+    for service in _day(draft, week, offset).get('services', []):
+        label = service_time_label(service, profile)
+        if label and label not in labels:
+            labels.append(label)
+    return labels
+
+
+def _fit_block(pdf: FPDF, text: str, width: float,
+               steps: tuple[tuple[float, int], ...]) -> Block:
+    """First offered size and line budget the bold text really fits into.
+
+    The smallest size is no licence to overflow: a heading that outgrows every step
+    raises the actionable fit error instead of running off the sheet.
+    """
+    for size, max_lines in steps:
+        block = _wrap(pdf, text, width, size, True)
+        if len(block.lines) <= max_lines:
+            return block
+    raise WeekPdfFitError(
+        'Der Bereichsname passt nicht lesbar in die Überschrift dieses PDFs. '
+        'Bitte unter «Bereiche & Zeiten» einen kürzeren Anzeigenamen wählen, '
+        'speichern und das PDF erneut öffnen.'
+    )
+
+
+def _rows(draft: dict[str, Any], patient: bool, week: date, offsets: list[int],
+          prices: bool) -> list[list[MenuCell]]:
     rows = []
-    for offset in range(7 if patient else 5):
-        day = days.get((week + timedelta(days=offset)).isoformat(), {})
+    for offset in offsets:
+        day = _day(draft, week, offset)
         services = {service['meal_code']: service for service in day.get('services', [])}
         row = []
         for meal in (('LUNCH', 'DINNER') if patient else ('LUNCH',)):
@@ -169,8 +220,8 @@ def _legend(pdf: FPDF, content: list[list[MenuCell]], width: float, patient: boo
     return heading, rows, heights, cell_width
 
 
-def _date_label(week: date, patient: bool) -> str:
-    end = week + timedelta(days=6 if patient else 4)
+def _date_label(week: date, last_offset: int) -> str:
+    end = week + timedelta(days=last_offset)
     start = f'{week.day:02d}.'
     if week.month != end.month or week.year != end.year:
         start += f' {MONTHS[week.month - 1]} {week.year}'
@@ -215,26 +266,47 @@ def render_week_pdf(
         font = heading_font if style else body_font
         pdf.add_font('Weekly', style, ASSETS / 'fonts' / f'weekly-print-{font}{suffix}.ttf')
     pdf.add_page()
-    pdf.set_title('Wochenangebot Patienten' if patient else 'Wochenangebot Cafeteria')
+    area_name = str(draft.get('area_name') or '').strip()
+    document_title = (
+        f'Wochenangebot {area_name}' if area_name
+        else ('Wochenangebot Patienten' if patient else 'Wochenangebot Cafeteria')
+    )
+    pdf.set_title(document_title)
     pdf.set_creator('Dishboard · fpdf2')
     if branding:
         pdf.set_subject(f'Dishboard Markenrevision {branding.revision_id}')
     width = pdf.w - 2 * margin
-    day_width = 60.0 if patient else 104.0
+    offsets = _day_offsets(draft, patient, week)
+    day_labels = [_time_labels(draft, patient, week, offset) for offset in offsets]
+    # Serving times need a wider day column; without them the reference geometry stays
+    # untouched. The extra width stays small so the menu cells keep room for their text.
+    if any(day_labels):
+        day_width = 72.0 if patient else 118.0
+    else:
+        day_width = 60.0 if patient else 104.0
     padding = 2.0 if patient else PAD
     if config['spacing'] == 'roomy':
         padding += 1.5
     cell_width = (width - day_width) / (4 if patient else 2)
-    table_y, header_h, bottom = (52.0, 26.0, 580.0) if patient else (203.0, 31.0, 714.0)
+    raster_top, header_h, bottom = (52.0, 26.0, 580.0) if patient else (203.0, 31.0, 714.0)
+    # Six or seven cafeteria days only fit once the tall raster header gives way to a
+    # compact text header. Five-day weeks never reach that step and keep the raster.
+    header_tops = (raster_top,) if patient else (raster_top, COMPACT_TOP)
     custom_header = _wrap(pdf, config['header_text'], width, 11, True) if config['header_text'] else None
-    custom_y = table_y
-    if custom_header:
-        table_y += custom_header.height + 2 * padding
     common_prices = _common_prices(draft, patient)
-    content = _rows(draft, patient, week, not patient and common_prices is None)
+    content = _rows(draft, patient, week, offsets, not patient and common_prices is None)
     legend_heading, legend_rows, legend_heights, legend_width = _legend(pdf, content, width, patient)
     legend_height = legend_heading.height + sum(legend_heights) + 2 * PAD if legend_rows else 0.0
     symbols = [[measure_symbols(cell.option, cell_width - 2 * padding) for cell in row] for row in content]
+    day_leading = 0.5 if patient else 1.0
+    day_blocks: list[list[Block]] = [
+        [] if not labels else [
+            _wrap(pdf, DAY_NAMES[offset].upper(), day_width - 2 * PAD, 9 if patient else 15, True, day_leading),
+            *(_wrap(pdf, label, day_width - 2 * PAD, 8.5 if patient else 10, False, day_leading)
+              for label in labels),
+        ]
+        for offset, labels in zip(offsets, day_labels, strict=True)
+    ]
     if patient:
         for content_row in content:
             for content_cell in content_row:
@@ -245,16 +317,18 @@ def render_week_pdf(
         candidates = ((9.0, 9.0),) if patient else ((12.0, 10.0),)
     elif config['text_size'] == 'large':
         candidates = ((10.0, 10.0),) if patient else ((14.0, 12.0),)
-    for body_size, detail_size in candidates:
+    for custom_y, (body_size, detail_size) in product(header_tops, candidates):
+        table_y = custom_y + (custom_header.height + 2 * padding if custom_header else 0.0)
         rows = [
                 [[_wrap(pdf, text, cell_width - 2 * padding, body_size if i < 2 else detail_size,
                         i == 0, 0.5 if patient else 1.0)
               for i, text in enumerate(cell.paragraphs) if text] for cell in row]
             for row in content
         ]
-        heights = [max(sum(block.height for block in cell) + strip.height
-                       for cell, strip in zip(row, strips, strict=True)) + 2 * padding
-                   for row, strips in zip(rows, symbols, strict=True)]
+        heights = [max(max(sum(block.height for block in cell) + strip.height
+                           for cell, strip in zip(row, strips, strict=True)),
+                       sum(block.height for block in stack)) + 2 * padding
+                   for row, strips, stack in zip(rows, symbols, day_blocks, strict=True)]
         notes_text = ' · '.join(part for part in (_notes(draft), config['footer_text']) if part)
         notes = _wrap(pdf, notes_text, width - 2 * PAD, 8.5 if patient else 10)
         available = bottom - table_y - header_h - notes.height - 2 * PAD - legend_height
@@ -273,29 +347,36 @@ def render_week_pdf(
         pdf.set_fill_color(*fill)
         pdf.rect(0, 0, pdf.w, pdf.h, style='F')
     pdf.set_text_color(*blue)
+    compact = custom_y == COMPACT_TOP
     if patient:
-        _draw(pdf, Block(['Wochenangebot Patienten'], 19, True), margin, 15)
-        _draw(pdf, Block([_date_label(week, True)], 11), margin, 37)
+        _draw(pdf, _fit_block(pdf, document_title, width - 160.0,
+                              ((19.0, 1), (16.0, 1), (13.0, 1), (11.0, 1))), margin, 15)
+        _draw(pdf, Block([_date_label(week, offsets[-1])], 11), margin, 37)
         if config['logo'] == 'active_brand':
             logo = BytesIO(branding.logo_png) if branding and branding.logo_png else ASSETS / 'img' / LOGOS['print']
             pdf.image(logo, pdf.w - margin - 145, 17, w=145, h=24, keep_aspect_ratio=True)
         elif config['logo'] != 'none':
             pdf.image(ASSETS / 'img' / LOGOS[config['logo']], pdf.w - margin - 145, 17, w=145)
     else:
-        if branding:
-            # The old raster contains an embedded Südhang brand: never combine it with an inherited brand.
-            _draw(pdf, Block(['WOCHENANGEBOT'], 27, True), margin, 50)
-            _draw(pdf, Block(['CAFETERIA'], 18, True), margin, 85)
+        if branding or compact:
+            # The old raster contains an embedded Südhang brand: never combine it with an
+            # inherited brand, and drop it when six or seven days need the vertical room.
+            _draw(pdf, Block(['WOCHENANGEBOT'], 27, True), margin, 20 if compact else 50)
+            area_heading = area_name.upper() if area_name else 'CAFETERIA'
+            _draw(pdf, _fit_block(pdf, area_heading, width - 20.0,
+                                  ((18.0, 1), (15.0, 1), (12.0, 1), (10.0, 1))),
+                  margin, 53 if compact else 85)
         else:
             pdf.image(ASSETS / 'img/weekly-print-header.jpg', 0, 0, w=pdf.w, h=201.96)
-        date_block = _wrap(pdf, _date_label(week, False), width, 17)
+        date_block = _wrap(pdf, _date_label(week, offsets[-1]), width, 17)
         # Reference strip geometry; longer month-crossing dates extend it left.
         strip_width = max(250.44, pdf.get_string_width(date_block.lines[0]) + 15.12)
         strip_x = 572.28 - strip_width
+        strip_y = 87.72 if compact else 145.56
         pdf.set_fill_color(*(fill if brand_palette else DATE_FILL))
-        pdf.rect(strip_x, 145.56, strip_width, 26.28, style='F')
+        pdf.rect(strip_x, strip_y, strip_width, 26.28, style='F')
         pdf.set_text_color(*(branding.accent if brand_palette and branding else DATE_BLUE))
-        _draw(pdf, date_block, strip_x + 7.56, 148.84)
+        _draw(pdf, date_block, strip_x + 7.56, strip_y + 3.28)
     pdf.set_text_color(*blue)
     if custom_header:
         _draw(pdf, custom_header, margin, custom_y + padding)
@@ -309,13 +390,20 @@ def render_week_pdf(
         _draw(pdf, Block([heading], 11 if patient else 15, True), margin + day_width + index * cell_width + PAD, table_y + 7)
     y = table_y + header_h
     pdf.set_text_color(*ink)
-    for offset, (row, height) in enumerate(zip(rows, heights, strict=True)):
+    for row_index, (row, height) in enumerate(zip(rows, heights, strict=True)):
         pdf.rect(margin, y, day_width, height)
-        _draw(pdf, Block([DAY_NAMES[offset].upper()], 9 if patient else 15, True), margin + PAD, y + (height - 16) / 2)
+        stack = day_blocks[row_index]
+        if stack:
+            stack_y = y + (height - sum(block.height for block in stack)) / 2
+            for block in stack:
+                stack_y = _draw(pdf, block, margin + PAD, stack_y)
+        else:
+            _draw(pdf, Block([DAY_NAMES[offsets[row_index]].upper()], 9 if patient else 15, True),
+                  margin + PAD, y + (height - 16) / 2)
         for index, cell in enumerate(row):
             x = margin + day_width + index * cell_width
             pdf.rect(x, y, cell_width, height)
-            strip = symbols[offset][index]
+            strip = symbols[row_index][index]
             text_y = y + padding + (height - 2 * padding - sum(block.height for block in cell) - strip.height) / 2
             for block in cell:
                 text_y = _draw(pdf, block, x + padding, text_y)
@@ -349,7 +437,11 @@ def render_week_pdf(
             pdf.image(ASSETS / 'img' / LOGOS[config['logo']], pdf.w - margin - 145, 720, w=145)
         pdf.rect(margin, 756, width, 39, style='DF')
         pdf.set_text_color(*blue)
-        _draw(pdf, Block(['WOCHENANGEBOT CAFETERIA'], 14, True), margin + PAD, 768)
+        band_text = f'WOCHENANGEBOT {area_name.upper()}' if area_name else 'WOCHENANGEBOT CAFETERIA'
+        # The band is 39 pt tall, so a long area name may wrap once at the smaller sizes.
+        _draw(pdf, _fit_block(pdf, band_text, width * 0.64 - 2 * PAD,
+                              ((14.0, 1), (12.0, 1), (10.0, 1), (8.5, 1), (10.0, 2), (8.5, 2))),
+              margin + PAD, 768)
         price_text = [f'Intern: {_price(common_prices[0])}', f'Extern: {_price(common_prices[1])}'] if common_prices else ['Preise beim Menü in CHF']
         _draw(pdf, Block(price_text, 14, True), margin + width * 0.64, 759)
     return bytes(pdf.output())

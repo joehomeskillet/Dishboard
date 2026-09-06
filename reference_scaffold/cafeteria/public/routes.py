@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 from flask import Blueprint, current_app, make_response, redirect, render_template, request, url_for
 
 from ..db import active_snapshot
+from ..template_filters import cafeteria_visible_days, weekday_range_label
 
 bp = Blueprint('public', __name__)
 
@@ -50,7 +51,18 @@ def load_context(profile_code: str) -> dict:
     day = None
     if snapshot:
         day = next((item for item in snapshot.get('days', []) if item.get('date') == date_value), None)
-    return {'snapshot': snapshot, 'day': day, 'today': date_value}
+    return {
+        'snapshot': snapshot, 'day': day, 'today': date_value,
+        'area_name': (snapshot or {}).get('area_name', ''),
+    }
+
+
+def cafeteria_context() -> dict:
+    """Cafeteria pages name the days they show, weekends only when a service is open."""
+    context = load_context('staff_guest')
+    context['open_days'] = cafeteria_visible_days((context['snapshot'] or {}).get('days', []))
+    context['weekday_range'] = weekday_range_label(context['open_days'])
+    return context
 
 
 def service(day: dict | None, meal_code: str) -> dict | None:
@@ -76,7 +88,7 @@ def root():
 
 @bp.get('/cafeteria/heute/')
 def cafeteria_today():
-    context = load_context('staff_guest')
+    context = cafeteria_context()
     context['lunch'] = service(context['day'], 'LUNCH')
     return published_response('public/cafeteria_today.html', context)
 
@@ -85,9 +97,8 @@ def cafeteria_today():
         defaults={'show_menu_images': False})
 @bp.get('/cafeteria/wochenangebot/')
 def cafeteria_week(show_menu_images: bool = True):
-    context = load_context('staff_guest')
+    context = cafeteria_context()
     context['show_menu_images'] = show_menu_images
-    context['open_days'] = [day for day in (context['snapshot'] or {}).get('days', []) if day.get('services')]
     return published_response('public/cafeteria_week.html', context)
 
 
@@ -110,9 +121,7 @@ def patient_week(show_menu_images: bool = True):
 
 @bp.get('/druck/cafeteria/woche')
 def print_cafeteria_week():
-    context = load_context('staff_guest')
-    context['open_days'] = [day for day in (context['snapshot'] or {}).get('days', []) if day.get('services')]
-    return published_response('public/print_cafeteria_week.html', context)
+    return published_response('public/print_cafeteria_week.html', cafeteria_context())
 
 
 @bp.get('/druck/patienten/woche')

@@ -341,11 +341,22 @@ def build_openapi() -> dict:
                         'channel': {'type': 'string', 'enum': ['cafeteria', 'patienten']},
                         'revision_id': {'type': ['string', 'null']},
                         'location': {'$ref': '#/components/schemas/Location'},
+                        'area_name': {
+                            'type': 'string', 'minLength': 1, 'maxLength': 80,
+                            'description': 'Anzeigename des Bereichs. Fehlt in Snapshots, die vor der '
+                                           'Bereichsverwaltung publiziert wurden.',
+                        },
                         'week_start': {'type': 'string', 'format': 'date'},
                         'week_end': {'type': 'string', 'format': 'date'},
                         'title': {'type': 'string'},
                         'shared_note': {'type': 'string'},
-                        'days': {'type': 'array', 'items': {'$ref': '#/components/schemas/Day'}},
+                        'days': {
+                            'type': 'array',
+                            'items': {'$ref': '#/components/schemas/Day'},
+                            'description': 'Montag bis Sonntag. Im Cafeteria-Kanal tragen Samstag und '
+                                           'Sonntag entweder keinen Service oder genau einen '
+                                           'LUNCH-Service; Werktage tragen genau einen.',
+                        },
                     },
                 },
                 'Location': {
@@ -372,6 +383,16 @@ def build_openapi() -> dict:
                         'meal_name': {'type': 'string', 'enum': _enum_value('service', 'meal_name')},
                         'service_state': {'type': 'string', 'enum': _enum_value('service', 'service_state')},
                         'notice': {'type': 'string'},
+                        'service_start': {
+                            'type': 'string', 'pattern': '^([01][0-9]|2[0-3]):[0-5][0-9]$',
+                            'description': 'Beginn der Ausgabe als Wanduhrzeit in Europe/Zurich. '
+                                           'Fehlt, wenn keine Zeit erfasst ist.',
+                        },
+                        'service_end': {
+                            'type': 'string', 'pattern': '^([01][0-9]|2[0-3]):[0-5][0-9]$',
+                            'description': 'Ende der Ausgabe als Wanduhrzeit in Europe/Zurich. '
+                                           'Fehlt, wenn keine Zeit erfasst ist.',
+                        },
                         'options': {'type': 'array', 'items': {'$ref': '#/components/schemas/Option'}},
                     },
                 },

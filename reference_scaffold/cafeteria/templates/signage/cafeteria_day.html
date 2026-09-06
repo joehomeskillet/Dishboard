@@ -1,12 +1,12 @@
 {% extends "signage/base_signage.html" %}
 {% from '_brand_logo.html' import brand_logo %}
 {% from '_food_symbols.html' import legend %}
-{% block title %}Cafeteria-Tagesplan{% endblock %}
+{% block title %}{{ area_name ~ ' · Tagesplan' if area_name else 'Cafeteria-Tagesplan' }}{% endblock %}
 {% block main_label %}Cafeteria-Tagesplan{% endblock %}
 {% block channel %}
 <div class="signage-brand">
   {{ brand_logo(brand, 'signage-logo') }}
-  <h1 class="signage-kicker m-0">Cafeteria · Mittag für Mitarbeitende und externe Gäste</h1>
+  <h1 class="signage-kicker m-0">{{ area_name if area_name else 'Cafeteria · Mittag für Mitarbeitende und externe Gäste' }}{% if lunch %}{% set time_label = lunch|service_time_label('staff_guest') %}{% if time_label %} · {{ time_label }}{% endif %}{% endif %}</h1>
 </div>
 {% endblock %}
 {% block content %}

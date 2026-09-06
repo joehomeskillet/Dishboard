@@ -96,6 +96,12 @@ Nutzlast verwendet die Admin-Seite.
 
 Bestehender Wochensnapshot. 404 `no_published_menu`, wenn keine Publikation aktiv ist.
 
+Drei Felder sind optional und fehlen in Snapshots, die vor der Bereichsverwaltung publiziert wurden:
+`area_name` auf Snapshotebene (Anzeigename des Bereichs, 1 bis 80 Zeichen) sowie `service_start` und
+`service_end` je Service (Wanduhrzeit in Europe/Zurich, Muster `^([01][0-9]|2[0-3]):[0-5][0-9]$`).
+Im Cafeteria-Kanal tragen Samstag und Sonntag entweder keinen Service oder genau einen LUNCH-Service;
+Werktage tragen weiterhin genau einen.
+
 ```bash
 curl -sS https://dishboard.joelduss.xyz/api/v1/published/cafeteria
 ```

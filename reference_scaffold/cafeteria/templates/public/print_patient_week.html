@@ -1,20 +1,20 @@
 {% extends "base.html" %}
 {% from '_brand_logo.html' import brand_logo %}
 {% from '_food_symbols.html' import legend %}
-{% block title %}Druckansicht Wochenspeiseplan{% endblock %}
+{% block title %}{{ 'Druckansicht ' ~ area_name if area_name else 'Druckansicht Wochenspeiseplan' }}{% endblock %}
 {% block body_class %}print-body{% endblock %}
 {% block body %}
 <main class="public-shell print-shell" id="main-content">
   <header class="print-header">
     {{ brand_logo(brand, 'site-logo-img') }}
-    <span>Patienten-Speiseplan</span>
+    <span>{{ area_name if area_name else 'Patienten-Speiseplan' }}</span>
   </header>
-  <section class="hero"><div><p class="eyebrow">Druck · Patienten-Speiseplan</p><h1>{{ (snapshot.week_start|date_long) ~ ' bis ' ~ (snapshot.week_end|date_long) if snapshot else 'Wochenplan nicht verfügbar' }}</h1><p class="hero-copy">Mittag und Abend mit je zwei Menüoptionen.</p></div></section>
+  <section class="hero"><div><p class="eyebrow">Druck · {{ area_name if area_name else 'Patienten-Speiseplan' }}</p><h1>{{ (snapshot.week_start|date_long) ~ ' bis ' ~ (snapshot.week_end|date_long) if snapshot else 'Wochenplan nicht verfügbar' }}</h1><p class="hero-copy">Mittag und Abend mit je zwei Menüoptionen.</p></div></section>
   {% if snapshot %}
   <section class="week-list" aria-label="Patienten-Wochenplan">
     {% set printed = namespace(options=[]) %}
     {% for day in snapshot.days %}
-    <article class="week-day"><header><h2>{{ day.weekday }}</h2><span>{{ day.date|date_long }}</span></header><div class="week-day-grid">{% for meal in day.services %}<div class="week-row"><div class="week-meal-label">{{ meal.meal_name }}</div>{% if meal.service_state|default('open') == 'open' %}{% for option in meal.options %}<div class="week-menu"><small class="week-menu-type">{{ option.type_name }}</small><strong>{{ option.title }}</strong><span>{{ option.components|join(' · ') }}</span>
+    <article class="week-day"><header><h2>{{ day.weekday }}</h2><span>{{ day.date|date_long }}</span></header><div class="week-day-grid">{% for meal in day.services %}{% set time_label = meal|service_time_label('patient') %}<div class="week-row"><div class="week-meal-label">{{ meal.meal_name }}{% if time_label %}<br><small>{{ time_label }}</small>{% endif %}</div>{% if meal.service_state|default('open') == 'open' %}{% for option in meal.options %}<div class="week-menu"><small class="week-menu-type">{{ option.type_name }}</small><strong>{{ option.title }}</strong><span>{{ option.components|join(' · ') }}</span>
                 {% if option.title %}{% set printed.options = printed.options + [option] %}
                 {% include '_menu_metadata.html' %}
                 {% endif %}
