@@ -1,21 +1,101 @@
-{% extends "base.html" %}
+{% extends "public/base_public.html" %}
 {% block title %}Wochenspeiseplan – Klinik Südhang{% endblock %}
-{% block body %}
-<header class="site-header"><nav class="site-nav" aria-label="Hauptnavigation"><a href="{{ url_for('public.patient_today') }}">Patienten heute</a><a class="active" href="{{ url_for('public.patient_week') }}" aria-current="page">Patienten Woche</a><span class="channel-links"><a href="{{ url_for('public.cafeteria_week') }}">Cafeteria</a></span></nav><a class="site-logo" href="{{ url_for('public.cafeteria_today') }}"><img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="site-logo-img" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="205" height="40"></a></header>
-<main class="public-shell" id="main-content">
-<section class="hero"><div><p class="eyebrow">Patienten-Speiseplan · Wochenübersicht</p><h1>{{ (snapshot.week_start|date_long) ~ ' bis ' ~ (snapshot.week_end|date_long) if snapshot else 'Wochenplan nicht verfügbar' }}</h1><p class="hero-copy">Montag bis Sonntag · Mittag und Abend</p></div>{% if snapshot %}<div class="date-chip">Kalenderwoche {{ snapshot.week_start|iso_week }}</div>{% endif %}</section>
+{% block logo_href %}{{ url_for('public.patient_today') }}{% endblock %}
+{% block header_actions %}
+<div class="nav-item">
+  <a href="{{ url_for('public.cafeteria_week') }}" class="btn btn-outline-primary">Cafeteria</a>
+</div>
+{% endblock %}
+{% block hero %}
+<div class="page-header d-print-none">
+  <div class="container-xl">
+    <div class="row g-2 align-items-center">
+      <div class="col">
+        <div class="page-pretitle">Patienten-Speiseplan · Wochenübersicht</div>
+        <h1 class="page-title">{{ (snapshot.week_start|date_long) ~ ' bis ' ~ (snapshot.week_end|date_long) if snapshot else 'Wochenplan nicht verfügbar' }}</h1>
+        <div class="text-secondary mt-1">Montag bis Sonntag · Mittag und Abend</div>
+      </div>
+      <div class="col-12 col-md-auto d-print-none">
+        <div class="btn-list">
+          <a href="{{ url_for('public.patient_today') }}" class="btn btn-primary">Tagesansicht</a>
+        </div>
+      </div>
+    </div>
+    {% if snapshot %}<div class="mt-3"><span class="badge bg-primary-lt date-chip">Kalenderwoche {{ snapshot.week_start|iso_week }}</span></div>{% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block content %}
 {% if snapshot %}
-<section class="week-list">
-{% for day in snapshot.days %}
-<article class="week-day"><header><h2>{{ day.weekday }}</h2><span>{{ day.date|date_long }}</span></header><div class="week-day-grid">{% for meal in day.services %}<div class="week-row"><div class="week-meal-label">{{ meal.meal_name }}</div>{% if meal.service_state|default('open') == 'open' %}{% for option in meal.options %}<div class="week-menu"><small class="week-menu-type">{{ option.type_name }}</small><strong>{{ option.title }}</strong><span>{{ option.components|join(' · ') }}</span>
-        {% include '_menu_image.html' %}
-        {% with metadata_class='signage-tags' %}{% include '_menu_metadata.html' %}{% endwith %}</div>
-{% endfor %}{% else %}<div class="week-menu"><small class="week-menu-type">Geschlossen</small><strong>{{ meal.notice }}</strong></div>{% endif %}</div>{% endfor %}</div></article>
-{% endfor %}
-</section>
+{% set has_today = today in snapshot.days|map(attribute='date')|list %}
+<nav class="nav nav-pills nav-fill mb-3 week-nav" aria-label="Wochentage">
+  {% for day in snapshot.days %}
+  <a href="#tag-{{ day.date }}" class="nav-item nav-link flex-column gap-1 {{ 'active' if day.date == today or (not has_today and loop.first) else '' }} py-3" aria-label="{{ day.weekday }}, {{ day.date|date_long }}" {% if day.date == today %}aria-current="date"{% elif not has_today and loop.first %}aria-current="location"{% endif %}>
+    <span class="fw-bold">{{ day.weekday[:2] }}</span>
+    <span class="text-secondary small">{{ day.date[8:10] }}.{{ day.date[5:7] }}.</span>
+  </a>
+  {% endfor %}
+</nav>
+
+<div class="week-list public-menu-week public-menu-week-patient">
+  {% for day in snapshot.days %}
+  <div id="tag-{{ day.date }}" class="week-day-section">
+    <h2 class="mb-3">{{ day.weekday }}, {{ day.date|date_long }}</h2>
+    <div class="row g-4 public-menu-meals">
+      {% for meal in day.services %}
+      <div class="col-12 public-menu-meal">
+        <h3 class="mb-2 mt-2 text-secondary">{{ meal.meal_name }}</h3>
+        {% if meal.service_state|default('open') == 'open' %}
+        <div class="row g-4 public-menu-options">
+          {% for option in meal.options %}
+          <div class="col-12 col-md-6">
+            <div class="card h-100">
+              <div class="card-img-top">
+                {% if option|menu_image %}{% include '_menu_image.html' %}
+                {% else %}<div class="bg-teal-lt p-5 text-center fw-medium">{{ option.type_name }} · Frisch aus unserer Küche</div>{% endif %}
+              </div>
+              <div class="card-status-top {{ 'bg-green' if option.type_code == 'VEGGIE' else 'bg-primary' }}"></div>
+              <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between mb-2">
+                  <div>
+                    <div class="text-secondary small text-uppercase fw-bold">{{ option.type_name }}</div>
+                    <h4 class="card-title mb-1">{{ option.title }}</h4>
+                  </div>
+                </div>
+                <div class="text-secondary mb-3">{{ option.components|join(' · ') }}</div>
+                <div class="mt-2">
+                  {% with metadata_class='signage-tags' %}{% include '_menu_metadata.html' %}{% endwith %}
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-info public-menu-notice">
+          <div class="d-flex">
+            <div><svg class="icon alert-icon" aria-hidden="true"><use href="{{ url_for('static', filename='vendor/tabler-icons/tabler-icons.svg') }}#tabler-info-circle"></use></svg></div>
+            <div>{{ meal.notice }}</div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
 {% else %}
-<section class="empty-state"><h2>Kein Patienten-Speiseplan verfügbar</h2><p>Für diese Woche ist noch kein Speiseplan verfügbar.</p></section>
+<div class="empty">
+  <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="{{ url_for('static', filename='vendor/tabler-icons/tabler-icons.svg') }}#tabler-alert-triangle"></use></svg></div>
+  <p class="empty-title">Kein Patienten-Speiseplan verfügbar</p>
+  <p class="empty-subtitle text-secondary">Für diese Woche ist noch kein Speiseplan verfügbar.</p>
+</div>
 {% endif %}
-<aside class="patient-notice"><h2>Allgemeiner Speiseplan</h2><p>Die Übersicht ersetzt keine individuelle Ernährungsberatung und keine verordnete Kostform.</p></aside>
-</main>
+<div class="card mt-4">
+  <div class="card-body">
+    <h2 class="card-title">Allgemeiner Speiseplan</h2>
+    <p class="text-secondary">Die Übersicht ersetzt keine individuelle Ernährungsberatung und keine verordnete Kostform.</p>
+  </div>
+</div>
 {% endblock %}

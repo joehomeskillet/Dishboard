@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="de"
+      data-signage-revision="{{ snapshot.revision_id if snapshot else '' }}"
+      data-signage-date="{{ today if today is defined else '' }}"
+      data-signage-interval="60000">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>{% block title %}Südhang Menüplanung{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='menu-images.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='food-symbols.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='signage.css') }}">
+</head>
+<body class="signage-body">
+  <div class="signage-shell {% block shell_class %}{% endblock %}" data-signage-frame>
+    <header class="signage-top d-flex justify-content-between" data-signage-header>
+      <div class="signage-channel">{% block channel %}{% endblock %}</div>
+      <div class="signage-datetime">
+        <strong class="signage-weekday">{% if day %}{{ day.weekday }}{% else %}Heute{% endif %}</strong>
+        <span class="signage-calendar-date">{% if today is defined %}{{ today|date_long }}{% endif %}</span>
+        <time class="signage-clock" data-signage-clock datetime=""></time>
+      </div>
+    </header>
+    <main class="signage-main" data-signage-root aria-label="{% block main_label %}Speiseplan{% endblock %}">
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="signage-statusbar" data-signage-footer>
+      <span class="signage-revision">{% if snapshot %}{{ snapshot.revision_id }}{% endif %}</span>
+      <span class="signage-status" data-signage-status></span>
+    </footer>
+  </div>
+  <script src="{{ url_for('static', filename='signage.js') }}" defer></script>
+</body>
+</html>

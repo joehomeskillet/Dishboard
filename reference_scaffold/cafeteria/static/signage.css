@@ -1,0 +1,118 @@
+:root{--tblr-font-sans-serif:var(--sh-font);--tblr-body-font-family:var(--sh-font);--tblr-primary:var(--sh-primary);--tblr-card-border-radius:var(--sh-radius-lg)}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--sh-font);line-height:1.4}
+h1,h2,h3{font-family:var(--sh-font-display);text-wrap:balance;font-weight:bold}
+p{text-wrap:pretty}
+.signage-body{width:100vw;height:100vh;margin:0;overflow:hidden;color:var(--sh-white);background:radial-gradient(circle at 92% -12%,var(--sh-primary-glow),transparent 32%),linear-gradient(135deg,var(--sh-signage-start) 0%,var(--sh-signage-middle) 58%,var(--sh-signage-end) 100%)}
+.signage-shell{display:grid;grid-template-rows:auto minmax(0,1fr) auto;width:100vw;height:100vh;aspect-ratio:16/9;gap:2.1vh;padding:3vh 2.8vw 2.3vh;overflow:hidden;transition:opacity 300ms ease-out}
+.signage-shell.is-updating{opacity:.82}
+@media (prefers-reduced-motion:reduce){.signage-shell{transition:none}}
+.signage-top{align-items:center;gap:2vw}
+.signage-channel,.signage-brand{display:grid;gap:.42vh}
+.signage-logo{display:block;width:auto;height:clamp(36px,6vw,54px);filter:drop-shadow(0 2px 4px var(--sh-logo-shadow))}
+.signage-kicker{color:var(--sh-white-070);font-size:clamp(15px,1.04vw,23px);font-weight:720}
+.signage-datetime{text-align:right}
+.signage-weekday{display:block;font-size:clamp(34px,3.2vw,66px);line-height:.92;letter-spacing:-.055em}
+.signage-calendar-date,.signage-clock{display:block;margin-top:.45vh;color:var(--sh-white-070);font-size:clamp(16px,1.1vw,24px)}
+.signage-main{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.signage-statusbar{display:flex;justify-content:space-between;align-items:center;gap:2vw;color:var(--sh-white-076);font-size:clamp(14px,.94vw,22px)}
+.cafe-day-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.9vw;min-height:0;flex:1}
+.signage-menu-card{display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-width:0;min-height:0;overflow:hidden;color:var(--sh-ink);background:var(--sh-white-0985);border-radius:clamp(22px,1.8vw,38px);box-shadow:0 25px 70px var(--sh-card-shadow-strong);border-top:clamp(9px,.7vw,14px) solid var(--sh-magenta)}
+.signage-menu-card.veggie{border-top-color:var(--sh-green)}
+.signage-menu-card>header{display:flex;justify-content:space-between;align-items:center;padding:1.8vh 1.8vw 1.2vh;border-bottom:1px solid var(--sh-border)}
+.signage-menu-card>header h2{margin:0;color:var(--sh-teal-800);font-size:clamp(20px,1.42vw,31px);letter-spacing:.09em;text-transform:uppercase}
+.signage-menu-card .content{display:flex;flex-direction:column;justify-content:center;min-width:0;min-height:0;padding:2vh 2vw}
+.signage-menu-card .content h3{margin:0 0 1.2vh;font-size:clamp(42px,4vw,80px);line-height:1.12;letter-spacing:-.055em}
+.signage-menu-card .content p{margin:0 0 1.5vh;color:var(--sh-ink-muted);font-size:clamp(20px,1.52vw,33px);line-height:1.25}
+.signage-components{display:flex;flex-wrap:wrap;gap:.65vw;margin:0;padding:0;list-style:none}
+.signage-components li{min-width:0;max-width:100%;padding:.68vh .72vw;overflow-wrap:anywhere;border-radius:999px;background:var(--sh-panel-soft);font-size:clamp(15px,1.02vw,23px);font-weight:800}
+.signage-menu-card.meat .signage-components li{color:var(--sh-magenta);background:var(--sh-magenta-soft);border:1px solid var(--sh-magenta)}
+.signage-menu-card.veggie .signage-components li{color:var(--sh-green);background:var(--sh-green-soft);border:1px solid var(--sh-green)}
+.signage-menu-card>footer{display:flex;justify-content:space-between;align-items:center;gap:1vw;min-height:6.2vh;padding:1.25vh 1.8vw;border-top:1px solid var(--sh-border);background:var(--sh-teal-050)}
+.signage-tags{display:flex;flex-wrap:wrap;gap:.4vw}
+.signage-tags .label{font-size:clamp(10px,.55vw,14px);padding:.22vh .32vw}
+.label{display:inline-flex;align-items:center;padding:.38rem .55rem;border-radius:999px;color:var(--sh-teal-800);background:var(--sh-teal-100);font-weight:820}
+.label.green{color:var(--sh-green);background:var(--sh-green-soft)}
+.label.amber{color:var(--sh-amber);background:var(--sh-amber-soft)}
+.signage-price{font-size:clamp(21px,1.37vw,31px);font-weight:900;white-space:nowrap;letter-spacing:-.02em}
+.cafe-week-layout{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1vw;min-height:0;flex:1}
+.cafe-week-day{display:grid;grid-template-rows:auto 1fr 1fr;gap:.8vh;min-height:0}
+.cafe-week-day>header{padding:.8vh .8vw;border-radius:14px;text-align:center;background:var(--sh-white-surface-014)}
+.cafe-week-day>header strong{display:block;font-size:clamp(20px,1.35vw,31px)}
+.cafe-week-day>header span{display:block;margin-top:.2vh;color:var(--sh-white-070);font-size:clamp(13px,.82vw,19px)}
+.cafe-week-slot{display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-width:0;min-height:0;overflow:hidden;color:var(--sh-ink);background:var(--sh-white-098);border-radius:clamp(15px,1vw,22px);border-top:.45vh solid var(--sh-magenta)}
+.cafe-week-slot.veggie{border-top-color:var(--sh-green)}
+.cafe-week-slot .slot-type{padding:.72vh .7vw;color:var(--sh-teal-800);border-bottom:1px solid var(--sh-border);font-size:clamp(12px,.72vw,17px);font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.cafe-week-slot .slot-body{display:flex;flex-direction:column;justify-content:center;min-width:0;min-height:0;padding:.7vh .75vw}
+.cafe-week-slot h3{margin:0;font-size:clamp(20px,1.52vw,34px);line-height:1.08;letter-spacing:-.035em}
+.cafe-week-slot p{margin:.55vh 0 0;color:var(--sh-ink-muted);font-size:clamp(17px,.88vw,20px);line-height:1.24}
+.cafe-week-slot footer{padding:.65vh .72vw;color:var(--sh-teal-950);border-top:1px solid var(--sh-border);background:var(--sh-panel-soft);font-size:clamp(17px,.9vw,20px);font-weight:900;line-height:1.16}
+.patient-day-layout{display:grid;grid-template-rows:repeat(2,minmax(0,1fr));gap:1.6vh;min-height:0;flex:1}
+.patient-signage-meal{display:grid;grid-template-columns:clamp(160px,12vw,250px) repeat(2,minmax(0,1fr));min-height:0;overflow:hidden;color:var(--sh-ink);background:var(--sh-white-0985);border-radius:clamp(22px,1.5vw,34px);box-shadow:0 22px 60px var(--sh-card-shadow)}
+.patient-signage-meal .meal-label{display:flex;flex-direction:column;justify-content:center;padding:1.5vh 1.3vw;color:var(--sh-white);background:var(--sh-blue)}
+.patient-signage-meal.dinner .meal-label{background:var(--sh-teal-800)}
+.patient-signage-meal .meal-label small{color:var(--sh-white-072);font-size:clamp(14px,.86vw,20px);font-weight:750}
+.patient-signage-meal .meal-label strong{margin-top:.35vh;font-size:clamp(30px,2.2vw,48px);line-height:.96;letter-spacing:-.04em}
+.patient-signage-option{display:flex;flex-direction:column;justify-content:center;min-width:0;padding:1.3vh 1.55vw}
+.patient-signage-option+.patient-signage-option{border-left:1px solid var(--sh-border)}
+.patient-signage-option .slot-type{color:var(--sh-teal-700);font-size:clamp(13px,.78vw,18px);font-weight:900;letter-spacing:.09em;text-transform:uppercase}
+.patient-signage-option h3{margin:.65vh 0 .7vh;font-size:clamp(30px,2.65vw,56px);line-height:1.1;letter-spacing:-.045em}
+.patient-signage-option p{margin:0;color:var(--sh-ink-muted);font-size:clamp(16px,1.15vw,25px);line-height:1.25}
+.patient-signage-option h3,.patient-signage-option p{flex-shrink:0}
+.patient-signage-option .signage-tags{margin-top:1vh;flex-shrink:0;max-height:2.2vh;overflow:hidden}
+.patient-week-shell{gap:1.5vh;padding:2.25vh 1.6vw 1.7vh}
+.patient-week-layout{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.62vw;min-height:0;flex:1}
+.patient-week-day{display:grid;grid-template-rows:auto repeat(2,minmax(0,1fr));gap:.65vh;min-width:0;min-height:0}
+.patient-week-day>header{padding:.62vh .45vw;border-radius:12px;text-align:center;background:var(--sh-white-surface-014)}
+.patient-week-day>header strong{display:block;font-size:clamp(18px,1.15vw,30px)}
+.patient-week-day>header span{display:block;color:var(--sh-white-070);font-size:clamp(11px,.67vw,17px)}
+.patient-week-cell{display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0;overflow:hidden;color:var(--sh-ink);background:var(--sh-white-0985);border-radius:clamp(12px,.8vw,19px)}
+.patient-week-cell .meal-name{padding:.5vh .48vw;color:var(--sh-white);background:var(--sh-blue);font-size:clamp(12px,.72vw,19px);font-weight:900;letter-spacing:.05em;text-transform:uppercase}
+.patient-week-cell.dinner .meal-name{background:var(--sh-teal-800)}
+.patient-week-options{display:grid;grid-template-rows:repeat(2,minmax(0,1fr));min-height:0}
+.patient-week-option{display:flex;flex-direction:column;justify-content:center;min-width:0;min-height:0;padding:.52vh .55vw}
+.patient-week-option+.patient-week-option{border-top:1px solid var(--sh-border)}
+.patient-week-option small{color:var(--sh-teal-700);font-size:clamp(10px,.58vw,15px);font-weight:900;letter-spacing:.07em;text-transform:uppercase}
+.patient-week-option strong{display:block;margin-top:.18vh;font-size:clamp(15px,1.01vw,26px);line-height:1.12;letter-spacing:-.025em}
+.patient-week-option span{display:block;margin-top:.2vh;color:var(--sh-ink-muted);font-size:clamp(10px,.58vw,15px);line-height:1.15}
+.signage-menu-card .content h3,.signage-menu-card .content p,.cafe-week-slot h3,.cafe-week-slot p,.patient-signage-option h3,.patient-signage-option p,.patient-week-option strong,.patient-week-option span{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.closed-signage{display:grid;place-items:center;min-height:0;flex:1}
+.closed-card{width:min(1150px,82vw);padding:7vh 5vw;border-radius:42px;text-align:center;color:var(--sh-ink);background:var(--sh-white-0985);box-shadow:0 28px 90px var(--sh-card-shadow-heavy)}
+.closed-card .closed-icon{display:grid;place-items:center;width:1.4em;height:1.4em;margin:0 auto 1.5vh;border-radius:50%;color:var(--sh-white);background:var(--sh-magenta);font-size:clamp(48px,5vw,96px);font-weight:900}
+.closed-card h1{margin:0;font-size:clamp(60px,6vw,116px);line-height:.95;letter-spacing:-.06em}
+.closed-card p{margin:2vh auto 0;color:var(--sh-ink-muted);font-size:clamp(24px,2vw,42px);line-height:1.35}
+.signage-empty{display:grid;place-content:center;gap:1vh;min-height:0;flex:1;border:2px dashed var(--sh-white-border-034);border-radius:clamp(20px,1.5vw,34px);text-align:center}
+.signage-empty strong{font-size:clamp(42px,4vw,86px);line-height:1}
+.signage-empty span{color:var(--sh-white-076);font-size:clamp(20px,1.45vw,34px)}
+@media (min-width: 3000px){.patient-week-day>header strong{font-size:34px}.patient-week-day>header span{font-size:20px}.patient-week-cell .meal-name{font-size:25px}.patient-week-option small{font-size:18px}.patient-week-option strong{font-size:26px}.patient-week-option span{font-size:18px}}
+
+/* Variante A: Tabler cards keep complete serving illustrations above the menu. */
+.hero-food-grid{flex:1;min-height:0;margin:0;flex-wrap:nowrap;--tblr-gutter-x:clamp(24px,1.6vw,62px)}
+.hero-food-grid>.col-6{min-height:0;margin-top:0}
+.hero-food.card{display:flex;flex:1;flex-direction:column;border:0;border-radius:var(--sh-radius-lg);background:var(--sh-panel);box-shadow:var(--sh-shadow-soft)}
+.hero-food .card-status-top,.hero-food-closed .card-status-top{height:.55vh}
+.hero-food .bg-primary,.hero-food-closed .bg-primary{background:var(--sh-primary)!important}
+.hero-food .bg-green{background:var(--sh-green)!important}
+.hero-food-media{flex:1 1 30vh;min-height:16vh;max-height:34vh;background:var(--sh-panel-soft)}
+.hero-food .menu-photo{position:relative;max-width:none;height:100%;margin:0}
+.hero-food .menu-photo img{width:100%;height:100%;aspect-ratio:4/3;object-fit:contain}
+.hero-food .menu-photo figcaption{position:absolute;right:.7vw;bottom:.5vh;margin:0;padding:.2vh .4vw;font-size:clamp(12px,.72vw,28px);color:var(--sh-ink-muted);background:var(--sh-panel)}
+.hero-food-fallback{height:100%;color:var(--sh-teal-800);background:var(--sh-teal-100);font-size:clamp(22px,1.3vw,50px);font-weight:600}
+.hero-food-fallback-mark{font-size:clamp(70px,6vw,230px);line-height:1;letter-spacing:-.06em}
+.hero-food .content{flex:0 0 auto;justify-content:flex-start;gap:.6vh;padding:1.4vh 1.6vw}
+.hero-food-kicker{margin:0;color:var(--sh-primary);font-size:clamp(22px,1.15vw,46px);font-weight:600;line-height:1.2;letter-spacing:.08em;text-transform:uppercase}
+.hero-food.veggie .hero-food-kicker{color:var(--sh-green)}
+.hero-food .content .card-title{margin:0;color:var(--sh-ink);font-size:clamp(46px,2.5vw,100px);font-weight:600;line-height:1.2;letter-spacing:-.025em;flex-shrink:0}
+.hero-food .content .hero-food-components{margin:0;font-size:clamp(28px,1.5vw,60px);line-height:1.25;flex-shrink:0}
+.hero-food>footer{display:block;flex:0 0 auto;min-height:0;padding:1vh 1.6vw 1.4vh;background:var(--sh-panel)}
+.hero-food [data-menu-metadata] p{margin:0 0 .4vh;font-size:clamp(18px,1vw,40px);line-height:1.25;overflow-wrap:anywhere}
+.hero-food .signage-tags{gap:.35vw;margin:.4vh 0}
+.hero-food .signage-tags .label{padding:.25vh .45vw;font-size:clamp(16px,.9vw,36px);line-height:1.2}
+.hero-food .signage-tags .label.amber{color:var(--sh-amber-ink)}
+.hero-food .signage-price{gap:.8vw;margin-top:1vh;white-space:normal;line-height:1.2}
+.hero-food .signage-price .fs-2{font-size:clamp(27px,1.6vw,64px)!important}
+.hero-food-external{color:var(--sh-ink-muted);font-size:clamp(24px,1.35vw,54px);font-weight:400}
+.hero-food-closed{width:min(80vw,2400px);border:0;border-radius:var(--sh-radius-lg);color:var(--sh-ink);background:var(--sh-panel);box-shadow:var(--sh-shadow-soft)}
+.hero-food-closed .card-body{padding:8vh 5vw}
+.hero-food-closed h1,.hero-food-closed h2{margin:2vh 0;font-size:clamp(60px,5vw,192px);font-weight:600;line-height:1.1}
+.hero-food-closed p{margin:0;color:var(--sh-ink-muted);font-size:clamp(28px,1.8vw,72px);line-height:1.3}

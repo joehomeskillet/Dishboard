@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>{% block title %}Südhang Menüplanung{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='menu-images.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='food-symbols.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='public.css') }}">
+</head>
+<body class="public-page d-flex flex-column min-vh-100">
+  <a class="visually-hidden-focusable btn btn-primary" href="#main-content">Zum Inhalt springen</a>
+  <div class="page">
+    <header class="navbar navbar-expand-md d-print-none">
+      <div class="container-xl">
+        <nav class="navbar-nav site-nav flex-row" aria-label="Weitere Speisepläne">
+          {% block header_actions %}{% endblock %}
+        </nav>
+        <a class="navbar-brand site-logo" href="{% block logo_href %}{{ url_for('public.cafeteria_today') }}{% endblock %}">
+          <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="205" height="40" alt="Klinik Südhang" class="site-logo-img">
+        </a>
+      </div>
+    </header>
+    <div class="page-wrapper">
+      <main id="main-content" tabindex="-1">
+        {% block hero %}{% endblock %}
+        <div class="container-xl page-body">
+          {% block content %}{% endblock %}
+        </div>
+      </main>
+      <footer class="footer footer-transparent d-print-none mt-auto">
+        <div class="container-xl">
+          <div class="row text-center align-items-center flex-row-reverse">
+            <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+              <ul class="list-inline list-inline-dots mb-0">
+                <li class="list-inline-item"><a href="{{ url_for('public.legend') }}" class="link-secondary">Legende Allergene & Herkunft</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </div>
+</body>
+</html>

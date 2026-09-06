@@ -1,40 +1,98 @@
-{% extends "base.html" %}
+{% extends "public/base_public.html" %}
 {% block title %}Cafeteria heute – Klinik Südhang{% endblock %}
-{% block body %}
-<header class="site-header">
-  <nav class="site-nav" aria-label="Hauptnavigation">
-    <a class="active" href="{{ url_for('public.cafeteria_today') }}" aria-current="page">Cafeteria heute</a>
-    <a href="{{ url_for('public.cafeteria_week') }}">Cafeteria Woche</a>
-    <span class="channel-links"><a href="{{ url_for('public.patient_today') }}">Patientenplan</a></span>
-  </nav>
-  <a class="site-logo" href="{{ url_for('public.cafeteria_today') }}"><img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="site-logo-img" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="205" height="40"></a>
-</header>
-<main class="public-shell" id="main-content">
-  <section class="hero">
-    <div><p class="eyebrow">Cafeteria · Mitarbeitende und Externe</p><h1>Was gibt es heute?</h1><p class="hero-copy">Zwei Mittagsmenüs von Montag bis Freitag. Die Beträge sind getrennt für Mitarbeitende und externe Gäste ausgewiesen.</p></div>
-    <div class="date-chip">{{ day.weekday if day else '' }}, {{ today|date_long }}</div>
-  </section>
-  {% if lunch and lunch.service_state|default('open') == 'open' %}
-  <section class="menu-grid" aria-label="Heutige Cafeteria-Menüs">
-    {% for option in lunch.options %}
-    <article class="menu-card {{ 'veggie' if option.type_code == 'VEGGIE' else 'meat' }}">
-      <header class="menu-card-head"><p class="menu-type">{{ option.type_name }}</p><span class="menu-icon {{ 'veg' if option.type_code == 'VEGGIE' else '' }}" aria-hidden="true">{{ '●' if option.type_code == 'VEGGIE' else '◐' }}</span></header>
-      <div class="menu-card-body">
-        <h2 class="menu-title">{{ option.title }}</h2>
-        {% include '_menu_image.html' %}
-
-        <ul class="components">{% for component in option.components %}<li>{{ component }}</li>{% endfor %}</ul>
-        {% include '_menu_metadata.html' %}
-        <div class="price-row"><div class="price"><span>Mitarbeitende</span><strong>CHF {{ option.prices.internal_rappen|chf }}</strong></div><div class="price"><span>Externe Gäste</span><strong>CHF {{ option.prices.external_rappen|chf }}</strong></div></div>
+{% block logo_href %}{{ url_for('public.cafeteria_today') }}{% endblock %}
+{% block header_actions %}
+<div class="nav-item">
+  <a href="{{ url_for('public.patient_today') }}" class="btn btn-outline-primary">Patientenplan</a>
+</div>
+{% endblock %}
+{% block hero %}
+<div class="page-header d-print-none">
+  <div class="container-xl">
+    <div class="row g-2 align-items-center">
+      <div class="col">
+        <div class="page-pretitle">Cafeteria · Mitarbeitende und Externe</div>
+        <h1 class="page-title">Was gibt es heute?</h1>
+        <div class="text-secondary mt-1">Zwei Mittagsmenüs von Montag bis Freitag. Die Beträge sind getrennt für Mitarbeitende und externe Gäste ausgewiesen.</div>
       </div>
-    </article>
-    {% endfor %}
-  </section>
-  {% elif lunch %}
-  <aside class="detail-panel"><h2>Cafeteria geschlossen</h2><p>{{ lunch.notice }}</p></aside>
-  {% else %}
-  <aside class="detail-panel"><h2>Cafeteria geschlossen</h2><p>{{ day.notice if day and day.notice else 'Für diesen Tag ist kein Cafeteria-Angebot verfügbar.' }}</p></aside>
-  {% endif %}
-  <aside class="detail-panel"><h2>Allergene und Herkunft</h2><p>Die vollständige Deklaration ist beim Cafeteria-Team erhältlich. Änderungen bei kurzfristiger Warenverfügbarkeit bleiben vorbehalten.</p></aside>
-</main>
+      <div class="col-12 col-md-auto d-print-none">
+        <div class="btn-list">
+          <a href="{{ url_for('public.cafeteria_week') }}" class="btn btn-primary">Zur Wochenübersicht</a>
+        </div>
+      </div>
+    </div>
+    <div class="mt-3"><span class="badge bg-primary-lt date-chip">{{ day.weekday if day else '' }}, {{ today|date_long }}</span></div>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+{% if lunch and lunch.service_state|default('open') == 'open' %}
+<section class="row g-4 public-menu-options" aria-label="Heutige Cafeteria-Menüs">
+  {% for option in lunch.options %}
+  <div class="col-12 col-md-6">
+    <div class="card h-100">
+      <div class="card-img-top">
+        {% if option|menu_image %}{% include '_menu_image.html' %}
+        {% else %}<div class="bg-teal-lt p-5 text-center fw-medium">{{ option.type_name }} · Frisch aus unserer Küche</div>{% endif %}
+      </div>
+      <div class="card-status-top {{ 'bg-green' if option.type_code == 'VEGGIE' else 'bg-primary' }}"></div>
+      <div class="card-header">
+        <div>
+          <div class="text-secondary small text-uppercase fw-medium mb-2">{{ option.type_name }}</div>
+          <h2 class="card-title mb-0">{{ option.title }}</h2>
+        </div>
+      </div>
+      <div class="card-body">
+        <ul class="list-unstyled">
+          {% for component in option.components %}<li>{{ component }}</li>{% endfor %}
+        </ul>
+        <div class="mt-3">
+          {% include '_menu_metadata.html' %}
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="text-secondary">Mitarbeitende</div>
+          <div class="fs-3 fw-bold">CHF {{ option.prices.internal_rappen|chf }}</div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-2">
+          <div class="text-secondary">Externe Gäste</div>
+          <div class="fs-3 fw-bold">CHF {{ option.prices.external_rappen|chf }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</section>
+{% elif lunch %}
+<div class="alert alert-info" role="alert">
+  <div class="d-flex">
+    <div>
+      <svg class="icon alert-icon" aria-hidden="true"><use href="{{ url_for('static', filename='vendor/tabler-icons/tabler-icons.svg') }}#tabler-info-circle"></use></svg>
+    </div>
+    <div>
+      <h2 class="alert-title">Cafeteria geschlossen</h2>
+      <div class="text-secondary">{{ lunch.notice }}</div>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-info" role="alert">
+  <div class="d-flex">
+    <div>
+      <svg class="icon alert-icon" aria-hidden="true"><use href="{{ url_for('static', filename='vendor/tabler-icons/tabler-icons.svg') }}#tabler-info-circle"></use></svg>
+    </div>
+    <div>
+      <h2 class="alert-title">Cafeteria geschlossen</h2>
+      <div class="text-secondary">{{ day.notice if day and day.notice else 'Für diesen Tag ist kein Cafeteria-Angebot verfügbar.' }}</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+<div class="card mt-4">
+  <div class="card-body">
+    <h2 class="card-title">Allergene und Herkunft</h2>
+    <p class="text-secondary">Die vollständige Deklaration ist beim Cafeteria-Team erhältlich. Änderungen bei kurzfristiger Warenverfügbarkeit bleiben vorbehalten.</p>
+  </div>
+</div>
 {% endblock %}
