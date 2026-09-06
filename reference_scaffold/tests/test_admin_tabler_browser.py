@@ -113,9 +113,19 @@ def test_legacy_week_sidebar_keeps_content_beside_it(page_context, admin_engine,
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
 
 
-def test_tabler_styles_do_not_load_on_public_or_login_pages(app):
-    client = app.test_client()
-    for route in ('/auth/local', '/cafeteria/wochenangebot/', '/patienten/wochenplan/'):
-        response = client.get(route)
-        assert response.status_code == 200, route
-        assert 'tabler' not in response.get_data(as_text=True)
+def test_login_page_does_not_load_tabler_styles(app):
+    response = app.test_client().get('/auth/local')
+    assert response.status_code == 200
+    assert 'tabler' not in response.get_data(as_text=True)
+
+
+@pytest.mark.parametrize('route', (
+    '/cafeteria/heute/', '/cafeteria/wochenangebot/', '/patienten/heute/', '/patienten/wochenplan/',
+))
+def test_public_pages_load_local_tabler_without_admin_styles(app, route):
+    response = app.test_client().get(route)
+    assert response.status_code == 200
+    styles = re.findall(r'<link\b[^>]*href="([^"]+)"', response.get_data(as_text=True))
+    assert styles.count('/static/vendor/tabler/tabler.min.css') == 1
+    assert '/static/public.css' in styles
+    assert not any(path.rsplit('/', 1)[-1].startswith('admin-') for path in styles)

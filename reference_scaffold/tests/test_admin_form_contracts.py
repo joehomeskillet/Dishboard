@@ -24,7 +24,10 @@ def form_client(monkeypatch):
     ))
     monkeypatch.setattr(routes, '_scope', lambda profile: AdminScope(7, 5, profile))
     state = {'writes': [], 'renders': [], 'overview': [], 'density': 'compact'}
-    monkeypatch.setattr(display_routes, 'get_admin_density', lambda *_: state['density'])
+    monkeypatch.setattr(display_routes, 'get_admin_display', lambda *_: {
+        'admin_density': state['density'], 'admin_font_size': 'normal',
+        'admin_content_width': 'contained', 'admin_menu_images': 'show',
+    })
 
     def write(*args):
         state['writes'].append(args)
