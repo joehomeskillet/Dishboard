@@ -143,6 +143,77 @@
   margin: 0;
   padding-left: 1.25rem;
 }
+/* Shared week tracks let the longest menu set every option's height. */
+.dishboard-admin .admin-week-days {
+  grid-auto-rows: auto 1fr 1fr;
+}
+.dishboard-admin .patient-admin-table {
+  grid-auto-rows: auto auto auto 1fr 1fr auto auto 1fr 1fr auto;
+}
+.dishboard-admin :is(.admin-day-card, .patient-admin-day, .patient-admin-meal),
+.dishboard-admin .admin-day-card > .card-body,
+.dishboard-admin :is(.patient-admin-meals, .admin-menu-options) {
+  display: grid;
+  grid-template-rows: subgrid;
+  min-width: 0;
+}
+.dishboard-admin .admin-day-card {
+  grid-row: span 3;
+}
+.dishboard-admin .patient-admin-day {
+  grid-row: span 10;
+}
+/* Keep the day border and bottom spacing outside the equal menu tracks. */
+.dishboard-admin .patient-admin-day::after {
+  content: "";
+}
+.dishboard-admin .patient-admin-meals {
+  grid-row: span 8;
+}
+.dishboard-admin .patient-admin-day > .patient-admin-meals {
+  padding-block: 0;
+}
+.dishboard-admin .patient-admin-meal {
+  grid-row: span 4;
+}
+.dishboard-admin .admin-day-card > .card-body,
+.dishboard-admin .admin-menu-options {
+  grid-row: span 2;
+}
+.dishboard-admin .admin-menu-options {
+  gap: 16px;
+  margin: 0;
+}
+.dishboard-admin .admin-menu-options > div {
+  min-width: 0;
+  width: auto;
+  margin: 0;
+  padding: 0;
+}
+@media (min-width: 768px) {
+  .dishboard-admin .admin-week-days {
+    grid-auto-rows: auto 1fr;
+  }
+  .dishboard-admin .patient-admin-table {
+    grid-auto-rows: auto auto auto 1fr auto;
+  }
+  .dishboard-admin .admin-day-card {
+    grid-row: span 2;
+  }
+  .dishboard-admin .patient-admin-day {
+    grid-row: span 5;
+  }
+  .dishboard-admin :is(.patient-admin-meals, .patient-admin-meal) {
+    grid-row: span 3;
+  }
+  .dishboard-admin .admin-day-card > .card-body,
+  .dishboard-admin .admin-menu-options {
+    grid-row: span 1;
+  }
+  .dishboard-admin .admin-menu-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 .dishboard-admin :is(.admin-week-controls, .admin-overview-form, .menu-slot, .patient-admin-day)
   :is(a, button, input, select, textarea) {
   scroll-margin-top: 12rem;
