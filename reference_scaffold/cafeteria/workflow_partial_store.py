@@ -10,11 +10,15 @@ from sqlalchemy import Connection, Engine, text
 from .component_assignment_store import replace_component_links_connection
 from .component_catalog_store import AdminScope, resolve_single_active_location_connection
 from .component_effects import rematerialize_auto_effects
+from .operations_settings import get_schedule_connection, normalise_time
 from .workflow_snapshot import external_id
+from .workflow_store import schedule_rule
 
 
 _MEALS = {'patient': ('LUNCH', 'DINNER'), 'staff_guest': ('LUNCH',)}
-_DAYS = {'patient': 7, 'staff_guest': 5}
+# Das Cafeteria-Wochenende gehört zum Raster; ob es beschreibbar ist, entscheiden die
+# Wochenendfreigabe und die bestehende Servicezeile in den einzelnen Schreibern.
+_DAYS = {'patient': 7, 'staff_guest': 7}
 _OPTIONS = ('MENU_1', 'VEGGIE')
 _STATES = {'open', 'closed', 'holiday', 'company_holiday'}
 _MODES = {'auto', 'manual'}
@@ -86,6 +90,17 @@ def _string(value: object, label: str, *, required: bool = False) -> str:
     if type(value) is not str or (required and not value.strip()):
         raise PartialWorkflowValidationError(f'{label} ist ungültig.')
     return value
+
+def _service_times(payload: Mapping[str, object]) -> tuple[str | None, str | None]:
+    try:
+        start = normalise_time(payload['service_start'])
+        end = normalise_time(payload['service_end'])
+    except ValueError as error:
+        raise PartialWorkflowValidationError(str(error)) from error
+    if start is not None and end is not None and end <= start:
+        raise PartialWorkflowValidationError('Endzeit muss nach der Beginnzeit liegen.')
+    return start, end
+
 
 def _validate_item(scope: AdminScope, payload: Mapping[str, object]) -> None:
     _exact(payload, _STAFF_KEYS if scope.profile_code == 'staff_guest' else _PATIENT_KEYS, 'Menü')
@@ -243,31 +258,96 @@ def persist_week_header(
             'week_id': week_ref.week_id}).scalar_one()
         return int(row)
 
+def apply_schedule_defaults_to_week(
+    engine: Engine, scope: AdminScope, week_start: date, *, expected_week_row_version: int,
+) -> int:
+    """Übernimmt die Wochenvorgaben bewusst in eine Woche.
+
+    Fehlende Slots werden angelegt; bestehende offene Services ohne jede Zeit erhalten die
+    Vorgabezeiten. Bestehende, manuelle und geschlossene Services sowie deren Menüs bleiben
+    unverändert. Der Schreiber sperrt die Woche zuerst und prüft die ursprünglich übergebene
+    Wochenversion; er liefert die neue Wochenversion zurück.
+    """
+    clean_week = _week(week_start)
+    expected = _expected(expected_week_row_version, 'expected_week_row_version')
+    with engine.begin() as connection:
+        week_ref = resolve_week_ref(connection, scope, clean_week, for_update=True)
+        if week_ref.row_version != expected:
+            raise PartialWorkflowConflictError('Woche wurde zwischenzeitlich geändert.')
+        schedule = get_schedule_connection(connection, scope.location_id, scope.profile_code)
+        rows = connection.execute(text(
+            'SELECT s.id,s.service_date,mp.code,s.service_state,s.service_start,s.service_end '
+            'FROM cafeteria.menu_services s JOIN cafeteria.meal_periods mp '
+            'ON mp.id=s.meal_period_id WHERE s.menu_week_id=:week '
+            'ORDER BY s.service_date,s.meal_period_id,s.id FOR UPDATE OF s'
+        ), {'week': week_ref.week_id}).mappings().all()
+        existing = {(row['service_date'], row['code']): row for row in rows}
+        day_count = 7 if schedule.allows_weekend else 5
+        for offset in range(day_count):
+            service_day = clean_week + timedelta(days=offset)
+            for meal in _MEALS[scope.profile_code]:
+                rule = schedule_rule(schedule, service_day, meal)
+                row = existing.get((service_day, meal))
+                if row is None:
+                    connection.execute(text(
+                        'INSERT INTO cafeteria.menu_services(menu_week_id,service_date,'
+                        'meal_period_id,service_state,notice,service_start,service_end) '
+                        "SELECT :week,:day,id,:state,NULLIF(:notice,''),CAST(:start AS time),"
+                        'CAST(:end AS time) FROM cafeteria.meal_periods WHERE code=:meal'
+                    ), {'week': week_ref.week_id, 'day': service_day, 'meal': meal,
+                        'state': rule.state, 'notice': rule.notice,
+                        'start': rule.start, 'end': rule.end})
+                elif (row['service_state'] == 'open' and row['service_start'] is None
+                      and row['service_end'] is None
+                      and (rule.start is not None or rule.end is not None)):
+                    connection.execute(text(
+                        'UPDATE cafeteria.menu_services SET service_start=CAST(:start AS time),'
+                        'service_end=CAST(:end AS time) WHERE id=:id'
+                    ), {'id': row['id'], 'start': rule.start, 'end': rule.end})
+        _touch_week(connection, scope, week_ref, False)
+        return int(connection.execute(text(
+            'SELECT row_version FROM cafeteria.menu_weeks WHERE id=:week'
+        ), {'week': week_ref.week_id}).scalar_one())
+
 def persist_service_state(
     engine: Engine, scope: AdminScope, week_start: date, day: str, meal: str,
     payload: Mapping[str, object], expected_service_row_version: int,
 ) -> int:
     service_date = _slot(scope, week_start, day, meal)
     expected = _expected(expected_service_row_version, 'expected_service_row_version')
-    _exact(payload, frozenset({'service_state', 'notice'}), 'Service')
+    _exact(
+        payload,
+        frozenset({'service_state', 'notice', 'service_start', 'service_end'}),
+        'Service',
+    )
     state = _string(payload['service_state'], 'Servicestatus')
     notice = _string(payload['notice'], 'Servicehinweis')
     if state not in _STATES or (state != 'open' and not notice.strip()):
         raise PartialWorkflowValidationError('Servicestatus oder Hinweis ist ungültig.')
+    start, end = _service_times(payload)
     with engine.begin() as connection:
         week_ref, created_week = _week_for_write(connection, scope, week_start, expected == 0)
         service = _service(connection, week_ref, service_date, meal, for_update=True)
         if expected == 0:
             if service is not None:
                 raise PartialWorkflowConflictError('Service wurde zwischenzeitlich angelegt.')
+            schedule = get_schedule_connection(connection, scope.location_id, scope.profile_code)
+            if (scope.profile_code == 'staff_guest' and service_date.isoweekday() > 5
+                    and not schedule.allows_weekend):
+                raise PartialWorkflowValidationError(
+                    'Cafeteria-Services am Wochenende sind nicht freigegeben.'
+                )
             sql = (
                 'INSERT INTO cafeteria.menu_services(menu_week_id,service_date,'
-                'meal_period_id,service_state,notice) SELECT :week_id,:service_date,mp.id,'
-                ":state,NULLIF(:notice,'') FROM cafeteria.meal_periods mp "
+                'meal_period_id,service_state,notice,service_start,service_end) '
+                'SELECT :week_id,:service_date,mp.id,'
+                ":state,NULLIF(:notice,''),CAST(:start AS time),CAST(:end AS time) "
+                'FROM cafeteria.meal_periods mp '
                 'WHERE mp.code=:meal RETURNING row_version'
             )
             params = {'week_id': week_ref.week_id, 'service_date': service_date,
-                      'state': state, 'notice': notice, 'meal': meal}
+                      'state': state, 'notice': notice, 'meal': meal,
+                      'start': start, 'end': end}
             row = connection.execute(text(sql), params).scalar_one()
             _touch_week(connection, scope, week_ref, created_week)
             return int(row)
@@ -281,9 +361,11 @@ def persist_service_state(
         if state != 'open' and has_items:
             raise PartialWorkflowConflictError('Service mit Menü kann nicht geschlossen werden.')
         row = connection.execute(text(
-            "UPDATE cafeteria.menu_services SET service_state=:state,notice=NULLIF(:notice,'') "
+            "UPDATE cafeteria.menu_services SET service_state=:state,notice=NULLIF(:notice,''),"
+            'service_start=CAST(:start AS time),service_end=CAST(:end AS time) '
             'WHERE id=:id RETURNING row_version'
-        ), {'state': state, 'notice': notice, 'id': service['id']}).scalar_one()
+        ), {'state': state, 'notice': notice, 'id': service['id'],
+            'start': start, 'end': end}).scalar_one()
         _touch_week(connection, scope, week_ref, created_week)
         return int(row)
 
@@ -342,13 +424,29 @@ def persist_menu_item(
         if service is None:
             if expected > 0:
                 raise PartialWorkflowNotFoundError('Menü nicht gefunden.')
+            schedule = get_schedule_connection(
+                connection, scope.location_id, scope.profile_code
+            )
+            rule = schedule_rule(schedule, service_date, meal)
+            if (scope.profile_code == 'staff_guest' and service_date.isoweekday() > 5
+                    and not schedule.allows_weekend):
+                raise PartialWorkflowValidationError(
+                    'Cafeteria-Services am Wochenende sind nicht freigegeben.'
+                )
+            if rule.state != 'open':
+                raise PartialWorkflowConflictError(
+                    'Service ist gemäss Wochenvorgabe geschlossen. '
+                    'Bitte zuerst den Service öffnen.'
+                )
             sql = (
                 'INSERT INTO cafeteria.menu_services(menu_week_id,service_date,meal_period_id,'
-                "service_state) SELECT :week_id,:service_date,id,'open' "
+                "service_state,service_start,service_end) SELECT :week_id,:service_date,id,'open',"
+                'CAST(:start AS time),CAST(:end AS time) '
                 'FROM cafeteria.meal_periods WHERE code=:meal '
                 'RETURNING id,row_version,service_state'
             )
-            params = {'week_id': week_ref.week_id, 'service_date': service_date, 'meal': meal}
+            params = {'week_id': week_ref.week_id, 'service_date': service_date, 'meal': meal,
+                      'start': rule.start, 'end': rule.end}
             service = connection.execute(text(sql), params).mappings().one()
         if service['service_state'] != 'open':
             raise PartialWorkflowConflictError('Geschlossener Service kann kein Menü speichern.')

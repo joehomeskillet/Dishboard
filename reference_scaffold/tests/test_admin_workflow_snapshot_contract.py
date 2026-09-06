@@ -110,6 +110,7 @@ def _staff_draft() -> dict[str, Any]:
     return {
         'week_start': WEEK_START.isoformat(),
         'location': {'code': 'KIRCHLINDACH', 'name': 'Südhang'},
+        'area_name': 'Mitarbeitende und externe Gäste',
         'title': 'Wochenmenü',
         'shared_note': 'Frisch gekocht',
         'days': days,
@@ -148,6 +149,54 @@ def test_snapshot_projects_exact_public_metadata_and_detaches_source() -> None:
     draft['days'][0]['services'][0]['options'][0]['labels'][0]['name'] = 'Geändert'
     draft['days'][0]['services'][0]['options'][0]['components'][0] = 'Geändert'
     assert snapshot == frozen
+
+
+def test_snapshot_is_schema_two_with_area_name_and_only_set_times() -> None:
+    draft = _staff_draft()
+    draft['area_name'] = '  Mitarbeitende und externe Gäste  '
+    draft['days'][0]['services'][0]['service_start'] = '11:30'
+    draft['days'][0]['services'][0]['service_end'] = '13:30'
+    draft['days'][1]['services'][0]['service_start'] = None
+    draft['days'][1]['services'][0]['service_end'] = None
+
+    snapshot = build_snapshot('staff_guest', draft, 'CAF-2026-KW37-R1')
+
+    assert snapshot['schema_version'] == 2
+    assert snapshot['area_name'] == 'Mitarbeitende und externe Gäste'
+    first = snapshot['days'][0]['services'][0]
+    assert (first['service_start'], first['service_end']) == ('11:30', '13:30')
+    second = snapshot['days'][1]['services'][0]
+    assert 'service_start' not in second
+    assert 'service_end' not in second
+
+
+def test_snapshot_requires_a_non_empty_area_name() -> None:
+    missing = _staff_draft()
+    del missing['area_name']
+    with pytest.raises(ValueError):
+        build_snapshot('staff_guest', missing, 'CAF-2026-KW37-R1')
+
+    blank = _staff_draft()
+    blank['area_name'] = '   '
+    with pytest.raises(ValueError):
+        build_snapshot('staff_guest', blank, 'CAF-2026-KW37-R1')
+
+
+def test_snapshot_rejects_a_service_end_before_its_start() -> None:
+    draft = _staff_draft()
+    draft['days'][0]['services'][0]['service_start'] = '13:30'
+    draft['days'][0]['services'][0]['service_end'] = '11:30'
+
+    with pytest.raises(ValueError):
+        build_snapshot('staff_guest', draft, 'CAF-2026-KW37-R1')
+
+
+def test_snapshot_keeps_cafeteria_weekend_days_empty_without_draft_days() -> None:
+    snapshot = build_snapshot('staff_guest', _staff_draft(), 'CAF-2026-KW37-R1')
+
+    assert len(snapshot['days']) == 7
+    assert snapshot['days'][5]['services'] == []
+    assert snapshot['days'][6]['services'] == []
 
 
 def test_snapshot_location_is_an_exact_detached_public_projection() -> None:

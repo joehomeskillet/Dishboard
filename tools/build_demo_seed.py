@@ -21,9 +21,13 @@ def json_dollar(value: dict[str, Any], tag: str) -> str:
 
 def item_sql(profile: str, week_var: str, day: dict[str, Any], service: dict[str, Any]) -> list[str]:
     lines: list[str] = []
+    start = service.get('service_start')
+    end = service.get('service_end')
     lines.append(
-        "INSERT INTO menu_services(menu_week_id, service_date, meal_period_id, service_state) "
-        f"VALUES ({week_var}, {q(day['date'])}::date, (SELECT id FROM meal_periods WHERE code={q(service['meal_code'])}), 'open') "
+        "INSERT INTO menu_services(menu_week_id, service_date, meal_period_id, service_state, "
+        "service_start, service_end) "
+        f"VALUES ({week_var}, {q(day['date'])}::date, (SELECT id FROM meal_periods WHERE code={q(service['meal_code'])}), 'open', "
+        f"{q(start) + '::time' if start else 'NULL'}, {q(end) + '::time' if end else 'NULL'}) "
         "RETURNING id INTO v_service;"
     )
     for order, option in enumerate(service['options'], start=1):

@@ -7,6 +7,11 @@ from typing import Any
 
 WEEK_START = '2026-08-31'
 WEEK_END = '2026-09-06'
+# Bereichsnamen und Ausgabezeiten wie im Seed gepflegt (Snapshot Schema 2).
+CAFETERIA_AREA_NAME = 'Mitarbeitende und externe Gäste'
+PATIENT_AREA_NAME = 'Patientinnen und Patienten'
+CAFETERIA_TIMES = ('11:30', '13:30')
+PATIENT_TIMES = {'LUNCH': ('11:30', '12:30'), 'DINNER': ('17:30', '18:30')}
 
 DAYS = [
     ('2026-08-31', 'Montag'),
@@ -177,7 +182,13 @@ def cafeteria_snapshot() -> dict[str, Any]:
                 'weekday': weekday,
                 'state': 'open',
                 'notice': '',
-                'services': [{'meal_code': 'LUNCH', 'meal_name': 'Mittag', 'options': options}],
+                'services': [{
+                    'meal_code': 'LUNCH',
+                    'meal_name': 'Mittag',
+                    'service_start': CAFETERIA_TIMES[0],
+                    'service_end': CAFETERIA_TIMES[1],
+                    'options': options,
+                }],
             })
         else:
             days.append({
@@ -193,6 +204,7 @@ def cafeteria_snapshot() -> dict[str, Any]:
         'channel': 'cafeteria',
         'revision_id': 'CAF-2026-KW36-R1',
         'location': {'code': 'KIRCHLINDACH', 'name': 'Klinik Südhang Kirchlindach'},
+        'area_name': CAFETERIA_AREA_NAME,
         'week_start': WEEK_START,
         'week_end': WEEK_END,
         'title': '31. August bis 4. September',
@@ -210,7 +222,13 @@ def patient_snapshot() -> dict[str, Any]:
                 _option(profile='patient', date_value=date_value, meal=meal_code, index=index, data=data)
                 for index, data in enumerate(PATIENT[date_value][meal_code], start=1)
             ]
-            services.append({'meal_code': meal_code, 'meal_name': meal_name, 'options': options})
+            services.append({
+                'meal_code': meal_code,
+                'meal_name': meal_name,
+                'service_start': PATIENT_TIMES[meal_code][0],
+                'service_end': PATIENT_TIMES[meal_code][1],
+                'options': options,
+            })
         days.append({
             'date': date_value,
             'weekday': weekday,
@@ -224,6 +242,7 @@ def patient_snapshot() -> dict[str, Any]:
         'channel': 'patienten',
         'revision_id': 'PAT-2026-KW36-R1',
         'location': {'code': 'KIRCHLINDACH', 'name': 'Klinik Südhang Kirchlindach'},
+        'area_name': PATIENT_AREA_NAME,
         'week_start': WEEK_START,
         'week_end': WEEK_END,
         'title': '31. August bis 6. September',

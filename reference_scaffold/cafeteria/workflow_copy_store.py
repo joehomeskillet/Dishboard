@@ -148,7 +148,7 @@ def _lock_services(connection: Connection, source_id: int,
                    target_id: int) -> list[Mapping[str, object]]:
     return list(connection.execute(text('''
                 SELECT s.id, s.menu_week_id, s.service_date, s.meal_period_id,
-                       s.service_state, s.notice
+                       s.service_state, s.notice, s.service_start, s.service_end
                 FROM cafeteria.menu_services s
                 JOIN cafeteria.menu_weeks w ON w.id=s.menu_week_id
                 WHERE s.menu_week_id=ANY(CAST(:week_ids AS bigint[]))
@@ -292,9 +292,11 @@ def _clone_tree(
     connection.execute(text(
         '''
         INSERT INTO cafeteria.menu_services(
-            menu_week_id, service_date, meal_period_id, service_state, notice
+            menu_week_id, service_date, meal_period_id, service_state, notice,
+            service_start, service_end
         )
-        SELECT :target_id, s.service_date + 7, s.meal_period_id, s.service_state, s.notice
+        SELECT :target_id, s.service_date + 7, s.meal_period_id, s.service_state, s.notice,
+               s.service_start, s.service_end
         FROM cafeteria.menu_services s WHERE s.menu_week_id=:source_id
         ORDER BY s.service_date, s.meal_period_id, s.id
         '''

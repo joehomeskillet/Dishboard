@@ -8,6 +8,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
+from .operations_settings import normalise_time
 from .workflow import (
     MENU_TYPES,
     PROFILE_DAYS,
@@ -150,6 +151,13 @@ def _version(form: Mapping[str, object]) -> int:
     return int(value, 10)
 
 
+def _service_time(form: Mapping[str, object], key: str) -> str | None:
+    try:
+        return normalise_time(_scalar(form, key).strip())
+    except ValueError as error:
+        raise WorkflowValidationError(str(error), field_name=key) from error
+
+
 def _week(form: Mapping[str, object]) -> date:
     value = _scalar(form, 'week')
     if _ISO_DATE.fullmatch(value) is None:
@@ -180,7 +188,7 @@ def _slot(
     except ValueError as error:
         raise WorkflowValidationError('Tag ist ungültig.', field_name='day') from error
     day_index = (service_day - week_start).days
-    if day_index not in range(PROFILE_DAYS[profile_code]):
+    if day_index not in range(7):
         raise WorkflowValidationError('Tag liegt ausserhalb des Menürasters.', field_name='day')
     meal = _scalar(form, 'meal')
     if meal not in PROFILE_MEALS[profile_code]:
@@ -339,7 +347,10 @@ def parse_service_form(
 ) -> ParsedService:
     _validate_shape(
         form,
-        frozenset({'_csrf', 'week', 'day', 'meal', 'row_version', 'service_state', 'notice'}),
+        frozenset({
+            '_csrf', 'week', 'day', 'meal', 'row_version', 'service_state', 'notice',
+            'service_start', 'service_end',
+        }),
     )
     week_start, service_day, meal, _ = _slot(profile_code, form, with_option=False)
     state = _scalar(form, 'service_state')
@@ -352,12 +363,24 @@ def parse_service_form(
             f'{prefix}: Geschlossener Service braucht einen Hinweis.',
             field_name='notice',
         )
+    start = _service_time(form, 'service_start')
+    end = _service_time(form, 'service_end')
+    if start is not None and end is not None and end <= start:
+        raise WorkflowValidationError(
+            'Endzeit muss nach der Beginnzeit liegen.',
+            field_name='service_end',
+        )
     return ParsedService(
         week_start=week_start,
         day=service_day.isoformat(),
         meal=meal,
         expected_service_row_version=_version(form),
-        payload={'service_state': state, 'notice': notice},
+        payload={
+            'service_state': state,
+            'notice': notice,
+            'service_start': start,
+            'service_end': end,
+        },
     )
 
 

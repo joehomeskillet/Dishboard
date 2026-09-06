@@ -18,6 +18,7 @@ from .component_assignment_store import (
     resolve_component_effects as resolve_component_effects,
 )
 from .db import issue_publication_capability
+from .operations_settings import normalise_time
 from .workflow_snapshot import build_snapshot
 from .workflow_review import (
     _review_open_connection,
@@ -78,6 +79,26 @@ def _require_exact_keys(value: dict[str, Any], expected: set[str], label: str) -
         raise WorkflowValidationError(f'Fehlendes {label}: {sorted(missing)[0]}')
 
 
+def _validate_service_times(service: dict[str, Any]) -> None:
+    """Optionale Servicezeiten: fehlend oder None ist erlaubt, sonst strikt HH:MM."""
+    times: dict[str, str | None] = {}
+    for key in ('service_start', 'service_end'):
+        value = service.get(key)
+        if value is None:
+            times[key] = None
+            continue
+        try:
+            times[key] = normalise_time(value)
+        except ValueError as error:
+            raise WorkflowValidationError(str(error), field_name=key) from error
+    start, end = times.get('service_start'), times.get('service_end')
+    if start is not None and end is not None and end <= start:
+        raise WorkflowValidationError(
+            'Endzeit muss nach der Beginnzeit liegen.',
+            field_name='service_end',
+        )
+
+
 def _validate_values(profile_code: str, week_start: date, values: dict[str, Any]) -> None:
     if profile_code not in PROFILE_MEALS:
         raise WorkflowValidationError('Unbekanntes Profil.')
@@ -89,7 +110,9 @@ def _validate_values(profile_code: str, week_start: date, values: dict[str, Any]
     if not isinstance(values['shared_note'], str):
         raise WorkflowValidationError('Wochenhinweis ist ungültig.')
     days = values['days']
-    if not isinstance(days, list) or len(days) != PROFILE_DAYS[profile_code]:
+    # Die Werktage sind Pflicht; Samstag und Sonntag sind einzeln optional.
+    allowed_day_counts = range(PROFILE_DAYS[profile_code], 8)
+    if not isinstance(days, list) or len(days) not in allowed_day_counts:
         raise WorkflowValidationError('Das Raster hat eine ungültige Anzahl Tage.')
     required_option_keys = {'type_code', 'title', 'components'}
     allowed_option_keys = required_option_keys | {
@@ -104,13 +127,21 @@ def _validate_values(profile_code: str, week_start: date, values: dict[str, Any]
     if profile_code == 'staff_guest':
         required_option_keys |= {'internal_rappen', 'external_rappen'}
         allowed_option_keys |= {'internal_rappen', 'external_rappen'}
+    allowed_dates = {(week_start + timedelta(days=index)).isoformat() for index in range(7)}
+    previous_date = ''
     for offset, day_value in enumerate(days):
         if not isinstance(day_value, dict):
             raise WorkflowValidationError('Ungültiger Tag im Raster.')
         _require_exact_keys(day_value, {'date', 'services'}, 'Tagesfeld')
-        expected_date = (week_start + timedelta(days=offset)).isoformat()
-        if day_value['date'] != expected_date:
+        value_date = day_value['date']
+        if (
+            not isinstance(value_date, str) or value_date not in allowed_dates
+            or value_date <= previous_date
+            or (offset < PROFILE_DAYS[profile_code]
+                and value_date != (week_start + timedelta(days=offset)).isoformat())
+        ):
             raise WorkflowValidationError('Servicedaten müssen lückenlos zur Woche passen.')
+        previous_date = value_date
         services = day_value['services']
         if not isinstance(services, list) or len(services) != len(PROFILE_MEALS[profile_code]):
             raise WorkflowValidationError('Mahlzeitenraster ist unvollständig.')
@@ -119,11 +150,19 @@ def _validate_values(profile_code: str, week_start: date, values: dict[str, Any]
         ):
             raise WorkflowValidationError('Mahlzeitenraster enthält ein unzulässiges Angebot.')
         for service in services:
-            _require_exact_keys(
-                service,
-                {'meal_code', 'service_state', 'notice', 'options'},
-                'Mahlzeitenfeld',
-            )
+            unexpected = set(service) - {
+                'meal_code', 'service_state', 'notice', 'options',
+                'service_start', 'service_end',
+            }
+            if unexpected:
+                raise WorkflowValidationError(
+                    f'Unzulässiges Mahlzeitenfeld: {sorted(unexpected)[0]}'
+                )
+            missing = {'meal_code', 'service_state', 'notice', 'options'} - set(service)
+            if missing:
+                raise WorkflowValidationError(
+                    f'Fehlendes Mahlzeitenfeld: {sorted(missing)[0]}'
+                )
             state = service['service_state']
             if state not in SERVICE_STATES:
                 raise WorkflowValidationError('Unzulässiger Schliessungsstatus.')
@@ -131,6 +170,7 @@ def _validate_values(profile_code: str, week_start: date, values: dict[str, Any]
                 raise WorkflowValidationError('Servicehinweis ist ungültig.')
             if state != 'open' and not service['notice'].strip():
                 raise WorkflowValidationError('Geschlossene Mahlzeit braucht einen Hinweis.')
+            _validate_service_times(service)
             options = service['options']
             if not isinstance(options, list) or len(options) != 2:
                 raise WorkflowValidationError('Jede Rasterzelle braucht zwei Menüarten.')
@@ -216,6 +256,8 @@ def validate_draft_values(
         **values,
         'week_start': week_start.isoformat(),
         'location': {'code': 'KIRCHLINDACH', 'name': 'Südhang'},
+        # Platzhalter wie beim Standort: geprüft wird die Form, nicht der gepflegte Name.
+        'area_name': 'Bereich',
     }
     build_snapshot(
         profile_code,
@@ -347,14 +389,16 @@ def _draft_values(draft: dict[str, Any]) -> dict[str, Any]:
     for day in draft['days']:
         services = []
         for service in day['services']:
-            services.append(
-                {
-                    'meal_code': service['meal_code'],
-                    'service_state': service['service_state'],
-                    'notice': service['notice'],
-                    'options': [_public_option(option) for option in service['options']],
-                }
-            )
+            projected = {
+                'meal_code': service['meal_code'],
+                'service_state': service['service_state'],
+                'notice': service['notice'],
+                'options': [_public_option(option) for option in service['options']],
+            }
+            for key in ('service_start', 'service_end'):
+                if key in service:
+                    projected[key] = service[key]
+            services.append(projected)
         days.append({'date': day['date'], 'services': services})
     return {
         'title': draft['title'],

@@ -1,4 +1,5 @@
 {
+  "area_name": "Mitarbeitende und externe Gäste",
   "channel": "cafeteria",
   "days": [
     {
@@ -73,7 +74,9 @@
               "type_code": "VEGGIE",
               "type_name": "Vegetarisch"
             }
-          ]
+          ],
+          "service_end": "13:30",
+          "service_start": "11:30"
         }
       ],
       "state": "open",
@@ -150,7 +153,9 @@
               "type_code": "VEGGIE",
               "type_name": "Vegetarisch"
             }
-          ]
+          ],
+          "service_end": "13:30",
+          "service_start": "11:30"
         }
       ],
       "state": "open",
@@ -222,7 +227,9 @@
               "type_code": "VEGGIE",
               "type_name": "Vegetarisch"
             }
-          ]
+          ],
+          "service_end": "13:30",
+          "service_start": "11:30"
         }
       ],
       "state": "open",
@@ -288,7 +295,9 @@
               "type_code": "VEGGIE",
               "type_name": "Vegetarisch"
             }
-          ]
+          ],
+          "service_end": "13:30",
+          "service_start": "11:30"
         }
       ],
       "state": "open",
@@ -359,7 +368,9 @@
               "type_code": "VEGGIE",
               "type_name": "Vegetarisch"
             }
-          ]
+          ],
+          "service_end": "13:30",
+          "service_start": "11:30"
         }
       ],
       "state": "open",

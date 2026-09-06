@@ -8,11 +8,29 @@ from sqlalchemy import Connection, Engine, text
 from .component_assignment_store import replace_component_links_connection
 from .component_catalog_store import AdminScope, resolve_single_active_location_connection
 from .component_effects import rematerialize_auto_effects
+from .operations_settings import (
+    OperationsSchedule,
+    SlotRule,
+    get_schedule_connection,
+    normalise_time,
+    slot_defaults,
+)
 from .workflow_snapshot import MEAL_NAMES, external_id
 
 PROFILE_MEALS = {'patient': ('LUNCH', 'DINNER'), 'staff_guest': ('LUNCH',)}
 PROFILE_DAYS = {'patient': 7, 'staff_guest': 5}
 MENU_TYPES = ('MENU_1', 'VEGGIE')
+# Ein Slot ausserhalb des gepflegten Rasters ist heute nur das Cafeteria-Wochenende.
+# Er gilt als geschlossen, solange die Wochenvorgaben ihn nicht kennen.
+WEEKEND_DEFAULT = SlotRule('closed', None, None, 'Am Wochenende geschlossen')
+
+
+def schedule_rule(schedule: OperationsSchedule, service_date: date, meal: str) -> SlotRule:
+    """Vorgabe eines Slots; Slots ausserhalb des Rasters gelten als geschlossen."""
+    try:
+        return slot_defaults(schedule, service_date, meal)
+    except KeyError:
+        return WEEKEND_DEFAULT
 
 
 class StaleDraftError(RuntimeError):
@@ -65,7 +83,8 @@ def load_draft_connection(
     week_query = (
         '''
         SELECT w.id, w.week_start, w.workflow_state, w.title, w.shared_note, w.row_version,
-               l.code AS location_code, l.name AS location_name
+               l.code AS location_code, l.name AS location_name,
+               p.display_name AS area_name, p.allows_weekend
         FROM cafeteria.menu_weeks w
         JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
         JOIN cafeteria.locations l ON l.id=w.location_id
@@ -76,7 +95,8 @@ def load_draft_connection(
         else
         '''
         SELECT w.id, w.week_start, w.workflow_state, w.title, w.shared_note, w.row_version,
-               l.code AS location_code, l.name AS location_name
+               l.code AS location_code, l.name AS location_name,
+               p.display_name AS area_name, p.allows_weekend
         FROM cafeteria.menu_weeks w
         JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
         JOIN cafeteria.locations l ON l.id=w.location_id
@@ -94,7 +114,10 @@ def load_draft_connection(
     services = connection.execute(
         text(
             '''
-            SELECT s.id, s.service_date, mp.code AS meal_code, s.service_state, s.notice
+            SELECT s.id, s.service_date, mp.code AS meal_code, s.service_state, s.notice,
+                   s.row_version,
+                   to_char(s.service_start, 'HH24:MI') AS service_start,
+                   to_char(s.service_end, 'HH24:MI') AS service_end
             FROM cafeteria.menu_services s
             JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id
             WHERE s.menu_week_id=:week_id
@@ -165,12 +188,25 @@ def load_draft_connection(
         (row['service_date'].isoformat(), row['meal_code'], row['type_code']): row
         for row in items
     }
+    schedule = get_schedule_connection(connection, location_id, profile_code)
+    allows_weekend = bool(week['allows_weekend'])
+    day_offsets = list(range(PROFILE_DAYS[profile_code]))
+    if profile_code == 'staff_guest':
+        # Wochenendtage erscheinen nur bei einer bestehenden Zeile oder in einer noch
+        # leeren Woche mit freigegebenem Betrieb; eine gespeicherte Woche wächst erst
+        # durch die bewusste Übernahme der Wochenvorgaben.
+        day_offsets += [offset for offset in (5, 6) if (
+            (allows_weekend and not services)
+            or any(row['service_date'] == week_start + timedelta(days=offset) for row in services)
+        )]
     days = []
-    for offset in range(PROFILE_DAYS[profile_code]):
-        service_date = (week_start + timedelta(days=offset)).isoformat()
+    for offset in day_offsets:
+        service_day = week_start + timedelta(days=offset)
+        service_date = service_day.isoformat()
         day_services = []
         for meal_code in PROFILE_MEALS[profile_code]:
             service_row = service_map.get((service_date, meal_code))
+            rule = schedule_rule(schedule, service_day, meal_code)
             options = []
             for type_code in MENU_TYPES:
                 item = item_map.get((service_date, meal_code, type_code))
@@ -200,8 +236,15 @@ def load_draft_connection(
                 {
                     'meal_code': meal_code,
                     'meal_name': MEAL_NAMES[meal_code],
-                    'service_state': service_row['service_state'] if service_row else 'open',
-                    'notice': service_row['notice'] or '' if service_row else '',
+                    'service_state': service_row['service_state'] if service_row else rule.state,
+                    'notice': service_row['notice'] or '' if service_row else rule.notice,
+                    'service_start': (
+                        service_row['service_start'] if service_row else rule.start
+                    ),
+                    'service_end': service_row['service_end'] if service_row else rule.end,
+                    'service_row_version': (
+                        int(service_row['row_version']) if service_row else 0
+                    ),
                     'options': options,
                 }
             )
@@ -216,6 +259,8 @@ def load_draft_connection(
         'shared_note': week['shared_note'] or '',
         'row_version': int(week['row_version']),
         'location': {'code': week['location_code'], 'name': week['location_name']},
+        'area_name': str(week['area_name']),
+        'allows_weekend': allows_weekend,
         'days': days,
     }
 
@@ -485,31 +530,103 @@ def persist_draft_connection(
             'week_id': week['id'],
         },
     )
-    connection.execute(
-        text('DELETE FROM cafeteria.menu_services WHERE menu_week_id=:week_id'),
-        {'week_id': week['id']},
-    )
+    # Der Vollersatz ersetzt die Menüs; bestehende Serviceidentitäten, manuell gepflegte
+    # Zeiten und ausgelassene Wochenendtage bleiben dabei erhalten. Wochenendzeilen dürfen
+    # nicht gelöscht und neu eingefügt werden, weil der Trigger die Neuanlage bei
+    # ausgeschaltetem Wochenendbetrieb ablehnt.
+    previous_services = {
+        (row['service_date'].isoformat(), row['meal_code']): row
+        for row in connection.execute(
+            text(
+                '''
+                SELECT s.id, s.service_date, mp.code AS meal_code,
+                       to_char(s.service_start, 'HH24:MI') AS service_start,
+                       to_char(s.service_end, 'HH24:MI') AS service_end
+                FROM cafeteria.menu_services s
+                JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id
+                WHERE s.menu_week_id=:week_id
+                '''
+            ),
+            {'week_id': week['id']},
+        ).mappings()
+    }
+    schedule = get_schedule_connection(connection, location_id, profile_code)
+    supplied_slots: set[tuple[str, str]] = set()
     for day_value in values['days']:
         for service_value in day_value['services']:
-            service_id = connection.execute(
-                text(
-                    '''
-                    INSERT INTO cafeteria.menu_services(
-                        menu_week_id, service_date, meal_period_id, service_state, notice
-                    )
-                    SELECT :week_id, CAST(:service_date AS date), mp.id, :state, NULLIF(:notice, '')
-                    FROM cafeteria.meal_periods mp WHERE mp.code=:meal_code
-                    RETURNING id
-                    '''
-                ),
-                {
-                    'week_id': week['id'],
-                    'service_date': day_value['date'],
-                    'state': service_value['service_state'],
-                    'notice': service_value['notice'].strip(),
-                    'meal_code': service_value['meal_code'],
-                },
-            ).scalar_one()
+            service_day = date.fromisoformat(day_value['date'])
+            meal_code = service_value['meal_code']
+            slot = (day_value['date'], meal_code)
+            supplied_slots.add(slot)
+            previous = previous_services.get(slot)
+            if (
+                previous is None
+                and profile_code == 'staff_guest'
+                and service_day.isoweekday() > 5
+                and not schedule.allows_weekend
+            ):
+                raise StaleDraftError('Cafeteria-Services am Wochenende sind nicht freigegeben.')
+            if previous is None:
+                rule = schedule_rule(schedule, service_day, meal_code)
+                fallback = (rule.start, rule.end)
+            else:
+                fallback = (previous['service_start'], previous['service_end'])
+            start = (
+                normalise_time(service_value['service_start'])
+                if 'service_start' in service_value
+                else fallback[0]
+            )
+            end = (
+                normalise_time(service_value['service_end'])
+                if 'service_end' in service_value
+                else fallback[1]
+            )
+            if start is not None and end is not None and end <= start:
+                raise ValueError('Endzeit muss nach der Beginnzeit liegen.')
+            parameters = {
+                'week_id': week['id'],
+                'service_date': day_value['date'],
+                'state': service_value['service_state'],
+                'notice': service_value['notice'].strip(),
+                'meal_code': meal_code,
+                'service_start': start,
+                'service_end': end,
+            }
+            if previous is None:
+                service_id = connection.execute(
+                    text(
+                        '''
+                        INSERT INTO cafeteria.menu_services(
+                            menu_week_id, service_date, meal_period_id, service_state, notice,
+                            service_start, service_end
+                        )
+                        SELECT :week_id, CAST(:service_date AS date), mp.id, :state,
+                               NULLIF(:notice, ''),
+                               CAST(:service_start AS time), CAST(:service_end AS time)
+                        FROM cafeteria.meal_periods mp WHERE mp.code=:meal_code
+                        RETURNING id
+                        '''
+                    ),
+                    parameters,
+                ).scalar_one()
+            else:
+                service_id = int(previous['id'])
+                connection.execute(
+                    text('DELETE FROM cafeteria.menu_items WHERE service_id=:service_id'),
+                    {'service_id': service_id},
+                )
+                connection.execute(
+                    text(
+                        '''
+                        UPDATE cafeteria.menu_services
+                        SET service_state=:state, notice=NULLIF(:notice, ''),
+                            service_start=CAST(:service_start AS time),
+                            service_end=CAST(:service_end AS time)
+                        WHERE id=:service_id
+                        '''
+                    ),
+                    {**parameters, 'service_id': service_id},
+                )
             if service_value['service_state'] == 'open':
                 for sort_order, option in enumerate(service_value['options'], start=1):
                     _insert_item(
@@ -521,6 +638,52 @@ def persist_draft_connection(
                         option,
                         sort_order,
                     )
+    for (previous_date, previous_meal), previous_row in previous_services.items():
+        if (previous_date, previous_meal) in supplied_slots:
+            continue
+        if profile_code == 'staff_guest' and date.fromisoformat(previous_date).isoweekday() > 5:
+            # Ein Fünf-Tage-Ersatz liefert gespeicherte Wochenendzeilen nicht mit und
+            # darf sie deshalb auch nicht entfernen.
+            continue
+        connection.execute(
+            text('DELETE FROM cafeteria.menu_services WHERE id=:service_id'),
+            {'service_id': int(previous_row['id'])},
+        )
+    supplies_weekend = any(
+        date.fromisoformat(supplied_date).isoweekday() > 5 for supplied_date, _ in supplied_slots
+    )
+    if (
+        profile_code == 'staff_guest'
+        and schedule.allows_weekend
+        and not previous_services
+        and not supplies_weekend
+    ):
+        # Eine noch leere Woche übernimmt die Wochenendvorgaben, wenn der Ersatz das
+        # Wochenende gar nicht erwähnt. Nennt er es, ist seine Angabe massgebend.
+        for offset in (5, 6):
+            service_day = week_start + timedelta(days=offset)
+            rule = schedule_rule(schedule, service_day, 'LUNCH')
+            connection.execute(
+                text(
+                    '''
+                    INSERT INTO cafeteria.menu_services(
+                        menu_week_id, service_date, meal_period_id, service_state, notice,
+                        service_start, service_end
+                    )
+                    SELECT :week_id, :service_date, mp.id, :state, NULLIF(:notice, ''),
+                           CAST(:service_start AS time), CAST(:service_end AS time)
+                    FROM cafeteria.meal_periods mp WHERE mp.code='LUNCH'
+                    '''
+                ),
+                {
+                    'week_id': week['id'],
+                    'service_date': service_day,
+                    'state': rule.state,
+                    'notice': rule.notice,
+                    'service_start': rule.start,
+                    'service_end': rule.end,
+                },
+            )
     return int(
         connection.execute(
             text('SELECT row_version FROM cafeteria.menu_weeks WHERE id=:week_id'),
