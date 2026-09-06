@@ -112,7 +112,11 @@ Kein PostgreSQL-Gate; Start nach Root-Freigabe dieses Vertrags unabhängig von S
 
 ### B2 — Stammdatenpersistenz
 
-**Besitzt neu:** `reference_scaffold/cafeteria/master_data_store.py`,
+**Besitzt neu:** Vollständige Master-Data-Module: `reference_scaffold/cafeteria/master_data_types.py`
+(DTOs und Contracts), `reference_scaffold/cafeteria/master_data_reads.py` (Abfragen und Reader),
+`reference_scaffold/cafeteria/master_data_commands.py` (gebundene Commands für Verben),
+`reference_scaffold/cafeteria/master_data_proposals.py` (Vorschlagslogik),
+`reference_scaffold/cafeteria/master_data_store.py` (Persistierungs-API). Tests:
 `reference_scaffold/tests/test_master_data_db.py`,
 `reference_scaffold/tests/test_master_data_race_db.py`.
 **Besitzt allein:** Migrationsschritt M-A vollständig: `measurement_units` samt Seed/Erhalt,
