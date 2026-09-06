@@ -234,3 +234,34 @@ def test_read_resource_published_patienten_has_no_prices():
             for service in day["services"]:
                 for option in service["options"]:
                     assert "prices" not in option
+
+
+@pytest.mark.parametrize("body", [b"[]", b"null", b"true", b'"text"', b"<html>unavailable</html>", b"\xff"])
+@pytest.mark.parametrize("optional", [False, True])
+def test_successful_non_object_response_is_rejected(body, optional):
+    with httpx.Client(
+        base_url="https://dishboard.example",
+        transport=httpx.MockTransport(lambda request: httpx.Response(200, content=body)),
+    ) as client:
+        fetch = server._fetch_json_optional if optional else server._fetch_json
+        with pytest.raises(TOOL_ERROR, match="invalid_response"):
+            fetch(client, "/api/v1/published/cafeteria")
+
+
+@pytest.mark.parametrize("optional", [False, True])
+def test_non_json_http_error_retains_http_status(optional):
+    with httpx.Client(
+        base_url="https://dishboard.example",
+        transport=httpx.MockTransport(lambda request: httpx.Response(503, text="Unavailable")),
+    ) as client:
+        fetch = server._fetch_json_optional if optional else server._fetch_json
+        with pytest.raises(TOOL_ERROR, match="HTTP 503"):
+            fetch(client, "/api/v1/published/cafeteria")
+
+
+def test_optional_unpublished_snapshot_remains_absent():
+    with httpx.Client(
+        base_url="https://dishboard.example",
+        transport=httpx.MockTransport(mock_handler),
+    ) as client:
+        assert server._fetch_json_optional(client, "/api/v1/published/ghost") is None

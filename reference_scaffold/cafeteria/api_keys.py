@@ -199,13 +199,13 @@ def _label(value: str) -> str:
     return cleaned
 
 
-def _scopes(value: Sequence[str]) -> tuple[str, ...]:
-    if isinstance(value, (str, bytes)):
+def _scopes(value: object) -> tuple[str, ...]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
         raise ApiKeyValidationError('API-Schlüssel-Scopes sind ungültig.')
     cleaned = tuple(value)
     if cleaned != API_KEY_SCOPES:
         raise ApiKeyValidationError('API-Schlüssel-Scopes sind ungültig.')
-    return cleaned
+    return API_KEY_SCOPES
 
 
 def _positive_id(value: int, field: str) -> int:
@@ -243,13 +243,23 @@ def _record(row: Mapping[str, object]) -> ApiKeyRecord:
         public_id=str(row['public_id']),
         label=str(row['label']),
         key_prefix=str(row['key_prefix']),
-        scopes=tuple(row['scopes']),
-        created_at=row['created_at'],
+        scopes=_scopes(row['scopes']),
+        created_at=_record_datetime(row['created_at']),
         created_by_name=str(row['created_by_name']),
-        expires_at=row['expires_at'],
-        last_used_at=row['last_used_at'],
-        revoked_at=row['revoked_at'],
+        expires_at=_record_optional_datetime(row['expires_at']),
+        last_used_at=_record_optional_datetime(row['last_used_at']),
+        revoked_at=_record_optional_datetime(row['revoked_at']),
     )
+
+
+def _record_datetime(value: object) -> datetime:
+    if not isinstance(value, datetime) or value.utcoffset() is None:
+        raise ValueError('API-Schlüssel-Datensatz enthält eine ungültige Zeitangabe.')
+    return value
+
+
+def _record_optional_datetime(value: object) -> datetime | None:
+    return None if value is None else _record_datetime(value)
 
 
 def _raise_permission(error: DBAPIError) -> None:

@@ -3,8 +3,8 @@ from __future__ import annotations
 from ..patient_payload import PATIENT_ALLERGEN_CODES, PATIENT_FIXED_VALUES, PATIENT_LABEL_CODES
 
 
-def _enum_value(*path: str) -> list[str]:
-    return sorted(PATIENT_FIXED_VALUES[path])
+def _enum_value(kind: str, field: str) -> list[str]:
+    return sorted(PATIENT_FIXED_VALUES[(kind, field)])
 
 
 def build_openapi() -> dict:

@@ -27,9 +27,13 @@ def _tool_error(error: str, detail: str | None = None) -> Exception:
 def _json_payload(response: httpx.Response) -> dict[str, Any]:
     try:
         parsed = response.json()
-    except json.JSONDecodeError:
-        return {}
-    return parsed if isinstance(parsed, Mapping) else {}
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        parsed = None
+    if isinstance(parsed, dict):
+        return parsed
+    if response.is_success:
+        raise _tool_error("invalid_response", "Dishboard-Antwort muss ein JSON-Objekt sein")
+    return {}
 
 
 def _require_api_key(headers: Mapping[str, str]) -> None:
@@ -37,7 +41,7 @@ def _require_api_key(headers: Mapping[str, str]) -> None:
         raise _tool_error("authorization", "DISHBOARD_API_KEY fehlt")
 
 
-def _require_json_response(response: httpx.Response) -> dict[str, Any] | list[Any]:
+def _require_json_response(response: httpx.Response) -> dict[str, Any]:
     payload = _json_payload(response)
     if response.status_code == 404 and payload.get("error") == "no_published_menu":
         raise _tool_error("no_published_menu", payload.get("detail"))
@@ -46,12 +50,12 @@ def _require_json_response(response: httpx.Response) -> dict[str, Any] | list[An
     return payload
 
 
-def _fetch_json(client: httpx.Client, path: str) -> dict[str, Any] | list[Any]:
+def _fetch_json(client: httpx.Client, path: str) -> dict[str, Any]:
     response = client.get(path)
     return _require_json_response(response)
 
 
-def _fetch_json_optional(client: httpx.Client, path: str) -> dict[str, Any] | list[Any] | None:
+def _fetch_json_optional(client: httpx.Client, path: str) -> dict[str, Any] | None:
     response = client.get(path)
     payload = _json_payload(response)
     if response.status_code == 404 and payload.get("error") == "no_published_menu":
