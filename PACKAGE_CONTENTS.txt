@@ -1,16 +1,6 @@
 .agents/skills/menu-image-style/SKILL.md
-.claude/artifacts/food-symbol-wiring/patient-menu_collection-1440.png
-.claude/artifacts/food-symbol-wiring/patient-menu_collection-390.png
-.claude/artifacts/food-symbol-wiring/patient-preview-1440.png
-.claude/artifacts/food-symbol-wiring/patient-preview-390.png
 .github/workflows/pages.yml
 .gitignore
-.gitnexus/.gitignore
-.gitnexus/lbug
-.gitnexus/meta.json
-.gitnexus/parse-cache/54e8f169ed87d208822b8432a56a743362e084b79ff1c311ce53912786ce7092.json
-.gitnexus/parse-cache/8ccba014114f68a92375db9f3b77068afd8be79e3dc511822dda00c7a434389e.json
-.gitnexus/parse-cache/index.json
 architecture/auth_flow.dot
 architecture/auth_flow.png
 architecture/auth_flow.svg
