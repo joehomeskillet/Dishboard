@@ -12,21 +12,30 @@
 {% endblock %}
 {% block content %}
 {% if snapshot %}
+{# One meal and at most four days a page: measured as the largest board on which every
+   complete recipe warning still fits at 1920 and 3840. #}
+{% set day_pages = snapshot.days|batch(4)|list %}
+{% set page_count = day_pages|length * 2 %}
 <div class="patient-week-pages" data-signage-pages>
-{% for days in (snapshot.days[:3], snapshot.days[3:]) %}
+{% for meal_code, meal_name in (('LUNCH', 'Mittag'), ('DINNER', 'Abend')) %}
+{% set meals = loop %}
+{% for days in day_pages %}
 {% set declarations = namespace(options=[]) %}
-<section class="patient-week-page" data-signage-page{% if not loop.first %} hidden{% endif %}>
-  <p class="patient-board-page-label">{{ 'Montag bis Mittwoch' if loop.first else 'Donnerstag bis Sonntag' }} · Seite {{ loop.index }} von 2</p>
-  <div class="patient-week-layout patient-board row g-2" aria-label="{{ 'Montag bis Mittwoch' if loop.first else 'Donnerstag bis Sonntag' }} mit Mittag und Abend">
+{% set page_label = days|weekday_range_label %}
+{% set page_number = meals.index0 * day_pages|length + loop.index %}
+<section class="patient-week-page" data-signage-page{% if page_number > 1 %} hidden{% endif %}>
+  <p class="patient-board-page-label">{{ meal_name }} · {{ page_label }} · Seite {{ page_number }} von {{ page_count }}</p>
+  <div class="patient-week-layout patient-board row g-2" aria-label="{{ meal_name }} von {{ page_label }} mit je zwei Menüoptionen">
   {% for day in days %}
+  {% set meal = day.services|selectattr('meal_code', 'equalto', meal_code)|first %}
   <article class="patient-week-day col card card-sm">
     <header class="card-header d-flex flex-column"><h2 class="card-title m-0">{{ day.weekday }}</h2><span>{{ day.date|date_short }}</span></header>
-    {% for meal in day.services %}
-    <section class="patient-week-cell {{ 'dinner' if meal.meal_code == 'DINNER' else '' }}">
-      {% set time_label = meal|service_time_label('patient') %}
-      <div class="meal-name">{{ meal.meal_name }}{% if time_label %} · {{ time_label }}{% endif %}</div>
+    <section class="patient-week-cell {{ 'dinner' if meal_code == 'DINNER' else '' }}">
+      {% set time_label = meal|service_time_label('patient') if meal else '' %}
+      {# The page label already names the meal, so the narrow band carries its time. #}
+      <div class="meal-name">{{ time_label if time_label else meal_name }}</div>
       <div class="patient-week-options">
-        {% if meal.service_state|default('open') == 'open' %}
+        {% if meal and meal.service_state|default('open') == 'open' %}
         {% for option in meal.options %}
         {% if option.title %}{% set declarations.options = declarations.options + [option] %}{% endif %}
         <div class="patient-week-option"><small>{{ option.type_name }}</small><h3 class="card-title"><strong>{{ option.title }}</strong></h3><span class="patient-board-components">{{ option.components|join(' · ') }}</span>
@@ -35,16 +44,16 @@
         </div>
         {% endfor %}
         {% else %}
-        <div class="patient-week-option patient-board-closed"><small>Geschlossen</small><h3 class="card-title"><strong>{{ meal.notice }}</strong></h3></div>
+        <div class="patient-week-option patient-board-closed"><small>Geschlossen</small><h3 class="card-title"><strong>{{ meal.notice if meal else 'Kein Angebot' }}</strong></h3></div>
         {% endif %}
       </div>
     </section>
-    {% endfor %}
   </article>
   {% endfor %}
   </div>
   {{ legend(declarations.options) }}
 </section>
+{% endfor %}
 {% endfor %}
 </div>
 {% else %}

@@ -122,3 +122,4 @@ def register_template_filters(app: Flask) -> None:
     app.add_template_filter(iso_week, 'iso_week')
     app.add_template_filter(service_time_label, 'service_time_label')
     app.add_template_filter(patient_day_time_label, 'patient_day_time_label')
+    app.add_template_filter(weekday_range_label, 'weekday_range_label')

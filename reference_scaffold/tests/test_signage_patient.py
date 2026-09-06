@@ -92,17 +92,22 @@ def test_patient_boards_are_complete_and_legible(
         else:
             visible = '[data-signage-page]:not([hidden])'
             widths = []
-            for index, count in enumerate((3, 4)):
+            # Four pages: Mittag and Abend, each split Monday to Thursday and Friday to Sunday.
+            for index, (meal, count) in enumerate(
+                (('Mittag', 4), ('Mittag', 3), ('Abend', 4), ('Abend', 3)),
+            ):
                 if index:
                     page.clock.fast_forward(30100)
-                expect(page.locator(f'{visible} .patient-board-page-label')).to_contain_text(f'Seite {index + 1}')
+                label = page.locator(f'{visible} .patient-board-page-label')
+                expect(label).to_contain_text(f'Seite {index + 1} von 4')
+                expect(label).to_contain_text(meal)
                 columns = page.locator(f'{visible} .patient-week-day')
                 expect(columns).to_have_count(count)
                 assert len({round(box.bounding_box()['x']) for box in columns.all()}) == count
                 widths.append(columns.first.bounding_box()['width'])
                 page.screenshot(path=str(tmp_path / f'patient-{surface}-{scenario}-{index + 1}-{width}x{height}.png'))
                 _assert_full_surface(page, f'{visible} {selector}')
-            assert abs(widths[0] - widths[1]) <= 1
+            assert max(widths) - min(widths) <= 1
     finally:
         page.close()
 
@@ -159,7 +164,8 @@ def test_week_paging_preserves_updates_and_never_restores_withdrawn_content(
 
         snapshot = application.config['TEST_SNAPSHOTS']['patient']
         snapshot['revision_id'] = 'PAT-2026-KW36-R2'
-        snapshot['days'][3]['services'][0]['options'][0]['title'] = 'Frisch zubereitetes Tagesgericht'
+        # Friday lunch sits on page 2, the page the board is showing right now.
+        snapshot['days'][4]['services'][0]['options'][0]['title'] = 'Frisch zubereitetes Tagesgericht'
         page.clock.fast_forward(1000)
         expect(page.locator('html')).to_have_attribute('data-signage-revision', 'PAT-2026-KW36-R2')
         expect(page.locator(f'{visible} .patient-board-page-label')).to_contain_text('Seite 2')
@@ -181,7 +187,7 @@ def test_week_paging_preserves_updates_and_never_restores_withdrawn_content(
 
         page.unroute(path)
         page.clock.fast_forward(1000)
-        expect(page.locator('[data-signage-page]')).to_have_count(2)
+        expect(page.locator('[data-signage-page]')).to_have_count(4)
         expect(page.locator(f'{visible} .patient-board-page-label')).to_contain_text('Seite 1')
         page.clock.fast_forward(30400)
         expect(page.locator(f'{visible} .patient-board-page-label')).to_contain_text('Seite 2')
