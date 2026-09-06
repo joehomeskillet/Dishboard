@@ -383,6 +383,7 @@ docs/design/2026-09-05-admin-preview-polish.md
 docs/design/2026-09-05-admin-week-actions.md
 docs/design/2026-09-05-admin-workflow-shell.md
 docs/design/2026-09-05-screens-vorlagen-verwaltung.md
+docs/design/2026-09-06-bas-rec-data-contract.md
 docs/design/2026-09-06-miseos-tabler-adaption.md
 docs/design/2026-09-06-pdfme-tabler-fit.md
 docs/design/admin-redesign-ui.md
@@ -406,6 +407,7 @@ docs/superpowers/admin-week-print-0905.md
 docs/superpowers/allergen-proposals-0905.md
 docs/superpowers/api-claude-handoff-0906.md
 docs/superpowers/backlog-execution-0906.md
+docs/superpowers/bas-rec-work-packages-0906.md
 docs/superpowers/branding-legends-0906.md
 docs/superpowers/iam-local-user-management-0906.md
 docs/superpowers/metadata-visibility-0905.md
@@ -484,6 +486,7 @@ reference_scaffold/cafeteria/print_template_config.py
 reference_scaffold/cafeteria/print_templates.py
 reference_scaffold/cafeteria/public/__init__.py
 reference_scaffold/cafeteria/public/routes.py
+reference_scaffold/cafeteria/quantities.py
 reference_scaffold/cafeteria/roles.py
 reference_scaffold/cafeteria/security.py
 reference_scaffold/cafeteria/signage/__init__.py
@@ -1028,6 +1031,7 @@ reference_scaffold/tests/test_public_print_equal_cards_browser.py
 reference_scaffold/tests/test_public_print_legend.py
 reference_scaffold/tests/test_public_week_no_images.py
 reference_scaffold/tests/test_publication_lock_contract_db.py
+reference_scaffold/tests/test_quantities.py
 reference_scaffold/tests/test_rendered_ui.py
 reference_scaffold/tests/test_signage_cafeteria_day.py
 reference_scaffold/tests/test_signage_cafeteria_week.py

@@ -25,7 +25,8 @@ jedem Schemawechsel steht ein geprüftes Backup. Keine Änderung an
 öffentlichen Ausgaben. Kein Paket meldet eine Backlog-ID fertig, das nur einen Teil davon
 liefert.
 
-**Geprüft vorbereitet, noch nicht integriert/deployed:** B1 `c7873fa`, gesamter 433-Zeilen-Diff
+**Geprüft im aktuellen Code-Stand enthalten, noch nicht deployed:** B1 `e0fb93e` (ursprünglich
+`c7873fa`), gesamter 433-Zeilen-Diff
 von Root gelesen; unabhängig **101 passed in 1.26s**, Ruff bestanden, Mypy ohne Fehler in
 zwei Dateien ([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)). Der §3-/B1-Vertrag bleibt
 unverändert. B2 beginnt erst nach abgenommenem OPS-Schema 20; BAS-001/REC-001 sind nicht fertig.

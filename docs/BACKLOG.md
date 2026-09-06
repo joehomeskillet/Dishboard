@@ -21,7 +21,7 @@ Alle **35 Backlog-IDs** bleiben mit ihrem vollständigen Umfang erhalten. Die gr
 | Gruppe | Anzahl | IDs / verbleibende Grenze |
 |---|---:|---|
 | Produktive Funktionen | 15 | UI-001, UI-002, UI-003, CAT-001, DSP-001, BRD-001, API-001, ICO-001, ICO-002, SCR-001, SCR-002, TPL-001, TPL-002, TPL-003, IAM-001. TPL-001/002 und SCR-001 haben erst Teilfunktionen; der vollständige IAM-Zugriffsverlauf bleibt offen. Offene Daten-, Druck-, Branding- und Playerabnahmen stehen weiterhin in den Einzelzeilen. |
-| Aktive Umsetzung | 2 | OPS-001 nach belegtem Fable-Sessionlimit durch Root/Codex übernommen, weiterhin ungeprüft; BAS-001 begonnen mit geprüftem B1, noch nicht integriert/deployed. B2 wartet auf OPS-Schema 20; keine vollständige Fertigmeldung. |
+| Aktive Umsetzung | 2 | OPS-001 nach belegtem Fable-Sessionlimit durch Root/Codex übernommen, weiterhin ungeprüft; BAS-001 begonnen mit geprüftem B1 im aktuellen Code-Stand, noch nicht deployed. B2 wartet auf OPS-Schema 20; keine vollständige Fertigmeldung. |
 | Weitere grössere Umsetzung offen | 16 | REC-001–REC-007, NUT-001, OFF-001, CALC-001, INV-001, ORD-001, IAM-002, PKS-001, TRN-001, SCR-003. Vorhandene Referenzanalysen und Stammdaten ersetzen diese Funktionen nicht. |
 | Fortlaufende Abnahme | 2 | QA-001 und DATA-001; technische Lieferungen ersetzen weder physische Player- noch fachliche Küchenbestätigung. |
 
@@ -105,11 +105,11 @@ UI-003 liefert die Referenzentscheidungen vor weiterem Admin-Polish; laufende Li
 
 BAS-001 legt wiederverwendbare Zutaten, Einheiten und Kategorien für REC-001 fest; vorhandene Bestände bleiben nutzbar. Danach Suche und Importwege auf denselben Rezeptvertrag aufbauen. Produktdaten und Open Food Facts können parallel als manuell freizugebender Importkanal folgen. Format- und Lizenzprüfung für Pauli früh in REC-004 klären; der spätere PKS-Anschluss blockiert andere Importe nicht. Bestandsbuchungen folgen in Phase 5.
 
-**Begonnen, bereit zur Integration:** B1 `c7873fa` liefert reine Mengen-/Einheitenlogik und Tests.
+**Begonnen, im aktuellen Code-Stand enthalten:** B1 `e0fb93e` (ursprünglich `c7873fa`) liefert reine Mengen-/Einheitenlogik und Tests.
 Root hat den vollständigen 433-Zeilen-Diff gelesen und selbst **101 passed in 1.26s**, Ruff PASS
 und Mypy PASS für zwei Dateien bestätigt ([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)).
-Noch nicht auf main oder deployed; Main-Followup bleibt `de0e746`, Produktion `3690e04`/Schema 19
-wie oben. [Gemeinsamer Vertrag](design/2026-09-06-bas-rec-data-contract.md) und
+Noch nicht deployed; Produktion bleibt `3690e04`/Schema 19 wie oben.
+[Gemeinsamer Vertrag](design/2026-09-06-bas-rec-data-contract.md) und
 [Arbeitspakete](superpowers/bas-rec-work-packages-0906.md) trennen B1 von B2, das auf OPS-Schema 20
 wartet. BAS-001/REC-001 und ihr vollständiger Restumfang bleiben offen.
 

@@ -26,9 +26,9 @@ Fable-Sessionlimit übernimmt Root mit Codex-Lanes. Der OPS-Stand bleibt aktiv u
 Vertrag reserviert **keine** Migrationsnummer und beschreibt seine Migrationen ausdrücklich
 oberhalb des dann geprüften Schema-20-Vertrags. Nummern und Reihenfolge weist Root zu.
 
-**Vorbereiteter Teilstand:** B1 (`c7873fa`) ist unabhängig von Root geprüft und bereit zur
-Integration: **101 passed in 1.26s**, Ruff bestanden, Mypy ohne Fehler in zwei Dateien
-([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)). Noch nicht auf main oder deployed;
+**Geprüfter Teilstand:** B1 (`e0fb93e`, ursprünglich `c7873fa`) ist von Root unabhängig geprüft
+und im aktuellen Code-Stand enthalten: **101 passed in 1.26s**, Ruff bestanden, Mypy ohne Fehler
+in zwei Dateien ([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)). Noch nicht deployed;
 BAS/REC bleiben offen. B2 wartet auf das abgenommene OPS-Schema 20.
 
 ---

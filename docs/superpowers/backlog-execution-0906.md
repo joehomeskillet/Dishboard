@@ -14,11 +14,11 @@ OPS-001 wurde durch ein tatsächliches Fable-Sessionlimit unterbrochen. Root sic
 vorhandene Arbeit und übernimmt mit Codex-Lanes; der Stand bleibt ungeprüft. Daraus folgt
 keine Produktionsänderung und keine Fertigmeldung.
 
-**Nächster vorbereiteter Teilstand:** B1 `c7873fa` (reine Mengen-/Einheitenfunktionen) ist nach
+**Geprüfter Teilstand im aktuellen Code:** B1 `e0fb93e` (ursprünglich `c7873fa`, reine Mengen-/Einheitenfunktionen) ist nach
 vollständigem Root-Diffreview und unabhängig **101 passed in 1.26s**, Ruff PASS und Mypy PASS
-für zwei Dateien bereit zur Integration ([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)).
-Noch nicht main/deployed; Main-Followup `de0e746` und Produktion `3690e04`/Schema 19 bleiben
-unverändert. B2 wartet auf das abgenommene OPS-Schema 20. [BAS/REC-Pakete](bas-rec-work-packages-0906.md)
+für zwei Dateien integriert ([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)).
+Noch nicht deployed; Produktion bleibt `3690e04`/Schema 19. B2 wartet auf das abgenommene
+OPS-Schema 20. [BAS/REC-Pakete](bas-rec-work-packages-0906.md)
 und [Datenvertrag](../design/2026-09-06-bas-rec-data-contract.md) erhalten sämtliche Restaufträge.
 
 **HugeRTE-Eignungsprobe:** 1.0.13 ist lokal browsergeprüft; Text, Fett, Listen und Silver-Linkdialog
