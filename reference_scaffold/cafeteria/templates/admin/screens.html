@@ -2,24 +2,40 @@
 {% from 'admin/_macros.html' import page_header, icon %}
 {% set workflow_nav = 'screens' %}
 {% block title %}Screens · Menüplanung{% endblock %}
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin-screens.css') }}">
+{% endblock %}
 {% block page_header %}{{ page_header('Screens') }}{% endblock %}
 {% block content %}
 <p class="mb-4">Tages- und Wochenpläne für Web und Bildschirme öffnen. Die Ansichten zeigen den aktuell publizierten Menüplan. Ohne Publikation erscheint ein Hinweis.</p>
-<div class="row row-cards">
+<div class="screens-grid">
   {% for label, endpoint in [('Cafeteria', 'cafeteria'), ('Patienten', 'patient')] %}
   {% for channel, channel_label, day_suffix in [('public', 'Web', 'today'), ('signage', 'TV / Signage', 'day')] %}
-  <div class="col-12 col-md-6">
-    <article class="card h-100">
-      <div class="card-header"><h2 class="card-title">{{ label }} · {{ channel_label }}</h2></div>
-      <div class="card-body">
-        <p>{% if channel == 'signage' %}Feste Player-Adressen für Tages- und Wochenanzeige.{% else %}Öffentliche Menüansichten für Gäste, Patienten und Mitarbeitende.{% endif %}</p>
+  {% set screen_id = endpoint ~ '-' ~ channel %}
+    <article class="card screen-card" aria-labelledby="{{ screen_id }}-title">
+      <div class="card-header"><h2 class="card-title" id="{{ screen_id }}-title">{{ label }} · {{ channel_label }}</h2></div>
+      <div class="card-body d-flex flex-column gap-3">
+        <div class="nav nav-pills nav-fill" role="tablist" aria-label="{{ label }} {{ channel_label }} Vorschau">
+          {% for period, period_label in [('day', 'Tagesplan'), ('week', 'Wochenplan')] %}
+          <button class="nav-link{% if loop.first %} active{% endif %}" id="{{ screen_id }}-{{ period }}-tab" type="button" role="tab" data-bs-toggle="tab" data-bs-target="#{{ screen_id }}-{{ period }}" aria-controls="{{ screen_id }}-{{ period }}" aria-selected="{{ 'true' if loop.first else 'false' }}">{{ period_label }}</button>
+          {% endfor %}
+        </div>
+        <div class="tab-content">
+          {% for period, period_label, suffix in [('day', 'Tagesplan', day_suffix), ('week', 'Wochenplan', 'week')] %}
+          <div class="tab-pane{% if loop.first %} active show{% endif %}" id="{{ screen_id }}-{{ period }}" role="tabpanel" aria-labelledby="{{ screen_id }}-{{ period }}-tab">
+            <div class="screen-preview screen-preview-{{ channel }} rounded border" inert>
+              <iframe src="{{ url_for(channel ~ '.' ~ endpoint ~ '_' ~ suffix) }}" title="{{ label }} {{ channel_label }} {{ period_label }} – Vorschau" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <p class="text-secondary small mb-0">Vorschau des publizierten Plans. Vollständige Ansicht über die Links öffnen.</p>
         <div class="btn-list">
           <a class="btn" href="{{ url_for(channel ~ '.' ~ endpoint ~ '_' ~ day_suffix) }}" aria-label="{{ label }} {{ channel_label }} Tagesplan öffnen">{{ icon('eye') }}Tagesplan öffnen</a>
           <a class="btn" href="{{ url_for(channel ~ '.' ~ endpoint ~ '_week') }}" aria-label="{{ label }} {{ channel_label }} Wochenplan öffnen">{{ icon('calendar-week') }}Wochenplan öffnen</a>
         </div>
       </div>
     </article>
-  </div>
   {% endfor %}
   {% endfor %}
 </div>

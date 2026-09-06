@@ -1,0 +1,58 @@
+.screens-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: 1fr;
+  gap: var(--tblr-page-padding);
+}
+
+.screen-card { min-width: 0; }
+.screen-card .nav-link { min-height: 3rem; }
+.screen-card .btn-list { margin-top: auto; }
+
+.screen-preview {
+  position: relative;
+  container-type: inline-size;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--tblr-bg-surface-secondary);
+}
+
+.screen-preview iframe {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 1440px;
+  height: 810px;
+  border: 0;
+  pointer-events: none;
+  transform-origin: top left;
+  /* atan2 converts the container/viewport ratio to a unitless CSS scale. */
+  transform: scale(tan(atan2(100cqw, 1440px)));
+}
+
+.screen-preview-signage iframe {
+  width: 1920px;
+  height: 1080px;
+  transform: scale(tan(atan2(100cqw, 1920px)));
+}
+
+@media (min-width: 768px) {
+  .screens-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 767px) {
+  .screen-preview { aspect-ratio: 1; }
+
+  .screen-preview-public iframe {
+    left: 50%;
+    width: 390px;
+    height: 844px;
+    transform-origin: top center;
+    transform: translateX(-50%) scale(tan(atan2(100cqw, 844px)));
+  }
+
+  .screen-preview-signage iframe {
+    top: 50%;
+    transform-origin: left center;
+    transform: translateY(-50%) scale(tan(atan2(100cqw, 1920px)));
+  }
+}
