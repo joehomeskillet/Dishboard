@@ -50,6 +50,7 @@ ALLOWED_PATIENT_COMPACT_KEYS = frozenset({
     'code', 'name', 'presence', 'countrycode', 'ingredient', 'text', 'state',
     'weekday', 'location', 'profilecode', 'revisionid', 'schemaversion',
     'sharednote', 'weekend', 'weekstart', 'servicestate',
+    'servicestart', 'serviceend', 'areaname',
 })
 
 
