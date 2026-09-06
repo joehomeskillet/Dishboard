@@ -1,12 +1,18 @@
 # Dishboard: Ausführung des gesamten Backlogs
 
+## Deploy-Nachtrag — 6. September 2026, 04:55:35 Uhr Schweiz
+
+**Release `118a644` ist produktiv**, Image `sha256:afe5305a73128fb92cbbf3f325ea441aacc8b9a6acc38d28487c301eb9779c41`, Container `healthy`, Schema 17. Migration: 32 Tabellen, `ready=true`; Runtime: 30 sichtbare Tabellen, `ready=true`. API, alle vier öffentlichen Tabler-Seiten, vier globale Darstellungsoptionen und der erste Wochen-PDF-Eigenschaftseditor sind jetzt live. **3695 Tests bestanden, 15 Opt-in-Skips**, vollständige Paketprüfung `PACKAGE_GATE_EXIT=0`, **272 Live-Checks bestanden**, 44 Screenshots plus vier Rotationsscreenshots in FHD/4K mit allen 28 Patientenmenüs. [Vollständiger Root-Beleg](/nvmetank1/projects/rag-stack/.claude/reports/wp-bd5539046da6.md).
+
+Die folgenden Vor-Deploy-Angaben zu `1bff82e` und «noch nicht deployed» sind für diesen Lieferumfang historisch. Live-Restbefunde: Favicon HTTP 404, physische Yodeck-Abnahme und externer Design-Validator. Wegen des Favicon bleibt der rohe Rotations-Gesamtstatus `passed:false`; Rotation und Layout bestanden. **Alle 35 Backlog-IDs und der vollständige Restumfang bleiben unverändert**, insbesondere freie Vorlagengestaltung, Markenpflege/Uploads, Screen-Zuordnungen und vollständige PDF-Symbole/Legenden.
+
 Stand: 6. September 2026. Aktives Nutzerziel: **«arbeite alles ab an was du jetzt dran bist und das backlog»**. Der Umfang umfasst sämtliche offenen Einträge in [BACKLOG.md](../BACKLOG.md), nicht nur die erste Welle. Kleine Lieferungen sind Zwischenstände, keine Erfüllung des Gesamtziels.
 
-## Aktueller Liefer- und Prüfstand
+## Historischer Vor-Deploy-Liefer- und Prüfstand — durch Nachtrag oben abgelöst
 
-**Produktion:** `1bff82e`, Image-Präfix `aeab807`, seit 06.09., 03:09:55 Uhr Schweiz, weiterhin Schema 16. CSP-Korrektur um 03:16:31 Uhr; 78 Live-Checks und zwölf Screenshots belegen Screens-Vorschauen, entfernte Signage-Navigationslinks und die Admin-Kartengrössenprüfung. Beleg: `/tmp/dishboard-live-hubs-cards-proof-0906/proof.json`.
+**Produktion vor dem neuen Deploy:** `1bff82e`, Image-Präfix `aeab807`, seit 06.09., 03:09:55 Uhr Schweiz, damals Schema 16. CSP-Korrektur um 03:16:31 Uhr; 78 Live-Checks und zwölf Screenshots belegen Screens-Vorschauen, entfernte Signage-Navigationslinks und die Admin-Kartengrössenprüfung. Beleg: `/tmp/dishboard-live-hubs-cards-proof-0906/proof.json`.
 
-**Geprüft vorbereitet, noch nicht deployed:** `69ef540` integriert API/Schema 17, PS1–PS5, gemeinsame öffentliche Karten, Ausfallpuffer bis fünf Minuten/Mitternacht, vier globale Darstellungsoptionen und den ersten revisionierten Wochen-PDF-Eigenschaftseditor. BRD-001, TPL-002, SCR-001 und ICO-001/002 bleiben in ihrem vollständigen Umfang offen: freie Gestaltung, Uploads, umfassende Zuordnungen, Legenden und PDF-Symbole sind damit nicht geliefert.
+**Damals geprüft vorbereitet, noch nicht deployed:** `69ef540` integriert API/Schema 17, PS1–PS5, gemeinsame öffentliche Karten, Ausfallpuffer bis fünf Minuten/Mitternacht, vier globale Darstellungsoptionen und den ersten revisionierten Wochen-PDF-Eigenschaftseditor. BRD-001, TPL-002, SCR-001 und ICO-001/002 bleiben in ihrem vollständigen Umfang offen: freie Gestaltung, Uploads, umfassende Zuordnungen, Legenden und PDF-Symbole sind damit nicht geliefert.
 
 Root hat alle 3710 gesammelten Tests aus 116 Modulen disjunkt auf vier isolierten Pools geprüft:
 
