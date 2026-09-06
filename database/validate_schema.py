@@ -32,6 +32,7 @@ MIGRATION_0011 = ROOT / 'database' / 'migrations' / '0011_v13_to_v14.sql'
 MIGRATION_0012 = ROOT / 'database' / 'migrations' / '0012_v14_to_v15.sql'
 MIGRATION_0013 = ROOT / 'database' / 'migrations' / '0013_v15_to_v16.sql'
 MIGRATION_0014 = ROOT / 'database' / 'migrations' / '0014_v16_to_v17.sql'
+MIGRATION_0015 = ROOT / 'database' / 'migrations' / '0015_v17_to_v18.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
 PAT_JSON = ROOT / 'demo' / 'snapshots' / 'patienten_kw36.json'
@@ -185,8 +186,8 @@ def run_live_check() -> dict[str, Any]:
                     '''
                 )
             ).mappings().one()
-        if int(row['schema_version']) != 17:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 17.")
+        if int(row['schema_version']) != 18:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 18.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
         migrated_structure = structure('cafeteria')
@@ -286,6 +287,14 @@ def main() -> int:
         migration_0012 = MIGRATION_0012.read_text(encoding='utf-8')
         migration_0013 = MIGRATION_0013.read_text(encoding='utf-8')
         migration_0014 = MIGRATION_0014.read_text(encoding='utf-8')
+        migration_0015 = MIGRATION_0015.read_text(encoding='utf-8')
+        for fragment in ('branding_assets', 'pg_catalog.sha256(png_data)', '1048576',
+                         'GRANT SELECT, INSERT ON branding_assets TO cafeteria_app',
+                         'GRANT SELECT ON branding_assets TO cafeteria_backup'):
+            if fragment not in migration_0015 or fragment not in sql:
+                fail(f'Marken-Asset-Vertrag fehlt: {fragment}')
+        if not migration_0015.startswith('BEGIN;') or not migration_0015.rstrip().endswith('COMMIT;'):
+            fail('Migration 0015 hat keinen strikten BEGIN/COMMIT-Vertrag.')
         for fragment in ('header_revision', 'record_menu_review', 'record_week_context_review',
                          'require_workflow_review_actor', 'uq_workflow_review_submission'):
             if fragment not in migration_0013 or fragment not in sql:
@@ -324,7 +333,7 @@ def main() -> int:
             'menu_item_prices', 'publication_revisions', 'publication_lifecycle_events',
             'audit_events', 'local_credentials', 'auth_capability_secrets', 'auth_capability_nonces',
             'menu_components', 'component_allergens', 'component_labels',
-            'api_keys',
+            'api_keys', 'branding_assets',
         }
         missing = required_tables - set(tables)
         if missing:
@@ -563,7 +572,7 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 17,
+            'schema_version': 18,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
@@ -579,6 +588,7 @@ def main() -> int:
                 '0012_v14_to_v15.sql': hashlib.sha256(MIGRATION_0012.read_bytes()).hexdigest(),
                 '0013_v15_to_v16.sql': hashlib.sha256(MIGRATION_0013.read_bytes()).hexdigest(),
                 '0014_v16_to_v17.sql': hashlib.sha256(MIGRATION_0014.read_bytes()).hexdigest(),
+                '0015_v17_to_v18.sql': hashlib.sha256(MIGRATION_0015.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

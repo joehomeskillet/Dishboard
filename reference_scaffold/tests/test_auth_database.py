@@ -91,10 +91,10 @@ def owner_engine() -> Iterator[Engine]:
 def test_migration_plan_contains_auth_issuer_contract() -> None:
     plan = database.migration_plan(ROOT / 'database' / 'schema.sql')
 
-    assert database.SCHEMA_VERSION == 17
+    assert database.SCHEMA_VERSION == 18
     assert (plan[-1].version, plan[-1].path.name) == (
-        17,
-        '0014_v16_to_v17.sql',
+        18,
+        '0015_v17_to_v18.sql',
     )
 
 

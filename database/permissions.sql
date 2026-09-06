@@ -30,6 +30,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON
     import_batches, import_rows, settings
 TO cafeteria_app;
 GRANT SELECT, INSERT, UPDATE ON menu_components TO cafeteria_app;
+GRANT SELECT, INSERT ON branding_assets TO cafeteria_app;
 
 GRANT SELECT ON users, user_role_cache, local_credentials TO cafeteria_app;
 GRANT UPDATE (last_login_at) ON users TO cafeteria_app;
@@ -89,7 +90,7 @@ GRANT SELECT ON
     menu_item_components, dietary_labels, menu_item_labels, allergens,
     menu_item_allergens, origin_declarations, publication_revisions,
     publication_lifecycle_events, import_batches, import_rows, audit_events, api_keys,
-    settings, active_publications
+    settings, branding_assets, active_publications
 TO cafeteria_backup;
 GRANT SELECT ON
     users_id_seq, locations_id_seq, offer_profiles_id_seq, meal_periods_id_seq,
