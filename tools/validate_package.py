@@ -80,6 +80,7 @@ REQUIRED_FILES = (
     'database/migrations/0011_v13_to_v14.sql',
     'database/migrations/0012_v14_to_v15.sql',
     'database/migrations/0013_v15_to_v16.sql',
+    'database/migrations/0014_v16_to_v17.sql',
     'database/seed.sql', 'database/seed_demo.sql', 'database/permissions.sql',
     'demo/snapshots/patienten_kw36.json', 'demo/snapshots/cafeteria_kw36.json',
     'csv/menu_patient_template.csv', 'csv/menu_patient_example.csv',
@@ -108,6 +109,7 @@ MIGRATION_CHECKSUMS = {
     '0011_v13_to_v14.sql': '75c6d6cc777f1dbf3d2bb914688b8ff9529ddca51fc9250ea91170b5482d0953',
     '0012_v14_to_v15.sql': '3ff265067a1119f927d995251386a58ba648c4f26f9d4ff6059cce4d97bb9140',
     '0013_v15_to_v16.sql': 'f1582e226ee1150bfc83c31427ae08fc82f3f939809fa588f53d0e1532c2219a',
+    '0014_v16_to_v17.sql': 'd767c2446e6cfab10daf073056ec1f9a9570293e76ee0a8f9638036f5460dae0',
 }
 
 
@@ -293,10 +295,10 @@ def main() -> int:
     check(db_result.returncode == 0, f'Schema-Validator fehlgeschlagen: {db_result.stderr or db_result.stdout}')
     if db_result.returncode == 0:
         status = json.loads(db_result.stdout)
-        check(status.get('tables') == 31, 'Schema enthaelt nicht 31 Tabellen.')
+        check(status.get('tables') == 32, 'Schema enthaelt nicht 32 Tabellen.')
         check(status.get('application_roles') == 3, 'Schema enthaelt nicht drei Rollen.')
         check(status.get('offer_profiles') == 2, 'Schema enthaelt nicht zwei Profile.')
-        check(status.get('schema_version') == 16, 'Schema-Version ist nicht 16.')
+        check(status.get('schema_version') == 17, 'Schema-Version ist nicht 17.')
         check(status.get('patient_services') == 14, 'Demo-Seed enthaelt nicht 14 Patienten-Services.')
         check(status.get('cafeteria_services') == 5, 'Demo-Seed enthaelt nicht 5 Cafeteria-Services.')
 
@@ -311,6 +313,7 @@ def main() -> int:
     migration_files.append('0011_v13_to_v14.sql')
     migration_files.append('0012_v14_to_v15.sql')
     migration_files.append('0013_v15_to_v16.sql')
+    migration_files.append('0014_v16_to_v17.sql')
 
     for mig_file in migration_files:
         mig_path = migrations_dir / mig_file

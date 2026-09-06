@@ -13,8 +13,8 @@ vollständig). Der Patientenkanal enthält in JSON, FHIR und Fehlertexten keine 
 | Ebene | Authentifizierung | Inhalt |
 |---|---|---|
 | Öffentlich | keine | publizierte Wochen- und Tagesdaten, Status, OpenAPI, Swagger UI, FHIR-Lesezugriff |
-| API-Schlüssel | `Authorization: Bearer dbk_…`, Scope `preview.read` | Wochenliste, Draft-Vorschau, Schlüssel-Selbstauskunft («ab Welle 2») |
-| Admin | Sitzung, Rolle `Cafeteria.Admin`, Capability `api.keys.manage` | Schlüssel erstellen und widerrufen unter `/admin/api` («ab Welle 2») |
+| API-Schlüssel | `Authorization: Bearer dbk_…`, Scope `preview.read` | Wochenliste, Draft-Vorschau, Schlüssel-Selbstauskunft |
+| Admin | Sitzung, Rolle `Cafeteria.Admin`, Capability `api.keys.manage` | Schlüssel erstellen und widerrufen unter `/admin/api` |
 
 `channel` ist exakt `cafeteria` (Profil `staff_guest`) oder `patienten` (Profil `patient`).
 «Heute» kommt ausschliesslich aus `effective_today()`.
@@ -444,7 +444,7 @@ curl -sS https://dishboard.joelduss.xyz/api/v1/published/cafeteria/days/31.08.20
 {"error": "invalid_date", "detail": "Datum ist kein gültiges YYYY-MM-DD."}
 ```
 
-### `GET /api/v1/keys/me` (ab Welle 2)
+### `GET /api/v1/keys/me`
 
 Jeder gültige Schlüssel. Header `Authorization: Bearer dbk_…`.
 
@@ -467,7 +467,7 @@ Fehlender oder ungültiger Schlüssel:
 {"error": "unauthorized"}
 ```
 
-### `GET /api/v1/weeks/{channel}` (ab Welle 2)
+### `GET /api/v1/weeks/{channel}`
 
 Scope `preview.read`. Die zwölf jüngsten Wochen des aktiven Standorts, absteigend.
 `status` stammt aus `workflow.derive_admin_status`.
@@ -498,7 +498,7 @@ Fehlender Scope:
 {"error": "insufficient_scope"}
 ```
 
-### `GET /api/v1/weeks/{channel}/{week_start}/preview` (ab Welle 2)
+### `GET /api/v1/weeks/{channel}/{week_start}/preview`
 
 Scope `preview.read`. Draft im Snapshot-Format, gebaut wie die Admin-Vorschau, nur lesend.
 Header `X-Draft-Row-Version`. 400 `invalid_week_start` (kein Montag), 404 `week_not_found`.
@@ -591,7 +591,7 @@ curl -sS https://dishboard.joelduss.xyz/api/v1/openapi.json
 }
 ```
 
-Tags: `published`, `status`, `docs`. Welle 2 ergänzt `weeks`, `keys` und
+Tags: `published`, `status`, `docs`, `weeks` und `keys`. Das Schema enthält
 `components.securitySchemes.ApiKeyBearer` (`type: http`, `scheme: bearer`, `bearerFormat: "dbk_…"`).
 `Prices` steht nur in der Cafeteria-Beschreibung; im Patienten-Option-Schema fehlt das Feld.
 
@@ -1205,7 +1205,7 @@ Klartext `dbk_` plus 32 Zeichen aus `secrets.token_urlsafe(24)`. Regex `^dbk_[A-
 
 Scope v1: genau `preview.read`.
 
-### Erstellen und Widerrufen (ab Welle 2)
+### Erstellen und Widerrufen
 
 Verwaltung unter `/admin/api` (nur `Cafeteria.Admin`). Query-Parameter auf dem GET ergeben 400.
 
@@ -1325,5 +1325,5 @@ Nicht in dieser Welle:
 - FHIR-Suche über `_include` / `_sort`
 - MCP-Streamable-HTTP im Container
 
-Endpunkte mit API-Schlüssel und die Admin-Seite `/admin/api` entstehen in Welle 2 (WP-G, WP-E)
-parallel zu dieser Dokumentation.
+Endpunkte mit API-Schlüssel und die Admin-Seite `/admin/api` sind Bestandteil dieser
+Version und benötigen das Datenbankschema 17.
