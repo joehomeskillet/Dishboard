@@ -3,6 +3,7 @@
 const TIME_ZONE = 'Europe/Zurich';
 const DEFAULT_INTERVAL_MS = 60000;
 const FADE_MS = 300;
+const PAGE_INTERVAL_MS = 30000;
 
 function readIntervalMs(root) {
   const raw = root.dataset.signageInterval;
@@ -134,7 +135,7 @@ async function applyDocumentSwap(parsed, revision) {
     return;
   }
 
-  const useFade = !prefersReducedMotion();
+  const useFade = Boolean(revision) && !prefersReducedMotion();
   if (useFade && frameNode) {
     frameNode.classList.add('is-updating');
     await new Promise(resolve => window.setTimeout(resolve, FADE_MS));
@@ -163,9 +164,47 @@ async function applyDocumentSwap(parsed, revision) {
 function initSignageEngine() {
   const root = document.documentElement;
   const pathname = window.location.pathname;
+  let activePage = 0;
+  let pageTimer;
+  let pageFadeTimer;
+
+  function selectPage(index) {
+    // Resolve the current DOM every time: a withdrawal must never revive detached menus.
+    const pages = [...document.querySelectorAll('[data-signage-pages] > [data-signage-page]')];
+    activePage = Math.max(0, Math.min(index, pages.length - 1));
+    pages.forEach((page, pageIndex) => { page.hidden = pageIndex !== activePage; });
+    return pages.length;
+  }
+
+  function stopPaging() {
+    window.clearTimeout(pageTimer);
+    window.clearTimeout(pageFadeTimer);
+    document.querySelector('[data-signage-frame]')?.classList.remove('is-updating');
+  }
+
+  function schedulePage() {
+    window.clearTimeout(pageTimer);
+    const count = document.querySelectorAll('[data-signage-pages] > [data-signage-page]').length;
+    if (count < 2) return;
+    pageTimer = window.setTimeout(() => {
+      const rotate = () => {
+        selectPage((activePage + 1) % count);
+        document.querySelector('[data-signage-frame]')?.classList.remove('is-updating');
+        schedulePage();
+      };
+      if (prefersReducedMotion()) {
+        rotate();
+      } else {
+        document.querySelector('[data-signage-frame]')?.classList.add('is-updating');
+        pageFadeTimer = window.setTimeout(rotate, FADE_MS);
+      }
+    }, PAGE_INTERVAL_MS);
+  }
 
   updateClock();
   clearOffline();
+  selectPage(activePage);
+  schedulePage();
 
   async function pollOnce() {
     try {
@@ -175,7 +214,10 @@ function initSignageEngine() {
       // The server owns the display date; its Zurich date can change within one revision.
       const remoteDate = parsed.documentElement.dataset.signageDate || '';
       if (!revision || revision !== localRevision || remoteDate !== localDate) {
+        stopPaging();
         await applyDocumentSwap(parsed, revision);
+        selectPage(activePage);
+        schedulePage();
       }
       clearOffline();
       updateClock();

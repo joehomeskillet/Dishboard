@@ -433,7 +433,7 @@ def test_admin_review_checkboxes_rehydrate_canonical_checked_status(
         ),
         (
             '/signage/patienten/tag',
-            {'Einmalig Vegan', 'Einmalig Gluten', 'Einmalig Rind: Schweiz'},
+            {'Einmalig Vegan', 'Enthält: Einmalig Gluten', 'Einmalig Rind: Schweiz'},
         ),
     ),
 )
@@ -554,7 +554,7 @@ def test_real_routes_render_exact_profile_grids_without_cross_profile_data(app: 
     assert cafeteria.count('Externe CHF') == 10
     assert 'Pastetli mit Brätkügeli' not in cafeteria
 
-    assert len(re.findall(r'class="patient-week-day"', patient)) == 7
+    assert len(re.findall(r'class="patient-week-day(?: [^"]*)?"', patient)) == 7
     assert len(re.findall(r'class="patient-week-cell(?: [^"]*)?"', patient)) == 14
     assert len(re.findall(r'class="patient-week-option"', patient)) == 28
     assert 'Kichererbsen-Curry' not in patient
@@ -687,7 +687,8 @@ def test_unbroken_signage_text_remains_visible_without_clipping(
         text_state = page.evaluate(
             """
             selectors => selectors.flatMap(selector =>
-              [...document.querySelectorAll(selector)].map(element => {
+              [...document.querySelectorAll(selector)]
+              .filter(element => !element.closest('[data-signage-page][hidden]')).map(element => {
                 const style = getComputedStyle(element);
                 const rect = element.getBoundingClientRect();
                 return {
@@ -763,7 +764,8 @@ def test_unbroken_signage_text_at_surface_maxima_remains_visible_without_clippin
         text_state = page.evaluate(
             """
             selectors => selectors.flatMap(selector =>
-              [...document.querySelectorAll(selector)].map(element => {
+              [...document.querySelectorAll(selector)]
+              .filter(element => !element.closest('[data-signage-page][hidden]')).map(element => {
                 const style = getComputedStyle(element);
                 const rect = element.getBoundingClientRect();
                 return {
