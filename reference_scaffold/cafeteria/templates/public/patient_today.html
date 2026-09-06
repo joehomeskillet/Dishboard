@@ -34,7 +34,8 @@
   <div class="col-12 public-menu-meal">
     <h2 class="mb-2">{{ 'Mittagessen' if meal.meal_code == 'LUNCH' else 'Abendessen' }}</h2>
     {% set time_label = meal|patient_day_time_label(area_name) %}
-    {% if time_label %}<div class="text-secondary mb-3">{{ time_label }}</div>{% endif %}
+    {# The time keeps its own subgrid track even when empty, so both meals stay aligned. #}
+    <div class="text-secondary{{ ' mb-3' if time_label else '' }}">{{ time_label }}</div>
 
     {% if meal.service_state|default('open') == 'open' %}
     <div class="row g-4 public-menu-options">
