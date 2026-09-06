@@ -62,8 +62,12 @@ B4 Lagerorte (nach B2, unabhängig von R*)
 | R6 | Importstapel CSV/JSON mit Vorschau | M-D | echtes PG + Browser |
 | R7 | Rezept-PDF über bestehende Vorlagenbasis | keine | echtes PDF |
 
-**Gemeinsames Wiring.** Root allein besitzt `cafeteria/admin/__init__.py`, die gemeinsamen
-Sidebar-/Adminbasistemplates und `roles.py` für die Fähigkeitsregistrierung aus §8.
+**Gemeinsames Wiring.** Root allein besitzt `cafeteria/admin/__init__.py` und die gemeinsamen
+Sidebar-/Adminbasistemplates. `cafeteria/roles.py` mit der Fähigkeitsregistrierung aus §8 des
+Datenvertrags und dem Python↔SQL-Matrixtest gehört **B2** (Root-Entscheid 2026-09-06); ohne
+`masterdata.write` und `recipe.import` ist der Dienst nicht erreichbar, deshalb liegt die
+Registrierung bei der Lane, die die Rechte auch in SQL setzt. Spätere Pakete ergänzen dort
+nichts eigenmächtig.
 B3/R2/R3/R4/B4/R6 liefern eigene Routen/Tests und benennen benötigte Imports/Navigationsziele;
 Root registriert sie einzeln auf dem jeweils integrierten Stand. Gemeinsame Rezepttemplates,
 `recipe_routes.py` und `admin-recipes.css` besitzen zuerst R2, danach ausdrücklich und seriell
@@ -112,7 +116,11 @@ Kein PostgreSQL-Gate; Start nach Root-Freigabe dieses Vertrags unabhängig von S
 
 ### B2 — Stammdatenpersistenz
 
-**Besitzt neu:** `reference_scaffold/cafeteria/master_data_store.py`,
+**Besitzt neu:** Vollständige Master-Data-Module: `reference_scaffold/cafeteria/master_data_types.py`
+(DTOs und Contracts), `reference_scaffold/cafeteria/master_data_reads.py` (Abfragen und Reader),
+`reference_scaffold/cafeteria/master_data_commands.py` (gebundene Commands für Verben),
+`reference_scaffold/cafeteria/master_data_proposals.py` (Vorschlagslogik),
+`reference_scaffold/cafeteria/master_data_store.py` (Persistierungs-API). Tests:
 `reference_scaffold/tests/test_master_data_db.py`,
 `reference_scaffold/tests/test_master_data_race_db.py`.
 **Besitzt allein:** Migrationsschritt M-A vollständig: `measurement_units` samt Seed/Erhalt,
@@ -120,6 +128,11 @@ Kein PostgreSQL-Gate; Start nach Root-Freigabe dieses Vertrags unabhängig von S
 `storage_locations`, `food_storage_locations`, `food_data_proposals`, alle Mengen-/Quellen-/
 Standortconstraints, Fachmutatorfunktionen und deren Rechte. Dazu alle oben genannten
 Schema-/Pin-/Fixture-Dateien sowie `test_quantities_db.py`; kein M-A-Teileigentum von B1/B4.
+Ebenfalls B2: `reference_scaffold/cafeteria/roles.py` mit den drei neuen Fähigkeiten aus §8 des
+Datenvertrags und `reference_scaffold/tests/test_master_data_capabilities.py`, der die Matrix
+Fähigkeit ↔ Rolle in Python und SQL gegeneinander prüft. Jedes neue Modul bleibt unter 400
+Zeilen; die eingefrorenen DTOs, Fehlerklassen und öffentlichen Signaturen stehen abschliessend
+in §4.5 des Datenvertrags und werden von B3, B4 und R1 nur verbraucht.
 **Abhängig von:** B1 und abgenommenem OPS-Schema 20.
 
 Inhalt: Anlegen, Ändern, Archivieren, Reaktivieren mit `row_version`-Prüfung; Zuweisung von
@@ -137,8 +150,19 @@ Decimal-Grenzen ohne DB-Rundung, Standortgleichheit jedes neuen FK-/Join-Paars s
 Actor-Version/Capability unter gleichzeitigem Rollenentzug/Passwortreset. Quellenfelder und
 unbekannte Allergene bleiben erhalten; angenommene Vorschlagsentscheidungen sind unveränderlich.
 
+Zusätzlich aus dem Vertragsentscheid vom 6. September: eine wirkungslose Speicherung lässt
+`row_version`, `updated_at` und Audit unverändert, ein nicht wechselnder Zustandswechsel ist ein
+sichtbarer Konflikt (§4.3); eine Unterzeilenaktion erhöht genau eine Aggregatversion und
+schreibt genau ein Audit-Ereignis (§7); Archivieren eines Lagerorts mit Zuordnungen wird
+verweigert und die Nebenläufigkeit gegen eine gleichzeitige Zuordnung ist nachgewiesen (§4.4);
+die Vorschlagsannahme erzeugt nie ein Food, hält die Erlaubnisliste ein, meldet jeden
+Feldkonflikt ohne Teilschreibung und schreibt genau ein Ereignis (§6.1); die Sperrreihenfolge
+aus §8.1 gilt unverändert, die Actor-Zeile wird `FOR SHARE` gesperrt, und ein Test belegt den
+Abbruch bei zuerst serialisiertem Rollenentzug ebenso wie bei deaktivierter Rollendefinition.
+
 **Gate.** Reales PG, Nebenläufigkeitstest nach dem Muster von
-`test_component_catalog_race_db.py`, plus `test_database_role_readiness.py`.
+`test_component_catalog_race_db.py`, plus `test_database_role_readiness.py` und der
+Fähigkeitsmatrixtest Python ↔ SQL.
 
 ---
 
@@ -180,7 +204,11 @@ Inhalt: Lagerorte je Standort pflegen, Zutaten einem Lagerort zuordnen.
 INV-001. Die Oberfläche zeigt «kein Bestand erfasst», nicht null.
 
 **Akzeptanz.** Kein Bestandsfeld auf `foods` (Schemaprüfung als Test); Archivieren eines
-Lagerorts mit Zuordnungen wird verweigert oder sauber gelöst, nie stillschweigend kaskadiert.
+Lagerorts mit bestehenden Zuordnungen wird nach §4.4 des Datenvertrags **sichtbar verweigert**
+mit Nennung der betroffenen Zutaten, nie stillschweigend kaskadiert oder automatisch gelöst.
+Die Oberfläche führt zum ausdrücklichen Entfernen der Zuordnungen je Zutat; Reaktivieren bleibt
+möglich. `storage_locations_store.py` ruft ausschliesslich die B2-Funktionen auf und ergänzt
+keine eigene DML-, Migrations- oder Konfliktsemantik.
 
 ---
 
@@ -435,3 +463,13 @@ für die erste Klartext-Rezeptverwaltung. Einkaufsdruck bleibt REC-003/REC-007-F
    `validate_publication_revision()`.
 5. Beschaffung einer berechtigten Pauli-Beispieldatei, falls REC-004 in absehbarer Zeit
    beginnen soll.
+
+**Erledigt am 6. September 2026.** Die fünf B2-Fragen aus dem Startbericht
+[wp-b32fd34ebb6e](/nvmetank1/projects/rag-stack/.claude/reports/wp-b32fd34ebb6e.md) sind im
+Datenvertrag abschliessend entschieden: Besitz und öffentliche Signaturen (§4.5 und §8),
+Vorschlagsübernahme ohne Ziel (§6.1), Lagerortarchivierung (§4.4), gemeinsame Sperrreihenfolge
+mit begründet auf `FOR SHARE` korrigierter Actor-Sperre (§8.1) sowie Grenzen, Normalisierung und
+No-op-Auditsemantik (§4.3, §7). Offen bleiben die fünf Punkte oben; sie sind reine
+Zuweisungsentscheidungen und keine Vertragsfragen. Der historische Fixture-Befund aus demselben
+Bericht (`test_local_user_management_migration_db.py:43/46`, relative Grenze `plan[:-1]`) bleibt
+ein eigener Folgeauftrag ausserhalb von B2.

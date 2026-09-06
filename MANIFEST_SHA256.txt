@@ -385,7 +385,7 @@ d1984ed76a72d40836a3c760d25af5fa0ffcaf72b43a31605058e59c47443c35  docs/BACKLOG.m
 536f0edc78adaccfef394cd8cf7ee1cb81c709065c70dac7fd0d96022d094ef1  docs/design/2026-09-05-admin-week-actions.md
 f10a572d322efda8663da6cbf415db6516bf998be53ecfb779732167e051b0de  docs/design/2026-09-05-admin-workflow-shell.md
 4447d07ec39539f594cd8b342b92a97603b274781368686e53b492ea9e158a47  docs/design/2026-09-05-screens-vorlagen-verwaltung.md
-84d8d9c00dee55b20b49cafd75c3ef9ee75cfd4b98dc6a7fb4fb9bdb13d235bf  docs/design/2026-09-06-bas-rec-data-contract.md
+c3c1c638d61eb644cc3d684022a30f6ce81232bfcc0d933d7a89e5809525f02a  docs/design/2026-09-06-bas-rec-data-contract.md
 b50b013f83a00241174e2f83422d9ae7ad96cd0df7e8336805b5ce373e69024a  docs/design/2026-09-06-miseos-tabler-adaption.md
 eeeab8c3d8d58753d1c4bddff7cea76176af10e46bf5c0cd46c8b018f7151cc4  docs/design/2026-09-06-pdfme-tabler-fit.md
 eec9cfe8d68a0c91a6eb9ae5260eaea459c3c5e130585c56b78992537198d580  docs/design/admin-redesign-ui.md
@@ -409,7 +409,7 @@ bb0479ed28608d37ed89ff2d4a0fd6bf2bc9646407217c0802044e1f7db86963  docs/superpowe
 b53f771cbb49df7b621be6acd7faf4a4cd21dbe5624365e11332e168da107865  docs/superpowers/allergen-proposals-0905.md
 c180a9c23ce3d8100a541350896fd2bb986e18384ca675f43b192224c4a8a7e6  docs/superpowers/api-claude-handoff-0906.md
 c438e9ec139bb01211fb152755bcdfc1ee6446730555180ce88cd9fe86803460  docs/superpowers/backlog-execution-0906.md
-d39c81b2b2ac23da362b13457744a5f63006c87d37a6888bfa4a980ea39d9eeb  docs/superpowers/bas-rec-work-packages-0906.md
+c5a7b1a82c7f6d603884f8c2de875c51ea6d31f4c7581cddc56aaba7f545e85d  docs/superpowers/bas-rec-work-packages-0906.md
 5225e0cfbdfdf5b0559ef05bfe52abde2fbabc4a40c646961b7d940e4e159e38  docs/superpowers/branding-legends-0906.md
 087194b5e9f049e3123c0d44d62ed7abf850c4002f4eeb97c272347951c6d700  docs/superpowers/iam-local-user-management-0906.md
 f5f1617787c571e99a1c3a49824f3545c122f9b9387a00754166c1f3972ba2f0  docs/superpowers/metadata-visibility-0905.md
