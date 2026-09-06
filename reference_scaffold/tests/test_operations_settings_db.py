@@ -4,8 +4,10 @@ from __future__ import annotations
 # ruff: noqa: F401, F811
 
 import hashlib
+import importlib.util
 import json
 import os
+import re
 import threading
 from copy import deepcopy
 from datetime import timedelta
@@ -704,3 +706,54 @@ def test_python_validator_matches_the_schema_two_contract(database_engine):  # n
             validate_snapshot_payload('patient', snapshot)
     assert patient_text_is_forbidden('Ausgabe 11:30 Uhr') is True
     assert patient_text_is_forbidden(SCHOOL_AREA_NAME) is False
+
+
+def _load_validate_schema() -> Any:
+    path = ROOT / 'database' / 'validate_schema.py'
+    spec = importlib.util.spec_from_file_location('dishboard_validate_schema', path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _patient_key_function(sql: str, source: str) -> str:
+    body = re.search(r'CREATE OR REPLACE FUNCTION patient_key_is_forbidden\(.*?\$\$;', sql, re.S)
+    assert body is not None, f'{source}: patient_key_is_forbidden nicht gefunden.'
+    return body.group(0)
+
+
+def _sql_allowed_keys(sql: str, source: str) -> list[str]:
+    array = re.search(r'compact <> ALL \(ARRAY\[(.*?)\]::text\[\]\)',
+                      _patient_key_function(sql, source), re.S)
+    assert array is not None, f'{source}: Allowlist-Array nicht gefunden.'
+    return re.findall(r"'([a-z]+)'", array.group(1))
+
+
+def _sql_forbidden_tokens(sql: str, source: str) -> list[str]:
+    tokens = re.search(r"compact ~ '\(([a-z|]+)\)'", _patient_key_function(sql, source))
+    assert tokens is not None, f'{source}: verbotene Token nicht gefunden.'
+    return tokens.group(1).split('|')
+
+
+def test_python_allowlist_mirrors_the_sql_patient_key_contract():
+    """`validate_schema.py` spiegelt `patient_key_is_forbidden`; Divergenz bricht das Paketgate.
+
+    Die Baseline und Migration 0017 führen die Allowlist als SQL-Array, `validate_schema.py` hält
+    dieselbe Menge als Frozenset für die statische Snapshotprüfung. Weicht der Spiegel ab, meldet der
+    Validator gültige OPS-Schlüssel als Kosten-Schlüssel, `tools/validate_package.py` bricht vor der
+    Schemaversionsprüfung ab und das Paketgate wird rot, ohne dass eine SQL-Regel verletzt wäre.
+    """
+    module = _load_validate_schema()
+    sources = {
+        'schema.sql': SCHEMA.read_text(encoding='utf-8'),
+        '0017_v19_to_v20.sql': (ROOT / 'database' / 'migrations' / '0017_v19_to_v20.sql').read_text(
+            encoding='utf-8'),
+    }
+    for source, sql in sources.items():
+        keys = _sql_allowed_keys(sql, source)
+        assert len(keys) == len(set(keys)), f'{source}: doppelte Allowlist-Schlüssel.'
+        assert set(keys) == set(module.ALLOWED_PATIENT_COMPACT_KEYS), source
+        assert set(_sql_forbidden_tokens(sql, source)) == set(
+            module.FORBIDDEN_PATIENT_COMPACT_TOKENS), source
+    assert {'areaname', 'servicestart', 'serviceend'} <= set(module.ALLOWED_PATIENT_COMPACT_KEYS)
