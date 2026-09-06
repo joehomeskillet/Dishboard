@@ -321,7 +321,7 @@ def test_area_names_are_compare_and_set_with_narrow_column_privilege(app, databa
     assert get_area_names(database_engine)['patient'] == SCHOOL_AREA_NAME
     with pytest.raises(OperationsConflictError):
         save_area_name(database_engine, actor, version, 'patient', PATIENT_AREA_NAME, 'Zu spät')
-    for name in ('', '   ', 'X' * 81, 'MitSteuerzeichen'):
+    for name in ('', '   ', 'X' * 81, 'Mit' + chr(7) + 'Steuerzeichen'):
         with pytest.raises(ValueError):
             save_area_name(database_engine, actor, version, 'staff_guest', STAFF_AREA_NAME, name)
     with pytest.raises(ValueError):
