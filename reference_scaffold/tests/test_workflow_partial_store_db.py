@@ -8,7 +8,7 @@ import subprocess
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import date, timedelta
 from pathlib import Path
 from threading import Barrier
@@ -20,6 +20,7 @@ from sqlalchemy.pool import NullPool
 
 from cafeteria import db as database
 from cafeteria.component_catalog_store import AdminScope, create_component
+from cafeteria.operations_settings import default_schedule
 from cafeteria.workflow import StaleDraftError, _draft_values, import_draft
 from cafeteria.workflow_partial_store import (
     PartialWorkflowConflictError,
@@ -31,7 +32,7 @@ from cafeteria.workflow_partial_store import (
     resolve_item_id,
     resolve_week_ref,
 )
-from cafeteria.workflow_store import load_draft_connection
+from cafeteria.workflow_store import ensure_week_connection, load_draft_connection
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -181,6 +182,62 @@ def _payload(
     return value
 
 
+def _service_payload(
+    *,
+    state: str = 'open',
+    notice: str = '',
+    start: str | None = None,
+    end: str | None = None,
+) -> dict[str, object]:
+    return {
+        'service_state': state,
+        'notice': notice,
+        'service_start': start,
+        'service_end': end,
+    }
+
+
+def _save_schedule(db: WorkflowDatabase, profile: str, overrides: dict) -> None:
+    slots: dict[str, dict] = {}
+    for (day, meal), rule in default_schedule(profile).slots.items():
+        slots.setdefault(str(day), {})[meal] = asdict(rule)
+    for day, meals in overrides.items():
+        slots[day].update(meals)
+    with db.owner.begin() as connection:
+        connection.execute(text(
+            'INSERT INTO cafeteria.settings(location_id,profile_id,setting_key,setting_value) '
+            "SELECT :location,p.id,'operations_schedule',CAST(:value AS jsonb) "
+            'FROM cafeteria.offer_profiles p WHERE p.code=:profile '
+            'ON CONFLICT(location_id,profile_id,setting_key) DO UPDATE '
+            'SET setting_value=EXCLUDED.setting_value'
+        ), {'location': db.location_id, 'profile': profile,
+            'value': json.dumps({'revision': 1, 'slots': slots})})
+
+
+def _service_row(
+    db: WorkflowDatabase, day: str, meal: str, profile: str = 'patient'
+) -> tuple[object, ...]:
+    with db.owner.connect() as connection:
+        return tuple(
+            connection.execute(
+                text(
+                    '''
+                    SELECT s.service_state, COALESCE(s.notice, ''),
+                           to_char(s.service_start, 'HH24:MI'),
+                           to_char(s.service_end, 'HH24:MI')
+                    FROM cafeteria.menu_services s
+                    JOIN cafeteria.menu_weeks w ON w.id=s.menu_week_id
+                    JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+                    JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id
+                    WHERE p.code=:profile AND s.service_date=CAST(:day AS date)
+                      AND mp.code=:meal
+                    '''
+                ),
+                {'profile': profile, 'day': day, 'meal': meal},
+            ).one()
+        )
+
+
 def _full_values(marker: str, *, reverse_components: bool = False) -> dict[str, object]:
     days = []
     for offset in range(7):
@@ -275,7 +332,7 @@ def test_service_cas_reopen_and_nonempty_close_are_atomic(
 ) -> None:
     db = workflow_database
     scope = _scope(db)
-    closed = {'service_state': 'closed', 'notice': 'Ruhetag'}
+    closed = _service_payload(state='closed', notice='Ruhetag')
     assert persist_service_state(db.app, scope, WEEK, '2026-08-31', 'LUNCH', closed, 0) == 1
     with pytest.raises(PartialWorkflowConflictError):
         persist_service_state(db.app, scope, WEEK, '2026-08-31', 'LUNCH', closed, 0)
@@ -285,7 +342,7 @@ def test_service_cas_reopen_and_nonempty_close_are_atomic(
         WEEK,
         '2026-08-31',
         'LUNCH',
-        {'service_state': 'open', 'notice': ''},
+        _service_payload(),
         1,
     ) == 2
     assert persist_menu_item(
@@ -297,8 +354,147 @@ def test_service_cas_reopen_and_nonempty_close_are_atomic(
     assert _week_state(db) == before
     with pytest.raises(PartialWorkflowNotFoundError):
         persist_service_state(
-            db.app, scope, WEEK, '2026-09-01', 'DINNER', {'service_state': 'open', 'notice': ''}, 1
+            db.app, scope, WEEK, '2026-09-01', 'DINNER', _service_payload(), 1
         )
+
+
+def test_service_times_are_written_on_insert_and_update(
+    workflow_database: WorkflowDatabase,
+) -> None:
+    db = workflow_database
+    scope = _scope(db)
+
+    assert persist_service_state(
+        db.app, scope, WEEK, '2026-08-31', 'LUNCH',
+        _service_payload(start='11:30', end='13:30'), 0,
+    ) == 1
+    assert _service_row(db, '2026-08-31', 'LUNCH') == ('open', '', '11:30', '13:30')
+
+    assert persist_service_state(
+        db.app, scope, WEEK, '2026-08-31', 'LUNCH',
+        _service_payload(start='12:00', end='14:00'), 1,
+    ) == 2
+    assert _service_row(db, '2026-08-31', 'LUNCH') == ('open', '', '12:00', '14:00')
+
+    assert persist_service_state(
+        db.app, scope, WEEK, '2026-08-31', 'LUNCH', _service_payload(), 2,
+    ) == 3
+    assert _service_row(db, '2026-08-31', 'LUNCH') == ('open', '', None, None)
+
+
+@pytest.mark.parametrize(
+    ('start', 'end'),
+    [('24:00', None), ('7:30', None), (None, '11:5'), ('13:30', '11:30'), ('11:30', '11:30')],
+)
+def test_invalid_service_times_are_rejected_before_any_write(
+    workflow_database: WorkflowDatabase, start: str | None, end: str | None,
+) -> None:
+    db = workflow_database
+    with pytest.raises(PartialWorkflowValidationError):
+        persist_service_state(
+            db.app, _scope(db), WEEK, '2026-08-31', 'LUNCH',
+            _service_payload(start=start, end=end), 0,
+        )
+    with db.owner.connect() as connection:
+        assert connection.execute(
+            text('SELECT count(*) FROM cafeteria.menu_weeks')
+        ).scalar_one() == 0
+
+
+def test_service_payload_must_carry_exactly_the_four_keys(
+    workflow_database: WorkflowDatabase,
+) -> None:
+    db = workflow_database
+    legacy = {'service_state': 'open', 'notice': ''}
+    with pytest.raises(PartialWorkflowValidationError):
+        persist_service_state(db.app, _scope(db), WEEK, '2026-08-31', 'LUNCH', legacy, 0)
+
+
+def test_menu_item_follows_the_schedule_of_a_missing_service_row(
+    workflow_database: WorkflowDatabase,
+) -> None:
+    db = workflow_database
+    scope = _scope(db)
+    _save_schedule(
+        db,
+        'patient',
+        {
+            '1': {
+                'LUNCH': {'state': 'open', 'start': '11:30', 'end': '13:30', 'notice': ''},
+                'DINNER': {
+                    'state': 'closed', 'start': None, 'end': None, 'notice': 'Kein Abendessen',
+                },
+            }
+        },
+    )
+
+    with pytest.raises(PartialWorkflowConflictError, match='Wochenvorgabe geschlossen'):
+        persist_menu_item(
+            db.app, scope, WEEK, '2026-08-31', 'DINNER', 'MENU_1', _payload(), 0
+        )
+    with db.owner.connect() as connection:
+        assert connection.execute(
+            text(
+                'SELECT count(*) FROM cafeteria.menu_services s '
+                'JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id '
+                "WHERE mp.code='DINNER'"
+            )
+        ).scalar_one() == 0
+
+    assert persist_menu_item(
+        db.app, scope, WEEK, '2026-08-31', 'LUNCH', 'MENU_1', _payload(), 0
+    ) == 1
+    assert _service_row(db, '2026-08-31', 'LUNCH') == ('open', '', '11:30', '13:30')
+
+
+def test_draft_synthesizes_schedule_cells_and_leaves_saved_rows_alone(
+    workflow_database: WorkflowDatabase,
+) -> None:
+    db = workflow_database
+    scope = _scope(db)
+    assert persist_service_state(
+        db.app, scope, WEEK, '2026-08-31', 'LUNCH',
+        _service_payload(start='10:00', end='12:00'), 0,
+    ) == 1
+    _save_schedule(
+        db,
+        'patient',
+        {
+            '1': {
+                'LUNCH': {'state': 'open', 'start': '11:30', 'end': '13:30', 'notice': ''},
+                'DINNER': {'state': 'open', 'start': '17:30', 'end': '18:30', 'notice': ''},
+            }
+        },
+    )
+
+    with db.app.connect() as connection:
+        draft = load_draft_connection(connection, 'patient', WEEK)
+
+    saved = draft['days'][0]['services'][0]
+    assert saved['meal_code'] == 'LUNCH'
+    assert (saved['service_start'], saved['service_end']) == ('10:00', '12:00')
+    assert saved['service_row_version'] == 1
+
+    synthetic = draft['days'][0]['services'][1]
+    assert synthetic['meal_code'] == 'DINNER'
+    assert (synthetic['service_start'], synthetic['service_end']) == ('17:30', '18:30')
+    assert synthetic['service_row_version'] == 0
+    assert draft['area_name'] == 'Patientinnen und Patienten'
+    assert draft['allows_weekend'] is True
+
+
+def test_cafeteria_draft_keeps_five_days_while_the_weekend_stays_closed(
+    workflow_database: WorkflowDatabase,
+) -> None:
+    db = workflow_database
+    with db.app.connect() as connection:
+        ensure_week_connection(connection, 'staff_guest', WEEK, db.actor_id)
+        connection.commit()
+        draft = load_draft_connection(connection, 'staff_guest', WEEK)
+
+    assert draft['allows_weekend'] is False
+    assert len(draft['days']) == 5
+    assert draft['area_name'] == 'Mitarbeitende und externe Gäste'
 
 
 def test_item_payload_effects_prices_and_neighbour_isolation(
