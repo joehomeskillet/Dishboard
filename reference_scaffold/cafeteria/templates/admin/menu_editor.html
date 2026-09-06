@@ -1,4 +1,5 @@
 {% extends "admin/base_tabler.html" %}
+{% from '_food_symbols.html' import symbol %}
 {% from 'admin/_macros.html' import icon, page_header, check %}
 {% from 'admin/_country_select.html' import country_select %}
 {% set day_title = cell.day_label|default(cell.day|date_long) %}
@@ -164,7 +165,7 @@
             <div class="allergen-row">
               <div class="row g-2 align-items-center">
                 <div class="col-12 col-sm-6">
-                  <label class="form-check" for="allergen-{{ allergen.code|lower }}"><input class="form-check-input" id="allergen-{{ allergen.code|lower }}" type="checkbox" name="allergen_code" value="{{ allergen.code }}"{% if idx >= 0 %} checked{% endif %}{% if is_auto['allergen'] %} disabled{% endif %}><span class="form-check-label">{{ allergen.name|default(allergen.code) }}</span></label>
+                  <label class="form-check" for="allergen-{{ allergen.code|lower }}"><input class="form-check-input" id="allergen-{{ allergen.code|lower }}" type="checkbox" name="allergen_code" value="{{ allergen.code }}"{% if idx >= 0 %} checked{% endif %}{% if is_auto['allergen'] %} disabled{% endif %}><span class="form-check-label">{{ symbol('allergens', allergen.code, true) }}{{ allergen.name|default(allergen.code) }}</span></label>
                 </div>
                 <div class="col-12 col-sm-6">
                   <select class="form-select" id="allergen-{{ allergen.code|lower }}-presence" name="allergen_presence" aria-label="Präsenz für {{ allergen.name|default(allergen.code) }}"{% if idx < 0 or is_auto['allergen'] %} disabled{% endif %}>

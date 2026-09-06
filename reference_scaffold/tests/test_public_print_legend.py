@@ -47,3 +47,21 @@ def test_closed_meals_do_not_contribute_hidden_legend_entries(app, profile, temp
                                open_days=[day for day in snapshot['days'] if day['services']])
     assert 'Heute geschlossen' in body
     assert 'NURVERBORGEN' not in body
+
+
+@pytest.mark.parametrize('profile,template', [
+    ('staff_guest', 'print_cafeteria_week.html'), ('patient', 'print_patient_week.html'),
+])
+def test_untitled_placeholders_do_not_print_declarations_or_legend_entries(app, profile, template):  # noqa: F811
+    snapshot = deepcopy(app.config['TEST_SNAPSHOTS'][profile])
+    options = snapshot['days'][0]['services'][0]['options']
+    options[0]['labels'] = [{'code': 'VISIBLE', 'name': 'SICHTBARESMENUE'}]
+    options[1].update(title='', labels=[{'code': 'PLACEHOLDER', 'name': 'NURPLATZHALTER'}])
+    original = deepcopy(snapshot)
+    with app.test_request_context():
+        body = render_template('public/' + template, snapshot=snapshot,
+                               open_days=[day for day in snapshot['days'] if day['services']])
+    assert body.count('class="food-legend') == 1
+    assert body.count('SICHTBARESMENUE') == 2
+    assert 'NURPLATZHALTER' not in body
+    assert snapshot == original

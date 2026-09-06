@@ -1,10 +1,12 @@
 {% extends "admin/base_tabler.html" %}
+{% from '_food_symbols.html' import legend %}
 {% from 'admin/_macros.html' import icon, page_header, profile_tabs, pagination %}
 {% block title %}Menüs {{ 'Cafeteria' if profile == 'staff_guest' else 'Patienten' }}{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-menu-collection.css') }}">{% endblock %}
 {% set workflow_nav = 'menus' %}
 {% block page_header %}{{ page_header('Menüs') }}{% endblock %}
 {% block content %}
+        {% set declarations = namespace(options=[]) %}
         {{ profile_tabs({
           'cafeteria': url_for('admin.menu_collection', family='cafeteria', q=query),
           'patienten': url_for('admin.menu_collection', family='patienten', q=query),
@@ -37,6 +39,7 @@
         <div class="tab-pane active" id="menu-cards" role="tabpanel" aria-labelledby="menu-cards-tab" tabindex="0">
         <section class="row row-cards menu-grid" aria-label="Gespeicherte Menüs">
           {% for row in rows %}
+          {% if row.title %}{% set declarations.options = declarations.options + [row] %}{% endif %}
           <div class="col-12 col-md-6 col-xl-4">
             <article class="card h-100" data-menu-id="{{ row.id }}">
               <div class="card-body">
@@ -67,6 +70,7 @@
           </div>
           {% endfor %}
         </section>
+        {{ legend(declarations.options, tabler=true) }}
         </div>
         <div class="tab-pane" id="menu-list" role="tabpanel" aria-labelledby="menu-list-tab" tabindex="0">
           <div class="card dishboard-menu-results">

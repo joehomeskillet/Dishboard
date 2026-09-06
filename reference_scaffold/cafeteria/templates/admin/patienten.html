@@ -1,4 +1,5 @@
 {% extends "admin/base_tabler.html" %}
+{% from '_food_symbols.html' import legend %}
 {% from 'admin/_macros.html' import icon, profile_tabs, field %}
 {% block title %}Backend Patienten-Übersicht{% endblock %}
 {% set weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'] %}
@@ -28,6 +29,7 @@
 </div>
 {% endblock %}
 {% block content %}
+{% set declarations = namespace(options=[]) %}
 {% if status == 'error' %}
 <div class="error-region alert alert-danger" role="alert" tabindex="-1">
   {% for message in flashes %}<p class="flash mb-0">{{ message }}</p>{% endfor %}
@@ -158,6 +160,7 @@
         </form>
         <div class="row g-3 admin-menu-options">
           {% for cell in lunch_cells %}
+          {% if cell.title %}{% set declarations.options = declarations.options + [cell] %}{% endif %}
           <div class="col-12 col-md-6">
             <article class="card menu-slot h-100" data-day="{{ cell.day }}" data-meal="{{ cell.meal }}" data-option="{{ cell.option }}" data-row-version="{{ cell.row_version }}">
               <div class="card-body patient-admin-option">
@@ -208,6 +211,7 @@
         </form>
         <div class="row g-3 admin-menu-options">
           {% for cell in dinner_cells %}
+          {% if cell.title %}{% set declarations.options = declarations.options + [cell] %}{% endif %}
           <div class="col-12 col-md-6">
             <article class="card menu-slot h-100" data-day="{{ cell.day }}" data-meal="{{ cell.meal }}" data-option="{{ cell.option }}" data-row-version="{{ cell.row_version }}">
               <div class="card-body patient-admin-option">
@@ -231,5 +235,5 @@
   </article>
   {% endfor %}
 </section>
-
+{{ legend(declarations.options, tabler=true) }}
 {% endblock %}

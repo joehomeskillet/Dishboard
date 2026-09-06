@@ -1,4 +1,5 @@
 {% extends "admin/base_tabler.html" %}
+{% from '_food_symbols.html' import symbol %}
 {% from 'admin/_macros.html' import icon, page_header, field, check, status %}
 {% from 'admin/_country_select.html' import country_select %}
 {% set workflow_nav = 'components' %}
@@ -69,7 +70,7 @@
               {% set idx = a_codes.index(allergen.code) if allergen.code in a_codes else -1 %}
               {% set presence = a_pres[idx] if idx >= 0 and idx < a_pres|length else 'contains' %}
               <div class="allergen-row row g-2 align-items-center mb-2">
-                <div class="col-12 col-sm-6">{{ check('allergen_code', allergen.name|default(allergen.code), value=allergen.code, checked=idx >= 0, id='create-allergen-' ~ allergen.code) }}</div>
+                <div class="col-12 col-sm-6 d-flex align-items-center gap-2">{{ symbol('allergens', allergen.code, true) }}{{ check('allergen_code', allergen.name|default(allergen.code), value=allergen.code, checked=idx >= 0, id='create-allergen-' ~ allergen.code) }}</div>
                 <div class="col-12 col-sm-6">
                   <select class="form-select" id="create-presence-{{ allergen.code }}" name="allergen_presence" aria-label="Präsenz für {{ allergen.name|default(allergen.code) }}"{% if idx < 0 %} disabled{% endif %}>
                     <option value="contains"{% if presence == 'contains' %} selected{% endif %}>enthält</option>
@@ -166,7 +167,7 @@
           <td><span class="dishboard-cell-label">Kategorie / Gültigkeit</span><div class="category">{{ categories.get(row.category, row.category) }}</div>
             <div class="scope text-secondary">{{ 'gemeinsam' if row.profile_scope == 'common' else 'nur Cafeteria' if row.profile_scope == 'staff_guest' else 'nur Patienten' }}</div>
           </td>
-          <td><span class="dishboard-cell-label">Herkunft / Labels</span><div>{{ row.origin_country_code or 'Nicht erfasst' }}</div>
+          <td><span class="dishboard-cell-label">Herkunft / Labels</span><div>{{ symbol('countries', row.origin_country_code, true) }}{{ row.origin_country_code or 'Nicht erfasst' }}</div>
             <div class="d-flex flex-wrap gap-1">{% for label in row.labels %}<span class="badge bg-secondary-lt">{{ label.name|default(label.code) }}</span>{% endfor %}</div>
           </td>
           <td class="usage"><span class="dishboard-cell-label">Verwendung</span>verwendet in {{ row.usage_count }} Gerichten</td>

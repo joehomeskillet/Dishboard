@@ -1,7 +1,9 @@
 {% extends "base.html" %}
+{% from '_food_symbols.html' import legend %}
 {% block title %}Vorschau · {{ 'Cafeteria-Speiseplan' if profile == 'staff_guest' else 'Patienten-Speiseplan' }}{% endblock %}
 {% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-preview.css') }}">{% endblock %}
 {% block body %}
+{% set declarations = namespace(options=[]) %}
 <main class="admin-preview" id="main-content">
 <div class="preview-banner" role="status">PREVIEW</div>
 <section data-preview="last-saved" data-workflow-state="{{ state }}" data-week="{{ week }}" data-profile="{{ profile }}">
@@ -32,6 +34,7 @@
               <div class="preview-options">
                 {% for option in service.options %}
                   {% if option.title %}
+                  {% set declarations.options = declarations.options + [option] %}
                   <div class="preview-option">
                     <h5>{{ option.title }}</h5>
                     {% include '_menu_image.html' %}
@@ -59,6 +62,7 @@
       </div>
     {% endfor %}
   </div>
+  {{ legend(declarations.options) }}
 </section>
 </main>
 {% endblock %}
