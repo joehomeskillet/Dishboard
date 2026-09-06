@@ -35,6 +35,7 @@ database/migrations/0012_v14_to_v15.sql
 database/migrations/0013_v15_to_v16.sql
 database/migrations/0014_v16_to_v17.sql
 database/migrations/0015_v17_to_v18.sql
+database/migrations/0016_v18_to_v19.sql
 database/permissions.sql
 database/README.md
 database/schema.sql
@@ -429,6 +430,7 @@ reference_scaffold/cafeteria/admin/__init__.py
 reference_scaffold/cafeteria/admin/api_routes.py
 reference_scaffold/cafeteria/admin/branding_routes.py
 reference_scaffold/cafeteria/admin/display_routes.py
+reference_scaffold/cafeteria/admin/local_user_routes.py
 reference_scaffold/cafeteria/admin/menu_collection_routes.py
 reference_scaffold/cafeteria/admin/menu_collection_store.py
 reference_scaffold/cafeteria/admin/output_routes.py
@@ -450,6 +452,7 @@ reference_scaffold/cafeteria/api/v1_routes.py
 reference_scaffold/cafeteria/api_keys.py
 reference_scaffold/cafeteria/auth/__init__.py
 reference_scaffold/cafeteria/auth/issuer.py
+reference_scaffold/cafeteria/auth/local_users.py
 reference_scaffold/cafeteria/auth/routes.py
 reference_scaffold/cafeteria/auth/service.py
 reference_scaffold/cafeteria/branding.py
@@ -838,6 +841,7 @@ reference_scaffold/cafeteria/templates/_food_symbols.html
 reference_scaffold/cafeteria/templates/_menu_image.html
 reference_scaffold/cafeteria/templates/_menu_metadata.html
 reference_scaffold/cafeteria/templates/admin/_country_select.html
+reference_scaffold/cafeteria/templates/admin/_local_user_forms.html
 reference_scaffold/cafeteria/templates/admin/_macros.html
 reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html
 reference_scaffold/cafeteria/templates/admin/api.html
@@ -850,6 +854,11 @@ reference_scaffold/cafeteria/templates/admin/components.html
 reference_scaffold/cafeteria/templates/admin/copy.html
 reference_scaffold/cafeteria/templates/admin/display_settings.html
 reference_scaffold/cafeteria/templates/admin/import_preview.html
+reference_scaffold/cafeteria/templates/admin/local_user_create.html
+reference_scaffold/cafeteria/templates/admin/local_user_editor.html
+reference_scaffold/cafeteria/templates/admin/local_user_events.html
+reference_scaffold/cafeteria/templates/admin/local_user_unavailable.html
+reference_scaffold/cafeteria/templates/admin/local_users.html
 reference_scaffold/cafeteria/templates/admin/menu_collection.html
 reference_scaffold/cafeteria/templates/admin/menu_editor.html
 reference_scaffold/cafeteria/templates/admin/patienten.html
@@ -897,6 +906,7 @@ reference_scaffold/README.md
 reference_scaffold/requirements-mcp.txt
 reference_scaffold/requirements.txt
 reference_scaffold/tests/fixtures/weekly_print_notes.json
+reference_scaffold/tests/local_user_test_support.py
 reference_scaffold/tests/review_support.py
 reference_scaffold/tests/test_admin_api_page.py
 reference_scaffold/tests/test_admin_blueprint_bootstrap.py
@@ -908,6 +918,9 @@ reference_scaffold/tests/test_admin_display_options_browser.py
 reference_scaffold/tests/test_admin_display_settings.py
 reference_scaffold/tests/test_admin_draft_preview.py
 reference_scaffold/tests/test_admin_form_contracts.py
+reference_scaffold/tests/test_admin_local_users_bootstrap.py
+reference_scaffold/tests/test_admin_local_users_browser.py
+reference_scaffold/tests/test_admin_local_users_routes.py
 reference_scaffold/tests/test_admin_menu_editor_browser.py
 reference_scaffold/tests/test_admin_menu_save_back_browser.py
 reference_scaffold/tests/test_admin_output_hubs.py
@@ -984,6 +997,11 @@ reference_scaffold/tests/test_food_legends_web.py
 reference_scaffold/tests/test_food_symbol_assets.py
 reference_scaffold/tests/test_food_symbols.py
 reference_scaffold/tests/test_github_pages.py
+reference_scaffold/tests/test_local_user_management_cli.py
+reference_scaffold/tests/test_local_user_management_db.py
+reference_scaffold/tests/test_local_user_management_migration_db.py
+reference_scaffold/tests/test_local_user_management_races.py
+reference_scaffold/tests/test_local_user_management_reads.py
 reference_scaffold/tests/test_mcp_server.py
 reference_scaffold/tests/test_menu_collection.py
 reference_scaffold/tests/test_menu_collection_browser.py
@@ -1006,6 +1024,7 @@ reference_scaffold/tests/test_public_display_copy.py
 reference_scaffold/tests/test_public_equal_cards_browser.py
 reference_scaffold/tests/test_public_isolation_homoglyphs.py
 reference_scaffold/tests/test_public_mobile_ui.py
+reference_scaffold/tests/test_public_print_equal_cards_browser.py
 reference_scaffold/tests/test_public_print_legend.py
 reference_scaffold/tests/test_public_week_no_images.py
 reference_scaffold/tests/test_publication_lock_contract_db.py
