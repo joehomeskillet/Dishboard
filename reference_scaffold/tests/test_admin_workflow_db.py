@@ -172,7 +172,12 @@ def _historical_publication(engine: Engine, actor_id: int, suffix: str) -> int:
     }[suffix]
     snapshot = build_snapshot(
         'patient',
-        {**_patient_values(), 'week_start': WEEK_START.isoformat(), 'location': location},
+        {
+            **_patient_values(),
+            'week_start': WEEK_START.isoformat(),
+            'location': location,
+            'area_name': 'Patientinnen und Patienten',
+        },
         revision_code,
     )
     with engine.begin() as connection:

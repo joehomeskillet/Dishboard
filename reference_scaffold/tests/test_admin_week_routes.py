@@ -137,6 +137,17 @@ def test_header_and_service_partial_persistence(client, database_engine: Engine)
     loaded = client.get(f'/admin/patienten/header?week={DAY}')
     assert loaded.status_code == 200
     assert 'Herbstküche' in loaded.get_data(as_text=True)
+    legacy = client.post('/admin/patienten/service', data={
+        '_csrf': token,
+        'week': DAY,
+        'day': DAY,
+        'meal': 'LUNCH',
+        'row_version': '0',
+        'service_state': 'open',
+        'notice': '',
+    })
+    # Das Serviceformular verlangt die Zeitfelder; die alte Form ist kein gültiger Beleg.
+    assert legacy.status_code == 400
     service = client.post('/admin/patienten/service', data={
         '_csrf': token,
         'week': DAY,
@@ -145,6 +156,8 @@ def test_header_and_service_partial_persistence(client, database_engine: Engine)
         'row_version': '0',
         'service_state': 'open',
         'notice': '',
+        'service_start': '11:30',
+        'service_end': '13:30',
     })
     assert service.status_code == 303
     shown = client.get(f'/admin/patienten/service?week={DAY}&day={DAY}&meal=LUNCH')

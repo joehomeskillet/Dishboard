@@ -319,6 +319,10 @@ def _snapshot(profile: str, closures: dict[tuple[int, str], tuple[str, str]] | N
         {
             'week_start': week_start.isoformat(),
             'location': {'code': 'KIRCHLINDACH', 'name': 'Südhang'},
+            'area_name': (
+                'Patientinnen und Patienten' if profile == 'patient'
+                else 'Mitarbeitende und externe Gäste'
+            ),
             'title': 'Herbstküche',
             'shared_note': '',
             'days': days,
