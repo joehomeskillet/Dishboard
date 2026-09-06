@@ -8,6 +8,7 @@ from playwright.sync_api import Browser, expect
 
 from test_rendered_ui import app as app
 from test_rendered_ui import browser as browser
+from test_rendered_ui import _set_legacy_snapshot
 from test_signage_engine import live_signage as live_signage
 
 MENUS = '.hero-food, .cafe-week-slot, .patient-signage-option, .patient-week-option'
@@ -95,6 +96,7 @@ def test_midnight_expiry_cancels_a_snapshot_fade_in_progress(
     live_signage: tuple[str, Flask], browser: Browser,
 ) -> None:
     base_url, application = live_signage
+    _set_legacy_snapshot(application.config['TEST_SNAPSHOTS']['patient'])
     page = browser.new_page(viewport={'width': 1920, 'height': 1080}, reduced_motion='no-preference')
     try:
         page.clock.install(time=datetime.fromisoformat('2026-09-02T21:59:50+00:00'))

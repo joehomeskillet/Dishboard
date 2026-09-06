@@ -13,7 +13,7 @@ from test_public_mobile_ui import public_server as public_server
 from test_public_ops_browser import card_geometry, ops_snapshot
 from test_rendered_ui import app as app
 from test_rendered_ui import browser as browser
-from test_rendered_ui import _set_unbroken_signage_boundaries
+from test_rendered_ui import _set_legacy_snapshot, _set_unbroken_signage_boundaries
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'tools'))
 from capture_branding_live_proof import SIGNAGE, BrandingProof  # noqa: E402
@@ -105,7 +105,7 @@ def test_operator_proof_observes_real_ops_rotation(
         if variant == 'ops-long':
             _set_unbroken_signage_boundaries(snapshot, title_length=36, component_length=48)
     else:
-        http_app.config['TEST_SNAPSHOTS'][profile]['schema_version'] = int(variant[-1])
+        _set_legacy_snapshot(http_app.config['TEST_SNAPSHOTS'][profile], int(variant[-1]))
     path = SIGNAGE[3 if profile == 'patient' else 1]
     with browser.new_context(viewport={'width': width, 'height': height}, reduced_motion='reduce') as context:
         page = context.new_page()
