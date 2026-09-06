@@ -331,12 +331,12 @@ Definer-Pfade an.
 Engine-gebundene Dienste, je Aufruf genau eine Transaktion:
 
 ```
-list_units(engine, *, include_archived=False) -> tuple[UnitDTO, ...]
+list_units(engine, *, include_archived=False, limit=200, offset=0) -> tuple[UnitDTO, ...]
 get_unit(engine, public_id) -> UnitDTO
 create_unit(engine, actor, *, code, display_name, dimension, base_factor) -> MutationResult
 rename_unit(engine, actor, target, *, display_name) -> MutationResult
 set_unit_active(engine, actor, target, *, active) -> MutationResult
-list_vocabulary(engine, kind, *, include_archived=False) -> tuple[VocabularyDTO, ...]
+list_vocabulary(engine, kind, *, include_archived=False, limit=200, offset=0) -> tuple[VocabularyDTO, ...]
 get_vocabulary(engine, kind, public_id) -> VocabularyDTO
 create_vocabulary(engine, kind, actor, *, code, name, sort_order=None) -> MutationResult
 update_vocabulary(engine, kind, actor, target, *, name, sort_order=None) -> MutationResult
@@ -361,10 +361,24 @@ reject_proposal(engine, actor, proposal, *, reason=None) -> ProposalDecision
 
 `kind` ist `Literal['food_category','tag','storage_location']` und wählt aus einer festen
 Zuordnung die passende Definer-Funktion; dynamisches SQL entsteht dabei nicht. Jede `list_*`
-sortiert deterministisch nach `sort_order`, dann `lower(btrim(name))`, dann `public_id` und
-begrenzt `limit` auf höchstens 500. Einheiten sind global und werden ohne Standortfilter
-gelesen; ihre Semantikfelder `code`, `dimension` und `base_factor` sind unveränderlich, deshalb
-gibt es nur `rename_unit`. Kanonische Einheiten sind nicht deaktivierbar.
+nimmt `limit` und `offset` entgegen und begrenzt `limit` auf höchstens 500; die Sortierung ist je
+Entität deterministisch und verwendet ausschliesslich tatsächlich vorhandene Spalten, `public_id`
+immer als letzten Tie-break — keine Extra-Spalte wird dafür neu eingeführt:
+
+- `list_vocabulary` für `kind IN ('food_category','storage_location')`, die beide `sort_order`
+  besitzen: `sort_order` (NULLS LAST), dann `lower(btrim(name))`, dann `public_id`.
+- `list_vocabulary` für `kind='tag'`, ohne `sort_order`-Spalte (§4.1): `lower(btrim(name))`,
+  dann `public_id`.
+- `list_units`, ohne `sort_order`- und ohne `name`-Spalte — Einheiten haben `display_name`
+  (§3.1): `code`, dann `public_id`. `code` ist eindeutig und ab Anlage unveränderlich, damit
+  bleibt die Reihenfolge auch über eine spätere `rename_unit`-Umbenennung von `display_name`
+  stabil.
+- `list_foods`, ohne `sort_order`-Spalte (§4.1): `lower(btrim(name))`, dann `public_id`.
+- `list_proposals`, ohne Namens- oder Sortierfeld (§6): `created_at`, dann `public_id`.
+
+Einheiten sind global und werden ohne Standortfilter gelesen; ihre Semantikfelder `code`,
+`dimension` und `base_factor` sind unveränderlich, deshalb gibt es nur `rename_unit`. Kanonische
+Einheiten sind nicht deaktivierbar.
 
 Verbindungsgebundene Auflösung innerhalb einer fremden Transaktion, für R1 und später R5:
 
@@ -381,11 +395,20 @@ Fehlerklassen in `master_data_types.py`, alle von `MasterDataError` abgeleitet �
 nie eine rohe SQL-Ausnahme: `MasterDataValidationError`, `MasterDataNotFoundError`,
 `MasterDataConflictError` mit Unterklasse `StaleObjectError`, `ActorDeniedError` mit Unterklasse
 `StaleActorError`, `MasterDataConfigurationError` und `MasterDataUnavailableError`. Der
-Verbraucher bildet fest ab: 401 bei fehlender Sitzung oder `StaleActorError`, 403 bei
-`ActorDeniedError`, 404 bei `MasterDataNotFoundError`, 409 bei Konflikt, 503 mit `no-store` bei
-`MasterDataUnavailableError`. Der Ausfallwrapper liegt wie `auth.local_users._safe_account_read`
-**ausserhalb** von Fähigkeitsprüfung und Reader. Kein automatischer Wiederholversuch mit frisch
-geladener Actor- oder Objektversion.
+Verbraucher bildet **vollständig** fest ab: 400 bei `MasterDataValidationError`, mit dem
+bestehenden Formular-/Fehlerfokus-Verhalten; 401 bei fehlender Sitzung oder `StaleActorError`;
+403 bei `ActorDeniedError`; 404 bei `MasterDataNotFoundError`; 409 bei `MasterDataConflictError`
+(einschliesslich `StaleObjectError`); 503 mit `no-store` bei `MasterDataConfigurationError` und
+bei `MasterDataUnavailableError`. `MasterDataConfigurationError` deckt insbesondere den
+fehlenden oder nicht eindeutigen aktiven Standort aus
+`resolve_single_active_location_connection()` ab: die Antwort ist 503/`no-store` ohne weiteren,
+selbst wieder von der Datenbank abhängigen Versuch, die Fehlermeldung anzureichern — eine
+Konfigurationsstörung wird nicht durch eine zusätzliche DB-abhängige Fehlerrekursion aufgelöst.
+Die Zuordnung bleibt konsistent zur SQLSTATE-Tabelle aus §8.1 (`P1901`→400, `P1902`/`42501`→403,
+`P1903`→401, `22023`→404, `55000`/`23505`→409); keine rohe SQL-Ausgabe erreicht den Aufrufer.
+Der Ausfallwrapper liegt wie `auth.local_users._safe_account_read` **ausserhalb** von
+Fähigkeitsprüfung und Reader. Kein automatischer Wiederholversuch mit frisch geladener Actor-
+oder Objektversion.
 
 ---
 
@@ -601,8 +624,17 @@ getrennt; eine leere Liste bleibt eine fehlende Angabe und wird nie zur Frei-von
 `adopted`, `unchanged` und `not_supported` sowie Ziel-UUID und alte/neue `foods.row_version`.
 Ein Trigger nach dem Vorbild von `protect_publication_revision()` verweigert jedes `DELETE`
 sowie jede Änderung an einer Zeile, deren `status` nicht mehr `open` ist, und jede nachträgliche
-Änderung von `location_id`, `food_id`, `source*`, `fetched_at` und `payload`. Der Übergang
-`open → accepted|rejected` ist einmalig und unumkehrbar.
+Änderung von `location_id`, `source*`, `fetched_at` und `payload`. Für `food_id` gilt genau eine
+Ausnahme, sonst gilt dasselbe Verbot: die eine atomare, kontrollierte Annahme (`open →
+accepted`) darf `food_id` von NULL auf das gewählte Ziel setzen, geführt mit ursprünglicher
+Actor-, Vorschlags- und Food-Version sowie Standortgleichheit (siehe **Ziel** oben). Ausserhalb
+dieser einen Annahme bleibt `food_id` unveränderlich; ein bereits gesetztes Ziel wird nie
+gewechselt, auch nicht durch eine zweite Annahme. Eine Ablehnung (`open → rejected`) setzt
+niemals ein Ziel — `food_id` bleibt dabei NULL. Der Übergang `open → accepted|rejected` ist
+einmalig und unumkehrbar; jede abgeschlossene Entscheidung (`accepted` oder `rejected`) ist
+danach vollständig unveränderlich, einschliesslich `food_id`. Dienst (`accept_proposal`/
+`reject_proposal`, §4.5), Trigger und Testspezifikation setzen genau diese eine Ausnahme
+identisch um.
 
 **Buchung.** Eine Annahme mit mindestens einem übernommenen Feld erhöht `foods.row_version`
 genau einmal; wurde dabei `food_allergens` geändert, setzt sie `allergen_review_status` auf
@@ -736,16 +768,31 @@ später R5 übernehmen diese Reihenfolge unverändert; sie sperren Einheiten, Vo
 Zutaten vor ihrem eigenen Aggregat und nie `FOR UPDATE`.
 
 **Actor-Sperre `FOR SHARE` statt `FOR UPDATE`, mit Begründung.** Die Formulierung «betroffene
-Benutzer nach ID `FOR UPDATE`» stammt aus dem adminexklusiven IAM-Pfad und erzeugt für
-Fachmutatoren einen echten Deadlock-Zyklus, sobald M-C `menu_components.food_id` bindet:
-`record_menu_review()` und die übrigen Workflow-Definer nehmen zuerst
-`lock_expected_active_location()`, dann Woche, Service und Position, halten über den
-Fremdschlüssel implizit `FOR KEY SHARE` auf der gebundenen Food-Zeile und rufen
-`require_workflow_review_actor()` (`database/schema.sql:2296`, `users … FOR SHARE`) erst
-**danach**. Ein B2-Mutator mit `users FOR UPDATE` hielte dann die Actor-Zeile und wartete auf
-`foods FOR UPDATE`, das mit dem gehaltenen `FOR KEY SHARE` kollidiert, während der Workflow auf
-dieselbe Actor-Zeile wartet — ein geschlossener Zyklus. `FOR SHARE` ist mit dem bestehenden
-`FOR SHARE` des Workflow-Guards verträglich und schliesst ihn.
+Benutzer nach ID `FOR UPDATE`» stammt aus dem adminexklusiven IAM-Pfad. **Klarstellung:** Heute,
+vor M-C, existiert `menu_components.food_id` nirgends im Schema. `record_menu_review()`
+(`database/schema.sql:2321–2378`) sperrt nach `lock_expected_active_location()` Woche und
+Service `FOR UPDATE`, liest den Menüposten `FOR UPDATE`, liest Komponenten nur über `SELECT` und
+schreibt einen Audit-Eintrag; `require_workflow_review_actor()`
+(`database/schema.sql:2296`, `users … FOR SHARE`) läuft danach. Ein lesender `SELECT` durchläuft
+keine FK-Prüfung; ohne Food-Fremdschlüssel gibt es dort weder eine implizite `FOR KEY SHARE`-
+Sperre noch sonst eine belegte Sperre auf einer Food-Zeile. Ein heute bestehender, bewiesener
+Sperrzyklus ist das **nicht** — die vorherige Darstellung als bereits eingetretener Deadlock war
+falsch und ist hiermit korrigiert.
+
+Der reale Risikofall entsteht erst **künftig**, sobald M-C `menu_components.food_id` tatsächlich
+als Fremdschlüssel bindet: dann würde derselbe Workflow-Pfad implizit `FOR KEY SHARE` auf der
+gebundenen Food-Zeile halten, bevor er die Actor-Prüfung `FOR SHARE` aufruft. Ein B2-Mutator mit
+`users FOR UPDATE` hielte dann die Actor-Zeile und wartete auf `foods FOR UPDATE`, das mit dem
+dann gehaltenen `FOR KEY SHARE` kollidiert, während der Workflow-Pfad auf dieselbe Actor-Zeile
+wartet — ein geschlossener Zyklus. Root entscheidet deshalb vorsorglich `FOR SHARE`: verträglich
+mit dem bestehenden `FOR SHARE`-Actor-Read-Lock des Workflow-Guards und konfliktbehaftet mit dem
+tatsächlichen `users.authz_version`-UPDATE (siehe unten) — damit bleibt die Sicherungswirkung
+erhalten, ohne den künftigen Zyklus zu öffnen. Das ist eine vorsorgliche Absicherung gegen einen
+heute noch nicht existierenden Ablauf, **keine** Behauptung, dieser Ablauf sei schon getestet
+oder bereits eingetreten. Eine schwächere `FOR KEY SHARE`-Actorsperre ersetzt `FOR SHARE` dabei
+nicht. R1 und die künftigen M-C/R5-Food-Schreib-/Referenzpfade müssen die tatsächliche
+Nebenläufigkeit erst nach Einführung des Fremdschlüssels real prüfen und dabei die Rangfolge aus
+diesem Abschnitt einhalten (Rang 3 vor Rang 6).
 
 Die Sicherungswirkung bleibt vollständig: jede Rollenvergabe, jeder Rollenentzug und jeder
 Passwortreset erhöht `users.authz_version` — über `bump_user_authz_version()`
