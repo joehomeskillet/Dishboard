@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, cast
 
 from fpdf import FPDF
 from fpdf.fonts import TTFFont
 
+from ..print_template_config import default_config, validate_config
 from .rendering import DAY_NAMES, MONTHS
 
 ASSETS = Path(__file__).resolve().parents[1] / 'static'
@@ -21,6 +22,13 @@ DATE_BLUE = (0, 112, 136)
 DATE_FILL = (242, 242, 242)
 LEFT = 21.0
 PAD = 4.0
+# Approved print counterparts of the existing Südhang color tokens.
+PALETTES = {
+    'reference': (BLUE, FILL),
+    'brand': ((140, 28, 75), (246, 231, 238)),
+    'teal': ((53, 102, 111), (220, 237, 240)),
+}
+LOGOS = {'print': 'weekly-print-logo.jpg', 'wordmark': 'suedhang-logo@2x.png'}
 
 
 class WeekPdfFitError(ValueError):
@@ -39,7 +47,7 @@ class Block:
 
 
 def _wrap(pdf: FPDF, text: str, width: float, size: float, bold: bool = False) -> Block:
-    pdf.set_font('Carlito', 'B' if bold else '', size)
+    pdf.set_font('Weekly', 'B' if bold else '', size)
     text = ' '.join(text.split())
     font = cast(TTFFont, pdf.current_font)
     if any(ord(char) not in font.cmap for char in text):
@@ -55,7 +63,7 @@ def _wrap(pdf: FPDF, text: str, width: float, size: float, bold: bool = False) -
 
 
 def _draw(pdf: FPDF, block: Block, x: float, y: float) -> float:
-    pdf.set_font('Carlito', 'B' if block.bold else '', block.size)
+    pdf.set_font('Weekly', 'B' if block.bold else '', block.size)
     for line in block.lines:
         # Explicit baselines, identical to preflight: no auto page break or clipping.
         pdf.text(x, y + block.size, line)
@@ -137,29 +145,47 @@ def _notes(draft: dict[str, Any]) -> str:
     ) if part)
 
 
-def render_week_pdf(draft: dict[str, Any], profile: str, week: date) -> bytes:
+def render_week_pdf(
+    draft: dict[str, Any], profile: str, week: date, config: dict[str, str] | None = None,
+) -> bytes:
     """Render all saved declarations, or raise an actionable fit error before output."""
+    config = validate_config(default_config() if config is None else config, profile)
     patient = profile == 'patient'
+    margin = {'standard': LEFT, 'wide': 28.0, 'wider': 36.0}[config['margin']]
+    blue, fill = PALETTES[config['palette']]
     pdf = FPDF(orientation='L' if patient else 'P', unit='pt', format='A4')
+    # Canonical export metadata makes identical saved content/config byte-stable.
+    # Actual save times belong to the explicit template revision history.
+    pdf.set_creation_date(datetime(1970, 1, 1, tzinfo=timezone.utc))
     pdf.set_auto_page_break(False)
     pdf.set_margins(0, 0, 0)
     pdf.c_margin = 0
     for style, suffix in (('', ''), ('B', '-bold')):
-        pdf.add_font('Carlito', style, ASSETS / 'fonts' / f'weekly-print-carlito{suffix}.ttf')
+        pdf.add_font('Weekly', style, ASSETS / 'fonts' / f'weekly-print-{config["font"]}{suffix}.ttf')
     pdf.add_page()
     pdf.set_title('Wochenangebot Patienten' if patient else 'Wochenangebot Cafeteria')
     pdf.set_creator('Dishboard · fpdf2')
-    width = pdf.w - 2 * LEFT
+    width = pdf.w - 2 * margin
     day_width = 60.0 if patient else 104.0
     padding = 2.5 if patient else PAD
+    if config['spacing'] == 'roomy':
+        padding += 1.5
     cell_width = (width - day_width) / (4 if patient else 2)
     table_y, header_h, bottom = (52.0, 26.0, 580.0) if patient else (203.0, 31.0, 714.0)
+    custom_header = _wrap(pdf, config['header_text'], width, 11, True) if config['header_text'] else None
+    custom_y = table_y
+    if custom_header:
+        table_y += custom_header.height + 2 * padding
     common_prices = _common_prices(draft, patient)
     content = _rows(draft, patient, week, not patient and common_prices is None)
     if patient:
         content = [[(title, '', ' · '.join(part for part in (components, details) if part))
                     for title, components, details in row] for row in content]
-    candidates = ((9.0, 9.0), (8.5, 8.5)) if patient else ((12.0, 10.0), (11.0, 9.0), (10.0, 8.5))
+    candidates: tuple[tuple[float, float], ...] = ((9.0, 9.0), (8.5, 8.5)) if patient else ((12.0, 10.0), (11.0, 9.0), (10.0, 8.5))
+    if config['text_size'] == 'standard':
+        candidates = ((9.0, 9.0),) if patient else ((12.0, 10.0),)
+    elif config['text_size'] == 'large':
+        candidates = ((10.0, 10.0),) if patient else ((14.0, 12.0),)
     for body_size, detail_size in candidates:
         rows = [
                 [[_wrap(pdf, text, cell_width - 2 * padding, body_size if i < 2 else detail_size, i == 0)
@@ -167,7 +193,8 @@ def render_week_pdf(draft: dict[str, Any], profile: str, week: date) -> bytes:
             for row in content
         ]
         heights = [max(sum(block.height for block in cell) for cell in row) + 2 * padding for row in rows]
-        notes = _wrap(pdf, _notes(draft), width - 2 * PAD, 8.5 if patient else 10)
+        notes_text = ' · '.join(part for part in (_notes(draft), config['footer_text']) if part)
+        notes = _wrap(pdf, notes_text, width - 2 * PAD, 8.5 if patient else 10)
         available = bottom - table_y - header_h - notes.height - 2 * PAD
         if sum(heights) <= available:
             break
@@ -180,11 +207,12 @@ def render_week_pdf(draft: dict[str, Any], profile: str, week: date) -> bytes:
     # Give spare space to the day rows, preserving all measured content heights.
     extra = (available - sum(heights)) / len(heights)
     heights = [height + extra for height in heights]
-    pdf.set_text_color(*BLUE)
+    pdf.set_text_color(*blue)
     if patient:
-        _draw(pdf, Block(['Wochenangebot Patienten'], 19, True), LEFT, 15)
-        _draw(pdf, Block([_date_label(week, True)], 11), LEFT, 37)
-        pdf.image(ASSETS / 'img/weekly-print-logo.jpg', pdf.w - LEFT - 145, 17, w=145)
+        _draw(pdf, Block(['Wochenangebot Patienten'], 19, True), margin, 15)
+        _draw(pdf, Block([_date_label(week, True)], 11), margin, 37)
+        if config['logo'] != 'none':
+            pdf.image(ASSETS / 'img' / LOGOS[config['logo']], pdf.w - margin - 145, 17, w=145)
     else:
         pdf.image(ASSETS / 'img/weekly-print-header.jpg', 0, 0, w=pdf.w, h=201.96)
         date_block = _wrap(pdf, _date_label(week, False), width, 17)
@@ -195,33 +223,37 @@ def render_week_pdf(draft: dict[str, Any], profile: str, week: date) -> bytes:
         pdf.rect(strip_x, 145.56, strip_width, 26.28, style='F')
         pdf.set_text_color(*DATE_BLUE)
         _draw(pdf, date_block, strip_x + 7.56, 148.84)
-    pdf.set_fill_color(*FILL)
+    pdf.set_text_color(*blue)
+    if custom_header:
+        _draw(pdf, custom_header, margin, custom_y + padding)
+    pdf.set_fill_color(*fill)
     pdf.set_draw_color(*BORDER)
     pdf.set_line_width(0.55)
-    pdf.rect(LEFT, table_y, width, header_h, style='DF')
+    pdf.rect(margin, table_y, width, header_h, style='DF')
     headings = ('Mittag · Menü 1', 'Mittag · Vegetarisch', 'Abend · Menü 1', 'Abend · Vegetarisch') if patient else ('MENÜ 1', 'VEGETARISCH')
-    pdf.set_text_color(*BLUE)
+    pdf.set_text_color(*blue)
     for index, heading in enumerate(headings):
-        _draw(pdf, Block([heading], 11 if patient else 15, True), LEFT + day_width + index * cell_width + PAD, table_y + 7)
+        _draw(pdf, Block([heading], 11 if patient else 15, True), margin + day_width + index * cell_width + PAD, table_y + 7)
     y = table_y + header_h
     pdf.set_text_color(*INK)
     for offset, (row, height) in enumerate(zip(rows, heights, strict=True)):
-        pdf.rect(LEFT, y, day_width, height)
-        _draw(pdf, Block([DAY_NAMES[offset].upper()], 9 if patient else 15, True), LEFT + PAD, y + (height - 16) / 2)
+        pdf.rect(margin, y, day_width, height)
+        _draw(pdf, Block([DAY_NAMES[offset].upper()], 9 if patient else 15, True), margin + PAD, y + (height - 16) / 2)
         for index, cell in enumerate(row):
-            x = LEFT + day_width + index * cell_width
+            x = margin + day_width + index * cell_width
             pdf.rect(x, y, cell_width, height)
             text_y = y + padding + (height - 2 * padding - sum(block.height for block in cell)) / 2
             for block in cell:
                 text_y = _draw(pdf, block, x + padding, text_y)
         y += height
-    pdf.rect(LEFT, y, width, notes.height + 2 * PAD)
-    _draw(pdf, notes, LEFT + PAD, y + PAD)
+    pdf.rect(margin, y, width, notes.height + 2 * PAD)
+    _draw(pdf, notes, margin + PAD, y + PAD)
     if not patient:
-        pdf.image(ASSETS / 'img/weekly-print-logo.jpg', pdf.w - LEFT - 145, 720, w=145)
-        pdf.rect(LEFT, 756, width, 39, style='DF')
-        pdf.set_text_color(*BLUE)
-        _draw(pdf, Block(['WOCHENANGEBOT CAFETERIA'], 14, True), LEFT + PAD, 768)
+        if config['logo'] != 'none':
+            pdf.image(ASSETS / 'img' / LOGOS[config['logo']], pdf.w - margin - 145, 720, w=145)
+        pdf.rect(margin, 756, width, 39, style='DF')
+        pdf.set_text_color(*blue)
+        _draw(pdf, Block(['WOCHENANGEBOT CAFETERIA'], 14, True), margin + PAD, 768)
         price_text = [f'Intern: {_price(common_prices[0])}', f'Extern: {_price(common_prices[1])}'] if common_prices else ['Preise beim Menü in CHF']
-        _draw(pdf, Block(price_text, 14, True), LEFT + width * 0.64, 759)
+        _draw(pdf, Block(price_text, 14, True), margin + width * 0.64, 759)
     return bytes(pdf.output())

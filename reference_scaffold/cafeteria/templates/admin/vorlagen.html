@@ -4,7 +4,7 @@
 {% block title %}Vorlagen · Menüplanung{% endblock %}
 {% block page_header %}{{ page_header('Vorlagen') }}{% endblock %}
 {% block content %}
-<p>Bestehende Druckausgaben öffnen und Menüinhalte pflegen.</p>
+<p>Druckvorlagen bearbeiten, als PDF prüfen und für gespeicherte Wochen verwenden.</p>
 <form class="card mb-4" method="get" action="{{ url_for('admin.vorlagen') }}">
   <div class="card-body">
     <div class="row g-3 align-items-end">
@@ -23,6 +23,11 @@
     <article class="card h-100">
       <div class="card-header"><h2 class="card-title">{{ label }}</h2></div>
       <div class="card-body">
+        {% if 'Cafeteria.Admin' in roles %}
+        <h3 class="h4">Druckvorlage bearbeiten</h3>
+        <p>Schrift, Farben, Logo, Textzusätze und Abstände einstellen. Entwurf speichern, PDF prüfen und anschliessend aktivieren.</p>
+        <a class="btn btn-primary mb-4" href="{{ url_for('admin.print_template_editor', family=output_family, week=week) }}" aria-label="{{ label }} Vorlageneditor öffnen">Vorlageneditor öffnen</a>
+        {% endif %}
         <h3 class="h4">Wochenplan drucken</h3>
         <p>Das PDF verwendet die gespeicherte Woche ab {{ week|date_long }}. Vor dem ersten PDF-Download die Woche anlegen und speichern.</p>
         <div class="btn-list mb-4">

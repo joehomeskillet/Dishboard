@@ -1,0 +1,95 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header %}
+{% set workflow_nav = 'vorlagen' %}
+{% set label = 'Patienten' if profile == 'patient' else 'Cafeteria' %}
+{% set editor_url = url_for('admin.print_template_editor', family=family, week=week, template=template.id) %}
+{% set preview_url = url_for('admin.print_template_preview', family=family, week=week, template=template.id, revision=revision.id) %}
+{% block title %}{{ label }} · Vorlageneditor{% endblock %}
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='print-template-editor.css') }}">
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='img/suedhang-logo.png') }}">
+{% endblock %}
+{% block page_header %}{{ page_header(label ~ ' · Vorlageneditor') }}{% endblock %}
+{% macro hidden(action, selected_revision=revision.id) %}
+<input type="hidden" name="_csrf" value="{{ csrf }}">
+<input type="hidden" name="version" value="{{ expected_version }}">
+<input type="hidden" name="revision" value="{{ selected_revision }}">
+<input type="hidden" name="action" value="{{ action }}">
+{% endmacro %}
+{% block content %}
+<div class="btn-list mb-3"><a class="btn" href="{{ url_for('admin.vorlagen', week=week) }}">Alle Vorlagen</a><a class="btn" href="{{ url_for('admin.' ~ family, week=week) }}">Menüwoche öffnen</a></div>
+<p>{{ 'A4 quer · Montag bis Sonntag · Mittag und Abend' if profile == 'patient' else 'A4 hoch · Montag bis Freitag' }}. Alle Menütexte und Deklarationen bleiben vollständig erhalten.</p>
+{% if error %}
+<div class="alert alert-danger error-region" role="alert" id="template-error" tabindex="-1">
+  <div><h2 class="h4">Änderung nicht gespeichert</h2><p>{{ error }}</p><a class="btn" href="{{ editor_url }}">Aktuellen Stand neu laden</a></div>
+</div>
+{% endif %}
+<form class="card mb-4" method="get" action="{{ url_for('admin.print_template_editor', family=family) }}">
+  <div class="card-body row g-3 align-items-end">
+    <div class="col-12 col-sm-5"><label class="form-label" for="template-select">Vorlage</label><select class="form-select" id="template-select" name="template">
+      {% for item in document.templates %}<option value="{{ item.id }}" {% if item.id == template.id %}selected{% endif %}>{{ item.revisions[-1].name }}{% if document.active_template == item.id %} · Aktiv: Revision {{ document.active_revision }}{% endif %}</option>{% endfor %}
+    </select></div>
+    <div class="col-12 col-sm-4"><label class="form-label" for="template-week">Vorschauwoche ab Montag</label><input class="form-control" type="date" id="template-week" name="week" value="{{ week }}" required></div>
+    <div class="col-12 col-sm-3"><button class="btn" type="submit">Anzeigen</button></div>
+  </div>
+</form>
+<div class="row row-cards print-template-editor">
+  <div class="col-12 col-xl-5">
+    <form class="card" method="post" action="{{ editor_url }}">
+      {{ hidden('save') }}
+      <div class="card-header"><h2 class="card-title">Eigenschaften · Revision {{ revision.id }}</h2></div>
+      <div class="card-body">
+        <div class="mb-3"><label class="form-label" for="template-name">Vorlagenname</label><input class="form-control" id="template-name" name="name" value="{{ values.name }}" maxlength="60" required {% if error_field == 'name' and error_action != 'copy' %}aria-invalid="true" aria-describedby="template-error"{% endif %}></div>
+        {% for field, field_label in [('font', 'Druckschrift'), ('text_size', 'Textgrösse'), ('palette', 'Farbpalette'), ('logo', 'Logo'), ('margin', 'Seitenränder links und rechts'), ('spacing', 'Zellenabstände')] %}
+        <div class="mb-3"><label class="form-label" for="template-{{ field }}">{{ field_label }}</label><select class="form-select" id="template-{{ field }}" name="{{ field }}" {% if error_field == field %}aria-invalid="true" aria-describedby="template-error"{% endif %}>
+          {% for value, choice in choices[field].items() %}<option value="{{ value }}" {% if values[field] == value %}selected{% endif %}>{{ choice }}</option>{% endfor %}
+        </select></div>
+        {% endfor %}
+        <p class="form-hint">Standard: {{ '9 pt' if profile == 'patient' else '12 pt, Details 10 pt' }}. Gross: {{ '10 pt' if profile == 'patient' else '14 pt, Details 12 pt' }}. Zu grosse Inhalte werden abgelehnt; es wird nichts abgeschnitten.</p>
+        {% for field, field_label in [('header_text', 'Zusatz unter dem Kopfbereich'), ('footer_text', 'Zusatz in der Fusszeile')] %}
+        <div class="mb-3"><label class="form-label" for="template-{{ field }}">{{ field_label }}</label><textarea class="form-control" id="template-{{ field }}" name="{{ field }}" maxlength="{{ text_limits[field] }}" rows="2" {% if error_field == field %}aria-invalid="true" aria-describedby="template-error"{% endif %}>{{ values[field] }}</textarea><p class="form-hint">Optional, höchstens {{ text_limits[field] }} Zeichen. Nur einfacher Text.</p></div>
+        {% endfor %}
+      </div>
+      <div class="card-footer"><button class="btn btn-primary" type="submit">Entwurf speichern und prüfen</button><p class="form-hint mt-2 mb-0">Änderungen werden erst nach dem Speichern in der Vorschau sichtbar. Die aktive Druckvorlage bleibt bis zur Aktivierung bestehen.</p></div>
+    </form>
+  </div>
+  <div class="col-12 col-xl-7">
+    <section class="card mb-4" aria-labelledby="pdf-heading">
+      <div class="card-header"><h2 class="card-title" id="pdf-heading">PDF-Vorschau · Revision {{ revision.id }}</h2></div>
+      <div class="card-body">
+        <p>Gespeicherte Woche ab {{ week|date_long }}. Vorschau und Download verwenden dieselbe Druckvorlage.</p>
+        {% if preview_error %}<div class="alert alert-warning" role="status">{{ preview_error }}</div>{% else %}
+        <iframe class="print-template-preview {% if profile == 'patient' %}print-template-preview-landscape{% endif %}" src="{{ preview_url }}#toolbar=0&amp;navpanes=0&amp;view=Fit" title="{{ label }} PDF-Vorschau Revision {{ revision.id }}"></iframe>
+        <a class="btn mt-3" href="{{ preview_url }}" target="_blank" rel="noopener">Vorschau als PDF öffnen</a>
+        {% endif %}
+      </div>
+      <div class="card-footer">
+        {% if document.active_template == template.id and document.active_revision == revision.id %}
+        <p class="mb-2"><span class="badge bg-success-lt">Aktive Druckvorlage</span> Revision {{ revision.id }}</p>
+        {% else %}
+        <form method="post" action="{{ editor_url }}">{{ hidden('activate') }}<button class="btn btn-primary" type="submit">Revision {{ revision.id }} prüfen und aktivieren</button></form>
+        {% endif %}
+        <p class="form-hint mt-2">Aktivierung prüft diese Woche. Jede andere Woche wird beim PDF-Download erneut auf vollständige Lesbarkeit geprüft.</p>
+        <a class="btn" href="{{ url_for('admin.print_week', family=family, week=week) }}">PDF mit aktiver Vorlage öffnen</a>
+      </div>
+    </section>
+    <section class="card mb-4" aria-labelledby="copy-heading">
+      <div class="card-header"><h2 class="card-title" id="copy-heading">Vorlage duplizieren</h2></div>
+      <form method="post" action="{{ editor_url }}">{{ hidden('copy') }}<div class="card-body"><label class="form-label" for="template-copy-name">Name der Kopie</label><input class="form-control" id="template-copy-name" name="name" maxlength="60" required value="{{ copy_name }}" {% if error_field == 'name' and error_action == 'copy' %}aria-invalid="true" aria-describedby="template-error"{% endif %}><p class="form-hint">Übernimmt Revision {{ revision.id }} als eigenständigen Entwurf.</p><button class="btn" type="submit">Kopie erstellen</button></div></form>
+    </section>
+    <section class="card" aria-labelledby="history-heading">
+      <div class="card-header"><h2 class="card-title" id="history-heading">Gespeicherte Revisionen</h2></div>
+      <ul class="list-group list-group-flush">
+        {% for saved in template.revisions|reverse %}
+        <li class="list-group-item">
+          <p class="mb-2"><strong>Revision {{ saved.id }} · {{ saved.name }}</strong>{% if saved.id == template.current_revision %} · Neuester Entwurf{% endif %}{% if document.active_template == template.id and document.active_revision == saved.id %} · Aktiv{% endif %}</p>
+          <p class="text-secondary mb-2">{{ saved.created_at|replace('T', ' ') if saved.created_at else 'Mitgelieferte Standardvorlage' }}{% if saved.restored_from %} · Wiederhergestellt aus Revision {{ saved.restored_from }}{% endif %}</p>
+          <div class="btn-list"><a class="btn" href="{{ url_for('admin.print_template_editor', family=family, week=week, template=template.id, revision=saved.id) }}">Revision {{ saved.id }} ansehen</a>
+          {% if saved.id != template.current_revision %}<form method="post" action="{{ editor_url }}">{{ hidden('restore', saved.id) }}<button class="btn" type="submit">Revision {{ saved.id }} wiederherstellen</button></form>{% endif %}</div>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+</div>
+{% endblock %}

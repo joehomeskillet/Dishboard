@@ -1,0 +1,19 @@
+{
+  "license": "OFL.txt",
+  "conversion": "fontTools.ttLib.TTFont(source, recalcTimestamp=False); font.flavor = None; font.save(destination)",
+  "purpose": "Lossless decompression of the already vendored Fira Sans fonts for fpdf2; no runtime conversion or new dependency.",
+  "files": [
+    {
+      "source": "fira-sans-400.woff2",
+      "source_sha256": "38b2ab6f40cfa497c37e1f7fa6317b4583229303e44dae6860c8bb74d73947f8",
+      "destination": "weekly-print-fira.ttf",
+      "sha256": "1a02a34eca8eda26e871a6da5cf48510ff0b9f3a9f1290195520455911e95773"
+    },
+    {
+      "source": "fira-sans-700.woff2",
+      "source_sha256": "d6a1857ca75e34de49b33e958905587dc48d37dd20389038396a2b11036f77f3",
+      "destination": "weekly-print-fira-bold.ttf",
+      "sha256": "79d3729d2c6b8d1993657acab398f8a0632433a9007a8c6129375d7fe6020485"
+    }
+  ]
+}

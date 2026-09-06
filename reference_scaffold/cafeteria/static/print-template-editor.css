@@ -1,0 +1,15 @@
+.print-template-editor .card,
+.print-template-editor .card-body,
+.print-template-editor .btn-list { min-width: 0; }
+.print-template-editor :is(.card-title, .list-group-item, .form-hint) { overflow-wrap: anywhere; }
+.print-template-editor .btn { white-space: normal; }
+.print-template-preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 210 / 297;
+  border: 1px solid var(--tblr-border-color);
+  border-radius: var(--tblr-border-radius);
+  background: var(--tblr-bg-surface-secondary);
+}
+.print-template-preview-landscape { aspect-ratio: 297 / 210; }

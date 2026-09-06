@@ -841,3 +841,4 @@ def publish(family: str):
 from . import print_routes as print_routes  # noqa: E402, F401
 from . import week_review_routes as week_review_routes  # noqa: E402, F401
 from . import output_routes as output_routes  # noqa: E402, F401
+from . import print_template_routes as print_template_routes  # noqa: E402, F401
