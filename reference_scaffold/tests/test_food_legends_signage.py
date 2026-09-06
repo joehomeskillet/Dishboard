@@ -8,6 +8,7 @@ from playwright.sync_api import Browser, Page, expect
 
 from test_rendered_ui import app as app
 from test_rendered_ui import browser as browser
+from test_rendered_ui import _set_legacy_snapshot
 from test_signage_engine import live_signage as live_signage
 
 
@@ -41,6 +42,7 @@ def test_patient_rotation_keeps_legends_with_their_page_and_recovers(
 ) -> None:
     url, application = live_signage
     snapshot = application.config['TEST_SNAPSHOTS']['patient']
+    _set_legacy_snapshot(snapshot)
     for index, day in enumerate(snapshot['days']):
         for service in day['services']:
             for option in service['options']:

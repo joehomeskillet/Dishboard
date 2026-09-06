@@ -7,7 +7,7 @@ import pytest
 from flask import Flask
 from playwright.sync_api import Browser, Page, expect
 
-from test_rendered_ui import _set_unbroken_signage_boundaries
+from test_rendered_ui import _set_legacy_snapshot, _set_unbroken_signage_boundaries
 from test_rendered_ui import app as app
 from test_rendered_ui import browser as browser
 from test_signage_engine import live_signage as live_signage
@@ -48,8 +48,10 @@ def test_patient_boards_are_complete_and_legible(
 ) -> None:
     base_url, application = live_signage
     snapshot = application.config['TEST_SNAPSHOTS']['patient']
-    snapshot['schema_version'] = schema_version
+    _set_legacy_snapshot(snapshot, schema_version)
     assert 'area_name' not in snapshot
+    assert all('service_start' not in service and 'service_end' not in service
+               for day in snapshot['days'] for service in day['services'])
     if scenario == 'boundary':
         _set_unbroken_signage_boundaries(
             application.config['TEST_SNAPSHOTS']['patient'],
@@ -159,6 +161,7 @@ def test_week_paging_preserves_updates_and_never_restores_withdrawn_content(
     live_signage: tuple[str, Flask], browser: Browser, reduced_motion: str, status: int,
 ) -> None:
     base_url, application = live_signage
+    _set_legacy_snapshot(application.config['TEST_SNAPSHOTS']['patient'])
     page = browser.new_page(viewport={'width': 1920, 'height': 1080}, reduced_motion=reduced_motion)
     path = f'{base_url}/signage/patienten/woche'
     visible = '[data-signage-page]:not([hidden])'

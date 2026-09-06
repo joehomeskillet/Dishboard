@@ -244,6 +244,17 @@ def _assert_no_viewport_overflow(page, selectors: tuple[str, ...]) -> None:
     assert result == {'viewport': True, 'documentHeight': True, 'clipped': []}
 
 
+def _set_legacy_snapshot(snapshot: dict[str, Any], schema_version: int = 2) -> None:
+    """Select pre-OPS data explicitly without changing the shared app fixture."""
+    assert schema_version in (1, 2)
+    snapshot['schema_version'] = schema_version
+    snapshot.pop('area_name', None)
+    for day in snapshot['days']:
+        for service in day['services']:
+            service.pop('service_start', None)
+            service.pop('service_end', None)
+
+
 def _bounded_text(length: int) -> str:
     value = ('Kartoffel Gemüse Kräuter ' * 10)[:length]
     return f'{value[:-1]}x' if value.endswith(' ') else value
@@ -565,6 +576,7 @@ def test_week_and_signage_routes_render_canonical_metadata_once_and_contained(
 
 
 def test_real_routes_render_exact_profile_grids_without_cross_profile_data(app: Flask) -> None:
+    _set_legacy_snapshot(app.config['TEST_SNAPSHOTS']['patient'])
     client = _client(app)
     cafeteria = client.get('/signage/cafeteria/woche').get_data(as_text=True)
     patient = client.get('/signage/patienten/woche').get_data(as_text=True)
