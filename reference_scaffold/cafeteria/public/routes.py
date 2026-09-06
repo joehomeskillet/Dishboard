@@ -81,9 +81,12 @@ def cafeteria_today():
     return published_response('public/cafeteria_today.html', context)
 
 
+@bp.get('/cafeteria/wochenangebot/ohne-bilder/', endpoint='cafeteria_week_without_images',
+        defaults={'show_menu_images': False})
 @bp.get('/cafeteria/wochenangebot/')
-def cafeteria_week():
+def cafeteria_week(show_menu_images: bool = True):
     context = load_context('staff_guest')
+    context['show_menu_images'] = show_menu_images
     context['open_days'] = [day for day in (context['snapshot'] or {}).get('days', []) if day.get('services')]
     return published_response('public/cafeteria_week.html', context)
 
@@ -96,9 +99,13 @@ def patient_today():
     return published_response('public/patient_today.html', context)
 
 
+@bp.get('/patienten/wochenplan/ohne-bilder/', endpoint='patient_week_without_images',
+        defaults={'show_menu_images': False})
 @bp.get('/patienten/wochenplan/')
-def patient_week():
-    return published_response('public/patient_week.html', load_context('patient'))
+def patient_week(show_menu_images: bool = True):
+    context = load_context('patient')
+    context['show_menu_images'] = show_menu_images
+    return published_response('public/patient_week.html', context)
 
 
 @bp.get('/druck/cafeteria/woche')

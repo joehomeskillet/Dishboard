@@ -1,6 +1,21 @@
-# UI-003 — sichtbare Feldbeschriftungen und eindeutige Wochenkartenaktionen
+# Bildlose Wochenplan-Vorschauen und UI-003-Editorverbesserungen
 
 Status: unabhängig geprüft, noch nicht produktiv. Root-WP `wp-8b57137108b3`, Basis `cc6c8ce`; eigener Worktree `backlog-ui003-0906`. Der separat eingefrorene Branding-Release wird dadurch nicht verändert.
+
+## Zusätzliche Wochenpläne ohne Bilder
+
+Der Nutzerauftrag vom 06.09.2026 ergänzt zwei feste Web-Varianten: `/cafeteria/wochenangebot/ohne-bilder/` und `/patienten/wochenplan/ohne-bilder/`. Commit `c5d79c3` verwendet dieselben bestehenden Handler und Templates mit einer serverseitigen Bildoption; Foto- und Fallbackcontainer entfallen vollständig. Der Profilwechsel behält die bildlose Variante. Die bestehenden URLs mit Bildern und die strikte Ablehnung aller Queryparameter bleiben erhalten.
+
+Unter `/admin/screens` bieten die beiden Web-Karten jeweils einen dritten Vorschau-Tab und Link «Wochenplan ohne Bilder». Vier gleich grosse Karten enthalten insgesamt zehn echte Vorschauen. Die schon zuvor bildlosen Signage-Wochen sind entsprechend beschriftet. Keine Datenbankänderung, kein neuer Editor, keine Dependency.
+
+Root hat den finalen Diff gelesen und die drei vollständigen Public-/Hub-Module plus das gesamte Branding-Header-Modul im eigenen Integrationsstand erneut auf `test-ps5` ausgeführt:
+
+```text
+53 passed in 96.17s (0:01:36)
+GATE_EXIT=0
+```
+
+Log `/tmp/dishboard-root-screens-no-images-gate-0906.log`. Eigene echte Browserbelege bei 390/820/1920 px prüfen zehn Cafeteria- und 28 Patientenkarten, null Fotoabrufe, vollständig erhaltene Metadaten und Legenden, gleiche Abmessungen und ungekürzte Langtexte. Root hat das Patientenbild ohne Fotos und die mobile Hub-Vorschau selbst betrachtet. GitNexus meldet HIGH: zehn bestehende Snapshot-/Cache-/Datumsabläufe mit Änderungen ausschliesslich am jeweiligen Wochenplan-Handler. Die Helfer selbst sind unverändert; Warnung vor Root-Integration kommuniziert. Ruff und begrenzte Mypy-Prüfung beider betroffener Pythonquellen bestanden.
 
 ## Umsetzung und Review
 
@@ -38,7 +53,9 @@ Testhygiene `2cc677f` verlegt die vier bestehenden Food-Symbol-Screenshots mit i
 
 Root prüfte beide vollständigen Offline-Module unabhängig: `91 passed in 15.71s`, Exit 0; Log `/tmp/dishboard-root-branding-proof-offline-gate-0906.log`. Der echte lokale HTTP-/Chrome-Test setzt strikte CSP und führt die Patientenrotation aus. Keine Produktionsmutation durch diese Tests, kein daraus abgeleiteter Live-PASS.
 
-Die vollständige Scopeprüfung nach Aufnahme des Prüfers und der Zusatzdokumente meldet MEDIUM: zwölf Dateien, vier ausschliessliche Prüfer-CLI-Abläufe, keine zusätzlichen App-Routen. Der graphische LOW-Befund oben bezieht sich auf den zuvor getrennt geprüften UI-Teil. Der nachfolgende Prüfer-Launcher-Fix bindet die automatische Produktionsanmeldung an ihre feste Origin und den tatsächlich vorhandenen Chrome-Pfad; vor dessen eigener Abnahme kein abschliessender Prüfer-Commit.
+Die damalige Scopeprüfung nach Aufnahme des Prüfers und der Zusatzdokumente meldete MEDIUM: zwölf Dateien, vier ausschliessliche Prüfer-CLI-Abläufe. Der graphische LOW-Befund oben bezieht sich auf den zuvor getrennt geprüften UI-Teil. Entrypointfix `e23e820` bindet die automatische Produktionsanmeldung an ihre feste Origin und den tatsächlich vorhandenen Chrome-Pfad; Root wiederholte beide vollständigen Module: `97 passed in 15.95s`, Exit 0.
+
+Der erste echte Branding-Aufruf und genau ein identischer Retry endeten trotzdem beim Login mit `TypeError`: Playwright-FormData lieferte Listenpaare, die urllib nicht als Tupel-Sequenz akzeptierte. Ein unabhängiger Autor korrigierte genau diese Serialisierungszeile in `b63fad6`. Ein realer lokaler HTTP-/Chrome-Test prüft jetzt tatsächlich gesendete URL-encoded Werte einschliesslich Duplikaten/Unicode, unverfolgte Weiterleitung und Session-Cookie. Root wiederholte beide vollständigen Module auf dem integrierten Stand: `98 passed in 16.91s`, Exit 0, Log `/tmp/dishboard-root-branding-proof-login-gate-0906.log`. Keine Produktionscredentials in Fixtures oder Belegen. Der neue Live-Aufruf erreicht alle Seiten; seine gesonderten MIME-/Geometriebefunde werden geprüft und sind noch kein Branding-Browser-PASS.
 
 Mitgeführt werden die separat geprüfte IAM-001-SDD `553d25e`/`4b95d7d` und die belegte pdfme-Designer-/Tabler-Lücke `87a361d`. Die SDD definiert einen engen UUID-/Namenskontext vor der Passwortpolicy und vollständige Schema-/Paket-/Fixture-Ownership; sie ist keine implementierte Benutzerverwaltung. Der offizielle pdfme-Designer erfüllt die verlangte vollständige Tabler-Bedienoberfläche nicht; TPL-002 bleibt offen.
 

@@ -88,7 +88,7 @@ def test_hubs_use_existing_read_roles_and_link_all_real_targets(hub_app, databas
         html = response.get_data(as_text=True)
         assert f'href="{path}" class="nav-link active" aria-current="page"' in html
         links = MainLinks(html).links
-        expected_links = 10 if path == '/admin/vorlagen' and role == 'Cafeteria.Admin' else 8
+        expected_links = 10 if path == '/admin/screens' or role == 'Cafeteria.Admin' else 8
         assert len(links) == expected_links and len(set(links)) == expected_links
         for link in links:
             target = client.get(link)

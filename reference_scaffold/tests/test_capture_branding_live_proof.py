@@ -7,6 +7,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import MagicMock
+from urllib.parse import parse_qsl
 
 import pytest
 from playwright.sync_api import sync_playwright
@@ -297,3 +298,75 @@ def test_cli_uses_fixed_origin_and_real_chrome(tmp_path, monkeypatch, arguments)
     data = json.loads((target / 'proof.json').read_text())
     assert data['base_url'] == 'https://dishboard.joelduss.xyz'
     assert data['failures'] == ['login.RuntimeError']
+
+
+def test_real_local_login_preserves_form_pairs_and_session_state(browser, tmp_path, monkeypatch):
+    monkeypatch.setattr(tool, 'USER', 'fixture-user')
+    monkeypatch.setattr(tool, '_password', lambda: 'fixture-value')
+    requests, posted = [], []
+
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *_):
+            pass
+
+        def do_GET(self):
+            requests.append(('GET', self.path))
+            body = '''<meta charset="utf-8"><link rel="icon" href="/static/fixture-icon.svg">
+              <form method="post" action="/auth/local">
+                <input type="hidden" name="csrf_token" value="fixture-csrf">
+                <input name="username"><input type="password" name="password">
+                <input type="hidden" name="note" value="Grüsse + &amp; Leerzeichen">
+                <input type="hidden" name="note" value="zweiter Wert">
+                <input type="hidden" name="empty" value="">
+                <input disabled name="ignored" value="unused">
+              </form>'''
+            if self.path.startswith('/static/'):
+                body = '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>'
+            self.send_response(200)
+            self.send_header('Content-Type', 'image/svg+xml' if self.path.startswith('/static/')
+                             else 'text/html; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(body.encode())
+
+        def do_POST(self):
+            requests.append(('POST', self.path))
+            posted.append({
+                'pairs': parse_qsl(self.rfile.read(int(self.headers['Content-Length'])).decode(),
+                                   keep_blank_values=True),
+                'content_type': self.headers['Content-Type'],
+                'origin': self.headers['Origin'], 'referer': self.headers['Referer'],
+            })
+            self.send_response(302)
+            self.send_header('Location', '/admin/cafeteria')
+            self.send_header('Set-Cookie', 'fixture_login=present; Path=/; HttpOnly; SameSite=Lax')
+            self.end_headers()
+
+    server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f'http://127.0.0.1:{server.server_port}'
+    proof = tool.BrandingProof(base, tmp_path)
+    try:
+        with browser.new_context(service_workers='block') as context:
+            proof.login(context, proof.configure(context))
+            state = context.storage_state()
+        assert any(cookie['name'] == 'fixture_login' and cookie['value'] == 'present'
+                   and cookie['httpOnly'] for cookie in state['cookies'])
+        assert proof.data['checks']['login.only_official_post']
+        assert not proof.blocked
+        assert posted == [{'pairs': [('csrf_token', 'fixture-csrf'), ('username', 'fixture-user'),
+                                    ('password', 'fixture-value'), ('note', 'Grüsse + & Leerzeichen'),
+                                    ('note', 'zweiter Wert'), ('empty', '')],
+                           'content_type': 'application/x-www-form-urlencoded',
+                           'origin': base, 'referer': base + '/auth/local'}]
+        assert ('GET', '/admin/cafeteria') not in requests  # Redirects remain disabled.
+        assert '/auth/local' in tool.AUX
+        with browser.new_context(service_workers='block') as public:
+            response = proof.configure(public).goto(base + '/auth/local', wait_until='networkidle')
+            assert response.status == 200
+        assert [request for request in requests if request[0] == 'POST'] == [('POST', '/auth/local')]
+        assert requests.count(('GET', '/auth/local')) == 2
+    finally:
+        server.shutdown()
+        thread.join()
+        server.server_close()

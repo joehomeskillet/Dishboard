@@ -12,27 +12,30 @@
   {% for label, endpoint in [('Cafeteria', 'cafeteria'), ('Patienten', 'patient')] %}
   {% for channel, channel_label, day_suffix in [('public', 'Web', 'today'), ('signage', 'TV / Signage', 'day')] %}
   {% set screen_id = endpoint ~ '-' ~ channel %}
+  {% set periods = [('day', 'Tagesplan', endpoint ~ '_' ~ day_suffix), ('week', 'Wochenplan' if channel == 'public' else 'Wochenplan ohne Bilder', endpoint ~ '_week')] %}
+  {% if channel == 'public' %}{% set periods = periods + [('week-no-images', 'Wochenplan ohne Bilder', endpoint ~ '_week_without_images')] %}{% endif %}
     <article class="card screen-card" aria-labelledby="{{ screen_id }}-title">
       <div class="card-header"><h2 class="card-title" id="{{ screen_id }}-title">{{ label }} · {{ channel_label }}</h2></div>
       <div class="card-body d-flex flex-column gap-3">
         <div class="nav nav-pills nav-fill" role="tablist" aria-label="{{ label }} {{ channel_label }} Vorschau">
-          {% for period, period_label in [('day', 'Tagesplan'), ('week', 'Wochenplan')] %}
+          {% for period, period_label, target in periods %}
           <button class="nav-link{% if loop.first %} active{% endif %}" id="{{ screen_id }}-{{ period }}-tab" type="button" role="tab" data-bs-toggle="tab" data-bs-target="#{{ screen_id }}-{{ period }}" aria-controls="{{ screen_id }}-{{ period }}" aria-selected="{{ 'true' if loop.first else 'false' }}">{{ period_label }}</button>
           {% endfor %}
         </div>
         <div class="tab-content">
-          {% for period, period_label, suffix in [('day', 'Tagesplan', day_suffix), ('week', 'Wochenplan', 'week')] %}
+          {% for period, period_label, target in periods %}
           <div class="tab-pane{% if loop.first %} active show{% endif %}" id="{{ screen_id }}-{{ period }}" role="tabpanel" aria-labelledby="{{ screen_id }}-{{ period }}-tab">
             <div class="screen-preview screen-preview-{{ channel }} rounded border" inert>
-              <iframe src="{{ url_for(channel ~ '.' ~ endpoint ~ '_' ~ suffix) }}" title="{{ label }} {{ channel_label }} {{ period_label }} – Vorschau" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+              <iframe src="{{ url_for(channel ~ '.' ~ target) }}" title="{{ label }} {{ channel_label }} {{ period_label }} – Vorschau" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
             </div>
           </div>
           {% endfor %}
         </div>
         <p class="text-secondary small mb-0">Vorschau des publizierten Plans. Vollständige Ansicht über die Links öffnen.</p>
         <div class="btn-list">
-          <a class="btn" href="{{ url_for(channel ~ '.' ~ endpoint ~ '_' ~ day_suffix) }}" aria-label="{{ label }} {{ channel_label }} Tagesplan öffnen">{{ icon('eye') }}Tagesplan öffnen</a>
-          <a class="btn" href="{{ url_for(channel ~ '.' ~ endpoint ~ '_week') }}" aria-label="{{ label }} {{ channel_label }} Wochenplan öffnen">{{ icon('calendar-week') }}Wochenplan öffnen</a>
+          {% for period, period_label, target in periods %}
+          <a class="btn" href="{{ url_for(channel ~ '.' ~ target) }}" aria-label="{{ label }} {{ channel_label }} {{ period_label }} öffnen">{{ icon('eye' if period == 'day' else 'calendar-week') }}{{ period_label }} öffnen</a>
+          {% endfor %}
         </div>
       </div>
     </article>

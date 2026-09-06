@@ -4,7 +4,7 @@
 {% block logo_href %}{{ url_for('public.cafeteria_today') }}{% endblock %}
 {% block header_actions %}
 <div class="nav-item">
-  <a href="{{ url_for('public.patient_week') }}" class="btn btn-outline-primary">Patientenplan</a>
+  <a href="{{ url_for('public.patient_week' if show_menu_images|default(true) else 'public.patient_week_without_images') }}" class="btn btn-outline-primary">Patientenplan</a>
 </div>
 {% endblock %}
 {% block hero %}
@@ -49,10 +49,12 @@
       {% if option.title %}{% set declarations.options = declarations.options + [option] %}{% endif %}
       <div class="col-12 col-md-6">
         <div class="card h-100">
+          {% if show_menu_images|default(true) %}
           <div class="card-img-top">
             {% if option|menu_image %}{% include '_menu_image.html' %}
             {% else %}<div class="bg-teal-lt p-5 text-center fw-medium">{{ option.type_name }} · Frisch aus unserer Küche</div>{% endif %}
           </div>
+          {% endif %}
           <div class="card-status-top {{ 'bg-green' if option.type_code == 'VEGGIE' else 'bg-primary' }}"></div>
           <div class="card-body">
             <div class="d-flex align-items-start justify-content-between mb-2">

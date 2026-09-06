@@ -22,6 +22,7 @@ pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehl
 TARGETS = {
     '/cafeteria/heute/', '/cafeteria/wochenangebot/',
     '/patienten/heute/', '/patienten/wochenplan/',
+    '/cafeteria/wochenangebot/ohne-bilder/', '/patienten/wochenplan/ohne-bilder/',
     '/signage/cafeteria/tag', '/signage/cafeteria/woche',
     '/signage/patienten/tag', '/signage/patienten/woche',
 }
@@ -87,10 +88,15 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
         assert response is not None and response.status == 200
         assert "style-src 'self'; script-src 'self'" in response.headers['content-security-policy']
         expect(page.locator('.screen-card')).to_have_count(4)
-        expect(page.locator('iframe')).to_have_count(8)
+        expect(page.locator('iframe')).to_have_count(10)
         assert set(page.locator('main a').evaluate_all('links => links.map(link => new URL(link.href).pathname)')) == TARGETS
         for card in page.locator('.screen-card').all():
-            for period in ('Tagesplan', 'Wochenplan'):
+            is_web = 'Web' in card.locator('h2').inner_text()
+            periods = ('Tagesplan', 'Wochenplan', 'Wochenplan ohne Bilder') if is_web else (
+                'Tagesplan', 'Wochenplan ohne Bilder',
+            )
+            expect(card.get_by_role('tab')).to_have_count(len(periods))
+            for period in periods:
                 tab = card.get_by_role('tab', name=period, exact=True)
                 tab.click()
                 expect(tab).to_have_attribute('aria-selected', 'true')
@@ -106,6 +112,10 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
                 snapshot = patient_snapshot() if '/patienten/' in frame.url else cafeteria_snapshot()
                 menu = next(day for day in snapshot['days'] if day['date'] == '2026-09-02')
                 expect(frame.locator('body')).to_contain_text(menu['services'][0]['options'][0]['title'])
+                if period == 'Wochenplan ohne Bilder':
+                    expect(frame.locator('.menu-photo, .card-img-top')).to_have_count(0)
+                elif period == 'Wochenplan' and is_web:
+                    assert frame.locator('.menu-photo img').count() > 0
                 if '/patienten/' in frame.url:
                     assert not re.search(r'preis|chf|rappen|kosten|price', frame.content(), re.IGNORECASE)
                 viewport_width = frame.evaluate('innerWidth')
@@ -150,6 +160,10 @@ def test_full_views_remain_available_without_javascript(
         page.get_by_role('link', name='Patienten Web Wochenplan öffnen', exact=True).click()
         expect(page).to_have_url(f'{screen_server}/patienten/wochenplan/')
         expect(page.locator('main')).to_contain_text('Patienten-Speiseplan')
+        page.goto('/admin/screens')
+        page.get_by_role('link', name='Patienten Web Wochenplan ohne Bilder öffnen', exact=True).click()
+        expect(page).to_have_url(f'{screen_server}/patienten/wochenplan/ohne-bilder/')
+        expect(page.locator('.menu-photo, .card-img-top')).to_have_count(0)
 
 
 def test_unpublished_screens_show_the_source_message_in_each_preview(
@@ -173,8 +187,8 @@ def test_unpublished_screens_show_the_source_message_in_each_preview(
         page.on('response', record_status)
         page.goto('/admin/screens')
         for card in page.locator('.screen-card').all():
-            for period in ('Tagesplan', 'Wochenplan'):
-                card.get_by_role('tab', name=period, exact=True).click()
+            for tab in card.get_by_role('tab').all():
+                tab.click()
                 frame = card.locator('.tab-pane.active iframe').content_frame
                 expect(frame.locator('body')).to_contain_text(re.compile(r'nicht verfügbar|nicht angezeigt'))
         assert statuses == dict.fromkeys(TARGETS, 404)

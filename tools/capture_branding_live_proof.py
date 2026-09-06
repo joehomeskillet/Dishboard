@@ -122,7 +122,7 @@ class BrandingProof:
         form = page.locator('form[method="post"][action="/auth/local"]')
         form.locator('[name="username"]').fill(USER)
         form.locator('[name="password"]').fill(_password())
-        pairs = form.evaluate('(form) => [...new FormData(form).entries()]')
+        pairs = [tuple(pair) for pair in form.evaluate('(form) => [...new FormData(form).entries()]')]
         # Only this fixed, official POST bypasses the GET/HEAD browser guard.
         result = context.request.post(target, data=urlencode(pairs), max_redirects=0, max_retries=0,
                                       headers={'Content-Type': 'application/x-www-form-urlencoded',
