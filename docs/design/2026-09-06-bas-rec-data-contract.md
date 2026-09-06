@@ -244,15 +244,24 @@ zu einem Rezept desselben `location_id` gehören wie die Menüwoche.
 
 **Entscheidung: Die Rezeptbindung fügt dem Publikations-Snapshot keinen einzigen Schlüssel hinzu.**
 
-`validate_publication_revision()` prüft den Snapshot gegen eine enge Erlaubnisliste und wird in
-dieser Welle bereits von OPS-001 für Schema 20 geändert. Die veröffentlichte Nutzlast enthält
-schon heute den gedruckten Komponententext; ein Rezeptbezug ist Verwaltungsherkunft, keine
-Gastinformation. Folgen:
+`validate_publication_revision()` prüft Struktur und Kennwerte des Snapshots — Profil,
+Kalenderwoche, genau sieben Tage, Revisionskennung, Preisstruktur — und wird in dieser Welle
+bereits von OPS-001 für Schema 20 geändert. Zusätzlich begrenzt
+`patient_key_is_forbidden()` zusammen mit `jsonb_has_patient_forbidden_key()` über eine
+Erlaubnisliste, welche Schlüssel im Patienten-Snapshot überhaupt vorkommen dürfen; auch diese
+Liste erweitert OPS-001 gerade. Die veröffentlichte Nutzlast enthält schon heute den gedruckten
+Komponententext; ein Rezeptbezug ist Verwaltungsherkunft, keine Gastinformation. Folgen:
 
 - `publication_revisions`, `patient_key_is_forbidden()` und alle öffentlichen Ausgaben bleiben
   byteidentisch zum heutigen Stand.
 - Bestehende, veröffentlichte Wochen bleiben unveränderlich und preisfrei.
 - Es entsteht kein Konflikt mit dem OPS-Eigentum an `validate_publication_revision()`.
+
+Der Nachweis ist konkret: `patient_key_is_forbidden()` erlaubt im Patienten-Snapshot genau 35
+normalisierte Schlüsselnamen (`database/schema.sql:788`) und verwirft zusätzlich jeden Schlüssel, der auf ein Preis- oder Kostenwort
+passt. Ein Schlüssel wie `recipeid` oder `recipe_revision` würde heute abgelehnt. Eine
+Snapshot-Erweiterung wäre damit zwingend eine Änderung an einer Funktion, die in dieser Welle
+OPS-001 gehört.
 
 Ein späteres Paket, das Rezeptangaben tatsächlich in eine Ausgabe drucken will, ist ein eigener
 Snapshot-Schemaschritt mit eigener Abnahme und **nicht** Teil von REC-001.
