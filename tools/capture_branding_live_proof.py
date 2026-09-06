@@ -211,10 +211,16 @@ class BrandingProof:
     def text_layout(self, page: Page, name: str) -> None:
         self.check(name + '.no_clipped_text', page.locator('h1,h2,h3,h4,p,li,strong,small,.signage-tags,.food-legend span,.patient-board-components').evaluate_all('''els =>
           els.every(el => { const r = el.getBoundingClientRect(); if (!r.width || !r.height) return true;
-            if (el.clientWidth && (el.scrollWidth > el.clientWidth+1 || el.scrollHeight > el.clientHeight+1)) return false;
+            const clips = value => ['hidden','clip','auto','scroll'].includes(value), own = getComputedStyle(el);
+            // Scroll dimensions alone do not imply clipping when overflow remains visible.
+            if (el.clientWidth && ((clips(own.overflowX) && el.scrollWidth > el.clientWidth+1) ||
+                (clips(own.overflowY) && el.scrollHeight > el.clientHeight+1))) return false;
+            const range = document.createRange(); range.selectNodeContents(el);
+            const rects = [r, ...range.getClientRects()];
             for (let a=el.parentElement;a;a=a.parentElement) { const s=getComputedStyle(a), b=a.getBoundingClientRect();
-              if (['hidden','clip'].includes(s.overflowX) && (r.left < b.left-1 || r.right > b.right+1)) return false;
-              if (['hidden','clip'].includes(s.overflowY) && (r.top < b.top-1 || r.bottom > b.bottom+1)) return false;
+              const left=b.left+a.clientLeft, top=b.top+a.clientTop;
+              if (clips(s.overflowX) && rects.some(t => t.left < left-1 || t.right > left+a.clientWidth+1)) return false;
+              if (clips(s.overflowY) && rects.some(t => t.top < top-1 || t.bottom > top+a.clientHeight+1)) return false;
             } return true; })'''))
 
     def cards(self, page: Page, name: str, selector: str, expected: int) -> None:
