@@ -100,6 +100,7 @@ GRANT SELECT ON
     publication_lifecycle_events_id_seq, import_batches_id_seq,
     audit_events_id_seq, settings_id_seq
 TO cafeteria_backup;
+GRANT SELECT ON SEQUENCE api_keys_id_seq TO cafeteria_backup;
 
 ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
     REVOKE ALL ON TABLES FROM cafeteria_app, cafeteria_backup;

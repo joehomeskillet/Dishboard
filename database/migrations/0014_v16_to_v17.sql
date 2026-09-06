@@ -103,6 +103,7 @@ REVOKE ALL ON cafeteria.api_keys FROM PUBLIC;
 GRANT SELECT ON cafeteria.api_keys TO cafeteria_app;
 GRANT UPDATE (last_used_at) ON cafeteria.api_keys TO cafeteria_app;
 GRANT SELECT ON cafeteria.api_keys TO cafeteria_backup;
+GRANT SELECT ON SEQUENCE cafeteria.api_keys_id_seq TO cafeteria_backup;
 
 REVOKE ALL ON FUNCTION
     cafeteria.require_api_key_admin(bigint),
