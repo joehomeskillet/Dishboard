@@ -36,7 +36,7 @@ def browser():
 
 @pytest.fixture
 def fixture_page(browser):
-    state = {'body': '', 'requests': []}
+    state = {'body': '', 'css': '', 'requests': []}
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *_):
@@ -49,7 +49,7 @@ def fixture_page(browser):
                 content = (STATIC / self.path.removeprefix('/static/')).read_bytes()
                 mime = 'image/svg+xml'
             elif self.path == '/static/fixture.css':
-                content, mime = CSS.encode(), 'text/css'
+                content, mime = (CSS + state['css']).encode(), 'text/css'
             elif self.path == '/static/rotate.js':
                 content = b'setTimeout(()=>{const p=document.querySelectorAll("[data-signage-page]");p[0].hidden=true;p[1].hidden=false},500)'
                 mime = 'application/javascript'
@@ -65,8 +65,8 @@ def fixture_page(browser):
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     with browser.new_page() as page:
-        def load(body):
-            state['body'] = body
+        def load(body, css=''):
+            state['body'], state['css'] = body, css
             response = page.goto(f'http://127.0.0.1:{server.server_port}/fixture')
             assert response.status == 200
             assert "script-src 'self'" in response.headers['content-security-policy']
@@ -75,6 +75,54 @@ def fixture_page(browser):
     server.shutdown()
     thread.join()
     server.server_close()
+
+
+@pytest.mark.parametrize('axis', ['x', 'y'])
+@pytest.mark.parametrize('boundary,overflow', [('self', 'visible'), ('ancestor', 'visible'),
+    ('self', 'hidden'), ('self', 'clip'), ('self', 'auto'), ('self', 'scroll'),
+    ('ancestor', 'hidden'), ('ancestor', 'clip'), ('ancestor', 'auto'), ('ancestor', 'scroll')])
+def test_text_layout_distinguishes_visible_overflow_from_clipped_text(
+        fixture_page, tmp_path, axis, boundary, overflow):
+    text = 'Vollstaendig sichtbarer Rezepturhinweis' if axis == 'x' else 'Milch\nWeizen\nSellerie'
+    css = '''.boundary{width:120px;height:40px;border:8px solid}
+      #sample{margin:0;width:40px;height:20px;white-space:pre;line-height:20px}'''
+    target = '#sample' if boundary == 'self' else '.boundary'
+    page = fixture_page(f'<div class="boundary"><p id="sample">{text}</p></div>',
+                        css + f'{target}{{overflow:{overflow}}}')
+    metrics = page.locator('#sample').evaluate('''el => ({
+        width: el.clientWidth, height: el.clientHeight,
+        scrollWidth: el.scrollWidth, scrollHeight: el.scrollHeight})''')
+    assert metrics['scrollWidth' if axis == 'x' else 'scrollHeight'] > metrics['width' if axis == 'x' else 'height'] + 1
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+    proof = tool.BrandingProof('https://fixture.invalid', tmp_path)
+    proof.text_layout(page, 'text')
+    assert proof.data['checks']['text.no_clipped_text'] is (overflow == 'visible')
+    assert proof.outcome() == (('browser_passed', 0) if overflow == 'visible' else ('failed', 1))
+
+
+@pytest.mark.parametrize('overflow', ['visible', 'hidden', 'clip'])
+def test_tight_line_height_keeps_visible_glyphs_but_rejects_clipping(fixture_page, tmp_path, overflow):
+    page = fixture_page('<h1>Allergenhinweis</h1>',
+                        f'h1{{font:32px/20px sans-serif;overflow:{overflow}}}')
+    assert page.locator('h1').evaluate('el => el.scrollHeight > el.clientHeight + 1')
+    proof = tool.BrandingProof('https://fixture.invalid', tmp_path)
+    proof.text_layout(page, 'heading')
+    assert proof.data['checks']['heading.no_clipped_text'] is (overflow == 'visible')
+
+
+@pytest.mark.parametrize('axis', ['x', 'y'])
+def test_capture_keeps_page_overflow_checks_for_visible_text(fixture_page, tmp_path, axis):
+    body = '''<link data-brand-stylesheet rel="stylesheet" href="/static/fixture.css">
+      <img class="brand-logo" src="/static/vendor/food-symbols/allergens/milk.svg">
+      <main><h1>Nicht verfügbar</h1><p>Vollstaendig sichtbarer Hinweis</p></main>'''
+    css = '.brand-logo{width:40px;height:40px;object-fit:contain}'
+    css += 'p{width:200vw}' if axis == 'x' else 'p{height:200vh}'
+    page = fixture_page(body, css)
+    proof = tool.BrandingProof(page.url.removesuffix('/fixture'), tmp_path)
+    proof.capture(page, '/auth/local', 'page', signage=axis == 'y')
+    assert proof.data['checks']['page.no_clipped_text']
+    assert proof.data['failures'] == ['page.no_horizontal_overflow' if axis == 'x' else 'page.fits_screen']
+    assert proof.outcome() == ('failed', 1)
 
 
 def declaration(text='Enthält: Milch', *, kind='amber', asset='allergens/milk.svg'):
