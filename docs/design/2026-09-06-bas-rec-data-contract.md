@@ -629,8 +629,10 @@ Ausnahme, sonst gilt dasselbe Verbot: die eine atomare, kontrollierte Annahme (`
 accepted`) darf `food_id` von NULL auf das gewählte Ziel setzen, geführt mit ursprünglicher
 Actor-, Vorschlags- und Food-Version sowie Standortgleichheit (siehe **Ziel** oben). Ausserhalb
 dieser einen Annahme bleibt `food_id` unveränderlich; ein bereits gesetztes Ziel wird nie
-gewechselt, auch nicht durch eine zweite Annahme. Eine Ablehnung (`open → rejected`) setzt
-niemals ein Ziel — `food_id` bleibt dabei NULL. Der Übergang `open → accepted|rejected` ist
+gewechselt, auch nicht durch eine zweite Annahme. Eine Ablehnung (`open → rejected`) lässt
+`food_id` exakt so, wie es war: ein zuvor NULL gebliebener Vorschlag bleibt ohne Ziel, ein
+Vorschlag mit gesetztem Ziel behält genau dieses Ziel. Eine Ablehnung setzt, wechselt und löscht
+also nie ein Ziel. Der Übergang `open → accepted|rejected` ist
 einmalig und unumkehrbar; jede abgeschlossene Entscheidung (`accepted` oder `rejected`) ist
 danach vollständig unveränderlich, einschliesslich `food_id`. Dienst (`accept_proposal`/
 `reject_proposal`, §4.5), Trigger und Testspezifikation setzen genau diese eine Ausnahme
@@ -779,20 +781,23 @@ Sperre noch sonst eine belegte Sperre auf einer Food-Zeile. Ein heute bestehende
 Sperrzyklus ist das **nicht** — die vorherige Darstellung als bereits eingetretener Deadlock war
 falsch und ist hiermit korrigiert.
 
-Der reale Risikofall entsteht erst **künftig**, sobald M-C `menu_components.food_id` tatsächlich
-als Fremdschlüssel bindet: dann würde derselbe Workflow-Pfad implizit `FOR KEY SHARE` auf der
-gebundenen Food-Zeile halten, bevor er die Actor-Prüfung `FOR SHARE` aufruft. Ein B2-Mutator mit
-`users FOR UPDATE` hielte dann die Actor-Zeile und wartete auf `foods FOR UPDATE`, das mit dem
-dann gehaltenen `FOR KEY SHARE` kollidiert, während der Workflow-Pfad auf dieselbe Actor-Zeile
-wartet — ein geschlossener Zyklus. Root entscheidet deshalb vorsorglich `FOR SHARE`: verträglich
-mit dem bestehenden `FOR SHARE`-Actor-Read-Lock des Workflow-Guards und konfliktbehaftet mit dem
-tatsächlichen `users.authz_version`-UPDATE (siehe unten) — damit bleibt die Sicherungswirkung
-erhalten, ohne den künftigen Zyklus zu öffnen. Das ist eine vorsorgliche Absicherung gegen einen
-heute noch nicht existierenden Ablauf, **keine** Behauptung, dieser Ablauf sei schon getestet
-oder bereits eingetreten. Eine schwächere `FOR KEY SHARE`-Actorsperre ersetzt `FOR SHARE` dabei
-nicht. R1 und die künftigen M-C/R5-Food-Schreib-/Referenzpfade müssen die tatsächliche
-Nebenläufigkeit erst nach Einführung des Fremdschlüssels real prüfen und dabei die Rangfolge aus
-diesem Abschnitt einhalten (Rang 3 vor Rang 6).
+Auch das blosse Hinzufügen der Spalte `menu_components.food_id` als Fremdschlüssel ändert daran
+nichts: ein lesender `SELECT` prüft auch nach M-C keinen Fremdschlüssel und nimmt deshalb keine
+Sperre auf einer Food-Zeile. Eine implizite `FOR KEY SHARE`-Sperre kann allein ein
+Schreibvorgang erzeugen, der eine Food-Referenz tatsächlich einfügt oder ändert, und auch dann
+nur, wenn dieser Schreibvorgang in derselben Transaktion **vor** der Actor-Prüfung liegt. Ob ein
+solcher Pfad in M-C/R5 wirklich entsteht, hängt am dann geschriebenen Code und ist heute weder
+belegt noch getestet.
+
+Das ist damit ein **konkret zu prüfendes künftiges Schreibpfad-Risiko**, kein bewiesener Zyklus
+und keine automatische Sperre. Root entscheidet deshalb vorsorglich `FOR SHARE`: verträglich mit
+dem bestehenden `FOR SHARE`-Actor-Read-Lock des Workflow-Guards und konfliktbehaftet mit dem
+tatsächlichen `users.authz_version`-UPDATE (siehe unten) — die Sicherungswirkung bleibt erhalten,
+ohne ein solches Risiko überhaupt erst zu eröffnen. Eine schwächere `FOR KEY SHARE`-Actorsperre
+ersetzt `FOR SHARE` dabei nicht. Verbindlich bleibt: R5 und jeder weitere Pfad, der eine
+Food-Referenz schreibt, prüft vor seiner Abnahme am realen Code, ob er eine Food-Zeile vor der
+Actor-Prüfung sperrt, hält die Rangfolge dieses Abschnitts ein (Rang 3 vor Rang 6) und belegt das
+Verhalten mit echten Nebenläufigkeitstests statt mit einer Herleitung.
 
 Die Sicherungswirkung bleibt vollständig: jede Rollenvergabe, jeder Rollenentzug und jeder
 Passwortreset erhöht `users.authz_version` — über `bump_user_authz_version()`
