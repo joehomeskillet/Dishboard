@@ -75,6 +75,54 @@ def test_openapi_refs_resolve():
         assert ref.split('/')[-1] in components
 
 
+SCHEMA_2_EXAMPLE = {
+    'schema_version': 2,
+    'area_name': 'Schülerinnen und Schüler',
+    'days': [{
+        'date': '2026-08-31', 'weekday': 'Montag', 'state': 'open', 'notice': '',
+        'services': [{
+            'meal_code': 'LUNCH', 'meal_name': 'Mittag', 'service_state': 'open', 'notice': '',
+            'service_start': '11:30', 'service_end': '13:30', 'options': [],
+        }],
+    }],
+}
+
+
+def test_openapi_documents_the_optional_area_name_and_serving_times():
+    schemas = build_openapi()['components']['schemas']
+    snapshot, service = schemas['Snapshot'], schemas['Service']
+    area = snapshot['properties']['area_name']
+    assert area['type'] == 'string' and area['minLength'] == 1 and area['maxLength'] == 80
+    assert 'area_name' not in snapshot['required']
+    assert snapshot['properties']['schema_version'] == {'type': 'integer', 'minimum': 1}
+    for field in ('service_start', 'service_end'):
+        assert service['properties'][field]['pattern'] == '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+        assert field not in service['required']
+    assert 'LUNCH' in snapshot['properties']['days']['description']
+    for node in (area, service['properties']['service_start'], service['properties']['service_end']):
+        assert node['description'].endswith('.')
+
+
+def test_schema_2_example_matches_the_documented_shape():
+    schemas = build_openapi()['components']['schemas']
+    snapshot, service = schemas['Snapshot'], schemas['Service']
+    area = SCHEMA_2_EXAMPLE['area_name']
+    assert snapshot['properties']['schema_version']['minimum'] <= SCHEMA_2_EXAMPLE['schema_version']
+    assert snapshot['properties']['area_name']['minLength'] <= len(area) <= snapshot['properties']['area_name']['maxLength']
+    example_service = SCHEMA_2_EXAMPLE['days'][0]['services'][0]
+    for field in ('service_start', 'service_end'):
+        assert re.fullmatch(service['properties'][field]['pattern'], example_service[field])
+    assert set(service['required']) <= set(example_service)
+    assert example_service['meal_code'] in service['properties']['meal_code']['enum']
+
+
+def test_schema_1_snapshot_stays_valid_without_the_new_keys():
+    schemas = build_openapi()['components']['schemas']
+    legacy_service = {'meal_code': 'LUNCH', 'meal_name': 'Mittag', 'options': []}
+    assert set(schemas['Service']['required']) <= set(legacy_service)
+    assert not set(schemas['Snapshot']['required']) & {'area_name'}
+
+
 def test_openapi_json_contract_if_registered():
     app = _build_test_app()
     rules = {rule.rule for rule in app.url_map.iter_rules()}

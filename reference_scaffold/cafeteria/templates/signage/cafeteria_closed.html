@@ -1,11 +1,11 @@
 {% extends "signage/base_signage.html" %}
 {% from '_brand_logo.html' import brand_logo %}
-{% block title %}Cafeteria geschlossen{% endblock %}
+{% block title %}{{ area_name ~ ' · geschlossen' if area_name else 'Cafeteria geschlossen' }}{% endblock %}
 {% block main_label %}Cafeteria geschlossen{% endblock %}
 {% block channel %}
 <div class="signage-brand">
   {{ brand_logo(brand, 'signage-logo') }}
-  <span class="signage-kicker">Cafeteria · Tagesinformation</span>
+  <span class="signage-kicker">{{ area_name ~ ' · Tagesinformation' if area_name else 'Cafeteria · Tagesinformation' }}</span>
 </div>
 {% endblock %}
 {% block content %}
@@ -13,9 +13,9 @@
   <div class="card hero-food-closed">
     <div class="card-status-top bg-primary"></div>
     <div class="card-body text-center">
-      <span class="hero-food-kicker">Cafeteria · Tagesinformation</span>
-      <h1>Cafeteria geschlossen</h1>
-      <p>{% if day and day.notice and day.notice != 'Cafeteria geschlossen' %}{{ day.notice }}{% elif day and day.weekday in ('Samstag', 'Sonntag') %}Am Wochenende bleibt die Cafeteria geschlossen.{% else %}An diesem Tag gibt es kein öffentliches Cafeteria-Angebot.{% endif %}</p>
+      <span class="hero-food-kicker">{{ area_name ~ ' · Tagesinformation' if area_name else 'Cafeteria · Tagesinformation' }}</span>
+      <h1>{{ 'Geschlossen' if area_name else 'Cafeteria geschlossen' }}</h1>
+      <p>{% if lunch and lunch.notice %}{{ lunch.notice }}{% elif day and day.notice and day.notice != 'Cafeteria geschlossen' %}{{ day.notice }}{% elif day and day.weekday in ('Samstag', 'Sonntag') %}Am Wochenende bleibt die Cafeteria geschlossen.{% else %}An diesem Tag gibt es kein öffentliches Cafeteria-Angebot.{% endif %}</p>
     </div>
   </div>
 </section>

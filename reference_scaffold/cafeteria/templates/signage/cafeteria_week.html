@@ -1,13 +1,13 @@
 {% extends "signage/base_signage.html" %}
 {% from '_brand_logo.html' import brand_logo %}
 {% from '_food_symbols.html' import legend %}
-{% block title %}Cafeteria-Wochenplan{% endblock %}
+{% block title %}{{ area_name ~ ' · Wochenplan' if area_name else 'Cafeteria-Wochenplan' }}{% endblock %}
 {% block main_label %}Cafeteria-Wochenplan{% endblock %}
 {% block shell_class %}signage-cafe-week{% endblock %}
 {% block channel %}
 <div class="signage-brand">
   {{ brand_logo(brand, 'signage-logo') }}
-  <h1 class="signage-kicker mb-0">Cafeteria · Wochenangebot · Mittag</h1>
+  <h1 class="signage-kicker mb-0">{{ area_name ~ ' · Wochenangebot · Mittag' if area_name else 'Cafeteria · Wochenangebot · Mittag' }}</h1>
 </div>
 {% endblock %}
 {% block content %}
@@ -17,7 +17,8 @@
   {% set meal = day.services[0] %}
   <div class="col">
   <article class="card card-sm cafe-week-day">
-    <header class="card-header bg-teal-lt"><h2 class="card-title mb-0">{{ day.weekday }}</h2><span>{{ day.date|date_short }}</span></header>
+    {% set time_label = meal|service_time_label('staff_guest') %}
+    <header class="card-header bg-teal-lt"><h2 class="card-title mb-0">{{ day.weekday }}</h2><span>{{ day.date|date_short }}{% if time_label %} · {{ time_label }}{% endif %}</span></header>
     {% if meal.service_state|default('open') == 'open' %}
     <div class="card-body cafe-week-menus">
     {% for option in meal.options %}

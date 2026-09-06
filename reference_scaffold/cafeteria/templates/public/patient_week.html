@@ -1,6 +1,6 @@
 {% extends "public/base_public.html" %}
 {% from '_food_symbols.html' import legend %}
-{% block title %}Wochenspeiseplan – Klinik Südhang{% endblock %}
+{% block title %}{{ area_name ~ ' · Woche' if area_name else 'Wochenspeiseplan' }} – Klinik Südhang{% endblock %}
 {% block logo_href %}{{ url_for('public.patient_today') }}{% endblock %}
 {% block header_actions %}
 <div class="nav-item">
@@ -12,7 +12,7 @@
   <div class="container-xl">
     <div class="row g-2 align-items-center">
       <div class="col">
-        <div class="page-pretitle">Patienten-Speiseplan · Wochenübersicht</div>
+        <div class="page-pretitle">{{ area_name ~ ' · Wochenübersicht' if area_name else 'Patienten-Speiseplan · Wochenübersicht' }}</div>
         <h1 class="page-title">{{ (snapshot.week_start|date_long) ~ ' bis ' ~ (snapshot.week_end|date_long) if snapshot else 'Wochenplan nicht verfügbar' }}</h1>
         <div class="text-secondary mt-1">Montag bis Sonntag · Mittag und Abend</div>
       </div>
@@ -48,6 +48,8 @@
       <div class="col-12 public-menu-meal">
         <h3 class="mb-2 mt-2 text-secondary">{{ meal.meal_name }}</h3>
         {% if meal.service_state|default('open') == 'open' %}
+        {% set time_label = meal|service_time_label('patient') %}
+        {% if time_label %}<div class="text-secondary mb-3">{{ time_label }}</div>{% endif %}
         <div class="row g-4 public-menu-options">
           {% for option in meal.options %}
           {% if option.title %}{% set declarations.options = declarations.options + [option] %}{% endif %}

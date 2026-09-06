@@ -1,13 +1,13 @@
 {% extends "signage/base_signage.html" %}
 {% from '_brand_logo.html' import brand_logo %}
 {% from '_food_symbols.html' import legend %}
-{% block title %}Patienten-Wochenplan{% endblock %}
+{% block title %}{{ area_name ~ ' · Wochenplan' if area_name else 'Patienten-Wochenplan' }}{% endblock %}
 {% block main_label %}Patienten-Wochenplan{% endblock %}
 {% block shell_class %}patient-week-shell patient-board-shell{% endblock %}
 {% block channel %}
 <div class="signage-brand">
   {{ brand_logo(brand, 'signage-logo') }}
-  <h1 class="signage-kicker m-0">Patienten-Speiseplan · Mittag und Abend</h1>
+  <h1 class="signage-kicker m-0">{{ area_name ~ ' · Mittag und Abend' if area_name else 'Patienten-Speiseplan · Mittag und Abend' }}</h1>
 </div>
 {% endblock %}
 {% block content %}
@@ -23,7 +23,8 @@
     <header class="card-header d-flex flex-column"><h2 class="card-title m-0">{{ day.weekday }}</h2><span>{{ day.date|date_short }}</span></header>
     {% for meal in day.services %}
     <section class="patient-week-cell {{ 'dinner' if meal.meal_code == 'DINNER' else '' }}">
-      <div class="meal-name">{{ meal.meal_name }}</div>
+      {% set time_label = meal|service_time_label('patient') %}
+      <div class="meal-name">{{ meal.meal_name }}{% if time_label %} · {{ time_label }}{% endif %}</div>
       <div class="patient-week-options">
         {% if meal.service_state|default('open') == 'open' %}
         {% for option in meal.options %}

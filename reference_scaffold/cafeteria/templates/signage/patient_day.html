@@ -1,12 +1,12 @@
 {% extends "signage/base_signage.html" %}
 {% from '_brand_logo.html' import brand_logo %}
 {% from '_food_symbols.html' import legend %}
-{% block title %}Patienten-Tagesplan{% endblock %}
+{% block title %}{{ area_name ~ ' · Tagesplan' if area_name else 'Patienten-Tagesplan' }}{% endblock %}
 {% block main_label %}Patienten-Tagesplan{% endblock %}
 {% block channel %}
 <div class="signage-brand">
   {{ brand_logo(brand, 'signage-logo') }}
-  <h1 class="signage-kicker m-0">Speiseplan für Patientinnen und Patienten</h1>
+  <h1 class="signage-kicker m-0">{{ area_name if area_name else 'Speiseplan für Patientinnen und Patienten' }}</h1>
 </div>
 {% endblock %}
 {% block content %}
@@ -18,7 +18,7 @@
   <article class="patient-signage-meal card {{ 'dinner' if meal.meal_code == 'DINNER' else '' }}">
     <header class="meal-label card-header d-flex justify-content-between">
       <h2 class="card-title m-0">{{ meal.meal_name }}</h2>
-      <small>{{ 'Ausgabe ab 11:30 Uhr' if meal.meal_code == 'LUNCH' else 'Ausgabe ab 17:30 Uhr' }}</small>
+      <small>{{ meal|patient_day_time_label(area_name) }}</small>
     </header>
     <div class="patient-duo-options card-body d-flex flex-column">
     {% if meal.service_state|default('open') == 'open' %}

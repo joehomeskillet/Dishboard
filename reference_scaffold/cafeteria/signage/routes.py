@@ -3,6 +3,7 @@ from __future__ import annotations
 from flask import Blueprint, render_template, request
 
 from ..public.routes import effective_today, published_snapshot, service
+from ..template_filters import cafeteria_visible_days, service_is_open, weekday_range_label
 
 bp = Blueprint('signage', __name__)
 
@@ -23,7 +24,18 @@ def context(profile_code: str) -> dict:
     date_value = effective_today().isoformat()
     snapshot = published_snapshot(profile_code)
     day = next((item for item in (snapshot or {}).get('days', []) if item.get('date') == date_value), None)
-    return {'snapshot': snapshot, 'day': day, 'today': date_value, 'error': None}
+    return {
+        'snapshot': snapshot, 'day': day, 'today': date_value, 'error': None,
+        'area_name': (snapshot or {}).get('area_name', ''),
+    }
+
+
+def cafeteria_context() -> dict:
+    """Cafeteria players name the days they show, weekends only when a service is open."""
+    values = context('staff_guest')
+    values['open_days'] = cafeteria_visible_days((values.get('snapshot') or {}).get('days', []))
+    values['weekday_range'] = weekday_range_label(values['open_days'])
+    return values
 
 
 def signage_response(template: str, **values):
@@ -41,17 +53,20 @@ def signage_response(template: str, **values):
 
 @bp.get('/signage/cafeteria/tag')
 def cafeteria_day():
-    values = context('staff_guest')
-    values['lunch'] = service(values.get('day'), 'LUNCH')
-    template = 'signage/cafeteria_day.html' if values.get('lunch') else 'signage/cafeteria_closed.html'
+    values = cafeteria_context()
+    lunch = service(values.get('day'), 'LUNCH')
+    values['lunch'] = lunch
+    # A weekend player only shows menus for an open service; otherwise it stays a closed board.
+    shows_menus = bool(lunch) and (
+        service_is_open(lunch) if effective_today().isoweekday() > 5 else True
+    )
+    template = 'signage/cafeteria_day.html' if shows_menus else 'signage/cafeteria_closed.html'
     return signage_response(template, **values)
 
 
 @bp.get('/signage/cafeteria/woche')
 def cafeteria_week():
-    values = context('staff_guest')
-    values['open_days'] = [day for day in (values.get('snapshot') or {}).get('days', []) if day.get('services')]
-    return signage_response('signage/cafeteria_week.html', **values)
+    return signage_response('signage/cafeteria_week.html', **cafeteria_context())
 
 
 @bp.get('/signage/patienten/tag')
