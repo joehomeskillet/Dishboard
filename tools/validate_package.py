@@ -365,7 +365,8 @@ def main() -> int:
             pytest_result = run([sys.executable, '-m', 'pytest', '-q', '-rs', '-p', 'no:cacheprovider', 'tests'],
                                root / 'reference_scaffold')
             check(pytest_result.returncode == 0, f'Vertragstests fehlgeschlagen: {pytest_result.stderr or pytest_result.stdout}')
-            ok('Flask-Routen, Jinja-Templates und Vertragstests geprueft')
+            if pytest_result.returncode == 0:
+                ok('Flask-Routen, Jinja-Templates und Vertragstests geprueft')
     else:
         pytest_result = run([sys.executable, '-m', 'pytest', '-q', '-rs', '-p', 'no:cacheprovider', 'tests'],
                            root / 'reference_scaffold')
@@ -374,13 +375,13 @@ def main() -> int:
         skipped_match = re.search(r'(\d+)\s+skipped', output)
         skipped_count = int(skipped_match.group(1)) if skipped_match else 0
 
+        check(pytest_result.returncode == 0, f'Vertragstests fehlgeschlagen: {output}')
         if skipped_count > 0:
             print(f'[WARNUNG] offline: {skipped_count} Tests uebersprungen, Live-Gate nicht bestanden')
-            ok(f'Flask-Routen, Jinja-Templates und Vertragstests geprueft (offline, {skipped_count} uebersprungen)')
+            if pytest_result.returncode == 0:
+                ok(f'Flask-Routen, Jinja-Templates und Vertragstests geprueft (offline, {skipped_count} uebersprungen)')
         elif pytest_result.returncode == 0:
             ok('Flask-Routen, Jinja-Templates und Vertragstests geprueft')
-        else:
-            check(False, f'Vertragstests fehlgeschlagen: {pytest_result.stderr or pytest_result.stdout}')
 
     # Compose, Shell und Python
     compose_result = run([sys.executable, 'deployment/validate_compose.py'], root)

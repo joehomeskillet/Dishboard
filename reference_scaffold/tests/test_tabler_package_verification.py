@@ -97,3 +97,23 @@ def test_package_checks_extracted_css_definitions_and_both_hex_boundaries(monkey
         assert ('tokens.css Line' if fault == 'hex_tokens' else 'app.css Line') in output
     else:
         assert hex_error not in output
+
+
+@pytest.mark.parametrize('summary', ['1 failed, 2 skipped', '1 error, 2 skipped'])
+@pytest.mark.parametrize('offline', [True, False])
+def test_pytest_failure_is_not_hidden_by_skips(monkeypatch, capsys, summary, offline):
+    actual_run = validator.run
+
+    def bounded_run(command, cwd):
+        if command[1:3] == ['-m', 'pytest']:
+            return subprocess.CompletedProcess(command, 1, summary + '\n', '')
+        return actual_run(command, cwd)
+
+    monkeypatch.setattr(validator, 'run', bounded_run)
+    monkeypatch.setenv('TEST_DATABASE_URL', 'postgresql://unused.invalid/menuplan_test_contract')
+    arguments = ['validate_package.py', '--root', str(ROOT)]
+    monkeypatch.setattr(sys, 'argv', arguments + (['--offline'] if offline else []))
+    assert validator.main() == 1
+    output = capsys.readouterr().out
+    assert '[FEHLER] Vertragstests fehlgeschlagen: ' + summary in output
+    assert '[OK] Flask-Routen, Jinja-Templates und Vertragstests geprueft' not in output
