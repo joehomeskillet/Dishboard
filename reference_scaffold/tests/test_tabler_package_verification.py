@@ -119,7 +119,10 @@ def test_pytest_failure_is_not_hidden_by_skips(monkeypatch, capsys, summary, off
     assert '[OK] Flask-Routen, Jinja-Templates und Vertragstests geprueft' not in output
 
 
-@pytest.mark.parametrize('migration_name', ['0015_v17_to_v18.sql', '0016_v18_to_v19.sql'])
+@pytest.mark.parametrize(
+    'migration_name',
+    ['0015_v17_to_v18.sql', '0016_v18_to_v19.sql', '0017_v19_to_v20.sql'],
+)
 @pytest.mark.parametrize('fault', [None, 'schema17', 'schema18', 'tables32', 'missing', 'modified'])
 def test_package_requires_branding_schema_and_pinned_migration(monkeypatch, capsys, fault, migration_name):
     migration = ROOT / 'database/migrations' / migration_name
@@ -142,8 +145,8 @@ def test_package_requires_branding_schema_and_pinned_migration(monkeypatch, caps
     result = validator.main()
     output = capsys.readouterr().out
     errors = {
-        'schema17': '[FEHLER] Schema-Version ist nicht 19.',
-        'schema18': '[FEHLER] Schema-Version ist nicht 19.',
+        'schema17': '[FEHLER] Schema-Version ist nicht 20.',
+        'schema18': '[FEHLER] Schema-Version ist nicht 20.',
         'tables32': '[FEHLER] Schema enthaelt nicht 33 Tabellen.',
         'missing': f'[FEHLER] Migration-Datei fehlt: {migration_name}',
         'modified': f'[FEHLER] Migration-Checksum falsch {migration_name}:',
