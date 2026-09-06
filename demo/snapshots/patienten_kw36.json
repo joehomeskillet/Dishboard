@@ -1,4 +1,5 @@
 {
+  "area_name": "Patientinnen und Patienten",
   "channel": "patienten",
   "days": [
     {
@@ -52,7 +53,9 @@
               "type_code": "VEGGIE",
               "type_name": "Vegetarisch"
             }
-          ]
+          ],
+          "service_end": "12:30",
+          "service_start": "11:30"
         },
         {
           "meal_code": "DINNER",
@@ -116,7 +119,9 @@
               "type_code": "VEGGIE",
               "type_name": "Vegetarisch"
             }
-          ]
+          ],
+          "service_end": "18:30",
+          "service_start": "17:30"
         }
       ],
       "state": "open",
@@ -173,7 +178,9 @@
               "type_code": "VEGGIE",
               "type_name": "Vegetarisch"
             }
-          ]
+          ],
+          "service_end": "12:30",
+          "service_start": "11:30"
         },
         {
           "meal_code": "DINNER",
@@ -220,7 +227,9 @@
               "type_code": "VEGGIE",
               "type_name": "Vegetarisch"
             }
-          ]
+          ],
+          "service_end": "18:30",
+          "service_start": "17:30"
         }
       ],
       "state": "open",
@@ -282,7 +291,9 @@
               "type_code": "VEGGIE",
               "type_name": "Vegetarisch"
             }
-          ]
+          ],
+          "service_end": "12:30",
+          "service_start": "11:30"
         },
         {
           "meal_code": "DINNER",
@@ -341,7 +352,9 @@
               "type_code": "VEGGIE",
               "type_name": "Vegetarisch"
             }
-          ]
+          ],
+          "service_end": "18:30",
+          "service_start": "17:30"
         }
       ],
       "state": "open",
@@ -397,7 +410,9 @@
               "type_code": "VEGGIE",
               "type_name": "Vegetarisch"
             }
-          ]
+          ],
+          "service_end": "12:30",
+          "service_start": "11:30"
         },
         {
           "meal_code": "DINNER",
@@ -445,7 +460,9 @@
               "type_code": "VEGGIE",
               "type_name": "Vegetarisch"
             }
-          ]
+          ],
+          "service_end": "18:30",
+          "service_start": "17:30"
         }
       ],
       "state": "open",
@@ -502,7 +519,9 @@
               "type_code": "VEGGIE",
               "type_name": "Vegetarisch"
             }
-          ]
+          ],
+          "service_end": "12:30",
+          "service_start": "11:30"
         },
         {
           "meal_code": "DINNER",
@@ -570,7 +589,9 @@
               "type_code": "VEGGIE",
               "type_name": "Vegetarisch"
             }
-          ]
+          ],
+          "service_end": "18:30",
+          "service_start": "17:30"
         }
       ],
       "state": "open",
@@ -627,7 +648,9 @@
               "type_code": "VEGGIE",
               "type_name": "Vegetarisch"
             }
-          ]
+          ],
+          "service_end": "12:30",
+          "service_start": "11:30"
         },
         {
           "meal_code": "DINNER",
@@ -686,7 +709,9 @@
               "type_code": "VEGGIE",
               "type_name": "Vegetarisch"
             }
-          ]
+          ],
+          "service_end": "18:30",
+          "service_start": "17:30"
         }
       ],
       "state": "open",
@@ -749,7 +774,9 @@
               "type_code": "VEGGIE",
               "type_name": "Vegetarisch"
             }
-          ]
+          ],
+          "service_end": "12:30",
+          "service_start": "11:30"
         },
         {
           "meal_code": "DINNER",
@@ -810,7 +837,9 @@
               "type_code": "VEGGIE",
               "type_name": "Vegetarisch"
             }
-          ]
+          ],
+          "service_end": "18:30",
+          "service_start": "17:30"
         }
       ],
       "state": "open",
