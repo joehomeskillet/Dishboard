@@ -1,10 +1,4 @@
 {% from 'admin/_macros.html' import icon %}
-{% set signage_links = [
-  ('cafeteria', 'tag', 'eye', 'Cafeteria Tagesplan'),
-  ('cafeteria', 'woche', 'calendar-week', 'Cafeteria Wochenplan'),
-  ('patienten', 'tag', 'eye', 'Patienten Tagesplan'),
-  ('patienten', 'woche', 'calendar-week', 'Patienten Wochenplan'),
-] %}
 {% if not tabler_admin %}
 <aside class="admin-sidebar">
   <div class="admin-brand">
@@ -19,10 +13,6 @@
     {% endfor %}
     {% for key, label in [('screens', 'Screens'), ('vorlagen', 'Vorlagen')] %}
     <a href="{{ url_for('admin.' ~ key) }}"{% if workflow_nav == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
-    {% endfor %}
-    <p>Signage</p>
-    {% for signage_family, channel, icon_name, label in signage_links %}
-    <a href="/signage/{{ signage_family }}/{{ channel }}" target="_blank" rel="noopener">{{ label }}</a>
     {% endfor %}
     <form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button type="submit">Abmelden</button></form>
   </nav>
@@ -74,15 +64,6 @@
             </a>
           </li>
           {% endif %}
-          <li class="nav-item"><div class="subheader px-3 pt-3 pb-2">Signage</div></li>
-          {% for signage_family, channel, icon_name, label in signage_links %}
-          <li class="nav-item">
-            <a href="/signage/{{ signage_family }}/{{ channel }}" class="nav-link" target="_blank" rel="noopener">
-              <span class="nav-link-icon">{{ icon(icon_name) }}</span>
-              <span class="nav-link-title">{{ label }}</span>
-            </a>
-          </li>
-          {% endfor %}
         </ul>
         <div class="navbar-footer">
           <ul class="navbar-nav">
