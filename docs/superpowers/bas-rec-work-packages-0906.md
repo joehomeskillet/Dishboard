@@ -10,7 +10,11 @@ OPS-001 zugeordnet und dürfen hier nicht verwendet werden; Root weist je Welle 
 exklusiven Pool und eine eigene Testdatenbank zu.
 
 **Regeln für jedes Paket.** Eigener Worktree, eigener Branch, disjunkter Dateibesitz, `rtk` für
-jeden Shell-Aufruf, ein Befehl je Aufruf. Keine Abhängigkeitsinstallation. Keine Änderung an
+jeden Shell-Aufruf, ein Befehl je Aufruf. Keine Abhängigkeitsinstallation. Jedes Paket mit
+Migrationsanteil hebt zusätzlich `database/README.md` (Migrationsliste und Schemabeschreibung),
+`database/validate_schema.py`, `tools/validate_package.py` und die Versionspins in
+`reference_scaffold/cafeteria/db.py`; frühere Migrationsdateien bleiben byteidentisch, und vor
+jedem Schemawechsel steht ein geprüftes Backup. Keine Änderung an
 `publication_revisions`, `validate_publication_revision()`, `patient_key_is_forbidden()` oder an
 öffentlichen Ausgaben. Kein Paket meldet eine Backlog-ID fertig, das nur einen Teil davon
 liefert.
@@ -217,11 +221,17 @@ Rezept; Sortierung ist stabil und lückenlos.
 
 **Besitzt mit:** Migrationsschritt M-C und die Erweiterung von
 `validate_menu_item_component_scope()`.
-**Berührt:** `reference_scaffold/cafeteria/component_assignment_store.py`,
-`reference_scaffold/cafeteria/admin/workflow_routes.py`,
-`reference_scaffold/cafeteria/workflow_form.py`.
+**Berührt:** acht Module lesen oder schreiben heute `menu_item_components` und sind vor der
+Integration einzeln zu prüfen —
+`component_assignment_store.py`, `component_catalog_store.py`, `component_effects.py`,
+`workflow.py`, `workflow_store.py`, `workflow_copy_store.py`, `workflow_review.py`,
+`admin/menu_collection_store.py`; dazu `admin/workflow_routes.py` und `workflow_form.py`.
 **Besitzt neu:** `reference_scaffold/tests/test_recipe_menu_binding_db.py`.
-**Abhängig von:** R1. **Einziges Paket dieser Welle, das den Planungspfad berührt.**
+**Abhängig von:** R1. **Einziges Paket dieser Welle, das den Planungspfad berührt, und
+deshalb das grösste Risiko dieser Welle.** Die neue Spalte ist nullable; jedes der acht Module
+muss nachweislich unverändert weiterarbeiten, wenn sie NULL bleibt. Wenn der Prüfaufwand den
+Paketrahmen sprengt, ist R5 in R5a (Migration und Trigger, kein Aufrufer) und R5b (Editor-
+Auswahl) zu teilen, statt den Zuschnitt stillschweigend zu vergrössern.
 
 Inhalt: `menu_item_components.recipe_revision_id`, gegenseitiger Ausschluss zu `component_id`,
 Standortprüfung im Trigger, Auswahl der Revision im Menüeditor.
@@ -249,7 +259,9 @@ Root-Abnahme integriert.
 **Abhängig von:** R1.
 
 Inhalt: Datei hochladen, validieren, zeilenweise Fehler anzeigen, Dubletten anzeigen,
-transaktional übernehmen. Nur CSV und JSON nach dem Dishboard-eigenen Schema.
+transaktional übernehmen. Nur CSV und JSON nach dem Dishboard-eigenen Schema. Das CSV folgt den
+bestehenden Konventionen aus `docs/CSV_IMPORT_EXPORT.md`: Semikolon als Trennzeichen, UTF-8 mit
+optionalem BOM, führende Spalte `schema_version`.
 
 **Akzeptanz.** Ein Stapel schreibt vor der Übernahme nichts in `recipes`; eine fehlerhafte Zeile
 verhindert die Übernahme des Stapels; Grössen- und Zeilengrenzen greifen; unbekannter
