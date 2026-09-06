@@ -7,6 +7,11 @@ from . import api_routes as api_routes
 from . import menu_collection_routes as menu_collection_routes
 from . import week_management_routes as week_management_routes
 from . import display_routes as display_routes
+from . import operations_routes as operations_routes
 from . import branding_routes as branding_routes
 from . import local_user_routes as local_user_routes
 from .routes import bp as bp
+from .rendering import _template_context
+
+# Also supplies direct render_template consumers such as the copy form.
+bp.context_processor(_template_context)

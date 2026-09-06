@@ -19,7 +19,8 @@ pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehl
 
 
 @pytest.mark.parametrize('family,profile,label', [
-    ('cafeteria', 'staff_guest', 'Cafeteria'), ('patienten', 'patient', 'Patienten'),
+    ('cafeteria', 'staff_guest', 'Mitarbeitende und externe Gäste'),
+    ('patienten', 'patient', 'Patientinnen und Patienten'),
 ])
 @pytest.mark.parametrize('viewport', [(360, 844), (1280, 1100)])
 def test_copy_confirmation_is_readable_and_submits_without_javascript(

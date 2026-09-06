@@ -1,7 +1,7 @@
 {% extends "admin/base_tabler.html" %}
 {% from '_food_symbols.html' import legend %}
 {% from 'admin/_macros.html' import icon, profile_tabs, field %}
-{% block title %}Backend Patienten-Übersicht{% endblock %}
+{% block title %}Wochenplan · {{ area_names[profile] }}{% endblock %}
 {% set weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'] %}
 {% set publish_blocked = status in ('review_open', 'incomplete', 'empty') %}
 {% set open_checks = cells|selectattr('row_version', 'gt', 0)|selectattr('review_open')|list|length %}
@@ -17,6 +17,7 @@
   <div class="container-xl">
     <div class="row g-2 align-items-center">
       <div class="col">
+        <div class="page-pretitle">{{ area_names[profile] }}</div>
         <h1>Patientenplan bearbeiten</h1>
       </div>
       <div class="col-12 col-md-auto ms-auto">
@@ -44,7 +45,7 @@
 <section class="admin-week-controls" aria-label="Wochenstatus und Aktionen">
   <div class="weekbar">
     <div>
-      <strong>KW {{ iso_week }} · Patienten</strong>
+      <strong>KW {{ iso_week }} · {{ area_names[profile] }}</strong>
       <span>28 Menükarten · 7 Tage × 2 Mahlzeiten × 2 Menüarten</span>
     </div>
     <div class="admin-week-status" role="status">
@@ -116,6 +117,14 @@
   <input type="hidden" name="row_version" value="{{ week_row_version }}">
 </form>
 
+{% if week_row_version > 0 %}
+<form class="mb-3" method="post" action="{{ url_for('admin.schedule_defaults', family=family) }}" id="schedule-defaults">
+  <input type="hidden" name="_csrf" value="{{ schedule_defaults_csrf }}">
+  <input type="hidden" name="week" value="{{ week_value }}"><input type="hidden" name="row_version" value="{{ week_row_version }}">
+  <button class="btn" type="submit">{{ icon('calendar-cog') }}Wochenvorgaben übernehmen</button>
+  <div class="form-hint">Ergänzt fehlende Services und offene Services ohne Zeiten. Vorhandene Menüs bleiben erhalten.</div>
+</form>
+{% endif %}
 <section class="patient-admin-table" aria-label="Patienten-Wochenraster">
   {% for day_name in weekdays %}
   {% set day_cells = cells | selectattr('day_label', 'equalto', day_name) | list %}
@@ -130,7 +139,7 @@
     </div>
     <div class="card-body patient-admin-meals">
       <div class="patient-admin-meal">
-        <strong>Mittag</strong>
+        <strong>Mittag {% if not lunch or lunch.service_row_version == 0 %}<span class="badge bg-secondary-lt" title="Vorgabe, noch nicht gespeichert">Vorgabe</span>{% endif %}</strong>
         <form method="post" action="/admin/{{ family }}/service" class="card card-sm mb-3">
           <div class="card-body">
             <input type="hidden" name="_csrf" value="{{ csrf }}">
@@ -151,6 +160,12 @@
               <div class="col-12 col-md-6">
                 <label class="form-label" for="patient-service-notice-{{ loop.index0 }}-LUNCH">Servicehinweis</label>
                 <input id="patient-service-notice-{{ loop.index0 }}-LUNCH" class="form-control" name="notice" value="{{ lunch.notice if lunch and lunch.notice is defined else '' }}">
+              </div>
+              <div class="col-12 col-sm-6 col-md-3">
+                {{ field('service_start', 'Beginn', lunch.service_start if lunch else '', type='time', id='patient-service-start-' ~ loop.index0 ~ '-LUNCH') }}
+              </div>
+              <div class="col-12 col-sm-6 col-md-3">
+                {{ field('service_end', 'Ende', lunch.service_end if lunch else '', type='time', id='patient-service-end-' ~ loop.index0 ~ '-LUNCH') }}
               </div>
               <div class="col-12">
                 <button type="submit" class="btn">{{ icon('device-floppy') }}Service speichern</button>
@@ -181,7 +196,7 @@
         </div>
       </div>
       <div class="patient-admin-meal">
-        <strong>Abend</strong>
+        <strong>Abend {% if not dinner or dinner.service_row_version == 0 %}<span class="badge bg-secondary-lt" title="Vorgabe, noch nicht gespeichert">Vorgabe</span>{% endif %}</strong>
         <form method="post" action="/admin/{{ family }}/service" class="card card-sm mb-3">
           <div class="card-body">
             <input type="hidden" name="_csrf" value="{{ csrf }}">
@@ -202,6 +217,12 @@
               <div class="col-12 col-md-6">
                 <label class="form-label" for="patient-service-notice-{{ loop.index0 }}-DINNER">Servicehinweis</label>
                 <input id="patient-service-notice-{{ loop.index0 }}-DINNER" class="form-control" name="notice" value="{{ dinner.notice if dinner and dinner.notice is defined else '' }}">
+              </div>
+              <div class="col-12 col-sm-6 col-md-3">
+                {{ field('service_start', 'Beginn', dinner.service_start if dinner else '', type='time', id='patient-service-start-' ~ loop.index0 ~ '-DINNER') }}
+              </div>
+              <div class="col-12 col-sm-6 col-md-3">
+                {{ field('service_end', 'Ende', dinner.service_end if dinner else '', type='time', id='patient-service-end-' ~ loop.index0 ~ '-DINNER') }}
               </div>
               <div class="col-12">
                 <button type="submit" class="btn">{{ icon('device-floppy') }}Service speichern</button>

@@ -1,8 +1,8 @@
 {% extends "admin/base_tabler.html" %}
 {% from 'admin/_macros.html' import icon, page_header, profile_tabs, pagination, field, status %}
-{% block title %}Wochenverwaltung {{ 'Cafeteria' if profile == 'staff_guest' else 'Patienten' }}{% endblock %}
+{% block title %}Wochenverwaltung {{ area_names[profile] }}{% endblock %}
 {% set workflow_nav = 'management' %}
-{% block page_header %}{{ page_header('Wochenverwaltung') }}{% endblock %}
+{% block page_header %}{{ page_header('Wochenverwaltung', area_names[profile]) }}{% endblock %}
 {% block content %}
         {{ profile_tabs({
           'cafeteria': url_for('admin.week_management', family='cafeteria'),

@@ -193,13 +193,22 @@ def test_week_header_and_service_save_keep_dirty_guard_and_exact_payloads(
     service = page.locator(f'form[action="/admin/{family}/service"]').first
     service.locator('[name="service_state"]').select_option('open')
     service.locator('[name="notice"]').fill('Geänderte Ausgabezeit')
+    service.locator('[name="service_start"]').fill('11:45')
+    service.locator('[name="service_end"]').fill('13:45')
     with page.expect_response(lambda response: response.request.method == 'POST') as saved_service:
         service.get_by_role('button', name='Service speichern').click()
     assert saved_service.value.status == 303
     payload = parse_qs(saved_service.value.request.post_data, keep_blank_values=True)
-    assert set(payload) == {'_csrf', 'week', 'row_version', 'day', 'meal', 'service_state', 'notice'}
+    assert set(payload) == {
+        '_csrf', 'week', 'row_version', 'day', 'meal', 'service_state', 'notice',
+        'service_start', 'service_end',
+    }
     assert payload['week'] == payload['day'] == [DAY]
     assert payload['meal'] == ['LUNCH']
+    assert payload['service_start'] == ['11:45']
+    assert payload['service_end'] == ['13:45']
     page.goto(f'/admin/{family}?week={DAY}')
     expect(service.locator('[name="service_state"]')).to_have_value('open')
     expect(service.locator('[name="notice"]')).to_have_value('Geänderte Ausgabezeit')
+    expect(service.locator('[name="service_start"]')).to_have_value('11:45')
+    expect(service.locator('[name="service_end"]')).to_have_value('13:45')

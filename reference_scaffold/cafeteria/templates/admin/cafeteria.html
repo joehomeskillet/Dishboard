@@ -1,7 +1,7 @@
 {% extends "admin/base_tabler.html" %}
 {% from '_food_symbols.html' import legend %}
 {% from 'admin/_macros.html' import icon, profile_tabs, field %}
-{% block title %}Backend Cafeteria-Raster{% endblock %}
+{% block title %}Wochenplan · {{ area_names[profile] }}{% endblock %}
 {% set csrf_value = csrf if csrf is defined else csrf_token() %}
 {% set week_value = week.isoformat() if week is not none and week.isoformat is defined else week %}
 {% set day_cells = cells|selectattr("meal", "equalto", "LUNCH")|list %}
@@ -19,6 +19,7 @@
   <div class="container-xl">
     <div class="row g-2 align-items-center">
       <div class="col">
+        <div class="page-pretitle">{{ area_names[profile] }}</div>
         <h1>Cafeteria-Plan bearbeiten</h1>
       </div>
       <div class="col-12 col-md-auto ms-auto">
@@ -46,8 +47,8 @@
 <section class="admin-week-controls" aria-label="Wochenstatus und Aktionen">
   <div class="weekbar">
     <div>
-      <strong>KW {{ iso_week }} · Cafeteria</strong>
-      <span>10 Menükarten · 5 Tage × 2 Menüarten</span>
+      <strong>KW {{ iso_week }} · {{ area_names[profile] }}</strong>
+      <span>{{ cells|length }} Menükarten · {{ day_cells|groupby('day')|length }} Tage × 2 Menüarten</span>
     </div>
     <div class="admin-week-status" role="status">
       <strong class="status-pill" data-status="{{ status }}">{{ status_label }}</strong>
@@ -78,7 +79,7 @@
         <p>Woche jetzt publizieren?</p>
         <ul class="list-unstyled mb-0">
           <li><strong>Gespeicherte Woche:</strong> KW {{ iso_week }}{% if title %} · {{ title }}{% endif %}</li>
-          <li><strong>Erfasste Menükarten:</strong> {{ filled_slots }} von 10</li>
+          <li><strong>Erfasste Menükarten:</strong> {{ filled_slots }} von {{ cells|length }}</li>
           <li><strong>Prüfstatus:</strong> {% if open_checks %}{{ open_checks }} offene Prüfung{{ 'en' if open_checks != 1 else '' }}{% elif status == 'review_open' %}Erneute Prüfung erforderlich{% else %}Keine offenen Prüfungen{% endif %}</li>
         </ul>
       </div>
@@ -95,8 +96,17 @@
 </p>
 
 <div class="alert alert-info admin-notice" role="note">
-  Getrenntes Raster: Montag bis Freitag, nur Mittag. Samstag und Sonntag: Cafeteria geschlossen.
+  {% if day_cells|groupby('day')|length == 5 %}Getrenntes Raster: Montag bis Freitag, nur Mittag. Samstag und Sonntag: Cafeteria geschlossen.{% else %}Wochenraster mit Wochenendbetrieb, nur Mittag. Betrieb und Zeiten gelten je Service.{% endif %}
 </div>
+
+{% if week_row_version > 0 %}
+<form class="mb-3" method="post" action="{{ url_for('admin.schedule_defaults', family=family) }}" id="schedule-defaults">
+  <input type="hidden" name="_csrf" value="{{ schedule_defaults_csrf }}">
+  <input type="hidden" name="week" value="{{ week_value }}"><input type="hidden" name="row_version" value="{{ week_row_version }}">
+  <button class="btn" type="submit">{{ icon('calendar-cog') }}Wochenvorgaben übernehmen</button>
+  <div class="form-hint">Ergänzt fehlende Services und offene Services ohne Zeiten. Vorhandene Menüs bleiben erhalten.</div>
+</form>
+{% endif %}
 
 <form method="post" action="/admin/{{ family }}/header" class="admin-overview-form card mb-3">
   <div class="card-body">
@@ -133,6 +143,7 @@
     <div class="card-header">
       <div class="day-heading">
         <strong>{{ day_row.day_label }}</strong>
+        {% if day_row.service_row_version == 0 %}<span class="badge bg-secondary-lt" title="Vorgabe, noch nicht gespeichert">Vorgabe</span>{% endif %}
         <span>{{ day_row.day_short }}</span>
       </div>
       <form method="post" action="/admin/{{ family }}/service" class="admin-week-service">
@@ -154,6 +165,12 @@
           <div class="col-12 col-sm-6 col-md-5">
             <label class="form-label" for="service_notice_{{ day }}">Servicehinweis</label>
             <input id="service_notice_{{ day }}" class="form-control" name="notice" value="{{ day_row.notice|default('') }}">
+          </div>
+          <div class="col-12 col-sm-6 col-md-3">
+            {{ field('service_start', 'Beginn', day_row.service_start, type='time', id='service_start_' ~ day) }}
+          </div>
+          <div class="col-12 col-sm-6 col-md-3">
+            {{ field('service_end', 'Ende', day_row.service_end, type='time', id='service_end_' ~ day) }}
           </div>
           <div class="col-12 col-md-auto">
             <button type="submit" class="btn">{{ icon('device-floppy') }}Service speichern</button>

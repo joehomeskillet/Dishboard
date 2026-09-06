@@ -174,7 +174,7 @@ def test_hubs_responsive_keyboard_and_native_week_selection(
             page.get_by_label('Woche ab Montag').fill('2026-09-07')
             page.get_by_role('button', name='Woche anzeigen', exact=True).click()
             expect(page).to_have_url(f'{base_url}/admin/vorlagen?week=2026-09-07')
-            expect(page.get_by_label('Cafeteria gewählte Woche öffnen')).to_have_attribute(
+            expect(page.get_by_label('Mitarbeitende und externe Gäste gewählte Woche öffnen')).to_have_attribute(
                 'href', '/admin/cafeteria?week=2026-09-07',
             )
     finally:

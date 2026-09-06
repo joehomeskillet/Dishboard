@@ -9,7 +9,7 @@
 {% block content %}
 <p class="mb-4">Tages- und Wochenpläne für Web und Bildschirme öffnen. Die Ansichten zeigen den aktuell publizierten Menüplan. Ohne Publikation erscheint ein Hinweis.</p>
 <div class="screens-grid">
-  {% for label, endpoint in [('Cafeteria', 'cafeteria'), ('Patienten', 'patient')] %}
+  {% for label, endpoint in [(area_names.staff_guest, 'cafeteria'), (area_names.patient, 'patient')] %}
   {% for channel, channel_label, day_suffix in [('public', 'Web', 'today'), ('signage', 'TV / Signage', 'day')] %}
   {% set screen_id = endpoint ~ '-' ~ channel %}
   {% set periods = [('day', 'Tagesplan', endpoint ~ '_' ~ day_suffix), ('week', 'Wochenplan' if channel == 'public' else 'Wochenplan ohne Bilder', endpoint ~ '_week')] %}

@@ -27,11 +27,12 @@ from ..component_catalog_store import (
 )
 from ..component_catalog_metadata import AllergenInput
 from ..component_catalog_filters import ComponentFilters
+from ..operations_settings import get_schedule_connection
 from ..public.routes import effective_today
 from ..roles import require_capability
 from ..security import csrf_token, validate_csrf
 from ..workflow import (
-    MENU_TYPES, PROFILE_DAYS, PROFILE_MEALS, AutoOriginConflictError,
+    MENU_TYPES, PROFILE_MEALS, AutoOriginConflictError,
     PublicationConfigurationError, StaleDraftError, StaleItemError, WorkflowValidationError,
     derive_admin_status, get_component_review_token, publish_draft_scoped as publish_draft, review_component,
 )
@@ -114,16 +115,32 @@ def _week_arg() -> date:
     return _monday(values[0])
 
 def _raster(profile: str, week: date, day: str, meal: str, option: str | None) -> date:
+    if profile not in PROFILE_MEALS:
+        abort(404)
     if _ISO.fullmatch(day) is None:
         abort(400, description='Tag muss YYYY-MM-DD sein.')
     try:
         service_day = date.fromisoformat(day)
     except ValueError:
         abort(400, description='Tag ist ungültig.')
-    if (service_day - week).days not in range(PROFILE_DAYS[profile]):
+    if (service_day - week).days not in range(7):
         abort(404)
     if meal not in PROFILE_MEALS[profile] or (option is not None and option not in MENU_TYPES):
         abort(404)
+    if profile == 'staff_guest' and service_day.weekday() > 4:
+        scope = _scope(profile)
+        with _db().connect() as connection:
+            schedule = get_schedule_connection(connection, scope.location_id, profile)
+            exists = connection.execute(text(
+                'SELECT EXISTS(SELECT 1 FROM cafeteria.menu_services s '
+                'JOIN cafeteria.menu_weeks w ON w.id=s.menu_week_id '
+                'JOIN cafeteria.offer_profiles p ON p.id=w.profile_id '
+                'JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id '
+                'WHERE w.location_id=:location AND p.code=:profile '
+                'AND s.service_date=:day AND mp.code=:meal)'
+            ), {'location': scope.location_id, 'profile': profile, 'day': service_day, 'meal': meal}).scalar_one()
+        if not schedule.allows_weekend and not exists:
+            abort(404)
     return service_day
 
 def _scope(profile: str) -> AdminScope:

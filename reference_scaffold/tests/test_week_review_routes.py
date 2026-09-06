@@ -12,6 +12,7 @@ from werkzeug.datastructures import MultiDict
 from cafeteria import roles
 from cafeteria.admin import week_review_routes as routes
 from cafeteria.admin import workflow_routes
+from cafeteria.admin import rendering
 from cafeteria.admin.rendering import _cells
 from cafeteria.component_catalog_store import AdminScope
 from cafeteria.workflow_review_context import context_token, review_week_context
@@ -40,6 +41,9 @@ def review_client(monkeypatch):
     app = Flask(__name__)
     app.config.update(TESTING=True, SECRET_KEY='test-week-review')
     app.extensions['cafeteria_db'] = object()
+    monkeypatch.setattr(rendering, 'get_area_names', lambda _: {
+        'staff_guest': 'Mitarbeitende und externe Gäste', 'patient': 'Patientinnen und Patienten',
+    })
     app.register_blueprint(routes.bp)
     monkeypatch.setattr(roles, 'load_user_authorization', lambda *_: SimpleNamespace(
         authz_version=3, roles=['Cafeteria.Editor'],
@@ -124,6 +128,7 @@ def test_new_review_template_renders_all_saved_context_without_truncation(review
         rendered = app.jinja_env.get_template('admin/week_review.html').render(
             family='patienten', profile='patient', week=WEEK.isoformat(), review=saved,
             can_write=True, csrf='synthetic-csrf', service_labels={'closed': 'Geschlossen'},
+            area_names={'patient': 'Patientinnen und Patienten'},
         )
     assert 'Gespeicherter Titel &lt;script&gt;' in rendered and '<script>' not in rendered
     assert saved['context']['shared_note'] in rendered

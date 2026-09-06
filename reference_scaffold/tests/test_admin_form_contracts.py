@@ -18,6 +18,9 @@ def form_client(monkeypatch):
     app = Flask(__name__, template_folder=str(ROOT / 'reference_scaffold/cafeteria/templates'))
     app.config.update(TESTING=True, SECRET_KEY='form-contract-test')
     app.extensions['cafeteria_db'] = object()
+    monkeypatch.setattr(rendering, 'get_area_names', lambda _: {
+        'staff_guest': 'Mitarbeitende und externe Gäste', 'patient': 'Patientinnen und Patienten',
+    })
     _register(app)
     monkeypatch.setattr(roles, 'load_user_authorization', lambda *_: SimpleNamespace(
         authz_version=3, roles=['Cafeteria.Editor'],
@@ -97,7 +100,8 @@ def test_header_and_service_prg_reaches_selected_week_overview(form_client, fami
     if kind == 'header':
         fields.update(title='Gespeicherte Woche', shared_note='Vollständiger Hinweis')
     else:
-        fields.update(day=DAY, meal='LUNCH', service_state='closed', notice='Keine Ausgabe')
+        fields.update(day=DAY, meal='LUNCH', service_state='closed', notice='Keine Ausgabe',
+                      service_start='11:30', service_end='13:30')
     result = client.post(f'/admin/{family}/{kind}', data=fields, follow_redirects=True)
     assert [response.status_code for response in result.history] == [303]
     assert result.history[0].location == f'/admin/{family}?week={DAY}'
@@ -105,6 +109,9 @@ def test_header_and_service_prg_reaches_selected_week_overview(form_client, fami
     assert result.headers['Cache-Control'] == 'no-store'
     assert state['overview'] == [(routes.FAMILIES[family], DAY)]
     assert len(state['writes']) == 1 and state['writes'][0][-1] == 4
+    if kind == 'service':
+        assert state['writes'][0][-2]['service_start'] == '11:30'
+        assert state['writes'][0][-2]['service_end'] == '13:30'
     with client.session_transaction() as session:
         assert session['_flashes'][-1][1].endswith('gespeichert.')
 
