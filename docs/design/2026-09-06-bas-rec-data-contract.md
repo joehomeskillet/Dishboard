@@ -224,8 +224,13 @@ kopiert das Muster von `publication_revisions`:
 
 - `snapshot_json` enthält Kopf, Zutatenzeilen, Schritte, Bild-Hashes und Herkunft der Fassung.
 - `content_hash_sha256` über den kanonisierten Snapshot.
-- Ein Trigger nach dem Vorbild von `protect_publication_revision()` verweigert `UPDATE` und
-  `DELETE`.
+- Ein Trigger nach dem Vorbild von `protect_publication_revision()`
+  (`database/schema.sql:1066`). Genauer als das Vorbild: jenes verweigert `DELETE` unbedingt,
+  bei `UPDATE` lässt es genau eine eng geprüfte Ausnahme zu — den kontrollierten Rückzug über
+  `withdrawn_at`/`withdrawal_reason`/`withdrawn_by`, abgeglichen gegen einen passenden
+  `publication_lifecycle_events`-Eintrag. Für `recipe_revisions` gibt es **keine** solche
+  Ausnahme: `UPDATE` und `DELETE` werden beide vollständig verweigert. Eine Fassung wird nicht
+  zurückgezogen, sondern durch eine neue Revision abgelöst.
 - Eine Revision entsteht nur durch die ausdrückliche Aktion «Revision festschreiben», nie als
   Nebenwirkung eines Speicherns.
 
