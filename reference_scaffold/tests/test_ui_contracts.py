@@ -87,21 +87,25 @@ def test_signage_players_are_fixed_noninteractive_surfaces() -> None:
     )
     for relative_path in SIGNAGE_TEMPLATES:
         source = _template(relative_path)
-        assert '<meta http-equiv="refresh" content="300">' in source, relative_path
-        assert "{% block body_class %}signage" in source, relative_path
-        assert "{% block skip_link %}{% endblock %}" in source, relative_path
+        assert 'extends "signage/base_signage.html"' in source, relative_path
+        assert 'http-equiv="refresh"' not in source, relative_path
         assert interactive.search(source) is None, relative_path
         assert "?date=" not in source and "?profil=" not in source, relative_path
 
-    css = _compact((STATIC_ROOT / "app.css").read_text(encoding="utf-8"))
-    assert re.search(r"body\.signage\s*\{[^}]*overflow:\s*hidden", css)
+    base = _template("signage/base_signage.html")
+    assert 'signage.js' in base and 'defer' in base
+    assert 'data-signage-root' in base
+    assert 'data-signage-clock' in base
+
+    css = _compact((STATIC_ROOT / "signage.css").read_text(encoding="utf-8"))
+    assert re.search(r"html,body\{[^}]*overflow:\s*hidden", css)
     assert re.search(
-        r"\.signage-shell\s*\{[^}]*width:\s*100vw[^}]*height:\s*100vh", css
+        r"\.signage-shell\{[^}]*width:\s*100vw[^}]*height:\s*100vh", css
     )
 
 
 def test_signage_grids_and_readability_are_explicit() -> None:
-    css = _compact((STATIC_ROOT / "app.css").read_text(encoding="utf-8"))
+    css = _compact((STATIC_ROOT / "signage.css").read_text(encoding="utf-8"))
     assert re.search(r"\.cafe-week-layout\s*\{[^}]*repeat\(5,", css)
     assert re.search(r"\.patient-week-layout\s*\{[^}]*repeat\(7,", css)
     assert re.search(r"\.patient-day-layout\s*\{[^}]*repeat\(2,", css)
