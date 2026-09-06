@@ -1,6 +1,8 @@
 # Bildlose Wochenplan-Vorschauen und UI-003-Editorverbesserungen
 
-Status: unabhängig geprüft, noch nicht produktiv. Root-WP `wp-8b57137108b3`, Basis `cc6c8ce`; eigener Worktree `backlog-ui003-0906`. Der separat eingefrorene Branding-Release wird dadurch nicht verändert.
+Status: **`0acd992` produktiv seit 06.09.2026, 11:14:04 Uhr Schweiz**, Image `sha256:110bbc6ce858cc881b825d0b2b78c282c727ca804fc0ccbafb983e881aaa7e30`, frisch als `healthy` bestätigt. Schema **18** bleibt unverändert; externe Readiness HTTP 200. Root-WP `wp-8b57137108b3`, Basis `cc6c8ce`; Integrationsworktree `backlog-ui003-0906`. [Vollständiger aktueller Releasebeleg](/nvmetank1/projects/rag-stack/.claude/reports/wp-8b57137108b3.md).
+
+Die vollständige unabhängige Paketprüfung und Manifestprüfung sind abgeschlossen: **3877 bestanden, 15 ausdrücklich optionale Compose-/Restore-Skips, keine Fehler/Fehlschläge**, `PACKAGE_GATE_EXIT=0`. Nach dem tatsächlichen Neustart bestanden **386 Screens-Checks sowie 194 API-/Admin-/PDF-Checks** mit 38 neuen Screenshots und echten neuen Wochen-PDF-Downloads. Diese frischen Belege stehen getrennt von den älteren Teilgates unten; überlappende Testmengen werden nicht addiert. UI-003 und die zusätzlichen bildlosen Wochenrouten samt Hub-Vorschauen sind damit live.
 
 ## Zusätzliche Wochenpläne ohne Bilder
 
@@ -59,6 +61,8 @@ Der erste echte Branding-Aufruf und genau ein identischer Retry endeten trotzdem
 
 Mitgeführt werden die separat geprüfte IAM-001-SDD `553d25e`/`4b95d7d` und die belegte pdfme-Designer-/Tabler-Lücke `87a361d`. Die SDD definiert einen engen UUID-/Namenskontext vor der Passwortpolicy und vollständige Schema-/Paket-/Fixture-Ownership; sie ist keine implementierte Benutzerverwaltung. Der offizielle pdfme-Designer erfüllt die verlangte vollständige Tabler-Bedienoberfläche nicht; TPL-002 bleibt offen.
 
-## Noch offen
+## Verbleibende Abnahmegrenzen
 
-Eigenständiger vollständiger Paket-/Manifest-Gate und tatsächlicher Folgedeploy mit lesender Browserabnahme. OCR bleibt wegen belegter Providerfehler dieser laufenden Welle nicht verfügbar; kein CLEAN. Externer Design-Validator war mangels Gemini nicht ausführbar; seine frühere Dummy-GREEN-Ausgabe wird nicht als Abnahme verwendet. Bestehende Backlog-Abnahmegrenzen bleiben offen, bis ihre tatsächliche Lieferung belegt ist.
+Paket-/Manifest-Gate, tatsächlicher Folgedeploy und frische lesende Live-Abnahme dieser Lieferung sind abgeschlossen. Offen bleibt der getrennte Befund zur mobilen Patienten-HTML-Druckkartenhöhe; die allgemeine Branding-Prüfung mit ihren gesonderten MIME-/Geometriegrenzen wird nicht zu einem pauschalen PASS umgedeutet. Physische Yodeck- und fachliche Küchenabnahme bleiben eigenständig. OCR bleibt wegen belegter Providerfehler dieser Welle nicht verfügbar; kein CLEAN. Externer Design-Validator war mangels Gemini nicht ausführbar; seine frühere Dummy-GREEN-Ausgabe wird nicht als Abnahme verwendet.
+
+IAM-A/B/C sowie Guard-/Ausfallkorrekturen sind inzwischen in einer getrennten Folgewelle integriert: Root prüfte 17 vollständige Module mit **284 bestanden, 59 Warnungen in 216.40 Sekunden**, `GATE_EXIT=0`. Mypy nach Testfix `374e9da` unabhängig bestanden: `Success: no issues found in 15 source files`; Schema-19-Migration und Baseline-Gleichheit auf echtem PostgreSQL ebenfalls bestätigt. Die gemeinsame Release-/Paketabnahme bleibt offen. **IAM ist in Abnahme, nicht deploybereit; Schema 19 ist nicht produktiv und nicht Teil von `0acd992`.** Der oben beschriebene SDD-Mittransport bleibt historischer Umfang dieses Releases. Alle 35 Backlog-IDs samt Teilfunktionen und Restumfang bleiben im [Backlog](../BACKLOG.md) erhalten; keine Gesamtfreigabe aus dem abgeschlossenen UI-003-Deploy.
