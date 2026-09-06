@@ -1,42 +1,43 @@
 {% extends "signage/base_signage.html" %}
 {% block title %}Cafeteria-Wochenplan{% endblock %}
 {% block main_label %}Cafeteria-Wochenplan{% endblock %}
+{% block shell_class %}signage-cafe-week{% endblock %}
 {% block channel %}
 <div class="signage-brand">
   <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="signage-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="205" height="40">
-  <span class="signage-kicker">Cafeteria · Wochenangebot · Mittag</span>
+  <h1 class="signage-kicker mb-0">Cafeteria · Wochenangebot · Mittag</h1>
 </div>
 {% endblock %}
 {% block content %}
-<section class="cafe-week-layout" aria-label="Montag bis Freitag mit je zwei Mittagsmenüs">
+<section class="row g-3 cafe-week-layout cafe-week-board" aria-label="Montag bis Freitag mit je zwei Mittagsmenüs">
   {% for day in open_days %}
   {% set meal = day.services[0] %}
-  <article class="cafe-week-day">
-    <header><strong>{{ day.weekday }}</strong><span>{{ day.date|date_short }}</span></header>
+  <div class="col">
+  <article class="card card-sm cafe-week-day">
+    <header class="card-header bg-teal-lt"><h2 class="card-title mb-0">{{ day.weekday }}</h2><span>{{ day.date|date_short }}</span></header>
     {% if meal.service_state|default('open') == 'open' %}
+    <div class="card-body cafe-week-menus">
     {% for option in meal.options %}
-    <section class="cafe-week-slot {{ 'veggie' if option.type_code == 'VEGGIE' else '' }}">
+    <section class="card border-0 rounded-0 cafe-week-slot {{ 'veggie' if option.type_code == 'VEGGIE' else '' }}">
+      <div class="card-status-top {{ 'bg-green' if option.type_code == 'VEGGIE' else 'bg-primary' }}"></div>
       <div class="slot-type">{{ option.type_name }}</div>
-      <div class="slot-body"><h3>{{ option.title }}</h3><p>{{ option.components|join(' · ') }}</p>
-        <div class="signage-tags">
-          {% for label in option.labels %}<span class="label green">{{ label.name }}</span>{% endfor %}
-          {% for allergen in option.allergens %}<span class="label amber">{{ 'Kann enthalten: ' if allergen.presence == 'may_contain' else 'Enthält: ' }}{{ allergen.name }}</span>{% endfor %}
-          {% for origin in option.origins %}<span class="label">{{ origin.text }}</span>{% endfor %}
-        </div>
+      <div class="slot-body"><h3 class="card-title">{{ option.title }}</h3><p class="cafe-week-components">{{ option.components|join(' · ') }}</p>
+        {% set description = '' if option.description == option.components|join(' · ') else option.description %}
+        {% with option=dict(option, description=description), metadata_class='signage-tags' %}
+        {% include '_menu_metadata.html' %}
+        {% endwith %}
       </div>
-      <footer>Mitarbeitende CHF {{ option.prices.internal_rappen|chf }} · Externe CHF {{ option.prices.external_rappen|chf }}</footer>
+      <footer class="card-footer"><span>Mitarbeitende CHF {{ option.prices.internal_rappen|chf }}</span><span>Externe CHF {{ option.prices.external_rappen|chf }}</span></footer>
     </section>
     {% endfor %}
+    </div>
     {% else %}
-    {% for option_type in ('Menü 1', 'Vegetarisch') %}
-    <section class="cafe-week-slot {{ 'veggie' if loop.last else '' }}">
-      <div class="slot-type">{{ option_type }}</div>
-      <div class="slot-body"><h3>Geschlossen</h3><p>{{ meal.notice }}</p></div>
-      <footer>Kein Mittagsservice</footer>
-    </section>
-    {% endfor %}
+    <div class="card-body cafe-week-closed text-center">
+      <h3>Geschlossen</h3><p>{{ meal.notice }}</p><p>Kein Mittagsservice</p>
+    </div>
     {% endif %}
   </article>
+  </div>
   {% endfor %}
 </section>
 {% endblock %}

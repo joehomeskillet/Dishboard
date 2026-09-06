@@ -548,8 +548,8 @@ def test_real_routes_render_exact_profile_grids_without_cross_profile_data(app: 
     cafeteria = client.get('/signage/cafeteria/woche').get_data(as_text=True)
     patient = client.get('/signage/patienten/woche').get_data(as_text=True)
 
-    assert len(re.findall(r'class="cafe-week-day"', cafeteria)) == 5
-    assert len(re.findall(r'class="cafe-week-slot(?: [^"]*)?"', cafeteria)) == 10
+    assert len(re.findall(r'class="[^"]*\bcafe-week-day\b[^"]*"', cafeteria)) == 5
+    assert len(re.findall(r'class="[^"]*\bcafe-week-slot\b[^"]*"', cafeteria)) == 10
     assert cafeteria.count('Mitarbeitende CHF') == 10
     assert cafeteria.count('Externe CHF') == 10
     assert 'Pastetli mit Brätkügeli' not in cafeteria
