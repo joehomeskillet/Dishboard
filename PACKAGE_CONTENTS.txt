@@ -383,6 +383,7 @@ docs/design/2026-09-05-admin-week-actions.md
 docs/design/2026-09-05-admin-workflow-shell.md
 docs/design/2026-09-05-screens-vorlagen-verwaltung.md
 docs/design/2026-09-06-miseos-tabler-adaption.md
+docs/design/2026-09-06-pdfme-tabler-fit.md
 docs/design/admin-redesign-ui.md
 docs/design/admin-tabler-contract.md
 docs/design/country-select-source.md
@@ -405,12 +406,14 @@ docs/superpowers/allergen-proposals-0905.md
 docs/superpowers/api-claude-handoff-0906.md
 docs/superpowers/backlog-execution-0906.md
 docs/superpowers/branding-legends-0906.md
+docs/superpowers/iam-local-user-management-0906.md
 docs/superpowers/metadata-visibility-0905.md
 docs/superpowers/plans/2026-09-01-dishboard-menuplanung.md
 docs/superpowers/plans/2026-09-02-dishboard-admin-redesign.md
 docs/superpowers/specs/2026-09-02-dishboard-admin-redesign-design.md
 docs/superpowers/specs/2026-09-05-dishboard-api-mcp-fhir-design.md
 docs/superpowers/tabler-sdd-user-2026-09-05.md
+docs/superpowers/ui003-delivery-0906.md
 docs/superpowers/week-management-0905.md
 entra/app-roles-manifest.json
 entra/configure-entra-app.ps1
@@ -946,6 +949,7 @@ reference_scaffold/tests/test_branding_routes.py
 reference_scaffold/tests/test_branding_store.py
 reference_scaffold/tests/test_capture_admin_live_proof.py
 reference_scaffold/tests/test_capture_admin_tabler_browser.py
+reference_scaffold/tests/test_capture_branding_live_proof.py
 reference_scaffold/tests/test_capture_live_screenshots.py
 reference_scaffold/tests/test_component_assignment_db.py
 reference_scaffold/tests/test_component_assignment_races_db.py
@@ -1003,6 +1007,7 @@ reference_scaffold/tests/test_public_equal_cards_browser.py
 reference_scaffold/tests/test_public_isolation_homoglyphs.py
 reference_scaffold/tests/test_public_mobile_ui.py
 reference_scaffold/tests/test_public_print_legend.py
+reference_scaffold/tests/test_public_week_no_images.py
 reference_scaffold/tests/test_publication_lock_contract_db.py
 reference_scaffold/tests/test_rendered_ui.py
 reference_scaffold/tests/test_signage_cafeteria_day.py
@@ -1044,6 +1049,7 @@ tools/build_manifest.py
 tools/build_sdd_docx.py
 tools/capture_admin_live_proof.py
 tools/capture_admin_settings_live_proof.py
+tools/capture_branding_live_proof.py
 tools/capture_live_screenshots.py
 tools/capture_screenshots.py
 tools/demo_snapshots.py
