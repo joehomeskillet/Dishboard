@@ -497,12 +497,18 @@ def test_week_context_reports_times_only_when_they_are_set(database_engine):  # 
     )
     assert after['services'][0]['start'] == '11:30' and after['services'][0]['end'] == '13:30'
     assert all(
-        'start' not in service for service in after['services'][1:]
+        'start' not in service and 'end' not in service for service in after['services'][1:]
     )
+    assert after['services'][1:] == before['services'][1:]
+    assert set(after['services'][0]) - set(before['services'][0]) == {'start', 'end'}
+    # Eine Zeitänderung erhöht die Serviceversion und entwertet damit den Prüfbeleg.
+    assert after['services'][0]['row_version'] == before['services'][0]['row_version'] + 1
     assert {key: value for key, value in after['services'][0].items()
-            if key not in {'start', 'end'}} == before['services'][0]
-    with database_engine.begin() as connection:
-        with pytest.raises(DBAPIError):
+            if key not in {'start', 'end', 'row_version'}} == {
+        key: value for key, value in before['services'][0].items() if key != 'row_version'
+    }
+    with pytest.raises(DBAPIError):
+        with database_engine.begin() as connection:
             connection.execute(text(
                 "UPDATE cafeteria.menu_services SET service_start='13:30', service_end='11:30' "
                 'WHERE id=(SELECT min(id) FROM cafeteria.menu_services)'
