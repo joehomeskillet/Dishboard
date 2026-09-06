@@ -117,3 +117,40 @@ def test_pytest_failure_is_not_hidden_by_skips(monkeypatch, capsys, summary, off
     output = capsys.readouterr().out
     assert '[FEHLER] Vertragstests fehlgeschlagen: ' + summary in output
     assert '[OK] Flask-Routen, Jinja-Templates und Vertragstests geprueft' not in output
+
+
+@pytest.mark.parametrize('fault', [None, 'schema17', 'tables32', 'missing', 'modified'])
+def test_package_requires_branding_schema_and_pinned_migration(monkeypatch, capsys, fault):
+    migration = ROOT / 'database/migrations/0015_v17_to_v18.sql'
+    actual_run, actual_is_file, actual_sha256 = validator.run, Path.is_file, validator.sha256
+
+    def bounded_run(command, cwd):
+        if command[1:3] == ['-m', 'pytest']:
+            return subprocess.CompletedProcess(command, 0, 'Focused subprocess gate stub\n', '')
+        result = actual_run(command, cwd)
+        if command[1:2] == ['database/validate_schema.py'] and fault in {'schema17', 'tables32'}:
+            status = json.loads(result.stdout)
+            status['schema_version' if fault == 'schema17' else 'tables'] = 17 if fault == 'schema17' else 32
+            return subprocess.CompletedProcess(command, result.returncode, json.dumps(status), result.stderr)
+        return result
+
+    monkeypatch.setattr(validator, 'run', bounded_run)
+    monkeypatch.setattr(Path, 'is_file', lambda path: False if path == migration and fault == 'missing' else actual_is_file(path))
+    monkeypatch.setattr(validator, 'sha256', lambda path: '0' * 64 if path == migration and fault == 'modified' else actual_sha256(path))
+    monkeypatch.setattr(sys, 'argv', ['validate_package.py', '--root', str(ROOT), '--offline'])
+    result = validator.main()
+    output = capsys.readouterr().out
+    errors = {
+        'schema17': '[FEHLER] Schema-Version ist nicht 18.',
+        'tables32': '[FEHLER] Schema enthaelt nicht 33 Tabellen.',
+        'missing': '[FEHLER] Migration-Datei fehlt: 0015_v17_to_v18.sql',
+        'modified': '[FEHLER] Migration-Checksum falsch 0015_v17_to_v18.sql:',
+    }
+    if fault:
+        assert result == 1 and errors[fault] in output
+        if fault == 'missing':
+            assert '[FEHLER] Pflichtdatei fehlt: database/migrations/0015_v17_to_v18.sql' in output
+    else:
+        assert all(message not in output for message in errors.values())
+        assert 'database/migrations/0015_v17_to_v18.sql' in validator.REQUIRED_FILES
+        assert validator.MIGRATION_CHECKSUMS[migration.name] == actual_sha256(migration)
