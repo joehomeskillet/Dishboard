@@ -1,0 +1,67 @@
+/* Tabler adapter for public menus; shared tokens remain the colour authority. */
+:root {
+  --tblr-font-sans-serif: var(--sh-font);
+  --tblr-body-font-family: var(--sh-font);
+  --tblr-body-font-size: 1rem;
+  --tblr-body-line-height: 1.45;
+  --tblr-body-color: var(--sh-ink);
+  --tblr-body-bg: var(--sh-canvas);
+  --tblr-secondary: var(--sh-neutral-2);
+  --tblr-primary: var(--sh-primary);
+  --tblr-primary-fg: var(--sh-white);
+  --tblr-primary-lt: var(--sh-magenta-soft);
+  --tblr-primary-lt-fg: var(--sh-primary);
+  --tblr-primary-darken: var(--sh-primary-2);
+  --tblr-green: var(--sh-green);
+  --tblr-green-lt: var(--sh-green-soft);
+  --tblr-green-lt-fg: var(--sh-green);
+  --tblr-teal: var(--sh-secondary);
+  --tblr-teal-lt: var(--sh-teal-100);
+  --tblr-teal-lt-fg: var(--sh-teal-950);
+  --tblr-info: var(--sh-secondary);
+  --tblr-info-lt: var(--sh-teal-100);
+  --tblr-info-lt-fg: var(--sh-teal-950);
+  --tblr-link-color: var(--sh-primary);
+  --tblr-link-hover-color: var(--sh-teal-950);
+  --tblr-bg-surface: var(--sh-panel);
+  --tblr-bg-surface-tertiary: var(--sh-panel-soft);
+  --tblr-border-color: var(--sh-border);
+  --tblr-border-color-translucent: var(--sh-border);
+  --tblr-border-radius: var(--sh-radius-sm);
+  --tblr-border-radius-lg: var(--sh-radius-lg);
+  --tblr-shadow-card: var(--sh-shadow-soft);
+  --tblr-active-bg: var(--sh-magenta-soft);
+}
+.public-page { overflow-wrap: anywhere; }
+.public-page .page-wrapper, .public-page .col { min-width: 0; }
+.public-page .navbar { --tblr-navbar-bg: var(--sh-panel); }
+.public-page a { min-height: 48px; }
+.public-page .btn, .public-page .footer a, .public-page .site-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+.public-page .site-logo { margin: 0; }
+.public-page .site-logo-img { width: 205px; max-width: 100%; height: auto; }
+.public-page .page-title { font-size: clamp(1.75rem, 3vw, 2.75rem); line-height: 1.15; }
+.public-page .card-title { font-size: 1.375rem; line-height: 1.3; font-weight: 600; }
+.public-page .card-header > div { min-width: 0; }
+.public-page .card-body .d-flex > div { min-width: 0; }
+.public-page .page-header { margin-top: 2rem; }
+.public-page .week-nav { gap: .5rem; }
+.public-page .week-nav .nav-link { flex: 1 1 6rem; }
+.public-page .week-day-section { scroll-margin-top: 1rem; }
+.public-page .card-img-top { overflow: hidden; }
+.public-page .menu-photo { max-width: none; margin: 0; }
+.public-page .menu-photo figcaption { padding: .5rem 1.25rem; margin: 0; }
+.public-page .labels, .public-page .signage-tags { overflow-wrap: anywhere; }
+.public-page :focus-visible {
+  outline: 2px solid var(--sh-primary);
+  outline-offset: 3px;
+  box-shadow: var(--sh-focus);
+}
+@media (max-width: 575.98px) {
+  .public-page .site-logo-img { width: 180px; }
+  .public-page .date-chip { white-space: normal; text-align: left; }
+}

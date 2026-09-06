@@ -204,7 +204,7 @@ def _inline_css(html: str) -> str:
 def test_inline_css_preserves_shared_tokens_and_font_faces(app: Flask) -> None:
     html = app.test_client().get('/cafeteria/heute/').get_data(as_text=True)
     inlined = _inline_css(html)
-    for filename in ('tokens.css', 'app.css'):
+    for filename in ('tokens.css', 'public.css'):
         assert CSS_PATH.with_name(filename).read_text(encoding='utf-8') in inlined
         assert f'href="/static/{filename}"' not in inlined
     assert inlined.count('@font-face') == 4
@@ -323,7 +323,7 @@ def test_public_headers_keep_navigation_left_and_logo_right(app: Flask, browser:
     )
     for path in paths:
         html = client.get(path).get_data(as_text=True)
-        assert html.index('class="site-nav"') < html.index('class="site-logo"')
+        assert html.index('site-nav') < html.index('site-logo')
 
         for width in (390, 1440):
             page = _page(browser, html, width, 900)
@@ -372,9 +372,9 @@ def test_public_patient_week_title_uses_date_range_and_no_profile_banners(app: F
     html = client.get('/patienten/wochenplan/').get_data(as_text=True)
     print_html = client.get('/druck/patienten/woche').get_data(as_text=True)
 
-    expected_heading = '<h1>31. August 2026 bis 6. September 2026</h1>'
-    assert expected_heading in html
-    assert expected_heading in print_html
+    expected_heading = '31. August 2026 bis 6. September 2026'
+    assert f'<h1 class="page-title">{expected_heading}</h1>' in html
+    assert f'<h1>{expected_heading}</h1>' in print_html
     for path in (
         '/cafeteria/heute/',
         '/cafeteria/wochenangebot/',
@@ -480,8 +480,8 @@ def test_week_and_signage_routes_render_canonical_metadata_once_and_contained(
     browser: Browser,
 ) -> None:
     route_contracts = (
-        ('patient', '/patienten/wochenplan/', '.week-menu'),
-        ('staff_guest', '/cafeteria/wochenangebot/', '.week-menu'),
+        ('patient', '/patienten/wochenplan/', '.card'),
+        ('staff_guest', '/cafeteria/wochenangebot/', '.card'),
         ('patient', '/druck/patienten/woche', '.week-menu'),
         ('staff_guest', '/druck/cafeteria/woche', '.week-menu'),
         ('patient', '/signage/patienten/woche', '.patient-week-option'),
