@@ -177,6 +177,24 @@ def test_unknown_allergens_and_text_fallback_are_not_dropped(fixture_page, tmp_p
     assert proof.outcome() == ('browser_passed', 0), proof.data['failures']
 
 
+@pytest.mark.parametrize('surface', ['patient-board', 'patient-duo', 'cafe-week-board'])
+@pytest.mark.parametrize('fault', [None, 'small-metadata', 'small-legend'])
+def test_patient_metadata_symbol_sizes_do_not_lower_legend_or_cafeteria_contract(
+        fixture_page, tmp_path, surface, fault):
+    entries = declaration() + declaration('Zutat: CH', kind='', asset='flags/ch.svg')
+    legend_entries = declaration() + declaration('Schweiz', kind='', asset='flags/ch.svg')
+    body = f'<div class="{surface}">' + menu(entries) + '</div>' + legend(legend_entries)
+    size, flag = (1.1, 1.5) if fault == 'small-metadata' else (1.2, 1.6)
+    css = f'[data-menu-metadata] .food-symbol{{height:{size}em;width:{size}em}}'
+    css += f'[data-menu-metadata] .food-symbol--country{{width:{flag}em}}'
+    if fault == 'small-legend':
+        css += '.food-legend .food-symbol{height:1.2em;width:1.2em}'
+    proof = tool.BrandingProof('https://fixture.invalid', tmp_path)
+    proof.legends(fixture_page(body, css), 'page', signage=True)
+    valid = surface.startswith('patient-') and fault is None
+    assert proof.outcome() == (('browser_passed', 0) if valid else ('failed', 1)), proof.data['failures']
+
+
 @pytest.mark.parametrize('count', [0, 1, 2, 3])
 def test_missing_or_wrong_card_counts_are_fatal(fixture_page, tmp_path, count):
     proof = tool.BrandingProof('https://fixture.invalid', tmp_path)
@@ -216,7 +234,9 @@ def test_rotation_checks_all_28_real_menu_cards_and_page_specific_legends(fixtur
     body += '<section data-signage-page hidden>' + menu(second) * 16 + legend(second) + '</section>'
     body += '<script src="/static/rotate.js"></script>'
     proof = tool.BrandingProof('https://fixture.invalid', tmp_path)
-    page = fixture_page(body)
+    page = fixture_page(body, '[data-signage-page]{display:grid;grid-template-columns:repeat(4,300px)}'
+                             '.food-legend{grid-column:1/-1}')
+    page.set_viewport_size({'width': 1920, 'height': 1080})
     proof.menu_evidence(page, tool.SIGNAGE[3], 'week')
     proof.legends(page, 'week', signage=True)
     proof.patient_rotation(page, 'week')
@@ -224,6 +244,32 @@ def test_rotation_checks_all_28_real_menu_cards_and_page_specific_legends(fixtur
     assert proof.data['observations']['week.visible_card_count'] == 12
     assert proof.data['observations']['week-page2.visible_card_count'] == 16
     assert (tmp_path / 'week-page2.png').is_file()
+
+
+@pytest.mark.parametrize('marker,counts,valid', [
+    ('legacy', (12, 16), True), ('ops', (8, 6, 8, 6), True),
+    ('legacy', (8, 6, 8, 6), False), ('ops', (12, 16), False),
+    ('ops', (8, 6, 7, 7), False), ('unknown', (12, 16), False),
+])
+def test_operator_patient_marker_enforces_each_page_count(
+        fixture_page, tmp_path, monkeypatch, marker, counts, valid):
+    body = f'<div data-signage-rotation="{marker}">'
+    for index, count in enumerate(counts):
+        body += '<section data-signage-page' + (' hidden' if index else '') + '>'
+        body += menu(warning=tool.WARNINGS[0]) * count + legend(warning=tool.WARNINGS[0]) + '</section>'
+    page = fixture_page(body + '</div>', '[data-signage-page]{display:grid;grid-template-columns:repeat(4,300px)}'
+                                        '.food-legend{grid-column:1/-1}')
+    page.set_viewport_size({'width': 1920, 'height': 1080})
+    proof = tool.BrandingProof('https://fixture.invalid', tmp_path)
+    proof.menu_evidence(page, tool.SIGNAGE[3], 'week')
+
+    def rotate(expression, **kwargs):
+        page.evaluate('index => [...document.querySelectorAll("[data-signage-page]")]'
+                      '.forEach((node, i) => node.hidden = i !== index)', kwargs['arg'])
+
+    monkeypatch.setattr(page, 'wait_for_function', rotate)
+    proof.patient_rotation(page, 'week')
+    assert proof.outcome() == (('browser_passed', 0) if valid else ('failed', 1)), proof.data['failures']
 
 
 @pytest.mark.parametrize('fault', [None, 'primary', 'font_body'])
@@ -382,6 +428,7 @@ def test_cli_fails_honestly_and_never_serializes_exception_secrets(tmp_path, mon
     monkeypatch.setattr(tool.BrandingProof, 'login', lambda *_: None)
     monkeypatch.setattr(tool.BrandingProof, 'capture', lambda *_a, **_kw: None)
     monkeypatch.setattr(tool.BrandingProof, 'patient_rotation', lambda *_: None)
+    monkeypatch.setattr(tool.BrandingProof, 'cafeteria_rotation', lambda *_: None)
 
     def editor(proof, *_):
         if condition == 'exception':

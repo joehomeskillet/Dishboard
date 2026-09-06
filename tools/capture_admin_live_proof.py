@@ -314,9 +314,9 @@ def capture_viewport(
                     capture(page, csv_response.value, stage, family == 'patienten')
                     check(f'{stage}.state', page.locator('main[data-state="ready"]').count() == 1)
                     result = page.locator('.csv-preview-result')
-                    target = result.locator('.csv-target')
-                    check(f'{stage}.profile', target.locator('strong').inner_text() == label)
-                    check(f'{stage}.week', re.search(r'\bKW 36\b.*31\.08\.2026', target.inner_text(), re.S) is not None)
+                    csv_target = result.locator('.csv-target')
+                    check(f'{stage}.profile', csv_target.locator('strong').inner_text() == label)
+                    check(f'{stage}.week', re.search(r'\bKW 36\b.*31\.08\.2026', csv_target.inner_text(), re.S) is not None)
                     form = result.locator('form[method="post"][action="/admin/import"]')
                     check(f'{stage}.import_form', form.count() == 1)
                     names = form.locator('input[name], select[name], textarea[name], button[name]').evaluate_all(

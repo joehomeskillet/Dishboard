@@ -11,9 +11,17 @@
 </div>
 {% endblock %}
 {% block content %}
+{# A board shows at most six days; a seven-day week rotates over two balanced pages. #}
+{% set per_page = open_days|length if open_days|length <= 6 else (open_days|length + 1) // 2 %}
+{% set week_pages = open_days|batch(per_page or 1)|list %}
+<div class="cafe-week-pages" data-signage-pages>
+{% for page_days in week_pages %}
 {% set declarations = namespace(options=[]) %}
-<section class="row g-3 cafe-week-layout cafe-week-board" aria-label="Montag bis Freitag mit je zwei Mittagsmenüs">
-  {% for day in open_days %}
+{% set page_label = page_days|weekday_range_label %}
+<section class="cafe-week-page" data-signage-page{% if not loop.first %} hidden{% endif %}>
+  {% if week_pages|length > 1 %}<p class="cafe-week-page-label">{{ page_label }} · Seite {{ loop.index }} von {{ week_pages|length }}</p>{% endif %}
+<section class="row g-3 cafe-week-layout cafe-week-board" aria-label="{{ page_label }} mit je zwei Mittagsmenüs">
+  {% for day in page_days %}
   {% set meal = day.services[0] %}
   <div class="col">
   <article class="card card-sm cafe-week-day">
@@ -45,5 +53,8 @@
   </div>
   {% endfor %}
 </section>
-{{ legend(declarations.options) }}
+  {{ legend(declarations.options) }}
+</section>
+{% endfor %}
+</div>
 {% endblock %}

@@ -123,9 +123,10 @@ p{text-wrap:pretty}
 .signage-cafe-week .signage-weekday{grid-column:1/-1;font-size:clamp(42px,2.19vw,84px);line-height:1.2}
 .signage-cafe-week .signage-calendar-date,.signage-cafe-week .signage-clock{margin:0}
 .signage-cafe-week .signage-logo{height:clamp(42px,2.19vw,84px)}
-.cafe-week-board.row{display:flex;flex-wrap:nowrap;margin:0;gap:0;--tblr-gutter-x:1vw}
-.cafe-week-board>.col{display:flex;min-width:0;min-height:0;margin-top:0}
-.cafe-week-board .cafe-week-day{flex:1;grid-template-rows:auto minmax(0,1fr);gap:0;border:0;border-radius:var(--sh-radius-lg);color:var(--sh-ink);background:var(--sh-panel);box-shadow:var(--sh-shadow-soft)}
+/* One shared header row keeps every day card equal, however date and time wrap. */
+.cafe-week-board.row{display:grid;grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);margin:0;gap:0;--tblr-gutter-x:1vw}
+.cafe-week-board>.col{display:grid;grid-template-rows:subgrid;grid-row:span 2;min-width:0;min-height:0;margin-top:0}
+.cafe-week-board .cafe-week-day{display:grid;grid-template-rows:subgrid;grid-row:span 2;gap:0;border:0;border-radius:var(--sh-radius-lg);color:var(--sh-ink);background:var(--sh-panel);box-shadow:var(--sh-shadow-soft)}
 .cafe-week-board .card-header{justify-content:space-between;gap:.3vw;padding:.6vh .6vw;border-radius:var(--sh-radius-lg) var(--sh-radius-lg) 0 0;color:var(--sh-teal-950);background:var(--sh-teal-100)!important}
 .cafe-week-board .card-header h2{font-size:clamp(24px,1.25vw,48px);font-weight:600;line-height:1.2}
 .cafe-week-board .card-header span{margin:0;color:var(--sh-ink-muted);font-size:clamp(18px,.94vw,36px)}
@@ -175,13 +176,21 @@ p{text-wrap:pretty}
 .patient-duo .food-symbol,.patient-board .food-symbol{display:inline-block;width:1.2em;height:1.2em;flex:none;object-fit:contain;margin-right:.2em}
 .patient-duo .food-symbol--country,.patient-board .food-symbol--country{width:1.6em}
 .patient-duo .patient-duo-closed.card{display:flex;justify-content:center;padding:2vh 1vw}
+.patient-week-pages,.patient-week-page,.cafe-week-pages,.cafe-week-page{display:flex;flex:1;flex-direction:column;min-height:0}
+.patient-week-page[hidden],.cafe-week-page[hidden]{display:none}
+.patient-board-page-label,.cafe-week-page-label{margin:0 0 .5vh;color:var(--sh-white);font-size:clamp(18px,.94vw,36px);line-height:1.2}
+/* Legacy board (snapshot without 'area_name'): three or four quarter-width day cards
+   carrying both meals, exactly the geometry those publications show today. */
 .patient-board-shell{padding:1.8vh 1.1vw 1.5vh;gap:1vh}
-.patient-week-pages,.patient-week-page{display:flex;flex:1;flex-direction:column;min-height:0}
-.patient-week-page[hidden]{display:none}
-.patient-board-page-label{margin:0 0 .5vh;color:var(--sh-white);font-size:clamp(18px,.94vw,36px);line-height:1.2}
 .patient-board.row{display:flex;flex-wrap:nowrap;gap:.45vw;margin:0;--tblr-gutter-x:0}
 .patient-board .patient-week-day.card{display:grid;grid-template-rows:auto repeat(2,minmax(0,1fr));flex:0 0 calc((100% - 1.35vw)/4);gap:0;padding:0;margin:0;border:0;border-radius:var(--sh-radius-md);background:var(--sh-panel);box-shadow:var(--sh-shadow-soft)}
 .patient-board .patient-week-day>.card-header{min-height:0;padding:.6vh .3vw;border-radius:0;background:var(--sh-teal-100);color:var(--sh-ink);gap:0}
+/* OPS board: one meal per page; shared headers preserve equal menu-card geometry. */
+.patient-week-shell--ops.patient-board-shell{padding:1.4vh 1.1vw 1.2vh;gap:.8vh}
+.patient-board--ops.row{display:grid;grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:calc((100% - 1.35vw)/4);grid-template-rows:auto auto minmax(0,1fr);justify-content:start;gap:0 .45vw;margin:0;--tblr-gutter-x:0}
+.patient-board--ops .patient-week-day.card{grid-template-rows:subgrid;grid-row:span 3;flex:none}
+.patient-board--ops .patient-week-cell{display:grid;grid-template-rows:subgrid;grid-row:span 2}
+.patient-board--ops .patient-week-day>.card-header{padding:.4vh .3vw}
 .patient-board .patient-week-day>.card-header h2{font-size:clamp(22px,1.15vw,46px);line-height:1.2}
 .patient-board .patient-week-day>.card-header span{margin:0;color:var(--sh-ink-muted);font-size:clamp(18px,.94vw,36px);line-height:1.2}
 .patient-board .patient-week-cell{border-radius:0;background:var(--sh-panel);overflow:visible}

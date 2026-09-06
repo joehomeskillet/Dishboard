@@ -44,6 +44,7 @@ def test_patient_rotation_keeps_legends_with_their_page_and_recovers(
     for index, day in enumerate(snapshot['days']):
         for service in day['services']:
             for option in service['options']:
+                # Legacy keeps Monday to Wednesday, then Thursday to Sunday, with both meals.
                 code, name = ('MILK', 'Milch') if index < 3 else ('NUTS', 'Schalenfrüchte')
                 option.update(
                     allergens=[{'code': code, 'name': name, 'presence': 'contains'}],
