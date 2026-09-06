@@ -223,8 +223,8 @@ def test_patient_weekend_still_rejects_prices(database_engine):
     assert error.value.orig.sqlstate == '23514'
 
 
-def test_cafeteria_dinner_prices_stay_forbidden(database_engine):
-    """Die Mahlzeitenregel bleibt unverändert, auch ohne Wochentagsprüfung im Preis-Trigger."""
+def test_patient_dinner_prices_stay_forbidden(database_engine):
+    """Der Profilzweig des Preis-Triggers hält: Patienten bleiben preisfrei, auch am Abend."""
     from test_database_invariants import _insert_item, _insert_service, _insert_week
     week = _insert_week(database_engine, 'patient')
     service = _insert_service(database_engine, week, WEEK_START.isoformat(), 'DINNER')
@@ -233,3 +233,25 @@ def test_cafeteria_dinner_prices_stay_forbidden(database_engine):
         with database_engine.begin() as connection:
             _price_insert(connection, item)
     assert error.value.orig.sqlstate == '23514'
+
+
+def test_cafeteria_dinner_service_never_exists_so_no_dinner_price_can_be_reached(database_engine):
+    """Der LUNCH-only-Guard der Cafeteria greift eine Ebene früher.
+
+    `validate_menu_service` lehnt jeden `staff_guest`-Service ab, dessen Mahlzeit nicht LUNCH ist.
+    Deshalb existiert nie eine Cafeteria-Menüposition am Abend, und der Mahlzeitenzweig von
+    `validate_menu_item_price` ist für die Cafeteria nicht erreichbar. Das ist der Grund, warum das
+    Entfallen der Wochentagsprüfung im Preis-Trigger die Mahlzeitenregel nicht aufweicht.
+    """
+    from test_database_invariants import _insert_service, _insert_week
+    week = _insert_week(database_engine, 'staff_guest')
+    with pytest.raises(DBAPIError) as error:
+        _insert_service(database_engine, week, WEEK_START.isoformat(), 'DINNER')
+    assert error.value.orig.sqlstate == '23514'
+    assert 'Cafeteria erlaubt ausschliesslich LUNCH.' in str(error.value.orig)
+    with database_engine.connect() as connection:
+        assert connection.execute(text("""SELECT count(*) FROM cafeteria.menu_services s
+            JOIN cafeteria.menu_weeks w ON w.id=s.menu_week_id
+            JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+            JOIN cafeteria.meal_periods m ON m.id=s.meal_period_id
+            WHERE p.code='staff_guest' AND m.code<>'LUNCH'""")).scalar_one() == 0
