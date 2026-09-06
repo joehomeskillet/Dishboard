@@ -58,6 +58,7 @@ def test_patient_rotation_keeps_legends_with_their_page_and_recovers(
             expect(legend).to_contain_text(f'Enthält: {wanted}')
             assert absent not in legend.inner_text()
             assert 'Fisch' not in legend.inner_text() and 'Sesam' not in legend.inner_text()
+            assert 'Sesam' not in page.locator('body').inner_text()
             _assert_legend_fits(page)
             page.screenshot(path=str(tmp_path / f'patient-week-legend-{index}-{width}.png'))
         application.config['TEST_SNAPSHOTS']['patient'] = None

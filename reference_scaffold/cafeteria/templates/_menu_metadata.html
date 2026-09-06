@@ -1,5 +1,6 @@
 {% from '_food_symbols.html' import symbol, allergen_text %}
 {% set tabler = tabler_admin|default(false) %}
+{% if option.title is not defined or option.title %}
 <div data-menu-metadata>
   {% if option.description %}<p class="menu-description">{{ option.description }}</p>{% endif %}
   {% if option.note %}<p class="shared-note">{{ option.note }}</p>{% endif %}
@@ -14,3 +15,4 @@
     <p>Allergenprüfung offen</p>
   {% endif %}
 </div>
+{% endif %}

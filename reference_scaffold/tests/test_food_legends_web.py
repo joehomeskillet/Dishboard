@@ -56,6 +56,7 @@ def test_web_legends_follow_rendered_options_over_real_http(
         assert text.count('Enthält: Milch') == text.count('Kann enthalten: Milch') == 1
         assert text.count('Schweiz') == text.count('Vegetarisch') == 1
         assert 'Fisch' not in text and 'Sesam' not in text
+        assert 'Sesam' not in page.locator('body').inner_text()
         assert ('Schalenfrüchte' in text) == weekly
         assert 'Allergenprüfung offen' in text
         assert ('Allergenangaben nicht erfasst' in text) == (weekly or profile == 'patient')
