@@ -30,11 +30,7 @@ def create_app() -> Flask:
     from .public.routes import bp as public_bp
     from .signage.routes import bp as signage_bp
     from .auth.routes import bp as auth_bp
-    from .admin.workflow_routes import bp as admin_bp
-    from .admin import menu_collection_routes  # noqa: F401 - register collection routes
-    from .admin import week_management_routes  # noqa: F401 - register week management
-    from .admin import api_routes  # noqa: F401 - register API admin page
-    from .admin import display_routes  # noqa: F401 - register global display settings
+    from .admin import bp as admin_bp
     from .api.routes import bp as api_bp
     from .api.v1_routes import bp as api_v1_bp
     from .api.docs_routes import bp as api_docs_bp
