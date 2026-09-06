@@ -7,13 +7,19 @@ from sqlalchemy.pool import NullPool
 from werkzeug.datastructures import MultiDict
 
 from cafeteria.admin import display_routes  # noqa: F401 - register settings with shared blueprint
-from cafeteria.display_settings import get_admin_density, set_admin_density
+from cafeteria.display_settings import (
+    DEFAULT_ADMIN_DISPLAY, get_admin_density, get_admin_display, set_admin_density, set_admin_display,
+)
 
 from test_admin_workflow_routes import (  # noqa: F401
     APP_PASSWORD, _hidden, _login, app, client, database_engine,
 )
 
 PATH = '/admin/design/darstellung'
+
+
+def _form(**overrides):
+    return {'_csrf': 'workflow-csrf', 'action': 'save', **DEFAULT_ADMIN_DISPLAY, **overrides}
 
 
 def test_default_and_global_save_preserve_other_settings(client, database_engine):  # noqa: F811
@@ -31,7 +37,7 @@ def test_default_and_global_save_preserve_other_settings(client, database_engine
             VALUES ('unrelated_setting', jsonb_build_object('keep', true))
         """))
     for value in ('comfortable', 'compact'):
-        result = client.post(PATH, data={'_csrf': csrf, 'admin_density': value})
+        result = client.post(PATH, data=_form(_csrf=csrf, admin_density=value))
         assert result.status_code == 303 and result.location == PATH
         assert result.headers['Cache-Control'] == 'no-store'
         assert f'data-density="{value}"' in client.get('/admin/patienten').get_data(as_text=True)
@@ -52,7 +58,7 @@ def test_default_and_global_save_preserve_other_settings(client, database_engine
 def test_only_current_admin_can_read_or_change_settings(app, database_engine, role):  # noqa: F811
     user, _ = _login(app, database_engine, [role])
     assert user.get(PATH).status_code == 403
-    assert user.post(PATH, data={'_csrf': 'workflow-csrf', 'admin_density': 'comfortable'}).status_code == 403
+    assert user.post(PATH, data=_form(admin_density='comfortable')).status_code == 403
     html = user.get('/admin/cafeteria').get_data(as_text=True)
     assert 'data-density="compact"' in html
     assert f'href="{PATH}"' not in html
@@ -62,7 +68,7 @@ def test_only_current_admin_can_read_or_change_settings(app, database_engine, ro
 
 @pytest.mark.parametrize('value', ['', 'dense', 'COMPACT', ' compact ', 'comfortable<script>', 'true'])
 def test_invalid_density_has_field_error_and_does_not_write(client, database_engine, value):  # noqa: F811
-    response = client.post(PATH, data={'_csrf': 'workflow-csrf', 'admin_density': value})
+    response = client.post(PATH, data=_form(admin_density=value))
     assert response.status_code == 400
     assert response.headers['Cache-Control'] == 'no-store'
     body = response.get_data(as_text=True)
@@ -72,12 +78,13 @@ def test_invalid_density_has_field_error_and_does_not_write(client, database_eng
 
 
 def test_csrf_duplicates_override_query_and_stale_session_are_rejected(client, app, database_engine):  # noqa: F811
-    valid = {'_csrf': 'workflow-csrf', 'admin_density': 'comfortable'}
+    valid = _form(admin_density='comfortable')
     for fields in (
         {**valid, '_csrf': 'wrong'}, {'admin_density': 'comfortable'},
-        {**valid, 'location_id': '1'}, {**valid, 'actor_id': '1'},
+        {**valid, 'location_id': '1'}, {**valid, 'actor_id': '1'}, {**valid, 'action': 'unknown'},
         MultiDict([*valid.items(), ('admin_density', 'compact')]),
         MultiDict([*valid.items(), ('_csrf', 'workflow-csrf')]),
+        MultiDict([*valid.items(), ('action', 'reset')]),
     ):
         assert client.post(PATH, data=fields).status_code == 400
     assert client.get(PATH + '?profile=patient').status_code == 400
@@ -97,18 +104,29 @@ def test_real_app_role_can_save_only_for_current_admin_and_all_users_see_it(app,
     try:
         set_admin_density(runtime, actor, version, 'comfortable')
         assert get_admin_density(runtime) == 'comfortable'
+        values = {**DEFAULT_ADMIN_DISPLAY, 'admin_density': 'comfortable', 'admin_font_size': 'large',
+                  'admin_content_width': 'full', 'admin_menu_images': 'hide'}
+        set_admin_display(runtime, actor, version, values)
+        assert get_admin_display(runtime) == values
         with pytest.raises(PermissionError):
             set_admin_density(runtime, actor, version + 1, 'compact')
+        with pytest.raises(PermissionError):
+            set_admin_display(runtime, actor, version + 1, DEFAULT_ADMIN_DISPLAY)
         editor, _ = _login(app, database_engine, ['Cafeteria.Editor'])
         with editor.session_transaction() as session:
             editor_version = session['authz_version']
         with pytest.raises(PermissionError):
             set_admin_density(runtime, actor, editor_version, 'compact')
+        with pytest.raises(PermissionError):
+            set_admin_display(runtime, actor, editor_version, DEFAULT_ADMIN_DISPLAY)
         for family in ('cafeteria', 'patienten'):
             response = editor.get(f'/admin/{family}')
             assert response.status_code == 200
             body = response.get_data(as_text=True)
             assert 'data-density="comfortable"' in body
+            assert 'data-font-size="large"' in body
+            assert 'data-content-width="full"' in body
+            assert 'data-menu-images="hide"' in body
             assert f'href="{PATH}"' not in body
         assert get_admin_density(runtime) == 'comfortable'
     finally:
@@ -128,5 +146,38 @@ def test_scoped_settings_and_malformed_values_cannot_override_global_default(cli
     assert get_admin_density(database_engine) == 'compact'
     response = client.get(PATH)
     assert response.status_code == 200 and 'data-density="compact"' in response.get_data(as_text=True)
-    assert client.post(PATH, data={'_csrf': 'workflow-csrf', 'admin_density': 'comfortable'}).status_code == 303
+    assert client.post(PATH, data=_form(admin_density='comfortable')).status_code == 303
     assert get_admin_density(database_engine) == 'comfortable'
+
+
+@pytest.mark.parametrize('key', ['admin_font_size', 'admin_content_width', 'admin_menu_images'])
+@pytest.mark.parametrize('value', ['', 'invalid', '<script>', 'true'])
+def test_invalid_display_option_rejects_entire_change(client, database_engine, key, value):  # noqa: F811
+    response = client.post(PATH, data=_form(**{key: value}, admin_density='comfortable'))
+    assert response.status_code == 400
+    assert f'id="{key.replace("_", "-")}-error"' in response.get_data(as_text=True)
+    assert get_admin_display(database_engine) == DEFAULT_ADMIN_DISPLAY
+
+
+def test_preview_does_not_write_and_reset_persists_all_defaults(client, database_engine):  # noqa: F811
+    values = {'admin_density': 'comfortable', 'admin_font_size': 'large',
+              'admin_content_width': 'full', 'admin_menu_images': 'hide'}
+    preview = client.post(PATH, data=_form(action='preview', **values))
+    assert preview.status_code == 200
+    assert 'Vorschau der Auswahl – noch nicht gespeichert.' in preview.get_data(as_text=True)
+    assert get_admin_display(database_engine) == DEFAULT_ADMIN_DISPLAY
+    assert client.post(PATH, data=_form(**values)).status_code == 303
+    assert get_admin_display(database_engine) == values
+    assert client.post(PATH, data=_form(action='reset', **values)).status_code == 303
+    assert get_admin_display(database_engine) == DEFAULT_ADMIN_DISPLAY
+
+
+def test_service_rejects_unknown_missing_or_malformed_options(app, database_engine):  # noqa: F811
+    admin, actor = _login(app, database_engine, ['Cafeteria.Admin'])
+    with admin.session_transaction() as session:
+        version = session['authz_version']
+    for values in ({'admin_density': 'compact'}, {**DEFAULT_ADMIN_DISPLAY, 'extra': 'show'},
+                   {**DEFAULT_ADMIN_DISPLAY, 'admin_menu_images': []}):
+        with pytest.raises(ValueError):
+            set_admin_display(database_engine, actor, version, values)
+    assert get_admin_display(database_engine) == DEFAULT_ADMIN_DISPLAY

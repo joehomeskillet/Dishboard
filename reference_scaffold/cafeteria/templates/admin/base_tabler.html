@@ -18,7 +18,7 @@
   <a class="skip-link" href="#main-content">Zum Inhalt springen</a>
   <div class="page">
     {% block sidebar %}{% include 'admin/_workflow_sidebar.html' %}{% endblock %}
-    <main id="main-content" class="page-wrapper admin-main" data-profile="{{ profile }}" data-density="{{ admin_density|default('compact') }}" tabindex="-1" {% block main_attributes %}{% endblock %}>
+    <main id="main-content" class="page-wrapper admin-main" data-profile="{{ profile }}" data-density="{{ admin_density|default('compact') }}" data-font-size="{{ admin_font_size|default('normal') }}" data-content-width="{{ admin_content_width|default('contained') }}" data-menu-images="{{ admin_menu_images|default('show') }}" tabindex="-1" {% block main_attributes %}{% endblock %}>
       <header>{% block page_header %}{% endblock %}</header>
       <div class="page-body"><div class="container-xl">
         {{ flash_region(get_flashed_messages()) }}

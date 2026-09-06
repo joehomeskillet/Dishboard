@@ -53,14 +53,14 @@ def test_compact_default_without_local_control_preserves_help_and_targets(
         page.goto(PATH)
         expect(page.get_by_label('Abstände', exact=True)).to_have_value('compact')
         expect(page.locator('#admin-density-hint')).to_be_visible()
-        assert page.locator('.card-body').evaluate('el => getComputedStyle(el).paddingTop') == '12px'
+        assert page.locator('#display-settings-form .card-body').evaluate('el => getComputedStyle(el).paddingTop') == '12px'
         _assert_controls(page)
         page.screenshot(path=str(tmp_path / f'display-compact-{width}-js-{javascript}.png'), full_page=True)
         if not javascript:
             page.get_by_label('Abstände', exact=True).select_option('comfortable')
             page.get_by_role('button', name='Darstellung speichern', exact=True).click()
             expect(page.locator('main')).to_have_attribute('data-density', 'comfortable')
-            assert page.locator('.card-body').evaluate('el => parseFloat(getComputedStyle(el).paddingTop)') > 12
+            assert page.locator('#display-settings-form .card-body').evaluate('el => parseFloat(getComputedStyle(el).paddingTop)') > 12
             _assert_controls(page)
             page.screenshot(path=str(tmp_path / f'display-comfortable-{width}-no-js.png'), full_page=True)
 

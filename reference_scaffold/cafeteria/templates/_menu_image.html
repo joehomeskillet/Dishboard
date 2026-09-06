@@ -1,5 +1,5 @@
 {% set image_file = option|menu_image %}
-{% if image_file %}
+{% if image_file and admin_menu_images|default('show') != 'hide' %}
 <figure class="menu-photo">
   <img src="{{ url_for('static', filename=image_file) }}" alt="Serviervorschlag: {{ option.title }}" width="1200" height="896" loading="lazy" decoding="async">
   <figcaption>KI-generierter Serviervorschlag</figcaption>

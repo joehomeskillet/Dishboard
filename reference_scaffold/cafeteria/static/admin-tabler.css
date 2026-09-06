@@ -71,3 +71,21 @@
   .dishboard-admin .admin-brand { margin: 8px 0; }
 }
 .dishboard-admin [data-density="compact"] .card-body { padding: 12px; }
+/* Persisted admin options and the local, unsaved settings preview share consumers. */
+.dishboard-admin :is(.admin-main, .display-preview)[data-font-size="large"] {
+  --admin-text-size: 1.125rem; --admin-title-size: 1.375rem; font-size: var(--admin-text-size);
+}
+.dishboard-admin .display-preview[data-font-size="normal"] {
+  --admin-text-size: 1rem; --admin-title-size: 1.125rem; font-size: var(--admin-text-size);
+}
+.dishboard-admin :is(.admin-main, .display-preview)[data-font-size="large"] :is(p, li, td, th, summary, .btn, .form-control, .form-select, .form-label, .form-hint, .badge, .nav-link),
+.dishboard-admin .display-preview :is(p, li, .btn, .form-control, .form-label, .form-hint, .badge) { font-size: var(--admin-text-size); }
+.dishboard-admin :is(.admin-main, .display-preview)[data-font-size="large"] :is(h2, h3, .card-title),
+.dishboard-admin .display-preview .card-title { font-size: var(--admin-title-size); }
+.dishboard-admin .admin-main[data-content-width="full"] > :is(header, .page-body) > .container-xl,
+.dishboard-admin .admin-main[data-content-width="full"] > header > .page-header > .container-xl { max-width: none; }
+.dishboard-admin .display-preview[data-content-width="contained"] { max-width: 48rem; margin-inline: auto; }
+.dishboard-admin .display-preview[data-density="comfortable"] .card-body { padding: 16px; }
+@media (min-width: 1200px) {
+  .dishboard-admin .display-preview[data-density="comfortable"] .card-body { padding: 24px; }
+}
