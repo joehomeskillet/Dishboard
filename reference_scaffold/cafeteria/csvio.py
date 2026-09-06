@@ -280,10 +280,9 @@ def _draft_values(profile: str, rows: list[dict[str, str]]) -> tuple[date, dict[
         if row['zustand'] == 'offen'
     }
     days = []
-    day_count = 7 if profile == 'patient' else 5
     meals = ('LUNCH', 'DINNER') if profile == 'patient' else ('LUNCH',)
-    for offset in range(day_count):
-        service_date = (week_start + timedelta(days=offset)).isoformat()
+    for day in sorted(set(dates)):
+        service_date = day.isoformat()
         services = []
         for meal_code in meals:
             matching = [

@@ -217,10 +217,9 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
             )
 
         if date_value is not None:
-            weekday = date_value.isoweekday()
-            if profile == 'staff_guest' and (weekday > 5 or meal != 'LUNCH'):
+            if profile == 'staff_guest' and meal != 'LUNCH':
                 add_error(
-                    'staff_guest erlaubt nur Montag bis Freitag und LUNCH.',
+                    'staff_guest erlaubt nur LUNCH.',
                     line=line_number,
                     field='mahlzeit',
                 )
@@ -370,8 +369,11 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
 
     if profile == 'staff_guest' and rows:
         expected_dates = {value for value in dates.values() if value.isoweekday() <= 5}
-        if len(rows) != 10 or len(expected_dates) != 5:
-            add_error('Cafeteria-Beispiel muss fünf Werktage × zwei Menüarten enthalten.')
+        if len(expected_dates) != 5 or not 5 <= len(dates) <= 7 or len(rows) != 2 * len(dates):
+            add_error(
+                'Cafeteria braucht fünf Werktage und optionale Wochenendtage '
+                'mit jeweils zwei Menüarten.'
+            )
         for slot_key, group in rows_by_date_meal.items():
             if {row.get('menueart') for _, row in group} != MENU_TYPES:
                 add_error(f'Slot {slot_key[0]}/{slot_key[1]} braucht MENU_1 und VEGGIE.')

@@ -254,7 +254,7 @@ def test_parse_service_form_rejects_the_form_shape_without_time_fields() -> None
         ('patient', {'day': '2026-09-07'}, 'day'),
         (
             'staff_guest',
-            {'day': '2026-09-05', 'internal_chf': '9.50', 'external_chf': '14.50'},
+            {'day': '2026-09-07', 'internal_chf': '9.50', 'external_chf': '14.50'},
             'day',
         ),
         (
@@ -670,7 +670,7 @@ def test_menu_form_rejects_reverse_misalignment_for_every_repeated_pair() -> Non
     [
         (parse_week_header_form, 'foreign', _header_partial_form(), 'profile'),
         (parse_service_form, 'staff_guest', _service_partial_form(meal='DINNER'), 'meal'),
-        (parse_service_form, 'staff_guest', _service_partial_form(day='2026-09-05'), 'day'),
+        (parse_service_form, 'staff_guest', _service_partial_form(day='2026-09-07'), 'day'),
     ],
 )
 def test_header_and_service_forms_reject_invalid_profile_raster(

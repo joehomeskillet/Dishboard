@@ -188,7 +188,7 @@ def _slot(
     except ValueError as error:
         raise WorkflowValidationError('Tag ist ungültig.', field_name='day') from error
     day_index = (service_day - week_start).days
-    if day_index not in range(PROFILE_DAYS[profile_code]):
+    if day_index not in range(7):
         raise WorkflowValidationError('Tag liegt ausserhalb des Menürasters.', field_name='day')
     meal = _scalar(form, 'meal')
     if meal not in PROFILE_MEALS[profile_code]:

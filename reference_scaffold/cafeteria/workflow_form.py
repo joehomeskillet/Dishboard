@@ -35,9 +35,9 @@ class ParsedDraft:
     values: dict[str, Any]
 
 
-def _field_names(profile_code: str) -> set[str]:
+def _field_names(profile_code: str, day_indexes: tuple[int, ...] | None = None) -> set[str]:
     names = {'_csrf', 'week_start', 'row_version', 'title', 'shared_note'}
-    for day_index in range(PROFILE_DAYS[profile_code]):
+    for day_index in day_indexes if day_indexes is not None else range(PROFILE_DAYS[profile_code]):
         for meal_code in PROFILE_MEALS[profile_code]:
             service = f'service_{day_index}_{meal_code}'
             names |= {f'{service}_state', f'{service}_notice'}
@@ -54,7 +54,7 @@ def _field_names(profile_code: str) -> set[str]:
 
 def _optional_field_names(profile_code: str) -> set[str]:
     names = set()
-    for day_index in range(PROFILE_DAYS[profile_code]):
+    for day_index in range(7):
         for meal_code in PROFILE_MEALS[profile_code]:
             service = f'service_{day_index}_{meal_code}'
             # Servicezeiten sind optional; ein fehlendes Feld heisst «keine Angabe».
@@ -139,7 +139,7 @@ def submitted_form_values(
     profile_code: str,
     form: Mapping[str, str],
 ) -> dict[str, str]:
-    expected = _field_names(profile_code)
+    expected = _field_names(profile_code, tuple(range(7)))
     optional_fields = _optional_field_names(profile_code)
     result = {key: _form_value(form, key) for key in expected if key in form}
     for key in form:
@@ -152,7 +152,11 @@ def parse_draft_form(profile_code: str, form: Mapping[str, str]) -> ParsedDraft:
     if profile_code not in PROFILE_MEALS:
         raise WorkflowValidationError('Unbekanntes Profil.')
     supplied = _single_values(profile_code, form)
-    expected = _field_names(profile_code)
+    day_indexes = tuple(range(PROFILE_DAYS[profile_code]))
+    if profile_code == 'staff_guest':
+        day_indexes += tuple(index for index in (5, 6)
+                             if any(key.startswith(f'service_{index}_') for key in supplied))
+    expected = _field_names(profile_code, day_indexes)
     optional_fields = _optional_field_names(profile_code)
     unexpected = set(supplied) - expected - optional_fields
     if unexpected:
@@ -187,7 +191,7 @@ def parse_draft_form(profile_code: str, form: Mapping[str, str]) -> ParsedDraft:
             field_name='title',
         )
     days = []
-    for day_index in range(PROFILE_DAYS[profile_code]):
+    for day_index in day_indexes:
         services = []
         for meal_code in PROFILE_MEALS[profile_code]:
             service_prefix = f'service_{day_index}_{meal_code}'

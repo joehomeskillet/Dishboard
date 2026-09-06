@@ -110,8 +110,8 @@ def _validate_values(profile_code: str, week_start: date, values: dict[str, Any]
     if not isinstance(values['shared_note'], str):
         raise WorkflowValidationError('Wochenhinweis ist ungültig.')
     days = values['days']
-    # Die Cafeteria darf fünf Werktage oder die volle Woche führen (Wochenendbetrieb).
-    allowed_day_counts = {PROFILE_DAYS[profile_code], 7}
+    # Die Werktage sind Pflicht; Samstag und Sonntag sind einzeln optional.
+    allowed_day_counts = range(PROFILE_DAYS[profile_code], 8)
     if not isinstance(days, list) or len(days) not in allowed_day_counts:
         raise WorkflowValidationError('Das Raster hat eine ungültige Anzahl Tage.')
     required_option_keys = {'type_code', 'title', 'components'}
@@ -127,13 +127,21 @@ def _validate_values(profile_code: str, week_start: date, values: dict[str, Any]
     if profile_code == 'staff_guest':
         required_option_keys |= {'internal_rappen', 'external_rappen'}
         allowed_option_keys |= {'internal_rappen', 'external_rappen'}
+    allowed_dates = {(week_start + timedelta(days=index)).isoformat() for index in range(7)}
+    previous_date = ''
     for offset, day_value in enumerate(days):
         if not isinstance(day_value, dict):
             raise WorkflowValidationError('Ungültiger Tag im Raster.')
         _require_exact_keys(day_value, {'date', 'services'}, 'Tagesfeld')
-        expected_date = (week_start + timedelta(days=offset)).isoformat()
-        if day_value['date'] != expected_date:
+        value_date = day_value['date']
+        if (
+            not isinstance(value_date, str) or value_date not in allowed_dates
+            or value_date <= previous_date
+            or (offset < PROFILE_DAYS[profile_code]
+                and value_date != (week_start + timedelta(days=offset)).isoformat())
+        ):
             raise WorkflowValidationError('Servicedaten müssen lückenlos zur Woche passen.')
+        previous_date = value_date
         services = day_value['services']
         if not isinstance(services, list) or len(services) != len(PROFILE_MEALS[profile_code]):
             raise WorkflowValidationError('Mahlzeitenraster ist unvollständig.')
