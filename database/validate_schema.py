@@ -299,6 +299,7 @@ def main() -> int:
                          'ORDER BY role_code FOR SHARE',
                          'WHERE id=p_actor ORDER BY id FOR UPDATE',
                          'Cafeteria-Wochenende erlaubt höchstens einen Mittagsservice.',
+                         'Kosten sind nur im Cafeteria-Mittag zulässig.',
                          "'servicestart', 'serviceend', 'areaname'",
                          'jsonb_strip_nulls(jsonb_build_object(',
                          "to_char(s.service_start, 'HH24:MI')",
@@ -354,7 +355,7 @@ def main() -> int:
             MIGRATION_0014: 'd767c2446e6cfab10daf073056ec1f9a9570293e76ee0a8f9638036f5460dae0',
             MIGRATION_0015: 'da49d671a6dbfef768330a894f217f5ec4d37addf9bd3c2064ae60a815f8ac9e',
             MIGRATION_0016: 'e195aac3c6b53fb08f733723cd8ef12e6e40fb7abdc5fe58bf1f88585015c6c1',
-            MIGRATION_0017: 'f3022d4b29566584982c1381693f5a5a53537cf5dbd7bffe1a0ec0a19eb2dcc2',
+            MIGRATION_0017: '186422d38d9094751f4a55086876bbdada32d8b16b4deed758ab3446eec03228',
         }
         for migration_path, expected_checksum in immutable_migration_checksums.items():
             actual_checksum = hashlib.sha256(migration_path.read_bytes()).hexdigest()

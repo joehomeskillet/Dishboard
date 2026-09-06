@@ -63,7 +63,8 @@ _V20_FUNCTION_SQL = """
            has_function_privilege('cafeteria_backup', oid, 'EXECUTE') AS backup
     FROM pg_proc WHERE pronamespace='cafeteria'::regnamespace
       AND proname IN ('patient_key_is_forbidden', 'validate_publication_revision',
-                      'workflow_week_context', 'validate_menu_service', 'lock_operations_actor')
+                      'workflow_week_context', 'validate_menu_service', 'validate_menu_item_price',
+                      'lock_operations_actor')
     ORDER BY proname
 """
 

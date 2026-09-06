@@ -165,3 +165,71 @@ def test_python_and_sql_reject_invalid_weekend_snapshots(database_engine, invali
         validate_snapshot_payload('staff_guest', snapshot)
     with pytest.raises(DBAPIError):
         _publication_attempt(database_engine, week, snapshot, actor)
+
+
+def _price_insert(connection, item):
+    connection.execute(text("""INSERT INTO cafeteria.menu_item_prices
+        (menu_item_id,internal_rappen,external_rappen) VALUES (:item,1100,1300)"""), {'item': item})
+
+
+def test_weekend_prices_stay_locked_behind_the_release(app, database_engine):
+    """Ohne erteilte Freigabe entsteht kein Cafeteria-Wochenendservice und damit kein Preis."""
+    from test_database_invariants import _insert_service, _insert_week
+    actor, version = _admin(app, database_engine)
+    assert get_area_profiles(database_engine)['staff_guest']['allows_weekend'] is False
+    week = _insert_week(database_engine, 'staff_guest')
+    with pytest.raises(DBAPIError) as error:
+        _insert_service(database_engine, week, SATURDAY.isoformat(), 'LUNCH')
+    assert error.value.orig.sqlstate == '23514'
+    save_weekend_switch(database_engine, actor, version, 'staff_guest', False, True)
+    service = _insert_service(database_engine, week, SATURDAY.isoformat(), 'LUNCH')
+    from test_database_invariants import _insert_item
+    with database_engine.begin() as connection:
+        _price_insert(connection, _insert_item(database_engine, service))
+
+
+@pytest.mark.parametrize('day', [5, 6], ids=['saturday', 'sunday'])
+@pytest.mark.parametrize('switch_after_service', [True, False], ids=['enabled', 'disabled-after-creation'])
+def test_existing_weekend_lunch_keeps_regular_prices(app, database_engine, day, switch_after_service):
+    from test_database_invariants import _insert_item, _insert_service, _insert_week
+    actor, version = _admin(app, database_engine)
+    save_weekend_switch(database_engine, actor, version, 'staff_guest', False, True)
+    week = _insert_week(database_engine, 'staff_guest')
+    service = _insert_service(database_engine, week, (WEEK_START + dt.timedelta(days=day)).isoformat(), 'LUNCH')
+    item = _insert_item(database_engine, service)
+    if not switch_after_service:
+        save_weekend_switch(database_engine, actor, version, 'staff_guest', True, False)
+    runtime = create_engine(database_engine.url.set(username='cafeteria_app', password=APP_PASSWORD),
+                            poolclass=NullPool)
+    try:
+        with runtime.begin() as connection:
+            _price_insert(connection, item)
+            connection.execute(text("""UPDATE cafeteria.menu_item_prices
+                SET internal_rappen=1200,external_rappen=1400 WHERE menu_item_id=:item"""), {'item': item})
+            assert connection.execute(text("""SELECT internal_rappen,external_rappen,currency
+                FROM cafeteria.menu_item_prices WHERE menu_item_id=:item"""), {'item': item}).one() == (1200, 1400, 'CHF')
+    finally:
+        runtime.dispose()
+
+
+def test_patient_weekend_still_rejects_prices(database_engine):
+    from test_database_invariants import _insert_item, _insert_service, _insert_week
+    week = _insert_week(database_engine, 'patient')
+    service = _insert_service(database_engine, week, SATURDAY.isoformat(), 'LUNCH')
+    item = _insert_item(database_engine, service)
+    with pytest.raises(DBAPIError) as error:
+        with database_engine.begin() as connection:
+            _price_insert(connection, item)
+    assert error.value.orig.sqlstate == '23514'
+
+
+def test_cafeteria_dinner_prices_stay_forbidden(database_engine):
+    """Die Mahlzeitenregel bleibt unverändert, auch ohne Wochentagsprüfung im Preis-Trigger."""
+    from test_database_invariants import _insert_item, _insert_service, _insert_week
+    week = _insert_week(database_engine, 'patient')
+    service = _insert_service(database_engine, week, WEEK_START.isoformat(), 'DINNER')
+    item = _insert_item(database_engine, service)
+    with pytest.raises(DBAPIError) as error:
+        with database_engine.begin() as connection:
+            _price_insert(connection, item)
+    assert error.value.orig.sqlstate == '23514'

@@ -96,6 +96,39 @@ END;
 $$;
 ALTER FUNCTION validate_menu_service() SET search_path = cafeteria, pg_temp;
 
+-- Kosten folgen dem Service: validate_menu_service entscheidet datumsgenau, ob ein
+-- Cafeteria-Wochenendservice ueberhaupt entstehen darf. Ein staff_guest-Service an Sa/So
+-- existiert daher nur mit erteilter Wochenendfreigabe; seine Menues behalten regulaere
+-- Preise auch nach dem Abschalten des Schalters. Profil-, Mahlzeit- und Betragsregeln
+-- bleiben unveraendert: Kosten nur fuer staff_guest und nur zum Mittag.
+CREATE OR REPLACE FUNCTION validate_menu_item_price()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_profile text;
+    v_meal text;
+BEGIN
+    SELECT p.code, mp.code
+      INTO v_profile, v_meal
+      FROM menu_items i
+      JOIN menu_services s ON s.id = i.service_id
+      JOIN menu_weeks w ON w.id = s.menu_week_id
+      JOIN offer_profiles p ON p.id = w.profile_id
+      JOIN meal_periods mp ON mp.id = s.meal_period_id
+     WHERE i.id = NEW.menu_item_id;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Unbekannte Menüposition.' USING ERRCODE = '23503';
+    END IF;
+    IF v_profile <> 'staff_guest' OR v_meal <> 'LUNCH' THEN
+        RAISE EXCEPTION 'Kosten sind nur im Cafeteria-Mittag zulässig.' USING ERRCODE = '23514';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+ALTER FUNCTION validate_menu_item_price() SET search_path = cafeteria, pg_temp;
+
 -- Settings writers hold IAM role definitions and the original actor until commit.
 -- No credentials, bootstrap state or roles are changed by this guard.
 CREATE OR REPLACE FUNCTION lock_operations_actor(p_actor bigint, p_actor_version bigint)

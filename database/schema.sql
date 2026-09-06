@@ -745,6 +745,11 @@ BEGIN
 END;
 $protect_menu_week_location_identity$;
 
+-- Kosten folgen dem Service: validate_menu_service entscheidet datumsgenau, ob ein
+-- Cafeteria-Wochenendservice ueberhaupt entstehen darf. Ein staff_guest-Service an Sa/So
+-- existiert daher nur mit erteilter Wochenendfreigabe; seine Menues behalten regulaere
+-- Preise auch nach dem Abschalten des Schalters. Profil-, Mahlzeit- und Betragsregeln
+-- bleiben unveraendert: Kosten nur fuer staff_guest und nur zum Mittag.
 CREATE OR REPLACE FUNCTION validate_menu_item_price()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -752,10 +757,9 @@ AS $$
 DECLARE
     v_profile text;
     v_meal text;
-    v_service_date date;
 BEGIN
-    SELECT p.code, mp.code, s.service_date
-      INTO v_profile, v_meal, v_service_date
+    SELECT p.code, mp.code
+      INTO v_profile, v_meal
       FROM menu_items i
       JOIN menu_services s ON s.id = i.service_id
       JOIN menu_weeks w ON w.id = s.menu_week_id
@@ -766,8 +770,8 @@ BEGIN
     IF NOT FOUND THEN
         RAISE EXCEPTION 'Unbekannte Menüposition.' USING ERRCODE = '23503';
     END IF;
-    IF v_profile <> 'staff_guest' OR v_meal <> 'LUNCH' OR EXTRACT(ISODOW FROM v_service_date) > 5 THEN
-        RAISE EXCEPTION 'Kosten sind nur im Cafeteria-Mittag von Montag bis Freitag zulässig.' USING ERRCODE = '23514';
+    IF v_profile <> 'staff_guest' OR v_meal <> 'LUNCH' THEN
+        RAISE EXCEPTION 'Kosten sind nur im Cafeteria-Mittag zulässig.' USING ERRCODE = '23514';
     END IF;
     RETURN NEW;
 END;
