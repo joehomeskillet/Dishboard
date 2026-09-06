@@ -31,7 +31,7 @@ from ..workflow_partial_store import (
 )
 from .rendering import DAY_NAMES, MEAL_LABELS, _template_context
 from .workflow_routes import (
-    FAMILIES, _csrf_digest, _db, _exact, _scope, _validate_scoped_csrf, _version_field, bp,
+    FAMILIES, _csrf_digest, _db, _exact, _scope, _scoped_csrf, _validate_scoped_csrf, _version_field, bp,
     profile_from_endpoint,
 )
 
@@ -59,7 +59,8 @@ def _redirect() -> Response:
 def _render(status: int = 200, *, values: dict[str, str] | None = None,
             errors: dict[str, str] | None = None, preview: bool = False) -> Response:
     values, errors = values or {}, errors or {}
-    location_id = _scope('staff_guest').location_id
+    scope = _scope('staff_guest')
+    location_id = scope.location_id
     with _db().connect() as connection:
         timezone = str(connection.execute(text('SELECT timezone FROM cafeteria.locations WHERE id=:id'),
                                           {'id': location_id}).scalar_one())
@@ -73,6 +74,9 @@ def _render(status: int = 200, *, values: dict[str, str] | None = None,
         'admin/operations.html', family='cafeteria', profile='staff_guest', csrf=csrf_token(),
         values=values, errors=errors, preview=preview, schedules=schedules, exceptions=exceptions,
         timezone=timezone, today=today, day_names=DAY_NAMES, meal_labels=MEAL_LABELS,
+        schedule_csrf={profile: _scoped_csrf(
+            profile, 'operations_schedule', scope,
+        ) for profile in PROFILE_SLOTS},
         state_labels=STATES, families={v: k for k, v in FAMILIES.items()}, **_template_context(),
     ), status)
 
@@ -131,6 +135,7 @@ def _schedule_errors(profile: str, slots: dict[str, dict[str, dict[str, str]]]) 
 
 def _save_schedule() -> Response:
     profile = _profile()
+    scope = _validate_scoped_csrf(profile, {'operations_schedule'})
     fields = {f'slot_{day}_{meal}_{part}' for day, meal in PROFILE_SLOTS[profile] for part in PARTS}
     _exact({'_csrf', 'action', 'profile', 'revision', *fields})
     slots = {str(day): {meal: {part: request.form[f'slot_{day}_{meal}_{part}'] for part in PARTS}
@@ -141,7 +146,7 @@ def _save_schedule() -> Response:
         return _render(400, values=request.form.to_dict(), errors=errors)
     try:
         save_schedule(_db(), g.auth_user.user_id, g.auth_user.authz_version,
-                      _scope(profile).location_id, profile, _version_field('revision'), slots)
+                      scope.location_id, profile, _version_field('revision'), slots)
     except OperationsConflictError as error:
         return _render(409, errors={f'{profile}-slot_1_LUNCH_state': str(error)})
     flash('Wochenvorgaben gespeichert.')
@@ -181,7 +186,8 @@ def _save_exception() -> Response:
     values = request.form.to_dict()
     profile = _profile()
     scope = _scope(profile)
-    if not hmac.compare_digest(values['loaded'], _exception_signature(values, scope)):
+    if (re.fullmatch(r'[0-9a-f]{64}', values['loaded']) is None
+            or not hmac.compare_digest(values['loaded'], _exception_signature(values, scope))):
         return _render(409, errors={'date': 'Bitte den Service erneut laden; die ursprüngliche Ansicht passt nicht mehr.'})
     try:
         service_date = _date(values['date'])
@@ -211,8 +217,9 @@ def _authorized_operations() -> Response:
         abort(400, description='Bereiche & Zeiten benötigt keine URL-Parameter.')
     if request.method == 'GET':
         return _render()
-    validate_csrf(request.form.get('_csrf'))
     action = request.form.get('action')
+    if action != 'save_schedule':
+        validate_csrf(request.form.get('_csrf'))
     if action in {'save_name_patient', 'save_name_staff_guest'}:
         return _save_name(action.removeprefix('save_name_'))
     actions = {'save_weekend': _save_weekend, 'save_schedule': _save_schedule,

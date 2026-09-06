@@ -279,3 +279,50 @@ def test_loaded_exception_retains_original_location_expectation(client, database
     assert 'Zeiten in UTC' in response.get_data(as_text=True)
     with database_engine.connect() as connection:
         assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_services')).scalar_one() == 0
+
+
+def test_schedule_retains_original_location_at_equal_revision(client, database_engine):  # noqa: F811
+    original = _get(client, 'schedule-patient')
+    assert original['revision'] == '0'
+    with database_engine.begin() as connection:
+        connection.execute(text('UPDATE cafeteria.locations SET active=false'))
+        connection.execute(text("INSERT INTO cafeteria.locations(code,name,timezone,active) VALUES ('OTHER','Anderer Standort','UTC',true)"))
+    current = _get(client, 'schedule-patient')
+    assert current['revision'] == original['revision']
+    response = client.post(PATH, data={**original, 'slot_1_LUNCH_start': '11:30'})
+    assert response.status_code == 409
+    assert response.headers['Cache-Control'] == 'no-store'
+    with database_engine.connect() as connection:
+        assert connection.execute(text("SELECT count(*) FROM cafeteria.settings WHERE setting_key='operations_schedule'")).scalar_one() == 0
+    assert client.post(PATH, data={**current, 'slot_1_LUNCH_start': '12:30'}).status_code == 303
+    assert _get(client, 'schedule-patient')['slot_1_LUNCH_start'] == '12:30'
+
+
+@pytest.mark.parametrize('token_source', ['raw', 'other_profile', 'other_purpose'])
+def test_schedule_requires_its_scoped_csrf(client, database_engine, token_source):  # noqa: F811
+    form = _get(client, 'schedule-patient')
+    if token_source == 'raw':
+        token = _get(client, 'name-patient')['_csrf']
+    elif token_source == 'other_profile':
+        token = _get(client, 'schedule-staff_guest')['_csrf']
+    else:
+        scope = _scope(database_engine, _session_actor_id(client), 'patient')
+        persist_week_header(database_engine, scope, WEEK, {'title': 'Testwoche', 'shared_note': ''}, 0)
+        token = _form(client.get(f'/admin/patienten?week={DAY}').get_data(as_text=True), 'schedule-defaults')['_csrf']
+    response = client.post(PATH, data={**form, '_csrf': token})
+    assert response.status_code == (409 if token_source == 'other_profile' else 400)
+    assert response.headers['Cache-Control'] == 'no-store'
+    with database_engine.connect() as connection:
+        assert connection.execute(text("SELECT count(*) FROM cafeteria.settings WHERE setting_key='operations_schedule'")).scalar_one() == 0
+
+
+@pytest.mark.parametrize('digest', ['', 'a' * 63, 'a' * 65, 'G' * 64, 'ä' * 64])
+def test_exception_digest_format_is_rejected_without_writing(client, database_engine, digest):  # noqa: F811
+    form = _load(client, profile='patient')
+    response = client.post(PATH, data={**form, 'loaded': digest})
+    assert response.status_code == 409
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert 'Bitte den Service erneut laden' in response.get_data(as_text=True)
+    with database_engine.connect() as connection:
+        assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_services')).scalar_one() == 0
+        assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_weeks')).scalar_one() == 0

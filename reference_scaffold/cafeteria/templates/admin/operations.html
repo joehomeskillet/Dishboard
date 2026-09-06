@@ -32,7 +32,7 @@
         <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="action" value="save_name_{{ code }}">
         <input type="hidden" name="expected_{{ code }}" value="{{ values.get('expected_' ~ code, area_names[code]) }}">
         {{ input('name_' ~ code, 'Bereichsname', values.get('name_' ~ code, area_names[code])) }}
-        <div class="form-hint">Technischer Schlüssel: {{ code }}. Bereits veröffentlichte Pläne behalten ihren Namen.</div>
+        <div class="form-hint">Bereits veröffentlichte Pläne behalten ihren Namen.</div>
       </div>
       <div class="card-footer"><button class="btn" type="submit">{{ icon('device-floppy') }}Anzeigename speichern</button></div>
     </form>
@@ -58,7 +58,7 @@
 {% for code, schedule in schedules.items() %}
 <form class="card mb-3" method="post" id="schedule-{{ code }}" action="{{ url_for('admin.operations_settings') }}">
   <div class="card-header"><h2 class="card-title">{{ icon('calendar-cog') }}Wochenvorgaben · {{ area_names[code] }}</h2></div>
-  <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="action" value="save_schedule">
+  <input type="hidden" name="_csrf" value="{{ schedule_csrf[code] }}"><input type="hidden" name="action" value="save_schedule">
   <input type="hidden" name="profile" value="{{ code }}">
   <input type="hidden" name="revision" value="{{ values.get('revision', schedule.revision) if values.get('action') == 'save_schedule' and values.get('profile') == code else schedule.revision }}">
   <div class="table-responsive">
