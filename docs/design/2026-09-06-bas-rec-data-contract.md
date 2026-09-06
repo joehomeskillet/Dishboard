@@ -31,6 +31,15 @@ und im aktuellen Code-Stand enthalten: **101 passed in 1.26s**, Ruff bestanden, 
 in zwei Dateien ([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)). Noch nicht deployed;
 BAS/REC bleiben offen. B2 wartet auf das abgenommene OPS-Schema 20.
 
+**Vertragsentscheid B2 vom 6. September 2026**, Branch `docs/bas-b2-contract-decisions-0906`:
+Die fünf offenen Punkte aus dem B2-Startbericht
+([wp-b32fd34ebb6e](/nvmetank1/projects/rag-stack/.claude/reports/wp-b32fd34ebb6e.md)) sind hier
+abschliessend entschieden — Feldgrenzen, Normalisierung und No-op-Semantik (§4.3),
+Lagerortarchivierung (§4.4), öffentlicher Python-Servicevertrag (§4.5), Vorschlagsübernahme
+(§6.1) sowie die gemeinsame Sperrreihenfolge samt begründet korrigierter Actor-Sperre (§8.1).
+Es bleibt bei keiner reservierten Migrationsnummer und keinem Schema-Pin; B2 beginnt weiterhin
+erst auf dem geprüften OPS-Schema-20-Freeze.
+
 ---
 
 ## 1. Identität, Geltungsbereich und Namensraum
@@ -205,7 +214,12 @@ B1 liefert diesen stdlib-Vertrag vor Schema 20; B2 liefert alle DB-Constraints u
 | `storage_locations` | Lagerorte | `location_id`, `code`, `name`, `sort_order`, `active`; unique `(location_id, code)` |
 | `food_storage_locations` | Zutat ↔ Lagerort | `location_id`, PK `(food_id, storage_location_id)`, beide FKs mit Standortgleichheit; keine Menge/Bestandsspalte |
 
-**Archivierung von Lagerorten:** Ein Lagerort kann nur archiviert werden (`active=false`), wenn keine `food_storage_locations`-Zuordnungen mehr auf ihn verweisen. Ein Versuch, einen noch genutzten Lagerort zu archivieren, wird sichtbar verweigert (z. B. 409 Konflikt). Zuordnungen müssen vorher ausdrücklich entfernt werden. Reaktivieren eines archivierten Lagerorts ist möglich; Lesezugriffe auf den Standort filtern `active=false` automatisch weg.
+**Archivierung von Lagerorten:** Ein Lagerort wird nur archiviert (`active=false`), wenn keine
+`food_storage_locations`-Zuordnung mehr auf ihn verweist; sonst wird der Versuch sichtbar
+verweigert und die Zuordnungen werden vorher ausdrücklich entfernt. Reaktivieren bleibt möglich.
+Archivierte Lagerorte werden in Auswahllisten ausgeblendet, bleiben aber für bestehende
+Referenzen und den Verlauf lesbar. Die vollständige Regel samt Sperr- und Fehlerverhalten
+steht in §4.4.
 
 Ein Tagvokabular für Zutaten und Rezepte, zwei Verknüpfungstabellen. Getrennte Vokabulare
 würden REC-006 («Tags suchen und gesammelt zuweisen») ohne Gegenwert verdoppeln.
@@ -272,18 +286,20 @@ eine Aggregatversion um eins und schreibt genau einen Audit-Eintrag (§7).
 
 - Zuordnen und Lösen in `food_storage_locations` ist eine Aktion am **Food**-Aggregat: sie führt
   die erwartete `foods.row_version` mit, erhöht sie einmal und schreibt einen Audit-Eintrag. Die
-  Lagerortzeile wird dabei gesperrt gelesen (§8.1, Rang 6) und muss aktiv sein; einem
-  archivierten Lagerort wird nichts neu zugeordnet.
+  Lagerortzeile wird dabei nach §8.1 als Vokabular (Rang 5) `FOR SHARE` gesperrt und muss unter
+  dieser Sperre aktiv sein; einem archivierten Lagerort wird nichts neu zugeordnet.
 - **Archivieren eines Lagerorts mit bestehenden Zuordnungen wird sichtbar verweigert**
   (`ERRCODE 55000`, im Dienst `MasterDataConflictError`) und nennt die Zahl der betroffenen
   Zutaten. Die Zuordnungen werden vorher ausdrücklich je Zutat entfernt. Es gibt keine Kaskade,
   kein stilles Lösen und keine zweite SQL-Semantik in B4; B4 ist reiner Verbraucher.
 - Reaktivieren ist jederzeit möglich und prüft keine Zuordnungen.
-- Die Reihenfolge ist kollisionsfrei: Archivieren sperrt die Lagerortzeile `FOR UPDATE` und
-  zählt erst danach; Zuordnen sperrt zuerst das Food-Aggregat und dann dieselbe Lagerortzeile
-  `FOR SHARE` und prüft `active` erneut unter der Sperre. Eine gleichzeitige Zuordnung wird
-  entweder mitgezählt oder nach dem Archivieren abgelehnt. Eine Zuordnung zu einem archivierten
-  Lagerort kann so nicht entstehen.
+- Die Reihenfolge ist kollisionsfrei: Archivieren sperrt die Lagerortzeile als geschriebenes
+  Aggregat `FOR UPDATE` und zählt erst danach; Zuordnen sperrt dieselbe Zeile vorher als
+  Vokabular `FOR SHARE`, danach das Food. Beide Wege berühren die Lagerortzeile also, bevor sie
+  das Food berühren; es entsteht kein Zyklus. Eine gleichzeitige Zuordnung wird entweder
+  mitgezählt und verhindert das Archivieren, oder sie läuft nach dem Archivieren in die erneute
+  `active`-Prüfung und wird abgelehnt. Eine Zuordnung zu einem archivierten Lagerort kann so
+  nicht entstehen.
 - Archivierte Lagerorte bleiben für Verlauf und bestehende Referenzen lesbar.
 
 ### 4.5 Öffentlicher Python-Servicevertrag
@@ -656,18 +672,16 @@ Lesen läuft über die vorhandene Fähigkeit `draft.read`. `recipe.import` ist g
 herkunftsbehaftete Fremddaten zu bestätigten Daten werden — dieselbe Trennschärfe, die
 `publication.publish` heute hat.
 
-**B2-Vollständiger Besitz und Python-Schnittstellen.** B2 besitzt alle zehn M-A-Tabellen
-(`measurement_units`, `food_categories`, `foods`, `tags`, `food_tags`, `storage_locations`,
-`food_storage_locations`, `food_labels`, `food_allergens`, `food_data_proposals`) sowie sämtliche
-Mutatoren, Rechte-/Kapabilität-Definitionen, Seed-Daten, Validatoren und deren Registrierungen.
-B3/B4 sind reine Verbraucher; es gibt keine zweite DML- oder Migrations-Lane. Kleine explizite
-Module für Typen (z. B. `master_data_types.py`), Reader (z. B. `master_data_reads.py`),
-gebundene Commands (z. B. `master_data_commands.py`) und Proposals (z. B. `master_data_proposals.py`)
-sind erlaubt, je ca. 300–400 Zeilen; vorhandene Utilities werden bevorzugt. Öffentliche Python-Signaturen
-und DTOs sind so knapp wie möglich; `dataclass` vor lockeren Dicts. Fachfunktionen exportieren
-nur das notwendig: Read-Layer gibt `FoodPublic` / `RecipePublic` DTOs zurück, Command-Layer
-nimmt `FoodPatch` / `RecipeCreate` DTOs mit `required` / `optional` Feldern an. Keine redundante
-Datenweiterleitung zwischen Modulen; jeder Guard-Aufruf hat exakt eine Verantwortung.
+**Vollständiger B2-Besitz.** B2 besitzt alle zehn M-A-Tabellen (`measurement_units`,
+`food_categories`, `foods`, `tags`, `food_tags`, `food_labels`, `food_allergens`,
+`storage_locations`, `food_storage_locations`, `food_data_proposals`) samt sämtlichen
+Mutatoren, Rechten, Seeds, Validatoren und Registrierungen sowie die drei neuen Fähigkeiten in
+`cafeteria/roles.py` und deren Matrixtest. B3 und B4 sind Verbraucher; es gibt keine zweite
+DML- oder Migrationslane und keinen Teilbesitz an M-A. Der Modulzuschnitt, die eingefrorenen
+DTOs und die genauen öffentlichen Signaturen stehen abschliessend in §4.5; vorhandene
+Utilities werden bevorzugt, insbesondere `auth.local_users.ActorExpectation` und
+`component_catalog_store.resolve_single_active_location_connection`. Rezept-DTOs gehören R1,
+nicht B2.
 
 **Datenbankrollen.** `cafeteria_app` erhält `SELECT` und ausschliesslich die ausdrücklich
 aufgelisteten fachlichen Mutatorfunktionen, keine direkten `INSERT`-/`UPDATE`-/`DELETE`-/
@@ -685,14 +699,10 @@ Die ursprüngliche Actor-Erwartung aus Sitzung/Command bleibt bis zur Mutation u
 ein Konflikt wird nicht durch Nachladen und Wiederholen umgangen. Actor-Name allein reicht nie.
 
 Der Fachguard prüft innerhalb derselben Transaktion aktiven Benutzer, aktive Rollen, Fähigkeit
-und Version und hält Sperren bis Write/Audit. **Reihenfolge (Deadlock-Sicherheit):**
-`lock_expected_active_location()` führt immer zuerst aus und sperrt den aktiven Standort
-`FOR UPDATE` — dies matchet der Sperrenreihenfolge bestehender Workflow-Funktionen
-(`workflow_review.py:lock_expected_active_location`, `menu_management.py`), die ebenfalls
-Standort zuerst sperren und dann über Menü-Trigger-Kaskaden zu Actor-Locks `FOR SHARE`
-kommen. Danach globale Einheiten und Vokabulare, dann Stammaggregat aufsteigend nach `id`,
-dann betroffene Rollen `FOR SHARE`, zuletzt betroffene Benutzer nach ID `FOR UPDATE`.
-Transaktionsisolation: `READ COMMITTED`, ursprüngliche Versionen bleiben Pflicht.
+und Version und hält Sperren bis Write/Audit. Er nimmt sie in der festen gemeinsamen Reihenfolge
+aus §8.1: Rollendefinitionen geordnet `FOR SHARE`, die Actor-Zeile `FOR SHARE`, danach Standort,
+globale Einheiten, Vokabular, Food, Vorschlag und später Rezepte. Transaktionsisolation
+`READ COMMITTED` und die ursprünglichen Versionen bleiben Pflicht.
 Kein nachträglicher Erwerb des IAM-Bootstrap-Advisory-Locks. Er schreibt weder Credentials
 noch Rollen. Die adminexklusive `lock_local_user_v19()` ist kein wiederverwendbarer Editor-Guard.
 `roles.require_capability()` bleibt die vorgelagerte Sessionprüfung, ersetzt diesen
@@ -700,6 +710,74 @@ transaktionalen Guard aber nicht. Gatefälle: Rollenentzug, Passwortreset, Stale
 unverändertes Zielobjekt bei gleichzeitigem Write; alle brechen ohne Fachwrite/Audit-Teilstand
 ab, falls der Entzug zuerst serialisiert wurde. Fehlende Sitzung 401, fehlende Fähigkeit 403,
 Objektkonflikt 409, DB-Ausfall kontrolliert 503/no-store, bestehende CSRF-Grenze unverändert.
+
+### 8.1 Gemeinsame Sperrreihenfolge
+
+Jeder Fachmutator aus M-A und M-B nimmt seine Sperren in genau dieser Reihenfolge, innerhalb
+jeder Klasse aufsteigend nach `id` beziehungsweise nach dem genannten Sortierschlüssel.
+Übersprungen wird nur, was eine Aktion nicht berührt; die relative Reihenfolge bleibt gleich.
+
+| Rang | Objekt | Modus | Bemerkung |
+|---|---|---|---|
+| 1 | Isolation und Wartegrenze | — | `READ COMMITTED` ist Pflicht, sonst `P1901`; `set_config('lock_timeout','5s',true)` wie `begin_local_admin_v19()` |
+| 2 | `application_roles` | `ORDER BY role_code FOR SHARE` | wortgleich zu `begin_local_admin_v19()`, aber **ohne** dessen Advisory-Lock |
+| 3 | `users`, nur die Actor-Zeile | `FOR SHARE` | danach `disabled_at`, aktive Rolle, fest kodierte Fähigkeit und ursprüngliche `authz_version` prüfen |
+| 4 | `locations` | `SHARE` über `lock_expected_active_location()` | die Funktion nimmt `LOCK TABLE cafeteria.locations IN SHARE MODE` (`database/schema.sql:2015`), keine Zeilensperre; gilt auch für die global gespeicherten Einheiten |
+| 5 | globale Einheiten und Vokabular | `FOR SHARE` | `measurement_units`, `food_categories`, `tags`, `storage_locations`, `allergens`, `dietary_labels`; nach der Sperre `active` erneut prüfen |
+| 6 | geschriebenes Aggregat, genau eines je Aktion | `FOR UPDATE` | Klassenfolge `measurement_units` → `food_categories` → `tags` → `storage_locations` → `foods` → `food_data_proposals` → (M-B) `recipes` → `cookbooks` |
+
+Rang 5 und 6 fallen zusammen, wenn eine Vokabularzeile selbst das geschriebene Aggregat ist;
+dann gilt allein Rang 6. Unterzeilen (`food_tags`, `food_labels`, `food_allergens`,
+`food_storage_locations`; später `recipe_ingredients`, `recipe_steps`, `recipe_images`,
+`recipe_tags`, `cookbook_recipes`) sind durch die Sperre ihres Aggregats gedeckt und werden
+aufsteigend geschrieben. Berührt eine Aktion zwei Aggregate — in M-A ausschliesslich die
+Vorschlagsannahme —, gilt die Klassenfolge aus Rang 6: erst das Food, dann der Vorschlag. R1 und
+später R5 übernehmen diese Reihenfolge unverändert; sie sperren Einheiten, Vokabular und
+Zutaten vor ihrem eigenen Aggregat und nie `FOR UPDATE`.
+
+**Actor-Sperre `FOR SHARE` statt `FOR UPDATE`, mit Begründung.** Die Formulierung «betroffene
+Benutzer nach ID `FOR UPDATE`» stammt aus dem adminexklusiven IAM-Pfad und erzeugt für
+Fachmutatoren einen echten Deadlock-Zyklus, sobald M-C `menu_components.food_id` bindet:
+`record_menu_review()` und die übrigen Workflow-Definer nehmen zuerst
+`lock_expected_active_location()`, dann Woche, Service und Position, halten über den
+Fremdschlüssel implizit `FOR KEY SHARE` auf der gebundenen Food-Zeile und rufen
+`require_workflow_review_actor()` (`database/schema.sql:2296`, `users … FOR SHARE`) erst
+**danach**. Ein B2-Mutator mit `users FOR UPDATE` hielte dann die Actor-Zeile und wartete auf
+`foods FOR UPDATE`, das mit dem gehaltenen `FOR KEY SHARE` kollidiert, während der Workflow auf
+dieselbe Actor-Zeile wartet — ein geschlossener Zyklus. `FOR SHARE` ist mit dem bestehenden
+`FOR SHARE` des Workflow-Guards verträglich und schliesst ihn.
+
+Die Sicherungswirkung bleibt vollständig: jede Rollenvergabe, jeder Rollenentzug und jeder
+Passwortreset erhöht `users.authz_version` — über `bump_user_authz_version()`
+(`database/schema.sql:518`) beziehungsweise die IAM-Funktionen —, und dieses `UPDATE` kollidiert
+mit `FOR SHARE`. Wer zuerst serialisiert, gewinnt: entweder wartet der Entzug auf den Fachwrite,
+oder der Fachwrite liest anschliessend die neue Version und bricht als Stale-Actor ohne Write
+und ohne Audit ab. Das Deaktivieren einer Rollendefinition, das keine Actor-Version erhöht,
+deckt Rang 2 ab. `user_role_cache` wird nicht zusätzlich gesperrt, weil jede Änderung dort
+dieselbe Actor-Zeile anfasst. Ein Nachladen der Actor-Version zur Umgehung bleibt verboten.
+
+**Globale Einheiten.** `measurement_units` bleibt ohne `location_id` global; Lesen und Auflösen
+sind standortfrei, auch für R1 innerhalb seiner Transaktion. Der Admin-Dienst, der Einheiten
+pflegt, verlangt trotzdem ausdrücklich genau einen aktiven Standort (Rang 4) — dieselbe
+Konfigurationsgrenze wie für alle übrigen Stammdatenmutatoren, damit ein mehrdeutiger
+Standortzustand nicht unbemerkt bleibt. Das ist eine Dienstgrenze, keine Datenbindung.
+
+**Guard-Freigabe.** Der interne Guard `require_master_data_actor(bigint, bigint, text)` nimmt
+die Fähigkeit als Parameter, wird aber weder `cafeteria_app` noch `PUBLIC` noch
+`cafeteria_auth_issuer` freigegeben. Nur die öffentlichen Mutatoren rufen ihn mit einem
+literalen Fähigkeitsnamen; ein Client wählt nie eine Fähigkeit. Die Zuordnung Fähigkeit ↔ Rollen
+steht in SQL und in `cafeteria/roles.py` und wird durch einen ausdrücklichen Matrixtest
+gegeneinander geprüft. Da `permissions.sql` am Ende pauschal alle Funktionsrechte entzieht und
+explizit wieder aufbaut, trägt B2 seine endgültigen öffentlichen Signaturen dort nach; Grants
+allein innerhalb der Migration verschwinden beim erneuten Anwenden.
+
+**Fehlercodes.** Die Fachfunktionen verwenden ausschliesslich diese SQLSTATEs, der Dienst bildet
+sie fest ab: `P1901` ungültige Eingabe oder falsche Isolation → Validierung; `P1902` fehlende
+aktive Rolle oder Fähigkeit → 403; `P1903` veraltete Actor-Version → 401; `22023` unbekanntes
+oder untypisiertes Ziel → 404; `55000` veralteter oder blockierter Fachzustand, einschliesslich
+Lagerortarchivierung mit bestehenden Zuordnungen → 409; `23505` Namens- oder Codekollision →
+409; `42501` fehlendes Datenbankrecht → 403. Kein weiterer Code wird erfunden, keine rohe
+SQL-Ausnahme erreicht den Aufrufer.
 
 ---
 
