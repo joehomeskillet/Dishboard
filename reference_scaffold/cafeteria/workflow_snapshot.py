@@ -112,6 +112,11 @@ def build_snapshot(
     revision_code: str,
 ) -> dict[str, Any]:
     week_start = date.fromisoformat(str(draft['week_start']))
+    if 'area_name' not in draft:
+        raise ValueError('Der Entwurf enthält keinen Bereichsnamen.')
+    area_name = str(draft['area_name']).strip()
+    if not area_name:
+        raise ValueError('Der Bereichsname darf nicht leer sein.')
     values_by_date = {str(day['date']): day for day in draft['days']}
     days: list[dict[str, Any]] = []
     for offset, weekday in enumerate(WEEKDAYS):
@@ -127,15 +132,19 @@ def build_snapshot(
                     _option(profile_code, service_date, meal_code, option)
                     for option in value['options']
                 ]
-            services.append(
-                {
-                    'meal_code': meal_code,
-                    'meal_name': MEAL_NAMES[meal_code],
-                    'service_state': state,
-                    'notice': str(value.get('notice', '')).strip(),
-                    'options': options,
-                }
-            )
+            service: dict[str, Any] = {
+                'meal_code': meal_code,
+                'meal_name': MEAL_NAMES[meal_code],
+                'service_state': state,
+                'notice': str(value.get('notice', '')).strip(),
+                'options': options,
+            }
+            # Zeiten frieren nur ein, wenn sie gesetzt sind; der Patientenvertrag bleibt strikt.
+            for key in ('service_start', 'service_end'):
+                time_value = value.get(key)
+                if time_value is not None and str(time_value).strip():
+                    service[key] = str(time_value).strip()
+            services.append(service)
         notice = next(
             (
                 str(service['notice']).strip()
@@ -154,11 +163,12 @@ def build_snapshot(
             }
         )
     snapshot = {
-        'schema_version': 1,
+        'schema_version': 2,
         'profile_code': profile_code,
         'channel': 'patienten' if profile_code == 'patient' else 'cafeteria',
         'revision_id': revision_code,
         'location': _public_location(draft['location']),
+        'area_name': area_name,
         'week_start': week_start.isoformat(),
         'week_end': (week_start + timedelta(days=6)).isoformat(),
         'title': str(draft['title']).strip(),

@@ -52,6 +52,36 @@ def test_parse_draft_form_preserves_every_repeated_label_value() -> None:
     ]
 
 
+def test_parse_draft_form_takes_service_times_only_from_submitted_fields() -> None:
+    without_times = parse_draft_form('staff_guest', _staff_form())
+    first = without_times.values['days'][0]['services'][0]
+    assert 'service_start' not in first
+    assert 'service_end' not in first
+
+    form = _staff_form()
+    form['service_0_LUNCH_start'] = '11:30'
+    form['service_0_LUNCH_end'] = '13:30'
+    form['service_1_LUNCH_start'] = ''
+    form['service_1_LUNCH_end'] = ''
+
+    parsed = parse_draft_form('staff_guest', form)
+
+    monday = parsed.values['days'][0]['services'][0]
+    assert (monday['service_start'], monday['service_end']) == ('11:30', '13:30')
+    tuesday = parsed.values['days'][1]['services'][0]
+    assert (tuesday['service_start'], tuesday['service_end']) == (None, None)
+
+
+def test_parse_draft_form_reports_an_invalid_service_time_on_its_own_field() -> None:
+    form = _staff_form()
+    form['service_2_LUNCH_start'] = '24:00'
+
+    with pytest.raises(WorkflowValidationError) as raised:
+        parse_draft_form('staff_guest', form)
+
+    assert raised.value.field_name == 'service_2_LUNCH_start'
+
+
 def test_parse_draft_form_rejects_substring_matched_optional_field() -> None:
     form = _staff_form()
     form['evil_labels_suffix'] = 'VEGAN'
@@ -166,6 +196,8 @@ def test_parse_service_form_returns_scoped_identity_and_payload() -> None:
                 ('row_version', '4'),
                 ('service_state', 'closed'),
                 ('notice', '  Küche geschlossen  '),
+                ('service_start', ''),
+                ('service_end', ''),
             ]
         ),
     )
@@ -175,7 +207,43 @@ def test_parse_service_form_returns_scoped_identity_and_payload() -> None:
         'DINNER',
         4,
     )
-    assert parsed.payload == {'service_state': 'closed', 'notice': 'Küche geschlossen'}
+    assert parsed.payload == {
+        'service_state': 'closed',
+        'notice': 'Küche geschlossen',
+        'service_start': None,
+        'service_end': None,
+    }
+
+
+def test_parse_service_form_keeps_valid_times_and_reports_invalid_fields() -> None:
+    parsed = parse_service_form(
+        'patient',
+        _service_partial_form(service_start='11:30', service_end='13:30'),
+    )
+    assert parsed.payload['service_start'] == '11:30'
+    assert parsed.payload['service_end'] == '13:30'
+
+    for updates, field_name in (
+        ({'service_start': '24:00'}, 'service_start'),
+        ({'service_start': '7:30'}, 'service_start'),
+        ({'service_end': '11:5'}, 'service_end'),
+        ({'service_start': '13:30', 'service_end': '11:30'}, 'service_end'),
+        ({'service_start': '11:30', 'service_end': '11:30'}, 'service_end'),
+    ):
+        with pytest.raises(WorkflowValidationError) as raised:
+            parse_service_form('patient', _service_partial_form(**updates))
+        assert raised.value.field_name == field_name
+
+
+def test_parse_service_form_rejects_the_form_shape_without_time_fields() -> None:
+    legacy = _service_partial_form()
+    legacy.pop('service_start')
+    legacy.pop('service_end')
+
+    with pytest.raises(WorkflowValidationError, match='Fehlendes') as raised:
+        parse_service_form('patient', legacy)
+
+    assert raised.value.field_name == 'service_end'
 
 
 @pytest.mark.parametrize(
@@ -442,6 +510,7 @@ def _service_partial_form(**updates: str) -> MultiDict[str, str]:
     form = MultiDict([
         ('_csrf', 'test-csrf'), ('week', '2026-08-31'), ('day', '2026-09-02'),
         ('meal', 'LUNCH'), ('row_version', '0'), ('service_state', 'open'), ('notice', ''),
+        ('service_start', ''), ('service_end', ''),
     ])
     for key, value in updates.items():
         form.setlist(key, [value])
@@ -533,8 +602,10 @@ _PARTIAL_FORM_CASES = (
      ('_csrf', 'week', 'row_version', 'title', 'shared_note'),
      ('_csrf', 'week', 'row_version', 'title', 'shared_note')),
     (parse_service_form, _service_partial_form,
-     ('_csrf', 'week', 'day', 'meal', 'row_version', 'service_state', 'notice'),
-     ('_csrf', 'week', 'day', 'meal', 'row_version', 'service_state', 'notice')),
+     ('_csrf', 'week', 'day', 'meal', 'row_version', 'service_state', 'notice',
+      'service_start', 'service_end'),
+     ('_csrf', 'week', 'day', 'meal', 'row_version', 'service_state', 'notice',
+      'service_start', 'service_end')),
     (parse_menu_item_form, _menu_form,
      ('_csrf', 'week', 'day', 'meal', 'option', 'row_version', 'title',
       'allergen_mode', 'origin_mode', 'label_mode'),

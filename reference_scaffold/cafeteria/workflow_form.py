@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Any, Mapping
 
+from .operations_settings import normalise_time
 from .workflow import (
     MENU_TYPES,
     PROFILE_DAYS,
@@ -56,6 +57,8 @@ def _optional_field_names(profile_code: str) -> set[str]:
     for day_index in range(PROFILE_DAYS[profile_code]):
         for meal_code in PROFILE_MEALS[profile_code]:
             service = f'service_{day_index}_{meal_code}'
+            # Servicezeiten sind optional; ein fehlendes Feld heisst «keine Angabe».
+            names |= {f'{service}_start', f'{service}_end'}
             for type_code in MENU_TYPES:
                 option = f'{service}_{type_code}'
                 names |= {f'{option}_{suffix}' for suffix in OPTIONAL_OPTION_SUFFIXES}
@@ -98,6 +101,13 @@ def _positive_integer(value: str, label: str, field_name: str) -> int:
             field_name=field_name,
         )
     return parsed
+
+
+def _service_time(value: str, field_name: str) -> str | None:
+    try:
+        return normalise_time(value.strip())
+    except ValueError as error:
+        raise WorkflowValidationError(str(error), field_name=field_name) from error
 
 
 def _parse_origins(value: str) -> list[dict[str, str]]:
@@ -286,14 +296,17 @@ def parse_draft_form(profile_code: str, form: Mapping[str, str]) -> ParsedDraft:
                         option['internal_rappen'] = supplied[f'{option_prefix}_internal_rappen']
                         option['external_rappen'] = supplied[f'{option_prefix}_external_rappen']
                 options.append(option)
-            services.append(
-                {
-                    'meal_code': meal_code,
-                    'service_state': service_state,
-                    'notice': notice,
-                    'options': options,
-                }
-            )
+            service: dict[str, Any] = {
+                'meal_code': meal_code,
+                'service_state': service_state,
+                'notice': notice,
+                'options': options,
+            }
+            for suffix in ('start', 'end'):
+                field = f'{service_prefix}_{suffix}'
+                if field in supplied:
+                    service[f'service_{suffix}'] = _service_time(supplied[field], field)
+            services.append(service)
         days.append(
             {
                 'date': (week_start + timedelta(days=day_index)).isoformat(),
