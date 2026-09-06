@@ -42,7 +42,7 @@ def _identities(engine):
 
 def test_v18_upgrade_preserves_every_identity_field_and_matches_fresh_schema(pg16):  # noqa: F811
     plan = database.migration_plan(SCHEMA)
-    assert [entry.version for entry in plan] == list(range(4, 20))
+    assert [entry.version for entry in plan] == list(range(4, 21))
     for migration in plan[:-1]:
         database._execute_migration(pg16, migration)
     database._execute_script(pg16, str(SCHEMA.parent / 'seed.sql'))
