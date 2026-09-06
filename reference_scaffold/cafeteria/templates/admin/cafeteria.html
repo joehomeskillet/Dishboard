@@ -181,7 +181,7 @@
               </p>
               <span class="slot-badge badge bg-{{ 'yellow' if cell.review_open else 'green' }}-lt" data-review="{{ 'open' if cell.review_open else 'checked' }}">{{ 'Prüfung offen' if cell.review_open else 'Geprüft' }}</span>
               <div class="mt-auto">
-                <a class="btn" href="{{ cell.edit_url }}">{{ icon('pencil') }}Bearbeiten</a>
+                <a class="btn" href="{{ cell.edit_url }}" aria-label="Bearbeiten: {{ cell.day_label }}, {{ cell.day_short }}, {{ cell.meal_label }}, {{ cell.option_label }} – {{ cell.title if cell.title else 'Noch kein Gericht' }}">{{ icon('pencil') }}Bearbeiten</a>
               </div>
             </div>
           </article>

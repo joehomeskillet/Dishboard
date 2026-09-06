@@ -37,6 +37,167 @@ def _settle(page: Page) -> None:
     page.evaluate('() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
 
 
+def _assert_visible_editor_labels(page: Page) -> None:
+    fields = page.locator('[name="component_public_id"], [name="component_text"], [name="origin_ingredient"], '
+                          '[name="origin_country_code"], [name="allergen_presence"]')
+    for field in fields.all():
+        label = page.locator(f'label[for="{field.get_attribute("id")}"]')
+        expect(label).to_have_count(1)
+        expect(label).to_have_class(re.compile(r'\bform-label\b'))
+        expect(label).to_be_visible()
+        label_box, field_box = _box(label), _box(field)
+        assert label_box['height'] > 10
+        assert label_box['y'] + label_box['height'] <= field_box['y'] + 1
+        assert field_box['height'] >= 48
+        if field.is_enabled():
+            label.click()
+            expect(field).to_be_focused()
+    for field in page.locator('[name="component_public_id"], [name="component_text"]').all():
+        assert 'components-hint' in (field.get_attribute('aria-describedby') or '').split()
+    ids = page.locator('form[data-menu-editor] [id]').evaluate_all('els => els.map(el => el.id)')
+    assert len(ids) == len(set(ids))
+    dangling = page.locator('form[data-menu-editor] [aria-describedby]').evaluate_all('''els =>
+        els.flatMap(el => el.getAttribute('aria-describedby').split(/\\s+/))
+           .filter(id => !document.getElementById(id))''')
+    assert dangling == []
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+
+
+@pytest.mark.parametrize('width', (390, 820, 1440))
+@pytest.mark.parametrize('density', ('compact', 'comfortable'))
+def test_visible_editor_labels_with_populated_and_error_states(
+    page_context: Page, width: int, density: str, tmp_path: Path,  # noqa: F811
+) -> None:
+    page = page_context
+    page.set_viewport_size({'width': width, 'height': 1100})
+    page.goto('/admin/design/darstellung')
+    page.get_by_label('Abstände', exact=True).select_option(density)
+    with page.expect_response(lambda response: response.request.method == 'POST' and
+                              response.url.endswith('/admin/design/darstellung')) as saved:
+        page.get_by_role('button', name='Darstellung speichern', exact=True).click()
+    assert saved.value.status == 303
+    page.wait_for_load_state()
+    page.goto(_editor('patienten'))
+    expect(page.locator('main')).to_have_attribute('data-density', density)
+    _open_sections(page)
+    page.get_by_label('Titel', exact=True).fill('Gemüsegeschnetzeltes mit Kräutern, Reis und Zucchetti')
+    page.get_by_label('Beschreibung', exact=True).fill('Saisonales Gemüse und Reis, frisch zubereitet für Mittag und Abend.')
+    page.get_by_label('Hinweis', exact=True).fill(
+        'Ungeprüfter Rezepturhinweis: Bei Sauce Milch, bei Bindung Weizen und bei Bouillon Sellerie prüfen; '
+        'falls Fleischersatz verwendet wird, dessen Soja- und Weizenbestandteile prüfen. '
+        'Rezeptur und Produktdeklaration prüfen.',
+    )
+    page.locator('[name="component_text"]').fill('Saisonales Gemüse mit Kräutern und langem vollständigem Rezepturhinweis')
+    page.locator('[name="allergen_mode"][value="manual"]').check()
+    page.locator('[name="allergen_code"][value="MILK"]').check()
+    page.locator('#allergen-milk-presence').select_option('may_contain')
+    page.locator('[name="origin_mode"][value="manual"]').check()
+    page.locator('[name="origin_ingredient"]').fill('Gemüse und Kräuter aus regionalem Anbau')
+    page.locator('[name="origin_country_code"]').select_option('CH')
+    page.screenshot(path=str(tmp_path / f'editor-labels-{density}-{width}-populated.png'), full_page=True)
+
+    page.locator('[name="origin_country_code"]').select_option('')
+    _submit_menu(page, 400)
+    _open_sections(page)
+    expect(page.locator('#origin-0-country-error')).to_be_visible()
+    expect(page.get_by_label('Hinweis', exact=True)).to_contain_text('Rezeptur und Produktdeklaration prüfen.')
+    page.screenshot(path=str(tmp_path / f'editor-labels-{density}-{width}-error.png'), full_page=True)
+    _assert_visible_editor_labels(page)
+    page.get_by_role('button', name='Komponente hinzufügen').click()
+    page.locator('[name="component_text"]').last.fill('Zusätzliche Gemüsebeilage')
+    page.locator('#components-list [data-row]').last.get_by_role('button', name='Nach oben', exact=True).click()
+    _assert_visible_editor_labels(page)
+
+
+def test_error_descriptions_follow_surviving_rows_and_are_not_cloned(page_context: Page) -> None:  # noqa: F811
+    page = page_context
+    page.goto(_editor('patienten'))
+    page.get_by_label('Titel', exact=True).fill('Fehlerzuordnung bei mehreren Herkunftszeilen')
+    _open_sections(page)
+    page.locator('[name="origin_mode"][value="manual"]').check()
+    page.locator('[name="origin_ingredient"]').fill('Rind')
+    page.get_by_role('button', name='Herkunft hinzufügen').click()
+    page.locator('[name="origin_ingredient"]').last.fill('Reis')
+    _submit_menu(page, 400)
+    rows = page.locator('#origins-list [data-row]')
+    expect(rows).to_have_count(2)
+    expect(rows.nth(1).locator('[name="origin_country_code"]')).to_have_attribute(
+        'aria-describedby', 'origin-1-country-error',
+    )
+    rows.first.get_by_role('button', name='Herkunft entfernen').click()
+    expect(rows.first.locator('[name="origin_country_code"]')).to_have_attribute(
+        'aria-describedby', 'origin-0-country-error',
+    )
+    expect(rows.first.locator('#origin-0-country-error')).to_be_visible()
+    page.get_by_role('button', name='Herkunft hinzufügen').click()
+    expect(rows).to_have_count(2)
+    expect(rows.last.locator('.field-error')).to_have_count(0)
+    assert rows.last.locator('[name="origin_country_code"]').get_attribute('aria-describedby') is None
+    _open_sections(page)
+    _assert_visible_editor_labels(page)
+
+
+@pytest.mark.parametrize('earlier_selected', (False, True))
+def test_allergen_presence_error_is_linked_to_its_visible_control(
+    page_context: Page, earlier_selected: bool,  # noqa: F811
+) -> None:
+    page = page_context
+    page.goto(_editor('patienten'))
+    page.get_by_label('Titel', exact=True).fill('Allergen-Prüfung')
+    _open_sections(page)
+    page.locator('[name="allergen_mode"][value="manual"]').check()
+    if earlier_selected:
+        page.locator('[name="allergen_code"][value="GLUTEN"]').check()
+    page.locator('[name="allergen_code"][value="MILK"]').check()
+    page.locator('#allergen-milk-presence').evaluate('''el => {
+        el.add(new Option('Ungültige gespeicherte Angabe', 'invalid'));
+        el.value = 'invalid';
+    }''')
+    _submit_menu(page, 400)
+    presence = page.locator('#allergen-milk-presence')
+    expect(presence).to_be_focused()
+    expect(page.locator('[name="allergen_presence"][aria-invalid="true"]')).to_have_count(1)
+    expect(presence).to_have_attribute('aria-invalid', 'true')
+    expect(presence).to_have_attribute('aria-describedby', 'err-allergen-presence')
+    expect(page.locator('#err-allergen-presence')).to_be_visible()
+    label = page.locator('label[for="allergen-milk-presence"]')
+    expect(label).to_be_visible()
+    label.click()
+    expect(presence).to_be_focused()
+
+
+@pytest.mark.parametrize('mode', ('auto', 'manual'))
+def test_allergen_error_without_active_target_keeps_summary_focus(
+    page_context: Page, mode: str,  # noqa: F811
+) -> None:
+    page = page_context
+    page.goto(_editor('patienten'))
+    page.get_by_label('Titel', exact=True).fill('Fehler ohne aktives Allergenfeld')
+    _open_sections(page)
+    page.locator(f'[name="allergen_mode"][value="{mode}"]').check()
+    page.locator('form[data-menu-editor]').evaluate('''form => {
+        form.addEventListener('formdata', event => {
+            event.formData.append('allergen_presence', 'invalid');
+        }, {once: true});
+    }''')
+    payload = _submit_menu(page, 400)
+    expect(page.locator('.error-region[role="alert"]')).to_be_focused()
+    expect(page.locator('#err-allergen-presence')).to_be_visible()
+    expect(page.locator('[aria-invalid="true"]')).to_have_count(0)
+    expect(page.locator('[name="allergen_presence"]:enabled')).to_have_count(0)
+    assert payload['allergen_mode'] == [mode]
+    assert payload['allergen_presence'] == ['invalid']
+    assert 'allergen_code' not in payload
+
+    page.locator('[name="allergen_mode"][value="manual"]').check()
+    page.locator('[name="allergen_code"][value="MILK"]').check()
+    page.locator('#allergen-milk-presence').select_option('may_contain')
+    corrected = _submit_menu(page)
+    assert corrected['allergen_mode'] == ['manual']
+    assert corrected['allergen_code'] == ['MILK']
+    assert corrected['allergen_presence'] == ['may_contain']
+
+
 @pytest.mark.parametrize('family', ('cafeteria', 'patienten'))
 def test_editor_viewport_matrix_split_touch_and_sticky_bar(page_context: Page, family: str) -> None:  # noqa: F811
     page = page_context
@@ -170,9 +331,9 @@ def test_dynamic_rows_have_unique_ids_labeled_controls_and_ordered_payload(page_
     page.get_by_role('button', name='Herkunft hinzufügen').click()
     origin_rows = page.locator('#origins-list .origin-row')
     expect(origin_rows).to_have_count(2)
-    for index, (ingredient, country) in enumerate((('Rind', 'CH'), ('Reis', 'IT'))):
+    for index, (ingredient, country_code) in enumerate((('Rind', 'CH'), ('Reis', 'IT'))):
         page.locator('[name="origin_ingredient"]').nth(index).fill(ingredient)
-        page.locator('[name="origin_country_code"]').nth(index).select_option(country)
+        page.locator('[name="origin_country_code"]').nth(index).select_option(country_code)
     country = page.locator('[name="origin_country_code"]').first
     expect(country).to_have_class(re.compile(r'\bform-select\b'))
     assert country.locator('option[value="CH"]').inner_text().strip() not in ('', 'CH')

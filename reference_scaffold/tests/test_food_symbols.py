@@ -173,6 +173,7 @@ def test_public_cards_load_real_local_symbols_without_changing_snapshot(
 @pytest.mark.parametrize('width', [390, 820, 1440])
 def test_admin_cards_load_real_local_symbols(
     app: Flask, browser: Browser, profile: str, family: str, template: str, width: int,  # noqa: F811
+    tmp_path: Path,
 ) -> None:
     option = deepcopy(app.config['TEST_SNAPSHOTS'][profile]['days'][0]['services'][0]['options'][0])
     date = dt.date(2026, 8, 31)
@@ -201,8 +202,6 @@ def test_admin_cards_load_real_local_symbols(
             expect(page.locator('[data-menu-metadata] .badge')).to_have_count(4)
             expect(page.locator('[data-menu-metadata] img.icon')).to_have_count(3)
         if profile == 'patient' and width in (390, 1440):
-            destination = Path(__file__).resolve().parents[2] / '.claude/artifacts/food-symbol-wiring'
-            destination.mkdir(parents=True, exist_ok=True)
-            page.screenshot(path=str(destination / f'patient-{Path(template).stem}-{width}.png'), full_page=True)
+            page.screenshot(path=str(tmp_path / f'patient-{Path(template).stem}-{width}.png'), full_page=True)
     finally:
         page.close()

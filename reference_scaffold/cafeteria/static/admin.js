@@ -101,20 +101,8 @@
             return;
         }
         errorRegion.focus();
-        let firstInvalid = document.querySelector('[aria-invalid="true"]');
+        const firstInvalid = document.querySelector('[aria-invalid="true"]:not(:disabled):not([type="hidden"])');
         revealAncestors(firstInvalid);
-        if (!firstInvalid) {
-            const menuForm = document.querySelector('form[action$="/menu"]');
-            const focusableFields = menuForm ? Array.from(menuForm.elements).filter(control => {
-                return control.matches(
-                    'input:not([type="hidden"]), select, textarea'
-                ) && !control.disabled && control.offsetParent !== null;
-            }) : [];
-            firstInvalid = focusableFields[0];
-            if (firstInvalid) {
-                firstInvalid.setAttribute('aria-invalid', 'true');
-            }
-        }
         if (firstInvalid) {
             firstInvalid.focus();
         }
@@ -194,11 +182,12 @@
         const prefix = list.dataset.rowList;
         const title = list.dataset.rowTitle;
         Array.from(list.children).forEach((row, index) => {
-            row.querySelectorAll('[id], [for]').forEach(element => {
-                for (const attribute of ['id', 'for']) {
+            row.querySelectorAll('[id], [for], [aria-describedby]').forEach(element => {
+                for (const attribute of ['id', 'for', 'aria-describedby']) {
                     const value = element.getAttribute(attribute);
-                    if (value && value.startsWith(prefix + '-')) {
-                        element.setAttribute(attribute, value.replace(/^([a-z]+)-\d+-/, `$1-${index}-`));
+                    if (value) {
+                        element.setAttribute(attribute, value.split(/\s+/).map(id => id.startsWith(prefix + '-')
+                            ? id.replace(/^([a-z]+)-\d+-/, `$1-${index}-`) : id).join(' '));
                     }
                 }
             });
@@ -245,8 +234,12 @@
                     control.value = '';
                     control.classList.remove('is-invalid');
                     control.removeAttribute('aria-invalid');
-                    control.removeAttribute('aria-describedby');
+                    const descriptions = (control.getAttribute('aria-describedby') || '').split(/\s+/)
+                        .filter(id => id && !document.getElementById(id)?.classList.contains('field-error'));
+                    if (descriptions.length) control.setAttribute('aria-describedby', descriptions.join(' '));
+                    else control.removeAttribute('aria-describedby');
                 });
+                clone.querySelectorAll('.field-error').forEach(error => error.remove());
                 list.appendChild(clone);
                 focusTarget = clone.querySelector('input, select');
             } else if (moveButton) {

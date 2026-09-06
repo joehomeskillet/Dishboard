@@ -21,7 +21,7 @@
 {% set errors = form_errors|default({}) %}
 {% set is_auto = {'allergen': submitted.get('allergen_mode', 'auto') == 'auto', 'origin': submitted.get('origin_mode', 'auto') == 'auto', 'label': submitted.get('label_mode', 'auto') == 'auto'} %}
 {% set error_targets = {'title': 'f-title', 'description': 'f-desc', 'note': 'f-note', 'internal_chf': 'f-int', 'external_chf': 'f-ext', 'component_public_id': 'component-0-id', 'component_text': 'component-0-text', 'allergen_code': 'allergen-mode-manual', 'allergen_presence': 'allergen-mode-manual', 'origin_ingredient': 'origin-0-ingredient', 'origin_country_code': 'origin-0-country', 'label_code': 'label-mode-manual'} %}
-{% macro error_attributes(name, error_id) %}{% if errors.get(name) %} aria-invalid="true" aria-describedby="{{ error_id }}"{% endif %}{% endmacro %}
+{% macro error_attributes(name, error_id, hint_id=none) %}{% if errors.get(name) %} aria-invalid="true"{% endif %}{% if hint_id or errors.get(name) %} aria-describedby="{{ hint_id or '' }}{{ ' ' if hint_id and errors.get(name) else '' }}{{ error_id if errors.get(name) else '' }}"{% endif %}{% endmacro %}
 {% macro invalid_class(name) %}{% if errors.get(name) %} is-invalid{% endif %}{% endmacro %}
 {% macro field_error(name, error_id) %}{% if errors.get(name) %}<div class="invalid-feedback d-block field-error" id="{{ error_id }}">{{ errors[name] }}</div>{% endif %}{% endmacro %}
 {% macro mode_summary(key, title, badge_id) %}
@@ -42,7 +42,7 @@
 {% endmacro %}
 
 {% if errors %}
-<div class="alert alert-danger error-region" role="alert" tabindex="-1">
+<div class="alert alert-danger error-region d-block" role="alert" tabindex="-1">
   <p class="mb-2">Bitte korrigieren Sie die Fehler im Formular.</p>
   <ul class="mb-2">
     {% for name, message in errors.items() %}
@@ -109,7 +109,7 @@
       <section class="card mb-3" aria-labelledby="sec-components">
         <div class="card-header"><h2 class="card-title mb-0" id="sec-components">Komponenten</h2></div>
         <div class="card-body">
-          <p class="form-hint mb-3">Aus dem Katalog wählen oder als Freitext erfassen. Die Reihenfolge entspricht der Anzeige.</p>
+          <p class="form-hint mb-3" id="components-hint">Aus dem Katalog wählen oder als Freitext erfassen. Die Reihenfolge entspricht der Anzeige.</p>
           <div id="components-list" data-row-list="component" data-row-title="Komponente">
             {% set c_ids = submitted.getlist('component_public_id') if submitted.getlist else submitted.get('component_public_id', []) %}
             {% set c_texts = submitted.getlist('component_text') if submitted.getlist else submitted.get('component_text', []) %}
@@ -121,8 +121,8 @@
                 <legend class="form-label" data-row-legend>Komponente {{ i + 1 }}</legend>
                 <div class="row g-2">
                   <div class="col-12 col-lg-6">
-                    <label class="visually-hidden" for="component-{{ i }}-id">Komponente aus Katalog</label>
-                    <select class="form-select{{ invalid_class('component_public_id') }}" id="component-{{ i }}-id" name="component_public_id" aria-label="Komponente aus Katalog"{{ error_attributes('component_public_id', 'err-component-id') }}>
+                    <label class="form-label" for="component-{{ i }}-id">Komponente aus Katalog</label>
+                    <select class="form-select{{ invalid_class('component_public_id') }}" id="component-{{ i }}-id" name="component_public_id" aria-label="Komponente aus Katalog"{{ error_attributes('component_public_id', 'err-component-id', 'components-hint') }}>
                       <option value="">(Freitext verwenden)</option>
                       {% for choice in catalog_choices %}
                         <option value="{{ choice.public_id }}" data-active="{{ '1' if choice.active else '0' }}"{% if choice.public_id == c_id %} selected{% endif %}{% if not choice.active and choice.public_id != c_id %} disabled{% endif %}>{{ choice.name }}</option>
@@ -130,8 +130,8 @@
                     </select>
                   </div>
                   <div class="col-12 col-lg-6">
-                    <label class="visually-hidden" for="component-{{ i }}-text">Freitext-Komponente</label>
-                    <input class="form-control{{ invalid_class('component_text') }}" id="component-{{ i }}-text" name="component_text" aria-label="Freitext-Komponente" value="{{ c_text|default('') }}" placeholder="Freitext"{{ error_attributes('component_text', 'err-component-text') }}>
+                    <label class="form-label" for="component-{{ i }}-text">Freitext-Komponente</label>
+                    <input class="form-control{{ invalid_class('component_text') }}" id="component-{{ i }}-text" name="component_text" aria-label="Freitext-Komponente" value="{{ c_text|default('') }}" placeholder="Freitext"{{ error_attributes('component_text', 'err-component-text', 'components-hint') }}>
                   </div>
                   <div class="col-12">
                     <div class="btn-list">
@@ -162,13 +162,15 @@
             {% for allergen in allergens %}
             {% set idx = a_codes.index(allergen.code) if allergen.code in a_codes else -1 %}
             {% set presence = a_pres[idx] if idx >= 0 and idx < a_pres|length else 'contains' %}
+            {% set presence_invalid = errors.get('allergen_presence') and not is_auto['allergen'] and idx >= 0 and (idx >= a_pres|length or presence not in ['contains', 'may_contain']) %}
             <div class="allergen-row">
               <div class="row g-2 align-items-center">
                 <div class="col-12 col-sm-6">
                   <label class="form-check" for="allergen-{{ allergen.code|lower }}"><input class="form-check-input" id="allergen-{{ allergen.code|lower }}" type="checkbox" name="allergen_code" value="{{ allergen.code }}"{% if idx >= 0 %} checked{% endif %}{% if is_auto['allergen'] %} disabled{% endif %}><span class="form-check-label">{{ symbol('allergens', allergen.code, true) }}{{ allergen.name|default(allergen.code) }}</span></label>
                 </div>
                 <div class="col-12 col-sm-6">
-                  <select class="form-select" id="allergen-{{ allergen.code|lower }}-presence" name="allergen_presence" aria-label="Präsenz für {{ allergen.name|default(allergen.code) }}"{% if idx < 0 or is_auto['allergen'] %} disabled{% endif %}>
+                  <label class="form-label" for="allergen-{{ allergen.code|lower }}-presence">Präsenz für {{ allergen.name|default(allergen.code) }}</label>
+                  <select class="form-select{{ ' is-invalid' if presence_invalid else '' }}" id="allergen-{{ allergen.code|lower }}-presence" name="allergen_presence" aria-label="Präsenz für {{ allergen.name|default(allergen.code) }}"{% if presence_invalid %}{{ error_attributes('allergen_presence', 'err-allergen-presence') }}{% endif %}{% if idx < 0 or is_auto['allergen'] %} disabled{% endif %}>
                     <option value="contains"{% if presence == 'contains' %} selected{% endif %}>enthält</option>
                     <option value="may_contain"{% if presence == 'may_contain' %} selected{% endif %}>kann Spuren enthalten</option>
                   </select>
@@ -193,11 +195,11 @@
               <legend class="form-label" data-row-legend>Herkunft {{ i + 1 }}</legend>
               <div class="row g-2">
                 <div class="col-12 col-lg-6">
-                  <label class="visually-hidden" for="origin-{{ i }}-ingredient">Zutat</label>
+                  <label class="form-label" for="origin-{{ i }}-ingredient">Zutat</label>
                   <input class="form-control{{ invalid_class('origin_ingredient') }}" id="origin-{{ i }}-ingredient" name="origin_ingredient" placeholder="Zutat" aria-label="Zutat" value="{{ o_ings[i] if i < o_ings|length else '' }}"{{ error_attributes('origin_ingredient', 'err-origin-ingredient') }}{% if is_auto['origin'] %} disabled{% endif %}>
                 </div>
                 <div class="col-12 col-lg-6">
-                  <label class="visually-hidden" for="origin-{{ i }}-country">Land</label>
+                  <label class="form-label" for="origin-{{ i }}-country">Land</label>
                   {{ country_select('origin_country_code', o_ccs[i] if i < o_ccs|length else '', 'origin-' ~ i ~ '-country', error=errors.get('origin_country_code')) }}
                 </div>
                 <div class="col-12">
