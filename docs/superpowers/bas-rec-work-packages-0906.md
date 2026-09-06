@@ -5,7 +5,8 @@ stehen alle Regeln, hier nur Zuschnitt, Dateibesitz, Abhängigkeiten und Gates.
 
 **Startsperre.** Kein Paket beginnt vor Roots Prüfung des Datenvertrags und der Zuweisung von
 Schema-/Dateieigentum. Migrationsnummern vergibt Root oberhalb des abgenommenen Schema-20-Vertrags
-von OPS-001 (`0017_v19_to_v20.sql`, Fable 5.1). Die Testpools `test-ps5` und `test-ps1` sind
+von OPS-001 (`0017_v19_to_v20.sql`, nach Fable-Sessionlimit durch Root/Codex übernommen,
+weiterhin ungeprüft). Die Testpools `test-ps5` und `test-ps1` sind
 OPS-001 zugeordnet und dürfen hier nicht verwendet werden; Root weist je Welle einen eigenen
 exklusiven Pool und eine eigene Testdatenbank zu. Ausnahme: Nach ausdrücklicher Freigabe von
 §3 des Datenvertrags kann B1 vor Schema 20 beginnen; es braucht weder Migration noch DB-Pool.
@@ -23,6 +24,11 @@ jedem Schemawechsel steht ein geprüftes Backup. Keine Änderung an
 `publication_revisions`, `validate_publication_revision()`, `patient_key_is_forbidden()` oder an
 öffentlichen Ausgaben. Kein Paket meldet eine Backlog-ID fertig, das nur einen Teil davon
 liefert.
+
+**Geprüft vorbereitet, noch nicht integriert/deployed:** B1 `c7873fa`, gesamter 433-Zeilen-Diff
+von Root gelesen; unabhängig **101 passed in 1.26s**, Ruff bestanden, Mypy ohne Fehler in
+zwei Dateien ([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)). Der §3-/B1-Vertrag bleibt
+unverändert. B2 beginnt erst nach abgenommenem OPS-Schema 20; BAS-001/REC-001 sind nicht fertig.
 
 ---
 
@@ -408,10 +414,10 @@ keinen gegenwärtigen Fertigstatus. Teilweise heisst: die ID bleibt auch danach 
 | Quellen | R1 (`source_kind`, `source_url`, `source_note`) | vollständig |
 | Mit vorhandenen Menüs und Komponenten verbinden | R5a–c | offen bis alle drei Bindungswege tatsächlich bedienbar und geprüft sind |
 | Kochbücher und Sammlungen | R4 | vollständig |
-| HugeRTE prüfen | Vertrag §10 | **Kandidat, Prüfung offen**; R-RTE hat fünf Eintrittsbedingungen. Kein tatsächlicher Browser-/CSP-Nachweis, keine Technologiefreigabe oder Installation. |
+| HugeRTE prüfen | Vertrag §10, [lokaler Prüfbericht](/nvmetank1/projects/rag-stack/.claude/reports/wp-28dc5618ccd1.md) | **1.0.13 lokal browsergeprüft:** Richtext funktioniert, eine Style-CSP-Verletzung bleibt; Silver ist kein vollständiges Tabler-UI. R-RTE und Produktabnahme offen, keine Technologiefreigabe oder Produktinstallation. |
 
 Grenze 2 allein beweist keine vollständige REC-001-Abnahme. Offene Bindungswege und die
-ausdrücklich gewünschte HugeRTE-Prüfung bleiben sichtbar offen; Rich-Text ist keine Voraussetzung
+vollständige HugeRTE-CSP-/Tabler-Integration bleiben nach der lokalen Eignungsprobe offen; Rich-Text ist keine Voraussetzung
 für die erste Klartext-Rezeptverwaltung. Einkaufsdruck bleibt REC-003/REC-007-Folgeumfang.
 
 ---

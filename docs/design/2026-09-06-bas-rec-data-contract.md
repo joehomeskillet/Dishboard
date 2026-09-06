@@ -21,9 +21,15 @@ Belegter Ausgangsstand, alle Angaben aus dem Repository dieses Worktrees:
 | CSP heute | `default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'` (`cafeteria/__init__.py`). Kein `unsafe-inline`. |
 | Fremdassets | `static/vendor/{tabler,tabler-icons,swagger-ui,food-symbols}` mit `*.lock.json` und Offline-Paketprüfungen. |
 
-Paralleler Auftrag OPS-001 (Fable 5.1) besitzt Schema 20 und `0017_v19_to_v20.sql`. Dieser
+Paralleler Auftrag OPS-001 besitzt Schema 20 und `0017_v19_to_v20.sql`; nach dem belegten
+Fable-Sessionlimit übernimmt Root mit Codex-Lanes. Der OPS-Stand bleibt aktiv und ungeprüft. Dieser
 Vertrag reserviert **keine** Migrationsnummer und beschreibt seine Migrationen ausdrücklich
 oberhalb des dann geprüften Schema-20-Vertrags. Nummern und Reihenfolge weist Root zu.
+
+**Vorbereiteter Teilstand:** B1 (`c7873fa`) ist unabhängig von Root geprüft und bereit zur
+Integration: **101 passed in 1.26s**, Ruff bestanden, Mypy ohne Fehler in zwei Dateien
+([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)). Noch nicht auf main oder deployed;
+BAS/REC bleiben offen. B2 wartet auf das abgenommene OPS-Schema 20.
 
 ---
 
@@ -541,13 +547,23 @@ Der Nutzerwunsch nach HugeRTE ist aufgenommen. Belegter Befund und Entscheidung:
 Druckvorlageneditoren sind serverseitig gerenderte Formulare mit gezielt ergänztem JavaScript
 (`static/admin.js`, 13 KB).
 
-**CSP.** Der aktive Header ist `default-src 'self'; img-src 'self' data:; style-src 'self';
-script-src 'self'` und enthält an keiner Stelle `unsafe-inline`. TinyMCE-Abkömmlinge — HugeRTE
-ist der Community-Fork von TinyMCE 6 — setzen Skin- und Inhaltsstile zur Laufzeit. **Ob HugeRTE
-ohne `unsafe-inline` betrieben werden kann, ist unbelegt.** Diese Frage ist vor jeder Einbindung
-mit einem echten Browserlauf gegen genau diesen Header zu beantworten. Eine Lockerung auf
-`style-src 'unsafe-inline'` würde den Header für den gesamten Admin schwächen und ist ohne
-gesonderte Sicherheitsabnahme ausgeschlossen.
+**Belegte lokale Probe.** [HugeRTE 1.0.13](https://github.com/hugerte/hugerte/releases/tag/v1.0.13)
+wurde am 6. September in echtem Chrome unter Dishboards strikter HTTP-CSP mit lokalen Assets
+geprüft: Text, Fett, Listen und der Silver-Linkdialog funktionieren. Dennoch bleibt eine
+`style-src-attr`-Verletzung durch einen internen Style-Marker, auch mit externen Tabler-Buttons
+und ohne Silver-Theme. Richtext ist damit grundsätzlich möglich; das Null-CSP-Fehler-Gate
+ist nicht bestanden. Silver liefert eigene Werkzeugleisten/Dialoge, in der Desktopprobe
+unter 48px Touch-Grösse, keine vollständige Tabler-Bedienung. Ein Skin genügt dafür nicht.
+[Prüfbericht mit Quellen und Grenzen](/nvmetank1/projects/rag-stack/.claude/reports/wp-28dc5618ccd1.md),
+[roher Browserbeleg](/tmp/dishboard-hugerte-wp-28dc5618ccd1/proof.json),
+[Silver-Dialog](/tmp/dishboard-hugerte-wp-28dc5618ccd1/strict-dialog.png),
+[externe Tabler-Buttons](/tmp/dishboard-hugerte-wp-28dc5618ccd1/external.png).
+
+Primärreferenzen: [offizielle Theme-/Dokumentationshinweise](https://github.com/hugerte/hugerte-docs/blob/main/README.md)
+und [getaggte DOMUtils-Implementierung](https://raw.githubusercontent.com/hugerte/hugerte/v1.0.13/modules/hugerte/src/core/main/ts/api/dom/DOMUtils.ts).
+Die Probe umfasst ausgewählte Funktionen bei 1440×900, keine vollständige mobile, Screenreader-,
+Langdokument-, Upload- oder Serverfilter-Abnahme. Eine globale Lockerung auf `unsafe-inline`
+bleibt ausgeschlossen; ein CSP-kompatibler, vollständiger Tabler-Prototyp braucht eigene Abnahme.
 
 **Auslieferung.** Ein Offline-Pin wäre machbar: `static/vendor/` enthält bereits Tabler,
 Tabler-Icons, Swagger UI und Food-Symbole mit `*.lock.json` und Paketprüfungen
@@ -557,7 +573,8 @@ also nicht das Hindernis.
 **Entscheidung für REC-001.** Rezeptschritte werden als **Klartext** gespeichert
 (`recipe_steps.instruction text`) und escaped gerendert. Das erfüllt die REC-001-Vorgabe
 «geordnete Schritte» vollständig, ohne gespeichertes HTML, ohne Sanitizer-Pflicht und ohne
-CSP-Änderung. Ein Rich-Text-Editor ist ein **eigenes späteres Arbeitspaket (R-RTE)** und
+CSP-Änderung. Das ist die gewählte erste Liefergrenze, keine Behauptung, Richtext sei technisch
+unmöglich. Ein Rich-Text-Editor ist ein **eigenes späteres Arbeitspaket (R-RTE)** und
 **keine Voraussetzung** für eine nutzbare Rezeptverwaltung.
 
 Eintrittsbedingungen für R-RTE, alle vor einer Technologiefreigabe zu erfüllen:
@@ -570,8 +587,8 @@ Eintrittsbedingungen für R-RTE, alle vor einer Technologiefreigabe zu erfüllen
 4. Vollständige Tabler-Formularintegration einschliesslich Fehlerfokus, nicht nur eine Hülle.
 5. Offline-Pin mit Lizenznachweis und Paketprüfung.
 
-Es ist keine Abhängigkeit installiert und keine Technologie freigegeben. HugeRTE bleibt ein
-zu prüfender Kandidat; fehlender Browsernachweis ist keine abgeschlossene Produktprüfung.
+Es ist keine Produktabhängigkeit installiert und keine Technologie freigegeben. Die lokale
+Eignungsprobe ist durchgeführt; vollständige CSP-/Tabler-Integration und Produktabnahme bleiben offen.
 
 ---
 

@@ -21,8 +21,8 @@ Alle **35 Backlog-IDs** bleiben mit ihrem vollständigen Umfang erhalten. Die gr
 | Gruppe | Anzahl | IDs / verbleibende Grenze |
 |---|---:|---|
 | Produktive Funktionen | 15 | UI-001, UI-002, UI-003, CAT-001, DSP-001, BRD-001, API-001, ICO-001, ICO-002, SCR-001, SCR-002, TPL-001, TPL-002, TPL-003, IAM-001. TPL-001/002 und SCR-001 haben erst Teilfunktionen; der vollständige IAM-Zugriffsverlauf bleibt offen. Offene Daten-, Druck-, Branding- und Playerabnahmen stehen weiterhin in den Einzelzeilen. |
-| Aktive Umsetzung | 1 | OPS-001 bei Claude Fable 5.1; keine Fertig- oder Produktivbehauptung. |
-| Weitere grössere Umsetzung offen | 17 | BAS-001, REC-001–REC-007, NUT-001, OFF-001, CALC-001, INV-001, ORD-001, IAM-002, PKS-001, TRN-001, SCR-003. Vorhandene Referenzanalysen und Stammdaten ersetzen diese Funktionen nicht. |
+| Aktive Umsetzung | 2 | OPS-001 nach belegtem Fable-Sessionlimit durch Root/Codex übernommen, weiterhin ungeprüft; BAS-001 begonnen mit geprüftem B1, noch nicht integriert/deployed. B2 wartet auf OPS-Schema 20; keine vollständige Fertigmeldung. |
+| Weitere grössere Umsetzung offen | 16 | REC-001–REC-007, NUT-001, OFF-001, CALC-001, INV-001, ORD-001, IAM-002, PKS-001, TRN-001, SCR-003. Vorhandene Referenzanalysen und Stammdaten ersetzen diese Funktionen nicht. |
 | Fortlaufende Abnahme | 2 | QA-001 und DATA-001; technische Lieferungen ersetzen weder physische Player- noch fachliche Küchenbestätigung. |
 
 ## Historischer Deploy-Nachtrag — 6. September 2026, 04:55:35 Uhr Schweiz
@@ -98,17 +98,25 @@ UI-003 liefert die Referenzentscheidungen vor weiterem Admin-Polish; laufende Li
 |---|---|---|
 | UI-003 | **MiseOS (Corral) als UI-/UX-Referenz auf Tabler übertragen** | [MiseOS-Referenz auf Corral](https://corral.dk/posts/final-thoughts/) geprüft; erste Adaption seit `0acd992` produktiv: sichtbare Komponenten-/Herkunfts-/Allergenlabels, stabile Formularbezüge, eindeutige Bearbeiten-Aktionen und korrekter Fehlerfokus. Unabhängige Vergleichs-/Formulargates, vollständiges Paket und frische Live-Abnahme bestanden. Gesamter Admin bleibt Tabler, mit kompaktem Standard und Touch-Zielen. Weiteren Referenzumfang zu Typografie, Abständen, Aktionsgrössen und Hierarchie anhand konkreter offener Bedienprobleme abnehmen; die erste Adaption ist keine pauschale Fertigmeldung sämtlichen Admin-Polishs. |
 | TPL-003 | Zwei kontrollierte Wochen-Druckvorlagen | Produktiv und nach `3690e04` erneut mit echten Downloads geprüft: Cafeteria eine A4-Seite hoch, Patienten ganze Woche auf einer A4-Seite quer ohne Preise. Referenzlayout und Labels erhalten; Überlauf vor Aktivierung/Druck verweigern, kein Abschneiden oder unlesbares Verkleinern. Beide HTML-Druckprofile haben seit `3690e04` auch mobil gleich grosse Menükarten. Fachliche Druckabnahme bleibt offen. |
-| OPS-001 | **Bereiche & Zeiten** | Aktive Umsetzung bei Claude Fable 5.1, noch keine Fertigmeldung. Anzeigenamen wie Mitarbeitende, Patienten oder Schüler; Cafeteria-Öffnungszeiten und Patienten-Essenszeiten, Wochentage, Schliessungen und datierte Ausnahmen. Anzeigenamen ändern keine technischen Profil- oder Berechtigungsschlüssel. Zusätzliche unabhängige Bereiche sind eine eigene Modellerweiterung. |
+| OPS-001 | **Bereiche & Zeiten** | Nach tatsächlichem Fable-Sessionlimit übernimmt Root mit Codex-Lanes; bestehende Arbeit gesichert, aktiv und ungeprüft, keine Fertig- oder neue Produktivmeldung. Anzeigenamen wie Mitarbeitende, Patienten oder Schüler; Cafeteria-Öffnungszeiten und Patienten-Essenszeiten, Wochentage, Schliessungen und datierte Ausnahmen. Anzeigenamen ändern keine technischen Profil- oder Berechtigungsschlüssel. Zusätzliche unabhängige Bereiche sind eine eigene Modellerweiterung. |
 | IAM-001 | **Benutzer & Zugriff** | Seit `3690e04` mit Schema 19 produktiv: Kontenliste/-detail, Kontoereignisse und vollständige Tabler-Verwaltung einschliesslich Guard-/Ausfallkorrekturen; Anlegen, Rollen ersetzen, Passwort zurücksetzen, Deaktivieren/Reaktivieren, originale Actor-/Zielversionen, letzter lokaler Admin, atomarer Audit und Sessionwiderruf. Unabhängige Kern-/UI-/Typ-/Schema-Gates und vollständige Paketprüfung bestanden; frische lesende Live-Abnahme mit 208 Checks/12 PNG. Kein produktiver IAM-Schreibtest. Vollständiger Login-/Logout-Zugriffsverlauf bleibt gesondert offen. |
 
 ### 3. Stammdaten, Rezepte und geprüfte Datenimporte
 
 BAS-001 legt wiederverwendbare Zutaten, Einheiten und Kategorien für REC-001 fest; vorhandene Bestände bleiben nutzbar. Danach Suche und Importwege auf denselben Rezeptvertrag aufbauen. Produktdaten und Open Food Facts können parallel als manuell freizugebender Importkanal folgen. Format- und Lizenzprüfung für Pauli früh in REC-004 klären; der spätere PKS-Anschluss blockiert andere Importe nicht. Bestandsbuchungen folgen in Phase 5.
 
+**Begonnen, bereit zur Integration:** B1 `c7873fa` liefert reine Mengen-/Einheitenlogik und Tests.
+Root hat den vollständigen 433-Zeilen-Diff gelesen und selbst **101 passed in 1.26s**, Ruff PASS
+und Mypy PASS für zwei Dateien bestätigt ([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)).
+Noch nicht auf main oder deployed; Main-Followup bleibt `de0e746`, Produktion `3690e04`/Schema 19
+wie oben. [Gemeinsamer Vertrag](design/2026-09-06-bas-rec-data-contract.md) und
+[Arbeitspakete](superpowers/bas-rec-work-packages-0906.md) trennen B1 von B2, das auf OPS-Schema 20
+wartet. BAS-001/REC-001 und ihr vollständiger Restumfang bleiben offen.
+
 | ID | Auftrag | Umfang / noch offen |
 |---|---|---|
 | BAS-001 | **Grundlagen & Lager** nach Tandoors Datenbankbereich | Zentrale Pflege von Zutaten/Lebensmitteln, Komponenten, Einheiten, Kategorien und Tags; Lagerorte und Bestände mit Rezepten und Einkaufslisten verbinden. Vorhandene Stammdaten wiederverwenden. Tandoors tatsächliche Lagerfunktionen gesondert prüfen; keine ungeprüfte Eins-zu-eins-Kompatibilität behaupten. |
-| REC-001 | Rezeptverwaltung nach Vorbild **Tandoor** | Wiederverwendbare Rezepte mit Bildern, Zutaten/Mengen/Einheiten, Portionen, geordneten Schritten und Quellen; mit vorhandenen Menüs/Komponenten verbinden. Kochbücher und Sammlungen. **HugeRTE** ist auf Nutzerwunsch Prüfkandidat für den künftigen Rezepteditor; vollständige Tabler-Bedienoberfläche, CSP und Eignung prüfen. Keine Technologiefreigabe oder Dependency-Installation erfolgt. |
+| REC-001 | Rezeptverwaltung nach Vorbild **Tandoor** | Wiederverwendbare Rezepte mit Bildern, Zutaten/Mengen/Einheiten, Portionen, geordneten Schritten und Quellen; mit vorhandenen Menüs/Komponenten verbinden. Kochbücher und Sammlungen. **HugeRTE 1.0.13** auf Nutzerwunsch lokal browsergeprüft: Richtext funktioniert, eine Style-CSP-Verletzung bleibt; Silver erfüllt keine vollständige Tabler-Bedienoberfläche. [Beleg und Primärquellen](/nvmetank1/projects/rag-stack/.claude/reports/wp-28dc5618ccd1.md). Vollständige CSP-/Tabler-Integration und Produktabnahme offen; keine Technologiefreigabe oder Produktdependency-Installation. |
 | REC-006 | Anpassbare Suche und Tags | PostgreSQL-Volltext und Trigram-Ähnlichkeit, Filter für Rezept-/Zutaten-/Tagdaten, speicherbare Suche; Tags erstellen/suchen und gesammelt auf bestätigte Filtertreffer anwenden. |
 | REC-005 | Rezepte von Webseiten importieren | Schema.org-Rezepte aus JSON-LD und Microdata übernehmen, Quelle erhalten, Vorschau und Korrektur vor Speicherung. Bestehende Parser prüfen; keine Zusage für jede Website. |
 | REC-004 | Flexible Sammlungsimporte | Andere Rezeptmanager, Excel/XLSX, CSV, JSON und **Pauli Kitchen Solution** berücksichtigen; Dateivorschau, Feldzuordnung, Dubletten und Fehlerprotokoll. Konkrete Pauli-Exportversion/Formate anhand echter Beispieldaten klären; Unterstützung nicht vorab behaupten. |
