@@ -326,6 +326,11 @@ def _validate_service_states(services: list[Any]) -> None:
         ):
             raise ValueError('Eine geschlossene Mahlzeit braucht einen Hinweis.')
         start, end = service.get('service_start'), service.get('service_end')
+        for key in ('service_start', 'service_end'):
+            if key in service and (
+                not isinstance(service[key], str) or PATIENT_TIME_RE.fullmatch(service[key]) is None
+            ):
+                raise ValueError('Servicezeiten müssen als HH:MM angegeben werden.')
         if isinstance(start, str) and isinstance(end, str) and end <= start:
             raise ValueError('Das Serviceende muss nach dem Servicebeginn liegen.')
 
@@ -338,6 +343,11 @@ def validate_snapshot_payload(profile_code: str, snapshot: dict[str, Any]) -> No
     days = snapshot.get('days')
     if not isinstance(days, list) or len(days) != 7:
         raise ValueError('Snapshot muss sieben Tage enthalten.')
+    if 'area_name' in snapshot and (
+        not isinstance(snapshot['area_name'], str) or not snapshot['area_name'].strip()
+        or len(snapshot['area_name']) > 80
+    ):
+        raise ValueError('Der Bereichsname muss 1 bis 80 Zeichen enthalten.')
     if profile_code == 'patient':
         try:
             key_paths = _forbidden_patient_key_paths(snapshot)
@@ -360,9 +370,15 @@ def validate_snapshot_payload(profile_code: str, snapshot: dict[str, Any]) -> No
     else:
         if _forbidden_external_identifier_key_paths(snapshot):
             raise ValueError('Snapshot enthält unzulässige Komponentenkennungen.')
-        services = [service for day in days for service in day.get('services', [])]
-        if len(services) != 5 or any(service.get('meal_code') != 'LUNCH' for service in services):
-            raise ValueError('Cafeteria-Snapshot muss fünf Mittagsservices enthalten.')
+        services = []
+        for index, day in enumerate(days):
+            day_services = day.get('services') if isinstance(day, dict) else None
+            if not isinstance(day_services, list) or (
+                len(day_services) != 1 if index < 5 else len(day_services) > 1
+            ) or any(not isinstance(service, dict) or service.get('meal_code') != 'LUNCH'
+                     for service in day_services):
+                raise ValueError('Cafeteria braucht werktags einen, am Wochenende höchstens einen Mittagsservice.')
+            services.extend(day_services)
         _validate_service_states(services)
         for service in services:
             if service.get('service_state', 'open') != 'open':

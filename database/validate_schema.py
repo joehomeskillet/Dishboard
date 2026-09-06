@@ -293,7 +293,13 @@ def main() -> int:
         migration_0016 = MIGRATION_0016.read_text(encoding='utf-8')
         migration_0017 = MIGRATION_0017.read_text(encoding='utf-8')
         for fragment in ('menu_services_time_window_check', 'offer_profiles_display_name_check',
-                         'GRANT UPDATE (display_name) ON offer_profiles TO cafeteria_app',
+                         'GRANT UPDATE (display_name, allows_weekend) ON offer_profiles TO cafeteria_app',
+                         'offer_profiles_profile_contract_check',
+                         'lock_operations_actor(p_actor bigint, p_actor_version bigint)',
+                         'ORDER BY role_code FOR SHARE',
+                         'WHERE id=p_actor ORDER BY id FOR UPDATE',
+                         'Cafeteria-Wochenende erlaubt höchstens einen Mittagsservice.',
+                         'Kosten sind nur im Cafeteria-Mittag zulässig.',
                          "'servicestart', 'serviceend', 'areaname'",
                          'jsonb_strip_nulls(jsonb_build_object(',
                          "to_char(s.service_start, 'HH24:MI')",
@@ -349,7 +355,7 @@ def main() -> int:
             MIGRATION_0014: 'd767c2446e6cfab10daf073056ec1f9a9570293e76ee0a8f9638036f5460dae0',
             MIGRATION_0015: 'da49d671a6dbfef768330a894f217f5ec4d37addf9bd3c2064ae60a815f8ac9e',
             MIGRATION_0016: 'e195aac3c6b53fb08f733723cd8ef12e6e40fb7abdc5fe58bf1f88585015c6c1',
-            MIGRATION_0017: '6de3192f12f913f1b03e7d044b0f24155175b26dbc407ffe691e1cf6b1300834',
+            MIGRATION_0017: '186422d38d9094751f4a55086876bbdada32d8b16b4deed758ab3446eec03228',
         }
         for migration_path, expected_checksum in immutable_migration_checksums.items():
             actual_checksum = hashlib.sha256(migration_path.read_bytes()).hexdigest()
