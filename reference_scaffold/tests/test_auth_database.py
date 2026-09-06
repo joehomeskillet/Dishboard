@@ -15,6 +15,7 @@ from werkzeug.security import check_password_hash
 import manage
 from cafeteria import db as database
 from cafeteria.auth import issuer as auth_issuer
+from local_user_test_support import provision_local_fixture
 
 ROOT = Path(__file__).resolve().parents[2]
 DATABASE_URL = os.getenv('TEST_DATABASE_URL')
@@ -91,10 +92,10 @@ def owner_engine() -> Iterator[Engine]:
 def test_migration_plan_contains_auth_issuer_contract() -> None:
     plan = database.migration_plan(ROOT / 'database' / 'schema.sql')
 
-    assert database.SCHEMA_VERSION == 18
+    assert database.SCHEMA_VERSION == 19
     assert (plan[-1].version, plan[-1].path.name) == (
-        18,
-        '0015_v17_to_v18.sql',
+        19,
+        '0016_v18_to_v19.sql',
     )
 
 
@@ -169,15 +170,15 @@ def test_auth_issuer_role_has_function_only_identity_privileges(owner_engine: En
     assert privileges == {
         'sync_execute': True,
         'issue_execute': True,
-        'provision_execute': True,
-        'password_execute': True,
-        'disable_execute': True,
+        'provision_execute': False,
+        'password_execute': False,
+        'disable_execute': False,
         'users_select': False,
         'credentials_select': False,
         'cafeteria_usage': True,
         'cafeteria_create': False,
         'public_create': False,
-        'execute_count': 5,
+        'execute_count': 8,
     }
     with pytest.raises(DBAPIError, match='permission denied'):
         with issuer_engine.begin() as connection:
@@ -284,8 +285,8 @@ def test_local_user_provisioning_hashes_password_and_rejects_duplicate_roles(
         pool_pre_ping=True,
     )
     try:
-        user_id = auth_issuer.provision_local_user(
-            issuer_engine,
+        user_id = provision_local_fixture(
+            issuer_engine, owner_engine,
             actor_identifier=DEFAULT_ACTOR,
             username='kueche.admin',
             display_name='Küche Admin',
@@ -316,8 +317,8 @@ def test_local_user_provisioning_hashes_password_and_rejects_duplicate_roles(
         assert row.roles == ['Cafeteria.Admin', 'Cafeteria.Editor']
 
         with pytest.raises(ValueError, match='doppelte'):
-            auth_issuer.provision_local_user(
-                issuer_engine,
+            provision_local_fixture(
+                issuer_engine, owner_engine,
                 actor_identifier=DEFAULT_ACTOR,
                 username='zweiter.admin',
                 display_name='Zweiter Admin',
@@ -567,6 +568,7 @@ def test_cli_sets_password_then_disables_local_user_with_audit_and_revocation(
         ).one()
 
     changed = iter(['Changed-2026!Sicher', 'Changed-2026!Sicher'])
+    monkeypatch.setattr('builtins.input', lambda _: 'ja')
     monkeypatch.setattr(manage.getpass, 'getpass', lambda prompt: next(changed))
     assert manage.main(
         ['set-local-password', '--actor', DEFAULT_ACTOR, '--username', 'cli.operator']
@@ -956,8 +958,8 @@ def test_bootstrap_admin_can_provision_second_user(
         )
         
         # Provision second user with bootstrap admin as actor
-        user_id_2 = auth_issuer.provision_local_user(
-            issuer_engine,
+        user_id_2 = provision_local_fixture(
+            issuer_engine, owner_engine,
             actor_identifier='bootstrap.admin',
             username='second.user',
             display_name='Second User',

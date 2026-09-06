@@ -337,6 +337,18 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
 .print-header > span { color: var(--sh-ink-muted); font-weight: 800; }
 .print-footer { margin-top: 1.25rem; padding-top: .7rem; border-top: 1px solid var(--sh-border); color: var(--sh-ink-muted); font-size: .78rem; }
 
+/* Equal day and menu tracks share the tallest content; printed pages retain their layout. */
+@media screen {
+  .print-body .week-list { grid-auto-rows: 1fr; }
+  .print-body .week-day { display: grid; grid-template-rows: auto 1fr; }
+  .print-body .week-day-grid { grid-auto-rows: 1fr; }
+}
+
+@media screen and (max-width: 560px) {
+  .print-body .week-day-grid { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .print-body .week-row { grid-auto-rows: 1fr; }
+}
+
 @page { size: A4 landscape; margin: 10mm; }
 
 

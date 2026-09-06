@@ -153,6 +153,18 @@ def authenticate_local_user(
         return None
 
     with engine.begin() as connection:
+        # Match account administration: users first, then credentials. A joined
+        # FOR UPDATE does not establish a cross-query lock ordering contract.
+        user_id = connection.execute(
+            text('''SELECT u.id FROM cafeteria.users u
+                JOIN cafeteria.local_credentials c ON c.user_id=u.id
+                WHERE c.username=:username AND u.auth_provider='local'
+                FOR UPDATE OF u'''),
+            {'username': normalized},
+        ).scalar_one_or_none()
+        if user_id is None:
+            check_password_hash(_DUMMY_PASSWORD_HASH, password)
+            return None
         row = connection.execute(
             text(
                 '''
@@ -163,11 +175,11 @@ def authenticate_local_user(
                            AND c.locked_until > clock_timestamp() AS locked
                 FROM cafeteria.local_credentials c
                 JOIN cafeteria.users u ON u.id=c.user_id
-                WHERE c.username=:username AND u.auth_provider='local'
-                FOR UPDATE OF c, u
+                WHERE c.username=:username AND u.id=:user_id AND u.auth_provider='local'
+                FOR UPDATE OF c
                 '''
             ),
-            {'username': normalized},
+            {'username': normalized, 'user_id': user_id},
         ).mappings().first()
         if row is None:
             check_password_hash(_DUMMY_PASSWORD_HASH, password)

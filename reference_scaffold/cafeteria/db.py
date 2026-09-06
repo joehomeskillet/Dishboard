@@ -19,8 +19,8 @@ from .database_roles import (
 )
 from .patient_payload import PROFILES, validate_snapshot_payload
 
-SCHEMA_VERSION = 18
-APPLICATION_VERSION = 'dishboard-schema-v18'
+SCHEMA_VERSION = 19
+APPLICATION_VERSION = 'dishboard-schema-v19'
 SYSTEM_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000001'
 DEMO_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000002'
 
@@ -48,6 +48,7 @@ MIGRATION_FILES = (
     (16, '0013_v15_to_v16.sql'),
     (17, '0014_v16_to_v17.sql'),
     (18, '0015_v17_to_v18.sql'),
+    (19, '0016_v18_to_v19.sql'),
 )
 MIGRATION_LOCK_ID = 731_905_005
 DEFAULT_CAPABILITY_TTL = timedelta(minutes=5)
@@ -309,9 +310,12 @@ def validate_database(engine: Engine) -> dict[str, Any]:
                     VALUES
                       ('cafeteria.sync_entra_user(uuid,uuid,text,text,text,text,text[])'),
                       ('cafeteria.issue_publication_capability(bigint,bigint,interval)'),
-                      ('cafeteria.provision_local_user(text,text,text,text,text[])'),
-                      ('cafeteria.set_local_password(text,text,text)'),
-                      ('cafeteria.disable_local_user(text,text)')
+                      ('cafeteria.create_local_user_v19(bigint,bigint,text,text,text,text[])'),
+                      ('cafeteria.replace_local_roles_v19(bigint,bigint,uuid,bigint,text[])'),
+                      ('cafeteria.reset_local_password_v19(bigint,bigint,uuid,bigint,text)'),
+                      ('cafeteria.deactivate_local_user_v19(bigint,bigint,uuid,bigint)'),
+                      ('cafeteria.reactivate_local_user_v19(bigint,bigint,uuid,bigint)'),
+                      ('cafeteria.local_user_command_context_v19(bigint,text,uuid,text)')
                 )
                 SELECT
                     EXISTS (SELECT 1 FROM issuer) AS role_exists,
@@ -385,7 +389,7 @@ def validate_database(engine: Engine) -> dict[str, Any]:
         and issuer.membership_count == 0
         and issuer.table_privilege_count == 0
         and issuer.sequence_privilege_count == 0
-        and issuer.allowed_execute_count == 5
+        and issuer.allowed_execute_count == 8
         and issuer.unexpected_execute_count == 0
         and not issuer.can_create_cafeteria_schema
         and not issuer.can_create_public_schema

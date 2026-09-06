@@ -6,7 +6,8 @@ from pathlib import Path
 
 import pytest
 from cafeteria import db as database
-from cafeteria.auth import issuer as auth_issuer
+from cafeteria.auth import local_users
+from local_user_test_support import provision_local_fixture
 from cafeteria.auth.service import authenticate_local_user
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.engine import make_url
@@ -201,8 +202,8 @@ def test_app_cannot_forge_audit_events_but_database_records_login_lock(
     )
     try:
         _, actor = _provision_entra_admin(issuer_engine, '883')
-        user_id = auth_issuer.provision_local_user(
-            issuer_engine,
+        user_id = provision_local_fixture(
+            issuer_engine, owner_engine,
             actor_identifier=actor,
             username='audit.locked',
             display_name='Audit Locked',
@@ -393,9 +394,9 @@ def test_local_admin_actions_require_and_persist_verified_actor(owner_engine: En
             },
             ['Cafeteria.Editor'],
         )
-        with pytest.raises(DBAPIError, match='keinen eindeutigen aktiven Administrator'):
-            auth_issuer.provision_local_user(
-                issuer_engine,
+        with pytest.raises(local_users.ActorDenied, match='Administrator'):
+            provision_local_fixture(
+                issuer_engine, owner_engine,
                 actor_identifier='not.admin@example.invalid',
                 username='denied.local',
                 display_name='Denied Local',
@@ -403,24 +404,30 @@ def test_local_admin_actions_require_and_persist_verified_actor(owner_engine: En
                 roles=['Cafeteria.Editor'],
             )
         actor_id, actor = _provision_entra_admin(issuer_engine, '933')
-        user_id = auth_issuer.provision_local_user(
-            issuer_engine,
+        user_id = provision_local_fixture(
+            issuer_engine, owner_engine,
             actor_identifier=actor,
             username='audited.local',
             display_name='Audited Local',
             password='Olive-Mountain-2026!K9',
             roles=['Cafeteria.Editor'],
         )
-        auth_issuer.set_local_password(
+        context = local_users.load_local_command_context(
+            issuer_engine, actor_identifier=actor, target_username='audited.local')
+        assert context.target is not None
+        local_users.reset_local_password(
             issuer_engine,
-            actor_identifier=actor,
-            username='audited.local',
+            actor=context.actor,
+            target=context.target,
             password='Quartz-River-2027!L8',
         )
-        auth_issuer.disable_local_user(
+        context = local_users.load_local_command_context(
+            issuer_engine, actor_identifier=actor, target_username='audited.local')
+        assert context.target is not None
+        local_users.deactivate_local_user(
             issuer_engine,
-            actor_identifier=actor,
-            username='audited.local',
+            actor=context.actor,
+            target=context.target,
         )
     finally:
         issuer_engine.dispose()
@@ -463,8 +470,8 @@ def test_expired_local_lock_relocks_and_audits_once_per_lock_cycle(
     )
     try:
         _, actor = _provision_entra_admin(issuer_engine, '944')
-        user_id = auth_issuer.provision_local_user(
-            issuer_engine,
+        user_id = provision_local_fixture(
+            issuer_engine, owner_engine,
             actor_identifier=actor,
             username='relock.local',
             display_name='Relock Local',

@@ -119,18 +119,19 @@ def test_pytest_failure_is_not_hidden_by_skips(monkeypatch, capsys, summary, off
     assert '[OK] Flask-Routen, Jinja-Templates und Vertragstests geprueft' not in output
 
 
-@pytest.mark.parametrize('fault', [None, 'schema17', 'tables32', 'missing', 'modified'])
-def test_package_requires_branding_schema_and_pinned_migration(monkeypatch, capsys, fault):
-    migration = ROOT / 'database/migrations/0015_v17_to_v18.sql'
+@pytest.mark.parametrize('migration_name', ['0015_v17_to_v18.sql', '0016_v18_to_v19.sql'])
+@pytest.mark.parametrize('fault', [None, 'schema17', 'schema18', 'tables32', 'missing', 'modified'])
+def test_package_requires_branding_schema_and_pinned_migration(monkeypatch, capsys, fault, migration_name):
+    migration = ROOT / 'database/migrations' / migration_name
     actual_run, actual_is_file, actual_sha256 = validator.run, Path.is_file, validator.sha256
 
     def bounded_run(command, cwd):
         if command[1:3] == ['-m', 'pytest']:
             return subprocess.CompletedProcess(command, 0, 'Focused subprocess gate stub\n', '')
         result = actual_run(command, cwd)
-        if command[1:2] == ['database/validate_schema.py'] and fault in {'schema17', 'tables32'}:
+        if command[1:2] == ['database/validate_schema.py'] and fault in {'schema17', 'schema18', 'tables32'}:
             status = json.loads(result.stdout)
-            status['schema_version' if fault == 'schema17' else 'tables'] = 17 if fault == 'schema17' else 32
+            status['tables' if fault == 'tables32' else 'schema_version'] = {'schema17': 17, 'schema18': 18, 'tables32': 32}[fault]
             return subprocess.CompletedProcess(command, result.returncode, json.dumps(status), result.stderr)
         return result
 
@@ -141,16 +142,17 @@ def test_package_requires_branding_schema_and_pinned_migration(monkeypatch, caps
     result = validator.main()
     output = capsys.readouterr().out
     errors = {
-        'schema17': '[FEHLER] Schema-Version ist nicht 18.',
+        'schema17': '[FEHLER] Schema-Version ist nicht 19.',
+        'schema18': '[FEHLER] Schema-Version ist nicht 19.',
         'tables32': '[FEHLER] Schema enthaelt nicht 33 Tabellen.',
-        'missing': '[FEHLER] Migration-Datei fehlt: 0015_v17_to_v18.sql',
-        'modified': '[FEHLER] Migration-Checksum falsch 0015_v17_to_v18.sql:',
+        'missing': f'[FEHLER] Migration-Datei fehlt: {migration_name}',
+        'modified': f'[FEHLER] Migration-Checksum falsch {migration_name}:',
     }
     if fault:
         assert result == 1 and errors[fault] in output
         if fault == 'missing':
-            assert '[FEHLER] Pflichtdatei fehlt: database/migrations/0015_v17_to_v18.sql' in output
+            assert f'[FEHLER] Pflichtdatei fehlt: database/migrations/{migration_name}' in output
     else:
         assert all(message not in output for message in errors.values())
-        assert 'database/migrations/0015_v17_to_v18.sql' in validator.REQUIRED_FILES
+        assert f'database/migrations/{migration_name}' in validator.REQUIRED_FILES
         assert validator.MIGRATION_CHECKSUMS[migration.name] == actual_sha256(migration)

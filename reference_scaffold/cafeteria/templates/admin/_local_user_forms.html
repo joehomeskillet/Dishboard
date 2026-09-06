@@ -1,0 +1,25 @@
+{% from 'admin/_macros.html' import check %}
+{% macro hidden(csrf, page, status, account=none) %}
+<input type="hidden" name="_csrf" value="{{ csrf }}">
+<input type="hidden" name="return_page" value="{{ page }}"><input type="hidden" name="return_status" value="{{ status }}">
+{% if account %}<input type="hidden" name="target_version" value="{{ account.authz_version }}">{% endif %}
+{% endmacro %}
+{% macro error(message, key) %}{% if message %}
+<div class="alert alert-danger error-region" id="user-error-{{ key }}" role="alert" tabindex="-1" autofocus>{{ message }} Bitte die Angaben prüfen und die Aktion erneut bestätigen.</div>
+{% endif %}{% endmacro %}
+{% macro roles(labels, selected, prefix) %}
+<fieldset><legend class="form-label">Rollen</legend>
+{% for value, label in labels.items() %}{{ check('roles', label, value, value in selected, id=prefix ~ '-role-' ~ loop.index) }}{% endfor %}
+<p class="form-hint">Mindestens eine Rolle auswählen. Admins verwalten auch Benutzer und Einstellungen.</p></fieldset>
+{% endmacro %}
+{% macro password(prefix) %}
+<div class="mb-3"><label class="form-label" for="{{ prefix }}-password">Neues Passwort</label>
+<input class="form-control" id="{{ prefix }}-password" name="password" type="password" autocomplete="new-password" required minlength="14" maxlength="1024" aria-describedby="{{ prefix }}-password-hint">
+<p class="form-hint" id="{{ prefix }}-password-hint">14 bis 1024 Zeichen aus mindestens drei Gruppen: Grossbuchstaben, Kleinbuchstaben, Zahlen, Sonderzeichen. Der Benutzername darf nicht enthalten sein. Bestehende Passwörter werden nicht angezeigt.</p></div>
+<div class="mb-3"><label class="form-label" for="{{ prefix }}-password-confirm">Neues Passwort bestätigen</label>
+<input class="form-control" id="{{ prefix }}-password-confirm" name="password_confirm" type="password" autocomplete="new-password" required minlength="14" maxlength="1024"></div>
+{% endmacro %}
+{% macro confirm(prefix, label) %}
+<label class="form-check" for="{{ prefix }}-confirm"><input class="form-check-input" id="{{ prefix }}-confirm" name="confirm" type="checkbox" value="yes" required><span class="form-check-label text-break">{{ label }}</span></label>
+{% endmacro %}
+{% macro unavailable(can_mutate) %}{% if not can_mutate %}<div class="alert alert-warning" role="status">Kontoänderungen sind momentan nicht verfügbar. Die Konten bleiben lesbar.</div>{% endif %}{% endmacro %}

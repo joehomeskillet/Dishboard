@@ -66,81 +66,6 @@ def _validate_actor_identifier(actor_identifier: str) -> str:
     return normalized
 
 
-def provision_local_user(
-    issuer_engine: Engine,
-    *,
-    actor_identifier: str,
-    username: str,
-    display_name: str,
-    password: str,
-    roles: list[str],
-) -> int:
-    _validate_username(username)
-    if not isinstance(display_name, str) or not display_name.strip():
-        raise ValueError('Lokaler Anzeigename ist ungültig.')
-    validate_local_password(password, username)
-    _validate_roles(roles)
-    actor = _validate_actor_identifier(actor_identifier)
-    with issuer_engine.begin() as connection:
-        user_id = connection.execute(
-            text(
-                '''
-                SELECT cafeteria.provision_local_user(
-                    :actor_identifier, :username, :display_name,
-                    :password_hash, CAST(:roles AS text[])
-                )
-                '''
-            ),
-            {
-                'actor_identifier': actor,
-                'username': username,
-                'display_name': display_name.strip(),
-                'password_hash': generate_password_hash(password),
-                'roles': roles,
-            },
-        ).scalar_one()
-    return int(user_id)
-
-
-def set_local_password(
-    issuer_engine: Engine,
-    *,
-    actor_identifier: str,
-    username: str,
-    password: str,
-) -> int:
-    _validate_username(username)
-    validate_local_password(password, username)
-    actor = _validate_actor_identifier(actor_identifier)
-    with issuer_engine.begin() as connection:
-        user_id = connection.execute(
-            text(
-                'SELECT cafeteria.set_local_password('
-                ':actor_identifier, :username, :password_hash)'
-            ),
-            {
-                'actor_identifier': actor,
-                'username': username,
-                'password_hash': generate_password_hash(password),
-            },
-        ).scalar_one()
-    return int(user_id)
-
-
-def disable_local_user(
-    issuer_engine: Engine,
-    *,
-    actor_identifier: str,
-    username: str,
-) -> int:
-    _validate_username(username)
-    actor = _validate_actor_identifier(actor_identifier)
-    with issuer_engine.begin() as connection:
-        user_id = connection.execute(
-            text('SELECT cafeteria.disable_local_user(:actor_identifier, :username)'),
-            {'actor_identifier': actor, 'username': username},
-        ).scalar_one()
-    return int(user_id)
 
 
 def bootstrap_first_local_admin(
@@ -159,6 +84,7 @@ def bootstrap_first_local_admin(
     if not isinstance(display_name, str) or not display_name.strip():
         raise ValueError('Lokaler Anzeigename ist ungültig.')
     validate_local_password(password, username)
+    password_hash = generate_password_hash(password)
     with issuer_engine.begin() as connection:
         user_id = connection.execute(
             text(
@@ -171,7 +97,7 @@ def bootstrap_first_local_admin(
             {
                 'username': username,
                 'display_name': display_name.strip(),
-                'password_hash': generate_password_hash(password),
+                'password_hash': password_hash,
             },
         ).scalar_one()
     return int(user_id)

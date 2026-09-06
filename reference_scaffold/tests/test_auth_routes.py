@@ -15,7 +15,7 @@ from sqlalchemy.pool import NullPool
 
 from cafeteria import create_app
 from cafeteria import db as database
-from cafeteria.auth import issuer as auth_issuer
+from local_user_test_support import provision_local_fixture
 from cafeteria.auth import routes as auth_routes
 from cafeteria.auth.service import login_rate_key, trusted_client_address
 
@@ -146,9 +146,9 @@ def auth_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[tuple[Any, Engine, Eng
         redis_client.close()
 
 
-def _provision(issuer_engine: Engine, username: str = 'local.editor') -> int:
-    return auth_issuer.provision_local_user(
-        issuer_engine,
+def _provision(issuer_engine: Engine, owner_engine: Engine, username: str = 'local.editor') -> int:
+    return provision_local_fixture(
+        issuer_engine, owner_engine,
         actor_identifier=ACTOR_IDENTIFIER,
         username=username,
         display_name='Lokale Redaktion',
@@ -165,8 +165,8 @@ def _csrf_payload(client: Any, **values: str) -> dict[str, str]:
 
 
 def test_local_login_succeeds_without_session_roles(auth_app: tuple[Any, Engine, Engine]) -> None:
-    application, _, issuer_engine = auth_app
-    user_id = _provision(issuer_engine)
+    application, owner_engine, issuer_engine = auth_app
+    user_id = _provision(issuer_engine, owner_engine)
     client = application.test_client()
 
     response = client.post(
@@ -234,7 +234,7 @@ def test_local_login_failures_are_generic_and_disabled_users_cannot_login(
     auth_app: tuple[Any, Engine, Engine],
 ) -> None:
     application, owner_engine, issuer_engine = auth_app
-    user_id = _provision(issuer_engine)
+    user_id = _provision(issuer_engine, owner_engine)
     client = application.test_client()
 
     wrong = client.post(
@@ -279,8 +279,8 @@ def test_local_login_failures_are_generic_and_disabled_users_cannot_login(
 def test_local_login_fails_closed_when_redis_is_unavailable(
     auth_app: tuple[Any, Engine, Engine],
 ) -> None:
-    application, _, issuer_engine = auth_app
-    _provision(issuer_engine)
+    application, owner_engine, issuer_engine = auth_app
+    _provision(issuer_engine, owner_engine)
     application.extensions['cafeteria_rate_redis'] = BrokenRedis()
     client = application.test_client()
 
@@ -368,7 +368,7 @@ def test_fifth_failed_login_locks_and_audits_local_user(
     auth_app: tuple[Any, Engine, Engine],
 ) -> None:
     application, owner_engine, issuer_engine = auth_app
-    user_id = _provision(issuer_engine)
+    user_id = _provision(issuer_engine, owner_engine)
     client = application.test_client()
 
     for _ in range(5):
@@ -404,7 +404,7 @@ def test_fifth_failed_login_locks_and_audits_local_user(
 
 def test_role_revocation_invalidates_live_session(auth_app: tuple[Any, Engine, Engine]) -> None:
     application, owner_engine, issuer_engine = auth_app
-    user_id = _provision(issuer_engine)
+    user_id = _provision(issuer_engine, owner_engine)
     client = application.test_client()
     login = client.post(
         '/auth/local',
@@ -630,8 +630,8 @@ def test_entra_callback_never_reactivates_disabled_user(
 def test_local_login_requires_csrf_before_rate_limit_or_auth(
     auth_app: tuple[Any, Engine, Engine],
 ) -> None:
-    application, _, issuer_engine = auth_app
-    _provision(issuer_engine)
+    application, owner_engine, issuer_engine = auth_app
+    _provision(issuer_engine, owner_engine)
     client = application.test_client()
     valid = _csrf_payload(
         client,
@@ -712,8 +712,8 @@ def test_secure_cookie_flags_are_emitted(
 def test_real_redis_connection_failure_blocks_local_login(
     auth_app: tuple[Any, Engine, Engine],
 ) -> None:
-    application, _, issuer_engine = auth_app
-    _provision(issuer_engine)
+    application, owner_engine, issuer_engine = auth_app
+    _provision(issuer_engine, owner_engine)
     application.extensions['cafeteria_rate_redis'] = Redis(
         host='127.0.0.1',
         port=1,

@@ -47,4 +47,5 @@ def test_v17_forward_migration_preserves_settings_and_has_recorded_checksum(pg16
         assert connection.execute(text('SELECT to_jsonb(s) FROM cafeteria.settings s ORDER BY id')).scalars().all() == before
         assert connection.execute(text('SELECT count(*) FROM cafeteria.branding_assets')).scalar_one() == 0
         assert connection.execute(text('SELECT name,checksum_sha256 FROM cafeteria.schema_migrations WHERE version=18')).one() == (
-            '0015_v17_to_v18.sql', hashlib.sha256(plan[-1].path.read_bytes()).hexdigest())
+            '0015_v17_to_v18.sql', hashlib.sha256(next(item.path for item in plan if item.version == 18).read_bytes()).hexdigest())
+        assert connection.execute(text('SELECT version FROM cafeteria.schema_migrations ORDER BY version')).scalars().all() == list(range(4, 20))

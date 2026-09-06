@@ -15,6 +15,7 @@
     {% for key, label in [('screens', 'Screens'), ('vorlagen', 'Vorlagen')] %}
     <a href="{{ url_for('admin.' ~ key) }}"{% if workflow_nav == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
     {% endfor %}
+    {% if can_manage_users %}<a href="{{ url_for('admin.local_users_list') }}">Benutzer &amp; Zugriff</a>{% endif %}
     <form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button type="submit">Abmelden</button></form>
   </nav>
 </aside>
@@ -58,6 +59,13 @@
             </a>
           </li>
           {% endfor %}
+          {% if can_manage_users %}
+          <li class="nav-item{% if workflow_nav == 'users' %} active{% endif %}">
+            <a href="{{ url_for('admin.local_users_list') }}" class="nav-link{% if workflow_nav == 'users' %} active{% endif %}"{% if workflow_nav == 'users' %} aria-current="page"{% endif %}>
+              <span class="nav-link-icon">{{ icon('info-circle') }}</span><span class="nav-link-title">Benutzer &amp; Zugriff</span>
+            </a>
+          </li>
+          {% endif %}
           {% if can_configure_display %}
           <li class="nav-item{% if workflow_nav == 'design' %} active{% endif %}">
             <a href="{{ url_for('admin.branding_editor') }}" class="nav-link{% if workflow_nav == 'design' %} active{% endif %}"{% if workflow_nav == 'design' %} aria-current="page"{% endif %}>

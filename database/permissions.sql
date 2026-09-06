@@ -129,9 +129,12 @@ TO cafeteria_app;
 GRANT EXECUTE ON FUNCTION
     sync_entra_user(uuid, uuid, text, text, text, text, text[]),
     issue_publication_capability(bigint, bigint, interval),
-    provision_local_user(text, text, text, text, text[]),
-    set_local_password(text, text, text),
-    disable_local_user(text, text)
+    create_local_user_v19(bigint,bigint,text,text,text,text[]),
+    replace_local_roles_v19(bigint,bigint,uuid,bigint,text[]),
+    reset_local_password_v19(bigint,bigint,uuid,bigint,text),
+    deactivate_local_user_v19(bigint,bigint,uuid,bigint),
+    reactivate_local_user_v19(bigint,bigint,uuid,bigint),
+    local_user_command_context_v19(bigint,text,uuid,text)
 TO cafeteria_auth_issuer;
 ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
     REVOKE EXECUTE ON FUNCTIONS

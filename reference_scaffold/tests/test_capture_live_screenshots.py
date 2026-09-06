@@ -33,7 +33,7 @@ pytestmark = pytest.mark.skipif(
 
 if DATABASE_URL and REDIS_URL:
     from cafeteria import create_app
-    from cafeteria.auth import issuer as auth_issuer
+    from cafeteria.auth.local_users import create_local_user, load_local_command_context
     from cafeteria.db import init_database, upsert_entra_user
 
 
@@ -117,13 +117,13 @@ def live_server(monkeypatch: pytest.MonkeyPatch):
     )
 
     # Now provision a local user
-    auth_issuer.provision_local_user(
+    create_local_user(
         issuer_engine,
-        actor_identifier=LOCAL_ACTOR_ID,
+        actor=load_local_command_context(issuer_engine, actor_identifier=LOCAL_ACTOR_ID).actor,
         username='capture.admin',
         display_name='Capture Admin',
         password='MysteryKeeper2026!@Xyz',
-        roles=['Cafeteria.Admin'],
+        roles=('Cafeteria.Admin',),
     )
 
     # Start the server in a background thread

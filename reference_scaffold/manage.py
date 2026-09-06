@@ -12,7 +12,11 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.pool import NullPool
 
-from cafeteria.auth.issuer import bootstrap_first_local_admin, disable_local_user, provision_local_user, set_local_password
+from cafeteria.auth.issuer import bootstrap_first_local_admin
+from cafeteria.auth.local_users import (
+    create_local_user, deactivate_local_user, load_local_command_context,
+    reactivate_local_user, replace_local_roles, reset_local_password,
+)
 from cafeteria.config import Config
 from cafeteria.db import ENTRA_APPLICATION_ROLES, init_database, validate_database
 
@@ -81,9 +85,20 @@ def main(argv: list[str] | None = None) -> int:
     disable_cmd.add_argument('--wait-seconds', type=int, default=10)
     disable_cmd.add_argument('--actor', required=True)
     disable_cmd.add_argument('--username', required=True)
+    roles_cmd = sub.add_parser('set-local-roles')
+    roles_cmd.add_argument('--wait-seconds', type=int, default=10)
+    roles_cmd.add_argument('--actor', required=True)
+    roles_cmd.add_argument('--username', required=True)
+    roles_cmd.add_argument('--role', action='append', required=True,
+                           choices=sorted(ENTRA_APPLICATION_ROLES))
+    reactivate_cmd = sub.add_parser('reactivate-local-user')
+    reactivate_cmd.add_argument('--wait-seconds', type=int, default=10)
+    reactivate_cmd.add_argument('--actor', required=True)
+    reactivate_cmd.add_argument('--username', required=True)
     args = parser.parse_args(arguments)
 
-    if args.command in {'provision-local-user', 'set-local-password', 'disable-local-user'}:
+    if args.command in {'provision-local-user', 'set-local-password', 'disable-local-user',
+                         'set-local-roles', 'reactivate-local-user'}:
         if not cfg.AUTH_ISSUER_DATABASE_URL:
             raise RuntimeError('AUTH_ISSUER_DATABASE_URL fehlt.')
         wait_for_database(cfg.AUTH_ISSUER_DATABASE_URL, args.wait_seconds)
@@ -93,34 +108,48 @@ def main(argv: list[str] | None = None) -> int:
             pool_pre_ping=True,
         )
         try:
+            context = load_local_command_context(
+                engine, actor_identifier=args.actor,
+                target_username=None if args.command == 'provision-local-user' else args.username,
+            )
+            print(f'Aktion: {args.command}; Konto: {args.username}', file=sys.stderr)
             if args.command == 'provision-local-user':
-                user_id = provision_local_user(
+                result = create_local_user(
                     engine,
-                    actor_identifier=args.actor,
+                    actor=context.actor,
                     username=args.username,
                     display_name=args.display_name,
                     password=_prompt_confirmed_password(),
-                    roles=args.role,
+                    roles=tuple(args.role),
                 )
                 action = 'provisioned'
-            elif args.command == 'set-local-password':
-                user_id = set_local_password(
-                    engine,
-                    actor_identifier=args.actor,
-                    username=args.username,
-                    password=_prompt_confirmed_password(),
-                )
-                action = 'password_changed'
             else:
-                user_id = disable_local_user(
-                    engine,
-                    actor_identifier=args.actor,
-                    username=args.username,
-                )
-                action = 'disabled'
+                if context.target is None:
+                    raise RuntimeError('Lokales Zielkonto fehlt.')
+                if args.command == 'set-local-password':
+                    result = reset_local_password(engine, actor=context.actor,
+                        target=context.target, password=_prompt_confirmed_password())
+                    action = 'password_changed'
+                else:
+                    if args.command == 'set-local-roles':
+                        print('Neue Rollen: ' + ', '.join(args.role), file=sys.stderr)
+                    if input('Diese Kontoänderung bestätigen (ja): ').strip().casefold() != 'ja':
+                        raise RuntimeError('Kontoänderung abgebrochen.')
+                    if args.command == 'set-local-roles':
+                        result = replace_local_roles(engine, actor=context.actor,
+                            target=context.target, roles=tuple(args.role))
+                        action = 'roles_changed'
+                    elif args.command == 'disable-local-user':
+                        result = deactivate_local_user(engine, actor=context.actor, target=context.target)
+                        action = 'disabled'
+                    else:
+                        result = reactivate_local_user(engine, actor=context.actor, target=context.target)
+                        action = 'reactivated'
         finally:
             engine.dispose()
-        print(json.dumps({'action': action, 'user_id': user_id, 'username': args.username}, ensure_ascii=False))
+        print(json.dumps({'action': action, 'public_id': str(result.public_id),
+                          'authz_version': result.authz_version, 'changed': result.changed,
+                          'username': args.username}, ensure_ascii=False))
         return 0
 
     if args.command == 'bootstrap-local-admin':
