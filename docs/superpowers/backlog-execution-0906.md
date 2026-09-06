@@ -6,13 +6,18 @@
 
 Neu live sind die lokale Benutzerverwaltung und gleich grosse Menükarten in beiden HTML-Wochen-Druckprofilen, auch mobil. Frische Nachweise: [IAM](/tmp/dishboard-iam-readonly-live-after-deploy-0906/proof.json) **208 Checks/12 PNG**, [Screens](/tmp/dishboard-screen-variants-live-iam-0906/proof.json) **386 Checks/20 PNG**, [API/Admin/PDF](/tmp/dishboard-iam-api-admin-live-0906/proof.json) **194 Checks/18 PNG**. Alle **788 Checks bestanden**, 50 Screenshots; der Screens-Beleg enthält separat acht abgebrochene Bildabrufe. IAM-Abnahme ausschliesslich lesend, kein produktiver IAM-Schreibtest. Vollständiger Login-/Logout-Zugriffsverlauf bleibt offen.
 
-Die beiden Produktionssicherungen vor/nach Schema 19 sind von Root mit Hash und TOC geprüft. Ein Schema-19-kompatibler UI-off-Fallback `ff4fbc9` ist vorbereitet, unabhängig mit 177 Tests sowie Datei-/AST-/pip-Prüfungen bestätigt und nicht aktiv. Exakte Images und Backup-Hashes stehen im [aktuellen Backlog](../BACKLOG.md). Der öffentliche PNG-MIME-Vertrag ist vor/nach 304 zweimal bestätigt; der frühere Operator-Fehlalarm ist geklärt. Vollständig grüne Branding-Gesamtabnahme, physisches Yodeck, fachliche Küchen-/Druckbestätigung und externer Design-Validator bleiben offen.
+Die beiden Produktionssicherungen vor/nach Schema 19 sind von Root mit Hash und TOC geprüft. Ein Schema-19-kompatibler UI-off-Fallback `ff4fbc9` ist vorbereitet, unabhängig mit 177 Tests sowie Datei-/AST-/pip-Prüfungen bestätigt und nicht aktiv. Exakte Images und Backup-Hashes stehen im [aktuellen Backlog](../BACKLOG.md). Nach MIME-/Geometrie-Korrektur des Operators hat Root dessen 87 Tests, Ruff/Mypy und zweimal den vollständigen Live-Lauf geprüft: jeweils 798 Checks/40 PNG, null Fehler. Der rohe Status bleibt `incomplete`, weil individuelle öffentliche/Vorschau-Logos aktuell nicht verwendet werden und Zustandsabdeckung vom Live-Inhalt abhängt. Diese Branding-Varianten, physisches Yodeck, fachliche Küchen-/Druckbestätigung und externer Design-Validator bleiben offen.
 
 **35 IDs, keine Abschlussquote:** 15 IDs haben produktive Funktionen, darunter Teilumfänge; **OPS-001 bleibt aktiv und BAS-001 ist mit B1 begonnen**, 16 weitere grössere Umsetzungen bleiben offen, QA-001/DATA-001 begleiten als zwei fortlaufende Abnahmen. Freie Vorlagengestaltung, vollständige Screen-Zuordnungen und sämtliche Rezept-/Stammdaten-/Warenwirtschaftspakete behalten ihren Restumfang. Die ältere Lieferfolge unten ordnet Abhängigkeiten; ihr damaliger Status ist historisch. Aktuelle Einzelstände und vollständige ID-Zuordnung stehen in [BACKLOG.md](../BACKLOG.md).
 
-OPS-001 wurde durch ein tatsächliches Fable-Sessionlimit unterbrochen. Root sichert die
-vorhandene Arbeit und übernimmt mit Codex-Lanes; der Stand bleibt ungeprüft. Daraus folgt
-keine Produktionsänderung und keine Fertigmeldung.
+OPS-001 wurde durch tatsächliche Lane-Limits unterbrochen; Root sichert die vorhandenen
+Commits und uncommittierten Dateien und koordiniert ihre weitere Umsetzung. Der Gesamtstand
+bleibt ungeprüft. Daraus folgt keine Produktionsänderung und keine Fertigmeldung.
+
+Operativ zuerst OPS fertig prüfen und deployen; danach offene Screens-/Vorlagen-/Branding-
+Funktionen, Grundlagen/Rezeptverwaltung, Suche/Importe/Produktdaten, Rezeptplanung/Einkauf/
+Druck/KI, Kalkulation/Lager/Bestellungen und weitere Anbindungen. Die vollständigen Phasen
+und alle 35 IDs bleiben erhalten; Abnahmen begleiten jede Lieferung.
 
 **Geprüfter Teilstand im aktuellen Code:** B1 `e0fb93e` (ursprünglich `c7873fa`, reine Mengen-/Einheitenfunktionen) ist nach
 vollständigem Root-Diffreview und unabhängig **101 passed in 1.26s**, Ruff PASS und Mypy PASS
