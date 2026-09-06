@@ -8,7 +8,24 @@ Neu live sind die lokale Benutzerverwaltung und gleich grosse Menükarten in bei
 
 Die beiden Produktionssicherungen vor/nach Schema 19 sind von Root mit Hash und TOC geprüft. Ein Schema-19-kompatibler UI-off-Fallback `ff4fbc9` ist vorbereitet, unabhängig mit 177 Tests sowie Datei-/AST-/pip-Prüfungen bestätigt und nicht aktiv. Exakte Images und Backup-Hashes stehen im [aktuellen Backlog](../BACKLOG.md). Der öffentliche PNG-MIME-Vertrag ist vor/nach 304 zweimal bestätigt; der frühere Operator-Fehlalarm ist geklärt. Vollständig grüne Branding-Gesamtabnahme, physisches Yodeck, fachliche Küchen-/Druckbestätigung und externer Design-Validator bleiben offen.
 
-**35 IDs, keine Abschlussquote:** 15 IDs haben produktive Funktionen, darunter Teilumfänge; **OPS-001 läuft bei Claude Fable 5.1**, 17 weitere grössere Umsetzungen bleiben offen, QA-001/DATA-001 begleiten als zwei fortlaufende Abnahmen. Freie Vorlagengestaltung, vollständige Screen-Zuordnungen und sämtliche Rezept-/Stammdaten-/Warenwirtschaftspakete behalten ihren Restumfang. Die ältere Lieferfolge unten ordnet Abhängigkeiten; ihr damaliger Status ist historisch. Aktuelle Einzelstände und vollständige ID-Zuordnung stehen in [BACKLOG.md](../BACKLOG.md).
+**35 IDs, keine Abschlussquote:** 15 IDs haben produktive Funktionen, darunter Teilumfänge; **OPS-001 bleibt aktiv und BAS-001 ist mit B1 begonnen**, 16 weitere grössere Umsetzungen bleiben offen, QA-001/DATA-001 begleiten als zwei fortlaufende Abnahmen. Freie Vorlagengestaltung, vollständige Screen-Zuordnungen und sämtliche Rezept-/Stammdaten-/Warenwirtschaftspakete behalten ihren Restumfang. Die ältere Lieferfolge unten ordnet Abhängigkeiten; ihr damaliger Status ist historisch. Aktuelle Einzelstände und vollständige ID-Zuordnung stehen in [BACKLOG.md](../BACKLOG.md).
+
+OPS-001 wurde durch ein tatsächliches Fable-Sessionlimit unterbrochen. Root sichert die
+vorhandene Arbeit und übernimmt mit Codex-Lanes; der Stand bleibt ungeprüft. Daraus folgt
+keine Produktionsänderung und keine Fertigmeldung.
+
+**Nächster vorbereiteter Teilstand:** B1 `c7873fa` (reine Mengen-/Einheitenfunktionen) ist nach
+vollständigem Root-Diffreview und unabhängig **101 passed in 1.26s**, Ruff PASS und Mypy PASS
+für zwei Dateien bereit zur Integration ([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)).
+Noch nicht main/deployed; Main-Followup `de0e746` und Produktion `3690e04`/Schema 19 bleiben
+unverändert. B2 wartet auf das abgenommene OPS-Schema 20. [BAS/REC-Pakete](bas-rec-work-packages-0906.md)
+und [Datenvertrag](../design/2026-09-06-bas-rec-data-contract.md) erhalten sämtliche Restaufträge.
+
+**HugeRTE-Eignungsprobe:** 1.0.13 ist lokal browsergeprüft; Text, Fett, Listen und Silver-Linkdialog
+funktionieren unter strikter CSP, dennoch bleibt eine Style-CSP-Verletzung. Silver ist kein
+vollständiges Tabler-UI. [Prüfbericht mit Primärquellen](/nvmetank1/projects/rag-stack/.claude/reports/wp-28dc5618ccd1.md)
+und [Browserbeleg](/tmp/dishboard-hugerte-wp-28dc5618ccd1/proof.json). Keine Technologiefreigabe;
+vollständige CSP-/Tabler-Integration und Produktabnahme bleiben offen, BAS/REC sind nicht fertig.
 
 ## Historischer Deploy-Nachtrag — 6. September 2026, 04:55:35 Uhr Schweiz
 
