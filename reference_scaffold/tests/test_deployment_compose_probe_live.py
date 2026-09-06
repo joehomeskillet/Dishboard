@@ -50,7 +50,7 @@ def find_free_port() -> int:
 
 
 def build_app_image(tmp_path: Path) -> str:
-    """Build throwaway app image and return immutable sha256:<id>."""
+    """Build cached app image and return immutable sha256:<id>."""
     iidfile = tmp_path / "iidfile.txt"
     docker(
         "build",
@@ -93,7 +93,13 @@ def prepare_compose_workspace(tmp_path: Path, app_image: str) -> tuple[Path, str
     # Copy docker-compose.yml
     compose_src = DEPLOYMENT / "docker-compose.yml"
     compose_dst = workspace / "docker-compose.yml"
-    compose_dst.write_text(compose_src.read_text(encoding="utf-8"), encoding="utf-8")
+    compose_config = yaml.safe_load(compose_src.read_text(encoding="utf-8"))
+    # This create-only image probe needs no connectivity or host IPAM allocation.
+    compose_config.pop("networks", None)
+    for service in compose_config["services"].values():
+        service.pop("networks", None)
+        service["network_mode"] = "none"
+    compose_dst.write_text(yaml.safe_dump(compose_config), encoding="utf-8")
     
     # Copy required shell scripts
     for script_name in ["redis-healthcheck.sh", "postgres-backup.sh", "postgres-restore-control.sh"]:
@@ -123,39 +129,6 @@ def prepare_compose_workspace(tmp_path: Path, app_image: str) -> tuple[Path, str
         secret_file = secrets_dir / secret_name
         secret_file.write_text(f"{secret_value}\n", encoding="utf-8")
     
-    # Create override compose file to disable specific network config and move to 10.x.x.0/24
-    # to avoid collision with 172.31.213.0/24
-    override_compose = {
-        "networks": {
-            "cafeteria_internal": {
-                "driver": "bridge",
-                "ipam": {
-                    "driver": "default",
-                    "config": [
-                        {
-                            "subnet": "10.255.255.0/24",
-                            "gateway": "10.255.255.1",
-                        }
-                    ]
-                },
-            }
-        },
-        "services": {
-            "app": {
-                "networks": {
-                    "cafeteria_internal": {
-                        "ipv4_address": "10.255.255.20"
-                    }
-                }
-            }
-        },
-    }
-    override_file = workspace / "override.yml"
-    override_file.write_text(
-        yaml.dump(override_compose, default_flow_style=False),
-        encoding="utf-8",
-    )
-    
     return workspace, project_name
 
 
@@ -164,15 +137,11 @@ def prepare_compose_workspace(tmp_path: Path, app_image: str) -> tuple[Path, str
     reason="set RUN_LIVE_COMPOSE_PROBE=1 to run the live compose probe test"
 )
 def test_compose_creates_app_from_local_immutable_image_with_pull_never(tmp_path: Path) -> None:
-    """Prove that docker compose starts app from local immutable image id without build."""
+    """Prove that compose creates app from a local immutable image without building."""
     
-    # 1. Build throwaway app image
+    # 1. Build the probe image; a cached digest may also belong to another workload.
     app_image = build_app_image(tmp_path)
-    print(f"\nBuilt throwaway image: {app_image}")
-    
-    # Snapshot images before probe
-    images_before = set(docker("images", "-q").stdout.strip().split("\n"))
-    images_before.discard("")
+    print(f"\nBuilt probe image: {app_image}")
     
     # 2. Prepare isolated compose workspace
     workspace, project_name = prepare_compose_workspace(tmp_path, app_image)
@@ -183,30 +152,31 @@ def test_compose_creates_app_from_local_immutable_image_with_pull_never(tmp_path
             "compose",
             "-p", project_name,
             "-f", str(workspace / "docker-compose.yml"),
-            "-f", str(workspace / "override.yml"),
             "config",
             check=True,
         )
         config_yaml = yaml.safe_load(config_result.stdout)
         assert config_yaml["services"]["app"]["image"] == app_image
         assert config_yaml["services"]["migrate"]["image"] == app_image
+        assert not config_yaml.get("networks")
+        assert all(service["network_mode"] == "none" for service in config_yaml["services"].values())
         print(f"✓ compose config resolved image to {app_image}")
         
         # 3b. Verify docker compose create with --pull never succeeds
-        docker(
+        create_result = docker(
             "compose",
             "-p", project_name,
             "-f", str(workspace / "docker-compose.yml"),
-            "-f", str(workspace / "override.yml"),
             "create",
             "--pull", "never",
             "--no-build",
             "app",
-            check=True,
+            check=False,
         )
+        assert create_result.returncode == 0, create_result.stderr
         print("✓ compose create --pull never succeeded")
         
-        # Inspect running app container
+        # Inspect the created app container; this probe does not start services.
         app_container_name = f"{project_name}-app-1"
         inspect_result = docker(
             "inspect",
@@ -214,17 +184,9 @@ def test_compose_creates_app_from_local_immutable_image_with_pull_never(tmp_path
             app_container_name,
             check=True,
         )
-        running_image = inspect_result.stdout.strip()
-        assert running_image == app_image
-        print(f"✓ app container image is {running_image}")
-        
-        # Verify no new images were created
-        images_after = set(docker("images", "-q").stdout.strip().split("\n"))
-        images_after.discard("")
-        images_after.discard(app_image.replace("sha256:", ""))  # Remove our built image
-        new_images = images_after - images_before
-        assert not new_images, f"Unexpected new images created: {new_images}"
-        print("✓ No new images created (probe image not counted)")
+        created_image = inspect_result.stdout.strip()
+        assert created_image == app_image
+        print(f"✓ created app container image is {created_image}")
         
         # 3c. Negative: verify compose create fails with non-existent image
         fake_image = "sha256:" + ("0" * 64)
@@ -237,7 +199,6 @@ def test_compose_creates_app_from_local_immutable_image_with_pull_never(tmp_path
             "compose",
             "-p", f"{project_name}-fail",
             "-f", str(workspace / "docker-compose.yml"),
-            "-f", str(workspace / "override.yml"),
             "create",
             "--pull", "never",
             "--no-build",
@@ -245,20 +206,62 @@ def test_compose_creates_app_from_local_immutable_image_with_pull_never(tmp_path
             check=False,
         )
         assert fail_result.returncode != 0, "Expected create to fail with non-existent image"
-        print("✓ compose create correctly failed with non-existent image")
+        assert f"No such image: {fake_image}" in fail_result.stderr, "Expected explicit missing image error"
+        print(f"✓ compose create failed because image is missing: {fake_image}")
         
     finally:
-        # Cleanup: docker compose down
-        docker(
-            "compose",
-            "-p", project_name,
+        cleanup = [docker(
+            "compose", "-p", own_project,
             "-f", str(workspace / "docker-compose.yml"),
-            "-f", str(workspace / "override.yml"),
-            "down",
-            "--volumes",
-            "--remove-orphans",
-            check=False,
-        )
-        # Remove throwaway image
-        docker("image", "rm", app_image, check=False)
-        print("✓ Cleanup complete")
+            "down", "--volumes", "--remove-orphans", check=False,
+        ) for own_project in (project_name, f"{project_name}-fail")]
+        assert all(result.returncode == 0 for result in cleanup), "Probe project cleanup failed"
+        for own_project in (project_name, f"{project_name}-fail"):
+            for resource, options in (("container", ("--all",)), ("network", ()), ("volume", ())):
+                remaining = docker(resource, "ls", *options, "--quiet", "--filter",
+                                   f"label=com.docker.compose.project={own_project}")
+                assert not remaining.stdout.strip(), (own_project, resource, "cleanup incomplete")
+        # Never delete image IDs: the build cache or other workloads may share them.
+        print("✓ Both probe projects cleaned up; cached images retained")
+
+
+@pytest.mark.parametrize("failure,cleanup_fails", [
+    ("missing", False), ("network", False), ("wrong-image", False), ("missing", True),
+])
+def test_probe_requires_image_error_and_cleans_both_projects(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str, cleanup_fails: bool,
+) -> None:
+    """Reject unrelated failures and preserve cleanup even when verification fails."""
+    app_image = "sha256:" + "1" * 64
+    fake_image = "sha256:" + "0" * 64
+    calls: list[tuple[str, ...]] = []
+
+    def fake_docker(*arguments: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+        calls.append(arguments)
+        output, error, code = "", "", 0
+        if "config" in arguments:
+            output = yaml.safe_dump({"services": {
+                name: {"image": app_image, "network_mode": "none"} for name in ("app", "migrate")}})
+        elif arguments[0] == "inspect":
+            output = app_image
+        elif "create" in arguments and arguments[2].endswith("-fail"):
+            error = {"missing": f"Error response from daemon: No such image: {fake_image}",
+                     "network": "invalid pool request: Pool overlaps with other one on this address space",
+                     "wrong-image": "Error response from daemon: No such image: unrelated"}[failure]
+            code = 1
+        elif "down" in arguments and cleanup_fails and not arguments[2].endswith("-fail"):
+            code = 1
+        return subprocess.CompletedProcess(arguments, code, output, error)
+
+    monkeypatch.setattr(f"{__name__}.docker", fake_docker)
+    monkeypatch.setattr(f"{__name__}.build_app_image", lambda _path: app_image)
+    if failure != "missing" or cleanup_fails:
+        with pytest.raises(AssertionError, match="cleanup failed" if cleanup_fails else "missing image error"):
+            test_compose_creates_app_from_local_immutable_image_with_pull_never(tmp_path)
+    else:
+        test_compose_creates_app_from_local_immutable_image_with_pull_never(tmp_path)
+    projects = [arguments[2] for arguments in calls if "down" in arguments]
+    assert len(projects) == 2 and projects[1] == projects[0] + "-fail"
+    assert all(arguments[:2] != ("image", "rm") for arguments in calls)
+    if not cleanup_fails:
+        assert sum("--quiet" in arguments for arguments in calls) == 6

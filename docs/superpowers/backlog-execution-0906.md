@@ -1,6 +1,18 @@
 # Dishboard: Ausführung des gesamten Backlogs
 
-## Deploy-Nachtrag — 6. September 2026, 04:55:35 Uhr Schweiz
+## Aktueller Deploy-Nachtrag — 6. September 2026, 20:38:51 Uhr Schweiz
+
+**Release `3690e04585af6b5c16917872cf6e4b50601b22c9` ist produktiv**, Image `sha256:6fca168acd508b2a66b58399f2beb1f87c979252f20aa55dc7897d1ba79bc828`, Start `2026-09-06T18:38:51.931697209Z` (20:38:51 CEST), `healthy`, öffentlicher HTTP-Status 200. Schema **19**, Migration/Runtime/Auth-Issuer jeweils `ready=true`, Registry-Prüfsumme `e195aac3c6b53fb08f733723cd8ef12e6e40fb7abdc5fe58bf1f88585015c6c1` bestätigt. Vollständiges Paket: **4001 Tests bestanden, 15 Opt-in-Skips**, 4016 insgesamt in 1603.990 Sekunden, `PACKAGE_GATE_EXIT=0`. Die 14 Restore-Opt-ins bestanden separat in 122.97 Sekunden. Die korrigierte Compose-Probe und vier Fehler-/Cleanup-Fälle bestanden gemeinsam mit dem Branding-Operator **67 unabhängige Tests in 21.87 Sekunden**; dies belegt Containererzeugung und Image-/Cleanup-Verträge, keine Dienst- oder Netzkonnektivität. [Aktueller Root-Beleg](/nvmetank1/projects/rag-stack/.claude/reports/wp-ee18982cddf0.md).
+
+Neu live sind die lokale Benutzerverwaltung und gleich grosse Menükarten in beiden HTML-Wochen-Druckprofilen, auch mobil. Frische Nachweise: [IAM](/tmp/dishboard-iam-readonly-live-after-deploy-0906/proof.json) **208 Checks/12 PNG**, [Screens](/tmp/dishboard-screen-variants-live-iam-0906/proof.json) **386 Checks/20 PNG**, [API/Admin/PDF](/tmp/dishboard-iam-api-admin-live-0906/proof.json) **194 Checks/18 PNG**. Alle **788 Checks bestanden**, 50 Screenshots; der Screens-Beleg enthält separat acht abgebrochene Bildabrufe. IAM-Abnahme ausschliesslich lesend, kein produktiver IAM-Schreibtest. Vollständiger Login-/Logout-Zugriffsverlauf bleibt offen.
+
+Die beiden Produktionssicherungen vor/nach Schema 19 sind von Root mit Hash und TOC geprüft. Ein Schema-19-kompatibler UI-off-Fallback `ff4fbc9` ist vorbereitet, unabhängig mit 177 Tests sowie Datei-/AST-/pip-Prüfungen bestätigt und nicht aktiv. Exakte Images und Backup-Hashes stehen im [aktuellen Backlog](../BACKLOG.md). Der öffentliche PNG-MIME-Vertrag ist vor/nach 304 zweimal bestätigt; der frühere Operator-Fehlalarm ist geklärt. Vollständig grüne Branding-Gesamtabnahme, physisches Yodeck, fachliche Küchen-/Druckbestätigung und externer Design-Validator bleiben offen.
+
+**35 IDs, keine Abschlussquote:** 15 IDs haben produktive Funktionen, darunter Teilumfänge; **OPS-001 läuft bei Claude Fable 5.1**, 17 weitere grössere Umsetzungen bleiben offen, QA-001/DATA-001 begleiten als zwei fortlaufende Abnahmen. Freie Vorlagengestaltung, vollständige Screen-Zuordnungen und sämtliche Rezept-/Stammdaten-/Warenwirtschaftspakete behalten ihren Restumfang. Die ältere Lieferfolge unten ordnet Abhängigkeiten; ihr damaliger Status ist historisch. Aktuelle Einzelstände und vollständige ID-Zuordnung stehen in [BACKLOG.md](../BACKLOG.md).
+
+## Historischer Deploy-Nachtrag — 6. September 2026, 04:55:35 Uhr Schweiz
+
+Dieser Abschnitt dokumentiert den damaligen Schema-17-Stand. Seine offenen Marken-, Symbol- und Legendenumfänge wurden teilweise später geliefert; massgeblich ist der aktuelle Stand oben.
 
 **Release `118a644` ist produktiv**, Image `sha256:afe5305a73128fb92cbbf3f325ea441aacc8b9a6acc38d28487c301eb9779c41`, Container `healthy`, Schema 17. Migration: 32 Tabellen, `ready=true`; Runtime: 30 sichtbare Tabellen, `ready=true`. API, alle vier öffentlichen Tabler-Seiten, vier globale Darstellungsoptionen und der erste Wochen-PDF-Eigenschaftseditor sind jetzt live. **3695 Tests bestanden, 15 Opt-in-Skips**, vollständige Paketprüfung `PACKAGE_GATE_EXIT=0`, **272 Live-Checks bestanden**, 44 Screenshots plus vier Rotationsscreenshots in FHD/4K mit allen 28 Patientenmenüs. [Vollständiger Root-Beleg](/nvmetank1/projects/rag-stack/.claude/reports/wp-bd5539046da6.md).
 
