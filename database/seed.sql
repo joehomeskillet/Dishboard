@@ -31,7 +31,7 @@ VALUES
 -- Gepflegte Anzeigenamen bleiben erhalten; nur die harten Rasterflags werden erneut durchgesetzt.
 ON CONFLICT (code) DO UPDATE
 SET allows_prices = EXCLUDED.allows_prices,
-    allows_weekend = EXCLUDED.allows_weekend,
+    allows_weekend = CASE WHEN offer_profiles.code = 'patient' THEN true ELSE offer_profiles.allows_weekend END,
     allowed_meals = EXCLUDED.allowed_meals;
 
 INSERT INTO meal_periods(code, display_name, sort_order)
