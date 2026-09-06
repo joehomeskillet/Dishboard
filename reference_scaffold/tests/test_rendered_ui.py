@@ -575,9 +575,10 @@ def test_real_routes_render_exact_profile_grids_without_cross_profile_data(app: 
     assert cafeteria.count('Externe CHF') == 10
     assert 'Pastetli mit Brätkügeli' not in cafeteria
 
-    # Four rotating pages: Mittag and Abend, each Monday to Thursday and Friday to Sunday.
-    # Every one of the seven days therefore carries one meal cell on two of the pages.
-    assert len(re.findall(r'class="patient-week-day(?: [^"]*)?"', patient)) == 14
+    # Legacy snapshots keep seven day cards, both meals, across the original 3+4 pages.
+    assert 'data-signage-rotation="legacy"' in patient
+    assert patient.count('data-signage-page>') + patient.count('data-signage-page hidden>') == 2
+    assert len(re.findall(r'class="patient-week-day(?: [^"]*)?"', patient)) == 7
     assert len(re.findall(r'class="patient-week-cell(?: [^"]*)?"', patient)) == 14
     assert len(re.findall(r'class="patient-week-option"', patient)) == 28
     assert 'Kichererbsen-Curry' not in patient

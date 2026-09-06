@@ -41,11 +41,15 @@ def _assert_full_surface(page: Page, menu_selector: str) -> None:
 @pytest.mark.parametrize(('width', 'height'), ((1920, 1080), (3840, 2160)))
 @pytest.mark.parametrize('surface', ('tag', 'woche'))
 @pytest.mark.parametrize('scenario', ('normal', 'boundary'))
+@pytest.mark.parametrize('schema_version', (1, 2))
 def test_patient_boards_are_complete_and_legible(
     live_signage: tuple[str, Flask], browser: Browser, tmp_path: Path,
-    width: int, height: int, surface: str, scenario: str,
+    width: int, height: int, surface: str, scenario: str, schema_version: int,
 ) -> None:
     base_url, application = live_signage
+    snapshot = application.config['TEST_SNAPSHOTS']['patient']
+    snapshot['schema_version'] = schema_version
+    assert 'area_name' not in snapshot
     if scenario == 'boundary':
         _set_unbroken_signage_boundaries(
             application.config['TEST_SNAPSHOTS']['patient'],
@@ -92,22 +96,28 @@ def test_patient_boards_are_complete_and_legible(
         else:
             visible = '[data-signage-page]:not([hidden])'
             widths = []
-            # Four pages: Mittag and Abend, each split Monday to Thursday and Friday to Sunday.
-            for index, (meal, count) in enumerate(
-                (('Mittag', 4), ('Mittag', 3), ('Abend', 4), ('Abend', 3)),
-            ):
+            expect(page.locator('[data-signage-pages]')).to_have_attribute('data-signage-rotation', 'legacy')
+            expect(page.locator('[data-signage-page]')).to_have_count(2)
+            observed = []
+            for index, count in enumerate((3, 4)):
                 if index:
                     page.clock.fast_forward(30100)
                 label = page.locator(f'{visible} .patient-board-page-label')
-                expect(label).to_contain_text(f'Seite {index + 1} von 4')
-                expect(label).to_contain_text(meal)
+                expect(label).to_contain_text(f'Seite {index + 1} von 2')
                 columns = page.locator(f'{visible} .patient-week-day')
                 expect(columns).to_have_count(count)
                 assert len({round(box.bounding_box()['x']) for box in columns.all()}) == count
                 widths.append(columns.first.bounding_box()['width'])
+                board_width = page.locator(f'{visible} .patient-board').bounding_box()['width']
+                assert abs(widths[-1] - (board_width - width * .0135) / 4) <= 1
+                expect(page.locator(f'{visible} .patient-week-cell')).to_have_count(count * 2)
+                observed.extend(page.locator(f'{visible} {selector} h3').all_inner_texts())
                 page.screenshot(path=str(tmp_path / f'patient-{surface}-{scenario}-{index + 1}-{width}x{height}.png'))
                 _assert_full_surface(page, f'{visible} {selector}')
             assert max(widths) - min(widths) <= 1
+            assert observed == [option['title'] for day in snapshot['days']
+                                for meal in day['services'] for option in meal['options']]
+            assert len(observed) == 28
     finally:
         page.close()
 
@@ -164,8 +174,7 @@ def test_week_paging_preserves_updates_and_never_restores_withdrawn_content(
 
         snapshot = application.config['TEST_SNAPSHOTS']['patient']
         snapshot['revision_id'] = 'PAT-2026-KW36-R2'
-        # Friday lunch sits on page 2, the page the board is showing right now.
-        snapshot['days'][4]['services'][0]['options'][0]['title'] = 'Frisch zubereitetes Tagesgericht'
+        snapshot['days'][3]['services'][0]['options'][0]['title'] = 'Frisch zubereitetes Tagesgericht'
         page.clock.fast_forward(1000)
         expect(page.locator('html')).to_have_attribute('data-signage-revision', 'PAT-2026-KW36-R2')
         expect(page.locator(f'{visible} .patient-board-page-label')).to_contain_text('Seite 2')
@@ -187,7 +196,7 @@ def test_week_paging_preserves_updates_and_never_restores_withdrawn_content(
 
         page.unroute(path)
         page.clock.fast_forward(1000)
-        expect(page.locator('[data-signage-page]')).to_have_count(4)
+        expect(page.locator('[data-signage-page]')).to_have_count(2)
         expect(page.locator(f'{visible} .patient-board-page-label')).to_contain_text('Seite 1')
         page.clock.fast_forward(30400)
         expect(page.locator(f'{visible} .patient-board-page-label')).to_contain_text('Seite 2')

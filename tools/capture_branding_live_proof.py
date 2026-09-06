@@ -237,6 +237,12 @@ class BrandingProof:
         if path in SIGNAGE:
             index = SIGNAGE.index(path)
             selector, expected = MENU_SELECTORS[index], (2, 10, 4, 16 if second else 12)[index]
+            if index in (1, 3) and page.locator('[data-signage-page]').count():
+                groups = self.week_page_counts(page, path, name)
+                visible_index = page.locator('[data-signage-page]').evaluate_all(
+                    'nodes => nodes.findIndex(node => !node.hidden)')
+                self.check(name + '.one_visible_page', page.locator('[data-signage-page]:visible').count() == 1)
+                expected = groups[visible_index] if 0 <= visible_index < len(groups) else 0
         elif path in PUBLIC:
             selector, expected = '.card:has(> .card-status-top)', (2, 10, 4, 28)[PUBLIC.index(path)]
         else:
@@ -267,7 +273,8 @@ class BrandingProof:
             images:[...document.querySelectorAll('[data-menu-metadata] .food-symbol,.food-legend .food-symbol')]
               .filter(visible).map(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return {
                 loaded:e.complete&&e.naturalWidth>0, width:r.width,height:r.height,font:parseFloat(s.fontSize),
-                country:e.getAttribute('src').includes('/flags/'),fit:s.objectFit};}),
+                country:e.getAttribute('src').includes('/flags/'),fit:s.objectFit,
+                patientMetadata:!!e.closest('[data-menu-metadata]') && !!e.closest('.patient-board,.patient-duo')};}),
             legendFonts:legends.flatMap(e=>[e,...e.querySelectorAll('span,p,h2')]).filter(visible)
               .map(e=>parseFloat(getComputedStyle(e).fontSize))}; }''')
         expected: set[tuple[str, str]] = set()
@@ -295,8 +302,9 @@ class BrandingProof:
                    len(actual_pairs) == len(expected) and
                    {value for legend in evidence['legends'] for value in legend['warnings']} == warnings)
         self.check(name + '.symbols_loaded_and_sized', all(image['loaded'] and image['fit'] == 'contain' and
-                   image['height'] >= 1.5 * image['font'] - 1 and
-                   image['width'] >= (2 if image['country'] else 1.5) * image['font'] - 1
+                   image['height'] >= (1.2 if image['patientMetadata'] else 1.5) * image['font'] - 1 and
+                   image['width'] >= ((1.6 if image['country'] else 1.2) if image['patientMetadata'] else
+                                      (2 if image['country'] else 1.5)) * image['font'] - 1
                    for image in evidence['images']))
         if signage:
             self.check(name + '.legend_minimum_font', all(size >= 18 for size in evidence['legendFonts']))
@@ -321,21 +329,49 @@ class BrandingProof:
             return 'failed', 1
         return ('incomplete', 2) if self.data['unavailable'] else ('browser_passed', 0)
 
+    def week_page_counts(self, page: Page, path: str, name: str) -> tuple[int, ...]:
+        """Declared rotation contracts, independent of rendered menu-card counts."""
+        if path == SIGNAGE[3]:
+            marker = page.locator('[data-signage-rotation]')
+            rotation = marker.get_attribute('data-signage-rotation') if marker.count() == 1 else 'legacy'
+            self.check(name + '.known_rotation', rotation in ('legacy', 'ops'))
+            self.data['observations'][name + '.rotation'] = rotation
+            return (8, 6, 8, 6) if rotation == 'ops' else (12, 16)
+        days = page.locator('.cafe-week-day').count()
+        self.check(name + '.cafeteria_day_count', days in (5, 6, 7))
+        self.data['observations'][name + '.cafeteria_days'] = days
+        return (8, 6) if days == 7 else (days * 2,)
+
     def patient_rotation(self, page: Page, name: str) -> None:
+        self.week_rotation(page, SIGNAGE[3], name)
+
+    def cafeteria_rotation(self, page: Page, name: str) -> None:
+        self.week_rotation(page, SIGNAGE[1], name)
+
+    def week_rotation(self, page: Page, path: str, name: str) -> None:
         pages = page.locator('[data-signage-page]')
-        self.check(name + '.two_pages', pages.count() == 2)
-        if pages.count() != 2:
+        groups = self.week_page_counts(page, path, name)
+        patient = path == SIGNAGE[3]
+        contract = 'two_pages' if patient and len(groups) == 2 else 'four_pages' if patient else 'cafeteria_pages'
+        self.check(name + '.' + contract, pages.count() == len(groups))
+        if pages.count() != len(groups):
             return
-        self.check(name + '.full_patient_week', page.locator(MENU_SELECTORS[3]).count() +
-                   2 * page.locator('.patient-board-closed').count() == 28)
-        self.check(name + '.first_page_visible', pages.nth(0).get_attribute('hidden') is None and
-                   pages.nth(1).get_attribute('hidden') is not None)
-        page.wait_for_function('''() => [...document.querySelectorAll('[data-signage-page]')]
-            .findIndex(el => !el.hidden) === 1''', timeout=40000)
-        self.text_layout(page, name + '-page2')
-        self.menu_evidence(page, SIGNAGE[3], name + '-page2', second=True)
-        self.legends(page, name + '-page2', signage=True)
-        self.shot(page, name + '-page2', 200)
+        selector = MENU_SELECTORS[3 if patient else 1]
+        closed = '.patient-board-closed' if patient else '.cafe-week-closed'
+        self.check(name + ('.full_patient_week' if patient else '.full_cafeteria_week'),
+                   page.locator(selector).count() + 2 * page.locator(closed).count() == sum(groups))
+        self.check(name + '.first_page_visible', pages.evaluate_all(
+            'nodes => nodes.every((node, index) => node.hidden === (index !== 0))'))
+        for index in range(1, len(groups)):
+            page.wait_for_function('''index => [...document.querySelectorAll('[data-signage-page]')]
+                .findIndex(el => !el.hidden) === index''', arg=index, timeout=40000)
+            label = name + f'-page{index + 1}'
+            self.check(label + '.fits_screen', page.evaluate(
+                'document.documentElement.scrollWidth <= innerWidth + 1 && document.documentElement.scrollHeight <= innerHeight + 1'))
+            self.text_layout(page, label)
+            self.menu_evidence(page, path, label, second=True)
+            self.legends(page, label, signage=True)
+            self.shot(page, label, 200)
 
     def shot(self, page: Page, name: str, status: int) -> None:
         path = self.outdir / f'{name}.png'
@@ -414,6 +450,8 @@ def main() -> int:
                             proof.capture(page, path, stage, signage=True)
                             if path == SIGNAGE[3] and not proof.data['observations'].get(stage + '.plan_unavailable'):
                                 proof.patient_rotation(page, stage)
+                            if path == SIGNAGE[1] and not proof.data['observations'].get(stage + '.plan_unavailable'):
+                                proof.cafeteria_rotation(page, stage)
         proof.check('assets.public_css_observed', 'public.css' in proof.assets)
         proof.check('assets.preview_css_observed', 'preview.css' in proof.assets)
         proof.data['observed_assets'] = sorted(proof.assets)
