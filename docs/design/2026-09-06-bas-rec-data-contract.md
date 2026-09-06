@@ -31,6 +31,15 @@ und im aktuellen Code-Stand enthalten: **101 passed in 1.26s**, Ruff bestanden, 
 in zwei Dateien ([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)). Noch nicht deployed;
 BAS/REC bleiben offen. B2 wartet auf das abgenommene OPS-Schema 20.
 
+**Vertragsentscheid B2 vom 6. September 2026**, Branch `docs/bas-b2-contract-decisions-0906`:
+Die fünf offenen Punkte aus dem B2-Startbericht
+([wp-b32fd34ebb6e](/nvmetank1/projects/rag-stack/.claude/reports/wp-b32fd34ebb6e.md)) sind hier
+abschliessend entschieden — Feldgrenzen, Normalisierung und No-op-Semantik (§4.3),
+Lagerortarchivierung (§4.4), öffentlicher Python-Servicevertrag (§4.5), Vorschlagsübernahme
+(§6.1) sowie die gemeinsame Sperrreihenfolge samt begründet korrigierter Actor-Sperre (§8.1).
+Es bleibt bei keiner reservierten Migrationsnummer und keinem Schema-Pin; B2 beginnt weiterhin
+erst auf dem geprüften OPS-Schema-20-Freeze.
+
 ---
 
 ## 1. Identität, Geltungsbereich und Namensraum
@@ -205,6 +214,13 @@ B1 liefert diesen stdlib-Vertrag vor Schema 20; B2 liefert alle DB-Constraints u
 | `storage_locations` | Lagerorte | `location_id`, `code`, `name`, `sort_order`, `active`; unique `(location_id, code)` |
 | `food_storage_locations` | Zutat ↔ Lagerort | `location_id`, PK `(food_id, storage_location_id)`, beide FKs mit Standortgleichheit; keine Menge/Bestandsspalte |
 
+**Archivierung von Lagerorten:** Ein Lagerort wird nur archiviert (`active=false`), wenn keine
+`food_storage_locations`-Zuordnung mehr auf ihn verweist; sonst wird der Versuch sichtbar
+verweigert und die Zuordnungen werden vorher ausdrücklich entfernt. Reaktivieren bleibt möglich.
+Archivierte Lagerorte werden in Auswahllisten ausgeblendet, bleiben aber für bestehende
+Referenzen und den Verlauf lesbar. Die vollständige Regel samt Sperr- und Fehlerverhalten
+steht in §4.4.
+
 Ein Tagvokabular für Zutaten und Rezepte, zwei Verknüpfungstabellen. Getrennte Vokabulare
 würden REC-006 («Tags suchen und gesammelt zuweisen») ohne Gegenwert verdoppeln.
 `foods` speichert zusätzlich `source_kind` (`manual`, `url`, `file_import`, `ai_assisted`,
@@ -233,6 +249,166 @@ INV-001 fordert «Zugänge, Abgänge, Umbuchungen, Zählung und Korrekturen». D
 
 BAS verliert dadurch keine Verpflichtung: Lagerorte, Zutaten-Lagerort-Zuordnung und die
 Verbindung zu Rezept und Einkauf sind BAS-Lieferungen; nur das Buchen selbst ist INV.
+
+### 4.3 Feldgrenzen, Normalisierung und identische Speicherung
+
+Diese Grenzen gelten für alle Tabellen aus §4, identisch in Dienst und Datenbank; R1 übernimmt
+sie unverändert für §5. B2 liefert die zugehörigen CHECKs.
+
+| Feld | Grenze |
+|---|---|
+| `code` (`measurement_units`, `food_categories`, `tags`, `storage_locations`) | `^[A-Z][A-Z0-9_]{0,15}$`, also höchstens 16 Zeichen; ab Anlage unveränderlich; keine stille Grossschreibung, abweichende Eingabe wird abgelehnt |
+| `display_name`, `name` | 1 bis 120 Zeichen nach Normalisierung |
+| `foods.note`, `source_note` | höchstens 500 Zeichen |
+| `source_reference` | höchstens 200 Zeichen |
+| `source_url` | höchstens 2048 Zeichen, `^https?://`, keine Steuerzeichen |
+| `sort_order` | `smallint` zwischen 1 und 9999 |
+| `food_data_proposals.payload` | kanonisch serialisiert höchstens 64 KiB, höchstens 200 Schlüssel, Verschachtelungstiefe höchstens 5 |
+| Listen je Fachaktion (Tags, Labels, Allergene, Lagerorte, Vorschlagsfelder) | höchstens 64 Einträge, wie `component_catalog_metadata._MAX_METADATA_ENTRIES` |
+| Mengen und Faktoren | ausschliesslich §3.2; Ein- und Ausgabe als kanonische Decimal-Zeichenkette ohne Float-Zwischenschritt, wie B1 |
+
+Die Normalisierung ist deterministisch und läuft vor jeder Prüfung: Unicode-NFC; Steuer- und
+Formatzeichen (Unicode-Kategorie `C`) sowie `<` und `>` werden abgelehnt statt entfernt —
+dieselbe Regel wie `print_template_config.plain_text`; Rand-Leerzeichen werden entfernt, innere
+Leerzeichenfolgen zu genau einem `U+0020` zusammengefasst. Erst danach greifen Längengrenze und
+die Eindeutigkeit `(location_id, lower(btrim(name)))`. Codes werden nie umgeschrieben. Dieselbe
+Normalisierung gilt für Vorschlagswerte vor jedem Vergleich (§6.1).
+
+**Identische Speicherung ist keine Fachaktion.** Ergibt eine Eingabe nach Normalisierung exakt
+den gespeicherten Zustand, bleiben `row_version`, `updated_at` und `updated_by` unverändert, es
+entsteht kein `audit_events`-Eintrag, und der Dienst liefert die aktuelle Version zurück — genau
+das Verhalten von `component_catalog_store.update_component`. Ein angeforderter Zustandswechsel
+muss dagegen wechseln: Archivieren eines bereits archivierten oder Reaktivieren eines aktiven
+Objekts ist ein sichtbarer Konflikt, kein stiller Erfolg. Eine wirksame Fachaktion erhöht genau
+eine Aggregatversion um eins und schreibt genau einen Audit-Eintrag (§7).
+
+### 4.4 Lagerorte: Zuordnen, Archivieren, Reaktivieren
+
+- Zuordnen und Lösen in `food_storage_locations` ist eine Aktion am **Food**-Aggregat: sie führt
+  die erwartete `foods.row_version` mit, erhöht sie einmal und schreibt einen Audit-Eintrag. Die
+  Lagerortzeile wird dabei nach §8.1 als Vokabular (Rang 5) `FOR SHARE` gesperrt und muss unter
+  dieser Sperre aktiv sein; einem archivierten Lagerort wird nichts neu zugeordnet.
+- **Archivieren eines Lagerorts mit bestehenden Zuordnungen wird sichtbar verweigert**
+  (`ERRCODE 55000`, im Dienst `MasterDataConflictError`) und nennt die Zahl der betroffenen
+  Zutaten. Die Zuordnungen werden vorher ausdrücklich je Zutat entfernt. Es gibt keine Kaskade,
+  kein stilles Lösen und keine zweite SQL-Semantik in B4; B4 ist reiner Verbraucher.
+- Reaktivieren ist jederzeit möglich und prüft keine Zuordnungen.
+- Die Reihenfolge ist kollisionsfrei: Archivieren sperrt die Lagerortzeile als geschriebenes
+  Aggregat `FOR UPDATE` und zählt erst danach; Zuordnen sperrt dieselbe Zeile vorher als
+  Vokabular `FOR SHARE`, danach das Food. Beide Wege berühren die Lagerortzeile also, bevor sie
+  das Food berühren; es entsteht kein Zyklus. Eine gleichzeitige Zuordnung wird entweder
+  mitgezählt und verhindert das Archivieren, oder sie läuft nach dem Archivieren in die erneute
+  `active`-Prüfung und wird abgelehnt. Eine Zuordnung zu einem archivierten Lagerort kann so
+  nicht entstehen.
+- Archivierte Lagerorte bleiben für Verlauf und bestehende Referenzen lesbar.
+
+### 4.5 Öffentlicher Python-Servicevertrag
+
+«Öffentlich» meint stabile Python-Importe für B3, B4 und R1, **keine** neue HTTP-Schnittstelle.
+B2 liefert fünf Module mit je unter 400 Zeilen: `master_data_store.py` als einzige Importfläche,
+`master_data_types.py` für DTOs und Fehler, `master_data_reads.py` für feste Leseabfragen,
+`master_data_commands.py` für gebundene Definer-Aufrufe und `master_data_proposals.py` für
+Normalisierung und Erlaubnisliste nach §6.1. B3, B4 und R1 importieren ausschliesslich
+`master_data_store` und `master_data_types` und legen keine eigenen DML-, Migrations- oder
+Definer-Pfade an.
+
+- Actor: das vorhandene `auth.local_users.ActorExpectation(user_id, authz_version)` wird
+  wiederverwendet, kein zweiter Typ.
+- Ziel: `ObjectExpectation(public_id: str, row_version: int)`. Nie eine Datenbank-ID und nie ein
+  Standort aus dem Formular; der Standort wird serverseitig auf derselben Verbindung aufgelöst.
+- Ergebnis jedes Mutators: `MutationResult(public_id: str, row_version: int)`.
+- DTOs sind eingefrorene Dataclasses ohne interne IDs: `UnitDTO(public_id, code, display_name,
+  dimension, base_factor: Decimal | None, active, row_version)`; `VocabularyDTO(public_id, kind,
+  code, name, sort_order: int | None, active, row_version)` für Kategorie, Tag und Lagerort;
+  `SourceDTO(kind, reference, url, note, fetched_at)`; `FoodDTO(public_id, name, category:
+  VocabularyDTO | None, base_unit: UnitDTO, density_g_per_ml, piece_weight_g, note,
+  allergen_review_status, source: SourceDTO, active, row_version, allergens: tuple[tuple[str,
+  str], ...], labels, tags, storage_locations)`; `ProposalDTO(public_id, row_version, status,
+  source: SourceDTO, food_public_id, payload, decision: ProposalDecision | None)` mit
+  `ProposalDecision(status, decided_at, adopted, unchanged, not_supported, food_public_id,
+  food_row_version_before, food_row_version_after)`.
+
+Engine-gebundene Dienste, je Aufruf genau eine Transaktion:
+
+```
+list_units(engine, *, include_archived=False, limit=200, offset=0) -> tuple[UnitDTO, ...]
+get_unit(engine, public_id) -> UnitDTO
+create_unit(engine, actor, *, code, display_name, dimension, base_factor) -> MutationResult
+rename_unit(engine, actor, target, *, display_name) -> MutationResult
+set_unit_active(engine, actor, target, *, active) -> MutationResult
+list_vocabulary(engine, kind, *, include_archived=False, limit=200, offset=0) -> tuple[VocabularyDTO, ...]
+get_vocabulary(engine, kind, public_id) -> VocabularyDTO
+create_vocabulary(engine, kind, actor, *, code, name, sort_order=None) -> MutationResult
+update_vocabulary(engine, kind, actor, target, *, name, sort_order=None) -> MutationResult
+set_vocabulary_active(engine, kind, actor, target, *, active) -> MutationResult
+list_foods(engine, *, include_archived=False, category=None, tag=None, search=None,
+           limit=200, offset=0) -> tuple[FoodDTO, ...]
+get_food(engine, public_id) -> FoodDTO
+create_food(engine, actor, payload) -> MutationResult
+update_food(engine, actor, target, payload) -> MutationResult
+set_food_active(engine, actor, target, *, active) -> MutationResult
+replace_food_tags(engine, actor, target, tag_public_ids) -> MutationResult
+replace_food_metadata(engine, actor, target, *, allergens, labels) -> MutationResult
+set_food_allergen_review(engine, actor, target, *, checked) -> MutationResult
+replace_food_storage_locations(engine, actor, target, storage_public_ids) -> MutationResult
+list_proposals(engine, *, status=None, food=None, limit=200, offset=0) -> tuple[ProposalDTO, ...]
+get_proposal(engine, public_id) -> ProposalDTO
+create_proposal(engine, actor, *, source, source_reference, fetched_at, payload,
+                source_url=None, source_note=None, food_public_id=None) -> MutationResult
+accept_proposal(engine, actor, proposal, food, fields) -> ProposalDecision
+reject_proposal(engine, actor, proposal, *, reason=None) -> ProposalDecision
+```
+
+`kind` ist `Literal['food_category','tag','storage_location']` und wählt aus einer festen
+Zuordnung die passende Definer-Funktion; dynamisches SQL entsteht dabei nicht. Jede `list_*`
+nimmt `limit` und `offset` entgegen und begrenzt `limit` auf höchstens 500; die Sortierung ist je
+Entität deterministisch und verwendet ausschliesslich tatsächlich vorhandene Spalten, `public_id`
+immer als letzten Tie-break — keine Extra-Spalte wird dafür neu eingeführt:
+
+- `list_vocabulary` für `kind IN ('food_category','storage_location')`, die beide `sort_order`
+  besitzen: `sort_order` (NULLS LAST), dann `lower(btrim(name))`, dann `public_id`.
+- `list_vocabulary` für `kind='tag'`, ohne `sort_order`-Spalte (§4.1): `lower(btrim(name))`,
+  dann `public_id`.
+- `list_units`, ohne `sort_order`- und ohne `name`-Spalte — Einheiten haben `display_name`
+  (§3.1): `code`, dann `public_id`. `code` ist eindeutig und ab Anlage unveränderlich, damit
+  bleibt die Reihenfolge auch über eine spätere `rename_unit`-Umbenennung von `display_name`
+  stabil.
+- `list_foods`, ohne `sort_order`-Spalte (§4.1): `lower(btrim(name))`, dann `public_id`.
+- `list_proposals`, ohne Namens- oder Sortierfeld (§6): `created_at`, dann `public_id`.
+
+Einheiten sind global und werden ohne Standortfilter gelesen; ihre Semantikfelder `code`,
+`dimension` und `base_factor` sind unveränderlich, deshalb gibt es nur `rename_unit`. Kanonische
+Einheiten sind nicht deaktivierbar.
+
+Verbindungsgebundene Auflösung innerhalb einer fremden Transaktion, für R1 und später R5:
+
+```
+resolve_food(connection, location_id, public_id, *, include_archived=True) -> FoodDTO
+resolve_unit(connection, code) -> UnitDTO
+resolve_tag(connection, location_id, public_id, *, include_archived=True) -> VocabularyDTO
+```
+
+Diese drei öffnen keine eigene Transaktion und keine zweite Engine-Verbindung; archivierte
+Referenzen bleiben lesbar, damit alte Rezepte und Revisionen auflösbar sind.
+
+Fehlerklassen in `master_data_types.py`, alle von `MasterDataError` abgeleitet — nie `None`,
+nie eine rohe SQL-Ausnahme: `MasterDataValidationError`, `MasterDataNotFoundError`,
+`MasterDataConflictError` mit Unterklasse `StaleObjectError`, `ActorDeniedError` mit Unterklasse
+`StaleActorError`, `MasterDataConfigurationError` und `MasterDataUnavailableError`. Der
+Verbraucher bildet **vollständig** fest ab: 400 bei `MasterDataValidationError`, mit dem
+bestehenden Formular-/Fehlerfokus-Verhalten; 401 bei fehlender Sitzung oder `StaleActorError`;
+403 bei `ActorDeniedError`; 404 bei `MasterDataNotFoundError`; 409 bei `MasterDataConflictError`
+(einschliesslich `StaleObjectError`); 503 mit `no-store` bei `MasterDataConfigurationError` und
+bei `MasterDataUnavailableError`. `MasterDataConfigurationError` deckt insbesondere den
+fehlenden oder nicht eindeutigen aktiven Standort aus
+`resolve_single_active_location_connection()` ab: die Antwort ist 503/`no-store` ohne weiteren,
+selbst wieder von der Datenbank abhängigen Versuch, die Fehlermeldung anzureichern — eine
+Konfigurationsstörung wird nicht durch eine zusätzliche DB-abhängige Fehlerrekursion aufgelöst.
+Die Zuordnung bleibt konsistent zur SQLSTATE-Tabelle aus §8.1 (`P1901`→400, `P1902`/`42501`→403,
+`P1903`→401, `22023`→404, `55000`/`23505`→409); keine rohe SQL-Ausgabe erreicht den Aufrufer.
+Der Ausfallwrapper liegt wie `auth.local_users._safe_account_read` **ausserhalb** von
+Fähigkeitsprüfung und Reader. Kein automatischer Wiederholversuch mit frisch geladener Actor-
+oder Objektversion.
 
 ---
 
@@ -389,16 +565,86 @@ Daran ändert BAS/REC nichts. Zusätzlich gilt:
    Import, Barcode-Abgleich und KI schreiben dort nie direkt.
 3. **Vorschläge leben getrennt** in `food_data_proposals`: `location_id`, `row_version`, `food_id NULL`, `source` (`off`,
    `supplier`, `ai`, `file_import`), `source_reference`, `fetched_at`, `payload jsonb`,
-   `status IN ('open','accepted','rejected')`, `decided_by`, `decided_at`. Die Übernahme
+   `status IN ('open','accepted','rejected')`, `decided_by`, `decided_at`, `decision_detail jsonb`.
+   Die Übernahme
    einzelner Felder ist eine bewusste Handlung, die einen `audit_events`-Eintrag erzeugt.
    Bestätigte Daten werden dabei nie automatisch überschrieben; ein Konflikt wird angezeigt.
    Quellenpayload bleibt unverändert, eine Entscheidung ist nur einmal von `open` möglich.
    Übernahme prüft erwartete Vorschlags- und Food-Version, Standort und Actor-Version atomar.
+   Ziel, Erlaubnisliste, Zusammenführung und Buchung stehen abschliessend in §6.1.
 4. **Fehlende Angabe bleibt fehlend.** Weder eine leere Allergenliste noch ein fehlender
    Nährwert ist eine Frei-von-Aussage. Die Anzeigen «Enthält», «Kann enthalten» und
    «Nicht erfasst» bleiben getrennt, wie in ICO-002 abgenommen.
 5. Patientenausgaben bleiben preisfrei. Kosten aus CALC-001 hängen an Rezept und Zutat, nie am
    Patienten-Snapshot.
+
+### 6.1 Vorschlagsübernahme: Ziel, Erlaubnisliste und Zusammenführung
+
+**Ziel.** Ein Vorschlag darf mit `food_id NULL` entstehen und so gespeichert bleiben; Quelle,
+Abrufzeit und Payload sind ab Anlage unveränderlich. Eine Annahme braucht immer ein bereits
+bestehendes Ziel: entweder eine ausdrücklich ausgewählte Zutat oder eine zuvor über den
+gewöhnlichen kontrollierten Weg (`create_food`, §4.5) angelegte Zutat. **Die Annahme erzeugt
+niemals selbst eine Zutat.** Sie setzt `food_id` von NULL auf das gewählte Ziel und führt
+Vorschlags-UUID mit ursprünglicher Vorschlagsversion, Ziel-UUID mit ursprünglicher
+`foods.row_version` und die ursprüngliche Actor-Version mit. Jede Abweichung ist ein sichtbarer
+Konflikt ohne Teilschreibung. Ein Vorschlag mit gesetztem `food_id` kann nur auf genau dieses
+Ziel angenommen werden.
+
+**Erlaubnisliste.** Übernehmbar sind in Stufe 1 genau fünf Felder, jedes einzeln und
+ausdrücklich benannt. Ein leerer Feldsatz ist ein Validierungsfehler; wer nichts übernehmen
+will, lehnt den Vorschlag ab.
+
+| Feld | Typ und Grenze | Zusammenführung mit bestätigtem Wert |
+|---|---|---|
+| `density_g_per_ml` | Faktor nach §3.2 | NULL → übernehmen; gleich → `unchanged`; abweichend → Konflikt |
+| `piece_weight_g` | Faktor nach §3.2 | wie oben |
+| `category_code` | Code nach §4.3, muss auf eine aktive Kategorie desselben Standorts auflösen | wie oben |
+| `allergens` | höchstens 64 Paare `{code, presence}` mit `presence IN ('contains','may_contain')`, Codes auf aktive `allergens` | fehlendes Paar → übernehmen; identisches Paar → `unchanged`; gleicher Code mit anderer Präsenz → Konflikt |
+| `labels` | höchstens 64 Codes auf aktive `dietary_labels` | fehlend → übernehmen; vorhanden → `unchanged`; Entfernen ist nie eine Übernahme |
+
+Name, Basiseinheit, Notiz, Tags, Lagerorte und Herkunftsfelder sind **nicht** übernehmbar. Ein
+falscher Name oder eine falsche Basiseinheit wird über die gewöhnliche Zutatenbearbeitung
+korrigiert, nie über eine Vorschlagsannahme. Weitere Felder — etwa Nährwerte aus NUT-001 oder
+Zuordnungen aus OFF-001 — erweitern diese Liste ausdrücklich in ihrem eigenen Paket mit eigener
+Abnahme; dieser Vertrag schneidet sie nicht ab, er verbietet nur die beliebige Feldübernahme.
+
+**Nicht unterstützte Payloadschlüssel** bleiben unverändert in `payload` als begrenzte
+Originalquelle erhalten. Sie gelten nie als übernommen und werden in der Entscheidung
+ausdrücklich als `not_supported` geführt, damit ein späteres Paket sie nicht für bestätigte
+Daten hält. Ein Schlüssel ausserhalb der Erlaubnisliste löst nie eine Übernahme aus.
+
+**Konflikt.** Ein einziger Feldkonflikt bricht die ganze Annahme ab: kein Schreibvorgang, keine
+Versionserhöhung, kein Audit, der Vorschlag bleibt `open`. Der Mensch korrigiert dann entweder
+die Zutat über die gewöhnliche Bearbeitung — danach ist das Feld `unchanged` und die Annahme
+möglich — oder lehnt den Vorschlag ab. Bestätigte Werte werden nie still überschrieben.
+«Enthält», «Kann enthalten» und «nicht erfasst» bleiben in Payload, Übernahme und Anzeige
+getrennt; eine leere Liste bleibt eine fehlende Angabe und wird nie zur Frei-von-Aussage.
+
+**Entscheidung.** `decision_detail jsonb NOT NULL DEFAULT '{}'::jsonb` hält die Feldnamenlisten
+`adopted`, `unchanged` und `not_supported` sowie Ziel-UUID und alte/neue `foods.row_version`.
+Ein Trigger nach dem Vorbild von `protect_publication_revision()` verweigert jedes `DELETE`
+sowie jede Änderung an einer Zeile, deren `status` nicht mehr `open` ist, und jede nachträgliche
+Änderung von `location_id`, `source*`, `fetched_at` und `payload`. Für `food_id` gilt genau eine
+Ausnahme, sonst gilt dasselbe Verbot: die eine atomare, kontrollierte Annahme (`open →
+accepted`) darf `food_id` von NULL auf das gewählte Ziel setzen, geführt mit ursprünglicher
+Actor-, Vorschlags- und Food-Version sowie Standortgleichheit (siehe **Ziel** oben). Ausserhalb
+dieser einen Annahme bleibt `food_id` unveränderlich; ein bereits gesetztes Ziel wird nie
+gewechselt, auch nicht durch eine zweite Annahme. Eine Ablehnung (`open → rejected`) lässt
+`food_id` exakt so, wie es war: ein zuvor NULL gebliebener Vorschlag bleibt ohne Ziel, ein
+Vorschlag mit gesetztem Ziel behält genau dieses Ziel. Eine Ablehnung setzt, wechselt und löscht
+also nie ein Ziel. Der Übergang `open → accepted|rejected` ist
+einmalig und unumkehrbar; jede abgeschlossene Entscheidung (`accepted` oder `rejected`) ist
+danach vollständig unveränderlich, einschliesslich `food_id`. Dienst (`accept_proposal`/
+`reject_proposal`, §4.5), Trigger und Testspezifikation setzen genau diese eine Ausnahme
+identisch um.
+
+**Buchung.** Eine Annahme mit mindestens einem übernommenen Feld erhöht `foods.row_version`
+genau einmal; wurde dabei `food_allergens` geändert, setzt sie `allergen_review_status` auf
+`not_checked` zurück. Sie erhöht `food_data_proposals.row_version` genau einmal und schreibt
+**genau einen** `audit_events`-Eintrag mit `entity_type` `food_proposal`, der Ziel-UUID und
+beide Food-Versionen in `details` führt; ein zweites Ereignis am Food-Aggregat entsteht nicht.
+Sind alle benannten Felder `unchanged`, bleibt das Food-Aggregat unberührt, die Entscheidung
+wird trotzdem einmalig festgeschrieben und einmal auditiert. Eine Ablehnung berührt kein Food.
 
 ---
 
@@ -435,6 +681,15 @@ gemeinsam oder gar nicht. Revisions-/Vorschlags-/Importaktionen haben genau eine
 je fachlicher Aktion; Unterzeilenänderungen erzeugen keine irreführenden Doppelereignisse. `audit_events`
 ist bereits durch `trg_audit_events_immutable` und `trg_audit_events_no_truncate` geschützt.
 
+**Wirkungslose Speicherung, Zustandswechsel und Unterzeilen.** Nach §4.3 erzeugt eine Eingabe,
+die nach Normalisierung exakt den gespeicherten Zustand ergibt, weder Versionserhöhung noch
+Zeitstempeländerung noch Audit-Eintrag; ein angeforderter Zustandswechsel, der nichts wechselt,
+ist dagegen ein sichtbarer Konflikt. Eine Fachaktion, die Unterzeilen ändert — Tags, Labels,
+Allergene, Lagerortzuordnungen; später Zutatenzeilen, Schritte, Bilder, Kochbuchzuordnungen —
+erhöht genau eine Aggregatversion um eins und schreibt genau einen Audit-Eintrag, unabhängig
+von der Zahl der geänderten Unterzeilen. In M-A berührt nur die Vorschlagsannahme zwei
+Aggregate; auch sie bleibt bei genau einem Ereignis (§6.1).
+
 ---
 
 ## 8. Rollen und Rechte
@@ -450,6 +705,17 @@ ist bereits durch `trg_audit_events_immutable` und `trg_audit_events_no_truncate
 Lesen läuft über die vorhandene Fähigkeit `draft.read`. `recipe.import` ist getrennt, weil dort
 herkunftsbehaftete Fremddaten zu bestätigten Daten werden — dieselbe Trennschärfe, die
 `publication.publish` heute hat.
+
+**Vollständiger B2-Besitz.** B2 besitzt alle zehn M-A-Tabellen (`measurement_units`,
+`food_categories`, `foods`, `tags`, `food_tags`, `food_labels`, `food_allergens`,
+`storage_locations`, `food_storage_locations`, `food_data_proposals`) samt sämtlichen
+Mutatoren, Rechten, Seeds, Validatoren und Registrierungen sowie die drei neuen Fähigkeiten in
+`cafeteria/roles.py` und deren Matrixtest. B3 und B4 sind Verbraucher; es gibt keine zweite
+DML- oder Migrationslane und keinen Teilbesitz an M-A. Der Modulzuschnitt, die eingefrorenen
+DTOs und die genauen öffentlichen Signaturen stehen abschliessend in §4.5; vorhandene
+Utilities werden bevorzugt, insbesondere `auth.local_users.ActorExpectation` und
+`component_catalog_store.resolve_single_active_location_connection`. Rezept-DTOs gehören R1,
+nicht B2.
 
 **Datenbankrollen.** `cafeteria_app` erhält `SELECT` und ausschliesslich die ausdrücklich
 aufgelisteten fachlichen Mutatorfunktionen, keine direkten `INSERT`-/`UPDATE`-/`DELETE`-/
@@ -467,16 +733,103 @@ Die ursprüngliche Actor-Erwartung aus Sitzung/Command bleibt bis zur Mutation u
 ein Konflikt wird nicht durch Nachladen und Wiederholen umgangen. Actor-Name allein reicht nie.
 
 Der Fachguard prüft innerhalb derselben Transaktion aktiven Benutzer, aktive Rollen, Fähigkeit
-und Version und hält Sperren bis Write/Audit. Reihenfolge kompatibel zu IAM v19:
-Rollendefinitionen geordnet `FOR SHARE`, betroffene Benutzer nach ID `FOR UPDATE`,
-danach Standort/Fachaggregate in festgelegter Reihenfolge; kein nachträglicher Erwerb des
-IAM-Bootstrap-Advisory-Locks. Er schreibt weder Credentials noch Rollen. Die adminexklusive
-`lock_local_user_v19()` ist kein wiederverwendbarer Editor-Guard. `roles.require_capability()`
-bleibt die vorgelagerte Sessionprüfung, ersetzt diesen transaktionalen Guard aber nicht.
-Gatefälle: Rollenentzug, Passwortreset, Stale-Actor und unverändertes Zielobjekt bei
-gleichzeitigem Write; alle brechen ohne Fachwrite/Audit-Teilstand ab, falls der Entzug zuerst
-serialisiert wurde. Fehlende Sitzung 401, fehlende Fähigkeit 403, Objektkonflikt 409,
-DB-Ausfall kontrolliert 503/no-store, bestehende CSRF-Grenze unverändert.
+und Version und hält Sperren bis Write/Audit. Er nimmt sie in der festen gemeinsamen Reihenfolge
+aus §8.1: Rollendefinitionen geordnet `FOR SHARE`, die Actor-Zeile `FOR SHARE`, danach Standort,
+globale Einheiten, Vokabular, Food, Vorschlag und später Rezepte. Transaktionsisolation
+`READ COMMITTED` und die ursprünglichen Versionen bleiben Pflicht.
+Kein nachträglicher Erwerb des IAM-Bootstrap-Advisory-Locks. Er schreibt weder Credentials
+noch Rollen. Die adminexklusive `lock_local_user_v19()` ist kein wiederverwendbarer Editor-Guard.
+`roles.require_capability()` bleibt die vorgelagerte Sessionprüfung, ersetzt diesen
+transaktionalen Guard aber nicht. Gatefälle: Rollenentzug, Passwortreset, Stale-Actor und
+unverändertes Zielobjekt bei gleichzeitigem Write; alle brechen ohne Fachwrite/Audit-Teilstand
+ab, falls der Entzug zuerst serialisiert wurde. Fehlende Sitzung 401, fehlende Fähigkeit 403,
+Objektkonflikt 409, DB-Ausfall kontrolliert 503/no-store, bestehende CSRF-Grenze unverändert.
+
+### 8.1 Gemeinsame Sperrreihenfolge
+
+Jeder Fachmutator aus M-A und M-B nimmt seine Sperren in genau dieser Reihenfolge, innerhalb
+jeder Klasse aufsteigend nach `id` beziehungsweise nach dem genannten Sortierschlüssel.
+Übersprungen wird nur, was eine Aktion nicht berührt; die relative Reihenfolge bleibt gleich.
+
+| Rang | Objekt | Modus | Bemerkung |
+|---|---|---|---|
+| 1 | Isolation und Wartegrenze | — | `READ COMMITTED` ist Pflicht, sonst `P1901`; `set_config('lock_timeout','5s',true)` wie `begin_local_admin_v19()` |
+| 2 | `application_roles` | `ORDER BY role_code FOR SHARE` | wortgleich zu `begin_local_admin_v19()`, aber **ohne** dessen Advisory-Lock |
+| 3 | `users`, nur die Actor-Zeile | `FOR SHARE` | danach `disabled_at`, aktive Rolle, fest kodierte Fähigkeit und ursprüngliche `authz_version` prüfen |
+| 4 | `locations` | `SHARE` über `lock_expected_active_location()` | die Funktion nimmt `LOCK TABLE cafeteria.locations IN SHARE MODE` (`database/schema.sql:2015`), keine Zeilensperre; gilt auch für die global gespeicherten Einheiten |
+| 5 | globale Einheiten und Vokabular | `FOR SHARE` | `measurement_units`, `food_categories`, `tags`, `storage_locations`, `allergens`, `dietary_labels`; nach der Sperre `active` erneut prüfen |
+| 6 | geschriebenes Aggregat, genau eines je Aktion | `FOR UPDATE` | Klassenfolge `measurement_units` → `food_categories` → `tags` → `storage_locations` → `foods` → `food_data_proposals` → (M-B) `recipes` → `cookbooks` |
+
+Rang 5 und 6 fallen zusammen, wenn eine Vokabularzeile selbst das geschriebene Aggregat ist;
+dann gilt allein Rang 6. Unterzeilen (`food_tags`, `food_labels`, `food_allergens`,
+`food_storage_locations`; später `recipe_ingredients`, `recipe_steps`, `recipe_images`,
+`recipe_tags`, `cookbook_recipes`) sind durch die Sperre ihres Aggregats gedeckt und werden
+aufsteigend geschrieben. Berührt eine Aktion zwei Aggregate — in M-A ausschliesslich die
+Vorschlagsannahme —, gilt die Klassenfolge aus Rang 6: erst das Food, dann der Vorschlag. R1 und
+später R5 übernehmen diese Reihenfolge unverändert; sie sperren Einheiten, Vokabular und
+Zutaten vor ihrem eigenen Aggregat und nie `FOR UPDATE`.
+
+**Actor-Sperre `FOR SHARE` statt `FOR UPDATE`, mit Begründung.** Die Formulierung «betroffene
+Benutzer nach ID `FOR UPDATE`» stammt aus dem adminexklusiven IAM-Pfad. **Klarstellung:** Heute,
+vor M-C, existiert `menu_components.food_id` nirgends im Schema. `record_menu_review()`
+(`database/schema.sql:2321–2378`) sperrt nach `lock_expected_active_location()` Woche und
+Service `FOR UPDATE`, liest den Menüposten `FOR UPDATE`, liest Komponenten nur über `SELECT` und
+schreibt einen Audit-Eintrag; `require_workflow_review_actor()`
+(`database/schema.sql:2296`, `users … FOR SHARE`) läuft danach. Ein lesender `SELECT` durchläuft
+keine FK-Prüfung; ohne Food-Fremdschlüssel gibt es dort weder eine implizite `FOR KEY SHARE`-
+Sperre noch sonst eine belegte Sperre auf einer Food-Zeile. Ein heute bestehender, bewiesener
+Sperrzyklus ist das **nicht** — die vorherige Darstellung als bereits eingetretener Deadlock war
+falsch und ist hiermit korrigiert.
+
+Auch das blosse Hinzufügen der Spalte `menu_components.food_id` als Fremdschlüssel ändert daran
+nichts: ein lesender `SELECT` prüft auch nach M-C keinen Fremdschlüssel und nimmt deshalb keine
+Sperre auf einer Food-Zeile. Eine implizite `FOR KEY SHARE`-Sperre kann allein ein
+Schreibvorgang erzeugen, der eine Food-Referenz tatsächlich einfügt oder ändert, und auch dann
+nur, wenn dieser Schreibvorgang in derselben Transaktion **vor** der Actor-Prüfung liegt. Ob ein
+solcher Pfad in M-C/R5 wirklich entsteht, hängt am dann geschriebenen Code und ist heute weder
+belegt noch getestet.
+
+Das ist damit ein **konkret zu prüfendes künftiges Schreibpfad-Risiko**, kein bewiesener Zyklus
+und keine automatische Sperre. Root entscheidet deshalb vorsorglich `FOR SHARE`: verträglich mit
+dem bestehenden `FOR SHARE`-Actor-Read-Lock des Workflow-Guards und konfliktbehaftet mit dem
+tatsächlichen `users.authz_version`-UPDATE (siehe unten) — die Sicherungswirkung bleibt erhalten,
+ohne ein solches Risiko überhaupt erst zu eröffnen. Eine schwächere `FOR KEY SHARE`-Actorsperre
+ersetzt `FOR SHARE` dabei nicht. Verbindlich bleibt: R5 und jeder weitere Pfad, der eine
+Food-Referenz schreibt, prüft vor seiner Abnahme am realen Code, ob er eine Food-Zeile vor der
+Actor-Prüfung sperrt, hält die Rangfolge dieses Abschnitts ein (Rang 3 vor Rang 6) und belegt das
+Verhalten mit echten Nebenläufigkeitstests statt mit einer Herleitung.
+
+Die Sicherungswirkung bleibt vollständig: jede Rollenvergabe, jeder Rollenentzug und jeder
+Passwortreset erhöht `users.authz_version` — über `bump_user_authz_version()`
+(`database/schema.sql:518`) beziehungsweise die IAM-Funktionen —, und dieses `UPDATE` kollidiert
+mit `FOR SHARE`. Wer zuerst serialisiert, gewinnt: entweder wartet der Entzug auf den Fachwrite,
+oder der Fachwrite liest anschliessend die neue Version und bricht als Stale-Actor ohne Write
+und ohne Audit ab. Das Deaktivieren einer Rollendefinition, das keine Actor-Version erhöht,
+deckt Rang 2 ab. `user_role_cache` wird nicht zusätzlich gesperrt, weil jede Änderung dort
+dieselbe Actor-Zeile anfasst. Ein Nachladen der Actor-Version zur Umgehung bleibt verboten.
+
+**Globale Einheiten.** `measurement_units` bleibt ohne `location_id` global; Lesen und Auflösen
+sind standortfrei, auch für R1 innerhalb seiner Transaktion. Der Admin-Dienst, der Einheiten
+pflegt, verlangt trotzdem ausdrücklich genau einen aktiven Standort (Rang 4) — dieselbe
+Konfigurationsgrenze wie für alle übrigen Stammdatenmutatoren, damit ein mehrdeutiger
+Standortzustand nicht unbemerkt bleibt. Das ist eine Dienstgrenze, keine Datenbindung.
+
+**Guard-Freigabe.** Der interne Guard `require_master_data_actor(bigint, bigint, text)` nimmt
+die Fähigkeit als Parameter, wird aber weder `cafeteria_app` noch `PUBLIC` noch
+`cafeteria_auth_issuer` freigegeben. Nur die öffentlichen Mutatoren rufen ihn mit einem
+literalen Fähigkeitsnamen; ein Client wählt nie eine Fähigkeit. Die Zuordnung Fähigkeit ↔ Rollen
+steht in SQL und in `cafeteria/roles.py` und wird durch einen ausdrücklichen Matrixtest
+gegeneinander geprüft. Da `permissions.sql` am Ende pauschal alle Funktionsrechte entzieht und
+explizit wieder aufbaut, trägt B2 seine endgültigen öffentlichen Signaturen dort nach; Grants
+allein innerhalb der Migration verschwinden beim erneuten Anwenden.
+
+**Fehlercodes.** Die Fachfunktionen verwenden ausschliesslich diese SQLSTATEs, der Dienst bildet
+sie fest ab: `P1901` ungültige Eingabe oder falsche Isolation → Validierung; `P1902` fehlende
+aktive Rolle oder Fähigkeit → 403; `P1903` veraltete Actor-Version → 401; `22023` unbekanntes
+oder untypisiertes Ziel → 404; `55000` veralteter oder blockierter Fachzustand, einschliesslich
+Lagerortarchivierung mit bestehenden Zuordnungen → 409; `23505` Namens- oder Codekollision →
+409; `42501` fehlendes Datenbankrecht → 403. Kein weiterer Code wird erfunden, keine rohe
+SQL-Ausnahme erreicht den Aufrufer.
 
 ---
 
