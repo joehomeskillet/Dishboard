@@ -22,7 +22,10 @@ PATIENT_OBJECT_KEYS = {
     'allergen': frozenset({'code', 'name', 'presence'}),
     'origin': frozenset({'ingredient', 'country_code', 'text'}),
 }
-PATIENT_OPTIONAL_KEYS = {'service': frozenset({'service_state', 'notice'})}
+PATIENT_OPTIONAL_KEYS = {
+    'snapshot': frozenset({'area_name'}),
+    'service': frozenset({'service_state', 'notice', 'service_start', 'service_end'}),
+}
 PATIENT_ALLOWED_COMPACT_KEYS = frozenset(
     key.replace('_', '')
     for keys in (*PATIENT_OBJECT_KEYS.values(), *PATIENT_OPTIONAL_KEYS.values())
@@ -59,12 +62,15 @@ PATIENT_EXTERNAL_ID_RE = re.compile(
 )
 PATIENT_LOCATION_CODE_RE = re.compile(r'^[A-Z][A-Z_]{1,31}$')
 PATIENT_COUNTRY_CODE_RE = re.compile(r'^[A-Z]{2}$')
+PATIENT_TIME_RE = re.compile(r'^(?:[01][0-9]|2[0-3]):[0-5][0-9]$')
 PATIENT_STRUCTURAL_PATTERNS = {
     ('snapshot', 'revision_id'): PATIENT_REVISION_RE,
     ('snapshot', 'week_start'): PATIENT_ISO_DATE_RE,
     ('snapshot', 'week_end'): PATIENT_ISO_DATE_RE,
     ('location', 'code'): PATIENT_LOCATION_CODE_RE,
     ('day', 'date'): PATIENT_ISO_DATE_RE,
+    ('service', 'service_start'): PATIENT_TIME_RE,
+    ('service', 'service_end'): PATIENT_TIME_RE,
     ('option', 'external_id'): PATIENT_EXTERNAL_ID_RE,
     ('origin', 'country_code'): PATIENT_COUNTRY_CODE_RE,
 }
@@ -188,6 +194,11 @@ def _patient_text_is_forbidden(value: str, *, allow_operational_time: bool = Fal
         operational_note = _normalise_decimal_digits(nfkc_text).casefold()
         return not (allow_operational_time and PATIENT_OPERATIONAL_NOTE_RE.fullmatch(operational_note))
     return _patient_tokens_contain_sensitive_lexeme(_patient_semantic_tokens(ascii_text))
+
+
+def patient_text_is_forbidden(value: str) -> bool:
+    """Öffentlicher Freitextfilter für Bereichsnamen und Hinweise ohne Zeitfreigabe."""
+    return _patient_text_is_forbidden(value)
 
 
 def _patient_scalar_is_invalid(kind: str, key: str, value: Any) -> bool:
@@ -314,6 +325,9 @@ def _validate_service_states(services: list[Any]) -> None:
             not isinstance(service.get('notice'), str) or not service['notice'].strip()
         ):
             raise ValueError('Eine geschlossene Mahlzeit braucht einen Hinweis.')
+        start, end = service.get('service_start'), service.get('service_end')
+        if isinstance(start, str) and isinstance(end, str) and end <= start:
+            raise ValueError('Das Serviceende muss nach dem Servicebeginn liegen.')
 
 
 def validate_snapshot_payload(profile_code: str, snapshot: dict[str, Any]) -> None:

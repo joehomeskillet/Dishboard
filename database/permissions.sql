@@ -74,6 +74,9 @@ GRANT SELECT ON
     meal_periods, menu_types, dietary_labels, allergens, active_publications,
     audit_events, publication_lifecycle_events
 TO cafeteria_app;
+-- Anzeigenamen sind das einzige durch die Anwendung pflegbare Feld der Profile;
+-- Code, Preis- und Rasterflags bleiben ohne Schreibrecht.
+GRANT UPDATE (display_name) ON offer_profiles TO cafeteria_app;
 
 GRANT USAGE, SELECT ON
     menu_weeks_id_seq, menu_services_id_seq, dish_templates_id_seq,

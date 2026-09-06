@@ -1,6 +1,6 @@
 -- Klinik Südhang Menüplanung – PostgreSQL-Baseline
 -- Zwei fachlich getrennte Profile: patient und staff_guest.
--- Schema v18 für eine leere Datenbank; keine behauptete Alembic-Migration.
+-- Schema v20 für eine leere Datenbank; keine behauptete Alembic-Migration.
 
 BEGIN;
 
@@ -97,6 +97,8 @@ CREATE TABLE IF NOT EXISTS offer_profiles (
     allows_prices boolean NOT NULL,
     allows_weekend boolean NOT NULL,
     allowed_meals text[] NOT NULL,
+    CONSTRAINT offer_profiles_display_name_check
+        CHECK (btrim(display_name) <> '' AND length(display_name) <= 80),
     CHECK (cardinality(allowed_meals) >= 1),
     CHECK (
         (code = 'patient' AND allows_prices = false AND allows_weekend = true AND allowed_meals @> ARRAY['LUNCH','DINNER']::text[])
@@ -148,7 +150,11 @@ CREATE TABLE IF NOT EXISTS menu_services (
     row_version bigint NOT NULL DEFAULT 1 CHECK (row_version > 0),
     created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
     updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    service_start time,
+    service_end time,
     CHECK ((service_state = 'open') OR (notice IS NOT NULL AND btrim(notice) <> '')),
+    CONSTRAINT menu_services_time_window_check
+        CHECK (service_start IS NULL OR service_end IS NULL OR service_end > service_start),
     UNIQUE (menu_week_id, service_date, meal_period_id)
 );
 
@@ -799,7 +805,8 @@ AS $$
             'externalid', 'labels', 'note', 'origins', 'title', 'typecode', 'typename',
             'code', 'name', 'presence', 'countrycode', 'ingredient', 'text', 'state',
             'weekday', 'location', 'profilecode', 'revisionid', 'schemaversion',
-            'sharednote', 'weekend', 'weekstart', 'servicestate'
+            'sharednote', 'weekend', 'weekstart', 'servicestate',
+            'servicestart', 'serviceend', 'areaname'
         ]::text[])
         OR compact ~ '(price|prices|preis|preise|cost|costs|amount|amounts|kosten|betrag|rappen|currency|chf|fee|tarif|tariff|charge)'
     FROM (SELECT cafeteria.normalize_patient_key(k) AS compact) s;
@@ -970,6 +977,12 @@ BEGIN
     IF NEW.snapshot_json->>'revision_id' IS DISTINCT FROM NEW.revision_code THEN
         RAISE EXCEPTION 'revision_id im Snapshot stimmt nicht mit revision_code überein.' USING ERRCODE = '23514';
     END IF;
+    IF NEW.snapshot_json ? 'area_name'
+       AND (jsonb_typeof(NEW.snapshot_json->'area_name') IS DISTINCT FROM 'string'
+            OR btrim(NEW.snapshot_json->>'area_name') = ''
+            OR length(NEW.snapshot_json->>'area_name') > 80) THEN
+        RAISE EXCEPTION 'Snapshot-Bereichsname muss ein nicht leerer Text mit höchstens 80 Zeichen sein.' USING ERRCODE = '23514';
+    END IF;
 
     FOR v_day, v_day_index IN
         SELECT value, ordinality::integer
@@ -1009,6 +1022,18 @@ BEGIN
             v_state := COALESCE(NULLIF(v_service->>'service_state', ''), 'open');
             IF v_state NOT IN ('open', 'closed', 'holiday', 'company_holiday') THEN
                 RAISE EXCEPTION 'service_state muss open, closed, holiday oder company_holiday sein.' USING ERRCODE = '23514';
+            END IF;
+            IF (v_service ? 'service_start'
+                AND (jsonb_typeof(v_service->'service_start') IS DISTINCT FROM 'string'
+                     OR v_service->>'service_start' !~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'))
+               OR (v_service ? 'service_end'
+                AND (jsonb_typeof(v_service->'service_end') IS DISTINCT FROM 'string'
+                     OR v_service->>'service_end' !~ '^([01][0-9]|2[0-3]):[0-5][0-9]$')) THEN
+                RAISE EXCEPTION 'Servicezeiten müssen als HH:MM zwischen 00:00 und 23:59 angegeben werden.' USING ERRCODE = '23514';
+            END IF;
+            IF v_service ? 'service_start' AND v_service ? 'service_end'
+               AND (v_service->>'service_end')::time <= (v_service->>'service_start')::time THEN
+                RAISE EXCEPTION 'Das Serviceende muss nach dem Servicebeginn liegen.' USING ERRCODE = '23514';
             END IF;
             IF jsonb_typeof(v_service->'options') IS DISTINCT FROM 'array' THEN
                 RAISE EXCEPTION 'Jede Mahlzeit braucht ein Options-Array.' USING ERRCODE = '23514';
@@ -2278,11 +2303,13 @@ AS $function$
         'header_revision', w.header_revision,
         'title', COALESCE(w.title, ''), 'shared_note', COALESCE(w.shared_note, ''),
         'services', COALESCE((
-            SELECT jsonb_agg(jsonb_build_object(
+            SELECT jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
                 'public_id', s.public_id::text, 'date', s.service_date::text,
                 'meal', mp.code, 'row_version', s.row_version,
-                'state', s.service_state, 'notice', COALESCE(s.notice, '')
-            ) ORDER BY s.service_date, mp.sort_order, s.id)
+                'state', s.service_state, 'notice', COALESCE(s.notice, ''),
+                'start', to_char(s.service_start, 'HH24:MI'),
+                'end', to_char(s.service_end, 'HH24:MI')
+            )) ORDER BY s.service_date, mp.sort_order, s.id)
             FROM cafeteria.menu_services s
             JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id
             WHERE s.menu_week_id=w.id
@@ -2902,5 +2929,8 @@ END;
 $$;
 REVOKE EXECUTE ON FUNCTION bootstrap_first_local_admin(text,text,text)
 FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
+
+-- Anzeigenamen sind das einzige durch die Anwendung pflegbare Feld der Profile.
+GRANT UPDATE (display_name) ON offer_profiles TO cafeteria_app;
 
 COMMIT;
