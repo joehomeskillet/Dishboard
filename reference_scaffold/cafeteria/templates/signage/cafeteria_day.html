@@ -4,35 +4,46 @@
 {% block channel %}
 <div class="signage-brand">
   <img src="{{ url_for('static', filename='img/suedhang-logo.png') }}" alt="Klinik Südhang" class="signage-logo" srcset="{{ url_for('static', filename='img/suedhang-logo@2x.png') }} 2x" width="205" height="40">
-  <span class="signage-kicker">Cafeteria · Mittag für Mitarbeitende und externe Gäste</span>
+  <h1 class="signage-kicker m-0">Cafeteria · Mittag für Mitarbeitende und externe Gäste</h1>
 </div>
 {% endblock %}
 {% block content %}
 {% if lunch.service_state|default('open') == 'open' %}
-<section class="cafe-day-grid" aria-label="Zwei Mittagsmenüs">
+<section class="row g-4 hero-food-grid" aria-label="Zwei Mittagsmenüs">
   {% for option in lunch.options %}
-  <article class="signage-menu-card {{ 'veggie' if option.type_code == 'VEGGIE' else 'meat' }}">
-    <header>
-      <h2>{{ option.type_name }}</h2>
-      <span class="menu-icon {{ 'veg' if option.type_code == 'VEGGIE' else '' }}" aria-hidden="true">{{ '●' if option.type_code == 'VEGGIE' else '◐' }}</span>
-    </header>
-    <div class="content">
-      <h3>{{ option.title }}</h3>
-      <p>{{ option.description }}</p>
-      <ul class="signage-components">{% for component in option.components %}<li>{{ component }}</li>{% endfor %}</ul>
-    </div>
-    <footer>
-      <div class="signage-tags">
-        {% for label in option.labels %}<span class="label green">{{ label.name }}</span>{% endfor %}
-        {% for allergen in option.allergens %}<span class="label amber">{{ 'Kann enthalten: ' if allergen.presence == 'may_contain' else 'Enthält: ' }}{{ allergen.name }}</span>{% endfor %}
-        {% for origin in option.origins %}<span class="label">{{ origin.text }}</span>{% endfor %}
+  <div class="col-6 d-flex">
+  <article class="card signage-menu-card hero-food {{ 'veggie' if option.type_code == 'VEGGIE' else 'meat' }}">
+    <div class="card-status-top {{ 'bg-green' if option.type_code == 'VEGGIE' else 'bg-primary' }}"></div>
+    <div class="card-img-top hero-food-media">
+      {% if option|menu_image %}
+        {% include '_menu_image.html' %}
+      {% else %}
+      <div class="hero-food-fallback d-flex flex-column align-items-center justify-content-center" data-menu-image-fallback>
+        <span class="hero-food-fallback-mark" aria-hidden="true">{{ '02' if option.type_code == 'VEGGIE' else '01' }}</span>
+        <span>{{ option.type_name }}</span>
       </div>
-      <div class="signage-price">Mitarbeitende CHF {{ option.prices.internal_rappen|chf }} · Externe CHF {{ option.prices.external_rappen|chf }}</div>
+      {% endif %}
+    </div>
+    <div class="card-body content">
+      <h2 class="hero-food-kicker">{{ option.type_name }}</h2>
+      <h3 class="card-title">{{ option.title }}</h3>
+      <p class="hero-food-components">{{ option.components|join(' · ') }}</p>
+    </div>
+    <footer class="card-footer">
+      {% set description = '' if option.description == option.components|join(' · ') else option.description %}
+      {% with option=dict(option, description=description), metadata_class='signage-tags' %}
+      {% include '_menu_metadata.html' %}
+      {% endwith %}
+      <div class="signage-price d-flex justify-content-between align-items-baseline">
+        <span class="fs-2 fw-bold">Mitarbeitende CHF {{ option.prices.internal_rappen|chf }}</span>
+        <span class="hero-food-external">Externe CHF {{ option.prices.external_rappen|chf }}</span>
+      </div>
     </footer>
   </article>
+  </div>
   {% endfor %}
 </section>
 {% else %}
-<section class="closed-signage"><div class="closed-card"><span class="closed-icon" aria-hidden="true">×</span><h1>Cafeteria geschlossen</h1><p>{{ lunch.notice }}</p></div></section>
+<section class="closed-signage"><div class="card hero-food-closed"><div class="card-status-top bg-primary"></div><div class="card-body text-center"><span class="hero-food-kicker">Cafeteria · Mittagsservice</span><h2>Cafeteria geschlossen</h2><p>{{ lunch.notice }}</p></div></div></section>
 {% endif %}
 {% endblock %}

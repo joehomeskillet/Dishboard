@@ -8,5 +8,14 @@
 </div>
 {% endblock %}
 {% block content %}
-<section class="closed-signage"><div class="closed-card"><span class="closed-icon" aria-hidden="true">×</span><h1>Cafeteria geschlossen</h1><p>{{ day.notice if day and day.notice else 'An diesem Tag gibt es kein öffentliches Cafeteria-Angebot.' }}</p></div></section>
+<section class="closed-signage">
+  <div class="card hero-food-closed">
+    <div class="card-status-top bg-primary"></div>
+    <div class="card-body text-center">
+      <span class="hero-food-kicker">Cafeteria · Tagesinformation</span>
+      <h1>Cafeteria geschlossen</h1>
+      <p>{% if day and day.notice and day.notice != 'Cafeteria geschlossen' %}{{ day.notice }}{% elif day and day.weekday in ('Samstag', 'Sonntag') %}Am Wochenende bleibt die Cafeteria geschlossen.{% else %}An diesem Tag gibt es kein öffentliches Cafeteria-Angebot.{% endif %}</p>
+    </div>
+  </div>
+</section>
 {% endblock %}

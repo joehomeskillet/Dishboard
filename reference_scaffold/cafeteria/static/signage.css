@@ -85,3 +85,34 @@ p{text-wrap:pretty}
 .signage-empty strong{font-size:clamp(42px,4vw,86px);line-height:1}
 .signage-empty span{color:var(--sh-white-076);font-size:clamp(20px,1.45vw,34px)}
 @media (min-width: 3000px){.patient-week-day>header strong{font-size:34px}.patient-week-day>header span{font-size:20px}.patient-week-cell .meal-name{font-size:25px}.patient-week-option small{font-size:18px}.patient-week-option strong{font-size:26px}.patient-week-option span{font-size:18px}}
+
+/* Variante A: Tabler cards keep complete serving illustrations above the menu. */
+.hero-food-grid{flex:1;min-height:0;margin:0;flex-wrap:nowrap;--tblr-gutter-x:clamp(24px,1.6vw,62px)}
+.hero-food-grid>.col-6{min-height:0;margin-top:0}
+.hero-food.card{display:flex;flex:1;flex-direction:column;border:0;border-radius:var(--sh-radius-lg);background:var(--sh-panel);box-shadow:var(--sh-shadow-soft)}
+.hero-food .card-status-top,.hero-food-closed .card-status-top{height:.55vh}
+.hero-food .bg-primary,.hero-food-closed .bg-primary{background:var(--sh-primary)!important}
+.hero-food .bg-green{background:var(--sh-green)!important}
+.hero-food-media{flex:1 1 30vh;min-height:16vh;max-height:34vh;background:var(--sh-panel-soft)}
+.hero-food .menu-photo{position:relative;max-width:none;height:100%;margin:0}
+.hero-food .menu-photo img{width:100%;height:100%;aspect-ratio:4/3;object-fit:contain}
+.hero-food .menu-photo figcaption{position:absolute;right:.7vw;bottom:.5vh;margin:0;padding:.2vh .4vw;font-size:clamp(12px,.72vw,28px);color:var(--sh-ink-muted);background:var(--sh-panel)}
+.hero-food-fallback{height:100%;color:var(--sh-teal-800);background:var(--sh-teal-100);font-size:clamp(22px,1.3vw,50px);font-weight:600}
+.hero-food-fallback-mark{font-size:clamp(70px,6vw,230px);line-height:1;letter-spacing:-.06em}
+.hero-food .content{flex:0 0 auto;justify-content:flex-start;gap:.6vh;padding:1.4vh 1.6vw}
+.hero-food-kicker{margin:0;color:var(--sh-primary);font-size:clamp(22px,1.15vw,46px);font-weight:600;line-height:1.2;letter-spacing:.08em;text-transform:uppercase}
+.hero-food.veggie .hero-food-kicker{color:var(--sh-green)}
+.hero-food .content .card-title{margin:0;color:var(--sh-ink);font-size:clamp(46px,2.5vw,100px);font-weight:600;line-height:1.2;letter-spacing:-.025em;flex-shrink:0}
+.hero-food .content .hero-food-components{margin:0;font-size:clamp(28px,1.5vw,60px);line-height:1.25;flex-shrink:0}
+.hero-food>footer{display:block;flex:0 0 auto;min-height:0;padding:1vh 1.6vw 1.4vh;background:var(--sh-panel)}
+.hero-food [data-menu-metadata] p{margin:0 0 .4vh;font-size:clamp(18px,1vw,40px);line-height:1.25;overflow-wrap:anywhere}
+.hero-food .signage-tags{gap:.35vw;margin:.4vh 0}
+.hero-food .signage-tags .label{padding:.25vh .45vw;font-size:clamp(16px,.9vw,36px);line-height:1.2}
+.hero-food .signage-tags .label.amber{color:var(--sh-amber-ink)}
+.hero-food .signage-price{gap:.8vw;margin-top:1vh;white-space:normal;line-height:1.2}
+.hero-food .signage-price .fs-2{font-size:clamp(27px,1.6vw,64px)!important}
+.hero-food-external{color:var(--sh-ink-muted);font-size:clamp(24px,1.35vw,54px);font-weight:400}
+.hero-food-closed{width:min(80vw,2400px);border:0;border-radius:var(--sh-radius-lg);color:var(--sh-ink);background:var(--sh-panel);box-shadow:var(--sh-shadow-soft)}
+.hero-food-closed .card-body{padding:8vh 5vw}
+.hero-food-closed h1,.hero-food-closed h2{margin:2vh 0;font-size:clamp(60px,5vw,192px);font-weight:600;line-height:1.1}
+.hero-food-closed p{margin:0;color:var(--sh-ink-muted);font-size:clamp(28px,1.8vw,72px);line-height:1.3}
