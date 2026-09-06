@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode, urljoin, urlsplit
 
-from playwright.sync_api import BrowserContext, Page, Response, Route, sync_playwright
+from playwright.sync_api import BrowserContext, Page, Request, Response, Route, sync_playwright
 
 from capture_admin_live_proof import PATIENT_PRICE_VOCABULARY, USER, _password
 
@@ -42,6 +42,8 @@ class BrandingProof:
         self.active_values: dict[str, str] = {}
         self.catalog = json.loads(SYMBOLS.read_text(encoding='utf-8'))
         self.assets: set[str] = set()
+        self._completed_logo_urls: set[tuple[BrowserContext | None, str]] = set()
+        self._pending_logos: dict[Request, tuple[BrowserContext | None, str] | None] = {}
         self.data: dict[str, Any] = {
             'captured_at': datetime.now(timezone.utc).isoformat(), 'base_url': base,
             'scope': 'Read-only browser acceptance; no upload, activation, publication or write acceptance.',
@@ -69,7 +71,7 @@ class BrandingProof:
         else:
             route.continue_()
 
-    def response(self, response: Response) -> None:
+    def response(self, response: Response, context: BrowserContext | None = None) -> None:
         path = urlsplit(response.url).path
         if response.request.resource_type != 'document':
             self.check('network.resources_success', response.status < 400)
@@ -87,8 +89,15 @@ class BrandingProof:
         key = 'preview' if protected else 'public' if branded else 'standard'
         kind = 'css' if path.endswith('.css') else 'logo'
         self.assets.add(f'{key}.{kind}')
-        self.check(f'assets.{key}.{kind}.http_mime', response.status == 200 and
-                   headers.get('content-type', '').split(';')[0] == ('text/css' if kind == 'css' else 'image/png'))
+        mime = headers.get('content-type', '').split(';')[0]
+        valid = response.status == 200 and mime == ('text/css' if kind == 'css' else 'image/png')
+        if key == 'standard' and kind == 'logo':
+            cache_key = (context, response.url)
+            # A 304 has no representation of its own; require a completed PNG GET in this context.
+            self._pending_logos[response.request] = cache_key if valid and response.request.method == 'GET' else None
+            valid |= response.status == 304 and cache_key in self._completed_logo_urls and (
+                'content-type' not in headers or mime == 'image/png')
+        self.check(f'assets.{key}.{kind}.http_mime', valid)
         self.check(f'assets.{key}.{kind}.nosniff', headers.get('x-content-type-options') == 'nosniff')
         if protected or branded:
             cache = headers.get('cache-control', '')
@@ -96,6 +105,20 @@ class BrandingProof:
                        'public' in cache and 'immutable' in cache and bool(headers.get('etag')))
             if branded:
                 self.check(f'assets.{key}.{kind}.no_session_cookie', 'set-cookie' not in headers)
+
+    def logo_requested(self, request: Request) -> None:
+        path = urlsplit(request.url).path
+        if path.endswith('.png') and '/img/suedhang-logo' in path:
+            self._pending_logos[request] = None
+
+    def request_finished(self, request: Request) -> None:
+        candidate = self._pending_logos.pop(request, None)
+        if candidate is not None:
+            self._completed_logo_urls.add(candidate)
+
+    def request_failed(self, request: Request) -> None:
+        self._pending_logos.pop(request, None)
+        self.check('network.requests_complete', False)
 
     def csp(self, response: Response, name: str) -> None:
         csp = response.header_value('content-security-policy') or ''
@@ -106,8 +129,10 @@ class BrandingProof:
     def configure(self, context: BrowserContext) -> Page:
         context.set_default_timeout(15000)
         context.route('**/*', self.guard)
-        context.on('response', self.response)
-        context.on('requestfailed', lambda _: self.check('network.requests_complete', False))
+        context.on('request', self.logo_requested)
+        context.on('response', lambda response: self.response(response, context))
+        context.on('requestfinished', self.request_finished)
+        context.on('requestfailed', self.request_failed)
         page = context.new_page()
         page.on('pageerror', lambda _: self.check('browser.no_javascript_errors', False))
         page.on('console', lambda message: self.check('browser.no_console_errors', False)
@@ -285,6 +310,7 @@ class BrandingProof:
                        {'fira': 'fira sans', 'carlito': 'carlito'}[values[key]])
 
     def outcome(self) -> tuple[str, int]:
+        self.check('network.requests_complete', not self._pending_logos)
         if self.data['failures']:
             return 'failed', 1
         return ('incomplete', 2) if self.data['unavailable'] else ('browser_passed', 0)

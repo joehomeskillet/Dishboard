@@ -6,6 +6,7 @@ import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 from urllib.parse import parse_qsl
 
@@ -233,6 +234,95 @@ def test_guard_retains_read_only_request_scope(tmp_path, method, path, allowed):
     proof.guard(route)
     assert route.continue_.called is allowed
     assert route.abort.called is not allowed
+
+
+def _logo_events(proof):
+    handlers = {}
+    context = MagicMock()
+    context.on.side_effect = lambda event, callback: handlers.setdefault(event, []).append(callback)
+    proof.configure(context)
+    return handlers
+
+
+def _logo_reply(handlers, *, status=200, mime='image/png', path='/static/img/suedhang-logo.png',
+                method='GET', terminal='requestfinished'):
+    request = MagicMock(url='https://fixture.invalid' + path, resource_type='image', method=method)
+    headers = {'x-content-type-options': 'nosniff'}
+    if mime is not None:
+        headers['content-type'] = mime
+    response = SimpleNamespace(request=request, url=request.url, status=status, headers=headers)
+    for callback in handlers.get('request', []):
+        callback(request)
+    for callback in handlers['response']:
+        callback(response)
+    for callback in handlers.get(terminal, []):
+        callback(request)
+    return request
+
+
+@pytest.mark.parametrize('mime', [None, 'image/png', 'image/png; charset=binary'])
+def test_standard_logo_cache_304_requires_completed_matching_png(tmp_path, mime):
+    proof = tool.BrandingProof('https://fixture.invalid', tmp_path)
+    handlers = _logo_events(proof)
+    _logo_reply(handlers)
+    _logo_reply(handlers, status=304, mime=mime)
+    _logo_reply(handlers)
+    assert proof.data['checks']['assets.standard.logo.http_mime']
+    assert proof.outcome() == ('browser_passed', 0)
+
+
+@pytest.mark.parametrize('prior', ['none', 'other_url', 'other_query', 'other_context',
+                                  'head', 'unfinished', 'failed', 'wrong_mime'])
+def test_standard_logo_304_cannot_borrow_missing_or_unusable_representation(tmp_path, prior):
+    proof = tool.BrandingProof('https://fixture.invalid', tmp_path)
+    handlers = _logo_events(proof)
+    if prior != 'none':
+        _logo_reply(handlers,
+                    path='/static/img/suedhang-logo@2x.png' if prior == 'other_url' else
+                         '/static/img/suedhang-logo.png?version=other' if prior == 'other_query' else
+                         '/static/img/suedhang-logo.png',
+                    method='HEAD' if prior == 'head' else 'GET',
+                    mime='text/html' if prior == 'wrong_mime' else 'image/png',
+                    terminal=None if prior == 'unfinished' else
+                             'requestfailed' if prior == 'failed' else 'requestfinished')
+        if prior == 'other_context':
+            handlers = _logo_events(proof)
+    _logo_reply(handlers, status=304, mime=None)
+    _logo_reply(handlers)  # Later success cannot erase the failed cache assertion.
+    assert not proof.data['checks']['assets.standard.logo.http_mime']
+    assert proof.outcome() == ('failed', 1)
+
+
+@pytest.mark.parametrize('status,mime', [(200, None), (200, 'image/jpeg'), (200, 'text/html'),
+                                         (304, 'text/html'), (304, ''), (302, 'image/png'),
+                                         (404, 'image/png'), (500, 'image/png')])
+def test_standard_logo_bad_responses_remain_fatal_after_valid_cache(tmp_path, status, mime):
+    proof = tool.BrandingProof('https://fixture.invalid', tmp_path)
+    handlers = _logo_events(proof)
+    _logo_reply(handlers)
+    _logo_reply(handlers, status=status, mime=mime)
+    _logo_reply(handlers)
+    assert not proof.data['checks']['assets.standard.logo.http_mime']
+    assert proof.outcome() == ('failed', 1)
+
+
+@pytest.mark.parametrize('status,terminal', [(200, None), (304, None),
+                                          (200, 'requestfailed'), (304, 'requestfailed')])
+def test_standard_logo_missing_or_failed_completion_is_fatal(tmp_path, status, terminal):
+    proof = tool.BrandingProof('https://fixture.invalid', tmp_path)
+    handlers = _logo_events(proof)
+    _logo_reply(handlers)
+    _logo_reply(handlers, status=status, mime=None if status == 304 else 'image/png', terminal=terminal)
+    assert proof.outcome() == ('failed', 1)
+
+
+def test_standard_logo_request_without_response_cannot_finish_proof(tmp_path):
+    proof = tool.BrandingProof('https://fixture.invalid', tmp_path)
+    handlers = _logo_events(proof)
+    request = MagicMock(url='https://fixture.invalid/static/img/suedhang-logo.png')
+    for callback in handlers.get('request', []):
+        callback(request)
+    assert proof.outcome() == ('failed', 1)
 
 
 @pytest.mark.parametrize('condition,exit_code', [('missing', 2), ('failed', 1), ('exception', 1)])
