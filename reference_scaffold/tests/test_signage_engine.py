@@ -17,11 +17,10 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'reference_scaffold'))
 sys.path.insert(0, str(ROOT / 'tools'))
 
-pytest_plugins = ('test_rendered_ui',)
-
 from demo_snapshots import cafeteria_snapshot  # noqa: E402
 from cafeteria import create_app  # noqa: E402
 from cafeteria.admin import display_routes  # noqa: E402, F401 - register before the shared app fixture
+from test_rendered_ui import app as app, browser as browser  # noqa: E402
 
 SIGNAGE_ROUTES = (
     '/signage/cafeteria/tag',

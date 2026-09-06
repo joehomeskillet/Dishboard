@@ -27,7 +27,7 @@
 {% endblock %}
 {% block content %}
 {% if lunch and lunch.service_state|default('open') == 'open' %}
-<section class="row g-4" aria-label="Heutige Cafeteria-Menüs">
+<section class="row g-4 public-menu-options" aria-label="Heutige Cafeteria-Menüs">
   {% for option in lunch.options %}
   <div class="col-12 col-md-6">
     <div class="card h-100">
