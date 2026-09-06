@@ -33,6 +33,8 @@ GRANT SELECT, INSERT, UPDATE ON menu_components TO cafeteria_app;
 
 GRANT SELECT ON users, user_role_cache, local_credentials TO cafeteria_app;
 GRANT UPDATE (last_login_at) ON users TO cafeteria_app;
+GRANT SELECT ON api_keys TO cafeteria_app;
+GRANT UPDATE (last_used_at) ON api_keys TO cafeteria_app;
 GRANT UPDATE (failed_login_count, locked_until, last_failed_at) ON local_credentials
 TO cafeteria_app;
 GRANT SELECT, INSERT ON publication_revisions TO cafeteria_app;
@@ -86,7 +88,7 @@ GRANT SELECT ON
     component_allergens, component_labels, menu_items, menu_item_prices,
     menu_item_components, dietary_labels, menu_item_labels, allergens,
     menu_item_allergens, origin_declarations, publication_revisions,
-    publication_lifecycle_events, import_batches, import_rows, audit_events,
+    publication_lifecycle_events, import_batches, import_rows, audit_events, api_keys,
     settings, active_publications
 TO cafeteria_backup;
 GRANT SELECT ON
@@ -98,6 +100,7 @@ GRANT SELECT ON
     publication_lifecycle_events_id_seq, import_batches_id_seq,
     audit_events_id_seq, settings_id_seq
 TO cafeteria_backup;
+GRANT SELECT ON SEQUENCE api_keys_id_seq TO cafeteria_backup;
 
 ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
     REVOKE ALL ON TABLES FROM cafeteria_app, cafeteria_backup;
@@ -141,6 +144,16 @@ GRANT EXECUTE ON FUNCTION
     workflow_week_context(bigint),
     record_menu_review(bigint, bigint, text, bigint, bigint, text, text),
     record_week_context_review(bigint, bigint, text, bigint, text, jsonb)
+TO cafeteria_app;
+
+REVOKE EXECUTE ON FUNCTION
+    require_api_key_admin(bigint),
+    create_api_key(bigint, text, text, text, text[], timestamptz),
+    revoke_api_key(bigint, uuid)
+FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
+GRANT EXECUTE ON FUNCTION
+    create_api_key(bigint, text, text, text, text[], timestamptz),
+    revoke_api_key(bigint, uuid)
 TO cafeteria_app;
 
 COMMIT;

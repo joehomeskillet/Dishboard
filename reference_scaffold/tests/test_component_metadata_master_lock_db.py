@@ -167,6 +167,8 @@ def test_migration_fresh_schema_and_restore_share_exact_function_contract(
     database._execute_migration(pg16, v15)
     v16 = next(migration for migration in database.migration_plan(SCHEMA) if migration.version == 16)
     database._execute_migration(pg16, v16)
+    v17 = next(migration for migration in database.migration_plan(SCHEMA) if migration.version == 17)
+    database._execute_migration(pg16, v17)
     database._execute_script(pg16, str(PERMISSIONS))
     migrated = _function_contract(pg16)
     with pg16.connect() as connection:

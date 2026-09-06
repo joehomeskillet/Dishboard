@@ -278,8 +278,9 @@ def test_migration_plan_is_ordered_and_preserves_0001_bytes() -> None:
         (14, '0011_v13_to_v14.sql'),
         (15, '0012_v14_to_v15.sql'),
         (16, '0013_v15_to_v16.sql'),
+        (17, '0014_v16_to_v17.sql'),
     ]
-    assert database.SCHEMA_VERSION == 16
+    assert database.SCHEMA_VERSION == 17
     migrations = ROOT / 'database' / 'migrations'
     assert hashlib.sha256((migrations / '0001_initial_postgresql.sql').read_bytes()).hexdigest() == (
         'd1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0'
@@ -310,7 +311,7 @@ def test_empty_database_runs_0001_then_0002(database_engine: Engine) -> None:
         local_credentials = connection.execute(
             text("SELECT to_regclass('cafeteria.local_credentials')")
         ).scalar_one()
-    assert [row.version for row in rows] == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    assert [row.version for row in rows] == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
     assert rows[0].name == '0001_initial_postgresql.sql'
     assert rows[1].name == '0002_profile_publication_and_local_auth.sql'
     assert rows[2].name == '0003_patient_key_and_withdrawal_contracts.sql'
@@ -324,6 +325,7 @@ def test_empty_database_runs_0001_then_0002(database_engine: Engine) -> None:
     assert rows[10].name == '0011_v13_to_v14.sql'
     assert rows[11].name == '0012_v14_to_v15.sql'
     assert rows[12].name == '0013_v15_to_v16.sql'
+    assert rows[13].name == '0014_v16_to_v17.sql'
     assert local_credentials == 'cafeteria.local_credentials'
 
 
@@ -359,7 +361,7 @@ def test_v4_fixture_migrates_without_replaying_0001() -> None:
         versions = connection.execute(
             text('SELECT version FROM cafeteria.schema_migrations ORDER BY version')
         ).scalars().all()
-    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
     _drop_schema(engine)
     engine.dispose()
 
@@ -1083,7 +1085,7 @@ def test_v4_draft_revision_is_withdrawn_and_not_public() -> None:
                 '''
             )
         ).all()
-    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
     assert int(public_rows) == 0
     assert withdrawn[0] is True
     assert 'v4' in withdrawn[1]
@@ -1969,6 +1971,7 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
     assert {row['proname'] for row in definer_privileges} == {
         'bootstrap_auth_capability_secret',
         'bootstrap_first_local_admin',
+        'create_api_key',
             'disable_local_user',
         'ensure_auth_capability_state',
         'hard_reset_auth_capability_state',
@@ -1982,7 +1985,9 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
         'record_menu_review',
         'record_week_context_review',
         'require_workflow_review_actor',
+        'require_api_key_admin',
         'resolve_auth_actor',
+        'revoke_api_key',
         'rotate_auth_capability_secret',
         'bootstrap_first_local_admin',
             'set_local_password',
@@ -2009,6 +2014,8 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
                 'withdraw_publication_revision',
                 'record_menu_review',
                 'record_week_context_review',
+                'create_api_key',
+                'revoke_api_key',
             }
         )
 

@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "packages": {
+    "swagger-ui-dist": "5.32.15"
+  },
+  "sources": [
+    {
+      "id": "dist",
+      "url": "https://registry.npmjs.org/swagger-ui-dist/-/swagger-ui-dist-5.32.15.tgz",
+      "sha256": "9380e3ad39fe0f1c20580883a632f83fbfae7b54dd6289c1c2649ec0f5ccd9e9",
+      "integrity": "sha512-TSFER+rFQlf1nzk6WvKkMaHTxAPQ3eAAxigFThnxQedSREanfZgSbJFayZVs/ULnSbNdrJOb99vLD6xpb3R3eg=="
+    }
+  ],
+  "files": [
+    {
+      "path": "swagger-ui/swagger-ui.css",
+      "source": "dist",
+      "member": "package/swagger-ui.css",
+      "sha256": "d7f39f764aa18c7b47dd05b9af5613e373e4ac0f3557c2693d52d0abc2464d76"
+    },
+    {
+      "path": "swagger-ui/swagger-ui-bundle.js",
+      "source": "dist",
+      "member": "package/swagger-ui-bundle.js",
+      "sha256": "a7e344f2770b2f07527ce828e0951626983b8f2dcdb7a826689c0232023f995b"
+    },
+    {
+      "path": "swagger-ui/LICENSE",
+      "source": "dist",
+      "member": "package/LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    }
+  ]
+}
