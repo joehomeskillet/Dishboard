@@ -262,4 +262,8 @@ GRANT EXECUTE ON FUNCTION recipe_payload_v22(bigint),
 GRANT SELECT ON recipes,recipe_ingredients,recipe_steps,recipe_tags,recipe_images,recipe_assets,recipe_revisions,cookbooks,cookbook_recipes TO cafeteria_app,cafeteria_backup;
 GRANT SELECT ON SEQUENCE recipes_id_seq,recipe_revisions_id_seq,cookbooks_id_seq TO cafeteria_backup;
 
+REVOKE ALL ON FUNCTION activate_screen_assignment_v23(bigint,bigint,text,bigint,text,integer)
+FROM PUBLIC,cafeteria_app,cafeteria_backup,cafeteria_auth_issuer;
+GRANT EXECUTE ON FUNCTION activate_screen_assignment_v23(bigint,bigint,text,bigint,text,integer) TO cafeteria_app;
+
 COMMIT;

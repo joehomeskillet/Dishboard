@@ -37,6 +37,7 @@ MIGRATION_0016 = ROOT / 'database' / 'migrations' / '0016_v18_to_v19.sql'
 MIGRATION_0017 = ROOT / 'database' / 'migrations' / '0017_v19_to_v20.sql'
 MIGRATION_0018 = ROOT / 'database' / 'migrations' / '0018_v20_to_v21.sql'
 MIGRATION_0019 = ROOT / 'database' / 'migrations' / '0019_v21_to_v22.sql'
+MIGRATION_0020 = ROOT / 'database' / 'migrations' / '0020_v22_to_v23.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
 PAT_JSON = ROOT / 'demo' / 'snapshots' / 'patienten_kw36.json'
@@ -191,8 +192,8 @@ def run_live_check() -> dict[str, Any]:
                     '''
                 )
             ).mappings().one()
-        if int(row['schema_version']) != 22:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 22.")
+        if int(row['schema_version']) != 23:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 23.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
         migrated_structure = structure('cafeteria')
@@ -296,6 +297,13 @@ def main() -> int:
         migration_0016 = MIGRATION_0016.read_text(encoding='utf-8')
         migration_0017 = MIGRATION_0017.read_text(encoding='utf-8')
         migration_0018 = MIGRATION_0018.read_text(encoding='utf-8')
+        migration_0020 = MIGRATION_0020.read_text(encoding='utf-8')
+        if not migration_0020.startswith('BEGIN;') or not migration_0020.rstrip().endswith('COMMIT;'):
+            fail('Migration 0020 hat keinen strikten BEGIN/COMMIT-Vertrag.')
+        for fragment in ('activate_screen_assignment_v23', 'screen_assignment.activate',
+                         'lock_operations_actor(p_actor,p_authz)', "ERRCODE='P2004'"):
+            if fragment not in migration_0020 or fragment not in sql:
+                fail(f'Screen-Zuordnungsvertrag fehlt: {fragment}')
         migration_0019 = MIGRATION_0019.read_text(encoding='utf-8')
         if not migration_0019.startswith('BEGIN;') or not migration_0019.rstrip().endswith('COMMIT;'):
             fail('Migration 0019 hat keinen strikten BEGIN/COMMIT-Vertrag.')
@@ -379,6 +387,7 @@ def main() -> int:
             MIGRATION_0017: '186422d38d9094751f4a55086876bbdada32d8b16b4deed758ab3446eec03228',
             MIGRATION_0018: '34c27cf999fef7c50e8a1a8b50f9f1c94d2d2ac1bb2a4b31fb13f109482b1c01',
             MIGRATION_0019: 'e23a1dbef11dd81a57476af148fdcaf2a8ee18f88a26f0dcd2d30e428ed5f349',
+            MIGRATION_0020: '996ae384a0c589b98429f8f520cf175631c17557ffe74221e9f46dd144e7771f',
         }
         for migration_path, expected_checksum in immutable_migration_checksums.items():
             actual_checksum = hashlib.sha256(migration_path.read_bytes()).hexdigest()
@@ -636,7 +645,7 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 22,
+            'schema_version': 23,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
@@ -657,6 +666,7 @@ def main() -> int:
                 '0017_v19_to_v20.sql': hashlib.sha256(MIGRATION_0017.read_bytes()).hexdigest(),
                 '0018_v20_to_v21.sql': hashlib.sha256(MIGRATION_0018.read_bytes()).hexdigest(),
                 '0019_v21_to_v22.sql': hashlib.sha256(MIGRATION_0019.read_bytes()).hexdigest(),
+                '0020_v22_to_v23.sql': hashlib.sha256(MIGRATION_0020.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

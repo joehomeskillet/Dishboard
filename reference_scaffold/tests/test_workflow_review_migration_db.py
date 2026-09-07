@@ -110,7 +110,7 @@ def test_v15_upgrade_preserves_checked_work_and_publication_without_fabricating_
         weeks = connection.execute(text('SELECT to_jsonb(w) FROM cafeteria.menu_weeks w ORDER BY id')).scalars().all()
         revisions = connection.execute(text('SELECT to_jsonb(r) FROM cafeteria.publication_revisions r ORDER BY id')).scalars().all()
     applied = database.run_migrations(pg16, SCHEMA)
-    assert [entry.version for entry in applied] == list(range(4, 23))
+    assert [entry.version for entry in applied] == list(range(4, 24))
     database._execute_script(pg16, str(PERMISSIONS))
     with pg16.connect() as connection:
         assert connection.execute(text('SELECT to_jsonb(i) FROM cafeteria.menu_items i ORDER BY id')).scalars().all() == items
@@ -120,7 +120,7 @@ def test_v15_upgrade_preserves_checked_work_and_publication_without_fabricating_
         assert connection.execute(text('SELECT snapshot_json FROM cafeteria.active_publications')).scalar_one() == snapshot
         assert connection.execute(text('SELECT header_revision FROM cafeteria.menu_weeks')).scalar_one() == 1
         row = connection.execute(text('SELECT name,application_version,checksum_sha256 FROM cafeteria.schema_migrations WHERE version=20')).one()
-        assert row == ('0017_v19_to_v20.sql', 'dishboard-schema-v22',
+        assert row == ('0017_v19_to_v20.sql', 'dishboard-schema-v23',
                        hashlib.sha256(next(m.path for m in plan if m.version == 20).read_bytes()).hexdigest())
         migrated = _functions(connection)
         for info in migrated:

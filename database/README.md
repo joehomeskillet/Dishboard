@@ -60,8 +60,11 @@ Der `actor-identifier` wird gegen den aktiven Benutzernamen, die E-Mail-Adresse 
 17. `0017_v19_to_v20.sql` (20)
 18. `0018_v20_to_v21.sql` (21)
 19. `0019_v21_to_v22.sql` (22)
+20. `0020_v22_to_v23.sql` (23)
 
-Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0018` bleiben byteidentisch. `schema.sql` beschreibt den aktuellen v22-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
+Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0018` bleiben byteidentisch. `schema.sql` beschreibt den aktuellen v23-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
+
+Schema v23 ergänzt ausschließlich den begrenzten SECURITY-DEFINER-Writer `activate_screen_assignment_v23` für zwei globale Web-Wochenzuordnungen. Er prüft ursprünglichen Actor/Authz-Stand, aktuelle Adminrolle, kompatible Vorlagen und Original-CAS unter den bestehenden Rollen-/Actorsperren; genau eine Änderung und ein vollständiges Vorher-/Nachher-Audit sind atomar. Die App erhält nur EXECUTE auf diese neue Funktion, keine direkten Audit-/Sequenzrechte; PUBLIC, Backup und Auth-Issuer bleiben ausgeschlossen. Die Migration verändert keine bestehenden Settings, IAM-/Fachdaten oder früheren Migrationsbytes.
 
 Schema v22 ergänzt den vollständigen R1-Datenkern mit neun Rezept-/Revisions-/Bild-/Kochbuchtabellen. Öffentliche Python-Dienste stehen in `recipe_store.py`, unveränderliche DTOs in `recipe_types.py`; alle Mutatoren brauchen ursprüngliche Actor-, Objekt- und Standorterwartungen. Zutatenzeilen behalten ihre serverseitige UUID und Herkunft beim Umsortieren; Audit enthält ursprüngliche und neue Mengen-/Herkunftszeilen. Festschreiben erzeugt ausschließlich auf ausdrücklichen Aufruf einen unveränderlichen Snapshot; identische Wiederholung ist 409. Historische Bilder bleiben am berechtigten Ursprungsrezept lesbar. SQL gewährt nur feste Verben, kein App-DML; alte 18 Migrationen und Publikationsdaten bleiben unverändert. `seed.sql` legt keine erfundenen Rezepte an. Vertrag und Mengen-/Textgrenzen: `../docs/design/2026-09-07-rec-r1-contract-addendum.md`.
 
