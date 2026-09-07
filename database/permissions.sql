@@ -237,4 +237,29 @@ GRANT SELECT ON measurement_units,food_categories,foods,tags,food_tags,food_labe
 GRANT SELECT ON SEQUENCE measurement_units_id_seq,food_categories_id_seq,foods_id_seq,tags_id_seq,
  storage_locations_id_seq,food_data_proposals_id_seq TO cafeteria_backup;
 
+REVOKE ALL ON FUNCTION recipe_location_v22(bigint),recipe_text_v22(text,integer,boolean),recipe_protect_v22(),recipe_fields_v22(jsonb,text[]),
+ recipe_payload_v22(bigint),recipe_snapshot_v22(bigint),recipe_refs_v22(bigint,bigint,jsonb),
+ recipe_write_v22(text,bigint,bigint,bigint,uuid,bigint,jsonb),recipe_cookbook_v22(text,bigint,bigint,bigint,uuid,bigint,jsonb),
+ create_recipe_v22(bigint,bigint,bigint,uuid,bigint,jsonb),
+ update_recipe_v22(bigint,bigint,bigint,uuid,bigint,jsonb),
+ set_recipe_active_v22(bigint,bigint,bigint,uuid,bigint,jsonb),
+ freeze_recipe_revision_v22(bigint,bigint,bigint,uuid,bigint,jsonb),
+ add_recipe_image_v22(bigint,bigint,bigint,uuid,bigint,jsonb),
+ create_cookbook_v22(bigint,bigint,bigint,uuid,bigint,jsonb),
+ update_cookbook_v22(bigint,bigint,bigint,uuid,bigint,jsonb),
+ set_cookbook_active_v22(bigint,bigint,bigint,uuid,bigint,jsonb),
+ replace_cookbook_recipes_v22(bigint,bigint,bigint,uuid,bigint,jsonb) FROM PUBLIC,cafeteria_app,cafeteria_backup,cafeteria_auth_issuer;
+GRANT EXECUTE ON FUNCTION recipe_payload_v22(bigint),
+ create_recipe_v22(bigint,bigint,bigint,uuid,bigint,jsonb),
+ update_recipe_v22(bigint,bigint,bigint,uuid,bigint,jsonb),
+ set_recipe_active_v22(bigint,bigint,bigint,uuid,bigint,jsonb),
+ freeze_recipe_revision_v22(bigint,bigint,bigint,uuid,bigint,jsonb),
+ add_recipe_image_v22(bigint,bigint,bigint,uuid,bigint,jsonb),
+ create_cookbook_v22(bigint,bigint,bigint,uuid,bigint,jsonb),
+ update_cookbook_v22(bigint,bigint,bigint,uuid,bigint,jsonb),
+ set_cookbook_active_v22(bigint,bigint,bigint,uuid,bigint,jsonb),
+ replace_cookbook_recipes_v22(bigint,bigint,bigint,uuid,bigint,jsonb) TO cafeteria_app;
+GRANT SELECT ON recipes,recipe_ingredients,recipe_steps,recipe_tags,recipe_images,recipe_assets,recipe_revisions,cookbooks,cookbook_recipes TO cafeteria_app,cafeteria_backup;
+GRANT SELECT ON SEQUENCE recipes_id_seq,recipe_revisions_id_seq,cookbooks_id_seq TO cafeteria_backup;
+
 COMMIT;

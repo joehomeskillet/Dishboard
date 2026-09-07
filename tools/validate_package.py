@@ -85,6 +85,7 @@ REQUIRED_FILES = (
     'database/migrations/0016_v18_to_v19.sql',
     'database/migrations/0017_v19_to_v20.sql',
     'database/migrations/0018_v20_to_v21.sql',
+    'database/migrations/0019_v21_to_v22.sql',
     'reference_scaffold/cafeteria/auth/local_users.py',
     'database/seed.sql', 'database/seed_demo.sql', 'database/permissions.sql',
     'demo/snapshots/patienten_kw36.json', 'demo/snapshots/cafeteria_kw36.json',
@@ -119,6 +120,7 @@ MIGRATION_CHECKSUMS = {
     '0016_v18_to_v19.sql': 'e195aac3c6b53fb08f733723cd8ef12e6e40fb7abdc5fe58bf1f88585015c6c1',
     '0017_v19_to_v20.sql': '186422d38d9094751f4a55086876bbdada32d8b16b4deed758ab3446eec03228',
     '0018_v20_to_v21.sql': '34c27cf999fef7c50e8a1a8b50f9f1c94d2d2ac1bb2a4b31fb13f109482b1c01',
+    '0019_v21_to_v22.sql': 'c85662343c17199f48343889db3720eea86db04ada1d7389d09d3027934b0f0d',
 }
 
 
@@ -304,10 +306,10 @@ def main() -> int:
     check(db_result.returncode == 0, f'Schema-Validator fehlgeschlagen: {db_result.stderr or db_result.stdout}')
     if db_result.returncode == 0:
         status = json.loads(db_result.stdout)
-        check(status.get('tables') == 43, 'Schema enthaelt nicht 43 Tabellen.')
+        check(status.get('tables') == 52, 'Schema enthaelt nicht 52 Tabellen.')
         check(status.get('application_roles') == 3, 'Schema enthaelt nicht drei Rollen.')
         check(status.get('offer_profiles') == 2, 'Schema enthaelt nicht zwei Profile.')
-        check(status.get('schema_version') == 21, 'Schema-Version ist nicht 21.')
+        check(status.get('schema_version') == 22, 'Schema-Version ist nicht 22.')
         check(status.get('patient_services') == 14, 'Demo-Seed enthaelt nicht 14 Patienten-Services.')
         check(status.get('cafeteria_services') == 5, 'Demo-Seed enthaelt nicht 5 Cafeteria-Services.')
 
@@ -327,6 +329,7 @@ def main() -> int:
     migration_files.append('0016_v18_to_v19.sql')
     migration_files.append('0017_v19_to_v20.sql')
     migration_files.append('0018_v20_to_v21.sql')
+    migration_files.append('0019_v21_to_v22.sql')
 
     for mig_file in migration_files:
         mig_path = migrations_dir / mig_file

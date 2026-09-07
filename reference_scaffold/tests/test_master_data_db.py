@@ -63,7 +63,7 @@ def test_full_live_schema_validator_checks_upgrade_and_fresh_catalog(pg16):  # n
     assert result.returncode == 0, result.stdout
     status = json.loads(result.stdout)
     assert status['live_postgresql_executed'] is True
-    assert status['schema_version'] == 21 and status['tables'] == 43
+    assert status['schema_version'] == 22 and status['tables'] == 52
 
 
 def structure(c):
