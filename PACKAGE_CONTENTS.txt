@@ -36,6 +36,7 @@ database/migrations/0013_v15_to_v16.sql
 database/migrations/0014_v16_to_v17.sql
 database/migrations/0015_v17_to_v18.sql
 database/migrations/0016_v18_to_v19.sql
+database/migrations/0017_v19_to_v20.sql
 database/permissions.sql
 database/README.md
 database/schema.sql
@@ -385,7 +386,9 @@ docs/design/2026-09-05-admin-workflow-shell.md
 docs/design/2026-09-05-screens-vorlagen-verwaltung.md
 docs/design/2026-09-06-bas-rec-data-contract.md
 docs/design/2026-09-06-miseos-tabler-adaption.md
+docs/design/2026-09-06-ops-bereiche-zeiten-sdd.md
 docs/design/2026-09-06-pdfme-tabler-fit.md
+docs/design/2026-09-07-admin-tabler-icon-manifest.md
 docs/design/admin-redesign-ui.md
 docs/design/admin-tabler-contract.md
 docs/design/country-select-source.md
@@ -425,6 +428,7 @@ entra/README.md
 entra/redirect-uris.txt
 entra/role-mapping.yaml
 MANIFEST_SHA256.txt
+OPS-SIGNAGE-PROGRESS.md
 PACKAGE_CONTENTS.txt
 README.md
 reference_scaffold/cafeteria/__init__.py
@@ -435,6 +439,7 @@ reference_scaffold/cafeteria/admin/display_routes.py
 reference_scaffold/cafeteria/admin/local_user_routes.py
 reference_scaffold/cafeteria/admin/menu_collection_routes.py
 reference_scaffold/cafeteria/admin/menu_collection_store.py
+reference_scaffold/cafeteria/admin/operations_routes.py
 reference_scaffold/cafeteria/admin/output_routes.py
 reference_scaffold/cafeteria/admin/print_routes.py
 reference_scaffold/cafeteria/admin/print_template_routes.py
@@ -480,6 +485,8 @@ reference_scaffold/cafeteria/food_symbols.py
 reference_scaffold/cafeteria/health/__init__.py
 reference_scaffold/cafeteria/health/routes.py
 reference_scaffold/cafeteria/menu_images.py
+reference_scaffold/cafeteria/operations_settings.py
+reference_scaffold/cafeteria/operations_store.py
 reference_scaffold/cafeteria/patient_payload.py
 reference_scaffold/cafeteria/print_branding.py
 reference_scaffold/cafeteria/print_template_config.py
@@ -864,6 +871,7 @@ reference_scaffold/cafeteria/templates/admin/local_user_unavailable.html
 reference_scaffold/cafeteria/templates/admin/local_users.html
 reference_scaffold/cafeteria/templates/admin/menu_collection.html
 reference_scaffold/cafeteria/templates/admin/menu_editor.html
+reference_scaffold/cafeteria/templates/admin/operations.html
 reference_scaffold/cafeteria/templates/admin/patienten.html
 reference_scaffold/cafeteria/templates/admin/preview.html
 reference_scaffold/cafeteria/templates/admin/print_template_editor.html
@@ -926,6 +934,8 @@ reference_scaffold/tests/test_admin_local_users_browser.py
 reference_scaffold/tests/test_admin_local_users_routes.py
 reference_scaffold/tests/test_admin_menu_editor_browser.py
 reference_scaffold/tests/test_admin_menu_save_back_browser.py
+reference_scaffold/tests/test_admin_operations_browser.py
+reference_scaffold/tests/test_admin_operations_routes.py
 reference_scaffold/tests/test_admin_output_hubs.py
 reference_scaffold/tests/test_admin_overview_forms.py
 reference_scaffold/tests/test_admin_preview_ui.py
@@ -984,6 +994,7 @@ reference_scaffold/tests/test_contracts.py
 reference_scaffold/tests/test_country_select_template.py
 reference_scaffold/tests/test_csv_runtime_packaging.py
 reference_scaffold/tests/test_csv_validation_followup.py
+reference_scaffold/tests/test_csv_weekend_contract.py
 reference_scaffold/tests/test_database_invariants.py
 reference_scaffold/tests/test_database_role_readiness.py
 reference_scaffold/tests/test_deployment_compose_probe_live.py
@@ -1012,6 +1023,9 @@ reference_scaffold/tests/test_menu_images.py
 reference_scaffold/tests/test_menu_images_browser.py
 reference_scaffold/tests/test_menu_metadata_visibility.py
 reference_scaffold/tests/test_openapi_contract.py
+reference_scaffold/tests/test_operations_actor_race_db.py
+reference_scaffold/tests/test_operations_settings_db.py
+reference_scaffold/tests/test_operations_weekend_db.py
 reference_scaffold/tests/test_patient_preview_access.py
 reference_scaffold/tests/test_preview_equal_cards_browser.py
 reference_scaffold/tests/test_print_branding.py
@@ -1027,6 +1041,8 @@ reference_scaffold/tests/test_public_display_copy.py
 reference_scaffold/tests/test_public_equal_cards_browser.py
 reference_scaffold/tests/test_public_isolation_homoglyphs.py
 reference_scaffold/tests/test_public_mobile_ui.py
+reference_scaffold/tests/test_public_ops_areas_times.py
+reference_scaffold/tests/test_public_ops_browser.py
 reference_scaffold/tests/test_public_print_equal_cards_browser.py
 reference_scaffold/tests/test_public_print_legend.py
 reference_scaffold/tests/test_public_week_no_images.py
@@ -1037,6 +1053,8 @@ reference_scaffold/tests/test_signage_cafeteria_day.py
 reference_scaffold/tests/test_signage_cafeteria_week.py
 reference_scaffold/tests/test_signage_engine.py
 reference_scaffold/tests/test_signage_expiry.py
+reference_scaffold/tests/test_signage_ops_areas_times.py
+reference_scaffold/tests/test_signage_ops_browser.py
 reference_scaffold/tests/test_signage_patient.py
 reference_scaffold/tests/test_smoke.py
 reference_scaffold/tests/test_swagger_ui_assets.py
@@ -1048,14 +1066,17 @@ reference_scaffold/tests/test_week_management_browser.py
 reference_scaffold/tests/test_week_management_runtime_role.py
 reference_scaffold/tests/test_week_pdf.py
 reference_scaffold/tests/test_week_pdf_legend.py
+reference_scaffold/tests/test_week_pdf_ops.py
 reference_scaffold/tests/test_week_pdf_symbols.py
 reference_scaffold/tests/test_week_review_browser.py
 reference_scaffold/tests/test_week_review_routes.py
 reference_scaffold/tests/test_workflow_copy_store_db.py
 reference_scaffold/tests/test_workflow_form.py
+reference_scaffold/tests/test_workflow_operations_db.py
 reference_scaffold/tests/test_workflow_partial_store_db.py
 reference_scaffold/tests/test_workflow_review_migration_db.py
 reference_scaffold/tests/test_workflow_review_receipts_db.py
+reference_scaffold/tests/test_workflow_weekend_contract.py
 reference_scaffold/wsgi.py
 review/Grok_Kritik_original.txt
 site/.nojekyll
