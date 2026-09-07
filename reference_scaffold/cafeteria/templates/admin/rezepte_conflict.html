@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="de-CH"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rezeptaktion nicht möglich</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin-tabler.css') }}">
+</head><body class="dishboard-admin"><main class="container-xl py-5">
+<h1>Rezeptaktion nicht möglich</h1>
+<div class="alert alert-danger error-region" role="alert" id="recipe-error" tabindex="-1"{% if not error_field %} autofocus{% endif %}>{{ message }}</div>
+{% if submitted %}
+<div class="card"><div class="card-body"><h2 class="card-title">Ursprüngliche Eingaben</h2>
+<p>Sie können Ihre Eingaben kopieren. Neu laden verwirft diesen Formularstand; gespeichert wird hier nichts.</p>
+{% set names = {'title': 'Titel', 'description': 'Beschreibung', 'servings': 'Ausbeute/Menge', 'servings_unit_code': 'Ausbeuteeinheit', 'prep_minutes': 'Vorbereitung in Minuten', 'cook_minutes': 'Kochzeit in Minuten', 'ingredient_text': 'Zutat', 'quantity': 'Menge', 'unit_code': 'Einheit', 'line_public_id': 'Zutatenzeile · ursprüngliche Referenz', 'food_public_id': 'Zutat · ursprüngliche Referenz', 'group_label': 'Gruppe', 'note': 'Notiz', 'instruction': 'Zubereitung', 'duration_minutes': 'Dauer in Minuten', 'image_sha256': 'Schrittbild · ursprünglicher Hash', 'sha256': 'Bildhash', 'caption': 'Bildunterschrift', 'source_url': 'Bildquelle', 'source_license': 'Bildlizenz', 'fetched_at': 'Abrufzeit', 'source_kind': 'Herkunftsart', 'source_reference': 'Quellenbeleg', 'tag_public_ids': 'Tag · ursprüngliche Referenz', 'recipe_public_ids': 'Rezept · ursprüngliche Referenz', 'name': 'Name', 'kind': 'Herkunftsart', 'reference': 'Quellenbeleg', 'url': 'Quellenadresse', 'row_version': 'Ursprüngliche Version'} %}
+<form aria-label="Ursprüngliche Eingaben">
+{% for name, value in submitted %}
+<input type="hidden" name="{{ name }}" value="{{ value }}">
+{% if name not in ['_csrf', '_form_context', 'row_action', 'row_index', 'row_kind'] %}
+<div class="mb-3"><label class="form-label" for="original-{{ loop.index }}">{{ names.get(name.split('.')[-1], name) }}{% if '.' in name %} · {{ name }}{% endif %}</label>
+{% if value in display_values %}<p class="form-hint">{{ display_values[value] }}</p>{% endif %}
+<textarea class="form-control" id="original-{{ loop.index }}" rows="3" readonly{% if name == error_field %} aria-invalid="true" aria-describedby="recipe-error" autofocus{% endif %}>{{ '\n' }}{{ value }}</textarea></div>
+{% endif %}
+{% endfor %}
+</form></div></div>
+{% endif %}
+<a class="btn btn-primary mt-3" href="{{ '/auth/local' if status == 401 else reload_url }}">{{ 'Erneut anmelden' if status == 401 else 'Aktuellen Stand bewusst neu laden' }}</a>
+</main></body></html>
