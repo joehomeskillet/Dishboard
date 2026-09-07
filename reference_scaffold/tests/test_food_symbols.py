@@ -181,6 +181,8 @@ def test_admin_cards_load_real_local_symbols(
            'meal_code': 'LUNCH', 'workflow_state': 'draft'}
     context = {
         'profile': profile, 'family': family, 'query': '', 'page': 1, 'has_next': False,
+        'area_names': {'patient': 'Patientinnen und Patienten',
+                       'staff_guest': 'Mitarbeitende und externe Gäste'},
         'roles': [], 'rows': [row], 'meal_labels': {'LUNCH': 'Mittag'},
         'option_labels': {'MENU_1': 'Menü 1'}, 'state': 'draft', 'week': date,
         'week_iso': date.isoformat(), 'draft': {'title': '', 'shared_note': '', 'days': [

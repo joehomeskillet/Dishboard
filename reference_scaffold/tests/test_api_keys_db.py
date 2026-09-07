@@ -99,7 +99,8 @@ def test_admin_can_create_list_and_revoke_with_safe_audit(
         actor_id=admin_id,
         label='FHIR Vorschau',
         scopes=API_KEY_SCOPES,
-        expires_at=datetime.now(UTC) + timedelta(days=30),
+        # PostgreSQL JSON trims trailing fractional zeroes; make that case deterministic.
+        expires_at=(datetime.now(UTC) + timedelta(days=30)).replace(microsecond=364700),
     )
 
     assert plaintext.startswith('dbk_')
@@ -124,10 +125,13 @@ def test_admin_can_create_list_and_revoke_with_safe_audit(
             {'public_id': record.public_id},
         ).mappings().all()
     assert [row['action'] for row in audit_rows] == ['api.key_created']
-    assert audit_rows[0]['details'] == {
+    details = dict(audit_rows[0]['details'])
+    assert isinstance(details['expires_at'], str)
+    details['expires_at'] = datetime.fromisoformat(details['expires_at'])
+    assert details == {
         'label': 'FHIR Vorschau',
         'scopes': ['preview.read'],
-        'expires_at': record.expires_at.isoformat(),
+        'expires_at': record.expires_at,
         'key_prefix': record.key_prefix,
     }
     assert 'key_hash' not in audit_rows[0]['details']

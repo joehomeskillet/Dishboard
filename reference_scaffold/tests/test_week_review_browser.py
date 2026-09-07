@@ -145,7 +145,8 @@ def test_changed_saved_context_refuses_old_browser_token(
     else:
         service = get_week_review(admin_engine, scope, WEEK_START)['context']['services'][0]
         persist_service_state(admin_engine, scope, WEEK_START, service['date'], service['meal'],
-                              {'service_state': service['state'], 'notice': 'Geänderter Servicehinweis'},
+                              {'service_state': service['state'], 'notice': 'Geänderter Servicehinweis',
+                               'service_start': service.get('start', ''), 'service_end': service.get('end', '')},
                               service['row_version'])
     with page.expect_response(lambda result: result.request.method == 'POST') as saved:
         page.get_by_role('button', name=CONFIRM).click()

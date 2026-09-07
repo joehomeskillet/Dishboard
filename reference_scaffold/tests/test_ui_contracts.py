@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 
 import pytest
-from jinja2 import Environment, FileSystemLoader, nodes
+from jinja2 import Environment, FileSystemLoader, StrictUndefined, nodes
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -149,12 +149,23 @@ def test_print_views_use_dedicated_print_surface() -> None:
     assert "size: A4 landscape" in css
 
 
-def test_editor_grids_keep_profile_scope_visible_on_small_screens() -> None:
+@pytest.mark.parametrize('day_count', [5, 7])
+def test_editor_grids_keep_profile_scope_visible_on_small_screens(day_count: int) -> None:
     patient = _template("admin/patienten.html")
     cafeteria = _template("admin/cafeteria.html")
     assert "7 Tage × 2 Mahlzeiten × 2 Menüarten" in patient
-    assert "5 Tage × 2 Menüarten" in cafeteria
-    assert "Samstag und Sonntag: Cafeteria geschlossen" in cafeteria
+    # Render the actual template fragments, including the dynamic grouping of two menus per day.
+    summary = re.search(r'<span>([^<]*Menükarten ·[^<]*)</span>', cafeteria)
+    notice = re.search(r'<div class="alert alert-info admin-notice" role="note">(.*?)</div>', cafeteria, re.S)
+    assert summary is not None and notice is not None
+    cells = [{'day': day, 'meal': 'LUNCH', 'option': option}
+             for day in range(day_count) for option in ('MENU_1', 'VEGGIE')]
+    environment = Environment(autoescape=True, undefined=StrictUndefined)
+    rendered = environment.from_string(summary.group(1)).render(cells=cells, day_cells=cells)
+    assert rendered == f'{day_count * 2} Menükarten · {day_count} Tage × 2 Menüarten'
+    rendered_notice = environment.from_string(notice.group(1)).render(day_cells=cells)
+    assert ('Samstag und Sonntag: Cafeteria geschlossen' in rendered_notice) == (day_count == 5)
+    assert ('Wochenraster mit Wochenendbetrieb, nur Mittag.' in rendered_notice) == (day_count == 7)
 
     css = _compact((STATIC_ROOT / "app.css").read_text(encoding="utf-8"))
     mobile = re.search(r"@media \(max-width: 900px\)\s*\{(.+?)@media", css)

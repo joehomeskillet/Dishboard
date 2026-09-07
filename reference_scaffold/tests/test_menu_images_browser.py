@@ -38,6 +38,8 @@ def image_server(app: Flask) -> Iterator[str]:  # noqa: F811
         return render_template(
             'admin/preview.html' if view == 'preview' else 'admin/menu_collection.html',
             profile=profile, family='cafeteria' if profile == 'staff_guest' else 'patienten',
+            area_names={'patient': 'Patientinnen und Patienten',
+                        'staff_guest': 'Mitarbeitende und externe Gäste'},
             query='', page=1, has_next=False, roles=[], rows=rows,
             meal_labels={'LUNCH': 'Mittag', 'DINNER': 'Abend'},
             option_labels={'MENU_1': 'Menü 1', 'VEGGIE': 'Vegetarisch'},

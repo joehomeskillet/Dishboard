@@ -49,6 +49,7 @@ def test_overview_service_uses_own_version_and_preserves_notice_without_items(
     engine = admin_app.extensions['cafeteria_db']
     persist_service_state(engine, scope, WEEK, DAY, 'LUNCH', {
         'service_state': 'open', 'notice': 'Ausgabe ab 11:30 Uhr',
+        'service_start': '11:30', 'service_end': '13:00',
     }, 0)
     payload = _payload(staff=profile == 'staff_guest')
     persist_menu_item(engine, scope, WEEK, DAY, 'LUNCH', 'MENU_1', payload, 0)
@@ -56,6 +57,7 @@ def test_overview_service_uses_own_version_and_preserves_notice_without_items(
     empty_day = (WEEK + dt.timedelta(days=1)).isoformat()
     persist_service_state(engine, scope, WEEK, empty_day, 'LUNCH', {
         'service_state': 'holiday', 'notice': 'Feiertag: keine Ausgabe',
+        'service_start': '', 'service_end': '',
     }, 0)
 
     page = page_context
@@ -71,6 +73,8 @@ def test_overview_service_uses_own_version_and_preserves_notice_without_items(
         assert form.locator('[name="row_version"]').input_value() == '1'
         assert form.locator('[name="service_state"]').input_value() == state
         assert form.locator('[name="notice"]').input_value() == notice
+        assert form.locator('[name="service_start"]').input_value() == ('11:30' if day == DAY else '')
+        assert form.locator('[name="service_end"]').input_value() == ('13:00' if day == DAY else '')
         if day == DAY:
             assert page.locator(
                 f'.menu-slot[data-day="{DAY}"][data-meal="LUNCH"][data-option="MENU_1"]',
@@ -82,6 +86,8 @@ def test_overview_service_uses_own_version_and_preserves_notice_without_items(
         assert form.locator('[name="row_version"]').input_value() == '2'
         assert form.locator('[name="service_state"]').input_value() == state
         assert form.locator('[name="notice"]').input_value() == notice
+        assert form.locator('[name="service_start"]').input_value() == ('11:30' if day == DAY else '')
+        assert form.locator('[name="service_end"]').input_value() == ('13:00' if day == DAY else '')
     with admin_engine.connect() as connection:
         assert connection.execute(text('SELECT row_version FROM cafeteria.menu_items')).scalar_one() == 2
         assert connection.execute(text(
