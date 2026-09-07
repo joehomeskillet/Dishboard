@@ -84,7 +84,7 @@ def test_planning_pages_are_required_even_when_legacy_workflow_fails(tmp_path: P
         result = MagicMock()
         family = 'patienten' if '/patienten/' in page.url else 'cafeteria'
         profile = 'patient' if family == 'patienten' else 'staff_guest'
-        result.count.return_value = 0 if selector == 'input[type="password"]' else 1
+        result.count.return_value = 0 if selector in ('input[type="password"]', '.tooltip') else 1
         if selector == 'main.admin-main':
             result.get_attribute.return_value = 'wrong' if fault == 'wrong_profile' else profile
         if selector.startswith('nav[aria-label="Profil"]'):

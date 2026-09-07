@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qsl, urljoin, urlsplit
 
-from playwright.sync_api import Browser, Page, Response, Route, sync_playwright
+from playwright.sync_api import Browser, Page, Response, Route, expect, sync_playwright
 from admin_tabler_proof import audit_tabler
 
 USER = 'kueche.admin'
@@ -100,6 +100,13 @@ def _week_url_matches(url: str, base: str, path: str, week: date) -> bool:
             and weeks == [week.isoformat()])
 
 
+def _neutral_cursor(page: Page) -> None:
+    page.mouse.move(0, 0)
+    if page.locator('.tooltip').count():
+        page.keyboard.press('Escape')
+        expect(page.locator('.tooltip')).to_have_count(0)
+
+
 def capture_viewport(
     browser: Browser, base: str, outdir: Path, viewport: str,
     password: str, proof: dict[str, Any], csv_preview: bool = False,
@@ -138,6 +145,7 @@ def capture_viewport(
             csp_errors += 1
 
     def capture(page: Page, response: Response | None, name: str, patient: bool) -> None:
+        _neutral_cursor(page)
         authenticated = _admin_url(page.url, base) and page.locator('input[type="password"]').count() == 0
         check(f'{name}.authenticated', authenticated)
         if not authenticated:
@@ -185,8 +193,12 @@ def capture_viewport(
         context.route('**/*', guard)
         context.on('console', console_message)
         page = context.new_page()
+        def navigate(url: str) -> Response | None:
+            _neutral_cursor(page)
+            return page.goto(url, wait_until='load')
+
         try:
-            response = page.goto(f'{base}/auth/local', wait_until='load')
+            response = navigate(f'{base}/auth/local')
             if response is None or response.status != 200:
                 raise RuntimeError('login_page_unavailable')
             page.locator('input[name="username"]').fill(USER)
@@ -210,7 +222,7 @@ def capture_viewport(
                 stage = f'{prefix}.{page_name}'
                 path = f'/admin/{family}/{route_name}'
                 try:
-                    response = page.goto(f'{base}{path}', wait_until='load')
+                    response = navigate(f'{base}{path}')
                     capture(page, response, stage, patient)
                     check(f'{stage}.route', urlsplit(page.url).path == path)
                     main = page.locator('main.admin-main')
@@ -244,7 +256,7 @@ def capture_viewport(
                 overview = f'{base}/admin/{family}'
                 if week is not None:
                     overview += f'?week={week.isoformat()}'
-                response = page.goto(overview, wait_until='load')
+                response = navigate(overview)
                 capture(page, response, stage, patient)
                 displayed_week = _parse_week(page.locator('main.admin-main').get_attribute('data-week') or '')
                 check(f'{stage}.week', week is None or displayed_week == week)
@@ -284,7 +296,7 @@ def capture_viewport(
                 stage = f'{prefix}.preview'
                 if week is None:
                     raise RuntimeError('week_unavailable')
-                response = page.goto(overview, wait_until='load')
+                response = navigate(overview)
                 if response is None or response.status != 200:
                     raise RuntimeError('overview_unavailable')
                 link = page.locator('a[target="_blank"][href*="/preview"]:visible').first
@@ -320,7 +332,7 @@ def capture_viewport(
                         extra.close()
             try:
                 stage = f'{prefix}.catalog'
-                response = page.goto(f'{base}/admin/{family}/komponenten', wait_until='load')
+                response = navigate(f'{base}/admin/{family}/komponenten')
                 capture(page, response, stage, patient)
                 rows = page.locator('.component-row[data-public-id]')
                 proof['catalogs'][prefix] = {'existing_components': rows.count(), 'detail_available': rows.count() > 0}
@@ -337,8 +349,8 @@ def capture_viewport(
                 stage = f'{prefix}.week_review'
                 if week is None:
                     raise RuntimeError('week_unavailable')
-                response = page.goto(
-                    f'{base}/admin/{family}/wochen/pruefung?week={week.isoformat()}', wait_until='load')
+                response = navigate(
+                    f'{base}/admin/{family}/wochen/pruefung?week={week.isoformat()}')
                 capture(page, response, stage, patient)
                 check(f'{stage}.week', _week_url_matches(page.url, base, f'/admin/{family}/wochen/pruefung', week)
                       and page.locator('main').get_attribute('data-week') == week.isoformat())
@@ -359,7 +371,7 @@ def capture_viewport(
                 if week is None:
                     raise RuntimeError('week_unavailable')
                 target = week + timedelta(days=7)
-                response = page.goto(f'{base}/admin/{family}/copy?week={target.isoformat()}', wait_until='load')
+                response = navigate(f'{base}/admin/{family}/copy?week={target.isoformat()}')
                 if response is not None and response.status == 409:
                     proof['unavailable'].append({'page': stage, 'http_status': response.status,
                                                  'reason': 'existing_data_prevents_copy_form'})
@@ -382,7 +394,7 @@ def capture_viewport(
         if csv_preview:
             try:
                 stage = f'{viewport}.csv.empty'
-                response = page.goto(f'{base}/admin/import-preview', wait_until='load')
+                response = navigate(f'{base}/admin/import-preview')
                 capture(page, response, stage, False)
                 check(f'{stage}.state', page.locator('main[data-state="empty"]').count() == 1)
                 check(f'{stage}.primary_visible', page.locator('#csv-upload button.btn-primary').is_visible())

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import threading
+import time
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -83,7 +84,10 @@ def test_native_upload_freeze_history_scaling_and_assets(a3, recipe_server, brow
         expect(page.locator('td[data-label="Bildunterschrift"]')).to_be_visible()
         expect(page.locator('main img')).to_have_count(1)
         page.locator('main img').scroll_into_view_if_needed()
-        page.wait_for_function("document.querySelector('main img').complete && document.querySelector('main img').naturalWidth === 24")
+        deadline = time.monotonic() + 15
+        while not page.locator('main img').evaluate('el => el.complete && el.naturalWidth === 24'):
+            assert time.monotonic() < deadline, 'Uploaded image did not decode to width24'
+            page.wait_for_timeout(50)
         assert page.locator('main img').evaluate('el => el.complete && el.naturalWidth === 24')
         geometry(page)
         capture(page, tmp_path, f'images-{width}-js{javascript}')

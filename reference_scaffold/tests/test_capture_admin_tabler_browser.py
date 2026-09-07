@@ -3,11 +3,12 @@ from __future__ import annotations
 # ruff: noqa: F811
 
 import sys
+import json
 from pathlib import Path
 
 import pytest
 from flask import Flask, make_response, redirect, request
-from playwright.sync_api import Browser
+from playwright.sync_api import Browser, expect
 from sqlalchemy import Engine, text
 
 from cafeteria.admin import week_review_routes  # noqa: F401
@@ -17,7 +18,7 @@ from test_admin_workflow_routes import DATABASE_URL, _login, _scope
 from test_admin_ux_browser import admin_app, admin_engine, browser, live_server  # noqa: F401
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'tools'))
-from capture_admin_live_proof import capture_viewport  # noqa: E402
+from capture_admin_live_proof import LAYOUT_AUDIT, _neutral_cursor, capture_viewport  # noqa: E402
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
 
@@ -59,6 +60,25 @@ def test_complete_read_only_live_capture_on_real_tabler_fixture(
                    (SELECT count(*) FROM cafeteria.audit_events),
                    (SELECT count(*) FROM cafeteria.publication_revisions)
         ''')).one()
+    with browser.new_context(viewport={'width': 1440, 'height': 1100},
+                             reduced_motion='reduce') as context:
+        context.add_cookies([{'name': 'session', 'value': cookie.value, 'url': live_server}])
+        page = context.new_page()
+        response = page.goto(live_server + '/admin/patienten/menues')
+        assert response is not None and response.status == 200
+        action = page.locator('[data-admin-icon-action]').first
+        action.hover()
+        expect(page.locator('.tooltip.show')).to_have_count(1)
+        styled = page.locator('[style]').evaluate_all('''nodes => nodes.map(node => ({
+            tag: node.tagName, classes: node.className,
+            tooltip: Boolean(node.closest('.tooltip'))
+        }))''')
+        assert styled and all(node['tooltip'] for node in styled), styled
+        assert page.evaluate(LAYOUT_AUDIT)['inline_styles'] == len(styled)
+        (tmp_path / f'{viewport}-tooltip-styled-nodes.json').write_text(json.dumps(styled))
+        _neutral_cursor(page)
+        assert page.locator('[style]').count() == 0
+        assert page.evaluate(LAYOUT_AUDIT)['inline_styles'] == 0
     proof = {'checks': {}, 'pages': [], 'catalogs': {}, 'unavailable': [], 'failures': []}
     capture_viewport(browser, live_server, tmp_path, viewport, 'fixture-only', proof, csv_preview=True)
     assert proof['failures'] == [], ', '.join(proof['failures'])

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -65,8 +66,11 @@ def fixture_page(browser):
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     with browser.new_page() as page:
-        def load(body, css=''):
+        def load(body, css='', *, paused_clock=False):
             state['body'], state['css'] = body, css
+            if paused_clock:
+                page.clock.install(time=datetime(2026, 9, 7, tzinfo=timezone.utc))
+                page.clock.pause_at(datetime(2026, 9, 7, 0, 0, 1, tzinfo=timezone.utc))
             response = page.goto(f'http://127.0.0.1:{server.server_port}/fixture')
             assert response.status == 200
             assert "script-src 'self'" in response.headers['content-security-policy']
@@ -228,17 +232,24 @@ def test_absent_patient_page_is_fatal_without_waiting(fixture_page, tmp_path, pa
     assert proof.outcome() == ('failed', 1)
 
 
-def test_rotation_checks_all_28_real_menu_cards_and_page_specific_legends(fixture_page, tmp_path):
+def test_rotation_checks_all_28_real_menu_cards_and_page_specific_legends(fixture_page, tmp_path, monkeypatch):
     first, second = declaration(), declaration('Enthält: Fisch', asset='allergens/fish.svg')
     body = '<section data-signage-page>' + menu(first) * 12 + legend(first) + '</section>'
     body += '<section data-signage-page hidden>' + menu(second) * 16 + legend(second) + '</section>'
     body += '<script src="/static/rotate.js"></script>'
     proof = tool.BrandingProof('https://fixture.invalid', tmp_path)
     page = fixture_page(body, '[data-signage-page]{display:grid;grid-template-columns:repeat(4,300px)}'
-                             '.food-legend{grid-column:1/-1}')
+                             '.food-legend{grid-column:1/-1}', paused_clock=True)
     page.set_viewport_size({'width': 1920, 'height': 1080})
     proof.menu_evidence(page, tool.SIGNAGE[3], 'week')
     proof.legends(page, 'week', signage=True)
+    original_wait = page.wait_for_function
+
+    def rotate(expression, **kwargs):
+        page.clock.run_for(500)
+        return original_wait(expression, **kwargs)
+
+    monkeypatch.setattr(page, 'wait_for_function', rotate)
     proof.patient_rotation(page, 'week')
     assert proof.outcome() == ('browser_passed', 0), proof.data['failures']
     assert proof.data['observations']['week.visible_card_count'] == 12
