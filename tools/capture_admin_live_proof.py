@@ -3,6 +3,7 @@
 
 Use --outdir PATH --base-url https://dishboard.joelduss.xyz. Exit 0 means passed,
 1 means failed, and 2 means required coverage was unavailable with existing data.
+Use --week YYYY-MM-DD to select an existing saved Monday instead of the current week.
 """
 from __future__ import annotations
 
@@ -81,10 +82,33 @@ def _profile_tab_matches(href: str | None, base: str, path: str) -> bool:
     return _admin_url(resolved, base) and parsed.path == path and harmless_query and not parsed.fragment
 
 
+def _parse_week(value: str) -> date:
+    try:
+        week = date.fromisoformat(value)
+        if week.isoformat() != value or week.weekday() != 0:
+            raise ValueError
+        week + timedelta(days=7)  # Copy proof requires a representable following Monday.
+        return week
+    except (ValueError, OverflowError) as error:
+        raise argparse.ArgumentTypeError('week must be YYYY-MM-DD, a Monday with a valid following week') from error
+
+
+def _week_url_matches(url: str, base: str, path: str, week: date) -> bool:
+    parsed = urlsplit(url)
+    weeks = [value for key, value in parse_qsl(parsed.query, keep_blank_values=True) if key == 'week']
+    return (_admin_url(url, base) and parsed.path == path and not parsed.fragment
+            and weeks == [week.isoformat()])
+
+
 def capture_viewport(
     browser: Browser, base: str, outdir: Path, viewport: str,
     password: str, proof: dict[str, Any], csv_preview: bool = False,
+    selected_week: date | None = None,
 ) -> None:
+    if selected_week is None and proof.get('selected_week'):
+        selected_week = _parse_week(proof['selected_week'])
+    if selected_week is not None:
+        _parse_week(selected_week.isoformat())
     width, height = VIEWPORTS[viewport]
     checks, failures = proof['checks'], proof['failures']
     login_pending = True
@@ -118,7 +142,15 @@ def capture_viewport(
         check(f'{name}.authenticated', authenticated)
         if not authenticated:
             raise RuntimeError('authentication_lost')
-        check(f'{name}.http_200', response is not None and response.status == 200)
+        ok = response is not None and response.status == 200
+        check(f'{name}.http_200', ok)
+        if not ok:
+            proof.setdefault('http_errors', []).append({
+                'page': name, 'http_status': response.status if response else None,
+            })
+            if name.endswith(('.preview', '.week_review')) and response is not None and response.status == 404:
+                check(f'{name}.saved_week_exists', False)
+            raise RuntimeError('page_unavailable')  # No DOM assertions or screenshot on error bodies.
         policy = (response.header_value('content-security-policy') if response else '') or ''
         directives = {parts[0]: parts[1:] for item in policy.split(';') if (parts := item.split())}
         scripts = directives.get('script-src', [])
@@ -169,9 +201,10 @@ def capture_viewport(
             failures.append(f'{stage}.{type(error).__name__}')
             return
 
-        for family, profile, slots in [('cafeteria', 'staff_guest', 10), ('patienten', 'patient', 28)]:
+        for family, profile in [('cafeteria', 'staff_guest'), ('patienten', 'patient')]:
             prefix = f'{viewport}.{family}'
             patient = family == 'patienten'
+            week = selected_week
             # These pages must still run when existing data blocks a later workflow.
             for route_name, page_name in [('menues', 'menus'), ('wochen', 'weeks')]:
                 stage = f'{prefix}.{page_name}'
@@ -209,23 +242,57 @@ def capture_viewport(
             try:
                 stage = f'{prefix}.overview'
                 overview = f'{base}/admin/{family}'
+                if week is not None:
+                    overview += f'?week={week.isoformat()}'
                 response = page.goto(overview, wait_until='load')
                 capture(page, response, stage, patient)
-                check(f'{stage}.slots', page.locator('article.menu-slot').count() == slots)
-                week = date.fromisoformat(page.locator('main.admin-main').get_attribute('data-week') or '')
+                displayed_week = _parse_week(page.locator('main.admin-main').get_attribute('data-week') or '')
+                check(f'{stage}.week', week is None or displayed_week == week)
+                if week is not None and displayed_week != week:
+                    raise RuntimeError('week_scope_changed')
+                week = displayed_week
+                selected_week = week
+                proof['selected_week'] = week.isoformat()
+                proof.setdefault('weeks', {})[prefix] = week.isoformat()
+                overview = f'{base}/admin/{family}?week={week.isoformat()}'
+                days = page.locator('article.menu-slot').evaluate_all(
+                    'nodes => nodes.map(node => node.dataset.day)')
+                allowed_counts = (7,) if patient else (5, 7)
+                check(f'{stage}.slots', any(sorted(days) == sorted(
+                    (week + timedelta(days=offset)).isoformat()
+                    for offset in range(count) for _ in range(4 if patient else 2)
+                ) for count in allowed_counts))
                 stage = f'{prefix}.editor'
+                editor = page.locator('article.menu-slot a[href*="/menu?"]').first
+                editor_url = urljoin(base, editor.get_attribute('href') or '')
+                check(f'{stage}.link_scope', _week_url_matches(editor_url, base, f'/admin/{family}/menu', week))
+                if not checks[f'{stage}.link_scope']:
+                    raise RuntimeError('week_scope_changed')
                 with page.expect_navigation(wait_until='load') as editor_response:
-                    page.locator('article.menu-slot a[href*="/menu?"]').first.click()
+                    editor.click()
                 capture(page, editor_response.value, stage, patient)
+                check(f'{stage}.week', _week_url_matches(page.url, base, f'/admin/{family}/menu', week)
+                      and page.locator('main').get_attribute('data-week') == week.isoformat())
                 menu_form = page.locator('form[action$="/menu"]')
                 check(f'{stage}.menu_form', menu_form.count() == 1)
                 check(f'{stage}.one_item_version', menu_form.locator('input[name="row_version"]').count() == 1)
 
-                page.goto(overview, wait_until='load')
+            except Exception as error:
+                failures.append(f'{stage}.{type(error).__name__}')
+
+            try:
                 stage = f'{prefix}.preview'
+                if week is None:
+                    raise RuntimeError('week_unavailable')
+                response = page.goto(overview, wait_until='load')
+                if response is None or response.status != 200:
+                    raise RuntimeError('overview_unavailable')
                 link = page.locator('a[target="_blank"][href*="/preview"]:visible').first
                 check(f'{stage}.noopener', 'noopener' in (link.get_attribute('rel') or '').split())
                 preview_url = urljoin(base, link.get_attribute('href') or '')
+                check(f'{stage}.link_scope', _week_url_matches(preview_url, base, f'/admin/{family}/preview', week))
+                if not checks[f'{stage}.link_scope']:
+                    raise RuntimeError('week_scope_changed')
                 with context.expect_event('response', predicate=lambda reply: (
                     reply.url == preview_url and reply.request.is_navigation_request()
                 )) as preview_response:
@@ -234,6 +301,7 @@ def capture_viewport(
                 popup = opened.value
                 popup.wait_for_load_state('load')
                 capture(popup, preview_response.value, stage, patient)
+                check(f'{stage}.week', _week_url_matches(popup.url, base, f'/admin/{family}/preview', week))
                 check(f'{stage}.new_tab', popup != page and len(context.pages) == 2)
                 banner = popup.locator('.preview-banner[role="status"]')
                 check(f'{stage}.banner', banner.count() == 1 and banner.inner_text().strip() == 'PREVIEW')
@@ -245,7 +313,12 @@ def capture_viewport(
                     'draft', 'ready', 'published', 'archived',
                 })
                 popup.close()
-
+            except Exception as error:
+                failures.append(f'{stage}.{type(error).__name__}')
+                for extra in context.pages:
+                    if extra != page:
+                        extra.close()
+            try:
                 stage = f'{prefix}.catalog'
                 response = page.goto(f'{base}/admin/{family}/komponenten', wait_until='load')
                 capture(page, response, stage, patient)
@@ -258,11 +331,17 @@ def capture_viewport(
                     capture(page, detail_response.value, stage, patient)
                     check(f'{stage}.public_id', bool(page.locator('main').get_attribute('data-public-id')))
 
+            except Exception as error:
+                failures.append(f'{stage}.{type(error).__name__}')
+            try:
                 stage = f'{prefix}.week_review'
+                if week is None:
+                    raise RuntimeError('week_unavailable')
                 response = page.goto(
                     f'{base}/admin/{family}/wochen/pruefung?week={week.isoformat()}', wait_until='load')
                 capture(page, response, stage, patient)
-                check(f'{stage}.week', page.locator('main').get_attribute('data-week') == week.isoformat())
+                check(f'{stage}.week', _week_url_matches(page.url, base, f'/admin/{family}/wochen/pruefung', week)
+                      and page.locator('main').get_attribute('data-week') == week.isoformat())
                 check(f'{stage}.heading', page.get_by_role(
                     'heading', name='Wochenkopf und Servicehinweise prüfen', exact=True).is_visible())
                 review_form = page.locator('form:has(input[name="context_version"])')
@@ -273,14 +352,20 @@ def capture_viewport(
                 else:
                     check(f'{stage}.review_status', page.get_by_role('status').count() == 1)
 
+            except Exception as error:
+                failures.append(f'{stage}.{type(error).__name__}')
+            try:
                 stage = f'{prefix}.copy'
+                if week is None:
+                    raise RuntimeError('week_unavailable')
                 target = week + timedelta(days=7)
                 response = page.goto(f'{base}/admin/{family}/copy?week={target.isoformat()}', wait_until='load')
-                if response is not None and response.status in {404, 409}:
+                if response is not None and response.status == 409:
                     proof['unavailable'].append({'page': stage, 'http_status': response.status,
                                                  'reason': 'existing_data_prevents_copy_form'})
                     continue
                 capture(page, response, stage, patient)
+                check(f'{stage}.week', _week_url_matches(page.url, base, f'/admin/{family}/copy', target))
                 form = page.locator(f'form[method="post"][action="/admin/{family}/copy"]')
                 check(f'{stage}.form', form.count() == 1)
                 names = form.locator('input[name], select[name], textarea[name], button[name]').evaluate_all(
@@ -334,6 +419,7 @@ def main() -> int:
     parser.add_argument('--outdir', type=Path, required=True)
     parser.add_argument('--base-url', default='https://dishboard.joelduss.xyz')
     parser.add_argument('--csv-preview', action='store_true', help='Preview example CSV uploads; never import them')
+    parser.add_argument('--week', type=_parse_week, help='Existing saved week, ISO Monday YYYY-MM-DD')
     args = parser.parse_args()
     parsed = urlsplit(args.base_url)
     if (parsed.scheme not in {'http', 'https'} or not parsed.hostname
@@ -345,6 +431,7 @@ def main() -> int:
     outdir.mkdir(mode=0o700, parents=True, exist_ok=True)
     proof: dict[str, Any] = {
         'captured_at': datetime.now(timezone.utc).isoformat(), 'base_url': base,
+        'selected_week': args.week.isoformat() if args.week is not None else None,
         'checks': {}, 'pages': [], 'catalogs': {}, 'unavailable': [], 'failures': [],
         'control_size_audit': 'diagnostic only; does not establish complete UI acceptance',
     }
@@ -356,7 +443,7 @@ def main() -> int:
         with sync_playwright() as playwright:
             with playwright.chromium.launch(args=['--no-sandbox', '--disable-dev-shm-usage']) as browser:
                 for viewport in VIEWPORTS:
-                    capture_viewport(browser, base, outdir, viewport, password, proof, args.csv_preview)
+                    capture_viewport(browser, base, outdir, viewport, password, proof, args.csv_preview, args.week)
     except Exception as error:
         # Deliberately omit exception text, request details, console text and headers.
         proof['failures'].append(f'runner.{type(error).__name__}')

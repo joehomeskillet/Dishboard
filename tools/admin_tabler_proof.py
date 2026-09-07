@@ -1,4 +1,5 @@
 """Read-only checks for the migrated admin shell; no application mutations."""
+import re
 from urllib.parse import urljoin, urlsplit
 
 from playwright.sync_api import Page, expect
@@ -29,11 +30,14 @@ def audit_tabler(page: Page, base: str, asset_status: dict[str, bool]) -> dict[s
     )
     origin = urlsplit(base)
     local = True
-    for value in styles + scripts:
+    for value, stylesheet in [(value, True) for value in styles] + [(value, False) for value in scripts]:
         url = urljoin(base, value)
         parsed = urlsplit(url)
+        branding_css = (stylesheet and not parsed.query
+                        and re.fullmatch(r'/branding/revisions/[1-9][0-9]*\.css',
+                                         urlsplit(value).path) is not None)
         if ((parsed.scheme, parsed.netloc) != (origin.scheme, origin.netloc)
-                or not parsed.path.startswith('/static/') or parsed.fragment):
+                or not (parsed.path.startswith('/static/') or branding_css) or parsed.fragment):
             local = False
             continue
         if url not in asset_status:

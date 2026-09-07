@@ -1,6 +1,20 @@
 # Backlog
 
-## Aktueller Stand — Deployment vom 6. September 2026, 20:38:51 Uhr Schweiz
+## Aktueller Stand — Live-Checkpoint vom 7. September 2026, 05:16 Uhr Schweiz
+
+Die Uhrzeit bezeichnet den belegten Admin-Live-Checkpoint. Der Gate-Nachtrag unten dokumentiert die später bestätigten Laufzustände 64757 und 89103 ohne zusätzliche Zeitbehauptung.
+
+**Produktiv bleibt `3d35cbb` seit 07.09.2026, 04:18:43 CEST, mit Schema 20.** Die unabhängige vollständige Paketprüfung bestand mit **4472 Tests und 15 ausdrücklich aktivierbaren Opt-in-Skips**. OPS-001 ist ausgeliefert; frühere Lane-Unterbrechungen sind kein aktueller Lieferstatus.
+
+**Frische lesende Live-Nachweise:** Der OPS-Beleg `ops-live-branding-3d35cbb-root-0907/proof.json` enthält **56 bestandene Checks für beide Viewports**. Die datierte Admin-Probe `admin-live-week-3d35cbb-root-0907/proof.json`, erfasst am `2026-09-07T03:16:09.722335+00:00`, bestand mit **738 Checks und 36 Screenshots**, ohne Fehler oder nicht verfügbare Prüfungen. Beide Familien und beide Viewports verwenden ausdrücklich die gespeicherte Woche **2026-08-31**. Operatorquelle `450894babda514e63602b2e40c8ae123263c38cc`: unabhängig 167 Tests bestanden nach getrennten Läufen mit 149 und 78 bestandenen Tests. Die datierte Druckprüfung derselben Woche bestand für beide Familien: 10 Cafeteria-/28 Patientenfotos, jeweils eine PDF-Seite und gleiche Karten. Fachliche Druckabnahme bleibt offen.
+
+**Vorbereitet, nicht deployed:** `5b746b35d261ed8b552724b3b273e71fd393973c` enthält geprüfte Menü-Iconaktionen und deklarierte VEG/VGN-Angaben für UI-003/ICO-001/002. Kombinierte 121 Tests und Roots unabhängige Imageprüfung bestanden. Das vollständige Releasegate 6043 endete mit Exit 143, ohne JUnit oder Abschlussausgabe; die Ursache ist unbelegt. Root sicherte die Evidenz mit `cp -a` unter `symbols-fullgate-0907-hvz04M/evidence-first` und bestätigte anhand der Prozess-Arbeitsverzeichnisse, dass im eingefrorenen Export keine Prozesse verblieben. Der exakt identische Wiederholungslauf 89103 läuft; kein vollständiges PASS. Image `menuplan-symbols-0907:5b746b3-u022` wurde anhand von 677 Dateien ohne Abweichungen oder Extras, 247 AST-Prüfungen, Revision-Label, Benutzer, pip und Schema-20-Hashes unabhängig bestätigt (Build-WP `wp-1b31436a1455`). Das ist keine Produktivabnahme.
+
+**Public und nächste Grundlage:** Aktuelles Public-404 mit `no_published_menu` ist bei fehlender aktueller Publikation vertraglich erwartet. Die Leerseite verwendet noch die alte Basis; der separate Tabler-Fix `de80b7e` bestand nach 1959 Worker-Tests auch Rootgate 64757 mit **1959 passed in 65.04s**. Root las den vollständigen Zwei-Dateien-Diff; Ruff bestand. Normales Mypy meldet byte-identisch dieselben 64 Fehler in 14 Basisdateien, kein Mypy-PASS. Der Fix ist noch nicht integriert oder deployed. BAS-001/B2 wird aktiv in `bas-b2-ma-astra` umgesetzt; Schema 21 ist reserviert, nicht produktiv. B1 ist bereits Bestandteil von `3d35cbb`. Die früheren IAM-, Branding- und Playerbelege unten gelten nur für ihren damaligen Stand; offene fachliche und physische Abnahmen bleiben erhalten.
+
+## Historischer Releasebeleg — 6. September 2026, 20:38:51 Uhr Schweiz
+
+Die folgenden Release-, Sicherungs- und Liveangaben beschreiben Schema 19. Der damalige Fallback ist kein Rückweg für die aktuelle Schema-20-Produktion; deren geprüfter Betriebscheckpoint wird von Root separat geführt.
 
 **Produktiv ist `3690e04585af6b5c16917872cf6e4b50601b22c9` seit 20:38:51 Uhr CEST**, Image `sha256:6fca168acd508b2a66b58399f2beb1f87c979252f20aa55dc7897d1ba79bc828`, Containerstart `2026-09-06T18:38:51.931697209Z`, `healthy`, öffentlicher HTTP-Status 200. Schema **19**: Migration, Runtime und Auth-Issuer jeweils `ready=true`; Registry-Prüfsumme `e195aac3c6b53fb08f733723cd8ef12e6e40fb7abdc5fe58bf1f88585015c6c1` bestätigt. Vollständige unabhängige Paketprüfung: **4001 Tests bestanden, 15 Opt-in-Skips**, 4016 Tests insgesamt in 1603.990 Sekunden, `PACKAGE_GATE_EXIT=0`. Die 14 Restore-Opt-ins bestanden danach separat in 122.97 Sekunden. Die korrigierte Compose-Probe bestand mit vier Fehler-/Cleanup-Fällen zusammen mit dem Branding-Operator unabhängig **67 Tests in 21.87 Sekunden**. Sie prüft Containererzeugung ohne Pull/Build, die konkrete Missing-Image-Ursache und eigene Ressourcenbereinigung; keine gestarteten Dienste oder Netzkonnektivität. [Aktueller Releasebeleg](/nvmetank1/projects/rag-stack/.claude/reports/wp-ee18982cddf0.md).
 
@@ -16,20 +30,22 @@ Der vorbereitete Fallback gilt ausschliesslich für einen nachgewiesenen UI-Fehl
 
 Alle **35 Backlog-IDs** bleiben mit ihrem vollständigen Umfang erhalten. Die grossen Rezept-, Stammdaten-, Nährwert-, Kalkulations-, Lager-, Bestell- und freien Editorpakete sind weiterhin offen. Ältere «lokal vorbereitet»-Angaben unten werden durch diesen Stand ersetzt, nicht als weitere Lieferung gezählt.
 
-**Operative Reihenfolge:** Zuerst die bereits laufende OPS-Welle vollständig prüfen und deployen. Danach offene Screens-/Vorlagen-/Branding-Funktionen abschliessen; dann Grundlagen und Rezeptverwaltung, Suche/Importe/Produktdaten, Rezeptplanung/Einkauf/Druck/KI, Kalkulation/Lager/Bestellungen und weitere Anbindungen. Die Phasen unten erhalten alle Detailaufträge; Qualitäts- und Fachabnahmen begleiten jede Lieferung. Root koordiniert die gesicherten Teilstände auch bei Lane-Limits weiter; kein unvollständiger OPS-Stand geht dadurch produktiv.
+## Bestand und operative Reihenfolge — 7. September 2026
 
-**Gruppierter Bestand, keine Abschlussquote:** Die folgenden Gruppen enthalten jede Tabellen-ID genau einmal. «Produktive Funktionen» umfasst ausdrücklich Teilfunktionen und offene Abnahmefälle; es bedeutet nicht, dass 15 vollständige Backlogaufträge erledigt sind.
+**Operative Reihenfolge:** OPS ist produktiv. Das vorbereitete Symbolrelease durchläuft sein vollständiges Releasegate; der Public-Leerseiten-Fix und BAS/B2 werden unabhängig weiter geprüft beziehungsweise umgesetzt. Danach bleiben offene Screens-/Vorlagen-/Branding-Funktionen, Grundlagen und Rezeptverwaltung, Suche/Importe/Produktdaten, Rezeptplanung/Einkauf/Druck/KI, Kalkulation/Lager/Bestellungen und weitere Anbindungen. Die Phasen unten erhalten alle Detailaufträge; Qualitäts- und Fachabnahmen begleiten jede Lieferung.
+
+**Gruppierter Bestand, keine Abschlussquote:** Die folgenden Gruppen enthalten jede Tabellen-ID genau einmal. «Produktive Funktionen» umfasst ausdrücklich Teilfunktionen und offene Abnahmefälle; es bedeutet nicht, dass 16 vollständige Backlogaufträge erledigt sind. BAS-001 bleibt trotz ausgeliefertem B1 wegen des aktiven B2-Pakets in der Umsetzungsgruppe.
 
 | Gruppe | Anzahl | IDs / verbleibende Grenze |
 |---|---:|---|
-| Produktive Funktionen | 15 | UI-001, UI-002, UI-003, CAT-001, DSP-001, BRD-001, API-001, ICO-001, ICO-002, SCR-001, SCR-002, TPL-001, TPL-002, TPL-003, IAM-001. TPL-001/002 und SCR-001 haben erst Teilfunktionen; der vollständige IAM-Zugriffsverlauf bleibt offen. Offene Daten-, Druck-, Branding- und Playerabnahmen stehen weiterhin in den Einzelzeilen. |
-| Aktive Umsetzung | 2 | OPS-001 nach belegten Lane-Limits durch Root weiter koordiniert, weiterhin ungeprüft; BAS-001 begonnen mit geprüftem B1 im aktuellen Code-Stand, noch nicht deployed. B2 wartet auf OPS-Schema 20; keine vollständige Fertigmeldung. |
+| Produktive Funktionen | 16 | UI-001, UI-002, UI-003, CAT-001, DSP-001, BRD-001, API-001, ICO-001, ICO-002, SCR-001, SCR-002, TPL-001, TPL-002, TPL-003, IAM-001, OPS-001. TPL-001/002 und SCR-001 haben erst Teilfunktionen; der vollständige IAM-Zugriffsverlauf bleibt offen. Offene Daten-, Druck-, Branding- und Playerabnahmen stehen weiterhin in den Einzelzeilen. |
+| Aktive Umsetzung | 1 | BAS-001: B1 ist produktiv, B2 wird aktiv umgesetzt. Voraussetzung OPS-Schema 20 erfüllt; Schema 21 reserviert, noch nicht ausgeliefert. Keine vollständige BAS-Fertigmeldung. |
 | Weitere grössere Umsetzung offen | 16 | REC-001–REC-007, NUT-001, OFF-001, CALC-001, INV-001, ORD-001, IAM-002, PKS-001, TRN-001, SCR-003. Vorhandene Referenzanalysen und Stammdaten ersetzen diese Funktionen nicht. |
 | Fortlaufende Abnahme | 2 | QA-001 und DATA-001; technische Lieferungen ersetzen weder physische Player- noch fachliche Küchenbestätigung. |
 
 ## Historischer Deploy-Nachtrag — 6. September 2026, 04:55:35 Uhr Schweiz
 
-Dieser Abschnitt beschreibt den damaligen Schema-17-Deploy; aktueller Release und Schema 19 stehen oben.
+Dieser Abschnitt beschreibt den damaligen Schema-17-Deploy; aktueller Release und Schema 20 stehen oben.
 
 **Release `118a644` ist produktiv**, Image `sha256:afe5305a73128fb92cbbf3f325ea441aacc8b9a6acc38d28487c301eb9779c41`, Container `healthy`, Schema 17. Migration: 32 Tabellen, `ready=true`; Runtime: 30 sichtbare Tabellen, `ready=true`. API, die vier öffentlichen Tabler-Seiten, vier globale Darstellungsoptionen und der erste Wochen-PDF-Eigenschaftseditor sind jetzt live. Nachweise: **3695 Tests bestanden, 15 Opt-in-Skips**, vollständige Paketprüfung `PACKAGE_GATE_EXIT=0`, **272 Live-Checks bestanden**, 44 Screenshots sowie vier zusätzliche Rotationsscreenshots in FHD/4K mit allen 28 Patientenmenüs. [Vollständiger Root-Beleg](/nvmetank1/projects/rag-stack/.claude/reports/wp-bd5539046da6.md).
 
@@ -96,13 +112,13 @@ API und Public Screens laufen unabhängig weiter. Symbolbasis und Screen-Layouts
 
 UI-003 liefert die Referenzentscheidungen vor weiterem Admin-Polish; laufende Lieferungen warten darauf nicht. Kontrollierte Wochen-PDFs und der vorgezogene Vorlageneditor werden gemeinsam auf Einseitigkeit, Lesbarkeit und Überlauf geprüft. Zeiten und lokale Benutzerverwaltung sind unabhängige Pakete; ihre späteren Änderungen werden in den Ausgaben erneut geprüft.
 
-**Weitere Admin-UI-Arbeit:** Das geprüfte [Tabler- und Symbolmanifest von Astra](design/2026-09-07-admin-tabler-icon-manifest.md) konkretisiert UI-003 und ICO-001/002: einheitliche Tabler-Komponenten, mehr eindeutige Symbole sowie Erklärungen bei Hover, Tastaturfokus und Antippen. Gemeint ist das **Tabler-Framework**, keine Tablet-Priorisierung. Der dokumentierte Sollvertrag ist noch keine umgesetzte oder produktiv abgenommene Symboloberfläche.
+**Weitere Admin-UI-Arbeit:** Das geprüfte [Tabler- und Symbolmanifest von Astra](design/2026-09-07-admin-tabler-icon-manifest.md) konkretisiert UI-003 und ICO-001/002: einheitliche Tabler-Komponenten, mehr eindeutige Symbole sowie Erklärungen bei Hover, Tastaturfokus und Antippen. Gemeint ist das **Tabler-Framework**, keine Tablet-Priorisierung. Menü-Iconaktionen und deklarierte VEG/VGN sind im geprüften Kandidaten `5b746b35` umgesetzt; Releasegate und Produktivabnahme stehen noch aus. Der vollständige Sollvertrag ist dadurch nicht pauschal erfüllt.
 
 | ID | Auftrag | Umfang / noch offen |
 |---|---|---|
 | UI-003 | **MiseOS (Corral) als UI-/UX-Referenz auf Tabler übertragen** | [MiseOS-Referenz auf Corral](https://corral.dk/posts/final-thoughts/) geprüft; erste Adaption seit `0acd992` produktiv: sichtbare Komponenten-/Herkunfts-/Allergenlabels, stabile Formularbezüge, eindeutige Bearbeiten-Aktionen und korrekter Fehlerfokus. Unabhängige Vergleichs-/Formulargates, vollständiges Paket und frische Live-Abnahme bestanden. Gesamter Admin bleibt Tabler, mit kompaktem Standard und Touch-Zielen. Weiteren Referenzumfang zu Typografie, Abständen, Aktionsgrössen und Hierarchie anhand konkreter offener Bedienprobleme abnehmen; die erste Adaption ist keine pauschale Fertigmeldung sämtlichen Admin-Polishs. |
-| TPL-003 | Zwei kontrollierte Wochen-Druckvorlagen | Produktiv und nach `3690e04` erneut mit echten Downloads geprüft: Cafeteria eine A4-Seite hoch, Patienten ganze Woche auf einer A4-Seite quer ohne Preise. Referenzlayout und Labels erhalten; Überlauf vor Aktivierung/Druck verweigern, kein Abschneiden oder unlesbares Verkleinern. Beide HTML-Druckprofile haben seit `3690e04` auch mobil gleich grosse Menükarten. Fachliche Druckabnahme bleibt offen. |
-| OPS-001 | **Bereiche & Zeiten** | Root koordiniert die weitere Umsetzung nach tatsächlichen Lane-Limits; bestehende Arbeit gesichert, aktiv und ungeprüft, keine Fertig- oder neue Produktivmeldung. Anzeigenamen wie Mitarbeitende, Patienten oder Schüler; Cafeteria-Öffnungszeiten und Patienten-Essenszeiten, Wochentage, Schliessungen und datierte Ausnahmen. Anzeigenamen ändern keine technischen Profil- oder Berechtigungsschlüssel. Zusätzliche unabhängige Bereiche sind eine eigene Modellerweiterung. |
+| TPL-003 | Zwei kontrollierte Wochen-Druckvorlagen | Produktiv und nach `3d35cbb` für Woche 2026-08-31 mit echten Downloads geprüft: 10 Cafeteria-/28 Patientenfotos, jeweils eine PDF-Seite und gleiche Karten. Cafeteria A4 hoch, Patienten ganze Woche A4 quer ohne Preise. Referenzlayout und Labels erhalten; Überlauf vor Aktivierung/Druck verweigern, kein Abschneiden oder unlesbares Verkleinern. Beide HTML-Druckprofile haben seit `3690e04` auch mobil gleich grosse Menükarten. Fachliche Druckabnahme bleibt offen. |
+| OPS-001 | **Bereiche & Zeiten** | Seit `3d35cbb` mit Schema 20 produktiv; vollständige Paketprüfung und frische lesende OPS-/datierte Admin-Liveprüfung bestanden, siehe aktuellen Stand. Anzeigenamen wie Mitarbeitende, Patienten oder Schüler; Cafeteria-Öffnungszeiten und Patienten-Essenszeiten, Wochentage, Schliessungen und datierte Ausnahmen. Anzeigenamen ändern keine technischen Profil- oder Berechtigungsschlüssel. Zusätzliche unabhängige Bereiche sind eine eigene Modellerweiterung. |
 | IAM-001 | **Benutzer & Zugriff** | Seit `3690e04` mit Schema 19 produktiv: Kontenliste/-detail, Kontoereignisse und vollständige Tabler-Verwaltung einschliesslich Guard-/Ausfallkorrekturen; Anlegen, Rollen ersetzen, Passwort zurücksetzen, Deaktivieren/Reaktivieren, originale Actor-/Zielversionen, letzter lokaler Admin, atomarer Audit und Sessionwiderruf. Unabhängige Kern-/UI-/Typ-/Schema-Gates und vollständige Paketprüfung bestanden; frische lesende Live-Abnahme mit 208 Checks/12 PNG. Kein produktiver IAM-Schreibtest. Vollständiger Login-/Logout-Zugriffsverlauf bleibt gesondert offen. |
 
 ### 3. Stammdaten, Rezepte und geprüfte Datenimporte
@@ -112,10 +128,10 @@ BAS-001 legt wiederverwendbare Zutaten, Einheiten und Kategorien für REC-001 fe
 **Begonnen, im aktuellen Code-Stand enthalten:** B1 `e0fb93e` (ursprünglich `c7873fa`) liefert reine Mengen-/Einheitenlogik und Tests.
 Root hat den vollständigen 433-Zeilen-Diff gelesen und selbst **101 passed in 1.26s**, Ruff PASS
 und Mypy PASS für zwei Dateien bestätigt ([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)).
-Noch nicht deployed; Produktion bleibt `3690e04`/Schema 19 wie oben.
+B1 ist mit `3d35cbb` produktiv; Produktion verwendet Schema 20.
 [Gemeinsamer Vertrag](design/2026-09-06-bas-rec-data-contract.md) und
-[Arbeitspakete](superpowers/bas-rec-work-packages-0906.md) trennen B1 von B2, das auf OPS-Schema 20
-wartet. BAS-001/REC-001 und ihr vollständiger Restumfang bleiben offen.
+[Arbeitspakete](superpowers/bas-rec-work-packages-0906.md) trennen B1 von B2, das nach erfüllter OPS-Schema-20-Voraussetzung
+aktiv umgesetzt wird. Schema 21 ist für B2 reserviert, nicht produktiv. BAS-001/REC-001 und ihr vollständiger Restumfang bleiben offen.
 
 | ID | Auftrag | Umfang / noch offen |
 |---|---|---|
@@ -158,7 +174,7 @@ Entra setzt einen funktionierenden lokalen Admin und Rückweg voraus, blockiert 
 | TRN-001 | Gastro-Übersetzer | Fachbegriffe und Rezept-/Menütexte für Deutsch, Französisch, Englisch, Italienisch und Spanisch. Quellen, Synonyme und Fachprüfung; Anbieterumfang von rund 50'000 Begriffen als Referenz, keine ungeprüfte Übernahme eines geschützten Wörterbuchbestands. |
 | SCR-003 | Visueller Screen-Editor aus bestehendem GitHub-Projekt | Layout, Logo, Farben und erlaubte Inhaltsblöcke bearbeiten; GrapesJS Core als bedingter Kandidat, Puck als Alternative. Vollständige Tabler-Bedienoberfläche und generische responsive Touch-Bedienung vor Technologiefreigabe prüfen; eine Tabler-Shell allein genügt nicht. |
 
-**Gemeinsame Lieferregel:** Jede Veröffentlichung braucht die zum geänderten Umfang passenden unabhängigen Gates und Live-Nachweise. Schemaänderungen mit dem aktuellen Schemastand und gemeinsamen Deploys abstimmen: Produktion läuft auf Schema 19; spätere Migrationen werden einzeln koordiniert und abgenommen. Funktionsumfang und Abnahmebedingungen der einzelnen IDs bleiben auch bei paralleler Ausführung verbindlich.
+**Gemeinsame Lieferregel:** Jede Veröffentlichung braucht die zum geänderten Umfang passenden unabhängigen Gates und Live-Nachweise. Schemaänderungen mit dem aktuellen Schemastand und gemeinsamen Deploys abstimmen: Produktion läuft auf Schema 20; Schema 21 ist reserviert und wird separat koordiniert und abgenommen. Funktionsumfang und Abnahmebedingungen der einzelnen IDs bleiben auch bei paralleler Ausführung verbindlich.
 
 ## REC-001 bis REC-007 — Tandoor als Referenz
 
@@ -174,7 +190,7 @@ Auf Nutzerwunsch neu aufgenommen. [Optisoft Produkte](https://optisoft.ch/preise
 
 ## API-001 — REST-API v1, MCP, FHIR R5 und API-Schlüssel
 
-**Historischer Status vor dem API-Deploy um 04:55 Uhr:** Seit Nutzerentscheid vom 06.09.2026, 01:55 Uhr übernimmt Codex allein. Übergabestand war `37d00b7`; damaliger Kandidat war `69ef540`. Backup-Fix `05b7985` ist mit 58 Tests und unabhängigem Teilgate über elf Tests geprüft. Gate 4 ist historisch fehlgeschlagen; Blueprint-Gate 5 auf `d70460c` ist mit `3417 passed, 15 skipped in 945.28s` abgeschlossen, Log `/tmp/menuplan-api-bootstrap-integration-full-5-0906.log`. Root-Gate 6 auf `8316790` endete mit `3592 passed, 1 failed, 31 errors, 15 skipped in 1153.23s`; die Testvertragskorrektur `d8fd9d3` ist als `69ef540` integriert. Der vollständige Wiederholungslauf über 3710 Tests ist mit **3695 bestanden, 15 Opt-in-Skips und viermal `GATE_EXIT=0`** abgeschlossen, Logs `/tmp/dishboard-release-shard-{0,1,2,3}-0906.log`. Die Skips waren **14 Restore-Drills und ein Compose-Test**, kein gemeinsamer Restore-Block. Damals blieb Produktion `1bff82e` auf Schema 16. Der aktuelle Schema-19-Release `3690e04` und die inzwischen separat bestandenen 14 Restore-Opt-ins sind oben belegt.
+**Historischer Status vor dem API-Deploy um 04:55 Uhr:** Seit Nutzerentscheid vom 06.09.2026, 01:55 Uhr übernimmt Codex allein. Übergabestand war `37d00b7`; damaliger Kandidat war `69ef540`. Backup-Fix `05b7985` ist mit 58 Tests und unabhängigem Teilgate über elf Tests geprüft. Gate 4 ist historisch fehlgeschlagen; Blueprint-Gate 5 auf `d70460c` ist mit `3417 passed, 15 skipped in 945.28s` abgeschlossen, Log `/tmp/menuplan-api-bootstrap-integration-full-5-0906.log`. Root-Gate 6 auf `8316790` endete mit `3592 passed, 1 failed, 31 errors, 15 skipped in 1153.23s`; die Testvertragskorrektur `d8fd9d3` ist als `69ef540` integriert. Der vollständige Wiederholungslauf über 3710 Tests ist mit **3695 bestanden, 15 Opt-in-Skips und viermal `GATE_EXIT=0`** abgeschlossen, Logs `/tmp/dishboard-release-shard-{0,1,2,3}-0906.log`. Die Skips waren **14 Restore-Drills und ein Compose-Test**, kein gemeinsamer Restore-Block. Damals blieb Produktion `1bff82e` auf Schema 16. Der spätere Schema-19-Release `3690e04` und die danach separat bestandenen 14 Restore-Opt-ins sind oben historisch belegt; aktuell produktiv ist `3d35cbb` auf Schema 20.
 
 **Historischer Recovery-Nachweis:** `5a5f98b` (A1: sachfremden TRUNCATE entfernt), `6bc1cc7` (D: Schema-17-Testannahme); damaliges D-Gate `153 passed in 80.18s (0:01:20)`, `GATE_EXIT=0`. Dieser Teilnachweis ersetzt das aktuelle Integrationsgate nicht.
 

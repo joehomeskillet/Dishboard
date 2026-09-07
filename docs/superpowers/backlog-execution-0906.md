@@ -1,6 +1,20 @@
 # Dishboard: Ausführung des gesamten Backlogs
 
-## Aktueller Deploy-Nachtrag — 6. September 2026, 20:38:51 Uhr Schweiz
+## Aktueller Deploy-Nachtrag — Live-Checkpoint vom 7. September 2026, 05:16 Uhr Schweiz
+
+Die Uhrzeit bezeichnet den belegten Admin-Live-Checkpoint. Die später bestätigten Gatezustände 64757 und 89103 sind unten ohne zusätzliche Zeitbehauptung nachgetragen.
+
+**Produktiv bleibt `3d35cbb` seit 07.09.2026, 04:18:43 CEST, Schema 20.** Das vollständige unabhängige Paketgate bestand mit **4472 Tests und 15 ausdrücklich aktivierbaren Opt-in-Skips**. OPS-001 ist ausgeliefert; B1 gehört ebenfalls zu diesem Release.
+
+Frischer OPS-Beleg `ops-live-branding-3d35cbb-root-0907/proof.json`: **56 Checks bestanden, beide Viewports**. Datierter Admin-Beleg `admin-live-week-3d35cbb-root-0907/proof.json`, erfasst `2026-09-07T03:16:09.722335+00:00`: **738 Checks bestanden, 36 Screenshots, keine Fehler oder nicht verfügbaren Prüfungen**. Beide Familien und Viewports verwenden die gespeicherte Woche **2026-08-31**. Operatorquelle `450894babda514e63602b2e40c8ae123263c38cc` bestand unabhängig 167 Tests nach getrennten Läufen mit 149 und 78 bestandenen Tests. Die datierte Druckprüfung beider Familien bestand mit 10/28 Fotos, jeweils einer PDF-Seite und gleichen Karten; TPL-003 behält die fachliche Druckabnahme.
+
+**Noch nicht deployed:** Symbolkandidat `5b746b35d261ed8b552724b3b273e71fd393973c` enthält Menü-Iconaktionen und deklarierte VEG/VGN für UI-003/ICO-001/002. Kombinierte 121 Tests und unabhängige Imageprüfung (677 gleiche Dateien ohne Extras, 247 AST-Prüfungen, Label/Benutzer/pip/Schema-20-Hashes; Build-WP `wp-1b31436a1455`) bestanden. Vollständiges Releasegate 6043 endete mit Exit 143 ohne JUnit oder Abschlussausgabe; Ursache unbelegt. Root sicherte die Evidenz mit `cp -a` unter `symbols-fullgate-0907-hvz04M/evidence-first` und bestätigte per Prozess-Arbeitsverzeichnis, dass im eingefrorenen Export keine Prozesse verblieben. Exakt identischer Wiederholungslauf 89103 läuft; kein vollständiges PASS.
+
+Public-404/`no_published_menu` bleibt bei fehlender aktueller Publikation korrekt. Der Tabler-Fix der bisherigen Public-Leerseite `de80b7e` bestand nach 1959 Worker-Tests auch Rootgate 64757 mit **1959 passed in 65.04s**. Root las den vollständigen Zwei-Dateien-Diff, Ruff bestand; normales Mypy meldet byte-identisch dieselben 64 Fehler in 14 Basisdateien, kein Mypy-PASS. Noch nicht integriert oder deployed. B2 arbeitet aktiv in `bas-b2-ma-astra`; Schema 21 ist reserviert, nicht produktiv.
+
+## Historischer Deploy-Nachtrag — 6. September 2026, 20:38:51 Uhr Schweiz
+
+Die folgenden Nachweise betreffen den damaligen Schema-19-Release. Seine Sicherungen und sein UI-Fallback sind keine aktuelle Schema-20-Rückfallfreigabe; Root führt den geprüften Betriebscheckpoint separat. Historische Smokes ersetzen keine aktuelle Gesamtabnahme.
 
 **Release `3690e04585af6b5c16917872cf6e4b50601b22c9` ist produktiv**, Image `sha256:6fca168acd508b2a66b58399f2beb1f87c979252f20aa55dc7897d1ba79bc828`, Start `2026-09-06T18:38:51.931697209Z` (20:38:51 CEST), `healthy`, öffentlicher HTTP-Status 200. Schema **19**, Migration/Runtime/Auth-Issuer jeweils `ready=true`, Registry-Prüfsumme `e195aac3c6b53fb08f733723cd8ef12e6e40fb7abdc5fe58bf1f88585015c6c1` bestätigt. Vollständiges Paket: **4001 Tests bestanden, 15 Opt-in-Skips**, 4016 insgesamt in 1603.990 Sekunden, `PACKAGE_GATE_EXIT=0`. Die 14 Restore-Opt-ins bestanden separat in 122.97 Sekunden. Die korrigierte Compose-Probe und vier Fehler-/Cleanup-Fälle bestanden gemeinsam mit dem Branding-Operator **67 unabhängige Tests in 21.87 Sekunden**; dies belegt Containererzeugung und Image-/Cleanup-Verträge, keine Dienst- oder Netzkonnektivität. [Aktueller Root-Beleg](/nvmetank1/projects/rag-stack/.claude/reports/wp-ee18982cddf0.md).
 
@@ -8,22 +22,24 @@ Neu live sind die lokale Benutzerverwaltung und gleich grosse Menükarten in bei
 
 Die beiden Produktionssicherungen vor/nach Schema 19 sind von Root mit Hash und TOC geprüft. Ein Schema-19-kompatibler UI-off-Fallback `ff4fbc9` ist vorbereitet, unabhängig mit 177 Tests sowie Datei-/AST-/pip-Prüfungen bestätigt und nicht aktiv. Exakte Images und Backup-Hashes stehen im [aktuellen Backlog](../BACKLOG.md). Nach MIME-/Geometrie-Korrektur des Operators hat Root dessen 87 Tests, Ruff/Mypy und zweimal den vollständigen Live-Lauf geprüft: jeweils 798 Checks/40 PNG, null Fehler. Der rohe Status bleibt `incomplete`, weil individuelle öffentliche/Vorschau-Logos aktuell nicht verwendet werden und Zustandsabdeckung vom Live-Inhalt abhängt. Diese Branding-Varianten, physisches Yodeck, fachliche Küchen-/Druckbestätigung und externer Design-Validator bleiben offen.
 
-**35 IDs, keine Abschlussquote:** 15 IDs haben produktive Funktionen, darunter Teilumfänge; **OPS-001 bleibt aktiv und BAS-001 ist mit B1 begonnen**, 16 weitere grössere Umsetzungen bleiben offen, QA-001/DATA-001 begleiten als zwei fortlaufende Abnahmen. Freie Vorlagengestaltung, vollständige Screen-Zuordnungen und sämtliche Rezept-/Stammdaten-/Warenwirtschaftspakete behalten ihren Restumfang. Die ältere Lieferfolge unten ordnet Abhängigkeiten; ihr damaliger Status ist historisch. Aktuelle Einzelstände und vollständige ID-Zuordnung stehen in [BACKLOG.md](../BACKLOG.md).
+## Aktive Ausführung — 7. September 2026
 
-OPS-001 wurde durch tatsächliche Lane-Limits unterbrochen; Root sichert die vorhandenen
-Commits und uncommittierten Dateien und koordiniert ihre weitere Umsetzung. Der Gesamtstand
-bleibt ungeprüft. Daraus folgt keine Produktionsänderung und keine Fertigmeldung.
+**35 IDs, keine Abschlussquote:** 16 IDs haben produktive Funktionen, darunter Teilumfänge und OPS-001; **BAS-001 bleibt mit produktivem B1 und aktivem B2 in der Umsetzungsgruppe**. 16 weitere grössere Umsetzungen bleiben offen, QA-001/DATA-001 begleiten als zwei fortlaufende Abnahmen. Freie Vorlagengestaltung, vollständige Screen-Zuordnungen und sämtliche Rezept-/Stammdaten-/Warenwirtschaftspakete behalten ihren Restumfang. Die ältere Lieferfolge unten ordnet Abhängigkeiten; ihr damaliger Status ist historisch. Aktuelle Einzelstände und vollständige ID-Zuordnung stehen in [BACKLOG.md](../BACKLOG.md).
 
-Operativ zuerst OPS fertig prüfen und deployen; danach offene Screens-/Vorlagen-/Branding-
-Funktionen, Grundlagen/Rezeptverwaltung, Suche/Importe/Produktdaten, Rezeptplanung/Einkauf/
+Die früher unterbrochene OPS-Welle ist geprüft und produktiv. Ihre technischen Live-Nachweise
+stehen oben; fachliche Bestätigung und physische Playerabnahme werden dadurch nicht ersetzt.
+
+Operativ das vorbereitete Symbolrelease vollständig prüfen; Public-Leerseiten-Fix und B2
+laufen unabhängig weiter. Danach offene Screens-/Vorlagen-/Branding-Funktionen,
+Grundlagen/Rezeptverwaltung, Suche/Importe/Produktdaten, Rezeptplanung/Einkauf/
 Druck/KI, Kalkulation/Lager/Bestellungen und weitere Anbindungen. Die vollständigen Phasen
 und alle 35 IDs bleiben erhalten; Abnahmen begleiten jede Lieferung.
 
 **Geprüfter Teilstand im aktuellen Code:** B1 `e0fb93e` (ursprünglich `c7873fa`, reine Mengen-/Einheitenfunktionen) ist nach
 vollständigem Root-Diffreview und unabhängig **101 passed in 1.26s**, Ruff PASS und Mypy PASS
 für zwei Dateien integriert ([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)).
-Noch nicht deployed; Produktion bleibt `3690e04`/Schema 19. B2 wartet auf das abgenommene
-OPS-Schema 20. [BAS/REC-Pakete](bas-rec-work-packages-0906.md)
+B1 ist mit `3d35cbb` produktiv. B2 wird nach erfüllter OPS-Schema-20-Voraussetzung aktiv
+umgesetzt; Schema 21 ist reserviert, nicht deployed. [BAS/REC-Pakete](bas-rec-work-packages-0906.md)
 und [Datenvertrag](../design/2026-09-06-bas-rec-data-contract.md) erhalten sämtliche Restaufträge.
 
 **HugeRTE-Eignungsprobe:** 1.0.13 ist lokal browsergeprüft; Text, Fett, Listen und Silver-Linkdialog

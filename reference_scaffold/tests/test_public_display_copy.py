@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator
+from pathlib import Path
+from threading import Thread
+from urllib.parse import urlsplit
 
 import pytest
 from flask import Flask, render_template
-from playwright.sync_api import Browser, Page
+from playwright.sync_api import Browser, Page, Response, expect
+from werkzeug.serving import make_server
 
 from test_rendered_ui import _page
 from test_rendered_ui import app as app
@@ -154,3 +159,60 @@ def test_template_empty_states_keep_availability_notice_without_diagnostics(
         assert 'verfügbar' in _assert_plain_display(page)
     finally:
         page.close()
+
+
+@pytest.fixture
+def live_empty_public(app: Flask) -> Iterator[str]:
+    # Only publication availability is synthetic; routes/templates/assets use real HTTP.
+    app.config['TEST_SNAPSHOTS'].update(staff_guest=None, patient=None)
+    server = make_server('127.0.0.1', 0, app, threaded=True)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f'http://127.0.0.1:{server.server_port}'
+    finally:
+        server.shutdown()
+        thread.join(timeout=5)
+        server.server_close()
+
+
+@pytest.mark.parametrize('path', PUBLIC_PAGES[:4])
+@pytest.mark.parametrize('width', (390, 1440))
+def test_missing_public_week_loads_real_tabler_empty_state(
+    live_empty_public: str, browser: Browser, tmp_path: Path, path: str, width: int,
+) -> None:
+    with browser.new_context(viewport={'width': width, 'height': 900}) as context:
+        page = context.new_page()
+        responses: dict[str, Response] = {}
+        page.on('response', lambda response: responses.__setitem__(response.url, response))
+        response = page.goto(live_empty_public + path, wait_until='load')
+        assert response is not None and response.status == 404
+        assert response.headers['cache-control'] == 'no-store'
+        assert 'x-snapshot-revision' not in response.headers
+        expect(page.get_by_role('heading', name='Speiseplan nicht verfügbar', exact=True)).to_be_visible()
+        expect(page.locator('.empty-subtitle')).to_have_text('Der Speiseplan kann zurzeit nicht angezeigt werden.')
+        expect(page.locator('.empty-subtitle')).to_be_visible()
+        assert 'Speiseplan nicht verfügbar' in _assert_plain_display(page)
+        assert page.locator('body.public-page main#main-content .empty').count() == 1
+        assert page.locator('h1').count() == 1
+        assert page.locator('.empty').evaluate("node => getComputedStyle(node).textAlign") == 'center'
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        styles = page.locator('link[rel="stylesheet"]').evaluate_all('nodes => nodes.map(node => node.href)')
+        expected_styles = ['tokens.css', 'vendor/tabler/tabler.min.css', 'menu-images.css',
+                           'food-symbols.css', 'public.css']
+        assert styles == [f'{live_empty_public}/static/{name}' for name in expected_styles]
+        for url in styles:
+            loaded = responses[url]
+            assert loaded.status == 200
+            assert loaded.headers['content-type'].startswith('text/css')
+            assert len(loaded.body()) > 100
+        assert all(urlsplit(url).netloc == urlsplit(live_empty_public).netloc for url in responses)
+        assert not any(urlsplit(url).path == '/static/app.css' for url in responses)
+        symbol = f'{live_empty_public}/static/vendor/tabler-icons/tabler-icons.svg'
+        assert responses[symbol].status == 200
+        assert b'id="tabler-alert-triangle"' in responses[symbol].body()
+        expect(page.locator('.empty-icon svg')).to_be_visible()
+        assert page.locator('article.menu-slot, .menu-card').count() == 0
+        screenshot = tmp_path / f'public-empty-{path.strip("/").replace("/", "-")}-{width}.png'
+        page.screenshot(path=str(screenshot), full_page=True)
+        screenshot.chmod(0o600)

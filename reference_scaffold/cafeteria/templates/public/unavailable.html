@@ -1,11 +1,9 @@
-{% extends "base.html" %}
-{% from '_brand_logo.html' import brand_logo %}
+{% extends "public/base_public.html" %}
 {% block title %}Speiseplan nicht verfügbar – Klinik Südhang{% endblock %}
-{% block body %}
-<header class="site-header">
-  <a class="site-logo" href="{{ url_for('public.cafeteria_today') }}">{{ brand_logo(brand, 'site-logo-img') }}</a>
-</header>
-<main class="public-shell" id="main-content">
-  <section class="empty-state"><h1>Speiseplan nicht verfügbar</h1><p>Der Speiseplan kann zurzeit nicht angezeigt werden.</p></section>
-</main>
+{% block content %}
+<section class="empty">
+  <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="{{ url_for('static', filename='vendor/tabler-icons/tabler-icons.svg') }}#tabler-alert-triangle"></use></svg></div>
+  <h1 class="empty-title">Speiseplan nicht verfügbar</h1>
+  <p class="empty-subtitle text-secondary">Der Speiseplan kann zurzeit nicht angezeigt werden.</p>
+</section>
 {% endblock %}

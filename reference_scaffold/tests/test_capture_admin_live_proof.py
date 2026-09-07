@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+from datetime import date
 from pathlib import Path
 from unittest.mock import MagicMock
 from urllib.parse import urlsplit
@@ -113,13 +114,13 @@ def test_planning_pages_are_required_even_when_legacy_workflow_fails(tmp_path: P
         f'desktop.{family}.{section}'
         for family in ('cafeteria', 'patienten') for section in ('menus', 'weeks')
     }
-    assert {item['name'] for item in proof['pages']} == expected
+    assert {item['name'] for item in proof['pages']} == (set() if fault == 'http_500' else expected)
     assert proof['unavailable'] == []
     for name in expected:
         assert f'{name}.http_200' in proof['checks']
-        assert f'{name}.profile' in proof['checks']
-        assert f'{name}.nav_current' in proof['checks']
-    failures = [name for name in proof['failures'] if '.overview.' not in name]
+        assert (f'{name}.profile' in proof['checks']) is (fault != 'http_500')
+        assert (f'{name}.nav_current' in proof['checks']) is (fault != 'http_500')
+    failures = [name for name in proof['failures'] if '.menus.' in name or '.weeks.' in name]
     if fault in (None, 'empty_query', 'empty_weeks', 'food_note', 'berries'):
         assert failures == []
         assert all(proof['checks'].values())
@@ -134,8 +135,33 @@ def test_planning_pages_are_required_even_when_legacy_workflow_fails(tmp_path: P
             'missing_row_links': 'row_links',
         }[fault]
         assert f'desktop.cafeteria.weeks.{suffix}' in failures
-    assert page.goto.call_count == 7  # Login, all four planning pages, two legacy overviews.
+    assert page.goto.call_count == 9  # Login, four lists, two overviews and independent catalogs.
     page.get_by_role.return_value.click.assert_called_once()  # Only login is clicked.
+
+
+@pytest.mark.parametrize('value', ['20260907', '2026-W37-1', '2026-9-7', '2026-09-08',
+                                 '2026-02-30', '9999-12-27', '2026-09-07 ', ''])
+def test_week_cli_rejects_invalid_input_before_auth_or_output(tmp_path, monkeypatch, value):
+    outdir = tmp_path / 'proof'
+    monkeypatch.setattr(sys, 'argv', ['proof', '--outdir', str(outdir), '--week', value])
+    password, browser = MagicMock(), MagicMock()
+    monkeypatch.setattr(capture_tool, '_password', password)
+    monkeypatch.setattr(capture_tool, 'sync_playwright', browser)
+    with pytest.raises(SystemExit) as error:
+        capture_tool.main()
+    assert error.value.code == 2
+    assert not outdir.exists()
+    password.assert_not_called()
+    browser.assert_not_called()
+
+
+def test_week_parser_and_url_scope_are_canonical():
+    week = capture_tool._parse_week('2026-08-31')
+    assert week == date(2026, 8, 31)
+    path = '/admin/cafeteria/menu'
+    assert capture_tool._week_url_matches(BASE + path + '?day=2026-09-01&week=2026-08-31', BASE, path, week)
+    for query in ['', '?week=2026-09-07', '?week=2026-08-31&week=2026-08-31', '?week=2026-08-31#x']:
+        assert not capture_tool._week_url_matches(BASE + path + query, BASE, path, week)
 
 
 @pytest.mark.parametrize('href,expected', [
