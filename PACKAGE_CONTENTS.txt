@@ -438,6 +438,8 @@ reference_scaffold/cafeteria/admin/api_routes.py
 reference_scaffold/cafeteria/admin/branding_routes.py
 reference_scaffold/cafeteria/admin/display_routes.py
 reference_scaffold/cafeteria/admin/local_user_routes.py
+reference_scaffold/cafeteria/admin/master_data_forms.py
+reference_scaffold/cafeteria/admin/master_data_routes.py
 reference_scaffold/cafeteria/admin/menu_collection_routes.py
 reference_scaffold/cafeteria/admin/menu_collection_store.py
 reference_scaffold/cafeteria/admin/operations_routes.py
@@ -872,6 +874,12 @@ reference_scaffold/cafeteria/templates/admin/component_editor.html
 reference_scaffold/cafeteria/templates/admin/components.html
 reference_scaffold/cafeteria/templates/admin/copy.html
 reference_scaffold/cafeteria/templates/admin/display_settings.html
+reference_scaffold/cafeteria/templates/admin/grundlagen.html
+reference_scaffold/cafeteria/templates/admin/grundlagen_food.html
+reference_scaffold/cafeteria/templates/admin/grundlagen_location_conflict.html
+reference_scaffold/cafeteria/templates/admin/grundlagen_unavailable.html
+reference_scaffold/cafeteria/templates/admin/grundlagen_unit.html
+reference_scaffold/cafeteria/templates/admin/grundlagen_vocabulary.html
 reference_scaffold/cafeteria/templates/admin/import_preview.html
 reference_scaffold/cafeteria/templates/admin/local_user_create.html
 reference_scaffold/cafeteria/templates/admin/local_user_editor.html
@@ -884,6 +892,7 @@ reference_scaffold/cafeteria/templates/admin/operations.html
 reference_scaffold/cafeteria/templates/admin/patienten.html
 reference_scaffold/cafeteria/templates/admin/preview.html
 reference_scaffold/cafeteria/templates/admin/print_template_editor.html
+reference_scaffold/cafeteria/templates/admin/print_template_unavailable.html
 reference_scaffold/cafeteria/templates/admin/screens.html
 reference_scaffold/cafeteria/templates/admin/vorlagen.html
 reference_scaffold/cafeteria/templates/admin/week_management.html
@@ -1029,9 +1038,11 @@ reference_scaffold/tests/test_local_user_management_db.py
 reference_scaffold/tests/test_local_user_management_migration_db.py
 reference_scaffold/tests/test_local_user_management_races.py
 reference_scaffold/tests/test_local_user_management_reads.py
+reference_scaffold/tests/test_master_data_browser.py
 reference_scaffold/tests/test_master_data_capabilities.py
 reference_scaffold/tests/test_master_data_db.py
 reference_scaffold/tests/test_master_data_race_db.py
+reference_scaffold/tests/test_master_data_routes.py
 reference_scaffold/tests/test_mcp_server.py
 reference_scaffold/tests/test_menu_collection.py
 reference_scaffold/tests/test_menu_collection_browser.py
@@ -1048,6 +1059,10 @@ reference_scaffold/tests/test_print_branding.py
 reference_scaffold/tests/test_print_branding_browser.py
 reference_scaffold/tests/test_print_branding_pdf.py
 reference_scaffold/tests/test_print_branding_routes.py
+reference_scaffold/tests/test_print_template_archive.py
+reference_scaffold/tests/test_print_template_archive_browser.py
+reference_scaffold/tests/test_print_template_archive_concurrency.py
+reference_scaffold/tests/test_print_template_archive_errors.py
 reference_scaffold/tests/test_print_template_browser.py
 reference_scaffold/tests/test_print_template_pdf.py
 reference_scaffold/tests/test_print_template_routes.py
