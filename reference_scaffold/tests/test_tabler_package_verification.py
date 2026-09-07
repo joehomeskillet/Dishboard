@@ -119,6 +119,31 @@ def test_pytest_failure_is_not_hidden_by_skips(monkeypatch, capsys, summary, off
     assert '[OK] Flask-Routen, Jinja-Templates und Vertragstests geprueft' not in output
 
 
+@pytest.mark.parametrize('streams', ['both', 'stdout', 'stderr'])
+def test_live_pytest_failure_preserves_each_output_stream(monkeypatch, capsys, streams):
+    failure = 'FAILED tests/test_contract.py::test_guard\n1 failed, 7 passed\n'
+    warning = '127.0.0.1 GET /static/admin-tabler.css 304\n'
+    stdout = failure if streams != 'stderr' else ''
+    stderr = warning if streams == 'both' else (failure if streams == 'stderr' else '')
+    actual_run = validator.run
+
+    def bounded_run(command, cwd):
+        if command[1:3] == ['-m', 'pytest']:
+            return subprocess.CompletedProcess(command, 1, stdout, stderr)
+        return actual_run(command, cwd)
+
+    monkeypatch.setattr(validator, 'run', bounded_run)
+    monkeypatch.setenv('TEST_DATABASE_URL', 'postgresql://unused.invalid/menuplan_test_contract')
+    monkeypatch.setattr(sys, 'argv', ['validate_package.py', '--root', str(ROOT)])
+    assert validator.main() == 1
+    output = capsys.readouterr().out
+    assert '[FEHLER] Vertragstests fehlgeschlagen: ' in output
+    assert failure in output
+    if streams == 'both':
+        assert warning in output
+    assert '[OK] Flask-Routen, Jinja-Templates und Vertragstests geprueft' not in output
+
+
 @pytest.mark.parametrize(
     'migration_name',
     ['0015_v17_to_v18.sql', '0016_v18_to_v19.sql', '0017_v19_to_v20.sql'],

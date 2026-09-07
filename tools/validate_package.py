@@ -374,7 +374,7 @@ def main() -> int:
         else:
             pytest_result = run([sys.executable, '-m', 'pytest', '-q', '-rs', '-p', 'no:cacheprovider', 'tests'],
                                root / 'reference_scaffold')
-            check(pytest_result.returncode == 0, f'Vertragstests fehlgeschlagen: {pytest_result.stderr or pytest_result.stdout}')
+            check(pytest_result.returncode == 0, f'Vertragstests fehlgeschlagen: {pytest_result.stdout}\n{pytest_result.stderr}')
             if pytest_result.returncode == 0:
                 ok('Flask-Routen, Jinja-Templates und Vertragstests geprueft')
     else:

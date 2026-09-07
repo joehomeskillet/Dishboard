@@ -14,7 +14,7 @@ from cafeteria.branding_config import default_config
 from test_admin_workflow_routes import app as workflow_app, database_engine as database_engine  # noqa: F401
 from test_branding_browser import live_branding as live_branding
 from test_branding_store import _png
-from test_rendered_ui import browser as browser
+from test_rendered_ui import _set_legacy_snapshot, browser as browser
 from demo_snapshots import cafeteria_snapshot, patient_snapshot
 
 
@@ -22,6 +22,9 @@ from demo_snapshots import cafeteria_snapshot, patient_snapshot
 def logo_site(live_branding, monkeypatch: pytest.MonkeyPatch):
     origin, application, client, actor, authz = live_branding
     snapshots = {'staff_guest': cafeteria_snapshot(), 'patient': patient_snapshot()}
+    # These logo contracts exercise the legacy heading and complete two-page patient rotation.
+    for snapshot in snapshots.values():
+        _set_legacy_snapshot(snapshot)
     application.config.update(LOCAL_AUTH_ENABLED=True, DEMO_TODAY='2026-08-31', TEST_SNAPSHOTS=snapshots)
     monkeypatch.setattr('cafeteria.public.routes.active_snapshot',
                         lambda _engine, profile, *_args, **_kwargs: deepcopy(snapshots[profile]))
