@@ -10,6 +10,7 @@ from . import display_routes as display_routes
 from . import operations_routes as operations_routes
 from . import branding_routes as branding_routes
 from . import local_user_routes as local_user_routes
+from . import master_data_routes as master_data_routes
 from .routes import bp as bp
 from .rendering import _template_context
 

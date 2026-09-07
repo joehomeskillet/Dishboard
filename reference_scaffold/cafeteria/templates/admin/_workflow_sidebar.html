@@ -12,6 +12,7 @@
     {% for key, href, label in [('weeks', weeks_url, 'Wochenpläne'), ('management', url_for('admin.week_management', family=family), 'Wochenverwaltung'), ('menus', '/admin/' ~ family ~ '/menues', 'Menüs'), ('components', '/admin/' ~ family ~ '/komponenten', 'Komponenten'), ('import', url_for('admin.import_preview'), 'CSV Import')] %}
     <a href="{{ href }}"{% if workflow_nav == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
     {% endfor %}
+    <a href="{{ url_for('admin.master_data_list') }}"{% if workflow_nav == 'master_data' %} class="active" aria-current="page"{% endif %}>Grundlagen</a>
     {% for key, label in [('screens', 'Screens'), ('vorlagen', 'Vorlagen')] %}
     <a href="{{ url_for('admin.' ~ key) }}"{% if workflow_nav == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
     {% endfor %}
@@ -48,6 +49,7 @@
         ('management', url_for('admin.week_management', family=family), 'calendar-cog', 'Wochenverwaltung'),
         ('menus', '/admin/' ~ family ~ '/menues', 'tools-kitchen-2', 'Menüs'),
         ('components', '/admin/' ~ family ~ '/komponenten', 'components', 'Komponenten'),
+        ('master_data', url_for('admin.master_data_list'), 'components', 'Grundlagen'),
         ('import', url_for('admin.import_preview'), 'file-import', 'CSV Import'),
         ('screens', url_for('admin.screens'), 'eye', 'Screens'),
         ('vorlagen', url_for('admin.vorlagen'), 'copy', 'Vorlagen'),

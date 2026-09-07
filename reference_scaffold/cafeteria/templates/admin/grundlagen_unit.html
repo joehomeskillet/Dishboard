@@ -1,0 +1,16 @@
+{% extends 'admin/grundlagen.html' %}
+{% from 'admin/_macros.html' import page_header %}
+{% set workflow_nav = 'master_data' %}
+{% block title %}Einheit · Grundlagen{% endblock %}
+{% block page_header %}{{ page_header('Einheit bearbeiten' if row else 'Einheit anlegen') }}{% endblock %}
+{% block content %}
+<a class="btn mb-3" href="{{ url_for('admin.master_data_list', kind=query_kinds[kind]) }}">Zur Einheitenliste</a>{{ errors() }}{{ status_actions() }}
+<div class="card"><div class="card-body">
+{% if row %}<dl><dt>Code</dt><dd>{{ row.code }}</dd><dt>Dimension</dt><dd>{{ row.dimension }}</dd><dt>Basisfaktor</dt><dd>{{ row.base_factor if row.base_factor is not none else 'Kontextabhängig' }}</dd></dl><p>Code, Dimension und Faktor bleiben unverändert. Für eine andere Bedeutung eine neue Einheit anlegen.</p>{% endif %}
+{% if can_write %}<form method="post" data-dirty-form action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose='name') if row else url_for('admin.master_data_new', kind=kind) }}">
+{{ form_start('name' if row else 'neu') }}{{ input('display_name', 'Anzeigename', true) }}
+{% if not row %}{{ input('code', 'Code (Grossbuchstaben, Ziffern, Unterstrich)', true) }}
+<label class="form-label" for="dimension">Dimension</label><select class="form-select mb-3" id="dimension" name="dimension">{% for key, label in [('mass', 'Masse'), ('volume', 'Volumen'), ('count', 'Anzahl'), ('contextual', 'Kontextabhängig')] %}<option value="{{ key }}"{% if values.get('dimension') == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+{{ input('base_factor', 'Basisfaktor (bei kontextabhängiger Einheit leer lassen)') }}{% endif %}
+<button class="btn btn-primary" type="submit">{{ 'Name speichern' if row else 'Einheit anlegen' }}</button></form>{% else %}<p>{{ row.display_name if row else 'Keine Schreibberechtigung' }}</p>{% endif %}
+</div></div>{% endblock %}

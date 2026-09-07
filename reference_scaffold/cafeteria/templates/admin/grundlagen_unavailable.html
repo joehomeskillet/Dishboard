@@ -1,0 +1,6 @@
+<!doctype html><html lang="de-CH"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ title|default('Grundlagen nicht verfügbar') }}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='admin-tabler.css') }}">
+</head><body class="dishboard-admin"><main class="container-xl py-5"><div class="card"><div class="card-body">
+<h1 class="card-title">{{ title|default('Grundlagen nicht verfügbar') }}</h1><p role="alert">{{ message|default('Die Stammdaten können momentan nicht geladen werden. Bitte versuchen Sie es später erneut.') }}</p>
+<a class="btn" href="{{ url_for('admin.master_data_list') }}">Grundlagen erneut öffnen</a></div></div></main></body></html>

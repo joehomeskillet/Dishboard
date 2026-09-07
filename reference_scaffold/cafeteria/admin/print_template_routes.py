@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 from datetime import date
+from functools import wraps
 from typing import Any
 
-from flask import abort, flash, g, make_response, redirect, render_template, request, url_for
-from sqlalchemy.exc import NoResultFound
+from flask import abort, current_app, flash, g, make_response, redirect, render_template, request, url_for
+from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 from werkzeug.wrappers import Response
 
 from ..component_catalog_store import ComponentCatalogConfigurationError
@@ -21,6 +22,20 @@ from ..workflow_store import load_draft_connection
 from .rendering import _template_context
 from .week_pdf import WeekPdfFitError, render_week_pdf
 from .workflow_routes import _db, _exact, _version_field, _week_arg, bp, profile_from_endpoint
+
+
+def _database_available(function):
+    @wraps(function)
+    def wrapped(*args, **kwargs):
+        try:
+            return function(*args, **kwargs)
+        except SQLAlchemyError:
+            # Do not run context processors or retry database reads after a failed transaction.
+            html = current_app.jinja_env.get_template('admin/print_template_unavailable.html').render()
+            response = make_response(html, 503)
+            response.headers['Cache-Control'] = 'no-store'
+            return response
+    return wrapped
 
 
 def _arguments() -> tuple[date, str, int | None]:
@@ -90,6 +105,7 @@ def _render_editor(
 
 
 @bp.route('/vorlagen/<any(cafeteria, patienten):family>', methods=['GET', 'POST'])
+@_database_available
 @require_capability('settings.write')
 def print_template_editor(family: str) -> Response:
     week, template_id, revision_id = _arguments()
@@ -102,14 +118,15 @@ def print_template_editor(family: str) -> Response:
         required |= {'name', *default_config()}
     elif action == 'copy':
         required.add('name')
-    elif action not in {'restore', 'activate'}:
+    elif action not in {'restore', 'activate', 'archive', 'reactivate'}:
         abort(400, description='Vorlagenaktion ist ungültig.')
     _exact(required)
     profile = profile_from_endpoint(family)
+    form_revision = _version_field('revision')
     try:
         _, selected_id = change_template(
             _db(), profile, g.auth_user.user_id, g.auth_user.authz_version,
-            _version_field('version'), template_id, str(action), revision_id=_version_field('revision'),
+            _version_field('version'), template_id, str(action), revision_id=form_revision,
             name=request.form.get('name'), week=week,
             config={key: request.form[key] for key in default_config()} if action == 'save' else None,
         )
@@ -120,7 +137,8 @@ def print_template_editor(family: str) -> Response:
     except (PrintTemplateValidationError, PrintTemplateConflictError, WeekPdfFitError, NoResultFound) as error:
         status = 409 if isinstance(error, PrintTemplateConflictError) else 422 if isinstance(error, WeekPdfFitError) else 400
         message = 'Aktivierung benötigt eine gespeicherte Woche. Bitte zuerst die Woche anlegen.' if isinstance(error, NoResultFound) else str(error)
-        return _render_editor(family, week, template_id, revision_id, error=message,
+        selected_revision = form_revision if isinstance(error, PrintTemplateConflictError) else revision_id
+        return _render_editor(family, week, template_id, selected_revision, error=message,
                               error_field=getattr(error, 'field', 'form'), status=status)
     except ComponentCatalogConfigurationError as error:
         abort(503, description=str(error))
@@ -131,14 +149,20 @@ def print_template_editor(family: str) -> Response:
         'copy': 'Vorlagenkopie als Entwurf erstellt.',
         'restore': 'Frühere Revision als neuer Entwurf wiederhergestellt. Zum Drucken ausdrücklich aktivieren.',
         'activate': 'Vorlage für diese Woche geprüft und für künftige PDF-Downloads aktiviert.',
+        'archive': 'Vorlage archiviert. Alle Revisionen und PDF-Vorschauen bleiben erhalten.',
+        'reactivate': 'Vorlage wieder verfügbar. Die aktive Druckvorlage bleibt bestehen.',
     }
     flash(messages[str(action)])
-    response = redirect(url_for('admin.print_template_editor', family=family, week=week.isoformat(), template=selected_id), 303)
+    response = redirect(url_for(
+        'admin.print_template_editor', family=family, week=week.isoformat(), template=selected_id,
+        revision=request.form['revision'] if action in {'archive', 'reactivate'} else None,
+    ), 303)
     response.headers['Cache-Control'] = 'no-store'
     return response
 
 
 @bp.get('/vorlagen/<any(cafeteria, patienten):family>/vorschau.pdf')
+@_database_available
 @require_capability('settings.write')
 def print_template_preview(family: str) -> Response:
     week, template_id, revision_id = _arguments()

@@ -1,4 +1,8 @@
-"""Revisioned print drafts in a separate settings namespace; no writes on read."""
+"""Revisioned print drafts; v1 reads are mutation-free, writes commit schema v2.
+
+After a v2 write, rollback requires a reader/writer retaining all archive guards;
+old strict v1 applications cannot read these documents. Never downgrade the JSON.
+"""
 from __future__ import annotations
 
 import copy
@@ -9,6 +13,7 @@ from typing import Any
 from uuid import uuid4
 
 from sqlalchemy import Connection, Engine, text
+from sqlalchemy.exc import DBAPIError
 
 from .print_template_config import (
     PROFILES, PrintTemplateValidationError, default_config, plain_text, validate_config,
@@ -30,8 +35,8 @@ class PrintTemplateStateError(ValueError):
 
 def default_document() -> dict[str, Any]:
     return {
-        'schema_version': 1, 'version': 0, 'active_template': 'standard', 'active_revision': 1,
-        'templates': [{'id': 'standard', 'current_revision': 1, 'revisions': [{
+        'schema_version': 2, 'version': 0, 'active_template': 'standard', 'active_revision': 1,
+        'templates': [{'id': 'standard', 'archived': False, 'current_revision': 1, 'revisions': [{
             'id': 1, 'name': 'Standard', 'config': default_config(),
             'created_at': None, 'created_by': None, 'restored_from': None,
         }]}],
@@ -61,13 +66,19 @@ def _require(condition: object) -> None:
 def _validate_document(value: Any, profile: str) -> dict[str, Any]:
     try:
         _require(isinstance(value, dict) and set(value) == set(default_document()))
-        _require(type(value['schema_version']) is int and value['schema_version'] == 1)
+        _require(type(value['schema_version']) is int and value['schema_version'] in {1, 2})
+        schema_version = value['schema_version']
         _require(_integer(value['version'], 0, 2**63 - 2))
         templates = value['templates']
         _require(isinstance(templates, list) and 1 <= len(templates) <= MAX_TEMPLATES)
         ids: set[str] = set()
         for template in templates:
-            _require(isinstance(template, dict) and set(template) == {'id', 'current_revision', 'revisions'})
+            keys = {'id', 'current_revision', 'revisions'}
+            if schema_version == 2:
+                keys.add('archived')
+            _require(isinstance(template, dict) and set(template) == keys)
+            if schema_version == 2:
+                _require(type(template['archived']) is bool)
             _require(isinstance(template['id'], str) and IDENTIFIER.fullmatch(template['id']))
             _require(template['id'] not in ids)
             ids.add(template['id'])
@@ -90,9 +101,15 @@ def _validate_document(value: Any, profile: str) -> dict[str, Any]:
         _require(isinstance(value['active_template'], str) and value['active_template'] in ids)
         _require(_integer(value['active_revision'], 1, MAX_REVISIONS))
         template_revision(value, value['active_template'], value['active_revision'])
+        _require(not next(item for item in templates if item['id'] == value['active_template']).get('archived', False))
     except (KeyError, TypeError, ValueError, LookupError) as error:
         raise PrintTemplateStateError('Gespeicherte Druckvorlagen sind ungültig. Bitte Administration verständigen.') from error
-    return copy.deepcopy(value)
+    document = copy.deepcopy(value)
+    # Normalize legacy reads in memory only. The successful CAS writer upgrades atomically.
+    document['schema_version'] = 2
+    for template in document['templates']:
+        template.setdefault('archived', False)
+    return document
 
 
 def read_templates(connection: Connection, profile: str) -> dict[str, Any]:
@@ -114,18 +131,15 @@ def active_template(connection: Connection, profile: str) -> tuple[dict[str, str
 def _authorize(connection: Connection, actor_id: int, authz_version: int) -> None:
     if not _integer(actor_id, 1, 2**63 - 1) or not _integer(authz_version, 1, 2**63 - 1):
         raise PermissionError('Aktuelle Admin-Berechtigung erforderlich.')
-    # Authorization updates lock the same user row before changing cached roles.
-    user = connection.execute(text('''
-        SELECT id FROM cafeteria.users
-        WHERE id=:actor AND authz_version=:version AND disabled_at IS NULL FOR SHARE
-    '''), {'actor': actor_id, 'version': authz_version}).scalar_one_or_none()
-    admin = connection.execute(text('''
-        SELECT 1 FROM cafeteria.user_role_cache r
-        JOIN cafeteria.application_roles a ON a.role_code=r.role_code AND a.active
-        WHERE r.user_id=:actor AND r.role_code='Cafeteria.Admin'
-    '''), {'actor': actor_id}).scalar_one_or_none()
-    if user is None or admin is None:
-        raise PermissionError('Aktuelle Admin-Berechtigung erforderlich.')
+    # Existing settings guard locks IAM roles before the original actor. Runtime
+    # has EXECUTE permission, deliberately no direct UPDATE privilege on roles.
+    try:
+        connection.execute(text('SELECT cafeteria.lock_operations_actor(:actor, :version)'),
+                           {'actor': actor_id, 'version': authz_version})
+    except DBAPIError as error:
+        if getattr(error.orig, 'sqlstate', None) == '42501':
+            raise PermissionError('Aktuelle Admin-Berechtigung erforderlich.') from error
+        raise
 
 
 def _append_revision(template: dict[str, Any], revision: dict[str, Any], actor_id: int) -> None:
@@ -145,7 +159,7 @@ def change_template(
     name: str | None = None, config: dict[str, str] | None = None, week: date | None = None,
 ) -> tuple[dict[str, Any], str]:
     """Save/copy/restore drafts or activate one checked revision, under one row lock."""
-    if profile not in PROFILES or action not in {'save', 'copy', 'restore', 'activate'}:
+    if profile not in PROFILES or action not in {'save', 'copy', 'restore', 'activate', 'archive', 'reactivate'}:
         raise PrintTemplateValidationError('Vorlagenaktion ist ungültig.')
     if not _integer(expected_version, 0, 2**63 - 2):
         raise PrintTemplateValidationError('Versionsnummer ist ungültig.')
@@ -170,16 +184,30 @@ def change_template(
         document = _validate_document(value, profile)
         if document['version'] != expected_version:
             raise PrintTemplateConflictError('Vorlagen wurden zwischenzeitlich geändert. Bitte neu laden; Ihre Eingaben wurden nicht gespeichert.')
+        if document['version'] == 2**63 - 2:
+            raise PrintTemplateConflictError('Versionsgrenze erreicht. Bitte Administration verständigen.')
         source = copy.deepcopy(template_revision(document, template_id, revision_id))
         template = next(item for item in document['templates'] if item['id'] == template_id)
-        if action == 'activate':
+        if template['archived'] and action in {'save', 'restore', 'activate'}:
+            raise PrintTemplateConflictError('Archivierte Vorlage zuerst reaktivieren.')
+        if action == 'archive':
+            if template['archived']:
+                raise PrintTemplateConflictError('Vorlage ist bereits archiviert.')
+            if document['active_template'] == template_id:
+                raise PrintTemplateConflictError('Aktive Vorlage kann nicht archiviert werden. Zuerst eine andere Vorlage aktivieren.')
+            template['archived'] = True
+        elif action == 'reactivate':
+            if not template['archived']:
+                raise PrintTemplateConflictError('Vorlage ist bereits verfügbar.')
+            template['archived'] = False
+        elif action == 'activate':
             _validate_week(connection, profile, week, source['config'])
             document.update(active_template=template_id, active_revision=source['id'])
         elif action == 'copy':
             if len(document['templates']) >= MAX_TEMPLATES:
                 raise PrintTemplateValidationError('Höchstens zehn Vorlagen je Bereich sind möglich.')
             template_id = uuid4().hex
-            template = {'id': template_id, 'current_revision': 0, 'revisions': []}
+            template = {'id': template_id, 'archived': False, 'current_revision': 0, 'revisions': []}
             source.update(name=name, restored_from=None)
             _append_revision(template, source, actor_id)
             document['templates'].append(template)

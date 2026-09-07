@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header %}
+{% from 'admin/_macros.html' import page_header, icon %}
 {% set workflow_nav = 'vorlagen' %}
 {% set label = 'Patienten' if profile == 'patient' else 'Cafeteria' %}
 {% set editor_url = url_for('admin.print_template_editor', family=family, week=week, template=template.id) %}
@@ -24,10 +24,13 @@
   <div><h2 class="h4">Änderung nicht gespeichert</h2><p>{{ error }}</p><a class="btn" href="{{ editor_url }}">Aktuellen Stand neu laden</a></div>
 </div>
 {% endif %}
+{% if template.archived %}
+<div class="alert alert-info" role="status">Diese Vorlage ist archiviert. Alle Revisionen bleiben einsehbar und als PDF prüfbar. Zum Bearbeiten oder Aktivieren zuerst reaktivieren.</div>
+{% endif %}
 <form class="card mb-4" method="get" action="{{ url_for('admin.print_template_editor', family=family) }}">
   <div class="card-body row g-3 align-items-end">
     <div class="col-12 col-sm-5"><label class="form-label" for="template-select">Vorlage</label><select class="form-select" id="template-select" name="template">
-      {% for item in document.templates %}<option value="{{ item.id }}" {% if item.id == template.id %}selected{% endif %}>{{ item.revisions[-1].name }}{% if document.active_template == item.id %} · Aktiv: Revision {{ document.active_revision }}{% endif %}</option>{% endfor %}
+      {% for item in document.templates %}<option value="{{ item.id }}" {% if item.id == template.id %}selected{% endif %}>{{ item.revisions[-1].name }}{% if item.archived %} · Archiviert{% endif %}{% if document.active_template == item.id %} · Aktiv: Revision {{ document.active_revision }}{% endif %}</option>{% endfor %}
     </select></div>
     <div class="col-12 col-sm-4"><label class="form-label" for="template-week">Vorschauwoche ab Montag</label><input class="form-control" type="date" id="template-week" name="week" value="{{ week }}" required></div>
     <div class="col-12 col-sm-3"><button class="btn" type="submit">Anzeigen</button></div>
@@ -36,8 +39,9 @@
 <div class="row row-cards print-template-editor">
   <div class="col-12 col-xl-5">
     <form class="card" method="post" action="{{ editor_url }}">
-      {{ hidden('save') }}
+      {% if not template.archived %}{{ hidden('save') }}{% endif %}
       <div class="card-header"><h2 class="card-title">Eigenschaften · Revision {{ revision.id }}</h2></div>
+      <fieldset {% if template.archived %}disabled{% endif %}>
       <div class="card-body">
         <div class="mb-3"><label class="form-label" for="template-name">Vorlagenname</label><input class="form-control" id="template-name" name="name" value="{{ values.name }}" maxlength="60" required {% if error_field == 'name' and error_action != 'copy' %}aria-invalid="true" aria-describedby="template-error"{% endif %}></div>
         {% for field, field_label in [('font', 'Druckschrift'), ('text_size', 'Textgrösse'), ('palette', 'Farbpalette'), ('logo', 'Logo'), ('margin', 'Seitenränder links und rechts'), ('spacing', 'Zellenabstände')] %}
@@ -51,7 +55,8 @@
         <div class="mb-3"><label class="form-label" for="template-{{ field }}">{{ field_label }}</label><textarea class="form-control" id="template-{{ field }}" name="{{ field }}" maxlength="{{ text_limits[field] }}" rows="2" {% if error_field == field %}aria-invalid="true" aria-describedby="template-error"{% endif %}>{{ values[field] }}</textarea><p class="form-hint">Optional, höchstens {{ text_limits[field] }} Zeichen. Nur einfacher Text.</p></div>
         {% endfor %}
       </div>
-      <div class="card-footer"><button class="btn btn-primary" type="submit">Entwurf speichern und prüfen</button><p class="form-hint mt-2 mb-0">Änderungen werden erst nach dem Speichern in der Vorschau sichtbar. Die aktive Druckvorlage bleibt bis zur Aktivierung bestehen.</p></div>
+      </fieldset>
+      {% if not template.archived %}<div class="card-footer"><button class="btn btn-primary" type="submit">Entwurf speichern und prüfen</button><p class="form-hint mt-2 mb-0">Änderungen werden erst nach dem Speichern in der Vorschau sichtbar. Die aktive Druckvorlage bleibt bis zur Aktivierung bestehen.</p></div>{% endif %}
     </form>
   </div>
   <div class="col-12 col-xl-7">
@@ -67,7 +72,7 @@
       <div class="card-footer">
         {% if document.active_template == template.id and document.active_revision == revision.id %}
         <p class="mb-2"><span class="badge bg-success-lt">Aktive Druckvorlage</span> Revision {{ revision.id }}</p>
-        {% else %}
+        {% elif not template.archived %}
         <form method="post" action="{{ editor_url }}">{{ hidden('activate') }}<button class="btn btn-primary" type="submit">Revision {{ revision.id }} prüfen und aktivieren</button></form>
         {% endif %}
         <p class="form-hint mt-2">Aktivierung prüft diese Woche. Jede andere Woche wird beim PDF-Download erneut auf vollständige Lesbarkeit geprüft.</p>
@@ -78,6 +83,28 @@
       <div class="card-header"><h2 class="card-title" id="copy-heading">Vorlage duplizieren</h2></div>
       <form method="post" action="{{ editor_url }}">{{ hidden('copy') }}<div class="card-body"><label class="form-label" for="template-copy-name">Name der Kopie</label><input class="form-control" id="template-copy-name" name="name" maxlength="60" required value="{{ copy_name }}" {% if error_field == 'name' and error_action == 'copy' %}aria-invalid="true" aria-describedby="template-error"{% endif %}><p class="form-hint">Übernimmt Revision {{ revision.id }} als eigenständigen Entwurf.</p><button class="btn" type="submit">Kopie erstellen</button></div></form>
     </section>
+    <section class="card mb-4" aria-labelledby="archive-heading">
+      <div class="card-header"><h2 class="card-title" id="archive-heading">Vorlagenstatus</h2></div>
+      <div class="card-body">
+        {% if template.archived %}
+        <p>Archiviert. Reaktivieren macht die Vorlage wieder bearbeitbar, ohne sie für den Druck zu aktivieren.</p>
+        <form method="post" action="{{ editor_url }}">{{ hidden('reactivate') }}<button class="btn" type="submit">{{ icon('archive-off') }}Vorlage reaktivieren</button></form>
+        {% elif document.active_template == template.id %}
+        <p>Aktive Vorlage · Revision {{ document.active_revision }}. Zum Archivieren zuerst eine andere Vorlage aktivieren.</p>
+        {% else %}
+        <p>Archivieren entfernt keine Revisionen und gibt keinen Vorlagenplatz frei. Alte PDF-Vorschauen bleiben erreichbar.</p>
+        <label class="form-check py-3 mb-2">
+          <input class="form-check-input" type="checkbox" form="archive-form" required aria-describedby="archive-confirm-hint">
+          <span class="form-check-label">Ich möchte diese Vorlage archivieren.</span>
+        </label>
+        <p class="form-hint" id="archive-confirm-hint">Alle Revisionen bleiben erhalten.</p>
+        <form id="archive-form" method="post" action="{{ editor_url }}">
+          {{ hidden('archive') }}
+          <button class="btn btn-outline-danger" type="submit">{{ icon('archive') }}Vorlage archivieren</button>
+        </form>
+        {% endif %}
+      </div>
+    </section>
     <section class="card" aria-labelledby="history-heading">
       <div class="card-header"><h2 class="card-title" id="history-heading">Gespeicherte Revisionen</h2></div>
       <ul class="list-group list-group-flush">
@@ -86,7 +113,7 @@
           <p class="mb-2"><strong>Revision {{ saved.id }} · {{ saved.name }}</strong>{% if saved.id == template.current_revision %} · Neuester Entwurf{% endif %}{% if document.active_template == template.id and document.active_revision == saved.id %} · Aktiv{% endif %}</p>
           <p class="text-secondary mb-2">{{ saved.created_at|replace('T', ' ') if saved.created_at else 'Mitgelieferte Standardvorlage' }}{% if saved.restored_from %} · Wiederhergestellt aus Revision {{ saved.restored_from }}{% endif %}</p>
           <div class="btn-list"><a class="btn" href="{{ url_for('admin.print_template_editor', family=family, week=week, template=template.id, revision=saved.id) }}">Revision {{ saved.id }} ansehen</a>
-          {% if saved.id != template.current_revision %}<form method="post" action="{{ editor_url }}">{{ hidden('restore', saved.id) }}<button class="btn" type="submit">Revision {{ saved.id }} wiederherstellen</button></form>{% endif %}</div>
+          {% if not template.archived and saved.id != template.current_revision %}<form method="post" action="{{ editor_url }}">{{ hidden('restore', saved.id) }}<button class="btn" type="submit">Revision {{ saved.id }} wiederherstellen</button></form>{% endif %}</div>
         </li>
         {% endfor %}
       </ul>

@@ -29,17 +29,21 @@
         {% set catalog = catalogs[output_family] %}
         <h3 class="h4">Druckvorlagen</h3>
         <p>Die aktive Revision wird für PDF-Downloads verwendet. Neuere Entwürfe werden erst nach ausdrücklicher Aktivierung verwendet.</p>
+        {% for archived, group_label in [(false, 'Verfügbare Vorlagen'), (true, 'Archivierte Vorlagen')] %}
+        {% set group = catalog.document.templates|selectattr('archived', 'equalto', archived)|list %}
+        {% if group %}
+        <h4 class="h4">{{ group_label }}</h4>
         <ul class="list-group list-group-flush mb-4">
-          {% for template in catalog.document.templates %}
+          {% for template in group %}
           {% set latest = template.revisions[-1] %}
           {% set active = template.id == catalog.document.active_template %}
           <li class="list-group-item px-0" data-template-id="{{ template.id }}">
-            <h4 class="h4 text-break">{{ latest.name }}</h4>
+            <h5 class="h4 text-break">{{ latest.name }}</h5>
             <p>Neuester Stand: Revision {{ latest.id }}{% if not active or latest.id != catalog.active.id %} · Entwurf{% endif %}</p>
             {% if active %}
             <p class="text-break"><span class="badge bg-green-lt">Aktiv</span> {{ catalog.active.name }} · Revision {{ catalog.active.id }}</p>
             {% else %}
-            <p class="text-secondary">Nicht aktiv</p>
+            <p class="text-secondary">{% if template.archived %}<span class="badge bg-secondary-lt">Archiviert</span> · {% endif %}Nicht aktiv</p>
             {% endif %}
             {% if 'Cafeteria.Admin' in roles %}
             <div class="btn-list">
@@ -54,6 +58,8 @@
           </li>
           {% endfor %}
         </ul>
+        {% endif %}
+        {% endfor %}
         <h3 class="h4">Wochenplan drucken</h3>
         <p>Das PDF verwendet die gespeicherte Woche ab {{ week|date_long }}. Vor dem ersten PDF-Download die Woche anlegen und speichern.</p>
         <div class="btn-list mb-4">
