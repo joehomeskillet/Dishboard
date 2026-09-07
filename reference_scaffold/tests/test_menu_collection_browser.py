@@ -15,6 +15,8 @@ from test_admin_ux_browser import (
 )
 from test_admin_workflow_routes import WEEK, _login, _payload
 from test_menu_collection import _save, _scope
+from test_branding_browser import live_branding as live_branding
+from test_admin_workflow_routes import app as workflow_app, database_engine as database_engine  # noqa: F401
 
 
 def test_collection_navigation_search_and_mobile_layout(page_context, admin_app, admin_engine):
@@ -39,6 +41,87 @@ def test_collection_navigation_search_and_mobile_layout(page_context, admin_app,
     page.get_by_role('link', name='Kartoffelgratin mit Gemüse vom 31.08.2026 öffnen').click()
     assert '/admin/patienten/menu?' in page.url
     expect(page.locator('input[name="title"]')).to_have_value('Kartoffelgratin mit Gemüse')
+
+
+@pytest.mark.parametrize('family,profile', [('cafeteria', 'staff_guest'), ('patienten', 'patient')])
+@pytest.mark.parametrize('width,height', [(390, 844), (1440, 1100)])
+def test_icon_actions_use_tabler_tooltips_under_real_csp(
+    live_branding, database_engine, browser, family, profile, width, height, tmp_path,
+):
+    origin, _, client, _, _ = live_branding
+    _save(database_engine, _scope(client, database_engine, profile), title='Kartoffelgratin mit Gemüse')
+    with browser.new_context(viewport={'width': width, 'height': height}, reduced_motion='reduce') as context:
+        context.add_cookies([{'name': 'session', 'value': client.get_cookie('session').value, 'url': origin}])
+        page = context.new_page()
+        errors = []
+        page.on('pageerror', lambda error: errors.append(str(error)))
+        page.on('console', lambda message: errors.append(message.text) if message.type == 'error' else None)
+        response = page.goto(origin + f'/admin/{family}/menues')
+        assert response.status == 200
+        assert "style-src 'self'; script-src 'self'" in response.headers['content-security-policy']
+        for view in ('cards', 'list'):
+            page.get_by_role('tab', name='Karten' if view == 'cards' else 'Liste', exact=True).click()
+            link = page.locator(f'#menu-{view} [data-admin-icon-action]').first
+            expect(link).to_have_attribute('aria-label', 'Kartoffelgratin mit Gemüse vom 31.08.2026 öffnen')
+            assert link.inner_text() == ''
+            expect(link.locator('use')).to_have_attribute('href', '/static/vendor/tabler-icons/tabler-icons.svg#tabler-pencil')
+            assert link.evaluate('element => Boolean(window.tabler.Tooltip.getInstance(element))')
+            link.hover()
+            tooltip = page.get_by_role('tooltip')
+            expect(tooltip).to_be_visible()
+            expect(tooltip).to_have_text('Kartoffelgratin mit Gemüse vom 31.08.2026 öffnen')
+            tooltip.hover()
+            page.wait_for_timeout(150)  # Longer than Tabler's 50 ms hide delay.
+            expect(tooltip).to_be_visible()
+            page.mouse.move(0, 0)
+            expect(tooltip).to_have_count(0)
+            link.focus()
+            page.keyboard.press('Shift+Tab')
+            page.keyboard.press('Tab')
+            expect(link).to_be_focused()
+            expect(tooltip).to_be_visible()
+            assert link.evaluate('element => getComputedStyle(element).outlineStyle !== "none"')
+            assert link.get_attribute('aria-describedby') == tooltip.get_attribute('id')
+            for target in (link, tooltip):
+                box = target.bounding_box()
+                assert box and box['x'] >= 0 and box['y'] >= 0
+                assert box['x'] + box['width'] <= width + 1
+                assert box['y'] + box['height'] <= height + 1
+            box = link.bounding_box()
+            assert box['width'] >= 48 and box['height'] >= 48
+            assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 1')
+            page.screenshot(path=str(tmp_path / f'{family}-{view}-tooltip-{width}.png'), full_page=True)
+            page.keyboard.press('Escape')
+            expect(tooltip).to_have_count(0)
+            expect(link).to_be_focused()
+            assert link.get_attribute('aria-describedby') is None
+        assert errors == []
+
+
+@pytest.mark.parametrize('family,profile', [('cafeteria', 'staff_guest'), ('patienten', 'patient')])
+@pytest.mark.parametrize('javascript', [True, False])
+def test_icon_help_and_first_tap_work_with_and_without_javascript(
+    live_branding, database_engine, browser, family, profile, javascript,
+):
+    origin, _, client, _, _ = live_branding
+    _save(database_engine, _scope(client, database_engine, profile), title='Kartoffelgratin mit Gemüse')
+    with browser.new_context(viewport={'width': 390, 'height': 844}, has_touch=True,
+                             is_mobile=True, java_script_enabled=javascript) as context:
+        context.add_cookies([{'name': 'session', 'value': client.get_cookie('session').value, 'url': origin}])
+        page = context.new_page()
+        page.goto(origin + f'/admin/{family}/menues')
+        listing_url = page.url
+        summary = page.locator('summary').filter(has_text='Symbole')
+        summary.tap()
+        expect(page.locator('details[open]')).to_contain_text('Menü öffnen und bearbeiten')
+        assert page.url == listing_url
+        summary.tap()
+        expect(page.locator('details[open]')).to_have_count(0)
+        link = page.locator('#menu-cards [data-admin-icon-action]').first
+        destination = link.get_attribute('href')
+        link.tap()
+        page.wait_for_url(origin + destination)
+        expect(page.locator('input[name="title"]')).to_have_value('Kartoffelgratin mit Gemüse')
 
 
 @pytest.mark.parametrize('family,profile', [('cafeteria', 'staff_guest'), ('patienten', 'patient')])

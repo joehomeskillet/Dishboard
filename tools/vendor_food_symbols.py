@@ -17,11 +17,14 @@ from pathlib import Path
 from typing import Any
 
 from vendor_tabler import check_hash, destination, member_bytes
+from vendor_tabler import source_bytes as tabler_source_bytes
 
 ROOT = Path(__file__).resolve().parents[1]
 VENDOR = ROOT / 'reference_scaffold/cafeteria/static/vendor/food-symbols'
 MANIFEST = VENDOR / 'manifest.json'
 MAX_BYTES = 8 * 1024 * 1024
+GROUPS = ('allergens', 'countries', 'labels')
+LABEL_FILES = {'VEGETARIAN': 'leaf', 'VEGAN': 'plant'}
 ALLERGEN_FILES = {
     'GLUTEN': 'gluten', 'CRUSTACEANS': 'crustaceans', 'EGGS': 'eggs', 'FISH': 'fish',
     'PEANUTS': 'peanuts', 'SOY': 'soya', 'MILK': 'milk', 'NUTS': 'nuts',
@@ -78,8 +81,8 @@ def load_manifest() -> dict[str, Any]:
     if set(manifest['allergens']) != set(allergens) or set(manifest['countries']) != set(countries):
         raise ValueError('Manifest does not cover the application catalogs exactly')
     paths = [row['path'] for row in manifest['files']]
-    if len(paths) != len(set(paths)) or len(paths) != 265:
-        raise ValueError('Expected exactly 14 allergen SVGs, 249 flags and two licenses')
+    if len(paths) != len(set(paths)) or len(paths) != 268:
+        raise ValueError('Expected exactly 14 allergen SVGs, 249 flags, two label SVGs and three licenses')
     for code, expected in allergens.items():
         row = manifest['allergens'][code]
         if (row['name'] != expected['name'] or row['eu_number'] != expected['eu_number']
@@ -90,12 +93,35 @@ def load_manifest() -> dict[str, Any]:
         row = manifest['countries'][code]
         if row != {'name': name, 'text_fallback': code, 'file': f'flags/{code.lower()}.svg'}:
             raise ValueError(f'Country mapping differs from existing selection: {code}')
-    expected_paths = {row['file'] for key in ('allergens', 'countries') for row in manifest[key].values()}
+    seed = (ROOT / 'database/seed.sql').read_text()
+    section = seed.split('INSERT INTO dietary_labels(code, display_name)', 1)[1].split('ON CONFLICT', 1)[0]
+    names = dict(re.findall(r"\('([A-Z_]+)', '([^']+)'\)", section))
+    if set(manifest['labels']) != set(LABEL_FILES):
+        raise ValueError('Only declared vegetarian and vegan label symbols are supported')
+    for code, icon in LABEL_FILES.items():
+        if manifest['labels'][code] != {'name': names[code], 'text_fallback': names[code],
+                                       'file': f'labels/{icon}.svg'}:
+            raise ValueError(f'Label mapping differs from seed: {code}')
+    lock = json.loads((VENDOR.parent / 'tabler.lock.json').read_text())
+    icons = next(row for row in lock['sources'] if row['id'] == 'icons')
+    tabler = manifest['sources']['tabler-icons']
+    if tabler != {'repository': 'tabler/tabler-icons', 'version': lock['packages']['@tabler/icons'],
+                  'license': 'MIT', 'license_file': 'licenses/tabler-icons-LICENSE',
+                  'cache_file': 'tabler-icons.tgz', 'archive_url': icons['url'],
+                  'archive_sha256': icons['sha256'], 'integrity': icons['integrity']}:
+        raise ValueError('Label source differs from the pinned Tabler archive')
+    expected_paths = {row['file'] for key in GROUPS for row in manifest[key].values()}
     expected_paths.update(row['license_file'] for row in manifest['sources'].values())
     if set(paths) != expected_paths or any('free-from' in row['member'] for row in manifest['files']):
         raise ValueError('Unmapped file or forbidden free-from symbol')
     for row in manifest['files']:
         path = row['path']
+        if path.startswith('labels/') or path == 'licenses/tabler-icons-LICENSE':
+            member = ('package/icons/outline/' + Path(path).name
+                      if path.startswith('labels/') else 'package/LICENSE')
+            if row['source'] != 'tabler-icons' or row['member'] != member:
+                raise ValueError(f'Incorrect label source-to-code mapping: {path}')
+            continue
         source_key = 'erudus' if path.startswith('allergens/') or path == 'licenses/erudus-LICENSE' else 'flag-icons'
         source = manifest['sources'][source_key]
         repository = {'erudus': 'Erudus/erudus-icons', 'flag-icons': 'lipis/flag-icons'}[source_key]
@@ -109,6 +135,9 @@ def load_manifest() -> dict[str, Any]:
 
 
 def source_bytes(source: dict[str, Any], cache: Path | None) -> bytes:
+    if source['repository'] == 'tabler/tabler-icons':
+        return tabler_source_bytes({'id': source['cache_file'], 'url': source['archive_url'],
+                                    'sha256': source['archive_sha256'], 'integrity': source['integrity']}, cache)
     url = urllib.parse.urlsplit(source['archive_url'])
     expected = f"/{source['repository']}/tar.gz/{source['commit']}"
     if (url.scheme != 'https' or url.netloc != 'codeload.github.com' or url.path != expected
@@ -167,11 +196,11 @@ def verify(manifest: dict[str, Any], output: Path) -> None:
     data = destination(output, audit['file']).read_bytes()
     check_hash(data, audit['sha256'], audit['file'])
     report = json.loads(data)
-    expected = {f'{group}/{code}' for group in ('allergens', 'countries') for code in manifest[group]}
+    expected = {f'{group}/{code}' for group in GROUPS for code in manifest[group]}
     if (report['renderer'] != audit['renderer'] or report['version'] != audit['version']
             or set(report['results']) != expected):
         raise ValueError('PDF compatibility audit does not cover all symbols')
-    print('FOOD SYMBOL VERIFY: 14 allergens, 249 countries, 265 source artifacts + PDF audit; offline PASS.')
+    print('FOOD SYMBOL VERIFY: 14 allergens, 249 countries, 2 labels, 268 source artifacts + PDF audit; offline PASS.')
 
 
 def check_pdf(manifest: dict[str, Any], output: Path, artifacts: Path) -> None:
@@ -190,7 +219,7 @@ def check_pdf(manifest: dict[str, Any], output: Path, artifacts: Path) -> None:
     logger.addHandler(handler)
     records = {}
     try:
-        for group in ('allergens', 'countries'):
+        for group in GROUPS:
             for code, row in manifest[group].items():
                 messages.clear()
                 error_message = None
@@ -215,14 +244,16 @@ def check_pdf(manifest: dict[str, Any], output: Path, artifacts: Path) -> None:
     contact = FPDF()
     contact.set_auto_page_break(False)
     contact.add_font('Carlito', fname=ROOT / 'reference_scaffold/cafeteria/static/fonts/weekly-print-carlito.ttf')
-    for group, columns, rows_per_page in [('allergens', 4, 5), ('countries', 7, 13)]:
+    for group, columns, rows_per_page in [('allergens', 4, 5), ('countries', 7, 13), ('labels', 4, 5)]:
         cell_width, cell_height = 190 / columns, 245 / rows_per_page
         for index, (code, row) in enumerate(manifest[group].items()):
             position = index % (columns * rows_per_page)
             if position == 0:
                 contact.add_page()
                 contact.set_font('Carlito', size=15)
-                contact.text(10, 13, 'Kontaktbogen: Allergene' if group == 'allergens' else 'Kontaktbogen: Herkunft')
+                contact.text(10, 13, {'allergens': 'Kontaktbogen: Allergene',
+                                     'countries': 'Kontaktbogen: Herkunft',
+                                     'labels': 'Kontaktbogen: Kostformlabels'}[group])
                 contact.set_font('Carlito', size=9)
                 contact.text(10, 20, 'fpdf2 2.8.8 · Technische Vorschau, keine Geräte- oder Druckabnahme')
             x, y = 10 + (position % columns) * cell_width, 26 + (position // columns) * cell_height
@@ -240,7 +271,7 @@ def check_pdf(manifest: dict[str, Any], output: Path, artifacts: Path) -> None:
     contact.output(artifacts / 'contact-sheet.pdf')
     ready = sum(row['status'] == 'renders_without_warning' for row in records.values())
     failures = sum(row['error'] is not None for row in records.values())
-    print(f'FOOD SYMBOL PDF: {ready}/263 render without warning; {263-ready} require conversion '
+    print(f'FOOD SYMBOL PDF: {ready}/265 render without warning; {265-ready} require conversion '
           f'({failures} errors); all source SVGs retained. Contact sheet: {contact.pages_count} pages.')
 
 

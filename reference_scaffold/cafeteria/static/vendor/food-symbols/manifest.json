@@ -2,7 +2,7 @@
   "schema_version": 1,
   "pdf_compatibility": {
     "file": "pdf-compatibility.json",
-    "sha256": "8a6acb1646411b09a513ec77306b45b8c863f719127cfbfc41f19ef2db3f7e57",
+    "sha256": "80d6adcd5464d51532400bc934e735c26b25d517cb4afd26b7e31d83c788b931",
     "renderer": "fpdf2",
     "version": "2.8.8"
   },
@@ -18,6 +18,16 @@
       "archive_sha256": "cedbefda8e9bdbbfa1ba26ef3bb68c94f52d3e24f5e49498c578610a66592137",
       "source_url": "https://github.com/Erudus/erudus-icons/tree/7e25e14a09b1aa0af4f85dc69ebfb03ff99480b7"
     },
+    "tabler-icons": {
+      "repository": "tabler/tabler-icons",
+      "version": "3.46.0",
+      "license": "MIT",
+      "license_file": "licenses/tabler-icons-LICENSE",
+      "cache_file": "tabler-icons.tgz",
+      "archive_url": "https://registry.npmjs.org/@tabler/icons/-/icons-3.46.0.tgz",
+      "archive_sha256": "6d727ad0489854d2d7d07ba9baa6476af7ee415aaa2eba1adc0deab48556852b",
+      "integrity": "sha512-f2RYFl3fzPwj5WO82x6en0dmkjefxEfOm16D1ByM6cj/McNiwOkL4VaPUoP9VVIrXAD9WnTSVFr70px703b//A=="
+    },
     "flag-icons": {
       "repository": "lipis/flag-icons",
       "version": "7.5.0",
@@ -28,6 +38,18 @@
       "archive_url": "https://codeload.github.com/lipis/flag-icons/tar.gz/7aa5b2bdddd570ece62c812c0cb588ccdc099e2e",
       "archive_sha256": "9b3eb7eb84604180ed80b63d6e6fb43f82e78e1d583a52741cb3cb8cf3c022ce",
       "source_url": "https://github.com/lipis/flag-icons/tree/7aa5b2bdddd570ece62c812c0cb588ccdc099e2e"
+    }
+  },
+  "labels": {
+    "VEGETARIAN": {
+      "name": "Vegetarisch",
+      "text_fallback": "Vegetarisch",
+      "file": "labels/leaf.svg"
+    },
+    "VEGAN": {
+      "name": "Vegan",
+      "text_fallback": "Vegan",
+      "file": "labels/plant.svg"
     }
   },
   "allergens": {
@@ -2941,6 +2963,24 @@
       "source": "flag-icons",
       "member": "flag-icons-7aa5b2bdddd570ece62c812c0cb588ccdc099e2e/flags/4x3/zw.svg",
       "sha256": "e27fcdcc882d7175cc4c07542779911043dc56262fe43b42f39bdaca09b762d5"
+    },
+    {
+      "path": "labels/leaf.svg",
+      "source": "tabler-icons",
+      "member": "package/icons/outline/leaf.svg",
+      "sha256": "9c9eba21f9df39d3d24e821e99f131445e3ec569a85d9de25743e990e4fd1780"
+    },
+    {
+      "path": "labels/plant.svg",
+      "source": "tabler-icons",
+      "member": "package/icons/outline/plant.svg",
+      "sha256": "d7a2969400961b21f2139e489023938d6aa7335d60d7cd5284e49fe77fc49224"
+    },
+    {
+      "path": "licenses/tabler-icons-LICENSE",
+      "source": "tabler-icons",
+      "member": "package/LICENSE",
+      "sha256": "b740a1d46122672da62833e97f7e7c8a13fa85cbc7445b584b297cc00dde93db"
     },
     {
       "path": "licenses/erudus-LICENSE",

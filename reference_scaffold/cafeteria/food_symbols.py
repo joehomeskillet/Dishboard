@@ -41,7 +41,7 @@ def _symbols() -> dict[tuple[str, str], FoodSymbol]:
     manifest = json.loads((ASSETS / 'manifest.json').read_text(encoding='utf-8'))
     audit = json.loads((ASSETS / 'pdf-compatibility.json').read_text(encoding='utf-8'))
     result = {}
-    for kind in ('allergens', 'countries'):
+    for kind in ('allergens', 'countries', 'labels'):
         for code, row in manifest[kind].items():
             filename = PREFIX + row['file']
             compatible = audit['results'][f'{kind}/{code}']['status'] == 'renders_without_warning'
@@ -53,7 +53,7 @@ def _symbols() -> dict[tuple[str, str], FoodSymbol]:
 
 def food_symbol(code: object, kind: str = 'allergens') -> FoodSymbol | None:
     """Exact known codes only: never construct paths from an input or infer a code."""
-    if not isinstance(code, str) or kind not in ('allergens', 'countries'):
+    if not isinstance(code, str) or kind not in ('allergens', 'countries', 'labels'):
         return None
     return _symbols().get((kind, code))
 

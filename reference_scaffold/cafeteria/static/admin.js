@@ -2,6 +2,21 @@
 (function() {
     'use strict';
 
+    // Tabler already initializes these tooltips. Keep its instance and positioning.
+    const iconActions = document.querySelectorAll('[data-admin-icon-action]');
+    iconActions.forEach(link => {
+        link.addEventListener('inserted.bs.tooltip', () => {
+            const tip = document.getElementById(link.getAttribute('aria-describedby'));
+            tip.addEventListener('mouseleave', () => {
+                if (!link.matches(':hover, :focus')) window.tabler.Tooltip.getInstance(link).hide();
+            });
+        });
+        link.addEventListener('hide.bs.tooltip', event => {
+            const tip = document.getElementById(link.getAttribute('aria-describedby'));
+            if (tip?.matches(':hover') && !tip.dataset.dismissed) event.preventDefault();
+        });
+    });
+
     // 1. Dirty-Tracking
     const forms = document.querySelectorAll('form');
     let isDirty = false;
@@ -298,6 +313,16 @@
 
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
+            let dismissedTooltip = false;
+            iconActions.forEach(link => {
+                const tip = document.getElementById(link.getAttribute('aria-describedby'));
+                if (tip?.classList.contains('show')) {
+                    tip.dataset.dismissed = 'true';
+                    window.tabler.Tooltip.getInstance(link).hide();
+                    dismissedTooltip = true;
+                }
+            });
+            if (dismissedTooltip) return;
             const active = document.activeElement && document.activeElement.closest('details[open]');
             const openDetails = active ? [active] : document.querySelectorAll('details[open]');
             openDetails.forEach(details => {

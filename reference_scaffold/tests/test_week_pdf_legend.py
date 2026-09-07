@@ -28,6 +28,7 @@ def test_printed_week_has_complete_deduplicated_legend_without_hidden_options(pr
         )
     hidden = {**deepcopy(options[0]), 'title': 'NICHTGEDRUCKT',
               'labels': [{'code': 'CUSTOM', 'name': 'UNSICHTBAREDEKLARATION'}]}
+    options[2]['labels'] = [{'code': 'VEGAN', 'name': 'Vegan'}]
     draft['days'].append({'date': (WEEK + timedelta(days=14)).isoformat(), 'services': [
         {'meal_code': 'LUNCH', 'service_state': 'open', 'options': [hidden]},
     ]})
@@ -43,7 +44,7 @@ def test_printed_week_has_complete_deduplicated_legend_without_hidden_options(pr
     menu_text, legend = body.split('Legende der gedruckten Menüs', 1)
     assert 'Kartoffeln: US (Vereinigte Staaten)' in menu_text
     for label in ('Enthält: Milch', 'Kann enthalten: Milch', 'Herkunft: Schweiz',
-                  'Herkunft: Vereinigte Staaten', 'Vegetarisch',
+                  'Herkunft: Vereinigte Staaten', 'Vegetarisch', 'Vegan',
                   'Allergenangaben nicht erfasst', 'Allergenprüfung offen'):
         assert legend.count(label) == 1
     if profile == 'patient':

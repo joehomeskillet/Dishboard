@@ -13,10 +13,11 @@ def test_all_audited_compatible_symbols_render_with_native_fpdf(caplog):
     option = {
         'allergens': [{'code': code, 'presence': 'contains'} for code in manifest['allergens']],
         'origins': [{'country_code': code} for code in manifest['countries']],
+        'labels': [{'code': code} for code in manifest['labels']],
     }
     strip = measure_symbols(option, 550)
     marks = [mark for row in strip.rows for mark in row]
-    assert len(marks) == 14 + 249 - 21
+    assert len(marks) == 14 + 249 - 21 + 2
     assert all(mark.symbol.pdf_filename is not None for mark in marks)
     pdf = FPDF(unit='pt', format='A4')
     pdf.add_page()

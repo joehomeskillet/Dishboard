@@ -829,8 +829,11 @@ reference_scaffold/cafeteria/static/vendor/food-symbols/flags/yt.svg
 reference_scaffold/cafeteria/static/vendor/food-symbols/flags/za.svg
 reference_scaffold/cafeteria/static/vendor/food-symbols/flags/zm.svg
 reference_scaffold/cafeteria/static/vendor/food-symbols/flags/zw.svg
+reference_scaffold/cafeteria/static/vendor/food-symbols/labels/leaf.svg
+reference_scaffold/cafeteria/static/vendor/food-symbols/labels/plant.svg
 reference_scaffold/cafeteria/static/vendor/food-symbols/licenses/erudus-LICENSE
 reference_scaffold/cafeteria/static/vendor/food-symbols/licenses/flag-icons-LICENSE
+reference_scaffold/cafeteria/static/vendor/food-symbols/licenses/tabler-icons-LICENSE
 reference_scaffold/cafeteria/static/vendor/food-symbols/manifest.json
 reference_scaffold/cafeteria/static/vendor/food-symbols/pdf-compatibility.json
 reference_scaffold/cafeteria/static/vendor/food-symbols/README.md

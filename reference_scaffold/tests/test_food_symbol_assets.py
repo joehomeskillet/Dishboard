@@ -47,14 +47,33 @@ def test_catalog_covers_existing_country_selection_and_allergen_semantics():
 def test_real_offline_verifier_accepts_complete_pinned_sources():
     result = run_vendor('--verify')
     assert result.returncode == 0, result.stdout + result.stderr
-    assert '14 allergens, 249 countries, 265 source artifacts + PDF audit; offline PASS.' in result.stdout
+    assert '14 allergens, 249 countries, 2 labels, 268 source artifacts + PDF audit; offline PASS.' in result.stdout
 
 
-@pytest.mark.parametrize('fault', ['modified', 'missing', 'extra_svg', 'pdf_audit'])
+def test_dietary_symbols_are_the_exact_pinned_tabler_outline_members():
+    lock = json.loads((VENDOR.parent / 'tabler.lock.json').read_text())
+    source = next(row for row in lock['sources'] if row['id'] == 'icons')
+    assert MANIFEST['sources']['tabler-icons']['version'] == lock['packages']['@tabler/icons'] == '3.46.0'
+    assert MANIFEST['sources']['tabler-icons']['archive_sha256'] == source['sha256']
+    assert MANIFEST['sources']['tabler-icons']['integrity'] == source['integrity']
+    assert MANIFEST['labels'] == {
+        'VEGETARIAN': {'name': 'Vegetarisch', 'text_fallback': 'Vegetarisch', 'file': 'labels/leaf.svg'},
+        'VEGAN': {'name': 'Vegan', 'text_fallback': 'Vegan', 'file': 'labels/plant.svg'},
+    }
+    for name in ('leaf', 'plant'):
+        row = next(row for row in MANIFEST['files'] if row['path'] == f'labels/{name}.svg')
+        assert row['source'] == 'tabler-icons' and row['member'] == f'package/icons/outline/{name}.svg'
+    assert (VENDOR / 'licenses/tabler-icons-LICENSE').read_bytes() == (VENDOR.parent / 'tabler-icons/LICENSE').read_bytes()
+
+
+@pytest.mark.parametrize('fault', ['modified', 'missing', 'extra_svg', 'pdf_audit', 'modified_label', 'missing_label'])
 def test_offline_verifier_rejects_changed_missing_and_unmapped_assets(tmp_path, fault):
     copied = tmp_path / 'symbols'
     shutil.copytree(VENDOR, copied)
     target = copied / 'allergens/nuts.svg'
+    if fault.endswith('_label'):
+        target = copied / 'labels/leaf.svg'
+        fault = fault.removesuffix('_label')
     if fault == 'modified':
         target.write_bytes(target.read_bytes() + b'\n')
     elif fault == 'missing':
@@ -99,10 +118,25 @@ def test_real_fpdf2_renders_all_allergens_and_representative_flags_without_warni
     assert not caplog.records, [record.message for record in caplog.records]
 
 
+@pytest.mark.parametrize('code', ['VEGETARIAN', 'VEGAN'])
+def test_declared_dietary_svg_renders_native_strokes_without_warnings(code, caplog):
+    assert fpdf_version == '2.8.8'
+    caplog.set_level(logging.WARNING, logger='fpdf')
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.image(str(VENDOR / MANIFEST['labels'][code]['file']), x=10, y=10, w=25, h=25)
+    reader = PdfReader(io.BytesIO(bytes(pdf.output())))
+    assert len(reader.pages) == 1
+    operations = reader.pages[0].get_contents().operations
+    assert any(operator == b'S' for _, operator in operations)
+    assert any(operator == b'c' for _, operator in operations)
+    assert not caplog.records, [record.message for record in caplog.records]
+
+
 def test_complete_pdf_audit_keeps_problematic_flags_explicit_and_sources_available():
     audit = json.loads((VENDOR / 'pdf-compatibility.json').read_text())
     assert (audit['renderer'], audit['version']) == ('fpdf2', '2.8.8')
-    assert set(audit['results']) == {f'{group}/{code}' for group in ('allergens', 'countries') for code in MANIFEST[group]}
+    assert set(audit['results']) == {f'{group}/{code}' for group in ('allergens', 'countries', 'labels') for code in MANIFEST[group]}
     problems = {key.split('/')[1] for key, row in audit['results'].items() if row['status'] == 'requires_conversion'}
     assert problems == {'AI', 'AR', 'BZ', 'BI', 'KY', 'FK', 'GD', 'GT', 'HT', 'KG', 'HR',
                         'MX', 'NI', 'RS', 'GS', 'LK', 'TW', 'TN', 'TC', 'UM', 'US'}

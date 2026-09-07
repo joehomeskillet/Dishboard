@@ -1634,6 +1634,18 @@
       "status": "renders_without_warning",
       "error": null,
       "warnings": []
+    },
+    "labels/VEGETARIAN": {
+      "file": "labels/leaf.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
+    },
+    "labels/VEGAN": {
+      "file": "labels/plant.svg",
+      "status": "renders_without_warning",
+      "error": null,
+      "warnings": []
     }
   }
 }

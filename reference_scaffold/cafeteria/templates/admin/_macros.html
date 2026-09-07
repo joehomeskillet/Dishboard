@@ -4,6 +4,10 @@
 <svg class="icon{% if class %} {{ class }}{% endif %}"{% if label %} role="img" aria-label="{{ label }}"{% else %} aria-hidden="true"{% endif %} focusable="false"><use href="{{ url_for('static', filename='vendor/tabler-icons/tabler-icons.svg') }}#tabler-{{ name }}"></use></svg>
 {%- endmacro %}
 
+{%- macro icon_link(href, label) -%}
+<a class="btn btn-icon w-100" href="{{ href }}" aria-label="{{ label }}" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ label }}">{{ icon('pencil') }}</a>
+{%- endmacro %}
+
 {%- macro field(name, label, value='', type='text', id=none, required=false, error=none, hint=none) -%}
 {% set field_id = id or name %}
 <label class="form-label" for="{{ field_id }}">{{ label }}</label>

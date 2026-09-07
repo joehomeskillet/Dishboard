@@ -40,7 +40,13 @@ def test_lookup_keeps_namespaces_and_pdf_compatibility_separate() -> None:
     assert us and us.filename.endswith('/us.svg') and us.pdf_filename is None
     assert food_symbol('CH') is None
     assert food_symbol('MILK', 'countries') is None
-    assert food_symbol('VEGETARIAN', 'labels') is None
+    vegetarian = food_symbol('VEGETARIAN', 'labels')
+    vegan = food_symbol('VEGAN', 'labels')
+    assert vegetarian and vegetarian.name == 'Vegetarisch' and vegetarian.filename.endswith('/labels/leaf.svg')
+    assert vegan and vegan.name == 'Vegan' and vegan.filename.endswith('/labels/plant.svg')
+    assert vegetarian.pdf_filename == vegetarian.filename and vegan.pdf_filename == vegan.filename
+    assert food_symbol('VEGETARIAN') is None
+    assert food_symbol('VEGAN', 'countries') is None
     assert food_symbol('MILK', '../../allergens') is None
 
 
@@ -63,6 +69,38 @@ def test_legend_deduplicates_codes_but_preserves_presence_and_unknown_state() ->
     assert not food_legend([]).allergens_unknown
     assert not food_legend([{**first, 'allergen_review_status': 'checked'}]).review_open
     assert food_legend([{'allergens': [], 'allergen_review_status': 'checked'}]).allergens_unknown
+
+
+@pytest.mark.parametrize('code', [None, '', 'VEGGIE', 'VEG', 'VGN', 'vegan', ' VEGAN',
+                                  'VEGAN ', 'LACTOSE_FREE', 'GLUTEN_FREE', 'MILK', '../VEGAN'])
+def test_label_symbols_require_exact_supported_declarations(code: object) -> None:
+    assert food_symbol(code, 'labels') is None
+
+
+@pytest.mark.parametrize(('labels', 'files'), [
+    ([], []),
+    ([{'code': 'VEGETARIAN', 'name': 'Vegetarisch'}], ['leaf.svg']),
+    ([{'code': 'VEGAN', 'name': 'Vegan'}], ['plant.svg']),
+    ([{'code': 'CUSTOM', 'name': 'Eigenes Label'},
+      {'code': 'GLUTEN_FREE', 'name': 'Glutenfrei'},
+      {'code': 'LACTOSE_FREE', 'name': 'Laktosefrei'}], []),
+])
+def test_metadata_and_legend_never_infer_diet_from_slot_or_food_text(app, labels, files):  # noqa: F811
+    option = {'title': 'Vegane vegetarische Gemüsepfanne', 'type_code': 'VEGGIE',
+              'components': ['Pflanzlich'], 'labels': labels, 'allergens': [], 'origins': []}
+    original = deepcopy(option)
+    entries = food_legend([option]).entries
+    assert [entry.symbol.filename.rsplit('/', 1)[-1] for entry in entries if entry.symbol] == files
+    with app.test_request_context():
+        metadata = render_template('_menu_metadata.html', option=option)
+        legend = render_template_string("{% from '_food_symbols.html' import legend %}{{ legend(options) }}",
+                                        options=[option])
+    for body in (metadata, legend):
+        assert body.count('<img') == len(files)
+        assert all(f'/labels/{file}' in body for file in files)
+        assert all(label['name'] in body for label in labels)
+        assert 'Allergenangaben nicht erfasst' in body
+    assert option == original
 
 
 def test_unknown_declarations_keep_text_and_are_not_normalized_into_contains() -> None:
@@ -88,7 +126,8 @@ def test_shared_macros_escape_text_and_do_not_infer_codes(app: Flask) -> None:  
         body = render_template('_menu_metadata.html', option=option)
         assert 'Rind &lt;CH&gt;: Schweiz' in body
         assert 'Allergenangabe ungeklärt: &lt;Milch&gt;' in body
-        assert 'Enthält:' not in body and '<img' not in body
+        assert 'Enthält:' not in body and '/allergens/' not in body and '/flags/' not in body
+        assert body.count('/labels/leaf.svg') == 1
         assert 'Vegetarisch' in body and 'Allergenprüfung offen' in body
         legend = render_template_string(
             "{% from '_food_symbols.html' import legend %}{{ legend(options) }}",
@@ -100,7 +139,7 @@ def test_shared_macros_escape_text_and_do_not_infer_codes(app: Flask) -> None:  
         assert legend.count('Vegetarisch') == 1
         assert 'Allergenangaben nicht erfasst' in legend
         assert 'Allergenprüfung offen' in legend
-        assert legend.count('class="food-symbol') == 3
+        assert legend.count('class="food-symbol') == 4
 
 
 def _load_page(application: Flask, chromium: Browser, html: str, width: int) -> Page:
@@ -123,12 +162,13 @@ def _load_page(application: Flask, chromium: Browser, html: str, width: int) -> 
 def _assert_visible_symbols(page: Page) -> None:
     card = page.locator('[data-menu-metadata]').first
     icons = card.locator('img.food-symbol')
-    expect(icons).to_have_count(3)
+    expect(icons).to_have_count(4)
     assert icons.evaluate_all('els => els.every(el => el.complete && el.naturalWidth > 0)')
     assert sorted(icons.evaluate_all("els => els.map(el => el.getAttribute('src'))")) == [
         '/static/vendor/food-symbols/allergens/celery.svg',
         '/static/vendor/food-symbols/allergens/milk.svg',
         '/static/vendor/food-symbols/flags/ch.svg',
+        '/static/vendor/food-symbols/labels/leaf.svg',
     ]
     for icon in icons.all():
         expect(icon).to_be_visible()
@@ -202,8 +242,39 @@ def test_admin_cards_load_real_local_symbols(
         _assert_visible_symbols(page)
         if not preview:
             expect(page.locator('[data-menu-metadata] .badge')).to_have_count(4)
-            expect(page.locator('[data-menu-metadata] img.icon')).to_have_count(3)
+            expect(page.locator('[data-menu-metadata] img.icon')).to_have_count(4)
         if profile == 'patient' and width in (390, 1440):
             page.screenshot(path=str(tmp_path / f'patient-{Path(template).stem}-{width}.png'), full_page=True)
     finally:
         page.close()
+
+
+@pytest.mark.parametrize('width', [390, 820, 1440])
+def test_both_declared_diets_load_distinct_symbols_and_full_names_in_browser(
+    app: Flask, browser: Browser, width: int, tmp_path: Path,  # noqa: F811
+) -> None:
+    snapshot = app.config['TEST_SNAPSHOTS']['patient']
+    app.config['DEMO_TODAY'] = snapshot['days'][0]['date']
+    option = snapshot['days'][0]['services'][0]['options'][0]
+    option.update(_declarations())
+    option['labels'] = [{'code': 'VEGETARIAN', 'name': 'Vegetarisch'},
+                        {'code': 'VEGAN', 'name': 'Vegan'},
+                        {'code': 'LACTOSE_FREE', 'name': 'Laktosefrei'},
+                        {'code': 'CUSTOM', 'name': 'Eigene Kostform'}]
+    original = deepcopy(snapshot)
+    html = app.test_client().get('/patienten/heute/').get_data(as_text=True)
+    page = _load_page(app, browser, html, width)
+    try:
+        card = page.locator('[data-menu-metadata]').first
+        icons = card.locator('img[src*="/labels/"]')
+        expect(icons).to_have_count(2)
+        assert icons.evaluate_all('els => els.every(el => el.complete && el.naturalWidth === 24)')
+        for name in ('Vegetarisch', 'Vegan', 'Laktosefrei', 'Eigene Kostform'):
+            expect(card).to_contain_text(name)
+        assert sorted(icons.evaluate_all('els => els.map(el => el.src.split("/").pop())')) == ['leaf.svg', 'plant.svg']
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        assert card.locator('.label').evaluate_all('els => els.every(el => el.scrollWidth <= el.clientWidth + 1)')
+        page.screenshot(path=str(tmp_path / f'declared-diets-{width}.png'), full_page=True)
+    finally:
+        page.close()
+    assert snapshot == original
