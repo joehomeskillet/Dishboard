@@ -1,16 +1,18 @@
 # Dishboard: Ausführung des gesamten Backlogs
 
-## Aktueller Deploy-Nachtrag — Live-Checkpoint vom 7. September 2026, 05:16 Uhr Schweiz
+## Aktueller Deploy-Nachtrag — Root-Checkpoint vom 7. September 2026, 06:25 Uhr Schweiz
 
-Die Uhrzeit bezeichnet den belegten Admin-Live-Checkpoint. Die später bestätigten Gatezustände 64757 und 89103 sind unten ohne zusätzliche Zeitbehauptung nachgetragen.
+Die Uhrzeit bezeichnet den belegten Root-Nachtrag um 06:25 CEST (Root-Uhr: 04:25:04 UTC). Der datierte Admin-Live-Beleg unten stammt weiterhin von 05:16 Uhr; daraus wird keine neue Live-Abnahme abgeleitet.
 
 **Produktiv bleibt `3d35cbb` seit 07.09.2026, 04:18:43 CEST, Schema 20.** Das vollständige unabhängige Paketgate bestand mit **4472 Tests und 15 ausdrücklich aktivierbaren Opt-in-Skips**. OPS-001 ist ausgeliefert; B1 gehört ebenfalls zu diesem Release.
 
 Frischer OPS-Beleg `ops-live-branding-3d35cbb-root-0907/proof.json`: **56 Checks bestanden, beide Viewports**. Datierter Admin-Beleg `admin-live-week-3d35cbb-root-0907/proof.json`, erfasst `2026-09-07T03:16:09.722335+00:00`: **738 Checks bestanden, 36 Screenshots, keine Fehler oder nicht verfügbaren Prüfungen**. Beide Familien und Viewports verwenden die gespeicherte Woche **2026-08-31**. Operatorquelle `450894babda514e63602b2e40c8ae123263c38cc` bestand unabhängig 167 Tests nach getrennten Läufen mit 149 und 78 bestandenen Tests. Die datierte Druckprüfung beider Familien bestand mit 10/28 Fotos, jeweils einer PDF-Seite und gleichen Karten; TPL-003 behält die fachliche Druckabnahme.
 
-**Noch nicht deployed:** Symbolkandidat `5b746b35d261ed8b552724b3b273e71fd393973c` enthält Menü-Iconaktionen und deklarierte VEG/VGN für UI-003/ICO-001/002. Kombinierte 121 Tests und unabhängige Imageprüfung (677 gleiche Dateien ohne Extras, 247 AST-Prüfungen, Label/Benutzer/pip/Schema-20-Hashes; Build-WP `wp-1b31436a1455`) bestanden. Vollständiges Releasegate 6043 endete mit Exit 143 ohne JUnit oder Abschlussausgabe; Ursache unbelegt. Root sicherte die Evidenz mit `cp -a` unter `symbols-fullgate-0907-hvz04M/evidence-first` und bestätigte per Prozess-Arbeitsverzeichnis, dass im eingefrorenen Export keine Prozesse verblieben. Exakt identischer Wiederholungslauf 89103 läuft; kein vollständiges PASS.
+**Noch nicht deployed:** Symbolkandidat `5b746b35d261ed8b552724b3b273e71fd393973c` enthält Menü-Iconaktionen und deklarierte VEG/VGN für UI-003/ICO-001/002. Kombinierte 121 Tests und unabhängige Imageprüfung (677 gleiche Dateien ohne Extras, 247 AST-Prüfungen, Label/Benutzer/pip/Schema-20-Hashes; Build-WP `wp-1b31436a1455`) bestanden. Vollständige Releasegate-Versuche 6043 und 89103 endeten beide mit Exit 143 ohne JUnit oder Abschlussausgabe; Ursache unbelegt. Root bewahrte beide Evidenzstände, bestätigte jeweils das Ende der Exportprozesse und eskalierte die Abbrüche. Kein dritter unveränderter Lauf und kein vollständiges PASS.
 
-Public-404/`no_published_menu` bleibt bei fehlender aktueller Publikation korrekt. Der Tabler-Fix der bisherigen Public-Leerseite `de80b7e` bestand nach 1959 Worker-Tests auch Rootgate 64757 mit **1959 passed in 65.04s**. Root las den vollständigen Zwei-Dateien-Diff, Ruff bestand; normales Mypy meldet byte-identisch dieselben 64 Fehler in 14 Basisdateien, kein Mypy-PASS. Noch nicht integriert oder deployed. B2 arbeitet aktiv in `bas-b2-ma-astra`; Schema 21 ist reserviert, nicht produktiv.
+Public-404/`no_published_menu` bleibt bei fehlender aktueller Publikation korrekt. Der Tabler-Fix der bisherigen Public-Leerseite `de80b7e` bestand Rootgate 64757 mit **1959 passed in 65.04s**, Ruff und unverändertem Mypy-Basisvergleich. Mit Operator- und Dokumentationsänderungen ist er in `37ddf54` integriert, nicht deployed; Root bestätigte kombiniert **2126 Tests in 132.06s**. Manifest und vollständige Releaseabnahme stehen aus.
+
+**B2 und V1 unabhängig geprüft, noch nicht ausgeliefert:** B2-Fix `7ca528695e8c1b123d524f6ac6325ef122e8b764` bestand Root G1 mit **218 Tests in 99.57s** und G2 mit **2172 Tests in 273.97s**, jeweils ohne Skips. V1 `8346dbc1d3d3babacfd2020050c5f81b905c1985` bestand **95 Tests in 97.03s**, ohne Skips; dies ist nur der revisionierte PDF-Katalog-Slice für TPL-001. Normale B2-/V1-Mypy-Prüfungen behalten die jeweils 58 Fehler in 12 Basisdateien, ohne neue Diagnosen; kein Gesamt-Mypy-PASS. Das kombinierte 22-Modul-Gate 63474 bestand mit **632 Tests in 357.85s**, ohne Fehler oder Skips. B2 und V1 sind in Root-Commit `17b7e84812b06d5d258220cde804e90bf7be9872` integriert. Manifest, vollständiges Releasegate und Deploy stehen weiterhin aus. Produktion bleibt Schema 20. B3 ist nach Plan und Review (Registrierungen 12161/12164) im eigenen Worktree `bas-b3-ui-astra-0907` auf `17b7e84` beauftragt; keine Implementierung ist fertig. Historische IAM-, Branding- und Playerbelege ersetzen weder neue technische noch offene fachliche und physische Abnahmen.
 
 ## Historischer Deploy-Nachtrag — 6. September 2026, 20:38:51 Uhr Schweiz
 
@@ -29,8 +31,8 @@ Die beiden Produktionssicherungen vor/nach Schema 19 sind von Root mit Hash und 
 Die früher unterbrochene OPS-Welle ist geprüft und produktiv. Ihre technischen Live-Nachweise
 stehen oben; fachliche Bestätigung und physische Playerabnahme werden dadurch nicht ersetzt.
 
-Operativ das vorbereitete Symbolrelease vollständig prüfen; Public-Leerseiten-Fix und B2
-laufen unabhängig weiter. Danach offene Screens-/Vorlagen-/Branding-Funktionen,
+Operativ Manifest und vollständiges Releasegate für die geprüfte Integration abschliessen; Public-/Operator-Folgearbeiten
+sind integriert. Die Symbol-Fullgates bleiben ohne Abschlussbeleg; kein dritter unveränderter Lauf. Danach offene Screens-/Vorlagen-/Branding-Funktionen,
 Grundlagen/Rezeptverwaltung, Suche/Importe/Produktdaten, Rezeptplanung/Einkauf/
 Druck/KI, Kalkulation/Lager/Bestellungen und weitere Anbindungen. Die vollständigen Phasen
 und alle 35 IDs bleiben erhalten; Abnahmen begleiten jede Lieferung.
@@ -38,8 +40,8 @@ und alle 35 IDs bleiben erhalten; Abnahmen begleiten jede Lieferung.
 **Geprüfter Teilstand im aktuellen Code:** B1 `e0fb93e` (ursprünglich `c7873fa`, reine Mengen-/Einheitenfunktionen) ist nach
 vollständigem Root-Diffreview und unabhängig **101 passed in 1.26s**, Ruff PASS und Mypy PASS
 für zwei Dateien integriert ([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)).
-B1 ist mit `3d35cbb` produktiv. B2 wird nach erfüllter OPS-Schema-20-Voraussetzung aktiv
-umgesetzt; Schema 21 ist reserviert, nicht deployed. [BAS/REC-Pakete](bas-rec-work-packages-0906.md)
+B1 ist mit `3d35cbb` produktiv. B2 ist nach erfüllter OPS-Schema-20-Voraussetzung mit Fix
+`7ca5286` unabhängig geprüft; Integration in `17b7e84` und kombiniertes Gate sind abgeschlossen; Manifest, vollständiges Releasegate und Deploy stehen aus. Schema 21 ist nicht deployed. [BAS/REC-Pakete](bas-rec-work-packages-0906.md)
 und [Datenvertrag](../design/2026-09-06-bas-rec-data-contract.md) erhalten sämtliche Restaufträge.
 
 **HugeRTE-Eignungsprobe:** 1.0.13 ist lokal browsergeprüft; Text, Fett, Listen und Silver-Linkdialog
