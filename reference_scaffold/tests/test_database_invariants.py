@@ -282,8 +282,9 @@ def test_migration_plan_is_ordered_and_preserves_0001_bytes() -> None:
         (18, '0015_v17_to_v18.sql'),
         (19, '0016_v18_to_v19.sql'),
         (20, '0017_v19_to_v20.sql'),
+        (21, '0018_v20_to_v21.sql'),
     ]
-    assert database.SCHEMA_VERSION == 20
+    assert database.SCHEMA_VERSION == 21
     migrations = ROOT / 'database' / 'migrations'
     assert hashlib.sha256((migrations / '0001_initial_postgresql.sql').read_bytes()).hexdigest() == (
         'd1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0'
@@ -314,7 +315,7 @@ def test_empty_database_runs_0001_then_0002(database_engine: Engine) -> None:
         local_credentials = connection.execute(
             text("SELECT to_regclass('cafeteria.local_credentials')")
         ).scalar_one()
-    assert [row.version for row in rows] == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+    assert [row.version for row in rows] == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
     assert rows[0].name == '0001_initial_postgresql.sql'
     assert rows[1].name == '0002_profile_publication_and_local_auth.sql'
     assert rows[2].name == '0003_patient_key_and_withdrawal_contracts.sql'
@@ -332,6 +333,7 @@ def test_empty_database_runs_0001_then_0002(database_engine: Engine) -> None:
     assert rows[14].name == '0015_v17_to_v18.sql'
     assert rows[15].name == '0016_v18_to_v19.sql'
     assert rows[16].name == '0017_v19_to_v20.sql'
+    assert rows[17].name == '0018_v20_to_v21.sql'
     assert local_credentials == 'cafeteria.local_credentials'
 
 
@@ -367,7 +369,7 @@ def test_v4_fixture_migrates_without_replaying_0001() -> None:
         versions = connection.execute(
             text('SELECT version FROM cafeteria.schema_migrations ORDER BY version')
         ).scalars().all()
-    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
     _drop_schema(engine)
     engine.dispose()
 
@@ -1091,7 +1093,7 @@ def test_v4_draft_revision_is_withdrawn_and_not_public() -> None:
                 '''
             )
         ).all()
-    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
     assert int(public_rows) == 0
     assert withdrawn[0] is True
     assert 'v4' in withdrawn[1]
@@ -1974,7 +1976,18 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
     assert privileges['capability_state_ensure'] is False
     assert privileges['capability_hard_reset'] is False
     assert privileges['public_capability_hard_reset_revoked'] is True
-    assert {row['proname'] for row in definer_privileges} == {
+    master_commands = {
+        'create_food_category_v21', 'update_food_category_v21', 'set_active_food_category_v21',
+        'create_tag_v21', 'update_tag_v21', 'set_active_tag_v21',
+        'create_storage_location_v21', 'update_storage_location_v21', 'set_active_storage_location_v21',
+        'create_unit_v21', 'rename_unit_v21', 'set_active_unit_v21',
+        'create_food_v21', 'update_food_v21', 'set_food_active_v21',
+        'replace_food_tags_v21', 'replace_food_metadata_v21', 'set_food_allergen_review_v21',
+        'replace_food_storage_locations_v21', 'create_proposal_v21', 'accept_proposal_v21', 'reject_proposal_v21',
+    }
+    assert {row['proname'] for row in definer_privileges} == master_commands | {
+        'require_master_data_actor', 'master_food_category_mutate', 'master_tag_mutate',
+        'master_storage_location_mutate', 'master_unit_mutate', 'master_food_mutate',
         'lock_operations_actor',
         'begin_local_admin_v19',
         'lock_local_user_v19',
@@ -2028,7 +2041,7 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
             }
         )
         assert row['app_execute'] is (
-            row['proname'] in {
+            row['proname'] in master_commands | {
                 'lock_operations_actor',
                 'lock_component_metadata_masters',
                 'lock_active_publication',

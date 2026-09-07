@@ -582,7 +582,7 @@ def test_v19_upgrade_adds_times_without_touching_rows_or_receipts(pg16):  # noqa
     assert len(services) == 5 and len(revisions) == 1
 
     applied = database.run_migrations(pg16, SCHEMA)
-    assert [entry.version for entry in applied] == list(range(4, 21))
+    assert [entry.version for entry in applied] == list(range(4, 22))
     database._execute_script(pg16, str(PERMISSIONS))
     with pg16.connect() as connection:
         assert connection.execute(text(
@@ -602,8 +602,8 @@ def test_v19_upgrade_adds_times_without_touching_rows_or_receipts(pg16):  # noqa
             'SELECT name, application_version, checksum_sha256 '
             'FROM cafeteria.schema_migrations WHERE version=20'
         )).one() == (
-            '0017_v19_to_v20.sql', 'dishboard-schema-v20',
-            hashlib.sha256(plan[-1].path.read_bytes()).hexdigest(),
+            '0017_v19_to_v20.sql', 'dishboard-schema-v21',
+            hashlib.sha256(next(m.path for m in plan if m.version == 20).read_bytes()).hexdigest(),
         )
         migrated = connection.execute(text(_V20_FUNCTION_SQL)).all()
         ledger = connection.execute(

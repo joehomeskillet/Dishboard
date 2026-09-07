@@ -17,17 +17,43 @@
     <p class="form-hint mb-0 mt-2" id="output-week-hint">Die gewählte Woche gilt für Wochenpflege und PDF. Öffentliche Druckansichten zeigen weiterhin den aktuell publizierten Plan.</p>
   </div>
 </form>
+{% if catalog_error %}
+<div class="alert alert-danger" role="alert">{{ catalog_error }}</div>
+{% else %}
 <div class="row row-cards">
   {% for output_family, label, endpoint in [('cafeteria', area_names.staff_guest, 'cafeteria'), ('patienten', area_names.patient, 'patient')] %}
   <div class="col-12 col-md-6">
     <article class="card h-100">
       <div class="card-header"><h2 class="card-title">{{ label }}</h2></div>
       <div class="card-body">
-        {% if 'Cafeteria.Admin' in roles %}
-        <h3 class="h4">Druckvorlage bearbeiten</h3>
-        <p>Schrift, Farben, Logo, Textzusätze und Abstände einstellen. Entwurf speichern, PDF prüfen und anschliessend aktivieren.</p>
-        <a class="btn btn-primary mb-4" href="{{ url_for('admin.print_template_editor', family=output_family, week=week) }}" aria-label="{{ label }} Vorlageneditor öffnen">Vorlageneditor öffnen</a>
-        {% endif %}
+        {% set catalog = catalogs[output_family] %}
+        <h3 class="h4">Druckvorlagen</h3>
+        <p>Die aktive Revision wird für PDF-Downloads verwendet. Neuere Entwürfe werden erst nach ausdrücklicher Aktivierung verwendet.</p>
+        <ul class="list-group list-group-flush mb-4">
+          {% for template in catalog.document.templates %}
+          {% set latest = template.revisions[-1] %}
+          {% set active = template.id == catalog.document.active_template %}
+          <li class="list-group-item px-0" data-template-id="{{ template.id }}">
+            <h4 class="h4 text-break">{{ latest.name }}</h4>
+            <p>Neuester Stand: Revision {{ latest.id }}{% if not active or latest.id != catalog.active.id %} · Entwurf{% endif %}</p>
+            {% if active %}
+            <p class="text-break"><span class="badge bg-green-lt">Aktiv</span> {{ catalog.active.name }} · Revision {{ catalog.active.id }}</p>
+            {% else %}
+            <p class="text-secondary">Nicht aktiv</p>
+            {% endif %}
+            {% if 'Cafeteria.Admin' in roles %}
+            <div class="btn-list">
+              <a class="btn" href="{{ url_for('admin.print_template_editor', family=output_family, week=week, template=template.id, revision=latest.id) }}">{{ icon('pencil') }}Vorlageneditor öffnen</a>
+              <a class="btn" href="{{ url_for('admin.print_template_preview', family=output_family, week=week, template=template.id, revision=latest.id) }}">{{ icon('eye') }}Revision {{ latest.id }} als PDF prüfen</a>
+              {% if active and latest.id != catalog.active.id %}
+              <a class="btn" href="{{ url_for('admin.print_template_editor', family=output_family, week=week, template=template.id, revision=catalog.active.id) }}">Aktive Revision öffnen</a>
+              <a class="btn" href="{{ url_for('admin.print_template_preview', family=output_family, week=week, template=template.id, revision=catalog.active.id) }}">{{ icon('eye') }}Aktive Revision als PDF prüfen</a>
+              {% endif %}
+            </div>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
         <h3 class="h4">Wochenplan drucken</h3>
         <p>Das PDF verwendet die gespeicherte Woche ab {{ week|date_long }}. Vor dem ersten PDF-Download die Woche anlegen und speichern.</p>
         <div class="btn-list mb-4">
@@ -38,10 +64,12 @@
         <div class="btn-list">
           <a class="btn" href="{{ url_for('admin.' ~ output_family, week=week) }}" aria-label="{{ label }} gewählte Woche öffnen">{{ icon('calendar-week') }}Woche öffnen</a>
           <a class="btn" href="{{ url_for('admin.menu_collection', family=output_family) }}" aria-label="{{ label }} Menüs öffnen">{{ icon('tools-kitchen-2') }}Menüs öffnen</a>
+          <a class="btn" href="{{ url_for('admin.components_get', family=output_family) }}" aria-label="{{ label }} Komponenten öffnen">{{ icon('components') }}Komponenten öffnen</a>
         </div>
       </div>
     </article>
   </div>
   {% endfor %}
 </div>
+{% endif %}
 {% endblock %}

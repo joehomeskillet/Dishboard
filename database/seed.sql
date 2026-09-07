@@ -86,4 +86,19 @@ WHERE l.code = 'KIRCHLINDACH'
 ON CONFLICT (location_id, profile_id, setting_key) DO UPDATE
 SET setting_value = EXCLUDED.setting_value, updated_by = EXCLUDED.updated_by, updated_at = clock_timestamp();
 
+-- Historical migration fixtures use this seed before M-A exists. Never change
+-- already maintained unit names or semantic factors during ordinary reseeding.
+DO $units$
+BEGIN
+    IF to_regclass('cafeteria.measurement_units') IS NOT NULL THEN
+        INSERT INTO measurement_units(code,display_name,dimension,base_factor) VALUES
+          ('G','Gramm','mass',1),('KG','Kilogramm','mass',1000),('ML','Milliliter','volume',1),
+          ('L','Liter','volume',1000),('EL','Esslöffel (15 ml)','volume',15),
+          ('TL','Teelöffel (5 ml)','volume',5),('STK','Stück','count',1),
+          ('PORTION','Portion','contextual',NULL),('PRISE','Prise','contextual',NULL)
+        ON CONFLICT(code) DO NOTHING;
+    END IF;
+END;
+$units$;
+
 COMMIT;

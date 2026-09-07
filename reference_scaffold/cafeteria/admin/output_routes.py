@@ -4,8 +4,9 @@ from __future__ import annotations
 from flask import Response, abort, make_response, render_template, request
 
 from ..roles import require_capability
+from ..print_templates import PrintTemplateStateError, read_templates, template_revision
 from .rendering import _template_context
-from .workflow_routes import _week_arg, bp
+from .workflow_routes import _db, _week_arg, bp
 
 
 @bp.get('/screens')
@@ -26,9 +27,22 @@ def screens() -> Response:
 def vorlagen() -> Response:
     if set(request.args) - {'week'}:
         abort(400, description='Für Vorlagen ist nur die Woche erlaubt.')
+    week = _week_arg().isoformat()
+    catalogs = {}
+    error = None
+    try:
+        with _db().connect() as connection:
+            for family, profile in [('cafeteria', 'staff_guest'), ('patienten', 'patient')]:
+                document = read_templates(connection, profile)
+                catalogs[family] = {
+                    'document': document,
+                    'active': template_revision(document, document['active_template'], document['active_revision']),
+                }
+    except PrintTemplateStateError as exc:
+        error = str(exc)
     response = make_response(render_template(
         'admin/vorlagen.html', family='cafeteria', profile='staff_guest',
-        week=_week_arg().isoformat(), **_template_context(),
-    ))
+        week=week, catalogs=catalogs, catalog_error=error, **_template_context(),
+    ), 503 if error else 200)
     response.headers['Cache-Control'] = 'no-store'
     return response

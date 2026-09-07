@@ -9,10 +9,12 @@ from .auth.service import load_user_authorization
 ROLE_CAPABILITIES = {
     'Cafeteria.Editor': {
         'draft.read', 'draft.write', 'csv.validate', 'csv.import', 'csv.export', 'preview.read',
+        'masterdata.write', 'recipe.write',
     },
     'Cafeteria.Publisher': {
         'draft.read', 'draft.write', 'csv.validate', 'csv.import', 'csv.export', 'preview.read',
         'publication.validate', 'publication.publish', 'publication.withdraw', 'audit.read',
+        'masterdata.write', 'recipe.write', 'recipe.import',
     },
     'Cafeteria.Admin': {'*'},
 }
