@@ -18,8 +18,8 @@ pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehl
 
 
 @pytest.mark.parametrize('family,profile,label', [
-    ('cafeteria', 'staff_guest', 'Cafeteria-Speiseplan'),
-    ('patienten', 'patient', 'Patienten-Speiseplan'),
+    ('cafeteria', 'staff_guest', 'Mitarbeitende und externe Gäste'),
+    ('patienten', 'patient', 'Patientinnen und Patienten'),
 ])
 @pytest.mark.parametrize('viewport', [(390, 844), (1440, 1100)])
 def test_preview_preserves_saved_week_and_uses_readable_responsive_grid(

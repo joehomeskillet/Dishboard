@@ -96,6 +96,8 @@ API und Public Screens laufen unabhängig weiter. Symbolbasis und Screen-Layouts
 
 UI-003 liefert die Referenzentscheidungen vor weiterem Admin-Polish; laufende Lieferungen warten darauf nicht. Kontrollierte Wochen-PDFs und der vorgezogene Vorlageneditor werden gemeinsam auf Einseitigkeit, Lesbarkeit und Überlauf geprüft. Zeiten und lokale Benutzerverwaltung sind unabhängige Pakete; ihre späteren Änderungen werden in den Ausgaben erneut geprüft.
 
+**Weitere Admin-UI-Arbeit:** Das geprüfte [Tabler- und Symbolmanifest von Astra](design/2026-09-07-admin-tabler-icon-manifest.md) konkretisiert UI-003 und ICO-001/002: einheitliche Tabler-Komponenten, mehr eindeutige Symbole sowie Erklärungen bei Hover, Tastaturfokus und Antippen. Gemeint ist das **Tabler-Framework**, keine Tablet-Priorisierung. Der dokumentierte Sollvertrag ist noch keine umgesetzte oder produktiv abgenommene Symboloberfläche.
+
 | ID | Auftrag | Umfang / noch offen |
 |---|---|---|
 | UI-003 | **MiseOS (Corral) als UI-/UX-Referenz auf Tabler übertragen** | [MiseOS-Referenz auf Corral](https://corral.dk/posts/final-thoughts/) geprüft; erste Adaption seit `0acd992` produktiv: sichtbare Komponenten-/Herkunfts-/Allergenlabels, stabile Formularbezüge, eindeutige Bearbeiten-Aktionen und korrekter Fehlerfokus. Unabhängige Vergleichs-/Formulargates, vollständiges Paket und frische Live-Abnahme bestanden. Gesamter Admin bleibt Tabler, mit kompaktem Standard und Touch-Zielen. Weiteren Referenzumfang zu Typografie, Abständen, Aktionsgrössen und Hierarchie anhand konkreter offener Bedienprobleme abnehmen; die erste Adaption ist keine pauschale Fertigmeldung sämtlichen Admin-Polishs. |

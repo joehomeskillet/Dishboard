@@ -1,0 +1,143 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import icon, page_header, flash_region %}
+{% set workflow_nav = 'operations' %}
+{% block title %}Bereiche & Zeiten · Dishboard{% endblock %}
+{% block sidebar %}{% include 'admin/_workflow_sidebar.html' %}{% endblock %}
+{% block page_header %}{{ page_header('Bereiche & Zeiten', 'Verwaltung') }}{% endblock %}
+
+{% macro validation(id) -%}
+{% if errors.get(id) %} aria-invalid="true" aria-describedby="{{ id }}-error"{% if id == errors.keys()|first %} autofocus{% endif %}{% endif %}
+{%- endmacro %}
+{% macro error_text(id) -%}
+{% if errors.get(id) %}<div class="invalid-feedback d-block field-error" id="{{ id }}-error">{{ errors[id] }}</div>{% endif %}
+{%- endmacro %}
+{% macro input(name, label, value='', type='text', id=none) -%}
+{% set id = id or name %}
+<label class="form-label" for="{{ id }}">{{ label }}</label>
+<input class="form-control{% if errors.get(id) %} is-invalid{% endif %}" id="{{ id }}" name="{{ name }}" type="{{ type }}" value="{{ value }}"{{ validation(id) }}>
+{{ error_text(id) }}
+{%- endmacro %}
+
+{% block content %}
+{{ flash_region(get_flashed_messages()) }}
+{% if errors %}<div class="alert alert-danger error-region" role="alert" tabindex="-1">{{ icon('alert-triangle') }}Bitte die markierten Felder prüfen.</div>{% endif %}
+<p class="text-secondary">Zeiten in {{ timezone }}. Vorgaben gelten für neue Services. Bestehende Wochen ändern Sie bewusst mit «Wochenvorgaben übernehmen».</p>
+
+<div class="row row-cards mb-3">
+{% for code in ['staff_guest', 'patient'] %}
+  <div class="col-12 col-lg-6">
+    <form class="card h-100" method="post" id="name-{{ code }}" action="{{ url_for('admin.operations_settings') }}">
+      <div class="card-header"><h2 class="card-title">{{ icon('pencil') }}Anzeigename · {{ area_names[code] }}</h2></div>
+      <div class="card-body">
+        <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="action" value="save_name_{{ code }}">
+        <input type="hidden" name="expected_{{ code }}" value="{{ values.get('expected_' ~ code, area_names[code]) }}">
+        {{ input('name_' ~ code, 'Bereichsname', values.get('name_' ~ code, area_names[code])) }}
+        <div class="form-hint">Bereits veröffentlichte Pläne behalten ihren Namen.</div>
+      </div>
+      <div class="card-footer"><button class="btn" type="submit">{{ icon('device-floppy') }}Anzeigename speichern</button></div>
+    </form>
+  </div>
+{% endfor %}
+</div>
+
+<form class="card mb-3" method="post" id="weekend-form" action="{{ url_for('admin.operations_settings') }}">
+  <div class="card-header"><h2 class="card-title">{{ icon('calendar-week') }}Wochenendbetrieb · {{ area_names.staff_guest }}</h2></div>
+  <div class="card-body">
+    <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="action" value="save_weekend">
+    <input type="hidden" name="expected_allows_weekend" value="{{ '1' if schedules.staff_guest.allows_weekend else '0' }}">
+    <label class="form-check form-switch" for="allows_weekend">
+      <input class="form-check-input{% if errors.get('allows_weekend') %} is-invalid{% endif %}" type="checkbox" id="allows_weekend" name="allows_weekend"{% if schedules.staff_guest.allows_weekend %} checked{% endif %}{{ validation('allows_weekend') }}>
+      <span class="form-check-label">Wochenendbetrieb möglich</span>
+    </label>
+    {{ error_text('allows_weekend') }}
+    <p class="form-hint">Erlaubt neue Services am Samstag und Sonntag. Bereits erfasste Services bleiben beim Abschalten erhalten.</p>
+  </div>
+  <div class="card-footer"><button class="btn" type="submit">{{ icon('device-floppy') }}Wochenendbetrieb speichern</button></div>
+</form>
+
+{% for code, schedule in schedules.items() %}
+<form class="card mb-3" method="post" id="schedule-{{ code }}" action="{{ url_for('admin.operations_settings') }}">
+  <div class="card-header"><h2 class="card-title">{{ icon('calendar-cog') }}Wochenvorgaben · {{ area_names[code] }}</h2></div>
+  <input type="hidden" name="_csrf" value="{{ schedule_csrf[code] }}"><input type="hidden" name="action" value="save_schedule">
+  <input type="hidden" name="profile" value="{{ code }}">
+  <input type="hidden" name="revision" value="{{ values.get('revision', schedule.revision) if values.get('action') == 'save_schedule' and values.get('profile') == code else schedule.revision }}">
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table table-mobile-lg">
+      <thead><tr><th>Tag / Mahlzeit</th><th>Betrieb</th><th>Beginn</th><th>Ende</th><th>Hinweis</th></tr></thead>
+      <tbody>
+      {% for slot, rule in schedule.slots.items() %}
+      {% set day, meal = slot %}{% set prefix = 'slot_' ~ day ~ '_' ~ meal ~ '_' %}
+      {% set editing = values.get('action') == 'save_schedule' and values.get('profile') == code %}
+      <tr>
+        <th scope="row">{{ day_names[day - 1] }} · {{ meal_labels[meal] }}{% if code == 'staff_guest' and day > 5 and not schedule.allows_weekend %}<div class="form-hint">Erst mit Wochenendbetrieb wirksam</div>{% endif %}</th>
+        <td data-label="Betrieb">
+          {% set id = code ~ '-' ~ prefix ~ 'state' %}
+          <label class="form-label" for="{{ id }}">Betrieb</label>
+          <select class="form-select{% if errors.get(id) %} is-invalid{% endif %}" id="{{ id }}" name="{{ prefix }}state"{{ validation(id) }}>
+            {% for state in ['open', 'closed'] %}<option value="{{ state }}"{% if state == (values.get(prefix ~ 'state', rule.state) if editing else rule.state) %} selected{% endif %}>{{ state_labels[state] }}</option>{% endfor %}
+          </select>{{ error_text(id) }}
+        </td>
+        {% for part, label in [('start', 'Beginn'), ('end', 'Ende'), ('notice', 'Hinweis')] %}
+        <td data-label="{{ label }}">{{ input(prefix ~ part, label, values.get(prefix ~ part, rule[part] or '') if editing else rule[part] or '', 'text' if part == 'notice' else 'time', code ~ '-' ~ prefix ~ part) }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer"><button class="btn" type="submit">{{ icon('device-floppy') }}Wochenvorgaben speichern</button></div>
+</form>
+{% endfor %}
+
+<section class="card mb-3" id="dated-exception">
+  <div class="card-header"><h2 class="card-title">{{ icon('calendar-plus') }}Datierte Ausnahme</h2></div>
+  <div class="card-body">
+    <p>Wählen Sie einen Service und laden Sie dessen gespeicherten Stand. Erst «Ausnahme speichern» ändert den Plan.</p>
+    <form method="post" id="exception-load" action="{{ url_for('admin.operations_settings') }}">
+      <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="action" value="load_exception">
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-md-5">
+          <label class="form-label" for="profile">Bereich</label>
+          <select class="form-select" id="profile" name="profile"{{ validation('profile') }}>{% for code in schedules %}<option value="{{ code }}"{% if values.get('profile') == code %} selected{% endif %}>{{ area_names[code] }}</option>{% endfor %}</select>{{ error_text('profile') }}
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">{{ input('date', 'Datum', values.get('date', today.isoformat()), 'date') }}</div>
+        <div class="col-12 col-sm-6 col-md-4">
+          <label class="form-label" for="meal">Mahlzeit</label>
+          <select class="form-select" id="meal" name="meal"{{ validation('meal') }}>{% for meal, label in meal_labels.items() %}<option value="{{ meal }}"{% if values.get('meal') == meal %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>{{ error_text('meal') }}
+        </div>
+        <div class="col-12"><button class="btn" type="submit">{{ icon('eye') }}Service laden</button></div>
+      </div>
+    </form>
+    {% if preview %}
+    <form method="post" id="exception-save" class="mt-4" action="{{ url_for('admin.operations_settings') }}">
+      <h3>{{ area_names[values.profile] }} · {{ values.date }} · {{ meal_labels[values.meal] }}</h3>
+      <p class="form-hint">{% if values.row_version == '0' %}Vorgabe, noch nicht gespeichert.{% else %}Gespeicherter Stand geladen. Parallele Änderungen führen zu einem Konflikt.{% endif %}</p>
+      <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="action" value="save_exception">
+      {% for name in ['profile', 'date', 'meal', 'row_version', 'loaded'] %}<input type="hidden" name="{{ name }}" value="{{ values[name] }}">{% endfor %}
+      <div class="row g-3">
+        <div class="col-12 col-md-4"><label class="form-label" for="service_state">Betrieb</label><select class="form-select" id="service_state" name="service_state"{{ validation('service_state') }}>{% for state, label in state_labels.items() %}<option value="{{ state }}"{% if values.service_state == state %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>{{ error_text('service_state') }}</div>
+        <div class="col-12 col-sm-6 col-md-4">{{ input('service_start', 'Beginn', values.service_start, 'time') }}</div>
+        <div class="col-12 col-sm-6 col-md-4">{{ input('service_end', 'Ende', values.service_end, 'time') }}</div>
+        <div class="col-12">{{ input('notice', 'Hinweis', values.notice) }}</div>
+        <div class="col-12"><button class="btn btn-primary" type="submit">{{ icon('device-floppy') }}Ausnahme speichern</button></div>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-header"><h2 class="card-title">{{ icon('calendar-week') }}Gespeicherte Ausnahmen</h2></div>
+  {% if exceptions %}
+  <div class="table-responsive"><table class="table table-vcenter card-table table-mobile-lg">
+    <thead><tr><th>Datum / Bereich</th><th>Betrieb</th><th>Zeiten / Hinweis</th><th>Woche</th></tr></thead>
+    <tbody>{% for item in exceptions %}<tr>
+      <th scope="row">{{ item.service_date.strftime('%d.%m.%Y') }} · {{ area_names[item.profile_code] }} · {{ meal_labels[item.meal_code] }}</th>
+      <td data-label="Betrieb"><span class="badge bg-secondary-lt" data-kind="{{ item.kind }}">{{ {'closure': 'Schliessung', 'time': 'Andere Zeit', 'open': 'Zusätzlich offen'}[item.kind] }}</span><div>{{ state_labels[item.service_state] }}</div></td>
+      <td data-label="Zeiten / Hinweis">{% if item.service_start or item.service_end %}{{ item.service_start or '–' }}–{{ item.service_end or '–' }}{% endif %}<div>{{ item.notice }}</div></td>
+      <td><a class="btn" href="{{ url_for('admin.' ~ families[item.profile_code], week=item.week_start.isoformat()) }}">{{ icon('calendar-week') }}Woche öffnen</a></td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="card-body"><p class="text-secondary mb-0">Keine gespeicherten Ausnahmen von sieben Tagen vor heute bis acht Wochen danach.</p></div>{% endif %}
+</section>
+{% endblock %}

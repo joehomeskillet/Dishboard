@@ -208,15 +208,20 @@ def test_week_fields_preserve_native_payloads_and_usable_widths(
     service = page.locator(f'form[action="/admin/{family}/service"]').first
     service.locator('[name="service_state"]').select_option('holiday')
     service.locator('[name="notice"]').fill('Heute keine Ausgabe')
+    service.locator('[name="service_start"]').fill('11:30')
+    service.locator('[name="service_end"]').fill('13:30')
     with page.expect_response(lambda response: response.request.method == 'POST') as saved:
         service.get_by_role('button', name='Service speichern', exact=True).click()
     assert saved.value.status == 303
     payload = parse_qs(saved.value.request.post_data or '', keep_blank_values=True)
-    assert set(payload) == {'_csrf', 'week', 'day', 'meal', 'row_version', 'service_state', 'notice'}
+    assert set(payload) == {'_csrf', 'week', 'day', 'meal', 'row_version', 'service_state', 'notice', 'service_start', 'service_end'}
+    assert payload['service_start'] == ['11:30'] and payload['service_end'] == ['13:30']
     assert payload['day'] == [DAY] and payload['meal'] == ['LUNCH'] and payload['row_version'] == ['0']
     page.goto(f'/admin/{family}?week={DAY}')
     expect(service.locator('[name="row_version"]')).to_have_value('1')
     expect(service.locator('[name="notice"]')).to_have_value('Heute keine Ausgabe')
+    expect(service.locator('[name="service_start"]')).to_have_value('11:30')
+    expect(service.locator('[name="service_end"]')).to_have_value('13:30')
     if family == 'cafeteria' and width > 900:
         bounds = [service.locator(f'[name="{name}"]').bounding_box() for name in ('service_state', 'notice')]
         assert all(bound is not None and bound['width'] >= 140 for bound in bounds)

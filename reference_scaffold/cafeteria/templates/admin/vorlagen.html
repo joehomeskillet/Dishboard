@@ -18,7 +18,7 @@
   </div>
 </form>
 <div class="row row-cards">
-  {% for output_family, label, endpoint in [('cafeteria', 'Cafeteria', 'cafeteria'), ('patienten', 'Patienten', 'patient')] %}
+  {% for output_family, label, endpoint in [('cafeteria', area_names.staff_guest, 'cafeteria'), ('patienten', area_names.patient, 'patient')] %}
   <div class="col-12 col-md-6">
     <article class="card h-100">
       <div class="card-header"><h2 class="card-title">{{ label }}</h2></div>

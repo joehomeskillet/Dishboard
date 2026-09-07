@@ -157,11 +157,11 @@ def test_full_views_remain_available_without_javascript(
         for link in page.locator('main a').all():
             expect(link).to_be_visible()
         assert set(page.locator('main a').evaluate_all('links => links.map(link => new URL(link.href).pathname)')) == TARGETS
-        page.get_by_role('link', name='Patienten Web Wochenplan öffnen', exact=True).click()
+        page.get_by_role('link', name='Patientinnen und Patienten Web Wochenplan öffnen', exact=True).click()
         expect(page).to_have_url(f'{screen_server}/patienten/wochenplan/')
-        expect(page.locator('main')).to_contain_text('Patienten-Speiseplan')
+        expect(page.locator('main')).to_contain_text('Patientinnen und Patienten · Wochenübersicht')
         page.goto('/admin/screens')
-        page.get_by_role('link', name='Patienten Web Wochenplan ohne Bilder öffnen', exact=True).click()
+        page.get_by_role('link', name='Patientinnen und Patienten Web Wochenplan ohne Bilder öffnen', exact=True).click()
         expect(page).to_have_url(f'{screen_server}/patienten/wochenplan/ohne-bilder/')
         expect(page.locator('.menu-photo, .card-img-top')).to_have_count(0)
 

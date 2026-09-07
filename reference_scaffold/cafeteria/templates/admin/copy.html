@@ -2,13 +2,13 @@
 {% from 'admin/_macros.html' import page_header %}
 {% set workflow_nav = 'weeks' %}
 {% set week = target.isoformat() %}
-{% block title %}Vorwoche kopieren · {{ 'Cafeteria' if family == 'cafeteria' else 'Patienten' }}{% endblock %}
+{% block title %}Vorwoche kopieren · {{ area_names[profile] }}{% endblock %}
 {% block main_attributes %}data-source-week="{{ source.isoformat() }}" data-target-week="{{ target.isoformat() }}"{% endblock %}
 {% block page_header %}{{ page_header('Vorwoche kopieren', 'Menüplanung') }}{% endblock %}
 {% block content %}
   <section class="card admin-copy-content">
    <div class="card-body">
-    <p class="admin-copy-profile">{{ 'Cafeteria' if family == 'cafeteria' else 'Patienten' }}</p>
+    <p class="admin-copy-profile">{{ area_names[profile] }}</p>
 
     <dl class="admin-copy-weeks row g-3">
       <div class="col-12 col-sm-6">

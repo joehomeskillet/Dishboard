@@ -3,11 +3,12 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Any
 
-from flask import g, render_template, session, url_for
+from flask import current_app, g, render_template, session, url_for
 from werkzeug.datastructures import MultiDict
 
 from ..component_catalog_store import AdminScope
 from ..component_catalog_filters import ComponentFilters
+from ..operations_settings import get_area_names, get_schedule, slot_defaults
 from ..workflow import MENU_TYPES, PROFILE_DAYS, PROFILE_MEALS
 
 DAY_NAMES = ('Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag')
@@ -34,9 +35,12 @@ def _chf(rappen: object) -> str:
 
 
 def _template_context() -> dict[str, Any]:
+    if not hasattr(g, 'area_names'):
+        g.area_names = get_area_names(current_app.extensions['cafeteria_db'])
     return {
         'user': session.get('user'),
         'roles': list(getattr(g, 'auth_roles', ())),
+        'area_names': g.area_names,
     }
 
 
@@ -93,11 +97,17 @@ def _cells(
 ) -> list[dict[str, Any]]:
     options = _lookup(draft)
     cells: list[dict[str, Any]] = []
-    for offset in range(PROFILE_DAYS[profile]):
-        service_day = week + timedelta(days=offset)
+    draft_services = {
+        (str(day['date']), str(service['meal_code'])): service
+        for day in (draft or {}).get('days', []) for service in day['services']
+    }
+    dates = ([date.fromisoformat(str(day['date'])) for day in draft['days']] if draft
+             else [week + timedelta(days=offset) for offset in range(PROFILE_DAYS[profile])])
+    for service_day in dates:
+        offset = service_day.weekday()
         day = service_day.isoformat()
         for meal in PROFILE_MEALS[profile]:
-            service = services.get((day, meal), {})
+            service = {**draft_services.get((day, meal), {}), **services.get((day, meal), {})}
             for option_code in MENU_TYPES:
                 option = options.get((day, meal, option_code), {})
                 cell: dict[str, Any] = {
@@ -118,6 +128,8 @@ def _cells(
                     'review_open': option.get('review_open', True),
                     'service_state': service.get('service_state', 'open'),
                     'notice': str(service.get('notice') or ''),
+                    'service_start': str(service.get('service_start') or ''),
+                    'service_end': str(service.get('service_end') or ''),
                     'edit_url': url_for(
                         'admin.menu_get', family=family, week=week.isoformat(),
                         day=day, meal=meal, option=option_code,
@@ -136,6 +148,21 @@ def render_admin_week(
     services: dict[tuple[str, str], dict[str, Any]],
     csrf: str, flashes: list[str],
 ) -> str:
+    from .workflow_routes import _scoped_csrf
+
+    if draft is None:
+        schedule = get_schedule(current_app.extensions['cafeteria_db'], scope.location_id, profile)
+        days = []
+        for offset in range(7 if schedule.allows_weekend else PROFILE_DAYS[profile]):
+            day = week + timedelta(days=offset)
+            day_services: list[dict[str, object]] = []
+            for meal in PROFILE_MEALS[profile]:
+                rule = slot_defaults(schedule, day, meal)
+                day_services.append({'meal_code': meal, 'service_state': rule.state,
+                                     'notice': rule.notice, 'service_start': rule.start,
+                                     'service_end': rule.end, 'options': []})
+            days.append({'date': day.isoformat(), 'services': day_services})
+        draft = {'days': days, 'row_version': 0, 'title': '', 'shared_note': ''}
     return render_template(
         f'admin/{family}.html', profile=profile, family=family, week=week,
         week_iso=week.isoformat(), iso_week=week.isocalendar()[1], scope=scope,
@@ -144,6 +171,7 @@ def render_admin_week(
         title='' if draft is None else str(draft.get('title') or ''),
         shared_note='' if draft is None else str(draft.get('shared_note') or ''),
         cells=_cells(profile, family, week, draft, versions, services),
+        schedule_defaults_csrf=_scoped_csrf(profile, 'schedule_defaults', scope),
         **_template_context(),
     )
 
