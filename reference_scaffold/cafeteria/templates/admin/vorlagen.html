@@ -3,6 +3,7 @@
 {% set workflow_nav = 'vorlagen' %}
 {% block title %}Vorlagen · Menüplanung{% endblock %}
 {% block page_header %}{{ page_header('Vorlagen') }}{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-screens.css') }}">{% endblock %}
 {% block content %}
 <p>Druckvorlagen bearbeiten, als PDF prüfen und für gespeicherte Wochen verwenden.</p>
 <form class="card mb-4" method="get" action="{{ url_for('admin.vorlagen') }}">
@@ -78,4 +79,24 @@
   {% endfor %}
 </div>
 {% endif %}
+<h2 class="mt-4">Screen-Vorlagen</h2>
+<p>Web-Wochenpläne zeigen die aktuelle Veröffentlichung. Die oben gewählte Woche gilt weiterhin nur für Wochenpflege und PDF.</p>
+<details class="card mb-3"><summary class="card-header">Symbole</summary><div class="card-body"><p>{{ icon('eye') }} Vorschau öffnen: die Darstellung mit der aktuellen Veröffentlichung ansehen.</p><p class="mb-0">{{ icon('pencil') }} Wochenvorlage zuordnen: die Darstellung des Web-Wochenplans auswählen.</p></div></details>
+<div class="screens-grid">
+  {% for screen_family, catalog in screen_catalogs.items() %}
+  {% for choice in catalog.choices %}
+  <article class="card screen-choice-card">
+    <div class="card-header"><h3 class="card-title">{{ area_names[choice.profile] }} · {{ choice.name }}</h3></div>
+    <div class="card-body d-flex flex-column gap-3">
+      <p>Web · Woche · Rendererrevision {{ choice.renderer_revision }}</p>
+      <p>{% if catalog.active.template.id == choice.id %}<span class="badge bg-green-lt">Aktiv</span>{% else %}Nicht aktiv{% endif %}</p>
+      <div class="btn-list mt-auto">
+        <a class="btn btn-icon" href="{{ url_for('admin.screen_template_preview', family=screen_family, template_id=choice.id) }}" aria-label="{{ area_names[choice.profile] }} · {{ choice.name }} prüfen" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ area_names[choice.profile] }} · {{ choice.name }} prüfen">{{ icon('eye') }}</a>
+        <a class="btn btn-icon" href="{{ url_for('admin.screen_template_assignment', family=screen_family) }}" aria-label="{{ area_names[choice.profile] }} · Wochenvorlage zuordnen" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ area_names[choice.profile] }} · Wochenvorlage zuordnen">{{ icon('pencil') }}</a>
+      </div>
+    </div>
+  </article>
+  {% endfor %}
+  {% endfor %}
+</div>
 {% endblock %}

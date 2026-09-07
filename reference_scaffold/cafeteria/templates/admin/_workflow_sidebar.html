@@ -1,5 +1,6 @@
 {% from 'admin/_macros.html' import icon %}
 {% from '_brand_logo.html' import brand_logo %}
+{% if request.endpoint in ['admin.recipes_list', 'admin.recipe_new', 'admin.recipe_edit', 'admin.recipe_form_rows', 'admin.recipe_status', 'admin.recipe_revisions', 'admin.recipe_freeze', 'admin.recipe_revision', 'admin.recipe_scale', 'admin.recipe_images'] %}{% set workflow_nav = 'recipes' %}{% elif request.endpoint in ['admin.cookbooks_list', 'admin.cookbook_new', 'admin.cookbook_edit', 'admin.cookbook_recipes', 'admin.cookbook_status'] %}{% set workflow_nav = 'cookbooks' %}{% endif %}
 {% if not tabler_admin %}
 <aside class="admin-sidebar">
   <div class="admin-brand">
@@ -13,6 +14,11 @@
     <a href="{{ href }}"{% if workflow_nav == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
     {% endfor %}
     <a href="{{ url_for('admin.master_data_list') }}"{% if workflow_nav == 'master_data' %} class="active" aria-current="page"{% endif %}>Grundlagen</a>
+    {% if can_browse_recipes %}
+    {% for key, endpoint, label in [('recipes', 'recipes_list', 'Rezepte'), ('cookbooks', 'cookbooks_list', 'Kochbücher')] %}
+    <a href="{{ url_for('admin.' ~ endpoint) }}"{% if workflow_nav == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
+    {% endfor %}
+    {% endif %}
     {% for key, label in [('screens', 'Screens'), ('vorlagen', 'Vorlagen')] %}
     <a href="{{ url_for('admin.' ~ key) }}"{% if workflow_nav == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
     {% endfor %}
@@ -34,6 +40,15 @@
       {{ brand_logo(brand, 'admin-logo', width=164, height=32) }}
       <span>Menüplanung</span>
     </div>
+    {% if can_browse_recipes %}
+    <noscript><nav class="admin-nav d-xl-none" aria-label="Backend">
+      <ul class="navbar-nav">
+      {% for key, endpoint, icon_name, label in [('recipes', 'recipes_list', 'tools-kitchen-2', 'Rezepte'), ('cookbooks', 'cookbooks_list', 'copy', 'Kochbücher')] %}
+        <li class="nav-item"><a class="nav-link{% if workflow_nav == key %} active{% endif %}" href="{{ url_for('admin.' ~ endpoint) }}"{% if workflow_nav == key %} aria-current="page"{% endif %}>{{ icon(icon_name) }}<span class="nav-link-title">{{ label }}</span></a></li>
+      {% endfor %}
+      </ul>
+    </nav></noscript>
+    {% endif %}
     <div class="collapse navbar-collapse admin-nav-collapse" id="sidebar-menu">
       {% set user_name = user.name if user else 'Küche Administration' %}
       <div class="admin-user">
@@ -55,6 +70,12 @@
         ('vorlagen', url_for('admin.vorlagen'), 'copy', 'Vorlagen'),
         ('api', url_for('admin.api_overview'), 'info-circle', 'API & Schnittstellen'),
       ] %}
+      {% if can_browse_recipes %}
+      {% set nav_items = nav_items[:5] + [
+        ('recipes', url_for('admin.recipes_list'), 'tools-kitchen-2', 'Rezepte'),
+        ('cookbooks', url_for('admin.cookbooks_list'), 'copy', 'Kochbücher'),
+      ] + nav_items[5:] %}
+      {% endif %}
       <nav class="admin-nav" aria-label="Backend">
         <ul class="navbar-nav">
           {% for key, href, icon_name, label in nav_items %}

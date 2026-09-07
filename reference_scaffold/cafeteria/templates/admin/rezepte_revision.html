@@ -1,0 +1,26 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header, icon %}
+{% from 'admin/rezepte_scale.html' import amount_form, ingredients, symbols %}
+{% macro recorded(value) %}
+{% if value is mapping %}<dl class="mb-0">{% for key, item in value.items() %}<dt class="text-break">{{ key }}</dt><dd class="text-break">{{ recorded(item) }}</dd>{% endfor %}</dl>
+{% elif value is sequence and value is not string %}<ol>{% for item in value %}<li class="text-break">{{ recorded(item) }}</li>{% else %}<li>Keine Einträge</li>{% endfor %}</ol>
+{% elif value is none %}Nicht angegeben{% elif value is sameas true %}Ja{% elif value is sameas false %}Nein{% else %}{% for line in (value|string).split('\n') %}{{ line }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% endif %}
+{% endmacro %}
+{% block title %}Revision {{ revision.revision_number }} · {{ payload.title }}{% endblock %}
+{% block page_header %}{% call page_header(payload.title, 'Revision ' ~ revision.revision_number) %}<a class="btn" href="{{ url_for('admin.recipe_revisions', recipe_id=recipe_id) }}">{{ icon('arrow-left') }}Alle Revisionen</a>{% endcall %}{% endblock %}
+{% block content %}
+<section class="card mb-3"><div class="card-body"><h2 class="card-title">Unveränderlicher Stand</h2><dl class="mb-0"><dt>Revision</dt><dd class="text-break">{{ revision.public_id }}</dd><dt>Erstellt</dt><dd>{{ revision.created_at.isoformat() }}</dd><dt>SHA-256</dt><dd class="text-break">{{ revision.content_hash_sha256 }}</dd></dl>
+{% if payload.description %}<p class="text-break">{% for line in payload.description.split('\n') %}{{ line }}<br>{% endfor %}</p>{% endif %}
+<p>Herkunft: {{ payload.source.kind }}{% if payload.source.reference %} · {{ payload.source.reference }}{% endif %}</p>
+</div></section>
+{{ amount_form(calculated, url_for('admin.recipe_revision', recipe_id=recipe_id, revision_id=revision.public_id), error|default(none), target_value|default(none)) }}
+{{ ingredients(calculated) }}
+<section class="card mb-3"><div class="card-header"><h2 class="card-title">Zubereitung</h2></div><div class="card-body"><ol class="mb-0">
+{% for step in payload.steps %}<li class="mb-3 text-break">{% for line in step.instruction.split('\n') %}{{ line }}<br>{% endfor %}{% if step.duration_minutes is not none %}<p>{{ step.duration_minutes }} Minuten</p>{% endif %}{% if step.image_sha256 %}<img class="img-fluid" src="{{ url_for('admin.recipe_asset', recipe_id=recipe_id, sha256=step.image_sha256) }}" alt="Bild zu Schritt {{ loop.index }}" loading="lazy">{% endif %}</li>{% else %}<li>Keine Schritte gespeichert.</li>{% endfor %}
+</ol></div></section>
+{% if payload.images %}<section class="card mb-3"><div class="card-header"><h2 class="card-title">Bilder und Herkunft</h2></div><div class="card-body">
+{% for image in payload.images %}<figure><img class="img-fluid" src="{{ url_for('admin.recipe_asset', recipe_id=recipe_id, sha256=image.sha256) }}" alt="{{ image.caption or 'Rezeptbild ' ~ loop.index }}" loading="lazy"><figcaption class="text-break">{{ image.caption or 'Ohne Bildunterschrift' }}<br>Quelle: {{ image.source_url or 'Nicht angegeben' }}<br>Lizenz: {{ image.source_license or 'Nicht angegeben' }}<br>Abrufzeit: {{ image.fetched_at or 'Nicht angegeben' }}</figcaption></figure>{% endfor %}
+</div></section>{% endif %}
+<details class="card"><summary class="card-header">Vollständiger gespeicherter Revisionsstand</summary><div class="card-body text-break">{{ recorded(revision.snapshot) }}</div></details>
+{{ symbols() }}
+{% endblock %}

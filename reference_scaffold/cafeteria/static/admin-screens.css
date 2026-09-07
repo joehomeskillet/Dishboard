@@ -6,6 +6,8 @@
 }
 
 .screen-card { min-width: 0; }
+.screen-choice-card { min-width: 0; }
+.screen-choice-control { min-height: 3rem; }
 .screen-card .nav-link { min-height: 3rem; }
 .screen-card .btn-list { margin-top: auto; }
 

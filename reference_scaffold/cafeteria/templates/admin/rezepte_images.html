@@ -1,0 +1,25 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header, icon, field %}
+{% from 'admin/rezepte_scale.html' import symbols %}
+{% block title %}Bilder · {{ recipe.payload.title }}{% endblock %}
+{% block page_header %}{% call page_header('Rezeptbilder', recipe.payload.title) %}<a class="btn" href="{{ url_for('admin.recipe_edit', recipe_id=recipe.public_id) }}">{{ icon('arrow-left') }}Zum Rezept</a>{% endcall %}{% endblock %}
+{% block content %}
+<p>Bildunterschriften, Reihenfolge und Schrittzuordnung bearbeiten Sie im Rezepteditor. Speichern Sie dort zuerst Ihre Änderungen; ein Upload speichert einen neuen Rezeptstand. Noch nicht hochgeladene Eingaben gehen beim Verlassen dieser Seite verloren.</p>
+{% if token %}<section class="card mb-3"><div class="card-header"><h2 class="card-title">Bild hochladen</h2></div><div class="card-body">
+<form method="post" enctype="multipart/form-data" action="{{ url_for('admin.recipe_images', recipe_id=recipe.public_id) }}">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="_form_context" value="{{ token }}"><input type="hidden" name="row_version" value="{{ recipe.row_version }}">
+<div class="row g-3">
+<div class="col-12"><label class="form-label" for="image-file">Bilddatei</label><input class="form-control" type="file" name="file" id="image-file" accept="image/png,image/jpeg" required aria-describedby="image-hint"><div class="form-hint" id="image-hint">PNG oder JPEG, höchstens 1 MiB und 10 000 × 10 000 Pixel. Nach einem Fehler wählen Sie die Datei erneut.</div></div>
+<div class="col-12">{{ field('caption', 'Bildunterschrift · optional') }}</div>
+<div class="col-12">{{ field('source_url', 'Quellenadresse · optional', type='url', hint='Wird nur dokumentiert, niemals automatisch abgerufen.') }}</div>
+<div class="col-12 col-lg-6">{{ field('source_license', 'Lizenz · bei Quellenadresse erforderlich') }}</div>
+<div class="col-12 col-lg-6">{{ field('fetched_at', 'Abrufzeit · bei Quellenadresse erforderlich', hint='Mit Zeitzone, zum Beispiel 2026-09-07T10:30:00+02:00.') }}</div>
+<div class="col-12"><button class="btn btn-primary" type="submit">{{ icon('plus') }}Bild hochladen</button></div>
+</div></form></div></section>{% elif not recipe.active %}<div class="alert alert-info">Archiviert · Bilder bleiben lesbar. Ein Upload ist erst nach Reaktivieren möglich.</div>{% endif %}
+<section class="card"><div class="card-header"><h2 class="card-title">Gespeicherte Bilder</h2></div>
+{% if recipe.payload.images %}<table class="table table-vcenter card-table table-mobile-lg"><thead><tr><th>Bild</th><th>Bildunterschrift</th><th>Herkunft</th></tr></thead><tbody>
+{% for image in recipe.payload.images %}<tr><td data-label="Bild"><a class="btn" href="{{ url_for('admin.recipe_asset', recipe_id=recipe.public_id, sha256=image.sha256) }}" aria-label="Bild {{ loop.index }} in voller Größe öffnen"><img class="img-fluid" width="240" src="{{ url_for('admin.recipe_asset', recipe_id=recipe.public_id, sha256=image.sha256) }}" alt="{{ image.caption or 'Rezeptbild ' ~ loop.index }}" loading="lazy"></a></td><td class="text-break" data-label="Bildunterschrift">{{ image.caption or 'Nicht angegeben' }}</td><td class="text-break" data-label="Herkunft">Quelle: {{ image.source_url or 'Nicht angegeben' }}<br>Lizenz: {{ image.source_license or 'Nicht angegeben' }}<br>Abrufzeit: {{ image.fetched_at or 'Nicht angegeben' }}</td></tr>{% endfor %}
+</tbody></table>{% else %}<div class="card-body"><p class="mb-0">Noch keine Bilder gespeichert.</p></div>{% endif %}
+</section>
+{{ symbols() }}
+{% endblock %}

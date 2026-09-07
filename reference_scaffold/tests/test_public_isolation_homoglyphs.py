@@ -146,7 +146,18 @@ def app(monkeypatch: pytest.MonkeyPatch) -> Flask:
         DEMO_TODAY='2026-09-01',
         LAST_GOOD_DIR=str(ROOT / '.test-last-good'),
     )
-    application.extensions['cafeteria_db'] = object()
+    from contextlib import nullcontext
+    from types import SimpleNamespace
+    def absent_screen_setting(statement, parameters):
+        assert ' '.join(str(statement).split()) == (
+            'SELECT setting_value FROM cafeteria.settings WHERE location_id IS NULL '
+            'AND profile_id IS NULL AND setting_key=:key')
+        assert set(parameters) == {'key'}
+        assert parameters['key'] in ('screen_assignment.v1.staff_guest.web.week', 'screen_assignment.v1.patient.web.week')
+        return SimpleNamespace(one_or_none=lambda: None)
+    application.extensions['cafeteria_db'] = SimpleNamespace(
+        connect=lambda: nullcontext(SimpleNamespace(execute=absent_screen_setting)),
+    )
     application.add_template_filter(lambda value: value, 'date_long')
     application.add_template_filter(lambda value: value, 'date_short')
     application.add_template_filter(lambda value: int(value) / 100, 'chf')

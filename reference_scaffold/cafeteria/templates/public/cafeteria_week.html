@@ -4,7 +4,7 @@
 {% block logo_href %}{{ url_for('public.cafeteria_today') }}{% endblock %}
 {% block header_actions %}
 <div class="nav-item">
-  <a href="{{ url_for('public.patient_week' if show_menu_images|default(true) else 'public.patient_week_without_images') }}" class="btn btn-outline-primary">Patientenplan</a>
+  <a href="{{ url_for('public.patient_week_without_images' if explicit_without_images|default(false) else 'public.patient_week') }}" class="btn btn-outline-primary">Patientenplan</a>
 </div>
 {% endblock %}
 {% block hero %}

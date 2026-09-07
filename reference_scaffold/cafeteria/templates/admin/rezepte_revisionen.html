@@ -1,0 +1,24 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header, icon, pagination %}
+{% from 'admin/rezepte_scale.html' import symbols %}
+{% block title %}Revisionen · {{ recipe.payload.title }}{% endblock %}
+{% block page_header %}{% call page_header('Revisionen', recipe.payload.title) %}<a class="btn" href="{{ url_for('admin.recipe_edit', recipe_id=recipe.public_id) }}">{{ icon('arrow-left') }}Zum Rezept</a>{% endcall %}{% endblock %}
+{% block content %}
+<section class="card mb-3"><div class="card-body">
+<h2 class="card-title">Gespeicherten Stand festschreiben</h2>
+<p>Eine Revision bewahrt Zutaten, Mengen, Herkunft und Bilder unverändert. Ungespeicherte Änderungen im Editor sind nicht enthalten.</p>
+{% if token %}
+<form method="post" action="{{ url_for('admin.recipe_freeze', recipe_id=recipe.public_id) }}">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="_form_context" value="{{ token }}"><input type="hidden" name="row_version" value="{{ recipe.row_version }}">
+<button class="btn btn-primary" type="submit">{{ icon('device-floppy') }}Revision festschreiben</button>
+</form>
+{% elif not recipe.active %}<p class="mb-0">Dieses Rezept ist archiviert. Bestehende Revisionen bleiben lesbar.</p>{% endif %}
+</div></section>
+<section class="card"><div class="card-header"><h2 class="card-title">Unveränderliche Revisionen</h2></div>
+{% if revisions %}<table class="table table-vcenter card-table table-mobile-lg"><thead><tr><th>Revision</th><th>Erstellt</th><th>Prüfsumme</th><th>Öffnen</th></tr></thead><tbody>
+{% for item in revisions %}<tr><td data-label="Revision">{{ item.revision_number }}</td><td data-label="Erstellt">{{ item.created_at.isoformat() }}</td><td class="text-break" data-label="Prüfsumme">{{ item.content_hash_sha256 }}</td><td data-label="Öffnen"><a class="btn" href="{{ url_for('admin.recipe_revision', recipe_id=recipe.public_id, revision_id=item.public_id) }}" aria-label="Revision {{ item.revision_number }} öffnen">{{ icon('eye') }}Revision {{ item.revision_number }}</a></td></tr>{% endfor %}
+</tbody></table>{% else %}<div class="card-body"><p class="mb-0">Noch keine Revision festgeschrieben.</p></div>{% endif %}
+</section>
+{{ pagination(page, has_next, url_for('admin.recipe_revisions', recipe_id=recipe.public_id, page=page-1), url_for('admin.recipe_revisions', recipe_id=recipe.public_id, page=page+1), 'Revisionsseiten') }}
+{{ symbols() }}
+{% endblock %}

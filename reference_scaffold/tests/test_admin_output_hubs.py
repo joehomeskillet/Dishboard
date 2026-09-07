@@ -72,7 +72,10 @@ def test_app_factory_registers_each_hub_once(monkeypatch):
     monkeypatch.setenv('SESSION_REDIS_URL', '')
     monkeypatch.setattr(cafeteria, 'init_app_database', lambda _app: None)
     rules = [rule.rule for rule in cafeteria.create_app().url_map.iter_rules()]
-    for path in PATHS:
+    for path in PATHS + (
+        '/admin/screens/<any(cafeteria,patienten):family>/wochenvorlage',
+        '/admin/vorlagen/screens/<any(cafeteria,patienten):family>/<template_id>',
+    ):
         assert rules.count(path) == 1
 
 
@@ -88,6 +91,9 @@ def test_hubs_use_existing_read_roles_and_link_all_real_targets(hub_app, databas
         html = response.get_data(as_text=True)
         assert f'href="{path}" class="nav-link active" aria-current="page"' in html
         links = MainLinks(html).links
+        screen_links = [link for link in links if link.startswith(('/admin/screens/', '/admin/vorlagen/screens/'))]
+        assert len(set(screen_links)) == (2 if path == '/admin/screens' else 6)
+        links = [link for link in links if link not in screen_links]
         expected_links = 10 if path == '/admin/screens' or role != 'Cafeteria.Admin' else 14
         assert len(links) == expected_links and len(set(links)) == expected_links
         for link in links:

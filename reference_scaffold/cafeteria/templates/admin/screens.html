@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon %}
+{% from 'admin/_macros.html' import page_header, icon, icon_link %}
 {% set workflow_nav = 'screens' %}
 {% block title %}Screens · Menüplanung{% endblock %}
 {% block page_styles %}
@@ -8,11 +8,13 @@
 {% block page_header %}{{ page_header('Screens') }}{% endblock %}
 {% block content %}
 <p class="mb-4">Tages- und Wochenpläne für Web und Bildschirme öffnen. Die Ansichten zeigen den aktuell publizierten Menüplan. Ohne Publikation erscheint ein Hinweis.</p>
+<details class="card mb-3"><summary class="card-header">Symbole</summary><div class="card-body">{{ icon('pencil') }} Wochenvorlage zuordnen: die Darstellung des Web-Wochenplans auswählen.</div></details>
 <div class="screens-grid">
   {% for label, endpoint in [(area_names.staff_guest, 'cafeteria'), (area_names.patient, 'patient')] %}
   {% for channel, channel_label, day_suffix in [('public', 'Web', 'today'), ('signage', 'TV / Signage', 'day')] %}
   {% set screen_id = endpoint ~ '-' ~ channel %}
-  {% set periods = [('day', 'Tagesplan', endpoint ~ '_' ~ day_suffix), ('week', 'Wochenplan' if channel == 'public' else 'Wochenplan ohne Bilder', endpoint ~ '_week')] %}
+  {% set output_profile = 'staff_guest' if endpoint == 'cafeteria' else 'patient' %}
+  {% set periods = [('day', 'Tagesplan', endpoint ~ '_' ~ day_suffix), ('week', assignments[output_profile].template.name ~ ' · aktiv' if channel == 'public' else 'Wochenplan ohne Bilder', endpoint ~ '_week')] %}
   {% if channel == 'public' %}{% set periods = periods + [('week-no-images', 'Wochenplan ohne Bilder', endpoint ~ '_week_without_images')] %}{% endif %}
     <article class="card screen-card" aria-labelledby="{{ screen_id }}-title">
       <div class="card-header"><h2 class="card-title" id="{{ screen_id }}-title">{{ label }} · {{ channel_label }}</h2></div>
@@ -32,6 +34,8 @@
           {% endfor %}
         </div>
         <p class="text-secondary small mb-0">Vorschau des publizierten Plans. Vollständige Ansicht über die Links öffnen.</p>
+        {% if channel == 'public' %}<p><span class="badge bg-green-lt">Aktiv</span> {{ assignments[output_profile].template.name }}</p>
+        {{ icon_link(url_for('admin.screen_template_assignment', family='cafeteria' if endpoint == 'cafeteria' else 'patienten'), label ~ ' · Wochenvorlage zuordnen') }}{% endif %}
         <div class="btn-list">
           {% for period, period_label, target in periods %}
           <a class="btn" href="{{ url_for(channel ~ '.' ~ target) }}" aria-label="{{ label }} {{ channel_label }} {{ period_label }} öffnen">{{ icon('eye' if period == 'day' else 'calendar-week') }}{{ period_label }} öffnen</a>

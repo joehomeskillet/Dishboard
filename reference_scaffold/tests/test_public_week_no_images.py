@@ -28,7 +28,8 @@ def test_image_free_week_is_a_published_variant(app: Flask, profile: str, path: 
     without_images = client.get(path + 'ohne-bilder/')
     assert with_images.status_code == without_images.status_code == 200
     assert with_images.headers['X-Snapshot-Revision'] == without_images.headers['X-Snapshot-Revision']
-    assert with_images.headers['Cache-Control'] == without_images.headers['Cache-Control']
+    assert with_images.headers['Cache-Control'] == 'no-store'
+    assert without_images.headers['Cache-Control'] == public_routes.PUBLIC_CACHE_CONTROL
     body = without_images.get_data(as_text=True)
     assert body.count('class="card h-100"') == count
     assert 'class="menu-photo"' in with_images.get_data(as_text=True)

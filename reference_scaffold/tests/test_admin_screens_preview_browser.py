@@ -89,10 +89,11 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
         assert "style-src 'self'; script-src 'self'" in response.headers['content-security-policy']
         expect(page.locator('.screen-card')).to_have_count(4)
         expect(page.locator('iframe')).to_have_count(10)
-        assert set(page.locator('main a').evaluate_all('links => links.map(link => new URL(link.href).pathname)')) == TARGETS
+        all_targets = set(page.locator('main a').evaluate_all('links => links.map(link => new URL(link.href).pathname)'))
+        assert all_targets == TARGETS | {'/admin/screens/cafeteria/wochenvorlage', '/admin/screens/patienten/wochenvorlage'}
         for card in page.locator('.screen-card').all():
             is_web = 'Web' in card.locator('h2').inner_text()
-            periods = ('Tagesplan', 'Wochenplan', 'Wochenplan ohne Bilder') if is_web else (
+            periods = ('Tagesplan', 'Wochenplan mit Bildern · aktiv', 'Wochenplan ohne Bilder') if is_web else (
                 'Tagesplan', 'Wochenplan ohne Bilder',
             )
             expect(card.get_by_role('tab')).to_have_count(len(periods))
@@ -114,7 +115,7 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
                 expect(frame.locator('body')).to_contain_text(menu['services'][0]['options'][0]['title'])
                 if period == 'Wochenplan ohne Bilder':
                     expect(frame.locator('.menu-photo, .card-img-top')).to_have_count(0)
-                elif period == 'Wochenplan' and is_web:
+                elif period == 'Wochenplan mit Bildern · aktiv' and is_web:
                     assert frame.locator('.menu-photo img').count() > 0
                 if '/patienten/' in frame.url:
                     assert not re.search(r'preis|chf|rappen|kosten|price', frame.content(), re.IGNORECASE)
@@ -156,8 +157,10 @@ def test_full_views_remain_available_without_javascript(
         page.goto('/admin/screens')
         for link in page.locator('main a').all():
             expect(link).to_be_visible()
-        assert set(page.locator('main a').evaluate_all('links => links.map(link => new URL(link.href).pathname)')) == TARGETS
-        page.get_by_role('link', name='Patientinnen und Patienten Web Wochenplan öffnen', exact=True).click()
+        assert set(page.locator('main a').evaluate_all('links => links.map(link => new URL(link.href).pathname)')) == TARGETS | {
+            '/admin/screens/cafeteria/wochenvorlage', '/admin/screens/patienten/wochenvorlage',
+        }
+        page.get_by_role('link', name='Patientinnen und Patienten Web Wochenplan mit Bildern · aktiv öffnen', exact=True).click()
         expect(page).to_have_url(f'{screen_server}/patienten/wochenplan/')
         expect(page.locator('main')).to_contain_text('Patientinnen und Patienten · Wochenübersicht')
         page.goto('/admin/screens')

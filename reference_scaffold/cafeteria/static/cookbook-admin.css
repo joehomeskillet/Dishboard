@@ -1,0 +1,14 @@
+/* Equal intrinsic tracks retain full cookbook descriptions across list rows. */
+.cookbook-cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: 1fr;
+  gap: var(--tblr-spacer);
+}
+.cookbook-cards > div { min-width: 0; }
+@media (min-width: 768px) {
+  .cookbook-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1200px) {
+  .cookbook-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

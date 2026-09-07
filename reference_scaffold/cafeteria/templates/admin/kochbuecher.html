@@ -1,0 +1,76 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header, icon, icon_link, pagination %}
+{% set workflow_nav = 'cookbooks' %}
+{% block title %}Kochbücher · Menüplanung{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='cookbook-admin.css') }}">{% endblock %}
+{% block page_header %}
+{% call page_header('Kochbücher') %}
+{% if can_write %}<a class="btn btn-primary" href="{{ url_for('admin.cookbook_new') }}">{{ icon('plus') }}Kochbuch anlegen</a>{% endif %}
+{% endcall %}
+{% endblock %}
+{% block content %}
+<p>Kochbücher sammeln Rezepte in einer festen Reihenfolge. Archivierte Bücher bleiben lesbar.</p>
+<details class="card mb-3">
+  <summary class="card-header">{{ icon('info-circle') }}Symbole</summary>
+  <div class="card-body">
+    <ul class="list-unstyled mb-0">
+      <li class="mb-2">{{ icon('pencil') }} Kochbuch öffnen</li>
+      <li class="mb-2">{{ icon('search') }} Liste durchsuchen</li>
+      <li class="mb-2">{{ icon('x') }} Suche zurücksetzen, ohne gespeicherte Bücher zu ändern</li>
+      <li>{{ icon('chevron-left') }}{{ icon('chevron-right') }} Vorherige und nächste Seite</li>
+    </ul>
+  </div>
+</details>
+<form class="card mb-4" method="get" action="{{ url_for('admin.cookbooks_list') }}" role="search">
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <div class="col-12 col-lg-6">
+        <label class="form-label" for="cookbook-q">Kochbuch suchen</label>
+        <div class="input-icon">
+          <span class="input-icon-addon">{{ icon('search') }}</span>
+          <input class="form-control" id="cookbook-q" name="q" type="search" maxlength="200" value="{{ search }}">
+        </div>
+      </div>
+      <div class="col-12">
+        <label class="form-check">
+          <input class="form-check-input" type="checkbox" name="archived" value="1"{% if include_archived %} checked{% endif %}>
+          <span class="form-check-label">Archivierte einschliessen</span>
+        </label>
+      </div>
+      <div class="col-12">
+        <div class="btn-list">
+          <button class="btn btn-icon" type="submit" aria-label="Suchen" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="Suchen">{{ icon('search') }}</button>
+          <a class="btn btn-icon" href="{{ url_for('admin.cookbooks_list', archived='1' if include_archived else none) }}" aria-label="Suche zurücksetzen" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="Suche zurücksetzen">{{ icon('x') }}</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+{% if rows %}
+<section class="cookbook-cards" aria-label="Kochbücher">
+  {% for book in rows %}
+  <div>
+    <article class="card h-100">
+      <div class="card-body">
+        <h2 class="card-title">{{ book.name }}</h2>
+        <p class="mb-2"><span class="badge {{ 'bg-green-lt' if book.active else 'bg-secondary-lt' }}">{{ 'Aktiv' if book.active else 'Archiviert' }}</span></p>
+        {% if book.description %}<p class="text-break mb-2">{{ book.description }}</p>{% endif %}
+        <p class="text-secondary mb-0">{{ book.recipe_public_ids|length }} Rezepte</p>
+      </div>
+      <div class="card-footer">
+        <div class="btn-list">
+          {{ icon_link(url_for('admin.cookbook_edit', cookbook_id=book.public_id), book.name ~ (' bearbeiten' if can_write and book.active else ' ansehen')) }}
+        </div>
+      </div>
+    </article>
+  </div>
+  {% endfor %}
+</section>
+{{ pagination(page, has_next, prev_url, next_url, 'Kochbuchseiten') }}
+{% else %}
+<div class="empty">
+  <p class="empty-title">{{ 'Keine passenden Kochbücher' if search else 'Noch keine Kochbücher' }}</p>
+  <p class="empty-subtitle text-secondary">{{ 'Suche ändern oder zurücksetzen.' if search else 'Ein Kochbuch anlegen, um Rezepte zu ordnen.' }}</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -31,7 +31,7 @@ def http_app(app: Flask, monkeypatch: pytest.MonkeyPatch) -> Flask:
     monkeypatch.setattr(cafeteria, 'Config', lambda: SimpleNamespace(**app.config))
     monkeypatch.setattr(
         cafeteria, 'init_app_database',
-        lambda application: application.extensions.update(cafeteria_db=object()),
+        lambda application: application.extensions.update(cafeteria_db=app.extensions['cafeteria_db']),
     )
     return cafeteria.create_app()
 

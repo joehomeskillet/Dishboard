@@ -4,8 +4,10 @@ import datetime as dt
 from zoneinfo import ZoneInfo
 
 from flask import Blueprint, current_app, make_response, redirect, render_template, request, url_for
+from sqlalchemy.exc import SQLAlchemyError
 
 from ..db import active_snapshot
+from ..screen_templates import ScreenStateError, read_assignment
 from ..template_filters import cafeteria_visible_days, weekday_range_label
 
 bp = Blueprint('public', __name__)
@@ -97,9 +99,25 @@ def cafeteria_today():
         defaults={'show_menu_images': False})
 @bp.get('/cafeteria/wochenangebot/')
 def cafeteria_week(show_menu_images: bool = True):
+    explicit_without_images = not show_menu_images
+    assignment = None
+    if show_menu_images:
+        try:
+            with current_app.extensions['cafeteria_db'].connect() as connection:
+                assignment = read_assignment(connection, 'staff_guest')
+            show_menu_images = assignment.template.show_menu_images
+        except (SQLAlchemyError, ScreenStateError):
+            response = make_response(current_app.jinja_env.get_template('admin/screen_template_unavailable.html').render(), 503)
+            response.headers['Cache-Control'] = 'no-store'
+            return response
     context = cafeteria_context()
     context['show_menu_images'] = show_menu_images
-    return published_response('public/cafeteria_week.html', context)
+    context['explicit_without_images'] = explicit_without_images
+    response = published_response('public/cafeteria_week.html', context)
+    if assignment is not None:
+        response.headers['X-Screen-Template-Revision'] = assignment.revision
+        response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 @bp.get('/patienten/heute/')
@@ -114,9 +132,25 @@ def patient_today():
         defaults={'show_menu_images': False})
 @bp.get('/patienten/wochenplan/')
 def patient_week(show_menu_images: bool = True):
+    explicit_without_images = not show_menu_images
+    assignment = None
+    if show_menu_images:
+        try:
+            with current_app.extensions['cafeteria_db'].connect() as connection:
+                assignment = read_assignment(connection, 'patient')
+            show_menu_images = assignment.template.show_menu_images
+        except (SQLAlchemyError, ScreenStateError):
+            response = make_response(current_app.jinja_env.get_template('admin/screen_template_unavailable.html').render(), 503)
+            response.headers['Cache-Control'] = 'no-store'
+            return response
     context = load_context('patient')
     context['show_menu_images'] = show_menu_images
-    return published_response('public/patient_week.html', context)
+    context['explicit_without_images'] = explicit_without_images
+    response = published_response('public/patient_week.html', context)
+    if assignment is not None:
+        response.headers['X-Screen-Template-Revision'] = assignment.revision
+        response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 @bp.get('/druck/cafeteria/woche')

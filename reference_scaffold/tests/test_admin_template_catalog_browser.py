@@ -20,6 +20,11 @@ from test_print_template_routes import editor_app, fields  # noqa: F401
 from test_rendered_ui import browser  # noqa: F401
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
+PDF_TARGETS = {f'/admin/vorlagen/{family}{suffix}' for family in ('cafeteria', 'patienten')
+               for suffix in ('', '/vorschau.pdf')}
+SCREEN_TARGETS = {f'/admin/vorlagen/screens/{family}/{prefix}-week-{mode}'
+                  for family, prefix in [('cafeteria', 'cafeteria'), ('patienten', 'patient')]
+                  for mode in ('photo', 'text')}
 
 
 def settings(engine):
@@ -48,8 +53,12 @@ def test_virtual_catalog_and_missing_week_never_initialize_settings(editor_app, 
     page = client.get(f'/admin/vorlagen?week={DAY}')
     assert page.status_code == 200 and page.headers['Cache-Control'] == 'no-store'
     assert page.text.count('data-template-id="standard"') == 2
+    assert {link for link in MainLinks(page.text).links if link.startswith('/admin/vorlagen/screens/')} == SCREEN_TARGETS
+    for link in SCREEN_TARGETS:
+        preview = client.get(link)
+        assert preview.status_code == 404 and preview.headers['Cache-Control'] == 'no-store'
     for link in MainLinks(page.text).links:
-        if '/admin/vorlagen/' not in link:
+        if urlsplit(link).path not in PDF_TARGETS:
             continue
         response = client.get(link)
         if '/vorschau.pdf' in link:
@@ -73,7 +82,8 @@ def test_catalog_revision_links_render_real_saved_pdfs_without_mutation(editor_a
     assert response.text.count('Aktiver Herbst · Revision 2') == 2
     assert response.text.count('Neuester Stand: Revision 3 · Entwurf') == 2
     assert response.text.count('Festliche Kopie') == 2
-    links = [link for link in MainLinks(response.text).links if '/admin/vorlagen/' in link]
+    assert {link for link in MainLinks(response.text).links if link.startswith('/admin/vorlagen/screens/')} == SCREEN_TARGETS
+    links = [link for link in MainLinks(response.text).links if urlsplit(link).path in PDF_TARGETS]
     assert len(links) == 12
     for link in links:
         query = parse_qs(urlsplit(link).query)
@@ -89,8 +99,9 @@ def test_catalog_revision_links_render_real_saved_pdfs_without_mutation(editor_a
     for family, payload in active.items():
         assert client.get(f'/admin/{family}/preview/print?week={DAY}').data == payload
     changed = MainLinks(client.get('/admin/vorlagen?week=2026-09-07').text).links
+    assert {link for link in changed if link.startswith('/admin/vorlagen/screens/')} == SCREEN_TARGETS
     assert all(parse_qs(urlsplit(link).query)['week'] == ['2026-09-07']
-               for link in changed if '/admin/vorlagen/' in link)
+               for link in changed if urlsplit(link).path in PDF_TARGETS)
     assert settings(database_engine) == before
 
 
@@ -101,7 +112,10 @@ def test_read_roles_see_catalog_but_no_privileged_revision_links(editor_app, dat
     client, _ = _login(editor_app, database_engine, [role])
     response = client.get('/admin/vorlagen')
     assert response.status_code == 200 and 'Aktiver Herbst · Revision 2' in response.text
-    assert not any('/admin/vorlagen/' in link for link in MainLinks(response.text).links)
+    assert not any(urlsplit(link).path in PDF_TARGETS for link in MainLinks(response.text).links)
+    assert {link for link in MainLinks(response.text).links if link.startswith('/admin/vorlagen/screens/')} == SCREEN_TARGETS
+    for link in SCREEN_TARGETS:
+        assert client.get(link).status_code == 404
     assert client.get(f'/admin/vorlagen/patienten?week={DAY}&revision=3').status_code == 403
     assert client.get(f'/admin/vorlagen/patienten/vorschau.pdf?week={DAY}&revision=3').status_code == 403
 

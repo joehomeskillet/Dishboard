@@ -1,0 +1,30 @@
+{% from 'admin/_macros.html' import page_header, icon %}
+{% macro amount_form(calculated, action, error=none, target_value=none) %}
+{% if error %}<div class="alert alert-danger error-region" id="yield-error" role="alert">{{ error }}</div>{% endif %}
+<form method="get" action="{{ action }}" class="row g-3 align-items-end mb-3">
+<div class="col-12 col-sm-6 col-lg-4"><label class="form-label" for="target-yield">Zielmenge · {{ calculated.unit }}</label><input class="form-control{% if error %} is-invalid{% endif %}" type="text" inputmode="decimal" id="target-yield" name="yield" value="{{ target_value if target_value is not none else calculated.target }}" required aria-describedby="{{ 'yield-error' if error else 'yield-hint' }}"{% if error %} aria-invalid="true" autofocus{% endif %}><div class="form-hint" id="yield-hint">Positiv, Dezimalpunkt; gleiche Einheit wie die gespeicherte Ausbeute.</div></div>
+<div class="col-12 col-sm-auto"><button class="btn btn-primary" type="submit">Mengen berechnen</button></div>
+</form>
+<p>Ausbeute/Menge im Original: <strong>{{ calculated.source }} {{ calculated.unit }}</strong>. Ziel: <strong>{{ calculated.target }} {{ calculated.unit }}</strong>.</p>
+<p class="text-secondary">Nur berechnet · Keine Speicherung und keine Einheitenumrechnung. Berechnungswerte werden nicht auf sechs Nachkommastellen gerundet.</p>
+{% endmacro %}
+{% macro ingredients(calculated) %}
+<section class="card mb-3"><div class="card-header"><h2 class="card-title">Zutaten und Mengen</h2></div>
+<table class="table table-vcenter card-table table-mobile-lg"><thead><tr><th>Zutat</th><th>Original</th><th>Berechnet</th><th>Einheit</th></tr></thead><tbody>
+{% for row in calculated.rows %}<tr><td class="text-break" data-label="Zutat">{% if row.ingredient.group_label %}<strong>{{ row.ingredient.group_label }}</strong><br>{% endif %}{{ row.ingredient.ingredient_text }}{% if row.ingredient.note %}<br>{{ row.ingredient.note }}{% endif %}</td><td class="text-break" data-label="Original">{{ row.original if row.original is not none else 'Ohne Mengenangabe' }}</td><td class="text-break" data-label="Berechnet">{{ row.scaled if row.scaled is not none else 'Ohne Mengenangabe' }}</td><td data-label="Einheit">{{ row.unit or '—' }}</td></tr>{% else %}<tr><td colspan="4">Keine Zutaten gespeichert.</td></tr>{% endfor %}
+</tbody></table></section>
+{% endmacro %}
+{% macro symbols() %}
+<details class="card mt-3"><summary class="card-header">Symbole</summary><div class="card-body"><ul class="list-unstyled mb-0"><li>{{ icon('arrow-left') }}Zurück zur vorherigen Rezeptansicht</li><li>{{ icon('device-floppy') }}Gespeicherten Stand als Revision festschreiben</li><li>{{ icon('plus') }}Neue Bilddatei hochladen</li><li>{{ icon('eye') }}Unveränderliche Revision öffnen</li></ul></div></details>
+{% endmacro %}
+{% if payload is defined %}
+{% extends 'admin/base_tabler.html' %}
+{% block title %}Mengen berechnen · {{ payload.title }}{% endblock %}
+{% block page_header %}{% call page_header('Mengen berechnen', payload.title) %}<a class="btn" href="{{ url_for('admin.recipe_edit', recipe_id=recipe_id) }}">{{ icon('arrow-left') }}Zum Rezept</a>{% endcall %}{% endblock %}
+{% block content %}
+<div class="alert alert-info" role="status">Gespeicherter Entwurf{% if not recipe.active %} · Archiviert{% endif %}. Diese Ansicht verändert das Rezept nicht.</div>
+{{ amount_form(calculated, url_for('admin.recipe_scale', recipe_id=recipe_id), error|default(none), target_value|default(none)) }}
+{{ ingredients(calculated) }}
+{{ symbols() }}
+{% endblock %}
+{% endif %}
