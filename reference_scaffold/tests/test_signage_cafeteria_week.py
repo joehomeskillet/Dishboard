@@ -7,6 +7,7 @@ import pytest
 from flask import Flask
 from playwright.sync_api import Browser, Page, expect
 
+from cafeteria.menu_images import menu_image
 from test_rendered_ui import _set_unbroken_signage_boundaries
 from test_rendered_ui import app as app, browser as browser
 from test_signage_engine import live_signage as live_signage
@@ -38,12 +39,17 @@ def _layout_metrics(page: Page) -> dict:
 
 @pytest.mark.parametrize('width,height', [(1920, 1080), (3840, 2160)])
 @pytest.mark.parametrize('scenario', ['published', 'unbroken', 'closed', 'recipe_note'])
+@pytest.mark.parametrize('with_images', [True, False], ids=['photos', 'no-photos'])
 def test_cafeteria_week_has_five_equal_complete_day_cards(
     live_signage: tuple[str, Flask], browser: Browser, tmp_path: Path,
-    width: int, height: int, scenario: str,
+    width: int, height: int, scenario: str, with_images: bool, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     base_url, application = live_signage
     snapshot = application.config['TEST_SNAPSHOTS']['staff_guest']
+    if not with_images:
+        monkeypatch.setattr('cafeteria.menu_images._images', lambda: {})
+    assert any(menu_image(option) for day in snapshot['days']
+               for meal in day['services'] for option in meal['options']) == with_images
     if scenario == 'unbroken':
         _set_unbroken_signage_boundaries(snapshot, title_length=37, component_length=49)
     if scenario == 'closed':
@@ -62,6 +68,9 @@ def test_cafeteria_week_has_five_equal_complete_day_cards(
     options = [option for day in snapshot['days'] for meal in day['services']
                if meal.get('service_state', 'open') == 'open' for option in meal['options']]
     page = browser.new_page(viewport={'width': width, 'height': height}, reduced_motion='reduce')
+    tabler_responses: list[int] = []
+    page.on('response', lambda response: tabler_responses.append(response.status)
+            if response.url.endswith('/static/vendor/tabler/tabler.min.css') else None)
     try:
         response = page.goto(f'{base_url}/signage/cafeteria/woche')
         assert response is not None and response.status == 200
@@ -69,6 +78,9 @@ def test_cafeteria_week_has_five_equal_complete_day_cards(
         assert "script-src 'self'" in response.headers['content-security-policy']
         assert 'set-cookie' not in response.headers
         page.evaluate('document.fonts.ready')
+        assert 200 in tabler_responses
+        # The compact weekly overview retains its text-only layout in either snapshot variant.
+        expect(page.locator('.cafe-week-slot .menu-photo')).to_have_count(0)
         days = page.locator('.cafe-week-board.row.g-3 > .col > .cafe-week-day.card')
         expect(days).to_have_count(5)
         boxes = [card.bounding_box() for card in days.all()]

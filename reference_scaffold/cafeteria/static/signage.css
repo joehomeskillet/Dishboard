@@ -127,7 +127,7 @@ p{text-wrap:pretty}
 .cafe-week-board.row{display:grid;grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);margin:0;gap:0;--tblr-gutter-x:1vw}
 .cafe-week-board>.col{display:grid;grid-template-rows:subgrid;grid-row:span 2;min-width:0;min-height:0;margin-top:0}
 .cafe-week-board .cafe-week-day{display:grid;grid-template-rows:subgrid;grid-row:span 2;gap:0;border:0;border-radius:var(--sh-radius-lg);color:var(--sh-ink);background:var(--sh-panel);box-shadow:var(--sh-shadow-soft)}
-.cafe-week-board .card-header{justify-content:space-between;gap:.3vw;padding:.6vh .6vw;border-radius:var(--sh-radius-lg) var(--sh-radius-lg) 0 0;color:var(--sh-teal-950);background:var(--sh-teal-100)!important}
+.cafe-week-board .card-header{justify-content:space-between;gap:.3vw;padding:.1vh .6vw;border-radius:var(--sh-radius-lg) var(--sh-radius-lg) 0 0;color:var(--sh-teal-950);background:var(--sh-teal-100)!important}
 .cafe-week-board .card-header h2{font-size:clamp(24px,1.25vw,48px);font-weight:600;line-height:1.2}
 .cafe-week-board .card-header span{margin:0;color:var(--sh-ink-muted);font-size:clamp(18px,.94vw,36px)}
 .cafe-week-board .cafe-week-menus{display:grid;grid-template-rows:repeat(2,minmax(0,1fr));min-height:0;padding:0}
@@ -135,8 +135,9 @@ p{text-wrap:pretty}
 .cafe-week-board .card-status-top{height:.4vh}
 .cafe-week-board .bg-primary{background:var(--sh-primary)!important}
 .cafe-week-board .bg-green{background:var(--sh-green)!important}
-.cafe-week-board .slot-type{padding:.6vh .6vw .3vh;border:0;font-size:clamp(18px,.94vw,36px);font-weight:600;line-height:1.2}
-.cafe-week-board .slot-body{justify-content:flex-start;gap:.3vh;padding:.3vh .6vw .4vh;overflow:visible}
+/* Week-specific insets reserve declaration space alongside the shared food legend. */
+.signage-shell.signage-cafe-week .cafe-week-board .slot-type{padding:.1vh .6vw 0;border:0;font-size:clamp(18px,.94vw,36px);font-weight:600;line-height:1.2}
+.signage-shell.signage-cafe-week .cafe-week-board .slot-body{justify-content:flex-start;gap:0;padding:0 .6vw;overflow:visible}
 .cafe-week-board .slot-body>*{flex-shrink:0}
 .cafe-week-board .slot-body h3{margin:0;font-size:clamp(36px,1.875vw,72px);font-weight:600;line-height:1.2;letter-spacing:-.035em}
 .cafe-week-board .cafe-week-components{margin:0;font-size:clamp(20px,1.04vw,40px);line-height:1.2}
@@ -144,7 +145,7 @@ p{text-wrap:pretty}
 .cafe-week-board .signage-tags{gap:.3vh .25vw;margin:.2vh 0;overflow:visible}
 .cafe-week-board .signage-tags .label{max-width:100%;padding:.15vh .3vw;font-size:clamp(16px,.84vw,32px);line-height:1.2;white-space:normal}
 .cafe-week-board .label.amber{color:var(--sh-amber-ink)}
-.cafe-week-board .card-footer{display:grid;gap:.2vh;padding:.5vh .6vw;font-size:clamp(18px,.94vw,36px);font-weight:600;line-height:1.2}
+.signage-shell.signage-cafe-week .cafe-week-board .card-footer{display:grid;gap:.2vh;padding:.1vh .6vw;font-size:clamp(18px,.94vw,36px);font-weight:600;line-height:1.2}
 .cafe-week-board .cafe-week-closed{display:grid;align-content:center;gap:1vh;min-height:0;padding:1vh .7vw;overflow-wrap:anywhere}
 .cafe-week-board .cafe-week-closed h3{margin:0;font-size:clamp(36px,1.875vw,72px);line-height:1.15}
 .cafe-week-board .cafe-week-closed p{margin:0;font-size:clamp(22px,1.15vw,44px);line-height:1.25}
