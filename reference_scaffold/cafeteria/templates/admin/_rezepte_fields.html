@@ -1,0 +1,23 @@
+{% from 'admin/_macros.html' import icon %}
+{% macro field(name, label, multiline=false, required=false, readonly=false, maximum=none, numeric=false) %}
+<div class="mb-3"><label class="form-label" for="{{ name }}">{{ label }}</label>
+{% if multiline %}<textarea class="form-control" id="{{ name }}" name="{{ name }}" rows="4"{% if required %} required{% endif %}{% if readonly %} readonly{% endif %}{% if maximum %} maxlength="{{ maximum }}"{% endif %}>{{ '\n' }}{{ data.get(name, '') }}</textarea>
+{% else %}<input class="form-control" id="{{ name }}" name="{{ name }}" value="{{ data.get(name, '') }}"{% if required %} required{% endif %}{% if readonly %} readonly{% endif %}{% if maximum %} maxlength="{{ maximum }}"{% endif %}{% if numeric %} inputmode="decimal"{% endif %}>{% endif %}</div>
+{% endmacro %}
+{% macro hidden(name) %}<input type="hidden" name="{{ name }}" value="{{ data.get(name, '') }}">{% endmacro %}
+{% macro select(name, label, options, blank=true) %}
+<div class="mb-3"><label class="form-label" for="{{ name }}">{{ label }}</label><select class="form-select" id="{{ name }}" name="{{ name }}">
+{% if blank %}<option value="">Keine Auswahl</option>{% endif %}
+{% for value, text in options %}<option value="{{ value }}"{% if data.get(name) == value %} selected{% endif %}>{{ text }}</option>{% endfor %}
+{% if data.get(name) and data.get(name) not in options|map(attribute=0)|list %}<option value="{{ data[name] }}" selected>Ursprüngliche Auswahl · nicht mehr verfügbar</option>{% endif %}
+</select></div>{% endmacro %}
+{% macro row_button(kind, operation, index, label, symbol) %}
+<button class="btn btn-icon" type="submit" formnovalidate formaction="{{ url_for('admin.recipe_form_rows', action=action, recipe_id=recipe_id, row_kind=kind, row_action=operation, row_index=index) }}" aria-label="{{ label }}" title="{{ label }}" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ label }}">{{ icon(symbol) }}</button>
+{% endmacro %}
+{% macro row_actions(kind, index, count, label) %}
+{% if can_write and active %}<div class="d-flex flex-wrap gap-2 mb-3">
+{{ row_button(kind, 'add', index, label ~ ' davor einfügen', 'plus') if kind != 'images' and count < 64 else '' }}
+{% if index > 0 %}{{ row_button(kind, 'up', index, label ~ ' eine Position früher', 'chevron-left') }}{% endif %}
+{% if index + 1 < count %}{{ row_button(kind, 'down', index, label ~ ' eine Position später', 'chevron-right') }}{% endif %}
+{{ row_button(kind, 'remove', index, label ~ ' entfernen', 'trash') }}</div>{% endif %}
+{% endmacro %}

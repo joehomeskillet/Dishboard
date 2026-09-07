@@ -1,0 +1,73 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header %}
+{% from 'admin/_rezepte_fields.html' import field, hidden, select, row_button, row_actions with context %}
+{% set workflow_nav = 'recipes' %}
+{% block title %}Rezept · Menüplanung{% endblock %}
+{% block page_header %}{{ page_header('Rezeptstatus bestätigen' if confirmation else 'Rezept bearbeiten' if recipe_id else 'Rezept anlegen') }}{% endblock %}
+{% block content %}
+{% if confirmation %}
+<div class="card"><div class="card-body"><h2 class="card-title text-break">{{ payload.title }}</h2>
+<p>{{ 'Archivieren erhält Zutaten, Bilder und Revisionen. Das Rezept bleibt lesbar.' if active else 'Dieses Rezept wieder zur Bearbeitung freigeben?' }}</p>
+<form method="post" action="{{ url_for('admin.recipe_status', recipe_id=recipe_id) }}">{{ hidden('_csrf') }}{{ hidden('_form_context') }}{{ hidden('row_version') }}
+<input type="hidden" name="active" value="{{ '0' if active else '1' }}"><div class="d-flex flex-wrap gap-2">
+<button class="btn btn-primary" type="submit">{{ 'Archivieren bestätigen' if active else 'Reaktivieren bestätigen' }}</button>
+<a class="btn" href="{{ url_for('admin.recipe_edit', recipe_id=recipe_id) }}">Abbrechen</a></div></form></div></div>
+{% else %}
+<div class="d-flex flex-wrap gap-2 mb-3"><a class="btn" href="{{ url_for('admin.recipes_list') }}">Zur Rezeptliste</a>
+{% if recipe_id and can_write %}<a class="btn" href="{{ url_for('admin.recipe_status', recipe_id=recipe_id) }}">{{ 'Archivieren' if active else 'Reaktivieren' }}</a>{% endif %}
+{% for name, label in [('recipe_images', 'Bilder verwalten'), ('recipe_revisions', 'Revisionen'), ('recipe_scale', 'Mengen berechnen')] %}{% if name in links %}<a class="btn" href="{{ links[name] }}">{{ label }}</a>{% endif %}{% endfor %}</div>
+<p class="alert alert-info">{{ 'Entwurf: Änderungen werden erst mit Speichern übernommen.' if active else 'Archiviert: Das Rezept ist lesbar. Zum Bearbeiten zuerst reaktivieren.' }}</p>
+<details class="mb-3"><summary class="btn">Symbole</summary><div class="card card-body">Plus: Zeile einfügen. Pfeile: Zeile verschieben. Papierkorb: Zeile aus dem Formular entfernen. Erst Speichern übernimmt die Änderungen.</div></details>
+<form id="recipe-editor" method="post" action="{{ url_for('admin.recipe_edit', recipe_id=recipe_id) if recipe_id else url_for('admin.recipe_new') }}">
+{{ hidden('_csrf') }}{{ hidden('_form_context') }}{% if recipe_id %}{{ hidden('row_version') }}{% endif %}
+<fieldset{% if not active or not can_write %} disabled{% endif %}>
+<legend class="visually-hidden">Rezeptinhalt</legend>
+<div class="card mb-4"><div class="card-body"><h2 class="card-title">Rezept</h2>
+{{ field('title', 'Titel', required=true, maximum=120) }}{{ field('description', 'Beschreibung', multiline=true, maximum=2000) }}
+<div class="row g-3"><div class="col-12 col-md-6">{{ field('servings', 'Ausbeute/Menge', required=true, numeric=true) }}</div><div class="col-12 col-md-6">{{ select('servings_unit_code', 'Ausbeuteeinheit', choices.units) }}</div></div>
+<div class="row g-3"><div class="col-12 col-md-6">{{ field('prep_minutes', 'Vorbereitung in Minuten', numeric=true) }}</div><div class="col-12 col-md-6">{{ field('cook_minutes', 'Kochzeit in Minuten', numeric=true) }}</div></div>
+</div></div>
+<section class="mb-4" aria-labelledby="ingredients-heading"><h2 id="ingredients-heading">Zutaten</h2>
+{% for row in payload.ingredients %}{% set prefix = 'ingredients.' ~ loop.index0 ~ '.' %}
+<div class="card mb-3"><div class="card-body"><h3 class="card-title">Zutat {{ loop.index }}</h3>
+{{ hidden(prefix ~ 'line_public_id') }}{{ field(prefix ~ 'ingredient_text', 'Zutatenbezeichnung', required=true, maximum=500) }}
+{{ select(prefix ~ 'food_public_id', 'Zutat aus Stammdaten', choices.foods) }}{{ field(prefix ~ 'group_label', 'Gruppe', maximum=120) }}
+<div class="row g-3"><div class="col-12 col-md-6">{{ field(prefix ~ 'quantity', 'Menge', numeric=true) }}</div><div class="col-12 col-md-6">{{ select(prefix ~ 'unit_code', 'Einheit', choices.units) }}</div></div>
+{{ field(prefix ~ 'note', 'Zutatennotiz', maximum=500) }}
+{{ hidden(prefix ~ 'source_kind') }}{{ hidden(prefix ~ 'source_reference') }}{{ hidden(prefix ~ 'fetched_at') }}
+<p class="text-secondary text-break">Herkunft: {{ source_names.get(row.source_kind, 'Ursprüngliche Herkunft') }}{% if row.source_reference %} · {{ row.source_reference }}{% endif %}{% if row.fetched_at %} · {{ row.fetched_at }}{% endif %}</p>
+{{ row_actions('ingredients', loop.index0, payload.ingredients|length, 'Zutat ' ~ loop.index) }}</div></div>
+{% else %}<p>Noch keine Zutatenzeilen.</p>{% endfor %}
+{% if can_write and active and payload.ingredients|length < 64 %}{{ row_button('ingredients', 'add', payload.ingredients|length, 'Zutat hinzufügen', 'plus') }}{% endif %}</section>
+<section class="mb-4" aria-labelledby="steps-heading"><h2 id="steps-heading">Zubereitung</h2>
+{% for row in payload.steps %}{% set prefix = 'steps.' ~ loop.index0 ~ '.' %}
+<div class="card mb-3"><div class="card-body"><h3 class="card-title">Schritt {{ loop.index }}</h3>
+{{ field(prefix ~ 'instruction', 'Anleitung', multiline=true, required=true, maximum=8000) }}
+{{ field(prefix ~ 'duration_minutes', 'Dauer in Minuten', numeric=true) }}{{ select(prefix ~ 'image_sha256', 'Bild zum Schritt', image_names.items()|list) }}
+{{ row_actions('steps', loop.index0, payload.steps|length, 'Schritt ' ~ loop.index) }}</div></div>
+{% else %}<p>Noch keine Zubereitungsschritte.</p>{% endfor %}
+{% if can_write and active and payload.steps|length < 64 %}{{ row_button('steps', 'add', payload.steps|length, 'Schritt hinzufügen', 'plus') }}{% endif %}</section>
+<div class="card mb-4"><div class="card-body"><h2 class="card-title">Tags</h2>
+{% for value, label in choices.tags %}<label class="form-check"><input class="form-check-input" type="checkbox" name="tag_public_ids" value="{{ value }}"{% if value in data.getlist('tag_public_ids') %} checked{% endif %}><span class="form-check-label">{{ label }}</span></label>
+{% else %}<p>Keine Tags verfügbar.</p>{% endfor %}</div></div>
+<section class="mb-4" aria-labelledby="images-heading"><h2 id="images-heading">Bilder</h2>
+{% for row in payload.images %}{% set prefix = 'images.' ~ loop.index0 ~ '.' %}
+<div class="card mb-3"><div class="card-body"><h3 class="card-title text-break">{{ row.caption or 'Bild ' ~ loop.index }}</h3>
+{{ hidden(prefix ~ 'sha256') }}{{ field(prefix ~ 'caption', 'Bildunterschrift', maximum=500) }}
+{{ field(prefix ~ 'source_url', 'Bildquelle', readonly=true) }}{{ field(prefix ~ 'source_license', 'Bildlizenz', readonly=true) }}{{ field(prefix ~ 'fetched_at', 'Abrufzeit', readonly=true) }}
+{{ row_actions('images', loop.index0, payload.images|length, 'Bild ' ~ loop.index) }}</div></div>
+{% else %}<p>Keine Bilder gespeichert.</p>{% endfor %}
+<p class="form-hint">Vor dem Entfernen eines Bildes dessen Auswahl bei den Zubereitungsschritten aufheben. Bereits gespeicherte Revisionen behalten ihre Bilder und Quellen. Neue Bilder werden nach dem Speichern über die Bildverwaltung hinzugefügt.</p></section>
+<div class="card mb-4"><div class="card-body"><h2 class="card-title">Quelle</h2>
+{% if recipe_id %}{{ hidden('source.kind') }}<p>{{ source_names.get(payload.source.kind, 'Ursprüngliche Herkunft') }}</p>
+{% else %}{{ select('source.kind', 'Herkunftsart', [('manual','Manuell erfasst'),('url','Quellenadresse')], blank=false) }}{% endif %}
+{{ field('source.reference', 'Quellenbeleg', readonly=recipe_id is not none, maximum=200) }}
+{{ field('source.url', 'Quellenadresse', readonly=recipe_id is not none, maximum=2048) }}
+{{ field('source.note', 'Quellennotiz', readonly=recipe_id is not none, maximum=500) }}
+{{ field('source.fetched_at', 'Abrufzeit mit Zeitzone', readonly=recipe_id is not none) }}
+</div></div>
+</fieldset>
+{% if can_write and active %}<button class="btn btn-primary" type="submit">{{ 'Rezept speichern' if recipe_id else 'Rezept anlegen' }}</button>{% endif %}
+</form>
+{% endif %}
+{% endblock %}
