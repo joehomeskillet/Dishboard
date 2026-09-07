@@ -1,6 +1,14 @@
 # Dishboard: Ausführung des gesamten Backlogs
 
-## Aktueller Deploy-Nachtrag — Root-Checkpoint vom 7. September 2026, 06:25 Uhr Schweiz
+## Aktueller Deploy-Nachtrag — Snapshot vom 7. September 2026 nach 08:33:23 CEST
+
+**Produktiv ist `2cfc43f8d1426d55139b45f5272ebdddd022f745`, Schema 21**, seit 07.09.2026, 08:33:23 CEST; Image `sha256:3c5167b2615e4144c4353afebc08275b5c9441130a4c48a691e8f949568b4412`. Root bestätigte erneut `healthy` und null Neustarts. Vollständige Releaseprüfung: **4716 bestanden, 15 explizite Opt-in-Skips, null Fehler**; 14 Restore-Drills und eine Compose-Probe blieben in diesem Lauf deaktiviert. [Deploybeleg](/nvmetank1/projects/menuplan/.claude/state/ops-root-evidence-0907/release-2cfc43f-deploy.md).
+
+Root prüfte live **738 Admin-Checks/36 Screenshots**, **56 OPS-Checks/2 Screenshots** und **193 ergänzende Checks/10 Screenshots** für Vorlagenkatalog, Screens und Darstellung, jeweils ohne fehlgeschlagene Checks. Datierte PDFs für 2026-08-31 enthalten 10/28 Menüs und Fotos auf je einer A4-Seite; Karten-/Überlaufgeometrie ist geprüft. Die aktuellen Screen-Frames zeigen mangels Wochenpublikation korrekt HTML-404 mit `no-store`: keine behauptete gefüllte Vorschau oder vollständige UI-/Fach-/Playerabnahme.
+
+**B2 und V1 sind produktiv**, ebenso Menü-Iconaktionen und deklarierte VEG/VGN. **B3/V2 sind integriert und unabhängig kombiniert geprüft, noch nicht deployed:** Root-Lauf `24726` bestand mit **306 Tests in 510.48s, null Skips**; das begrenzte Fallback-Gate `75283` mit **132 Tests in 212.08s, null Skips**. Paket-/Image-Kompatibilitätsfreigabe steht aus. R1-A ist als reiner Wertekern Root-geprüft (152 Tests, Ruff PASS); R1-B mit reservierter `0019_v21_to_v22.sql`/Schema 22 ist in Arbeit. Erste PG-Gates liegen vor; unabhängige Gesamtfreigabe steht aus. Kein Rezepteditor oder R1-Deploy. [Folge-Release-Checkpoint](/nvmetank1/projects/menuplan/.claude/state/ops-root-evidence-0907/next-release-r1-checkpoint.md). Der Admin bleibt **Tabler**, nicht Tablet-first. Historische Nachweise unten bleiben erhalten und werden nicht zu neuen Abnahmen umgedeutet.
+
+## Historischer Root-Checkpoint — 7. September 2026, 06:25 Uhr Schweiz
 
 Die Uhrzeit bezeichnet den belegten Root-Nachtrag um 06:25 CEST (Root-Uhr: 04:25:04 UTC). Der datierte Admin-Live-Beleg unten stammt weiterhin von 05:16 Uhr; daraus wird keine neue Live-Abnahme abgeleitet.
 
@@ -26,13 +34,13 @@ Die beiden Produktionssicherungen vor/nach Schema 19 sind von Root mit Hash und 
 
 ## Aktive Ausführung — 7. September 2026
 
-**35 IDs, keine Abschlussquote:** 16 IDs haben produktive Funktionen, darunter Teilumfänge und OPS-001; **BAS-001 bleibt mit produktivem B1 und aktivem B2 in der Umsetzungsgruppe**. 16 weitere grössere Umsetzungen bleiben offen, QA-001/DATA-001 begleiten als zwei fortlaufende Abnahmen. Freie Vorlagengestaltung, vollständige Screen-Zuordnungen und sämtliche Rezept-/Stammdaten-/Warenwirtschaftspakete behalten ihren Restumfang. Die ältere Lieferfolge unten ordnet Abhängigkeiten; ihr damaliger Status ist historisch. Aktuelle Einzelstände und vollständige ID-Zuordnung stehen in [BACKLOG.md](../BACKLOG.md).
+**35 IDs, keine Abschlussquote:** 17 IDs haben produktive Teilumfänge, einschliesslich OPS-001 und BAS-001 mit B1/B2; das sind keine 17 vollständigen Abschlüsse. 16 weitere grössere Umsetzungen bleiben offen, QA-001/DATA-001 begleiten als zwei fortlaufende Abnahmen. Freie Vorlagengestaltung, vollständige Screen-Zuordnungen und sämtliche Rezept-/Stammdaten-/Warenwirtschaftspakete behalten ihren Restumfang. Die ältere Lieferfolge unten ordnet Abhängigkeiten; ihr damaliger Status ist historisch. Aktuelle Einzelstände und vollständige ID-Zuordnung stehen in [BACKLOG.md](../BACKLOG.md).
 
 Die früher unterbrochene OPS-Welle ist geprüft und produktiv. Ihre technischen Live-Nachweise
 stehen oben; fachliche Bestätigung und physische Playerabnahme werden dadurch nicht ersetzt.
 
-Operativ Manifest und vollständiges Releasegate für die geprüfte Integration abschliessen; Public-/Operator-Folgearbeiten
-sind integriert. Die Symbol-Fullgates bleiben ohne Abschlussbeleg; kein dritter unveränderter Lauf. Danach offene Screens-/Vorlagen-/Branding-Funktionen,
+Operativ Paket-/Image-Kompatibilität und Releaseabnahme für den geprüften B3/V2-Kandidaten abschliessen; Public-/Operator-Folgearbeiten, Symbole, B2 und V1
+sind bereits produktiv. R1-B läuft unabhängig mit reserviertem Schema 22. Die historischen Symbol-Fullgate-Abbrüche erhalten kein nachträgliches PASS. Danach offene Screens-/Vorlagen-/Branding-Funktionen,
 Grundlagen/Rezeptverwaltung, Suche/Importe/Produktdaten, Rezeptplanung/Einkauf/
 Druck/KI, Kalkulation/Lager/Bestellungen und weitere Anbindungen. Die vollständigen Phasen
 und alle 35 IDs bleiben erhalten; Abnahmen begleiten jede Lieferung.
@@ -41,7 +49,7 @@ und alle 35 IDs bleiben erhalten; Abnahmen begleiten jede Lieferung.
 vollständigem Root-Diffreview und unabhängig **101 passed in 1.26s**, Ruff PASS und Mypy PASS
 für zwei Dateien integriert ([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)).
 B1 ist mit `3d35cbb` produktiv. B2 ist nach erfüllter OPS-Schema-20-Voraussetzung mit Fix
-`7ca5286` unabhängig geprüft; Integration in `17b7e84` und kombiniertes Gate sind abgeschlossen; Manifest, vollständiges Releasegate und Deploy stehen aus. Schema 21 ist nicht deployed. [BAS/REC-Pakete](bas-rec-work-packages-0906.md)
+`7ca5286` unabhängig geprüft und mit `2cfc43f`/Schema 21 produktiv. B3 ist im geprüften Folge-Kandidaten integriert, noch nicht deployed. [BAS/REC-Pakete](bas-rec-work-packages-0906.md)
 und [Datenvertrag](../design/2026-09-06-bas-rec-data-contract.md) erhalten sämtliche Restaufträge.
 
 **HugeRTE-Eignungsprobe:** 1.0.13 ist lokal browsergeprüft; Text, Fett, Listen und Silver-Linkdialog

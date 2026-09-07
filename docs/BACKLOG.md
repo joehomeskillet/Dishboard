@@ -1,6 +1,16 @@
 # Backlog
 
-## Aktueller Stand — Root-Checkpoint vom 7. September 2026, 06:25 Uhr Schweiz
+## Aktueller Stand — Snapshot vom 7. September 2026 nach dem Deploy um 08:33:23 CEST
+
+**Produktiv ist `2cfc43f8d1426d55139b45f5272ebdddd022f745`, Schema 21**, seit 07.09.2026, 08:33:23 CEST. Image `sha256:3c5167b2615e4144c4353afebc08275b5c9441130a4c48a691e8f949568b4412`; Root hat erneut `healthy` und null Neustarts bestätigt. Die vollständige unabhängige Releaseprüfung bestand mit **4716 Tests, 15 expliziten Opt-in-Skips und null Fehlern**: 14 Restore-Drills und eine Compose-Probe wurden in diesem Lauf nicht aktiviert. [Autoritativer Deploybeleg](/nvmetank1/projects/menuplan/.claude/state/ops-root-evidence-0907/release-2cfc43f-deploy.md).
+
+**Live nach diesem Deploy:** Admin **738 Checks/36 Screenshots**, OPS **56 Checks/2 Screenshots**, ergänzend Vorlagenkatalog, Screens und Darstellung **193 Checks/10 Screenshots**, jeweils ohne fehlgeschlagene Checks. Datierte PDFs für 2026-08-31: 10 Cafeteria-/28 Patientenmenüs mit Fotos, je eine A4-Seite; Karten und Überlauf wurden in mehreren Browserbreiten geprüft. Die aktuellen Screens-Vorschauen liefern wegen fehlender Wochenpublikation korrekt HTML-404 mit `no-store`; das belegt Struktur und Fehlerzustand, keine gefüllten aktuellen Vorschauen oder vollständige UI-Abnahme. Fachliche Druck-, Daten- und physische Playerabnahmen bleiben offen.
+
+**B2 und V1 sind produktiv:** Stammdatenkern samt Schema 21 und revisionierter PDF-Katalog gehören zu `2cfc43f`, ebenso Menü-Iconaktionen und ausdrücklich deklarierte VEG/VGN-Symbole. **B3/V2 sind als nächster Kandidat integriert und unabhängig kombiniert geprüft, nicht deployed**: Root-Lauf `24726` bestand mit **306 Tests in 510.48s, null Skips**, das begrenzte Fallback-Gate `75283` mit **132 Tests in 212.08s, null Skips**. Paket-/Image-Kompatibilitätsfreigabe steht aus. R1-A ist als reiner Wertekern unabhängig geprüft (Root: 152 Tests, Ruff PASS). R1-B ist mit reservierter `0019_v21_to_v22.sql`/Schema 22 in Arbeit; erste PG-Gates liegen vor; unabhängige Gesamtfreigabe steht aus. Kein Rezepteditor und kein R1-Deploy sind damit geliefert. [Folge-Release-Checkpoint](/nvmetank1/projects/menuplan/.claude/state/ops-root-evidence-0907/next-release-r1-checkpoint.md).
+
+Der Admin verwendet das **Tabler-Framework**, keine Tablet-first-Vorgabe. **17 IDs haben produktive Teilumfänge; keine 17 vollständigen Abschlüsse und keine Fertigquote.** Alle 35 IDs, Prioritäten und Restanforderungen bleiben erhalten. Die folgenden älteren Belege dokumentieren ihre jeweiligen damaligen Stände und ersetzen diesen Snapshot nicht.
+
+## Historischer Root-Checkpoint — 7. September 2026, 06:25 Uhr Schweiz
 
 Die Uhrzeit bezeichnet den belegten Root-Nachtrag um 06:25 CEST (Root-Uhr: 04:25:04 UTC). Der datierte Admin-Live-Beleg unten stammt weiterhin von 05:16 Uhr; daraus wird keine neue Live-Abnahme abgeleitet.
 
@@ -34,20 +44,20 @@ Alle **35 Backlog-IDs** bleiben mit ihrem vollständigen Umfang erhalten. Die gr
 
 ## Bestand und operative Reihenfolge — 7. September 2026
 
-**Operative Reihenfolge:** OPS ist produktiv. Die beiden abgebrochenen Symbol-Fullgates liefern kein PASS; die Ursache bleibt unbelegt. Public-/Operator-Folgearbeiten sind integriert, B2 und der V1-PDF-Katalog sind unabhängig und kombiniert geprüft sowie in `17b7e84` integriert; Manifest, vollständiges Releasegate und Deploy stehen aus. Danach bleiben offene Screens-/Vorlagen-/Branding-Funktionen, Grundlagen und Rezeptverwaltung, Suche/Importe/Produktdaten, Rezeptplanung/Einkauf/Druck/KI, Kalkulation/Lager/Bestellungen und weitere Anbindungen. Die Phasen unten erhalten alle Detailaufträge; Qualitäts- und Fachabnahmen begleiten jede Lieferung.
+**Operative Reihenfolge:** OPS, Symbole, Public-/Operator-Folgearbeiten, B2 und V1 sind mit `2cfc43f` produktiv. B3/V2 sind kombiniert Root-geprüft und benötigen Paket-/Image-Kompatibilitätsfreigabe sowie Release-/Live-Abnahme; R1-B läuft unabhängig mit reserviertem Schema 22. Danach bleiben offene Screens-/Vorlagen-/Branding-Funktionen, Grundlagen und Rezeptverwaltung, Suche/Importe/Produktdaten, Rezeptplanung/Einkauf/Druck/KI, Kalkulation/Lager/Bestellungen und weitere Anbindungen. Die Phasen unten erhalten alle Detailaufträge; Qualitäts- und Fachabnahmen begleiten jede Lieferung. Die historischen Symbol-Abbrüche bleiben ohne nachträglich erfundenes PASS erhalten.
 
-**Gruppierter Bestand, keine Abschlussquote:** Die folgenden Gruppen enthalten jede Tabellen-ID genau einmal. «Produktive Funktionen» umfasst ausdrücklich Teilfunktionen und offene Abnahmefälle; es bedeutet nicht, dass 16 vollständige Backlogaufträge erledigt sind. BAS-001 bleibt trotz ausgeliefertem B1 wegen des aktiven B2-Pakets in der Umsetzungsgruppe.
+**Gruppierter Bestand, keine Abschlussquote:** Die folgenden Gruppen enthalten jede Tabellen-ID genau einmal. Die ersten beiden Gruppen ergeben 17 IDs mit produktiven Teilumfängen und offenen Abnahmefällen; keine davon wird dadurch als vollständig erledigt erklärt.
 
 | Gruppe | Anzahl | IDs / verbleibende Grenze |
 |---|---:|---|
 | Produktive Funktionen | 16 | UI-001, UI-002, UI-003, CAT-001, DSP-001, BRD-001, API-001, ICO-001, ICO-002, SCR-001, SCR-002, TPL-001, TPL-002, TPL-003, IAM-001, OPS-001. TPL-001/002 und SCR-001 haben erst Teilfunktionen; der vollständige IAM-Zugriffsverlauf bleibt offen. Offene Daten-, Druck-, Branding- und Playerabnahmen stehen weiterhin in den Einzelzeilen. |
-| Aktive Umsetzung | 1 | BAS-001: B1 ist produktiv, B2 mit Fix `7ca5286` unabhängig und kombiniert geprüft, in `17b7e84` integriert; Releaseabnahme steht aus. Voraussetzung OPS-Schema 20 erfüllt; Schema 21 noch nicht ausgeliefert. B3 ist beauftragt, noch nicht fertig implementiert. Keine vollständige BAS-Fertigmeldung. |
+| Produktiver Kern mit weiterem Ausbau | 1 | BAS-001: B1 und B2 mit Fix `7ca5286` sind in `2cfc43f`/Schema 21 produktiv. B3 ist im Folge-Kandidaten integriert, noch nicht deployed; Lager-/Bestandsumfang bleibt offen. Keine vollständige BAS-Fertigmeldung. |
 | Weitere grössere Umsetzung offen | 16 | REC-001–REC-007, NUT-001, OFF-001, CALC-001, INV-001, ORD-001, IAM-002, PKS-001, TRN-001, SCR-003. Vorhandene Referenzanalysen und Stammdaten ersetzen diese Funktionen nicht. |
 | Fortlaufende Abnahme | 2 | QA-001 und DATA-001; technische Lieferungen ersetzen weder physische Player- noch fachliche Küchenbestätigung. |
 
 ## Historischer Deploy-Nachtrag — 6. September 2026, 04:55:35 Uhr Schweiz
 
-Dieser Abschnitt beschreibt den damaligen Schema-17-Deploy; aktueller Release und Schema 20 stehen oben.
+Dieser Abschnitt beschreibt den damaligen Schema-17-Deploy; aktueller Release und Schema 21 stehen oben.
 
 **Release `118a644` ist produktiv**, Image `sha256:afe5305a73128fb92cbbf3f325ea441aacc8b9a6acc38d28487c301eb9779c41`, Container `healthy`, Schema 17. Migration: 32 Tabellen, `ready=true`; Runtime: 30 sichtbare Tabellen, `ready=true`. API, die vier öffentlichen Tabler-Seiten, vier globale Darstellungsoptionen und der erste Wochen-PDF-Eigenschaftseditor sind jetzt live. Nachweise: **3695 Tests bestanden, 15 Opt-in-Skips**, vollständige Paketprüfung `PACKAGE_GATE_EXIT=0`, **272 Live-Checks bestanden**, 44 Screenshots sowie vier zusätzliche Rotationsscreenshots in FHD/4K mit allen 28 Patientenmenüs. [Vollständiger Root-Beleg](/nvmetank1/projects/rag-stack/.claude/reports/wp-bd5539046da6.md).
 
@@ -108,13 +118,13 @@ API und Public Screens laufen unabhängig weiter. Symbolbasis und Screen-Layouts
 | ICO-002 | Automatische Legenden | Seit `cc6c8ce` in Admin, Web, Signage und PDF produktiv. Nur tatsächlich dargestellte Allergene, Labels und Länder, dedupliziert und stabil sortiert; seitenbezogen auch bei Patientenrotation. «Enthält», «Kann enthalten» und «Nicht erfasst» bleiben getrennt; keine Frei-von-Aussage aus fehlenden Daten. Datenbestätigung bleibt DATA-001. |
 | SCR-002 | Bestehendes Framework für öffentliche Seiten und Bildschirme | PS1–PS5 und alle vier öffentlichen Tabler-Seiten seit `118a644` produktiv: Hero-Food, Duo-Board, Wochenraster/Patientenrotation, Fotos/Fallback, Uhr, Rücknahmebehandlung, Ausfallpuffer höchstens fünf Minuten und Mitternachtssperre. Seit `0acd992` zusätzlich die beiden bildlosen Web-Wochenpläne live; vollständiges Paket und frische 386 Screens-Checks bestanden. Tatsächlicher Yodeck-Player bleibt QA-001. |
 | SCR-001 | Ein gemeinsamer Adminpunkt **Screens** | Einstieg und echte Vorschauen produktiv: seit `0acd992` vier Karten und zehn Ansichten inklusive beider bildlosen Web-Wochenvarianten mit eigenen Tabs/Links; Signage-Direktlinks aus Sidebar entfernt. Vollständige Vorlagenverwaltung, kompatibler Vorlagenkatalog und aktive Zuordnungen bleiben offen. |
-| TPL-001 | Neuer Adminpunkt **Vorlagen** | Navigation, Fachkatalog-Verknüpfungen und erste Wochen-PDF-Eigenschaftseditoren produktiv. V1 `8346dbc` ergänzt den revisionierten PDF-Katalog mit aktiver Revision, neuestem Entwurf und genauen Prüf-/Editorlinks; Root bestätigte 95 Tests ohne Skips, noch nicht deployed. Vollständige Bearbeitungsübersicht für Druckvorlagen, Screen-Vorlagen, Menüvorlagen sowie Zutaten/Komponenten und Menüs bleibt offen. Bestehende Fachkataloge und Editoren verknüpfen, keine doppelten Datenbestände. |
+| TPL-001 | Neuer Adminpunkt **Vorlagen** | Navigation, Fachkatalog-Verknüpfungen und erste Wochen-PDF-Eigenschaftseditoren produktiv. V1 `8346dbc` ergänzt den revisionierten PDF-Katalog mit aktiver Revision, neuestem Entwurf und genauen Prüf-/Editorlinks; Root bestätigte 95 Tests ohne Skips, mit `2cfc43f` produktiv und live geprüft. V2-Archivierung ist im geprüften Folge-Kandidaten, noch nicht deployed. Vollständige Bearbeitungsübersicht für Druckvorlagen, Screen-Vorlagen, Menüvorlagen sowie Zutaten/Komponenten und Menüs bleibt offen. Bestehende Fachkataloge und Editoren verknüpfen, keine doppelten Datenbestände. |
 
 ### 2. Verlässliche Betriebsgrundlage und Wochenpläne
 
 UI-003 liefert die Referenzentscheidungen vor weiterem Admin-Polish; laufende Lieferungen warten darauf nicht. Kontrollierte Wochen-PDFs und der vorgezogene Vorlageneditor werden gemeinsam auf Einseitigkeit, Lesbarkeit und Überlauf geprüft. Zeiten und lokale Benutzerverwaltung sind unabhängige Pakete; ihre späteren Änderungen werden in den Ausgaben erneut geprüft.
 
-**Weitere Admin-UI-Arbeit:** Das geprüfte [Tabler- und Symbolmanifest von Astra](design/2026-09-07-admin-tabler-icon-manifest.md) konkretisiert UI-003 und ICO-001/002: einheitliche Tabler-Komponenten, mehr eindeutige Symbole sowie Erklärungen bei Hover, Tastaturfokus und Antippen. Gemeint ist das **Tabler-Framework**, keine Tablet-Priorisierung. Menü-Iconaktionen und deklarierte VEG/VGN sind im geprüften Kandidaten `5b746b35` umgesetzt; Releasegate und Produktivabnahme stehen noch aus. Der vollständige Sollvertrag ist dadurch nicht pauschal erfüllt.
+**Weitere Admin-UI-Arbeit:** Das geprüfte [Tabler- und Symbolmanifest von Astra](design/2026-09-07-admin-tabler-icon-manifest.md) konkretisiert UI-003 und ICO-001/002: einheitliche Tabler-Komponenten, mehr eindeutige Symbole sowie Erklärungen bei Hover, Tastaturfokus und Antippen. Gemeint ist das **Tabler-Framework**, keine Tablet-Priorisierung. Menü-Iconaktionen und deklarierte VEG/VGN sind mit `2cfc43f` produktiv; aktuelle Release-/Live-Belege stehen oben. Der vollständige Sollvertrag ist dadurch nicht pauschal erfüllt.
 
 | ID | Auftrag | Umfang / noch offen |
 |---|---|---|
@@ -130,10 +140,10 @@ BAS-001 legt wiederverwendbare Zutaten, Einheiten und Kategorien für REC-001 fe
 **Begonnen, im aktuellen Code-Stand enthalten:** B1 `e0fb93e` (ursprünglich `c7873fa`) liefert reine Mengen-/Einheitenlogik und Tests.
 Root hat den vollständigen 433-Zeilen-Diff gelesen und selbst **101 passed in 1.26s**, Ruff PASS
 und Mypy PASS für zwei Dateien bestätigt ([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)).
-B1 ist mit `3d35cbb` produktiv; Produktion verwendet Schema 20.
+B1 ist seit `3d35cbb` produktiv; Produktion verwendet inzwischen `2cfc43f`/Schema 21.
 [Gemeinsamer Vertrag](design/2026-09-06-bas-rec-data-contract.md) und
 [Arbeitspakete](superpowers/bas-rec-work-packages-0906.md) trennen B1 von B2, das nach erfüllter OPS-Schema-20-Voraussetzung
-mit Fix `7ca5286` unabhängig geprüft ist. Schema 21 ist vorbereitet, nicht produktiv; Integration in `17b7e84` und kombiniertes Gate sind abgeschlossen; Manifest, vollständiges Releasegate und Deploy stehen aus. B3 ist nach Plan und Review (Registrierungen 12161/12164) beauftragt, noch nicht fertig implementiert. BAS-001/REC-001 und ihr vollständiger Restumfang bleiben offen.
+mit Fix `7ca5286` unabhängig geprüft und nun produktiv ist. B3 ist nach Plan und Review (Registrierungen 12161/12164) im Folge-Kandidaten integriert, noch nicht deployed. R1-A ist geprüft; R1-B mit Migration 0019/Schema 22 in Arbeit, erste PG-Gates liegen vor; unabhängige Gesamtfreigabe steht aus. BAS-001/REC-001 und ihr vollständiger Restumfang bleiben offen.
 
 | ID | Auftrag | Umfang / noch offen |
 |---|---|---|
@@ -176,7 +186,7 @@ Entra setzt einen funktionierenden lokalen Admin und Rückweg voraus, blockiert 
 | TRN-001 | Gastro-Übersetzer | Fachbegriffe und Rezept-/Menütexte für Deutsch, Französisch, Englisch, Italienisch und Spanisch. Quellen, Synonyme und Fachprüfung; Anbieterumfang von rund 50'000 Begriffen als Referenz, keine ungeprüfte Übernahme eines geschützten Wörterbuchbestands. |
 | SCR-003 | Visueller Screen-Editor aus bestehendem GitHub-Projekt | Layout, Logo, Farben und erlaubte Inhaltsblöcke bearbeiten; GrapesJS Core als bedingter Kandidat, Puck als Alternative. Vollständige Tabler-Bedienoberfläche und generische responsive Touch-Bedienung vor Technologiefreigabe prüfen; eine Tabler-Shell allein genügt nicht. |
 
-**Gemeinsame Lieferregel:** Jede Veröffentlichung braucht die zum geänderten Umfang passenden unabhängigen Gates und Live-Nachweise. Schemaänderungen mit dem aktuellen Schemastand und gemeinsamen Deploys abstimmen: Produktion läuft auf Schema 20; Schema 21 ist reserviert und wird separat koordiniert und abgenommen. Funktionsumfang und Abnahmebedingungen der einzelnen IDs bleiben auch bei paralleler Ausführung verbindlich.
+**Gemeinsame Lieferregel:** Jede Veröffentlichung braucht die zum geänderten Umfang passenden unabhängigen Gates und Live-Nachweise. Schemaänderungen mit dem aktuellen Schemastand und gemeinsamen Deploys abstimmen: Produktion läuft auf Schema 21; Migration 0019/Schema 22 ist exklusiv für R1-B reserviert und noch nicht ausgeliefert. Funktionsumfang und Abnahmebedingungen der einzelnen IDs bleiben auch bei paralleler Ausführung verbindlich.
 
 ## REC-001 bis REC-007 — Tandoor als Referenz
 
@@ -192,7 +202,7 @@ Auf Nutzerwunsch neu aufgenommen. [Optisoft Produkte](https://optisoft.ch/preise
 
 ## API-001 — REST-API v1, MCP, FHIR R5 und API-Schlüssel
 
-**Historischer Status vor dem API-Deploy um 04:55 Uhr:** Seit Nutzerentscheid vom 06.09.2026, 01:55 Uhr übernimmt Codex allein. Übergabestand war `37d00b7`; damaliger Kandidat war `69ef540`. Backup-Fix `05b7985` ist mit 58 Tests und unabhängigem Teilgate über elf Tests geprüft. Gate 4 ist historisch fehlgeschlagen; Blueprint-Gate 5 auf `d70460c` ist mit `3417 passed, 15 skipped in 945.28s` abgeschlossen, Log `/tmp/menuplan-api-bootstrap-integration-full-5-0906.log`. Root-Gate 6 auf `8316790` endete mit `3592 passed, 1 failed, 31 errors, 15 skipped in 1153.23s`; die Testvertragskorrektur `d8fd9d3` ist als `69ef540` integriert. Der vollständige Wiederholungslauf über 3710 Tests ist mit **3695 bestanden, 15 Opt-in-Skips und viermal `GATE_EXIT=0`** abgeschlossen, Logs `/tmp/dishboard-release-shard-{0,1,2,3}-0906.log`. Die Skips waren **14 Restore-Drills und ein Compose-Test**, kein gemeinsamer Restore-Block. Damals blieb Produktion `1bff82e` auf Schema 16. Der spätere Schema-19-Release `3690e04` und die danach separat bestandenen 14 Restore-Opt-ins sind oben historisch belegt; aktuell produktiv ist `3d35cbb` auf Schema 20.
+**Historischer Status vor dem API-Deploy um 04:55 Uhr:** Seit Nutzerentscheid vom 06.09.2026, 01:55 Uhr übernimmt Codex allein. Übergabestand war `37d00b7`; damaliger Kandidat war `69ef540`. Backup-Fix `05b7985` ist mit 58 Tests und unabhängigem Teilgate über elf Tests geprüft. Gate 4 ist historisch fehlgeschlagen; Blueprint-Gate 5 auf `d70460c` ist mit `3417 passed, 15 skipped in 945.28s` abgeschlossen, Log `/tmp/menuplan-api-bootstrap-integration-full-5-0906.log`. Root-Gate 6 auf `8316790` endete mit `3592 passed, 1 failed, 31 errors, 15 skipped in 1153.23s`; die Testvertragskorrektur `d8fd9d3` ist als `69ef540` integriert. Der vollständige Wiederholungslauf über 3710 Tests ist mit **3695 bestanden, 15 Opt-in-Skips und viermal `GATE_EXIT=0`** abgeschlossen, Logs `/tmp/dishboard-release-shard-{0,1,2,3}-0906.log`. Die Skips waren **14 Restore-Drills und ein Compose-Test**, kein gemeinsamer Restore-Block. Damals blieb Produktion `1bff82e` auf Schema 16. Der spätere Schema-19-Release `3690e04` und die danach separat bestandenen 14 Restore-Opt-ins sind oben historisch belegt; aktuell produktiv ist `2cfc43f` auf Schema 21.
 
 **Historischer Recovery-Nachweis:** `5a5f98b` (A1: sachfremden TRUNCATE entfernt), `6bc1cc7` (D: Schema-17-Testannahme); damaliges D-Gate `153 passed in 80.18s (0:01:20)`, `GATE_EXIT=0`. Dieser Teilnachweis ersetzt das aktuelle Integrationsgate nicht.
 
