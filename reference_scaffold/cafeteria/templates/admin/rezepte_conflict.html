@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='admin-tabler.css') }}">
 </head><body class="dishboard-admin"><main class="container-xl py-5">
 <h1>Rezeptaktion nicht möglich</h1>
-<div class="alert alert-danger error-region" role="alert" id="recipe-error" tabindex="-1"{% if not error_field %} autofocus{% endif %}>{{ message }}</div>
+<div class="alert alert-danger error-region" role="alert" id="recipe-error" tabindex="-1"{% if focus_index is none %} autofocus{% endif %}>{{ message }}</div>
 {% if submitted %}
 <div class="card"><div class="card-body"><h2 class="card-title">Ursprüngliche Eingaben</h2>
 <p>Sie können Ihre Eingaben kopieren. Neu laden verwirft diesen Formularstand; gespeichert wird hier nichts.</p>
@@ -17,7 +17,7 @@
 {% if name not in ['_csrf', '_form_context', 'row_action', 'row_index', 'row_kind'] %}
 <div class="mb-3"><label class="form-label" for="original-{{ loop.index }}">{{ names.get(name.split('.')[-1], name) }}{% if '.' in name %} · {{ name }}{% endif %}</label>
 {% if value in display_values %}<p class="form-hint">{{ display_values[value] }}</p>{% endif %}
-<textarea class="form-control" id="original-{{ loop.index }}" rows="3" readonly{% if name == error_field %} aria-invalid="true" aria-describedby="recipe-error" autofocus{% endif %}>{{ '\n' }}{{ value }}</textarea></div>
+<textarea class="form-control" id="original-{{ loop.index }}" rows="3" readonly{% if name == error_field %} aria-invalid="true" aria-describedby="recipe-error"{% endif %}{% if loop.index == focus_index %} autofocus{% endif %}>{{ '\n' }}{{ value }}</textarea></div>
 {% endif %}
 {% endfor %}
 </form></div></div>

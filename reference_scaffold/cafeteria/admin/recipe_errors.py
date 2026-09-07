@@ -41,10 +41,18 @@ def render_form_error(error, *, submitted=None, display_values=None, reload_url=
     original = list(request.form.items(multi=True)) if submitted is None else list(submitted)
     if status not in (400, 409):
         original = []
+    error_field = getattr(error, 'field', None)
+    focus_index = None
+    if error_field:
+        for index, (name, _value) in enumerate(original, start=1):
+            if name == error_field and name not in (
+                    '_csrf', '_form_context', 'row_action', 'row_index', 'row_kind'):
+                focus_index = index
+                break
     html = current_app.jinja_env.get_template('admin/rezepte_conflict.html').render(
         status=status, message=messages.get(status, messages[503]), submitted=original,
-        display_values=dict(display_values if display_values is not None else getattr(g, 'recipe_form_display_values', {})), error_field=getattr(error, 'field', None),
-        reload_url=reload_url,
+        display_values=dict(display_values if display_values is not None else getattr(g, 'recipe_form_display_values', {})),
+        error_field=error_field, focus_index=focus_index, reload_url=reload_url,
     )
     response = make_response(html, status)
     response.headers['Cache-Control'] = 'no-store'
