@@ -37,6 +37,7 @@ database/migrations/0014_v16_to_v17.sql
 database/migrations/0015_v17_to_v18.sql
 database/migrations/0016_v18_to_v19.sql
 database/migrations/0017_v19_to_v20.sql
+database/migrations/0018_v20_to_v21.sql
 database/permissions.sql
 database/README.md
 database/schema.sql
@@ -484,6 +485,11 @@ reference_scaffold/cafeteria/fhir/routes.py
 reference_scaffold/cafeteria/food_symbols.py
 reference_scaffold/cafeteria/health/__init__.py
 reference_scaffold/cafeteria/health/routes.py
+reference_scaffold/cafeteria/master_data_commands.py
+reference_scaffold/cafeteria/master_data_proposals.py
+reference_scaffold/cafeteria/master_data_reads.py
+reference_scaffold/cafeteria/master_data_store.py
+reference_scaffold/cafeteria/master_data_types.py
 reference_scaffold/cafeteria/menu_images.py
 reference_scaffold/cafeteria/operations_settings.py
 reference_scaffold/cafeteria/operations_store.py
@@ -945,6 +951,8 @@ reference_scaffold/tests/test_admin_preview_ui.py
 reference_scaffold/tests/test_admin_screens_preview_browser.py
 reference_scaffold/tests/test_admin_shell_ui.py
 reference_scaffold/tests/test_admin_tabler_browser.py
+reference_scaffold/tests/test_admin_tabler_proof.py
+reference_scaffold/tests/test_admin_template_catalog_browser.py
 reference_scaffold/tests/test_admin_ux_browser.py
 reference_scaffold/tests/test_admin_week_equal_cards_browser.py
 reference_scaffold/tests/test_admin_week_print.py
@@ -978,8 +986,10 @@ reference_scaffold/tests/test_branding_routes.py
 reference_scaffold/tests/test_branding_store.py
 reference_scaffold/tests/test_capture_admin_live_proof.py
 reference_scaffold/tests/test_capture_admin_tabler_browser.py
+reference_scaffold/tests/test_capture_admin_week_browser.py
 reference_scaffold/tests/test_capture_branding_live_proof.py
 reference_scaffold/tests/test_capture_live_screenshots.py
+reference_scaffold/tests/test_capture_ops_live_proof.py
 reference_scaffold/tests/test_component_assignment_db.py
 reference_scaffold/tests/test_component_assignment_races_db.py
 reference_scaffold/tests/test_component_catalog_browser.py
@@ -1019,6 +1029,9 @@ reference_scaffold/tests/test_local_user_management_db.py
 reference_scaffold/tests/test_local_user_management_migration_db.py
 reference_scaffold/tests/test_local_user_management_races.py
 reference_scaffold/tests/test_local_user_management_reads.py
+reference_scaffold/tests/test_master_data_capabilities.py
+reference_scaffold/tests/test_master_data_db.py
+reference_scaffold/tests/test_master_data_race_db.py
 reference_scaffold/tests/test_mcp_server.py
 reference_scaffold/tests/test_menu_collection.py
 reference_scaffold/tests/test_menu_collection_browser.py
@@ -1051,6 +1064,7 @@ reference_scaffold/tests/test_public_print_legend.py
 reference_scaffold/tests/test_public_week_no_images.py
 reference_scaffold/tests/test_publication_lock_contract_db.py
 reference_scaffold/tests/test_quantities.py
+reference_scaffold/tests/test_quantities_db.py
 reference_scaffold/tests/test_rendered_ui.py
 reference_scaffold/tests/test_signage_cafeteria_day.py
 reference_scaffold/tests/test_signage_cafeteria_week.py
@@ -1098,6 +1112,7 @@ tools/capture_admin_live_proof.py
 tools/capture_admin_settings_live_proof.py
 tools/capture_branding_live_proof.py
 tools/capture_live_screenshots.py
+tools/capture_ops_live_proof.py
 tools/capture_screenshots.py
 tools/demo_snapshots.py
 tools/google_menu_images.py
