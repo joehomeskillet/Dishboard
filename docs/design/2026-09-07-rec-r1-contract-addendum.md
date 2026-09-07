@@ -123,6 +123,15 @@ Entfernen eines Entwurfsbildes hebt seine Berechtigung in erhaltenen Revisionen
 desselben Rezepts nicht auf. Aggregate-Replace erhält die ursprüngliche Bildquelle,
 Lizenz und Abrufzeit; Bildunterschrift und Reihenfolge sind bearbeitbar. Audit
 erhält ursprüngliche und neue Zutaten-/Bildzuordnungen einschließlich Herkunft.
+Ein Hash identifiziert genau eine Bildzuordnung pro Rezept; doppelte Hashes im
+Aggregat ergeben atomar 400/`P1901`. Anhängen prüft Quelle, Lizenz und Abrufzeit
+gegen Entwurf und Historie desselben Rezepts; Abweichungen ergeben 409/`55000`.
+Ein aktuell zugeordneter Hash mit identischer Herkunft und Bildunterschrift ist
+ein echter No-op ohne Versions-/Auditänderung; abweichende Bildunterschriften
+beim Anhängen ergeben 409 und werden ausschließlich per Aggregate-Edit geändert.
+Ein nur historischer Hash darf mit ursprünglicher Herkunft und neuer Bildunterschrift
+wieder angehängt werden (Version/Audit ändern sich). Andere Rezepte behalten bei
+eigenem Upload derselben Bytes ihre unabhängig erfasste Herkunft.
 Ungültige Standortkonfiguration ergibt `P1904`/503; ein inzwischen anderer
 einziger aktiver Standort ergibt 409 gegen die ursprüngliche Erwartung.
 Nach fachlichen Writes kein Drop/älterer Daten- oder IAM-Restore als Rollback.

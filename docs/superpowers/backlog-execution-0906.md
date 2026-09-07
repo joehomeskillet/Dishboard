@@ -1,12 +1,16 @@
 # Dishboard: Ausführung des gesamten Backlogs
 
-## Aktueller Deploy-Nachtrag — Snapshot vom 7. September 2026 nach 08:33:23 CEST
+## Aktueller Deploy-Nachtrag — Snapshot vom 7. September 2026 nach 11:14:03 CEST
 
-**Produktiv ist `2cfc43f8d1426d55139b45f5272ebdddd022f745`, Schema 21**, seit 07.09.2026, 08:33:23 CEST; Image `sha256:3c5167b2615e4144c4353afebc08275b5c9441130a4c48a691e8f949568b4412`. Root bestätigte erneut `healthy` und null Neustarts. Vollständige Releaseprüfung: **4716 bestanden, 15 explizite Opt-in-Skips, null Fehler**; 14 Restore-Drills und eine Compose-Probe blieben in diesem Lauf deaktiviert. [Deploybeleg](/nvmetank1/projects/menuplan/.claude/state/ops-root-evidence-0907/release-2cfc43f-deploy.md).
+**Produktiv ist `783fab33520e15c956df431f62ad75c9940e2285`, Schema 21**, seit `2026-09-07T09:14:03.117859908Z` (11:14:03 CEST); Image `sha256:2ddb31a28e7297b258daf440170554dd8139f6dafd4cab485dda7484b6955a8b`. Root bestätigt `healthy` und null Neustarts. Vollständige Paketprüfung: **4837 bestanden, 15 explizite Opt-in-Skips, null Failures/Errors**. [Aktueller Deploybeleg](/nvmetank1/projects/menuplan/.claude/state/ops-root-evidence-0907/release-783fab3-deploy.md), wird um die frischen Live-Nachweise ergänzt. Historisch: `2cfc43f` seit 08:33:23 CEST, Image `sha256:3c5167b2615e4144c4353afebc08275b5c9441130a4c48a691e8f949568b4412`, **4716 bestanden/15 Opt-in-Skips/null Fehler** (14 Restore-Drills und eine Compose-Probe deaktiviert): [voriger Deploybeleg](/nvmetank1/projects/menuplan/.claude/state/ops-root-evidence-0907/release-2cfc43f-deploy.md).
 
-Root prüfte live **738 Admin-Checks/36 Screenshots**, **56 OPS-Checks/2 Screenshots** und **193 ergänzende Checks/10 Screenshots** für Vorlagenkatalog, Screens und Darstellung, jeweils ohne fehlgeschlagene Checks. Datierte PDFs für 2026-08-31 enthalten 10/28 Menüs und Fotos auf je einer A4-Seite; Karten-/Überlaufgeometrie ist geprüft. Die aktuellen Screen-Frames zeigen mangels Wochenpublikation korrekt HTML-404 mit `no-store`: keine behauptete gefüllte Vorschau oder vollständige UI-/Fach-/Playerabnahme.
+**Aktuelle Live-Reader:** B3/V2 meldet **801 Checks, alle true, 34 Screenshots**, Status `incomplete`: Zutaten-/Kategorien-/Tags-Detaildaten, archivierte Einheit sowie inaktive und archivierte Vorlagen fehlen im aktuellen Datenbestand. Der erste Standard-Admin-Lauf meldet **695 Checks, alle true, 34 Screenshots**, ebenfalls `incomplete`: `cafeteria.copy` liefert für die bestehende Woche 2026-08-31 bei beiden Breiten 409. Root prüft die Screenshots; keine Produktivfixtures oder Publikationen für die Abnahme. Vor-/Nachbackup sind per SHA256 und TOC mit 41 Tabellen geprüft; beide Health-Endpunkte liefern 200. Diese lesenden Nachweise sind keine vollständige UI-/Fach-/Playerabnahme.
 
-**B2 und V1 sind produktiv**, ebenso Menü-Iconaktionen und deklarierte VEG/VGN. **B3/V2 sind integriert und unabhängig kombiniert geprüft, noch nicht deployed:** Root-Lauf `24726` bestand mit **306 Tests in 510.48s, null Skips**; das begrenzte Fallback-Gate `75283` mit **132 Tests in 212.08s, null Skips**. Paket-/Image-Kompatibilitätsfreigabe steht aus. R1-A ist als reiner Wertekern Root-geprüft (152 Tests, Ruff PASS); R1-B mit reservierter `0019_v21_to_v22.sql`/Schema 22 ist in Arbeit. Erste PG-Gates liegen vor; unabhängige Gesamtfreigabe steht aus. Kein Rezepteditor oder R1-Deploy. [Folge-Release-Checkpoint](/nvmetank1/projects/menuplan/.claude/state/ops-root-evidence-0907/next-release-r1-checkpoint.md). Der Admin bleibt **Tabler**, nicht Tablet-first. Historische Nachweise unten bleiben erhalten und werden nicht zu neuen Abnahmen umgedeutet.
+Historisch zu `2cfc43f` prüfte Root live **738 Admin-Checks/36 Screenshots**, **56 OPS-Checks/2 Screenshots** und **193 ergänzende Checks/10 Screenshots** für Vorlagenkatalog, Screens und Darstellung, jeweils ohne fehlgeschlagene Checks. Datierte PDFs für 2026-08-31 enthalten 10/28 Menüs und Fotos auf je einer A4-Seite; Karten-/Überlaufgeometrie ist geprüft. Die damaligen Screen-Frames zeigten mangels Wochenpublikation korrekt HTML-404 mit `no-store`: keine behauptete gefüllte Vorschau oder vollständige UI-/Fach-/Playerabnahme.
+
+**B2/V1 und jetzt B3/V2 sind produktiv:** Stammdaten-Admin und Vorlagenarchivierung/-reaktivierung ergänzen die bisherigen Kerne; BAS-/TPL-Gesamtaufträge bleiben offen. Menü-Iconaktionen und deklarierte VEG/VGN bleiben produktiv. Die Vorab-Gates `24726` (**306 Tests in 510.48s, null Skips**) und `75283` (**132 Tests in 212.08s, null Skips**) sind durch das vollständige Paketgate ergänzt. Die echte unveränderliche **Kandidat → Fallback → Kandidat-Runde bestand**, mit 36 Screenshots, unveränderter Datenidentität/Sentinels und historischen PDF-Bytes. Begrenzter Fallback: `16b2e72`, Image `sha256:f9669285acce8628c0adf765f294e8b34d589174a22de9391ded9caa5ace81c7`; das alte V1-Image `2cfc43f` ist nach V2-Schreibvorgängen kein Rollback.
+
+**R1 bleibt ohne Gesamtfreigabe und Deploy:** Auf den reinen R1-A-Wertekern (Root: 152 Tests, Ruff PASS) folgen R1-B/Migration `0019_v21_to_v22.sql` und reserviertes Schema 22. Root bestätigte inzwischen 590 Tests und Ruff PASS; normales Mypy bleibt mit 58 bestehenden, baseline-identischen Diagnosen ausdrücklich nicht grün. Ein bestätigter P2-Befund zu gleichem Bildhash bei abweichender Lizenz wird separat korrigiert. R2-UI ist weiterhin geplant, kein Rezepteditor ist fertig. [Folge-Release-Checkpoint](/nvmetank1/projects/menuplan/.claude/state/ops-root-evidence-0907/next-release-r1-checkpoint.md). Der Admin bleibt **Tabler**, nicht Tablet-first. Historische Nachweise unten bleiben erhalten.
 
 ## Historischer Root-Checkpoint — 7. September 2026, 06:25 Uhr Schweiz
 
@@ -39,8 +43,8 @@ Die beiden Produktionssicherungen vor/nach Schema 19 sind von Root mit Hash und 
 Die früher unterbrochene OPS-Welle ist geprüft und produktiv. Ihre technischen Live-Nachweise
 stehen oben; fachliche Bestätigung und physische Playerabnahme werden dadurch nicht ersetzt.
 
-Operativ Paket-/Image-Kompatibilität und Releaseabnahme für den geprüften B3/V2-Kandidaten abschliessen; Public-/Operator-Folgearbeiten, Symbole, B2 und V1
-sind bereits produktiv. R1-B läuft unabhängig mit reserviertem Schema 22. Die historischen Symbol-Fullgate-Abbrüche erhalten kein nachträgliches PASS. Danach offene Screens-/Vorlagen-/Branding-Funktionen,
+Operativ offene Live-Datenfälle für B3/V2 abnehmen; diese Teilumfänge sind mit `783fab3` ebenso wie Public-/Operator-Folgearbeiten, Symbole, B2 und V1
+produktiv. R1-B/Schema 22 benötigt nach dem Lizenzbefund-Fix die unabhängige Gesamtfreigabe; R2-UI bleibt geplant. Die historischen Symbol-Fullgate-Abbrüche erhalten kein nachträgliches PASS. Danach offene Screens-/Vorlagen-/Branding-Funktionen,
 Grundlagen/Rezeptverwaltung, Suche/Importe/Produktdaten, Rezeptplanung/Einkauf/
 Druck/KI, Kalkulation/Lager/Bestellungen und weitere Anbindungen. Die vollständigen Phasen
 und alle 35 IDs bleiben erhalten; Abnahmen begleiten jede Lieferung.
@@ -49,7 +53,7 @@ und alle 35 IDs bleiben erhalten; Abnahmen begleiten jede Lieferung.
 vollständigem Root-Diffreview und unabhängig **101 passed in 1.26s**, Ruff PASS und Mypy PASS
 für zwei Dateien integriert ([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)).
 B1 ist mit `3d35cbb` produktiv. B2 ist nach erfüllter OPS-Schema-20-Voraussetzung mit Fix
-`7ca5286` unabhängig geprüft und mit `2cfc43f`/Schema 21 produktiv. B3 ist im geprüften Folge-Kandidaten integriert, noch nicht deployed. [BAS/REC-Pakete](bas-rec-work-packages-0906.md)
+`7ca5286` unabhängig geprüft und mit `2cfc43f`/Schema 21 produktiv. B3 ist seit `783fab3` ebenfalls produktiv. [BAS/REC-Pakete](bas-rec-work-packages-0906.md)
 und [Datenvertrag](../design/2026-09-06-bas-rec-data-contract.md) erhalten sämtliche Restaufträge.
 
 **HugeRTE-Eignungsprobe:** 1.0.13 ist lokal browsergeprüft; Text, Fett, Listen und Silver-Linkdialog

@@ -4152,6 +4152,7 @@ CREATE TABLE IF NOT EXISTS recipe_images (
  source_url text CHECK(source_url=master_text(source_url,2048,false) AND source_url ~ '^https?://'),
  source_license text CHECK(source_license=master_text(source_license,500,false)),fetched_at timestamptz,
  PRIMARY KEY(recipe_id,sort_order),
+ UNIQUE(recipe_id,sha256),
  FOREIGN KEY(location_id,recipe_id) REFERENCES recipes(location_id,id) ON DELETE RESTRICT,
  FOREIGN KEY(location_id,sha256) REFERENCES recipe_assets(location_id,sha256) ON DELETE RESTRICT,
  CHECK(source_url IS NULL OR (nullif(source_license,'') IS NOT NULL AND fetched_at IS NOT NULL))
@@ -4426,6 +4427,10 @@ BEGIN
    WHERE (NOT u.active AND u.id IS DISTINCT FROM old.unit_id) OR (NOT f.active AND f.id IS DISTINCT FROM old.food_id)) THEN
    RAISE EXCEPTION 'New archived association.' USING ERRCODE='55000';
   END IF;
+  IF EXISTS(SELECT 1 FROM jsonb_array_elements(p_payload->'images') i
+   GROUP BY i->>'sha256' HAVING count(*)>1) THEN
+   RAISE EXCEPTION 'Duplicate image identity.' USING ERRCODE='P1901';
+  END IF;
   -- Existing assets must already belong to this recipe, including its immutable history.
   IF EXISTS(SELECT 1 FROM (
     SELECT value->>'sha256' AS sha FROM jsonb_array_elements(p_payload->'images')
@@ -4444,13 +4449,13 @@ BEGIN
    RAISE EXCEPTION 'Step image requires its provenance.' USING ERRCODE='55000';
   END IF;
   FOR item IN SELECT value FROM jsonb_array_elements(p_payload->'images') LOOP
-   IF NOT EXISTS(SELECT 1 FROM (
+   IF (SELECT count(*)=0 OR bool_or(
+     (image->>'source_url',image->>'source_license',(image->>'fetched_at')::timestamptz) IS DISTINCT FROM
+     (item->>'source_url',item->>'source_license',(item->>'fetched_at')::timestamptz)) FROM (
     SELECT value AS image FROM jsonb_array_elements(original->'images')
     UNION ALL SELECT image FROM recipe_revisions h,
      LATERAL jsonb_array_elements(h.snapshot_json->'recipe'->'images') image WHERE h.recipe_id=recipe.id) origins
-    WHERE image->>'sha256'=item->>'sha256' AND
-     (image->>'source_url',image->>'source_license',(image->>'fetched_at')::timestamptz) IS NOT DISTINCT FROM
-     (item->>'source_url',item->>'source_license',(item->>'fetched_at')::timestamptz)) THEN
+    WHERE image->>'sha256'=item->>'sha256') THEN
     RAISE EXCEPTION 'Immutable image provenance.' USING ERRCODE='55000';
    END IF;
   END LOOP;
@@ -4506,6 +4511,25 @@ BEGIN
    VALUES(p_location,recipe.id,COALESCE(revision.revision_number,0)+1,new_snapshot,digest_value,p_actor) RETURNING * INTO revision;
   UPDATE recipes SET updated_by=p_actor WHERE id=recipe.id RETURNING * INTO recipe;
  ELSE
+  -- Identity and provenance belong to this recipe, not the globally deduplicated bytes.
+  IF EXISTS(SELECT 1 FROM (
+   SELECT value AS image FROM jsonb_array_elements(original->'images')
+   UNION ALL SELECT image FROM recipe_revisions h,
+    LATERAL jsonb_array_elements(h.snapshot_json->'recipe'->'images') image WHERE h.recipe_id=recipe.id) origins
+   WHERE image->>'sha256'=p_payload->>'sha256' AND
+    (image->>'source_url',image->>'source_license',(image->>'fetched_at')::timestamptz) IS DISTINCT FROM
+    (master_text(p_payload->>'source_url',2048,false),master_text(p_payload->>'source_license',500,false),
+     (p_payload->>'fetched_at')::timestamptz)) THEN
+   RAISE EXCEPTION 'Immutable image provenance.' USING ERRCODE='55000';
+  END IF;
+  SELECT value INTO item FROM jsonb_array_elements(original->'images')
+   WHERE value->>'sha256'=p_payload->>'sha256';
+  IF FOUND THEN
+   IF item->>'caption' IS DISTINCT FROM master_text(p_payload->>'caption',500,false) THEN
+    RAISE EXCEPTION 'Edit existing caption through the aggregate.' USING ERRCODE='55000';
+   END IF;
+   RETURN jsonb_build_object('public_id',recipe.public_id,'row_version',recipe.row_version);
+  END IF;
   SELECT count(*) INTO n FROM recipe_images WHERE recipe_id=recipe.id;
   IF n>=64 THEN RAISE EXCEPTION 'Image limit.' USING ERRCODE='P1901'; END IF;
   INSERT INTO recipe_assets(location_id,sha256,image_data,content_type,width,height,created_by)
