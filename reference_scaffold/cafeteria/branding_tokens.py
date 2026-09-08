@@ -85,6 +85,4 @@ def branding_css(config: BrandConfig, static_prefix: str) -> str:
         '.list-group-item.active .badge{color:inherit}'
         '.dishboard-admin .nav-tabs .nav-link{color:var(--sh-primary)}'
         '.dishboard-admin .form-control::file-selector-button{color:var(--sh-ink);background:var(--sh-panel-soft)}'
-        '.patient-signage-meal .meal-label{background:var(--brand-meal-bg,var(--sh-blue));color:var(--brand-on-primary,var(--sh-white))}'
-        '.patient-duo .meal-label .card-title,.patient-duo .meal-label small,.patient-board .meal-name{color:var(--brand-on-primary,var(--sh-white))}'
     )

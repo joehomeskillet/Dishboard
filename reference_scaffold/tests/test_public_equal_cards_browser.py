@@ -123,3 +123,56 @@ def test_signage_shell_loads_shared_food_symbol_styles(
         # PS2 already consumes shared symbols; PS3/PS4 own their remaining template wiring.
         if path == '/signage/cafeteria/tag':
             _assert_symbol_sizes(page)
+
+
+@pytest.mark.parametrize('path,selector', [
+    ('/signage/patienten/tag', '.meal-label .card-title:visible,.meal-label small:visible'),
+    ('/signage/patienten/woche', '.meal-name:visible'),
+])
+@pytest.mark.parametrize('width,height', [(1920, 1080), (3840, 2160)])
+@pytest.mark.parametrize('custom_palette', [False, True])
+@pytest.mark.parametrize('legacy_stylesheet', [False, True])
+def test_patient_meal_labels_keep_contrast_after_brand_stylesheet(
+    http_app: Flask, public_server: str, browser: Browser, monkeypatch: pytest.MonkeyPatch,
+    path: str, selector: str, width: int, height: int, custom_palette: bool,
+    legacy_stylesheet: bool,
+) -> None:
+    from cafeteria import branding_routes
+    from cafeteria.branding_config import BrandRevision, default_config, validate_config
+
+    config = default_config()
+    if custom_palette:
+        config = validate_config({**config, 'surface': '#111111', 'text': '#ffffff',
+                                  'primary': '#ffddaa', 'accent': '#aaddff'})
+    monkeypatch.setattr(branding_routes, '_public_brand', lambda revision: BrandRevision(revision, 'Testmarke', config))
+    if legacy_stylesheet:
+        # A browser may retain a pre-release immutable branding revision for one year.
+        current_css = branding_routes.branding_css
+        monkeypatch.setattr(branding_routes, 'branding_css', lambda config, prefix: current_css(config, prefix) + (
+            '.patient-signage-meal .meal-label{background:var(--brand-meal-bg,var(--sh-blue));color:var(--brand-on-primary,var(--sh-white))}'
+            '.patient-duo .meal-label .card-title,.patient-duo .meal-label small,.patient-board .meal-name{color:var(--brand-on-primary,var(--sh-white))}'
+        ))
+    with browser.new_context(viewport={'width': width, 'height': height}) as context:
+        page = context.new_page()
+        response = page.goto(public_server + path, wait_until='networkidle')
+        assert response is not None and response.status == 200
+        assert page.locator('link[data-brand-stylesheet]').count() == 1
+        pairs = page.locator(selector).evaluate_all('''elements => elements.map(el => {
+            let parent = el;
+            while (parent && getComputedStyle(parent).backgroundColor === 'rgba(0, 0, 0, 0)') parent = parent.parentElement;
+            const foreground = getComputedStyle(el).color;
+            const background = parent ? getComputedStyle(parent).backgroundColor : 'rgb(255, 255, 255)';
+            const luminance = color => {
+                const channels = color.match(/[\\d.]+/g).slice(0, 3).map(value => {
+                    const channel = Number(value) / 255;
+                    return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+                });
+                return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+            };
+            const a = luminance(foreground), b = luminance(background);
+            return {label: el.textContent.trim(), foreground, background,
+                ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)};
+        })''')
+        assert pairs
+        for pair in pairs:
+            assert pair['label'] and pair['ratio'] >= 4.5, pair

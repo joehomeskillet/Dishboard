@@ -155,8 +155,8 @@ p{text-wrap:pretty}
 .patient-duo>.col-6{min-height:0;margin-top:0}
 .patient-duo .patient-signage-meal.card{display:flex;flex:1;flex-direction:column;border:0;border-radius:var(--sh-radius-lg);background:var(--sh-panel);box-shadow:var(--sh-shadow-soft)}
 .patient-duo .meal-label.card-header{flex-direction:row;flex-shrink:0;min-height:7vh;padding:1.1vh 1vw;color:var(--sh-ink);background:var(--sh-panel)}
-.patient-duo .meal-label .card-title{color:var(--sh-ink);font-size:clamp(30px,1.8vw,70px);line-height:1.2}
-.patient-duo .meal-label small{color:var(--sh-ink-muted);font-size:clamp(18px,1vw,40px);font-weight:400}
+.signage-body .patient-duo .meal-label .card-title{color:var(--sh-ink);font-size:clamp(30px,1.8vw,70px);line-height:1.2}
+.signage-body .patient-duo .meal-label small{color:var(--sh-ink-muted);font-size:clamp(18px,1vw,40px);font-weight:400}
 .patient-duo-options{flex:1;min-height:0;gap:1vh;padding:1vh .55vw}
 .patient-duo .patient-signage-option.card{display:block;flex:1 1 0;min-height:0;padding:0;border:1px solid var(--sh-border);border-radius:var(--sh-radius-md);box-shadow:none}
 .patient-duo .card-status-top{height:.4vh;background:var(--sh-primary)!important}
@@ -195,7 +195,7 @@ p{text-wrap:pretty}
 .patient-board .patient-week-day>.card-header h2{font-size:clamp(22px,1.15vw,46px);line-height:1.2}
 .patient-board .patient-week-day>.card-header span{margin:0;color:var(--sh-ink-muted);font-size:clamp(18px,.94vw,36px);line-height:1.2}
 .patient-board .patient-week-cell{border-radius:0;background:var(--sh-panel);overflow:visible}
-.patient-board .meal-name{padding:.4vh .35vw;font-size:clamp(18px,.94vw,36px);font-weight:500;line-height:1.2;letter-spacing:.04em;color:var(--sh-ink-muted);background:var(--sh-panel);border-bottom:1px solid var(--sh-border)}
+.signage-body .patient-board .meal-name{padding:.4vh .35vw;font-size:clamp(18px,.94vw,36px);font-weight:500;line-height:1.2;letter-spacing:.04em;color:var(--sh-ink-muted);background:var(--sh-panel);border-bottom:1px solid var(--sh-border)}
 .patient-board .dinner .meal-name{background:var(--sh-panel)}
 .patient-board .patient-week-option{justify-content:flex-start;padding:.5vh .4vw;gap:.25vh}
 .patient-board .patient-week-option small{font-size:clamp(18px,.94vw,36px);font-weight:500;letter-spacing:.02em;line-height:1.2}
