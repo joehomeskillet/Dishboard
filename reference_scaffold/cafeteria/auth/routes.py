@@ -3,10 +3,11 @@ from __future__ import annotations
 from urllib.parse import quote
 
 import msal
-from flask import Blueprint, Response, abort, current_app, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, current_app, redirect, render_template, request, session, url_for
 from redis.exceptions import RedisError
 from requests.exceptions import RequestException  # type: ignore[import-untyped]
 from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.wrappers import Response
 
 from ..db import demo_user, upsert_entra_user
 from ..roles import ROLE_CAPABILITIES
