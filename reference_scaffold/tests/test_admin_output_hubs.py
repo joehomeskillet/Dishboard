@@ -95,6 +95,9 @@ def test_hubs_use_existing_read_roles_and_link_all_real_targets(hub_app, databas
         assert len(set(screen_links)) == (2 if path == '/admin/screens' else 6)
         links = [link for link in links if link not in screen_links]
         expected_links = 10 if path == '/admin/screens' or role != 'Cafeteria.Admin' else 14
+        if path == '/admin/vorlagen':
+            expected_links += 3
+            assert {'/admin/grundlagen?kind=foods', '/admin/rezepte', '/admin/kochbuecher'} <= set(links)
         assert len(links) == expected_links and len(set(links)) == expected_links
         for link in links:
             target = client.get(link)

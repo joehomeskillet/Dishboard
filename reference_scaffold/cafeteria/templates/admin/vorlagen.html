@@ -79,6 +79,31 @@
   {% endfor %}
 </div>
 {% endif %}
+<div class="row row-cards mt-4">
+  <div class="col-12 col-md-6">
+    <section class="card h-100">
+      <div class="card-header"><h2 class="card-title">Zutaten &amp; Komponenten</h2></div>
+      <div class="card-body">
+        <p>Zutaten, Einheiten und Kategorien zentral verwalten.</p>
+        <a class="btn" href="{{ url_for('admin.master_data_list', kind='foods') }}">{{ icon('components') }}Zutaten &amp; Grundlagen öffnen</a>
+      </div>
+    </section>
+  </div>
+  {% if can_browse_recipes %}
+  <div class="col-12 col-md-6">
+    <section class="card h-100">
+      <div class="card-header"><h2 class="card-title">Rezepte &amp; Kochbücher</h2></div>
+      <div class="card-body">
+        <p>Rezepte pflegen und in Kochbüchern zusammenstellen.</p>
+        <div class="btn-list">
+          <a class="btn" href="{{ url_for('admin.recipes_list') }}">{{ icon('tools-kitchen-2') }}Rezepte öffnen</a>
+          <a class="btn" href="{{ url_for('admin.cookbooks_list') }}">{{ icon('copy') }}Kochbücher öffnen</a>
+        </div>
+      </div>
+    </section>
+  </div>
+  {% endif %}
+</div>
 <h2 class="mt-4">Screen-Vorlagen</h2>
 <p>Web-Wochenpläne zeigen die aktuelle Veröffentlichung. Die oben gewählte Woche gilt weiterhin nur für Wochenpflege und PDF.</p>
 <details class="card mb-3"><summary class="card-header">Symbole</summary><div class="card-body"><p>{{ icon('eye') }} Vorschau öffnen: die Darstellung mit der aktuellen Veröffentlichung ansehen.</p><p class="mb-0">{{ icon('pencil') }} Wochenvorlage zuordnen: die Darstellung des Web-Wochenplans auswählen.</p></div></details>
