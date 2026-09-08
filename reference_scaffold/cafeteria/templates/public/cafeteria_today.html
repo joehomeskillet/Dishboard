@@ -14,7 +14,7 @@
       <div class="col">
         <div class="page-pretitle">{{ area_name if area_name else 'Cafeteria · Mitarbeitende und Externe' }}</div>
         <h1 class="page-title">Was gibt es heute?</h1>
-        <div class="text-secondary mt-1">Zwei Mittagsmenüs von {{ weekday_range if weekday_range else 'Montag bis Freitag' }}. Die Beträge sind getrennt für Mitarbeitende und externe Gäste ausgewiesen.</div>
+        <div class="text-secondary mt-1">Mittagsmenüs von {{ weekday_range if weekday_range else 'Montag bis Freitag' }}.</div>
       </div>
       <div class="col-12 col-md-auto d-print-none">
         <div class="btn-list">
@@ -52,7 +52,10 @@
           {% for component in option.components %}<li>{{ component }}</li>{% endfor %}
         </ul>
         <div class="mt-3">
+          {% set description = '' if option.description == option.components|join(' · ') else option.description %}
+          {% with option=dict(option, description=description) %}
           {% include '_menu_metadata.html' %}
+          {% endwith %}
         </div>
       </div>
       <div class="card-footer">

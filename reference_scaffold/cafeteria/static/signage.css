@@ -1,21 +1,21 @@
-:root{--tblr-font-sans-serif:var(--sh-font);--tblr-body-font-family:var(--sh-font);--tblr-primary:var(--sh-primary);--tblr-card-border-radius:var(--sh-radius-lg)}
+:root{--tblr-font-sans-serif:var(--sh-font);--tblr-body-font-family:var(--sh-font);--tblr-primary:var(--sh-primary);--tblr-body-color:var(--sh-ink);--tblr-body-bg:var(--sh-panel);--tblr-border-radius-lg:var(--sh-radius-lg);--tblr-card-border-radius:var(--sh-radius-lg)}
 html,body{height:100%;overflow:hidden}
 body{font-family:var(--sh-font);line-height:1.4}
 h1,h2,h3{font-family:var(--sh-font-display);text-wrap:balance;font-weight:bold}
 p{text-wrap:pretty}
-.signage-body{width:100vw;height:100vh;margin:0;overflow:hidden;color:var(--sh-white);background:radial-gradient(circle at 92% -12%,var(--sh-primary-glow),transparent 32%),linear-gradient(135deg,var(--sh-signage-start) 0%,var(--sh-signage-middle) 58%,var(--sh-signage-end) 100%)}
+.signage-body{width:100vw;height:100vh;margin:0;overflow:hidden;color:var(--sh-ink);background:var(--sh-panel)}
 .signage-shell{display:grid;grid-template-rows:auto minmax(0,1fr) auto;width:100vw;height:100vh;aspect-ratio:16/9;gap:2.1vh;padding:3vh 2.8vw 2.3vh;overflow:hidden;transition:opacity 300ms ease-out}
 .signage-shell.is-updating{opacity:.82}
 @media (prefers-reduced-motion:reduce){.signage-shell{transition:none}}
 .signage-top{align-items:center;gap:2vw}
 .signage-channel,.signage-brand{display:grid;gap:.42vh}
-.signage-logo{display:block;width:auto;height:clamp(36px,6vw,54px);filter:drop-shadow(0 2px 4px var(--sh-logo-shadow))}
-.signage-kicker{color:var(--sh-white-070);font-size:clamp(15px,1.04vw,23px);font-weight:720}
+.signage-logo{display:block;width:auto;height:clamp(36px,6vw,54px)}
+.signage-kicker{color:var(--sh-ink-muted);font-size:clamp(15px,1.04vw,23px);font-weight:720}
 .signage-datetime{text-align:right}
 .signage-weekday{display:block;font-size:clamp(34px,3.2vw,66px);line-height:.92;letter-spacing:-.055em}
-.signage-calendar-date,.signage-clock{display:block;margin-top:.45vh;color:var(--sh-white-070);font-size:clamp(16px,1.1vw,24px)}
+.signage-calendar-date,.signage-clock{display:block;margin-top:.45vh;color:var(--sh-ink-muted);font-size:clamp(16px,1.1vw,24px)}
 .signage-main{display:flex;flex-direction:column;min-height:0;overflow:hidden}
-.signage-statusbar{display:flex;justify-content:space-between;align-items:center;gap:2vw;color:var(--sh-white-076);font-size:clamp(14px,.94vw,22px)}
+.signage-statusbar{display:flex;justify-content:space-between;align-items:center;gap:2vw;color:var(--sh-ink-muted);font-size:clamp(14px,.94vw,22px)}
 .cafe-day-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.9vw;min-height:0;flex:1}
 .signage-menu-card{display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-width:0;min-height:0;overflow:hidden;color:var(--sh-ink);background:var(--sh-white-0985);border-radius:clamp(22px,1.8vw,38px);box-shadow:0 25px 70px var(--sh-card-shadow-strong);border-top:clamp(9px,.7vw,14px) solid var(--sh-magenta)}
 .signage-menu-card.veggie{border-top-color:var(--sh-green)}
@@ -81,9 +81,9 @@ p{text-wrap:pretty}
 .closed-card .closed-icon{display:grid;place-items:center;width:1.4em;height:1.4em;margin:0 auto 1.5vh;border-radius:50%;color:var(--sh-white);background:var(--sh-magenta);font-size:clamp(48px,5vw,96px);font-weight:900}
 .closed-card h1{margin:0;font-size:clamp(60px,6vw,116px);line-height:.95;letter-spacing:-.06em}
 .closed-card p{margin:2vh auto 0;color:var(--sh-ink-muted);font-size:clamp(24px,2vw,42px);line-height:1.35}
-.signage-empty{display:grid;place-content:center;gap:1vh;min-height:0;flex:1;border:2px dashed var(--sh-white-border-034);border-radius:clamp(20px,1.5vw,34px);text-align:center}
+.signage-empty{display:grid;place-content:center;gap:1vh;min-height:0;flex:1;border:2px dashed var(--sh-border);border-radius:clamp(20px,1.5vw,34px);text-align:center}
 .signage-empty strong{font-size:clamp(42px,4vw,86px);line-height:1}
-.signage-empty span{color:var(--sh-white-076);font-size:clamp(20px,1.45vw,34px)}
+.signage-empty span{color:var(--sh-ink-muted);font-size:clamp(20px,1.45vw,34px)}
 @media (min-width: 3000px){.patient-week-day>header strong{font-size:34px}.patient-week-day>header span{font-size:20px}.patient-week-cell .meal-name{font-size:25px}.patient-week-option small{font-size:18px}.patient-week-option strong{font-size:26px}.patient-week-option span{font-size:18px}}
 
 /* Variante A: Tabler cards keep complete serving illustrations above the menu. */
@@ -97,7 +97,7 @@ p{text-wrap:pretty}
 .hero-food .menu-photo{position:relative;max-width:none;height:100%;margin:0}
 .hero-food .menu-photo img{width:100%;height:100%;aspect-ratio:4/3;object-fit:contain}
 .hero-food .menu-photo figcaption{position:absolute;right:.7vw;bottom:.5vh;margin:0;padding:.2vh .4vw;font-size:clamp(12px,.72vw,28px);color:var(--sh-ink-muted);background:var(--sh-panel)}
-.hero-food-fallback{height:100%;color:var(--sh-teal-800);background:var(--sh-teal-100);font-size:clamp(22px,1.3vw,50px);font-weight:600}
+.hero-food-fallback{height:100%;color:var(--sh-ink-muted);background:var(--sh-panel-soft);font-size:clamp(22px,1.3vw,50px);font-weight:600}
 .hero-food-fallback-mark{font-size:clamp(70px,6vw,230px);line-height:1;letter-spacing:-.06em}
 .hero-food .content{flex:0 0 auto;justify-content:flex-start;gap:.6vh;padding:1.4vh 1.6vw}
 .hero-food-kicker{margin:0;color:var(--sh-primary);font-size:clamp(22px,1.15vw,46px);font-weight:600;line-height:1.2;letter-spacing:.08em;text-transform:uppercase}
@@ -127,7 +127,7 @@ p{text-wrap:pretty}
 .cafe-week-board.row{display:grid;grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);margin:0;gap:0;--tblr-gutter-x:1vw}
 .cafe-week-board>.col{display:grid;grid-template-rows:subgrid;grid-row:span 2;min-width:0;min-height:0;margin-top:0}
 .cafe-week-board .cafe-week-day{display:grid;grid-template-rows:subgrid;grid-row:span 2;gap:0;border:0;border-radius:var(--sh-radius-lg);color:var(--sh-ink);background:var(--sh-panel);box-shadow:var(--sh-shadow-soft)}
-.cafe-week-board .card-header{justify-content:space-between;gap:.3vw;padding:.1vh .6vw;border-radius:var(--sh-radius-lg) var(--sh-radius-lg) 0 0;color:var(--sh-teal-950);background:var(--sh-teal-100)!important}
+.cafe-week-board .card-header{justify-content:space-between;gap:.3vw;padding:.1vh .6vw;border-radius:var(--sh-radius-lg) var(--sh-radius-lg) 0 0;color:var(--sh-ink);background:var(--sh-panel)!important}
 .cafe-week-board .card-header h2{font-size:clamp(24px,1.25vw,48px);font-weight:600;line-height:1.2}
 .cafe-week-board .card-header span{margin:0;color:var(--sh-ink-muted);font-size:clamp(18px,.94vw,36px)}
 .cafe-week-board .cafe-week-menus{display:grid;grid-template-rows:repeat(2,minmax(0,1fr));min-height:0;padding:0}
@@ -154,9 +154,9 @@ p{text-wrap:pretty}
 .patient-duo.row{display:flex;flex-wrap:nowrap;margin:0;gap:0;--tblr-gutter-x:1.6vw}
 .patient-duo>.col-6{min-height:0;margin-top:0}
 .patient-duo .patient-signage-meal.card{display:flex;flex:1;flex-direction:column;border:0;border-radius:var(--sh-radius-lg);background:var(--sh-panel);box-shadow:var(--sh-shadow-soft)}
-.patient-duo .meal-label.card-header{flex-direction:row;flex-shrink:0;min-height:7vh;padding:1.1vh 1vw;background:var(--sh-teal-800)}
-.patient-duo .meal-label .card-title{color:var(--sh-white);font-size:clamp(30px,1.8vw,70px);line-height:1.2}
-.patient-duo .meal-label small{font-size:clamp(18px,1vw,40px);font-weight:400}
+.patient-duo .meal-label.card-header{flex-direction:row;flex-shrink:0;min-height:7vh;padding:1.1vh 1vw;color:var(--sh-ink);background:var(--sh-panel)}
+.patient-duo .meal-label .card-title{color:var(--sh-ink);font-size:clamp(30px,1.8vw,70px);line-height:1.2}
+.patient-duo .meal-label small{color:var(--sh-ink-muted);font-size:clamp(18px,1vw,40px);font-weight:400}
 .patient-duo-options{flex:1;min-height:0;gap:1vh;padding:1vh .55vw}
 .patient-duo .patient-signage-option.card{display:block;flex:1 1 0;min-height:0;padding:0;border:1px solid var(--sh-border);border-radius:var(--sh-radius-md);box-shadow:none}
 .patient-duo .card-status-top{height:.4vh;background:var(--sh-primary)!important}
@@ -165,7 +165,7 @@ p{text-wrap:pretty}
 .patient-duo .menu-photo{display:flex;flex-direction:column;justify-content:center;max-width:none;height:100%;margin:0}
 .patient-duo .menu-photo img{width:100%;height:auto;max-height:25vh;object-fit:contain}
 .patient-duo .menu-photo figcaption{padding:.6vh .3vw;font-size:clamp(18px,.94vw,36px);line-height:1.2;text-align:center;color:var(--sh-ink-muted)}
-.patient-duo-fallback{height:100%;color:var(--sh-teal-800);background:var(--sh-teal-100);font-size:clamp(52px,4vw,154px);font-weight:600}
+.patient-duo-fallback{height:100%;color:var(--sh-ink-muted);background:var(--sh-panel-soft);font-size:clamp(52px,4vw,154px);font-weight:600}
 .patient-duo-content{padding:.3vh .7vw;min-width:0}
 .patient-duo .slot-type{font-size:clamp(22px,1.15vw,46px);font-weight:500;line-height:1.2;letter-spacing:.08em}
 .patient-duo .patient-signage-option h3{margin:.1vh 0;font-size:clamp(46px,2.4vw,94px);font-weight:600;line-height:1.2;letter-spacing:-.025em}
@@ -179,13 +179,13 @@ p{text-wrap:pretty}
 .patient-duo .patient-duo-closed.card{display:flex;justify-content:center;padding:2vh 1vw}
 .patient-week-pages,.patient-week-page,.cafe-week-pages,.cafe-week-page{display:flex;flex:1;flex-direction:column;min-height:0}
 .patient-week-page[hidden],.cafe-week-page[hidden]{display:none}
-.patient-board-page-label,.cafe-week-page-label{margin:0 0 .5vh;color:var(--sh-white);font-size:clamp(18px,.94vw,36px);line-height:1.2}
+.patient-board-page-label,.cafe-week-page-label{margin:0 0 .5vh;color:var(--sh-ink-muted);font-size:clamp(18px,.94vw,36px);line-height:1.2}
 /* Legacy board (snapshot without 'area_name'): three or four quarter-width day cards
    carrying both meals, exactly the geometry those publications show today. */
 .patient-board-shell{padding:1.8vh 1.1vw 1.5vh;gap:1vh}
 .patient-board.row{display:flex;flex-wrap:nowrap;gap:.45vw;margin:0;--tblr-gutter-x:0}
 .patient-board .patient-week-day.card{display:grid;grid-template-rows:auto repeat(2,minmax(0,1fr));flex:0 0 calc((100% - 1.35vw)/4);gap:0;padding:0;margin:0;border:0;border-radius:var(--sh-radius-md);background:var(--sh-panel);box-shadow:var(--sh-shadow-soft)}
-.patient-board .patient-week-day>.card-header{min-height:0;padding:.6vh .3vw;border-radius:0;background:var(--sh-teal-100);color:var(--sh-ink);gap:0}
+.patient-board .patient-week-day>.card-header{min-height:0;padding:.6vh .3vw;border-radius:0;background:var(--sh-panel);color:var(--sh-ink);gap:0}
 /* OPS board: one meal per page; shared headers preserve equal menu-card geometry. */
 .patient-week-shell--ops.patient-board-shell{padding:1.4vh 1.1vw 1.2vh;gap:.8vh}
 .patient-board--ops.row{display:grid;grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:calc((100% - 1.35vw)/4);grid-template-rows:auto auto minmax(0,1fr);justify-content:start;gap:0 .45vw;margin:0;--tblr-gutter-x:0}
@@ -195,8 +195,8 @@ p{text-wrap:pretty}
 .patient-board .patient-week-day>.card-header h2{font-size:clamp(22px,1.15vw,46px);line-height:1.2}
 .patient-board .patient-week-day>.card-header span{margin:0;color:var(--sh-ink-muted);font-size:clamp(18px,.94vw,36px);line-height:1.2}
 .patient-board .patient-week-cell{border-radius:0;background:var(--sh-panel);overflow:visible}
-.patient-board .meal-name{padding:.4vh .35vw;font-size:clamp(18px,.94vw,36px);font-weight:500;line-height:1.2;letter-spacing:.04em;background:var(--sh-teal-800)}
-.patient-board .dinner .meal-name{background:var(--sh-teal-700)}
+.patient-board .meal-name{padding:.4vh .35vw;font-size:clamp(18px,.94vw,36px);font-weight:500;line-height:1.2;letter-spacing:.04em;color:var(--sh-ink-muted);background:var(--sh-panel);border-bottom:1px solid var(--sh-border)}
+.patient-board .dinner .meal-name{background:var(--sh-panel)}
 .patient-board .patient-week-option{justify-content:flex-start;padding:.5vh .4vw;gap:.25vh}
 .patient-board .patient-week-option small{font-size:clamp(18px,.94vw,36px);font-weight:500;letter-spacing:.02em;line-height:1.2}
 .patient-board .patient-week-option h3{margin:0;font-size:clamp(20px,1.05vw,42px);line-height:1.2;letter-spacing:-.02em}
@@ -211,3 +211,7 @@ p{text-wrap:pretty}
 .patient-unavailable .card-body{padding:8vh 5vw;text-align:center}
 .patient-unavailable h1,.patient-unavailable h2{margin:0 0 2vh;font-size:clamp(60px,5vw,192px);line-height:1.2;font-weight:600}
 .patient-unavailable p{margin:0;font-size:clamp(28px,1.8vw,72px);line-height:1.3;color:var(--sh-ink-muted)}
+/* One light surface; status accents follow the card curve, including nested menus. */
+.signage-shell .card{overflow:hidden}
+.signage-shell .card-status-top{inset-inline:0;top:0;z-index:1}
+.signage-shell .food-legend{color:var(--sh-ink-muted)}
