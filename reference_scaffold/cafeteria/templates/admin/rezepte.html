@@ -7,16 +7,19 @@
 {% block content %}
 <p>Rezeptentwürfe finden und bearbeiten. Speichern veröffentlicht keinen Menüplan.</p>
 <form class="card mb-4" method="get" action="{{ url_for('admin.recipes_list') }}"><div class="card-body">
-<div class="row g-3 align-items-end"><div class="col-12 col-md-7"><label class="form-label" for="q">Nach Rezepttitel suchen</label><input class="form-control" id="q" name="q" maxlength="200" value="{{ query }}"></div>
-<div class="col-12 col-md-5"><label class="form-check"><input class="form-check-input" type="checkbox" name="archived" value="1"{% if archived %} checked{% endif %}><span class="form-check-label">Archivierte einschliessen</span></label></div>
-<div class="col-12"><button class="btn" type="submit">Suchen</button> <a class="btn" href="{{ url_for('admin.recipes_list') }}">Filter zurücksetzen</a></div></div></div></form>
+<div class="row g-3 align-items-end"><div class="col-12 col-md-4"><label class="form-label" for="q">Nach Rezepttitel suchen</label><input class="form-control" id="q" name="q" maxlength="200" value="{{ query }}"></div>
+<div class="col-12 col-md-4"><label class="form-label" for="ingredient">Zutat</label><input class="form-control" id="ingredient" name="ingredient" maxlength="200" value="{{ ingredient }}"></div>
+<div class="col-12 col-md-4"><label class="form-label" for="tag">Tag</label><select class="form-select" id="tag" name="tag"><option value="">Alle Tags</option>{% for value, label in tags %}<option value="{{ value }}"{% if value == tag %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+<div class="col-12"><p class="form-hint mb-0">Titel und Zutat enthalten den eingegebenen Text. Alle Filter gelten gemeinsam.</p></div>
+<div class="col-12 col-md-6"><label class="form-check"><input class="form-check-input" type="checkbox" name="archived" value="1"{% if archived %} checked{% endif %}><span class="form-check-label">Archivierte einschliessen</span></label></div>
+<div class="col-12 col-md-6 d-flex flex-wrap gap-2 justify-content-md-end"><button class="btn" type="submit">Suchen</button><a class="btn" href="{{ url_for('admin.recipes_list') }}">Filter zurücksetzen</a></div></div></div></form>
 {% if can_write %}<a class="btn btn-primary mb-3" href="{{ url_for('admin.recipe_new') }}">Rezept anlegen</a>{% endif %}
 <details class="mb-3"><summary class="btn">Symbole</summary><div class="card card-body">Stift: Rezept bearbeiten oder ansehen.</div></details>
 <div class="recipe-card-grid gap-3">
 {% for item in rows %}<article class="card recipe-card"><div class="card-body"><div class="row g-3 align-items-center"><div class="col">
 <h2 class="card-title text-break">{{ item.payload.title }}</h2><p class="mb-0">{{ 'Entwurf' if item.active else 'Archiviert' }} · Ausbeute {{ item.payload.servings }} {{ item.payload.servings_unit_code }}</p>
 </div><div class="col-auto">{{ icon_link(url_for('admin.recipe_edit', recipe_id=item.public_id), item.payload.title ~ (' bearbeiten' if can_write and item.active else ' ansehen')) }}</div></div></div></article>
-{% else %}<div class="col-12"><div class="empty"><h2 class="empty-title">{{ 'Keine passenden Rezepte' if query or archived else 'Noch keine Rezepte' }}</h2><p class="empty-subtitle text-secondary">{{ 'Filter anpassen oder zurücksetzen.' if query or archived else 'Beginnen Sie mit einem neuen Rezeptentwurf.' }}</p></div></div>{% endfor %}
+{% else %}<div class="col-12"><div class="empty"><h2 class="empty-title">{{ 'Keine passenden Rezepte' if query or ingredient or tag or archived else 'Noch keine Rezepte' }}</h2><p class="empty-subtitle text-secondary">{{ 'Filter anpassen oder zurücksetzen.' if query or ingredient or tag or archived else 'Beginnen Sie mit einem neuen Rezeptentwurf.' }}</p></div></div>{% endfor %}
 </div>
 {{ pagination(page, has_next, prev_url, next_url, 'Rezeptseiten') }}
 {% endblock %}

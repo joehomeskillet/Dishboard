@@ -37,19 +37,34 @@ def get_location(engine: Engine) -> int:
 
 
 def list_recipes(engine: Engine, *, include_archived: bool = False, search: str | None = None,
+                 ingredient: str | None = None, tag: str | None = None,
                  limit: int = 200, offset: int = 0) -> tuple[RecipeDTO, ...]:
     values = paging(limit, offset, include_archived)
-    if search is not None and (not isinstance(search, str) or len(search) > 200):
-        raise RecipeValidationError('Ungültige Suche.')
+    for value in (search, ingredient):
+        if value is not None and (not isinstance(value, str) or len(value) > 200 or '\x00' in value):
+            raise RecipeValidationError('Ungültige Suche.')
     values['search'] = search or ''
+    values['ingredient'] = ingredient or ''
+    values['tag'] = None if tag is None or tag == '' else identifier(tag)
     with connection(engine) as (current, location):
         values['location'] = location
         return tuple(RecipeDTO(str(row.public_id), row.row_version, row.active, frozen_json(row.payload))
-                     for row in current.execute(text('''SELECT public_id,row_version,active,
-            cafeteria.recipe_payload_v22(id) AS payload FROM cafeteria.recipes
-            WHERE location_id=:location AND (:archived OR active)
-            AND strpos(lower(title),lower(:search))>0
-            ORDER BY lower(title),public_id LIMIT :limit OFFSET :offset'''), values))
+                     for row in current.execute(text('''SELECT r.public_id,r.row_version,r.active,
+            cafeteria.recipe_payload_v22(r.id) AS payload FROM cafeteria.recipes r
+            WHERE r.location_id=:location AND (:archived OR r.active)
+            AND strpos(lower(r.title),lower(:search))>0
+            AND (:ingredient='' OR EXISTS (
+                SELECT 1 FROM cafeteria.recipe_ingredients i
+                LEFT JOIN cafeteria.foods f ON f.id=i.food_id AND f.location_id=i.location_id
+                WHERE i.recipe_id=r.id AND i.location_id=r.location_id
+                AND (strpos(lower(i.ingredient_text),lower(:ingredient))>0
+                     OR strpos(lower(f.name),lower(:ingredient))>0)))
+            AND (CAST(:tag AS uuid) IS NULL OR EXISTS (
+                SELECT 1 FROM cafeteria.recipe_tags rt
+                JOIN cafeteria.tags t ON t.id=rt.tag_id AND t.location_id=rt.location_id
+                WHERE rt.recipe_id=r.id AND rt.location_id=r.location_id
+                AND t.public_id=CAST(:tag AS uuid)))
+            ORDER BY lower(r.title),r.public_id LIMIT :limit OFFSET :offset'''), values))
 
 
 def get_recipe(engine: Engine, public_id: str) -> RecipeDTO:

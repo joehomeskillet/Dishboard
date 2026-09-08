@@ -141,7 +141,7 @@ def _get_editor(recipe_id=None, *, confirmation=False):
 @bp.get('/rezepte')
 @protected
 def recipes_list():
-    _query({'q', 'archived', 'page'})
+    _query({'q', 'ingredient', 'tag', 'archived', 'page'})
     raw_page = request.args.get('page', '1')
     if not raw_page.isascii() or not raw_page.isdecimal() or len(raw_page) > 6 or not 1 <= int(raw_page) <= 100000:
         abort(400)
@@ -149,11 +149,20 @@ def recipes_list():
     if archived not in ('0', '1'):
         abort(400)
     page, query = int(raw_page), request.args.get('q', '')
-    rows = store.list_recipes(_engine(), search=query, include_archived=archived == '1', limit=51, offset=(page - 1) * 50)
+    ingredient, tag = request.args.get('ingredient', ''), request.args.get('tag', '')
+    tag = identifier(tag) if tag else ''
+    rows = store.list_recipes(_engine(), search=query, ingredient=ingredient, tag=tag,
+                             include_archived=archived == '1', limit=51, offset=(page - 1) * 50)
+    tags = [(row.public_id, row.name + (' · archiviert' if not row.active else ''))
+            for row in _all(masters.list_vocabulary, 'tag')]
+    if tag and tag not in {key for key, _ in tags}:
+        tags.append((tag, 'Ausgewählter Tag · nicht mehr verfügbar'))
+    filters = {'q': query, 'ingredient': ingredient, 'tag': tag, 'archived': archived}
     return render_template('admin/rezepte.html', family='cafeteria', profile='staff_guest', rows=rows[:50],
-        page=page, has_next=len(rows) > 50, query=query, archived=archived == '1', can_write=_can_write(),
-        prev_url=url_for('admin.recipes_list', q=query, archived=archived, page=page - 1),
-        next_url=url_for('admin.recipes_list', q=query, archived=archived, page=page + 1))
+        page=page, has_next=len(rows) > 50, query=query, ingredient=ingredient, tag=tag, tags=tags,
+        archived=archived == '1', can_write=_can_write(),
+        prev_url=url_for('admin.recipes_list', **filters, page=page - 1),
+        next_url=url_for('admin.recipes_list', **filters, page=page + 1))
 
 
 @bp.route('/rezepte/neu', methods=['GET', 'POST'])
