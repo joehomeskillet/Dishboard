@@ -287,8 +287,9 @@ def test_migration_plan_is_ordered_and_preserves_0001_bytes() -> None:
         (23, '0020_v22_to_v23.sql'),
         (24, '0021_v23_to_v24.sql'),
         (25, '0022_v24_to_v25.sql'),
+        (26, '0023_v25_to_v26.sql'),
     ]
-    assert database.SCHEMA_VERSION == 25
+    assert database.SCHEMA_VERSION == 26
     migrations = ROOT / 'database' / 'migrations'
     assert hashlib.sha256((migrations / '0001_initial_postgresql.sql').read_bytes()).hexdigest() == (
         'd1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0'
@@ -319,7 +320,7 @@ def test_empty_database_runs_0001_then_0002(database_engine: Engine) -> None:
         local_credentials = connection.execute(
             text("SELECT to_regclass('cafeteria.local_credentials')")
         ).scalar_one()
-    assert [row.version for row in rows] == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
+    assert [row.version for row in rows] == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
     assert rows[0].name == '0001_initial_postgresql.sql'
     assert rows[1].name == '0002_profile_publication_and_local_auth.sql'
     assert rows[2].name == '0003_patient_key_and_withdrawal_contracts.sql'
@@ -374,7 +375,7 @@ def test_v4_fixture_migrates_without_replaying_0001() -> None:
         versions = connection.execute(
             text('SELECT version FROM cafeteria.schema_migrations ORDER BY version')
         ).scalars().all()
-    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
+    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
     _drop_schema(engine)
     engine.dispose()
 
@@ -1098,7 +1099,7 @@ def test_v4_draft_revision_is_withdrawn_and_not_public() -> None:
                 '''
             )
         ).all()
-    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
+    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
     assert int(public_rows) == 0
     assert withdrawn[0] is True
     assert 'v4' in withdrawn[1]
@@ -1992,10 +1993,14 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
         'create_recipe_v22', 'update_recipe_v22', 'set_recipe_active_v22', 'freeze_recipe_revision_v22',
         'add_recipe_image_v22', 'create_cookbook_v22', 'update_cookbook_v22', 'set_cookbook_active_v22',
         'replace_cookbook_recipes_v22',
+        'begin_menu_binding_write_v26', 'lock_menu_recipe_revisions_v26', 'lock_component_foods_v26',
+        'record_menu_binding_write_v26', 'record_component_food_write_v26',
+        'create_dish_template_v26', 'update_dish_template_v26', 'set_dish_template_active_v26',
     }
     assert {row['proname'] for row in definer_privileges} == master_commands | {
         'record_auth_access_v25',
         'activate_screen_assignment_v23',
+        'dish_template_mutate_v26',
         'require_master_data_actor', 'master_food_category_mutate', 'master_tag_mutate',
         'recipe_write_v22', 'recipe_cookbook_v22',
         'master_storage_location_mutate', 'master_unit_mutate', 'master_food_mutate',
