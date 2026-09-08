@@ -92,7 +92,55 @@ entire SDD/backlog goal.
 ## Remaining scope
 
 The read-only audit report is `/nvmetank1/projects/rag-stack/.claude/reports/wp-b71c624714aa.md`.
-Verified wider gaps include the free PDF layout editor, complete template hub categories and
-login/logout access history. Recipe import/search/planning, inventory, calculation and external
-integrations retain their full backlog contracts. Physical player and kitchen acceptance need
-actual external evidence; browser screenshots do not replace them.
+Native weekly PDF layout controls and recipe ingredient/tag filters are now locally integrated
+and checked; the earlier statement that a weekly layout editor is absent is superseded.
+Recipe and shopping-list PDFs, remaining template hub categories, full-text/trigram search, saved
+searches, bulk tagging and login/logout access history remain open or governed by separate
+contracts. Recipe import/planning, inventory, calculation and external integrations retain
+their full backlog scope. All 35 IDs in [the execution backlog](backlog-execution-0906.md)
+remain binding; this update does not close TPL-002, REC-006 or the entire SDD.
+Physical player and kitchen acceptance need actual external evidence; browser screenshots
+do not replace them.
+
+## Local integration and release snapshot — 8 September, approximately 16:00 UTC
+
+The next integration is `0d81b7d` (`integrate/sdd-next-0908`), including the white-release
+ancestry. Native weekly layout controls/rendering (`32b68c3`), German fit-error field labels
+(`832288c`), ingredient/tag recipe filters (`c705030`) and schema-24 canonical restore
+guards (`b3c9628`) are locally integrated and independently checked. Layout overflow still
+refuses activation with HTTP 422 and preserves the active PDF and stored week.
+
+Subsequent root addendum: the legacy eight-property save/contrast correction
+`f7cf96a` (WP `wp-4a68ab0bd993`) is independently reviewed and integrated as `df6e99d`.
+Root reran the PostgreSQL/browser gate: `76 passed in 124.57s`, `GATE_EXIT=0`;
+Ruff and Mypy passed. Its measured warning contrast is 8.77:1; root inspected the
+committed-source screenshot. This is local evidence, not a deployment claim.
+
+The [root execution receipt](/nvmetank1/projects/menuplan/.claude/worktrees/sdd-next-root-0908/.claude/evidence/root-progress-0908.md)
+records these independent gate outputs, respectively PDF labels, recipe filters, combined
+PostgreSQL 16 coverage, and canonical PostgreSQL 18/16 restore coverage:
+
+```text
+144 passed in 12.02s
+80 passed in 182.59s
+197 passed in 315.94s (0:05:15)
+20 passed in 18.63s
+18 passed, 2 skipped in 22.91s
+```
+
+The two skips are PostgreSQL-18-only catalog cases in the PostgreSQL 16 run. Root's
+separate 14-test controller fault suite uses toy capability helpers and does not replace
+the canonical database proof. The [static AGY review](/nvmetank1/projects/rag-stack/.claude/reports/wp-6fb8c1b8088d.md)
+found no concrete defect within its supplied source scope; it is not a runtime test or a
+zero-risk assurance. OCR remains unavailable after two HTTP 429 failures, with no completed
+file reviews. The [layout-preservation report](/nvmetank1/projects/rag-stack/.claude/reports/wp-4a68ab0bd993.md)
+separately records the later author evidence and warning screenshot.
+
+At this snapshot production still serves `783fab3` on schema 21. The user's existing
+recipe-editor and white-screen release `79e090c` is prioritized; deployment is **pending**.
+Its first full package run failed because root chose a test database name outside the
+allowed test prefixes. The identical retry and a corrected run on the established exclusive
+int2 pool are recorded in the root receipt; no database guard was relaxed and no successful
+full release gate is claimed here. The next schema-24/native-PDF release remains separate;
+this documentation does not regenerate its manifest or assert deployment or complete SDD
+acceptance. IAM access history retains its separate contract and is not accepted as delivered.

@@ -1,6 +1,6 @@
 # PostgreSQL-Datenmodell
 
-Schema-Version 15 modelliert zwei getrennte Angebotsprofile:
+Schema-Version 24 modelliert zwei getrennte Angebotsprofile:
 
 | Profil | Zeitraum | Mahlzeiten | Kosteninformationen |
 |---|---|---|---|
@@ -63,7 +63,9 @@ Der `actor-identifier` wird gegen den aktiven Benutzernamen, die E-Mail-Adresse 
 20. `0020_v22_to_v23.sql` (23)
 21. `0021_v23_to_v24.sql` (24): kanonische Capability-Restore-Guards für PostgreSQL 16 und 18; keine Datenänderung und kein Secret-Reset während der Migration.
 
-Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0018` bleiben byteidentisch. `schema.sql` beschreibt den aktuellen v23-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
+Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0020` bleiben beim Upgrade auf v24 byteidentisch. `schema.sql` beschreibt den aktuellen v24-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
+
+Schema v24 prüft und repariert den kanonischen Katalogzustand der beim Backup ausgelassenen Capability-Tabellen auf PostgreSQL 16 und 18, einschliesslich der auf PostgreSQL 18 separat katalogisierten NOT-NULL-Constraints. Abweichende Constraint-, Identity-Sequenz- oder Aktivindexzustände brechen fail-closed ab; die Owner-Funktion entzieht weiterhin den ausgeschlossenen Rollen sämtliche Rechte auf die Tabellen und ihre Sequenz. Die Migration v23→24 setzt keine Secrets zurück; der ausdrückliche Hard-Reset bleibt Teil des Restore-Lebenszyklus bei gestoppten Writern.
 
 Schema v23 ergänzt ausschließlich den begrenzten SECURITY-DEFINER-Writer `activate_screen_assignment_v23` für zwei globale Web-Wochenzuordnungen. Er prüft ursprünglichen Actor/Authz-Stand, aktuelle Adminrolle, kompatible Vorlagen und Original-CAS unter den bestehenden Rollen-/Actorsperren; genau eine Änderung und ein vollständiges Vorher-/Nachher-Audit sind atomar. Die App erhält nur EXECUTE auf diese neue Funktion, keine direkten Audit-/Sequenzrechte; PUBLIC, Backup und Auth-Issuer bleiben ausgeschlossen. Die Migration verändert keine bestehenden Settings, IAM-/Fachdaten oder früheren Migrationsbytes.
 
@@ -99,14 +101,15 @@ Vor `0010` wird im isolierten PostgreSQL-16-Wartungsfenster ein benanntes Backup
 
 Die sichere Restore-Reihenfolge bei gestoppten Writern lautet exakt:
 
-1. `pg_restore` aus dem Backup
-2. `run_migrations`
-3. `permissions.sql`
-4. `SELECT cafeteria.ensure_auth_capability_state();`
-5. `permissions.sql` (wieder, um endgültige ACLs zu beweisen)
-6. `SELECT cafeteria.hard_reset_auth_capability_state();`
-7. Validator und Writer-Start
+1. Im isolierten Restore-Kandidaten `pgcrypto` im Schema `public` bereitstellen; CHECK-Constraints für Rezeptbilder benötigen die Erweiterung bereits beim Import.
+2. `pg_restore` aus dem geprüften Backup
+3. `run_migrations`
+4. `permissions.sql`
+5. `SELECT cafeteria.ensure_auth_capability_state();`
+6. `permissions.sql` (wieder, um endgültige ACLs zu beweisen)
+7. `SELECT cafeteria.hard_reset_auth_capability_state();`
+8. Validator, erfolgreicher Restore-Abschluss und Writer-Start
 
-Der erste Permissions-Lauf schliesst die durch `pg_dump --no-privileges` sonst wieder geöffneten `PUBLIC`-Ausführungsrechte. Bei Backups vor Version 8 legt `run_migrations` die Reparaturfunktion zunächst an. Die owner-geguardete Ensure-Funktion stellt `pgcrypto` sowie die beiden ausgelassenen Tabellen samt Identity-Sequenz, Constraints, Index und restriktiver ACL wieder her, auch wenn `schema_migrations` bereits Version 11 ausweist. Der zweite Permissions-Lauf beweist den endgültigen ACL-Zustand und entzieht `PUBLIC`, `cafeteria_app` und `cafeteria_backup` explizit die Ausführung aller `SECURITY DEFINER`-Funktionen.
+Der erste Permissions-Lauf schliesst die durch `pg_dump --no-privileges` sonst wieder geöffneten `PUBLIC`-Ausführungsrechte. Bei Backups vor Version 8 legt `run_migrations` die Reparaturfunktion zunächst an. Die owner-geguardete Ensure-Funktion prüft das bereits bereitgestellte `pgcrypto` und stellt die beiden ausgelassenen Tabellen samt Identity-Sequenz, Constraints, Index und restriktiver ACL wieder her, auch wenn `schema_migrations` bereits Version 24 ausweist. Der zweite Permissions-Lauf beweist den endgültigen ACL-Zustand anhand der expliziten Rollenfreigaben in `permissions.sql`.
 
 Der atomare Hard-Reset verwirft alle Nonces sowie aktive und pensionierte Secrets, legt genau ein neues 32-Byte-Secret mit ID 1 an und protokolliert das Ereignis. Alte Capability-Tokens werden dadurch auch bei wiederverwendeter Secret-ID kryptografisch ungültig. Das Deployment muss diese Ausschlüsse und Reihenfolge vor dem Merge dieser DB-Änderung übernehmen; ein älteres Backup-/Restore-Skript ist nicht kompatibel.
