@@ -4,9 +4,11 @@ from __future__ import annotations
 import copy
 import json
 from concurrent.futures import ThreadPoolExecutor
+from io import BytesIO
 from threading import Barrier
 
 import pytest
+from pypdf import PdfReader
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import NullPool
 
@@ -15,7 +17,8 @@ from cafeteria.print_templates import (
     SETTING_PREFIX, PrintTemplateConflictError, PrintTemplateStateError, active_template,
     _validate_document, change_template, default_document, read_templates, template_revision,
 )
-from cafeteria.admin.week_pdf import WeekPdfFitError
+from cafeteria.admin.week_pdf import WeekPdfFitError, render_week_pdf
+from cafeteria.workflow_store import load_draft_connection
 from test_admin_workflow_routes import APP_PASSWORD, WEEK, _login, app, database_engine  # noqa: F401
 from test_admin_workflow_db import _patient_values, _save, _staff_values
 
@@ -196,15 +199,21 @@ def test_patient_reader_rejects_cafeteria_price_binding():
 
 
 @pytest.mark.parametrize('profile', ['staff_guest', 'patient'])
-def test_v3_lifecycle_retains_legacy_history_without_downgrade(app, database_engine, profile):  # noqa: F811
+def test_v3_lifecycle_retains_legacy_history_without_downgrade(app, database_engine, profile, monkeypatch):  # noqa: F811
     _, actor, version = _actor(app, database_engine)
     _save(database_engine, profile, _staff_values() if profile == 'staff_guest' else _patient_values())
     config = {**default_config(), 'layout': default_layout(profile)}
     saved, _ = change_template(database_engine, profile, actor, version, 0, 'standard', 'save', name='Raster', config=config)
     assert saved['schema_version'] == 3
     assert saved['templates'][0]['revisions'][0] == default_document()['templates'][0]['revisions'][0]
-    with pytest.raises(PrintTemplateValidationError, match='neuen PDF-Renderer'):
-        change_template(database_engine, profile, actor, version, 1, 'standard', 'activate', revision_id=2, week=WEEK)
+    def failed_render(*args, **kwargs):
+        raise WeekPdfFitError('2026-08-31 · Mittag · Menü 1 · components: passt nicht auf eine A4-Seite.')
+
+    # Explicit transaction rollback probe; successful real rendering is tested separately.
+    with monkeypatch.context() as patch:
+        patch.setattr('cafeteria.admin.week_pdf.render_week_pdf', failed_render)
+        with pytest.raises(WeekPdfFitError, match='components.*A4-Seite'):
+            change_template(database_engine, profile, actor, version, 1, 'standard', 'activate', revision_id=2, week=WEEK)
     with database_engine.connect() as connection:
         assert read_templates(connection, profile) == saved
         assert active_template(connection, profile) == (default_config(), 'standard:1')
@@ -219,3 +228,25 @@ def test_v3_lifecycle_retains_legacy_history_without_downgrade(app, database_eng
     assert all(doc['schema_version'] == 3 for doc in (copied, archived, reactivated, restored, legacy_save))
     with database_engine.connect() as connection:
         assert read_templates(connection, profile) == legacy_save
+
+
+@pytest.mark.parametrize('profile', ['staff_guest', 'patient'])
+def test_real_layout_activation_preserves_saved_week_and_selects_rendered_revision(app, database_engine, profile):  # noqa: F811
+    _, actor, version = _actor(app, database_engine)
+    _save(database_engine, profile, _staff_values() if profile == 'staff_guest' else _patient_values())
+    config = {**default_config(), 'layout': default_layout(profile)}
+    saved, _ = change_template(database_engine, profile, actor, version, 0, 'standard', 'save', name='Neues Raster', config=config)
+    with database_engine.connect() as connection:
+        draft = load_draft_connection(connection, profile, WEEK)
+    expected_pdf = render_week_pdf(draft, profile, WEEK, config)
+    assert len(PdfReader(BytesIO(expected_pdf)).pages) == 1
+    active, _ = change_template(database_engine, profile, actor, version, 1, 'standard', 'activate', revision_id=2, week=WEEK)
+    assert active['schema_version'] == 3 and active['version'] == 2
+    assert active['templates'][0]['revisions'] == saved['templates'][0]['revisions']
+    with database_engine.connect() as connection:
+        active_config, revision = active_template(connection, profile)
+        assert (active_config, revision) == (config, 'standard:2')
+        assert read_templates(connection, profile) == active
+        unchanged_draft = load_draft_connection(connection, profile, WEEK)
+        assert unchanged_draft == draft
+    assert render_week_pdf(unchanged_draft, profile, WEEK, active_config) == expected_pdf

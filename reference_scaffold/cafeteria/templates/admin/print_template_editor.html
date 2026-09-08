@@ -16,11 +16,12 @@
 <input type="hidden" name="revision" value="{{ selected_revision }}">
 <input type="hidden" name="action" value="{{ action }}">
 {% endmacro %}
+{% macro layout_error(field) %}{% if error and error_field == field %}aria-invalid="true" aria-describedby="template-error" autofocus{% endif %}{% endmacro %}
 {% block content %}
 <div class="btn-list mb-3"><a class="btn" href="{{ url_for('admin.vorlagen', week=week) }}">Alle Vorlagen</a><a class="btn" href="{{ url_for('admin.' ~ family, week=week) }}">Menüwoche öffnen</a></div>
-<p>{{ 'A4 quer · Montag bis Sonntag · Mittag und Abend' if profile == 'patient' else 'A4 hoch · Montag bis Freitag' }}. Alle Menütexte und Deklarationen bleiben vollständig erhalten.</p>
+<p>{{ 'A4 quer · Montag bis Sonntag · Mittag und Abend' if profile == 'patient' else 'A4 hoch · Alle freigegebenen Wochentage' }}. Alle Menütexte und Deklarationen bleiben vollständig erhalten.</p>
 {% if error %}
-<div class="alert alert-danger error-region" role="alert" id="template-error" tabindex="-1">
+<div class="alert alert-danger error-region" role="alert" id="template-error" tabindex="-1" {% if error_field == 'form' %}autofocus{% endif %}>
   <div><h2 class="h4">Änderung nicht gespeichert</h2><p>{{ error }}</p><a class="btn" href="{{ editor_url }}">Aktuellen Stand neu laden</a></div>
 </div>
 {% endif %}
@@ -53,6 +54,49 @@
         <p class="form-hint">Standard: {{ '9 pt' if profile == 'patient' else '12 pt, Details 10 pt' }}. Gross: {{ '10 pt' if profile == 'patient' else '14 pt, Details 12 pt' }}. Zu grosse Inhalte werden abgelehnt; es wird nichts abgeschnitten.</p>
         {% for field, field_label in [('header_text', 'Zusatz unter dem Kopfbereich'), ('footer_text', 'Zusatz in der Fusszeile')] %}
         <div class="mb-3"><label class="form-label" for="template-{{ field }}">{{ field_label }}</label><textarea class="form-control" id="template-{{ field }}" name="{{ field }}" maxlength="{{ text_limits[field] }}" rows="2" {% if error_field == field %}aria-invalid="true" aria-describedby="template-error"{% endif %}>{{ values[field] }}</textarea><p class="form-hint">Optional, höchstens {{ text_limits[field] }} Zeichen. Nur einfacher Text.</p></div>
+        {% endfor %}
+        <hr>
+        <h3 class="h4">Wochenlayout</h3>
+        <p class="text-secondary">{{ 'Individuelles Wochenlayout gespeichert.' if revision.config.layout is defined else 'Originales Wochenlayout gespeichert.' }} Alle Pflichtangaben bleiben erhalten. Menüinhalte bearbeiten Sie in der Menüwoche.</p>
+        <label class="form-label" for="template-layout_mode">Layout beim Speichern</label>
+        <select class="form-select mb-2" id="template-layout_mode" name="layout_mode" {{ layout_error('layout_mode') }}>
+          {% if layout_values.layout_mode not in ['preserve', 'custom'] %}<option value="" selected>Bitte eine gültige Auswahl treffen</option>{% endif %}
+          <option value="preserve" {% if layout_values.layout_mode == 'preserve' %}selected{% endif %}>Gespeichertes Layout beibehalten</option>
+          <option value="custom" {% if layout_values.layout_mode == 'custom' %}selected{% endif %}>Eigenes Layout speichern</option>
+        </select>
+        <p class="form-hint">Für Änderungen an Raster oder Reihenfolge «Eigenes Layout speichern» wählen. Es entsteht ein neuer Entwurf; frühere Revisionen bleiben erhalten.</p>
+        <details class="border rounded mb-3" {% if error and error_field.startswith('layout_') and error_field != 'layout_mode' %}open{% endif %}>
+          <summary class="btn w-100 text-start justify-content-start">Raster, Bilder und Abstände</summary>
+          <div class="p-3">
+            {% for key, setting in layout_options.items() %}
+            {% set field = 'layout_' ~ key %}
+            <div class="mb-3"><label class="form-label" for="template-{{ field }}">{{ setting[0] }}</label>
+              <select class="form-select" id="template-{{ field }}" name="{{ field }}" {{ layout_error(field) }}>
+                {% if layout_values[field] not in setting[1] %}<option value="" selected>Bitte eine gültige Auswahl treffen</option>{% endif %}
+                {% for value, choice in setting[1].items() %}<option value="{{ value }}" {% if layout_values[field] == value %}selected{% endif %}>{{ choice }}</option>{% endfor %}
+              </select>
+            </div>
+            {% endfor %}
+            <p class="form-hint mb-0">Bilder verwenden vorhandene Menübilder. Fehlende Bilder bleiben leer. Die Legende erscheint, sobald Menüangaben sie benötigen.</p>
+          </div>
+        </details>
+        {% for group, group_label in [('header', 'Reihenfolge im Kopfbereich'), ('menu_fields', 'Reihenfolge im Menüblock'), ('footer', 'Reihenfolge im Fussbereich')] %}
+        <details class="border rounded mb-3" {% if error and error_field.startswith('layout_' ~ group ~ '_') %}open{% endif %}>
+          <summary class="btn w-100 text-start justify-content-start">{{ group_label }}</summary>
+          <fieldset class="p-3">
+            <legend class="visually-hidden">{{ group_label }}</legend>
+            <p class="form-hint">Jedes Feld genau einmal auswählen. Leere Menüangaben bleiben leer.</p>
+            {% for binding in layout_groups[group] %}
+            {% set field = 'layout_' ~ group ~ '_' ~ loop.index0 %}
+            <div class="mb-3"><label class="form-label" for="template-{{ field }}">{{ group_label }} · Position {{ loop.index }}</label>
+              <select class="form-select" id="template-{{ field }}" name="{{ field }}" {{ layout_error(field) }}>
+                {% if layout_values[field] not in layout_groups[group] %}<option value="" selected>Bitte eine gültige Auswahl treffen</option>{% endif %}
+                {% for value in layout_groups[group] %}<option value="{{ value }}" {% if layout_values[field] == value %}selected{% endif %}>{{ layout_labels[value] }}</option>{% endfor %}
+              </select>
+            </div>
+            {% endfor %}
+          </fieldset>
+        </details>
         {% endfor %}
       </div>
       </fieldset>

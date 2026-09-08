@@ -12,7 +12,10 @@ from werkzeug.wrappers import Response
 from ..component_catalog_store import ComponentCatalogConfigurationError
 from ..branding import BrandingStateError
 from ..print_branding import load_pdf_branding
-from ..print_template_config import CHOICES, TEXT_LIMITS, PrintTemplateValidationError, default_config
+from ..print_template_config import (
+    CHOICES, LAYOUT_BINDINGS, LAYOUT_CHOICES, TEXT_LIMITS, PrintTemplateConfig,
+    PrintTemplateValidationError, default_config, default_layout, validate_config, validate_layout,
+)
 from ..print_templates import (
     PrintTemplateConflictError, PrintTemplateStateError, change_template, read_templates, template_revision,
 )
@@ -22,6 +25,66 @@ from ..workflow_store import load_draft_connection
 from .rendering import _template_context
 from .week_pdf import WeekPdfFitError, render_week_pdf
 from .workflow_routes import _db, _exact, _version_field, _week_arg, bp, profile_from_endpoint
+
+
+LAYOUT_OPTIONS = {
+    'grid': ('Wochenraster', {'days_rows': 'Tage untereinander', 'days_columns': 'Tage nebeneinander'}),
+    'photo': ('Menübilder', {'none': 'Ohne Bilder', 'small': 'Kleine Bilder', 'medium': 'Mittlere Bilder'}),
+    'alignment': ('Textausrichtung', {'left': 'Linksbündig', 'center': 'Zentriert'}),
+    'day_label_width': ('Breite der Tagesbeschriftung', {'compact': 'Schmal', 'standard': 'Standard', 'wide': 'Breit'}),
+    'row_spacing': ('Abstand zwischen Menüzeilen', {'compact': 'Kompakt', 'standard': 'Standard', 'roomy': 'Grosszügig'}),
+    'legend_position': ('Position der Legende', {'top': 'Über dem Wochenraster', 'bottom': 'Unter dem Wochenraster'}),
+}
+LAYOUT_LABELS = {
+    'logo': 'Logo', 'title': 'Titel', 'date_range': 'Zeitraum', 'week_number': 'Kalenderwoche',
+    'header_note': 'Zusatz im Kopfbereich', 'service_notes': 'Essenszeiten und Hinweise',
+    'footer_note': 'Zusatz in der Fusszeile', 'components': 'Komponenten', 'image': 'Menübild',
+    'origins': 'Herkunft', 'allergens': 'Allergene', 'labels': 'Kostformen und Labels',
+    'prices': 'Beide Preisangaben',
+}
+
+
+def _layout_form_values(profile: str, config: PrintTemplateConfig) -> dict[str, str]:
+    layout: dict[str, Any] = dict(config.get('layout', default_layout(profile)))
+    values = {'layout_mode': 'preserve', **{f'layout_{key}': str(layout[key]) for key in LAYOUT_CHOICES}}
+    for group in LAYOUT_BINDINGS:
+        values.update({f'layout_{group}_{index}': value for index, value in enumerate(layout[group])})
+    return values
+
+
+def _save_config(profile: str, template_id: str, revision_id: int, required: set[str]) -> PrintTemplateConfig:
+    values: dict[str, Any] = {key: request.form.get(key, '') for key in default_config()}
+    layout_fields = _layout_form_values(profile, default_config())
+    if not any(key.startswith('layout_') for key in request.form):
+        _exact(required)
+        return validate_config(values, profile)
+    expected = required | layout_fields.keys()
+    if set(request.form) != expected or any(len(request.form.getlist(key)) != 1 for key in expected):
+        raise PrintTemplateValidationError('Bitte das vollständige Layoutformular einmal senden.', 'layout_mode')
+    mode = request.form['layout_mode']
+    if mode not in {'preserve', 'custom'}:
+        raise PrintTemplateValidationError('Bitte wählen, ob das Layout angepasst werden soll.', 'layout_mode')
+    layout: dict[str, Any] = {'version': 1}
+    layout.update({key: request.form[f'layout_{key}'] for key in LAYOUT_CHOICES})
+    for group in LAYOUT_BINDINGS:
+        names = [key for key in layout_fields if key.startswith(f'layout_{group}_')]
+        layout[group] = [request.form[key] for key in names]
+    try:
+        checked = validate_layout(layout, profile)
+    except PrintTemplateValidationError as error:
+        field = f'layout_{error.field}'
+        if error.field in LAYOUT_BINDINGS:
+            field += '_0'
+        raise PrintTemplateValidationError(str(error), field) from error
+    original = _selected(_document(profile), template_id, revision_id)['config']
+    if mode == 'custom':
+        values['layout'] = checked
+    elif checked != original.get('layout', default_layout(profile)):
+        raise PrintTemplateValidationError(
+            'Layouteinstellungen wurden geändert. Bitte «Eigenes Layout speichern» auswählen.', 'layout_mode')
+    elif 'layout' in original:
+        values['layout'] = original['layout']
+    return validate_config(values, profile)
 
 
 def _database_available(function):
@@ -64,7 +127,7 @@ def _selected(document: dict[str, Any], template_id: str, revision_id: int | Non
         return abort(404, description='Vorlagenrevision nicht gefunden.')
 
 
-def _pdf(profile: str, week: date, config: dict[str, str]) -> tuple[bytes, int | None]:
+def _pdf(profile: str, week: date, config: PrintTemplateConfig) -> tuple[bytes, int | None]:
     with _db().connect() as connection:
         draft = load_draft_connection(connection, profile, week)
         branding = load_pdf_branding(connection, profile, config)
@@ -80,9 +143,11 @@ def _render_editor(
     revision = _selected(document, template_id, revision_id)
     template = next(item for item in document['templates'] if item['id'] == template_id)
     values = {'name': revision['name'], **revision['config']}
+    layout_values = _layout_form_values(profile, revision['config'])
     expected = document['version']
     if error and request.form.get('action') == 'save':
-        values.update({key: request.form.get(key, values[key]) for key in values})
+        values.update({key: request.form.get(key, values[key]) for key in ('name', *default_config())})
+        layout_values.update({key: request.form.get(key, value) for key, value in layout_values.items()})
     if error:
         expected = request.form.get('version', expected)
     preview_error = None
@@ -96,6 +161,8 @@ def _render_editor(
         'admin/print_template_editor.html', family=family, profile=profile, week=week.isoformat(),
         document=document, template=template, revision=revision, values=values, expected_version=expected,
         choices=CHOICES, text_limits=TEXT_LIMITS, error=error, error_field=error_field,
+        layout_values=layout_values, layout_options=LAYOUT_OPTIONS, layout_labels=LAYOUT_LABELS,
+        layout_groups={key: dict(default_layout(profile))[key] for key in LAYOUT_BINDINGS},
         error_action=request.form.get('action') if error else None,
         copy_name=request.form.get('name', '') if error and request.form.get('action') == 'copy' else revision['name'][:50] + ' · Kopie',
         preview_error=preview_error, csrf=csrf_token(), **_template_context(),
@@ -111,6 +178,8 @@ def print_template_editor(family: str) -> Response:
     week, template_id, revision_id = _arguments()
     if request.method == 'GET':
         return _render_editor(family, week, template_id, revision_id)
+    if request.content_length is not None and request.content_length > 16_384:
+        abort(413, description='Das Vorlagenformular ist zu gross.')
     validate_csrf(request.form.get('_csrf'))
     action = request.form.get('action')
     required = {'_csrf', 'action', 'version', 'revision'}
@@ -120,15 +189,21 @@ def print_template_editor(family: str) -> Response:
         required.add('name')
     elif action not in {'restore', 'activate', 'archive', 'reactivate'}:
         abort(400, description='Vorlagenaktion ist ungültig.')
-    _exact(required)
     profile = profile_from_endpoint(family)
+    if any(len(request.form.getlist(key)) != 1 for key in ('_csrf', 'action', 'version', 'revision')):
+        abort(400, description='Formularfelder sind ungültig.')
     form_revision = _version_field('revision')
+    if form_revision < 1:
+        abort(400, description='Revisionsnummer ist ungültig.')
     try:
+        config = _save_config(profile, template_id, form_revision, required) if action == 'save' else None
+        if action != 'save':
+            _exact(required)
         _, selected_id = change_template(
             _db(), profile, g.auth_user.user_id, g.auth_user.authz_version,
             _version_field('version'), template_id, str(action), revision_id=form_revision,
             name=request.form.get('name'), week=week,
-            config={key: request.form[key] for key in default_config()} if action == 'save' else None,
+            config=config,
         )
     except PermissionError:
         abort(403)
@@ -137,8 +212,7 @@ def print_template_editor(family: str) -> Response:
     except (PrintTemplateValidationError, PrintTemplateConflictError, WeekPdfFitError, NoResultFound) as error:
         status = 409 if isinstance(error, PrintTemplateConflictError) else 422 if isinstance(error, WeekPdfFitError) else 400
         message = 'Aktivierung benötigt eine gespeicherte Woche. Bitte zuerst die Woche anlegen.' if isinstance(error, NoResultFound) else str(error)
-        selected_revision = form_revision if isinstance(error, PrintTemplateConflictError) else revision_id
-        return _render_editor(family, week, template_id, selected_revision, error=message,
+        return _render_editor(family, week, template_id, form_revision, error=message,
                               error_field=getattr(error, 'field', 'form'), status=status)
     except ComponentCatalogConfigurationError as error:
         abort(503, description=str(error))

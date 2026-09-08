@@ -81,7 +81,8 @@ def default_layout(profile: str) -> WeekPdfLayout:
     if profile not in PROFILES:
         raise PrintTemplateValidationError('Unbekanntes Druckprofil.')
     return {
-        'version': 1, 'grid': 'days_rows', 'header': list(LAYOUT_BINDINGS['header']),
+        'version': 1, 'grid': 'days_columns' if profile == 'patient' else 'days_rows',
+        'header': list(LAYOUT_BINDINGS['header']),
         'footer': list(LAYOUT_BINDINGS['footer']),
         'menu_fields': [field for field in LAYOUT_BINDINGS['menu_fields']
                         if profile != 'patient' or field != 'prices'],

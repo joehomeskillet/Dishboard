@@ -245,9 +245,9 @@ def render_week_pdf(
     """Render all saved declarations, or raise an actionable fit error before output."""
     config = validate_config(default_config() if config is None else config, profile)
     if 'layout' in config:
-        raise PrintTemplateValidationError(
-            'Dieses Wochenlayout benötigt den neuen PDF-Renderer. Bitte eine bisherige Revision verwenden.', 'layout',
-        )
+        from .week_pdf_layout import render_layout
+
+        return render_layout(draft, profile, week, config, branding=branding)
     inherits = any(config.get(field) == 'active_brand' for field in ('palette', 'font', 'logo'))
     if inherits and branding is None:
         raise PrintTemplateValidationError('Die aktive Marke muss vor dem PDF-Druck geladen werden.')

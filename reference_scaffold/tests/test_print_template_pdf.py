@@ -186,6 +186,6 @@ def test_legacy_pdf_bytes_unchanged_and_new_layout_fails_closed(profile, digest)
     payload = render_week_pdf(saved_week(profile, False), profile, WEEK, config)
     assert hashlib.sha256(payload).hexdigest() == digest
     assert config == before
-    with pytest.raises(PrintTemplateValidationError, match='neuen PDF-Renderer') as error:
-        render_week_pdf(saved_week(profile, False), profile, WEEK, {**config, 'layout': default_layout(profile)})
-    assert error.value.field == 'layout'
+    changed = render_week_pdf(saved_week(profile, False), profile, WEEK, {**config, 'layout': default_layout(profile)})
+    assert changed != payload
+    assert len(PdfReader(BytesIO(changed)).pages) == 1

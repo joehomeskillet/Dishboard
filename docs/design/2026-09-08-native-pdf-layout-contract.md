@@ -29,6 +29,12 @@ keys. Cafeteria retains portrait A4; patients retain landscape A4 without prices
 }
 ```
 
+New patient layouts default to `days_columns` so the complete seven-day week,
+including service times and declarations, has a usable starting grid. New
+cafeteria layouts default to `days_rows`. Existing explicit layouts and historical
+eight-key revisions remain unchanged. Menu photos reserve at least 2 pt between
+preceding text ink and the photo; text remains at least 8.5 pt.
+
 Patient `menu_fields` contains precisely the same bindings except `prices`.
 Header/footer/menu arrays are exact permutations: each mandatory binding once,
 no omissions, duplicates or extensions. Empty source fields naturally contribute
