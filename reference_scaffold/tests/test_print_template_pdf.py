@@ -189,3 +189,20 @@ def test_legacy_pdf_bytes_unchanged_and_new_layout_fails_closed(profile, digest)
     changed = render_week_pdf(saved_week(profile, False), profile, WEEK, {**config, 'layout': default_layout(profile)})
     assert changed != payload
     assert len(PdfReader(BytesIO(changed)).pages) == 1
+
+
+def test_recipe_config_is_eight_common_properties_without_widening_week_profiles():
+    from cafeteria.print_template_config import PROFILES
+
+    assert PROFILES == ('staff_guest', 'patient')
+    config = default_config()
+    assert validate_config(config, 'recipe') == config
+    assert set(validate_config(config, 'recipe')) == set(config)
+    for value in ({**config, 'layout': default_layout('staff_guest')},
+                  {**config, 'extra': True}, {key: item for key, item in config.items() if key != 'logo'}):
+        with pytest.raises(PrintTemplateValidationError):
+            validate_config(value, 'recipe')
+    with pytest.raises(PrintTemplateValidationError):
+        default_layout('recipe')
+    with pytest.raises(PrintTemplateValidationError):
+        validate_config(config, 'unknown')

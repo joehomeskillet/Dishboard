@@ -1,4 +1,4 @@
-"""Bounded properties for the two existing weekly PDF layouts."""
+"""Bounded common print properties and the two existing weekly PDF layouts."""
 from __future__ import annotations
 
 import unicodedata
@@ -120,9 +120,11 @@ def validate_layout(value: Any, profile: str) -> WeekPdfLayout:
 
 
 def validate_config(value: Any, profile: str) -> PrintTemplateConfig:
-    if (profile not in PROFILES or not isinstance(value, dict) or len(value) not in {8, 9}
+    if (profile not in (*PROFILES, 'recipe') or not isinstance(value, dict) or len(value) not in {8, 9}
             or set(value) not in (set(default_config()), {*default_config(), 'layout'})):
         raise PrintTemplateValidationError('Die Vorlageneigenschaften sind ungültig.')
+    if profile == 'recipe' and 'layout' in value:
+        raise PrintTemplateValidationError('Rezeptvorlagen unterstützen kein Wochenlayout.', 'layout')
     result: dict[str, Any] = {}
     for field, choices in CHOICES.items():
         if not isinstance(value[field], str) or value[field] not in choices:
