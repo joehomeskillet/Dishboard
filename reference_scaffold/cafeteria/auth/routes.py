@@ -28,8 +28,11 @@ from .service import (
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 
-def _login_failure(provider: str, reason: str, status: int, username: str = '') -> tuple[str, int]:
-    session.clear()
+def _login_failure(
+    provider: str, reason: str, status: int, username: str = '', *, clear_session: bool = True,
+) -> tuple[str, int]:
+    if clear_session:
+        session.clear()
     action = 'auth.login.unavailable' if reason == 'unavailable' else 'auth.login.rejected'
     try:
         record_access_event(provider, action, reason)
@@ -176,11 +179,11 @@ def callback():
         abort(404)
     flow = session.pop('auth_flow', None)
     if not flow:
-        return _login_failure('entra', 'flow', 400)
+        return _login_failure('entra', 'flow', 400, clear_session=False)
     try:
         result = _client().acquire_token_by_auth_code_flow(flow, request.args)
     except ValueError:
-        return _login_failure('entra', 'flow', 400)
+        return _login_failure('entra', 'flow', 400, clear_session=False)
     except RequestException:
         return _login_failure('entra', 'unavailable', 503)
     if not isinstance(result, dict):
