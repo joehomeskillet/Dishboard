@@ -98,6 +98,13 @@ def test_hubs_use_existing_read_roles_and_link_all_real_targets(hub_app, databas
         if path == '/admin/vorlagen':
             expected_links += 3
             assert {'/admin/grundlagen?kind=foods', '/admin/rezepte', '/admin/kochbuecher'} <= set(links)
+        recipe_editor_links = [link for link in links if link.startswith('/admin/vorlagen/rezepte')]
+        expected_recipe_links = (
+            ['/admin/vorlagen/rezepte?template=standard&revision=1']
+            if path == '/admin/vorlagen' and role == 'Cafeteria.Admin' else []
+        )
+        assert recipe_editor_links == expected_recipe_links
+        expected_links += len(expected_recipe_links)
         assert len(links) == expected_links and len(set(links)) == expected_links
         for link in links:
             target = client.get(link)
