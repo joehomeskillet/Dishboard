@@ -1,0 +1,1341 @@
+{
+  "source_root": "/nvmetank1/projects/menuplan/.claude/worktrees/public-proof-0908",
+  "results": [
+    {
+      "source": "fixture",
+      "route": "/cafeteria/heute/",
+      "screenshot": "fixture-cafeteria-heute-1440x1100.png",
+      "captured_at": "2026-09-08T13:12:30.738476+00:00",
+      "http_status": 200,
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'self'",
+      "snapshot_revision": "CAF-2026-KW36-R1",
+      "set_cookie": false,
+      "errors": [],
+      "failed_requests": [],
+      "metrics": {
+        "viewport": [
+          1440,
+          1100
+        ],
+        "document": [
+          1425,
+          1530
+        ],
+        "background": "rgb(255, 255, 255)",
+        "backgroundImage": "none",
+        "cards": [
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 864.015625,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 864.015625,
+            "width": 632
+          }
+        ],
+        "headings": [
+          "Was gibt es heute?",
+          "Kalbsbratwurst mit Zwiebelsauce",
+          "Gem\u00fcse-Lasagne",
+          "Legende",
+          "Allergene und Herkunft"
+        ],
+        "imagesMissing": [],
+        "patientPriceText": true
+      },
+      "sha256": "32c4ff154916cd1e0fe62049c6494a270a19ddaf6bf7006aafe26ba0b5d42e7b"
+    },
+    {
+      "source": "fixture",
+      "route": "/cafeteria/heute/",
+      "screenshot": "fixture-cafeteria-heute-390x844.png",
+      "captured_at": "2026-09-08T13:12:31.705643+00:00",
+      "http_status": 200,
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'self'",
+      "snapshot_revision": "CAF-2026-KW36-R1",
+      "set_cookie": false,
+      "errors": [],
+      "failed_requests": [],
+      "metrics": {
+        "viewport": [
+          390,
+          844
+        ],
+        "document": [
+          375,
+          2229
+        ],
+        "background": "rgb(255, 255, 255)",
+        "backgroundImage": "none",
+        "cards": [
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 688.765625,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 688.765625,
+            "width": 359
+          }
+        ],
+        "headings": [
+          "Was gibt es heute?",
+          "Kalbsbratwurst mit Zwiebelsauce",
+          "Gem\u00fcse-Lasagne",
+          "Legende",
+          "Allergene und Herkunft"
+        ],
+        "imagesMissing": [],
+        "patientPriceText": true
+      },
+      "sha256": "a514f95cc2d82953dd27fd0e95c69650c91ecc1ade297e5911d415496e2cf660"
+    },
+    {
+      "source": "fixture",
+      "route": "/cafeteria/wochenangebot/",
+      "screenshot": "fixture-cafeteria-woche-1440x1100.png",
+      "captured_at": "2026-09-08T13:12:33.716786+00:00",
+      "http_status": 200,
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'self'",
+      "snapshot_revision": "CAF-2026-KW36-R1",
+      "set_cookie": false,
+      "errors": [],
+      "failed_requests": [],
+      "metrics": {
+        "viewport": [
+          1440,
+          1100
+        ],
+        "document": [
+          1425,
+          5134
+        ],
+        "background": "rgb(255, 255, 255)",
+        "backgroundImage": "none",
+        "cards": [
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 794.828125,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 794.828125,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 794.828125,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 794.828125,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 794.828125,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 794.828125,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 794.828125,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 794.828125,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 794.828125,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 794.828125,
+            "width": 632
+          }
+        ],
+        "headings": [
+          "31. August bis 4. September",
+          "Montag, 31. August 2026",
+          "Dienstag, 1. September 2026",
+          "Mittwoch, 2. September 2026",
+          "Donnerstag, 3. September 2026",
+          "Freitag, 4. September 2026",
+          "Legende"
+        ],
+        "imagesMissing": [],
+        "patientPriceText": true
+      },
+      "sha256": "17ad08f1aa895ad5d0d5d8bda74dcd4e509ffb5b46daffc2c76be7d36686a3a9"
+    },
+    {
+      "source": "fixture",
+      "route": "/cafeteria/wochenangebot/",
+      "screenshot": "fixture-cafeteria-woche-390x844.png",
+      "captured_at": "2026-09-08T13:12:35.441268+00:00",
+      "http_status": 200,
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'self'",
+      "snapshot_revision": "CAF-2026-KW36-R1",
+      "set_cookie": false,
+      "errors": [],
+      "failed_requests": [],
+      "metrics": {
+        "viewport": [
+          390,
+          844
+        ],
+        "document": [
+          375,
+          7806
+        ],
+        "background": "rgb(255, 255, 255)",
+        "backgroundImage": "none",
+        "cards": [
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 618.796875,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 618.796875,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 618.796875,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 618.796875,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 618.796875,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 618.796875,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 618.796875,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 618.796875,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 618.796875,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 618.796875,
+            "width": 359
+          }
+        ],
+        "headings": [
+          "31. August bis 4. September",
+          "Montag, 31. August 2026",
+          "Dienstag, 1. September 2026",
+          "Mittwoch, 2. September 2026",
+          "Donnerstag, 3. September 2026",
+          "Freitag, 4. September 2026",
+          "Legende"
+        ],
+        "imagesMissing": [],
+        "patientPriceText": true
+      },
+      "sha256": "50e5ba2f1657e66a0621b87c10b43c2ec2ca6d3af8a5df7eb4d7eee0b6a1c8db"
+    },
+    {
+      "source": "fixture",
+      "route": "/patienten/heute/",
+      "screenshot": "fixture-patienten-heute-1440x1100.png",
+      "captured_at": "2026-09-08T13:12:36.783968+00:00",
+      "http_status": 200,
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'self'",
+      "snapshot_revision": "PAT-2026-KW36-R1",
+      "set_cookie": false,
+      "errors": [],
+      "failed_requests": [],
+      "metrics": {
+        "viewport": [
+          1440,
+          1100
+        ],
+        "document": [
+          1425,
+          2388
+        ],
+        "background": "rgb(255, 255, 255)",
+        "backgroundImage": "none",
+        "cards": [
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 745.453125,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 745.453125,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 745.453125,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 745.453125,
+            "width": 632
+          }
+        ],
+        "headings": [
+          "Heute: Mittag und Abend",
+          "Mittagessen",
+          "Abendessen",
+          "Legende",
+          "Hinweis"
+        ],
+        "imagesMissing": [],
+        "patientPriceText": false
+      },
+      "sha256": "9f136c896e5a8445ffd23668ea5fa2811e79dbb7fe9c06d6230307302374938b"
+    },
+    {
+      "source": "fixture",
+      "route": "/patienten/heute/",
+      "screenshot": "fixture-patienten-heute-390x844.png",
+      "captured_at": "2026-09-08T13:12:37.894412+00:00",
+      "http_status": 200,
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'self'",
+      "snapshot_revision": "PAT-2026-KW36-R1",
+      "set_cookie": false,
+      "errors": [],
+      "failed_requests": [],
+      "metrics": {
+        "viewport": [
+          390,
+          844
+        ],
+        "document": [
+          375,
+          3433
+        ],
+        "background": "rgb(255, 255, 255)",
+        "backgroundImage": "none",
+        "cards": [
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 570.203125,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 570.203125,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 570.203125,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 570.203125,
+            "width": 359
+          }
+        ],
+        "headings": [
+          "Heute: Mittag und Abend",
+          "Mittagessen",
+          "Abendessen",
+          "Legende",
+          "Hinweis"
+        ],
+        "imagesMissing": [],
+        "patientPriceText": false
+      },
+      "sha256": "1baae56879a97d587444512134fe1bf2cec40a63bc01df33fb54bc9949ff071c"
+    },
+    {
+      "source": "fixture",
+      "route": "/patienten/wochenplan/",
+      "screenshot": "fixture-patienten-woche-1440x1100.png",
+      "captured_at": "2026-09-08T13:12:42.023287+00:00",
+      "http_status": 200,
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'self'",
+      "snapshot_revision": "PAT-2026-KW36-R1",
+      "set_cookie": false,
+      "errors": [],
+      "failed_requests": [],
+      "metrics": {
+        "viewport": [
+          1440,
+          1100
+        ],
+        "document": [
+          1425,
+          12716
+        ],
+        "background": "rgb(255, 255, 255)",
+        "backgroundImage": "none",
+        "cards": [
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 709.234375,
+            "width": 632
+          }
+        ],
+        "headings": [
+          "31. August 2026 bis 6. September 2026",
+          "Montag, 31. August 2026",
+          "Dienstag, 1. September 2026",
+          "Mittwoch, 2. September 2026",
+          "Donnerstag, 3. September 2026",
+          "Freitag, 4. September 2026",
+          "Samstag, 5. September 2026",
+          "Sonntag, 6. September 2026",
+          "Legende",
+          "Allgemeiner Speiseplan"
+        ],
+        "imagesMissing": [],
+        "patientPriceText": false
+      },
+      "sha256": "fc6f1697f44fee454435f0b1daeea4514f876e261dbc02ca504d52dbd95dba6d"
+    },
+    {
+      "source": "fixture",
+      "route": "/patienten/wochenplan/",
+      "screenshot": "fixture-patienten-woche-390x844.png",
+      "captured_at": "2026-09-08T13:12:45.103165+00:00",
+      "http_status": 200,
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'self'",
+      "snapshot_revision": "PAT-2026-KW36-R1",
+      "set_cookie": false,
+      "errors": [],
+      "failed_requests": [],
+      "metrics": {
+        "viewport": [
+          390,
+          844
+        ],
+        "document": [
+          375,
+          19428
+        ],
+        "background": "rgb(255, 255, 255)",
+        "backgroundImage": "none",
+        "cards": [
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 565.984375,
+            "width": 359
+          }
+        ],
+        "headings": [
+          "31. August 2026 bis 6. September 2026",
+          "Montag, 31. August 2026",
+          "Dienstag, 1. September 2026",
+          "Mittwoch, 2. September 2026",
+          "Donnerstag, 3. September 2026",
+          "Freitag, 4. September 2026",
+          "Samstag, 5. September 2026",
+          "Sonntag, 6. September 2026",
+          "Legende",
+          "Allgemeiner Speiseplan"
+        ],
+        "imagesMissing": [],
+        "patientPriceText": false
+      },
+      "sha256": "2256d0ad42ba42cd209f79ac25ce28f5bf1b1e22da38ee140a90ea6cc18a99c1"
+    },
+    {
+      "source": "fixture",
+      "route": "/signage/cafeteria/tag",
+      "screenshot": "fixture-signage-cafeteria-tag-1920x1080.png",
+      "captured_at": "2026-09-08T13:12:45.866904+00:00",
+      "http_status": 200,
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'self'",
+      "snapshot_revision": "CAF-2026-KW36-R1",
+      "set_cookie": false,
+      "errors": [],
+      "failed_requests": [],
+      "metrics": {
+        "viewport": [
+          1920,
+          1080
+        ],
+        "document": [
+          1920,
+          1080
+        ],
+        "background": "rgb(255, 255, 255)",
+        "backgroundImage": "none",
+        "cards": [
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 790.046875,
+            "width": 875.53125
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 790.046875,
+            "width": 875.53125
+          }
+        ],
+        "headings": [
+          "Mitarbeitende und externe G\u00e4ste \u00b7 Mittag 11:30\u201313:30 Uhr",
+          "Men\u00fc 1",
+          "Vegetarisch",
+          "Legende"
+        ],
+        "imagesMissing": [],
+        "patientPriceText": true
+      },
+      "sha256": "4301168239e6a482b7aaa6a183367318b4d89436d32d5c155eb3603f6846b817"
+    },
+    {
+      "source": "fixture",
+      "route": "/signage/cafeteria/tag",
+      "screenshot": "fixture-signage-cafeteria-tag-3840x2160.png",
+      "captured_at": "2026-09-08T13:12:46.938414+00:00",
+      "http_status": 200,
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'self'",
+      "snapshot_revision": "CAF-2026-KW36-R1",
+      "set_cookie": false,
+      "errors": [],
+      "failed_requests": [],
+      "metrics": {
+        "viewport": [
+          3840,
+          2160
+        ],
+        "document": [
+          3840,
+          2160
+        ],
+        "background": "rgb(255, 255, 255)",
+        "backgroundImage": "none",
+        "cards": [
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 1703.25,
+            "width": 1751.046875
+          },
+          {
+            "radius": "16px",
+            "overflow": "hidden",
+            "height": 1703.25,
+            "width": 1751.046875
+          }
+        ],
+        "headings": [
+          "Mitarbeitende und externe G\u00e4ste \u00b7 Mittag 11:30\u201313:30 Uhr",
+          "Men\u00fc 1",
+          "Vegetarisch",
+          "Legende"
+        ],
+        "imagesMissing": [],
+        "patientPriceText": true
+      },
+      "sha256": "ccb42421015e01fc2cd2e257beed9ea58a7c6a5b342177fffc2d3eb8e6d21648"
+    },
+    {
+      "source": "fixture",
+      "route": "/signage/cafeteria/woche",
+      "screenshot": "fixture-signage-cafeteria-woche-1920x1080.png",
+      "captured_at": "2026-09-08T13:12:47.628249+00:00",
+      "http_status": 200,
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'self'",
+      "snapshot_revision": "CAF-2026-KW36-R1",
+      "set_cookie": false,
+      "errors": [],
+      "failed_requests": [],
+      "metrics": {
+        "viewport": [
+          1920,
+          1080
+        ],
+        "document": [
+          1920,
+          1080
+        ],
+        "background": "rgb(255, 255, 255)",
+        "backgroundImage": "none",
+        "cards": [
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 411.875,
+            "width": 343.3125
+          },
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 411.890625,
+            "width": 343.3125
+          },
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 411.875,
+            "width": 343.3125
+          },
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 411.890625,
+            "width": 343.3125
+          },
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 411.875,
+            "width": 343.3125
+          },
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 411.890625,
+            "width": 343.3125
+          },
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 411.875,
+            "width": 343.3125
+          },
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 411.890625,
+            "width": 343.3125
+          },
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 411.875,
+            "width": 343.3125
+          },
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 411.890625,
+            "width": 343.3125
+          }
+        ],
+        "headings": [
+          "Mitarbeitende und externe G\u00e4ste \u00b7 Wochenangebot \u00b7 Mittag",
+          "Montag",
+          "Dienstag",
+          "Mittwoch",
+          "Donnerstag",
+          "Freitag",
+          "Legende"
+        ],
+        "imagesMissing": [],
+        "patientPriceText": true
+      },
+      "sha256": "8103b7b986fc8b668d1466f5f2e6ddc1542c7aabf3df734adb2e4fa6d4db4040"
+    },
+    {
+      "source": "fixture",
+      "route": "/signage/cafeteria/woche",
+      "screenshot": "fixture-signage-cafeteria-woche-3840x2160.png",
+      "captured_at": "2026-09-08T13:12:48.383451+00:00",
+      "http_status": 200,
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'self'",
+      "snapshot_revision": "CAF-2026-KW36-R1",
+      "set_cookie": false,
+      "errors": [],
+      "failed_requests": [],
+      "metrics": {
+        "viewport": [
+          3840,
+          2160
+        ],
+        "document": [
+          3840,
+          2160
+        ],
+        "background": "rgb(255, 255, 255)",
+        "backgroundImage": "none",
+        "cards": [
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 847.1875,
+            "width": 686.609375
+          },
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 847.203125,
+            "width": 686.609375
+          },
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 847.1875,
+            "width": 686.625
+          },
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 847.203125,
+            "width": 686.625
+          },
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 847.1875,
+            "width": 686.609375
+          },
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 847.203125,
+            "width": 686.609375
+          },
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 847.1875,
+            "width": 686.625
+          },
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 847.203125,
+            "width": 686.625
+          },
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 847.1875,
+            "width": 686.625
+          },
+          {
+            "radius": "0px",
+            "overflow": "hidden",
+            "height": 847.203125,
+            "width": 686.625
+          }
+        ],
+        "headings": [
+          "Mitarbeitende und externe G\u00e4ste \u00b7 Wochenangebot \u00b7 Mittag",
+          "Montag",
+          "Dienstag",
+          "Mittwoch",
+          "Donnerstag",
+          "Freitag",
+          "Legende"
+        ],
+        "imagesMissing": [],
+        "patientPriceText": true
+      },
+      "sha256": "d4c78de66ba687dc85fdfbe876515498dec9af2fd00c9f497d0fa178930a816a"
+    },
+    {
+      "source": "fixture",
+      "route": "/signage/patienten/tag",
+      "screenshot": "fixture-signage-patienten-tag-1920x1080.png",
+      "captured_at": "2026-09-08T13:12:49.069666+00:00",
+      "http_status": 200,
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'self'",
+      "snapshot_revision": "PAT-2026-KW36-R1",
+      "set_cookie": false,
+      "errors": [],
+      "failed_requests": [],
+      "metrics": {
+        "viewport": [
+          1920,
+          1080
+        ],
+        "document": [
+          1920,
+          1080
+        ],
+        "background": "rgb(255, 255, 255)",
+        "backgroundImage": "none",
+        "cards": [
+          {
+            "radius": "10px",
+            "overflow": "hidden",
+            "height": 360.46875,
+            "width": 854.4375
+          },
+          {
+            "radius": "10px",
+            "overflow": "hidden",
+            "height": 360.484375,
+            "width": 854.4375
+          },
+          {
+            "radius": "10px",
+            "overflow": "hidden",
+            "height": 360.46875,
+            "width": 854.4375
+          },
+          {
+            "radius": "10px",
+            "overflow": "hidden",
+            "height": 360.484375,
+            "width": 854.4375
+          }
+        ],
+        "headings": [
+          "Patientinnen und Patienten",
+          "Mittag",
+          "Abend",
+          "Legende"
+        ],
+        "imagesMissing": [],
+        "patientPriceText": false
+      },
+      "sha256": "c83e7641d2f75cd1825bc60521a41aaf244453e77d928ee6a4441ca84a1e30b7"
+    },
+    {
+      "source": "fixture",
+      "route": "/signage/patienten/tag",
+      "screenshot": "fixture-signage-patienten-tag-3840x2160.png",
+      "captured_at": "2026-09-08T13:12:49.906141+00:00",
+      "http_status": 200,
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'self'",
+      "snapshot_revision": "PAT-2026-KW36-R1",
+      "set_cookie": false,
+      "errors": [],
+      "failed_requests": [],
+      "metrics": {
+        "viewport": [
+          3840,
+          2160
+        ],
+        "document": [
+          3840,
+          2160
+        ],
+        "background": "rgb(255, 255, 255)",
+        "backgroundImage": "none",
+        "cards": [
+          {
+            "radius": "10px",
+            "overflow": "hidden",
+            "height": 782.515625,
+            "width": 1708.828125
+          },
+          {
+            "radius": "10px",
+            "overflow": "hidden",
+            "height": 782.53125,
+            "width": 1708.828125
+          },
+          {
+            "radius": "10px",
+            "overflow": "hidden",
+            "height": 782.515625,
+            "width": 1708.828125
+          },
+          {
+            "radius": "10px",
+            "overflow": "hidden",
+            "height": 782.53125,
+            "width": 1708.828125
+          }
+        ],
+        "headings": [
+          "Patientinnen und Patienten",
+          "Mittag",
+          "Abend",
+          "Legende"
+        ],
+        "imagesMissing": [],
+        "patientPriceText": false
+      },
+      "sha256": "8ee75f901970b02c83ccd37c907fffa36a090c26a5c091ea85acaae61aa7600b"
+    },
+    {
+      "source": "fixture",
+      "route": "/signage/patienten/woche",
+      "screenshot": "fixture-signage-patienten-woche-1920x1080.png",
+      "captured_at": "2026-09-08T13:12:50.553561+00:00",
+      "http_status": 200,
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'self'",
+      "snapshot_revision": "PAT-2026-KW36-R1",
+      "set_cookie": false,
+      "errors": [],
+      "failed_requests": [],
+      "metrics": {
+        "viewport": [
+          1920,
+          1080
+        ],
+        "document": [
+          1920,
+          1080
+        ],
+        "background": "rgb(255, 255, 255)",
+        "backgroundImage": "none",
+        "cards": [],
+        "headings": [
+          "Patientinnen und Patienten \u00b7 Mittag und Abend",
+          "Montag",
+          "Dienstag",
+          "Mittwoch",
+          "Donnerstag",
+          "Legende",
+          "Freitag",
+          "Samstag",
+          "Sonntag",
+          "Legende",
+          "Montag",
+          "Dienstag",
+          "Mittwoch",
+          "Donnerstag",
+          "Legende",
+          "Freitag",
+          "Samstag",
+          "Sonntag",
+          "Legende"
+        ],
+        "imagesMissing": [],
+        "patientPriceText": false
+      },
+      "sha256": "f2657a9bae3dfcaebaefd540ac272fe56ba9451acd42d1e0534a0ba9ccd76746"
+    },
+    {
+      "source": "fixture",
+      "route": "/signage/patienten/woche",
+      "screenshot": "fixture-signage-patienten-woche-3840x2160.png",
+      "captured_at": "2026-09-08T13:12:51.270599+00:00",
+      "http_status": 200,
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'self'",
+      "snapshot_revision": "PAT-2026-KW36-R1",
+      "set_cookie": false,
+      "errors": [],
+      "failed_requests": [],
+      "metrics": {
+        "viewport": [
+          3840,
+          2160
+        ],
+        "document": [
+          3840,
+          2160
+        ],
+        "background": "rgb(255, 255, 255)",
+        "backgroundImage": "none",
+        "cards": [],
+        "headings": [
+          "Patientinnen und Patienten \u00b7 Mittag und Abend",
+          "Montag",
+          "Dienstag",
+          "Mittwoch",
+          "Donnerstag",
+          "Legende",
+          "Freitag",
+          "Samstag",
+          "Sonntag",
+          "Legende",
+          "Montag",
+          "Dienstag",
+          "Mittwoch",
+          "Donnerstag",
+          "Legende",
+          "Freitag",
+          "Samstag",
+          "Sonntag",
+          "Legende"
+        ],
+        "imagesMissing": [],
+        "patientPriceText": false
+      },
+      "sha256": "b5d05298d3e2ab89bf4fa8e75406ad76745c97116d21f5d59026c71f07f6124f"
+    }
+  ]
+}
