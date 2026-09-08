@@ -14,6 +14,7 @@ import pytest
 from pypdf import PdfReader
 
 from cafeteria.admin.week_pdf import ASSETS, WeekPdfFitError, render_week_pdf
+from cafeteria.admin.week_pdf_layout import Field, _check_fields
 from cafeteria.print_template_config import default_config, default_layout
 from test_week_pdf import WEEK, saved_week
 from test_print_branding_pdf import BRAND, INHERIT
@@ -230,7 +231,7 @@ def test_weekend_membership_times_and_closed_notice_survive(grid, tmp_path):
 def test_overflow_names_saved_date_meal_type_and_block(profile):
     draft = saved_week(profile, False)
     draft['days'][0]['services'][0]['options'][0]['note'] = 'Vollständige wichtige Deklaration. ' * 200
-    with pytest.raises(WeekPdfFitError, match=r'2026-08-31.*Mittag.*Menü 1.*components.*A4-Seite'):
+    with pytest.raises(WeekPdfFitError, match=r'2026-08-31.*Mittag.*Menü 1.*Komponenten.*A4-Seite'):
         render_week_pdf(draft, profile, WEEK, config(profile))
 
 
@@ -238,8 +239,36 @@ def test_overflow_names_saved_date_meal_type_and_block(profile):
 def test_unsupported_glyph_remains_an_explicit_block_error(profile):
     draft = saved_week(profile, False)
     draft['days'][0]['services'][0]['options'][0]['note'] = '🥜'
-    with pytest.raises(WeekPdfFitError, match=r'2026-08-31.*components.*Druckschrift'):
+    with pytest.raises(WeekPdfFitError, match=r'2026-08-31.*Komponenten.*Druckschrift'):
         render_week_pdf(draft, profile, WEEK, config(profile))
+
+
+@pytest.mark.parametrize('field,label', [
+    ('header_text', 'Kopfbereich · Zusatz im Kopfbereich'),
+    ('footer_text', 'Fussbereich · Zusatz in der Fusszeile'),
+    ('area_name', 'Kopfbereich · Titel'),
+    ('notice', 'Fussbereich · Essenszeiten und Hinweise'),
+])
+def test_header_footer_glyph_errors_use_editor_labels(field, label):
+    draft = saved_week('staff_guest', False)
+    chosen = config('staff_guest')
+    if field == 'area_name':
+        draft[field] = '🥜'
+    elif field == 'notice':
+        draft['days'][0]['services'][0][field] = '🥜'
+    else:
+        chosen[field] = '🥜'
+    with pytest.raises(WeekPdfFitError, match=rf'{label}:.*Druckschrift'):
+        render_week_pdf(draft, 'staff_guest', WEEK, chosen)
+
+
+@pytest.mark.parametrize('field,context,label', [
+    ('image', '2026-08-31 · Mittag · Vegetarisch', 'Menübild'),
+    ('logo', 'Kopfbereich', 'Logo'),
+])
+def test_out_of_bounds_image_names_its_visible_field(field, context, label):
+    with pytest.raises(WeekPdfFitError, match=rf'{context} · {label}:.*A4-Seite'):
+        _check_fields([Field(field, 0, 0, 20, 20)], 10, 10, context)
 
 
 @pytest.mark.parametrize('profile', ['staff_guest', 'patient'])

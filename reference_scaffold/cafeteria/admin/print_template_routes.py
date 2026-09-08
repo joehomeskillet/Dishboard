@@ -13,7 +13,7 @@ from ..component_catalog_store import ComponentCatalogConfigurationError
 from ..branding import BrandingStateError
 from ..print_branding import load_pdf_branding
 from ..print_template_config import (
-    CHOICES, LAYOUT_BINDINGS, LAYOUT_CHOICES, TEXT_LIMITS, PrintTemplateConfig,
+    CHOICES, LAYOUT_BINDINGS, LAYOUT_CHOICES, LAYOUT_LABELS, TEXT_LIMITS, PrintTemplateConfig,
     PrintTemplateValidationError, default_config, default_layout, validate_config, validate_layout,
 )
 from ..print_templates import (
@@ -34,13 +34,6 @@ LAYOUT_OPTIONS = {
     'day_label_width': ('Breite der Tagesbeschriftung', {'compact': 'Schmal', 'standard': 'Standard', 'wide': 'Breit'}),
     'row_spacing': ('Abstand zwischen Menüzeilen', {'compact': 'Kompakt', 'standard': 'Standard', 'roomy': 'Grosszügig'}),
     'legend_position': ('Position der Legende', {'top': 'Über dem Wochenraster', 'bottom': 'Unter dem Wochenraster'}),
-}
-LAYOUT_LABELS = {
-    'logo': 'Logo', 'title': 'Titel', 'date_range': 'Zeitraum', 'week_number': 'Kalenderwoche',
-    'header_note': 'Zusatz im Kopfbereich', 'service_notes': 'Essenszeiten und Hinweise',
-    'footer_note': 'Zusatz in der Fusszeile', 'components': 'Komponenten', 'image': 'Menübild',
-    'origins': 'Herkunft', 'allergens': 'Allergene', 'labels': 'Kostformen und Labels',
-    'prices': 'Beide Preisangaben',
 }
 
 

@@ -28,6 +28,13 @@ LAYOUT_BINDINGS = {
     'footer': ('service_notes', 'footer_note'),
     'menu_fields': ('title', 'components', 'image', 'origins', 'allergens', 'labels', 'prices'),
 }
+LAYOUT_LABELS = {
+    'logo': 'Logo', 'title': 'Titel', 'date_range': 'Zeitraum', 'week_number': 'Kalenderwoche',
+    'header_note': 'Zusatz im Kopfbereich', 'service_notes': 'Essenszeiten und Hinweise',
+    'footer_note': 'Zusatz in der Fusszeile', 'components': 'Komponenten', 'image': 'Menübild',
+    'origins': 'Herkunft', 'allergens': 'Allergene', 'labels': 'Kostformen und Labels',
+    'prices': 'Beide Preisangaben',
+}
 
 
 class WeekPdfLayout(TypedDict):

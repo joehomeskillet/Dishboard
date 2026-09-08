@@ -12,7 +12,7 @@ from fpdf.fonts import TTFFont
 
 from ..menu_images import menu_image
 from ..print_branding import PdfBranding
-from ..print_template_config import PrintTemplateConfig, PrintTemplateValidationError, WeekPdfLayout
+from ..print_template_config import LAYOUT_LABELS, PrintTemplateConfig, PrintTemplateValidationError, WeekPdfLayout
 from .rendering import DAY_NAMES
 from .week_pdf import (
     ASSETS, BORDER, INK, LOGOS, PALETTES, Block, WeekPdfFitError, _date_label,
@@ -131,7 +131,7 @@ def measure_menu(pdf: FPDF, option: dict[str, Any], layout: WeekPdfLayout, width
                 fields.append(Field(name, 0, y, width, symbols.height, symbols=symbols))
                 y += symbols.height
         except WeekPdfFitError as error:
-            raise WeekPdfFitError(f'{context} · {name}: {error}') from error
+            raise WeekPdfFitError(f'{context} · {LAYOUT_LABELS[name]}: {error}') from error
     return fields
 
 
@@ -185,7 +185,7 @@ def _header(pdf: FPDF, config: PrintTemplateConfig, title: str, week: date, last
             size = 16.0 if name == 'title' else 10.0
             pdf.set_font('Weekly', 'B' if name == 'title' else '', size)
             field = _text(pdf, value, min(width, pdf.get_string_width(value) + 1),
-                          size, f'Kopfbereich · {name}', bold=name == 'title')
+                          size, f'Kopfbereich · {LAYOUT_LABELS[name]}', bold=name == 'title')
         if x and x + field.width > width:
             x, y, row_height = 0.0, y + row_height + GAP, 0.0
         field.x, field.y = x, y
@@ -209,7 +209,7 @@ def _footer(pdf: FPDF, draft: dict[str, Any], config: PrintTemplateConfig, width
     fields: list[Field] = []
     for name in config['layout']['footer']:
         if values[name]:
-            field = _text(pdf, values[name], width, 8.5, f'Fussbereich · {name}')
+            field = _text(pdf, values[name], width, 8.5, f'Fussbereich · {LAYOUT_LABELS[name]}')
             field.y = fields_height(fields)
             fields.append(field)
     return fields
@@ -237,7 +237,7 @@ def _check_fields(fields: list[Field], width: float, height: float, context: str
     for field in fields:
         if field.x < 0 or field.y < 0 or field.x + field.width > width + 0.01 or field.y + field.height > height + 0.01:
             raise WeekPdfFitError(
-                f'{context} · {field.name}: passt nicht vollständig und lesbar auf eine A4-Seite. '
+                f'{context} · {LAYOUT_LABELS.get(field.name, field.name)}: passt nicht vollständig und lesbar auf eine A4-Seite. '
                 'Bitte Abstände, Raster oder Textlängen anpassen; Pflichtangaben beibehalten.'
             )
 
@@ -310,7 +310,7 @@ def render_layout(draft: dict[str, Any], profile: str, week: date, config: Print
         fields = measured[largest_row][largest_cell]
         field_name = max(fields, key=lambda item: item.height).name if fields else 'Tag/Angebot'
         fit_error = WeekPdfFitError(
-            f'{contexts[largest_row][largest_cell]} · {field_name}: Die vollständige Woche passt '
+            f'{contexts[largest_row][largest_cell]} · {LAYOUT_LABELS.get(field_name, field_name)}: Die vollständige Woche passt '
             'mit diesem Layout nicht lesbar auf eine A4-Seite. Bitte Raster, Bildgrösse oder '
             'Abstände ändern oder lange Texte kürzen; Pflichtangaben beibehalten.'
         )
