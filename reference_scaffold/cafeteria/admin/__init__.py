@@ -10,6 +10,7 @@ from . import display_routes as display_routes
 from . import operations_routes as operations_routes
 from . import branding_routes as branding_routes
 from . import local_user_routes as local_user_routes
+from . import access_history_routes as access_history_routes
 from . import master_data_routes as master_data_routes
 from . import screen_template_routes as screen_template_routes
 from . import recipe_routes as recipe_routes

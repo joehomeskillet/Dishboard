@@ -5,6 +5,7 @@
 {% block title %}Lokales Konto · Benutzer & Zugriff{% endblock %}
 {% block page_header %}{% call page_header('Lokales Konto', 'Benutzer & Zugriff') %}
 <a class="btn" href="{{ url_for('admin.local_user_events', target=account.public_id) }}">Kontoereignisse</a>
+<a class="btn" href="{{ url_for('admin.access_history') }}">Gesamter Zugriffsverlauf</a>
 <a class="btn" href="{{ url_for('admin.local_users_list', page=page, status=status) }}">Zurück zur Kontenliste</a>{% endcall %}{% endblock %}
 {% block content %}
 {{ unavailable(can_mutate) }}

@@ -2,7 +2,7 @@
 {% from 'admin/_macros.html' import page_header, pagination %}
 {% set workflow_nav = 'users' %}
 {% block title %}Kontoereignisse · Benutzer & Zugriff{% endblock %}
-{% block page_header %}{% call page_header('Kontoereignisse', 'Benutzer & Zugriff') %}<a class="btn" href="{{ url_for('admin.local_users_list') }}">Zurück zur Kontenliste</a>{% endcall %}{% endblock %}
+{% block page_header %}{% call page_header('Kontoereignisse', 'Benutzer & Zugriff') %}<a class="btn" href="{{ url_for('admin.access_history') }}">Zugriffsverlauf</a><a class="btn" href="{{ url_for('admin.local_users_list') }}">Zurück zur Kontenliste</a>{% endcall %}{% endblock %}
 {% block content %}
 <p class="text-secondary">Erfolgreiche lokale Kontoänderungen und vorübergehende Anmeldesperren. Dies ist keine vollständige Login- oder Logout-Historie. Zeitangaben: Schweiz.</p>
 <section class="card" aria-labelledby="events-title"><div class="card-header"><h2 class="card-title" id="events-title">Kontoereignisse</h2></div>
