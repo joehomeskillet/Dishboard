@@ -24,7 +24,7 @@ for app in (minimal, create_app(), create_app()):
         assert endpoints.count('admin.' + name) == 1, name
 print('local account blueprint complete without duplicate routes')
 '''
-    result = subprocess.run([sys.executable, '-c', program, module],
+    result = subprocess.run([sys.executable, '-B', '-c', program, module],
         cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True, check=False,
         timeout=30, env={'APP_ENV': 'development', 'DEMO_MODE': 'true', 'SESSION_REDIS_URL': '',
                          'DATABASE_URL': 'postgresql+psycopg://localhost/menuplan_test_iam_bootstrap'})

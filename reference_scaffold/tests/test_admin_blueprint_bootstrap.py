@@ -60,7 +60,7 @@ for app in applications[1:]:
 print('complete blueprint: minimal app and two real factories')
 '''
     result = subprocess.run(
-        [sys.executable, '-c', program, first_module],
+        [sys.executable, '-B', '-c', program, first_module],
         cwd=Path(__file__).resolve().parents[1],
         env={
             'APP_ENV': 'development',
