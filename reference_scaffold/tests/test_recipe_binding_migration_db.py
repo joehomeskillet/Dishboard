@@ -69,7 +69,7 @@ def test_upgrade_preserves_all_existing_rows_and_fresh_schema_contract(pg16):  #
             projection = f"(to_jsonb(t)-'{new_columns[table]}')" if table in new_columns else 'to_jsonb(t)'
             assert c.execute(text(f'SELECT {projection}::text FROM cafeteria.{table} t ORDER BY {projection}::text')).all() == before[table]
         assert c.execute(text('SELECT to_jsonb(m) FROM cafeteria.schema_migrations m WHERE version<=25 ORDER BY version')).all() == ledger
-        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 26
+        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 27
         migrated = structure(c)
     with pg16.begin() as c:
         c.execute(text('DROP SCHEMA cafeteria CASCADE'))
@@ -171,7 +171,8 @@ def wait_until_blocked(owner, pid):
 
 
 def test_historical_permissions_bytes_are_still_exact():
-    permissions = PERMISSIONS.read_text().replace(',\n    record_auth_access_v25(uuid,text,text,text,bigint,bigint)', '')
+    prefix, rest = PERMISSIONS.read_text().split('-- Prepared foods schema27 grants begin.\n', 1)
+    permissions = (prefix + rest.split('-- Prepared foods schema27 grants end.\n\n', 1)[1]).replace(',\n    record_auth_access_v25(uuid,text,text,text,bigint,bigint)', '')
     prefix, rest = permissions.split('-- R5a schema26 grants begin.\n', 1)
     historical = prefix + rest.split('-- R5a schema26 grants end.\n\n', 1)[1]
     assert hashlib.sha256(historical.encode()).hexdigest() == '85c88b1b89bb511401709dcaaa56537f98a9e74588460a90c6d944246e2f00d1'
