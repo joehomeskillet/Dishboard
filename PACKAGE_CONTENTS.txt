@@ -475,6 +475,8 @@ reference_scaffold/cafeteria/admin/recipe_errors.py
 reference_scaffold/cafeteria/admin/recipe_form_rows.py
 reference_scaffold/cafeteria/admin/recipe_forms.py
 reference_scaffold/cafeteria/admin/recipe_image_routes.py
+reference_scaffold/cafeteria/admin/recipe_pdf.py
+reference_scaffold/cafeteria/admin/recipe_print_template_routes.py
 reference_scaffold/cafeteria/admin/recipe_revision_routes.py
 reference_scaffold/cafeteria/admin/recipe_routes.py
 reference_scaffold/cafeteria/admin/recipe_scaling.py
@@ -909,6 +911,7 @@ reference_scaffold/cafeteria/templates/_menu_metadata.html
 reference_scaffold/cafeteria/templates/admin/_country_select.html
 reference_scaffold/cafeteria/templates/admin/_local_user_forms.html
 reference_scaffold/cafeteria/templates/admin/_macros.html
+reference_scaffold/cafeteria/templates/admin/_recipe_template_selection.html
 reference_scaffold/cafeteria/templates/admin/_rezepte_fields.html
 reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html
 reference_scaffold/cafeteria/templates/admin/access_history.html
@@ -942,6 +945,7 @@ reference_scaffold/cafeteria/templates/admin/patienten.html
 reference_scaffold/cafeteria/templates/admin/preview.html
 reference_scaffold/cafeteria/templates/admin/print_template_editor.html
 reference_scaffold/cafeteria/templates/admin/print_template_unavailable.html
+reference_scaffold/cafeteria/templates/admin/recipe_template_error.html
 reference_scaffold/cafeteria/templates/admin/rezepte.html
 reference_scaffold/cafeteria/templates/admin/rezepte_conflict.html
 reference_scaffold/cafeteria/templates/admin/rezepte_editor.html
@@ -1162,6 +1166,10 @@ reference_scaffold/tests/test_recipe_image_identity_db.py
 reference_scaffold/tests/test_recipe_images_browser.py
 reference_scaffold/tests/test_recipe_migration_db.py
 reference_scaffold/tests/test_recipe_navigation_browser.py
+reference_scaffold/tests/test_recipe_pdf.py
+reference_scaffold/tests/test_recipe_pdf_http.py
+reference_scaffold/tests/test_recipe_print_input_db.py
+reference_scaffold/tests/test_recipe_print_template_store.py
 reference_scaffold/tests/test_recipe_provenance_audit_db.py
 reference_scaffold/tests/test_recipe_race_db.py
 reference_scaffold/tests/test_recipe_revision_immutable_db.py
@@ -1170,6 +1178,8 @@ reference_scaffold/tests/test_recipe_revision_routes.py
 reference_scaffold/tests/test_recipe_routes.py
 reference_scaffold/tests/test_recipe_scaling.py
 reference_scaffold/tests/test_recipe_store_db.py
+reference_scaffold/tests/test_recipe_template_editor_browser.py
+reference_scaffold/tests/test_recipe_template_editor_routes.py
 reference_scaffold/tests/test_recipe_values.py
 reference_scaffold/tests/test_rendered_ui.py
 reference_scaffold/tests/test_screen_assignment_migration_db.py
