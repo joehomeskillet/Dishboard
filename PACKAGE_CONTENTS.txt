@@ -40,6 +40,7 @@ database/migrations/0017_v19_to_v20.sql
 database/migrations/0018_v20_to_v21.sql
 database/migrations/0019_v21_to_v22.sql
 database/migrations/0020_v22_to_v23.sql
+database/migrations/0021_v23_to_v24.sql
 database/permissions.sql
 database/README.md
 database/schema.sql
@@ -407,6 +408,8 @@ docs/design/2026-09-06-pdfme-tabler-fit.md
 docs/design/2026-09-07-admin-tabler-icon-manifest.md
 docs/design/2026-09-07-rec-r1-contract-addendum.md
 docs/design/2026-09-07-rec-r2-ui-implementation.md
+docs/design/2026-09-08-authentication-access-history.md
+docs/design/2026-09-08-native-pdf-layout-contract.md
 docs/design/admin-redesign-ui.md
 docs/design/admin-tabler-contract.md
 docs/design/country-select-source.md
@@ -478,6 +481,7 @@ reference_scaffold/cafeteria/admin/routes.py
 reference_scaffold/cafeteria/admin/screen_template_routes.py
 reference_scaffold/cafeteria/admin/week_management_routes.py
 reference_scaffold/cafeteria/admin/week_pdf.py
+reference_scaffold/cafeteria/admin/week_pdf_layout.py
 reference_scaffold/cafeteria/admin/week_pdf_symbols.py
 reference_scaffold/cafeteria/admin/week_review_routes.py
 reference_scaffold/cafeteria/admin/workflow_routes.py
@@ -1042,6 +1046,8 @@ reference_scaffold/tests/test_branding_logo_browser.py
 reference_scaffold/tests/test_branding_migration_db.py
 reference_scaffold/tests/test_branding_routes.py
 reference_scaffold/tests/test_branding_store.py
+reference_scaffold/tests/test_capability_restore_canonical_live.py
+reference_scaffold/tests/test_capability_restore_contract_db.py
 reference_scaffold/tests/test_capture_admin_live_proof.py
 reference_scaffold/tests/test_capture_admin_tabler_browser.py
 reference_scaffold/tests/test_capture_admin_week_browser.py
@@ -1115,6 +1121,7 @@ reference_scaffold/tests/test_print_template_archive_browser.py
 reference_scaffold/tests/test_print_template_archive_concurrency.py
 reference_scaffold/tests/test_print_template_archive_errors.py
 reference_scaffold/tests/test_print_template_browser.py
+reference_scaffold/tests/test_print_template_layout_forms.py
 reference_scaffold/tests/test_print_template_pdf.py
 reference_scaffold/tests/test_print_template_routes.py
 reference_scaffold/tests/test_print_template_store.py
@@ -1135,6 +1142,8 @@ reference_scaffold/tests/test_recipe_browser.py
 reference_scaffold/tests/test_recipe_capabilities.py
 reference_scaffold/tests/test_recipe_error_focus.py
 reference_scaffold/tests/test_recipe_examples.py
+reference_scaffold/tests/test_recipe_filter_reads.py
+reference_scaffold/tests/test_recipe_filters_browser.py
 reference_scaffold/tests/test_recipe_form_context_db.py
 reference_scaffold/tests/test_recipe_forms.py
 reference_scaffold/tests/test_recipe_image_identity_db.py
@@ -1173,6 +1182,7 @@ reference_scaffold/tests/test_week_management.py
 reference_scaffold/tests/test_week_management_browser.py
 reference_scaffold/tests/test_week_management_runtime_role.py
 reference_scaffold/tests/test_week_pdf.py
+reference_scaffold/tests/test_week_pdf_layout.py
 reference_scaffold/tests/test_week_pdf_legend.py
 reference_scaffold/tests/test_week_pdf_ops.py
 reference_scaffold/tests/test_week_pdf_symbols.py
