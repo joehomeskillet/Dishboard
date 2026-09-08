@@ -362,6 +362,17 @@ design/screenshots/mobile-cafeteria-heute-390x844.png
 design/screenshots/mobile-cafeteria-woche-390x844.png
 design/screenshots/mobile-patienten-heute-390x844.png
 design/screenshots/mobile-patienten-woche-390x844.png
+design/screenshots/public-white-0908/before/metrics.json
+design/screenshots/public-white-0908/final/contrast-gates.xml
+design/screenshots/public-white-0908/final/fixture-cafeteria-heute-1440x1100.png
+design/screenshots/public-white-0908/final/fixture-cafeteria-heute-390x844.png
+design/screenshots/public-white-0908/final/fixture-card-corner.png
+design/screenshots/public-white-0908/final/fixture-signage-cafeteria-tag-1920x1080.png
+design/screenshots/public-white-0908/final/fixture-signage-cafeteria-woche-1920x1080.png
+design/screenshots/public-white-0908/final/fixture-signage-patienten-tag-1920x1080.png
+design/screenshots/public-white-0908/final/fixture-signage-patienten-woche-1920x1080.png
+design/screenshots/public-white-0908/final/metrics.json
+design/screenshots/public-white-0908/README.md
 design/screenshots/signage-1920x1080.png
 design/screenshots/signage-cafeteria-geschlossen-1920x1080.png
 design/screenshots/signage-cafeteria-tag-1920x1080.png
@@ -423,6 +434,7 @@ docs/superpowers/iam-local-user-management-0906.md
 docs/superpowers/metadata-visibility-0905.md
 docs/superpowers/plans/2026-09-01-dishboard-menuplanung.md
 docs/superpowers/plans/2026-09-02-dishboard-admin-redesign.md
+docs/superpowers/sdd-completion-0908.md
 docs/superpowers/specs/2026-09-02-dishboard-admin-redesign-design.md
 docs/superpowers/specs/2026-09-05-dishboard-api-mcp-fhir-design.md
 docs/superpowers/tabler-sdd-user-2026-09-05.md
@@ -1192,6 +1204,7 @@ tools/capture_admin_settings_live_proof.py
 tools/capture_branding_live_proof.py
 tools/capture_live_screenshots.py
 tools/capture_ops_live_proof.py
+tools/capture_public_white_proof.py
 tools/capture_screenshots.py
 tools/demo_snapshots.py
 tools/google_menu_images.py
