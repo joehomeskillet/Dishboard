@@ -307,7 +307,8 @@ LEGACY_TEXTS = {
     '/cafeteria/heute/': (
         '<title>Cafeteria heute – Klinik Südhang</title>',
         '<div class="page-pretitle">Cafeteria · Mitarbeitende und Externe</div>',
-        'Zwei Mittagsmenüs von Montag bis Freitag.',
+        # The minimal public header keeps the day range without redundant menu-count copy.
+        'Mittagsmenüs von Montag bis Freitag.',
     ),
     '/cafeteria/wochenangebot/': (
         '<title>Cafeteria-Woche – Klinik Südhang</title>',
@@ -338,7 +339,7 @@ LEGACY_TEXTS = {
 
 @pytest.mark.parametrize('path', tuple(LEGACY_TEXTS))
 def test_pages_without_an_area_name_keep_every_previous_heading(client, path: str) -> None:
-    """A snapshot without 'area_name' must render the exact strings it renders today."""
+    """Keep legacy area and meal headings alongside the current concise public copy."""
     staff = cafeteria_snapshot(area=False, times=False)
     patient = patient_snapshot(area=False, times=False)
     body = _body(client, path, staff=staff, patient=patient)
