@@ -183,6 +183,28 @@ def test_brand_fonts_logo_colors_and_revision_are_part_of_resolved_identity():
         render(config=config, branding=replace(brand, font_body='../private'))
 
 
+@pytest.mark.parametrize('has_logo', [False, True])
+@pytest.mark.parametrize('has_photos', [False, True])
+def test_active_brand_logo_absence_never_substitutes_a_legacy_logo(has_logo, has_photos):
+    gallery, step, logo = asset(), asset('red'), asset('blue')
+    brand = PdfBranding(7, (140, 28, 75), (53, 102, 111), (255, 255, 255), (32, 50, 51),
+                       'carlito', 'fira', logo.data if has_logo else None)
+    source = recipe()
+    if has_photos:
+        source['images'] = [{'sha256': gallery.sha256, 'caption': 'Rezeptfoto',
+                             'source_url': None, 'source_license': None, 'fetched_at': None}]
+        source['steps'][0]['image_sha256'] = step.sha256
+    config = {**default_config(), 'logo': 'active_brand'}
+    data = render(revision(source), config=config, branding=brand,
+                  images={item.sha256: item for item in (gallery, step)})
+    embedded = [image.image for page in PdfReader(BytesIO(data)).pages for image in page.images]
+    assert len(embedded) == int(has_logo) + (2 if has_photos else 0)
+    expected = ({(0, 128, 0), (255, 0, 0)} if has_photos else set()) | ({(0, 0, 255)} if has_logo else set())
+    assert {image.convert('RGB').getpixel((0, 0)) for image in embedded} == expected
+    with pytest.raises(RecipeConfigurationError, match='geladen'):
+        render(revision(source), config=config)
+
+
 @pytest.mark.parametrize('field,value', [('palette', 'teal'), ('font', 'fira'), ('text_size', 'large'),
     ('logo', 'none'), ('logo', 'wordmark'), ('margin', 'wide'), ('margin', 'wider'),
     ('spacing', 'roomy'), ('header_text', 'Küchenrezept'), ('footer_text', 'Nur diese Revision')])

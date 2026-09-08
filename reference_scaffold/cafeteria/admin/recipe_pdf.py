@@ -11,7 +11,7 @@ from fpdf import FPDF
 from fpdf.errors import FPDFException
 from fpdf.fonts import TTFFont
 
-from ..branding_config import contrast
+from ..branding_config import contrast, default_config as default_branding_config
 from ..print_branding import PdfBranding
 from ..print_template_config import PrintTemplateConfig, PrintTemplateValidationError, validate_config
 from ..recipe_snapshots import image_payload
@@ -36,12 +36,13 @@ class RecipePdfError(ValueError):
 
 def _readable_brand(branding: PdfBranding) -> None:
     # Paper is always white; primary appears only in large, bold headings.
+    surface = default_branding_config()['surface']
     for color, minimum, label in ((branding.text, 4.5, 'Textfarbe'),
                                    (branding.primary, 3.0, 'Überschriftenfarbe')):
         if len(color) != 3 or any(type(channel) is not int or not 0 <= channel <= 255 for channel in color):
             raise RecipeConfigurationError('Die Druckfarben der aktiven Marke sind ungültig.')
         encoded = '#' + ''.join(f'{channel:02x}' for channel in color)
-        if contrast(encoded, '#ffffff') < minimum:
+        if contrast(encoded, surface) < minimum:
             raise RecipeConfigurationError(
                 f'Die {label} der aktiven Marke ist auf weissem Rezeptpapier nicht lesbar.')
 
@@ -162,9 +163,10 @@ def _render(revision: RecipeRevisionDTO, recipe: Mapping[str, Any], *, config: P
     pdf.set_subject(identity)
     if config['logo'] != 'none':
         logo = branding.logo_png if branding and config['logo'] == 'active_brand' else None
-        if logo is None:
-            logo = (ASSETS / 'img' / LOGOS['print' if config['logo'] == 'active_brand' else config['logo']]).read_bytes()
-        pdf.photo(logo, logo=True)
+        if config['logo'] != 'active_brand':
+            logo = (ASSETS / 'img' / LOGOS[config['logo']]).read_bytes()
+        if logo is not None:
+            pdf.photo(logo, logo=True)
     if config['header_text']:
         pdf.paragraph(config['header_text'])
     pdf.heading(recipe['title'], title=True)
