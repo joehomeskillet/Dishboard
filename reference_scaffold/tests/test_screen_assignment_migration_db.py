@@ -23,7 +23,8 @@ def contract(connection):
 
 def test_schema22_upgrade_preserves_settings_identity_and_migrations_matches_fresh(pg16):
     plan = database.migration_plan(SCHEMA)
-    assert plan[-1].version == 23 and plan[-1].path.name == '0020_v22_to_v23.sql'
+    screen_migration = next(entry for entry in plan if entry.version == 23)
+    assert screen_migration.path.name == '0020_v22_to_v23.sql'
     for migration in plan:
         if migration.version <= 22:
             database._execute_migration(pg16, migration)
@@ -43,7 +44,7 @@ def test_schema22_upgrade_preserves_settings_identity_and_migrations_matches_fre
     with pg16.connect() as connection:
         assert connection.execute(text('SELECT to_jsonb(m) FROM cafeteria.schema_migrations m WHERE version<=22 ORDER BY version')).all() == entries
         assert connection.execute(text('SELECT name,checksum_sha256 FROM cafeteria.schema_migrations WHERE version=23')).one() == (
-            plan[-1].path.name, hashlib.sha256(plan[-1].path.read_bytes()).hexdigest())
+            screen_migration.path.name, hashlib.sha256(screen_migration.path.read_bytes()).hexdigest())
         expected = contract(connection)
     with pg16.begin() as connection:
         connection.execute(text('DROP SCHEMA cafeteria CASCADE'))

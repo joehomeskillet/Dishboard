@@ -286,10 +286,11 @@ DO $failure$ BEGIN RAISE EXCEPTION USING MESSAGE = current_query(); END $failure
 SQL
 
   create_candidate
-  pg_restore --host="$HOST" --port="$PORT" --username="$USER" --dbname="$CANDIDATE_DB" \
-    --no-owner --no-privileges --exit-on-error "$source_file"
+  # Schema-only archives can reference pgcrypto in table CHECK constraints.
   psql --host="$HOST" --port="$PORT" --username="$USER" --dbname="$CANDIDATE_DB" \
     --set=ON_ERROR_STOP=1 --command='CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;' >/dev/null
+  pg_restore --host="$HOST" --port="$PORT" --username="$USER" --dbname="$CANDIDATE_DB" \
+    --no-owner --no-privileges --exit-on-error "$source_file"
   verify_database "$CANDIDATE_DB"
   control_psql --quiet --set=restore_run_id="$RESTORE_RUN_ID" --set=owner_token="$OWNER_TOKEN" <<'SQL' >/dev/null
 WITH changed AS ( UPDATE public.menuplan_restore_control SET lifecycle = 'candidate_ready', lease_expires_at = clock_timestamp() + make_interval(secs => :'lease_seconds'::integer), last_event = 'candidate_ready', updated_at = clock_timestamp() WHERE database_name = :'database_name' AND restore_run_id = :'restore_run_id' AND owner_token = :'owner_token'::uuid AND lifecycle = 'candidate_created' AND lease_expires_at > clock_timestamp() RETURNING 1 ) SELECT count(*) = 1 AS candidate_ready FROM changed \gset
