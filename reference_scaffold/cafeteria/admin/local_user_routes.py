@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 from functools import wraps
 from typing import Any
 from uuid import UUID
-from zoneinfo import ZoneInfo
 
 from flask import abort, current_app, flash, g, make_response, redirect, render_template, request, session, url_for
 from sqlalchemy import text
@@ -16,6 +15,7 @@ from werkzeug.wrappers import Response
 from ..auth import local_users as accounts
 from ..roles import capabilities, require_capability
 from ..security import csrf_token, validate_csrf
+from ..template_filters import datetime_short as _time
 from .rendering import _template_context
 from .workflow_routes import _db, bp
 
@@ -73,10 +73,6 @@ def _back(source, *, form: bool = False) -> tuple[int, str]:
 
 def _list_url(page: int, status: str) -> str:
     return url_for('admin.local_users_list', page=page, status=status)
-
-
-def _time(value: datetime | None) -> str:
-    return value.astimezone(ZoneInfo('Europe/Zurich')).strftime('%d.%m.%Y %H:%M') if value else 'Noch nicht erfasst'
 
 
 def _render(template: str, *, status_code: int = 200, **values: Any) -> Response:

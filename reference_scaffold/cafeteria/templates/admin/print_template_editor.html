@@ -155,7 +155,7 @@
         {% for saved in template.revisions|reverse %}
         <li class="list-group-item">
           <p class="mb-2"><strong>Revision {{ saved.id }} · {{ saved.name }}</strong>{% if saved.id == template.current_revision %} · Neuester Entwurf{% endif %}{% if document.active_template == template.id and document.active_revision == saved.id %} · Aktiv{% endif %}</p>
-          <p class="text-secondary mb-2">{{ saved.created_at|replace('T', ' ') if saved.created_at else 'Mitgelieferte Standardvorlage' }}{% if saved.restored_from %} · Wiederhergestellt aus Revision {{ saved.restored_from }}{% endif %}</p>
+          <p class="text-secondary mb-2">{% if saved.created_at %}<time datetime="{{ saved.created_at }}">{{ saved.created_at|datetime_short }}</time>{% else %}Mitgelieferte Standardvorlage{% endif %}{% if saved.restored_from %} · Wiederhergestellt aus Revision {{ saved.restored_from }}{% endif %}</p>
           <div class="btn-list"><a class="btn" href="{{ url_for('admin.print_template_editor', family=family, week=week, template=template.id, revision=saved.id) }}">Revision {{ saved.id }} ansehen</a>
           {% if not template.archived and saved.id != template.current_revision %}<form method="post" action="{{ editor_url }}">{{ hidden('restore', saved.id) }}<button class="btn" type="submit">Revision {{ saved.id }} wiederherstellen</button></form>{% endif %}</div>
         </li>

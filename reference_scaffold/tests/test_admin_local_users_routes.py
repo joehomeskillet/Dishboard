@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from datetime import datetime
 from uuid import uuid4
 
 import pytest
@@ -9,9 +10,32 @@ from sqlalchemy.exc import OperationalError
 from werkzeug.datastructures import MultiDict
 
 from cafeteria.auth import local_users as users
+from cafeteria.admin.local_user_routes import _time
+from cafeteria.template_filters import datetime_short
 from test_auth_routes import ACTOR_IDENTIFIER, auth_app
 
 __all__ = ['auth_app']
+
+
+@pytest.mark.parametrize('instant,expected', [
+    ('2026-09-08T12:34:56.123456+00:00', '08.09.2026 14:34'),
+    ('2026-01-08T12:34:56+00:00', '08.01.2026 13:34'),
+    ('2026-09-08T14:34:56+02:00', '08.09.2026 14:34'),
+    ('2026-09-08T23:30:00Z', '09.09.2026 01:30'),
+    ('2026-03-29T00:59:00+00:00', '29.03.2026 01:59'),
+    ('2026-03-29T01:00:00+00:00', '29.03.2026 03:00'),
+    ('2026-10-25T00:30:00+00:00', '25.10.2026 02:30'),
+    ('2026-10-25T01:30:00+00:00', '25.10.2026 02:30'),
+])
+def test_shared_swiss_time_preserves_account_datetime_output(instant, expected):
+    assert _time is datetime_short
+    assert _time(datetime.fromisoformat(instant)) == expected
+    assert datetime_short(instant) == expected
+
+
+@pytest.mark.parametrize('value', [None, '', 'unbekannt', '2026-02-30T12:00:00Z', '2026-09-08T12:00:00'])
+def test_shared_swiss_time_does_not_guess_missing_or_unknown_strings(value):
+    assert datetime_short(value) == 'Noch nicht erfasst'
 
 
 @pytest.fixture

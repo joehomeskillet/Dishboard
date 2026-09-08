@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from flask import Flask
 from .food_symbols import food_legend, food_symbol
@@ -27,6 +28,17 @@ def date_long(value: str) -> str:
 def date_short(value: str) -> str:
     parsed = _date(value)
     return f'{parsed.day}. {MONTHS[parsed.month]}'
+
+
+def datetime_short(value: dt.datetime | str | None) -> str:
+    if isinstance(value, str):
+        try:
+            value = dt.datetime.fromisoformat(value)
+        except ValueError:
+            return 'Noch nicht erfasst'
+        if value.tzinfo is None:
+            return 'Noch nicht erfasst'
+    return value.astimezone(ZoneInfo('Europe/Zurich')).strftime('%d.%m.%Y %H:%M') if value else 'Noch nicht erfasst'
 
 
 def chf(value: int) -> str:
@@ -118,6 +130,7 @@ def register_template_filters(app: Flask) -> None:
     app.add_template_filter(menu_image, 'menu_image')
     app.add_template_filter(date_long, 'date_long')
     app.add_template_filter(date_short, 'date_short')
+    app.add_template_filter(datetime_short, 'datetime_short')
     app.add_template_filter(chf, 'chf')
     app.add_template_filter(iso_week, 'iso_week')
     app.add_template_filter(service_time_label, 'service_time_label')
