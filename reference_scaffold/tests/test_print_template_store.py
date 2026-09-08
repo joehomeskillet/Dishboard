@@ -10,10 +10,10 @@ import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import NullPool
 
-from cafeteria.print_template_config import PrintTemplateValidationError, default_config
+from cafeteria.print_template_config import PrintTemplateValidationError, default_config, default_layout
 from cafeteria.print_templates import (
     SETTING_PREFIX, PrintTemplateConflictError, PrintTemplateStateError, active_template,
-    change_template, read_templates, template_revision,
+    _validate_document, change_template, default_document, read_templates, template_revision,
 )
 from cafeteria.admin.week_pdf import WeekPdfFitError
 from test_admin_workflow_routes import APP_PASSWORD, WEEK, _login, app, database_engine  # noqa: F401
@@ -151,3 +151,71 @@ def test_revision_bound_never_prunes_active_or_existing_history(app, database_en
         change_template(database_engine, 'patient', actor, version, 1, 'standard', 'restore', revision_id=1)
     with database_engine.connect() as connection:
         assert read_templates(connection, 'patient') == before
+
+
+@pytest.mark.parametrize('profile', ['staff_guest', 'patient'])
+@pytest.mark.parametrize('schema', [1, 2, 3])
+def test_reader_preserves_legacy_configuration_and_source_structure(profile, schema):
+    document = default_document()
+    document['schema_version'] = schema
+    if schema == 1:
+        del document['templates'][0]['archived']
+    before = json.dumps(document)
+    loaded = _validate_document(document, profile)
+    assert json.dumps(document) == before
+    assert loaded['schema_version'] == max(schema, 2)
+    assert loaded['templates'][0]['revisions'] == document['templates'][0]['revisions']
+    assert 'layout' not in template_revision(loaded, 'standard')['config']
+
+
+@pytest.mark.parametrize('profile', ['staff_guest', 'patient'])
+@pytest.mark.parametrize('schema', [1, 2, 3, True, 3.0])
+def test_layout_reader_requires_v3_envelope_and_preserves_revision(profile, schema):
+    document = default_document()
+    document['schema_version'] = schema
+    if type(schema) is int and schema == 1:
+        del document['templates'][0]['archived']
+    template_revision(document, 'standard')['config']['layout'] = default_layout(profile)
+    before = copy.deepcopy(document)
+    if type(schema) is int and schema == 3:
+        loaded = _validate_document(document, profile)
+        assert loaded == document
+        assert loaded is not document
+    else:
+        with pytest.raises(PrintTemplateStateError):
+            _validate_document(document, profile)
+    assert document == before
+
+
+def test_patient_reader_rejects_cafeteria_price_binding():
+    document = default_document()
+    document['schema_version'] = 3
+    template_revision(document, 'standard')['config']['layout'] = default_layout('staff_guest')
+    with pytest.raises(PrintTemplateStateError):
+        _validate_document(document, 'patient')
+
+
+@pytest.mark.parametrize('profile', ['staff_guest', 'patient'])
+def test_v3_lifecycle_retains_legacy_history_without_downgrade(app, database_engine, profile):  # noqa: F811
+    _, actor, version = _actor(app, database_engine)
+    _save(database_engine, profile, _staff_values() if profile == 'staff_guest' else _patient_values())
+    config = {**default_config(), 'layout': default_layout(profile)}
+    saved, _ = change_template(database_engine, profile, actor, version, 0, 'standard', 'save', name='Raster', config=config)
+    assert saved['schema_version'] == 3
+    assert saved['templates'][0]['revisions'][0] == default_document()['templates'][0]['revisions'][0]
+    with pytest.raises(PrintTemplateValidationError, match='neuen PDF-Renderer'):
+        change_template(database_engine, profile, actor, version, 1, 'standard', 'activate', revision_id=2, week=WEEK)
+    with database_engine.connect() as connection:
+        assert read_templates(connection, profile) == saved
+        assert active_template(connection, profile) == (default_config(), 'standard:1')
+    copied, copy_id = change_template(database_engine, profile, actor, version, 1, 'standard', 'copy', name='Kopie', revision_id=2)
+    assert template_revision(copied, copy_id)['config'] == config
+    archived, _ = change_template(database_engine, profile, actor, version, 2, copy_id, 'archive')
+    reactivated, _ = change_template(database_engine, profile, actor, version, 3, copy_id, 'reactivate')
+    restored, _ = change_template(database_engine, profile, actor, version, 4, 'standard', 'restore', revision_id=1)
+    assert template_revision(restored, 'standard')['config'] == default_config()
+    assert restored['templates'][0]['revisions'][:2] == saved['templates'][0]['revisions']
+    legacy_save, _ = change_template(database_engine, profile, actor, version, 5, 'standard', 'save', name='Bisherige Felder', config=default_config())
+    assert all(doc['schema_version'] == 3 for doc in (copied, archived, reactivated, restored, legacy_save))
+    with database_engine.connect() as connection:
+        assert read_templates(connection, profile) == legacy_save

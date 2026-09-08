@@ -1,6 +1,7 @@
 """Resolve one active brand at the PDF database boundary, never in the renderer."""
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from hashlib import sha256
 
@@ -29,10 +30,10 @@ def _rgb(value: str) -> RGB:
     return int(value[1:3], 16), int(value[3:5], 16), int(value[5:7], 16)
 
 
-def load_pdf_branding(connection: Connection, profile: str, config: dict[str, str]) -> PdfBranding | None:
+def load_pdf_branding(connection: Connection, profile: str, config: Mapping[str, object]) -> PdfBranding | None:
     """Legacy overrides neither read branding nor depend on its availability."""
     config = validate_config(config, profile)
-    if not any(config[field] == 'active_brand' for field in ('palette', 'font', 'logo')):
+    if not any(config.get(field) == 'active_brand' for field in ('palette', 'font', 'logo')):
         return None
     revision = active_branding(connection)
     brand = revision.config

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import copy
 import hashlib
 import json
 import subprocess
@@ -14,7 +15,10 @@ from pypdf import PdfReader
 from fontTools.ttLib import TTFont
 
 from cafeteria.admin.week_pdf import WeekPdfFitError, render_week_pdf
-from cafeteria.print_template_config import PrintTemplateValidationError, default_config, validate_config
+from cafeteria.print_template_config import (
+    LAYOUT_BINDINGS, LAYOUT_CHOICES, PrintTemplateValidationError,
+    default_config, default_layout, validate_config,
+)
 from test_week_pdf import WEEK, saved_week
 
 
@@ -111,3 +115,77 @@ def test_existing_fira_fonts_have_verified_lossless_print_copies() -> None:
         with TTFont(source) as original, TTFont(target) as copied:
             assert original.getBestCmap() == copied.getBestCmap()
             assert original['hmtx'].metrics == copied['hmtx'].metrics
+
+
+@pytest.mark.parametrize('profile', ['staff_guest', 'patient'])
+@pytest.mark.parametrize('field', list(LAYOUT_BINDINGS))
+@pytest.mark.parametrize('case', ['reverse', 'missing', 'duplicate', 'unknown', 'nested', 'oversized'])
+def test_layout_bindings_are_complete_bounded_profile_permutations(profile, field, case):
+    config = {**default_config(), 'layout': default_layout(profile)}
+    order = config['layout'][field]
+    if case == 'reverse':
+        order.reverse()
+        validated = validate_config(config, profile)
+        assert validated == config
+        assert validated['layout'][field] is not order
+        return
+    if case == 'missing':
+        order.pop()
+    elif case == 'duplicate':
+        order[-1] = order[0]
+    elif case == 'unknown':
+        order[-1] = 'https://example.invalid/menu.jpg'
+    elif case == 'nested':
+        order[-1] = {'title': 'Stored menu value'}
+    else:
+        order.extend(['title'] * 10000)
+    with pytest.raises(PrintTemplateValidationError) as error:
+        validate_config(config, profile)
+    assert error.value.field == field
+
+
+@pytest.mark.parametrize('field', list(LAYOUT_CHOICES))
+def test_layout_geometry_only_accepts_bounded_choices(field):
+    for choice in LAYOUT_CHOICES[field]:
+        config = {**default_config(), 'layout': {**default_layout('staff_guest'), field: choice}}
+        assert validate_config(config, 'staff_guest') == config
+    for value in (None, True, 1, {}, [], 'left; color:red', 'https://example.invalid', 'x' * 10000):
+        with pytest.raises(PrintTemplateValidationError):
+            validate_config({**default_config(), 'layout': {**default_layout('staff_guest'), field: value}}, 'staff_guest')
+
+
+@pytest.mark.parametrize('value', [None, {}, [], True, 1, 'layout',
+                                  {**default_layout('staff_guest'), 'version': True},
+                                  {**default_layout('staff_guest'), 'version': 1.0},
+                                  {**default_layout('staff_guest'), 'version': 2},
+                                  {**default_layout('staff_guest'), 'html': '<b>Menu</b>'}])
+def test_layout_structure_rejects_unknown_version_keys_and_types(value):
+    with pytest.raises(PrintTemplateValidationError):
+        validate_config({**default_config(), 'layout': value}, 'staff_guest')
+
+
+@pytest.mark.parametrize('field', list(LAYOUT_BINDINGS))
+def test_patient_price_binding_rejected_in_every_region_and_render(field):
+    config = {**default_config(), 'layout': default_layout('patient')}
+    config['layout'][field][-1] = 'prices'
+    with pytest.raises(PrintTemplateValidationError):
+        validate_config(config, 'patient')
+    with pytest.raises(PrintTemplateValidationError):
+        render_week_pdf(saved_week('patient', False), 'patient', WEEK, config)
+
+
+@pytest.mark.parametrize('profile,digest', [
+    ('staff_guest', 'a21a77db411852cb35fa10f852c8c1b940753a833f1309e4119837a965539cab'),
+    ('patient', '0e5ec2cd4ed07527e8ffaeaf83a04946564b1df0b4f5c891c38fc51486a1e7bd'),
+])
+def test_legacy_pdf_bytes_unchanged_and_new_layout_fails_closed(profile, digest):
+    # Digests captured from frozen 3f91181 with the pinned project dependencies.
+    config = default_config()
+    before = copy.deepcopy(config)
+    assert 'layout' not in validate_config(config, profile)
+    payload = render_week_pdf(saved_week(profile, False), profile, WEEK, config)
+    assert hashlib.sha256(payload).hexdigest() == digest
+    assert config == before
+    with pytest.raises(PrintTemplateValidationError, match='neuen PDF-Renderer') as error:
+        render_week_pdf(saved_week(profile, False), profile, WEEK, {**config, 'layout': default_layout(profile)})
+    assert error.value.field == 'layout'

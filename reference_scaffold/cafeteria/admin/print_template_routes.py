@@ -90,7 +90,7 @@ def _render_editor(
         _pdf(profile, week, revision['config'])
     except NoResultFound:
         preview_error = 'Für diese Woche sind noch keine gespeicherten Menüs vorhanden. Bitte zuerst die Woche anlegen.'
-    except (ComponentCatalogConfigurationError, WeekPdfFitError, BrandingStateError) as fit_error:
+    except (ComponentCatalogConfigurationError, WeekPdfFitError, BrandingStateError, PrintTemplateValidationError) as fit_error:
         preview_error = str(fit_error)
     response = make_response(render_template(
         'admin/print_template_editor.html', family=family, profile=profile, week=week.isoformat(),
@@ -174,7 +174,7 @@ def print_template_preview(family: str) -> Response:
         abort(404, description='Bitte zuerst die gewählte Woche speichern.')
     except (ComponentCatalogConfigurationError, BrandingStateError) as error:
         abort(503, description=str(error))
-    except WeekPdfFitError as error:
+    except (WeekPdfFitError, PrintTemplateValidationError) as error:
         abort(422, description=str(error))
     return Response(payload, mimetype='application/pdf', headers={
         'Cache-Control': 'no-store',

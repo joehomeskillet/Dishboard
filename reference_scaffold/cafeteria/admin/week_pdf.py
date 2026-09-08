@@ -1,6 +1,7 @@
 """Measured, single-page PDFs of a saved week; no publication or live data access."""
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from io import BytesIO
@@ -238,12 +239,16 @@ def _notes(draft: dict[str, Any]) -> str:
 
 
 def render_week_pdf(
-    draft: dict[str, Any], profile: str, week: date, config: dict[str, str] | None = None,
+    draft: dict[str, Any], profile: str, week: date, config: Mapping[str, object] | None = None,
     *, branding: PdfBranding | None = None,
 ) -> bytes:
     """Render all saved declarations, or raise an actionable fit error before output."""
     config = validate_config(default_config() if config is None else config, profile)
-    inherits = any(config[field] == 'active_brand' for field in ('palette', 'font', 'logo'))
+    if 'layout' in config:
+        raise PrintTemplateValidationError(
+            'Dieses Wochenlayout benötigt den neuen PDF-Renderer. Bitte eine bisherige Revision verwenden.', 'layout',
+        )
+    inherits = any(config.get(field) == 'active_brand' for field in ('palette', 'font', 'logo'))
     if inherits and branding is None:
         raise PrintTemplateValidationError('Die aktive Marke muss vor dem PDF-Druck geladen werden.')
     if not inherits:

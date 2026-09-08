@@ -1,13 +1,15 @@
-"""Revisioned print drafts; v1 reads are mutation-free, writes commit schema v2.
+"""Revisioned print drafts; archive writes use v2, explicit layout writes use v3.
 
 After a v2 write, rollback requires a reader/writer retaining all archive guards;
-old strict v1 applications cannot read these documents. Never downgrade the JSON.
+old strict v1 applications cannot read these documents. Layouts require a v3
+reader. Historical revision configs stay unchanged; never downgrade the JSON.
 """
 from __future__ import annotations
 
 import copy
 import json
 import re
+from collections.abc import Mapping
 from datetime import date, datetime, timezone
 from typing import Any
 from uuid import uuid4
@@ -16,7 +18,7 @@ from sqlalchemy import Connection, Engine, text
 from sqlalchemy.exc import DBAPIError
 
 from .print_template_config import (
-    PROFILES, PrintTemplateValidationError, default_config, plain_text, validate_config,
+    PROFILES, PrintTemplateConfig, PrintTemplateValidationError, default_config, plain_text, validate_config,
 )
 
 MAX_TEMPLATES = 10
@@ -66,7 +68,7 @@ def _require(condition: object) -> None:
 def _validate_document(value: Any, profile: str) -> dict[str, Any]:
     try:
         _require(isinstance(value, dict) and set(value) == set(default_document()))
-        _require(type(value['schema_version']) is int and value['schema_version'] in {1, 2})
+        _require(type(value['schema_version']) is int and value['schema_version'] in {1, 2, 3})
         schema_version = value['schema_version']
         _require(_integer(value['version'], 0, 2**63 - 2))
         templates = value['templates']
@@ -74,10 +76,10 @@ def _validate_document(value: Any, profile: str) -> dict[str, Any]:
         ids: set[str] = set()
         for template in templates:
             keys = {'id', 'current_revision', 'revisions'}
-            if schema_version == 2:
+            if schema_version >= 2:
                 keys.add('archived')
             _require(isinstance(template, dict) and set(template) == keys)
-            if schema_version == 2:
+            if schema_version >= 2:
                 _require(type(template['archived']) is bool)
             _require(isinstance(template['id'], str) and IDENTIFIER.fullmatch(template['id']))
             _require(template['id'] not in ids)
@@ -93,6 +95,7 @@ def _validate_document(value: Any, profile: str) -> dict[str, Any]:
                 _require(type(revision['id']) is int and revision['id'] == number)
                 _require(plain_text(revision['name'], 'name', 60, required=True) == revision['name'])
                 _require(validate_config(revision['config'], profile) == revision['config'])
+                _require(schema_version == 3 or 'layout' not in revision['config'])
                 _require(revision['created_by'] is None or _integer(revision['created_by'], 1, 2**63 - 1))
                 stamp = revision['created_at']
                 _require(stamp is None or (isinstance(stamp, str) and len(stamp) <= 40 and datetime.fromisoformat(stamp).tzinfo))
@@ -106,7 +109,7 @@ def _validate_document(value: Any, profile: str) -> dict[str, Any]:
         raise PrintTemplateStateError('Gespeicherte Druckvorlagen sind ungültig. Bitte Administration verständigen.') from error
     document = copy.deepcopy(value)
     # Normalize legacy reads in memory only. The successful CAS writer upgrades atomically.
-    document['schema_version'] = 2
+    document['schema_version'] = max(2, schema_version)
     for template in document['templates']:
         template.setdefault('archived', False)
     return document
@@ -122,7 +125,7 @@ def read_templates(connection: Connection, profile: str) -> dict[str, Any]:
     return default_document() if row is None else _validate_document(row.setting_value, profile)
 
 
-def active_template(connection: Connection, profile: str) -> tuple[dict[str, str], str]:
+def active_template(connection: Connection, profile: str) -> tuple[PrintTemplateConfig, str]:
     document = read_templates(connection, profile)
     template_id, revision_id = document['active_template'], document['active_revision']
     return template_revision(document, template_id, revision_id)['config'], f'{template_id}:{revision_id}'
@@ -156,7 +159,7 @@ def _append_revision(template: dict[str, Any], revision: dict[str, Any], actor_i
 def change_template(
     engine: Engine, profile: str, actor_id: int, authz_version: int, expected_version: int,
     template_id: str, action: str, *, revision_id: int | None = None,
-    name: str | None = None, config: dict[str, str] | None = None, week: date | None = None,
+    name: str | None = None, config: Mapping[str, object] | None = None, week: date | None = None,
 ) -> tuple[dict[str, Any], str]:
     """Save/copy/restore drafts or activate one checked revision, under one row lock."""
     if profile not in PROFILES or action not in {'save', 'copy', 'restore', 'activate', 'archive', 'reactivate'}:
@@ -217,6 +220,8 @@ def change_template(
                 source.update(name=name, config=config)
             _append_revision(template, source, actor_id)
         document['version'] += 1
+        if action == 'save' and config is not None and 'layout' in config:
+            document['schema_version'] = 3
         connection.execute(text('''
             UPDATE cafeteria.settings SET setting_value=CAST(:document AS jsonb),
                 updated_by=:actor, updated_at=clock_timestamp()
@@ -225,7 +230,7 @@ def change_template(
     return document, template_id
 
 
-def _validate_week(connection: Connection, profile: str, week: date | None, config: dict[str, str]) -> None:
+def _validate_week(connection: Connection, profile: str, week: date | None, config: Mapping[str, object]) -> None:
     from .admin.week_pdf import render_week_pdf
     from .print_branding import load_pdf_branding
     from .workflow_store import load_draft_connection

@@ -6,6 +6,7 @@ from sqlalchemy.exc import NoResultFound
 from ..component_catalog_store import ComponentCatalogConfigurationError
 from ..branding import BrandingStateError
 from ..print_branding import load_pdf_branding
+from ..print_template_config import PrintTemplateValidationError
 from ..roles import require_capability
 from ..print_templates import PrintTemplateStateError, active_template
 from ..workflow_store import load_draft_connection
@@ -33,7 +34,7 @@ def print_week(family: str) -> Response:
         abort(404)
     try:
         document = render_week_pdf(draft, profile, week, config, branding=branding)
-    except WeekPdfFitError as error:
+    except (WeekPdfFitError, PrintTemplateValidationError) as error:
         abort(422, description=str(error))
     return Response(
         document, mimetype='application/pdf', headers={
