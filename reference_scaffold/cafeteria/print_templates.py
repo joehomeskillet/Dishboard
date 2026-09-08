@@ -24,6 +24,7 @@ from .print_template_config import (
 MAX_TEMPLATES = 10
 MAX_REVISIONS = 50
 SETTING_PREFIX = 'print_templates.v1.'
+STORE_KINDS = (*PROFILES, 'recipe')
 IDENTIFIER = re.compile(r'(?:standard|[0-9a-f]{32})')
 
 
@@ -116,7 +117,7 @@ def _validate_document(value: Any, profile: str) -> dict[str, Any]:
 
 
 def read_templates(connection: Connection, profile: str) -> dict[str, Any]:
-    if profile not in PROFILES:
+    if profile not in STORE_KINDS:
         raise PrintTemplateValidationError('Unbekanntes Druckprofil.')
     row = connection.execute(text('''
         SELECT setting_value FROM cafeteria.settings
@@ -160,10 +161,22 @@ def change_template(
     engine: Engine, profile: str, actor_id: int, authz_version: int, expected_version: int,
     template_id: str, action: str, *, revision_id: int | None = None,
     name: str | None = None, config: Mapping[str, object] | None = None, week: date | None = None,
+    recipe_public_id: str | None = None, recipe_revision_public_id: str | None = None,
+    target_yield: str | None = None,
 ) -> tuple[dict[str, Any], str]:
     """Save/copy/restore drafts or activate one checked revision, under one row lock."""
-    if profile not in PROFILES or action not in {'save', 'copy', 'restore', 'activate', 'archive', 'reactivate'}:
+    if profile not in STORE_KINDS or action not in {'save', 'copy', 'restore', 'activate', 'archive', 'reactivate'}:
         raise PrintTemplateValidationError('Vorlagenaktion ist ungültig.')
+    selection = (recipe_public_id, recipe_revision_public_id, target_yield)
+    if profile != 'recipe' and any(value is not None for value in selection):
+        raise PrintTemplateValidationError('Eine Rezeptauswahl ist nur bei Rezeptvorlagen möglich.')
+    if profile == 'recipe':
+        if week is not None:
+            raise PrintTemplateValidationError('Rezeptvorlagen verwenden keine Menüwoche.', 'week')
+        if any(value is not None and not isinstance(value, str) for value in selection):
+            raise PrintTemplateValidationError('Die Rezeptauswahl ist ungültig.')
+        if action == 'activate' and (recipe_public_id is None or recipe_revision_public_id is None):
+            raise PrintTemplateValidationError('Bitte eine gespeicherte Rezeptrevision auswählen.', 'recipe_revision_public_id')
     if not _integer(expected_version, 0, 2**63 - 2):
         raise PrintTemplateValidationError('Versionsnummer ist ungültig.')
     if revision_id is not None and not _integer(revision_id, 1, MAX_REVISIONS):
@@ -204,7 +217,10 @@ def change_template(
                 raise PrintTemplateConflictError('Vorlage ist bereits verfügbar.')
             template['archived'] = False
         elif action == 'activate':
-            _validate_week(connection, profile, week, source['config'])
+            if profile == 'recipe':
+                _validate_recipe(connection, recipe_public_id, recipe_revision_public_id, target_yield, source['config'])
+            else:
+                _validate_week(connection, profile, week, source['config'])
             document.update(active_template=template_id, active_revision=source['id'])
         elif action == 'copy':
             if len(document['templates']) >= MAX_TEMPLATES:
@@ -228,6 +244,21 @@ def change_template(
             WHERE location_id IS NULL AND profile_id IS NULL AND setting_key=:key
         '''), {'key': SETTING_PREFIX + profile, 'document': json.dumps(document), 'actor': actor_id})
     return document, template_id
+
+
+def _validate_recipe(
+    connection: Connection, recipe_public_id: str | None, revision_public_id: str | None,
+    target_yield: str | None, config: Mapping[str, object],
+) -> None:
+    from .admin.recipe_pdf import render_recipe_pdf
+    from .print_branding import load_pdf_branding
+    from .recipe_reads import recipe_print_input
+
+    if recipe_public_id is None or revision_public_id is None:
+        raise PrintTemplateValidationError('Bitte eine gespeicherte Rezeptrevision auswählen.', 'recipe_revision_public_id')
+    revision, images = recipe_print_input(connection, recipe_public_id, revision_public_id)
+    render_recipe_pdf(revision, config=validate_config(config, 'recipe'), images=images, target=target_yield,
+                      branding=load_pdf_branding(connection, 'recipe', config))
 
 
 def _validate_week(connection: Connection, profile: str, week: date | None, config: Mapping[str, object]) -> None:

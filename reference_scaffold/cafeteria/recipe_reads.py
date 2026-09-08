@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from contextlib import contextmanager
 from typing import Iterator
 
@@ -13,7 +14,7 @@ from .recipe_types import (
     CookbookDTO, RecipeAssetDTO, RecipeDTO, RecipeNotFoundError,
     RecipeRevisionDTO, RecipeRevisionSummaryDTO, RecipeUnavailableError, RecipeValidationError,
 )
-from .recipe_values import identifier
+from .recipe_values import identifier, recipe_payload, rows
 
 
 @contextmanager
@@ -81,14 +82,18 @@ def get_recipe(engine: Engine, public_id: str) -> RecipeDTO:
 def get_revision(engine: Engine, public_id: str) -> RecipeRevisionDTO:
     public_id = identifier(public_id)
     with connection(engine) as (current, location):
-        row = current.execute(text('''SELECT h.*,r.public_id AS recipe_public_id
-            FROM cafeteria.recipe_revisions h JOIN cafeteria.recipes r ON r.id=h.recipe_id AND r.location_id=h.location_id
-            WHERE h.location_id=:location AND h.public_id=CAST(:id AS uuid)'''),
-            {'location': location, 'id': public_id}).one_or_none()
-        if row is None:
-            raise RecipeNotFoundError('Rezeptrevision nicht gefunden.')
-        return RecipeRevisionDTO(str(row.public_id), str(row.recipe_public_id), row.revision_number,
-                                 row.content_hash_sha256, frozen_json(row.snapshot_json), row.created_at, row.created_by)
+        return _get_revision_connection(current, location, public_id)
+
+
+def _get_revision_connection(current: Connection, location: int, public_id: str) -> RecipeRevisionDTO:
+    row = current.execute(text('''SELECT h.*,r.public_id AS recipe_public_id
+        FROM cafeteria.recipe_revisions h JOIN cafeteria.recipes r ON r.id=h.recipe_id AND r.location_id=h.location_id
+        WHERE h.location_id=:location AND h.public_id=CAST(:id AS uuid)'''),
+        {'location': location, 'id': public_id}).one_or_none()
+    if row is None:
+        raise RecipeNotFoundError('Rezeptrevision nicht gefunden.')
+    return RecipeRevisionDTO(str(row.public_id), str(row.recipe_public_id), row.revision_number,
+                             row.content_hash_sha256, frozen_json(row.snapshot_json), row.created_at, row.created_by)
 
 
 def list_revisions(engine: Engine, recipe_public_id: str, *, limit: int = 50,
@@ -115,18 +120,50 @@ def get_recipe_asset(engine: Engine, recipe_public_id: str, sha256: str) -> Reci
     if not isinstance(sha256, str) or re.fullmatch('[0-9a-f]{64}', sha256) is None:
         raise RecipeValidationError('Ungültiger Bildhash.')
     with connection(engine) as (current, location):
-        row = current.execute(text('''SELECT a.sha256,a.image_data,a.content_type,a.width,a.height
-            FROM cafeteria.recipes r JOIN cafeteria.recipe_assets a ON a.location_id=r.location_id
-            WHERE r.public_id=CAST(:recipe AS uuid) AND r.location_id=:location AND a.sha256=:sha
-            AND (EXISTS(SELECT 1 FROM cafeteria.recipe_images i WHERE i.recipe_id=r.id AND i.sha256=a.sha256)
-             OR EXISTS(SELECT 1 FROM cafeteria.recipe_steps s WHERE s.recipe_id=r.id AND s.image_sha256=a.sha256)
-             OR EXISTS(SELECT 1 FROM cafeteria.recipe_revisions h WHERE h.recipe_id=r.id AND h.location_id=r.location_id
-              AND (EXISTS(SELECT 1 FROM jsonb_array_elements(h.snapshot_json->'recipe'->'images') i WHERE i->>'sha256'=a.sha256)
-               OR EXISTS(SELECT 1 FROM jsonb_array_elements(h.snapshot_json->'recipe'->'steps') s WHERE s->>'image_sha256'=a.sha256))))'''),
-            {'location': location, 'recipe': recipe_public_id, 'sha': sha256}).one_or_none()
-        if row is None:
-            raise RecipeNotFoundError('Rezeptbild nicht gefunden.')
-        return RecipeAssetDTO(row.sha256, bytes(row.image_data), row.content_type, row.width, row.height)
+        return _get_recipe_asset_connection(current, location, recipe_public_id, sha256)
+
+
+def _get_recipe_asset_connection(
+    current: Connection, location: int, recipe_public_id: str, sha256: str,
+) -> RecipeAssetDTO:
+    row = current.execute(text('''SELECT a.sha256,a.image_data,a.content_type,a.width,a.height
+        FROM cafeteria.recipes r JOIN cafeteria.recipe_assets a ON a.location_id=r.location_id
+        WHERE r.public_id=CAST(:recipe AS uuid) AND r.location_id=:location AND a.sha256=:sha
+        AND (EXISTS(SELECT 1 FROM cafeteria.recipe_images i WHERE i.recipe_id=r.id AND i.sha256=a.sha256)
+         OR EXISTS(SELECT 1 FROM cafeteria.recipe_steps s WHERE s.recipe_id=r.id AND s.image_sha256=a.sha256)
+         OR EXISTS(SELECT 1 FROM cafeteria.recipe_revisions h WHERE h.recipe_id=r.id AND h.location_id=r.location_id
+          AND (EXISTS(SELECT 1 FROM jsonb_array_elements(h.snapshot_json->'recipe'->'images') i WHERE i->>'sha256'=a.sha256)
+           OR EXISTS(SELECT 1 FROM jsonb_array_elements(h.snapshot_json->'recipe'->'steps') s WHERE s->>'image_sha256'=a.sha256))))'''),
+        {'location': location, 'recipe': recipe_public_id, 'sha': sha256}).one_or_none()
+    if row is None:
+        raise RecipeNotFoundError('Rezeptbild nicht gefunden.')
+    return RecipeAssetDTO(row.sha256, bytes(row.image_data), row.content_type, row.width, row.height)
+
+
+def recipe_print_input(
+    current: Connection, recipe_public_id: str, revision_public_id: str,
+) -> tuple[RecipeRevisionDTO, dict[str, RecipeAssetDTO]]:
+    """Read only the selected immutable recipe and its images on the caller's transaction."""
+    recipe_public_id, revision_public_id = identifier(recipe_public_id), identifier(revision_public_id)
+    location = resolve_single_active_location_connection(current)
+    revision = _get_revision_connection(current, location, revision_public_id)
+    if revision.recipe_public_id != recipe_public_id:
+        raise RecipeNotFoundError('Rezeptrevision nicht gefunden.')
+    recipe = recipe_payload(revision.snapshot.get('recipe'))
+    digests: set[str] = set()
+    for collection, field in (('images', 'sha256'), ('steps', 'image_sha256')):
+        for item in rows(recipe[collection]):
+            if not isinstance(item, Mapping):
+                raise RecipeValidationError('Ungültiger Bildeintrag in der Rezeptrevision.')
+            digest = item.get(field)
+            if digest is None and collection == 'steps':
+                continue
+            if not isinstance(digest, str) or re.fullmatch('[0-9a-f]{64}', digest) is None:
+                raise RecipeValidationError('Ungültiger Bildhash in der Rezeptrevision.')
+            digests.add(digest)
+    images = {digest: _get_recipe_asset_connection(current, location, recipe_public_id, digest)
+              for digest in sorted(digests)}
+    return revision, images
 
 
 def list_cookbooks(engine: Engine, *, include_archived: bool = False, limit: int = 200,
