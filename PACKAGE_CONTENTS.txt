@@ -41,6 +41,7 @@ database/migrations/0018_v20_to_v21.sql
 database/migrations/0019_v21_to_v22.sql
 database/migrations/0020_v22_to_v23.sql
 database/migrations/0021_v23_to_v24.sql
+database/migrations/0022_v24_to_v25.sql
 database/permissions.sql
 database/README.md
 database/schema.sql
@@ -455,6 +456,7 @@ PACKAGE_CONTENTS.txt
 README.md
 reference_scaffold/cafeteria/__init__.py
 reference_scaffold/cafeteria/admin/__init__.py
+reference_scaffold/cafeteria/admin/access_history_routes.py
 reference_scaffold/cafeteria/admin/api_routes.py
 reference_scaffold/cafeteria/admin/branding_routes.py
 reference_scaffold/cafeteria/admin/cookbook_forms.py
@@ -493,6 +495,8 @@ reference_scaffold/cafeteria/api/routes.py
 reference_scaffold/cafeteria/api/v1_routes.py
 reference_scaffold/cafeteria/api_keys.py
 reference_scaffold/cafeteria/auth/__init__.py
+reference_scaffold/cafeteria/auth/access_events.py
+reference_scaffold/cafeteria/auth/access_history_reads.py
 reference_scaffold/cafeteria/auth/issuer.py
 reference_scaffold/cafeteria/auth/local_users.py
 reference_scaffold/cafeteria/auth/routes.py
@@ -907,6 +911,7 @@ reference_scaffold/cafeteria/templates/admin/_local_user_forms.html
 reference_scaffold/cafeteria/templates/admin/_macros.html
 reference_scaffold/cafeteria/templates/admin/_rezepte_fields.html
 reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html
+reference_scaffold/cafeteria/templates/admin/access_history.html
 reference_scaffold/cafeteria/templates/admin/api.html
 reference_scaffold/cafeteria/templates/admin/base_tabler.html
 reference_scaffold/cafeteria/templates/admin/branding_editor.html
@@ -990,6 +995,12 @@ reference_scaffold/requirements.txt
 reference_scaffold/tests/fixtures/weekly_print_notes.json
 reference_scaffold/tests/local_user_test_support.py
 reference_scaffold/tests/review_support.py
+reference_scaffold/tests/test_access_event_routes.py
+reference_scaffold/tests/test_access_event_writer.py
+reference_scaffold/tests/test_access_events_db.py
+reference_scaffold/tests/test_access_history_reads.py
+reference_scaffold/tests/test_admin_access_history_browser.py
+reference_scaffold/tests/test_admin_access_history_routes.py
 reference_scaffold/tests/test_admin_api_page.py
 reference_scaffold/tests/test_admin_blueprint_bootstrap.py
 reference_scaffold/tests/test_admin_copy_ui.py
@@ -1034,6 +1045,7 @@ reference_scaffold/tests/test_api_keys_db.py
 reference_scaffold/tests/test_api_v1.py
 reference_scaffold/tests/test_app_role_workflow_live.py
 reference_scaffold/tests/test_apply_allergen_suggestion_notes.py
+reference_scaffold/tests/test_auth_callback_session_preservation.py
 reference_scaffold/tests/test_auth_config.py
 reference_scaffold/tests/test_auth_database.py
 reference_scaffold/tests/test_auth_live_hardening.py
