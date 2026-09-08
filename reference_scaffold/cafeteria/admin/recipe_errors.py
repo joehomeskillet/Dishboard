@@ -31,6 +31,7 @@ def render_form_error(error, *, submitted=None, display_values=None, reload_url=
     messages = {400: 'Bitte prüfen Sie Ihre Eingaben.', 401: 'Bitte erneut anmelden.',
                 403: 'Diese Aktion ist nicht erlaubt.', 404: 'Der Datensatz wurde nicht gefunden.',
                 409: 'Zwischenzeitlich geändert. Ihre Eingaben wurden nicht gespeichert.',
+                422: 'Diese Rezeptrevision kann mit der aktiven Druckvorlage nicht vollständig als PDF ausgegeben werden.',
                 503: 'Rezepte sind momentan nicht verfügbar. Bitte später erneut versuchen.'}
     if isinstance(error, LocationConflict):
         messages[409] = 'Der aktive Standort wurde geändert. Ihre ursprünglichen Eingaben wurden nicht gespeichert.'

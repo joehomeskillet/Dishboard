@@ -7,7 +7,7 @@
 {% elif value is none %}Nicht angegeben{% elif value is sameas true %}Ja{% elif value is sameas false %}Nein{% else %}{% for line in (value|string).split('\n') %}{{ line }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% endif %}
 {% endmacro %}
 {% block title %}Revision {{ revision.revision_number }} · {{ payload.title }}{% endblock %}
-{% block page_header %}{% call page_header(payload.title, 'Revision ' ~ revision.revision_number) %}<a class="btn" href="{{ url_for('admin.recipe_revisions', recipe_id=recipe_id) }}">{{ icon('arrow-left') }}Alle Revisionen</a>{% endcall %}{% endblock %}
+{% block page_header %}{% call page_header(payload.title, 'Revision ' ~ revision.revision_number) %}<a class="btn" href="{{ url_for('admin.recipe_revisions', recipe_id=recipe_id) }}">{{ icon('arrow-left') }}Alle Revisionen</a><a class="btn btn-primary" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=revision.public_id, yield=calculated.target) }}">PDF öffnen</a>{% endcall %}{% endblock %}
 {% block content %}
 <section class="card mb-3"><div class="card-body"><h2 class="card-title">Unveränderlicher Stand</h2><dl class="mb-0"><dt>Revision</dt><dd class="text-break">{{ revision.public_id }}</dd><dt>Erstellt</dt><dd>{{ revision.created_at.isoformat() }}</dd><dt>SHA-256</dt><dd class="text-break">{{ revision.content_hash_sha256 }}</dd></dl>
 {% if payload.description %}<p class="text-break">{% for line in payload.description.split('\n') %}{{ line }}<br>{% endfor %}</p>{% endif %}

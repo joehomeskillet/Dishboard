@@ -5,14 +5,22 @@ import re
 from collections.abc import Mapping
 from uuid import UUID
 
-from flask import abort, current_app, redirect, render_template, request, url_for
+from flask import Response, abort, current_app, redirect, render_template, request, url_for
+from sqlalchemy import text
 
 from .. import recipe_store as store
+from ..branding import BrandingStateError
 from ..master_data_types import ObjectExpectation
-from ..recipe_types import RecipeConfigurationError
+from ..print_branding import load_pdf_branding
+from ..print_template_config import PrintTemplateValidationError
+from ..print_templates import PrintTemplateStateError, active_template
+from ..quantities import QuantityError, parse_quantity
+from ..recipe_reads import recipe_print_input
+from ..recipe_types import RecipeConfigurationError, RecipeValidationError
 from ..roles import capabilities
 from . import recipe_forms as forms
 from .recipe_errors import protected
+from .recipe_pdf import RecipePdfError, render_recipe_pdf
 from .recipe_scaling import scaled_recipe
 from .routes import bp
 
@@ -75,6 +83,39 @@ def recipe_revision(recipe_id: UUID, revision_id: UUID):
     if not isinstance(payload, Mapping):
         raise RecipeConfigurationError('Revisionsstand nicht verfügbar.')
     return render_scaled('admin/rezepte_revision.html', payload, revision=revision, recipe_id=str(recipe_id))
+
+
+@bp.get('/rezepte/<uuid:recipe_id>/revisionen/<uuid:revision_id>/druck.pdf')
+@protected
+def recipe_revision_pdf(recipe_id: UUID, revision_id: UUID) -> Response:
+    query_fields({'yield'})
+    target = request.args.get('yield')
+    if target is not None:
+        try:
+            parse_quantity(target)
+        except QuantityError as error:
+            raise forms.FormError(str(error), 'yield') from None
+    engine = current_app.extensions['cafeteria_db']
+    try:
+        with engine.connect().execution_options(isolation_level='REPEATABLE READ') as connection:
+            with connection.begin():
+                connection.execute(text('SET TRANSACTION READ ONLY'))
+                revision, assets = recipe_print_input(connection, str(recipe_id), str(revision_id))
+                config, template_revision = active_template(connection, 'recipe')
+                branding = load_pdf_branding(connection, 'recipe', config)
+        data = render_recipe_pdf(revision, config=config, images=assets, target=target, branding=branding)
+    except (PrintTemplateStateError, PrintTemplateValidationError, BrandingStateError, RecipeValidationError):
+        raise RecipeConfigurationError('Gespeicherte Rezeptdruckdaten sind nicht verfügbar.') from None
+    except RecipePdfError:
+        abort(422)
+    response = Response(data, mimetype='application/pdf')
+    response.headers['Content-Disposition'] = f'inline; filename="rezept-{recipe_id}-{revision_id}.pdf"'
+    response.headers['X-Print-Template-Revision'] = template_revision
+    response.headers['X-Recipe-Revision'] = revision.public_id
+    response.headers['X-Recipe-Content-SHA256'] = revision.content_hash_sha256
+    if branding is not None:
+        response.headers['X-Brand-Revision'] = str(branding.revision_id)
+    return response
 
 
 @bp.get('/rezepte/<uuid:recipe_id>/skalierung')
