@@ -20,6 +20,7 @@ list_vocabulary = safe(require_capability('draft.read')(reads.list_vocabulary))
 get_vocabulary = safe(require_capability('draft.read')(reads.get_vocabulary))
 list_foods = safe(require_capability('draft.read')(reads.list_foods))
 get_food = safe(require_capability('draft.read')(reads.get_food))
+list_prepared_revisions = safe(require_capability('draft.read')(reads.list_prepared_revisions))
 list_proposals = safe(require_capability('draft.read')(reads.list_proposals))
 get_proposal = safe(require_capability('draft.read')(reads.get_proposal))
 
@@ -47,44 +48,44 @@ def set_unit_active(engine: Engine, actor: ActorExpectation, target: ObjectExpec
 
 @safe
 @require_capability('masterdata.write')
-def create_food(engine: Engine, actor: ActorExpectation, payload: Mapping[str, object]) -> MutationResult:
-    return mutation(engine, 'create_food', actor, None, payload)
+def create_food(engine: Engine, actor: ActorExpectation, payload: Mapping[str, object], *, original_location: int | None = None) -> MutationResult:
+    return mutation(engine, 'create_food', actor, None, payload, original_location=original_location)
 
 
 @safe
 @require_capability('masterdata.write')
-def update_food(engine: Engine, actor: ActorExpectation, target: ObjectExpectation, payload: Mapping[str, object]) -> MutationResult:
-    return mutation(engine, 'update_food', actor, target, payload)
+def update_food(engine: Engine, actor: ActorExpectation, target: ObjectExpectation, payload: Mapping[str, object], *, original_location: int | None = None) -> MutationResult:
+    return mutation(engine, 'update_food', actor, target, payload, original_location=original_location)
 
 
 @safe
 @require_capability('masterdata.write')
-def set_food_active(engine: Engine, actor: ActorExpectation, target: ObjectExpectation, *, active: bool) -> MutationResult:
-    return mutation(engine, 'set_food_active', actor, target, {'active': active})
+def set_food_active(engine: Engine, actor: ActorExpectation, target: ObjectExpectation, *, active: bool, original_location: int | None = None) -> MutationResult:
+    return mutation(engine, 'set_food_active', actor, target, {'active': active}, original_location=original_location)
 
 
 @safe
 @require_capability('masterdata.write')
-def replace_food_tags(engine: Engine, actor: ActorExpectation, target: ObjectExpectation, tag_public_ids: Sequence[str]) -> MutationResult:
-    return mutation(engine, 'replace_food_tags', actor, target, {'tags': tag_public_ids})
+def replace_food_tags(engine: Engine, actor: ActorExpectation, target: ObjectExpectation, tag_public_ids: Sequence[str], *, original_location: int | None = None) -> MutationResult:
+    return mutation(engine, 'replace_food_tags', actor, target, {'tags': tag_public_ids}, original_location=original_location)
 
 
 @safe
 @require_capability('masterdata.write')
-def replace_food_metadata(engine: Engine, actor: ActorExpectation, target: ObjectExpectation, *, allergens: Sequence[Mapping[str, str]], labels: Sequence[str]) -> MutationResult:
-    return mutation(engine, 'replace_food_metadata', actor, target, {'allergens': allergens, 'labels': labels})
+def replace_food_metadata(engine: Engine, actor: ActorExpectation, target: ObjectExpectation, *, allergens: Sequence[Mapping[str, str]], labels: Sequence[str], original_location: int | None = None) -> MutationResult:
+    return mutation(engine, 'replace_food_metadata', actor, target, {'allergens': allergens, 'labels': labels}, original_location=original_location)
 
 
 @safe
 @require_capability('masterdata.write')
-def set_food_allergen_review(engine: Engine, actor: ActorExpectation, target: ObjectExpectation, *, checked: bool) -> MutationResult:
-    return mutation(engine, 'set_food_allergen_review', actor, target, {'checked': checked})
+def set_food_allergen_review(engine: Engine, actor: ActorExpectation, target: ObjectExpectation, *, checked: bool, original_location: int | None = None) -> MutationResult:
+    return mutation(engine, 'set_food_allergen_review', actor, target, {'checked': checked}, original_location=original_location)
 
 
 @safe
 @require_capability('masterdata.write')
-def replace_food_storage_locations(engine: Engine, actor: ActorExpectation, target: ObjectExpectation, storage_public_ids: Sequence[str]) -> MutationResult:
-    return mutation(engine, 'replace_food_storage_locations', actor, target, {'storage_locations': storage_public_ids})
+def replace_food_storage_locations(engine: Engine, actor: ActorExpectation, target: ObjectExpectation, storage_public_ids: Sequence[str], *, original_location: int | None = None) -> MutationResult:
+    return mutation(engine, 'replace_food_storage_locations', actor, target, {'storage_locations': storage_public_ids}, original_location=original_location)
 
 
 @safe
@@ -95,30 +96,30 @@ def create_proposal(engine: Engine, actor: ActorExpectation, *, source: str, sou
 
 @safe
 @require_capability('masterdata.write')
-def create_vocabulary(engine: Engine, kind: VocabularyKind, actor: ActorExpectation, *, code: str, name: str, sort_order: int | None = None) -> MutationResult:
+def create_vocabulary(engine: Engine, kind: VocabularyKind, actor: ActorExpectation, *, code: str, name: str, sort_order: int | None = None, original_location: int | None = None) -> MutationResult:
     reads.vocabulary_sql(kind)
     payload: dict[str, object] = {'code': code, 'name': name}
     if sort_order is not None:
         payload['sort_order'] = sort_order
-    return mutation(engine, 'create_' + kind, actor, None, payload)
+    return mutation(engine, 'create_' + kind, actor, None, payload, original_location=original_location)
 
 
 @safe
 @require_capability('masterdata.write')
-def update_vocabulary(engine: Engine, kind: VocabularyKind, actor: ActorExpectation, target: ObjectExpectation, *, name: str, sort_order: int | None = None) -> MutationResult:
+def update_vocabulary(engine: Engine, kind: VocabularyKind, actor: ActorExpectation, target: ObjectExpectation, *, name: str, sort_order: int | None = None, original_location: int | None = None) -> MutationResult:
     reads.vocabulary_sql(kind)
     payload: dict[str, object] = {'name': name}
     if sort_order is not None:
         payload['sort_order'] = sort_order
-    return mutation(engine, 'update_' + kind, actor, target, payload)
+    return mutation(engine, 'update_' + kind, actor, target, payload, original_location=original_location)
 
 
 @safe
 @require_capability('masterdata.write')
-def set_vocabulary_active(engine: Engine, kind: VocabularyKind, actor: ActorExpectation, target: ObjectExpectation, *, active: bool) -> MutationResult:
+def set_vocabulary_active(engine: Engine, kind: VocabularyKind, actor: ActorExpectation, target: ObjectExpectation, *, active: bool, original_location: int | None = None) -> MutationResult:
     reads.vocabulary_sql(kind)
     payload: dict[str, object] = {'active': active}
-    return mutation(engine, 'set_active_' + kind, actor, target, payload)
+    return mutation(engine, 'set_active_' + kind, actor, target, payload, original_location=original_location)
 
 
 @safe

@@ -90,6 +90,18 @@ class SourceDTO:
 
 
 @dataclass(frozen=True)
+class PreparedRecipeDTO:
+    recipe_public_id: str
+    revision_public_id: str
+    revision_number: int
+    content_hash_sha256: str
+    title: str
+    yield_quantity: Decimal
+    yield_unit_code: str
+    recipe_active: bool
+
+
+@dataclass(frozen=True)
 class FoodDTO:
     public_id: str
     name: str
@@ -106,6 +118,7 @@ class FoodDTO:
     labels: tuple[str, ...]
     tags: tuple[VocabularyDTO, ...]
     storage_locations: tuple[VocabularyDTO, ...]
+    prepared_recipe: PreparedRecipeDTO | None = None
 
 
 @dataclass(frozen=True)

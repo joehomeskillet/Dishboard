@@ -28,6 +28,7 @@
 {% endmacro %}
 {% block content %}
 <p>Zutaten und gemeinsame Fachbegriffe pflegen. Änderungen veröffentlichen keinen Menüplan.</p>
+{% if kind == 'lagerorte' %}<p class="text-secondary">Kein Bestand erfasst. Lagerorte ordnen Zutaten zu; Bestandsbuchungen sind hier nicht verfügbar.</p>{% endif %}
 <nav class="mb-4" aria-label="Stammdatenbereiche"><ul class="nav nav-pills">
 {% for key, label in kinds.items() %}<li class="nav-item"><a class="nav-link{% if key == kind %} active{% endif %}"{% if key == kind %} aria-current="page"{% endif %} href="{{ url_for('admin.master_data_list', kind=query_kinds[key]) }}">{{ label }}</a></li>{% endfor %}
 </ul></nav>
@@ -46,7 +47,9 @@
 <div class="list-group list-group-flush">
 {% for item in rows %}<div class="list-group-item"><div class="row g-2 align-items-center"><div class="col">
 <a class="text-break" href="{{ url_for('admin.master_data_detail', kind=kind, public_id=item.public_id) }}">{{ item.display_name if kind == 'einheiten' else item.name }}</a>
-<div class="text-secondary">{{ 'Aktiv' if item.active else 'Archiviert' }} · Version {{ item.row_version }}</div></div>
+<div class="text-secondary">{{ 'Aktiv' if item.active else 'Archiviert' }} · Version {{ item.row_version }}</div>
+{% if kind == 'zutaten' %}<div class="text-secondary">{{ item.base_unit.display_name }} · {% for storage in item.storage_locations %}<a href="{{ url_for('admin.master_data_detail', kind='lagerorte', public_id=storage.public_id) }}">{{ storage.name }}</a>{{ ', ' if not loop.last else '' }}{% else %}Lagerort fehlt{% endfor %}</div>
+{% if item.prepared_recipe %}<div><a href="{{ url_for('admin.recipe_revision', recipe_id=item.prepared_recipe.recipe_public_id, revision_id=item.prepared_recipe.revision_public_id) }}">{{ item.prepared_recipe.title }} · Stand {{ item.prepared_recipe.revision_number }}</a></div>{% endif %}{% endif %}</div>
 <div class="col-auto">{{ icon_link(url_for('admin.master_data_detail', kind=kind, public_id=item.public_id), (item.display_name if kind == 'einheiten' else item.name) ~ (' bearbeiten' if can_write else ' ansehen')) }}</div></div></div>
 {% else %}<div class="empty"><p class="empty-title">Keine passenden Stammdaten</p><p class="empty-subtitle text-secondary">Filter anpassen oder einen Datensatz anlegen.</p></div>{% endfor %}
 </div><div class="card-footer">{{ pagination(page, has_next, prev_url, next_url, 'Stammdatenseiten') }}</div></div>

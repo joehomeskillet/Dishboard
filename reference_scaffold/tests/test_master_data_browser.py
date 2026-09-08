@@ -64,6 +64,7 @@ def test_native_food_save_conflict_archive_and_framework(b3, master_server, brow
         expect(page.get_by_text('Keine passenden Stammdaten')).to_be_visible()
         page.get_by_role('link', name='Neu anlegen', exact=True).click()
         page.get_by_label('Name', exact=True).fill('Karotte Browser')
+        page.get_by_label('Testlager', exact=True).check()
         page.get_by_role('button', name='Zutat anlegen', exact=True).click()
         expect(page.get_by_role('heading', level=1)).to_have_text('Zutat bearbeiten')
         path = urlsplit(page.url).path
@@ -112,11 +113,11 @@ def test_browser_vocabulary_unit_forms_and_error_focus(b3, master_server, browse
     with browser.new_context(viewport={'width': 390, 'height': 1000}) as context:
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
         page = context.new_page()
-        for kind in ('kategorien', 'tags', 'einheiten'):
+        for kind in ('kategorien', 'tags', 'einheiten', 'lagerorte'):
             page.goto(f'{base}/admin/grundlagen/{kind}/neu')
             page.get_by_label('Anzeigename' if kind == 'einheiten' else 'Name', exact=True).fill('Browser ' + kind)
             page.get_by_label('Code (Grossbuchstaben, Ziffern, Unterstrich)', exact=True).fill('BROWSER')
-            if kind == 'kategorien':
+            if kind in {'kategorien', 'lagerorte'}:
                 page.get_by_label('Reihenfolge (1 bis 9999)', exact=True).fill('2')
             if kind == 'einheiten':
                 page.get_by_label('Dimension', exact=True).select_option('count')
@@ -126,6 +127,7 @@ def test_browser_vocabulary_unit_forms_and_error_focus(b3, master_server, browse
             targets(page)
         page.goto(base + '/admin/grundlagen/zutaten/neu')
         page.get_by_label('Name', exact=True).fill('<unzulässig>')
+        page.get_by_label('Testlager', exact=True).check()
         page.get_by_role('button', name='Zutat anlegen', exact=True).click()
         expect(page.locator('.error-region')).to_be_visible()
         expect(page.get_by_label('Name', exact=True)).to_have_attribute('aria-invalid', 'true')
@@ -153,7 +155,7 @@ def test_location_conflict_native_recovery(b3, master_server, browser, width, ja
             connection.execute(text("INSERT INTO cafeteria.locations(code,name,active) VALUES('NEW','Neuer Standort',true)"))
         before = snapshot(owner)
         with page.expect_response(lambda response: response.request.method == 'POST') as outcome:
-            form.get_by_role('button', name='Stammdaten speichern' if existing else 'Zutat anlegen', exact=True).click()
+            page.get_by_role('button', name='Stammdaten speichern' if existing else 'Zutat anlegen', exact=True).click()
         assert outcome.value.status == 409
         expect(page.get_by_role('heading', level=1)).to_have_text('Ursprüngliche Eingaben')
         expect(page.locator('#master-error')).to_be_focused()
@@ -211,7 +213,10 @@ def test_location_conflict_selections_are_visible_and_copyable(b3, master_server
             connection.execute(text("INSERT INTO cafeteria.locations(code,name,active) VALUES('NEW','Neuer Standort',true)"))
         before = snapshot(owner)
         with page.expect_response(lambda response: response.request.method == 'POST') as outcome:
-            form.get_by_role('button').click()
+            if purpose == 'stammdaten':
+                page.get_by_role('button', name='Stammdaten speichern', exact=True).click()
+            else:
+                form.get_by_role('button').click()
         assert outcome.value.status == 409
         expect(page.locator('#master-error')).to_be_focused()
         assert form.evaluate('el => Array.from(new FormData(el).entries())') == original
