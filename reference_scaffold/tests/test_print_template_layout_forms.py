@@ -1,15 +1,18 @@
 """Native layout forms keep stored revisions and explicit render failures usable."""
 from __future__ import annotations
 
+import copy
+
 import pytest
 from playwright.sync_api import expect
 from werkzeug.datastructures import MultiDict
 
-from cafeteria.print_template_config import PrintTemplateValidationError, default_layout
-from cafeteria.print_templates import default_document, read_templates, template_revision
+from cafeteria.print_template_config import PrintTemplateValidationError, default_config, default_layout
+from cafeteria.print_templates import change_template, default_document, read_templates, template_revision
+from cafeteria.workflow_store import load_draft_connection
 from cafeteria.admin.week_pdf import WeekPdfFitError
 from test_admin_workflow_db import _patient_values, _save, _staff_values
-from test_admin_workflow_routes import DAY, _login, database_engine  # noqa: F401
+from test_admin_workflow_routes import DAY, WEEK, _login, database_engine  # noqa: F401
 from test_print_template_archive import seed, snapshot
 from test_print_template_routes import editor_app, fields  # noqa: F401
 from test_print_template_browser import _context, _targets, browser, editor_server  # noqa: F401
@@ -54,6 +57,93 @@ def layout_fields(profile, **extra):
             result[f'layout_{key}'] = value
     result.update(extra)
     return result
+
+
+def legacy_save_history(profile):
+    document = default_document()
+    template = document['templates'][0]
+    for alignment in ('center', 'left'):
+        revision = copy.deepcopy(template['revisions'][0])
+        revision.update(id=len(template['revisions']) + 1, name=f'Layout {alignment}')
+        revision['config']['layout'] = {**default_layout(profile), 'alignment': alignment}
+        template['revisions'].append(revision)
+    template['current_revision'] = 3
+    document.update(schema_version=3, version=7, active_revision=3)
+    return document
+
+
+@pytest.mark.parametrize('family,profile', [('cafeteria', 'staff_guest'), ('patienten', 'patient')])
+@pytest.mark.parametrize('selected', [1, 2, 3])
+def test_eight_key_save_preserves_exact_selected_layout_and_active_pdf(editor_app, database_engine, family, profile, selected):  # noqa: F811
+    client, _ = _login(editor_app, database_engine, ['Cafeteria.Admin'])
+    _save(database_engine, profile, _staff_values() if profile == 'staff_guest' else _patient_values())
+    original = legacy_save_history(profile)
+    seed(database_engine, profile, original)
+    download = f'/admin/{family}/preview/print?week={DAY}'
+    before_pdf = client.get(download)
+    assert before_pdf.status_code == 200
+    with database_engine.connect() as connection:
+        before_week = load_draft_connection(connection, profile, WEEK)
+    # The submitted revision, not the current/active revision or query, owns the layout.
+    response = client.post(f'/admin/vorlagen/{family}?week={DAY}&revision=3',
+                           data=fields(version=7, revision=selected, header_text='Guten Appetit'))
+    assert response.status_code == 303
+    with database_engine.connect() as connection:
+        saved = read_templates(connection, profile)
+        assert load_draft_connection(connection, profile, WEEK) == before_week
+    assert saved['schema_version'] == 3 and saved['version'] == 8
+    assert (saved['active_template'], saved['active_revision']) == ('standard', 3)
+    assert saved['templates'][0]['revisions'][:3] == original['templates'][0]['revisions']
+    expected = {**template_revision(original, 'standard', selected)['config'], 'header_text': 'Guten Appetit'}
+    assert template_revision(saved, 'standard', 4)['config'] == expected
+    after_pdf = client.get(download)
+    assert after_pdf.status_code == 200 and after_pdf.data == before_pdf.data
+    assert client.get(f'/admin/vorlagen/{family}/vorschau.pdf?week={DAY}&revision=4').status_code == 200
+
+
+@pytest.mark.parametrize('family,profile', [('cafeteria', 'staff_guest'), ('patienten', 'patient')])
+@pytest.mark.parametrize('race', [False, True])
+def test_eight_key_save_rejects_stale_cas_including_after_layout_read(editor_app, database_engine, monkeypatch, family, profile, race):  # noqa: F811
+    from cafeteria.admin import print_template_routes as routes
+
+    client, actor = _login(editor_app, database_engine, ['Cafeteria.Admin'])
+    with client.session_transaction() as session:
+        authz_version = int(session['authz_version'])
+    _save(database_engine, profile, _staff_values() if profile == 'staff_guest' else _patient_values())
+    original = legacy_save_history(profile)
+    seed(database_engine, profile, original)
+    download = f'/admin/{family}/preview/print?week={DAY}'
+    before_pdf = client.get(download)
+    assert before_pdf.status_code == 200
+    with database_engine.connect() as connection:
+        before_week = load_draft_connection(connection, profile, WEEK)
+    expected_snapshot = snapshot(database_engine)
+    if race:
+        save_config = routes._save_config
+
+        def intervening_save(*args, **kwargs):
+            nonlocal expected_snapshot
+            config = save_config(*args, **kwargs)
+            change_template(database_engine, profile, actor, authz_version, 7, 'standard', 'save',
+                            revision_id=3, name='Andere Sitzung', config=default_config())
+            expected_snapshot = snapshot(database_engine)
+            return config
+
+        monkeypatch.setattr(routes, '_save_config', intervening_save)
+    response = client.post(f'/admin/vorlagen/{family}?week={DAY}',
+                           data=fields(version=7 if race else 6, revision=2, header_text='Meine Eingabe'))
+    assert response.status_code == 409
+    assert 'Meine Eingabe</textarea>' in response.text
+    assert f'name="version" value="{7 if race else 6}"' in response.text
+    assert snapshot(database_engine) == expected_snapshot
+    with database_engine.connect() as connection:
+        saved = read_templates(connection, profile)
+        assert load_draft_connection(connection, profile, WEEK) == before_week
+    assert saved['templates'][0]['revisions'][:3] == original['templates'][0]['revisions']
+    assert (saved['active_template'], saved['active_revision']) == ('standard', 3)
+    assert saved['version'] == (8 if race else 7)
+    after_pdf = client.get(download)
+    assert after_pdf.status_code == 200 and after_pdf.data == before_pdf.data
 
 
 @pytest.mark.parametrize('family,profile', [('cafeteria', 'staff_guest'), ('patienten', 'patient')])
@@ -106,12 +196,13 @@ def test_invalid_layout_never_writes_or_refreshes_form_version(editor_app, datab
         data['layout_photo'] = 'https://example.invalid/remote.jpg'
     else:
         data['layout_mode'] = 'preserve'
+        data['layout_grid'] = 'days_rows'
     before = snapshot(database_engine)
     response = client.post(path, data=data)
     assert response.status_code == 400
     assert 'name="version" value="0"' in response.text and 'name="revision" value="1"' in response.text
     assert 'Mein Entwurf</textarea>' in response.text
-    assert 'value="days_columns" selected' in response.text
+    assert f'value="{data["layout_grid"]}" selected' in response.text
     assert 'aria-invalid="true"' in response.text and 'autofocus' in response.text
     assert '<script>alert(1)</script>' not in response.text
     assert '<option value="prices"' not in response.text
@@ -152,6 +243,7 @@ def test_layout_boundaries_cannot_bypass_authority_or_payload_limits(editor_app,
 def test_native_layout_controls_keyboard_errors_and_no_js_save(editor_app, editor_server, database_engine, browser, tmp_path, width, javascript, family, profile):  # noqa: F811
     client, _ = _login(editor_app, database_engine, ['Cafeteria.Admin'])
     _save(database_engine, profile, _staff_values() if profile == 'staff_guest' else _patient_values())
+    changed_grid = 'days_rows' if default_layout(profile)['grid'] == 'days_columns' else 'days_columns'
     with _context(browser, editor_server, client, width, javascript=javascript) as context:
         page = context.new_page()
         page.goto(f'/admin/vorlagen/{family}?week={DAY}')
@@ -159,13 +251,13 @@ def test_native_layout_controls_keyboard_errors_and_no_js_save(editor_app, edito
         if profile == 'patient':
             assert page.locator('option[value="prices"]').count() == 0
         page.get_by_text('Raster, Bilder und Abstände', exact=True).click()
-        page.get_by_label('Wochenraster', exact=True).select_option('days_columns')
+        page.get_by_label('Wochenraster', exact=True).select_option(changed_grid)
         _targets(page)
         with page.expect_response(lambda response: response.request.method == 'POST') as result:
             page.get_by_role('button', name='Entwurf speichern und prüfen', exact=True).click()
         assert result.value.status == 400
         expect(page.get_by_label('Layout beim Speichern', exact=True)).to_be_focused()
-        expect(page.get_by_label('Wochenraster', exact=True)).to_have_value('days_columns')
+        expect(page.get_by_label('Wochenraster', exact=True)).to_have_value(changed_grid)
         page.get_by_label('Layout beim Speichern', exact=True).select_option('custom')
         page.locator('summary').filter(has_text='Reihenfolge im Kopfbereich').click()
         first = page.get_by_label('Reihenfolge im Kopfbereich · Position 1', exact=True)
@@ -187,5 +279,5 @@ def test_native_layout_controls_keyboard_errors_and_no_js_save(editor_app, edito
             path=str(tmp_path / f'layout-controls-{family}-{width}-js-{javascript}.png'), caret='initial')
     with database_engine.connect() as connection:
         config = template_revision(read_templates(connection, profile), 'standard')['config']
-    assert config['layout']['grid'] == 'days_columns'
+    assert config['layout']['grid'] == changed_grid
     assert config['layout']['header'][:2] == ['title', 'logo']

@@ -108,7 +108,7 @@
       <div class="card-header"><h2 class="card-title" id="pdf-heading">PDF-Vorschau · Revision {{ revision.id }}</h2></div>
       <div class="card-body">
         <p>Gespeicherte Woche ab {{ week|date_long }}. Vorschau und Download verwenden dieselbe Druckvorlage.</p>
-        {% if preview_error %}<div class="alert alert-warning" role="status">{{ preview_error }}</div>{% else %}
+        {% if preview_error %}<div class="alert alert-warning text-warning-emphasis" role="status">{{ preview_error }}</div>{% else %}
         <iframe class="print-template-preview {% if profile == 'patient' %}print-template-preview-landscape{% endif %}" src="{{ preview_url }}#toolbar=0&amp;navpanes=0&amp;view=Fit" title="{{ label }} PDF-Vorschau Revision {{ revision.id }}"></iframe>
         <a class="btn mt-3" href="{{ preview_url }}" target="_blank" rel="noopener">Vorschau als PDF öffnen</a>
         {% endif %}

@@ -50,6 +50,9 @@ def _save_config(profile: str, template_id: str, revision_id: int, required: set
     layout_fields = _layout_form_values(profile, default_config())
     if not any(key.startswith('layout_') for key in request.form):
         _exact(required)
+        original = _selected(_document(profile), template_id, revision_id)['config']
+        if 'layout' in original:
+            values['layout'] = original['layout']
         return validate_config(values, profile)
     expected = required | layout_fields.keys()
     if set(request.form) != expected or any(len(request.form.getlist(key)) != 1 for key in expected):
