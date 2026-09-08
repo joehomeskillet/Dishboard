@@ -1,9 +1,11 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon %}
 {% set workflow_nav = 'vorlagen' %}
-{% set label = 'Patienten' if profile == 'patient' else 'Cafeteria' %}
+{% set label = 'Rezepte' if recipe_editor else 'Patienten' if profile == 'patient' else 'Cafeteria' %}
+{% if not recipe_editor %}
 {% set editor_url = url_for('admin.print_template_editor', family=family, week=week, template=template.id) %}
 {% set preview_url = url_for('admin.print_template_preview', family=family, week=week, template=template.id, revision=revision.id) %}
+{% endif %}
 {% block title %}{{ label }} · Vorlageneditor{% endblock %}
 {% block page_styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='print-template-editor.css') }}">
@@ -18,8 +20,13 @@
 {% endmacro %}
 {% macro layout_error(field) %}{% if error and error_field == field %}aria-invalid="true" aria-describedby="template-error" autofocus{% endif %}{% endmacro %}
 {% block content %}
+{% if recipe_editor %}
+<div class="btn-list mb-3"><a class="btn" href="{{ url_for('admin.vorlagen') }}">Alle Vorlagen</a><a class="btn" href="{{ url_for('admin.recipes_list') }}">Rezepte öffnen</a></div>
+<p>A4 hoch · Fortlaufende Seiten. Zutaten, Mengen, Bilder und Herkunft bleiben vollständig erhalten.</p>
+{% else %}
 <div class="btn-list mb-3"><a class="btn" href="{{ url_for('admin.vorlagen', week=week) }}">Alle Vorlagen</a><a class="btn" href="{{ url_for('admin.' ~ family, week=week) }}">Menüwoche öffnen</a></div>
 <p>{{ 'A4 quer · Montag bis Sonntag · Mittag und Abend' if profile == 'patient' else 'A4 hoch · Alle freigegebenen Wochentage' }}. Alle Menütexte und Deklarationen bleiben vollständig erhalten.</p>
+{% endif %}
 {% if error %}
 <div class="alert alert-danger error-region" role="alert" id="template-error" tabindex="-1" {% if error_field == 'form' %}autofocus{% endif %}>
   <div><h2 class="h4">Änderung nicht gespeichert</h2><p>{{ error }}</p><a class="btn" href="{{ editor_url }}">Aktuellen Stand neu laden</a></div>
@@ -28,6 +35,7 @@
 {% if template.archived %}
 <div class="alert alert-info" role="status">Diese Vorlage ist archiviert. Alle Revisionen bleiben einsehbar und als PDF prüfbar. Zum Bearbeiten oder Aktivieren zuerst reaktivieren.</div>
 {% endif %}
+{% if recipe_editor %}{% include 'admin/_recipe_template_selection.html' %}{% else %}
 <form class="card mb-4" method="get" action="{{ url_for('admin.print_template_editor', family=family) }}">
   <div class="card-body row g-3 align-items-end">
     <div class="col-12 col-sm-5"><label class="form-label" for="template-select">Vorlage</label><select class="form-select" id="template-select" name="template">
@@ -37,6 +45,7 @@
     <div class="col-12 col-sm-3"><button class="btn" type="submit">Anzeigen</button></div>
   </div>
 </form>
+{% endif %}
 <div class="row row-cards print-template-editor">
   <div class="col-12 col-xl-5">
     <form class="card" method="post" action="{{ editor_url }}">
@@ -45,17 +54,19 @@
       <fieldset {% if template.archived %}disabled{% endif %}>
       <div class="card-body">
         <div class="mb-3"><label class="form-label" for="template-name">Vorlagenname</label><input class="form-control" id="template-name" name="name" value="{{ values.name }}" maxlength="60" required {% if error_field == 'name' and error_action != 'copy' %}aria-invalid="true" aria-describedby="template-error"{% endif %}></div>
-        {% for field, field_label in [('font', 'Druckschrift'), ('text_size', 'Textgrösse'), ('palette', 'Farbpalette'), ('logo', 'Logo'), ('margin', 'Seitenränder links und rechts'), ('spacing', 'Zellenabstände')] %}
+        {% for field, field_label in [('font', 'Druckschrift'), ('text_size', 'Textgrösse'), ('palette', 'Farbpalette'), ('logo', 'Logo'), ('margin', 'Seitenränder links und rechts'), ('spacing', 'Textabstände' if recipe_editor else 'Zellenabstände')] %}
         <div class="mb-3"><label class="form-label" for="template-{{ field }}">{{ field_label }}</label><select class="form-select" id="template-{{ field }}" name="{{ field }}" {% if error_field == field %}aria-invalid="true" aria-describedby="template-error"{% endif %}>
           {% for value, choice in choices[field].items() %}<option value="{{ value }}" {% if values[field] == value %}selected{% endif %}>{{ choice }}</option>{% endfor %}
         </select></div>
         {% endfor %}
-        <p class="form-hint">„Aktive Marke übernehmen“ verwendet die jeweils aktivierte Marke: Text- und Überschriftenschrift, Farben oder Logo. Jede andere Auswahl bleibt ein fester Vorlagenwert. Ohne individuelles Markenlogo erscheint das Südhang-Standardlogo. Mit „Ohne Logo“ bleibt der Logobereich leer. Spätere Markenaktivierungen wirken auf diese Auswahl; alte Vorlagenrevisionen werden dabei nicht geändert.</p>
+        <p class="form-hint">„Aktive Marke übernehmen“ verwendet die jeweils aktivierte Marke: Text- und Überschriftenschrift, Farben oder Logo. Jede andere Auswahl bleibt ein fester Vorlagenwert. {% if recipe_editor %}Wenn die aktive Marke kein Logo hat, bleibt der Logobereich leer.{% else %}Ohne individuelles Markenlogo erscheint das Südhang-Standardlogo.{% endif %} Mit „Ohne Logo“ bleibt der Logobereich leer. Spätere Markenaktivierungen wirken auf diese Auswahl; alte Vorlagenrevisionen werden dabei nicht geändert.</p>
+        {% if recipe_editor %}<p class="form-hint">Automatisch und Standard: 11 pt. Gross: 12 pt. Längere Rezepte fliessen auf weitere Seiten; Inhalte werden vollständig geprüft.</p>{% else %}
         <p class="form-hint">Standard: {{ '9 pt' if profile == 'patient' else '12 pt, Details 10 pt' }}. Gross: {{ '10 pt' if profile == 'patient' else '14 pt, Details 12 pt' }}. Zu grosse Inhalte werden abgelehnt; es wird nichts abgeschnitten.</p>
+        {% endif %}
         {% for field, field_label in [('header_text', 'Zusatz unter dem Kopfbereich'), ('footer_text', 'Zusatz in der Fusszeile')] %}
         <div class="mb-3"><label class="form-label" for="template-{{ field }}">{{ field_label }}</label><textarea class="form-control" id="template-{{ field }}" name="{{ field }}" maxlength="{{ text_limits[field] }}" rows="2" {% if error_field == field %}aria-invalid="true" aria-describedby="template-error"{% endif %}>{{ values[field] }}</textarea><p class="form-hint">Optional, höchstens {{ text_limits[field] }} Zeichen. Nur einfacher Text.</p></div>
         {% endfor %}
-        <hr>
+        {% if not recipe_editor %}<hr>
         <h3 class="h4">Wochenlayout</h3>
         <p class="text-secondary">{{ 'Individuelles Wochenlayout gespeichert.' if revision.config.layout is defined else 'Originales Wochenlayout gespeichert.' }} Alle Pflichtangaben bleiben erhalten. Menüinhalte bearbeiten Sie in der Menüwoche.</p>
         <label class="form-label" for="template-layout_mode">Layout beim Speichern</label>
@@ -98,16 +109,18 @@
           </fieldset>
         </details>
         {% endfor %}
+        {% endif %}
       </div>
       </fieldset>
-      {% if not template.archived %}<div class="card-footer"><button class="btn btn-primary" type="submit">Entwurf speichern und prüfen</button><p class="form-hint mt-2 mb-0">Änderungen werden erst nach dem Speichern in der Vorschau sichtbar. Die aktive Druckvorlage bleibt bis zur Aktivierung bestehen.</p></div>{% endif %}
+      {% if not template.archived %}<div class="card-footer"><button class="btn btn-primary" type="submit">{{ 'Entwurf speichern' if recipe_editor else 'Entwurf speichern und prüfen' }}</button><p class="form-hint mt-2 mb-0">Änderungen werden erst nach dem Speichern in der Vorschau sichtbar. Die aktive Druckvorlage bleibt bis zur Aktivierung bestehen.</p></div>{% endif %}
     </form>
   </div>
   <div class="col-12 col-xl-7">
     <section class="card mb-4" aria-labelledby="pdf-heading">
       <div class="card-header"><h2 class="card-title" id="pdf-heading">PDF-Vorschau · Revision {{ revision.id }}</h2></div>
       <div class="card-body">
-        <p>Gespeicherte Woche ab {{ week|date_long }}. Vorschau und Download verwenden dieselbe Druckvorlage.</p>
+        {% if recipe_editor %}<p>{% if recipe_revision %}{{ recipe_revision.snapshot.recipe.title }} · Rezeptrevision {{ recipe_revision.revision_number }}.{% endif %} Die Vorschau verwendet die gespeicherte Vorlagenrevision.</p>{% else %}
+        <p>Gespeicherte Woche ab {{ week|date_long }}. Vorschau und Download verwenden dieselbe Druckvorlage.</p>{% endif %}
         {% if preview_error %}<div class="alert alert-warning text-warning-emphasis" role="status">{{ preview_error }}</div>{% else %}
         <iframe class="print-template-preview {% if profile == 'patient' %}print-template-preview-landscape{% endif %}" src="{{ preview_url }}#toolbar=0&amp;navpanes=0&amp;view=Fit" title="{{ label }} PDF-Vorschau Revision {{ revision.id }}"></iframe>
         <a class="btn mt-3" href="{{ preview_url }}" target="_blank" rel="noopener">Vorschau als PDF öffnen</a>
@@ -116,11 +129,14 @@
       <div class="card-footer">
         {% if document.active_template == template.id and document.active_revision == revision.id %}
         <p class="mb-2"><span class="badge bg-success-lt">Aktive Druckvorlage</span> Revision {{ revision.id }}</p>
-        {% elif not template.archived %}
+        {% elif not template.archived and (not recipe_editor or not preview_error) %}
         <form method="post" action="{{ editor_url }}">{{ hidden('activate') }}<button class="btn btn-primary" type="submit">Revision {{ revision.id }} prüfen und aktivieren</button></form>
         {% endif %}
-        <p class="form-hint mt-2">Aktivierung prüft diese Woche. Jede andere Woche wird beim PDF-Download erneut auf vollständige Lesbarkeit geprüft.</p>
-        <a class="btn" href="{{ url_for('admin.print_week', family=family, week=week) }}">PDF mit aktiver Vorlage öffnen</a>
+        {% if recipe_editor %}
+        <p class="form-hint mt-2">Aktivierung prüft die ausgewählte Rezeptrevision. Jedes Rezept wird beim PDF-Download erneut auf vollständige Ausgabe geprüft.</p>
+        {% if active_recipe_url %}<a class="btn" href="{{ active_recipe_url }}">PDF mit aktiver Vorlage öffnen</a>{% endif %}
+        {% else %}<p class="form-hint mt-2">Aktivierung prüft diese Woche. Jede andere Woche wird beim PDF-Download erneut auf vollständige Lesbarkeit geprüft.</p>
+        <a class="btn" href="{{ url_for('admin.print_week', family=family, week=week) }}">PDF mit aktiver Vorlage öffnen</a>{% endif %}
       </div>
     </section>
     <section class="card mb-4" aria-labelledby="copy-heading">
@@ -156,7 +172,7 @@
         <li class="list-group-item">
           <p class="mb-2"><strong>Revision {{ saved.id }} · {{ saved.name }}</strong>{% if saved.id == template.current_revision %} · Neuester Entwurf{% endif %}{% if document.active_template == template.id and document.active_revision == saved.id %} · Aktiv{% endif %}</p>
           <p class="text-secondary mb-2">{% if saved.created_at %}<time datetime="{{ saved.created_at }}">{{ saved.created_at|datetime_short }}</time>{% else %}Mitgelieferte Standardvorlage{% endif %}{% if saved.restored_from %} · Wiederhergestellt aus Revision {{ saved.restored_from }}{% endif %}</p>
-          <div class="btn-list"><a class="btn" href="{{ url_for('admin.print_template_editor', family=family, week=week, template=template.id, revision=saved.id) }}">Revision {{ saved.id }} ansehen</a>
+          <div class="btn-list"><a class="btn" href="{{ recipe_url(revision=saved.id) if recipe_editor else url_for('admin.print_template_editor', family=family, week=week, template=template.id, revision=saved.id) }}">Revision {{ saved.id }} ansehen</a>
           {% if not template.archived and saved.id != template.current_revision %}<form method="post" action="{{ editor_url }}">{{ hidden('restore', saved.id) }}<button class="btn" type="submit">Revision {{ saved.id }} wiederherstellen</button></form>{% endif %}</div>
         </li>
         {% endfor %}

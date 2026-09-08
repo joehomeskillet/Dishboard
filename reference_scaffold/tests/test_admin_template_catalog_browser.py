@@ -52,7 +52,14 @@ def test_virtual_catalog_and_missing_week_never_initialize_settings(editor_app, 
     before = settings(database_engine)
     page = client.get(f'/admin/vorlagen?week={DAY}')
     assert page.status_code == 200 and page.headers['Cache-Control'] == 'no-store'
-    assert page.text.count('data-template-id="standard"') == 2
+    assert page.text.count('data-template-id="standard"') == 3
+    recipe_links = [link for link in MainLinks(page.text).links
+                    if urlsplit(link).path == '/admin/vorlagen/rezepte']
+    assert len(recipe_links) == 1
+    assert parse_qs(urlsplit(recipe_links[0]).query) == {'template': ['standard'], 'revision': ['1']}
+    recipe_editor = client.get(recipe_links[0])
+    assert recipe_editor.status_code == 200 and recipe_editor.headers['Cache-Control'] == 'no-store'
+    assert '<iframe' not in recipe_editor.text
     assert {link for link in MainLinks(page.text).links if link.startswith('/admin/vorlagen/screens/')} == SCREEN_TARGETS
     for link in SCREEN_TARGETS:
         preview = client.get(link)
@@ -163,11 +170,22 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
             result = page.goto(f'{base}/admin/vorlagen?week={DAY}', wait_until='networkidle')
             assert result is not None and result.status == 200
             expect(page.get_by_role('heading', level=1)).to_have_text('Vorlagen')
-            assert page.locator('[data-template-id]').count() == 4
-            assert page.locator('[data-template-id] use[href$="#tabler-pencil"]').count() == 4
-            for item in page.locator('[data-template-id="standard"]').all():
+            assert page.locator('[data-template-id]').count() == 5
+            assert page.locator('[data-template-id] use[href$="#tabler-pencil"]').count() == 5
+            weekly_cards = page.locator('article.card:has([data-template-id]):not([aria-labelledby="recipe-templates-heading"])')
+            assert weekly_cards.count() == 2
+            assert weekly_cards.locator('[data-template-id]').count() == 4
+            assert weekly_cards.locator('[data-template-id="standard"]').count() == 2
+            for item in weekly_cards.locator('[data-template-id="standard"]').all():
                 expect(item.get_by_role('heading')).to_have_text('Winter & Festtage')
                 expect(item.get_by_text('Aktiver Herbst · Revision 2', exact=False)).to_be_visible()
+            recipe_card = page.locator('article[aria-labelledby="recipe-templates-heading"]')
+            assert recipe_card.locator('[data-template-id="standard"]').count() == 1
+            expect(recipe_card.get_by_text('Neuester Stand: Revision 1', exact=True)).to_be_visible()
+            recipe_link = recipe_card.get_by_role('link', name='Rezeptvorlageneditor öffnen', exact=True)
+            recipe_target = urlsplit(recipe_link.get_attribute('href'))
+            assert recipe_target.path == '/admin/vorlagen/rezepte'
+            assert parse_qs(recipe_target.query) == {'template': ['standard'], 'revision': ['1']}
             assets = page.locator('link[rel="stylesheet"], script[src]').evaluate_all(
                 "els => els.map(el => new URL(el.href || el.src).pathname)"
             )
@@ -189,7 +207,7 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
             page.get_by_role('heading', level=1).click()
             page.screenshot(path=str(screenshot), full_page=True)
             screenshot.chmod(0o600)
-            editor = page.locator('[data-template-id="standard"]').first.get_by_role('link', name='Vorlageneditor öffnen')
+            editor = weekly_cards.locator('[data-template-id="standard"]').first.get_by_role('link', name='Vorlageneditor öffnen')
             target = editor.get_attribute('href')
             editor.focus()
             editor.press('Enter')

@@ -5,7 +5,7 @@
 {% block page_header %}{{ page_header('Vorlagen') }}{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-screens.css') }}">{% endblock %}
 {% block content %}
-<p>Druckvorlagen bearbeiten, als PDF prüfen und für gespeicherte Wochen verwenden.</p>
+<p>Druckvorlagen bearbeiten, als PDF prüfen und für gespeicherte Wochen und Rezeptrevisionen verwenden.</p>
 <form class="card mb-4" method="get" action="{{ url_for('admin.vorlagen') }}">
   <div class="card-body">
     <div class="row g-3 align-items-end">
@@ -77,6 +77,30 @@
     </article>
   </div>
   {% endfor %}
+  {% set recipe_catalog = catalogs.rezepte %}
+  {% if recipe_catalog is defined %}
+  <div class="col-12 col-md-6">
+    <article class="card h-100" aria-labelledby="recipe-templates-heading">
+      <div class="card-header"><h2 class="card-title" id="recipe-templates-heading">Rezeptvorlagen</h2></div>
+      <div class="card-body">
+        <p>A4 hoch · Zutaten, Mengen, Bilder und Herkunft. Zur PDF-Prüfung wählen Sie im Editor eine festgeschriebene Rezeptrevision.</p>
+        <ul class="list-group list-group-flush">
+          {% for item in recipe_catalog.document.templates %}
+          {% set latest = item.revisions[-1] %}
+          <li class="list-group-item px-0" data-template-id="{{ item.id }}">
+            <h3 class="h4 text-break">{{ latest.name }}{% if item.archived %} · Archiviert{% endif %}</h3>
+            <p>Neuester Stand: Revision {{ latest.id }}{% if item.id != recipe_catalog.document.active_template or latest.id != recipe_catalog.active.id %} · Entwurf{% endif %}</p>
+            {% if item.id == recipe_catalog.document.active_template %}<p><span class="badge bg-green-lt">Aktiv</span> {{ recipe_catalog.active.name }} · Revision {{ recipe_catalog.active.id }}</p>{% endif %}
+            {% if 'Cafeteria.Admin' in roles %}
+            <div class="btn-list"><a class="btn" href="{{ url_for('admin.recipe_print_template_editor', template=item.id, revision=latest.id) }}">{{ icon('pencil') }}Rezeptvorlageneditor öffnen</a>
+              {% if item.id == recipe_catalog.document.active_template and latest.id != recipe_catalog.active.id %}<a class="btn" href="{{ url_for('admin.recipe_print_template_editor', template=item.id, revision=recipe_catalog.active.id) }}">Aktive Rezeptvorlage öffnen</a>{% endif %}
+            </div>{% endif %}
+          </li>{% endfor %}
+        </ul>
+      </div>
+    </article>
+  </div>
+  {% endif %}
 </div>
 {% endif %}
 <div class="row row-cards mt-4">

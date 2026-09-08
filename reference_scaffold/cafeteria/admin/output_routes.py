@@ -42,7 +42,7 @@ def vorlagen() -> Response:
                            for family, profile in [('cafeteria', 'staff_guest'), ('patienten', 'patient')]}
     try:
         with _db().connect() as connection:
-            for family, profile in [('cafeteria', 'staff_guest'), ('patienten', 'patient')]:
+            for family, profile in [('cafeteria', 'staff_guest'), ('patienten', 'patient'), ('rezepte', 'recipe')]:
                 document = read_templates(connection, profile)
                 catalogs[family] = {
                     'document': document,

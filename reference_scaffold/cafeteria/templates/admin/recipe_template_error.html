@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rezeptvorlage · Anfrage prüfen</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin-tabler.css') }}">
+</head>
+<body class="admin-body dishboard-admin"><main class="container-xl py-4">
+  <h1>Rezeptvorlage · Anfrage prüfen</h1>
+  <div class="alert alert-warning" role="alert">{{ message }}</div>
+  <a class="btn" href="{{ url_for('admin.recipe_print_template_editor') }}">Zum Rezeptvorlageneditor</a>
+</main></body>
+</html>
