@@ -170,8 +170,8 @@ def test_package_requires_branding_schema_and_pinned_migration(monkeypatch, caps
     result = validator.main()
     output = capsys.readouterr().out
     errors = {
-        'schema17': '[FEHLER] Schema-Version ist nicht 24.',
-        'schema18': '[FEHLER] Schema-Version ist nicht 24.',
+        'schema17': '[FEHLER] Schema-Version ist nicht 25.',
+        'schema18': '[FEHLER] Schema-Version ist nicht 25.',
         'tables32': '[FEHLER] Schema enthaelt nicht 52 Tabellen.',
         'missing': f'[FEHLER] Migration-Datei fehlt: {migration_name}',
         'modified': f'[FEHLER] Migration-Checksum falsch {migration_name}:',

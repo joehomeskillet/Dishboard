@@ -18,6 +18,7 @@ SIGNATURES = {
     'deactivate_local_user_v19(bigint,bigint,uuid,bigint)',
     'reactivate_local_user_v19(bigint,bigint,uuid,bigint)',
     'local_user_command_context_v19(bigint,text,uuid,text)',
+    'record_auth_access_v25(uuid,text,text,text,bigint,bigint)',
 }
 
 
@@ -42,7 +43,7 @@ def _identities(engine):
 
 def test_v18_upgrade_preserves_every_identity_field_and_matches_fresh_schema(pg16):  # noqa: F811
     plan = database.migration_plan(SCHEMA)
-    assert [entry.version for entry in plan] == list(range(4, 25))
+    assert [entry.version for entry in plan] == list(range(4, 26))
     historical = [migration for migration in plan if migration.version <= 18]
     assert historical[-1].version == 18
     for migration in historical:

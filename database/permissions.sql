@@ -137,7 +137,8 @@ GRANT EXECUTE ON FUNCTION
     reset_local_password_v19(bigint,bigint,uuid,bigint,text),
     deactivate_local_user_v19(bigint,bigint,uuid,bigint),
     reactivate_local_user_v19(bigint,bigint,uuid,bigint),
-    local_user_command_context_v19(bigint,text,uuid,text)
+    local_user_command_context_v19(bigint,text,uuid,text),
+    record_auth_access_v25(uuid,text,text,text,bigint,bigint)
 TO cafeteria_auth_issuer;
 ALTER DEFAULT PRIVILEGES IN SCHEMA cafeteria
     REVOKE EXECUTE ON FUNCTIONS

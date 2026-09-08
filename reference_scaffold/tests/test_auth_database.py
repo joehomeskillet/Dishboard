@@ -92,10 +92,10 @@ def owner_engine() -> Iterator[Engine]:
 def test_migration_plan_contains_auth_issuer_contract() -> None:
     plan = database.migration_plan(ROOT / 'database' / 'schema.sql')
 
-    assert database.SCHEMA_VERSION == 24
+    assert database.SCHEMA_VERSION == 25
     assert (plan[-1].version, plan[-1].path.name) == (
-        24,
-        '0021_v23_to_v24.sql',
+        25,
+        '0022_v24_to_v25.sql',
     )
 
 
@@ -178,7 +178,7 @@ def test_auth_issuer_role_has_function_only_identity_privileges(owner_engine: En
         'cafeteria_usage': True,
         'cafeteria_create': False,
         'public_create': False,
-        'execute_count': 8,
+        'execute_count': 9,
     }
     with pytest.raises(DBAPIError, match='permission denied'):
         with issuer_engine.begin() as connection:

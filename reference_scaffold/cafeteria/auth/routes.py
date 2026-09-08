@@ -3,12 +3,17 @@ from __future__ import annotations
 from urllib.parse import quote
 
 import msal
-from flask import Blueprint, abort, current_app, redirect, render_template, request, session, url_for
+from flask import Blueprint, Response, abort, current_app, redirect, render_template, request, session, url_for
+from redis.exceptions import RedisError
+from requests.exceptions import RequestException  # type: ignore[import-untyped]
+from sqlalchemy.exc import SQLAlchemyError
 
 from ..db import demo_user, upsert_entra_user
 from ..roles import ROLE_CAPABILITIES
 from ..security import validate_csrf
+from .access_events import AccessEventUnavailable, record_access_event
 from .service import (
+    AuthorizationState,
     RateLimitExceeded,
     RateLimitUnavailable,
     authenticate_local_user,
@@ -20,6 +25,56 @@ from .service import (
 )
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
+
+
+def _login_failure(provider: str, reason: str, status: int, username: str = '') -> tuple[str, int]:
+    session.clear()
+    action = 'auth.login.unavailable' if reason == 'unavailable' else 'auth.login.rejected'
+    try:
+        record_access_event(provider, action, reason)
+    except AccessEventUnavailable:
+        status = 503
+    message = 'Anmeldung vorübergehend nicht verfügbar.' if status == 503 else 'Anmeldung fehlgeschlagen.'
+    if provider == 'local':
+        return render_template('auth/local_login.html', error=message, username=username), status
+    return render_template('auth/error.html', message=message), status
+
+
+def _login_accepted(provider: str, identity: AuthorizationState, **claims: str) -> Response | tuple[str, int]:
+    try:
+        record_access_event(provider, 'auth.login.accepted', identity=identity)
+    except AccessEventUnavailable:
+        return _login_failure(provider, 'unavailable', 503)
+    try:
+        _establish_session(identity.user_id, identity.display_name, identity.authz_version,
+                           provider=provider, **claims)
+    except RedisError:
+        session.clear()
+        current_app.logger.warning('Authentication session establishment unavailable.')
+        message = 'Anmeldung vorübergehend nicht verfügbar.'
+        return render_template('auth/error.html', message=message), 503
+    return redirect(url_for('admin.cafeteria'))
+
+
+def _clear_session_for_logout(action: str) -> None:
+    user, version = session.get('user'), session.get('authz_version')
+    session.clear()
+    if (not isinstance(user, dict) or type(user.get('id')) is not int or user['id'] <= 0
+        or user.get('provider') not in ('local', 'entra') or type(version) is not int or version <= 0):
+        return
+    identity = None
+    try:
+        current = load_user_authorization(current_app.extensions['cafeteria_db'], user['id'])
+        if current is not None and current.authz_version == version and current.auth_provider == user['provider']:
+            identity = current
+    except SQLAlchemyError:
+        current_app.logger.warning('Logout identity verification unavailable.')
+    try:
+        record_access_event(user['provider'], action, identity=identity)
+    except AccessEventUnavailable:
+        # The fixed writer diagnostic makes no claim that Redis has saved deletion.
+        # Always reach response saving, which revokes the existing server session.
+        return
 
 
 def _establish_session(user_id: int, display_name: str, authz_version: int, **claims: str) -> None:
@@ -93,39 +148,25 @@ def local_login():
     try:
         consume_login_attempt(redis_client, key)
     except RateLimitUnavailable:
-        session.clear()
-        error = 'Anmeldung vorübergehend nicht verfügbar.'
-        return render_template('auth/local_login.html', error=error, username=username), 503
+        return _login_failure('local', 'unavailable', 503, username)
     except RateLimitExceeded:
-        session.clear()
-        error = 'Anmeldung fehlgeschlagen.'
-        return render_template('auth/local_login.html', error=error, username=username), 429
+        return _login_failure('local', 'throttled', 429, username)
 
-    identity = authenticate_local_user(
-        current_app.extensions['cafeteria_db'],
-        username=username,
-        password=password,
-    )
+    try:
+        identity = authenticate_local_user(
+            current_app.extensions['cafeteria_db'], username=username, password=password,
+        )
+    except SQLAlchemyError:
+        return _login_failure('local', 'unavailable', 503, username)
 
     if identity is None:
-        session.clear()
-        error = 'Anmeldung fehlgeschlagen.'
-        return render_template('auth/local_login.html', error=error, username=username), 401
+        return _login_failure('local', 'credentials', 401, username)
 
     try:
         clear_login_attempts(redis_client, key)
     except RateLimitUnavailable:
-        session.clear()
-        error = 'Anmeldung vorübergehend nicht verfügbar.'
-        return render_template('auth/local_login.html', error=error, username=username), 503
-
-    _establish_session(
-        identity.user_id,
-        identity.display_name,
-        identity.authz_version,
-        provider=identity.auth_provider,
-    )
-    return redirect(url_for('admin.cafeteria'))
+        return _login_failure('local', 'unavailable', 503, username)
+    return _login_accepted('local', identity)
 
 
 @bp.get('/callback')
@@ -134,50 +175,48 @@ def callback():
         abort(404)
     flow = session.pop('auth_flow', None)
     if not flow:
-        return render_template('auth/error.html', message='Anmeldezustand fehlt oder ist abgelaufen.'), 400
+        return _login_failure('entra', 'flow', 400)
     try:
         result = _client().acquire_token_by_auth_code_flow(flow, request.args)
     except ValueError:
-        return render_template('auth/error.html', message='State- oder Nonce-Prüfung fehlgeschlagen.'), 400
+        return _login_failure('entra', 'flow', 400)
+    except RequestException:
+        return _login_failure('entra', 'unavailable', 503)
+    if not isinstance(result, dict):
+        return _login_failure('entra', 'flow', 400)
     if 'error' in result:
-        return render_template('auth/error.html', message=result.get('error_description', result['error'])), 401
+        return _login_failure('entra', 'credentials', 401)
     claims = result.get('id_token_claims') or {}
     cfg = current_app.config
-    if claims.get('tid') != cfg['ENTRA_TENANT_ID'] or not claims.get('oid'):
-        abort(403)
+    if not isinstance(claims, dict) or claims.get('tid') != cfg['ENTRA_TENANT_ID'] or not claims.get('oid'):
+        return _login_failure('entra', 'flow', 403)
     if claims.get('aud') and claims.get('aud') != cfg['ENTRA_CLIENT_ID']:
-        abort(403)
+        return _login_failure('entra', 'flow', 403)
     supplied_roles = claims.get('roles') or []
     if not isinstance(supplied_roles, list) or any(not isinstance(role, str) for role in supplied_roles):
-        session.clear()
-        abort(403)
+        return _login_failure('entra', 'role', 403)
     if (
         len(set(supplied_roles)) != len(supplied_roles)
         or any(role not in ROLE_CAPABILITIES for role in supplied_roles)
     ):
-        session.clear()
-        abort(403)
+        return _login_failure('entra', 'role', 403)
     roles = supplied_roles
     issuer_engine = current_app.extensions.get('cafeteria_auth_issuer_db')
     if issuer_engine is None:
-        return render_template('auth/error.html', message='Anmeldung vorübergehend nicht verfügbar.'), 503
+        return _login_failure('entra', 'unavailable', 503)
     try:
         user_id = upsert_entra_user(issuer_engine, claims, roles)
     except ValueError:
-        abort(403)
-    authorization = load_user_authorization(current_app.extensions['cafeteria_db'], user_id)
+        return _login_failure('entra', 'flow', 403)
+    except SQLAlchemyError:
+        return _login_failure('entra', 'unavailable', 503)
+    try:
+        authorization = load_user_authorization(current_app.extensions['cafeteria_db'], user_id)
+    except SQLAlchemyError:
+        return _login_failure('entra', 'unavailable', 503)
     if not roles or authorization is None:
-        session.clear()
-        abort(403)
-    _establish_session(
-        authorization.user_id,
-        authorization.display_name,
-        authorization.authz_version,
-        oid=claims['oid'],
-        tid=claims['tid'],
-        provider=authorization.auth_provider,
-    )
-    return redirect(url_for('admin.cafeteria'))
+        return _login_failure('entra', 'role', 403)
+    return _login_accepted('entra', authorization, oid=claims['oid'], tid=claims['tid'])
 
 
 @bp.post('/logout')
@@ -185,7 +224,7 @@ def logout():
     validate_csrf(request.form.get("_csrf"))
     tenant = current_app.config.get('ENTRA_TENANT_ID')
     target = current_app.config['APP_PUBLIC_BASE_URL'] + url_for('public.cafeteria_today')
-    session.clear()
+    _clear_session_for_logout('auth.logout.requested')
     if (
         current_app.config['DEMO_MODE']
         or not current_app.config.get('ENTRA_ENABLED', False)
@@ -199,5 +238,5 @@ def logout():
 def frontchannel_logout():
     if not current_app.config.get('ENTRA_ENABLED', False):
         abort(404)
-    session.clear()
+    _clear_session_for_logout('auth.frontchannel.requested')
     return '', 200

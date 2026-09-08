@@ -62,6 +62,7 @@ Der `actor-identifier` wird gegen den aktiven Benutzernamen, die E-Mail-Adresse 
 19. `0019_v21_to_v22.sql` (22)
 20. `0020_v22_to_v23.sql` (23)
 21. `0021_v23_to_v24.sql` (24): kanonische Capability-Restore-Guards für PostgreSQL 16 und 18; keine Datenänderung und kein Secret-Reset während der Migration.
+22. `0022_v24_to_v25.sql` (25): begrenzte Authentifizierungsereignisse über die Auth-Issuer-Funktion; vorhandene Audit-Historie bleibt unverändert.
 
 Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0020` bleiben beim Upgrade auf v24 byteidentisch. `schema.sql` beschreibt den aktuellen v24-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
 

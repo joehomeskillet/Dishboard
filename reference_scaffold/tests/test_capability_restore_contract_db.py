@@ -97,11 +97,13 @@ def test_v23_upgrade_preserves_state_and_matches_fresh_contract(database_engine:
     with pg16.begin() as connection:
         connection.execute(text('DROP SCHEMA cafeteria CASCADE'))
     plan = database.migration_plan(ROOT / 'database/schema.sql')
-    assert plan[-1].version == 24
-    for migration in plan[:-1]:
+    guard_migration = next(migration for migration in plan if migration.version == 24)
+    for migration in plan:
+        if migration.version >= 24:
+            break
         database._execute_migration(pg16, migration)
     database._execute_script(pg16, str(ROOT / 'database/seed.sql'))
-    database._execute_script(pg16, str(ROOT / 'database/permissions.sql'))
+    # Historical migrations supply the v23 grants; current permissions require v25.
     before = state(pg16)
     old_contract = function_contract(pg16)
     with pg16.connect() as connection:
@@ -121,7 +123,7 @@ def test_v23_upgrade_preserves_state_and_matches_fresh_contract(database_engine:
     assert upgraded[1:] == old_contract[1:]
     with pg16.begin() as connection:
         assert connection.execute(text('SELECT to_jsonb(m) FROM cafeteria.schema_migrations m WHERE version<24 ORDER BY version')).all() == ledger
-        assert connection.execute(text('SELECT checksum_sha256 FROM cafeteria.schema_migrations WHERE version=24')).scalar_one() == hashlib.sha256(plan[-1].path.read_bytes()).hexdigest()
+        assert connection.execute(text('SELECT checksum_sha256 FROM cafeteria.schema_migrations WHERE version=24')).scalar_one() == hashlib.sha256(guard_migration.path.read_bytes()).hexdigest()
         for _ in range(2):
             assert connection.execute(text('SELECT cafeteria.ensure_auth_capability_state()')).scalar_one() == 1
         connection.execute(text('DROP SCHEMA cafeteria CASCADE'))

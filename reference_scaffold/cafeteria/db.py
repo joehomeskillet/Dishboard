@@ -19,8 +19,8 @@ from .database_roles import (
 )
 from .patient_payload import PROFILES, validate_snapshot_payload
 
-SCHEMA_VERSION = 24
-APPLICATION_VERSION = 'dishboard-schema-v24'
+SCHEMA_VERSION = 25
+APPLICATION_VERSION = 'dishboard-schema-v25'
 SYSTEM_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000001'
 DEMO_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000002'
 
@@ -54,6 +54,7 @@ MIGRATION_FILES = (
     (22, '0019_v21_to_v22.sql'),
     (23, '0020_v22_to_v23.sql'),
     (24, '0021_v23_to_v24.sql'),
+    (25, '0022_v24_to_v25.sql'),
 )
 MIGRATION_LOCK_ID = 731_905_005
 DEFAULT_CAPABILITY_TTL = timedelta(minutes=5)
@@ -320,7 +321,8 @@ def validate_database(engine: Engine) -> dict[str, Any]:
                       ('cafeteria.reset_local_password_v19(bigint,bigint,uuid,bigint,text)'),
                       ('cafeteria.deactivate_local_user_v19(bigint,bigint,uuid,bigint)'),
                       ('cafeteria.reactivate_local_user_v19(bigint,bigint,uuid,bigint)'),
-                      ('cafeteria.local_user_command_context_v19(bigint,text,uuid,text)')
+                      ('cafeteria.local_user_command_context_v19(bigint,text,uuid,text)'),
+                      ('cafeteria.record_auth_access_v25(uuid,text,text,text,bigint,bigint)')
                 )
                 SELECT
                     EXISTS (SELECT 1 FROM issuer) AS role_exists,
@@ -394,7 +396,7 @@ def validate_database(engine: Engine) -> dict[str, Any]:
         and issuer.membership_count == 0
         and issuer.table_privilege_count == 0
         and issuer.sequence_privilege_count == 0
-        and issuer.allowed_execute_count == 8
+        and issuer.allowed_execute_count == 9
         and issuer.unexpected_execute_count == 0
         and not issuer.can_create_cafeteria_schema
         and not issuer.can_create_public_schema

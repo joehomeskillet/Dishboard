@@ -78,7 +78,14 @@ def test_canonical_backup_migrate_ensure_permissions_reset(tmp_path: Path) -> No
             if migration.version < 24:
                 database._execute_migration(source, migration)
         database._execute_script(source, str(ROOT / 'database/seed.sql'))
-        database._execute_script(source, str(ROOT / 'database/permissions.sql'))
+        # Reproduce the exact v24 permissions on the historical v23 backup source.
+        # The only v25 addition cannot be granted before that function exists.
+        historical_permissions = (ROOT / 'database/permissions.sql').read_text().replace(
+            ',\n    record_auth_access_v25(uuid,text,text,text,bigint,bigint)', '')
+        assert hashlib.sha256(historical_permissions.encode()).hexdigest() == (
+            '85c88b1b89bb511401709dcaaa56537f98a9e74588460a90c6d944246e2f00d1')
+        with source.begin() as connection:
+            connection.exec_driver_sql(historical_permissions)
         revisions = []
         for start, code in [('2026-11-16', 'PAT-2026-KW47-R1'), ('2026-11-23', 'PAT-2026-KW48-R1')]:
             week = _insert_week(source, 'patient', 'published', start)
@@ -124,7 +131,7 @@ def test_canonical_backup_migrate_ensure_permissions_reset(tmp_path: Path) -> No
         assert business_hashes(candidate) == expected
         with candidate.connect() as connection:
             assert connection.execute(text('SELECT to_jsonb(m) FROM cafeteria.schema_migrations m WHERE version<24 ORDER BY version')).all() == old_ledger
-            assert connection.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 24
+            assert connection.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == database.SCHEMA_VERSION
             assert connection.execute(text("""SELECT (SELECT count(*) FROM cafeteria.auth_capability_secrets)=1
                 AND (SELECT count(*) FROM cafeteria.auth_capability_secrets WHERE id=1 AND active AND octet_length(secret)=32)=1
                 AND NOT EXISTS (SELECT 1 FROM cafeteria.auth_capability_nonces)
@@ -145,7 +152,7 @@ def test_canonical_backup_migrate_ensure_permissions_reset(tmp_path: Path) -> No
         evidence = {
             'server_version_num': server, 'business_tables_preserved': len(expected),
             'source_schema_sha256': hashlib.sha256((ROOT / 'database/schema.sql').read_bytes()).hexdigest(),
-            'migration_sha256': hashlib.sha256(plan[-1].path.read_bytes()).hexdigest(),
+            'migration_sha256': hashlib.sha256(next(m.path for m in plan if m.version == 24).read_bytes()).hexdigest(),
             'historical_ledger_preserved': len(old_ledger), 'canonical_controller_restore': 'passed',
         }
         print(evidence)
