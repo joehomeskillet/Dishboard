@@ -1,0 +1,144 @@
+ARGV=['rtk', '/nvmetank1/projects/menuplan/.claude/state/handover-2026-09-05/worker-test-prepared-food-schema27-0909-gate.sh', '/nvmetank1/projects/menuplan/.claude/worktrees/prepared-food-schema27-0909', '-q', '-p', 'no:cacheprovider', '--tb=short', 'tests/test_prepared_food_db.py', 'tests/test_prepared_food_closure_db.py', 'tests/test_prepared_food_migration_db.py', 'tests/test_prepared_food_race_db.py']
+.F...FF...........................FF.                                    [100%]
+=================================== FAILURES ===================================
+_____ test_storage_archive_and_complete_assignment_have_one_winner[False] ______
+tests/test_prepared_food_race_db.py:136: in test_storage_archive_and_complete_assignment_have_one_winner
+    assert blocker in wait_blocked(owner, started.get(timeout=3))
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_prepared_food_migration_db.py:64: in wait_blocked
+    pytest.fail('Expected PostgreSQL blocking state was not observed.')
+E   Failed: Expected PostgreSQL blocking state was not observed.
+________ test_r5_food_then_recipe_reader_does_not_need_late_graph_lock _________
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.ProgrammingError: Ungültige Rezeptrevisionen.
+E   CONTEXT:  PL/pgSQL function lock_menu_recipe_revisions_v26(bigint,bigint,bigint,bigint[]) line 9 at RAISE
+
+The above exception was the direct cause of the following exception:
+tests/test_prepared_food_race_db.py:155: in test_r5_food_then_recipe_reader_does_not_need_late_graph_lock
+    c.execute(text('SELECT * FROM cafeteria.lock_menu_recipe_revisions_v26(:actor,:authz,:location,ARRAY[:recipe_id]::bigint[])'), internal)
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1421: in execute
+    return meth(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/sql/elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1643: in _execute_clauseelement
+    ret = self._execute_context(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1848: in _execute_context
+    return self._exec_single_context(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1988: in _exec_single_context
+    self._handle_dbapi_exception(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:2365: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   sqlalchemy.exc.ProgrammingError: (psycopg.ProgrammingError) Ungültige Rezeptrevisionen.
+E   CONTEXT:  PL/pgSQL function lock_menu_recipe_revisions_v26(bigint,bigint,bigint,bigint[]) line 9 at RAISE
+E   [SQL: SELECT * FROM cafeteria.lock_menu_recipe_revisions_v26(%(actor)s,%(authz)s,%(location)s,ARRAY[%(recipe_id)s]::bigint[])]
+E   [parameters: {'actor': 3, 'authz': 2, 'location': 1, 'recipe_id': 1}]
+E   (Background on this error at: https://sqlalche.me/e/20/f405)
+______ test_storage_archive_and_complete_assignment_have_one_winner[True] ______
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1817: in _execute_context
+    context = constructor(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/default.py:1417: in _init_compiled
+    compiled.construct_params(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/sql/compiler.py:1934: in construct_params
+    raise exc.InvalidRequestError(
+E   sqlalchemy.exc.InvalidRequestError: A value is required for bind parameter 'false' (Background on this error at: https://sqlalche.me/e/20/cd3x)
+
+The above exception was the direct cause of the following exception:
+tests/test_prepared_food_race_db.py:133: in test_storage_archive_and_complete_assignment_have_one_winner
+    c.execute(text(first_sql), first_args).scalar_one()
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1421: in execute
+    return meth(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/sql/elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1643: in _execute_clauseelement
+    ret = self._execute_context(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1823: in _execute_context
+    self._handle_dbapi_exception(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:2365: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1817: in _execute_context
+    context = constructor(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/default.py:1417: in _init_compiled
+    compiled.construct_params(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/sql/compiler.py:1934: in construct_params
+    raise exc.InvalidRequestError(
+E   sqlalchemy.exc.StatementError: (sqlalchemy.exc.InvalidRequestError) A value is required for bind parameter 'false'
+E   [SQL: SELECT cafeteria.set_active_storage_location_v21(%(actor)s,%(authz)s,%(location)s,CAST(%(target)s AS uuid),
+E       %(version)s,'{"active"%(false)s}')]
+E   [parameters: [{'actor': 3, 'authz': 2, 'location': 1, 'storage': '996bde7c-cc71-4689-87cb-28715e04cfae', 'target': 'a7d6a79e-f3d3-4825-8283-3b21d276b078', 'version': 1}]]
+E   (Background on this error at: https://sqlalche.me/e/20/cd3x)
+____________ test_exact_new_acl_and_legacy_final_invariant_closure _____________
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedFunction: function cafeteria.set_active_food_v21(smallint, smallint, smallint, uuid, smallint, jsonb) does not exist
+E   LINE 1: SELECT cafeteria.set_active_food_v21($1,$2,$3,
+E                  ^
+E   HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+The above exception was the direct cause of the following exception:
+tests/test_prepared_food_migration_db.py:164: in test_exact_new_acl_and_legacy_final_invariant_closure
+    food = execute(engine, '''SELECT cafeteria.set_active_food_v21(:actor,:authz,:location,
+tests/prepared_food_fixtures.py:31: in execute
+    return c.execute(text(sql), parameters).scalar_one()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1421: in execute
+    return meth(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/sql/elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1643: in _execute_clauseelement
+    ret = self._execute_context(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1848: in _execute_context
+    return self._exec_single_context(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1988: in _exec_single_context
+    self._handle_dbapi_exception(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:2365: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   sqlalchemy.exc.ProgrammingError: (psycopg.errors.UndefinedFunction) function cafeteria.set_active_food_v21(smallint, smallint, smallint, uuid, smallint, jsonb) does not exist
+E   LINE 1: SELECT cafeteria.set_active_food_v21($1,$2,$3,
+E                  ^
+E   HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+E   [SQL: SELECT cafeteria.set_active_food_v21(%(actor)s,%(authz)s,%(location)s,
+E               CAST(%(target)s AS uuid),%(version)s,CAST(%(payload)s AS jsonb))]
+E   [parameters: {'actor': 3, 'authz': 2, 'location': 1, 'target': '10e8ab6f-dc09-454b-a4f6-63f27edc776f', 'version': 1, 'payload': '{"active": false}'}]
+E   (Background on this error at: https://sqlalche.me/e/20/f405)
+__ test_old_food_gap_stops_before_ddl_ledger_sequences_then_explicit_backfill __
+tests/test_prepared_food_migration_db.py:73: in test_old_food_gap_stops_before_ddl_ledger_sequences_then_explicit_backfill
+    database._execute_migration(pg16, migration)
+cafeteria/db.py:184: in _execute_migration
+    driver_connection.execute(script_without_commit, prepare=False)
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/psycopg/connection.py:300: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.ObjectNotInPrerequisiteState: Lagerzuordnung fehlt für 1 Zutaten. Beispiele: 017347c7-bb0d-424f-947f-de7d83ccbcc7
+E   DETAIL:  food_storage_preflight
+E   CONTEXT:  PL/pgSQL function inline_code_block line 15 at RAISE
+=========================== short test summary info ============================
+FAILED tests/test_prepared_food_race_db.py::test_storage_archive_and_complete_assignment_have_one_winner[False]
+FAILED tests/test_prepared_food_race_db.py::test_r5_food_then_recipe_reader_does_not_need_late_graph_lock
+FAILED tests/test_prepared_food_race_db.py::test_storage_archive_and_complete_assignment_have_one_winner[True]
+FAILED tests/test_prepared_food_migration_db.py::test_exact_new_acl_and_legacy_final_invariant_closure
+FAILED tests/test_prepared_food_migration_db.py::test_old_food_gap_stops_before_ddl_ledger_sequences_then_explicit_backfill
+5 failed, 32 passed in 82.51s (0:01:22)
+GATE_EXIT=1 cwd=/nvmetank1/projects/menuplan/.claude/worktrees/prepared-food-schema27-0909/reference_scaffold
+
+EXIT_CODE=1

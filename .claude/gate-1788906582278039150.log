@@ -1,0 +1,6 @@
+ARGV=['rtk', '/nvmetank1/projects/menuplan/.claude/state/handover-2026-09-05/worker-test-prepared-food-schema27-0909-gate.sh', '/nvmetank1/projects/menuplan/.claude/worktrees/prepared-food-schema27-0909', '-q', '-p', 'no:cacheprovider', '--tb=short', 'tests/test_prepared_food_db.py']
+...................                                                      [100%]
+19 passed in 32.00s
+GATE_EXIT=0 cwd=/nvmetank1/projects/menuplan/.claude/worktrees/prepared-food-schema27-0909/reference_scaffold
+
+EXIT_CODE=0

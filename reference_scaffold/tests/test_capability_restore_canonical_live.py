@@ -79,9 +79,11 @@ def test_canonical_backup_migrate_ensure_permissions_reset(tmp_path: Path) -> No
                 database._execute_migration(source, migration)
         database._execute_script(source, str(ROOT / 'database/seed.sql'))
         # Reproduce the exact v24 permissions on the historical v23 backup source.
-        # The only v25 addition cannot be granted before that function exists.
+        # Later additions cannot be granted before their functions exist.
         historical_permissions = (ROOT / 'database/permissions.sql').read_text().replace(
             ',\n    record_auth_access_v25(uuid,text,text,text,bigint,bigint)', '')
+        prefix, rest = historical_permissions.split('-- R5a schema26 grants begin.\n', 1)
+        historical_permissions = prefix + rest.split('-- R5a schema26 grants end.\n\n', 1)[1]
         assert hashlib.sha256(historical_permissions.encode()).hexdigest() == (
             '85c88b1b89bb511401709dcaaa56537f98a9e74588460a90c6d944246e2f00d1')
         with source.begin() as connection:

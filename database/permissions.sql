@@ -267,4 +267,44 @@ REVOKE ALL ON FUNCTION activate_screen_assignment_v23(bigint,bigint,text,bigint,
 FROM PUBLIC,cafeteria_app,cafeteria_backup,cafeteria_auth_issuer;
 GRANT EXECUTE ON FUNCTION activate_screen_assignment_v23(bigint,bigint,text,bigint,text,integer) TO cafeteria_app;
 
+-- R5a schema26 grants begin.
+REVOKE ALL ON FUNCTION validate_menu_recipe_scope_v26(),validate_dish_recipe_scope_v26(),
+    validate_menu_dish_scope_v26(),begin_menu_binding_write_v26(bigint,bigint,bigint),
+    lock_menu_recipe_revisions_v26(bigint,bigint,bigint,bigint[]),
+    lock_component_foods_v26(bigint,bigint,bigint,bigint[]),
+    record_menu_binding_write_v26(bigint,bigint,bigint,bigint,bigint,bigint),
+    record_component_food_write_v26(bigint,bigint,bigint,bigint,bigint,bigint),
+    dish_template_mutate_v26(text,bigint,bigint,bigint,uuid,timestamptz,jsonb),
+    create_dish_template_v26(bigint,bigint,bigint,uuid,timestamptz,jsonb),
+    update_dish_template_v26(bigint,bigint,bigint,uuid,timestamptz,jsonb),
+    set_dish_template_active_v26(bigint,bigint,bigint,uuid,timestamptz,jsonb)
+FROM PUBLIC,cafeteria_app,cafeteria_backup,cafeteria_auth_issuer;
+GRANT EXECUTE ON FUNCTION begin_menu_binding_write_v26(bigint,bigint,bigint),
+    lock_menu_recipe_revisions_v26(bigint,bigint,bigint,bigint[]),
+    lock_component_foods_v26(bigint,bigint,bigint,bigint[]),
+    record_menu_binding_write_v26(bigint,bigint,bigint,bigint,bigint,bigint),
+    record_component_food_write_v26(bigint,bigint,bigint,bigint,bigint,bigint),
+    create_dish_template_v26(bigint,bigint,bigint,uuid,timestamptz,jsonb),
+    update_dish_template_v26(bigint,bigint,bigint,uuid,timestamptz,jsonb),
+    set_dish_template_active_v26(bigint,bigint,bigint,uuid,timestamptz,jsonb)
+TO cafeteria_app;
+-- R5a schema26 grants end.
+
+-- Prepared foods schema27 grants begin.
+REVOKE ALL ON FUNCTION lock_prepared_graph_v27(bigint),recipe_snapshot_complete_v27(jsonb),
+    check_prepared_graph_v27(bigint,uuid,bigint),assert_food_complete_v27(bigint),enforce_food_complete_v27(),
+    food_save_v27(boolean,bigint,bigint,bigint,uuid,bigint,jsonb),check_prepared_snapshot_v27(jsonb,uuid),
+    merge_prepared_node_v27(jsonb,jsonb),create_food_v27(bigint,bigint,bigint,jsonb),
+    update_food_v27(bigint,bigint,bigint,uuid,bigint,jsonb),recipe_dependency_preview_v27(bigint,uuid,bigint),
+    freeze_recipe_v27(bigint,bigint,bigint,uuid,bigint,text)
+FROM PUBLIC,cafeteria_app,cafeteria_backup,cafeteria_auth_issuer;
+REVOKE ALL ON FUNCTION create_food_v21(bigint,bigint,bigint,uuid,bigint,jsonb),
+    freeze_recipe_revision_v22(bigint,bigint,bigint,uuid,bigint,jsonb)
+FROM PUBLIC,cafeteria_app,cafeteria_backup,cafeteria_auth_issuer;
+GRANT EXECUTE ON FUNCTION create_food_v27(bigint,bigint,bigint,jsonb),
+    update_food_v27(bigint,bigint,bigint,uuid,bigint,jsonb),recipe_dependency_preview_v27(bigint,uuid,bigint),
+    freeze_recipe_v27(bigint,bigint,bigint,uuid,bigint,text) TO cafeteria_app;
+
+-- Prepared foods schema27 grants end.
+
 COMMIT;

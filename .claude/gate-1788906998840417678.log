@@ -1,0 +1,118 @@
+ARGV=['rtk', '/nvmetank1/projects/menuplan/.claude/state/handover-2026-09-05/worker-test-prepared-food-schema27-0909-gate.sh', '/nvmetank1/projects/menuplan/.claude/worktrees/prepared-food-schema27-0909', '-q', '-p', 'no:cacheprovider', '--tb=short', 'tests/test_prepared_food_db.py', 'tests/test_prepared_food_closure_db.py']
+......................FF.                                                [100%]
+=================================== FAILURES ===================================
+_______ test_current_food_cycles_include_v1_ingredient_identities[True] ________
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.ObjectNotInPrerequisiteState: Immutable food origin.
+E   CONTEXT:  PL/pgSQL function protect_master_data() line 22 at RAISE
+E   SQL statement "UPDATE foods SET name=food.name,base_unit_id=food.base_unit_id,category_id=food.category_id,
+E               density_g_per_ml=food.density_g_per_ml,piece_weight_g=food.piece_weight_g,note=food.note,
+E               prepared_recipe_revision_id=food.prepared_recipe_revision_id,updated_by=p_actor
+E               WHERE id=food.id RETURNING *"
+E   PL/pgSQL function food_save_v27(boolean,bigint,bigint,bigint,uuid,bigint,jsonb) line 79 at SQL statement
+E   SQL function "update_food_v27" statement 1
+
+The above exception was the direct cause of the following exception:
+tests/test_prepared_food_closure_db.py:89: in test_current_food_cycles_include_v1_ingredient_identities
+    update_food(engine, ids, second, food_payload(ids, 'G', pin=first_revision))
+tests/prepared_food_fixtures.py:49: in update_food
+    return execute(engine, '''SELECT cafeteria.update_food_v27(:actor,:authz,:location,
+tests/prepared_food_fixtures.py:31: in execute
+    return c.execute(text(sql), parameters).scalar_one()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1421: in execute
+    return meth(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/sql/elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1643: in _execute_clauseelement
+    ret = self._execute_context(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1848: in _execute_context
+    return self._exec_single_context(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1988: in _exec_single_context
+    self._handle_dbapi_exception(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:2365: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   sqlalchemy.exc.OperationalError: (psycopg.errors.ObjectNotInPrerequisiteState) Immutable food origin.
+E   CONTEXT:  PL/pgSQL function protect_master_data() line 22 at RAISE
+E   SQL statement "UPDATE foods SET name=food.name,base_unit_id=food.base_unit_id,category_id=food.category_id,
+E               density_g_per_ml=food.density_g_per_ml,piece_weight_g=food.piece_weight_g,note=food.note,
+E               prepared_recipe_revision_id=food.prepared_recipe_revision_id,updated_by=p_actor
+E               WHERE id=food.id RETURNING *"
+E   PL/pgSQL function food_save_v27(boolean,bigint,bigint,bigint,uuid,bigint,jsonb) line 79 at SQL statement
+E   SQL function "update_food_v27" statement 1
+E   [SQL: SELECT cafeteria.update_food_v27(%(actor)s,%(authz)s,%(location)s,
+E           CAST(%(target)s AS uuid),%(version)s,CAST(%(payload)s AS jsonb))]
+E   [parameters: {'actor': 3, 'authz': 2, 'location': 1, 'target': 'f56f9801-e572-4636-bce1-2b24bceef33f', 'version': 1, 'payload': '{"name": "G", "base_unit_code": "G", "note": "", "storage_location_public_ids": ["eefecb73-9fee-40db-bfc3-1d3b8bd4f66d"], "prepared_recipe_revision_p ... (8 characters truncated) ... ": "aa6289da-b54a-4124-98d1-3282e3957be5", "prepared_recipe_content_hash_sha256": "b806dfc278c043b1fd3d84dcc54cd7955d702dec019a1ebfd7b0bdbf60a55b97"}'}]
+E   (Background on this error at: https://sqlalche.me/e/20/e3q8)
+_ test_v1_is_terminal_and_retains_original_json_hash_after_current_pin_changes _
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.ObjectNotInPrerequisiteState: Immutable food origin.
+E   CONTEXT:  PL/pgSQL function protect_master_data() line 22 at RAISE
+E   SQL statement "UPDATE foods SET name=food.name,base_unit_id=food.base_unit_id,category_id=food.category_id,
+E               density_g_per_ml=food.density_g_per_ml,piece_weight_g=food.piece_weight_g,note=food.note,
+E               prepared_recipe_revision_id=food.prepared_recipe_revision_id,updated_by=p_actor
+E               WHERE id=food.id RETURNING *"
+E   PL/pgSQL function food_save_v27(boolean,bigint,bigint,bigint,uuid,bigint,jsonb) line 79 at SQL statement
+E   SQL function "update_food_v27" statement 1
+
+The above exception was the direct cause of the following exception:
+tests/test_prepared_food_closure_db.py:72: in test_v1_is_terminal_and_retains_original_json_hash_after_current_pin_changes
+    update_food(engine, ids, raw, food_payload(ids, 'Jetzt vorbereitet', pin=child))
+tests/prepared_food_fixtures.py:49: in update_food
+    return execute(engine, '''SELECT cafeteria.update_food_v27(:actor,:authz,:location,
+tests/prepared_food_fixtures.py:31: in execute
+    return c.execute(text(sql), parameters).scalar_one()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1421: in execute
+    return meth(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/sql/elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1643: in _execute_clauseelement
+    ret = self._execute_context(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1848: in _execute_context
+    return self._exec_single_context(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1988: in _exec_single_context
+    self._handle_dbapi_exception(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:2365: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/sqlalchemy/engine/default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+/tmp/dishboard-shared-venv/lib/python3.14/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   sqlalchemy.exc.OperationalError: (psycopg.errors.ObjectNotInPrerequisiteState) Immutable food origin.
+E   CONTEXT:  PL/pgSQL function protect_master_data() line 22 at RAISE
+E   SQL statement "UPDATE foods SET name=food.name,base_unit_id=food.base_unit_id,category_id=food.category_id,
+E               density_g_per_ml=food.density_g_per_ml,piece_weight_g=food.piece_weight_g,note=food.note,
+E               prepared_recipe_revision_id=food.prepared_recipe_revision_id,updated_by=p_actor
+E               WHERE id=food.id RETURNING *"
+E   PL/pgSQL function food_save_v27(boolean,bigint,bigint,bigint,uuid,bigint,jsonb) line 79 at SQL statement
+E   SQL function "update_food_v27" statement 1
+E   [SQL: SELECT cafeteria.update_food_v27(%(actor)s,%(authz)s,%(location)s,
+E           CAST(%(target)s AS uuid),%(version)s,CAST(%(payload)s AS jsonb))]
+E   [parameters: {'actor': 3, 'authz': 2, 'location': 1, 'target': '665ff575-42ff-43cb-892e-0f9b37cda033', 'version': 1, 'payload': '{"name": "Jetzt vorbereitet", "base_unit_code": "G", "note": "", "storage_location_public_ids": ["ae8afe4b-c694-4d3e-9e51-b561ed999a9f"], "prepared_r ... (24 characters truncated) ... ": "3e3a5a19-0f3a-429c-a0ec-b1591c520f49", "prepared_recipe_content_hash_sha256": "158d56462e5ad610c41a5978487e44cf0f14cead810e095859f1f747e323d183"}'}]
+E   (Background on this error at: https://sqlalche.me/e/20/e3q8)
+=========================== short test summary info ============================
+FAILED tests/test_prepared_food_closure_db.py::test_current_food_cycles_include_v1_ingredient_identities[True]
+FAILED tests/test_prepared_food_closure_db.py::test_v1_is_terminal_and_retains_original_json_hash_after_current_pin_changes
+2 failed, 23 passed in 49.96s
+GATE_EXIT=1 cwd=/nvmetank1/projects/menuplan/.claude/worktrees/prepared-food-schema27-0909/reference_scaffold
+
+EXIT_CODE=1
