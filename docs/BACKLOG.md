@@ -1,6 +1,34 @@
 # Backlog
 
-## Aktueller Stand — Snapshot vom 7. September 2026 nach dem Deploy um 11:14:03 CEST
+## Verbindliche Vorplanung — 9. September 2026
+
+Alle 35 Backlog-IDs werden im [konsolidierten SDD-/WP-Plan](superpowers/backlog-0909/README.md)
+mit prüfbaren Abhängigkeiten, Dateibesitz und Abnahmekriterien weitergeführt.
+[Ein Ausführungsvertrag](superpowers/backlog-0909/execution-contract.md) und
+[ein Startauftrag](superpowers/backlog-0909/START.md) gelten für Codex, Grok-Build,
+Claude Code und weitere geeignete Lanes. Historische Agentenexklusivität ist durch
+den neuesten Nutzerauftrag aufgehoben; bestehende laufende Dateibesitzer bleiben geschützt.
+
+**UI-003 ist erweitert:** Der [konsolidierte UI-Masterprompt](design/2026-09-09-unified-ui-design-system.md)
+gilt für sämtliche vorhandenen Tools, UI-Routen, Unterseiten, Rollen-, Dialog-, Leer-
+und Fehlerzustände. Kleine `MP-UI-*`-Pakete in
+[surfaces-wps.json](superpowers/backlog-0909/surfaces-wps.json) führen von Inventar und
+nachgewiesener Tabler-Anbindung über gemeinsame Tokens, Navigation und Jinja-Bausteine
+zur vollständigen Migration und Browser-Abdeckung. Eine Referenzseite schliesst den
+Auftrag nicht. Die neue Palette ist eine Anwendungsvorgabe, keine behauptete
+Corporate-Design-Freigabe. Bestehende Markenverträge zuerst abgleichen.
+
+Neu beauftragt sind ausserdem alle vorhandenen Gerichte als verknüpfte Rezepte:
+Lebensmittel mit Lagerorten, echte Einheiten aus Grundlagen, positive Mengen,
+vorbereitete Rezepte als Zutaten und unveränderliche Revisionsbezüge. Datenentwürfe,
+laufende Schema-/Consumer-WPs und noch ausstehender Import sind im Gesamtplan getrennt.
+
+Letzter belegter Produktivstand ist `5f5f6cb`/Schema 25; seit 9. September,
+01:25 Uhr Schweiz läuft auch der Rezept-PDF-Editor. Rezepteditor und weisse
+Public Screens sind bereits live. Der ältere Stand darunter ist historisch.
+Planung bedeutet keine Fertigmeldung der Umsetzung oder Abnahme.
+
+## Historischer Stand — Snapshot vom 7. September 2026 nach dem Deploy um 11:14:03 CEST
 
 **Produktiv ist `783fab33520e15c956df431f62ad75c9940e2285`, Schema 21**, seit `2026-09-07T09:14:03.117859908Z` (11:14:03 CEST). Image `sha256:2ddb31a28e7297b258daf440170554dd8139f6dafd4cab485dda7484b6955a8b`; Root bestätigt `healthy` und null Neustarts. Die vollständige unabhängige Paketprüfung bestand mit **4837 Tests, 15 expliziten Opt-in-Skips und null Failures/Errors**. [Aktueller Deploybeleg](/nvmetank1/projects/menuplan/.claude/state/ops-root-evidence-0907/release-783fab3-deploy.md), wird um die frischen Live-Nachweise ergänzt. Historisch: `2cfc43f` seit 08:33:23 CEST, Image `sha256:3c5167b2615e4144c4353afebc08275b5c9441130a4c48a691e8f949568b4412`, **4716 Tests/15 Opt-in-Skips/null Fehler** (14 Restore-Drills und eine Compose-Probe nicht aktiviert): [voriger Deploybeleg](/nvmetank1/projects/menuplan/.claude/state/ops-root-evidence-0907/release-2cfc43f-deploy.md).
 

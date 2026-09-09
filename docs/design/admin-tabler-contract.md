@@ -1,5 +1,13 @@
 # Admin-UI-Vertrag: Tabler-Integration (v1.0, 2026-09-05)
 
+**Visueller Nachfolger seit 9. September 2026:**
+[Konsolidiertes Designsystem](2026-09-09-unified-ui-design-system.md).
+Neue Frontend-Arbeit liest diesen Nachfolger vollständig. Die folgenden alten
+Masse, Typografie-, Geräte- und Sidebar-Vorgaben dokumentieren den bisherigen Stand;
+sie konkurrieren nicht mit dem neuen Standard. Vorhandene DOM-, Feld-, Escape-,
+Rollen- und Sicherheitsverträge bleiben erhalten. Aktive Markenfunktionen werden
+vor der Migration geprüft und nicht stillschweigend überschrieben.
+
 Gilt für migrierte Backend-Ansichten mit `admin/base_tabler.html` und `.dishboard-admin`. Öffentliche Tages-/Wochenseiten,
 Signage und Druck bleiben ohne Framework. Grundlage ist das offizielle, selbst gehostete
 `@tabler/core` 1.5.0 plus Tabler Icons 3.46.0 (`static/vendor/README.md`, pinned, SHA256).
