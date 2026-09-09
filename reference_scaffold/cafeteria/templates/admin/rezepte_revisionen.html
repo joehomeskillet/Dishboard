@@ -8,7 +8,7 @@
 <h2 class="card-title">Gespeicherten Stand festschreiben</h2>
 <p>Eine Revision bewahrt Zutaten, Mengen, Herkunft und Bilder unverändert. Ungespeicherte Änderungen im Editor sind nicht enthalten.</p>
 {% if preview %}
-{% if not preview.complete %}<div class="alert alert-warning" role="alert" id="freeze-incomplete" tabindex="-1" autofocus>Dieser Entwurf ist noch unvollständig. Erfassen Sie mindestens eine Zutat und wählen Sie für jede Zutat ein Lebensmittel, eine positive Menge und eine Einheit. <a href="{{ url_for('admin.recipe_edit', recipe_id=recipe.public_id) }}">Rezept ergänzen</a></div>{% endif %}
+{% if not preview.complete %}<div class="alert alert-warning" role="alert" id="freeze-incomplete" tabindex="-1" autofocus><div class="text-body">Dieser Entwurf ist noch unvollständig. Erfassen Sie mindestens eine Zutat und wählen Sie für jede Zutat ein Lebensmittel, eine positive Menge und eine Einheit. <a href="{{ url_for('admin.recipe_edit', recipe_id=recipe.public_id) }}">Rezept ergänzen</a></div></div>{% endif %}
 <p class="mb-0">Ausbeute: <strong>{{ preview.snapshot.recipe.servings }} {{ preview.snapshot.recipe.servings_unit_code }}</strong>. Der unten gezeigte Zutatenstand wird mit dieser Revision festgehalten.</p>
 {% endif %}
 {% if not recipe.active %}<p class="mb-0">Dieses Rezept ist archiviert. Bestehende Revisionen bleiben lesbar.</p>{% endif %}

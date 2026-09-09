@@ -88,22 +88,18 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
         assert len(boxes) == 4 and all(box is not None for box in boxes)
         assert max(box['height'] for box in boxes) - min(box['height'] for box in boxes) <= 1
         assert cards.locator('.card-body').evaluate_all('els => els.every(el => el.scrollHeight <= el.clientHeight + 1)')
-        summary = page.locator('summary').filter(has_text='Symbole')
-        summary.focus()
-        page.keyboard.press('Enter')
-        expect(page.get_by_text('Stift: Rezept bearbeiten oder ansehen.')).to_be_visible()
-        page.keyboard.press('Enter')
-        expect(page.locator('details[open]')).to_have_count(0)
         editor = page.locator(f'main a[href="/admin/rezepte/{public_id}"]')
-        assert editor.get_attribute('aria-label') and editor.get_attribute('data-bs-title')
+        expect(editor).to_have_text('Bearbeiten')
+        expect(editor).to_have_attribute('aria-label', 'Suppe bearbeiten')
+        box = editor.bounding_box()
+        assert box and box['width'] >= 48 and box['height'] >= 48
         editor.focus()
+        page.keyboard.press('Tab')
+        page.keyboard.press('Shift+Tab')
         expect(editor).to_be_focused()
-        if javascript:
-            expect(page.get_by_role('tooltip')).to_be_visible()
+        assert editor.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
         page.keyboard.press('Escape')
         expect(editor).to_be_focused()
-        if javascript:
-            expect(page.get_by_role('tooltip')).to_have_count(0)
         with page.expect_navigation(wait_until='load'):
             page.keyboard.press('Enter')
         active(page, 'Rezepte')
