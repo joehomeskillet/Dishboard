@@ -1,6 +1,8 @@
 """Live PostgreSQL test for app-role publication workflow with trigger validator dependencies."""
 from __future__ import annotations
 
+from review_support import write_expectations
+
 import json
 import os
 from datetime import date, timedelta
@@ -188,7 +190,7 @@ def test_app_role_publishes_patient_and_cafeteria_without_privilege_error(
         expected_row_version=0,
         actor_id=actor_id,
         values=patient_draft_values,
-    )
+     **write_expectations(app_engine, actor_id))
     assert row_version >= 1
     row_version = review_saved_week(app_engine, 'patient', patient_week_start, actor_id)
 
@@ -271,7 +273,7 @@ def test_app_role_publishes_patient_and_cafeteria_without_privilege_error(
         expected_row_version=0,
         actor_id=actor_id,
         values=cafeteria_draft_values,
-    )
+     **write_expectations(app_engine, actor_id))
     assert caf_row_version >= 1
     caf_row_version = review_saved_week(app_engine, 'staff_guest', cafeteria_week_start, actor_id)
 

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import hashlib
-import hmac
 import re
 from datetime import date, timedelta
 from html import escape
@@ -22,7 +20,7 @@ from ..component_assignment_store import (
 from ..component_catalog_store import (
     AdminScope, ComponentCatalogConfigurationError, ComponentCatalogValidationError,
     ComponentConflictError, ComponentNotFoundError, StaleComponentError, archive_component,
-    create_component, find_components, get_component, resolve_single_active_location_connection,
+    create_component, find_components, get_component,
     unarchive_component, update_component,
 )
 from ..component_catalog_metadata import AllergenInput
@@ -30,7 +28,6 @@ from ..component_catalog_filters import ComponentFilters
 from ..operations_settings import get_schedule_connection
 from ..public.routes import effective_today
 from ..roles import require_capability
-from ..security import csrf_token, validate_csrf
 from ..workflow import (
     MENU_TYPES, PROFILE_MEALS, AutoOriginConflictError,
     PublicationConfigurationError, StaleDraftError, StaleItemError, WorkflowValidationError,
@@ -45,10 +42,13 @@ from ..workflow_partial_store import (
     persist_menu_item, persist_service_state, persist_week_header, resolve_item_id, resolve_week_ref)
 from ..workflow_store import load_draft_connection
 from ..workflow_review import _review_open_connection
+from ..workflow_write_context import WriteConflictError, WritePermissionError, WriteUnavailableError
+from .workflow_scope import _scope, _scoped_csrf, _validate_scoped_csrf, validate_copy_csrf
+from .workflow_scope import _csrf_digest as _csrf_digest
 from .rendering import (
     CATEGORY_LABELS, render_admin_preview, render_admin_week,
     menu_form_values, render_component_detail, render_components, render_menu_editor)
-from .routes import _actor_id, bp
+from .routes import bp
 
 FAMILIES = {'cafeteria': 'staff_guest', 'patienten': 'patient'}
 ORIGIN_CONFLICT = 'Herkunftskonflikt: Komponente bearbeiten oder Herkunft dieses Menüs auf manuell stellen.'
@@ -60,6 +60,7 @@ _STORE_ERRORS = (
     ComponentConflictError, ComponentNotFoundError, StaleComponentError, ComponentAssignmentValidationError,
     ComponentAssignmentConflictError, PartialWorkflowValidationError, PartialWorkflowNotFoundError,
     PartialWorkflowConflictError, StaleDraftError, StaleItemError, PublicationConfigurationError, NoResultFound,
+    WriteConflictError, WritePermissionError, WriteUnavailableError,
 )
 _MENU_VALIDATION_ERRORS = (
     WorkflowValidationError,
@@ -74,6 +75,7 @@ _MENU_CONFLICT_ERRORS = (
     PartialWorkflowConflictError,
     StaleDraftError,
     StaleItemError,
+    WriteConflictError,
 )
 _MENU_VALUE_FIELDS = (
     'title', 'description', 'note', 'allergen_mode', 'origin_mode', 'label_mode',
@@ -82,6 +84,7 @@ _MENU_VALUE_FIELDS = (
 _MENU_LIST_FIELDS = (
     'component_public_id', 'component_text', 'allergen_code', 'allergen_presence',
     'origin_ingredient', 'origin_country_code', 'label_code',
+    'recipe_revision_public_id',
 )
 def profile_from_endpoint(endpoint: str) -> str:
     profile = FAMILIES.get(endpoint)
@@ -143,14 +146,6 @@ def _raster(profile: str, week: date, day: str, meal: str, option: str | None) -
             abort(404)
     return service_day
 
-def _scope(profile: str) -> AdminScope:
-    try:
-        with current_app.extensions['cafeteria_db'].connect() as connection:
-            location_id = resolve_single_active_location_connection(connection)
-    except ComponentCatalogConfigurationError as error:
-        abort(503, description=str(error))
-    return AdminScope(_actor_id(), location_id, cast(Literal['patient', 'staff_guest'], profile))
-
 def _page(body: str, status: int = 200):
     return make_response(f'<!doctype html><html lang="de"><body>{body}</body></html>', status)
 
@@ -158,14 +153,16 @@ def _hidden(name: str, value: object) -> str:
     return f'<input type="hidden" name="{escape(name)}" value="{escape(str(value))}">'
 
 def _abort_store(error: BaseException) -> None:
-    if isinstance(error, (ComponentCatalogConfigurationError, PublicationConfigurationError)):
+    if isinstance(error, WritePermissionError):
+        abort(403, description=str(error))
+    if isinstance(error, (ComponentCatalogConfigurationError, PublicationConfigurationError, WriteUnavailableError)):
         abort(503, description=str(error))
     if isinstance(error, WorkflowValidationError) and str(error) in _SLOT_404:
         abort(404)
     if isinstance(error, (ComponentNotFoundError, PartialWorkflowNotFoundError, NoResultFound)):
         abort(404)
     if isinstance(error, (StaleComponentError, ComponentConflictError, ComponentAssignmentConflictError,
-                          PartialWorkflowConflictError, StaleDraftError, StaleItemError)):
+                          PartialWorkflowConflictError, StaleDraftError, StaleItemError, WriteConflictError)):
         abort(409, description=str(error))
     if isinstance(error, (WorkflowValidationError, ComponentCatalogValidationError,
                           PartialWorkflowValidationError, ComponentAssignmentValidationError)):
@@ -198,32 +195,6 @@ def _version_field(name: str) -> int:
 
 def _db():
     return current_app.extensions['cafeteria_db']
-
-def _csrf_digest(scope: AdminScope, profile: str, purpose: str, raw: str) -> str:
-    secret = current_app.secret_key
-    if not isinstance(secret, (str, bytes)) or not secret:
-        abort(503, description='Formularsignatur ist nicht konfiguriert.')
-    key = secret.encode('utf-8') if isinstance(secret, str) else secret
-    binding = f'dishboard-admin-v1\0{raw}\0{scope.actor_id}\0{profile}\0{purpose}\0{scope.location_id}'
-    return hmac.new(key, binding.encode(), hashlib.sha256).hexdigest()
-
-def _scoped_csrf(profile: str, purpose: str, scope: AdminScope) -> str:
-    raw = csrf_token()
-    return f'{raw}.{purpose}.{_csrf_digest(scope, profile, purpose, raw)}'
-
-def _validate_scoped_csrf(profile: str, purposes: set[str]) -> AdminScope:
-    candidate = request.form.get('_csrf', '')
-    try:
-        raw, purpose, digest = candidate.rsplit('.', 2)
-    except ValueError:
-        abort(400, description='CSRF-Prüfung fehlgeschlagen.')
-    validate_csrf(raw)
-    if purpose not in purposes:
-        abort(400, description='Formularzweck ist ungültig.')
-    scope = _scope(profile)
-    if not hmac.compare_digest(digest, _csrf_digest(scope, profile, purpose, raw)):
-        abort(409, description='Der aktive Standort wurde zwischenzeitlich geändert.')
-    return scope
 
 def _flash() -> list[str]:
     return get_flashed_messages()
@@ -313,6 +284,8 @@ def _request_menu_values() -> dict[str, object]:
         if name in request.form
     }
     for name in _MENU_LIST_FIELDS:
+        if name == 'recipe_revision_public_id' and name not in request.form and f'{name}[]' not in request.form:
+            continue
         request_name = name if name in request.form else f'{name}[]'
         values[name] = request.form.getlist(request_name)
     return values
@@ -782,13 +755,13 @@ def copy_get(family: str):
     target = _week_arg()
     source = target - timedelta(days=7)
     scope = _scope(profile)
-    def versions() -> int:
+    def versions() -> tuple[int, int]:
         with _db().connect() as connection:
-            resolve_week_ref(connection, scope, source)
+            source_ref = resolve_week_ref(connection, scope, source)
             try:
                 target_ref = resolve_week_ref(connection, scope, target)
             except PartialWorkflowNotFoundError:
-                return 0
+                return source_ref.row_version, 0
             blocked = connection.execute(
                 text('SELECT EXISTS (SELECT 1 FROM cafeteria.menu_services s '
                      'JOIN cafeteria.menu_items i ON i.service_id=s.id WHERE s.menu_week_id=:week_id) '
@@ -798,11 +771,12 @@ def copy_get(family: str):
             ).scalar_one()
             if blocked:
                 raise PartialWorkflowConflictError('Zielwoche ist nicht leer oder publiziert.')
-            return target_ref.row_version
-    target_version = _call(versions)
+            return source_ref.row_version, target_ref.row_version
+    source_version, target_version = _call(versions)
     return render_template(
         'admin/copy.html', profile=profile, family=family, source=source, target=target,
-        target_row_version=target_version, csrf=_scoped_csrf(profile, 'copy', scope),
+        target_row_version=target_version,
+        csrf=_scoped_csrf(profile, 'copy', scope, copy_source=(source, target, source_version)),
     )
 
 @bp.post('/<any(cafeteria, patienten):family>/copy')
@@ -810,13 +784,14 @@ def copy_get(family: str):
 def copy_post(family: str):
     profile = profile_from_endpoint(family)
     _reject_override()
-    scope = _validate_scoped_csrf(profile, {'copy'})
     _exact({'_csrf', 'source_week', 'target_week', 'target_row_version'})
     source, target = _monday(request.form['source_week']), _monday(request.form['target_week'])
     if source != target - timedelta(days=7):
         abort(400, description='source_week muss genau die Vorwoche sein.')
+    scope, source_version = validate_copy_csrf(profile, source, target)
     _call(lambda: copy_previous_week(
         _db(), scope, target, _version_field('target_row_version'),
+        source_row_version=source_version,
     ))
     return redirect(url_for(f'admin.{family}', week=target.isoformat()), 303)
 

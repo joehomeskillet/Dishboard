@@ -3,11 +3,12 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-from flask import Flask, request
+from flask import Flask, request, session as flask_session
 from werkzeug.datastructures import MultiDict
 
 from cafeteria import roles
 from cafeteria.admin import display_routes, rendering, workflow_routes as routes
+from cafeteria.admin import workflow_scope
 from cafeteria.component_catalog_store import AdminScope, ComponentNotFoundError, StaleComponentError
 from cafeteria.workflow_partial_store import PartialWorkflowConflictError
 from test_admin_workflow_routes import DAY, ROOT, _menu_form, _register
@@ -25,7 +26,10 @@ def form_client(monkeypatch):
     monkeypatch.setattr(roles, 'load_user_authorization', lambda *_: SimpleNamespace(
         authz_version=3, roles=['Cafeteria.Editor'],
     ))
-    monkeypatch.setattr(routes, '_scope', lambda profile: AdminScope(7, 5, profile))
+    def scoped(profile):
+        return AdminScope(7, 5, profile, 3)
+    monkeypatch.setattr(routes, '_scope', scoped)
+    monkeypatch.setattr(workflow_scope, '_scope', scoped)
     state = {'writes': [], 'renders': [], 'overview': [], 'density': 'compact'}
     monkeypatch.setattr(display_routes, 'get_admin_display', lambda *_: {
         'admin_density': state['density'], 'admin_font_size': 'normal',
@@ -76,9 +80,9 @@ def form_client(monkeypatch):
 
     def token(family, purpose='overview'):
         profile = routes.FAMILIES[family]
-        with app.app_context():
-            digest = routes._csrf_digest(AdminScope(7, 5, profile), profile, purpose, 'form-test-csrf')
-        return f'form-test-csrf.{purpose}.{digest}'
+        with app.test_request_context():
+            flask_session['_csrf_token'] = 'form-test-csrf'
+            return routes._scoped_csrf(profile, purpose, scoped(profile))
 
     return client, token, state
 
@@ -125,7 +129,7 @@ def test_menu_save_return_keeps_payload_csrf_and_selected_week(form_client, fami
     result = client.post(f'/admin/{family}/menu?return_to=week', data=fields)
     assert result.status_code == 303 and result.location == f'/admin/{family}?week={DAY}'
     assert state['writes'][0][-1] == 4
-    assert state['writes'][0][1] == AdminScope(7, 5, routes.FAMILIES[family])
+    assert state['writes'][0][1] == AdminScope(7, 5, routes.FAMILIES[family], 3)
     default = client.post(f'/admin/{family}/menu', data=fields)
     assert default.status_code == 303 and default.location.startswith(f'/admin/{family}/menu?week={DAY}&')
 

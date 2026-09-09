@@ -5,9 +5,10 @@ from typing import Any
 
 from sqlalchemy import Connection, Engine, text
 
-from .component_assignment_store import replace_component_links_connection
-from .component_catalog_store import AdminScope, resolve_single_active_location_connection
-from .component_effects import rematerialize_auto_effects
+from .component_binding_state import prepare_bindings
+from .component_catalog_store import resolve_single_active_location_connection
+from .workflow_item_write import option_assignments, write_draft_item
+from .workflow_write_context import begin_write, write_scope, write_transaction
 from .operations_settings import (
     OperationsSchedule,
     SlotRule,
@@ -15,7 +16,7 @@ from .operations_settings import (
     normalise_time,
     slot_defaults,
 )
-from .workflow_snapshot import MEAL_NAMES, external_id
+from .workflow_snapshot import MEAL_NAMES
 
 PROFILE_MEALS = {'patient': ('LUNCH', 'DINNER'), 'staff_guest': ('LUNCH',)}
 PROFILE_DAYS = {'patient': 7, 'staff_guest': 5}
@@ -42,8 +43,13 @@ def ensure_week_connection(
     profile_code: str,
     week_start: date,
     actor_id: int,
+    *,
+    expected_authz_version: int,
+    expected_location_id: int,
 ) -> bool:
-    location_id = resolve_single_active_location_connection(connection)
+    scope = write_scope(actor_id, expected_location_id, profile_code, expected_authz_version)
+    begin_write(connection, scope)
+    location_id = scope.location_id
     inserted = connection.execute(
         text(
             '''
@@ -67,9 +73,13 @@ def ensure_week_connection(
     return inserted is not None
 
 
-def ensure_week(engine: Engine, profile_code: str, week_start: date, actor_id: int) -> None:
-    with engine.begin() as connection:
-        ensure_week_connection(connection, profile_code, week_start, actor_id)
+def ensure_week(engine: Engine, profile_code: str, week_start: date, actor_id: int, *,
+                expected_authz_version: int, expected_location_id: int) -> None:
+    scope = write_scope(actor_id, expected_location_id, profile_code, expected_authz_version)
+    with write_transaction(engine, scope) as connection:
+        ensure_week_connection(connection, profile_code, week_start, actor_id,
+                               expected_authz_version=expected_authz_version,
+                               expected_location_id=expected_location_id)
 
 
 def load_draft_connection(
@@ -139,10 +149,12 @@ def load_draft_connection(
                    SELECT jsonb_agg(jsonb_build_object(
                        'component_public_id', mc.public_id::text,
                        'component_text', CASE WHEN c.component_id IS NULL
-                                              THEN c.component_text ELSE NULL END
+                                              THEN c.component_text ELSE NULL END,
+                       'recipe_revision_public_id', rr.public_id::text
                    ) ORDER BY c.sort_order)
                    FROM cafeteria.menu_item_components c
                    LEFT JOIN cafeteria.menu_components mc ON mc.id=c.component_id
+                   LEFT JOIN cafeteria.recipe_revisions rr ON rr.id=c.recipe_revision_id
                    WHERE c.menu_item_id=i.id
                ), '[]'::jsonb) AS assignments,
                COALESCE((
@@ -265,125 +277,6 @@ def load_draft_connection(
     }
 
 
-def _insert_item(
-    connection: Connection,
-    scope: AdminScope,
-    service_id: int,
-    service_date: str,
-    meal_code: str,
-    option: dict[str, Any],
-    sort_order: int,
-) -> None:
-    item_insert = connection.execute(
-        text(
-            '''
-            INSERT INTO cafeteria.menu_items(
-                service_id, menu_type_id, external_id, title, description, note,
-                allergen_review_status, sort_order, allergen_mode, origin_mode, label_mode
-            )
-            SELECT :service_id, mt.id, :external_id, :title, NULLIF(:description, ''),
-                   NULLIF(:note, ''), :allergen_review_status, :sort_order,
-                   :allergen_mode, :origin_mode, :label_mode
-            FROM cafeteria.menu_types mt WHERE mt.code=:type_code
-            RETURNING id
-            '''
-        ),
-        {
-            'service_id': service_id,
-            'external_id': option.get('external_id')
-            or external_id(scope.profile_code, service_date, meal_code, option['type_code']),
-            'title': option['title'].strip(),
-            'description': str(option.get('description', '')).strip(),
-            'note': str(option.get('note', '')).strip(),
-            'allergen_review_status': option.get('allergen_review_status', 'not_checked'),
-            'sort_order': sort_order,
-            'type_code': option['type_code'],
-            'allergen_mode': option.get('allergen_mode', 'manual'),
-            'origin_mode': option.get('origin_mode', 'manual'),
-            'label_mode': option.get('label_mode', 'manual'),
-        },
-    )
-    if item_insert.rowcount != 1:
-        raise ValueError('Menüart konnte nicht eindeutig zugeordnet werden.')
-    item_id = item_insert.scalar_one()
-    assignments = option.get('assignments')
-    if assignments is None:
-        assignments = [
-            {'component_public_id': None, 'component_text': component}
-            for component in option['components']
-            if component.strip()
-        ]
-    replace_component_links_connection(connection, scope, int(item_id), assignments)
-    for label in option.get('labels', []):
-        label_insert = connection.execute(
-            text(
-                '''
-                INSERT INTO cafeteria.menu_item_labels(menu_item_id, label_id)
-                SELECT :item_id, id FROM cafeteria.dietary_labels WHERE code=:code
-                '''
-            ),
-            {'item_id': item_id, 'code': label['code']},
-        )
-        if label_insert.rowcount != 1:
-            raise ValueError('Menülabel konnte nicht eindeutig zugeordnet werden.')
-    for allergen in option.get('allergens', []):
-        allergen_insert = connection.execute(
-            text(
-                '''
-                INSERT INTO cafeteria.menu_item_allergens(menu_item_id, allergen_id, presence)
-                SELECT :item_id, id, :presence FROM cafeteria.allergens WHERE code=:code
-                '''
-            ),
-            {
-                'item_id': item_id,
-                'code': allergen['code'],
-                'presence': allergen['presence'],
-            },
-        )
-        if allergen_insert.rowcount != 1:
-            raise ValueError('Allergen konnte nicht eindeutig zugeordnet werden.')
-    for origin in option.get('origins', []):
-        connection.execute(
-            text(
-                '''
-                INSERT INTO cafeteria.origin_declarations(
-                    menu_item_id, ingredient, country_code, declaration_text
-                ) VALUES (:item_id, :ingredient, :country_code, :declaration_text)
-                '''
-            ),
-            {
-                'item_id': item_id,
-                'ingredient': origin['ingredient'],
-                'country_code': origin['country_code'],
-                'declaration_text': origin['text'],
-            },
-        )
-    rematerialize_auto_effects(
-        connection,
-        int(item_id),
-        {
-            'allergen_mode': option.get('allergen_mode', 'manual'),
-            'origin_mode': option.get('origin_mode', 'manual'),
-            'label_mode': option.get('label_mode', 'manual'),
-        },
-    )
-    if scope.profile_code == 'staff_guest':
-        connection.execute(
-            text(
-                '''
-                INSERT INTO cafeteria.menu_item_prices(
-                    menu_item_id, internal_rappen, external_rappen
-                ) VALUES (:item_id, :internal, :external)
-                '''
-            ),
-            {
-                'item_id': item_id,
-                'internal': option['internal_rappen'],
-                'external': option['external_rappen'],
-            },
-        )
-
-
 def draft_row_version(engine: Engine, profile_code: str, week_start: date) -> int:
     with engine.connect() as connection:
         row_version = connection.execute(
@@ -408,9 +301,17 @@ def persist_draft_connection(
     expected_row_version: int,
     actor_id: int,
     values: dict[str, Any],
+    expected_authz_version: int,
+    expected_location_id: int,
     reject_catalog_assignments: bool = False,
 ) -> int:
-    location_id = resolve_single_active_location_connection(connection)
+    scope = write_scope(actor_id, expected_location_id, profile_code, expected_authz_version)
+    begin_write(connection, scope)
+    location_id = scope.location_id
+    requested = [row for day in values['days'] for service in day['services']
+                 if service['service_state'] == 'open'
+                 for option in service['options'] for row in option_assignments(option)]
+    bindings = prepare_bindings(connection, scope, requested, weeks=[week_start])
     week = connection.execute(
         text(
             '''
@@ -439,82 +340,26 @@ def persist_draft_connection(
             {'week_id': week['id']},
         ).scalars()
     ]
-    item_ids = [
-        int(value)
-        for value in connection.execute(
+    previous_items = {
+        (int(row['service_id']), str(row['type_code'])): dict(row)
+        for row in connection.execute(
             text(
                 '''
-                SELECT i.id FROM cafeteria.menu_items i
+                SELECT i.id,i.service_id,i.row_version,mt.code AS type_code
+                FROM cafeteria.menu_items i JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id
                 WHERE i.service_id=ANY(CAST(:service_ids AS bigint[]))
-                ORDER BY i.id FOR UPDATE
+                ORDER BY i.id FOR UPDATE OF i
                 '''
             ),
             {'service_ids': service_ids},
-        ).scalars()
-    ]
-    requested_public_ids = sorted(
-        {
-            str(assignment['component_public_id'])
-            for day_value in values['days']
-            for service_value in day_value['services']
-            for option in service_value['options']
-            for assignment in option.get('assignments', [])
-            if assignment.get('component_public_id') is not None
-        }
-    )
-    requested_component_ids = {
-        int(value)
-        for value in connection.execute(
-            text(
-                '''
-                SELECT id FROM cafeteria.menu_components
-                WHERE public_id=ANY(CAST(:public_ids AS uuid[]))
-                  AND location_id=:location_id
-                  AND profile_scope IN ('common', :profile_code)
-                '''
-            ),
-            {
-                'public_ids': requested_public_ids,
-                'location_id': week['location_id'],
-                'profile_code': profile_code,
-            },
-        ).scalars()
+        ).mappings()
     }
-    component_ids = sorted(
-        requested_component_ids
-        | {
-            int(value)
-            for value in connection.execute(
-                text(
-                    'SELECT component_id FROM cafeteria.menu_item_components '
-                    'WHERE menu_item_id=ANY(CAST(:item_ids AS bigint[])) '
-                    'AND component_id IS NOT NULL'
-                ),
-                {'item_ids': item_ids},
-            ).scalars()
-        }
-    )
-    connection.execute(
-        text(
-            'SELECT id FROM cafeteria.menu_components '
-            'WHERE id=ANY(CAST(:component_ids AS bigint[])) ORDER BY id FOR SHARE'
-        ),
-        {'component_ids': component_ids},
-    ).all()
-    links = connection.execute(
-        text(
-            '''
-            SELECT menu_item_id, sort_order, component_id
-            FROM cafeteria.menu_item_components
-            WHERE menu_item_id=ANY(CAST(:item_ids AS bigint[]))
-            ORDER BY menu_item_id, sort_order FOR UPDATE
-            '''
-        ),
-        {'item_ids': item_ids},
-    ).mappings().all()
-    if reject_catalog_assignments and any(row['component_id'] is not None for row in links):
-        raise StaleDraftError('Full Import ist bei bestehenden Katalogzuweisungen gesperrt.')
-    scope = AdminScope(actor_id, int(week['location_id']), profile_code)
+    bindings.recheck()
+    if reject_catalog_assignments and any(
+            row['component_id'] is not None or row['recipe_revision_id'] is not None
+            for row in bindings.links):
+        raise StaleDraftError('Full Import ist bei bestehenden Katalog- oder Rezeptzuweisungen gesperrt.')
+    bound_ids = {int(row['menu_item_id']) for row in bindings.links if row['recipe_revision_id'] is not None}
     connection.execute(
         text(
             '''
@@ -530,8 +375,8 @@ def persist_draft_connection(
             'week_id': week['id'],
         },
     )
-    # Der Vollersatz ersetzt die Menüs; bestehende Serviceidentitäten, manuell gepflegte
-    # Zeiten und ausgelassene Wochenendtage bleiben dabei erhalten. Wochenendzeilen dürfen
+    # Bestehende Menü- und Serviceidentitäten, manuell gepflegte Zeiten und ausgelassene
+    # Wochenendtage bleiben erhalten. Wochenendzeilen dürfen
     # nicht gelöscht und neu eingefügt werden, weil der Trigger die Neuanlage bei
     # ausgeschaltetem Wochenendbetrieb ablehnt.
     previous_services = {
@@ -611,10 +456,12 @@ def persist_draft_connection(
                 ).scalar_one()
             else:
                 service_id = int(previous['id'])
-                connection.execute(
-                    text('DELETE FROM cafeteria.menu_items WHERE service_id=:service_id'),
-                    {'service_id': service_id},
-                )
+                if service_value['service_state'] != 'open':
+                    if any(int(row['id']) in bound_ids for (sid, _), row in previous_items.items()
+                           if sid == service_id):
+                        raise StaleDraftError('Rezeptbezüge müssen vor dem Schliessen bewusst entfernt werden.')
+                    connection.execute(text('DELETE FROM cafeteria.menu_items WHERE service_id=:service_id'),
+                                       {'service_id': service_id})
                 connection.execute(
                     text(
                         '''
@@ -629,7 +476,7 @@ def persist_draft_connection(
                 )
             if service_value['service_state'] == 'open':
                 for sort_order, option in enumerate(service_value['options'], start=1):
-                    _insert_item(
+                    write_draft_item(
                         connection,
                         scope,
                         int(service_id),
@@ -637,6 +484,8 @@ def persist_draft_connection(
                         service_value['meal_code'],
                         option,
                         sort_order,
+                        bindings,
+                        previous_items.get((int(service_id), option['type_code'])),
                     )
     for (previous_date, previous_meal), previous_row in previous_services.items():
         if (previous_date, previous_meal) in supplied_slots:
@@ -645,6 +494,9 @@ def persist_draft_connection(
             # Ein Fünf-Tage-Ersatz liefert gespeicherte Wochenendzeilen nicht mit und
             # darf sie deshalb auch nicht entfernen.
             continue
+        if any(int(row['id']) in bound_ids for (sid, _), row in previous_items.items()
+               if sid == int(previous_row['id'])):
+            raise StaleDraftError('Rezeptbezüge dürfen beim Vollersatz nicht entfallen.')
         connection.execute(
             text('DELETE FROM cafeteria.menu_services WHERE id=:service_id'),
             {'service_id': int(previous_row['id'])},
@@ -700,8 +552,11 @@ def persist_draft(
     expected_row_version: int,
     actor_id: int,
     values: dict[str, Any],
+    expected_authz_version: int,
+    expected_location_id: int,
 ) -> int:
-    with engine.begin() as connection:
+    scope = write_scope(actor_id, expected_location_id, profile_code, expected_authz_version)
+    with write_transaction(engine, scope) as connection:
         return persist_draft_connection(
             connection,
             profile_code,
@@ -709,6 +564,8 @@ def persist_draft(
             expected_row_version=expected_row_version,
             actor_id=actor_id,
             values=values,
+            expected_authz_version=expected_authz_version,
+            expected_location_id=expected_location_id,
         )
 
 

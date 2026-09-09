@@ -9,6 +9,8 @@ from uuid import UUID
 from sqlalchemy import Connection, Engine, text
 from sqlalchemy.exc import IntegrityError
 
+from .workflow_write_context import write_transaction
+
 from cafeteria.component_catalog_filters import ComponentFilters
 from cafeteria.component_catalog_metadata import (
     AllergenInput,
@@ -62,12 +64,15 @@ class AdminScope:
     actor_id: int
     location_id: int
     profile_code: Literal['patient', 'staff_guest']
+    expected_authz_version: int | None = None
 
     def __post_init__(self) -> None:
         _positive_integer(self.actor_id, 'actor_id')
         _positive_integer(self.location_id, 'location_id')
         if type(self.profile_code) is not str or self.profile_code not in _PROFILES:
             raise ComponentCatalogValidationError('Ungültiges Profil.')
+        if self.expected_authz_version is not None:
+            _positive_integer(self.expected_authz_version, 'expected_authz_version')
 
 
 def resolve_single_active_location_connection(connection: Connection) -> int:
@@ -99,7 +104,7 @@ def create_component(
         raise ComponentCatalogValidationError('Ungültiger Komponenten-Scope.')
     profile_scope = 'common' if target_scope == 'common' else scope.profile_code
     try:
-        with engine.begin() as connection:
+        with write_transaction(engine, scope) as connection:
             _require_scope_location(connection, scope)
             row = connection.execute(
                 text(
@@ -270,7 +275,7 @@ def update_component(
     clean_category, clean_name, clean_origin, clean_metadata = _update_payload(payload)
     expected_version = _positive_integer(version, 'row_version')
     try:
-        with engine.begin() as connection:
+        with write_transaction(engine, scope) as connection:
             row = _lock_component(
                 connection, scope, canonical_public_id, expected_version
             )
@@ -339,7 +344,7 @@ def _set_component_active(
 ) -> int:
     canonical_public_id = _public_id(public_id)
     expected_version = _positive_integer(version, 'row_version')
-    with engine.begin() as connection:
+    with write_transaction(engine, scope) as connection:
         row = _lock_component(connection, scope, canonical_public_id, expected_version)
         if bool(row['active']) is active:
             raise ComponentConflictError('Komponente hat diesen Archivstatus bereits.')

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from review_support import write_expectations
+
 import datetime as dt
 import os
 from collections.abc import Iterator
@@ -114,8 +116,8 @@ def _prepare_api_data(
 ) -> tuple[FlaskClient, int, str, str, str]:
     owner_engine, app_engine = database_engines
     client, admin_id = _login(app, owner_engine)
-    load_draft(owner_engine, 'staff_guest', WEEK, actor_id=admin_id)
-    load_draft(owner_engine, 'patient', WEEK, actor_id=admin_id)
+    load_draft(owner_engine, 'staff_guest', WEEK, actor_id=admin_id, **write_expectations(owner_engine, admin_id))
+    load_draft(owner_engine, 'patient', WEEK, actor_id=admin_id, **write_expectations(owner_engine, admin_id))
     with owner_engine.begin() as connection:
         connection.execute(
             text('UPDATE cafeteria.menu_weeks SET title=:title WHERE week_start=:week_start'),

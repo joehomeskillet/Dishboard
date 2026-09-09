@@ -47,6 +47,8 @@ class CatalogDatabase:
     app: Engine
     location_id: int
     other_location_id: int
+    actor_id: int
+    authz_version: int
 
 
 def _docker_inspect(container: str, template: str) -> str:
@@ -196,6 +198,9 @@ def catalog_database() -> Iterator[CatalogDatabase]:
     app = create_engine(_role_database_url('cafeteria_app', app_password), poolclass=NullPool,
                         pool_pre_ping=True)
     with owner.begin() as connection:
+        actor = connection.execute(text(
+            "SELECT id,authz_version FROM cafeteria.users WHERE public_id='00000000-0000-0000-0000-000000000002'"
+        )).one()
         location_id = int(connection.execute(
             text("SELECT id FROM cafeteria.locations WHERE active ORDER BY id")
         ).scalar_one())
@@ -206,7 +211,7 @@ def catalog_database() -> Iterator[CatalogDatabase]:
             )).scalar_one()
         )
     try:
-        yield CatalogDatabase(owner, app, location_id, other_location_id)
+        yield CatalogDatabase(owner, app, location_id, other_location_id, actor.id, actor.authz_version)
     finally:
         app.dispose()
         _drop_schema(owner)
@@ -214,7 +219,8 @@ def catalog_database() -> Iterator[CatalogDatabase]:
 
 
 def _scope(database: CatalogDatabase, profile: str = 'patient') -> AdminScope:
-    return AdminScope(actor_id=1, location_id=database.location_id, profile_code=profile)
+    return AdminScope(actor_id=database.actor_id, location_id=database.location_id,
+                      profile_code=profile, expected_authz_version=database.authz_version)
 
 
 def _create(
@@ -581,18 +587,20 @@ def test_mutations_reject_non_positive_real_integer_versions(
 
 
 def test_every_operation_rejects_scope_outside_single_active_location(catalog_database: CatalogDatabase) -> None:
-    foreign_scope = AdminScope(actor_id=1, location_id=catalog_database.other_location_id, profile_code='patient')
+    from cafeteria.workflow_write_context import WriteConflictError
+    foreign_scope = AdminScope(catalog_database.actor_id, catalog_database.other_location_id,
+                               'patient', catalog_database.authz_version)
     component = _create(catalog_database)
     public_id = str(component['public_id'])
 
-    with pytest.raises(ComponentCatalogConfigurationError):
+    with pytest.raises(WriteConflictError):
         create_component(catalog_database.app, foreign_scope, 'side', 'Fremd', None, 'current', (), ())
     with pytest.raises(ComponentCatalogConfigurationError):
         find_components(catalog_database.app, foreign_scope, '', None, False)
     with pytest.raises(ComponentCatalogConfigurationError):
         get_component(catalog_database.app, foreign_scope, public_id)
-    with pytest.raises(ComponentCatalogConfigurationError):
+    with pytest.raises(WriteConflictError):
         update_component(catalog_database.app, foreign_scope, public_id, {'category': 'side', 'name': 'X', 'origin_country_code': None, 'label_codes': (), 'allergens': ()}, 1)
     for operation in (archive_component, unarchive_component):
-        with pytest.raises(ComponentCatalogConfigurationError):
+        with pytest.raises(WriteConflictError):
             operation(catalog_database.app, foreign_scope, public_id, 1)

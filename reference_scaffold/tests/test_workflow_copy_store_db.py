@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from review_support import write_expectations
+
 # ruff: noqa: F401, F811
 
 from collections.abc import Callable
@@ -24,6 +26,7 @@ from cafeteria.component_catalog_store import (
 )
 from cafeteria.db import withdraw_publication_revision
 from cafeteria.workflow_copy_store import copy_previous_week
+from cafeteria.workflow_write_context import WriteConflictError
 import test_admin_workflow_db as workflow_support
 from review_support import review_saved_week
 from test_component_catalog_db import CatalogDatabase, catalog_database
@@ -44,7 +47,7 @@ class SeededWeek:
 
 
 def _scope(database: CatalogDatabase, profile: str = 'patient') -> AdminScope:
-    return AdminScope(1, database.location_id, profile)  # seeded system actor
+    return AdminScope(database.actor_id, database.location_id, profile, database.authz_version)
 
 
 def _seed_source(database: CatalogDatabase, *, profile: str = 'patient',
@@ -294,7 +297,7 @@ def test_copy_rebases_catalog_links_and_preserves_manual_bytes(
 
     assert copy_previous_week(
         catalog_database.app, _scope(catalog_database), TARGET_WEEK, 0,
-    ) == 1
+    source_row_version=1) == 1
 
     with catalog_database.owner.connect() as connection:
         week = connection.execute(text(
@@ -342,7 +345,8 @@ def test_copy_rebases_catalog_links_and_preserves_manual_bytes(
         ), {'week_id': week[0]}).scalar_one()
 
     assert week[1] != source.week_public_id
-    assert tuple(week[2:]) == ('draft', '  Vorwoche  ', 'Notiz\nbytegenau ', 1, 1, 1)
+    assert tuple(week[2:]) == ('draft', '  Vorwoche  ', 'Notiz\nbytegenau ', 1,
+                                catalog_database.actor_id, catalog_database.actor_id)
     assert [(row[2], row[3], row[4], row[5], row[6]) for row in services] == [
         (TARGET_WEEK, 'LUNCH', 'open', None, 1),
         (TARGET_WEEK + timedelta(days=1), 'DINNER', 'closed', '  Küche zu  ', 1),
@@ -370,30 +374,30 @@ def test_copy_rebases_catalog_links_and_preserves_manual_bytes(
 def test_copy_uses_saved_source_independent_of_lifecycle(catalog_database: CatalogDatabase, source_state: str) -> None:
     source = _seed_source(catalog_database, catalog_component=False)
     with catalog_database.owner.begin() as connection:
-        connection.execute(
-            text('UPDATE cafeteria.menu_weeks SET workflow_state=:state WHERE id=:id'),
+        source_version = connection.execute(
+            text('UPDATE cafeteria.menu_weeks SET workflow_state=:state WHERE id=:id RETURNING row_version'),
             {'state': source_state, 'id': source.week_id},
-        )
+        ).scalar_one()
 
     assert copy_previous_week(
         catalog_database.app, _scope(catalog_database), TARGET_WEEK, 0,
-    ) == 1
+    source_row_version=source_version) == 1
     assert _target_counts(catalog_database) == (2, 1, 1)
 
 
 def test_copy_target_version_matrix_replaces_only_empty_skeleton(catalog_database: CatalogDatabase) -> None:
     _seed_source(catalog_database, catalog_component=False)
     with pytest.raises(ComponentNotFoundError):
-        copy_previous_week(catalog_database.app, _scope(catalog_database), TARGET_WEEK, 1)
+        copy_previous_week(catalog_database.app, _scope(catalog_database), TARGET_WEEK, 1, source_row_version=1)
     target_id, target_public_id, old_service_id = _seed_empty_target(catalog_database)
     with pytest.raises(ComponentConflictError):
-        copy_previous_week(catalog_database.app, _scope(catalog_database), TARGET_WEEK, 0)
+        copy_previous_week(catalog_database.app, _scope(catalog_database), TARGET_WEEK, 0, source_row_version=1)
     with pytest.raises(ComponentConflictError):
-        copy_previous_week(catalog_database.app, _scope(catalog_database), TARGET_WEEK, 2)
+        copy_previous_week(catalog_database.app, _scope(catalog_database), TARGET_WEEK, 2, source_row_version=1)
 
     assert copy_previous_week(
         catalog_database.app, _scope(catalog_database), TARGET_WEEK, 1,
-    ) == 2
+    source_row_version=1) == 2
 
     with catalog_database.owner.connect() as connection:
         week = connection.execute(text(
@@ -403,11 +407,11 @@ def test_copy_target_version_matrix_replaces_only_empty_skeleton(catalog_databas
         service_ids = connection.execute(text(
             'SELECT id FROM cafeteria.menu_services WHERE menu_week_id=:id ORDER BY id'
         ), {'id': target_id}).scalars().all()
-    assert week == (target_id, target_public_id, 2, 'draft', 2, 1)
+    assert week == (target_id, target_public_id, 2, 'draft', 2, catalog_database.actor_id)
     assert old_service_id not in service_ids
     before = _target_counts(catalog_database)
     with pytest.raises(ComponentConflictError):
-        copy_previous_week(catalog_database.app, _scope(catalog_database), TARGET_WEEK, 2)
+        copy_previous_week(catalog_database.app, _scope(catalog_database), TARGET_WEEK, 2, source_row_version=1)
     assert _target_counts(catalog_database) == before
 
 
@@ -415,7 +419,7 @@ def test_copy_staff_prices_and_rejects_archived_or_anomalous_patient_data(catalo
     _seed_source(catalog_database, profile='staff_guest', catalog_component=False)
     assert copy_previous_week(
         catalog_database.app, _scope(catalog_database, 'staff_guest'), TARGET_WEEK, 0,
-    ) == 1
+    source_row_version=1) == 1
     with catalog_database.owner.connect() as connection:
         price = connection.execute(text(
             '''SELECT p.internal_rappen, p.external_rappen, p.currency
@@ -442,7 +446,7 @@ def test_copy_staff_prices_and_rejects_archived_or_anomalous_patient_data(catalo
     with pytest.raises(ComponentConflictError):
         copy_previous_week(
             catalog_database.app, _scope(catalog_database), TARGET_WEEK, 0,
-        )
+        source_row_version=1)
     assert _target_counts(catalog_database) == (0, 0, 0)
 
 
@@ -455,11 +459,20 @@ def test_copy_archived_component_rolls_back_without_target(catalog_database: Cat
         str(source.component['public_id']),
         int(source.component['row_version']),
     )
-    with pytest.raises(ComponentConflictError):
-        copy_previous_week(
-            catalog_database.app, _scope(catalog_database), TARGET_WEEK, 0,
-        )
-    assert _target_counts(catalog_database) == (0, 0, 0)
+    # Exact historical copy retains the old captured name/version, including staleness.
+    assert copy_previous_week(
+        catalog_database.app, _scope(catalog_database), TARGET_WEEK, 0,
+        source_row_version=1) == 1
+    with catalog_database.owner.connect() as connection:
+        link = connection.execute(text('''
+            SELECT l.component_text,l.component_row_version,i.allergen_review_status
+            FROM cafeteria.menu_item_components l JOIN cafeteria.menu_items i ON i.id=l.menu_item_id
+            JOIN cafeteria.menu_services s ON s.id=i.service_id
+            JOIN cafeteria.menu_weeks w ON w.id=s.menu_week_id
+            WHERE w.week_start=:week AND l.component_id IS NOT NULL
+        '''), {'week': TARGET_WEEK}).one()
+    assert link == ('alter Linkname', 1, 'not_checked')
+    assert _target_counts(catalog_database) == (2, 1, 2)
 
 
 def test_two_concurrent_copies_have_one_complete_winner(catalog_database: CatalogDatabase) -> None:
@@ -470,10 +483,10 @@ def test_two_concurrent_copies_have_one_complete_winner(catalog_database: Catalo
         '/* copy_week_lock */', '/* copy_week_lock */',
         lambda: copy_previous_week(
             first_engine, _scope(catalog_database), TARGET_WEEK, 0,
-        ),
+        source_row_version=1),
         lambda: copy_previous_week(
             second_engine, _scope(catalog_database), TARGET_WEEK, 0,
-        ),
+        source_row_version=1),
     )
     assert first == ('ok', 1)
     assert second[0] == 'error' and isinstance(second[1], ComponentConflictError)
@@ -493,25 +506,24 @@ def test_copy_and_real_save_block_without_hybrid(catalog_database: CatalogDataba
     target_version = 0 if saved_week == 'source' else 1
     calls = {
         'copy': (copy_engine, '/* copy_week_lock */', lambda: copy_previous_week(
-            copy_engine, _scope(catalog_database), TARGET_WEEK, target_version)),
+            copy_engine, _scope(catalog_database), TARGET_WEEK, target_version, source_row_version=1)),
         'save': (save_engine, 'FOR UPDATE OF w', lambda: workflow.save_draft(
             save_engine, 'patient', save_week, expected_row_version=1, actor_id=2,
-            values=_patient_values(save_week, f'{saved_week} Save'))),
+            values=_patient_values(save_week, f'{saved_week} Save'), **write_expectations(save_engine, 2))),
     }
     second_name = 'save' if first_name == 'copy' else 'copy'
     first, second = _blocked_pair(
         catalog_database, calls[first_name][0], calls[second_name][0],
         calls[first_name][1], calls[second_name][1], calls[first_name][2], calls[second_name][2],
     )
-    if saved_week == 'source':
+    if saved_week == 'source' and first_name == 'copy':
         assert first[0] == second[0] == 'ok'
     else:
         assert first == ('ok', 2)
         expected_error = workflow.StaleDraftError if first_name == 'copy' else ComponentConflictError
         assert second[0] == 'error' and isinstance(second[1], expected_error)
-    expected_counts = (
-        (2, 1, 1) if first_name == 'copy' else (14, 28, 28)
-    )
+    expected_counts = ((2, 1, 1) if first_name == 'copy' else
+                       (0, 0, 0) if saved_week == 'source' else (14, 28, 28))
     assert _target_counts(catalog_database) == expected_counts
 
 
@@ -522,16 +534,16 @@ def test_copy_and_target_publish_block_on_week_without_hybrid(catalog_database: 
         _seed_empty_target(catalog_database)
         expected = 1
     else:
-        workflow.ensure_week(catalog_database.app, 'patient', TARGET_WEEK, 2)
+        workflow.ensure_week(catalog_database.app, 'patient', TARGET_WEEK, 2, **write_expectations(catalog_database.app, 2))
         expected = workflow.save_draft(
             catalog_database.app, 'patient', TARGET_WEEK, expected_row_version=1, actor_id=2,
             values=_patient_values(TARGET_WEEK, 'Publizierbares Ziel'),
-        )
+         **write_expectations(catalog_database.app, 2))
         expected = review_saved_week(catalog_database.app, 'patient', TARGET_WEEK, 2)
     copy_engine, publish_engine = _separate_engine(catalog_database), _separate_engine(catalog_database)
     calls = {
         'copy': (copy_engine, '/* copy_week_lock */', lambda: copy_previous_week(
-            copy_engine, _scope(catalog_database), TARGET_WEEK, expected)),
+            copy_engine, _scope(catalog_database), TARGET_WEEK, expected, source_row_version=1)),
         'publish': (publish_engine, 'FOR UPDATE OF w', lambda: workflow.publish_draft(
             publish_engine, 'patient', TARGET_WEEK, expected_row_version=expected,
             actor_id=2, issuer_engine=None)),
@@ -551,11 +563,11 @@ def test_copy_and_target_publish_block_on_week_without_hybrid(catalog_database: 
 
 def test_active_and_inflight_withdrawal_are_conservative_and_atomic(catalog_database: CatalogDatabase) -> None:
     _seed_source(catalog_database, catalog_component=False)
-    workflow.ensure_week(catalog_database.app, 'patient', TARGET_WEEK, 2)
+    workflow.ensure_week(catalog_database.app, 'patient', TARGET_WEEK, 2, **write_expectations(catalog_database.app, 2))
     version = workflow.save_draft(
         catalog_database.app, 'patient', TARGET_WEEK, expected_row_version=1, actor_id=2,
         values=_patient_values(TARGET_WEEK, 'Publiziertes Ziel'),
-    )
+     **write_expectations(catalog_database.app, 2))
     version = review_saved_week(catalog_database.app, 'patient', TARGET_WEEK, 2)
     workflow.publish_draft(
         catalog_database.app, 'patient', TARGET_WEEK,
@@ -578,7 +590,7 @@ def test_active_and_inflight_withdrawal_are_conservative_and_atomic(catalog_data
         copy_previous_week(
             catalog_database.app, _scope(catalog_database), TARGET_WEEK,
             int(row['row_version']),
-        )
+        source_row_version=1)
 
     withdraw_engine = _separate_engine(catalog_database)
     withdrawn_uncommitted, release = Event(), Event()
@@ -599,8 +611,9 @@ def test_active_and_inflight_withdrawal_are_conservative_and_atomic(catalog_data
             copy = pool.submit(
                 copy_previous_week, catalog_database.app, _scope(catalog_database),
                 TARGET_WEEK, int(row['row_version']),
+                source_row_version=1,
             )
-            with pytest.raises(ComponentConflictError):
+            with pytest.raises(WriteConflictError):
                 copy.result(timeout=10)
             assert not withdraw.done()
             release.set()
@@ -610,7 +623,7 @@ def test_active_and_inflight_withdrawal_are_conservative_and_atomic(catalog_data
         event.remove(withdraw_engine, 'after_cursor_execute', after_withdraw)
     assert _target_counts(catalog_database) == (0, 0, 0)
     assert copy_previous_week(catalog_database.app, _scope(catalog_database), TARGET_WEEK,
-                              int(row['row_version'])) == int(row['row_version']) + 1
+                              int(row['row_version']), source_row_version=1) == int(row['row_version']) + 1
     with catalog_database.owner.connect() as connection:
         assert connection.execute(text('SELECT withdrawn_at IS NOT NULL FROM '
                                        'cafeteria.publication_revisions WHERE id=:id'),
@@ -622,7 +635,7 @@ def _prepare_replacement(
     catalog_database: CatalogDatabase,
 ) -> tuple[int, int, str]:
     from review_support import review_saved_week
-    workflow.ensure_week(catalog_database.app, 'patient', TARGET_WEEK, 2)
+    workflow.ensure_week(catalog_database.app, 'patient', TARGET_WEEK, 2, **write_expectations(catalog_database.app, 2))
     first_version = workflow.save_draft(
         catalog_database.app,
         'patient',
@@ -630,7 +643,7 @@ def _prepare_replacement(
         expected_row_version=1,
         actor_id=2,
         values=_patient_values(TARGET_WEEK, 'Erste Revision'),
-    )
+     **write_expectations(catalog_database.app, 2))
     first_version = review_saved_week(catalog_database.app, 'patient', TARGET_WEEK, 2)
     workflow.publish_draft(
         catalog_database.app,
@@ -648,7 +661,7 @@ def _prepare_replacement(
         expected_row_version=current_version,
         actor_id=2,
         values=_patient_values(TARGET_WEEK, 'Zweite Revision'),
-    )
+     **write_expectations(catalog_database.app, 2))
     second_version = review_saved_week(catalog_database.app, 'patient', TARGET_WEEK, 2)
     with catalog_database.owner.begin() as connection:
         revision_id = int(connection.execute(text(
@@ -663,7 +676,7 @@ def _prepare_replacement(
 def test_publish_location_lock_serializes_real_cutover(
     catalog_database: CatalogDatabase,
 ) -> None:
-    workflow.ensure_week(catalog_database.app, 'patient', TARGET_WEEK, 2)
+    workflow.ensure_week(catalog_database.app, 'patient', TARGET_WEEK, 2, **write_expectations(catalog_database.app, 2))
     version = workflow.save_draft(
         catalog_database.app,
         'patient',
@@ -671,7 +684,7 @@ def test_publish_location_lock_serializes_real_cutover(
         expected_row_version=1,
         actor_id=2,
         values=_patient_values(TARGET_WEEK, 'Standort-Lock'),
-    )
+     **write_expectations(catalog_database.app, 2))
     version = review_saved_week(catalog_database.app, 'patient', TARGET_WEEK, 2)
     publish_engine = _separate_engine(catalog_database)
     cutover_engine = create_engine(

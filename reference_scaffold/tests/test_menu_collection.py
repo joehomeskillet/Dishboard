@@ -31,9 +31,12 @@ def test_app_factory_registers_collection_once(monkeypatch):
 
 
 def _scope(client, engine, profile='patient'):
+    actor = _session_actor_id(client)
     with engine.connect() as connection:
         location = connection.execute(text('SELECT id FROM cafeteria.locations WHERE active')).scalar_one()
-    return AdminScope(_session_actor_id(client), location, profile)
+        authz = connection.execute(text('SELECT authz_version FROM cafeteria.users WHERE id=:actor'),
+                                   {'actor': actor}).scalar_one()
+    return AdminScope(actor, location, profile, authz)
 
 
 def _save(engine, scope, *, week=WEEK, title='Gespeichertes Menü', payload=None):
@@ -59,7 +62,7 @@ def test_collection_scopes_profile_location_and_never_writes(client, database_en
         other = connection.execute(text(
             "INSERT INTO cafeteria.locations(code,name,active) VALUES ('OTHER','Andere Küche',true) RETURNING id"
         )).scalar_one()
-    _save(database_engine, AdminScope(patient.actor_id, other, 'patient'),
+    _save(database_engine, AdminScope(patient.actor_id, other, 'patient', patient.expected_authz_version),
           week=WEEK + timedelta(days=7), title='Anderer Standort')
     with database_engine.begin() as connection:
         connection.execute(text('UPDATE cafeteria.locations SET active=(id=:id)'), {'id': patient.location_id})

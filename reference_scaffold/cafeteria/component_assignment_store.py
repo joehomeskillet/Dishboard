@@ -2,10 +2,16 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
-from uuid import UUID
 
 from sqlalchemy import Connection, Engine, text
+
+from .component_assignment_contract import (
+    Assignment,
+    AssignmentValidationError as ComponentAssignmentValidationError,
+    normalize_assignments,
+)
+from .component_binding_state import BindingState, payloads_from_links, prepare_bindings
+from .workflow_write_context import record_item_write, write_transaction
 
 from .component_catalog_store import (
     AdminScope,
@@ -21,26 +27,12 @@ from .component_effects import (
 )
 
 
-_ASSIGNMENT_KEYS = frozenset({'component_public_id', 'component_text'})
-_MAX_ASSIGNMENTS = 32_767
-
-
-class ComponentAssignmentValidationError(ValueError):
-    pass
-
-
 class ComponentAssignmentConflictError(ComponentConflictError):
     pass
 
 
 class StaleItemError(ComponentAssignmentConflictError):
     pass
-
-
-@dataclass(frozen=True)
-class _Assignment:
-    public_id: str | None
-    component_text: str | None
 
 
 def assign_component(
@@ -50,12 +42,15 @@ def assign_component(
     component_public_id: str | None,
     component_text: str | None,
     expected_item_row_version: int,
+    *,
+    recipe_revision_public_id: str | None = None,
 ) -> int:
     assignment = _normalize_assignments(
         [
             {
                 'component_public_id': component_public_id,
                 'component_text': component_text,
+                'recipe_revision_public_id': recipe_revision_public_id,
             }
         ]
     )[0]
@@ -82,9 +77,13 @@ def replace_component_links_connection(
     scope: AdminScope,
     item_id: int,
     assignments: Sequence[Mapping[str, object]],
+    *,
+    binding_state: BindingState,
 ) -> None:
     normalized = _normalize_assignments(assignments)
-    _replace_component_links_connection(connection, scope, _positive(item_id, 'item_id'), normalized)
+    _replace_component_links_connection(
+        connection, scope, _positive(item_id, 'item_id'), normalized, binding_state,
+    )
 
 
 def resolve_component_effects(
@@ -101,23 +100,25 @@ def _mutate_links(
     engine: Engine,
     scope: AdminScope,
     item_id: int,
-    assignments: list[_Assignment],
+    assignments: Sequence[Assignment],
     expected_item_row_version: int,
     *,
     append: bool,
 ) -> int:
     clean_item_id = _positive(item_id, 'item_id')
     expected_version = _positive(expected_item_row_version, 'expected_item_row_version')
-    with engine.begin() as connection:
+    with write_transaction(engine, scope) as connection:
+        state = prepare_bindings(connection, scope, assignments, item_ids=[clean_item_id])
         item = _lock_scoped_item(connection, scope, clean_item_id)
         if item['row_version'] != expected_version:
             raise StaleItemError('Das Menü wurde zwischenzeitlich geändert.')
-        target = assignments
+        state.recheck()
+        target = list(assignments)
         if append:
-            target = _current_assignments(connection, clean_item_id) + assignments
-        _replace_component_links_connection(connection, scope, clean_item_id, target)
+            target = _normalize_assignments(payloads_from_links(state.old_links(clean_item_id))) + target
+        _replace_component_links_connection(connection, scope, clean_item_id, target, state)
         rematerialize_auto_effects(connection, clean_item_id, item)
-        return int(
+        version = int(
             connection.execute(
                 text(
                     '''
@@ -130,6 +131,8 @@ def _mutate_links(
                 {'item_id': clean_item_id},
             ).scalar_one()
         )
+        record_item_write(connection, scope, clean_item_id, expected_version, version)
+        return version
 
 
 def _lock_scoped_item(
@@ -211,86 +214,49 @@ def _replace_component_links_connection(
     connection: Connection,
     scope: AdminScope,
     item_id: int,
-    assignments: list[_Assignment],
+    assignments: Sequence[Assignment],
+    state: BindingState,
 ) -> None:
-    _require_location(connection, scope)
-    _find_scoped_item(connection, scope, item_id)
-    existing_ids = [
-        int(value)
-        for value in connection.execute(
-            text(
-                'SELECT component_id FROM cafeteria.menu_item_components '
-                'WHERE menu_item_id=:item_id AND component_id IS NOT NULL'
-            ),
-            {'item_id': item_id},
-        ).scalars()
-    ]
-    public_ids = sorted({value.public_id for value in assignments if value.public_id})
-    requested = connection.execute(
-        text(
-            '''
-            SELECT id, public_id::text AS public_id
-            FROM cafeteria.menu_components
-            WHERE public_id=ANY(CAST(:public_ids AS uuid[]))
-              AND location_id=:location_id
-              AND profile_scope IN ('common', :profile_code)
-            '''
-        ),
-        {
-            'public_ids': public_ids,
-            'location_id': scope.location_id,
-            'profile_code': scope.profile_code,
-        },
-    ).mappings().all()
-    requested_ids = {str(row['public_id']): int(row['id']) for row in requested}
-    if set(public_ids) != set(requested_ids):
-        raise ComponentNotFoundError('Komponente nicht gefunden.')
-    union_ids = sorted(set(existing_ids) | set(requested_ids.values()))
-    locked = connection.execute(
-        text(
-            '''
-            /* assignment_component_lock */
-            SELECT id, public_id::text AS public_id, name, row_version, active
-            FROM cafeteria.menu_components
-            WHERE id=ANY(CAST(:component_ids AS bigint[]))
-            ORDER BY id FOR SHARE
-            '''
-        ),
-        {'component_ids': union_ids},
-    ).mappings().all()
-    by_public_id = {str(row['public_id']): row for row in locked}
-    if any(public_id not in by_public_id for public_id in public_ids):
-        raise ComponentNotFoundError('Komponente nicht gefunden.')
-    existing_counts = Counter(existing_ids)
-    requested_counts = Counter(
-        int(by_public_id[value.public_id]['id'])
-        for value in assignments
-        if value.public_id is not None
-    )
-    for component_id, count in requested_counts.items():
-        row = next(row for row in locked if int(row['id']) == component_id)
+    state.require_item(connection, scope, item_id)
+    old = state.old_links(item_id)
+    if any(row['recipe_revision_id'] is not None for row in old) and (
+            not assignments or any(not row.recipe_field_present for row in assignments)):
+        raise ComponentAssignmentConflictError(
+            'Rezeptbezüge sind vorhanden. Bitte das vollständige Menüformular neu laden.'
+        )
+    by_public_id = state.components
+    if any(row.component_public_id and row.component_public_id not in by_public_id
+           or row.recipe_revision_public_id and row.recipe_revision_public_id not in state.recipes
+           for row in assignments):
+        raise ComponentAssignmentConflictError('Zuweisung gehört nicht zum vorbereiteten Schreibvorgang.')
+    existing_counts = Counter(row['component_public_id'] for row in old if row['component_public_id'])
+    requested_counts = Counter(row.component_public_id for row in assignments if row.component_public_id)
+    for public_id, count in requested_counts.items():
+        row = by_public_id[public_id]
         if bool(row['active']) and count > 1:
             raise ComponentAssignmentConflictError('Aktive Komponente ist doppelt zugewiesen.')
-        if not bool(row['active']) and count > existing_counts[component_id]:
+        if not bool(row['active']) and count > existing_counts[public_id]:
             raise ComponentAssignmentConflictError('Archivierte Komponente kann nicht neu zugewiesen werden.')
-    connection.execute(
-        text(
-            '''
-            SELECT menu_item_id, sort_order
-            FROM cafeteria.menu_item_components
-            WHERE menu_item_id=:item_id
-            ORDER BY menu_item_id, sort_order FOR UPDATE
-            '''
-        ),
-        {'item_id': item_id},
-    ).all()
+    old_recipes = Counter(row['recipe_revision_public_id'] for row in old if row['recipe_revision_public_id'])
+    new_recipes = Counter(row.recipe_revision_public_id for row in assignments if row.recipe_revision_public_id)
+    for public_id, count in new_recipes.items():
+        if not state.recipes[public_id]['active'] and count > old_recipes[public_id]:
+            raise ComponentAssignmentConflictError('Archiviertes Rezept kann nicht neu zugewiesen werden.')
+    old_foods = Counter(by_public_id[row['component_public_id']]['food_id'] for row in old
+                        if row['component_public_id'] and by_public_id[row['component_public_id']]['food_id'])
+    new_foods = Counter(by_public_id[row.component_public_id]['food_id'] for row in assignments
+                        if row.component_public_id and by_public_id[row.component_public_id]['food_id'])
+    for food_id, count in new_foods.items():
+        if not state.foods[food_id]['active'] and count > old_foods[food_id]:
+            raise ComponentAssignmentConflictError('Archivierte Zutat kann nicht neu zugewiesen werden.')
     connection.execute(
         text('DELETE FROM cafeteria.menu_item_components WHERE menu_item_id=:item_id'),
         {'item_id': item_id},
     )
     rows = []
     for sort_order, assignment in enumerate(assignments, 1):
-        component = by_public_id.get(assignment.public_id or '')
+        component = by_public_id.get(assignment.component_public_id or '')
+        recipe = state.recipes.get(assignment.recipe_revision_public_id or '')
         rows.append(
             {
                 'item_id': item_id,
@@ -302,6 +268,7 @@ def _replace_component_links_connection(
                 'component_version': (
                     int(component['row_version']) if component is not None else None
                 ),
+                'recipe_revision_id': int(recipe['revision_id']) if recipe is not None else None,
             }
         )
     if rows:
@@ -309,9 +276,11 @@ def _replace_component_links_connection(
             text(
                 '''
                 INSERT INTO cafeteria.menu_item_components(
-                    menu_item_id, sort_order, component_text, component_id, component_row_version
+                    menu_item_id, sort_order, component_text, component_id, component_row_version,
+                    recipe_revision_id
                 ) VALUES (
-                    :item_id, :sort_order, :component_text, :component_id, :component_version
+                    :item_id, :sort_order, :component_text, :component_id, :component_version,
+                    :recipe_revision_id
                 )
                 '''
             ),
@@ -319,51 +288,8 @@ def _replace_component_links_connection(
         )
 
 
-def _current_assignments(connection: Connection, item_id: int) -> list[_Assignment]:
-    rows = connection.execute(
-        text(
-            '''
-            SELECT c.public_id::text AS public_id, mic.component_text
-            FROM cafeteria.menu_item_components mic
-            LEFT JOIN cafeteria.menu_components c ON c.id=mic.component_id
-            WHERE mic.menu_item_id=:item_id ORDER BY mic.sort_order
-            '''
-        ),
-        {'item_id': item_id},
-    ).mappings()
-    return [
-        _Assignment(str(row['public_id']), None)
-        if row['public_id'] is not None
-        else _Assignment(None, str(row['component_text']))
-        for row in rows
-    ]
-
-
-def _normalize_assignments(value: object) -> list[_Assignment]:
-    if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
-        raise ComponentAssignmentValidationError('Zuweisungen müssen eine Liste sein.')
-    if len(value) > _MAX_ASSIGNMENTS:
-        raise ComponentAssignmentValidationError('Zu viele Komponenten.')
-    result = []
-    for raw in value:
-        if not isinstance(raw, Mapping) or set(raw) != _ASSIGNMENT_KEYS:
-            raise ComponentAssignmentValidationError('Komponentenzuweisung hat ungültige Felder.')
-        public_id = raw['component_public_id']
-        component_text = raw['component_text']
-        if (public_id is None) == (component_text is None):
-            raise ComponentAssignmentValidationError('Genau eine Komponente muss gesetzt sein.')
-        if public_id is not None:
-            if type(public_id) is not str:
-                raise ComponentAssignmentValidationError('Komponenten-ID ist ungültig.')
-            try:
-                result.append(_Assignment(str(UUID(public_id)), None))
-            except (ValueError, AttributeError) as error:
-                raise ComponentAssignmentValidationError('Komponenten-ID ist ungültig.') from error
-        else:
-            if type(component_text) is not str or not component_text.strip(' '):
-                raise ComponentAssignmentValidationError('Freitext-Komponente ist leer.')
-            result.append(_Assignment(None, component_text))
-    return result
+def _normalize_assignments(value: object) -> list[Assignment]:
+    return list(normalize_assignments(value))
 
 
 def _positive(value: object, field_name: str) -> int:
