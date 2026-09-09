@@ -321,6 +321,74 @@ def test_first_save_matrix_and_virtual_slot(client, database_engine: Engine, app
     assert tuple(row) == (2, 'Update')
 
 
+def _menu_state(engine: Engine) -> tuple[int, str]:
+    with engine.connect() as connection:
+        return tuple(  # type: ignore[return-value]
+            connection.execute(text('SELECT row_version, title FROM cafeteria.menu_items')).one()
+        )
+
+
+def test_conflict_page_keeps_submitted_version_until_a_fresh_get(client, database_engine: Engine) -> None:
+    """A rendered 409 must not hand the writer the concurrent version it just refused."""
+    action = '/admin/patienten/menu'
+    page = client.get(f'{action}?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1')
+    token = _hidden(page.get_data(as_text=True), '_csrf', form_action=action)
+    assert client.post(action, data=_menu_form(_csrf=token)).status_code == 303
+    concurrent = client.post(action, data=_menu_form(
+        _csrf=token, row_version='1', title='Zwischenzeitlich gespeichert'))
+    assert concurrent.status_code == 303
+    before, counts_before = _menu_state(database_engine), _counts(database_engine)
+    assert before == (2, 'Zwischenzeitlich gespeichert')
+
+    stale = _menu_form(_csrf=token, row_version='1', title='Alter Stand erneut gesendet')
+    conflict = client.post(action, data=stale)
+    assert conflict.status_code == 409
+    assert conflict.headers['Cache-Control'] == 'no-store'
+    assert _menu_state(database_engine) == before
+    replay = client.post(action, data=stale)
+    assert replay.status_code == 409
+    assert _menu_state(database_engine) == before
+
+    body = replay.get_data(as_text=True)
+    rendered = _hidden(body, 'row_version', form_action=action)
+    assert rendered == '1', 'the conflict page must keep the submitted version, not the stored one'
+    assert 'Alter Stand erneut gesendet' in body
+    # Same visible values, only the hidden fields the 409 page supplies. No GET intervenes.
+    resubmitted = dict(stale, row_version=rendered,
+                       _csrf=_hidden(body, '_csrf', form_action=action))
+    assert client.post(action, data=resubmitted).status_code == 409
+    assert _menu_state(database_engine) == before
+    assert _counts(database_engine) == counts_before
+
+    fresh = client.get(f'{action}?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1')
+    assert _hidden(fresh.get_data(as_text=True), 'row_version', form_action=action) == '2'
+
+
+@pytest.mark.parametrize('supplied', ['', 'zwei', '-1'])
+def test_conflict_page_never_repairs_a_missing_or_malformed_version(
+    client, database_engine: Engine, supplied: str
+) -> None:
+    action = '/admin/patienten/menu'
+    page = client.get(f'{action}?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1')
+    token = _hidden(page.get_data(as_text=True), '_csrf', form_action=action)
+    assert client.post(action, data=_menu_form(_csrf=token)).status_code == 303
+    before, counts_before = _menu_state(database_engine), _counts(database_engine)
+
+    broken = _menu_form(_csrf=token, row_version=supplied, title='Unbrauchbare Version')
+    rejected = client.post(action, data=broken)
+    assert rejected.status_code == 400
+    assert _menu_state(database_engine) == before
+    body = rejected.get_data(as_text=True)
+    rendered = _hidden(body, 'row_version', form_action=action)
+    assert rendered == supplied, 'the rejected value must not be replaced by the stored version'
+    # Resubmitting the rendered form fails closed again instead of writing.
+    resubmitted = dict(broken, row_version=rendered,
+                       _csrf=_hidden(body, '_csrf', form_action=action))
+    assert client.post(action, data=resubmitted).status_code == 400
+    assert _menu_state(database_engine) == before
+    assert _counts(database_engine) == counts_before
+
+
 def test_copy_exact_prior_week_and_empty_source(client, database_engine: Engine, app: Flask) -> None:
     user_id = _session_actor_id(client)
     scope = _scope(database_engine, user_id)
