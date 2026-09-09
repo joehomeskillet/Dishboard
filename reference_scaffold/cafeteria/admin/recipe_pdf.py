@@ -15,6 +15,7 @@ from ..branding_config import contrast, default_config as default_branding_confi
 from ..print_branding import PdfBranding
 from ..print_template_config import PrintTemplateConfig, PrintTemplateValidationError, validate_config
 from ..recipe_snapshots import image_payload
+from ..recipe_snapshot_v2 import verified_prepared
 from ..recipe_types import (
     RecipeAssetDTO, RecipeConfigurationError, RecipeRevisionDTO, RecipeValidationError,
 )
@@ -50,8 +51,10 @@ def _readable_brand(branding: PdfBranding) -> None:
 def _selected_recipe(revision: RecipeRevisionDTO) -> Mapping[str, Any]:
     if (not isinstance(revision.snapshot, Mapping)
             or type(revision.snapshot.get('schema_version')) is not int
-            or revision.snapshot['schema_version'] != 1):
+            or revision.snapshot['schema_version'] not in (1, 2)):
         raise RecipeConfigurationError('Diese Rezeptrevision wird vom PDF-Druck nicht unterstützt.')
+    if revision.snapshot['schema_version'] == 2:
+        verified_prepared(revision)
     identifier(revision.public_id)
     identifier(revision.recipe_public_id)
     positive(revision.revision_number)
@@ -153,7 +156,7 @@ def _provenance(pdf: _RecipeDocument, source: Mapping[str, Any], *, ingredient: 
 
 def _render(revision: RecipeRevisionDTO, recipe: Mapping[str, Any], *, config: PrintTemplateConfig,
             images: dict[str, bytes], target: str | None, branding: PdfBranding | None) -> bytes:
-    scaled = scaled_recipe(recipe, target)
+    scaled = scaled_recipe(recipe, target, revision=revision)
     pdf = _RecipeDocument(config, branding)
     pdf.set_title(recipe['title'])
     pdf.set_creator('Dishboard · fpdf2')
@@ -169,18 +172,32 @@ def _render(revision: RecipeRevisionDTO, recipe: Mapping[str, Any], *, config: P
             pdf.photo(logo, logo=True)
     if config['header_text']:
         pdf.paragraph(config['header_text'])
+    _content(pdf, revision, recipe, scaled, images)
+    shown = set()
+    for prepared in scaled.get('prepared', ()):
+        child = prepared['revision']
+        pdf.add_page()
+        pdf.paragraph('Zubereitung für ' + prepared['for_ingredient'])
+        _content(pdf, child, prepared['recipe'], prepared['calculated'], images,
+                 details=child.public_id not in shown)
+        shown.add(child.public_id)
+    return bytes(pdf.output())
+
+
+def _content(pdf: _RecipeDocument, revision: RecipeRevisionDTO, recipe: Mapping[str, Any],
+             scaled: dict[str, Any], images: dict[str, bytes], *, details: bool = True) -> None:
     pdf.heading(recipe['title'], title=True)
     pdf.paragraph(f'Revision {revision.revision_number}')
     pdf.paragraph(f'Original: {scaled["source"]} {scaled["unit"]} · Gewünscht: {scaled["target"]} {scaled["unit"]}')
     for field, label in (('prep_minutes', 'Vorbereitung'), ('cook_minutes', 'Zubereitung')):
         if recipe[field] is not None:
             pdf.paragraph(f'{label}: {recipe[field]} Min.')
-    if recipe['description'] is not None:
+    if details and recipe['description'] is not None:
         pdf.ln(8)
         pdf.paragraph(recipe['description'])
     pdf.ln(8)
     pdf.paragraph(UNKNOWN_ALLERGENS)
-    for photo in recipe['images']:
+    for photo in recipe['images'] if details else ():
         pdf.ln(10)
         pdf.photo(images[photo['sha256']])
         for field, label in (('caption', ''), ('source_url', 'Bildquelle: '),
@@ -199,6 +216,9 @@ def _render(revision: RecipeRevisionDTO, recipe: Mapping[str, Any], *, config: P
         if ingredient['note'] is not None:
             pdf.paragraph(ingredient['note'])
         pdf.ln(7)
+    if not details:
+        pdf.paragraph('Arbeitsschritte, Bilder und Herkunft stehen bei der ersten Ausgabe dieser Zubereitung.')
+        return
     pdf.heading('Zubereitung')
     for number, step in enumerate(recipe['steps'], 1):
         label = f'Schritt {number}'
@@ -215,7 +235,6 @@ def _render(revision: RecipeRevisionDTO, recipe: Mapping[str, Any], *, config: P
         if ingredient['source_kind'] != 'manual' or any(ingredient[field] is not None for field in ('source_reference', 'fetched_at')):
             pdf.heading(f'Zutat {number} · {ingredient["ingredient_text"]}')
             _provenance(pdf, ingredient, ingredient=True)
-    return bytes(pdf.output())
 
 
 def render_recipe_pdf(revision: RecipeRevisionDTO, *, config: PrintTemplateConfig,
@@ -235,6 +254,8 @@ def render_recipe_pdf(revision: RecipeRevisionDTO, *, config: PrintTemplateConfi
                 _readable_brand(branding)
         recipe = _selected_recipe(revision)
         selected = _selected_images(recipe, images)
+        for child in revision.prepared_revisions:
+            selected.update(_selected_images(cast(Mapping[str, Any], child.snapshot['recipe']), images))
         return _render(revision, recipe, config=config, images=selected, target=target, branding=branding)
     except (PrintTemplateValidationError, RecipeValidationError, FormError, KeyError, TypeError, AttributeError):
         raise RecipeConfigurationError('Gespeicherte Rezeptdaten oder Druckeinstellungen sind ungültig.') from None

@@ -6,13 +6,17 @@ from html.parser import HTMLParser
 from io import BytesIO
 import json
 import os
+from pathlib import Path
+import threading
 from urllib.parse import parse_qs, urlparse
 from uuid import uuid4
 
 import pytest
 from pypdf import PdfReader
+from playwright.sync_api import expect
 from sqlalchemy import event, text
 from sqlalchemy.exc import OperationalError
+from werkzeug.serving import make_server
 
 import cafeteria
 from cafeteria import recipe_store as store, roles
@@ -23,6 +27,11 @@ from cafeteria.print_template_config import default_config
 from cafeteria.print_templates import change_template
 from test_master_data_db import make_actor, signed_in
 from test_recipe_revision_immutable_db import png
+from prepared_food_fixtures import legacy_freeze
+from cafeteria.recipe_types import RevisionResult
+from cafeteria.master_data_types import ObjectExpectation
+from prepared_food_fixtures import create_food, create_recipe, execute, freeze
+from test_print_template_browser import browser, _context, _targets, _wait_for_pdf_paint  # noqa: F401
 from test_recipe_store_db import (  # noqa: F401
     app_engine, installed_pg16, pg16, seeded_pg16, line, mutable, payload, snapshot, target,
 )
@@ -57,7 +66,10 @@ def pdf_http(seeded_pg16, app_engine, monkeypatch, tmp_path):  # noqa: F811
         digest = data['images'][0]['sha256']
         data['steps'][0]['image_sha256'] = digest
         row = store.update_recipe(app_engine, actor, target(row), data, expected_location_id=location)
-        frozen = store.freeze_revision(app_engine, actor, target(row), expected_location_id=location)
+        # Preserve real incomplete v1 history; the app's v22 freeze grant stays revoked.
+        frozen = RevisionResult(**legacy_freeze(seeded_pg16,
+            {'actor': actor.user_id, 'authz': actor.authz_version, 'location': location},
+            {'public_id': row.public_id, 'row_version': row.row_version}))
     config = {**default_config(), 'palette': 'active_brand', 'font': 'active_brand',
               'logo': 'active_brand', 'header_text': 'Aktive Rezeptvorlage'}
     change_template(app_engine, 'recipe', admin.user_id, admin.authz_version, 0, 'standard',
@@ -80,6 +92,113 @@ def pdf_http(seeded_pg16, app_engine, monkeypatch, tmp_path):  # noqa: F811
 
 def path(frozen):
     return f'/admin/rezepte/{frozen.recipe_public_id}/revisionen/{frozen.public_id}/druck.pdf'
+
+
+@pytest.fixture
+def v2_http(pdf_http):
+    app, owner, client, actor, admin, _, _ = pdf_http
+    engine = app.extensions['cafeteria_db']
+    with signed_in(engine, actor):
+        ids = {'actor': actor.user_id, 'authz': actor.authz_version, 'location': store.get_location(engine)}
+        storage = execute(engine, '''SELECT cafeteria.create_storage_location_v21(
+            :actor,:authz,:location,NULL,NULL,CAST(:payload AS jsonb))''', ids,
+            {'code': 'V2_STORAGE', 'name': 'Kühlraum', 'sort_order': 1})
+        ids['storage'] = storage['public_id']
+        raw = create_food(engine, ids, 'Gemüse')
+        child = create_recipe(engine, ids, [raw], name='Gemüsebasis aus der Revision', unit='KG', quantity='3')
+        attached = store.add_recipe_image(engine, actor, ObjectExpectation(child['public_id'], child['row_version']),
+            data=png(), content_type='image/png', caption='Erfasstes Zubereitungsbild', expected_location_id=ids['location'])
+        data = mutable(store.get_recipe(engine, child['public_id']).payload)
+        digest = data['images'][0]['sha256']
+        data['steps'] = [{'instruction': 'Gemüse schonend garen und fein pürieren.', 'duration_minutes': 10,
+                          'image_sha256': digest}]
+        saved = store.update_recipe(engine, actor, target(attached), data, expected_location_id=ids['location'])
+        child_frozen = freeze(engine, ids, {'public_id': child['public_id'], 'row_version': saved.row_version})
+        prepared_food = create_food(engine, ids, 'Gemüsebasis vorbereitet', pin=child_frozen)
+        root = freeze(engine, ids, create_recipe(engine, ids, [prepared_food, prepared_food],
+                                                name='Teller mit erfasster Zubereitung', quantity='3'))
+        data['images'] = []
+        data['title'] = 'HEUTIGER ENTWURF NICHT DRUCKEN'
+        data['steps'] = []
+        store.update_recipe(engine, actor, ObjectExpectation(child['public_id'], child_frozen['recipe_row_version']),
+                            data, expected_location_id=ids['location'])
+    return app, owner, client, actor, admin, RevisionResult(**root), digest
+
+
+def test_v2_http_html_and_pdf_use_original_child_on_one_readonly_snapshot(v2_http):
+    app, owner, client, _, _, frozen, digest = v2_http
+    before = state(owner)
+    seen = []
+    def capture(connection, cursor, statement, parameters, context, executemany):
+        seen.append((connection, statement))
+    event.listen(app.extensions['cafeteria_db'], 'before_cursor_execute', capture)
+    try:
+        response = client.get(path(frozen) + '?yield=2')
+    finally:
+        event.remove(app.extensions['cafeteria_db'], 'before_cursor_execute', capture)
+    assert response.status_code == 200 and response.headers['Cache-Control'] == 'no-store'
+    pdf, body = extracted(response)
+    assert len(pdf.pages) >= 3 and any(list(page.images) for page in pdf.pages)
+    assert body.count('Gemüsebasis aus der Revision') == 2
+    assert 'Gemüse schonend garen und fein pürieren.' in body and 'HEUTIGER ENTWURF' not in body
+    assert '0.00022222222222222222222222222222222222222222222222222' in body
+    recipe_connections = {id(connection) for connection, statement in seen
+                          if 'recipe_revisions' in statement or 'recipe_assets' in statement}
+    assert len(recipe_connections) == 1
+    assert any(statement == 'SET TRANSACTION READ ONLY' for _, statement in seen)
+    assert all('FROM cafeteria.foods' not in statement for _, statement in seen)
+    html_path = path(frozen).removesuffix('/druck.pdf')
+    response = client.get(html_path + '?yield=2')
+    assert response.status_code == 200 and 'Erfasste Zubereitungen' in response.text
+    assert response.text.count('Gemüsebasis aus der Revision') >= 2
+    assert 'HEUTIGER ENTWURF' not in response.text and digest in response.text
+    invalid = client.get(html_path + '?yield=0')
+    assert invalid.status_code == 400 and 'Erfasste Zubereitungen' in invalid.text
+    assert state(owner) == before
+
+
+@pytest.mark.parametrize('width,javascript', [(1440, True), (390, False)])
+def test_v2_native_revision_scaling_and_pdf_paint(v2_http, browser, width, javascript, tmp_path):  # noqa: F811
+    app, owner, client, _, _, frozen, _ = v2_http
+    before = state(owner)
+    output = Path(os.environ.get('RECIPE_V2_EVIDENCE_DIR', str(tmp_path)))
+    output.mkdir(parents=True, exist_ok=True)
+    server = make_server('127.0.0.1', 0, app, threaded=True)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with _context(browser, f'http://127.0.0.1:{server.server_port}', client, width, javascript) as context:
+            page = context.new_page()
+            errors, methods = [], []
+            page.on('pageerror', lambda error: errors.append(str(error)))
+            page.on('request', lambda request: methods.append(request.method))
+            response = page.goto(path(frozen).removesuffix('/druck.pdf'))
+            assert response.status == 200 and response.headers['cache-control'] == 'no-store'
+            expect(page.get_by_role('heading', name='Erfasste Zubereitungen')).to_be_visible()
+            _targets(page)
+            control = page.get_by_label('Zielmenge', exact=False)
+            control.fill('2')
+            control.focus()
+            page.keyboard.press('Tab')
+            expect(page.get_by_role('button', name='Mengen berechnen')).to_be_focused()
+            page.keyboard.press('Enter')
+            expect(control).to_have_value('2')
+            expect(page.get_by_role('link', name='Gespeicherte Zubereitung öffnen')).to_have_count(2)
+            page.screenshot(path=str(output / f'recipe-v2-{width}-full.png'), full_page=True)
+            page.screenshot(path=str(output / f'recipe-v2-{width}-viewport.png'))
+            pdf_link = page.get_by_role('link', name='PDF öffnen')
+            actual = client.get(pdf_link.get_attribute('href'))
+            assert actual.status_code == 200 and actual.data.startswith(b'%PDF')
+            (output / f'recipe-v2-{width}.pdf').write_bytes(actual.data)
+            if javascript:
+                pdf_link.click()
+                _wait_for_pdf_paint(page, page, output / 'recipe-v2-native-pdf.png')
+            assert methods and set(methods) == {'GET'} and not errors
+    finally:
+        server.shutdown()
+        thread.join(timeout=5)
+        server.server_close()
+    assert state(owner) == before
 
 
 def state(owner):

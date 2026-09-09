@@ -33,9 +33,9 @@ def query_fields(allowed: set[str]) -> None:
 def render_scaled(template: str, payload: Mapping[str, object], **context):
     context.update(family='cafeteria', profile='staff_guest')
     try:
-        calculated = scaled_recipe(payload, request.args.get('yield'))
+        calculated = scaled_recipe(payload, request.args.get('yield'), revision=context.get('revision'))
     except forms.FormError as error:
-        return render_template(template, payload=payload, calculated=scaled_recipe(payload),
+        return render_template(template, payload=payload, calculated=scaled_recipe(payload, revision=context.get('revision')),
                                target_value=request.args.get('yield'), error=str(error), **context), 400
     return render_template(template, payload=payload, calculated=calculated, **context)
 

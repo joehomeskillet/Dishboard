@@ -69,6 +69,8 @@ class RecipeRevisionDTO:
     snapshot: Mapping[str, object]
     created_at: datetime
     created_by: int
+    prepared_revisions: tuple[RecipeRevisionDTO, ...] = ()
+    canonical_snapshot_text: str | None = None
 
 
 @dataclass(frozen=True)

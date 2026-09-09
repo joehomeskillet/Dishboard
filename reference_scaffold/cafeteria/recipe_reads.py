@@ -1,6 +1,7 @@
 """Read-only active-location recipe, historical revision and cookbook queries."""
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Mapping
 from contextlib import contextmanager
@@ -10,6 +11,7 @@ from sqlalchemy import Connection, Engine, text
 
 from .component_catalog_store import resolve_single_active_location_connection
 from .recipe_snapshots import frozen_json
+from .recipe_snapshot_v2 import invalid, reconstructed_snapshots, verified_prepared
 from .recipe_types import (
     CookbookDTO, RecipeAssetDTO, RecipeDTO, RecipeNotFoundError,
     RecipeRevisionDTO, RecipeRevisionSummaryDTO, RecipeUnavailableError, RecipeValidationError,
@@ -86,14 +88,65 @@ def get_revision(engine: Engine, public_id: str) -> RecipeRevisionDTO:
 
 
 def _get_revision_connection(current: Connection, location: int, public_id: str) -> RecipeRevisionDTO:
-    row = current.execute(text('''SELECT h.*,r.public_id AS recipe_public_id
+    row = current.execute(text('''SELECT h.*,h.snapshot_json::text AS canonical_text,r.public_id AS recipe_public_id
         FROM cafeteria.recipe_revisions h JOIN cafeteria.recipes r ON r.id=h.recipe_id AND r.location_id=h.location_id
         WHERE h.location_id=:location AND h.public_id=CAST(:id AS uuid)'''),
         {'location': location, 'id': public_id}).one_or_none()
     if row is None:
         raise RecipeNotFoundError('Rezeptrevision nicht gefunden.')
+    version = row.snapshot_json.get('schema_version')
+    if type(version) is not int or version not in (1, 2):
+        raise invalid()
+    if version == 2:
+        children = _prepared_revisions_connection(current, location, public_id, str(row.recipe_public_id),
+                                                   row.snapshot_json, row.canonical_text)
+        revision = RecipeRevisionDTO(str(row.public_id), str(row.recipe_public_id), row.revision_number,
+            row.content_hash_sha256, frozen_json(row.snapshot_json), row.created_at, row.created_by,
+            children, row.canonical_text)
+        verified_prepared(revision)
+        return revision
     return RecipeRevisionDTO(str(row.public_id), str(row.recipe_public_id), row.revision_number,
                              row.content_hash_sha256, frozen_json(row.snapshot_json), row.created_at, row.created_by)
+
+
+def _prepared_revisions_connection(current: Connection, location: int, public_id: str,
+                                   recipe_public_id: str, snapshot: Mapping[str, object],
+                                   canonical_text: str) -> tuple[RecipeRevisionDTO, ...]:
+    reconstructed = reconstructed_snapshots(snapshot, recipe_public_id, len(canonical_text.encode('utf-8')))
+    subsets = {key: [entry['revision_public_id'] for entry in body.get('prepared_revisions', ())]
+               for key, body in reconstructed.items()}
+    if not subsets:
+        return ()
+    # Only UUID subsets cross into this projection. PostgreSQL retains the original
+    # jsonb numeric representation, key ordering and escaping; Python never reserializes it.
+    selected = current.execute(text('''WITH root AS (
+        SELECT snapshot_json FROM cafeteria.recipe_revisions
+        WHERE location_id=:location AND public_id=CAST(:root AS uuid)
+    ), requested AS (SELECT key,value FROM jsonb_each(CAST(:subsets AS jsonb)))
+    SELECT h.*,r.public_id AS recipe_public_id,h.snapshot_json::text AS canonical_text,
+        (CASE WHEN node->'snapshot'->>'schema_version'='1' THEN node->'snapshot'
+         ELSE (node->'snapshot')||jsonb_build_object('prepared_revisions',(
+             SELECT COALESCE(jsonb_agg(child ORDER BY (child->>'revision_public_id')::uuid),'[]'::jsonb)
+             FROM jsonb_array_elements(root.snapshot_json->'prepared_revisions') child
+             WHERE child->>'revision_public_id' IN (SELECT jsonb_array_elements_text(requested.value))
+         )) END)::text AS reconstructed_text
+    FROM root CROSS JOIN requested
+    CROSS JOIN LATERAL jsonb_array_elements(root.snapshot_json->'prepared_revisions') node
+    JOIN cafeteria.recipe_revisions h ON h.location_id=:location AND h.public_id=CAST(requested.key AS uuid)
+    JOIN cafeteria.recipes r ON r.id=h.recipe_id AND r.location_id=h.location_id
+        AND r.public_id=CAST(node->>'recipe_public_id' AS uuid)
+    WHERE node->>'revision_public_id'=requested.key ORDER BY h.public_id'''),
+        {'location': location, 'root': public_id, 'subsets': json.dumps(subsets)}).all()
+    if len(selected) != len(subsets):
+        raise invalid()
+    children = []
+    for row in selected:
+        if row.reconstructed_text != row.canonical_text:
+            raise invalid()
+        children.append(RecipeRevisionDTO(str(row.public_id), str(row.recipe_public_id), row.revision_number,
+            row.content_hash_sha256, frozen_json(row.snapshot_json), row.created_at, row.created_by,
+            canonical_snapshot_text=row.canonical_text))
+    return tuple(children)
 
 
 def list_revisions(engine: Engine, recipe_public_id: str, *, limit: int = 50,
@@ -149,20 +202,22 @@ def recipe_print_input(
     revision = _get_revision_connection(current, location, revision_public_id)
     if revision.recipe_public_id != recipe_public_id:
         raise RecipeNotFoundError('Rezeptrevision nicht gefunden.')
-    recipe = recipe_payload(revision.snapshot.get('recipe'))
-    digests: set[str] = set()
-    for collection, field in (('images', 'sha256'), ('steps', 'image_sha256')):
-        for item in rows(recipe[collection]):
-            if not isinstance(item, Mapping):
-                raise RecipeValidationError('Ungültiger Bildeintrag in der Rezeptrevision.')
-            digest = item.get(field)
-            if digest is None and collection == 'steps':
-                continue
-            if not isinstance(digest, str) or re.fullmatch('[0-9a-f]{64}', digest) is None:
-                raise RecipeValidationError('Ungültiger Bildhash in der Rezeptrevision.')
-            digests.add(digest)
-    images = {digest: _get_recipe_asset_connection(current, location, recipe_public_id, digest)
-              for digest in sorted(digests)}
+    images = {}
+    for selected in (revision, *revision.prepared_revisions):
+        recipe = recipe_payload(selected.snapshot.get('recipe'))
+        digests: set[str] = set()
+        for collection, field in (('images', 'sha256'), ('steps', 'image_sha256')):
+            for item in rows(recipe[collection]):
+                if not isinstance(item, Mapping):
+                    raise RecipeValidationError('Ungültiger Bildeintrag in der Rezeptrevision.')
+                digest = item.get(field)
+                if digest is None and collection == 'steps':
+                    continue
+                if not isinstance(digest, str) or re.fullmatch('[0-9a-f]{64}', digest) is None:
+                    raise RecipeValidationError('Ungültiger Bildhash in der Rezeptrevision.')
+                digests.add(digest)
+        for digest in sorted(digests):
+            images[digest] = _get_recipe_asset_connection(current, location, selected.recipe_public_id, digest)
     return revision, images
 
 
