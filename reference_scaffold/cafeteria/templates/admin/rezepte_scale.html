@@ -1,12 +1,12 @@
 {% from 'admin/_macros.html' import page_header, icon %}
-{% macro amount_form(calculated, action, error=none, target_value=none) %}
+{% macro amount_form(calculated, action, error=none, target_value=none, converts_units=false) %}
 {% if error %}<div class="alert alert-danger error-region" id="yield-error" role="alert">{{ error }}</div>{% endif %}
 <form method="get" action="{{ action }}" class="row g-3 align-items-end mb-3">
 <div class="col-12 col-sm-6 col-lg-4"><label class="form-label" for="target-yield">Zielmenge · {{ calculated.unit }}</label><input class="form-control{% if error %} is-invalid{% endif %}" type="text" inputmode="decimal" id="target-yield" name="yield" value="{{ target_value if target_value is not none else calculated.target }}" required aria-describedby="{{ 'yield-error' if error else 'yield-hint' }}"{% if error %} aria-invalid="true" autofocus{% endif %}><div class="form-hint" id="yield-hint">Positiv, Dezimalpunkt; gleiche Einheit wie die gespeicherte Ausbeute.</div></div>
 <div class="col-12 col-sm-auto"><button class="btn btn-primary" type="submit">Mengen berechnen</button></div>
 </form>
 <p>Ausbeute/Menge im Original: <strong>{{ calculated.source }} {{ calculated.unit }}</strong>. Ziel: <strong>{{ calculated.target }} {{ calculated.unit }}</strong>.</p>
-<p class="text-secondary">Nur berechnet · Keine Speicherung und keine Einheitenumrechnung. Berechnungswerte werden nicht auf sechs Nachkommastellen gerundet.</p>
+<p class="text-secondary">Nur berechnet · Keine Speicherung{% if converts_units %}. Erfasste Zubereitungen werden mit den festgehaltenen Einheiten und Dichten umgerechnet{% else %} und keine Einheitenumrechnung{% endif %}. Berechnungswerte werden nicht auf sechs Nachkommastellen gerundet.</p>
 {% endmacro %}
 {% macro ingredients(calculated) %}
 <section class="card mb-3"><div class="card-header"><h2 class="card-title">Zutaten und Mengen</h2></div>

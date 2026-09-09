@@ -10,12 +10,12 @@
 {% block page_header %}{% call page_header(payload.title, 'Revision ' ~ revision.revision_number) %}<a class="btn" href="{{ url_for('admin.recipe_revisions', recipe_id=recipe_id) }}">{{ icon('arrow-left') }}Alle Revisionen</a><a class="btn btn-primary" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=revision.public_id, yield=calculated.target) }}">PDF öffnen</a>{% endcall %}{% endblock %}
 {% block content %}
 <section class="card mb-3"><div class="card-body"><h2 class="card-title">Unveränderlicher Stand</h2>
-{% if revision.snapshot.schema_version == 2 %}<p>Revision {{ revision.revision_number }} · Erstellt am {{ revision.created_at.strftime('%d.%m.%Y, %H:%M %Z') }}</p>
+{% if revision.snapshot.schema_version == 2 %}<p>Revision {{ revision.revision_number }} · Erstellt am {{ revision.created_at|datetime_short }}</p>
 {% else %}<dl class="mb-0"><dt>Revision</dt><dd class="text-break">{{ revision.public_id }}</dd><dt>Erstellt</dt><dd>{{ revision.created_at.isoformat() }}</dd><dt>SHA-256</dt><dd class="text-break">{{ revision.content_hash_sha256 }}</dd></dl>{% endif %}
 {% if payload.description %}<p class="text-break">{% for line in payload.description.split('\n') %}{{ line }}<br>{% endfor %}</p>{% endif %}
 <p>Herkunft: {{ payload.source.kind }}{% if payload.source.reference %} · {{ payload.source.reference }}{% endif %}</p>
 </div></section>
-{{ amount_form(calculated, url_for('admin.recipe_revision', recipe_id=recipe_id, revision_id=revision.public_id), error|default(none), target_value|default(none)) }}
+{{ amount_form(calculated, url_for('admin.recipe_revision', recipe_id=recipe_id, revision_id=revision.public_id), error|default(none), target_value|default(none), calculated.prepared) }}
 {{ ingredients(calculated) }}
 {% if calculated.prepared %}
 <section aria-labelledby="prepared-title" class="mb-3"><h2 id="prepared-title">Erfasste Zubereitungen</h2>

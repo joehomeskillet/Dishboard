@@ -119,6 +119,76 @@ def test_v1_terminal_and_parent_bytes_survive_current_food_pin_and_name_changes(
     assert reads.get_revision(engine, old['public_id']).prepared_revisions == ()
 
 
+def test_real_reader_rejects_an_incomplete_captured_v1_child(prepared):
+    owner, engine, ids = prepared
+    raw = create_food(engine, ids, 'Alte Rohzutat')
+    old = legacy_freeze(owner, ids, create_recipe(engine, ids, [raw], name='Alte Zubereitung'))
+    historical = create_food(engine, ids, 'Historischer Einsatz', pin=old)
+    parent = freeze(engine, ids, create_recipe(engine, ids, [historical], name='Festgehaltener Teller'))
+    accepted = reads.get_revision(engine, parent['public_id'])
+    assert accepted.prepared_revisions[0].snapshot['schema_version'] == 1
+    snapshot = json.loads(accepted.canonical_snapshot_text)
+    snapshot['prepared_revisions'][0]['snapshot']['recipe']['ingredients'][0]['food_public_id'] = None
+    # Privileged synthetic corruption fixture; both stored originals stay untouched and
+    # the new row hashes itself correctly, so only the captured closure is invalid.
+    with owner.begin() as connection:
+        invalid_id = connection.execute(text('''INSERT INTO cafeteria.recipe_revisions
+            (location_id,recipe_id,revision_number,snapshot_json,content_hash_sha256,created_by)
+            SELECT location_id,recipe_id,998,CAST(:body AS jsonb),
+                encode(public.digest(convert_to(CAST(:body AS jsonb)::text,'UTF8'),'sha256'),'hex'),created_by
+            FROM cafeteria.recipe_revisions WHERE public_id=CAST(:root AS uuid) RETURNING public_id'''),
+            {'root': parent['public_id'], 'body': json.dumps(snapshot)}).scalar_one()
+    before = state(owner)
+    with pytest.raises(RecipeConfigurationError):
+        reads.get_revision(engine, str(invalid_id))
+    assert state(owner) == before
+    assert reads.get_revision(engine, parent['public_id']) == accepted
+
+
+def incomplete_child(change):
+    """Rebuild the frozen fixture with one incomplete captured v1 child and valid hashes.
+
+    Every pin, index hash and canonical text stays self-consistent, so SQL27 completeness
+    is the only remaining reason the reader may reject the closure.
+    """
+    original = prepared_revision()
+    body = json.loads(original.prepared_revisions[0].canonical_snapshot_text)
+    ingredients = body['recipe']['ingredients']
+    if change == 'null_food':
+        ingredients[0]['food_public_id'] = None
+    elif change == 'null_amount':
+        ingredients[0]['quantity'], ingredients[0]['unit_code'] = None, None
+    else:
+        body['recipe']['ingredients'] = []
+    raw = json.dumps(body, ensure_ascii=False)
+    digest = hashlib.sha256(raw.encode()).hexdigest()
+    child = replace(original.prepared_revisions[0], snapshot=frozen_json(body),
+                    canonical_snapshot_text=raw, content_hash_sha256=digest)
+    parent = json.loads(original.canonical_snapshot_text)
+    parent['foods'][0]['prepared_recipe']['content_hash_sha256'] = digest
+    parent['prepared_revisions'][0]['content_hash_sha256'] = digest
+    parent['prepared_revisions'][0]['snapshot'] = body
+    parent_raw = json.dumps(parent, ensure_ascii=False)
+    return replace(original, snapshot=frozen_json(parent), canonical_snapshot_text=parent_raw,
+                   content_hash_sha256=hashlib.sha256(parent_raw.encode()).hexdigest(),
+                   prepared_revisions=(child,))
+
+
+@pytest.mark.parametrize('change', ['null_food', 'null_amount', 'empty_ingredients'])
+def test_incomplete_captured_v1_child_is_rejected_like_sql27(change):
+    # 0024_v26_to_v27.sql:319-321 applies recipe_snapshot_complete_v27 to every queued
+    # body before the v1-terminal continue at 329; the reader must not be more permissive.
+    with pytest.raises(RecipeConfigurationError):
+        verified_prepared(incomplete_child(change))
+
+
+def test_complete_captured_v1_child_is_still_reconstructed():
+    original = prepared_revision()
+    assert [child.public_id for child in verified_prepared(original)] == [
+        original.prepared_revisions[0].public_id]
+    assert original.prepared_revisions[0].snapshot['schema_version'] == 1
+
+
 def synthetic_chain(depth, width=1):
     template = json.loads(prepared_revision().canonical_snapshot_text)
     index = []

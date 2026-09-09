@@ -69,12 +69,15 @@ def _body(value: object, *, root: bool = False) -> tuple[Mapping[str, Any], dict
             if food['prepared_recipe'] is not None:
                 _pin(food['prepared_recipe'])
     recipe = cast(Mapping[str, Any], value['recipe'])
-    if value['schema_version'] == 2:
-        ingredients = recipe['ingredients']
-        if not ingredients or any(item['food_public_id'] is None or item['quantity'] is None for item in ingredients):
-            raise invalid()
-        if set(foods) != {item['food_public_id'] for item in ingredients}:
-            raise invalid()
+    # SQL27 checks recipe_snapshot_complete_v27 for every queued body before the
+    # v1-terminal continue, so a captured v1 child must be linked and quantified too.
+    # recipe_payload keeps permitting historical gaps for standalone v1 reads, which
+    # never reach this closure. quantity_pair already binds a quantity to a valid unit.
+    ingredients = recipe['ingredients']
+    if not ingredients or any(item['food_public_id'] is None or item['quantity'] is None for item in ingredients):
+        raise invalid()
+    if value['schema_version'] == 2 and set(foods) != {item['food_public_id'] for item in ingredients}:
+        raise invalid()
     return recipe, foods
 
 

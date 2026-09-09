@@ -25,6 +25,7 @@ from cafeteria.branding import change_branding
 from cafeteria.branding_config import default_config as brand_defaults
 from cafeteria.print_template_config import default_config
 from cafeteria.print_templates import change_template
+from cafeteria.template_filters import datetime_short
 from test_master_data_db import make_actor, signed_in
 from test_recipe_revision_immutable_db import png
 from prepared_food_fixtures import legacy_freeze
@@ -152,6 +153,15 @@ def test_v2_http_html_and_pdf_use_original_child_on_one_readonly_snapshot(v2_htt
     assert response.status_code == 200 and 'Erfasste Zubereitungen' in response.text
     assert response.text.count('Gemüsebasis aus der Revision') >= 2
     assert 'HEUTIGER ENTWURF' not in response.text and digest in response.text
+    with owner.connect() as connection:
+        created_at = connection.execute(text('''SELECT created_at FROM cafeteria.recipe_revisions
+            WHERE public_id=CAST(:id AS uuid)'''), {'id': frozen.public_id}).scalar_one()
+    # Europe/Zurich through the existing filter, not the raw UTC instant.
+    assert f'Erstellt am {datetime_short(created_at)}' in response.text
+    assert created_at.strftime('%d.%m.%Y, %H:%M %Z') not in response.text
+    # This page really converts captured units, so the shared hint must not deny it.
+    assert 'Erfasste Zubereitungen werden mit den festgehaltenen Einheiten' in response.text
+    assert 'keine Einheitenumrechnung' not in response.text
     invalid = client.get(html_path + '?yield=0')
     assert invalid.status_code == 400 and 'Erfasste Zubereitungen' in invalid.text
     assert state(owner) == before
@@ -284,6 +294,9 @@ def test_revision_link_preserves_only_valid_selected_yield(pdf_http):
     for requested, expected, status in [('6.500', '6.5', 200), ('NaN', '4', 400)]:
         response = client.get(path(frozen).removesuffix('/druck.pdf'), query_string={'yield': requested})
         assert response.status_code == status and 'PDF öffnen' in response.text
+        # v1 has no captured preparations, so the original wording stays exactly as it was.
+        assert 'keine Einheitenumrechnung' in response.text
+        assert 'festgehaltenen Einheiten' not in response.text
         links = Links()
         links.feed(response.text)
         assert len(links.urls) == 1

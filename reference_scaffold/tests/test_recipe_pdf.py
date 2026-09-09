@@ -247,7 +247,9 @@ def prepared_revision():
                    'bases': {'mass': 'G', 'volume': 'ML', 'count': 'STK'}, 'contextual': 'same-code-only'}
     child_recipe = recipe()
     child_recipe.update(title='Erfasste Gemüsebasis', servings='3', servings_unit_code='KG', images=[])
-    child_recipe['ingredients'] = [dict(child_recipe['ingredients'][0], quantity='1', unit_code='G')]
+    # A captured v1 child inside a v2 closure is complete under SQL27: linked and quantified.
+    child_recipe['ingredients'] = [dict(child_recipe['ingredients'][0], quantity='1', unit_code='G',
+                                        food_public_id='00000000-0000-0000-0000-000000000006')]
     child = recorded('00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000004',
         {'schema_version': 1, 'recipe': child_recipe, 'calculation': calculation, 'units': units, 'foods': []})
     pin = {'recipe_public_id': child.recipe_public_id, 'revision_public_id': child.public_id,
