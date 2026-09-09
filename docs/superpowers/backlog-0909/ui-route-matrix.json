@@ -1,0 +1,5346 @@
+{
+  "meta": {
+    "wp_id": "wp-fc6f91338ad3",
+    "mp_id": "MP-UI-INVENTORY",
+    "source_commit": "5f5f6cb535922db8453c68d871279d6b2e203391",
+    "schema": 25,
+    "schema_note": "Actual production source is 5f5 / schema 25. Schema 26/27 and undeployed foundation consumers are not claimed as present.",
+    "baseline_status": "proposed_never_user_approved",
+    "generated_at": "2026-09-09T00:11:20.888601+00:00",
+    "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
+    "lane": "grok-build",
+    "model": "grok-4.6",
+    "route_count": 116,
+    "template_count": 75,
+    "html_route_count": 61
+  },
+  "common": {
+    "roles": {
+      "anonymous": [],
+      "Cafeteria.Editor": [
+        "draft.read",
+        "draft.write",
+        "csv.validate",
+        "csv.import",
+        "csv.export",
+        "preview.read",
+        "masterdata.write",
+        "recipe.write"
+      ],
+      "Cafeteria.Publisher": [
+        "draft.read",
+        "draft.write",
+        "csv.validate",
+        "csv.import",
+        "csv.export",
+        "preview.read",
+        "publication.validate",
+        "publication.publish",
+        "publication.withdraw",
+        "audit.read",
+        "masterdata.write",
+        "recipe.write",
+        "recipe.import"
+      ],
+      "Cafeteria.Admin": [
+        "*"
+      ]
+    },
+    "navigation": {
+      "sidebar_template": "admin/_workflow_sidebar.html",
+      "sidebar_insufficient": true,
+      "note": "Inventory includes editors, subpages, dialogs, print, signage, API, not only sidebar links.",
+      "conditionals": {
+        "can_browse_recipes": {
+          "predicate": "capabilities() & {'*', 'draft.read'}",
+          "visible_for": [
+            "Cafeteria.Editor",
+            "Cafeteria.Publisher",
+            "Cafeteria.Admin"
+          ],
+          "items": [
+            "Rezepte",
+            "Kochbücher"
+          ]
+        },
+        "can_manage_users": {
+          "predicate": "'*' in allowed or 'users.manage' in allowed",
+          "visible_for": [
+            "Cafeteria.Admin"
+          ],
+          "items": [
+            "Benutzer & Zugriff"
+          ]
+        },
+        "can_configure_display": {
+          "predicate": "'*' in capabilities()  # Admin wildcard only",
+          "visible_for": [
+            "Cafeteria.Admin"
+          ],
+          "items": [
+            "Design & Marke",
+            "Bereiche & Zeiten"
+          ]
+        }
+      },
+      "always_visible_admin": [
+        "Wochenpläne",
+        "Wochenverwaltung",
+        "Menüs",
+        "Komponenten",
+        "Grundlagen",
+        "CSV Import",
+        "Screens",
+        "Vorlagen",
+        "API & Schnittstellen",
+        "Abmelden"
+      ]
+    },
+    "assets": {
+      "tabler_core": "1.5.0",
+      "tabler_icons": "3.46.0",
+      "tabler_lock": "reference_scaffold/cafeteria/static/vendor/tabler.lock.json",
+      "admin_css": [
+        "tokens.css",
+        "vendor/tabler/tabler.min.css",
+        "admin-tabler.css",
+        "menu-images.css"
+      ],
+      "admin_js": [
+        "vendor/tabler/tabler.min.js",
+        "admin.js"
+      ],
+      "public_css": [
+        "tokens.css",
+        "vendor/tabler/tabler.min.css",
+        "public.css",
+        "menu-images.css",
+        "food-symbols.css"
+      ],
+      "signage_css": [
+        "tokens.css",
+        "vendor/tabler/tabler.min.css",
+        "signage.css"
+      ],
+      "signage_js": [
+        "signage.js"
+      ],
+      "auth_css": [
+        "tokens.css",
+        "app.css"
+      ]
+    },
+    "fonts": {
+      "declared_stack_ui": "\"Fira Sans\", Aptos, \"Segoe UI Variable\", \"Segoe UI\", ui-sans-serif, sans-serif",
+      "declared_stack_display": "\"Fira Sans\", Aptos, \"Segoe UI Variable Display\", \"Segoe UI\", ui-sans-serif, sans-serif",
+      "self_hosted": [
+        "static/fonts/fira-sans-400.woff2",
+        "static/fonts/fira-sans-500.woff2",
+        "static/fonts/fira-sans-600.woff2",
+        "static/fonts/fira-sans-700.woff2"
+      ],
+      "masterprompt_body": "Arial, Helvetica, sans-serif",
+      "masterprompt_heading": "Georgia, \"Times New Roman\", serif",
+      "conflict": "Source 5f5 ships Fira Sans via tokens.css. Masterprompt 2026-09-09 names Arial/Georgia. MP-UI-BRAND-DECISION owns the mapping; this inventory records the conflict, does not resolve it."
+    },
+    "hooks": [
+      "csrf_token / _csrf / csrf_token form fields",
+      "_form_context signed form tokens",
+      "data-menu-editor, data-add-row, data-remove-row, data-move-row, data-sticky",
+      "data-admin-icon-action + Tabler tooltip",
+      "data-confirm native confirm",
+      "data-retry-page, data-error-link, .error-region[role=alert]",
+      "data-bs-toggle / data-bs-target dialogs (week-publish-modal)",
+      "data-signage-revision / data-signage-clock / signage.js poll",
+      "data-brand-stylesheet branding CSS last",
+      "aria-current on active nav, aria-invalid/aria-describedby field errors"
+    ],
+    "source_hashes": {
+      "database/schema.sql": "cf782c028651f715cc0b01c05bd7f9d828d80b515953b11270e67e6cbe2f5a68",
+      "database/seed.sql": "cf7678a1e829b7115b641d6402e81b842f203fbfb727a0ef0bdcec18c605bc11",
+      "database/seed_demo.sql": "26dd58d4eb0505bb96205e987a608e6a6d18dd3eee59145683132f49670468f0",
+      "demo/snapshots/cafeteria_kw36.json": "1083703586354d662f43de2f8a7c42b3afeb6ac9cd125c352efacebe46c0540e",
+      "demo/snapshots/patienten_kw36.json": "7087d11069583805a73030f6d82836cf2c27450bab8f40b726b3af6aba63641a"
+    }
+  },
+  "routes": [
+    {
+      "endpoint": "admin.access_history",
+      "rule": "/admin/benutzer/zugriffsverlauf",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/access_history.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-ACCESS-HISTORY",
+      "family_variants": [],
+      "module": "cafeteria.admin.access_history_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.api_key_create",
+      "rule": "/admin/api/keys",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "api.keys.manage",
+      "roles": [
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-API",
+      "family_variants": [],
+      "module": "cafeteria.admin.api_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.api_key_revoke",
+      "rule": "/admin/api/keys/<public_id>/revoke",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "api.keys.manage",
+      "roles": [
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-API",
+      "family_variants": [],
+      "module": "cafeteria.admin.api_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.api_overview",
+      "rule": "/admin/api",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/api.html"
+      ],
+      "capability": "api.keys.manage",
+      "roles": [
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-API",
+      "family_variants": [],
+      "module": "cafeteria.admin.api_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.branding_editor",
+      "rule": "/admin/design/marke",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/branding_editor.html"
+      ],
+      "capability": "settings.write",
+      "roles": [
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-BRAND-OPS",
+      "family_variants": [],
+      "module": "cafeteria.admin.branding_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.branding_preview",
+      "rule": "/admin/design/marke/vorschau/<int:revision>",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/branding_preview.html"
+      ],
+      "capability": "settings.write",
+      "roles": [
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-BRAND-OPS",
+      "family_variants": [],
+      "module": "cafeteria.admin.branding_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.branding_preview_css",
+      "rule": "/admin/design/marke/vorschau/<int:revision>.css",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "download",
+      "visual": false,
+      "templates": [],
+      "capability": "settings.write",
+      "roles": [
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-BRAND-OPS",
+      "family_variants": [],
+      "module": "cafeteria.admin.branding_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.branding_preview_logo",
+      "rule": "/admin/design/marke/logo/<sha256>.png",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "download",
+      "visual": false,
+      "templates": [],
+      "capability": "settings.write",
+      "roles": [
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-BRAND-OPS",
+      "family_variants": [],
+      "module": "cafeteria.admin.branding_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.cafeteria",
+      "rule": "/admin/cafeteria",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/cafeteria.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-REF-WORKSPACE",
+      "family_variants": [],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403",
+        "dialog_publish",
+        "review_open",
+        "live"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf",
+        "#week-publish-modal"
+      ]
+    },
+    {
+      "endpoint": "admin.component_archive",
+      "rule": "/admin/<any(cafeteria, patienten):family>/komponenten/<public_id>/archive",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "post_only",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COMPONENTS",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.component_detail",
+      "rule": "/admin/<any(cafeteria, patienten):family>/komponenten/<public_id>",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/component_editor.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COMPONENTS",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.component_unarchive",
+      "rule": "/admin/<any(cafeteria, patienten):family>/komponenten/<public_id>/unarchive",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "post_only",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COMPONENTS",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.component_update",
+      "rule": "/admin/<any(cafeteria, patienten):family>/komponenten/<public_id>",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COMPONENTS",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.components_create",
+      "rule": "/admin/<any(cafeteria, patienten):family>/komponenten",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COMPONENTS",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.components_get",
+      "rule": "/admin/<any(cafeteria, patienten):family>/komponenten",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/components.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COMPONENTS",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.cookbook_edit",
+      "rule": "/admin/kochbuecher/<cookbook_id>",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/kochbuch_editor.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COOKBOOKS",
+      "family_variants": [],
+      "module": "cafeteria.admin.cookbook_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.cookbook_new",
+      "rule": "/admin/kochbuecher/neu",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/kochbuch_editor.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COOKBOOKS",
+      "family_variants": [],
+      "module": "cafeteria.admin.cookbook_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.cookbook_recipes",
+      "rule": "/admin/kochbuecher/<cookbook_id>/rezepte",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COOKBOOKS",
+      "family_variants": [],
+      "module": "cafeteria.admin.cookbook_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.cookbook_status",
+      "rule": "/admin/kochbuecher/<cookbook_id>/status",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/kochbuch_editor.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COOKBOOKS",
+      "family_variants": [],
+      "module": "cafeteria.admin.cookbook_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.cookbooks_list",
+      "rule": "/admin/kochbuecher",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/kochbuecher.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COOKBOOKS",
+      "family_variants": [],
+      "module": "cafeteria.admin.cookbook_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.copy_get",
+      "rule": "/admin/<any(cafeteria, patienten):family>/copy",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/copy.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COPY-IMPORT",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.copy_post",
+      "rule": "/admin/<any(cafeteria, patienten):family>/copy",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COPY-IMPORT",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.dashboard",
+      "rule": "/admin/",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-SHELL",
+      "family_variants": [],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.display_settings",
+      "rule": "/admin/design/darstellung",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/display_settings.html"
+      ],
+      "capability": "settings.write",
+      "roles": [
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-REF-SETTINGS",
+      "family_variants": [],
+      "module": "cafeteria.admin.display_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.export_csv",
+      "rule": "/admin/export/<profile_code>.csv",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "download",
+      "visual": false,
+      "templates": [],
+      "capability": "csv.export",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COPY-IMPORT",
+      "family_variants": [],
+      "module": "cafeteria.admin.routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.header_get",
+      "rule": "/admin/<any(cafeteria, patienten):family>/header",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html_fragment",
+      "visual": true,
+      "templates": [],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-WEEKS",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.header_post",
+      "rule": "/admin/<any(cafeteria, patienten):family>/header",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-WEEKS",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.import_csv",
+      "rule": "/admin/import",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "csv.import",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COPY-IMPORT",
+      "family_variants": [],
+      "module": "cafeteria.admin.routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.import_preview",
+      "rule": "/admin/import-preview",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/import_preview.html"
+      ],
+      "capability": "csv.validate",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COPY-IMPORT",
+      "family_variants": [],
+      "module": "cafeteria.admin.routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.local_user_change",
+      "rule": "/admin/benutzer/<uuid:public_id>/<action>",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-LOCAL-USERS",
+      "family_variants": [],
+      "module": "cafeteria.admin.local_user_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.local_user_create",
+      "rule": "/admin/benutzer",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-LOCAL-USERS",
+      "family_variants": [],
+      "module": "cafeteria.admin.local_user_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.local_user_detail",
+      "rule": "/admin/benutzer/<uuid:public_id>",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/local_user_editor.html",
+        "admin/local_user_unavailable.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-LOCAL-USERS",
+      "family_variants": [],
+      "module": "cafeteria.admin.local_user_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.local_user_events",
+      "rule": "/admin/benutzer/protokoll",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/local_user_events.html",
+        "admin/local_user_unavailable.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-LOCAL-USERS",
+      "family_variants": [],
+      "module": "cafeteria.admin.local_user_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.local_user_new",
+      "rule": "/admin/benutzer/neu",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/local_user_create.html",
+        "admin/local_user_unavailable.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-LOCAL-USERS",
+      "family_variants": [],
+      "module": "cafeteria.admin.local_user_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.local_users_list",
+      "rule": "/admin/benutzer",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/local_user_unavailable.html",
+        "admin/local_users.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-LOCAL-USERS",
+      "family_variants": [],
+      "module": "cafeteria.admin.local_user_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.master_data_change",
+      "rule": "/admin/grundlagen/<kind>/<public_id>/<purpose>",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-FOUNDATIONS",
+      "family_variants": [],
+      "module": "cafeteria.admin.master_data_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.master_data_detail",
+      "rule": "/admin/grundlagen/<kind>/<public_id>",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/grundlagen_food.html",
+        "admin/grundlagen_location_conflict.html",
+        "admin/grundlagen_unavailable.html",
+        "admin/grundlagen_unit.html",
+        "admin/grundlagen_vocabulary.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-FOUNDATIONS",
+      "family_variants": [],
+      "module": "cafeteria.admin.master_data_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.master_data_list",
+      "rule": "/admin/grundlagen",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/grundlagen.html",
+        "admin/grundlagen_unavailable.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-FOUNDATIONS",
+      "family_variants": [],
+      "module": "cafeteria.admin.master_data_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.master_data_new",
+      "rule": "/admin/grundlagen/<kind>/neu",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/grundlagen_food.html",
+        "admin/grundlagen_location_conflict.html",
+        "admin/grundlagen_unavailable.html",
+        "admin/grundlagen_unit.html",
+        "admin/grundlagen_vocabulary.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-FOUNDATIONS",
+      "family_variants": [],
+      "module": "cafeteria.admin.master_data_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.menu_collection",
+      "rule": "/admin/<any(cafeteria, patienten):family>/menues",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/menu_collection.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-REF-LIST",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.menu_collection_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403",
+        "form_error",
+        "origin_conflict"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.menu_get",
+      "rule": "/admin/<any(cafeteria, patienten):family>/menu",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/menu_editor.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-MENU-EDITOR",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403",
+        "form_error",
+        "origin_conflict"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf",
+        "data-menu-editor"
+      ]
+    },
+    {
+      "endpoint": "admin.menu_post",
+      "rule": "/admin/<any(cafeteria, patienten):family>/menu",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-MENU-EDITOR",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.menu_review",
+      "rule": "/admin/<any(cafeteria, patienten):family>/menu/review",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-MENU-EDITOR",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.operations_settings",
+      "rule": "/admin/bereiche-zeiten",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/operations.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-BRAND-OPS",
+      "family_variants": [],
+      "module": "cafeteria.admin.operations_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.patienten",
+      "rule": "/admin/patienten",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/patienten.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-REF-WORKSPACE",
+      "family_variants": [],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403",
+        "dialog_publish",
+        "review_open",
+        "live"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf",
+        "#week-publish-modal"
+      ]
+    },
+    {
+      "endpoint": "admin.preview",
+      "rule": "/admin/<any(cafeteria, patienten):family>/preview",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/preview.html"
+      ],
+      "capability": "preview.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-PREVIEW",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.print_template_editor",
+      "rule": "/admin/vorlagen/<any(cafeteria, patienten):family>",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/print_template_editor.html",
+        "admin/print_template_unavailable.html"
+      ],
+      "capability": "settings.write",
+      "roles": [
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "print",
+      "owning_mp": "MP-UI-PRINT-EDITOR",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.print_template_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.print_template_preview",
+      "rule": "/admin/vorlagen/<any(cafeteria, patienten):family>/vorschau.pdf",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "download",
+      "visual": false,
+      "templates": [],
+      "capability": "settings.write",
+      "roles": [
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-PRINT-EDITOR",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.print_template_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.print_week",
+      "rule": "/admin/<any(cafeteria, patienten):family>/preview/print",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "download",
+      "visual": false,
+      "templates": [],
+      "capability": "preview.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "print",
+      "owning_mp": "MP-TPL-PAPER",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.print_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.publish",
+      "rule": "/admin/<any(cafeteria, patienten):family>/publish",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "publication.publish",
+      "roles": [
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-WEEKS",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.recipe_asset",
+      "rule": "/admin/rezepte/<uuid:recipe_id>/bilder/<sha256>",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "download",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-RECIPE-TOOLS",
+      "family_variants": [],
+      "module": "cafeteria.admin.recipe_image_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.recipe_edit",
+      "rule": "/admin/rezepte/<recipe_id>",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/rezepte_conflict.html",
+        "admin/rezepte_editor.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-RECIPE-FORMS",
+      "family_variants": [],
+      "module": "cafeteria.admin.recipe_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.recipe_form_rows",
+      "rule": "/admin/rezepte/formular",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "post_only",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-RECIPE-FORMS",
+      "family_variants": [],
+      "module": "cafeteria.admin.recipe_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.recipe_freeze",
+      "rule": "/admin/rezepte/<uuid:recipe_id>/revisionen",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-RECIPE-TOOLS",
+      "family_variants": [],
+      "module": "cafeteria.admin.recipe_revision_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.recipe_images",
+      "rule": "/admin/rezepte/<uuid:recipe_id>/bilder",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/rezepte_images.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-RECIPE-TOOLS",
+      "family_variants": [],
+      "module": "cafeteria.admin.recipe_image_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.recipe_new",
+      "rule": "/admin/rezepte/neu",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/rezepte_conflict.html",
+        "admin/rezepte_editor.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-RECIPE-FORMS",
+      "family_variants": [],
+      "module": "cafeteria.admin.recipe_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.recipe_print_template_editor",
+      "rule": "/admin/vorlagen/rezepte",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/print_template_editor.html",
+        "admin/print_template_unavailable.html",
+        "admin/recipe_template_error.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "print",
+      "owning_mp": "MP-UI-PRINT-EDITOR",
+      "family_variants": [],
+      "module": "cafeteria.admin.recipe_print_template_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.recipe_print_template_preview",
+      "rule": "/admin/vorlagen/rezepte/vorschau.pdf",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "download",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-PRINT-EDITOR",
+      "family_variants": [],
+      "module": "cafeteria.admin.recipe_print_template_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.recipe_revision",
+      "rule": "/admin/rezepte/<uuid:recipe_id>/revisionen/<uuid:revision_id>",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/rezepte_revision.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-REF-DETAIL",
+      "family_variants": [],
+      "module": "cafeteria.admin.recipe_revision_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.recipe_revision_pdf",
+      "rule": "/admin/rezepte/<uuid:recipe_id>/revisionen/<uuid:revision_id>/druck.pdf",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "download",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-REF-DETAIL",
+      "family_variants": [],
+      "module": "cafeteria.admin.recipe_revision_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.recipe_revisions",
+      "rule": "/admin/rezepte/<uuid:recipe_id>/revisionen",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/rezepte_revisionen.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-REF-DETAIL",
+      "family_variants": [],
+      "module": "cafeteria.admin.recipe_revision_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.recipe_scale",
+      "rule": "/admin/rezepte/<uuid:recipe_id>/skalierung",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/rezepte_scale.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-RECIPE-TOOLS",
+      "family_variants": [],
+      "module": "cafeteria.admin.recipe_revision_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.recipe_status",
+      "rule": "/admin/rezepte/<recipe_id>/status",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/rezepte_conflict.html",
+        "admin/rezepte_editor.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-RECIPE-FORMS",
+      "family_variants": [],
+      "module": "cafeteria.admin.recipe_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.recipes_list",
+      "rule": "/admin/rezepte",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/rezepte.html"
+      ],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-RECIPE-LISTS",
+      "family_variants": [],
+      "module": "cafeteria.admin.recipe_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.schedule_defaults",
+      "rule": "/admin/<any(cafeteria, patienten):family>/wochenvorgaben",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "post_only",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-BRAND-OPS",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.operations_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.screen_template_assignment",
+      "rule": "/admin/screens/<any(cafeteria,patienten):family>/wochenvorlage",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/screen_template_assignment.html",
+        "admin/screen_template_unavailable.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-OUTPUT-HUBS",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.screen_template_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.screen_template_preview",
+      "rule": "/admin/vorlagen/screens/<any(cafeteria,patienten):family>/<template_id>",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/screen_template_assignment.html",
+        "public/cafeteria_week.html",
+        "public/patient_week.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "public",
+      "owning_mp": "MP-UI-OUTPUT-HUBS",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.screen_template_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.screens",
+      "rule": "/admin/screens",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/screens.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-OUTPUT-HUBS",
+      "family_variants": [],
+      "module": "cafeteria.admin.output_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.service_get",
+      "rule": "/admin/<any(cafeteria, patienten):family>/service",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html_fragment",
+      "visual": true,
+      "templates": [],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-WEEKS",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.service_post",
+      "rule": "/admin/<any(cafeteria, patienten):family>/service",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-WEEKS",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.vorlagen",
+      "rule": "/admin/vorlagen",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/vorlagen.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-OUTPUT-HUBS",
+      "family_variants": [],
+      "module": "cafeteria.admin.output_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.week_create",
+      "rule": "/admin/<any(cafeteria, patienten):family>/wochen",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-WEEKS",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.week_management_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.week_management",
+      "rule": "/admin/<any(cafeteria, patienten):family>/wochen",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/week_management.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-WEEKS",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.week_management_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.week_review_get",
+      "rule": "/admin/<any(cafeteria, patienten):family>/wochen/pruefung",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/week_review.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-WEEKS",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.week_review_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "admin.week_review_post",
+      "rule": "/admin/<any(cafeteria, patienten):family>/wochen/pruefung",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-WEEKS",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.admin.week_review_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ]
+    },
+    {
+      "endpoint": "api.cafeteria",
+      "rule": "/api/v1/published/cafeteria",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "api",
+      "classification": "json",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "MP-API-REGRESSION",
+      "family_variants": [],
+      "module": "cafeteria.api.routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "api.patienten",
+      "rule": "/api/v1/published/patienten",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "api",
+      "classification": "json",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "MP-API-REGRESSION",
+      "family_variants": [],
+      "module": "cafeteria.api.routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "api_docs.docs",
+      "rule": "/api/v1/docs",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "api_docs",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "api/docs.html"
+      ],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "api_docs",
+      "owning_mp": "MP-UI-API",
+      "family_variants": [],
+      "module": "cafeteria.api.docs_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default"
+      ],
+      "hooks": []
+    },
+    {
+      "endpoint": "api_docs.openapi_json",
+      "rule": "/api/v1/openapi.json",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "api_docs",
+      "classification": "json",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "MP-UI-API",
+      "family_variants": [],
+      "module": "cafeteria.api.docs_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "api_v1.key_identity",
+      "rule": "/api/v1/keys/me",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "api_v1",
+      "classification": "json",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "MP-API-REGRESSION",
+      "family_variants": [],
+      "module": "cafeteria.api.v1_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "api_v1.published_channel",
+      "rule": "/api/v1/published/<any(cafeteria, patienten):channel>",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "api_v1",
+      "classification": "json",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "MP-API-REGRESSION",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.api.v1_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "api_v1.published_days",
+      "rule": "/api/v1/published/<any(cafeteria, patienten):channel>/days/<date>",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "api_v1",
+      "classification": "json",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "MP-API-REGRESSION",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.api.v1_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "api_v1.published_today",
+      "rule": "/api/v1/published/<any(cafeteria, patienten):channel>/today",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "api_v1",
+      "classification": "json",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "MP-API-REGRESSION",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.api.v1_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "api_v1.status",
+      "rule": "/api/v1/status",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "api_v1",
+      "classification": "json",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "MP-API-REGRESSION",
+      "family_variants": [],
+      "module": "cafeteria.api.v1_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "api_v1.weeks",
+      "rule": "/api/v1/weeks/<any(cafeteria, patienten):channel>",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "api_v1",
+      "classification": "json",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "MP-API-REGRESSION",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.api.v1_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "api_v1.weeks_preview",
+      "rule": "/api/v1/weeks/<any(cafeteria, patienten):channel>/<date>/preview",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "api_v1",
+      "classification": "json",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "MP-API-REGRESSION",
+      "family_variants": [
+        "cafeteria",
+        "patienten"
+      ],
+      "module": "cafeteria.api.v1_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "auth.callback",
+      "rule": "/auth/callback",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "auth",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "auth/error.html"
+      ],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "auth",
+      "owning_mp": "MP-UI-AUTH",
+      "family_variants": [],
+      "module": "cafeteria.auth.routes",
+      "source_discovered": true,
+      "fixture": "local_auth_enabled_no_production_persons",
+      "states": [
+        "default"
+      ],
+      "hooks": [
+        "csrf_token"
+      ]
+    },
+    {
+      "endpoint": "auth.frontchannel_logout",
+      "rule": "/auth/frontchannel-logout",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "blueprint": "auth",
+      "classification": "empty_response",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "auth",
+      "owning_mp": "MP-UI-AUTH",
+      "family_variants": [],
+      "module": "cafeteria.auth.routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "csrf_token"
+      ]
+    },
+    {
+      "endpoint": "auth.local_login",
+      "rule": "/auth/local",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "blueprint": "auth",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "auth/error.html",
+        "auth/local_login.html"
+      ],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "auth",
+      "owning_mp": "MP-UI-AUTH",
+      "family_variants": [],
+      "module": "cafeteria.auth.routes",
+      "source_discovered": true,
+      "fixture": "local_auth_enabled_no_production_persons",
+      "states": [
+        "default",
+        "invalid_credentials"
+      ],
+      "hooks": [
+        "csrf_token"
+      ]
+    },
+    {
+      "endpoint": "auth.login",
+      "rule": "/auth/login",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "auth",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "auth/error.html"
+      ],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "auth",
+      "owning_mp": "MP-UI-AUTH",
+      "family_variants": [],
+      "module": "cafeteria.auth.routes",
+      "source_discovered": true,
+      "fixture": "local_auth_enabled_no_production_persons",
+      "states": [
+        "default",
+        "demo_redirect",
+        "entra_unconfigured"
+      ],
+      "hooks": [
+        "csrf_token"
+      ]
+    },
+    {
+      "endpoint": "auth.logout",
+      "rule": "/auth/logout",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "auth",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "auth",
+      "owning_mp": "MP-UI-AUTH",
+      "family_variants": [],
+      "module": "cafeteria.auth.routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "csrf_token"
+      ]
+    },
+    {
+      "endpoint": "branding.logo",
+      "rule": "/branding/logos/<sha256>.png",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "branding",
+      "classification": "download",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "MP-UI-BRAND-OPS",
+      "family_variants": [],
+      "module": "cafeteria.branding_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "branding.stylesheet",
+      "rule": "/branding/revisions/<int:revision>.css",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "branding",
+      "classification": "download",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "MP-UI-BRAND-OPS",
+      "family_variants": [],
+      "module": "cafeteria.branding_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "fhir.document_composition",
+      "rule": "/fhir/Composition/<id>/$document",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "fhir",
+      "classification": "json",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "MP-API-REGRESSION",
+      "family_variants": [],
+      "module": "cafeteria.fhir.routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "fhir.metadata",
+      "rule": "/fhir/metadata",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "fhir",
+      "classification": "json",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "MP-API-REGRESSION",
+      "family_variants": [],
+      "module": "cafeteria.fhir.routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "fhir.read_composition",
+      "rule": "/fhir/Composition/<id>",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "fhir",
+      "classification": "json",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "MP-API-REGRESSION",
+      "family_variants": [],
+      "module": "cafeteria.fhir.routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "fhir.read_nutrition_product",
+      "rule": "/fhir/NutritionProduct/<id>",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "fhir",
+      "classification": "json",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "MP-API-REGRESSION",
+      "family_variants": [],
+      "module": "cafeteria.fhir.routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "fhir.search_composition",
+      "rule": "/fhir/Composition",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "fhir",
+      "classification": "json",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "MP-API-REGRESSION",
+      "family_variants": [],
+      "module": "cafeteria.fhir.routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "fhir.search_nutrition_product",
+      "rule": "/fhir/NutritionProduct",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "fhir",
+      "classification": "json",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "MP-API-REGRESSION",
+      "family_variants": [],
+      "module": "cafeteria.fhir.routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "health.live",
+      "rule": "/health/live",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "health",
+      "classification": "json",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "unmapped",
+      "family_variants": [],
+      "module": "cafeteria.health.routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "health.ready",
+      "rule": "/health/ready",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "health",
+      "classification": "json",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "unmapped",
+      "family_variants": [],
+      "module": "cafeteria.health.routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "public.cafeteria_today",
+      "rule": "/cafeteria/heute/",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "public",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "public/cafeteria_today.html",
+        "public/unavailable.html"
+      ],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "public",
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
+      "family_variants": [],
+      "module": "cafeteria.public.routes",
+      "source_discovered": true,
+      "fixture": "demo_snapshots_kw36_synthetic",
+      "states": [
+        "default",
+        "unavailable_404"
+      ],
+      "hooks": []
+    },
+    {
+      "endpoint": "public.cafeteria_week",
+      "rule": "/cafeteria/wochenangebot/",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "public",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/screen_template_unavailable.html",
+        "public/cafeteria_week.html",
+        "public/unavailable.html"
+      ],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "public",
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
+      "family_variants": [],
+      "module": "cafeteria.public.routes",
+      "source_discovered": true,
+      "fixture": "demo_snapshots_kw36_synthetic",
+      "states": [
+        "default",
+        "unavailable_404"
+      ],
+      "hooks": []
+    },
+    {
+      "endpoint": "public.cafeteria_week_without_images",
+      "rule": "/cafeteria/wochenangebot/ohne-bilder/",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "public",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/screen_template_unavailable.html",
+        "public/cafeteria_week.html",
+        "public/unavailable.html"
+      ],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "public",
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
+      "family_variants": [],
+      "module": "cafeteria.public.routes",
+      "source_discovered": true,
+      "fixture": "demo_snapshots_kw36_synthetic",
+      "states": [
+        "default",
+        "unavailable_404"
+      ],
+      "hooks": []
+    },
+    {
+      "endpoint": "public.legend",
+      "rule": "/cafeteria/legende/",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "public",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "public/legend.html"
+      ],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "public",
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
+      "family_variants": [],
+      "module": "cafeteria.public.routes",
+      "source_discovered": true,
+      "fixture": "demo_snapshots_kw36_synthetic",
+      "states": [
+        "default",
+        "unavailable_404"
+      ],
+      "hooks": []
+    },
+    {
+      "endpoint": "public.patient_today",
+      "rule": "/patienten/heute/",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "public",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "public/patient_today.html",
+        "public/unavailable.html"
+      ],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "public",
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
+      "family_variants": [],
+      "module": "cafeteria.public.routes",
+      "source_discovered": true,
+      "fixture": "demo_snapshots_kw36_synthetic",
+      "states": [
+        "default",
+        "unavailable_404"
+      ],
+      "hooks": []
+    },
+    {
+      "endpoint": "public.patient_week",
+      "rule": "/patienten/wochenplan/",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "public",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/screen_template_unavailable.html",
+        "public/patient_week.html",
+        "public/unavailable.html"
+      ],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "public",
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
+      "family_variants": [],
+      "module": "cafeteria.public.routes",
+      "source_discovered": true,
+      "fixture": "demo_snapshots_kw36_synthetic",
+      "states": [
+        "default",
+        "unavailable_404"
+      ],
+      "hooks": []
+    },
+    {
+      "endpoint": "public.patient_week_without_images",
+      "rule": "/patienten/wochenplan/ohne-bilder/",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "public",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/screen_template_unavailable.html",
+        "public/patient_week.html",
+        "public/unavailable.html"
+      ],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "public",
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
+      "family_variants": [],
+      "module": "cafeteria.public.routes",
+      "source_discovered": true,
+      "fixture": "demo_snapshots_kw36_synthetic",
+      "states": [
+        "default",
+        "unavailable_404"
+      ],
+      "hooks": []
+    },
+    {
+      "endpoint": "public.print_cafeteria_week",
+      "rule": "/druck/cafeteria/woche",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "public",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "public/print_cafeteria_week.html",
+        "public/unavailable.html"
+      ],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "print",
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
+      "family_variants": [],
+      "module": "cafeteria.public.routes",
+      "source_discovered": true,
+      "fixture": "demo_snapshots_kw36_synthetic",
+      "states": [
+        "default",
+        "unavailable_404"
+      ],
+      "hooks": []
+    },
+    {
+      "endpoint": "public.print_patient_week",
+      "rule": "/druck/patienten/woche",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "public",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "public/print_patient_week.html",
+        "public/unavailable.html"
+      ],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "print",
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
+      "family_variants": [],
+      "module": "cafeteria.public.routes",
+      "source_discovered": true,
+      "fixture": "demo_snapshots_kw36_synthetic",
+      "states": [
+        "default",
+        "unavailable_404"
+      ],
+      "hooks": []
+    },
+    {
+      "endpoint": "public.root",
+      "rule": "/",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "public",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "public",
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
+      "family_variants": [],
+      "module": "cafeteria.public.routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    },
+    {
+      "endpoint": "signage.cafeteria_day",
+      "rule": "/signage/cafeteria/tag",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "signage",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "signage/cafeteria_closed.html",
+        "signage/cafeteria_day.html",
+        "signage/unavailable.html"
+      ],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "signage",
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
+      "family_variants": [],
+      "module": "cafeteria.signage.routes",
+      "source_discovered": true,
+      "fixture": "demo_snapshots_kw36_synthetic",
+      "states": [
+        "default",
+        "closed",
+        "unavailable_404"
+      ],
+      "hooks": [
+        "signage.js"
+      ]
+    },
+    {
+      "endpoint": "signage.cafeteria_week",
+      "rule": "/signage/cafeteria/woche",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "signage",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "signage/cafeteria_week.html",
+        "signage/unavailable.html"
+      ],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "signage",
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
+      "family_variants": [],
+      "module": "cafeteria.signage.routes",
+      "source_discovered": true,
+      "fixture": "demo_snapshots_kw36_synthetic",
+      "states": [
+        "default",
+        "closed",
+        "unavailable_404"
+      ],
+      "hooks": [
+        "signage.js"
+      ]
+    },
+    {
+      "endpoint": "signage.patient_day",
+      "rule": "/signage/patienten/tag",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "signage",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "signage/patient_day.html",
+        "signage/unavailable.html"
+      ],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "signage",
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
+      "family_variants": [],
+      "module": "cafeteria.signage.routes",
+      "source_discovered": true,
+      "fixture": "demo_snapshots_kw36_synthetic",
+      "states": [
+        "default",
+        "unavailable_404"
+      ],
+      "hooks": [
+        "signage.js"
+      ]
+    },
+    {
+      "endpoint": "signage.patient_week",
+      "rule": "/signage/patienten/woche",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "signage",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "signage/patient_week.html",
+        "signage/unavailable.html"
+      ],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "signage",
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
+      "family_variants": [],
+      "module": "cafeteria.signage.routes",
+      "source_discovered": true,
+      "fixture": "demo_snapshots_kw36_synthetic",
+      "states": [
+        "default",
+        "unavailable_404"
+      ],
+      "hooks": [
+        "signage.js"
+      ]
+    },
+    {
+      "endpoint": "static",
+      "rule": "/static/<path:filename>",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "",
+      "classification": "static",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "layout_variant": "none",
+      "owning_mp": "unmapped",
+      "family_variants": [],
+      "module": "flask.app",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": []
+    }
+  ],
+  "templates": [
+    {
+      "path": "_brand_logo.html",
+      "kind": "partial",
+      "extends": [],
+      "includes": [],
+      "sha256": "7af3c914a510e7de7d4e4fbbfc45af0e517dd387880983def6a1e2c17e8d07fb",
+      "used_by_endpoints": [
+        "admin.access_history",
+        "admin.api_overview",
+        "admin.branding_editor",
+        "admin.branding_preview",
+        "admin.cafeteria",
+        "admin.component_detail",
+        "admin.components_get",
+        "admin.cookbook_edit",
+        "admin.cookbook_new",
+        "admin.cookbook_status",
+        "admin.cookbooks_list",
+        "admin.copy_get",
+        "admin.display_settings",
+        "admin.import_preview",
+        "admin.local_user_detail",
+        "admin.local_user_events",
+        "admin.local_user_new",
+        "admin.local_users_list",
+        "admin.master_data_detail",
+        "admin.master_data_list",
+        "admin.master_data_new",
+        "admin.menu_collection",
+        "admin.menu_get",
+        "admin.operations_settings",
+        "admin.patienten",
+        "admin.print_template_editor",
+        "admin.recipe_edit",
+        "admin.recipe_images",
+        "admin.recipe_new",
+        "admin.recipe_print_template_editor",
+        "admin.recipe_revision",
+        "admin.recipe_revisions",
+        "admin.recipe_scale",
+        "admin.recipe_status",
+        "admin.recipes_list",
+        "admin.screen_template_assignment",
+        "admin.screen_template_preview",
+        "admin.screens",
+        "admin.vorlagen",
+        "admin.week_management",
+        "admin.week_review_get",
+        "auth.local_login",
+        "public.cafeteria_today",
+        "public.cafeteria_week",
+        "public.cafeteria_week_without_images",
+        "public.legend",
+        "public.patient_today",
+        "public.patient_week",
+        "public.patient_week_without_images",
+        "public.print_cafeteria_week",
+        "public.print_patient_week",
+        "signage.cafeteria_day",
+        "signage.cafeteria_week",
+        "signage.patient_day",
+        "signage.patient_week"
+      ],
+      "owning_mp": "MP-UI-ACCESS-HISTORY"
+    },
+    {
+      "path": "_food_symbols.html",
+      "kind": "partial",
+      "extends": [],
+      "includes": [],
+      "sha256": "e11e98117793c43f8909fcbc84fc68350c6f6b5a706e814accdc23799b4fb98c",
+      "used_by_endpoints": [
+        "admin.cafeteria",
+        "admin.component_detail",
+        "admin.components_get",
+        "admin.menu_collection",
+        "admin.menu_get",
+        "admin.patienten",
+        "admin.preview",
+        "admin.screen_template_preview",
+        "public.cafeteria_today",
+        "public.cafeteria_week",
+        "public.cafeteria_week_without_images",
+        "public.patient_today",
+        "public.patient_week",
+        "public.patient_week_without_images",
+        "public.print_cafeteria_week",
+        "public.print_patient_week",
+        "signage.cafeteria_day",
+        "signage.cafeteria_week",
+        "signage.patient_day",
+        "signage.patient_week"
+      ],
+      "owning_mp": "MP-UI-REF-WORKSPACE"
+    },
+    {
+      "path": "_menu_image.html",
+      "kind": "partial",
+      "extends": [],
+      "includes": [],
+      "sha256": "55347486d77d0ca9f703e10525660992c5f88e3531924149e9399c799b78446f",
+      "used_by_endpoints": [
+        "admin.display_settings",
+        "admin.menu_collection",
+        "admin.preview",
+        "admin.screen_template_preview",
+        "public.cafeteria_today",
+        "public.cafeteria_week",
+        "public.cafeteria_week_without_images",
+        "public.patient_today",
+        "public.patient_week",
+        "public.patient_week_without_images",
+        "signage.cafeteria_day",
+        "signage.patient_day"
+      ],
+      "owning_mp": "MP-UI-REF-SETTINGS"
+    },
+    {
+      "path": "_menu_metadata.html",
+      "kind": "partial",
+      "extends": [],
+      "includes": [
+        "_food_symbols.html"
+      ],
+      "sha256": "627557b5ffe4c3b5f93c4627d86ef153ab272ac5fbcbf338c24920e6a1ef6edd",
+      "used_by_endpoints": [
+        "admin.cafeteria",
+        "admin.menu_collection",
+        "admin.patienten",
+        "admin.preview",
+        "admin.screen_template_preview",
+        "public.cafeteria_today",
+        "public.cafeteria_week",
+        "public.cafeteria_week_without_images",
+        "public.patient_today",
+        "public.patient_week",
+        "public.patient_week_without_images",
+        "public.print_cafeteria_week",
+        "public.print_patient_week",
+        "signage.cafeteria_day",
+        "signage.cafeteria_week",
+        "signage.patient_day",
+        "signage.patient_week"
+      ],
+      "owning_mp": "MP-UI-REF-WORKSPACE"
+    },
+    {
+      "path": "admin/_country_select.html",
+      "kind": "partial",
+      "extends": [],
+      "includes": [],
+      "sha256": "45ffb625843754c90327c74578798713397f8ec9ff15482cb56de9123488f841",
+      "used_by_endpoints": [
+        "admin.component_detail",
+        "admin.components_get",
+        "admin.menu_get"
+      ],
+      "owning_mp": "MP-UI-COMPONENTS"
+    },
+    {
+      "path": "admin/_local_user_forms.html",
+      "kind": "partial",
+      "extends": [],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "798206ddc23d5835169db0ecead2ce029146fdfc64dc9d761c46cec81a6a420a",
+      "used_by_endpoints": [
+        "admin.local_user_detail",
+        "admin.local_user_new",
+        "admin.local_users_list"
+      ],
+      "owning_mp": "MP-UI-LOCAL-USERS"
+    },
+    {
+      "path": "admin/_macros.html",
+      "kind": "partial",
+      "extends": [],
+      "includes": [],
+      "sha256": "800841b53610a4fdd6d97cc643e3f0c0d05db03217bbc7cedeba49d87db4c637",
+      "used_by_endpoints": [
+        "admin.access_history",
+        "admin.api_overview",
+        "admin.branding_editor",
+        "admin.cafeteria",
+        "admin.component_detail",
+        "admin.components_get",
+        "admin.cookbook_edit",
+        "admin.cookbook_new",
+        "admin.cookbook_status",
+        "admin.cookbooks_list",
+        "admin.copy_get",
+        "admin.display_settings",
+        "admin.import_preview",
+        "admin.local_user_detail",
+        "admin.local_user_events",
+        "admin.local_user_new",
+        "admin.local_users_list",
+        "admin.master_data_detail",
+        "admin.master_data_list",
+        "admin.master_data_new",
+        "admin.menu_collection",
+        "admin.menu_get",
+        "admin.operations_settings",
+        "admin.patienten",
+        "admin.print_template_editor",
+        "admin.recipe_edit",
+        "admin.recipe_images",
+        "admin.recipe_new",
+        "admin.recipe_print_template_editor",
+        "admin.recipe_revision",
+        "admin.recipe_revisions",
+        "admin.recipe_scale",
+        "admin.recipe_status",
+        "admin.recipes_list",
+        "admin.screen_template_assignment",
+        "admin.screen_template_preview",
+        "admin.screens",
+        "admin.vorlagen",
+        "admin.week_management",
+        "admin.week_review_get"
+      ],
+      "owning_mp": "MP-UI-ACCESS-HISTORY"
+    },
+    {
+      "path": "admin/_recipe_template_selection.html",
+      "kind": "partial",
+      "extends": [],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "a181c22836b64eff964649d550eea510ce74baea2a344ee920e0fab6d03c0dee",
+      "used_by_endpoints": [
+        "admin.print_template_editor",
+        "admin.recipe_print_template_editor"
+      ],
+      "owning_mp": "MP-UI-PRINT-EDITOR"
+    },
+    {
+      "path": "admin/_rezepte_fields.html",
+      "kind": "partial",
+      "extends": [],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "1e46d2e4d5bbb93eb837e5848133e854b7d427ffa6a44615b24b2500f178e431",
+      "used_by_endpoints": [
+        "admin.recipe_edit",
+        "admin.recipe_new",
+        "admin.recipe_status"
+      ],
+      "owning_mp": "MP-UI-RECIPE-FORMS"
+    },
+    {
+      "path": "admin/_workflow_sidebar.html",
+      "kind": "partial",
+      "extends": [],
+      "includes": [
+        "_brand_logo.html",
+        "admin/_macros.html"
+      ],
+      "sha256": "eff8c4a0f7daed5ae18c8f687e2d98ca4c2a93e8d630ddaada59f9975fd10796",
+      "used_by_endpoints": [
+        "admin.access_history",
+        "admin.api_overview",
+        "admin.branding_editor",
+        "admin.cafeteria",
+        "admin.component_detail",
+        "admin.components_get",
+        "admin.cookbook_edit",
+        "admin.cookbook_new",
+        "admin.cookbook_status",
+        "admin.cookbooks_list",
+        "admin.copy_get",
+        "admin.display_settings",
+        "admin.import_preview",
+        "admin.local_user_detail",
+        "admin.local_user_events",
+        "admin.local_user_new",
+        "admin.local_users_list",
+        "admin.master_data_detail",
+        "admin.master_data_list",
+        "admin.master_data_new",
+        "admin.menu_collection",
+        "admin.menu_get",
+        "admin.operations_settings",
+        "admin.patienten",
+        "admin.print_template_editor",
+        "admin.recipe_edit",
+        "admin.recipe_images",
+        "admin.recipe_new",
+        "admin.recipe_print_template_editor",
+        "admin.recipe_revision",
+        "admin.recipe_revisions",
+        "admin.recipe_scale",
+        "admin.recipe_status",
+        "admin.recipes_list",
+        "admin.screen_template_assignment",
+        "admin.screen_template_preview",
+        "admin.screens",
+        "admin.vorlagen",
+        "admin.week_management",
+        "admin.week_review_get"
+      ],
+      "owning_mp": "MP-UI-ACCESS-HISTORY"
+    },
+    {
+      "path": "admin/access_history.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "4c00bac33abad35341d4d10c6f6f2be220fcf651dda80b9df55814a16c3fef2e",
+      "used_by_endpoints": [
+        "admin.access_history"
+      ],
+      "owning_mp": "MP-UI-ACCESS-HISTORY"
+    },
+    {
+      "path": "admin/api.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "ba7ab788ecd93c9ce43a2dd97a21c4a921192c9acf0937ec54c3876c9e34fe9f",
+      "used_by_endpoints": [
+        "admin.api_overview"
+      ],
+      "owning_mp": "MP-UI-API"
+    },
+    {
+      "path": "admin/base_tabler.html",
+      "kind": "layout",
+      "extends": [],
+      "includes": [
+        "admin/_macros.html",
+        "admin/_workflow_sidebar.html"
+      ],
+      "sha256": "4e7b1beb5afaf1f5b3a807d9826929785212d4a20695553ef2f9f3ab25c5bd06",
+      "used_by_endpoints": [
+        "admin.access_history",
+        "admin.api_overview",
+        "admin.branding_editor",
+        "admin.cafeteria",
+        "admin.component_detail",
+        "admin.components_get",
+        "admin.cookbook_edit",
+        "admin.cookbook_new",
+        "admin.cookbook_status",
+        "admin.cookbooks_list",
+        "admin.copy_get",
+        "admin.display_settings",
+        "admin.import_preview",
+        "admin.local_user_detail",
+        "admin.local_user_events",
+        "admin.local_user_new",
+        "admin.local_users_list",
+        "admin.master_data_detail",
+        "admin.master_data_list",
+        "admin.master_data_new",
+        "admin.menu_collection",
+        "admin.menu_get",
+        "admin.operations_settings",
+        "admin.patienten",
+        "admin.print_template_editor",
+        "admin.recipe_edit",
+        "admin.recipe_images",
+        "admin.recipe_new",
+        "admin.recipe_print_template_editor",
+        "admin.recipe_revision",
+        "admin.recipe_revisions",
+        "admin.recipe_scale",
+        "admin.recipe_status",
+        "admin.recipes_list",
+        "admin.screen_template_assignment",
+        "admin.screen_template_preview",
+        "admin.screens",
+        "admin.vorlagen",
+        "admin.week_management",
+        "admin.week_review_get"
+      ],
+      "owning_mp": "MP-UI-ACCESS-HISTORY"
+    },
+    {
+      "path": "admin/branding_editor.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "9f2af4fe2678977d31558fd2e248292472cf7737b196df8d857465f68c2a2a36",
+      "used_by_endpoints": [
+        "admin.branding_editor"
+      ],
+      "owning_mp": "MP-UI-BRAND-OPS"
+    },
+    {
+      "path": "admin/branding_preview.html",
+      "kind": "page",
+      "extends": [],
+      "includes": [
+        "_brand_logo.html"
+      ],
+      "sha256": "d14a3c8fefa748c1b06f213fc2c0d95cbcc0dfebf7a10f5bcebf26f13d2a56b5",
+      "used_by_endpoints": [
+        "admin.branding_preview"
+      ],
+      "owning_mp": "MP-UI-BRAND-OPS"
+    },
+    {
+      "path": "admin/cafeteria.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "_food_symbols.html",
+        "_menu_metadata.html",
+        "admin/_macros.html"
+      ],
+      "sha256": "bbdf4b5dbde84eba28a18a45cd54dbece377a5bca546ec19b5d153fb70da3438",
+      "used_by_endpoints": [
+        "admin.cafeteria"
+      ],
+      "owning_mp": "MP-UI-REF-WORKSPACE"
+    },
+    {
+      "path": "admin/component_editor.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "_food_symbols.html",
+        "admin/_country_select.html",
+        "admin/_macros.html"
+      ],
+      "sha256": "8fc0662df6e259e6b5ac7a2a58f53f7044b231127ec229d7883948d5f5703c31",
+      "used_by_endpoints": [
+        "admin.component_detail"
+      ],
+      "owning_mp": "MP-UI-COMPONENTS"
+    },
+    {
+      "path": "admin/components.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "_food_symbols.html",
+        "admin/_country_select.html",
+        "admin/_macros.html"
+      ],
+      "sha256": "bb3552cd2a4ac14a5a8e6be3a8b312bd8349d637ceaa137fe87d455021af9a4f",
+      "used_by_endpoints": [
+        "admin.components_get"
+      ],
+      "owning_mp": "MP-UI-COMPONENTS"
+    },
+    {
+      "path": "admin/copy.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "88992ffadf1cefad29e09d101d30eacfde34cb458b890a35b2f0f610da7fc88c",
+      "used_by_endpoints": [
+        "admin.copy_get"
+      ],
+      "owning_mp": "MP-UI-COPY-IMPORT"
+    },
+    {
+      "path": "admin/display_settings.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "_menu_image.html",
+        "admin/_macros.html"
+      ],
+      "sha256": "1ac1c0cd96b3f56b428d57a3253d04ed7fb6ec1b424ce2bd38a53c45013e2979",
+      "used_by_endpoints": [
+        "admin.display_settings"
+      ],
+      "owning_mp": "MP-UI-REF-SETTINGS"
+    },
+    {
+      "path": "admin/grundlagen.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "7d993c25d0e235e08cdfa147a5081d714b7657772aa81b9a5c6a6750e9219f36",
+      "used_by_endpoints": [
+        "admin.master_data_detail",
+        "admin.master_data_list",
+        "admin.master_data_new"
+      ],
+      "owning_mp": "MP-UI-FOUNDATIONS"
+    },
+    {
+      "path": "admin/grundlagen_food.html",
+      "kind": "page",
+      "extends": [
+        "admin/grundlagen.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "242bd4da7d970eb025f3199ea97857a11f34b7accbdc7bd865da9a13f3558897",
+      "used_by_endpoints": [
+        "admin.master_data_detail",
+        "admin.master_data_new"
+      ],
+      "owning_mp": "MP-UI-FOUNDATIONS"
+    },
+    {
+      "path": "admin/grundlagen_location_conflict.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "5ff788cfb07cd9a89f4bfb0f7b036ce5e15f73397956ad220ace4d798731e292",
+      "used_by_endpoints": [
+        "admin.master_data_detail",
+        "admin.master_data_new"
+      ],
+      "owning_mp": "MP-UI-FOUNDATIONS"
+    },
+    {
+      "path": "admin/grundlagen_unavailable.html",
+      "kind": "page",
+      "extends": [],
+      "includes": [],
+      "sha256": "b0438a6a25b873332d23c18e4e02b29f897d60013a40f6be800f2ca6648a418b",
+      "used_by_endpoints": [
+        "admin.master_data_detail",
+        "admin.master_data_list",
+        "admin.master_data_new"
+      ],
+      "owning_mp": "MP-UI-FOUNDATIONS"
+    },
+    {
+      "path": "admin/grundlagen_unit.html",
+      "kind": "page",
+      "extends": [
+        "admin/grundlagen.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "719457f3220ab889a8f1b7f3e3ae2a270c8b2e2cfcd87f62089f9f89ca9c935a",
+      "used_by_endpoints": [
+        "admin.master_data_detail",
+        "admin.master_data_new"
+      ],
+      "owning_mp": "MP-UI-FOUNDATIONS"
+    },
+    {
+      "path": "admin/grundlagen_vocabulary.html",
+      "kind": "page",
+      "extends": [
+        "admin/grundlagen.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "dcf781cb80d54643d1610b23bc7ff5e9c0ba97841a24993d084bace63318eec6",
+      "used_by_endpoints": [
+        "admin.master_data_detail",
+        "admin.master_data_new"
+      ],
+      "owning_mp": "MP-UI-FOUNDATIONS"
+    },
+    {
+      "path": "admin/import_preview.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "327e4a961677655b63c6a36a804dd8a3f916861c4f5201bfbc115281d6ba5692",
+      "used_by_endpoints": [
+        "admin.import_preview"
+      ],
+      "owning_mp": "MP-UI-COPY-IMPORT"
+    },
+    {
+      "path": "admin/kochbuch_editor.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "9069a8c719e085b04b3ea3f1793f2b0aef121d6bf72d2797eeb2be25508cd16e",
+      "used_by_endpoints": [
+        "admin.cookbook_edit",
+        "admin.cookbook_new",
+        "admin.cookbook_status"
+      ],
+      "owning_mp": "MP-UI-COOKBOOKS"
+    },
+    {
+      "path": "admin/kochbuecher.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "f327d96573cf40bc3100572167fd85251b69cee9f924d77d6c88dc30101778ab",
+      "used_by_endpoints": [
+        "admin.cookbooks_list"
+      ],
+      "owning_mp": "MP-UI-COOKBOOKS"
+    },
+    {
+      "path": "admin/local_user_create.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_local_user_forms.html",
+        "admin/_macros.html"
+      ],
+      "sha256": "6c36e8d77bc265158a32cd3346f4c76207ee25a825342de9bb3d6b59af1efac1",
+      "used_by_endpoints": [
+        "admin.local_user_new"
+      ],
+      "owning_mp": "MP-UI-LOCAL-USERS"
+    },
+    {
+      "path": "admin/local_user_editor.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_local_user_forms.html",
+        "admin/_macros.html"
+      ],
+      "sha256": "6b2f9375b782fb45f87819a47b239d9ff8556b20aa8c25237436b60c5eea1bab",
+      "used_by_endpoints": [
+        "admin.local_user_detail"
+      ],
+      "owning_mp": "MP-UI-LOCAL-USERS"
+    },
+    {
+      "path": "admin/local_user_events.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "8ff89e8c57a4fbe7c0279df04da36a3750317a94910b7d0873b8f20584cf6247",
+      "used_by_endpoints": [
+        "admin.local_user_events"
+      ],
+      "owning_mp": "MP-UI-LOCAL-USERS"
+    },
+    {
+      "path": "admin/local_user_unavailable.html",
+      "kind": "page",
+      "extends": [],
+      "includes": [],
+      "sha256": "e53fbb859ab273f69ec43b193704b5c6a54504b8388a0859cb1485746e35d6e1",
+      "used_by_endpoints": [
+        "admin.local_user_detail",
+        "admin.local_user_events",
+        "admin.local_user_new",
+        "admin.local_users_list"
+      ],
+      "owning_mp": "MP-UI-LOCAL-USERS"
+    },
+    {
+      "path": "admin/local_users.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_local_user_forms.html",
+        "admin/_macros.html"
+      ],
+      "sha256": "12b0dc480755cfa00bc5c2eeb38674d84f753f24ab4fc9f2bae9abcc72323536",
+      "used_by_endpoints": [
+        "admin.local_users_list"
+      ],
+      "owning_mp": "MP-UI-LOCAL-USERS"
+    },
+    {
+      "path": "admin/menu_collection.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "_food_symbols.html",
+        "_menu_image.html",
+        "_menu_metadata.html",
+        "admin/_macros.html"
+      ],
+      "sha256": "00274c01a2d4d005429f7403e171b4a54b58500186e2a1984d6393ce92557ab7",
+      "used_by_endpoints": [
+        "admin.menu_collection"
+      ],
+      "owning_mp": "MP-UI-REF-LIST"
+    },
+    {
+      "path": "admin/menu_editor.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "_food_symbols.html",
+        "admin/_country_select.html",
+        "admin/_macros.html"
+      ],
+      "sha256": "853d6cc490054c91e3dcceda8b77d04edd9ae9b3f7b9538669006d8e815063c6",
+      "used_by_endpoints": [
+        "admin.menu_get"
+      ],
+      "owning_mp": "MP-UI-MENU-EDITOR"
+    },
+    {
+      "path": "admin/operations.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html",
+        "admin/_workflow_sidebar.html"
+      ],
+      "sha256": "7adf397aa10bd024177c62548e7e157f5f1e824a987436873c3cbeb0dc9819fa",
+      "used_by_endpoints": [
+        "admin.operations_settings"
+      ],
+      "owning_mp": "MP-UI-BRAND-OPS"
+    },
+    {
+      "path": "admin/patienten.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "_food_symbols.html",
+        "_menu_metadata.html",
+        "admin/_macros.html"
+      ],
+      "sha256": "566626b63569e446e0cf10b8860548485774829b18547b7380e5a2de8eac6032",
+      "used_by_endpoints": [
+        "admin.patienten"
+      ],
+      "owning_mp": "MP-UI-REF-WORKSPACE"
+    },
+    {
+      "path": "admin/preview.html",
+      "kind": "page",
+      "extends": [
+        "base.html"
+      ],
+      "includes": [
+        "_food_symbols.html",
+        "_menu_image.html",
+        "_menu_metadata.html"
+      ],
+      "sha256": "23c4f0de1b736f4894db731cea3a1a6be2e6724a9aace264187684e6d1908f05",
+      "used_by_endpoints": [
+        "admin.preview"
+      ],
+      "owning_mp": "MP-UI-PREVIEW"
+    },
+    {
+      "path": "admin/print_template_editor.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html",
+        "admin/_recipe_template_selection.html"
+      ],
+      "sha256": "58f977d1fa08bd48b2823a494a6e683a1f404c848312b58176954756bb6b8fc3",
+      "used_by_endpoints": [
+        "admin.print_template_editor",
+        "admin.recipe_print_template_editor"
+      ],
+      "owning_mp": "MP-UI-PRINT-EDITOR"
+    },
+    {
+      "path": "admin/print_template_unavailable.html",
+      "kind": "page",
+      "extends": [],
+      "includes": [],
+      "sha256": "a9f098037abb7210348bf298909dc0bb7c1eec63159dbc37979457b52c3ce3c0",
+      "used_by_endpoints": [
+        "admin.print_template_editor",
+        "admin.recipe_print_template_editor"
+      ],
+      "owning_mp": "MP-UI-PRINT-EDITOR"
+    },
+    {
+      "path": "admin/recipe_template_error.html",
+      "kind": "page",
+      "extends": [],
+      "includes": [],
+      "sha256": "d2f815ff8216649ece1e038260993543801d2cf8a544d9550de86a58c2833e4c",
+      "used_by_endpoints": [
+        "admin.recipe_print_template_editor"
+      ],
+      "owning_mp": "MP-UI-PRINT-EDITOR"
+    },
+    {
+      "path": "admin/rezepte.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "8158d2bfaf94514a3abd4d4c6eefe09592508073f0a1f930f5ea3fb60331f09a",
+      "used_by_endpoints": [
+        "admin.recipes_list"
+      ],
+      "owning_mp": "MP-UI-RECIPE-LISTS"
+    },
+    {
+      "path": "admin/rezepte_conflict.html",
+      "kind": "page",
+      "extends": [],
+      "includes": [],
+      "sha256": "b923798c197bccc58b441df9e60d04e020a54dd0478cb1336ff9e82e9fb60633",
+      "used_by_endpoints": [
+        "admin.recipe_edit",
+        "admin.recipe_new",
+        "admin.recipe_status"
+      ],
+      "owning_mp": "MP-UI-RECIPE-FORMS"
+    },
+    {
+      "path": "admin/rezepte_editor.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html",
+        "admin/_rezepte_fields.html"
+      ],
+      "sha256": "d6d0604a72290f19a026c12e29f518eddd2ce837cb9e14a62e9a99d0a4cb41ff",
+      "used_by_endpoints": [
+        "admin.recipe_edit",
+        "admin.recipe_new",
+        "admin.recipe_status"
+      ],
+      "owning_mp": "MP-UI-RECIPE-FORMS"
+    },
+    {
+      "path": "admin/rezepte_images.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html",
+        "admin/rezepte_scale.html"
+      ],
+      "sha256": "4279ddeae32a5444c5a1aea6199a181aabd44cd2a4e7f5dee8edffb72740886c",
+      "used_by_endpoints": [
+        "admin.recipe_images"
+      ],
+      "owning_mp": "MP-UI-RECIPE-TOOLS"
+    },
+    {
+      "path": "admin/rezepte_revision.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html",
+        "admin/rezepte_scale.html"
+      ],
+      "sha256": "2442789424fb8150fd45269cd7af699743630789fb68f0635937d59a911cd779",
+      "used_by_endpoints": [
+        "admin.recipe_revision"
+      ],
+      "owning_mp": "MP-UI-REF-DETAIL"
+    },
+    {
+      "path": "admin/rezepte_revisionen.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html",
+        "admin/rezepte_scale.html"
+      ],
+      "sha256": "bdb5b0dc7ff301eb27326254ccff2cf1cba52366c392e6fff7e6c4f0a5e1415f",
+      "used_by_endpoints": [
+        "admin.recipe_revisions"
+      ],
+      "owning_mp": "MP-UI-REF-DETAIL"
+    },
+    {
+      "path": "admin/rezepte_scale.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "1eaf6e4511dc004d2e686d335c336eb0c7d46648753cad9babd514a1418b9ce8",
+      "used_by_endpoints": [
+        "admin.recipe_images",
+        "admin.recipe_revision",
+        "admin.recipe_revisions",
+        "admin.recipe_scale"
+      ],
+      "owning_mp": "MP-UI-RECIPE-TOOLS"
+    },
+    {
+      "path": "admin/screen_template_assignment.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "ee6ab3cba44a0a8f530e4457180b57214304fa238e2af32c3f229e1baa5c664e",
+      "used_by_endpoints": [
+        "admin.screen_template_assignment",
+        "admin.screen_template_preview"
+      ],
+      "owning_mp": "MP-UI-OUTPUT-HUBS"
+    },
+    {
+      "path": "admin/screen_template_unavailable.html",
+      "kind": "page",
+      "extends": [],
+      "includes": [],
+      "sha256": "f5806b07107c971f50e3403b3b5b516363074b5a6a342a0551e43cd3fc691a19",
+      "used_by_endpoints": [
+        "admin.screen_template_assignment",
+        "public.cafeteria_week",
+        "public.cafeteria_week_without_images",
+        "public.patient_week",
+        "public.patient_week_without_images"
+      ],
+      "owning_mp": "MP-UI-OUTPUT-HUBS"
+    },
+    {
+      "path": "admin/screens.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "59b5d98ff789f29a512e9bd92a4eac5fa54d4a713b7b6bb164aed28de18dbea6",
+      "used_by_endpoints": [
+        "admin.screens"
+      ],
+      "owning_mp": "MP-UI-OUTPUT-HUBS"
+    },
+    {
+      "path": "admin/vorlagen.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "3e2eeb0879e6761aba95dc6ab3f6fb711717d1b98be1a0fb9ae156eff755a83e",
+      "used_by_endpoints": [
+        "admin.vorlagen"
+      ],
+      "owning_mp": "MP-UI-OUTPUT-HUBS"
+    },
+    {
+      "path": "admin/week_management.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "6083636fefd8bab057118aa85542403db1bdcb6a4ec5a992c81187c146c752a7",
+      "used_by_endpoints": [
+        "admin.week_management"
+      ],
+      "owning_mp": "MP-UI-WEEKS"
+    },
+    {
+      "path": "admin/week_review.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [],
+      "sha256": "28d5c8c3e68c851c702703c3b84703739548648fcc0af414a1a205cb6c5dc981",
+      "used_by_endpoints": [
+        "admin.week_review_get"
+      ],
+      "owning_mp": "MP-UI-WEEKS"
+    },
+    {
+      "path": "api/docs.html",
+      "kind": "page",
+      "extends": [],
+      "includes": [],
+      "sha256": "a78f7fb802fc961c67131ba04e71cf057d879385d45d46ca5fdc520f76b6afbe",
+      "used_by_endpoints": [
+        "api_docs.docs"
+      ],
+      "owning_mp": "MP-UI-API"
+    },
+    {
+      "path": "auth/error.html",
+      "kind": "page",
+      "extends": [
+        "base.html"
+      ],
+      "includes": [],
+      "sha256": "6da82a00bb2184463f6d953290af5fd8089079341088e83c8a4ac297744a7d08",
+      "used_by_endpoints": [
+        "auth.callback",
+        "auth.local_login",
+        "auth.login"
+      ],
+      "owning_mp": "MP-UI-AUTH"
+    },
+    {
+      "path": "auth/local_login.html",
+      "kind": "page",
+      "extends": [
+        "base.html"
+      ],
+      "includes": [
+        "_brand_logo.html"
+      ],
+      "sha256": "5fc5120ad8ceb3db5a954883448de7787b746714ac001caec25fcee654d5f84a",
+      "used_by_endpoints": [
+        "auth.local_login"
+      ],
+      "owning_mp": "MP-UI-AUTH"
+    },
+    {
+      "path": "base.html",
+      "kind": "layout",
+      "extends": [],
+      "includes": [],
+      "sha256": "280c5cdb8ce5fd79cee249a35c187e680dbf02de83a6e11e84ec2a04db953395",
+      "used_by_endpoints": [
+        "admin.preview",
+        "auth.callback",
+        "auth.local_login",
+        "auth.login",
+        "public.legend",
+        "public.print_cafeteria_week",
+        "public.print_patient_week"
+      ],
+      "owning_mp": "MP-UI-PREVIEW"
+    },
+    {
+      "path": "public/base_public.html",
+      "kind": "layout",
+      "extends": [],
+      "includes": [
+        "_brand_logo.html"
+      ],
+      "sha256": "eff27dda444ac25a3d44177268b7b485ab6e4dd75cb3e25c2eab809ee89a7089",
+      "used_by_endpoints": [
+        "admin.screen_template_preview",
+        "public.cafeteria_today",
+        "public.cafeteria_week",
+        "public.cafeteria_week_without_images",
+        "public.patient_today",
+        "public.patient_week",
+        "public.patient_week_without_images",
+        "public.print_cafeteria_week",
+        "public.print_patient_week"
+      ],
+      "owning_mp": "MP-UI-OUTPUT-HUBS"
+    },
+    {
+      "path": "public/cafeteria_today.html",
+      "kind": "page",
+      "extends": [
+        "public/base_public.html"
+      ],
+      "includes": [
+        "_food_symbols.html",
+        "_menu_image.html",
+        "_menu_metadata.html"
+      ],
+      "sha256": "05b63cb2e5d7a5de99f7af88119702918742fb8c2ea9c940f514386e9e15aee9",
+      "used_by_endpoints": [
+        "public.cafeteria_today"
+      ],
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS"
+    },
+    {
+      "path": "public/cafeteria_week.html",
+      "kind": "page",
+      "extends": [
+        "public/base_public.html"
+      ],
+      "includes": [
+        "_food_symbols.html",
+        "_menu_image.html",
+        "_menu_metadata.html"
+      ],
+      "sha256": "f93e6cd3ede18b0be7c39225eb93bf05d79335754258e5e8a02adcbec6f4b5f8",
+      "used_by_endpoints": [
+        "admin.screen_template_preview",
+        "public.cafeteria_week",
+        "public.cafeteria_week_without_images"
+      ],
+      "owning_mp": "MP-UI-OUTPUT-HUBS"
+    },
+    {
+      "path": "public/legend.html",
+      "kind": "page",
+      "extends": [
+        "base.html"
+      ],
+      "includes": [
+        "_brand_logo.html"
+      ],
+      "sha256": "7351bee9af4b924812941c08c4193dd70380a73ee151d7d215ce78fdbede4f3a",
+      "used_by_endpoints": [
+        "public.legend"
+      ],
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS"
+    },
+    {
+      "path": "public/patient_today.html",
+      "kind": "page",
+      "extends": [
+        "public/base_public.html"
+      ],
+      "includes": [
+        "_food_symbols.html",
+        "_menu_image.html",
+        "_menu_metadata.html"
+      ],
+      "sha256": "59f1aa7b99ef10d66a9abdc737f8396977b096690ffcc51629e5ecec64ba774f",
+      "used_by_endpoints": [
+        "public.patient_today"
+      ],
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS"
+    },
+    {
+      "path": "public/patient_week.html",
+      "kind": "page",
+      "extends": [
+        "public/base_public.html"
+      ],
+      "includes": [
+        "_food_symbols.html",
+        "_menu_image.html",
+        "_menu_metadata.html"
+      ],
+      "sha256": "f1eb1c0950de6c8a952978b2224d3e9d775d0956b898f0ffa171d0251b1de6eb",
+      "used_by_endpoints": [
+        "admin.screen_template_preview",
+        "public.patient_week",
+        "public.patient_week_without_images"
+      ],
+      "owning_mp": "MP-UI-OUTPUT-HUBS"
+    },
+    {
+      "path": "public/print_cafeteria_week.html",
+      "kind": "page",
+      "extends": [
+        "base.html"
+      ],
+      "includes": [
+        "_brand_logo.html",
+        "_food_symbols.html",
+        "_menu_metadata.html"
+      ],
+      "sha256": "f6e6e8336a3073c6dec3d1d9d68831dedac61a6d0df5e9896fb3282761fc9e3a",
+      "used_by_endpoints": [
+        "public.print_cafeteria_week"
+      ],
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS"
+    },
+    {
+      "path": "public/print_patient_week.html",
+      "kind": "page",
+      "extends": [
+        "base.html"
+      ],
+      "includes": [
+        "_brand_logo.html",
+        "_food_symbols.html",
+        "_menu_metadata.html"
+      ],
+      "sha256": "6b7e1a386516f5856c1bf5cdb8da0f42f59deabd008858c83d485a08a101a922",
+      "used_by_endpoints": [
+        "public.print_patient_week"
+      ],
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS"
+    },
+    {
+      "path": "public/unavailable.html",
+      "kind": "page",
+      "extends": [
+        "public/base_public.html"
+      ],
+      "includes": [],
+      "sha256": "6407732b31cc594f2123f7f3c61d0838433c5fe024440dc04f39100f53187b98",
+      "used_by_endpoints": [
+        "public.cafeteria_today",
+        "public.cafeteria_week",
+        "public.cafeteria_week_without_images",
+        "public.patient_today",
+        "public.patient_week",
+        "public.patient_week_without_images",
+        "public.print_cafeteria_week",
+        "public.print_patient_week"
+      ],
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS"
+    },
+    {
+      "path": "signage/base_signage.html",
+      "kind": "layout",
+      "extends": [],
+      "includes": [],
+      "sha256": "92dec5c45ce16e445d9a267841810a00cb5f5b93200da5006934b30904b280c9",
+      "used_by_endpoints": [
+        "signage.cafeteria_day",
+        "signage.cafeteria_week",
+        "signage.patient_day",
+        "signage.patient_week"
+      ],
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS"
+    },
+    {
+      "path": "signage/cafeteria_closed.html",
+      "kind": "page",
+      "extends": [
+        "signage/base_signage.html"
+      ],
+      "includes": [
+        "_brand_logo.html"
+      ],
+      "sha256": "9e8ddc72ab65f8b49928f9407508eb31d11dc13c36fedaa04b532d22cf5e4e65",
+      "used_by_endpoints": [
+        "signage.cafeteria_day"
+      ],
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS"
+    },
+    {
+      "path": "signage/cafeteria_day.html",
+      "kind": "page",
+      "extends": [
+        "signage/base_signage.html"
+      ],
+      "includes": [
+        "_brand_logo.html",
+        "_food_symbols.html",
+        "_menu_image.html",
+        "_menu_metadata.html"
+      ],
+      "sha256": "29662b80abd6d10848343a248fd83fd2971b22a4eb7423b42ec7281339e7fc4f",
+      "used_by_endpoints": [
+        "signage.cafeteria_day"
+      ],
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS"
+    },
+    {
+      "path": "signage/cafeteria_week.html",
+      "kind": "page",
+      "extends": [
+        "signage/base_signage.html"
+      ],
+      "includes": [
+        "_brand_logo.html",
+        "_food_symbols.html",
+        "_menu_metadata.html"
+      ],
+      "sha256": "7dc7e2708d09cfc988e4d4d0099ad666686f9f68c0233ca7746303f7b3eaca92",
+      "used_by_endpoints": [
+        "signage.cafeteria_week"
+      ],
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS"
+    },
+    {
+      "path": "signage/patient_day.html",
+      "kind": "page",
+      "extends": [
+        "signage/base_signage.html"
+      ],
+      "includes": [
+        "_brand_logo.html",
+        "_food_symbols.html",
+        "_menu_image.html",
+        "_menu_metadata.html"
+      ],
+      "sha256": "30d5385913a43ed2d9f2379ae58fd8984fa75d8d6268873ed2a273b974b2bca6",
+      "used_by_endpoints": [
+        "signage.patient_day"
+      ],
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS"
+    },
+    {
+      "path": "signage/patient_week.html",
+      "kind": "page",
+      "extends": [
+        "signage/base_signage.html"
+      ],
+      "includes": [
+        "_brand_logo.html",
+        "_food_symbols.html",
+        "_menu_metadata.html"
+      ],
+      "sha256": "084ffb63a2e458c198c32a12d23f47b004d87ec67e69a212060d648b215ed051",
+      "used_by_endpoints": [
+        "signage.patient_week"
+      ],
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS"
+    },
+    {
+      "path": "signage/unavailable.html",
+      "kind": "page",
+      "extends": [
+        "signage/base_signage.html"
+      ],
+      "includes": [
+        "_brand_logo.html"
+      ],
+      "sha256": "f9fd3b2ef9f12898e19839d0700167908f7be470daef0edb30a904d1aaa4263c",
+      "used_by_endpoints": [
+        "signage.cafeteria_day",
+        "signage.cafeteria_week",
+        "signage.patient_day",
+        "signage.patient_week"
+      ],
+      "owning_mp": "MP-UI-SPECIAL-OUTPUTS"
+    }
+  ],
+  "states": [
+    {
+      "id": "login",
+      "routes": [
+        "auth.local_login",
+        "auth.login",
+        "auth.error"
+      ],
+      "owning_mp": "MP-UI-AUTH",
+      "note": "Auth layout without admin sidebar."
+    },
+    {
+      "id": "empty",
+      "routes": [
+        "admin.menu_collection",
+        "admin.recipes_list",
+        "admin.cookbooks_list",
+        "admin.master_data_list",
+        "admin.components_list"
+      ],
+      "owning_mp": "MP-UI-MACROS",
+      "note": "Empty vs no-search-hit vs no-permission must stay distinct."
+    },
+    {
+      "id": "invalid",
+      "routes": [
+        "admin.menu_get",
+        "admin.display_settings",
+        "admin.recipe_edit"
+      ],
+      "owning_mp": "MP-UI-MACROS",
+      "note": "Server-side errors keep values and original form tokens."
+    },
+    {
+      "id": "access_denied",
+      "routes": [
+        "admin.*"
+      ],
+      "owning_mp": "MP-UI-AUTH",
+      "note": "401 unauthenticated, 403 authenticated without capability. Flask default HTML unless a template is registered."
+    },
+    {
+      "id": "dialogs",
+      "routes": [
+        "admin.cafeteria",
+        "admin.patienten"
+      ],
+      "owning_mp": "MP-UI-WEEKS",
+      "note": "week-publish-modal and similar Bootstrap dialogs are inventory rows, not sidebar items."
+    }
+  ],
+  "coverage_blocks": [
+    {
+      "id": "entra_callback_live_tenant",
+      "reason": "Cannot safely synthesize a real Entra tenant callback or production person.",
+      "endpoints": [
+        "auth.callback",
+        "auth.frontchannel_logout"
+      ],
+      "status": "blocked_not_fake_pass"
+    },
+    {
+      "id": "yodeck_physical_player",
+      "reason": "Physical Yodeck/Raspberry player is MP-QA-PLAYER, not this inventory WP.",
+      "endpoints": [
+        "signage.cafeteria_day",
+        "signage.cafeteria_week",
+        "signage.patient_day",
+        "signage.patient_week"
+      ],
+      "status": "out_of_scope_source_and_synthetic_html_only"
+    },
+    {
+      "id": "native_pdf_bytes",
+      "reason": "PDF download bytes and paper layout are separate from HTML screenshots.",
+      "endpoints": [
+        "admin.print_week",
+        "admin.recipe_revision_pdf",
+        "admin.print_template_preview",
+        "admin.recipe_print_template_preview"
+      ],
+      "status": "classified_download_not_visual"
+    },
+    {
+      "id": "schema26_27_undeployed",
+      "reason": "Source is schema 25. Do not invent dish-template or schema27 foundation consumer pages.",
+      "endpoints": [],
+      "status": "not_applicable"
+    }
+  ]
+}
