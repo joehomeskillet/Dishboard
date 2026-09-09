@@ -20,7 +20,6 @@ from test_rendered_ui import PATIENT_FORBIDDEN
 
 EDITOR = f'/admin/patienten/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1'
 VIEWPORTS = ((1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080))
-EVIDENCE = Path(__file__).resolve().parents[2] / '.claude' / 'wp-efc38758f4bd-evidence'
 
 
 def _editor(family: str = 'patienten') -> str:
@@ -376,7 +375,7 @@ def test_recipe_selector_viewports_keyboard_zoom_and_fonts(
     expect(select).to_be_visible()
     box = select.bounding_box()
     assert box is not None and box['height'] >= 44
-    page.get_by_label('Rezept suchen').fill('Sicht')
+    page.get_by_label('Angezeigte Revisionen filtern', exact=True).fill('Sicht')
     expect(_option(page, revision['public_id'])).to_be_attached()
     select.select_option(revision['public_id'])
     select.focus()
@@ -388,10 +387,8 @@ def test_recipe_selector_viewports_keyboard_zoom_and_fonts(
     if width >= 1440:
         _no_overflow(page)
     page.evaluate('document.documentElement.style.zoom = "1"')
-    EVIDENCE.mkdir(parents=True, exist_ok=True)
     shot = tmp_path / f'recipe-select-{width}x{height}.png'
     page.screenshot(path=str(shot), full_page=True)
-    page.screenshot(path=str(EVIDENCE / shot.name), full_page=True)
     cafeteria = _editor('cafeteria')
     page.goto(cafeteria)
     _ready(page)

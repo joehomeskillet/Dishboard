@@ -12,7 +12,7 @@ from contextlib import contextmanager
 import pytest
 from flask import Flask, session
 from sqlalchemy import Engine, event, text
-from werkzeug.exceptions import Forbidden
+from werkzeug.exceptions import Unauthorized
 
 from test_rendered_ui import admin_app, admin_engine  # noqa: F401
 from test_admin_workflow_routes import _login
@@ -110,10 +110,10 @@ def counted(engine: Engine) -> Iterator[list[str]]:
 
 @pytest.fixture
 def reader(admin_app: Flask, admin_engine: Engine):  # noqa: F811
-    _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    _, actor_id = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
     with admin_engine.connect() as connection:
-        actor_id, authz = connection.execute(
-            text('SELECT id,authz_version FROM cafeteria.users ORDER BY id LIMIT 1')).one()
+        authz = connection.execute(
+            text('SELECT authz_version FROM cafeteria.users WHERE id=:id'), {'id': actor_id}).scalar_one()
 
     def call(selected: Sequence[object] = (), **query: object) -> RecipeChoicePage:
         with admin_app.test_request_context():
@@ -306,13 +306,16 @@ def test_selected_lookup_adds_exactly_one_bounded_statement(reader) -> None:
     assert len(page.retained) == 1 and page.retained[0].title == 'Gebundene Referenz'
 
 
-def test_reader_requires_the_existing_draft_read_capability(admin_app: Flask, admin_engine: Engine) -> None:  # noqa: F811
-    _login(admin_app, admin_engine, [])
+def test_reader_rejects_a_user_without_an_active_role(admin_app: Flask, admin_engine: Engine) -> None:  # noqa: F811
+    _, actor_id = _login(admin_app, admin_engine, [])
     with admin_engine.connect() as connection:
-        actor_id, authz = connection.execute(
-            text('SELECT id,authz_version FROM cafeteria.users ORDER BY id LIMIT 1')).one()
+        authz = connection.execute(
+            text('SELECT authz_version FROM cafeteria.users WHERE id=:id'), {'id': actor_id}).scalar_one()
     with admin_app.test_request_context():
         session['user'] = {'id': int(actor_id), 'name': 'Küche'}
         session['authz_version'] = int(authz)
-        with pytest.raises(Forbidden):
-            list_recipe_choices(admin_engine, [], RecipeChoiceQuery())
+        with counted(admin_engine) as statements:
+            with pytest.raises(Unauthorized) as denied:
+                list_recipe_choices(admin_engine, [], RecipeChoiceQuery())
+        assert denied.value.code == 401
+        assert not any('recipe_revisions' in statement.lower() for statement in statements)
