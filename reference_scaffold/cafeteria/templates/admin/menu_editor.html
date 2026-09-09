@@ -24,6 +24,9 @@
 {% macro error_attributes(name, error_id, hint_id=none) %}{% if errors.get(name) %} aria-invalid="true"{% endif %}{% if hint_id or errors.get(name) %} aria-describedby="{{ hint_id or '' }}{{ ' ' if hint_id and errors.get(name) else '' }}{{ error_id if errors.get(name) else '' }}"{% endif %}{% endmacro %}
 {% macro invalid_class(name) %}{% if errors.get(name) %} is-invalid{% endif %}{% endmacro %}
 {% macro field_error(name, error_id) %}{% if errors.get(name) %}<div class="invalid-feedback d-block field-error" id="{{ error_id }}">{{ errors[name] }}</div>{% endif %}{% endmacro %}
+{# Labels come from the frozen revision snapshot only; the mutable recipe head never
+   relabels a historical option, and unreadable snapshots stay bound but unselectable. #}
+{% macro recipe_option(choice, current) %}<option value="{{ choice.revision_public_id }}" data-revision-number="{{ choice.revision_number if choice.revision_number is not none else '' }}" data-content-hash="{{ choice.content_hash_sha256 }}" data-yield="{{ choice.yield_label }}" data-archived="{{ '0' if choice.recipe_active else '1' }}" data-readable="{{ '1' if choice.metadata_available else '0' }}"{% if choice.revision_public_id == current %} selected{% endif %}{% if not choice.selectable and choice.revision_public_id != current %} disabled{% endif %}>{% if choice.metadata_available %}{{ choice.title }} · Revision {{ choice.revision_number }}{% if choice.yield_label %} · {{ choice.yield_label }}{% endif %}{% if not choice.recipe_active %} (archiviert){% endif %}{% elif choice.revision_number is not none %}Revision {{ choice.revision_number }} · Historische Angaben nicht lesbar{% else %}Gebundene Revision bleibt erhalten{% endif %}</option>{% endmacro %}
 {% macro mode_summary(key, title, badge_id) %}
 <summary class="card-header">
   <h2 class="card-title mb-0">{{ title }}</h2>
@@ -136,20 +139,24 @@
                     <input class="form-control{{ invalid_class('component_text') }}" id="component-{{ i }}-text" name="component_text" aria-label="Freitext-Komponente" value="{{ c_text|default('') }}" placeholder="Freitext"{{ error_attributes('component_text', 'err-component-text', 'components-hint') }}>
                   </div>
                   <div class="col-12">
-                    <label class="form-label" for="component-{{ i }}-recipe-search">Rezept suchen</label>
-                    <input class="form-control" id="component-{{ i }}-recipe-search" type="search" data-recipe-search autocomplete="off" aria-controls="component-{{ i }}-recipe" aria-describedby="component-{{ i }}-recipe-hint">
-                    <p class="form-hint" id="component-{{ i }}-recipe-hint">Nur Rezepte dieses Standorts. Anzeige: Titel, Revisionsnummer und Ausbeute. Die leere Auswahl löst eine vorhandene Bindung.</p>
+                    <label class="form-label" for="component-{{ i }}-recipe-search">Angezeigte Revisionen filtern</label>
+                    <input class="form-control" id="component-{{ i }}-recipe-search" type="search" data-recipe-search autocomplete="off" aria-controls="component-{{ i }}-recipe" aria-describedby="component-{{ i }}-recipe-filter-hint">
+                    <p class="form-hint" id="component-{{ i }}-recipe-filter-hint">Filtert nur die unten angezeigte Seite und benötigt JavaScript. Eine Suche über den gesamten Bestand und weitere Seiten sind hier noch nicht angeschlossen.</p>
                     <label class="form-label" for="component-{{ i }}-recipe">Rezeptrevision</label>
                     <select class="form-select{{ invalid_class('recipe_revision_public_id') }}" id="component-{{ i }}-recipe" name="recipe_revision_public_id" aria-label="Rezeptrevision" data-recipe-select data-previous-value="{{ r_id }}"{{ error_attributes('recipe_revision_public_id', 'err-recipe-revision', 'component-' ~ i ~ '-recipe-hint') }}>
                       <option value="">Rezeptbindung lösen</option>
-                      {% for group in recipe_choices %}
-                      <optgroup label="{{ group.title }}{% if not group.active %} (archiviert){% endif %}">
-                        {% for rev in group.revisions %}
-                        <option value="{{ rev.public_id }}" data-revision-number="{{ rev.revision_number if rev.revision_number is not none else '' }}" data-content-hash="{{ rev.content_hash_sha256 }}" data-yield="{{ rev.yield_label }}" data-archived="{{ '1' if (not group.active or rev.archived) else '0' }}" data-readable="{{ '1' if rev.readable else '0' }}"{% if rev.public_id == r_id %} selected{% endif %}{% if (not group.active or rev.archived) and rev.public_id != r_id %} disabled{% endif %}>{% if rev.readable %}{{ group.title }} · Revision {{ rev.revision_number }}{% if rev.yield_label %} · {{ rev.yield_label }}{% endif %}{% if not group.active %} (archiviert){% endif %}{% else %}Gebundene Revision bleibt erhalten{% endif %}</option>
-                        {% endfor %}
+                      {% if recipe_page.choices %}
+                      <optgroup label="Verfügbare Rezeptrevisionen">
+                        {% for choice in recipe_page.choices %}{{ recipe_option(choice, r_id) }}{% endfor %}
                       </optgroup>
-                      {% endfor %}
+                      {% endif %}
+                      {% if recipe_page.retained %}
+                      <optgroup label="Weiterhin gebundene Auswahl">
+                        {% for choice in recipe_page.retained %}{{ recipe_option(choice, r_id) }}{% endfor %}
+                      </optgroup>
+                      {% endif %}
                     </select>
+                    <p class="form-hint" id="component-{{ i }}-recipe-hint">Nur Rezepte dieses Standorts. Titel und Ausbeute stammen unveränderlich aus der jeweiligen Revision, nicht aus dem aktuellen Rezeptkopf. Die leere Auswahl löst eine vorhandene Bindung. Angezeigt: {{ recipe_page.choices|length }} Revisionen{% if recipe_page.has_next %}; weitere Revisionen sind vorhanden, aber über diese Zwischenstufe noch nicht erreichbar{% endif %}. Bereits gebundene Revisionen bleiben in jedem Fall wählbar erhalten.</p>
                   </div>
                   <div class="col-12">
                     <div class="btn-list">

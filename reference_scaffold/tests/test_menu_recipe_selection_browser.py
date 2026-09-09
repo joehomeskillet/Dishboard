@@ -15,6 +15,7 @@ from test_admin_ux_browser import (  # noqa: F401
     _submit_menu, admin_app, admin_engine, browser, live_server, page_context,
 )
 from test_admin_workflow_routes import DAY, _counts, _hidden, _login, _menu_form
+from test_menu_recipe_choices_reader import create_recipe, freeze_revision, update_head
 from test_rendered_ui import PATIENT_FORBIDDEN
 
 EDITOR = f'/admin/patienten/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1'
@@ -29,31 +30,22 @@ def _editor(family: str = 'patienten') -> str:
 def _insert_revision(engine: Engine, actor_id: int, title: str, *, revision_number: int = 1,
                      recipe_id: int | None = None, servings: str = '4',
                      location_id: int | None = None, active: bool = True) -> dict[str, str]:
-    with engine.begin() as connection:
-        if location_id is None:
-            location_id = int(connection.execute(
-                text('SELECT id FROM cafeteria.locations WHERE active ORDER BY id')
-            ).scalar_one())
-        if recipe_id is None:
-            recipe_id = int(connection.execute(text(
-                '''INSERT INTO cafeteria.recipes(location_id,created_by,updated_by,title,servings,
-                   servings_unit_id,source_kind,active)
-                   SELECT :location,:actor,:actor,:title,CAST(:servings AS numeric),id,'manual',:active
-                   FROM cafeteria.measurement_units WHERE code='PORTION' RETURNING id'''
-            ), {'location': location_id, 'actor': actor_id, 'title': title,
-                'servings': servings, 'active': active}).scalar_one())
-        row = connection.execute(text(
-            '''INSERT INTO cafeteria.recipe_revisions(location_id,recipe_id,revision_number,snapshot_json,
-               content_hash_sha256,created_by)
-               VALUES(:location,:recipe,:number,'{}',
-                      encode(pg_catalog.sha256(convert_to('{}','UTF8')),'hex'),:actor)
-               RETURNING public_id::text, content_hash_sha256, revision_number'''
-        ), {'location': location_id, 'recipe': recipe_id, 'number': revision_number,
-            'actor': actor_id}).one()
+    """Freeze a genuine snapshot; a further revision first moves the head it snapshots.
+
+    The immutable label of an existing revision must survive that head change, so the
+    fixture writes real differing snapshot bytes instead of one shared placeholder.
+    """
+    if recipe_id is None:
+        recipe_id = create_recipe(engine, actor_id, title, servings=servings,
+                                  location_id=location_id, active=active)
+    else:
+        update_head(engine, actor_id, recipe_id, title=title, servings=servings)
+    frozen = freeze_revision(engine, actor_id, recipe_id)
+    assert frozen['number'] == str(revision_number)
     return {
-        'public_id': str(row.public_id),
-        'hash': str(row.content_hash_sha256),
-        'number': str(row.revision_number),
+        'public_id': frozen['public_id'],
+        'hash': frozen['hash'],
+        'number': frozen['number'],
         'title': title,
         'recipe_id': str(recipe_id),
         'yield': f'{servings} PORTION',
@@ -111,6 +103,12 @@ def _no_overflow(page: Page) -> None:
 
 def _option(page: Page, revision: str):
     return page.locator(f'select[name="recipe_revision_public_id"] option[value="{revision}"]')
+
+
+def _label(body: str, revision: str) -> str:
+    match = re.search(rf'<option[^>]*value="{re.escape(revision)}"[^>]*>([^<]*)</option>', body)
+    assert match is not None, f'Option für {revision} fehlt.'
+    return match.group(1)
 
 
 @pytest.fixture
@@ -175,6 +173,20 @@ def test_http_roundtrip_hash_legacy_conflict_detach_and_foreign(http_client) -> 
     detached = client.post('/admin/patienten/menu', data=_form(token, '', row_version='1'))
     assert detached.status_code == 303
     assert _bound(engine)['recipe_revision_public_id'] is None
+
+
+def test_http_option_labels_never_follow_a_renamed_recipe_head(http_client) -> None:
+    client, actor_id, engine = http_client
+    first = _insert_revision(engine, actor_id, 'Ursprüngliche Suppe', servings='4')
+    second = _insert_revision(engine, actor_id, 'Umbenannte Suppe', revision_number=2,
+                              recipe_id=int(first['recipe_id']), servings='9')
+    body = client.get(EDITOR).get_data(as_text=True)
+    old_label, new_label = _label(body, first['public_id']), _label(body, second['public_id'])
+    assert 'Ursprüngliche Suppe' in old_label and 'Revision 1' in old_label and '4 PORTION' in old_label
+    assert 'Umbenannte Suppe' not in old_label and '9 PORTION' not in old_label
+    assert 'Umbenannte Suppe' in new_label and 'Revision 2' in new_label and '9 PORTION' in new_label
+    # The page filter must not claim a full-set search before the form intents wire one.
+    assert 'Angezeigte Revisionen filtern' in body and 'Rezept suchen' not in body
 
 
 def test_http_invalid_keeps_signed_values_and_role_denial(http_client, admin_app, admin_engine) -> None:  # noqa: F811

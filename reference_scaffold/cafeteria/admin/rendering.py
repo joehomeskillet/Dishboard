@@ -8,6 +8,7 @@ from werkzeug.datastructures import MultiDict
 
 from ..component_catalog_store import AdminScope
 from ..component_catalog_filters import ComponentFilters
+from ..menu_recipe_choices import EMPTY_RECIPE_PAGE, RecipeChoicePage
 from ..operations_settings import get_area_names, get_schedule, slot_defaults
 from ..workflow import MENU_TYPES, PROFILE_DAYS, PROFILE_MEALS
 
@@ -186,7 +187,7 @@ def render_menu_editor(
     allergens: list[dict[str, Any]], labels: list[dict[str, Any]],
     effects: dict[str, Any], flashes: list[str],
     origin_conflict: str | None = None,
-    recipe_choices: list[dict[str, Any]] | None = None,
+    recipe_page: RecipeChoicePage | None = None,
 ) -> str:
     return render_template(
         'admin/menu_editor.html', profile=profile, family=family, week=week,
@@ -194,7 +195,7 @@ def render_menu_editor(
         form_errors=form_errors, csrf=csrf, review_token=review_token,
         catalog_choices=catalog_choices, allergens=allergens, labels=labels,
         effects=effects, flashes=flashes, origin_conflict=origin_conflict,
-        recipe_choices=recipe_choices or [],
+        recipe_page=recipe_page if recipe_page is not None else EMPTY_RECIPE_PAGE,
         **_template_context(),
     )
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from datetime import date, timedelta
 from html import escape
 from typing import Literal, cast
@@ -18,7 +18,8 @@ from ..component_assignment_store import (
     ComponentAssignmentValidationError,
     resolve_component_effects,
 )
-from .. import recipe_store
+from ..menu_recipe_choices import (
+    RecipeChoicePage, RecipeChoiceQuery, list_recipe_choices, unreadable_choice)
 from ..component_catalog_store import (
     AdminScope, ComponentCatalogConfigurationError, ComponentCatalogValidationError,
     ComponentConflictError, ComponentNotFoundError, StaleComponentError, archive_component,
@@ -269,91 +270,23 @@ def _catalog_choices(
     return choices
 
 
-def _yield_text(payload: object) -> str:
-    if not isinstance(payload, Mapping):
-        return ''
-    servings, unit = payload.get('servings'), payload.get('servings_unit_code')
-    if servings in (None, '') or unit in (None, ''):
-        return ''
-    return f'{servings} {unit}'
+def _recipe_choice_page(selected_ids: Sequence[object]) -> RecipeChoicePage:
+    """Read the bounded immutable choice page for the current bindings.
 
-
-def _revision_yield(snapshot: object) -> str:
-    recipe = snapshot.get('recipe') if isinstance(snapshot, Mapping) else None
-    return _yield_text(recipe)
-
-
-def _recipe_choices(selected_ids: Sequence[object]) -> list[dict[str, object]]:
-    selected = [str(value) for value in selected_ids if value]
-    engine = _db()
+    The editor still renders exactly one page; the query stays at its default until
+    the separate form-intent work package wires search and paging controls. A read
+    failure degrades to an empty page with the retained bindings, which keeps the
+    existing safe error mapping instead of turning a read problem into a 500.
+    """
+    query = RecipeChoiceQuery()
     try:
-        recipes = list(recipe_store.list_recipes(engine, include_archived=False, limit=200))
+        return list_recipe_choices(_db(), selected_ids, query)
     except (RecipeUnavailableError, RecipeValidationError, RecipeNotFoundError):
-        recipes = []
-    groups: list[dict[str, object]] = []
-    seen: set[str] = set()
-    for recipe in recipes:
-        try:
-            revisions = recipe_store.list_revisions(engine, recipe.public_id, limit=50)
-        except (RecipeUnavailableError, RecipeValidationError, RecipeNotFoundError):
-            continue
-        if not revisions:
-            continue
-        payload = recipe.payload if isinstance(recipe.payload, Mapping) else {}
-        title = str(payload.get('title') or 'Rezept ohne Anzeigenamen')
-        groups.append({
-            'recipe_public_id': recipe.public_id,
-            'title': title,
-            'active': bool(recipe.active),
-            'revisions': [{
-                'public_id': row.public_id,
-                'revision_number': row.revision_number,
-                'content_hash_sha256': row.content_hash_sha256,
-                'yield_label': _yield_text(payload),
-                'archived': False,
-                'readable': True,
-            } for row in revisions],
-        })
-        seen.update(row.public_id for row in revisions)
-    for public_id in selected:
-        if public_id in seen:
-            continue
-        try:
-            revision = recipe_store.get_revision(engine, public_id)
-            recipe = recipe_store.get_recipe(engine, revision.recipe_public_id)
-        except (RecipeUnavailableError, RecipeValidationError, RecipeNotFoundError):
-            groups.append({
-                'recipe_public_id': '',
-                'title': 'Gebundene Revision',
-                'active': False,
-                'revisions': [{
-                    'public_id': public_id,
-                    'revision_number': None,
-                    'content_hash_sha256': '',
-                    'yield_label': '',
-                    'archived': True,
-                    'readable': False,
-                }],
-            })
-            seen.add(public_id)
-            continue
-        payload = recipe.payload if isinstance(recipe.payload, Mapping) else {}
-        title = str(payload.get('title') or 'Rezept ohne Anzeigenamen')
-        groups.append({
-            'recipe_public_id': recipe.public_id,
-            'title': title,
-            'active': bool(recipe.active),
-            'revisions': [{
-                'public_id': revision.public_id,
-                'revision_number': revision.revision_number,
-                'content_hash_sha256': revision.content_hash_sha256,
-                'yield_label': _revision_yield(revision.snapshot) or _yield_text(payload),
-                'archived': not bool(recipe.active),
-                'readable': True,
-            }],
-        })
-        seen.add(public_id)
-    return groups
+        retained = tuple(
+            unreadable_choice(str(value)) for value in selected_ids if value
+        )
+        return RecipeChoicePage(query=query, choices=(), retained=retained, has_next=False,
+                                next_offset=None, previous_offset=None)
 
 
 def _display_effects(effects: dict[str, object]) -> dict[str, list[str]]:
@@ -426,7 +359,7 @@ def _render_menu_page(
         selected_revisions = [
             assignment.get('recipe_revision_public_id') or '' for assignment in assignments
         ]
-    recipe_choices = _recipe_choices(selected_revisions)
+    recipe_page = _recipe_choice_page(selected_revisions)
     allergens, labels = _master_choices()
     review_token = None
     effects: dict[str, list[str]] = {'labels': [], 'allergens': [], 'origins': []}
@@ -457,7 +390,7 @@ def _render_menu_page(
         menu_form_values(profile, option) if form_values is None else form_values,
         form_errors or {}, _scoped_csrf(profile, 'menu', scope), review_token,
         catalog_choices, allergens, labels, effects, _flash(),
-        origin_conflict=origin_conflict, recipe_choices=recipe_choices,
+        origin_conflict=origin_conflict, recipe_page=recipe_page,
     )
     response_status = 409 if origin_conflict is not None and status == 200 else status
     return html if response_status == 200 else make_response(html, response_status)
