@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import json
 import subprocess
 import xml.etree.ElementTree as ET
 from dataclasses import replace
@@ -221,10 +222,62 @@ def test_every_recipe_property_has_a_native_consumer(field, value):
         assert min(positions) == RECIPE_MARGINS[value]
 
 
-@pytest.mark.parametrize('version', [None, True, 1.0, '1', 2])
+@pytest.mark.parametrize('version', [None, True, 1.0, '1', 3])
 def test_unsupported_snapshot_versions_fail_closed(version):
     with pytest.raises(RecipeConfigurationError, match='nicht unterstützt'):
         render(revision(schema_version=version))
+
+
+def test_v2_without_original_canonical_evidence_fails_closed():
+    with pytest.raises(RecipeConfigurationError):
+        render(revision(schema_version=2))
+
+
+def prepared_revision():
+    """Self-consistent offline DTO; real PostgreSQL canonical equivalence has separate DB tests."""
+    def recorded(public_id, recipe_id, body, children=()):
+        raw = json.dumps(body, ensure_ascii=False)
+        return RecipeRevisionDTO(public_id, recipe_id, 1, hashlib.sha256(raw.encode()).hexdigest(),
+            frozen_json(body), datetime(2026, 9, 9, tzinfo=timezone.utc), 1, children, raw)
+    units = [{'public_id': f'00000000-0000-0000-0000-{number:012d}', 'code': code,
+              'display_name': code, 'dimension': dimension, 'base_factor': factor}
+             for number, (code, dimension, factor) in enumerate(
+                 [('G', 'mass', '1'), ('KG', 'mass', '1000'), ('PORTION', 'contextual', None)], 10)]
+    calculation = {'precision': 50, 'rounding': 'ROUND_HALF_UP', 'quantity_places': 6,
+                   'bases': {'mass': 'G', 'volume': 'ML', 'count': 'STK'}, 'contextual': 'same-code-only'}
+    child_recipe = recipe()
+    child_recipe.update(title='Erfasste Gemüsebasis', servings='3', servings_unit_code='KG', images=[])
+    # A captured v1 child inside a v2 closure is complete under SQL27: linked and quantified.
+    child_recipe['ingredients'] = [dict(child_recipe['ingredients'][0], quantity='1', unit_code='G',
+                                        food_public_id='00000000-0000-0000-0000-000000000006')]
+    child = recorded('00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000004',
+        {'schema_version': 1, 'recipe': child_recipe, 'calculation': calculation, 'units': units, 'foods': []})
+    pin = {'recipe_public_id': child.recipe_public_id, 'revision_public_id': child.public_id,
+           'content_hash_sha256': child.content_hash_sha256}
+    food_id = '00000000-0000-0000-0000-000000000005'
+    parent = recipe()
+    parent.update(title='Teller mit Zubereitung', servings='3')
+    parent['ingredients'] = [dict(parent['ingredients'][0], ingredient_text='Gemüsemischung',
+        food_public_id=food_id, quantity='1', unit_code='G')] * 2
+    # JSON-compatible source body is retained separately from the immutable DTO.
+    child_body = json.loads(child.canonical_snapshot_text)
+    return recorded('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002',
+        {'schema_version': 2, 'recipe': parent, 'calculation': calculation, 'units': units,
+         'foods': [{'public_id': food_id, 'name': 'Gemüsemischung', 'density_g_per_ml': None,
+                    'piece_weight_g': None, 'prepared_recipe': pin, 'base_unit': units[0],
+                    'storage_locations': []}],
+         'prepared_revisions': [{**pin, 'snapshot': child_body}]}, (child,))
+
+
+def test_v2_repeated_preparation_preserves_each_amount_and_prints_full_steps_once():
+    selected = prepared_revision()
+    data = render(selected, target='2')
+    body = text(data)
+    assert body.count('Erfasste Gemüsebasis') == 2
+    assert body.count('Gemüse waschen.') == 2  # Parent plus first full child; repeated use points back.
+    assert 'Arbeitsschritte, Bilder und Herkunft stehen bei der ersten Ausgabe' in body
+    assert '0.00022222222222222222222222222222222222222222222222222 G' in body
+    assert data == render(selected, target='2')
 
 
 @pytest.mark.parametrize('field,value', [('title', '🥜'), ('description', 'Text\x00'),
