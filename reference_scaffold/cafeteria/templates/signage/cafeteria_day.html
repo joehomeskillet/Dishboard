@@ -3,6 +3,7 @@
 {% from '_food_symbols.html' import legend %}
 {% block title %}{{ area_name ~ ' · Tagesplan' if area_name else 'Cafeteria-Tagesplan' }}{% endblock %}
 {% block main_label %}Cafeteria-Tagesplan{% endblock %}
+{% block shell_class %}signage-cafe-day{% endblock %}
 {% block channel %}
 <div class="signage-brand">
   {{ brand_logo(brand, 'signage-logo') }}
