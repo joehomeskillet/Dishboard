@@ -4,6 +4,7 @@ Read-only source imports. Does not start a database or weaken auth.
 """
 from __future__ import annotations
 
+import argparse
 import hashlib
 import inspect
 import json
@@ -551,11 +552,22 @@ COVERAGE_BLOCKS = [
 ]
 
 
-def main() -> None:
+def write_matrix(target: Path | None = None) -> Path:
+    """Write the matrix. Callers may redirect it so a regression run keeps the baseline."""
+    destination = Path(target) if target is not None else MATRIX_PATH
     payload = build()
-    MATRIX_PATH.parent.mkdir(parents=True, exist_ok=True)
-    MATRIX_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
-    print(f'wrote {MATRIX_PATH} routes={payload["meta"]["route_count"]} templates={payload["meta"]["template_count"]}')
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+    print(f'wrote {destination} routes={payload["meta"]["route_count"]} '
+          f'templates={payload["meta"]["template_count"]}')
+    return destination
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--out', type=Path, default=None,
+                        help='write here instead of the versioned matrix')
+    write_matrix(parser.parse_args(argv).out)
 
 
 if __name__ == '__main__':

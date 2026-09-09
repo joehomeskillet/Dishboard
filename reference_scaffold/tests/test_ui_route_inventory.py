@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
 import pytest
-from flask import Flask
+from flask import Flask, session
 
 import cafeteria
 from cafeteria import db as cafeteria_db
@@ -103,13 +104,62 @@ def test_roles_and_navigation_are_documented() -> None:
         assert nav['conditionals'][key]['visible_for']
 
 
+def _recipe_revision(application: Flask, database_engine, user_id: int) -> tuple[str, str]:  # noqa: F811
+    """Create one same-site recipe and freeze an immutable v1 revision, via the real store."""
+    from cafeteria import recipe_store
+    from cafeteria.auth.local_users import ActorExpectation
+    from cafeteria.master_data_types import ObjectExpectation
+
+    with database_engine.connect() as connection:
+        location_id = connection.execute(
+            text('SELECT id FROM cafeteria.locations WHERE active ORDER BY id')
+        ).scalar_one()
+        authz_version = connection.execute(
+            text('SELECT authz_version FROM cafeteria.users WHERE id=:id'), {'id': user_id}
+        ).scalar_one()
+    actor = ActorExpectation(user_id, int(authz_version))
+    payload = {
+        'title': 'Kartoffelstock mit Rüebli',
+        'description': 'Synthetische Testrezeptur ohne Produktivdaten.',
+        'servings': '4', 'servings_unit_code': 'PORTION',
+        'prep_minutes': 15, 'cook_minutes': 25,
+        'source': {'kind': 'manual', 'reference': None, 'url': None,
+                   'note': None, 'fetched_at': None},
+        'ingredients': [{
+            'line_public_id': None, 'group_label': None, 'ingredient_text': 'Kartoffeln',
+            'food_public_id': None, 'quantity': '800', 'unit_code': 'G', 'note': None,
+            'source_kind': 'manual', 'source_reference': None, 'fetched_at': None,
+        }],
+        'steps': [{'instruction': 'Kartoffeln schälen und weich kochen.',
+                   'duration_minutes': 25, 'image_sha256': None}],
+        'tag_public_ids': [], 'images': [],
+    }
+    with application.test_request_context():
+        session['user'] = {'id': user_id}
+        session['authz_version'] = int(authz_version)
+        recipe = recipe_store.create_recipe(
+            database_engine, actor, payload, expected_location_id=int(location_id))
+        revision = recipe_store.freeze_revision(
+            database_engine, actor,
+            ObjectExpectation(recipe.public_id, recipe.row_version),
+            expected_location_id=int(location_id),
+        )
+    return recipe.public_id, revision.public_id
+
+
 def test_capture_before_screenshots_and_manifest(monkeypatch, tmp_path, database_engine, browser):  # noqa: F811
     sys.path.insert(0, str(EVIDENCE))
-    from capture import run_capture  # noqa: E402
+    from capture import Outputs, run_capture  # noqa: E402
 
     from cafeteria.component_catalog_store import create_component
     from test_admin_workflow_routes import _scope
 
+    matrix_before = MATRIX_PATH.read_bytes()
+    manifest_before = MANIFEST_PATH.read_bytes()
+    screenshots_before = {
+        path.name: path.stat().st_mtime_ns
+        for path in sorted((EVIDENCE / 'screenshots').glob('*.png'))
+    }
     application = _factory(monkeypatch, tmp_path, database_engine)
     _save_reviewed(database_engine, 'staff_guest', _staff_values())
     _save_reviewed(database_engine, 'patient', _patient_values())
@@ -142,11 +192,22 @@ def test_capture_before_screenshots_and_manifest(monkeypatch, tmp_path, database
     cookie = client.get_cookie(application.config['SESSION_COOKIE_NAME'])
     editor_cookie = editor_client.get_cookie(application.config['SESSION_COOKIE_NAME'])
     detail = f"/admin/cafeteria/komponenten/{component['public_id']}"
+    recipe_id, revision_id = _recipe_revision(application, database_engine, user_id)
+    revision_detail = f'/admin/rezepte/{recipe_id}/revisionen/{revision_id}'
+    # The saved week 2026-08-31 is the real prior week of 2026-09-07, whose target
+    # week does not exist yet, so this renders the actual copy form instead of a 404.
+    copy_success = '/admin/cafeteria/copy?week=2026-09-07'
+    # An ordinary regression run writes to a throwaway path. Only an explicit capture
+    # invocation may build a separate new evidence set; neither touches the baseline.
+    explicit = os.environ.get('UI_CAPTURE_OUT')
+    outputs = Outputs.into(Path(explicit) if explicit else tmp_path / 'capture')
     manifest = run_capture(
         application, browser, cookie, editor_cookie, snapshots_ok=True,
-        extra_admin_paths=[detail],
+        extra_admin_paths=[detail, revision_detail, copy_success],
+        reference_paths=[revision_detail],
+        out=outputs,
     )
-    assert MANIFEST_PATH.is_file()
+    assert outputs.manifest_paths[0].is_file()
     rendered = [row for row in manifest['captures'] if row.get('rendered')]
     assert len(rendered) >= 40
     viewports = {(row['viewport']['width'], row['viewport']['height']) for row in rendered}
@@ -162,6 +223,28 @@ def test_capture_before_screenshots_and_manifest(monkeypatch, tmp_path, database
     assert any(row['path'].startswith('/admin/cafeteria/komponenten/') for row in rendered)
     assert any(row['suffix'] == 'anonymous-401' for row in rendered)
     assert any(row['suffix'] == 'editor-403' for row in rendered)
+
+    detail_rows = [row for row in rendered if row['path'] == revision_detail]
+    assert {(row['viewport']['width'], row['viewport']['height']) for row in detail_rows} == {
+        (1440, 900), (390, 844), (1024, 768), (768, 1024), (1920, 1080)
+    }
+    assert all(row['status'] == 200 for row in detail_rows)
+    copy_rows = [row for row in rendered if row['path'] == copy_success]
+    assert {(row['viewport']['width'], row['viewport']['height']) for row in copy_rows} == {
+        (1440, 900), (390, 844)
+    }
+    assert all(row['status'] == 200 for row in copy_rows)
+    error_copy = [row for row in manifest['captures'] if row['suffix'] == 'missing-week-404']
+    assert error_copy and all(row['status'] == 404 for row in error_copy)
+    assert all('readiness' in row for row in rendered)
+    assert all(row['readiness']['error'] is None for row in rendered)
+
     with application.test_client() as probe:
         assert probe.get('/admin/cafeteria').status_code == 401
-    assert MANIFEST_PATH.read_text(encoding='utf-8')
+
+    assert MATRIX_PATH.read_bytes() == matrix_before
+    assert MANIFEST_PATH.read_bytes() == manifest_before
+    assert {
+        path.name: path.stat().st_mtime_ns
+        for path in sorted((EVIDENCE / 'screenshots').glob('*.png'))
+    } == screenshots_before

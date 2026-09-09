@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import threading
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -15,6 +16,7 @@ EVIDENCE = Path(__file__).resolve().parent
 SCREEN_DIR = EVIDENCE / 'screenshots'
 ROOT = EVIDENCE.parents[2]
 MANIFEST_PATH = ROOT / 'docs' / 'superpowers' / 'backlog-0909' / 'ui-before-manifest.json'
+READY_TIMEOUT_MS = 15000
 PRIMARY = ((1440, 900), (390, 844))
 REFERENCE_EXTRA = ((1024, 768), (768, 1024), (1920, 1080))
 REFERENCE_PATHS = {
@@ -49,6 +51,20 @@ ADMIN_PATHS = [
 ]
 
 
+@dataclass(frozen=True)
+class Outputs:
+    """Where one capture run writes. Defaults keep the versioned proposed baseline."""
+
+    screen_dir: Path = SCREEN_DIR
+    manifest_paths: tuple[Path, ...] = (MANIFEST_PATH, EVIDENCE / 'ui-before-manifest.json')
+
+    @classmethod
+    def into(cls, directory: Path) -> 'Outputs':
+        """Send a run to a throwaway directory; versioned baselines stay untouched."""
+        directory = Path(directory)
+        return cls(directory / 'screenshots', (directory / 'ui-before-manifest.json',))
+
+
 def _slug(path: str, width: int, height: int, suffix: str = '') -> str:
     safe = path.strip('/').replace('/', '_') or 'root'
     extra = f'-{suffix}' if suffix else ''
@@ -57,6 +73,13 @@ def _slug(path: str, width: int, height: int, suffix: str = '') -> str:
 
 def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _relative(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
 
 
 def start_server(app: Flask) -> tuple[object, str]:
@@ -85,7 +108,91 @@ def context_for(browser: Browser, live: str, cookie):
     return context
 
 
-def shot(page, path: str, width: int, height: int, suffix: str = '') -> dict:
+def await_ready(page, timeout_ms: int = READY_TIMEOUT_MS) -> dict:
+    """Wait for real readiness instead of a fixed delay. Never silently give up."""
+    readiness = {'load': False, 'lazy_sweep': False, 'fonts': False, 'images': False,
+                 'timeout_ms': timeout_ms, 'pending_images': [], 'error': None}
+    try:
+        page.wait_for_load_state('load', timeout=timeout_ms)
+        readiness['load'] = True
+        # A full-page screenshot shows content below the fold, so lazy images must be
+        # brought into view first; otherwise they stay blank in the baseline.
+        page.evaluate(
+            '''async () => {
+              const step = Math.max(window.innerHeight, 200);
+              const total = document.documentElement.scrollHeight;
+              for (let y = 0; y <= total; y += step) {
+                window.scrollTo(0, y);
+                await new Promise(resolve => requestAnimationFrame(resolve));
+              }
+              window.scrollTo(0, 0);
+              await new Promise(resolve => requestAnimationFrame(resolve));
+            }'''
+        )
+        readiness['lazy_sweep'] = True
+        page.wait_for_function('() => document.fonts && document.fonts.status === "loaded"',
+                               timeout=timeout_ms)
+        readiness['fonts'] = True
+        page.wait_for_function(
+            '''() => Array.from(document.images)
+                 .every(img => img.complete && (img.naturalWidth > 0 || !img.currentSrc))''',
+            timeout=timeout_ms,
+        )
+        readiness['images'] = True
+    except Exception as error:  # noqa: BLE001 — record the bounded failure, never fake ready
+        readiness['error'] = f'{type(error).__name__}: {error}'
+        try:
+            readiness['pending_images'] = page.evaluate(
+                '''() => Array.from(document.images)
+                     .filter(img => !img.complete)
+                     .map(img => img.currentSrc || img.src).slice(0, 10)'''
+            )
+        except Exception as probe_error:  # noqa: BLE001
+            readiness['pending_images'] = [f'probe failed: {probe_error}']
+    return readiness
+
+
+def rendered_fonts(page) -> dict:
+    """Declared family plus the actually rendered platform font where CDP exposes it."""
+    declared = page.evaluate(
+        '''() => {
+          const body = getComputedStyle(document.body).fontFamily;
+          const h1 = document.querySelector('h1');
+          return {body, h1: h1 ? getComputedStyle(h1).fontFamily : null};
+        }'''
+    )
+    result = {**declared, 'platform': None, 'platform_source': 'unavailable'}
+    try:
+        session = page.context.new_cdp_session(page)
+    except Exception as error:  # noqa: BLE001 — non-Chromium or CDP disabled
+        result['platform_source'] = f'unavailable: {type(error).__name__}'
+        return result
+    try:
+        session.send('DOM.enable')
+        session.send('CSS.enable')
+        root = session.send('DOM.getDocument')['root']['nodeId']
+        node = session.send('DOM.querySelector', {'nodeId': root, 'selector': 'h1'})['nodeId']
+        if not node:
+            node = session.send('DOM.querySelector', {'nodeId': root, 'selector': 'body'})['nodeId']
+        fonts = session.send('CSS.getPlatformFontsForNode', {'nodeId': node})['fonts']
+        result['platform'] = [
+            {'family': entry.get('familyName'), 'glyphs': entry.get('glyphCount')}
+            for entry in fonts
+        ]
+        result['platform_source'] = 'cdp:CSS.getPlatformFontsForNode'
+    except Exception as error:  # noqa: BLE001
+        result['platform_source'] = f'unavailable: {type(error).__name__}: {error}'
+    finally:
+        try:
+            session.detach()
+        except Exception:  # noqa: BLE001 — detach failure must not hide the capture
+            pass
+    return result
+
+
+def shot(page, path: str, width: int, height: int, suffix: str = '',
+         out: Outputs | None = None, after_load=None) -> dict:
+    out = out or Outputs()
     page.set_viewport_size({'width': width, 'height': height})
     console: list[str] = []
     failed: list[str] = []
@@ -105,24 +212,22 @@ def shot(page, path: str, width: int, height: int, suffix: str = '') -> dict:
     page.on('requestfailed', on_requestfailed)
     try:
         response = page.goto(path, wait_until='domcontentloaded', timeout=30000)
+        readiness = await_ready(page)
+        if after_load is not None:
+            after_load(page)
+        overflow = page.evaluate(
+            'document.documentElement.scrollWidth > document.documentElement.clientWidth + 1'
+        )
+        fonts = rendered_fonts(page)
+        out.screen_dir.mkdir(parents=True, exist_ok=True)
+        target = out.screen_dir / _slug(path, width, height, suffix)
+        page.screenshot(path=str(target), full_page=True)
     finally:
+        # Listeners stay attached through readiness, measurement and screenshot,
+        # so a failure after DOMContentLoaded is still recorded.
         page.remove_listener('console', on_console)
         page.remove_listener('pageerror', on_pageerror)
         page.remove_listener('requestfailed', on_requestfailed)
-    page.wait_for_timeout(250)
-    overflow = page.evaluate(
-        'document.documentElement.scrollWidth > document.documentElement.clientWidth + 1'
-    )
-    fonts = page.evaluate(
-        '''() => {
-          const body = getComputedStyle(document.body).fontFamily;
-          const h1 = document.querySelector('h1');
-          return {body, h1: h1 ? getComputedStyle(h1).fontFamily : null};
-        }'''
-    )
-    SCREEN_DIR.mkdir(parents=True, exist_ok=True)
-    out = SCREEN_DIR / _slug(path, width, height, suffix)
-    page.screenshot(path=str(out), full_page=True)
     status = response.status if response is not None else None
     return {
         'path': path,
@@ -130,27 +235,58 @@ def shot(page, path: str, width: int, height: int, suffix: str = '') -> dict:
         'suffix': suffix,
         'status': status,
         'final_url': page.url,
-        'screenshot': str(out.relative_to(ROOT)),
-        'screenshot_sha256': _sha(out),
+        'screenshot': _relative(target),
+        'screenshot_sha256': _sha(target),
         'overflow_horizontal': bool(overflow),
         'console': console[:20],
         'request_failures': failed[:20],
         'computed_fonts': fonts,
-        'rendered': True,
+        'readiness': readiness,
+        'rendered': readiness['error'] is None,
         'source_discovered_only': False,
     }
 
 
-def capture_paths(page, paths: list[str], extra_for: set[str] | None = None) -> list[dict]:
+def capture_paths(page, paths: list[str], extra_for: set[str] | None = None,
+                  out: Outputs | None = None) -> list[dict]:
     rows = []
     extra_for = extra_for or set()
     for path in paths:
         for width, height in PRIMARY:
-            rows.append(shot(page, path, width, height))
+            rows.append(shot(page, path, width, height, out=out))
         if path in extra_for or path in REFERENCE_PATHS:
             for width, height in REFERENCE_EXTRA:
-                rows.append(shot(page, path, width, height, suffix='reference'))
+                rows.append(shot(page, path, width, height, suffix='reference', out=out))
     return rows
+
+
+def capture_publish_dialog(page, out: Outputs | None = None) -> tuple[list[dict], list[dict]]:
+    """Record the publish modal with the ordinary recorder; never invent a success row."""
+
+    def open_modal(current) -> None:
+        trigger = current.locator('[data-bs-target="#week-publish-modal"]')
+        if not trigger.count():
+            raise LookupError('publish trigger absent')
+        if not trigger.first.is_enabled():
+            raise LookupError('publish trigger disabled')
+        trigger.first.click()
+        modal = current.locator('#week-publish-modal')
+        modal.wait_for(state='visible', timeout=5000)
+        current.wait_for_function(
+            '''() => {
+              const modal = document.querySelector('#week-publish-modal');
+              return Boolean(modal) && modal.classList.contains('show');
+            }''',
+            timeout=5000,
+        )
+
+    try:
+        row = shot(page, '/admin/cafeteria', 1440, 900, suffix='dialog-publish',
+                   out=out, after_load=open_modal)
+    except Exception as error:  # noqa: BLE001 — blocked record, never a fake pass
+        return [], [{'id': 'publish_dialog', 'error': f'{type(error).__name__}: {error}',
+                     'status': 'blocked_modal_not_open'}]
+    return [row], []
 
 
 def run_capture(
@@ -160,8 +296,11 @@ def run_capture(
     editor_cookie,
     snapshots_ok: bool,
     extra_admin_paths: list[str] | None = None,
+    out: Outputs | None = None,
+    reference_paths: list[str] | None = None,
 ) -> dict:
-    SCREEN_DIR.mkdir(parents=True, exist_ok=True)
+    out = out or Outputs()
+    out.screen_dir.mkdir(parents=True, exist_ok=True)
     server, live = start_server(app)
     captures: list[dict] = []
     blocks: list[dict] = []
@@ -169,61 +308,45 @@ def run_capture(
         with context_for(browser, live, None) as anonymous:
             page = anonymous.new_page()
             page.emulate_media(reduced_motion='reduce')
-            captures.extend(capture_paths(page, PUBLIC_PATHS + SIGNAGE_PATHS + ['/auth/local']))
-            captures.append(shot(page, '/admin/cafeteria', 1440, 900, suffix='anonymous-401'))
+            captures.extend(capture_paths(
+                page, PUBLIC_PATHS + SIGNAGE_PATHS + ['/auth/local'], out=out))
+            captures.append(shot(page, '/admin/cafeteria', 1440, 900, suffix='anonymous-401', out=out))
             try:
-                captures.append(shot(page, '/auth/login', 1440, 900, suffix='auth-login'))
+                captures.append(shot(page, '/auth/login', 1440, 900, suffix='auth-login', out=out))
             except Exception as error:  # noqa: BLE001 — record, do not fake pass
                 blocks.append({'id': 'auth_login_render', 'error': str(error), 'status': 'blocked'})
         with context_for(browser, live, login_cookie) as admin:
             page = admin.new_page()
             page.emulate_media(reduced_motion='reduce')
             admin_paths = ADMIN_PATHS + list(extra_admin_paths or [])
-            extra = set(REFERENCE_PATHS) | set(extra_admin_paths or [])
-            captures.extend(capture_paths(page, admin_paths, extra_for=extra))
+            extra = set(REFERENCE_PATHS) | set(reference_paths or [])
+            captures.extend(capture_paths(page, admin_paths, extra_for=extra, out=out))
             menu = '/admin/cafeteria/menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1'
-            captures.extend(capture_paths(page, [menu], extra_for={menu}))
-            captures.append(shot(page, '/admin/cafeteria/copy', 1440, 900, suffix='missing-week-404'))
-            captures.append(shot(page, '/admin/cafeteria/wochen/pruefung', 1440, 900, suffix='missing-week-400'))
-            try:
-                page.goto('/admin/cafeteria')
-                page.set_viewport_size({'width': 1440, 'height': 900})
-                trigger = page.locator('[data-bs-target="#week-publish-modal"]')
-                if trigger.count() and trigger.first.is_enabled():
-                    trigger.first.click()
-                    page.wait_for_timeout(200)
-                    out = SCREEN_DIR / 'admin_cafeteria-dialog-publish-1440x900.png'
-                    page.screenshot(path=str(out), full_page=True)
-                    captures.append({
-                        'path': '/admin/cafeteria',
-                        'viewport': {'width': 1440, 'height': 900},
-                        'suffix': 'dialog-publish',
-                        'status': 200,
-                        'final_url': page.url,
-                        'screenshot': str(out.relative_to(ROOT)),
-                        'screenshot_sha256': _sha(out),
-                        'overflow_horizontal': False,
-                        'console': [],
-                        'request_failures': [],
-                        'rendered': True,
-                        'source_discovered_only': False,
-                    })
-            except Exception as error:  # noqa: BLE001
-                blocks.append({'id': 'publish_dialog', 'error': str(error), 'status': 'blocked'})
+            captures.extend(capture_paths(page, [menu], extra_for={menu}, out=out))
+            captures.append(shot(page, '/admin/cafeteria/copy', 1440, 900,
+                                 suffix='missing-week-404', out=out))
+            captures.append(shot(page, '/admin/cafeteria/wochen/pruefung', 1440, 900,
+                                 suffix='missing-week-400', out=out))
+            dialog_rows, dialog_blocks = capture_publish_dialog(page, out=out)
+            captures.extend(dialog_rows)
+            blocks.extend(dialog_blocks)
         with context_for(browser, live, editor_cookie) as editor:
             page = editor.new_page()
             page.emulate_media(reduced_motion='reduce')
-            captures.append(shot(page, '/admin/cafeteria', 1440, 900, suffix='editor-nav'))
-            captures.append(shot(page, '/admin/benutzer', 1440, 900, suffix='editor-403'))
-            captures.append(shot(page, '/admin/design/darstellung', 1440, 900, suffix='editor-settings'))
+            captures.append(shot(page, '/admin/cafeteria', 1440, 900, suffix='editor-nav', out=out))
+            captures.append(shot(page, '/admin/benutzer', 1440, 900, suffix='editor-403', out=out))
+            captures.append(shot(page, '/admin/design/darstellung', 1440, 900,
+                                 suffix='editor-settings', out=out))
         previous_today = app.config.get('DEMO_TODAY')
         app.config['DEMO_TODAY'] = '2026-09-06'
         try:
             with context_for(browser, live, None) as closed:
                 page = closed.new_page()
                 page.emulate_media(reduced_motion='reduce')
-                captures.append(shot(page, '/signage/cafeteria/tag', 1920, 1080, suffix='closed-sunday'))
-                captures.append(shot(page, '/signage/cafeteria/tag', 390, 844, suffix='closed-sunday'))
+                captures.append(shot(page, '/signage/cafeteria/tag', 1920, 1080,
+                                     suffix='closed-sunday', out=out))
+                captures.append(shot(page, '/signage/cafeteria/tag', 390, 844,
+                                     suffix='closed-sunday', out=out))
         finally:
             app.config['DEMO_TODAY'] = previous_today
     finally:
@@ -283,10 +406,11 @@ def run_capture(
             {
                 'id': 'recipe_revision_detail_entity',
                 'reason': (
-                    'Seed has no recipes. Revision-detail HTML needs a persisted recipe revision; '
-                    'list and new-form are captured. Not a fake pass for the detail row.'
+                    'Seed has no recipes, so the caller creates a synthetic same-site recipe and '
+                    'freezes one immutable v1 revision through the existing recipe store before '
+                    'the run. The detail row is captured whenever that entity is supplied.'
                 ),
-                'status': 'blocked_pending_synthetic_entity',
+                'status': 'resolved_by_synthetic_entity',
             },
             {
                 'id': 'native_pdf_bytes',
@@ -296,9 +420,8 @@ def run_capture(
         ],
         'visual_inspection': str((EVIDENCE / 'visual-inspection.md').relative_to(ROOT)),
     }
-    MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
-    MANIFEST_PATH.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
-    (EVIDENCE / 'ui-before-manifest.json').write_text(
-        json.dumps(manifest, indent=2, ensure_ascii=False) + '\n', encoding='utf-8'
-    )
+    rendered_manifest = json.dumps(manifest, indent=2, ensure_ascii=False) + '\n'
+    for target in out.manifest_paths:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(rendered_manifest, encoding='utf-8')
     return manifest
