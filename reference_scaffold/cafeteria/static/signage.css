@@ -87,13 +87,17 @@ p{text-wrap:pretty}
 @media (min-width: 3000px){.patient-week-day>header strong{font-size:34px}.patient-week-day>header span{font-size:20px}.patient-week-cell .meal-name{font-size:25px}.patient-week-option small{font-size:18px}.patient-week-option strong{font-size:26px}.patient-week-option span{font-size:18px}}
 
 /* Variante A: Tabler cards keep complete serving illustrations above the menu. */
+/* This day view can grow at zoom/small widths instead of clipping declarations. */
+html:has(.signage-cafe-day),.signage-body:has(.signage-cafe-day){width:auto;height:auto;min-height:100%;overflow:visible}
+.signage-cafe-day{width:100%;height:auto;min-height:100vh;grid-template-rows:auto minmax(min-content,1fr) auto;overflow:visible}
+.signage-cafe-day .signage-main{min-height:min-content;overflow:visible}
 .hero-food-grid{flex:1;min-height:0;margin:0;flex-wrap:nowrap;--tblr-gutter-x:clamp(24px,1.6vw,62px)}
-.hero-food-grid>.col-6{min-height:0;margin-top:0}
-.hero-food.card{display:flex;flex:1;flex-direction:column;border:0;border-radius:var(--sh-radius-lg);background:var(--sh-panel);box-shadow:var(--sh-shadow-soft)}
+.hero-food-grid>.col-6{min-height:min-content;margin-top:0}
+.hero-food.card{display:flex;flex:1;flex-direction:column;min-height:min-content;border:0;border-radius:var(--sh-radius-lg);background:var(--sh-panel);box-shadow:var(--sh-shadow-soft)}
 .hero-food .card-status-top,.hero-food-closed .card-status-top{height:.55vh}
 .hero-food .bg-primary,.hero-food-closed .bg-primary{background:var(--sh-primary)!important}
 .hero-food .bg-green{background:var(--sh-green)!important}
-.hero-food-media{flex:1 1 30vh;min-height:16vh;max-height:34vh;background:var(--sh-panel-soft)}
+.hero-food-media{flex:1 1 30vh;min-height:16vh;background:var(--sh-panel-soft)}
 .hero-food .menu-photo{position:relative;max-width:none;height:100%;margin:0}
 .hero-food .menu-photo img{width:100%;height:100%;aspect-ratio:4/3;object-fit:contain}
 .hero-food .menu-photo figcaption{position:absolute;right:.7vw;bottom:.5vh;margin:0;padding:.2vh .4vw;font-size:clamp(12px,.72vw,28px);color:var(--sh-ink-muted);background:var(--sh-panel)}
@@ -116,6 +120,12 @@ p{text-wrap:pretty}
 .hero-food-closed .card-body{padding:8vh 5vw}
 .hero-food-closed h1,.hero-food-closed h2{margin:2vh 0;font-size:clamp(60px,5vw,192px);font-weight:600;line-height:1.1}
 .hero-food-closed p{margin:0;color:var(--sh-ink-muted);font-size:clamp(28px,1.8vw,72px);line-height:1.3}
+@media (max-width:767.98px){
+  .signage-cafe-day .signage-top{flex-wrap:wrap}
+  .signage-cafe-day .signage-datetime{text-align:left}
+  .hero-food-grid{flex-wrap:wrap;row-gap:1.5rem}
+  .hero-food-grid>.col-6{width:100%}
+}
 
 /* Variante C: Cafeteria week — five equal Tabler day cards, complete menu declarations. */
 .signage-cafe-week{gap:.5vh;padding:1vh 2.8vw}

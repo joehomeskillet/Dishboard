@@ -17,12 +17,12 @@
         <div class="text-secondary mt-1">Mitarbeitende und externe Gäste sehen ausschliesslich das Cafeteria-Mittagessen von {{ weekday_range if weekday_range else 'Montag bis Freitag' }}.</div>
       </div>
       <div class="col-12 col-md-auto d-print-none">
-        <div class="btn-list">
+        <div class="btn-list align-items-center">
           <a href="{{ url_for('public.cafeteria_today') }}" class="btn btn-primary">Tagesansicht</a>
+          {% if snapshot %}<span class="badge bg-primary-lt date-chip">Kalenderwoche {{ snapshot.week_start|iso_week }}</span>{% endif %}
         </div>
       </div>
     </div>
-    {% if snapshot %}<div class="mt-3"><span class="badge bg-primary-lt date-chip">Kalenderwoche {{ snapshot.week_start|iso_week }}</span></div>{% endif %}
   </div>
 </div>
 {% endblock %}
@@ -30,9 +30,9 @@
 {% set declarations = namespace(options=[]) %}
 {% if snapshot %}
 {% set has_today = today in open_days|map(attribute='date')|list %}
-<nav class="nav nav-pills nav-fill mb-3 week-nav" aria-label="Wochentage">
+<nav class="nav nav-pills nav-fill mb-3 week-nav" aria-label="Wochentage" tabindex="0">
   {% for day in open_days %}
-  <a href="#tag-{{ day.date }}" class="nav-item nav-link flex-column gap-1 {{ 'active' if day.date == today or (not has_today and loop.first) else '' }} py-3" aria-label="{{ day.weekday }}, {{ day.date|date_long }}" {% if day.date == today %}aria-current="date"{% elif not has_today and loop.first %}aria-current="location"{% endif %}>
+  <a href="#tag-{{ day.date }}" class="nav-item nav-link flex-column gap-1 {{ 'active' if day.date == today or (not has_today and loop.first) else '' }}" aria-label="{{ day.weekday }}, {{ day.date|date_long }}" {% if day.date == today %}aria-current="date"{% elif not has_today and loop.first %}aria-current="location"{% endif %}>
     <span class="fw-bold">{{ day.weekday[:2] }}</span>
     <span class="text-secondary small">{{ day.date[8:10] }}.{{ day.date[5:7] }}.</span>
   </a>

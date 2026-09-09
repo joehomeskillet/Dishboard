@@ -53,8 +53,10 @@
 .public-page .card-header > div { min-width: 0; }
 .public-page .card-body .d-flex > div { min-width: 0; }
 .public-page .page-header { margin-top: 2rem; }
-.public-page .week-nav { gap: .5rem; }
-.public-page .week-nav .nav-link { flex: 1 1 6rem; }
+.public-page .week-nav { gap: .5rem; flex-wrap: nowrap; overflow-x: auto; padding-block: .25rem; scrollbar-width: thin; scrollbar-color: var(--sh-neutral-4) var(--sh-panel); }
+.public-page .week-nav .nav-link { flex: 1 0 3.75rem; padding: .5rem .75rem; }
+/* Keep the keyboard ring inside the locally scrolling day navigation. */
+.public-page .week-nav .nav-link:focus-visible { outline-offset: -3px; box-shadow: none; }
 .public-page .week-day-section { scroll-margin-top: 1rem; }
 .public-page .card-img-top { overflow: hidden; }
 .public-page .menu-photo { max-width: none; margin: 0; }
@@ -115,6 +117,7 @@
   box-shadow: var(--sh-focus);
 }
 @media (max-width: 575.98px) {
+  .public-page .page-header { margin-top: 1rem; }
   .public-page .site-logo-img { width: 180px; }
   .public-page .date-chip { white-space: normal; text-align: left; }
 }
