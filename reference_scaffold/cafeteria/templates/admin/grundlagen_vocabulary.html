@@ -5,9 +5,10 @@
 {% block page_header %}{{ page_header(kinds[kind] ~ (' bearbeiten' if row else ' anlegen')) }}{% endblock %}
 {% block content %}
 <a class="btn mb-3" href="{{ url_for('admin.master_data_list', kind=query_kinds[kind]) }}">Zur Liste</a>{{ errors() }}{{ status_actions() }}
+{% if kind == 'lagerorte' %}<p class="text-secondary">Kein Bestand erfasst. Vor dem Archivieren alle zugeordneten Zutaten ausdrücklich einem anderen Lagerort zuordnen.</p><p><a href="{{ url_for('admin.master_data_list', kind='foods') }}">Zutaten und Lagerzuordnungen öffnen</a></p>{% endif %}
 <div class="card"><div class="card-body">{% if row %}<p>Code: {{ row.code }} (unveränderlich)</p>{% endif %}
 {% if can_write %}<form method="post" data-dirty-form action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose='name') if row else url_for('admin.master_data_new', kind=kind) }}">
 {{ form_start('name' if row else 'neu') }}{{ input('name', 'Name', true) }}{% if not row %}{{ input('code', 'Code (Grossbuchstaben, Ziffern, Unterstrich)', true) }}{% endif %}
-{% if kind == 'kategorien' %}{{ input('sort_order', 'Reihenfolge (1 bis 9999)', true) }}{% endif %}
+{% if kind in ['kategorien', 'lagerorte'] %}{{ input('sort_order', 'Reihenfolge (1 bis 9999)', true) }}{% endif %}
 <button class="btn btn-primary" type="submit">{{ 'Änderungen speichern' if row else 'Datensatz anlegen' }}</button></form>{% else %}<p>{{ row.name if row else 'Keine Schreibberechtigung' }}</p>{% endif %}</div></div>
 {% endblock %}

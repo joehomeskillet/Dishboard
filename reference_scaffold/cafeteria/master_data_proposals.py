@@ -67,6 +67,13 @@ def normalize(payload: Mapping[str, object]) -> dict[str, Any]:
     if not isinstance(payload, Mapping) or any(not isinstance(k, str) for k in payload):
         raise MasterDataValidationError('Ungültige Eingabefelder.')
     clean: dict[str, Any] = dict(payload)
+    pin_fields = {'prepared_recipe_revision_public_id', 'prepared_recipe_content_hash_sha256'}
+    if pin_fields & clean.keys():
+        if not pin_fields <= clean.keys():
+            raise MasterDataValidationError('Rezeptstand und Prüfsumme müssen gemeinsam angegeben werden.')
+        revision, content_hash = (clean[key] for key in ('prepared_recipe_revision_public_id', 'prepared_recipe_content_hash_sha256'))
+        if (revision is None) != (content_hash is None):
+            raise MasterDataValidationError('Rezeptstand und Prüfsumme müssen gemeinsam angegeben werden.')
     for key, value in clean.items():
         if key in ('name', 'display_name'):
             clean[key] = plain(value)
@@ -82,6 +89,11 @@ def normalize(payload: Mapping[str, object]) -> dict[str, Any]:
             clean[key] = code(value)
         elif key in ('category_public_id', 'food_public_id'):
             clean[key] = identifier(value) if value is not None else None
+        elif key == 'prepared_recipe_revision_public_id':
+            clean[key] = identifier(value) if value is not None else None
+        elif key == 'prepared_recipe_content_hash_sha256':
+            if value is not None and (not isinstance(value, str) or re.fullmatch(r'[0-9a-f]{64}', value) is None):
+                raise MasterDataValidationError('Ungültige Prüfsumme des Rezeptstands.')
         elif key in ('base_factor', 'density_g_per_ml', 'piece_weight_g'):
             clean[key] = factor(value)
         elif key in ('active', 'checked'):
@@ -92,6 +104,11 @@ def normalize(payload: Mapping[str, object]) -> dict[str, Any]:
                 raise MasterDataValidationError('Ungültige Reihenfolge.')
         elif key in ('tags', 'storage_locations'):
             clean[key] = sorted({identifier(item) for item in bounded_list(value)})
+        elif key == 'storage_location_public_ids':
+            items = [identifier(item) for item in bounded_list(value)]
+            if not items or len(items) != len(set(items)):
+                raise MasterDataValidationError('Mindestens einen Lagerort und keine doppelten Zuordnungen auswählen.')
+            clean[key] = sorted(items)
         elif key == 'labels':
             clean[key] = sorted({code(item) for item in bounded_list(value)})
         elif key == 'allergens':

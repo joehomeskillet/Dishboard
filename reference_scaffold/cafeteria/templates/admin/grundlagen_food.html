@@ -1,14 +1,22 @@
 {% extends 'admin/grundlagen.html' %}
-{% from 'admin/_macros.html' import page_header %}
+{% from 'admin/_macros.html' import page_header, pagination %}
 {% set workflow_nav = 'master_data' %}
 {% block title %}Zutat · Grundlagen{% endblock %}
-{% block page_header %}{{ page_header('Zutat bearbeiten' if row else 'Zutat anlegen') }}{% endblock %}
+{% block page_header %}{% call page_header('Zutat bearbeiten' if row else 'Zutat anlegen') %}{% if can_write %}<button class="btn btn-primary" type="submit" form="food-core-form">{{ 'Stammdaten speichern' if row else 'Zutat anlegen' }}</button>{% endif %}{% endcall %}{% endblock %}
 {% block content %}
 <a class="btn mb-3" href="{{ url_for('admin.master_data_list', kind=query_kinds[kind]) }}">Zur Zutatenliste</a>
 {{ errors() }}{{ status_actions() }}
 {% set core = 'stammdaten' if row else 'neu' %}
+{% if can_write %}
+<details class="card mb-4"{% if recipe_query or recipe_page > 1 %} open{% endif %}><summary class="card-header">Rezeptauswahl eingrenzen</summary>
+<div class="card-body"><form method="get" action="{{ recipe_search_url }}">
+<div class="row g-3 align-items-end"><div class="col-12 col-lg-8"><label class="form-label" for="recipe_q">Festgeschriebenes Rezept suchen</label><input class="form-control" type="search" id="recipe_q" name="recipe_q" maxlength="200" value="{{ recipe_query }}"></div>
+<div class="col-12 col-lg-4"><button class="btn" type="submit">Rezeptauswahl suchen</button></div></div>
+<p class="form-hint mt-2">Die Suche lädt den gespeicherten Stand. Ungespeicherte Änderungen vorher sichern.</p></form>
+{{ pagination(recipe_page, recipe_has_next, recipe_prev_url, recipe_next_url, 'Rezeptauswahlseiten') }}</div></details>
+{% endif %}
 <div class="card mb-4"><div class="card-header"><h2 class="card-title">Stammdaten</h2></div><div class="card-body">
-{% if can_write %}<form method="post" data-dirty-form action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose=core) if row else url_for('admin.master_data_new', kind=kind) }}">
+{% if can_write %}<form id="food-core-form" method="post" data-dirty-form action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose=core) if row else url_for('admin.master_data_new', kind=kind) }}">
 {{ form_start(core) }}{{ input('name', 'Name', true) }}
 <div class="row g-3 mb-3">
 <div class="col-12 col-lg-6"><label class="form-label" for="base_unit_code">Basiseinheit</label><select class="form-select" name="base_unit_code" id="base_unit_code" required>
@@ -17,13 +25,31 @@
 </select></div><div class="col-12 col-lg-6"><label class="form-label" for="category_public_id">Kategorie</label><select class="form-select" name="category_public_id" id="category_public_id"><option value="">Keine Kategorie</option>
 {% if values.get('category_public_id') and values.category_public_id not in categories|map(attribute='public_id')|list %}<option value="{{ values.category_public_id }}" selected>{{ values.category_public_id }} (ungültige Auswahl)</option>{% endif %}
 {% for category in categories %}{% if category.active or values.get('category_public_id') == category.public_id %}<option value="{{ category.public_id }}"{% if values.get('category_public_id') == category.public_id %} selected{% endif %}>{{ category.name }}{% if not category.active %} · archiviert, bitte ersetzen oder entfernen{% endif %}</option>{% endif %}{% endfor %}</select></div></div>
+<fieldset class="mb-4" id="storage_location_public_ids" tabindex="-1"{% if error and error_field == 'storage_location_public_ids' %} aria-invalid="true" aria-describedby="master-error"{% endif %}>
+<legend class="h3">Lagerorte</legend><p class="form-hint">Mindestens einen Lagerort auswählen.</p>
+{% for selected in values.storage_location_public_ids %}{% if selected not in storages|map(attribute='public_id')|list %}<label class="form-check"><input class="form-check-input" type="checkbox" name="storage_location_public_ids" value="{{ selected }}" checked><span class="form-check-label">{{ selected }} (ungültige Auswahl, bitte ersetzen)</span></label>{% endif %}{% endfor %}
+{% for storage in storages %}{% if storage.active or storage.public_id in values.storage_location_public_ids %}<label class="form-check" for="storage-{{ storage.public_id }}"><input class="form-check-input" type="checkbox" id="storage-{{ storage.public_id }}" name="storage_location_public_ids" value="{{ storage.public_id }}"{% if storage.public_id in values.storage_location_public_ids %} checked{% endif %}><span class="form-check-label">{{ storage.name }}{% if not storage.active %} (archiviert, bitte ersetzen){% endif %}</span></label>{% endif %}{% else %}<p>Noch keine Lagerorte vorhanden. Vor dem Anlegen einer Zutat einen Lagerort erfassen.</p>{% endfor %}
+<a href="{{ url_for('admin.master_data_list', kind='storage_locations') }}">Lagerorte verwalten</a></fieldset>
+<div class="mb-4"><label class="form-label" for="prepared_recipe_choice">Zubereitung aus einem Rezept <span class="form-label-description">optional</span></label>
+<select class="form-select" id="prepared_recipe_choice" name="prepared_recipe_choice" aria-describedby="prepared-hint{% if error and error_field == 'prepared_recipe_choice' %} master-error{% endif %}"{% if error and error_field == 'prepared_recipe_choice' %} aria-invalid="true"{% endif %}>
+<option value=""{% if not values.prepared_recipe_choice %} selected{% endif %}>Keine Rezeptverknüpfung</option>
+{% set selection = namespace(found=not values.prepared_recipe_choice) %}
+{% for revision in prepared_revisions %}{% if values.prepared_recipe_choice == revision.revision_public_id ~ ':' ~ revision.content_hash_sha256 %}{% set selection.found = true %}{% endif %}{% endfor %}
+{% if not selection.found %}<option value="{{ values.prepared_recipe_choice }}" selected>Ursprüngliche Auswahl nicht verfügbar; bitte prüfen oder entfernen</option>{% endif %}
+{% for revision in prepared_revisions %}{% set choice = revision.revision_public_id ~ ':' ~ revision.content_hash_sha256 %}<option value="{{ choice }}"{% if values.prepared_recipe_choice == choice %} selected{% endif %}>{{ revision.title }} · Stand {{ revision.revision_number }} · {{ '{:f}'.format(revision.yield_quantity) }} {{ revision.yield_unit_code }}{% if not revision.recipe_active %} (archiviertes Rezept, bestehende Auswahl){% endif %}</option>{% endfor %}
+</select><p class="form-hint" id="prepared-hint">Der gewählte festgeschriebene Stand bleibt zugeordnet. Spätere Rezeptänderungen ersetzen ihn nicht. Ausbeute und Basiseinheit müssen zusammenpassen.</p>
+<a href="{{ url_for('admin.recipes_list') }}">Rezepte öffnen</a></div>
 {{ input('density_g_per_ml', 'Dichte in g/ml (optional)') }}{{ input('piece_weight_g', 'Stückgewicht in g (optional)') }}
 <label class="form-label" for="note">Notiz</label><textarea class="form-control mb-3" name="note" id="note" maxlength="500">{{ values.get('note', '') }}</textarea>
 <p class="form-hint">Dezimalzahlen mit Punkt eingeben. Archivierte Zuordnungen vor dem Speichern ausdrücklich ersetzen oder entfernen.</p>
-<button class="btn btn-primary" type="submit">{{ 'Stammdaten speichern' if row else 'Zutat anlegen' }}</button></form>
+</form>
 {% else %}<h3>{{ row.name if row else 'Keine Schreibberechtigung' }}</h3>{% if row %}<p>{{ row.base_unit.display_name }}{% if not row.base_unit.active %} (archiviert){% endif %} · {{ row.category.name if row.category else 'Keine Kategorie' }}{% if row.category and not row.category.active %} (archiviert){% endif %}</p><dl><dt>Dichte in g/ml</dt><dd>{{ row.density_g_per_ml if row.density_g_per_ml is not none else 'Nicht erfasst' }}</dd><dt>Stückgewicht in g</dt><dd>{{ row.piece_weight_g if row.piece_weight_g is not none else 'Nicht erfasst' }}</dd></dl><p>{{ row.note }}</p>{% endif %}{% endif %}
 </div></div>
 {% if row %}
+<div class="card mb-4"><div class="card-header"><h2 class="card-title">Gespeicherte Verknüpfungen</h2></div><div class="card-body">
+<dl><dt>Lagerorte</dt><dd>{% for storage in row.storage_locations %}<a href="{{ url_for('admin.master_data_detail', kind='lagerorte', public_id=storage.public_id) }}">{{ storage.name }}</a>{{ ', ' if not loop.last else '' }}{% else %}Lagerort fehlt{% endfor %}</dd>
+<dt>Bestand</dt><dd>Kein Bestand erfasst</dd><dt>Zubereitung</dt><dd>{% if row.prepared_recipe %}<a href="{{ url_for('admin.recipe_revision', recipe_id=row.prepared_recipe.recipe_public_id, revision_id=row.prepared_recipe.revision_public_id) }}">{{ row.prepared_recipe.title }} · Stand {{ row.prepared_recipe.revision_number }}</a><br>Ausbeute: {{ '{:f}'.format(row.prepared_recipe.yield_quantity) }} {{ row.prepared_recipe.yield_unit_code }}{% if not row.prepared_recipe.recipe_active %} · Rezept archiviert{% endif %}
+<br><a href="{{ url_for('admin.recipe_revisions', recipe_id=row.prepared_recipe.recipe_public_id) }}">Rezeptverlauf öffnen</a>{% else %}Keine Rezeptverknüpfung{% endif %}</dd></dl></div></div>
 <div class="card mb-4"><div class="card-header"><h2 class="card-title">Herkunft</h2></div><div class="card-body"><p>{{ 'Manuell erfasst' if row.source.kind == 'manual' else row.source.kind }}</p>{% for value in [row.source.reference, row.source.url, row.source.note, row.source.fetched_at] %}{% if value %}<p class="text-break">{{ value }}</p>{% endif %}{% endfor %}<p class="text-secondary">Die ursprüngliche Herkunft bleibt erhalten.</p></div></div>
 <div class="card mb-4"><div class="card-header"><h2 class="card-title">Tags</h2></div><div class="card-body">
 {% if can_write %}<form method="post" action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose='tags') }}">{{ form_start('tags') }}

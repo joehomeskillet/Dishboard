@@ -10,11 +10,11 @@ from werkzeug.security import generate_password_hash
 
 from cafeteria import master_data_store as store
 from test_master_data_db import (  # noqa: F401
-    master, seeded_pg16, installed_pg16, pg16, app_engine, payload, target, audit_count, make_actor,
+    master, seeded_pg16, installed_pg16, pg16, app_engine, payload, target, audit_count, make_actor, STORAGE_PUBLIC_ID,
 )
 
 
-UPDATE_FOOD = '''SELECT cafeteria.update_food_v21(:actor,:version,:location,CAST(:target AS uuid),
+UPDATE_FOOD = '''SELECT cafeteria.update_food_v27(:actor,:version,:location,CAST(:target AS uuid),
                  :target_version,CAST(:payload AS jsonb))'''
 ASSIGN = '''SELECT cafeteria.replace_food_storage_locations_v21(:actor,:version,:location,CAST(:target AS uuid),
            :target_version,CAST(:payload AS jsonb))'''
@@ -119,6 +119,6 @@ def test_storage_archive_and_assignment_serialize_without_dangling_active_state(
             blocked(owner,started,state,blocker)
         assert future.result(10) == ('P1901' if archive_first else '55000')
     read = store.get_food(engine,food.public_id)
-    assert bool(read.storage_locations) is not archive_first
+    assert [item.public_id for item in read.storage_locations] == ([STORAGE_PUBLIC_ID] if archive_first else [storage.public_id])
     assert store.get_vocabulary(engine,'storage_location',storage.public_id).active is not archive_first
     assert audit_count(owner) == count+1

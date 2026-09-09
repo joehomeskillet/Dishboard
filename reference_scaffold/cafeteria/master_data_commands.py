@@ -91,10 +91,9 @@ _SQL = {
     'set_active_unit': '''SELECT cafeteria.set_active_unit_v21(
         :actor, :actor_version, :location, CAST(:target AS uuid),
         CAST(:target_version AS bigint), CAST(:payload AS jsonb))''',
-    'create_food': '''SELECT cafeteria.create_food_v21(
-        :actor, :actor_version, :location, CAST(:target AS uuid),
-        CAST(:target_version AS bigint), CAST(:payload AS jsonb))''',
-    'update_food': '''SELECT cafeteria.update_food_v21(
+    'create_food': '''SELECT cafeteria.create_food_v27(
+        :actor, :actor_version, :location, CAST(:payload AS jsonb))''',
+    'update_food': '''SELECT cafeteria.update_food_v27(
         :actor, :actor_version, :location, CAST(:target AS uuid),
         CAST(:target_version AS bigint), CAST(:payload AS jsonb))''',
     'set_food_active': '''SELECT cafeteria.set_food_active_v21(
@@ -125,11 +124,16 @@ _SQL = {
 
 
 def command(engine: Engine, name: str, actor: ActorExpectation,
-            target: ObjectExpectation | None, payload: Mapping[str, object]) -> dict[str, Any]:
+            target: ObjectExpectation | None, payload: Mapping[str, object], *,
+            original_location: int | None = None) -> dict[str, Any]:
     if not isinstance(actor, ActorExpectation):
         raise MasterDataValidationError('Ungültige Akteurserwartung.')
     values: dict[str, Any] = {'actor': positive(actor.user_id), 'actor_version': positive(actor.authz_version),
                               'target': None, 'target_version': None}
+    if original_location is not None:
+        original_location = positive(original_location)
+    if name in {'create_food', 'update_food'} and 'storage_location_public_ids' not in payload:
+        raise MasterDataValidationError('Mindestens einen Lagerort auswählen.')
     if target is not None:
         if not isinstance(target, ObjectExpectation):
             raise MasterDataValidationError('Ungültige Objekterwartung.')
@@ -143,13 +147,17 @@ def command(engine: Engine, name: str, actor: ActorExpectation,
     if engine is None:
         raise MasterDataUnavailableError('Stammdaten sind derzeit nicht verfügbar.')
     with engine.begin() as connection:
-        values['location'] = resolve_single_active_location_connection(connection)
+        current_location = resolve_single_active_location_connection(connection)
+        if original_location is not None and current_location != original_location:
+            raise MasterDataConfigurationError('Der ursprüngliche Standort ist nicht mehr aktiv.')
+        values['location'] = original_location if original_location is not None else current_location
         return dict(connection.execute(text(_SQL[name]), values).scalar_one())
 
 
 def mutation(engine: Engine, name: str, actor: ActorExpectation,
-             target: ObjectExpectation | None, payload: Mapping[str, object]) -> MutationResult:
-    row = command(engine, name, actor, target, payload)
+             target: ObjectExpectation | None, payload: Mapping[str, object], *,
+             original_location: int | None = None) -> MutationResult:
+    row = command(engine, name, actor, target, payload, original_location=original_location)
     return MutationResult(str(row['public_id']), int(row['row_version']))
 
 

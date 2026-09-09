@@ -8,7 +8,7 @@
 <div class="card"><div class="card-body">
 <p>Dieses Formular gehört zum vorherigen Standort. Ihre Eingaben und Auswahlen bleiben hier erhalten. Sie können die Texte kopieren; gespeichert wird nichts.</p>
 <form method="post" action="{{ action }}" aria-label="Ursprüngliche Eingaben" aria-describedby="master-error">
-{% set labels = {'name': 'Name', 'code': 'Code', 'note': 'Notiz', 'sort_order': 'Reihenfolge', 'base_unit_code': 'Basiseinheit', 'density_g_per_ml': 'Dichte (g/ml)', 'piece_weight_g': 'Stückgewicht (g)', 'category_public_id': 'Kategorie', 'tag_public_ids': 'Tag · ursprüngliche Referenz', 'labels': 'Kostform', 'checked': 'Allergenprüfung'} %}
+{% set labels = {'name': 'Name', 'code': 'Code', 'note': 'Notiz', 'sort_order': 'Reihenfolge', 'base_unit_code': 'Basiseinheit', 'density_g_per_ml': 'Dichte (g/ml)', 'piece_weight_g': 'Stückgewicht (g)', 'category_public_id': 'Kategorie', 'tag_public_ids': 'Tag · ursprüngliche Referenz', 'storage_location_public_ids': 'Lagerort · ursprüngliche Referenz', 'prepared_recipe_choice': 'Zubereitung · ursprünglicher Rezeptstand', 'labels': 'Kostform', 'checked': 'Allergenprüfung'} %}
 {% set diet_names = {'VEGETARIAN': 'Vegetarisch', 'VEGAN': 'Vegan', 'LACTOSE_FREE': 'Laktosefrei', 'GLUTEN_FREE': 'Glutenfrei'} %}
 {% set allergen_names = {'GLUTEN': 'Glutenhaltiges Getreide', 'CRUSTACEANS': 'Krebstiere', 'EGGS': 'Eier', 'FISH': 'Fisch', 'PEANUTS': 'Erdnüsse', 'SOY': 'Soja', 'MILK': 'Milch', 'NUTS': 'Schalenfrüchte', 'CELERY': 'Sellerie', 'MUSTARD': 'Senf', 'SESAME': 'Sesam', 'SULPHITES': 'Schwefeldioxid und Sulfite', 'LUPIN': 'Lupinen', 'MOLLUSCS': 'Weichtiere'} %}
 {% set presence_names = {'absent': 'Keine Angabe', 'contains': 'Enthält', 'may_contain': 'Kann enthalten'} %}
@@ -16,8 +16,10 @@
 <input type="hidden" name="{{ name }}" value="{{ value }}">
 {% set field_label = labels.get(name) %}
 {% set shown = value %}
-{% if name in ['category_public_id', 'tag_public_ids'] %}
+{% if name in ['category_public_id', 'tag_public_ids', 'storage_location_public_ids'] %}
 {% set shown = 'Ursprüngliche Referenz: ' ~ value if value else 'Keine Auswahl' %}
+{% elif name == 'prepared_recipe_choice' %}
+{% set shown = 'Ursprüngliche Auswahl: ' ~ value if value else 'Keine Rezeptverknüpfung' %}
 {% elif name == 'labels' %}
 {% set shown = diet_names[value] ~ ' (' ~ value ~ ')' if value in diet_names else 'Ursprünglicher Code: ' ~ value %}
 {% elif name.startswith('allergen_') %}
@@ -29,7 +31,7 @@
 {% endif %}
 {% if field_label %}
 <div class="mb-3"><label class="form-label" for="original-{{ loop.index }}">{{ field_label }}</label>
-<textarea class="form-control" id="original-{{ loop.index }}" rows="{{ 3 if name == 'note' else 2 if name in ['category_public_id', 'tag_public_ids'] else 1 }}" readonly>{{ '\n' }}{{ shown }}</textarea></div>
+<textarea class="form-control" id="original-{{ loop.index }}" rows="{{ 5 if name == 'prepared_recipe_choice' else 3 if name == 'note' else 2 if name in ['category_public_id', 'tag_public_ids', 'storage_location_public_ids'] else 1 }}" readonly>{{ '\n' }}{{ shown }}</textarea></div>
 {% endif %}
 {% endfor %}
 {% set submitted_names = submitted|map(attribute=0)|list %}

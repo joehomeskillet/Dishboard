@@ -1,0 +1,10 @@
+[extend]
+useDefault = true
+
+# Root approved exactly these two byte-verified immutable migration digests.
+[allowlist]
+description = "WP972f785f0b97 verified historical SQL SHA256 values"
+stopwords = [
+  "7f8696eb886a99d841ac82be1e4b3abf1b51080c18aac07ea5290325f3e5e863",
+  "4311165d2dcd763cf9a462906d044000956eb11d16ac847ecf9351facae21e45",
+]
