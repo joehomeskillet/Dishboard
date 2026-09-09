@@ -23,6 +23,8 @@ seitenbezogene Gestaltung ist keine Grenze der Migration.
 3. [Rezepte und Grundlagen](recipes-sdd.md), [zugehörige WPs](recipes-wps.json).
 4. [Warenfluss und Fachwissen](operations-sdd.md), [zugehörige WPs](operations-wps.json).
 5. [Oberfläche, Zugriff und Abnahme](surfaces-sdd.md), [zugehörige WPs](surfaces-wps.json).
+6. [Routingbelege und Dateibesitz](EXECUTION-READY.md): vollständiger Zuordnungs-
+   und Leaseindex mit geschützten laufenden Aufgaben und möglichen Startkandidaten.
 
 Die drei JSON-Dateien bilden gemeinsam den Abhängigkeitsgraphen. `MP-*` bezeichnet
 eine stabile fachliche Paket-ID; `wp-*` bezeichnet den separat erzeugten
