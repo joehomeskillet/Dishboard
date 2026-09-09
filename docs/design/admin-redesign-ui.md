@@ -1,5 +1,10 @@
 # Admin-Redesign — DOM- und Kontext-Vertrag
 
+Visuelle Vorgaben stehen künftig ausschliesslich im
+[konsolidierten Designsystem vom 9. September](2026-09-09-unified-ui-design-system.md).
+Dieses Dokument bleibt als bestehender DOM-/Kontextvertrag erhalten; dessen
+Feldnamen, Statuswerte und JS-Selektoren dürfen durch UI-Polish nicht verändert werden.
+
 Verbindlich für Render-Adapter, Platzhalter-Templates und Admin-Rendertests.
 Visuelle Ausgestaltung (CSS/JS, echte Layout-Templates) liegt bei den UI-Lanes.
 Dieses Dokument friert Kontext-Keys, Statuswerte und die DOM-Selektoren ein.
