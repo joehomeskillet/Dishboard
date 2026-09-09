@@ -52,11 +52,15 @@ def recipe_revisions(recipe_id: UUID):
     location = store.get_location(engine)
     row = store.get_recipe(engine, str(recipe_id))
     revisions = store.list_revisions(engine, row.public_id, limit=51, offset=(page - 1) * 50)
+    target = ObjectExpectation(row.public_id, row.row_version)
+    preview = store.get_dependency_preview(engine, target, expected_location_id=location) if row.active else None
     writable = row.active and bool(capabilities() & {'*', 'recipe.write'})
-    token = forms.sign_context(action='recipe.freeze', target=ObjectExpectation(row.public_id, row.row_version),
-                               expected_location_id=location, display_values={'recipe': str(row.payload['title'])}) if writable else None
+    token = forms.sign_context(action='recipe.freeze', target=target, expected_location_id=location,
+        display_values={'recipe': str(row.payload['title'])}, dependency_hash_sha256=preview.dependency_hash_sha256
+    ) if writable and preview is not None and preview.complete else None
     return render_template('admin/rezepte_revisionen.html', family='cafeteria', profile='staff_guest', recipe=row, revisions=revisions[:50],
-                           page=page, has_next=len(revisions) > 50, token=token)
+                           page=page, has_next=len(revisions) > 50, token=token, preview=preview), (
+                               400 if preview is not None and not preview.complete else 200)
 
 
 @bp.post('/rezepte/<uuid:recipe_id>/revisionen')
@@ -64,10 +68,12 @@ def recipe_revisions(recipe_id: UUID):
 def recipe_freeze(recipe_id: UUID):
     query_fields(set())
     expected = forms.read_context(action='recipe.freeze', target_public_id=str(recipe_id))
-    if set(request.form) != {'_csrf', '_form_context', 'row_version'} or request.files or expected.target is None:
+    if (set(request.form) != {'_csrf', '_form_context', 'row_version'} or request.files
+            or expected.target is None or expected.dependency_hash_sha256 is None):
         raise forms.FormError('Unerwartete Felder beim Festschreiben.')
     result = store.freeze_revision(current_app.extensions['cafeteria_db'], expected.actor, expected.target,
-                                   expected_location_id=expected.expected_location_id)
+                                   expected_location_id=expected.expected_location_id,
+                                   expected_dependency_hash=expected.dependency_hash_sha256)
     return redirect(url_for('admin.recipe_revision', recipe_id=result.recipe_public_id,
                             revision_id=result.public_id), code=303)
 

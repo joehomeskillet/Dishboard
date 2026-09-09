@@ -15,7 +15,7 @@ from test_master_data_db import signed_in
 from test_master_data_routes import (  # noqa: F401
     Forms, app_engine, b3, installed_pg16, pg16, seeded_pg16,
 )
-from test_recipe_store_db import line, payload, snapshot, target
+from test_recipe_store_db import line, payload, snapshot, target, STORAGE_PUBLIC_ID
 
 
 @pytest.fixture
@@ -25,7 +25,8 @@ def filter_catalog(b3):  # noqa: F811
     with signed_in(engine, actor):
         location = store.get_location(engine)
         tag = masters.create_vocabulary(engine, 'tag', actor, code='REGIONAL', name='Regional')
-        food = masters.create_food(engine, actor, {'name': 'Rüebli', 'base_unit_code': 'G'})
+        food = masters.create_food(engine, actor, {'name': 'Rüebli', 'base_unit_code': 'G',
+            'storage_location_public_ids': [STORAGE_PUBLIC_ID]})
         rows = {}
         specimens = [
             ('mapped', 'Suppe', [line('Wurzel', food_public_id=food.public_id),
@@ -40,7 +41,9 @@ def filter_catalog(b3):  # noqa: F811
             rows[key] = store.create_recipe(engine, actor, payload(title=title, ingredients=ingredients,
                 tag_public_ids=tags), expected_location_id=location)
         store.set_recipe_active(engine, actor, target(rows['archived']), active=False, expected_location_id=location)
-        store.freeze_revision(engine, actor, target(rows['mapped']), expected_location_id=location)
+        preview = store.get_dependency_preview(engine, target(rows['mapped']), expected_location_id=location)
+        store.freeze_revision(engine, actor, target(rows['mapped']), expected_location_id=location,
+                              expected_dependency_hash=preview.dependency_hash_sha256)
         masters.set_food_active(engine, actor, target(food), active=False)
         masters.set_vocabulary_active(engine, 'tag', actor, target(tag), active=False)
     with owner.begin() as current:

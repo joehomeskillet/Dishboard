@@ -9,7 +9,7 @@ from sqlalchemy import Engine
 from . import recipe_reads as reads
 from .auth.local_users import ActorExpectation
 from .master_data_types import MutationResult, ObjectExpectation
-from .recipe_commands import command, mutation, safe
+from .recipe_commands import freeze_command, mutation, safe
 from .recipe_snapshots import image_payload
 from .recipe_types import RecipeValidationError, RevisionResult
 from .recipe_values import identifier, image_fields, recipe_payload, recipe_text, rows
@@ -18,6 +18,7 @@ from .roles import require_capability
 get_location = safe(require_capability('draft.read')(reads.get_location))
 list_recipes = safe(require_capability('draft.read')(reads.list_recipes))
 get_recipe = safe(require_capability('draft.read')(reads.get_recipe))
+get_dependency_preview = safe(require_capability('draft.read')(reads.get_dependency_preview))
 get_revision = safe(require_capability('draft.read')(reads.get_revision))
 list_revisions = safe(require_capability('draft.read')(reads.list_revisions))
 get_recipe_asset = safe(require_capability('draft.read')(reads.get_recipe_asset))
@@ -47,8 +48,9 @@ def set_recipe_active(engine: Engine, actor: ActorExpectation, target: ObjectExp
 
 @safe
 @require_capability('recipe.write')
-def freeze_revision(engine: Engine, actor: ActorExpectation, target: ObjectExpectation, *, expected_location_id: int) -> RevisionResult:
-    result = command(engine, 'freeze_recipe_revision', actor, target, {}, expected_location_id)
+def freeze_revision(engine: Engine, actor: ActorExpectation, target: ObjectExpectation, *,
+                    expected_location_id: int, expected_dependency_hash: str) -> RevisionResult:
+    result = freeze_command(engine, actor, target, expected_location_id, expected_dependency_hash)
     return RevisionResult(**result)
 
 

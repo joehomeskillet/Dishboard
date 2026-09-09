@@ -14,7 +14,7 @@ from cafeteria.admin import recipe_revision_routes, recipe_image_routes  # noqa:
 from cafeteria.admin import recipe_forms as forms
 from test_master_data_routes import Forms, b3, pg16, installed_pg16, seeded_pg16, app_engine  # noqa: F401
 from test_master_data_db import signed_in
-from test_recipe_store_db import payload, line, target, snapshot, mutable
+from test_recipe_store_db import payload, line, target, snapshot, mutable, complete_line
 
 
 @pytest.fixture
@@ -61,7 +61,18 @@ def edit(a3, **changes):
         return store.update_recipe(engine, actor, target(row), data, expected_location_id=store.get_location(engine))
 
 
+def complete_a3(a3):
+    """Explicit valid freeze fixture; a3 itself still has an incomplete draft."""
+    app, _, _, actor, _ = a3
+    engine = app.extensions['cafeteria_db']
+    with signed_in(engine, actor):
+        ingredients = [complete_line(engine, actor, quantity='0.125', unit_code='KG'),
+                       complete_line(engine, actor, 'Salz')]
+    return edit(a3, ingredients=ingredients)
+
+
 def test_freeze_exact_revision_redirect_immutable_detail_and_no_post_reload(a3, monkeypatch):
+    complete_a3(a3)
     _, owner, client, _, public_id = a3
     path = f'/admin/rezepte/{public_id}/revisionen'
     original = fields(client, path)
@@ -92,6 +103,8 @@ def test_freeze_exact_revision_redirect_immutable_detail_and_no_post_reload(a3, 
                                         ('tamper', 400), ('version', 400), ('duplicate', 400),
                                         ('unknown', 400), ('logout', 401), ('revoke', 401)])
 def test_original_context_errors_retain_values_without_mutation(a3, suffix, mode, status):
+    if suffix == 'revisionen':
+        complete_a3(a3)
     _, owner, client, actor, public_id = a3
     path = f'/admin/rezepte/{public_id}/{suffix}'
     original = fields(client, path)
@@ -150,6 +163,7 @@ def test_outer_auth_and_reader_outage_is_safe_503(a3, monkeypatch, suffix, bound
 
 
 def test_upload_real_asset_provenance_and_historical_bytes(a3):
+    complete_a3(a3)
     app, owner, client, actor, public_id = a3
     path = f'/admin/rezepte/{public_id}/bilder'
     data = fields(client, path)

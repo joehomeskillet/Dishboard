@@ -28,7 +28,7 @@ def test_recipe_tables_have_only_application_and_backup_read_rights(master, tabl
 
 def test_only_fixed_verbs_and_invoker_payload_reader_are_granted(master):
     owner, _, _ = master
-    public_verbs = {'create_recipe_v22', 'update_recipe_v22', 'set_recipe_active_v22', 'freeze_recipe_revision_v22',
+    public_verbs = {'create_recipe_v22', 'update_recipe_v22', 'set_recipe_active_v22',
                     'add_recipe_image_v22', 'create_cookbook_v22', 'update_cookbook_v22', 'set_cookbook_active_v22',
                     'replace_cookbook_recipes_v22'}
     with owner.connect() as current:
@@ -44,6 +44,12 @@ def test_only_fixed_verbs_and_invoker_payload_reader_are_granted(master):
             assert definer
         if name == 'recipe_payload_v22':
             assert not definer
+    with owner.connect() as current:
+        for signature in ('recipe_dependency_preview_v27(bigint,uuid,bigint)',
+                          'freeze_recipe_v27(bigint,bigint,bigint,uuid,bigint,text)'):
+            assert current.execute(text("SELECT has_function_privilege('cafeteria_app',:fn,'EXECUTE'),"
+                "has_function_privilege('public',:fn,'EXECUTE'),has_function_privilege('cafeteria_auth_issuer',:fn,'EXECUTE')"),
+                {'fn': 'cafeteria.' + signature}).one() == (True, False, False)
 
 
 @pytest.mark.parametrize('role', ['Cafeteria.Editor', 'Cafeteria.Publisher', 'Cafeteria.Admin'])

@@ -7,16 +7,39 @@
 <section class="card mb-3"><div class="card-body">
 <h2 class="card-title">Gespeicherten Stand festschreiben</h2>
 <p>Eine Revision bewahrt Zutaten, Mengen, Herkunft und Bilder unverändert. Ungespeicherte Änderungen im Editor sind nicht enthalten.</p>
+{% if preview %}
+{% if not preview.complete %}<div class="alert alert-warning" role="alert" id="freeze-incomplete" tabindex="-1" autofocus>Dieser Entwurf ist noch unvollständig. Erfassen Sie mindestens eine Zutat und wählen Sie für jede Zutat ein Lebensmittel, eine positive Menge und eine Einheit. <a href="{{ url_for('admin.recipe_edit', recipe_id=recipe.public_id) }}">Rezept ergänzen</a></div>{% endif %}
+<p class="mb-0">Ausbeute: <strong>{{ preview.snapshot.recipe.servings }} {{ preview.snapshot.recipe.servings_unit_code }}</strong>. Der unten gezeigte Zutatenstand wird mit dieser Revision festgehalten.</p>
+{% endif %}
+{% if not recipe.active %}<p class="mb-0">Dieses Rezept ist archiviert. Bestehende Revisionen bleiben lesbar.</p>{% endif %}
+</div></section>
+{% if preview %}
+<section class="card mb-3" aria-labelledby="dependency-title"><div class="card-header"><h2 class="card-title" id="dependency-title">Zutatenstand prüfen</h2></div>
+<table class="table table-vcenter card-table table-mobile-lg"><thead><tr><th>Zutat</th><th>Menge</th><th>Lebensmittel und Lagerort</th><th>Zubereitung</th></tr></thead><tbody>
+{% for ingredient in preview.snapshot.recipe.ingredients %}
+{% set food = preview.snapshot.foods|selectattr('public_id', 'equalto', ingredient.food_public_id)|first %}
+<tr><td class="text-break" data-label="Zutat">{{ ingredient.ingredient_text }}</td>
+<td class="text-break" data-label="Menge">{% if ingredient.quantity is not none %}{{ ingredient.quantity }} {{ ingredient.unit_code }}{% else %}Menge fehlt{% endif %}</td>
+<td class="text-break" data-label="Lebensmittel und Lagerort">{% if food is defined %}{{ food.name }}<ul class="list-unstyled mb-0 text-secondary">{% for storage in food.storage_locations %}<li>{{ storage.name }}{% if not storage.active %} · archiviert{% endif %}</li>{% endfor %}</ul>{% else %}Lebensmittel fehlt{% endif %}</td>
+<td class="text-break" data-label="Zubereitung">{% if food is defined and food.prepared_recipe %}
+{% set selected = preview.snapshot.prepared_revisions|selectattr('revision_public_id', 'equalto', food.prepared_recipe.revision_public_id)|first %}
+<a href="{{ url_for('admin.recipe_revision', recipe_id=selected.recipe_public_id, revision_id=selected.revision_public_id) }}">{{ selected.snapshot.recipe.title }} · gespeicherter Stand</a><br>Originalausbeute: {{ selected.snapshot.recipe.servings }} {{ selected.snapshot.recipe.servings_unit_code }}
+{% else %}Keine vorbereitete Zubereitung{% endif %}</td></tr>
+{% else %}<tr><td colspan="4">Noch keine Zutaten erfasst.</td></tr>{% endfor %}
+</tbody></table>
+<div class="card-body"><p class="text-secondary">Lagerorte und Zubereitungen stammen aus diesem Vorschauzeitpunkt. Eine Änderung vor dem Festschreiben erfordert eine neue Prüfung. Die Revision bestätigt keine Allergenfreigabe.</p>
 {% if token %}
 <form method="post" action="{{ url_for('admin.recipe_freeze', recipe_id=recipe.public_id) }}">
 <input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="_form_context" value="{{ token }}"><input type="hidden" name="row_version" value="{{ recipe.row_version }}">
 <button class="btn btn-primary" type="submit">{{ icon('device-floppy') }}Revision festschreiben</button>
 </form>
-{% elif not recipe.active %}<p class="mb-0">Dieses Rezept ist archiviert. Bestehende Revisionen bleiben lesbar.</p>{% endif %}
+{% elif preview.complete %}<p class="mb-0">Sie können diesen Stand ansehen. Zum Festschreiben ist die Berechtigung zum Bearbeiten von Rezepten erforderlich.</p>{% endif %}
 </div></section>
+<details class="card mb-3"><summary class="card-header">Prüfnachweis anzeigen</summary><div class="card-body text-break">Prüfsumme des geprüften Zutatenstands: <code>{{ preview.dependency_hash_sha256 }}</code></div></details>
+{% endif %}
 <section class="card"><div class="card-header"><h2 class="card-title">Unveränderliche Revisionen</h2></div>
-{% if revisions %}<table class="table table-vcenter card-table table-mobile-lg"><thead><tr><th>Revision</th><th>Erstellt</th><th>Prüfsumme</th><th>Öffnen</th></tr></thead><tbody>
-{% for item in revisions %}<tr><td data-label="Revision">{{ item.revision_number }}</td><td data-label="Erstellt">{{ item.created_at.isoformat() }}</td><td class="text-break" data-label="Prüfsumme">{{ item.content_hash_sha256 }}</td><td data-label="Öffnen"><a class="btn" href="{{ url_for('admin.recipe_revision', recipe_id=recipe.public_id, revision_id=item.public_id) }}" aria-label="Revision {{ item.revision_number }} öffnen">{{ icon('eye') }}Revision {{ item.revision_number }}</a></td></tr>{% endfor %}
+{% if revisions %}<table class="table table-vcenter card-table table-mobile-lg"><thead><tr><th>Revision</th><th>Erstellt</th><th>Nachweis</th><th>Öffnen</th></tr></thead><tbody>
+{% for item in revisions %}<tr><td data-label="Revision">{{ item.revision_number }}</td><td data-label="Erstellt">{{ item.created_at|datetime_short }}</td><td class="text-break" data-label="Nachweis"><details><summary>Prüfsumme anzeigen</summary>{{ item.content_hash_sha256 }}</details></td><td data-label="Öffnen"><a class="btn" href="{{ url_for('admin.recipe_revision', recipe_id=recipe.public_id, revision_id=item.public_id) }}" aria-label="Revision {{ item.revision_number }} öffnen">{{ icon('eye') }}Revision {{ item.revision_number }}</a></td></tr>{% endfor %}
 </tbody></table>{% else %}<div class="card-body"><p class="mb-0">Noch keine Revision festgeschrieben.</p></div>{% endif %}
 </section>
 {{ pagination(page, has_next, url_for('admin.recipe_revisions', recipe_id=recipe.public_id, page=page-1), url_for('admin.recipe_revisions', recipe_id=recipe.public_id, page=page+1), 'Revisionsseiten') }}

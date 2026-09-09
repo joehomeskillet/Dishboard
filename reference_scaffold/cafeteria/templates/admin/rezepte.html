@@ -17,8 +17,9 @@
 <details class="mb-3"><summary class="btn">Symbole</summary><div class="card card-body">Stift: Rezept bearbeiten oder ansehen.</div></details>
 <div class="recipe-card-grid gap-3">
 {% for item in rows %}<article class="card recipe-card"><div class="card-body"><div class="row g-3 align-items-center"><div class="col">
-<h2 class="card-title text-break">{{ item.payload.title }}</h2><p class="mb-0">{{ 'Entwurf' if item.active else 'Archiviert' }} · Ausbeute {{ item.payload.servings }} {{ item.payload.servings_unit_code }}</p>
-</div><div class="col-auto">{{ icon_link(url_for('admin.recipe_edit', recipe_id=item.public_id), item.payload.title ~ (' bearbeiten' if can_write and item.active else ' ansehen')) }}</div></div></div></article>
+{% set draft = namespace(incomplete=not item.payload.ingredients) %}{% for ingredient in item.payload.ingredients %}{% if not ingredient.food_public_id or ingredient.quantity is none or not ingredient.unit_code %}{% set draft.incomplete = true %}{% endif %}{% endfor %}
+<h2 class="card-title text-break">{{ item.payload.title }}</h2><p class="mb-0">{{ 'Entwurf · Angaben fehlen' if item.active and draft.incomplete else ('Entwurf' if item.active else 'Archiviert') }} · Ausbeute {{ item.payload.servings }} {{ item.payload.servings_unit_code }}</p>
+</div><div class="col-auto">{{ icon_link(url_for('admin.recipe_edit', recipe_id=item.public_id), item.payload.title ~ (' bearbeiten' if can_write and item.active else ' ansehen')) }}</div></div><a class="btn mt-3" href="{{ url_for('admin.recipe_revisions', recipe_id=item.public_id) }}">Revisionen<span class="visually-hidden"> · {{ item.payload.title }}</span></a></div></article>
 {% else %}<div class="col-12"><div class="empty"><h2 class="empty-title">{{ 'Keine passenden Rezepte' if query or ingredient or tag or archived else 'Noch keine Rezepte' }}</h2><p class="empty-subtitle text-secondary">{{ 'Filter anpassen oder zurücksetzen.' if query or ingredient or tag or archived else 'Beginnen Sie mit einem neuen Rezeptentwurf.' }}</p></div></div>{% endfor %}
 </div>
 {{ pagination(page, has_next, prev_url, next_url, 'Rezeptseiten') }}

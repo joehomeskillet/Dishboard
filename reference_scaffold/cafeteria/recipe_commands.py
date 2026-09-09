@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable, Mapping
 from functools import wraps
 from typing import Any, ParamSpec, TypeVar
@@ -27,7 +28,6 @@ SQL = {
     'create_recipe': 'SELECT cafeteria.create_recipe_v22(:actor,:authz,:location,CAST(:target AS uuid),CAST(:version AS bigint),CAST(:payload AS jsonb))',
     'update_recipe': 'SELECT cafeteria.update_recipe_v22(:actor,:authz,:location,CAST(:target AS uuid),CAST(:version AS bigint),CAST(:payload AS jsonb))',
     'set_recipe_active': 'SELECT cafeteria.set_recipe_active_v22(:actor,:authz,:location,CAST(:target AS uuid),CAST(:version AS bigint),CAST(:payload AS jsonb))',
-    'freeze_recipe_revision': 'SELECT cafeteria.freeze_recipe_revision_v22(:actor,:authz,:location,CAST(:target AS uuid),CAST(:version AS bigint),CAST(:payload AS jsonb))',
     'add_recipe_image': 'SELECT cafeteria.add_recipe_image_v22(:actor,:authz,:location,CAST(:target AS uuid),CAST(:version AS bigint),CAST(:payload AS jsonb))',
     'create_cookbook': 'SELECT cafeteria.create_cookbook_v22(:actor,:authz,:location,CAST(:target AS uuid),CAST(:version AS bigint),CAST(:payload AS jsonb))',
     'update_cookbook': 'SELECT cafeteria.update_cookbook_v22(:actor,:authz,:location,CAST(:target AS uuid),CAST(:version AS bigint),CAST(:payload AS jsonb))',
@@ -77,3 +77,19 @@ def mutation(engine: Engine, name: str, actor: ActorExpectation, target: ObjectE
              payload: Mapping[str, object], location: int) -> MutationResult:
     result = command(engine, name, actor, target, payload, location)
     return MutationResult(str(result['public_id']), int(result['row_version']))
+
+
+def freeze_command(engine: Engine, actor: ActorExpectation, target: ObjectExpectation,
+                   location: int, dependency_hash: str) -> dict[str, Any]:
+    if not isinstance(actor, ActorExpectation) or not isinstance(target, ObjectExpectation):
+        raise RecipeValidationError('Originalakteur und Originalobjekt erforderlich.')
+    values = {'actor': positive(actor.user_id), 'authz': positive(actor.authz_version),
+              'location': positive(location), 'target': identifier(target.public_id),
+              'version': positive(target.row_version), 'dependency': dependency_hash}
+    if not isinstance(dependency_hash, str) or re.fullmatch('[0-9a-f]{64}', dependency_hash) is None:
+        raise RecipeValidationError('Der ursprüngliche Zutatenstand fehlt oder ist ungültig.')
+    if engine is None:
+        raise RecipeUnavailableError('Rezepte sind derzeit nicht verfügbar.')
+    with engine.begin() as current:
+        return dict(current.execute(text('''SELECT cafeteria.freeze_recipe_v27(
+            :actor,:authz,:location,CAST(:target AS uuid),:version,:dependency)'''), values).scalar_one())

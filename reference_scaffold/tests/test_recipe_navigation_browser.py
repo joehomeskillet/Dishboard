@@ -12,13 +12,14 @@ from cafeteria import recipe_store as store, roles
 from cafeteria.master_data_types import ObjectExpectation
 from test_master_data_db import signed_in
 from test_recipe_store_db import payload, snapshot, target
-from test_recipe_revision_routes import a3, b3, app_engine, pg16, installed_pg16, seeded_pg16, png  # noqa: F401
+from test_recipe_revision_routes import a3, b3, app_engine, pg16, installed_pg16, seeded_pg16, png, complete_a3  # noqa: F401
 from test_recipe_images_browser import recipe_server  # noqa: F401
 from test_rendered_ui import browser  # noqa: F401
 
 
 @pytest.fixture
 def navigation(a3):  # noqa: F811
+    complete_a3(a3)
     app, owner, client, actor, public_id = a3
     engine = app.extensions['cafeteria_db']
     with signed_in(engine, actor):
@@ -26,8 +27,10 @@ def navigation(a3):  # noqa: F811
         row = store.get_recipe(engine, public_id)
         image = store.add_recipe_image(engine, actor, target(row), data=png(), content_type='image/png',
                                        caption='Navigationsbild', expected_location_id=location)
-        revision = store.freeze_revision(engine, actor, ObjectExpectation(image.public_id, image.row_version),
-                                         expected_location_id=location)
+        original = ObjectExpectation(image.public_id, image.row_version)
+        preview = store.get_dependency_preview(engine, original, expected_location_id=location)
+        revision = store.freeze_revision(engine, actor, original, expected_location_id=location,
+                                         expected_dependency_hash=preview.dependency_hash_sha256)
         book = store.create_cookbook(engine, actor, name='Navigationskochbuch', expected_location_id=location)
         store.replace_cookbook_recipes(engine, actor, ObjectExpectation(book.public_id, book.row_version),
                                       [public_id], expected_location_id=location)
