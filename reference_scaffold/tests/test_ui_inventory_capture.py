@@ -27,7 +27,9 @@ MATRIX_PATH = ROOT / 'docs' / 'superpowers' / 'backlog-0909' / 'ui-route-matrix.
 MANIFEST_PATH = ROOT / 'docs' / 'superpowers' / 'backlog-0909' / 'ui-before-manifest.json'
 sys.path.insert(0, str(EVIDENCE))
 
-from capture import Outputs, capture_publish_dialog, shot  # noqa: E402
+from capture import (  # noqa: E402
+    Outputs, await_ready, capture_provenance, capture_publish_dialog, rendered_fonts, shot,
+)
 
 # The image is referenced at parse time and served with a real delay, so readiness
 # genuinely stays open and the errors land inside the recording window. The original
@@ -47,14 +49,23 @@ SLOW_ASSETS = """<!doctype html><html lang="de"><head><meta charset="utf-8">
 <title>Slow</title></head><body><h1 id="headline">Slow assets</h1>
 <img id="late" src="/slow.gif" alt="spaet"></body></html>"""
 
+SLOW_FONT = """<!doctype html><html lang="de"><head><meta charset="utf-8">
+<title>Verzögerte lokale Schrift</title><style>
+@font-face {font-family: "Inventory Fira"; src: url("/slow-font.woff2") format("woff2");
+font-weight: 400; font-style: normal; font-display: swap;}
+h1 {font-family: "Inventory Fira", sans-serif; font-weight: 400;}
+</style></head><body><h1>Fira Sans wird tatsächlich verwendet.</h1></body></html>"""
+
 NO_MODAL = """<!doctype html><html lang="de"><head><meta charset="utf-8">
 <title>No modal</title></head><body><h1>Ohne Dialog</h1></body></html>"""
 
 PIXEL = base64.b64decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')
 SLOW_IMAGE_SECONDS = 0.6
+SLOW_FONT_SECONDS = 0.6
+FONT_PATH = ROOT / 'reference_scaffold' / 'cafeteria' / 'static' / 'fonts' / 'fira-sans-400.woff2'
 
 
-def _serve(pages: dict[str, str]):
+def _serve(pages: dict[str, str], *, font_gate: threading.Event | None = None):
     app = Flask(__name__)
 
     def make(body: str):
@@ -64,9 +75,16 @@ def _serve(pages: dict[str, str]):
         time.sleep(SLOW_IMAGE_SECONDS)
         return PIXEL, 200, {'Content-Type': 'image/gif'}
 
+    def slow_font():
+        if font_gate is not None and not font_gate.wait(timeout=5):
+            return 'Font test did not release the response.', 503
+        time.sleep(SLOW_FONT_SECONDS)
+        return FONT_PATH.read_bytes(), 200, {'Content-Type': 'font/woff2'}
+
     for route, body in pages.items():
         app.add_url_rule(route, endpoint=route.strip('/') or 'root', view_func=make(body))
     app.add_url_rule('/slow.gif', endpoint='slow_gif', view_func=slow_gif)
+    app.add_url_rule('/slow-font.woff2', endpoint='slow_font', view_func=slow_font)
     server = make_server('127.0.0.1', 0, app, threaded=True)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -77,8 +95,8 @@ def _serve(pages: dict[str, str]):
 def served():
     started = []
 
-    def start(pages: dict[str, str]) -> str:
-        server, live = _serve(pages)
+    def start(pages: dict[str, str], *, font_gate: threading.Event | None = None) -> str:
+        server, live = _serve(pages, font_gate=font_gate)
         started.append(server)
         return live
 
@@ -114,6 +132,62 @@ def test_readiness_waits_for_late_image_instead_of_a_fixed_delay(browser, served
     assert pending == 0
     assert row['computed_fonts']['body']
     assert 'platform_source' in row['computed_fonts']
+
+
+def test_readiness_waits_for_used_local_font_and_records_rendered_fira(browser, served, tmp_path):  # noqa: F811
+    release = threading.Event()
+    live = served({'/font': SLOW_FONT}, font_gate=release)
+    with browser.new_context(base_url=live) as context:
+        page = context.new_page()
+        try:
+            page.goto('/font', wait_until='domcontentloaded')
+            page.wait_for_function('document.fonts.status === "loading"')
+            assert page.evaluate('document.fonts.check(\'16px "Inventory Fira"\')') is False
+            release.set()
+            readiness = await_ready(page)
+            state = page.evaluate('''() => ({
+                status: document.fonts.status,
+                faces: Array.from(document.fonts, font => ({family: font.family, status: font.status})),
+                delay: performance.getEntriesByName(location.origin + '/slow-font.woff2')
+                    .map(entry => entry.responseEnd - entry.startTime)
+            })''')
+            fonts = rendered_fonts(page)
+            assert readiness['error'] is None
+            assert readiness['fonts'] is True
+            assert state['status'] == 'loaded'
+            assert state['faces'] == [{'family': 'Inventory Fira', 'status': 'loaded'}]
+            assert len(state['delay']) == 1 and state['delay'][0] >= SLOW_FONT_SECONDS * 1000
+            assert fonts['platform_source'] == 'cdp:CSS.getPlatformFontsForNode'
+            assert any(font['family'] == 'Fira Sans' and font['glyphs'] > 0 for font in fonts['platform'])
+            page.screenshot(path=str(tmp_path / 'delayed-fira.png'))
+        finally:
+            release.set()
+
+
+def test_capture_provenance_does_not_infer_a_new_executor_or_model() -> None:
+    unknown = capture_provenance()
+    assert unknown['identity_status'] == 'not_supplied'
+    assert (unknown['wp_id'], unknown['lane'], unknown['model']) == (None, None, None)
+    source = unknown['source_provenance']
+    assert source == {
+        'inventory_commit': 'f136490f7b2c19805c8f6436ebdbb657c3549dd7',
+        'wp_id': 'wp-fc6f91338ad3', 'lane': 'grok-build', 'model': 'grok-4.6',
+    }
+    supplied = {'wp_id': 'fixture-capture', 'lane': 'fixture-executor'}
+    current = capture_provenance(supplied)
+    supplied['wp_id'] = 'changed-after-capture'
+    assert current['wp_id'] == 'fixture-capture'
+    assert current['lane'] == 'fixture-executor'
+    assert current['model'] is None
+    assert current['identity_status'] == 'caller_supplied'
+    assert current['source_provenance'] == source
+    assert capture_provenance({'model': 'explicit-fixture-model'})['model'] == 'explicit-fixture-model'
+
+
+@pytest.mark.parametrize('identity', [{'model': ''}, {'lane': ' '}, {'model': 3}, {'unknown': 'value'}])
+def test_capture_provenance_rejects_ambiguous_identity(identity) -> None:
+    with pytest.raises(ValueError, match='Capture identity'):
+        capture_provenance(identity)
 
 
 def test_absent_publish_modal_produces_a_blocked_record_not_a_success(browser, served, tmp_path):  # noqa: F811

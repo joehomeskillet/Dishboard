@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import threading
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -289,6 +290,27 @@ def capture_publish_dialog(page, out: Outputs | None = None) -> tuple[list[dict]
     return [row], []
 
 
+def capture_provenance(identity: Mapping[str, str] | None = None) -> dict[str, object]:
+    """Keep the recorded source author separate from caller-declared capture identity."""
+    supplied = dict(identity or {})
+    if set(supplied) - {'wp_id', 'lane', 'model'} or any(
+        not isinstance(value, str) or not value.strip() for value in supplied.values()
+    ):
+        raise ValueError('Capture identity accepts nonempty wp_id, lane and model strings only.')
+    return {
+        'wp_id': supplied.get('wp_id'),
+        'lane': supplied.get('lane'),
+        'model': supplied.get('model'),
+        'identity_status': 'caller_supplied' if supplied else 'not_supplied',
+        'source_provenance': {
+            'inventory_commit': 'f136490f7b2c19805c8f6436ebdbb657c3549dd7',
+            'wp_id': 'wp-fc6f91338ad3',
+            'lane': 'grok-build',
+            'model': 'grok-4.6',
+        },
+    }
+
+
 def run_capture(
     app: Flask,
     browser: Browser,
@@ -298,7 +320,10 @@ def run_capture(
     extra_admin_paths: list[str] | None = None,
     out: Outputs | None = None,
     reference_paths: list[str] | None = None,
+    *,
+    capture_identity: Mapping[str, str] | None = None,
 ) -> dict:
+    provenance = capture_provenance(capture_identity)
     out = out or Outputs()
     out.screen_dir.mkdir(parents=True, exist_ok=True)
     server, live = start_server(app)
@@ -362,14 +387,12 @@ def run_capture(
         ua = 'playwright-chromium'
     manifest = {
         'meta': {
-            'wp_id': 'wp-fc6f91338ad3',
+            **provenance,
             'mp_id': 'MP-UI-INVENTORY',
             'source_commit': '5f5f6cb535922db8453c68d871279d6b2e203391',
             'schema': 25,
             'baseline_status': 'proposed_never_user_approved',
             'captured_at': datetime.now(timezone.utc).isoformat(),
-            'lane': 'grok-build',
-            'model': 'grok-4.6',
             'locale': 'de-CH',
             'timezone': 'Europe/Zurich',
             'dpr': 1,
