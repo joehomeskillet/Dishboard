@@ -137,8 +137,9 @@ def test_historical_pin_survives_new_head_and_archive_but_cannot_be_newly_select
     assert snapshot(owner) == before
     new_path = '/admin/grundlagen/zutaten/neu'
     data = fields(client, new_path)
-    data.update(name='Neue Verbindung', storage_location_public_ids=STORAGE_PUBLIC_ID,
-                prepared_recipe_choice=preparation_choice(frozen))
+    for key, value in {'name': 'Neue Verbindung', 'storage_location_public_ids': STORAGE_PUBLIC_ID,
+                       'prepared_recipe_choice': preparation_choice(frozen)}.items():
+        data[key] = value
     assert client.post(new_path, data=data).status_code == 409
     assert snapshot(owner) == before
 

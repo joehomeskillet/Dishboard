@@ -146,16 +146,28 @@ def test_location_conflict_native_recovery(b3, master_server, browser, width, ja
         page = context.new_page()
         page.goto(base + path)
         page.get_by_label('Name', exact=True).fill('Mein erhaltener Entwurf')
-        page.get_by_label('Notiz', exact=True).fill('\nNotiz mit führendem Zeilenumbruch\nZweite Zeile')
+        page.get_by_label('Testlager', exact=True).check()
+        note = page.get_by_label('Notiz', exact=True)
+        # A person scrolls to the field before typing, then back to the header action.
+        # Do not race offscreen fill's native smooth focus-scroll with click's auto-scroll.
+        note_box = note.bounding_box()
+        assert note_box is not None
+        page.mouse.move(width - 24, 550)
+        page.mouse.wheel(0, note_box['y'] - 550)
+        expect(note).to_be_in_viewport(ratio=1)
+        note.fill('\nNotiz mit führendem Zeilenumbruch\nZweite Zeile')
         action = path + '/stammdaten' if existing else path
-        form = page.locator(f'form[action="{action}"]')
+        form = page.locator(f'form[method="post"][action="{action}"]')
         original = form.evaluate('el => Array.from(new FormData(el).entries())')
         with owner.begin() as connection:
             connection.execute(text('UPDATE cafeteria.locations SET active=false'))
             connection.execute(text("INSERT INTO cafeteria.locations(code,name,active) VALUES('NEW','Neuer Standort',true)"))
         before = snapshot(owner)
+        submit = page.get_by_role('button', name='Stammdaten speichern' if existing else 'Zutat anlegen', exact=True)
+        page.mouse.wheel(0, -page.evaluate('window.scrollY'))
+        expect(submit).to_be_in_viewport(ratio=1)
         with page.expect_response(lambda response: response.request.method == 'POST') as outcome:
-            page.get_by_role('button', name='Stammdaten speichern' if existing else 'Zutat anlegen', exact=True).click()
+            submit.click()
         assert outcome.value.status == 409
         expect(page.get_by_role('heading', level=1)).to_have_text('Ursprüngliche Eingaben')
         expect(page.locator('#master-error')).to_be_focused()
