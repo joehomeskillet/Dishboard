@@ -1135,6 +1135,7 @@ reference_scaffold/tests/test_master_data_routes.py
 reference_scaffold/tests/test_mcp_server.py
 reference_scaffold/tests/test_menu_collection.py
 reference_scaffold/tests/test_menu_collection_browser.py
+reference_scaffold/tests/test_menu_conflict_nojs_browser.py
 reference_scaffold/tests/test_menu_images.py
 reference_scaffold/tests/test_menu_images_browser.py
 reference_scaffold/tests/test_menu_metadata_visibility.py
