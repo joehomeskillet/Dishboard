@@ -127,22 +127,56 @@ def test_real_reader_rejects_an_incomplete_captured_v1_child(prepared):
     parent = freeze(engine, ids, create_recipe(engine, ids, [historical], name='Festgehaltener Teller'))
     accepted = reads.get_revision(engine, parent['public_id'])
     assert accepted.prepared_revisions[0].snapshot['schema_version'] == 1
+    original_child = reads.get_revision(engine, old['public_id'])
+    original_state = state(owner)
     snapshot = json.loads(accepted.canonical_snapshot_text)
-    snapshot['prepared_revisions'][0]['snapshot']['recipe']['ingredients'][0]['food_public_id'] = None
-    # Privileged synthetic corruption fixture; both stored originals stay untouched and
-    # the new row hashes itself correctly, so only the captured closure is invalid.
+    entry = snapshot['prepared_revisions'][0]
+    entry['snapshot']['recipe']['ingredients'][0]['food_public_id'] = None
+    # New privileged fixture rows, never rewritten originals. The child must also
+    # exist with its exact canonical bytes/hash, or the old reader already rejects it.
     with owner.begin() as connection:
+        child = connection.execute(text('''INSERT INTO cafeteria.recipe_revisions
+            (location_id,recipe_id,revision_number,snapshot_json,content_hash_sha256,created_by)
+            SELECT location_id,recipe_id,998,CAST(:body AS jsonb),
+                encode(public.digest(convert_to(CAST(:body AS jsonb)::text,'UTF8'),'sha256'),'hex'),created_by
+            FROM cafeteria.recipe_revisions WHERE public_id=CAST(:root AS uuid)
+            RETURNING public_id,content_hash_sha256,snapshot_json::text AS canonical_text'''),
+            {'root': old['public_id'], 'body': json.dumps(entry['snapshot'])}).one()
+        assert hashlib.sha256(child.canonical_text.encode()).hexdigest() == child.content_hash_sha256
+        entry.update(revision_public_id=str(child.public_id), content_hash_sha256=child.content_hash_sha256,
+                     snapshot=json.loads(child.canonical_text))
+        snapshot['foods'][0]['prepared_recipe'].update(
+            revision_public_id=str(child.public_id), content_hash_sha256=child.content_hash_sha256)
         invalid_id = connection.execute(text('''INSERT INTO cafeteria.recipe_revisions
             (location_id,recipe_id,revision_number,snapshot_json,content_hash_sha256,created_by)
             SELECT location_id,recipe_id,998,CAST(:body AS jsonb),
                 encode(public.digest(convert_to(CAST(:body AS jsonb)::text,'UTF8'),'sha256'),'hex'),created_by
             FROM cafeteria.recipe_revisions WHERE public_id=CAST(:root AS uuid) RETURNING public_id'''),
             {'root': parent['public_id'], 'body': json.dumps(snapshot)}).scalar_one()
+        stored = connection.execute(text('''SELECT snapshot_json,content_hash_sha256,
+            snapshot_json::text AS canonical_text,
+            (snapshot_json->'prepared_revisions'->0->'snapshot')::text AS child_text
+            FROM cafeteria.recipe_revisions WHERE public_id=:id'''), {'id': invalid_id}).one()
+        assert stored.child_text == child.canonical_text
+        assert hashlib.sha256(stored.canonical_text.encode()).hexdigest() == stored.content_hash_sha256
+        stored_entry = stored.snapshot_json['prepared_revisions'][0]
+        assert stored.snapshot_json['foods'][0]['prepared_recipe'] == {
+            key: stored_entry[key] for key in ('recipe_public_id', 'revision_public_id', 'content_hash_sha256')}
+        assert stored_entry['revision_public_id'] == str(child.public_id)
+        assert stored_entry['content_hash_sha256'] == child.content_hash_sha256
     before = state(owner)
-    with pytest.raises(RecipeConfigurationError):
-        reads.get_revision(engine, str(invalid_id))
-    assert state(owner) == before
-    assert reads.get_revision(engine, parent['public_id']) == accepted
+    added = {str(child.public_id), str(invalid_id)}
+    for table, rows in original_state.items():
+        assert [row for row in before[table]
+                if table != 'recipe_revisions' or json.loads(row)['public_id'] not in added] == rows
+    assert len(before['recipe_revisions']) == len(original_state['recipe_revisions']) + 2
+    try:
+        with pytest.raises(RecipeConfigurationError):
+            reads.get_revision(engine, str(invalid_id))
+    finally:
+        assert state(owner) == before
+        assert reads.get_revision(engine, old['public_id']) == original_child
+        assert reads.get_revision(engine, parent['public_id']) == accepted
 
 
 def incomplete_child(change):

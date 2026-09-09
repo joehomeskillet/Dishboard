@@ -212,7 +212,9 @@ def test_archived_recipe_and_revision_pagination_keep_explicit_historical_choice
             values = mutable(current.payload)
             values['description'] = f'Historischer Stand {number}'
             changed = recipes.update_recipe(engine, actor, target(current), values, expected_location_id=location)
-            recipes.freeze_revision(engine, actor, target(changed), expected_location_id=location)
+            preview = recipes.get_dependency_preview(engine, target(changed), expected_location_id=location)
+            recipes.freeze_revision(engine, actor, target(changed), expected_location_id=location,
+                                    expected_dependency_hash=preview.dependency_hash_sha256)
         current = recipes.get_recipe(engine, recipe)
         recipes.set_recipe_active(engine, actor, target(current), active=False, expected_location_id=location)
     before = state(owner)

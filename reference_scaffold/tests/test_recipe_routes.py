@@ -12,7 +12,7 @@ from test_master_data_routes import (  # noqa: F401
     Forms, app_engine, b3 as b3, installed_pg16, pg16, seeded_pg16,
 )
 from test_recipe_forms import form_values
-from test_recipe_store_db import line, payload, snapshot, target
+from test_recipe_store_db import line, payload, snapshot, target, mutable, complete_line, STORAGE_PUBLIC_ID
 from test_master_data_db import signed_in
 from test_recipe_image_identity_db import attach
 
@@ -186,7 +186,13 @@ def test_image_caption_step_binding_and_removal_preserve_history(b3):
     assert client.post(path, data=data).status_code == 303
     with signed_in(engine, actor):
         row = routes.store.get_recipe(engine, path.rsplit('/', 1)[1])
-        routes.store.freeze_revision(engine, actor, target(row), expected_location_id=routes.store.get_location(engine))
+        location = routes.store.get_location(engine)
+        complete = mutable(row.payload)
+        complete['ingredients'] = [complete_line(engine, actor)]
+        row = routes.store.update_recipe(engine, actor, target(row), complete, expected_location_id=location)
+        preview = routes.store.get_dependency_preview(engine, target(row), expected_location_id=location)
+        routes.store.freeze_revision(engine, actor, target(row), expected_location_id=location,
+                                     expected_dependency_hash=preview.dependency_hash_sha256)
     data = fields(client, path)
     before = snapshot(owner)
     response = client.post('/admin/rezepte/formular', query_string={
@@ -265,7 +271,8 @@ def test_maximum_aggregate_get_signing_preserves_all_values_with_bounded_names(b
             routes.masters.create_unit(engine, actor, code=code, display_name=name, dimension='count', base_factor='1')
             selected_names[code] = name
         for index in range(64):
-            food = routes.masters.create_food(engine, actor, {'name': f'Zutat {index}', 'base_unit_code': 'G'})
+            food = routes.masters.create_food(engine, actor, {'name': f'Zutat {index}', 'base_unit_code': 'G',
+                'storage_location_public_ids': [STORAGE_PUBLIC_ID]})
             tag = routes.masters.create_vocabulary(engine, 'tag', actor, code=f'R{index}', name=f'Tag {index}')
             selected_names[food.public_id], selected_names[tag.public_id] = f'Zutat {index}', f'Tag {index}'
             ingredients.append(line(f'Zutat {index}', food_public_id=food.public_id, unit_code=f'R{index}'))

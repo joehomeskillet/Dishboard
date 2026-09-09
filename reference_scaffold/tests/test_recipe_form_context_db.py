@@ -17,6 +17,24 @@ from test_recipe_store_db import snapshot
 from test_recipe_forms import form_values
 
 
+@pytest.mark.parametrize('action', sorted(forms.ACTIONS - {'recipe.freeze'}))
+def test_nonfreeze_signed_context_keeps_original_exact_shape_and_rejects_hash(action):
+    from flask import Flask, g, session
+    from types import SimpleNamespace
+    from uuid import uuid4
+    app = Flask(__name__)
+    app.secret_key = 'isolated-form-context-test-key'
+    original = None if action.endswith('.create') else ObjectExpectation(str(uuid4()), 1)
+    with app.test_request_context('/original', method='GET'):
+        g.auth_user = SimpleNamespace(user_id=1, authz_version=2)
+        session['_csrf_token'] = 'isolated-csrf'
+        token = forms.sign_context(action=action, target=original, expected_location_id=1)
+        data = forms._signer().loads(token)
+        assert set(data) == {'action', 'actor', 'actor_version', 'target', 'version', 'location', 'csrf', 'labels'}
+        with pytest.raises(forms.FormError):
+            forms.sign_context(action=action, target=original, expected_location_id=1, dependency_hash_sha256='0' * 64)
+
+
 @pytest.fixture
 def harness(b3):  # noqa: F811
     app, owner, client, actor = b3

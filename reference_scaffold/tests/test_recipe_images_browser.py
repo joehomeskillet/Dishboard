@@ -12,7 +12,7 @@ from playwright.sync_api import expect
 from werkzeug.serving import make_server
 
 from test_recipe_revision_routes import (  # noqa: F401
-    a3, app_engine, b3, pg16, installed_pg16, seeded_pg16, png, edit, snapshot,
+    a3, app_engine, b3, pg16, installed_pg16, seeded_pg16, png, edit, snapshot, complete_a3,
 )
 from test_rendered_ui import browser  # noqa: F401
 
@@ -58,6 +58,7 @@ def capture(page, tmp_path, name):
 @pytest.mark.parametrize('width', [390, 820, 1440])
 @pytest.mark.parametrize('javascript', [False, True])
 def test_native_upload_freeze_history_scaling_and_assets(a3, recipe_server, browser, width, javascript, tmp_path):  # noqa: F811
+    complete_a3(a3)
     _, owner, _, _, public_id = a3
     base, cookie = recipe_server
     with browser.new_context(viewport={'width': width, 'height': 1100}, java_script_enabled=javascript,

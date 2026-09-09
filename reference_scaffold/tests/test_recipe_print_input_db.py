@@ -18,24 +18,28 @@ from cafeteria.recipe_reads import _get_recipe_asset_connection
 from test_recipe_revision_immutable_db import png
 from test_recipe_store_db import (  # noqa: F401
     pg16, installed_pg16, seeded_pg16, app_engine, payload, mutable, target, snapshot,
-    signed_in,
+    signed_in, complete_line,
 )
 from test_recipe_store_db import master as master
 
 
 def freeze_image(engine, actor, *, owner=None):
     location = store.get_location(engine)
-    recipe = store.create_recipe(engine, actor, payload(), expected_location_id=location)
+    data = payload() if owner is not None else payload(ingredients=[complete_line(engine, actor)])
+    recipe = store.create_recipe(engine, actor, data, expected_location_id=location)
     attached = store.add_recipe_image(engine, actor, target(recipe), data=png(),
                                      content_type='image/png', expected_location_id=location)
     data = mutable(store.get_recipe(engine, recipe.public_id).payload)
     digest = data['images'][0]['sha256']
     data['steps'][0]['image_sha256'] = digest
     updated = store.update_recipe(engine, actor, target(attached), data, expected_location_id=location)
+    preview = (store.get_dependency_preview(engine, target(updated), expected_location_id=location)
+               if owner is None else None)
     revision = (RevisionResult(**legacy_freeze(owner,
         {'actor': actor.user_id, 'authz': actor.authz_version, 'location': location},
         {'public_id': updated.public_id, 'row_version': updated.row_version})) if owner is not None
-        else store.freeze_revision(engine, actor, target(updated), expected_location_id=location))
+        else store.freeze_revision(engine, actor, target(updated), expected_location_id=location,
+                                   expected_dependency_hash=preview.dependency_hash_sha256))
     return recipe.public_id, revision, digest
 
 

@@ -12,7 +12,7 @@ from cafeteria.master_data_types import ObjectExpectation
 from cafeteria.recipe_types import RecipeConflictError, RecipeValidationError
 from test_recipe_revision_immutable_db import png
 from test_recipe_store_db import (  # noqa: F401
-    pg16, installed_pg16, seeded_pg16, app_engine, payload, mutable, target, snapshot,
+    pg16, installed_pg16, seeded_pg16, app_engine, payload, mutable, target, snapshot, complete_line,
 )
 from test_recipe_store_db import master as master
 
@@ -40,10 +40,13 @@ def attach(engine, actor, row, **changes):
 
 def setup_image(engine, actor, historical=False):
     location = store.get_location(engine)
-    row = store.create_recipe(engine, actor, payload(), expected_location_id=location)
+    data = payload(ingredients=[complete_line(engine, actor)]) if historical else payload()
+    row = store.create_recipe(engine, actor, data, expected_location_id=location)
     row = attach(engine, actor, row)
     if historical:
-        revision = store.freeze_revision(engine, actor, target(row), expected_location_id=location)
+        preview = store.get_dependency_preview(engine, target(row), expected_location_id=location)
+        revision = store.freeze_revision(engine, actor, target(row), expected_location_id=location,
+                                         expected_dependency_hash=preview.dependency_hash_sha256)
         data = mutable(store.get_recipe(engine, row.public_id).payload)
         data['images'] = []
         row = store.update_recipe(engine, actor, ObjectExpectation(row.public_id, revision.recipe_row_version),
@@ -155,7 +158,13 @@ def test_aggregate_cannot_rewrite_current_or_historical_image_origin(master, his
     row = setup_image(engine, actor)
     original_image = mutable(store.get_recipe(engine, row.public_id).payload['images'][0])
     if historical:
-        revision = store.freeze_revision(engine, actor, target(row), expected_location_id=store.get_location(engine))
+        location = store.get_location(engine)
+        complete = mutable(store.get_recipe(engine, row.public_id).payload)
+        complete['ingredients'] = [complete_line(engine, actor)]
+        row = store.update_recipe(engine, actor, target(row), complete, expected_location_id=location)
+        preview = store.get_dependency_preview(engine, target(row), expected_location_id=location)
+        revision = store.freeze_revision(engine, actor, target(row), expected_location_id=location,
+                                         expected_dependency_hash=preview.dependency_hash_sha256)
         data = mutable(store.get_recipe(engine, row.public_id).payload)
         data['images'] = []
         row = store.update_recipe(engine, actor, ObjectExpectation(row.public_id, revision.recipe_row_version),

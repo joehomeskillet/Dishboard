@@ -10,13 +10,15 @@ from typing import Iterator
 from sqlalchemy import Connection, Engine, text
 
 from .component_catalog_store import resolve_single_active_location_connection
+from .master_data_types import ObjectExpectation
 from .recipe_snapshots import frozen_json
 from .recipe_snapshot_v2 import invalid, reconstructed_snapshots, verified_prepared
 from .recipe_types import (
     CookbookDTO, RecipeAssetDTO, RecipeDTO, RecipeNotFoundError,
+    RecipeConfigurationError, RecipeConflictError, RecipeDependencyIssueDTO, RecipeDependencyPreviewDTO,
     RecipeRevisionDTO, RecipeRevisionSummaryDTO, RecipeUnavailableError, RecipeValidationError,
 )
-from .recipe_values import identifier, recipe_payload, rows
+from .recipe_values import identifier, positive, recipe_payload, rows
 
 
 @contextmanager
@@ -79,6 +81,32 @@ def get_recipe(engine: Engine, public_id: str) -> RecipeDTO:
         if row is None:
             raise RecipeNotFoundError('Rezept nicht gefunden.')
         return RecipeDTO(str(row.public_id), row.row_version, row.active, frozen_json(row.payload))
+
+
+def get_dependency_preview(engine: Engine, target: ObjectExpectation, *,
+                           expected_location_id: int) -> RecipeDependencyPreviewDTO:
+    if not isinstance(target, ObjectExpectation):
+        raise RecipeValidationError('Originalobjekt erforderlich.')
+    values = {'target': identifier(target.public_id), 'version': positive(target.row_version),
+              'location': positive(expected_location_id)}
+    with connection(engine) as (current, location):
+        if location != expected_location_id:
+            raise RecipeConflictError('Der ursprüngliche Standort ist nicht mehr aktiv.')
+        result = current.execute(text('''SELECT cafeteria.recipe_dependency_preview_v27(
+            :location,CAST(:target AS uuid),:version)'''), values).scalar_one()
+    if (not isinstance(result, dict) or set(result) != {
+            'recipe_public_id', 'recipe_row_version', 'complete', 'issues', 'snapshot', 'dependency_hash_sha256'}
+            or result['recipe_public_id'] != values['target']
+            or type(result['recipe_row_version']) is not int or result['recipe_row_version'] != values['version']
+            or type(result['complete']) is not bool or not isinstance(result['snapshot'], dict)
+            or result['snapshot'].get('schema_version') != 2
+            or not isinstance(result['dependency_hash_sha256'], str)
+            or re.fullmatch('[0-9a-f]{64}', result['dependency_hash_sha256']) is None
+            or result['issues'] != ([] if result['complete'] else [{'field': 'ingredients', 'code': 'incomplete'}])):
+        raise RecipeConfigurationError('Die Zutatenvorschau ist nicht verfügbar.')
+    return RecipeDependencyPreviewDTO(result['recipe_public_id'], result['recipe_row_version'],
+        result['complete'], tuple(RecipeDependencyIssueDTO(**issue) for issue in result['issues']),
+        frozen_json(result['snapshot']), result['dependency_hash_sha256'])
 
 
 def get_revision(engine: Engine, public_id: str) -> RecipeRevisionDTO:
