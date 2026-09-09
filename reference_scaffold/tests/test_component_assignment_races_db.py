@@ -15,7 +15,7 @@ from cafeteria.component_assignment_store import (
     assign_component,
     replace_component_links,
 )
-from cafeteria.component_catalog_store import update_component
+from cafeteria.component_catalog_store import ComponentConflictError, update_component
 from test_component_assignment_db import (
     CatalogDatabase,
     _assignment,
@@ -165,7 +165,7 @@ def _catalog_race(
                 and 'public_id=' in statement
                 and 'FOR UPDATE' in statement
             )
-        return '/* assignment_component_lock */' in statement
+        return 'FROM cafeteria.menu_components c' in statement and 'FOR SHARE OF c' in statement
 
     def after_first(_conn, _cursor, statement, _params, _ctx, _many):
         if matches(statement, catalog=catalog_first):
@@ -216,7 +216,13 @@ def _catalog_race(
             first_expected = 2 if catalog_first else expected_item_version + 1
             second_expected = expected_item_version + 1 if catalog_first else 2
             assert first.result(timeout=15) == first_expected
-            assert second.result(timeout=15) == second_expected
+            if catalog_first:
+                # The head union was pre-read before the catalogue update committed.
+                # Changed reference state requires a fresh request, never a late rebase.
+                with pytest.raises(ComponentConflictError, match='zwischenzeitlich'):
+                    second.result(timeout=15)
+            else:
+                assert second.result(timeout=15) == second_expected
     finally:
         event.remove(first_engine, 'after_cursor_execute', after_first)
         event.remove(second_engine, 'before_cursor_execute', before_second)
@@ -224,10 +230,10 @@ def _catalog_race(
         catalog_engine.dispose()
     assert _row_versions(database, item, public_id)[0] == before_week
     links = _links(database, item.id)
-    if operation == 'unassign':
+    if catalog_first:
+        assert links == ([(1, public_id, str(component['name']), 1)] if operation == 'unassign' else [])
+    elif operation == 'unassign':
         assert links == []
-    elif catalog_first:
-        assert links == [(1, public_id, new_name, 2)]
     else:
         assert links == [(1, public_id, str(component['name']), 1)]
 

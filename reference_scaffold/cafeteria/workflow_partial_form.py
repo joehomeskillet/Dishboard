@@ -9,6 +9,7 @@ from typing import Any
 from uuid import UUID
 
 from .operations_settings import normalise_time
+from .component_assignment_contract import AssignmentValidationError, normalize_assignments
 from .workflow import (
     MENU_TYPES,
     PROFILE_DAYS,
@@ -32,7 +33,7 @@ _MENU_REQUIRED = frozenset(
 )
 _MENU_OPTIONAL = frozenset('description note'.split())
 _MENU_REPEATED = frozenset(
-    'component_public_id component_text allergen_code allergen_presence '
+    'component_public_id component_text recipe_revision_public_id allergen_code allergen_presence '
     'origin_ingredient origin_country_code label_code'.split()
 )
 
@@ -237,6 +238,17 @@ def _assignments(form: Mapping[str, object], context: str) -> list[dict[str, str
         if component_text == '' or not component_text.strip(' '):
             raise _item_error(context, 'Freitext-Komponente ist leer.', 'component_text')
         result.append({'component_public_id': None, 'component_text': component_text})
+    if 'recipe_revision_public_id' in form:
+        revisions = _repeated(form, 'recipe_revision_public_id')
+        if len(revisions) != len(result):
+            raise _item_error(context, 'Zusammengehörige Rezeptfelder sind unvollständig.',
+                              'recipe_revision_public_id')
+        for row, revision in zip(result, revisions, strict=True):
+            row['recipe_revision_public_id'] = revision if revision else None
+    try:
+        normalize_assignments(result)
+    except AssignmentValidationError as error:
+        raise _item_error(context, str(error), 'recipe_revision_public_id') from error
     return result
 
 

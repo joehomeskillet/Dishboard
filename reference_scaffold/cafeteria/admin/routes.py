@@ -17,6 +17,7 @@ from flask import (
 from itsdangerous import BadData, URLSafeTimedSerializer
 
 from ..csvio import snapshot_to_csv, validate_upload
+from ..component_catalog_store import ComponentConflictError
 from ..db import active_snapshot
 from ..public.routes import effective_today
 from ..roles import require_capability
@@ -28,6 +29,8 @@ from ..workflow import (
     current_draft_row_version,
     import_draft,
 )
+from ..workflow_write_context import WriteConflictError, WritePermissionError, WriteUnavailableError
+from .workflow_scope import _scope
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
 PATIENT_CSV_ERROR = 'Patienten-CSV ist ungültig.'
@@ -89,13 +92,17 @@ def import_preview():
         if result['valid']:
             serializer = URLSafeTimedSerializer(
                 current_app.secret_key,
-                salt='dishboard-csv-import-v1',
+                salt='dishboard-csv-import-v2',
             )
             profile_code = str(result['profile'])
             week_start = result['week_start']
+            scope = _scope(profile_code)
             signed_token = serializer.dumps(
                 {
                     'text': result['text'],
+                    'actor_id': scope.actor_id,
+                    'expected_authz_version': scope.expected_authz_version,
+                    'expected_location_id': scope.location_id,
                     'profile_code': profile_code,
                     'week_start': week_start.isoformat(),
                     'expected_row_version': current_draft_row_version(
@@ -119,11 +126,12 @@ def import_preview():
 @require_capability('csv.import')
 def import_csv():
     validate_csrf(request.form.get('_csrf'))
-    if set(request.form) != {'_csrf', 'import_token'}:
+    if (set(request.form) != {'_csrf', 'import_token'}
+            or any(len(request.form.getlist(key)) != 1 for key in request.form)):
         abort(400, description='Importformular ist ungültig.')
     serializer = URLSafeTimedSerializer(
         current_app.secret_key,
-        salt='dishboard-csv-import-v1',
+        salt='dishboard-csv-import-v2',
     )
     try:
         signed_token = bytes.fromhex(request.form['import_token']).decode('ascii')
@@ -135,6 +143,7 @@ def import_csv():
         'profile_code',
         'week_start',
         'expected_row_version',
+        'actor_id', 'expected_authz_version', 'expected_location_id',
     }:
         abort(400, description='Importvorschau ist ungültig.')
     text_value = token_payload['text']
@@ -143,12 +152,20 @@ def import_csv():
     expected_row_version = token_payload['expected_row_version']
     if (
         not isinstance(text_value, str)
-        or token_profile not in {'patient', 'staff_guest'}
+        or type(token_profile) is not str or token_profile not in {'patient', 'staff_guest'}
         or not isinstance(token_week_start, str)
         or type(expected_row_version) is not int
         or expected_row_version < 0
+        or expected_row_version > 2**63 - 1
+        or any(type(token_payload[key]) is not int or not 0 < token_payload[key] <= 2**63 - 1
+               for key in ('actor_id', 'expected_authz_version', 'expected_location_id'))
     ):
         abort(400, description='Importvorschau ist ungültig.')
+    current = _scope(token_profile)
+    if (current.actor_id != token_payload['actor_id']
+            or current.expected_authz_version != token_payload['expected_authz_version']
+            or current.location_id != token_payload['expected_location_id']):
+        abort(409, description='Berechtigung oder Standort wurde geändert. Bitte Vorschau neu laden.')
     result = validate_upload(io.BytesIO(text_value.encode('utf-8')))
     if not result['valid']:
         abort(
@@ -165,15 +182,21 @@ def import_csv():
             profile_code,
             week_start,
             expected_row_version=expected_row_version,
-            actor_id=_actor_id(),
+            actor_id=token_payload['actor_id'],
             values=result['values'],
+            expected_authz_version=token_payload['expected_authz_version'],
+            expected_location_id=token_payload['expected_location_id'],
         )
     except (WorkflowValidationError, ValueError) as error:
         abort(
             400,
             description=PATIENT_CSV_ERROR if profile_code == 'patient' else str(error),
         )
-    except StaleDraftError as error:
+    except (StaleDraftError, ComponentConflictError, WriteConflictError) as error:
         abort(409, description=str(error))
+    except WritePermissionError as error:
+        abort(403, description=str(error))
+    except WriteUnavailableError as error:
+        abort(503, description=str(error))
     endpoint = 'admin.patienten' if profile_code == 'patient' else 'admin.cafeteria'
     return redirect(url_for(endpoint, week=week_start.isoformat()), code=303)

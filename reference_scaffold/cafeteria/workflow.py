@@ -7,6 +7,9 @@ from typing import Any, Literal
 from sqlalchemy import Connection, Engine, text
 from sqlalchemy.exc import NoResultFound
 
+from .component_assignment_contract import normalize_assignments
+from .workflow_write_context import write_scope, write_transaction
+
 from .component_assignment_store import (
     AutoOriginConflictError as AutoOriginConflictError,
     ComponentAssignmentConflictError as ComponentAssignmentConflictError,
@@ -123,6 +126,7 @@ def _validate_values(profile_code: str, week_start: date, values: dict[str, Any]
         'origins',
         'note',
         'allergen_review_status',
+        'assignments', 'allergen_mode', 'origin_mode', 'label_mode',
     }
     if profile_code == 'staff_guest':
         required_option_keys |= {'internal_rappen', 'external_rappen'}
@@ -186,6 +190,11 @@ def _validate_values(profile_code: str, week_start: date, values: dict[str, Any]
                 components = option['components']
                 if not isinstance(components, list) or any(not isinstance(item, str) for item in components):
                     raise WorkflowValidationError('Komponentenliste ist ungültig.')
+                if 'assignments' in option:
+                    normalize_assignments(option['assignments'])
+                for mode in ('allergen_mode', 'origin_mode', 'label_mode'):
+                    if mode in option and (type(option[mode]) is not str or option[mode] not in {'auto', 'manual'}):
+                        raise WorkflowValidationError('Deklarationsmodus ist ungültig.')
                 for key in ('external_id', 'description', 'note', 'allergen_review_status'):
                     if key in option and not isinstance(option[key], str):
                         raise WorkflowValidationError('Menümetadaten sind ungültig.')
@@ -211,10 +220,14 @@ def load_draft(
     week_start: date,
     *,
     actor_id: int,
+    expected_authz_version: int,
+    expected_location_id: int,
 ) -> dict[str, Any]:
     if profile_code not in PROFILE_MEALS or week_start.isoweekday() != 1:
         raise WorkflowValidationError('Profil oder Wochenbeginn ist ungültig.')
-    ensure_week(engine, profile_code, week_start, actor_id)
+    ensure_week(engine, profile_code, week_start, actor_id,
+                expected_authz_version=expected_authz_version,
+                expected_location_id=expected_location_id)
     with engine.connect() as connection:
         draft = load_draft_connection(connection, profile_code, week_start)
     if profile_code == 'patient':
@@ -234,6 +247,8 @@ def save_draft(
     expected_row_version: int,
     actor_id: int,
     values: dict[str, Any],
+    expected_authz_version: int,
+    expected_location_id: int,
 ) -> int:
     validate_draft_values(profile_code, week_start, values)
     return persist_draft(
@@ -243,6 +258,8 @@ def save_draft(
         expected_row_version=expected_row_version,
         actor_id=actor_id,
         values=values,
+        expected_authz_version=expected_authz_version,
+        expected_location_id=expected_location_id,
     )
 
 
@@ -316,13 +333,18 @@ def import_draft(
     expected_row_version: int,
     actor_id: int,
     values: dict[str, Any],
+    expected_authz_version: int,
+    expected_location_id: int,
 ) -> int:
     validate_draft_values(profile_code, week_start, values)
     import_values = _full_replace_values(values)
-    with engine.begin() as connection:
+    scope = write_scope(actor_id, expected_location_id, profile_code, expected_authz_version)
+    with write_transaction(engine, scope) as connection:
         persisted_version = expected_row_version
         if expected_row_version == 0:
-            if not ensure_week_connection(connection, profile_code, week_start, actor_id):
+            if not ensure_week_connection(connection, profile_code, week_start, actor_id,
+                                          expected_authz_version=expected_authz_version,
+                                          expected_location_id=expected_location_id):
                 raise StaleDraftError('Der Entwurf wurde zwischenzeitlich geändert.')
             persisted_version = 1
         return persist_draft_connection(
@@ -332,6 +354,8 @@ def import_draft(
             expected_row_version=persisted_version,
             actor_id=actor_id,
             values=import_values,
+            expected_authz_version=expected_authz_version,
+            expected_location_id=expected_location_id,
             reject_catalog_assignments=True,
         )
 

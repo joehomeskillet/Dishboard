@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from review_support import write_expectations
+
 import io
 from copy import deepcopy
 from datetime import timedelta
@@ -59,7 +61,7 @@ def _staff_values(day_count: int = 5) -> dict:
 
 def _import(db: WorkflowDatabase, values: dict, expected: int) -> int:
     return import_draft(db.app, 'staff_guest', WEEK, expected_row_version=expected,
-                        actor_id=db.actor_id, values=values)
+                        actor_id=db.actor_id, values=values, **write_expectations(db.app, db.actor_id))
 
 
 def test_schedule_apply_fills_only_missing_slots_and_wholly_unset_open_times(
@@ -219,7 +221,7 @@ def test_patient_snapshot_and_full_replace_preserve_times_without_prices(
                           _service_payload(start='11:30', end='13:00'), 0)
     before = _draft(db, 'patient')
     import_draft(db.app, 'patient', WEEK, expected_row_version=before['row_version'],
-                 actor_id=db.actor_id, values=_full_values('Patient'))
+                 actor_id=db.actor_id, values=_full_values('Patient'), **write_expectations(db.app, db.actor_id))
     after = _draft(db, 'patient')
     snapshot = build_snapshot('patient', after, 'PAT-2026-KW36-R1')
     assert snapshot['days'][0]['services'][0]['service_start'] == '11:30'
@@ -238,7 +240,8 @@ def test_copy_keeps_service_times_and_enabled_weekends(workflow_database: Workfl
     _import(db, values, 0)
     source = _draft(db)
     target_week = WEEK + timedelta(days=7)
-    assert copy_previous_week(db.app, _scope(db, 'staff_guest'), target_week, 0) == 1
+    assert copy_previous_week(db.app, _scope(db, 'staff_guest'), target_week, 0,
+                              source_row_version=source['row_version']) == 1
     with db.app.connect() as connection:
         target = load_draft_connection(connection, 'staff_guest', target_week)
     assert len(target['days']) == 7

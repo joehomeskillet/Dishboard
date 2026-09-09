@@ -19,6 +19,7 @@ from .component_assignment_store import (
 from .component_catalog_store import AdminScope, ComponentNotFoundError
 from .component_effects import effective_rows, public_effects, rematerialize_auto_effects
 from .workflow_publication import require_expected_active_location
+from .workflow_write_context import write_transaction
 
 
 _TOKEN_KEYS = frozenset(
@@ -48,6 +49,7 @@ _ROW_KEYS = {
     'origins': frozenset({'ingredient', 'country_code', 'text'}),
 }
 _TOKEN_PATTERN = re.compile(r'sha256:[0-9a-f]{64}')
+_RECIPE_KEYS = frozenset({'recipe_revision_public_id', 'recipe_content_hash_sha256'})
 
 
 def _positive_integer(value: object, label: str) -> int:
@@ -79,7 +81,19 @@ def _validate_components(value: object) -> None:
         raise ValueError('components muss eine Liste sein.')
     ordering = []
     for raw in value:
-        row = _exact_mapping(raw, _COMPONENT_KEYS, 'Komponente')
+        has_recipe = isinstance(raw, Mapping) and bool(_RECIPE_KEYS.intersection(raw))
+        row = _exact_mapping(raw, _COMPONENT_KEYS | _RECIPE_KEYS if has_recipe else _COMPONENT_KEYS,
+                             'Komponente')
+        if has_recipe:
+            revision = _string(row['recipe_revision_public_id'], 'recipe_revision_public_id')
+            try:
+                if str(UUID(revision)) != revision:
+                    raise ValueError
+            except ValueError as error:
+                raise ValueError('recipe_revision_public_id ist nicht kanonisch.') from error
+            digest = _string(row['recipe_content_hash_sha256'], 'recipe_content_hash_sha256')
+            if re.fullmatch(r'[0-9a-f]{64}', digest) is None:
+                raise ValueError('Rezeptinhaltshash ist ungültig.')
         ordering.append(_positive_integer(row['sort_order'], 'sort_order'))
         _string(row['component_text'], 'component_text')
         public_id = row['component_public_id']
@@ -222,6 +236,9 @@ def _review_payload(
                 if row['current_component_row_version'] is not None
                 else None
             ),
+            **({'recipe_revision_public_id': str(row['recipe_revision_public_id']),
+                'recipe_content_hash_sha256': str(row['recipe_content_hash_sha256'])}
+               if row['recipe_revision_public_id'] is not None else {}),
         }
         for row in connection.execute(
             text(
@@ -229,9 +246,12 @@ def _review_payload(
                 SELECT mic.sort_order, c.public_id::text AS component_public_id,
                        mic.component_text,
                        mic.component_row_version AS stored_component_row_version,
-                       c.row_version AS current_component_row_version
+                       c.row_version AS current_component_row_version,
+                       rr.public_id::text AS recipe_revision_public_id,
+                       rr.content_hash_sha256 AS recipe_content_hash_sha256
                 FROM cafeteria.menu_item_components mic
                 LEFT JOIN cafeteria.menu_components c ON c.id=mic.component_id
+                LEFT JOIN cafeteria.recipe_revisions rr ON rr.id=mic.recipe_revision_id
                 WHERE mic.menu_item_id=:item_id
                 ORDER BY mic.sort_order
                 '''
@@ -319,7 +339,7 @@ def review_component(
     )
     if type(component_version) is not str or _TOKEN_PATTERN.fullmatch(component_version) is None:
         raise ValueError('component_version ist ungültig.')
-    with engine.begin() as connection:
+    with write_transaction(engine, scope) as connection:
         require_expected_active_location(connection, scope.location_id, lock=True)
         _lock_scoped_item(connection, scope, clean_item_id)
         _lock_components_and_links(connection, clean_item_id)

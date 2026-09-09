@@ -8,11 +8,14 @@ from datetime import date, timedelta
 from sqlalchemy import Connection, Engine, text
 
 from .component_assignment_store import replace_component_links_connection
+from .component_assignment_contract import normalize_assignments
+from .component_binding_state import prepare_bindings
 from .component_catalog_store import AdminScope, resolve_single_active_location_connection
 from .component_effects import rematerialize_auto_effects
 from .operations_settings import get_schedule_connection, normalise_time
 from .workflow_snapshot import external_id
 from .workflow_store import schedule_rule
+from .workflow_write_context import record_item_write, write_transaction
 
 
 _MEALS = {'patient': ('LUNCH', 'DINNER'), 'staff_guest': ('LUNCH',)}
@@ -110,13 +113,7 @@ def _validate_item(scope: AdminScope, payload: Mapping[str, object]) -> None:
     for mode in ('allergen_mode', 'origin_mode', 'label_mode'):
         if type(payload[mode]) is not str or payload[mode] not in _MODES:
             raise PartialWorkflowValidationError(f'{mode} ist ungültig.')
-    assignments = payload['assignments']
-    if type(assignments) is not list or any(
-        not isinstance(row, Mapping)
-        or frozenset(row) != {'component_public_id', 'component_text'}
-        for row in assignments
-    ):
-        raise PartialWorkflowValidationError('Komponenten sind ungültig.')
+    normalize_assignments(payload['assignments'])
     labels = payload['labels']
     if type(labels) is not list or any(type(value) is not str or not value for value in labels):
         raise PartialWorkflowValidationError('Labels sind ungültig.')
@@ -229,7 +226,7 @@ def persist_week_header(
     _exact(payload, frozenset({'title', 'shared_note'}), 'Wochenkopf')
     title = _string(payload['title'], 'Wochentitel', required=True)
     note = _string(payload['shared_note'], 'Wochenhinweis')
-    with engine.begin() as connection:
+    with write_transaction(engine, scope) as connection:
         _require_location(connection, scope)
         if expected == 0:
             sql = (
@@ -270,7 +267,7 @@ def apply_schedule_defaults_to_week(
     """
     clean_week = _week(week_start)
     expected = _expected(expected_week_row_version, 'expected_week_row_version')
-    with engine.begin() as connection:
+    with write_transaction(engine, scope) as connection:
         week_ref = resolve_week_ref(connection, scope, clean_week, for_update=True)
         if week_ref.row_version != expected:
             raise PartialWorkflowConflictError('Woche wurde zwischenzeitlich geändert.')
@@ -325,7 +322,7 @@ def persist_service_state(
     if state not in _STATES or (state != 'open' and not notice.strip()):
         raise PartialWorkflowValidationError('Servicestatus oder Hinweis ist ungültig.')
     start, end = _service_times(payload)
-    with engine.begin() as connection:
+    with write_transaction(engine, scope) as connection:
         week_ref, created_week = _week_for_write(connection, scope, week_start, expected == 0)
         service = _service(connection, week_ref, service_date, meal, for_update=True)
         if expected == 0:
@@ -418,7 +415,20 @@ def persist_menu_item(
     service_date = _slot(scope, week_start, day, meal, option)
     expected = _expected(expected_item_row_version, 'expected_item_row_version')
     _validate_item(scope, payload)
-    with engine.begin() as connection:
+    with write_transaction(engine, scope) as connection:
+        existing_ids = connection.execute(text('''
+            SELECT i.id FROM cafeteria.menu_items i
+            JOIN cafeteria.menu_services s ON s.id=i.service_id
+            JOIN cafeteria.menu_weeks w ON w.id=s.menu_week_id
+            JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+            JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id
+            JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id
+            WHERE w.location_id=:location AND p.code=:profile AND w.week_start=:week
+              AND s.service_date=:day AND mp.code=:meal AND mt.code=:option
+        '''), {'location': scope.location_id, 'profile': scope.profile_code, 'week': week_start,
+               'day': service_date, 'meal': meal, 'option': option}).scalars().all()
+        bindings = prepare_bindings(connection, scope, normalize_assignments(payload['assignments']),
+                                    item_ids=existing_ids, create_weeks=[week_start])
         week_ref, created_week = _week_for_write(connection, scope, week_start, expected == 0)
         service = _service(connection, week_ref, service_date, meal, for_update=True)
         if service is None:
@@ -457,6 +467,7 @@ def persist_menu_item(
             raise PartialWorkflowNotFoundError('Menü nicht gefunden.')
         if current is not None and int(current['row_version']) != expected:
             raise PartialWorkflowConflictError('Menü wurde zwischenzeitlich geändert.')
+        bindings.recheck()
         if current is None:
             sql = (
                 'INSERT INTO cafeteria.menu_items(service_id,menu_type_id,external_id,title,'
@@ -476,7 +487,11 @@ def persist_menu_item(
             item_id = int(connection.execute(text(sql), params).scalar_one())
         else:
             item_id = int(current['id'])
-        replace_component_links_connection(connection, scope, item_id, payload['assignments'])
+        replace_component_links_connection(
+            connection, scope, item_id,
+            [row.as_payload() for row in normalize_assignments(payload['assignments'])],
+            binding_state=bindings,
+        )
         _replace_effects(connection, item_id, payload)
         modes = {
             'allergen_mode': payload['allergen_mode'],
@@ -497,5 +512,6 @@ def persist_menu_item(
             version = int(connection.execute(
                 text(sql), {'item_id': item_id, **payload}
             ).scalar_one())
+        record_item_write(connection, scope, item_id, expected, version)
         _touch_week(connection, scope, week_ref, created_week)
         return version

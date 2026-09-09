@@ -62,6 +62,9 @@ def menu_form_values(profile: str, option: dict[str, Any]) -> dict[str, Any]:
         'component_text': [
             str(assignment.get('component_text') or '') for assignment in assignments
         ],
+        'recipe_revision_public_id': [
+            str(assignment.get('recipe_revision_public_id') or '') for assignment in assignments
+        ],
         'allergen_code': [str(allergen.get('code') or '') for allergen in allergens],
         'allergen_presence': [
             str(allergen.get('presence') or '') for allergen in allergens

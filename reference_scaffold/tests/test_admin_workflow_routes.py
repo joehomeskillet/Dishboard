@@ -212,7 +212,9 @@ def _scope(engine: Engine, user_id: int, profile: str = 'patient') -> AdminScope
         location_id = connection.execute(
             text('SELECT id FROM cafeteria.locations WHERE active ORDER BY id')
         ).scalar_one()
-    return AdminScope(user_id, int(location_id), profile)  # type: ignore[arg-type]
+        authz = connection.execute(text('SELECT authz_version FROM cafeteria.users WHERE id=:id'),
+                                    {'id': user_id}).scalar_one()
+    return AdminScope(user_id, int(location_id), profile, authz)  # type: ignore[arg-type]
 
 
 def test_profile_from_endpoint_is_fixed() -> None:
@@ -449,7 +451,8 @@ def test_copy_exact_prior_week_and_empty_source(client, database_engine: Engine,
         'target_week': '2026-09-21',
         'target_row_version': '1',
     })
-    assert missing.status_code == 404
+    # The old signed form cannot be repurposed for a different source/target pair.
+    assert missing.status_code == 409
 
 
 def test_review_token_is_single_use_and_server_resolved(
@@ -706,6 +709,15 @@ def test_copy_uses_latest_saved_source_draft(
         'source_week': WEEK.isoformat(),
         'target_week': target.isoformat(),
         'target_row_version': '0',
+    })
+    assert response.status_code == 409
+    with database_engine.connect() as connection:
+        assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_weeks WHERE week_start=:target'),
+                                  {'target': target}).scalar_one() == 0
+    refreshed = client.get(f'/admin/patienten/copy?week={target.isoformat()}')
+    response = client.post('/admin/patienten/copy', data={
+        '_csrf': _hidden(refreshed.get_data(as_text=True), '_csrf', form_action='/admin/patienten/copy'),
+        'source_week': WEEK.isoformat(), 'target_week': target.isoformat(), 'target_row_version': '0',
     })
     assert response.status_code == 303
     with database_engine.connect() as connection:

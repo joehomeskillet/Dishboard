@@ -470,12 +470,15 @@ def test_preview_token_binds_profile_week_and_missing_week_version_then_rejects_
     """A text-only token lets a preview overwrite a draft created after preview."""
     preview = _preview(client, _example('menu_patient_example.csv'))
     token = _token(preview)
-    serializer = URLSafeTimedSerializer('csv-import-test-secret', salt='dishboard-csv-import-v1')
+    serializer = URLSafeTimedSerializer('csv-import-test-secret', salt='dishboard-csv-import-v2')
     payload = serializer.loads(bytes.fromhex(token).decode('ascii'))
 
     assert payload['profile_code'] == 'patient'
     assert payload['week_start'] == '2026-08-31'
     assert payload['expected_row_version'] == 0
+    assert payload['actor_id'] == _session_actor_id(client)
+    assert payload['expected_authz_version'] > 0
+    assert payload['expected_location_id'] == _scope(database_engine, _session_actor_id(client)).location_id
     assert isinstance(payload['text'], str)
 
     # Reads erzeugen seit SDD §6 keine Woche mehr; die nach der Preview

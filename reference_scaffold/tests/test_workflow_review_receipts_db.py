@@ -16,13 +16,18 @@ from cafeteria.workflow_review_context import (
     get_week_review, review_week_context, week_context_review_open_connection,
 )
 from cafeteria.workflow_partial_store import persist_week_header
+from cafeteria.workflow_write_context import WritePermissionError
 from test_workflow_copy_store_db import _blocked_pair, _separate_engine
 from test_admin_workflow_db import WEEK_START, _actor_id, _save, _staff_values
 from test_component_catalog_db import CatalogDatabase, catalog_database
 
 
 def _scope(database: CatalogDatabase, profile='staff_guest') -> AdminScope:
-    return AdminScope(_actor_id(database.owner), database.location_id, profile)
+    actor_id = _actor_id(database.owner)
+    with database.owner.connect() as connection:
+        authz = connection.execute(text('SELECT authz_version FROM cafeteria.users WHERE id=:id'),
+                                    {'id': actor_id}).scalar_one()
+    return AdminScope(actor_id, database.location_id, profile, authz)
 
 
 def _items(database):
@@ -52,6 +57,9 @@ def test_independent_item_and_context_receipts_do_not_invalidate_other_menus(cat
     db = catalog_database
     _save(db.owner, 'staff_guest', _staff_values())
     scope = _scope(db)
+    # Simulate the historical flag explicitly; current writers always reset review.
+    with db.owner.begin() as connection:
+        connection.execute(text("UPDATE cafeteria.menu_items SET allergen_review_status='checked'"))
     first, second = _items(db)[:2]
     # A historical checked flag is not a revision-bound receipt.
     assert first.allergen_review_status == 'checked'
@@ -150,16 +158,19 @@ def test_receipt_permissions_actor_scope_and_failure_are_atomic(catalog_database
     first = _items(db)[0]
     token = workflow.get_component_review_token(db.app, scope, first.id)
     with pytest.raises(ComponentNotFoundError):
-        workflow.review_component(db.app, AdminScope(scope.actor_id, scope.location_id, 'patient'), first.id, token, first.row_version)
-    with pytest.raises(DBAPIError) as denied:
-        workflow.review_component(db.app, AdminScope(1, scope.location_id, 'staff_guest'), first.id, token, first.row_version)
-    assert denied.value.orig.sqlstate == '42501'
+        workflow.review_component(db.app, AdminScope(scope.actor_id, scope.location_id, 'patient',
+            scope.expected_authz_version), first.id, token, first.row_version)
+    with db.owner.connect() as connection:
+        unprivileged_authz = connection.execute(text('SELECT authz_version FROM cafeteria.users WHERE id=1')).scalar_one()
+    with pytest.raises(WritePermissionError):
+        workflow.review_component(db.app, AdminScope(1, scope.location_id, 'staff_guest', unprivileged_authz),
+                                  first.id, token, first.row_version)
     assert _items(db)[0] == first
     _review_item(db, scope, first.id)
     with pytest.raises(StaleItemError):
         workflow.review_component(db.app, scope, first.id, token, first.row_version)
     with db.app.connect() as connection:
-        assert connection.execute(text("SELECT count(*) FROM cafeteria.audit_events WHERE action LIKE 'workflow.%'")).scalar_one() == 1
+        assert connection.execute(text("SELECT count(*) FROM cafeteria.audit_events WHERE action='workflow.menu_reviewed'")).scalar_one() == 1
         grants = connection.execute(text("SELECT has_table_privilege('cafeteria_app','cafeteria.audit_events','INSERT'), has_table_privilege('cafeteria_app','cafeteria.audit_events','UPDATE'), has_table_privilege('cafeteria_app','cafeteria.audit_events','DELETE')")).one()
         assert grants == (False, False, False)
     for statement in (

@@ -47,11 +47,7 @@ def _mark_checked(database: CatalogDatabase, *item_ids: int) -> None:
 
 
 def _scope(database: CatalogDatabase, profile: str = 'patient') -> AdminScope:
-    with database.owner.connect() as connection:
-        actor_id = int(
-            connection.execute(text('SELECT id FROM cafeteria.users ORDER BY id DESC')).scalars().first()
-        )
-    return AdminScope(actor_id, database.location_id, profile)
+    return AdminScope(database.actor_id, database.location_id, profile, database.authz_version)
 
 
 def _full_state(database: CatalogDatabase, item_id: int) -> tuple[object, ...]:
@@ -268,7 +264,7 @@ def test_review_rejects_bad_scope_versions_tokens_and_repeat_without_mutation(
     with pytest.raises(ComponentNotFoundError):
         workflow.review_component(
             catalog_database.app,
-            AdminScope(scope.actor_id, scope.location_id, 'staff_guest'),
+            AdminScope(scope.actor_id, scope.location_id, 'staff_guest', scope.expected_authz_version),
             item.id,
             token,
             current_version,
