@@ -1,5 +1,7 @@
 """Real preview, frozen dependency conflict and deliberate native reload at both widths."""
+import base64
 import json
+import struct
 from tempfile import TemporaryDirectory
 from urllib.parse import urlsplit
 
@@ -37,7 +39,37 @@ def prepared_preview(ready):  # noqa: F811
     return ready
 
 
-def proof(page, destination, *, expected_status, requests):
+def native_full_page_capture(page, destination):
+    geometry = '''() => ({innerWidth,innerHeight,outerWidth,outerHeight,devicePixelRatio,scrollX,scrollY,
+        documentWidth:document.documentElement.scrollWidth,
+        documentHeight:document.documentElement.scrollHeight,
+        rectangles:[...document.querySelectorAll('main,main .btn,main input,main select')].map(
+            el => ({tag:el.tagName,rect:el.getBoundingClientRect().toJSON()}))})'''
+    before = page.evaluate(geometry)
+    cdp = page.context.new_cdp_session(page)
+    try:
+        metrics = cdp.send('Page.getLayoutMetrics')
+        # Native browser zoom changes the CDP capture coordinate space. DOM CSS
+        # dimensions would clip the enlarged image; use measured layout dimensions.
+        arguments = {'format': 'png', 'captureBeyondViewport': True,
+                     'clip': dict(metrics['contentSize'], scale=1)}
+        png = base64.b64decode(cdp.send('Page.captureScreenshot', arguments)['data'], validate=True)
+    finally:
+        cdp.detach()
+    after = page.evaluate(geometry)
+    destination.write_bytes(png)
+    assert png[:8] == b'\x89PNG\r\n\x1a\n' and png[12:16] == b'IHDR'
+    width, height = struct.unpack('>II', png[16:24])
+    capture = {'cdp_layout_metrics': metrics, 'capture_arguments': arguments,
+               'png_dimensions': {'width': width, 'height': height},
+               'layout_before': before, 'layout_after': after}
+    destination.with_suffix('.capture.json').write_text(json.dumps(capture, indent=2))
+    assert before == after
+    assert width == metrics['contentSize']['width'] and height == metrics['contentSize']['height']
+    return capture
+
+
+def proof(page, destination, *, expected_status, requests, native_capture=False):
     page.evaluate('document.fonts.ready')
     assert page.evaluate('document.fonts.status') == 'loaded'
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
@@ -46,13 +78,19 @@ def proof(page, destination, *, expected_status, requests):
         if control.is_visible():
             box = control.bounding_box()
             assert box and box['height'] >= 48 and box['width'] >= 48
-    page.screenshot(path=str(destination), full_page=True)
+    capture = None
+    if native_capture:
+        capture = native_full_page_capture(page, destination)
+    else:
+        page.screenshot(path=str(destination), full_page=True)
     info = {'route': urlsplit(page.url).path, 'viewport': page.viewport_size,
             'measured_viewport': page.evaluate('({innerWidth,innerHeight,outerWidth,outerHeight})'),
             'device_pixel_ratio': page.evaluate('devicePixelRatio'), 'font_status': 'loaded',
             'lang': page.locator('html').get_attribute('lang'), 'timezone': page.evaluate(
                 'Intl.DateTimeFormat().resolvedOptions().timeZone'),
             'status': expected_status, 'request_methods': requests}
+    if capture is not None:
+        info['native_capture'] = capture
     destination.with_suffix('.json').write_text(json.dumps(info, indent=2))
 
 
@@ -175,12 +213,14 @@ def test_both_routes_reflow_at_native_chromium_200_percent_zoom(prepared_preview
             assert page.goto(base + '/admin/rezepte').status == 200
             assert page.evaluate('devicePixelRatio') == 2
             assert page.evaluate('innerWidth') == 720
-            proof(page, tmp_path / 'freeze-list-native-200-percent.png', expected_status=200, requests=methods.copy())
+            proof(page, tmp_path / 'freeze-list-native-200-percent.png', expected_status=200,
+                  requests=methods.copy(), native_capture=True)
             link = page.locator(f'main a[href="/admin/rezepte/{public_id}/revisionen"]')
             link.focus()
             with page.expect_navigation(wait_until='load'):
                 page.keyboard.press('Enter')
             expect(page.get_by_role('heading', name='Zutatenstand prüfen', exact=True)).to_be_visible()
-            proof(page, tmp_path / 'freeze-preview-native-200-percent.png', expected_status=200, requests=methods.copy())
+            proof(page, tmp_path / 'freeze-preview-native-200-percent.png', expected_status=200,
+                  requests=methods.copy(), native_capture=True)
             assert all(method == 'GET' for method in methods)
             assert full_state(owner) == before
