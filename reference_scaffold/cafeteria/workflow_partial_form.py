@@ -223,9 +223,18 @@ def _paired(
 
 def _assignments(form: Mapping[str, object], context: str) -> list[dict[str, str | None]]:
     public_ids, texts = _paired(form, 'component_public_id', 'component_text', context)
+    revisions = None
+    if 'recipe_revision_public_id' in form:
+        revisions = _repeated(form, 'recipe_revision_public_id')
+        if len(revisions) != len(public_ids):
+            raise _item_error(context, 'Zusammengehörige Rezeptfelder sind unvollständig.',
+                              'recipe_revision_public_id')
     result = []
-    for public_id_raw, component_text in zip(public_ids, texts, strict=True):
+    for index, (public_id_raw, component_text) in enumerate(zip(public_ids, texts, strict=True)):
+        revision = revisions[index] if revisions is not None else None
         public_id = public_id_raw.strip()
+        if not public_id and component_text == '' and not revision:
+            continue
         if public_id and component_text:
             raise _item_error(context, 'Komponente darf nur eine Auswahl enthalten.', 'component_text')
         if public_id:
@@ -233,18 +242,14 @@ def _assignments(form: Mapping[str, object], context: str) -> list[dict[str, str
                 normalized_id = str(UUID(public_id))
             except (ValueError, AttributeError) as error:
                 raise _item_error(context, 'Komponenten-ID ist ungültig.', 'component_public_id') from error
-            result.append({'component_public_id': normalized_id, 'component_text': None})
-            continue
-        if component_text == '' or not component_text.strip(' '):
-            raise _item_error(context, 'Freitext-Komponente ist leer.', 'component_text')
-        result.append({'component_public_id': None, 'component_text': component_text})
-    if 'recipe_revision_public_id' in form:
-        revisions = _repeated(form, 'recipe_revision_public_id')
-        if len(revisions) != len(result):
-            raise _item_error(context, 'Zusammengehörige Rezeptfelder sind unvollständig.',
-                              'recipe_revision_public_id')
-        for row, revision in zip(result, revisions, strict=True):
+            row: dict[str, str | None] = {'component_public_id': normalized_id, 'component_text': None}
+        else:
+            if component_text == '' or not component_text.strip(' '):
+                raise _item_error(context, 'Freitext-Komponente ist leer.', 'component_text')
+            row = {'component_public_id': None, 'component_text': component_text}
+        if revisions is not None:
             row['recipe_revision_public_id'] = revision if revision else None
+        result.append(row)
     try:
         normalize_assignments(result)
     except AssignmentValidationError as error:
@@ -300,6 +305,8 @@ def _origins(form: Mapping[str, object], context: str) -> list[dict[str, str]]:
     for raw_ingredient, raw_country in zip(ingredients, countries, strict=True):
         ingredient = raw_ingredient.strip()
         country = raw_country.strip()
+        if not ingredient and not country:
+            continue
         if not ingredient:
             raise _item_error(context, 'Zutat für Herkunft fehlt.', 'origin_ingredient')
         if ingredient in seen:

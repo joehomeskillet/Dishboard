@@ -186,6 +186,7 @@ def render_menu_editor(
     allergens: list[dict[str, Any]], labels: list[dict[str, Any]],
     effects: dict[str, Any], flashes: list[str],
     origin_conflict: str | None = None,
+    recipe_choices: list[dict[str, Any]] | None = None,
 ) -> str:
     return render_template(
         'admin/menu_editor.html', profile=profile, family=family, week=week,
@@ -193,6 +194,7 @@ def render_menu_editor(
         form_errors=form_errors, csrf=csrf, review_token=review_token,
         catalog_choices=catalog_choices, allergens=allergens, labels=labels,
         effects=effects, flashes=flashes, origin_conflict=origin_conflict,
+        recipe_choices=recipe_choices or [],
         **_template_context(),
     )
 

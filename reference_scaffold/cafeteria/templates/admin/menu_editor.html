@@ -20,7 +20,7 @@
 {% set submitted = form_values|default({}) %}
 {% set errors = form_errors|default({}) %}
 {% set is_auto = {'allergen': submitted.get('allergen_mode', 'auto') == 'auto', 'origin': submitted.get('origin_mode', 'auto') == 'auto', 'label': submitted.get('label_mode', 'auto') == 'auto'} %}
-{% set error_targets = {'title': 'f-title', 'description': 'f-desc', 'note': 'f-note', 'internal_chf': 'f-int', 'external_chf': 'f-ext', 'component_public_id': 'component-0-id', 'component_text': 'component-0-text', 'allergen_code': 'allergen-mode-manual', 'allergen_presence': 'allergen-mode-manual', 'origin_ingredient': 'origin-0-ingredient', 'origin_country_code': 'origin-0-country', 'label_code': 'label-mode-manual'} %}
+{% set error_targets = {'title': 'f-title', 'description': 'f-desc', 'note': 'f-note', 'internal_chf': 'f-int', 'external_chf': 'f-ext', 'component_public_id': 'component-0-id', 'component_text': 'component-0-text', 'recipe_revision_public_id': 'component-0-recipe', 'allergen_code': 'allergen-mode-manual', 'allergen_presence': 'allergen-mode-manual', 'origin_ingredient': 'origin-0-ingredient', 'origin_country_code': 'origin-0-country', 'label_code': 'label-mode-manual'} %}
 {% macro error_attributes(name, error_id, hint_id=none) %}{% if errors.get(name) %} aria-invalid="true"{% endif %}{% if hint_id or errors.get(name) %} aria-describedby="{{ hint_id or '' }}{{ ' ' if hint_id and errors.get(name) else '' }}{{ error_id if errors.get(name) else '' }}"{% endif %}{% endmacro %}
 {% macro invalid_class(name) %}{% if errors.get(name) %} is-invalid{% endif %}{% endmacro %}
 {% macro field_error(name, error_id) %}{% if errors.get(name) %}<div class="invalid-feedback d-block field-error" id="{{ error_id }}">{{ errors[name] }}</div>{% endif %}{% endmacro %}
@@ -109,14 +109,16 @@
       <section class="card mb-3" aria-labelledby="sec-components">
         <div class="card-header"><h2 class="card-title mb-0" id="sec-components">Komponenten</h2></div>
         <div class="card-body">
-          <p class="form-hint mb-3" id="components-hint">Aus dem Katalog wählen oder als Freitext erfassen. Die Reihenfolge entspricht der Anzeige.</p>
+          <p class="form-hint mb-3" id="components-hint">Aus dem Katalog wählen oder als Freitext erfassen. Die Reihenfolge entspricht der Anzeige. Eine Rezeptrevision nur bewusst lösen, nicht durch andere Felder.</p>
           <div id="components-list" data-row-list="component" data-row-title="Komponente">
             {% set c_ids = submitted.getlist('component_public_id') if submitted.getlist else submitted.get('component_public_id', []) %}
             {% set c_texts = submitted.getlist('component_text') if submitted.getlist else submitted.get('component_text', []) %}
-            {% set row_count = [c_ids|length, c_texts|length, 1]|max %}
+            {% set r_ids = submitted.getlist('recipe_revision_public_id') if submitted.getlist else submitted.get('recipe_revision_public_id', []) %}
+            {% set row_count = [c_ids|length, c_texts|length, r_ids|length, 1]|max %}
             {% for i in range(row_count) %}
               {% set c_id = c_ids[i] if i < c_ids|length else '' %}
               {% set c_text = c_texts[i] if i < c_texts|length else '' %}
+              {% set r_id = r_ids[i] if i < r_ids|length else '' %}
               <fieldset class="component-row" data-row>
                 <legend class="form-label" data-row-legend>Komponente {{ i + 1 }}</legend>
                 <div class="row g-2">
@@ -134,6 +136,22 @@
                     <input class="form-control{{ invalid_class('component_text') }}" id="component-{{ i }}-text" name="component_text" aria-label="Freitext-Komponente" value="{{ c_text|default('') }}" placeholder="Freitext"{{ error_attributes('component_text', 'err-component-text', 'components-hint') }}>
                   </div>
                   <div class="col-12">
+                    <label class="form-label" for="component-{{ i }}-recipe-search">Rezept suchen</label>
+                    <input class="form-control" id="component-{{ i }}-recipe-search" type="search" data-recipe-search autocomplete="off" aria-controls="component-{{ i }}-recipe" aria-describedby="component-{{ i }}-recipe-hint">
+                    <p class="form-hint" id="component-{{ i }}-recipe-hint">Nur Rezepte dieses Standorts. Anzeige: Titel, Revisionsnummer und Ausbeute. Die leere Auswahl löst eine vorhandene Bindung.</p>
+                    <label class="form-label" for="component-{{ i }}-recipe">Rezeptrevision</label>
+                    <select class="form-select{{ invalid_class('recipe_revision_public_id') }}" id="component-{{ i }}-recipe" name="recipe_revision_public_id" aria-label="Rezeptrevision" data-recipe-select data-previous-value="{{ r_id }}"{{ error_attributes('recipe_revision_public_id', 'err-recipe-revision', 'component-' ~ i ~ '-recipe-hint') }}>
+                      <option value="">Rezeptbindung lösen</option>
+                      {% for group in recipe_choices %}
+                      <optgroup label="{{ group.title }}{% if not group.active %} (archiviert){% endif %}">
+                        {% for rev in group.revisions %}
+                        <option value="{{ rev.public_id }}" data-revision-number="{{ rev.revision_number if rev.revision_number is not none else '' }}" data-content-hash="{{ rev.content_hash_sha256 }}" data-yield="{{ rev.yield_label }}" data-archived="{{ '1' if (not group.active or rev.archived) else '0' }}" data-readable="{{ '1' if rev.readable else '0' }}"{% if rev.public_id == r_id %} selected{% endif %}{% if (not group.active or rev.archived) and rev.public_id != r_id %} disabled{% endif %}>{% if rev.readable %}{{ group.title }} · Revision {{ rev.revision_number }}{% if rev.yield_label %} · {{ rev.yield_label }}{% endif %}{% if not group.active %} (archiviert){% endif %}{% else %}Gebundene Revision bleibt erhalten{% endif %}</option>
+                        {% endfor %}
+                      </optgroup>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-12">
                     <div class="btn-list">
                       <button type="button" class="btn" data-move-row="up">Nach oben</button>
                       <button type="button" class="btn" data-move-row="down">Nach unten</button>
@@ -146,6 +164,7 @@
           </div>
           {{ field_error('component_public_id', 'err-component-id') }}
           {{ field_error('component_text', 'err-component-text') }}
+          {{ field_error('recipe_revision_public_id', 'err-recipe-revision') }}
           <button type="button" class="btn mt-3" data-add-row="components-list">{{ icon('plus') }}Komponente hinzufügen</button>
         </div>
       </section>
