@@ -336,6 +336,7 @@ def _render_menu_page(
     form_errors: dict[str, str] | None = None,
     status: int = 200,
     force_origin_conflict: bool = False,
+    submitted_row_version: str | None = None,
 ):
     version, title, item_id = 0, '', None
     option: dict[str, object] = {
@@ -372,7 +373,11 @@ def _render_menu_page(
         'day': day,
         'meal': meal,
         'option': option_code,
-        'row_version': version,
+        # An error page keeps the exact version the writer compared against, so a
+        # resubmit of the rendered form conflicts again instead of adopting the
+        # concurrent version. A missing or malformed value stays as submitted and
+        # fails closed in _version(). Only a fresh GET shows the current version.
+        'row_version': version if submitted_row_version is None else submitted_row_version,
         'title': title,
         'components': list(option.get('assignments') or []),
     }
@@ -407,6 +412,7 @@ def _menu_error_response(
         form_values=_request_menu_values() if keep_request_values else None,
         form_errors=_menu_errors(error), status=status,
         force_origin_conflict=origin_conflict,
+        submitted_row_version=request.form.get('row_version', ''),
     )
 
 def _week_overview(profile: str):
