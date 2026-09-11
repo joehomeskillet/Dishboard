@@ -1,0 +1,29 @@
+........................................................................ [  9%]
+........................................................................ [ 19%]
+........................................................................ [ 29%]
+........................................................................ [ 38%]
+........................................................................ [ 48%]
+........................................................................ [ 58%]
+........................................................................ [ 67%]
+........................................................................ [ 77%]
+........................................................................ [ 87%]
+......................................................................127.0.0.1 - - [11/Sep/2026 19:08:46] "GET /static/admin-week-tabler.css HTTP/1.1" 200 5885
+.. [ 96%]
+.......................                                                  [100%]
+=============================== warnings summary ===============================
+tests/test_admin_local_users_browser.py::test_local_user_pages_fit_both_densities_and_all_viewports
+tests/test_admin_local_users_browser.py::test_browser_complete_lifecycle_and_session_revocation
+tests/test_admin_local_users_browser.py::test_conflict_and_database_failure_remain_readable[compact-390]
+tests/test_admin_local_users_browser.py::test_conflict_and_database_failure_remain_readable[compact-820]
+tests/test_admin_local_users_browser.py::test_conflict_and_database_failure_remain_readable[compact-1440]
+tests/test_admin_local_users_browser.py::test_conflict_and_database_failure_remain_readable[comfortable-390]
+tests/test_admin_local_users_browser.py::test_conflict_and_database_failure_remain_readable[comfortable-820]
+tests/test_admin_local_users_browser.py::test_conflict_and_database_failure_remain_readable[comfortable-1440]
+  /tmp/dishboard-shared-venv/lib/python3.14/site-packages/flask_session/base.py:172: DeprecationWarning: The 'use_signer' option is deprecated and will be removed in the next minor release. Please update your configuration accordingly or open an issue.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+743 passed, 8 warnings in 1006.40s (0:16:46)
+GATE_EXIT=0 cwd=/nvmetank1/projects/menuplan/.claude/worktrees/ui-integration-0911/reference_scaffold
+
+[exited with code 0]

@@ -373,7 +373,7 @@ def capture_role_navigation(browser: Browser, live: str, role_cookies: Mapping[s
                 probe = page.evaluate(f'''() => {{ const selector = {json.dumps(sidebar_selector)};
                   const links = Array.from(document.querySelectorAll(selector));
                   if (links.length === 0) return {{nav_items: [], nav_probe_error: `no sidebar links matched ${{selector}}`}};
-                  return {{nav_items: links.map(el => (el.textContent || '').replace(/\\s+/g, ' ').trim())}}; }}''')
+                  return {{nav_items: links.map(el => ((el.querySelector('.nav-link-title') || el).textContent || '').replace(/\\s+/g, ' ').trim())}}; }}''')
                 row['nav_items'] = probe['nav_items']
                 if 'nav_probe_error' in probe:
                     row['nav_probe_error'] = probe['nav_probe_error']

@@ -1,6 +1,7 @@
 # MP-UI-BRAND-DECISION — Marke und Mastertokens
 
-Stand: 11. September 2026. **Entscheidungsvorlage / VORSCHLAG, keine Freigabe.**
+Stand: 11. September 2026. Review-Korrektur 2026-09-11 (grok-4.6) eingearbeitet.
+**Abschnitte 1–9: Entscheidungsvorlage. Abschnitt 10: angenommene Entscheidung des Auftraggebers (11. September 2026) — verbindlich für MP-UI-TOKENS/SHELL.**
 MP-ID: MP-UI-BRAND-DECISION; Routing-WP: wp-10e17980d6a1; Lane: codex-gpt5;
 Modell: gpt-6-astra. Basis: 2db9c56563012609c5753047e4ff1ce08b85d9d3.
 Worktree: /nvmetank1/projects/menuplan/.claude/worktrees/ui-brand-decision-codex-0911;
@@ -36,8 +37,8 @@ Scope bezeichnet Quellselektoren; tatsächliche berechnete Styles wurden hier ni
 | Brand-Standard | branding_config.py:34–36 | logo_sha256=None; font_body=fira; font_heading=fira; primary=#8c1c4b; accent=#35666f; surface=#ffffff; text=#383027 | Konfigurationsdefault, keine ausgelesene aktive Revision | Ja, Schrift/Primary/Accent/Text; Weiss entspricht Master |
 | Brand-Allowlist | branding_config.py:9,56–74 | Fira Sans oder Carlito; sechsstellige Hexwerte; Text/Primary/Accent gegen eigene Brand-Surface mindestens 4.5:1 | validate_config; prüft nicht Admin-Masterflächen oder abgeleitete Zustände | Nein als bestehender Speichervertrag; als Admin-Gate unzureichend |
 | Vier globale Optionen | display_settings.py:8–16 | compact/comfortable; normal/large; contained/full; show/hide; jeweils erster Wert als Default | Anwendungsglobale Darstellung | Abbildung offen, §6/K7 |
-| Lesen/Speichern | display_settings.py:19–30,37–72 | cafeteria.settings, location_id/profile_id NULL; setting_key/setting_value; letzte updated_by/updated_at | Global, kein personenbezogener Browser-Storage; ungültige gelesene Werte fallen auf Defaults | Nein; Speicherung nicht verändern |
-| Autorisierung | display_settings.py:55–72; admin/display_routes.py:21–51 | atomarer UPSERT nur für aktiven Admin mit aktueller authz_version; CSRF; genaue Feldmenge; preview/save/reset | GET/POST /design/darstellung; Preview speichert nicht; Save/Reset 303, no-store | Nein; unverändert |
+| Lesen/Speichern | display_settings.py:19–30,37–72 | cafeteria.settings, location_id/profile_id NULL; setting_key/setting_value; letzte updated_by/updated_at | Global, kein personenbezogener Browser-Storage; ungültige gelesene Werte fallen auf Defaults. Datei endet Zeile 72; PermissionError in _save_admin_display :54 und :72 (kein Zeile-73) | Nein; Speicherung nicht verändern |
+| Autorisierung | display_settings.py:52–72; admin/display_routes.py:21–60 | atomarer UPSERT nur für aktiven Admin mit aktueller authz_version; CSRF; genaue Feldmenge; preview/save/reset | GET/POST /design/darstellung; Preview speichert nicht; Save/Reset 303, no-store (:41–52). GET- und Preview-Rendering von admin/display_settings.html :54–60 | Nein; unverändert |
 | CSS-Anschluss | admin/display_routes.py:16–18; templates/admin/base_tabler.html:23; templates/admin/display_settings.html:43 | Contextprocessor → data-density/font-size/content-width/menu-images | .admin-main und lokale .display-preview | Ja bei bisheriger Mass-/Schriftabbildung; siehe §6 |
 | Bilder | templates/_menu_image.html:2 | admin_menu_images != hide entscheidet serverseitig | Template-Ausgabe; data-menu-images allein ist kein CSS-Schalter | Nein; bestehende Funktion erhalten |
 
@@ -209,7 +210,7 @@ Verbraucher; fehlende Vendorvariablen werden nicht erfunden.
 | --app-on-primary | --tblr-primary-fg; --tblr-btn-color/hover-color/active-color/disabled-color; --tblr-pagination-active-color; --tblr-navbar-active-color | .btn-primary; .pagination; aktive Sidebar-Links direkt color gemäss Master §7 | normal/hover/active/disabled | nein |
 | --app-text | --tblr-body-color; --tblr-heading-color; --tblr-table-color; color | Wurzel; .table; neutrale Buttons | normal | --tblr-body-color-rgb aus Token ableiten |
 | --app-text-muted | --tblr-secondary; --tblr-tertiary; --tblr-disabled-color; --tblr-nav-link-disabled-color; --tblr-pagination-disabled-color | Wurzel; Hinweise; .nav-tabs; .pagination | normal/disabled | --tblr-secondary-rgb aus Muted ableiten, damit .text-secondary stimmt |
-| --app-border | --tblr-border-color/translucent; --tblr-card-border-color; --tblr-table-border-color; --tblr-nav-tabs-border-color; --tblr-pagination-border-color | Wurzel; Cards/Tabellen/Tabs/Pagination | dekorativ normal | nein; nicht als notwendige Feldkontur |
+| --app-border | --tblr-border-color/translucent; --tblr-card-border-color; --tblr-table-border-color; --tblr-nav-tabs-border-color; --tblr-pagination-border-color; --tblr-success-border-subtle; --tblr-warning-border-subtle; --tblr-danger-border-subtle; --tblr-info-border-subtle | Wurzel; Cards/Tabellen/Tabs/Pagination; Alert-Rahmen | dekorativ normal | nein; nicht als notwendige Feldkontur. Alert-Rahmen (`--tblr-*-border-subtle`) als neutrale Haarlinie (Swiss Editorial Calm), nicht statusfarbig |
 | --app-border-soft | border-color / border-block-color | dekorative Card-Innenteiler, nicht Controls | normal | nein |
 | --app-control-border | --tblr-border-color und --tblr-border-color-translucent **lokal am Feld**; border-color | .form-control/.form-select/.form-check-input; erforderliche neutrale Buttonkontur | normal/hover; disabled soweit Kontur erhalten | nein |
 | --app-focus | --tblr-focus-ring-color; --tblr-btn-focus-box-shadow; --tblr-pagination-focus-box-shadow; outline-color und Form-focus border-color | interaktive Admin-Elemente auf hellen Flächen | focus/focus-visible | nein; voller Ring, keine ungeprüfte Alphaabschwächung |
@@ -242,6 +243,7 @@ Navwerte am tatsächlichen Consumer setzen.
 | .btn-outline-primary / .btn-ghost-primary | Normal Primary auf Surface; Hover/Active gefüllt mit jeweiligen Zustandstoken + On-Primary; Disabled und Pressed explizit. Keine globale .btn-Farbe, die Varianten ungewollt füllt. |
 | .btn-danger | Danger-Text mit On-Primary auch hover/active; voller Focus-Ring. Kein helles --app-danger als ungeprüfte Textbuttonfläche. |
 | .form-control, .form-select, .form-check-input | Normal Text/Surface und Control-Border. Hover bleibt kontrastierend; :focus ersetzt Vendor-Festfarbe und ungeprüften Alpha-Schatten. Checkbox checked=Primary, geprüftes weisses Häkchen; indeterminate ebenso. Disabled Text-Muted/Surface-Soft, keine semantischen Änderungen. |
+| .form-control[readonly], [readonly] | Kontur `--app-control-border`, Fläche `--app-surface-soft`, Text `--app-text`. Keine Disabled-Opazität. Wert wird per POST übermittelt. Abgrenzung zu disabled: disabled nimmt nicht am Submit teil und nutzt Text-Muted/Surface-Soft. |
 | .is-invalid, [aria-invalid=true], .was-validated :invalid | Text-/Borderfarbe Danger-Text, Feldinhalt weiter Text; Surface/Surface-Soft. Fehler und Fokus gleichzeitig unterscheidbar. Vorhandene Vendor-SVG-Fehlersymbole prüfen: feste SVG-Farben folgen keinem CSS-Token automatisch. Valid entsprechend Success-Text. |
 | .form-control::file-selector-button | direkte Eigenschaften Text/Surface-Soft/Control-Border und Hover/Focus aus gemeinsamen Tokens; spätes Brand-Override entfällt. Keine erfundene --tblr-form-control-focus-border-color. |
 | .nav-tabs und .nav-tabs .nav-link | normal Text; hover Primary-Hover; active Primary auf Primary-Soft plus 2px Unterlinie. --tblr-nav-tabs-link-active-color/bg/border-color und --tblr-nav-link-color/hover-color/disabled-color am Consumer. Tabler ergänzt weitere .card-header-tabs-Regeln: active-Farbe, Fläche und Unterlinie bei dieser Variante direkt prüfen/überschreiben. Fokus --app-focus; disabled Text-Muted, keine aktive Interaktion. |
@@ -249,7 +251,7 @@ Navwerte am tatsächlichen Consumer setzen.
 | .admin-sidebar .nav-link | normal Sidebar-Text, Hoverfläche Sidebar-Hover, aktive Fläche Sidebar-Active und **weisser Text gemäss §7** (On-Primary als weisser Alias), Gewicht700; 3px Indicator. Label bleibt Sidebar-Label. Fokus helle Indicator-Outline statt Burgunder auf Petrol. |
 | Links/Utilities/Listen | --tblr-link-color-rgb und hover-color-rgb mappen, damit Tabler-rgba-Verbrauch folgt; .text-primary/.bg-primary/.bg-*-lt auf echte Ausgabe prüfen. Aktive .list-group-item lokal Farbe/Fläche/Border anbinden; --tblr-list-group-active-color/bg/border-color existieren. |
 | Status | dunkles *-text auf *-soft, Icon und realer Statustext; alte .bg-green/.text-green nicht pauschal als Success gelten lassen. Kein --tblr-*-lt-fg-Vertrag erfinden; tatsächliche color/background-Consumer setzen. |
-| Schriftfamilien | Vorschlag K1: zentraler --app-font-body/--app-font-heading in T, beide bestehender Fira-Stack. A: --tblr-font-sans-serif, --tblr-body-font-family, --tblr-btn-font-family; direkte h1/h2/h3/.card-title-Familie. Diese zwei neuen Tokenbezeichnungen referenzieren K1, keine neue Farbpalette. |
+| Schriftfamilien | K1-A, ausgeschrieben, nicht `var(--sh-font)` / `var(--sh-font-display)`: `--app-font-body: "Fira Sans", Aptos, "Segoe UI Variable", "Segoe UI", ui-sans-serif, sans-serif;` (tokens.css:105) und `--app-font-heading: "Fira Sans", Aptos, "Segoe UI Variable Display", "Segoe UI", ui-sans-serif, sans-serif;` (tokens.css:106). A: --tblr-font-sans-serif, --tblr-body-font-family, --tblr-btn-font-family; direkte h1/h2/h3/.card-title-Familie. Keine neue Farbpalette. |
 | Schriftrollen | Zentrale Mass-/Typotoken in T nach Master §5.2, Verbrauch in A. hero alias h1 (Master definiert keine zusätzliche Hero-Grösse), h2=Card-/Bereichstitel, body und small gemäss Master. --tblr-font-size-h1/h2, --tblr-body-font-size/line-height, --tblr-btn-font-size sowie direkte Labels/Tabellen/Formen anbinden; Herstellerselektoren können Rootwerte übersteuern. |
 | Geometrie | --tblr-sidebar-width, --tblr-border-radius, --tblr-card-border-radius, --tblr-btn-border-radius, --tblr-nav-pills-border-radius, --tblr-pagination-border-radius und --tblr-shadow-card in A an zentrale §5.2-Tokens anschliessen; Fokus/Outline direkt. Keine Verkleinerung existierender 48px-Ziele. |
 
@@ -309,6 +311,7 @@ name | grep stdout | exit
 --tblr-card-border-radius | 1 | 0
 --tblr-danger | 1 | 0
 --tblr-danger-bg-subtle | 1 | 0
+--tblr-danger-border-subtle | 1 | 0
 --tblr-danger-lt | 1 | 0
 --tblr-danger-lt-rgb | 1 | 0
 --tblr-danger-text-emphasis | 1 | 0
@@ -325,6 +328,7 @@ name | grep stdout | exit
 --tblr-heading-color | 1 | 0
 --tblr-info | 1 | 0
 --tblr-info-bg-subtle | 1 | 0
+--tblr-info-border-subtle | 1 | 0
 --tblr-info-lt | 1 | 0
 --tblr-info-lt-rgb | 1 | 0
 --tblr-info-text-emphasis | 1 | 0
@@ -384,6 +388,7 @@ name | grep stdout | exit
 --tblr-sidebar-width | 1 | 0
 --tblr-success | 1 | 0
 --tblr-success-bg-subtle | 1 | 0
+--tblr-success-border-subtle | 1 | 0
 --tblr-success-lt | 1 | 0
 --tblr-success-lt-rgb | 1 | 0
 --tblr-success-text-emphasis | 1 | 0
@@ -392,10 +397,11 @@ name | grep stdout | exit
 --tblr-tertiary | 1 | 0
 --tblr-warning | 1 | 0
 --tblr-warning-bg-subtle | 1 | 0
+--tblr-warning-border-subtle | 1 | 0
 --tblr-warning-lt | 1 | 0
 --tblr-warning-lt-rgb | 1 | 0
 --tblr-warning-text-emphasis | 1 | 0
-125 names: 123 present, 2 intentionally absent; vendor unchanged.
+129 names: 127 present, 2 intentionally absent; vendor unchanged.
 ```
 
 ## 3. Gerechnete Kontraste
@@ -820,10 +826,10 @@ des jeweiligen nächsten WP-Besitzes**. Voraussetzung: K1–K5/K7/K8 entschieden
 
 | Datei | Konkrete Änderung nach Freigabe |
 |---|---|
-| static/tokens.css | alle35 --app-Farbtoken des Masters und zentrale Master-Mass-/Schrift-/Abstandstoken unter .dishboard-admin definieren; neue Fontrollen aus K1. Vorhandene72 --sh-Rootwerte und @font-face für geschützte Kanäle bewahren. Keine globale Migration von --sh-primary/--sh-font. Noch benötigte Admin-Legacyaliases nur hier im Adminscope zur jeweiligen --app-Rolle binden und Nutzer prüfen, keine globale Löschung vermeintlich ungenutzter Werte. |
+| static/tokens.css | alle35 --app-Farbtoken des Masters und zentrale Master-Mass-/Schrift-/Abstandstoken unter .dishboard-admin definieren. Fontrollen K1-A ausgeschrieben, nicht `var(--sh-font)`: `--app-font-body: "Fira Sans", Aptos, "Segoe UI Variable", "Segoe UI", ui-sans-serif, sans-serif;` (tokens.css:105); `--app-font-heading: "Fira Sans", Aptos, "Segoe UI Variable Display", "Segoe UI", ui-sans-serif, sans-serif;` (tokens.css:106). Vorhandene72 --sh-Rootwerte und @font-face für geschützte Kanäle bewahren. Keine globale Migration von --sh-primary/--sh-font. Noch benötigte Admin-Legacyaliases nur hier im Adminscope zur jeweiligen --app-Rolle binden und Nutzer prüfen, keine globale Löschung vermeintlich ungenutzter Werte. |
 | static/admin-tabler.css | bestehenden --tblr-Block und direkte Bodyfarbe/Schrift auf §2-Vertrag umstellen; hartes Primary-RGB entfernen, sämtliches RGB dynamisch aus effektiven Tokenfarben ableiten. Wirkungsloses --tblr-primary-lt-fg entfernen. Master-Farben an Buttons/Formen/Links/Tabs/Pagination/Status/Card/Sidebar samt Zuständen anbinden. Alte --sh-Abhängigkeiten im Admin durch passende Rolle ersetzen; Formfocus-Festfarbe, aktive Cardheader-Tabs und File-Selector direkt scoped korrigieren. Keine !important-Kaskade. |
 | static/admin-tabler.css | Grössen/Radien/Cardpadding und Fontoptionen auf zentrale Tokens umstellen; globales16px vermeiden, grössere48px-Ziele erhalten. K7-Varianten und K8-Schattenentscheid umsetzen. Breakpointänderung61–72/89–91 mit SHELL synchronisieren: gemeinsamer Dateibesitz darf nicht parallel kollidieren; TOKENS liefert Grundlagen, SHELL ändert korrespondierendes HTML nach Freeze. |
-| branding_tokens.py | vorhandenes Public-/Print-/TV-brand_tokens-Verhalten erhalten; dedizierte Adminableitung aus validiertem Primary, deterministische12%/24%-Schwarzblendung oder konkret freigegebene Alternative. Alle §3-Primary-Paare prüfen, atomarer Masterfallback samt RGB. Keine Abhängigkeit von Default-Sonderfall. Nur .dishboard-admin Primaryfamilie/RGB ausgeben; Tabellenregeln §1.4 wie K4 von Admin abgrenzen, Nicht-Admin-Spezifität/Verhalten schützen. Keine Brandrevision mutieren. |
+| branding_tokens.py | vorhandenes Public-/Print-/TV-brand_tokens-Verhalten erhalten; dedizierte Adminableitung aus validiertem Primary, deterministische12%/24%-Schwarzblendung oder konkret freigegebene Alternative. Kontrast-Gate nutzt `branding_config.contrast()` (`branding_config.py:39–45`) gegen die festen Master-Flächen `#FFFFFF` (`--app-surface` / On-Primary), `#F6F4F1` (`--app-bg`), `#FAF9F7` (`--app-surface-soft`), `#F7E8EE` (`--app-primary-soft`) und Weiss als On-Primary. Text ≥ 4.5:1, Nicht-Text ≥ 3:1, Entscheidung vor Rundung. Alle §3-Primary-Paare prüfen; bei Verstoss kein Teilsatz, atomarer Masterfallback samt RGB. Keine Abhängigkeit von Default-Sonderfall. Nur .dishboard-admin Primaryfamilie/RGB ausgeben; Tabellenregeln §1.4 wie K4 von Admin abgrenzen, Nicht-Admin-Spezifität/Verhalten schützen. Keine Brandrevision mutieren. |
 
 Keine Änderungen an branding_config.py, display_settings.py, display_routes.py,
 Datenbankschema oder gespeicherten Revisionen für diese Entscheidung erforderlich.

@@ -28,6 +28,7 @@
   --tblr-link-color: var(--app-primary);
   --tblr-link-color-rgb: var(--app-primary-rgb);
   --tblr-link-hover-color: var(--app-primary-hover);
+  --tblr-link-hover-color-rgb: var(--app-primary-rgb);
   --tblr-primary-darken: var(--app-primary-hover);
   --tblr-active-bg: var(--app-primary-soft);
   --tblr-border-color: var(--app-border);
@@ -309,7 +310,7 @@
 .dishboard-admin [data-menu-metadata] .label { padding: 4px 8px; border-radius: var(--sh-radius-sm); background: var(--sh-panel-soft); }
 .dishboard-admin [data-menu-metadata] :is(p, .label), .dishboard-admin .card-title { overflow-wrap: anywhere; }
 .dishboard-admin :is(a, button, summary, input, select, textarea, [tabindex]):focus-visible { outline: 2px solid var(--app-focus); outline-offset: 2px; }
-.dishboard-admin .admin-sidebar :is(a, button):focus-visible { outline-color: var(--app-sidebar-indicator); }
+.dishboard-admin .admin-sidebar :is(a, button):focus-visible { outline-color: var(--app-surface); }
 .dishboard-admin .skip-link { position: fixed; top: 8px; left: 8px; z-index: 1100; padding: 12px; color: var(--sh-white); background: var(--sh-primary); transform: translateY(-200%); }
 .dishboard-admin .skip-link:focus { transform: translateY(0); }
 @media (min-width: 992px) {
