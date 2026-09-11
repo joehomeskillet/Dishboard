@@ -366,10 +366,13 @@ flowchart TD
 
 ## 8. Layoutvarianten je Route
 
-### 8.1 Die drei zentralen Layoutvarianten (Master §5.2)
-1. **Standard 1440 (`standard`):** Maximale Containerbreite `1440px` einschliesslich Innenabstand, zentriert im Inhaltsbereich. Geeignet für tabellarische Daten, Listen, Kachelraster und strukturierte Übersichten.
-2. **Schmal 960 (`narrow`):** Maximale Containerbreite `960px`, zentriert. Geeignet für konzentrierte Formulare, Einzeldokumente und Einstellungsansichten. Verhindert unleserlich überdehnte Eingabefelder.
-3. **Arbeitsfläche volle Breite (`full`):** Nutzt `100%` der verfügbaren Hauptbereichsbreite. Der Hauptbereich erhält zwingend `min-width: 0`. Geeignet für komplexe Kalender-, Wochen- und Planungsmatrizen.
+### 8.1 Arbeitsbreite (Vorgabe 2026-09-12, ersetzt Master §5.2 «Standard 1440 / Schmal 960»)
+**Volle Breite:** Jede Admin-Seite nutzt die gesamte verfügbare Breite rechts neben der Navigation. Keine Maximalbreite, keine zentrierte Insel, keine Obergrenze auf grossen Bildschirmen. `layout_variant` (`standard` / `narrow` / `workspace`) darf im Markup bleiben, erzeugt aber keine Breitenbegrenzung. Der Hauptbereich erhält zwingend `min-width: 0`.
+
+Historische Zuordnung (Begründungen bleiben; die Breite ist seit 2026-09-12 immer voll):
+1. **Standard 1440 (`standard`):** War maximale Containerbreite `1440px` einschliesslich Innenabstand, zentriert im Inhaltsbereich. Geeignet für tabellarische Daten, Listen, Kachelraster und strukturierte Übersichten.
+2. **Schmal 960 (`narrow`):** War maximale Containerbreite `960px`, zentriert. Geeignet für konzentrierte Formulare, Einzeldokumente und Einstellungsansichten. Verhindert unleserlich überdehnte Eingabefelder.
+3. **Arbeitsfläche volle Breite (`full`):** Nutzte `100%` der verfügbaren Hauptbereichsbreite. Geeignet für komplexe Kalender-, Wochen- und Planungsmatrizen.
 
 **Innenabstände des Hauptinhaltsbereichs (Master §5.2):**
 - Desktop (≥ 992 px): `32px` (`padding: 32px;`)
@@ -378,51 +381,51 @@ flowchart TD
 
 ### 8.2 Vollständige Zuordnung aller 41 visuellen Admin-Routen
 
-Die folgende Tabelle weist **jeder einzelnen visuellen Admin-Route** aus `ui-route-matrix.json` (`layout_variant == "admin_tabler"`) genau eine Layoutvariante mit Begründung zu:
+Die folgende Tabelle weist **jeder einzelnen visuellen Admin-Route** aus `ui-route-matrix.json` (`layout_variant == "admin_tabler"`) die Arbeitsbreite **Volle Breite** zu (Vorgabe 2026-09-12). Die Begründungen beschreiben den Seiteninhalt; sie erzeugen keine abweichende Maximalbreite mehr.
 
 | Nr. | Flask-Endpunkt | Pfad-Muster (Rule) | Zugewiesene Layoutvariante | Begründung anhand von Inhalt und Bedienung |
 |---|---|---|---|---|
-| 1 | `admin.access_history` | `/admin/benutzer/zugriffsverlauf` | **Standard 1440** | Mehrspaltige Audit-Tabelle (Zeit, IP, User, Aktion, Status); benötigt Breite. |
-| 2 | `admin.api_overview` | `/admin/api` | **Standard 1440** | Übersicht aktiver API-Keys, Berechtigungen und Endpunkt-Doku; Karten/Tabellen. |
-| 3 | `admin.branding_editor` | `/admin/design/marke` | **Schmal 960** | Konfigurationsformular für Markenfarben und Logo-Uploads; 1–2-spaltige Felder. |
-| 4 | `admin.branding_preview` | `/admin/design/marke/vorschau/<revision>` | **Standard 1440** | Visuelle Vorschau mehrerer UI-Elemente und Beispielkarten im Überblick. |
-| 5 | `admin.cafeteria` | `/admin/cafeteria` | **Arbeitsfläche volle Breite** | 5-Tage-Raster × 2 Menüarten; Planungsmatrix benötigt maximale Bildschirmbreite. |
-| 6 | `admin.component_detail` | `/admin/<family>/komponenten/<public_id>` | **Schmal 960** | Formular zum Bearbeiten von Komponenten, Labels und Allergenen. |
-| 7 | `admin.components_get` | `/admin/<family>/komponenten` | **Standard 1440** | Komponentenliste mit Filterleiste, Status-Badges und Paginierung. |
-| 8 | `admin.cookbook_edit` | `/admin/kochbuecher/<cookbook_id>` | **Schmal 960** | Stammdaten- und Sortierformular für Rezeptsammlungen. |
-| 9 | `admin.cookbook_new` | `/admin/kochbuecher/neu` | **Schmal 960** | Erfassungsformular zum Anlegen eines neuen Kochbuchs. |
-| 10 | `admin.cookbook_status` | `/admin/kochbuecher/<cookbook_id>/status` | **Schmal 960** | Fokussierter Statuswechsel- und Freigabedialog. |
-| 11 | `admin.cookbooks_list` | `/admin/kochbuecher` | **Standard 1440** | Übersicht aller Kochbücher als Kartenraster mit Metadaten. |
-| 12 | `admin.copy_get` | `/admin/<family>/copy` | **Schmal 960** | Kopier-Assistent zur Übernahme vergangener Wochenpläne; kompakter Dialog. |
-| 13 | `admin.display_settings` | `/admin/design/darstellung` | **Schmal 960** | Einstellungsformular für UI-Dichte und Breiten mit Vorschaukarte (Master §5.2). |
-| 14 | `admin.header_get` | `/admin/<family>/header` | **Schmal 960** | HTML-Fragment / Inline-Editor für Wochenhinweise und Servicezeiten. |
-| 15 | `admin.import_preview` | `/admin/import-preview` | **Standard 1440** | Tabellarische Vorschau und Validierung eingelesener CSV-Wochenzeilen. |
-| 16 | `admin.local_user_detail` | `/admin/benutzer/<public_id>` | **Schmal 960** | Formular zur Verwaltung eines Benutzerkontos, Rollenzuweisung, Passwort. |
-| 17 | `admin.local_user_events` | `/admin/benutzer/protokoll` | **Standard 1440** | Protokolltabelle über sicherheitsrelevante Benutzerereignisse. |
-| 18 | `admin.local_user_new` | `/admin/benutzer/neu` | **Schmal 960** | Erfassungsmaske für neue lokale Benutzerkonten. |
-| 19 | `admin.local_users_list` | `/admin/benutzer` | **Standard 1440** | Benutzerverzeichnis mit Rollen, Aktivstatus und Verwaltungsaktionen. |
-| 20 | `admin.master_data_detail` | `/admin/grundlagen/<kind>/<public_id>` | **Schmal 960** | Bearbeitungsmaske für einzelne Einheiten, Lebensmittel oder Vokabulareinträge. |
-| 21 | `admin.master_data_list` | `/admin/grundlagen` | **Standard 1440** | Grundlagen-Katalog mit Reiter-Navigation, Tabellen und Filtern. |
-| 22 | `admin.master_data_new` | `/admin/grundlagen/<kind>/neu` | **Schmal 960** | Formular zum Hinzufügen neuer Grundlagen-Elemente. |
-| 23 | `admin.menu_collection` | `/admin/<family>/menues` | **Standard 1440** | 3-spaltiges Menükartenraster bzw. tabellarische Liste aller gespeicherten Menüs. |
-| 24 | `admin.menu_get` | `/admin/<family>/menu` | **Schmal 960** | Detailliertes Menübearbeitungs-Formular (Titel, Komponenten, Notizen). |
-| 25 | `admin.operations_settings` | `/admin/bereiche-zeiten` | **Schmal 960** | Einstellungsformular für Schliesszeiten, Servicefenster und Betriebszeiten. |
-| 26 | `admin.patienten` | `/admin/patienten` | **Arbeitsfläche volle Breite** | Wochenplanungsraster für Patientenverpflegung; benötigt maximale Breite. |
-| 27 | `admin.preview` | `/admin/<family>/preview` | **Standard 1440** | Aushang- und Druckvorschau des Wochenplans in realer Inhaltsbreite. |
-| 28 | `admin.recipe_edit` | `/admin/rezepte/<recipe_id>` | **Schmal 960** | Rezeptur-Editor mit Zutatenzeilen, Mengenangaben und Zubereitungsschritten. |
-| 29 | `admin.recipe_images` | `/admin/rezepte/<recipe_id>/bilder` | **Standard 1440** | Bildergalerie und Upload-Raster für Menü- und Rezeptfotos. |
-| 30 | `admin.recipe_new` | `/admin/rezepte/neu` | **Schmal 960** | Formular zur Neuerfassung einer Rezeptur. |
-| 31 | `admin.recipe_revision` | `/admin/rezepte/<recipe_id>/revisionen/<rev>` | **Standard 1440** | Detailansicht des unveränderlichen Stands mit Skalierungstabelle und Bildern. |
-| 32 | `admin.recipe_revisions` | `/admin/rezepte/<recipe_id>/revisionen` | **Standard 1440** | Revisionshistorie mit Vergleichsaktionen und Zeitstempeln. |
-| 33 | `admin.recipe_scale` | `/admin/rezepte/<recipe_id>/skalierung` | **Standard 1440** | Mengenberechnungs- und Umrechnungstabelle für Portionierungen. |
-| 34 | `admin.recipe_status` | `/admin/rezepte/<recipe_id>/status` | **Schmal 960** | Dialog zur Freigabe, Archivierung oder Entwurfsprüfung eines Rezepts. |
-| 35 | `admin.recipes_list` | `/admin/rezepte` | **Standard 1440** | Rezeptdatenbank mit Filtersuche, Tags, Statusanzeigen und Paginierung. |
-| 36 | `admin.screen_template_assignment` | `/admin/screens/<family>/wochenvorlage` | **Schmal 960** | Zuordnungsmaske zur Verknüpfung von Vorlagen mit Kalenderwochen. |
-| 37 | `admin.screens` | `/admin/screens` | **Standard 1440** | Gerätekarten-Übersicht aller angebundenen Ausgabebildschirme. |
-| 38 | `admin.service_get` | `/admin/<family>/service` | **Schmal 960** | HTML-Fragment / Editor für einzelne Tagesdienste und Servicezeiten. |
-| 39 | `admin.vorlagen` | `/admin/vorlagen` | **Standard 1440** | Vorlagenkatalog für Screen- und Drucklayouts als Kartenraster. |
-| 40 | `admin.week_management` | `/admin/<family>/wochen` | **Standard 1440** | Kalenderwochen-Tabelle mit Veröffentlichungsstatus und Aktionen. |
-| 41 | `admin.week_review_get` | `/admin/<family>/wochen/pruefung` | **Standard 1440** | Vollständige Prüfliste aller offenen Angaben und Fehler einer Woche. |
+| 1 | `admin.access_history` | `/admin/benutzer/zugriffsverlauf` | **Volle Breite** | Mehrspaltige Audit-Tabelle (Zeit, IP, User, Aktion, Status); benötigt Breite. |
+| 2 | `admin.api_overview` | `/admin/api` | **Volle Breite** | Übersicht aktiver API-Keys, Berechtigungen und Endpunkt-Doku; Karten/Tabellen. |
+| 3 | `admin.branding_editor` | `/admin/design/marke` | **Volle Breite** | Konfigurationsformular für Markenfarben und Logo-Uploads; 1–2-spaltige Felder. |
+| 4 | `admin.branding_preview` | `/admin/design/marke/vorschau/<revision>` | **Volle Breite** | Visuelle Vorschau mehrerer UI-Elemente und Beispielkarten im Überblick. |
+| 5 | `admin.cafeteria` | `/admin/cafeteria` | **Volle Breite** | 5-Tage-Raster × 2 Menüarten; Planungsmatrix benötigt maximale Bildschirmbreite. |
+| 6 | `admin.component_detail` | `/admin/<family>/komponenten/<public_id>` | **Volle Breite** | Formular zum Bearbeiten von Komponenten, Labels und Allergenen. |
+| 7 | `admin.components_get` | `/admin/<family>/komponenten` | **Volle Breite** | Komponentenliste mit Filterleiste, Status-Badges und Paginierung. |
+| 8 | `admin.cookbook_edit` | `/admin/kochbuecher/<cookbook_id>` | **Volle Breite** | Stammdaten- und Sortierformular für Rezeptsammlungen. |
+| 9 | `admin.cookbook_new` | `/admin/kochbuecher/neu` | **Volle Breite** | Erfassungsformular zum Anlegen eines neuen Kochbuchs. |
+| 10 | `admin.cookbook_status` | `/admin/kochbuecher/<cookbook_id>/status` | **Volle Breite** | Fokussierter Statuswechsel- und Freigabedialog. |
+| 11 | `admin.cookbooks_list` | `/admin/kochbuecher` | **Volle Breite** | Übersicht aller Kochbücher als Kartenraster mit Metadaten. |
+| 12 | `admin.copy_get` | `/admin/<family>/copy` | **Volle Breite** | Kopier-Assistent zur Übernahme vergangener Wochenpläne; kompakter Dialog. |
+| 13 | `admin.display_settings` | `/admin/design/darstellung` | **Volle Breite** | Einstellungsformular für UI-Dichte und Breiten mit Vorschaukarte (Master §5.2). |
+| 14 | `admin.header_get` | `/admin/<family>/header` | **Volle Breite** | HTML-Fragment / Inline-Editor für Wochenhinweise und Servicezeiten. |
+| 15 | `admin.import_preview` | `/admin/import-preview` | **Volle Breite** | Tabellarische Vorschau und Validierung eingelesener CSV-Wochenzeilen. |
+| 16 | `admin.local_user_detail` | `/admin/benutzer/<public_id>` | **Volle Breite** | Formular zur Verwaltung eines Benutzerkontos, Rollenzuweisung, Passwort. |
+| 17 | `admin.local_user_events` | `/admin/benutzer/protokoll` | **Volle Breite** | Protokolltabelle über sicherheitsrelevante Benutzerereignisse. |
+| 18 | `admin.local_user_new` | `/admin/benutzer/neu` | **Volle Breite** | Erfassungsmaske für neue lokale Benutzerkonten. |
+| 19 | `admin.local_users_list` | `/admin/benutzer` | **Volle Breite** | Benutzerverzeichnis mit Rollen, Aktivstatus und Verwaltungsaktionen. |
+| 20 | `admin.master_data_detail` | `/admin/grundlagen/<kind>/<public_id>` | **Volle Breite** | Bearbeitungsmaske für einzelne Einheiten, Lebensmittel oder Vokabulareinträge. |
+| 21 | `admin.master_data_list` | `/admin/grundlagen` | **Volle Breite** | Grundlagen-Katalog mit Reiter-Navigation, Tabellen und Filtern. |
+| 22 | `admin.master_data_new` | `/admin/grundlagen/<kind>/neu` | **Volle Breite** | Formular zum Hinzufügen neuer Grundlagen-Elemente. |
+| 23 | `admin.menu_collection` | `/admin/<family>/menues` | **Volle Breite** | 3-spaltiges Menükartenraster bzw. tabellarische Liste aller gespeicherten Menüs. |
+| 24 | `admin.menu_get` | `/admin/<family>/menu` | **Volle Breite** | Detailliertes Menübearbeitungs-Formular (Titel, Komponenten, Notizen). |
+| 25 | `admin.operations_settings` | `/admin/bereiche-zeiten` | **Volle Breite** | Einstellungsformular für Schliesszeiten, Servicefenster und Betriebszeiten. |
+| 26 | `admin.patienten` | `/admin/patienten` | **Volle Breite** | Wochenplanungsraster für Patientenverpflegung; benötigt maximale Breite. |
+| 27 | `admin.preview` | `/admin/<family>/preview` | **Volle Breite** | Aushang- und Druckvorschau des Wochenplans in realer Inhaltsbreite. |
+| 28 | `admin.recipe_edit` | `/admin/rezepte/<recipe_id>` | **Volle Breite** | Rezeptur-Editor mit Zutatenzeilen, Mengenangaben und Zubereitungsschritten. |
+| 29 | `admin.recipe_images` | `/admin/rezepte/<recipe_id>/bilder` | **Volle Breite** | Bildergalerie und Upload-Raster für Menü- und Rezeptfotos. |
+| 30 | `admin.recipe_new` | `/admin/rezepte/neu` | **Volle Breite** | Formular zur Neuerfassung einer Rezeptur. |
+| 31 | `admin.recipe_revision` | `/admin/rezepte/<recipe_id>/revisionen/<rev>` | **Volle Breite** | Detailansicht des unveränderlichen Stands mit Skalierungstabelle und Bildern. |
+| 32 | `admin.recipe_revisions` | `/admin/rezepte/<recipe_id>/revisionen` | **Volle Breite** | Revisionshistorie mit Vergleichsaktionen und Zeitstempeln. |
+| 33 | `admin.recipe_scale` | `/admin/rezepte/<recipe_id>/skalierung` | **Volle Breite** | Mengenberechnungs- und Umrechnungstabelle für Portionierungen. |
+| 34 | `admin.recipe_status` | `/admin/rezepte/<recipe_id>/status` | **Volle Breite** | Dialog zur Freigabe, Archivierung oder Entwurfsprüfung eines Rezepts. |
+| 35 | `admin.recipes_list` | `/admin/rezepte` | **Volle Breite** | Rezeptdatenbank mit Filtersuche, Tags, Statusanzeigen und Paginierung. |
+| 36 | `admin.screen_template_assignment` | `/admin/screens/<family>/wochenvorlage` | **Volle Breite** | Zuordnungsmaske zur Verknüpfung von Vorlagen mit Kalenderwochen. |
+| 37 | `admin.screens` | `/admin/screens` | **Volle Breite** | Gerätekarten-Übersicht aller angebundenen Ausgabebildschirme. |
+| 38 | `admin.service_get` | `/admin/<family>/service` | **Volle Breite** | HTML-Fragment / Editor für einzelne Tagesdienste und Servicezeiten. |
+| 39 | `admin.vorlagen` | `/admin/vorlagen` | **Volle Breite** | Vorlagenkatalog für Screen- und Drucklayouts als Kartenraster. |
+| 40 | `admin.week_management` | `/admin/<family>/wochen` | **Volle Breite** | Kalenderwochen-Tabelle mit Veröffentlichungsstatus und Aktionen. |
+| 41 | `admin.week_review_get` | `/admin/<family>/wochen/pruefung` | **Volle Breite** | Vollständige Prüfliste aller offenen Angaben und Fehler einer Woche. |
 
 ---
 

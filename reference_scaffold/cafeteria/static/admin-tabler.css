@@ -353,20 +353,15 @@
 .dishboard-admin .table { --tblr-table-color: var(--app-text); --tblr-table-border-color: var(--app-border); }
 .dishboard-admin :is(.admin-main, .display-preview)[data-density="compact"] { --app-card-inset: var(--app-space-6); }
 .dishboard-admin :is(.admin-main, .display-preview)[data-density="comfortable"] { --app-card-inset: var(--app-space-8); }
+.dishboard-admin .admin-main > :is(header, .admin-area-tabs, .page-body),
+.dishboard-admin .admin-main .page-header {
+  padding-inline: 0; margin-inline: 0; min-width: 0;
+}
 .dishboard-admin .admin-main > :is(header, .admin-area-tabs, .page-body) > .container-xl,
-.dishboard-admin .admin-main > header > .page-header > .container-xl {
-  max-width: var(--app-container-width); padding-inline: var(--app-page-padding); min-width: 0;
+.dishboard-admin .admin-main .page-header > .container-xl {
+  max-width: none; width: 100%; margin-inline: 0;
+  padding-inline: var(--app-page-padding); min-width: 0;
 }
-.dishboard-admin .admin-main[data-layout="narrow"] > :is(header, .admin-area-tabs, .page-body) > .container-xl,
-.dishboard-admin .admin-main[data-layout="narrow"] > header > .page-header > .container-xl {
-  max-width: var(--app-container-narrow);
-}
-.dishboard-admin .admin-main[data-layout="workspace"] > :is(header, .admin-area-tabs, .page-body) > .container-xl,
-.dishboard-admin .admin-main[data-layout="workspace"] > header > .page-header > .container-xl {
-  max-width: none;
-}
-.dishboard-admin .admin-main[data-content-width="full"] > :is(header, .admin-area-tabs, .page-body) > .container-xl,
-.dishboard-admin .admin-main[data-content-width="full"] > header > .page-header > .container-xl { max-width: none; }
 .dishboard-admin .admin-page-header .page-header-row {
   display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between;
   gap: var(--app-space-6);

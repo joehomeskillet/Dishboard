@@ -32,7 +32,15 @@ def test_preview_global_consumers_reset_and_fresh_login(
         for page in (a, b):
             page.set_viewport_size({'width': width, 'height': 1100})
         a.goto(PATH)
+        expect(a.locator('#admin-content-width-hint')).to_contain_text('volle Breite')
         initial_preview_width = a.locator('.display-preview').bounding_box()['width']
+        contained_preview = None
+        shell_width = None
+        if width == 1440:
+            a.set_viewport_size({'width': 1920, 'height': 1100})
+            contained_preview = a.locator('.display-preview').bounding_box()['width']
+            shell_width = a.locator('.page-body > .container-xl').bounding_box()['width']
+            a.set_viewport_size({'width': width, 'height': 1100})
         a.get_by_label('Abstände', exact=True).select_option('comfortable')
         a.get_by_label('Schriftgröße', exact=True).select_option('large')
         a.get_by_label('Inhaltsbreite', exact=True).select_option('full')
@@ -46,18 +54,16 @@ def test_preview_global_consumers_reset_and_fresh_login(
         assert a.locator('.display-preview .card-body').evaluate(
             'el => parseFloat(getComputedStyle(el).paddingTop)',
         ) == (24 if width < 768 else 32)
-        # K7-A, Entscheidungsdokument §10: contained uses --app-container-width (1440 px).
-        # At 1440 px viewport with 248 px sidebar, available content width is 1113 px <= 1440 px,
-        # so preview width matches initial_preview_width.
+        # Page shell is always full width. Inhaltsbreite still caps .display-preview at 1440 px.
         if width == 1440:
             assert a.locator('.display-preview').bounding_box()['width'] == initial_preview_width
+            a.set_viewport_size({'width': 1920, 'height': 1100})
+            assert a.locator('.display-preview').bounding_box()['width'] > contained_preview
+            assert a.locator('.page-body > .container-xl').bounding_box()['width'] == shell_width
+            a.set_viewport_size({'width': width, 'height': 1100})
         assert get_admin_display(admin_engine) == DEFAULT_ADMIN_DISPLAY
         b.goto('/admin/cafeteria/menues')
         expect(b.locator('.menu-photo')).to_have_count(1)
-        if width == 1440:
-            b.set_viewport_size({'width': 1920, 'height': 1100})
-            contained_width = b.locator('.page-body > .container-xl').bounding_box()['width']
-            b.set_viewport_size({'width': width, 'height': 1100})
         a.get_by_role('button', name='Darstellung speichern', exact=True).click()
         for family in ('cafeteria', 'patienten'):
             for path, cards in [(f'/admin/{family}?week={DAY}', '.menu-slot'),
@@ -70,7 +76,19 @@ def test_preview_global_consumers_reset_and_fresh_login(
                 expect(b.locator('.menu-photo')).to_have_count(0)
                 if width == 1440 and family == 'cafeteria' and cards == '.menu-slot':
                     b.set_viewport_size({'width': 1920, 'height': 1100})
-                    assert b.locator('.page-body > .container-xl').bounding_box()['width'] > contained_width
+                    metrics = b.evaluate('''() => {
+                      const main = document.querySelector('main.admin-main');
+                      const box = document.querySelector('.page-body > .container-xl');
+                      const cs = getComputedStyle(box);
+                      const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+                      return {
+                        maxWidth: cs.maxWidth,
+                        contentWidth: box.getBoundingClientRect().width - pad,
+                        expected: main.clientWidth - pad,
+                      };
+                    }''')
+                    assert metrics['maxWidth'] == 'none'
+                    assert abs(metrics['contentWidth'] - metrics['expected']) <= 1, metrics
                     b.set_viewport_size({'width': width, 'height': 1100})
                 assert b.locator('main .btn').first.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') == 18
                 _assert_controls(b)

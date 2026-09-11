@@ -21,6 +21,7 @@
   <a class="skip-link" href="#main-content">Zum Inhalt springen</a>
   <div class="page">
     {% block sidebar %}{% include 'admin/_workflow_sidebar.html' %}{% endblock %}
+    {# Working width is always the full main area; layout_variant does not cap it. #}
     {% set layout_variant = layout_variant|default('standard') %}
     <main id="main-content" class="page-wrapper admin-main" data-profile="{{ profile }}" data-layout="{{ layout_variant }}" data-density="{{ admin_density|default('compact') }}" data-font-size="{{ admin_font_size|default('normal') }}" data-content-width="{{ admin_content_width|default('contained') }}" data-menu-images="{{ admin_menu_images|default('show') }}" tabindex="-1" {% block main_attributes %}{% endblock %}>
       {% set _page_header %}{% block page_header %}{% endblock %}{% endset %}

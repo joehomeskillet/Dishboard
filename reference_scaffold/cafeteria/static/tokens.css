@@ -171,6 +171,7 @@
   --app-line-height-title: 1.3;
   --app-sidebar-width: 248px;
   --app-topbar-min-height: 64px;
+  /* Local preview/table caps only; the admin shell has no page max-width. */
   --app-container-width: 1440px;
   --app-container-narrow: 960px;
   --app-radius-card: 12px;
