@@ -5,7 +5,7 @@
 .dishboard-component-link { display: flex; align-items: center; justify-content: space-between; gap: var(--app-space-2); min-height: var(--app-space-12); }
 .dishboard-component-link .icon { flex: none; }
 .dishboard-cell-label { display: none; }
-@media (max-width: 1199.98px) {
+@media (max-width: 991.98px) {
   .dishboard-component-results { border: 0; background: transparent; box-shadow: none; }
   .dishboard-component-table, .dishboard-component-table tbody { display: block; }
   .dishboard-component-table thead { display: none; }

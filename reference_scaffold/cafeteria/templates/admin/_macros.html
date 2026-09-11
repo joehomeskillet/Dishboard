@@ -63,7 +63,7 @@
 {%- set desc_ids = [] -%}
 {%- if hint -%}{%- set _ = desc_ids.append(field_id ~ '-hint') -%}{%- endif -%}
 {%- if error -%}{%- set _ = desc_ids.append(field_id ~ '-error') -%}{%- endif -%}
-<label class="form-label{% if required %} required{% endif %}" for="{{ field_id }}">{{ label }}</label>
+{% if label %}<label class="form-label{% if required %} required{% endif %}" for="{{ field_id }}">{{ label }}</label>{% endif %}
 <select class="form-select{% if error %} is-invalid{% endif %}" id="{{ field_id }}" name="{{ name }}"{% if required %} required{% endif %}{% if disabled %} disabled{% endif %}{% if readonly %} readonly aria-readonly="true" tabindex="-1"{% endif %}{% if error %} aria-invalid="true"{% endif %}{% if desc_ids %} aria-describedby="{{ desc_ids|join(' ') }}"{% endif %}>
   {%- if placeholder -%}
     <option value=""{% if not value %} selected{% endif %}>{{ placeholder }}</option>

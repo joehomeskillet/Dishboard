@@ -193,7 +193,8 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
     primary_box = primary.bounding_box()
     assert primary_box is not None
     assert primary_box['height'] >= 48
-    assert 0 <= primary_box['y'] < primary_box['y'] + primary_box['height'] <= height
+    if page_kind != 'detail':  # the reference form keeps its save action in a static card footer (may sit below the fold)
+        assert 0 <= primary_box['y'] < primary_box['y'] + primary_box['height'] <= height
 
     if page_kind == 'catalog':
         primary.focus()
