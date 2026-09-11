@@ -551,7 +551,8 @@ def _captures(*rows: tuple[str, str]) -> list[dict[str, str]]:
 SHARED_STATES = [
     {
         'id': 'login',
-        'routes': ['auth.local_login', 'auth.login', 'auth.error'],
+        # auth/error.html is a template rendered by auth.login/auth.callback, not an endpoint.
+        'routes': ['auth.local_login', 'auth.login'],
         'owning_mp': 'MP-UI-AUTH',
         'note': 'Auth layout without admin sidebar.',
         'fixture': 'local_auth_enabled_no_production_persons',
@@ -559,14 +560,14 @@ SHARED_STATES = [
     },
     {
         'id': 'empty',
-        'routes': ['admin.menu_collection', 'admin.recipes_list', 'admin.cookbooks_list', 'admin.master_data_list', 'admin.components_list'],
+        'routes': ['admin.menu_collection', 'admin.recipes_list', 'admin.cookbooks_list', 'admin.master_data_list', 'admin.components_get'],
         'owning_mp': 'MP-UI-MACROS',
         'note': 'Empty vs no-search-hit vs no-permission must stay distinct.',
         'fixture': 'isolated_pg_schema25_seed_before_prepare_entities',
         'captures': _captures(
             ('admin.menu_collection', 'empty'), ('admin.recipes_list', 'empty'),
             ('admin.cookbooks_list', 'empty'), ('admin.master_data_list', 'empty'),
-            ('admin.components_list', 'empty'),
+            ('admin.components_get', 'empty'),
         ),
     },
     {
