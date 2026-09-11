@@ -320,4 +320,13 @@ GRANT SELECT ON recipe_import_batches,recipe_import_candidates TO cafeteria_app,
 GRANT SELECT ON SEQUENCE recipe_import_batches_id_seq TO cafeteria_backup;
 -- Recipe import batches schema28 grants end.
 
+-- Recipe import commit schema29 grants begin.
+REVOKE ALL ON FUNCTION recipe_import_head_source_v29(recipe_import_batches,recipe_import_candidates),
+    recipe_import_recipe_payload_v29(recipe_import_batches,recipe_import_candidates),
+    commit_recipe_import_batch_v29(bigint,bigint,bigint,uuid,bigint,jsonb)
+FROM PUBLIC,cafeteria_app,cafeteria_backup,cafeteria_auth_issuer;
+GRANT EXECUTE ON FUNCTION commit_recipe_import_batch_v29(bigint,bigint,bigint,uuid,bigint,jsonb)
+    TO cafeteria_app;
+-- Recipe import commit schema29 grants end.
+
 COMMIT;
