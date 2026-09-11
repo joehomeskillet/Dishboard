@@ -53,14 +53,18 @@ def test_compact_default_without_local_control_preserves_help_and_targets(
         page.goto(PATH)
         expect(page.get_by_label('Abstände', exact=True)).to_have_value('compact')
         expect(page.locator('#admin-density-hint')).to_be_visible()
-        assert page.locator('#display-settings-form .card-body').evaluate('el => getComputedStyle(el).paddingTop') == '12px'
+        # K7-A, Entscheidungsdokument §10: compact = Master-Card-Inset (16 px mobil, 24 px ab 768 px)
+        expected_compact = '16px' if width < 768 else '24px'
+        assert page.locator('#display-settings-form .card-body').evaluate('el => getComputedStyle(el).paddingTop') == expected_compact
         _assert_controls(page)
         page.screenshot(path=str(tmp_path / f'display-compact-{width}-js-{javascript}.png'), full_page=True)
         if not javascript:
             page.get_by_label('Abstände', exact=True).select_option('comfortable')
             page.get_by_role('button', name='Darstellung speichern', exact=True).click()
             expect(page.locator('main')).to_have_attribute('data-density', 'comfortable')
-            assert page.locator('#display-settings-form .card-body').evaluate('el => parseFloat(getComputedStyle(el).paddingTop)') > 12
+            # K7-A, Entscheidungsdokument §10: comfortable = nächste Stufe (24 px mobil, 32 px ab 768 px)
+            expected_comfortable = '24px' if width < 768 else '32px'
+            assert page.locator('#display-settings-form .card-body').evaluate('el => getComputedStyle(el).paddingTop') == expected_comfortable
             _assert_controls(page)
             page.screenshot(path=str(tmp_path / f'display-comfortable-{width}-no-js.png'), full_page=True)
 
@@ -87,7 +91,8 @@ def test_native_save_is_global_in_second_browser_and_ignores_old_storage(
             for family in ('cafeteria', 'patienten'):
                 b.goto(f'/admin/{family}')
                 expect(b.locator('main')).to_have_attribute('data-density', density)
-                expected = '12px' if density == 'compact' else '16px'
+                # K7-A, Entscheidungsdokument §10: b has mobile width 390 px (compact: 16 px, comfortable: 24 px)
+                expected = '16px' if density == 'compact' else '24px'
                 assert b.locator('.card-body').first.evaluate('el => getComputedStyle(el).paddingTop') == expected
                 assert b.locator('main').get_attribute('data-state') is None
                 _assert_controls(b)

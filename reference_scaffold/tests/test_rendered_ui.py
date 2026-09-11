@@ -307,18 +307,38 @@ def _set_unbroken_signage_boundaries(
 
 def test_css_rgba_colors_outside_root_use_design_tokens() -> None:
     # Tokens live in tokens.css (shared by app.css and the Tabler admin base); raw colours
-    # are only allowed inside that :root block.
-    tokens = TOKENS_PATH.read_text(encoding='utf-8')
-    root_block = re.search(r':root\s*\{.*?\}', tokens, re.DOTALL)
+    # are allowed inside :root and inside blocks starting with .dishboard-admin (K8-B master shadow).
+    clean_tokens = re.sub(r'/\*.*?\*/', '', TOKENS_PATH.read_text(encoding='utf-8'), flags=re.DOTALL)
+    clean_app = re.sub(r'/\*.*?\*/', '', CSS_PATH.read_text(encoding='utf-8'), flags=re.DOTALL)
 
-    assert root_block is not None
-    assert re.search(r':root\s*\{', CSS_PATH.read_text(encoding='utf-8')) is None
-    outside_root = tokens[: root_block.start()] + tokens[root_block.end() :]
-    outside_root += CSS_PATH.read_text(encoding='utf-8')
-    rgba_violations = [line.strip() for line in outside_root.splitlines() if 'rgba(' in line]
+    assert re.search(r':root\s*\{', clean_tokens) is not None
+    assert re.search(r':root\s*\{', clean_app) is None
+
+    def _strip_allowed_blocks(css: str, allow_admin: bool = False) -> str:
+        lines: list[str] = []
+        in_allowed = False
+        depth = 0
+        for line in css.splitlines():
+            is_root = ':root' in line and '{' in line
+            is_admin = allow_admin and line.strip().startswith('.dishboard-admin') and '{' in line
+            if (is_root or is_admin) and not in_allowed:
+                in_allowed = True
+                depth = line.count('{') - line.count('}')
+                if depth <= 0:
+                    in_allowed = False
+            elif in_allowed:
+                depth += line.count('{') - line.count('}')
+                if depth <= 0:
+                    in_allowed = False
+            else:
+                lines.append(line)
+        return '\n'.join(lines)
+
+    outside_allowed = _strip_allowed_blocks(clean_tokens, allow_admin=True) + '\n' + clean_app
+    rgba_violations = [line.strip() for line in outside_allowed.splitlines() if 'rgba(' in line]
     hex_violations = [
         line.strip()
-        for line in outside_root.splitlines()
+        for line in outside_allowed.splitlines()
         if re.search(r'#[0-9a-fA-F]{3,8}\b', line)
     ]
     assert rgba_violations == []
