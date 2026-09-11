@@ -9,6 +9,7 @@ matrix, manifest and original screenshots untouched.
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import sys
 import threading
@@ -28,7 +29,9 @@ MANIFEST_PATH = ROOT / 'docs' / 'superpowers' / 'backlog-0909' / 'ui-before-mani
 sys.path.insert(0, str(EVIDENCE))
 
 from capture import (  # noqa: E402
-    Outputs, await_ready, capture_provenance, capture_publish_dialog, rendered_fonts, shot,
+    Outputs, await_ready, capture_provenance, capture_publish_dialog,
+    capture_role_navigation, capture_states, fixture_record, font_file_hashes,
+    rendered_fonts, role_suffix, runtime_record, shot,
 )
 
 # The image is referenced at parse time and served with a real delay, so readiness
@@ -237,3 +240,129 @@ def test_default_outputs_still_point_at_the_versioned_baseline() -> None:
     redirected = Outputs.into(Path('/tmp/example-capture'))
     assert MANIFEST_PATH not in redirected.manifest_paths
     assert redirected.screen_dir == Path('/tmp/example-capture/screenshots')
+
+
+def test_capture_role_navigation(browser, served, tmp_path):  # noqa: F811
+    class Cookie:
+        def __init__(self, key: str, value: str):
+            self.key = key
+            self.value = value
+
+    assert role_suffix('Cafeteria.Editor') == 'role-nav-editor'
+    assert role_suffix('Cafeteria.Publisher') == 'role-nav-publisher'
+    assert role_suffix('Cafeteria.Admin') == 'role-nav-admin'
+
+    html = """<!doctype html><html lang="de"><body><aside class="admin-sidebar"><nav class="admin-nav">
+    <a href="/admin/cafeteria/menues">Menüs</a>
+    <a href="/admin/cafeteria/komponenten">Komponenten</a>
+    </nav></aside></body></html>"""
+    live = served({'/admin/cafeteria': html})
+    out = Outputs.into(tmp_path)
+    role_cookies = {
+        'Cafeteria.Editor': Cookie('session', 'editor-cookie'),
+        'Cafeteria.Admin': Cookie('session', 'admin-cookie'),
+    }
+    rows = capture_role_navigation(browser, live, role_cookies, out=out)
+    assert len(rows) == 4
+    editor_rows = [r for r in rows if r['role'] == 'Cafeteria.Editor']
+    admin_rows = [r for r in rows if r['role'] == 'Cafeteria.Admin']
+    assert len(editor_rows) == 2
+    assert len(admin_rows) == 2
+    assert {r['suffix'] for r in editor_rows} == {'role-nav-editor'}
+    assert {r['suffix'] for r in admin_rows} == {'role-nav-admin'}
+    for r in rows:
+        assert r['nav_items'] == ['Menüs', 'Komponenten']
+        assert 'nav_probe_error' not in r
+
+
+def test_capture_role_navigation_without_sidebar(browser, served, tmp_path):  # noqa: F811
+    class Cookie:
+        def __init__(self, key: str, value: str):
+            self.key = key
+            self.value = value
+
+    html = """<!doctype html><html lang="de"><body><h1>No Sidebar</h1></body></html>"""
+    live = served({'/admin/cafeteria': html})
+    out = Outputs.into(tmp_path)
+    role_cookies = {'Cafeteria.Editor': Cookie('session', 'editor-cookie')}
+    rows = capture_role_navigation(browser, live, role_cookies, out=out)
+    assert len(rows) == 2
+    for r in rows:
+        assert r['nav_items'] == []
+        assert 'nav_probe_error' in r
+        assert 'no sidebar links matched' in r['nav_probe_error']
+
+
+def test_fixture_record_canon_hash_deep_copy_and_validation() -> None:
+    unsupplied = fixture_record(None)
+    assert unsupplied == {'status': 'not_supplied', 'sha256': None, 'descriptor': None}
+
+    d1 = {'b': 2, 'a': 1}
+    d2 = {'a': 1, 'b': 2}
+    rec1 = fixture_record(d1)
+    rec2 = fixture_record(d2)
+    assert rec1['status'] == 'caller_supplied'
+    assert rec1['sha256'] == rec2['sha256']
+    assert rec1['sha256'] is not None
+
+    d1['a'] = 999
+    assert rec1['descriptor'] == {'b': 2, 'a': 1}
+
+    with pytest.raises(ValueError, match='Fixture descriptor must be JSON-serializable'):
+        fixture_record({'invalid': object()})
+
+
+def test_font_file_hashes_covers_font_files_and_correct_hashes() -> None:
+    hashes = font_file_hashes()
+    fira_keys = [k for k in hashes if 'fira-sans-' in k and k.endswith('.woff2')]
+    assert len(fira_keys) == 4
+    for key, h in hashes.items():
+        path = ROOT / key
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == h
+
+
+def test_runtime_record_contains_non_empty_strings() -> None:
+    rec = runtime_record()
+    assert isinstance(rec.get('platform'), str) and rec['platform']
+    assert isinstance(rec.get('python'), str) and rec['python']
+    assert isinstance(rec.get('playwright'), str) and rec['playwright']
+
+
+def test_capture_states_success_and_failure(browser, served, tmp_path):  # noqa: F811
+    html = """<!doctype html><html lang="de"><body><button id="btn">Click</button></body></html>"""
+    live = served({'/admin/cafeteria': html})
+    out = Outputs.into(tmp_path)
+
+    def action_ok(page):
+        page.click('#btn')
+
+    def action_fail(page):
+        page.click('#nonexistent', timeout=500)
+
+    with browser.new_context(base_url=live) as context:
+        page = context.new_page()
+
+        rows, blocks = capture_states(page, [('/admin/cafeteria', 'valid', action_ok)], out=out)
+        assert len(rows) == 2
+        assert len(blocks) == 0
+        assert all(r['suffix'] == 'valid' for r in rows)
+        assert len(list(out.screen_dir.glob('*-valid-*.png'))) == 2
+
+        rows_f, blocks_f = capture_states(page, [('/admin/cafeteria', 'invalid', action_fail)], out=out)
+        assert len(rows_f) == 0
+        assert len(blocks_f) == 2
+        assert all(b['status'] == 'blocked_state_not_reached' for b in blocks_f)
+        assert all(b['id'] == 'state_invalid' for b in blocks_f)
+        assert len(list(out.screen_dir.glob('*-invalid-*.png'))) == 0
+
+
+def test_outputs_promoting_includes_manifest_path(tmp_path) -> None:
+    promoting = Outputs.promoting(tmp_path)
+    assert MANIFEST_PATH in promoting.manifest_paths
+    assert tmp_path / 'ui-before-manifest.json' in promoting.manifest_paths
+    assert promoting.screen_dir == tmp_path / 'screenshots'
+
+    into = Outputs.into(tmp_path)
+    assert MANIFEST_PATH not in into.manifest_paths
+

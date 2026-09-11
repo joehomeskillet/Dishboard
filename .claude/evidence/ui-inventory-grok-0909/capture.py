@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.metadata
 import json
+import platform
+import re
 import threading
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -64,6 +67,12 @@ class Outputs:
         """Send a run to a throwaway directory; versioned baselines stay untouched."""
         directory = Path(directory)
         return cls(directory / 'screenshots', (directory / 'ui-before-manifest.json',))
+
+    @classmethod
+    def promoting(cls, directory: Path) -> 'Outputs':
+        """Send a run to a directory while updating versioned MANIFEST_PATH too."""
+        directory = Path(directory)
+        return cls(directory / 'screenshots', (MANIFEST_PATH, directory / 'ui-before-manifest.json'))
 
 
 def _slug(path: str, width: int, height: int, suffix: str = '') -> str:
@@ -290,6 +299,139 @@ def capture_publish_dialog(page, out: Outputs | None = None) -> tuple[list[dict]
     return [row], []
 
 
+def fixture_record(descriptor: Mapping[str, object] | None) -> dict[str, object]:
+    """Record fixture metadata and canonical hash."""
+    if descriptor is None:
+        return {'status': 'not_supplied', 'sha256': None, 'descriptor': None}
+    try:
+        raw_json = json.dumps(
+            descriptor,
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(',', ':'),
+        )
+        deep_copy = json.loads(raw_json)
+    except (TypeError, ValueError) as error:
+        raise ValueError('Fixture descriptor must be JSON-serializable') from error
+    sha256_hex = hashlib.sha256(raw_json.encode('utf-8')).hexdigest()
+    return {
+        'status': 'caller_supplied',
+        'sha256': sha256_hex,
+        'descriptor': deep_copy,
+    }
+
+
+def font_file_hashes() -> dict[str, str]:
+    """Map ROOT-relative font file paths to their SHA256 hashes."""
+    fonts_dir = ROOT / 'reference_scaffold' / 'cafeteria' / 'static' / 'fonts'
+    suffixes = {'.woff2', '.woff', '.ttf', '.otf'}
+    result: dict[str, str] = {}
+    if fonts_dir.is_dir():
+        for path in fonts_dir.rglob('*'):
+            if path.is_file() and path.suffix.lower() in suffixes:
+                rel = path.relative_to(ROOT).as_posix()
+                result[rel] = _sha(path)
+    return dict(sorted(result.items()))
+
+
+def runtime_record() -> dict[str, str]:
+    """Capture environment version details."""
+    try:
+        pw_version = importlib.metadata.version('playwright')
+    except importlib.metadata.PackageNotFoundError:
+        pw_version = 'unknown'
+    return {
+        'platform': platform.platform(),
+        'python': platform.python_version(),
+        'playwright': pw_version,
+    }
+
+
+ROLE_NAV_PATH = '/admin/cafeteria'
+
+
+def role_suffix(role: str) -> str:
+    """Derive role-nav screenshot suffix from role name."""
+    prefix = 'Cafeteria.'
+    name = role[len(prefix):] if role.startswith(prefix) else role
+    cleaned = re.sub(r'[^a-z0-9]', '-', name.lower())
+    return f'role-nav-{cleaned}'
+
+
+def capture_role_navigation(
+    browser: Browser,
+    live: str,
+    role_cookies: Mapping[str, object],
+    out: Outputs | None = None,
+) -> list[dict]:
+    """Capture navigation sidebar per role context across primary viewports."""
+    rows: list[dict] = []
+    sidebar_selector = 'aside.admin-sidebar nav.admin-nav a'
+    for role, cookie in role_cookies.items():
+        with context_for(browser, live, cookie) as ctx:
+            page = ctx.new_page()
+            page.emulate_media(reduced_motion='reduce')
+            for width, height in PRIMARY:
+                row = shot(
+                    page,
+                    ROLE_NAV_PATH,
+                    width,
+                    height,
+                    suffix=role_suffix(role),
+                    out=out,
+                )
+                row['role'] = role
+                probe = page.evaluate(
+                    f'''() => {{
+                      const selector = {json.dumps(sidebar_selector)};
+                      const links = Array.from(document.querySelectorAll(selector));
+                      if (links.length === 0) {{
+                        return {{nav_items: [], nav_probe_error: `no sidebar links matched ${{selector}}`}};
+                      }}
+                      return {{
+                        nav_items: links.map(el => (el.textContent || '').replace(/\\s+/g, ' ').trim())
+                      }};
+                    }}'''
+                )
+                row['nav_items'] = probe['nav_items']
+                if 'nav_probe_error' in probe:
+                    row['nav_probe_error'] = probe['nav_probe_error']
+                rows.append(row)
+    return rows
+
+
+def capture_states(
+    page,
+    state_captures: Sequence[tuple[str, str, Callable]],
+    out: Outputs | None = None,
+) -> tuple[list[dict], list[dict]]:
+    """Capture UI states with specific actions per path/suffix/action tuple."""
+    rows: list[dict] = []
+    blocks: list[dict] = []
+    for path, suffix, action in state_captures:
+        for width, height in PRIMARY:
+            try:
+                row = shot(
+                    page,
+                    path,
+                    width,
+                    height,
+                    suffix=suffix,
+                    out=out,
+                    after_load=action,
+                )
+                rows.append(row)
+            except Exception as error:  # noqa: BLE001 — state capture failure produces block record
+                blocks.append({
+                    'id': f'state_{suffix}',
+                    'path': path,
+                    'viewport': {'width': width, 'height': height},
+                    'status': 'blocked_state_not_reached',
+                    'error': f'{type(error).__name__}: {error}',
+                })
+    return rows, blocks
+
+
 def capture_provenance(identity: Mapping[str, str] | None = None) -> dict[str, object]:
     """Keep the recorded source author separate from caller-declared capture identity."""
     supplied = dict(identity or {})
@@ -322,8 +464,17 @@ def run_capture(
     reference_paths: list[str] | None = None,
     *,
     capture_identity: Mapping[str, str] | None = None,
+    role_cookies: Mapping[str, object] | None = None,
+    fixture_descriptor: Mapping[str, object] | None = None,
+    supersedes: Mapping[str, object] | Sequence[object] | object | None = None,
+    empty_paths: list[str] | None = None,
+    prepare_entities: Callable[[], Mapping[str, object] | None] | None = None,
+    state_captures: Sequence[tuple[str, str, Callable]] | None = None,
 ) -> dict:
     provenance = capture_provenance(capture_identity)
+    fixture_rec = fixture_record(fixture_descriptor)
+    demo_today = app.config.get('DEMO_TODAY')
+
     out = out or Outputs()
     out.screen_dir.mkdir(parents=True, exist_ok=True)
     server, live = start_server(app)
@@ -336,15 +487,36 @@ def run_capture(
             captures.extend(capture_paths(
                 page, PUBLIC_PATHS + SIGNAGE_PATHS + ['/auth/local'], out=out))
             captures.append(shot(page, '/admin/cafeteria', 1440, 900, suffix='anonymous-401', out=out))
-            try:
-                captures.append(shot(page, '/auth/login', 1440, 900, suffix='auth-login', out=out))
-            except Exception as error:  # noqa: BLE001 — record, do not fake pass
-                blocks.append({'id': 'auth_login_render', 'error': str(error), 'status': 'blocked'})
+            for width, height in PRIMARY:
+                try:
+                    captures.append(shot(page, '/auth/login', width, height, suffix='auth-login', out=out))
+                except Exception as error:  # noqa: BLE001 — record, do not fake pass
+                    blocks.append({'id': f'auth_login_render_{width}x{height}', 'error': str(error), 'status': 'blocked'})
         with context_for(browser, live, login_cookie) as admin:
             page = admin.new_page()
             page.emulate_media(reduced_motion='reduce')
-            admin_paths = ADMIN_PATHS + list(extra_admin_paths or [])
-            extra = set(REFERENCE_PATHS) | set(reference_paths or [])
+
+            if empty_paths:
+                for path in empty_paths:
+                    for width, height in PRIMARY:
+                        captures.append(shot(page, path, width, height, suffix='empty', out=out))
+
+            active_extra_admin = list(extra_admin_paths or [])
+            active_ref_paths = list(reference_paths or [])
+            active_state_captures: list[tuple[str, str, Callable]] = list(state_captures or [])
+
+            if prepare_entities is not None:
+                prep_res = prepare_entities()
+                if isinstance(prep_res, Mapping):
+                    if 'extra_admin_paths' in prep_res and isinstance(prep_res['extra_admin_paths'], list):
+                        active_extra_admin.extend(prep_res['extra_admin_paths'])
+                    if 'reference_paths' in prep_res and isinstance(prep_res['reference_paths'], list):
+                        active_ref_paths.extend(prep_res['reference_paths'])
+                    if 'state_captures' in prep_res and isinstance(prep_res['state_captures'], list):
+                        active_state_captures.extend(prep_res['state_captures'])
+
+            admin_paths = ADMIN_PATHS + active_extra_admin
+            extra = set(REFERENCE_PATHS) | set(active_ref_paths)
             captures.extend(capture_paths(page, admin_paths, extra_for=extra, out=out))
             menu = '/admin/cafeteria/menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1'
             captures.extend(capture_paths(page, [menu], extra_for={menu}, out=out))
@@ -355,6 +527,11 @@ def run_capture(
             dialog_rows, dialog_blocks = capture_publish_dialog(page, out=out)
             captures.extend(dialog_rows)
             blocks.extend(dialog_blocks)
+
+            if active_state_captures:
+                st_rows, st_blocks = capture_states(page, active_state_captures, out=out)
+                captures.extend(st_rows)
+                blocks.extend(st_blocks)
         with context_for(browser, live, editor_cookie) as editor:
             page = editor.new_page()
             page.emulate_media(reduced_motion='reduce')
@@ -362,6 +539,9 @@ def run_capture(
             captures.append(shot(page, '/admin/benutzer', 1440, 900, suffix='editor-403', out=out))
             captures.append(shot(page, '/admin/design/darstellung', 1440, 900,
                                  suffix='editor-settings', out=out))
+        if role_cookies:
+            role_rows = capture_role_navigation(browser, live, role_cookies, out=out)
+            captures.extend(role_rows)
         previous_today = app.config.get('DEMO_TODAY')
         app.config['DEMO_TODAY'] = '2026-09-06'
         try:
@@ -385,7 +565,7 @@ def run_capture(
         ua = f'playwright-chromium {chromium}'
     except Exception:  # noqa: BLE001
         ua = 'playwright-chromium'
-    manifest = {
+    manifest: dict[str, object] = {
         'meta': {
             **provenance,
             'mp_id': 'MP-UI-INVENTORY',
@@ -410,6 +590,10 @@ def run_capture(
                 'demo/snapshots/patienten_kw36.json': _sha(ROOT / 'demo' / 'snapshots' / 'patienten_kw36.json'),
             },
             'snapshots_injected': snapshots_ok,
+            'fixture': fixture_rec,
+            'font_files': font_file_hashes(),
+            'demo_today': demo_today,
+            'runtime': runtime_record(),
         },
         'viewports': {
             'required_html': [{'width': 1440, 'height': 900}, {'width': 390, 'height': 844}],
@@ -443,6 +627,9 @@ def run_capture(
         ],
         'visual_inspection': str((EVIDENCE / 'visual-inspection.md').relative_to(ROOT)),
     }
+    if supersedes is not None:
+        manifest['superseded_evidence'] = json.loads(json.dumps(supersedes))
+
     rendered_manifest = json.dumps(manifest, indent=2, ensure_ascii=False) + '\n'
     for target in out.manifest_paths:
         target.parent.mkdir(parents=True, exist_ok=True)
