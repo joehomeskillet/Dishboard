@@ -983,6 +983,7 @@ reference_scaffold/cafeteria/templates/_brand_logo.html
 reference_scaffold/cafeteria/templates/_food_symbols.html
 reference_scaffold/cafeteria/templates/_menu_image.html
 reference_scaffold/cafeteria/templates/_menu_metadata.html
+reference_scaffold/cafeteria/templates/admin/_area_tabs.html
 reference_scaffold/cafeteria/templates/admin/_country_select.html
 reference_scaffold/cafeteria/templates/admin/_local_user_forms.html
 reference_scaffold/cafeteria/templates/admin/_macros.html
@@ -1275,6 +1276,7 @@ reference_scaffold/tests/test_signage_patient.py
 reference_scaffold/tests/test_smoke.py
 reference_scaffold/tests/test_swagger_ui_assets.py
 reference_scaffold/tests/test_tabler_package_verification.py
+reference_scaffold/tests/test_ui_brand_ops_browser.py
 reference_scaffold/tests/test_ui_contracts.py
 reference_scaffold/tests/test_ui_inventory_capture.py
 reference_scaffold/tests/test_ui_master_components_browser.py
@@ -1287,6 +1289,7 @@ reference_scaffold/tests/test_ui_reference_list_browser.py
 reference_scaffold/tests/test_ui_reference_settings_browser.py
 reference_scaffold/tests/test_ui_reference_workspace_browser.py
 reference_scaffold/tests/test_ui_route_inventory.py
+reference_scaffold/tests/test_ui_weeks_browser.py
 reference_scaffold/tests/test_week_form_focus_browser.py
 reference_scaffold/tests/test_week_management.py
 reference_scaffold/tests/test_week_management_browser.py
