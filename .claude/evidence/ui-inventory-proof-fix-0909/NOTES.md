@@ -1,6 +1,6 @@
 # Private Notiz — wp-d7589450daee (Beweiskorrektur und Freeze UI-Inventar)
 
-Worktree `ui-inv-evidence-agy-0911`, Branch `docs/ui-inv-evidence-agy-0911`.
+Worktree `ui-inventory-proof-fix-0909`, Branch `fix/ui-inventory-proof-0909` (Doku-Nachtrag ueber `docs/ui-inv-evidence-agy-0911`).
 Basis `33d135f861d1fff78deac9f372a051375d410532`.
 Originalautor der Aufnahmestrecke ist Grok; die Beweiskorrektur und der anschliessende
 Freeze schliessen saemtliche von Root unabhaengig geprueften Beweis- und Abdeckungsluecken.
@@ -162,7 +162,7 @@ Saemtliche Hashes deterministisch per SHA-256 berechnet (Stand Freeze-Commit `33
 | `docs/superpowers/backlog-0909/ui-route-matrix.json` (versioniert) | `62dc038032d22d06834ecd601c623ce14431be1b6932be46b6c8c60188de2e18` |
 | `docs/superpowers/backlog-0909/ui-before-manifest.json` (versioniert, promotet) | `ee42bd86e5642835aeeb78f04129e39daab888f182e8664ea0a6a4500a0c16c2` |
 | `.claude/evidence/ui-inventory-proof-fix-0909/capture-promoted-0911/ui-before-manifest.json` | `ee42bd86e5642835aeeb78f04129e39daab888f182e8664ea0a6a4500a0c16c2` (byteidentisch) |
-| Original-Screenshotsatz (111 PNG, historischer Mengenhash aus `wp-d7589450daee.md`) | `0b2cfaee0cdc27fa243d546fe2d94bc869fed6e71884636ea3a89f4077137ba7` |
+| Original-Screenshotsatz (111 PNG, historischer Wert aus der frueheren Fassung dieser Notiz, Methode dort nicht dokumentiert) | `0b2cfaee0cdc27fa243d546fe2d94bc869fed6e71884636ea3a89f4077137ba7` |
 | Original-Screenshotsatz (111 PNG, transparenter Pruefwert: sha256 von sortierten `sha256  name\n`) | `b8d1f142b0e9521177c1cc830dd49548a83bebd95c4e3a8f1def571992309a4e` |
 | Promoteter Screenshotsatz (172 PNG, selbe transparente Aggregation: sha256 von sortierten `sha256  name\n`) | `7fb5cccefc6a3f5e90a9aae13e52fde0a771c95e88f5fd2b76e6b79792193b60` |
 
@@ -178,18 +178,20 @@ SHA-256 gebildet.
   und Card-Titel die Serifenschrift Georgia (`common.fonts.conflict` in der Matrix).
   Die Entscheidung und Bereinigung gehoert zu **`MP-UI-BRAND-DECISION`**, welches
   parallel vorbereitet wurde (`design-reference-0911.md`).
-- **Breakpoint 1200:** Master §5.1 definiert 1200px als Desktop-Standardbreakpoint.
-  Das aktuelle Bootstrap/Tabler- und Tailwind-Raster arbeitet primaer mit 1440px
-  (Desktop), 1024px (Tablet quer), 768px (Tablet hoch) und 390px (Mobil). Ein
-  spezifischer Viewport fuer 1200px existiert in der Baseline bisher nicht und ist
-  im Rahmen von `MP-UI-SHELL` / `MP-UI-TOKENS` festzulegen.
+- **Sidebar-Breakpoint 1200 vs. 992:** Das Produkt klappt die Admin-Sidebar erst ab
+  1200px aus (`templates/admin/_workflow_sidebar.html:34`, `navbar-expand-xl`);
+  Master §10 verlangt 992px bei unveraenderten Hersteller-Breakpoints, und Master §12
+  prueft 1024×768 ausdruecklich «mit Sidebar». Die Vorherbilder bei 1024×768 zeigen
+  deshalb heute den eingeklappten Zustand. Entscheidung in `MP-UI-BRAND-DECISION`,
+  Umsetzung in `MP-UI-SHELL`. (Es gibt kein Tailwind im Projekt; die Viewports
+  1440/1024/768/390/1920 sind Pruefgroessen aus Master §12, keine Breakpoints.)
 - **Semantik von `capability: null`:** 15 visuelle Admin-Routen fuehren in der Matrix
   `capability: null`, da ihre `@_protected`-Wrapper die Capability abhaengig von der
   HTTP-Methode waehlen (GET `draft.read`, POST `recipe.write` bzw. `masterdata.write`).
   Die Rollen (Editor, Publisher, Admin) sind serverseitig korrekt abgesichert und
   werden durch den Laufzeittest `test_matrix_roles_match_server_side_authorization`
   fuer jeden Request bestaetigt. Die Erklaerung ist in `common.capability_semantics`
-  festgehalten; ein Refactoring gehoert zu den jeweiligen Modul-WPs (`MP-UI-RECIPES`,
+  festgehalten; ein Refactoring gehoert zu den jeweiligen Modul-WPs (`MP-UI-RECIPE-FORMS`, `MP-UI-RECIPE-TOOLS`, `MP-UI-COOKBOOKS`,
   `MP-UI-FOUNDATIONS`).
 - **Entra und Yodeck:** Authentifizierung gegen einen echten Tenant und physische
   Signage-Hardware bleiben absichtlich unsimuliert; sie werden in Testumgebungen

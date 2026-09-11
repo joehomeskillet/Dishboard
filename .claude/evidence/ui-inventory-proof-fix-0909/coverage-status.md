@@ -168,7 +168,7 @@ Saemtliche Pruefungen wurden gegen die realen Projekt-Binaries auf dem isolierte
 
 | Log-Datei | Befehlszweck | Ergebniszeile | Exit | Einordnung |
 |---|---|---|:---:|---|
-| `01-integration-gate-before-promotion.log` | Pytest Integrationsgate vor Promotion (`tests/test_ui_route_inventory.py`) | `1 failed, 33 passed in 116.15s` | 1 | **Massgeblich**: Belegt das erwartete Scheitern von `test_versioned_manifest_covers_every_visual_route` vor Promotion der neuen Fixtures. |
+| `01-integration-gate-before-promotion.log` | Pytest Integrationsgate vor Promotion (beide Module: `tests/test_ui_route_inventory.py` + `tests/test_ui_inventory_capture.py`) | `1 failed, 33 passed in 116.15s` | 1 | **Massgeblich**: Belegt das erwartete Scheitern von `test_versioned_manifest_covers_every_visual_route` vor Promotion der neuen Fixtures. |
 | `02-promotion-first-attempt-superseded-duplicate-menu-row.log` | Erster Promotionslauf mit `UI_CAPTURE_PROMOTE=1` | `1 passed, 9 deselected in 78.68s` | 0 | **Ersetzt**: Menue-Editor war doppelt aufgefuehrt (`extra_admin_paths`). |
 | `03-gate-run-after-first-promotion-superseded.log` | Gesamtlauf nach der ersten Promotion | `34 passed in 125.10s` | 0 | **Ersetzt**: Betraf das verworfene Zwischenmanifest. |
 | `04-promotion-final.log` | Finaler Promotionslauf mit bereinigten Pfaden (`UI_CAPTURE_PROMOTE=1`) | `1 passed, 9 deselected in 76.70s` | 0 | **Massgeblich**: Schrieb die 172 Captures und PNG-Dateien final ins Manifest. |
@@ -179,8 +179,9 @@ Saemtliche Pruefungen wurden gegen die realen Projekt-Binaries auf dem isolierte
 
 | Pruefwerkzeug | Befehl / Parameter | Ergebnis | Einordnung |
 |---|---|---|---|
-| `ruff` | `ruff check --no-cache` ueber alle Quell- und Testdateien | `All checks passed!` | Bestanden (`GATE_EXIT=0`) |
-| `mypy` | `mypy --python-executable /tmp/dishboard-shared-venv/bin/python` mit `MYPYPATH=reference_scaffold` | `Success: no issues found in 2 source files` | Bestanden (`GATE_EXIT=0`) |
+| `ruff` | `/root/.local/bin/ruff check --no-cache` ueber `capture.py`, `build_matrix.py`, `test_ui_inventory_capture.py`, `test_ui_route_inventory.py` | `All checks passed!` | Bestanden (Exit 0) |
+| `mypy` | `/root/.local/bin/mypy --python-executable /tmp/dishboard-shared-venv/bin/python --follow-imports=silent --disable-error-code=import-untyped` mit `MYPYPATH=reference_scaffold:.claude/evidence/ui-inventory-grok-0909` ueber dieselben vier Dateien | `Success: no issues found in 4 source files` | Bestanden (Exit 0) |
+| `gitleaks` | `gitleaks detect --log-opts f136490..0e6a292 --redact` ueber den WP-Branch | `12 commits scanned … no leaks found` | Bestanden (Exit 0) |
 | `git diff --check` | Whitespace- und Syntax-Pruefung | Keine Ausgabe | Bestanden (`GATE_EXIT=0`) |
 | `regression-proof.py` | Standalone Loopback-Pruefung fuer Listener-Lebensdauer | `REGRESSION_PROOF=PASS` | Bestanden (`GATE_EXIT=0`) |
 
