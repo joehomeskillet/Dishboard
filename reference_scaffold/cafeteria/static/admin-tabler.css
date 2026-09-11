@@ -28,6 +28,7 @@
   --tblr-link-color: var(--app-primary);
   --tblr-link-color-rgb: var(--app-primary-rgb);
   --tblr-link-hover-color: var(--app-primary-hover);
+  --tblr-link-hover-color-rgb: var(--app-primary-rgb);
   --tblr-primary-darken: var(--app-primary-hover);
   --tblr-active-bg: var(--app-primary-soft);
   --tblr-border-color: var(--app-border);
