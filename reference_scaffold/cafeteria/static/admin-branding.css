@@ -1,4 +1,74 @@
-.brand-preview-frame{display:block;width:100%;height:27rem;border:1px solid var(--sh-border);border-radius:var(--sh-radius-sm);background:var(--sh-panel)}
-.brand-preview-body{color:var(--sh-ink);background:var(--sh-panel);font-family:var(--sh-font)}
-.brand-accent{color:var(--sh-secondary);font-weight:700}
-.brand-status{color:var(--sh-primary);background:var(--sh-panel-soft);border:1px solid var(--sh-primary)}
+.brand-preview-frame {
+  display: block;
+  width: 100%;
+  height: 27rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-control);
+  background: var(--app-surface-soft);
+}
+
+.brand-preview-body {
+  color: var(--sh-ink);
+  background: var(--sh-panel);
+  font-family: var(--sh-font);
+}
+
+.brand-accent {
+  color: var(--app-info);
+  font-weight: 700;
+}
+
+.brand-status {
+  color: var(--app-primary);
+  background: var(--app-primary-soft);
+  border: 1px solid var(--app-primary);
+}
+
+.brand-settings-grid .card-footer .btn-primary {
+  min-height: var(--app-control-min-height);
+}
+
+.brand-color-field {
+  display: flex;
+  align-items: stretch;
+  gap: var(--app-space-3);
+}
+
+.brand-color-swatch {
+  flex: none;
+  width: 2.75rem;
+  min-height: var(--app-control-min-height);
+  padding: 0;
+  border: 1px solid var(--app-control-border);
+  border-radius: var(--app-radius-control);
+  background: var(--app-surface);
+}
+
+.brand-color-field .form-control {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.brand-history-card .list-group-item.active {
+  background: var(--app-primary);
+  border-color: var(--app-primary);
+  color: var(--app-on-primary);
+}
+
+.brand-preview-meta {
+  color: var(--app-text-muted);
+}
+
+.brand-preview-example .card-title {
+  font-family: var(--app-font-heading);
+}
+
+.brand-preview-body .btn {
+  min-height: var(--app-control-min-height);
+}
+
+@media (max-width: 991.98px) {
+  .brand-preview-frame {
+    height: 22rem;
+  }
+}

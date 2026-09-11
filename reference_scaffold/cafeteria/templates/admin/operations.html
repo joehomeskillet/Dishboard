@@ -1,9 +1,10 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import icon, page_header, flash_region %}
 {% set workflow_nav = 'operations' %}
-{% block title %}Bereiche & Zeiten · Dishboard{% endblock %}
+{% set layout_variant = 'narrow' %}
+{% block title %}Bereiche & Öffnungszeiten · Dishboard{% endblock %}
 {% block sidebar %}{% include 'admin/_workflow_sidebar.html' %}{% endblock %}
-{% block page_header %}{{ page_header('Bereiche & Zeiten', 'Verwaltung') }}{% endblock %}
+{% block page_header %}{{ page_header('Bereiche & Öffnungszeiten', description='Bereichsnamen, Wochenendbetrieb, Wochenvorgaben und datierte Ausnahmen für Ausgabe und Öffnungszeiten.') }}{% endblock %}
 
 {% macro validation(id) -%}
 {% if errors.get(id) %} aria-invalid="true" aria-describedby="{{ id }}-error"{% if id == errors.keys()|first %} autofocus{% endif %}{% endif %}
@@ -21,7 +22,7 @@
 {% block content %}
 {{ flash_region(get_flashed_messages()) }}
 {% if errors %}<div class="alert alert-danger error-region" role="alert" tabindex="-1">{{ icon('alert-triangle') }}Bitte die markierten Felder prüfen.</div>{% endif %}
-<p class="text-secondary">Zeiten in {{ timezone }}. Vorgaben gelten für neue Services. Bestehende Wochen ändern Sie bewusst mit «Wochenvorgaben übernehmen».</p>
+<p class="text-secondary">Zeiten in {{ timezone }}. Vorgaben gelten für neue Ausgaben und Öffnungszeiten. Bestehende Wochen ändern Sie bewusst mit «Wochenvorgaben übernehmen».</p>
 
 <div class="row row-cards mb-3">
 {% for code in ['staff_guest', 'patient'] %}
@@ -50,7 +51,7 @@
       <span class="form-check-label">Wochenendbetrieb möglich</span>
     </label>
     {{ error_text('allows_weekend') }}
-    <p class="form-hint">Erlaubt neue Services am Samstag und Sonntag. Bereits erfasste Services bleiben beim Abschalten erhalten.</p>
+    <p class="form-hint">Erlaubt neue Ausgaben am Samstag und Sonntag. Bereits erfasste Öffnungszeiten bleiben beim Abschalten erhalten.</p>
   </div>
   <div class="card-footer"><button class="btn" type="submit">{{ icon('device-floppy') }}Wochenendbetrieb speichern</button></div>
 </form>
@@ -92,7 +93,7 @@
 <section class="card mb-3" id="dated-exception">
   <div class="card-header"><h2 class="card-title">{{ icon('calendar-plus') }}Datierte Ausnahme</h2></div>
   <div class="card-body">
-    <p>Wählen Sie einen Service und laden Sie dessen gespeicherten Stand. Erst «Ausnahme speichern» ändert den Plan.</p>
+    <p>Wählen Sie eine Ausgabe und laden Sie deren gespeicherten Stand. Erst «Ausnahme speichern» ändert den Plan.</p>
     <form method="post" id="exception-load" action="{{ url_for('admin.operations_settings') }}">
       <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="action" value="load_exception">
       <div class="row g-3 align-items-end">
