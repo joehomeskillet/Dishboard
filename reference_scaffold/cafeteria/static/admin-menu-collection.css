@@ -1,11 +1,19 @@
 .dishboard-menu-table { table-layout: fixed; width: 100%; min-width: var(--app-container-narrow); }
-.dishboard-menu-table th:first-child { width: 30%; }
+.dishboard-menu-table th:nth-child(1) { width: 28%; }
+.dishboard-menu-table th:nth-child(2) { width: 14%; }
+.dishboard-menu-table th:nth-child(3) { width: 16%; }
+.dishboard-menu-table th:nth-child(4) { width: 28%; }
+.dishboard-menu-table th:nth-child(5) { width: 14%; }
 .dishboard-menu-table :is(th, td) { white-space: normal; overflow-wrap: anywhere; }
 .dishboard-admin .dishboard-menu-table th {
   font-size: calc(var(--app-font-size-label) * var(--app-font-scale));
   text-transform: none; letter-spacing: normal;
 }
 .dishboard-menu-table:has(td[colspan]) { min-width: 0; }
+.dishboard-admin .dishboard-menu-table .badge { white-space: normal; text-align: left; }
+.dishboard-admin .menu-toolbar .profile-tabs { margin-bottom: 0; }
+.dishboard-admin .menu-toolbar .menu-view-tabs { border-bottom: 0; margin-bottom: 0; }
+.dishboard-admin .menu-toolbar noscript .nav-tabs { border-bottom: 0; margin-bottom: 0; }
 /* One shared row size keeps every menu card readable and equal, including large text. */
 .dishboard-admin .menu-grid {
   display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: 1fr;

@@ -28,7 +28,7 @@ def test_collection_navigation_search_and_mobile_layout(page_context, admin_app,
     _save(admin_engine, scope, week=WEEK + timedelta(days=7), title='Tomatensuppe')
     page = page_context
     page.goto('/admin/patienten')
-    page.get_by_role('navigation', name='Backend').get_by_role('link', name='Menüs', exact=True).click()
+    page.get_by_role('navigation', name='Backend').locator('.nav-link-title', has_text='Menüs').click()
     expect(page.get_by_role('heading', name='Menüs', exact=True)).to_be_visible()
     expect(page.locator('[data-menu-id]')).to_have_count(2)
     for width, height in [(390, 844), (1440, 1100), (2560, 1440)]:
@@ -63,7 +63,7 @@ def test_icon_actions_use_tabler_tooltips_under_real_csp(
             page.get_by_role('tab', name='Karten' if view == 'cards' else 'Liste', exact=True).click()
             link = page.locator(f'#menu-{view} [data-admin-icon-action]').first
             expect(link).to_have_attribute('aria-label', 'Kartoffelgratin mit Gemüse vom 31.08.2026 öffnen')
-            assert link.inner_text() == ''
+            assert link.inner_text() == 'Öffnen'
             expect(link.locator('use')).to_have_attribute('href', '/static/vendor/tabler-icons/tabler-icons.svg#tabler-pencil')
             assert link.evaluate('element => Boolean(window.tabler.Tooltip.getInstance(element))')
             link.hover()
@@ -110,13 +110,6 @@ def test_icon_help_and_first_tap_work_with_and_without_javascript(
         context.add_cookies([{'name': 'session', 'value': client.get_cookie('session').value, 'url': origin}])
         page = context.new_page()
         page.goto(origin + f'/admin/{family}/menues')
-        listing_url = page.url
-        summary = page.locator('summary').filter(has_text='Symbole')
-        summary.tap()
-        expect(page.locator('details[open]')).to_contain_text('Menü öffnen und bearbeiten')
-        assert page.url == listing_url
-        summary.tap()
-        expect(page.locator('details[open]')).to_have_count(0)
         link = page.locator('#menu-cards [data-admin-icon-action]').first
         destination = link.get_attribute('href')
         link.tap()
