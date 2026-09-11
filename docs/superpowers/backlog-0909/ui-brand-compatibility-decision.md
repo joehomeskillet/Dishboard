@@ -1,7 +1,7 @@
 # MP-UI-BRAND-DECISION — Marke und Mastertokens
 
 Stand: 11. September 2026. Review-Korrektur 2026-09-11 (grok-4.6) eingearbeitet.
-**Entscheidungsvorlage / VORSCHLAG, keine Freigabe.**
+**Abschnitte 1–9: Entscheidungsvorlage. Abschnitt 10: angenommene Entscheidung des Auftraggebers (11. September 2026) — verbindlich für MP-UI-TOKENS/SHELL.**
 MP-ID: MP-UI-BRAND-DECISION; Routing-WP: wp-10e17980d6a1; Lane: codex-gpt5;
 Modell: gpt-6-astra. Basis: 2db9c56563012609c5753047e4ff1ce08b85d9d3.
 Worktree: /nvmetank1/projects/menuplan/.claude/worktrees/ui-brand-decision-codex-0911;
