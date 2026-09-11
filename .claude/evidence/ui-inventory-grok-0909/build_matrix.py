@@ -31,7 +31,7 @@ os.environ.setdefault('APP_ENV', 'development')
 import cafeteria  # type: ignore[import-not-found]  # noqa: E402
 from capture import capture_provenance  # noqa: E402
 
-cafeteria.init_app_database = lambda _app: None  # type: ignore[method-assign]
+cafeteria.init_app_database = lambda _app: None  # type: ignore[assignment, return-value]
 
 
 ROLE_CAPS = {
