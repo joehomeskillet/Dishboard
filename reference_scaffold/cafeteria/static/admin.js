@@ -56,7 +56,7 @@
     function updateDirtyState() {
         const previewLinks = document.querySelectorAll('a[href*="/preview"]');
         const publishForms = document.querySelectorAll('form[action*="/publish"]');
-        
+
         previewLinks.forEach(link => {
             link.setAttribute('aria-disabled', 'true');
             link.classList.add('disabled');
@@ -112,13 +112,12 @@
     const errorRegion = document.querySelector('.error-region');
     const retryBtn = errorRegion ? errorRegion.querySelector('[data-retry-page]') : null;
     function focusFirstError() {
-        if (!errorRegion) {
-            return;
+        if (errorRegion) {
+            errorRegion.focus();
         }
-        errorRegion.focus();
         const firstInvalid = document.querySelector('[aria-invalid="true"]:not(:disabled):not([type="hidden"])');
-        revealAncestors(firstInvalid);
         if (firstInvalid) {
+            revealAncestors(firstInvalid);
             firstInvalid.focus();
         }
     }
@@ -323,6 +322,21 @@
                 }
             });
             if (dismissedTooltip) return;
+            const openDropdown = document.querySelector('.dropdown-menu.show');
+            if (openDropdown) {
+                const toggle = openDropdown.closest('.dropdown')?.querySelector('[data-bs-toggle="dropdown"]');
+                if (toggle) {
+                    if (window.tabler?.Dropdown || window.bootstrap?.Dropdown) {
+                        const DropdownClass = window.tabler?.Dropdown || window.bootstrap?.Dropdown;
+                        DropdownClass.getInstance(toggle)?.hide();
+                    } else {
+                        openDropdown.classList.remove('show');
+                        toggle.setAttribute('aria-expanded', 'false');
+                    }
+                    toggle.focus();
+                    return;
+                }
+            }
             const active = document.activeElement && document.activeElement.closest('details[open]');
             const openDetails = active ? [active] : document.querySelectorAll('details[open]');
             openDetails.forEach(details => {

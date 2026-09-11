@@ -1,4 +1,4 @@
-{#- Central Tabler building blocks for admin views. Contract: docs/design/admin-tabler-contract.md -#}
+{#- Central Tabler building blocks for admin views. Contract: docs/design/2026-09-09-unified-ui-design-system.md §7–§9 -#}
 
 {%- macro icon(name, class='', label=none) -%}
 <svg class="icon{% if class %} {{ class }}{% endif %}"{% if label %} role="img" aria-label="{{ label }}"{% else %} aria-hidden="true"{% endif %} focusable="false"><use href="{{ url_for('static', filename='vendor/tabler-icons/tabler-icons.svg') }}#tabler-{{ name }}"></use></svg>
@@ -8,41 +8,304 @@
 <a class="btn btn-icon w-100" href="{{ href }}" aria-label="{{ label }}" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ label }}">{{ icon('pencil') }}</a>
 {%- endmacro %}
 
-{%- macro field(name, label, value='', type='text', id=none, required=false, error=none, hint=none) -%}
-{% set field_id = id or name %}
-<label class="form-label" for="{{ field_id }}">{{ label }}</label>
-<input class="form-control{% if error %} is-invalid{% endif %}" id="{{ field_id }}" name="{{ name }}" type="{{ type }}" value="{{ value }}"{% if required %} required{% endif %}{% if error %} aria-invalid="true" aria-describedby="{{ field_id }}-error"{% elif hint %} aria-describedby="{{ field_id }}-hint"{% endif %}>
-{% if hint %}<div class="form-hint" id="{{ field_id }}-hint">{{ hint }}</div>{% endif %}
-{% if error %}<div class="invalid-feedback d-block field-error" id="{{ field_id }}-error">{{ error }}</div>{% endif %}
-{%- endmacro %}
-
-{%- macro check(name, label, value='1', checked=false, id=none, type='checkbox') -%}
-<label class="form-check"{% if id %} for="{{ id }}"{% endif %}>
-  <input class="form-check-input"{% if id %} id="{{ id }}"{% endif %} type="{{ type }}" name="{{ name }}" value="{{ value }}"{% if checked %} checked{% endif %}>
-  <span class="form-check-label">{{ label }}</span>
-</label>
-{%- endmacro %}
-
-{%- macro status(value, label) -%}
-{% set colors = {'live': 'green', 'ready': 'teal', 'review_open': 'yellow', 'incomplete': 'orange', 'changed': 'yellow'} %}
-<span class="badge bg-{{ colors.get(value, 'secondary') }}-lt" data-status="{{ value }}">{{ label }}</span>
-{%- endmacro %}
-
-{%- macro page_header(title, pretitle=none) %}
+{%- macro page_header(title, description=none, breadcrumbs=none, actions=none, pretitle=none) -%}
+{%- if title and title|trim -%}
+{%- set action_content = caller() if caller else actions -%}
+{%- set subtitle = description if description is not none else pretitle -%}
 <div class="page-header">
   <div class="container-xl">
-    <div class="row g-2 align-items-center">
+    {%- if breadcrumbs and breadcrumbs|length > 0 -%}
+    <nav aria-label="Breadcrumb" class="page-breadcrumb mb-2">
+      <ol class="breadcrumb mb-0">
+        {%- for item in breadcrumbs -%}
+          {%- set item_label = item.label if item is mapping else (item[0] if item is iterable and not item is string else item) -%}
+          {%- set item_url = item.url if item is mapping else (item[1] if item is iterable and not item is string and item|length > 1 else none) -%}
+          {%- if loop.last or not item_url -%}
+            <li class="breadcrumb-item active" aria-current="page">{{ item_label }}</li>
+          {%- else -%}
+            <li class="breadcrumb-item"><a href="{{ item_url }}">{{ item_label }}</a></li>
+          {%- endif -%}
+        {%- endfor -%}
+      </ol>
+    </nav>
+    {%- endif -%}
+    <div class="row g-2 align-items-center page-header-row">
       <div class="col">
-        {% if pretitle %}<div class="page-pretitle">{{ pretitle }}</div>{% endif %}
         <h1 class="page-title">{{ title }}</h1>
+        {%- if subtitle and subtitle|trim -%}
+        <div class="page-header-subtitle">{{ subtitle }}</div>
+        {%- endif -%}
       </div>
-      {% if caller %}
+      {%- if action_content and action_content|trim -%}
       <div class="col-12 col-md-auto ms-auto">
-        <div class="btn-list">{{ caller() }}</div>
+        <div class="btn-list">{{ action_content }}</div>
       </div>
-      {% endif %}
+      {%- endif -%}
     </div>
   </div>
+</div>
+{%- endif -%}
+{%- endmacro %}
+
+{%- macro field(name, label, value='', type='text', id=none, required=false, error=none, hint=none, readonly=false, disabled=false, autofocus=false, placeholder=none) -%}
+{%- set field_id = id or name -%}
+{%- set desc_ids = [] -%}
+{%- if hint -%}{%- set _ = desc_ids.append(field_id ~ '-hint') -%}{%- endif -%}
+{%- if error -%}{%- set _ = desc_ids.append(field_id ~ '-error') -%}{%- endif -%}
+<label class="form-label{% if required %} required{% endif %}" for="{{ field_id }}">{{ label }}</label>
+<input class="form-control{% if error %} is-invalid{% endif %}" id="{{ field_id }}" name="{{ name }}" type="{{ type }}" value="{{ value }}"{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}{% if required %} required{% endif %}{% if readonly %} readonly{% endif %}{% if disabled %} disabled{% endif %}{% if autofocus %} autofocus{% endif %}{% if error %} aria-invalid="true"{% endif %}{% if desc_ids %} aria-describedby="{{ desc_ids|join(' ') }}"{% endif %}>
+{%- if hint -%}<div class="form-hint" id="{{ field_id }}-hint">{{ hint }}</div>{%- endif -%}
+{%- if error -%}<div class="invalid-feedback d-block field-error" id="{{ field_id }}-error">{{ error }}</div>{%- endif -%}
+{%- endmacro %}
+
+{%- macro select(name, label, choices=none, value='', id=none, required=false, error=none, hint=none, readonly=false, disabled=false, placeholder=none) -%}
+{%- set field_id = id or name -%}
+{%- set desc_ids = [] -%}
+{%- if hint -%}{%- set _ = desc_ids.append(field_id ~ '-hint') -%}{%- endif -%}
+{%- if error -%}{%- set _ = desc_ids.append(field_id ~ '-error') -%}{%- endif -%}
+<label class="form-label{% if required %} required{% endif %}" for="{{ field_id }}">{{ label }}</label>
+<select class="form-select{% if error %} is-invalid{% endif %}" id="{{ field_id }}" name="{{ name }}"{% if required %} required{% endif %}{% if disabled %} disabled{% endif %}{% if readonly %} readonly aria-readonly="true" tabindex="-1"{% endif %}{% if error %} aria-invalid="true"{% endif %}{% if desc_ids %} aria-describedby="{{ desc_ids|join(' ') }}"{% endif %}>
+  {%- if placeholder -%}
+    <option value=""{% if not value %} selected{% endif %}>{{ placeholder }}</option>
+  {%- endif -%}
+  {%- if caller -%}
+    {{ caller() }}
+  {%- elif choices -%}
+    {%- for choice in choices -%}
+      {%- if choice is mapping -%}
+        {%- set c_val = choice.value -%}
+        {%- set c_lbl = choice.label or choice.value -%}
+      {%- elif choice is iterable and not choice is string -%}
+        {%- set c_val = choice[0] -%}
+        {%- set c_lbl = choice[1] if choice|length > 1 else choice[0] -%}
+      {%- else -%}
+        {%- set c_val = choice -%}
+        {%- set c_lbl = choice -%}
+      {%- endif -%}
+      <option value="{{ c_val }}"{% if c_val|string == value|string %} selected{% endif %}>{{ c_lbl }}</option>
+    {%- endfor -%}
+  {%- endif -%}
+</select>
+{%- if hint -%}<div class="form-hint" id="{{ field_id }}-hint">{{ hint }}</div>{%- endif -%}
+{%- if error -%}<div class="invalid-feedback d-block field-error" id="{{ field_id }}-error">{{ error }}</div>{%- endif -%}
+{%- endmacro %}
+
+{%- macro textarea(name, label, value='', id=none, required=false, error=none, hint=none, readonly=false, disabled=false, rows=3, placeholder=none) -%}
+{%- set field_id = id or name -%}
+{%- set desc_ids = [] -%}
+{%- if hint -%}{%- set _ = desc_ids.append(field_id ~ '-hint') -%}{%- endif -%}
+{%- if error -%}{%- set _ = desc_ids.append(field_id ~ '-error') -%}{%- endif -%}
+<label class="form-label{% if required %} required{% endif %}" for="{{ field_id }}">{{ label }}</label>
+<textarea class="form-control{% if error %} is-invalid{% endif %}" id="{{ field_id }}" name="{{ name }}" rows="{{ rows }}"{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}{% if required %} required{% endif %}{% if readonly %} readonly{% endif %}{% if disabled %} disabled{% endif %}{% if error %} aria-invalid="true"{% endif %}{% if desc_ids %} aria-describedby="{{ desc_ids|join(' ') }}"{% endif %}>{{ value }}</textarea>
+{%- if hint -%}<div class="form-hint" id="{{ field_id }}-hint">{{ hint }}</div>{%- endif -%}
+{%- if error -%}<div class="invalid-feedback d-block field-error" id="{{ field_id }}-error">{{ error }}</div>{%- endif -%}
+{%- endmacro %}
+
+{%- macro checkbox(name, label, value='1', checked=false, id=none, required=false, error=none, hint=none, readonly=false, disabled=false) -%}
+{%- set field_id = id or name -%}
+{%- set desc_ids = [] -%}
+{%- if hint -%}{%- set _ = desc_ids.append(field_id ~ '-hint') -%}{%- endif -%}
+{%- if error -%}{%- set _ = desc_ids.append(field_id ~ '-error') -%}{%- endif -%}
+<label class="form-check{% if error %} is-invalid{% endif %}"{% if field_id %} for="{{ field_id }}"{% endif %}>
+  <input class="form-check-input{% if error %} is-invalid{% endif %}" type="checkbox" name="{{ name }}" value="{{ value }}"{% if field_id %} id="{{ field_id }}"{% endif %}{% if checked %} checked{% endif %}{% if required %} required{% endif %}{% if disabled %} disabled{% endif %}{% if readonly %} readonly aria-readonly="true" onclick="return false;"{% endif %}{% if error %} aria-invalid="true"{% endif %}{% if desc_ids %} aria-describedby="{{ desc_ids|join(' ') }}"{% endif %}>
+  <span class="form-check-label">{{ label }}</span>
+</label>
+{%- if hint -%}<div class="form-hint" id="{{ field_id }}-hint">{{ hint }}</div>{%- endif -%}
+{%- if error -%}<div class="invalid-feedback d-block field-error" id="{{ field_id }}-error">{{ error }}</div>{%- endif -%}
+{%- endmacro %}
+
+{%- macro check(name, label, value='1', checked=false, id=none, type='checkbox', required=false, error=none, hint=none, readonly=false, disabled=false) -%}
+{%- set field_id = id or name -%}
+{%- set desc_ids = [] -%}
+{%- if hint -%}{%- set _ = desc_ids.append(field_id ~ '-hint') -%}{%- endif -%}
+{%- if error -%}{%- set _ = desc_ids.append(field_id ~ '-error') -%}{%- endif -%}
+<label class="form-check{% if error %} is-invalid{% endif %}"{% if field_id %} for="{{ field_id }}"{% endif %}>
+  <input class="form-check-input{% if error %} is-invalid{% endif %}"{% if field_id %} id="{{ field_id }}"{% endif %} type="{{ type }}" name="{{ name }}" value="{{ value }}"{% if checked %} checked{% endif %}{% if required %} required{% endif %}{% if disabled %} disabled{% endif %}{% if readonly %} readonly aria-readonly="true" onclick="return false;"{% endif %}{% if error %} aria-invalid="true"{% endif %}{% if desc_ids %} aria-describedby="{{ desc_ids|join(' ') }}"{% endif %}>
+  <span class="form-check-label">{{ label }}</span>
+</label>
+{%- if hint -%}<div class="form-hint" id="{{ field_id }}-hint">{{ hint }}</div>{%- endif -%}
+{%- if error -%}<div class="invalid-feedback d-block field-error" id="{{ field_id }}-error">{{ error }}</div>{%- endif -%}
+{%- endmacro %}
+
+{%- macro form_errors(errors, title=none) -%}
+{%- if errors -%}
+  {%- set error_list = errors if errors is iterable and not errors is string and not errors is mapping else [errors] -%}
+  {%- if error_list|length > 0 -%}
+  <div class="alert alert-danger error-region mb-3" role="alert" tabindex="-1">
+    <div class="d-flex">
+      <div>{{ icon('alert-triangle', class='alert-icon me-2') }}</div>
+      <div>
+        <h4 class="alert-title mb-1">{{ title or 'Bitte überprüfen Sie die folgenden Fehler:' }}</h4>
+        {%- if error_list|length == 1 -%}
+          <div class="text-secondary">{{ error_list[0] }}</div>
+        {%- else -%}
+          <ul class="mb-0 ps-3">
+            {%- for err in error_list -%}
+              <li>{{ err }}</li>
+            {%- endfor -%}
+          </ul>
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+  {%- endif -%}
+{%- endif -%}
+{%- endmacro %}
+
+{%- macro status_badge(value, mapping=none, label=none) -%}
+{%- set default_map = {
+  'live': ('Live', 'success'),
+  'ready': ('Bereit', 'info'),
+  'review_open': ('Prüfung offen', 'warning'),
+  'incomplete': ('Unvollständig', 'warning'),
+  'changed': ('Geändert', 'warning'),
+  'active': ('Aktiv', 'success'),
+  'inactive': ('Inaktiv', 'secondary'),
+  'archived': ('Archiviert', 'secondary'),
+  'draft': ('Entwurf', 'secondary'),
+  'conflict': ('Konflikt', 'danger'),
+  'error': ('Fehler', 'danger'),
+  'success': ('Erfolgreich', 'success'),
+  'warning': ('Warnung', 'warning'),
+  'danger': ('Kritisch', 'danger'),
+  'info': ('Info', 'info'),
+  'published': ('Veröffentlicht', 'success')
+} -%}
+{%- set legacy_colors = {'live': 'green', 'ready': 'teal', 'review_open': 'yellow', 'incomplete': 'orange', 'changed': 'yellow'} -%}
+{%- if mapping and mapping is mapping and value in mapping -%}
+  {%- set entry = mapping[value] -%}
+  {%- if entry is mapping -%}
+    {%- set badge_text = entry.label or entry.text or value -%}
+    {%- set badge_var = entry.variant or entry.color or 'secondary' -%}
+  {%- elif entry is iterable and not entry is string -%}
+    {%- set badge_text = entry[0] -%}
+    {%- set badge_var = entry[1] if entry|length > 1 else 'secondary' -%}
+  {%- else -%}
+    {%- set badge_text = entry -%}
+    {%- set badge_var = default_map.get(value, (value, 'secondary'))[1] -%}
+  {%- endif -%}
+{%- elif label is not none -%}
+  {%- set badge_text = label -%}
+  {%- set badge_var = legacy_colors.get(value, default_map.get(value, (value, 'secondary'))[1]) -%}
+{%- elif value in default_map -%}
+  {%- set badge_text = default_map[value][0] -%}
+  {%- set badge_var = default_map[value][1] -%}
+{%- else -%}
+  {%- set badge_text = value -%}
+  {%- set badge_var = 'secondary' -%}
+{%- endif -%}
+<span class="badge bg-{{ badge_var }}-lt badge-pill" data-status="{{ value }}">{{ badge_text }}</span>
+{%- endmacro %}
+
+{%- macro status(value, label=none, mapping=none) -%}
+{%- if label is not none and mapping is none -%}
+  {{- status_badge(value, label=label) -}}
+{%- else -%}
+  {{- status_badge(value, mapping=mapping or label) -}}
+{%- endif -%}
+{%- endmacro %}
+
+{%- macro empty_state(kind, title, text, action=none) -%}
+{%- set action_content = caller() if caller else action -%}
+{%- set icon_map = {
+  'none': 'archive-off',
+  'no_match': 'search',
+  'forbidden': 'alert-triangle'
+} -%}
+{%- set kind_icon = icon_map.get(kind, 'info-circle') -%}
+<div class="empty" data-empty-kind="{{ kind }}">
+  <div class="empty-icon">{{ icon(kind_icon) }}</div>
+  <p class="empty-title">{{ title }}</p>
+  <p class="empty-subtitle text-secondary">{{ text }}</p>
+  {%- if action_content and action_content|trim -%}
+  <div class="empty-action">{{ action_content }}</div>
+  {%- endif -%}
+</div>
+{%- endmacro %}
+
+{%- macro pagination(page, has_next=none, prev_url=none, next_url=none, label='Pagination', has_prev=none, total_pages=none, total_items=none) -%}
+{%- if has_next is none and (page is mapping or page.has_next is defined or page.pages is defined) -%}
+  {%- set current_page = page.page if page.page is defined else page.get('page', 1) -%}
+  {%- set eff_has_prev = page.has_prev if page.has_prev is defined else page.get('has_prev', current_page > 1) -%}
+  {%- set eff_has_next = page.has_next if page.has_next is defined else page.get('has_next', false) -%}
+  {%- set eff_prev_url = page.prev_url if page.prev_url is defined else page.get('prev_url', none) -%}
+  {%- set eff_next_url = page.next_url if page.next_url is defined else page.get('next_url', none) -%}
+  {%- set eff_total_pages = page.pages if page.pages is defined else (page.total_pages if page.total_pages is defined else page.get('total_pages', none)) -%}
+  {%- set eff_total_items = page.total if page.total is defined else (page.total_items if page.total_items is defined else page.get('total_items', none)) -%}
+  {%- set eff_label = page.label if page.label is defined else page.get('label', label) -%}
+{%- else -%}
+  {%- set current_page = page -%}
+  {%- set eff_has_prev = has_prev if has_prev is not none else (current_page > 1) -%}
+  {%- set eff_has_next = has_next if has_next is not none else false -%}
+  {%- set eff_prev_url = prev_url -%}
+  {%- set eff_next_url = next_url -%}
+  {%- set eff_total_pages = total_pages -%}
+  {%- set eff_total_items = total_items -%}
+  {%- set eff_label = label -%}
+{%- endif -%}
+{%- if eff_has_prev or eff_has_next -%}
+<nav class="mt-3" aria-label="{{ eff_label }}">
+  <ul class="pagination mb-0">
+    <li class="page-item{% if not eff_has_prev %} disabled{% endif %}">
+      {%- if eff_has_prev and eff_prev_url -%}
+        <a class="page-link" href="{{ eff_prev_url }}">{{ icon('chevron-left') }}Zurück</a>
+      {%- else -%}
+        <span class="page-link" aria-disabled="true">{{ icon('chevron-left') }}Zurück</span>
+      {%- endif -%}
+    </li>
+    <li class="page-item active">
+      <span class="page-link" aria-current="page">
+        Seite {{ current_page }}{% if eff_total_pages %} von {{ eff_total_pages }}{% endif %}
+      </span>
+    </li>
+    <li class="page-item{% if not eff_has_next %} disabled{% endif %}">
+      {%- if eff_has_next and eff_next_url -%}
+        <a class="page-link" href="{{ eff_next_url }}">Weiter{{ icon('chevron-right') }}</a>
+      {%- else -%}
+        <span class="page-link" aria-disabled="true">Weiter{{ icon('chevron-right') }}</span>
+      {%- endif -%}
+    </li>
+  </ul>
+  {%- if eff_total_items is not none -%}
+  <div class="text-secondary small mt-1">Gesamt: {{ eff_total_items }}</div>
+  {%- endif -%}
+</nav>
+{%- endif -%}
+{%- endmacro %}
+
+{%- macro actions(primary=none, secondary=none, class='') -%}
+{%- set primary_content = caller() if caller else primary -%}
+<div class="btn-list flex-wrap align-items-center{% if class %} {{ class }}{% endif %}">
+  {%- if secondary -%}
+    {%- if secondary is string -%}
+      {{ secondary }}
+    {%- elif secondary is iterable -%}
+      {%- for item in secondary -%}
+        {%- if item is mapping -%}
+          {%- if item.url or item.href -%}
+            <a href="{{ item.url or item.href }}" class="btn{% if item.class %} {{ item.class }}{% endif %}"{% if item.id %} id="{{ item.id }}"{% endif %}{% if item.disabled %} aria-disabled="true" tabindex="-1"{% endif %}>{{ item.label or item.text }}</a>
+          {%- else -%}
+            <button type="{{ item.type|default('button') }}" class="btn{% if item.class %} {{ item.class }}{% endif %}"{% if item.id %} id="{{ item.id }}"{% endif %}{% if item.name %} name="{{ item.name }}"{% endif %}{% if item.value %} value="{{ item.value }}"{% endif %}{% if item.disabled %} disabled{% endif %}>{{ item.label or item.text }}</button>
+          {%- endif -%}
+        {%- else -%}
+          {{ item }}
+        {%- endif -%}
+      {%- endfor -%}
+    {%- endif -%}
+  {%- endif -%}
+  {%- if primary_content -%}
+    {%- if primary_content is mapping -%}
+      {%- if primary_content.url or primary_content.href -%}
+        <a href="{{ primary_content.url or primary_content.href }}" class="btn btn-primary{% if primary_content.class %} {{ primary_content.class }}{% endif %}"{% if primary_content.id %} id="{{ primary_content.id }}"{% endif %}{% if primary_content.disabled %} aria-disabled="true" tabindex="-1"{% endif %}>{{ primary_content.label or primary_content.text }}</a>
+      {%- else -%}
+        <button type="{{ primary_content.type|default('submit') }}" class="btn btn-primary{% if primary_content.class %} {{ primary_content.class }}{% endif %}"{% if primary_content.id %} id="{{ primary_content.id }}"{% endif %}{% if primary_content.name %} name="{{ primary_content.name }}"{% endif %}{% if primary_content.value %} value="{{ primary_content.value }}"{% endif %}{% if primary_content.disabled %} disabled{% endif %}>{{ primary_content.label or primary_content.text }}</button>
+      {%- endif -%}
+    {%- elif primary_content is string and not ('<' in primary_content) -%}
+      <button type="submit" class="btn btn-primary">{{ primary_content }}</button>
+    {%- else -%}
+      {{ primary_content }}
+    {%- endif -%}
+  {%- endif -%}
 </div>
 {%- endmacro %}
 
@@ -60,18 +323,4 @@
 <div class="flash-region" aria-live="polite">
   {% for message in messages %}<div class="alert alert-info flash">{{ message }}</div>{% endfor %}
 </div>
-{%- endmacro %}
-
-{%- macro pagination(page, has_next, prev_url, next_url, label) %}
-<nav class="mt-3" aria-label="{{ label }}">
-  <ul class="pagination mb-0">
-    <li class="page-item{% if page <= 1 %} disabled{% endif %}">
-      {% if page > 1 %}<a class="page-link" href="{{ prev_url }}">{{ icon('chevron-left') }}Zurück</a>{% else %}<span class="page-link" aria-disabled="true">{{ icon('chevron-left') }}Zurück</span>{% endif %}
-    </li>
-    <li class="page-item active"><span class="page-link" aria-current="page">Seite {{ page }}</span></li>
-    <li class="page-item{% if not has_next %} disabled{% endif %}">
-      {% if has_next %}<a class="page-link" href="{{ next_url }}">Weiter{{ icon('chevron-right') }}</a>{% else %}<span class="page-link" aria-disabled="true">Weiter{{ icon('chevron-right') }}</span>{% endif %}
-    </li>
-  </ul>
-</nav>
 {%- endmacro %}
