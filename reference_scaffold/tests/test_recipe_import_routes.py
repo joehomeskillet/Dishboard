@@ -6,7 +6,9 @@ from urllib.parse import urlsplit
 
 from sqlalchemy import text
 
+from cafeteria import master_data_store as masters
 from cafeteria import roles
+from test_master_data_db import STORAGE_PUBLIC_ID, make_actor, signed_in
 from test_master_data_routes import (  # noqa: F401
     Forms, app_engine, b3, installed_pg16, pg16, seeded_pg16,
 )
@@ -85,3 +87,65 @@ def test_csrf_conflict_and_capability(b3, monkeypatch):  # noqa: F811
     assert client.get('/admin/rezepte/import').status_code == 403
     assert client.post(path, data=stale).status_code == 403
     assert app.test_client().get('/admin/rezepte/import').status_code == 401
+
+
+def test_commit_creates_recipe_link_and_rejects_editor(b3):  # noqa: F811
+    app, owner, client, actor = b3
+    engine = app.extensions['cafeteria_db']
+    with signed_in(engine, actor):
+        food = masters.create_food(engine, actor, {
+            'name': 'HTTP-Zutat', 'base_unit_code': 'KG',
+            'storage_location_public_ids': [STORAGE_PUBLIC_ID],
+        })
+    path = create(client, annotation='unreviewed')
+    form = Forms(client.get(path).text).forms[path]
+    form['row.1.ingredient.0.food_public_id'] = food.public_id
+    form['row.1.duplicate_decision'] = 'create_new'
+    form['action'] = 'save'
+    assert client.post(path, data=form).status_code == 303
+    ack = Forms(client.get(path).text).forms[path]
+    ack['action'] = 'acknowledge'
+    assert client.post(path, data=ack).status_code == 303
+    detail = client.get(path)
+    assert detail.status_code == 200
+    assert 'Importstapel übernehmen' in detail.text
+    assert 'keine Veröffentlichung' in detail.text
+    commit_path = f'{path}/commit'
+    commit_form = Forms(detail.text).forms[commit_path]
+    invalid = dict(commit_form)
+    invalid['_csrf'] = 'wrong'
+    before = snapshot(owner)
+    assert client.post(commit_path, data=invalid).status_code == 400
+    assert snapshot(owner) == before
+    assert client.post(commit_path, data=commit_form).status_code == 303
+    imported = client.get(path)
+    assert imported.status_code == 200
+    assert 'Rezept öffnen' in imported.text
+    assert 'imported' in imported.text
+    assert client.post(commit_path, data=commit_form).status_code == 409
+    href = [line for line in imported.text.split('"') if line.startswith('/admin/rezepte/')]
+    recipe_href = next(item for item in href if item.count('/') == 3 and 'import' not in item)
+    assert client.get(recipe_href).status_code == 200
+    editor = make_actor(owner, 'Cafeteria.Editor')
+    other = app.test_client()
+    with other.session_transaction() as session:
+        session['user'] = {'id': editor.user_id, 'name': 'Editor'}
+        session['authz_version'] = editor.authz_version
+        session['_csrf_token'] = 'b3-test-csrf'
+    path2 = create(client, annotation='unreviewed')
+    save = Forms(client.get(path2).text).forms[path2]
+    save['row.1.ingredient.0.food_public_id'] = food.public_id
+    save['row.1.duplicate_decision'] = 'create_new'
+    save['action'] = 'save'
+    assert client.post(path2, data=save).status_code == 303
+    ack2 = Forms(client.get(path2).text).forms[path2]
+    ack2['action'] = 'acknowledge'
+    assert client.post(path2, data=ack2).status_code == 303
+    editor_page = other.get(path2)
+    assert editor_page.status_code == 200
+    assert 'Berechtigung zum Rezeptimport' in editor_page.text
+    assert other.post(f'{path2}/commit', data={
+        '_csrf': 'b3-test-csrf',
+        'row_version': Forms(editor_page.text).forms[path2]['row_version'],
+        'candidate_hash_sha256': '0' * 64,
+    }).status_code == 403

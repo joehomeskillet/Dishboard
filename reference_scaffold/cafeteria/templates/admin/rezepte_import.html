@@ -46,10 +46,12 @@
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="row_version" value="{{ values.row_version or batch.row_version }}">
     <p class="text-secondary">Adapter {{ batch.adapter_kind }} · Status {{ batch.status }} · Dateihash {{ batch.source_sha256 or '—' }}</p>
-    {% if batch.confirmation_hash_sha256 %}
+    {% if batch.status == 'imported' %}
+    <p>Dieser Importstapel ist übernommen und unveränderlich. Es erfolgte keine Veröffentlichung und keine Allergenfreigabe.</p>
+    {% elif batch.confirmation_hash_sha256 %}
     <p>Bestätigte Signatur {{ batch.confirmation_hash_sha256 }}. Jede Änderung entwertet sie.</p>
     {% else %}
-    <p>Noch keine Bestätigung. Übernahme in Rezepte ist ein späterer Schritt.</p>
+    <p>Noch keine Bestätigung. Übernahme in Rezepte braucht zuerst diese Signatur.</p>
     {% endif %}
     <fieldset class="mb-3">
       <legend class="form-label">Sichtbare Quellennotiz</legend>
@@ -109,14 +111,52 @@
       </div>
     </article>
     {% endfor %}
+    {% if batch.status == 'draft' %}
     <div class="btn-list">
       <button class="btn btn-primary" type="submit" name="action" value="save">Entscheidungen speichern</button>
       <button class="btn" type="submit" name="action" value="acknowledge">Vorschau bestätigen</button>
       <button class="btn" type="submit" name="action" value="cancel">Stapel verwerfen</button>
     </div>
+    {% endif %}
     <noscript><p class="form-hint">Ohne JavaScript werden alle Felder beim Absenden mitgesendet.</p></noscript>
   </form>
 </section>
+{% if batch.status == 'draft' and batch.confirmation_hash_sha256 %}
+<section class="card mb-4" aria-labelledby="recipe-import-commit-title">
+  <div class="card-header"><h2 class="card-title" id="recipe-import-commit-title">Importstapel übernehmen</h2></div>
+  <div class="card-body">
+    <p>Importstapel {{ batch.public_id }} (Version {{ batch.row_version }}) wird in Rezepte übernommen. Neu angelegte Rezepte erhalten je Version 1. Vorhandene Rezepte und deren Herkunft bleiben unverändert. Es erfolgt keine Veröffentlichung und keine Allergenfreigabe.</p>
+    {% if can_import %}
+    <form method="post" action="{{ url_for('admin.recipe_import_commit', batch_id=batch.public_id) }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="row_version" value="{{ values.row_version or batch.row_version }}">
+      <input type="hidden" name="candidate_hash_sha256" value="{{ batch.candidate_hash_sha256 }}">
+      <button class="btn btn-primary" type="submit">Importstapel übernehmen</button>
+    </form>
+    {% else %}
+    <p class="text-secondary">Zum Übernehmen ist die Berechtigung zum Rezeptimport erforderlich.</p>
+    {% endif %}
+    <noscript><p class="form-hint">Ohne JavaScript sendet diese Bestätigung nur die signierte Stapelversion.</p></noscript>
+  </div>
+</section>
+{% endif %}
+{% if batch.imported_result %}
+<section class="card mb-4" aria-labelledby="recipe-import-links-title">
+  <div class="card-header"><h2 class="card-title" id="recipe-import-links-title">Übernommene Rezepte</h2></div>
+  <div class="card-body">
+    <ul>
+      {% for item in batch.imported_result %}
+      <li>
+        Zeile {{ item.row_number }} · {{ item.decision }}
+        {% if item.recipe_public_id %}
+        · <a href="{{ url_for('admin.recipe_edit', recipe_id=item.recipe_public_id) }}">Rezept öffnen</a>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
 {% endif %}
 
 {% if batches %}
