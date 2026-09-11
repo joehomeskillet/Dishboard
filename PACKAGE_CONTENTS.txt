@@ -1222,6 +1222,7 @@ reference_scaffold/tests/test_swagger_ui_assets.py
 reference_scaffold/tests/test_tabler_package_verification.py
 reference_scaffold/tests/test_ui_contracts.py
 reference_scaffold/tests/test_ui_inventory_capture.py
+reference_scaffold/tests/test_ui_master_tokens_browser.py
 reference_scaffold/tests/test_ui_route_inventory.py
 reference_scaffold/tests/test_week_form_focus_browser.py
 reference_scaffold/tests/test_week_management.py
