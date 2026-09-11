@@ -333,3 +333,11 @@
         }
     });
 })();
+
+// MP-UI-SHELL: aria-expanded für Offcanvas-Toggler
+document.querySelectorAll('[data-bs-toggle="offcanvas"][aria-controls]').forEach(toggle => {
+    const target = document.getElementById(toggle.getAttribute('aria-controls'));
+    if (!target) return;
+    target.addEventListener('shown.bs.offcanvas', () => toggle.setAttribute('aria-expanded', 'true'));
+    target.addEventListener('hidden.bs.offcanvas', () => toggle.setAttribute('aria-expanded', 'false'));
+});
