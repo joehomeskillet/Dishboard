@@ -527,15 +527,39 @@ def parse_component_create_form(form: Mapping[str, object]) -> ParsedComponentCr
     return ParsedComponentCreate(payload={**_component_metadata(form), 'target_scope': target_scope})
 
 
-def parse_component_update_form(form: Mapping[str, object]) -> ParsedComponentUpdate:
+def parse_component_update_form(
+    form: Mapping[str, object], *, current_food_public_id: str | None = None,
+) -> ParsedComponentUpdate:
     _validate_shape(
         form,
         frozenset({'_csrf', 'category', 'name', 'origin_country_code', 'row_version'}),
+        optional=frozenset({'food_public_id', 'food_detach_confirm'}),
         repeated=frozenset({'label_code', 'allergen_code', 'allergen_presence'}),
     )
+    payload = _component_metadata(form)
+    if 'food_detach_confirm' in form and _scalar(form, 'food_detach_confirm') != '1':
+        raise WorkflowValidationError(
+            'Ablösen ausdrücklich bestätigen.', field_name='food_detach_confirm',
+        )
+    if 'food_public_id' in form:
+        value = _scalar(form, 'food_public_id')
+        if value:
+            try:
+                payload['food_public_id'] = str(UUID(value))
+            except ValueError as error:
+                raise WorkflowValidationError(
+                    'Lebensmittel-ID muss eine UUID sein.', field_name='food_public_id',
+                ) from error
+        else:
+            if current_food_public_id and 'food_detach_confirm' not in form:
+                raise WorkflowValidationError(
+                    'Ablösen des Lebensmittels ausdrücklich bestätigen.',
+                    field_name='food_detach_confirm',
+                )
+            payload['food_public_id'] = None
     return ParsedComponentUpdate(
         expected_component_row_version=_component_version(form),
-        payload=_component_metadata(form),
+        payload=payload,
     )
 
 

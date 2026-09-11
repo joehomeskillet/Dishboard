@@ -217,16 +217,33 @@ def render_components(
     )
 
 
+def _active_location_foods() -> list[Any]:
+    engine = current_app.extensions.get('cafeteria_db')
+    if engine is None or not hasattr(engine, 'connect'):
+        return []
+    from ..master_data_reads import list_foods
+
+    foods: list[Any] = []
+    while True:
+        batch = list_foods(engine, limit=500, offset=len(foods))
+        foods.extend(batch)
+        if len(batch) < 500:
+            break
+    return foods
+
+
 def render_component_detail(
     profile: str, family: str, component: dict[str, Any], csrf: str,
     flashes: list[str], categories: dict[str, str],
     allergens: list[dict[str, Any]], labels: list[dict[str, Any]],
     *, form_values: MultiDict[str, str] | None = None, form_errors: dict[str, str] | None = None,
 ) -> str:
+    foods = _active_location_foods()
     return render_template(
         'admin/component_editor.html', profile=profile, family=family,
         component=component, csrf=csrf, flashes=flashes, categories=categories,
-        allergens=allergens, labels=labels,
+        allergens=allergens, labels=labels, foods=foods,
+        food_detail_available='admin.master_data_detail' in current_app.view_functions,
         form_values=form_values if form_values is not None else {}, form_errors=form_errors or {},
         **_template_context(),
     )

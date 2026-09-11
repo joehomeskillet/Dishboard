@@ -48,6 +48,7 @@ def form_client(monkeypatch):
         'public_id': 'component-id', 'profile_scope': 'patient', 'active': True,
         'name': 'Gespeichert', 'category': 'side', 'origin_country_code': 'CH',
         'row_version': 9, 'usage_count': 0,
+        'food_public_id': None, 'food_name': None,
         'labels': [{'code': 'VEGAN', 'name': 'Vegan'}],
         'allergens': [{'code': 'MILK', 'name': 'Milch', 'presence': 'contains'}],
     })
@@ -207,10 +208,15 @@ def test_component_stale_edit_and_invalid_csrf_keep_existing_rejection(form_clie
         raise StaleComponentError('Veraltet')
     monkeypatch.setattr(routes, 'update_component', stale)
     fields = _component_fields(token('patienten', 'component'), True)
-    assert client.post('/admin/patienten/komponenten/component-id', data=fields).status_code == 409
+    conflict = client.post('/admin/patienten/komponenten/component-id', data=fields)
+    assert conflict.status_code == 409
+    assert not state['writes']
+    captured = state['renders'][-1]
+    assert captured['form_values']['name'] == fields['name']
+    assert captured['form_values']['_csrf'] == fields['_csrf']
     fields['_csrf'] = 'invalid'
     assert client.post('/admin/patienten/komponenten/component-id', data=fields).status_code == 400
-    assert not state['writes'] and not state['renders']
+    assert not state['writes']
 
 
 def test_component_get_keeps_saved_metadata_when_no_form_was_submitted(form_client):

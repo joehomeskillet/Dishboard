@@ -106,6 +106,8 @@ def _component_state(
         'active': active,
         'row_version': version,
         'usage_count': 0,
+        'food_public_id': None,
+        'food_name': None,
         'labels': [{'code': label[0], 'name': label[1]}],
         'allergens': [
             {'code': allergen[0], 'name': allergen[1], 'presence': allergen[2]}
