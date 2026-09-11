@@ -111,7 +111,8 @@ def test_real_factory_sidebar_and_full_atomic_food_flow(b3):
     assert sum(rule.endpoint == 'admin.master_data_list' for rule in app.url_map.iter_rules()) == 1
     for path in ('/admin/grundlagen', '/admin/vorlagen', '/admin/screens'):
         response = client.get(path)
-        assert response.status_code == 200 and '/admin/grundlagen' in response.text
+        assert response.status_code == 200 and '/admin/cafeteria/menues' in response.text
+    assert '/admin/grundlagen' in client.get('/admin/grundlagen').text
     category = create(client, 'kategorien', name='Gemüse', code='VEG', sort_order='1')
     tag = create(client, 'tags', name='Regional', code='LOCAL')
     food = create(client, name='Karotte', category_public_id=category.rsplit('/', 1)[1])

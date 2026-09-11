@@ -989,13 +989,13 @@ def test_every_admin_control_is_reachable_sized_and_non_overlapping(
                   ),
                 };
               });
-                  const overlaps = [];
-                  for (let left = 0; left < boxes.length; left += 1) {
-                    for (let right = left + 1; right < boxes.length; right += 1) {
-                      const a = boxes[left];
-                      const b = boxes[right];
-                      if (a.target === 'Zum Inhalt springen' || b.target === 'Zum Inhalt springen') continue;
-                      if (
+              const overlaps = [];
+              for (let left = 0; left < boxes.length; left += 1) {
+                for (let right = left + 1; right < boxes.length; right += 1) {
+                  const a = boxes[left];
+                  const b = boxes[right];
+                  if (a.target === 'Zum Inhalt springen' || b.target === 'Zum Inhalt springen') continue;
+                  if (
                     Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 &&
                     Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1
                   ) {

@@ -1,0 +1,63 @@
+{# Shared navigation model: existing endpoints and visibility, no permission grants. #}
+{% set nav_family = family|default('cafeteria', true) %}
+{% set week_args = {'week': week} if week is defined and week else {} %}
+{% set family_args = {'family': nav_family} %}
+{% set current_tab = workflow_nav|default('') %}
+{% if request.endpoint == 'admin.preview' %}
+  {% set current_tab = 'preview' %}
+{% elif request.endpoint == 'admin.display_settings' %}
+  {% set current_tab = 'display' %}
+{% elif not current_tab and request.endpoint %}
+  {% if request.endpoint.startswith('admin.recipe_') %}{% set current_tab = 'recipes' %}
+  {% elif request.endpoint.startswith('admin.cookbook_') %}{% set current_tab = 'cookbooks' %}{% endif %}
+{% endif %}
+{% if current_tab == 'weeks' %}{% set current_tab = nav_family %}{% endif %}
+{# Area: key, label, icon, sidebar landing tab key ('family' = active family). #}
+{# Tab: key, endpoint, label, visible, url_for kwargs. Preview stays a tab; it has no admin shell. #}
+{% set areas = [
+  ('weeks', 'Wochenplan', 'calendar-week', 'family', [
+    ('cafeteria', 'cafeteria', 'Cafeteria', true, week_args),
+    ('patienten', 'patienten', 'Patienten', true, week_args),
+    ('management', 'week_management', 'Wochenübersicht', true, family_args)
+  ]),
+  ('menus', 'Menüs & Bausteine', 'tools-kitchen-2', 'menus', [
+    ('menus', 'menu_collection', 'Menüs', true, family_args),
+    ('components', 'components_get', 'Bausteine', true, family_args),
+    ('master_data', 'master_data_list', 'Zutaten', true, {}),
+    ('recipes', 'recipes_list', 'Rezepte', can_browse_recipes, {}),
+    ('cookbooks', 'cookbooks_list', 'Kochbücher', can_browse_recipes, {})
+  ]),
+  ('output', 'Vorschau & Bildschirme', 'eye', 'screens', [
+    ('preview', 'preview', 'Vorschau', true, dict(family=nav_family, **week_args)),
+    ('screens', 'screens', 'Bildschirme', true, {}),
+    ('vorlagen', 'vorlagen', 'Druckvorlagen', true, {})
+  ]),
+  ('settings', 'Einstellungen', 'calendar-cog', 'operations', [
+    ('operations', 'operations_settings', 'Bereiche & Öffnungszeiten', can_configure_display, {}),
+    ('design', 'branding_editor', 'Erscheinungsbild', can_configure_display, {}),
+    ('display', 'display_settings', 'Darstellung', can_configure_display, {}),
+    ('import', 'import_preview', 'Daten importieren', true, {}),
+    ('api', 'api_overview', 'Schnittstellen', true, {}),
+    ('users', 'local_users_list', 'Benutzer & Zugriff', can_manage_users, {})
+  ])
+] %}
+{% set selected = namespace(area='') %}
+{% for key, label, icon_name, landing, tabs in areas %}
+  {% for tab in tabs if tab[0] == current_tab %}{% set selected.area = key %}{% endfor %}
+{% endfor %}
+
+{% macro href(tab) -%}{{ url_for('admin.' ~ tab[1], **tab[4]) }}{%- endmacro %}
+
+{% macro render_tabs() %}
+{% for key, label, icon_name, landing, tabs in areas if key == selected.area %}
+<nav class="admin-area-tabs" aria-label="{{ label }}">
+  <div class="container-xl">
+    <ul class="nav nav-tabs">
+      {% for tab in tabs if tab[3] %}
+      <li class="nav-item"><a class="nav-link{% if tab[0] == current_tab %} active{% endif %}" href="{{ href(tab) }}"{% if tab[0] == current_tab %} aria-current="page"{% endif %}>{{ tab[2] }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+</nav>
+{% endfor %}
+{% endmacro %}

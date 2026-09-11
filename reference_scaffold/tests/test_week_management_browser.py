@@ -13,7 +13,7 @@ from test_admin_ux_browser import (
 def test_week_creation_and_tablet_layout(page_context):
     page = page_context
     page.goto('/admin/patienten')
-    page.get_by_role('navigation', name='Backend').get_by_role('link', name='Wochenverwaltung', exact=True).click()
+    page.locator('.admin-area-tabs').get_by_role('link', name='Wochenübersicht', exact=True).click()
     expect(page.get_by_role('heading', name='Wochenverwaltung', exact=True)).to_be_visible()
     for width, height in [(768, 1024), (800, 1280), (1024, 768), (1280, 800), (390, 844)]:
         page.set_viewport_size({'width': width, 'height': height})

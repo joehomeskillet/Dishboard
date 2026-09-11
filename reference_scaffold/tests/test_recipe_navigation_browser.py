@@ -48,10 +48,13 @@ def _close_sidebar_menu(page) -> None:
 
 
 def sidebar(page, width, javascript, label):
-    nav = page.locator('nav[aria-label="Backend"]:visible')
-    if javascript and width < 992 and nav.count() == 0:
-        page.locator('[data-bs-target="#sidebar-menu"]').click()
-    link = nav.get_by_role('link', name=label, exact=True)
+    tabs = page.locator('.admin-area-tabs')
+    if tabs.get_by_role('link', name=label, exact=True).count() == 0:
+        nav = page.locator('nav[aria-label="Backend"]:visible')
+        if javascript and width < 992 and nav.count() == 0:
+            page.get_by_role('button', name='Menü', exact=True).click()
+        nav.get_by_role('link', name='Menüs & Bausteine', exact=True).click()
+    link = tabs.get_by_role('link', name=label, exact=True)
     expect(link).to_be_visible()
     link.focus()
     expect(link).to_be_focused()
@@ -62,9 +65,18 @@ def sidebar(page, width, javascript, label):
 
 
 def active(page, label):
-    selected = page.locator('#sidebar-menu .nav-link.active')
+    toggle = page.get_by_role('button', name='Menü', exact=True)
+    if page.locator('nav[aria-label="Backend"]:visible').count() == 0:
+        toggle.click()
+        page.wait_for_selector('#sidebar-menu.show')
+    selected = page.locator('nav[aria-label="Backend"]:visible a[aria-current="page"]')
     expect(selected).to_have_count(1)
-    expect(selected.locator('.nav-link-title')).to_have_text(label)
+    expect(selected).to_have_text('Menüs & Bausteine')
+    expect(page.locator('.admin-area-tabs a[aria-current="page"]')).to_have_text(label)
+    if toggle.is_visible() and page.locator('#sidebar-menu.show').count():
+        _close_sidebar_menu(page)
+        expect(toggle).to_have_attribute('aria-expanded', 'false')
+        expect(toggle).to_be_focused()
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
 
 
