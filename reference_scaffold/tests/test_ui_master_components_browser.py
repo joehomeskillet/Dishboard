@@ -72,6 +72,10 @@ def macro_site(monkeypatch, tmp_path, database_engine, browser):  # noqa: F811
                     <div class="col-md-3">{{ checkbox('c_invalid', 'Ungültige Checkbox', value='req', checked=false, error='Muss akzeptiert werden') }}</div>
                     <div class="col-md-3">{{ checkbox('c_readonly', 'Readonly Checkbox', value='ro_check', checked=true, readonly=true) }}</div>
                     <div class="col-md-3">{{ checkbox('c_disabled', 'Disabled Checkbox', value='dis_check', checked=true, disabled=true) }}</div>
+                    <div class="col-md-3">{{ check('r_choice', 'Normales Radio A', value='a', checked=true, id='r_normal', type='radio') }}</div>
+                    <div class="col-md-3">{{ check('r_choice', 'Normales Radio B', value='b', checked=false, id='r_empty', type='radio') }}</div>
+                    <div class="col-md-3">{{ check('r_readonly', 'Readonly Radio', value='ro_radio', checked=true, id='r_readonly', type='radio', readonly=true) }}</div>
+                    <div class="col-md-3">{{ check('r_disabled', 'Disabled Radio', value='dis_radio', checked=true, id='r_disabled', type='radio', disabled=true) }}</div>
                   </div>
                   <div class="mt-4">{{ actions(primary={'label': 'Formular speichern', 'type': 'submit'}, secondary=[{'label': 'Abbrechen', 'url': '#cancel'}]) }}</div>
                 </form>
@@ -214,9 +218,18 @@ def test_master_form_controls_and_error_states(macro_site):
         err_div = page.locator(f'#{prefix}_invalid-error')
         assert err_div.is_visible()
 
-    # 4. Form error region renders list
-    assert page.locator('.error-region').is_visible()
+    # 4. Form error region renders list with aria-live
+    error_region = page.locator('.error-region')
+    assert error_region.is_visible()
+    assert error_region.get_attribute('aria-live') == 'polite'
     assert page.locator('.error-region li').count() == 2
+
+    # Radio states: normal, readonly, disabled
+    assert page.locator('#r_normal').get_attribute('type') == 'radio'
+    assert page.locator('#r_normal').is_checked()
+    assert page.locator('#r_readonly').get_attribute('aria-readonly') == 'true'
+    assert page.locator('#r_readonly').is_disabled()
+    assert page.locator('#r_disabled').is_disabled()
 
 
 def test_master_form_readonly_vs_disabled_post(macro_site):
@@ -237,11 +250,14 @@ def test_master_form_readonly_vs_disabled_post(macro_site):
     assert last_post.get('s_readonly') == 'ro'
     assert last_post.get('t_readonly') == 'Festgelegter Text'
     assert last_post.get('c_readonly') == 'ro_check'
+    assert last_post.get('r_choice') == 'a'
+    assert last_post.get('r_readonly') == 'ro_radio'
 
     assert 'f_disabled' not in last_post
     assert 's_disabled' not in last_post
     assert 't_disabled' not in last_post
     assert 'c_disabled' not in last_post
+    assert 'r_disabled' not in last_post
 
     # NoJS HTTP POST test: raw form submit produces identical result
     nojs_res = client.post('/__macro_submit__', data={
@@ -250,6 +266,8 @@ def test_master_form_readonly_vs_disabled_post(macro_site):
         's_readonly': 'ro',
         't_readonly': 'Festgelegter Text',
         'c_readonly': 'ro_check',
+        'r_choice': 'a',
+        'r_readonly': 'ro_radio',
     })
     assert nojs_res.status_code == 200
     assert nojs_res.json == last_post
@@ -269,7 +287,7 @@ def test_master_status_badges_contrast_and_shape(macro_site):
         text = badge.inner_text().strip()
         assert len(text) > 0
 
-        # Pill shape: border-radius >= 16px (999px)
+        # Pill shape: border-radius >= 16px (--app-radius-pill: 999px)
         styles = badge.evaluate('''(el) => {
             const s = getComputedStyle(el);
             return {
@@ -278,7 +296,7 @@ def test_master_status_badges_contrast_and_shape(macro_site):
                 radius: parseFloat(s.borderRadius)
             };
         }''')
-        assert styles['radius'] >= 10
+        assert styles['radius'] >= 16
 
         # AA Contrast: >= 4.5:1
         c_hex = _hex(styles['color'])

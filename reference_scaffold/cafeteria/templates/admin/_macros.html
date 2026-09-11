@@ -53,7 +53,7 @@
 {%- if hint -%}{%- set _ = desc_ids.append(field_id ~ '-hint') -%}{%- endif -%}
 {%- if error -%}{%- set _ = desc_ids.append(field_id ~ '-error') -%}{%- endif -%}
 <label class="form-label{% if required %} required{% endif %}" for="{{ field_id }}">{{ label }}</label>
-<input class="form-control{% if error %} is-invalid{% endif %}" id="{{ field_id }}" name="{{ name }}" type="{{ type }}" value="{{ value }}"{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}{% if required %} required{% endif %}{% if readonly %} readonly{% endif %}{% if disabled %} disabled{% endif %}{% if autofocus %} autofocus{% endif %}{% if error %} aria-invalid="true"{% endif %}{% if desc_ids %} aria-describedby="{{ desc_ids|join(' ') }}"{% endif %}>
+<input class="form-control{% if error %} is-invalid{% endif %}" id="{{ field_id }}" name="{{ name }}" type="{{ type }}" value="{{ value }}"{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}{% if required %} required{% endif %}{% if readonly %} readonly aria-readonly="true"{% endif %}{% if disabled %} disabled{% endif %}{% if autofocus %} autofocus{% endif %}{% if error %} aria-invalid="true"{% endif %}{% if desc_ids %} aria-describedby="{{ desc_ids|join(' ') }}"{% endif %}>
 {%- if hint -%}<div class="form-hint" id="{{ field_id }}-hint">{{ hint }}</div>{%- endif -%}
 {%- if error -%}<div class="invalid-feedback d-block field-error" id="{{ field_id }}-error">{{ error }}</div>{%- endif -%}
 {%- endmacro %}
@@ -96,7 +96,7 @@
 {%- if hint -%}{%- set _ = desc_ids.append(field_id ~ '-hint') -%}{%- endif -%}
 {%- if error -%}{%- set _ = desc_ids.append(field_id ~ '-error') -%}{%- endif -%}
 <label class="form-label{% if required %} required{% endif %}" for="{{ field_id }}">{{ label }}</label>
-<textarea class="form-control{% if error %} is-invalid{% endif %}" id="{{ field_id }}" name="{{ name }}" rows="{{ rows }}"{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}{% if required %} required{% endif %}{% if readonly %} readonly{% endif %}{% if disabled %} disabled{% endif %}{% if error %} aria-invalid="true"{% endif %}{% if desc_ids %} aria-describedby="{{ desc_ids|join(' ') }}"{% endif %}>{{ value }}</textarea>
+<textarea class="form-control{% if error %} is-invalid{% endif %}" id="{{ field_id }}" name="{{ name }}" rows="{{ rows }}"{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}{% if required %} required{% endif %}{% if readonly %} readonly aria-readonly="true"{% endif %}{% if disabled %} disabled{% endif %}{% if error %} aria-invalid="true"{% endif %}{% if desc_ids %} aria-describedby="{{ desc_ids|join(' ') }}"{% endif %}>{{ value }}</textarea>
 {%- if hint -%}<div class="form-hint" id="{{ field_id }}-hint">{{ hint }}</div>{%- endif -%}
 {%- if error -%}<div class="invalid-feedback d-block field-error" id="{{ field_id }}-error">{{ error }}</div>{%- endif -%}
 {%- endmacro %}
@@ -107,7 +107,8 @@
 {%- if hint -%}{%- set _ = desc_ids.append(field_id ~ '-hint') -%}{%- endif -%}
 {%- if error -%}{%- set _ = desc_ids.append(field_id ~ '-error') -%}{%- endif -%}
 <label class="form-check{% if error %} is-invalid{% endif %}"{% if field_id %} for="{{ field_id }}"{% endif %}>
-  <input class="form-check-input{% if error %} is-invalid{% endif %}" type="checkbox" name="{{ name }}" value="{{ value }}"{% if field_id %} id="{{ field_id }}"{% endif %}{% if checked %} checked{% endif %}{% if required %} required{% endif %}{% if disabled %} disabled{% endif %}{% if readonly %} readonly aria-readonly="true" onclick="return false;"{% endif %}{% if error %} aria-invalid="true"{% endif %}{% if desc_ids %} aria-describedby="{{ desc_ids|join(' ') }}"{% endif %}>
+  <input class="form-check-input{% if error %} is-invalid{% endif %}" type="checkbox" name="{{ name }}" value="{{ value }}"{% if field_id %} id="{{ field_id }}"{% endif %}{% if checked %} checked{% endif %}{% if required %} required{% endif %}{% if disabled %} disabled{% elif readonly %} disabled aria-readonly="true"{% endif %}{% if error %} aria-invalid="true"{% endif %}{% if desc_ids %} aria-describedby="{{ desc_ids|join(' ') }}"{% endif %}>
+  {%- if readonly and checked and not disabled %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endif -%}
   <span class="form-check-label">{{ label }}</span>
 </label>
 {%- if hint -%}<div class="form-hint" id="{{ field_id }}-hint">{{ hint }}</div>{%- endif -%}
@@ -120,7 +121,8 @@
 {%- if hint -%}{%- set _ = desc_ids.append(field_id ~ '-hint') -%}{%- endif -%}
 {%- if error -%}{%- set _ = desc_ids.append(field_id ~ '-error') -%}{%- endif -%}
 <label class="form-check{% if error %} is-invalid{% endif %}"{% if field_id %} for="{{ field_id }}"{% endif %}>
-  <input class="form-check-input{% if error %} is-invalid{% endif %}"{% if field_id %} id="{{ field_id }}"{% endif %} type="{{ type }}" name="{{ name }}" value="{{ value }}"{% if checked %} checked{% endif %}{% if required %} required{% endif %}{% if disabled %} disabled{% endif %}{% if readonly %} readonly aria-readonly="true" onclick="return false;"{% endif %}{% if error %} aria-invalid="true"{% endif %}{% if desc_ids %} aria-describedby="{{ desc_ids|join(' ') }}"{% endif %}>
+  <input class="form-check-input{% if error %} is-invalid{% endif %}"{% if field_id %} id="{{ field_id }}"{% endif %} type="{{ type }}" name="{{ name }}" value="{{ value }}"{% if checked %} checked{% endif %}{% if required %} required{% endif %}{% if disabled %} disabled{% elif readonly %} disabled aria-readonly="true"{% endif %}{% if error %} aria-invalid="true"{% endif %}{% if desc_ids %} aria-describedby="{{ desc_ids|join(' ') }}"{% endif %}>
+  {%- if readonly and checked and not disabled %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endif -%}
   <span class="form-check-label">{{ label }}</span>
 </label>
 {%- if hint -%}<div class="form-hint" id="{{ field_id }}-hint">{{ hint }}</div>{%- endif -%}
@@ -129,14 +131,25 @@
 
 {%- macro form_errors(errors, title=none) -%}
 {%- if errors -%}
-  {%- set error_list = errors if errors is iterable and not errors is string and not errors is mapping else [errors] -%}
-  {%- if error_list|length > 0 -%}
-  <div class="alert alert-danger error-region mb-3" role="alert" tabindex="-1">
+  {%- if errors is mapping -%}
+    {%- set field_errors = errors.items()|list -%}
+  {%- else -%}
+    {%- set field_errors = none -%}
+    {%- set error_list = errors if errors is iterable and not errors is string else [errors] -%}
+  {%- endif -%}
+  {%- if field_errors or (error_list is defined and error_list|length > 0) -%}
+  <div class="alert alert-danger error-region mb-3" role="alert" aria-live="polite" tabindex="-1">
     <div class="d-flex">
       <div>{{ icon('alert-triangle', class='alert-icon me-2') }}</div>
       <div>
         <h4 class="alert-title mb-1">{{ title or 'Bitte überprüfen Sie die folgenden Fehler:' }}</h4>
-        {%- if error_list|length == 1 -%}
+        {%- if field_errors -%}
+          <ul class="mb-0 ps-3">
+            {%- for field, message in field_errors -%}
+              <li><a href="#{{ field }}" data-error-link>{{ message }}</a></li>
+            {%- endfor -%}
+          </ul>
+        {%- elif error_list|length == 1 -%}
           <div class="text-secondary">{{ error_list[0] }}</div>
         {%- else -%}
           <ul class="mb-0 ps-3">
@@ -276,6 +289,19 @@
 {%- macro actions(primary=none, secondary=none, class='') -%}
 {%- set primary_content = caller() if caller else primary -%}
 <div class="btn-list flex-wrap align-items-center{% if class %} {{ class }}{% endif %}">
+  {%- if primary_content -%}
+    {%- if primary_content is mapping -%}
+      {%- if primary_content.url or primary_content.href -%}
+        <a href="{{ primary_content.url or primary_content.href }}" class="btn btn-primary{% if primary_content.class %} {{ primary_content.class }}{% endif %}"{% if primary_content.id %} id="{{ primary_content.id }}"{% endif %}{% if primary_content.disabled %} aria-disabled="true" tabindex="-1"{% endif %}>{{ primary_content.label or primary_content.text }}</a>
+      {%- else -%}
+        <button type="{{ primary_content.type|default('submit') }}" class="btn btn-primary{% if primary_content.class %} {{ primary_content.class }}{% endif %}"{% if primary_content.id %} id="{{ primary_content.id }}"{% endif %}{% if primary_content.name %} name="{{ primary_content.name }}"{% endif %}{% if primary_content.value %} value="{{ primary_content.value }}"{% endif %}{% if primary_content.disabled %} disabled{% endif %}>{{ primary_content.label or primary_content.text }}</button>
+      {%- endif -%}
+    {%- elif primary_content is string and not ('<' in primary_content) -%}
+      <button type="submit" class="btn btn-primary">{{ primary_content }}</button>
+    {%- else -%}
+      {{ primary_content }}
+    {%- endif -%}
+  {%- endif -%}
   {%- if secondary -%}
     {%- if secondary is string -%}
       {{ secondary }}
@@ -291,19 +317,6 @@
           {{ item }}
         {%- endif -%}
       {%- endfor -%}
-    {%- endif -%}
-  {%- endif -%}
-  {%- if primary_content -%}
-    {%- if primary_content is mapping -%}
-      {%- if primary_content.url or primary_content.href -%}
-        <a href="{{ primary_content.url or primary_content.href }}" class="btn btn-primary{% if primary_content.class %} {{ primary_content.class }}{% endif %}"{% if primary_content.id %} id="{{ primary_content.id }}"{% endif %}{% if primary_content.disabled %} aria-disabled="true" tabindex="-1"{% endif %}>{{ primary_content.label or primary_content.text }}</a>
-      {%- else -%}
-        <button type="{{ primary_content.type|default('submit') }}" class="btn btn-primary{% if primary_content.class %} {{ primary_content.class }}{% endif %}"{% if primary_content.id %} id="{{ primary_content.id }}"{% endif %}{% if primary_content.name %} name="{{ primary_content.name }}"{% endif %}{% if primary_content.value %} value="{{ primary_content.value }}"{% endif %}{% if primary_content.disabled %} disabled{% endif %}>{{ primary_content.label or primary_content.text }}</button>
-      {%- endif -%}
-    {%- elif primary_content is string and not ('<' in primary_content) -%}
-      <button type="submit" class="btn btn-primary">{{ primary_content }}</button>
-    {%- else -%}
-      {{ primary_content }}
     {%- endif -%}
   {%- endif -%}
 </div>
