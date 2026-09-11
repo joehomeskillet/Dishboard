@@ -876,3 +876,23 @@ nicht hier nebenbei ausweiten.
 K3-A, K4-A, K5-A, K6-A bestätigen oder Alternativen festlegen; K7-A als zusätzliche
 Variantenentscheidung, K8-A als Schattenabweichung explizit annehmen oder ablehnen.
 Bis dahin bleiben abhängige Token-/Shelländerungen AWAITING_EXTERNAL.
+
+## 10. Angenommene Entscheidung (Auftraggeber, 11. September 2026)
+
+Der Auftraggeber hat die Vorlage am 11.09.2026 in der Orchestrator-Session (Claude Code,
+claude-fable-5-1) beantwortet. Angenommen sind ausschliesslich die folgenden Optionen; sie sind
+ab jetzt die verbindliche Zuordnung für MP-UI-TOKENS und MP-UI-SHELL. Dies ist eine
+Projektentscheidung, keine Corporate-Design-Freigabe.
+
+| Konflikt | Angenommen | Verbindliche Folge |
+|---|---|---|
+| K1 Schrift | **A** | Fira Sans für Fliesstext und Überschriften im Admin (Body 400, Labels 600, H1/Cardtitel 700); dokumentierte Abweichung vom Master-Wortlaut Arial/Georgia; Masse aus Master §5.2. Neue Tokens `--app-font-body` und `--app-font-heading` tragen beide den bestehenden Fira-Stack aus tokens.css:105–106 ausgeschrieben, nicht `var(--sh-font)`. |
+| K2 Breakpoint | **A** | Sidebar ab 992 px (`navbar-expand-lg`, zugehörige CSS-Grenzen); Innenabstand ab 992 px = Desktop 32 px (Master §5.2/§10: ab 992 ist Desktop), darunter 24 px bzw. 16 px; bei 1024 px verbleiben 712 px Inhaltsbreite. |
+| K3 Palette | **A** | Master §5.1 ist Admin-Standard; Marke steuert im Admin nur Logo und die Primärfamilie (Primary/Hover/Active samt RGB-Kanälen) nach bestandener Kontrastprüfung. |
+| K4 Scope | **A** | Branding-Renderer liefert für `.dishboard-admin` nur die geprüfte Primärfamilie; Admin-Heading-, Flächen-, Sidebar-, Tab-, File-Button-Overrides und `!important` entfallen im Admin; Nicht-Admin-Regeln behalten Spezifität und Verhalten. |
+| K5 Laufzeit | **A** | Kontrast-Gate im Admin-Override-Renderer mit `branding_config.contrast()` gegen die festen Master-Flächen (`--app-surface`, `--app-bg`, `--app-surface-soft`, `--app-primary-soft`) und `--app-on-primary`: Text ≥ 4.5:1, Nicht-Text ≥ 3:1 vor Rundung; bei Verstoss gesamter Primärsatz inklusive RGB atomar auf Master. |
+| K6 Mockup | **A** | Stil übernehmen, keine neue Funktion aus dem Mockup; Negativliste aus §4 gilt. |
+| K7 Darstellung | **A** | compact = Master-Masse; comfortable = nächste Stufe derselben Abstandsskala; large = jede Schriftrolle × 1.125; Speicherung/Formular unverändert. |
+| K8 Schatten | **B (Master)** | Karten behalten den Master-Minimalschatten `0 1px 2px rgba(0, 0, 0, 0.025)` plus dezenten Rand; die Orchestrator-Vorgabe «Haarlinien statt Schatten» ist zurückgenommen. |
+
+Offen bleibt einzig die spätere freigegebene Markenschrift (Master §5.2) — nicht Teil dieser Welle.
