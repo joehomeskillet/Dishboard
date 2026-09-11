@@ -1,15 +1,22 @@
 {
   "meta": {
-    "wp_id": "wp-fc6f91338ad3",
+    "wp_id": "wp-d7589450daee",
+    "lane": "claude-code",
+    "model": "claude-opus-5",
+    "identity_status": "caller_supplied",
+    "source_provenance": {
+      "inventory_commit": "f136490f7b2c19805c8f6436ebdbb657c3549dd7",
+      "wp_id": "wp-fc6f91338ad3",
+      "lane": "grok-build",
+      "model": "grok-4.6"
+    },
     "mp_id": "MP-UI-INVENTORY",
     "source_commit": "5f5f6cb535922db8453c68d871279d6b2e203391",
     "schema": 25,
     "schema_note": "Actual production source is 5f5 / schema 25. Schema 26/27 and undeployed foundation consumers are not claimed as present.",
     "baseline_status": "proposed_never_user_approved",
-    "generated_at": "2026-09-09T00:11:20.888601+00:00",
+    "generated_at": "2026-09-11T14:18:54.591651+00:00",
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
-    "lane": "grok-build",
-    "model": "grok-4.6",
     "route_count": 116,
     "template_count": 75,
     "html_route_count": 61
@@ -46,6 +53,7 @@
         "*"
       ]
     },
+    "capability_semantics": "The capability field records the statically detected require_capability literal; null indicates that the capability is not statically determinable (for example, method-dependent protected wrappers using GET draft.read and POST recipe.write or masterdata.write); effective role assignments are additionally validated by runtime test test_matrix_roles_match_server_side_authorization, which queries every visual admin GET route as anonymous, Editor, Publisher, and Admin.",
     "navigation": {
       "sidebar_template": "admin/_workflow_sidebar.html",
       "sidebar_insufficient": true,
@@ -176,12 +184,11 @@
       "templates": [
         "admin/access_history.html"
       ],
-      "capability": null,
+      "capability": "users.manage",
       "roles": [
-        "Cafeteria.Editor",
-        "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-ACCESS-HISTORY",
       "family_variants": [],
@@ -215,6 +222,7 @@
       "roles": [
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-API",
       "family_variants": [],
@@ -242,6 +250,7 @@
       "roles": [
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-API",
       "family_variants": [],
@@ -271,6 +280,7 @@
       "roles": [
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-API",
       "family_variants": [],
@@ -307,6 +317,7 @@
       "roles": [
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-BRAND-OPS",
       "family_variants": [],
@@ -342,6 +353,7 @@
       "roles": [
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-BRAND-OPS",
       "family_variants": [],
@@ -375,6 +387,7 @@
       "roles": [
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-BRAND-OPS",
       "family_variants": [],
@@ -402,6 +415,7 @@
       "roles": [
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-BRAND-OPS",
       "family_variants": [],
@@ -433,6 +447,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-REF-WORKSPACE",
       "family_variants": [],
@@ -472,6 +487,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-COMPONENTS",
       "family_variants": [
@@ -506,6 +522,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-COMPONENTS",
       "family_variants": [
@@ -544,6 +561,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-COMPONENTS",
       "family_variants": [
@@ -576,6 +594,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-COMPONENTS",
       "family_variants": [
@@ -608,6 +627,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-COMPONENTS",
       "family_variants": [
@@ -642,6 +662,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-COMPONENTS",
       "family_variants": [
@@ -683,6 +704,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-COOKBOOKS",
       "family_variants": [],
@@ -721,6 +743,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-COOKBOOKS",
       "family_variants": [],
@@ -756,6 +779,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-COOKBOOKS",
       "family_variants": [],
@@ -788,6 +812,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-COOKBOOKS",
       "family_variants": [],
@@ -825,6 +850,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-COOKBOOKS",
       "family_variants": [],
@@ -862,6 +888,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-COPY-IMPORT",
       "family_variants": [
@@ -900,6 +927,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-COPY-IMPORT",
       "family_variants": [
@@ -932,6 +960,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-SHELL",
       "family_variants": [],
@@ -962,6 +991,7 @@
       "roles": [
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-REF-SETTINGS",
       "family_variants": [],
@@ -997,6 +1027,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-COPY-IMPORT",
       "family_variants": [],
@@ -1026,6 +1057,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-WEEKS",
       "family_variants": [
@@ -1034,8 +1066,12 @@
       ],
       "module": "cafeteria.admin.workflow_routes",
       "source_discovered": true,
-      "fixture": "not_visual",
-      "states": [],
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "access_denied_401",
+        "access_denied_403"
+      ],
       "hooks": [
         "admin.js",
         "tabler.min.js",
@@ -1058,6 +1094,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-WEEKS",
       "family_variants": [
@@ -1090,6 +1127,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-COPY-IMPORT",
       "family_variants": [],
@@ -1122,6 +1160,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-COPY-IMPORT",
       "family_variants": [],
@@ -1151,12 +1190,11 @@
       "classification": "redirect",
       "visual": false,
       "templates": [],
-      "capability": null,
+      "capability": "users.manage",
       "roles": [
-        "Cafeteria.Editor",
-        "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-LOCAL-USERS",
       "family_variants": [],
@@ -1180,12 +1218,11 @@
       "classification": "redirect",
       "visual": false,
       "templates": [],
-      "capability": null,
+      "capability": "users.manage",
       "roles": [
-        "Cafeteria.Editor",
-        "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-LOCAL-USERS",
       "family_variants": [],
@@ -1212,12 +1249,11 @@
         "admin/local_user_editor.html",
         "admin/local_user_unavailable.html"
       ],
-      "capability": null,
+      "capability": "users.manage",
       "roles": [
-        "Cafeteria.Editor",
-        "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-LOCAL-USERS",
       "family_variants": [],
@@ -1250,12 +1286,11 @@
         "admin/local_user_events.html",
         "admin/local_user_unavailable.html"
       ],
-      "capability": null,
+      "capability": "users.manage",
       "roles": [
-        "Cafeteria.Editor",
-        "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-LOCAL-USERS",
       "family_variants": [],
@@ -1288,12 +1323,11 @@
         "admin/local_user_create.html",
         "admin/local_user_unavailable.html"
       ],
-      "capability": null,
+      "capability": "users.manage",
       "roles": [
-        "Cafeteria.Editor",
-        "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-LOCAL-USERS",
       "family_variants": [],
@@ -1326,12 +1360,11 @@
         "admin/local_user_unavailable.html",
         "admin/local_users.html"
       ],
-      "capability": null,
+      "capability": "users.manage",
       "roles": [
-        "Cafeteria.Editor",
-        "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-LOCAL-USERS",
       "family_variants": [],
@@ -1367,6 +1400,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-FOUNDATIONS",
       "family_variants": [],
@@ -1402,6 +1436,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-FOUNDATIONS",
       "family_variants": [],
@@ -1440,6 +1475,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-FOUNDATIONS",
       "family_variants": [],
@@ -1482,6 +1518,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-FOUNDATIONS",
       "family_variants": [],
@@ -1519,6 +1556,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-REF-LIST",
       "family_variants": [
@@ -1561,6 +1599,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-MENU-EDITOR",
       "family_variants": [
@@ -1602,6 +1641,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-MENU-EDITOR",
       "family_variants": [
@@ -1634,6 +1674,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-MENU-EDITOR",
       "family_variants": [
@@ -1663,12 +1704,11 @@
       "templates": [
         "admin/operations.html"
       ],
-      "capability": null,
+      "capability": "settings.write",
       "roles": [
-        "Cafeteria.Editor",
-        "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-BRAND-OPS",
       "family_variants": [],
@@ -1706,6 +1746,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-REF-WORKSPACE",
       "family_variants": [],
@@ -1747,6 +1788,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-PREVIEW",
       "family_variants": [
@@ -1787,6 +1829,7 @@
       "roles": [
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "print",
       "owning_mp": "MP-UI-PRINT-EDITOR",
       "family_variants": [
@@ -1823,6 +1866,7 @@
       "roles": [
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-PRINT-EDITOR",
       "family_variants": [
@@ -1855,6 +1899,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "print",
       "owning_mp": "MP-TPL-PAPER",
       "family_variants": [
@@ -1886,6 +1931,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-WEEKS",
       "family_variants": [
@@ -1918,6 +1964,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-RECIPE-TOOLS",
       "family_variants": [],
@@ -1951,6 +1998,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-RECIPE-FORMS",
       "family_variants": [],
@@ -1986,6 +2034,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-RECIPE-FORMS",
       "family_variants": [],
@@ -2015,6 +2064,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-RECIPE-TOOLS",
       "family_variants": [],
@@ -2047,6 +2097,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-RECIPE-TOOLS",
       "family_variants": [],
@@ -2086,6 +2137,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-RECIPE-FORMS",
       "family_variants": [],
@@ -2120,12 +2172,11 @@
         "admin/print_template_unavailable.html",
         "admin/recipe_template_error.html"
       ],
-      "capability": null,
+      "capability": "settings.write",
       "roles": [
-        "Cafeteria.Editor",
-        "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "print",
       "owning_mp": "MP-UI-PRINT-EDITOR",
       "family_variants": [],
@@ -2155,12 +2206,11 @@
       "classification": "download",
       "visual": false,
       "templates": [],
-      "capability": null,
+      "capability": "settings.write",
       "roles": [
-        "Cafeteria.Editor",
-        "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-PRINT-EDITOR",
       "family_variants": [],
@@ -2192,6 +2242,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-REF-DETAIL",
       "family_variants": [],
@@ -2227,6 +2278,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-REF-DETAIL",
       "family_variants": [],
@@ -2258,6 +2310,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-REF-DETAIL",
       "family_variants": [],
@@ -2295,6 +2348,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-RECIPE-TOOLS",
       "family_variants": [],
@@ -2334,6 +2388,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-RECIPE-FORMS",
       "family_variants": [],
@@ -2371,6 +2426,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-RECIPE-LISTS",
       "family_variants": [],
@@ -2400,12 +2456,13 @@
       "classification": "post_only",
       "visual": false,
       "templates": [],
-      "capability": null,
+      "capability": "draft.write",
       "roles": [
         "Cafeteria.Editor",
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-BRAND-OPS",
       "family_variants": [
@@ -2442,6 +2499,11 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {
+        "POST": [
+          "Cafeteria.Admin"
+        ]
+      },
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-OUTPUT-HUBS",
       "family_variants": [
@@ -2484,6 +2546,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "public",
       "owning_mp": "MP-UI-OUTPUT-HUBS",
       "family_variants": [
@@ -2524,6 +2587,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-OUTPUT-HUBS",
       "family_variants": [],
@@ -2559,6 +2623,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-WEEKS",
       "family_variants": [
@@ -2567,8 +2632,12 @@
       ],
       "module": "cafeteria.admin.workflow_routes",
       "source_discovered": true,
-      "fixture": "not_visual",
-      "states": [],
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "access_denied_401",
+        "access_denied_403"
+      ],
       "hooks": [
         "admin.js",
         "tabler.min.js",
@@ -2591,6 +2660,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-WEEKS",
       "family_variants": [
@@ -2625,6 +2695,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-OUTPUT-HUBS",
       "family_variants": [],
@@ -2660,6 +2731,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-WEEKS",
       "family_variants": [
@@ -2694,6 +2766,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-WEEKS",
       "family_variants": [
@@ -2734,6 +2807,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-WEEKS",
       "family_variants": [
@@ -2772,6 +2846,7 @@
         "Cafeteria.Publisher",
         "Cafeteria.Admin"
       ],
+      "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-UI-WEEKS",
       "family_variants": [
@@ -2802,6 +2877,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "MP-API-REGRESSION",
       "family_variants": [],
@@ -2825,6 +2901,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "MP-API-REGRESSION",
       "family_variants": [],
@@ -2850,6 +2927,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "api_docs",
       "owning_mp": "MP-UI-API",
       "family_variants": [],
@@ -2875,6 +2953,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "MP-UI-API",
       "family_variants": [],
@@ -2898,6 +2977,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "MP-API-REGRESSION",
       "family_variants": [],
@@ -2921,6 +3001,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "MP-API-REGRESSION",
       "family_variants": [
@@ -2947,6 +3028,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "MP-API-REGRESSION",
       "family_variants": [
@@ -2973,6 +3055,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "MP-API-REGRESSION",
       "family_variants": [
@@ -2999,6 +3082,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "MP-API-REGRESSION",
       "family_variants": [],
@@ -3022,6 +3106,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "MP-API-REGRESSION",
       "family_variants": [
@@ -3048,6 +3133,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "MP-API-REGRESSION",
       "family_variants": [
@@ -3076,6 +3162,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "auth",
       "owning_mp": "MP-UI-AUTH",
       "family_variants": [],
@@ -3104,6 +3191,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "auth",
       "owning_mp": "MP-UI-AUTH",
       "family_variants": [],
@@ -3133,6 +3221,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "auth",
       "owning_mp": "MP-UI-AUTH",
       "family_variants": [],
@@ -3163,6 +3252,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "auth",
       "owning_mp": "MP-UI-AUTH",
       "family_variants": [],
@@ -3192,6 +3282,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "auth",
       "owning_mp": "MP-UI-AUTH",
       "family_variants": [],
@@ -3217,6 +3308,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "MP-UI-BRAND-OPS",
       "family_variants": [],
@@ -3240,6 +3332,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "MP-UI-BRAND-OPS",
       "family_variants": [],
@@ -3263,6 +3356,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "MP-API-REGRESSION",
       "family_variants": [],
@@ -3286,6 +3380,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "MP-API-REGRESSION",
       "family_variants": [],
@@ -3309,6 +3404,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "MP-API-REGRESSION",
       "family_variants": [],
@@ -3332,6 +3428,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "MP-API-REGRESSION",
       "family_variants": [],
@@ -3355,6 +3452,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "MP-API-REGRESSION",
       "family_variants": [],
@@ -3378,6 +3476,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "MP-API-REGRESSION",
       "family_variants": [],
@@ -3401,6 +3500,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "unmapped",
       "family_variants": [],
@@ -3424,6 +3524,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "unmapped",
       "family_variants": [],
@@ -3450,6 +3551,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "public",
       "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
       "family_variants": [],
@@ -3480,6 +3582,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "public",
       "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
       "family_variants": [],
@@ -3510,6 +3613,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "public",
       "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
       "family_variants": [],
@@ -3538,6 +3642,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "public",
       "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
       "family_variants": [],
@@ -3567,6 +3672,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "public",
       "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
       "family_variants": [],
@@ -3597,6 +3703,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "public",
       "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
       "family_variants": [],
@@ -3627,6 +3734,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "public",
       "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
       "family_variants": [],
@@ -3656,6 +3764,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "print",
       "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
       "family_variants": [],
@@ -3685,6 +3794,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "print",
       "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
       "family_variants": [],
@@ -3711,6 +3821,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "public",
       "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
       "family_variants": [],
@@ -3738,6 +3849,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "signage",
       "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
       "family_variants": [],
@@ -3770,6 +3882,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "signage",
       "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
       "family_variants": [],
@@ -3802,6 +3915,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "signage",
       "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
       "family_variants": [],
@@ -3833,6 +3947,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "signage",
       "owning_mp": "MP-UI-SPECIAL-OUTPUTS",
       "family_variants": [],
@@ -3861,6 +3976,7 @@
       "roles": [
         "anonymous"
       ],
+      "method_roles": {},
       "layout_variant": "none",
       "owning_mp": "unmapped",
       "family_variants": [],
@@ -5258,11 +5374,21 @@
       "id": "login",
       "routes": [
         "auth.local_login",
-        "auth.login",
-        "auth.error"
+        "auth.login"
       ],
       "owning_mp": "MP-UI-AUTH",
-      "note": "Auth layout without admin sidebar."
+      "note": "Auth layout without admin sidebar.",
+      "fixture": "local_auth_enabled_no_production_persons",
+      "captures": [
+        {
+          "endpoint": "auth.local_login",
+          "suffix": ""
+        },
+        {
+          "endpoint": "auth.login",
+          "suffix": "auth-login"
+        }
+      ]
     },
     {
       "id": "empty",
@@ -5271,10 +5397,33 @@
         "admin.recipes_list",
         "admin.cookbooks_list",
         "admin.master_data_list",
-        "admin.components_list"
+        "admin.components_get"
       ],
       "owning_mp": "MP-UI-MACROS",
-      "note": "Empty vs no-search-hit vs no-permission must stay distinct."
+      "note": "Empty vs no-search-hit vs no-permission must stay distinct.",
+      "fixture": "isolated_pg_schema25_seed_before_prepare_entities",
+      "captures": [
+        {
+          "endpoint": "admin.menu_collection",
+          "suffix": "empty"
+        },
+        {
+          "endpoint": "admin.recipes_list",
+          "suffix": "empty"
+        },
+        {
+          "endpoint": "admin.cookbooks_list",
+          "suffix": "empty"
+        },
+        {
+          "endpoint": "admin.master_data_list",
+          "suffix": "empty"
+        },
+        {
+          "endpoint": "admin.components_get",
+          "suffix": "empty"
+        }
+      ]
     },
     {
       "id": "invalid",
@@ -5284,7 +5433,22 @@
         "admin.recipe_edit"
       ],
       "owning_mp": "MP-UI-MACROS",
-      "note": "Server-side errors keep values and original form tokens."
+      "note": "Server-side errors keep values and original form tokens.",
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_entities_invalid_submit",
+      "captures": [
+        {
+          "endpoint": "admin.menu_get",
+          "suffix": "invalid"
+        },
+        {
+          "endpoint": "admin.display_settings",
+          "suffix": "invalid"
+        },
+        {
+          "endpoint": "admin.recipe_edit",
+          "suffix": "invalid"
+        }
+      ]
     },
     {
       "id": "access_denied",
@@ -5292,7 +5456,18 @@
         "admin.*"
       ],
       "owning_mp": "MP-UI-AUTH",
-      "note": "401 unauthenticated, 403 authenticated without capability. Flask default HTML unless a template is registered."
+      "note": "401 unauthenticated, 403 authenticated without capability. Flask default HTML unless a template is registered.",
+      "fixture": "anonymous_context_and_synthetic_editor_without_users_manage",
+      "captures": [
+        {
+          "endpoint": "admin.cafeteria",
+          "suffix": "anonymous-401"
+        },
+        {
+          "endpoint": "admin.local_users_list",
+          "suffix": "editor-403"
+        }
+      ]
     },
     {
       "id": "dialogs",
@@ -5301,7 +5476,37 @@
         "admin.patienten"
       ],
       "owning_mp": "MP-UI-WEEKS",
-      "note": "week-publish-modal and similar Bootstrap dialogs are inventory rows, not sidebar items."
+      "note": "week-publish-modal and similar Bootstrap dialogs are inventory rows, not sidebar items.",
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "captures": [
+        {
+          "endpoint": "admin.cafeteria",
+          "suffix": "dialog-publish"
+        }
+      ]
+    },
+    {
+      "id": "role_navigation",
+      "routes": [
+        "admin.cafeteria"
+      ],
+      "owning_mp": "MP-UI-SHELL",
+      "note": "Conditional sidebar per role; nav_items recorded per capture row.",
+      "fixture": "synthetic_entra_users_editor_publisher_admin",
+      "captures": [
+        {
+          "endpoint": "admin.cafeteria",
+          "suffix": "role-nav-editor"
+        },
+        {
+          "endpoint": "admin.cafeteria",
+          "suffix": "role-nav-publisher"
+        },
+        {
+          "endpoint": "admin.cafeteria",
+          "suffix": "role-nav-admin"
+        }
+      ]
     }
   ],
   "coverage_blocks": [

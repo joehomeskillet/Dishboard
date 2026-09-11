@@ -507,7 +507,8 @@ def test_capture_before_screenshots_and_manifest(monkeypatch, tmp_path, database
 
     def prepare_entities() -> dict:
         prepared.update(_prepare_inventory_entities(application, database_engine, user_id))
-        return prepared
+        # run_capture accepts only these keys; the full result stays available for the assertions below.
+        return {key: prepared[key] for key in ('extra_admin_paths', 'reference_paths', 'state_captures')}
 
     identity = {key: value.strip() for key in ('wp_id', 'lane', 'model')
                 if (value := os.environ.get('UI_CAPTURE_' + key.upper(), '')).strip()}
