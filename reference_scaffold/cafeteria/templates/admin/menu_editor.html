@@ -2,6 +2,7 @@
 {% from '_food_symbols.html' import symbol %}
 {% from 'admin/_macros.html' import icon, page_header, check %}
 {% from 'admin/_country_select.html' import country_select %}
+{% set layout_variant = 'narrow' %}
 {% set day_title = cell.day_label|default(cell.day|date_long) %}
 {% set meal_title = cell.meal_label|default({'LUNCH': 'Mittag', 'DINNER': 'Abend'}.get(cell.meal, cell.meal)) %}
 {% set option_title = cell.option_label|default({'MENU_1': 'Menü 1', 'VEGGIE': 'Vegetarisch'}.get(cell.option, cell.option)) %}
@@ -12,8 +13,8 @@
 {% block main_attributes %}data-family="{{ family }}" data-week="{{ week }}"{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-menu-editor.css') }}">{% endblock %}
 {% block page_header %}
-{% call page_header(slot_title ~ ' bearbeiten', pretitle='Menüeditor') %}
-<a class="btn" href="{{ back_url }}">{{ icon('arrow-left') }}Zurück</a>
+{% call page_header('Menü bearbeiten', description=slot_title, breadcrumbs=[('Wochenplan', back_url), (slot_title,)]) %}
+<a class="btn" href="{{ back_url }}">{{ icon('arrow-left') }}Zum Wochenplan</a>
 {% endcall %}
 {% endblock %}
 {% block content %}
@@ -35,7 +36,7 @@
 <fieldset class="mb-3">
   <legend class="form-label">Erfassungsmodus</legend>
   <div class="row g-2">
-    <div class="col-12 col-md-6">{{ check(key ~ '_mode', 'automatisch aus den Komponenten geerbt', 'auto', checked=is_auto[key], id=key ~ '-mode-auto', type='radio') }}</div>
+    <div class="col-12 col-md-6">{{ check(key ~ '_mode', 'automatisch aus den Bausteinen geerbt', 'auto', checked=is_auto[key], id=key ~ '-mode-auto', type='radio') }}</div>
     <div class="col-12 col-md-6">{{ check(key ~ '_mode', 'manuell festgelegt', 'manual', checked=not is_auto[key], id=key ~ '-mode-manual', type='radio') }}</div>
   </div>
 </fieldset>
@@ -97,7 +98,7 @@
               {{ field_error('internal_chf', 'err-int') }}
             </div>
             <div class="col-12 col-sm-6 col-lg-4">
-              <label class="form-label" for="f-ext">Externe CHF</label>
+              <label class="form-label" for="f-ext">Preis für externe Gäste CHF</label>
               <input class="form-control{{ invalid_class('external_chf') }}" id="f-ext" name="external_chf" inputmode="decimal" value="{{ submitted.get('external_chf', '') }}"{{ error_attributes('external_chf', 'err-ext') }}>
               {{ field_error('external_chf', 'err-ext') }}
             </div>
@@ -107,38 +108,43 @@
       {% endif %}
 
       <section class="card mb-3" aria-labelledby="sec-components">
-        <div class="card-header"><h2 class="card-title mb-0" id="sec-components">Komponenten</h2></div>
+        <div class="card-header"><h2 class="card-title mb-0" id="sec-components">Bausteine</h2></div>
         <div class="card-body">
-          <p class="form-hint mb-3" id="components-hint">Aus dem Katalog wählen oder als Freitext erfassen. Die Reihenfolge entspricht der Anzeige.</p>
-          <div id="components-list" data-row-list="component" data-row-title="Komponente">
+          <p class="form-hint mb-3" id="components-hint">Zum Beispiel eine Beilage, Sauce oder ein Gemüse. Baustein aus Katalog wählen oder als eigener Text erfassen — nicht beides gleichzeitig. Die Reihenfolge entspricht der Anzeige.</p>
+          <div id="components-list" class="menu-editor-row-list" data-row-list="component" data-row-title="Baustein">
             {% set c_ids = submitted.getlist('component_public_id') if submitted.getlist else submitted.get('component_public_id', []) %}
             {% set c_texts = submitted.getlist('component_text') if submitted.getlist else submitted.get('component_text', []) %}
             {% set row_count = [c_ids|length, c_texts|length, 1]|max %}
             {% for i in range(row_count) %}
               {% set c_id = c_ids[i] if i < c_ids|length else '' %}
               {% set c_text = c_texts[i] if i < c_texts|length else '' %}
-              <fieldset class="component-row" data-row>
-                <legend class="form-label" data-row-legend>Komponente {{ i + 1 }}</legend>
-                <div class="row g-2">
-                  <div class="col-12 col-lg-6">
-                    <label class="form-label" for="component-{{ i }}-id">Komponente aus Katalog</label>
-                    <select class="form-select{{ invalid_class('component_public_id') }}" id="component-{{ i }}-id" name="component_public_id" aria-label="Komponente aus Katalog"{{ error_attributes('component_public_id', 'err-component-id', 'components-hint') }}>
-                      <option value="">(Freitext verwenden)</option>
-                      {% for choice in catalog_choices %}
-                        <option value="{{ choice.public_id }}" data-active="{{ '1' if choice.active else '0' }}"{% if choice.public_id == c_id %} selected{% endif %}{% if not choice.active and choice.public_id != c_id %} disabled{% endif %}>{{ choice.name }}</option>
-                      {% endfor %}
-                    </select>
-                  </div>
-                  <div class="col-12 col-lg-6">
-                    <label class="form-label" for="component-{{ i }}-text">Freitext-Komponente</label>
-                    <input class="form-control{{ invalid_class('component_text') }}" id="component-{{ i }}-text" name="component_text" aria-label="Freitext-Komponente" value="{{ c_text|default('') }}" placeholder="Freitext"{{ error_attributes('component_text', 'err-component-text', 'components-hint') }}>
-                  </div>
-                  <div class="col-12">
-                    <div class="btn-list">
-                      <button type="button" class="btn" data-move-row="up">Nach oben</button>
-                      <button type="button" class="btn" data-move-row="down">Nach unten</button>
-                      <button type="button" class="btn btn-outline-danger" data-remove-row>{{ icon('trash') }}Komponente entfernen</button>
+              <fieldset class="component-row menu-editor-component-row" data-row>
+                <legend class="form-label" data-row-legend>Baustein {{ i + 1 }}</legend>
+                <p class="menu-editor-row-hint form-hint mb-2">
+                  <span class="menu-editor-row-mode menu-editor-row-mode-catalog">Baustein aus Katalog</span>
+                  <span class="menu-editor-row-mode menu-editor-row-mode-text">Eigener Baustein als Text</span>
+                  <span class="menu-editor-row-mode menu-editor-row-mode-empty">Katalog oder Freitext wählen</span>
+                </p>
+                <div class="menu-editor-row-body">
+                  <div class="row g-2">
+                    <div class="col-12 col-lg-6">
+                      <label class="form-label" for="component-{{ i }}-id">Baustein aus Katalog</label>
+                      <select class="form-select{{ invalid_class('component_public_id') }}" id="component-{{ i }}-id" name="component_public_id" aria-label="Komponente aus Katalog"{{ error_attributes('component_public_id', 'err-component-id', 'components-hint') }}>
+                        <option value="">(Freitext verwenden)</option>
+                        {% for choice in catalog_choices %}
+                          <option value="{{ choice.public_id }}" data-active="{{ '1' if choice.active else '0' }}"{% if choice.public_id == c_id %} selected{% endif %}{% if not choice.active and choice.public_id != c_id %} disabled{% endif %}>{{ choice.name }}</option>
+                        {% endfor %}
+                      </select>
                     </div>
+                    <div class="col-12 col-lg-6">
+                      <label class="form-label" for="component-{{ i }}-text">Eigener Baustein als Text</label>
+                      <input class="form-control{{ invalid_class('component_text') }}" id="component-{{ i }}-text" name="component_text" aria-label="Freitext-Komponente" value="{{ c_text|default('') }}" placeholder="Freitext"{{ error_attributes('component_text', 'err-component-text', 'components-hint') }}>
+                    </div>
+                  </div>
+                  <div class="menu-editor-row-actions btn-list mt-2">
+                    <button type="button" class="btn" data-move-row="up">Nach oben</button>
+                    <button type="button" class="btn" data-move-row="down">Nach unten</button>
+                    <button type="button" class="btn btn-outline-danger" data-remove-row>{{ icon('trash') }}Baustein entfernen</button>
                   </div>
                 </div>
               </fieldset>
@@ -146,7 +152,7 @@
           </div>
           {{ field_error('component_public_id', 'err-component-id') }}
           {{ field_error('component_text', 'err-component-text') }}
-          <button type="button" class="btn mt-3" data-add-row="components-list">{{ icon('plus') }}Komponente hinzufügen</button>
+          <button type="button" class="btn mt-3" data-add-row="components-list">{{ icon('plus') }}Baustein hinzufügen</button>
         </div>
       </section>
 
@@ -186,23 +192,25 @@
         {{ mode_summary('origin', 'Herkunft', 'origin-mode-badge') }}
         <div class="card-body">
           {{ mode_radios('origin') }}
-          <div class="origin-list" id="origins-list" data-row-list="origin" data-row-title="Herkunft">
+          <div class="origin-list menu-editor-row-list" id="origins-list" data-row-list="origin" data-row-title="Herkunft">
             {% set o_ings = submitted.getlist('origin_ingredient') if submitted.getlist else submitted.get('origin_ingredient', []) %}
             {% set o_ccs = submitted.getlist('origin_country_code') if submitted.getlist else submitted.get('origin_country_code', []) %}
             {% set o_count = [o_ings|length, o_ccs|length, 1]|max %}
             {% for i in range(o_count) %}
-            <fieldset class="origin-row" data-row>
+            <fieldset class="origin-row menu-editor-origin-row" data-row>
               <legend class="form-label" data-row-legend>Herkunft {{ i + 1 }}</legend>
-              <div class="row g-2">
-                <div class="col-12 col-lg-6">
-                  <label class="form-label" for="origin-{{ i }}-ingredient">Zutat</label>
-                  <input class="form-control{{ invalid_class('origin_ingredient') }}" id="origin-{{ i }}-ingredient" name="origin_ingredient" placeholder="Zutat" aria-label="Zutat" value="{{ o_ings[i] if i < o_ings|length else '' }}"{{ error_attributes('origin_ingredient', 'err-origin-ingredient') }}{% if is_auto['origin'] %} disabled{% endif %}>
+              <div class="menu-editor-row-body">
+                <div class="row g-2">
+                  <div class="col-12 col-lg-6">
+                    <label class="form-label" for="origin-{{ i }}-ingredient">Zutat</label>
+                    <input class="form-control{{ invalid_class('origin_ingredient') }}" id="origin-{{ i }}-ingredient" name="origin_ingredient" placeholder="Zutat" aria-label="Zutat" value="{{ o_ings[i] if i < o_ings|length else '' }}"{{ error_attributes('origin_ingredient', 'err-origin-ingredient') }}{% if is_auto['origin'] %} disabled{% endif %}>
+                  </div>
+                  <div class="col-12 col-lg-6">
+                    <label class="form-label" for="origin-{{ i }}-country">Land</label>
+                    {{ country_select('origin_country_code', o_ccs[i] if i < o_ccs|length else '', 'origin-' ~ i ~ '-country', error=errors.get('origin_country_code')) }}
+                  </div>
                 </div>
-                <div class="col-12 col-lg-6">
-                  <label class="form-label" for="origin-{{ i }}-country">Land</label>
-                  {{ country_select('origin_country_code', o_ccs[i] if i < o_ccs|length else '', 'origin-' ~ i ~ '-country', error=errors.get('origin_country_code')) }}
-                </div>
-                <div class="col-12">
+                <div class="menu-editor-row-actions mt-2">
                   <button type="button" class="btn btn-outline-danger" data-remove-row{% if is_auto['origin'] %} disabled{% endif %}>{{ icon('trash') }}Herkunft entfernen</button>
                 </div>
               </div>
@@ -230,7 +238,7 @@
         </div>
       </details>
 
-      <div class="admin-actions" data-sticky>
+      <div class="admin-actions" data-sticky role="group" aria-label="Speichern und Navigation">
         <button type="submit" class="btn btn-primary">{{ icon('device-floppy') }}Speichern</button>
         {# Native submit input: same form data and _csrf, only the action differs (return_to=week → 303 to the week). #}
         <input type="submit" class="btn" formaction="/admin/{{ family }}/menu?return_to=week" value="Speichern und zurück">
@@ -242,14 +250,14 @@
 
   <div class="col-12 col-xl-4">
     <section class="card review-block" id="review" aria-labelledby="sec-review" tabindex="-1">
-      <div class="card-header"><h2 class="card-title mb-0" id="sec-review">Prüfung</h2></div>
+      <div class="card-header"><h2 class="card-title mb-0" id="sec-review">Prüfung des gespeicherten Menüs</h2></div>
       <div class="card-body">
         <p class="form-hint">Zuletzt gespeicherter Stand. Änderungen vor der Prüfung speichern.</p>
         {% if not origin_conflict %}
-        <ul class="list-unstyled mb-0">
-          <li>Labels: {% if effects and effects.labels %}{{ effects.labels|join(', ') }}{% else %}Nicht erfasst{% endif %}</li>
-          <li>{% if effects and effects.allergens %}Allergene: {{ effects.allergens|join(', ') }}{% else %}Allergenangaben nicht erfasst{% endif %}</li>
-          <li>Herkunft: {% if effects and effects.origins %}{{ effects.origins|join(', ') }}{% else %}Nicht erfasst{% endif %}</li>
+        <ul class="list-unstyled menu-editor-review-list mb-0">
+          <li class="menu-editor-review-item">Labels: {% if effects and effects.labels %}{{ effects.labels|join(', ') }}{% else %}Nicht erfasst{% endif %}</li>
+          <li class="menu-editor-review-item">{% if effects and effects.allergens %}Allergene: {{ effects.allergens|join(', ') }}{% else %}Allergenangaben nicht erfasst{% endif %}</li>
+          <li class="menu-editor-review-item">Herkunft: {% if effects and effects.origins %}{{ effects.origins|join(', ') }}{% else %}Nicht erfasst{% endif %}</li>
         </ul>
         {% endif %}
         {% if origin_conflict %}
@@ -257,7 +265,8 @@
         {% endif %}
       </div>
       {% if review_token %}
-      <div class="card-footer">
+      <div class="card-footer menu-editor-review-actions">
+        <p class="form-hint mb-2">Als geprüft bestätigen ist getrennt vom Speichern.</p>
         <form method="post" action="/admin/{{ family }}/menu/review">
           <input type="hidden" name="_csrf" value="{{ csrf }}">
           <input type="hidden" name="week" value="{{ week }}">
