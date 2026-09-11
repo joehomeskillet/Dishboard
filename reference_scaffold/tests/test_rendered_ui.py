@@ -1173,7 +1173,7 @@ def test_admin_overview_actions_and_regions(admin_app: Flask, admin_engine: Engi
         ('patienten', 'Patientenplan bearbeiten'),
     ):
         html = client.get(f'/admin/{family}?week={DAY}').get_data(as_text=True)
-        assert f'<h1>{heading}</h1>' in html
+        assert re.search(rf'<h1[^>]*>{re.escape(heading)}</h1>', html)
         assert 'class="skip-link"' in html
         assert 'href="#main-content"' in html
         assert 'aria-live="polite"' in html
@@ -1277,7 +1277,8 @@ def test_menu_editor_prefills_saved_item_and_masters(
     assert re.search(
         rf'<option value="{re.escape(str(potato["public_id"]))}" data-active="1" selected>', body
     )
-    assert 'name="component_text" aria-label="Freitext-Komponente" value="Blattsalat"' in body
+    assert re.search(r'name="component_text"[^>]*value="Blattsalat"', body)
+    assert 'aria-label="Freitext-Komponente"' not in body
     assert 'Kartoffelstock' in body
     assert 'Reis' in body
     for code in (

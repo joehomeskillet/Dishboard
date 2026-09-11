@@ -144,12 +144,11 @@ def test_admin_error_state_focuses_first_error_and_offers_retry(page_context: Pa
     page.goto(f'/admin/cafeteria/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1')
     page.fill('input[name="internal_chf"]', 'invalid')
     page.click('form[data-menu-editor] button[type="submit"]')
-    
-    page.wait_for_selector('.error-region[role="alert"]')
-    page.wait_for_function(
-        'document.activeElement.getAttribute("aria-invalid") === "true"'
-    )
-    assert page.evaluate('document.activeElement.getAttribute("aria-invalid")') == 'true'
+    page.wait_for_load_state()
+    alert = page.locator('.error-region[role="alert"]')
+    expect(alert).to_be_visible()
+    expect(alert).to_be_focused()
+    expect(page.locator('[aria-invalid="true"]').first).to_be_visible()
     assert page.locator('.error-region button:has-text("Erneut versuchen")').is_visible()
 
 def test_admin_escape_closes_details_and_restores_focus(page_context: Page):
@@ -236,11 +235,11 @@ def test_menu_manual_metadata_and_optional_rows_roundtrip(
         page.locator(f'[name="{mode}_mode"][value="manual"]').check()
     for index, text in enumerate(('Blattsalat', 'Gebäck')):
         if index:
-            page.get_by_role('button', name='Komponente hinzufügen').click()
+            page.get_by_role('button', name='Baustein hinzufügen').click()
         page.locator('[name="component_text"]').nth(index).fill(text)
-    page.get_by_role('button', name='Komponente hinzufügen').click()
-    page.get_by_role('button', name='Komponente entfernen').last.click()
-    page.get_by_role('button', name='Komponente hinzufügen').click()
+    page.get_by_role('button', name='Baustein hinzufügen').click()
+    page.get_by_role('button', name='Baustein entfernen').last.click()
+    page.get_by_role('button', name='Baustein hinzufügen').click()
     for index, (ingredient, country) in enumerate((('Rind', 'CH'), ('Kartoffel', 'DE'))):
         if index:
             page.get_by_role('button', name='Herkunft hinzufügen').click()
@@ -294,7 +293,8 @@ def test_menu_partial_origin_stays_invalid_and_preserves_input(
     assert payload['origin_country_code'] == ['']
     expect(page.get_by_label('Titel', exact=True)).to_have_value('Herbstteller')
     expect(page.locator('[name="origin_ingredient"]')).to_have_value('Rind')
-    expect(page.locator('[name="origin_country_code"]')).to_be_focused()
+    expect(page.locator('[name="origin_country_code"]')).to_have_attribute('aria-invalid', 'true')
+    expect(page.locator('.error-region[role="alert"]')).to_be_focused()
     page.locator('[name="origin_country_code"]').select_option('CH')
     _submit_menu(page)
 
@@ -322,7 +322,7 @@ def test_menu_catalog_pair_errors_and_archived_assignment_survive(
     expect(page.locator('[name="component_public_id"]')).to_have_value(public_id)
     expect(page.locator(f'option[value="{public_id}"]')).to_be_enabled()
     assert _submit_menu(page)['component_public_id'] == [public_id]
-    page.get_by_role('button', name='Komponente hinzufügen').click()
+    page.get_by_role('button', name='Baustein hinzufügen').click()
     rows = page.locator('#components-list .component-row')
     expect(rows.first.locator(f'option[value="{public_id}"]')).to_be_enabled()
     expect(rows.last.locator('[name="component_public_id"]')).to_have_value('')

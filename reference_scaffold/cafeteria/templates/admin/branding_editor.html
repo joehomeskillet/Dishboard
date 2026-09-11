@@ -79,7 +79,7 @@
         <form method="post" action="{{ url_for('admin.branding_editor') }}">
           <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}"><input type="hidden" name="revision" value="{{ selected.id }}">
           {{ actions(
-            primary={'label': 'Revision ' ~ selected.id ~ ' aktivieren', 'type': 'submit', 'name': 'action', 'value': 'activate', 'disabled': selected.id == document.active_revision},
+            primary={'label': 'Version ' ~ selected.id ~ ' aktivieren', 'type': 'submit', 'name': 'action', 'value': 'activate', 'disabled': selected.id == document.active_revision},
             secondary=[{'label': 'Als neuen Entwurf übernehmen', 'type': 'submit', 'name': 'action', 'value': 'restore'}]
           ) }}
         </form>
