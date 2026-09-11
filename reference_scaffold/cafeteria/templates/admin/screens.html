@@ -1,13 +1,14 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon, icon_link %}
 {% set workflow_nav = 'screens' %}
+{% set layout_variant = 'standard' %}
 {% block title %}Screens · Menüplanung{% endblock %}
 {% block page_styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin-screens.css') }}">
 {% endblock %}
-{% block page_header %}{{ page_header('Screens') }}{% endblock %}
+{% block page_header %}{{ page_header('Screens', description='Tages- und Wochenpläne für Web und Bildschirme öffnen. Die Ansichten zeigen den aktuell veröffentlichten Menüplan.') }}{% endblock %}
 {% block content %}
-<p class="mb-4">Tages- und Wochenpläne für Web und Bildschirme öffnen. Die Ansichten zeigen den aktuell publizierten Menüplan. Ohne Publikation erscheint ein Hinweis.</p>
+<p class="text-secondary small mb-4">Tages- und Wochenpläne für Web und Bildschirme öffnen. Die Ansichten zeigen den aktuell veröffentlichten Menüplan. Ohne Veröffentlichung erscheint ein Hinweis.</p>
 <details class="card mb-3"><summary class="card-header">Symbole</summary><div class="card-body">{{ icon('pencil') }} Wochenvorlage zuordnen: die Darstellung des Web-Wochenplans auswählen.</div></details>
 <div class="screens-grid">
   {% for label, endpoint in [(area_names.staff_guest, 'cafeteria'), (area_names.patient, 'patient')] %}
@@ -33,8 +34,8 @@
           </div>
           {% endfor %}
         </div>
-        <p class="text-secondary small mb-0">Vorschau des publizierten Plans. Vollständige Ansicht über die Links öffnen.</p>
-        {% if channel == 'public' %}<p><span class="badge bg-green-lt">Aktiv</span> {{ assignments[output_profile].template.name }}</p>
+        <p class="text-secondary small mb-0">Vorschau des veröffentlichten Plans. Vollständige Ansicht über die Links öffnen.</p>
+        {% if channel == 'public' %}<p class="mb-0"><span class="badge bg-green-lt">Aktiv</span> {{ assignments[output_profile].template.name }}</p>
         {{ icon_link(url_for('admin.screen_template_assignment', family='cafeteria' if endpoint == 'cafeteria' else 'patienten'), label ~ ' · Wochenvorlage zuordnen') }}{% endif %}
         <div class="btn-list">
           {% for period, period_label, target in periods %}

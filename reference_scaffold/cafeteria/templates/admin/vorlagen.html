@@ -1,11 +1,12 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon %}
 {% set workflow_nav = 'vorlagen' %}
+{% set layout_variant = 'standard' %}
 {% block title %}Vorlagen · Menüplanung{% endblock %}
-{% block page_header %}{{ page_header('Vorlagen') }}{% endblock %}
+{% block page_header %}{{ page_header('Vorlagen', description='Druckvorlagen bearbeiten, als PDF prüfen und für gespeicherte Wochen und Rezeptrevisionen verwenden.') }}{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-screens.css') }}">{% endblock %}
 {% block content %}
-<p>Druckvorlagen bearbeiten, als PDF prüfen und für gespeicherte Wochen und Rezeptrevisionen verwenden.</p>
+<p class="text-secondary small mb-4">Druckvorlagen bearbeiten, als PDF prüfen und für gespeicherte Wochen und Rezeptrevisionen verwenden.</p>
 <form class="card mb-4" method="get" action="{{ url_for('admin.vorlagen') }}">
   <div class="card-body">
     <div class="row g-3 align-items-end">
@@ -26,52 +27,60 @@
   <div class="col-12 col-md-6">
     <article class="card h-100">
       <div class="card-header"><h2 class="card-title">{{ label }}</h2></div>
-      <div class="card-body">
+      <div class="card-body d-flex flex-column">
         {% set catalog = catalogs[output_family] %}
-        <h3 class="h4">Druckvorlagen</h3>
-        <p>Die aktive Revision wird für PDF-Downloads verwendet. Neuere Entwürfe werden erst nach ausdrücklicher Aktivierung verwendet.</p>
-        {% for archived, group_label in [(false, 'Verfügbare Vorlagen'), (true, 'Archivierte Vorlagen')] %}
-        {% set group = catalog.document.templates|selectattr('archived', 'equalto', archived)|list %}
-        {% if group %}
-        <h4 class="h4">{{ group_label }}</h4>
-        <ul class="list-group list-group-flush mb-4">
-          {% for template in group %}
-          {% set latest = template.revisions[-1] %}
-          {% set active = template.id == catalog.document.active_template %}
-          <li class="list-group-item px-0" data-template-id="{{ template.id }}">
-            <h5 class="h4 text-break">{{ latest.name }}</h5>
-            <p>Neuester Stand: Revision {{ latest.id }}{% if not active or latest.id != catalog.active.id %} · Entwurf{% endif %}</p>
-            {% if active %}
-            <p class="text-break"><span class="badge bg-green-lt">Aktiv</span> {{ catalog.active.name }} · Revision {{ catalog.active.id }}</p>
-            {% else %}
-            <p class="text-secondary">{% if template.archived %}<span class="badge bg-secondary-lt">Archiviert</span> · {% endif %}Nicht aktiv</p>
-            {% endif %}
-            {% if 'Cafeteria.Admin' in roles %}
-            <div class="btn-list">
-              <a class="btn" href="{{ url_for('admin.print_template_editor', family=output_family, week=week, template=template.id, revision=latest.id) }}">{{ icon('pencil') }}Vorlageneditor öffnen</a>
-              <a class="btn" href="{{ url_for('admin.print_template_preview', family=output_family, week=week, template=template.id, revision=latest.id) }}">{{ icon('eye') }}Revision {{ latest.id }} als PDF prüfen</a>
-              {% if active and latest.id != catalog.active.id %}
-              <a class="btn" href="{{ url_for('admin.print_template_editor', family=output_family, week=week, template=template.id, revision=catalog.active.id) }}">Aktive Revision öffnen</a>
-              <a class="btn" href="{{ url_for('admin.print_template_preview', family=output_family, week=week, template=template.id, revision=catalog.active.id) }}">{{ icon('eye') }}Aktive Revision als PDF prüfen</a>
-              {% endif %}
-            </div>
-            {% endif %}
-          </li>
-          {% endfor %}
-        </ul>
-        {% endif %}
-        {% endfor %}
-        <h3 class="h4">Wochenplan drucken</h3>
-        <p>Das PDF verwendet die gespeicherte Woche ab {{ week|date_long }}. Vor dem ersten PDF-Download die Woche anlegen und speichern.</p>
-        <div class="btn-list mb-4">
-          <a class="btn" href="{{ url_for('admin.print_week', family=output_family, week=week) }}" aria-label="{{ label }} PDF der gespeicherten Woche öffnen">PDF öffnen</a>
-          <a class="btn" href="{{ url_for('public.print_' ~ endpoint ~ '_week') }}" aria-label="{{ label }} publizierten Wochenplan drucken">Publizierten Plan drucken</a>
+        <div class="output-print-section mb-4 pb-3 border-bottom">
+          <h3 class="h4 mb-2">Wochenplan drucken</h3>
+          <p class="text-secondary small mb-3">Das PDF verwendet die gespeicherte Woche ab {{ week|date_long }}. Vor dem ersten PDF-Download die Woche anlegen und speichern.</p>
+          <div class="btn-list mb-2">
+            <a class="btn btn-primary" href="{{ url_for('admin.print_week', family=output_family, week=week) }}" aria-label="{{ label }} PDF der gespeicherten Woche öffnen">{{ icon('file-text') }}PDF der gewählten Woche öffnen</a>
+            <a class="btn" href="{{ url_for('public.print_' ~ endpoint ~ '_week') }}" aria-label="{{ label }} publizierten Wochenplan drucken">{{ icon('printer') }}Veröffentlichten Plan drucken</a>
+          </div>
+          <div class="form-hint small">Gewählte Woche: ab {{ week|date_long }} · Veröffentlichter Plan: aktueller Stand der Ausgaben</div>
         </div>
-        <h3 class="h4">Inhalte pflegen</h3>
-        <div class="btn-list">
-          <a class="btn" href="{{ url_for('admin.' ~ output_family, week=week) }}" aria-label="{{ label }} gewählte Woche öffnen">{{ icon('calendar-week') }}Woche öffnen</a>
-          <a class="btn" href="{{ url_for('admin.menu_collection', family=output_family) }}" aria-label="{{ label }} Menüs öffnen">{{ icon('tools-kitchen-2') }}Menüs öffnen</a>
-          <a class="btn" href="{{ url_for('admin.components_get', family=output_family) }}" aria-label="{{ label }} Komponenten öffnen">{{ icon('components') }}Komponenten öffnen</a>
+        <div class="output-layouts-section mb-4 pb-3 border-bottom">
+          <h3 class="h4 mb-2">Druckvorlagen</h3>
+          <p class="text-secondary small mb-3">Die aktive Revision wird für PDF-Downloads verwendet. Neuere Entwürfe werden erst nach ausdrücklicher Aktivierung verwendet.</p>
+          {% for archived, group_label in [(false, 'Verfügbare Vorlagen'), (true, 'Archivierte Vorlagen')] %}
+          {% set group = catalog.document.templates|selectattr('archived', 'equalto', archived)|list %}
+          {% if group %}
+          <h4 class="h5 text-muted mb-2">{{ group_label }}</h4>
+          <ul class="list-group list-group-flush mb-3">
+            {% for template in group %}
+            {% set latest = template.revisions[-1] %}
+            {% set active = template.id == catalog.document.active_template %}
+            <li class="list-group-item px-0" data-template-id="{{ template.id }}">
+              <h5 class="h4 text-break mb-1">{{ latest.name }}</h5>
+              <p class="mb-1 text-secondary small">Neuester Stand: Revision {{ latest.id }}{% if not active or latest.id != catalog.active.id %} · Entwurf{% endif %}</p>
+              {% if active %}
+              <p class="text-break mb-2"><span class="badge bg-green-lt">Aktiv</span> {{ catalog.active.name }} · Revision {{ catalog.active.id }}</p>
+              {% else %}
+              <p class="text-secondary small mb-2">{% if template.archived %}<span class="badge bg-secondary-lt">Archiviert</span> · {% endif %}Nicht aktiv</p>
+              {% endif %}
+              {% if 'Cafeteria.Admin' in roles %}
+              <div class="btn-list">
+                <a class="btn" href="{{ url_for('admin.print_template_editor', family=output_family, week=week, template=template.id, revision=latest.id) }}">{{ icon('pencil') }}Vorlageneditor öffnen</a>
+                <a class="btn" href="{{ url_for('admin.print_template_preview', family=output_family, week=week, template=template.id, revision=latest.id) }}">{{ icon('eye') }}Revision {{ latest.id }} als PDF prüfen</a>
+                {% if active and latest.id != catalog.active.id %}
+                <a class="btn" href="{{ url_for('admin.print_template_editor', family=output_family, week=week, template=template.id, revision=catalog.active.id) }}">Aktive Revision öffnen</a>
+                <a class="btn" href="{{ url_for('admin.print_template_preview', family=output_family, week=week, template=template.id, revision=catalog.active.id) }}">{{ icon('eye') }}Aktive Revision als PDF prüfen</a>
+                {% endif %}
+              </div>
+              {% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+          {% endfor %}
+        </div>
+        <div class="output-content-links mt-auto">
+          <h3 class="h4 mb-2">Inhalte pflegen</h3>
+          <p class="text-secondary small mb-2">Direkter Wechsel in die Planungs- und Bausteinpflege:</p>
+          <div class="btn-list">
+            <a class="btn" href="{{ url_for('admin.' ~ output_family, week=week) }}" aria-label="{{ label }} gewählte Woche öffnen">{{ icon('calendar-week') }}Woche öffnen</a>
+            <a class="btn" href="{{ url_for('admin.menu_collection', family=output_family) }}" aria-label="{{ label }} Menüs öffnen">{{ icon('tools-kitchen-2') }}Menüs öffnen</a>
+            <a class="btn" href="{{ url_for('admin.components_get', family=output_family) }}" aria-label="{{ label }} Komponenten öffnen">{{ icon('components') }}Komponenten öffnen</a>
+          </div>
         </div>
       </div>
     </article>
@@ -83,14 +92,14 @@
     <article class="card h-100" aria-labelledby="recipe-templates-heading">
       <div class="card-header"><h2 class="card-title" id="recipe-templates-heading">Rezeptvorlagen</h2></div>
       <div class="card-body">
-        <p>A4 hoch · Zutaten, Mengen, Bilder und Herkunft. Zur PDF-Prüfung wählen Sie im Editor eine festgeschriebene Rezeptrevision.</p>
+        <p class="text-secondary small">A4 hoch · Zutaten, Mengen, Bilder und Herkunft. Zur PDF-Prüfung wählen Sie im Editor eine festgeschriebene Rezeptrevision.</p>
         <ul class="list-group list-group-flush">
           {% for item in recipe_catalog.document.templates %}
           {% set latest = item.revisions[-1] %}
           <li class="list-group-item px-0" data-template-id="{{ item.id }}">
-            <h3 class="h4 text-break">{{ latest.name }}{% if item.archived %} · Archiviert{% endif %}</h3>
-            <p>Neuester Stand: Revision {{ latest.id }}{% if item.id != recipe_catalog.document.active_template or latest.id != recipe_catalog.active.id %} · Entwurf{% endif %}</p>
-            {% if item.id == recipe_catalog.document.active_template %}<p><span class="badge bg-green-lt">Aktiv</span> {{ recipe_catalog.active.name }} · Revision {{ recipe_catalog.active.id }}</p>{% endif %}
+            <h3 class="h4 text-break mb-1">{{ latest.name }}{% if item.archived %} · Archiviert{% endif %}</h3>
+            <p class="mb-1 text-secondary small">Neuester Stand: Revision {{ latest.id }}{% if item.id != recipe_catalog.document.active_template or latest.id != recipe_catalog.active.id %} · Entwurf{% endif %}</p>
+            {% if item.id == recipe_catalog.document.active_template %}<p class="mb-2"><span class="badge bg-green-lt">Aktiv</span> {{ recipe_catalog.active.name }} · Revision {{ recipe_catalog.active.id }}</p>{% endif %}
             {% if 'Cafeteria.Admin' in roles %}
             <div class="btn-list"><a class="btn" href="{{ url_for('admin.recipe_print_template_editor', template=item.id, revision=latest.id) }}">{{ icon('pencil') }}Rezeptvorlageneditor öffnen</a>
               {% if item.id == recipe_catalog.document.active_template and latest.id != recipe_catalog.active.id %}<a class="btn" href="{{ url_for('admin.recipe_print_template_editor', template=item.id, revision=recipe_catalog.active.id) }}">Aktive Rezeptvorlage öffnen</a>{% endif %}
@@ -107,9 +116,11 @@
   <div class="col-12 col-md-6">
     <section class="card h-100">
       <div class="card-header"><h2 class="card-title">Zutaten &amp; Komponenten</h2></div>
-      <div class="card-body">
-        <p>Zutaten, Einheiten und Kategorien zentral verwalten.</p>
-        <a class="btn" href="{{ url_for('admin.master_data_list', kind='foods') }}">{{ icon('components') }}Zutaten &amp; Grundlagen öffnen</a>
+      <div class="card-body d-flex flex-column">
+        <p class="text-secondary small">Zutaten, Einheiten und Kategorien zentral verwalten.</p>
+        <div class="mt-auto">
+          <a class="btn" href="{{ url_for('admin.master_data_list', kind='foods') }}">{{ icon('components') }}Zutaten &amp; Grundlagen öffnen</a>
+        </div>
       </div>
     </section>
   </div>
@@ -117,9 +128,9 @@
   <div class="col-12 col-md-6">
     <section class="card h-100">
       <div class="card-header"><h2 class="card-title">Rezepte &amp; Kochbücher</h2></div>
-      <div class="card-body">
-        <p>Rezepte pflegen und in Kochbüchern zusammenstellen.</p>
-        <div class="btn-list">
+      <div class="card-body d-flex flex-column">
+        <p class="text-secondary small">Rezepte pflegen und in Kochbüchern zusammenstellen.</p>
+        <div class="btn-list mt-auto">
           <a class="btn" href="{{ url_for('admin.recipes_list') }}">{{ icon('tools-kitchen-2') }}Rezepte öffnen</a>
           <a class="btn" href="{{ url_for('admin.cookbooks_list') }}">{{ icon('copy') }}Kochbücher öffnen</a>
         </div>
@@ -128,24 +139,26 @@
   </div>
   {% endif %}
 </div>
-<h2 class="mt-4">Screen-Vorlagen</h2>
-<p>Web-Wochenpläne zeigen die aktuelle Veröffentlichung. Die oben gewählte Woche gilt weiterhin nur für Wochenpflege und PDF.</p>
-<details class="card mb-3"><summary class="card-header">Symbole</summary><div class="card-body"><p>{{ icon('eye') }} Vorschau öffnen: die Darstellung mit der aktuellen Veröffentlichung ansehen.</p><p class="mb-0">{{ icon('pencil') }} Wochenvorlage zuordnen: die Darstellung des Web-Wochenplans auswählen.</p></div></details>
-<div class="screens-grid">
-  {% for screen_family, catalog in screen_catalogs.items() %}
-  {% for choice in catalog.choices %}
-  <article class="card screen-choice-card">
-    <div class="card-header"><h3 class="card-title">{{ area_names[choice.profile] }} · {{ choice.name }}</h3></div>
-    <div class="card-body d-flex flex-column gap-3">
-      <p>Web · Woche · Rendererrevision {{ choice.renderer_revision }}</p>
-      <p>{% if catalog.active.template.id == choice.id %}<span class="badge bg-green-lt">Aktiv</span>{% else %}Nicht aktiv{% endif %}</p>
-      <div class="btn-list mt-auto">
-        <a class="btn btn-icon" href="{{ url_for('admin.screen_template_preview', family=screen_family, template_id=choice.id) }}" aria-label="{{ area_names[choice.profile] }} · {{ choice.name }} prüfen" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ area_names[choice.profile] }} · {{ choice.name }} prüfen">{{ icon('eye') }}</a>
-        <a class="btn btn-icon" href="{{ url_for('admin.screen_template_assignment', family=screen_family) }}" aria-label="{{ area_names[choice.profile] }} · Wochenvorlage zuordnen" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ area_names[choice.profile] }} · Wochenvorlage zuordnen">{{ icon('pencil') }}</a>
+<div class="mt-5">
+  <h2 class="h2 mb-1">Screen-Vorlagen</h2>
+  <p class="text-secondary small mb-3">Web-Wochenpläne zeigen die aktuelle Veröffentlichung. Die oben gewählte Woche gilt weiterhin nur für Wochenpflege und PDF.</p>
+  <details class="card mb-3"><summary class="card-header">Symbole</summary><div class="card-body"><p class="mb-2">{{ icon('eye') }} Vorschau öffnen: die Darstellung mit der aktuellen Veröffentlichung ansehen.</p><p class="mb-0">{{ icon('pencil') }} Wochenvorlage zuordnen: die Darstellung des Web-Wochenplans auswählen.</p></div></details>
+  <div class="screens-grid">
+    {% for screen_family, catalog in screen_catalogs.items() %}
+    {% for choice in catalog.choices %}
+    <article class="card screen-choice-card">
+      <div class="card-header"><h3 class="card-title">{{ area_names[choice.profile] }} · {{ choice.name }}</h3></div>
+      <div class="card-body d-flex flex-column gap-3">
+        <p class="text-secondary small mb-0">Web · Woche · Rendererrevision {{ choice.renderer_revision }}</p>
+        <p class="mb-0">{% if catalog.active.template.id == choice.id %}<span class="badge bg-green-lt">Aktiv</span>{% else %}<span class="badge bg-secondary-lt">Nicht aktiv</span>{% endif %}</p>
+        <div class="btn-list mt-auto">
+          <a class="btn btn-icon" href="{{ url_for('admin.screen_template_preview', family=screen_family, template_id=choice.id) }}" aria-label="{{ area_names[choice.profile] }} · {{ choice.name }} prüfen" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ area_names[choice.profile] }} · {{ choice.name }} prüfen">{{ icon('eye') }}</a>
+          <a class="btn btn-icon" href="{{ url_for('admin.screen_template_assignment', family=screen_family) }}" aria-label="{{ area_names[choice.profile] }} · Wochenvorlage zuordnen" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ area_names[choice.profile] }} · Wochenvorlage zuordnen">{{ icon('pencil') }}</a>
+        </div>
       </div>
-    </div>
-  </article>
-  {% endfor %}
-  {% endfor %}
+    </article>
+    {% endfor %}
+    {% endfor %}
+  </div>
 </div>
 {% endblock %}
