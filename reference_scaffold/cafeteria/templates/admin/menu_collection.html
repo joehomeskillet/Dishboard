@@ -1,17 +1,19 @@
 {% extends "admin/base_tabler.html" %}
 {% from '_food_symbols.html' import legend %}
-{% from 'admin/_macros.html' import icon, icon_link, page_header, profile_tabs, pagination %}
+{% from 'admin/_macros.html' import icon, page_header, profile_tabs, pagination, status_badge, empty_state %}
 {% block title %}Menüs {{ 'Cafeteria' if profile == 'staff_guest' else 'Patienten' }}{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-menu-collection.css') }}">{% endblock %}
 {% set workflow_nav = 'menus' %}
-{% block page_header %}{{ page_header('Menüs') }}{% endblock %}
+{% set layout_variant = 'standard' %}
+{% block page_header %}{{ page_header('Menüs', description='Gespeicherte Menüs aus allen Wochen. Öffnen führt direkt zum jeweiligen Menü im Wochenplan.') }}{% endblock %}
 {% block content %}
         {% set declarations = namespace(options=[]) %}
+        {% set empty_title = 'Keine Menüs für diese Suche gefunden.' if query else 'Noch keine Menüs auf dieser Seite.' %}
+        {% set empty_text = 'Passen Sie den Suchbegriff an oder setzen Sie die Suche zurück.' if query else 'Gespeicherte Menüs aus dem Wochenplan erscheinen hier.' %}
         {{ profile_tabs({
           'cafeteria': url_for('admin.menu_collection', family='cafeteria', q=query),
           'patienten': url_for('admin.menu_collection', family='patienten', q=query),
         }, family) }}
-        <p class="text-secondary">Gespeicherte Menüs aus allen Wochen. Öffnen führt direkt zum jeweiligen Menü im Wochenplan.</p>
         <form method="get" class="search-form card mb-3" action="{{ url_for('admin.menu_collection', family=family) }}">
           <div class="card-body">
             <div class="row g-2 align-items-end">
@@ -35,7 +37,13 @@
           <summary class="card-header">Symbole</summary>
           <div class="card-body">{{ icon('pencil') }} Menü öffnen und bearbeiten. Der Stift führt direkt zum jeweiligen Menü im Wochenplan.</div>
         </details>
-        <div class="nav nav-pills mb-3" role="tablist" aria-label="Menüansicht">
+        <noscript>
+          <nav class="nav nav-tabs mb-3" aria-label="Menüansicht ohne JavaScript">
+            <a class="nav-link" href="#menu-cards">Karten</a>
+            <a class="nav-link" href="#menu-list">Liste</a>
+          </nav>
+        </noscript>
+        <div class="nav nav-tabs mb-3 menu-view-tabs" role="tablist" aria-label="Menüansicht">
           <button class="nav-link active" id="menu-cards-tab" type="button" role="tab" data-bs-toggle="tab" data-bs-target="#menu-cards" aria-controls="menu-cards" aria-selected="true">Karten</button>
           <button class="nav-link" id="menu-list-tab" type="button" role="tab" data-bs-toggle="tab" data-bs-target="#menu-list" aria-controls="menu-list" aria-selected="false" tabindex="-1">Liste</button>
         </div>
@@ -49,27 +57,25 @@
               <div class="card-body">
                 <p class="text-secondary small mb-1">{{ row.service_date.strftime('%d.%m.%Y') }} · {{ meal_labels[row.meal_code] }} · {{ option_labels[row.type_code] }}{% if row.workflow_state == 'archived' %} · Archivierte Woche{% endif %}</p>
                 <h2 class="card-title mb-2">{{ row.title }}</h2>
-                <span class="badge mb-2 {{ 'bg-warning-lt' if row.review_open|default(true) else 'bg-success-lt' }}" data-review="{{ 'open' if row.review_open|default(true) else 'checked' }}">{{ 'Prüfung offen' if row.review_open|default(true) else 'Geprüft' }}</span>
+                <div class="mb-2" data-review="{{ 'open' if row.review_open|default(true) else 'checked' }}">{{ status_badge('review_open' if row.review_open|default(true) else 'success', mapping={'success': ('Geprüft', 'success')}) }}</div>
                 {% with option=row %}{% include '_menu_image.html' %}{% endwith %}
                 {% if row.components %}
-                <ul class="list-inline mb-1">{% for component in row.components %}<li class="list-inline-item badge bg-secondary-lt">{{ component }}</li>{% endfor %}</ul>
+                <ul class="list-unstyled mb-1">{% for component in row.components %}<li class="text-break">{{ component }}</li>{% endfor %}</ul>
                 {% endif %}
                 {% with option=row %}{% include '_menu_metadata.html' %}{% endwith %}
                 {% if row.stale_components %}<div class="alert alert-warning mt-2 mb-0">{{ icon('alert-triangle') }} Komponenten geändert · Erneute Prüfung erforderlich</div>{% endif %}
               </div>
               <div class="card-footer">
-                {{ icon_link(url_for('admin.menu_get', family=family, week=row.week_start.isoformat(), day=row.service_date.isoformat(), meal=row.meal_code, option=row.type_code), row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y') ~ ' öffnen') }}
+                <a class="btn w-100" href="{{ url_for('admin.menu_get', family=family, week=row.week_start.isoformat(), day=row.service_date.isoformat(), meal=row.meal_code, option=row.type_code) }}" aria-label="{{ row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y') ~ ' öffnen' }}" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y') ~ ' öffnen' }}">{{ icon('pencil') }}Öffnen</a>
               </div>
             </article>
           </div>
           {% else %}
           <div class="col-12">
             <div class="card">
-              <div class="empty">
-                <div class="empty-icon">{{ icon('tools-kitchen-2') }}</div>
-                <p class="empty-title">{{ 'Keine Menüs für diese Suche gefunden.' if query else 'Noch keine Menüs auf dieser Seite.' }}</p>
-                <div class="empty-action"><a class="btn btn-primary" href="{{ url_for('admin.' ~ family) }}">{{ icon('calendar-week') }}Zum Wochenplan</a></div>
-              </div>
+              {% call empty_state('no_match' if query else 'none', empty_title, empty_text) %}
+                <a class="btn btn-primary" href="{{ url_for('admin.' ~ family) }}">{{ icon('calendar-week') }}Zum Wochenplan</a>
+              {% endcall %}
             </div>
           </div>
           {% endfor %}
@@ -77,7 +83,8 @@
         {{ legend(declarations.options, tabler=true) }}
         </div>
         <div class="tab-pane" id="menu-list" role="tabpanel" aria-labelledby="menu-list-tab" tabindex="0">
-          <div class="card dishboard-menu-results">
+          <p class="text-secondary" id="menu-list-hint">Bei wenig Platz lässt sich die Tabelle seitlich verschieben, mit der Tastatur über die Pfeiltasten.</p>
+          <div class="card dishboard-menu-results table-responsive" role="region" aria-label="Menüliste" aria-describedby="menu-list-hint" tabindex="0">
             <table class="table table-vcenter card-table dishboard-menu-table">
               <caption class="visually-hidden">Gespeicherte Menüs der aktuellen Suche</caption>
               <thead><tr><th scope="col">Menü</th><th scope="col">Tag</th><th scope="col">Mahlzeit / Zuweisung</th><th scope="col">Prüfstatus</th><th scope="col">Bearbeiten</th></tr></thead>
@@ -85,13 +92,13 @@
                 {% for row in rows %}
                 <tr data-menu-list-id="{{ row.id }}">
                   <th scope="row">{{ row.title }}</th>
-                  <td><span class="dishboard-menu-cell-label">Tag</span>{{ row.service_date.strftime('%d.%m.%Y') }}{% if row.workflow_state == 'archived' %}<span class="d-block text-secondary">Archivierte Woche</span>{% endif %}</td>
-                  <td><span class="dishboard-menu-cell-label">Mahlzeit / Zuweisung</span>{{ meal_labels[row.meal_code] }}<span class="d-block text-secondary">{{ option_labels[row.type_code] }}</span></td>
-                  <td><span class="dishboard-menu-cell-label">Prüfstatus</span><span class="badge {{ 'bg-warning-lt' if row.review_open|default(true) else 'bg-success-lt' }}" data-review="{{ 'open' if row.review_open|default(true) else 'checked' }}">{{ 'Erneute Prüfung erforderlich' if row.stale_components else 'Prüfung offen' if row.review_open|default(true) else 'Geprüft' }}</span></td>
-                  <td>{{ icon_link(url_for('admin.menu_get', family=family, week=row.week_start.isoformat(), day=row.service_date.isoformat(), meal=row.meal_code, option=row.type_code), row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y') ~ ' öffnen') }}</td>
+                  <td>{{ row.service_date.strftime('%d.%m.%Y') }}{% if row.workflow_state == 'archived' %}<span class="d-block text-secondary">Archivierte Woche</span>{% endif %}</td>
+                  <td>{{ meal_labels[row.meal_code] }}<span class="d-block text-secondary">{{ option_labels[row.type_code] }}</span></td>
+                  <td><span data-review="{{ 'open' if row.review_open|default(true) else 'checked' }}">{{ status_badge('changed' if row.stale_components else 'review_open' if row.review_open|default(true) else 'success', mapping={'changed': ('Erneute Prüfung erforderlich', 'warning'), 'success': ('Geprüft', 'success')}) }}</span></td>
+                  <td><a class="btn w-100" href="{{ url_for('admin.menu_get', family=family, week=row.week_start.isoformat(), day=row.service_date.isoformat(), meal=row.meal_code, option=row.type_code) }}" aria-label="{{ row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y') ~ ' öffnen' }}" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y') ~ ' öffnen' }}">{{ icon('pencil') }}Öffnen</a></td>
                 </tr>
                 {% else %}
-                <tr><td colspan="5"><div class="empty"><p class="empty-title">{{ 'Keine Menüs für diese Suche gefunden.' if query else 'Noch keine Menüs auf dieser Seite.' }}</p><div class="empty-action"><a class="btn btn-primary" href="{{ url_for('admin.' ~ family) }}">{{ icon('calendar-week') }}Zum Wochenplan</a></div></div></td></tr>
+                <tr><td colspan="5">{% call empty_state('no_match' if query else 'none', empty_title, empty_text) %}<a class="btn btn-primary" href="{{ url_for('admin.' ~ family) }}">{{ icon('calendar-week') }}Zum Wochenplan</a>{% endcall %}</td></tr>
                 {% endfor %}
               </tbody>
             </table>
