@@ -157,6 +157,7 @@
 .dishboard-admin .btn-list { gap: 8px; }
 .dishboard-admin .btn-list > * { margin: 0; }
 .dishboard-admin :is(.pagination, .nav-pills, .navbar-nav) { gap: 8px; }
+.dishboard-admin .nav-pills { --tblr-nav-link-color: var(--app-text-muted); --tblr-nav-link-hover-color: var(--app-primary-hover); }
 .dishboard-admin .page-link { display: inline-flex; align-items: center; gap: 8px; }
 .dishboard-admin .form-check { display: flex; align-items: center; gap: 8px; padding-left: 0; cursor: pointer; }
 .dishboard-admin .form-check-input { float: none; flex: none; margin: 0; }
