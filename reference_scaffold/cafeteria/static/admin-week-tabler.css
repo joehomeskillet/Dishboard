@@ -158,7 +158,7 @@
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-option ul {
   margin: 0;
-  padding-left: 1.25rem;
+  padding-left: var(--app-space-4);
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-days {
   grid-auto-rows: auto 1fr 1fr;

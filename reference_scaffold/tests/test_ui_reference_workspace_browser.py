@@ -83,6 +83,7 @@ def test_workspace_page_header_and_layout_variant(page_context: Page, family: st
     expect(page.locator('.page-header-subtitle')).to_contain_text('KW 36')
     expect(page.locator('.page-header-subtitle')).to_contain_text('Menükarten')
     expect(page.get_by_role('link', name='Wochenangaben prüfen').first).to_be_visible()
+    expect(page.locator('.admin-week-review-link')).to_be_visible()
     expect(page.locator('.status-pill')).to_have_attribute('data-status', 'empty')
     expect(page.locator('.status-pill .badge[data-status]')).to_be_visible()
 
