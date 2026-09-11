@@ -1,0 +1,24 @@
+........F.........................                                       [100%]
+=================================== FAILURES ===================================
+______________ test_versioned_manifest_covers_every_visual_route _______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7bf57bd09590>
+tmp_path = PosixPath('/tmp/claude-0/-nvmetank1-projects-menuplan/9e4f1af2-43c1-4bd9-b63b-d4da92579062/scratchpad/pytest-gate-pre/test_versioned_manifest_covers0')
+database_engine = Engine(postgresql+psycopg://menuplan_test_owner:***@127.0.0.1:32831/menuplan_test_recipe_menu_binding_writer_0908)
+
+    def test_versioned_manifest_covers_every_visual_route(monkeypatch, tmp_path, database_engine):  # noqa: F811
+        application = _factory(monkeypatch, tmp_path, database_engine)
+        manifest = json.loads(MANIFEST_PATH.read_bytes())
+>       assert not _visual_gaps(application, _matrix(), manifest), _visual_gaps(application, _matrix(), manifest)
+E       AssertionError: [('admin.branding_preview', 390, 844), ('admin.branding_preview', 1440, 900), ('admin.cookbook_edit', 390, 844), ('admin.cookbook_edit', 1440, 900), ('admin.cookbook_status', 390, 844), ('admin.cookbook_status', 1440, 900), ...]
+E       assert not [('admin.branding_preview', 390, 844), ('admin.branding_preview', 1440, 900), ('admin.cookbook_edit', 390, 844), ('admin.cookbook_edit', 1440, 900), ('admin.cookbook_status', 390, 844), ('admin.cookbook_status', 1440, 900), ...]
+E        +  where [('admin.branding_preview', 390, 844), ('admin.branding_preview', 1440, 900), ('admin.cookbook_edit', 390, 844), ('admin.cookbook_edit', 1440, 900), ('admin.cookbook_status', 390, 844), ('admin.cookbook_status', 1440, 900), ...] = _visual_gaps(<Flask 'cafeteria'>, {'common': {'assets': {'admin_css': ['tokens.css', 'vendor/tabler/tabler.min.css', 'admin-tabler.css', 'menu-images.cs...dmin', 'capability': 'settings.write', 'classification': 'html', 'endpoint': 'admin.branding_preview', ...}, ...], ...}, {'captures': [{'computed_fonts': {'body': '"Fira Sans", sans-serif', 'h1': '"Fira Sans", sans-serif'}, 'console': [], ...height': 1080, 'width': 1920}], 'required_html': [{'height': 900, 'width': 1440}, {'height': 844, 'width': 390}]}, ...})
+E        +    where {'common': {'assets': {'admin_css': ['tokens.css', 'vendor/tabler/tabler.min.css', 'admin-tabler.css', 'menu-images.cs...dmin', 'capability': 'settings.write', 'classification': 'html', 'endpoint': 'admin.branding_preview', ...}, ...], ...} = _matrix()
+
+tests/test_ui_route_inventory.py:457: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_ui_route_inventory.py::test_versioned_manifest_covers_every_visual_route
+1 failed, 33 passed in 116.15s (0:01:56)
+GATE_EXIT=1 cwd=/nvmetank1/projects/menuplan/.claude/worktrees/ui-inventory-proof-fix-0909/reference_scaffold
+
+[exited with code 1]
