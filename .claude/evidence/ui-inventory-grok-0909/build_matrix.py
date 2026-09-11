@@ -11,6 +11,7 @@ import json
 import os
 import re
 import sys
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -21,12 +22,14 @@ MATRIX_PATH = ROOT / 'docs' / 'superpowers' / 'backlog-0909' / 'ui-route-matrix.
 SOURCE_COMMIT = '5f5f6cb535922db8453c68d871279d6b2e203391'
 
 sys.path.insert(0, str(SCAFFOLD))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 os.environ.setdefault('DEMO_MODE', 'true')
 os.environ.setdefault('SESSION_REDIS_URL', '')
 os.environ.setdefault('FLASK_SECRET_KEY', 'ui-inventory-discovery')
 os.environ.setdefault('APP_ENV', 'development')
 
-import cafeteria  # noqa: E402
+import cafeteria  # type: ignore[import-not-found]  # noqa: E402
+from capture import capture_provenance  # noqa: E402
 
 cafeteria.init_app_database = lambda _app: None  # type: ignore[method-assign]
 
@@ -85,9 +88,59 @@ def view_source(fn) -> str:
         return ''
 
 
-def capability_of(source: str) -> str | None:
-    match = re.search(r"require_capability\(\s*['\"]([^'\"]+)['\"]", source)
-    return match.group(1) if match else None
+_CAP_RE = re.compile(r"require_capability\(\s*['\"]([^'\"]+)['\"]")
+_KNOWN_CAPS = {
+    cap for caps in ROLE_CAPS.values() for cap in caps if cap != '*'
+} | {'users.manage', 'settings.write', 'api.keys.manage'}
+
+
+def capability_of(source: str, view=None, rule_args: tuple[str, ...] = ()) -> str | None:
+    """Capability from view source, wrappers, closures, or a unique helper."""
+    found = _CAP_RE.findall(source)
+    if found:
+        return found[0]
+    if view is None:
+        return None
+    collected: list[str] = []
+    seen: set[int] = set()
+
+    def take(obj) -> None:
+        if obj is None or not callable(obj) or id(obj) in seen:
+            return
+        seen.add(id(obj))
+        try:
+            collected.extend(_CAP_RE.findall(inspect.getsource(obj)))
+        except (OSError, TypeError):
+            pass
+        code = getattr(obj, '__code__', None)
+        freevars = code.co_freevars if code is not None else ()
+        for name, cell in zip(freevars, getattr(obj, '__closure__', None) or ()):
+            try:
+                value = cell.cell_contents
+            except ValueError:
+                continue
+            if name == 'capability' and isinstance(value, str) and value in _KNOWN_CAPS:
+                collected.append(value)
+            else:
+                take(value)
+        take(getattr(obj, '__wrapped__', None))
+
+    take(view)
+    inner = unwrap(view)
+    module = inspect.getmodule(inner)
+    try:
+        inner_src = inspect.getsource(inner)
+    except (OSError, TypeError):
+        inner_src = ''
+    if module is not None:
+        for name in re.findall(r'^@(\w+)', inner_src, re.M):
+            take(getattr(module, name, None))
+        branch = re.search(r'(\w+)\(family\) if family else (\w+)\(\)', inner_src)
+        if branch is not None:
+            chosen = branch.group(1) if 'family' in rule_args else branch.group(2)
+            take(getattr(module, chosen, None))
+    unique = list(dict.fromkeys(collected))
+    return unique[0] if len(unique) == 1 else None
 
 
 ENDPOINT_TEMPLATES = json.loads(
@@ -295,7 +348,7 @@ def family_note(rule: str) -> list[str]:
     return []
 
 
-def build() -> dict:
+def build(identity: Mapping[str, str] | None = None) -> dict:
     app = cafeteria.create_app()
     graph = template_graph()
     routes = []
@@ -305,7 +358,7 @@ def build() -> dict:
         source = view_source(view) if view else ''
         templates = templates_in(rule.endpoint, source)
         classification = classify(rule.endpoint, rule.rule, set(methods), templates, source)
-        capability = capability_of(source)
+        capability = capability_of(source, view, tuple(rule.arguments or ()))
         mp = owning_mp(rule.endpoint, classification)
         attach_templates(graph, rule.endpoint, templates, mp)
         blueprint = rule.endpoint.split('.')[0] if '.' in rule.endpoint else ''
@@ -334,7 +387,7 @@ def build() -> dict:
             row['owning_mp'] = template_fallback_mp(rel)
     return {
         'meta': {
-            'wp_id': 'wp-fc6f91338ad3',
+            **capture_provenance(identity),
             'mp_id': 'MP-UI-INVENTORY',
             'source_commit': SOURCE_COMMIT,
             'schema': 25,
@@ -345,8 +398,6 @@ def build() -> dict:
             'baseline_status': 'proposed_never_user_approved',
             'generated_at': datetime.now(timezone.utc).isoformat(),
             'discovery': 'cafeteria.create_app().url_map plus templates/*.html on disk',
-            'lane': 'grok-build',
-            'model': 'grok-4.6',
             'route_count': len(routes),
             'template_count': len(graph),
             'html_route_count': sum(1 for item in routes if item['visual']),
@@ -445,7 +496,7 @@ def template_fallback_mp(rel: str) -> str:
 
 
 def fixture_for(endpoint: str, classification: str) -> str:
-    if classification != 'html':
+    if classification not in {'html', 'html_fragment'}:
         return 'not_visual'
     if endpoint.startswith(('public.', 'signage.')):
         return 'demo_snapshots_kw36_synthetic'
@@ -455,6 +506,8 @@ def fixture_for(endpoint: str, classification: str) -> str:
 
 
 def states_for(endpoint: str, classification: str) -> list[str]:
+    if classification == 'html_fragment':
+        return ['default', 'access_denied_401', 'access_denied_403']
     if classification != 'html':
         return []
     states = ['default']
@@ -491,36 +544,69 @@ def hooks_for(endpoint: str, templates: list[str]) -> list[str]:
     return hooks
 
 
+def _captures(*rows: tuple[str, str]) -> list[dict[str, str]]:
+    return [{'endpoint': endpoint, 'suffix': suffix} for endpoint, suffix in rows]
+
+
 SHARED_STATES = [
     {
         'id': 'login',
         'routes': ['auth.local_login', 'auth.login', 'auth.error'],
         'owning_mp': 'MP-UI-AUTH',
         'note': 'Auth layout without admin sidebar.',
+        'fixture': 'local_auth_enabled_no_production_persons',
+        'captures': _captures(('auth.local_login', ''), ('auth.login', 'auth-login')),
     },
     {
         'id': 'empty',
         'routes': ['admin.menu_collection', 'admin.recipes_list', 'admin.cookbooks_list', 'admin.master_data_list', 'admin.components_list'],
         'owning_mp': 'MP-UI-MACROS',
         'note': 'Empty vs no-search-hit vs no-permission must stay distinct.',
+        'fixture': 'isolated_pg_schema25_seed_before_prepare_entities',
+        'captures': _captures(
+            ('admin.menu_collection', 'empty'), ('admin.recipes_list', 'empty'),
+            ('admin.cookbooks_list', 'empty'), ('admin.master_data_list', 'empty'),
+            ('admin.components_list', 'empty'),
+        ),
     },
     {
         'id': 'invalid',
         'routes': ['admin.menu_get', 'admin.display_settings', 'admin.recipe_edit'],
         'owning_mp': 'MP-UI-MACROS',
         'note': 'Server-side errors keep values and original form tokens.',
+        'fixture': 'isolated_pg_schema25_seed_plus_synthetic_entities_invalid_submit',
+        'captures': _captures(
+            ('admin.menu_get', 'invalid'), ('admin.display_settings', 'invalid'),
+            ('admin.recipe_edit', 'invalid'),
+        ),
     },
     {
         'id': 'access_denied',
         'routes': ['admin.*'],
         'owning_mp': 'MP-UI-AUTH',
         'note': '401 unauthenticated, 403 authenticated without capability. Flask default HTML unless a template is registered.',
+        'fixture': 'anonymous_context_and_synthetic_editor_without_users_manage',
+        'captures': _captures(('admin.cafeteria', 'anonymous-401'), ('admin.local_users_list', 'editor-403')),
     },
     {
         'id': 'dialogs',
         'routes': ['admin.cafeteria', 'admin.patienten'],
         'owning_mp': 'MP-UI-WEEKS',
         'note': 'week-publish-modal and similar Bootstrap dialogs are inventory rows, not sidebar items.',
+        'fixture': 'isolated_pg_schema25_seed_plus_synthetic_week',
+        'captures': _captures(('admin.cafeteria', 'dialog-publish')),
+    },
+    {
+        'id': 'role_navigation',
+        'routes': ['admin.cafeteria'],
+        'owning_mp': 'MP-UI-SHELL',
+        'note': 'Conditional sidebar per role; nav_items recorded per capture row.',
+        'fixture': 'synthetic_entra_users_editor_publisher_admin',
+        'captures': _captures(
+            ('admin.cafeteria', 'role-nav-editor'),
+            ('admin.cafeteria', 'role-nav-publisher'),
+            ('admin.cafeteria', 'role-nav-admin'),
+        ),
     },
 ]
 
@@ -552,10 +638,10 @@ COVERAGE_BLOCKS = [
 ]
 
 
-def write_matrix(target: Path | None = None) -> Path:
+def write_matrix(target: Path | None = None, identity: Mapping[str, str] | None = None) -> Path:
     """Write the matrix. Callers may redirect it so a regression run keeps the baseline."""
     destination = Path(target) if target is not None else MATRIX_PATH
-    payload = build()
+    payload = build(identity)
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
     print(f'wrote {destination} routes={payload["meta"]["route_count"]} '
@@ -567,7 +653,16 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out', type=Path, default=None,
                         help='write here instead of the versioned matrix')
-    write_matrix(parser.parse_args(argv).out)
+    parser.add_argument('--wp-id', default=None)
+    parser.add_argument('--lane', default=None)
+    parser.add_argument('--model', default=None)
+    args = parser.parse_args(argv)
+    supplied = {
+        key: value for key, value in (
+            ('wp_id', args.wp_id), ('lane', args.lane), ('model', args.model),
+        ) if value
+    }
+    write_matrix(args.out, supplied or None)
 
 
 if __name__ == '__main__':
