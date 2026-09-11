@@ -414,6 +414,7 @@ docs/design/2026-09-07-rec-r2-ui-implementation.md
 docs/design/2026-09-08-authentication-access-history.md
 docs/design/2026-09-08-native-pdf-layout-contract.md
 docs/design/2026-09-09-unified-ui-design-system.md
+docs/design/2026-09-11-admin-shell-navigation-spec.md
 docs/design/admin-redesign-ui.md
 docs/design/admin-tabler-contract.md
 docs/design/country-select-source.md
@@ -446,6 +447,9 @@ docs/superpowers/backlog-0909/routing-receipts.json
 docs/superpowers/backlog-0909/START.md
 docs/superpowers/backlog-0909/surfaces-sdd.md
 docs/superpowers/backlog-0909/surfaces-wps.json
+docs/superpowers/backlog-0909/ui-before-manifest.json
+docs/superpowers/backlog-0909/ui-brand-compatibility-decision.md
+docs/superpowers/backlog-0909/ui-route-matrix.json
 docs/superpowers/backlog-0909/validate-plan.py
 docs/superpowers/backlog-execution-0906.md
 docs/superpowers/bas-rec-work-packages-0906.md
@@ -1217,6 +1221,8 @@ reference_scaffold/tests/test_smoke.py
 reference_scaffold/tests/test_swagger_ui_assets.py
 reference_scaffold/tests/test_tabler_package_verification.py
 reference_scaffold/tests/test_ui_contracts.py
+reference_scaffold/tests/test_ui_inventory_capture.py
+reference_scaffold/tests/test_ui_route_inventory.py
 reference_scaffold/tests/test_week_form_focus_browser.py
 reference_scaffold/tests/test_week_management.py
 reference_scaffold/tests/test_week_management_browser.py
