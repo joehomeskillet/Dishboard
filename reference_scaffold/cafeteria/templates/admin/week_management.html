@@ -1,30 +1,80 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import icon, page_header, profile_tabs, pagination, field, status %}
-{% block title %}Wochenverwaltung {{ area_names[profile] }}{% endblock %}
+{% from 'admin/_macros.html' import icon, page_header, profile_tabs, pagination, field, status, empty_state %}
+{% set layout_variant = 'standard' %}
+{% block title %}Wochenübersicht · {{ area_names[profile] }}{% endblock %}
 {% set workflow_nav = 'management' %}
-{% block page_header %}{{ page_header('Wochenverwaltung', area_names[profile]) }}{% endblock %}
+{% block page_header %}<div class="text-break">{{ page_header('Wochenübersicht', area_names[profile] ~ ' · Gespeicherte Woche öffnen oder eine neue vorbereiten.') }}</div>{% endblock %}
 {% block content %}
         {{ profile_tabs({
           'cafeteria': url_for('admin.week_management', family='cafeteria'),
           'patienten': url_for('admin.week_management', family='patienten'),
         }, family) }}
+        <section class="card" aria-labelledby="saved-weeks-title">
+          <div class="card-header"><h2 class="card-title" id="saved-weeks-title">Gespeicherte Wochen</h2></div>
+          <div class="table-responsive"{% if rows or has_next or page > 1 %} role="region" aria-label="Wochenliste" tabindex="0"{% endif %}>
+          {% if rows %}
+          <table class="table table-vcenter card-table table-mobile-lg">
+            <thead>
+              <tr><th scope="col">Woche</th><th scope="col">Titel</th><th scope="col">Status</th><th scope="col">Aktionen</th></tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+              <tr data-week-id="{{ row.id }}" data-status="{{ row.status }}">
+                <td data-label="Woche">
+                  <strong><time datetime="{{ row.week_start.isoformat() }}">{{ row.week_start.strftime('%d.%m.%Y') }}</time>{% if row.next_week %} – <time datetime="{{ row.week_start.fromordinal(row.week_start.toordinal() + 6).isoformat() }}">{{ row.week_start.fromordinal(row.week_start.toordinal() + 6).strftime('%d.%m.%Y') }}</time>{% endif %}</strong>
+                  <div class="text-secondary">KW {{ row.week_start.isocalendar().week }} / {{ row.week_start.isocalendar().year }}{% if not row.next_week %} · Wochenbeginn{% endif %}</div>
+                </td>
+                <td data-label="Titel" class="text-break">{{ row.title }}</td>
+                <td data-label="Status">
+                  {{ status(row.status, {'live': 'Veröffentlicht', 'review_open': 'Noch zu prüfen'}.get(row.status, status_labels[row.status])) }}
+                  {% if row.status == 'review_open' %}<p class="text-secondary mb-0 mt-2">Die aktuelle Prüfung von Menüs oder Wochenangaben fehlt.</p>{% endif %}
+                  {% if row.status == 'changed' %}<p class="text-secondary mb-0 mt-2">Der gespeicherte Plan weicht von der Veröffentlichung ab.</p>{% endif %}
+                  {% if row.workflow_state == 'archived' %}{{ status('archived') }}{% endif %}
+                </td>
+                <td data-label="Aktionen">
+                  <div class="btn-list">
+                    <a class="btn text-wrap" href="{{ url_for('admin.' ~ family, week=row.week_start.isoformat()) }}">{{ icon('pencil') }}Woche öffnen</a>
+                    {% if can_preview %}<a class="btn btn-ghost-secondary border-0" href="{{ url_for('admin.preview', family=family, week=row.week_start.isoformat()) }}">{{ icon('eye') }}Vorschau</a>{% endif %}
+                  </div>
+                  {% if can_write and row.next_week %}
+                  <a class="btn btn-ghost-secondary border-0 text-wrap mt-2" href="{{ url_for('admin.copy_get', family=family, week=row.next_week.isoformat()) }}" aria-describedby="copy-{{ row.id }}">{{ icon('copy') }}In Folgewoche kopieren</a>
+                  <p class="text-secondary mb-0 mt-2" id="copy-{{ row.id }}">Quelle: {{ row.week_start.strftime('%d.%m.%Y') }} → Ziel: {{ row.next_week.strftime('%d.%m.%Y') }}. Kopieren wird im nächsten Schritt bestätigt; Ziel muss leer und unveröffentlicht sein.</p>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          {{ empty_state('none', 'Noch keine gespeicherten Wochen auf dieser Seite.', 'Öffnen Sie «Neue Woche anlegen», um einen Plan vorzubereiten.' if can_write else 'Für das Anlegen einer Woche benötigen Sie Bearbeitungsrechte.') }}
+          {% endif %}
+          {% if has_next or page > 1 %}
+          <div class="card-footer">
+            {{ pagination(page, has_next,
+              url_for('admin.week_management', family=family, page=page-1),
+              url_for('admin.week_management', family=family, page=page+1),
+              'Wochenseiten') }}
+          </div>
+          {% endif %}
+          </div>
+        </section>
         {% if can_write %}
-        <section class="card mb-3" aria-labelledby="new-week-title">
-          <form method="post" action="{{ url_for('admin.week_create', family=family) }}" class="admin-form">
-            <div class="card-header"><h2 class="card-title" id="new-week-title">Neue Woche</h2></div>
+        <details class="card d-block mt-3"{% if error %} open{% endif %}>
+          <summary class="card-header gap-2" id="new-week-title">{{ icon('calendar-plus') }}<span class="card-title">Neue Woche anlegen</span>{{ icon('chevron-right', class='ms-auto') }}</summary>
+          <form method="post" action="{{ url_for('admin.week_create', family=family) }}" class="admin-form" aria-labelledby="new-week-title"{% if error %} aria-describedby="new-week-error"{% endif %}>
             <div class="card-body">
-              {% if error %}<div class="alert alert-danger error" role="alert">{{ icon('alert-triangle') }} {{ error }}</div>{% endif %}
+              {% if error %}<div class="alert alert-danger error error-region" id="new-week-error" role="alert" tabindex="-1">{{ icon('alert-triangle') }} {{ error }}</div>{% endif %}
               <input type="hidden" name="_csrf" value="{{ csrf }}">
               <input type="hidden" name="row_version" value="0">
               <div class="row g-3">
-                <div class="col-12 col-sm-5 col-lg-3">
+                <div class="col-12 col-sm-5 col-lg-4">
                   {{ field('week', 'Wochenbeginn (Montag)', values.week, type='date', id='new-week-date', required=true) }}
                 </div>
-                <div class="col-12 col-sm-7 col-lg-5">
+                <div class="col-12 col-sm-7 col-lg-8">
                   {{ field('title', 'Wochentitel', values.title, id='new-week-name', required=true) }}
                 </div>
-                <div class="col-12 col-lg-8">
-                  <label class="form-label" for="new-week-note">Wochenhinweis<span class="form-label-description">optional</span></label>
+                <div class="col-12">
+                  <label class="form-label" for="new-week-note">Wochenhinweis (optional)</label>
                   <textarea id="new-week-note" class="form-control" name="shared_note" rows="2">{{ values.shared_note }}</textarea>
                 </div>
               </div>
@@ -33,44 +83,6 @@
               <div class="btn-list ms-auto"><button type="submit" class="btn btn-primary">{{ icon('calendar-plus') }}Woche anlegen</button></div>
             </div>
           </form>
-        </section>
+        </details>
         {% endif %}
-        <section class="card" aria-labelledby="saved-weeks-title">
-          <div class="card-header"><h2 class="card-title" id="saved-weeks-title">Gespeicherte Wochen</h2></div>
-          {% if rows %}
-          <table class="table table-vcenter card-table table-mobile-lg">
-            <thead>
-              <tr><th>Woche</th><th>Titel</th><th>Status</th><th>Aktionen</th></tr>
-            </thead>
-            <tbody>
-              {% for row in rows %}
-              <tr data-week-id="{{ row.id }}" data-status="{{ row.status }}">
-                <td data-label="Woche"><strong>KW {{ row.week_start.isocalendar().week }}</strong><div class="text-secondary small">{{ row.week_start.strftime('%d.%m.%Y') }}</div></td>
-                <td data-label="Titel">{{ row.title }}</td>
-                <td data-label="Status">
-                  {{ status(row.status, status_labels[row.status]) }}
-                  {% if row.workflow_state == 'archived' %}<span class="badge bg-secondary-lt">Archiviert</span>{% endif %}
-                </td>
-                <td data-label="Aktionen">
-                  <div class="btn-list">
-                    <a class="btn" href="{{ url_for('admin.' ~ family, week=row.week_start.isoformat()) }}">{{ icon('pencil') }}{{ 'Bearbeiten' if can_write else 'Öffnen' }}</a>
-                    {% if can_preview %}<a class="btn" href="{{ url_for('admin.preview', family=family, week=row.week_start.isoformat()) }}">{{ icon('eye') }}Vorschau</a>{% endif %}
-                    {% if can_write and row.next_week %}<a class="btn" href="{{ url_for('admin.copy_get', family=family, week=row.next_week.isoformat()) }}">{{ icon('copy') }}In Folgewoche kopieren</a>{% endif %}
-                  </div>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          {% else %}
-          <div class="empty">
-            <div class="empty-icon">{{ icon('calendar-week') }}</div>
-            <p class="empty-title">Noch keine gespeicherten Wochen auf dieser Seite.</p>
-          </div>
-          {% endif %}
-        </section>
-        {{ pagination(page, has_next,
-          url_for('admin.week_management', family=family, page=page-1),
-          url_for('admin.week_management', family=family, page=page+1),
-          'Wochenseiten') }}
 {% endblock %}
