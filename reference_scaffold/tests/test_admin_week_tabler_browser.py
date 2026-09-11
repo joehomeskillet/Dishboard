@@ -66,7 +66,7 @@ def test_week_overview_responsive_matrix_without_horizontal_overflow(
     page.goto(f'/admin/{family}?week={DAY}')
     toggle = page.get_by_role('button', name='Menü', exact=True)
     nav = page.get_by_role('navigation', name='Backend')
-    if width < 1200:
+    if width < 992:  # K2-A: sidebar breakpoint moved from 1200 to 992 (navbar-expand-lg)
         expect(toggle).to_be_visible()
         if toggle.get_attribute('aria-expanded') == 'true':
             toggle.click()
