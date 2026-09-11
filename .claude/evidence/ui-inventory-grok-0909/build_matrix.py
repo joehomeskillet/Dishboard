@@ -49,6 +49,32 @@ ROLE_CAPS = {
     'Cafeteria.Admin': ['*'],
 }
 
+# Statically discovered method-level restrictions where a handler body requires
+# a capability that excludes one or more roles carried by the route.
+METHOD_RESTRICTIONS: dict[str, dict[str, dict[str, str]]] = {
+    'admin.screen_template_assignment': {
+        'POST': {
+            'capability': 'settings.write',
+            'evidence': 'reference_scaffold/cafeteria/admin/screen_template_routes.py:96-97',
+        },
+    },
+}
+
+
+def method_roles_for(endpoint: str) -> dict[str, list[str]]:
+    restrictions = METHOD_RESTRICTIONS.get(endpoint)
+    if not restrictions:
+        return {}
+    allowed_by_method: dict[str, list[str]] = {}
+    for method, info in restrictions.items():
+        cap = info['capability']
+        allowed_by_method[method] = [
+            role for role, caps in ROLE_CAPS.items()
+            if role != 'anonymous' and ('*' in caps or cap in caps)
+        ]
+    return allowed_by_method
+
+
 NAV_CONDITIONALS = {
     'can_browse_recipes': {
         'predicate': "capabilities() & {'*', 'draft.read'}",
@@ -372,6 +398,7 @@ def build(identity: Mapping[str, str] | None = None) -> dict:
             'templates': templates,
             'capability': capability,
             'roles': roles_for(capability, classification, rule.endpoint),
+            'method_roles': method_roles_for(rule.endpoint),
             'layout_variant': layout_variant(rule.endpoint, templates),
             'owning_mp': mp,
             'family_variants': family_note(rule.rule),
@@ -404,6 +431,14 @@ def build(identity: Mapping[str, str] | None = None) -> dict:
         },
         'common': {
             'roles': ROLE_CAPS,
+            'capability_semantics': (
+                'The capability field records the statically detected require_capability literal; '
+                'null indicates that the capability is not statically determinable (for example, '
+                'method-dependent protected wrappers using GET draft.read and POST recipe.write or '
+                'masterdata.write); effective role assignments are additionally validated by '
+                'runtime test test_matrix_roles_match_server_side_authorization, which queries '
+                'every visual admin GET route as anonymous, Editor, Publisher, and Admin.'
+            ),
             'navigation': {
                 'sidebar_template': 'admin/_workflow_sidebar.html',
                 'sidebar_insufficient': True,
