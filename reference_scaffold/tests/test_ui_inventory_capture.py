@@ -29,9 +29,9 @@ MANIFEST_PATH = ROOT / 'docs' / 'superpowers' / 'backlog-0909' / 'ui-before-mani
 sys.path.insert(0, str(EVIDENCE))
 
 from capture import (  # noqa: E402
-    Outputs, await_ready, capture_provenance, capture_publish_dialog,
-    capture_role_navigation, capture_states, fixture_record, font_file_hashes,
-    rendered_fonts, role_suffix, runtime_record, shot,
+    Outputs, _json_copy, _prepared_additions, await_ready, capture_provenance,
+    capture_publish_dialog, capture_role_navigation, capture_states, fixture_record,
+    font_file_hashes, rendered_fonts, role_suffix, runtime_record, shot,
 )
 
 # The image is referenced at parse time and served with a real delay, so readiness
@@ -365,4 +365,51 @@ def test_outputs_promoting_includes_manifest_path(tmp_path) -> None:
 
     into = Outputs.into(tmp_path)
     assert MANIFEST_PATH not in into.manifest_paths
+
+
+def test_prepared_additions_none_is_empty() -> None:
+    assert _prepared_additions(None) == ([], [], [])
+
+
+def test_prepared_additions_accepts_lists_and_tuples() -> None:
+    def act(_page):
+        return None
+
+    extra, refs, states = _prepared_additions({
+        'extra_admin_paths': ['/a'],
+        'reference_paths': ('/b',),
+        'state_captures': [('/p', 's', act)],
+    })
+    assert extra == ['/a']
+    assert refs == ['/b']
+    assert states == [('/p', 's', act)]
+
+    extra, refs, states = _prepared_additions({
+        'extra_admin_paths': ('/c',),
+        'reference_paths': ['/d'],
+        'state_captures': (('/q', 't', act),),
+    })
+    assert extra == ['/c']
+    assert refs == ['/d']
+    assert states == [('/q', 't', act)]
+
+
+def test_prepared_additions_unknown_key_raises() -> None:
+    with pytest.raises(TypeError, match='unknown key'):
+        _prepared_additions({'nope': []})
+
+
+def test_prepared_additions_wrong_value_type_raises() -> None:
+    with pytest.raises(TypeError, match='list or tuple'):
+        _prepared_additions({'extra_admin_paths': '/x'})
+
+
+def test_prepared_additions_non_mapping_raises() -> None:
+    with pytest.raises(TypeError, match='mapping or None'):
+        _prepared_additions(['/x'])
+
+
+def test_json_copy_rejects_non_serializable_supersedes() -> None:
+    with pytest.raises(ValueError, match='Supersedes must be JSON-serializable'):
+        _json_copy({'invalid': object()}, error='Supersedes must be JSON-serializable')
 
