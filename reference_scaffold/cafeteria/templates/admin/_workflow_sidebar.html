@@ -5,22 +5,28 @@
 {% set _roles = roles|default([]) %}
 {% set display_role_title = 'Administration' if 'Cafeteria.Admin' in _roles else 'Freigabe & Redaktion' if 'Cafeteria.Publisher' in _roles else 'Küchenplanung' if 'Cafeteria.Editor' in _roles else '' %}
 {% set weeks_url = url_for('admin.' ~ family, week=week) if week is defined and week else url_for('admin.' ~ family) %}
-{% macro nav_link(key, href, icon_name, label, desc, current) -%}
+{% macro nav_link(key, href, icon_name, label, current) -%}
 <li class="nav-item{% if current == key %} active{% endif %}">
   <a href="{{ href }}" class="nav-link{% if current == key %} active{% endif %}"{% if current == key %} aria-current="page"{% endif %}>
     <span class="nav-link-icon">{{ icon(icon_name) }}</span>
-    <span class="nav-link-copy">
-      <span class="nav-link-title">{{ label }}</span>
-      <span class="nav-link-desc" aria-hidden="true">{{ desc }}</span>
-    </span>
+    <span class="nav-link-title">{{ label }}</span>
   </a>
 </li>
 {%- endmacro %}
-{% macro nav_group(title, gid) %}
-<div class="nav-group" role="group" aria-labelledby="{{ gid }}">
-  <p class="nav-group-label" id="{{ gid }}">{{ title }}</p>
-  <ul class="navbar-nav">{{ caller() }}</ul>
-</div>
+{% macro area_links() %}
+<ul class="navbar-nav">
+  {% for key, label, icon_name, landing, tabs in area_nav.areas %}
+    {% set pick = namespace(target=none) %}
+    {% set wanted = area_nav.nav_family if landing == 'family' else landing %}
+    {% for tab in tabs if tab[3] %}
+      {% if pick.target is none %}{% set pick.target = tab %}{% endif %}
+      {% if tab[0] == wanted %}{% set pick.target = tab %}{% endif %}
+    {% endfor %}
+    {% if pick.target %}
+      {{ nav_link(key, area_nav.href(pick.target), icon_name, label, area_nav.selected.area) }}
+    {% endif %}
+  {% endfor %}
+</ul>
 {% endmacro %}
 {% if not tabler_admin %}
 <aside class="admin-sidebar">
@@ -60,50 +66,13 @@
       {{ brand_logo(brand, 'admin-logo', width=164, height=32) }}
       <span>Menüplanung</span>
     </div>
-    {% if can_browse_recipes %}
     <noscript><nav class="admin-nav d-lg-none" aria-label="Backend">
-      <ul class="navbar-nav">
-      {% for key, endpoint, icon_name, label in [('recipes', 'recipes_list', 'tools-kitchen-2', 'Rezepte'), ('cookbooks', 'cookbooks_list', 'copy', 'Kochbücher')] %}
-        <li class="nav-item"><a class="nav-link{% if workflow_nav == key %} active{% endif %}" href="{{ url_for('admin.' ~ endpoint) }}"{% if workflow_nav == key %} aria-current="page"{% endif %}>{{ icon(icon_name) }}<span class="nav-link-title">{{ label }}</span></a></li>
-      {% endfor %}
-      </ul>
+      {{ area_links() }}
     </nav></noscript>
-    {% endif %}
     <div class="offcanvas-lg offcanvas-start admin-nav-collapse" id="sidebar-menu" tabindex="-1" aria-labelledby="sidebar-menu-label">
       <span id="sidebar-menu-label" class="visually-hidden">Navigation</span>
       <nav class="admin-nav" aria-label="Backend">
-        {% call nav_group('Arbeitsbereich', 'nav-group-work') %}
-          {{ nav_link('weeks', weeks_url, 'calendar-week', 'Wochenpläne', 'Speisepläne je Tag planen', workflow_nav) }}
-          {{ nav_link('management', url_for('admin.week_management', family=family), 'calendar-cog', 'Wochenverwaltung', 'Wochen anlegen & prüfen', workflow_nav) }}
-          {{ nav_link('menus', '/admin/' ~ family ~ '/menues', 'tools-kitchen-2', 'Menüs', 'Gespeicherte Menüs finden', workflow_nav) }}
-          {{ nav_link('components', '/admin/' ~ family ~ '/komponenten', 'components', 'Komponenten', 'Bausteine & Beilagen', workflow_nav) }}
-        {% endcall %}
-        {% call nav_group('Rezepte', 'nav-group-recipes') %}
-          {% if can_browse_recipes %}
-          {{ nav_link('recipes', url_for('admin.recipes_list'), 'tools-kitchen-2', 'Rezepte', 'Rezepturen & Zubereitung', workflow_nav) }}
-          {{ nav_link('cookbooks', url_for('admin.cookbooks_list'), 'copy', 'Kochbücher', 'Rezeptsammlungen führen', workflow_nav) }}
-          {% endif %}
-          {{ nav_link('master_data', url_for('admin.master_data_list'), 'components', 'Grundlagen', 'Einheiten & Vokabular', workflow_nav) }}
-        {% endcall %}
-        {% call nav_group('Ausgabe', 'nav-group-output') %}
-          {{ nav_link('screens', url_for('admin.screens'), 'eye', 'Screens', 'Bildschirme verwalten', workflow_nav) }}
-          {{ nav_link('vorlagen', url_for('admin.vorlagen'), 'copy', 'Vorlagen', 'Druck- & Bildschirmvorlagen', workflow_nav) }}
-        {% endcall %}
-        {% call nav_group('Daten & Schnittstellen', 'nav-group-data') %}
-          {{ nav_link('import', url_for('admin.import_preview'), 'file-import', 'CSV Import', 'Pläne per CSV einlesen', workflow_nav) }}
-          {{ nav_link('api', url_for('admin.api_overview'), 'info-circle', 'API & Schnittstellen', 'API-Tokens & Schnittstellen', workflow_nav) }}
-        {% endcall %}
-        {% if can_manage_users or can_configure_display %}
-        {% call nav_group('System', 'nav-group-system') %}
-          {% if can_manage_users %}
-          {{ nav_link('users', url_for('admin.local_users_list'), 'info-circle', 'Benutzer & Zugriff', 'Lokale Konten & Rechte', workflow_nav) }}
-          {% endif %}
-          {% if can_configure_display %}
-          {{ nav_link('design', url_for('admin.branding_editor'), 'eye', 'Design & Marke', 'Farben, Logos & Stile', workflow_nav) }}
-          {{ nav_link('operations', url_for('admin.operations_settings'), 'calendar-cog', 'Bereiche & Zeiten', 'Betriebszeiten & Dienste', workflow_nav) }}
-          {% endif %}
-        {% endcall %}
-        {% endif %}
+        {{ area_links() }}
       </nav>
       <div class="navbar-footer admin-footer">
         <div class="admin-user-profile">

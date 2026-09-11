@@ -433,7 +433,7 @@ def test_sidebar_and_adjacent_contrasts(site, tmp_path):
     active.focus()
     page.keyboard.press('Tab')
     focused = page.locator('.admin-sidebar :focus-visible')
-    assert _styles(focused)['outline-color'] == 'rgb(243, 166, 192)'
+    assert _styles(focused)['outline-color'] == 'rgb(255, 255, 255)'
     _goto(page, DISPLAY)
     field = _styles(page.locator('#display-example'))
     assert contrast(_hex(field['border-top-color']), _hex(field['background-color'])) >= 3

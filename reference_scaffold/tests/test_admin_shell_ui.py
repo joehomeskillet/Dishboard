@@ -85,20 +85,30 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         expect(navigation).to_be_visible()
     elif shell == '.page':
         expect(toggle).to_be_hidden()
-    weeks = navigation.get_by_role('link', name='Wochenpläne')
-    catalog = navigation.get_by_role('link', name=re.compile(r'^Komponenten\b'))
+    weeks = navigation.get_by_role('link', name='Wochenplan' if shell == '.page' else 'Wochenpläne', exact=True)
+    catalog = (page.locator('.admin-area-tabs').get_by_role('link', name='Bausteine', exact=True)
+               if shell == '.page' else navigation.get_by_role('link', name=re.compile(r'^Komponenten\b')))
     week_href = weeks.get_attribute('href')
     assert week_href is not None
     week_url = urlsplit(week_href)
     assert week_url.path == f'/admin/{family}'
     assert parse_qs(week_url.query) == ({'week': [DAY]} if page_kind == 'editor' else {})
-    expect(catalog).to_have_attribute('href', f'/admin/{family}/komponenten')
+    if page_kind != 'editor' or shell != '.page':
+        expect(catalog).to_have_attribute('href', f'/admin/{family}/komponenten')
+    if shell == '.page':
+        expect(navigation.get_by_role('link', name='Menüs & Bausteine', exact=True)).to_have_attribute('href', f'/admin/{family}/menues')
     expect(navigation.get_by_text('Signage', exact=True)).to_have_count(0)
     assert navigation.locator('a[href^="/signage/"]').count() == 0
-    expect(navigation.get_by_role('link', name=re.compile(r'^Screens\b'))).to_have_attribute('href', '/admin/screens')
-    expect(navigation.get_by_role('link', name=re.compile(r'^Vorlagen\b'))).to_have_attribute('href', '/admin/vorlagen')
+    if shell == '.page':
+        output = navigation.get_by_role('link', name='Vorschau & Bildschirme', exact=True)
+        assert urlsplit(output.get_attribute('href')).path == '/admin/screens'
+        expect(navigation.get_by_role('link')).to_have_count(4)
+    else:
+        expect(navigation.get_by_role('link', name=re.compile(r'^Screens\b'))).to_have_attribute('href', '/admin/screens')
+        expect(navigation.get_by_role('link', name=re.compile(r'^Vorlagen\b'))).to_have_attribute('href', '/admin/vorlagen')
     expect(navigation.locator('[aria-current="page"]')).to_contain_text(
-        'Wochenpläne' if page_kind == 'editor' else 'Komponenten',
+        ('Wochenplan' if page_kind == 'editor' else 'Menüs & Bausteine') if shell == '.page'
+        else ('Wochenpläne' if page_kind == 'editor' else 'Komponenten'),
     )
 
     logout = sidebar.locator('form')

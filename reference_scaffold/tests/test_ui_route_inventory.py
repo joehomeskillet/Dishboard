@@ -88,7 +88,7 @@ def test_every_template_file_is_in_the_matrix() -> None:
     }
     documented = {row['path'] for row in _matrix()['templates']}
     assert disk == documented
-    assert len(disk) == 75
+    assert len(disk) == 76
 
 
 def test_each_route_has_owning_mp_or_explicit_unmapped() -> None:
@@ -364,11 +364,17 @@ def _assert_states(application, matrix, manifest) -> None:
     assert {(row['role'], row['viewport']['width'], row['viewport']['height']) for row in roles} == {
         (role, width, height) for role in ROLES for width, height in PRIMARY}
     admin_only = {'Benutzer & Zugriff', 'Design & Marke', 'Bereiche & Zeiten'}
+    baseline = json.loads(MANIFEST_PATH.read_bytes())
+    historical = manifest == baseline
     for row in roles:
         assert row['status'] == 200 and row['rendered']
         nav = set(row['nav_items'])
-        assert {'Rezepte', 'Kochbücher'} <= nav
-        assert admin_only <= nav if row['role'] == 'Cafeteria.Admin' else not admin_only & nav
+        if historical:
+            # Preserve the versioned before capture; new captures use the four-area shell.
+            assert {'Rezepte', 'Kochbücher'} <= nav
+            assert admin_only <= nav if row['role'] == 'Cafeteria.Admin' else not admin_only & nav
+        else:
+            assert nav == {'Wochenplan', 'Menüs & Bausteine', 'Vorschau & Bildschirme', 'Einstellungen'}
 
 
 def test_inventory_fixture_paths_render_for_admin(monkeypatch, tmp_path, database_engine):  # noqa: F811

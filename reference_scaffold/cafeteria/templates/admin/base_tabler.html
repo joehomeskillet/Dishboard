@@ -15,6 +15,7 @@
 </head>
 {% set user = session.get('user') %}
 {% set tabler_admin = true %}
+{% import 'admin/_area_tabs.html' as area_nav with context %}
 {% from 'admin/_macros.html' import flash_region %}
 <body class="admin-body dishboard-admin">
   <a class="skip-link" href="#main-content">Zum Inhalt springen</a>
@@ -24,6 +25,7 @@
     <main id="main-content" class="page-wrapper admin-main" data-profile="{{ profile }}" data-layout="{{ layout_variant }}" data-density="{{ admin_density|default('compact') }}" data-font-size="{{ admin_font_size|default('normal') }}" data-content-width="{{ admin_content_width|default('contained') }}" data-menu-images="{{ admin_menu_images|default('show') }}" tabindex="-1" {% block main_attributes %}{% endblock %}>
       {% set _page_header %}{% block page_header %}{% endblock %}{% endset %}
       {% if _page_header|trim %}<header class="admin-page-header">{{ _page_header }}</header>{% endif %}
+      {{ area_nav.render_tabs() }}
       <div class="page-body"><div class="container-xl">
         {{ flash_region(get_flashed_messages()) }}
         {% block content %}{% endblock %}

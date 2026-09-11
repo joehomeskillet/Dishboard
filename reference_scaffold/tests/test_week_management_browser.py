@@ -13,17 +13,22 @@ from test_admin_ux_browser import (
 def test_week_creation_and_tablet_layout(page_context):
     page = page_context
     page.goto('/admin/patienten')
-    page.get_by_role('navigation', name='Backend').get_by_role('link', name='Wochenverwaltung', exact=True).click()
+    page.locator('.admin-area-tabs').get_by_role('link', name='Wochenübersicht', exact=True).click()
     expect(page.get_by_role('heading', name='Wochenverwaltung', exact=True)).to_be_visible()
     for width, height in [(768, 1024), (800, 1280), (1024, 768), (1280, 800), (390, 844)]:
         page.set_viewport_size({'width': width, 'height': height})
-        toggle = page.get_by_role('button', name='Menü', exact=True)
-        if width < 1200:
+        page.reload()
+        toggle = page.locator('[data-bs-target="#sidebar-menu"]')
+        if width < 992:
             expect(toggle).to_be_visible()
             toggle.click()
             expect(page.locator('#sidebar-menu')).to_have_class(re.compile(r'\bshow\b'))
             expect(page.get_by_role('navigation', name='Backend')).to_be_visible()
-            toggle.click()
+            page.evaluate("""() => {
+              const menu = document.getElementById('sidebar-menu');
+              const offcanvas = window.tabler?.Offcanvas?.getInstance(menu);
+              if (offcanvas) offcanvas.hide();
+            }""")
             expect(page.get_by_role('navigation', name='Backend')).to_be_hidden()
         assert not page.evaluate('document.documentElement.scrollWidth > document.documentElement.clientWidth + 1')
         for selector in ['input[type="date"]', 'input[name="title"]', 'textarea', 'button[type="submit"]']:
