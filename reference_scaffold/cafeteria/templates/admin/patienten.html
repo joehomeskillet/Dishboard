@@ -1,40 +1,28 @@
 {% extends "admin/base_tabler.html" %}
 {% from '_food_symbols.html' import legend %}
-{% from 'admin/_macros.html' import icon, profile_tabs, field %}
+{% from 'admin/_macros.html' import icon, profile_tabs, field, page_header, status_badge, form_errors %}
 {% block title %}Wochenplan · {{ area_names[profile] }}{% endblock %}
+{% set layout_variant = 'workspace' %}
 {% set weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'] %}
 {% set publish_blocked = status in ('review_open', 'incomplete', 'empty') %}
 {% set open_checks = cells|selectattr('row_version', 'gt', 0)|selectattr('review_open')|list|length %}
 {% set filled_slots = cells|selectattr('row_version', 'gt', 0)|list|length %}
 {% set week_value = week.isoformat() if week is not none and week.isoformat is defined else week %}
+{% set week_header_description = 'KW ' ~ iso_week ~ ' · ' ~ area_names[profile] ~ ' · ' ~ cells|length ~ ' Menükarten' %}
 {% set workflow_nav = 'weeks' %}
 {% block main_attributes %}data-family="{{ family }}" data-week="{{ week_value }}" data-status="{{ status }}"{% endblock %}
 {% block page_styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin-week-tabler.css') }}">
 {% endblock %}
 {% block page_header %}
-<div class="page-header">
-  <div class="container-xl">
-    <div class="row g-2 align-items-center">
-      <div class="col">
-        <div class="page-pretitle">{{ area_names[profile] }}</div>
-        <h1>Patientenplan bearbeiten</h1>
-      </div>
-      <div class="col-12 col-md-auto ms-auto">
-        <div class="btn-list">
-          <a class="btn" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}">{{ icon('clipboard-check') }}Wochenangaben prüfen</a>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+{% call page_header('Patientenplan bearbeiten', week_header_description, breadcrumbs=[{'label': 'Wochenpläne', 'url': url_for('admin.patienten')}]) %}
+<a class="btn" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}">{{ icon('clipboard-check') }}Wochenangaben prüfen</a>
+{% endcall %}
 {% endblock %}
 {% block content %}
 {% set declarations = namespace(options=[]) %}
-{% if status == 'error' %}
-<div class="error-region alert alert-danger" role="alert" tabindex="-1">
-  {% for message in flashes %}<p class="flash mb-0">{{ message }}</p>{% endfor %}
-</div>
+{% if status == 'error' and flashes %}
+{{ form_errors(flashes) }}
 {% endif %}
 
 {{ profile_tabs({
@@ -46,10 +34,10 @@
   <div class="weekbar">
     <div>
       <strong>KW {{ iso_week }} · {{ area_names[profile] }}</strong>
-      <span>28 Menükarten · 7 Tage × 2 Mahlzeiten × 2 Menüarten</span>
+      <span>{{ cells|length }} Menükarten · 7 Tage × 2 Mahlzeiten × 2 Menüarten</span>
     </div>
     <div class="admin-week-status" role="status">
-      <strong class="status-pill" data-status="{{ status }}">{{ status_label }}</strong>
+      <span class="status-pill" data-status="{{ status }}">{{ status_badge(status, label=status_label) }}</span>
       <span>{% if open_checks %}{{ open_checks }} {{ 'Menükarte' if open_checks == 1 else 'Menükarten' }} mit offener Prüfung{% elif status == 'review_open' %}Erneute Prüfung erforderlich{% else %}Keine offenen Prüfungen{% endif %}</span>
     </div>
   </div>
@@ -77,7 +65,7 @@
         <p>Bitte prüfen, ob alle Angaben korrekt sind.</p>
         <ul class="list-unstyled mb-0">
           <li><strong>Gespeicherte Woche:</strong> KW {{ iso_week }}{% if title %} · {{ title }}{% endif %}</li>
-          <li><strong>Erfasste Menükarten:</strong> {{ filled_slots }} von 28</li>
+          <li><strong>Erfasste Menükarten:</strong> {{ filled_slots }} von {{ cells|length }}</li>
           <li><strong>Prüfstatus:</strong> {% if open_checks %}{{ open_checks }} offene Prüfung{{ 'en' if open_checks != 1 else '' }}{% elif status == 'review_open' %}Erneute Prüfung erforderlich{% else %}Keine offenen Prüfungen{% endif %}</li>
         </ul>
       </div>

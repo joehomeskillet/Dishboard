@@ -1,234 +1,249 @@
-/* Week overview layout for Tabler-migrated cafeteria/patienten pages. */
-.dishboard-admin #week-publish-modal .btn-close { min-width: 48px; min-height: 48px; }
-.dishboard-admin .admin-actions > label { display: flex; align-items: center; gap: 8px; min-height: 48px; }
-.dishboard-admin .admin-week-controls {
+/* Week workspace layout for cafeteria/patienten reference grids. */
+.dishboard-admin .admin-main[data-layout="workspace"] #week-publish-modal .btn-close {
+  min-width: var(--app-control-min-height);
+  min-height: var(--app-control-min-height);
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .profile-tabs {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .profile-tabs .nav {
+  flex-wrap: nowrap;
+  min-width: min-content;
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-actions > label {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-2);
+  min-height: var(--app-control-min-height);
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-controls {
   position: sticky;
   top: env(safe-area-inset-top, 0px);
   z-index: 20;
-  margin-bottom: 1rem;
-  padding: 16px;
-  border: 1px solid var(--tblr-border-color);
-  border-radius: var(--tblr-border-radius-lg);
-  background: var(--tblr-bg-surface);
+  margin-bottom: var(--app-space-6);
+  padding: var(--app-space-6);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-card);
+  background: var(--app-surface);
 }
-.dishboard-admin .admin-week-controls .weekbar {
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-controls .weekbar {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
-  margin: 0 0 12px;
-  padding: 0 0 12px;
-  border-bottom: 1px solid var(--tblr-border-color);
+  gap: var(--app-space-4);
+  margin: 0 0 var(--app-space-4);
+  padding: 0 0 var(--app-space-4);
+  border-bottom: 1px solid var(--app-border);
 }
-.dishboard-admin .admin-week-controls .weekbar strong,
-.dishboard-admin .admin-week-controls .weekbar span {
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-controls .weekbar strong,
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-controls .weekbar span {
   display: block;
 }
-.dishboard-admin .admin-week-controls .weekbar span {
-  margin-top: 4px;
-  color: var(--tblr-secondary);
-  font-size: .875rem;
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-controls .weekbar span {
+  margin-top: var(--app-space-1);
+  color: var(--app-text-muted);
+  font-size: var(--app-font-size-label);
 }
-.dishboard-admin .admin-week-status {
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-status {
   text-align: right;
 }
-.dishboard-admin .admin-week-status .status-pill {
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-status .status-pill {
   display: inline-block;
-  margin-bottom: 4px;
+  margin-bottom: var(--app-space-1);
 }
-.dishboard-admin .admin-actions[data-sticky] {
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-actions[data-sticky] {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--app-space-2);
   margin: 0;
   padding: 0 0 env(safe-area-inset-bottom, 0px);
 }
-.dishboard-admin .admin-actions form {
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-actions form {
   margin: 0;
 }
-.dishboard-admin .admin-week-guidance {
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-guidance {
   flex-basis: 100%;
   order: 1;
   margin: 0;
-  color: var(--tblr-secondary);
+  color: var(--app-text-muted);
 }
-.dishboard-admin .admin-overview-form {
-  margin: 1rem 0;
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-overview-form {
+  margin: var(--app-space-6) 0;
 }
-.dishboard-admin .admin-week-review-link {
-  margin: 0 0 1rem;
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-review-link {
+  margin: 0 0 var(--app-space-6);
 }
-.dishboard-admin .admin-week-days {
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-days {
   display: grid;
-  gap: 16px;
+  gap: var(--app-space-6);
 }
-.dishboard-admin .admin-day-card .card-header {
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card .card-header {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
+  gap: var(--app-space-4);
 }
-.dishboard-admin .admin-day-card .day-heading strong {
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card .day-heading strong {
   display: block;
 }
-.dishboard-admin .admin-day-card .day-heading span {
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card .day-heading span {
   display: block;
-  color: var(--tblr-secondary);
-  font-size: .875rem;
+  color: var(--app-text-muted);
+  font-size: var(--app-font-size-label);
 }
-.dishboard-admin .admin-week-service {
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-service {
   flex: 1 1 100%;
 }
 @media (min-width: 768px) {
-  .dishboard-admin .admin-week-service {
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-service {
     flex: 1 1 auto;
-    min-width: min(100%, 520px);
+    min-width: min(100%, 32.5rem);
   }
 }
-.dishboard-admin .menu-slot {
+.dishboard-admin .admin-main[data-layout="workspace"] .menu-slot {
   min-width: 0;
   height: 100%;
 }
-.dishboard-admin .menu-slot .card-body {
+.dishboard-admin .admin-main[data-layout="workspace"] .menu-slot .card-body {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--app-space-2);
 }
-.dishboard-admin .menu-slot .dish-type {
-  color: var(--tblr-secondary);
-  font-size: .875rem;
+.dishboard-admin .admin-main[data-layout="workspace"] .menu-slot .dish-type {
+  color: var(--app-text-muted);
+  font-size: var(--app-font-size-label);
 }
-.dishboard-admin .menu-slot h3 {
+.dishboard-admin .admin-main[data-layout="workspace"] .menu-slot h3 {
   margin: 0;
-  font-size: 1.125rem;
+  font-size: var(--app-font-size-title);
 }
-.dishboard-admin .menu-slot p {
+.dishboard-admin .admin-main[data-layout="workspace"] .menu-slot p {
   margin: 0;
 }
-.dishboard-admin .slot-badge {
+.dishboard-admin .admin-main[data-layout="workspace"] .slot-badge {
   align-self: flex-start;
 }
-.dishboard-admin .patient-admin-table {
+.dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-table {
   display: grid;
-  gap: 16px;
+  gap: var(--app-space-6);
 }
-.dishboard-admin .patient-admin-day > .card > .card-header {
+.dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-day > .card > .card-header {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--app-space-2);
 }
-.dishboard-admin .patient-admin-meals {
+.dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-meals {
   display: grid;
-  gap: 16px;
+  gap: var(--app-space-6);
 }
 @media (min-width: 768px) {
-  .dishboard-admin .patient-admin-meals {
+  .dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-meals {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-.dishboard-admin .patient-admin-meal > strong {
+.dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-meal > strong {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: var(--app-space-2);
 }
-.dishboard-admin .patient-admin-option {
+.dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-option {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--app-space-2);
 }
-.dishboard-admin .patient-admin-option ul {
+.dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-option ul {
   margin: 0;
   padding-left: 1.25rem;
 }
-/* Shared week tracks let the longest menu set every option's height. */
-.dishboard-admin .admin-week-days {
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-days {
   grid-auto-rows: auto 1fr 1fr;
 }
-.dishboard-admin .patient-admin-table {
+.dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-table {
   grid-auto-rows: auto auto auto 1fr 1fr auto auto 1fr 1fr auto;
 }
-.dishboard-admin :is(.admin-day-card, .patient-admin-day, .patient-admin-meal),
-.dishboard-admin .admin-day-card > .card-body,
-.dishboard-admin :is(.patient-admin-meals, .admin-menu-options) {
+.dishboard-admin .admin-main[data-layout="workspace"] :is(.admin-day-card, .patient-admin-day, .patient-admin-meal),
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card > .card-body,
+.dishboard-admin .admin-main[data-layout="workspace"] :is(.patient-admin-meals, .admin-menu-options) {
   display: grid;
   grid-template-rows: subgrid;
   min-width: 0;
 }
-.dishboard-admin .admin-day-card {
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card {
   grid-row: span 3;
 }
-.dishboard-admin .patient-admin-day {
+.dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-day {
   grid-row: span 10;
 }
-/* Keep the day border and bottom spacing outside the equal menu tracks. */
-.dishboard-admin .patient-admin-day::after {
+.dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-day::after {
   content: "";
 }
-.dishboard-admin .patient-admin-meals {
+.dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-meals {
   grid-row: span 8;
 }
-.dishboard-admin .patient-admin-day > .patient-admin-meals {
+.dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-day > .patient-admin-meals {
   padding-block: 0;
 }
-.dishboard-admin .patient-admin-meal {
+.dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-meal {
   grid-row: span 4;
 }
-.dishboard-admin .admin-day-card > .card-body,
-.dishboard-admin .admin-menu-options {
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card > .card-body,
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-menu-options {
   grid-row: span 2;
 }
-.dishboard-admin .admin-menu-options {
-  gap: 16px;
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-menu-options {
+  gap: var(--app-space-6);
   margin: 0;
 }
-.dishboard-admin .admin-menu-options > div {
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-menu-options > div {
   min-width: 0;
   width: auto;
   margin: 0;
   padding: 0;
 }
 @media (min-width: 768px) {
-  .dishboard-admin .admin-week-days {
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-days {
     grid-auto-rows: auto 1fr;
   }
-  .dishboard-admin .patient-admin-table {
+  .dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-table {
     grid-auto-rows: auto auto auto 1fr auto;
   }
-  .dishboard-admin .admin-day-card {
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card {
     grid-row: span 2;
   }
-  .dishboard-admin .patient-admin-day {
+  .dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-day {
     grid-row: span 5;
   }
-  .dishboard-admin :is(.patient-admin-meals, .patient-admin-meal) {
+  .dishboard-admin .admin-main[data-layout="workspace"] :is(.patient-admin-meals, .patient-admin-meal) {
     grid-row: span 3;
   }
-  .dishboard-admin .admin-day-card > .card-body,
-  .dishboard-admin .admin-menu-options {
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card > .card-body,
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-menu-options {
     grid-row: span 1;
   }
-  .dishboard-admin .admin-menu-options {
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-menu-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-.dishboard-admin :is(.admin-week-controls, .admin-overview-form, .menu-slot, .patient-admin-day)
+.dishboard-admin .admin-main[data-layout="workspace"] :is(.admin-week-controls, .admin-overview-form, .menu-slot, .patient-admin-day)
   :is(a, button, input, select, textarea) {
   scroll-margin-top: 12rem;
 }
 @media (max-width: 767.98px) {
-  .dishboard-admin .admin-week-status {
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-status {
     text-align: left;
   }
 }
 @media (max-width: 1199.98px) {
-  .dishboard-admin .admin-week-controls {
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-controls {
     position: static;
   }
-  .dishboard-admin :is(.admin-week-controls, .admin-overview-form, .menu-slot, .patient-admin-day)
+  .dishboard-admin .admin-main[data-layout="workspace"] :is(.admin-week-controls, .admin-overview-form, .menu-slot, .patient-admin-day)
     :is(a, button, input, select, textarea) {
-    scroll-margin-top: 1rem;
+    scroll-margin-top: var(--app-space-6);
   }
 }
