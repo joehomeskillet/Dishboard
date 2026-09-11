@@ -1,0 +1,415 @@
+"""Recorder behaviour of the MP-UI-INVENTORY capture helper against a real browser.
+
+These are the four proof gaps Root confirmed: a console failure raised after
+DOMContentLoaded must still be recorded, readiness must wait for fonts and images
+instead of a fixed delay, an absent publish modal must produce a blocked record
+rather than an invented success row, and an ordinary run must leave the versioned
+matrix, manifest and original screenshots untouched.
+"""
+from __future__ import annotations
+
+import base64
+import hashlib
+import json
+import sys
+import threading
+import time
+from pathlib import Path
+
+import pytest
+from flask import Flask
+from werkzeug.serving import make_server
+
+from test_rendered_ui import browser  # noqa: F401
+
+ROOT = Path(__file__).resolve().parents[2]
+EVIDENCE = ROOT / '.claude' / 'evidence' / 'ui-inventory-grok-0909'
+MATRIX_PATH = ROOT / 'docs' / 'superpowers' / 'backlog-0909' / 'ui-route-matrix.json'
+MANIFEST_PATH = ROOT / 'docs' / 'superpowers' / 'backlog-0909' / 'ui-before-manifest.json'
+sys.path.insert(0, str(EVIDENCE))
+
+from capture import (  # noqa: E402
+    Outputs, _json_copy, _prepared_additions, await_ready, capture_provenance,
+    capture_publish_dialog, capture_role_navigation, capture_states, fixture_record,
+    font_file_hashes, rendered_fonts, role_suffix, runtime_record, shot,
+)
+
+# The image is referenced at parse time and served with a real delay, so readiness
+# genuinely stays open and the errors land inside the recording window. The original
+# recorder detached its listeners right after DOMContentLoaded and reported an empty
+# console for exactly this page.
+LATE_ERROR = """<!doctype html><html lang="de"><head><meta charset="utf-8">
+<title>Late</title></head><body><h1>Late failure</h1>
+<img id="late" src="/slow.gif" alt="spaet">
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => { console.error('late console failure'); }, 120);
+    setTimeout(() => { throw new Error('late page error'); }, 160);
+  });
+</script></body></html>"""
+
+SLOW_ASSETS = """<!doctype html><html lang="de"><head><meta charset="utf-8">
+<title>Slow</title></head><body><h1 id="headline">Slow assets</h1>
+<img id="late" src="/slow.gif" alt="spaet"></body></html>"""
+
+SLOW_FONT = """<!doctype html><html lang="de"><head><meta charset="utf-8">
+<title>Verzögerte lokale Schrift</title><style>
+@font-face {font-family: "Inventory Fira"; src: url("/slow-font.woff2") format("woff2");
+font-weight: 400; font-style: normal; font-display: swap;}
+h1 {font-family: "Inventory Fira", sans-serif; font-weight: 400;}
+</style></head><body><h1>Fira Sans wird tatsächlich verwendet.</h1></body></html>"""
+
+NO_MODAL = """<!doctype html><html lang="de"><head><meta charset="utf-8">
+<title>No modal</title></head><body><h1>Ohne Dialog</h1></body></html>"""
+
+PIXEL = base64.b64decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')
+SLOW_IMAGE_SECONDS = 0.6
+SLOW_FONT_SECONDS = 0.6
+FONT_PATH = ROOT / 'reference_scaffold' / 'cafeteria' / 'static' / 'fonts' / 'fira-sans-400.woff2'
+
+
+def _serve(pages: dict[str, str], *, font_gate: threading.Event | None = None):
+    app = Flask(__name__)
+
+    def make(body: str):
+        return lambda: (body, 200, {'Content-Type': 'text/html; charset=utf-8'})
+
+    def slow_gif():
+        time.sleep(SLOW_IMAGE_SECONDS)
+        return PIXEL, 200, {'Content-Type': 'image/gif'}
+
+    def slow_font():
+        if font_gate is not None and not font_gate.wait(timeout=5):
+            return 'Font test did not release the response.', 503
+        time.sleep(SLOW_FONT_SECONDS)
+        return FONT_PATH.read_bytes(), 200, {'Content-Type': 'font/woff2'}
+
+    for route, body in pages.items():
+        app.add_url_rule(route, endpoint=route.strip('/') or 'root', view_func=make(body))
+    app.add_url_rule('/slow.gif', endpoint='slow_gif', view_func=slow_gif)
+    app.add_url_rule('/slow-font.woff2', endpoint='slow_font', view_func=slow_font)
+    server = make_server('127.0.0.1', 0, app, threaded=True)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    return server, f'http://127.0.0.1:{server.server_port}'
+
+
+@pytest.fixture
+def served():
+    started = []
+
+    def start(pages: dict[str, str], *, font_gate: threading.Event | None = None) -> str:
+        server, live = _serve(pages, font_gate=font_gate)
+        started.append(server)
+        return live
+
+    yield start
+    for server in started:
+        server.shutdown()
+        server.server_close()
+
+
+def test_console_failure_after_dom_content_loaded_is_recorded(browser, served, tmp_path):  # noqa: F811
+    live = served({'/late': LATE_ERROR})
+    out = Outputs.into(tmp_path)
+    with browser.new_context(base_url=live) as context:
+        row = shot(context.new_page(), '/late', 1440, 900, out=out)
+    assert any('late console failure' in entry for entry in row['console']), row['console']
+    assert any('late page error' in entry for entry in row['request_failures']), row['request_failures']
+    assert row['rendered'] is True
+
+
+def test_readiness_waits_for_late_image_instead_of_a_fixed_delay(browser, served, tmp_path):  # noqa: F811
+    live = served({'/slow': SLOW_ASSETS})
+    out = Outputs.into(tmp_path)
+    with browser.new_context(base_url=live) as context:
+        page = context.new_page()
+        row = shot(page, '/slow', 1440, 900, out=out)
+        pending = page.evaluate(
+            '() => Array.from(document.images).filter(img => !img.complete).length'
+        )
+    assert row['readiness']['load'] is True
+    assert row['readiness']['fonts'] is True
+    assert row['readiness']['images'] is True
+    assert row['readiness']['error'] is None
+    assert pending == 0
+    assert row['computed_fonts']['body']
+    assert 'platform_source' in row['computed_fonts']
+
+
+def test_readiness_waits_for_used_local_font_and_records_rendered_fira(browser, served, tmp_path):  # noqa: F811
+    release = threading.Event()
+    live = served({'/font': SLOW_FONT}, font_gate=release)
+    with browser.new_context(base_url=live) as context:
+        page = context.new_page()
+        try:
+            page.goto('/font', wait_until='domcontentloaded')
+            page.wait_for_function('document.fonts.status === "loading"')
+            assert page.evaluate('document.fonts.check(\'16px "Inventory Fira"\')') is False
+            release.set()
+            readiness = await_ready(page)
+            state = page.evaluate('''() => ({
+                status: document.fonts.status,
+                faces: Array.from(document.fonts, font => ({family: font.family, status: font.status})),
+                delay: performance.getEntriesByName(location.origin + '/slow-font.woff2')
+                    .map(entry => entry.responseEnd - entry.startTime)
+            })''')
+            fonts = rendered_fonts(page)
+            assert readiness['error'] is None
+            assert readiness['fonts'] is True
+            assert state['status'] == 'loaded'
+            assert state['faces'] == [{'family': 'Inventory Fira', 'status': 'loaded'}]
+            assert len(state['delay']) == 1 and state['delay'][0] >= SLOW_FONT_SECONDS * 1000
+            assert fonts['platform_source'] == 'cdp:CSS.getPlatformFontsForNode'
+            assert any(font['family'] == 'Fira Sans' and font['glyphs'] > 0 for font in fonts['platform'])
+            page.screenshot(path=str(tmp_path / 'delayed-fira.png'))
+        finally:
+            release.set()
+
+
+def test_capture_provenance_does_not_infer_a_new_executor_or_model() -> None:
+    unknown = capture_provenance()
+    assert unknown['identity_status'] == 'not_supplied'
+    assert (unknown['wp_id'], unknown['lane'], unknown['model']) == (None, None, None)
+    source = unknown['source_provenance']
+    assert source == {
+        'inventory_commit': 'f136490f7b2c19805c8f6436ebdbb657c3549dd7',
+        'wp_id': 'wp-fc6f91338ad3', 'lane': 'grok-build', 'model': 'grok-4.6',
+    }
+    supplied = {'wp_id': 'fixture-capture', 'lane': 'fixture-executor'}
+    current = capture_provenance(supplied)
+    supplied['wp_id'] = 'changed-after-capture'
+    assert current['wp_id'] == 'fixture-capture'
+    assert current['lane'] == 'fixture-executor'
+    assert current['model'] is None
+    assert current['identity_status'] == 'caller_supplied'
+    assert current['source_provenance'] == source
+    assert capture_provenance({'model': 'explicit-fixture-model'})['model'] == 'explicit-fixture-model'
+
+
+@pytest.mark.parametrize('identity', [{'model': ''}, {'lane': ' '}, {'model': 3}, {'unknown': 'value'}])
+def test_capture_provenance_rejects_ambiguous_identity(identity) -> None:
+    with pytest.raises(ValueError, match='Capture identity'):
+        capture_provenance(identity)
+
+
+def test_absent_publish_modal_produces_a_blocked_record_not_a_success(browser, served, tmp_path):  # noqa: F811
+    live = served({'/admin/cafeteria': NO_MODAL})
+    out = Outputs.into(tmp_path)
+    with browser.new_context(base_url=live) as context:
+        rows, blocks = capture_publish_dialog(context.new_page(), out=out)
+    assert rows == []
+    assert len(blocks) == 1
+    assert blocks[0]['id'] == 'publish_dialog'
+    assert blocks[0]['status'] == 'blocked_modal_not_open'
+    assert 'publish trigger absent' in blocks[0]['error']
+    assert not list(out.screen_dir.glob('*dialog-publish*.png'))
+
+
+def test_redirected_run_leaves_versioned_outputs_untouched(browser, served, tmp_path):  # noqa: F811
+    matrix_before = MATRIX_PATH.read_bytes()
+    manifest_before = MANIFEST_PATH.read_bytes()
+    screenshots_before = {
+        path.name: path.read_bytes()
+        for path in sorted((EVIDENCE / 'screenshots').glob('*.png'))
+    }
+    assert screenshots_before, 'original evidence screenshots must exist'
+
+    live = served({'/late': LATE_ERROR})
+    out = Outputs.into(tmp_path)
+    with browser.new_context(base_url=live) as context:
+        row = shot(context.new_page(), '/late', 390, 844, out=out)
+    out.manifest_paths[0].write_text(
+        json.dumps({'captures': [row]}, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+
+    assert out.manifest_paths[0].is_file()
+    assert list(out.screen_dir.glob('*.png'))
+    assert MATRIX_PATH.read_bytes() == matrix_before
+    assert MANIFEST_PATH.read_bytes() == manifest_before
+    assert {
+        path.name: path.read_bytes()
+        for path in sorted((EVIDENCE / 'screenshots').glob('*.png'))
+    } == screenshots_before
+
+
+def test_default_outputs_still_point_at_the_versioned_baseline() -> None:
+    default = Outputs()
+    assert default.screen_dir == EVIDENCE / 'screenshots'
+    assert MANIFEST_PATH in default.manifest_paths
+    assert EVIDENCE / 'ui-before-manifest.json' in default.manifest_paths
+    redirected = Outputs.into(Path('/tmp/example-capture'))
+    assert MANIFEST_PATH not in redirected.manifest_paths
+    assert redirected.screen_dir == Path('/tmp/example-capture/screenshots')
+
+
+def test_capture_role_navigation(browser, served, tmp_path):  # noqa: F811
+    class Cookie:
+        def __init__(self, key: str, value: str):
+            self.key = key
+            self.value = value
+
+    assert role_suffix('Cafeteria.Editor') == 'role-nav-editor'
+    assert role_suffix('Cafeteria.Publisher') == 'role-nav-publisher'
+    assert role_suffix('Cafeteria.Admin') == 'role-nav-admin'
+
+    html = """<!doctype html><html lang="de"><body><aside class="admin-sidebar"><nav class="admin-nav">
+    <a href="/admin/cafeteria/menues">Menüs</a>
+    <a href="/admin/cafeteria/komponenten">Komponenten</a>
+    </nav></aside></body></html>"""
+    live = served({'/admin/cafeteria': html})
+    out = Outputs.into(tmp_path)
+    role_cookies = {
+        'Cafeteria.Editor': Cookie('session', 'editor-cookie'),
+        'Cafeteria.Admin': Cookie('session', 'admin-cookie'),
+    }
+    rows = capture_role_navigation(browser, live, role_cookies, out=out)
+    assert len(rows) == 4
+    editor_rows = [r for r in rows if r['role'] == 'Cafeteria.Editor']
+    admin_rows = [r for r in rows if r['role'] == 'Cafeteria.Admin']
+    assert len(editor_rows) == 2
+    assert len(admin_rows) == 2
+    assert {r['suffix'] for r in editor_rows} == {'role-nav-editor'}
+    assert {r['suffix'] for r in admin_rows} == {'role-nav-admin'}
+    for r in rows:
+        assert r['nav_items'] == ['Menüs', 'Komponenten']
+        assert 'nav_probe_error' not in r
+
+
+def test_capture_role_navigation_without_sidebar(browser, served, tmp_path):  # noqa: F811
+    class Cookie:
+        def __init__(self, key: str, value: str):
+            self.key = key
+            self.value = value
+
+    html = """<!doctype html><html lang="de"><body><h1>No Sidebar</h1></body></html>"""
+    live = served({'/admin/cafeteria': html})
+    out = Outputs.into(tmp_path)
+    role_cookies = {'Cafeteria.Editor': Cookie('session', 'editor-cookie')}
+    rows = capture_role_navigation(browser, live, role_cookies, out=out)
+    assert len(rows) == 2
+    for r in rows:
+        assert r['nav_items'] == []
+        assert 'nav_probe_error' in r
+        assert 'no sidebar links matched' in r['nav_probe_error']
+
+
+def test_fixture_record_canon_hash_deep_copy_and_validation() -> None:
+    unsupplied = fixture_record(None)
+    assert unsupplied == {'status': 'not_supplied', 'sha256': None, 'descriptor': None}
+
+    d1 = {'b': 2, 'a': 1}
+    d2 = {'a': 1, 'b': 2}
+    rec1 = fixture_record(d1)
+    rec2 = fixture_record(d2)
+    assert rec1['status'] == 'caller_supplied'
+    assert rec1['sha256'] == rec2['sha256']
+    assert rec1['sha256'] is not None
+
+    d1['a'] = 999
+    assert rec1['descriptor'] == {'b': 2, 'a': 1}
+
+    with pytest.raises(ValueError, match='Fixture descriptor must be JSON-serializable'):
+        fixture_record({'invalid': object()})
+
+
+def test_font_file_hashes_covers_font_files_and_correct_hashes() -> None:
+    hashes = font_file_hashes()
+    fira_keys = [k for k in hashes if 'fira-sans-' in k and k.endswith('.woff2')]
+    assert len(fira_keys) == 4
+    for key, h in hashes.items():
+        path = ROOT / key
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == h
+
+
+def test_runtime_record_contains_non_empty_strings() -> None:
+    rec = runtime_record()
+    assert isinstance(rec.get('platform'), str) and rec['platform']
+    assert isinstance(rec.get('python'), str) and rec['python']
+    assert isinstance(rec.get('playwright'), str) and rec['playwright']
+
+
+def test_capture_states_success_and_failure(browser, served, tmp_path):  # noqa: F811
+    html = """<!doctype html><html lang="de"><body><button id="btn">Click</button></body></html>"""
+    live = served({'/admin/cafeteria': html})
+    out = Outputs.into(tmp_path)
+
+    def action_ok(page):
+        page.click('#btn')
+
+    def action_fail(page):
+        page.click('#nonexistent', timeout=500)
+
+    with browser.new_context(base_url=live) as context:
+        page = context.new_page()
+
+        rows, blocks = capture_states(page, [('/admin/cafeteria', 'valid', action_ok)], out=out)
+        assert len(rows) == 2
+        assert len(blocks) == 0
+        assert all(r['suffix'] == 'valid' for r in rows)
+        assert len(list(out.screen_dir.glob('*-valid-*.png'))) == 2
+
+        rows_f, blocks_f = capture_states(page, [('/admin/cafeteria', 'invalid', action_fail)], out=out)
+        assert len(rows_f) == 0
+        assert len(blocks_f) == 2
+        assert all(b['status'] == 'blocked_state_not_reached' for b in blocks_f)
+        assert all(b['id'] == 'state_invalid' for b in blocks_f)
+        assert len(list(out.screen_dir.glob('*-invalid-*.png'))) == 0
+
+
+def test_outputs_promoting_includes_manifest_path(tmp_path) -> None:
+    promoting = Outputs.promoting(tmp_path)
+    assert MANIFEST_PATH in promoting.manifest_paths
+    assert tmp_path / 'ui-before-manifest.json' in promoting.manifest_paths
+    assert promoting.screen_dir == tmp_path / 'screenshots'
+
+    into = Outputs.into(tmp_path)
+    assert MANIFEST_PATH not in into.manifest_paths
+
+
+def test_prepared_additions_none_is_empty() -> None:
+    assert _prepared_additions(None) == ([], [], [])
+
+
+def test_prepared_additions_accepts_lists_and_tuples() -> None:
+    def act(_page):
+        return None
+
+    extra, refs, states = _prepared_additions({
+        'extra_admin_paths': ['/a'],
+        'reference_paths': ('/b',),
+        'state_captures': [('/p', 's', act)],
+    })
+    assert extra == ['/a']
+    assert refs == ['/b']
+    assert states == [('/p', 's', act)]
+
+    extra, refs, states = _prepared_additions({
+        'extra_admin_paths': ('/c',),
+        'reference_paths': ['/d'],
+        'state_captures': (('/q', 't', act),),
+    })
+    assert extra == ['/c']
+    assert refs == ['/d']
+    assert states == [('/q', 't', act)]
+
+
+def test_prepared_additions_unknown_key_raises() -> None:
+    with pytest.raises(TypeError, match='unknown key'):
+        _prepared_additions({'nope': []})
+
+
+def test_prepared_additions_wrong_value_type_raises() -> None:
+    with pytest.raises(TypeError, match='list or tuple'):
+        _prepared_additions({'extra_admin_paths': '/x'})
+
+
+def test_prepared_additions_non_mapping_raises() -> None:
+    with pytest.raises(TypeError, match='mapping or None'):
+        _prepared_additions(['/x'])
+
+
+def test_json_copy_rejects_non_serializable_supersedes() -> None:
+    with pytest.raises(ValueError, match='Supersedes must be JSON-serializable'):
+        _json_copy({'invalid': object()}, error='Supersedes must be JSON-serializable')
+

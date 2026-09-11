@@ -1,0 +1,4344 @@
+{
+  "meta": {
+    "wp_id": "wp-fc6f91338ad3",
+    "mp_id": "MP-UI-INVENTORY",
+    "source_commit": "5f5f6cb535922db8453c68d871279d6b2e203391",
+    "schema": 25,
+    "baseline_status": "proposed_never_user_approved",
+    "captured_at": "2026-09-09T01:13:06.112430+00:00",
+    "lane": "grok-build",
+    "model": "grok-4.6",
+    "locale": "de-CH",
+    "timezone": "Europe/Zurich",
+    "dpr": 1,
+    "browser": "playwright-chromium 151.0.7922.34",
+    "browser_version": "151.0.7922.34",
+    "engine": "playwright.chromium",
+    "headless": true,
+    "testdata": "isolated_pg_schema25_seed_plus_demo_snapshots_kw36",
+    "live_requests": false,
+    "production_persons": false,
+    "source_hashes": {
+      "database/schema.sql": "cf782c028651f715cc0b01c05bd7f9d828d80b515953b11270e67e6cbe2f5a68",
+      "database/seed.sql": "cf7678a1e829b7115b641d6402e81b842f203fbfb727a0ef0bdcec18c605bc11",
+      "demo/snapshots/cafeteria_kw36.json": "1083703586354d662f43de2f8a7c42b3afeb6ac9cd125c352efacebe46c0540e",
+      "demo/snapshots/patienten_kw36.json": "7087d11069583805a73030f6d82836cf2c27450bab8f40b726b3af6aba63641a"
+    },
+    "snapshots_injected": true
+  },
+  "viewports": {
+    "required_html": [
+      {
+        "width": 1440,
+        "height": 900
+      },
+      {
+        "width": 390,
+        "height": 844
+      }
+    ],
+    "reference_extra": [
+      {
+        "width": 1024,
+        "height": 768
+      },
+      {
+        "width": 768,
+        "height": 1024
+      },
+      {
+        "width": 1920,
+        "height": 1080
+      }
+    ]
+  },
+  "captures": [
+    {
+      "path": "/cafeteria/heute/",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/cafeteria/heute/",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/cafeteria_heute-1440x900.png",
+      "screenshot_sha256": "689512fd1efbfc9d0e79f140912e5260da061ea571d19a82b9e668ea3aa4b316",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 18
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/cafeteria/heute/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/cafeteria/heute/",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/cafeteria_heute-390x844.png",
+      "screenshot_sha256": "ffc9db9b843ffa0d1b0cf032ad35d2a3547286684353f55a62261b0b2fe093fb",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 18
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/cafeteria/wochenangebot/",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/cafeteria/wochenangebot/",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/cafeteria_wochenangebot-1440x900.png",
+      "screenshot_sha256": "98e8df651a7be753b6c7d40eb7110d6ef5a5a94d738a3940930cc9482e5c0a2c",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 27
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/cafeteria/wochenangebot/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/cafeteria/wochenangebot/",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/cafeteria_wochenangebot-390x844.png",
+      "screenshot_sha256": "ff6197dfcf8d5e8bda641ce526111285e4ac066f847698980216b0ab715dc90a",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 27
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/cafeteria/wochenangebot/ohne-bilder/",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/cafeteria/wochenangebot/ohne-bilder/",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/cafeteria_wochenangebot_ohne-bilder-1440x900.png",
+      "screenshot_sha256": "fe7dcce2fb9617467caaf56aa4e3000afd38ecac7d7d93c421a13ee8a77e367a",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 27
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/cafeteria/wochenangebot/ohne-bilder/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/cafeteria/wochenangebot/ohne-bilder/",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/cafeteria_wochenangebot_ohne-bilder-390x844.png",
+      "screenshot_sha256": "e992498345e38e8ba4ed618a3ceec9f1d6ccc996fd43051571f4402fbbd45274",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 27
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/patienten/heute/",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/patienten/heute/",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/patienten_heute-1440x900.png",
+      "screenshot_sha256": "26c4d228ceaab0247fedc2a112827fccb969c25da4206f1d825f63e43d78b1d6",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 23
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/patienten/heute/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/patienten/heute/",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/patienten_heute-390x844.png",
+      "screenshot_sha256": "9fef948fbaa4569fb5483dc5aa1679f38c563229b4ce830d3788376d459c3917",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 23
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/patienten/wochenplan/",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/patienten/wochenplan/",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/patienten_wochenplan-1440x900.png",
+      "screenshot_sha256": "492fd06958bbd4ee2fd7cc9fbc9f28db697348f1ba2ddc71ef25505a48464cda",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 37
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/patienten/wochenplan/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/patienten/wochenplan/",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/patienten_wochenplan-390x844.png",
+      "screenshot_sha256": "9d80bdef62d3c5de53ba9c1db6d5efee680777a26d28d5728e5e691d67a19241",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 36
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/patienten/wochenplan/ohne-bilder/",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/patienten/wochenplan/ohne-bilder/",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/patienten_wochenplan_ohne-bilder-1440x900.png",
+      "screenshot_sha256": "384a2e6b700fd3d92f669381820b94feaca79bef57f2a53a69cc63c9b7b4c34f",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 37
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/patienten/wochenplan/ohne-bilder/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/patienten/wochenplan/ohne-bilder/",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/patienten_wochenplan_ohne-bilder-390x844.png",
+      "screenshot_sha256": "e7727aeb06f0a974c604470fcb347814939031d3d93c16c23b49f304cd6e8414",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 36
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/druck/cafeteria/woche",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/druck/cafeteria/woche",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/druck_cafeteria_woche-1440x900.png",
+      "screenshot_sha256": "2a30e8d6dc1f8d32b15ef3bc469268fc25a7a04a4c6e5d2cf5363aec12ca0718",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", Aptos, \"Segoe UI Variable\", \"Segoe UI\", ui-sans-serif, sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans",
+            "glyphs": 27
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/druck/cafeteria/woche",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/druck/cafeteria/woche",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/druck_cafeteria_woche-390x844.png",
+      "screenshot_sha256": "fd31b180256cda648260f2c0b42e7ec2e1022a07107e6b6d16a665c70862fb9a",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", Aptos, \"Segoe UI Variable\", \"Segoe UI\", ui-sans-serif, sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans",
+            "glyphs": 26
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/druck/patienten/woche",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/druck/patienten/woche",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/druck_patienten_woche-1440x900.png",
+      "screenshot_sha256": "741c67ae2f23a6dc469a861a5808ed51915d96a7bbd2ba711a4f489e19187f54",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", Aptos, \"Segoe UI Variable\", \"Segoe UI\", ui-sans-serif, sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans",
+            "glyphs": 36
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/druck/patienten/woche",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/druck/patienten/woche",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/druck_patienten_woche-390x844.png",
+      "screenshot_sha256": "a7f4c6db0a8c7cf2de6cc086c79ecb540d2021d4ac5cdd606c319c8652f5a308",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", Aptos, \"Segoe UI Variable\", \"Segoe UI\", ui-sans-serif, sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans",
+            "glyphs": 36
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/cafeteria/legende/",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/cafeteria/legende/",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/cafeteria_legende-1440x900.png",
+      "screenshot_sha256": "71a1454be85010e98e6f527ece7e2b17a5c839c07f042f08769ef6fb20f1e917",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", Aptos, \"Segoe UI Variable\", \"Segoe UI\", ui-sans-serif, sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans",
+            "glyphs": 22
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/cafeteria/legende/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/cafeteria/legende/",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/cafeteria_legende-390x844.png",
+      "screenshot_sha256": "accae6ac2074c85e6e62a6c4e98e0b043b87ce82397d3e3d828ba3613aa842e4",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", Aptos, \"Segoe UI Variable\", \"Segoe UI\", ui-sans-serif, sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans",
+            "glyphs": 22
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/signage/cafeteria/tag",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/signage/cafeteria/tag",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/signage_cafeteria_tag-1440x900.png",
+      "screenshot_sha256": "47a89e5c5a728d8238fd89e2107db13f517f4850fc56f0598cd7a5ffbe88c6b9",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans",
+            "glyphs": 56
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/signage/cafeteria/tag",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/signage/cafeteria/tag",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/signage_cafeteria_tag-390x844.png",
+      "screenshot_sha256": "33946b20a2736b5c670ed50e12c5ff8cb914d71e0852b7d9006a5e5922e4f369",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans",
+            "glyphs": 55
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/signage/cafeteria/woche",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/signage/cafeteria/woche",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/signage_cafeteria_woche-1440x900.png",
+      "screenshot_sha256": "6663ceff2da4d3c8e8a99055e42fc23186a802dd7945da751b86b045eb87556b",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans",
+            "glyphs": 56
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/signage/cafeteria/woche",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/signage/cafeteria/woche",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/signage_cafeteria_woche-390x844.png",
+      "screenshot_sha256": "65d325cef5fd856035137599905271334989b32e42c4fa988c7199eb042e1601",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans",
+            "glyphs": 54
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/signage/patienten/tag",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/signage/patienten/tag",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/signage_patienten_tag-1440x900.png",
+      "screenshot_sha256": "1d9611f666b1dea0eb07287807b8336c4b53b4c46c236400cf815bb75adfc76b",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans",
+            "glyphs": 26
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/signage/patienten/tag",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/signage/patienten/tag",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/signage_patienten_tag-390x844.png",
+      "screenshot_sha256": "b39cee6b4a1f411e40edb53840f7f724a5a99572e4062b0c6e9eb046d640d514",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans",
+            "glyphs": 26
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/signage/patienten/woche",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/signage/patienten/woche",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/signage_patienten_woche-1440x900.png",
+      "screenshot_sha256": "453b6d209495bbccd3cf8459a5d19df0063f8e04f76ed6908286a777d8d3508d",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans",
+            "glyphs": 45
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/signage/patienten/woche",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/signage/patienten/woche",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/signage_patienten_woche-390x844.png",
+      "screenshot_sha256": "465255185d4aa0376c935d3ae362149e399ed64aedf4661a226008d51b83530f",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans",
+            "glyphs": 44
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/auth/local",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/auth/local",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/auth_local-1440x900.png",
+      "screenshot_sha256": "927b607ae18d4cfb79fde554b4caa83ba678222bc7d73067baae5dd7e8f6be1b",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", Aptos, \"Segoe UI Variable\", \"Segoe UI\", ui-sans-serif, sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans",
+            "glyphs": 8
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/auth/local",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/auth/local",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/auth_local-390x844.png",
+      "screenshot_sha256": "deb9480a406bff8582d77723da1029847386c78704cee062b17eb1c5c664e023",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", Aptos, \"Segoe UI Variable\", \"Segoe UI\", ui-sans-serif, sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans",
+            "glyphs": 8
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "anonymous-401",
+      "status": 401,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria-anonymous-401-1440x900.png",
+      "screenshot_sha256": "92abd901579eabc52961f323ef9b494b4df12f9aa435422dfc25e37046796406",
+      "overflow_horizontal": false,
+      "console": [
+        "error: Failed to load resource: the server responded with a status of 401 (UNAUTHORIZED)"
+      ],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Times New Roman\"",
+        "h1": "\"Times New Roman\"",
+        "platform": [
+          {
+            "family": "Liberation Serif",
+            "glyphs": 12
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/auth/login",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "auth-login",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/auth_login-auth-login-1440x900.png",
+      "screenshot_sha256": "60256a926654b986d6de9285ad9defb40ac7bce42163e86d869a1d1401c4fa73",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 25
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria-1440x900.png",
+      "screenshot_sha256": "558bfba06e78d5f2678a66bf3a4981da1737d76581fa0b7153cf7e6d502c1684",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 25
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria-390x844.png",
+      "screenshot_sha256": "e3e4a5d6c5190917069b2ff1a30f4baede5ad0f3b9ead6c54d08837dcbf1799d",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 25
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "suffix": "reference",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria-reference-1024x768.png",
+      "screenshot_sha256": "110341beab62b6c56cec4146fd2aca059f11a1acd58b972666c0db749f07208f",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 25
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "suffix": "reference",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria-reference-768x1024.png",
+      "screenshot_sha256": "abe9098c43be904ca26a166f4bd9e97975f1fa285ad39496aac6c37dc6b1267b",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 25
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "suffix": "reference",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria-reference-1920x1080.png",
+      "screenshot_sha256": "5a3014b92adfa80e307fa5e8f2276be8d81feb1f3c986421ff0a5a4144c1c43b",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 25
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/patienten",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/patienten",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_patienten-1440x900.png",
+      "screenshot_sha256": "50b7972729b935dfaea9835a811b8a85c9b5d87859f1b04e9f5d3357c8b1abee",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 24
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/patienten",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/patienten",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_patienten-390x844.png",
+      "screenshot_sha256": "349693617d7093c909b16a1d32469ff39f1230976c804238b4d38b830bb67338",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 24
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/menues",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/menues",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_menues-1440x900.png",
+      "screenshot_sha256": "09f2afde900e21d04cece0e1ddee068ff4575172187e502e0aab26d35da38375",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 5
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/menues",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/menues",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_menues-390x844.png",
+      "screenshot_sha256": "234917efdbb3bed2adea0de3befe5dc8ce91b16da93591e196c0aa0649a89812",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 5
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/menues",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "suffix": "reference",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/menues",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_menues-reference-1024x768.png",
+      "screenshot_sha256": "d88e428fd1ef54d72748d1d6fd9b12daf4ccd901123a4ee3c53070dcd00924af",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 5
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/menues",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "suffix": "reference",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/menues",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_menues-reference-768x1024.png",
+      "screenshot_sha256": "3b9c30d8b6d7feb44f101de46aa4da1f8affaeee1be2d60db2ecdfb7bb9ce80f",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 5
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/menues",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "suffix": "reference",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/menues",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_menues-reference-1920x1080.png",
+      "screenshot_sha256": "560ccaffe67ee28b557c30bfa46b113cc9af8d1c86cf3fc65b02ad8708badd2e",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 5
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/patienten/menues",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/patienten/menues",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_patienten_menues-1440x900.png",
+      "screenshot_sha256": "aa0f52ac9ae1255465688efe7c44b451bad6a19a8182e334b7bfcfe08451ba76",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 5
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/patienten/menues",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/patienten/menues",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_patienten_menues-390x844.png",
+      "screenshot_sha256": "cdc64a88e00a955e264a3e7def8e51f04d35dbff04874821ebd6e295d7c7faf8",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 5
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/komponenten",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/komponenten",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_komponenten-1440x900.png",
+      "screenshot_sha256": "206be1e345d890f8021f773bb412ddace38b21cd06c9787833211c8ea8b64a11",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 11
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/komponenten",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/komponenten",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_komponenten-390x844.png",
+      "screenshot_sha256": "ac81411aab52273651e3a9e60b24404b3edb9756ba93f0c0e6c891e9e9d1a43b",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 11
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/patienten/komponenten",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/patienten/komponenten",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_patienten_komponenten-1440x900.png",
+      "screenshot_sha256": "e4c8f225f9c8ab01c0a596f042f8ea788e47c0568089b1ada3bf74043608d019",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 11
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/patienten/komponenten",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/patienten/komponenten",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_patienten_komponenten-390x844.png",
+      "screenshot_sha256": "d3420308f9888157fe684216f241643cf13e3c79f02ca02793ddbaf2f80c185a",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 11
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/copy?week=2026-08-31",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 404,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/copy?week=2026-08-31",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_copy?week=2026-08-31-1440x900.png",
+      "screenshot_sha256": "08a16b48edb87a5374cbba5e8c43c64a773aef6ca1c703b024c21ca905eeb63b",
+      "overflow_horizontal": false,
+      "console": [
+        "error: Failed to load resource: the server responded with a status of 404 (NOT FOUND)"
+      ],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Times New Roman\"",
+        "h1": "\"Times New Roman\"",
+        "platform": [
+          {
+            "family": "Liberation Serif",
+            "glyphs": 9
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/copy?week=2026-08-31",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 404,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/copy?week=2026-08-31",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_copy?week=2026-08-31-390x844.png",
+      "screenshot_sha256": "e288195274306f3201a162cb125875037dff3aaa8890e6cc5fa6f0d447023dd7",
+      "overflow_horizontal": false,
+      "console": [
+        "error: Failed to load resource: the server responded with a status of 404 (NOT FOUND)"
+      ],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Times New Roman\"",
+        "h1": "\"Times New Roman\"",
+        "platform": [
+          {
+            "family": "Liberation Serif",
+            "glyphs": 9
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/preview?week=2026-08-31",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/preview?week=2026-08-31",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_preview?week=2026-08-31-1440x900.png",
+      "screenshot_sha256": "f35ec146e34123e1f659d114929916a557b82ff1fcea2d566e5cc2c2b3e799ea",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", Aptos, \"Segoe UI Variable\", \"Segoe UI\", ui-sans-serif, sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans",
+            "glyphs": 42
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/preview?week=2026-08-31",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/preview?week=2026-08-31",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_preview?week=2026-08-31-390x844.png",
+      "screenshot_sha256": "8b7575e04f0e8e8aee1b429924831c9c53eb9e3503bfbbb83dfd6a589b30cecd",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", Aptos, \"Segoe UI Variable\", \"Segoe UI\", ui-sans-serif, sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans",
+            "glyphs": 41
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/wochen",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/wochen",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_wochen-1440x900.png",
+      "screenshot_sha256": "11cc3416296210c5d9437b21abbc7743e22aaff387b1f37cbc4c5606b9932e3d",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 16
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/wochen",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/wochen",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_wochen-390x844.png",
+      "screenshot_sha256": "5db40c7bccc910f2227911c54e935227d5478fef57131b258b220ce4e60ed1fa",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 16
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/wochen/pruefung?week=2026-08-31",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/wochen/pruefung?week=2026-08-31",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_wochen_pruefung?week=2026-08-31-1440x900.png",
+      "screenshot_sha256": "1f5d416947c23af0c05e93b666d5c1392b25728ea369c8deff8424a5a853d7a9",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 37
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/wochen/pruefung?week=2026-08-31",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/wochen/pruefung?week=2026-08-31",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_wochen_pruefung?week=2026-08-31-390x844.png",
+      "screenshot_sha256": "03df4bedfebd8ec889c394da3f39346034495d32dfe3c953948584ace7056a9f",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 36
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/import-preview",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/import-preview",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_import-preview-1440x900.png",
+      "screenshot_sha256": "e0f8c1b1afb813036a176f9168928cd4a7bc92a852db6c63b886547780d3b3d7",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 17
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/import-preview",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/import-preview",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_import-preview-390x844.png",
+      "screenshot_sha256": "3059b99ff428076b70bb73ff7bb5f32298656169c158e5d489ec5b55db2cd5b3",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 17
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/grundlagen",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/grundlagen",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_grundlagen-1440x900.png",
+      "screenshot_sha256": "16f35eed3ad7fe1106c01df22a9e70a959bcabfa1ac1ba812adb2f0da1f3c975",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 10
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/grundlagen",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/grundlagen",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_grundlagen-390x844.png",
+      "screenshot_sha256": "ee165954dd3cff6cc1f28a8b657110874be8346fdd22cdb52c4ca4a4f3949702",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 10
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/rezepte",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/rezepte",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_rezepte-1440x900.png",
+      "screenshot_sha256": "d3c510dec34f3419d8b361bc71fae0d314605cfdd79da27f7add71138ed7b876",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 7
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/rezepte",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/rezepte",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_rezepte-390x844.png",
+      "screenshot_sha256": "c93fe6057f723ca3a58241714cc6d85a18711eb3f2f8ad77364bbdd410852e98",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 7
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/rezepte/neu",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/rezepte/neu",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_rezepte_neu-1440x900.png",
+      "screenshot_sha256": "931c4dc429ca73e997a4ff3338d42b3d514f1c60a9a64546ffe385825ea2a647",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 14
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/rezepte/neu",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/rezepte/neu",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_rezepte_neu-390x844.png",
+      "screenshot_sha256": "05550dba4f58546f1f492a50ac0a9bc38365003fa8baf17362700d3cde927592",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 14
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/kochbuecher",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/kochbuecher",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_kochbuecher-1440x900.png",
+      "screenshot_sha256": "8cd87f4e81d7fc541d8c1b17862c20bf7d88eda724299060270638881ce2d29c",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 10
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/kochbuecher",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/kochbuecher",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_kochbuecher-390x844.png",
+      "screenshot_sha256": "f770a282fb921cd3f9ac0caf8ccfa25c798f98387c0137b73bdc7e51d11f6793",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 10
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/kochbuecher/neu",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/kochbuecher/neu",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_kochbuecher_neu-1440x900.png",
+      "screenshot_sha256": "8da2625b33ab77008e697b83e394bab36952781b7babdc87d12bdbb1be81fa33",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 14
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/kochbuecher/neu",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/kochbuecher/neu",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_kochbuecher_neu-390x844.png",
+      "screenshot_sha256": "b06dff430069c0f9a4ff35cc8ddf9dff7dcb5b52f44baa49d620475fbbd8e577",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 14
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/screens",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/screens",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_screens-1440x900.png",
+      "screenshot_sha256": "32f127f59fc40074c5b738a11f284b31bf848c87f489641eb1eb2f36b44cad3a",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 7
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/screens",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/screens",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_screens-390x844.png",
+      "screenshot_sha256": "3a8b4dffeefc583275a2262b5da42e3d2b0a59bc5c219bc5e55c13c6411025f1",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 7
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/vorlagen",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/vorlagen",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_vorlagen-1440x900.png",
+      "screenshot_sha256": "aefd623c663515b8f2fb12956f281974e814907a515c76405406b6a872347008",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 8
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/vorlagen",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/vorlagen",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_vorlagen-390x844.png",
+      "screenshot_sha256": "027b6b6750ebd47758f059e454bd2472dae5f2cca0f1d3479a9bc7a463b8a775",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 8
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/design/darstellung",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/design/darstellung",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_design_darstellung-1440x900.png",
+      "screenshot_sha256": "ffffd755718daeca378de6ba518a00b6e3539f7149cbf1620aee616b69a16898",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 14
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/design/darstellung",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/design/darstellung",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_design_darstellung-390x844.png",
+      "screenshot_sha256": "1f2ecfb786e022c1d17997543f8c0d754846b2607b1dfc8dc420e900a0c71f3c",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 14
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/design/darstellung",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "suffix": "reference",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/design/darstellung",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_design_darstellung-reference-1024x768.png",
+      "screenshot_sha256": "b8850ab427f1e2ae1763b538fc044d106a2e4f88b5f4f19c74451c945858c8cc",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 14
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/design/darstellung",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "suffix": "reference",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/design/darstellung",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_design_darstellung-reference-768x1024.png",
+      "screenshot_sha256": "0fce782d0ae47b518e4144b19bab342e7dd48ad4d85da7dda6945e887299603c",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 14
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/design/darstellung",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "suffix": "reference",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/design/darstellung",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_design_darstellung-reference-1920x1080.png",
+      "screenshot_sha256": "98382cb4ed81130e11c6558fbf660c94fb94a6916bebaed31e08ef3b7511a685",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 14
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/design/marke",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/design/marke",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_design_marke-1440x900.png",
+      "screenshot_sha256": "640762a0430bac95048a219d29c2391064f24d5f26a63c1df0611f0d5b287398",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 14
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/design/marke",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/design/marke",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_design_marke-390x844.png",
+      "screenshot_sha256": "0cc916c72d837beaee4407f7d08e1bfd60540c6151f2ff7976e047585931c252",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 14
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/bereiche-zeiten",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/bereiche-zeiten",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_bereiche-zeiten-1440x900.png",
+      "screenshot_sha256": "401b92affee398a6fd756fd4716b8d66e95116b6125c5b49abaf770eab7b99a3",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 17
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/bereiche-zeiten",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/bereiche-zeiten",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_bereiche-zeiten-390x844.png",
+      "screenshot_sha256": "11351d748fcd5c88cdfcbaf60441a4ca2b0ff53421f8b2507e794d5504a81f68",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 17
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/benutzer",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/benutzer",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_benutzer-1440x900.png",
+      "screenshot_sha256": "9f36d13eb520115cc17a28c1f1f6934b4db56989a0f3f579a2c2218653896d0f",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 18
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/benutzer",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/benutzer",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_benutzer-390x844.png",
+      "screenshot_sha256": "79501f95b2dd09815d928d5a15d2f46c7fbb33305761b00a7e832d3da12bee62",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 18
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/benutzer/neu",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/benutzer/neu",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_benutzer_neu-1440x900.png",
+      "screenshot_sha256": "e35b6c40cc811b62c52c716e2056844f8eff6e767b3a327b4671632808f11323",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 16
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/benutzer/neu",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/benutzer/neu",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_benutzer_neu-390x844.png",
+      "screenshot_sha256": "05538861a451bfb64c3b8a7c8be8146e979151ebae6438ae56d4e2a325d2919c",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 16
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/benutzer/protokoll",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/benutzer/protokoll",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_benutzer_protokoll-1440x900.png",
+      "screenshot_sha256": "b04dadd0394e90f314064dc4783c18219486a48c7da79a7b7db71c6b6393074f",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 15
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/benutzer/protokoll",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/benutzer/protokoll",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_benutzer_protokoll-390x844.png",
+      "screenshot_sha256": "81e1d22d991f813a14ce3a57e09ee8ec2ab577938245d015956939c9961a3f76",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 15
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/benutzer/zugriffsverlauf",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/benutzer/zugriffsverlauf",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_benutzer_zugriffsverlauf-1440x900.png",
+      "screenshot_sha256": "0222932719981e65ea0c6fa70fb0f502cd2c7ed705131d1bc86ad04e277beeba",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 15
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/benutzer/zugriffsverlauf",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/benutzer/zugriffsverlauf",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_benutzer_zugriffsverlauf-390x844.png",
+      "screenshot_sha256": "5a0a61b738def870d812988f901b944ad51ca736c95b5cc357187f3f484c0912",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 15
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/api",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/api",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_api-1440x900.png",
+      "screenshot_sha256": "f969835cb17d780ea2265d4eaf333aa609d0787960a8a4504ceb46ec3eab1937",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 20
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/api",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/api",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_api-390x844.png",
+      "screenshot_sha256": "b8cdb400f688faa73cf14f2bcf5470b5f07661c0bbce8beaf49526d22a5e8ea8",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 20
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/api/v1/docs",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/api/v1/docs",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/api_v1_docs-1440x900.png",
+      "screenshot_sha256": "392f8671cab0e253e0577760a586b459d86ee2033ee3776fd1ebbecb9cc2d93b",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Times New Roman\"",
+        "h1": "sans-serif",
+        "platform": [
+          {
+            "family": "Liberation Sans",
+            "glyphs": 18
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/api/v1/docs",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/api/v1/docs",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/api_v1_docs-390x844.png",
+      "screenshot_sha256": "0b868f8f3fa95cb6e8becb842fad13d951489c573d84bd89068b6f355b9d751f",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Times New Roman\"",
+        "h1": "sans-serif",
+        "platform": [
+          {
+            "family": "Liberation Sans",
+            "glyphs": 18
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/komponenten/fd426f8a-8acd-49da-9956-27a46f06033d",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/komponenten/fd426f8a-8acd-49da-9956-27a46f06033d",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_komponenten_fd426f8a-8acd-49da-9956-27a46f06033d-1440x900.png",
+      "screenshot_sha256": "36af472eb388763ad3989b218f957119d64db1ea1e0d9e642fc6ec3b6d0d09f3",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 14
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/komponenten/fd426f8a-8acd-49da-9956-27a46f06033d",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/komponenten/fd426f8a-8acd-49da-9956-27a46f06033d",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_komponenten_fd426f8a-8acd-49da-9956-27a46f06033d-390x844.png",
+      "screenshot_sha256": "307cf70709c0d2ff27d44ede039f0c360c228a69fa52fd8d231ab7408f4bea92",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 14
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/rezepte/824d7ff1-f3a1-45d4-a4eb-ee6ce13b4a55/revisionen/2054a379-c549-4124-8ad8-500ebf1ea531",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/rezepte/824d7ff1-f3a1-45d4-a4eb-ee6ce13b4a55/revisionen/2054a379-c549-4124-8ad8-500ebf1ea531",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_rezepte_824d7ff1-f3a1-45d4-a4eb-ee6ce13b4a55_revisionen_2054a379-c549-4124-8ad8-500ebf1ea531-1440x900.png",
+      "screenshot_sha256": "acfa7e2af3eabd0e529e2fcfd2a01efcdb485be5a63e2333a1f0c6ebb957929f",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 25
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/rezepte/824d7ff1-f3a1-45d4-a4eb-ee6ce13b4a55/revisionen/2054a379-c549-4124-8ad8-500ebf1ea531",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/rezepte/824d7ff1-f3a1-45d4-a4eb-ee6ce13b4a55/revisionen/2054a379-c549-4124-8ad8-500ebf1ea531",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_rezepte_824d7ff1-f3a1-45d4-a4eb-ee6ce13b4a55_revisionen_2054a379-c549-4124-8ad8-500ebf1ea531-390x844.png",
+      "screenshot_sha256": "0a62e235d62f05244efd823dcc78f3c7076934806fc49abeffed7ccdf9d0e1d4",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 25
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/rezepte/824d7ff1-f3a1-45d4-a4eb-ee6ce13b4a55/revisionen/2054a379-c549-4124-8ad8-500ebf1ea531",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "suffix": "reference",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/rezepte/824d7ff1-f3a1-45d4-a4eb-ee6ce13b4a55/revisionen/2054a379-c549-4124-8ad8-500ebf1ea531",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_rezepte_824d7ff1-f3a1-45d4-a4eb-ee6ce13b4a55_revisionen_2054a379-c549-4124-8ad8-500ebf1ea531-reference-1024x768.png",
+      "screenshot_sha256": "c1bfcac046cde3008bd14b8409ef10bd4d0c9008c29fbe0e6d101fd5c6a7c2db",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 25
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/rezepte/824d7ff1-f3a1-45d4-a4eb-ee6ce13b4a55/revisionen/2054a379-c549-4124-8ad8-500ebf1ea531",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "suffix": "reference",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/rezepte/824d7ff1-f3a1-45d4-a4eb-ee6ce13b4a55/revisionen/2054a379-c549-4124-8ad8-500ebf1ea531",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_rezepte_824d7ff1-f3a1-45d4-a4eb-ee6ce13b4a55_revisionen_2054a379-c549-4124-8ad8-500ebf1ea531-reference-768x1024.png",
+      "screenshot_sha256": "f24c317005fe964386a4a48723efa519b35295846cc7b2f3354b9dafd5bf8b04",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 25
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/rezepte/824d7ff1-f3a1-45d4-a4eb-ee6ce13b4a55/revisionen/2054a379-c549-4124-8ad8-500ebf1ea531",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "suffix": "reference",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/rezepte/824d7ff1-f3a1-45d4-a4eb-ee6ce13b4a55/revisionen/2054a379-c549-4124-8ad8-500ebf1ea531",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_rezepte_824d7ff1-f3a1-45d4-a4eb-ee6ce13b4a55_revisionen_2054a379-c549-4124-8ad8-500ebf1ea531-reference-1920x1080.png",
+      "screenshot_sha256": "beda403a7ca2434c6587e1bb28d1efea93406fdbc1becdecaa97b15bc811996c",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 25
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/copy?week=2026-09-07",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/copy?week=2026-09-07",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_copy?week=2026-09-07-1440x900.png",
+      "screenshot_sha256": "8ccb8ce930f640d1f3549ffdd0b5e8914705b0fa342a33f9941eda502439fb2e",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 17
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/copy?week=2026-09-07",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/copy?week=2026-09-07",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_copy?week=2026-09-07-390x844.png",
+      "screenshot_sha256": "eede23f143e513ea5af73dcae909450537f7f81f6c4f6f2ed5c2a12d02883c68",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 17
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1-1440x900.png",
+      "screenshot_sha256": "626b08310f845d9416359fb9058052d11d67e5242ac0915db1335cb057adea77",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 44
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1-390x844.png",
+      "screenshot_sha256": "7974d65884d05440d1b37eacc887d811fb941e50507e07eca455c74ece984c7d",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 43
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "suffix": "reference",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1-reference-1024x768.png",
+      "screenshot_sha256": "fcb177f20ef5c15653ad7d948d240e4e9f1f3297392d6669e9282cd74bc97728",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 44
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "suffix": "reference",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1-reference-768x1024.png",
+      "screenshot_sha256": "34508d8a930eeb8e4eb2f05e9751a42a546a2c849295e00fa7285e1aaaf3f9d5",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 44
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "suffix": "reference",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1-reference-1920x1080.png",
+      "screenshot_sha256": "46fc4468819a5059bbba2375c85656d014c450b665991892cd888b6ca6285c33",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 44
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/copy",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "missing-week-404",
+      "status": 404,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/copy",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_copy-missing-week-404-1440x900.png",
+      "screenshot_sha256": "08a16b48edb87a5374cbba5e8c43c64a773aef6ca1c703b024c21ca905eeb63b",
+      "overflow_horizontal": false,
+      "console": [
+        "error: Failed to load resource: the server responded with a status of 404 (NOT FOUND)"
+      ],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Times New Roman\"",
+        "h1": "\"Times New Roman\"",
+        "platform": [
+          {
+            "family": "Liberation Serif",
+            "glyphs": 9
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria/wochen/pruefung",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "missing-week-400",
+      "status": 400,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria/wochen/pruefung",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria_wochen_pruefung-missing-week-400-1440x900.png",
+      "screenshot_sha256": "64535cd59b3211d353c45d3dfcafec78f491fb60238182a088c3537f1ddc3ac4",
+      "overflow_horizontal": false,
+      "console": [
+        "error: Failed to load resource: the server responded with a status of 400 (BAD REQUEST)"
+      ],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Times New Roman\"",
+        "h1": "\"Times New Roman\"",
+        "platform": [
+          {
+            "family": "Liberation Serif",
+            "glyphs": 11
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "dialog-publish",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria-dialog-publish-1440x900.png",
+      "screenshot_sha256": "59c2cdce81a1054e0b7af4de0180212391ab35fff2e1b537f1a480976c9e9f69",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 25
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/cafeteria",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "editor-nav",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/admin/cafeteria",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_cafeteria-editor-nav-1440x900.png",
+      "screenshot_sha256": "8b7c5126547fe82f1fa4462f5d9f627957adbb9e988d30e3c672f6b9b8e804f2",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 25
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/benutzer",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "editor-403",
+      "status": 403,
+      "final_url": "http://127.0.0.1:37885/admin/benutzer",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_benutzer-editor-403-1440x900.png",
+      "screenshot_sha256": "cd4a82f93a40af53828bbe1f72cf114d41940f48a73dc8c0ae706f47a353cf29",
+      "overflow_horizontal": false,
+      "console": [
+        "error: Failed to load resource: the server responded with a status of 403 (FORBIDDEN)"
+      ],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Times New Roman\"",
+        "h1": "\"Times New Roman\"",
+        "platform": [
+          {
+            "family": "Liberation Serif",
+            "glyphs": 9
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/admin/design/darstellung",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "suffix": "editor-settings",
+      "status": 403,
+      "final_url": "http://127.0.0.1:37885/admin/design/darstellung",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/admin_design_darstellung-editor-settings-1440x900.png",
+      "screenshot_sha256": "cd4a82f93a40af53828bbe1f72cf114d41940f48a73dc8c0ae706f47a353cf29",
+      "overflow_horizontal": false,
+      "console": [
+        "error: Failed to load resource: the server responded with a status of 403 (FORBIDDEN)"
+      ],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Times New Roman\"",
+        "h1": "\"Times New Roman\"",
+        "platform": [
+          {
+            "family": "Liberation Serif",
+            "glyphs": 9
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/signage/cafeteria/tag",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "suffix": "closed-sunday",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/signage/cafeteria/tag",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/signage_cafeteria_tag-closed-sunday-1920x1080.png",
+      "screenshot_sha256": "43b6a343cc61e899e447de6656dd81883c3dcb6b9664fec54f64e687a04b46a5",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 11
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    },
+    {
+      "path": "/signage/cafeteria/tag",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "suffix": "closed-sunday",
+      "status": 200,
+      "final_url": "http://127.0.0.1:37885/signage/cafeteria/tag",
+      "screenshot": ".claude/evidence/ui-inventory-proof-fix-0909/capture/screenshots/signage_cafeteria_tag-closed-sunday-390x844.png",
+      "screenshot_sha256": "b928e3c77560e696dafd8506c838acfd0363de763ec3ac110963420be1153b55",
+      "overflow_horizontal": false,
+      "console": [],
+      "request_failures": [],
+      "computed_fonts": {
+        "body": "\"Fira Sans\", sans-serif",
+        "h1": "\"Fira Sans\", sans-serif",
+        "platform": [
+          {
+            "family": "Fira Sans SemiBold",
+            "glyphs": 11
+          }
+        ],
+        "platform_source": "cdp:CSS.getPlatformFontsForNode"
+      },
+      "readiness": {
+        "load": true,
+        "lazy_sweep": true,
+        "fonts": true,
+        "images": true,
+        "timeout_ms": 15000,
+        "pending_images": [],
+        "error": null
+      },
+      "rendered": true,
+      "source_discovered_only": false
+    }
+  ],
+  "coverage_blocks": [
+    {
+      "id": "entra_callback_live_tenant",
+      "reason": "Cannot safely synthesize a real Entra tenant or production person.",
+      "status": "blocked_not_fake_pass"
+    },
+    {
+      "id": "recipe_revision_detail_entity",
+      "reason": "Seed has no recipes, so the caller creates a synthetic same-site recipe and freezes one immutable v1 revision through the existing recipe store before the run. The detail row is captured whenever that entity is supplied.",
+      "status": "resolved_by_synthetic_entity"
+    },
+    {
+      "id": "native_pdf_bytes",
+      "reason": "PDF downloads classified non-visual; HTML print routes captured separately.",
+      "status": "classified_download"
+    }
+  ],
+  "visual_inspection": ".claude/evidence/ui-inventory-grok-0909/visual-inspection.md"
+}
