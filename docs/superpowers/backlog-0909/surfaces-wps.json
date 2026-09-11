@@ -109,7 +109,7 @@
         "DSP-001"
       ],
       "kind": "research",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-INVENTORY"
       ],
@@ -167,7 +167,8 @@
       ],
       "completion_evidence": [
         "diff + eigener Branchcommit",
-        "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich"
+        "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
+        "2026-09-11 Ausführung wp-10e17980d6a1 (Lane codex-gpt5, Modell gpt-6-astra) auf Integrationsbasis 2db9c56: docs/superpowers/backlog-0909/ui-brand-compatibility-decision.md; Cross-Vendor-Review agy (gemini-3.8-flash-high) in fabd586 eingearbeitet, Archiv .claude/evidence/ui-design-wave-0911/reviews/brand-decision-cross-review-agy.md. Brand-Gate K5-A durch MP-UI-TOKENS in branding_tokens.py umgesetzt. Enthalten in github/main 996b79f, live über dishboard-deploy-main."
       ],
       "rollback": "Kein Produktrollback: nur datierte Evidenz ergänzen, fehlerhafte Belege als ungültig markieren."
     },
@@ -180,7 +181,7 @@
         "DSP-001"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-BRAND-DECISION"
       ],
@@ -249,7 +250,8 @@
       "completion_evidence": [
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
-        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix"
+        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
+        "2026-09-11 Ausführung wp-e8edcc4213f4 (Lane codex-gpt5, Modell gpt-6-astra): 25b9557 feat(ui): bind master tokens to Tabler and scope brand overrides to public outputs (tokens.css, admin-tabler.css, branding_tokens.py, test_ui_master_tokens_browser.py); 26 eigene Prüfungen grün. Fremdtest-Angleichung wp-e8edcc4213f4-tests (agy, 6bdf5e1); Orchestrator-Einzeiler --tblr-link-hover-color-rgb. Cross-Vendor-Review grok-4.6: .claude/evidence/ui-design-wave-0911/reviews/tokens-cross-review-grok.md. Regressionsgate 33 Dateien auf Integration: 743 passed, 0 skipped, GATE_EXIT=0 (.claude/evidence/ui-design-wave-0911/gates/04-tokens-regression-33-files.log, Pool test_root). Gepusht als github/main 996b79f, Prod-Klon /srv/dishboard/app auf 996b79f, Live-Image neu gebaut. OCR: FAILED (429), nicht CLEAN."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -261,7 +263,7 @@
         "DSP-001"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "depends_on": [
         "MP-UI-TOKENS"
       ],
@@ -328,7 +330,8 @@
       "completion_evidence": [
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
-        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix"
+        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
+        "2026-09-11 Spec docs/design/2026-09-11-admin-shell-navigation-spec.md (wp-ui-shell-spec-0911, 953fd28; Cross-Review grok 8f61204, .claude/evidence/ui-design-wave-0911/reviews/shell-spec-cross-review-grok.md). Ausführung v1 wp-52c02ef0f44d (Lane grok-build, Modell grok-4.6): c66b93b (fünf Gruppen, navbar-expand-lg 992 px, Tabler-Offcanvas, layout_variant standard|narrow|workspace, page_header-Block, Sidebar 248 px; 6 eigene Browser-Tests grün, 18 fremde rote Tests dokumentiert). Fremdtest-Angleichung 813273f (agy), Orchestrator d2bf449 (aria-hidden Beschreibung), 327b556 (Fokusfarbe), 8db3ae4 (capture.py Titelknoten). Cross-Review cursor: .claude/evidence/ui-design-wave-0911/reviews/shell-impl-cross-review-cursor.md. Gate 2 auf Integration: 10 Fehler (Offcanvas-Backdrop, Sidebar-Überlauf 1100 px, to_have_text auf Nav-Links, Fokusfarbentest) → Korrektur fix/ui-shell-gate2-0911 (cursor composer-2.5) in Arbeit. Shell v2 nach Referenzpaket NAV-01 (vier Hauptbereiche Wochenplan · Menüs & Bausteine · Vorschau & Bildschirme · Einstellungen, Bereichs-Tabs _area_tabs.html) feat/ui-shell-v2-0911 (codex gpt-6-astra) in Arbeit. v1 in integrate/ui-inventory-0911, noch nicht auf github/main."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -339,7 +342,7 @@
         "UI-003"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "INTEGRATED",
       "depends_on": [
         "MP-UI-SHELL",
         "MP-REC-BINDINGS"
@@ -406,7 +409,8 @@
       "completion_evidence": [
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
-        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix"
+        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
+        "2026-09-11 Ausführung wp-c011d6e56f9a (Lane antigravity-agy, Modell gemini-3.8-flash-high): 938481a page_header/field/select/textarea/checkbox/check/form_errors/status_badge/empty_state/pagination/actions in _macros.html + admin.js Fokus/Escape + test_ui_master_components_browser.py; 43 passed. Review-Korrektur wp-c011d6e56f9a-fix (cursor composer-2.5, 1cf700d: CSP-sichere readonly controls, form_errors a11y). Cross-Review cursor: .claude/evidence/ui-design-wave-0911/reviews/macros-cross-review-cursor.md. Orchestrator: select-Label optional (cbed492). In integrate/ui-inventory-0911, noch nicht auf github/main."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -418,7 +422,7 @@
         "UI-003"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "INTEGRATED",
       "depends_on": [
         "MP-UI-MACROS"
       ],
@@ -483,7 +487,8 @@
       "completion_evidence": [
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
-        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix"
+        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
+        "2026-09-11 Ausführung wp-cee07c070457 (Lane codex-gpt5, Modell gpt-6-astra): 1fc7d9d menu_collection.html + admin-menu-collection.css + test_ui_reference_list_browser.py; Blocker Profil-Tab-Kontrast 4.40:1 durch Orchestrator adce8fb (nav-pills muted token) gelöst. Cross-Review agy: .claude/evidence/ui-design-wave-0911/reviews/ref-list-cross-review-agy.md (1 major: Bausteine/Allergenstatus in der Tabelle, 4 minor) → fix/ui-ref-review-fixes-0911 (agy) in Arbeit; 5 veraltete Assertions test_menu_collection_browser.py dort. In integrate/ui-inventory-0911."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -495,7 +500,7 @@
         "CAT-001"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "INTEGRATED",
       "depends_on": [
         "MP-UI-MACROS",
         "MP-REC-BINDINGS"
@@ -563,7 +568,8 @@
       "completion_evidence": [
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
-        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix"
+        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
+        "2026-09-11 Ausführung wp-a19e4c6c652b (Lane codex-gpt5, Modell gpt-6-astra): zwei BLOCKED-Läufe (Shell-Spec fehlte auf Basis; 409/503-Eingabeerhalt widerspricht Backend-abort) → Entscheid: 409/503 behalten abort, Erhalt nur bei Validierungsfehlern; Basis b7b1ae4. Ergebnis b098d82 component_editor.html + admin-component-editor.css + test_ui_reference_form_browser.py, eigene Gates grün; 4 fremde Shell-Detail-Fehler durch Orchestrator 84ed03a. Cross-Review agy: .claude/evidence/ui-design-wave-0911/reviews/ref-form-cross-review-agy.md. Orchestrator: data-sticky entfernt, Breakpoints 1199.98→991.98 (cbed492). In integrate/ui-inventory-0911."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -575,7 +581,7 @@
         "TPL-001"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "INTEGRATED",
       "depends_on": [
         "MP-UI-MACROS",
         "MP-REC-PDF-RELEASE"
@@ -639,7 +645,8 @@
       "completion_evidence": [
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
-        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix"
+        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
+        "2026-09-11 Ausführung wp-d4d493887de3 (Lane antigravity-agy, Modell gemini-3.8-flash-high): 71762bf rezepte_revision.html + test_ui_reference_detail_browser.py (13 Tests, 90 gates passed, Pool test-recipe-pdf-http). Review-Korrektur wp-d4d493887de3-fix (cursor composer-2.5, 7a8654d: Zoom 200 %, 401, Fokusring, Leerzustand; 20/20 grün). Cross-Review cursor: .claude/evidence/ui-design-wave-0911/reviews/ref-detail-cross-review-cursor.md. In integrate/ui-inventory-0911."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -651,7 +658,7 @@
         "DSP-001"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "INTEGRATED",
       "depends_on": [
         "MP-UI-MACROS"
       ],
@@ -714,7 +721,8 @@
       "completion_evidence": [
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
-        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix"
+        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
+        "2026-09-11 Ausführung wp-0887ae005a92 (Lane antigravity-agy, Modell gemini-3.8-flash-high): 55c39a9 display_settings.html + test_ui_reference_settings_browser.py auf Makros + narrow 960; 48 passed (Pool test_sdd). Spec-Beschreibung im Seitenkopf a89f8fa. Cross-Review cursor: .claude/evidence/ui-design-wave-0911/reviews/ref-settings-cross-review-cursor.md; Restbefunde (aria-describedby am Reset, 401-Test) in fix/ui-ref-review-fixes-0911 (agy) in Arbeit. In integrate/ui-inventory-0911."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -726,7 +734,7 @@
         "UI-002"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "INTEGRATED",
       "depends_on": [
         "MP-UI-MACROS",
         "MP-REC-BINDINGS"
@@ -794,7 +802,8 @@
       "completion_evidence": [
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
-        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix"
+        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
+        "2026-09-11 Ausführung wp-aff8638d6f3f (Lane cursor, Modell composer-2.5): ced933c cafeteria.html + patienten.html + admin-week-tabler.css ([data-layout=\"workspace\"]) + test_ui_reference_workspace_browser.py (39/39 grün); 4 fremde 1200-px-Fehler in test_admin_week_tabler_browser.py → ce144fb (992 px). Cross-Review agy: .claude/evidence/ui-design-wave-0911/reviews/ref-workspace-cross-review-agy.md; Restbefunde (padding-left Token, doppelter Prüf-Link) in fix/ui-ref-review-fixes-0911 (agy) in Arbeit. In integrate/ui-inventory-0911."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -2269,7 +2278,7 @@
         "QA-001"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
       "depends_on": [],
       "existing_wp_id": null,
       "sdd_sections": [
@@ -2387,7 +2396,8 @@
         "diff+commit",
         "Screenshots in allen fuenf Master-Viewports mit Abdeckungstabelle",
         "gemessene y-Position, Leerstreifenhoehe und Clip-Geometrie mit Eckaufnahmen",
-        "reale Gate-Ausgabe der bestehenden oeffentlichen Vertragstests"
+        "reale Gate-Ausgabe der bestehenden oeffentlichen Vertragstests",
+        "Umgesetzt vor der UI-Welle: 3ea792c Polish white public week and cafeteria day layouts (public.css, signage.css, base_public.html, cafeteria_week.html, patient_week.html, cafeteria_day.html, test_public_white_polish_browser.py), Manifeste 6723e7c/bee7dbd, Konfliktfix 0d4352e + 8c8522d; gemergt als PR #2 b4b9dfa auf github/main; live über dishboard-deploy-main (Deploys ce3d826 und 996b79f am 2026-09-11)."
       ],
       "rollback": "Reine Oberflaechenaenderung an CSS und Templates; Ruecknahme durch die vorherigen Dateiversionen ohne Daten-, Scope- oder Reviewzustandsaenderung und ohne Migration."
     },
