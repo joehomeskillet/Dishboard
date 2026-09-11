@@ -64,6 +64,21 @@ def brand_tokens(config: BrandConfig) -> dict[str, str]:
     return tokens
 
 
+def _admin_primary_css(config: BrandConfig) -> str:
+    """Apply an entire primary family only when every master text pair passes."""
+    primary = validate_config(config)['primary']
+    hover, active = _blend(primary, 0, .12), _blend(primary, 0, .24)
+    # Master §5.1, accepted decision K3/K5: these surfaces are never brand-owned.
+    # The text threshold also exceeds the 3:1 non-text requirement for these pairs.
+    surfaces = ('#FFFFFF', '#F6F4F1', '#FAF9F7', '#F7E8EE')
+    if any(contrast(color, surface) < 4.5
+           for color in (primary, hover, active) for surface in surfaces):
+        return '/* Admin primary rejected: master-surface contrast below 4.5:1; master tokens apply. */'
+    channels = ', '.join(str(int(primary[index:index + 2], 16)) for index in (1, 3, 5))
+    return (f'.dishboard-admin{{--app-primary:{primary};--app-primary-hover:{hover};'
+            f'--app-primary-active:{active};--app-primary-rgb:{channels}}}')
+
+
 def branding_css(config: BrandConfig, static_prefix: str) -> str:
     declarations = ';'.join(f'{key}:{value}' for key, value in brand_tokens(config).items())
     fonts = ''.join(
@@ -73,16 +88,14 @@ def branding_css(config: BrandConfig, static_prefix: str) -> str:
     )
     return fonts + ':root{' + declarations + '}' + (
         '.brand-logo{object-fit:contain;max-width:100%}'
-        '.dishboard-admin h1,.dishboard-admin h2,.dishboard-admin h3,'
         '.public-page h1,.public-page h2,.public-page h3{font-family:var(--sh-font-display)}'
-        '.dishboard-admin,.public-page,.signage-body{--tblr-primary-fg:var(--brand-on-primary,var(--sh-white));'
+        '.public-page,.signage-body{--tblr-primary-fg:var(--brand-on-primary,var(--sh-white));'
         '--tblr-heading-color:var(--sh-ink);--tblr-bg-forms:var(--sh-panel);--tblr-body-bg:var(--sh-canvas);'
         '--tblr-bg-surface:var(--sh-panel);--tblr-bg-surface-secondary:var(--sh-panel-soft);'
         '--tblr-bg-surface-tertiary:var(--sh-panel-soft)}'
-        '.dishboard-admin .admin-sidebar{--tblr-navbar-bg:var(--brand-sidebar,var(--sh-teal-950))}'
-        '.bg-primary.text-white,.btn-primary{color:var(--brand-on-primary,var(--sh-white))!important}'
-        '.list-group-item.active{background:var(--sh-primary);color:var(--brand-on-primary,var(--sh-white))}'
-        '.list-group-item.active .badge{color:inherit}'
-        '.dishboard-admin .nav-tabs .nav-link{color:var(--sh-primary)}'
-        '.dishboard-admin .form-control::file-selector-button{color:var(--sh-ink);background:var(--sh-panel-soft)}'
-    )
+        ':where(body:not(.dishboard-admin)) .bg-primary.text-white,'
+        ':where(body:not(.dishboard-admin)) .btn-primary{color:var(--brand-on-primary,var(--sh-white))!important}'
+        ':where(body:not(.dishboard-admin)) .list-group-item.active'
+        '{background:var(--sh-primary);color:var(--brand-on-primary,var(--sh-white))}'
+        ':where(body:not(.dishboard-admin)) .list-group-item.active .badge{color:inherit}'
+    ) + _admin_primary_css(config)

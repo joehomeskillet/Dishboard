@@ -1,25 +1,74 @@
-/* Tabler 1.5.0 adapter; tokens.css supplies fonts and brand tokens. No app.css dependency. */
+/* Tabler 1.5.0 adapter. Master values live in tokens.css; no app.css dependency. */
 .dishboard-admin {
-  --tblr-font-sans-serif: var(--sh-font);
-  --tblr-body-font-family: var(--sh-font);
-  --tblr-body-font-size: 1rem;
-  --tblr-body-color: var(--sh-ink);
-  --tblr-secondary: var(--sh-ink-muted);
-  --tblr-primary: var(--sh-primary);
-  --tblr-primary-rgb: 140, 28, 75;
-  --tblr-primary-fg: var(--sh-white);
-  --tblr-primary-lt: var(--sh-magenta-soft);
-  --tblr-primary-lt-fg: var(--sh-primary);
-  --tblr-link-color: var(--sh-primary);
-  --tblr-link-hover-color: var(--sh-teal-950);
-  --tblr-primary-darken: var(--sh-primary-2);
-  --tblr-border-radius: var(--sh-radius-sm);
-  --tblr-border-radius-lg: var(--sh-radius-md);
-  color: var(--sh-ink); background: var(--sh-canvas-strong);
-  font-family: var(--sh-font); font-size: 16px;
+  --tblr-font-sans-serif: var(--app-font-body);
+  --tblr-body-font-family: var(--app-font-body);
+  --tblr-body-line-height: var(--app-line-height-body);
+  --tblr-body-color: var(--app-text);
+  --tblr-body-color-rgb: var(--app-text-rgb);
+  --tblr-heading-color: var(--app-text);
+  --tblr-body-bg: var(--app-bg);
+  --tblr-body-bg-rgb: var(--app-bg-rgb);
+  --tblr-bg-surface: var(--app-surface);
+  --tblr-bg-surface-secondary: var(--app-surface-soft);
+  --tblr-bg-surface-tertiary: var(--app-surface-soft);
+  --tblr-bg-forms: var(--app-surface);
+  --tblr-bg-forms-disabled: var(--app-surface-soft);
+  --tblr-secondary: var(--app-text-muted);
+  --tblr-secondary-rgb: var(--app-text-muted-rgb);
+  --tblr-tertiary: var(--app-text-muted);
+  --tblr-disabled-color: var(--app-text-muted);
+  --tblr-primary: var(--app-primary);
+  --tblr-primary-rgb: var(--app-primary-rgb);
+  --tblr-primary-fg: var(--app-on-primary);
+  --tblr-primary-lt: var(--app-primary-soft);
+  --tblr-primary-lt-rgb: var(--app-primary-soft-rgb);
+  --tblr-primary-text-emphasis: var(--app-primary);
+  --tblr-primary-bg-subtle: var(--app-primary-soft);
+  --tblr-primary-border-subtle: var(--app-border);
+  --tblr-link-color: var(--app-primary);
+  --tblr-link-color-rgb: var(--app-primary-rgb);
+  --tblr-link-hover-color: var(--app-primary-hover);
+  --tblr-link-hover-color-rgb: var(--app-primary-rgb);
+  --tblr-primary-darken: var(--app-primary-hover);
+  --tblr-active-bg: var(--app-primary-soft);
+  --tblr-border-color: var(--app-border);
+  --tblr-border-color-translucent: var(--app-border);
+  --tblr-border-radius: var(--app-radius-control);
+  --tblr-border-radius-lg: var(--app-radius-card);
+  --tblr-border-radius-pill: var(--app-radius-pill);
+  --tblr-sidebar-width: var(--app-sidebar-width);
+  --tblr-shadow-card: var(--app-card-shadow);
+  --tblr-focus-ring-color: var(--app-focus);
+  --tblr-form-valid-color: var(--app-success-text);
+  --tblr-form-valid-border-color: var(--app-success-text);
+  --tblr-form-invalid-color: var(--app-danger-text);
+  --tblr-form-invalid-border-color: var(--app-danger-text);
+  --app-font-scale: 1;
+  --app-heading-size: var(--app-font-size-h1);
+  --app-page-padding: var(--app-space-8);
+  --app-card-inset: var(--app-space-6);
+  color: var(--app-text); background: var(--app-bg);
+  font-family: var(--app-font-body); line-height: var(--app-line-height-body);
 }
 .dishboard-admin .admin-main { min-width: 0; }
-.dishboard-admin .admin-sidebar { --tblr-navbar-bg: var(--sh-teal-950); --tblr-navbar-border-color: var(--sh-teal-900); }
+.dishboard-admin .admin-sidebar {
+  --tblr-navbar-bg: var(--app-sidebar); --tblr-navbar-border-color: var(--app-sidebar-hover);
+  --tblr-navbar-color: var(--app-sidebar-text); --tblr-navbar-hover-color: var(--app-sidebar-text);
+  --tblr-navbar-active-color: var(--app-on-primary); --tblr-navbar-active-bg: var(--app-sidebar-active);
+  --tblr-navbar-active-border-color: var(--app-sidebar-indicator);
+  color: var(--app-sidebar-text); background: var(--app-sidebar);
+}
+.dishboard-admin .admin-sidebar .navbar-nav {
+  --tblr-nav-link-color: var(--app-sidebar-text); --tblr-nav-link-hover-color: var(--app-sidebar-text);
+  --tblr-nav-link-hover-bg: var(--app-sidebar-hover); --tblr-nav-active-bg: var(--app-sidebar-active);
+}
+.dishboard-admin .admin-sidebar .nav-link { border-radius: var(--app-radius-control); }
+.dishboard-admin .admin-sidebar .nav-link:is(:hover, :focus-visible) { background: var(--app-sidebar-hover); }
+.dishboard-admin .admin-sidebar .nav-link:is(.active, [aria-current="page"]) {
+  color: var(--app-on-primary); background: var(--app-sidebar-active); font-weight: 700;
+  box-shadow: inset 3px 0 var(--app-sidebar-indicator);
+}
+.dishboard-admin .admin-user-text > span { color: var(--app-sidebar-label); }
 .dishboard-admin .admin-brand {
   display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
   margin: 8px; padding: 8px; border-radius: var(--sh-radius-sm);
@@ -34,13 +83,40 @@
 .dishboard-admin .admin-sidebar .navbar-footer .nav-link-title { display: inline; }
 .dishboard-admin .admin-sidebar .navbar-nav .nav-link,
 .dishboard-admin :is(.btn, .form-control, .form-select, .page-link, .nav-link, .form-check) { min-height: 48px; }
-.dishboard-admin :is(.btn, .form-control, .form-select) { font-size: 16px; }
+.dishboard-admin :is(.btn, .form-control, .form-select) {
+  font-size: calc(var(--app-font-size-body) * var(--app-font-scale));
+  line-height: var(--app-line-height-body); height: auto;
+}
 .dishboard-admin .navbar-toggler { width: auto; min-width: 48px; padding: 8px 12px; margin: 8px; gap: 8px; color: var(--sh-white); }
-/* Primary button states stay bordeaux: Tabler's hover/active default to its blue --tblr-primary-darken. */
-.dishboard-admin .btn-primary {
-  --tblr-btn-hover-bg: var(--sh-primary-2); --tblr-btn-active-bg: var(--sh-primary-2);
-  --tblr-btn-hover-border-color: var(--sh-primary-2); --tblr-btn-active-border-color: var(--sh-primary-2);
-  --tblr-btn-focus-box-shadow: 0 0 0 2px var(--sh-panel), 0 0 0 4px var(--sh-primary);
+.dishboard-admin .btn {
+  --tblr-btn-font-family: var(--app-font-body); --tblr-btn-border-radius: var(--app-radius-control);
+  --tblr-btn-focus-box-shadow: none; --tblr-btn-disabled-opacity: 1;
+  --tblr-btn-border-color: var(--app-control-border); --tblr-btn-color: var(--app-neutral-text);
+  --tblr-btn-disabled-bg: var(--app-surface-soft); --tblr-btn-disabled-color: var(--app-text-muted);
+  white-space: normal;
+}
+.dishboard-admin :is(.btn-primary, .btn-outline-primary, .btn-ghost-primary) {
+  --tblr-btn-bg: var(--app-primary); --tblr-btn-border-color: var(--app-primary);
+  --tblr-btn-color: var(--app-on-primary);
+  --tblr-btn-hover-bg: var(--app-primary-hover); --tblr-btn-hover-border-color: var(--app-primary-hover);
+  --tblr-btn-active-bg: var(--app-primary-active); --tblr-btn-active-border-color: var(--app-primary-active);
+  --tblr-btn-hover-color: var(--app-on-primary); --tblr-btn-active-color: var(--app-on-primary);
+  --tblr-btn-disabled-bg: var(--app-primary); --tblr-btn-disabled-color: var(--app-on-primary);
+  --tblr-btn-disabled-border-color: var(--app-primary);
+}
+.dishboard-admin :is(.btn-outline-primary, .btn-ghost-primary) {
+  --tblr-btn-bg: var(--app-surface); --tblr-btn-color: var(--app-primary);
+  --tblr-btn-disabled-bg: var(--app-surface-soft); --tblr-btn-disabled-color: var(--app-text-muted);
+}
+.dishboard-admin .btn-danger {
+  --tblr-btn-bg: var(--app-danger-text); --tblr-btn-color: var(--app-on-primary);
+  --tblr-btn-border-color: var(--app-danger-text);
+  --tblr-btn-hover-bg: var(--app-danger-text); --tblr-btn-hover-color: var(--app-on-primary);
+  --tblr-btn-hover-border-color: var(--app-danger-text);
+  --tblr-btn-active-bg: var(--app-danger-text); --tblr-btn-active-color: var(--app-on-primary);
+  --tblr-btn-active-border-color: var(--app-danger-text);
+  --tblr-btn-disabled-bg: var(--app-danger-text); --tblr-btn-disabled-color: var(--app-on-primary);
+  --tblr-btn-disabled-border-color: var(--app-danger-text);
 }
 .dishboard-admin .btn-list { gap: 8px; }
 .dishboard-admin .btn-list > * { margin: 0; }
@@ -48,44 +124,202 @@
 .dishboard-admin .page-link { display: inline-flex; align-items: center; gap: 8px; }
 .dishboard-admin .form-check { display: flex; align-items: center; gap: 8px; padding-left: 0; cursor: pointer; }
 .dishboard-admin .form-check-input { float: none; flex: none; margin: 0; }
-.dishboard-admin .card-body { padding: 16px; }
-.dishboard-admin .card-title { font-size: 1.125rem; }
-.dishboard-admin .badge { white-space: normal; text-align: start; line-height: 1.4; }
+.dishboard-admin :is(.form-control, .form-select, .form-check-input) {
+  --tblr-border-color: var(--app-control-border); --tblr-border-color-translucent: var(--app-control-border);
+  color: var(--app-text); background-color: var(--app-surface); border-color: var(--app-control-border);
+}
+.dishboard-admin :is(.form-control, .form-select, .form-check-input):focus {
+  border-color: var(--app-focus); outline: 2px solid var(--app-focus); outline-offset: 2px; box-shadow: none;
+}
+.dishboard-admin :is(.form-control, .form-select, .form-check-input):disabled {
+  color: var(--app-text-muted); background-color: var(--app-surface-soft); opacity: 1;
+}
+.dishboard-admin .form-control[readonly] {
+  color: var(--app-text); background-color: var(--app-surface-soft);
+  border-color: var(--app-control-border); opacity: 1;
+}
+.dishboard-admin .form-check-input:is(:checked, :indeterminate) {
+  background-color: var(--app-primary); border-color: var(--app-primary);
+}
+.dishboard-admin :is(.form-control, .form-select, .form-check-input):is(.is-invalid, [aria-invalid="true"]),
+.dishboard-admin .was-validated :is(.form-control, .form-select, .form-check-input):invalid {
+  border-color: var(--app-danger-text); box-shadow: none;
+}
+.dishboard-admin .form-control:is(.is-invalid, .is-valid),
+.dishboard-admin .was-validated .form-control { background-image: none; }
+.dishboard-admin .form-select:is(.is-invalid, .is-valid),
+.dishboard-admin .was-validated .form-select { --tblr-form-select-bg-icon: none; }
+.dishboard-admin :is(.form-control, .form-select, .form-check-input).is-valid,
+.dishboard-admin .was-validated :is(.form-control, .form-select, .form-check-input):valid {
+  border-color: var(--app-success-text); box-shadow: none;
+}
+.dishboard-admin input.form-control::file-selector-button {
+  color: var(--app-text); background: var(--app-surface-soft); border-color: var(--app-control-border);
+  font: inherit;
+}
+.dishboard-admin input.form-control:hover:not(:disabled):not([readonly])::file-selector-button {
+  color: var(--app-primary-hover); background: var(--app-primary-soft);
+}
+/* Link hover reads the effective colour directly: the brand contract emits only four
+   primary values, not an independently stale hover-RGB channel tuple. */
+.dishboard-admin a:not(.btn):not(.nav-link):not(.page-link):hover { color: var(--app-primary-hover); }
+.dishboard-admin a:not(.btn):not(.nav-link):not(.page-link):active { color: var(--app-primary-active); }
+.dishboard-admin .nav.nav-tabs {
+  --tblr-nav-link-color: var(--app-text); --tblr-nav-link-hover-color: var(--app-primary-hover);
+  --tblr-nav-link-disabled-color: var(--app-text-muted); --tblr-nav-tabs-border-color: var(--app-border);
+  --tblr-nav-tabs-link-active-color: var(--app-primary); --tblr-nav-tabs-link-active-bg: var(--app-primary-soft);
+  --tblr-nav-tabs-link-active-border-color: var(--app-primary);
+  --tblr-nav-tabs-link-hover-border-color: var(--app-border);
+}
+.dishboard-admin .nav.nav-tabs .nav-link { color: var(--app-text); border-bottom: 2px solid transparent; }
+.dishboard-admin .nav.nav-tabs .nav-link:hover { color: var(--app-primary-hover); background: var(--app-primary-soft); }
+.dishboard-admin .nav.nav-tabs .nav-link:active { color: var(--app-primary-active); }
+.dishboard-admin .nav.nav-tabs .nav-link:focus-visible { box-shadow: none; }
+.dishboard-admin .nav.nav-tabs .nav-link.active {
+  color: var(--app-primary); background: var(--app-primary-soft); border-bottom: 2px solid var(--app-primary);
+}
+.dishboard-admin .nav.nav-tabs .nav-link:is(.disabled, :disabled, [aria-disabled="true"]) {
+  color: var(--app-text-muted); background: var(--app-surface-soft); border-bottom-color: transparent;
+}
+.dishboard-admin .pagination {
+  --tblr-pagination-color: var(--app-primary); --tblr-pagination-bg: var(--app-surface);
+  --tblr-pagination-border-color: var(--app-border); --tblr-pagination-border-radius: var(--app-radius-control);
+  --tblr-pagination-hover-color: var(--app-primary-hover); --tblr-pagination-hover-bg: var(--app-primary-soft);
+  --tblr-pagination-hover-border-color: var(--app-border);
+  --tblr-pagination-focus-color: var(--app-primary-hover); --tblr-pagination-focus-bg: var(--app-primary-soft);
+  --tblr-pagination-focus-box-shadow: none;
+  --tblr-pagination-active-color: var(--app-on-primary); --tblr-pagination-active-bg: var(--app-primary);
+  --tblr-pagination-active-border-color: var(--app-primary);
+  --tblr-pagination-disabled-color: var(--app-text-muted); --tblr-pagination-disabled-bg: var(--app-surface-soft);
+  --tblr-pagination-disabled-border-color: var(--app-border);
+}
+.dishboard-admin .pagination .page-item .page-link:active { color: var(--app-on-primary); background: var(--app-primary-active); }
+.dishboard-admin .page-link:hover .page-item-title { color: inherit; }
+.dishboard-admin .list-group-item {
+  --tblr-list-group-active-color: var(--app-on-primary); --tblr-list-group-active-bg: var(--app-primary);
+  --tblr-list-group-active-border-color: var(--app-primary);
+}
+.dishboard-admin .list-group-item.active {
+  color: var(--app-on-primary); background: var(--app-primary); border-inline-start-color: var(--app-primary);
+}
+.dishboard-admin {
+  --tblr-success: var(--app-success); --tblr-success-text-emphasis: var(--app-success-text);
+  --tblr-success-lt: var(--app-success-soft); --tblr-success-lt-rgb: var(--app-success-soft-rgb);
+  --tblr-success-bg-subtle: var(--app-success-soft); --tblr-success-border-subtle: var(--app-border);
+  --tblr-warning: var(--app-warning); --tblr-warning-text-emphasis: var(--app-warning-text);
+  --tblr-warning-lt: var(--app-warning-soft); --tblr-warning-lt-rgb: var(--app-warning-soft-rgb);
+  --tblr-warning-bg-subtle: var(--app-warning-soft); --tblr-warning-border-subtle: var(--app-border);
+  --tblr-danger: var(--app-danger); --tblr-danger-text-emphasis: var(--app-danger-text);
+  --tblr-danger-lt: var(--app-danger-soft); --tblr-danger-lt-rgb: var(--app-danger-soft-rgb);
+  --tblr-danger-bg-subtle: var(--app-danger-soft); --tblr-danger-border-subtle: var(--app-border);
+  --tblr-info: var(--app-info); --tblr-info-text-emphasis: var(--app-info-text);
+  --tblr-info-lt: var(--app-info-soft); --tblr-info-lt-rgb: var(--app-info-soft-rgb);
+  --tblr-info-bg-subtle: var(--app-info-soft); --tblr-info-border-subtle: var(--app-border);
+  --tblr-secondary-bg-subtle: var(--app-neutral-soft); --tblr-secondary-border-subtle: var(--app-border);
+}
+/* Existing status macro uses green/teal/yellow/orange; aliases stay local to pills. */
+.dishboard-admin .badge:is(.bg-success-lt, .bg-green-lt) {
+  --tblr-success: var(--app-success-text); --tblr-green: var(--app-success-text);
+  --tblr-green-lt: var(--app-success-soft);
+  --tblr-green-lt-rgb: var(--app-success-soft-rgb);
+  color: var(--app-success-text); background: var(--app-success-soft);
+}
+.dishboard-admin .badge:is(.bg-warning-lt, .bg-yellow-lt, .bg-orange-lt) {
+  --tblr-warning: var(--app-warning-text); --tblr-yellow: var(--app-warning-text); --tblr-orange: var(--app-warning-text);
+  --tblr-yellow-lt: var(--app-warning-soft); --tblr-orange-lt: var(--app-warning-soft);
+  --tblr-yellow-lt-rgb: var(--app-warning-soft-rgb); --tblr-orange-lt-rgb: var(--app-warning-soft-rgb);
+  color: var(--app-warning-text); background: var(--app-warning-soft);
+}
+.dishboard-admin .badge:is(.bg-danger-lt, .bg-red-lt) {
+  --tblr-danger: var(--app-danger-text); --tblr-red: var(--app-danger-text);
+  --tblr-red-lt: var(--app-danger-soft);
+  --tblr-red-lt-rgb: var(--app-danger-soft-rgb);
+  color: var(--app-danger-text); background: var(--app-danger-soft);
+}
+.dishboard-admin .badge:is(.bg-info-lt, .bg-blue-lt, .bg-teal-lt) {
+  --tblr-info: var(--app-info-text); --tblr-blue: var(--app-info-text); --tblr-teal: var(--app-info-text);
+  --tblr-blue-lt: var(--app-info-soft); --tblr-teal-lt: var(--app-info-soft);
+  --tblr-blue-lt-rgb: var(--app-info-soft-rgb); --tblr-teal-lt-rgb: var(--app-info-soft-rgb);
+  color: var(--app-info-text); background: var(--app-info-soft);
+}
+.dishboard-admin .badge.bg-secondary-lt {
+  --tblr-secondary: var(--app-neutral-text); --tblr-secondary-lt-rgb: var(--app-neutral-soft-rgb);
+  --tblr-secondary-lt: var(--app-neutral-soft);
+  color: var(--app-neutral-text); background: var(--app-neutral-soft);
+}
+.dishboard-admin .alert {
+  --tblr-alert-color: var(--app-neutral-text); --tblr-alert-bg: var(--app-neutral-soft);
+  --tblr-alert-border-color: var(--app-border);
+  background-color: var(--tblr-alert-bg);
+}
+.dishboard-admin .alert-success { --tblr-alert-color: var(--app-success-text); --tblr-alert-bg: var(--app-success-soft); }
+.dishboard-admin .alert-warning { --tblr-alert-color: var(--app-warning-text); --tblr-alert-bg: var(--app-warning-soft); }
+.dishboard-admin .alert-danger { --tblr-alert-color: var(--app-danger-text); --tblr-alert-bg: var(--app-danger-soft); }
+.dishboard-admin .alert-info { --tblr-alert-color: var(--app-info-text); --tblr-alert-bg: var(--app-info-soft); }
+.dishboard-admin .alert-secondary { --tblr-alert-color: var(--app-neutral-text); --tblr-alert-bg: var(--app-neutral-soft); }
+.dishboard-admin .card {
+  --tblr-card-bg: var(--app-surface); --tblr-card-border-color: var(--app-border);
+  --tblr-card-border-radius: var(--app-radius-card);
+  --tblr-card-spacer-x: var(--app-card-inset); --tblr-card-spacer-y: var(--app-card-inset);
+  --tblr-card-cap-padding-x: var(--app-card-inset); --tblr-card-cap-padding-y: var(--app-space-4);
+}
+.dishboard-admin .card-body { padding: var(--app-card-inset); }
+.dishboard-admin :is(.card-header, .card-footer) { border-color: var(--app-border-soft); }
+.dishboard-admin .badge {
+  white-space: normal; text-align: start; line-height: 1.4;
+  font-size: calc(var(--app-font-size-small) * var(--app-font-scale));
+  border-radius: var(--app-radius-pill); padding: var(--app-space-1) 10px;
+}
 .dishboard-admin [data-menu-metadata] .labels { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 .dishboard-admin [data-menu-metadata] .label { padding: 4px 8px; border-radius: var(--sh-radius-sm); background: var(--sh-panel-soft); }
 .dishboard-admin [data-menu-metadata] :is(p, .label), .dishboard-admin .card-title { overflow-wrap: anywhere; }
-.dishboard-admin :is(a, button, summary, input, select, textarea, [tabindex]):focus-visible { outline: 2px solid var(--sh-primary); outline-offset: 2px; }
-.dishboard-admin .admin-sidebar :is(a, button):focus-visible { outline-color: var(--sh-white); }
+.dishboard-admin :is(a, button, summary, input, select, textarea, [tabindex]):focus-visible { outline: 2px solid var(--app-focus); outline-offset: 2px; }
+.dishboard-admin .admin-sidebar :is(a, button):focus-visible { outline-color: var(--app-sidebar-indicator); }
 .dishboard-admin .skip-link { position: fixed; top: 8px; left: 8px; z-index: 1100; padding: 12px; color: var(--sh-white); background: var(--sh-primary); transform: translateY(-200%); }
 .dishboard-admin .skip-link:focus { transform: translateY(0); }
-@media (min-width: 1200px) {
+@media (min-width: 992px) {
   .dishboard-admin .admin-sidebar .navbar-collapse { flex-direction: column; align-items: stretch; }
   .dishboard-admin .admin-nav { display: flex; flex: 1; flex-direction: column; }
   .dishboard-admin .navbar-footer { margin-top: auto; }
-  .dishboard-admin .card-body { padding: 24px; }
 }
-@media (max-width: 1199.98px) {
+@media (max-width: 991.98px) {
   .dishboard-admin .admin-sidebar .navbar-nav { flex-direction: column; }
   .dishboard-admin .admin-sidebar .nav-link { padding: 12px 16px; }
   .dishboard-admin .admin-brand span { display: none; }
   .dishboard-admin .admin-brand { margin: 8px 0; }
 }
-.dishboard-admin [data-density="compact"] .card-body { padding: 12px; }
 /* Persisted admin options and the local, unsaved settings preview share consumers. */
-.dishboard-admin :is(.admin-main, .display-preview)[data-font-size="large"] {
-  --admin-text-size: 1.125rem; --admin-title-size: 1.375rem; font-size: var(--admin-text-size);
+.dishboard-admin, .dishboard-admin :is(.admin-main, .display-preview) {
+  --tblr-body-font-size: calc(var(--app-font-size-body) * var(--app-font-scale));
+  --tblr-font-size-h1: calc(var(--app-heading-size) * var(--app-font-scale));
+  --tblr-font-size-h2: calc(var(--app-font-size-title) * var(--app-font-scale));
+  font-size: var(--tblr-body-font-size);
 }
-.dishboard-admin .display-preview[data-font-size="normal"] {
-  --admin-text-size: 1rem; --admin-title-size: 1.125rem; font-size: var(--admin-text-size);
+.dishboard-admin :is(.admin-main, .display-preview)[data-font-size="normal"] { --app-font-scale: 1; }
+.dishboard-admin :is(.admin-main, .display-preview)[data-font-size="large"] { --app-font-scale: 1.125; }
+.dishboard-admin :is(h1, h2, h3, .card-title) { font-family: var(--app-font-heading); font-weight: 700; }
+.dishboard-admin h1 { font-size: calc(var(--app-heading-size) * var(--app-font-scale)); line-height: var(--app-line-height-h1); }
+.dishboard-admin :is(h2, h3, .card-title) { font-size: calc(var(--app-font-size-title) * var(--app-font-scale)); line-height: var(--app-line-height-title); }
+.dishboard-admin :is(.form-label, .table, .nav-link, .page-link) { font-size: calc(var(--app-font-size-label) * var(--app-font-scale)); }
+.dishboard-admin .form-label { font-weight: 600; }
+.dishboard-admin :is(.form-hint, small, .small) { font-size: calc(var(--app-font-size-small) * var(--app-font-scale)); }
+.dishboard-admin .form-hint { color: var(--app-text-muted); }
+.dishboard-admin .table { --tblr-table-color: var(--app-text); --tblr-table-border-color: var(--app-border); }
+.dishboard-admin :is(.admin-main, .display-preview)[data-density="compact"] { --app-card-inset: var(--app-space-6); }
+.dishboard-admin :is(.admin-main, .display-preview)[data-density="comfortable"] { --app-card-inset: var(--app-space-8); }
+.dishboard-admin .admin-main > :is(header, .page-body) > .container-xl,
+.dishboard-admin .admin-main > header > .page-header > .container-xl {
+  max-width: var(--app-container-width); padding-inline: var(--app-page-padding);
 }
-.dishboard-admin :is(.admin-main, .display-preview)[data-font-size="large"] :is(p, li, td, th, summary, .btn, .form-control, .form-select, .form-label, .form-hint, .badge, .nav-link),
-.dishboard-admin .display-preview :is(p, li, .btn, .form-control, .form-label, .form-hint, .badge) { font-size: var(--admin-text-size); }
-.dishboard-admin :is(.admin-main, .display-preview)[data-font-size="large"] :is(h2, h3, .card-title),
-.dishboard-admin .display-preview .card-title { font-size: var(--admin-title-size); }
 .dishboard-admin .admin-main[data-content-width="full"] > :is(header, .page-body) > .container-xl,
 .dishboard-admin .admin-main[data-content-width="full"] > header > .page-header > .container-xl { max-width: none; }
-.dishboard-admin .display-preview[data-content-width="contained"] { max-width: 48rem; margin-inline: auto; }
-.dishboard-admin .display-preview[data-density="comfortable"] .card-body { padding: 16px; }
-@media (min-width: 1200px) {
-  .dishboard-admin .display-preview[data-density="comfortable"] .card-body { padding: 24px; }
+.dishboard-admin .display-preview[data-content-width="contained"] { max-width: var(--app-container-width); margin-inline: auto; }
+.dishboard-admin .display-preview[data-content-width="full"] { max-width: none; }
+@media (max-width: 991.98px) {
+  .dishboard-admin { --app-heading-size: var(--app-font-size-h1-mobile); --app-page-padding: var(--app-space-6); }
+}
+@media (max-width: 767.98px) {
+  .dishboard-admin { --app-page-padding: var(--app-space-4); }
+  .dishboard-admin :is(.admin-main, .display-preview)[data-density="compact"] { --app-card-inset: var(--app-space-4); }
+  .dishboard-admin :is(.admin-main, .display-preview)[data-density="comfortable"] { --app-card-inset: var(--app-space-6); }
 }
