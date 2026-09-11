@@ -1,9 +1,4 @@
-"""Browser and visual verification for MP-UI-OUTPUT-HUBS.
-
-Tests admin.screens, admin.vorlagen and admin.screen_template_assignment
-across all viewports, layout variants, JS enabled/disabled, keyboard navigation,
-200% zoom reflow, contrast ratios, and matrix error/conflict/unavailable states.
-"""
+"""Browser verification for MP-UI-OUTPUT-HUBS routes and matrix states."""
 
 from __future__ import annotations
 
@@ -18,6 +13,7 @@ from sqlalchemy import text
 
 from cafeteria.branding_config import contrast
 from cafeteria.menu_images import CATALOG
+from cafeteria.public import routes as public_routes
 from cafeteria.screen_templates import key
 from cafeteria.workflow import publish_draft
 from test_admin_workflow_db import (
@@ -61,9 +57,8 @@ def published_hub_app(screen_app, database_engine):  # noqa: F811
     return screen_app
 
 
-@pytest.fixture
-def hub_server(published_hub_app):
-    http = make_server("127.0.0.1", 0, published_hub_app)
+def _hub_server(app):
+    http = make_server("127.0.0.1", 0, app)
     thread = threading.Thread(target=http.serve_forever, daemon=True)
     thread.start()
     try:
@@ -72,6 +67,41 @@ def hub_server(published_hub_app):
         http.shutdown()
         thread.join(timeout=5)
         http.server_close()
+
+
+@pytest.fixture
+def hub_server(published_hub_app):
+    yield from _hub_server(published_hub_app)
+
+
+@pytest.fixture
+def empty_hub_app(screen_app, monkeypatch):
+    monkeypatch.setattr(public_routes, "active_snapshot", lambda *args, **kwargs: None)
+    monkeypatch.setattr(public_routes, "published_snapshot", lambda profile: None)
+    return screen_app
+
+
+@pytest.fixture
+def empty_hub_server(empty_hub_app):
+    yield from _hub_server(empty_hub_app)
+
+
+def _admin_page(
+    app, db_engine, pw_browser, base_url, javascript=True, viewport=(1440, 900)
+):
+    client, _ = _login(app, db_engine, ["Cafeteria.Admin"])
+    cookie = client.get_cookie(app.config["SESSION_COOKIE_NAME"])
+    assert cookie is not None
+    context = pw_browser.new_context(
+        base_url=base_url,
+        viewport={"width": viewport[0], "height": viewport[1]},
+        java_script_enabled=javascript,
+        reduced_motion="reduce",
+    )
+    context.add_cookies(
+        [{"name": cookie.key, "value": cookie.value, "url": base_url}]
+    )
+    return context, context.new_page()
 
 
 def _check_contrast(page: Page) -> None:
@@ -100,28 +130,20 @@ def _check_contrast(page: Page) -> None:
 def test_output_hubs_viewports_and_layouts(
     published_hub_app,
     hub_server,
-    database_engine,
-    browser,
+    database_engine,  # noqa: F811
+    browser,  # noqa: F811
     width,
     height,
     tmp_path: Path,  # noqa: F811
 ) -> None:
-    client, _ = _login(published_hub_app, database_engine, ["Cafeteria.Admin"])
-    cookie = client.get_cookie(published_hub_app.config["SESSION_COOKIE_NAME"])
-    assert cookie is not None
-
-    with browser.new_context(
-        base_url=hub_server,
-        viewport={"width": width, "height": height},
-        java_script_enabled=True,
-        reduced_motion="reduce",
-    ) as context:
-        context.add_cookies(
-            [{"name": cookie.key, "value": cookie.value, "url": hub_server}]
-        )
-        page = context.new_page()
-
-        # 1. /admin/screens
+    context, page = _admin_page(
+        published_hub_app,
+        database_engine,
+        browser,
+        hub_server,
+        viewport=(width, height),
+    )
+    try:
         res_screens = page.goto("/admin/screens")
         assert res_screens is not None and res_screens.status == 200
         expect(page.locator("h1")).to_have_text("Screens")
@@ -161,14 +183,16 @@ def test_output_hubs_viewports_and_layouts(
         page.screenshot(
             path=str(tmp_path / f"assignment-{width}x{height}.png"), full_page=True
         )
+    finally:
+        context.close()
 
 
 @pytest.mark.parametrize("javascript", [True, False], ids=["js", "nojs"])
 def test_output_hubs_keyboard_and_zoom_200(
     published_hub_app,
     hub_server,
-    database_engine,
-    browser,
+    database_engine,  # noqa: F811
+    browser,  # noqa: F811
     javascript,
     tmp_path: Path,  # noqa: F811
 ) -> None:
@@ -233,8 +257,8 @@ def test_output_hubs_keyboard_and_zoom_200(
 def test_output_hubs_matrix_error_and_conflict_states(
     published_hub_app,
     hub_server,
-    database_engine,
-    browser,
+    database_engine,  # noqa: F811
+    browser,  # noqa: F811
     tmp_path: Path,  # noqa: F811
 ) -> None:
     client, _ = _login(published_hub_app, database_engine, ["Cafeteria.Admin"])
@@ -332,3 +356,49 @@ def test_output_hubs_matrix_error_and_conflict_states(
         )
         expect(page.get_by_role("alert")).to_be_visible()
         page.screenshot(path=str(tmp_path / "unavailable-503.png"), full_page=True)
+
+
+@pytest.mark.parametrize(
+    "route,title,empty_text,focus_role",
+    [
+        ("/admin/screens", "Screens", "Speiseplan nicht verfügbar", "iframe"),
+        ("/admin/vorlagen", "Vorlagen", "veröffentlichten Plan", "tab"),
+        (
+            "/admin/screens/cafeteria/wochenvorlage",
+            "Wochenvorlage zuordnen",
+            "Ohne Veröffentlichung erscheint ein Hinweis",
+            "radio",
+        ),
+    ],
+)
+def test_output_hubs_matrix_empty_states(
+    empty_hub_app,
+    empty_hub_server,
+    database_engine,  # noqa: F811
+    browser,  # noqa: F811
+    tmp_path,
+    route,
+    title,
+    empty_text,
+    focus_role,
+) -> None:
+    context, page = _admin_page(empty_hub_app, database_engine, browser, empty_hub_server)
+    try:
+        assert page.goto(route).status == 200
+        expect(page.locator("h1")).to_have_text(title)
+        if focus_role == "iframe":
+            frame = page.frame_locator(".screen-preview iframe").first
+            expect(frame.locator("body")).to_be_attached()
+            expect(frame.get_by_text(empty_text, exact=False)).to_be_visible()
+            focus_target = page.locator(".screen-card .nav-link").first
+        elif focus_role == "tab":
+            expect(page.get_by_text(empty_text, exact=False).first).to_be_visible()
+            focus_target = page.locator(".output-area-tabs .nav-link").first
+        else:
+            expect(page.get_by_text(empty_text, exact=False)).to_be_visible()
+            focus_target = page.get_by_role(focus_role).first
+        focus_target.focus()
+        expect(focus_target).to_be_focused()
+        page.screenshot(path=str(tmp_path / f"empty-{route.strip('/').replace('/', '-')}.png"), full_page=True)
+    finally:
+        context.close()

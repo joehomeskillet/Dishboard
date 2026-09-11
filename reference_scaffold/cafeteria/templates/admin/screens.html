@@ -8,7 +8,6 @@
 {% endblock %}
 {% block page_header %}{{ page_header('Screens', description='Tages- und Wochenpläne für Web und Bildschirme öffnen. Die Ansichten zeigen den aktuell veröffentlichten Menüplan.') }}{% endblock %}
 {% block content %}
-<p class="text-secondary small mb-4">Tages- und Wochenpläne für Web und Bildschirme öffnen. Die Ansichten zeigen den aktuell veröffentlichten Menüplan. Ohne Veröffentlichung erscheint ein Hinweis.</p>
 <details class="card mb-3"><summary class="card-header">Symbole</summary><div class="card-body">{{ icon('pencil') }} Wochenvorlage zuordnen: die Darstellung des Web-Wochenplans auswählen.</div></details>
 <div class="screens-grid">
   {% for label, endpoint in [(area_names.staff_guest, 'cafeteria'), (area_names.patient, 'patient')] %}
