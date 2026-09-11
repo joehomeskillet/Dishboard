@@ -1,0 +1,269 @@
+{
+  "scope": "Only isolated reference pages; not a test of Dishboard or its workflows",
+  "checks": [
+    {
+      "reference": "E1-wochenplan",
+      "viewport": [
+        1366,
+        768
+      ],
+      "width": 1366,
+      "scrollWidth": 1366,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "E2-menueeditor",
+      "viewport": [
+        1366,
+        768
+      ],
+      "width": 1366,
+      "scrollWidth": 1366,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "R1-menues",
+      "viewport": [
+        1366,
+        768
+      ],
+      "width": 1366,
+      "scrollWidth": 1366,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "R2-wochenverwaltung",
+      "viewport": [
+        1366,
+        768
+      ],
+      "width": 1366,
+      "scrollWidth": 1366,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "R3-baustein-bearbeiten",
+      "viewport": [
+        1366,
+        768
+      ],
+      "width": 1366,
+      "scrollWidth": 1366,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "R4-druckvorlagen",
+      "viewport": [
+        1366,
+        768
+      ],
+      "width": 1366,
+      "scrollWidth": 1366,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "E1-wochenplan",
+      "viewport": [
+        768,
+        1024
+      ],
+      "width": 768,
+      "scrollWidth": 768,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "E2-menueeditor",
+      "viewport": [
+        768,
+        1024
+      ],
+      "width": 768,
+      "scrollWidth": 768,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "R1-menues",
+      "viewport": [
+        768,
+        1024
+      ],
+      "width": 768,
+      "scrollWidth": 768,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "R2-wochenverwaltung",
+      "viewport": [
+        768,
+        1024
+      ],
+      "width": 768,
+      "scrollWidth": 768,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "R3-baustein-bearbeiten",
+      "viewport": [
+        768,
+        1024
+      ],
+      "width": 768,
+      "scrollWidth": 768,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "R4-druckvorlagen",
+      "viewport": [
+        768,
+        1024
+      ],
+      "width": 768,
+      "scrollWidth": 768,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "E1-wochenplan",
+      "viewport": [
+        390,
+        844
+      ],
+      "width": 390,
+      "scrollWidth": 390,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "E2-menueeditor",
+      "viewport": [
+        390,
+        844
+      ],
+      "width": 390,
+      "scrollWidth": 390,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "R1-menues",
+      "viewport": [
+        390,
+        844
+      ],
+      "width": 390,
+      "scrollWidth": 390,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "R2-wochenverwaltung",
+      "viewport": [
+        390,
+        844
+      ],
+      "width": 390,
+      "scrollWidth": 390,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "R3-baustein-bearbeiten",
+      "viewport": [
+        390,
+        844
+      ],
+      "width": 390,
+      "scrollWidth": 390,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "R4-druckvorlagen",
+      "viewport": [
+        390,
+        844
+      ],
+      "width": 390,
+      "scrollWidth": 390,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "E1-wochenplan",
+      "viewport": [
+        320,
+        844
+      ],
+      "width": 320,
+      "scrollWidth": 320,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "E2-menueeditor",
+      "viewport": [
+        320,
+        844
+      ],
+      "width": 320,
+      "scrollWidth": 320,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "R1-menues",
+      "viewport": [
+        320,
+        844
+      ],
+      "width": 320,
+      "scrollWidth": 320,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "R2-wochenverwaltung",
+      "viewport": [
+        320,
+        844
+      ],
+      "width": 320,
+      "scrollWidth": 320,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "R3-baustein-bearbeiten",
+      "viewport": [
+        320,
+        844
+      ],
+      "width": 320,
+      "scrollWidth": 320,
+      "imgOk": true,
+      "mainHeadings": 1
+    },
+    {
+      "reference": "R4-druckvorlagen",
+      "viewport": [
+        320,
+        844
+      ],
+      "width": 320,
+      "scrollWidth": 320,
+      "imgOk": true,
+      "mainHeadings": 1
+    }
+  ]
+}

@@ -1,0 +1,261 @@
+{
+  "scope": "Static reference HTML only; no application or workflow tests",
+  "renders": [
+    {
+      "id": "R1-menues",
+      "source": "vorlagen/R1-menues.html",
+      "output": "soll/R1-menues.png",
+      "kind": "Browsergerendertes, isoliertes HTML-Mockup; keine Live-Anwendung",
+      "viewport_css": {
+        "width": 1600,
+        "height": 1100
+      },
+      "device_scale_factor": 1.5,
+      "browser_zoom": "100 %",
+      "full_page": true,
+      "metrics": {
+        "innerWidth": 1600,
+        "scrollWidth": 1600,
+        "scrollHeight": 1142,
+        "visiblePrimary": [
+          {
+            "text": "Suchen",
+            "top": 407.46875,
+            "bottom": 451.46875
+          }
+        ],
+        "navCount": 4,
+        "externalImages": []
+      },
+      "blocked_network_requests": [],
+      "image_pixels": {
+        "width": 2400,
+        "height": 1713
+      }
+    },
+    {
+      "id": "R2-wochenverwaltung",
+      "source": "vorlagen/R2-wochenverwaltung.html",
+      "output": "soll/R2-wochenverwaltung.png",
+      "kind": "Browsergerendertes, isoliertes HTML-Mockup; keine Live-Anwendung",
+      "viewport_css": {
+        "width": 1600,
+        "height": 1100
+      },
+      "device_scale_factor": 1.5,
+      "browser_zoom": "100 %",
+      "full_page": true,
+      "metrics": {
+        "innerWidth": 1600,
+        "scrollWidth": 1600,
+        "scrollHeight": 1100,
+        "visiblePrimary": [
+          {
+            "text": "Neue Woche anlegen",
+            "top": 119.875,
+            "bottom": 163.875
+          }
+        ],
+        "navCount": 4,
+        "externalImages": []
+      },
+      "blocked_network_requests": [],
+      "image_pixels": {
+        "width": 2400,
+        "height": 1650
+      }
+    },
+    {
+      "id": "R3-baustein-bearbeiten",
+      "source": "vorlagen/R3-baustein-bearbeiten.html",
+      "output": "soll/R3-baustein-bearbeiten.png",
+      "kind": "Browsergerendertes, isoliertes HTML-Mockup; keine Live-Anwendung",
+      "viewport_css": {
+        "width": 1600,
+        "height": 1100
+      },
+      "device_scale_factor": 1.5,
+      "browser_zoom": "100 %",
+      "full_page": true,
+      "metrics": {
+        "innerWidth": 1600,
+        "scrollWidth": 1600,
+        "scrollHeight": 1134,
+        "visiblePrimary": [
+          {
+            "text": "Baustein speichern",
+            "top": 1035.1875,
+            "bottom": 1079.1875
+          }
+        ],
+        "navCount": 4,
+        "externalImages": []
+      },
+      "blocked_network_requests": [],
+      "image_pixels": {
+        "width": 2400,
+        "height": 1701
+      }
+    },
+    {
+      "id": "R4-druckvorlagen",
+      "source": "vorlagen/R4-druckvorlagen.html",
+      "output": "soll/R4-druckvorlagen.png",
+      "kind": "Browsergerendertes, isoliertes HTML-Mockup; keine Live-Anwendung",
+      "viewport_css": {
+        "width": 1600,
+        "height": 1100
+      },
+      "device_scale_factor": 1.5,
+      "browser_zoom": "100 %",
+      "full_page": true,
+      "metrics": {
+        "innerWidth": 1600,
+        "scrollWidth": 1600,
+        "scrollHeight": 1146,
+        "visiblePrimary": [
+          {
+            "text": "PDF der gewählten Woche öffnen",
+            "top": 717.328125,
+            "bottom": 761.328125
+          }
+        ],
+        "navCount": 4,
+        "externalImages": []
+      },
+      "blocked_network_requests": [],
+      "image_pixels": {
+        "width": 2400,
+        "height": 1719
+      }
+    },
+    {
+      "id": "E1-wochenplan",
+      "source": "vorlagen/E1-wochenplan.html",
+      "output": "soll/E1-wochenplan.png",
+      "kind": "Browsergerendertes, isoliertes HTML-Mockup; keine Live-Anwendung",
+      "viewport_css": {
+        "width": 1600,
+        "height": 1100
+      },
+      "device_scale_factor": 1.5,
+      "browser_zoom": "100 %",
+      "full_page": true,
+      "metrics": {
+        "innerWidth": 1600,
+        "scrollWidth": 1600,
+        "scrollHeight": 1267,
+        "visiblePrimary": [
+          {
+            "text": "Offene Angaben prüfen",
+            "top": 367.9375,
+            "bottom": 411.9375
+          }
+        ],
+        "navCount": 4,
+        "externalImages": []
+      },
+      "blocked_network_requests": [],
+      "image_pixels": {
+        "width": 2400,
+        "height": 1901
+      }
+    },
+    {
+      "id": "E2-menueeditor",
+      "source": "vorlagen/E2-menueeditor.html",
+      "output": "soll/E2-menueeditor.png",
+      "kind": "Browsergerendertes, isoliertes HTML-Mockup; keine Live-Anwendung",
+      "viewport_css": {
+        "width": 1600,
+        "height": 1100
+      },
+      "device_scale_factor": 1.5,
+      "browser_zoom": "100 %",
+      "full_page": true,
+      "metrics": {
+        "innerWidth": 1600,
+        "scrollWidth": 1600,
+        "scrollHeight": 1108,
+        "visiblePrimary": [
+          {
+            "text": "Menü speichern",
+            "top": 1009.78125,
+            "bottom": 1053.78125
+          }
+        ],
+        "navCount": 4,
+        "externalImages": []
+      },
+      "blocked_network_requests": [],
+      "image_pixels": {
+        "width": 2400,
+        "height": 1662
+      }
+    },
+    {
+      "id": "R1-menues-mobil",
+      "source": "vorlagen/R1-menues.html",
+      "output": "soll/R1-menues-mobil.png",
+      "kind": "Browsergerendertes, isoliertes HTML-Mockup; keine Live-Anwendung",
+      "viewport_css": {
+        "width": 390,
+        "height": 844
+      },
+      "device_scale_factor": 2,
+      "browser_zoom": "100 %",
+      "full_page": true,
+      "metrics": {
+        "innerWidth": 390,
+        "scrollWidth": 390,
+        "scrollHeight": 1599,
+        "visiblePrimary": [
+          {
+            "text": "Suchen",
+            "top": 407.65625,
+            "bottom": 453.65625
+          }
+        ],
+        "navCount": 4,
+        "externalImages": []
+      },
+      "blocked_network_requests": [],
+      "image_pixels": {
+        "width": 780,
+        "height": 3198
+      }
+    },
+    {
+      "id": "E1-wochenplan-mobil",
+      "source": "vorlagen/E1-wochenplan.html",
+      "output": "soll/E1-wochenplan-mobil.png",
+      "kind": "Browsergerendertes, isoliertes HTML-Mockup; keine Live-Anwendung",
+      "viewport_css": {
+        "width": 390,
+        "height": 844
+      },
+      "device_scale_factor": 2,
+      "browser_zoom": "100 %",
+      "full_page": true,
+      "metrics": {
+        "innerWidth": 390,
+        "scrollWidth": 390,
+        "scrollHeight": 3609,
+        "visiblePrimary": [
+          {
+            "text": "Offene Angaben prüfen",
+            "top": 419.34375,
+            "bottom": 463.34375
+          }
+        ],
+        "navCount": 4,
+        "externalImages": []
+      },
+      "blocked_network_requests": [],
+      "image_pixels": {
+        "width": 780,
+        "height": 7218
+      }
+    }
+  ]
+}

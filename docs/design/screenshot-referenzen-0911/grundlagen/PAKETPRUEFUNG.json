@@ -1,0 +1,52 @@
+{
+  "scope": "Reference package only",
+  "local_links_checked": 144,
+  "missing_links": [],
+  "pngs_readable": 27,
+  "new_target_pngs": 8,
+  "old_sources": [
+    {
+      "file": "entwuerfe/X1-wochenplan-nicht-freigegeben.png",
+      "byte_identical": true
+    },
+    {
+      "file": "ist/R1-menues.png",
+      "byte_identical": true
+    },
+    {
+      "file": "ist/R2-wochenverwaltung.png",
+      "byte_identical": true
+    },
+    {
+      "file": "ist/R3-baustein-bearbeiten.png",
+      "byte_identical": true
+    },
+    {
+      "file": "ist/R4-druckvorlagen.png",
+      "byte_identical": true
+    },
+    {
+      "file": "ist/frueher/E1-wochenplan.png",
+      "byte_identical": true
+    },
+    {
+      "file": "ist/frueher/E2-menueeditor.png",
+      "byte_identical": true
+    },
+    {
+      "file": "ist/frueher/E3-komponentenliste.png",
+      "byte_identical": true
+    },
+    {
+      "file": "ist/frueher/E4-grundlagen.png",
+      "byte_identical": true
+    },
+    {
+      "file": "ist/frueher/E5-erscheinungsbild.png",
+      "byte_identical": true
+    }
+  ],
+  "font_files": [],
+  "python_scripts_syntax": "valid",
+  "application_tests": "not performed"
+}
