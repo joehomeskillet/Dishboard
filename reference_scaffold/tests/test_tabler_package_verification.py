@@ -58,7 +58,7 @@ def test_package_offline_gate_reports_real_locked_asset_result(tmp_path, monkeyp
     # Other package issues (e.g. checkout metadata) are outside this focused gate.
 
 
-@pytest.mark.parametrize('fault', [None, 'reference_only', 'hex_tokens', 'hex_app'])
+@pytest.mark.parametrize('fault', [None, 'reference_only', 'hex_tokens', 'hex_app', 'hex_admin_scope'])
 def test_package_checks_extracted_css_definitions_and_both_hex_boundaries(monkeypatch, capsys, fault):
     actual_read = Path.read_text
     actual_run = validator.run
@@ -68,11 +68,16 @@ def test_package_checks_extracted_css_definitions_and_both_hex_boundaries(monkey
     def read(path, *args, **kwargs):
         value = actual_read(path, *args, **kwargs)
         if path == tokens_path and fault == 'reference_only':
-            value, removed = re.subn(r'^\s*--sh-primary:\s*[^;]+;\s*$', '', value, flags=re.M)
+            value, removed = re.subn(r'^\s*--sh-primary:\s*[^;]+;\s*$', '', value, count=1, flags=re.M)
             assert removed == 1
             value += '\n/* --sh-primary: comment is not a definition */\n'
         if (path == tokens_path and fault == 'hex_tokens') or (path == app_path and fault == 'hex_app'):
             value += '\n.unmapped-color { color: #123456; }\n'
+        if fault == 'hex_admin_scope':
+            if path == tokens_path:
+                value += '\n.dishboard-admin { --custom-admin: #123456; }\n'
+            elif path == app_path:
+                value += '\n.dishboard-admin { color: #654321; }\n'
         return value
 
     def bounded_run(command, cwd):
@@ -92,9 +97,15 @@ def test_package_checks_extracted_css_definitions_and_both_hex_boundaries(monkey
         assert result == 1 and missing + " ['--sh-primary']" in output
     else:
         assert missing not in output
-    if fault in {'hex_tokens', 'hex_app'}:
+    if fault in {'hex_tokens', 'hex_app', 'hex_admin_scope'}:
         assert result == 1 and hex_error in output
-        assert ('tokens.css Line' if fault == 'hex_tokens' else 'app.css Line') in output
+        if fault == 'hex_tokens':
+            assert 'tokens.css Line' in output
+        elif fault == 'hex_app':
+            assert 'app.css Line' in output
+        elif fault == 'hex_admin_scope':
+            assert 'app.css Line' in output
+            assert 'tokens.css Line' not in output
     else:
         assert hex_error not in output
 

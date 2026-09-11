@@ -440,27 +440,47 @@ def main() -> int:
             css_a_text = css_a.read_text(encoding='utf-8')
             css_texts = [(path, path.read_text(encoding='utf-8')) for path in scaffold_css]
             # Declarations are required; var() references and comments cannot define a token.
+            # Prototype parity only counts declarations inside :root blocks.
             definition_pattern = r'(--sh-[a-z0-9-]+)\s*:'
             proto_tokens = set(re.findall(definition_pattern, re.sub(r'/\*.*?\*/', '', css_a_text, flags=re.S)))
-            scaffold_tokens = set(re.findall(definition_pattern, re.sub(
-                r'/\*.*?\*/', '', '\n'.join(value for _path, value in css_texts), flags=re.S,
-            )))
+            scaffold_root_lines: list[str] = []
+            for _path, css_text in css_texts:
+                clean_text = re.sub(r'/\*.*?\*/', '', css_text, flags=re.S)
+                in_root = False
+                root_depth = 0
+                for line in clean_text.splitlines():
+                    if ':root' in line and '{' in line:
+                        in_root = True
+                        root_depth = line.count('{') - line.count('}')
+                        scaffold_root_lines.append(line)
+                        if root_depth <= 0:
+                            in_root = False
+                    elif in_root:
+                        scaffold_root_lines.append(line)
+                        root_depth += line.count('{') - line.count('}')
+                        if root_depth <= 0:
+                            in_root = False
+            scaffold_tokens = set(re.findall(definition_pattern, '\n'.join(scaffold_root_lines)))
             missing_tokens = proto_tokens - scaffold_tokens
             check(not missing_tokens, f'Scaffold-CSS fehlen Prototype-Tokens: {sorted(missing_tokens)}')
 
             # Check for hex colors outside :root in scaffold
             hex_violations = []
             for css_path, css_text in css_texts:
-                in_root = False
-                root_depth = 0
+                in_allowed = False
+                allowed_depth = 0
                 for i, line in enumerate(css_text.split('\n'), 1):
-                    if ':root' in line and '{' in line:
-                        in_root = True
-                        root_depth = line.count('{') - line.count('}')
-                    elif in_root:
-                        root_depth += line.count('{') - line.count('}')
-                        if root_depth <= 0:
-                            in_root = False
+                    is_root = ':root' in line and '{' in line
+                    is_admin_tokens = (css_path.name == 'tokens.css') and line.strip().startswith('.dishboard-admin') and '{' in line
+                    if (is_root or is_admin_tokens) and not in_allowed:
+                        in_allowed = True
+                        allowed_depth = line.count('{') - line.count('}')
+                        if allowed_depth <= 0:
+                            in_allowed = False
+                    elif in_allowed:
+                        allowed_depth += line.count('{') - line.count('}')
+                        if allowed_depth <= 0:
+                            in_allowed = False
                     elif re.search(r'#[0-9a-fA-F]{3,6}', line):
                         hex_violations.append(f'{css_path.name} Line {i}: {line.strip()}')
 
