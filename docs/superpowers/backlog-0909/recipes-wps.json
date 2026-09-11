@@ -1410,7 +1410,7 @@
         "REC-001"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "READY",
       "depends_on": [
         "MP-REC-BINDINGS",
         "MP-BAS-FOUNDATIONS"
@@ -1426,7 +1426,7 @@
         "reference_scaffold/cafeteria/templates/admin/component_editor.html",
         "reference_scaffold/cafeteria/templates/admin/components.html"
       ],
-      "task": "Vorher: menu_components.food_id existiert seit e813806 samt Sperr- und Belegverben, hat aber keine Auswahl in der Komponentenpflege. Nachher: der Komponenteneditor bietet die Auswahl eines aktiven Lebensmittels desselben Standorts, liest sie verlustfrei zurueck und erlaubt ein ausdruecklich bestaetigtes Abloesen. Bestaetigte Katalogallergene, Herkunft und Labels bleiben in Auto- und Manualmodus erhalten; es entsteht kein neuer automatischer Allergenableitungsweg. Reine Rezept- und Freitextpositionen bleiben unbekannt beziehungsweise manuell.",
+      "task": "Vorher: menu_components.food_id existiert seit e813806 samt Sperr- und Belegverben, hat aber keine Auswahl in der Komponentenpflege. Nachher: der Komponenteneditor bietet die Auswahl eines aktiven Lebensmittels desselben Standorts, liest sie verlustfrei zurueck und erlaubt ein ausdruecklich bestaetigtes Abloesen. Bestaetigte Katalogallergene, Herkunft und Labels bleiben in Auto- und Manualmodus erhalten; es entsteht kein neuer automatischer Allergenableitungsweg. Reine Rezept- und Freitextpositionen bleiben unbekannt beziehungsweise manuell. Root-Lease 2026-09-11: MP-REC-BINDINGS ist autorseitig eingefroren und in integrate/recipes-0911 integriert; der fehlende Katalog-Food-Writer (get_component ohne food_id, update_component ohne food_id/record_component_food_write_v26, parse_component_update_form/_validate_shape lehnt das Feld ab — Blocker wp-component-food-ui-0909) gehört deshalb zu diesem Paket: component_catalog_store.py und workflow_partial_form.py werden mit besessen, admin/rendering.py und admin/workflow_routes.py nur im Render-/Update-Pfad des Komponenteneditors (components_get/component_update); component_effects.py und master_data_*.py bleiben verboten.",
       "acceptance_criteria": [
         "Eine gebundene Komponente zeigt nach Neuladen dieselbe Lebensmittel-UUID",
         "Das Abloesen verlangt eine ausdrueckliche Bestaetigung",
@@ -1452,11 +1452,14 @@
         "reference_scaffold/cafeteria/component_catalog_metadata.py",
         "reference_scaffold/cafeteria/templates/admin/component_editor.html",
         "reference_scaffold/cafeteria/templates/admin/components.html",
-        "reference_scaffold/tests/test_component_food_selection_browser.py"
+        "reference_scaffold/tests/test_component_food_selection_browser.py",
+        "reference_scaffold/cafeteria/component_catalog_store.py",
+        "reference_scaffold/cafeteria/workflow_partial_form.py",
+        "reference_scaffold/cafeteria/admin/rendering.py",
+        "reference_scaffold/cafeteria/admin/workflow_routes.py"
       ],
       "forbidden_paths": [
         "database/",
-        "reference_scaffold/cafeteria/component_catalog_store.py",
         "reference_scaffold/cafeteria/master_data_*.py",
         "reference_scaffold/cafeteria/component_effects.py"
       ],
