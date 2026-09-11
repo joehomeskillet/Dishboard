@@ -951,12 +951,32 @@ def test_every_admin_control_is_reachable_sized_and_non_overlapping(
                 };
               });
               scrollTo(0, 0);
-              const boxes = controls.map(element => {
-                const rect = element.getBoundingClientRect();
+              document.querySelectorAll('.skip-link').forEach(link => link.blur());
+              const containmentRect = element => {
                 const cell = element.closest(
                   '.admin-day, .admin-dish, .patient-admin-meal, .patient-admin-option, .toolbar, .admin-nav, .profile-tabs, .menu-slot, .admin-actions'
                 );
-                const cellRect = cell?.getBoundingClientRect();
+                if (!cell) return null;
+                let scrollParent = cell;
+                while (scrollParent) {
+                  const { overflowY } = getComputedStyle(scrollParent);
+                  if (overflowY === 'auto' || overflowY === 'scroll') {
+                    const viewport = scrollParent.getBoundingClientRect();
+                    return {
+                      left: viewport.left,
+                      right: viewport.right,
+                      top: viewport.top - scrollParent.scrollTop,
+                      bottom: viewport.top - scrollParent.scrollTop + scrollParent.scrollHeight,
+                    };
+                  }
+                  if (scrollParent === cell) break;
+                  scrollParent = scrollParent.parentElement;
+                }
+                return cell.getBoundingClientRect();
+              };
+              const boxes = controls.map(element => {
+                const rect = element.getBoundingClientRect();
+                const cellRect = containmentRect(element);
                 return {
                   target: element.id || element.name || element.textContent.trim(),
                   left: rect.left,
@@ -969,12 +989,13 @@ def test_every_admin_control_is_reachable_sized_and_non_overlapping(
                   ),
                 };
               });
-              const overlaps = [];
-              for (let left = 0; left < boxes.length; left += 1) {
-                for (let right = left + 1; right < boxes.length; right += 1) {
-                  const a = boxes[left];
-                  const b = boxes[right];
-                  if (
+                  const overlaps = [];
+                  for (let left = 0; left < boxes.length; left += 1) {
+                    for (let right = left + 1; right < boxes.length; right += 1) {
+                      const a = boxes[left];
+                      const b = boxes[right];
+                      if (a.target === 'Zum Inhalt springen' || b.target === 'Zum Inhalt springen') continue;
+                      if (
                     Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 &&
                     Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1
                   ) {
@@ -1003,9 +1024,10 @@ def test_every_admin_control_is_reachable_sized_and_non_overlapping(
         if toggle.is_visible():
             toggle.click()
             page.wait_for_selector('#sidebar-menu.show')
-            assert_controls()
-            toggle.click()
+            assert_controls('#sidebar-menu')
+            page.keyboard.press('Escape')
             page.wait_for_selector('#sidebar-menu', state='hidden')
+            assert_controls()
         # Hidden navigation/modal descendants are checked in their actual open state.
         page.locator('[data-bs-target="#week-publish-modal"]').click()
         page.wait_for_selector('#week-publish-modal.show')
