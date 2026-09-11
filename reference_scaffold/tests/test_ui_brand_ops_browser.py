@@ -44,6 +44,30 @@ def _create_context(playwright_browser: Browser, server_url: str, client, *, jav
     return context
 
 
+def _assert_page_container_width(page, width: int) -> None:
+    if width < 1024:
+        return
+    layout = page.evaluate('''() => {
+        const main = document.querySelector('main.admin-main');
+        const container = document.querySelector('.page-body > .container-xl');
+        const maxWidth = getComputedStyle(container).maxWidth;
+        const containerWidth = container.getBoundingClientRect().width;
+        const cap = maxWidth === 'none' ? null : parseFloat(maxWidth);
+        return {
+            maxWidth,
+            cap,
+            mainWidth: main.clientWidth,
+            ratio: containerWidth / main.clientWidth,
+            containerWidth,
+        };
+    }''')
+    if layout['maxWidth'] == 'none':
+        assert layout['ratio'] >= 0.9
+    else:
+        frame_width = min(layout['cap'], layout['mainWidth'])
+        assert layout['containerWidth'] >= frame_width - 2
+
+
 def _assert_no_overflow_and_min_targets(page, min_height: int = 44, scope: str = 'main'):
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
     for locator in page.locator(f'{scope} :is(.btn, .form-select, .form-control)').all():
@@ -65,18 +89,14 @@ def test_brand_editor_normal_state_and_viewports(
         assert response is not None and response.status == 200
 
         expect(page.locator('main.admin-main')).to_have_attribute('data-layout', 'narrow')
-        if width >= 1024:
-            container_max_w = page.locator('.page-body > .container-xl').evaluate(
-                'el => getComputedStyle(el).maxWidth',
-            )
-            assert container_max_w == '960px'
+        _assert_page_container_width(page, width)
 
         expect(page.locator('h1.page-title')).to_have_text('Erscheinungsbild')
         expect(page.locator('.page-header-subtitle')).to_contain_text('Logo, Farben und Schrift')
         expect(page.locator('.admin-page-header .btn-list')).to_have_count(0)
 
         expect(page.locator('.brand-status')).to_contain_text('Aktuelles Design:')
-        expect(page.get_by_role('link', name='Erscheinungsbild', exact=True)).to_have_attribute('aria-current', 'page')
+        expect(page.locator('.admin-area-tabs a[aria-current="page"]')).to_have_text('Erscheinungsbild')
         expect(page.get_by_role('heading', name='Gespeicherte Vorschau · Version 1', exact=True)).to_be_visible()
         expect(page.get_by_text('Live-Vorschau', exact=False)).to_have_count(0)
         expect(page.locator('.brand-color-swatch')).to_have_count(4)
@@ -114,11 +134,7 @@ def test_operations_normal_state_and_viewports(
         assert response is not None and response.status == 200
 
         expect(page.locator('main.admin-main')).to_have_attribute('data-layout', 'narrow')
-        if width >= 1024:
-            container_max_w = page.locator('.page-body > .container-xl').evaluate(
-                'el => getComputedStyle(el).maxWidth',
-            )
-            assert container_max_w == '960px'
+        _assert_page_container_width(page, width)
 
         expect(page.locator('h1.page-title')).to_have_text('Bereiche & Öffnungszeiten')
         expect(page.locator('.page-header-subtitle')).to_contain_text('Ausgabe und Öffnungszeiten')

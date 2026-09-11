@@ -152,6 +152,12 @@ def _views(page: Page, javascript: bool, directory: Path, state: str, count: int
 def _keyboard(page: Page, javascript: bool) -> None:
     page.locator('main').focus()
     page.keyboard.press('Tab')
+    expect(page.locator('.admin-area-tabs [aria-current="page"]')).to_be_focused()
+    expect(page.locator('.admin-area-tabs [aria-current="page"]')).to_have_text('Menüs')
+    for link in page.locator('.admin-area-tabs a').all()[1:]:
+        page.keyboard.press('Tab')
+        expect(link).to_be_focused()
+    page.keyboard.press('Tab')
     expect(page.get_by_role('navigation', name='Profil').get_by_role('link').first).to_be_focused()
     page.keyboard.press('Tab')
     expect(page.get_by_role('navigation', name='Profil').get_by_role('link').last).to_be_focused()
