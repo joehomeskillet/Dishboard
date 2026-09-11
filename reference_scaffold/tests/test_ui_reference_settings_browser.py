@@ -100,6 +100,9 @@ def test_settings_normal_state_and_viewports(
         )
         expect(page.get_by_role('button', name='Vorschau aktualisieren', exact=True)).to_be_visible()
         expect(page.get_by_role('button', name='Standardwerte speichern', exact=True)).to_be_visible()
+        expect(page.locator('#display-reset-btn')).to_have_attribute(
+            'aria-describedby', 'display-reset-hint',
+        )
 
         # Preview card initial state
         preview = page.locator('.display-preview')
@@ -232,6 +235,26 @@ def test_settings_forbidden_for_non_admin(
         # Non-admin does not have display settings link in navigation
         page.goto('/admin/cafeteria')
         expect(page.locator(f'a[href="{PATH}"]')).to_have_count(0)
+        assert get_admin_display(admin_engine) == DEFAULT_ADMIN_DISPLAY
+
+
+def test_settings_unauthenticated_gets_401(
+    browser: Browser, live_server: str, admin_app, admin_engine, tmp_path: Path,  # noqa: F811
+):
+    with browser.new_context(base_url=live_server) as context:
+        page = context.new_page()
+        response = page.goto(PATH)
+        assert response is not None and response.status == 401
+        assert 'Darstellung' not in page.locator('body').inner_text()
+        assert get_admin_display(admin_engine) == DEFAULT_ADMIN_DISPLAY
+        page.screenshot(path=str(tmp_path / 'ref-settings-unauthenticated-401.png'), full_page=True)
+
+    denied, _ = _login(admin_app, admin_engine, [])
+    with _create_context(browser, live_server, denied) as context:
+        page = context.new_page()
+        response = page.goto(PATH)
+        assert response is not None and response.status == 401
+        assert 'Darstellung' not in page.locator('body').inner_text()
         assert get_admin_display(admin_engine) == DEFAULT_ADMIN_DISPLAY
 
 
