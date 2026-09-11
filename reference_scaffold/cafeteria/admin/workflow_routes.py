@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from datetime import date, timedelta
 from html import escape
 from typing import Literal, cast
@@ -17,12 +18,15 @@ from ..component_assignment_store import (
     ComponentAssignmentValidationError,
     resolve_component_effects,
 )
+from ..menu_recipe_choices import (
+    RecipeChoicePage, RecipeChoiceQuery, list_recipe_choices, unreadable_choice)
 from ..component_catalog_store import (
     AdminScope, ComponentCatalogConfigurationError, ComponentCatalogValidationError,
     ComponentConflictError, ComponentNotFoundError, StaleComponentError, archive_component,
     create_component, find_components, get_component,
     unarchive_component, update_component,
 )
+from ..recipe_types import RecipeNotFoundError, RecipeUnavailableError, RecipeValidationError
 from ..component_catalog_metadata import AllergenInput
 from ..component_catalog_filters import ComponentFilters
 from ..operations_settings import get_schedule_connection
@@ -266,6 +270,25 @@ def _catalog_choices(
     return choices
 
 
+def _recipe_choice_page(selected_ids: Sequence[object]) -> RecipeChoicePage:
+    """Read the bounded immutable choice page for the current bindings.
+
+    The editor still renders exactly one page; the query stays at its default until
+    the separate form-intent work package wires search and paging controls. A read
+    failure degrades to an empty page with the retained bindings, which keeps the
+    existing safe error mapping instead of turning a read problem into a 500.
+    """
+    query = RecipeChoiceQuery()
+    try:
+        return list_recipe_choices(_db(), selected_ids, query)
+    except (RecipeUnavailableError, RecipeValidationError, RecipeNotFoundError):
+        retained = tuple(
+            unreadable_choice(str(value)) for value in selected_ids if value
+        )
+        return RecipeChoicePage(query=query, choices=(), retained=retained, has_next=False,
+                                next_offset=None, previous_offset=None)
+
+
 def _display_effects(effects: dict[str, object]) -> dict[str, list[str]]:
     rows = cast(dict[str, list[dict[str, object]]], effects)
     return {
@@ -329,6 +352,14 @@ def _render_menu_page(
 
     assignments = cast(list[dict[str, object]], option.get('assignments') or [])
     catalog_choices = _catalog_choices(scope, assignments)
+    selected_revisions: Sequence[object]
+    if form_values is not None:
+        selected_revisions = cast(Sequence[object], form_values.get('recipe_revision_public_id') or [])
+    else:
+        selected_revisions = [
+            assignment.get('recipe_revision_public_id') or '' for assignment in assignments
+        ]
+    recipe_page = _recipe_choice_page(selected_revisions)
     allergens, labels = _master_choices()
     review_token = None
     effects: dict[str, list[str]] = {'labels': [], 'allergens': [], 'origins': []}
@@ -359,7 +390,7 @@ def _render_menu_page(
         menu_form_values(profile, option) if form_values is None else form_values,
         form_errors or {}, _scoped_csrf(profile, 'menu', scope), review_token,
         catalog_choices, allergens, labels, effects, _flash(),
-        origin_conflict=origin_conflict,
+        origin_conflict=origin_conflict, recipe_page=recipe_page,
     )
     response_status = 409 if origin_conflict is not None and status == 200 else status
     return html if response_status == 200 else make_response(html, response_status)
@@ -494,6 +525,14 @@ def menu_post(family: str):
     except _MENU_VALIDATION_ERRORS as error:
         return _menu_error_response(
             profile, family, scope, error, 400, keep_request_values=True,
+        )
+    except ComponentNotFoundError as error:
+        if str(error) != 'Rezeptrevision nicht gefunden.':
+            _abort_store(error)
+        return _menu_error_response(
+            profile, family, scope,
+            WorkflowValidationError(str(error), field_name='recipe_revision_public_id'),
+            400, keep_request_values=True,
         )
     except _MENU_CONFLICT_ERRORS as error:
         return _menu_error_response(
