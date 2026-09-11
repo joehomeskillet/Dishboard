@@ -177,7 +177,7 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
             assert control_box['y'] >= label_box['y'] + label_box['height'] - 1
             assert abs(control_box['x'] - label_box['x']) <= 1
         first_allergen = main.locator('.allergen-row').first
-        label_box = first_allergen.locator('label').bounding_box()
+        label_box = first_allergen.locator('label').first.bounding_box()  # reference form adds a label per presence select
         select_box = first_allergen.locator('select').bounding_box()
         assert label_box is not None and select_box is not None
         if width >= 1000:
