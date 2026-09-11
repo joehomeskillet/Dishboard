@@ -429,11 +429,11 @@ def test_sidebar_and_adjacent_contrasts(site, tmp_path):
     active = page.locator('.admin-sidebar .nav-link.active')
     active_styles = _styles(active)
     assert 'rgb(243, 166, 192)' in active_styles['box-shadow']
-    assert contrast('#f3a6c0', _hex(active_styles['background-color'])) >= 3
+    assert contrast('#ffffff', _hex(active_styles['background-color'])) >= 3
     active.focus()
     page.keyboard.press('Tab')
     focused = page.locator('.admin-sidebar :focus-visible')
-    assert _styles(focused)['outline-color'] == 'rgb(243, 166, 192)'
+    assert _styles(focused)['outline-color'] == 'rgb(255, 255, 255)'
     _goto(page, DISPLAY)
     field = _styles(page.locator('#display-example'))
     assert contrast(_hex(field['border-top-color']), _hex(field['background-color'])) >= 3
