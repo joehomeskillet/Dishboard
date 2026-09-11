@@ -25,13 +25,11 @@
       </div>
     </div>
     <div class="card-footer">
-      {{ actions(
-        primary={'label': 'Darstellung speichern', 'type': 'submit', 'name': 'action', 'value': 'save'},
-        secondary=[
-          {'label': 'Vorschau aktualisieren', 'type': 'submit', 'name': 'action', 'value': 'preview'},
-          {'label': 'Standardwerte speichern', 'type': 'submit', 'name': 'action', 'value': 'reset', 'id': 'display-reset-btn'}
-        ]
-      ) }}
+      {% call actions() %}
+        <button type="submit" class="btn btn-primary" name="action" value="save">Darstellung speichern</button>
+        <button type="submit" class="btn" name="action" value="preview">Vorschau aktualisieren</button>
+        <button type="submit" class="btn" id="display-reset-btn" name="action" value="reset" aria-describedby="display-reset-hint">Standardwerte speichern</button>
+      {% endcall %}
       <p class="form-hint mt-2 mb-0" id="display-reset-hint">Standardwerte speichern setzt für alle Benutzer Kompakt, Normal, Begrenzt und Anzeigen.</p>
     </div>
   </form>

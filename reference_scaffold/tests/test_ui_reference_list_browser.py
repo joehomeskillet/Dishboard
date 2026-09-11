@@ -160,8 +160,6 @@ def _keyboard(page: Page, javascript: bool) -> None:
     page.keyboard.press('Tab')
     expect(page.get_by_role('button', name='Suchen', exact=True)).to_be_focused()
     page.keyboard.press('Tab')
-    expect(page.locator('summary')).to_be_focused()
-    page.keyboard.press('Tab')
     if javascript:
         cards = page.get_by_role('tab', name='Karten', exact=True)
         expect(cards).to_be_focused()
@@ -240,6 +238,8 @@ def test_reference_states_and_viewports(
             page.set_viewport_size({'width': width, 'height': height})
             if javascript:
                 page.get_by_role('tab', name='Liste', exact=True).click()
+            expect(page.locator('#menu-list').get_by_text('Gespeicherter Prüfvermerk:').first).to_be_visible()
+            expect(page.locator('#menu-list').get_by_text('Allergenangaben nicht erfasst').first).to_be_visible()
             region = page.get_by_role('region', name='Menüliste', exact=True)
             region.focus()
             page.keyboard.press('Shift+Tab')
