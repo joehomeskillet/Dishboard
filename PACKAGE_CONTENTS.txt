@@ -1280,6 +1280,7 @@ reference_scaffold/tests/test_ui_inventory_capture.py
 reference_scaffold/tests/test_ui_master_components_browser.py
 reference_scaffold/tests/test_ui_master_shell_browser.py
 reference_scaffold/tests/test_ui_master_tokens_browser.py
+reference_scaffold/tests/test_ui_menu_editor_browser.py
 reference_scaffold/tests/test_ui_reference_detail_browser.py
 reference_scaffold/tests/test_ui_reference_form_browser.py
 reference_scaffold/tests/test_ui_reference_list_browser.py
