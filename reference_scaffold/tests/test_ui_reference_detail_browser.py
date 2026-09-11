@@ -26,6 +26,9 @@ VIEWPORTS = [
     (1920, 1080),
 ]
 
+ZOOM_VIEWPORTS = [(1440, 900), (390, 844)]
+FOCUS_COLOR = 'rgb(163, 22, 77)'
+
 
 @pytest.fixture
 def detail_revisions(a3):  # noqa: F811
@@ -84,10 +87,21 @@ def detail_revisions(a3):  # noqa: F811
         row_long = store.create_recipe(engine, actor, p_long, expected_location_id=loc)
         rev_long = store.freeze_revision(engine, actor, target(row_long), expected_location_id=loc)
 
+        # 4. Empty recipe revision without ingredients or preparation steps
+        p_empty = payload(
+            title='Leeres Rezept ohne Inhalt',
+            description='Revision ohne Zutaten und Zubereitungsschritte.',
+            ingredients=[],
+            steps=[],
+        )
+        row_empty = store.create_recipe(engine, actor, p_empty, expected_location_id=loc)
+        rev_empty = store.freeze_revision(engine, actor, target(row_empty), expected_location_id=loc)
+
     return {
         'normal': (row_norm.public_id, rev_normal.public_id, rev_normal.revision_number, rev_normal.content_hash_sha256),
         'no_images': (row_no_img.public_id, rev_no_img.public_id, rev_no_img.revision_number, rev_no_img.content_hash_sha256),
         'long_text': (row_long.public_id, rev_long.public_id, rev_long.revision_number, rev_long.content_hash_sha256),
+        'empty': (row_empty.public_id, rev_empty.public_id, rev_empty.revision_number, rev_empty.content_hash_sha256),
     }
 
 
@@ -126,6 +140,31 @@ def capture_screenshot(page, tmp_path: Path, name: str):
     tmp_path.mkdir(parents=True, exist_ok=True)
     destination = tmp_path / f'{name}.png'
     page.screenshot(path=str(destination), full_page=True)
+
+
+def assert_zoom_geometry(page):
+    page.evaluate('scrollTo(0, 0)')
+    # CSS zoom can introduce a few subpixel rounding pixels on narrow viewports.
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 4')
+    assert page.locator('main style, main [style]').count() == 0
+    for element in page.locator('main :is(.btn, .form-control)').all():
+        if element.is_visible():
+            box = element.bounding_box()
+            assert box is not None and box['height'] >= 44 and box['width'] >= 44
+
+
+def assert_focus_ring(element):
+    styles = element.evaluate('''el => {
+        const style = getComputedStyle(el);
+        return {
+            outlineStyle: style.outlineStyle,
+            outlineWidth: parseFloat(style.outlineWidth),
+            outlineColor: style.outlineColor,
+        };
+    }''')
+    assert styles['outlineStyle'] == 'solid'
+    assert styles['outlineWidth'] >= 2
+    assert styles['outlineColor'] == FOCUS_COLOR
 
 
 @pytest.mark.parametrize('width,height', VIEWPORTS)
@@ -247,6 +286,52 @@ def test_detail_reference_long_text_state(detail_revisions, detail_server, brows
         capture_screenshot(page, tmp_path, f'detail-longtext-{width}x{height}')
 
 
+@pytest.mark.parametrize('width,height', ZOOM_VIEWPORTS)
+def test_detail_reference_empty_state(detail_revisions, detail_server, browser, width, height, tmp_path):  # noqa: F811
+    recipe_id, rev_id, rev_num, _ = detail_revisions['empty']
+    base, cookie, _ = detail_server
+    url = f'{base}/admin/rezepte/{recipe_id}/revisionen/{rev_id}'
+
+    with browser.new_context(viewport={'width': width, 'height': height}, java_script_enabled=True,
+                             reduced_motion='reduce', service_workers='block') as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        assert page.goto(url).status == 200
+
+        expect(page.locator('h1.page-title')).to_contain_text('Leeres Rezept ohne Inhalt')
+        expect(page.locator('.page-header-subtitle')).to_contain_text(f'Unveränderlicher Revisionsstand {rev_num}')
+        expect(page.get_by_text('Keine Zutaten gespeichert.')).to_be_visible()
+        expect(page.get_by_text('Keine Schritte gespeichert.')).to_be_visible()
+
+        assert_geometry(page)
+        capture_screenshot(page, tmp_path, f'detail-empty-{width}x{height}')
+
+
+@pytest.mark.parametrize('width,height', ZOOM_VIEWPORTS)
+def test_detail_reference_zoom_200_percent(detail_revisions, detail_server, browser, width, height, tmp_path):  # noqa: F811
+    recipe_id, rev_id, rev_num, _ = detail_revisions['normal']
+    base, cookie, _ = detail_server
+    url = f'{base}/admin/rezepte/{recipe_id}/revisionen/{rev_id}'
+
+    with browser.new_context(viewport={'width': width, 'height': height}, java_script_enabled=True,
+                             reduced_motion='reduce', service_workers='block') as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        assert page.goto(url).status == 200
+
+        page.evaluate("document.documentElement.style.zoom = '2'")
+
+        expect(page.locator('h1.page-title')).to_be_visible()
+        expect(page.locator('.page-header-subtitle')).to_contain_text(f'Unveränderlicher Revisionsstand {rev_num}')
+        expect(page.get_by_role('link', name='Alle Revisionen')).to_be_visible()
+        expect(page.get_by_role('link', name='PDF öffnen')).to_be_visible()
+        expect(page.get_by_role('heading', name='Unveränderlicher Stand')).to_be_visible()
+
+        assert_zoom_geometry(page)
+        capture_screenshot(page, tmp_path, f'detail-zoom200-{width}x{height}')
+        page.evaluate("document.documentElement.style.zoom = ''")
+
+
 def test_detail_reference_scaling_and_pdf_query(detail_revisions, detail_server, browser, tmp_path):  # noqa: F811
     recipe_id, rev_id, _, _ = detail_revisions['normal']
     base, cookie, _ = detail_server
@@ -308,6 +393,52 @@ def test_detail_reference_no_js_and_keyboard(detail_revisions, detail_server, br
 
         assert_geometry(page)
         capture_screenshot(page, tmp_path, f'detail-no-js-{width}x{height}')
+
+
+@pytest.mark.parametrize('width,height', ZOOM_VIEWPORTS)
+def test_detail_reference_focus_ring(detail_revisions, detail_server, browser, width, height, tmp_path):  # noqa: F811
+    recipe_id, rev_id, _, _ = detail_revisions['normal']
+    base, cookie, _ = detail_server
+    url = f'{base}/admin/rezepte/{recipe_id}/revisionen/{rev_id}'
+
+    with browser.new_context(viewport={'width': width, 'height': height}, java_script_enabled=True,
+                             reduced_motion='reduce', service_workers='block') as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        assert page.goto(url).status == 200
+
+        back_btn = page.get_by_role('link', name='Alle Revisionen')
+        back_btn.focus()
+        expect(back_btn).to_be_focused()
+        assert_focus_ring(back_btn)
+
+        pdf_btn = page.get_by_role('link', name='PDF öffnen')
+        pdf_btn.focus()
+        expect(pdf_btn).to_be_focused()
+        assert_focus_ring(pdf_btn)
+
+        yield_input = page.locator('#target-yield')
+        yield_input.focus()
+        expect(yield_input).to_be_focused()
+        assert_focus_ring(yield_input)
+
+        capture_screenshot(page, tmp_path, f'detail-focus-ring-{width}x{height}')
+
+
+def test_detail_reference_unauthenticated_gets_401(detail_revisions, detail_server, browser, tmp_path):  # noqa: F811
+    recipe_id, rev_id, _, _ = detail_revisions['normal']
+    base, _, _ = detail_server
+    url = f'{base}/admin/rezepte/{recipe_id}/revisionen/{rev_id}'
+
+    with browser.new_context(viewport={'width': 1440, 'height': 900}, java_script_enabled=True,
+                             reduced_motion='reduce', service_workers='block') as context:
+        page = context.new_page()
+        for width, height in ZOOM_VIEWPORTS:
+            page.set_viewport_size({'width': width, 'height': height})
+            response = page.goto(url)
+            assert response.status == 401
+            assert 'Unveränderlicher Stand' not in page.locator('body').inner_text()
+            capture_screenshot(page, tmp_path, f'detail-401-unauthenticated-{width}x{height}')
 
 
 def test_detail_reference_errors_404_and_403(detail_revisions, detail_server, browser, a3, monkeypatch, tmp_path):  # noqa: F811
