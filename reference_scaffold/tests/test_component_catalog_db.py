@@ -37,7 +37,8 @@ ROOT = Path(__file__).resolve().parents[2]
 DATABASE_URL = os.getenv('TEST_DATABASE_URL')
 OUTPUT_KEYS = {
     'public_id', 'profile_scope', 'category', 'name', 'origin_country_code',
-    'active', 'row_version', 'usage_count', 'labels', 'allergens',
+    'active', 'row_version', 'usage_count', 'food_public_id', 'food_name',
+    'labels', 'allergens',
 }
 
 
@@ -314,6 +315,8 @@ def test_create_maps_scope_and_returns_only_public_contract(catalog_database: Ca
         'active': True,
         'row_version': 1,
         'usage_count': 0,
+        'food_public_id': None,
+        'food_name': None,
         'labels': [],
         'allergens': [],
     }

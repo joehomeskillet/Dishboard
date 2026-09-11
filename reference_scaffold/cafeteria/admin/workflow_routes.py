@@ -677,9 +677,9 @@ def _component_error_response(profile: str, family: str, scope: AdminScope, erro
     # Keep the submitted revision: a validation error must not approve a newer edit.
     row['row_version'] = values.get('row_version', '')
     return render_component_detail(
-        profile, family, row, _scoped_csrf(profile, 'component', scope), _flash(), CATEGORY_LABELS,
+        profile, family, row, values.get('_csrf', ''), _flash(), CATEGORY_LABELS,
         allergens, labels, form_values=values, form_errors=errors,
-    ), 400
+    ), 409 if isinstance(error, (ComponentConflictError, WriteConflictError)) else 400
 
 @bp.get('/<any(cafeteria, patienten):family>/komponenten')
 @require_capability('draft.read')
@@ -753,18 +753,16 @@ def component_update(family: str, public_id: str):
     _reject_override()
     scope = _validate_scoped_csrf(profile, {'component'})
     try:
-        parsed = parse_component_update_form(request.form)
-        get_component(_db(), scope, public_id, include_archived=True)
+        row = _call(lambda: get_component(_db(), scope, public_id, include_archived=True))
+        parsed = parse_component_update_form(
+            request.form, current_food_public_id=cast(str | None, row.get('food_public_id')),
+        )
         update_component(
-            _db(), scope, public_id,
-            {
-                'category': parsed.payload['category'], 'name': parsed.payload['name'],
-                'origin_country_code': parsed.payload['origin_country_code'],
-                'label_codes': parsed.payload['label_codes'], 'allergens': parsed.payload['allergens'],
-            },
+            _db(), scope, public_id, parsed.payload,
             parsed.expected_component_row_version,
         )
-    except (WorkflowValidationError, ComponentCatalogValidationError) as error:
+    except (WorkflowValidationError, ComponentCatalogValidationError,
+            ComponentConflictError, WriteConflictError) as error:
         return _component_error_response(profile, family, scope, error, public_id)
     except _STORE_ERRORS as error:
         _abort_store(error)
