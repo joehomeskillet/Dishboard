@@ -69,7 +69,7 @@ def test_old_food_gap_stops_before_ddl_ledger_sequences_then_explicit_backfill(p
     ids = old_schema(pg16)
     old = execute(pg16, "SELECT cafeteria.create_food_v21(:actor,:authz,:location,NULL,NULL,'{\"name\":\"Altbestand\",\"base_unit_code\":\"G\"}')", ids)
     before = rows_and_sequences(pg16)
-    migration = database.migration_plan(SCHEMA)[-1]
+    migration = next(m for m in database.migration_plan(SCHEMA) if m.version == 27)
     with pytest.raises(psycopg.Error) as error:
         database._execute_migration(pg16, migration)
     assert error.value.sqlstate == '55000'
@@ -96,9 +96,11 @@ def test_old_food_gap_stops_before_ddl_ledger_sequences_then_explicit_backfill(p
             else:
                 projection = "to_jsonb(t)-'prepared_recipe_revision_id'" if table == 'foods' else 'to_jsonb(t)'
                 assert c.execute(text(f'SELECT ({projection})::text FROM cafeteria.{table} t ORDER BY ({projection})::text')).all() == rows
-        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 27
+        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 29
         migrated = structure(c)
-    assert rows_and_sequences(pg16)[1] == before_upgrade[1]
+    after_sequences = rows_and_sequences(pg16)[1]
+    assert [s for s in after_sequences if s[0] != 'recipe_import_batches_id_seq'] == before_upgrade[1]
+    assert any(s[0] == 'recipe_import_batches_id_seq' for s in after_sequences)
     with pg16.begin() as c:
         c.execute(text('DROP SCHEMA cafeteria CASCADE'))
     database._execute_script(pg16, str(SCHEMA))
@@ -110,7 +112,7 @@ def test_old_food_gap_stops_before_ddl_ledger_sequences_then_explicit_backfill(p
 def test_migration_waits_for_old_writer_and_rechecks_committed_gap(pg16):  # noqa: F811
     ids = old_schema(pg16)
     started = Queue()
-    migration = database.migration_plan(SCHEMA)[-1]
+    migration = next(m for m in database.migration_plan(SCHEMA) if m.version == 27)
     def upgrade():
         try:
             with pg16.begin() as c:
