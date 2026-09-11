@@ -1,13 +1,15 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header %}
+{% from 'admin/_macros.html' import page_header, select, field, actions, form_errors %}
 {% set workflow_nav = 'design' %}
+{% set layout_variant = 'narrow' %}
 {% block title %}Darstellung · Design & Marke{% endblock %}
-{% block page_header %}{{ page_header('Design & Marke') }}{% endblock %}
+{% block page_header %}{{ page_header('Design & Marke', description='Zentrale Anzeigeoptionen für Abstände, Schriftgrösse, Inhaltsbreite und Menübilder im Administrationsbereich.', breadcrumbs=[('Design & Marke', url_for('admin.branding_editor')), ('Darstellung', none)]) }}{% endblock %}
 {% block content %}
   <form method="post" action="{{ url_for('admin.display_settings') }}" class="card mb-4" id="display-settings-form">
     <input type="hidden" name="_csrf" value="{{ csrf }}">
     <div class="card-header"><h2 class="card-title">Darstellung</h2></div>
     <div class="card-body">
+      {{ form_errors(display_errors.values()|list) }}
       <p>Die Einstellung gilt für alle Benutzer und Geräte im Adminbereich. Geöffnete Seiten übernehmen sie beim nächsten Laden.</p>
       <div class="row g-3">
         {% for key, label, choices, hint in [
@@ -16,24 +18,20 @@
           ('admin_content_width', 'Inhaltsbreite', [('contained', 'Begrenzt'), ('full', 'Voll')], 'Begrenzt verwendet die bisherige Seitenbreite. Voll nutzt auch auf großen Bildschirmen den verfügbaren Platz.'),
           ('admin_menu_images', 'Menübilder', [('show', 'Anzeigen'), ('hide', 'Ausblenden')], 'Serviervorschläge in Menükarten und Admin-Vorschau. Menütexte, Allergene und Prüfhinweise bleiben immer sichtbar.'),
         ] %}
-        {% set field_id = key|replace('_', '-') %}
         <div class="col-12 col-md-6">
-          <label class="form-label" for="{{ field_id }}">{{ label }}</label>
-          <select class="form-select{% if display_errors.get(key) %} is-invalid{% endif %}" name="{{ key }}" id="{{ field_id }}" aria-describedby="{{ field_id }}-hint{% if display_errors.get(key) %} {{ field_id }}-error{% endif %}"{% if display_errors.get(key) %} aria-invalid="true"{% endif %}>
-            {% for value, title in choices %}<option value="{{ value }}"{% if display_values[key] == value %} selected{% endif %}>{{ title }}</option>{% endfor %}
-          </select>
-          <p class="form-hint" id="{{ field_id }}-hint">{{ hint }}</p>
-          {% if display_errors.get(key) %}<p class="invalid-feedback d-block" id="{{ field_id }}-error" role="alert">{{ display_errors[key] }}</p>{% endif %}
+          {{ select(key, label, choices=choices, value=display_values[key], id=key|replace('_', '-'), error=display_errors.get(key), hint=hint) }}
         </div>
         {% endfor %}
       </div>
     </div>
     <div class="card-footer">
-      <div class="btn-list">
-        <button type="submit" class="btn btn-primary" name="action" value="save">Darstellung speichern</button>
-        <button type="submit" class="btn" name="action" value="preview">Vorschau aktualisieren</button>
-        <button type="submit" class="btn" name="action" value="reset" aria-describedby="display-reset-hint">Standardwerte speichern</button>
-      </div>
+      {{ actions(
+        primary={'label': 'Darstellung speichern', 'type': 'submit', 'name': 'action', 'value': 'save'},
+        secondary=[
+          {'label': 'Vorschau aktualisieren', 'type': 'submit', 'name': 'action', 'value': 'preview'},
+          {'label': 'Standardwerte speichern', 'type': 'submit', 'name': 'action', 'value': 'reset', 'id': 'display-reset-btn'}
+        ]
+      ) }}
       <p class="form-hint mt-2 mb-0" id="display-reset-hint">Standardwerte speichern setzt für alle Benutzer Kompakt, Normal, Begrenzt und Anzeigen.</p>
     </div>
   </form>
@@ -47,8 +45,9 @@
         {% with option={'title': 'Pouletbrust an Kräutersauce', 'components': ['Kartoffelstock', 'Zucchetti']}, admin_menu_images=display_values.admin_menu_images %}{% include '_menu_image.html' %}{% endwith %}
         <p>Kartoffelstock · Zucchetti</p>
         <p>Enthält: Milch · Allergene noch prüfen.</p>
-        <label class="form-label" for="display-example">Notiz (Beispiel)</label>
-        <input class="form-control mb-3" type="text" id="display-example" value="Frisch zubereitet" readonly>
+        <div class="mb-3">
+          {{ field('example', 'Notiz (Beispiel)', value='Frisch zubereitet', id='display-example', readonly=true) }}
+        </div>
         <a class="btn" href="{{ url_for('admin.menu_collection', family='cafeteria') }}">Menüs öffnen</a>
       </div>
     </article>
