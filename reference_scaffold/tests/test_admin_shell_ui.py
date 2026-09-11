@@ -19,7 +19,7 @@ def _assert_brand_contained(sidebar: Locator) -> None:
     brand_box = brand.bounding_box()
     assert sidebar_box is not None and brand_box is not None
     boxes = [(brand_box, sidebar_box), (brand.locator('img').bounding_box(), brand_box)]
-    # The Tabler shell hides the brand caption below 1200 px; only a visible caption must fit.
+    # Only a visible brand caption must fit inside the sidebar.
     if brand.locator('span').is_visible():
         boxes.append((brand.locator('span').bounding_box(), brand_box))
     for box, bounds in boxes:
@@ -75,7 +75,7 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
 
     navigation = sidebar.get_by_role('navigation', name='Backend')
     toggle = sidebar.get_by_role('button', name='Menü', exact=True)
-    collapsed = shell == '.page' and width < 1200
+    collapsed = shell == '.page' and width < 992
     if collapsed:
         expect(toggle).to_be_visible()
         toggle.click()
@@ -83,8 +83,10 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         expect(page.locator('#sidebar-menu')).to_have_class(re.compile(r'\bshow\b'))
         expect(page.locator('#sidebar-menu')).not_to_have_class(re.compile(r'\bcollapsing\b'))
         expect(navigation).to_be_visible()
+    elif shell == '.page':
+        expect(toggle).to_be_hidden()
     weeks = navigation.get_by_role('link', name='Wochenpläne')
-    catalog = navigation.get_by_role('link', name='Komponenten', exact=True)
+    catalog = navigation.get_by_role('link', name=re.compile(r'^Komponenten\b'))
     week_href = weeks.get_attribute('href')
     assert week_href is not None
     week_url = urlsplit(week_href)
@@ -93,21 +95,19 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
     expect(catalog).to_have_attribute('href', f'/admin/{family}/komponenten')
     expect(navigation.get_by_text('Signage', exact=True)).to_have_count(0)
     assert navigation.locator('a[href^="/signage/"]').count() == 0
-    expect(navigation.get_by_role('link', name='Screens', exact=True)).to_have_attribute('href', '/admin/screens')
-    expect(navigation.get_by_role('link', name='Vorlagen', exact=True)).to_have_attribute('href', '/admin/vorlagen')
-    expect(navigation.locator('[aria-current="page"]')).to_have_text(
+    expect(navigation.get_by_role('link', name=re.compile(r'^Screens\b'))).to_have_attribute('href', '/admin/screens')
+    expect(navigation.get_by_role('link', name=re.compile(r'^Vorlagen\b'))).to_have_attribute('href', '/admin/vorlagen')
+    expect(navigation.locator('[aria-current="page"]')).to_contain_text(
         'Wochenpläne' if page_kind == 'editor' else 'Komponenten',
     )
 
-    logout = navigation.locator('form')
+    logout = sidebar.locator('form')
     with admin_app.test_request_context():
         logout_url = url_for('auth.logout')
     expect(logout).to_have_attribute('method', 'post')
     expect(logout).to_have_attribute('action', logout_url)
     assert logout.locator('input[name="_csrf"]').input_value()
     assert main.locator(f'form[action="{logout_url}"]').count() == 0
-    # Bootstrap's collapse leaves an emptied style attribute behind after the transition.
-    assert page.locator('[onclick], [onsubmit], [style]:not([style=""]), script:not([src])').count() == 0
 
     small_targets = page.locator(
         f'{shell} .admin-nav a, {shell} .admin-nav button, '
@@ -130,9 +130,12 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
     assert small_targets == []
     if collapsed:
         # Finish navigation before checking the main form's initial viewport.
-        toggle.click()
+        page.keyboard.press('Escape')
+        expect(toggle).to_have_attribute('aria-expanded', 'false')
         expect(navigation).to_be_hidden()
-        expect(page.locator('#sidebar-menu')).not_to_have_class(re.compile(r'\bcollapsing\b'))
+        expect(toggle).to_be_focused()
+    # Check after Offcanvas restores its temporary body scroll-lock styles.
+    assert page.locator('[onclick], [onsubmit], [style]:not([style=""]), script:not([src])').count() == 0
 
     if page_kind == 'editor':
         heading = main.get_by_role('heading', level=1)
@@ -221,7 +224,7 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         expect(toggle).to_be_focused()
         page.keyboard.press('Enter')
         expect(toggle).to_have_attribute('aria-expanded', 'true')
-        expect(page.locator('#sidebar-menu')).not_to_have_class(re.compile(r'\bcollapsing\b'))
+        expect(page.locator('#sidebar-menu')).to_be_focused()
         page.keyboard.press('Tab')
     expect(weeks).to_be_focused()
     assert weeks.evaluate('''element => {

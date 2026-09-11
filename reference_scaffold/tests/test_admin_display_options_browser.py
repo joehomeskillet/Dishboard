@@ -42,11 +42,15 @@ def test_preview_global_consumers_reset_and_fresh_login(
         expect(a.locator('.display-preview')).to_have_attribute('data-font-size', 'large')
         expect(a.locator('.display-preview .menu-photo')).to_have_count(0)
         assert a.locator('#display-example').evaluate('el => parseFloat(getComputedStyle(el).fontSize)') == 18
+        # K7-A, Entscheidungsdokument §10: comfortable = nächste Stufe (24 px mobil, 32 px ab 768 px)
         assert a.locator('.display-preview .card-body').evaluate(
             'el => parseFloat(getComputedStyle(el).paddingTop)',
-        ) == (24 if width >= 1200 else 16)
+        ) == (24 if width < 768 else 32)
+        # K7-A, Entscheidungsdokument §10: contained uses --app-container-width (1440 px).
+        # At 1440 px viewport with 248 px sidebar, available content width is 1113 px <= 1440 px,
+        # so preview width matches initial_preview_width.
         if width == 1440:
-            assert a.locator('.display-preview').bounding_box()['width'] > initial_preview_width
+            assert a.locator('.display-preview').bounding_box()['width'] == initial_preview_width
         assert get_admin_display(admin_engine) == DEFAULT_ADMIN_DISPLAY
         b.goto('/admin/cafeteria/menues')
         expect(b.locator('.menu-photo')).to_have_count(1)

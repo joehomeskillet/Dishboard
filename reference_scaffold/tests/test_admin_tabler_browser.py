@@ -58,15 +58,16 @@ def test_tabler_lists_preserve_navigation_and_tablet_layout(page_context, admin_
         assert page.locator('[style], script:not([src])').count() == 0
         if family == 'patienten':
             assert not re.search(r'preis|chf|rappen|kosten|price', page.content(), re.I)
-        for width, height in [(360, 800), (768, 1024), (820, 1180), (1024, 768), (1199, 800), (1200, 800), (1280, 800)]:
+        for width, height in [(360, 800), (768, 1024), (820, 1180), (991, 800), (992, 800),
+                              (1024, 768), (1199, 800), (1200, 800), (1280, 800)]:
             page.set_viewport_size({'width': width, 'height': height})
             toggle = page.get_by_role('button', name='Menü', exact=True)
             nav = page.get_by_role('navigation', name='Backend')
-            if width < 1200:
+            if width < 992:
                 expect(toggle).to_be_visible()
                 assert toggle.evaluate('(el) => el.scrollWidth <= el.clientWidth + 1')
                 if toggle.get_attribute('aria-expanded') == 'true':
-                    toggle.click()
+                    page.keyboard.press('Escape')
                 expect(nav).to_be_hidden()
                 toggle.focus()
                 page.keyboard.press('Enter')
@@ -84,9 +85,8 @@ def test_tabler_lists_preserve_navigation_and_tablet_layout(page_context, admin_
             for link in page.get_by_role('navigation', name='Backend').get_by_role('link').all():
                 expect(link).to_be_visible()
                 assert link.bounding_box()['height'] >= 48
-            if width < 1200:
-                toggle.focus()
-                page.keyboard.press('Space')
+            if width < 992:
+                page.keyboard.press('Escape')
                 expect(toggle).to_have_attribute('aria-expanded', 'false')
                 expect(nav).to_be_hidden()
                 expect(toggle).to_be_focused()
