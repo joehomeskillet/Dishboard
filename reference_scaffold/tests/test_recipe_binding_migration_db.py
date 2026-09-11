@@ -13,9 +13,41 @@ from cafeteria import db as database
 from test_component_metadata_master_lock_db import (  # noqa: F401
     pg16, installed_pg16, seeded_pg16, app_engine, SCHEMA, PERMISSIONS,
 )
-from test_recipe_menu_binding_db import binding as binding
+from test_component_scope_invariants_db import _seed_scope_probe
+from test_master_data_db import make_actor
 from test_recipe_menu_binding_db import begin, assert_rejected
 from test_operations_settings_db import _actor_id, _v19_week, _v19_snapshot, _INSERT_REVISION_SQL
+
+
+@pytest.fixture
+def binding(seeded_pg16, app_engine):  # noqa: F811
+    ids = _seed_scope_probe(seeded_pg16)
+    actor = make_actor(seeded_pg16)
+    ids.update(actor=actor.user_id, authz=actor.authz_version)
+    with seeded_pg16.begin() as c:
+        c.execute(text('UPDATE cafeteria.locations SET active=false WHERE id=:other_location'), ids)
+        for key in ('location', 'other_location'):
+            params = {'loc': ids[key], 'actor': actor.user_id}
+            ids[key + '_recipe'] = c.execute(text("""INSERT INTO cafeteria.recipes(
+                location_id,created_by,updated_by,title,servings,servings_unit_id,source_kind)
+                VALUES(:loc,:actor,:actor,'Suppe',4,(SELECT id FROM cafeteria.measurement_units
+                WHERE code='PORTION'),'manual') RETURNING id"""), params).scalar_one()
+            params['recipe'] = ids[key + '_recipe']
+            ids[key + '_revision'] = c.execute(text("""INSERT INTO cafeteria.recipe_revisions(
+                location_id,recipe_id,revision_number,snapshot_json,content_hash_sha256,created_by)
+                VALUES(:loc,:recipe,1,'{}',encode(pg_catalog.sha256(convert_to('{}','UTF8')),'hex'),:actor)
+                RETURNING id"""), params).scalar_one()
+            ids[key + '_food'] = c.execute(text("""INSERT INTO cafeteria.foods(
+                location_id,created_by,updated_by,name,base_unit_id) VALUES(:loc,:actor,:actor,'Karotte',
+                (SELECT id FROM cafeteria.measurement_units WHERE code='G')) RETURNING id"""), params).scalar_one()
+            code = 'LAGER_LOC' if key == 'location' else 'LAGER_OTHER'
+            storage_id = c.execute(text("""INSERT INTO cafeteria.storage_locations(
+                location_id,code,name) VALUES(:loc,:code,'Testlager') RETURNING id"""),
+                {'loc': ids[key], 'code': code}).scalar_one()
+            c.execute(text("""INSERT INTO cafeteria.food_storage_locations(
+                location_id,food_id,storage_location_id) VALUES(:loc,:food,:storage)"""),
+                {'loc': ids[key], 'food': ids[key + '_food'], 'storage': storage_id})
+    return seeded_pg16, app_engine, ids
 
 
 PUBLIC_HELPERS = {'begin_menu_binding_write_v26', 'lock_menu_recipe_revisions_v26',
@@ -69,7 +101,7 @@ def test_upgrade_preserves_all_existing_rows_and_fresh_schema_contract(pg16):  #
             projection = f"(to_jsonb(t)-'{new_columns[table]}')" if table in new_columns else 'to_jsonb(t)'
             assert c.execute(text(f'SELECT {projection}::text FROM cafeteria.{table} t ORDER BY {projection}::text')).all() == before[table]
         assert c.execute(text('SELECT to_jsonb(m) FROM cafeteria.schema_migrations m WHERE version<=25 ORDER BY version')).all() == ledger
-        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 27
+        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 29
         migrated = structure(c)
     with pg16.begin() as c:
         c.execute(text('DROP SCHEMA cafeteria CASCADE'))
@@ -171,8 +203,14 @@ def wait_until_blocked(owner, pid):
 
 
 def test_historical_permissions_bytes_are_still_exact():
-    prefix, rest = PERMISSIONS.read_text().split('-- Prepared foods schema27 grants begin.\n', 1)
-    permissions = (prefix + rest.split('-- Prepared foods schema27 grants end.\n\n', 1)[1]).replace(',\n    record_auth_access_v25(uuid,text,text,text,bigint,bigint)', '')
-    prefix, rest = permissions.split('-- R5a schema26 grants begin.\n', 1)
-    historical = prefix + rest.split('-- R5a schema26 grants end.\n\n', 1)[1]
+    permissions = PERMISSIONS.read_text()
+    for begin_marker, end_marker in (
+        ('-- Recipe import commit schema29 grants begin.\n', '-- Recipe import commit schema29 grants end.\n\n'),
+        ('-- Recipe import batches schema28 grants begin.\n', '-- Recipe import batches schema28 grants end.\n\n'),
+        ('-- Prepared foods schema27 grants begin.\n', '-- Prepared foods schema27 grants end.\n\n'),
+        ('-- R5a schema26 grants begin.\n', '-- R5a schema26 grants end.\n\n'),
+    ):
+        prefix, rest = permissions.split(begin_marker, 1)
+        permissions = prefix + rest.split(end_marker, 1)[1]
+    historical = permissions.replace(',\n    record_auth_access_v25(uuid,text,text,text,bigint,bigint)', '')
     assert hashlib.sha256(historical.encode()).hexdigest() == '85c88b1b89bb511401709dcaaa56537f98a9e74588460a90c6d944246e2f00d1'

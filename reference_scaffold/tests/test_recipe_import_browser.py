@@ -17,6 +17,7 @@ from test_recipe_import_routes import create
 from test_rendered_ui import browser  # noqa: F401
 
 ROUTE_VIEWPORTS = ((390, 844), (1440, 900))
+COMMIT_VIEWPORTS = (*ROUTE_VIEWPORTS, (720, 450))
 SHARED_VIEWPORTS = ((1024, 768), (768, 1024), (1920, 1080))
 
 
@@ -99,7 +100,7 @@ def test_shared_layout_viewports(b3, master_server, browser, width, height, tmp_
         page.screenshot(path=str(shot), full_page=True)
 
 
-@pytest.mark.parametrize('width,height', ROUTE_VIEWPORTS)
+@pytest.mark.parametrize('width,height', COMMIT_VIEWPORTS)
 @pytest.mark.parametrize('javascript', [False, True])
 def test_commit_confirmation_and_recipe_link(b3, master_server, browser, width, height, javascript, tmp_path):  # noqa: F811
     app, _owner, client, actor = b3
@@ -129,6 +130,9 @@ def test_commit_confirmation_and_recipe_link(b3, master_server, browser, width, 
         _open(page, base, path)
         expect(page.get_by_role('heading', name='Importstapel übernehmen')).to_be_visible()
         expect(page.get_by_text('keine Veröffentlichung')).to_be_visible()
+        targets(page)
+        confirm_shot = tmp_path / f'rezepte-import-confirm-{width}-js-{javascript}.png'
+        page.screenshot(path=str(confirm_shot), full_page=True)
         page.get_by_role('button', name='Importstapel übernehmen').click()
         expect(page.get_by_role('heading', name='Übernommene Rezepte')).to_be_visible()
         expect(page.get_by_role('link', name='Rezept öffnen')).to_be_visible()

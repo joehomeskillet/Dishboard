@@ -67,7 +67,7 @@ def test_upgrade_preserves_rows_and_fresh_schema_contract(pg16):  # noqa: F811
                 assert c.execute(text(
                     f'SELECT to_jsonb(t)::text FROM cafeteria.{table} t ORDER BY to_jsonb(t)::text'
                 )).all() == rows
-        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 28
+        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 29
         migrated = structure(c)
         assert c.execute(text(
             "SELECT to_regclass('cafeteria.recipe_import_batches') IS NOT NULL"
