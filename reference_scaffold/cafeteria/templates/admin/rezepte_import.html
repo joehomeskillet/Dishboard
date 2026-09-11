@@ -1,0 +1,153 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header, icon %}
+{% set workflow_nav = 'recipes' %}
+{% block title %}Rezepte importieren · Menüplanung{% endblock %}
+{% block page_header %}
+{% call page_header('Rezepte importieren') %}
+<a class="btn" href="{{ url_for('admin.recipes_list') }}">{{ icon('arrow-left') }}Zu den Rezepten</a>
+{% endcall %}
+{% endblock %}
+{% block content %}
+<p>CSV- oder JSON-Rezepte als standortgebundenen Entwurf speichern. Speichern legt keine Rezepte an, veröffentlicht nichts und bestätigt keine Allergene.</p>
+{% if error %}
+<div class="alert alert-danger error-region" id="recipe-import-error" role="alert" tabindex="-1" autofocus>{{ error }}
+{% if batch %}<a href="{{ url_for('admin.recipe_import_detail', batch_id=batch.public_id) }}">Aktuellen Stand neu laden</a>{% endif %}
+</div>
+{% endif %}
+
+<section class="card mb-4" aria-labelledby="recipe-import-upload-title">
+  <div class="card-header"><h2 class="card-title" id="recipe-import-upload-title">Datei importieren</h2></div>
+  <form class="card-body" method="post" action="{{ url_for('admin.recipe_import_create') }}" enctype="multipart/form-data">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <div class="mb-3">
+      <label class="form-label" for="source_file">Quelldatei</label>
+      <input class="form-control" id="source_file" name="source_file" type="file" accept=".csv,.json,text/csv,application/json" required>
+      <div class="form-hint">Höchstens 5 MiB, UTF-8, Schema Version 1. Unaufgelöste Zutaten bleiben Entwurf.</div>
+    </div>
+    <fieldset class="mb-3">
+      <legend class="form-label">Batch-Annotationen</legend>
+      {% for code, label in annotation_labels %}
+      <label class="form-check" for="upload-{{ code }}">
+        <input class="form-check-input" id="upload-{{ code }}" type="checkbox" name="annotation" value="{{ code }}">
+        <span class="form-check-label">{{ label }}</span>
+      </label>
+      {% endfor %}
+    </fieldset>
+    <button class="btn btn-primary" type="submit">Vorschau speichern</button>
+  </form>
+</section>
+
+{% if batch %}
+<section class="card mb-4" aria-labelledby="recipe-import-batch-title">
+  <div class="card-header">
+    <h2 class="card-title" id="recipe-import-batch-title">Importstapel {{ batch.public_id }}</h2>
+  </div>
+  <form class="card-body" method="post" action="{{ url_for('admin.recipe_import_save', batch_id=batch.public_id) }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="row_version" value="{{ values.row_version or batch.row_version }}">
+    <p class="text-secondary">Adapter {{ batch.adapter_kind }} · Status {{ batch.status }} · Dateihash {{ batch.source_sha256 or '—' }}</p>
+    {% if batch.confirmation_hash_sha256 %}
+    <p>Bestätigte Signatur {{ batch.confirmation_hash_sha256 }}. Jede Änderung entwertet sie.</p>
+    {% else %}
+    <p>Noch keine Bestätigung. Übernahme in Rezepte ist ein späterer Schritt.</p>
+    {% endif %}
+    <fieldset class="mb-3">
+      <legend class="form-label">Sichtbare Quellennotiz</legend>
+      {% for code, label in annotation_labels %}
+      <label class="form-check" for="batch-{{ code }}">
+        <input class="form-check-input" id="batch-{{ code }}" type="checkbox" name="annotation" value="{{ code }}"{% if code in batch.annotations %} checked{% endif %}>
+        <span class="form-check-label">{{ label }}</span>
+      </label>
+      {% endfor %}
+    </fieldset>
+    {% for candidate in batch.candidates %}
+    {% set payload = candidate.candidate_payload %}
+    <article class="card mb-3">
+      <div class="card-body">
+        <h3 class="card-title">Zeile {{ candidate.row_number }} · {{ payload.title or 'Ohne Titel' }}</h3>
+        <p class="text-secondary">Ursprung {{ candidate.origin_ref }} · {{ candidate.original_source_kind }} bleibt unverändert.</p>
+        <div class="mb-3">
+          <label class="form-label" for="row-{{ candidate.row_number }}-title">Titel</label>
+          <input class="form-control" id="row-{{ candidate.row_number }}-title" name="row.{{ candidate.row_number }}.title" maxlength="120" value="{{ values.get('row.' ~ candidate.row_number ~ '.title', payload.title or '') }}">
+        </div>
+        <p>Quellennotiz: {{ payload.source.note if payload.source else '—' }}</p>
+        {% for ingredient in payload.ingredients or [] %}
+        <div class="row g-3 mb-3">
+          <div class="col-12"><strong>{{ ingredient.ingredient_text }}</strong></div>
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="row-{{ candidate.row_number }}-ing-{{ loop.index0 }}-food">Lebensmittel-UUID</label>
+            <input class="form-control" id="row-{{ candidate.row_number }}-ing-{{ loop.index0 }}-food" name="row.{{ candidate.row_number }}.ingredient.{{ loop.index0 }}.food_public_id" value="{{ ingredient.food_public_id or '' }}" maxlength="36">
+          </div>
+          <div class="col-6 col-md-4">
+            <label class="form-label" for="row-{{ candidate.row_number }}-ing-{{ loop.index0 }}-qty">Menge</label>
+            <input class="form-control" id="row-{{ candidate.row_number }}-ing-{{ loop.index0 }}-qty" name="row.{{ candidate.row_number }}.ingredient.{{ loop.index0 }}.quantity" value="{{ ingredient.quantity or '' }}">
+          </div>
+          <div class="col-6 col-md-4">
+            <label class="form-label" for="row-{{ candidate.row_number }}-ing-{{ loop.index0 }}-unit">Einheit</label>
+            <input class="form-control" id="row-{{ candidate.row_number }}-ing-{{ loop.index0 }}-unit" name="row.{{ candidate.row_number }}.ingredient.{{ loop.index0 }}.unit_code" value="{{ ingredient.unit_code or '' }}" maxlength="16">
+          </div>
+        </div>
+        {% endfor %}
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="row-{{ candidate.row_number }}-decision">Dublettenentscheidung</label>
+            <select class="form-select" id="row-{{ candidate.row_number }}-decision" name="row.{{ candidate.row_number }}.duplicate_decision">
+              {% for code, label in decisions %}
+              <option value="{{ code }}"{% if candidate.duplicate_decision == code %} selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="row-{{ candidate.row_number }}-target">Zielrezept</label>
+            <input class="form-control" id="row-{{ candidate.row_number }}-target" name="row.{{ candidate.row_number }}.target_recipe_public_id" value="{{ candidate.target_recipe_public_id or '' }}" maxlength="36">
+          </div>
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="row-{{ candidate.row_number }}-version">Zielversion</label>
+            <input class="form-control" id="row-{{ candidate.row_number }}-version" name="row.{{ candidate.row_number }}.target_row_version" value="{{ candidate.target_row_version or '' }}">
+          </div>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+    <div class="btn-list">
+      <button class="btn btn-primary" type="submit" name="action" value="save">Entscheidungen speichern</button>
+      <button class="btn" type="submit" name="action" value="acknowledge">Vorschau bestätigen</button>
+      <button class="btn" type="submit" name="action" value="cancel">Stapel verwerfen</button>
+    </div>
+    <noscript><p class="form-hint">Ohne JavaScript werden alle Felder beim Absenden mitgesendet.</p></noscript>
+  </form>
+</section>
+{% endif %}
+
+{% if batches %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr>
+          <th>Datei</th>
+          <th>Status</th>
+          <th>Adapter</th>
+          <th>Version</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in batches %}
+        <tr>
+          <td><a class="text-break" href="{{ url_for('admin.recipe_import_detail', batch_id=item.public_id) }}">{{ item.source_filename or item.public_id }}</a></td>
+          <td><span class="badge {{ 'bg-green-lt' if item.status == 'draft' else 'bg-secondary-lt' }}">{{ item.status }}</span></td>
+          <td>{{ item.adapter_kind }}</td>
+          <td>{{ item.row_version }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% elif not batch %}
+<div class="empty">
+  <p class="empty-title">Noch keine Importstapel</p>
+  <p class="empty-subtitle text-secondary">Eine CSV- oder JSON-Datei wählen, um einen Entwurf zu speichern.</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -307,4 +307,17 @@ GRANT EXECUTE ON FUNCTION create_food_v27(bigint,bigint,bigint,jsonb),
 
 -- Prepared foods schema27 grants end.
 
+-- Recipe import batches schema28 grants begin.
+REVOKE ALL ON FUNCTION recipe_import_protect_v28(),recipe_import_hash_v28(jsonb,jsonb),
+    recipe_import_visible_note_v28(text,jsonb),
+    recipe_import_save_v28(boolean,bigint,bigint,bigint,uuid,bigint,jsonb),
+    create_recipe_import_batch_v28(bigint,bigint,bigint,jsonb),
+    update_recipe_import_batch_v28(bigint,bigint,bigint,uuid,bigint,jsonb)
+FROM PUBLIC,cafeteria_app,cafeteria_backup,cafeteria_auth_issuer;
+GRANT EXECUTE ON FUNCTION create_recipe_import_batch_v28(bigint,bigint,bigint,jsonb),
+    update_recipe_import_batch_v28(bigint,bigint,bigint,uuid,bigint,jsonb) TO cafeteria_app;
+GRANT SELECT ON recipe_import_batches,recipe_import_candidates TO cafeteria_app,cafeteria_backup;
+GRANT SELECT ON SEQUENCE recipe_import_batches_id_seq TO cafeteria_backup;
+-- Recipe import batches schema28 grants end.
+
 COMMIT;

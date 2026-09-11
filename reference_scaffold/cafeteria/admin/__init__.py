@@ -19,6 +19,7 @@ from . import recipe_image_routes as recipe_image_routes
 from . import recipe_print_template_routes as recipe_print_template_routes
 from . import cookbook_routes as cookbook_routes
 from . import dish_template_routes as dish_template_routes
+from . import recipe_import_routes as recipe_import_routes
 from ..roles import capabilities
 from .routes import bp as bp
 from .rendering import _template_context
