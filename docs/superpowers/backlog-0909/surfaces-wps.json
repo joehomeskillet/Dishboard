@@ -4447,6 +4447,177 @@
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich"
       ],
       "rollback": "Kein Produktrollback: nur datierte Evidenz ergänzen, fehlerhafte Belege als ungültig markieren."
+    },
+    {
+      "id": "MP-UI-FULLWIDTH-SHELL",
+      "title": "Gemeinsamer Seitenrahmen auf volle Arbeitsbreite",
+      "requirement_ids": [
+        "UI-001",
+        "UI-003"
+      ],
+      "kind": "implementation",
+      "status": "IN_PROGRESS",
+      "depends_on": [
+        "MP-UI-SHELL"
+      ],
+      "existing_wp_id": "wp-ui-fullwidth-shell-0912",
+      "sdd_sections": [
+        "surfaces-sdd.md#ui-grundlagen"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/static/admin-tabler.css",
+        "reference_scaffold/cafeteria/templates/admin/base_tabler.html",
+        "reference_scaffold/cafeteria/static/tokens.css"
+      ],
+      "task": "Auftraggeber-Vorgabe 2026-09-12 (ersetzt Master §5.2 Standard 1440 / Schmal 960 und Shell-Spec §8): jede Seite nutzt die gesamte verfügbare Breite rechts neben der Navigation, ohne Ausnahme für Formulare, Editoren, Detail- und Verwaltungsseiten; keine festen Maximalbreiten, keine schmalen zentrierten Container, keine Obergrenze auf grossen Bildschirmen; Seitenabstand Desktop 24–32 px, Smartphone 16 px; konsistente Aussenkanten für Seitenkopf, Tabs, Inhalt und Aktionen. Gemeinsame Lösung im Seitenrahmen (admin-tabler.css, tokens.css, base_tabler.html), Option «Inhaltsbreite» ehrlich beschriften, Master §5.2 und Shell-Spec §8 nachziehen, Breitenannahmen in Tests angleichen. Druck-, PDF- und Signage-Ausgaben unverändert.",
+      "acceptance_criteria": [
+        "Inhaltscontainer-Breite = Hauptbereichsbreite minus 2 × Seitenabstand bei 1280/1440/1920/2560 px (±1 px); kein max-width auf Seitenkopf, Tabs, Inhalt.",
+        "Seitenabstand Desktop 24–32 px, Smartphone 16 px; gleiche linke Kante für Seitenkopf, Bereichs-Tabs, Inhalt und Aktionsleisten.",
+        "Kein horizontales Scrollen der Seite bei 390 px und 200 % Zoom; keine Inhalte unter der Navigation.",
+        "Public-, Print- und Signage-CSS byteweise unverändert.",
+        "Originale Identität/Authz, Scope, CSRF und Objekt-CAS bleiben erhalten; Konflikt/403/503 verändert keine Fachversion, Freigabe oder Veröffentlichung.",
+        "Nur zugewiesene Dateien bearbeiten; geteilte Owner erst nach Freeze konsumieren. Neue Module kleiner als 400 Zeilen anstreben, nie über 600; keine neuen Dependencies ohne eigene akzeptierte Entscheidung.",
+        "Masterprompt ../../design/2026-09-09-unified-ui-design-system.md bleibt einzige Token-/Komponentenquelle; keine kopierten Seitentokens und keine Fach-/Auth-/API-/SQL-Änderung."
+      ],
+      "contract_files": [],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/execution-contract.md"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/static/admin-tabler.css",
+        "reference_scaffold/cafeteria/static/tokens.css",
+        "reference_scaffold/cafeteria/templates/admin/base_tabler.html",
+        "reference_scaffold/cafeteria/templates/admin/display_settings.html",
+        "reference_scaffold/tests/test_ui_master_shell_browser.py",
+        "reference_scaffold/tests/test_admin_display_options_browser.py",
+        "reference_scaffold/tests/test_admin_display_browser.py",
+        "reference_scaffold/tests/test_ui_reference_settings_browser.py",
+        "reference_scaffold/tests/test_ui_reference_form_browser.py",
+        "reference_scaffold/tests/test_ui_menu_editor_browser.py",
+        "reference_scaffold/tests/test_ui_master_tokens_browser.py",
+        "reference_scaffold/tests/test_rendered_ui.py",
+        "proposed:reference_scaffold/tests/test_ui_fullwidth_shell_browser.py",
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/design/2026-09-11-admin-shell-navigation-spec.md"
+      ],
+      "forbidden_paths": [
+        "reference_scaffold/cafeteria/auth/*.py",
+        "reference_scaffold/cafeteria/admin/*store*.py",
+        "reference_scaffold/cafeteria/admin/*forms*.py",
+        "reference_scaffold/cafeteria/api/*",
+        "database/*",
+        "reference_scaffold/cafeteria/static/vendor/*",
+        "reference_scaffold/cafeteria/static/public.css",
+        "reference_scaffold/cafeteria/static/signage.css",
+        "reference_scaffold/cafeteria/templates/public/*",
+        "reference_scaffold/cafeteria/templates/signage/*",
+        "reference_scaffold/cafeteria/templates/print/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "BROWSERGATE <assigned-worktree> reference_scaffold/tests/test_ui_fullwidth_shell_browser.py reference_scaffold/tests/test_ui_master_shell_browser.py reference_scaffold/tests/test_admin_display_options_browser.py -q",
+          "assertions": [
+            "Container = Hauptbereich − 2·Padding auf 1280–2560 px",
+            "kein Dokumentüberlauf bei 390 px / 200 % Zoom"
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "HIGH",
+      "effort": "medium",
+      "preferred_lane": "grok-build",
+      "eligible_lanes": [
+        "grok-build",
+        "antigravity-agy",
+        "cursor",
+        "claude-code"
+      ],
+      "completion_evidence": [
+        "diff + eigener Branchcommit",
+        "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
+        "Messwerte Container-/Hauptbereichsbreite je Viewport + Screenshots"
+      ],
+      "rollback": "CSS-/Template-Rücknahme auf den vorherigen Seitenrahmen; keine Daten betroffen."
+    },
+    {
+      "id": "MP-UI-FULLWIDTH-AUDIT",
+      "title": "Vollbreiten-Nachweis und Korrektur jeder Admin-Seite",
+      "requirement_ids": [
+        "UI-001",
+        "UI-002"
+      ],
+      "kind": "verification",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-FULLWIDTH-SHELL"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "surfaces-sdd.md#ui-matrix"
+      ],
+      "source_anchors": [
+        "docs/superpowers/backlog-0909/ui-route-matrix.json"
+      ],
+      "task": "Anhand der tatsächlichen Routen, Templates und Zustände (ui-route-matrix.json: alle admin_tabler-Routen inkl. Unterseiten, Tabs, Detailansichten, Erstell-/Bearbeitungsformulare, berechtigungsgebundene Seiten) jede Seite im Browser bei Desktop, Laptop, Smartphone, grossem Bildschirm und 200 % Zoom öffnen, verschachtelte Breitenbegrenzungen in Seiten-Templates/-CSS (max-width, schmale Spalten, mx-auto, col-lg-8 u. ä.) entfernen oder als lokale Feldbreite begründen, Screenshots ablegen und die Prüftabelle «Seite / Route / Variante | Bisherige Breitenbegrenzung | Korrektur | Geprüfte Viewports | Screenshotnachweis | Status» vollständig liefern. Eine nicht geöffnete Seite gilt nicht als erledigt. Kurze Felder (Preis, Datum) dürfen lokale Breite behalten; Kontextspalten dürfen die Hauptfläche nicht auf eine Restspalte reduzieren; keine neuen Funktionen oder Dekorkarten.",
+      "acceptance_criteria": [
+        "Jede admin_tabler-Route der Matrix in der Prüftabelle mit Status und Screenshotpfad; keine verbleibende Seite mit künstlicher Breitenobergrenze.",
+        "Kein horizontales Scrollen der Seite in allen fünf Viewports und bei 200 % Zoom; kein Inhalt unter der Navigation.",
+        "Tabellen/Listen/Kartenraster/Formularbereiche nutzen die Breite; kurze Felder behalten lokale Breite.",
+        "Originale Identität/Authz, Scope, CSRF und Objekt-CAS bleiben erhalten; Konflikt/403/503 verändert keine Fachversion, Freigabe oder Veröffentlichung.",
+        "Nur zugewiesene Dateien bearbeiten; geteilte Owner erst nach Freeze konsumieren. Neue Module kleiner als 400 Zeilen anstreben, nie über 600; keine neuen Dependencies ohne eigene akzeptierte Entscheidung.",
+        "Masterprompt ../../design/2026-09-09-unified-ui-design-system.md bleibt einzige Token-/Komponentenquelle; keine kopierten Seitentokens und keine Fach-/Auth-/API-/SQL-Änderung."
+      ],
+      "contract_files": [],
+      "read_only_contract_files": [
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "proposed:docs/design/2026-09-12-fullwidth-audit.md",
+        "proposed:reference_scaffold/tests/test_ui_fullwidth_pages_browser.py",
+        "proposed:.claude/evidence/ui-fullwidth-0912/README.md"
+      ],
+      "forbidden_paths": [
+        "reference_scaffold/cafeteria/auth/*.py",
+        "reference_scaffold/cafeteria/admin/*store*.py",
+        "reference_scaffold/cafeteria/admin/*forms*.py",
+        "reference_scaffold/cafeteria/api/*",
+        "database/*",
+        "reference_scaffold/cafeteria/static/vendor/*",
+        "reference_scaffold/cafeteria/static/public.css",
+        "reference_scaffold/cafeteria/static/signage.css",
+        "reference_scaffold/cafeteria/templates/public/*",
+        "reference_scaffold/cafeteria/templates/signage/*",
+        "reference_scaffold/cafeteria/templates/print/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "BROWSERGATE <assigned-worktree> reference_scaffold/tests/test_ui_fullwidth_pages_browser.py -q",
+          "assertions": [
+            "je Route: Inhaltsbreite = Hauptbereich − 2·Padding, kein Dokumentüberlauf, 5 Viewports + Zoom 200 %"
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "MEDIUM",
+      "effort": "high",
+      "preferred_lane": "antigravity-agy",
+      "eligible_lanes": [
+        "antigravity-agy",
+        "grok-build",
+        "cursor",
+        "claude-code"
+      ],
+      "completion_evidence": [
+        "Vollständige Prüftabelle über alle Routen mit Screenshotpfaden",
+        "Vollständige rohe Gateausgabe; nicht gefahrene Gates ausdrücklich"
+      ],
+      "rollback": "Kein Produktrollback: nur datierte Evidenz ergänzen, fehlerhafte Belege als ungültig markieren."
     }
   ]
 }
