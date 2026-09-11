@@ -331,7 +331,8 @@
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
         "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
-        "2026-09-11 Spec docs/design/2026-09-11-admin-shell-navigation-spec.md (wp-ui-shell-spec-0911, 953fd28; Cross-Review grok 8f61204, .claude/evidence/ui-design-wave-0911/reviews/shell-spec-cross-review-grok.md). Ausführung v1 wp-52c02ef0f44d (Lane grok-build, Modell grok-4.6): c66b93b (fünf Gruppen, navbar-expand-lg 992 px, Tabler-Offcanvas, layout_variant standard|narrow|workspace, page_header-Block, Sidebar 248 px; 6 eigene Browser-Tests grün, 18 fremde rote Tests dokumentiert). Fremdtest-Angleichung 813273f (agy), Orchestrator d2bf449 (aria-hidden Beschreibung), 327b556 (Fokusfarbe), 8db3ae4 (capture.py Titelknoten). Cross-Review cursor: .claude/evidence/ui-design-wave-0911/reviews/shell-impl-cross-review-cursor.md. Gate 2 auf Integration: 10 Fehler (Offcanvas-Backdrop, Sidebar-Überlauf 1100 px, to_have_text auf Nav-Links, Fokusfarbentest) → Korrektur fix/ui-shell-gate2-0911 (cursor composer-2.5) in Arbeit. Shell v2 nach Referenzpaket NAV-01 (vier Hauptbereiche Wochenplan · Menüs & Bausteine · Vorschau & Bildschirme · Einstellungen, Bereichs-Tabs _area_tabs.html) feat/ui-shell-v2-0911 (codex gpt-6-astra) in Arbeit. v1 in integrate/ui-inventory-0911, noch nicht auf github/main."
+        "2026-09-11 Spec docs/design/2026-09-11-admin-shell-navigation-spec.md (wp-ui-shell-spec-0911, 953fd28; Cross-Review grok 8f61204, .claude/evidence/ui-design-wave-0911/reviews/shell-spec-cross-review-grok.md). Ausführung v1 wp-52c02ef0f44d (Lane grok-build, Modell grok-4.6): c66b93b (fünf Gruppen, navbar-expand-lg 992 px, Tabler-Offcanvas, layout_variant standard|narrow|workspace, page_header-Block, Sidebar 248 px; 6 eigene Browser-Tests grün, 18 fremde rote Tests dokumentiert). Fremdtest-Angleichung 813273f (agy), Orchestrator d2bf449 (aria-hidden Beschreibung), 327b556 (Fokusfarbe), 8db3ae4 (capture.py Titelknoten). Cross-Review cursor: .claude/evidence/ui-design-wave-0911/reviews/shell-impl-cross-review-cursor.md. Gate 2 auf Integration: 10 Fehler (Offcanvas-Backdrop, Sidebar-Überlauf 1100 px, to_have_text auf Nav-Links, Fokusfarbentest) → Korrektur fix/ui-shell-gate2-0911 (cursor composer-2.5) in Arbeit. Shell v2 nach Referenzpaket NAV-01 (vier Hauptbereiche Wochenplan · Menüs & Bausteine · Vorschau & Bildschirme · Einstellungen, Bereichs-Tabs _area_tabs.html) feat/ui-shell-v2-0911 (codex gpt-6-astra) in Arbeit. v1 in integrate/ui-inventory-0911, noch nicht auf github/main.",
+        "2026-09-11 20:48 CEST: Shell v1 + Makros + Referenzseiten als github/main 7e4d2a9 deployt (dishboard-deploy-main, Image neu gebaut); gezielte 124-Test-Gate der Gate-2-Korrektur (cursor 766c841) grün; breites 49-Dateien-Gate vom Host wegen Speichermangel bei 85 % abgebrochen (8 Fehler, davon 5 erwartete veraltete Assertions in test_menu_collection_browser.py) — Nach-Gate der Stufe 2 läuft. v2 (vier Hauptbereiche) weiter in Arbeit (grok-4.6 nach codex-Quotenausfall)."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -342,7 +343,7 @@
         "UI-003"
       ],
       "kind": "implementation",
-      "status": "INTEGRATED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-SHELL",
         "MP-REC-BINDINGS"
@@ -410,7 +411,8 @@
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
         "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
-        "2026-09-11 Ausführung wp-c011d6e56f9a (Lane antigravity-agy, Modell gemini-3.8-flash-high): 938481a page_header/field/select/textarea/checkbox/check/form_errors/status_badge/empty_state/pagination/actions in _macros.html + admin.js Fokus/Escape + test_ui_master_components_browser.py; 43 passed. Review-Korrektur wp-c011d6e56f9a-fix (cursor composer-2.5, 1cf700d: CSP-sichere readonly controls, form_errors a11y). Cross-Review cursor: .claude/evidence/ui-design-wave-0911/reviews/macros-cross-review-cursor.md. Orchestrator: select-Label optional (cbed492). In integrate/ui-inventory-0911, noch nicht auf github/main."
+        "2026-09-11 Ausführung wp-c011d6e56f9a (Lane antigravity-agy, Modell gemini-3.8-flash-high): 938481a page_header/field/select/textarea/checkbox/check/form_errors/status_badge/empty_state/pagination/actions in _macros.html + admin.js Fokus/Escape + test_ui_master_components_browser.py; 43 passed. Review-Korrektur wp-c011d6e56f9a-fix (cursor composer-2.5, 1cf700d: CSP-sichere readonly controls, form_errors a11y). Cross-Review cursor: .claude/evidence/ui-design-wave-0911/reviews/macros-cross-review-cursor.md. Orchestrator: select-Label optional (cbed492). In integrate/ui-inventory-0911, noch nicht auf github/main.",
+        "2026-09-11 20:48 CEST: Shell v1 + Makros + Referenzseiten als github/main 7e4d2a9 deployt (dishboard-deploy-main, Image neu gebaut); gezielte 124-Test-Gate der Gate-2-Korrektur (cursor 766c841) grün; breites 49-Dateien-Gate vom Host wegen Speichermangel bei 85 % abgebrochen (8 Fehler, davon 5 erwartete veraltete Assertions in test_menu_collection_browser.py) — Nach-Gate der Stufe 2 läuft."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -422,7 +424,7 @@
         "UI-003"
       ],
       "kind": "implementation",
-      "status": "INTEGRATED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-MACROS"
       ],
@@ -488,7 +490,9 @@
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
         "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
-        "2026-09-11 Ausführung wp-cee07c070457 (Lane codex-gpt5, Modell gpt-6-astra): 1fc7d9d menu_collection.html + admin-menu-collection.css + test_ui_reference_list_browser.py; Blocker Profil-Tab-Kontrast 4.40:1 durch Orchestrator adce8fb (nav-pills muted token) gelöst. Cross-Review agy: .claude/evidence/ui-design-wave-0911/reviews/ref-list-cross-review-agy.md (1 major: Bausteine/Allergenstatus in der Tabelle, 4 minor) → fix/ui-ref-review-fixes-0911 (agy) in Arbeit; 5 veraltete Assertions test_menu_collection_browser.py dort. In integrate/ui-inventory-0911."
+        "2026-09-11 Ausführung wp-cee07c070457 (Lane codex-gpt5, Modell gpt-6-astra): 1fc7d9d menu_collection.html + admin-menu-collection.css + test_ui_reference_list_browser.py; Blocker Profil-Tab-Kontrast 4.40:1 durch Orchestrator adce8fb (nav-pills muted token) gelöst. Cross-Review agy: .claude/evidence/ui-design-wave-0911/reviews/ref-list-cross-review-agy.md (1 major: Bausteine/Allergenstatus in der Tabelle, 4 minor) → fix/ui-ref-review-fixes-0911 (agy) in Arbeit; 5 veraltete Assertions test_menu_collection_browser.py dort. In integrate/ui-inventory-0911.",
+        "2026-09-11 20:48 CEST: Shell v1 + Makros + Referenzseiten als github/main 7e4d2a9 deployt (dishboard-deploy-main, Image neu gebaut); gezielte 124-Test-Gate der Gate-2-Korrektur (cursor 766c841) grün; breites 49-Dateien-Gate vom Host wegen Speichermangel bei 85 % abgebrochen (8 Fehler, davon 5 erwartete veraltete Assertions in test_menu_collection_browser.py) — Nach-Gate der Stufe 2 läuft.",
+        "2026-09-12 00:03 CEST: Review-Fixes (agy 3ebedfb/e2aa7db/422d8f7, 126 passed) und Menüeditor als github/main 5a866a3 deployt. Befunde des agy-Reviews (Bausteine/Allergenstatus in der Tabelle, Werkzeugleiste, Karten) in 3ebedfb umgesetzt."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -500,7 +504,7 @@
         "CAT-001"
       ],
       "kind": "implementation",
-      "status": "INTEGRATED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-MACROS",
         "MP-REC-BINDINGS"
@@ -569,7 +573,8 @@
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
         "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
-        "2026-09-11 Ausführung wp-a19e4c6c652b (Lane codex-gpt5, Modell gpt-6-astra): zwei BLOCKED-Läufe (Shell-Spec fehlte auf Basis; 409/503-Eingabeerhalt widerspricht Backend-abort) → Entscheid: 409/503 behalten abort, Erhalt nur bei Validierungsfehlern; Basis b7b1ae4. Ergebnis b098d82 component_editor.html + admin-component-editor.css + test_ui_reference_form_browser.py, eigene Gates grün; 4 fremde Shell-Detail-Fehler durch Orchestrator 84ed03a. Cross-Review agy: .claude/evidence/ui-design-wave-0911/reviews/ref-form-cross-review-agy.md. Orchestrator: data-sticky entfernt, Breakpoints 1199.98→991.98 (cbed492). In integrate/ui-inventory-0911."
+        "2026-09-11 Ausführung wp-a19e4c6c652b (Lane codex-gpt5, Modell gpt-6-astra): zwei BLOCKED-Läufe (Shell-Spec fehlte auf Basis; 409/503-Eingabeerhalt widerspricht Backend-abort) → Entscheid: 409/503 behalten abort, Erhalt nur bei Validierungsfehlern; Basis b7b1ae4. Ergebnis b098d82 component_editor.html + admin-component-editor.css + test_ui_reference_form_browser.py, eigene Gates grün; 4 fremde Shell-Detail-Fehler durch Orchestrator 84ed03a. Cross-Review agy: .claude/evidence/ui-design-wave-0911/reviews/ref-form-cross-review-agy.md. Orchestrator: data-sticky entfernt, Breakpoints 1199.98→991.98 (cbed492). In integrate/ui-inventory-0911.",
+        "2026-09-11 20:48 CEST: Shell v1 + Makros + Referenzseiten als github/main 7e4d2a9 deployt (dishboard-deploy-main, Image neu gebaut); gezielte 124-Test-Gate der Gate-2-Korrektur (cursor 766c841) grün; breites 49-Dateien-Gate vom Host wegen Speichermangel bei 85 % abgebrochen (8 Fehler, davon 5 erwartete veraltete Assertions in test_menu_collection_browser.py) — Nach-Gate der Stufe 2 läuft."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -581,7 +586,7 @@
         "TPL-001"
       ],
       "kind": "implementation",
-      "status": "INTEGRATED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-MACROS",
         "MP-REC-PDF-RELEASE"
@@ -646,7 +651,8 @@
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
         "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
-        "2026-09-11 Ausführung wp-d4d493887de3 (Lane antigravity-agy, Modell gemini-3.8-flash-high): 71762bf rezepte_revision.html + test_ui_reference_detail_browser.py (13 Tests, 90 gates passed, Pool test-recipe-pdf-http). Review-Korrektur wp-d4d493887de3-fix (cursor composer-2.5, 7a8654d: Zoom 200 %, 401, Fokusring, Leerzustand; 20/20 grün). Cross-Review cursor: .claude/evidence/ui-design-wave-0911/reviews/ref-detail-cross-review-cursor.md. In integrate/ui-inventory-0911."
+        "2026-09-11 Ausführung wp-d4d493887de3 (Lane antigravity-agy, Modell gemini-3.8-flash-high): 71762bf rezepte_revision.html + test_ui_reference_detail_browser.py (13 Tests, 90 gates passed, Pool test-recipe-pdf-http). Review-Korrektur wp-d4d493887de3-fix (cursor composer-2.5, 7a8654d: Zoom 200 %, 401, Fokusring, Leerzustand; 20/20 grün). Cross-Review cursor: .claude/evidence/ui-design-wave-0911/reviews/ref-detail-cross-review-cursor.md. In integrate/ui-inventory-0911.",
+        "2026-09-11 20:48 CEST: Shell v1 + Makros + Referenzseiten als github/main 7e4d2a9 deployt (dishboard-deploy-main, Image neu gebaut); gezielte 124-Test-Gate der Gate-2-Korrektur (cursor 766c841) grün; breites 49-Dateien-Gate vom Host wegen Speichermangel bei 85 % abgebrochen (8 Fehler, davon 5 erwartete veraltete Assertions in test_menu_collection_browser.py) — Nach-Gate der Stufe 2 läuft."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -658,7 +664,7 @@
         "DSP-001"
       ],
       "kind": "implementation",
-      "status": "INTEGRATED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-MACROS"
       ],
@@ -722,7 +728,9 @@
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
         "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
-        "2026-09-11 Ausführung wp-0887ae005a92 (Lane antigravity-agy, Modell gemini-3.8-flash-high): 55c39a9 display_settings.html + test_ui_reference_settings_browser.py auf Makros + narrow 960; 48 passed (Pool test_sdd). Spec-Beschreibung im Seitenkopf a89f8fa. Cross-Review cursor: .claude/evidence/ui-design-wave-0911/reviews/ref-settings-cross-review-cursor.md; Restbefunde (aria-describedby am Reset, 401-Test) in fix/ui-ref-review-fixes-0911 (agy) in Arbeit. In integrate/ui-inventory-0911."
+        "2026-09-11 Ausführung wp-0887ae005a92 (Lane antigravity-agy, Modell gemini-3.8-flash-high): 55c39a9 display_settings.html + test_ui_reference_settings_browser.py auf Makros + narrow 960; 48 passed (Pool test_sdd). Spec-Beschreibung im Seitenkopf a89f8fa. Cross-Review cursor: .claude/evidence/ui-design-wave-0911/reviews/ref-settings-cross-review-cursor.md; Restbefunde (aria-describedby am Reset, 401-Test) in fix/ui-ref-review-fixes-0911 (agy) in Arbeit. In integrate/ui-inventory-0911.",
+        "2026-09-11 20:48 CEST: Shell v1 + Makros + Referenzseiten als github/main 7e4d2a9 deployt (dishboard-deploy-main, Image neu gebaut); gezielte 124-Test-Gate der Gate-2-Korrektur (cursor 766c841) grün; breites 49-Dateien-Gate vom Host wegen Speichermangel bei 85 % abgebrochen (8 Fehler, davon 5 erwartete veraltete Assertions in test_menu_collection_browser.py) — Nach-Gate der Stufe 2 läuft.",
+        "2026-09-12 00:03 CEST: Review-Fixes (agy 3ebedfb/e2aa7db/422d8f7, 126 passed) und Menüeditor als github/main 5a866a3 deployt. aria-describedby am Reset und 401-Test in 422d8f7."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -734,7 +742,7 @@
         "UI-002"
       ],
       "kind": "implementation",
-      "status": "INTEGRATED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-MACROS",
         "MP-REC-BINDINGS"
@@ -803,7 +811,9 @@
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
         "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
-        "2026-09-11 Ausführung wp-aff8638d6f3f (Lane cursor, Modell composer-2.5): ced933c cafeteria.html + patienten.html + admin-week-tabler.css ([data-layout=\"workspace\"]) + test_ui_reference_workspace_browser.py (39/39 grün); 4 fremde 1200-px-Fehler in test_admin_week_tabler_browser.py → ce144fb (992 px). Cross-Review agy: .claude/evidence/ui-design-wave-0911/reviews/ref-workspace-cross-review-agy.md; Restbefunde (padding-left Token, doppelter Prüf-Link) in fix/ui-ref-review-fixes-0911 (agy) in Arbeit. In integrate/ui-inventory-0911."
+        "2026-09-11 Ausführung wp-aff8638d6f3f (Lane cursor, Modell composer-2.5): ced933c cafeteria.html + patienten.html + admin-week-tabler.css ([data-layout=\"workspace\"]) + test_ui_reference_workspace_browser.py (39/39 grün); 4 fremde 1200-px-Fehler in test_admin_week_tabler_browser.py → ce144fb (992 px). Cross-Review agy: .claude/evidence/ui-design-wave-0911/reviews/ref-workspace-cross-review-agy.md; Restbefunde (padding-left Token, doppelter Prüf-Link) in fix/ui-ref-review-fixes-0911 (agy) in Arbeit. In integrate/ui-inventory-0911.",
+        "2026-09-11 20:48 CEST: Shell v1 + Makros + Referenzseiten als github/main 7e4d2a9 deployt (dishboard-deploy-main, Image neu gebaut); gezielte 124-Test-Gate der Gate-2-Korrektur (cursor 766c841) grün; breites 49-Dateien-Gate vom Host wegen Speichermangel bei 85 % abgebrochen (8 Fehler, davon 5 erwartete veraltete Assertions in test_menu_collection_browser.py) — Nach-Gate der Stufe 2 läuft.",
+        "2026-09-12 00:03 CEST: Review-Fixes (agy 3ebedfb/e2aa7db/422d8f7, 126 passed) und Menüeditor als github/main 5a866a3 deployt. Space-Token in e2aa7db; Body-Prüf-Link wegen test_admin_week_tabler_browser.py:96 erhalten."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -814,7 +824,7 @@
         "UI-003"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-REF-LIST",
         "MP-UI-REF-FORM",
@@ -882,7 +892,8 @@
       "completion_evidence": [
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
-        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix"
+        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
+        "2026-09-11 Ausführung wp-c1523b953a5f (Lane cursor, Modell composer-2.5): 9639a8f menu_editor.html (narrow, page_header, Bausteinzeilen, getrennte Prüfung) + admin-menu-editor.css + test_ui_menu_editor_browser.py (24 Tests; 55 passed mit test_admin_form_contracts.py, Pool test-iam-access-0908). Cross-Review agy: .claude/evidence/ui-design-wave-0911/reviews/menu-editor-cross-review-agy.md FINDINGS(5) minor → Korrektur wp-c1523b953a5f-fix (agy, 7038efd: aria-label, :placeholder-shown-Modus, Review-Liste, Zoom-Test mit JS, col-md-6; 89 passed). 7 veraltete Fremdtests in test_admin_ux_browser.py («Komponente hinzufügen» → «Baustein hinzufügen») → wp-ui-foreign-tests-0912. 2026-09-12 00:03 CEST: Review-Fixes (agy 3ebedfb/e2aa7db/422d8f7, 126 passed) und Menüeditor als github/main 5a866a3 deployt."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
