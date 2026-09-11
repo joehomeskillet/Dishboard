@@ -15,8 +15,8 @@
 }
 .dishboard-admin .menu-editor-row-mode { display: none; }
 .dishboard-admin .menu-editor-component-row:has(select option:checked:not([value=""])) .menu-editor-row-mode-catalog { display: inline; }
-.dishboard-admin .menu-editor-component-row:has(input[name="component_text"][value]:not([value=""])) .menu-editor-row-mode-text { display: inline; }
-.dishboard-admin .menu-editor-component-row:not(:has(select option:checked:not([value=""]))):not(:has(input[name="component_text"][value]:not([value=""]))) .menu-editor-row-mode-empty { display: inline; }
+.dishboard-admin .menu-editor-component-row:has(input[name="component_text"]:not(:placeholder-shown)) .menu-editor-row-mode-text { display: inline; }
+.dishboard-admin .menu-editor-component-row:not(:has(select option:checked:not([value=""]))):not(:has(input[name="component_text"]:not(:placeholder-shown))) .menu-editor-row-mode-empty { display: inline; }
 .dishboard-admin .menu-editor-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--app-space-2); }
 .dishboard-admin .allergen-row + .allergen-row { margin-top: var(--app-space-2); }
 .dishboard-admin textarea.form-control { min-height: 96px; resize: vertical; }

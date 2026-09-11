@@ -269,11 +269,11 @@ def test_origin_conflict_state(editor_page, family: str, tmp_path: Path) -> None
         _capture(page, tmp_path, f'origin-conflict-{width}')
 
 
-def test_zoom200_equivalent(editor_page, family: str, tmp_path: Path) -> None:
+def test_zoom200_equivalent(editor_page, family: str, javascript: bool, tmp_path: Path) -> None:
     page, _, _, _, _, base_url = editor_page
     with page.context.browser.new_context(
         base_url=base_url, viewport={'width': 720, 'height': 450},
-        device_scale_factor=2, java_script_enabled=False, reduced_motion='reduce',
+        device_scale_factor=2, java_script_enabled=javascript, reduced_motion='reduce',
     ) as zoom:
         zoom.add_cookies(page.context.cookies())
         zoom_page = zoom.new_page()

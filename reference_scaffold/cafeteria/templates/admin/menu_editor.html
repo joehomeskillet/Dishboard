@@ -92,12 +92,12 @@
         <div class="card-header"><h2 class="card-title mb-0" id="sec-prices">Preise</h2></div>
         <div class="card-body">
           <div class="row g-3">
-            <div class="col-12 col-sm-6 col-lg-4">
+            <div class="col-12 col-md-6 col-lg-4">
               <label class="form-label" for="f-int">Mitarbeitende CHF</label>
               <input class="form-control{{ invalid_class('internal_chf') }}" id="f-int" name="internal_chf" inputmode="decimal" value="{{ submitted.get('internal_chf', '') }}"{{ error_attributes('internal_chf', 'err-int') }}{% if errors.get('internal_chf') %} autofocus{% endif %}>
               {{ field_error('internal_chf', 'err-int') }}
             </div>
-            <div class="col-12 col-sm-6 col-lg-4">
+            <div class="col-12 col-md-6 col-lg-4">
               <label class="form-label" for="f-ext">Preis für externe Gäste CHF</label>
               <input class="form-control{{ invalid_class('external_chf') }}" id="f-ext" name="external_chf" inputmode="decimal" value="{{ submitted.get('external_chf', '') }}"{{ error_attributes('external_chf', 'err-ext') }}>
               {{ field_error('external_chf', 'err-ext') }}
@@ -129,7 +129,7 @@
                   <div class="row g-2">
                     <div class="col-12 col-lg-6">
                       <label class="form-label" for="component-{{ i }}-id">Baustein aus Katalog</label>
-                      <select class="form-select{{ invalid_class('component_public_id') }}" id="component-{{ i }}-id" name="component_public_id" aria-label="Komponente aus Katalog"{{ error_attributes('component_public_id', 'err-component-id', 'components-hint') }}>
+                      <select class="form-select{{ invalid_class('component_public_id') }}" id="component-{{ i }}-id" name="component_public_id"{{ error_attributes('component_public_id', 'err-component-id', 'components-hint') }}>
                         <option value="">(Freitext verwenden)</option>
                         {% for choice in catalog_choices %}
                           <option value="{{ choice.public_id }}" data-active="{{ '1' if choice.active else '0' }}"{% if choice.public_id == c_id %} selected{% endif %}{% if not choice.active and choice.public_id != c_id %} disabled{% endif %}>{{ choice.name }}</option>
@@ -138,7 +138,7 @@
                     </div>
                     <div class="col-12 col-lg-6">
                       <label class="form-label" for="component-{{ i }}-text">Eigener Baustein als Text</label>
-                      <input class="form-control{{ invalid_class('component_text') }}" id="component-{{ i }}-text" name="component_text" aria-label="Freitext-Komponente" value="{{ c_text|default('') }}" placeholder="Freitext"{{ error_attributes('component_text', 'err-component-text', 'components-hint') }}>
+                      <input class="form-control{{ invalid_class('component_text') }}" id="component-{{ i }}-text" name="component_text" value="{{ c_text|default('') }}" placeholder="Freitext"{{ error_attributes('component_text', 'err-component-text', 'components-hint') }}>
                     </div>
                   </div>
                   <div class="menu-editor-row-actions btn-list mt-2">
@@ -171,10 +171,10 @@
             {% set presence_invalid = errors.get('allergen_presence') and not is_auto['allergen'] and idx >= 0 and (idx >= a_pres|length or presence not in ['contains', 'may_contain']) %}
             <div class="allergen-row">
               <div class="row g-2 align-items-center">
-                <div class="col-12 col-sm-6">
+                <div class="col-12 col-md-6">
                   <label class="form-check" for="allergen-{{ allergen.code|lower }}"><input class="form-check-input" id="allergen-{{ allergen.code|lower }}" type="checkbox" name="allergen_code" value="{{ allergen.code }}"{% if idx >= 0 %} checked{% endif %}{% if is_auto['allergen'] %} disabled{% endif %}><span class="form-check-label">{{ symbol('allergens', allergen.code, true) }}{{ allergen.name|default(allergen.code) }}</span></label>
                 </div>
-                <div class="col-12 col-sm-6">
+                <div class="col-12 col-md-6">
                   <label class="form-label" for="allergen-{{ allergen.code|lower }}-presence">Präsenz für {{ allergen.name|default(allergen.code) }}</label>
                   <select class="form-select{{ ' is-invalid' if presence_invalid else '' }}" id="allergen-{{ allergen.code|lower }}-presence" name="allergen_presence" aria-label="Präsenz für {{ allergen.name|default(allergen.code) }}"{% if presence_invalid %}{{ error_attributes('allergen_presence', 'err-allergen-presence') }}{% endif %}{% if idx < 0 or is_auto['allergen'] %} disabled{% endif %}>
                     <option value="contains"{% if presence == 'contains' %} selected{% endif %}>enthält</option>
@@ -230,7 +230,7 @@
           {% set l_codes = submitted.getlist('label_code') if submitted.getlist else submitted.get('label_code', []) %}
           <div class="row g-2">
             {% for label in labels %}
-            <div class="col-12 col-sm-6">
+            <div class="col-12 col-md-6">
               <label class="form-check" for="label-{{ label.code|lower }}"><input class="form-check-input" id="label-{{ label.code|lower }}" type="checkbox" name="label_code" value="{{ label.code }}"{% if label.code in l_codes %} checked{% endif %}{% if is_auto['label'] %} disabled{% endif %}><span class="form-check-label">{{ label.name|default(label.code) }}</span></label>
             </div>
             {% endfor %}
@@ -255,9 +255,18 @@
         <p class="form-hint">Zuletzt gespeicherter Stand. Änderungen vor der Prüfung speichern.</p>
         {% if not origin_conflict %}
         <ul class="list-unstyled menu-editor-review-list mb-0">
-          <li class="menu-editor-review-item">Labels: {% if effects and effects.labels %}{{ effects.labels|join(', ') }}{% else %}Nicht erfasst{% endif %}</li>
-          <li class="menu-editor-review-item">{% if effects and effects.allergens %}Allergene: {{ effects.allergens|join(', ') }}{% else %}Allergenangaben nicht erfasst{% endif %}</li>
-          <li class="menu-editor-review-item">Herkunft: {% if effects and effects.origins %}{{ effects.origins|join(', ') }}{% else %}Nicht erfasst{% endif %}</li>
+          <li class="menu-editor-review-item">
+            <span class="menu-editor-review-label">Labels</span>
+            <span class="menu-editor-review-value">{% if effects and effects.labels %}{{ effects.labels|join(', ') }}{% else %}Nicht erfasst{% endif %}</span>
+          </li>
+          <li class="menu-editor-review-item">
+            <span class="menu-editor-review-label">Allergene</span>
+            <span class="menu-editor-review-value">{% if effects and effects.allergens %}{{ effects.allergens|join(', ') }}{% else %}Allergenangaben nicht erfasst{% endif %}</span>
+          </li>
+          <li class="menu-editor-review-item">
+            <span class="menu-editor-review-label">Herkunft</span>
+            <span class="menu-editor-review-value">{% if effects and effects.origins %}{{ effects.origins|join(', ') }}{% else %}Nicht erfasst{% endif %}</span>
+          </li>
         </ul>
         {% endif %}
         {% if origin_conflict %}
