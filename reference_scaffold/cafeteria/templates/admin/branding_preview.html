@@ -8,8 +8,14 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='public.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='admin-branding.css') }}">
 <link rel="stylesheet" href="{{ url_for('admin.branding_preview_css', revision=brand.id) }}">
-</head><body class="public-page brand-preview-body"><main class="p-3">
+</head><body class="public-page brand-preview-body"><main class="p-3 brand-preview-example">
 {{ brand_logo(brand, 'mb-4', alt=brand.name, preview=true) }}
-<p class="text-secondary">Speiseplan · Guten Appetit</p><h1>Frisch zubereitet</h1>
-<article class="card"><div class="card-body"><h2 class="card-title">Gemüse mit Kräutern</h2><p>Reis · saisonales Gemüse</p><p>Ein Beispiel für Text, Überschriften und Farben.</p><button class="btn btn-primary" type="button">Primärfarbe</button> <span class="brand-accent">Akzentfarbe</span></div></article>
+<p class="text-secondary">Speiseplan Cafeteria · Guten Appetit</p>
+<h1>Frisch zubereitet</h1>
+<article class="card"><div class="card-body">
+<h2 class="card-title">Pouletbrust an Kräutersauce</h2>
+<p>Kartoffelstock · Zucchetti mit Kräutern · Beilage nach Tagesangebot</p>
+<p>Enthält: Milch · Allergene noch zu prüfen.</p>
+<button class="btn btn-primary" type="button">Primärfarbe</button> <span class="brand-accent">Akzentfarbe</span>
+</div></article>
 </main></body></html>
