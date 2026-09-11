@@ -299,24 +299,24 @@ def capture_publish_dialog(page, out: Outputs | None = None) -> tuple[list[dict]
     return [row], []
 
 
+def _json_copy(value: object, *, error: str, **dumps_kwargs) -> tuple[str, object]:
+    try:
+        raw = json.dumps(value, **dumps_kwargs)
+        return raw, json.loads(raw)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(error) from exc
+
+
 def fixture_record(descriptor: Mapping[str, object] | None) -> dict[str, object]:
     """Record fixture metadata and canonical hash."""
     if descriptor is None:
         return {'status': 'not_supplied', 'sha256': None, 'descriptor': None}
-    try:
-        raw_json = json.dumps(
-            descriptor,
-            sort_keys=True,
-            ensure_ascii=False,
-            separators=(',', ':'),
-        )
-        deep_copy = json.loads(raw_json)
-    except (TypeError, ValueError) as error:
-        raise ValueError('Fixture descriptor must be JSON-serializable') from error
-    sha256_hex = hashlib.sha256(raw_json.encode('utf-8')).hexdigest()
+    raw_json, deep_copy = _json_copy(
+        descriptor, error='Fixture descriptor must be JSON-serializable',
+        sort_keys=True, ensure_ascii=False, separators=(',', ':'))
     return {
         'status': 'caller_supplied',
-        'sha256': sha256_hex,
+        'sha256': hashlib.sha256(raw_json.encode('utf-8')).hexdigest(),
         'descriptor': deep_copy,
     }
 
@@ -358,12 +358,8 @@ def role_suffix(role: str) -> str:
     return f'role-nav-{cleaned}'
 
 
-def capture_role_navigation(
-    browser: Browser,
-    live: str,
-    role_cookies: Mapping[str, object],
-    out: Outputs | None = None,
-) -> list[dict]:
+def capture_role_navigation(browser: Browser, live: str, role_cookies: Mapping[str, object],
+                            out: Outputs | None = None) -> list[dict]:
     """Capture navigation sidebar per role context across primary viewports."""
     rows: list[dict] = []
     sidebar_selector = 'aside.admin-sidebar nav.admin-nav a'
@@ -372,27 +368,12 @@ def capture_role_navigation(
             page = ctx.new_page()
             page.emulate_media(reduced_motion='reduce')
             for width, height in PRIMARY:
-                row = shot(
-                    page,
-                    ROLE_NAV_PATH,
-                    width,
-                    height,
-                    suffix=role_suffix(role),
-                    out=out,
-                )
+                row = shot(page, ROLE_NAV_PATH, width, height, suffix=role_suffix(role), out=out)
                 row['role'] = role
-                probe = page.evaluate(
-                    f'''() => {{
-                      const selector = {json.dumps(sidebar_selector)};
-                      const links = Array.from(document.querySelectorAll(selector));
-                      if (links.length === 0) {{
-                        return {{nav_items: [], nav_probe_error: `no sidebar links matched ${{selector}}`}};
-                      }}
-                      return {{
-                        nav_items: links.map(el => (el.textContent || '').replace(/\\s+/g, ' ').trim())
-                      }};
-                    }}'''
-                )
+                probe = page.evaluate(f'''() => {{ const selector = {json.dumps(sidebar_selector)};
+                  const links = Array.from(document.querySelectorAll(selector));
+                  if (links.length === 0) return {{nav_items: [], nav_probe_error: `no sidebar links matched ${{selector}}`}};
+                  return {{nav_items: links.map(el => (el.textContent || '').replace(/\\s+/g, ' ').trim())}}; }}''')
                 row['nav_items'] = probe['nav_items']
                 if 'nav_probe_error' in probe:
                     row['nav_probe_error'] = probe['nav_probe_error']
@@ -400,34 +381,19 @@ def capture_role_navigation(
     return rows
 
 
-def capture_states(
-    page,
-    state_captures: Sequence[tuple[str, str, Callable]],
-    out: Outputs | None = None,
-) -> tuple[list[dict], list[dict]]:
+def capture_states(page, state_captures: Sequence[tuple[str, str, Callable]],
+                   out: Outputs | None = None) -> tuple[list[dict], list[dict]]:
     """Capture UI states with specific actions per path/suffix/action tuple."""
     rows: list[dict] = []
     blocks: list[dict] = []
     for path, suffix, action in state_captures:
         for width, height in PRIMARY:
             try:
-                row = shot(
-                    page,
-                    path,
-                    width,
-                    height,
-                    suffix=suffix,
-                    out=out,
-                    after_load=action,
-                )
-                rows.append(row)
+                rows.append(shot(page, path, width, height, suffix=suffix, out=out, after_load=action))
             except Exception as error:  # noqa: BLE001 — state capture failure produces block record
                 blocks.append({
-                    'id': f'state_{suffix}',
-                    'path': path,
-                    'viewport': {'width': width, 'height': height},
-                    'status': 'blocked_state_not_reached',
-                    'error': f'{type(error).__name__}: {error}',
+                    'id': f'state_{suffix}', 'path': path, 'viewport': {'width': width, 'height': height},
+                    'status': 'blocked_state_not_reached', 'error': f'{type(error).__name__}: {error}',
                 })
     return rows, blocks
 
@@ -453,6 +419,24 @@ def capture_provenance(identity: Mapping[str, str] | None = None) -> dict[str, o
     }
 
 
+def _prepared_additions(result: object) -> tuple[list[str], list[str], list[tuple[str, str, Callable]]]:
+    if result is None:
+        return [], [], []
+    if not isinstance(result, Mapping):
+        raise TypeError(f'prepare_entities must return a mapping or None, not {type(result).__name__}')
+    allowed = ('extra_admin_paths', 'reference_paths', 'state_captures')
+    unknown = [key for key in result if key not in allowed]
+    if unknown:
+        raise TypeError(f'prepare_entities returned unknown key(s): {unknown}')
+    parsed: list = []
+    for key in allowed:
+        value = result[key] if key in result else []
+        if not isinstance(value, (list, tuple)):
+            raise TypeError(f'prepare_entities[{key!r}] must be a list or tuple, not {type(value).__name__}')
+        parsed.append(list(value))
+    return parsed[0], parsed[1], parsed[2]
+
+
 def run_capture(
     app: Flask,
     browser: Browser,
@@ -466,13 +450,15 @@ def run_capture(
     capture_identity: Mapping[str, str] | None = None,
     role_cookies: Mapping[str, object] | None = None,
     fixture_descriptor: Mapping[str, object] | None = None,
-    supersedes: Mapping[str, object] | Sequence[object] | object | None = None,
+    supersedes: Mapping[str, object] | None = None,
     empty_paths: list[str] | None = None,
     prepare_entities: Callable[[], Mapping[str, object] | None] | None = None,
     state_captures: Sequence[tuple[str, str, Callable]] | None = None,
 ) -> dict:
     provenance = capture_provenance(capture_identity)
     fixture_rec = fixture_record(fixture_descriptor)
+    superseded = None if supersedes is None else _json_copy(
+        supersedes, error='Supersedes must be JSON-serializable')[1]
     demo_today = app.config.get('DEMO_TODAY')
 
     out = out or Outputs()
@@ -484,8 +470,7 @@ def run_capture(
         with context_for(browser, live, None) as anonymous:
             page = anonymous.new_page()
             page.emulate_media(reduced_motion='reduce')
-            captures.extend(capture_paths(
-                page, PUBLIC_PATHS + SIGNAGE_PATHS + ['/auth/local'], out=out))
+            captures.extend(capture_paths(page, PUBLIC_PATHS + SIGNAGE_PATHS + ['/auth/local'], out=out))
             captures.append(shot(page, '/admin/cafeteria', 1440, 900, suffix='anonymous-401', out=out))
             for width, height in PRIMARY:
                 try:
@@ -501,29 +486,19 @@ def run_capture(
                     for width, height in PRIMARY:
                         captures.append(shot(page, path, width, height, suffix='empty', out=out))
 
-            active_extra_admin = list(extra_admin_paths or [])
-            active_ref_paths = list(reference_paths or [])
-            active_state_captures: list[tuple[str, str, Callable]] = list(state_captures or [])
-
-            if prepare_entities is not None:
-                prep_res = prepare_entities()
-                if isinstance(prep_res, Mapping):
-                    if 'extra_admin_paths' in prep_res and isinstance(prep_res['extra_admin_paths'], list):
-                        active_extra_admin.extend(prep_res['extra_admin_paths'])
-                    if 'reference_paths' in prep_res and isinstance(prep_res['reference_paths'], list):
-                        active_ref_paths.extend(prep_res['reference_paths'])
-                    if 'state_captures' in prep_res and isinstance(prep_res['state_captures'], list):
-                        active_state_captures.extend(prep_res['state_captures'])
+            added_admin, added_refs, added_states = _prepared_additions(
+                prepare_entities() if prepare_entities is not None else None)
+            active_extra_admin = list(extra_admin_paths or []) + added_admin
+            active_ref_paths = list(reference_paths or []) + added_refs
+            active_state_captures = list(state_captures or []) + added_states
 
             admin_paths = ADMIN_PATHS + active_extra_admin
             extra = set(REFERENCE_PATHS) | set(active_ref_paths)
             captures.extend(capture_paths(page, admin_paths, extra_for=extra, out=out))
             menu = '/admin/cafeteria/menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1'
             captures.extend(capture_paths(page, [menu], extra_for={menu}, out=out))
-            captures.append(shot(page, '/admin/cafeteria/copy', 1440, 900,
-                                 suffix='missing-week-404', out=out))
-            captures.append(shot(page, '/admin/cafeteria/wochen/pruefung', 1440, 900,
-                                 suffix='missing-week-400', out=out))
+            captures.append(shot(page, '/admin/cafeteria/copy', 1440, 900, suffix='missing-week-404', out=out))
+            captures.append(shot(page, '/admin/cafeteria/wochen/pruefung', 1440, 900, suffix='missing-week-400', out=out))
             dialog_rows, dialog_blocks = capture_publish_dialog(page, out=out)
             captures.extend(dialog_rows)
             blocks.extend(dialog_blocks)
@@ -537,8 +512,7 @@ def run_capture(
             page.emulate_media(reduced_motion='reduce')
             captures.append(shot(page, '/admin/cafeteria', 1440, 900, suffix='editor-nav', out=out))
             captures.append(shot(page, '/admin/benutzer', 1440, 900, suffix='editor-403', out=out))
-            captures.append(shot(page, '/admin/design/darstellung', 1440, 900,
-                                 suffix='editor-settings', out=out))
+            captures.append(shot(page, '/admin/design/darstellung', 1440, 900, suffix='editor-settings', out=out))
         if role_cookies:
             role_rows = capture_role_navigation(browser, live, role_cookies, out=out)
             captures.extend(role_rows)
@@ -548,10 +522,8 @@ def run_capture(
             with context_for(browser, live, None) as closed:
                 page = closed.new_page()
                 page.emulate_media(reduced_motion='reduce')
-                captures.append(shot(page, '/signage/cafeteria/tag', 1920, 1080,
-                                     suffix='closed-sunday', out=out))
-                captures.append(shot(page, '/signage/cafeteria/tag', 390, 844,
-                                     suffix='closed-sunday', out=out))
+                captures.append(shot(page, '/signage/cafeteria/tag', 1920, 1080, suffix='closed-sunday', out=out))
+                captures.append(shot(page, '/signage/cafeteria/tag', 390, 844, suffix='closed-sunday', out=out))
         finally:
             app.config['DEMO_TODAY'] = previous_today
     finally:
@@ -597,38 +569,27 @@ def run_capture(
         },
         'viewports': {
             'required_html': [{'width': 1440, 'height': 900}, {'width': 390, 'height': 844}],
-            'reference_extra': [
-                {'width': 1024, 'height': 768},
-                {'width': 768, 'height': 1024},
-                {'width': 1920, 'height': 1080},
-            ],
+            'reference_extra': [{'width': 1024, 'height': 768}, {'width': 768, 'height': 1024},
+                                {'width': 1920, 'height': 1080}],
         },
         'captures': captures,
         'coverage_blocks': blocks + [
-            {
-                'id': 'entra_callback_live_tenant',
-                'reason': 'Cannot safely synthesize a real Entra tenant or production person.',
-                'status': 'blocked_not_fake_pass',
-            },
-            {
-                'id': 'recipe_revision_detail_entity',
-                'reason': (
-                    'Seed has no recipes, so the caller creates a synthetic same-site recipe and '
-                    'freezes one immutable v1 revision through the existing recipe store before '
-                    'the run. The detail row is captured whenever that entity is supplied.'
-                ),
-                'status': 'resolved_by_synthetic_entity',
-            },
-            {
-                'id': 'native_pdf_bytes',
-                'reason': 'PDF downloads classified non-visual; HTML print routes captured separately.',
-                'status': 'classified_download',
-            },
+            {'id': 'entra_callback_live_tenant',
+             'reason': 'Cannot safely synthesize a real Entra tenant or production person.',
+             'status': 'blocked_not_fake_pass'},
+            {'id': 'recipe_revision_detail_entity',
+             'reason': ('Seed has no recipes, so the caller creates a synthetic same-site recipe and '
+                        'freezes one immutable v1 revision through the existing recipe store before '
+                        'the run. The detail row is captured whenever that entity is supplied.'),
+             'status': 'resolved_by_synthetic_entity'},
+            {'id': 'native_pdf_bytes',
+             'reason': 'PDF downloads classified non-visual; HTML print routes captured separately.',
+             'status': 'classified_download'},
         ],
         'visual_inspection': str((EVIDENCE / 'visual-inspection.md').relative_to(ROOT)),
     }
-    if supersedes is not None:
-        manifest['superseded_evidence'] = json.loads(json.dumps(supersedes))
+    if superseded is not None:
+        manifest['superseded_evidence'] = superseded
 
     rendered_manifest = json.dumps(manifest, indent=2, ensure_ascii=False) + '\n'
     for target in out.manifest_paths:
