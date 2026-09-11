@@ -299,7 +299,10 @@ def _prepare_inventory_entities(application, database_engine, admin_user_id) -> 
         'admin.screen_template_preview': f"/admin/vorlagen/screens/cafeteria/{data['screen_template']}",
     }
     cases = _invalid_cases(recipe)
-    return {'endpoint_paths': paths, 'extra_admin_paths': list(paths.values()),
+    # The recorder captures the menu editor itself (all five viewports); listing it again
+    # would overwrite the same screenshot file with a duplicate manifest row.
+    return {'endpoint_paths': paths,
+            'extra_admin_paths': [path for key, path in paths.items() if key != 'admin.menu_get'],
             'reference_paths': [paths['admin.recipe_revision']], 'invalid_cases': cases,
             'state_captures': [(case['path'], 'invalid', _invalid_action(case)) for case in cases]}
 
