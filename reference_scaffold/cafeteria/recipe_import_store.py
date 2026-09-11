@@ -1,4 +1,4 @@
-"""Persistent versioned recipe-import drafts. Saving never creates recipes."""
+"""Persistent versioned recipe-import drafts; commit creates recipes in one TX."""
 from __future__ import annotations
 
 import json
@@ -33,11 +33,15 @@ UPDATE_SQL = (
     'SELECT cafeteria.update_recipe_import_batch_v28('
     ':actor,:authz,:location,CAST(:target AS uuid),CAST(:version AS bigint),CAST(:payload AS jsonb))'
 )
+COMMIT_SQL = (
+    'SELECT cafeteria.commit_recipe_import_batch_v29('
+    ':actor,:authz,:location,CAST(:target AS uuid),CAST(:version AS bigint),CAST(:payload AS jsonb))'
+)
 ANNOTATIONS = ('unreviewed', 'proposed_not_measured', 'allergen_not_checked')
 LIST_SQL = '''SELECT b.public_id::text AS public_id, b.row_version, b.status, b.adapter_kind,
     b.source_filename, b.source_sha256, b.content_type, b.source_url, b.fetched_at,
-    b.candidate_hash_sha256, b.confirmation_hash_sha256, b.annotations, b.duplicate_groups,
-    b.created_at, b.updated_at
+    b.candidate_hash_sha256, b.confirmation_hash_sha256, b.imported_result, b.annotations,
+    b.duplicate_groups, b.created_at, b.updated_at
     FROM cafeteria.recipe_import_batches b
     WHERE b.location_id=:location
     ORDER BY b.created_at DESC, b.public_id'''
@@ -77,6 +81,7 @@ class RecipeImportBatch:
     fetched_at: datetime | None
     candidate_hash_sha256: str
     confirmation_hash_sha256: str | None
+    imported_result: tuple[Mapping[str, object], ...]
     annotations: tuple[str, ...]
     duplicate_groups: tuple[Mapping[str, object], ...]
     created_at: datetime
@@ -210,6 +215,7 @@ def _batch(row: Mapping[str, Any], candidates: tuple[RecipeImportCandidate, ...]
         content_type=row['content_type'], source_url=row['source_url'],
         fetched_at=fetched, candidate_hash_sha256=str(row['candidate_hash_sha256']),
         confirmation_hash_sha256=row['confirmation_hash_sha256'],
+        imported_result=tuple(frozen_json(row['imported_result'] or [])),
         annotations=tuple(row['annotations'] or ()),
         duplicate_groups=tuple(frozen_json(row['duplicate_groups'] or [])),
         created_at=row['created_at'], updated_at=row['updated_at'], candidates=candidates,
@@ -270,4 +276,34 @@ def update_batch(
         if location != expected_location_id:
             raise RecipeConflictError('Der ursprüngliche Standort ist nicht mehr aktiv.')
     result = _update(engine, actor, expected_location_id, target, payload)
+    return MutationResult(str(result['public_id']), int(result['row_version']))
+
+
+@_safe
+def _commit(
+    engine: Engine, actor: ActorExpectation, location: int, target: ObjectExpectation,
+    payload: Mapping[str, object],
+) -> dict[str, Any]:
+    values = {
+        'actor': positive(actor.user_id), 'authz': positive(actor.authz_version),
+        'location': positive(location), 'target': identifier(target.public_id),
+        'version': positive(target.row_version), 'payload': _dump(payload),
+    }
+    with engine.begin() as current:
+        return dict(current.execute(text(COMMIT_SQL), values).scalar_one())
+
+
+@require_capability('recipe.import')
+def commit_batch(
+    engine: Engine, actor: ActorExpectation, target: ObjectExpectation,
+    payload: Mapping[str, object], *, expected_location_id: int,
+) -> MutationResult:
+    if not isinstance(actor, ActorExpectation):
+        raise RecipeValidationError('Originalakteur erforderlich.')
+    if not isinstance(target, ObjectExpectation):
+        raise RecipeValidationError('Originalobjekt erforderlich.')
+    with connection(engine) as (_, location):
+        if location != expected_location_id:
+            raise RecipeConflictError('Der ursprüngliche Standort ist nicht mehr aktiv.')
+    result = _commit(engine, actor, expected_location_id, target, payload)
     return MutationResult(str(result['public_id']), int(result['row_version']))

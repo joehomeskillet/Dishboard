@@ -6,7 +6,9 @@ from urllib.parse import urlsplit
 import pytest
 from playwright.sync_api import expect
 
+from cafeteria import master_data_store as masters
 from test_master_data_browser import master_server, targets  # noqa: F401
+from test_master_data_db import STORAGE_PUBLIC_ID, signed_in
 from test_master_data_routes import (  # noqa: F401
     Forms, app_engine, b3, installed_pg16, pg16, seeded_pg16,
 )
@@ -94,4 +96,62 @@ def test_shared_layout_viewports(b3, master_server, browser, width, height, tmp_
         expect(page.get_by_role('columnheader', name='Datei')).to_be_visible()
         targets(page)
         shot = tmp_path / f'rezepte-import-shared-{width}x{height}.png'
+        page.screenshot(path=str(shot), full_page=True)
+
+
+@pytest.mark.parametrize('width,height', ROUTE_VIEWPORTS)
+@pytest.mark.parametrize('javascript', [False, True])
+def test_commit_confirmation_and_recipe_link(b3, master_server, browser, width, height, javascript, tmp_path):  # noqa: F811
+    app, _owner, client, actor = b3
+    engine = app.extensions['cafeteria_db']
+    with signed_in(engine, actor):
+        food = masters.create_food(engine, actor, {
+            'name': 'Browser-Zutat', 'base_unit_code': 'KG',
+            'storage_location_public_ids': [STORAGE_PUBLIC_ID],
+        })
+    path = create(client, annotation='unreviewed')
+    form = Forms(client.get(path).text).forms[path]
+    form['row.1.ingredient.0.food_public_id'] = food.public_id
+    form['row.1.duplicate_decision'] = 'create_new'
+    form['action'] = 'save'
+    assert client.post(path, data=form).status_code == 303
+    ack = Forms(client.get(path).text).forms[path]
+    ack['action'] = 'acknowledge'
+    assert client.post(path, data=ack).status_code == 303
+    base, cookie = master_server
+    with browser.new_context(
+        viewport={'width': width, 'height': height}, java_script_enabled=javascript,
+        reduced_motion='reduce', service_workers='block',
+    ) as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        page.on('dialog', lambda dialog: dialog.accept())
+        _open(page, base, path)
+        expect(page.get_by_role('heading', name='Importstapel übernehmen')).to_be_visible()
+        expect(page.get_by_text('keine Veröffentlichung')).to_be_visible()
+        page.get_by_role('button', name='Importstapel übernehmen').click()
+        expect(page.get_by_role('heading', name='Übernommene Rezepte')).to_be_visible()
+        expect(page.get_by_role('link', name='Rezept öffnen')).to_be_visible()
+        targets(page)
+        shot = tmp_path / f'rezepte-import-commit-{width}-js-{javascript}.png'
+        page.screenshot(path=str(shot), full_page=True)
+        page.get_by_role('link', name='Rezept öffnen').click()
+        expect(page.get_by_role('heading', level=1)).to_have_text('Rezept bearbeiten')
+
+
+@pytest.mark.parametrize('width,height', SHARED_VIEWPORTS)
+def test_commit_shared_viewports(b3, master_server, browser, width, height, tmp_path):  # noqa: F811
+    _, _, client, _ = b3
+    path = create(client, annotation='unreviewed')
+    ack = Forms(client.get(path).text).forms[path]
+    ack['action'] = 'acknowledge'
+    assert client.post(path, data=ack).status_code == 303
+    base, cookie = master_server
+    with browser.new_context(viewport={'width': width, 'height': height}, reduced_motion='reduce') as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        _open(page, base, path)
+        expect(page.get_by_role('heading', name='Importstapel übernehmen')).to_be_visible()
+        targets(page)
+        shot = tmp_path / f'rezepte-import-commit-shared-{width}x{height}.png'
         page.screenshot(path=str(shot), full_page=True)

@@ -11,7 +11,9 @@ from ..auth.local_users import ActorExpectation
 from ..master_data_types import ObjectExpectation
 from ..recipe_import import parse_recipe_import
 from ..recipe_reads import get_location
-from ..recipe_types import RecipeConflictError, RecipeNotFoundError, RecipeValidationError
+from ..recipe_types import (
+    RecipeActorDeniedError, RecipeConflictError, RecipeNotFoundError, RecipeValidationError,
+)
 from ..roles import capabilities, require_capability
 from ..security import validate_csrf
 from .routes import bp
@@ -41,13 +43,19 @@ def _can_write() -> bool:
     return '*' in allowed or 'recipe.write' in allowed
 
 
+def _can_import() -> bool:
+    allowed = capabilities()
+    return '*' in allowed or 'recipe.import' in allowed
+
+
 def _page(
     *, batches=(), batch=None, values=None, error: str | None = None, status: int = 200,
 ) -> Response:
     html = render_template(
         'admin/rezepte_import.html', family='cafeteria', profile='staff_guest',
         batches=batches, batch=batch, values=values or {}, error=error,
-        can_write=_can_write(), annotation_labels=ANNOTATION_LABELS, decisions=DECISIONS,
+        can_write=_can_write(), can_import=_can_import(),
+        annotation_labels=ANNOTATION_LABELS, decisions=DECISIONS,
     )
     response = make_response(html, status)
     response.headers['Cache-Control'] = 'no-store'
@@ -167,6 +175,40 @@ def recipe_import_save(batch_id: str) -> Response:
             _db(), _actor(), ObjectExpectation(batch.public_id, expected),
             _form_payload(batch, request.form), expected_location_id=get_location(_db()),
         )
+    except RecipeValidationError as error:
+        return _page(batch=batch, batches=store.list_batches(_db()), values=values,
+                     error=str(error), status=400)
+    except RecipeConflictError as error:
+        return _page(batch=batch, batches=store.list_batches(_db()), values=values,
+                     error=str(error), status=409)
+    except RecipeActorDeniedError as error:
+        return _page(batch=batch, batches=store.list_batches(_db()), values=values,
+                     error=str(error), status=403)
+    except ValueError:
+        return _page(batch=batch, batches=store.list_batches(_db()), values=values,
+                     error='Ursprünglicher Stand erforderlich.', status=400)
+    return redirect(url_for('admin.recipe_import_detail', batch_id=batch.public_id), 303)
+
+
+@bp.post('/rezepte/import/<batch_id>/commit')
+@require_capability('recipe.import')
+def recipe_import_commit(batch_id: str) -> Response:
+    validate_csrf(request.form.get('_csrf'))
+    try:
+        batch = store.get_batch(_db(), batch_id)
+    except (RecipeNotFoundError, RecipeValidationError):
+        return _page(batches=store.list_batches(_db()), error='Unbekannter Importstapel.', status=404)
+    values = dict(request.form)
+    try:
+        expected = int(request.form.get('row_version', ''))
+        store.commit_batch(
+            _db(), _actor(), ObjectExpectation(batch.public_id, expected),
+            {'candidate_hash_sha256': request.form.get('candidate_hash_sha256', '')},
+            expected_location_id=get_location(_db()),
+        )
+    except RecipeActorDeniedError as error:
+        return _page(batch=batch, batches=store.list_batches(_db()), values=values,
+                     error=str(error), status=403)
     except RecipeValidationError as error:
         return _page(batch=batch, batches=store.list_batches(_db()), values=values,
                      error=str(error), status=400)
