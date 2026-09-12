@@ -424,6 +424,7 @@ docs/design/2026-09-08-native-pdf-layout-contract.md
 docs/design/2026-09-09-unified-ui-design-system.md
 docs/design/2026-09-11-admin-shell-navigation-spec.md
 docs/design/2026-09-12-api-key-policy.md
+docs/design/2026-09-12-correction-wave-delivery.md
 docs/design/2026-09-12-fullwidth-audit.md
 docs/design/2026-09-12-patientenplan-menueditor-korrektur.md
 docs/design/admin-redesign-ui.md
