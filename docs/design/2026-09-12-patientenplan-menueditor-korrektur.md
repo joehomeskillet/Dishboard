@@ -238,3 +238,20 @@ Lieferumfang: tatsächliche Dateipfade, Befund-ID → Änderung → Test → Erg
 Ein Test mit technisch unerfahrenen Personen soll insbesondere zeigen, ob sie ein Menü finden, nur die Beilage ändern, speichern und den Unterschied zwischen „geprüft“ und „Allergenangaben fehlen“ erklären können. Ein Agent darf fehlende Nutzerbeobachtungen nicht als durchgeführt ausgeben.
 
 **Kernziel: Volle Breite behalten, Wiederholungen entfernen, Menüs zuerst zeigen und Prüfzustände verständlich machen. Nicht erneut nur die Karten grösser machen.**
+
+## Umsetzung Werkzeuge
+
+Die Korrekturwelle umfasst auch vier vorhandene Werkzeugseiten, ohne ihre Routen,
+Formularfelder oder Schreiblogik zu ändern:
+
+| Seite | Umgesetzte Ordnung |
+|---|---|
+| Schnittstellen | API-Schlüssel stehen zuerst. Das Anlegeformular ist bei Bedarf erreichbar und öffnet bei einem Fehler automatisch. Status und technische Endpunkte bleiben nachgeordnet sichtbar. |
+| Daten importieren | Leerer Zustand, fehlerhafte Datei und gültige Import-Vorschau zeigen jeweils die nächste tatsächliche Aufgabe. Erst die Bestätigung der gültigen Vorschau übernimmt den Entwurf. |
+| Vorwoche kopieren | Quelle und Ziel stehen getrennt. Der Hinweis nennt nur belegte Wirkungen: Wochenkopf, Ausgabeangaben und Menüs werden übernommen, Prüfbestätigungen nicht; die Zielwoche bleibt ein Entwurf, muss leer sein und darf keine aktive Veröffentlichung haben. |
+| Wochenprüfung | Prüfstatus steht vor Erklärung und gespeicherten Angaben. Oberflächentexte verwenden «Ausgabeangaben»; das vorhandene Bestätigungsformular bleibt unverändert. |
+
+Browsernachweis und responsive Screenshots entstehen durch
+`reference_scaffold/tests/test_ui_korrektur_tools_browser.py` unter
+`.claude/evidence/ui-korrektur-0912/tools/`. Die Matrix umfasst 1366×768,
+1920×1080, 768×1024, 390×844 und 720×450 als 200-%-Zoomäquivalent.
