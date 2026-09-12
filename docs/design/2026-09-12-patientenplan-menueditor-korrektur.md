@@ -238,3 +238,29 @@ Lieferumfang: tatsächliche Dateipfade, Befund-ID → Änderung → Test → Erg
 Ein Test mit technisch unerfahrenen Personen soll insbesondere zeigen, ob sie ein Menü finden, nur die Beilage ändern, speichern und den Unterschied zwischen „geprüft“ und „Allergenangaben fehlen“ erklären können. Ein Agent darf fehlende Nutzerbeobachtungen nicht als durchgeführt ausgeben.
 
 **Kernziel: Volle Breite behalten, Wiederholungen entfernen, Menüs zuerst zeigen und Prüfzustände verständlich machen. Nicht erneut nur die Karten grösser machen.**
+
+## Umsetzung Wochenplan (wp-ui-korrektur-week-0912)
+
+Gemeinsame Partials unter `reference_scaffold/cafeteria/templates/admin/_week_*.html` für Patientenplan und Cafeteria-Plan. Python, `admin.js` und `_menu_metadata.html` bleiben unverändert.
+
+### Reihenfolge und Kopf
+
+1. `page_header` mit H1 «Patientenplan» / «Cafeteria-Plan» und Untertitel aus erstem/letztem `cells.day` plus KW und Rasterkontext.
+2. Bereichs-Tabs nur über die Shell (`.admin-area-tabs`). `profile_tabs` entfällt.
+3. Eine Zeile Status (`.admin-week-status`, `role="status"`) und eine Zeile Aktionen (`btn-list`, `data-sticky`).
+4. `<details class="admin-week-settings">` «Wochenangaben ändern» mit dem bestehenden Header-POST.
+5. Tage, Mahlzeiten, Menükarten.
+
+### Statusaussagen
+
+Veröffentlichungsstand, Menükarten-Prüfungen, Wochenkopf-Prüfung und fehlende Allergenangaben stehen getrennt. «Keine offenen Prüfungen» ist kein pauschaler Gesamttext mehr.
+
+### Formulare und Fehler
+
+`header_post` / `service_post` rufen `_call(...)` auf. Validierungs- und Konfliktfehler enden als 4xx-Seite, nicht als Re-Render der Wochenseite. Erfolg: Flash «Wochenangaben gespeichert.» / «Service gespeichert.» und 303 auf die Wochenseite. Deshalb öffnet «Wochenangaben ändern» bei Header-Flash oder `status == 'error'`; «Ausgabeangaben ändern» nur bei `status == 'error'`, nicht nach «Service gespeichert.»
+
+Ohne JavaScript bleibt «Weitere Aktionen» über natives `<details>` erreichbar (Tabler-Dropdown wäre ohne JS unsichtbar).
+
+### Fachlicher Konflikt
+
+Veröffentlichen bleibt mit Karten ohne Allergenangaben möglich (`validate_publication_fit(require_review=False)`). Das UI zeigt die Lücke, sperrt aber nichts neu.
