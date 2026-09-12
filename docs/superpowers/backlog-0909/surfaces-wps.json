@@ -5690,7 +5690,8 @@
         "reference_scaffold/cafeteria/static/admin-tabler.css",
         "reference_scaffold/cafeteria/static/recipe-editor.js",
         "reference_scaffold/tests/test_recipe_browser.py",
-        "reference_scaffold/tests/test_ui_korrektur_recipes_browser.py"
+        "reference_scaffold/tests/test_ui_korrektur_recipes_browser.py",
+        "reference_scaffold/tests/test_recipe_density_browser.py"
       ],
       "task": "Zentrale kompakte Arbeitszeilen erstmalig am Rezept einsetzen: genau eine direkt bearbeitbare Menge/Einheit, sichere Details und Zusammenfassungen, beschriftete native Strukturaktionen, 4/2- und 20/10-Fixtures. Bestehende Speicherung, Indizes, Referenzen, Warnungen, required/formnovalidate und Fehleröffnung erhalten.",
       "acceptance_criteria": [
@@ -5725,7 +5726,8 @@
         "reference_scaffold/cafeteria/static/admin-tabler.css",
         "proposed:reference_scaffold/cafeteria/static/recipe-editor.js",
         "reference_scaffold/tests/test_recipe_browser.py",
-        "reference_scaffold/tests/test_ui_korrektur_recipes_browser.py"
+        "reference_scaffold/tests/test_ui_korrektur_recipes_browser.py",
+        "proposed:reference_scaffold/tests/test_recipe_density_browser.py"
       ],
       "forbidden_paths": [
         "database/*",
@@ -5737,10 +5739,11 @@
       "test_plan": [
         {
           "kind": "browser",
-          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_recipe_browser.py tests/test_ui_korrektur_recipes_browser.py",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_recipe_browser.py tests/test_ui_korrektur_recipes_browser.py tests/test_recipe_density_browser.py",
           "assertions": [
             "Zentrale kompakte Arbeitszeilen erstmalig am Rezept einsetzen: genau eine direkt bearbeitbare Menge/Einheit, sichere Details und Zusammenfassungen, beschriftete native Strukturaktionen, 4/2- und 20/10-Fixtures. Bestehende Speicherung, Indizes, Referenzen, Warnungen, required/formnovalidate und Fehleröffnung erhalten.",
-            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren.",
+            "Neuer vorgeschlagener test_recipe_density_browser.py belegt die Dichte-Fixtures und Interaktionen; beide bestehenden Rezept-Browsergates bleiben Teil des Laufs. Kein PASS aus dem vorgeschlagenen Dateipfad."
           ]
         }
       ],
@@ -6991,7 +6994,8 @@
       "status": "PLANNED",
       "depends_on": [
         "MP-UI-DENSITY-SHARED",
-        "MP-REC-PRINT-TEMPLATE-ENTRY"
+        "MP-REC-PRINT-TEMPLATE-ENTRY",
+        "MP-REC-RECIPE-VIEW-PRINT"
       ],
       "existing_wp_id": null,
       "sdd_sections": [
@@ -7758,7 +7762,12 @@
       "source_anchors": [
         "docs/superpowers/backlog-0909/ui-route-matrix.json",
         "docs/superpowers/backlog-0909/ui-before-manifest.json",
-        "reference_scaffold/tests/test_ui_inventory_capture.py"
+        "reference_scaffold/tests/test_ui_route_inventory.py",
+        "reference_scaffold/tests/test_ui_inventory_capture.py",
+        "reference_scaffold/tests/test_ui_route_inventory.py:test_matrix_matches_real_create_app_registration",
+        "reference_scaffold/tests/test_ui_route_inventory.py:test_matrix_roles_match_server_side_authorization",
+        "reference_scaffold/tests/test_ui_route_inventory.py:test_inventory_invalid_browser_actions",
+        "reference_scaffold/tests/test_ui_route_inventory.py:test_capture_before_screenshots_and_manifest"
       ],
       "task": "Jede Seite 1440x900 und390x844 mit Kernaufgabe, gemeinsame Typen zusätzlich1024/768/1920/2560, reale200%-Zoom/Reflow320/Tastatur. Gleiche Vorher/Nachher-Fixtures, Breite/Höhe/Kern-y/Zeilen/Klicks/Scroll messen. Alle fehlenden Rollen/Zustände einzeln offen, öffentliche/Login/PDF/Signage-Nebenwirkungen prüfen.",
       "acceptance_criteria": [
@@ -7775,6 +7784,7 @@
       "owned_files": [
         "docs/superpowers/backlog-0909/ui-route-matrix.json",
         "docs/superpowers/backlog-0909/ui-before-manifest.json",
+        "reference_scaffold/tests/test_ui_route_inventory.py",
         "reference_scaffold/tests/test_ui_inventory_capture.py"
       ],
       "forbidden_paths": [
@@ -7787,11 +7797,15 @@
       "test_plan": [
         {
           "kind": "browser",
-          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_inventory_capture.py",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -rs -p no:cacheprovider tests/test_ui_route_inventory.py tests/test_ui_inventory_capture.py",
           "assertions": [
             "Jede Seite 1440x900 und390x844 mit Kernaufgabe, gemeinsame Typen zusätzlich1024/768/1920/2560, reale200%-Zoom/Reflow320/Tastatur. Gleiche Vorher/Nachher-Fixtures, Breite/Höhe/Kern-y/Zeilen/Klicks/Scroll messen. Alle fehlenden Rollen/Zustände einzeln offen, öffentliche/Login/PDF/Signage-Nebenwirkungen prüfen.",
-            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
-          ]
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren.",
+            "Echte App statt ausschliesslich Recorder-Selbsttests: test_matrix_matches_real_create_app_registration gleicht create_app()-Routen ab; test_matrix_roles_match_server_side_authorization und test_inventory_invalid_browser_actions prüfen Rollen/Fehler; test_capture_before_screenshots_and_manifest erzeugt mit echter App und synthetischen Fixtures via run_capture aktuelle Screenshots/Manifest und weist fehlende visuelle Routen ab. Recorder-Selbsttests zusätzlich erhalten.",
+            "Den bestehenden App-Capturepfad im zugewiesenen Testbesitz für den vollständigen aktuellen Inventarstand ergänzen: pro Seite Kernaufgabe bei 1440x900 und 390x844, gemeinsame Typen zusätzlich 1024x768, 768x1024, 1920x1080 und 2560x1440; echter 200%-Browserzoom und 320-CSS-Pixel-Reflow getrennt. Pro Route/Rolle/Zustand tatsächliche Kombination, Ergebnis, Screenshot und Aufgabenmessung belegen; vorhandene Teilabdeckung ist kein Gesamt-PASS.",
+            "Root weist vor Ausführung konkreten Wrapper, eigenen Worktree, exklusiven PostgreSQL-/Browserpool und separates UI_CAPTURE_OUT zu. Rohe Ausgabe/Exitcode sowie collected/passed/skipped und Skipgründe dokumentieren; fehlende TEST_DATABASE_URL, Browser oder Fixtures bleiben NICHT AUSGEFÜHRT/BLOCKIERT. Ein übersprungener App-/DB-/Browserlauf ist kein bestandenes Gate. Capture-Artefakte mit aktuellem Quellcommit, Testidentität und vergleichbaren Vorher/Nachher-Fixtures sichern; keine automatische Baseline-Promotion."
+          ],
+          "assignment": "NICHT GELAUFEN in diesem Docs-WP; Root ersetzt vor dem Gate sämtliche Wrapper-/WT-Platzhalter und reserviert den exklusiven Pool und das Capture-Ziel. INVENTORY-Freeze vor REGRESSION, danach FUTURE."
         }
       ],
       "external_inputs": [],
