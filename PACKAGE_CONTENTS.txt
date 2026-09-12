@@ -1414,6 +1414,13 @@ reference_scaffold/tests/test_workflow_weekend_contract.py
 reference_scaffold/wsgi.py
 review/Grok_Kritik_original.txt
 site/.nojekyll
+site/assets/admin-cafeteria.webp
+site/assets/mobile-cafeteria-heute.webp
+site/assets/og.webp
+site/assets/signage-cafeteria-tag.webp
+site/assets/signage-patienten-woche.webp
+site/assets/web-cafeteria-heute.webp
+site/assets/web-patienten-woche.webp
 site/components.css
 site/foundation.css
 site/index.html
