@@ -219,13 +219,15 @@
     }
 
     function componentEntryKind(row) {
+        const selected = row.querySelector('[data-component-kind-option]:checked');
+        if (selected) return selected.value;
         const catalog = row.querySelector('[name="component_public_id"]');
         const text = row.querySelector('[name="component_text"]');
         return catalog?.value || !text?.value ? 'catalog' : 'text';
     }
 
     function syncComponentRow(row) {
-        const kind = row.querySelector('[data-component-kind-option]:checked')?.value || componentEntryKind(row);
+        const kind = componentEntryKind(row);
         const catalog = row.querySelector('[name="component_public_id"]');
         const text = row.querySelector('[name="component_text"]');
         row.querySelectorAll('[data-component-kind-option]').forEach(option => {

@@ -102,6 +102,30 @@ def test_a08_switching_input_kind_clears_other_value(editor_page, family: str, j
     assert payload['component_public_id'][0] == '' and payload['component_public_id'][1]
 
 
+@pytest.mark.parametrize('javascript', [True], indirect=True, ids=['js'])
+def test_a08_reopening_empty_input_kind_focuses_selected_control(editor_page, family: str) -> None:  # noqa: F811
+    page, *_ = editor_page
+    page.goto(_menu_url(family))
+    row = page.locator('#components-list .component-row').first
+    for kind, name, other_name in (
+        ('text', 'component_text', 'component_public_id'),
+        ('catalog', 'component_public_id', 'component_text'),
+    ):
+        row.get_by_role('button', name='Ändern').click()
+        option = row.locator(f'[data-component-kind-option][value="{kind}"]')
+        option.check()
+        expect(row.locator(f'[name="{name}"]')).to_have_value('')
+        expect(row.locator(f'[name="{other_name}"]')).to_have_value('')
+        row.get_by_role('button', name='Fertig').click()
+        edit = row.get_by_role('button', name='Ändern')
+        expect(edit).to_be_focused()
+        edit.press('Enter')
+        expect(option).to_be_checked()
+        expect(row.locator(f'[name="{name}"]')).to_be_focused()
+        expect(row.locator(f'[name="{other_name}"]')).to_be_hidden()
+        row.get_by_role('button', name='Fertig').click()
+
+
 def test_a09_add_move_remove_keeps_visual_payload_order(editor_page, family: str, javascript: bool) -> None:  # noqa: F811
     if not javascript:
         pytest.skip('Zeilenaktionen benötigen progressive Enhancement.')
