@@ -90,7 +90,11 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
         expect(page.locator('.screen-card')).to_have_count(4)
         expect(page.locator('iframe')).to_have_count(10)
         all_targets = set(page.locator('main a').evaluate_all('links => links.map(link => new URL(link.href).pathname)'))
-        assert all_targets == TARGETS | {'/admin/screens/cafeteria/wochenvorlage', '/admin/screens/patienten/wochenvorlage'}
+        assert all_targets == TARGETS | {
+            '/admin/screens',
+            '/admin/screens/cafeteria/wochenvorlage',
+            '/admin/screens/patienten/wochenvorlage',
+        }
         for card in page.locator('.screen-card').all():
             is_web = 'Web' in card.locator('h2').inner_text()
             periods = ('Tagesplan', 'Wochenplan mit Bildern · aktiv', 'Wochenplan ohne Bilder') if is_web else (

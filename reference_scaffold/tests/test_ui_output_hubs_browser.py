@@ -146,7 +146,7 @@ def test_output_hubs_viewports_and_layouts(
     try:
         res_screens = page.goto("/admin/screens")
         assert res_screens is not None and res_screens.status == 200
-        expect(page.locator("h1")).to_have_text("Screens")
+        expect(page.locator("h1")).to_have_text("Bildschirme")
         expect(page.locator("main")).to_have_attribute("data-layout", "standard")
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
         _check_contrast(page)
@@ -168,10 +168,11 @@ def test_output_hubs_viewports_and_layouts(
         # 3. /admin/screens/cafeteria/wochenvorlage
         res_assign = page.goto("/admin/screens/cafeteria/wochenvorlage")
         assert res_assign is not None and res_assign.status == 200
-        expect(page.locator("h1")).to_have_text("Wochenvorlage zuordnen")
+        expect(page.locator("h1")).to_have_text("Vorlage zuweisen")
         expect(page.locator("main")).to_have_attribute("data-layout", "standard")
-        expect(page.locator(".breadcrumb")).to_contain_text("Screens")
+        expect(page.locator(".breadcrumb")).to_contain_text("Bildschirme")
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+        page.locator("#screen-assignment-details > summary").click()
         cards = page.locator(".screen-choice-card").evaluate_all(
             "els => els.map(el => {const b=el.getBoundingClientRect(); return [b.width, b.height]})"
         )
@@ -213,6 +214,7 @@ def test_output_hubs_keyboard_and_zoom_200(
 
         # Keyboard checks on assignment page
         page.goto("/admin/screens/cafeteria/wochenvorlage")
+        page.locator("#screen-assignment-details > summary").click()
         for control in page.locator("main :is(.btn, .screen-choice-control)").all():
             box = control.bounding_box()
             assert box is not None and box["height"] >= 48
@@ -296,20 +298,22 @@ def test_output_hubs_matrix_error_and_conflict_states(
         route = "/admin/screens/cafeteria/wochenvorlage"
         page.goto(route)
         stale.goto(route)
+        page.locator("#screen-assignment-details > summary").click()
+        stale.locator("#screen-assignment-details > summary").click()
         token = stale.locator('[name="_form_context"]').input_value()
 
         page.get_by_role(
             "radio", name="Wochenplan ohne Bilder auswählen", exact=True
         ).check()
         with page.expect_response(lambda r: r.request.method == "POST") as res:
-            page.get_by_role("button", name="Auswahl aktivieren", exact=True).click()
+            page.get_by_role("button", name="Vorlage zuweisen", exact=True).click()
         assert res.value.status == 303
 
         stale.get_by_role(
             "radio", name="Wochenplan ohne Bilder auswählen", exact=True
         ).check()
         with stale.expect_response(lambda r: r.request.method == "POST") as res:
-            stale.get_by_role("button", name="Auswahl aktivieren", exact=True).click()
+            stale.get_by_role("button", name="Vorlage zuweisen", exact=True).click()
         assert res.value.status == 409
         expect(stale.locator('[name="_form_context"]')).to_have_value(token)
         expect(stale.locator('[name="version"]')).to_have_value("0")
@@ -337,7 +341,7 @@ def test_output_hubs_matrix_error_and_conflict_states(
         )
         page.goto("/admin/screens/cafeteria/wochenvorlage")
         expect(page.locator(".alert-info")).to_contain_text(
-            "Zum Aktivieren ist eine Admin-Berechtigung erforderlich"
+            "Zum Zuweisen ist eine Admin-Berechtigung erforderlich"
         )
 
         # State: unavailable_503
@@ -352,7 +356,7 @@ def test_output_hubs_matrix_error_and_conflict_states(
         res_503 = page.goto("/admin/screens/cafeteria/wochenvorlage")
         assert res_503.status == 503
         expect(page.locator("h1")).to_have_text(
-            "Screen-Vorlagen vorübergehend nicht verfügbar"
+            "Bildschirmvorlagen vorübergehend nicht verfügbar"
         )
         expect(page.get_by_role("alert")).to_be_visible()
         page.screenshot(path=str(tmp_path / "unavailable-503.png"), full_page=True)
@@ -361,11 +365,11 @@ def test_output_hubs_matrix_error_and_conflict_states(
 @pytest.mark.parametrize(
     "route,title,empty_text,focus_role",
     [
-        ("/admin/screens", "Screens", "Speiseplan nicht verfügbar", "iframe"),
+        ("/admin/screens", "Bildschirme", "Speiseplan nicht verfügbar", "iframe"),
         ("/admin/vorlagen", "Vorlagen", "veröffentlichten Plan", "tab"),
         (
             "/admin/screens/cafeteria/wochenvorlage",
-            "Wochenvorlage zuordnen",
+            "Vorlage zuweisen",
             "Ohne Veröffentlichung erscheint ein Hinweis",
             "radio",
         ),
@@ -395,6 +399,7 @@ def test_output_hubs_matrix_empty_states(
             expect(page.get_by_text(empty_text, exact=False).first).to_be_visible()
             focus_target = page.locator(".output-area-tabs .nav-link").first
         else:
+            page.locator("#screen-assignment-details > summary").click()
             expect(page.get_by_text(empty_text, exact=False)).to_be_visible()
             focus_target = page.get_by_role(focus_role).first
         focus_target.focus()
