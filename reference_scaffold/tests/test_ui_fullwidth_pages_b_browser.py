@@ -173,8 +173,8 @@ def test_group_b_pages_use_full_working_width(site):  # noqa: F811
         page.fill('#new-display-name', 'X')
         page.fill('#create-password', 'Valide!Wolken77Kette')
         page.fill('#create-password-confirm', 'Valide!Wolken77Andere')
-        page.locator('form.card').evaluate('form => { form.noValidate = true; }')
-        page.locator('form.card button[type="submit"]').click()
+        page.locator('#create-local-user form').evaluate('form => { form.noValidate = true; }')
+        page.locator('#create-local-user form button[type="submit"]').click()
         page.wait_for_load_state('networkidle')
         for width, height in VIEWPORTS:
             page.set_viewport_size({'width': width, 'height': height})

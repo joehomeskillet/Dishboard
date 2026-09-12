@@ -1,4 +1,4 @@
-{% from 'admin/_macros.html' import check %}
+{% from 'admin/_macros.html' import check, field %}
 {% macro hidden(csrf, page, status, account=none) %}
 <input type="hidden" name="_csrf" value="{{ csrf }}">
 <input type="hidden" name="return_page" value="{{ page }}"><input type="hidden" name="return_status" value="{{ status }}">
@@ -25,3 +25,26 @@
 <label class="form-check" for="{{ prefix }}-confirm"><input class="form-check-input" id="{{ prefix }}-confirm" name="confirm" type="checkbox" value="yes" required><span class="form-check-label text-break">{{ label }}</span></label>
 {% endmacro %}
 {% macro unavailable(can_mutate) %}{% if not can_mutate %}<div class="alert alert-warning" role="status">Kontoänderungen sind momentan nicht verfügbar. Die Konten bleiben lesbar.</div>{% endif %}{% endmacro %}
+{% macro create_panel(csrf, page, status, role_labels, values, selected_roles, error_message, can_mutate, expanded=false) %}
+<details id="create-local-user" class="card mb-4"{% if expanded or error_message %} open{% endif %}>
+  <summary class="card-header">
+    <div>
+      <h2 class="card-title mb-1">Benutzer anlegen</h2>
+      <p class="text-secondary mb-0">Neues lokales Konto mit Rollen und Startpasswort.</p>
+    </div>
+  </summary>
+  <form method="post" action="{{ url_for('admin.local_user_create') }}"{% if error_message %} aria-describedby="user-error-create"{% endif %}>
+    {{ hidden(csrf, page, status) }}
+    <div class="card-body">
+      {{ error(error_message, 'create') }}
+      <div class="row g-3 mb-3">
+        <div class="col-12 col-lg-6">{{ field('username', 'Benutzername', values.get('username',''), id='new-username', required=true, hint='3 bis 64 Zeichen: kleine Buchstaben, Ziffern, Punkt, Bindestrich oder Unterstrich. Nach dem Anlegen unveränderlich.') }}</div>
+        <div class="col-12 col-lg-6">{{ field('display_name', 'Anzeigename', values.get('display_name',''), id='new-display-name', required=true, hint='1 bis 120 Zeichen. Dieser Name erscheint bei Kontoereignissen.') }}</div>
+      </div>
+      {{ roles(role_labels, selected_roles, 'create') }}
+      {{ password('create') }}
+    </div>
+    <div class="card-footer"><button class="btn btn-primary" type="submit"{% if not can_mutate %} disabled{% endif %}>Benutzer speichern</button></div>
+  </form>
+</details>
+{% endmacro %}

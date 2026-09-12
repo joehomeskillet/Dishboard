@@ -237,6 +237,14 @@ Lieferumfang: tatsächliche Dateipfade, Befund-ID → Änderung → Test → Erg
 
 Ein Test mit technisch unerfahrenen Personen soll insbesondere zeigen, ob sie ein Menü finden, nur die Beilage ändern, speichern und den Unterschied zwischen „geprüft“ und „Allergenangaben fehlen“ erklären können. Ein Agent darf fehlende Nutzerbeobachtungen nicht als durchgeführt ausgeben.
 
+## 10. Umsetzung Zutaten
+
+Die Grundlagenansichten folgen demselben Korrekturmuster: Bereichsauswahl, danach sofort die Liste. Filter und Anlegeformulare
+öffnen Mitarbeitende nur bei Bedarf. Auf der Zutatenansicht ist «Zutat speichern» die einzige hervorgehobene Formularaktion;
+Archivieren und Reaktivieren stehen unter «Weitere Aktionen». Gespeicherter Aktivstatus, fehlender Lagerort und fehlende
+Allergenangaben bleiben als getrennte Aussagen sichtbar. Mindestens ein Lagerort bleibt Pflicht; «Lagerort fehlt» wird nicht
+durch einen allgemeinen Prüfstatus verdeckt. Native POST-Ziele, Feldnamen, CSRF-, Kontext- und Versionswerte bleiben unverändert.
+
 **Kernziel: Volle Breite behalten, Wiederholungen entfernen, Menüs zuerst zeigen und Prüfzustände verständlich machen. Nicht erneut nur die Karten grösser machen.**
 
 ## Umsetzung Bereiche & Öffnungszeiten
@@ -322,3 +330,116 @@ JavaScript sowie volle Breite und fehlenden Seitenüberlauf bei 1366×768,
 Der Editor für das Erscheinungsbild folgt derselben Aktionshierarchie: «Entwurf speichern & Vorschau» ist die einzige hervorgehobene Hauptaktion. Die Aktivierung steht nachgelagert im Abschnitt «Veröffentlichte Version» und bezieht sich ausdrücklich auf den ausgewählten gespeicherten Stand. Aktive Version, ausgewählter Stand, Entwurf und Änderungszeit werden getrennt benannt.
 
 Versionsauswahl, Übernahme eines früheren Stands und Standardentwurf stehen unter «Weitere Aktionen». Vorhandene POST-Ziele, Payloads, CSRF-, Versions-, Upload-, Aktivierungs-, Wiederherstellungs- und Zurücksetzungsverträge bleiben unverändert und ohne JavaScript bedienbar. Editor und eigenständige Vorschau verwenden die volle verfügbare Breite; die Vorschau enthält keine Attrappen-Schaltfläche.
+
+## Umsetzung Werkzeuge
+
+Die Korrekturwelle umfasst auch vier vorhandene Werkzeugseiten, ohne ihre Routen,
+Formularfelder oder Schreiblogik zu ändern:
+
+| Seite | Umgesetzte Ordnung |
+|---|---|
+| Schnittstellen | API-Schlüssel stehen zuerst. Das Anlegeformular ist bei Bedarf erreichbar und öffnet bei einem Fehler automatisch. Status und technische Endpunkte bleiben nachgeordnet sichtbar. |
+| Daten importieren | Leerer Zustand, fehlerhafte Datei und gültige Import-Vorschau zeigen jeweils die nächste tatsächliche Aufgabe. Erst die Bestätigung der gültigen Vorschau übernimmt den Entwurf. |
+| Vorwoche kopieren | Quelle und Ziel stehen getrennt. Der Hinweis nennt nur belegte Wirkungen: Wochenkopf, Ausgabeangaben und Menüs werden übernommen, Prüfbestätigungen nicht; die Zielwoche bleibt ein Entwurf, muss leer sein und darf keine aktive Veröffentlichung haben. |
+| Wochenprüfung | Prüfstatus steht vor Erklärung und gespeicherten Angaben. Oberflächentexte verwenden «Ausgabeangaben»; das vorhandene Bestätigungsformular bleibt unverändert. |
+
+Browsernachweis und responsive Screenshots entstehen durch
+`reference_scaffold/tests/test_ui_korrektur_tools_browser.py` unter
+`.claude/evidence/ui-korrektur-0912/tools/`. Die Matrix umfasst 1366×768,
+1920×1080, 768×1024, 390×844 und 720×450 als 200-%-Zoomäquivalent.
+
+## Umsetzung Bildschirme & Darstellung
+
+Die Bildschirmübersicht verwendet eine Bereichsauswahl und zeigt je Ausgabe zuerst ihren belegbaren Geltungsbereich. Für Web-Wochenpläne stammt die aktive Vorlage aus `assignments[profile]`; Bildschirmausgaben zeigen den aktuell veröffentlichten Stand. Angaben wie «verbunden» oder «zuletzt gesehen» fehlen, weil die Routen dafür keine Template-Variablen liefern.
+
+Die aktive Web-Wochenvorlage steht vor dem Zuweisungsformular. «Vorlage zuweisen» öffnet das unveränderte signierte Formular bei Bedarf; Konflikt- und Validierungsantworten öffnen den Bereich, erhalten alle sechs Payload-Felder und fokussieren die Fehlerregion. Tagespläne, Bildschirmausgaben und die feste Adresse ohne Bilder bleiben ausserhalb dieser Zuordnung.
+
+Die Darstellungsseite zeigt ihre vier globalen Einstellungen zuerst. `save` bleibt einzige hervorgehobene Hauptaktion; `preview` und `reset` stehen zusammen unter «Weitere Aktionen». Werte und Wirkung von `data-density`, `data-font-size`, `data-content-width` und `data-menu-images` bleiben unverändert. Browserprüfungen decken 1366×768, 1920×1080, 768×1024, 390×844 und 200 Prozent ohne horizontalen Dokumentüberlauf ab.
+
+## 10. Umsetzung Benutzer & Zugriff
+
+Die Benutzerverwaltung überträgt P01–P10 ohne Änderung der IAM-Verträge: Die Kontenliste bleibt Hauptinhalt, das Anlegen eines lokalen Kontos liegt in einem nativen, bei Bedarf geöffneten `<details>`-Bereich. Die eigene Anlegeseite öffnet denselben Bereich; nach Validierungsfehlern bleibt er offen, Textwerte bleiben erhalten und Passwortfelder werden leer neu ausgegeben.
+
+Auf der Kontoseite sind Kontostatus, vorübergehende Sperre, letzte lokale Passwortprüfung und letzter Passwortwechsel mit ihrem jeweiligen Geltungsbereich getrennt. Rollen, Passwort und Aktivierung oder Deaktivierung bleiben eigenständige Formulare mit unveränderten Zielen, Feldnamen, Versionswerten, CSRF-Schutz und ausdrücklichen Bestätigungen. Sie werden als drei klar benannte Bedarfsbereiche dargestellt; nur der fehlerhafte Bereich öffnet automatisch.
+
+Kontoereignisse und Zugriffsverlauf bleiben getrennte Lesesichten. Wiederholte Einleitungstexte wurden in die jeweilige Tabellenüberschrift zusammengezogen. Der Zugriffsverlauf nennt weiterhin ausdrücklich seine Beweisgrenze: Ein protokollierter Entscheid belegt weder eine aktive Sitzung noch eine abgeschlossene Abmeldung.
+
+## Umsetzung Menüeditor
+
+Stand 12. September 2026, WP `wp-ui-korrektur-editor-0912`:
+
+- P07/P08: Bestehende Bausteine erscheinen mit JavaScript als kompakte Zeilen. „Ändern“ öffnet die Bearbeitung; die namenlosen Schalter „Aus Liste auswählen“ und „Eigenen Text eingeben“ zeigen genau ein Eingabefeld und leeren beim Wechsel den anderen Wert. Ohne JavaScript bleiben beide bisherigen Felder sichtbar und nutzbar.
+- P09: „Menü speichern“ ist die einzige hervorgehobene Aktion. „Speichern und zum Wochenplan“ behält seinen bestehenden `return_to=week`-Schreibweg. Prüfung, Änderungslinks, Datenlücken und Bestätigung des gespeicherten Stands stehen zusammen im Bereich „Angaben prüfen“; ungespeicherte Änderungen heben den Hinweis dort hervor.
+- P10/U05: Menüname, Bausteine, öffentliche Texte und Kennzeichnungen folgen einer eindeutigen Reihenfolge. Das Standardlayout nutzt die volle Arbeitsbreite. Tablet-/Mobilansicht und geringe Höhe setzen die Aktionsleiste in den Dokumentfluss, damit Felder und Fokus nicht verdeckt werden.
+- Formularvertrag: Namen, Reihenfolge, CSRF, Versionsfelder, POST-Ziele und Prüfroute bleiben unverändert. Katalog- und Freitextwerte werden weiterhin als geordnete Paare übertragen; versteckte Controls werden nicht deaktiviert.
+- Browserbelege: `.claude/evidence/ui-korrektur-0912/editor/` enthält reguläre Ansichten für 1366×768, 1920×1080, 768×1024, 390×844 und 200 % sowie Fehler-, Herkunftskonflikt- und No-JS-Zustand.
+- Gemeinsamer Scope-Gate: 10 Testdateien zusammen über `worker-test_sdd-gate.sh`; Ergebnis `183 passed, 8 skipped` in 442,12 Sekunden.
+
+Nicht durchgeführt: Beobachtungstest mit technisch unerfahrenen Küchenmitarbeitenden. Die Screenshots sind Implementierungsbelege, keine freigegebenen visuellen Baselines.
+
+## Umsetzung Druckvorlagen
+
+Die Vorlagenübersicht zeigt je Bereich zuerst aktive Druckvorlage, Version und
+Geltungsbereich. Eine einzige Bereichsauswahl funktioniert mit und ohne
+JavaScript. Frühere Versionen, weitere Vorlagen, PDF-Zugriffe, Inhaltswechsel und
+Wochenauswahl bleiben in klar benannten, bedarfsgerecht geöffneten Gruppen
+erreichbar.
+
+Im Druckvorlageneditor bleiben Vorlage und PDF-Vorschau nebeneinander auf voller
+Arbeitsbreite. Schrift, Farben, Zusatztexte und Wochenlayout werden bei Bedarf
+geöffnet; Fehler öffnen den betroffenen Bereich. «Vorlage speichern» ist einzige
+hervorgehobene Aktion, «Abbrechen» ist nachgeordnet. Aktivieren, Versionen sowie
+Kopieren und Archivieren sind getrennt gruppiert. Sichtbare Statusaussagen nennen
+Bereich und aktive beziehungsweise angezeigte Version.
+
+Formularnamen, CSRF-, Versions- und Revisionsfelder, POST-Ziele sowie Aktionen
+`save`, `activate`, `restore`, `copy`, `archive` und `reactivate` bleiben
+unverändert. Browsertests fangen Speichern, Aktivieren und Laden einer früheren
+Version mit und ohne JavaScript ab. Druck-, PDF- und öffentliche Ausgabe-Templates
+bleiben ausserhalb dieser Umsetzung.
+
+## Umsetzung Wochenplan (wp-ui-korrektur-week-0912)
+
+Gemeinsame Partials unter `reference_scaffold/cafeteria/templates/admin/_week_*.html` für Patientenplan und Cafeteria-Plan. Python, `admin.js` und `_menu_metadata.html` bleiben unverändert.
+
+### Reihenfolge und Kopf
+
+1. `page_header` mit H1 «Patientenplan» / «Cafeteria-Plan» und Untertitel aus erstem/letztem `cells.day` plus KW und Rasterkontext.
+2. Bereichs-Tabs nur über die Shell (`.admin-area-tabs`). `profile_tabs` entfällt.
+3. Eine Zeile Status (`.admin-week-status`, `role="status"`) und eine Zeile Aktionen (`btn-list`, `data-sticky`).
+4. `<details class="admin-week-settings">` «Wochenangaben ändern» mit dem bestehenden Header-POST.
+5. Tage, Mahlzeiten, Menükarten.
+
+### Statusaussagen
+
+Veröffentlichungsstand, Menükarten-Prüfungen, Wochenkopf-Prüfung und fehlende Allergenangaben stehen getrennt. «Keine offenen Prüfungen» ist kein pauschaler Gesamttext mehr.
+
+### Formulare und Fehler
+
+`header_post` / `service_post` rufen `_call(...)` auf. Validierungs- und Konfliktfehler enden als 4xx-Seite, nicht als Re-Render der Wochenseite. Erfolg: Flash «Wochenangaben gespeichert.» / «Service gespeichert.» und 303 auf die Wochenseite. Deshalb öffnet «Wochenangaben ändern» bei Header-Flash oder `status == 'error'`; «Ausgabeangaben ändern» nur bei `status == 'error'`, nicht nach «Service gespeichert.»
+
+Ohne JavaScript bleibt «Weitere Aktionen» über natives `<details>` erreichbar (Tabler-Dropdown wäre ohne JS unsichtbar).
+
+### Fachlicher Konflikt
+
+Veröffentlichen bleibt mit Karten ohne Allergenangaben möglich (`validate_publication_fit(require_review=False)`). Das UI zeigt die Lücke, sperrt aber nichts neu.
+
+## Umsetzung Rezepte
+
+Die Rezeptkorrektur verwendet in sichtbaren Texten durchgehend «Kennzeichnung»
+und «Kennzeichnungen»; technische Feldnamen wie `tag_public_ids` sowie der
+Query-Parameter `tag` bleiben unverändert. Im Editor stehen Rückweg und Status
+kompakt vor dem Rezeptinhalt. Bilder, gespeicherte Stände, Mengenberechnung und
+Statuswechsel liegen unter «Weitere Aktionen».
+
+Quelle und Lizenz bleiben im Arbeitsablauf sichtbar. SHA-256, Abrufzeit,
+Herkunfts-Rohwert und vollständige Revisionsdaten sind weiterhin erreichbar,
+aber unter «Technische Details» eingeordnet. Revisionsseiten verwenden
+«Gespeicherter Stand» als Hauptbegriff; Unveränderlichkeit wird einmal erklärt,
+Revision und Prüfsumme sind Metadaten.
+
+Symbollegenden entfallen. Listen- und Zeilenaktionen besitzen sichtbare
+Textlabels. Beim Bild-Upload stehen Dateifeld, Validierung und Upload-Aktion vor
+optionalen Quellenangaben; Upload-, Format-, Verlust- und Quellenhinweise bleiben
+kontextnah erhalten. Formularnamen, Hidden Inputs, Methoden, Ziele,
+Query-Parameter, Berechtigungen und serverseitige Verarbeitung ändern sich nicht.

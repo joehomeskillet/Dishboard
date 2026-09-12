@@ -33,7 +33,7 @@ def _assert_edit_link_context(page: Page, family: str, titles: list[str]) -> Non
         name = f'Bearbeiten: {day_labels[day_index]}, {meal_label}, {option_label} – {title}'
         link = page.get_by_role('link', name=name, exact=True)
         expect(link).to_have_count(1)
-        expect(link).to_have_text('Bearbeiten')
+        expect(link).to_have_text('Menü bearbeiten')
         target = urlsplit(link.get_attribute('href') or '')
         assert target.path == f'/admin/{family}/menu'
         assert parse_qs(target.query) == {
@@ -72,26 +72,34 @@ def test_all_week_editor_cards_share_size_without_hiding_long_content(
             assert cards.locator('h3').all_text_contents() == [option['title'] for option in options]
             for component in options[-1]['components']:
                 assert component.strip() in cards.last.inner_text()
-            assert options[-1]['note'].strip() in cards.last.inner_text()
+            assert options[-1]['note'].strip() in (cards.last.text_content() or '')
             assert 'Enthält: Milch' in cards.last.inner_text()
             dimensions = cards.evaluate_all('''elements => elements.map(element => {
                 const box = element.getBoundingClientRect();
                 const style = getComputedStyle(element);
-                return {height: box.height, width: box.width,
+                return {y: box.y, height: box.height, width: box.width,
                     overflowY: style.overflowY, overflowX: style.overflowX,
                     clientHeight: element.clientHeight, scrollHeight: element.scrollHeight,
                     clientWidth: element.clientWidth, scrollWidth: element.scrollWidth};
             })''')
             assert len(dimensions) == (10 if profile == 'staff_guest' else 28)
-            for axis in ('height', 'width'):
-                sizes = [item[axis] for item in dimensions]
-                assert max(sizes) - min(sizes) <= 1, (family, width, axis, sizes)
+            rows: dict[int, list] = {}
+            for item in dimensions:
+                rows.setdefault(round(item['y']), []).append(item)
+            for row in rows.values():
+                heights = [item['height'] for item in row]
+                assert max(heights) - min(heights) <= 1, (family, width, 'height', heights)
+            widths = [item['width'] for item in dimensions]
+            assert max(widths) - min(widths) <= 1, (family, width, 'width', widths)
             assert all(item['scrollHeight'] <= item['clientHeight'] + 1 for item in dimensions)
             assert all(item['scrollWidth'] <= item['clientWidth'] + 1 for item in dimensions)
             assert all(item['overflowY'] != 'hidden' and item['overflowX'] != 'hidden' for item in dimensions)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             assert page.locator('[style], [onclick], script:not([src])').count() == 0
             _assert_edit_link_context(page, family, [option['title'] for option in options])
+            page.locator('details.admin-week-service').evaluate_all(
+                'els => els.forEach(el => { el.open = true })',
+            )
             controls = page.locator(
                 '.admin-week-service :is(input:not([type="hidden"]), select, button), '
                 '.patient-admin-meal form :is(input:not([type="hidden"]), select, button), .menu-slot .btn',

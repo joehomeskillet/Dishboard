@@ -84,7 +84,7 @@ def test_local_user_pages_fit_both_densities_and_all_viewports(live_accounts, br
                 page.get_by_label('Neues Passwort', exact=True).fill('Valide!Wolken77Kette')
                 page.get_by_label('Neues Passwort bestätigen', exact=True).fill('Frische!Sterne92Tanne')
                 with page.expect_navigation() as navigation:
-                    page.get_by_role('button', name='Lokales Konto anlegen').click()
+                    page.get_by_role('button', name='Benutzer speichern').click()
                 assert navigation.value.status == 400
                 expect(page.get_by_role('alert')).to_be_visible()
                 assert page.locator('input[type=password]').evaluate_all('els=>els.every(el=>el.value==="")')
@@ -111,14 +111,16 @@ def test_browser_complete_lifecycle_and_session_revocation(live_accounts, browse
         page.get_by_label('Anzeigename', exact=True).fill('Browser Lebenszyklus')
         page.get_by_label('Neues Passwort', exact=True).fill('Valide!Wolken77Kette')
         page.get_by_label('Neues Passwort bestätigen', exact=True).fill('Valide!Wolken77Kette')
-        page.get_by_role('button', name='Lokales Konto anlegen').click()
+        page.get_by_role('button', name='Benutzer speichern').click()
         expect(page.get_by_role('heading', name='Browser Lebenszyklus')).to_be_visible()
         detail_url = page.url
+        page.locator('#roles-action summary').click()
         page.get_by_label('Editor · Menüs bearbeiten', exact=True).uncheck()
         page.get_by_label('Publisher · Menüs veröffentlichen', exact=True).check()
         page.get_by_label('Rollenänderung für browser.lifecycle bestätigen', exact=True).check()
-        page.get_by_role('button', name='Rollen speichern').click()
+        page.get_by_role('button', name='Benutzer speichern').click()
         expect(page.get_by_label('Publisher · Menüs veröffentlichen', exact=True)).to_be_checked()
+        page.locator('#password-action summary').click()
         page.get_by_label('Neues Passwort', exact=True).fill('Frische!Sterne92Tanne')
         page.get_by_label('Neues Passwort bestätigen', exact=True).fill('Frische!Sterne92Tanne')
         page.get_by_label('Neues Passwort für browser.lifecycle setzen und bestehende Anmeldungen widerrufen', exact=True).check()
@@ -133,13 +135,16 @@ def test_browser_complete_lifecycle_and_session_revocation(live_accounts, browse
             expect(target_page).to_have_url(origin + '/admin/cafeteria')
 
         login_target()
+        page.locator('#state-action summary').click()
         page.get_by_label('Konto browser.lifecycle ausdrücklich deaktivieren', exact=True).check()
         page.get_by_role('button', name='Konto deaktivieren', exact=True).click()
+        page.locator('#state-action summary').click()
         expect(page.get_by_role('button', name='Konto reaktivieren', exact=True)).to_be_visible()
         assert target_page.goto(origin + '/admin/cafeteria', wait_until='networkidle').status == 401
         page.screenshot(path=str(tmp_path / 'iam-disabled-390.png'), full_page=True)
         page.get_by_label('Konto browser.lifecycle ausdrücklich reaktivieren', exact=True).check()
         page.get_by_role('button', name='Konto reaktivieren', exact=True).click()
+        page.locator('#state-action summary').click()
         expect(page.get_by_role('button', name='Konto deaktivieren', exact=True)).to_be_visible()
         login_target()
         page.goto(detail_url, wait_until='networkidle')
@@ -172,14 +177,17 @@ def test_conflict_and_database_failure_remain_readable(live_accounts, browser, m
                                                   target_username='managed.editor')
         newer = users.replace_local_roles(issuer, actor=command.actor, target=command.target,
                                           roles=('Cafeteria.Publisher',))
+        page.locator('#roles-action summary').click()
         page.get_by_label('Editor · Menüs bearbeiten', exact=True).uncheck()
         page.get_by_label('Admin · Benutzer und Einstellungen verwalten', exact=True).check()
         page.get_by_label('Rollenänderung für managed.editor bestätigen', exact=True).check()
         with page.expect_navigation() as navigation:
-            page.get_by_role('button', name='Rollen speichern').click()
+            page.get_by_role('button', name='Benutzer speichern').click()
         assert navigation.value.status == 409
         expect(page.get_by_role('alert')).to_contain_text('zwischenzeitlich')
-        expect(page.get_by_label('Publisher · Menüs veröffentlichen', exact=True)).to_be_checked()
+        expect(page.get_by_label('Editor · Menüs bearbeiten', exact=True)).not_to_be_checked()
+        expect(page.get_by_label('Publisher · Menüs veröffentlichen', exact=True)).not_to_be_checked()
+        expect(page.get_by_label('Admin · Benutzer und Einstellungen verwalten', exact=True)).to_be_checked()
         expect(page.get_by_label('Rollenänderung für managed.editor bestätigen', exact=True)).not_to_be_checked()
         assert page.locator('input[name=target_version]').evaluate_all(
             'els=>els.map(el=>el.value)') == [str(newer.authz_version)] * 3

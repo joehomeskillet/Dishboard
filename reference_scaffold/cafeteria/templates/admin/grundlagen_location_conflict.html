@@ -3,10 +3,11 @@
 {% set workflow_nav = 'master_data' %}
 {% block title %}Standort geändert · Grundlagen{% endblock %}
 {% block page_header %}{{ page_header('Ursprüngliche Eingaben') }}{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-grundlagen.css') }}">{% endblock %}
 {% block content %}
 <div class="alert alert-danger error-region" id="master-error" role="alert" tabindex="-1" autofocus>{{ message }}</div>
 <div class="card"><div class="card-body">
-<p>Dieses Formular gehört zum vorherigen Standort. Ihre Eingaben und Auswahlen bleiben hier erhalten. Sie können die Texte kopieren; gespeichert wird nichts.</p>
+<p>Ihre Eingaben und Auswahlen bleiben zum Kopieren erhalten. Gespeichert wird nichts.</p>
 <form method="post" action="{{ action }}" aria-label="Ursprüngliche Eingaben" aria-describedby="master-error">
 {% set labels = {'name': 'Name', 'code': 'Code', 'note': 'Notiz', 'sort_order': 'Reihenfolge', 'base_unit_code': 'Basiseinheit', 'density_g_per_ml': 'Dichte (g/ml)', 'piece_weight_g': 'Stückgewicht (g)', 'category_public_id': 'Kategorie', 'tag_public_ids': 'Tag · ursprüngliche Referenz', 'storage_location_public_ids': 'Lagerort · ursprüngliche Referenz', 'prepared_recipe_choice': 'Zubereitung · ursprünglicher Rezeptstand', 'labels': 'Kostform', 'checked': 'Allergenprüfung'} %}
 {% set diet_names = {'VEGETARIAN': 'Vegetarisch', 'VEGAN': 'Vegan', 'LACTOSE_FREE': 'Laktosefrei', 'GLUTEN_FREE': 'Glutenfrei'} %}
@@ -41,7 +42,7 @@
 {% endif %}
 {% endfor %}
 </form>
-<p>Neu laden verwirft diesen Formularstand. Datensätze des vorherigen Standorts sind am neuen Standort nicht verfügbar.</p>
+<p>Neu laden verwirft diesen Formularstand. Daten des vorherigen Standorts sind am neuen Standort nicht verfügbar.</p>
 <div class="d-flex flex-wrap gap-2">
 <a class="btn btn-primary" href="{{ reload_url }}">Aktuellen Stand neu laden</a>
 <a class="btn" href="{{ url_for('admin.master_data_list', kind=query_kinds[kind]) }}">Zur aktuellen Liste</a>

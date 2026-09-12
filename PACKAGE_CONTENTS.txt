@@ -630,6 +630,7 @@ reference_scaffold/cafeteria/signage/__init__.py
 reference_scaffold/cafeteria/signage/routes.py
 reference_scaffold/cafeteria/static/admin-branding.css
 reference_scaffold/cafeteria/static/admin-components.css
+reference_scaffold/cafeteria/static/admin-grundlagen.css
 reference_scaffold/cafeteria/static/admin-menu-collection.css
 reference_scaffold/cafeteria/static/admin-menu-editor.css
 reference_scaffold/cafeteria/static/admin-preview.css
@@ -991,6 +992,10 @@ reference_scaffold/cafeteria/templates/admin/_local_user_forms.html
 reference_scaffold/cafeteria/templates/admin/_macros.html
 reference_scaffold/cafeteria/templates/admin/_recipe_template_selection.html
 reference_scaffold/cafeteria/templates/admin/_rezepte_fields.html
+reference_scaffold/cafeteria/templates/admin/_week_controls.html
+reference_scaffold/cafeteria/templates/admin/_week_menu_card.html
+reference_scaffold/cafeteria/templates/admin/_week_service.html
+reference_scaffold/cafeteria/templates/admin/_week_settings.html
 reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html
 reference_scaffold/cafeteria/templates/admin/access_history.html
 reference_scaffold/cafeteria/templates/admin/api.html
@@ -1288,8 +1293,16 @@ reference_scaffold/tests/test_ui_inventory_capture.py
 reference_scaffold/tests/test_ui_korrektur_branding_browser.py
 reference_scaffold/tests/test_ui_korrektur_components_browser.py
 reference_scaffold/tests/test_ui_korrektur_cookbooks_browser.py
+reference_scaffold/tests/test_ui_korrektur_editor_browser.py
+reference_scaffold/tests/test_ui_korrektur_grundlagen_browser.py
 reference_scaffold/tests/test_ui_korrektur_menus_browser.py
 reference_scaffold/tests/test_ui_korrektur_ops_browser.py
+reference_scaffold/tests/test_ui_korrektur_recipes_browser.py
+reference_scaffold/tests/test_ui_korrektur_screens_browser.py
+reference_scaffold/tests/test_ui_korrektur_tools_browser.py
+reference_scaffold/tests/test_ui_korrektur_users_browser.py
+reference_scaffold/tests/test_ui_korrektur_vorlagen_browser.py
+reference_scaffold/tests/test_ui_korrektur_week_browser.py
 reference_scaffold/tests/test_ui_master_components_browser.py
 reference_scaffold/tests/test_ui_master_shell_browser.py
 reference_scaffold/tests/test_ui_master_tokens_browser.py

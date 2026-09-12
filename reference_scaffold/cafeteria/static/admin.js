@@ -106,6 +106,8 @@
         for (let details = element && element.closest('details'); details; details = details.parentElement.closest('details')) {
             details.open = true;
         }
+        const componentRow = element && element.closest('.component-row');
+        if (componentRow) setComponentRowEditing(componentRow, true);
     }
 
     // 3. Fehlerfokus
@@ -130,7 +132,7 @@
     if (retryBtn) {
         retryBtn.addEventListener('click', () => window.location.reload());
     }
-    document.querySelectorAll('.error-region a[data-error-link]').forEach(link => {
+    document.querySelectorAll('a[data-error-link]').forEach(link => {
         link.addEventListener('click', (e) => {
             const target = document.getElementById(link.getAttribute('href').slice(1));
             if (!target) return;
@@ -211,7 +213,40 @@
             });
             const legend = row.querySelector('[data-row-legend]');
             if (legend) legend.textContent = `${title} ${index + 1}`;
+            const kindGroup = row.querySelector('[data-component-kind] [role="radiogroup"]');
+            if (kindGroup) kindGroup.setAttribute('aria-label', `Eingabeart für ${title} ${index + 1}`);
         });
+    }
+
+    function componentEntryKind(row) {
+        const catalog = row.querySelector('[name="component_public_id"]');
+        const text = row.querySelector('[name="component_text"]');
+        return catalog?.value || !text?.value ? 'catalog' : 'text';
+    }
+
+    function syncComponentRow(row) {
+        const kind = row.querySelector('[data-component-kind-option]:checked')?.value || componentEntryKind(row);
+        const catalog = row.querySelector('[name="component_public_id"]');
+        const text = row.querySelector('[name="component_text"]');
+        row.querySelectorAll('[data-component-kind-option]').forEach(option => {
+            option.checked = option.value === kind;
+        });
+        row.querySelectorAll('[data-component-control]').forEach(control => {
+            control.hidden = control.dataset.componentControl !== kind;
+        });
+        const selected = catalog?.selectedOptions[0];
+        const summary = kind === 'catalog' && catalog?.value ? selected?.textContent.trim() : text?.value.trim();
+        const summaryTarget = row.querySelector('[data-component-summary]');
+        if (summaryTarget) summaryTarget.textContent = summary || 'Noch nicht erfasst';
+    }
+
+    function setComponentRowEditing(row, editing) {
+        row.classList.toggle('is-editing', editing);
+        syncComponentRow(row);
+        if (editing) {
+            const kind = componentEntryKind(row);
+            row.querySelector(`[data-component-control="${kind}"] input, [data-component-control="${kind}"] select`)?.focus();
+        }
     }
 
     forms.forEach(form => {
@@ -220,6 +255,35 @@
     });
 
     document.querySelectorAll('form[data-menu-editor]').forEach(form => {
+        form.setAttribute('data-component-enhanced', '');
+        form.querySelectorAll('.component-row').forEach(row => {
+            row.querySelector('[data-component-summary-view]')?.removeAttribute('hidden');
+            row.querySelector('[data-component-kind]')?.removeAttribute('hidden');
+            row.querySelector('[data-finish-row]')?.removeAttribute('hidden');
+            syncComponentRow(row);
+        });
+        const dirtyNote = document.querySelector('[data-menu-editor-dirty-note]');
+        const markReviewDirty = () => dirtyNote?.classList.add('is-dirty');
+        form.addEventListener('input', markReviewDirty);
+        form.addEventListener('change', markReviewDirty);
+        form.addEventListener('input', (e) => {
+            const row = e.target.closest('.component-row');
+            if (row) syncComponentRow(row);
+        });
+        form.addEventListener('change', (e) => {
+            const kindOption = e.target.closest('[data-component-kind-option]');
+            const row = e.target.closest('.component-row');
+            if (!row) return;
+            if (kindOption) {
+                row.querySelectorAll('[data-component-kind-option]').forEach(option => {
+                    option.checked = option === kindOption;
+                });
+                const otherName = kindOption.value === 'catalog' ? 'component_text' : 'component_public_id';
+                row.querySelector(`[name="${otherName}"]`).value = '';
+            }
+            syncComponentRow(row);
+        });
+
         form.addEventListener('formdata', (e) => {
             for (const [selector, names] of [
                 ['.component-row', ['component_public_id', 'component_text', 'recipe_revision_public_id']],
@@ -270,13 +334,25 @@
             const addButton = e.target.closest('[data-add-row]');
             const removeButton = e.target.closest('[data-remove-row]');
             const moveButton = e.target.closest('[data-move-row]');
-            if (!addButton && !removeButton && !moveButton) return;
+            const editButton = e.target.closest('[data-edit-row]');
+            const finishButton = e.target.closest('[data-finish-row]');
+            if (!addButton && !removeButton && !moveButton && !editButton && !finishButton) return;
+            if (editButton) {
+                setComponentRowEditing(editButton.closest('.component-row'), true);
+                return;
+            }
+            if (finishButton) {
+                const row = finishButton.closest('.component-row');
+                setComponentRowEditing(row, false);
+                row.querySelector('[data-edit-row]').focus();
+                return;
+            }
             let focusTarget;
             let list;
             if (addButton) {
                 list = document.getElementById(addButton.dataset.addRow);
                 const clone = list.lastElementChild.cloneNode(true);
-                clone.querySelectorAll('input, select').forEach(control => {
+                clone.querySelectorAll('input[name], select[name]').forEach(control => {
                     control.value = '';
                     control.classList.remove('is-invalid');
                     control.removeAttribute('aria-invalid');
@@ -290,7 +366,16 @@
                 });
                 clone.querySelectorAll('.field-error').forEach(error => error.remove());
                 list.appendChild(clone);
-                focusTarget = clone.querySelector('input, select');
+                if (clone.matches('.component-row')) {
+                    clone.classList.add('is-editing');
+                    clone.querySelectorAll('[data-component-kind-option]').forEach(option => {
+                        option.checked = option.value === 'catalog';
+                    });
+                    syncComponentRow(clone);
+                    focusTarget = clone.querySelector('[name="component_public_id"]');
+                } else {
+                    focusTarget = clone.querySelector('input, select');
+                }
             } else if (moveButton) {
                 const row = moveButton.closest('.component-row, .origin-row');
                 list = row.parentElement;
@@ -304,15 +389,21 @@
                 list = row.parentElement;
                 if (list.children.length > 1) {
                     row.remove();
-                    focusTarget = list.lastElementChild.querySelector('input, select');
+                    focusTarget = list.lastElementChild.querySelector('[data-edit-row], input, select');
                 } else {
-                    row.querySelectorAll('input, select').forEach(control => {
+                    row.querySelectorAll('input[name], select[name]').forEach(control => {
                         control.value = '';
                         if (control.matches('select[name="recipe_revision_public_id"]')) {
                             control.setAttribute('data-previous-value', '');
                         }
                     });
-                    focusTarget = row.querySelector('input, select');
+                    if (row.matches('.component-row')) {
+                        row.querySelectorAll('[data-component-kind-option]').forEach(option => {
+                            option.checked = option.value === 'catalog';
+                        });
+                        setComponentRowEditing(row, true);
+                    }
+                    focusTarget = row.querySelector('[name="component_public_id"], input, select');
                 }
             }
             if (list.dataset.rowList) renumberRows(list);

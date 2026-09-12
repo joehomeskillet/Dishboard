@@ -933,7 +933,8 @@ def test_every_admin_control_is_reachable_sized_and_non_overlapping(
               const selector = 'a[href], button, input:not([type="hidden"]), select, textarea';
               const controls = [...document.querySelector(rootSelector).querySelectorAll(selector)].filter(element => {
                 const style = getComputedStyle(element);
-                return element.getClientRects().length && style.visibility !== 'hidden';
+                return element.getClientRects().length && style.visibility !== 'hidden'
+                  && !element.closest('details:not([open])');
               });
               const reachable = controls.map(element => {
                 element.focus({preventScroll: true});
@@ -1169,8 +1170,8 @@ def test_admin_patient_overview_has_no_cost_vocabulary(admin_app: Flask, admin_e
 def test_admin_overview_actions_and_regions(admin_app: Flask, admin_engine: Engine) -> None:
     client, _ = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
     for family, heading in (
-        ('cafeteria', 'Cafeteria-Plan bearbeiten'),
-        ('patienten', 'Patientenplan bearbeiten'),
+        ('cafeteria', 'Cafeteria-Plan'),
+        ('patienten', 'Patientenplan'),
     ):
         html = client.get(f'/admin/{family}?week={DAY}').get_data(as_text=True)
         assert re.search(rf'<h1[^>]*>{re.escape(heading)}</h1>', html)

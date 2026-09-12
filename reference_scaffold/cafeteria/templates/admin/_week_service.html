@@ -1,0 +1,71 @@
+{# Compact meal service summary + existing POST form. #}
+{% set service = meal_cell %}
+{% set state = service.service_state if service else 'open' %}
+{% set start = service.service_start if service else '' %}
+{% set end = service.service_end if service else '' %}
+{% set notice = service.notice if service and service.notice is defined else '' %}
+{% set srv_ver = service.service_row_version if service else 0 %}
+{% set state_labels = {'open': 'Offen', 'closed': 'Geschlossen', 'holiday': 'Feiertag', 'company_holiday': 'Betriebsfeiertag'} %}
+{% if family == 'cafeteria' %}
+  {% set state_id = 'service_state_' ~ day_iso %}
+  {% set notice_id = 'service_notice_' ~ day_iso %}
+  {% set start_id = 'service_start_' ~ day_iso %}
+  {% set end_id = 'service_end_' ~ day_iso %}
+{% else %}
+  {% set state_id = 'patient-service-state-' ~ service_index ~ '-' ~ meal_code %}
+  {% set notice_id = 'patient-service-notice-' ~ service_index ~ '-' ~ meal_code %}
+  {% set start_id = 'patient-service-start-' ~ service_index ~ '-' ~ meal_code %}
+  {% set end_id = 'patient-service-end-' ~ service_index ~ '-' ~ meal_code %}
+{% endif %}
+{% set service_open = status == 'error' %}
+<div class="admin-week-meal-head">
+  <strong>{{ meal_label }}</strong>
+  <span class="admin-week-service-summary">
+    {{ state_labels.get(state, state) }}{% if start and end %} · {{ start }}–{{ end }}{% endif %}
+  </span>
+  {% if not start and not end %}
+  <span>Zeiten nicht eingetragen</span>
+  {% endif %}
+  {% if notice %}
+  <span>Hinweis: {{ notice }}</span>
+  {% endif %}
+  {% if srv_ver == 0 %}
+  <span class="badge bg-secondary-lt" title="Vorgabe, noch nicht gespeichert">Vorgabe, noch nicht gespeichert</span>
+  {% endif %}
+</div>
+<details class="admin-week-service"{% if service_open %} open{% endif %}>
+  <summary>Ausgabeangaben ändern</summary>
+  <form method="post" action="/admin/{{ family }}/service" class="card card-sm mb-3 admin-week-service-form">
+    <div class="card-body">
+      <input type="hidden" name="_csrf" value="{{ week_csrf }}">
+      <input type="hidden" name="week" value="{{ week_value }}">
+      <input type="hidden" name="day" value="{{ day_iso }}">
+      <input type="hidden" name="meal" value="{{ meal_code }}">
+      <input type="hidden" name="row_version" value="{{ srv_ver }}">
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-md-6">
+          <label class="form-label" for="{{ state_id }}">Betrieb</label>
+          <select id="{{ state_id }}" class="form-select" name="service_state">
+            <option value="open"{% if state == 'open' %} selected{% endif %}>Offen</option>
+            <option value="closed"{% if state == 'closed' %} selected{% endif %}>Geschlossen</option>
+            <option value="holiday"{% if state == 'holiday' %} selected{% endif %}>Feiertag</option>
+            <option value="company_holiday"{% if state == 'company_holiday' %} selected{% endif %}>Betriebsfeiertag</option>
+          </select>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label" for="{{ notice_id }}">Ausgabehinweis</label>
+          <input id="{{ notice_id }}" class="form-control" name="notice" value="{{ notice }}">
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">
+          {{ field('service_start', 'Beginn', start, type='time', id=start_id) }}
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">
+          {{ field('service_end', 'Ende', end, type='time', id=end_id) }}
+        </div>
+        <div class="col-12">
+          <button type="submit" class="btn">{{ icon('device-floppy') }}Ausgabeangaben speichern</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</details>

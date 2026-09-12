@@ -14,9 +14,6 @@
 {% for row in calculated.rows %}<tr><td class="text-break" data-label="Zutat">{% if row.ingredient.group_label %}<strong>{{ row.ingredient.group_label }}</strong><br>{% endif %}{{ row.ingredient.ingredient_text }}{% if row.ingredient.note %}<br>{{ row.ingredient.note }}{% endif %}</td><td class="text-break" data-label="Original">{{ row.original if row.original is not none else 'Ohne Mengenangabe' }}</td><td class="text-break" data-label="Berechnet">{{ row.scaled if row.scaled is not none else 'Ohne Mengenangabe' }}</td><td data-label="Einheit">{{ row.unit or '—' }}</td></tr>{% else %}<tr><td colspan="4">Keine Zutaten gespeichert.</td></tr>{% endfor %}
 </tbody></table></section>
 {% endmacro %}
-{% macro symbols() %}
-<details class="card mt-3"><summary class="card-header">Symbole</summary><div class="card-body"><ul class="list-unstyled mb-0"><li>{{ icon('arrow-left') }}Zurück zur vorherigen Rezeptansicht</li><li>{{ icon('device-floppy') }}Gespeicherten Stand als Revision festschreiben</li><li>{{ icon('plus') }}Neue Bilddatei hochladen</li><li>{{ icon('eye') }}Unveränderliche Revision öffnen</li></ul></div></details>
-{% endmacro %}
 {% if payload is defined %}
 {% extends 'admin/base_tabler.html' %}
 {% block title %}Mengen berechnen · {{ payload.title }}{% endblock %}
@@ -25,6 +22,5 @@
 <div class="alert alert-info" role="status">Gespeicherter Entwurf{% if not recipe.active %} · Archiviert{% endif %}. Diese Ansicht verändert das Rezept nicht.</div>
 {{ amount_form(calculated, url_for('admin.recipe_scale', recipe_id=recipe_id), error|default(none), target_value|default(none)) }}
 {{ ingredients(calculated) }}
-{{ symbols() }}
 {% endblock %}
 {% endif %}

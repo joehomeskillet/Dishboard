@@ -28,7 +28,7 @@ DESKTOP = ((1024, 768), (1440, 900), (1920, 1080), (2560, 1440))
 COMPACT = ((390, 844), (720, 450))
 WIDTH_METRICS = '''() => {
   const shell = document.querySelector('.page-body > .container-xl');
-  const standalone = document.querySelector('main.container-xl');
+  const standalone = document.querySelector('main.container-xl, main.container-fluid');
   const box = shell || standalone;
   if (!box) return {error: 'no container'};
   const cs = getComputedStyle(box);

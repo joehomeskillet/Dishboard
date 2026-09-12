@@ -163,21 +163,31 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         expect(form.locator('[name="meal"]')).to_have_value('LUNCH')
         expect(form.locator('[name="option"]')).to_have_value('MENU_1')
         assert form.locator('[name="_csrf"]').input_value()
-        primary = form.get_by_role('button', name='Speichern', exact=True)
+        primary = form.get_by_role('button', name='Menü speichern', exact=True)
     elif page_kind == 'catalog':
         creation = main.locator('#create-component')
         primary = creation.locator('summary')
         assert creation.get_attribute('open') is None
         create_box = creation.bounding_box()
+        filter_box = main.locator('.search-form').bounding_box()
         list_box = main.locator('.component-list-container').bounding_box()
-        assert create_box is not None and list_box is not None
-        assert list_box['y'] + list_box['height'] <= create_box['y'] + 1
+        assert create_box is not None and filter_box is not None and list_box is not None
+        assert list_box['y'] >= filter_box['y'] + filter_box['height'] - 1
+        assert create_box['y'] >= list_box['y'] + list_box['height'] - 1
         row = main.locator('.component-list-container .component-row').first
-        link_box, category_box = row.locator('a').bounding_box(), row.locator('.category').bounding_box()
-        assert link_box is not None and category_box is not None
+        name = row.locator('.component-row-name')
+        edit_link = row.locator('.component-action').get_by_role('link', name='Bearbeiten', exact=True)
+        expect(name).to_have_attribute('scope', 'row')
+        expect(row.get_by_role('link')).to_have_count(1)
+        name_box = name.bounding_box()
+        category_box = row.locator('.category').bounding_box()
+        link_box = edit_link.bounding_box()
+        assert name_box is not None and category_box is not None and link_box is not None
         if width >= 1000:
+            assert category_box['x'] >= name_box['x'] + name_box['width']
             assert link_box['x'] >= category_box['x'] + category_box['width']
         else:
+            assert category_box['y'] >= name_box['y'] + name_box['height']
             assert link_box['y'] >= category_box['y'] + category_box['height']
     elif page_kind == 'detail':
         expect(main).to_have_attribute('data-public-id', str(component['public_id']))
@@ -206,7 +216,16 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
     primary_box = primary.bounding_box()
     assert primary_box is not None
     assert primary_box['height'] >= 48
-    if page_kind == 'editor':
+    if page_kind == 'catalog':
+        primary.scroll_into_view_if_needed()
+        expect(primary).to_be_visible()
+        primary_box = primary.bounding_box()
+        assert primary_box is not None
+        assert 0 <= primary_box['y'] < primary_box['y'] + primary_box['height'] <= height
+    elif page_kind == 'editor' and width < 992:
+        # Tablet and mobile actions stay in flow so they cannot cover editor controls.
+        assert primary_box['y'] >= 0
+    elif page_kind != 'detail':  # desktop editor action stays in the initial viewport
         assert 0 <= primary_box['y'] < primary_box['y'] + primary_box['height'] <= height
 
     if page_kind == 'catalog':
@@ -218,7 +237,7 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         expect(create_form).to_have_attribute('method', 'post')
         expect(create_form).to_have_attribute('action', f'/admin/{family}/komponenten')
         assert create_form.locator('[name="_csrf"]').input_value()
-        expect(create_form.get_by_role('button', name='Baustein erstellen')).to_be_visible()
+        expect(create_form.get_by_role('button', name='Baustein erstellen', exact=True)).to_be_visible()
         primary.focus()
         page.keyboard.press('Enter')
         expect(creation).not_to_have_attribute('open', '')

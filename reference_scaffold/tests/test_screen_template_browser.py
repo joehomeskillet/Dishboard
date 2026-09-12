@@ -73,20 +73,22 @@ def test_published_previews_and_assignment_form_are_readonly_tabler(
             page.mouse.move(0, 0)
             response = page.goto(f'/admin/screens/{family}/wochenvorlage')
             assert response.status == 200
-            expect(page.get_by_role('heading', level=1)).to_have_text('Wochenvorlage zuordnen')
+            expect(page.get_by_role('heading', level=1)).to_have_text('Vorlage zuweisen')
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+            assignment = page.locator('#screen-assignment-details')
+            expect(assignment).not_to_have_attribute('open', '')
+            help_control = assignment.locator(':scope > summary')
+            assert help_control.bounding_box()['height'] >= 48
+            help_control.tap() if width < 1440 else help_control.click()
+            expect(assignment).to_have_attribute('open', '')
             cards = page.locator('.screen-choice-card').evaluate_all('els => els.map(el => {const b=el.getBoundingClientRect(); return [b.width,b.height]})')
             assert len(cards) == 2
             assert abs(cards[0][0] - cards[1][0]) <= 1 and abs(cards[0][1] - cards[1][1]) <= 1
             for control in page.locator('main .btn, main .screen-choice-control').all():
                 assert control.bounding_box()['height'] >= 48
-            help_control = page.locator('summary').filter(has_text='Symbole')
-            assert help_control.bounding_box()['height'] >= 48
-            help_control.tap() if width < 1440 else help_control.click()
-            expect(page.locator('details')).to_have_attribute('open', '')
-            expect(page.locator('details')).to_contain_text('Vorschau öffnen')
-            help_control.tap() if width < 1440 else help_control.click()
-            preview = page.get_by_role('link', name='Wochenplan ohne Bilder prüfen', exact=True)
+            expect(assignment).to_contain_text('Darstellung auswählen')
+            preview = assignment.locator('a[href$="-week-text"]')
+            expect(preview).to_have_accessible_name('Wochenplan ohne Bilder prüfen')
             assert preview.bounding_box()['width'] >= 48
             if javascript and width == 1440:
                 preview.hover()
@@ -113,6 +115,7 @@ def test_published_previews_and_assignment_form_are_readonly_tabler(
             page.screenshot(path=str(tmp_path / f'assignment-{family}-{width}-js{javascript}.png'), full_page=True)
             for mode in ('photo', 'text'):
                 page.goto(f'/admin/screens/{family}/wochenvorlage')
+                page.locator('#screen-assignment-details > summary').click()
                 target = f'/admin/vorlagen/screens/{family}/{prefix}-week-{mode}'
                 name = 'Wochenplan mit Bildern prüfen' if mode == 'photo' else 'Wochenplan ohne Bilder prüfen'
                 with page.expect_response(lambda response: urlsplit(response.url).path == target) as result:
@@ -161,13 +164,15 @@ def test_real_activation_changes_canonical_view_and_preserves_original_conflict(
         assert page.locator('.menu-photo').count() > 0
         page.goto(route)
         stale.goto(route)
+        page.locator('#screen-assignment-details > summary').click()
+        stale.locator('#screen-assignment-details > summary').click()
         token = stale.locator('[name="_form_context"]').input_value()
         submitted = []
         page.on('request', lambda request: submitted.append(request.method) if request.method == 'POST' else None)
         for version, (mode, name) in enumerate([('text', 'ohne Bilder'), ('photo', 'mit Bildern')], 1):
             page.get_by_role('radio', name=f'Wochenplan {name} auswählen', exact=True).check()
             with page.expect_response(lambda response: response.request.method == 'POST') as result:
-                page.get_by_role('button', name='Auswahl aktivieren', exact=True).click()
+                page.get_by_role('button', name='Vorlage zuweisen', exact=True).click()
             assert result.value.status == 303
             expect(page.locator('[name="version"]')).to_have_value(str(version))
             assert page.goto(path).headers['cache-control'] == 'no-store'
@@ -178,11 +183,12 @@ def test_real_activation_changes_canonical_view_and_preserves_original_conflict(
             page.goto('/admin/screens')
             expect(page.locator(f'#{prefix}-public-week-tab')).to_have_text(f'Wochenplan {name} · aktiv')
             page.goto(route)
+            page.locator('#screen-assignment-details > summary').click()
         assert submitted == ['POST', 'POST']
         stale.get_by_role('radio', name='Wochenplan ohne Bilder auswählen', exact=True).check()
         before = state(database_engine)
         with stale.expect_response(lambda response: response.request.method == 'POST') as result:
-            stale.get_by_role('button', name='Auswahl aktivieren', exact=True).click()
+            stale.get_by_role('button', name='Vorlage zuweisen', exact=True).click()
         assert result.value.status == 409
         expect(stale.locator('[name="_form_context"]')).to_have_value(token)
         expect(stale.locator('[name="version"]')).to_have_value('0')
@@ -193,7 +199,7 @@ def test_real_activation_changes_canonical_view_and_preserves_original_conflict(
         assert state(database_engine) == before
         stale.locator('[name="renderer_revision"]').evaluate("input => input.value = '2'")
         with stale.expect_response(lambda response: response.request.method == 'POST') as result:
-            stale.get_by_role('button', name='Auswahl aktivieren', exact=True).click()
+            stale.get_by_role('button', name='Vorlage zuweisen', exact=True).click()
         assert result.value.status == 400
         expect(stale.get_by_role('alert')).to_have_text('Aktion oder Rendererrevision ist ungültig.')
         expect(stale.locator('[name="_form_context"]')).to_have_value(token)
@@ -211,5 +217,5 @@ def test_real_activation_changes_canonical_view_and_preserves_original_conflict(
         failure = page.goto(path)
         assert failure.status == 503 and failure.headers['cache-control'] == 'no-store'
         assert page.locator('.menu-photo').count() == 0
-        expect(page.get_by_role('heading', level=1)).to_have_text('Screen-Vorlagen vorübergehend nicht verfügbar')
+        expect(page.get_by_role('heading', level=1)).to_have_text('Bildschirmvorlagen vorübergehend nicht verfügbar')
         assert state(database_engine) == before_failure

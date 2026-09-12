@@ -1,0 +1,28 @@
+.grundlagen-list .list-group-item {
+  min-height: 4rem;
+}
+
+details.card > summary.card-header {
+  min-height: 3rem;
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+details.card > summary.card-header::marker {
+  color: var(--app-primary);
+}
+
+.grundlagen-status {
+  display: grid;
+  gap: var(--app-space-3);
+}
+
+.grundlagen-status > p {
+  margin: 0;
+}
+
+@media (min-width: 48rem) {
+  .grundlagen-status {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
