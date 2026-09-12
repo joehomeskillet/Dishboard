@@ -114,7 +114,7 @@
     function focusFirstError() {
         if (errorRegion) {
             errorRegion.focus();
-            return;
+            if (!errorRegion.hasAttribute('data-focus-invalid')) return;
         }
         const firstInvalid = document.querySelector('[aria-invalid="true"]:not(:disabled):not([type="hidden"])');
         if (firstInvalid) {

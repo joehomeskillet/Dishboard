@@ -13,7 +13,7 @@
 <input class="form-control" id="{{ name }}" name="{{ name }}" value="{{ values.get(name) if values.get(name) is not none else '' }}"{% if required %} required{% endif %}{% if error and error_field == name %} aria-invalid="true" aria-describedby="master-error"{% endif %}></div>
 {% endmacro %}
 {% macro errors() %}
-{% if error %}<div class="alert alert-danger error-region" id="master-error" role="alert" tabindex="-1">{{ error }}
+{% if error %}<div class="alert alert-danger error-region" id="master-error" role="alert" tabindex="-1" data-focus-invalid>{{ error }}
 <a href="{{ url_for('admin.master_data_detail', kind=kind, public_id=row.public_id) if row else url_for('admin.master_data_new', kind=kind) }}">Aktuellen Stand neu laden</a></div>{% endif %}
 {% endmacro %}
 {% macro status_actions() %}
