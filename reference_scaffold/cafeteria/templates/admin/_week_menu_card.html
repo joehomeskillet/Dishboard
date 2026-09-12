@@ -30,18 +30,6 @@
           <span class="label amber badge bg-yellow-lt mw-100 text-wrap text-start">{{ symbol('allergens', allergen.code, true) }}<span class="text-break">{{ allergen_text(allergen) }}</span></span>
           {% endfor %}
         </div>
-        {% if cell.description or cell.note %}
-          {% if hint_len > 140 %}
-          <details class="admin-week-note">
-            <summary>Hinweis anzeigen</summary>
-            {% if cell.description %}<p class="menu-description">{{ cell.description }}</p>{% endif %}
-            {% if cell.note %}<p class="shared-note">{{ cell.note }}</p>{% endif %}
-          </details>
-          {% else %}
-            {% if cell.description %}<p class="menu-description">{{ cell.description }}</p>{% endif %}
-            {% if cell.note %}<p class="shared-note">{{ cell.note }}</p>{% endif %}
-          {% endif %}
-        {% endif %}
       </div>
       {% endif %}
       <p class="admin-week-review-line">
@@ -62,6 +50,18 @@
       <div class="mt-auto">
         <a class="btn" href="{{ cell.edit_url }}" aria-label="Bearbeiten: {{ cell.day_label }}, {{ cell.day_short }}, {{ cell.meal_label }}, {{ cell.option_label }} – {{ cell.title if cell.title else 'Noch kein Gericht' }}">{{ icon('pencil') }}Menü bearbeiten</a>
       </div>
+      {% if cell.title and (cell.description or cell.note) %}
+        {% if hint_len >= 140 %}
+        <details class="admin-week-note">
+          <summary>Hinweis anzeigen</summary>
+          {% if cell.description %}<p class="menu-description">{{ cell.description }}</p>{% endif %}
+          {% if cell.note %}<p class="shared-note">{{ cell.note }}</p>{% endif %}
+        </details>
+        {% else %}
+          {% if cell.description %}<p class="menu-description">{{ cell.description }}</p>{% endif %}
+          {% if cell.note %}<p class="shared-note">{{ cell.note }}</p>{% endif %}
+        {% endif %}
+      {% endif %}
     </div>
   </article>
 </div>

@@ -106,11 +106,20 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
     expect(page.locator('.page-header-subtitle')).to_contain_text('KW 36')
     status = page.get_by_role('status')
     if state == 'review_open':
-        expect(status).to_contain_text('1 Menükarte mit offener Prüfung')
+        review_chip = status.locator('[aria-label="1 Menükarte mit offener Prüfung"]')
+        expect(review_chip).to_have_text('1 Kartenprüfung offen')
     elif state == 'empty':
-        expect(status).to_contain_text('Noch keine Menüs erfasst')
+        status_copy = status.locator('.admin-week-status-copy')
+        expect(status_copy).to_have_text('Noch keine Menüs')
+        expect(status_copy).to_have_attribute('aria-label', 'Noch keine Menüs erfasst')
     else:
-        expect(status).to_contain_text('erfassten Menükarten geprüft')
+        checked_chip = status.locator('[aria-label$="erfassten Menükarten geprüft"]')
+        expect(checked_chip).to_contain_text('Menükarten geprüft')
+        if state == 'ready':
+            expect(status.locator('.admin-week-status-copy')).to_have_text(
+                'Noch nicht veröffentlicht · bereit'
+            )
+            expect(status).to_contain_text('Wochenkopf und Ausgabehinweise geprüft')
     expect(status).not_to_contain_text('Keine offenen Prüfungen')
     assert page.locator('.menu-slot').count() == slots
     assert 'Arbeitsstand' not in page.locator('main').inner_text()
@@ -273,6 +282,9 @@ def test_changed_catalog_never_reports_no_open_week_checks(
             'SELECT allergen_review_status FROM cafeteria.menu_items WHERE id=:id'
         ), {'id': item.id}).scalar_one() == 'checked'
     assert page.locator('.slot-badge[data-review="open"]').count() == 1
-    expect(page.get_by_role('status')).to_contain_text('1 Menükarte mit offener Prüfung')
+    review_chip = page.get_by_role('status').locator(
+        '[aria-label="1 Menükarte mit offener Prüfung"]'
+    )
+    expect(review_chip).to_have_text('1 Kartenprüfung offen')
     expect(page.get_by_role('status')).not_to_contain_text('Keine offenen Prüfungen')
     expect(page.locator('[data-bs-target="#week-publish-modal"]')).to_be_disabled()
