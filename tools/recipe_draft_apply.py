@@ -6,7 +6,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from build_recipe_draft_import import FETCHED_AT, IMPORT_PATH, SCAFFOLD, write_import
+from build_recipe_draft_import import FETCHED_AT, SCAFFOLD, write_import
 
 ACCEPTED_BATCH_STATUS = frozenset({'imported', 'skipped'})
 
@@ -57,6 +57,20 @@ def batch_payload(group: str, rows: list[dict[str, Any]], meta: dict[str, Any]) 
         'duplicate_groups': [],
         'rows': rows,
     }
+
+
+def remember_imported_batch(
+    document: dict[str, Any], group: str, recipes: list[dict[str, Any]], batch: Any,
+) -> dict[str, Any]:
+    """Restore resolved IDs from an already imported persistent batch."""
+    if len(batch.imported_result) != len(recipes):
+        raise RuntimeError(f'Importstapel {batch.public_id} passt nicht zur Gruppe {group}.')
+    document['resolved'].setdefault('batch_public_ids', {})[group] = batch.public_id
+    recipe_ids = dict(document['resolved'].get('recipe_keys') or {})
+    for recipe, result in zip(recipes, batch.imported_result, strict=True):
+        recipe_ids[recipe['key']] = result['recipe_public_id']
+    document['resolved']['recipe_keys'] = recipe_ids
+    return {'status': 'skipped', 'public_id': batch.public_id, 'imported': batch.imported_result}
 
 
 def ensure_storage(engine: Any, actor: Any, document: dict[str, Any]) -> dict[str, str]:
@@ -142,7 +156,17 @@ def commit_group(
     if existing:
         loaded = store.get_batch(engine, existing)
         if loaded.status == 'imported':
-            return {'status': 'skipped', 'public_id': existing, 'imported': loaded.imported_result}
+            return remember_imported_batch(document, group, recipes, loaded)
+    source_filename = f"linked_recipe_drafts_import:{meta['source_draft_sha256'][:16]}:{group}"
+    loaded = next((
+        batch for batch in store.list_batches(engine)
+        if batch.status == 'imported'
+        and batch.adapter_kind == meta['adapter_kind']
+        and batch.source_filename == source_filename
+        and batch.source_sha256 == meta['source_draft_sha256']
+    ), None)
+    if loaded is not None:
+        return remember_imported_batch(document, group, recipes, loaded)
     batch_rows: list[dict[str, Any]] = []
     for index, recipe in enumerate(recipes, start=1):
         payload = resolve_payload(recipe['recipe_payload'], recipe['ingredient_food_keys'], food_ids)
@@ -248,7 +272,8 @@ def pin_prepared_foods(engine: Any, actor: Any, location: int, document: dict[st
 
 
 def apply_import(
-    document: dict[str, Any], engine: Any, actor: Any, *, dry_run: bool = False, write_back: Path | None = IMPORT_PATH,
+    document: dict[str, Any], engine: Any, actor: Any, *, dry_run: bool = False,
+    write_back: Path | None = None,
 ) -> dict[str, Any]:
     scaffold_import()
     from cafeteria import recipe_store as recipes  # type: ignore[import-not-found]

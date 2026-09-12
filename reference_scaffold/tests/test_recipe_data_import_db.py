@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 from sqlalchemy import text
+from werkzeug.security import generate_password_hash
 
 WORKTREE = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(WORKTREE / 'tools'))
@@ -68,11 +69,123 @@ def allergen_reviews(owner) -> int:
 
 def run_apply(engine, actor, document):
     with signed_in(engine, actor):
-        return applyer.apply_import(document, engine, actor, dry_run=False, write_back=IMPORT_PATH)
+        return applyer.apply_import(document, engine, actor, dry_run=False)
 
 
-def test_linked_draft_import_full_pipeline(master):  # noqa: F811
-    owner, engine, actor = master
+def attach_local_credentials(owner, actor, username='recipe.importer'):
+    with owner.begin() as current:
+        current.execute(
+            text('''INSERT INTO cafeteria.local_credentials(user_id,username,password_hash)
+                    VALUES(:user_id,:username,:password_hash)'''),
+            {
+                'user_id': actor.user_id,
+                'username': username,
+                'password_hash': generate_password_hash(username),
+            },
+        )
+        return current.execute(
+            text('SELECT public_id,authz_version FROM cafeteria.users WHERE id=:user_id'),
+            {'user_id': actor.user_id},
+        ).one()
+
+
+def user_count(owner) -> int:
+    with owner.connect() as current:
+        return current.execute(text('SELECT count(*) FROM cafeteria.users')).scalar_one()
+
+
+def test_apply_cli_requires_explicit_actor(monkeypatch, capsys):
+    monkeypatch.delenv('RECIPE_IMPORT_ALLOW_FIXTURE_ACTOR', raising=False)
+    monkeypatch.setattr(sys, 'argv', ['build_recipe_draft_import.py', '--apply', '--output', str(IMPORT_PATH)])
+    assert importer.main() == 2
+    assert '--actor-user' in capsys.readouterr().err
+
+
+def test_resolve_import_actor_by_username_and_public_id_without_inserting_user(master):  # noqa: F811
+    owner, engine, _fixture_actor = master
+    admin = make_actor(owner, 'Cafeteria.Admin')
+    account = attach_local_credentials(owner, admin)
+    before = user_count(owner)
+    by_username = importer.resolve_import_actor(engine, 'recipe.importer')
+    by_public_id = importer.resolve_import_actor(engine, str(account.public_id))
+    assert by_username == by_public_id
+    assert by_username.user_id == admin.user_id
+    assert by_username.authz_version == account.authz_version
+    assert user_count(owner) == before
+
+
+def test_resolve_import_actor_rejects_unknown_user_without_mutation(master):  # noqa: F811
+    owner, engine, _actor = master
+    before = snapshot(owner)
+    with pytest.raises(importer.ActorResolutionError, match='nicht gefunden'):
+        importer.resolve_import_actor(engine, 'missing.importer')
+    assert snapshot(owner) == before
+
+
+def test_apply_cli_unknown_actor_exits_before_migrations(master, monkeypatch, capsys):  # noqa: F811
+    owner, engine, _actor = master
+    migrations: list[str] = []
+    monkeypatch.setattr('sqlalchemy.create_engine', lambda *_args, **_kwargs: engine)
+    monkeypatch.setattr(
+        'cafeteria.db.run_migrations',
+        lambda *_args, **_kwargs: migrations.append('called'),
+    )
+    monkeypatch.setattr(
+        sys,
+        'argv',
+        ['build_recipe_draft_import.py', '--apply', '--database-url', 'postgresql://unused',
+         '--actor-user', 'missing.importer'],
+    )
+    before = snapshot(owner)
+    assert importer.main() == 2
+    assert 'nicht gefunden' in capsys.readouterr().err
+    assert migrations == []
+    assert snapshot(owner) == before
+
+
+def test_resolve_import_actor_rejects_missing_import_capabilities(master):  # noqa: F811
+    owner, engine, _actor = master
+    editor = make_actor(owner, 'Cafeteria.Editor')
+    attach_local_credentials(owner, editor, 'recipe.editor')
+    before = snapshot(owner)
+    with pytest.raises(importer.ActorResolutionError, match='Berechtigungen'):
+        importer.resolve_import_actor(engine, 'recipe.editor')
+    assert snapshot(owner) == before
+
+
+def test_apply_cli_unauthorized_actor_exits_before_migrations(master, monkeypatch, capsys):  # noqa: F811
+    owner, engine, _actor = master
+    editor = make_actor(owner, 'Cafeteria.Editor')
+    attach_local_credentials(owner, editor, 'recipe.editor')
+    migrations: list[str] = []
+    monkeypatch.setattr('sqlalchemy.create_engine', lambda *_args, **_kwargs: engine)
+    monkeypatch.setattr(
+        'cafeteria.db.run_migrations',
+        lambda *_args, **_kwargs: migrations.append('called'),
+    )
+    monkeypatch.setattr(
+        sys,
+        'argv',
+        ['build_recipe_draft_import.py', '--apply', '--database-url', 'postgresql://unused',
+         '--actor-user', 'recipe.editor'],
+    )
+    before = snapshot(owner)
+    assert importer.main() == 2
+    assert 'Berechtigungen' in capsys.readouterr().err
+    assert migrations == []
+    assert snapshot(owner) == before
+
+
+def test_linked_draft_import_full_pipeline(master, monkeypatch):  # noqa: F811
+    owner, engine, fixture_actor = master
+    attach_local_credentials(owner, fixture_actor)
+    actor = importer.resolve_import_actor(engine, 'recipe.importer')
+    monkeypatch.setattr(
+        applyer,
+        'write_import',
+        lambda *_args, **_kwargs: pytest.fail('apply_import wrote back without --write-back'),
+    )
+    before_users = user_count(owner)
     document = load_import()
     before_pub = snapshot(owner)['publication_revisions']
     before = snapshot(owner)
@@ -88,7 +201,7 @@ def test_linked_draft_import_full_pipeline(master):  # noqa: F811
     assert recipe_count == 61
     imports = audit_count(owner, 'recipe.import')
     assert imports == 61
-    loaded = json.loads(IMPORT_PATH.read_text(encoding='utf-8'))
+    loaded = document
     assert len(loaded['resolved']['food_keys']) == 100
     assert len(loaded['resolved']['recipe_keys']) == 61
     assert loaded['resolved']['batch_public_ids']['preparation']
@@ -121,14 +234,17 @@ def test_linked_draft_import_full_pipeline(master):  # noqa: F811
         assert food.allergen_review_status == 'not_checked'
     assert snapshot(owner)['publication_revisions'] == before_pub
     assert allergen_reviews(owner) == 0
+    assert user_count(owner) == before_users
 
 
 def test_linked_draft_import_replay_is_idempotent(master):  # noqa: F811
-    owner, engine, actor = master
+    owner, engine, fixture_actor = master
+    attach_local_credentials(owner, fixture_actor)
+    actor = importer.resolve_import_actor(engine, 'recipe.importer')
     document = load_import()
     run_apply(engine, actor, document)
     before = snapshot(owner)
-    again = run_apply(engine, actor, json.loads(IMPORT_PATH.read_text(encoding='utf-8')))
+    again = run_apply(engine, actor, load_import())
     assert snapshot(owner) == before
     assert all(item['status'] == 'skipped' for item in again['batches'])
 
