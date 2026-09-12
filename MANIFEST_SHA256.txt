@@ -426,7 +426,7 @@ e311f63bd3a47adf3a1c4415477bbf2abfc5b2570c9a63748d0ef5428fbdbe9e  docs/design/20
 0bef054231c9fafa6052b8ecbb59d6f84075382c1c4f19975673212dd8318f1b  docs/design/2026-09-09-unified-ui-design-system.md
 fac04656a8029729f5bd92065f29564602be5b1db800672bbfc13bc14be918d1  docs/design/2026-09-11-admin-shell-navigation-spec.md
 a8ae5e0a496b7d2126b4eeaf368810cc2a892a890b7d7f4c6bfc8ed8facf9fda  docs/design/2026-09-12-api-key-policy.md
-81a317413b5dac589f6341b7bd8ef9c5ffa91d04edca9f8eaec33371fe82fac0  docs/design/2026-09-12-correction-wave-delivery.md
+f08c79d654f9fc73edb5b884247f0fb7423b4d2247a09f2465a3c6fcc1bedbfe  docs/design/2026-09-12-correction-wave-delivery.md
 a8ce39123b719307958f346c1bfa61c53f3dd62114ae6a3c53a22aa9ebe3d1ec  docs/design/2026-09-12-fullwidth-audit.md
 26c3ca8c2e2c0449c3331b867fa3eac28767d974509116533a9e1090dff0d23f  docs/design/2026-09-12-patientenplan-menueditor-korrektur.md
 36e7ae19673629b75494e5393aec1d868f3f191c8d0f663ca2943e5c551bc403  docs/design/admin-redesign-ui.md
