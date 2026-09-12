@@ -12,6 +12,10 @@
       name="description"
       content="Dishboard trennt Patienten-Speisepläne und Cafeteria-Angebote vom Küchenraster bis zur Publikation."
     >
+    <meta property="og:title" content="Dishboard — Menüplanung mit klarer Kanaltrennung">
+    <meta property="og:description" content="Dishboard trennt Patienten-Speisepläne und Cafeteria-Angebote vom Küchenraster bis zur Publikation.">
+    <meta property="og:image" content="assets/og.webp">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='4' y='2' width='10' height='28' rx='2' fill='oklch(54%25 0.105 188)'/%3E<rect x='18' y='9' width='10' height='21' rx='2' fill='oklch(63%25 0.145 43)'/%3E</svg>">
     <title>Dishboard — Menüplanung mit klarer Kanaltrennung</title>
     <link rel="stylesheet" href="foundation.css">
     <link rel="stylesheet" href="components.css">
@@ -27,7 +31,9 @@
       </a>
       <nav aria-label="Seitennavigation">
         <a href="#profiles">Profile</a>
+        <a href="#screens">Screens</a>
         <a href="#signage">Signage</a>
+        <a href="#integrations">Schnittstellen</a>
         <a href="#architecture">Technik</a>
       </nav>
       <a class="header-link" href="https://github.com/joehomeskillet/Dishboard">GitHub</a>
@@ -48,28 +54,20 @@
           <p class="project-note"><span aria-hidden="true"></span> Öffentliches Open-Source-Projekt in Entwicklung</p>
         </div>
 
-        <div class="menu-board" aria-label="Schematische Darstellung der getrennten Menüprofile">
-          <article class="menu-sheet menu-sheet-patient">
-            <div class="sheet-heading">
-              <p>Patienten</p>
-              <span>Mo–So</span>
-            </div>
-            <h2>Mittag &amp; Abend</h2>
-            <div class="meal-row"><span>Menü 1</span><b aria-hidden="true"></b></div>
-            <div class="meal-row"><span>Vegetarisch</span><b aria-hidden="true"></b></div>
-            <p class="sheet-rule">ohne Kostenangaben</p>
-          </article>
-          <article class="menu-sheet menu-sheet-cafeteria">
-            <div class="sheet-heading">
-              <p>Cafeteria</p>
-              <span>Mo–Fr</span>
-            </div>
-            <h2>Mittagsangebot</h2>
-            <div class="meal-row"><span>Menü 1</span><b aria-hidden="true"></b></div>
-            <div class="meal-row"><span>Vegetarisch</span><b aria-hidden="true"></b></div>
-            <p class="sheet-rule">Mitarbeitende &amp; Externe</p>
-          </article>
-          <span class="board-label" aria-hidden="true">Woche</span>
+        <div class="hero-screenshots" aria-label="Screenshots der Anwendung">
+          <img
+            class="hero-shot-desktop"
+            src="assets/web-cafeteria-heute.webp"
+            alt="Cafeteria-Tagesansicht im Browser bei 1440 px Breite: Menükarten mit Preis, Mittagsangebot Montag bis Freitag"
+            width="1400" height="1069"
+          >
+          <img
+            class="hero-shot-mobile"
+            src="assets/mobile-cafeteria-heute.webp"
+            alt="Cafeteria-Tagesansicht auf dem Smartphone: kompakte Einzelspalte mit Menüauswahl"
+            width="600" height="1298"
+            loading="lazy"
+          >
         </div>
       </section>
 
@@ -105,6 +103,80 @@
         </div>
       </section>
 
+      <section class="screens-section" id="screens" aria-labelledby="screens-title">
+        <div class="section-heading">
+          <p class="eyebrow">Echte Ansichten aus der Anwendung</p>
+          <h2 id="screens-title">Screens</h2>
+          <p>Vier Ausgabekanäle — Web, Signage, Admin — mit jeweils eigenem Layout und eigener Route.</p>
+        </div>
+
+        <div class="screens-grid">
+          <figure class="screen-card">
+            <div class="screen-frame">
+              <img
+                src="assets/web-patienten-woche.webp"
+                alt="Patienten-Wochenplan im Browser: sieben Tage, zwei Menüzeilen pro Tag, ohne Preise"
+                width="1400" height="1069"
+                loading="lazy"
+              >
+            </div>
+            <figcaption>
+              <span class="channel-label channel-patient">Patienten</span>
+              Web Woche
+              <code>/patienten/wochenplan/</code>
+            </figcaption>
+          </figure>
+
+          <figure class="screen-card">
+            <div class="screen-frame">
+              <img
+                src="assets/signage-patienten-woche.webp"
+                alt="Signage-Wochenansicht Patienten auf 4K-Display: Wochenübersicht ohne Navigation"
+                width="1400" height="788"
+                loading="lazy"
+              >
+            </div>
+            <figcaption>
+              <span class="channel-label channel-patient">Patienten</span>
+              Signage Woche 4K
+              <code>/signage/patienten/woche</code>
+            </figcaption>
+          </figure>
+
+          <figure class="screen-card">
+            <div class="screen-frame">
+              <img
+                src="assets/signage-cafeteria-tag.webp"
+                alt="Signage-Tagesansicht Cafeteria: heutiges Menü, 1920 × 1080 ohne Scrollen"
+                width="1400" height="788"
+                loading="lazy"
+              >
+            </div>
+            <figcaption>
+              <span class="channel-label channel-cafeteria">Cafeteria</span>
+              Signage Tag
+              <code>/signage/cafeteria/tag</code>
+            </figcaption>
+          </figure>
+
+          <figure class="screen-card">
+            <div class="screen-frame">
+              <img
+                src="assets/admin-cafeteria.webp"
+                alt="Admin-Backend Cafeteria: Wochenübersicht mit Entwurfs- und Publikationsstatus"
+                width="1400" height="875"
+                loading="lazy"
+              >
+            </div>
+            <figcaption>
+              <span class="channel-label channel-cafeteria">Cafeteria</span>
+              Admin
+              <code>/admin/cafeteria</code>
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
       <section class="signage-section" id="signage" aria-labelledby="signage-title">
         <div class="signage-copy">
           <p class="eyebrow">Vier feste Player</p>
@@ -116,6 +188,36 @@
           <div><span>Cafeteria</span><code>/signage/cafeteria/woche</code><b>Woche</b></div>
           <div><span>Patienten</span><code>/signage/patienten/tag</code><b>Tag</b></div>
           <div><span>Patienten</span><code>/signage/patienten/woche</code><b>Woche · 4K</b></div>
+        </div>
+      </section>
+
+      <section class="integrations-section" id="integrations" aria-labelledby="integrations-title">
+        <div class="section-heading">
+          <p class="eyebrow">Offene Daten, definierte Verträge</p>
+          <h2 id="integrations-title">Schnittstellen</h2>
+          <p>REST, FHIR und MCP — drei Zugänge zu denselben publizierten Speiseplänen.</p>
+        </div>
+
+        <div class="integrations-grid">
+          <article class="integration-card">
+            <span class="integration-number">01</span>
+            <h3>REST API v1</h3>
+            <p>OpenAPI 3.1 unter <code>/api/v1/openapi.json</code>, Swagger UI unter <code>/api/v1/docs</code>. API-Schlüssel werden unter <code>/admin/api</code> verwaltet.</p>
+          </article>
+          <article class="integration-card">
+            <span class="integration-number">02</span>
+            <h3>FHIR R5</h3>
+            <p>Lesezugriff über <code>/fhir/metadata</code>, Ressourcen <code>NutritionProduct</code> und <code>Composition</code>.</p>
+          </article>
+          <article class="integration-card">
+            <span class="integration-number">03</span>
+            <h3>MCP-Server</h3>
+            <p>Stdio-basiert für LLM-Clients, Quelle unter <code>reference_scaffold/dishboard_mcp/</code>.</p>
+          </article>
+        </div>
+
+        <div class="integrations-extra">
+          <p><strong>Druck &amp; CSV</strong> — A4-Wochenpläne unter <code>/druck/patienten/woche</code> und <code>/druck/cafeteria/woche</code>, CSV-Import/Export mit Validator unter <code>/admin/import</code> und <code>/admin/export/&lt;profile&gt;.csv</code>.</p>
         </div>
       </section>
 
@@ -145,6 +247,16 @@
             <h3>Unabhängige Revisionen</h3>
             <p>Tag und Woche eines Profils stammen aus derselben Publikation; das andere Profil bleibt unberührt.</p>
           </article>
+          <article>
+            <span class="architecture-number">05</span>
+            <h3>Docker Compose + Healthchecks</h3>
+            <p>Deployment über <code>docker compose</code>, Liveness unter <code>/health/live</code>, Readiness unter <code>/health/ready</code>.</p>
+          </article>
+          <article>
+            <span class="architecture-number">06</span>
+            <h3>Rollen: Editor · Publisher · Admin</h3>
+            <p>Drei Entra-App-Rollen regeln Bearbeitung, Freigabe und Systemzugang getrennt pro Kanal.</p>
+          </article>
         </div>
       </section>
 
@@ -162,7 +274,11 @@
         <span>Dishboard</span>
       </a>
       <p>Menüplanung mit konsequenter Profiltrennung.</p>
-      <a href="https://github.com/joehomeskillet/Dishboard">GitHub-Projekt</a>
+      <div class="footer-links">
+        <a href="https://github.com/joehomeskillet/Dishboard">GitHub-Projekt</a>
+        <a href="https://dishboard.joelduss.xyz/">Live-Instanz</a>
+        <a href="https://github.com/joehomeskillet/Dishboard/blob/main/docs/API.md">API-Dokumentation</a>
+      </div>
     </footer>
   </body>
 </html>
