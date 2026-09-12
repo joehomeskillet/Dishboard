@@ -1,3 +1,4 @@
+/* ── Architecture section (dark) ── */
 .architecture-section {
   padding: var(--space-7) max(var(--space-4), calc((100vw - var(--content-width)) / 2));
   background: var(--color-ink);
@@ -14,18 +15,22 @@
 
 .architecture-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   border-top: 1px solid color-mix(in oklch, var(--color-paper) 24%, transparent);
 }
 
 .architecture-grid article {
-  min-height: 19rem;
+  min-height: 17rem;
   padding: var(--space-5) var(--space-4);
   border-right: 1px solid color-mix(in oklch, var(--color-paper) 24%, transparent);
 }
 
-.architecture-grid article:last-child {
+.architecture-grid article:nth-child(3n) {
   border-right: 0;
+}
+
+.architecture-grid article:nth-child(-n + 3) {
+  border-bottom: 1px solid color-mix(in oklch, var(--color-paper) 24%, transparent);
 }
 
 .architecture-number {
@@ -46,6 +51,7 @@
   font-size: 0.9rem;
 }
 
+/* ── Closing section ── */
 .closing-section {
   text-align: center;
 }
@@ -65,6 +71,7 @@
   color: var(--color-ink-soft);
 }
 
+/* ── Footer ── */
 footer {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -82,16 +89,11 @@ footer p {
   text-align: center;
 }
 
-footer > a:last-child {
-  justify-self: end;
-  min-height: 2.75rem;
-  padding-block: 0.6rem;
-}
-
 .brand-footer {
   color: var(--color-ink);
 }
 
+/* ── Tablet breakpoint ── */
 @media (max-width: 62rem) {
   .site-header {
     grid-template-columns: 1fr auto;
@@ -109,7 +111,7 @@ footer > a:last-child {
     max-width: 48rem;
   }
 
-  .menu-board {
+  .hero-screenshots {
     width: min(100%, 38rem);
     margin-inline: auto;
   }
@@ -118,20 +120,31 @@ footer > a:last-child {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .architecture-grid article:nth-child(2) {
+  .architecture-grid article:nth-child(3n) {
+    border-right: 1px solid color-mix(in oklch, var(--color-paper) 24%, transparent);
+  }
+
+  .architecture-grid article:nth-child(2n) {
     border-right: 0;
   }
 
-  .architecture-grid article:nth-child(-n + 2) {
+  .architecture-grid article:nth-child(-n + 4) {
     border-bottom: 1px solid color-mix(in oklch, var(--color-paper) 24%, transparent);
+  }
+
+  .integrations-grid {
+    grid-template-columns: 1fr;
   }
 }
 
+/* ── Mobile breakpoint ── */
 @media (max-width: 44rem) {
   .site-header,
   .hero,
   .profile-section,
   .signage-section,
+  .screens-section,
+  .integrations-section,
   .closing-section,
   footer {
     width: min(calc(100% - 2rem), var(--content-width));
@@ -151,34 +164,24 @@ footer > a:last-child {
     font-size: clamp(2.75rem, 16vw, 4.6rem);
   }
 
-  .menu-board {
-    display: grid;
-    gap: var(--space-3);
+  .hero-screenshots {
     min-height: auto;
-    padding: var(--space-3);
+  }
+
+  .hero-shot-desktop {
     transform: none;
   }
 
-  .menu-sheet {
+  .hero-shot-mobile {
     position: static;
-    width: 100%;
+    width: min(50%, 14rem);
+    margin-top: var(--space-3);
     transform: none;
-  }
-
-  .menu-sheet-patient {
-    left: 0;
-  }
-
-  .menu-sheet-cafeteria {
-    right: 0;
-  }
-
-  .board-label {
-    display: none;
   }
 
   .section-heading,
   .profile-grid,
+  .screens-grid,
   .signage-section {
     grid-template-columns: 1fr;
   }
@@ -210,7 +213,8 @@ footer > a:last-child {
   }
 
   .architecture-grid article,
-  .architecture-grid article:nth-child(2) {
+  .architecture-grid article:nth-child(2n),
+  .architecture-grid article:nth-child(3n) {
     min-height: auto;
     border-right: 0;
     border-bottom: 1px solid color-mix(in oklch, var(--color-paper) 24%, transparent);
@@ -231,8 +235,13 @@ footer > a:last-child {
   }
 
   footer .brand,
-  footer > a:last-child {
+  .footer-links {
     justify-self: center;
+  }
+
+  .footer-links {
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   footer p {
@@ -240,12 +249,19 @@ footer > a:last-child {
   }
 }
 
+/* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
 
-  .button {
+  .button,
+  .screen-frame {
     transition-duration: 0.01ms;
+  }
+
+  .button:hover,
+  .screen-frame:hover {
+    transform: none;
   }
 }
