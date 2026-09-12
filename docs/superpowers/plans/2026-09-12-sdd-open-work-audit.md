@@ -1,7 +1,7 @@
 # SDD-Abgleich und offene Arbeit — 12. September 2026
 
-Arbeitsstand für die nächste Sprintplanung. Der angekündigte UI-Korrekturprompt
-ist noch nicht eingegangen; UI-Prioritäten werden nach dessen Eingang ergänzt.
+Arbeitsstand für die nächste Sprintplanung; ergänzt am 13. September 2026 um die
+UI-Aufträge für Gerichtvorlagen, Rezeptverknüpfung, Tagesplanung und Rezeptdruck.
 Dieser Abgleich startet keine Produktimplementierung und erklärt keine fachliche Abnahme.
 
 ## Quellen und Baseline
@@ -18,7 +18,7 @@ Dieser Abgleich startet keine Produktimplementierung und erklärt keine fachlich
   Berichte `wp-release-schema29-0912.md`, `wp-release-schema30-0912.md`,
   `wp-release-wave-final-0912.md` unter `/nvmetank1/projects/rag-stack/.claude/reports/`.
 
-## Manifestzählung, keine Abschlussquote
+## Manifestzählung der Ausgangsbasis, keine Abschlussquote
 
 | Bereich | WPs | READY | PLANNED | IN_PROGRESS | REVIEWED_LOCAL | DEPLOYED | AWAITING_EXTERNAL |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -31,6 +31,16 @@ Alle 35 Backlog-IDs sind im bestehenden Graphen zugeordnet; keine fehlende
 Abhängigkeits-ID. Diese strukturelle Deckung beweist weder vollständige Umsetzung
 noch vollständige fachliche Abnahme. Insbesondere sind die vier `IN_PROGRESS`
 keine belegten aktuell laufenden Worker; die vorige Welle ist beendet.
+Neue Pakete aus dem UI-Auftrag werden als Ergänzung zu dieser historischen
+145-Paket-Zählung ausgewiesen, nicht rückwirkend in den Ausgangsstand eingerechnet.
+Das [vollständige Einzelregister](2026-09-13-sdd-work-package-register.md) bewahrt
+alle 145 IDs mit Originalstatus, auditierter Einordnung, nächstem Schritt und Quelle.
+
+Nachtrag 13. September: sieben neue UI-/Rezeptpakete ergeben **152 Pakete**
+(37 Operations, 48 Rezepte, 67 Surfaces), weiterhin 35/35 Anforderungen.
+`MP-REC-DISH-TEMPLATE-WRITER` wurde mit Lieferbeleg von `PLANNED` auf `DEPLOYED`
+korrigiert. Die neuen sieben Pakete bleiben `PLANNED`; Umsetzung, aktive Leases
+und Produktabnahme werden damit nicht behauptet.
 
 ## Erledigte Arbeit nicht neu bauen
 
@@ -79,7 +89,19 @@ keine belegten aktuell laufenden Worker; die vorige Welle ist beendet.
 | Entra | Revisionierter Connection-Lifecycle | Secretresolverentscheidung → Draft → Test → Aktivierung; echter Tenant separat |
 | Abnahme | Aktuelle UI-Matrix, vollständige Regressionen, Küche/Druck/Client/Player | Gelieferte Funktionen mit Originalkriterien abgleichen; keine erneute Implementierung allein aus altem PLANNED |
 
-## UI-Altlasten nach dem neuen Prompt
+## UI-Auftrag vom 13. September und nachrangige Altlasten
+
+Erster UI-Sprint: Gerichtvorlagen und Rezepte gegenseitig auffindbar verknüpfen;
+aus einer Vorlage ein Menü bewusst einem konkreten Plan und Tag zuordnen;
+pro Rezept getrennte Aktionen Ansehen und Drucken sowie den Bezug zur Druckvorlage
+anbieten. Fable 5.1 plant diese Ergänzung; getrennte GPT-Quellcodeaudits sind
+`wp-recipe-links-discovery-0913.md` und `wp-recipe-view-print-discovery-0913.md`.
+Vorhandene Datenbeziehungen, unveränderliche Rezeptansicht und PDF-Erzeugung werden
+wiederverwendet. Fehlende Rückverweise, Listenaktionen und Planübergabe sind
+Produktanschlüsse; bestehende Funktionen werden nicht als fehlender Neubau geführt.
+
+Die folgenden Altlasten bleiben nachrangig und werden nicht in den neuen
+Funktionsauftrag hineingezogen:
 
 | Befund | Priorität | Nachgewiesener Rest / Besitz |
 |---|---|---|
@@ -97,8 +119,12 @@ und gehören nicht in diesen Restbestand.
 ## Bereits feststehende Planungsgrenzen
 
 - Eigener Worktree pro Writer unter `.claude/worktrees/`, Remote `github`.
-- Drei parallele Workerplätze in dieser Sitzung; maximal fünf schwere Hostjobs
-  insgesamt, Speicherregel und bestehende Prozesslast vor Ausführung erneut prüfen.
+- Drei native parallele Workerplätze in dieser Sitzung; zusätzlich sind Claude,
+  Cursor, AGY und Grok per Nutzeranweisung für eigenständige WPs freigegeben.
+  Maximal fünf schwere Hostjobs insgesamt, `rtk pgrep -fc pytest` unter 12;
+  Speicherregel und tatsächliche Prozesslast vor Ausführung erneut prüfen.
+- Root darf neben Orchestrierung auch abgegrenzte WPs im eigenen Worktree bearbeiten.
+  Seine Änderungen brauchen ebenso einen unabhängigen Reviewer.
 - SQL-Schema, Migrationsnummern und gemeinsame Registrierungen jeweils ein Besitzer;
   neue Migration erst nach Vorgänger-Freeze nummerieren, niemals alte Schema27-Pläne blind replayen.
 - Autor und Reviewer getrennt; bestätigte Review-Fixes an anderen Autor.
