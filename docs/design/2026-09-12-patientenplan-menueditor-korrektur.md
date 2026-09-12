@@ -238,3 +238,11 @@ Lieferumfang: tatsächliche Dateipfade, Befund-ID → Änderung → Test → Erg
 Ein Test mit technisch unerfahrenen Personen soll insbesondere zeigen, ob sie ein Menü finden, nur die Beilage ändern, speichern und den Unterschied zwischen „geprüft“ und „Allergenangaben fehlen“ erklären können. Ein Agent darf fehlende Nutzerbeobachtungen nicht als durchgeführt ausgeben.
 
 **Kernziel: Volle Breite behalten, Wiederholungen entfernen, Menüs zuerst zeigen und Prüfzustände verständlich machen. Nicht erneut nur die Karten grösser machen.**
+
+## Umsetzung Bildschirme & Darstellung
+
+Die Bildschirmübersicht verwendet eine Bereichsauswahl und zeigt je Ausgabe zuerst ihren belegbaren Geltungsbereich. Für Web-Wochenpläne stammt die aktive Vorlage aus `assignments[profile]`; Bildschirmausgaben zeigen den aktuell veröffentlichten Stand. Angaben wie «verbunden» oder «zuletzt gesehen» fehlen, weil die Routen dafür keine Template-Variablen liefern.
+
+Die aktive Web-Wochenvorlage steht vor dem Zuweisungsformular. «Vorlage zuweisen» öffnet das unveränderte signierte Formular bei Bedarf; Konflikt- und Validierungsantworten öffnen den Bereich, erhalten alle sechs Payload-Felder und fokussieren die Fehlerregion. Tagespläne, Bildschirmausgaben und die feste Adresse ohne Bilder bleiben ausserhalb dieser Zuordnung.
+
+Die Darstellungsseite zeigt ihre vier globalen Einstellungen zuerst. `save` bleibt einzige hervorgehobene Hauptaktion; `preview` und `reset` stehen zusammen unter «Weitere Aktionen». Werte und Wirkung von `data-density`, `data-font-size`, `data-content-width` und `data-menu-images` bleiben unverändert. Browserprüfungen decken 1366×768, 1920×1080, 768×1024, 390×844 und 200 Prozent ohne horizontalen Dokumentüberlauf ab.

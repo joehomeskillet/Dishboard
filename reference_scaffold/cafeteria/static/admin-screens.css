@@ -11,6 +11,23 @@
 .screen-card .nav-link { min-height: 3rem; }
 .screen-card .btn-list { margin-top: auto; }
 
+.screens-area-tabs {
+  scroll-margin-top: var(--tblr-page-padding, 1.5rem);
+}
+
+.screen-status {
+  min-height: 3rem;
+}
+
+.screen-actions {
+  border-top: 1px solid var(--app-border-soft, var(--tblr-border-color-translucent));
+  padding-top: 1rem;
+}
+
+.screen-assignment-details > .card-body {
+  border-top: 1px solid var(--app-border-soft, var(--tblr-border-color-translucent));
+}
+
 .screen-preview {
   position: relative;
   container-type: inline-size;
