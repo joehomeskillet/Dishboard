@@ -1,16 +1,25 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, select, field, actions, form_errors %}
+{% from 'admin/_macros.html' import page_header, select, field, actions %}
 {% set workflow_nav = 'design' %}
 {% set layout_variant = 'narrow' %}
 {% block title %}Darstellung · Design & Marke{% endblock %}
-{% block page_header %}{{ page_header('Design & Marke', description='Zentrale Anzeigeoptionen für Abstände, Schriftgrösse, Inhaltsbreite und Menübilder im Administrationsbereich.', breadcrumbs=[('Design & Marke', url_for('admin.branding_editor')), ('Darstellung', none)]) }}{% endblock %}
+{% block page_header %}{{ page_header('Design & Marke', description='Anzeige im Administrationsbereich einstellen.', breadcrumbs=[('Design & Marke', url_for('admin.branding_editor')), ('Darstellung', none)]) }}{% endblock %}
 {% block content %}
   <form method="post" action="{{ url_for('admin.display_settings') }}" class="card mb-4" id="display-settings-form">
     <input type="hidden" name="_csrf" value="{{ csrf }}">
-    <div class="card-header"><h2 class="card-title">Darstellung</h2></div>
+    <div class="card-header"><h2 class="card-title">Anzeige einstellen</h2></div>
     <div class="card-body">
-      {{ form_errors(display_errors.values()|list) }}
-      <p>Die Einstellung gilt für alle Benutzer und Geräte im Adminbereich. Geöffnete Seiten übernehmen sie beim nächsten Laden.</p>
+      {% if display_errors %}
+      <div class="alert alert-danger error-region mb-3" role="alert" aria-live="polite" tabindex="-1" autofocus>
+        <h3 class="alert-title mb-1">Bitte überprüfen Sie die Einstellungen:</h3>
+        <ul class="mb-0 ps-3">{% for key, message in display_errors.items() %}<li><a href="#{{ key|replace('_', '-') }}" data-error-link>{{ message }}</a></li>{% endfor %}</ul>
+      </div>
+      <p>Eingaben wurden nicht gespeichert. Korrigieren Sie markierte Felder.</p>
+      {% elif display_preview %}
+      <p>Vorschau gilt nur auf dieser Seite. Einstellungen sind noch nicht gespeichert.</p>
+      {% else %}
+      <p>Gespeicherte Einstellungen gelten für alle Benutzer und Geräte im Adminbereich. Geöffnete Seiten übernehmen sie beim nächsten Laden.</p>
+      {% endif %}
       <div class="row g-3">
         {% for key, label, choices, hint in [
           ('admin_density', 'Abstände', [('compact', 'Kompakt'), ('comfortable', 'Komfortabel')], 'Kompakt zeigt kleinere Kartenabstände. Bedienflächen und wichtige Hinweise bleiben gut lesbar.'),
@@ -24,13 +33,18 @@
         {% endfor %}
       </div>
     </div>
-    <div class="card-footer">
+    <div class="card-footer display-form-actions">
       {% call actions() %}
         <button type="submit" class="btn btn-primary" name="action" value="save">Darstellung speichern</button>
+      {% endcall %}
+      <div class="mt-3" aria-labelledby="display-more-actions-title">
+        <h3 class="h4 mb-2" id="display-more-actions-title">Weitere Aktionen</h3>
+        {% call actions() %}
         <button type="submit" class="btn" name="action" value="preview">Vorschau aktualisieren</button>
         <button type="submit" class="btn" id="display-reset-btn" name="action" value="reset" aria-describedby="display-reset-hint">Standardwerte speichern</button>
-      {% endcall %}
-      <p class="form-hint mt-2 mb-0" id="display-reset-hint">Standardwerte speichern setzt für alle Benutzer Kompakt, Normal, Begrenzt und Anzeigen.</p>
+        {% endcall %}
+        <p class="form-hint mt-2 mb-0" id="display-reset-hint">Standardwerte speichern setzt für alle Benutzer Kompakt, Normal, Begrenzt und Anzeigen.</p>
+      </div>
     </div>
   </form>
 <section aria-labelledby="display-preview-title">
