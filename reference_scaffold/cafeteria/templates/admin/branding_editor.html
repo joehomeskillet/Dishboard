@@ -1,24 +1,17 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, select, actions %}
 {% set workflow_nav = 'design' %}
-{% set layout_variant = 'narrow' %}
+{% set layout_variant = 'standard' %}
 {% set active_revision = document.revisions[document.active_revision - 1] %}
+{% set selected_revision = document.revisions[selected.id - 1] %}
 {% block title %}Erscheinungsbild · Design & Marke{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-branding.css') }}">{% endblock %}
 {% block page_header %}{{ page_header('Erscheinungsbild', description='Logo, Farben und Schrift für öffentliche Ausgaben bearbeiten. Entwürfe bleiben intern, bis Sie sie aktivieren.') }}{% endblock %}
 {% block content %}
-<nav class="nav nav-tabs mb-4" aria-label="Designbereiche">
-  <a class="nav-link active" href="{{ url_for('admin.branding_editor') }}" aria-current="page">Erscheinungsbild</a>
-  <a class="nav-link" href="{{ url_for('admin.display_settings') }}">Darstellung</a>
-</nav>
-<div class="alert brand-status" role="status">
-  <strong>Aktuelles Design:</strong> {{ active_revision.name }} · Version {{ document.active_revision }}.
-  Entwürfe werden erst nach Aktivierung öffentlich sichtbar.
-</div>
 {% if brand_error %}<div class="alert alert-danger" role="alert">{{ brand_error }}{% if brand_values.logo_sha256 and brand_values.logo_sha256 != selected.config.logo_sha256 %} Bitte das neue Logo erneut auswählen.{% endif %}</div>{% endif %}
 <div class="row g-4 brand-settings-grid">
   <section class="col-12 col-xl-6" aria-labelledby="brand-edit-title">
-    <form method="post" action="{{ url_for('admin.branding_editor') }}" enctype="multipart/form-data" class="card">
+    <form method="post" action="{{ url_for('admin.branding_editor') }}" enctype="multipart/form-data" class="card" data-brand-action="save">
       <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}">
       <div class="card-header"><h2 class="card-title" id="brand-edit-title">Entwurf bearbeiten</h2></div>
       <div class="card-body">
@@ -70,36 +63,72 @@
       <div class="card-body">
         <p class="brand-preview-meta">
           {{ selected.name }} ·
-          {% if selected.id == document.active_revision %}Aktuelles Design{% elif selected.published %}Früher aktiv{% else %}Gespeicherter Entwurf{% endif %}
+          {% if selected.id == document.active_revision %}Aktive Version{% elif selected_revision.published %}Früher aktiv{% else %}Gespeicherter Entwurf{% endif %}
         </p>
         <iframe class="brand-preview-frame" src="{{ url_for('admin.branding_preview', revision=selected.id) }}" title="Markenvorschau {{ selected.name }}"></iframe>
         <p class="form-hint mt-2 mb-0">Die Vorschau zeigt den gespeicherten Stand der gewählten Version. Neue Eingaben zuerst als Entwurf speichern.</p>
       </div>
+    </div>
+    <section class="card mb-4 brand-publication-card" aria-labelledby="brand-publication-title">
+      <div class="card-header"><h2 class="card-title" id="brand-publication-title">Veröffentlichte Version</h2></div>
+      <div class="card-body" role="status">
+        <dl class="brand-status-list mb-0">
+          <div>
+            <dt>Aktive Version</dt>
+            <dd>
+              <span>{{ active_revision.name }} · Version {{ document.active_revision }}</span>
+              <small>{% if active_revision.activated_at %}Aktiviert am {{ active_revision.activated_at|datetime_short }}{% else %}Mitgelieferter Standard{% endif %}</small>
+            </dd>
+          </div>
+          <div>
+            <dt>Ausgewählter gespeicherter Stand</dt>
+            <dd>
+              <span>{{ selected.name }} · Version {{ selected.id }}</span>
+              <small>{% if selected.id == document.active_revision %}Ist öffentlich aktiv{% elif selected_revision.published %}War früher aktiv{% else %}Noch nicht aktiviert{% endif %}</small>
+            </dd>
+          </div>
+          <div>
+            <dt>Zuletzt geändert</dt>
+            <dd>{% if selected_revision.created_at %}<time datetime="{{ selected_revision.created_at }}">{{ selected_revision.created_at|datetime_short }}</time>{% else %}Mitgelieferter Standard{% endif %}</dd>
+          </div>
+          <div>
+            <dt>Entwurf</dt>
+            <dd>Die Eingaben links basieren auf Version {{ selected.id }}. Änderungen werden erst nach «Entwurf speichern &amp; Vorschau» als neuer Stand gespeichert.</dd>
+          </div>
+        </dl>
+        <p class="form-hint mt-3 mb-0" id="brand-activate-hint">Aktivieren macht genau den ausgewählten gespeicherten Stand in öffentlichen Ausgaben sichtbar.</p>
+      </div>
       <div class="card-footer">
-        <form method="post" action="{{ url_for('admin.branding_editor') }}">
+        <form method="post" action="{{ url_for('admin.branding_editor') }}" data-brand-action="activate" data-confirm="Version {{ selected.id }} «{{ selected.name }}» als öffentliches Erscheinungsbild aktivieren?" aria-describedby="brand-activate-hint">
           <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}"><input type="hidden" name="revision" value="{{ selected.id }}">
-          {{ actions(
-            primary={'label': 'Version ' ~ selected.id ~ ' aktivieren', 'type': 'submit', 'name': 'action', 'value': 'activate', 'disabled': selected.id == document.active_revision},
-            secondary=[{'label': 'Als neuen Entwurf übernehmen', 'type': 'submit', 'name': 'action', 'value': 'restore'}]
-          ) }}
+          <button class="btn" type="submit" name="action" value="activate"{% if selected.id == document.active_revision %} disabled{% endif %}>Version {{ selected.id }} aktivieren</button>
         </form>
       </div>
-    </div>
+    </section>
     <details class="card brand-history-card">
-      <summary class="card-header"><h2 class="card-title mb-0">Frühere Versionen</h2></summary>
+      <summary class="card-header"><h2 class="card-title mb-0">Weitere Aktionen</h2></summary>
+      <div class="card-body border-bottom">
+        <h3 class="h4">Ausgewählten Stand übernehmen</h3>
+        <p class="form-hint">Erstellt aus Version {{ selected.id }} einen neuen bearbeitbaren Entwurf. Die aktive Version bleibt unverändert.</p>
+        <form method="post" action="{{ url_for('admin.branding_editor') }}" data-brand-action="restore">
+          <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}"><input type="hidden" name="revision" value="{{ selected.id }}">
+          <button class="btn" type="submit" name="action" value="restore">Version {{ selected.id }} als neuen Entwurf übernehmen</button>
+        </form>
+      </div>
+      <h3 class="h4 px-4 pt-4">Version auswählen</h3>
       <div class="list-group list-group-flush">
         {% for item in document.revisions|reverse %}
         <a class="list-group-item list-group-item-action{% if item.id == selected.id %} active{% endif %}" href="{{ url_for('admin.branding_editor', revision=item.id) }}"{% if item.id == selected.id %} aria-current="true"{% endif %}>
           {{ item.name }} · Version {{ item.id }}
-          <span class="ms-2">{% if item.id == document.active_revision %}Aktuelles Design{% elif item.published %}Früher aktiv{% else %}Entwurf{% endif %}</span>
+          <span class="ms-2">{% if item.id == document.active_revision %}Aktive Version{% elif item.published %}Früher aktiv{% else %}Gespeicherter Entwurf{% endif %}</span>
         </a>
         {% endfor %}
       </div>
       <div class="card-footer">
-        <form method="post" action="{{ url_for('admin.branding_editor') }}">
+        <form method="post" action="{{ url_for('admin.branding_editor') }}" data-brand-action="reset" data-confirm="Südhang Standard als neuen Entwurf anlegen?">
           <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}">
           <button class="btn" name="action" value="reset" type="submit">Südhang Standard als Entwurf</button>
-          <p class="form-hint mt-2 mb-0">Vorherige Versionen und Logos bleiben erhalten. Zum Zurücksetzen den Standardentwurf prüfen und aktivieren.</p>
+          <p class="form-hint mt-2 mb-0">Vorherige Versionen und Logos bleiben erhalten. Den neuen Standardentwurf zuerst prüfen und danach bei Bedarf aktivieren.</p>
         </form>
       </div>
     </details>

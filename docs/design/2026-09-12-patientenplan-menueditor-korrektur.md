@@ -238,3 +238,9 @@ Lieferumfang: tatsächliche Dateipfade, Befund-ID → Änderung → Test → Erg
 Ein Test mit technisch unerfahrenen Personen soll insbesondere zeigen, ob sie ein Menü finden, nur die Beilage ändern, speichern und den Unterschied zwischen „geprüft“ und „Allergenangaben fehlen“ erklären können. Ein Agent darf fehlende Nutzerbeobachtungen nicht als durchgeführt ausgeben.
 
 **Kernziel: Volle Breite behalten, Wiederholungen entfernen, Menüs zuerst zeigen und Prüfzustände verständlich machen. Nicht erneut nur die Karten grösser machen.**
+
+## Umsetzung Erscheinungsbild
+
+Der Editor für das Erscheinungsbild folgt derselben Aktionshierarchie: «Entwurf speichern & Vorschau» ist die einzige hervorgehobene Hauptaktion. Die Aktivierung steht nachgelagert im Abschnitt «Veröffentlichte Version» und bezieht sich ausdrücklich auf den ausgewählten gespeicherten Stand. Aktive Version, ausgewählter Stand, Entwurf und Änderungszeit werden getrennt benannt.
+
+Versionsauswahl, Übernahme eines früheren Stands und Standardentwurf stehen unter «Weitere Aktionen». Vorhandene POST-Ziele, Payloads, CSRF-, Versions-, Upload-, Aktivierungs-, Wiederherstellungs- und Zurücksetzungsverträge bleiben unverändert und ohne JavaScript bedienbar. Editor und eigenständige Vorschau verwenden die volle verfügbare Breite; die Vorschau enthält keine Attrappen-Schaltfläche.
