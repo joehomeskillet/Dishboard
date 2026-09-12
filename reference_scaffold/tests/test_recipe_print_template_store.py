@@ -20,6 +20,7 @@ from cafeteria.print_templates import (
     read_templates, template_revision,
 )
 from cafeteria.recipe_types import RecipeConfigurationError, RecipeNotFoundError
+from test_master_data_db import seed_storage
 from test_recipe_print_input_db import freeze_image
 from test_recipe_store_db import (  # noqa: F401
     pg16, installed_pg16, seeded_pg16, app_engine, payload, target, snapshot,
@@ -30,6 +31,7 @@ from test_recipe_store_db import (  # noqa: F401
 @pytest.fixture
 def admin(seeded_pg16, app_engine):  # noqa: F811
     actor = make_actor(seeded_pg16, 'Cafeteria.Admin')
+    seed_storage(seeded_pg16)
     with signed_in(app_engine, actor):
         yield seeded_pg16, app_engine, actor
 

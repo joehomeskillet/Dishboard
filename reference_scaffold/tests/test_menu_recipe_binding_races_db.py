@@ -87,6 +87,9 @@ def test_changed_catalog_food_pointer_conflicts_without_inverse_head_lock(bindin
         new_food = connection.execute(text('''INSERT INTO cafeteria.foods(location_id,created_by,updated_by,
             name,base_unit_id) SELECT :location,:actor,:actor,'Neue Zutat',id
             FROM cafeteria.measurement_units WHERE code='G' RETURNING id'''), ids).scalar_one()
+        connection.execute(text('''INSERT INTO cafeteria.food_storage_locations(
+            location_id,food_id,storage_location_id) VALUES(:location,:food,:storage)'''),
+            {**ids, 'food': new_food, 'storage': ids['location_storage']})
     before = state(owner, ids)
     prepared, release = Event(), Event()
     original = assignments.prepare_bindings

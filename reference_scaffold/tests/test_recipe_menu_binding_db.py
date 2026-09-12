@@ -34,6 +34,13 @@ def binding(seeded_pg16, app_engine):  # noqa: F811
             ids[key + '_food'] = c.execute(text("""INSERT INTO cafeteria.foods(
                 location_id,created_by,updated_by,name,base_unit_id) VALUES(:loc,:actor,:actor,'Karotte',
                 (SELECT id FROM cafeteria.measurement_units WHERE code='G')) RETURNING id"""), params).scalar_one()
+            code = 'LAGER_LOC' if key == 'location' else 'LAGER_OTHER'
+            ids[key + '_storage'] = c.execute(text("""INSERT INTO cafeteria.storage_locations(
+                location_id,code,name) VALUES(:loc,:code,'Testlager') RETURNING id"""),
+                {'loc': ids[key], 'code': code}).scalar_one()
+            c.execute(text("""INSERT INTO cafeteria.food_storage_locations(
+                location_id,food_id,storage_location_id) VALUES(:loc,:food,:storage)"""),
+                {'loc': ids[key], 'food': ids[key + '_food'], 'storage': ids[key + '_storage']})
     return seeded_pg16, app_engine, ids
 
 
