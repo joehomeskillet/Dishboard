@@ -220,7 +220,7 @@ def _invalid_cases(recipe_path: str) -> list[dict]:
     values = _fixture_descriptor()['invalid']
     return [dict(path=path, field=field, value=values[field], form=form, button=button,
                  marker=marker, message=message) for path, field, form, button, marker, message in [
-        (MENU, 'internal_chf', '[data-menu-editor]', 'Speichern', 'err-int',
+        (MENU, 'internal_chf', '[data-menu-editor]', 'Menü speichern', 'err-int',
          'Preis muss als CHF-Betrag eingegeben werden.'),
         ('/admin/design/darstellung', 'admin_density', '#display-settings-form',
          'Darstellung speichern', 'admin-density-error', 'Bitte eine der angebotenen Optionen auswählen.'),

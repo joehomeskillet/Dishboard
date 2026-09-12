@@ -179,9 +179,9 @@ def catalog_component(admin_app: Flask, admin_engine: Engine) -> tuple[dict, Adm
 def _open_menu(page: Page, family: str, width: int, height: int) -> None:
     page.set_viewport_size({'width': width, 'height': height})
     page.goto(f'/admin/{family}/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1')
-    page.get_by_label('Titel', exact=True).fill('Herbstteller')
-    page.get_by_label('Beschreibung', exact=True).fill('Mit Gemüse')
-    page.get_by_label('Hinweis', exact=True).fill('Frisch zubereitet')
+    page.get_by_label('Menüname', exact=True).fill('Herbstteller')
+    page.get_by_label('Beschreibung (auf dem Speiseplan sichtbar)', exact=True).fill('Mit Gemüse')
+    page.get_by_label('Hinweis (auf dem Speiseplan sichtbar)', exact=True).fill('Frisch zubereitet')
     if family == 'cafeteria':
         page.locator('[name="internal_chf"]').fill('9.50')
         page.locator('[name="external_chf"]').fill('14.50')
@@ -218,9 +218,9 @@ def test_menu_native_auto_form_saves_and_reloads_without_optional_rows(
         'origin_ingredient', 'origin_country_code', 'label_code',
     ))
     page.reload()
-    expect(page.get_by_label('Titel', exact=True)).to_have_value('Herbstteller')
-    expect(page.get_by_label('Beschreibung', exact=True)).to_have_value('Mit Gemüse')
-    expect(page.get_by_label('Hinweis', exact=True)).to_have_value('Frisch zubereitet')
+    expect(page.get_by_label('Menüname', exact=True)).to_have_value('Herbstteller')
+    expect(page.get_by_label('Beschreibung (auf dem Speiseplan sichtbar)', exact=True)).to_have_value('Mit Gemüse')
+    expect(page.get_by_label('Hinweis (auf dem Speiseplan sichtbar)', exact=True)).to_have_value('Frisch zubereitet')
     expect(page.locator('form[data-menu-editor] [name="row_version"]')).to_have_value('1')
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
 
@@ -236,9 +236,12 @@ def test_menu_manual_metadata_and_optional_rows_roundtrip(
     for index, text in enumerate(('Blattsalat', 'Gebäck')):
         if index:
             page.get_by_role('button', name='Baustein hinzufügen').click()
+        else:
+            page.get_by_role('button', name='Ändern').first.click()
+        page.locator('[data-component-kind-option][value="text"]').nth(index).check()
         page.locator('[name="component_text"]').nth(index).fill(text)
     page.get_by_role('button', name='Baustein hinzufügen').click()
-    page.get_by_role('button', name='Baustein entfernen').last.click()
+    page.get_by_role('button', name='Entfernen').last.click()
     page.get_by_role('button', name='Baustein hinzufügen').click()
     for index, (ingredient, country) in enumerate((('Rind', 'CH'), ('Kartoffel', 'DE'))):
         if index:
@@ -291,7 +294,7 @@ def test_menu_partial_origin_stays_invalid_and_preserves_input(
     payload = _submit_menu(page, 400)
     assert payload['origin_ingredient'] == ['Rind']
     assert payload['origin_country_code'] == ['']
-    expect(page.get_by_label('Titel', exact=True)).to_have_value('Herbstteller')
+    expect(page.get_by_label('Menüname', exact=True)).to_have_value('Herbstteller')
     expect(page.locator('[name="origin_ingredient"]')).to_have_value('Rind')
     expect(page.locator('[name="origin_country_code"]')).to_have_attribute('aria-invalid', 'true')
     expect(page.locator('.error-region[role="alert"]')).to_be_focused()
@@ -308,14 +311,15 @@ def test_menu_catalog_pair_errors_and_archived_assignment_survive(
     public_id = str(component['public_id'])
     page = page_context
     _open_menu(page, 'patienten', width, height)
+    page.get_by_role('button', name='Ändern').click()
     page.locator('[name="component_public_id"]').select_option(public_id)
-    page.locator('[name="component_text"]').fill('Ungültige zweite Auswahl')
+    page.locator('[name="component_text"]').evaluate("el => el.value = 'Ungültige zweite Auswahl'")
     payload = _submit_menu(page, 400)
     assert payload['component_public_id'] == [public_id]
     assert payload['component_text'] == ['Ungültige zweite Auswahl']
     expect(page.locator('[name="component_public_id"]')).to_have_value(public_id)
     expect(page.locator('[name="component_text"]')).to_have_value('Ungültige zweite Auswahl')
-    page.locator('[name="component_text"]').fill('')
+    page.locator('[name="component_text"]').evaluate("el => el.value = ''")
     _submit_menu(page)
     archive_component(admin_engine, scope, public_id, int(component['row_version']))
     page.reload()
@@ -327,6 +331,7 @@ def test_menu_catalog_pair_errors_and_archived_assignment_survive(
     expect(rows.first.locator(f'option[value="{public_id}"]')).to_be_enabled()
     expect(rows.last.locator('[name="component_public_id"]')).to_have_value('')
     expect(rows.last.locator(f'option[value="{public_id}"]')).to_be_disabled()
+    rows.last.locator('[data-component-kind-option][value="text"]').check()
     rows.last.locator('[name="component_text"]').fill('Neue freie Beilage')
     payload = _submit_menu(page)
     assert payload['component_public_id'] == [public_id, '']

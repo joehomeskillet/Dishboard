@@ -41,6 +41,8 @@ def _assert_visible_editor_labels(page: Page) -> None:
     fields = page.locator('[name="component_public_id"], [name="component_text"], [name="origin_ingredient"], '
                           '[name="origin_country_code"], [name="allergen_presence"]')
     for field in fields.all():
+        if not field.is_visible():
+            continue
         label = page.locator(f'label[for="{field.get_attribute("id")}"]')
         expect(label).to_have_count(1)
         expect(label).to_have_class(re.compile(r'\bform-label\b'))
@@ -54,6 +56,9 @@ def _assert_visible_editor_labels(page: Page) -> None:
             expect(field).to_be_focused()
     for field in page.locator('[name="component_public_id"], [name="component_text"]').all():
         assert 'components-hint' in (field.get_attribute('aria-describedby') or '').split()
+    for row in page.locator('#components-list .component-row').all():
+        visible_controls = row.locator('[name="component_public_id"]:visible, [name="component_text"]:visible')
+        expect(visible_controls).to_have_count(1 if 'is-editing' in (row.get_attribute('class') or '') else 0)
     ids = page.locator('form[data-menu-editor] [id]').evaluate_all('els => els.map(el => el.id)')
     assert len(ids) == len(set(ids))
     dangling = page.locator('form[data-menu-editor] [aria-describedby]').evaluate_all('''els =>
@@ -80,13 +85,15 @@ def test_visible_editor_labels_with_populated_and_error_states(
     page.goto(_editor('patienten'))
     expect(page.locator('main')).to_have_attribute('data-density', density)
     _open_sections(page)
-    page.get_by_label('Titel', exact=True).fill('Gemüsegeschnetzeltes mit Kräutern, Reis und Zucchetti')
-    page.get_by_label('Beschreibung', exact=True).fill('Saisonales Gemüse und Reis, frisch zubereitet für Mittag und Abend.')
-    page.get_by_label('Hinweis', exact=True).fill(
+    page.get_by_label('Menüname', exact=True).fill('Gemüsegeschnetzeltes mit Kräutern, Reis und Zucchetti')
+    page.get_by_label('Beschreibung (auf dem Speiseplan sichtbar)', exact=True).fill('Saisonales Gemüse und Reis, frisch zubereitet für Mittag und Abend.')
+    page.get_by_label('Hinweis (auf dem Speiseplan sichtbar)', exact=True).fill(
         'Ungeprüfter Rezepturhinweis: Bei Sauce Milch, bei Bindung Weizen und bei Bouillon Sellerie prüfen; '
         'falls Fleischersatz verwendet wird, dessen Soja- und Weizenbestandteile prüfen. '
         'Rezeptur und Produktdeklaration prüfen.',
     )
+    page.get_by_role('button', name='Ändern').first.click()
+    page.locator('[data-component-kind-option][value="text"]').first.check()
     page.locator('[name="component_text"]').fill('Saisonales Gemüse mit Kräutern und langem vollständigem Rezepturhinweis')
     page.locator('[name="allergen_mode"][value="manual"]').check()
     page.locator('[name="allergen_code"][value="MILK"]').check()
@@ -100,11 +107,13 @@ def test_visible_editor_labels_with_populated_and_error_states(
     _submit_menu(page, 400)
     _open_sections(page)
     expect(page.locator('#origin-0-country-error')).to_be_visible()
-    expect(page.get_by_label('Hinweis', exact=True)).to_contain_text('Rezeptur und Produktdeklaration prüfen.')
+    expect(page.get_by_label('Hinweis (auf dem Speiseplan sichtbar)', exact=True)).to_contain_text('Rezeptur und Produktdeklaration prüfen.')
     page.screenshot(path=str(tmp_path / f'editor-labels-{density}-{width}-error.png'), full_page=True)
     _assert_visible_editor_labels(page)
-    page.get_by_role('button', name='Komponente hinzufügen').click()
+    page.get_by_role('button', name='Baustein hinzufügen').click()
+    page.locator('[data-component-kind-option][value="text"]').last.check()
     page.locator('[name="component_text"]').last.fill('Zusätzliche Gemüsebeilage')
+    page.locator('#components-list [data-row]').last.get_by_role('button', name='Fertig', exact=True).click()
     page.locator('#components-list [data-row]').last.get_by_role('button', name='Nach oben', exact=True).click()
     _assert_visible_editor_labels(page)
 
@@ -112,7 +121,7 @@ def test_visible_editor_labels_with_populated_and_error_states(
 def test_error_descriptions_follow_surviving_rows_and_are_not_cloned(page_context: Page) -> None:  # noqa: F811
     page = page_context
     page.goto(_editor('patienten'))
-    page.get_by_label('Titel', exact=True).fill('Fehlerzuordnung bei mehreren Herkunftszeilen')
+    page.get_by_label('Menüname', exact=True).fill('Fehlerzuordnung bei mehreren Herkunftszeilen')
     _open_sections(page)
     page.locator('[name="origin_mode"][value="manual"]').check()
     page.locator('[name="origin_ingredient"]').fill('Rind')
@@ -143,7 +152,7 @@ def test_allergen_presence_error_is_linked_to_its_visible_control(
 ) -> None:
     page = page_context
     page.goto(_editor('patienten'))
-    page.get_by_label('Titel', exact=True).fill('Allergen-Prüfung')
+    page.get_by_label('Menüname', exact=True).fill('Allergen-Prüfung')
     _open_sections(page)
     page.locator('[name="allergen_mode"][value="manual"]').check()
     if earlier_selected:
@@ -155,7 +164,8 @@ def test_allergen_presence_error_is_linked_to_its_visible_control(
     }''')
     _submit_menu(page, 400)
     presence = page.locator('#allergen-milk-presence')
-    expect(presence).to_be_focused()
+    error_region = page.locator('.error-region[role="alert"]')
+    expect(error_region).to_be_focused()
     expect(page.locator('[name="allergen_presence"][aria-invalid="true"]')).to_have_count(1)
     expect(presence).to_have_attribute('aria-invalid', 'true')
     expect(presence).to_have_attribute('aria-describedby', 'err-allergen-presence')
@@ -172,7 +182,7 @@ def test_allergen_error_without_active_target_keeps_summary_focus(
 ) -> None:
     page = page_context
     page.goto(_editor('patienten'))
-    page.get_by_label('Titel', exact=True).fill('Fehler ohne aktives Allergenfeld')
+    page.get_by_label('Menüname', exact=True).fill('Fehler ohne aktives Allergenfeld')
     _open_sections(page)
     page.locator(f'[name="allergen_mode"][value="{mode}"]').check()
     page.locator('form[data-menu-editor]').evaluate('''form => {
@@ -213,7 +223,7 @@ def test_editor_viewport_matrix_split_touch_and_sticky_bar(page_context: Page, f
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), width
 
         toggle = page.get_by_role('button', name='Menü', exact=True)
-        if width < 1200:
+        if width < 992:
             expect(toggle).to_be_visible()
         else:
             expect(toggle).to_be_hidden()
@@ -241,9 +251,9 @@ def test_editor_viewport_matrix_split_touch_and_sticky_bar(page_context: Page, f
         bar = form.locator('[data-sticky]')
         page.evaluate('window.scrollTo(0, 0)')
         bar_box = _box(bar)
-        assert 0 <= bar_box['y'] and bar_box['y'] + bar_box['height'] <= height + 1, (width, bar_box)
-        assert bar.evaluate('el => getComputedStyle(el).position') == 'sticky'
-        primary = bar.get_by_role('button', name='Speichern', exact=True)
+        expected_position = 'sticky' if width >= 992 and height > 480 else 'static'
+        assert bar.evaluate('el => getComputedStyle(el).position') == expected_position
+        primary = bar.get_by_role('button', name='Menü speichern', exact=True)
         expect(primary).to_have_class(re.compile(r'\bbtn-primary\b'))
         for button in bar.locator('.btn').all():
             button_box = _box(button)
@@ -277,7 +287,7 @@ def test_editor_keyboard_focus_stays_clear_of_save_bar(page_context: Page) -> No
     _open_sections(page)
     for mode in ('allergen', 'origin', 'label'):
         page.locator(f'[name="{mode}_mode"][value="manual"]').check()
-    page.get_by_label('Titel', exact=True).focus()
+    page.get_by_label('Menüname', exact=True).focus()
     seen = 0
     for _ in range(120):
         page.keyboard.press('Tab')
@@ -299,7 +309,7 @@ def test_editor_keyboard_focus_stays_clear_of_save_bar(page_context: Page) -> No
         assert clear in ('clear', 'bar'), clear
     assert seen > 20, 'Keyboard walk did not traverse the editor form.'
 
-    # Small visual viewports (landscape phone, resized layout viewport with keyboard) drop sticky.
+    # Save actions leave sticky mode when a virtual keyboard shrinks the viewport.
     page.set_viewport_size({'width': 360, 'height': 400})
     assert page.locator('form[data-menu-editor] [data-sticky]').evaluate('el => getComputedStyle(el).position') == 'static'
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
@@ -309,22 +319,28 @@ def test_dynamic_rows_have_unique_ids_labeled_controls_and_ordered_payload(page_
     page = page_context
     page.set_viewport_size({'width': 360, 'height': 780})
     page.goto(_editor('patienten'))
-    page.get_by_label('Titel', exact=True).fill('Reihenfolge')
-    add = page.get_by_role('button', name='Komponente hinzufügen')
+    page.get_by_label('Menüname', exact=True).fill('Reihenfolge')
+    add = page.get_by_role('button', name='Baustein hinzufügen')
     for index, text in enumerate(('Erste', 'Zweite', 'Dritte')):
         if index:
             add.click()
+        else:
+            page.get_by_role('button', name='Ändern').first.click()
+        page.locator('[data-component-kind-option][value="text"]').nth(index).check()
         page.locator('[name="component_text"]').nth(index).fill(text)
+        page.locator('#components-list .component-row').nth(index).get_by_role(
+            'button', name='Fertig', exact=True,
+        ).click()
     rows = page.locator('#components-list .component-row')
     expect(rows).to_have_count(3)
-    expect(rows.nth(2).locator('legend')).to_have_text('Komponente 3')
+    expect(rows.nth(2).locator('legend').first).to_have_text('Baustein 3')
     rows.nth(2).get_by_role('button', name='Nach oben').click()
     expect(page.locator('[name="component_text"]').nth(1)).to_have_value('Dritte')
     expect(rows.nth(1).get_by_role('button', name='Nach oben')).to_be_focused()
-    rows.nth(0).get_by_role('button', name='Komponente entfernen').click()
+    rows.nth(0).get_by_role('button', name='Entfernen').click()
     expect(rows).to_have_count(2)
-    expect(rows.nth(0).locator('legend')).to_have_text('Komponente 1')
-    expect(rows.nth(1).locator('legend')).to_have_text('Komponente 2')
+    expect(rows.nth(0).locator('legend').first).to_have_text('Baustein 1')
+    expect(rows.nth(1).locator('legend').first).to_have_text('Baustein 2')
 
     _open_sections(page)
     page.locator('[name="origin_mode"][value="manual"]').check()
@@ -346,7 +362,7 @@ def test_dynamic_rows_have_unique_ids_labeled_controls_and_ordered_payload(page_
         'els => els.map(el => el.htmlFor).filter(id => !document.getElementById(id))',
     )
     assert dangling == []
-    for name in ('Komponente hinzufügen', 'Komponente entfernen', 'Nach oben', 'Nach unten', 'Herkunft hinzufügen', 'Herkunft entfernen'):
+    for name in ('Baustein hinzufügen', 'Entfernen', 'Nach oben', 'Nach unten', 'Herkunft hinzufügen', 'Herkunft entfernen'):
         assert page.get_by_role('button', name=name).count() >= 1, name
 
     payload = _submit_menu(page)
@@ -364,7 +380,7 @@ def test_field_error_opens_only_affected_accordion_and_summary_links_to_field(pa
     page = page_context
     page.set_viewport_size({'width': 1024, 'height': 768})
     page.goto(_editor('patienten'))
-    page.get_by_label('Titel', exact=True).fill('Fehlerfall')
+    page.get_by_label('Menüname', exact=True).fill('Fehlerfall')
     origin = page.locator('details[data-mode-section="origin"]')
     _open_sections(page)
     # Unsaved cells prefill every mode as manual; only origin stays manual for this error case.
@@ -380,13 +396,13 @@ def test_field_error_opens_only_affected_accordion_and_summary_links_to_field(pa
     assert page.locator('details[data-mode-section="allergen"]').get_attribute('open') is None
     assert page.locator('details[data-mode-section="label"]').get_attribute('open') is None
     field = page.locator('[name="origin_country_code"]')
-    expect(field).to_be_focused()
+    expect(page.locator('.error-region[role="alert"]')).to_be_focused()
     expect(field).to_have_attribute('aria-invalid', 'true')
     expect(field).to_have_class(re.compile(r'\bis-invalid\b'))
     expect(field).to_have_attribute('aria-describedby', 'origin-0-country-error')
     expect(page.locator('#origin-0-country-error')).to_be_visible()
     expect(page.locator('[name="origin_mode"][value="manual"]')).to_be_checked()
-    expect(page.get_by_label('Titel', exact=True)).to_have_value('Fehlerfall')
+    expect(page.get_by_label('Menüname', exact=True)).to_have_value('Fehlerfall')
 
     summary = page.locator('.error-region[role="alert"]')
     expect(summary).to_have_class(re.compile(r'\balert-danger\b'))
@@ -403,7 +419,7 @@ def test_modes_and_accordion_state_survive_save_and_reload(page_context: Page) -
     page = page_context
     page.set_viewport_size({'width': 820, 'height': 1180})
     page.goto(_editor('patienten'))
-    page.get_by_label('Titel', exact=True).fill('Modus')
+    page.get_by_label('Menüname', exact=True).fill('Kennzeichnungen')
     # Unsaved cells prefill every mode as manual, so all accordions start open.
     for key in ('allergen', 'origin', 'label'):
         assert page.locator(f'details[data-mode-section="{key}"]').get_attribute('open') is not None
@@ -452,7 +468,7 @@ def test_prices_only_for_staff_and_compact_view_keeps_targets(page_context: Page
     if family == 'cafeteria':
         expect(prices).to_have_count(2)
         expect(page.get_by_label('Mitarbeitende CHF', exact=True)).to_be_visible()
-        expect(page.get_by_label('Externe CHF', exact=True)).to_be_visible()
+        expect(page.get_by_label('Preis für externe Gäste CHF', exact=True)).to_be_visible()
     else:
         expect(prices).to_have_count(0)
         assert PATIENT_FORBIDDEN.search(page.content()) is None
@@ -478,14 +494,15 @@ def test_primary_button_states_keep_brand_colours(page_context: Page) -> None:  
     save = page.locator('form[data-menu-editor] [data-sticky] button.btn-primary')
     resolve = '''([name]) => {
         const probe = document.createElement('span');
-        probe.style.color = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        probe.style.color = getComputedStyle(document.querySelector('.dishboard-admin')).getPropertyValue(name).trim();
         document.body.appendChild(probe);
         const value = getComputedStyle(probe).color;
         probe.remove();
         return value;
     }'''
-    brand = page.evaluate(resolve, ['--sh-primary'])
-    brand_hover = page.evaluate(resolve, ['--sh-primary-2'])
+    brand = page.evaluate(resolve, ['--app-primary'])
+    brand_hover = page.evaluate(resolve, ['--app-primary-hover'])
+    brand_active = page.evaluate(resolve, ['--app-primary-active'])
     assert brand != brand_hover
     style = 'el => [getComputedStyle(el).backgroundColor, getComputedStyle(el).borderColor, getComputedStyle(el).color]'
     background, _, colour = save.evaluate(style)
@@ -497,7 +514,7 @@ def test_primary_button_states_keep_brand_colours(page_context: Page) -> None:  
     assert border == brand_hover, border
     assert colour == 'rgb(255, 255, 255)'
     page.mouse.move(0, 0)
-    page.get_by_label('Titel', exact=True).focus()
+    page.get_by_label('Menüname', exact=True).focus()
     for _ in range(80):
         page.keyboard.press('Tab')
         if page.evaluate('() => document.activeElement.matches("[data-sticky] button.btn-primary")'):
@@ -516,5 +533,5 @@ def test_primary_button_states_keep_brand_colours(page_context: Page) -> None:  
     active = save.evaluate('el => getComputedStyle(el).backgroundColor')
     page.mouse.move(0, 0)  # release outside the button so no click submits the form
     page.mouse.up()
-    assert active in (brand, brand_hover), active
+    assert active in (brand, brand_hover, brand_active), active
     assert page.locator('form[data-menu-editor]').count() == 1

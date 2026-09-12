@@ -1,4 +1,4 @@
-"""«Speichern und zurück»: same form data and CSRF, only the action carries return_to=week."""
+"""«Speichern und zum Wochenplan»: same data and CSRF; action carries return_to=week."""
 from __future__ import annotations
 
 from urllib.parse import parse_qs, urlsplit
@@ -20,7 +20,7 @@ def _submit_back(page: Page, family: str, status: int) -> dict[str, list[str]]:
     with page.expect_response(
         lambda response: response.request.method == 'POST' and f'/admin/{family}/menu' in response.url
     ) as submitted:
-        page.get_by_role('button', name='Speichern und zurück', exact=True).click()
+        page.get_by_role('button', name='Speichern und zum Wochenplan', exact=True).click()
     response = submitted.value
     request_url = urlsplit(response.url)
     assert request_url.path == f'/admin/{family}/menu'
@@ -40,7 +40,7 @@ def test_save_and_back_posts_same_form_and_returns_to_week(
     page = page_context
     page.set_viewport_size({'width': width, 'height': height})
     page.goto(_editor(family))
-    back = page.get_by_role('button', name='Speichern und zurück', exact=True)
+    back = page.get_by_role('button', name='Speichern und zum Wochenplan', exact=True)
     expect(back).to_be_visible()
     assert back.evaluate('el => el.form === el.closest("form[data-menu-editor]")')
     assert back.get_attribute('formaction') == f'/admin/{family}/menu?return_to=week'
@@ -48,7 +48,7 @@ def test_save_and_back_posts_same_form_and_returns_to_week(
     assert box is not None and box['height'] >= 48 and box['x'] + box['width'] <= width + 1
     assert page.locator('form[data-menu-editor]').get_attribute('action') == f'/admin/{family}/menu'
 
-    page.get_by_label('Titel', exact=True).fill('Zurück zur Woche')
+    page.get_by_label('Menüname', exact=True).fill('Zurück zur Woche')
     if family == 'cafeteria':
         page.locator('[name="internal_chf"]').fill('9.50')
         page.locator('[name="external_chf"]').fill('14.50')
@@ -68,7 +68,7 @@ def test_save_and_back_posts_same_form_and_returns_to_week(
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
 
     page.goto(_editor(family))
-    expect(page.get_by_label('Titel', exact=True)).to_have_value('Zurück zur Woche')
+    expect(page.get_by_label('Menüname', exact=True)).to_have_value('Zurück zur Woche')
     expect(page.locator('form[data-menu-editor] [name="row_version"]')).to_have_value('1')
 
 
@@ -76,7 +76,7 @@ def test_save_and_back_error_keeps_editor_values_then_returns(page_context: Page
     page = page_context
     page.set_viewport_size({'width': 820, 'height': 1180})
     page.goto(_editor('patienten'))
-    page.get_by_label('Titel', exact=True).fill('Fehler dann zurück')
+    page.get_by_label('Menüname', exact=True).fill('Fehler dann zurück')
     for summary in page.locator('details.admin-accordion:not([open]) > summary').all():
         summary.click()
     page.locator('[name="origin_mode"][value="manual"]').check()
@@ -85,9 +85,9 @@ def test_save_and_back_error_keeps_editor_values_then_returns(page_context: Page
     assert payload['origin_ingredient'] == ['Rind']
     assert payload['origin_country_code'] == ['']
     expect(page.locator('.error-region[role="alert"]')).to_be_visible()
-    expect(page.get_by_label('Titel', exact=True)).to_have_value('Fehler dann zurück')
+    expect(page.locator('.error-region[role="alert"]')).to_be_focused()
+    expect(page.get_by_label('Menüname', exact=True)).to_have_value('Fehler dann zurück')
     expect(page.locator('[name="origin_ingredient"]')).to_have_value('Rind')
-    expect(page.locator('[name="origin_country_code"]')).to_be_focused()
     assert page.locator('form[data-menu-editor]').get_attribute('action') == '/admin/patienten/menu'
 
     page.locator('[name="origin_country_code"]').select_option('CH')
@@ -97,7 +97,7 @@ def test_save_and_back_error_keeps_editor_values_then_returns(page_context: Page
 
     # The default submit still posts to the plain action and stays in the editor.
     page.goto(_editor('patienten'))
-    page.get_by_label('Hinweis', exact=True).fill('Normal gespeichert')
+    page.get_by_label('Hinweis (auf dem Speiseplan sichtbar)', exact=True).fill('Normal gespeichert')
     _submit_menu(page)
     assert urlsplit(page.url).path == '/admin/patienten/menu'
-    expect(page.get_by_label('Hinweis', exact=True)).to_have_value('Normal gespeichert')
+    expect(page.get_by_label('Hinweis (auf dem Speiseplan sichtbar)', exact=True)).to_have_value('Normal gespeichert')

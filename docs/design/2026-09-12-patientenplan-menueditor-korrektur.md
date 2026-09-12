@@ -363,3 +363,16 @@ Die Benutzerverwaltung überträgt P01–P10 ohne Änderung der IAM-Verträge: D
 Auf der Kontoseite sind Kontostatus, vorübergehende Sperre, letzte lokale Passwortprüfung und letzter Passwortwechsel mit ihrem jeweiligen Geltungsbereich getrennt. Rollen, Passwort und Aktivierung oder Deaktivierung bleiben eigenständige Formulare mit unveränderten Zielen, Feldnamen, Versionswerten, CSRF-Schutz und ausdrücklichen Bestätigungen. Sie werden als drei klar benannte Bedarfsbereiche dargestellt; nur der fehlerhafte Bereich öffnet automatisch.
 
 Kontoereignisse und Zugriffsverlauf bleiben getrennte Lesesichten. Wiederholte Einleitungstexte wurden in die jeweilige Tabellenüberschrift zusammengezogen. Der Zugriffsverlauf nennt weiterhin ausdrücklich seine Beweisgrenze: Ein protokollierter Entscheid belegt weder eine aktive Sitzung noch eine abgeschlossene Abmeldung.
+
+## Umsetzung Menüeditor
+
+Stand 12. September 2026, WP `wp-ui-korrektur-editor-0912`:
+
+- P07/P08: Bestehende Bausteine erscheinen mit JavaScript als kompakte Zeilen. „Ändern“ öffnet die Bearbeitung; die namenlosen Schalter „Aus Liste auswählen“ und „Eigenen Text eingeben“ zeigen genau ein Eingabefeld und leeren beim Wechsel den anderen Wert. Ohne JavaScript bleiben beide bisherigen Felder sichtbar und nutzbar.
+- P09: „Menü speichern“ ist die einzige hervorgehobene Aktion. „Speichern und zum Wochenplan“ behält seinen bestehenden `return_to=week`-Schreibweg. Prüfung, Änderungslinks, Datenlücken und Bestätigung des gespeicherten Stands stehen zusammen im Bereich „Angaben prüfen“; ungespeicherte Änderungen heben den Hinweis dort hervor.
+- P10/U05: Menüname, Bausteine, öffentliche Texte und Kennzeichnungen folgen einer eindeutigen Reihenfolge. Das Standardlayout nutzt die volle Arbeitsbreite. Tablet-/Mobilansicht und geringe Höhe setzen die Aktionsleiste in den Dokumentfluss, damit Felder und Fokus nicht verdeckt werden.
+- Formularvertrag: Namen, Reihenfolge, CSRF, Versionsfelder, POST-Ziele und Prüfroute bleiben unverändert. Katalog- und Freitextwerte werden weiterhin als geordnete Paare übertragen; versteckte Controls werden nicht deaktiviert.
+- Browserbelege: `.claude/evidence/ui-korrektur-0912/editor/` enthält reguläre Ansichten für 1366×768, 1920×1080, 768×1024, 390×844 und 200 % sowie Fehler-, Herkunftskonflikt- und No-JS-Zustand.
+- Gemeinsamer Scope-Gate: 10 Testdateien zusammen über `worker-test_sdd-gate.sh`; Ergebnis `183 passed, 8 skipped` in 442,12 Sekunden.
+
+Nicht durchgeführt: Beobachtungstest mit technisch unerfahrenen Küchenmitarbeitenden. Die Screenshots sind Implementierungsbelege, keine freigegebenen visuellen Baselines.
