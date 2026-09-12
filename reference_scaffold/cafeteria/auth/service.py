@@ -58,7 +58,6 @@ def login_account_rate_key(username: str) -> str:
     return f'dishboard:auth:local:account:{digest}'
 
 
-
 def trusted_client_address(
     environ: Mapping[str, Any],
     effective_address: str,
@@ -135,6 +134,8 @@ def consume_login_attempt(
 def clear_login_attempts(redis_client: Any, *keys: str) -> None:
     if redis_client is None:
         raise RateLimitUnavailable('Redis-Rate-Limitierung ist nicht verfügbar.')
+    if not keys:
+        return
     try:
         redis_client.delete(*keys)
     except RedisError as exc:
