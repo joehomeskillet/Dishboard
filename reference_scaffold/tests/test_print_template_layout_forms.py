@@ -216,7 +216,7 @@ def test_layout_conflict_retains_original_revision_and_all_control_values(editor
     before = snapshot(database_engine)
     response = client.post(path, data=layout_fields('patient', layout_grid='days_columns', name='Mein Layout'))
     assert response.status_code == 409
-    assert 'Eigenschaften · Revision 1' in response.text and 'PDF-Vorschau · Revision 1' in response.text
+    assert 'Vorlage · Version 1' in response.text and 'PDF-Vorschau · Version 1' in response.text
     assert 'name="version" value="0"' in response.text and 'name="revision" value="2"' not in response.text
     assert 'value="days_columns" selected' in response.text and 'value="custom" selected' in response.text
     assert 'value="Mein Layout"' in response.text
@@ -250,13 +250,17 @@ def test_native_layout_controls_keyboard_errors_and_no_js_save(editor_app, edito
         expect(page.locator('iframe')).to_be_visible()
         if profile == 'patient':
             assert page.locator('option[value="prices"]').count() == 0
+        page.locator('details[data-template-week-layout] > summary').click()
         page.get_by_text('Raster, Bilder und Abstände', exact=True).click()
         page.get_by_label('Wochenraster', exact=True).select_option(changed_grid)
         _targets(page)
         with page.expect_response(lambda response: response.request.method == 'POST') as result:
-            page.get_by_role('button', name='Entwurf speichern und prüfen', exact=True).click()
+            page.get_by_role('button', name='Vorlage speichern', exact=True).click()
         assert result.value.status == 400
-        expect(page.get_by_label('Layout beim Speichern', exact=True)).to_be_focused()
+        if javascript:
+            expect(page.locator('.error-region')).to_be_focused()
+        else:
+            expect(page.get_by_label('Layout beim Speichern', exact=True)).to_be_focused()
         expect(page.get_by_label('Wochenraster', exact=True)).to_have_value(changed_grid)
         page.get_by_label('Layout beim Speichern', exact=True).select_option('custom')
         page.locator('summary').filter(has_text='Reihenfolge im Kopfbereich').click()
@@ -267,12 +271,13 @@ def test_native_layout_controls_keyboard_errors_and_no_js_save(editor_app, edito
         expect(page.get_by_label('Reihenfolge im Kopfbereich · Position 2', exact=True)).to_be_focused()
         first.select_option('title')
         page.get_by_label('Reihenfolge im Kopfbereich · Position 2', exact=True).select_option('logo')
-        page.get_by_role('button', name='Entwurf speichern und prüfen', exact=True).click()
-        expect(page.get_by_role('heading', name='Eigenschaften · Revision 2', exact=True)).to_be_visible()
+        page.get_by_role('button', name='Vorlage speichern', exact=True).click()
+        expect(page.get_by_role('heading', name='Vorlage · Version 2', exact=True)).to_be_visible()
+        page.locator('details[data-template-week-layout] > summary').click()
         expect(page.get_by_text('Individuelles Wochenlayout gespeichert.', exact=False)).to_be_visible()
         _targets(page)
         page.screenshot(path=str(tmp_path / f'layout-editor-{family}-{width}-js-{javascript}.png'), full_page=True, caret='initial')
-        for summary in page.locator('form.card summary').all():
+        for summary in page.locator('details[data-template-week-layout] details > summary').all():
             summary.click()
         _targets(page)
         page.locator('form.card').filter(has=page.locator('#template-name')).screenshot(

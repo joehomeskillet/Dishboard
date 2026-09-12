@@ -376,3 +376,24 @@ Stand 12. September 2026, WP `wp-ui-korrektur-editor-0912`:
 - Gemeinsamer Scope-Gate: 10 Testdateien zusammen über `worker-test_sdd-gate.sh`; Ergebnis `183 passed, 8 skipped` in 442,12 Sekunden.
 
 Nicht durchgeführt: Beobachtungstest mit technisch unerfahrenen Küchenmitarbeitenden. Die Screenshots sind Implementierungsbelege, keine freigegebenen visuellen Baselines.
+
+## Umsetzung Druckvorlagen
+
+Die Vorlagenübersicht zeigt je Bereich zuerst aktive Druckvorlage, Version und
+Geltungsbereich. Eine einzige Bereichsauswahl funktioniert mit und ohne
+JavaScript. Frühere Versionen, weitere Vorlagen, PDF-Zugriffe, Inhaltswechsel und
+Wochenauswahl bleiben in klar benannten, bedarfsgerecht geöffneten Gruppen
+erreichbar.
+
+Im Druckvorlageneditor bleiben Vorlage und PDF-Vorschau nebeneinander auf voller
+Arbeitsbreite. Schrift, Farben, Zusatztexte und Wochenlayout werden bei Bedarf
+geöffnet; Fehler öffnen den betroffenen Bereich. «Vorlage speichern» ist einzige
+hervorgehobene Aktion, «Abbrechen» ist nachgeordnet. Aktivieren, Versionen sowie
+Kopieren und Archivieren sind getrennt gruppiert. Sichtbare Statusaussagen nennen
+Bereich und aktive beziehungsweise angezeigte Version.
+
+Formularnamen, CSRF-, Versions- und Revisionsfelder, POST-Ziele sowie Aktionen
+`save`, `activate`, `restore`, `copy`, `archive` und `reactivate` bleiben
+unverändert. Browsertests fangen Speichern, Aktivieren und Laden einer früheren
+Version mit und ohne JavaScript ab. Druck-, PDF- und öffentliche Ausgabe-Templates
+bleiben ausserhalb dieser Umsetzung.

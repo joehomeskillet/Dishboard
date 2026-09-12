@@ -4,37 +4,20 @@
 {% set layout_variant = 'standard' %}
 {% block title %}Vorlagen · Menüplanung{% endblock %}
 {% block page_header %}{{ page_header('Vorlagen', description='Druckvorlagen bearbeiten, als PDF prüfen und für gespeicherte Wochen und Rezeptrevisionen verwenden.') }}{% endblock %}
-{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-screens.css') }}">{% endblock %}
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin-screens.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='print-template-editor.css') }}">
+{% endblock %}
 {% block content %}
-<p class="text-secondary small mb-4">Druckvorlagen bearbeiten, als PDF prüfen und für gespeicherte Wochen und Rezeptrevisionen verwenden.</p>
-<form class="card mb-4" method="get" action="{{ url_for('admin.vorlagen') }}">
-  <div class="card-body">
-    <div class="row g-3 align-items-end">
-      <div class="col-12 col-sm-6 col-lg-4">
-        <label class="form-label" for="output-week">Woche ab Montag</label>
-        <input class="form-control" type="date" id="output-week" name="week" value="{{ week }}" required aria-describedby="output-week-hint">
-      </div>
-      <div class="col-12 col-sm-auto"><button class="btn" type="submit">Woche anzeigen</button></div>
-    </div>
-    <p class="form-hint mb-0 mt-2" id="output-week-hint">Die gewählte Woche gilt für Wochenpflege und PDF. Öffentliche Druckansichten zeigen weiterhin den aktuell veröffentlichten Plan.</p>
-  </div>
-</form>
 {% if catalog_error %}
 <div class="alert alert-danger" role="alert">{{ catalog_error }}</div>
 {% else %}
-<noscript>
-  <nav class="nav nav-tabs mb-3" aria-label="Bereich ohne JavaScript">
-    {% for output_family, label, endpoint in [('cafeteria', area_names.staff_guest, 'cafeteria'), ('patienten', area_names.patient, 'patient')] %}
-    <a class="nav-link" href="#output-{{ output_family }}">{{ label }}</a>
-    {% endfor %}
-  </nav>
-</noscript>
 <div class="nav nav-tabs mb-3 output-area-tabs" role="tablist" aria-label="Bereich">
   {% for output_family, label, endpoint in [('cafeteria', area_names.staff_guest, 'cafeteria'), ('patienten', area_names.patient, 'patient')] %}
-  <button class="nav-link{% if loop.first %} active{% endif %}" id="output-{{ output_family }}-tab" type="button" role="tab" data-bs-toggle="tab" data-bs-target="#output-{{ output_family }}" aria-controls="output-{{ output_family }}" aria-selected="{{ 'true' if loop.first else 'false' }}"{% if not loop.first %} tabindex="-1"{% endif %}>{{ label }}</button>
+  <a class="nav-link{% if loop.first %} active{% endif %}" id="output-{{ output_family }}-tab" href="#output-{{ output_family }}" role="tab" data-bs-toggle="tab" data-bs-target="#output-{{ output_family }}" aria-controls="output-{{ output_family }}" aria-selected="{{ 'true' if loop.first else 'false' }}"{% if not loop.first %} tabindex="-1"{% endif %}>{{ label }}</a>
   {% endfor %}
 </div>
-<div class="tab-content mb-4">
+<div class="tab-content output-area-panels mb-4">
   {% for output_family, label, endpoint in [('cafeteria', area_names.staff_guest, 'cafeteria'), ('patienten', area_names.patient, 'patient')] %}
   {% set catalog = catalogs[output_family] %}
   {% set active_template = catalog.document.templates | selectattr('id', 'equalto', catalog.document.active_template) | first %}
@@ -43,30 +26,24 @@
     <article class="card">
       <div class="card-header"><h2 class="card-title">{{ label }}</h2></div>
       <div class="card-body d-flex flex-column">
-        <div class="output-print-section mb-4 pb-3 border-bottom">
-          <h3 class="h4 mb-2">Wochenplan drucken</h3>
-          <p class="text-secondary small mb-3">Das PDF verwendet die gespeicherte Woche ab {{ week|date_long }}. Vor dem ersten PDF-Download die Woche anlegen und speichern.</p>
-          <div class="btn-list mb-2">
-            <a class="btn btn-primary" href="{{ url_for('admin.print_week', family=output_family, week=week) }}" aria-label="{{ label }} PDF der gespeicherten Woche öffnen">{{ icon('file-text') }}PDF der gewählten Woche öffnen</a>
-            <a class="btn" href="{{ url_for('public.print_' ~ endpoint ~ '_week') }}" aria-label="{{ label }} veröffentlichten Wochenplan drucken">{{ icon('printer') }}Veröffentlichten Plan drucken</a>
-          </div>
-          <div class="form-hint small">Gewählte Woche: ab {{ week|date_long }} · Veröffentlichter Plan: aktueller Stand der Ausgaben</div>
-        </div>
-        <div class="output-layouts-section mb-4 pb-3 border-bottom">
-          <h3 class="h4 mb-2">Drucklayout ändern</h3>
-          <p class="text-secondary small mb-3">Das Drucklayout bestimmt die Darstellung des Wochenplans im PDF. Für Downloads gilt die aktive Version.</p>
-          {% if catalog.active %}
-          <p class="mb-2"><span class="badge bg-green-lt">Aktiv für PDF</span> {{ catalog.active.name }} · Version {{ catalog.active.id }}</p>
+        <section class="output-current-template mb-3" data-current-template>
+          <h3 class="h4 mb-2">Druckvorlage</h3>
+          {% if active_template and active_latest %}
+          <p class="h3 text-break mb-1">{{ active_latest.name }}</p>
+          <p class="mb-3">
+            <span class="badge bg-green-lt">Aktiv</span>
+            für {{ label }}-Wochenpläne: Version {{ catalog.active.id }}
+            {% if active_latest.id != catalog.active.id %} · Neuer Entwurf: Version {{ active_latest.id }}{% endif %}
+          </p>
+          {% if 'Cafeteria.Admin' in roles %}
+          <a class="btn" href="{{ url_for('admin.print_template_editor', family=output_family, week=week, template=active_template.id, revision=active_latest.id) }}">{{ icon('pencil') }}Vorlage bearbeiten</a>
           {% endif %}
-          {% if 'Cafeteria.Admin' in roles and active_template and active_latest %}
-          <div class="btn-list mb-2">
-            <a class="btn" href="{{ url_for('admin.print_template_editor', family=output_family, week=week, template=active_template.id, revision=active_latest.id) }}">{{ icon('pencil') }}Drucklayout bearbeiten</a>
-          </div>
           {% endif %}
-          <details class="card">
-            <summary class="card-header">Frühere Versionen</summary>
+        </section>
+        <details class="card mb-3 output-layouts-section">
+            <summary class="card-header">Frühere Versionen und weitere Vorlagen</summary>
             <div class="card-body">
-              <p class="text-secondary small mb-3">Alle Vorlagen und Versionen inklusive Entwurf, Archiv und PDF-Prüfung.</p>
+              <p class="text-secondary small mb-3">Vorlagen, Entwürfe, aktive Versionen und PDF-Prüfung.</p>
               {% for archived, group_label in [(false, 'Verfügbare Vorlagen'), (true, 'Archivierte Vorlagen')] %}
               {% set group = catalog.document.templates|selectattr('archived', 'equalto', archived)|list %}
               {% if group %}
@@ -85,11 +62,11 @@
                   {% endif %}
                   {% if 'Cafeteria.Admin' in roles %}
                   <div class="btn-list">
-                    <a class="btn" href="{{ url_for('admin.print_template_editor', family=output_family, week=week, template=template.id, revision=latest.id) }}">{{ icon('pencil') }}Vorlageneditor öffnen</a>
-                    <a class="btn" href="{{ url_for('admin.print_template_preview', family=output_family, week=week, template=template.id, revision=latest.id) }}">{{ icon('eye') }}Revision {{ latest.id }} als PDF prüfen</a>
+                    <a class="btn" href="{{ url_for('admin.print_template_editor', family=output_family, week=week, template=template.id, revision=latest.id) }}">{{ icon('pencil') }}Vorlage bearbeiten</a>
+                    <a class="btn" href="{{ url_for('admin.print_template_preview', family=output_family, week=week, template=template.id, revision=latest.id) }}">{{ icon('eye') }}Version {{ latest.id }} als PDF prüfen</a>
                     {% if active and latest.id != catalog.active.id %}
-                    <a class="btn" href="{{ url_for('admin.print_template_editor', family=output_family, week=week, template=template.id, revision=catalog.active.id) }}">Aktive Revision öffnen</a>
-                    <a class="btn" href="{{ url_for('admin.print_template_preview', family=output_family, week=week, template=template.id, revision=catalog.active.id) }}">{{ icon('eye') }}Aktive Revision als PDF prüfen</a>
+                    <a class="btn" href="{{ url_for('admin.print_template_editor', family=output_family, week=week, template=template.id, revision=catalog.active.id) }}">Aktive Version öffnen</a>
+                    <a class="btn" href="{{ url_for('admin.print_template_preview', family=output_family, week=week, template=template.id, revision=catalog.active.id) }}">{{ icon('eye') }}Aktive Version als PDF prüfen</a>
                     {% endif %}
                   </div>
                   {% endif %}
@@ -99,22 +76,48 @@
               {% endif %}
               {% endfor %}
             </div>
-          </details>
-        </div>
-        <div class="output-content-links mt-auto">
-          <h3 class="h4 mb-2">Inhalte pflegen</h3>
-          <p class="text-secondary small mb-2">Direkter Wechsel in die Planungs- und Bausteinpflege:</p>
-          <div class="btn-list">
-            <a class="btn" href="{{ url_for('admin.' ~ output_family, week=week) }}" aria-label="{{ label }} gewählte Woche öffnen">{{ icon('calendar-week') }}Woche öffnen</a>
-            <a class="btn" href="{{ url_for('admin.menu_collection', family=output_family) }}" aria-label="{{ label }} Menüs öffnen">{{ icon('tools-kitchen-2') }}Menüs öffnen</a>
-            <a class="btn" href="{{ url_for('admin.components_get', family=output_family) }}" aria-label="{{ label }} Komponenten öffnen">{{ icon('components') }}Komponenten öffnen</a>
+        </details>
+        <details class="card output-more-actions">
+          <summary class="card-header">Weitere Aktionen</summary>
+          <div class="card-body">
+            <div class="output-print-section mb-4 pb-3 border-bottom">
+              <h3 class="h4 mb-2">PDF öffnen oder drucken</h3>
+              <p class="text-secondary small mb-3">Gewählte Woche: ab {{ week|date_long }}. Öffentliche Druckansichten zeigen den aktuell veröffentlichten Plan.</p>
+              <div class="btn-list mb-2">
+                <a class="btn" href="{{ url_for('admin.print_week', family=output_family, week=week) }}" aria-label="{{ label }} PDF der gespeicherten Woche öffnen">{{ icon('file-text') }}PDF der gewählten Woche öffnen</a>
+                <a class="btn" href="{{ url_for('public.print_' ~ endpoint ~ '_week') }}" aria-label="{{ label }} veröffentlichten Wochenplan drucken">{{ icon('printer') }}Veröffentlichten Plan drucken</a>
+              </div>
+            </div>
+            <div class="output-content-links">
+              <h3 class="h4 mb-2">Inhalte bearbeiten</h3>
+              <div class="btn-list">
+                <a class="btn" href="{{ url_for('admin.' ~ output_family, week=week) }}" aria-label="{{ label }} gewählte Woche öffnen">{{ icon('calendar-week') }}Woche öffnen</a>
+                <a class="btn" href="{{ url_for('admin.menu_collection', family=output_family) }}" aria-label="{{ label }} Menüs öffnen">{{ icon('tools-kitchen-2') }}Menüs öffnen</a>
+                <a class="btn" href="{{ url_for('admin.components_get', family=output_family) }}" aria-label="{{ label }} Komponenten öffnen">{{ icon('components') }}Komponenten öffnen</a>
+              </div>
+            </div>
           </div>
-        </div>
+        </details>
       </div>
     </article>
   </div>
   {% endfor %}
 </div>
+<details class="card mb-4">
+  <summary class="card-header">Woche für PDF auswählen</summary>
+  <form method="get" action="{{ url_for('admin.vorlagen') }}">
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-sm-6 col-lg-4">
+          <label class="form-label" for="output-week">Woche ab Montag</label>
+          <input class="form-control" type="date" id="output-week" name="week" value="{{ week }}" required aria-describedby="output-week-hint">
+        </div>
+        <div class="col-12 col-sm-auto"><button class="btn" type="submit">Woche anzeigen</button></div>
+      </div>
+      <p class="form-hint mb-0 mt-2" id="output-week-hint">Diese Woche gilt für Wochenpflege und PDF. Öffentliche Druckansichten zeigen den aktuell veröffentlichten Plan.</p>
+    </div>
+  </form>
+</details>
 {% set recipe_catalog = catalogs.rezepte %}
 {% if recipe_catalog is defined %}
 <div class="row row-cards mb-4">

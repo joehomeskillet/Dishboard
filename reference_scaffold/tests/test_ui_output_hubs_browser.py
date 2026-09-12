@@ -396,6 +396,7 @@ def test_output_hubs_matrix_empty_states(
             expect(frame.get_by_text(empty_text, exact=False)).to_be_visible()
             focus_target = page.locator(".screen-card .nav-link").first
         elif focus_role == "tab":
+            page.locator(".tab-pane.active .output-more-actions > summary").click()
             expect(page.get_by_text(empty_text, exact=False).first).to_be_visible()
             focus_target = page.locator(".output-area-tabs .nav-link").first
         else:
