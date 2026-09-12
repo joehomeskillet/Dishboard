@@ -359,6 +359,6 @@ def test_cancelled_archive_confirm_keeps_unsaved_changes_guard(
     page.locator('form[action$="/archive"] button').click()
     assert dialogs == ['confirm']
     page.once('dialog', dismiss)
-    page.get_by_role('link', name='Zurück zur Liste').click()
+    page.get_by_role('link', name='Abbrechen', exact=True).click()
     assert dialogs == ['confirm', 'beforeunload']
     expect(page.get_by_label('Name', exact=True)).to_have_value('Noch nicht gespeichert')
