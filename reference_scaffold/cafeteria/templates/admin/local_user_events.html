@@ -4,8 +4,7 @@
 {% block title %}Kontoereignisse · Benutzer & Zugriff{% endblock %}
 {% block page_header %}{% call page_header('Kontoereignisse', 'Benutzer & Zugriff') %}<a class="btn" href="{{ url_for('admin.access_history') }}">Zugriffsverlauf</a><a class="btn" href="{{ url_for('admin.local_users_list') }}">Zurück zur Kontenliste</a>{% endcall %}{% endblock %}
 {% block content %}
-<p class="text-secondary">Erfolgreiche lokale Kontoänderungen und vorübergehende Anmeldesperren. Dies ist keine vollständige Login- oder Logout-Historie. Zeitangaben: Schweiz.</p>
-<section class="card" aria-labelledby="events-title"><div class="card-header"><h2 class="card-title" id="events-title">Kontoereignisse</h2></div>
+<section class="card" aria-labelledby="events-title"><div class="card-header"><div><h2 class="card-title mb-1" id="events-title">Kontoereignisse</h2><p class="text-secondary mb-0">Lokale Kontoänderungen und vorübergehende Anmeldesperren · Zeitangaben Schweiz. Anmeldungen und Abmeldungen stehen im Zugriffsverlauf.</p></div></div>
 {% if rows %}<div class="table-responsive"><table class="table table-vcenter card-table table-mobile-lg"><thead><tr><th>Zeitpunkt</th><th>Konto</th><th>Ereignis</th><th>Ausgeführt von</th></tr></thead><tbody>
 {% for item in rows %}<tr><td data-label="Zeitpunkt">{{ format_time(item.occurred_at) }}</td><td data-label="Konto" class="text-break">{{ item.target_display_name }}</td><td data-label="Ereignis">{{ item.summary }}</td><td data-label="Ausgeführt von" class="text-break">{{ item.actor_display_name or 'Anmeldeschutz' }}</td></tr>{% endfor %}
 </tbody></table></div>{% else %}<div class="empty"><p class="empty-title">Noch keine Kontoereignisse</p><p class="empty-subtitle text-secondary">Erfolgreiche Kontoaktionen erscheinen hier automatisch.</p><div class="empty-action"><a class="btn" href="{{ url_for('admin.local_users_list') }}">Konten öffnen</a></div></div>{% endif %}</section>

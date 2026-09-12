@@ -238,3 +238,11 @@ Lieferumfang: tatsächliche Dateipfade, Befund-ID → Änderung → Test → Erg
 Ein Test mit technisch unerfahrenen Personen soll insbesondere zeigen, ob sie ein Menü finden, nur die Beilage ändern, speichern und den Unterschied zwischen „geprüft“ und „Allergenangaben fehlen“ erklären können. Ein Agent darf fehlende Nutzerbeobachtungen nicht als durchgeführt ausgeben.
 
 **Kernziel: Volle Breite behalten, Wiederholungen entfernen, Menüs zuerst zeigen und Prüfzustände verständlich machen. Nicht erneut nur die Karten grösser machen.**
+
+## 10. Umsetzung Benutzer & Zugriff
+
+Die Benutzerverwaltung überträgt P01–P10 ohne Änderung der IAM-Verträge: Die Kontenliste bleibt Hauptinhalt, das Anlegen eines lokalen Kontos liegt in einem nativen, bei Bedarf geöffneten `<details>`-Bereich. Die eigene Anlegeseite öffnet denselben Bereich; nach Validierungsfehlern bleibt er offen, Textwerte bleiben erhalten und Passwortfelder werden leer neu ausgegeben.
+
+Auf der Kontoseite sind Kontostatus, vorübergehende Sperre, letzte lokale Passwortprüfung und letzter Passwortwechsel mit ihrem jeweiligen Geltungsbereich getrennt. Rollen, Passwort und Aktivierung oder Deaktivierung bleiben eigenständige Formulare mit unveränderten Zielen, Feldnamen, Versionswerten, CSRF-Schutz und ausdrücklichen Bestätigungen. Sie werden als drei klar benannte Bedarfsbereiche dargestellt; nur der fehlerhafte Bereich öffnet automatisch.
+
+Kontoereignisse und Zugriffsverlauf bleiben getrennte Lesesichten. Wiederholte Einleitungstexte wurden in die jeweilige Tabellenüberschrift zusammengezogen. Der Zugriffsverlauf nennt weiterhin ausdrücklich seine Beweisgrenze: Ein protokollierter Entscheid belegt weder eine aktive Sitzung noch eine abgeschlossene Abmeldung.

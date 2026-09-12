@@ -7,8 +7,6 @@
 <a class="btn" href="{{ url_for('admin.local_users_list') }}">Zurück zur Kontenliste</a>
 {% endcall %}{% endblock %}
 {% block content %}
-<p>Anmeldeentscheidungen und angeforderte Abmeldungen, lokal und mit Microsoft Entra.</p>
-<p class="text-secondary">Erfasst seit Einführung dieses Verlaufs. Frühere Anmeldungen werden nicht ergänzt. Ein Eintrag bestätigt weder eine aktive Sitzung noch eine abgeschlossene Abmeldung.</p>
 <form method="get" class="row g-3 align-items-end mb-4" aria-label="Zugriffsverlauf filtern">
   <div class="col-12 col-md-4"><label class="form-label" for="access-provider">Zugang</label>
     <select class="form-select" id="access-provider" name="provider"><option value="all">Alle Zugänge</option>
@@ -21,7 +19,7 @@
   <div class="col-12 col-md-3"><div class="btn-list"><button class="btn btn-primary" type="submit">Filtern</button><a class="btn" href="{{ url_for('admin.access_history') }}">Zurücksetzen</a></div></div>
 </form>
 <section class="card" aria-labelledby="access-events-title">
-  <div class="card-header"><h2 class="card-title" id="access-events-title">Zugriffsereignisse</h2></div>
+  <div class="card-header"><div><h2 class="card-title mb-1" id="access-events-title">Zugriffsereignisse</h2><p class="text-secondary mb-0">Anmeldeentscheidungen und angeforderte Abmeldungen, lokal und mit Microsoft Entra. Erfasst seit Einführung dieses Verlaufs. Frühere Anmeldungen werden nicht ergänzt.</p></div></div>
   {% if rows %}<div class="table-responsive"><table class="table table-vcenter card-table table-mobile-lg">
     <thead><tr><th>Zeitpunkt</th><th>Verifiziertes Konto</th><th>Zugang</th><th>Ereignis</th></tr></thead>
     <tbody>{% for item in rows %}<tr>
@@ -32,7 +30,7 @@
     </tr>{% endfor %}</tbody>
   </table></div>
   {% else %}<div class="empty"><p class="empty-title">Keine Zugriffsereignisse in dieser Auswahl</p><p class="empty-subtitle text-secondary">Neue Anmeldeentscheidungen und Abmeldeanfragen erscheinen hier automatisch.</p><div class="empty-action"><a class="btn" href="{{ url_for('admin.access_history') }}">Alle Ereignisse anzeigen</a></div></div>{% endif %}
-  <div class="card-footer text-secondary">Zeitangaben: Schweiz. Kontonamen entsprechen dem aktuellen Stand; nicht zugeordnete Ereignisse enthalten keine verifizierte Identität.</div>
+  <div class="card-footer text-secondary">Geltungsbereich: Ein Eintrag bestätigt weder eine aktive Sitzung noch eine abgeschlossene Abmeldung. Zeitangaben: Schweiz. Kontonamen entsprechen dem aktuellen Stand; nicht zugeordnete Ereignisse enthalten keine verifizierte Identität.</div>
 </section>
 {{ pagination(page,has_next,prev_url,next_url,'Zugriffsereignisseiten') }}
 {% endblock %}
