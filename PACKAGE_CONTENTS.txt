@@ -415,6 +415,8 @@ docs/design/2026-09-08-authentication-access-history.md
 docs/design/2026-09-08-native-pdf-layout-contract.md
 docs/design/2026-09-09-unified-ui-design-system.md
 docs/design/2026-09-11-admin-shell-navigation-spec.md
+docs/design/2026-09-12-fullwidth-audit.md
+docs/design/2026-09-12-patientenplan-menueditor-korrektur.md
 docs/design/admin-redesign-ui.md
 docs/design/admin-tabler-contract.md
 docs/design/country-select-source.md
@@ -1278,6 +1280,8 @@ reference_scaffold/tests/test_swagger_ui_assets.py
 reference_scaffold/tests/test_tabler_package_verification.py
 reference_scaffold/tests/test_ui_brand_ops_browser.py
 reference_scaffold/tests/test_ui_contracts.py
+reference_scaffold/tests/test_ui_fullwidth_pages_a_browser.py
+reference_scaffold/tests/test_ui_fullwidth_pages_b_browser.py
 reference_scaffold/tests/test_ui_fullwidth_shell_browser.py
 reference_scaffold/tests/test_ui_inventory_capture.py
 reference_scaffold/tests/test_ui_master_components_browser.py
@@ -1285,6 +1289,7 @@ reference_scaffold/tests/test_ui_master_shell_browser.py
 reference_scaffold/tests/test_ui_master_tokens_browser.py
 reference_scaffold/tests/test_ui_menu_editor_browser.py
 reference_scaffold/tests/test_ui_output_hubs_browser.py
+reference_scaffold/tests/test_ui_preview_browser.py
 reference_scaffold/tests/test_ui_reference_detail_browser.py
 reference_scaffold/tests/test_ui_reference_form_browser.py
 reference_scaffold/tests/test_ui_reference_list_browser.py
