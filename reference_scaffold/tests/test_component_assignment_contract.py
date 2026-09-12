@@ -1,4 +1,4 @@
-"""R5a keeps the new DTO internal until all writers preserve its third field."""
+"""Writers preserve the assignment DTO including the optional recipe revision field."""
 from uuid import uuid4
 
 import pytest
@@ -23,8 +23,8 @@ def test_recipe_is_independent_of_catalogue_link(catalogue):
            'recipe_revision_public_id': str(uuid4())}
     assignment, = normalize_assignments((row,))
     assert assignment.as_payload() == row
-    with pytest.raises(ValueError):
-        legacy_normalize([row])
+    legacy, = legacy_normalize([row])
+    assert legacy.as_payload() == row
 
 
 @pytest.mark.parametrize('changes', [
