@@ -242,7 +242,8 @@ def test_a06_live_checked_and_missing_allergens_are_separate(
     page_context: Page, admin_app: Flask, family: str, profile: str,  # noqa: F811
 ) -> None:
     engine = admin_app.extensions['cafeteria_db']
-    _publish_ready(engine, profile, _a06_values(profile))
+    values = _a06_values(profile)
+    _publish_ready(engine, profile, values)
     page = page_context
     page.set_viewport_size({'width': 1366, 'height': 768})
     _goto(page, family)
@@ -255,6 +256,7 @@ def test_a06_live_checked_and_missing_allergens_are_separate(
     )
     filled = SLOT_COUNT[family]
     expect(status).to_contain_text(f'{filled} Menükarten geprüft')
+    expect(status).to_contain_text('Wochenkopf und Ausgabehinweise geprüft')
     expect(status).to_contain_text('1 ohne Allergenangaben')
     expect(status).not_to_contain_text('Keine offenen Prüfungen')
     text_line_tops = status.evaluate('''root => {
@@ -274,6 +276,16 @@ def test_a06_live_checked_and_missing_allergens_are_separate(
     expect(card.locator('.slot-badge')).to_have_text('Geprüft')
     expect(card).to_contain_text('Allergenangaben nicht erfasst')
     _shot(page, family, 'a06', 1366, 768)
+
+    values['title'] = f"{values['title']} geändert"
+    _save_reviewed(engine, profile, values)
+    _goto(page, family)
+    expect(page.locator('main')).to_have_attribute('data-status', 'changed')
+    changed_status = page.get_by_role('status')
+    expect(changed_status.locator('.admin-week-status-copy')).to_have_text(
+        'Veröffentlicht · Änderungen offen'
+    )
+    expect(changed_status).to_contain_text('Wochenkopf und Ausgabehinweise geprüft')
 
 
 @pytest.mark.parametrize(('family', 'profile'), (('cafeteria', 'staff_guest'), ('patienten', 'patient')))

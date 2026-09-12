@@ -14,11 +14,11 @@
 {% elif status == 'changed' %}
   {% set publish_label = 'Änderungen veröffentlichen' %}
   {% set status_plain = 'Veröffentlicht · gespeicherte Änderungen noch nicht veröffentlicht' %}
-  {% set status_short = 'Änderungen noch unveröffentlicht' %}
+  {% set status_short = 'Veröffentlicht · Änderungen offen' %}
 {% elif status == 'ready' %}
   {% set publish_label = 'Veröffentlichen' %}
   {% set status_plain = 'Noch nicht veröffentlicht · bereit' %}
-  {% set status_short = 'Bereit zur Veröffentlichung' %}
+  {% set status_short = 'Noch nicht veröffentlicht · bereit' %}
 {% elif status == 'review_open' %}
   {% set publish_label = 'Veröffentlichen' %}
   {% set status_plain = 'Prüfung offen' %}
@@ -48,9 +48,9 @@
     <span class="badge bg-secondary-lt admin-week-status-chip" aria-label="Alle {{ filled_slots }} erfassten Menükarten geprüft">{{ filled_slots }} Menükarten geprüft</span>
     {% endif %}
     {% if status == 'review_open' and open_checks == 0 %}
-    <span class="badge bg-secondary-lt admin-week-status-chip" aria-label="Wochenkopf und Ausgabehinweise noch zu prüfen">Wochenprüfung offen</span>
+    <span class="badge bg-secondary-lt admin-week-status-chip" aria-label="Wochenkopf und Ausgabehinweise noch zu prüfen">Wochenkopf und Ausgabehinweise: Prüfung offen</span>
     {% elif status in ('ready', 'live', 'changed') %}
-    <span class="badge bg-secondary-lt admin-week-status-chip" aria-label="Wochenkopf und Ausgabehinweise geprüft">Wochenprüfung abgeschlossen</span>
+    <span class="badge bg-secondary-lt admin-week-status-chip" aria-label="Wochenkopf und Ausgabehinweise geprüft">Wochenkopf und Ausgabehinweise geprüft</span>
     {% endif %}
     {% if allergen_stats.missing > 0 %}
     <span class="badge bg-yellow-lt text-warning admin-week-status-chip" aria-label="{{ allergen_stats.missing }} {{ 'Menükarte' if allergen_stats.missing == 1 else 'Menükarten' }} ohne Allergenangaben">{{ allergen_stats.missing }} ohne Allergenangaben</span>

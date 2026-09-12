@@ -115,6 +115,11 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
     else:
         checked_chip = status.locator('[aria-label$="erfassten Menükarten geprüft"]')
         expect(checked_chip).to_contain_text('Menükarten geprüft')
+        if state == 'ready':
+            expect(status.locator('.admin-week-status-copy')).to_have_text(
+                'Noch nicht veröffentlicht · bereit'
+            )
+            expect(status).to_contain_text('Wochenkopf und Ausgabehinweise geprüft')
     expect(status).not_to_contain_text('Keine offenen Prüfungen')
     assert page.locator('.menu-slot').count() == slots
     assert 'Arbeitsstand' not in page.locator('main').inner_text()
