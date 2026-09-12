@@ -54,7 +54,7 @@ def test_conflict_form_resubmit_without_javascript_keeps_original_cas(
         form = page.locator('form[data-menu-editor]')
         version = form.locator('[name="row_version"]')
         expect(version).to_have_value('1')
-        expect(page.get_by_label('Titel', exact=True)).to_have_value('Ursprünglicher Titel')
+        expect(page.get_by_label('Menüname', exact=True)).to_have_value('Ursprünglicher Titel')
         original_csrf = form.locator('[name="_csrf"]').input_value()
 
         # Editor B saves after A has opened the original form, through the real route.
@@ -67,11 +67,11 @@ def test_conflict_form_resubmit_without_javascript_keeps_original_cas(
         navigations: list[tuple[str, str]] = []
         page.on('request', lambda request: navigations.append((request.method, urlsplit(request.url).path))
                 if request.is_navigation_request() else None)
-        page.get_by_label('Titel', exact=True).fill('Ungespeicherter Titel von A')
+        page.get_by_label('Menüname', exact=True).fill('Ungespeicherter Titel von A')
         first = _submit_menu(page, 409)
         assert first['row_version'] == ['1'] and first['_csrf'] == [original_csrf]
         expect(page.locator('.error-region[role="alert"]')).to_be_visible()
-        expect(page.get_by_label('Titel', exact=True)).to_have_value('Ungespeicherter Titel von A')
+        expect(page.get_by_label('Menüname', exact=True)).to_have_value('Ungespeicherter Titel von A')
         assert _stored_state(admin_engine) == before
         returned_version = version.input_value()
 
@@ -87,7 +87,7 @@ def test_conflict_form_resubmit_without_javascript_keeps_original_cas(
         fresh = page.goto(editor)
         assert fresh is not None and fresh.status == 200
         expect(version).to_have_value('2')
-        expect(page.get_by_label('Titel', exact=True)).to_have_value('Zwischenzeitlich von B gespeichert')
+        expect(page.get_by_label('Menüname', exact=True)).to_have_value('Zwischenzeitlich von B gespeichert')
         assert _stored_state(admin_engine) == before
     finally:
         context.close()

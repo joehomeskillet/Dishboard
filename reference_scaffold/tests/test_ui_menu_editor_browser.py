@@ -125,13 +125,13 @@ def _capture(page: Page, tmp_path: Path, name: str) -> None:
 
 
 def _controls(page: Page, family: str, *, component_rows: int | None = 2, require_modes: bool = True) -> None:
-    expect(page.locator('main')).to_have_attribute('data-layout', 'narrow')
+    expect(page.locator('main')).to_have_attribute('data-layout', 'standard')
     expect(page.locator('h1')).to_have_count(1)
     expect(page.locator('h1')).to_have_text('Menü bearbeiten')
     expect(page.get_by_role('navigation', name='Breadcrumb')).to_contain_text('Wochenplan')
     expect(page.locator('form[data-menu-editor] .btn-primary')).to_have_count(1)
     expect(page.locator('#sec-components')).to_have_text('Bausteine')
-    expect(page.locator('#sec-review')).to_have_text('Prüfung des gespeicherten Menüs')
+    expect(page.locator('#sec-review')).to_have_text('Angaben prüfen')
     expect(page.locator('#review form[action$="/menu/review"]')).to_have_count(1)
     if family == 'cafeteria':
         expect(page.locator('#f-int')).to_be_visible()
@@ -160,18 +160,24 @@ def _controls(page: Page, family: str, *, component_rows: int | None = 2, requir
         expect(page.locator('.menu-editor-component-row')).to_have_count(component_rows)
     if require_modes:
         modes = page.evaluate('''() => ({
-            catalog: [...document.querySelectorAll('.menu-editor-row-mode-catalog')]
-                .some(element => getComputedStyle(element).display !== 'none'),
-            text: [...document.querySelectorAll('.menu-editor-row-mode-text')]
-                .some(element => getComputedStyle(element).display !== 'none'),
+            enhanced: document.querySelector('form[data-menu-editor]').hasAttribute('data-component-enhanced'),
+            catalog: document.querySelectorAll('[data-component-kind-option][value="catalog"]:checked').length,
+            text: document.querySelectorAll('[data-component-kind-option][value="text"]:checked').length,
+            named: document.querySelectorAll('[data-component-kind-option][name]').length,
         })''')
-        assert modes['catalog'] and modes['text'], modes
+        assert modes['named'] == 0, modes
+        if modes['enhanced']:
+            assert modes['catalog'] and modes['text'], modes
+        else:
+            for control in page.locator('[name="component_public_id"], [name="component_text"]').all():
+                expect(control).to_be_visible()
 
 
 def _keyboard(page: Page) -> None:
     page.locator('#f-title').focus()
     page.keyboard.press('Tab')
-    expect(page.locator('#f-desc')).to_be_focused()
+    assert page.evaluate('document.activeElement.closest("#components-list") !== null')
+    page.locator('#f-desc').focus()
     focus = page.locator('#f-desc').evaluate('''e => ({
         width: getComputedStyle(e).outlineWidth, style: getComputedStyle(e).outlineStyle,
         color: getComputedStyle(e).outlineColor,
@@ -221,9 +227,12 @@ def test_validation_preserves_inputs_and_tokens(editor_page, family: str, javasc
         tokens = _tokens(page)
         page.locator('#f-title').fill('')
         page.locator('#f-desc').fill('Behalten')
+        if javascript:
+            page.get_by_role('button', name='Ändern').first.click()
+            page.locator('[data-component-kind-option][value="text"]').first.check()
         page.locator('#component-0-text').fill('Freitext behalten')
         with page.expect_response(lambda r: r.request.method == 'POST') as failed:
-            page.get_by_role('button', name='Speichern', exact=True).click()
+            page.get_by_role('button', name='Menü speichern', exact=True).click()
         assert failed.value.status == 400
         expect(page.locator('#f-title')).to_have_value('')
         expect(page.locator('#f-desc')).to_have_value('Behalten')

@@ -163,7 +163,7 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         expect(form.locator('[name="meal"]')).to_have_value('LUNCH')
         expect(form.locator('[name="option"]')).to_have_value('MENU_1')
         assert form.locator('[name="_csrf"]').input_value()
-        primary = form.get_by_role('button', name='Speichern', exact=True)
+        primary = form.get_by_role('button', name='Menü speichern', exact=True)
     elif page_kind == 'catalog':
         creation = main.locator('#create-component')
         primary = creation.locator('summary')
@@ -205,7 +205,10 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
     primary_box = primary.bounding_box()
     assert primary_box is not None
     assert primary_box['height'] >= 48
-    if page_kind != 'detail':  # the reference form keeps its save action in a static card footer (may sit below the fold)
+    if page_kind == 'editor' and width < 992:
+        # Tablet and mobile actions stay in flow so they cannot cover editor controls.
+        assert primary_box['y'] >= 0
+    elif page_kind != 'detail':  # catalog header and desktop editor action stay in the initial viewport
         assert 0 <= primary_box['y'] < primary_box['y'] + primary_box['height'] <= height
 
     if page_kind == 'catalog':
