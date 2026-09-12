@@ -1,43 +1,36 @@
 {% extends 'admin/base_tabler.html' %}
 {% set layout_variant = 'standard' %}
-{% from 'admin/_macros.html' import page_header, icon, status_badge %}
-{% from 'admin/rezepte_scale.html' import amount_form, ingredients, symbols %}
+{% from 'admin/_macros.html' import page_header, icon %}
+{% from 'admin/rezepte_scale.html' import amount_form, ingredients %}
 {% macro recorded(value) %}
 {% if value is mapping %}<dl class="mb-0">{% for key, item in value.items() %}<dt class="text-break">{{ key }}</dt><dd class="text-break">{{ recorded(item) }}</dd>{% endfor %}</dl>
 {% elif value is sequence and value is not string %}<ol>{% for item in value %}<li class="text-break">{{ recorded(item) }}</li>{% else %}<li>Keine Einträge</li>{% endfor %}</ol>
 {% elif value is none %}Nicht angegeben{% elif value is sameas true %}Ja{% elif value is sameas false %}Nein{% else %}{% for line in (value|string).split('\n') %}{{ line }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% endif %}
 {% endmacro %}
-{% block title %}Revision {{ revision.revision_number }} · {{ payload.title }}{% endblock %}
+{% block title %}Gespeicherter Stand {{ revision.revision_number }} · {{ payload.title }}{% endblock %}
 {% block page_header %}
 {% call page_header(
-  payload.title,
-  description='Unveränderlicher Revisionsstand ' ~ revision.revision_number ~ '. Erstellt: ' ~ revision.created_at.isoformat() ~ '.',
+  'Gespeicherter Stand ' ~ revision.revision_number,
+  description='Dieser gespeicherte Stand bleibt unverändert. Erstellt: ' ~ revision.created_at.isoformat() ~ '.',
   breadcrumbs=[
     ('Rezepte', url_for('admin.recipes_list')),
     (payload.title, url_for('admin.recipe_edit', recipe_id=recipe_id)),
-    ('Revisionen', url_for('admin.recipe_revisions', recipe_id=recipe_id)),
+    ('Gespeicherte Stände', url_for('admin.recipe_revisions', recipe_id=recipe_id)),
   ]
 ) %}
-  <a class="btn" href="{{ url_for('admin.recipe_revisions', recipe_id=recipe_id) }}">{{ icon('arrow-left') }}Alle Revisionen</a>
+  <a class="btn" href="{{ url_for('admin.recipe_revisions', recipe_id=recipe_id) }}">{{ icon('arrow-left') }}Alle gespeicherten Stände</a>
   <a class="btn btn-primary" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=revision.public_id, yield=calculated.target) }}">PDF öffnen</a>
 {% endcall %}
 {% endblock %}
 {% block content %}
 <section class="card mb-3">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <h2 class="card-title mb-0">Unveränderlicher Stand</h2>
-    {{ status_badge('archived', label='Unveränderlich') }}
-  </div>
+  <div class="card-header"><h2 class="card-title mb-0">{{ payload.title }}</h2></div>
   <div class="card-body">
     <dl class="row mb-0">
-      <dt class="col-12 col-sm-4 col-md-3 text-secondary">Revision</dt>
-      <dd class="col-12 col-sm-8 col-md-9 text-break">{{ revision.public_id }}</dd>
       <dt class="col-12 col-sm-4 col-md-3 text-secondary">Erstellt</dt>
       <dd class="col-12 col-sm-8 col-md-9">{{ revision.created_at.isoformat() }}</dd>
-      <dt class="col-12 col-sm-4 col-md-3 text-secondary">SHA-256</dt>
-      <dd class="col-12 col-sm-8 col-md-9 text-break"><code>{{ revision.content_hash_sha256 }}</code></dd>
-      <dt class="col-12 col-sm-4 col-md-3 text-secondary">Herkunft</dt>
-      <dd class="col-12 col-sm-8 col-md-9">{{ payload.source.kind }}{% if payload.source.reference %} · {{ payload.source.reference }}{% endif %}</dd>
+      <dt class="col-12 col-sm-4 col-md-3 text-secondary">Quelle</dt>
+      <dd class="col-12 col-sm-8 col-md-9 text-break">{{ payload.source.reference or payload.source.url or 'Nicht angegeben' }}</dd>
     </dl>
     {% if payload.description %}
     <div class="text-break mt-3 pt-3 border-top">
@@ -86,8 +79,8 @@
           <figcaption class="text-break text-secondary small">
             <strong>{{ image.caption or 'Ohne Bildunterschrift' }}</strong><br>
             Quelle: {{ image.source_url or 'Nicht angegeben' }}<br>
-            Lizenz: {{ image.source_license or 'Nicht angegeben' }}<br>
-            Abrufzeit: {{ image.fetched_at or 'Nicht angegeben' }}
+            Lizenz: {{ image.source_license or 'Nicht angegeben' }}
+            <details class="mt-2"><summary class="btn">Technische Details</summary><dl class="mt-2 mb-0"><dt>SHA-256</dt><dd class="text-break"><code>{{ image.sha256 }}</code></dd><dt>Abrufzeit</dt><dd class="text-break">{{ image.fetched_at or 'Nicht angegeben' }}</dd></dl></details>
           </figcaption>
         </figure>
       </div>
@@ -97,8 +90,17 @@
 </section>
 {% endif %}
 <details class="card mb-3">
-  <summary class="card-header">Vollständiger gespeicherter Revisionsstand</summary>
-  <div class="card-body text-break">{{ recorded(revision.snapshot) }}</div>
+  <summary class="card-header">Technische Details</summary>
+  <div class="card-body text-break">
+    <dl class="row">
+      <dt class="col-12 col-sm-4 col-md-3 text-secondary">Revision</dt><dd class="col-12 col-sm-8 col-md-9">{{ revision.revision_number }}</dd>
+      <dt class="col-12 col-sm-4 col-md-3 text-secondary">Kennung</dt><dd class="col-12 col-sm-8 col-md-9 text-break">{{ revision.public_id }}</dd>
+      <dt class="col-12 col-sm-4 col-md-3 text-secondary">Prüfsumme (SHA-256)</dt><dd class="col-12 col-sm-8 col-md-9 text-break"><code>{{ revision.content_hash_sha256 }}</code></dd>
+      <dt class="col-12 col-sm-4 col-md-3 text-secondary">Herkunftsart (Rohwert)</dt><dd class="col-12 col-sm-8 col-md-9 text-break"><code>{{ payload.source.kind }}</code></dd>
+      <dt class="col-12 col-sm-4 col-md-3 text-secondary">Abrufzeit</dt><dd class="col-12 col-sm-8 col-md-9 text-break">{{ payload.source.fetched_at or 'Nicht angegeben' }}</dd>
+    </dl>
+    <h3 class="h4">Vollständige Daten</h3>
+    {{ recorded(revision.snapshot) }}
+  </div>
 </details>
-{{ symbols() }}
 {% endblock %}

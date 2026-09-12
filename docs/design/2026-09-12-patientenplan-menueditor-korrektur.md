@@ -423,3 +423,23 @@ Ohne JavaScript bleibt «Weitere Aktionen» über natives `<details>` erreichbar
 ### Fachlicher Konflikt
 
 Veröffentlichen bleibt mit Karten ohne Allergenangaben möglich (`validate_publication_fit(require_review=False)`). Das UI zeigt die Lücke, sperrt aber nichts neu.
+
+## Umsetzung Rezepte
+
+Die Rezeptkorrektur verwendet in sichtbaren Texten durchgehend «Kennzeichnung»
+und «Kennzeichnungen»; technische Feldnamen wie `tag_public_ids` sowie der
+Query-Parameter `tag` bleiben unverändert. Im Editor stehen Rückweg und Status
+kompakt vor dem Rezeptinhalt. Bilder, gespeicherte Stände, Mengenberechnung und
+Statuswechsel liegen unter «Weitere Aktionen».
+
+Quelle und Lizenz bleiben im Arbeitsablauf sichtbar. SHA-256, Abrufzeit,
+Herkunfts-Rohwert und vollständige Revisionsdaten sind weiterhin erreichbar,
+aber unter «Technische Details» eingeordnet. Revisionsseiten verwenden
+«Gespeicherter Stand» als Hauptbegriff; Unveränderlichkeit wird einmal erklärt,
+Revision und Prüfsumme sind Metadaten.
+
+Symbollegenden entfallen. Listen- und Zeilenaktionen besitzen sichtbare
+Textlabels. Beim Bild-Upload stehen Dateifeld, Validierung und Upload-Aktion vor
+optionalen Quellenangaben; Upload-, Format-, Verlust- und Quellenhinweise bleiben
+kontextnah erhalten. Formularnamen, Hidden Inputs, Methoden, Ziele,
+Query-Parameter, Berechtigungen und serverseitige Verarbeitung ändern sich nicht.

@@ -7,17 +7,19 @@
 {% block content %}
 {% if confirmation %}
 <div class="card"><div class="card-body"><h2 class="card-title text-break">{{ payload.title }}</h2>
-<p>{{ 'Archivieren erhält Zutaten, Bilder und Revisionen. Das Rezept bleibt lesbar.' if active else 'Dieses Rezept wieder zur Bearbeitung freigeben?' }}</p>
+<p>{{ 'Archivieren erhält Zutaten, Bilder und gespeicherte Stände. Das Rezept bleibt lesbar.' if active else 'Dieses Rezept wieder zur Bearbeitung freigeben?' }}</p>
 <form method="post" action="{{ url_for('admin.recipe_status', recipe_id=recipe_id) }}">{{ hidden('_csrf') }}{{ hidden('_form_context') }}{{ hidden('row_version') }}
 <input type="hidden" name="active" value="{{ '0' if active else '1' }}"><div class="d-flex flex-wrap gap-2">
 <button class="btn btn-primary" type="submit">{{ 'Archivieren bestätigen' if active else 'Reaktivieren bestätigen' }}</button>
 <a class="btn" href="{{ url_for('admin.recipe_edit', recipe_id=recipe_id) }}">Abbrechen</a></div></form></div></div>
 {% else %}
-<div class="d-flex flex-wrap gap-2 mb-3"><a class="btn" href="{{ url_for('admin.recipes_list') }}">Zur Rezeptliste</a>
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+<a class="btn" href="{{ url_for('admin.recipes_list') }}">Zur Rezeptliste</a>
+<span class="text-secondary" role="status">{{ 'Entwurf · Änderungen werden erst mit Speichern übernommen.' if active else 'Archiviert · Lesbar, zum Bearbeiten zuerst reaktivieren.' }}</span>
+</div>
+{% if recipe_id and can_write or links %}<details class="mb-3"><summary class="btn">Weitere Aktionen</summary><div class="d-flex flex-wrap gap-2 mt-2">
 {% if recipe_id and can_write %}<a class="btn" href="{{ url_for('admin.recipe_status', recipe_id=recipe_id) }}">{{ 'Archivieren' if active else 'Reaktivieren' }}</a>{% endif %}
-{% for name, label in [('recipe_images', 'Bilder verwalten'), ('recipe_revisions', 'Revisionen'), ('recipe_scale', 'Mengen berechnen')] %}{% if name in links %}<a class="btn" href="{{ links[name] }}">{{ label }}</a>{% endif %}{% endfor %}</div>
-<p class="alert alert-info">{{ 'Entwurf: Änderungen werden erst mit Speichern übernommen.' if active else 'Archiviert: Das Rezept ist lesbar. Zum Bearbeiten zuerst reaktivieren.' }}</p>
-<details class="mb-3"><summary class="btn">Symbole</summary><div class="card card-body">Plus: Zeile einfügen. Pfeile: Zeile verschieben. Papierkorb: Zeile aus dem Formular entfernen. Erst Speichern übernimmt die Änderungen.</div></details>
+{% for name, label in [('recipe_images', 'Bilder verwalten'), ('recipe_revisions', 'Gespeicherte Stände'), ('recipe_scale', 'Mengen berechnen')] %}{% if name in links %}<a class="btn" href="{{ links[name] }}">{{ label }}</a>{% endif %}{% endfor %}</div></details>{% endif %}
 <form id="recipe-editor" method="post" action="{{ url_for('admin.recipe_edit', recipe_id=recipe_id) if recipe_id else url_for('admin.recipe_new') }}">
 {{ hidden('_csrf') }}{{ hidden('_form_context') }}{% if recipe_id %}{{ hidden('row_version') }}{% endif %}
 <fieldset{% if not active or not can_write %} disabled{% endif %}>
@@ -35,7 +37,11 @@
 <div class="row g-3"><div class="col-12 col-md-6">{{ field(prefix ~ 'quantity', 'Menge', numeric=true) }}</div><div class="col-12 col-md-6">{{ select(prefix ~ 'unit_code', 'Einheit', choices.units) }}</div></div>
 {{ field(prefix ~ 'note', 'Zutatennotiz', maximum=500) }}
 {{ hidden(prefix ~ 'source_kind') }}{{ hidden(prefix ~ 'source_reference') }}{{ hidden(prefix ~ 'fetched_at') }}
-<p class="text-secondary text-break">Herkunft: {{ source_names.get(row.source_kind, 'Ursprüngliche Herkunft') }}{% if row.source_reference %} · {{ row.source_reference }}{% endif %}{% if row.fetched_at %} · {{ row.fetched_at }}{% endif %}</p>
+<p class="text-break"><strong>Quelle:</strong> {{ row.source_reference or source_names.get(row.source_kind, 'Nicht angegeben') }}</p>
+<details class="mb-3"><summary class="btn">Technische Details</summary><dl class="row mt-3 mb-0">
+<dt class="col-12 col-sm-4 text-secondary">Herkunftsart</dt><dd class="col-12 col-sm-8 text-break">{{ row.source_kind or 'Nicht angegeben' }}</dd>
+<dt class="col-12 col-sm-4 text-secondary">Abrufzeit</dt><dd class="col-12 col-sm-8 text-break">{{ row.fetched_at or 'Nicht angegeben' }}</dd>
+</dl></details>
 {{ row_actions('ingredients', loop.index0, payload.ingredients|length, 'Zutat ' ~ loop.index) }}</div></div>
 {% else %}<p>Noch keine Zutatenzeilen.</p>{% endfor %}
 {% if can_write and active and payload.ingredients|length < 64 %}{{ row_button('ingredients', 'add', payload.ingredients|length, 'Zutat hinzufügen', 'plus') }}{% endif %}</section>
@@ -47,24 +53,31 @@
 {{ row_actions('steps', loop.index0, payload.steps|length, 'Schritt ' ~ loop.index) }}</div></div>
 {% else %}<p>Noch keine Zubereitungsschritte.</p>{% endfor %}
 {% if can_write and active and payload.steps|length < 64 %}{{ row_button('steps', 'add', payload.steps|length, 'Schritt hinzufügen', 'plus') }}{% endif %}</section>
-<div class="card mb-4"><div class="card-body"><h2 class="card-title">Tags</h2>
+<div class="card mb-4"><div class="card-body"><h2 class="card-title">Kennzeichnungen</h2>
 {% for value, label in choices.tags %}<label class="form-check"><input class="form-check-input" type="checkbox" name="tag_public_ids" value="{{ value }}"{% if value in data.getlist('tag_public_ids') %} checked{% endif %}><span class="form-check-label">{{ label }}</span></label>
-{% else %}<p>Keine Tags verfügbar.</p>{% endfor %}</div></div>
+{% else %}<p>Keine Kennzeichnungen verfügbar.</p>{% endfor %}</div></div>
 <section class="mb-4" aria-labelledby="images-heading"><h2 id="images-heading">Bilder</h2>
 {% for row in payload.images %}{% set prefix = 'images.' ~ loop.index0 ~ '.' %}
 <div class="card mb-3"><div class="card-body"><h3 class="card-title text-break">{{ row.caption or 'Bild ' ~ loop.index }}</h3>
 {{ hidden(prefix ~ 'sha256') }}{{ field(prefix ~ 'caption', 'Bildunterschrift', maximum=500) }}
-{{ field(prefix ~ 'source_url', 'Bildquelle', readonly=true) }}{{ field(prefix ~ 'source_license', 'Bildlizenz', readonly=true) }}{{ field(prefix ~ 'fetched_at', 'Abrufzeit', readonly=true) }}
+{{ field(prefix ~ 'source_url', 'Bildquelle', readonly=true) }}{{ field(prefix ~ 'source_license', 'Bildlizenz', readonly=true) }}
+<details class="mb-3"><summary class="btn">Technische Details</summary><div class="mt-3">
+{{ field(prefix ~ 'fetched_at', 'Abrufzeit', readonly=true) }}
+<p class="text-break mb-0"><strong>SHA-256:</strong> <code>{{ row.sha256 }}</code></p>
+</div></details>
 {{ row_actions('images', loop.index0, payload.images|length, 'Bild ' ~ loop.index) }}</div></div>
 {% else %}<p>Keine Bilder gespeichert.</p>{% endfor %}
-<p class="form-hint">Vor dem Entfernen eines Bildes dessen Auswahl bei den Zubereitungsschritten aufheben. Bereits gespeicherte Revisionen behalten ihre Bilder und Quellen. Neue Bilder werden nach dem Speichern über die Bildverwaltung hinzugefügt.</p></section>
+<p class="form-hint">Vor dem Entfernen eines Bildes dessen Auswahl bei den Zubereitungsschritten aufheben. Bereits gespeicherte Stände behalten ihre Bilder und Quellen. Neue Bilder werden nach dem Speichern über die Bildverwaltung hinzugefügt.</p></section>
 <div class="card mb-4"><div class="card-body"><h2 class="card-title">Quelle</h2>
-{% if recipe_id %}{{ hidden('source.kind') }}<p>{{ source_names.get(payload.source.kind, 'Ursprüngliche Herkunft') }}</p>
+{% if recipe_id %}{{ hidden('source.kind') }}<p><strong>Herkunft:</strong> {{ source_names.get(payload.source.kind, 'Ursprüngliche Herkunft') }}</p>
 {% else %}{{ select('source.kind', 'Herkunftsart', [('manual','Manuell erfasst'),('url','Quellenadresse')], blank=false) }}{% endif %}
 {{ field('source.reference', 'Quellenbeleg', readonly=recipe_id is not none, maximum=200) }}
 {{ field('source.url', 'Quellenadresse', readonly=recipe_id is not none, maximum=2048) }}
 {{ field('source.note', 'Quellennotiz', readonly=recipe_id is not none, maximum=500) }}
+<details><summary class="btn">Technische Details</summary><div class="mt-3">
+<p class="text-break"><strong>Herkunftsart (Rohwert):</strong> <code>{{ data.get('source.kind', '') or 'Nicht angegeben' }}</code></p>
 {{ field('source.fetched_at', 'Abrufzeit mit Zeitzone', readonly=recipe_id is not none) }}
+</div></details>
 </div></div>
 </fieldset>
 {% if can_write and active %}<button class="btn btn-primary" type="submit">{{ 'Rezept speichern' if recipe_id else 'Rezept anlegen' }}</button>{% endif %}

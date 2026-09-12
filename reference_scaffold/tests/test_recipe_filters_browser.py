@@ -37,14 +37,14 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         assert response.status == 200 and response.headers['cache-control'] == 'no-store'
         form = page.locator('form[action="/admin/rezepte"]')
         assert form.get_attribute('method') == 'get'
-        for label in ('Nach Rezepttitel suchen', 'Zutat', 'Tag'):
+        for label in ('Nach Rezepttitel suchen', 'Zutat', 'Kennzeichnung'):
             control = page.get_by_label(label, exact=True)
             control.focus()
             expect(control).to_be_focused()
             assert control.bounding_box()['height'] >= 48
         page.get_by_label('Nach Rezepttitel suchen', exact=True).fill('Seitensuppe')
         page.get_by_label('Zutat', exact=True).fill('rüebli')
-        page.get_by_label('Tag', exact=True).select_option(tag)
+        page.get_by_label('Kennzeichnung', exact=True).select_option(tag)
         page.get_by_label('Archivierte einschliessen', exact=True).check()
         page.get_by_role('button', name='Suchen', exact=True).focus()
         with page.expect_navigation(wait_until='load'):
@@ -70,13 +70,13 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         assert urlsplit(page.url).query == ''
         expect(page.get_by_label('Nach Rezepttitel suchen', exact=True)).to_have_value('')
         expect(page.get_by_label('Zutat', exact=True)).to_have_value('')
-        expect(page.get_by_label('Tag', exact=True)).to_have_value('')
+        expect(page.get_by_label('Kennzeichnung', exact=True)).to_have_value('')
         expect(page.get_by_label('Archivierte einschliessen', exact=True)).not_to_be_checked()
-        page.get_by_label('Tag', exact=True).select_option(filter_catalog['tag'])
+        page.get_by_label('Kennzeichnung', exact=True).select_option(filter_catalog['tag'])
         page.get_by_label('Zutat', exact=True).fill('keine solche Zutat')
         page.get_by_role('button', name='Suchen', exact=True).click()
         expect(page.get_by_role('heading', name='Keine passenden Rezepte', exact=True)).to_be_visible()
-        expect(page.get_by_label('Tag', exact=True)).to_have_value(filter_catalog['tag'])
+        expect(page.get_by_label('Kennzeichnung', exact=True)).to_have_value(filter_catalog['tag'])
         expect(page.locator('#tag option:checked')).to_have_text('Regional · archiviert')
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         page.get_by_role('heading', level=1).scroll_into_view_if_needed()
