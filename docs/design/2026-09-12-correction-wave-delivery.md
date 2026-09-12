@@ -1,6 +1,6 @@
 # Dishboard-Korrekturwelle: Lieferstand
 
-Stand: belegter Live-Release `35da76c3e66f4b246e38d68d2ef9748bdce4d62a`, Schema 30.
+Stand: belegter Live-Release `6af59e77f250712b962079cbbf5ca576dfc8bad9`, Schema 30.
 Diese Notiz ergänzt die ursprüngliche Übergabe; sie erklärt die sieben
 `MP-UI-KORREKTUR-*`-Statuswerte in `surfaces-wps.json`. `DEPLOYED` belegt die
 Auslieferung. Eine vollständige fachliche Abnahme (`ACCEPTED`) wird nicht behauptet.
@@ -18,7 +18,7 @@ Auslieferung. Eine vollständige fachliche Abnahme (`ACCEPTED`) wird nicht behau
 Zu jeder Revision sind Deployment und gesundes Image belegt; `/health/ready`,
 `/cafeteria/heute/` und `/patienten/heute/` antworteten mit HTTP 200.
 Stufen 9/10 liefen auf Schema 25; die ältere Übergabeangabe Schema 27 war falsch.
-Letztes belegtes Image:
+Belegtes Image des Schema30-Releases `35da76c`:
 `sha256:b3fb2ee3a5faa79ce356639f19ca2cca30fc51d50139c2f7c3b0bb0ca35bc733`.
 
 Schema29-Backup: `cafeteria-20260912T202421Z.HglIma.dump`, SHA-256-Seitendatei
@@ -40,14 +40,19 @@ Aktive Lagerorte: Trockenlager, Kühlraum, Tiefkühler. Vier bestehende aktive
 Publikationen blieben erhalten. Rezepte bleiben ungeprüfte Entwürfe; keine neuen
 Allergendeklarationen oder Testpublikationen wurden erzeugt.
 
-## Folgepakete im laufenden Sprint
+## Ausgelieferte Folgepakete und funktionaler Abschluss
 
-| Paket | Belegter Arbeitsstand; noch kein zusätzlicher Live-Beleg |
+Root hat den funktionalen Abschluss der Korrekturwelle mit Live-Release
+`6af59e77f250712b962079cbbf5ca576dfc8bad9` bestätigt: seit 2026-09-12 23:05 CEST
+gesund (`healthy`), einschließlich aller vier zuletzt gemergten Folgepakete.
+Die unten aufgeführten offenen Nachweise bleiben davon unberührt.
+
+| Paket | Belegter Lieferstand |
 |---|---|
-| TEST03/04/08 | Native Benutzer-/CSV- und UI-Vertragstests: `d6fcd65`, Root 8 Tests grün, in combined gemergt; Deployment ausstehend. |
-| BUG02 | Semantische Recovery-Sections: `1c7deb7`, Root 19 Tests grün, in combined gemergt; Deployment ausstehend. Originalfelder einschließlich Duplikaten, CSRF/CAS und Rezeptpins erhalten. |
-| UX12 | Konto-Begriffe: `b3cbc42`, Root 3 Tests grün, in combined gemergt; Deployment ausstehend. |
-| TEST05 | Branding-NoJS-Fehlerfall: `9517648`, Root 1 Test grün, in combined gemergt; Deployment ausstehend. |
+| TEST03/04/08 | DEPLOYED `6af59e7`: Native Benutzer-/CSV- und UI-Vertragstests (`d6fcd65`), Root 8 Tests grün. |
+| BUG02 | DEPLOYED `6af59e7`: Semantische Recovery-Sections (`1c7deb7`), Root 19 Tests grün. Originalfelder einschließlich Duplikaten, CSRF/CAS und Rezeptpins erhalten. |
+| UX12 | DEPLOYED `6af59e7`: Konto-Begriffe (`b3cbc42`), Root 3 Tests grün. |
+| TEST05 | DEPLOYED `6af59e7`: Branding-NoJS-Fehlerfall (`9517648`), Root 1 Test grün. |
 
 Delegierte API-Entscheidung: Bestehende Schlüssel behalten bisherige Kanalrechte
 und Ablaufdaten. Neue Schlüssel wählen Cafeteria, Patienten oder beide ausdrücklich;
