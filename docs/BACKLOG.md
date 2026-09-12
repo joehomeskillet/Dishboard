@@ -28,6 +28,56 @@ Letzter belegter Produktivstand ist `5f5f6cb`/Schema 25; seit 9. September,
 Public Screens sind bereits live. Der ältere Stand darunter ist historisch.
 Planung bedeutet keine Fertigmeldung der Umsetzung oder Abnahme.
 
+## Nachtrag — 13. September 2026: Gerichtvorlagen ↔ Rezepte, Menüvorschlag, Rezeptansicht und Druck
+
+Produktbaseline `2fa44dea`/Schema 30 (live seit 12.09.2026, 23:15 CEST); Planung auf
+`c0839fb` durch Fable 5.1 (`wp-61d537d988a2`). Beide Nutzeraufträge unverändert:
+
+> https://dishboard.joelduss.xyz/admin/gerichtvorlagen/bcbef3cf-3529-4165-ac43-1f543572c1ff gerichtsvorlagen sollten auf https://dishboard.joelduss.xyz/admin/rezepte rezepte matchen und umgekehrt. aus den gerichtsvorlagen sollen menüvorschläge erstellt werden können und direkt einem tag und planung zugeordnet. idiotensicheres ui nach neuem ui manifest. (ins backlog in wp-s zerlegt, das kann fable 5.1 planen)
+
+> https://dishboard.joelduss.xyz/admin/rezepte button pro rezept für die direkt ansicht und eines für drucken fehlt, muss in vorlagen als druckvorlage verknüpft sein.
+
+Spezifikation: [Feature-SDD vom 13.09.](design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md);
+Verträge in [recipes-sdd.md §12](superpowers/backlog-0909/recipes-sdd.md#nachtrag-0913) und
+[surfaces-sdd.md §13](superpowers/backlog-0909/surfaces-sdd.md#template-flow). Alle 35
+Backlog-IDs und alle ursprünglichen 145 WP-IDs bleiben; mit Nachtrag und Reviewkorrektur
+umfasst der Plan 152 Pakete. Die strukturellen Gatebelege stehen im jeweiligen WP-Bericht.
+
+**Belegter Ist-Stand:** Gerichtvorlagenpflege ist seit dem Schema-29-Release live
+(32 Vorlagen, `dish_templates.recipe_id` bindet den Rezeptkopf); `menu_items.dish_template_id`
+existiert, wird aber vom nativen Menüwriter nicht gesetzt; Rezeptkarten haben weder
+Direktansicht noch Druckaktion; das Rezept-PDF nutzt die aktive Druckvorlage, ohne dass
+Rezeptseiten sie nennen; die Vorlagen-Rezeptauswahl ist auf 200 Rezepte begrenzt; der
+Druckvorlageneditor öffnet ohne Parameter `standard` statt der aktiven Vorlage.
+
+**Entscheidungen:** Zuordnung nur über vorhandene IDs, kein Namens-Matching; Vorlage
+bindet den Rezeptkopf, Menü bindet den gespeicherten Stand, der beim Vorschlag sichtbar
+vorgeschlagen und nie still gesetzt wird; der Vorschlag ist ein vorbefüllter Menüeditor
+ohne eigenen Datensatz; belegte Slots werden nie überschrieben; Drucken = PDF des
+neuesten gespeicherten Stands, ohne Stand ein erklärter Weg zum Festhalten; kein
+Entwurfs-PDF; keine Migration. Der signierte ursprüngliche Actor/Authz-/Standort- und
+Vorlagenversionskontext bleibt durch Einplanen-POST → 303 → Menü-GET → Save erhalten;
+final transaktional geprüft. Slot-Race bleibt 409 mit Create-CAS 0, kein stiller
+Bearbeitungsmodus. Archivierte Rezept-/Vorlagenbindungen dürfen nicht neu entstehen;
+unveränderte Altbindungen bleiben bei sonstigen Menüänderungen erhalten.
+
+| ID | Zuordnung im Nachtrag | Pakete |
+|---|---|---|
+| REC-001 | Vorlage ↔ Rezept beidseitig sichtbar, gebundene Rezeptauswahl, Rezeptansicht, Vorlagenbezug am Menü | `MP-REC-LINK-READS`, `MP-REC-RECIPE-VIEW-PRINT`, `MP-REC-MENU-TEMPLATE-BINDING`; `MP-REC-DISH-TEMPLATE-WRITER` mit Beleg `DEPLOYED`; `MP-REC-BINDINGS-ACCEPT` um die vierte Kante erweitert |
+| REC-003 | Menüvorschlag aus Vorlage in Tag/Mahlzeit/Menüart eines Plans | `MP-REC-MENU-PROPOSAL`, `MP-REC-MENU-TEMPLATE-BINDING` |
+| REC-007 | Drucken je Rezept, sichtbare aktive Druckvorlage, Editor-Einstieg | `MP-REC-RECIPE-VIEW-PRINT`, `MP-REC-PRINT-TEMPLATE-ENTRY` |
+| TPL-001 | Gerichtvorlagen (Menüvorlagen) und Rezeptdruck im Vorlagen-Hub | neuer kleiner `MP-TPL-RECIPE-DISH-ENTRY`; unabhängige Flussabnahme hängt daran, `MP-TPL-HUB-COMPLETE` konsumiert ihn später; kein Warten auf Einkaufsdruck/Screen-Editor |
+| UI-003 / QA-001 | Masterprompt-konforme Seiten, Inventar, unabhängige Flussabnahme | `MP-UI-TEMPLATE-FLOW-ACCEPT` neu; `MP-UI-INVENTORY`, `MP-UI-MATRIX`, `MP-UI-RECIPE-LISTS`, `MP-UI-PRINT-EDITOR` erweitert |
+
+Alle neuen Pakete sind `PLANNED`; Root vergibt Leases (Workflow-Cluster seriell mit
+`MP-REC-PLAN-PORTIONS`, Hub- und Rezeptlisten-Dateien seriell) und setzt `READY`.
+Kein SQL-Writer, kein neuer Import, kein Freeze/Review/Publish; fachliche Mengen- und
+Allergenprüfung bleibt DATA-001. Planung ist keine Fertigmeldung.
+LINK-READS und PRINT-TEMPLATE-ENTRY bleiben einzeln lieferbar mit Links zum bestehenden
+Rezepteditor. RECIPE-VIEW-PRINT übernimmt die Anschlussdateien und schaltet die Links
+gemeinsam mit der neuen Ansicht um; keine kaputte Zwischenrelease. Reviewkorrektur
+`wp-6777001976c5` betrifft nur Verträge; keine neue Produktabnahme wird behauptet.
+
 ## Historischer Stand — Snapshot vom 7. September 2026 nach dem Deploy um 11:14:03 CEST
 
 **Produktiv ist `783fab33520e15c956df431f62ad75c9940e2285`, Schema 21**, seit `2026-09-07T09:14:03.117859908Z` (11:14:03 CEST). Image `sha256:2ddb31a28e7297b258daf440170554dd8139f6dafd4cab485dda7484b6955a8b`; Root bestätigt `healthy` und null Neustarts. Die vollständige unabhängige Paketprüfung bestand mit **4837 Tests, 15 expliziten Opt-in-Skips und null Failures/Errors**. [Aktueller Deploybeleg](/nvmetank1/projects/menuplan/.claude/state/ops-root-evidence-0907/release-783fab3-deploy.md), wird um die frischen Live-Nachweise ergänzt. Historisch: `2cfc43f` seit 08:33:23 CEST, Image `sha256:3c5167b2615e4144c4353afebc08275b5c9441130a4c48a691e8f949568b4412`, **4716 Tests/15 Opt-in-Skips/null Fehler** (14 Restore-Drills und eine Compose-Probe nicht aktiviert): [voriger Deploybeleg](/nvmetank1/projects/menuplan/.claude/state/ops-root-evidence-0907/release-2cfc43f-deploy.md).

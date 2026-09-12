@@ -49,7 +49,8 @@
       "acceptance_criteria": [
         "Jede registrierte HTML-Route und jeder Login-/Leer-/Fehler-/Dialogzustand besitzt verantwortliches MP und Fixture; keine erfundene Seite.",
         "Alle bestehenden Rollen anonym/Editor/Publisher/Admin und bedingte Navigation erfasst; gemeinsame CSS-/JS-/Formhooks dokumentiert.",
-        "Vorherbilder aller Seiten Desktop/Mobile; Belege enthalten reale Browser-/Fontversion, DPR, Zeit, Locale, Fixturehash; keine Live-Schreibfixtures."
+        "Vorherbilder aller Seiten Desktop/Mobile; Belege enthalten reale Browser-/Fontversion, DPR, Zeit, Locale, Fixturehash; keine Live-Schreibfixtures.",
+        "Nachtrag 13.09. (wp-61d537d988a2): Gerichtvorlagen-Familie (/admin/gerichtvorlagen, /neu, /<uuid>, /<uuid>/einplanen samt Leer-/Konflikt-/403-Zuständen) und /admin/rezepte/<uuid>/ansicht als eigene Inventarzeilen mit MP-Zuordnung; die Matrix vom 11.09. (116 Routen, Schema 25) bleibt historischer Beleg und gilt nicht als aktuelle Vollständigkeit."
       ],
       "contract_files": [],
       "read_only_contract_files": [
@@ -74,7 +75,8 @@
           "assertions": [
             "Jede registrierte HTML-Route und jeder Login-/Leer-/Fehler-/Dialogzustand besitzt verantwortliches MP und Fixture; keine erfundene Seite.",
             "Alle bestehenden Rollen anonym/Editor/Publisher/Admin und bedingte Navigation erfasst; gemeinsame CSS-/JS-/Formhooks dokumentiert.",
-            "Vorherbilder aller Seiten Desktop/Mobile; Belege enthalten reale Browser-/Fontversion, DPR, Zeit, Locale, Fixturehash; keine Live-Schreibfixtures."
+            "Vorherbilder aller Seiten Desktop/Mobile; Belege enthalten reale Browser-/Fontversion, DPR, Zeit, Locale, Fixturehash; keine Live-Schreibfixtures.",
+            "Gerichtvorlagen-Familie und Rezeptansicht inventarisiert (Nachtrag 13.09.)"
           ]
         }
       ],
@@ -1228,7 +1230,8 @@
         "MP-UI-REF-DETAIL",
         "MP-UI-REF-SETTINGS",
         "MP-UI-REF-WORKSPACE",
-        "MP-BAS-FOUNDATIONS"
+        "MP-BAS-FOUNDATIONS",
+        "MP-REC-RECIPE-VIEW-PRINT"
       ],
       "existing_wp_id": null,
       "sdd_sections": [
@@ -1248,7 +1251,8 @@
         "Originale Identität/Authz, Scope, CSRF und Objekt-CAS bleiben erhalten; Konflikt/403/503 verändert keine Fachversion, Freigabe oder Veröffentlichung.",
         "Nur zugewiesene Dateien bearbeiten; geteilte Owner erst nach Freeze konsumieren. Neue Module kleiner als 400 Zeilen anstreben, nie über 600; keine neuen Dependencies ohne eigene akzeptierte Entscheidung.",
         "Masterprompt ../../design/2026-09-09-unified-ui-design-system.md bleibt einzige Token-/Komponentenquelle; keine kopierten Seitentokens und keine Fach-/Auth-/API-/SQL-Änderung.",
-        "Alle zugewiesenen Routen/Zustände mindestens 1440×900 und 390×844 mit JS aus sowie Tastatur; kein Dokumentoverflow, unlesbarer Pflichttext oder ungültiger Fokus. Fehler/Leer/409 behalten Eingaben und ursprüngliche Formtokens."
+        "Alle zugewiesenen Routen/Zustände mindestens 1440×900 und 390×844 mit JS aus sowie Tastatur; kein Dokumentoverflow, unlesbarer Pflichttext oder ungültiger Fokus. Fehler/Leer/409 behalten Eingaben und ursprüngliche Formtokens.",
+        "Aktionen Ansehen/Bearbeiten/Drucken, Vorlagenbezug und PDF-Links je Stand aus MP-REC-RECIPE-VIEW-PRINT bleiben erhalten; keine doppelten identischen Ziele; rezepte.html und rezepte_revisionen.html erst nach dessen Freeze (Nachtrag 13.09.)"
       ],
       "contract_files": [],
       "read_only_contract_files": [
@@ -1710,7 +1714,18 @@
         "2026-09-12 Ausführung wp-7e17c2562ba1 (antigravity-agy gemini-3.8-flash-high, db6d40f; 52 passed) + R4-Korrektur wp-7e17c2562ba1-fix (cursor cd0c626: Bereichs-Tabs, «Drucklayout ändern», «Frühere Versionen», empty-Zustände, 11/11); Cross-Review cursor FINDINGS(6) (.claude/evidence/ui-design-wave-0911/reviews/output-hubs-cross-review-cursor.md); Fremdtest-Angleichung wp-ui-output-hubs-foreign-tests-0912 (cursor) läuft. In integrate/ui-inventory-0911.",
         "Fremdtest-Angleichung wp-ui-output-hubs-foreign-tests-0912 (cursor cae6cfc) integriert. 2026-09-12 18:13 CEST: als github/main 03061ce deployt (Vorschau-Rework, Ausgabe-Hubs R4, Vollbreiten-Audit A+B, Fremdtest-Angleichungen)."
       ],
-      "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
+      "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix.",
+      "shared_owner_gate": {
+        "policy": "Root-Lease vor READY; genau ein Writer pro Datei, vorhandenen Vorgängerfreeze konsumieren. Keine fachfremde Featureabhängigkeit als Dateisperre.",
+        "files": {
+          "reference_scaffold/cafeteria/templates/admin/vorlagen.html": [
+            "MP-TPL-RECIPE-DISH-ENTRY",
+            "MP-TPL-HUB-COMPLETE",
+            "MP-UI-OUTPUT-HUBS",
+            "MP-UI-KORREKTUR-VORLAGEN"
+          ]
+        }
+      }
     },
     {
       "id": "MP-UI-PRINT-EDITOR",
@@ -1727,7 +1742,8 @@
         "MP-UI-REF-DETAIL",
         "MP-UI-REF-SETTINGS",
         "MP-UI-REF-WORKSPACE",
-        "MP-REC-PDF-RELEASE"
+        "MP-REC-PDF-RELEASE",
+        "MP-REC-PRINT-TEMPLATE-ENTRY"
       ],
       "existing_wp_id": null,
       "sdd_sections": [
@@ -1749,7 +1765,8 @@
         "Originale Identität/Authz, Scope, CSRF und Objekt-CAS bleiben erhalten; Konflikt/403/503 verändert keine Fachversion, Freigabe oder Veröffentlichung.",
         "Nur zugewiesene Dateien bearbeiten; geteilte Owner erst nach Freeze konsumieren. Neue Module kleiner als 400 Zeilen anstreben, nie über 600; keine neuen Dependencies ohne eigene akzeptierte Entscheidung.",
         "Masterprompt ../../design/2026-09-09-unified-ui-design-system.md bleibt einzige Token-/Komponentenquelle; keine kopierten Seitentokens und keine Fach-/Auth-/API-/SQL-Änderung.",
-        "Alle zugewiesenen Routen/Zustände mindestens 1440×900 und 390×844 mit JS aus sowie Tastatur; kein Dokumentoverflow, unlesbarer Pflichttext oder ungültiger Fokus. Fehler/Leer/409 behalten Eingaben und ursprüngliche Formtokens."
+        "Alle zugewiesenen Routen/Zustände mindestens 1440×900 und 390×844 mit JS aus sowie Tastatur; kein Dokumentoverflow, unlesbarer Pflichttext oder ungültiger Fokus. Fehler/Leer/409 behalten Eingaben und ursprüngliche Formtokens.",
+        "Aktive-Vorlage-Default und «Zurück zum Rezept» aus MP-REC-PRINT-TEMPLATE-ENTRY bleiben erhalten; _recipe_template_selection.html erst nach dessen Freeze (Nachtrag 13.09.)"
       ],
       "contract_files": [],
       "read_only_contract_files": [
@@ -1796,7 +1813,17 @@
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
         "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix"
       ],
-      "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
+      "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix.",
+      "shared_owner_gate": {
+        "policy": "Root-Lease vor READY; genau ein Writer pro Datei, vorhandenen Vorgängerfreeze konsumieren. Keine fachfremde Featureabhängigkeit als Dateisperre.",
+        "files": {
+          "reference_scaffold/cafeteria/templates/admin/_recipe_template_selection.html": [
+            "MP-REC-PRINT-TEMPLATE-ENTRY",
+            "MP-REC-RECIPE-VIEW-PRINT",
+            "MP-UI-PRINT-EDITOR"
+          ]
+        }
+      }
     },
     {
       "id": "MP-UI-BRAND-OPS",
@@ -2458,7 +2485,8 @@
         "MP-UI-AUTH",
         "MP-UI-API",
         "MP-UI-SPECIAL-OUTPUTS",
-        "MP-UI-PUBLIC-WHITE-POLISH"
+        "MP-UI-PUBLIC-WHITE-POLISH",
+        "MP-UI-TEMPLATE-FLOW-ACCEPT"
       ],
       "existing_wp_id": null,
       "sdd_sections": [
@@ -2773,7 +2801,17 @@
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich"
       ],
-      "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
+      "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix.",
+      "shared_owner_gate": {
+        "policy": "Root-Lease vor READY; genau ein Writer pro Datei, vorhandenen Vorgängerfreeze konsumieren. Keine fachfremde Featureabhängigkeit als Dateisperre.",
+        "files": {
+          "reference_scaffold/cafeteria/admin/output_routes.py": [
+            "MP-TPL-RECIPE-DISH-ENTRY",
+            "MP-TPL-HUB-COMPLETE",
+            "MP-SCR-DEVICES"
+          ]
+        }
+      }
     },
     {
       "id": "MP-SCR-PLAYLISTS",
@@ -3321,34 +3359,46 @@
         "MP-REC-PDF-RELEASE",
         "MP-REC-DISH-TEMPLATE-WRITER",
         "MP-REC-SHOPPING-PDF",
-        "MP-SCR-EDITOR-FIELDS"
+        "MP-SCR-EDITOR-FIELDS",
+        "MP-REC-PRINT-TEMPLATE-ENTRY",
+        "MP-TPL-RECIPE-DISH-ENTRY"
       ],
       "existing_wp_id": null,
       "sdd_sections": [
-        "surfaces-sdd.md#druck"
+        "surfaces-sdd.md#druck",
+        "surfaces-sdd.md#template-flow"
       ],
       "source_anchors": [
         "reference_scaffold/cafeteria/admin/output_routes.py:vorlagen",
         "reference_scaffold/cafeteria/templates/admin/vorlagen.html",
         "reference_scaffold/cafeteria/admin/recipe_print_template_routes.py:recipe_print_template_editor"
       ],
-      "task": "Nach jeweiligem Featurefreeze alle echten Wochen-, Rezept-, Screen-, Menüvorlagen- und Grundlagen-Einstiege sowie den vorhandenen Einkaufsdruck konsistent verlinken. Rezeptowner liefert CRUD und Einkaufsrenderer; dieses WP besitzt ausschliesslich Hub-Wiring.",
+      "task": "Nach jeweiligem Featurefreeze alle echten Wochen-, Rezept-, Screen-, Menüvorlagen- und Grundlagen-Einstiege sowie den vorhandenen Einkaufsdruck konsistent verlinken. Rezeptowner liefert CRUD und Einkaufsrenderer; dieses WP besitzt ausschliesslich Hub-Wiring. Den bereits gelieferten MP-TPL-RECIPE-DISH-ENTRY mit Gerichtvorlagen-/Rezeptdruckanschlüssen und Tests bewahren; dieses spätere Paket ergänzt ausschliesslich die übrigen nach ihrem Featurefreeze verfügbaren Einstiege.",
       "acceptance_criteria": [
         "Jede sichtbare Karte führt zu einem registrierten autorisierten Endpoint mit tatsächlichem Lifecycle. Keine Attrappen und keine Woche als Rezept.",
         "Staff, patient und recipe bleiben getrennt. Korrekte Rollen und no-store auch bei 503; keine falsche Auswahl bei nur einer Option.",
         "Gesamte Katalognavigation auf Desktop/Mobile mit NoJS prüfen. Bestehende Weekly-Assertions bleiben erhalten; zusätzliche Karten ändern nur zugehörige Count-Erwartungen.",
         "Originale Identität/Authz, Scope, CSRF und Objekt-CAS bleiben erhalten; Konflikt/403/503 verändert keine Fachversion, Freigabe oder Veröffentlichung.",
-        "Nur zugewiesene Dateien bearbeiten; geteilte Owner erst nach Freeze konsumieren. Neue Module kleiner als 400 Zeilen anstreben, nie über 600; keine neuen Dependencies ohne eigene akzeptierte Entscheidung."
+        "Nur zugewiesene Dateien bearbeiten; geteilte Owner erst nach Freeze konsumieren. Neue Module kleiner als 400 Zeilen anstreben, nie über 600; keine neuen Dependencies ohne eigene akzeptierte Entscheidung.",
+        "Den von MP-TPL-RECIPE-DISH-ENTRY gelieferten Gerichtvorlagen-Hubanschluss samt aktiv/archiviert-Zählung und Rollen erhalten; keine erneute Erstimplementierung im grossen Abschluss.",
+        "Den von MP-TPL-RECIPE-DISH-ENTRY gelieferten Rezeptdruck-/Aktivvorlagen-Link mit expliziten IDs erhalten; SHOPPING-PDF/SCR-EDITOR-FIELDS bleiben nur Voraussetzungen dieses späteren Gesamtabschlusses."
       ],
       "contract_files": [],
       "read_only_contract_files": [
-        "docs/superpowers/backlog-0909/surfaces-sdd.md"
+        "docs/superpowers/backlog-0909/surfaces-sdd.md",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md"
       ],
-      "wiring_files": [],
+      "wiring_files": [
+        "reference_scaffold/cafeteria/admin/output_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/vorlagen.html"
+      ],
       "owned_files": [
         "reference_scaffold/cafeteria/admin/output_routes.py",
         "reference_scaffold/cafeteria/templates/admin/vorlagen.html",
-        "reference_scaffold/cafeteria/templates/admin/screens.html"
+        "reference_scaffold/cafeteria/templates/admin/screens.html",
+        "reference_scaffold/tests/test_admin_output_hubs.py",
+        "reference_scaffold/tests/test_admin_template_catalog_browser.py",
+        "reference_scaffold/tests/test_ui_output_hubs_browser.py"
       ],
       "forbidden_paths": [
         "production/*",
@@ -3359,11 +3409,13 @@
       "test_plan": [
         {
           "kind": "browser",
-          "command": "BROWSERGATE <assigned-worktree> reference_scaffold/tests/test_admin_template_catalog_browser.py reference_scaffold/tests/test_admin_output_hubs.py reference_scaffold/tests/test_screen_template_navigation.py -q",
+          "command": "BROWSERGATE <assigned-worktree> reference_scaffold/tests/test_admin_template_catalog_browser.py reference_scaffold/tests/test_admin_output_hubs.py reference_scaffold/tests/test_screen_template_navigation.py -q reference_scaffold/tests/test_ui_output_hubs_browser.py",
           "assertions": [
             "Jede sichtbare Karte führt zu einem registrierten autorisierten Endpoint mit tatsächlichem Lifecycle. Keine Attrappen und keine Woche als Rezept.",
             "Staff, patient und recipe bleiben getrennt. Korrekte Rollen und no-store auch bei 503; keine falsche Auswahl bei nur einer Option.",
-            "Gesamte Katalognavigation auf Desktop/Mobile mit NoJS prüfen. Bestehende Weekly-Assertions bleiben erhalten; zusätzliche Karten ändern nur zugehörige Count-Erwartungen."
+            "Gesamte Katalognavigation auf Desktop/Mobile mit NoJS prüfen. Bestehende Weekly-Assertions bleiben erhalten; zusätzliche Karten ändern nur zugehörige Count-Erwartungen.",
+            "Den von MP-TPL-RECIPE-DISH-ENTRY gelieferten Gerichtvorlagen-Hubanschluss samt aktiv/archiviert-Zählung und Rollen erhalten; keine erneute Erstimplementierung im grossen Abschluss.",
+            "Den von MP-TPL-RECIPE-DISH-ENTRY gelieferten Rezeptdruck-/Aktivvorlagen-Link mit expliziten IDs erhalten; SHOPPING-PDF/SCR-EDITOR-FIELDS bleiben nur Voraussetzungen dieses späteren Gesamtabschlusses."
           ]
         }
       ],
@@ -3380,7 +3432,35 @@
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich"
       ],
-      "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
+      "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix.",
+      "shared_owner_gate": {
+        "policy": "Root-Lease vor READY; genau ein Writer pro Datei, vorhandenen Vorgängerfreeze konsumieren. Keine fachfremde Featureabhängigkeit als Dateisperre.",
+        "files": {
+          "reference_scaffold/cafeteria/admin/output_routes.py": [
+            "MP-TPL-RECIPE-DISH-ENTRY",
+            "MP-TPL-HUB-COMPLETE",
+            "MP-SCR-DEVICES"
+          ],
+          "reference_scaffold/tests/test_ui_output_hubs_browser.py": [
+            "MP-TPL-RECIPE-DISH-ENTRY",
+            "MP-TPL-HUB-COMPLETE"
+          ],
+          "reference_scaffold/cafeteria/templates/admin/vorlagen.html": [
+            "MP-TPL-RECIPE-DISH-ENTRY",
+            "MP-TPL-HUB-COMPLETE",
+            "MP-UI-OUTPUT-HUBS",
+            "MP-UI-KORREKTUR-VORLAGEN"
+          ],
+          "reference_scaffold/tests/test_admin_output_hubs.py": [
+            "MP-TPL-RECIPE-DISH-ENTRY",
+            "MP-TPL-HUB-COMPLETE"
+          ],
+          "reference_scaffold/tests/test_admin_template_catalog_browser.py": [
+            "MP-TPL-RECIPE-DISH-ENTRY",
+            "MP-TPL-HUB-COMPLETE"
+          ]
+        }
+      }
     },
     {
       "id": "MP-TPL-PAPER",
@@ -5092,7 +5172,18 @@
         "2026-09-12 gestartet: wp-ui-korrektur-vorlagen-0912 (codex-gpt5), Cross-Vendor-Review folgt vor der Integration.",
         "DEPLOYED: Druckvorlagen samt Leerzustand-Fix 7afdcf8 in Stufe 9 7fbbfbc2a7950e8c9648edbe53c8143828785c30 enthalten. Release-/Image-/Schema-/Live-Belege und offene Abnahmen: docs/design/2026-09-12-correction-wave-delivery.md. Kein ACCEPTED."
       ],
-      "rollback": "Template-/CSS-Rücknahme auf den vorherigen Stand; keine Daten betroffen."
+      "rollback": "Template-/CSS-Rücknahme auf den vorherigen Stand; keine Daten betroffen.",
+      "shared_owner_gate": {
+        "policy": "Root-Lease vor READY; genau ein Writer pro Datei, vorhandenen Vorgängerfreeze konsumieren. Keine fachfremde Featureabhängigkeit als Dateisperre.",
+        "files": {
+          "reference_scaffold/cafeteria/templates/admin/vorlagen.html": [
+            "MP-TPL-RECIPE-DISH-ENTRY",
+            "MP-TPL-HUB-COMPLETE",
+            "MP-UI-OUTPUT-HUBS",
+            "MP-UI-KORREKTUR-VORLAGEN"
+          ]
+        }
+      }
     },
     {
       "id": "MP-UI-KORREKTUR-SCREENS",
@@ -5172,6 +5263,295 @@
         "DEPLOYED: Bildschirme, Zuweisung und Darstellung in Stufe 9 7fbbfbc2a7950e8c9648edbe53c8143828785c30 enthalten. Release-/Image-/Schema-/Live-Belege und offene Abnahmen: docs/design/2026-09-12-correction-wave-delivery.md. Kein ACCEPTED; tatsächliche Player-Abnahme nicht aus HTTP-Smokes abgeleitet."
       ],
       "rollback": "Template-/CSS-Rücknahme auf den vorherigen Stand; keine Daten betroffen."
+    },
+    {
+      "id": "MP-UI-TEMPLATE-FLOW-ACCEPT",
+      "title": "Gerichtvorlagen-, Rezeptansicht- und Menüvorschlagsfluss unabhängig abnehmen",
+      "requirement_ids": [
+        "UI-003",
+        "TPL-001",
+        "QA-001"
+      ],
+      "kind": "verification",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-REC-MENU-PROPOSAL",
+        "MP-REC-RECIPE-VIEW-PRINT",
+        "MP-REC-PRINT-TEMPLATE-ENTRY",
+        "MP-TPL-RECIPE-DISH-ENTRY"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "surfaces-sdd.md#template-flow",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md#9-abnahmefälle"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte.html",
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/vorlagen.html",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md"
+      ],
+      "task": "Reines Prüfpaket ohne Produktänderung: den gesamten Fluss aus der Feature-SDD vom 13.09. im isolierten autorisierten Browser bedienen, alle Zustände und Rollen aus §5 erfassen, Viewports/NoJS/Tastatur/Zoom/Kontrast messen, PDF-Bytes und Paint getrennt belegen und jede verbleibende Lücke einzeln benennen. Autor und Reviewer getrennt: nicht dieselbe Lane wie die Writer der Rezeptslice-WPs. Schreibt ausschliesslich den eigenen Browsertest und die Evidenzdatei.",
+      "acceptance_criteria": [
+        "Gesamtfluss unabhängig bedient und rückgelesen: Rezept → Vorlage anlegen → Vorlage → Als Menü einplanen → vorbefüllter Editor → Menü speichern → Wochenkarte «Aus Vorlage» → Menüsammlung; Rezeptkarte Ansehen/Bearbeiten/Drucken; Druckvorlagenangabe und Admin-Link; Hub-Karten",
+        "Gerichtvorlagenliste, -formular und Einplanen-Seite in 1440×900, 1024×768, 768×1024, 390×844 und 1920×1080; Rezeptansicht, Rezeptkarte, Ständeliste, Menüeditor mit Vorbefüllung und Konfliktseite in 1440×900 und 390×844; jede Kombination als bestanden/fehlgeschlagen/nicht ausgeführt/blockiert/begründet nicht anwendbar",
+        "JS und NoJS, Tastatur/Escape/Fokusrückkehr, 200%-Zoom, reduced-motion, gemessene AA-Kontraste; keine horizontale Seitenscrollbar bei 390; keine technische ID, Hash oder Version als primäre Bedieninformation",
+        "Zustände aus Feature-SDD §5: Liste leer, kein Rezept, Rezept archiviert, kein gespeicherter Stand, Slot belegt, Slot-Race 409, 400 Bereich/Raster, 403 Leser, Drucken ohne Stand, Vorlage archiviert; Rollen Leser/Editor/Admin",
+        "PDF-Bytes (Header, Revision, Vorlagenrevision) und nativer PDF-Paint getrennt belegt; Papierdruck bleibt MP-TPL-PAPER",
+        "Publikationshash einer vor dem Fluss veröffentlichten Woche unverändert; keine Produktivdaten als Schreibfixture; Screenshots als vorgeschlagene Referenzen gekennzeichnet, keine Baseline blind ersetzt",
+        "Gezielte Übergangstests ändern jeweils Actor/Authz, aktiven Standort, Vorlagen-updated_at (auch Rezept-Neuzuordnung/Archivierung), Zielkoordinaten oder Slotbelegung zwischen Einplanenformular/POST, POST/303/Menü-GET und Menü-GET/Save. Originalwerte/CAS bleiben erhalten; 409 statt stiller Übernahme/Neusignierung, keine Menü-/Vorlagen-/Audit-Teilmutation. Explizites Öffnen des bestehenden Menüs ist eine getrennte Benutzeraktion.",
+        "Archivausnahmen getrennt: neuer Vorschlag aus archiviertem Rezept bleibt ohne Bindung; aktives Rezept vor Save archivieren → 409. Vorhandenes Menü nach Archivierung der Vorlage oder Rezeptrevision an anderem Feld ändern und unveränderte Altbindung erhalten; neues/Wiederbinden abweisen, Lösen zulassen.",
+        "Aktuellen Gesamtfluss inklusive Hub auf Zusammensetzung mit MP-TPL-RECIPE-DISH-ENTRY abnehmen, während SHOPPING-PDF/SCR-EDITOR-FIELDS fehlen; keine BuildError/404. Vorherige LINK-READS/PRINT-TEMPLATE-ENTRY-Releases müssen mit vorhandenen Editorzielen separat funktionsfähig belegt sein."
+      ],
+      "contract_files": [],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/surfaces-sdd.md",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md",
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "proposed:reference_scaffold/tests/test_ui_template_flow_browser.py",
+        "proposed:docs/superpowers/backlog-0909/evidence/mp-ui-template-flow-accept.md"
+      ],
+      "forbidden_paths": [
+        "reference_scaffold/cafeteria/*",
+        "database/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "BROWSERGATE <assigned-worktree> reference_scaffold/tests/test_ui_template_flow_browser.py reference_scaffold/tests/test_recipe_pdf_http.py -q",
+          "assertions": [
+            "Gesamtfluss unabhängig bedient und rückgelesen: Rezept → Vorlage anlegen → Vorlage → Als Menü einplanen → vorbefüllter Editor → Menü speichern → Wochenkarte «Aus Vorlage» → Menüsammlung; Rezeptkarte Ansehen/Bearbeiten/Drucken; Druckvorlagenangabe und Admin-Link; Hub-Karten",
+            "Gerichtvorlagenliste, -formular und Einplanen-Seite in 1440×900, 1024×768, 768×1024, 390×844 und 1920×1080; Rezeptansicht, Rezeptkarte, Ständeliste, Menüeditor mit Vorbefüllung und Konfliktseite in 1440×900 und 390×844; jede Kombination als bestanden/fehlgeschlagen/nicht ausgeführt/blockiert/begründet nicht anwendbar",
+            "JS und NoJS, Tastatur/Escape/Fokusrückkehr, 200%-Zoom, reduced-motion, gemessene AA-Kontraste; keine horizontale Seitenscrollbar bei 390; keine technische ID, Hash oder Version als primäre Bedieninformation",
+            "Zustände aus Feature-SDD §5: Liste leer, kein Rezept, Rezept archiviert, kein gespeicherter Stand, Slot belegt, Slot-Race 409, 400 Bereich/Raster, 403 Leser, Drucken ohne Stand, Vorlage archiviert; Rollen Leser/Editor/Admin",
+            "PDF-Bytes (Header, Revision, Vorlagenrevision) und nativer PDF-Paint getrennt belegt; Papierdruck bleibt MP-TPL-PAPER",
+            "Publikationshash einer vor dem Fluss veröffentlichten Woche unverändert; keine Produktivdaten als Schreibfixture; Screenshots als vorgeschlagene Referenzen gekennzeichnet, keine Baseline blind ersetzt",
+            "Gezielte Übergangstests ändern jeweils Actor/Authz, aktiven Standort, Vorlagen-updated_at (auch Rezept-Neuzuordnung/Archivierung), Zielkoordinaten oder Slotbelegung zwischen Einplanenformular/POST, POST/303/Menü-GET und Menü-GET/Save. Originalwerte/CAS bleiben erhalten; 409 statt stiller Übernahme/Neusignierung, keine Menü-/Vorlagen-/Audit-Teilmutation. Explizites Öffnen des bestehenden Menüs ist eine getrennte Benutzeraktion.",
+            "Archivausnahmen getrennt: neuer Vorschlag aus archiviertem Rezept bleibt ohne Bindung; aktives Rezept vor Save archivieren → 409. Vorhandenes Menü nach Archivierung der Vorlage oder Rezeptrevision an anderem Feld ändern und unveränderte Altbindung erhalten; neues/Wiederbinden abweisen, Lösen zulassen.",
+            "Aktuellen Gesamtfluss inklusive Hub auf Zusammensetzung mit MP-TPL-RECIPE-DISH-ENTRY abnehmen, während SHOPPING-PDF/SCR-EDITOR-FIELDS fehlen; keine BuildError/404. Vorherige LINK-READS/PRINT-TEMPLATE-ENTRY-Releases müssen mit vorhandenen Editorzielen separat funktionsfähig belegt sein."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "agy",
+      "eligible_lanes": [
+        "agy",
+        "claude-code",
+        "grok-build",
+        "cursor",
+        "codex"
+      ],
+      "completion_evidence": [
+        "Evidenzdatei mit Rohausgaben, Viewportmatrix, Screenshots und Hashvergleich",
+        "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
+        "Autor-/Reviewer-Trennung ausgewiesen"
+      ],
+      "rollback": "Nicht erforderlich; das Paket ändert keinen Produktcode.",
+      "planning_origin": "wp-61d537d988a2 · Fable 5.1 (claude-fable-5-1) · 2026-09-13"
+    },
+    {
+      "id": "MP-TPL-RECIPE-DISH-ENTRY",
+      "title": "Rezeptdruck und Gerichtvorlagen separat im Vorlagen-Hub anschliessen",
+      "requirement_ids": [
+        "TPL-001",
+        "UI-003"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-OUTPUT-HUBS",
+        "MP-REC-DISH-TEMPLATE-WRITER",
+        "MP-REC-RECIPE-VIEW-PRINT",
+        "MP-REC-PRINT-TEMPLATE-ENTRY"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "surfaces-sdd.md#template-flow",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md#46-druckvorlage-verknüpft-sichtbar"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/admin/output_routes.py:vorlagen",
+        "reference_scaffold/cafeteria/templates/admin/vorlagen.html",
+        "reference_scaffold/cafeteria/admin/recipe_print_template_routes.py:recipe_print_template_editor"
+      ],
+      "task": "Kleiner vollständiger Hubanschluss des Nutzerauftrags vom 13.09.: Gerichtvorlagen-Karte mit aktiver/archivierter Anzahl und Rezeptdruckeinstieg inklusive explizitem aktiven Vorlagenlink. Bestehende output_routes/vorlagen und ihre Hub-/Katalog-/Browsertests gezielt ergänzen. Unabhängig von SHOPPING-PDF und SCR-EDITOR-FIELDS lieferbar; späterer HUB-COMPLETE konsumiert diese getesteten Anschlüsse statt sie neu zu erzeugen. Keine Renderer-/Store-/Schema-/Rechteänderung.",
+      "acceptance_criteria": [
+        "Gerichtvorlagen-Karte mit korrekten aktiv/archiviert-Zählungen und Link /admin/gerichtvorlagen; vorhandene list_templates-Abfragen vollständig berücksichtigen, kein stilles Limit. draft.read sieht Karte, keine unerlaubten Schreibaktionen.",
+        "Rezeptvorlagen-Karte: «Aktive Vorlage öffnen» nur für settings.write mit expliziten aktiven template/revision-IDs aus read_templates; «Rezept drucken» führt zur von RECIPE-VIEW-PRINT gelieferten Rezeptliste mit Druckaktionen. Andere Leser sehen korrekte Beschreibung ohne privilegierten Link.",
+        "Alle bestehenden Wochen-/Screen-/Rezept-Katalogwege und Fehler/no-store bleiben erhalten. Native GET-Navigation und Hub GET initialisieren oder verändern keine Einstellungen/Fachdaten; 503 bleibt ausdrücklich.",
+        "Kleiner Hub und gesamter aktueller Rezept/Vorlagen/Druckfluss sind lieferbar und abnehmbar, während SHOPPING-PDF und SCR-EDITOR-FIELDS noch unimplementiert sind. Keine fehlenden Future-Endpunkte im HTML, keine BuildError/404 und keine Platzhalter.",
+        "Vorhandene test_admin_output_hubs.py, test_admin_template_catalog_browser.py und test_ui_output_hubs_browser.py an neue Karten/Counts gezielt anschliessen; alle bisherigen Weekly-Assertions bewahren. Desktop/Mobile 1440/390, JS/NoJS, Admin/Editor/Leser, Tastatur/Fokus und UI-Master belegen.",
+        "Root-Lease für output_routes.py, vorlagen.html und alle Tests: kleiner Anschluss vor späterem HUB-COMPLETE, genau ein aktiver Writer. Keine fachfremde Featureabhängigkeit als Dateisperre."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/admin/output_routes.py"
+      ],
+      "read_only_contract_files": [
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md",
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/backlog-0909/surfaces-sdd.md",
+        "reference_scaffold/cafeteria/dish_template_store.py",
+        "reference_scaffold/cafeteria/print_templates.py"
+      ],
+      "wiring_files": [
+        "reference_scaffold/cafeteria/admin/output_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/vorlagen.html"
+      ],
+      "owned_files": [
+        "reference_scaffold/cafeteria/admin/output_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/vorlagen.html",
+        "reference_scaffold/tests/test_admin_output_hubs.py",
+        "reference_scaffold/tests/test_admin_template_catalog_browser.py",
+        "reference_scaffold/tests/test_ui_output_hubs_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/",
+        "reference_scaffold/cafeteria/admin/recipe_print_template_routes.py",
+        "reference_scaffold/cafeteria/print_templates.py",
+        "reference_scaffold/cafeteria/print_template_config.py",
+        "reference_scaffold/cafeteria/admin/recipe_pdf.py",
+        "reference_scaffold/cafeteria/admin/shopping_list_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/screens.html",
+        "production/*",
+        "credentials/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_admin_output_hubs.py tests/test_admin_template_catalog_browser.py tests/test_ui_output_hubs_browser.py",
+          "assertions": [
+            "Gerichtvorlagen-Karte mit korrekten aktiv/archiviert-Zählungen und Link /admin/gerichtvorlagen; vorhandene list_templates-Abfragen vollständig berücksichtigen, kein stilles Limit. draft.read sieht Karte, keine unerlaubten Schreibaktionen.",
+            "Rezeptvorlagen-Karte: «Aktive Vorlage öffnen» nur für settings.write mit expliziten aktiven template/revision-IDs aus read_templates; «Rezept drucken» führt zur von RECIPE-VIEW-PRINT gelieferten Rezeptliste mit Druckaktionen. Andere Leser sehen korrekte Beschreibung ohne privilegierten Link.",
+            "Alle bestehenden Wochen-/Screen-/Rezept-Katalogwege und Fehler/no-store bleiben erhalten. Native GET-Navigation und Hub GET initialisieren oder verändern keine Einstellungen/Fachdaten; 503 bleibt ausdrücklich.",
+            "Kleiner Hub und gesamter aktueller Rezept/Vorlagen/Druckfluss sind lieferbar und abnehmbar, während SHOPPING-PDF und SCR-EDITOR-FIELDS noch unimplementiert sind. Keine fehlenden Future-Endpunkte im HTML, keine BuildError/404 und keine Platzhalter.",
+            "Vorhandene test_admin_output_hubs.py, test_admin_template_catalog_browser.py und test_ui_output_hubs_browser.py an neue Karten/Counts gezielt anschliessen; alle bisherigen Weekly-Assertions bewahren. Desktop/Mobile 1440/390, JS/NoJS, Admin/Editor/Leser, Tastatur/Fokus und UI-Master belegen.",
+            "Root-Lease für output_routes.py, vorlagen.html und alle Tests: kleiner Anschluss vor späterem HUB-COMPLETE, genau ein aktiver Writer. Keine fachfremde Featureabhängigkeit als Dateisperre."
+          ],
+          "assignment": "NICHT GELAUFEN in diesem Docs-WP; Root weist exklusiven HTTP/PG/Browserwrapper zu."
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "grok-build",
+        "claude-code"
+      ],
+      "completion_evidence": [
+        "Eigener Diff und Commit, reale HTTP-/Browsergateausgabe mit Exitcodes",
+        "390/1440, JS/NoJS, Rollen, native Links und unveränderte Weekly-Katalogfälle",
+        "Kein Abnahmestatus für den gesamten TPL-001-Auftrag; nicht gefahrene Gates explizit"
+      ],
+      "rollback": "Vorherigen Hub-Reader und Template einsetzen; reine Links/Anzeige, keine Daten-/Schemaänderung.",
+      "planning_origin": "wp-6777001976c5 · Codex · Reviewkorrektur R2 vom 13.09.2026",
+      "readiness_conditions": [
+        "Fachliche depends_on tatsächlich integriert/geprüft, keine Freigabe aus Sourceexistenz",
+        "Root-Dateileases/Vorgängercommits, freie Migration und Fixture-Hunks vor READY zugewiesen; andere aktive Owner bewahren",
+        "Vorgeschlagene Pfade, feste SQL-Signaturen/Result-DTOs und Consumer vor Writerstart geprüft; kein geratener Dispatcher",
+        "Externe Rechte/Inputs blockieren nur den abhängigen Ablauf; beauftragte ungeprüfte Draft-Erfassung braucht keine pauschale Küchenfreigabe"
+      ],
+      "shared_owner_gate": {
+        "policy": "Root-Lease vor READY; genau ein Writer pro Datei, vorhandenen Vorgängerfreeze konsumieren. Keine fachfremde Featureabhängigkeit als Dateisperre.",
+        "files": {
+          "reference_scaffold/cafeteria/admin/output_routes.py": [
+            "MP-TPL-RECIPE-DISH-ENTRY",
+            "MP-TPL-HUB-COMPLETE",
+            "MP-SCR-DEVICES"
+          ],
+          "reference_scaffold/tests/test_ui_output_hubs_browser.py": [
+            "MP-TPL-RECIPE-DISH-ENTRY",
+            "MP-TPL-HUB-COMPLETE"
+          ],
+          "reference_scaffold/cafeteria/templates/admin/vorlagen.html": [
+            "MP-TPL-RECIPE-DISH-ENTRY",
+            "MP-TPL-HUB-COMPLETE",
+            "MP-UI-OUTPUT-HUBS",
+            "MP-UI-KORREKTUR-VORLAGEN"
+          ],
+          "reference_scaffold/tests/test_admin_output_hubs.py": [
+            "MP-TPL-RECIPE-DISH-ENTRY",
+            "MP-TPL-HUB-COMPLETE"
+          ],
+          "reference_scaffold/tests/test_admin_template_catalog_browser.py": [
+            "MP-TPL-RECIPE-DISH-ENTRY",
+            "MP-TPL-HUB-COMPLETE"
+          ]
+        }
+      }
     }
-  ]
+  ],
+  "planning_addendum_2026_09_13": {
+    "wp_id": "wp-61d537d988a2",
+    "planner": "Fable 5.1 (claude-fable-5-1)",
+    "base": "c0839fbc803e0574582627f06692b29040bb3e53",
+    "spec": "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md",
+    "sdd_section": "surfaces-sdd.md#template-flow",
+    "new_packages": [
+      "MP-UI-TEMPLATE-FLOW-ACCEPT",
+      "MP-TPL-RECIPE-DISH-ENTRY"
+    ],
+    "extended_packages": [
+      "MP-UI-INVENTORY",
+      "MP-UI-MATRIX",
+      "MP-UI-RECIPE-LISTS",
+      "MP-UI-PRINT-EDITOR",
+      "MP-TPL-HUB-COMPLETE"
+    ],
+    "runtime_tests_in_this_docs_wp": "NOT RUN"
+  },
+  "planning_review_correction_2026_09_13": {
+    "wp_id": "wp-6777001976c5",
+    "base": "9e4b8b0de98a46d96dcbf47dac02507f6e026880",
+    "review_wp": "wp-230999f73765",
+    "findings": [
+      "R1 original context and slot CAS",
+      "R2 independent current hub",
+      "R3 archived recipe retention",
+      "R4 safe intermediate navigation",
+      "R5 archived template retention"
+    ],
+    "status": "PLANNED contracts corrected; no product verification or acceptance"
+  },
+  "shared_owner_groups": {
+    "reference_scaffold/cafeteria/admin/output_routes.py": [
+      "MP-TPL-RECIPE-DISH-ENTRY",
+      "MP-TPL-HUB-COMPLETE",
+      "MP-SCR-DEVICES"
+    ],
+    "reference_scaffold/tests/test_ui_output_hubs_browser.py": [
+      "MP-TPL-RECIPE-DISH-ENTRY",
+      "MP-TPL-HUB-COMPLETE"
+    ],
+    "reference_scaffold/cafeteria/templates/admin/vorlagen.html": [
+      "MP-TPL-RECIPE-DISH-ENTRY",
+      "MP-TPL-HUB-COMPLETE",
+      "MP-UI-OUTPUT-HUBS",
+      "MP-UI-KORREKTUR-VORLAGEN"
+    ],
+    "reference_scaffold/tests/test_admin_output_hubs.py": [
+      "MP-TPL-RECIPE-DISH-ENTRY",
+      "MP-TPL-HUB-COMPLETE"
+    ],
+    "reference_scaffold/tests/test_admin_template_catalog_browser.py": [
+      "MP-TPL-RECIPE-DISH-ENTRY",
+      "MP-TPL-HUB-COMPLETE"
+    ],
+    "reference_scaffold/cafeteria/templates/admin/_recipe_template_selection.html": [
+      "MP-REC-PRINT-TEMPLATE-ENTRY",
+      "MP-REC-RECIPE-VIEW-PRINT",
+      "MP-UI-PRINT-EDITOR"
+    ]
+  }
 }
