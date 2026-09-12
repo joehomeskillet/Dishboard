@@ -53,13 +53,13 @@ def test_recipe_choice_saved_pdf_activation_restore_archive_native_forms(recipe_
         expect(page.get_by_role('heading', name='Rezepte · Vorlageneditor')).to_be_visible()
         assert page.locator('[name^="layout_"], [name="week"]').count() == 0
         if width == 1440:
-            assert page.get_by_role('link', name='Revisionen für Suppe auswählen', exact=True).count() == 0
+            assert page.get_by_role('link', name='Gespeicherte Stände für Suppe auswählen', exact=True).count() == 0
             page.get_by_role('navigation', name='Rezeptseiten', exact=True).get_by_role('link', name='Weiter', exact=True).click()
-        page.get_by_role('link', name='Revisionen für Suppe auswählen', exact=True).click()
-        expect(page.get_by_label('Festgeschriebene Rezeptrevision')).to_have_value('')
+        page.get_by_role('link', name='Gespeicherte Stände für Suppe auswählen', exact=True).click()
+        expect(page.get_by_label('Gespeicherter Rezeptstand')).to_have_value('')
         assert page.locator('iframe').count() == 0
-        page.get_by_label('Festgeschriebene Rezeptrevision').select_option(revision.public_id)
-        page.get_by_role('button', name='Rezeptrevision verwenden', exact=True).click()
+        page.get_by_label('Gespeicherter Rezeptstand').select_option(revision.public_id)
+        page.get_by_role('button', name='Gespeicherten Stand verwenden', exact=True).click()
         page.get_by_label('Gewünschte Ausbeute', exact=True).fill('8')
         page.get_by_role('button', name='Ausbeute anwenden', exact=True).click()
         page.get_by_label('Vorlagenname', exact=True).fill('Unsere Rezeptvorlage')
@@ -95,7 +95,7 @@ def test_recipe_choice_saved_pdf_activation_restore_archive_native_forms(recipe_
         assert all(value == '' for value in leftovers), leftovers
         page.get_by_label('Vorlagenname', exact=True).focus()
         page.keyboard.press('Tab')
-        expect(page.get_by_label('Druckschrift', exact=True)).to_be_focused()
+        expect(page.get_by_text('Schrift, Farben, Logo und Abstände', exact=True)).to_be_focused()
         page.get_by_role('button', name='Revision 2 prüfen und aktivieren', exact=True).click()
         expect(page.get_by_text('Aktive Druckvorlage', exact=True)).to_be_visible()
         page.get_by_role('button', name='Revision 1 wiederherstellen', exact=True).click()
@@ -110,6 +110,32 @@ def test_recipe_choice_saved_pdf_activation_restore_archive_native_forms(recipe_
         expect(page.get_by_label('Vorlagenname', exact=True)).to_be_enabled()
         _targets(page)
         page.screenshot(path=str(tmp_path / f'recipe-editor-final-{width}.png'), full_page=True)
+        assert not failures
+
+
+@pytest.mark.parametrize('width,javascript', [(390, False), (1440, True)])
+def test_recipe_context_return_links_work_with_and_without_javascript(recipe_editor, recipe_server, browser, width, javascript):  # noqa: F811
+    recipe, revision, _ = example(recipe_editor)
+    with _context(browser, recipe_server, recipe_editor[2], width, javascript=javascript) as context:
+        page = context.new_page()
+        failures = []
+        page.on('pageerror', lambda error: failures.append(str(error)))
+        page.on('console', lambda message: failures.append(message.text) if message.type == 'error' else None)
+        response = page.goto(path(recipe, revision.public_id))
+        assert response.status == 200
+        draft_link = page.get_by_role('link', name='Zurück zum Rezept «Suppe»', exact=True)
+        saved_link = page.get_by_role('link', name='Zum gespeicherten Stand 1', exact=True)
+        expect(draft_link).to_be_visible()
+        expect(saved_link).to_be_visible()
+        with page.expect_navigation() as navigation:
+            saved_link.click()
+        assert navigation.value.status == 200
+        assert page.url.endswith(f'/admin/rezepte/{recipe}/revisionen/{revision.public_id}')
+        page.go_back()
+        with page.expect_navigation() as navigation:
+            draft_link.click()
+        assert navigation.value.status == 200
+        assert page.url.endswith(f'/admin/rezepte/{recipe}')
         assert not failures
 
 

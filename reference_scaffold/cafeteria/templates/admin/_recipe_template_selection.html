@@ -7,6 +7,10 @@
 <section class="card mb-4" aria-labelledby="recipe-selection-heading">
   <div class="card-header"><h2 class="card-title" id="recipe-selection-heading">Rezept für Vorschau und Prüfung</h2></div>
   <div class="card-body">
+    {% if recipe %}<nav class="btn-list mb-3" aria-label="Rezeptkontext">
+      <a class="btn" href="{{ url_for('admin.recipe_edit', recipe_id=recipe.public_id) }}">{{ icon('arrow-left') }}Zurück zum Rezept «{{ recipe.payload.title }}»</a>
+      {% if recipe_revision %}<a class="btn" href="{{ url_for('admin.recipe_revision', recipe_id=recipe.public_id, revision_id=recipe_revision.public_id) }}">{{ icon('history') }}Zum gespeicherten Stand {{ recipe_revision.revision_number }}</a>{% endif %}
+    </nav>{% endif %}
     <p>Einen gespeicherten Stand auswählen. Entwürfe der Druckvorlage können Sie auch ohne Rezept speichern und kopieren.</p>
     <form method="get" action="{{ url_for('admin.recipe_print_template_editor') }}" class="row g-3 align-items-end mb-3">
       {% for key in ['recipe', 'recipe_revision', 'yield'] %}{% if key in arguments %}<input type="hidden" name="{{ key }}" value="{{ arguments[key] }}">{% endif %}{% endfor %}
