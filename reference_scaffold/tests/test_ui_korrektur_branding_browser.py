@@ -153,9 +153,9 @@ def test_branding_editor_viewports_default_saved_and_error_states(
         expect(page).to_have_url(re.compile(r"revision=2$"))
         _screenshot_matrix(page, "saved")
 
-        page.locator("#brand-primary").fill("ungueltig")
+        page.locator("#brand-primary").fill("#zzzzzz")
         page.locator('form[data-brand-action="save"]').evaluate("form => { form.noValidate = true; }")
         page.get_by_role("button", name="Entwurf speichern & Vorschau", exact=True).click()
         expect(page.locator(".alert-danger")).to_be_visible()
-        expect(page.locator("#brand-primary")).to_have_value("ungueltig")
+        expect(page.locator("#brand-primary")).to_have_value("#zzzzzz")
         _screenshot_matrix(page, "error")
