@@ -366,7 +366,12 @@ def test_output_hubs_matrix_error_and_conflict_states(
     "route,title,empty_text,focus_role",
     [
         ("/admin/screens", "Bildschirme", "Speiseplan nicht verfügbar", "iframe"),
-        ("/admin/vorlagen", "Vorlagen", "veröffentlichten Plan", "tab"),
+        (
+            "/admin/vorlagen",
+            "Vorlagen",
+            "Ohne Veröffentlichung erscheint ein Hinweis",
+            "tab",
+        ),
         (
             "/admin/screens/cafeteria/wochenvorlage",
             "Vorlage zuweisen",
@@ -396,8 +401,11 @@ def test_output_hubs_matrix_empty_states(
             expect(frame.get_by_text(empty_text, exact=False)).to_be_visible()
             focus_target = page.locator(".screen-card .nav-link").first
         elif focus_role == "tab":
-            page.locator(".tab-pane.active .output-more-actions > summary").click()
-            expect(page.get_by_text(empty_text, exact=False).first).to_be_visible()
+            empty_state = page.locator(
+                ".tab-pane.active .output-publication-note"
+            )
+            expect(empty_state).to_contain_text(empty_text)
+            expect(empty_state).to_be_visible()
             focus_target = page.locator(".output-area-tabs .nav-link").first
         else:
             page.locator("#screen-assignment-details > summary").click()
