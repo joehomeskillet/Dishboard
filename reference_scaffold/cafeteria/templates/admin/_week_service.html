@@ -17,7 +17,10 @@
   {% set start_id = 'patient-service-start-' ~ service_index ~ '-' ~ meal_code %}
   {% set end_id = 'patient-service-end-' ~ service_index ~ '-' ~ meal_code %}
 {% endif %}
-{% set service_open = status == 'error' %}
+{% set service_error = week_form_kind|default(none) == 'service' and week_form_values.get('day') == day_iso and week_form_values.get('meal') == meal_code %}
+{% set service_values = week_form_values if service_error else {} %}
+{% set service_errors = week_form_errors if service_error else {} %}
+{% set service_open = service_error or status == 'error' %}
 <div class="admin-week-meal-head">
   <strong>{{ meal_label }}</strong>
   <span class="admin-week-service-summary">
@@ -37,30 +40,34 @@
   <summary>Ausgabeangaben ändern</summary>
   <form method="post" action="/admin/{{ family }}/service" class="card card-sm mb-3 admin-week-service-form">
     <div class="card-body">
+      {{ form_errors(service_errors.values()|list) }}
+      {% if service_errors.get('form') %}
+      <p>Eingaben sind noch nicht gespeichert. <a href="{{ url_for('admin.' ~ family, week=week_value) }}">Aktuellen Wochenplan öffnen</a> und Änderungen vergleichen.</p>
+      {% endif %}
       <input type="hidden" name="_csrf" value="{{ week_csrf }}">
       <input type="hidden" name="week" value="{{ week_value }}">
       <input type="hidden" name="day" value="{{ day_iso }}">
       <input type="hidden" name="meal" value="{{ meal_code }}">
-      <input type="hidden" name="row_version" value="{{ srv_ver }}">
+      <input type="hidden" name="row_version" value="{{ service_values.get('row_version', srv_ver) }}">
       <div class="row g-3 align-items-end">
         <div class="col-12 col-md-6">
           <label class="form-label" for="{{ state_id }}">Betrieb</label>
           <select id="{{ state_id }}" class="form-select" name="service_state">
-            <option value="open"{% if state == 'open' %} selected{% endif %}>Offen</option>
-            <option value="closed"{% if state == 'closed' %} selected{% endif %}>Geschlossen</option>
-            <option value="holiday"{% if state == 'holiday' %} selected{% endif %}>Feiertag</option>
-            <option value="company_holiday"{% if state == 'company_holiday' %} selected{% endif %}>Betriebsfeiertag</option>
+            <option value="open"{% if service_values.get('service_state', state) == 'open' %} selected{% endif %}>Offen</option>
+            <option value="closed"{% if service_values.get('service_state', state) == 'closed' %} selected{% endif %}>Geschlossen</option>
+            <option value="holiday"{% if service_values.get('service_state', state) == 'holiday' %} selected{% endif %}>Feiertag</option>
+            <option value="company_holiday"{% if service_values.get('service_state', state) == 'company_holiday' %} selected{% endif %}>Betriebsfeiertag</option>
           </select>
         </div>
         <div class="col-12 col-md-6">
-          <label class="form-label" for="{{ notice_id }}">Ausgabehinweis</label>
-          <input id="{{ notice_id }}" class="form-control" name="notice" value="{{ notice }}">
+          {{ field('notice', 'Ausgabehinweis', service_values.get('notice', notice), id=notice_id, error=service_errors.get('notice'), autofocus=service_errors.get('notice')) }}
+        </div>
+        {# Text inputs preserve even malformed time strings after a failed POST. #}
+        <div class="col-12 col-sm-6 col-md-3">
+          {{ field('service_start', 'Beginn', service_values.get('service_start', start), type='text' if service_error else 'time', id=start_id, error=service_errors.get('service_start'), autofocus=service_errors.get('service_start'), hint='HH:MM' if service_error else none) }}
         </div>
         <div class="col-12 col-sm-6 col-md-3">
-          {{ field('service_start', 'Beginn', start, type='time', id=start_id) }}
-        </div>
-        <div class="col-12 col-sm-6 col-md-3">
-          {{ field('service_end', 'Ende', end, type='time', id=end_id) }}
+          {{ field('service_end', 'Ende', service_values.get('service_end', end), type='text' if service_error else 'time', id=end_id, error=service_errors.get('service_end'), autofocus=service_errors.get('service_end'), hint='HH:MM' if service_error else none) }}
         </div>
         <div class="col-12">
           <button type="submit" class="btn">{{ icon('device-floppy') }}Ausgabeangaben speichern</button>
