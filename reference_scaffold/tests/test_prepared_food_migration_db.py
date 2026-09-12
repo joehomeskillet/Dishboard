@@ -96,7 +96,7 @@ def test_old_food_gap_stops_before_ddl_ledger_sequences_then_explicit_backfill(p
             else:
                 projection = "to_jsonb(t)-'prepared_recipe_revision_id'" if table == 'foods' else 'to_jsonb(t)'
                 assert c.execute(text(f'SELECT ({projection})::text FROM cafeteria.{table} t ORDER BY ({projection})::text')).all() == rows
-        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 29
+        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 30
         migrated = structure(c)
     after_sequences = rows_and_sequences(pg16)[1]
     assert [s for s in after_sequences if s[0] != 'recipe_import_batches_id_seq'] == before_upgrade[1]

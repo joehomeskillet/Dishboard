@@ -6,7 +6,7 @@ import re
 import secrets
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -14,6 +14,8 @@ from sqlalchemy import Engine, text
 from sqlalchemy.exc import DBAPIError
 
 API_KEY_SCOPES = ('preview.read',)
+API_KEY_CHANNELS = ('cafeteria', 'patienten')
+API_KEY_MAX_LIFETIME = timedelta(days=90)
 API_KEY_RE = re.compile(r'^dbk_[A-Za-z0-9_-]{32}$')
 
 
@@ -23,6 +25,7 @@ class ApiKeyRecord:
     label: str
     key_prefix: str
     scopes: tuple[str, ...]
+    channels: tuple[str, ...]
     created_at: datetime
     created_by_name: str
     expires_at: datetime | None
@@ -43,6 +46,7 @@ class ApiKeyIdentity:
     public_id: str
     label: str
     scopes: tuple[str, ...]
+    channels: tuple[str, ...]
     expires_at: datetime | None
 
 
@@ -63,16 +67,18 @@ def create_api_key(
     actor_id: int,
     label: str,
     scopes: Sequence[str],
+    channels: Sequence[str],
     expires_at: datetime | None,
 ) -> tuple[ApiKeyRecord, str]:
     clean_label = _label(label)
     clean_scopes = _scopes(scopes)
+    clean_channels = _channels(channels)
     clean_actor_id = _positive_id(actor_id, 'actor_id')
-    if expires_at is not None:
-        if not isinstance(expires_at, datetime) or expires_at.tzinfo is None:
-            raise ApiKeyValidationError('Ablaufzeit muss eine Zeitzone enthalten.')
-        if expires_at <= datetime.now(UTC):
-            raise ApiKeyValidationError('Ablaufzeit muss in der Zukunft liegen.')
+    if not isinstance(expires_at, datetime) or expires_at.utcoffset() is None:
+        raise ApiKeyValidationError('Ein Ablaufdatum mit Zeitzone ist erforderlich.')
+    now = datetime.now(UTC)
+    if not now < expires_at <= now + API_KEY_MAX_LIFETIME:
+        raise ApiKeyValidationError('Ablaufzeit muss in der Zukunft und innerhalb von 90 Tagen liegen.')
     plaintext, key_prefix, key_hash = generate_api_key()
     try:
         with engine.begin() as connection:
@@ -81,7 +87,7 @@ def create_api_key(
                     '''
                     SELECT cafeteria.create_api_key(
                         :actor_id, :label, :key_prefix, :key_hash,
-                        CAST(:scopes AS text[]), :expires_at
+                        CAST(:scopes AS text[]), :expires_at, CAST(:channels AS text[])
                     )::text
                     '''
                 ),
@@ -91,6 +97,7 @@ def create_api_key(
                     'key_prefix': key_prefix,
                     'key_hash': key_hash,
                     'scopes': list(clean_scopes),
+                    'channels': list(clean_channels),
                     'expires_at': expires_at,
                 },
             ).scalar_one()
@@ -107,7 +114,7 @@ def list_api_keys(engine: Engine) -> list[ApiKeyRecord]:
             rows = connection.execute(
                 text(
                     '''
-                    SELECT k.public_id::text AS public_id, k.label, k.key_prefix, k.scopes,
+                    SELECT k.public_id::text AS public_id, k.label, k.key_prefix, k.scopes, k.channels,
                            k.created_at, u.display_name AS created_by_name, k.expires_at,
                            k.last_used_at, k.revoked_at
                     FROM cafeteria.api_keys k
@@ -148,7 +155,7 @@ def authenticate_api_key(engine: Engine, presented: str | None) -> ApiKeyIdentit
             row = connection.execute(
                 text(
                     '''
-                    SELECT public_id::text AS public_id, label, key_hash, scopes,
+                    SELECT public_id::text AS public_id, label, key_hash, scopes, channels,
                            expires_at, revoked_at
                     FROM cafeteria.api_keys
                     WHERE key_prefix=:key_prefix
@@ -183,6 +190,7 @@ def authenticate_api_key(engine: Engine, presented: str | None) -> ApiKeyIdentit
                 public_id=str(row['public_id']),
                 label=str(row['label']),
                 scopes=tuple(row['scopes']),
+                channels=_channels(row['channels']),
                 expires_at=expires_at,
             )
     except DBAPIError as error:
@@ -214,6 +222,16 @@ def _positive_id(value: int, field: str) -> int:
     return value
 
 
+def _channels(value: object) -> tuple[str, ...]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
+        raise ApiKeyValidationError('Mindestens einen gültigen Kanal auswählen.')
+    if not value or any(type(item) is not str or item not in API_KEY_CHANNELS for item in value):
+        raise ApiKeyValidationError('Mindestens einen gültigen Kanal auswählen.')
+    if len(set(value)) != len(value):
+        raise ApiKeyValidationError('Kanäle dürfen nicht mehrfach angegeben werden.')
+    return tuple(channel for channel in API_KEY_CHANNELS if channel in value)
+
+
 def _public_id(value: str) -> str:
     try:
         return str(UUID(value))
@@ -225,7 +243,7 @@ def _record_by_public_id(connection: Any, public_id: str) -> ApiKeyRecord:
     row = connection.execute(
         text(
             '''
-            SELECT k.public_id::text AS public_id, k.label, k.key_prefix, k.scopes,
+            SELECT k.public_id::text AS public_id, k.label, k.key_prefix, k.scopes, k.channels,
                    k.created_at, u.display_name AS created_by_name, k.expires_at,
                    k.last_used_at, k.revoked_at
             FROM cafeteria.api_keys k
@@ -244,6 +262,7 @@ def _record(row: Mapping[str, object]) -> ApiKeyRecord:
         label=str(row['label']),
         key_prefix=str(row['key_prefix']),
         scopes=_scopes(row['scopes']),
+        channels=_channels(row['channels']),
         created_at=_record_datetime(row['created_at']),
         created_by_name=str(row['created_by_name']),
         expires_at=_record_optional_datetime(row['expires_at']),

@@ -110,7 +110,7 @@ def test_v15_upgrade_preserves_checked_work_and_publication_without_fabricating_
         weeks = connection.execute(text('SELECT to_jsonb(w) FROM cafeteria.menu_weeks w ORDER BY id')).scalars().all()
         revisions = connection.execute(text('SELECT to_jsonb(r) FROM cafeteria.publication_revisions r ORDER BY id')).scalars().all()
     applied = database.run_migrations(pg16, SCHEMA)
-    assert [entry.version for entry in applied] == list(range(4, 30))
+    assert [entry.version for entry in applied] == list(range(4, 31))
     database._execute_script(pg16, str(PERMISSIONS))
     with pg16.connect() as connection:
         assert connection.execute(text('SELECT to_jsonb(i) FROM cafeteria.menu_items i ORDER BY id')).scalars().all() == items

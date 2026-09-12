@@ -149,7 +149,7 @@ def test_tool_forms_keep_native_targets_and_payloads_without_javascript(site) ->
     target = (WEEK + dt.timedelta(days=7)).isoformat()
     cases = (
         ('/admin/api', '#api-key-create', '/admin/api/keys',
-         {'_csrf', 'label', 'expires_at', 'scopes'}),
+         {'_csrf', 'label', 'expires_at', 'scopes', 'channels'}),
         ('/admin/import-preview', '#csv-upload', '/admin/import-preview', {'_csrf', 'file'}),
         (f'/admin/cafeteria/copy?week={target}', 'form.admin-copy-actions',
          '/admin/cafeteria/copy', {'_csrf', 'source_week', 'target_week', 'target_row_version'}),

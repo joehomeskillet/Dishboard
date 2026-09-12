@@ -584,7 +584,7 @@ def test_v19_upgrade_adds_times_without_touching_rows_or_receipts(pg16):  # noqa
     assert len(services) == 5 and len(revisions) == 1
 
     applied = database.run_migrations(pg16, SCHEMA)
-    assert [entry.version for entry in applied] == list(range(4, 30))
+    assert [entry.version for entry in applied] == list(range(4, 31))
     database._execute_script(pg16, str(PERMISSIONS))
     with pg16.connect() as connection:
         assert connection.execute(text(

@@ -100,6 +100,7 @@ def test_admin_can_create_list_and_revoke_with_safe_audit(
         label='FHIR Vorschau',
         scopes=API_KEY_SCOPES,
         # PostgreSQL JSON trims trailing fractional zeroes; make that case deterministic.
+        channels=('cafeteria', 'patienten'),
         expires_at=(datetime.now(UTC) + timedelta(days=30)).replace(microsecond=364700),
     )
 
@@ -131,6 +132,7 @@ def test_admin_can_create_list_and_revoke_with_safe_audit(
     assert details == {
         'label': 'FHIR Vorschau',
         'scopes': ['preview.read'],
+        'channels': ['cafeteria', 'patienten'],
         'expires_at': record.expires_at,
         'key_prefix': record.key_prefix,
     }
@@ -169,7 +171,8 @@ def test_editor_cannot_create_or_revoke_api_keys(
         actor_id=admin_id,
         label='Admin key',
         scopes=API_KEY_SCOPES,
-        expires_at=None,
+        channels=('cafeteria', 'patienten'),
+        expires_at=datetime.now(UTC) + timedelta(days=30),
     )
 
     with pytest.raises(PermissionError):
@@ -178,7 +181,8 @@ def test_editor_cannot_create_or_revoke_api_keys(
             actor_id=editor_id,
             label='Editor key',
             scopes=API_KEY_SCOPES,
-            expires_at=None,
+            channels=('cafeteria', 'patienten'),
+            expires_at=datetime.now(UTC) + timedelta(days=30),
         )
     with pytest.raises(PermissionError):
         revoke_api_key(app_engine, actor_id=editor_id, public_id=record.public_id)
@@ -194,7 +198,8 @@ def test_cafeteria_app_cannot_insert_or_set_revocation_directly(
         actor_id=admin_id,
         label='Protected key',
         scopes=API_KEY_SCOPES,
-        expires_at=None,
+        channels=('cafeteria', 'patienten'),
+        expires_at=datetime.now(UTC) + timedelta(days=30),
     )
 
     with pytest.raises(DBAPIError) as insert_error:
@@ -233,7 +238,8 @@ def test_authenticate_api_key_handles_valid_expired_revoked_and_unknown_keys(
         actor_id=admin_id,
         label='Valid key',
         scopes=API_KEY_SCOPES,
-        expires_at=None,
+        channels=('cafeteria', 'patienten'),
+        expires_at=datetime.now(UTC) + timedelta(days=30),
     )
 
     identity = authenticate_api_key(app_engine, valid_plaintext)
@@ -253,7 +259,8 @@ def test_authenticate_api_key_handles_valid_expired_revoked_and_unknown_keys(
         actor_id=admin_id,
         label='Expired key',
         scopes=API_KEY_SCOPES,
-        expires_at=None,
+        channels=('cafeteria', 'patienten'),
+        expires_at=datetime.now(UTC) + timedelta(days=30),
     )
     with owner_engine.begin() as connection:
         connection.execute(
@@ -274,7 +281,8 @@ def test_authenticate_api_key_handles_valid_expired_revoked_and_unknown_keys(
         actor_id=admin_id,
         label='Revoked key',
         scopes=API_KEY_SCOPES,
-        expires_at=None,
+        channels=('cafeteria', 'patienten'),
+        expires_at=datetime.now(UTC) + timedelta(days=30),
     )
     assert revoke_api_key(app_engine, actor_id=admin_id, public_id=revoked_record.public_id)
     assert authenticate_api_key(app_engine, revoked_plaintext) is None
@@ -295,7 +303,8 @@ def test_create_api_key_rejects_invalid_input(
             actor_id=admin_id,
             label=' ',
             scopes=API_KEY_SCOPES,
-            expires_at=None,
+            channels=('cafeteria', 'patienten'),
+            expires_at=datetime.now(UTC) + timedelta(days=30),
         )
     with pytest.raises(ApiKeyValidationError):
         create_api_key(
@@ -303,6 +312,7 @@ def test_create_api_key_rejects_invalid_input(
             actor_id=admin_id,
             label='Wrong scope',
             scopes=['preview.write'],
+            channels=('cafeteria',),
             expires_at=None,
         )
 

@@ -101,7 +101,7 @@ def test_upgrade_preserves_all_existing_rows_and_fresh_schema_contract(pg16):  #
             projection = f"(to_jsonb(t)-'{new_columns[table]}')" if table in new_columns else 'to_jsonb(t)'
             assert c.execute(text(f'SELECT {projection}::text FROM cafeteria.{table} t ORDER BY {projection}::text')).all() == before[table]
         assert c.execute(text('SELECT to_jsonb(m) FROM cafeteria.schema_migrations m WHERE version<=25 ORDER BY version')).all() == ledger
-        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 29
+        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 30
         migrated = structure(c)
     with pg16.begin() as c:
         c.execute(text('DROP SCHEMA cafeteria CASCADE'))

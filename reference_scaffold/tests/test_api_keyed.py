@@ -139,14 +139,16 @@ def _prepare_api_data(
         actor_id=admin_id,
         label='API Vorschau',
         scopes=API_KEY_SCOPES,
-        expires_at=None,
+        channels=('cafeteria', 'patienten'),
+        expires_at=dt.datetime.now(dt.UTC) + dt.timedelta(days=30),
     )
     revoked_record, revoked_token = create_api_key(
         app_engine,
         actor_id=admin_id,
         label='Widerrufen',
         scopes=API_KEY_SCOPES,
-        expires_at=None,
+        channels=('cafeteria', 'patienten'),
+        expires_at=dt.datetime.now(dt.UTC) + dt.timedelta(days=30),
     )
     assert revoke_api_key(app_engine, actor_id=admin_id, public_id=revoked_record.public_id)
     return client, int(patient_row_version), record.public_id, token, revoked_token
@@ -181,11 +183,15 @@ def test_key_identity_updates_last_used_and_rejects_query_parameters(
     response = client.get('/api/v1/keys/me', headers=_authorization(token))
 
     assert response.status_code == 200
+    with owner_engine.connect() as connection:
+        expiry = connection.execute(text('SELECT expires_at FROM cafeteria.api_keys WHERE public_id=:id'),
+                                    {'id': public_id}).scalar_one()
     assert response.get_json() == {
-        'expires_at': None,
+        'expires_at': expiry.isoformat(),
         'label': 'API Vorschau',
         'public_id': public_id,
         'scopes': ['preview.read'],
+        'channels': ['cafeteria', 'patienten'],
     }
     assert response.headers['Cache-Control'] == 'no-store'
     with owner_engine.connect() as connection:

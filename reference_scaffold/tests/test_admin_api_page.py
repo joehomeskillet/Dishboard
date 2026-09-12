@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from datetime import date, timedelta
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -97,7 +98,8 @@ def _create_form(csrf: str = 'workflow-csrf') -> dict[str, str]:
         '_csrf': csrf,
         'label': 'Integrations-Test',
         'scopes': 'preview.read',
-        'expires_at': '2026-12-31',
+        'channels': 'cafeteria',
+        'expires_at': (date.today() + timedelta(days=30)).isoformat(),
     }
 
 

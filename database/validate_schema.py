@@ -44,6 +44,7 @@ MIGRATION_0023 = ROOT / 'database' / 'migrations' / '0023_v25_to_v26.sql'
 MIGRATION_0024 = ROOT / 'database' / 'migrations' / '0024_v26_to_v27.sql'
 MIGRATION_0025 = ROOT / 'database' / 'migrations' / '0025_v27_to_v28.sql'
 MIGRATION_0026 = ROOT / 'database' / 'migrations' / '0026_v28_to_v29.sql'
+MIGRATION_0027 = ROOT / 'database' / 'migrations' / '0027_v29_to_v30.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
 PAT_JSON = ROOT / 'demo' / 'snapshots' / 'patienten_kw36.json'
@@ -198,8 +199,8 @@ def run_live_check() -> dict[str, Any]:
                     '''
                 )
             ).mappings().one()
-        if int(row['schema_version']) != 29:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 29.")
+        if int(row['schema_version']) != 30:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 30.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
         migrated_structure = structure('cafeteria')
@@ -699,7 +700,7 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 29,
+            'schema_version': 30,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
@@ -727,6 +728,7 @@ def main() -> int:
                 '0024_v26_to_v27.sql': hashlib.sha256(MIGRATION_0024.read_bytes()).hexdigest(),
                 '0025_v27_to_v28.sql': hashlib.sha256(MIGRATION_0025.read_bytes()).hexdigest(),
                 '0026_v28_to_v29.sql': hashlib.sha256(MIGRATION_0026.read_bytes()).hexdigest(),
+                '0027_v29_to_v30.sql': hashlib.sha256(MIGRATION_0027.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

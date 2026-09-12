@@ -291,8 +291,9 @@ def test_migration_plan_is_ordered_and_preserves_0001_bytes() -> None:
         (27, '0024_v26_to_v27.sql'),
         (28, '0025_v27_to_v28.sql'),
         (29, '0026_v28_to_v29.sql'),
+        (30, '0027_v29_to_v30.sql'),
     ]
-    assert database.SCHEMA_VERSION == 29
+    assert database.SCHEMA_VERSION == 30
     migrations = ROOT / 'database' / 'migrations'
     assert hashlib.sha256((migrations / '0001_initial_postgresql.sql').read_bytes()).hexdigest() == (
         'd1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0'

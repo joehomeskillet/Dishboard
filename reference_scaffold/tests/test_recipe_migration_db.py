@@ -32,7 +32,7 @@ def test_schema21_upgrade_preserves_old_data_and_matches_fresh_schema22(pg16):
         for table in tables:
             assert current.execute(text(f'SELECT to_jsonb(t)::text FROM cafeteria.{table} t ORDER BY to_jsonb(t)::text')).all() == before[table]
         expected = catalog(current)
-        assert current.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 29
+        assert current.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 30
     with pg16.begin() as current:
         current.execute(text('DROP SCHEMA cafeteria CASCADE'))
     database._execute_script(pg16, str(SCHEMA))

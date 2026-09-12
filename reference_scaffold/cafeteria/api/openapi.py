@@ -310,12 +310,16 @@ def build_openapi() -> dict:
                 },
                 'KeyIdentity': {
                     'type': 'object',
-                    'required': ['label', 'scopes', 'expires_at', 'public_id'],
+                    'required': ['label', 'scopes', 'channels', 'expires_at', 'public_id'],
                     'properties': {
                         'label': {'type': 'string'},
                         'scopes': {
                             'type': 'array',
                             'items': {'type': 'string', 'enum': ['preview.read']},
+                        },
+                        'channels': {
+                            'type': 'array', 'minItems': 1, 'maxItems': 2, 'uniqueItems': True,
+                            'items': {'type': 'string', 'enum': ['cafeteria', 'patienten']},
                         },
                         'expires_at': {'type': ['string', 'null'], 'format': 'date-time'},
                         'public_id': {'type': 'string', 'format': 'uuid'},
