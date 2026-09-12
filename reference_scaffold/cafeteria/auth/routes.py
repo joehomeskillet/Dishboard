@@ -15,11 +15,14 @@ from ..security import validate_csrf
 from .access_events import AccessEventUnavailable, record_access_event
 from .service import (
     AuthorizationState,
+    LOGIN_USERNAME_MAX_LENGTH,
     RateLimitExceeded,
     RateLimitUnavailable,
     authenticate_local_user,
     clear_login_attempts,
     consume_login_attempt,
+    login_account_rate_key,
+    login_ip_rate_key,
     login_rate_key,
     load_user_authorization,
     trusted_client_address,
@@ -141,16 +144,37 @@ def local_login():
     password = request.form.get('password', '')
 
     validate_csrf(request.form.get('csrf_token'))
+    if len(username) > LOGIN_USERNAME_MAX_LENGTH:
+        return _login_failure('local', 'credentials', 401)
     remote_address = trusted_client_address(
         request.environ,
         request.remote_addr or 'unknown',
         tuple(current_app.config.get('TRUSTED_PROXY_PEERS', ())),
     )
-    key = login_rate_key(username, remote_address)
+    combined_key = login_rate_key(username, remote_address)
+    ip_key = login_ip_rate_key(remote_address)
+    account_key = login_account_rate_key(username)
     redis_client = current_app.extensions.get('cafeteria_rate_redis')
 
     try:
-        consume_login_attempt(redis_client, key)
+        consume_login_attempt(
+            redis_client,
+            ip_key,
+            limit=int(current_app.config['LOGIN_IP_RATE_LIMIT']),
+            window_seconds=int(current_app.config['LOGIN_IP_RATE_WINDOW_SECONDS']),
+        )
+        consume_login_attempt(
+            redis_client,
+            account_key,
+            limit=int(current_app.config['LOGIN_ACCOUNT_RATE_LIMIT']),
+            window_seconds=int(current_app.config['LOGIN_ACCOUNT_RATE_WINDOW_SECONDS']),
+        )
+        consume_login_attempt(
+            redis_client,
+            combined_key,
+            limit=int(current_app.config['LOGIN_COMBINED_RATE_LIMIT']),
+            window_seconds=int(current_app.config['LOGIN_COMBINED_RATE_WINDOW_SECONDS']),
+        )
     except RateLimitUnavailable:
         return _login_failure('local', 'unavailable', 503, username)
     except RateLimitExceeded:
@@ -167,7 +191,7 @@ def local_login():
         return _login_failure('local', 'credentials', 401, username)
 
     try:
-        clear_login_attempts(redis_client, key)
+        clear_login_attempts(redis_client, account_key, combined_key)
     except RateLimitUnavailable:
         return _login_failure('local', 'unavailable', 503, username)
     return _login_accepted('local', identity)

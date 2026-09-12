@@ -17,8 +17,7 @@ _DUMMY_PASSWORD_HASH = (
     'f44cd342ed9d2383b3085c996da4c7f4fde3c7bf1a5d4901b44c3fd71333bdb9'
     'c986dc231b3766c4798b21f6d36153fa2b53aaf3072d6166e8e0855e44c9896d'
 )
-LOGIN_RATE_LIMIT = 5
-LOGIN_RATE_WINDOW_SECONDS = 300
+LOGIN_USERNAME_MAX_LENGTH = 64
 DATABASE_LOCK_THRESHOLD = 5
 DATABASE_LOCK_MINUTES = 15
 
@@ -48,6 +47,15 @@ def login_rate_key(username: str, remote_address: str) -> str:
     identity = f'{normalize_username(username)}\x00{remote_address}'.encode()
     return f'dishboard:auth:local:{hashlib.sha256(identity).hexdigest()}'
 
+
+def login_ip_rate_key(remote_address: str) -> str:
+    digest = hashlib.sha256(remote_address.encode()).hexdigest()
+    return f'dishboard:auth:local:ip:{digest}'
+
+
+def login_account_rate_key(username: str) -> str:
+    digest = hashlib.sha256(normalize_username(username).encode()).hexdigest()
+    return f'dishboard:auth:local:account:{digest}'
 
 
 def trusted_client_address(
@@ -95,13 +103,21 @@ def trusted_client_address(
     return peer
 
 
-def consume_login_attempt(redis_client: Any, key: str) -> None:
+def consume_login_attempt(
+    redis_client: Any,
+    key: str,
+    *,
+    limit: int,
+    window_seconds: int,
+) -> None:
     if redis_client is None:
         raise RateLimitUnavailable('Redis-Rate-Limitierung ist nicht verfügbar.')
+    if limit < 1 or window_seconds < 1:
+        raise RateLimitUnavailable('Redis-Rate-Limitierung ist ungültig konfiguriert.')
     try:
         pipeline = redis_client.pipeline(transaction=True)
         pipeline.incr(key)
-        pipeline.expire(key, LOGIN_RATE_WINDOW_SECONDS, nx=True)
+        pipeline.expire(key, window_seconds, nx=True)
         result = pipeline.execute()
     except RedisError as exc:
         raise RateLimitUnavailable('Redis-Rate-Limitierung ist nicht verfügbar.') from exc
@@ -111,15 +127,17 @@ def consume_login_attempt(redis_client: Any, key: str) -> None:
         attempts = int(result[0])
     except (TypeError, ValueError) as exc:
         raise RateLimitUnavailable('Redis-Rate-Limitierung lieferte keine gültige Antwort.') from exc
-    if attempts > LOGIN_RATE_LIMIT:
+    if attempts > limit:
         raise RateLimitExceeded('Zu viele Anmeldeversuche.')
 
 
-def clear_login_attempts(redis_client: Any, key: str) -> None:
+def clear_login_attempts(redis_client: Any, *keys: str) -> None:
     if redis_client is None:
         raise RateLimitUnavailable('Redis-Rate-Limitierung ist nicht verfügbar.')
+    if not keys:
+        return
     try:
-        redis_client.delete(key)
+        redis_client.delete(*keys)
     except RedisError as exc:
         raise RateLimitUnavailable('Redis-Rate-Limitierung ist nicht verfügbar.') from exc
 
