@@ -238,3 +238,23 @@ Lieferumfang: tatsächliche Dateipfade, Befund-ID → Änderung → Test → Erg
 Ein Test mit technisch unerfahrenen Personen soll insbesondere zeigen, ob sie ein Menü finden, nur die Beilage ändern, speichern und den Unterschied zwischen „geprüft“ und „Allergenangaben fehlen“ erklären können. Ein Agent darf fehlende Nutzerbeobachtungen nicht als durchgeführt ausgeben.
 
 **Kernziel: Volle Breite behalten, Wiederholungen entfernen, Menüs zuerst zeigen und Prüfzustände verständlich machen. Nicht erneut nur die Karten grösser machen.**
+
+## Umsetzung Bereiche & Öffnungszeiten
+
+Die Seite `/admin/bereiche-zeiten` zeigt zuerst beide Bereiche mit ihren tatsächlichen
+Wochenvorgaben. Aussagen zu Wochenenden und Zeiten nennen ausdrücklich den Geltungsbereich
+«für neue Ausgaben». Fehlende Zeiten werden einmal je Bereich erklärt und nicht als
+Schliessung oder angebliche Standardzeit dargestellt.
+
+Formulare für Bereichsnamen, Wochenendbetrieb, Wochenvorgaben und datierte Ausnahmen liegen
+in nativen `<details>`-Bereichen. Sie bleiben ohne JavaScript bedienbar und öffnen sich beim
+betroffenen Validierungsfehler automatisch. Jeder Schreib- oder Ladevorgang behält sein
+eigenes Formular und genau eine Hauptaktion; POST-Ziele, Feldnamen, CSRF-Felder und
+Versionswerte bleiben unverändert. Gespeicherte Ausnahmen sind als nachgeordnete Ansicht
+ebenfalls bei Bedarf erreichbar.
+
+Der Browservertrag `test_ui_korrektur_ops_browser.py` prüft Reihenfolge, genau eine
+Shell-Bereichsauswahl, volle Breite, Dokumentüberlauf, Fehlerfokus und Werterhalt sowie die
+abgefangenen Formular-Requests mit und ohne JavaScript. Screenshotbelege decken 1366×768,
+1920×1080, 768×1024, 390×844 und den effektiven 200-%-Viewport sowie Leer- und Fehlerzustand
+ab.

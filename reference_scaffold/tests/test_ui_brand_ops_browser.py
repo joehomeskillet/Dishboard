@@ -140,7 +140,9 @@ def test_operations_normal_state_and_viewports(
         expect(page.locator('h1.page-title')).to_have_text('Bereiche & Öffnungszeiten')
         expect(page.locator('.page-header-subtitle')).to_contain_text('Ausgabe und Öffnungszeiten')
         expect(page.locator('.text-secondary').first).to_contain_text('neue Ausgaben')
-        expect(page.get_by_role('button', name='Ausgabe laden', exact=True)).to_be_visible()
+        expect(page.locator('#operations-overview')).to_be_visible()
+        expect(page.locator('#exception-editor > summary')).to_be_visible()
+        expect(page.get_by_role('button', name='Ausgabe laden', exact=True)).to_be_hidden()
 
         _assert_no_overflow_and_min_targets(page)
         page.screenshot(path=str(tmp_path / f'brand-ops-operations-{width}x{height}.png'), full_page=True)
@@ -192,6 +194,7 @@ def test_brand_ops_keyboard_navigation_and_focus(
         assert outline != 'rgba(0, 0, 0, 0)'
 
         page.goto(OPS_PATH)
+        page.locator('#weekend-editor > summary').click()
         page.locator('#allows_weekend').focus()
         expect(page.locator('#allows_weekend')).to_be_focused()
 
@@ -223,6 +226,7 @@ def test_brand_ops_nojs_operations_save(
     with _create_context(browser, live_server, client, javascript=False) as context:
         page = context.new_page()
         page.goto(OPS_PATH)
+        page.locator('#weekend-editor > summary').click()
         page.locator('#allows_weekend').check()
         page.get_by_role('button', name='Wochenendbetrieb speichern', exact=True).click()
         expect(page.locator('#allows_weekend')).to_be_checked()
