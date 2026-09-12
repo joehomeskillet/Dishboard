@@ -11,11 +11,11 @@
       "model": "grok-4.6"
     },
     "mp_id": "MP-UI-DENSITY-INVENTORY",
-    "source_commit": "a420992ae91fd801d0ec43d41038f57bbdd3b261",
+    "source_commit": "ca51f56ab36b3512b78bcfbaa90f729d31751ef1",
     "schema": 30,
     "schema_note": "Aktueller zugewiesener Quellstand; SCHEMA_VERSION aus cafeteria.db. Keine neue Live-Abnahme.",
     "baseline_status": "proposed_never_user_approved",
-    "generated_at": "2026-09-12T23:30:27.832379+00:00",
+    "generated_at": "2026-09-12T23:54:37+00:00",
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
     "route_count": 126,
     "template_count": 82,
@@ -8321,7 +8321,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "e42867a6f596df980979383618ea524def87d20f8faa9eeadf4ec8792e0b8a56",
+      "sha256": "3da3e367d813d3b351ab64dd3623eb58c3dd41308f3aecb2556a0ee99398b79b",
       "used_by_endpoints": [
         "admin.print_template_editor",
         "admin.recipe_print_template_editor"
