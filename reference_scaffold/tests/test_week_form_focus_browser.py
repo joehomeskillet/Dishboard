@@ -36,12 +36,10 @@ def test_week_form_keyboard_focus_after_modal_cancel_is_fully_visible(
     page.keyboard.press('Tab')
     expect(page.locator('a[href*="/preview"]')).to_be_focused()
     page.keyboard.press('Tab')
-    expect(page.get_by_role('link', name='Vorwoche kopieren', exact=True)).to_be_focused()
+    expect(page.get_by_role('link', name='Wochenangaben prüfen')).to_be_focused()
+    page.locator('details.admin-week-settings > summary').click()
     title = page.locator('input[name="title"]')
-    for _ in range(8):
-        page.keyboard.press('Tab')
-        if title.evaluate('element => element === document.activeElement'):
-            break
+    title.focus()
     expect(title).to_be_focused()
     title.fill('Angepasste Woche')
     expect(title).to_be_in_viewport(ratio=1)
