@@ -51,10 +51,9 @@ def test_native_operations_controls_save_focus_and_original_exception(
         assert focused.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
         page.screenshot(path=str(tmp_path / f'operations-error-{width}-js-{javascript}.png'), full_page=True)
         page.goto(PATH)
-        page.locator('#profile').select_option('staff_guest')
-        page.locator('#date').fill('2026-09-05')
-        page.locator('#meal').select_option('LUNCH')
-        page.get_by_role('button', name='Ausgabe laden', exact=True).click()
+        page.locator('#exception-load-date').fill('2026-09-05')
+        page.locator('#exception-load-meal').select_option('LUNCH')
+        page.locator('#exception-load').get_by_role('button', name='Ausgabe laden', exact=True).click()
         expect(page.locator('#exception-save input[name="row_version"]')).to_have_value('0')
         expect(page.locator('#service_start')).to_have_value('11:30')
         page.locator('#service_end').fill('14:00')

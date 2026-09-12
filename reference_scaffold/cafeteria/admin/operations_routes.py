@@ -22,7 +22,7 @@ from ..operations_store import list_service_exceptions, load_dated_service
 from ..patient_payload import patient_text_is_forbidden
 from ..public.routes import effective_today
 from ..roles import require_capability
-from ..security import csrf_token, validate_csrf
+from ..security import csrf_token
 from ..workflow import WorkflowValidationError
 from ..workflow_partial_form import parse_service_form
 from ..workflow_partial_store import (
@@ -77,11 +77,16 @@ def _render(status: int = 200, *, values: dict[str, str] | None = None,
         schedule_csrf={profile: _scoped_csrf(
             profile, 'operations_schedule', scope,
         ) for profile in PROFILE_SLOTS},
+        operations_csrf={profile: {action: _scoped_csrf(
+            profile, f'operations_{action}', scope,
+        ) for action in ('save_name', 'save_weekend', 'load_exception', 'save_exception')}
+            for profile in PROFILE_SLOTS},
         state_labels=STATES, families={v: k for k, v in FAMILIES.items()}, **_template_context(),
     ), status)
 
 
 def _save_name(profile: str) -> Response:
+    _validate_scoped_csrf(profile, {'operations_save_name'})
     field = f'name_{profile}'
     _exact({'_csrf', 'action', field, f'expected_{profile}'})
     try:
@@ -96,6 +101,7 @@ def _save_name(profile: str) -> Response:
 
 
 def _save_weekend() -> Response:
+    _validate_scoped_csrf('staff_guest', {'operations_save_weekend'})
     required = {'_csrf', 'action', 'expected_allows_weekend'}
     _exact(required | ({'allows_weekend'} if 'allows_weekend' in request.form else set()))
     expected = request.form['expected_allows_weekend']
@@ -163,13 +169,13 @@ def _load_exception() -> Response:
     _exact({'_csrf', 'action', 'profile', 'date', 'meal'})
     values = request.form.to_dict()
     profile = _profile()
+    scope = _validate_scoped_csrf(profile, {'operations_load_exception'})
     try:
         service_date = _date(values['date'])
     except ValueError:
         return _render(400, values=values, errors={'date': 'Bitte ein gültiges Datum wählen.'})
     if (service_date.isoweekday(), values['meal']) not in PROFILE_SLOTS[profile]:
         return _render(400, values=values, errors={'meal': 'Diese Mahlzeit gibt es in diesem Bereich nicht.'})
-    scope = _scope(profile)
     with _db().connect() as connection:
         schedule = get_schedule_connection(connection, scope.location_id, profile)
         values = load_dated_service(connection, scope.location_id, profile, service_date, values['meal'], schedule)
@@ -185,7 +191,7 @@ def _save_exception() -> Response:
             'service_state', 'notice', 'service_start', 'service_end'})
     values = request.form.to_dict()
     profile = _profile()
-    scope = _scope(profile)
+    scope = _validate_scoped_csrf(profile, {'operations_save_exception'})
     if (re.fullmatch(r'[0-9a-f]{64}', values['loaded']) is None
             or not hmac.compare_digest(values['loaded'], _exception_signature(values, scope))):
         return _render(409, errors={'date': 'Bitte den Service erneut laden; die ursprüngliche Ansicht passt nicht mehr.'})
@@ -218,8 +224,6 @@ def _authorized_operations() -> Response:
     if request.method == 'GET':
         return _render()
     action = request.form.get('action')
-    if action != 'save_schedule':
-        validate_csrf(request.form.get('_csrf'))
     if action in {'save_name_patient', 'save_name_staff_guest'}:
         return _save_name(action.removeprefix('save_name_'))
     actions = {'save_weekend': _save_weekend, 'save_schedule': _save_schedule,

@@ -66,7 +66,7 @@
     <summary class="card-header gap-2">{{ icon('pencil') }}<span class="card-title mb-0">Bereichsname ändern · {{ area_names[code] }}</span>{{ icon('chevron-right', class='ms-auto') }}</summary>
     <form method="post" id="name-{{ code }}" action="{{ url_for('admin.operations_settings') }}">
       <div class="card-body">
-        <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="action" value="save_name_{{ code }}">
+        <input type="hidden" name="_csrf" value="{{ operations_csrf[code].save_name }}"><input type="hidden" name="action" value="save_name_{{ code }}">
         <input type="hidden" name="expected_{{ code }}" value="{{ values.get('expected_' ~ code, area_names[code]) }}">
         {{ input('name_' ~ code, 'Bereichsname', values.get('name_' ~ code, area_names[code])) }}
         <div class="form-hint">Bereits veröffentlichte Pläne behalten ihren Namen.</div>
@@ -80,7 +80,7 @@
   <summary class="card-header gap-2">{{ icon('calendar-week') }}<span class="card-title mb-0">Wochenendbetrieb ändern · {{ area_names.staff_guest }}</span>{{ icon('chevron-right', class='ms-auto') }}</summary>
   <form method="post" id="weekend-form" action="{{ url_for('admin.operations_settings') }}">
     <div class="card-body">
-      <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="action" value="save_weekend">
+      <input type="hidden" name="_csrf" value="{{ operations_csrf.staff_guest.save_weekend }}"><input type="hidden" name="action" value="save_weekend">
       <input type="hidden" name="expected_allows_weekend" value="{{ '1' if schedules.staff_guest.allows_weekend else '0' }}">
       <label class="form-check form-switch" for="allows_weekend">
         <input class="form-check-input{% if errors.get('allows_weekend') %} is-invalid{% endif %}" type="checkbox" id="allows_weekend" name="allows_weekend"{% if schedules.staff_guest.allows_weekend %} checked{% endif %}{{ validation('allows_weekend') }}>
@@ -138,26 +138,32 @@
   <summary class="card-header gap-2">{{ icon('calendar-plus') }}<span class="card-title mb-0">Datierte Ausnahme anlegen oder bearbeiten</span>{{ icon('chevron-right', class='ms-auto') }}</summary>
   <div class="card-body">
     <p>Ausgabe wählen und gespeicherten Stand laden. Erst das anschliessende Speichern ändert den Plan.</p>
-    <form method="post" id="exception-load" action="{{ url_for('admin.operations_settings') }}">
-      <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="action" value="load_exception">
+    {% if not values.get('profile') %}{{ error_text('date') }}{% endif %}
+    {% for code in schedules %}
+    {% set load_id = 'exception-load' if code == 'staff_guest' else 'exception-load-' ~ code %}
+    <form method="post" id="{{ load_id }}" class="mb-4" action="{{ url_for('admin.operations_settings') }}" aria-labelledby="{{ load_id }}-title">
+      <h3 id="{{ load_id }}-title">{{ area_names[code] }}</h3>
+      <input type="hidden" name="_csrf" value="{{ operations_csrf[code].load_exception }}"><input type="hidden" name="action" value="load_exception">
+      <input type="hidden" name="profile" value="{{ code }}">
       <div class="row g-3 align-items-end">
-        <div class="col-12 col-md-5">
-          <label class="form-label" for="profile">Bereich</label>
-          <select class="form-select" id="profile" name="profile"{{ validation('profile') }}>{% for code in schedules %}<option value="{{ code }}"{% if values.get('profile') == code %} selected{% endif %}>{{ area_names[code] }}</option>{% endfor %}</select>{{ error_text('profile') }}
+        <div class="col-12 col-sm-6">
+          <label class="form-label" for="{{ load_id }}-date">Datum</label>
+          <input class="form-control{% if values.get('profile') == code and errors.get('date') %} is-invalid{% endif %}" id="{{ load_id }}-date" name="date" type="date" value="{{ values.get('date', today.isoformat()) if values.get('profile') == code else today.isoformat() }}"{% if values.get('profile') == code %}{{ validation('date') }}{% endif %}>
+          {% if values.get('profile') == code %}{{ error_text('date') }}{% endif %}
         </div>
-        <div class="col-12 col-sm-6 col-md-3">{{ input('date', 'Datum', values.get('date', today.isoformat()), 'date') }}</div>
-        <div class="col-12 col-sm-6 col-md-4">
-          <label class="form-label" for="meal">Mahlzeit</label>
-          <select class="form-select" id="meal" name="meal"{{ validation('meal') }}>{% for meal, label in meal_labels.items() %}<option value="{{ meal }}"{% if values.get('meal') == meal %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>{{ error_text('meal') }}
+        <div class="col-12 col-sm-6">
+          <label class="form-label" for="{{ load_id }}-meal">Mahlzeit</label>
+          <select class="form-select" id="{{ load_id }}-meal" name="meal"{% if values.get('profile') == code %}{{ validation('meal') }}{% endif %}>{% for meal, label in meal_labels.items() %}<option value="{{ meal }}"{% if values.get('profile') == code and values.get('meal') == meal %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>{% if values.get('profile') == code %}{{ error_text('meal') }}{% endif %}
         </div>
         <div class="col-12"><button class="btn btn-primary" type="submit">{{ icon('eye') }}Ausgabe laden</button></div>
       </div>
     </form>
+    {% endfor %}
     {% if preview %}
     <form method="post" id="exception-save" class="mt-4" action="{{ url_for('admin.operations_settings') }}">
       <h3>{{ area_names[values.profile] }} · {{ values.date }} · {{ meal_labels[values.meal] }}</h3>
       <p class="form-hint">{% if values.row_version == '0' %}Vorgabe, noch nicht gespeichert.{% else %}Gespeicherter Stand geladen. Parallele Änderungen führen zu einem Konflikt.{% endif %}</p>
-      <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="action" value="save_exception">
+      <input type="hidden" name="_csrf" value="{{ operations_csrf[values.profile].save_exception }}"><input type="hidden" name="action" value="save_exception">
       {% for name in ['profile', 'date', 'meal', 'row_version', 'loaded'] %}<input type="hidden" name="{{ name }}" value="{{ values[name] }}">{% endfor %}
       <div class="row g-3">
         <div class="col-12 col-md-4"><label class="form-label" for="service_state">Betrieb</label><select class="form-select" id="service_state" name="service_state"{{ validation('service_state') }}>{% for state, label in state_labels.items() %}<option value="{{ state }}"{% if values.service_state == state %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>{{ error_text('service_state') }}</div>
