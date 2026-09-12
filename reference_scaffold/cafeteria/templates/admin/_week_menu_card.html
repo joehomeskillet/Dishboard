@@ -1,0 +1,67 @@
+{% from '_food_symbols.html' import symbol, allergen_text %}
+{% set hint_len = (cell.description|default('') ~ cell.note|default(''))|length %}
+<div class="col-12 col-md-6">
+  <article class="card menu-slot h-100" data-day="{{ cell.day }}" data-meal="{{ cell.meal }}" data-option="{{ cell.option }}" data-row-version="{{ cell.row_version }}">
+    <div class="card-body{% if family == 'patienten' %} patient-admin-option{% endif %}">
+      <small class="text-secondary dish-type">{{ cell.option_label }}</small>
+      <h3>{{ cell.title if cell.title else 'Noch kein Gericht' }}</h3>
+      {% if cell.components %}
+      <ul class="admin-week-components">
+        {% for component in cell.components %}
+        <li>{{ component }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% if cell.title %}
+      <div data-menu-metadata>
+        {% if not cell.allergens %}
+        <p>Allergenangaben nicht erfasst</p>
+        {% elif cell.allergen_review_status|default('not_checked') != 'checked' %}
+        <p>Allergenprüfung offen</p>
+        {% endif %}
+        <div class="labels badge-list">
+          {% for origin in cell.origins %}
+          <span class="label badge bg-secondary-lt mw-100 text-wrap text-start">{{ symbol('countries', origin.country_code, true) }}<span class="text-break">{{ origin.text }}</span></span>
+          {% endfor %}
+          {% for label in cell.labels %}
+          <span class="label green badge bg-green-lt mw-100 text-wrap text-break">{{ symbol('labels', label.code, true) }}{{ label.name }}</span>
+          {% endfor %}
+          {% for allergen in cell.allergens %}
+          <span class="label amber badge bg-yellow-lt mw-100 text-wrap text-start">{{ symbol('allergens', allergen.code, true) }}<span class="text-break">{{ allergen_text(allergen) }}</span></span>
+          {% endfor %}
+        </div>
+        {% if cell.description or cell.note %}
+          {% if hint_len > 140 %}
+          <details class="admin-week-note">
+            <summary>Hinweis anzeigen</summary>
+            {% if cell.description %}<p class="menu-description">{{ cell.description }}</p>{% endif %}
+            {% if cell.note %}<p class="shared-note">{{ cell.note }}</p>{% endif %}
+          </details>
+          {% else %}
+            {% if cell.description %}<p class="menu-description">{{ cell.description }}</p>{% endif %}
+            {% if cell.note %}<p class="shared-note">{{ cell.note }}</p>{% endif %}
+          {% endif %}
+        {% endif %}
+      </div>
+      {% endif %}
+      <p class="admin-week-review-line">
+        <span class="slot-badge badge bg-{{ 'yellow' if cell.review_open else 'green' }}-lt" data-review="{{ 'open' if cell.review_open else 'checked' }}">{{ 'Prüfung offen' if cell.review_open else 'Geprüft' }}</span>
+        {% if not cell.review_open %}
+        <small>gespeicherter Stand bestätigt</small>
+        {% endif %}
+      </p>
+      {% if show_prices %}
+      <p>
+        {% if cell.internal_chf and cell.external_chf %}
+        Mitarbeitende CHF {{ cell.internal_chf }} · Externe CHF {{ cell.external_chf }}
+        {% else %}
+        Preis fehlt
+        {% endif %}
+      </p>
+      {% endif %}
+      <div class="mt-auto">
+        <a class="btn" href="{{ cell.edit_url }}" aria-label="Bearbeiten: {{ cell.day_label }}, {{ cell.day_short }}, {{ cell.meal_label }}, {{ cell.option_label }} – {{ cell.title if cell.title else 'Noch kein Gericht' }}">{{ icon('pencil') }}Menü bearbeiten</a>
+      </div>
+    </div>
+  </article>
+</div>

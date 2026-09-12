@@ -1,0 +1,25 @@
+{# Week title/note form, collapsed until needed. #}
+{% set title_summary = (title[:48] ~ ('…' if title|length > 48 else '')) if title else 'Kein Wochentitel' %}
+{% set note_summary = (shared_note[:48] ~ ('…' if shared_note|length > 48 else '')) if shared_note else 'Kein Hinweis' %}
+{% set week_settings_open = status == 'error' or (flashes and 'Wochenangaben' in flashes|join(' ')) %}
+<details class="admin-week-settings"{% if week_settings_open %} open{% endif %}>
+  <summary>Wochenangaben ändern <span class="text-secondary">{{ title_summary }} · {{ note_summary }}</span></summary>
+  <form{% if header_form_id %} id="{{ header_form_id }}"{% endif %} method="post" action="/admin/{{ family }}/header" class="admin-overview-form card mb-3">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-12 col-md-6">
+          {{ field('title', title_field_label, title, id=title_field_id) }}
+        </div>
+        <div class="col-12 col-md-6">
+          {{ field('shared_note', note_field_label, shared_note, id=note_field_id) }}
+        </div>
+      </div>
+    </div>
+    <div class="card-footer">
+      <button type="submit" class="btn btn-primary">{{ icon('device-floppy') }}Wochenangaben speichern</button>
+    </div>
+    <input type="hidden" name="_csrf" value="{{ week_csrf }}">
+    <input type="hidden" name="week" value="{{ week_value }}">
+    <input type="hidden" name="row_version" value="{{ week_row_version }}">
+  </form>
+</details>

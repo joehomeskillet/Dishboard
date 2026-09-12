@@ -1,25 +1,40 @@
 {% extends "admin/base_tabler.html" %}
 {% from '_food_symbols.html' import legend %}
-{% from 'admin/_macros.html' import icon, profile_tabs, field, page_header, status_badge, form_errors %}
+{% from 'admin/_macros.html' import icon, field, page_header, status_badge, form_errors %}
 {% block title %}Wochenplan · {{ area_names[profile] }}{% endblock %}
 {% set layout_variant = 'workspace' %}
 {% set csrf_value = csrf if csrf is defined else csrf_token() %}
+{% set week_csrf = csrf_value %}
 {% set week_value = week.isoformat() if week is not none and week.isoformat is defined else week %}
 {% set day_cells = cells|selectattr("meal", "equalto", "LUNCH")|list %}
 {% set first_slot = day_cells|first %}
 {% set publish_blocked = status in ('review_open', 'incomplete', 'empty') %}
 {% set open_checks = cells|selectattr('row_version', 'gt', 0)|selectattr('review_open')|list|length %}
 {% set filled_slots = cells|selectattr('row_version', 'gt', 0)|list|length %}
-{% set week_header_description = 'KW ' ~ iso_week ~ ' · ' ~ area_names[profile] ~ ' · ' ~ cells|length ~ ' Menükarten' %}
+{% set first_cell = cells[0] %}
+{% set last_cell = cells[-1] %}
+{% set first_parts = first_cell.day.split('-') %}
+{% set last_parts = last_cell.day.split('-') %}
+{% if first_parts[1] == last_parts[1] and first_parts[0] == last_parts[0] %}
+  {% set date_range = first_parts[2]|int ~ '.–' ~ last_parts[2]|int ~ '. ' ~ last_cell.day_short.split('. ')[1] ~ ' ' ~ last_parts[0] %}
+{% elif first_parts[0] == last_parts[0] %}
+  {% set date_range = first_cell.day_short ~ '–' ~ last_cell.day_short ~ ' ' ~ last_parts[0] %}
+{% else %}
+  {% set date_range = first_cell.day_short ~ ' ' ~ first_parts[0] ~ '–' ~ last_cell.day_short ~ ' ' ~ last_parts[0] %}
+{% endif %}
+{% set week_header_description = date_range ~ ' · KW ' ~ iso_week ~ ' · ' ~ first_cell.day_label ~ '–' ~ last_cell.day_label ~ ', Mittag' %}
 {% set workflow_nav = 'weeks' %}
+{% set header_form_id = none %}
+{% set title_field_label = 'Wochentitel' %}
+{% set note_field_label = 'Hinweis für alle Tage' %}
+{% set title_field_id = 'week_title' %}
+{% set note_field_id = 'week_shared_note' %}
 {% block main_attributes %}data-family="{{ family }}" data-week="{{ week_value }}" data-status="{{ status }}" data-loading-region aria-busy="{{ 'true' if status == 'loading' else 'false' }}"{% endblock %}
 {% block page_styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin-week-tabler.css') }}">
 {% endblock %}
 {% block page_header %}
-{% call page_header('Cafeteria-Plan bearbeiten', week_header_description, breadcrumbs=[{'label': 'Wochenpläne', 'url': url_for('admin.cafeteria')}]) %}
-<a class="btn" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}">{{ icon('clipboard-check') }}Wochenangaben prüfen</a>
-{% endcall %}
+{{ page_header('Cafeteria-Plan', week_header_description, breadcrumbs=[{'label': 'Wochenpläne', 'url': url_for('admin.cafeteria')}]) }}
 {% endblock %}
 {% block content %}
 {% set declarations = namespace(options=[]) %}
@@ -27,93 +42,11 @@
 {{ form_errors(flashes) }}
 {% endif %}
 
-{{ profile_tabs({
-  'cafeteria': url_for('admin.cafeteria'),
-  'patienten': url_for('admin.patienten'),
-}, 'cafeteria') }}
-
-<section class="admin-week-controls" aria-label="Wochenstatus und Aktionen">
-  <div class="weekbar">
-    <div>
-      <strong>KW {{ iso_week }} · {{ area_names[profile] }}</strong>
-      <span>{{ cells|length }} Menükarten · {{ day_cells|groupby('day')|length }} Tage × 2 Menüarten</span>
-    </div>
-    <div class="admin-week-status" role="status">
-      <span class="status-pill" data-status="{{ status }}">{{ status_badge(status, label=status_label) }}</span>
-      <span>{% if open_checks %}{{ open_checks }} {{ 'Menükarte' if open_checks == 1 else 'Menükarten' }} mit offener Prüfung{% elif status == 'review_open' %}Erneute Prüfung erforderlich{% else %}Keine offenen Prüfungen{% endif %}</span>
-    </div>
-  </div>
-  <div class="admin-actions btn-list" data-sticky>
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#week-publish-modal"{% if publish_blocked %} disabled aria-describedby="week-publish-guidance"{% endif %}>Publizieren</button>
-    <a class="btn" target="_blank" rel="noopener" href="/admin/{{ family }}/preview?week={{ week_value }}">{{ icon('eye') }}Vorschau</a>
-    <a class="btn" href="/admin/{{ family }}/copy?week={{ week_value }}">{{ icon('copy') }}Vorwoche kopieren</a>
-    {% if publish_blocked %}
-    <p id="week-publish-guidance" class="admin-week-guidance">{% if status == 'empty' %}Zuerst Gerichte erfassen, danach die Woche prüfen und publizieren.{% elif status == 'incomplete' %}Zuerst die Woche vervollständigen, danach publizieren.{% else %}Zuerst offene Prüfungen abschliessen, danach publizieren.{% endif %}</p>
-    {% endif %}
-  </div>
-</section>
-
-<div class="modal modal-blur fade" id="week-publish-modal" tabindex="-1" aria-labelledby="week-publish-title" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered" role="document">
-    <form method="post" action="/admin/{{ family }}/publish" class="modal-content" id="week-publish-form">
-      <input type="hidden" name="_csrf" value="{{ csrf_value }}">
-      <input type="hidden" name="week" value="{{ week_value }}">
-      <input type="hidden" name="row_version" value="{{ week_row_version }}">
-      <div class="modal-header">
-        <h5 class="modal-title" id="week-publish-title">Woche publizieren</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schliessen"></button>
-      </div>
-      <div class="modal-body">
-        <p>Woche jetzt publizieren?</p>
-        <ul class="list-unstyled mb-0">
-          <li><strong>Gespeicherte Woche:</strong> KW {{ iso_week }}{% if title %} · {{ title }}{% endif %}</li>
-          <li><strong>Erfasste Menükarten:</strong> {{ filled_slots }} von {{ cells|length }}</li>
-          <li><strong>Prüfstatus:</strong> {% if open_checks %}{{ open_checks }} offene Prüfung{{ 'en' if open_checks != 1 else '' }}{% elif status == 'review_open' %}Erneute Prüfung erforderlich{% else %}Keine offenen Prüfungen{% endif %}</li>
-        </ul>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn" data-bs-dismiss="modal">Abbrechen</button>
-        <button type="submit" class="btn btn-primary"{% if publish_blocked %} disabled{% endif %}>{{ icon('check') }}Publizieren</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<p class="admin-week-review-link">
-  <a class="btn" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}">{{ icon('clipboard-check') }}Wochenangaben prüfen</a>
-</p>
-
-<div class="alert alert-info admin-notice" role="note">
-  {% if day_cells|groupby('day')|length == 5 %}Getrenntes Raster: Montag bis Freitag, nur Mittag. Samstag und Sonntag: Cafeteria geschlossen.{% else %}Wochenraster mit Wochenendbetrieb, nur Mittag. Betrieb und Zeiten gelten je Service.{% endif %}
-</div>
-
-{% if week_row_version > 0 %}
-<form class="mb-3" method="post" action="{{ url_for('admin.schedule_defaults', family=family) }}" id="schedule-defaults">
-  <input type="hidden" name="_csrf" value="{{ schedule_defaults_csrf }}">
-  <input type="hidden" name="week" value="{{ week_value }}"><input type="hidden" name="row_version" value="{{ week_row_version }}">
-  <button class="btn" type="submit">{{ icon('calendar-cog') }}Wochenvorgaben übernehmen</button>
-  <div class="form-hint">Ergänzt fehlende Services und offene Services ohne Zeiten. Vorhandene Menüs bleiben erhalten.</div>
-</form>
+{% include 'admin/_week_controls.html' %}
+{% if last_cell.day_label == 'Sonntag' %}
+<p class="form-hint">Wochenendbetrieb: Samstag und Sonntag sind im Raster.</p>
 {% endif %}
-
-<form method="post" action="/admin/{{ family }}/header" class="admin-overview-form card mb-3">
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-12 col-md-6">
-        {{ field('title', 'Wochentitel', title, id='week_title') }}
-      </div>
-      <div class="col-12 col-md-6">
-        {{ field('shared_note', 'Hinweis für alle Tage', shared_note, id='week_shared_note') }}
-      </div>
-    </div>
-  </div>
-  <div class="card-footer">
-    <button type="submit" class="btn btn-primary">{{ icon('device-floppy') }}Wochenangaben speichern</button>
-  </div>
-  <input type="hidden" name="_csrf" value="{{ csrf_value }}">
-  <input type="hidden" name="week" value="{{ week_value }}">
-  <input type="hidden" name="row_version" value="{{ week_row_version }}">
-</form>
+{% include 'admin/_week_settings.html' %}
 
 {% if status == 'empty' %}
 <div class="alert alert-info admin-notice">
@@ -128,69 +61,22 @@
   {% for day, grouped in day_cells|groupby('day') %}
   {% set day_row = grouped|first %}
   <article class="card admin-day-card">
-    <div class="card-header">
-      <div class="day-heading">
-        <strong>{{ day_row.day_label }}</strong>
-        {% if day_row.service_row_version == 0 %}<span class="badge bg-secondary-lt" title="Vorgabe, noch nicht gespeichert">Vorgabe</span>{% endif %}
-        <span>{{ day_row.day_short }}</span>
-      </div>
-      <form method="post" action="/admin/{{ family }}/service" class="admin-week-service">
-        <input type="hidden" name="_csrf" value="{{ csrf_value }}">
-        <input type="hidden" name="week" value="{{ week_value }}">
-        <input type="hidden" name="day" value="{{ day }}">
-        <input type="hidden" name="meal" value="LUNCH">
-        <input type="hidden" name="row_version" value="{{ day_row.service_row_version }}">
-        <div class="row g-3 align-items-end">
-          <div class="col-12 col-sm-6 col-md-4">
-            <label class="form-label" for="service_state_{{ day }}">Betrieb</label>
-            <select id="service_state_{{ day }}" class="form-select" name="service_state">
-              <option value="open"{% if day_row.service_state == 'open' %} selected{% endif %}>Offen</option>
-              <option value="closed"{% if day_row.service_state == 'closed' %} selected{% endif %}>Geschlossen</option>
-              <option value="holiday"{% if day_row.service_state == 'holiday' %} selected{% endif %}>Feiertag</option>
-              <option value="company_holiday"{% if day_row.service_state == 'company_holiday' %} selected{% endif %}>Betriebsfeiertag</option>
-            </select>
-          </div>
-          <div class="col-12 col-sm-6 col-md-5">
-            <label class="form-label" for="service_notice_{{ day }}">Servicehinweis</label>
-            <input id="service_notice_{{ day }}" class="form-control" name="notice" value="{{ day_row.notice|default('') }}">
-          </div>
-          <div class="col-12 col-sm-6 col-md-3">
-            {{ field('service_start', 'Beginn', day_row.service_start, type='time', id='service_start_' ~ day) }}
-          </div>
-          <div class="col-12 col-sm-6 col-md-3">
-            {{ field('service_end', 'Ende', day_row.service_end, type='time', id='service_end_' ~ day) }}
-          </div>
-          <div class="col-12 col-md-auto">
-            <button type="submit" class="btn">{{ icon('device-floppy') }}Service speichern</button>
-          </div>
-        </div>
-      </form>
+    <div class="card-header admin-week-day-head">
+      <h2>{{ day_row.day_label }}</h2>
+      <time datetime="{{ day }}">{{ day_row.day_short }}</time>
+      <span class="text-secondary admin-week-day-count">{{ grouped|selectattr('row_version', 'gt', 0)|list|length }} von 2 Menükarten erfasst</span>
+      {% if day_row.service_row_version == 0 %}<span class="badge bg-secondary-lt" title="Vorgabe, noch nicht gespeichert">Vorgabe, noch nicht gespeichert</span>{% endif %}
     </div>
     <div class="card-body">
+      {% with meal_code='LUNCH', meal_label='Mittag', meal_cell=day_row, day_iso=day, service_index=loop.index0 %}
+      {% include 'admin/_week_service.html' %}
+      {% endwith %}
       <div class="row g-3 admin-menu-options">
         {% for cell in grouped %}
         {% if cell.title %}{% set declarations.options = declarations.options + [cell] %}{% endif %}
-        <div class="col-12 col-md-6">
-          <article class="card menu-slot h-100" data-day="{{ cell.day }}" data-meal="LUNCH" data-option="{{ cell.option }}" data-row-version="{{ cell.row_version }}">
-            <div class="card-body">
-              <span class="dish-type">{{ cell.option_label }}</span>
-              <h3>{{ cell.title if cell.title else 'Noch kein Gericht' }}</h3>
-              <p>{{ cell.components|default([])|join(' · ') }}</p>
-              {% if cell.title %}{% with option=cell %}{% include '_menu_metadata.html' %}{% endwith %}{% endif %}
-              <p>
-                {% if cell.internal_chf and cell.external_chf %}
-                Mitarbeitende CHF {{ cell.internal_chf }} · Externe CHF {{ cell.external_chf }}
-                {% else %}
-                Preis fehlt
-                {% endif %}
-              </p>
-              <span class="slot-badge badge bg-{{ 'yellow' if cell.review_open else 'green' }}-lt" data-review="{{ 'open' if cell.review_open else 'checked' }}">{{ 'Prüfung offen' if cell.review_open else 'Geprüft' }}</span>
-              <div class="mt-auto">
-                <a class="btn" href="{{ cell.edit_url }}" aria-label="Bearbeiten: {{ cell.day_label }}, {{ cell.day_short }}, {{ cell.meal_label }}, {{ cell.option_label }} – {{ cell.title if cell.title else 'Noch kein Gericht' }}">{{ icon('pencil') }}Bearbeiten</a>
-              </div>
-            </div>
-          </article>
-        </div>
+        {% with show_prices=true %}
+        {% include 'admin/_week_menu_card.html' %}
+        {% endwith %}
         {% endfor %}
       </div>
     </div>

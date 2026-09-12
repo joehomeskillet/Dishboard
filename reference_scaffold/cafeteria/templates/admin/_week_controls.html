@@ -1,0 +1,107 @@
+{# Shared week status, actions, and publish modal. Context: family, week_value, week_csrf, status, status_label, iso_week, title, cells, open_checks, filled_slots, publish_blocked, week_row_version, schedule_defaults_csrf. #}
+{% set allergen_stats = namespace(missing=0, review_open=0) %}
+{% for cell in cells if cell.row_version > 0 and cell.title %}
+  {% if not cell.allergens %}
+    {% set allergen_stats.missing = allergen_stats.missing + 1 %}
+  {% elif cell.allergen_review_status|default('not_checked') != 'checked' %}
+    {% set allergen_stats.review_open = allergen_stats.review_open + 1 %}
+  {% endif %}
+{% endfor %}
+{% if status == 'live' %}
+  {% set publish_label = 'Erneut veröffentlichen' %}
+  {% set status_plain = 'Veröffentlicht · entspricht dem gespeicherten Stand' %}
+{% elif status == 'changed' %}
+  {% set publish_label = 'Änderungen veröffentlichen' %}
+  {% set status_plain = 'Veröffentlicht · gespeicherte Änderungen noch nicht veröffentlicht' %}
+{% elif status == 'ready' %}
+  {% set publish_label = 'Veröffentlichen' %}
+  {% set status_plain = 'Noch nicht veröffentlicht · bereit' %}
+{% elif status == 'review_open' %}
+  {% set publish_label = 'Veröffentlichen' %}
+  {% set status_plain = 'Prüfung offen' %}
+{% elif status == 'incomplete' %}
+  {% set publish_label = 'Veröffentlichen' %}
+  {% set status_plain = 'Unvollständig' %}
+{% elif status == 'empty' %}
+  {% set publish_label = 'Veröffentlichen' %}
+  {% set status_plain = 'Noch keine Menüs erfasst' %}
+{% else %}
+  {% set publish_label = 'Veröffentlichen' %}
+  {% set status_plain = status_label %}
+{% endif %}
+{% set csv_profile = 'patienten' if family == 'patienten' else 'cafeteria' %}
+
+<section class="admin-week-controls" aria-label="Wochenstatus und Aktionen">
+  <div class="admin-week-status" role="status">
+    <span class="status-pill" data-status="{{ status }}">{{ status_badge(status, label=status_label) }}</span>
+    <span>{{ status_plain }}</span>
+    {% if open_checks %}
+    <span>{{ open_checks }} {{ 'Menükarte' if open_checks == 1 else 'Menükarten' }} mit offener Prüfung</span>
+    {% elif filled_slots > 0 %}
+    <span>Alle {{ filled_slots }} erfassten Menükarten geprüft</span>
+    {% endif %}
+    {% if status == 'review_open' and open_checks == 0 %}
+    <span>Wochenkopf und Ausgabehinweise noch zu prüfen</span>
+    {% elif status in ('ready', 'live', 'changed') %}
+    <span>Wochenkopf und Ausgabehinweise geprüft</span>
+    {% endif %}
+    {% if allergen_stats.missing > 0 %}
+    <span class="text-warning">{{ allergen_stats.missing }} {{ 'Menükarte' if allergen_stats.missing == 1 else 'Menükarten' }} ohne Allergenangaben</span>
+    {% endif %}
+    {% if allergen_stats.review_open > 0 %}
+    <span class="text-warning">{{ allergen_stats.review_open }} {{ 'Menükarte' if allergen_stats.review_open == 1 else 'Menükarten' }} mit Allergenprüfung offen</span>
+    {% endif %}
+  </div>
+  <div class="admin-actions btn-list" data-sticky>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#week-publish-modal"{% if publish_blocked %} disabled aria-describedby="week-publish-guidance"{% endif %}>{{ publish_label }}</button>
+    <a class="btn" href="/admin/{{ family }}/preview?week={{ week_value }}" target="_blank" rel="noopener">{{ icon('eye') }}Vorschau</a>
+    <a class="btn admin-week-review-link" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}">{{ icon('clipboard-check') }}Wochenangaben prüfen</a>
+    <details class="admin-week-more">
+      <summary class="btn">Weitere Aktionen</summary>
+      <div class="admin-week-more-menu">
+        <a class="dropdown-item" href="{{ url_for('admin.export_csv', profile_code=csv_profile) }}">{{ icon('file-import') }}CSV exportieren</a>
+        <a class="dropdown-item" href="/admin/{{ family }}/copy?week={{ week_value }}">{{ icon('copy') }}Vorwoche kopieren</a>
+        {% if week_row_version > 0 %}
+        <form method="post" action="{{ url_for('admin.schedule_defaults', family=family) }}" id="schedule-defaults">
+          <input type="hidden" name="_csrf" value="{{ schedule_defaults_csrf }}">
+          <input type="hidden" name="week" value="{{ week_value }}"><input type="hidden" name="row_version" value="{{ week_row_version }}">
+          <button class="dropdown-item" type="submit">{{ icon('calendar-cog') }}Wochenvorgaben übernehmen</button>
+          <div class="dropdown-item-text">Ergänzt fehlende Services und offene Services ohne Zeiten. Vorhandene Menüs bleiben erhalten.</div>
+        </form>
+        {% endif %}
+      </div>
+    </details>
+    {% if publish_blocked %}
+    <p id="week-publish-guidance" class="admin-week-guidance">{% if status == 'empty' %}Zuerst Gerichte erfassen, danach die Woche prüfen und publizieren.{% elif status == 'incomplete' %}Zuerst die Woche vervollständigen, danach publizieren.{% else %}Zuerst offene Prüfungen abschliessen, danach publizieren.{% endif %}</p>
+    {% endif %}
+  </div>
+</section>
+
+<div class="modal modal-blur fade" id="week-publish-modal" tabindex="-1" aria-labelledby="week-publish-title" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <form method="post" action="/admin/{{ family }}/publish" class="modal-content" id="week-publish-form">
+      <input type="hidden" name="_csrf" value="{{ week_csrf }}">
+      <input type="hidden" name="week" value="{{ week_value }}">
+      <input type="hidden" name="row_version" value="{{ week_row_version }}">
+      <div class="modal-header">
+        <h5 class="modal-title" id="week-publish-title">Woche veröffentlichen</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schliessen"></button>
+      </div>
+      <div class="modal-body">
+        <p>Bitte prüfen, ob alle Angaben korrekt sind.</p>
+        {% if status in ('live', 'changed') %}
+        <p>Erzeugt eine neue Publikationsversion; die bisherige wird ersetzt.</p>
+        {% endif %}
+        <ul class="list-unstyled mb-0">
+          <li><strong>Gespeicherte Woche:</strong> KW {{ iso_week }}{% if title %} · {{ title }}{% endif %}</li>
+          <li><strong>Erfasste Menükarten:</strong> {{ filled_slots }} von {{ cells|length }}</li>
+          <li><strong>Prüfstatus:</strong> {% if open_checks %}{{ open_checks }} {{ 'Menükarte' if open_checks == 1 else 'Menükarten' }} mit offener Prüfung{% elif filled_slots > 0 %}Alle {{ filled_slots }} erfassten Menükarten geprüft{% else %}{{ status_plain }}{% endif %}</li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" data-bs-dismiss="modal">Abbrechen</button>
+        <button type="submit" class="btn btn-primary"{% if publish_blocked %} disabled{% endif %}>{{ icon('check') }}{{ publish_label }}</button>
+      </div>
+    </form>
+  </div>
+</div>
