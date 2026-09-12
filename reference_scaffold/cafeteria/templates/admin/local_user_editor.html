@@ -16,7 +16,6 @@
 {% if account.locked_until and account.locked_until > now %}<p class="mb-0">Anmeldung vorübergehend gesperrt bis {{ format_time(account.locked_until) }}.</p>{% endif %}
 </div></section>
 <p>Jede Aktion wird gesondert bestätigt. Änderungen an Ihrem eigenen Konto beenden Ihre Anmeldung.</p>
-<div class="row"><div class="col-12 col-xl-8">
 <form method="post" action="{{ url_for('admin.local_user_change', public_id=account.public_id, action='rollen') }}" class="card mb-4"{% if error_action == 'rollen' %} aria-describedby="user-error-rollen"{% endif %}>
 {{ hidden(csrf,page,status,account) }}<div class="card-header"><h2 class="card-title">Rollen ändern</h2></div><div class="card-body">
 {{ form_error(error if error_action == 'rollen' else '', 'rollen') }}{{ role_fields(role_labels,account.roles,'edit') }}
@@ -36,5 +35,4 @@
 <p>{% if account.disabled_at %}Das Konto kann sich wieder mit seinem bestehenden Passwort anmelden. Eine vorübergehende Anmeldesperre bleibt erhalten.{% else %}Die Anmeldung wird gesperrt; bestehende Sitzungen verlieren ihre Berechtigung. Das Konto und seine Ereignisse bleiben erhalten.{% endif %}</p>
 {{ confirm('state', 'Konto ' ~ account.username ~ ' ausdrücklich ' ~ ('reaktivieren' if account.disabled_at else 'deaktivieren')) }}
 </div><div class="card-footer"><button class="btn{% if not account.disabled_at %} btn-outline-danger{% endif %}"{% if not can_mutate %} disabled{% endif %}>Konto {{ 'reaktivieren' if account.disabled_at else 'deaktivieren' }}</button></div></form>
-</div></div>
 {% endblock %}

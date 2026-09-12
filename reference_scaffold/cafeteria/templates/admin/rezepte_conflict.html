@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='admin-tabler.css') }}">
-</head><body class="dishboard-admin"><main class="container-xl py-5">
+</head><body class="dishboard-admin"><main class="container-fluid py-5">
 <h1>Rezeptaktion nicht möglich</h1>
 <div class="alert alert-danger error-region" role="alert" id="recipe-error" tabindex="-1"{% if focus_index is none %} autofocus{% endif %}>{{ message }}</div>
 {% if submitted %}

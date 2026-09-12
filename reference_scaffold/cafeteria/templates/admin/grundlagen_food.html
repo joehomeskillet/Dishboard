@@ -17,7 +17,10 @@
 </select></div><div class="col-12 col-lg-6"><label class="form-label" for="category_public_id">Kategorie</label><select class="form-select" name="category_public_id" id="category_public_id"><option value="">Keine Kategorie</option>
 {% if values.get('category_public_id') and values.category_public_id not in categories|map(attribute='public_id')|list %}<option value="{{ values.category_public_id }}" selected>{{ values.category_public_id }} (ungültige Auswahl)</option>{% endif %}
 {% for category in categories %}{% if category.active or values.get('category_public_id') == category.public_id %}<option value="{{ category.public_id }}"{% if values.get('category_public_id') == category.public_id %} selected{% endif %}>{{ category.name }}{% if not category.active %} · archiviert, bitte ersetzen oder entfernen{% endif %}</option>{% endif %}{% endfor %}</select></div></div>
-{{ input('density_g_per_ml', 'Dichte in g/ml (optional)') }}{{ input('piece_weight_g', 'Stückgewicht in g (optional)') }}
+<div class="row g-3">
+<div class="col-12 col-lg-6">{{ input('density_g_per_ml', 'Dichte in g/ml (optional)') }}</div>
+<div class="col-12 col-lg-6">{{ input('piece_weight_g', 'Stückgewicht in g (optional)') }}</div>
+</div>
 <label class="form-label" for="note">Notiz</label><textarea class="form-control mb-3" name="note" id="note" maxlength="500">{{ values.get('note', '') }}</textarea>
 <p class="form-hint">Dezimalzahlen mit Punkt eingeben. Archivierte Zuordnungen vor dem Speichern ausdrücklich ersetzen oder entfernen.</p>
 <button class="btn btn-primary" type="submit">{{ 'Stammdaten speichern' if row else 'Zutat anlegen' }}</button></form>
