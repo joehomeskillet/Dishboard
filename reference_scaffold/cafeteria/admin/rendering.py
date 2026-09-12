@@ -151,6 +151,8 @@ def render_admin_week(
     draft: dict[str, Any] | None, versions: dict[tuple[str, str, str], int],
     services: dict[tuple[str, str], dict[str, Any]],
     csrf: str, flashes: list[str],
+    *, form_kind: str | None = None, form_values: dict[str, str] | None = None,
+    form_errors: dict[str, str] | None = None,
 ) -> str:
     from .workflow_routes import _scoped_csrf
 
@@ -174,6 +176,8 @@ def render_admin_week(
         draft=draft, week_row_version=0 if draft is None else int(draft.get('row_version', 0)),
         title='' if draft is None else str(draft.get('title') or ''),
         shared_note='' if draft is None else str(draft.get('shared_note') or ''),
+        week_form_kind=form_kind, week_form_values=form_values or {},
+        week_form_errors=form_errors or {},
         cells=_cells(profile, family, week, draft, versions, services),
         schedule_defaults_csrf=_scoped_csrf(profile, 'schedule_defaults', scope),
         **_template_context(),

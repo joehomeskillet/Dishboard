@@ -419,10 +419,14 @@ def _menu_error_response(
         submitted_row_version=request.form.get('row_version', ''),
     )
 
-def _week_overview(profile: str):
+def _week_overview(
+    profile: str, *, week: date | None = None, scope: AdminScope | None = None,
+    form_kind: str | None = None, form_values: dict[str, str] | None = None,
+    form_errors: dict[str, str] | None = None,
+):
     _reject_override()
-    week = _week_arg()
-    scope = _scope(profile)
+    week = _week_arg() if week is None else week
+    scope = _scope(profile) if scope is None else scope
     status = derive_admin_status(_db(), profile, week)
     draft = None
     versions: dict[tuple[str, str, str], int] = {}
@@ -466,6 +470,7 @@ def _week_overview(profile: str):
     return render_admin_week(
         profile, family, week, scope, status, draft, versions, services,
         _scoped_csrf(profile, 'overview', scope), _flash(),
+        form_kind=form_kind, form_values=form_values, form_errors=form_errors,
     )
 
 @bp.after_request
@@ -606,11 +611,18 @@ def header_post(family: str):
     profile = profile_from_endpoint(family)
     _reject_override()
     scope = _validate_scoped_csrf(profile, {'overview', 'header'})
-    parsed = _call(lambda: parse_week_header_form(profile, request.form))
-    _call(lambda: persist_week_header(
-        _db(), scope, parsed.week_start, parsed.payload,
-        parsed.expected_week_row_version,
-    ))
+    try:
+        parsed = parse_week_header_form(profile, request.form)
+        persist_week_header(
+            _db(), scope, parsed.week_start, parsed.payload,
+            parsed.expected_week_row_version,
+        )
+    except WorkflowValidationError as error:
+        return _week_form_error(profile, scope, 'header', error, 400)
+    except PartialWorkflowConflictError as error:
+        return _week_form_error(profile, scope, 'header', error, 409)
+    except _STORE_ERRORS as error:
+        _abort_store(error)
     flash('Wochenangaben gespeichert.')
     return redirect(url_for(f'admin.{family}', week=parsed.week_start.isoformat()), 303)
 
@@ -650,13 +662,44 @@ def service_post(family: str):
     profile = profile_from_endpoint(family)
     _reject_override()
     scope = _validate_scoped_csrf(profile, {'overview', 'service'})
-    parsed = _call(lambda: parse_service_form(profile, request.form))
-    _call(lambda: persist_service_state(
-        _db(), scope, parsed.week_start, parsed.day, parsed.meal,
-        parsed.payload, parsed.expected_service_row_version,
-    ))
+    try:
+        parsed = parse_service_form(profile, request.form)
+        persist_service_state(
+            _db(), scope, parsed.week_start, parsed.day, parsed.meal,
+            parsed.payload, parsed.expected_service_row_version,
+        )
+    except WorkflowValidationError as error:
+        return _week_form_error(profile, scope, 'service', error, 400)
+    except PartialWorkflowConflictError as error:
+        return _week_form_error(profile, scope, 'service', error, 409)
+    except _STORE_ERRORS as error:
+        _abort_store(error)
     flash('Service gespeichert.')
     return redirect(url_for(f'admin.{family}', week=parsed.week_start.isoformat()), 303)
+
+
+def _week_form_error(
+    profile: str, scope: AdminScope, kind: str, error: BaseException, status: int,
+):
+    fields = {'title', 'shared_note'} if kind == 'header' else {
+        'day', 'meal', 'service_state', 'notice', 'service_start', 'service_end',
+    }
+    # Only complete scalar forms with an intact identity may re-enter the editor.
+    _exact({'_csrf', 'week', 'row_version'} | fields)
+    week = _monday(request.form['week'])
+    _version_field('row_version')
+    if kind == 'service':
+        _raster(profile, week, request.form['day'], request.form['meal'], None)
+    editable = {'title', 'shared_note'} if kind == 'header' else {
+        'notice', 'service_start', 'service_end',
+    }
+    if isinstance(error, WorkflowValidationError) and error.field_name not in editable:
+        _abort_store(error)
+    return make_response(_week_overview(
+        profile, week=week, scope=scope, form_kind=kind,
+        form_values={key: request.form[key] for key in fields | {'row_version'}},
+        form_errors=_menu_errors(error),
+    ), status)
 
 
 def _component_error_response(profile: str, family: str, scope: AdminScope, error: BaseException,

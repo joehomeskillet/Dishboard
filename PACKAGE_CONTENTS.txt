@@ -1318,6 +1318,8 @@ reference_scaffold/tests/test_ui_route_inventory.py
 reference_scaffold/tests/test_ui_shell_fixes_browser.py
 reference_scaffold/tests/test_ui_weeks_browser.py
 reference_scaffold/tests/test_week_form_focus_browser.py
+reference_scaffold/tests/test_week_form_rerender.py
+reference_scaffold/tests/test_week_form_rerender_browser.py
 reference_scaffold/tests/test_week_management.py
 reference_scaffold/tests/test_week_management_browser.py
 reference_scaffold/tests/test_week_management_runtime_role.py
