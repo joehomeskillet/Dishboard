@@ -11,6 +11,7 @@ from sqlalchemy import text
 WORKTREE = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(WORKTREE / 'tools'))
 import build_recipe_draft_import as importer  # noqa: E402
+import recipe_draft_apply as applyer  # noqa: E402
 
 from cafeteria import master_data_store as masters  # noqa: E402
 from cafeteria import recipe_import_store as import_store  # noqa: E402
@@ -67,7 +68,7 @@ def allergen_reviews(owner) -> int:
 
 def run_apply(engine, actor, document):
     with signed_in(engine, actor):
-        return importer.apply_import(document, engine, actor, dry_run=False, write_back=IMPORT_PATH)
+        return applyer.apply_import(document, engine, actor, dry_run=False, write_back=IMPORT_PATH)
 
 
 def test_linked_draft_import_full_pipeline(master):  # noqa: F811
@@ -142,12 +143,12 @@ def test_linked_draft_import_invalid_row_rolls_back_batch(master):  # noqa: F811
     isolated = json.loads(json.dumps(document))
     isolated['resolved'] = {'storage_keys': {}, 'food_keys': {}, 'recipe_keys': {}, 'batch_public_ids': {}}
     with signed_in(engine, actor):
-        importer.ensure_storage(engine, actor, isolated)
-        food_ids = importer.ensure_foods(engine, actor, isolated, isolated['resolved']['storage_keys'])
+        applyer.ensure_storage(engine, actor, isolated)
+        food_ids = applyer.ensure_foods(engine, actor, isolated, isolated['resolved']['storage_keys'])
         location = recipes.get_location(engine)
         rows = []
         for index, recipe in enumerate(prep, start=1):
-            payload = importer.resolve_payload(
+            payload = applyer.resolve_payload(
                 recipe['recipe_payload'], recipe['ingredient_food_keys'], food_ids,
             )
             rows.append({
@@ -160,10 +161,10 @@ def test_linked_draft_import_invalid_row_rolls_back_batch(master):  # noqa: F811
                 'target_recipe_public_id': None,
                 'target_row_version': None,
             })
-        payload = importer.batch_payload('preparation', rows, isolated['meta'])
+        payload = applyer.batch_payload('preparation', rows, isolated['meta'])
         created = import_store.create_batch(engine, actor, payload, expected_location_id=location)
         batch = import_store.get_batch(engine, created.public_id)
-        mapped = importer.mapped_rows(prep, food_ids)
+        mapped = applyer.mapped_rows(prep, food_ids)
         mapped[0]['candidate_payload']['ingredients'][-1]['food_public_id'] = None
         import_store.update_batch(
             engine, actor, ObjectExpectation(batch.public_id, batch.row_version),
@@ -185,3 +186,57 @@ def test_linked_draft_import_invalid_row_rolls_back_batch(master):  # noqa: F811
             )
         assert snapshot(owner) == before
         assert import_store.get_batch(engine, batch.public_id).status == 'draft'
+
+
+def test_translate_draft_rejects_unknown_unit_codes():
+    draft = importer.load_draft(DRAFT_PATH)
+    food_key = draft['foods'][0]['key']
+    bad_food = json.loads(json.dumps(draft))
+    bad_food['foods'][0]['base_unit_code'] = 'NOPE'
+    with pytest.raises(ValueError, match='NOPE') as food_error:
+        importer.translate_draft(bad_food, draft_path=DRAFT_PATH)
+    assert f'foods[{food_key}].base_unit_code' in str(food_error.value)
+    assert str(DRAFT_PATH) in str(food_error.value)
+
+    recipe_key = draft['recipes'][0]['key']
+    bad_ingredient = json.loads(json.dumps(draft))
+    bad_ingredient['recipes'][0]['ingredients'][0]['unit_code'] = 'XYZ'
+    with pytest.raises(ValueError, match='XYZ') as ingredient_error:
+        importer.translate_draft(bad_ingredient, draft_path=DRAFT_PATH)
+    assert f'recipes[{recipe_key}].ingredients[0].unit_code' in str(ingredient_error.value)
+    assert str(DRAFT_PATH) in str(ingredient_error.value)
+
+
+def test_linked_draft_import_conflict_aborts_before_pins(master, monkeypatch):  # noqa: F811
+    _owner, engine, actor = master
+    document = load_import()
+    batch_id = '11111111-1111-1111-1111-111111111111'
+    pin_calls: list[str] = []
+
+    def replay_conflict(*args, **_kwargs):
+        return {
+            'status': 'conflict',
+            'group': args[3],
+            'public_id': batch_id,
+            'message': 'Importstapel existiert bereits.',
+        }
+
+    def refuse_pin(*args, **kwargs):
+        pin_calls.append('called')
+        raise AssertionError('pin_prepared_foods must not run after batch conflict')
+
+    monkeypatch.setattr(applyer, 'ensure_storage', lambda *args, **kwargs: {'k': 'storage'})
+    monkeypatch.setattr(applyer, 'ensure_foods', lambda *args, **kwargs: {'f': 'food'})
+    monkeypatch.setattr(applyer, 'commit_group', replay_conflict)
+    monkeypatch.setattr(applyer, 'pin_prepared_foods', refuse_pin)
+    with pytest.raises(applyer.BatchImportError, match=batch_id) as caught:
+        run_apply(engine, actor, document)
+    assert pin_calls == []
+    assert caught.value.summary['prepared_pins'] == []
+    failed = applyer.failed_batches(caught.value.summary)
+    assert failed == [caught.value.summary['batches'][0]]
+    assert failed[0]['status'] == 'conflict'
+    assert failed[0]['group'] == 'preparation'
+    assert failed[0]['public_id'] == batch_id
+    assert 'status=conflict' in str(caught.value)
+    assert len(caught.value.summary['batches']) == 1
