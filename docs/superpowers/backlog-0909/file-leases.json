@@ -34,7 +34,8 @@
           "reference_scaffold/cafeteria/static/admin-tabler.css",
           "proposed:reference_scaffold/cafeteria/static/recipe-editor.js",
           "reference_scaffold/tests/test_recipe_browser.py",
-          "reference_scaffold/tests/test_ui_korrektur_recipes_browser.py"
+          "reference_scaffold/tests/test_ui_korrektur_recipes_browser.py",
+          "proposed:reference_scaffold/tests/test_recipe_density_browser.py"
         ]
       },
       {
@@ -121,6 +122,24 @@
         "MP-UI-DENSITY-INVENTORY",
         "MP-UI-DENSITY-REGRESSION",
         "MP-UI-DENSITY-FUTURE"
+      ],
+      "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html": [
+        "MP-UI-DENSITY-WEEKS",
+        "MP-REC-MENU-TEMPLATE-BINDING"
+      ],
+      "reference_scaffold/tests/test_ui_route_inventory.py": [
+        "MP-UI-DENSITY-INVENTORY",
+        "MP-UI-DENSITY-REGRESSION",
+        "MP-UI-DENSITY-FUTURE"
+      ],
+      "reference_scaffold/tests/test_ui_inventory_capture.py": [
+        "MP-UI-DENSITY-INVENTORY",
+        "MP-UI-DENSITY-REGRESSION",
+        "MP-UI-DENSITY-FUTURE"
+      ],
+      "docs/superpowers/backlog-0909/ui-before-manifest.json": [
+        "MP-UI-DENSITY-INVENTORY",
+        "MP-UI-DENSITY-REGRESSION"
       ]
     },
     "foreign_work": "Shared main dirty AGENTS/CLAUDE is preserved; ongoing site/* and docs changes must be reconciled before release. Release manifests serialized by Root."

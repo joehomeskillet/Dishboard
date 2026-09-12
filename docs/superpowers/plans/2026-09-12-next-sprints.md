@@ -12,6 +12,8 @@
 
 **Baseline:** Produktivcode/Image auf `2fa44dea36675692bfb8ad4b681dca73dba06737`, Schema 30; live erneut bestätigter Appstart 12. September 2026 um 23:15:29 CEST. Neue Worker starten ausdrücklich auf dem geprüften Planungsfreeze `a420992ae91fd801d0ec43d41038f57bbdd3b261`. `github/main` kann parallel fortschreiten; Root prüft neue Commits vor Integration. Gemeinsamer Haupt-Tree bleibt unangetastet.
 
+Der begrenzte Planfix `wp-8bdb4f7321bd` basiert auf `2a9aed10b394e4d76bb58bd5e384a81fff84af0a` und korrigiert die beiden Befunde aus Review `wp-e7b99a14a8a0`. Der zusätzlich von Root freigegebene Graphabgleich ergänzt für PLAN-PORTIONS die bereits dokumentierten Vorgänger SHARED (`admin.js`) und MENU-PROPOSAL (`menu_editor.html`); die Featureabfolge bleibt dieselbe. Die aktiven Produktworker behalten ihre ausdrücklich zugewiesene Basis `a420992ae91fd801d0ec43d41038f57bbdd3b261`; dieser Dokumentstand ist kein Auftrag zum Rebase und kein Produkt-/Abnahmebeleg.
+
 **Planungsstatus:** Fable 5.1 lieferte die sieben Feature-WPs; alle fünf anschliessenden Reviewbefunde wurden durch getrennte Autoren geschlossen. Der spätere vollständige Dichteauftrag erweitert diesen Freeze. Manifest, Rezeptreferenz und Druckvorlagen-Einstieg laufen in getrennten Worktrees. Die übrigen Pakete sind geplant; reale Nutzerabnahme wartet auf drei Personen. Aktive Besitzer/Pools stehen im Sitzungsabschnitt von file-leases.json, historische Vorschlagsleases erteilen kein Schreibrecht.
 
 ## Dichteauftrag 13. September
@@ -34,7 +36,7 @@ Normative Regeln, alle zwanzig Mockups und A01-A24 stehen ausschliesslich im bes
 | `MP-UI-DENSITY-RECIPEPAGES` | Rezeptliste, Revisionen, Skalierung, Bilder und Vorlagen im Gesamtinventar | M07, M14, M18, M19, M20 | SHARED, MP-REC-RECIPE-VIEW-PRINT, MP-REC-MENU-PROPOSAL |
 | `MP-UI-DENSITY-PREVIEW` | Gewählte Woche und veröffentlichte Ausgabe getrennt drucken | M14 | SHARED |
 | `MP-UI-DENSITY-HUBS` | Ausgabehubs und Vorlageinstiege kompakt anschliessen | M14, M20 | SHARED, MP-TPL-RECIPE-DISH-ENTRY |
-| `MP-UI-DENSITY-PRINT` | Bestehende Drucklayouteditoren auf verständliche Arbeit ausrichten | M14, M15, M19 | SHARED, MP-REC-PRINT-TEMPLATE-ENTRY |
+| `MP-UI-DENSITY-PRINT` | Bestehende Drucklayouteditoren auf verständliche Arbeit ausrichten | M14, M15, M19 | SHARED, MP-REC-PRINT-TEMPLATE-ENTRY, MP-REC-RECIPE-VIEW-PRINT |
 | `MP-UI-DENSITY-SCREENS` | Bildschirm- und Darstellungsverwaltung kompakt halten | M14, M15, M20 | SHARED |
 | `MP-UI-DENSITY-SETTINGS` | Bereiche und Zeiten mit lokaler gezielter Bearbeitung | M15, M19 | SHARED |
 | `MP-UI-DENSITY-BRANDING` | Gespeicherten Markenentwurf und Vorschau klar darstellen | M16, M19 | SHARED |
@@ -52,13 +54,15 @@ Ausführungsfolge:
 1. Manifest und Rezeptreferenz parallel auf a420992; Druckvorlagen-Einstieg in eigener Codex-CLI-Lane. Rezeptmenge/Einheit und native Strukturaktionen zuerst sichtbar liefern. Root pflegt Inventar-/Besitzplan. Kein Warten auf sämtliche späteren Fachketten.
 2. Sprintgate der betroffenen Abläufe und gemeinsame Layouttypen; unabhängiger Review, Fix durch anderen Autor. Manifeste aus sauberem Export, Fast-forward-fähige Integration mit zwischenzeitlichem github/main, Push und Deploy mit Apprevision/Image/Schema/HTTP-Beleg.
 3. Gemeinsame Rezeptmuster einfrieren, zentrale Details/Zeilen weiterverwenden. Danach Shell/Cafeteria/Patienten und unabhängige Baustein-/Stammdaten-/Kochbuchseiten parallel, maximal fünf schwere Jobs.
-4. Featurefolge LINK-READS → VIEW-PRINT → PROPOSAL mit Druckvorlagen-Einstieg und exklusivem Workflow-Binding. Dichtearbeit an denselben Rezept-/Vorlagen-/Menüdateien wartet auf genau deren Freeze; unabhängige Einstellungen, Ausgabe, Benutzer und Import laufen weiter.
-5. Gesamte Route-/Rolle-/Zustandsmatrix tatsächlich bedienen. Alle Seiten 1440×900 und390×844; gemeinsame Typen zusätzlich1024×768,768×1024,1920×1080,2560×1440, echter200%-Zoom und320CSS-Reflow. Gleiche synthetische Vorher/Nachher-Daten; Abweichungen ausdrücklich offen. Physische Nutzer-/Papier-/Playerabnahmen bleiben getrennt.
+4. MENUEDITOR und WEEKS zunächst auf der gemeinsamen Dichtebasis einfrieren; MENU-TEMPLATE-BINDING wartet auf beide Freezes und liefert danach den Vertrag für PROPOSAL. LINK-READS und PRINT-TEMPLATE-ENTRY gehen VIEW-PRINT voraus; DENSITY-PRINT folgt VIEW-PRINT. RECIPEPAGES wartet auf VIEW-PRINT und PROPOSAL. Jede gemeinsame Datei wird in dieser Richtung übergeben; unabhängige Einstellungen, Ausgabe, Benutzer und Import laufen weiter.
+5. Gesamte Route-/Rolle-/Zustandsmatrix über `tests/test_ui_route_inventory.py` tatsächlich bedienen und mit `create_app()` abgleichen; `test_capture_before_screenshots_and_manifest` erzeugt die App-Captures, `tests/test_ui_inventory_capture.py` bleibt zusätzlich als Recorder-Selbsttest im Gate. Alle Seiten 1440×900 und 390×844; gemeinsame Typen zusätzlich 1024×768, 768×1024, 1920×1080, 2560×1440, echter 200%-Zoom und 320-CSS-Pixel-Reflow. Gleiche synthetische Vorher/Nachher-Daten und aktuelle Capture-Artefakte verwenden. Root weist Wrapper, exklusiven Pool und separates Capture-Ziel vor Ausführung zu; Testzahlen/Skipgründe, tatsächliche Rollen/Zustände/Viewports und fehlende Belege offen ausweisen. Kein Gesamt-PASS bei übersprungenen DB-/Browserprüfungen oder allein durch Recorder-Selbsttests. Physische Nutzer-/Papier-/Playerabnahmen bleiben getrennt.
 6. Ursprüngliche Fachketten dieses Plans weiter umsetzen: Mengen/Einkauf, Kosten/Lager/Bestellung, URL-/Nährwert-/OFF-/Quellenarbeit sowie Screens/IAM. Reale externe Voraussetzungen blockieren ausschliesslich ihre abhängigen WPs. Kein Abschluss nach Manifest oder Rezepteditor allein.
 
 Erste Bestandsabweichung: auf a420992 existieren 82 HTML-Templates, die Matrix enthält nur76 und nennt in Metadaten75. Mindestens fünf Gerichtvorlagen- und fünf Rezeptimport-Batch-Routen fehlen; Schema25/5f5-Angaben sind historisch. Der bestehende `test_ui_route_inventory.py`-Abgleich mit `create_app()` wird erweitert, kein zweites Inventarwerkzeug eingeführt. Ein statischer Fund ist kein Browser-PASS.
 
-Besitzserialisierung: `admin-tabler.css` RECIPE → SHARED → SHELL; `_macros.html`/`admin.js` ausschliesslich SHARED, bevor nachfolgende Seiten die gemeinsame Basis übernehmen. `menu_editor.html` erhält erst den Dichtefreeze, dann MENU-TEMPLATE-BINDING/PROPOSAL und PLAN-PORTIONS. Rezept-/Druckvorlagenlinks PRINT-TEMPLATE-ENTRY → VIEW-PRINT → PRINT/RECIPEPAGES. Tool-Browsertest IMPORTS → API. Inventardateien INVENTORY → REGRESSION → FUTURE. Release-Manifeste gehören ausschliesslich Root; fremde site/*-Arbeit wird erhalten und separat auf Aufnahme geprüft.
+Besitzserialisierung: `admin-tabler.css` RECIPE → SHARED → SHELL; `_macros.html`/`admin.js` ausschliesslich SHARED, bevor nachfolgende Seiten die gemeinsame Basis übernehmen. `menu_editor.html` MENUEDITOR → MENU-TEMPLATE-BINDING → PROPOSAL → PLAN-PORTIONS; `_week_menu_card.html` WEEKS → MENU-TEMPLATE-BINDING. Rezept-/Druckvorlagenlinks PRINT-TEMPLATE-ENTRY → VIEW-PRINT → PRINT/RECIPEPAGES. Tool-Browsertest IMPORTS → API. Routenmatrix und beide vorhandenen Tests `test_ui_route_inventory.py`/`test_ui_inventory_capture.py` INVENTORY → REGRESSION → FUTURE; `ui-before-manifest.json` INVENTORY → REGRESSION. Release-Manifeste gehören ausschliesslich Root; fremde site/*-Arbeit wird erhalten und separat auf Aufnahme geprüft.
+
+Der aktive RECIPE-Vertrag und sein Root-Grant enthalten zusätzlich den vorgeschlagenen `reference_scaffold/tests/test_recipe_density_browser.py` für die Dichte-Fixtures und Interaktionen. `test_recipe_browser.py` und `test_ui_korrektur_recipes_browser.py` bleiben im Besitz und im auszuführenden Testplan; die neue Datei ist noch kein Testergebnis.
 
 ## Global Constraints
 
@@ -119,13 +123,14 @@ Diese Reihenfolge ersetzt nicht den Dateibesitz oder die Readiness-Prüfung:
 | `MP-REC-PRINT-TEMPLATE-ENTRY` | Aktive Rezeptdruckvorlage mit korrekter Revision öffnen; zum Rezept zurückkehren | Vorhandene Druckvorlagenverträge; eigener kleiner Release möglich |
 | `MP-REC-RECIPE-VIEW-PRINT` | Pro Rezept Ansehen, Bearbeiten und Drucken; Entwurf und gedruckten gespeicherten Stand klar unterscheiden | Nach LINK-READS und PRINT-TEMPLATE-ENTRY; sichtbarer Listen-/Ansichtsrelease |
 | `MP-TPL-RECIPE-DISH-ENTRY` | Im Vorlagen-Hub aktive Rezeptdruckvorlage, Rezeptdruck-Einstieg und Gerichtvorlagen finden | Kleiner eigener Anschluss; wartet nicht auf Einkaufs-PDF oder spätere Screeneditoren |
-| `MP-REC-MENU-TEMPLATE-BINDING` | Menü behält seine Gerichtvorlage als Herkunft; spätere Vorlagenänderungen verändern gespeicherte Menüs nicht | Bestehenden Binding-Freeze belegen; Workflow-Dateien exklusiv, vor PLAN-PORTIONS |
+| `MP-REC-MENU-TEMPLATE-BINDING` | Menü behält seine Gerichtvorlage als Herkunft; spätere Vorlagenänderungen verändern gespeicherte Menüs nicht | Bestehenden Binding-Freeze sowie DENSITY-MENUEDITOR und DENSITY-WEEKS belegen; Workflow-Dateien exklusiv, vor PROPOSAL/PLAN-PORTIONS |
 | `MP-REC-MENU-PROPOSAL` | «Als Menü einplanen» → konkreter Bereich/Tag/Mahlzeit/Menüart → bewusst speichern | Nach LINK-READS und MENU-TEMPLATE-BINDING; belegte Slots und veraltete Formulare sicher behandeln |
 | `MP-UI-TEMPLATE-FLOW-ACCEPT` | Gesamten Weg mit realem Browser unabhängig abnehmen | Nach integrierten Ansichts-/Druck-/Planungsanschlüssen; technische Abnahme getrennt von Papierdruck und Küchenfreigabe |
 
-Root kann den Binding-Writer zusätzlich parallel zu den ersten beiden Paketen
-starten, sobald dessen bestehender Freeze belegt ist und sämtliche Dateileases
-konfliktfrei sind. Autor und Reviewer bleiben getrennt; maximal fünf schwere
+Root kann den Binding-Writer zusätzlich parallel zu noch offenen LINK-READS-/
+PRINT-TEMPLATE-ENTRY-Arbeiten starten, sobald dessen bestehender Freeze und beide
+Dichtefreezes MENUEDITOR/WEEKS belegt sind und sämtliche Dateileases konfliktfrei
+sind. Autor und Reviewer bleiben getrennt; maximal fünf schwere
 Hostjobs einschliesslich Browsergates. Die Druckvorlagen-Hubverknüpfung gehört
 zum geforderten Sprintumfang und muss vor dessen Gesamtabnahme erreichbar sein.
 Frühe Pakete verwenden bestehende Rezeptziele. Erst RECIPE-VIEW-PRINT schaltet
