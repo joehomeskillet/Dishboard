@@ -199,3 +199,36 @@ def test_non_production_keeps_local_last_good_default(monkeypatch: pytest.Monkey
     monkeypatch.delenv('LAST_GOOD_DIR', raising=False)
 
     assert Config().LAST_GOOD_DIR == '/tmp/cafeteria-last-good'
+
+
+def test_login_rate_limits_have_conservative_configurable_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    names = (
+        'LOGIN_USERNAME_MAX_LENGTH',
+        'LOGIN_COMBINED_RATE_LIMIT',
+        'LOGIN_COMBINED_RATE_WINDOW_SECONDS',
+        'LOGIN_IP_RATE_LIMIT',
+        'LOGIN_IP_RATE_WINDOW_SECONDS',
+        'LOGIN_ACCOUNT_RATE_LIMIT',
+        'LOGIN_ACCOUNT_RATE_WINDOW_SECONDS',
+    )
+    for name in names:
+        monkeypatch.delenv(name, raising=False)
+
+    defaults = Config()
+
+    assert defaults.LOGIN_USERNAME_MAX_LENGTH == 64
+    assert defaults.LOGIN_COMBINED_RATE_LIMIT == 5
+    assert defaults.LOGIN_COMBINED_RATE_WINDOW_SECONDS == 300
+    assert defaults.LOGIN_IP_RATE_LIMIT == 30
+    assert defaults.LOGIN_IP_RATE_WINDOW_SECONDS == 900
+    assert defaults.LOGIN_ACCOUNT_RATE_LIMIT == 10
+    assert defaults.LOGIN_ACCOUNT_RATE_WINDOW_SECONDS == 900
+
+    for index, name in enumerate(names, start=11):
+        monkeypatch.setenv(name, str(index))
+
+    configured = Config()
+
+    assert tuple(getattr(configured, name) for name in names) == tuple(range(11, 18))

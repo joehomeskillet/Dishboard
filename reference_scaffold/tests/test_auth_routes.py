@@ -349,6 +349,130 @@ def test_real_redis_rate_limit_isolated_by_username_and_socket_ip(
     assert other_user.status_code == 401
 
 
+def test_login_ip_bucket_cannot_be_bypassed_by_rotating_usernames(
+    auth_app: tuple[Any, Engine, Engine],
+) -> None:
+    application, _, _ = auth_app
+    application.config.update(
+        LOGIN_COMBINED_RATE_LIMIT=100,
+        LOGIN_IP_RATE_LIMIT=2,
+        LOGIN_ACCOUNT_RATE_LIMIT=100,
+    )
+    client = application.test_client()
+
+    for username in ('first.user', 'second.user'):
+        response = client.post(
+            '/auth/local',
+            data=_csrf_payload(client, username=username, password='wrong-password-value'),
+            environ_base={'REMOTE_ADDR': '198.51.100.20'},
+        )
+        assert response.status_code == 401
+
+    limited = client.post(
+        '/auth/local',
+        data=_csrf_payload(client, username='third.user', password='wrong-password-value'),
+        environ_base={'REMOTE_ADDR': '198.51.100.20'},
+    )
+
+    assert limited.status_code == 429
+    assert 'Anmeldung fehlgeschlagen' in limited.get_data(as_text=True)
+
+
+def test_login_account_bucket_cannot_be_bypassed_by_rotating_client_ips(
+    auth_app: tuple[Any, Engine, Engine],
+) -> None:
+    application, _, _ = auth_app
+    application.config.update(
+        LOGIN_COMBINED_RATE_LIMIT=100,
+        LOGIN_IP_RATE_LIMIT=100,
+        LOGIN_ACCOUNT_RATE_LIMIT=2,
+    )
+    client = application.test_client()
+
+    attempts = (
+        ('UNKNOWN.USER', '198.51.100.21'),
+        (' unknown.user ', '198.51.100.22'),
+    )
+    for username, remote_address in attempts:
+        response = client.post(
+            '/auth/local',
+            data=_csrf_payload(client, username=username, password='wrong-password-value'),
+            environ_base={'REMOTE_ADDR': remote_address},
+        )
+        assert response.status_code == 401
+
+    limited = client.post(
+        '/auth/local',
+        data=_csrf_payload(client, username='unknown.user', password='wrong-password-value'),
+        environ_base={'REMOTE_ADDR': '198.51.100.23'},
+    )
+
+    assert limited.status_code == 429
+    assert 'Anmeldung fehlgeschlagen' in limited.get_data(as_text=True)
+
+
+def test_overlong_login_username_is_rejected_before_rate_key_creation(
+    auth_app: tuple[Any, Engine, Engine],
+) -> None:
+    application, _, _ = auth_app
+    application.config['LOGIN_USERNAME_MAX_LENGTH'] = 64
+    client = application.test_client()
+    redis_client = application.extensions['cafeteria_rate_redis']
+    username = 'a' * 65
+
+    response = client.post(
+        '/auth/local',
+        data=_csrf_payload(client, username=username, password='wrong-password-value'),
+        environ_base={'REMOTE_ADDR': '198.51.100.24'},
+    )
+
+    body = response.get_data(as_text=True)
+    assert response.status_code == 401
+    assert 'Anmeldung fehlgeschlagen' in body
+    assert username not in body
+    assert list(redis_client.scan_iter(match='dishboard:auth:local:*')) == []
+
+
+def test_success_clears_account_and_combined_buckets_but_keeps_ip_bucket(
+    auth_app: tuple[Any, Engine, Engine],
+) -> None:
+    application, owner_engine, issuer_engine = auth_app
+    _provision(issuer_engine, owner_engine)
+    client = application.test_client()
+    redis_client = application.extensions['cafeteria_rate_redis']
+    username = 'local.editor'
+    remote_address = '198.51.100.25'
+    combined_key = login_rate_key(username, remote_address)
+
+    rejected = client.post(
+        '/auth/local',
+        data=_csrf_payload(client, username=username, password='wrong-password-value'),
+        environ_base={'REMOTE_ADDR': remote_address},
+    )
+    assert rejected.status_code == 401
+    rate_keys = set(redis_client.scan_iter(match='dishboard:auth:local:*'))
+    account_keys = {key for key in rate_keys if b':account:' in key}
+    ip_keys = {key for key in rate_keys if b':ip:' in key}
+    assert redis_client.exists(combined_key) == 1
+    assert len(account_keys) == 1
+    assert len(ip_keys) == 1
+
+    accepted = client.post(
+        '/auth/local',
+        data=_csrf_payload(
+            client,
+            username=username,
+            password='Correct-Horse-2026!Battery',
+        ),
+        environ_base={'REMOTE_ADDR': remote_address},
+    )
+
+    assert accepted.status_code == 302
+    assert redis_client.exists(combined_key) == 0
+    assert all(redis_client.exists(key) == 0 for key in account_keys)
+    assert {redis_client.get(key) for key in ip_keys} == {b'2'}
+
+
 def test_forwarded_client_ip_is_used_only_for_trusted_loopback_proxy() -> None:
     peers = ('127.0.0.1', '::1')
     trusted_environ = {
