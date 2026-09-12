@@ -9833,5 +9833,26 @@
         "reason": "superseded unverified readiness"
       }
     ]
+  },
+  "current_inventory": {
+    "wp_id": "wp-3dde00c6c96c",
+    "source_commit": "a420992ae91fd801d0ec43d41038f57bbdd3b261",
+    "schema": 30,
+    "route_count": 126,
+    "template_count": 82,
+    "historical_source_commit": "5f5f6cb535922db8453c68d871279d6b2e203391",
+    "historical_manifest_sha256": "ee42bd86e5642835aeeb78f04129e39daab888f182e8664ea0a6a4500a0c16c2",
+    "historical_capture_count": 172,
+    "browser_status": "not_run",
+    "usability_status": "not_run",
+    "uncaptured_visual_endpoints": [
+      "admin.dish_template_edit",
+      "admin.dish_template_new",
+      "admin.dish_templates_list",
+      "admin.recipe_import_detail",
+      "admin.recipe_import_list"
+    ],
+    "note": "Alle bestehenden Captures, Metadaten, Hashes, Zeitpunkte und superseded_evidence bleiben historisch unverändert. Kein neuer Vorher-Capture in diesem WP; auch früher erfasste Routen benötigen aktuelle Dichte-/Interaktionsprüfung. Gezielte Fixture-/Fehlerprüfungen sind keine vollständige Density-Abnahme.",
+    "followup_mp": "MP-UI-DENSITY-REGRESSION"
   }
 }
