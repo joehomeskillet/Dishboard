@@ -134,7 +134,7 @@ def test_new_review_template_renders_all_saved_context_without_truncation(review
     assert saved['context']['shared_note'] in rendered
     for index in range(14):
         assert f'Vollständiger Hinweis für Service {index} ENDE-{index}' in rendered
-    assert 'Wochenkopf und alle Servicehinweise als geprüft bestätigen' in rendered
+    assert 'Wochenkopf und alle Ausgabehinweise als geprüft bestätigen' in rendered
     assert 'name="context_version" value="' + saved['token'] + '"' in rendered
 
 

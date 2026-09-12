@@ -25,7 +25,9 @@ def test_native_operations_controls_save_focus_and_original_exception(
         page = context.new_page()
         page.set_viewport_size({'width': width, 'height': 1100})
         page.goto(PATH)
-        expect(page.locator('a[href="/admin/bereiche-zeiten"]')).to_have_attribute('aria-current', 'page')
+        expect(page.get_by_role('link', name='Bereiche & Öffnungszeiten', exact=True)).to_have_attribute(
+            'aria-current', 'page',
+        )
         _assert_controls(page)
         assert page.locator('[style], [onclick], script:not([src])').count() == 0
         page.screenshot(path=str(tmp_path / f'operations-{width}-js-{javascript}.png'), full_page=True)
@@ -39,17 +41,20 @@ def test_native_operations_controls_save_focus_and_original_exception(
         expect(page.locator('#staff_guest-slot_6_LUNCH_start')).to_have_value('11:30')
         page.locator('#staff_guest-slot_6_LUNCH_end').fill('10:00')
         page.locator('#schedule-staff_guest button[type="submit"]').click()
+        page.wait_for_load_state()
         invalid = page.locator('#staff_guest-slot_6_LUNCH_end')
         expect(invalid).to_have_attribute('aria-invalid', 'true')
-        expect(invalid).to_be_focused()
+        expect(invalid).to_have_attribute('autofocus', '')
+        focused = page.locator('.error-region[role="alert"]') if javascript else invalid
+        expect(focused).to_be_focused()
         expect(page.locator('#staff_guest-slot_6_LUNCH_start')).to_have_value('11:30')
-        assert invalid.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
+        assert focused.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
         page.screenshot(path=str(tmp_path / f'operations-error-{width}-js-{javascript}.png'), full_page=True)
         page.goto(PATH)
         page.locator('#profile').select_option('staff_guest')
         page.locator('#date').fill('2026-09-05')
         page.locator('#meal').select_option('LUNCH')
-        page.get_by_role('button', name='Service laden', exact=True).click()
+        page.get_by_role('button', name='Ausgabe laden', exact=True).click()
         expect(page.locator('#exception-save input[name="row_version"]')).to_have_value('0')
         expect(page.locator('#service_start')).to_have_value('11:30')
         page.locator('#service_end').fill('14:00')

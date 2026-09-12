@@ -106,7 +106,7 @@
           <label class="form-label" for="meal">Mahlzeit</label>
           <select class="form-select" id="meal" name="meal"{{ validation('meal') }}>{% for meal, label in meal_labels.items() %}<option value="{{ meal }}"{% if values.get('meal') == meal %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>{{ error_text('meal') }}
         </div>
-        <div class="col-12"><button class="btn" type="submit">{{ icon('eye') }}Service laden</button></div>
+        <div class="col-12"><button class="btn" type="submit">{{ icon('eye') }}Ausgabe laden</button></div>
       </div>
     </form>
     {% if preview %}

@@ -76,7 +76,9 @@ def test_brand_editor_normal_state_and_viewports(
         expect(page.locator('.admin-page-header .btn-list')).to_have_count(0)
 
         expect(page.locator('.brand-status')).to_contain_text('Aktuelles Design:')
-        expect(page.get_by_role('link', name='Erscheinungsbild', exact=True)).to_have_attribute('aria-current', 'page')
+        expect(
+            page.get_by_label('Designbereiche').get_by_role('link', name='Erscheinungsbild', exact=True),
+        ).to_have_attribute('aria-current', 'page')
         expect(page.get_by_role('heading', name='Gespeicherte Vorschau · Version 1', exact=True)).to_be_visible()
         expect(page.get_by_text('Live-Vorschau', exact=False)).to_have_count(0)
         expect(page.locator('.brand-color-swatch')).to_have_count(4)
@@ -123,7 +125,7 @@ def test_operations_normal_state_and_viewports(
         expect(page.locator('h1.page-title')).to_have_text('Bereiche & Öffnungszeiten')
         expect(page.locator('.page-header-subtitle')).to_contain_text('Ausgabe und Öffnungszeiten')
         expect(page.locator('.text-secondary').first).to_contain_text('neue Ausgaben')
-        expect(page.get_by_role('button', name='Service laden', exact=True)).to_be_visible()
+        expect(page.get_by_role('button', name='Ausgabe laden', exact=True)).to_be_visible()
 
         _assert_no_overflow_and_min_targets(page)
         page.screenshot(path=str(tmp_path / f'brand-ops-operations-{width}x{height}.png'), full_page=True)

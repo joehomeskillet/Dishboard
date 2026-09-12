@@ -14,7 +14,7 @@ def test_week_creation_and_tablet_layout(page_context):
     page = page_context
     page.goto('/admin/patienten')
     page.locator('.admin-area-tabs').get_by_role('link', name='Wochenübersicht', exact=True).click()
-    expect(page.get_by_role('heading', name='Wochenverwaltung', exact=True)).to_be_visible()
+    expect(page.get_by_role('heading', name='Wochenübersicht', exact=True)).to_be_visible()
     for width, height in [(768, 1024), (800, 1280), (1024, 768), (1280, 800), (390, 844)]:
         page.set_viewport_size({'width': width, 'height': height})
         page.reload()
@@ -31,10 +31,14 @@ def test_week_creation_and_tablet_layout(page_context):
             }""")
             expect(page.get_by_role('navigation', name='Backend')).to_be_hidden()
         assert not page.evaluate('document.documentElement.scrollWidth > document.documentElement.clientWidth + 1')
+        page.locator('details:has(#new-week-title)').evaluate('el => { el.open = true }')
+        expect(page.locator('#new-week-date')).to_be_visible()
         for selector in ['input[type="date"]', 'input[name="title"]', 'textarea', 'button[type="submit"]']:
             for control in page.locator(selector).all():
                 if control.is_visible():
                     assert control.bounding_box()['height'] >= 48
+    page.locator('details:has(#new-week-title)').evaluate('el => { el.open = true }')
+    expect(page.locator('#new-week-date')).to_be_visible()
     page.get_by_label('Wochenbeginn (Montag)').fill('2027-01-04')
     page.get_by_label('Wochentitel', exact=True).fill('Tabletwoche')
     page.get_by_role('button', name='Woche anlegen').click()
