@@ -259,6 +259,8 @@ Veröffentlichungsstand, Menükarten-Prüfungen, Wochenkopf-Prüfung und fehlend
 
 `header_post` / `service_post` rufen `_call(...)` auf. Validierungs- und Konfliktfehler enden als 4xx-Seite, nicht als Re-Render der Wochenseite. Erfolg: Flash «Wochenangaben gespeichert.» / «Service gespeichert.» und 303 auf die Wochenseite. Deshalb öffnet «Wochenangaben ändern» bei Header-Flash oder `status == 'error'`; «Ausgabeangaben ändern» nur bei `status == 'error'`, nicht nach «Service gespeichert.»
 
+**A04 bleibt fachlich/technisch offen:** Mit den bestehenden Routen können Validierungsfehler die eingegebenen Wochen-/Ausgabewerte nicht in der geöffneten Wochenseite erneut anzeigen. Dieses UI-Paket ändert keine Python- oder Formularverträge. Vorgeschlagenes Folgepaket: eigenes Python-WP «Wochen-/Ausgabeformulare re-rendern mit Eingaben» für `header_post` / `service_post`, inklusive Fehlerstatus-, CSRF-, CAS- und Browserabdeckung.
+
 Ohne JavaScript bleibt «Weitere Aktionen» über natives `<details>` erreichbar (Tabler-Dropdown wäre ohne JS unsichtbar).
 
 ### Fachlicher Konflikt

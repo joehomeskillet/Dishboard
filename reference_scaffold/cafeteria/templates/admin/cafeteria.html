@@ -35,6 +35,9 @@
 {% endblock %}
 {% block page_header %}
 {{ page_header('Cafeteria-Plan', week_header_description, breadcrumbs=[{'label': 'Wochenpläne', 'url': url_for('admin.cafeteria')}]) }}
+{% if last_cell.day_label == 'Sonntag' %}
+<div class="container-xl"><p class="form-hint mb-0">Wochenendbetrieb: Samstag und Sonntag sind im Raster.</p></div>
+{% endif %}
 {% endblock %}
 {% block content %}
 {% set declarations = namespace(options=[]) %}
@@ -43,9 +46,6 @@
 {% endif %}
 
 {% include 'admin/_week_controls.html' %}
-{% if last_cell.day_label == 'Sonntag' %}
-<p class="form-hint">Wochenendbetrieb: Samstag und Sonntag sind im Raster.</p>
-{% endif %}
 {% include 'admin/_week_settings.html' %}
 
 {% if status == 'empty' %}

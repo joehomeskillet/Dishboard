@@ -10,46 +10,53 @@
 {% if status == 'live' %}
   {% set publish_label = 'Erneut veröffentlichen' %}
   {% set status_plain = 'Veröffentlicht · entspricht dem gespeicherten Stand' %}
+  {% set status_short = 'Gespeicherter Stand veröffentlicht' %}
 {% elif status == 'changed' %}
   {% set publish_label = 'Änderungen veröffentlichen' %}
   {% set status_plain = 'Veröffentlicht · gespeicherte Änderungen noch nicht veröffentlicht' %}
+  {% set status_short = 'Änderungen noch unveröffentlicht' %}
 {% elif status == 'ready' %}
   {% set publish_label = 'Veröffentlichen' %}
   {% set status_plain = 'Noch nicht veröffentlicht · bereit' %}
+  {% set status_short = 'Bereit zur Veröffentlichung' %}
 {% elif status == 'review_open' %}
   {% set publish_label = 'Veröffentlichen' %}
   {% set status_plain = 'Prüfung offen' %}
+  {% set status_short = 'Prüfung offen' %}
 {% elif status == 'incomplete' %}
   {% set publish_label = 'Veröffentlichen' %}
   {% set status_plain = 'Unvollständig' %}
+  {% set status_short = 'Angaben unvollständig' %}
 {% elif status == 'empty' %}
   {% set publish_label = 'Veröffentlichen' %}
   {% set status_plain = 'Noch keine Menüs erfasst' %}
+  {% set status_short = 'Noch keine Menüs' %}
 {% else %}
   {% set publish_label = 'Veröffentlichen' %}
   {% set status_plain = status_label %}
+  {% set status_short = status_label %}
 {% endif %}
 {% set csv_profile = 'patienten' if family == 'patienten' else 'cafeteria' %}
 
 <section class="admin-week-controls" aria-label="Wochenstatus und Aktionen">
   <div class="admin-week-status" role="status">
     <span class="status-pill" data-status="{{ status }}">{{ status_badge(status, label=status_label) }}</span>
-    <span>{{ status_plain }}</span>
+    <span class="admin-week-status-copy" aria-label="{{ status_plain }}">{{ status_short }}</span>
     {% if open_checks %}
-    <span>{{ open_checks }} {{ 'Menükarte' if open_checks == 1 else 'Menükarten' }} mit offener Prüfung</span>
+    <span class="badge bg-secondary-lt admin-week-status-chip" aria-label="{{ open_checks }} {{ 'Menükarte' if open_checks == 1 else 'Menükarten' }} mit offener Prüfung">{{ open_checks }} {{ 'Kartenprüfung' if open_checks == 1 else 'Kartenprüfungen' }} offen</span>
     {% elif filled_slots > 0 %}
-    <span>Alle {{ filled_slots }} erfassten Menükarten geprüft</span>
+    <span class="badge bg-secondary-lt admin-week-status-chip" aria-label="Alle {{ filled_slots }} erfassten Menükarten geprüft">{{ filled_slots }} Menükarten geprüft</span>
     {% endif %}
     {% if status == 'review_open' and open_checks == 0 %}
-    <span>Wochenkopf und Ausgabehinweise noch zu prüfen</span>
+    <span class="badge bg-secondary-lt admin-week-status-chip" aria-label="Wochenkopf und Ausgabehinweise noch zu prüfen">Wochenprüfung offen</span>
     {% elif status in ('ready', 'live', 'changed') %}
-    <span>Wochenkopf und Ausgabehinweise geprüft</span>
+    <span class="badge bg-secondary-lt admin-week-status-chip" aria-label="Wochenkopf und Ausgabehinweise geprüft">Wochenprüfung abgeschlossen</span>
     {% endif %}
     {% if allergen_stats.missing > 0 %}
-    <span class="text-warning">{{ allergen_stats.missing }} {{ 'Menükarte' if allergen_stats.missing == 1 else 'Menükarten' }} ohne Allergenangaben</span>
+    <span class="badge bg-yellow-lt text-warning admin-week-status-chip" aria-label="{{ allergen_stats.missing }} {{ 'Menükarte' if allergen_stats.missing == 1 else 'Menükarten' }} ohne Allergenangaben">{{ allergen_stats.missing }} ohne Allergenangaben</span>
     {% endif %}
     {% if allergen_stats.review_open > 0 %}
-    <span class="text-warning">{{ allergen_stats.review_open }} {{ 'Menükarte' if allergen_stats.review_open == 1 else 'Menükarten' }} mit Allergenprüfung offen</span>
+    <span class="badge bg-yellow-lt text-warning admin-week-status-chip" aria-label="{{ allergen_stats.review_open }} {{ 'Menükarte' if allergen_stats.review_open == 1 else 'Menükarten' }} mit Allergenprüfung offen">{{ allergen_stats.review_open }} {{ 'Allergenprüfung' if allergen_stats.review_open == 1 else 'Allergenprüfungen' }} offen</span>
     {% endif %}
   </div>
   <div class="admin-actions btn-list" data-sticky>
