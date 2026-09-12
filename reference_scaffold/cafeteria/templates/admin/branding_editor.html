@@ -73,27 +73,27 @@
       <div class="card-header"><h2 class="card-title" id="brand-publication-title">Veröffentlichte Version</h2></div>
       <div class="card-body" role="status">
         <dl class="brand-status-list mb-0">
-          <div>
-            <dt>Aktive Version</dt>
-            <dd>
+          <div class="row g-2 py-2 border-bottom">
+            <dt class="col-12 col-md-5">Aktive Version</dt>
+            <dd class="col-12 col-md-7 mb-0">
               <span>{{ active_revision.name }} · Version {{ document.active_revision }}</span>
-              <small>{% if active_revision.activated_at %}Aktiviert am {{ active_revision.activated_at|datetime_short }}{% else %}Mitgelieferter Standard{% endif %}</small>
+              <small class="d-block mt-1 text-secondary">{% if active_revision.activated_at %}Aktiviert am {{ active_revision.activated_at|datetime_short }}{% else %}Mitgelieferter Standard{% endif %}</small>
             </dd>
           </div>
-          <div>
-            <dt>Ausgewählter gespeicherter Stand</dt>
-            <dd>
+          <div class="row g-2 py-2 border-bottom">
+            <dt class="col-12 col-md-5">Ausgewählter gespeicherter Stand</dt>
+            <dd class="col-12 col-md-7 mb-0">
               <span>{{ selected.name }} · Version {{ selected.id }}</span>
-              <small>{% if selected.id == document.active_revision %}Ist öffentlich aktiv{% elif selected_revision.published %}War früher aktiv{% else %}Noch nicht aktiviert{% endif %}</small>
+              <small class="d-block mt-1 text-secondary">{% if selected.id == document.active_revision %}Ist öffentlich aktiv{% elif selected_revision.published %}War früher aktiv{% else %}Noch nicht aktiviert{% endif %}</small>
             </dd>
           </div>
-          <div>
-            <dt>Zuletzt geändert</dt>
-            <dd>{% if selected_revision.created_at %}<time datetime="{{ selected_revision.created_at }}">{{ selected_revision.created_at|datetime_short }}</time>{% else %}Mitgelieferter Standard{% endif %}</dd>
+          <div class="row g-2 py-2 border-bottom">
+            <dt class="col-12 col-md-5">Zuletzt geändert</dt>
+            <dd class="col-12 col-md-7 mb-0">{% if selected_revision.created_at %}<time datetime="{{ selected_revision.created_at }}">{{ selected_revision.created_at|datetime_short }}</time>{% else %}Mitgelieferter Standard{% endif %}</dd>
           </div>
-          <div>
-            <dt>Entwurf</dt>
-            <dd>Die Eingaben links basieren auf Version {{ selected.id }}. Änderungen werden erst nach «Entwurf speichern &amp; Vorschau» als neuer Stand gespeichert.</dd>
+          <div class="row g-2 pt-2">
+            <dt class="col-12 col-md-5">Entwurf</dt>
+            <dd class="col-12 col-md-7 mb-0">Die Eingaben links basieren auf Version {{ selected.id }}. Änderungen werden erst nach «Entwurf speichern &amp; Vorschau» als neuer Stand gespeichert.</dd>
           </div>
         </dl>
         <p class="form-hint mt-3 mb-0" id="brand-activate-hint">Aktivieren macht genau den ausgewählten gespeicherten Stand in öffentlichen Ausgaben sichtbar.</p>
@@ -106,7 +106,7 @@
       </div>
     </section>
     <details class="card brand-history-card">
-      <summary class="card-header"><h2 class="card-title mb-0">Weitere Aktionen</h2></summary>
+      <summary class="card-header py-3"><h2 class="card-title mb-0">Weitere Aktionen</h2></summary>
       <div class="card-body border-bottom">
         <h3 class="h4">Ausgewählten Stand übernehmen</h3>
         <p class="form-hint">Erstellt aus Version {{ selected.id }} einen neuen bearbeitbaren Entwurf. Die aktive Version bleibt unverändert.</p>
