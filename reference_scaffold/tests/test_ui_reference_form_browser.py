@@ -229,7 +229,8 @@ def test_validation_preserves_inputs_tokens_and_native_submit(
         expect(page.locator('#c-name')).to_have_attribute('aria-invalid', 'true')
         expect(page.locator('#c-name')).to_have_attribute('aria-describedby', 'c-name-error')
         if javascript:
-            expect(page.locator('#c-name')).to_be_focused()
+            # admin.js focusFirstError moves focus to the error region when one is rendered
+            expect(page.locator('.error-region')).to_be_focused()
         else:
             page.locator('.error-region a[href="#c-name"]').click()
             expect(page.locator('#c-name')).to_be_focused()
