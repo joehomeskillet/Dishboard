@@ -985,7 +985,7 @@
         "UI-003"
       ],
       "kind": "implementation",
-      "status": "INTEGRATED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-REF-LIST",
         "MP-UI-REF-FORM",
@@ -1053,7 +1053,8 @@
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
         "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
-        "2026-09-12 Ausführung wp-0e76810800eb: agy 14ab1fa (Admin-Shell-Wrapper, 6 rote Bestandstests, Quotenausfall) → Root-Entscheid: Vorschau bleibt eigenständig und skriptfrei; grok-4.6 2d58450 (base.html, Master-Look über Tokens/admin-preview.css, Links statt Buttons): test_ui_preview_browser.py + test_admin_preview_ui.py + test_preview_equal_cards_browser.py grün (87 passed). In integrate/ui-inventory-0911."
+        "2026-09-12 Ausführung wp-0e76810800eb: agy 14ab1fa (Admin-Shell-Wrapper, 6 rote Bestandstests, Quotenausfall) → Root-Entscheid: Vorschau bleibt eigenständig und skriptfrei; grok-4.6 2d58450 (base.html, Master-Look über Tokens/admin-preview.css, Links statt Buttons): test_ui_preview_browser.py + test_admin_preview_ui.py + test_preview_equal_cards_browser.py grün (87 passed). In integrate/ui-inventory-0911.",
+        "2026-09-12 18:13 CEST: als github/main 03061ce deployt (Vorschau-Rework, Ausgabe-Hubs R4, Vollbreiten-Audit A+B, Fremdtest-Angleichungen)."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -1631,7 +1632,7 @@
         "TPL-001"
       ],
       "kind": "implementation",
-      "status": "INTEGRATED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-REF-LIST",
         "MP-UI-REF-FORM",
@@ -1706,7 +1707,8 @@
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
         "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
-        "2026-09-12 Ausführung wp-7e17c2562ba1 (antigravity-agy gemini-3.8-flash-high, db6d40f; 52 passed) + R4-Korrektur wp-7e17c2562ba1-fix (cursor cd0c626: Bereichs-Tabs, «Drucklayout ändern», «Frühere Versionen», empty-Zustände, 11/11); Cross-Review cursor FINDINGS(6) (.claude/evidence/ui-design-wave-0911/reviews/output-hubs-cross-review-cursor.md); Fremdtest-Angleichung wp-ui-output-hubs-foreign-tests-0912 (cursor) läuft. In integrate/ui-inventory-0911."
+        "2026-09-12 Ausführung wp-7e17c2562ba1 (antigravity-agy gemini-3.8-flash-high, db6d40f; 52 passed) + R4-Korrektur wp-7e17c2562ba1-fix (cursor cd0c626: Bereichs-Tabs, «Drucklayout ändern», «Frühere Versionen», empty-Zustände, 11/11); Cross-Review cursor FINDINGS(6) (.claude/evidence/ui-design-wave-0911/reviews/output-hubs-cross-review-cursor.md); Fremdtest-Angleichung wp-ui-output-hubs-foreign-tests-0912 (cursor) läuft. In integrate/ui-inventory-0911.",
+        "Fremdtest-Angleichung wp-ui-output-hubs-foreign-tests-0912 (cursor cae6cfc) integriert. 2026-09-12 18:13 CEST: als github/main 03061ce deployt (Vorschau-Rework, Ausgabe-Hubs R4, Vollbreiten-Audit A+B, Fremdtest-Angleichungen)."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -4556,7 +4558,7 @@
         "UI-002"
       ],
       "kind": "verification",
-      "status": "IN_PROGRESS",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-FULLWIDTH-SHELL"
       ],
@@ -4622,9 +4624,547 @@
       "completion_evidence": [
         "Vollständige Prüftabelle über alle Routen mit Screenshotpfaden",
         "Vollständige rohe Gateausgabe; nicht gefahrene Gates ausdrücklich",
-        "2026-09-12 gestartet in zwei Gruppen: A (cursor composer-2.5: Bereiche & Zeiten, Bildschirme, Druckvorlagen, Wochenübersicht, Menüs, Bausteine, Kochbücher) und B (grok-4.6: Menüeditor, Grundlagen, Benutzer, Rezepte, Erscheinungsbild/Darstellung, Druckvorlagen-Editor, Schnittstellen, Kopieren/Import); Evidenz nach .claude/evidence/ui-fullwidth-0912/<gruppe>/, Prüftabelle audit.md je Gruppe, Tests test_ui_fullwidth_pages_<gruppe>_browser.py."
+        "2026-09-12 gestartet in zwei Gruppen: A (cursor composer-2.5: Bereiche & Zeiten, Bildschirme, Druckvorlagen, Wochenübersicht, Menüs, Bausteine, Kochbücher) und B (grok-4.6: Menüeditor, Grundlagen, Benutzer, Rezepte, Erscheinungsbild/Darstellung, Druckvorlagen-Editor, Schnittstellen, Kopieren/Import); Evidenz nach .claude/evidence/ui-fullwidth-0912/<gruppe>/, Prüftabelle audit.md je Gruppe, Tests test_ui_fullwidth_pages_<gruppe>_browser.py.",
+        "2026-09-12 abgeschlossen: Gruppe A (cursor composer-2.5, 65babf7/fba5fac, 15 Routen, 90 Screenshots) + Gruppe B (grok-4.6, 837ee04/f806cda, ~40 Routen/Zustände); Prüftabelle docs/design/2026-09-12-fullwidth-audit.md; Tests test_ui_fullwidth_pages_a/b_browser.py; Stufe-5-Gate 196+17 passed (5 veraltete narrow-Annahmen in test_ui_brand_ops_browser angeglichen). 2026-09-12 18:13 CEST: als github/main 03061ce deployt (Vorschau-Rework, Ausgabe-Hubs R4, Vollbreiten-Audit A+B, Fremdtest-Angleichungen)."
       ],
       "rollback": "Kein Produktrollback: nur datierte Evidenz ergänzen, fehlerhafte Belege als ungültig markieren."
+    },
+    {
+      "id": "MP-UI-KORREKTUR-WEEK",
+      "title": "Patientenplan und Cafeteria-Plan: Menüs zuerst, Kopf kompakt, Prüfzustände getrennt (U01–U03)",
+      "requirement_ids": [
+        "UI-001",
+        "UI-002",
+        "UI-003"
+      ],
+      "kind": "implementation",
+      "status": "IN_PROGRESS",
+      "depends_on": [
+        "MP-UI-FULLWIDTH-AUDIT"
+      ],
+      "existing_wp_id": "wp-ui-korrektur-week-0912",
+      "sdd_sections": [
+        "surfaces-sdd.md#ui-grundlagen"
+      ],
+      "source_anchors": [
+        "docs/design/2026-09-12-patientenplan-menueditor-korrektur.md"
+      ],
+      "task": "Korrekturauftrag des Auftraggebers vom 2026-09-12 («Kritik gilt für das ganze UI/UX, einfachere Bedienung, ohne Funktionseinbussen»): Patientenplan und Cafeteria-Plan: Menüs zuerst, Kopf kompakt, Prüfzustände getrennt (U01–U03). Bestandsaufnahme, Umsetzung in Templates/Partials/CSS/kleinem JS/Tests/Doku, Screenshotnachweis bei 1366×768, 1920×1080, 768×1024, 390×844 und 200 % Zoom, Bericht Befund → Änderung → Test → Ergebnis.",
+      "acceptance_criteria": [
+        "Originale Identität/Authz, Scope, CSRF und Objekt-CAS bleiben erhalten; Formularnamen, hidden inputs, POST-Ziele, Query-Parameter und Redirect-Semantik identisch.",
+        "Nur zugewiesene Dateien bearbeiten; kein Python, keine neuen Statuswerte, Routen, Modelle oder Abhängigkeiten; volle Arbeitsbreite bleibt.",
+        "Grundsätze P01–P10 aus docs/design/2026-09-12-patientenplan-menueditor-korrektur.md: eine Bereichsauswahl, keine doppelten Aktionen, Hauptaufgabe zuerst, Verwaltung bei Bedarf, eine Hauptaktion, wahrheitsgetreue Statusaussagen, keine Funktionseinbussen."
+      ],
+      "contract_files": [],
+      "read_only_contract_files": [
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/patienten.html",
+        "reference_scaffold/cafeteria/templates/admin/cafeteria.html",
+        "proposed:reference_scaffold/cafeteria/templates/admin/_week_controls.html",
+        "proposed:reference_scaffold/cafeteria/templates/admin/_week_service.html",
+        "proposed:reference_scaffold/cafeteria/templates/admin/_week_menu_card.html",
+        "reference_scaffold/cafeteria/static/admin-week-tabler.css",
+        "proposed:reference_scaffold/tests/test_ui_korrektur_week_browser.py",
+        "docs/design/2026-09-12-patientenplan-menueditor-korrektur.md"
+      ],
+      "forbidden_paths": [
+        "reference_scaffold/cafeteria/**/*.py",
+        "database/*",
+        "reference_scaffold/cafeteria/static/vendor/*",
+        "reference_scaffold/cafeteria/static/public.css",
+        "reference_scaffold/cafeteria/static/signage.css",
+        "reference_scaffold/cafeteria/templates/public/*",
+        "reference_scaffold/cafeteria/templates/signage/*",
+        "reference_scaffold/cafeteria/templates/_menu_metadata.html",
+        "reference_scaffold/cafeteria/templates/admin/_macros.html"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "BROWSERGATE <assigned-worktree> reference_scaffold/tests/test_ui_korrektur_week_browser.py -q",
+          "assertions": [
+            "Abnahme A01–A14 des Korrekturauftrags, soweit die Seite betroffen ist",
+            "Payload-Gleichheit vor/nach Umbau"
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "HIGH",
+      "effort": "medium",
+      "preferred_lane": "grok-build",
+      "eligible_lanes": [
+        "codex-gpt5",
+        "grok-build",
+        "antigravity-agy",
+        "cursor",
+        "claude-code"
+      ],
+      "completion_evidence": [
+        "2026-09-12 gestartet: wp-ui-korrektur-week-0912 (grok-build), Cross-Vendor-Review folgt vor der Integration."
+      ],
+      "rollback": "Template-/CSS-Rücknahme auf den vorherigen Stand; keine Daten betroffen."
+    },
+    {
+      "id": "MP-UI-KORREKTUR-EDITOR",
+      "title": "Menüeditor: Eingabeart je Baustein, ein Speicherweg, Bereich «Angaben prüfen» (U04)",
+      "requirement_ids": [
+        "UI-001",
+        "UI-002",
+        "UI-003"
+      ],
+      "kind": "implementation",
+      "status": "IN_PROGRESS",
+      "depends_on": [
+        "MP-UI-FULLWIDTH-AUDIT"
+      ],
+      "existing_wp_id": "wp-ui-korrektur-editor-0912",
+      "sdd_sections": [
+        "surfaces-sdd.md#ui-grundlagen"
+      ],
+      "source_anchors": [
+        "docs/design/2026-09-12-patientenplan-menueditor-korrektur.md"
+      ],
+      "task": "Korrekturauftrag des Auftraggebers vom 2026-09-12 («Kritik gilt für das ganze UI/UX, einfachere Bedienung, ohne Funktionseinbussen»): Menüeditor: Eingabeart je Baustein, ein Speicherweg, Bereich «Angaben prüfen» (U04). Bestandsaufnahme, Umsetzung in Templates/Partials/CSS/kleinem JS/Tests/Doku, Screenshotnachweis bei 1366×768, 1920×1080, 768×1024, 390×844 und 200 % Zoom, Bericht Befund → Änderung → Test → Ergebnis.",
+      "acceptance_criteria": [
+        "Originale Identität/Authz, Scope, CSRF und Objekt-CAS bleiben erhalten; Formularnamen, hidden inputs, POST-Ziele, Query-Parameter und Redirect-Semantik identisch.",
+        "Nur zugewiesene Dateien bearbeiten; kein Python, keine neuen Statuswerte, Routen, Modelle oder Abhängigkeiten; volle Arbeitsbreite bleibt.",
+        "Grundsätze P01–P10 aus docs/design/2026-09-12-patientenplan-menueditor-korrektur.md: eine Bereichsauswahl, keine doppelten Aktionen, Hauptaufgabe zuerst, Verwaltung bei Bedarf, eine Hauptaktion, wahrheitsgetreue Statusaussagen, keine Funktionseinbussen."
+      ],
+      "contract_files": [],
+      "read_only_contract_files": [
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html",
+        "reference_scaffold/cafeteria/static/admin-menu-editor.css",
+        "reference_scaffold/cafeteria/static/admin.js",
+        "proposed:reference_scaffold/tests/test_ui_korrektur_editor_browser.py",
+        "docs/design/2026-09-12-patientenplan-menueditor-korrektur.md"
+      ],
+      "forbidden_paths": [
+        "reference_scaffold/cafeteria/**/*.py",
+        "database/*",
+        "reference_scaffold/cafeteria/static/vendor/*",
+        "reference_scaffold/cafeteria/static/public.css",
+        "reference_scaffold/cafeteria/static/signage.css",
+        "reference_scaffold/cafeteria/templates/public/*",
+        "reference_scaffold/cafeteria/templates/signage/*",
+        "reference_scaffold/cafeteria/templates/_menu_metadata.html",
+        "reference_scaffold/cafeteria/templates/admin/_macros.html"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "BROWSERGATE <assigned-worktree> reference_scaffold/tests/test_ui_korrektur_editor_browser.py -q",
+          "assertions": [
+            "Abnahme A01–A14 des Korrekturauftrags, soweit die Seite betroffen ist",
+            "Payload-Gleichheit vor/nach Umbau"
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "HIGH",
+      "effort": "medium",
+      "preferred_lane": "codex-gpt5",
+      "eligible_lanes": [
+        "codex-gpt5",
+        "grok-build",
+        "antigravity-agy",
+        "cursor",
+        "claude-code"
+      ],
+      "completion_evidence": [
+        "2026-09-12 gestartet: wp-ui-korrektur-editor-0912 (codex-gpt5), Cross-Vendor-Review folgt vor der Integration."
+      ],
+      "rollback": "Template-/CSS-Rücknahme auf den vorherigen Stand; keine Daten betroffen."
+    },
+    {
+      "id": "MP-UI-KORREKTUR-COMPONENTS",
+      "title": "Bausteine-Liste und Baustein-Editor vereinfachen",
+      "requirement_ids": [
+        "UI-001",
+        "UI-002",
+        "UI-003"
+      ],
+      "kind": "implementation",
+      "status": "IN_PROGRESS",
+      "depends_on": [
+        "MP-UI-FULLWIDTH-AUDIT"
+      ],
+      "existing_wp_id": "wp-ui-korrektur-components-0912",
+      "sdd_sections": [
+        "surfaces-sdd.md#ui-grundlagen"
+      ],
+      "source_anchors": [
+        "docs/design/2026-09-12-patientenplan-menueditor-korrektur.md"
+      ],
+      "task": "Korrekturauftrag des Auftraggebers vom 2026-09-12 («Kritik gilt für das ganze UI/UX, einfachere Bedienung, ohne Funktionseinbussen»): Bausteine-Liste und Baustein-Editor vereinfachen. Bestandsaufnahme, Umsetzung in Templates/Partials/CSS/kleinem JS/Tests/Doku, Screenshotnachweis bei 1366×768, 1920×1080, 768×1024, 390×844 und 200 % Zoom, Bericht Befund → Änderung → Test → Ergebnis.",
+      "acceptance_criteria": [
+        "Originale Identität/Authz, Scope, CSRF und Objekt-CAS bleiben erhalten; Formularnamen, hidden inputs, POST-Ziele, Query-Parameter und Redirect-Semantik identisch.",
+        "Nur zugewiesene Dateien bearbeiten; kein Python, keine neuen Statuswerte, Routen, Modelle oder Abhängigkeiten; volle Arbeitsbreite bleibt.",
+        "Grundsätze P01–P10 aus docs/design/2026-09-12-patientenplan-menueditor-korrektur.md: eine Bereichsauswahl, keine doppelten Aktionen, Hauptaufgabe zuerst, Verwaltung bei Bedarf, eine Hauptaktion, wahrheitsgetreue Statusaussagen, keine Funktionseinbussen."
+      ],
+      "contract_files": [],
+      "read_only_contract_files": [
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/components.html",
+        "reference_scaffold/cafeteria/templates/admin/component_editor.html",
+        "reference_scaffold/cafeteria/static/admin-components.css",
+        "proposed:reference_scaffold/tests/test_ui_korrektur_components_browser.py",
+        "docs/design/2026-09-12-patientenplan-menueditor-korrektur.md"
+      ],
+      "forbidden_paths": [
+        "reference_scaffold/cafeteria/**/*.py",
+        "database/*",
+        "reference_scaffold/cafeteria/static/vendor/*",
+        "reference_scaffold/cafeteria/static/public.css",
+        "reference_scaffold/cafeteria/static/signage.css",
+        "reference_scaffold/cafeteria/templates/public/*",
+        "reference_scaffold/cafeteria/templates/signage/*",
+        "reference_scaffold/cafeteria/templates/_menu_metadata.html",
+        "reference_scaffold/cafeteria/templates/admin/_macros.html"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "BROWSERGATE <assigned-worktree> reference_scaffold/tests/test_ui_korrektur_components_browser.py -q",
+          "assertions": [
+            "Abnahme A01–A14 des Korrekturauftrags, soweit die Seite betroffen ist",
+            "Payload-Gleichheit vor/nach Umbau"
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "MEDIUM",
+      "effort": "medium",
+      "preferred_lane": "cursor",
+      "eligible_lanes": [
+        "codex-gpt5",
+        "grok-build",
+        "antigravity-agy",
+        "cursor",
+        "claude-code"
+      ],
+      "completion_evidence": [
+        "2026-09-12 gestartet: wp-ui-korrektur-components-0912 (cursor), Cross-Vendor-Review folgt vor der Integration."
+      ],
+      "rollback": "Template-/CSS-Rücknahme auf den vorherigen Stand; keine Daten betroffen."
+    },
+    {
+      "id": "MP-UI-KORREKTUR-MENUS",
+      "title": "Menüsammlung und Wochenübersicht vereinfachen",
+      "requirement_ids": [
+        "UI-001",
+        "UI-002",
+        "UI-003"
+      ],
+      "kind": "implementation",
+      "status": "IN_PROGRESS",
+      "depends_on": [
+        "MP-UI-FULLWIDTH-AUDIT"
+      ],
+      "existing_wp_id": "wp-ui-korrektur-menus-0912",
+      "sdd_sections": [
+        "surfaces-sdd.md#ui-grundlagen"
+      ],
+      "source_anchors": [
+        "docs/design/2026-09-12-patientenplan-menueditor-korrektur.md"
+      ],
+      "task": "Korrekturauftrag des Auftraggebers vom 2026-09-12 («Kritik gilt für das ganze UI/UX, einfachere Bedienung, ohne Funktionseinbussen»): Menüsammlung und Wochenübersicht vereinfachen. Bestandsaufnahme, Umsetzung in Templates/Partials/CSS/kleinem JS/Tests/Doku, Screenshotnachweis bei 1366×768, 1920×1080, 768×1024, 390×844 und 200 % Zoom, Bericht Befund → Änderung → Test → Ergebnis.",
+      "acceptance_criteria": [
+        "Originale Identität/Authz, Scope, CSRF und Objekt-CAS bleiben erhalten; Formularnamen, hidden inputs, POST-Ziele, Query-Parameter und Redirect-Semantik identisch.",
+        "Nur zugewiesene Dateien bearbeiten; kein Python, keine neuen Statuswerte, Routen, Modelle oder Abhängigkeiten; volle Arbeitsbreite bleibt.",
+        "Grundsätze P01–P10 aus docs/design/2026-09-12-patientenplan-menueditor-korrektur.md: eine Bereichsauswahl, keine doppelten Aktionen, Hauptaufgabe zuerst, Verwaltung bei Bedarf, eine Hauptaktion, wahrheitsgetreue Statusaussagen, keine Funktionseinbussen."
+      ],
+      "contract_files": [],
+      "read_only_contract_files": [
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/menu_collection.html",
+        "reference_scaffold/cafeteria/templates/admin/week_management.html",
+        "reference_scaffold/cafeteria/static/admin-menu-collection.css",
+        "proposed:reference_scaffold/tests/test_ui_korrektur_menus_browser.py",
+        "docs/design/2026-09-12-patientenplan-menueditor-korrektur.md"
+      ],
+      "forbidden_paths": [
+        "reference_scaffold/cafeteria/**/*.py",
+        "database/*",
+        "reference_scaffold/cafeteria/static/vendor/*",
+        "reference_scaffold/cafeteria/static/public.css",
+        "reference_scaffold/cafeteria/static/signage.css",
+        "reference_scaffold/cafeteria/templates/public/*",
+        "reference_scaffold/cafeteria/templates/signage/*",
+        "reference_scaffold/cafeteria/templates/_menu_metadata.html",
+        "reference_scaffold/cafeteria/templates/admin/_macros.html"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "BROWSERGATE <assigned-worktree> reference_scaffold/tests/test_ui_korrektur_menus_browser.py -q",
+          "assertions": [
+            "Abnahme A01–A14 des Korrekturauftrags, soweit die Seite betroffen ist",
+            "Payload-Gleichheit vor/nach Umbau"
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "MEDIUM",
+      "effort": "medium",
+      "preferred_lane": "antigravity-agy",
+      "eligible_lanes": [
+        "codex-gpt5",
+        "grok-build",
+        "antigravity-agy",
+        "cursor",
+        "claude-code"
+      ],
+      "completion_evidence": [
+        "2026-09-12 gestartet: wp-ui-korrektur-menus-0912 (antigravity-agy), Cross-Vendor-Review folgt vor der Integration."
+      ],
+      "rollback": "Template-/CSS-Rücknahme auf den vorherigen Stand; keine Daten betroffen."
+    },
+    {
+      "id": "MP-UI-KORREKTUR-OPS",
+      "title": "Bereiche & Öffnungszeiten vereinfachen",
+      "requirement_ids": [
+        "UI-001",
+        "UI-002",
+        "UI-003"
+      ],
+      "kind": "implementation",
+      "status": "IN_PROGRESS",
+      "depends_on": [
+        "MP-UI-FULLWIDTH-AUDIT"
+      ],
+      "existing_wp_id": "wp-ui-korrektur-ops-0912",
+      "sdd_sections": [
+        "surfaces-sdd.md#ui-grundlagen"
+      ],
+      "source_anchors": [
+        "docs/design/2026-09-12-patientenplan-menueditor-korrektur.md"
+      ],
+      "task": "Korrekturauftrag des Auftraggebers vom 2026-09-12 («Kritik gilt für das ganze UI/UX, einfachere Bedienung, ohne Funktionseinbussen»): Bereiche & Öffnungszeiten vereinfachen. Bestandsaufnahme, Umsetzung in Templates/Partials/CSS/kleinem JS/Tests/Doku, Screenshotnachweis bei 1366×768, 1920×1080, 768×1024, 390×844 und 200 % Zoom, Bericht Befund → Änderung → Test → Ergebnis.",
+      "acceptance_criteria": [
+        "Originale Identität/Authz, Scope, CSRF und Objekt-CAS bleiben erhalten; Formularnamen, hidden inputs, POST-Ziele, Query-Parameter und Redirect-Semantik identisch.",
+        "Nur zugewiesene Dateien bearbeiten; kein Python, keine neuen Statuswerte, Routen, Modelle oder Abhängigkeiten; volle Arbeitsbreite bleibt.",
+        "Grundsätze P01–P10 aus docs/design/2026-09-12-patientenplan-menueditor-korrektur.md: eine Bereichsauswahl, keine doppelten Aktionen, Hauptaufgabe zuerst, Verwaltung bei Bedarf, eine Hauptaktion, wahrheitsgetreue Statusaussagen, keine Funktionseinbussen."
+      ],
+      "contract_files": [],
+      "read_only_contract_files": [
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/operations.html",
+        "proposed:reference_scaffold/cafeteria/static/admin-operations.css",
+        "proposed:reference_scaffold/tests/test_ui_korrektur_ops_browser.py",
+        "docs/design/2026-09-12-patientenplan-menueditor-korrektur.md"
+      ],
+      "forbidden_paths": [
+        "reference_scaffold/cafeteria/**/*.py",
+        "database/*",
+        "reference_scaffold/cafeteria/static/vendor/*",
+        "reference_scaffold/cafeteria/static/public.css",
+        "reference_scaffold/cafeteria/static/signage.css",
+        "reference_scaffold/cafeteria/templates/public/*",
+        "reference_scaffold/cafeteria/templates/signage/*",
+        "reference_scaffold/cafeteria/templates/_menu_metadata.html",
+        "reference_scaffold/cafeteria/templates/admin/_macros.html"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "BROWSERGATE <assigned-worktree> reference_scaffold/tests/test_ui_korrektur_ops_browser.py -q",
+          "assertions": [
+            "Abnahme A01–A14 des Korrekturauftrags, soweit die Seite betroffen ist",
+            "Payload-Gleichheit vor/nach Umbau"
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "MEDIUM",
+      "effort": "medium",
+      "preferred_lane": "codex-gpt5",
+      "eligible_lanes": [
+        "codex-gpt5",
+        "grok-build",
+        "antigravity-agy",
+        "cursor",
+        "claude-code"
+      ],
+      "completion_evidence": [
+        "2026-09-12 gestartet: wp-ui-korrektur-ops-0912 (codex-gpt5), Cross-Vendor-Review folgt vor der Integration."
+      ],
+      "rollback": "Template-/CSS-Rücknahme auf den vorherigen Stand; keine Daten betroffen."
+    },
+    {
+      "id": "MP-UI-KORREKTUR-VORLAGEN",
+      "title": "Druckvorlagen-Liste und -Editor vereinfachen",
+      "requirement_ids": [
+        "UI-001",
+        "UI-002",
+        "UI-003"
+      ],
+      "kind": "implementation",
+      "status": "IN_PROGRESS",
+      "depends_on": [
+        "MP-UI-FULLWIDTH-AUDIT"
+      ],
+      "existing_wp_id": "wp-ui-korrektur-vorlagen-0912",
+      "sdd_sections": [
+        "surfaces-sdd.md#ui-grundlagen"
+      ],
+      "source_anchors": [
+        "docs/design/2026-09-12-patientenplan-menueditor-korrektur.md"
+      ],
+      "task": "Korrekturauftrag des Auftraggebers vom 2026-09-12 («Kritik gilt für das ganze UI/UX, einfachere Bedienung, ohne Funktionseinbussen»): Druckvorlagen-Liste und -Editor vereinfachen. Bestandsaufnahme, Umsetzung in Templates/Partials/CSS/kleinem JS/Tests/Doku, Screenshotnachweis bei 1366×768, 1920×1080, 768×1024, 390×844 und 200 % Zoom, Bericht Befund → Änderung → Test → Ergebnis.",
+      "acceptance_criteria": [
+        "Originale Identität/Authz, Scope, CSRF und Objekt-CAS bleiben erhalten; Formularnamen, hidden inputs, POST-Ziele, Query-Parameter und Redirect-Semantik identisch.",
+        "Nur zugewiesene Dateien bearbeiten; kein Python, keine neuen Statuswerte, Routen, Modelle oder Abhängigkeiten; volle Arbeitsbreite bleibt.",
+        "Grundsätze P01–P10 aus docs/design/2026-09-12-patientenplan-menueditor-korrektur.md: eine Bereichsauswahl, keine doppelten Aktionen, Hauptaufgabe zuerst, Verwaltung bei Bedarf, eine Hauptaktion, wahrheitsgetreue Statusaussagen, keine Funktionseinbussen."
+      ],
+      "contract_files": [],
+      "read_only_contract_files": [
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/vorlagen.html",
+        "reference_scaffold/cafeteria/templates/admin/print_template_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/print_template_unavailable.html",
+        "reference_scaffold/cafeteria/static/print-template-editor.css",
+        "proposed:reference_scaffold/tests/test_ui_korrektur_vorlagen_browser.py",
+        "docs/design/2026-09-12-patientenplan-menueditor-korrektur.md"
+      ],
+      "forbidden_paths": [
+        "reference_scaffold/cafeteria/**/*.py",
+        "database/*",
+        "reference_scaffold/cafeteria/static/vendor/*",
+        "reference_scaffold/cafeteria/static/public.css",
+        "reference_scaffold/cafeteria/static/signage.css",
+        "reference_scaffold/cafeteria/templates/public/*",
+        "reference_scaffold/cafeteria/templates/signage/*",
+        "reference_scaffold/cafeteria/templates/_menu_metadata.html",
+        "reference_scaffold/cafeteria/templates/admin/_macros.html"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "BROWSERGATE <assigned-worktree> reference_scaffold/tests/test_ui_korrektur_vorlagen_browser.py -q",
+          "assertions": [
+            "Abnahme A01–A14 des Korrekturauftrags, soweit die Seite betroffen ist",
+            "Payload-Gleichheit vor/nach Umbau"
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "MEDIUM",
+      "effort": "medium",
+      "preferred_lane": "codex-gpt5",
+      "eligible_lanes": [
+        "codex-gpt5",
+        "grok-build",
+        "antigravity-agy",
+        "cursor",
+        "claude-code"
+      ],
+      "completion_evidence": [
+        "2026-09-12 gestartet: wp-ui-korrektur-vorlagen-0912 (codex-gpt5), Cross-Vendor-Review folgt vor der Integration."
+      ],
+      "rollback": "Template-/CSS-Rücknahme auf den vorherigen Stand; keine Daten betroffen."
+    },
+    {
+      "id": "MP-UI-KORREKTUR-SCREENS",
+      "title": "Bildschirme, Zuweisung und Darstellung vereinfachen",
+      "requirement_ids": [
+        "UI-001",
+        "UI-002",
+        "UI-003"
+      ],
+      "kind": "implementation",
+      "status": "IN_PROGRESS",
+      "depends_on": [
+        "MP-UI-FULLWIDTH-AUDIT"
+      ],
+      "existing_wp_id": "wp-ui-korrektur-screens-0912",
+      "sdd_sections": [
+        "surfaces-sdd.md#ui-grundlagen"
+      ],
+      "source_anchors": [
+        "docs/design/2026-09-12-patientenplan-menueditor-korrektur.md"
+      ],
+      "task": "Korrekturauftrag des Auftraggebers vom 2026-09-12 («Kritik gilt für das ganze UI/UX, einfachere Bedienung, ohne Funktionseinbussen»): Bildschirme, Zuweisung und Darstellung vereinfachen. Bestandsaufnahme, Umsetzung in Templates/Partials/CSS/kleinem JS/Tests/Doku, Screenshotnachweis bei 1366×768, 1920×1080, 768×1024, 390×844 und 200 % Zoom, Bericht Befund → Änderung → Test → Ergebnis.",
+      "acceptance_criteria": [
+        "Originale Identität/Authz, Scope, CSRF und Objekt-CAS bleiben erhalten; Formularnamen, hidden inputs, POST-Ziele, Query-Parameter und Redirect-Semantik identisch.",
+        "Nur zugewiesene Dateien bearbeiten; kein Python, keine neuen Statuswerte, Routen, Modelle oder Abhängigkeiten; volle Arbeitsbreite bleibt.",
+        "Grundsätze P01–P10 aus docs/design/2026-09-12-patientenplan-menueditor-korrektur.md: eine Bereichsauswahl, keine doppelten Aktionen, Hauptaufgabe zuerst, Verwaltung bei Bedarf, eine Hauptaktion, wahrheitsgetreue Statusaussagen, keine Funktionseinbussen."
+      ],
+      "contract_files": [],
+      "read_only_contract_files": [
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/screens.html",
+        "reference_scaffold/cafeteria/templates/admin/screen_template_assignment.html",
+        "reference_scaffold/cafeteria/templates/admin/screen_template_unavailable.html",
+        "reference_scaffold/cafeteria/templates/admin/display_settings.html",
+        "reference_scaffold/cafeteria/static/admin-screens.css",
+        "proposed:reference_scaffold/tests/test_ui_korrektur_screens_browser.py",
+        "docs/design/2026-09-12-patientenplan-menueditor-korrektur.md"
+      ],
+      "forbidden_paths": [
+        "reference_scaffold/cafeteria/**/*.py",
+        "database/*",
+        "reference_scaffold/cafeteria/static/vendor/*",
+        "reference_scaffold/cafeteria/static/public.css",
+        "reference_scaffold/cafeteria/static/signage.css",
+        "reference_scaffold/cafeteria/templates/public/*",
+        "reference_scaffold/cafeteria/templates/signage/*",
+        "reference_scaffold/cafeteria/templates/_menu_metadata.html",
+        "reference_scaffold/cafeteria/templates/admin/_macros.html"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "BROWSERGATE <assigned-worktree> reference_scaffold/tests/test_ui_korrektur_screens_browser.py -q",
+          "assertions": [
+            "Abnahme A01–A14 des Korrekturauftrags, soweit die Seite betroffen ist",
+            "Payload-Gleichheit vor/nach Umbau"
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "MEDIUM",
+      "effort": "medium",
+      "preferred_lane": "codex-gpt5",
+      "eligible_lanes": [
+        "codex-gpt5",
+        "grok-build",
+        "antigravity-agy",
+        "cursor",
+        "claude-code"
+      ],
+      "completion_evidence": [
+        "2026-09-12 gestartet: wp-ui-korrektur-screens-0912 (codex-gpt5), Cross-Vendor-Review folgt vor der Integration."
+      ],
+      "rollback": "Template-/CSS-Rücknahme auf den vorherigen Stand; keine Daten betroffen."
     }
   ]
 }
