@@ -6,16 +6,17 @@
 {% block page_header %}{% call page_header('Benutzer anlegen', 'Benutzer & Zugriff') %}<a class="btn" href="{{ url_for('admin.local_users_list', page=page, status=status) }}">Zurück zur Kontenliste</a>{% endcall %}{% endblock %}
 {% block content %}
 {{ unavailable(can_mutate) }}
-<div class="row"><div class="col-12 col-xl-8">
 <form method="post" action="{{ url_for('admin.local_user_create') }}" class="card"{% if error %} aria-describedby="user-error-create"{% endif %}>
 {{ hidden(csrf, page, status) }}
 <div class="card-header"><h2 class="card-title">Neues lokales Konto</h2></div>
 <div class="card-body">
 {{ form_error(error, 'create') }}
-<div class="mb-3">{{ field('username', 'Benutzername', values.get('username',''), id='new-username', required=true, hint='3 bis 64 Zeichen: kleine Buchstaben, Ziffern, Punkt, Bindestrich oder Unterstrich. Nach dem Anlegen unveränderlich.') }}</div>
-<div class="mb-4">{{ field('display_name', 'Anzeigename', values.get('display_name',''), id='new-display-name', required=true, hint='1 bis 120 Zeichen. Dieser Name erscheint bei Kontoereignissen.') }}</div>
+<div class="row g-3 mb-3">
+<div class="col-12 col-lg-6">{{ field('username', 'Benutzername', values.get('username',''), id='new-username', required=true, hint='3 bis 64 Zeichen: kleine Buchstaben, Ziffern, Punkt, Bindestrich oder Unterstrich. Nach dem Anlegen unveränderlich.') }}</div>
+<div class="col-12 col-lg-6">{{ field('display_name', 'Anzeigename', values.get('display_name',''), id='new-display-name', required=true, hint='1 bis 120 Zeichen. Dieser Name erscheint bei Kontoereignissen.') }}</div>
+</div>
 {{ role_fields(role_labels, request.form.getlist('roles') if request.method == 'POST' else ['Cafeteria.Editor'], 'create') }}
 {{ password('create') }}
 </div><div class="card-footer"><button class="btn btn-primary" type="submit"{% if not can_mutate %} disabled{% endif %}>Lokales Konto anlegen</button></div>
-</form></div></div>
+</form>
 {% endblock %}

@@ -13,11 +13,13 @@
 <p class="form-hint">Mindestens eine Rolle auswählen. Admins verwalten auch Benutzer und Einstellungen.</p></fieldset>
 {% endmacro %}
 {% macro password(prefix) %}
-<div class="mb-3"><label class="form-label" for="{{ prefix }}-password">Neues Passwort</label>
+<div class="row g-3 mb-3">
+<div class="col-12 col-lg-6"><label class="form-label" for="{{ prefix }}-password">Neues Passwort</label>
 <input class="form-control" id="{{ prefix }}-password" name="password" type="password" autocomplete="new-password" required minlength="14" maxlength="1024" aria-describedby="{{ prefix }}-password-hint">
 <p class="form-hint" id="{{ prefix }}-password-hint">14 bis 1024 Zeichen aus mindestens drei Gruppen: Grossbuchstaben, Kleinbuchstaben, Zahlen, Sonderzeichen. Der Benutzername darf nicht enthalten sein. Bestehende Passwörter werden nicht angezeigt.</p></div>
-<div class="mb-3"><label class="form-label" for="{{ prefix }}-password-confirm">Neues Passwort bestätigen</label>
+<div class="col-12 col-lg-6"><label class="form-label" for="{{ prefix }}-password-confirm">Neues Passwort bestätigen</label>
 <input class="form-control" id="{{ prefix }}-password-confirm" name="password_confirm" type="password" autocomplete="new-password" required minlength="14" maxlength="1024"></div>
+</div>
 {% endmacro %}
 {% macro confirm(prefix, label) %}
 <label class="form-check" for="{{ prefix }}-confirm"><input class="form-check-input" id="{{ prefix }}-confirm" name="confirm" type="checkbox" value="yes" required><span class="form-check-label text-break">{{ label }}</span></label>
