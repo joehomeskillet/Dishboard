@@ -1,7 +1,7 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import icon, page_header, flash_region %}
 {% set workflow_nav = 'operations' %}
-{% set layout_variant = 'narrow' %}
+{% set layout_variant = 'standard' %}
 {% block title %}Bereiche & Öffnungszeiten · Dishboard{% endblock %}
 {% block sidebar %}{% include 'admin/_workflow_sidebar.html' %}{% endblock %}
 {% block page_header %}{{ page_header('Bereiche & Öffnungszeiten', description='Bereichsnamen, Wochenendbetrieb, Wochenvorgaben und datierte Ausnahmen für Ausgabe und Öffnungszeiten.') }}{% endblock %}

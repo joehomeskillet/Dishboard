@@ -117,7 +117,7 @@ def _capture(page: Page, tmp_path: Path, name: str) -> None:
 
 
 def _controls(page: Page) -> None:
-    expect(page.locator('main')).to_have_attribute('data-layout', 'narrow')
+    expect(page.locator('main')).to_have_attribute('data-layout', 'standard')
     expect(page.locator('h1')).to_have_count(1)
     expect(page.get_by_role('navigation', name='Breadcrumb')).to_contain_text('Komponenten')
     expect(page.locator('main .btn-primary')).to_have_count(1)
@@ -130,7 +130,14 @@ def _controls(page: Page) -> None:
         'es => es.map(e => [e.id, [...e.labels].some(l => l.textContent.trim())])'
     )
     assert all(labelled for _, labelled in labels), labels
-    assert page.locator('.page-body > .container-xl').evaluate('e => e.getBoundingClientRect().width') <= 960
+    assert page.evaluate('''() => {
+      const main = document.querySelector('main.admin-main');
+      const box = document.querySelector('.page-body > .container-xl');
+      const cs = getComputedStyle(box);
+      const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+      const inner = box.getBoundingClientRect().width - pad;
+      return Math.abs(inner - (main.clientWidth - pad)) <= 1;
+    }''')
     assert page.locator('#component-form .card-footer').evaluate('e => getComputedStyle(e).position') == 'static'
     for field_id in ('c-name', 'c-cat'):
         expect(page.locator(f'label[for="{field_id}"]')).to_have_class('form-label required')
