@@ -178,6 +178,7 @@ def test_location_conflict_native_recovery(b3, master_server, browser, width, ja
         page.get_by_label('Testlager', exact=True).check()
         note = page.get_by_label('Notiz', exact=True)
         # Follow the control after responsive layout instead of a stale wheel offset.
+        note.focus()
         note.scroll_into_view_if_needed()
         expect(note).to_be_in_viewport(ratio=1)
         note.fill('\nNotiz mit führendem Zeilenumbruch\nZweite Zeile')
@@ -198,7 +199,11 @@ def test_location_conflict_native_recovery(b3, master_server, browser, width, ja
         expect(page.get_by_label('Name', exact=True)).to_have_value('Mein erhaltener Entwurf')
         expect(page.get_by_label('Name', exact=True)).to_have_attribute('readonly', '')
         expect(page.get_by_label('Notiz', exact=True)).to_have_value('\nNotiz mit führendem Zeilenumbruch\nZweite Zeile')
-        assert form.evaluate('el => Array.from(new FormData(el).entries())') == original
+        recovery = page.get_by_role('region', name='Ursprüngliche Eingaben', exact=True)
+        assert recovery.evaluate(
+            'el => Array.from(el.querySelectorAll("input[type=hidden]"), input => [input.name, input.value])',
+        ) == original
+        assert page.locator('main form').count() == 0
         assert page.locator('main button[type="submit"]').count() == 0
         expect(page.get_by_role('link', name='Aktuellen Stand neu laden')).to_have_attribute('href', path)
         targets(page)
@@ -262,7 +267,11 @@ def test_location_conflict_selections_are_visible_and_copyable(b3, master_server
                 form.get_by_role('button').click()
         assert outcome.value.status == 409
         expect(page.locator('#master-error')).to_be_focused()
-        assert form.evaluate('el => Array.from(new FormData(el).entries())') == original
+        recovery = page.get_by_role('region', name='Ursprüngliche Eingaben', exact=True)
+        assert recovery.evaluate(
+            'el => Array.from(el.querySelectorAll("input[type=hidden]"), input => [input.name, input.value])',
+        ) == original
+        assert page.locator('main form').count() == 0
         for label, value in expected:
             control = page.get_by_label(label, exact=True)
             matches = [item for item in control.all() if item.input_value() == value]

@@ -94,11 +94,14 @@ def test_original_storage_and_prepared_pin_are_visible_after_location_change(
             connection.execute(text("INSERT INTO cafeteria.locations(code,name,active) VALUES('NEW','Neuer Standort',true)"))
         before = snapshot(owner)
         with page.expect_response(lambda response: response.request.method == 'POST') as outcome:
-            page.get_by_role('button', name='Stammdaten speichern', exact=True).click()
+            page.get_by_role('button', name='Zutat speichern', exact=True).click()
         assert outcome.value.status == 409
         expect(page.get_by_role('heading', level=1)).to_have_text('Ursprüngliche Eingaben')
-        returned = page.get_by_role('form', name='Ursprüngliche Eingaben')
-        assert returned.evaluate('el => Array.from(new FormData(el).entries())') == original
+        returned = page.get_by_role('region', name='Ursprüngliche Eingaben', exact=True)
+        assert returned.evaluate(
+            'el => Array.from(el.querySelectorAll("input[type=hidden]"), input => [input.name, input.value])',
+        ) == original
+        assert page.locator('main form').count() == 0
         expected = [('Lagerort · ursprüngliche Referenz', dict(original)['storage_location_public_ids']),
                     ('Zubereitung · ursprünglicher Rezeptstand', preparation_choice(frozen))]
         for label, value in expected:

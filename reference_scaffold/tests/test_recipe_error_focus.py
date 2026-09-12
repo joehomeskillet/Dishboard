@@ -161,6 +161,8 @@ def test_rendered_html_has_exactly_one_autofocus_and_preserves_payload(app, name
     assert markup.alert['role'] == 'alert' and markup.alert['tabindex'] == '-1'
     assert markup.autofocus == [case['focus']]
     assert tuple(markup.invalid) == case['invalid']
+    assert '<form' not in html
+    assert 'type="submit"' not in html
     for asset in ASSETS:
         assert asset in html
         assert app.test_client().get('/static/' + asset).status_code == 200
