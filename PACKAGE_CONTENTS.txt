@@ -427,6 +427,7 @@ docs/design/2026-09-12-api-key-policy.md
 docs/design/2026-09-12-correction-wave-delivery.md
 docs/design/2026-09-12-fullwidth-audit.md
 docs/design/2026-09-12-patientenplan-menueditor-korrektur.md
+docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md
 docs/design/admin-redesign-ui.md
 docs/design/admin-tabler-contract.md
 docs/design/country-select-source.md
@@ -525,6 +526,9 @@ docs/superpowers/iam-local-user-management-0906.md
 docs/superpowers/metadata-visibility-0905.md
 docs/superpowers/plans/2026-09-01-dishboard-menuplanung.md
 docs/superpowers/plans/2026-09-02-dishboard-admin-redesign.md
+docs/superpowers/plans/2026-09-12-next-sprints.md
+docs/superpowers/plans/2026-09-12-sdd-open-work-audit.md
+docs/superpowers/plans/2026-09-13-sdd-work-package-register.md
 docs/superpowers/sdd-completion-0908.md
 docs/superpowers/specs/2026-09-02-dishboard-admin-redesign-design.md
 docs/superpowers/specs/2026-09-05-dishboard-api-mcp-fhir-design.md
