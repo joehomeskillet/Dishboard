@@ -238,3 +238,30 @@ Lieferumfang: tatsächliche Dateipfade, Befund-ID → Änderung → Test → Erg
 Ein Test mit technisch unerfahrenen Personen soll insbesondere zeigen, ob sie ein Menü finden, nur die Beilage ändern, speichern und den Unterschied zwischen „geprüft“ und „Allergenangaben fehlen“ erklären können. Ein Agent darf fehlende Nutzerbeobachtungen nicht als durchgeführt ausgeben.
 
 **Kernziel: Volle Breite behalten, Wiederholungen entfernen, Menüs zuerst zeigen und Prüfzustände verständlich machen. Nicht erneut nur die Karten grösser machen.**
+
+## Umsetzung Menüsammlung/Wochenübersicht
+
+Im Rahmen des Arbeitspakets `wp-ui-korrektur-menus-0912` (Lane `antigravity-agy`) wurden die Grundsätze P01–P10 auf die beiden Übersichtsseiten **Menüsammlung** (`menu_collection.html`) und **Wochenübersicht** (`week_management.html`) übertragen:
+
+### 1. Bestandsaufnahme & Bereinigung
+- **Doppelte Navigation (P01):** Auf der Wochenübersicht wurde die zusätzliche, frei im Inhaltsbereich stehende Bereichszeile entfernt und stattdessen direkt als profilbezogener Umschalter im Kopfbereich der Wochenliste (`card-header`) verankert.
+- **Hauptaufgabe zuerst (P03):** Die Menüsammlung bietet eine kompakte Toolbar (Bereichstabs, Suche, Karten/Listen-Toggle). Erste Menükarten bzw. die erste gespeicherte Woche sind bei Standard-Desktop (1366 × 768) ohne vertikales Scrollen sofort im Blickfeld.
+- **Wahrheitsgetreue Statusdifferenzierung (P05):** Veröffentlichungsstatus (`live`, `changed`, `ready`), gespeicherte Prüfung (`Geprüft · gespeicherter Stand bestätigt`, `Prüfung offen`) und Allergenvollständigkeit (`Allergenangaben nicht erfasst`) werden nie vermischt oder als dieselbe Aussage dargestellt.
+- **Lange Hinweise gebündelt (P06):** Freitexte aus `note` und `description` dominieren die Karten nicht mehr unkontrolliert; sie stehen vollständig und ungekürzt unter einem nativen `<details>`-Block («Hinweis anzeigen»). Fehlende Deklarationen («Allergenangaben nicht erfasst») verbleiben zwingend ausserhalb der Einklappung direkt sichtbar auf der Karte.
+- **Aktionshierarchie (P09):** Jede Menükarte besitzt genau eine sichtbare Hauptaktion («Öffnen»). In der Wochenübersicht ist «Woche öffnen» als primärer Button (`btn-primary`) hervorgehoben; Nebenaktionen («Vorschau», «In Folgewoche kopieren») sind gruppiert.
+- **Sprachliche Klarheit (P10):** Technische Begriffe wurden durch verständliche Formulierungen («Veröffentlichen», «Ausgabeangaben») ersetzt.
+
+### 2. Statusdarstellung Wochenübersicht (`derive_admin_status`)
+Die Statusspalte der Wochenliste nutzt konsistent die vertragliche Klartext-Matrix:
+- `live` → «Veröffentlicht · entspricht dem gespeicherten Stand»
+- `changed` → «Veröffentlicht · gespeicherte Änderungen noch nicht veröffentlicht»
+- `ready` → «Noch nicht veröffentlicht · bereit»
+- `review_open` → «Prüfung offen»
+- `incomplete` → «Unvollständig»
+- `empty` → «Noch keine Menüs erfasst»
+
+### 3. Technische Schutzgrenzen
+- Volle Arbeitsbreite (`data-layout="standard"`) bleibt ohne Breitenbegrenzung auf allen Displaygrössen erhalten.
+- Alle CSS-Stile in `admin-menu-collection.css` nutzen ausschliesslich Tokens aus `tokens.css` (keine harten Hex-Werte, keine ungemappten Klassen).
+- Sämtliche POST-Ziele, Formularfelder, Hidden-Inputs (`_csrf`, `row_version`), Filterparameter (`q`, `page`) und Redirect-Routen bleiben unberührt.
+- Browser-Verifikation via `test_ui_korrektur_menus_browser.py` erbringt Screenshots für 1366×768, 1920×1080, 768×1024, 390×844 sowie 200 % Zoom ohne horizontales Scrollen.
