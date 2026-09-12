@@ -48,6 +48,7 @@ database/migrations/0023_v25_to_v26.sql
 database/migrations/0024_v26_to_v27.sql
 database/migrations/0025_v27_to_v28.sql
 database/migrations/0026_v28_to_v29.sql
+database/migrations/0027_v29_to_v30.sql
 database/permissions.sql
 database/README.md
 database/schema.sql
@@ -422,6 +423,7 @@ docs/design/2026-09-08-authentication-access-history.md
 docs/design/2026-09-08-native-pdf-layout-contract.md
 docs/design/2026-09-09-unified-ui-design-system.md
 docs/design/2026-09-11-admin-shell-navigation-spec.md
+docs/design/2026-09-12-api-key-policy.md
 docs/design/2026-09-12-fullwidth-audit.md
 docs/design/2026-09-12-patientenplan-menueditor-korrektur.md
 docs/design/admin-redesign-ui.md
@@ -1115,6 +1117,7 @@ reference_scaffold/tests/test_access_events_db.py
 reference_scaffold/tests/test_access_history_reads.py
 reference_scaffold/tests/test_admin_access_history_browser.py
 reference_scaffold/tests/test_admin_access_history_routes.py
+reference_scaffold/tests/test_admin_api_key_policy.py
 reference_scaffold/tests/test_admin_api_page.py
 reference_scaffold/tests/test_admin_blueprint_bootstrap.py
 reference_scaffold/tests/test_admin_copy_ui.py
@@ -1153,6 +1156,7 @@ reference_scaffold/tests/test_admin_workflow_routes.py
 reference_scaffold/tests/test_admin_workflow_snapshot_contract.py
 reference_scaffold/tests/test_api_backup_sequence_db.py
 reference_scaffold/tests/test_api_docs.py
+reference_scaffold/tests/test_api_key_policy.py
 reference_scaffold/tests/test_api_key_record.py
 reference_scaffold/tests/test_api_keyed.py
 reference_scaffold/tests/test_api_keys_db.py
