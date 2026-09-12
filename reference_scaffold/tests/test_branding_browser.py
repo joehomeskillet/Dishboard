@@ -81,6 +81,7 @@ def test_http_editor_preview_activation_inverted_palette_and_logo(live_branding,
         with database_engine.connect() as connection:
             assert read_branding(connection)['active_revision'] == 1
         page.screenshot(path=str(tmp_path / 'brand-editor-desktop.png'), full_page=True)
+        page.once('dialog', lambda dialog: dialog.accept())
         page.get_by_role('button', name='Version 2 aktivieren').click()
         expect(page.get_by_role('status')).to_contain_text('Nachtpalette')
         for width in (390, 820, 1440):
