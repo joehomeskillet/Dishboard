@@ -86,9 +86,10 @@ def test_native_cookbook_order_cancel_and_framework(cookbook_server, browser, wi
         page.on('response', lambda response: responses.setdefault(urlsplit(response.url).path, []).append(response.status))
         page.goto(base + '/admin/kochbuecher')
         expect(page.get_by_role('heading', level=1)).to_have_text('Kochbücher')
+        page.locator('details#cookbook-create > summary').click()
         page.get_by_role('link', name='Kochbuch anlegen', exact=True).click()
         page.get_by_label('Name', exact=True).fill('Browserbuch')
-        page.get_by_role('button', name='Anlegen', exact=True).click()
+        page.get_by_role('button', name='Kochbuch anlegen', exact=True).click()
         expect(page.get_by_role('heading', level=1)).to_have_text('Browserbuch')
         path = urlsplit(page.url).path
         recipes = page.locator(f'form[action="{path}/rezepte"]')
@@ -122,7 +123,7 @@ def test_native_cookbook_order_cancel_and_framework(cookbook_server, browser, wi
         page.get_by_role('link', name='Zurück zur Liste').click()
         expect(page.get_by_role('heading', level=1)).to_have_text('Kochbücher')
         expect(page.get_by_text('Browserbuch')).to_be_visible()
-        expect(page.get_by_text('Symbole')).to_be_visible()
+        expect(page.locator('details#cookbook-create')).not_to_have_attribute('open', '')
         targets(page)
         cards = page.locator('section[aria-label="Kochbücher"] article.card')
         boxes = [card.bounding_box() for card in cards.all()]
@@ -166,7 +167,7 @@ def test_stale_header_is_copyable_with_original_context(cookbook_server, browser
         assert client.post(path, data=other).status_code == 303
         before = snapshot(cookbook_server['owner'])
         with page.expect_response(lambda response: response.request.method == 'POST') as response:
-            form.get_by_role('button', name='Speichern', exact=True).click()
+            form.get_by_role('button', name='Kochbuch speichern', exact=True).click()
         assert response.value.status == 409 and snapshot(cookbook_server['owner']) == before
         expect(page.locator('#recipe-error')).to_be_focused()
         expect(page.get_by_label('Name', exact=True)).to_have_value('Mein Entwurf')

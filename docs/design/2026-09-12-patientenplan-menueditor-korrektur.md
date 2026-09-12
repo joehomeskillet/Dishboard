@@ -238,3 +238,21 @@ Lieferumfang: tatsächliche Dateipfade, Befund-ID → Änderung → Test → Erg
 Ein Test mit technisch unerfahrenen Personen soll insbesondere zeigen, ob sie ein Menü finden, nur die Beilage ändern, speichern und den Unterschied zwischen „geprüft“ und „Allergenangaben fehlen“ erklären können. Ein Agent darf fehlende Nutzerbeobachtungen nicht als durchgeführt ausgeben.
 
 **Kernziel: Volle Breite behalten, Wiederholungen entfernen, Menüs zuerst zeigen und Prüfzustände verständlich machen. Nicht erneut nur die Karten grösser machen.**
+
+## Umsetzung Kochbücher
+
+Die Kochbuchliste zeigt Suche und vorhandene Kochbücher vor der optionalen
+Neuanlage. «Kochbuch anlegen» bleibt für Schreibberechtigte unter einem
+geschlossenen `<details>` erreichbar. Die frühere Symbollegende entfällt, weil
+alle verbleibenden Handlungen direkt beschriftet sind.
+
+Im aktiven Editor ist «Kochbuch speichern» die einzige hervorgehobene
+Seitenaktion. Die weiterhin getrennte Rezept-Zuordnung besitzt die sekundäre
+Abschnittsaktion «Zuordnung speichern». Rezeptauswahl und Positionszahlen bleiben
+unverändert; Sortieren funktioniert weiterhin ohne Drag-and-Drop.
+
+Beide Formulare behalten ihre bisherigen POST-Ziele, CSRF-/Kontextfelder,
+`row_version` und fachlichen Nutzfelder. Der Browservertrag
+`tests/test_ui_korrektur_cookbooks_browser.py` prüft beide Payloads mit und ohne
+JavaScript sowie volle Breite und fehlenden Seitenüberlauf bei 1366×768,
+1920×1080, 768×1024, 390×844 und dem 200-%-Äquivalent 720×450.
