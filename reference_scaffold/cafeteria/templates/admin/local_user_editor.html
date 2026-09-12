@@ -4,10 +4,12 @@
 {% set workflow_nav = 'users' %}
 {% block title %}Lokales Konto · Benutzer & Zugriff{% endblock %}
 {% block page_header %}{% call page_header('Lokales Konto', 'Benutzer & Zugriff') %}
-<a class="btn" href="{{ url_for('admin.local_user_events', target=account.public_id) }}">Kontoereignisse</a>
-<a class="btn" href="{{ url_for('admin.access_history') }}">Gesamter Zugriffsverlauf</a>
 <a class="btn" href="{{ url_for('admin.local_users_list', page=page, status=status) }}">Zurück zur Kontenliste</a>{% endcall %}{% endblock %}
 {% block content %}
+<nav class="btn-list mb-4" aria-label="Kontoverlauf">
+<a class="btn" href="{{ url_for('admin.local_user_events', target=account.public_id) }}">Kontoereignisse</a>
+<a class="btn" href="{{ url_for('admin.access_history') }}">Gesamter Zugriffsverlauf</a>
+</nav>
 {{ unavailable(can_mutate) }}
 <section class="card mb-4" aria-labelledby="account-identity"><div class="card-body">
 <h2 class="card-title text-break" id="account-identity">{{ account.display_name }}</h2>
@@ -20,7 +22,7 @@
 </dl>
 </div></section>
 <section aria-labelledby="account-actions-title">
-<h2 id="account-actions-title">Benutzerzugriff verwalten</h2>
+<h2 id="account-actions-title">Kontozugriff verwalten</h2>
 <p class="text-secondary">Rollen, Passwort und Kontostatus werden getrennt gespeichert und bestätigt.</p>
 {% set selected_roles = request.form.getlist('roles') if error_action == 'rollen' else account.roles %}
 <details id="roles-action" class="card mb-3"{% if error_action == 'rollen' %} open{% endif %}>
@@ -30,7 +32,7 @@
 {{ form_error(error if error_action == 'rollen' else '', 'rollen') }}{{ role_fields(role_labels,selected_roles,'edit') }}
 {{ confirm('roles', 'Rollenänderung für ' ~ account.username ~ ' bestätigen') }}
 <p class="form-hint">Speichern widerruft bestehende Anmeldungen. Beim Entzug der Adminrolle muss ein weiterer ungesperrter lokaler Admin bestehen bleiben.</p>
-</div><div class="card-footer"><button class="btn btn-primary" type="submit"{% if not can_mutate %} disabled{% endif %}>Benutzer speichern</button></div></form>
+</div><div class="card-footer"><button class="btn btn-primary" type="submit"{% if not can_mutate %} disabled{% endif %}>Konto speichern</button></div></form>
 </details>
 <details id="password-action" class="card mb-3"{% if error_action == 'passwort' %} open{% endif %}>
 <summary class="card-header"><div><h3 class="card-title mb-1">Passwort</h3><p class="text-secondary mb-0">Neues Passwort setzen und bestehende Anmeldungen widerrufen.</p></div></summary>

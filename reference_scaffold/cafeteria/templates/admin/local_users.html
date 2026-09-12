@@ -2,18 +2,20 @@
 {% from 'admin/_macros.html' import page_header, pagination %}
 {% from 'admin/_local_user_forms.html' import create_panel, unavailable %}
 {% set workflow_nav = 'users' %}
-{% block title %}Lokale Benutzer · Benutzer & Zugriff{% endblock %}
-{% block page_header %}{% call page_header('Benutzer & Zugriff', 'Lokale Konten') %}
-<a class="btn" href="{{ url_for('admin.local_user_events') }}">Kontoereignisse</a>
-<a class="btn" href="{{ url_for('admin.access_history') }}">Zugriffsverlauf</a>{% endcall %}{% endblock %}
+{% block title %}Lokale Konten · Benutzer & Zugriff{% endblock %}
+{% block page_header %}{{ page_header('Benutzer & Zugriff', 'Lokale Konten') }}{% endblock %}
 {% block content %}
+<nav class="btn-list mb-4" aria-label="Kontoverlauf">
+<a class="btn" href="{{ url_for('admin.local_user_events') }}">Kontoereignisse</a>
+<a class="btn" href="{{ url_for('admin.access_history') }}">Zugriffsverlauf</a>
+</nav>
 {{ unavailable(can_mutate) }}
 <form method="get" class="row g-3 align-items-end mb-4" aria-label="Konten filtern">
   <div class="col-12 col-md-5"><label class="form-label" for="user-status">Kontostatus</label><select class="form-select" id="user-status" name="status">
   {% for value,label in [('all','Alle lokalen Konten'),('active','Aktiv'),('disabled','Deaktiviert')] %}<option value="{{ value }}"{% if status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
   <div class="col-auto"><button class="btn" type="submit">Filtern</button></div>
 </form>
-<section class="card mb-4" aria-labelledby="users-title"><div class="card-header"><div><h2 class="card-title mb-1" id="users-title">Lokale Benutzer</h2><p class="text-secondary mb-0">Konten, zugewiesene Rollen und Status der lokalen Anmeldung.</p></div></div>
+<section class="card mb-4" aria-labelledby="users-title"><div class="card-header"><div><h2 class="card-title mb-1" id="users-title">Lokale Konten</h2><p class="text-secondary mb-0">Konten, zugewiesene Rollen und Status der lokalen Anmeldung.</p></div></div>
 {% if rows %}<div class="table-responsive"><table class="table table-vcenter card-table table-mobile-lg"><thead><tr><th>Konto</th><th>Rollen</th><th>Status</th><th>Letzte Anmeldung</th><th>Aktion</th></tr></thead><tbody>
 {% for account in rows %}<tr>
 <td data-label="Konto"><strong class="text-break">{{ account.display_name }}</strong><div class="text-secondary text-break">{{ account.username }}</div></td>

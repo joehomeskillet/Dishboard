@@ -84,7 +84,7 @@ def test_list_first_and_native_create_form_preserves_request_contract(
         page.get_by_label("Neues Passwort", exact=True).fill("Valide!Wolken77Kette")
         page.get_by_label("Neues Passwort bestätigen", exact=True).fill("Valide!Wolken77Kette")
         with page.expect_request(lambda request: request.method == "POST") as sent:
-            page.get_by_role("button", name="Benutzer speichern", exact=True).click()
+            page.get_by_role("button", name="Konto speichern", exact=True).click()
         request = sent.value
         assert urlsplit(request.url).path == "/admin/benutzer"
         payload = parse_qs(request.post_data or "", keep_blank_values=True)
@@ -110,7 +110,7 @@ def test_create_and_role_errors_open_correct_group_preserve_safe_values_and_focu
         page.get_by_label("Neues Passwort", exact=True).fill("Valide!Wolken77Kette")
         page.get_by_label("Neues Passwort bestätigen", exact=True).fill("Frische!Sterne92Tanne")
         with page.expect_navigation() as navigation:
-            page.get_by_role("button", name="Benutzer speichern", exact=True).click()
+            page.get_by_role("button", name="Konto speichern", exact=True).click()
         assert navigation.value.status == 400
         assert page.locator("#create-local-user").evaluate("details => details.open")
         expect(page.locator(".error-region")).to_be_focused()
@@ -131,7 +131,7 @@ def test_create_and_role_errors_open_correct_group_preserve_safe_values_and_focu
             checkbox.uncheck()
         page.get_by_label("Rollenänderung für ui.error.target bestätigen", exact=True).check()
         with page.expect_navigation() as navigation:
-            page.get_by_role("button", name="Benutzer speichern", exact=True).click()
+            page.get_by_role("button", name="Konto speichern", exact=True).click()
         assert navigation.value.status == 400
         assert page.locator("#roles-action").evaluate("details => details.open")
         assert not page.locator("#password-action").evaluate("details => details.open")
@@ -153,7 +153,7 @@ def test_security_action_requests_keep_targets_and_fields(live_accounts, browser
         context.add_cookies([{"name": cookie_name, "value": cookie.value, "url": origin}])
         page = context.new_page()
         cases = (
-            ("#roles-action", "Benutzer speichern", "rollen", {"roles"}),
+            ("#roles-action", "Konto speichern", "rollen", {"roles"}),
             (
                 "#password-action", "Passwort zurücksetzen", "passwort",
                 {"password", "password_confirm"},
