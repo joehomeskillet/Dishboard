@@ -367,6 +367,9 @@
   display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between;
   gap: var(--app-space-6);
 }
+.dishboard-admin .admin-page-header .page-header-row > .col { min-width: 0; }
+.dishboard-admin :is(.page-title, .page-header-subtitle),
+.dishboard-admin .page-breadcrumb :is(.breadcrumb-item, a) { overflow-wrap: anywhere; }
 .dishboard-admin .page-header-subtitle {
   color: var(--app-text-muted); font-size: 1rem; margin-top: var(--app-space-1);
 }
