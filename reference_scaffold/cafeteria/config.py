@@ -119,6 +119,16 @@ class Config:
             )
         self.ENTRA_ENABLED = _bool('ENTRA_ENABLED')
         self.LOCAL_AUTH_ENABLED = _bool('LOCAL_AUTH_ENABLED')
+        self.LOGIN_COMBINED_RATE_LIMIT = int(os.getenv('LOGIN_COMBINED_RATE_LIMIT', '5'))
+        self.LOGIN_COMBINED_RATE_WINDOW_SECONDS = int(
+            os.getenv('LOGIN_COMBINED_RATE_WINDOW_SECONDS', '300')
+        )
+        self.LOGIN_IP_RATE_LIMIT = int(os.getenv('LOGIN_IP_RATE_LIMIT', '30'))
+        self.LOGIN_IP_RATE_WINDOW_SECONDS = int(os.getenv('LOGIN_IP_RATE_WINDOW_SECONDS', '900'))
+        self.LOGIN_ACCOUNT_RATE_LIMIT = int(os.getenv('LOGIN_ACCOUNT_RATE_LIMIT', '10'))
+        self.LOGIN_ACCOUNT_RATE_WINDOW_SECONDS = int(
+            os.getenv('LOGIN_ACCOUNT_RATE_WINDOW_SECONDS', '900')
+        )
         self.DB_POOL_SIZE = int(os.getenv('DB_POOL_SIZE', '5'))
         self.DB_MAX_OVERFLOW = int(os.getenv('DB_MAX_OVERFLOW', '5'))
         self.DB_POOL_TIMEOUT_SECONDS = int(os.getenv('DB_POOL_TIMEOUT_SECONDS', '10'))

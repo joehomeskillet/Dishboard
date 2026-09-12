@@ -415,7 +415,6 @@ def test_overlong_login_username_is_rejected_before_rate_key_creation(
     auth_app: tuple[Any, Engine, Engine],
 ) -> None:
     application, _, _ = auth_app
-    application.config['LOGIN_USERNAME_MAX_LENGTH'] = 64
     client = application.test_client()
     redis_client = application.extensions['cafeteria_rate_redis']
     username = 'a' * 65

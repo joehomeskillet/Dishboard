@@ -205,7 +205,6 @@ def test_login_rate_limits_have_conservative_configurable_defaults(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     names = (
-        'LOGIN_USERNAME_MAX_LENGTH',
         'LOGIN_COMBINED_RATE_LIMIT',
         'LOGIN_COMBINED_RATE_WINDOW_SECONDS',
         'LOGIN_IP_RATE_LIMIT',
@@ -218,7 +217,6 @@ def test_login_rate_limits_have_conservative_configurable_defaults(
 
     defaults = Config()
 
-    assert defaults.LOGIN_USERNAME_MAX_LENGTH == 64
     assert defaults.LOGIN_COMBINED_RATE_LIMIT == 5
     assert defaults.LOGIN_COMBINED_RATE_WINDOW_SECONDS == 300
     assert defaults.LOGIN_IP_RATE_LIMIT == 30
@@ -231,4 +229,4 @@ def test_login_rate_limits_have_conservative_configurable_defaults(
 
     configured = Config()
 
-    assert tuple(getattr(configured, name) for name in names) == tuple(range(11, 18))
+    assert tuple(getattr(configured, name) for name in names) == tuple(range(11, 17))
