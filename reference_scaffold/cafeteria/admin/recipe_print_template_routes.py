@@ -59,8 +59,7 @@ def _arguments(*, preview: bool = False) -> dict[str, str]:
     if set(request.args) - allowed or any(len(request.args.getlist(key)) != 1 for key in request.args):
         abort(400, description='Ungültige oder mehrfach gesendete Vorlagenparameter.')
     values = request.args.to_dict()
-    values.setdefault('template', 'standard')
-    if IDENTIFIER.fullmatch(values['template']) is None:
+    if 'template' in values and IDENTIFIER.fullmatch(values['template']) is None:
         raise RecipeValidationError('Ungültige Vorlagenkennung.')
     if 'revision' in values and re.fullmatch(r'[1-9][0-9]?', values['revision']) is None:
         raise RecipeValidationError('Ungültige Vorlagenrevision.')
@@ -82,6 +81,15 @@ def _arguments(*, preview: bool = False) -> dict[str, str]:
     return values
 
 
+def _resolved_arguments(arguments: dict[str, str], document: dict[str, Any]) -> dict[str, str]:
+    values = dict(arguments)
+    if 'template' not in values:
+        values['template'] = document['active_template']
+        if 'revision' not in values:
+            values['revision'] = str(document['active_revision'])
+    return values
+
+
 def _url(arguments: dict[str, str], **changes: Any) -> str:
     values: dict[str, Any] = {key: value for key, value in arguments.items() if key in SELECTION}
     values.update(changes)
@@ -95,7 +103,9 @@ def _pdf(arguments: dict[str, str]) -> tuple[bytes, dict[str, str], RecipeRevisi
         with connection.begin():
             connection.execute(text('SET TRANSACTION READ ONLY'))
             document = read_templates(connection, 'recipe')
-            selected = _selected(document, arguments['template'], int(arguments['revision']) if 'revision' in arguments else None)
+            selected_arguments = _resolved_arguments(arguments, document)
+            selected = _selected(document, selected_arguments['template'],
+                                 int(selected_arguments['revision']) if 'revision' in selected_arguments else None)
             try:
                 revision, assets = recipe_print_input(connection, arguments['recipe'], arguments['recipe_revision'])
             except RecipeValidationError:
@@ -104,7 +114,7 @@ def _pdf(arguments: dict[str, str]) -> tuple[bytes, dict[str, str], RecipeRevisi
     data = render_recipe_pdf(revision, config=selected['config'], images=assets,
                              target=arguments.get('yield'), branding=branding)
     headers = {
-        'X-Print-Template-Revision': f'{arguments["template"]}:{selected["id"]}',
+        'X-Print-Template-Revision': f'{selected_arguments["template"]}:{selected["id"]}',
         'X-Recipe-Revision': revision.public_id, 'X-Recipe-Content-SHA256': revision.content_hash_sha256,
         'Content-Disposition': f'inline; filename="rezeptvorlage-{revision.public_id}.pdf"',
     }
@@ -115,6 +125,7 @@ def _pdf(arguments: dict[str, str]) -> tuple[bytes, dict[str, str], RecipeRevisi
 
 def _render_editor(arguments: dict[str, str], *, error=None, status: int = 200, selected_revision: int | None = None) -> Response:
     document = _document('recipe')
+    arguments = _resolved_arguments(arguments, document)
     revision = _selected(document, arguments['template'], selected_revision if selected_revision is not None
                          else int(arguments['revision']) if 'revision' in arguments else None)
     template = next(item for item in document['templates'] if item['id'] == arguments['template'])
@@ -169,6 +180,7 @@ def recipe_print_template_editor() -> Response:
     arguments = _arguments()
     if request.method == 'GET':
         return _render_editor(arguments)
+    arguments = _resolved_arguments(arguments, _document('recipe'))
     if request.content_length is not None and request.content_length > 16_384:
         abort(413, description='Das Vorlagenformular ist zu gross.')
     validate_csrf(request.form.get('_csrf'))

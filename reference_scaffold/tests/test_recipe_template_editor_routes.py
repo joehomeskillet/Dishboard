@@ -80,6 +80,45 @@ def test_catalog_and_empty_editor_allow_drafts_without_recipe_or_settings_initia
         assert read_templates(connection, 'recipe')['active_revision'] == 1
 
 
+def test_missing_selection_uses_active_template_revision_but_explicit_template_keeps_latest(recipe_editor):
+    app, _, client, _ = recipe_editor
+    recipe, revision, _ = example(recipe_editor)
+    selected = path(recipe, revision.public_id)
+    assert client.post(selected, data=fields(header_text='Aktiver Standardentwurf')).status_code == 303
+    assert client.post(selected, data=fields('activate', 1, 2)).status_code == 303
+    copied = client.post(selected, data=fields('copy', 2, 2, name='Aktive Kopie'))
+    copy_id = copied.location.split('template=')[1].split('&')[0]
+    assert client.post(path(recipe, revision.public_id, template=copy_id),
+                       data=fields('activate', 3, 1)).status_code == 303
+
+    defaulted = client.get(BASE)
+    assert defaulted.status_code == 200
+    assert f'value="{copy_id}" selected' in defaulted.text
+    assert '<strong>Aktiv für Rezept-PDFs:</strong> Version 1 · Aktive Kopie' in defaulted.text
+    explicit = client.get(BASE + '?template=standard')
+    assert explicit.status_code == 200
+    assert 'Angezeigt: Version 2' in explicit.text
+    with app.extensions['cafeteria_db'].connect() as connection:
+        document = read_templates(connection, 'recipe')
+        assert document['active_template'] == copy_id and document['active_revision'] == 1
+
+
+def test_recipe_context_links_back_to_draft_and_selected_saved_revision(recipe_editor):
+    _, _, client, _ = recipe_editor
+    recipe, revision, _ = example(recipe_editor)
+
+    selected = client.get(path(recipe, revision.public_id))
+    assert selected.status_code == 200
+    assert f'href="/admin/rezepte/{recipe}"' in selected.text
+    assert 'Zurück zum Rezept «Suppe»' in selected.text
+    assert f'href="/admin/rezepte/{recipe}/revisionen/{revision.public_id}"' in selected.text
+    assert 'Zum gespeicherten Stand 1' in selected.text
+    recipe_only = client.get(BASE + '?' + urlencode({'recipe': recipe}))
+    assert recipe_only.status_code == 200
+    assert 'Zurück zum Rezept «Suppe»' in recipe_only.text
+    assert 'Zum gespeicherten Stand' not in recipe_only.text
+
+
 def test_real_preview_same_snapshot_lifecycle_and_historical_image(recipe_editor):
     app, owner, client, actor = recipe_editor
     recipe, revision, digest = example(recipe_editor)
