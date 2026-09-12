@@ -2,7 +2,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-auto-rows: 1fr;
-  gap: var(--tblr-page-padding);
+  gap: var(--tblr-page-padding, 1.5rem);
 }
 
 .screen-card { min-width: 0; }
@@ -16,7 +16,7 @@
   container-type: inline-size;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  background: var(--tblr-bg-surface-secondary);
+  background: var(--app-surface-soft, var(--tblr-bg-surface-secondary));
 }
 
 .screen-preview iframe {
@@ -35,6 +35,31 @@
   width: 1920px;
   height: 1080px;
   transform: scale(tan(atan2(100cqw, 1920px)));
+}
+
+.output-print-section,
+.output-layouts-section {
+  border-color: var(--app-border-soft, var(--tblr-border-color-translucent));
+}
+
+.output-area-tabs .nav-link {
+  min-height: 3rem;
+}
+
+summary.card-header {
+  cursor: pointer;
+  min-height: 3rem;
+  display: flex;
+  align-items: center;
+}
+
+summary.card-header:focus-visible {
+  outline: 2px solid var(--app-focus);
+  outline-offset: 2px;
+}
+
+.unavailable-container {
+  max-width: 60rem;
 }
 
 @media (min-width: 768px) {

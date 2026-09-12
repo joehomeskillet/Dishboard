@@ -1,17 +1,18 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon %}
 {% set workflow_nav = 'screens' %}
+{% set layout_variant = 'narrow' %}
 {% block title %}Wochenvorlage zuordnen · Menüplanung{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-screens.css') }}">{% endblock %}
-{% block page_header %}{{ page_header('Wochenvorlage zuordnen') }}{% endblock %}
+{% block page_header %}{{ page_header('Wochenvorlage zuordnen', description=area_names[profile] ~ ' · Web-Wochenplan. Die Auswahl gilt beim nächsten Öffnen oder Neuladen.', breadcrumbs=[('Screens', url_for('admin.screens')), ('Wochenvorlage zuordnen', none)]) }}{% endblock %}
 {% block content %}
-<p>{{ area_names[profile] }} · Web-Wochenplan. Die Auswahl gilt beim nächsten Öffnen oder Neuladen. Tagespläne, TV-Ausgaben und die feste Ohne-Bilder-Adresse bleiben bestehen.</p>
+<p class="text-secondary small mb-3">{{ area_names[profile] }} · Web-Wochenplan. Die Auswahl gilt beim nächsten Öffnen oder Neuladen. Tagespläne, TV-Ausgaben und die feste Ohne-Bilder-Adresse bleiben bestehen.</p>
 <details class="card mb-3"><summary class="card-header">Symbole</summary><div class="card-body">{{ icon('eye') }} Vorschau öffnen: die gewählte Darstellung mit der aktuellen Veröffentlichung ansehen.</div></details>
 {% if error %}
 <div class="alert alert-danger" role="alert" tabindex="-1" autofocus id="screen-form-error">{{ error }}</div>
-<p>Ihre ursprüngliche Auswahl: <strong class="text-break">{{ values.template_id }}</strong> · Rendererrevision {{ values.renderer_revision }} · Zuordnungsversion {{ values.version }}.</p>
+<p class="text-secondary small">Ihre ursprüngliche Auswahl: <strong class="text-break">{{ values.template_id }}</strong> · Rendererrevision {{ values.renderer_revision }} · Zuordnungsversion {{ values.version }}.</p>
 <a class="btn mb-3" href="{{ url_for('admin.screen_template_assignment', family=family) }}">{{ icon('refresh') }}Aktuellen Stand laden</a>
-{% elif active %}<p><span class="badge bg-green-lt">Aktiv</span> {{ active.template.name }}{% if active.version == 0 %} · Vorgabe, noch nicht gespeichert{% endif %}</p>{% endif %}
+{% elif active %}<p class="mb-3"><span class="badge bg-green-lt">Aktiv</span> {{ active.template.name }}{% if active.version == 0 %} · Vorgabe, noch nicht gespeichert{% endif %}</p>{% endif %}
 <form method="post" action="{{ url_for('admin.screen_template_assignment', family=family) }}">
   {% for name in ['_csrf', '_form_context', 'version', 'renderer_revision', 'action'] %}<input type="hidden" name="{{ name }}" value="{{ values[name] }}">{% endfor %}
   <fieldset {% if error %}aria-describedby="screen-form-error"{% endif %}>

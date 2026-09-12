@@ -7,12 +7,20 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='admin-tabler.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin-screens.css') }}">
 </head>
 <body class="admin-body dishboard-admin">
-<main class="container-xl py-4">
-  <h1>Screen-Vorlagen vorübergehend nicht verfügbar</h1>
-  <div class="alert alert-warning" role="alert">Die Anfrage konnte nicht abgeschlossen werden. Bitte versuchen Sie es später erneut.</div>
-  <a class="btn" href="{{ request.path }}">Neu laden</a>
+<main class="container-xl py-4 unavailable-container">
+  <div class="card">
+    <div class="card-header">
+      <h1 class="card-title">Screen-Vorlagen vorübergehend nicht verfügbar</h1>
+    </div>
+    <div class="card-body">
+      <div class="alert alert-warning" role="alert">Die Anfrage konnte nicht abgeschlossen werden. Bitte versuchen Sie es später erneut.</div>
+      <p class="text-secondary small mb-3">Der Speicherdienst für Screen-Vorlagen ist zurzeit nicht erreichbar oder hat die Anfrage abgebrochen.</p>
+      <a class="btn btn-primary" href="{{ request.path }}">Neu laden</a>
+    </div>
+  </div>
 </main>
 </body>
 </html>
