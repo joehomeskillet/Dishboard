@@ -5,10 +5,14 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 ROOT = Path(__file__).resolve().parents[1]
 SCAFFOLD = ROOT / 'reference_scaffold'
@@ -16,11 +20,78 @@ DRAFT_PATH = ROOT / 'demo' / 'linked_recipe_drafts.json'
 IMPORT_PATH = ROOT / 'demo' / 'linked_recipe_drafts_import.json'
 ANNOTATIONS = ('unreviewed', 'proposed_not_measured', 'allergen_not_checked')
 FETCHED_AT = '2026-09-08T21:51:49+00:00'
+REQUIRED_IMPORT_CAPABILITIES = frozenset({'masterdata.write', 'recipe.write', 'recipe.import'})
 STORAGE_CODES: dict[str, tuple[str, str, int]] = {
     'proposed.storage.trockenlager': ('TROCKEN', 'Trockenlager', 1),
     'proposed.storage.kuehlraum': ('KUEHL', 'Kühlraum', 2),
     'proposed.storage.tiefkuehler': ('TIEFKHL', 'Tiefkühler', 3),
 }
+
+
+class ActorResolutionError(ValueError):
+    """Raised when requested local import actor is absent or unauthorized."""
+
+
+def resolve_import_actor(engine: Any, identifier: str) -> Any:
+    """Resolve active local account by public UUID or username without mutation."""
+    if str(SCAFFOLD) not in sys.path:
+        sys.path.insert(0, str(SCAFFOLD))
+    from sqlalchemy import text
+    from cafeteria.auth.local_users import ActorExpectation  # type: ignore[import-not-found]
+    from cafeteria.auth.service import (  # type: ignore[import-not-found]
+        load_user_authorization,
+        normalize_username,
+    )
+    from cafeteria.roles import capabilities  # type: ignore[import-not-found]
+
+    value = identifier.strip()
+    try:
+        public_id = UUID(value)
+    except ValueError:
+        public_id = None
+    if public_id is None:
+        lookup = normalize_username(value)
+        query = text('''SELECT u.id FROM cafeteria.users u
+                        JOIN cafeteria.local_credentials c ON c.user_id=u.id
+                        WHERE u.auth_provider='local' AND c.username=:identifier''')
+    else:
+        lookup = public_id
+        query = text('''SELECT u.id FROM cafeteria.users u
+                        JOIN cafeteria.local_credentials c ON c.user_id=u.id
+                        WHERE u.auth_provider='local' AND u.public_id=:identifier''')
+    with engine.begin() as connection:
+        connection.execute(text('SET TRANSACTION READ ONLY'))
+        user_id = connection.execute(
+            query,
+            {'identifier': lookup},
+        ).scalar_one_or_none()
+    authorization = load_user_authorization(engine, user_id) if user_id is not None else None
+    if authorization is None or authorization.auth_provider != 'local':
+        raise ActorResolutionError(
+            f'Lokaler Import-Akteur {identifier!r} nicht gefunden oder deaktiviert.'
+        )
+    allowed = capabilities(list(authorization.roles))
+    missing = set() if '*' in allowed else REQUIRED_IMPORT_CAPABILITIES - allowed
+    if missing:
+        names = ', '.join(sorted(missing))
+        raise ActorResolutionError(
+            f'Lokaler Import-Akteur {identifier!r} hat nicht alle nötigen Berechtigungen: {names}.'
+        )
+    return ActorExpectation(authorization.user_id, authorization.authz_version)
+
+
+@contextmanager
+def signed_in(engine: Any, actor: Any) -> Iterator[None]:
+    """Create minimal request context expected by capability-protected stores."""
+    from flask import Flask, session
+
+    app = Flask(__name__)
+    app.secret_key = os.environ.get('IMPORT_SECRET') or os.urandom(32)
+    app.extensions['cafeteria_db'] = engine
+    with app.test_request_context():
+        session['user'] = {'id': actor.user_id}
+        session['authz_version'] = actor.authz_version
+        yield
 
 
 def sha256_file(path: Path) -> str:
@@ -236,6 +307,9 @@ def main() -> int:
     parser.add_argument('--apply', action='store_true')
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--database-url', default=None)
+    parser.add_argument('--actor-user', default=None, metavar='PUBLIC_ID_OR_USERNAME')
+    parser.add_argument('--skip-migrations', action='store_true')
+    parser.add_argument('--write-back', type=Path, default=None)
     args = parser.parse_args()
     if args.translate or (not args.apply and not args.dry_run):
         draft = load_draft(args.draft)
@@ -250,7 +324,15 @@ def main() -> int:
         if args.dry_run and not args.apply:
             print(json.dumps(apply_import(document, None, None, dry_run=True), ensure_ascii=False, indent=2))
             return 0
-        database_url = args.database_url or __import__('os').environ.get('DATABASE_URL')
+        fixture_actor_allowed = os.environ.get('RECIPE_IMPORT_ALLOW_FIXTURE_ACTOR') == '1'
+        if not args.actor_user and not fixture_actor_allowed:
+            print(
+                '--actor-user ist für --apply erforderlich; Test-Fixture nur mit '
+                'RECIPE_IMPORT_ALLOW_FIXTURE_ACTOR=1.',
+                file=sys.stderr,
+            )
+            return 2
+        database_url = args.database_url or os.environ.get('DATABASE_URL')
         if not database_url:
             print('DATABASE_URL oder --database-url erforderlich.', file=sys.stderr)
             return 2
@@ -259,12 +341,24 @@ def main() -> int:
         from cafeteria import db as database  # type: ignore[import-not-found]
 
         engine = create_engine(database_url, future=True)
-        database.run_migrations(engine, database.SCHEMA)
-        actor_module = __import__('test_master_data_db', fromlist=['make_actor'])
-        actor = actor_module.make_actor(engine, 'Cafeteria.Admin')
-        with actor_module.signed_in(engine, actor):
+        if args.actor_user:
             try:
-                summary = apply_import(document, engine, actor, dry_run=args.dry_run, write_back=args.output)
+                actor = resolve_import_actor(engine, args.actor_user)
+            except ActorResolutionError as error:
+                print(str(error), file=sys.stderr)
+                return 2
+            if not args.skip_migrations:
+                database.run_migrations(engine, database.SCHEMA)
+        else:
+            if not args.skip_migrations:
+                database.run_migrations(engine, database.SCHEMA)
+            actor_module = __import__('test_master_data_db', fromlist=['make_actor'])
+            actor = actor_module.make_actor(engine, 'Cafeteria.Admin')
+        with signed_in(engine, actor):
+            try:
+                summary = apply_import(
+                    document, engine, actor, dry_run=args.dry_run, write_back=args.write_back,
+                )
             except BatchImportError as error:
                 print(json.dumps(error.summary, ensure_ascii=False, indent=2), file=sys.stderr)
                 print(str(error), file=sys.stderr)

@@ -166,3 +166,44 @@ Auch bei `true` muss der spätere Writer Dublettenentscheidungen, Einheiten/Ziel
 prüfen. Ein Import darf weder Menüs veröffentlichen noch Allergene automatisch bestätigen.
 Späterer CSV-Export muss weiterhin Tabellenkalkulationsformeln neutralisieren; der Parser
 selbst führt Feldinhalte niemals aus.
+
+## Beispielrezepte importieren (Produktion)
+
+Der Lauf verwendet einen bereits vorhandenen, aktiven lokalen Benutzer. Er braucht
+`masterdata.write`, `recipe.write` und `recipe.import`; `Cafeteria.Admin` erfüllt dies über
+`*`, `Cafeteria.Publisher` über die drei einzelnen Capabilities. Benutzername oder öffentliche
+Benutzer-UUID werden mit `--actor-user` angegeben. Das Tool legt keinen Benutzer an.
+
+Reihenfolge:
+
+1. Vor dem Import ein geprüftes Backup der Zieldatenbank nach dem Betriebs-Runbook erstellen.
+2. Deployment inklusive `python manage.py init-db` abschliessen und erfolgreiche Migrationen
+   prüfen. Erst danach `--skip-migrations` verwenden. Ohne diese Option führt das Tool
+   `database.run_migrations` wie bisher selbst aus.
+3. Übersetzung und Dry-Run im App-Image prüfen:
+
+   ```bash
+   docker compose run --rm -v <repo>/tools:/app/tools:ro -v <repo>/demo:/app/demo:ro app python /app/tools/build_recipe_draft_import.py --translate --dry-run
+   ```
+
+4. Import mit vorhandenem Admin ausführen:
+
+   ```bash
+   docker compose run --rm -v <repo>/tools:/app/tools:ro -v <repo>/demo:/app/demo:ro app python /app/tools/build_recipe_draft_import.py --apply --actor-user <name> --skip-migrations
+   ```
+
+5. Im Admin prüfen: Zutaten und ihre Lagerorte **Trockenlager**, **Kühlraum** und
+   **Tiefkühler**, importierte Rezepte, vorbereitete Verknüpfungen sowie Gerichtvorlagen.
+   Ausgabe des zweiten identischen Apply-Laufs muss für vorhandene Stapel `status: skipped`
+   melden und darf keine Duplikate erzeugen.
+
+`DATABASE_URL` kommt aus der Compose-Umgebung; alternativ nimmt das Tool
+`--database-url`. `IMPORT_SECRET` kann einen Laufzeit-Schlüssel für den internen Flask-Kontext
+liefern, andernfalls wird pro Prozess ein Zufallswert erzeugt. Toolpfad bestimmt Projektwurzel:
+unter `/app/tools` werden Scaffold und Importdatei automatisch als `/app/reference_scaffold`
+und `/app/demo/linked_recipe_drafts_import.json` gefunden.
+
+Standardmässig schreibt Apply die aufgelösten UUIDs nicht in `demo/` zurück; Read-only-Mount
+bleibt damit gültig. Bewusstes Write-back braucht `--write-back <beschreibbarer-pfad>` und einen
+entsprechend beschreibbaren separaten Mount. `RECIPE_IMPORT_ALLOW_FIXTURE_ACTOR=1` aktiviert
+synthetischen Akteur nur für Tests und darf im Produktionslauf nicht gesetzt sein.
