@@ -142,7 +142,20 @@ def _controls(page: Page, family: str, *, component_rows: int | None = 2, requir
         'es => es.filter(e => e.getClientRects().length).map(e => [e.id, e.getBoundingClientRect().height])'
     )
     assert sizes and all(height >= 48 for _, height in sizes), sizes
-    assert page.locator('.page-body > .container-xl').evaluate('e => e.getBoundingClientRect().width') <= 960
+    box = page.locator('.page-body > .container-xl')
+    viewport = page.viewport_size or {'width': 0}
+    if viewport['width'] >= 1024:
+        metrics = box.evaluate('''e => {
+            const cs = getComputedStyle(e);
+            const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+            const inner = e.getBoundingClientRect().width - pad;
+            const kids = [...e.children].filter(el => el.getBoundingClientRect().height > 8);
+            const primary = Math.max(0, ...kids.map(el => el.getBoundingClientRect().width));
+            return { maxWidth: cs.maxWidth, ratio: inner ? primary / inner : 0 };
+        }''')
+        assert metrics['maxWidth'] in {'none', ''}, metrics
+        assert metrics['ratio'] >= 0.95, metrics
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
     if component_rows is not None:
         expect(page.locator('.menu-editor-component-row')).to_have_count(component_rows)
     if require_modes:

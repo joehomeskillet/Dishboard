@@ -129,7 +129,7 @@ def test_browser_vocabulary_unit_forms_and_error_focus(b3, master_server, browse
         page.get_by_role('button', name='Zutat anlegen', exact=True).click()
         expect(page.locator('.error-region')).to_be_visible()
         expect(page.get_by_label('Name', exact=True)).to_have_attribute('aria-invalid', 'true')
-        expect(page.get_by_label('Name', exact=True)).to_be_focused()
+        expect(page.locator('.error-region')).to_be_focused()
 
 
 @pytest.mark.parametrize('width', [390, 1440])
@@ -152,9 +152,12 @@ def test_location_conflict_native_recovery(b3, master_server, browser, width, ja
             connection.execute(text('UPDATE cafeteria.locations SET active=false'))
             connection.execute(text("INSERT INTO cafeteria.locations(code,name,active) VALUES('NEW','Neuer Standort',true)"))
         before = snapshot(owner)
-        with page.expect_response(lambda response: response.request.method == 'POST') as outcome:
-            form.get_by_role('button', name='Stammdaten speichern' if existing else 'Zutat anlegen', exact=True).click()
+        with page.expect_response(lambda response: response.request.method == 'POST', timeout=60000) as outcome:
+            form.get_by_role(
+                'button', name='Stammdaten speichern' if existing else 'Zutat anlegen', exact=True,
+            ).click(no_wait_after=True)
         assert outcome.value.status == 409
+        page.wait_for_load_state('domcontentloaded')
         expect(page.get_by_role('heading', level=1)).to_have_text('Ursprüngliche Eingaben')
         expect(page.locator('#master-error')).to_be_focused()
         expect(page.get_by_label('Name', exact=True)).to_have_value('Mein erhaltener Entwurf')

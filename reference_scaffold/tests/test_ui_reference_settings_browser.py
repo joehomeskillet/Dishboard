@@ -1,7 +1,7 @@
 """Browser test suite for MP-UI-REF-SETTINGS reference settings page.
 
 Verifies admin.display_settings in all matrix states:
-- normal (all 5 viewports, narrow 960 layout, header, default values, target size, no overflow)
+- normal (all 5 viewports, data-layout narrow, full working width, header, default values, target size, no overflow)
 - preview with both values for each of the 4 options without DB persistence
 - validation error on invalid input with preserved form values and 400 status
 - 403 rejection for non-admin actors
@@ -70,13 +70,21 @@ def test_settings_normal_state_and_viewports(
         response = page.goto(PATH)
         assert response is not None and response.status == 200
 
-        # Layout variant Schmal 960
+        # data-layout stays narrow; the shell no longer caps working width.
         expect(page.locator('main.admin-main')).to_have_attribute('data-layout', 'narrow')
         if width >= 1024:
-            container_max_w = page.locator('.page-body > .container-xl').evaluate(
-                'el => getComputedStyle(el).maxWidth',
+            metrics = page.locator('.page-body > .container-xl').evaluate(
+                '''el => {
+                    const cs = getComputedStyle(el);
+                    const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+                    const inner = el.getBoundingClientRect().width - pad;
+                    const kids = [...el.children].filter(e => e.getBoundingClientRect().height > 8);
+                    const primary = Math.max(0, ...kids.map(e => e.getBoundingClientRect().width));
+                    return { maxWidth: cs.maxWidth, ratio: inner ? primary / inner : 0 };
+                }''',
             )
-            assert container_max_w == '960px'
+            assert metrics['maxWidth'] in {'none', ''}, metrics
+            assert metrics['ratio'] >= 0.95, metrics
 
         # Page header according to spec §7.2 Nr. 4
         expect(page.locator('h1.page-title')).to_have_text('Design & Marke')
