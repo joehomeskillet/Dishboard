@@ -171,4 +171,28 @@ def test_editor_grids_keep_profile_scope_visible_on_small_screens(day_count: int
     mobile = re.search(r"@media \(max-width: 900px\)\s*\{(.+?)@media", css)
     assert mobile is not None
     assert ".admin-sidebar { display: none" not in mobile.group(1)
-    assert re.search(r"\.admin-dish\s+(?:input|textarea|select)", css)
+
+    base_styles = re.findall(
+        r"filename=['\"]([^'\"]+\.css)['\"]", _template("admin/base_tabler.html")
+    )
+    assert base_styles == [
+        "tokens.css",
+        "vendor/tabler/tabler.min.css",
+        "admin-tabler.css",
+        "menu-images.css",
+    ]
+    for template in (patient, cafeteria):
+        assert re.findall(r"filename=['\"]([^'\"]+\.css)['\"]", template) == [
+            "admin-week-tabler.css"
+        ]
+
+    admin_css = _compact(
+        " ".join(
+            (STATIC_ROOT / stylesheet).read_text(encoding="utf-8")
+            for stylesheet in (*base_styles, "admin-week-tabler.css")
+        )
+    )
+    assert 'class="patient-admin-day card"' in patient
+    assert 'class="card admin-day-card"' in cafeteria
+    assert re.search(r"\.patient-admin-day\b", admin_css)
+    assert re.search(r"\.admin-day-card\b", admin_css)

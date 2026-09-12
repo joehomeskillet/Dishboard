@@ -5,6 +5,7 @@ from datetime import timedelta
 
 import pytest
 from sqlalchemy import text
+from werkzeug.datastructures import MultiDict
 
 from cafeteria.admin import week_management_routes  # noqa: F401 - register routes
 from cafeteria.admin.week_management_routes import find_weeks
@@ -57,6 +58,39 @@ def test_duplicate_and_update_attempt_preserve_week_and_form(client, database_en
     assert client.post('/admin/patienten/wochen', data=values).status_code == 400
     with database_engine.connect() as connection:
         assert tuple(connection.execute(text('SELECT title,row_version FROM cafeteria.menu_weeks')).one()) == ('Neue Testwoche', 1)
+
+
+@pytest.mark.parametrize(
+    ('field', 'duplicate_value'),
+    [
+        ('_csrf', 'duplicate-csrf'),
+        ('week', '2026-09-07'),
+        ('title', 'Zweite Testwoche'),
+        ('shared_note', 'Zweiter Hinweis'),
+        ('row_version', '1'),
+    ],
+)
+def test_create_week_rejects_duplicate_scalar_fields_without_mutation(
+    client,
+    database_engine,
+    field,
+    duplicate_value,
+):
+    form = MultiDict(_form(client))
+    form.add(field, duplicate_value)
+    with database_engine.connect() as connection:
+        before = connection.execute(
+            text('SELECT count(*) FROM cafeteria.menu_weeks')
+        ).scalar_one()
+
+    response = client.post('/admin/patienten/wochen', data=form)
+
+    assert response.status_code == 400
+    with database_engine.connect() as connection:
+        after = connection.execute(
+            text('SELECT count(*) FROM cafeteria.menu_weeks')
+        ).scalar_one()
+    assert after == before
 
 
 @pytest.mark.parametrize('change', [{'week': '2026-09-01'}, {'title': ''}, {'week': 'not-a-date'}, {'row_version': '-1'}])

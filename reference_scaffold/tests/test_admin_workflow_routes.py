@@ -239,6 +239,47 @@ def test_unauthenticated_admin_is_401(app: Flask) -> None:
     assert response.headers['Cache-Control'] == 'no-store'
 
 
+def test_csv_export_authorization_precedes_snapshot_access(
+    app: Flask,
+    database_engine: Engine,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    snapshot_calls: list[str] = []
+
+    def active_snapshot(
+        _engine: Engine,
+        profile_code: str,
+        _today: str,
+        *,
+        last_good_dir: str,
+    ) -> dict[str, object]:
+        assert last_good_dir == app.config['LAST_GOOD_DIR']
+        snapshot_calls.append(profile_code)
+        return {'profile_code': profile_code, 'days': []}
+
+    monkeypatch.setattr(admin_routes, 'active_snapshot', active_snapshot)
+
+    anonymous = app.test_client().get('/admin/export/patienten.csv')
+    assert anonymous.status_code == 401
+    assert snapshot_calls == []
+
+    monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Editor', {'draft.read'})
+    denied_client, _ = _login(app, database_engine, ['Cafeteria.Editor'])
+    denied = denied_client.get('/admin/export/patienten.csv')
+    assert denied.status_code == 403
+    assert snapshot_calls == []
+
+    allowed_client, _ = _login(app, database_engine, ['Cafeteria.Admin'])
+    allowed = allowed_client.get('/admin/export/patienten.csv')
+    assert allowed.status_code == 200
+    assert allowed.headers['Content-Type'] == 'text/csv; charset=utf-8'
+    assert snapshot_calls == ['patient']
+
+    unknown = allowed_client.get('/admin/export/unbekannt.csv')
+    assert unknown.status_code == 404
+    assert snapshot_calls == ['patient']
+
+
 def test_editor_cannot_publish(app: Flask, database_engine: Engine) -> None:
     client_obj, _ = _login(app, database_engine, ['Cafeteria.Editor'])
     response = client_obj.post(
