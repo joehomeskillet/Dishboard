@@ -1284,6 +1284,7 @@ reference_scaffold/tests/test_ui_fullwidth_pages_a_browser.py
 reference_scaffold/tests/test_ui_fullwidth_pages_b_browser.py
 reference_scaffold/tests/test_ui_fullwidth_shell_browser.py
 reference_scaffold/tests/test_ui_inventory_capture.py
+reference_scaffold/tests/test_ui_korrektur_menus_browser.py
 reference_scaffold/tests/test_ui_korrektur_ops_browser.py
 reference_scaffold/tests/test_ui_master_components_browser.py
 reference_scaffold/tests/test_ui_master_shell_browser.py
