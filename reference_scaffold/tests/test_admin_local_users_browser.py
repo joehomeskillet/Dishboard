@@ -29,8 +29,11 @@ def live_accounts(admin_account):
         server.server_close()
 
 
-def _context(browser, origin, client, width=1440):
-    context = browser.new_context(viewport={'width': width, 'height': 1050})
+def _context(browser, origin, client, width=1440, javascript=True):
+    context = browser.new_context(
+        viewport={'width': width, 'height': 1050}, java_script_enabled=javascript,
+        reduced_motion='reduce',
+    )
     cookie_name = client.application.config['SESSION_COOKIE_NAME']
     cookie = client.get_cookie(cookie_name)
     assert cookie is not None
@@ -84,7 +87,7 @@ def test_local_user_pages_fit_both_densities_and_all_viewports(live_accounts, br
                 page.get_by_label('Neues Passwort', exact=True).fill('Valide!Wolken77Kette')
                 page.get_by_label('Neues Passwort bestätigen', exact=True).fill('Frische!Sterne92Tanne')
                 with page.expect_navigation() as navigation:
-                    page.get_by_role('button', name='Benutzer speichern').click()
+                    page.locator('#create-local-user form button[type="submit"]').click()
                 assert navigation.value.status == 400
                 expect(page.get_by_role('alert')).to_be_visible()
                 assert page.locator('input[type=password]').evaluate_all('els=>els.every(el=>el.value==="")')
@@ -99,10 +102,13 @@ def test_local_user_pages_fit_both_densities_and_all_viewports(live_accounts, br
         assert all('400' in error and 'Failed to load resource' in error for error in errors), errors
 
 
-def test_browser_complete_lifecycle_and_session_revocation(live_accounts, browser, tmp_path):
+@pytest.mark.parametrize('javascript', [True, False], ids=['js', 'nojs'])
+def test_browser_complete_lifecycle_and_session_revocation(live_accounts, browser, tmp_path, javascript):
     origin, client, _, _ = live_accounts
-    with _context(browser, origin, client, 390) as admin, browser.new_context(
-        viewport={'width': 390, 'height': 1050}) as target_context:
+    with _context(browser, origin, client, 390, javascript) as admin, browser.new_context(
+        viewport={'width': 390, 'height': 1050}, java_script_enabled=javascript,
+        reduced_motion='reduce',
+    ) as target_context:
         page, target_page = admin.new_page(), target_context.new_page()
         errors = []
         page.on('pageerror', lambda error: errors.append(str(error)))
@@ -111,14 +117,14 @@ def test_browser_complete_lifecycle_and_session_revocation(live_accounts, browse
         page.get_by_label('Anzeigename', exact=True).fill('Browser Lebenszyklus')
         page.get_by_label('Neues Passwort', exact=True).fill('Valide!Wolken77Kette')
         page.get_by_label('Neues Passwort bestätigen', exact=True).fill('Valide!Wolken77Kette')
-        page.get_by_role('button', name='Benutzer speichern').click()
+        page.locator('#create-local-user form button[type="submit"]').click()
         expect(page.get_by_role('heading', name='Browser Lebenszyklus')).to_be_visible()
         detail_url = page.url
         page.locator('#roles-action summary').click()
         page.get_by_label('Editor · Menüs bearbeiten', exact=True).uncheck()
         page.get_by_label('Publisher · Menüs veröffentlichen', exact=True).check()
         page.get_by_label('Rollenänderung für browser.lifecycle bestätigen', exact=True).check()
-        page.get_by_role('button', name='Benutzer speichern').click()
+        page.locator('form[action$="/rollen"] button[type="submit"]').click()
         expect(page.get_by_label('Publisher · Menüs veröffentlichen', exact=True)).to_be_checked()
         page.locator('#password-action summary').click()
         page.get_by_label('Neues Passwort', exact=True).fill('Frische!Sterne92Tanne')
@@ -182,7 +188,7 @@ def test_conflict_and_database_failure_remain_readable(live_accounts, browser, m
         page.get_by_label('Admin · Benutzer und Einstellungen verwalten', exact=True).check()
         page.get_by_label('Rollenänderung für managed.editor bestätigen', exact=True).check()
         with page.expect_navigation() as navigation:
-            page.get_by_role('button', name='Benutzer speichern').click()
+            page.locator('form[action$="/rollen"] button[type="submit"]').click()
         assert navigation.value.status == 409
         expect(page.get_by_role('alert')).to_contain_text('zwischenzeitlich')
         expect(page.get_by_label('Editor · Menüs bearbeiten', exact=True)).not_to_be_checked()

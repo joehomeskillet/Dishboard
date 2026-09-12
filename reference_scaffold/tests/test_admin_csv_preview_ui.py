@@ -14,6 +14,7 @@ from sqlalchemy import Engine, text
 from test_admin_ux_browser import (  # noqa: F401
     admin_app, admin_engine, browser, live_server, page_context,
 )
+from test_rendered_ui import _login
 
 ROOT = Path(__file__).resolve().parents[2]
 BASE_REVISION = 'e89872e4483132bff74b7df05634e740af5d01e0'
@@ -162,3 +163,60 @@ def test_csv_preview_ready_exposes_destination_before_import(
         assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_items')).scalar_one() == 0
     _capture(page, 'after', f'ready-{family}', width)
     _assert_accessible_layout(page)
+
+
+@pytest.mark.parametrize(('family', 'profile', 'filename', 'rows'), (
+    ('patienten', 'patient', 'menu_patient_example.csv', 28),
+    ('cafeteria', 'staff_guest', 'menu_cafeteria_example.csv', 10),
+))
+def test_native_csv_preview_and_draft_import_without_javascript(
+    browser, live_server: str, admin_app: Flask, admin_engine: Engine,  # noqa: F811
+    family: str, profile: str, filename: str, rows: int,
+) -> None:
+    client, _ = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    with browser.new_context(
+        base_url=live_server, java_script_enabled=False, reduced_motion='reduce',
+        viewport={'width': 390, 'height': 844},
+    ) as context:
+        cookie_name = admin_app.config['SESSION_COOKIE_NAME']
+        cookie = client.get_cookie(cookie_name)
+        assert cookie is not None
+        context.add_cookies([{'name': cookie_name, 'value': cookie.value, 'url': live_server}])
+        page = context.new_page()
+        page.goto('/admin/import-preview')
+        source = (ROOT / 'csv' / filename).read_text(encoding='utf-8-sig')
+        title = source.splitlines()[1].split(';')[7]
+        _upload(page, source.replace(f';{title};', ';;', 1).encode())
+        expect(page.locator('main')).to_have_attribute('data-state', 'error')
+        expect(page.get_by_role('alert')).to_contain_text('Zeile 2, Spalte 8')
+        assert page.locator('input[name="import_token"]').count() == 0
+        with admin_engine.connect() as connection:
+            assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_weeks')).scalar_one() == 0
+
+        _upload(page, filename)
+        expect(page.locator('main')).to_have_attribute('data-state', 'ready')
+        expect(page.get_by_role('status')).to_contain_text(f'{rows} Datenzeilen geprüft')
+        assert page.locator('form[action$="/import"] input').evaluate_all(
+            'elements => elements.map(element => element.name)'
+        ) == ['_csrf', 'import_token']
+        with admin_engine.connect() as connection:
+            assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_weeks')).scalar_one() == 0
+            assert connection.execute(text('SELECT count(*) FROM cafeteria.publication_revisions')).scalar_one() == 0
+
+        with page.expect_response(
+            lambda response: response.request.method == 'POST' and response.url.endswith('/admin/import')
+        ) as imported:
+            page.get_by_role('button', name='Geprüfte Datei importieren', exact=True).click()
+        assert imported.value.status == 303
+        expect(page).to_have_url(f'{live_server}/admin/{family}?week=2026-08-31')
+        with admin_engine.connect() as connection:
+            result = connection.execute(text('''
+                SELECT p.code, w.workflow_state, count(i.id)
+                FROM cafeteria.menu_weeks w
+                JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+                JOIN cafeteria.menu_services s ON s.menu_week_id=w.id
+                JOIN cafeteria.menu_items i ON i.service_id=s.id
+                GROUP BY p.code, w.workflow_state
+            ''')).one()
+            assert tuple(result) == (profile, 'draft', rows)
+            assert connection.execute(text('SELECT count(*) FROM cafeteria.publication_revisions')).scalar_one() == 0
