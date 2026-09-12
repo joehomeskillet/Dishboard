@@ -185,7 +185,7 @@ erhöhen keine sichere Parallelität. Root integriert und liefert grüne Abschni
 | KI-Import | Vorhandene reine Extraktion übernehmen, danach MP-REC-AI-PROVIDER | Freigegebenen konkreten Provider; keine automatische Allergenfreigabe |
 | Nährwerte/OFF | NUT-SCHEMA → SERVICE → RECIPE-PROJECTION; OFF-FIELDMAP parallel als Quellenarbeit, dann Adapter/Fetch/Proposal/UI | Serialisierten Schema-/Food-Vertrag; Schweizer Coverage zusätzlich reale berechtigte Stichprobe |
 | Screens/freie Druckgeometrie | Bestehende Decision-WPs und vollständige Anschlussketten nach UI-Prompt auswählen | Konkreten Layoutbedarf; kein Frameworkwechsel aus dem Audit |
-| Entra | Resolver-/Connection-Verträge technisch planen | Echter Tenant-Operator erst für externe Abnahme |
+| Entra | Resolver-/Connection-Verträge technisch parallel vorplanen | Resolverentscheid: berechtigter Operator bestätigt konkreten Resolver-/Handlebereitstellungsweg; echte Tenantabnahme benötigt zusätzlich genehmigten Testtenant, Redirectregistrierung und berechtigte Testidentitäten |
 | PKS/Glossar | Fehlende Rechteartefakte wiederbeschaffen; danach vorhandene Adapter-/Glossar-WPs | Autorisierte PKS-Datei und tatsächlich belegte Datenrechte |
 | Küche/Druck/API/Player | Bestehende Abnahme-WPs mit Gerät/Person/Client und gefrorener Revision terminieren | Jeweiligen externen Teilnehmer; kein globaler Entwicklungsstopp |
 
