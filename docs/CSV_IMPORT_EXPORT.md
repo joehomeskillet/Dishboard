@@ -180,16 +180,17 @@ Reihenfolge:
 2. Deployment inklusive `python manage.py init-db` abschliessen und erfolgreiche Migrationen
    prüfen. Erst danach `--skip-migrations` verwenden. Ohne diese Option führt das Tool
    `database.run_migrations` wie bisher selbst aus.
-3. Übersetzung und Dry-Run im App-Image prüfen:
+3. Dry-Run der versionierten Importdatei im App-Image prüfen. Er benötigt keine
+   Datenbank und schreibt keine Datei:
 
    ```bash
-   docker compose run --rm -v <repo>/tools:/app/tools:ro -v <repo>/demo:/app/demo:ro app python /app/tools/build_recipe_draft_import.py --translate --dry-run
+   rtk docker compose run --rm -v <repo>/tools:/app/tools:ro -v <repo>/demo:/app/demo:ro app python /app/tools/build_recipe_draft_import.py --dry-run
    ```
 
 4. Import mit vorhandenem Admin ausführen:
 
    ```bash
-   docker compose run --rm -v <repo>/tools:/app/tools:ro -v <repo>/demo:/app/demo:ro app python /app/tools/build_recipe_draft_import.py --apply --actor-user <name> --skip-migrations
+   rtk docker compose run --rm -v <repo>/tools:/app/tools:ro -v <repo>/demo:/app/demo:ro app python /app/tools/build_recipe_draft_import.py --apply --actor-user <name> --skip-migrations
    ```
 
 5. Im Admin prüfen: Zutaten und ihre Lagerorte **Trockenlager**, **Kühlraum** und
@@ -197,11 +198,16 @@ Reihenfolge:
    Ausgabe des zweiten identischen Apply-Laufs muss für vorhandene Stapel `status: skipped`
    melden und darf keine Duplikate erzeugen.
 
-`DATABASE_URL` kommt aus der Compose-Umgebung; alternativ nimmt das Tool
-`--database-url`. `IMPORT_SECRET` kann einen Laufzeit-Schlüssel für den internen Flask-Kontext
+Die Datenbankverbindung kommt aus der bestehenden App-Konfiguration `Config().DATABASE_URL`
+inklusive Compose-Secret-Dateien und `POSTGRES_*`-Einstellungen; `--database-url`
+überschreibt sie ausdrücklich. `IMPORT_SECRET` kann einen Laufzeit-Schlüssel für den internen Flask-Kontext
 liefern, andernfalls wird pro Prozess ein Zufallswert erzeugt. Toolpfad bestimmt Projektwurzel:
-unter `/app/tools` werden Scaffold und Importdatei automatisch als `/app/reference_scaffold`
-und `/app/demo/linked_recipe_drafts_import.json` gefunden.
+im Checkout liegt `cafeteria` unter `reference_scaffold`, im Produktionsimage direkt
+unter `/app`. Die Importdatei liegt bei Toolpfad `/app/tools` unter
+`/app/demo/linked_recipe_drafts_import.json`. Erwartete Dry-Run-Zahlen: 3 Lagerorte,
+100 Zutaten, 29 Vorbereitungsrezepte und 32 Gerichtsrezepte (61 Rezepte insgesamt).
+Eine erneute Übersetzung braucht einen beschreibbaren Zielpfad, zum Beispiel
+`--translate --dry-run --output /tmp/linked_recipe_drafts_import.json`.
 
 Standardmässig schreibt Apply die aufgelösten UUIDs nicht in `demo/` zurück; Read-only-Mount
 bleibt damit gültig. Bewusstes Write-back braucht `--write-back <beschreibbarer-pfad>` und einen

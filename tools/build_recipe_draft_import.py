@@ -15,7 +15,7 @@ from typing import Any
 from uuid import UUID
 
 ROOT = Path(__file__).resolve().parents[1]
-SCAFFOLD = ROOT / 'reference_scaffold'
+SCAFFOLD = ROOT / 'reference_scaffold' if (ROOT / 'reference_scaffold' / 'cafeteria').is_dir() else ROOT
 DRAFT_PATH = ROOT / 'demo' / 'linked_recipe_drafts.json'
 IMPORT_PATH = ROOT / 'demo' / 'linked_recipe_drafts_import.json'
 ANNOTATIONS = ('unreviewed', 'proposed_not_measured', 'allergen_not_checked')
@@ -332,14 +332,13 @@ def main() -> int:
                 file=sys.stderr,
             )
             return 2
-        database_url = args.database_url or os.environ.get('DATABASE_URL')
-        if not database_url:
-            print('DATABASE_URL oder --database-url erforderlich.', file=sys.stderr)
-            return 2
         scaffold_import()
         from sqlalchemy import create_engine
         from cafeteria import db as database  # type: ignore[import-not-found]
+        from cafeteria.config import Config  # type: ignore[import-not-found]
+        from cafeteria.recipe_import_store import thaw  # type: ignore[import-not-found]
 
+        database_url = args.database_url or Config().DATABASE_URL
         engine = create_engine(database_url, future=True)
         if args.actor_user:
             try:
@@ -360,10 +359,10 @@ def main() -> int:
                     document, engine, actor, dry_run=args.dry_run, write_back=args.write_back,
                 )
             except BatchImportError as error:
-                print(json.dumps(error.summary, ensure_ascii=False, indent=2), file=sys.stderr)
+                print(json.dumps(thaw(error.summary), ensure_ascii=False, indent=2), file=sys.stderr)
                 print(str(error), file=sys.stderr)
                 return 1
-        print(json.dumps(summary, ensure_ascii=False, indent=2))
+        print(json.dumps(thaw(summary), ensure_ascii=False, indent=2))
     return 0
 
 
