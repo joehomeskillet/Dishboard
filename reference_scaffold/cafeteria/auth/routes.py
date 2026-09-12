@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 from urllib.parse import quote
 
 import msal
@@ -196,6 +197,9 @@ def callback():
         return _login_failure('entra', 'flow', 403)
     if claims.get('aud') and claims.get('aud') != cfg['ENTRA_CLIENT_ID']:
         return _login_failure('entra', 'flow', 403)
+    provider_sid = claims.get('sid')
+    if provider_sid is not None and (not isinstance(provider_sid, str) or not provider_sid):
+        return _login_failure('entra', 'flow', 403)
     supplied_roles = claims.get('roles') or []
     if not isinstance(supplied_roles, list) or any(not isinstance(role, str) for role in supplied_roles):
         return _login_failure('entra', 'role', 403)
@@ -220,7 +224,16 @@ def callback():
         return _login_failure('entra', 'unavailable', 503)
     if not roles or authorization is None:
         return _login_failure('entra', 'role', 403)
-    return _login_accepted('entra', authorization, oid=claims['oid'], tid=claims['tid'])
+    if provider_sid is None:
+        # OIDC makes sid optional. Without it, no later logout request can be
+        # bound to this provider session, so front-channel logout defaults deny.
+        current_app.logger.warning(
+            'Entra ID token has no sid claim; front-channel logout will default-deny.',
+        )
+        return _login_accepted('entra', authorization, oid=claims['oid'], tid=claims['tid'])
+    return _login_accepted(
+        'entra', authorization, oid=claims['oid'], tid=claims['tid'], sid=provider_sid,
+    )
 
 
 @bp.post('/logout')
@@ -242,5 +255,33 @@ def logout():
 def frontchannel_logout():
     if not current_app.config.get('ENTRA_ENABLED', False):
         abort(404)
-    _clear_session_for_logout('auth.frontchannel.requested')
-    return '', 200
+    parameter_names = set(request.args) | set(request.form)
+    issuer_values = request.args.getlist('iss') + request.form.getlist('iss')
+    sid_values = request.args.getlist('sid') + request.form.getlist('sid')
+    if (
+        parameter_names != {'iss', 'sid'}
+        or len(issuer_values) != 1
+        or len(sid_values) != 1
+        or not issuer_values[0]
+        or not sid_values[0]
+        or request.files
+    ):
+        response = current_app.make_response(('', 400))
+        response.headers['Cache-Control'] = 'no-store'
+        return response
+
+    tenant = current_app.config.get('ENTRA_TENANT_ID')
+    expected_issuer = f'https://login.microsoftonline.com/{tenant}/v2.0' if tenant else ''
+    user = session.get('user')
+    stored_sid = user.get('sid') if isinstance(user, dict) and user.get('provider') == 'entra' else None
+    if (
+        expected_issuer
+        and secrets.compare_digest(issuer_values[0], expected_issuer)
+        and isinstance(stored_sid, str)
+        and stored_sid
+        and secrets.compare_digest(sid_values[0], stored_sid)
+    ):
+        _clear_session_for_logout('auth.frontchannel.requested')
+    response = current_app.make_response(('', 200))
+    response.headers['Cache-Control'] = 'no-store'
+    return response
