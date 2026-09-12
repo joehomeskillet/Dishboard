@@ -29,13 +29,14 @@ def test_filter_controls_combine_reset_and_keep_exact_results(request, family, p
     page.set_viewport_size({'width': width, 'height': 1000})
     path = f'/admin/{family}/komponenten'
     page.goto(path)
-    form = page.get_by_role('form', name='Komponenten filtern')
+    form = page.get_by_role('form', name='Bausteine filtern')
     expect(form).to_be_visible()
     expect(page.locator('#component-result-count')).to_have_text('2 Treffer')
     _assert_component_controls_fit(page)
     params = {'q': 'Filterprobe', 'category': 'side', 'usage': 'used', 'allergen': 'GLUTEN',
               'presence': 'contains', 'label': 'VEGAN', 'origin': 'CH', 'status': 'active'}
     form.get_by_label('Suche', exact=True).fill(params['q'])
+    page.locator('.component-filter-advanced summary').click()
     for key, value in params.items():
         if key != 'q':
             form.locator(f'[name="{key}"]').select_option(value)
@@ -55,13 +56,14 @@ def test_filter_controls_combine_reset_and_keep_exact_results(request, family, p
     form.locator('#f-origin').select_option('DE')
     form.get_by_role('button', name='Suchen', exact=True).click()
     expect(page.locator('#component-result-count')).to_have_text('0 Treffer')
-    expect(page.get_by_text('Keine Komponenten gefunden.', exact=True)).to_be_visible()
+    expect(page.get_by_text('Keine Bausteine gefunden.', exact=True)).to_be_visible()
     form.get_by_role('link', name='Zurücksetzen', exact=True).click()
     assert urlsplit(page.url).query == ''
     expect(page.locator('#component-result-count')).to_have_text('2 Treffer')
     expect(form.locator('#f-q')).to_have_value('')
     expect(form.locator('#f-status')).to_have_value('active')
 
+    page.locator('.component-filter-advanced summary').click()
     form.locator('#f-allergen').select_option('unknown')
     form.locator('#f-origin').select_option('unknown')
     form.get_by_role('button', name='Suchen', exact=True).click()

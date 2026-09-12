@@ -7,12 +7,12 @@
 {% set errors = form_errors|default({}) %}
 {% set active_filters = filters|default(none) %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-components.css') }}">{% endblock %}
-{% block title %}Komponenten {{ 'Cafeteria' if profile == 'staff_guest' else 'Patienten' }}{% endblock %}
+{% block title %}Bausteine {{ 'Cafeteria' if profile == 'staff_guest' else 'Patienten' }}{% endblock %}
 {% block main_attributes %}data-family="{{ family }}" data-week="{{ week|default('') }}"{% endblock %}
-{% block page_header %}{{ page_header('Komponenten', 'Cafeteria' if profile == 'staff_guest' else 'Patienten') }}{% endblock %}
+{% block page_header %}{{ page_header('Bausteine', 'Cafeteria' if profile == 'staff_guest' else 'Patienten') }}{% endblock %}
 {% block content %}
 {% if errors %}
-<div class="alert alert-danger error-region" role="alert" tabindex="-1">
+<div class="alert alert-danger error-region" role="alert" tabindex="-1" autofocus>
   <div><h2 class="alert-title">Bitte korrigieren Sie die Fehler im Formular.</h2>
     <ul class="mb-0">
       {% for name, message in errors.items() %}
@@ -22,8 +22,114 @@
   </div>
 </div>
 {% endif %}
-<details id="create-component" class="card mb-3"{% if errors %} open{% endif %}>
-  <summary class="card-header dishboard-component-summary">{{ icon('plus') }}<span class="card-title mb-0">Neue Komponente</span></summary>
+
+<form method="get" action="/admin/{{ family }}/komponenten" class="search-form component-filter-toolbar card mb-3" aria-labelledby="component-filter-heading">
+  <div class="card-body py-3">
+    <h2 class="visually-hidden" id="component-filter-heading">Bausteine filtern</h2>
+    <div class="component-filter-primary row g-2 align-items-end">
+      <div class="col-12 col-lg-4">{{ field('q', 'Suche', value=query|default(''), type='search', id='f-q') }}</div>
+      <div class="col-6 col-lg-2">
+        <label class="form-label" for="f-cat">Kategorie</label>
+        <select class="form-select" id="f-cat" name="category">
+          <option value="">Alle</option>
+          {% for cat_val, cat_label in categories.items() %}<option value="{{ cat_val }}"{% if category == cat_val %} selected{% endif %}>{{ cat_label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-lg-2">
+        <label class="form-label" for="f-status">Status</label>
+        {% set selected_status = active_filters.status if active_filters else ('all' if include_archived else 'active') %}
+        <select class="form-select" id="f-status" name="status">
+          {% for value, label in [('active', 'Aktiv'), ('archived', 'Archiviert'), ('all', 'Aktiv und archiviert')] %}
+          <option value="{{ value }}"{% if selected_status == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-lg-4 d-flex flex-wrap gap-2 align-items-center component-filter-actions">
+        <button type="submit" class="btn btn-primary">{{ icon('search') }}Suchen</button>
+        <a class="btn btn-outline-secondary" href="/admin/{{ family }}/komponenten">Zurücksetzen</a>
+        <span id="component-result-count" class="text-secondary" role="status">{{ rows|length }} Treffer</span>
+      </div>
+    </div>
+    <details class="component-filter-advanced mt-2"{% if active_filters and (active_filters.usage or active_filters.allergen or active_filters.presence or active_filters.label or active_filters.origin) %} open{% endif %}>
+      <summary class="component-filter-advanced-summary">Weitere Filter</summary>
+      <div class="component-filter-fields row g-2 align-items-end mt-2">
+        <div class="col-12 col-md-6 col-xl-3">
+          <label class="form-label" for="f-usage">Verwendung in Menüs</label>
+          <select class="form-select" id="f-usage" name="usage">
+            {% for value, label in [('', 'Alle'), ('used', 'Verwendet'), ('unused', 'Nicht verwendet')] %}
+            <option value="{{ value }}"{% if active_filters and active_filters.usage == value %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+          <label class="form-label" for="f-allergen">Allergen</label>
+          <select class="form-select" id="f-allergen" name="allergen" aria-describedby="component-allergen-filter-hint">
+            <option value="">Alle</option>
+            <option value="unknown"{% if active_filters and active_filters.allergen == 'unknown' %} selected{% endif %}>Nicht erfasst</option>
+            {% if active_filters and active_filters.allergen not in ['', 'unknown'] and active_filters.allergen not in (allergens|default([])|map(attribute='code')|list) %}<option value="{{ active_filters.allergen }}" selected>{{ active_filters.allergen }} (inaktiv)</option>{% endif %}
+            {% for allergen in allergens|default([]) %}<option value="{{ allergen.code }}"{% if active_filters and active_filters.allergen == allergen.code %} selected{% endif %}>{{ allergen.name|default(allergen.code) }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+          <label class="form-label" for="f-presence">Allergenpräsenz</label>
+          <select class="form-select" id="f-presence" name="presence" aria-describedby="component-allergen-filter-hint">
+            {% for value, label in [('', 'Enthält oder kann enthalten'), ('contains', 'Enthält'), ('may_contain', 'Kann Spuren enthalten')] %}
+            <option value="{{ value }}"{% if active_filters and active_filters.presence == value %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+          <label class="form-label" for="f-label">Label</label>
+          <select class="form-select" id="f-label" name="label">
+            <option value="">Alle</option>
+            {% if active_filters and active_filters.label and active_filters.label not in (labels|default([])|map(attribute='code')|list) %}<option value="{{ active_filters.label }}" selected>{{ active_filters.label }} (inaktiv)</option>{% endif %}
+            {% for label in labels|default([]) %}<option value="{{ label.code }}"{% if active_filters and active_filters.label == label.code %} selected{% endif %}>{{ label.name|default(label.code) }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+          <label class="form-label" for="f-origin">Herkunft</label>
+          {{ country_select('origin', active_filters.origin if active_filters else '', 'f-origin', empty_label='Alle Länder', include_unknown=true) }}
+        </div>
+      </div>
+      <p class="form-hint mt-2 mb-0" id="component-allergen-filter-hint">Geltungsbereich Filter: gespeicherter Katalogstand. «Nicht erfasst» bedeutet keine bestätigte Allergenfreiheit.</p>
+    </details>
+  </div>
+</form>
+
+<div class="component-list-container">
+  {% if rows %}
+  <div class="card dishboard-component-results">
+    <table class="table table-vcenter card-table dishboard-component-table">
+      <caption class="visually-hidden">Bausteine der aktuellen Suche</caption>
+      <thead><tr><th>Name</th><th>Kategorie</th><th>Kennzeichnungen</th><th>Verwendung</th><th>Status</th><th class="component-action-col">Aktion</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr class="component-row" data-public-id="{{ row.public_id }}" data-active="{{ '1' if row.active else '0' }}">
+          <th scope="row" class="component-row-name">{{ row.name }}</th>
+          <td class="category"><span class="dishboard-cell-label">Kategorie</span>{{ categories.get(row.category, row.category) }}</td>
+          <td class="component-markers">
+            <span class="dishboard-cell-label">Kennzeichnungen</span>
+            <div class="d-flex flex-wrap gap-1 align-items-center">
+              {% if row.labels %}{% for label in row.labels %}<span class="badge bg-secondary-lt">{{ label.name|default(label.code) }}</span>{% endfor %}{% endif %}
+              {% if row.origin_country_code %}<span class="text-secondary">{{ symbol('countries', row.origin_country_code, true) }}{{ row.origin_country_code }}</span>{% else %}<span class="text-secondary">Herkunft nicht erfasst</span>{% endif %}
+            </div>
+            <div class="text-secondary small">{{ 'gemeinsam' if row.profile_scope == 'common' else 'nur Cafeteria' if row.profile_scope == 'staff_guest' else 'nur Patienten' }}</div>
+          </td>
+          <td class="usage"><span class="dishboard-cell-label">Verwendung</span>verwendet in {{ row.usage_count }} Gerichten</td>
+          <td class="component-status"><span class="dishboard-cell-label">Status</span>{{ status('ready', 'Aktiv') if row.active else status('incomplete', 'archiviert') }}</td>
+          <td class="component-action"><span class="dishboard-cell-label">Aktion</span><a class="btn component-edit-link" href="/admin/{{ family }}/komponenten/{{ row.public_id }}">{{ icon('pencil') }}Bearbeiten</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card"><div class="empty"><p class="empty-title">Keine Bausteine gefunden.</p></div></div>
+  {% endif %}
+</div>
+
+<details id="create-component" class="card mt-3"{% if errors %} open{% endif %}>
+  <summary class="card-header dishboard-component-summary">{{ icon('plus') }}<span class="card-title mb-0">Baustein anlegen</span></summary>
   <div class="card-body">
     <form id="component-form" method="post" action="/admin/{{ family }}/komponenten">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
@@ -52,17 +158,20 @@
         </div>
       </fieldset>
         <fieldset class="mb-3">
-          <legend class="form-label">Labels</legend>
+          <legend class="form-label">Kennzeichnungen</legend>
+          <p class="form-hint">Labels und Allergene für diesen Baustein im Katalog.</p>
+          <div class="mb-3">
+            <span class="form-label d-block">Labels</span>
           {% set l_codes = submitted.getlist('label_code') if submitted.getlist else submitted.get('label_code', []) %}
           <div class="row g-2">
             {% for label in labels|default([]) %}
             <div class="col-12 col-md-6">{{ check('label_code', label.name|default(label.code), value=label.code, checked=label.code in l_codes, id='create-label-' ~ label.code) }}</div>
             {% endfor %}
           </div>
-        </fieldset>
-        <fieldset class="mb-3">
-          <legend class="form-label">Allergene</legend>
-          <p class="form-hint">Nicht ausgewählte Allergene sind nicht als allergenfrei bestätigt.</p>
+          </div>
+          <div>
+            <span class="form-label d-block">Allergene</span>
+          <p class="form-hint" id="create-allergen-hint">Geltungsbereich: gespeicherter Katalogstand. Nicht ausgewählte Allergene sind nicht als allergenfrei bestätigt.</p>
           {% set a_codes = submitted.getlist('allergen_code') if submitted.getlist else submitted.get('allergen_code', []) %}
           {% set a_pres = submitted.getlist('allergen_presence') if submitted.getlist else submitted.get('allergen_presence', []) %}
           <div class="allergen-list">
@@ -80,105 +189,10 @@
               </div>
             {% endfor %}
           </div>
+          </div>
         </fieldset>
-      <button type="submit" class="btn btn-primary">{{ icon('plus') }}Komponente erstellen</button>
+      <button type="submit" class="btn btn-primary">{{ icon('plus') }}Baustein erstellen</button>
     </form>
   </div>
 </details>
-
-<form method="get" action="/admin/{{ family }}/komponenten" class="search-form card mb-3" aria-labelledby="component-filter-heading">
-  <div class="card-header"><h2 class="card-title" id="component-filter-heading">Komponenten filtern</h2></div>
-  <div class="card-body">
-    <div class="row g-3 align-items-end">
-      <div class="col-12 col-md-6 col-xl-4">{{ field('q', 'Suche', value=query|default(''), type='search', id='f-q') }}</div>
-      <div class="col-12 col-md-6 col-xl-4">
-        <label class="form-label" for="f-cat">Kategorie</label>
-        <select class="form-select" id="f-cat" name="category">
-          <option value="">Alle</option>
-          {% for cat_val, cat_label in categories.items() %}<option value="{{ cat_val }}"{% if category == cat_val %} selected{% endif %}>{{ cat_label }}</option>{% endfor %}
-        </select>
-      </div>
-      <div class="col-12 col-md-6 col-xl-4">
-        <label class="form-label" for="f-usage">Verwendung in Menüs</label>
-        <select class="form-select" id="f-usage" name="usage">
-          {% for value, label in [('', 'Alle'), ('used', 'Verwendet'), ('unused', 'Nicht verwendet')] %}
-          <option value="{{ value }}"{% if active_filters and active_filters.usage == value %} selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-12 col-md-6 col-xl-4">
-        <label class="form-label" for="f-allergen">Allergen</label>
-        <select class="form-select" id="f-allergen" name="allergen" aria-describedby="component-allergen-filter-hint">
-          <option value="">Alle</option>
-          <option value="unknown"{% if active_filters and active_filters.allergen == 'unknown' %} selected{% endif %}>Nicht erfasst</option>
-          {% if active_filters and active_filters.allergen not in ['', 'unknown'] and active_filters.allergen not in (allergens|default([])|map(attribute='code')|list) %}<option value="{{ active_filters.allergen }}" selected>{{ active_filters.allergen }} (inaktiv)</option>{% endif %}
-          {% for allergen in allergens|default([]) %}<option value="{{ allergen.code }}"{% if active_filters and active_filters.allergen == allergen.code %} selected{% endif %}>{{ allergen.name|default(allergen.code) }}</option>{% endfor %}
-        </select>
-      </div>
-      <div class="col-12 col-md-6 col-xl-4">
-        <label class="form-label" for="f-presence">Allergenpräsenz</label>
-        <select class="form-select" id="f-presence" name="presence" aria-describedby="component-allergen-filter-hint">
-          {% for value, label in [('', 'Enthält oder kann enthalten'), ('contains', 'Enthält'), ('may_contain', 'Kann Spuren enthalten')] %}
-          <option value="{{ value }}"{% if active_filters and active_filters.presence == value %} selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-12 col-md-6 col-xl-4">
-        <label class="form-label" for="f-label">Label</label>
-        <select class="form-select" id="f-label" name="label">
-          <option value="">Alle</option>
-          {% if active_filters and active_filters.label and active_filters.label not in (labels|default([])|map(attribute='code')|list) %}<option value="{{ active_filters.label }}" selected>{{ active_filters.label }} (inaktiv)</option>{% endif %}
-          {% for label in labels|default([]) %}<option value="{{ label.code }}"{% if active_filters and active_filters.label == label.code %} selected{% endif %}>{{ label.name|default(label.code) }}</option>{% endfor %}
-        </select>
-      </div>
-      <div class="col-12 col-md-6 col-xl-4">
-        <label class="form-label" for="f-origin">Herkunft</label>
-        {{ country_select('origin', active_filters.origin if active_filters else '', 'f-origin', empty_label='Alle Länder', include_unknown=true) }}
-      </div>
-      <div class="col-12 col-md-6 col-xl-4">
-        <label class="form-label" for="f-status">Status</label>
-        {% set selected_status = active_filters.status if active_filters else ('all' if include_archived else 'active') %}
-        <select class="form-select" id="f-status" name="status">
-          {% for value, label in [('active', 'Aktiv'), ('archived', 'Archiviert'), ('all', 'Aktiv und archiviert')] %}
-          <option value="{{ value }}"{% if selected_status == value %} selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
-        <button type="submit" class="btn btn-primary">{{ icon('search') }}Suchen</button>
-        <a class="btn btn-outline-secondary" href="/admin/{{ family }}/komponenten">Zurücksetzen</a>
-        <span id="component-result-count" role="status">{{ rows|length }} Treffer</span>
-      </div>
-    </div>
-    <p class="form-hint mt-3 mb-0" id="component-allergen-filter-hint">Die Filter gelten gemeinsam. Die Präsenz bezieht sich auf das ausgewählte Allergen. Nicht erfasst bedeutet keine bestätigte Allergenfreiheit.</p>
-  </div>
-</form>
-
-<div class="component-list-container">
-  {% if rows %}
-  <div class="card dishboard-component-results">
-    <table class="table table-vcenter card-table dishboard-component-table">
-      <caption class="visually-hidden">Komponenten der aktuellen Suche</caption>
-      <thead><tr><th>Name</th><th>Kategorie / Gültigkeit</th><th>Herkunft / Labels</th><th>Verwendung</th><th>Status</th></tr></thead>
-      <tbody>
-        {% for row in rows %}
-        <tr class="component-row" data-public-id="{{ row.public_id }}" data-active="{{ '1' if row.active else '0' }}">
-          <th scope="row"><a class="dishboard-component-link" href="/admin/{{ family }}/komponenten/{{ row.public_id }}">{{ row.name }}{{ icon('pencil') }}</a></th>
-          <td><span class="dishboard-cell-label">Kategorie / Gültigkeit</span><div class="category">{{ categories.get(row.category, row.category) }}</div>
-            <div class="scope text-secondary">{{ 'gemeinsam' if row.profile_scope == 'common' else 'nur Cafeteria' if row.profile_scope == 'staff_guest' else 'nur Patienten' }}</div>
-          </td>
-          <td><span class="dishboard-cell-label">Herkunft / Labels</span><div>{{ symbol('countries', row.origin_country_code, true) }}{{ row.origin_country_code or 'Nicht erfasst' }}</div>
-            <div class="d-flex flex-wrap gap-1">{% for label in row.labels %}<span class="badge bg-secondary-lt">{{ label.name|default(label.code) }}</span>{% endfor %}</div>
-          </td>
-          <td class="usage"><span class="dishboard-cell-label">Verwendung</span>verwendet in {{ row.usage_count }} Gerichten</td>
-          <td><span class="dishboard-cell-label">Status</span>{{ status('ready', 'Aktiv') if row.active else status('incomplete', 'archiviert') }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <div class="card"><div class="empty"><p class="empty-title">Keine Komponenten gefunden.</p><div class="empty-action"><a class="btn" href="#create-component">{{ icon('plus') }}Neue Komponente</a></div></div></div>
-  {% endif %}
-</div>
 {% endblock %}
