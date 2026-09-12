@@ -44,14 +44,16 @@ This project is indexed by GitNexus as **menuplan** (12946 symbols, 25095 relati
 
 ## Verbindliches gemeinsames UI-Design
 
-Vor jeder Frontend-Änderung `docs/design/2026-09-09-unified-ui-design-system.md`
-vollständig lesen. Tokens, Komponenten, Layoutvarianten und Qualitätsprüfungen gelten
-für alle Tools und Seiten. Vorhandene UI-Bausteine wiederverwenden; neue Designvarianten
-nur mit begründeter zentraler Entscheidung. Keine Frameworkwechsel oder fachlichen
-Änderungen als Nebenprodukt. Relevante Funktions- und Browserprüfungen ausführen,
-nicht ausgeführte Prüfungen ausdrücklich kennzeichnen. Freigegebene Screenshot-Baselines
-nicht ungeprüft ersetzen. Konflikte mit aktiver Markenverwaltung oder Projektverträgen
-vor Änderungen benennen.
+Vor jeder Frontend-Änderung das [zentrale UI-Manifest](docs/design/2026-09-09-unified-ui-design-system.md)
+vollständig lesen; passende R-/M-/A-Regeln verwenden. Jede interne Oberfläche nutzt
+die volle Arbeitsbreite, kompakte Wiederholungszeilen, direkt bedienbare häufige Felder
+und konsistente Icons mit sichtbarem Text. Details, Fehler, Formulardaten und
+Speicherzustände sicher behandeln. Gemeinsame Tokens/Komponenten erhalten; keine
+Framework- oder fachlichen Änderungen als Nebenprodukt. Route, Rolle/Zustand,
+Muster und tatsächliche Tests im vorhandenen UI-Inventar nachführen. Alte
+platzverschwendende Seiten sind keine Vorlage. Keine Fertigmeldung ohne passende
+Funktions- und Sichtnachweise; fehlende Prüfungen nennen, Baselines nicht blind
+ersetzen. Konflikte mit aktiver Markenverwaltung oder Projektverträgen benennen.
 
 Für geplante Arbeitspakete zusätzlich `docs/superpowers/backlog-0909/START.md` und
 `docs/superpowers/backlog-0909/execution-contract.md` lesen. Dateibesitz, ursprüngliche

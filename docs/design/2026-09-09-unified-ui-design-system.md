@@ -1,14 +1,14 @@
-<!-- Verbindlicher Nutzerauftrag vom 9. September 2026. Konsolidiert ältere UI-Entwürfe; fachliche, Sicherheits- und Architekturverträge bleiben erhalten. -->
+<!-- Verbindlicher Nutzerauftrag vom 9. September 2026, konsolidiert mit dem Dichteauftrag vom 13. September 2026. Fachliche, Sicherheits- und Architekturverträge bleiben erhalten. -->
 
-# Masterprompt: Bestehende Flask-/Tabler-Anwendungen auf ein einheitliches Design migrieren
+# Verbindliches UI-Manifest: gemeinsame Flask-/Tabler-Gestaltung und kompakte Arbeitsflächen
 
-**Einsatz:** Arbeitsauftrag für Codex oder Claude Code im bestehenden Repository.
+**Einsatz:** Gemeinsamer Arbeitsvertrag für alle beauftragten Coding-Tools im bestehenden Repository.
 
 **Geltungsbereich:** Die gesamte Anwendung, alle vorhandenen Tools, Module, Verwaltungsseiten und gemeinsam verwendeten UI-Komponenten. Keine Bindung an eine bestimmte Fachdomäne, Beispielseite oder Route.
 
 **Technische Basis:** Flask, Jinja2, Tabler, das zur installierten Tabler-Version gehörende Bootstrap und Tabler Icons.
 
-**Ziel:** Ein gemeinsames, wiederverwendbares und überprüfbares Design statt einzelner verschönerter Seiten.
+**Ziel:** Gemeinsame, überprüfbare Gestaltung aller bestehenden und künftigen Oberflächen: volle interne Arbeitsbreite, kompakte Inhalte und sichere unmittelbare Bedienung. Der Rezepteditor ist die erste Referenz, keine Begrenzung der Migration.
 
 Dieses Dokument ist eigenständig verwendbar. Die beiden älteren Entwürfe zum UI-Design und zur seitenbezogenen Migration werden für diese UI-Aufgabe durch diesen konsolidierten Standard ersetzt. Bestehende Sicherheits-, Architektur- und Repository-Vorgaben bleiben gültig. Bei einem Konflikt mit einem freigegebenen Corporate Design oder Projektvertrag: Konflikt benennen, nicht stillschweigend überschreiben.
 
@@ -26,6 +26,27 @@ Erhalte Geschäftslogik, Daten, Berechtigungen und bestehende Bedienabläufe. Er
 
 Die Farben in diesem Dokument sind die vorgeschlagene gemeinsame Anwendungspalette. Sie sind kein Nachweis einer offiziell freigegebenen Corporate-Design-Farbdefinition.
 
+Die Nutzerentscheidung vom 13. September ersetzt frühere Breiten-, Dichte- und Navigationsvorgaben an ihrer jeweiligen Stelle in diesem Manifest. Alle internen Arbeitsseiten nutzen die volle verfügbare Breite. Nur kurze einzelne Felder oder sinnvoll begrenzte Lesetexte dürfen lokal schmal bleiben, niemals der gesamte Seiten- oder Formulararbeitsbereich. Das Manifest ist die einzige zentrale Quelle; kein paralleles Designsystem und keine separate Stilwelt pro Seite.
+
+**Entscheidungsreihenfolge:** Korrekte Daten und sichere Bedienung → unveränderter Unterbau → verständliche Aufgabenführung → volle Arbeitsbreite und kompakte Inhalte → konsistente Gestaltung.
+
+Versteckte Warnungen, verlorene Werte und eine breite Hülle mit weiterhin riesigen Zutatenblöcken erfüllen den Auftrag nicht. Bestehende Freigaben und Dateiverantwortlichkeiten erhalten; ein konkreter Werkzeug- oder Fachblocker stoppt nur den betroffenen Teil. Unabhängige zulässige Arbeit weiterführen.
+
+### 1.1 Verbindliche Regeln R01–R10
+
+| ID | Regel | Konkrete Umsetzung |
+|---|---|---|
+| R01 | Volle Arbeitsbreite | Hauptbereich rechts der Navigation vollständig nutzen; keine schmalen inneren Gesamtwrapper und kein `100vw` über die Sidebar hinweg. |
+| R02 | Inhalt statt Verwaltungswand | Nach kompaktem Kopf und notwendiger Orientierung kommt die eigentliche Arbeit. Keine lange Strecke aus Hinweisen, Einrichtung und doppelten Aktionen davor. |
+| R03 | Kompakte wiederholte Objekte | Eine Arbeitszeile pro Zutat, Schritt, Baustein oder Zuordnung. Zusatzfelder nur bei Bedarf; nicht eine hohe offene Card je Objekt. |
+| R04 | Häufige Änderungen unmittelbar | Menge und Einheit direkt in der Zutatenübersicht ändern. Eine einfache Änderung darf keine zusätzliche Klickstrecke benötigen. |
+| R05 | Verständliche Symbole | Tabler-Icon plus kurzer sichtbarer Text für Navigation und Hauptaktionen. Gleiche Bedeutung überall gleich darstellen. |
+| R06 | Sichere Detailbereiche | Auf-/Zuklappen speichert und verwirft nichts. Neue oder fehlerhafte Einträge passend öffnen. Gefüllte Zusatzangaben im Kurztext erkennbar lassen. |
+| R07 | Wahrheitsgetreue Zustände | Gespeichert, geprüft und veröffentlicht unterscheiden. Fehlende Angaben nicht durch einen allgemeinen grünen Haken verdecken. |
+| R08 | Erreichbare Aktionen | Eine hervorgehobene Speicherhandlung je Formular, erreichbar ohne Scrollreise. Seltene Aktionen in einem beschrifteten Menü. |
+| R09 | Ruhige Gestaltung | Bestehende Farben, Schriften und Tokens behalten. Weniger verschachtelte Rahmen, klare Kanten, keine Schmuckkarten oder dekorativen Kennzahlen. |
+| R10 | Vollständiger Nachweis | Jede Seite prüfen. Ein Screenshot, HTTP 200, erfolgreicher Build oder Breitenwert ersetzt weder Interaktion noch Gesamtaudit. |
+
 ## 2. Konkrete Stellungnahme zum bisherigen Stand
 
 ### 2.1 Am gezeigten Ist-Interface erkennbar
@@ -34,7 +55,7 @@ Diese Befunde stammen aus der gezeigten Oberfläche. Ob dieselben Probleme auf w
 
 | Befund | Was daran nicht stimmt | Verbindliche Korrektur |
 |---|---|---|
-| Grosse freie Randflächen bei gleichzeitig kleinen Texten und Bedienelementen | Der verfügbare Platz hilft der Lesbarkeit nicht. Innen ist die Oberfläche dicht, aussen bleibt viel Fläche leer. | Inhaltsbreite innerhalb des Hauptbereichs berechnen; Schrift, Feldhöhe und Abstände gemeinsam anheben. Nicht einfach alle Cards bildschirmbreit ziehen. |
+| Grosse freie Randflächen bei gleichzeitig kleinen Texten und Bedienelementen | Der verfügbare Platz hilft der Lesbarkeit nicht. Innen ist die Oberfläche dicht, aussen bleibt viel Fläche leer. | Gesamten Hauptbereich und seine inneren Arbeitscontainer nutzen; kompakte Zeilen statt hoher Wiederholungs-Cards. Lesbare Schrift und mindestens 44px Bedienhöhe erhalten. |
 | Seitenüberschrift kaum dominanter als ein Card-Titel | Seite, Bereich und einzelne Aufgabe haben zu wenig unterschiedliche Gewichtung. | Eindeutige H1, kurze hilfreiche Beschreibung und einheitlicher Seitenkopf. |
 | Lange, praktisch ungegliederte Sidebar | Alltagsaufgaben, Stammdaten und Systemeinstellungen erscheinen nahezu gleichrangig. | Vorhandene Einträge nach tatsächlichen Aufgaben gruppieren, aktive Position eindeutig zeigen und Berechtigungen erhalten. |
 | Ähnlich klingende Navigationsbegriffe ohne Erklärung | Der Unterschied zwischen benachbarten Funktionen ist für neue Benutzer nicht sofort klar. | Aufgaben und Zielseiten prüfen; verständliche Benennung oder kurze Erklärung verwenden. Nicht blind Funktionen zusammenlegen. |
@@ -52,7 +73,7 @@ Diese Befunde stammen aus der gezeigten Oberfläche. Ob dieselben Probleme auf w
 |---|---|---|
 | Eine konkrete Fachseite bestimmt die gesamte Migration. | Andere Tools und Seitentypen können unbearbeitet bleiben. | Vollständiges UI-Inventar und Nachweis pro vorhandener Route. |
 | „Modern“, „ruhig“, „hochwertig“ ohne prüfbare Umsetzung. | Der Agent muss wichtige Entscheidungen jedes Mal neu interpretieren. | Feste Tokens, Komponentenverträge, Layoutvarianten und visuelle Referenzen. |
-| Wertebereiche wie 240–260 px oder 32–36 px. | Mehrere unterschiedliche Ergebnisse erfüllen denselben Prompt. | Eindeutige Standardwerte und fest definierte responsive Abweichungen. |
+| Wertebereiche wie 240–260 px oder 32–36 px. | Mehrere unterschiedliche Ergebnisse erfüllen denselben Prompt. | Zentrale Standardwerte und responsive Zuordnung; Arbeitszeilen typischerweise 56–72px, bei Inhalt, Fehlern oder Zoom wachsend. |
 | „Tabler-Standardschrift“, obwohl das Mockup Serifentitel zeigt. | Textvorgabe und visuelles Ziel widersprechen sich. | Feste Schriftfamilien für Bedientext und Überschriften; siehe Typografie. |
 | Nur eigene CSS-Variablen definieren. | Das beweist nicht, dass Tabler-Komponenten diese tatsächlich verwenden. | Tokens an die installierte Tabler-Version anbinden und berechnete Browser-Styles prüfen. [S1, S2] |
 | Helle Status- und Hilfstextfarben. | Einige konkret vorgeschlagene Kombinationen sind für kleine Schrift zu kontrastarm. | Dunklere Textfarben, getrennte Status-Texttokens und Kontrastprüfung. [S3] |
@@ -169,7 +190,7 @@ Definiere diese Werte einmal in einer gemeinsamen Token-Datei oder der entsprech
 
 Burgunder bezeichnet die wichtigste Handlung, Auswahl oder einen Link, nicht eine beliebige grosse Hintergrundfläche. Für kleine Statustexte immer `*-text` auf `*-soft` verwenden, nicht die hellere Akzentfarbe. Destruktive Buttons verwenden einen geprüften dunklen Rotton, beispielsweise `--app-danger-text` mit Weiss.
 
-Die helle Sidebar-Akzentlinie ist absichtlich nicht dunkelburgunder: Dunkles Burgunder hebt sich gegen Petrol schlecht ab. Aktive Navigation zusätzlich durch Hintergrund, Schriftgewicht und `aria-current` kennzeichnen.
+Die helle Sidebar-Akzentlinie bleibt als optionaler Token verfügbar: Dunkles Burgunder hebt sich gegen Petrol schlecht ab. Aktive Navigation primär durch sanft getönten Hintergrund, Schriftgewicht und `aria-current` kennzeichnen; höchstens eine feine Akzentlinie ohne Layoutsprung ergänzen. Keine auffällige pinke Kontur plus Unterstreichung. Tastaturfokus bleibt davon getrennt deutlich sichtbar.
 
 Helle Card-Rahmen sind dekorative Trennlinien. Wo eine Umrandung nötig ist, um ein Eingabefeld oder Bedienelement zu erkennen, `--app-control-border` und die tatsächliche Hintergrundfarbe auf ausreichenden Kontrast prüfen. [S7]
 
@@ -186,14 +207,14 @@ Helle Card-Rahmen sind dekorative Trennlinien. Wo eine Umrandung nötig ist, um 
 | Navigation / Tabellen / Labels | `0.875rem`; Labels Gewicht `600` |
 | Hilfetext / sekundäre Metadaten | `0.8125rem`; wichtige Handlungsinformationen nicht kleiner setzen |
 | Sidebar | `248px` breit auf Desktop |
-| Topbar | `64px` Mindesthöhe, darf bei Zoom/Inhalten wachsen |
-| Arbeitsbreite | Immer volle verfügbare Breite neben der Sidebar, keine Obergrenze; Innenabstand 24–32/16 |
+| Topbar, nur bei tatsächlicher Funktion | `64px` Mindesthöhe, darf bei Zoom/Inhalten wachsen; keine leere zusätzliche Leiste |
+| Arbeitsbreite | Volle verfügbare Breite neben der Sidebar, keine Obergrenze oder schmale innere Gesamtspalte; auch für Formulare |
 | Inhaltspadding | Desktop `32px`, Tablet `24px`, Smartphone `16px` |
 | Card-Radius | `12px` |
 | Button-/Feld-/Nav-Radius | `8px` |
 | Status-Badge-Radius | `999px` |
-| Standard-Interaktionshöhe | mindestens `44px`; mehrzeilige Labels dürfen wachsen |
-| Tabellenzeile | durch Padding und Controls mindestens ungefähr `64px`, keine feste abschneidende Höhe |
+| Standard-Interaktionshöhe | mindestens `44px`; unterstützende Iconbuttons mindestens `44 × 44px` Trefferfläche, Iconzeichnung etwa `20px`; mehrzeilige Labels dürfen wachsen |
+| Kompakte Arbeits-/Tabellenzeile | typischerweise `56–72px`, bei Umbruch, Fehlern oder Zoom wachsend; keine fixe Maximalhöhe |
 | Card-Innenabstand | `24px`, auf Smartphone `16px` |
 | Abstand zwischen Hauptblöcken | `24px` |
 | Formular-Grid-Abstand | `24px` |
@@ -204,7 +225,33 @@ Die Serifentitel greifen die visuelle Richtung des Mockups ausdrücklich auf. Di
 
 Die `rem`-Werte gehen vom unveränderten Browser-Standard aus. Keine erzwungene 16px-Root-Grösse, keine Zoom-Sperre und keine Schriftverkleinerung, um Probleme zu kaschieren. Fontstacks garantieren ohne identische installierte Fonts keine pixelgleichen Ergebnisse über Betriebssysteme hinweg; dokumentiere deshalb den tatsächlich verwendeten Font der Referenzumgebung. Eine spätere freigegebene selbst gehostete Markenschrift wird zentral und mit neuen geprüften Referenzen eingeführt.
 
-Lege wiederkehrende Masswerte ebenfalls zentral als Tokens an. Keine leicht unterschiedlichen Radien oder Paddings über einzelne Templates verteilen.
+Lege wiederkehrende Masswerte und kompakte Varianten zentral als Tokens an. Keine leicht unterschiedlichen Radien oder Paddings über einzelne Templates verteilen. Freiraum zwischen Gruppen bleibt sinnvoll; künstlich aufgeblähte Container und abgeschnittene Pflichtinformationen nicht.
+
+Kurze Felder nebeneinander: Menge/Einheit, Preis/Zielgruppe, Dauer/Zeiteinheit. Ein Zahlenwert benötigt nicht eine komplette Bildschirmzeile. Textareas beginnen mit angemessener Höhe und bleiben vergrösserbar; lange Texte nicht in winzige Scrollschlitze pressen. Formulare bleiben ungefähr 1rem, wichtige Labels mindestens 0,875rem. Dies sind Projektziele, kein behaupteter Konformitätsnachweis.
+
+### 5.3 Gemeinsame Symbolsprache
+
+Nutze das vorhandene zentrale `icon`-Makro und die tatsächlich verfügbaren Tabler-Sprite-IDs. Keine neue Iconbibliothek und keine Emojis als Bedienelemente. Ein fehlendes Symbol darf nicht unbemerkt leer bleiben.
+
+| ASCII-Kürzel in den Skizzen | In der Anwendung | Sichtbarer Text, beispielsweise |
+|---|---|---|
+| `[S]` | Speicher-Symbol | Rezept speichern |
+| `[+]` | Plus | Zutat hinzufügen |
+| `[E]` | Stift | Bearbeiten |
+| `[>]` / `[v]` | Chevron geschlossen/offen | Details / Details schliessen |
+| `[...]` | Menü-/Drei-Punkte-Symbol | Aktionen / Weitere Aktionen |
+| `[^]` / `[v]` | Auf-/Ab-Pfeil im Sortierkontext | Nach oben / Nach unten |
+| `[X]` | Kontextgerechtes Entfernen-Symbol | Aus Rezept entfernen |
+| `[?]` | Lupe, nicht ein Fragezeichen | Suchen |
+| `[O]` | Auge | Vorschau |
+| `[P]` | Drucker | PDF öffnen / Drucken |
+| `[<]` | Pfeil nach links | Zur Rezeptliste |
+| `[!]` | Warnsymbol | Konkrete fehlende oder ungeklärte Angabe |
+| `[OK]` | Haken | Nur den tatsächlich bestätigten Zustand benennen |
+
+**Die ASCII-Kürzel werden nicht als Buchstaben in die Anwendung übernommen.** Sie veranschaulichen Icon plus Text. Produkttexte verwenden korrekte Umlaute und Schweizer Schreibweise; `ae/oe/ue` kommen nur in den ASCII-Skizzen zum Einsatz.
+
+Hauptaktionen auch auf dem Smartphone beschriften. Ein Tooltipp oder zugänglicher Name allein ersetzt für unerfahrene Benutzer keinen sichtbaren Text. Unterstützende reine Iconbuttons nur in eindeutigem Kontext; Fokus, Name und Trefferfläche prüfen. Dekorative Icons neben Text nicht nochmals vorlesen lassen. Status nie nur durch Farbe darstellen.
 
 ## 6. Tabler tatsächlich anbinden, nicht nur umfärben
 
@@ -222,32 +269,32 @@ Prüfe berechnete Styles im Browser. Verhindere unbeabsichtigte Auswirkungen auf
 
 Alle regulären internen Tools verwenden denselben Seitenrahmen: Sidebar, bei benötigten Funktionen Topbar, Seitenkopf und Hauptinhalt. Topbar-Inhalte nicht erfinden; ohne zusätzliche Funktion keine leere Zierleiste erzeugen. Die gewählte Anwendungslösung wird zentral umgesetzt, nicht pro Tool neu entschieden.
 
-Der Hauptbereich braucht `min-width: 0`. Seine Breite wird aus dem verfügbaren Bereich neben der Sidebar berechnet. Containerbreite nicht zusätzlich vom gesamten Viewport zentrieren. Schmale Formulare dürfen schmal bleiben; Tabellen und Facharbeitsflächen erhalten die definierte passende Variante.
+Der Hauptbereich braucht `min-width: 0`. Seine Breite wird aus dem verfügbaren Bereich neben der Sidebar berechnet; kein `100vw` über die Sidebar hinweg. Kopf, Bereichsnavigation und Hauptinhalt teilen dieselben äusseren Kanten. Auch innere Gesamtcontainer und Formulare nutzen die volle Arbeitsbreite. Nur einzelne kurze Felder und Lesetexte lokal begrenzen; breite Hauptarbeit mit schmalerem Prüfkontext ist ein gemeinsames Layoutmuster, keine schmale Gesamtspalte.
 
-Die Sidebar erhält das vorhandene Original-Logo und den Produktnamen. Kein Logo nachzeichnen, keinen Claim ergänzen. Navigation nach Aufgaben gruppieren, beispielsweise „Arbeitsbereich“, „Verwaltung“, „Daten & Schnittstellen“ und „System“. Diese Gruppen nur verwenden, wenn entsprechende Einträge existieren. Leere Gruppen weglassen.
+Die Sidebar erhält das vorhandene Original-Logo und den Produktnamen. Kein Logo nachzeichnen, keinen Claim ergänzen. Die vier fachlichen Haupteinstiege bleiben **Wochenplan**, **Menüs & Bausteine**, **Vorschau & Bildschirme** und **Einstellungen**, entsprechend vorhandenen Rechten. Unterfunktionen im Bereich zeigen, nicht erneut als 14 gleichrangige Sidebarlinks.
 
-Navigationseinträge: mindestens 44px hoch, Icon 20px, Abstand zwischen Icon und Text 12px, Radius 8px. Gruppentitel: 12px, Gewicht 600, dezente Grossschreibung. Aktiver Eintrag: definierter Hintergrund, weisse Schrift, Gewicht 700, 3px helle Akzentlinie ohne Layoutsprung.
+Navigationseinträge: mindestens 44px hoch, Icon 20px plus sichtbarer Text, Abstand 12px, Radius 8px. Gruppentitel: 12px, Gewicht 600, dezente Grossschreibung. Aktiver Eintrag: sanft getönte Fläche, kontrastgeprüfte Schrift, etwas stärkeres Schriftgewicht; eine feine Akzentlinie ist optional. Keine auffällige pinke Kontur plus Unterstreichung. Fokus ist ein eigener deutlich sichtbarer Zustand.
 
 Der Navigationsbereich scrollt bei Platzmangel, der Logout bleibt erreichbar. Profilfunktionen an einem klaren Ort bündeln, nicht mehrfach dieselbe Benutzerinformation in Sidebar und Topbar wiederholen. Rollenabhängige Sichtbarkeit erhalten; sie ersetzt keine serverseitige Autorisierung.
 
-Seitenkopf: logisch korrekter Breadcrumb, genau eine H1, gegebenenfalls ein kurzer wirklich hilfreicher Satz und die wichtigsten Seitenaktionen. Kein erfundener Breadcrumb-Zielpfad, kein dekorativer Eyebrow auf jeder Seite und kein Fülltext wie „Hier können Sie die Verwaltung verwalten“.
+Seitenkopf: logisch korrekter Breadcrumb, genau eine H1, gegebenenfalls ein kurzer wirklich hilfreicher Satz und die wichtigsten Seitenaktionen. Danach folgt die Kernarbeit vor optionaler Verwaltung. Kein erfundener Breadcrumb-Zielpfad, kein dekorativer Eyebrow und kein Fülltext wie „Hier können Sie die Verwaltung verwalten“. Eine Bereichsauswahl pro Kontext: globale Navigation, Bereichslinks und lokale Abschnittslinks erfüllen verschiedene Aufgaben; keine doppelten Cafeteria-/Patientenreihen.
 
 ## 8. Komponentenregeln für alle Tools
 
 | Komponente | Verbindliche Regel |
 |---|---|
-| Cards | Weisse Fläche, 12px Radius, dezenter Rand und minimaler Schatten. Header/Body/Footer nur soweit inhaltlich nötig. Keine Card in Card ohne fachlichen Grund. |
-| Tabs | Aktiver Tab mit Burgundertext, hellem Akzenthintergrund und 2px Unterlinie. Echte Seitenwechsel als Links; dynamische Tabs nur mit passender Tastatur- und ARIA-Implementierung. |
-| Buttons | Eine dominante Aktion je aktueller Aufgabe. Nebenaktionen weiss/neutral. Mindestens 44px Bedienhöhe; Text erklärt die Aktion. Keine universelle Primäraktion auf reinen Leseseiten erzwingen. |
-| Formularfelder | Sichtbares Label, tatsächlicher Pflichtstatus, sinnvoller Datentyp, 44px Mindesthöhe, passende Breite und verständlicher Hilfetext. Placeholder ersetzt kein Label. |
-| Validierung | Bestehende Regeln und serverseitige Prüfung erhalten. Fehlermeldung am Feld zuordnen, `aria-invalid`/`aria-describedby` passend setzen, Werte nach Fehler erhalten. |
+| Cards | Weisse Fläche, 12px Radius, dezenter Rand und minimaler Schatten nur bei inhaltlich nötiger Gruppierung. Wiederholte Zutaten, Schritte, Bausteine und Zuordnungen als kompakte Arbeitszeilen, keine hohe offene Card je Objekt oder Schmuckkarte. Keine Card in Card ohne fachlichen Grund. |
+| Bereichs- und Abschnittsnavigation | Eine Auswahl je Kontext, zurückhaltende aktive Kennzeichnung aus zentralen Tokens. Echte Seitenwechsel als Links; lokale Rezeptlinks führen zu sichtbaren Abschnitten statt Zutaten hinter Tab-Inhalten zu verbergen. Dynamische Tabs nur für passende vorhandene Aufgaben mit Tastatur-/ARIA-Semantik; keine doppelte Auswahl oder vorgeschriebene Kombination von Kontur und Unterlinie. |
+| Buttons | Eine hervorgehobene Speicherhandlung je bestehendem Formular, ohne Scrollreise erreichbar. Hauptaktionen mit Icon und sichtbarem kurzem Text auch mobil. Nebenaktionen neutral; mindestens 44px Bedienhöhe. Keine universelle Primäraktion auf Leseseiten oder globale Speicherung unabhängiger Formulare erzwingen. |
+| Formularfelder | Sichtbares Label, tatsächlicher Pflichtstatus, sinnvoller Datentyp, 44px Mindesthöhe und verständlicher Hilfetext. Kurze Felder gemeinsam gruppieren; Menge/Einheit direkt in der Zutatenzeile bearbeiten. Genau ein massgebliches Feld je Wert. Placeholder ersetzt kein Label. |
+| Validierung | Bestehende native und serverseitige Regeln erhalten. Fehlerzusammenfassung mit sichtbarem Feld verknüpfen, betroffenen geschlossenen Bereich öffnen/erschliessen, Fokus sinnvoll setzen; `aria-invalid`/`aria-describedby` passend setzen. Werte und Fehlermarker nach erneutem Schliessen erhalten. |
 | Textareas | Sinnvolle Mindesthöhe und vertikale Vergrösserung erlauben. Zeichenlimit und Zähler nur aus echten bestehenden Vorgaben ableiten. |
 | Tabellen | Semantische Tabelle, Header in normaler Schreibweise, ausreichend Padding, dezente Zeilentrennung. Daten und Aktionen nicht abschneiden oder unter 14px verkleinern. |
-| Status-Badges | 13px Text, 4px/10px Padding, Pill-Form, dunkle Status-Textfarbe auf heller Statusfläche. Farbe nie als einzige Information. Reale Backend-Statuswerte über eine gemeinsame Zuordnung darstellen. |
+| Status-Badges | 13px Text, 4px/10px Padding, Pill-Form, dunkle Status-Textfarbe auf heller Statusfläche. Reale Backend-Zustände mit Text zuordnen: gespeichert, geprüft, aktiviert und veröffentlicht unterscheiden; alter Prüfstand bestätigt keine neuen Eingaben. Fehlend ist weder null noch allergenfrei. |
 | Zeilenaktionen | Häufige Aktionen beschriftet sichtbar; seltene in ein echtes Dropdown. Keine versteckten Nur-Hover-Aktionen. Kein leeres Dreipunktmenü. |
-| Suche und Filter | Nur vorhandene oder ausdrücklich beauftragte Funktionalität. Bei serverseitiger Pagination niemals nur die sichtbare Seite filtern und es als Suche im Gesamtbestand ausgeben. |
+| Suche und Filter | Suche und höchstens zwei häufige vorhandene Filter standardmässig; zusätzliche Filter bei Bedarf, aktive Auswahl und Reset bleiben erkennbar. Bestehende Suchparameter kombinierbar erhalten; bei serverseitiger Pagination nicht nur die sichtbare Seite als Gesamtbestand filtern. |
 | Pagination | In den Listenabschluss integrieren. Gesamtzahl und Seitengrösse aus echten Daten. Keine Seitennavigation bei nur einer Seite. |
-| Leere Zustände | Zwischen „noch keine Daten“, „kein Suchtreffer“ und „keine Berechtigung“ unterscheiden. Nur erlaubte und sinnvolle Folgeaktionen anbieten. |
+| Leere Zustände | „Noch keine Daten“, „kein Suchtreffer“, „Laden fehlgeschlagen“ und „keine Berechtigung“ unterscheiden. Keine erfundene Nullzählung; nur vorhandene erlaubte Folgeaktionen, keine Pagination ohne Daten. |
 | Erfolg und Fehler | Gemeinsame Flash-/Alert-Komponente, verständliche Texte, Feldfehler zusätzlich lokal. Wichtige Informationen nicht nach kurzer Zeit automatisch entfernen. |
 | Modals | Nur für passende kurze Aufgaben. Aussagekräftiger Titel, korrekter Fokus, Tastaturbedienung, Rückkehr zum Auslöser. Lange Formulare nicht in kleine Modals pressen. |
 | Destruktive Aktionen | Bestehende Bestätigungen und Schutzmassnahmen erhalten. Objekt und Konsequenz benennen. Keine zusätzlichen riskanten Aktionen erfinden. |
@@ -256,6 +303,651 @@ Seitenkopf: logisch korrekter Breadcrumb, genau eine H1, gegebenenfalls ein kurz
 Ein statisches Anlegeformular braucht nicht automatisch einen „Abbrechen“-Button. Ein Dashboard braucht nicht automatisch eine Suche. Eine Datentabelle braucht nicht automatisch eine Spalte „Letzte Änderung“. Das Mockup ist keine Datenquelle.
 
 Sprache: Bestehende Anrede und Anwendungssprache konsistent halten. Für deutschsprachige Schweizer Anwendungen Schweizer Rechtschreibung verwenden. Sichtbare Datumsformate können lokalisiert werden; maschinelle Feldwerte und erwartete Backend-Formate unverändert lassen. Keine technischen Interna oder vertraulichen Informationen in Endbenutzer-Fehlermeldungen.
+
+### 8.1 Interaktions- und Formularinvarianten
+
+Die Skizzen sind nicht allein durch CSS abzuhaken. Folgende Verhaltensregeln gelten bei jeder Umsetzung:
+
+| Situation | Verpflichtendes Verhalten |
+|---|---|
+| Detailbereich öffnen/schliessen | Keine Speicherung, kein Reset, keine verlorenen Werte. Auslöser benennt Zustand; Tastaturbedienung möglich. |
+| Gefüllte Zusatzfelder schliessen | Bedeutung bleibt in kurzer Zusammenfassung erkennbar; Quellenrohwerte müssen nicht ständig sichtbar sein. |
+| Neue Zutat oder neuer Schritt | Betroffenes neues Objekt öffnen und Fokus sinnvoll setzen; bestehende Eingaben und Reihenfolge erhalten. |
+| Menge direkt ändern | Kein zusätzlicher Detaildialog nötig; genau ein massgebliches Eingabefeld im Formular. |
+| Reihenfolge ändern | Vorhandenen Strukturweg nutzen; beim betroffenen Objekt bleiben; keine alleinige Drag-and-drop-Bedienung. |
+| Entfernen | Lokalen und globalen Geltungsbereich unterscheiden; bestehende Schutzregeln erhalten, keine ungefragte neue Löschfunktion. |
+| Intern navigieren mit Änderungen | Sichere Rückfrage mit „Weiter bearbeiten“ und „Änderungen verwerfen“, soweit darstellungsseitig möglich. Keine neue ungefragte Speicherung. |
+| Speichern bestätigt | Erst nach erfolgreicher Antwort den tatsächlichen Speicherzustand anzeigen. Nur betroffenen Formularbereich als gespeichert kennzeichnen. |
+| Speicherantwort unklar | Unsicherheit benennen; aktuellen Stand prüfen, bevor erneut geschrieben wird. Keine automatische Wiederholung nicht nachweislich sicher wiederholbarer Aktionen. |
+| Ungespeicherte Änderungen prüfen | Nicht als vom alten Prüfergebnis bestätigt darstellen. Speichern, Prüfen, Aktivieren und Veröffentlichen getrennt halten. |
+| Inhalt nicht erfasst | Nicht als null, vollständig, allergenfrei oder geprüft ausgeben. Quelle und Prüfstand nicht aus Titel oder Bild ableiten. |
+| Session oder Berechtigung fehlt | Bestehenden Schutzweg nutzen, kein falscher Erfolg und keine Sicherheitsabschwächung. |
+| 200 % Zoom / Smartphone | Umordnen statt schrumpfen; Fokus und Aktionsleiste verdecken nichts; Hauptaktionen bleiben beschriftet. |
+
+**Keine doppelte Formularimplementierung:** Eine kompakte Zeile und ihr Detailbereich gehören zu denselben vorhandenen Feldern. Keine konkurrierenden `name`-Attribute, IDs oder versteckten Kopien mit veralteten Werten. Kein Entfernen aus dem DOM, wenn dadurch vorhandene Werte nicht mehr übermittelt werden. `readonly` und `disabled` sind nicht austauschbar.
+
+**Fehler gehen vor Kompaktheit:** Ein geöffneter Pflichtfehler darf mehr Raum benötigen. Eine Warnung zur ungeprüften Rezeptquelle bleibt in der Übersicht; Rohwerte wie Quellen-IDs können nachgeordnet sein. Nicht jede fehlende optionale Notiz mit einer Warnung versehen.
+
+**Keine zusätzliche Pflichtklickstrecke:** Menüs, Dropdowns und Details reduzieren seltene Bedienung. Häufige Schritte wie Mengenänderung, Öffnen des gewünschten Eintrags oder Speichern dürfen dadurch nicht umständlicher werden. Vergleiche Aufgabenaufwand, nicht nur Screenshot-Höhe.
+
+### 8.2 Verbindliche Strukturreferenzen M01–M20
+
+Die Mockups sind **verbindliche Struktur- und Interaktionsmuster**, keine pixelgenauen Screenshots und kein Nachweis einer bereits funktionierenden Anwendung. Breite Rahmen zeigen die gesamte verfügbare Arbeitsfläche, nicht eine feste Zeichen- oder Pixelbreite. Die Darstellungen sind absichtlich ohne zusätzliche Bilder verständlich. Im Rezepteditor sind „Rezept“, „Zutaten“ und „Zubereitung“ lokale Sprunglinks zu sichtbaren Abschnitten, keine Pflicht für versteckte Tab-Inhalte. So bleibt die Zutatenübersicht unmittelbar nutzbar.
+
+Alle Datensätze, Mengen, Zeiträume, Zählungen und Statusbeispiele sind synthetisch. Keine Rezeptanweisung oder fachliche Freigabe daraus ableiten. Kein neues Feature, Filterfeld, Statuswert, Berechtigungsmodell oder Backendverhalten allein aus einer Skizze einbauen. Angezeigte Zahlen aus echten Daten berechnen bzw. nur vorhandene Werte nutzen; sonst die entsprechende Information weglassen oder als nicht verfügbar benennen.
+
+Die Skizzen zeigen verschiedenartige Seitentypen und Zustände, nicht 20 neu zu bauende Seiten. Ordne jede tatsächliche Seite einem Muster zu und dokumentiere notwendige fachliche Unterschiede. Jede Skizze wird zusammen mit ihren anschliessenden Verhaltensregeln umgesetzt. Erklärende Anmerkungen innerhalb der Rahmen, beispielsweise „Weitere Treffer folgen“, sind Kommentare zum Layout, keine zusätzlich zu erzeugenden Hilfetextblöcke. Sichtbare Labels und Aktionen sind dagegen bewusst vorgegeben.
+
+
+
+**Mockup-Verzeichnis**
+
+| ID | Strukturreferenz |
+|---|---|
+| M01 | Gemeinsamer Seitenrahmen für alle internen Arbeitsseiten |
+| M02 | Rezepteditor: kompakter Ausgangszustand |
+| M03 | Rezeptzutat: nur die benötigten Details öffnen |
+| M04 | Zubereitung: Kurzfassung und gezielte Bearbeitung |
+| M05 | Zeilenaktionen: kompakt, beschriftet und kontextbezogen |
+| M06 | Rezepteditor auf dem Smartphone |
+| M07 | Menüübersicht: Text und Handlung vor Bildern |
+| M08 | Bausteinliste mit gezielt erweiterten Filtern |
+| M09 | Wochenübersicht: auswählen zuerst, anlegen bei Bedarf |
+| M10 | Cafeteriaplan: Arbeitsraster statt Verwaltungsblöcke |
+| M11 | Patientenplan: kompakte Tagesgruppen mit Mittag und Abend |
+| M12 | Menüeditor: breite Hauptarbeit, schmalerer Prüfkontext |
+| M13 | Baustein bearbeiten: eindeutige Allergenfelder |
+| M14 | Drucken und Vorschau: Arbeitsauftrag von Layoutverwaltung trennen |
+| M15 | Einstellungen: kompakte Zusammenfassung, Bearbeitung bei Bedarf |
+| M16 | Erscheinungsbild: gespeicherten Entwurf eindeutig kennzeichnen |
+| M17 | Datenimport: Aufgabe und Fehler, nicht technische Rohdaten |
+| M18 | Benutzer und ähnliche Verwaltungslisten |
+| M19 | Fehler in einem zuvor geschlossenen Detailbereich |
+| M20 | Leere Daten, keine Treffer und Ladefehler unterscheiden |
+
+#### M01 — Gemeinsamer Seitenrahmen für alle internen Arbeitsseiten
+
+Desktop; Sidebar links, gesamte verbleibende Breite rechts. Der Marker `>` steht nur für die dezente aktive Auswahl.
+
+```text
++----------------------+  +---------------------------------------------------------------------------------+
+| SUEDHANG             |  | SEITENTITEL / aktuelles Objekt                            [Hauptaktion]         |
+| Menueplanung         |  | Kurzer Kontext nur, wenn er bei dieser Aufgabe hilft.                           |
++----------------------+  +---------------------------------------------------------------------------------+
+| > Wochenplan         |  | [Unterbereich 1] [Unterbereich 2] [Unterbereich 3]                              |
+|   Menues &           |  +---------------------------------------------------------------------------------+
+|   Bausteine          |  | Suche / Filter / Status: eine zusammengehoerige Werkzeugleiste                  |
+|   Vorschau &         |  +---------------------------------------------------------------------------------+
+|   Bildschirme        |  | ARBEITSINHALT: Liste, Formular, Wochenplan oder Editor                          |
+|   Einstellungen      |  |                                                                                 |
+|                      |  | Die Flaeche reicht bis zum gemeinsamen rechten Seitenrand.                      |
+|                      |  | Keine zusaetzliche schmale zentrierte Gesamtspalte.                             |
+|                      |  |                                                                                 |
+|                      |  | Kurze Felder nebeneinander. Lange Inhalte erhalten mehr Raum.                   |
+|                      |  | Keine leeren Karten, um freie Flaeche kuenstlich zu fuellen.                    |
+|                      |  |                                                                                 |
+|                      |  | Details am betroffenen Objekt oeffnen, nicht alles dauerhaft.                   |
+|                      |  |                                                                                 |
+|                      |  +---------------------------------------------------------------------------------+
+| Konto                |  | Rueckmeldung / Zustand                         [S] Passende Aktion              |
+| Abmelden             |  | Leiste nur, wenn diese Seite eine entsprechende Aufgabe hat.                    |
++----------------------+  +---------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Kopf, Bereichsnavigation und Hauptinhalt nutzen dieselben äusseren Kanten. Eine zusätzliche Topbar nur für tatsächliche Funktionen, nie als leere Zierfläche. Der Bereichstitel darf ohne Karte stehen.
+
+**Responsive:** Unterhalb der bestehenden Sidebar-Schwelle wird die Navigation über „Menü“ geöffnet. Sie darf das Formular nicht auf eine schmale Restfläche drücken. Für Login und öffentliche Ausgaben dieses Muster nicht blind erzwingen.
+
+#### M02 — Rezepteditor: kompakter Ausgangszustand
+
+Desktop; vier Beispielzutaten, zwei Schritte. Der Seitenkopf enthält ein eindeutiges Objekt, nicht mehrfach denselben Titel.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| REZEPT BEARBEITEN / Apfelmus                                         [<] Zur Rezeptliste                 |
+| Entwurf  |  Beispielzustand: noch keine neuen Aenderungen                                                |
+| [Rezept]  [Zutaten (4)]  [Zubereitung (2)]  [Weitere Angaben]                                            |
+| [!] KI-Vorschlag: Rezept, Ausbeute und Allergene noch nicht fachlich geprueft.                           |
++----------------------------------------------------------------------------------------------------------+
+| Name         [Apfelmus                                                                               ]   |
+| Beschreibung [Optional                                                                               ]   |
+| Ausbeute [1600] [Gramm v]     Vorbereitung [    ] Min.      Kochzeit [    ] Min.                         |
++----------------------------------------------------------------------------------------------------------+
+| ZUTATEN                                                                         [+] Zutat hinzufuegen    |
+| Zutat                    Menge          Einheit             Zusatzangaben / Aktionen                     |
+| Aepfel                   [1800       ]  [Gramm        v]     [>] Details   [...] Aktionen                |
+| Wasser                   [100        ]  [Milliliter   v]     [>] Details   [...] Aktionen                |
+| Zucker                   [60         ]  [Gramm        v]     [>] Details   [...] Aktionen                |
+| Zimt                     [           ]  [Auswaehlen   v]     [>] Details   [...] Aktionen                |
++----------------------------------------------------------------------------------------------------------+
+| ZUBEREITUNG                                                                   [+] Schritt hinzufuegen    |
+| 1  Aepfel vorbereiten ...                                   [E] Bearbeiten  [...] Aktionen               |
+| 2  Fertige Menge messen und Angaben pruefen ...              [E] Bearbeiten  [...] Aktionen              |
++----------------------------------------------------------------------------------------------------------+
+| [>] Kennzeichnungen und Bilder  |  [>] Quelle und technische Angaben                                     |
++----------------------------------------------------------------------------------------------------------+
+| Speichern uebernimmt die Eingaben.                               [Abbrechen]  [S] Rezept speichern       |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Mengen und Einheiten sind unmittelbar bearbeitbar. Nicht erst jede Zutat öffnen. Ausbeute, Vorbereitung und Kochzeit stehen bei ausreichendem Platz in einer gemeinsamen Feldgruppe. Namen und Angaben dürfen umbrechen.
+
+**Keine Scheinlösung:** Nicht die gesamte Zutatenliste hinter einem Akkordeon verstecken. Nicht alle Zutaten gleichzeitig in grossen Detailkarten darstellen. Die Warnung bleibt sichtbar, auch wenn technische Quellenangaben geschlossen sind. Der Standardzustand darf bei echten Pflichtfehlern automatisch grösser werden.
+
+#### M03 — Rezeptzutat: nur die benötigten Details öffnen
+
+Dieselbe Liste wie M02; die erste Zutat ist geöffnet. Andere Zutaten bleiben direkt erreichbar.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| ZUTATEN                                                                         [+] Zutat hinzufuegen    |
+| Aepfel         [1800] [Gramm v]                         [v] Details schliessen  [...] Aktionen           |
++----------------------------------------------------------------------------------------------------------+
+|   Zutat aus Liste       [Aepfel                                                                     v]   |
+|   Bezeichnung im Rezept [Aepfel                                                                      ]   |
+|   Gruppe                [Optional                         ]                                              |
+|   Notiz                 [Optional                                                                  ]     |
+|   [>] Quelle und technische Angaben dieser Zutat                                                         |
+|   Diese Angaben werden zusammen mit dem Rezept gespeichert.                                              |
++----------------------------------------------------------------------------------------------------------+
+| Wasser         [100 ] [Milliliter v]                    [>] Details            [...] Aktionen            |
+| Zucker         [60  ] [Gramm v]                         [>] Details            [...] Aktionen            |
+| Zimt           [    ] [Auswaehlen v]                    [>] Details            [...] Aktionen            |
++----------------------------------------------------------------------------------------------------------+
+| Aenderungen noch nicht gespeichert                               [Abbrechen]  [S] Rezept speichern       |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Die beiden Werte „Zutat aus Liste“ und „Bezeichnung im Rezept“ behalten ihre tatsächliche unterschiedliche Bedeutung. Nicht als Entweder-oder behandeln, solange der Bestand beide benötigt. Menge und Einheit werden nicht als zweite gleichnamige Eingaben im Detailbereich dupliziert.
+
+**Interaktion:** Schliessen behält alle Eingaben. Mehrere Details dürfen zum Vergleichen offen bleiben. Eine gefüllte Notiz oder Gruppe wird nach dem Schliessen als kurze Zusatzinformation erkennbar. Neue und fehlerhafte Zeilen öffnen sich passend; keine eigenständige Speicherung durch „Details schliessen“.
+
+#### M04 — Zubereitung: Kurzfassung und gezielte Bearbeitung
+
+Ein Schritt ist geöffnet. Vollständige Anleitung, Zeit und Bildzuordnung bleiben erhalten.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| ZUBEREITUNG                                                                   [+] Schritt hinzufuegen    |
+| 1  Aepfel vorbereiten ...                                  [E] Bearbeiten   [...] Aktionen               |
+| 2  Fertige Menge messen ...                         [v] Bearbeitung schliessen   [...] Aktionen          |
++----------------------------------------------------------------------------------------------------------+
+|   Anleitung                                                                                              |
+|   [Fertige Ausbeute in der angegebenen Einheit messen. Vorschlagsmenge vor Kuechenfreigabe pruefen.   ]  |
+|   [                                                                                                 ]    |
+|   Dauer [    ] Minuten            Bild zum Schritt [Kein Bild ausgewaehlt                          v]    |
+|   Bildzuordnung und Dauer sind nur dann Pflicht, wenn der bestehende Vertrag dies verlangt.              |
++----------------------------------------------------------------------------------------------------------+
+| Aenderungen noch nicht gespeichert                               [Abbrechen]  [S] Rezept speichern       |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Die Kurzfassung unterstützt Orientierung; die komplette Anleitung bleibt im Editor sichtbar und vergrösserbar. Keine Zeichen abschneiden und als vollständige Anweisung ausgeben. Eine fehlende Dauer bedeutet nicht automatisch null Minuten.
+
+**Speichern:** Die Zeile ist Teil desselben Rezeptformulars. Keine zweite unabhängige Schritt-Speicherung einführen. Eine Bildreferenz bleibt auch erhalten, wenn ihre Detailsteuerung geschlossen oder ein Bildname derzeit nicht auflösbar ist.
+
+#### M05 — Zeilenaktionen: kompakt, beschriftet und kontextbezogen
+
+Geöffnetes Aktionsmenü einer Zutat. Nur im Bestand vorhandene Operationen anbieten.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| Wasser             [100] [Milliliter v]                  [>] Details    [...] Aktionen                   |
+|                                                                          +--------------------------+    |
+|                                                                          | [+] Davor einfuegen      |    |
+|                                                                          | [^] Nach oben            |    |
+|                                                                          | [v] Nach unten           |    |
+|                                                                          | [X] Aus Rezept entfernen |    |
+|                                                                          +--------------------------+    |
+| Aktionen betreffen diese Rezeptzeile, nicht die Zutat im zentralen Katalog.                              |
+| Reihenfolge und Eingaben bleiben beim bestehenden Formularweg erhalten.                                  |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Kurze sichtbare Wörter; zugängliche Namen bei Bedarf um den Kontext ergänzen, beispielsweise „Wasser nach oben verschieben“. Pfeile passen zur vertikalen Reihenfolge. Am Anfang/Ende unmögliche Bewegungen korrekt deaktivieren oder weglassen. Keine erfundene Funktion „danach einfügen“, wenn der bestehende Weg sie nicht unterstützt.
+
+**Vertrag:** Die zuvor untersuchten Rezeptaktionen verwendeten eigene Submit-/`formaction`-Wege. Aktuellen Stand prüfen und vorhandene `formnovalidate`-Semantik für Strukturaktionen erhalten. Nicht durch neue pauschale Validierungsumgehungen oder eine zweite clientseitige Sortierlogik ersetzen. Nach der Aktion zum betroffenen Objekt zurückkehren.
+
+#### M06 — Rezepteditor auf dem Smartphone
+
+Schmaler Viewport: Name, Menge, Einheit und beschriftete Aktionen bleiben nutzbar. Keine verkleinerte Desktoptabelle.
+
+```text
++------------------------------------------+
+| [Menue]             [<] Rezeptliste      |
+| Apfelmus bearbeiten                      |
+| [!] KI-Entwurf, noch ungeprueft.         |
+| [Rezept] [Zutaten] [Zubereitung]         |
++------------------------------------------+
+| ZUTATEN (4)                              |
+| Aepfel                                   |
+| Menge           Einheit                  |
+| [1800        ]  [Gramm       v]          |
+| [>] Details     [...] Aktionen           |
++------------------------------------------+
+| Wasser                                   |
+| Menge           Einheit                  |
+| [100         ]  [Milliliter  v]          |
+| [>] Details     [...] Aktionen           |
++------------------------------------------+
+| Zucker                                   |
+| Menge           Einheit                  |
+| [60          ]  [Gramm       v]          |
+| [>] Details     [...] Aktionen           |
++------------------------------------------+
+| Weitere Zutaten folgen im Fluss.         |
+| [+] Zutat hinzufuegen                    |
++------------------------------------------+
+| Aenderungen nicht gespeichert            |
+| [S] Rezept speichern                     |
+| [Abbrechen]                              |
++------------------------------------------+
+```
+
+**Pflicht:** Umordnen statt schrumpfen. Keine horizontal scrollende Gesamtdokumentseite. Abschnittslinks dürfen umbrechen; keine abgeschnittene Tabreihe. Menge und Einheit bleiben sichtbar zugeordnet, auch ohne Tabellenkopf.
+
+**Mobile Leiste:** Bei eingeblendeter Tastatur oder geringer Höhe darf die Speicherleiste in den Dokumentfluss wechseln. Sie verdeckt weder Felder noch Fehler oder Fokus. Die Skizze verspricht nicht, vier Zutaten samt kompletter Rezeptbasis auf 390 × 844 gleichzeitig zu zeigen.
+
+#### M07 — Menüübersicht: Text und Handlung vor Bildern
+
+Geplante Menüeinträge aus verschiedenen Wochen; kein neu erfundener Rezeptkatalog.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| MENUES & BAUSTEINE / Gespeicherte Menues                                                                 |
+| [Menues] [Bausteine] [Zutaten] [Rezepte] [Kochbuecher] [Weitere vorhandene Bereiche]                     |
+| [Cafeteria] [Patienten]                                                                                  |
+| Menue oder Baustein suchen [                                                 ]  [?] Suchen               |
+| Ansicht [Liste] [Karten]                                                                                 |
++----------------------------------------------------------------------------------------------------------+
+| 11.09.2026 / Mittag / Menue 1                                                                            |
+| Gebratenes Zanderfilet  |  Salzkartoffeln, Rahmspinat                    [E] Im Wochenplan oeffnen       |
+| Gespeicherter Pruefstand: Geprueft*  |  [!] Allergenangaben nicht erfasst   [>] Hinweise                 |
++----------------------------------------------------------------------------------------------------------+
+| 11.09.2026 / Mittag / Vegetarisch                                                                        |
+| Falafel-Teller  |  Hummus, Ofengemuese                                 [E] Im Wochenplan oeffnen         |
+| Gespeicherter Pruefstand: Geprueft*  |  [!] Allergenangaben nicht erfasst   [>] Hinweise                 |
++----------------------------------------------------------------------------------------------------------+
+| * Den belegten Geltungsbereich der bestehenden Pruefung eindeutig beschriften.                           |
+| Weitere Treffer folgen kompakt. Seitennavigation nur bei tatsaechlich mehreren Seiten.                   |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Öffnen führt zum tatsächlichen geplanten Eintrag, nicht unbeabsichtigt zu einem globalen Rezept. Sichtbarer Zeitraum, Menüart und relevante Warnung bleiben am Objekt. Lange interne Hinweise sind erreichbar, aber nicht der Hauptinhalt jeder Karte.
+
+**Status:** „Geprüft“ darf nur den verifizierten bestehenden Prüfumfang wiedergeben. Der Stern ist ein Hinweis an den Agenten, keine dauerhaft nötige Fussnotenlösung im Produkt. Bedeutung am Code klären; keine Statusdaten ändern. Vorhandene Bilder nicht löschen, aber aus der Standardübersicht zurücknehmen. KI-Kennzeichnung in bestehenden Bildansichten erhalten.
+
+#### M08 — Bausteinliste mit gezielt erweiterten Filtern
+
+Liste mit wenigen Standardfiltern; zusätzliche Filter sind ausdrücklich geöffnet.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| BAUSTEINE                                                                    [+] Baustein hinzufuegen    |
+| Suche [                                                   ]   [?] Suchen                                 |
+| Kategorie [Alle v]     Status [Aktiv v]     [v] Weitere Filter                                           |
++----------------------------------------------------------------------------------------------------------+
+| Allergen [Milch v]     Praesenz [Enthaelt v]     Herkunft [Alle Laender v]                               |
+| [Filter anwenden]     [Filter zuruecksetzen]                                                             |
++----------------------------------------------------------------------------------------------------------+
+| Aktive Filter: Aktiv | enthaelt Milch. Zusatzfilter bleiben auch eingeklappt erkennbar.                  |
+| Name                 Kategorie       Angaben                         Verwendung          Aktion          |
+| Kartoffelstock       Beilage         Enthaelt Milch                  2 Menues             [E] Bearbeiten |
+| Weitere passende Treffer folgen; keine erfundene Gesamtzahl.                                             |
++----------------------------------------------------------------------------------------------------------+
+| Eingeklappte Zusatzfilter duerfen nicht zu einer unerklaerlichen leeren Liste fuehren.                   |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Suche und höchstens zwei häufige Filter in der Standardansicht. Weitere vorhandene Filter bleiben erreichbar; aktuelle Auswahl und Reset sichtbar. Nutze echte Ländernamen, sofern die bestehende Zuordnung verfügbar ist, nicht ausschliesslich Flaggen oder Codes.
+
+**Funktion:** Bestehende Suchparameter und deren Kombination erhalten. Kein Browserfilter nur über die aktuelle Seite einer serverseitig paginierten Liste. In einer leeren Ergebnismenge unterscheiden, ob Filter, Datenbestand, Rechte oder ein Ladefehler die Ursache sind; siehe M20.
+
+#### M09 — Wochenübersicht: auswählen zuerst, anlegen bei Bedarf
+
+Normalansicht mit geschlossenem Erstellformular. Dieses Muster gilt analog für Listen mit selten genutzter Anlagefunktion.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| WOCHENPLAN / Wochenuebersicht                                                 [+] Neue Woche anlegen     |
+| Bereich [Cafeteria v]                                                                                    |
++----------------------------------------------------------------------------------------------------------+
+| Zeitraum                           Kalenderwoche     Vorhandener Stand          Aktion                   |
+| 7.-13. September 2026              KW 37             Veroeffentlicht           [E] Woche oeffnen         |
+|                                                                                [...] Aktionen            |
+| 31. August-6. September 2026        KW 36             Noch zu pruefen           [E] Woche oeffnen        |
+|                                                                                [...] Aktionen            |
++----------------------------------------------------------------------------------------------------------+
+| Die Anlage wird erst ueber den Button oben geoeffnet; keine zweite staendige Buttonreihe.                |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Nur einen sichtbaren Einstieg „Neue Woche anlegen“ im Seitenkopf platzieren. Bei Bedarf den bestehenden Formularbereich unterhalb der Werkzeugleiste öffnen: Wochenbeginn, Zusatzname, Hinweis und vorhandene Anlageaktion. Die letzte Zeile der Skizze ist eine Anmerkung, kein zusätzlicher Produkttext. Bei Formularfehlern bleibt der Bereich mit Eingaben offen.
+
+**Semantik:** ISO-Woche und tatsächliche Cafeteria-Ausgabetage unterscheiden. Datumsbereich aus dem geplanten Zeitraum; Freititel ist keine verlässliche Datumsquelle. Kopieraktionen erklären Quelle, Ziel und tatsächliche Überschreibwirkung anhand des Bestands. Keine Zusicherungen erfinden.
+
+#### M10 — Cafeteriaplan: Arbeitsraster statt Verwaltungsblöcke
+
+Breiter Desktop mit ausreichender realer Spaltenbreite; fünf Tage und die zwei vorhandenen Menüarten.
+
+```text
++----------------------------------------------------------------------------------------------------------------------------+
+| WOCHENPLAN / Cafeteria  |  7.-11. September 2026  |  KW 37                                                                 |
+| [Cafeteria] [Patienten] [Wochenuebersicht]                                                                                 |
+| [<] Vorherige Woche   [Woche auswaehlen]   [>] Naechste Woche                                                              |
+| Veroeffentlichungsstand: [vorhandener Stand]    Pruefung: [vorhandener Befund]                                             |
+| [O] Vorschau   [...] Weitere Aktionen                        [!] Offene Angaben pruefen                                    |
++----------------------------------------------------------------------------------------------------------------------------+
++------------------------+------------------------+------------------------+------------------------+------------------------+
+| Montag 7.9.            | Dienstag 8.9.          | Mittwoch 9.9.          | Donnerstag 10.9.       | Freitag 11.9.          |
++------------------------+------------------------+------------------------+------------------------+------------------------+
+| MENUE 1                | MENUE 1                | MENUE 1                | MENUE 1                | MENUE 1                |
+| Pouletbrust an         | Hackbraten             | Rindsgeschnetzeltes    | Schweinsragout         | Gebratenes             |
+| Kraeutersauce          | an Rosmarinjus         |                        | Tessiner Art           | Zanderfilet            |
+| Kartoffelstock         | Kartoffelgratin        | Nudeln                 | Polenta, Bohnen        | Salzkartoffeln         |
+| [!] Allergene fehlen   | [!] Allergene fehlen   | [!] Allergene fehlen   | [!] Allergene fehlen   | [!] Allergene fehlen   |
+| Mitarbeitende: CHF 11  | Mitarbeitende: CHF 11  | Mitarbeitende: CHF 11  | Mitarbeitende: CHF 11  | Mitarbeitende: CHF 11  |
+| Externe: CHF 16.60     | Externe: CHF 16.60     | Externe: CHF 16.60     | Externe: CHF 16.60     | Externe: CHF 16.60     |
+| [>] Hinweise           | [>] Hinweise           | [>] Hinweise           | [>] Hinweise           | [>] Hinweise           |
+| [E] Bearbeiten         | [E] Bearbeiten         | [E] Bearbeiten         | [E] Bearbeiten         | [E] Bearbeiten         |
++------------------------+------------------------+------------------------+------------------------+------------------------+
+| VEGETARISCH            | VEGETARISCH            | VEGETARISCH            | VEGETARISCH            | VEGETARISCH            |
+| Spinat-Ricotta-        | Gemuese-Curry          | Risotto                | Gemuesegratin          | Falafel-Teller         |
+| Ravioli                |                        |                        |                        |                        |
+| Tomatensauce           | Reis                   | Gemuese                | Salat                  | Hummus, Gemuese        |
+| [!] Allergene fehlen   | [!] Allergene fehlen   | [!] Allergene fehlen   | [!] Allergene fehlen   | [!] Allergene fehlen   |
+| Mitarbeitende: CHF 11  | Mitarbeitende: CHF 11  | Mitarbeitende: CHF 11  | Mitarbeitende: CHF 11  | Mitarbeitende: CHF 11  |
+| Externe: CHF 16.60     | Externe: CHF 16.60     | Externe: CHF 16.60     | Externe: CHF 16.60     | Externe: CHF 16.60     |
+| [>] Hinweise           | [>] Hinweise           | [>] Hinweise           | [>] Hinweise           | [>] Hinweise           |
+| [E] Bearbeiten         | [E] Bearbeiten         | [E] Bearbeiten         | [E] Bearbeiten         | [E] Bearbeiten         |
++------------------------+------------------------+------------------------+------------------------+------------------------+
++----------------------------------------------------------------------------------------------------------------------------+
+| Alle Preise sind Beispieldaten. Beide Zielgruppen bleiben bei jedem Menue eindeutig zugeordnet.                            |
+| [>] Wochenangaben aendern  |  Tages-/Ausgabeangaben am jeweiligen Tag gezielt oeffnen.                                     |
++----------------------------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Gerichte unmittelbar unter der kompakten Wochensteuerung. Konkrete vorhandene Warnungen und beide Cafeteriapreise sichtbar halten. Nur die ausführlichen Zusatzhinweise liegen hinter „Hinweise“. Keine zusätzlichen Menüarten aus früheren Bildern übernehmen.
+
+**Responsive:** Wenn fünf ausreichend lesbare Spalten nicht passen, in chronologische Tagesabschnitte wechseln. Nicht Schrift verkleinern oder vollständige Namen abschneiden. Beide Preise müssen dem richtigen Menü und der richtigen Zielgruppe zugeordnet bleiben; fehlende Werte nicht raten.
+
+#### M11 — Patientenplan: kompakte Tagesgruppen mit Mittag und Abend
+
+Patienten bleiben ein Sieben-Tage-Plan. Darstellung der Mahlzeiten nebeneinander nur bei genügend Platz.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| PATIENTENPLAN / 7.-13. September 2026 / KW 37                                                            |
+| [Cafeteria] [Patienten] [Wochenuebersicht]                                                               |
+| Veroeffentlicht  |  [!] Allergenangaben fehlen. Gespeicherten Pruefstand separat erklaeren.              |
+| [O] Vorschau  [...] Weitere Aktionen                        [!] Offene Angaben pruefen                   |
++----------------------------------------------------------------------------------------------------------+
+| MONTAG, 7. SEPTEMBER                                                                                     |
+| MITTAG                                              ABEND                                                |
+| Geoeffnet | Zeiten nicht erfasst                     Geoeffnet | Zeiten nicht erfasst                    |
+| [E] Ausgabeangaben aendern                           [E] Ausgabeangaben aendern                          |
+|                                                                                                          |
+| Menue 1: Pouletgeschnetzeltes                        Menue 1: Schinken-Kaese-Toast                       |
+| Reis, Zucchetti                                     Tomatensalat                                         |
+| [!] Allergene nicht erfasst                         [!] Allergene nicht erfasst                          |
+| [E] Bearbeiten  [>] Hinweise                         [E] Bearbeiten  [>] Hinweise                        |
+|                                                                                                          |
+| Vegetarisch: Gemuesegeschnetzeltes                   Vegetarisch: Gemuese-Toast                          |
+| Reis, Zucchetti                                     Tomatensalat                                         |
+| [!] Allergene nicht erfasst                         [!] Allergene nicht erfasst                          |
+| [E] Bearbeiten  [>] Hinweise                         [E] Bearbeiten  [>] Hinweise                        |
++----------------------------------------------------------------------------------------------------------+
+| DIENSTAG bis SONNTAG folgen mit demselben Tagesmuster.                                                   |
+| Alle 7 Tage x 2 Mahlzeiten x 2 vorhandenen Menuearten bleiben erreichbar. Keine Preise.                  |
+| [>] Wochenangaben aendern                                                                                |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Die nächsten Tage folgen tatsächlich als Tagesgruppen; die Zusammenfassungszeile ist nur eine Verkürzung der Zeichnung. Weder Wochenende noch Abendangebot weglassen. Gefüllte Hinweise kurz erkennbar machen. Standardmässig nicht die grossen Zeit-/Betriebsformulare vor jedes Menü stellen.
+
+**Status und Wirkung:** Eine Veröffentlichung sagt nichts über fehlende Angaben oder ungespeicherte Änderungen aus. Den vorhandenen Prüfstand separat erklären. „Ausgabeangaben ändern“ öffnet ausschliesslich das bestehende Formular und dessen eigene Speicheraktion. Kein globales „Alles speichern“, wenn es keine gemeinsame Transaktion gibt.
+
+#### M12 — Menüeditor: breite Hauptarbeit, schmalerer Prüfkontext
+
+Volle Seitenbreite mit gemeinsamem Zwei-Spalten-Layout. Auf schmalen Geräten stehen die Bereiche untereinander.
+
+```text
++-------------------------------------------------------------------+   +----------------------------------+
+| MENUE BEARBEITEN / Dienstag 8. September                          |   | PRUEFUNG                         |
+| Patienten / Mittag / Menue 1                                      |   | Zuletzt gespeicherter Stand      |
++-------------------------------------------------------------------+   +----------------------------------+
+| Titel [Hackbraten an Rosmarinjus                               ]  |   | [!] Allergene nicht erfasst      |
+| Beschreibung [Optional                                       ]    |   | [!] Herkunft nicht erfasst       |
++-------------------------------------------------------------------+   | Kennzeichnungen: nicht erfasst   |
+| BAUSTEINE                           [+] Baustein hinzufuegen      |   |                                  |
+| Kartoffelgratin              [E] Aendern  [...] Aktionen          |   | Neue Eingaben zuerst speichern.  |
+| Broccoli                    [E] Aendern  [...] Aktionen           |   |                                  |
++-------------------------------------------------------------------+   | [Pruefung oeffnen]               |
+| [>] Ausfuehrlicher Pruefhinweis vorhanden                         |   +----------------------------------+
+| [E] Allergene bearbeiten   [E] Herkunft bearbeiten                |   | Bestaetigung nur nach dem        |
+| Vorhandene Felder unten oder am Zielabschnitt bearbeiten.         |   | vorhandenen Pruefablauf.         |
++-------------------------------------------------------------------+   | Keine neue Freigabelogik.        |
+| Nicht gespeichert                  [S] Menue speichern            |   +----------------------------------+
++-------------------------------------------------------------------+
+```
+
+**Pflicht:** Hauptformular deutlich breiter als der Prüfkontext; auf Desktop beispielsweise ungefähr zwei Drittel zu einem Drittel, an reale Inhalte angepasst. Keine schmale gesamte Mittelsäule. Prüfzusammenfassung enthält direkte Links zu bestehenden Feldern, soweit möglich, nicht nur passive Meldungen.
+
+**Geltungsbereich:** Diese Skizze zeigt Patienten, deshalb ohne Preisfelder. In der Cafeteria bleiben beide vorhandenen Preisgruppen als kompakte Feldgruppe erhalten. Menübausteine dürfen die bestehende klare Auswahlart Katalog/Freitext erhalten; Rezeptzutaten aus M03 sind fachlich etwas anderes. Eine existierende seitliche Bearbeitung verwendet dasselbe Formularmuster; keine neue Panel-API bauen.
+
+#### M13 — Baustein bearbeiten: eindeutige Allergenfelder
+
+Editormuster für einen zentralen Baustein. Beispielwerte sind Eingaben, keine fachliche Deklaration.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| BAUSTEIN BEARBEITEN / Kartoffelstock                                       [<] Zur Bausteinliste         |
+| Wird in 2 Menues verwendet  |  Aktiv                                                                     |
++----------------------------------------------------------------------------------------------------------+
+| Name [Kartoffelstock                     ]  Kategorie [Beilage v]  Herkunft [Nicht erfasst v]            |
+| Kennzeichnungen: [ ] Vegan   [ ] Vegetarisch   [ ] Glutenfrei   [ ] Laktosefrei                          |
++----------------------------------------------------------------------------------------------------------+
+| ALLERGENE                                                                                                |
+| [x] Milch                     Praesenz [Enthaelt      v]                                                 |
+| [x] Glutenhaltiges Getreide    Praesenz [Kann enthalten v]                                               |
+| [ ] Eier                      Nicht ausgewaehlt                                                          |
+| [ ] Fisch                     Nicht ausgewaehlt                                                          |
+| [>] Weitere Allergene anzeigen                                                                           |
+| [!] Nicht ausgewaehlt bedeutet nicht: allergenfrei bestaetigt.                                           |
++----------------------------------------------------------------------------------------------------------+
+| [>] Verwendung und Wirkung zentraler Aenderungen                                                         |
+| [...] Weitere Aktionen, einschliesslich vorhandener Archivierung                                         |
++----------------------------------------------------------------------------------------------------------+
+| Aenderungen noch nicht gespeichert                            [Abbrechen]  [S] Baustein speichern        |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Keine scheinbar aktive „enthält“-Auswahl neben einem nicht gewählten Allergen. Nicht gewählte zusätzliche Allergene bleiben erreichbar; ausgewählte oder fehlerhafte Angaben dürfen nicht verdeckt werden. Kennzeichnungen nicht automatisch aus Namen oder Allergenfeldern ableiten.
+
+**Vertrag:** Vor dem Deaktivieren oder Ausblenden von Controls die POST-Semantik prüfen. Nur eine Darstellung ändern, keine Werte verlieren oder hidden/disabled-Verhalten neu erfinden. Der Verwendungszähler ist nur bei belegten Daten zulässig. Die Wirkung zentraler Änderungen auf bestehende Menüs anhand des Codes erklären; nicht als garantiert unveränderliche Vergangenheit ausgeben.
+
+#### M14 — Drucken und Vorschau: Arbeitsauftrag von Layoutverwaltung trennen
+
+Beispiel mit bewusst unterschiedlichen Zeiträumen für gewählte gespeicherte Woche und veröffentlichten Stand.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| VORSCHAU & BILDSCHIRME / Wochenplan drucken                                                              |
+| [Wochenplan drucken] [Bildschirme] [Drucklayouts] [Weitere vorhandene Ausgaben]                          |
++----------------------------------------------------------------------------------------------------------+
+| Bereich [Cafeteria v]      Gespeicherte Woche [7.-13. September 2026 / KW 37 v]                          |
+| Gewaehlter Stand: gespeicherte Woche 37, nicht automatisch der veroeffentlichte Plan.                    |
+| [P] PDF der gewaehlten Woche oeffnen                                                                     |
++----------------------------------------------------------------------------------------------------------+
+| [v] Aktuell veroeffentlichten Plan drucken                                                               |
+|     Beispiel: anderer Stand, 31. August-6. September 2026 / KW 36.                                       |
+|     [P] Veroeffentlichten Plan drucken                                                                   |
++----------------------------------------------------------------------------------------------------------+
+| [>] Drucklayout aendern       [>] Fruehere Versionen       [>] Inhalte bearbeiten                        |
+| Rezeptdruck bleibt ein eigener bestehender Unterbereich.                                                 |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Die prominenteste Aktion öffnet genau die gewählte gespeicherte Woche. Der veröffentlichte Plan ist eine andere vorhandene Aktion mit eigenem Datenstand; Datum nur nennen, wenn bekannt. Vorhandene Wochenauswahlmechanik weiterverwenden, keinen neuen universellen Pickervertrag erfinden.
+
+**Layoutverwaltung:** Für normales Drucken keine Versionsverwaltung durchlaufen. Entwurf ansehen und aktivieren bleiben getrennt. Keine neue PDF-Engine oder Vorschau-API. Patienten- und Cafeteriaausgaben behalten ihre eigene Preis- und Mahlzeitenlogik.
+
+#### M15 — Einstellungen: kompakte Zusammenfassung, Bearbeitung bei Bedarf
+
+Generisches Muster für vorhandene Einstellungen; keine neuen Einstelloptionen daraus ableiten.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| EINSTELLUNGEN                                                                                            |
+| [Bereiche & Zeiten] [Erscheinungsbild] [Datenimport] [Benutzer] [Schnittstellen]                         |
++----------------------------------------------------------------------------------------------------------+
+| BEREICHE UND AUSGABEZEITEN                                                                               |
+| Cafeteria / Mittag         Vorhandener Zustand und vorhandene Zeiten              [E] Bearbeiten         |
+| Patienten / Mittag         Vorhandener Zustand und vorhandene Zeiten              [E] Bearbeiten         |
+| Patienten / Abend          Vorhandener Zustand und vorhandene Zeiten              [E] Bearbeiten         |
++----------------------------------------------------------------------------------------------------------+
+| Patienten / Abend bearbeiten                                       [v] Bearbeitung schliessen            |
+| Betrieb [Offen v]     Beginn [--:--]    Ende [--:--]                                                     |
+| Hinweis [                                                                                           ]    |
+| [!] Leere Zeiten bleiben leere Zeiten; keine erfundenen Standardwerte.                                   |
+| [Abbrechen]                                                        [S] Ausgabeangaben speichern          |
++----------------------------------------------------------------------------------------------------------+
+| Weitere Einstellungen folgen als kurze Zusammenfassung statt staendig offener Formularwand.              |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Bestehende Einstellbereiche gruppiert zeigen. Ein Zustand kann „Nicht erfasst“ sein; keine scheinbar konfigurierten Werte aus dem Beispiel übernehmen. Gefährliche oder weitreichende Einstellungen mit konkreter Wirkung erklären.
+
+**Speichern:** Pro bestehendem Einstellformular eine passende Speicherhandlung; nicht unabhängige Endpoints in eine neue globale Transaktion zusammenlegen. Ein geöffneter Bereich mit Fehler bleibt offen. Sensible Schnittstellenwerte oder Schlüssel nicht in Zusammenfassungen und Screenshots offenlegen.
+
+#### M16 — Erscheinungsbild: gespeicherten Entwurf eindeutig kennzeichnen
+
+Einstellungen links, dazugehörige Vorschau rechts. Keine nur behauptete Live-Aktualisierung.
+
+```text
++-------------------------------------------------------------------+   +----------------------------------+
+| ERSCHEINUNGSBILD / Entwurf bearbeiten                             |   | VORSCHAU                         |
++-------------------------------------------------------------------+   | Gespeicherter Entwurf            |
+| Name [Suedhang Standard - Entwurf                              ]  |   +----------------------------------+
+| Logo [Vorhandenes Logo v]      [Datei auswaehlen]                 |   | Original-Logo                    |
+| Primaerfarbe [Farbwert]       Hintergrund [Farbwert]              |   | Menue mit realistischem Namen    |
+| Schrift [Vorhandene Auswahl v]                                    |   | Vorhandene Beispielinhalte       |
++-------------------------------------------------------------------+   |                                  |
+| [S] Entwurf speichern und Vorschau anzeigen                       |   | Noch nicht aktiviert.            |
+|                                                                   |   | [Entwurf aktivieren]             |
+| [>] Fruehere Versionen                                            |   | Nur vorhandene Aktivierung.      |
+| [>] Technische Farbwerte und weitere Angaben                      |   +----------------------------------+
++-------------------------------------------------------------------+
+```
+
+**Pflicht:** „Vorschau“ benennt den tatsächlich dargestellten Stand. Ein sichtbarer Hinweis bei ungespeicherten Änderungen erklärt, dass die gespeicherte Vorschau diese noch nicht enthält. Die aktive Version darf nicht als ungespeicherter Entwurf erscheinen.
+
+**Nicht neu erfinden:** Kein zusätzlicher Designer, Farbservice oder Schriftabruf. Bestehende Upload-, Entwurfs-, Aktivierungs- und Versionsregeln erhalten. Aktives Marken-CSS und Admin-CSS dürfen sich nicht durch ungeprüfte Vererbung gegenseitig verändern.
+
+#### M17 — Datenimport: Aufgabe und Fehler, nicht technische Rohdaten
+
+Strukturmuster für den bestehenden Importablauf. Vorschau und Import nur in der tatsächlich vorhandenen Reihenfolge.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| EINSTELLUNGEN / Daten importieren                                                                        |
+| Bereich [Vorhandene Bereichsauswahl v]      Datei [Datei auswaehlen]  beispiel.csv                       |
+| [O] Datei pruefen / vorhandene Vorschau oeffnen                                                          |
++----------------------------------------------------------------------------------------------------------+
+| PRUEFERGEBNIS DER AUSGEWAEHLTEN DATEI                                                                    |
+| [!] Zeile 4: Eine vorhandene Pflichtangabe fehlt.                                                        |
+| [>] Betroffene Zeile und konkrete Korrektur anzeigen                                                     |
+| Weitere echte Befunde kompakt als Liste; keine erfundene Fortschrittsanzeige.                            |
++----------------------------------------------------------------------------------------------------------+
+| [>] Dateiformat und Erklaerungen                                                                         |
+| [>] Technische Details                                                                                   |
+| Importaktion nur entsprechend den bestehenden Serverregeln anbieten.                                     |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Genau eine klare Dateiauswahl und eindeutiger Bezug zwischen Ergebnis und geprüfter Datei. Keine alten Prüfungsergebnisse nach Dateiaustausch als aktuell darstellen. Bestehende Importhindernisse verständlich erklären.
+
+**Schutz:** Keine neue automatische Importfunktion, kein Wegklicken fachlicher Fehler und kein neuer Fortschrittsdienst. Rohdaten, Tokens oder interne Fehlerdetails nicht in normale Meldungen kopieren. Produktionsimporte sind keine zulässigen UI-Tests.
+
+#### M18 — Benutzer und ähnliche Verwaltungslisten
+
+Kompakte Verwaltung mit klarer Objektaktion; ausschliesslich vorhandene und erlaubte Daten zeigen.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| EINSTELLUNGEN / Benutzer und Zugriff                                        [+] Benutzer anlegen         |
+| Suche [                                                        ]  [?] Suchen                             |
+| Weitere vorhandene Filter bei Bedarf. Keine Anzeige vertraulicher Zugangsdaten.                          |
++----------------------------------------------------------------------------------------------------------+
+| Name                    Konto                   Status             Aktion                                |
+| Kueche Beispiel         kueche.beispiel          Aktiv              [E] Benutzer oeffnen                 |
+| Testkonto               test.beispiel           Deaktiviert        [E] Benutzer oeffnen                  |
++----------------------------------------------------------------------------------------------------------+
+| Auf der Detailseite: Rollen, Status und berechtigte Aktionen zusammenhaengend anzeigen.                  |
+| Passwort- und Rechteaktionen nicht als namenlose Icons in jede Tabellenzeile quetschen.                  |
+| Leere Liste: kurzer Hinweis und nur erlaubte Anlageaktion. Keine leere Grosskarte.                       |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Dieselben Listen- und Filtermuster wie in anderen Modulen. Zugriffsstatus nicht allein durch Farbe; Aktionen dem konkreten Konto zuordnen. Rollenabhängige Sichtbarkeit ist nur Darstellung, kein Ersatz für serverseitige Autorisierung.
+
+**Kritische Vorgänge:** Passwort, Deaktivierung und Rechteänderung behalten ihre vorhandenen separaten Schutz- und Bestätigungswege. Keine neue Rollenlogik, keine Teständerungen an echten Konten. Tabellenzeilen dürfen bei langen Namen wachsen.
+
+#### M19 — Fehler in einem zuvor geschlossenen Detailbereich
+
+Beispiel eines tatsächlichen Validierungsfehlers, nicht eine neue fachliche Mengenregel.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| REZEPT BEARBEITEN / Apfelmus                                                                             |
+| [!] Speichern nicht erfolgreich. Bitte korrigiere den markierten Eintrag.                                |
+| [Zum Fehler: Zutatenbezeichnung bei Zeile 2]                                                             |
++----------------------------------------------------------------------------------------------------------+
+| Aepfel       [1800] [Gramm v]                                      [>] Details  [...] Aktionen           |
+| ZEILE 2      [100 ] [Milliliter v]                    [!] Fehler    [v] Details schliessen               |
++----------------------------------------------------------------------------------------------------------+
+|   Bezeichnung im Rezept [                                                                         ]      |
+|   [!] Bitte die Bezeichnung ergaenzen. Diese Meldung stammt aus der bestehenden Validierung.             |
+|   Zutat aus Liste [Wasser                                                                         v]     |
+|   Andere Eingaben bleiben erhalten.                                                                      |
++----------------------------------------------------------------------------------------------------------+
+| Zucker       [60  ] [Gramm v]                                      [>] Details  [...] Aktionen           |
++----------------------------------------------------------------------------------------------------------+
+| Nicht gespeichert                                                [Abbrechen]  [S] Rezept speichern       |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Fehlerzusammenfassung und lokaler Fehler führen zum sichtbaren Feld. Der zuständige Abschnitt öffnet sich automatisch; sein Fehler bleibt auch beim erneuten Schliessen erkennbar. Keine verlorenen Mengen, Reihenfolgen oder Referenzen.
+
+**Native Validierung:** Auch ein erforderliches Feld in geschlossenen Details muss erreichbar werden. Nicht `required` entfernen, pauschal `novalidate` setzen oder Validierung aufblähen. Vorhandene Sonderbehandlung von Strukturaktionen bleibt davon getrennt.
+
+**Unklare Netzwerkantwort:** Diese ist ein anderer Zustand als eine bestätigte Validierungsablehnung. Dann „Abschluss konnte nicht bestätigt werden“ anzeigen; weder behaupten, nichts sei gespeichert worden, noch die Schreibaktion blind wiederholen.
+
+#### M20 — Leere Daten, keine Treffer und Ladefehler unterscheiden
+
+Drei alternative Zustände desselben Listenmusters; nicht gleichzeitig auf der Seite darstellen.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| A / NOCH KEINE DATEN                                                                                     |
+| Noch keine Bausteine angelegt.                                  [+] Baustein hinzufuegen                 |
+| Keine Pagination. Kurzer Leerzustand statt einer bildschirmhohen Karte.                                  |
++----------------------------------------------------------------------------------------------------------+
+| B / FILTER OHNE TREFFER                                                                                  |
+| Keine Bausteine passen zu diesen Filtern.                       [Filter zuruecksetzen]                   |
+| Aktiv: Kategorie Gemuese | enthaelt Milch. Auswahl bleibt sichtbar.                                      |
++----------------------------------------------------------------------------------------------------------+
+| C / LADEN FEHLGESCHLAGEN                                                                                 |
+| [!] Bausteine konnten nicht geladen werden.                    [Erneut laden]                            |
+| Nicht als leere Datenbank oder null Treffer ausgeben.                                                    |
++----------------------------------------------------------------------------------------------------------+
+| Fehlende Berechtigung ist ein weiterer eigener Zustand, kein leerer Bestand.                             |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Jeweils nur passende, tatsächlich vorhandene und berechtigte Folgeaktionen. Fehler dürfen nicht nach wenigen Sekunden verschwinden. Keine erfundene Nullzählung, wenn die Abfrage fehlgeschlagen ist.
+
+**Übertragung:** Dieses Muster gilt für Menüs, Rezepte, Kochbücher, Vorlagen, Medien und Benutzerlisten genauso. Die fachliche Benennung und erlaubte Anlagehandlung anpassen; keine Funktionsattrappen hinzufügen.
 
 ## 9. Wiederverwendung statt Seitensonderlösungen
 
@@ -269,7 +961,10 @@ Nutze vorhandene Strukturen. Fehlen gemeinsame Bausteine, lege sie in der passen
 | Status-Macro | Feste Zuordnung echter Statuswerte zu Text und Farbvariante |
 | Empty State | Titel, hilfreiche Erklärung, optionale erlaubte Aktion |
 | Pagination | Wahrer Datenumfang, Seitenlinks, deaktivierte Zustände |
-| Aktionsleiste | Einheitliche Anordnung ohne fachliche Logik im CSS |
+| Aktionsleiste | Eine Speicherhandlung je vorhandenem Formular; Status und Reichweite eindeutig, ohne verdeckte Felder oder Fokus |
+| Arbeitszeile und Detailbereich | Eine Darstellung derselben Formularfelder; Kurztext, offene Fehler, Fokus und erhaltene Werte |
+| Zeilenaktionsmenü | Beschriftete seltene vorhandene Aktionen; ursprüngliche Struktur-/Submit-Semantik und Rückkehr zum Objekt |
+| Icon-Macro | Vorhandene Sprite-IDs, konsistente sichtbare Texte und zugängliche Namen; fehlende Icons erkennbar prüfen |
 
 Jinja ist Teil der bestehenden Flask-Template-Struktur; verwende die vorhandene Vererbung und Escape-Regeln. Kein pauschales `safe`, um Darstellungsprobleme zu umgehen. [S8]
 
@@ -279,9 +974,9 @@ Keine parallelen Varianten wie `modern-card`, `better-table` oder `new-form-v2`.
 
 Verwende die installierten Bootstrap-/Tabler-Breakpoints. Dieser Standard setzt die unveränderte Standardaufteilung voraus: ab 992px Desktop-Sidebar, 768–991px Tablet, darunter Smartphone. Bei nachgewiesen angepassten Projekt-Breakpoints zuerst eine zentrale Zuordnung festlegen und dokumentieren, keine zweiten konkurrierenden Breakpoints einführen.
 
-Unterhalb des Desktop-Breakpoints: Sidebar über die vorhandene passende Collapse-/Offcanvas-Lösung öffnen, Menübutton erreichbar halten, Fokus und Schliessen prüfen. Formulare auf kleinen Geräten einspaltig. Aktionsgruppen dürfen umbrechen, kritische Aktionen bleiben verständlich beschriftet.
+Unterhalb des Desktop-Breakpoints: Sidebar über die vorhandene Collapse-/Offcanvas-Lösung öffnen; „Menü“, Fokus und Schliessen bleiben erreichbar. Sie darf Formulare nicht auf eine schmale Restfläche drücken. Feldgruppen auf kleinen Geräten sinnvoll umordnen: kurze Mengen-/Einheitenfelder dürfen bei ausreichendem Platz nebeneinander bleiben, umfangreiche Bereiche stehen untereinander. Abschnittslinks und Aktionsgruppen umbrechen lassen; Hauptaktionen bleiben sichtbar beschriftet.
 
-Keine horizontale Seitenscrollbar bei 390px. Breite Tabellen dürfen in einem lokal beschränkten, erkennbaren und tastaturbedienbaren Bereich horizontal scrollen. Das ist keine Erlaubnis, wichtige Inhalte unsichtbar zu verstecken. Kalender und vergleichbare Arbeitsflächen erhalten dokumentierte fachliche Ausnahmen.
+Keine horizontale Gesamtdokument-Scrollleiste bei 390px oder im Reflow bei 320 CSS-Pixeln. Zutatenzeilen mobil umordnen statt eine Desktoptabelle zu schrumpfen. Cafeteriaraster bei unzureichender realer Spaltenbreite in chronologische Tagesabschnitte überführen; Patienten behalten sieben Tage, Mittag/Abend und vorhandene Menüarten. Andere fachlich notwendige breite Tabellen dürfen lokal, erkennbar und tastaturbedienbar scrollen; Ausnahmen begründen, wichtige Inhalte nicht abschneiden. Sticky-Speicherleisten verdecken weder Feld noch Fehler oder Fokus und dürfen bei mobiler Tastatur oder geringer Höhe in den Dokumentfluss wechseln.
 
 Ziel ist WCAG 2.2 AA für betroffene Oberflächen: normaler Text mindestens 4,5:1, grosser Text mindestens 3:1; zur Erkennung notwendige nicht-textliche UI-Informationen grundsätzlich mindestens 3:1 zu benachbarten Farben. Prüfe Ausnahmen und Zustände sachgerecht, nicht nur ausgewählte Standardfarben. [S3, S7]
 
@@ -295,13 +990,48 @@ Sichtbarer Fokus: auf hellen Flächen mindestens 2px Burgunder-Outline mit Absta
 
 Lies Repository-Anweisungen, relevante SDDs und bestehende Designentscheidungen. Prüfe den Git-Zustand und die tatsächlichen Versionen. Ermittle alle UI-Routen, Templates und Komponenten sowie Start- und Testbefehle.
 
-Erstelle ein Inventar mit echtem Tool-/Modulnamen, Route oder Zustand, Template, Rolle, Layoutvariante und Migrationsstatus. Erfasse vor Änderungen Screenshots mit datenschutzgerechten Testdaten. Produktive Personen-, Patienten- und Zugangsdaten gehören nicht in Testartefakte.
+Erweitere das vorhandene UI-Inventar mit echtem Modul, Route und sinnvollem Parameterbeispiel, Rolle/Zustand, Template, Kernaufgabe, M01–M20-/R01–R10-Zuordnung, vorhandenen Tests und tatsächlichem Nachweisstatus. Routen, Navigation, Template-/Komponentenverwendungen und Browserprüfungen abgleichen; nicht nur Indexseiten. Repräsentative Datenklassen sowie getrennte Rechte-/Fehlerzustände festlegen. Vor Änderungen Screenshots mit synthetischen Daten erfassen; produktive Personen-, Patienten- und Zugangsdaten gehören nicht in Testartefakte. Alte Audits und historische Commits bleiben historische Belege.
 
 Formuliere Befunde konkret nach diesem Muster:
 
 > **Problem → Beleg → Auswirkung → konkrete Korrektur → betroffene Komponenten/Seiten.**
 
 Keine pauschalen Urteile wie „alles veraltet“ und keine unbewiesenen Aussagen über CSS oder Funktionsfehler.
+
+**Historische Einstiegspunkte im aktuellen Stand verifizieren:**
+
+| Einstieg | Zweck der Prüfung |
+|---|---|
+| `reference_scaffold/cafeteria/templates/admin/base_tabler.html` | Gemeinsamer Seitenrahmen, Navigation, Breite, Vererbung |
+| `reference_scaffold/cafeteria/templates/admin/_macros.html` | Bestehende Icons und gemeinsame UI-Bausteine |
+| `reference_scaffold/cafeteria/templates/admin/rezepte_editor.html` | Zutaten-, Schritt-, Quellen- und Speicheranordnung |
+| `reference_scaffold/cafeteria/templates/admin/_rezepte_fields.html` | Felder und Zeilenaktionen; Verträge nicht versehentlich verändern |
+| `reference_scaffold/cafeteria/admin/recipe_routes.py` | Tatsächliche Daten- und Formularsemantik verstehen |
+| `docs/design/2026-09-12-fullwidth-audit.md` | Historische Breitenbefunde, kein Nachweis aktueller vertikaler Effizienz |
+
+#### Konkrete Prüfung von Platz und Aufgabenaufwand
+
+| Prüffrage | Erwartete Untersuchung |
+|---|---|
+| Ist nur der äussere Rahmen breit? | Gesamte Containerhierarchie und echte Kerninhalte messen. |
+| Wie weit liegt das erste fachliche Objekt unter dem Seitenbeginn? | Davorstehende Verwaltung, Duplikate und dekorative Karten identifizieren. |
+| Wie viele Alltagsangaben sind ohne Zusatzklick bearbeitbar? | Menge/Einheit und typische Felder praktisch bedienen. |
+| Wird pro Datensatz ein fast bildschirmhoher Block wiederholt? | Gemeinsames Zeilen-/Detailmuster anwenden; keine Einzelseiten-Ausnahme. |
+| Sind leere optionale Felder oder technische IDs ständig offen? | Sinnvoll zusammenfassen und gezielt öffnen; Warnungen erhalten. |
+| Sind Tabs, Meldungen, Kopfzeilen oder Aktionen doppelt? | Einen eindeutigen Platz und tatsächlichen Geltungsbereich festlegen. |
+| Erzeugen kompakte Menüs mehr Arbeit? | Klickzahl und Scrollweg derselben Aufgabe vorher/nachher vergleichen. |
+| Ist Bedienung ohne Vorkenntnis möglich? | Sichtbare Wörter, Kontext und ungefährliche Rückwege prüfen. |
+| Gibt es fremde Seiteneffekte? | Gemeinsame CSS-/Macro-Verwendung sowie öffentliche Ausgabe regressionsprüfen. |
+
+#### Messbare Dichteziele
+
+Vergleiche identische Daten, Browserbedingungen und Viewports. Erfasse äussere/innere Breite, Gesamtseitenhöhe im normalen Ausgangszustand, Position des ersten Kerninhalts, direkt nutzbare Zeilen, Klicks/Scrollweg für eine Hauptaufgabe und verbleibende Fehler.
+
+Für normale Listen und Editoren ist erster Kerninhalt innerhalb von ungefähr 280 CSS-Pixeln ab Viewportoberkante ein Prüf-Richtwert. Notwendige Warnungen oder mehrzeilige Titel dürfen ihn überschreiten; begründe dies, statt Pflichtinformationen zu verstecken.
+
+Beim einfachen Rezept mit vier Zutaten und zwei Schritten sollen bei 1440 × 900 in der Standardansicht alle vier kompakten Zutatenzeilen und der Beginn der Zubereitung ohne Verwaltungs-Scrollreise sichtbar sein. Prüfe zusätzlich mindestens ein längeres Rezept mit 20 Zutaten und 10 Schritten. Es darf scrollen; eine offene Grosscard pro Eintrag bleibt unzulässig.
+
+Für nachweislich überlange Wiederholungsformulare kann eine ungefähr halbierte Ausgangsseitenhöhe als Vergleichsziel dienen, nicht als allgemeine Schrumpfpflicht. Bereits kompakte Seiten nicht künstlich verändern. Keine verkleinerte Schrift, versteckte Zutatenliste, neuen Pflichtklicks oder abgeschnittenen Texte als Erfolg zählen.
 
 ### Phase B – Gemeinsame Grundlage
 
@@ -311,7 +1041,7 @@ Lege eine tatsächliche Komponentenübersicht im Entwicklungs-/Testkontext an, s
 
 ### Phase C – Referenz pro Seitentyp
 
-Migriere je eine vorhandene repräsentative Listen-, Formular-, Detail- und Einstellungsseite; dazu vorhandene besondere Facharbeitsflächen. Fehlende Seitentypen nicht neu erfinden.
+Der Rezepteditor ist die erste Referenz: M02–M06 und M19 inklusive Inline-Mengen, Strukturaktionen, Detail-, Mobil- und Fehlerzuständen. Danach je eine vorhandene repräsentative Listen-, Formular-, Detail- und Einstellungsseite sowie besondere Facharbeitsflächen anhand M01–M20 migrieren. Fehlende Seitentypen oder Fachfunktionen nicht aus Skizzen neu erfinden.
 
 Prüfe die Referenzen im Browser, korrigiere die gemeinsamen Komponenten und halte das resultierende Design fest. Ein generiertes Bild ist stilistische Orientierung, keine pixelgenaue Browser-Baseline und kein funktionaler Vertrag.
 
@@ -327,7 +1057,26 @@ Prüfe bestehende Kernabläufe mit realistischen Testdaten: Anzeigen, Anlegen, B
 
 Nutze die vorhandenen Flask-Tests für serverseitiges Verhalten und Browser-Tests für echte Interaktion. Ein erfolgreicher Template-Render ersetzt keinen Browser-Test. Unverändertes Backend nicht pauschal behaupten, sondern den Diff prüfen.
 
-## 12. Reproduzierbarkeit: Screenshots und visuelle Regression
+### Kleine Pakete und laufende Integration
+
+Arbeit in das vorhandene Backlog übernehmen; bestehende Pakete zuordnen und korrekte erledigte Arbeit erhalten. Gemeinsame Templates, Makros, Iconmapping und Styles haben einen Integrationsowner. Die folgende Aufgabenfolge wird vorhandenen MP-/WP-IDs zugeordnet; sie erzeugt keine zweite Paket- oder Leaseverwaltung.
+
+| Paket | Inhalt | Pflichtnachweis |
+|---|---|---|
+| UI-00 | Aktuellen Stand, Regeln, vorhandene Tests, Inventar und konkrete Befunde erfassen | Tatsächliche Dateien, Rollen, Formularverträge und Baseline |
+| UI-01 | Manifest konsolidieren, M01–M20 passend integrieren, Agentenverweise aktualisieren | Eine gültige Quelle ohne konkurrierende Breiten- und Formularkonzepte |
+| UI-02 | Gemeinsame kompakte Arbeitszeile, Detailbereich, Aktionsmenü und Symbolverwendung | Tastatur, native/serverseitige Fehler, unveränderter Formularweg |
+| UI-03 | Rezepteditor inklusive Mobil-, Detail- und Fehlerzuständen umsetzen | M02–M06 und M19 mit tatsächlichem Speichern und Strukturaktionen |
+| UI-04 | Übrige Editoren, Bausteine, Stammdaten und Formulare nachziehen | Vollständige Zuordnung nach Inventar, nicht nur bekannte Screenshots |
+| UI-05 | Listen, Wochenübersicht und Planungsflächen verdichten | M07–M12, vollständige Patienten-/Cafeteriasemantik |
+| UI-06 | Ausgabehubs, Einstellungen, Design, Import und Benutzer prüfen/umbauen | M14–M18/M20 ohne Ausgabe-, Import- oder Rechteänderungen |
+| UI-07 | Gesamtregression und Vergleichsbelege | Jede tatsächliche Seite mit Status, Vorher/Nachher und Tests |
+| UI-08 | Zukunftsregeln in vorhandene Inventar-, Browser- und Reviewprüfungen integrieren | Neue UI-Routen können nicht still am Inventar vorbeigehen |
+| UI-09 | Nutzertest und verbleibende Abnahme dokumentieren | Ergebnisse oder ausdrücklicher Status „noch ausstehend“ |
+
+Jedes Paket nennt Ziel, R-/M-/A-IDs, tatsächliche Dateien und Besitzer, Abhängigkeiten, konkrete Tests und Risiken. Grosse Seitenpakete weiter aufteilen; nach stabiler gemeinsamer Basis nur unabhängige und dateidisjunkte Seiten parallel bearbeiten. Keine gestarteten Worker ohne tatsächlichen Ausführungsbeleg behaupten. Kleine Änderungen fortlaufend integrieren und prüfen; gemeinsame Ursachen zentral korrigieren und alle betroffenen Verwendungstypen regressionsprüfen. Manifeständerung oder Rezepteditor allein schliessen die Migration nicht ab.
+
+## 12. Reproduzierbarkeit, Abnahmetests und visuelle Regression
 
 Prüfe mindestens diese Viewports:
 
@@ -337,9 +1086,10 @@ Prüfe mindestens diese Viewports:
 | 1024 × 768 | Kleiner Desktop / Grenzfall mit Sidebar |
 | 768 × 1024 | Tablet mit eingeklappter Navigation |
 | 390 × 844 | Smartphone |
-| 1920 × 1080 | Zusätzliche Breitenprüfung der gemeinsamen Layoutvarianten |
+| 1920 × 1080 | Breitenprüfung der gemeinsamen Layoutvarianten |
+| 2560 × 1440 | Grosse Arbeitsfläche: innere Breite und Dichte prüfen |
 
-Alle migrierten Routen mindestens am Desktop und Smartphone prüfen. Die repräsentativen Seitentypen und gemeinsamen Komponenten zusätzlich in allen genannten Viewports prüfen. In der Abdeckungstabelle genau festhalten, welche Kombinationen tatsächlich ausgeführt wurden.
+Jede interne UI-Seite mindestens bei 1440 × 900 und 390 × 844 öffnen, visuell prüfen und eine passende Kernaufgabe ausführen. Repräsentative Seitentypen und gemeinsame Komponenten zusätzlich in allen sechs Viewports prüfen. Dazu echter **200-%-Browserzoom**, **Reflow bei 320 CSS-Pixeln**, Tastatur und reduzierte Bewegung. Falls echte Zoomsteuerung fehlt, einen ersatzweisen Reflowtest ausdrücklich als solchen führen, niemals als ausgeführten Zoomtest. Fehlende Rollen, Fixtures oder Browserwerkzeuge ergeben „blockiert“ oder „nicht ausgeführt“. Signage behält zusätzlich seine fachlichen 1920 × 1080-/3840 × 2160-Ausgabeprüfungen; Admin-Vollbreite gilt nicht innerhalb eines A4-Druckbogens. Alle tatsächlich geprüften Kombinationen im Inventar festhalten.
 
 Stabile Referenzbedingungen festlegen: Browser und Version, Betriebssystem beziehungsweise Container, tatsächlich geladene Fonts, Viewport, Gerätepixelfaktor, Sprache, Zeitzone, Benutzerrolle, Testdaten und eingefrorene relevante Uhrzeit. Animationen für visuelle Tests kontrollieren, nicht wahllos im Produkt entfernen. Auf Font- und Inhaltsbereitschaft warten, nicht allein mit festen Sleep-Zeiten arbeiten.
 
@@ -349,21 +1099,64 @@ Freigegebene Baselines versionieren. Der Agent darf vorgeschlagene erste Referen
 
 **Ein Prompt allein ist keine Garantie für identische Oberflächen. Verbindlich wird der Standard durch gemeinsame implementierte Komponenten, zentrale Tokens und geprüfte visuelle Referenzen.**
 
-## 13. Dauerhafte Regeln für Codex und Claude Code
+### 12.1 Abnahmekriterien A01–A24
 
-Lege das konsolidierte Designsystem im Repository beispielsweise unter `docs/ui/design-system.md` ab; nutze einen vorhandenen gleichwertigen Pfad statt doppelter Dokumentation.
+Nutze die vorhandenen Testmittel. Neue reine Entwicklungsabhängigkeiten nur im Rahmen der Projektregeln; keine zusätzliche Produktionsbibliothek für diese UI-Aufgabe. Tests dürfen echte Layoutprobleme nicht durch blind aktualisierte Screenshots als neue Baseline akzeptieren.
 
-Ergänze die vorhandene `AGENTS.md` für Codex und die vorhandene `CLAUDE.md` für Claude Code mit einem kurzen, eindeutigen Leseauftrag. Beide Werkzeuge besitzen dokumentierte Projektanweisungsmechanismen. Bestehende Anweisungen nicht überschreiben; bereichsspezifische Regeln ebenfalls berücksichtigen. [S10, S11]
+| ID | Test | Bestehen bedeutet |
+|---|---|---|
+| A01 | Vollständiges UI-Inventar | Alle tatsächlich vorhandenen internen Seiten, Unteransichten und relevanten Rollen-/Zustandsklassen sind nachvollziehbar erfasst. |
+| A02 | Volle Breite | Äussere und innere Gesamtcontainer nutzen den Arbeitsbereich ohne künstliche Mittelsäule und ohne Dokumentüberlauf. |
+| A03 | Aufgabenbeginn | Kernarbeit steht vor optionaler Verwaltung; doppelte Bereichsauswahl und gleichlautende Prüfaktionen sind beseitigt. |
+| A04 | Rezeptbasis 4/2 | Kurze Basisfelder, vier direkt bedienbare Zutaten und Beginn der Zubereitung erfüllen das beschriebene Desktopziel. |
+| A05 | Langes Rezept 20/10 | Liste bleibt kompakt; notwendiges Scrollen statt riesiger Vollformulare; Angaben vollständig zugänglich. |
+| A06 | Inline-Mengenänderung | Genau ein massgebliches Feld je Wert; ohne Detaildialog ändern und korrekt speichern. |
+| A07 | Detailzustand | Öffnen, Schliessen und lokale Navigation verlieren oder speichern keine Eingaben. |
+| A08 | Strukturaktion | Hinzufügen, Verschieben und Entfernen erhalten Reihenfolge, Zuordnungen, signierte Kontexte und bestehende Speichersemantik. |
+| A09 | Fehler in geschlossenen Bereichen | Native und serverseitige Fehler öffnen bzw. erschliessen den richtigen Bereich, setzen sinnvollen Fokus und erhalten Werte. |
+| A10 | Unverändertes Speichern | Daten, Referenzen, readonly/disabled-Bedeutungen und nicht auflösbare bestehende Zuordnungen überstehen den Roundtrip. |
+| A11 | Gespeichert versus geprüft | Keine Bestätigung neuer ungespeicherter Werte durch alten Prüfstand; fehlende Allergene nicht als allergenfrei darstellen. |
+| A12 | Unklare Schreibantwort | Kein falscher Erfolg und keine blinde Wiederholung; vorhandenen aktuellen Stand nachvollziehbar prüfen. |
+| A13 | Patientenumfang | Alle sieben Tage, Mittag/Abend und bestehenden Menüarten erreichbar; keine Preise. |
+| A14 | Cafeteriaumfang | Fünf reguläre Tage, vorhandene Menüarten und beide Preisgruppen korrekt; Ausnahmen aus bestehender Konfiguration erhalten. |
+| A15 | Druckdatenstand | Absichtlich unterschiedliche gewählte/veröffentlichte Wochen ergeben korrekt beschriftete und tatsächlich passende Ausgaben. |
+| A16 | Symbole und Texte | Vorhandene Icons geladen; gleiche Handlung gleich; Hauptaktionen auf Desktop und Mobil sichtbar beschriftet. |
+| A17 | Bedienbarkeit | Maus, Tastatur, Touch, Trefferflächen, Fokus, Smartphone und echte Zoom-/Reflowprüfungen korrekt. |
+| A18 | Sticky-Leisten | Kein Feld, Fehler oder Fokus verdeckt; eingeblendete mobile Tastatur und geringe Höhe berücksichtigt. |
+| A19 | Suche und Leerzustände | Gesamte bestehende Suchsemantik erhalten; Datenleerstand, Filtertrefferlosigkeit, Fehler und Rechte unterscheiden. |
+| A20 | Bestehende Sicherheitsgrenzen | CSRF, Formularkontext, Rollen, Versionierung, Session- und Serverprüfungen unverändert wirksam. |
+| A21 | Technischer Diff | Keine ungefragten Framework-, Datenmodell-, Vertrags-, Fachlogik- oder Betriebsänderungen. |
+| A22 | Öffentliche Nebenwirkungen | Website, Login, Druck/PDF und Signage nicht durch Admin-Styles beschädigt oder mit Admininhalten vermischt. |
+| A23 | Vergleichbare Belege | Gleiche Daten/Viewports, echte Screenshots und nachvollziehbare Aufgabenmessung; Baselines nicht blind ersetzt. |
+| A24 | Zukunftsgate | Neue/geänderte UI-Routen und gemeinsame Komponenten sind mit passenden Inventar-, Funktions- und Browserprüfungen verbunden. |
 
-Geeigneter einzufügender Text, an den tatsächlichen Pfad angepasst:
+### 12.2 Nutzertest mit mindestens drei tatsächlichen Personen
 
-> Vor jeder Frontend-Änderung `docs/ui/design-system.md` vollständig lesen. Die dort definierten Tokens, Komponenten, Layoutvarianten und Qualitätsprüfungen sind für alle Tools und Seiten verbindlich. Vorhandene UI-Bausteine wiederverwenden. Neue Designvarianten nur mit begründeter zentraler Entscheidung. Keine Frameworkwechsel und keine fachlichen Änderungen als Nebenprodukt. Relevante Funktionstests und visuelle Prüfungen ausführen; nicht ausgeführte Prüfungen ausdrücklich kennzeichnen. Freigegebene Screenshot-Baselines nicht ungeprüft ersetzen.
+Mindestens drei technisch unerfahrene Personen testen repräsentative Kernaufgaben ohne navigierende Hilfestellung: Menge ändern, Zutat hinzufügen und verschieben, Schritt bearbeiten, fehlende Angaben finden und bewusst speichern. Dazu je eine Aufgabe aus Planung, Verwaltung und Ausgabe.
 
-Ein Dateiname allein stellt nicht sicher, dass der gesamte Inhalt tatsächlich geladen wurde. Der Agent muss das referenzierte Designsystem lesen; halte die Startdateien kurz und die ausführliche Spezifikation an einem einzigen Ort.
+Dokumentiere Suchwege, Fehlklicks, Rückfragen und kritische Missverständnisse. Als Projektziel sollen mindestens zwei von drei Personen jede Kernaufgabe ohne Wegbeschreibung abschliessen. Verwechslungen wie globales Löschen statt lokalem Entfernen, Prüfen statt Speichern oder falscher Druckzeitraum verhindern die Nutzerabnahme unabhängig von einer guten Durchschnittsquote.
+
+Fehlen Testpersonen, bleibt dieser Nachweis offen. Ein Agententest oder automatisierter Kontrastcheck ersetzt weder reale Benutzer noch eine vollständige Zugänglichkeitsprüfung.
+
+## 13. Dauerhafte Regeln für alle Coding-Tools
+
+Dieses Manifest bleibt unter `docs/design/2026-09-09-unified-ui-design-system.md` die einzige ausführliche Quelle. AGENTS.md und CLAUDE.md enthalten denselben kurzen Leseauftrag; bestehende und bereichsspezifische Regeln bleiben erhalten. [S10, S11]
+
+> Vor jeder Frontend-Änderung das zentrale UI-Manifest vollständig lesen und passende R-/M-/A-Regeln verwenden. Volle interne Arbeitsbreite, kompakte Wiederholungszeilen, direkt bedienbare häufige Felder und beschriftete Icons gelten für jede neue und geänderte Seite. Details, Fehler, Formulardaten und Speicherzustände sicher behandeln. Route, Rolle/Zustand, Muster und tatsächliche Tests im vorhandenen UI-Inventar nachführen. Keine Fertigmeldung ohne Funktions- und Sichtnachweise; fehlende Prüfungen nennen.
+
+Ein Dateiname allein belegt nicht, dass der Inhalt gelesen wurde. Startdateien kurz halten und die ausführliche Spezifikation an diesem einzigen Ort pflegen.
+
+Keine parallele Prüfarchitektur: bestehende Routeninventar-, Formular- und Browserprüfungen um vertikale Effizienz, Detail-/Fehlerverhalten, Beschriftungen und Vertragsroundtrips erweitern. Statische Suche ersetzt keine Bedienprüfung. Neue Routen brauchen eine bewusste Inventarzuordnung; jede globale Komponentenänderung löst Regression ihrer betroffenen Verwendungstypen aus.
+
+Frühere Freigaben bei konkreten Änderungen revalidieren, nicht pauschal entwerten oder als aktuelle eigene Tests ausgeben. Bestandsabweichungen bleiben offen, bis sie behoben oder ausdrücklich fachlich begründet sind. Gestaltungsausnahmen nennen Ursache, Umfang und Entscheidung; „war vorher auch so“ genügt nicht. Baselines nicht ungeprüft ersetzen.
 
 ## 14. Sicherheits- und Änderungsgrenzen
 
 Keine Änderungen an Authentifizierung, Autorisierung, Session-Handling, Secrets, CSRF oder Datenverträgen als Abkürzung für UI-Arbeit. Keine zusätzlichen öffentlichen Schnittstellen und keine unkontrollierten externen Fonts, CDNs oder Telemetrie integrieren.
+
+Flask, Jinja, Tabler, Iconeinbindung, Datenhaltung und Fachlogik bleiben bestehen. Keine neue Produktionsabhängigkeit, Datenmigration, Speicher-/Vorschau-API, Freigabe- oder Allergenlogik und kein ungefragter Build-/Deploymentumbau. Standardbereich sind bestehende Templates/Partials, projektbezogene Styles, kleine Interaktionen im vorhandenen Assetweg, Tests und Dokumentation. Unvermeidbare darstellungsbezogene Python-Änderungen nach bestehenden Regeln separat begründen. Keine Rezept-, Klinik- oder Formulardaten ungefragt in Local Storage, neue Offline-Speicher oder externe Telemetrie schreiben.
+
+Vor jedem Formular den bestehenden Vertrag sichern: URL, HTTP-Methode, Feldnamen, Indizes, IDs, CSRF, signierter Kontext, Versions-/Konfliktprüfung, `readonly`/`disabled`, `formaction`, `formnovalidate`, Fehlerantwort, Redirect und tatsächlicher Speicherzeitpunkt. Eine optisch lokale Aktion darf nicht unbemerkt eine persistente globale Änderung werden. Strukturaktionen behalten ihre gesonderte Semantik; kein pauschales `novalidate` und keine zweite clientseitige Sortierlogik.
 
 Keine produktiven Lösch-, Import-, Benachrichtigungs- oder Versandaktionen durch Tests auslösen. Vorhandene autorisierte Entwicklungs-/Testumgebung und synthetische Daten verwenden. Sicherheitslücken oder notwendige fachliche Erweiterungen getrennt benennen; Sicherheitsprüfungen nicht verstecken oder stillschweigend aus dem Scope entfernen.
 
@@ -375,10 +1168,14 @@ Liefere die tatsächlichen Implementierungsänderungen, ein konsolidiertes Desig
 
 Die Abdeckungstabelle enthält mindestens:
 
-| Tool / Modul | Route / Zustand | Layout | Design migriert | Funktion | Desktop | Mobile | Accessibility | Beleg / Restpunkt |
-|---|---|---|---|---|---|---|---|---|
+| Tool / Modul | Seite / Route / Rolle / Zustand | R-/M-/A-Muster | Befund und Ursache | Geänderte Dateien | Vorher/Nachher | Test / Viewport | Status / Restpunkt |
+|---|---|---|---|---|---|---|---|
 
-Statuswerte eindeutig verwenden: **bestanden**, **fehlgeschlagen**, **nicht ausgeführt**, **blockiert** oder begründet **nicht anwendbar**. Ein geerbtes Basis-Template beweist noch nicht, dass eine Seite vollständig geprüft ist.
+Teststatus eindeutig verwenden: **bestanden**, **fehlgeschlagen**, **nicht ausgeführt**, **blockiert** oder **nicht anwendbar mit Begründung**. Zusätzlich **implementiert**, **technisch geprüft**, **visuell geprüft** und **durch Benutzer abgenommen** unterscheiden. Ein geerbtes Basis-Template, HTTP 200, Build, Screenshot oder Breitenwert beweist weder vollständige Interaktion noch das Gesamtaudit.
+
+Vorher-/Nachher-Belege unter denselben Bedingungen speichern. Zu HTML-Prototypen die tatsächlichen HTML-/CSS-/JS-Quellen ablegen; Prototypen und generierte Bilder sind kein Implementierungsnachweis. Anwendungsscreenshots eindeutig kennzeichnen. Bereinigte HTML-Belege enthalten keine Zugangsdaten, Sessionwerte, CSRF-Tokens oder personenbezogenen Patientendaten. Die Übergabe nennt pro Paket Anforderungen, tatsächliche Dateien, erhaltene Formularverträge, ausgeführte Tests, Screenshotbelege und Restentscheidungen.
+
+Eine reine Manifestkonsolidierung erfüllt nur den Dokumentteil UI-01. Produktimplementierung, Inventar, Browser-/Formularprüfungen und der reale Drei-Personen-Nutzertest brauchen jeweils eigene Belege; dieses Dokument behauptet keinen bestandenen Produkttest.
 
 Die Gesamtmigration ist erst abgeschlossen, wenn alle vorhandenen betroffenen Tools und Routen inventarisiert, migriert und entsprechend der Testmatrix geprüft sind; das Design zentral umgesetzt ist; wesentliche Abläufe weiterhin funktionieren; keine unerklärten alten Admin-Stile verbleiben; keine Attrappen oder erfundenen Daten hinzugekommen sind; und verbleibende Einschränkungen nicht verschwiegen werden.
 
@@ -427,4 +1224,3 @@ Die Quellen erläutern Werkzeuge und technische Prüfanforderungen. Die konkrete
 - **[S9] W3C: Understanding SC 2.5.8, Target Size (Minimum).** Mindestzielgrössen und Ausnahmen. `https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html`
 - **[S10] OpenAI: Custom instructions with AGENTS.md.** Projektanweisungen für Codex. `https://developers.openai.com/codex/guides/agents-md/`
 - **[S11] Anthropic: How Claude remembers your project.** Projektanweisungen über CLAUDE.md. `https://code.claude.com/docs/en/memory`
- prompt für UI polish bzw. UI überarbeitung. auch ins backlog, kleine wps erzeugen.
