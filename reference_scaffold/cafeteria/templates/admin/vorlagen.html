@@ -40,6 +40,7 @@
           {% endif %}
           {% endif %}
         </section>
+        <p class="text-secondary small mb-3 output-publication-note" role="note">Gewählte Woche: ab {{ week|date_long }}. Öffentliche Druckansichten zeigen den aktuell veröffentlichten Plan. Ohne Veröffentlichung erscheint ein Hinweis.</p>
         <details class="card mb-3 output-layouts-section">
             <summary class="card-header">Frühere Versionen und weitere Vorlagen</summary>
             <div class="card-body">
@@ -82,7 +83,6 @@
           <div class="card-body">
             <div class="output-print-section mb-4 pb-3 border-bottom">
               <h3 class="h4 mb-2">PDF öffnen oder drucken</h3>
-              <p class="text-secondary small mb-3">Gewählte Woche: ab {{ week|date_long }}. Öffentliche Druckansichten zeigen den aktuell veröffentlichten Plan.</p>
               <div class="btn-list mb-2">
                 <a class="btn" href="{{ url_for('admin.print_week', family=output_family, week=week) }}" aria-label="{{ label }} PDF der gespeicherten Woche öffnen">{{ icon('file-text') }}PDF der gewählten Woche öffnen</a>
                 <a class="btn" href="{{ url_for('public.print_' ~ endpoint ~ '_week') }}" aria-label="{{ label }} veröffentlichten Wochenplan drucken">{{ icon('printer') }}Veröffentlichten Plan drucken</a>
