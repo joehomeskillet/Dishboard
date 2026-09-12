@@ -275,12 +275,6 @@ def apply_import(
     document: dict[str, Any], engine: Any, actor: Any, *, dry_run: bool = False,
     write_back: Path | None = None,
 ) -> dict[str, Any]:
-    scaffold_import()
-    from cafeteria import recipe_store as recipes  # type: ignore[import-not-found]
-
-    location = recipes.get_location(engine)
-    storage_ids = ensure_storage(engine, actor, document) if not dry_run else {}
-    food_ids = ensure_foods(engine, actor, document, storage_ids) if not dry_run else {}
     if dry_run:
         prep = [item for item in document['recipes'] if item['batch_group'] == 'preparation']
         dish = [item for item in document['recipes'] if item['batch_group'] == 'dish']
@@ -293,6 +287,12 @@ def apply_import(
             'dish_titles': len(document['dish_mappings']),
             'source_occurrences': sum(len(item['source_occurrences']) for item in document['dish_mappings']),
         }
+    scaffold_import()
+    from cafeteria import recipe_store as recipes  # type: ignore[import-not-found]
+
+    location = recipes.get_location(engine)
+    storage_ids = ensure_storage(engine, actor, document)
+    food_ids = ensure_foods(engine, actor, document, storage_ids)
     meta = document['meta']
     summary: dict[str, Any] = {
         'storage_locations': len(storage_ids),

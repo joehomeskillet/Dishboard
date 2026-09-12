@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
 import sys
 from pathlib import Path
+from types import MappingProxyType
 
 import pytest
 from sqlalchemy import text
@@ -94,11 +97,106 @@ def user_count(owner) -> int:
         return current.execute(text('SELECT count(*) FROM cafeteria.users')).scalar_one()
 
 
+@pytest.fixture
+def image_import_cli(tmp_path):
+    """Mirror Dockerfile's flattened scaffold plus read-only tools/demo mounts."""
+    app = tmp_path / 'app'
+    (app / 'tools').mkdir(parents=True)
+    (app / 'demo').mkdir()
+    for filename in ('build_recipe_draft_import.py', 'recipe_draft_apply.py'):
+        shutil.copyfile(WORKTREE / 'tools' / filename, app / 'tools' / filename)
+    shutil.copyfile(IMPORT_PATH, app / 'demo' / IMPORT_PATH.name)
+    (app / 'demo' / IMPORT_PATH.name).chmod(0o444)
+    (app / 'demo').chmod(0o555)
+    (app / 'cafeteria').symlink_to(WORKTREE / 'reference_scaffold' / 'cafeteria')
+    yield app / 'tools' / 'build_recipe_draft_import.py'
+    (app / 'demo').chmod(0o755)
+
+
+@pytest.mark.parametrize('layout', ['checkout', 'image'])
+def test_dry_run_cli_needs_no_app_context_database_or_site_packages(image_import_cli, tmp_path, layout):
+    cli = WORKTREE / 'tools' / 'build_recipe_draft_import.py' if layout == 'checkout' else image_import_cli
+    document = cli.parents[1] / 'demo' / IMPORT_PATH.name
+    before = document.read_bytes()
+    result = subprocess.run(
+        [sys.executable, '-B', '-S', str(cli), '--dry-run'],
+        cwd=tmp_path, env={}, capture_output=True, text=True, check=False, timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stderr == ''
+    assert json.loads(result.stdout) == {
+        'dry_run': True, 'storage_locations': 3, 'foods': 100,
+        'preparation_recipes': 29, 'dish_recipes': 32, 'dish_titles': 32,
+        'source_occurrences': 76,
+    }
+    assert document.read_bytes() == before
+
+
+def test_image_apply_cli_uses_app_database_config_and_replays_without_writeback(master, image_import_cli):  # noqa: F811
+    owner, engine, actor = master
+    attach_local_credentials(owner, actor)
+    url = engine.url
+    environment = {
+        'POSTGRES_USER': url.username, 'POSTGRES_PASSWORD': url.password,
+        'POSTGRES_HOST': url.host, 'POSTGRES_PORT': str(url.port),
+        'POSTGRES_DB': url.database, 'POSTGRES_SSLMODE': url.query.get('sslmode', 'disable'),
+    }
+    document = image_import_cli.parents[1] / 'demo' / IMPORT_PATH.name
+    before_file = document.read_bytes()
+    before_users = user_count(owner)
+    for expected in ('imported', 'skipped'):
+        before = snapshot(owner)
+        result = subprocess.run(
+            [sys.executable, '-B', str(image_import_cli), '--apply', '--actor-user',
+             'recipe.importer', '--skip-migrations'],
+            cwd=image_import_cli.parents[1], env=environment,
+            capture_output=True, text=True, check=False, timeout=120,
+        )
+        assert result.returncode == 0, result.stderr
+        summary = json.loads(result.stdout)
+        assert summary['storage_locations'] == 3
+        assert summary['foods'] == 100
+        assert [batch['status'] for batch in summary['batches']] == [expected, expected]
+        if expected == 'skipped':
+            assert snapshot(owner) == before
+        else:
+            assert len(snapshot(owner)['recipes']) - len(before['recipes']) == 61
+        assert document.read_bytes() == before_file
+        assert user_count(owner) == before_users
+
+
 def test_apply_cli_requires_explicit_actor(monkeypatch, capsys):
     monkeypatch.delenv('RECIPE_IMPORT_ALLOW_FIXTURE_ACTOR', raising=False)
     monkeypatch.setattr(sys, 'argv', ['build_recipe_draft_import.py', '--apply', '--output', str(IMPORT_PATH)])
     assert importer.main() == 2
     assert '--actor-user' in capsys.readouterr().err
+
+
+def test_apply_cli_reports_immutable_partial_batch_failure(master, monkeypatch, capsys):  # noqa: F811
+    owner, engine, actor = master
+    attach_local_credentials(owner, actor)
+    summary = {'batches': [
+        {'status': 'imported', 'imported': (MappingProxyType({'recipe_public_id': 'recipe-1'}),)},
+        {'status': 'conflict', 'group': 'dish', 'public_id': 'batch-2'},
+    ]}
+
+    def conflict(*_args, **_kwargs):
+        raise applyer.BatchImportError(summary)
+
+    monkeypatch.setattr('sqlalchemy.create_engine', lambda *_args, **_kwargs: engine)
+    monkeypatch.setattr(applyer, 'apply_import', conflict)
+    monkeypatch.setattr(sys, 'argv', [
+        'build_recipe_draft_import.py', '--apply', '--database-url', 'postgresql://unused',
+        '--actor-user', 'recipe.importer', '--skip-migrations',
+    ])
+    before = snapshot(owner)
+    assert importer.main() == 1
+    captured = capsys.readouterr()
+    report, end = json.JSONDecoder().raw_decode(captured.err)
+    assert report['batches'][0]['imported'] == [{'recipe_public_id': 'recipe-1'}]
+    assert 'Batch-Import abgebrochen vor Pins: dish batch-2 status=conflict' in captured.err[end:]
+    assert captured.out == ''
+    assert snapshot(owner) == before
 
 
 def test_resolve_import_actor_by_username_and_public_id_without_inserting_user(master):  # noqa: F811
