@@ -756,6 +756,7 @@ def _login_entra_session(
     if provider_sid is not None:
         claims['sid'] = provider_sid
     application.config['ENTRA_TENANT_ID'] = tenant
+    application.config['ENTRA_ISSUER'] = f'https://login.microsoftonline.com/{tenant}/v2.0'
     monkeypatch.setattr(auth_routes, '_client', lambda: FakeMsalClient(claims))
     with client.session_transaction() as flask_session:
         flask_session['auth_flow'] = {'state': 'test-state'}

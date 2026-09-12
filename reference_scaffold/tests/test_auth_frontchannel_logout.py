@@ -44,6 +44,7 @@ def app(monkeypatch: pytest.MonkeyPatch) -> Flask:
         ENTRA_ENABLED=True,
         ENTRA_TENANT_ID=TENANT,
         ENTRA_CLIENT_ID='test-client-id',
+        ENTRA_ISSUER=ISSUER,
     )
     application.extensions['cafeteria_auth_issuer_db'] = object()
     application.extensions['cafeteria_db'] = object()
@@ -74,6 +75,97 @@ def _login(client: Any, monkeypatch: pytest.MonkeyPatch, *, provider_sid: str | 
     with client.session_transaction() as current:
         current['auth_flow'] = {'state': 'test-state'}
     assert client.get('/auth/callback').status_code == 302
+
+
+def test_callback_rejects_provider_sid_longer_than_255_characters(
+    app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    claims = {
+        'tid': TENANT,
+        'oid': '00000000-0000-0000-0000-000000000952',
+        'roles': ['Cafeteria.Editor'],
+        'sid': 's' * 256,
+    }
+    monkeypatch.setattr(routes, '_client', lambda: FakeMsalClient(claims))
+    monkeypatch.setattr(routes, 'render_template', lambda *_args, **_kwargs: '')
+    client = app.test_client()
+    with client.session_transaction() as current:
+        current['auth_flow'] = {'state': 'test-state'}
+
+    response = client.get('/auth/callback')
+
+    assert response.status_code == 403
+    with client.session_transaction() as current:
+        assert 'user' not in current
+
+
+@pytest.mark.parametrize(
+    ('method', 'query_string', 'data'),
+    (
+        ('get', None, {'iss': ISSUER, 'sid': 'provider-session-id'}),
+        ('post', {'iss': ISSUER, 'sid': 'provider-session-id'}, None),
+    ),
+)
+def test_frontchannel_logout_rejects_parameters_from_wrong_method_source(
+    app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+    method: str,
+    query_string: Any,
+    data: Any,
+) -> None:
+    client = app.test_client()
+    _login(client, monkeypatch, provider_sid='provider-session-id')
+
+    response = getattr(client, method)(
+        '/auth/frontchannel-logout',
+        query_string=query_string,
+        data=data,
+    )
+
+    assert response.status_code == 400
+    assert response.get_data() == b''
+    assert response.headers['Cache-Control'] == 'no-store'
+    with client.session_transaction() as current:
+        assert current['user']['sid'] == 'provider-session-id'
+
+
+def test_frontchannel_logout_rejects_provider_sid_longer_than_255_characters(
+    app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = app.test_client()
+    _login(client, monkeypatch, provider_sid='provider-session-id')
+
+    response = client.get(
+        '/auth/frontchannel-logout',
+        query_string={'iss': ISSUER, 'sid': 's' * 256},
+    )
+
+    assert response.status_code == 400
+    assert response.get_data() == b''
+    assert response.headers['Cache-Control'] == 'no-store'
+    with client.session_transaction() as current:
+        assert current['user']['sid'] == 'provider-session-id'
+
+
+def test_frontchannel_logout_uses_configured_issuer(
+    app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configured_issuer = 'https://login.microsoftonline.us/custom-tenant/v2.0'
+    app.config['ENTRA_ISSUER'] = configured_issuer
+    client = app.test_client()
+    _login(client, monkeypatch, provider_sid='provider-session-id')
+
+    response = client.post(
+        '/auth/frontchannel-logout',
+        data={'iss': configured_issuer, 'sid': 'provider-session-id'},
+    )
+
+    assert response.status_code == 200
+    with client.session_transaction() as current:
+        assert 'user' not in current
 
 
 @pytest.mark.parametrize('method', ('get', 'post'))
