@@ -238,3 +238,16 @@ Lieferumfang: tatsächliche Dateipfade, Befund-ID → Änderung → Test → Erg
 Ein Test mit technisch unerfahrenen Personen soll insbesondere zeigen, ob sie ein Menü finden, nur die Beilage ändern, speichern und den Unterschied zwischen „geprüft“ und „Allergenangaben fehlen“ erklären können. Ein Agent darf fehlende Nutzerbeobachtungen nicht als durchgeführt ausgeben.
 
 **Kernziel: Volle Breite behalten, Wiederholungen entfernen, Menüs zuerst zeigen und Prüfzustände verständlich machen. Nicht erneut nur die Karten grösser machen.**
+
+## Umsetzung Bausteine (wp-ui-korrektur-components-0912)
+
+| Befund | Änderung | Test |
+|---|---|---|
+| P03/P08 | Liste: kompakte Filterzeile zuerst, Ergebnisliste direkt darunter, «Baustein anlegen» als eingeklappter Bereich am Ende | `test_ui_korrektur_components_browser.py::test_list_first_row_visible_without_scroll` |
+| P08/P10 | Pro Zeile eine «Bearbeiten»-Aktion; Name ohne Doppel-Link; Kennzeichnungen kompakt | `test_component_catalog_browser.py` |
+| P09 | Editor: «Baustein speichern» als Primäraktion, «Abbrechen» nachgeordnet; Archivieren/Reaktivieren separat unten | `test_component_catalog_browser.py` |
+| P05/P10 | Status/Verwendung/Gültigkeit getrennt mit Geltungsbereich-Hinweisen für Allergenfilter und Katalogangaben | `test_component_filters_browser.py` |
+| P10 | UI-Wörter «Bausteine» statt «Komponenten» auf den beiden Seiten | Browser-Tests in Besitz |
+| A11/A12 | Volle Breite, Viewports 1366×768 … 390×844 und 200 % ohne horizontales Scrollen | `test_ui_korrektur_components_browser.py` |
+
+Screenshotnachweise: `.claude/evidence/ui-korrektur-0912/components/`.
