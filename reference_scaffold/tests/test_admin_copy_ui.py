@@ -54,8 +54,9 @@ def test_copy_confirmation_is_readable_and_submits_without_javascript(
         expect(page.get_by_role('heading', name='Vorwoche kopieren', exact=True)).to_be_visible()
         expect(page.locator('.admin-copy-profile')).to_have_text(label)
         expect(page.locator('#copy-description')).to_have_text(
-            'Woche vom 28.12.2026 in die leere Woche vom 04.01.2027 kopieren.'
+            'Quelle: Woche vom 28.12.2026. Ziel: in die leere Woche vom 04.01.2027.'
         )
+        expect(page.locator('#copy-effects')).to_contain_text('Prüfbestätigungen werden nicht übernommen')
         expect(page.locator('.admin-copy-weeks')).to_contain_text('KW 53 / 2026')
         expect(page.locator('.admin-copy-target')).to_contain_text('KW 1 / 2027')
         assert page.locator('main').get_attribute('data-profile') == profile
@@ -103,6 +104,10 @@ def test_copy_confirmation_is_readable_and_submits_without_javascript(
         expect(page.locator('.skip-link')).to_be_focused()
         page.keyboard.press('Enter')
         page.keyboard.press('Tab')
+        area_links = page.locator('.admin-area-tabs a')
+        expect(area_links.first).to_be_focused()
+        for _ in range(area_links.count()):
+            page.keyboard.press('Tab')
         expect(primary).to_be_focused()
         assert primary.evaluate("el => getComputedStyle(el).outlineStyle !== 'none'")
         with page.expect_response(lambda response: response.request.method == 'POST') as saved:

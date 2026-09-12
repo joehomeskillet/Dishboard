@@ -109,7 +109,7 @@ def test_csv_preview_empty_and_invalid_have_clear_next_actions(
     _upload(page, INVALID_CSV)
     expect(page.locator('main')).to_have_attribute('data-state', 'error')
     alert = page.get_by_role('alert')
-    expect(page.get_by_label('Korrigierte CSV-Datei')).to_be_focused()
+    expect(alert).to_be_focused()
     expect(page.get_by_label('Korrigierte CSV-Datei')).to_have_attribute('aria-describedby', 'file-error')
     expect(page.get_by_label('Korrigierte CSV-Datei')).to_have_attribute('aria-invalid', 'true')
     expect(alert).to_contain_text('Datei korrigieren')

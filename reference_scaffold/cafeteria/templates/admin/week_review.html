@@ -5,25 +5,25 @@
 {% block main_attributes %}data-week="{{ week }}"{% endblock %}
 {% block page_header %}
 <div class="text-break">
-{% call page_header('Wochenkopf und Ausgabehinweise prüfen', area_names[profile] ~ ' · Woche ab ' ~ week[8:10] ~ '.' ~ week[5:7] ~ '.' ~ week[:4]) %}
+{% call page_header('Wochenkopf und Ausgabeangaben prüfen', area_names[profile] ~ ' · Woche ab ' ~ week[8:10] ~ '.' ~ week[5:7] ~ '.' ~ week[:4]) %}
   <a class="btn" href="{{ url_for('admin.' ~ family, week=week) }}">Zur Wochenübersicht</a>
 {% endcall %}
 </div>
 {% endblock %}
 {% block content %}
 {% set context = review.context %}
-<p>Prüfen Sie den gespeicherten Wochenkopf und alle Ausgabehinweise. Die Menüs werden einzeln geprüft. Eine Bestätigung veröffentlicht noch keinen Wochenplan.</p>
 {% if review.receipt %}
 <div class="alert alert-success d-block text-break" role="status">
-  <p>{{ status('success', 'Geprüft') }} Wochenkopf und Ausgabehinweise für diesen gespeicherten Stand.</p>
+  <p>{{ status('success', 'Geprüft') }} Wochenkopf und Ausgabeangaben für diesen gespeicherten Stand.</p>
   <p class="mb-0">Dieser Stand wurde von {{ review.receipt.actor_name }} am {{ review.receipt.occurred_at|datetime_short }} geprüft.</p>
 </div>
 {% else %}
 <div class="alert alert-warning d-block">
   <p>{{ status('review_open', 'Noch zu prüfen') }}</p>
-  <p class="mb-0">Für den gespeicherten Wochenkopf und seine Ausgabehinweise liegt keine gültige Prüfung vor. Nach Änderungen ist eine erneute Prüfung erforderlich.</p>
+  <p class="mb-0">Für den gespeicherten Wochenkopf und seine Ausgabeangaben liegt keine gültige Prüfung vor. Nach Änderungen ist eine erneute Prüfung erforderlich.</p>
 </div>
 {% endif %}
+<p data-week-review-intro>Prüfen Sie den gespeicherten Wochenkopf und alle Ausgabeangaben. Die Menüs werden einzeln geprüft. Eine Bestätigung veröffentlicht noch keinen Wochenplan.</p>
 <section class="card mb-3" aria-labelledby="week-heading">
   <div class="card-header"><h2 class="card-title" id="week-heading">Wochenkopf</h2></div>
   <div class="card-body text-break">
@@ -33,7 +33,7 @@
     </dl>
   </div>
 </section>
-<h2>Ausgaben und Hinweise</h2>
+<h2>Ausgabeangaben</h2>
 <div class="row g-3 mb-3">
   {% for service in context.services %}
   <div class="col-12 col-xl-6">
@@ -51,7 +51,7 @@
     </section>
   </div>
   {% else %}
-  {{ empty_state('none', 'Noch keine Ausgaben gespeichert.', 'Später ergänzte Ausgaben und Hinweise müssen erneut geprüft werden.') }}
+  {{ empty_state('none', 'Noch keine Ausgabeangaben gespeichert.', 'Später ergänzte Ausgabeangaben müssen erneut geprüft werden.') }}
   {% endfor %}
 </div>
 {% if not review.receipt and can_write %}
