@@ -167,4 +167,5 @@ def test_empty_collection_has_navigation_and_empty_state(client):
     for family in ('cafeteria', 'patienten'):
         overview = client.get('/admin/' + family).get_data(as_text=True)
         assert '/admin/' + family + '/menues' in overview
-        assert '/admin/' + family + '/komponenten' in overview
+        menus_page = client.get('/admin/' + family + '/menues').get_data(as_text=True)
+        assert '/admin/' + family + '/komponenten' in menus_page

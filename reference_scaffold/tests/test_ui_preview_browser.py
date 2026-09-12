@@ -25,10 +25,10 @@ FAMILIES = (
 )
 SCRIPT_FREE = 'script, style, [style], [onclick], form, button'
 STATUS_LABELS = (
-    ('ready', 'Bereit'),
-    ('published', 'Publiziert'),
-    ('archived', 'Archiviert'),
-    ('draft', 'Entwurf'),
+    ('ready', 'Nicht veröffentlicht · Bereit'),
+    ('published', 'Veröffentlicht'),
+    ('archived', 'Nicht veröffentlicht · Archiviert'),
+    ('draft', 'Nicht veröffentlicht · Entwurf'),
 )
 
 
@@ -96,7 +96,7 @@ def test_preview_standalone_script_free_saved_states(
             response = page.goto(f'/admin/{family}/preview?week={DAY}')
             assert response is not None and response.status == 200
             expect(page.locator('.preview-saved')).to_have_text(
-                f'Zuletzt gespeicherter Stand · {translated}',
+                f'Veröffentlichungsstand dieser Woche: {translated}',
             )
             assert page.locator('[data-preview]').get_attribute('data-workflow-state') == state
         expect(page.get_by_role('heading', level=1)).to_have_text(f'Vorschau · {label}')
@@ -134,7 +134,7 @@ def test_preview_standalone_script_free_saved_states(
 @pytest.mark.parametrize(
     'width,height,java_script_enabled',
     [
-        (1440, 900, False), (1024, 768, False), (768, 1024, False),
+        (1440, 900, False), (1366, 768, False), (1024, 768, False), (768, 1024, False),
         (390, 844, False), (1920, 1080, False),
         (1440, 900, True), (390, 844, True),
     ],

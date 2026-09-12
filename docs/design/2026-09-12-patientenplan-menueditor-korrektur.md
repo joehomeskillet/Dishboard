@@ -238,3 +238,87 @@ Lieferumfang: tatsächliche Dateipfade, Befund-ID → Änderung → Test → Erg
 Ein Test mit technisch unerfahrenen Personen soll insbesondere zeigen, ob sie ein Menü finden, nur die Beilage ändern, speichern und den Unterschied zwischen „geprüft“ und „Allergenangaben fehlen“ erklären können. Ein Agent darf fehlende Nutzerbeobachtungen nicht als durchgeführt ausgeben.
 
 **Kernziel: Volle Breite behalten, Wiederholungen entfernen, Menüs zuerst zeigen und Prüfzustände verständlich machen. Nicht erneut nur die Karten grösser machen.**
+
+## Umsetzung Bereiche & Öffnungszeiten
+
+Die Seite `/admin/bereiche-zeiten` zeigt zuerst beide Bereiche mit ihren tatsächlichen
+Wochenvorgaben. Aussagen zu Wochenenden und Zeiten nennen ausdrücklich den Geltungsbereich
+«für neue Ausgaben». Fehlende Zeiten werden einmal je Bereich erklärt und nicht als
+Schliessung oder angebliche Standardzeit dargestellt.
+
+Formulare für Bereichsnamen, Wochenendbetrieb, Wochenvorgaben und datierte Ausnahmen liegen
+in nativen `<details>`-Bereichen. Sie bleiben ohne JavaScript bedienbar und öffnen sich beim
+betroffenen Validierungsfehler automatisch. Jeder Schreib- oder Ladevorgang behält sein
+eigenes Formular und genau eine Hauptaktion; POST-Ziele, Feldnamen, CSRF-Felder und
+Versionswerte bleiben unverändert. Gespeicherte Ausnahmen sind als nachgeordnete Ansicht
+ebenfalls bei Bedarf erreichbar.
+
+Der Browservertrag `test_ui_korrektur_ops_browser.py` prüft Reihenfolge, genau eine
+Shell-Bereichsauswahl, volle Breite, Dokumentüberlauf, Fehlerfokus und Werterhalt sowie die
+abgefangenen Formular-Requests mit und ohne JavaScript. Screenshotbelege decken 1366×768,
+1920×1080, 768×1024, 390×844 und den effektiven 200-%-Viewport sowie Leer- und Fehlerzustand
+ab.
+
+## Umsetzung Menüsammlung/Wochenübersicht
+
+Im Rahmen des Arbeitspakets `wp-ui-korrektur-menus-0912` (Lane `antigravity-agy`) wurden die Grundsätze P01–P10 auf die beiden Übersichtsseiten **Menüsammlung** (`menu_collection.html`) und **Wochenübersicht** (`week_management.html`) übertragen:
+
+### 1. Bestandsaufnahme & Bereinigung
+- **Doppelte Navigation (P01):** Auf der Wochenübersicht wurde die zusätzliche, frei im Inhaltsbereich stehende Bereichszeile entfernt und stattdessen direkt als profilbezogener Umschalter im Kopfbereich der Wochenliste (`card-header`) verankert.
+- **Hauptaufgabe zuerst (P03):** Die Menüsammlung bietet eine kompakte Toolbar (Bereichstabs, Suche, Karten/Listen-Toggle). Erste Menükarten bzw. die erste gespeicherte Woche sind bei Standard-Desktop (1366 × 768) ohne vertikales Scrollen sofort im Blickfeld.
+- **Wahrheitsgetreue Statusdifferenzierung (P05):** Veröffentlichungsstatus (`live`, `changed`, `ready`), gespeicherte Prüfung (`Geprüft · gespeicherter Stand bestätigt`, `Prüfung offen`) und Allergenvollständigkeit (`Allergenangaben nicht erfasst`) werden nie vermischt oder als dieselbe Aussage dargestellt.
+- **Lange Hinweise gebündelt (P06):** Freitexte aus `note` und `description` dominieren die Karten nicht mehr unkontrolliert; sie stehen vollständig und ungekürzt unter einem nativen `<details>`-Block («Hinweis anzeigen»). Fehlende Deklarationen («Allergenangaben nicht erfasst») verbleiben zwingend ausserhalb der Einklappung direkt sichtbar auf der Karte.
+- **Aktionshierarchie (P09):** Jede Menükarte besitzt genau eine sichtbare Hauptaktion («Öffnen»). In der Wochenübersicht ist «Woche öffnen» als primärer Button (`btn-primary`) hervorgehoben; Nebenaktionen («Vorschau», «In Folgewoche kopieren») sind gruppiert.
+- **Sprachliche Klarheit (P10):** Technische Begriffe wurden durch verständliche Formulierungen («Veröffentlichen», «Ausgabeangaben») ersetzt.
+
+### 2. Statusdarstellung Wochenübersicht (`derive_admin_status`)
+Die Statusspalte der Wochenliste nutzt konsistent die vertragliche Klartext-Matrix:
+- `live` → «Veröffentlicht · entspricht dem gespeicherten Stand»
+- `changed` → «Veröffentlicht · gespeicherte Änderungen noch nicht veröffentlicht»
+- `ready` → «Noch nicht veröffentlicht · bereit»
+- `review_open` → «Prüfung offen»
+- `incomplete` → «Unvollständig»
+- `empty` → «Noch keine Menüs erfasst»
+
+### 3. Technische Schutzgrenzen
+- Volle Arbeitsbreite (`data-layout="standard"`) bleibt ohne Breitenbegrenzung auf allen Displaygrössen erhalten.
+- Alle CSS-Stile in `admin-menu-collection.css` nutzen ausschliesslich Tokens aus `tokens.css` (keine harten Hex-Werte, keine ungemappten Klassen).
+- Sämtliche POST-Ziele, Formularfelder, Hidden-Inputs (`_csrf`, `row_version`), Filterparameter (`q`, `page`) und Redirect-Routen bleiben unberührt.
+- Browser-Verifikation via `test_ui_korrektur_menus_browser.py` erbringt Screenshots für 1366×768, 1920×1080, 768×1024, 390×844 sowie 200 % Zoom ohne horizontales Scrollen.
+
+## Umsetzung Bausteine (wp-ui-korrektur-components-0912)
+
+| Befund | Änderung | Test |
+|---|---|---|
+| P03/P08 | Liste: kompakte Filterzeile zuerst, Ergebnisliste direkt darunter, «Baustein anlegen» als eingeklappter Bereich am Ende | `test_ui_korrektur_components_browser.py::test_list_first_row_visible_without_scroll` |
+| P08/P10 | Pro Zeile eine «Bearbeiten»-Aktion; Name ohne Doppel-Link; Kennzeichnungen kompakt | `test_component_catalog_browser.py` |
+| P09 | Editor: «Baustein speichern» als Primäraktion, «Abbrechen» nachgeordnet; Archivieren/Reaktivieren separat unten | `test_component_catalog_browser.py` |
+| P05/P10 | Status/Verwendung/Gültigkeit getrennt mit Geltungsbereich-Hinweisen für Allergenfilter und Katalogangaben | `test_component_filters_browser.py` |
+| P10 | UI-Wörter «Bausteine» statt «Komponenten» auf den beiden Seiten | Browser-Tests in Besitz |
+| A11/A12 | Volle Breite, Viewports 1366×768 … 390×844 und 200 % ohne horizontales Scrollen | `test_ui_korrektur_components_browser.py` |
+
+Screenshotnachweise: `.claude/evidence/ui-korrektur-0912/components/`.
+
+## Umsetzung Kochbücher
+
+Die Kochbuchliste zeigt Suche und vorhandene Kochbücher vor der optionalen
+Neuanlage. «Kochbuch anlegen» bleibt für Schreibberechtigte unter einem
+geschlossenen `<details>` erreichbar. Die frühere Symbollegende entfällt, weil
+alle verbleibenden Handlungen direkt beschriftet sind.
+
+Im aktiven Editor ist «Kochbuch speichern» die einzige hervorgehobene
+Seitenaktion. Die weiterhin getrennte Rezept-Zuordnung besitzt die sekundäre
+Abschnittsaktion «Zuordnung speichern». Rezeptauswahl und Positionszahlen bleiben
+unverändert; Sortieren funktioniert weiterhin ohne Drag-and-Drop.
+
+Beide Formulare behalten ihre bisherigen POST-Ziele, CSRF-/Kontextfelder,
+`row_version` und fachlichen Nutzfelder. Der Browservertrag
+`tests/test_ui_korrektur_cookbooks_browser.py` prüft beide Payloads mit und ohne
+JavaScript sowie volle Breite und fehlenden Seitenüberlauf bei 1366×768,
+1920×1080, 768×1024, 390×844 und dem 200-%-Äquivalent 720×450.
+
+## Umsetzung Erscheinungsbild
+
+Der Editor für das Erscheinungsbild folgt derselben Aktionshierarchie: «Entwurf speichern & Vorschau» ist die einzige hervorgehobene Hauptaktion. Die Aktivierung steht nachgelagert im Abschnitt «Veröffentlichte Version» und bezieht sich ausdrücklich auf den ausgewählten gespeicherten Stand. Aktive Version, ausgewählter Stand, Entwurf und Änderungszeit werden getrennt benannt.
+
+Versionsauswahl, Übernahme eines früheren Stands und Standardentwurf stehen unter «Weitere Aktionen». Vorhandene POST-Ziele, Payloads, CSRF-, Versions-, Upload-, Aktivierungs-, Wiederherstellungs- und Zurücksetzungsverträge bleiben unverändert und ohne JavaScript bedienbar. Editor und eigenständige Vorschau verwenden die volle verfügbare Breite; die Vorschau enthält keine Attrappen-Schaltfläche.

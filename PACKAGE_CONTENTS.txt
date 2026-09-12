@@ -1130,6 +1130,7 @@ reference_scaffold/tests/test_apply_allergen_suggestion_notes.py
 reference_scaffold/tests/test_auth_callback_session_preservation.py
 reference_scaffold/tests/test_auth_config.py
 reference_scaffold/tests/test_auth_database.py
+reference_scaffold/tests/test_auth_frontchannel_logout.py
 reference_scaffold/tests/test_auth_live_hardening.py
 reference_scaffold/tests/test_auth_proxy_security.py
 reference_scaffold/tests/test_auth_routes.py
@@ -1284,6 +1285,11 @@ reference_scaffold/tests/test_ui_fullwidth_pages_a_browser.py
 reference_scaffold/tests/test_ui_fullwidth_pages_b_browser.py
 reference_scaffold/tests/test_ui_fullwidth_shell_browser.py
 reference_scaffold/tests/test_ui_inventory_capture.py
+reference_scaffold/tests/test_ui_korrektur_branding_browser.py
+reference_scaffold/tests/test_ui_korrektur_components_browser.py
+reference_scaffold/tests/test_ui_korrektur_cookbooks_browser.py
+reference_scaffold/tests/test_ui_korrektur_menus_browser.py
+reference_scaffold/tests/test_ui_korrektur_ops_browser.py
 reference_scaffold/tests/test_ui_master_components_browser.py
 reference_scaffold/tests/test_ui_master_shell_browser.py
 reference_scaffold/tests/test_ui_master_tokens_browser.py
@@ -1296,6 +1302,7 @@ reference_scaffold/tests/test_ui_reference_list_browser.py
 reference_scaffold/tests/test_ui_reference_settings_browser.py
 reference_scaffold/tests/test_ui_reference_workspace_browser.py
 reference_scaffold/tests/test_ui_route_inventory.py
+reference_scaffold/tests/test_ui_shell_fixes_browser.py
 reference_scaffold/tests/test_ui_weeks_browser.py
 reference_scaffold/tests/test_week_form_focus_browser.py
 reference_scaffold/tests/test_week_management.py

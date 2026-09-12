@@ -12,6 +12,7 @@ from redis.exceptions import RedisError
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.pool import NullPool
+from werkzeug.datastructures import MultiDict
 
 from cafeteria import create_app
 from cafeteria import db as database
@@ -347,6 +348,129 @@ def test_real_redis_rate_limit_isolated_by_username_and_socket_ip(
     )
     assert other_ip.status_code == 401
     assert other_user.status_code == 401
+
+
+def test_login_ip_bucket_cannot_be_bypassed_by_rotating_usernames(
+    auth_app: tuple[Any, Engine, Engine],
+) -> None:
+    application, _, _ = auth_app
+    application.config.update(
+        LOGIN_COMBINED_RATE_LIMIT=100,
+        LOGIN_IP_RATE_LIMIT=2,
+        LOGIN_ACCOUNT_RATE_LIMIT=100,
+    )
+    client = application.test_client()
+
+    for username in ('first.user', 'second.user'):
+        response = client.post(
+            '/auth/local',
+            data=_csrf_payload(client, username=username, password='wrong-password-value'),
+            environ_base={'REMOTE_ADDR': '198.51.100.20'},
+        )
+        assert response.status_code == 401
+
+    limited = client.post(
+        '/auth/local',
+        data=_csrf_payload(client, username='third.user', password='wrong-password-value'),
+        environ_base={'REMOTE_ADDR': '198.51.100.20'},
+    )
+
+    assert limited.status_code == 429
+    assert 'Anmeldung fehlgeschlagen' in limited.get_data(as_text=True)
+
+
+def test_login_account_bucket_cannot_be_bypassed_by_rotating_client_ips(
+    auth_app: tuple[Any, Engine, Engine],
+) -> None:
+    application, _, _ = auth_app
+    application.config.update(
+        LOGIN_COMBINED_RATE_LIMIT=100,
+        LOGIN_IP_RATE_LIMIT=100,
+        LOGIN_ACCOUNT_RATE_LIMIT=2,
+    )
+    client = application.test_client()
+
+    attempts = (
+        ('UNKNOWN.USER', '198.51.100.21'),
+        (' unknown.user ', '198.51.100.22'),
+    )
+    for username, remote_address in attempts:
+        response = client.post(
+            '/auth/local',
+            data=_csrf_payload(client, username=username, password='wrong-password-value'),
+            environ_base={'REMOTE_ADDR': remote_address},
+        )
+        assert response.status_code == 401
+
+    limited = client.post(
+        '/auth/local',
+        data=_csrf_payload(client, username='unknown.user', password='wrong-password-value'),
+        environ_base={'REMOTE_ADDR': '198.51.100.23'},
+    )
+
+    assert limited.status_code == 429
+    assert 'Anmeldung fehlgeschlagen' in limited.get_data(as_text=True)
+
+
+def test_overlong_login_username_is_rejected_before_rate_key_creation(
+    auth_app: tuple[Any, Engine, Engine],
+) -> None:
+    application, _, _ = auth_app
+    client = application.test_client()
+    redis_client = application.extensions['cafeteria_rate_redis']
+    username = 'a' * 65
+
+    response = client.post(
+        '/auth/local',
+        data=_csrf_payload(client, username=username, password='wrong-password-value'),
+        environ_base={'REMOTE_ADDR': '198.51.100.24'},
+    )
+
+    body = response.get_data(as_text=True)
+    assert response.status_code == 401
+    assert 'Anmeldung fehlgeschlagen' in body
+    assert username not in body
+    assert list(redis_client.scan_iter(match='dishboard:auth:local:*')) == []
+
+
+def test_success_clears_account_and_combined_buckets_but_keeps_ip_bucket(
+    auth_app: tuple[Any, Engine, Engine],
+) -> None:
+    application, owner_engine, issuer_engine = auth_app
+    _provision(issuer_engine, owner_engine)
+    client = application.test_client()
+    redis_client = application.extensions['cafeteria_rate_redis']
+    username = 'local.editor'
+    remote_address = '198.51.100.25'
+    combined_key = login_rate_key(username, remote_address)
+
+    rejected = client.post(
+        '/auth/local',
+        data=_csrf_payload(client, username=username, password='wrong-password-value'),
+        environ_base={'REMOTE_ADDR': remote_address},
+    )
+    assert rejected.status_code == 401
+    rate_keys = set(redis_client.scan_iter(match='dishboard:auth:local:*'))
+    account_keys = {key for key in rate_keys if b':account:' in key}
+    ip_keys = {key for key in rate_keys if b':ip:' in key}
+    assert redis_client.exists(combined_key) == 1
+    assert len(account_keys) == 1
+    assert len(ip_keys) == 1
+
+    accepted = client.post(
+        '/auth/local',
+        data=_csrf_payload(
+            client,
+            username=username,
+            password='Correct-Horse-2026!Battery',
+        ),
+        environ_base={'REMOTE_ADDR': remote_address},
+    )
+
+    assert accepted.status_code == 302
+    assert redis_client.exists(combined_key) == 0
+    assert all(redis_client.exists(key) == 0 for key in account_keys)
+    assert {redis_client.get(key) for key in ip_keys} == {b'2'}
 
 
 def test_forwarded_client_ip_is_used_only_for_trusted_loopback_proxy() -> None:
@@ -734,3 +858,200 @@ def test_real_redis_connection_failure_blocks_local_login(
     assert response.status_code == 503
     with client.session_transaction() as flask_session:
         assert 'user' not in flask_session
+
+
+def _login_entra_session(
+    application: Any,
+    client: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    oid: str,
+    provider_sid: str | None,
+) -> tuple[str, str]:
+    tenant = '00000000-0000-0000-0000-000000000911'
+    claims = {
+        'tid': tenant,
+        'oid': oid,
+        'sub': f'entra-session-{oid}',
+        'name': 'Entra Session',
+        'roles': ['Cafeteria.Editor'],
+    }
+    if provider_sid is not None:
+        claims['sid'] = provider_sid
+    application.config['ENTRA_TENANT_ID'] = tenant
+    application.config['ENTRA_ISSUER'] = f'https://login.microsoftonline.com/{tenant}/v2.0'
+    monkeypatch.setattr(auth_routes, '_client', lambda: FakeMsalClient(claims))
+    with client.session_transaction() as flask_session:
+        flask_session['auth_flow'] = {'state': 'test-state'}
+
+    response = client.get('/auth/callback')
+
+    assert response.status_code == 302
+    with client.session_transaction() as flask_session:
+        server_sid = flask_session.sid
+        assert flask_session['user'].get('sid') == provider_sid
+    issuer = f'https://login.microsoftonline.com/{tenant}/v2.0'
+    return issuer, server_sid
+
+
+@pytest.mark.parametrize(
+    ('method', 'query_string', 'data', 'expected_status'),
+    (
+        ('get', None, None, 400),
+        ('post', None, None, 400),
+        ('get', {'iss': 'issuer-only'}, None, 400),
+        ('post', None, {'sid': 'sid-only'}, 400),
+        ('get', MultiDict((('iss', 'issuer'), ('iss', 'issuer'), ('sid', 'provider-sid'))), None, 400),
+        ('post', None, MultiDict((('iss', 'issuer'), ('sid', 'provider-sid'), ('sid', 'provider-sid'))), 400),
+        ('get', {'iss': 'issuer', 'sid': 'provider-sid', 'extra': 'value'}, None, 400),
+        ('post', {'sid': 'provider-sid'}, {'iss': 'issuer', 'sid': 'provider-sid'}, 400),
+        ('get', {'iss': 'https://issuer.invalid', 'sid': 'provider-sid'}, None, 200),
+        ('post', None, {'iss': 'issuer', 'sid': 'wrong-provider-sid'}, 200),
+    ),
+)
+def test_frontchannel_logout_rejects_invalid_or_mismatched_requests_without_revocation(
+    auth_app: tuple[Any, Engine, Engine],
+    monkeypatch: pytest.MonkeyPatch,
+    method: str,
+    query_string: Any,
+    data: Any,
+    expected_status: int,
+) -> None:
+    application, _, _ = auth_app
+    client = application.test_client()
+    issuer, server_sid = _login_entra_session(
+        application,
+        client,
+        monkeypatch,
+        oid='00000000-0000-0000-0000-000000000921',
+        provider_sid='provider-sid',
+    )
+    if query_string:
+        query_string = MultiDict(query_string)
+        query_string = MultiDict(
+            (key, issuer if value == 'issuer' else value)
+            for key, value in query_string.items(multi=True)
+        )
+    if data:
+        data = MultiDict(data)
+        data = MultiDict(
+            (key, issuer if value == 'issuer' else value)
+            for key, value in data.items(multi=True)
+        )
+
+    response = getattr(client, method)(
+        '/auth/frontchannel-logout',
+        query_string=query_string,
+        data=data,
+    )
+
+    assert response.status_code == expected_status
+    assert response.get_data() == b''
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert application.session_interface.client.exists(
+        application.session_interface.key_prefix + server_sid,
+    )
+    with client.session_transaction() as flask_session:
+        assert flask_session['user']['sid'] == 'provider-sid'
+
+
+@pytest.mark.parametrize('method', ('get', 'post'))
+def test_frontchannel_logout_revokes_only_matching_entra_session(
+    auth_app: tuple[Any, Engine, Engine],
+    monkeypatch: pytest.MonkeyPatch,
+    method: str,
+) -> None:
+    application, _, _ = auth_app
+    target = application.test_client()
+    other = application.test_client()
+    issuer, target_server_sid = _login_entra_session(
+        application,
+        target,
+        monkeypatch,
+        oid='00000000-0000-0000-0000-000000000931',
+        provider_sid='target-provider-sid',
+    )
+    _, other_server_sid = _login_entra_session(
+        application,
+        other,
+        monkeypatch,
+        oid='00000000-0000-0000-0000-000000000932',
+        provider_sid='other-provider-sid',
+    )
+    parameters = {'iss': issuer, 'sid': 'target-provider-sid'}
+    kwargs = {'query_string': parameters} if method == 'get' else {'data': parameters}
+
+    response = getattr(target, method)('/auth/frontchannel-logout', **kwargs)
+
+    assert response.status_code == 200
+    assert response.get_data() == b''
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert not application.session_interface.client.exists(
+        application.session_interface.key_prefix + target_server_sid,
+    )
+    assert application.session_interface.client.exists(
+        application.session_interface.key_prefix + other_server_sid,
+    )
+    with other.session_transaction() as flask_session:
+        assert flask_session['user']['sid'] == 'other-provider-sid'
+
+
+def test_frontchannel_logout_default_denies_session_without_provider_sid(
+    auth_app: tuple[Any, Engine, Engine],
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    application, _, _ = auth_app
+    client = application.test_client()
+    issuer, server_sid = _login_entra_session(
+        application,
+        client,
+        monkeypatch,
+        oid='00000000-0000-0000-0000-000000000941',
+        provider_sid=None,
+    )
+
+    response = client.get(
+        '/auth/frontchannel-logout',
+        query_string={'iss': issuer, 'sid': 'untrusted-provider-sid'},
+    )
+
+    assert response.status_code == 200
+    assert response.get_data() == b''
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert application.session_interface.client.exists(
+        application.session_interface.key_prefix + server_sid,
+    )
+    assert 'Entra ID token has no sid claim; front-channel logout will default-deny.' in caplog.text
+
+
+def test_frontchannel_logout_never_revokes_local_session(
+    auth_app: tuple[Any, Engine, Engine],
+) -> None:
+    application, owner_engine, issuer_engine = auth_app
+    _provision(issuer_engine, owner_engine)
+    client = application.test_client()
+    assert client.post(
+        '/auth/local',
+        data=_csrf_payload(
+            client,
+            username='local.editor',
+            password='Correct-Horse-2026!Battery',
+        ),
+    ).status_code == 302
+    with client.session_transaction() as flask_session:
+        server_sid = flask_session.sid
+    issuer = f"https://login.microsoftonline.com/{application.config['ENTRA_TENANT_ID']}/v2.0"
+
+    response = client.get(
+        '/auth/frontchannel-logout',
+        query_string={'iss': issuer, 'sid': 'provider-sid'},
+    )
+
+    assert response.status_code == 200
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert application.session_interface.client.exists(
+        application.session_interface.key_prefix + server_sid,
+    )
+    with client.session_transaction() as flask_session:
+        assert flask_session['user']['provider'] == 'local'

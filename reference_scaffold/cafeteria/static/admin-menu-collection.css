@@ -32,3 +32,55 @@
   .menu-view-tabs { display: none; }
   #menu-cards, #menu-list { display: block; margin-bottom: var(--app-space-6); }
 }
+
+/* Note details toggle */
+.dishboard-admin .menu-note-details summary {
+  cursor: pointer;
+  list-style: none;
+}
+.dishboard-admin .menu-note-details summary::-webkit-details-marker {
+  display: none;
+}
+.dishboard-admin .menu-note-content {
+  background-color: var(--app-surface-soft, #FAF9F7);
+  border: 1px solid var(--app-border-soft, #EFECE8);
+  border-radius: var(--app-radius-sm, 6px);
+  padding: var(--app-space-2, 0.5rem);
+  color: var(--app-text-muted, #596273);
+}
+
+/* Hide top-level description and note in menu-grid cards so they are collapsed */
+.dishboard-admin .menu-grid [data-menu-metadata] > .menu-description,
+.dishboard-admin .menu-grid [data-menu-metadata] > .shared-note {
+  display: none;
+}
+
+/* Prominent allergen warning in cards */
+.dishboard-admin .menu-grid [data-menu-metadata] > p:not(.menu-description):not(.shared-note) {
+  margin-top: var(--app-space-2, 0.5rem);
+  margin-bottom: var(--app-space-2, 0.5rem);
+  font-weight: 500;
+  color: var(--app-warning-text, #854D0E);
+}
+
+/* Week management card header profile tabs */
+.dishboard-admin .card-header .profile-tabs {
+  margin-bottom: 0;
+}
+.dishboard-admin .card-header .profile-tabs .nav-pills {
+  margin-bottom: 0;
+}
+
+/* Action button sizing for 48px touch requirement */
+.dishboard-admin .week-action-primary {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.dishboard-admin .table-mobile-lg .btn {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

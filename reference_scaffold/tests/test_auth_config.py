@@ -77,6 +77,22 @@ def test_local_auth_is_disabled_by_default(monkeypatch: pytest.MonkeyPatch) -> N
     assert Config().LOCAL_AUTH_ENABLED is True
 
 
+def test_entra_issuer_defaults_from_tenant(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv('ENTRA_TENANT_ID', '00000000-0000-0000-0000-000000000951')
+    monkeypatch.delenv('ENTRA_ISSUER', raising=False)
+
+    assert Config().ENTRA_ISSUER == (
+        'https://login.microsoftonline.com/00000000-0000-0000-0000-000000000951/v2.0'
+    )
+
+
+def test_entra_issuer_accepts_explicit_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv('ENTRA_TENANT_ID', '00000000-0000-0000-0000-000000000951')
+    monkeypatch.setenv('ENTRA_ISSUER', 'https://login.microsoftonline.us/custom-tenant/v2.0')
+
+    assert Config().ENTRA_ISSUER == 'https://login.microsoftonline.us/custom-tenant/v2.0'
+
+
 def test_production_allows_local_auth_while_entra_is_disabled(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -199,3 +215,34 @@ def test_non_production_keeps_local_last_good_default(monkeypatch: pytest.Monkey
     monkeypatch.delenv('LAST_GOOD_DIR', raising=False)
 
     assert Config().LAST_GOOD_DIR == '/tmp/cafeteria-last-good'
+
+
+def test_login_rate_limits_have_conservative_configurable_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    names = (
+        'LOGIN_COMBINED_RATE_LIMIT',
+        'LOGIN_COMBINED_RATE_WINDOW_SECONDS',
+        'LOGIN_IP_RATE_LIMIT',
+        'LOGIN_IP_RATE_WINDOW_SECONDS',
+        'LOGIN_ACCOUNT_RATE_LIMIT',
+        'LOGIN_ACCOUNT_RATE_WINDOW_SECONDS',
+    )
+    for name in names:
+        monkeypatch.delenv(name, raising=False)
+
+    defaults = Config()
+
+    assert defaults.LOGIN_COMBINED_RATE_LIMIT == 5
+    assert defaults.LOGIN_COMBINED_RATE_WINDOW_SECONDS == 300
+    assert defaults.LOGIN_IP_RATE_LIMIT == 30
+    assert defaults.LOGIN_IP_RATE_WINDOW_SECONDS == 900
+    assert defaults.LOGIN_ACCOUNT_RATE_LIMIT == 10
+    assert defaults.LOGIN_ACCOUNT_RATE_WINDOW_SECONDS == 900
+
+    for index, name in enumerate(names, start=11):
+        monkeypatch.setenv(name, str(index))
+
+    configured = Config()
+
+    assert tuple(getattr(configured, name) for name in names) == tuple(range(11, 17))

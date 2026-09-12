@@ -75,12 +75,19 @@ def test_http_editor_preview_activation_inverted_palette_and_logo(live_branding,
         expect(page).to_have_url(origin + '/admin/design/marke?revision=2')
         preview = page.frame_locator('iframe')
         expect(preview.get_by_role('heading', name='Frisch zubereitet')).to_be_visible()
-        button_colors = preview.locator('.btn-primary').evaluate('(el) => ({text:getComputedStyle(el).color,bg:getComputedStyle(el).backgroundColor})')
-        assert contrast(_hex(button_colors['text']), _hex(button_colors['bg'])) >= 4.5, button_colors
+        primary_colors = preview.locator('body').evaluate('''el=>{
+            const styles = getComputedStyle(el);
+            return {
+                text: styles.getPropertyValue('--brand-on-primary').trim(),
+                bg: styles.getPropertyValue('--sh-primary').trim(),
+            };
+        }''')
+        assert contrast(primary_colors['text'], primary_colors['bg']) >= 4.5, primary_colors
         assert preview.locator('body').evaluate('el=>getComputedStyle(el).fontFamily').startswith('Carlito')
         with database_engine.connect() as connection:
             assert read_branding(connection)['active_revision'] == 1
         page.screenshot(path=str(tmp_path / 'brand-editor-desktop.png'), full_page=True)
+        page.once('dialog', lambda dialog: dialog.accept())
         page.get_by_role('button', name='Version 2 aktivieren').click()
         expect(page.get_by_role('status')).to_contain_text('Nachtpalette')
         for width in (390, 820, 1440):

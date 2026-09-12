@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 from urllib.parse import quote
 
 import msal
@@ -15,17 +16,21 @@ from ..security import validate_csrf
 from .access_events import AccessEventUnavailable, record_access_event
 from .service import (
     AuthorizationState,
+    LOGIN_USERNAME_MAX_LENGTH,
     RateLimitExceeded,
     RateLimitUnavailable,
     authenticate_local_user,
     clear_login_attempts,
     consume_login_attempt,
+    login_account_rate_key,
+    login_ip_rate_key,
     login_rate_key,
     load_user_authorization,
     trusted_client_address,
 )
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
+_MAX_PROVIDER_SID_LENGTH = 255
 
 
 def _login_failure(
@@ -141,16 +146,37 @@ def local_login():
     password = request.form.get('password', '')
 
     validate_csrf(request.form.get('csrf_token'))
+    if len(username) > LOGIN_USERNAME_MAX_LENGTH:
+        return _login_failure('local', 'credentials', 401)
     remote_address = trusted_client_address(
         request.environ,
         request.remote_addr or 'unknown',
         tuple(current_app.config.get('TRUSTED_PROXY_PEERS', ())),
     )
-    key = login_rate_key(username, remote_address)
+    combined_key = login_rate_key(username, remote_address)
+    ip_key = login_ip_rate_key(remote_address)
+    account_key = login_account_rate_key(username)
     redis_client = current_app.extensions.get('cafeteria_rate_redis')
 
     try:
-        consume_login_attempt(redis_client, key)
+        consume_login_attempt(
+            redis_client,
+            ip_key,
+            limit=int(current_app.config['LOGIN_IP_RATE_LIMIT']),
+            window_seconds=int(current_app.config['LOGIN_IP_RATE_WINDOW_SECONDS']),
+        )
+        consume_login_attempt(
+            redis_client,
+            account_key,
+            limit=int(current_app.config['LOGIN_ACCOUNT_RATE_LIMIT']),
+            window_seconds=int(current_app.config['LOGIN_ACCOUNT_RATE_WINDOW_SECONDS']),
+        )
+        consume_login_attempt(
+            redis_client,
+            combined_key,
+            limit=int(current_app.config['LOGIN_COMBINED_RATE_LIMIT']),
+            window_seconds=int(current_app.config['LOGIN_COMBINED_RATE_WINDOW_SECONDS']),
+        )
     except RateLimitUnavailable:
         return _login_failure('local', 'unavailable', 503, username)
     except RateLimitExceeded:
@@ -167,7 +193,7 @@ def local_login():
         return _login_failure('local', 'credentials', 401, username)
 
     try:
-        clear_login_attempts(redis_client, key)
+        clear_login_attempts(redis_client, account_key, combined_key)
     except RateLimitUnavailable:
         return _login_failure('local', 'unavailable', 503, username)
     return _login_accepted('local', identity)
@@ -196,6 +222,13 @@ def callback():
         return _login_failure('entra', 'flow', 403)
     if claims.get('aud') and claims.get('aud') != cfg['ENTRA_CLIENT_ID']:
         return _login_failure('entra', 'flow', 403)
+    provider_sid = claims.get('sid')
+    if provider_sid is not None and (
+        not isinstance(provider_sid, str)
+        or not provider_sid
+        or len(provider_sid) > _MAX_PROVIDER_SID_LENGTH
+    ):
+        return _login_failure('entra', 'flow', 403)
     supplied_roles = claims.get('roles') or []
     if not isinstance(supplied_roles, list) or any(not isinstance(role, str) for role in supplied_roles):
         return _login_failure('entra', 'role', 403)
@@ -220,7 +253,16 @@ def callback():
         return _login_failure('entra', 'unavailable', 503)
     if not roles or authorization is None:
         return _login_failure('entra', 'role', 403)
-    return _login_accepted('entra', authorization, oid=claims['oid'], tid=claims['tid'])
+    if provider_sid is None:
+        # OIDC makes sid optional. Without it, no later logout request can be
+        # bound to this provider session, so front-channel logout defaults deny.
+        current_app.logger.warning(
+            'Entra ID token has no sid claim; front-channel logout will default-deny.',
+        )
+        return _login_accepted('entra', authorization, oid=claims['oid'], tid=claims['tid'])
+    return _login_accepted(
+        'entra', authorization, oid=claims['oid'], tid=claims['tid'], sid=provider_sid,
+    )
 
 
 @bp.post('/logout')
@@ -242,5 +284,36 @@ def logout():
 def frontchannel_logout():
     if not current_app.config.get('ENTRA_ENABLED', False):
         abort(404)
-    _clear_session_for_logout('auth.frontchannel.requested')
-    return '', 200
+    parameters = request.args if request.method == 'GET' else request.form
+    unexpected_parameters = request.form if request.method == 'GET' else request.args
+    parameter_names = set(parameters)
+    issuer_values = parameters.getlist('iss')
+    sid_values = parameters.getlist('sid')
+    if (
+        parameter_names != {'iss', 'sid'}
+        or unexpected_parameters
+        or len(issuer_values) != 1
+        or len(sid_values) != 1
+        or not issuer_values[0]
+        or not sid_values[0]
+        or len(sid_values[0]) > _MAX_PROVIDER_SID_LENGTH
+        or request.files
+    ):
+        response = current_app.make_response(('', 400))
+        response.headers['Cache-Control'] = 'no-store'
+        return response
+
+    expected_issuer = current_app.config.get('ENTRA_ISSUER', '')
+    user = session.get('user')
+    stored_sid = user.get('sid') if isinstance(user, dict) and user.get('provider') == 'entra' else None
+    if (
+        expected_issuer
+        and secrets.compare_digest(issuer_values[0], expected_issuer)
+        and isinstance(stored_sid, str)
+        and stored_sid
+        and secrets.compare_digest(sid_values[0], stored_sid)
+    ):
+        _clear_session_for_logout('auth.frontchannel.requested')
+    response = current_app.make_response(('', 200))
+    response.headers['Cache-Control'] = 'no-store'
+    return response

@@ -119,6 +119,16 @@ class Config:
             )
         self.ENTRA_ENABLED = _bool('ENTRA_ENABLED')
         self.LOCAL_AUTH_ENABLED = _bool('LOCAL_AUTH_ENABLED')
+        self.LOGIN_COMBINED_RATE_LIMIT = int(os.getenv('LOGIN_COMBINED_RATE_LIMIT', '5'))
+        self.LOGIN_COMBINED_RATE_WINDOW_SECONDS = int(
+            os.getenv('LOGIN_COMBINED_RATE_WINDOW_SECONDS', '300')
+        )
+        self.LOGIN_IP_RATE_LIMIT = int(os.getenv('LOGIN_IP_RATE_LIMIT', '30'))
+        self.LOGIN_IP_RATE_WINDOW_SECONDS = int(os.getenv('LOGIN_IP_RATE_WINDOW_SECONDS', '900'))
+        self.LOGIN_ACCOUNT_RATE_LIMIT = int(os.getenv('LOGIN_ACCOUNT_RATE_LIMIT', '10'))
+        self.LOGIN_ACCOUNT_RATE_WINDOW_SECONDS = int(
+            os.getenv('LOGIN_ACCOUNT_RATE_WINDOW_SECONDS', '900')
+        )
         self.DB_POOL_SIZE = int(os.getenv('DB_POOL_SIZE', '5'))
         self.DB_MAX_OVERFLOW = int(os.getenv('DB_MAX_OVERFLOW', '5'))
         self.DB_POOL_TIMEOUT_SECONDS = int(os.getenv('DB_POOL_TIMEOUT_SECONDS', '10'))
@@ -134,6 +144,12 @@ class Config:
         self.PERMANENT_SESSION_LIFETIME = int(os.getenv('SESSION_LIFETIME_SECONDS', '28800'))
         self.APP_PUBLIC_BASE_URL = os.getenv('APP_PUBLIC_BASE_URL', 'http://localhost:8080').rstrip('/')
         self.ENTRA_TENANT_ID = os.getenv('ENTRA_TENANT_ID', '')
+        default_entra_issuer = (
+            f'https://login.microsoftonline.com/{self.ENTRA_TENANT_ID}/v2.0'
+            if self.ENTRA_TENANT_ID
+            else ''
+        )
+        self.ENTRA_ISSUER = os.getenv('ENTRA_ISSUER', default_entra_issuer)
         self.ENTRA_CLIENT_ID = os.getenv('ENTRA_CLIENT_ID', '')
         self.ENTRA_CLIENT_SECRET = _secret('ENTRA_CLIENT_SECRET')
         self.TRUSTED_PROXY_PEERS = _trusted_proxy_peers()

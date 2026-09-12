@@ -68,6 +68,13 @@
     </div>
     <noscript><nav class="admin-nav d-lg-none" aria-label="Backend">
       {{ area_links() }}
+      <form method="post" action="{{ url_for('auth.logout') }}" class="admin-logout-form">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <button type="submit" class="admin-logout-btn" aria-label="Abmelden">
+          <span class="nav-link-icon">{{ icon('logout') }}</span>
+          <span>Abmelden</span>
+        </button>
+      </form>
     </nav></noscript>
     <div class="offcanvas-lg offcanvas-start admin-nav-collapse" id="sidebar-menu" tabindex="-1" aria-labelledby="sidebar-menu-label">
       <span id="sidebar-menu-label" class="visually-hidden">Navigation</span>

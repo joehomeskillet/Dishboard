@@ -2,15 +2,18 @@
 {% from 'admin/_macros.html' import icon, page_header, profile_tabs, pagination, field, status, empty_state %}
 {% set layout_variant = 'standard' %}
 {% block title %}Wochenübersicht · {{ area_names[profile] }}{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-menu-collection.css') }}">{% endblock %}
 {% set workflow_nav = 'management' %}
 {% block page_header %}<div class="text-break">{{ page_header('Wochenübersicht', area_names[profile] ~ ' · Gespeicherte Woche öffnen oder eine neue vorbereiten.') }}</div>{% endblock %}
 {% block content %}
-        {{ profile_tabs({
-          'cafeteria': url_for('admin.week_management', family='cafeteria'),
-          'patienten': url_for('admin.week_management', family='patienten'),
-        }, family) }}
         <section class="card" aria-labelledby="saved-weeks-title">
-          <div class="card-header"><h2 class="card-title" id="saved-weeks-title">Gespeicherte Wochen</h2></div>
+          <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <h2 class="card-title mb-0" id="saved-weeks-title">Gespeicherte Wochen</h2>
+            {{ profile_tabs({
+              'cafeteria': url_for('admin.week_management', family='cafeteria'),
+              'patienten': url_for('admin.week_management', family='patienten'),
+            }, family) }}
+          </div>
           <div class="table-responsive"{% if rows or has_next or page > 1 %} role="region" aria-label="Wochenliste" tabindex="0"{% endif %}>
           {% if rows %}
           <table class="table table-vcenter card-table table-mobile-lg">
@@ -27,19 +30,32 @@
                 <td data-label="Titel" class="text-break">{{ row.title }}</td>
                 <td data-label="Status">
                   {{ status(row.status, {'live': 'Veröffentlicht', 'review_open': 'Noch zu prüfen'}.get(row.status, status_labels[row.status])) }}
-                  {% if row.status == 'review_open' %}<p class="text-secondary mb-0 mt-2">Die aktuelle Prüfung von Menüs oder Wochenangaben fehlt.</p>{% endif %}
-                  {% if row.status == 'changed' %}<p class="text-secondary mb-0 mt-2">Der gespeicherte Plan weicht von der Veröffentlichung ab.</p>{% endif %}
-                  {% if row.workflow_state == 'archived' %}{{ status('archived') }}{% endif %}
+                  {% set status_descriptions = {
+                    'live': 'Veröffentlicht · entspricht dem gespeicherten Stand',
+                    'changed': 'Veröffentlicht · gespeicherte Änderungen noch nicht veröffentlicht',
+                    'ready': 'Noch nicht veröffentlicht · bereit',
+                    'review_open': 'Prüfung offen',
+                    'incomplete': 'Unvollständig',
+                    'empty': 'Noch keine Menüs erfasst'
+                  } %}
+                  <p class="text-secondary small mb-0 mt-1">{{ status_descriptions.get(row.status, '') }}</p>
+                  {% if row.workflow_state == 'archived' %}<div class="mt-1">{{ status('archived') }}</div>{% endif %}
                 </td>
                 <td data-label="Aktionen">
-                  <div class="btn-list">
-                    <a class="btn text-wrap" href="{{ url_for('admin.' ~ family, week=row.week_start.isoformat()) }}">{{ icon('pencil') }}Woche öffnen</a>
-                    {% if can_preview %}<a class="btn btn-ghost-secondary border-0" href="{{ url_for('admin.preview', family=family, week=row.week_start.isoformat()) }}">{{ icon('eye') }}Vorschau</a>{% endif %}
+                  <div class="week-actions d-flex flex-column gap-2">
+                    <div>
+                      <a class="btn btn-primary week-action-primary text-wrap" href="{{ url_for('admin.' ~ family, week=row.week_start.isoformat()) }}">{{ icon('pencil') }}Woche öffnen</a>
+                    </div>
+                    <div class="btn-list">
+                      {% if can_preview %}<a class="btn btn-outline-secondary border-0 text-wrap" href="{{ url_for('admin.preview', family=family, week=row.week_start.isoformat()) }}">{{ icon('eye') }}Vorschau</a>{% endif %}
+                      {% if can_write and row.next_week %}
+                      <a class="btn btn-outline-secondary border-0 text-wrap" href="{{ url_for('admin.copy_get', family=family, week=row.next_week.isoformat()) }}" aria-describedby="copy-{{ row.id }}">{{ icon('copy') }}In Folgewoche kopieren</a>
+                      {% endif %}
+                    </div>
+                    {% if can_write and row.next_week %}
+                    <p class="text-secondary small mb-0 mt-1" id="copy-{{ row.id }}">Quelle: {{ row.week_start.strftime('%d.%m.%Y') }} → Ziel: {{ row.next_week.strftime('%d.%m.%Y') }}. Kopieren wird im nächsten Schritt bestätigt; Ziel muss leer und unveröffentlicht sein.</p>
+                    {% endif %}
                   </div>
-                  {% if can_write and row.next_week %}
-                  <a class="btn btn-ghost-secondary border-0 text-wrap mt-2" href="{{ url_for('admin.copy_get', family=family, week=row.next_week.isoformat()) }}" aria-describedby="copy-{{ row.id }}">{{ icon('copy') }}In Folgewoche kopieren</a>
-                  <p class="text-secondary mb-0 mt-2" id="copy-{{ row.id }}">Quelle: {{ row.week_start.strftime('%d.%m.%Y') }} → Ziel: {{ row.next_week.strftime('%d.%m.%Y') }}. Kopieren wird im nächsten Schritt bestätigt; Ziel muss leer und unveröffentlicht sein.</p>
-                  {% endif %}
                 </td>
               </tr>
               {% endfor %}

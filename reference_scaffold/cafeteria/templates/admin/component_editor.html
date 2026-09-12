@@ -10,7 +10,7 @@
 {% block title %}{{ component.name }}{% endblock %}
 {% block main_attributes %}data-family="{{ family }}" data-public-id="{{ component.public_id }}" data-profile-scope="{{ component.profile_scope }}" data-active="{{ '1' if component.active else '0' }}"{% endblock %}
 {% block page_header %}
-{% call page_header(component.name, breadcrumbs=[('Komponenten', '/admin/' ~ family ~ '/komponenten'), (component.name,)]) %}<a class="btn" href="/admin/{{ family }}/komponenten">{{ icon('arrow-left') }}Zurück zur Liste</a>{% endcall %}
+{{ page_header(component.name, breadcrumbs=[('Bausteine', '/admin/' ~ family ~ '/komponenten'), (component.name,)]) }}
 {% endblock %}
 {% block content %}
 {% set error_links = [] %}
@@ -19,107 +19,123 @@
   {% set _ = error_links.append(error_link) %}
 {% endfor %}
 {{ error_summary(error_links, title='Bitte korrigieren Sie die Fehler im Formular.') }}
-<div class="row g-3">
-  <div class="col-12">
-    <form id="component-form" method="post" action="/admin/{{ family }}/komponenten/{{ component.public_id }}" class="card">
-      <input type="hidden" name="_csrf" value="{{ csrf }}">
-      <input type="hidden" name="row_version" value="{{ component.row_version }}">
-      <div class="card-body">
-        <div class="row g-3 mb-3">
-          <div class="col-12">{{ field('name', 'Name', value=submitted.get('name', component.name), id='c-name', required=true, error=errors.get('name')) }}</div>
-          <div class="col-12 col-md-6">
-            {{ select('category', 'Kategorie', choices=categories.items(), value=submitted.get('category', component.category), id='c-cat', required=true, error=errors.get('category'), placeholder='Bitte wählen') }}
-          </div>
-          <div class="col-12 col-md-6">
-            {{ country_select('origin_country_code', submitted.get('origin_country_code', component.origin_country_code or ''), 'c-origin', error=errors.get('origin_country_code'), label='Herkunft') }}
-          </div>
-        </div>
-        <div class="mb-3">
-          {% set selected_food = submitted.get('food_public_id', component.food_public_id or '') %}
-          {% set food_ids = foods|default([])|map(attribute='public_id')|map('lower')|list %}
-          <label class="form-label" for="c-food">Lebensmittel</label>
-          <select class="form-select{% if errors.get('food_public_id') %} is-invalid{% endif %}" id="c-food" name="food_public_id" aria-describedby="c-food-hint{% if errors.get('food_public_id') %} c-food-error{% endif %}"{% if errors.get('food_public_id') %} aria-invalid="true"{% endif %}>
-            <option value=""{% if not selected_food %} selected{% endif %}>Kein Lebensmittel</option>
-            {% for food in foods|default([]) %}
-            <option value="{{ food.public_id }}"{% if selected_food|lower == food.public_id|lower %} selected{% endif %}>{{ food.name }} · {{ food.public_id }}</option>
-            {% endfor %}
-            {% if selected_food and selected_food|lower not in food_ids %}
-            <option value="{{ selected_food }}" selected>{{ component.food_name if selected_food == component.food_public_id else selected_food }} (nicht auswählbar)</option>
-            {% endif %}
-          </select>
-          <p class="form-hint" id="c-food-hint">Optional. Die Zuordnung übernimmt keine Allergene, Herkunft oder Labels aus dem Lebensmittel.</p>
-          {% if errors.get('food_public_id') %}<div class="invalid-feedback d-block field-error" id="c-food-error">{{ errors['food_public_id'] }}</div>{% endif %}
-          {% if component.food_public_id %}
-          <p class="text-break" id="c-food-current">Aktuelle Zuordnung:
-            {% if food_detail_available|default(false) %}<a href="{{ url_for('admin.master_data_detail', kind='zutaten', public_id=component.food_public_id) }}">{{ component.food_name }}</a>{% else %}{{ component.food_name }}{% endif %}
-            · {{ component.food_public_id }}
-          </p>
-          {% endif %}
-          {% if component.food_public_id or errors.get('food_detach_confirm') %}
-          <div{% if errors.get('food_detach_confirm') %} role="group" aria-labelledby="c-food-detach-label" aria-describedby="c-food-detach-error"{% endif %}>
-            <span id="c-food-detach-label">{{ checkbox('food_detach_confirm', 'Ich bestätige: Die Lebensmittelzuordnung von «' ~ component.name ~ '» wird entfernt. Die Komponente und ihre bestätigten Angaben bleiben erhalten.', checked=submitted.get('food_detach_confirm') == '1', id='c-food-detach') }}</span>
-            {% if errors.get('food_detach_confirm') %}<div class="invalid-feedback d-block field-error" id="c-food-detach-error">{{ errors['food_detach_confirm'] }}</div>{% endif %}
-          </div>
-          {% endif %}
-        </div>
-        <fieldset class="mb-3">
-          <legend class="form-label">Labels</legend>
-          {% set l_codes = submitted.getlist('label_code') if submitted.getlist else submitted.get('label_code') %}
-          {% if l_codes is none %}{% set l_codes = component.labels|map(attribute='code')|list %}{% endif %}
-          <div class="row g-2">
-            {% for label in labels|default([]) %}
-            <div class="col-12 col-md-6">{{ checkbox('label_code', label.name|default(label.code), value=label.code, checked=label.code in l_codes, id='edit-label-' ~ label.code) }}</div>
-            {% endfor %}
-          </div>
-        </fieldset>
-        <fieldset class="mb-3">
-          <legend class="form-label">Allergene</legend>
-          <p class="form-hint">Nicht ausgewählte Allergene sind nicht als allergenfrei bestätigt.</p>
-          {% set a_codes = submitted.getlist('allergen_code') if submitted.getlist else submitted.get('allergen_code') %}
-          {% set a_pres = submitted.getlist('allergen_presence') if submitted.getlist else submitted.get('allergen_presence') %}
-          {% if a_codes is none %}
-            {% set a_codes = component.allergens|map(attribute='code')|list %}
-            {% set a_pres = component.allergens|map(attribute='presence')|list %}
-          {% endif %}
-          <div class="allergen-list">
-            {% for allergen in allergens|default([]) %}
-              {% set idx = a_codes.index(allergen.code) if allergen.code in a_codes else -1 %}
-              {% set presence = a_pres[idx] if idx >= 0 and idx < a_pres|length else 'contains' %}
-              <div class="allergen-row row g-2 align-items-center mb-2">
-                <div class="col-12 col-md-6 d-flex align-items-center gap-2">{{ symbol('allergens', allergen.code, true) }}{{ checkbox('allergen_code', allergen.name|default(allergen.code), value=allergen.code, checked=idx >= 0, id='edit-allergen-' ~ allergen.code) }}</div>
-                <div class="col-12 col-md-6">
-                  {{ select('allergen_presence', 'Präsenz für ' ~ allergen.name|default(allergen.code), choices=[('contains', 'enthält'), ('may_contain', 'kann Spuren enthalten')], value=presence, id='edit-presence-' ~ allergen.code, disabled=idx < 0) }}
-                </div>
-              </div>
-            {% endfor %}
-          </div>
-        </fieldset>
+<div class="component-status-panel card mb-3" aria-labelledby="component-status-heading">
+  <div class="card-body py-3">
+    <h2 class="visually-hidden" id="component-status-heading">Verwendung und Status</h2>
+    <dl class="component-status-list mb-0">
+      <div class="component-status-item">
+        <dt>Verwendung</dt>
+        <dd class="usage mb-0">verwendet in {{ component.usage_count }} Gerichten</dd>
       </div>
-      <div class="card-footer dishboard-component-actions">
-        {% call actions() %}
-          <button type="submit" class="btn btn-primary">{{ icon('device-floppy') }}Speichern</button>
-          <a class="btn" href="/admin/{{ family }}/komponenten">Abbrechen</a>
-        {% endcall %}
+      <div class="component-status-item">
+        <dt>Status</dt>
+        <dd class="mb-0">{{ status('ready', 'Aktiv') if component.active else status('incomplete', 'archiviert') }}</dd>
       </div>
-    </form>
+      <div class="component-status-item">
+        <dt>Gültigkeit</dt>
+        <dd class="text-secondary mb-0">{{ 'gemeinsam' if component.profile_scope == 'common' else 'nur Cafeteria' if component.profile_scope == 'staff_guest' else 'nur Patienten' }}</dd>
+      </div>
+    </dl>
+    {% if not component.active %}
+    <p class="text-secondary small mb-0 mt-2">Archivierte Bausteine bleiben in bestehenden Menüzuordnungen erhalten.</p>
+    {% endif %}
   </div>
-  <aside class="col-12">
-    <div class="card">
-      <div class="card-body">
-        <h2 class="card-title">Verwendung und Status</h2>
-        <p class="usage">verwendet in {{ component.usage_count }} Gerichten</p>
-        <p>{{ status('ready', 'Aktiv') if component.active else status('incomplete', 'archiviert') }}</p>
-        <p class="text-secondary">Gültigkeit: {{ 'gemeinsam' if component.profile_scope == 'common' else 'nur Cafeteria' if component.profile_scope == 'staff_guest' else 'nur Patienten' }}</p>
-        <p class="text-secondary">Archivierte Komponenten bleiben in bestehenden Menüzuordnungen erhalten.</p>
-        <div class="archive-actions">
-          <form method="post" action="/admin/{{ family }}/komponenten/{{ component.public_id }}/{{ 'archive' if component.active else 'unarchive' }}" data-confirm="{{ 'Komponente wirklich archivieren?' if component.active else 'Komponente reaktivieren?' }}">
-            <input type="hidden" name="_csrf" value="{{ csrf }}">
-            <input type="hidden" name="row_version" value="{{ component.row_version }}">
-            <button type="submit" class="btn">{{ icon('archive' if component.active else 'archive-off') }}{{ 'Archivieren' if component.active else 'Reaktivieren' }}</button>
-          </form>
-        </div>
+</div>
+<form id="component-form" method="post" action="/admin/{{ family }}/komponenten/{{ component.public_id }}" class="card">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <input type="hidden" name="row_version" value="{{ component.row_version }}">
+  <div class="card-body">
+    <div class="row g-3 mb-3">
+      <div class="col-12">{{ field('name', 'Name', value=submitted.get('name', component.name), id='c-name', required=true, error=errors.get('name')) }}</div>
+      <div class="col-12 col-md-6">
+        {{ select('category', 'Kategorie', choices=categories.items(), value=submitted.get('category', component.category), id='c-cat', required=true, error=errors.get('category'), placeholder='Bitte wählen') }}
       </div>
     </div>
-  </aside>
+    <div class="mb-3">
+      {% set selected_food = submitted.get('food_public_id', component.food_public_id or '') %}
+      {% set food_ids = foods|default([])|map(attribute='public_id')|map('lower')|list %}
+      <label class="form-label" for="c-food">Lebensmittel</label>
+      <select class="form-select{% if errors.get('food_public_id') %} is-invalid{% endif %}" id="c-food" name="food_public_id" aria-describedby="c-food-hint{% if errors.get('food_public_id') %} c-food-error{% endif %}"{% if errors.get('food_public_id') %} aria-invalid="true"{% endif %}>
+        <option value=""{% if not selected_food %} selected{% endif %}>Kein Lebensmittel</option>
+        {% for food in foods|default([]) %}
+        <option value="{{ food.public_id }}"{% if selected_food|lower == food.public_id|lower %} selected{% endif %}>{{ food.name }} · {{ food.public_id }}</option>
+        {% endfor %}
+        {% if selected_food and selected_food|lower not in food_ids %}
+        <option value="{{ selected_food }}" selected>{{ component.food_name if selected_food == component.food_public_id else selected_food }} (nicht auswählbar)</option>
+        {% endif %}
+      </select>
+      <p class="form-hint" id="c-food-hint">Optional. Die Zuordnung übernimmt keine Allergene, Herkunft oder Labels aus dem Lebensmittel.</p>
+      {% if errors.get('food_public_id') %}<div class="invalid-feedback d-block field-error" id="c-food-error">{{ errors['food_public_id'] }}</div>{% endif %}
+      {% if component.food_public_id %}
+      <p class="text-break" id="c-food-current">Aktuelle Zuordnung:
+        {% if food_detail_available|default(false) %}<a href="{{ url_for('admin.master_data_detail', kind='zutaten', public_id=component.food_public_id) }}">{{ component.food_name }}</a>{% else %}{{ component.food_name }}{% endif %}
+        · {{ component.food_public_id }}
+      </p>
+      {% endif %}
+      {% if component.food_public_id or errors.get('food_detach_confirm') %}
+      <div{% if errors.get('food_detach_confirm') %} role="group" aria-labelledby="c-food-detach-label" aria-describedby="c-food-detach-error"{% endif %}>
+        <span id="c-food-detach-label">{{ checkbox('food_detach_confirm', 'Ich bestätige: Die Lebensmittelzuordnung von «' ~ component.name ~ '» wird entfernt. Die Komponente und ihre bestätigten Angaben bleiben erhalten.', checked=submitted.get('food_detach_confirm') == '1', id='c-food-detach') }}</span>
+        {% if errors.get('food_detach_confirm') %}<div class="invalid-feedback d-block field-error" id="c-food-detach-error">{{ errors['food_detach_confirm'] }}</div>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+    <fieldset class="mb-0">
+      <legend class="form-label">Kennzeichnungen</legend>
+      <div class="row g-3 mb-3">
+        <div class="col-12 col-md-6">
+          {{ country_select('origin_country_code', submitted.get('origin_country_code', component.origin_country_code or ''), 'c-origin', error=errors.get('origin_country_code'), label='Herkunft') }}
+        </div>
+      </div>
+      <div class="mb-3">
+        <span class="form-label d-block">Labels</span>
+        {% set l_codes = submitted.getlist('label_code') if submitted.getlist else submitted.get('label_code') %}
+        {% if l_codes is none %}{% set l_codes = component.labels|map(attribute='code')|list %}{% endif %}
+        <div class="row g-2">
+          {% for label in labels|default([]) %}
+          <div class="col-12 col-md-6">{{ checkbox('label_code', label.name|default(label.code), value=label.code, checked=label.code in l_codes, id='edit-label-' ~ label.code) }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      <div>
+        <span class="form-label d-block">Allergene</span>
+        <p class="form-hint" id="edit-allergen-hint">Geltungsbereich: gespeicherter Katalogstand. Nicht ausgewählte Allergene sind nicht als allergenfrei bestätigt.</p>
+        {% set a_codes = submitted.getlist('allergen_code') if submitted.getlist else submitted.get('allergen_code') %}
+        {% set a_pres = submitted.getlist('allergen_presence') if submitted.getlist else submitted.get('allergen_presence') %}
+        {% if a_codes is none %}
+          {% set a_codes = component.allergens|map(attribute='code')|list %}
+          {% set a_pres = component.allergens|map(attribute='presence')|list %}
+        {% endif %}
+        <div class="allergen-list">
+          {% for allergen in allergens|default([]) %}
+            {% set idx = a_codes.index(allergen.code) if allergen.code in a_codes else -1 %}
+            {% set presence = a_pres[idx] if idx >= 0 and idx < a_pres|length else 'contains' %}
+            <div class="allergen-row row g-2 align-items-center mb-2">
+              <div class="col-12 col-md-6 d-flex align-items-center gap-2">{{ symbol('allergens', allergen.code, true) }}{{ checkbox('allergen_code', allergen.name|default(allergen.code), value=allergen.code, checked=idx >= 0, id='edit-allergen-' ~ allergen.code) }}</div>
+              <div class="col-12 col-md-6">
+                {{ select('allergen_presence', 'Präsenz für ' ~ allergen.name|default(allergen.code), choices=[('contains', 'enthält'), ('may_contain', 'kann Spuren enthalten')], value=presence, id='edit-presence-' ~ allergen.code, disabled=idx < 0) }}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </fieldset>
+  </div>
+  <div class="card-footer dishboard-component-actions">
+    {% call actions() %}
+      <button type="submit" class="btn btn-primary">{{ icon('device-floppy') }}Baustein speichern</button>
+      <a class="btn" href="/admin/{{ family }}/komponenten">Abbrechen</a>
+    {% endcall %}
+  </div>
+</form>
+<div class="component-secondary-actions card mt-3">
+  <div class="card-body py-3">
+    <h2 class="h4 card-title mb-2">{{ 'Archivieren' if component.active else 'Reaktivieren' }}</h2>
+    <p class="text-secondary small mb-3">{% if component.active %}Der Baustein wird aus neuen Auswahlen ausgeblendet, bleibt aber in bestehenden Menüs erhalten.{% else %}Der Baustein wird wieder für neue Menüzuordnungen verfügbar.{% endif %}</p>
+    <form method="post" action="/admin/{{ family }}/komponenten/{{ component.public_id }}/{{ 'archive' if component.active else 'unarchive' }}" data-confirm="{{ 'Baustein wirklich archivieren?' if component.active else 'Baustein reaktivieren?' }}">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <input type="hidden" name="row_version" value="{{ component.row_version }}">
+      <button type="submit" class="btn btn-outline-secondary">{{ icon('archive' if component.active else 'archive-off') }}{{ 'Archivieren' if component.active else 'Reaktivieren' }}</button>
+    </form>
+  </div>
 </div>
 {% endblock %}
