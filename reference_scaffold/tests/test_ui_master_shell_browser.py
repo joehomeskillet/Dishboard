@@ -340,18 +340,30 @@ def test_layout_min_width_overlap_and_padding(site, database_engine):  # noqa: F
         _goto(page, f'/__shell__/{variant}')
         expect(page.locator('main.admin-main')).to_have_attribute('data-layout', variant)
         expect(page.locator('header.admin-page-header h1')).to_have_text('Shell-Variante')
-        page.set_viewport_size({'width': 1920, 'height': 1080})
-        widths[variant] = page.locator('.page-body > .container-xl').evaluate(
-            'el => getComputedStyle(el).maxWidth',
-        )
+        for viewport_width in (1440, 1920, 2560):
+            page.set_viewport_size({'width': viewport_width, 'height': 1080})
+            metrics = page.evaluate('''() => {
+              const main = document.querySelector('main.admin-main');
+              const box = document.querySelector('.page-body > .container-xl');
+              const cs = getComputedStyle(box);
+              const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+              return {
+                maxWidth: cs.maxWidth,
+                contentWidth: box.getBoundingClientRect().width - pad,
+                expected: main.clientWidth - pad,
+              };
+            }''')
+            assert metrics['maxWidth'] == 'none', (variant, viewport_width, metrics)
+            assert abs(metrics['contentWidth'] - metrics['expected']) <= 1, (variant, viewport_width, metrics)
+            widths.setdefault(variant, {})[viewport_width] = metrics
         containers = page.locator('.admin-page-header > .container-xl, .admin-area-tabs > .container-xl, .page-body > .container-xl').all()
         boxes = [container.bounding_box() for container in containers]
         assert len(boxes) == 3
         assert max(box['x'] for box in boxes) - min(box['x'] for box in boxes) <= 1
         assert max(box['width'] for box in boxes) - min(box['width'] for box in boxes) <= 1
-    assert widths['standard'] == '1440px'
-    assert widths['narrow'] == '960px'
-    assert widths['workspace'] == 'none'
+    assert {variant: widths[variant][1920]['maxWidth'] for variant in widths} == {
+        'standard': 'none', 'narrow': 'none', 'workspace': 'none',
+    }
     _goto(page, '/__shell__/empty')
     expect(page.locator('#shell-empty')).to_have_text('leer')
     assert page.locator('header.admin-page-header').count() == 0

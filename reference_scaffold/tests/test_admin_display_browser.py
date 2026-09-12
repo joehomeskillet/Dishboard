@@ -53,6 +53,8 @@ def test_compact_default_without_local_control_preserves_help_and_targets(
         page.goto(PATH)
         expect(page.get_by_label('Abstände', exact=True)).to_have_value('compact')
         expect(page.locator('#admin-density-hint')).to_be_visible()
+        expect(page.get_by_label('Inhaltsbreite', exact=True)).to_have_value('contained')
+        expect(page.locator('#admin-content-width-hint')).to_contain_text('volle Breite')
         # K7-A, Entscheidungsdokument §10: compact = Master-Card-Inset (16 px mobil, 24 px ab 768 px)
         expected_compact = '16px' if width < 768 else '24px'
         assert page.locator('#display-settings-form .card-body').evaluate('el => getComputedStyle(el).paddingTop') == expected_compact

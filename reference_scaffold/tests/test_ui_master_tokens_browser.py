@@ -369,6 +369,7 @@ def test_viewports_and_real_routes(site, width, height, padding, tmp_path):
         _goto(page, path)
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), path
         assert page.locator('.page-body > .container-xl').evaluate('el => parseFloat(getComputedStyle(el).paddingLeft)') == padding
+        assert page.locator('.page-body > .container-xl').evaluate('el => getComputedStyle(el).maxWidth') == 'none'
         assert _styles(page.locator('h1'))['font-size'] == ('34px' if width >= 992 else '28px')
         for control in page.locator('.btn:visible, .form-control:visible, .form-select:visible').all():
             assert control.evaluate('el => el.getBoundingClientRect().height >= 48'), path

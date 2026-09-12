@@ -187,9 +187,7 @@ Helle Card-Rahmen sind dekorative Trennlinien. Wo eine Umrandung nötig ist, um 
 | Hilfetext / sekundäre Metadaten | `0.8125rem`; wichtige Handlungsinformationen nicht kleiner setzen |
 | Sidebar | `248px` breit auf Desktop |
 | Topbar | `64px` Mindesthöhe, darf bei Zoom/Inhalten wachsen |
-| Standard-Container | `1440px` maximale äussere Breite einschliesslich Innenabstand, innerhalb des Hauptbereichs |
-| Reine schmale Formular-/Leseseite | `960px` maximale äussere Breite als zentrale Layoutvariante |
-| Arbeitsfläche für bestehende Kalender/Kanban | Verfügbare Breite als eigene zentrale Variante; keine willkürliche Seiten-CSS-Lösung |
+| Arbeitsbreite | Immer volle verfügbare Breite neben der Sidebar, keine Obergrenze; Innenabstand 24–32/16 |
 | Inhaltspadding | Desktop `32px`, Tablet `24px`, Smartphone `16px` |
 | Card-Radius | `12px` |
 | Button-/Feld-/Nav-Radius | `8px` |
