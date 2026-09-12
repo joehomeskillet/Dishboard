@@ -3,7 +3,7 @@
 {% from 'admin/_macros.html' import icon, page_header, field, select, check as checkbox, form_errors as error_summary, actions, status %}
 {% from 'admin/_country_select.html' import country_select %}
 {% set workflow_nav = 'components' %}
-{% set layout_variant = 'narrow' %}
+{% set layout_variant = 'standard' %}
 {% set submitted = form_values|default({}) %}
 {% set errors = form_errors|default({}) %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-components.css') }}">{% endblock %}

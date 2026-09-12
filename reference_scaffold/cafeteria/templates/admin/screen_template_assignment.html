@@ -1,7 +1,7 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon %}
 {% set workflow_nav = 'screens' %}
-{% set layout_variant = 'narrow' %}
+{% set layout_variant = 'standard' %}
 {% block title %}Wochenvorlage zuordnen · Menüplanung{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-screens.css') }}">{% endblock %}
 {% block page_header %}{{ page_header('Wochenvorlage zuordnen', description=area_names[profile] ~ ' · Web-Wochenplan. Die Auswahl gilt beim nächsten Öffnen oder Neuladen.', breadcrumbs=[('Screens', url_for('admin.screens')), ('Wochenvorlage zuordnen', none)]) }}{% endblock %}

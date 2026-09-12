@@ -169,7 +169,7 @@ def test_output_hubs_viewports_and_layouts(
         res_assign = page.goto("/admin/screens/cafeteria/wochenvorlage")
         assert res_assign is not None and res_assign.status == 200
         expect(page.locator("h1")).to_have_text("Wochenvorlage zuordnen")
-        expect(page.locator("main")).to_have_attribute("data-layout", "narrow")
+        expect(page.locator("main")).to_have_attribute("data-layout", "standard")
         expect(page.locator(".breadcrumb")).to_contain_text("Screens")
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
         cards = page.locator(".screen-choice-card").evaluate_all(

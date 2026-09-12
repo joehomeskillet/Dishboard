@@ -155,7 +155,7 @@ def test_catalog_table_cards_country_errors_and_archive_across_breakpoints(
         row = page.locator(f'.component-row[data-public-id="{public_id}"]')
         expect(row).to_contain_text(long_name)
         expect(row).to_contain_text('verwendet in 0 Gerichten')
-        if width < 1200:
+        if width < 992:
             expect(page.locator('.dishboard-component-table thead')).to_be_hidden()
             assert row.evaluate('e => getComputedStyle(e).display') == 'grid'
             assert row.evaluate('''e => e.querySelector('th').getBoundingClientRect().width
