@@ -1,0 +1,110 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header, icon %}
+{% set workflow_nav = 'dish_templates' %}
+{% set scope_labels = {'common': 'Gemeinsam', 'patient': 'Patienten', 'staff_guest': 'Cafeteria'} %}
+{% set type_labels = {'MENU_1': 'Menü 1', 'VEGGIE': 'Vegetarisch'} %}
+{% block title %}Gerichtvorlagen · Menüplanung{% endblock %}
+{% block page_header %}
+{% call page_header('Gerichtvorlagen') %}
+{% if can_write %}<a class="btn btn-primary" href="{{ url_for('admin.dish_template_new') }}">{{ icon('plus') }}Vorlage anlegen</a>{% endif %}
+{% endcall %}
+{% endblock %}
+{% block content %}
+<p>Gerichtvorlagen binden ein Rezept an Menüart und Geltungsbereich. Archivierte Vorlagen bleiben lesbar.</p>
+{% if error %}
+<div class="alert alert-danger error-region" id="dish-template-error" role="alert" tabindex="-1" autofocus>{{ error }}
+{% if row %}<a href="{{ url_for('admin.dish_template_edit', public_id=row.public_id) }}">Aktuellen Stand neu laden</a>{% endif %}
+</div>
+{% endif %}
+<form class="mb-3" method="get" action="{{ url_for('admin.dish_templates_list') }}">
+  <label class="form-check">
+    <input class="form-check-input" type="checkbox" name="archived" value="1"{% if include_archived %} checked{% endif %} onchange="this.form.submit()">
+    <span class="form-check-label">Archivierte einschliessen</span>
+  </label>
+  <noscript><button class="btn" type="submit">Filter anwenden</button></noscript>
+</form>
+{% if rows %}
+<div class="card mb-4">
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr>
+          <th>Titel</th>
+          <th>Menüart</th>
+          <th>Geltungsbereich</th>
+          <th>Gebundenes Rezept</th>
+          <th>Aktivstatus</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in rows %}
+        <tr>
+          <td><a class="text-break" href="{{ url_for('admin.dish_template_edit', public_id=item.public_id) }}">{{ item.title }}</a></td>
+          <td>{{ type_labels.get(item.menu_type_code, item.menu_type_code or '—') }}</td>
+          <td>{{ scope_labels.get(item.profile_scope, item.profile_scope) }}</td>
+          <td>{{ item.recipe_title or '—' }}</td>
+          <td><span class="badge {{ 'bg-green-lt' if item.active else 'bg-secondary-lt' }}">{{ 'Aktiv' if item.active else 'Archiviert' }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty">
+  <p class="empty-title">Noch keine Gerichtvorlagen</p>
+  <p class="empty-subtitle text-secondary">Eine Vorlage anlegen, um ein Rezept für die Wochenplanung bereitzuhalten.</p>
+</div>
+{% endif %}
+{% if can_write and (row or request.endpoint in ['admin.dish_template_new', 'admin.dish_template_create']) %}
+<section class="card" aria-labelledby="dish-template-form-title">
+  <div class="card-header"><h2 class="card-title" id="dish-template-form-title">{{ 'Vorlage bearbeiten' if row else 'Vorlage anlegen' }}</h2></div>
+  <form class="card-body" method="post" action="{{ url_for('admin.dish_template_save', public_id=row.public_id) if row else url_for('admin.dish_template_create') }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    {% if row %}<input type="hidden" name="updated_at" value="{{ cas.isoformat() }}">{% endif %}
+    <div class="mb-3">
+      <label class="form-label" for="title">Titel</label>
+      <input class="form-control" id="title" name="title" required maxlength="120" value="{{ values.title }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="description">Beschreibung</label>
+      <textarea class="form-control" id="description" name="description" rows="3" maxlength="2000">{{ values.description }}</textarea>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="menu_type_code">Menüart</label>
+      <select class="form-select" id="menu_type_code" name="menu_type_code">
+        <option value="">Keine</option>
+        {% for code, label in types %}
+        <option value="{{ code }}"{% if values.menu_type_code == code %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="profile_scope">Geltungsbereich</label>
+      <select class="form-select" id="profile_scope" name="profile_scope" required>
+        {% for code, label in scopes %}
+        <option value="{{ code }}"{% if values.profile_scope == code %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="recipe_public_id">Gebundenes Rezept</label>
+      <select class="form-select" id="recipe_public_id" name="recipe_public_id">
+        <option value="">Keine Bindung</option>
+        {% for recipe in recipes %}
+        <option value="{{ recipe.public_id }}"{% if values.recipe_public_id == recipe.public_id %} selected{% endif %}{% if not recipe.active and values.recipe_public_id != recipe.public_id %} disabled{% endif %}>{{ recipe.title }}{% if not recipe.active %} (archiviert){% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="btn-list">
+      <button class="btn btn-primary" type="submit" name="action" value="save">Speichern</button>
+      {% if row and row.active %}
+      <button class="btn" type="submit" name="action" value="archive" data-confirm="Diese Vorlage archivieren?">Archivieren</button>
+      {% elif row %}
+      <button class="btn" type="submit" name="action" value="reactivate">Reaktivieren</button>
+      {% endif %}
+    </div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

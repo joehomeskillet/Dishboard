@@ -8,6 +8,7 @@ from werkzeug.datastructures import MultiDict
 
 from ..component_catalog_store import AdminScope
 from ..component_catalog_filters import ComponentFilters
+from ..menu_recipe_choices import EMPTY_RECIPE_PAGE, RecipeChoicePage
 from ..operations_settings import get_area_names, get_schedule, slot_defaults
 from ..workflow import MENU_TYPES, PROFILE_DAYS, PROFILE_MEALS
 
@@ -61,6 +62,9 @@ def menu_form_values(profile: str, option: dict[str, Any]) -> dict[str, Any]:
         ],
         'component_text': [
             str(assignment.get('component_text') or '') for assignment in assignments
+        ],
+        'recipe_revision_public_id': [
+            str(assignment.get('recipe_revision_public_id') or '') for assignment in assignments
         ],
         'allergen_code': [str(allergen.get('code') or '') for allergen in allergens],
         'allergen_presence': [
@@ -183,6 +187,7 @@ def render_menu_editor(
     allergens: list[dict[str, Any]], labels: list[dict[str, Any]],
     effects: dict[str, Any], flashes: list[str],
     origin_conflict: str | None = None,
+    recipe_page: RecipeChoicePage | None = None,
 ) -> str:
     return render_template(
         'admin/menu_editor.html', profile=profile, family=family, week=week,
@@ -190,6 +195,7 @@ def render_menu_editor(
         form_errors=form_errors, csrf=csrf, review_token=review_token,
         catalog_choices=catalog_choices, allergens=allergens, labels=labels,
         effects=effects, flashes=flashes, origin_conflict=origin_conflict,
+        recipe_page=recipe_page if recipe_page is not None else EMPTY_RECIPE_PAGE,
         **_template_context(),
     )
 
@@ -211,16 +217,33 @@ def render_components(
     )
 
 
+def _active_location_foods() -> list[Any]:
+    engine = current_app.extensions.get('cafeteria_db')
+    if engine is None or not hasattr(engine, 'connect'):
+        return []
+    from ..master_data_reads import list_foods
+
+    foods: list[Any] = []
+    while True:
+        batch = list_foods(engine, limit=500, offset=len(foods))
+        foods.extend(batch)
+        if len(batch) < 500:
+            break
+    return foods
+
+
 def render_component_detail(
     profile: str, family: str, component: dict[str, Any], csrf: str,
     flashes: list[str], categories: dict[str, str],
     allergens: list[dict[str, Any]], labels: list[dict[str, Any]],
     *, form_values: MultiDict[str, str] | None = None, form_errors: dict[str, str] | None = None,
 ) -> str:
+    foods = _active_location_foods()
     return render_template(
         'admin/component_editor.html', profile=profile, family=family,
         component=component, csrf=csrf, flashes=flashes, categories=categories,
-        allergens=allergens, labels=labels,
+        allergens=allergens, labels=labels, foods=foods,
+        food_detail_available='admin.master_data_detail' in current_app.view_functions,
         form_values=form_values if form_values is not None else {}, form_errors=form_errors or {},
         **_template_context(),
     )

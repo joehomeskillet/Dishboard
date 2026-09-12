@@ -9,6 +9,7 @@ from typing import Any
 from uuid import UUID
 
 from .operations_settings import normalise_time
+from .component_assignment_contract import AssignmentValidationError, normalize_assignments
 from .workflow import (
     MENU_TYPES,
     PROFILE_DAYS,
@@ -32,7 +33,7 @@ _MENU_REQUIRED = frozenset(
 )
 _MENU_OPTIONAL = frozenset('description note'.split())
 _MENU_REPEATED = frozenset(
-    'component_public_id component_text allergen_code allergen_presence '
+    'component_public_id component_text recipe_revision_public_id allergen_code allergen_presence '
     'origin_ingredient origin_country_code label_code'.split()
 )
 
@@ -222,9 +223,18 @@ def _paired(
 
 def _assignments(form: Mapping[str, object], context: str) -> list[dict[str, str | None]]:
     public_ids, texts = _paired(form, 'component_public_id', 'component_text', context)
+    revisions = None
+    if 'recipe_revision_public_id' in form:
+        revisions = _repeated(form, 'recipe_revision_public_id')
+        if len(revisions) != len(public_ids):
+            raise _item_error(context, 'Zusammengehörige Rezeptfelder sind unvollständig.',
+                              'recipe_revision_public_id')
     result = []
-    for public_id_raw, component_text in zip(public_ids, texts, strict=True):
+    for index, (public_id_raw, component_text) in enumerate(zip(public_ids, texts, strict=True)):
+        revision = revisions[index] if revisions is not None else None
         public_id = public_id_raw.strip()
+        if not public_id and component_text == '' and not revision:
+            continue
         if public_id and component_text:
             raise _item_error(context, 'Komponente darf nur eine Auswahl enthalten.', 'component_text')
         if public_id:
@@ -232,11 +242,18 @@ def _assignments(form: Mapping[str, object], context: str) -> list[dict[str, str
                 normalized_id = str(UUID(public_id))
             except (ValueError, AttributeError) as error:
                 raise _item_error(context, 'Komponenten-ID ist ungültig.', 'component_public_id') from error
-            result.append({'component_public_id': normalized_id, 'component_text': None})
-            continue
-        if component_text == '' or not component_text.strip(' '):
-            raise _item_error(context, 'Freitext-Komponente ist leer.', 'component_text')
-        result.append({'component_public_id': None, 'component_text': component_text})
+            row: dict[str, str | None] = {'component_public_id': normalized_id, 'component_text': None}
+        else:
+            if component_text == '' or not component_text.strip(' '):
+                raise _item_error(context, 'Freitext-Komponente ist leer.', 'component_text')
+            row = {'component_public_id': None, 'component_text': component_text}
+        if revisions is not None:
+            row['recipe_revision_public_id'] = revision if revision else None
+        result.append(row)
+    try:
+        normalize_assignments(result)
+    except AssignmentValidationError as error:
+        raise _item_error(context, str(error), 'recipe_revision_public_id') from error
     return result
 
 
@@ -288,6 +305,8 @@ def _origins(form: Mapping[str, object], context: str) -> list[dict[str, str]]:
     for raw_ingredient, raw_country in zip(ingredients, countries, strict=True):
         ingredient = raw_ingredient.strip()
         country = raw_country.strip()
+        if not ingredient and not country:
+            continue
         if not ingredient:
             raise _item_error(context, 'Zutat für Herkunft fehlt.', 'origin_ingredient')
         if ingredient in seen:
@@ -508,15 +527,39 @@ def parse_component_create_form(form: Mapping[str, object]) -> ParsedComponentCr
     return ParsedComponentCreate(payload={**_component_metadata(form), 'target_scope': target_scope})
 
 
-def parse_component_update_form(form: Mapping[str, object]) -> ParsedComponentUpdate:
+def parse_component_update_form(
+    form: Mapping[str, object], *, current_food_public_id: str | None = None,
+) -> ParsedComponentUpdate:
     _validate_shape(
         form,
         frozenset({'_csrf', 'category', 'name', 'origin_country_code', 'row_version'}),
+        optional=frozenset({'food_public_id', 'food_detach_confirm'}),
         repeated=frozenset({'label_code', 'allergen_code', 'allergen_presence'}),
     )
+    payload = _component_metadata(form)
+    if 'food_detach_confirm' in form and _scalar(form, 'food_detach_confirm') != '1':
+        raise WorkflowValidationError(
+            'Ablösen ausdrücklich bestätigen.', field_name='food_detach_confirm',
+        )
+    if 'food_public_id' in form:
+        value = _scalar(form, 'food_public_id')
+        if value:
+            try:
+                payload['food_public_id'] = str(UUID(value))
+            except ValueError as error:
+                raise WorkflowValidationError(
+                    'Lebensmittel-ID muss eine UUID sein.', field_name='food_public_id',
+                ) from error
+        else:
+            if current_food_public_id and 'food_detach_confirm' not in form:
+                raise WorkflowValidationError(
+                    'Ablösen des Lebensmittels ausdrücklich bestätigen.',
+                    field_name='food_detach_confirm',
+                )
+            payload['food_public_id'] = None
     return ParsedComponentUpdate(
         expected_component_row_version=_component_version(form),
-        payload=_component_metadata(form),
+        payload=payload,
     )
 
 

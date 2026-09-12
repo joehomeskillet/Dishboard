@@ -1,0 +1,30 @@
+[
+  {
+    "path": "demo/linked_recipe_drafts.json",
+    "sha256": "333b763559824d66db74a9bd9d0b146fd4969454803e6e5ba8e79b3949566dba"
+  },
+  {
+    "path": "demo/linked-recipe-drafts.md",
+    "sha256": "3654a551bc88d0ab47be12224a61625b5a683967360b1c0925d6a6a8d65eeca9"
+  },
+  {
+    "path": "demo/recipe_examples.json",
+    "sha256": "c2158db2f3a71a3d22ef706a03d8dfc06c7fb0664af7a86f5768f448cab82f51"
+  },
+  {
+    "path": ".claude/build_linked_drafts.py",
+    "sha256": "879b8f0b499a452f8b630ef1c4618d86d4cfa1f38a4ee26150a711a12937529d"
+  },
+  {
+    "path": ".claude/validate_linked_drafts.py",
+    "sha256": "9b081ed775d924d00c94b36bb82e2f629bdaafe0acb850f56c4540614ab78282"
+  },
+  {
+    "path": ".claude/test_linked_drafts.py",
+    "sha256": "6745b01f935494d4613acdc989cbad930ef94b71724ccc2b6a8aa283ce658829"
+  },
+  {
+    "path": ".claude/index-scoped.sh",
+    "sha256": "25b8ebeee857ad690ed82fde3e4e3797a98b0501f54f0c6897815709fb85e54a"
+  }
+]

@@ -15,7 +15,7 @@
 {% block content %}
 {% set error_links = [] %}
 {% for name, message in errors.items() %}
-  {% set error_link %}<a data-error-link href="{{ {'name': '#c-name', 'category': '#c-cat', 'origin_country_code': '#c-origin'}.get(name, '#component-form') }}">{{ message }}</a>{% endset %}
+  {% set error_link %}<a data-error-link href="{{ {'name': '#c-name', 'category': '#c-cat', 'origin_country_code': '#c-origin', 'food_public_id': '#c-food', 'food_detach_confirm': '#c-food-detach'}.get(name, '#component-form') }}">{{ message }}</a>{% endset %}
   {% set _ = error_links.append(error_link) %}
 {% endfor %}
 {{ error_summary(error_links, title='Bitte korrigieren Sie die Fehler im Formular.') }}
@@ -33,6 +33,34 @@
           <div class="col-12 col-md-6">
             {{ country_select('origin_country_code', submitted.get('origin_country_code', component.origin_country_code or ''), 'c-origin', error=errors.get('origin_country_code'), label='Herkunft') }}
           </div>
+        </div>
+        <div class="mb-3">
+          {% set selected_food = submitted.get('food_public_id', component.food_public_id or '') %}
+          {% set food_ids = foods|default([])|map(attribute='public_id')|map('lower')|list %}
+          <label class="form-label" for="c-food">Lebensmittel</label>
+          <select class="form-select{% if errors.get('food_public_id') %} is-invalid{% endif %}" id="c-food" name="food_public_id" aria-describedby="c-food-hint{% if errors.get('food_public_id') %} c-food-error{% endif %}"{% if errors.get('food_public_id') %} aria-invalid="true"{% endif %}>
+            <option value=""{% if not selected_food %} selected{% endif %}>Kein Lebensmittel</option>
+            {% for food in foods|default([]) %}
+            <option value="{{ food.public_id }}"{% if selected_food|lower == food.public_id|lower %} selected{% endif %}>{{ food.name }} · {{ food.public_id }}</option>
+            {% endfor %}
+            {% if selected_food and selected_food|lower not in food_ids %}
+            <option value="{{ selected_food }}" selected>{{ component.food_name if selected_food == component.food_public_id else selected_food }} (nicht auswählbar)</option>
+            {% endif %}
+          </select>
+          <p class="form-hint" id="c-food-hint">Optional. Die Zuordnung übernimmt keine Allergene, Herkunft oder Labels aus dem Lebensmittel.</p>
+          {% if errors.get('food_public_id') %}<div class="invalid-feedback d-block field-error" id="c-food-error">{{ errors['food_public_id'] }}</div>{% endif %}
+          {% if component.food_public_id %}
+          <p class="text-break" id="c-food-current">Aktuelle Zuordnung:
+            {% if food_detail_available|default(false) %}<a href="{{ url_for('admin.master_data_detail', kind='zutaten', public_id=component.food_public_id) }}">{{ component.food_name }}</a>{% else %}{{ component.food_name }}{% endif %}
+            · {{ component.food_public_id }}
+          </p>
+          {% endif %}
+          {% if component.food_public_id or errors.get('food_detach_confirm') %}
+          <div{% if errors.get('food_detach_confirm') %} role="group" aria-labelledby="c-food-detach-label" aria-describedby="c-food-detach-error"{% endif %}>
+            <span id="c-food-detach-label">{{ checkbox('food_detach_confirm', 'Ich bestätige: Die Lebensmittelzuordnung von «' ~ component.name ~ '» wird entfernt. Die Komponente und ihre bestätigten Angaben bleiben erhalten.', checked=submitted.get('food_detach_confirm') == '1', id='c-food-detach') }}</span>
+            {% if errors.get('food_detach_confirm') %}<div class="invalid-feedback d-block field-error" id="c-food-detach-error">{{ errors['food_detach_confirm'] }}</div>{% endif %}
+          </div>
+          {% endif %}
         </div>
         <fieldset class="mb-3">
           <legend class="form-label">Labels</legend>

@@ -1,6 +1,8 @@
 """Seven-day operations contract on PostgreSQL; existing publication bytes stay valid."""
 from __future__ import annotations
 
+from review_support import write_expectations
+
 # ruff: noqa: F401, F811
 import datetime as dt
 from copy import deepcopy
@@ -82,7 +84,7 @@ def test_nonzero_revision_never_creates_missing_settings(app, database_engine, e
 def test_service_guard_preserves_existing_weekend_when_switch_turns_off(app, database_engine):
     actor, version = _admin(app, database_engine)
     _save(database_engine, 'staff_guest', _staff_values())
-    week = load_draft(database_engine, 'staff_guest', WEEK_START, actor_id=actor)['id']
+    week = load_draft(database_engine, 'staff_guest', WEEK_START, actor_id=actor, **write_expectations(database_engine, actor))['id']
     insert = text("""INSERT INTO cafeteria.menu_services(menu_week_id,service_date,meal_period_id,
         service_state,notice) SELECT :week,:date,id,'closed','Samstags geschlossen'
         FROM cafeteria.meal_periods WHERE code='LUNCH' RETURNING id""")
@@ -118,7 +120,7 @@ def test_service_guard_preserves_existing_weekend_when_switch_turns_off(app, dat
 def _staff_snapshot(engine):
     actor = _actor_id(engine)
     _save(engine, 'staff_guest', _staff_values())
-    draft = load_draft(engine, 'staff_guest', WEEK_START, actor_id=actor)
+    draft = load_draft(engine, 'staff_guest', WEEK_START, actor_id=actor, **write_expectations(engine, actor))
     snapshot = build_snapshot('staff_guest', draft, 'CAF-2026-KW36-R1')
     with engine.begin() as connection:
         connection.execute(text("UPDATE cafeteria.menu_weeks SET workflow_state='published' WHERE id=:id"),

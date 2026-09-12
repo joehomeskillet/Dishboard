@@ -40,6 +40,10 @@ MIGRATION_0019 = ROOT / 'database' / 'migrations' / '0019_v21_to_v22.sql'
 MIGRATION_0020 = ROOT / 'database' / 'migrations' / '0020_v22_to_v23.sql'
 MIGRATION_0021 = ROOT / 'database' / 'migrations' / '0021_v23_to_v24.sql'
 MIGRATION_0022 = ROOT / 'database' / 'migrations' / '0022_v24_to_v25.sql'
+MIGRATION_0023 = ROOT / 'database' / 'migrations' / '0023_v25_to_v26.sql'
+MIGRATION_0024 = ROOT / 'database' / 'migrations' / '0024_v26_to_v27.sql'
+MIGRATION_0025 = ROOT / 'database' / 'migrations' / '0025_v27_to_v28.sql'
+MIGRATION_0026 = ROOT / 'database' / 'migrations' / '0026_v28_to_v29.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
 PAT_JSON = ROOT / 'demo' / 'snapshots' / 'patienten_kw36.json'
@@ -194,8 +198,8 @@ def run_live_check() -> dict[str, Any]:
                     '''
                 )
             ).mappings().one()
-        if int(row['schema_version']) != 25:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 25.")
+        if int(row['schema_version']) != 29:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 29.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
         migrated_structure = structure('cafeteria')
@@ -300,6 +304,33 @@ def main() -> int:
         migration_0017 = MIGRATION_0017.read_text(encoding='utf-8')
         migration_0018 = MIGRATION_0018.read_text(encoding='utf-8')
         migration_0020 = MIGRATION_0020.read_text(encoding='utf-8')
+        migration_0024 = MIGRATION_0024.read_text(encoding='utf-8')
+        migration_0026 = MIGRATION_0026.read_text(encoding='utf-8')
+        if not migration_0026.startswith('BEGIN;') or not migration_0026.rstrip().endswith('COMMIT;'):
+            fail('Migration 0026 hat keinen strikten BEGIN/COMMIT-Vertrag.')
+        for fragment in ('commit_recipe_import_batch_v29', 'create_recipe_v22',
+                         'require_master_data_actor(p_actor,p_authz,\'recipe.import\')',
+                         'imported_result'):
+            if fragment not in migration_0026 or fragment not in sql:
+                fail(f'Import-Commit-Vertrag fehlt: {fragment}')
+        if not migration_0024.startswith('BEGIN;') or not migration_0024.rstrip().endswith('COMMIT;'):
+            fail('Migration 0024 hat keinen strikten BEGIN/COMMIT-Vertrag.')
+        for fragment in ('foods_prepared_recipe_scope_fk', 'food_storage_preflight', 'foods_complete_v27',
+                         'create_food_v27', 'update_food_v27', 'recipe_dependency_preview_v27', 'freeze_recipe_v27',
+                         'lock_prepared_graph_v27', 'check_prepared_graph_v27', 'check_prepared_snapshot_v27'):
+            if fragment not in migration_0024 or fragment not in sql:
+                fail(f'Vertrag für vorbereitete Zutaten fehlt: {fragment}')
+        migration_0023 = MIGRATION_0023.read_text(encoding='utf-8')
+        if not migration_0023.startswith('BEGIN;') or not migration_0023.rstrip().endswith('COMMIT;'):
+            fail('Migration 0023 hat keinen strikten BEGIN/COMMIT-Vertrag.')
+        for fragment in ('menu_components_food_scope_fk', 'recipe_revision_id', 'validate_menu_recipe_scope_v26',
+                         'validate_dish_recipe_scope_v26', 'validate_menu_dish_scope_v26',
+                         'begin_menu_binding_write_v26', 'lock_menu_recipe_revisions_v26',
+                         'lock_component_foods_v26', 'record_menu_binding_write_v26',
+                         'record_component_food_write_v26', 'audit_binding_entity_version_v26',
+                         'create_dish_template_v26', 'update_dish_template_v26', 'set_dish_template_active_v26'):
+            if fragment not in migration_0023 or fragment not in sql:
+                fail(f'Rezeptbindungsvertrag fehlt: {fragment}')
         migration_0022 = MIGRATION_0022.read_text(encoding='utf-8')
         if not migration_0022.startswith('BEGIN;') or not migration_0022.rstrip().endswith('COMMIT;'):
             fail('Migration 0022 hat keinen strikten BEGIN/COMMIT-Vertrag.')
@@ -400,6 +431,10 @@ def main() -> int:
             MIGRATION_0020: '996ae384a0c589b98429f8f520cf175631c17557ffe74221e9f46dd144e7771f',
             MIGRATION_0021: 'fc91851728fc7257cfa0ae098b8d9c94575f2ecd42f0568146e188514dfd13f6',
             MIGRATION_0022: '33d2bb0e556c9065f2cde096a9f58482cdd40f5e2fb7b56b331d4e9d8a402a07',
+            MIGRATION_0023: '24ac85b6833ac03b04a18eec238dde2bab1a51403f48b3baf7a9f56ac290cc58',
+            MIGRATION_0024: '5503b214a9957a09345d3301526797ca8fa2deb146fd6bdced6875ebd86635f2',
+            MIGRATION_0025: '136dbf46688490a46018d158acbe11a89fbd186164659c145e256f92df69399c',
+            MIGRATION_0026: '9740215a04c93a3093543c585c8c0c700eae625f5b94837527f9da97f9259259',
         }
         for migration_path, expected_checksum in immutable_migration_checksums.items():
             actual_checksum = hashlib.sha256(migration_path.read_bytes()).hexdigest()
@@ -419,6 +454,7 @@ def main() -> int:
             'food_storage_locations', 'food_data_proposals',
             'recipes', 'recipe_ingredients', 'recipe_steps', 'recipe_tags', 'recipe_images',
             'recipe_assets', 'recipe_revisions', 'cookbooks', 'cookbook_recipes',
+            'recipe_import_batches', 'recipe_import_candidates',
         }
         missing = required_tables - set(tables)
         if missing:
@@ -467,6 +503,12 @@ def main() -> int:
             'lock_active_publication',
             'ORDER BY role_code',
             'SET search_path = pg_catalog, cafeteria, pg_temp',
+            'create_recipe_import_batch_v28',
+            'update_recipe_import_batch_v28',
+            'commit_recipe_import_batch_v29',
+            'recipe_import_batches',
+            'recipe_import_candidates',
+            'imported_result',
         ):
             if fragment not in sql:
                 fail(f'Pflichtfragment fehlt: {fragment}')
@@ -657,7 +699,7 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 25,
+            'schema_version': 29,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
@@ -681,6 +723,10 @@ def main() -> int:
                 '0020_v22_to_v23.sql': hashlib.sha256(MIGRATION_0020.read_bytes()).hexdigest(),
                 '0021_v23_to_v24.sql': hashlib.sha256(MIGRATION_0021.read_bytes()).hexdigest(),
                 '0022_v24_to_v25.sql': hashlib.sha256(MIGRATION_0022.read_bytes()).hexdigest(),
+                '0023_v25_to_v26.sql': hashlib.sha256(MIGRATION_0023.read_bytes()).hexdigest(),
+                '0024_v26_to_v27.sql': hashlib.sha256(MIGRATION_0024.read_bytes()).hexdigest(),
+                '0025_v27_to_v28.sql': hashlib.sha256(MIGRATION_0025.read_bytes()).hexdigest(),
+                '0026_v28_to_v29.sql': hashlib.sha256(MIGRATION_0026.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

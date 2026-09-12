@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from review_support import write_expectations
+
 # ruff: noqa: F811
 
 import threading
@@ -60,7 +62,8 @@ def _prepare_reviewed_publish_component(
             ),
             {'week_start': WEEK_START},
         ).mappings().one()
-    scope = AdminScope(actor_id, database.location_id, 'patient')
+    scope = AdminScope(actor_id, database.location_id, 'patient',
+                       write_expectations(database.app, actor_id)['expected_authz_version'])
     component = _component(database, f'Alt {suffix}')
     public_id = str(component['public_id'])
     assigned_version = workflow.replace_component_links(
@@ -350,7 +353,7 @@ def test_publish_locks_week_before_snapshot_reads_against_concurrent_save(
                 expected_row_version=expected_version,
                 actor_id=actor_id,
                 values=workflow_db_support._patient_values('Winterküche'),
-            )
+             **write_expectations(database_engine, actor_id))
         except Exception as error:  # pragma: no cover - asserted below
             results['save_error'] = error
         finally:
@@ -387,7 +390,7 @@ def test_publish_locks_week_before_snapshot_reads_against_concurrent_save(
         for option in service['options']
     } == {'Kartoffelgratin', 'Gemüseteller'}
     assert active_snapshot(database_engine, 'patient', '2026-09-02') == published
-    current = load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id)
+    current = load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id, **write_expectations(database_engine, actor_id))
     assert current['title'] == 'Herbstküche'
 
 
@@ -557,8 +560,7 @@ def test_common_component_catalog_edit_and_review_serialize_in_both_orders(
         try:
             results['review'] = workflow.review_component(
                 catalog_database.app,
-                AdminScope(workflow_db_support._actor_id(catalog_database.app),
-                           catalog_database.location_id, reviewed_item.scope.profile_code),
+                reviewed_item.scope,
                 reviewed_item.id,
                 token,
                 reviewed_version,

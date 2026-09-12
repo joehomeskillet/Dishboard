@@ -11,6 +11,7 @@ from cafeteria.master_data_types import ObjectExpectation
 from cafeteria.recipe_types import RecipeConflictError, RecipeValidationError
 from test_master_data_db import (  # noqa: F401
     pg16, installed_pg16, seeded_pg16, app_engine, make_actor, signed_in,
+    STORAGE_PUBLIC_ID,
 )
 from test_master_data_db import master as master
 
@@ -39,6 +40,13 @@ def payload(**changes):
 
 def target(row):
     return ObjectExpectation(row.public_id, row.row_version)
+
+
+def complete_line(engine, actor, name='Karotte', **changes):
+    """Explicit v27 fixture ingredient; generic draft payloads stay incomplete."""
+    food = masters.create_food(engine, actor, {'name': name, 'base_unit_code': changes.get('unit_code', 'G'),
+        'storage_location_public_ids': [STORAGE_PUBLIC_ID]})
+    return line(name, food_public_id=food.public_id, **changes)
 
 
 def snapshot(owner):
@@ -75,7 +83,9 @@ def test_recipe_roundtrip_noop_cas_and_archive(master):
     with pytest.raises(RecipeConflictError):
         store.set_recipe_active(engine, actor, target(archived), active=False, expected_location_id=location)
     with pytest.raises(RecipeConflictError):
-        store.freeze_revision(engine, actor, target(archived), expected_location_id=location)
+        original = store.get_dependency_preview(engine, target(archived), expected_location_id=location)
+        store.freeze_revision(engine, actor, target(archived), expected_location_id=location,
+                              expected_dependency_hash=original.dependency_hash_sha256)
     assert snapshot(owner) == before
     assert store.set_recipe_active(engine, actor, target(archived), active=True, expected_location_id=location).row_version == 4
 
@@ -84,10 +94,13 @@ def test_line_identity_survives_reorder_insert_edit_remove_and_revision(master):
     owner, engine, actor = master
     location = store.get_location(engine)
     source = {'source_kind': 'url', 'source_reference': 'https://example.test/original', 'fetched_at': '2026-09-07T08:00:00+00:00'}
-    recipe = store.create_recipe(engine, actor, payload(ingredients=[line('Erste', **source), line('Zweite')]), expected_location_id=location)
+    recipe = store.create_recipe(engine, actor, payload(ingredients=[complete_line(engine, actor, 'Erste', **source),
+        complete_line(engine, actor, 'Zweite')]), expected_location_id=location)
     read = store.get_recipe(engine, recipe.public_id)
     original = mutable(read.payload)
-    revision = store.freeze_revision(engine, actor, target(read), expected_location_id=location)
+    preview = store.get_dependency_preview(engine, target(read), expected_location_id=location)
+    revision = store.freeze_revision(engine, actor, target(read), expected_location_id=location,
+                                     expected_dependency_hash=preview.dependency_hash_sha256)
     edited = mutable(original)
     first, second = edited['ingredients']
     first.update(ingredient_text='Geändert', quantity='2')
@@ -150,7 +163,8 @@ def test_archived_refs_remain_only_on_original_logical_association(master, kind)
     location = store.get_location(engine)
     data = payload()
     if kind == 'food':
-        reference = masters.create_food(engine, actor, {'name': 'Karotte', 'base_unit_code': 'G'})
+        reference = masters.create_food(engine, actor, {'name': 'Karotte', 'base_unit_code': 'G',
+            'storage_location_public_ids': [STORAGE_PUBLIC_ID]})
         data['ingredients'][0]['food_public_id'] = reference.public_id
     elif kind == 'unit':
         reference = masters.create_unit(engine, actor, code='BOX', display_name='Box', dimension='count', base_factor='2')

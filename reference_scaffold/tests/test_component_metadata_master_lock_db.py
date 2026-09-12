@@ -49,23 +49,27 @@ def _role_engine(role: str, password: str) -> Engine:
 
 @pytest.fixture
 def pg16() -> Iterator[Engine]:
+    expected_major = os.getenv('TEST_POSTGRES_MAJOR', '16')
+    assert expected_major in {'16', '18'}, 'TEST_POSTGRES_MAJOR must be 16 or 18'
     if not DATABASE_URL:
         pytest.skip('TEST_DATABASE_URL für eine isolierte PostgreSQL-16-Testdatenbank fehlt.')
     engine = create_engine(DATABASE_URL, poolclass=NullPool, pool_pre_ping=True)
-    _drop_schema(engine)
-    database.provision_database_roles(
-        engine,
-        app_password=APP_PASSWORD,
-        backup_password=BACKUP_PASSWORD,
-        auth_issuer_password=ISSUER_PASSWORD,
-    )
     try:
         with engine.connect() as connection:
             version = int(connection.execute(text('SHOW server_version_num')).scalar_one())
-        assert 160_000 <= version < 170_000
-        yield engine
-    finally:
+        assert version // 10_000 == int(expected_major), 'Unexpected PostgreSQL major'
         _drop_schema(engine)
+        database.provision_database_roles(
+            engine,
+            app_password=APP_PASSWORD,
+            backup_password=BACKUP_PASSWORD,
+            auth_issuer_password=ISSUER_PASSWORD,
+        )
+        try:
+            yield engine
+        finally:
+            _drop_schema(engine)
+    finally:
         engine.dispose()
 
 

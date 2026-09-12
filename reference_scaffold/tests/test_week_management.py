@@ -91,7 +91,7 @@ def test_scoped_list_pagination_status_and_get_never_writes(client, database_eng
         connection.execute(text("UPDATE cafeteria.menu_weeks SET workflow_state='archived' WHERE week_start=:week"), {'week': WEEK + timedelta(weeks=12)})
         connection.execute(text('UPDATE cafeteria.locations SET active=false'))
         other = connection.execute(text("INSERT INTO cafeteria.locations(code,name,active) VALUES ('OTHER','Andere Küche',true) RETURNING id")).scalar_one()
-    persist_week_header(database_engine, AdminScope(scope.actor_id, other, 'patient'), WEEK, {'title': 'Andere Standortwoche', 'shared_note': ''}, 0)
+    persist_week_header(database_engine, AdminScope(scope.actor_id, other, 'patient', scope.expected_authz_version), WEEK, {'title': 'Andere Standortwoche', 'shared_note': ''}, 0)
     with database_engine.begin() as connection:
         connection.execute(text('UPDATE cafeteria.locations SET active=(id=:id)'), {'id': scope.location_id})
         before = connection.execute(text('SELECT id,row_version FROM cafeteria.menu_weeks ORDER BY id')).all()

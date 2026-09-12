@@ -13,7 +13,7 @@ from cafeteria import recipe_store as store
 from cafeteria.master_data_types import ObjectExpectation
 from cafeteria.recipe_types import RecipeConflictError, RecipeNotFoundError, RecipeValidationError
 from test_recipe_store_db import (  # noqa: F401
-    pg16, installed_pg16, seeded_pg16, app_engine, payload, line, mutable, target, snapshot,
+    pg16, installed_pg16, seeded_pg16, app_engine, payload, line, mutable, target, snapshot, complete_line, STORAGE_PUBLIC_ID,
 )
 from test_recipe_store_db import master as master
 
@@ -26,19 +26,28 @@ def png():
 
 def test_freeze_explicit_identical_conflict_and_changed_food_snapshot(master):
     owner, engine, actor = master
-    food = masters.create_food(engine, actor, {'name': 'Milch', 'base_unit_code': 'ML', 'density_g_per_ml': '1.03'})
+    food = masters.create_food(engine, actor, {'name': 'Milch', 'base_unit_code': 'ML', 'density_g_per_ml': '1.03',
+        'storage_location_public_ids': [STORAGE_PUBLIC_ID]})
     location = store.get_location(engine)
     recipe = store.create_recipe(engine, actor, payload(ingredients=[line(food_public_id=food.public_id, unit_code='ML')]), expected_location_id=location)
     assert snapshot(owner)['recipe_revisions'] == []
-    frozen = store.freeze_revision(engine, actor, target(recipe), expected_location_id=location)
+    preview = store.get_dependency_preview(engine, target(recipe), expected_location_id=location)
+    frozen = store.freeze_revision(engine, actor, target(recipe), expected_location_id=location,
+                                   expected_dependency_hash=preview.dependency_hash_sha256)
     first = store.get_revision(engine, frozen.public_id)
     assert first.snapshot['foods'][0]['density_g_per_ml'] == '1.03'
     before = snapshot(owner)
+    next_target = ObjectExpectation(recipe.public_id, frozen.recipe_row_version)
+    preview = store.get_dependency_preview(engine, next_target, expected_location_id=location)
     with pytest.raises(RecipeConflictError):
-        store.freeze_revision(engine, actor, ObjectExpectation(recipe.public_id, frozen.recipe_row_version), expected_location_id=location)
+        store.freeze_revision(engine, actor, next_target, expected_location_id=location,
+                              expected_dependency_hash=preview.dependency_hash_sha256)
     assert snapshot(owner) == before
-    masters.update_food(engine, actor, target(food), {'name': 'Milch', 'base_unit_code': 'ML', 'density_g_per_ml': '1.04'})
-    second = store.freeze_revision(engine, actor, ObjectExpectation(recipe.public_id, frozen.recipe_row_version), expected_location_id=location)
+    masters.update_food(engine, actor, target(food), {'name': 'Milch', 'base_unit_code': 'ML', 'density_g_per_ml': '1.04',
+        'storage_location_public_ids': [STORAGE_PUBLIC_ID]})
+    preview = store.get_dependency_preview(engine, next_target, expected_location_id=location)
+    second = store.freeze_revision(engine, actor, next_target, expected_location_id=location,
+                                   expected_dependency_hash=preview.dependency_hash_sha256)
     assert second.revision_number == 2 and second.recipe_row_version == frozen.recipe_row_version + 1
     assert second.content_hash_sha256 != first.content_hash_sha256
     assert store.get_revision(engine, first.public_id) == first
@@ -79,12 +88,14 @@ def test_image_caption_edit_preserves_original_source_and_rejects_source_erasure
 def test_historical_image_stays_authorized_after_draft_removal_without_global_hash_lookup(master):
     owner, engine, actor = master
     location = store.get_location(engine)
-    recipe = store.create_recipe(engine, actor, payload(), expected_location_id=location)
+    recipe = store.create_recipe(engine, actor, payload(ingredients=[complete_line(engine, actor)]), expected_location_id=location)
     unrelated = store.create_recipe(engine, actor, payload(title='Anderes Rezept'), expected_location_id=location)
     data = png()
     digest = hashlib.sha256(data).hexdigest()
     with_image = store.add_recipe_image(engine, actor, target(recipe), data=data, content_type='image/png', expected_location_id=location)
-    frozen = store.freeze_revision(engine, actor, target(with_image), expected_location_id=location)
+    preview = store.get_dependency_preview(engine, target(with_image), expected_location_id=location)
+    frozen = store.freeze_revision(engine, actor, target(with_image), expected_location_id=location,
+                                   expected_dependency_hash=preview.dependency_hash_sha256)
     edited = mutable(store.get_recipe(engine, recipe.public_id).payload)
     edited['images'] = []
     store.update_recipe(engine, actor, ObjectExpectation(recipe.public_id, frozen.recipe_row_version), edited, expected_location_id=location)

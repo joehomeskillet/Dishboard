@@ -4900,4 +4900,1471 @@ FROM PUBLIC,cafeteria_app,cafeteria_backup,cafeteria_auth_issuer;
 GRANT EXECUTE ON FUNCTION record_auth_access_v25(uuid,text,text,text,bigint,bigint)
 TO cafeteria_auth_issuer;
 
+-- R5a schema26: explicit nullable bindings and fixed write prerequisites.
+ALTER TABLE menu_components ADD COLUMN food_id bigint;
+ALTER TABLE menu_components ADD CONSTRAINT menu_components_food_scope_fk
+    FOREIGN KEY(location_id,food_id) REFERENCES foods(location_id,id) ON DELETE RESTRICT;
+ALTER TABLE menu_item_components ADD COLUMN recipe_revision_id bigint
+    REFERENCES recipe_revisions(id) ON DELETE RESTRICT;
+ALTER TABLE dish_templates ADD COLUMN recipe_id bigint REFERENCES recipes(id) ON DELETE RESTRICT;
+CREATE INDEX menu_components_food_idx ON menu_components(food_id) WHERE food_id IS NOT NULL;
+CREATE INDEX menu_item_components_recipe_idx ON menu_item_components(recipe_revision_id)
+    WHERE recipe_revision_id IS NOT NULL;
+CREATE INDEX dish_templates_recipe_idx ON dish_templates(recipe_id) WHERE recipe_id IS NOT NULL;
+CREATE INDEX menu_items_dish_template_idx ON menu_items(dish_template_id) WHERE dish_template_id IS NOT NULL;
+
+-- Immutable revision/parent locations need SELECT, not privileged row locks.
+-- Existing triggers prohibit moving items, services and weeks to new parents.
+CREATE FUNCTION validate_menu_recipe_scope_v26() RETURNS trigger
+LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+BEGIN
+    IF NEW.recipe_revision_id IS NOT NULL AND EXISTS (
+        SELECT 1 FROM menu_items i JOIN menu_services s ON s.id=i.service_id
+        JOIN menu_weeks w ON w.id=s.menu_week_id
+        JOIN recipe_revisions r ON r.id=NEW.recipe_revision_id
+        WHERE i.id=NEW.menu_item_id AND r.location_id<>w.location_id) THEN
+        RAISE EXCEPTION 'Rezeptrevision gehört zu einem anderen Standort.'
+            USING ERRCODE='23514',CONSTRAINT='menu_item_components_recipe_scope';
+    END IF;
+    RETURN NEW;
+END;$fn$;
+CREATE TRIGGER menu_item_components_recipe_scope BEFORE INSERT OR UPDATE OF menu_item_id,recipe_revision_id
+ON menu_item_components FOR EACH ROW EXECUTE FUNCTION validate_menu_recipe_scope_v26();
+
+CREATE FUNCTION validate_dish_recipe_scope_v26() RETURNS trigger
+LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+BEGIN
+    IF NEW.recipe_id IS NOT NULL AND EXISTS (
+        SELECT 1 FROM menu_items i JOIN menu_services s ON s.id=i.service_id
+        JOIN menu_weeks w ON w.id=s.menu_week_id JOIN recipes r ON r.id=NEW.recipe_id
+        WHERE i.dish_template_id=NEW.id AND w.location_id<>r.location_id) THEN
+        RAISE EXCEPTION 'Rezept passt nicht zu den verwendenden Menüwochen.'
+            USING ERRCODE='23514',CONSTRAINT='dish_templates_recipe_scope';
+    END IF;
+    RETURN NEW;
+END;$fn$;
+CREATE TRIGGER dish_templates_recipe_scope BEFORE INSERT OR UPDATE OF recipe_id ON dish_templates
+FOR EACH ROW EXECUTE FUNCTION validate_dish_recipe_scope_v26();
+
+CREATE FUNCTION validate_menu_dish_scope_v26() RETURNS trigger
+LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE v_recipe bigint;
+BEGIN
+    -- SHARE conflicts with a concurrent template recipe_id (non-key) UPDATE.
+    SELECT recipe_id INTO v_recipe FROM dish_templates WHERE id=NEW.dish_template_id FOR SHARE;
+    IF v_recipe IS NOT NULL AND EXISTS (
+        SELECT 1 FROM menu_services s JOIN menu_weeks w ON w.id=s.menu_week_id
+        JOIN recipes r ON r.id=v_recipe WHERE s.id=NEW.service_id AND r.location_id<>w.location_id) THEN
+        RAISE EXCEPTION 'Gerichtvorlage gehört zu einem anderen Standort.'
+            USING ERRCODE='23514',CONSTRAINT='menu_items_dish_recipe_scope';
+    END IF;
+    RETURN NEW;
+END;$fn$;
+CREATE TRIGGER menu_items_dish_recipe_scope BEFORE INSERT OR UPDATE OF dish_template_id,service_id ON menu_items
+FOR EACH ROW EXECUTE FUNCTION validate_menu_dish_scope_v26();
+
+CREATE FUNCTION begin_menu_binding_write_v26(p_actor bigint,p_authz bigint,p_location bigint)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE v users%ROWTYPE;
+BEGIN
+    IF current_setting('transaction_isolation')<>'read committed' OR p_actor IS NULL OR p_actor<=0
+       OR p_authz IS NULL OR p_authz<=0 THEN
+        RAISE EXCEPTION 'Ungültige ursprüngliche Berechtigung.' USING ERRCODE='P1901';
+    END IF;
+    PERFORM set_config('lock_timeout','5s',true);
+    PERFORM role_code FROM application_roles ORDER BY role_code FOR SHARE;
+    SELECT * INTO v FROM users WHERE id=p_actor FOR SHARE;
+    IF NOT FOUND OR v.disabled_at IS NOT NULL THEN
+        RAISE EXCEPTION 'Aktiver Benutzer erforderlich.' USING ERRCODE='P1902';
+    END IF;
+    IF v.authz_version<>p_authz THEN
+        RAISE EXCEPTION 'Berechtigung wurde geändert.' USING ERRCODE='P1903';
+    END IF;
+    -- Fixed draft.write, matching roles.py; caller cannot select a capability.
+    IF NOT EXISTS(SELECT 1 FROM user_role_cache r JOIN application_roles a USING(role_code)
+        WHERE r.user_id=p_actor AND a.active
+        AND r.role_code IN ('Cafeteria.Editor','Cafeteria.Publisher','Cafeteria.Admin')) THEN
+        RAISE EXCEPTION 'Menübearbeitung nicht erlaubt.' USING ERRCODE='P1902';
+    END IF;
+    PERFORM master_location(p_location);
+END;$fn$;
+
+-- Caller order: begin guard, scoped pre-read, sorted old/new heads, then
+-- Week/Service/Item (or component), original CAS and reference-state recheck.
+-- Never acquire a newly discovered head after the aggregate: conflict instead.
+-- Repeat guards below assume those same original actor/location locks are held.
+CREATE FUNCTION lock_menu_recipe_revisions_v26(
+    p_actor bigint,p_authz bigint,p_location bigint,p_ids bigint[])
+RETURNS TABLE(revision_id bigint,revision_public_id uuid,recipe_id bigint,
+    recipe_public_id uuid,active boolean,content_hash_sha256 text)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+BEGIN
+    PERFORM begin_menu_binding_write_v26(p_actor,p_authz,p_location);
+    IF p_ids IS NULL OR cardinality(p_ids)>32767 OR array_ndims(p_ids)>1
+       OR EXISTS(SELECT 1 FROM unnest(p_ids) x WHERE x IS NULL OR x<=0)
+       OR cardinality(p_ids)<>(SELECT count(DISTINCT x) FROM unnest(p_ids) x)
+       OR cardinality(p_ids)<>(SELECT count(*) FROM recipe_revisions r
+           WHERE r.id=ANY(p_ids) AND r.location_id=p_location) THEN
+        RAISE EXCEPTION 'Ungültige Rezeptrevisionen.' USING ERRCODE='P1901';
+    END IF;
+    PERFORM h.id FROM recipes h WHERE h.id IN (
+        SELECT r.recipe_id FROM recipe_revisions r WHERE r.id=ANY(p_ids)) ORDER BY h.id FOR SHARE;
+    RETURN QUERY SELECT r.id,r.public_id,h.id,h.public_id,h.active,r.content_hash_sha256
+        FROM recipe_revisions r JOIN recipes h ON h.id=r.recipe_id
+        WHERE r.id=ANY(p_ids) AND r.location_id=p_location ORDER BY r.id;
+END;$fn$;
+
+CREATE FUNCTION lock_component_foods_v26(p_actor bigint,p_authz bigint,p_location bigint,p_ids bigint[])
+RETURNS TABLE(food_id bigint,food_public_id uuid,active boolean)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+BEGIN
+    PERFORM begin_menu_binding_write_v26(p_actor,p_authz,p_location);
+    IF p_ids IS NULL OR cardinality(p_ids)>32767 OR array_ndims(p_ids)>1
+       OR EXISTS(SELECT 1 FROM unnest(p_ids) x WHERE x IS NULL OR x<=0)
+       OR cardinality(p_ids)<>(SELECT count(DISTINCT x) FROM unnest(p_ids) x)
+       OR cardinality(p_ids)<>(SELECT count(*) FROM foods f WHERE f.id=ANY(p_ids) AND f.location_id=p_location) THEN
+        RAISE EXCEPTION 'Ungültige Zutaten.' USING ERRCODE='P1901';
+    END IF;
+    RETURN QUERY SELECT f.id,f.public_id,f.active FROM foods f
+        WHERE f.id=ANY(p_ids) AND f.location_id=p_location ORDER BY f.id FOR SHARE;
+END;$fn$;
+
+-- Receipts never bump aggregates. The writer holds original actor/target locks,
+-- performs exactly one aggregate write and invokes the receipt in that SAME TX.
+CREATE UNIQUE INDEX audit_binding_entity_version_v26 ON audit_events
+    (entity_type,entity_public_id,(details->>'row_version_after'))
+    WHERE action IN ('workflow.menu_saved','component.food_saved') AND details ? 'row_version_after';
+
+CREATE FUNCTION record_menu_binding_write_v26(p_actor bigint,p_authz bigint,p_location bigint,
+    p_item bigint,p_before bigint,p_after bigint) RETURNS uuid
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE v menu_items%ROWTYPE; v_profile text; v_links jsonb; v_event uuid;
+BEGIN
+    PERFORM begin_menu_binding_write_v26(p_actor,p_authz,p_location);
+    IF p_before IS NULL OR p_after IS NULL OR p_before<0 OR p_after<=0 OR p_after-1<>p_before THEN
+        RAISE EXCEPTION 'Ungültiger Versionswechsel.' USING ERRCODE='P1901';
+    END IF;
+    SELECT i.* INTO v FROM menu_items i JOIN menu_services s ON s.id=i.service_id
+        JOIN menu_weeks w ON w.id=s.menu_week_id WHERE i.id=p_item AND w.location_id=p_location FOR UPDATE OF i;
+    IF NOT FOUND OR v.row_version<>p_after THEN
+        RAISE EXCEPTION 'Menüposition wurde geändert.' USING ERRCODE='55000';
+    END IF;
+    IF EXISTS(SELECT 1 FROM audit_events WHERE entity_type='menu_item' AND entity_public_id=v.public_id
+        AND action='workflow.menu_saved' AND details->>'row_version_after'=p_after::text) THEN
+        RAISE EXCEPTION 'Versionswechsel bereits protokolliert.' USING ERRCODE='55000';
+    END IF;
+    SELECT p.code INTO v_profile FROM menu_services s JOIN menu_weeks w ON w.id=s.menu_week_id
+        JOIN offer_profiles p ON p.id=w.profile_id WHERE s.id=v.service_id;
+    SELECT COALESCE(jsonb_agg(jsonb_build_object('sort_order',l.sort_order,
+        'revision_public_id',r.public_id,'content_hash_sha256',r.content_hash_sha256) ORDER BY l.sort_order),'[]')
+        INTO v_links FROM menu_item_components l JOIN recipe_revisions r ON r.id=l.recipe_revision_id
+        WHERE l.menu_item_id=v.id;
+    INSERT INTO audit_events(actor_user_id,action,entity_type,entity_public_id,profile_code,details)
+    VALUES(p_actor,'workflow.menu_saved','menu_item',v.public_id,v_profile,jsonb_build_object(
+        'actor_authz_version',p_authz,'location_id',p_location,'row_version_before',p_before,
+        'row_version_after',p_after,'recipe_revisions',v_links)) RETURNING public_id INTO v_event;
+    RETURN v_event;
+END;$fn$;
+
+CREATE FUNCTION record_component_food_write_v26(p_actor bigint,p_authz bigint,p_location bigint,
+    p_component bigint,p_before bigint,p_after bigint) RETURNS uuid
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE v menu_components%ROWTYPE; v_food uuid; v_event uuid;
+BEGIN
+    PERFORM begin_menu_binding_write_v26(p_actor,p_authz,p_location);
+    IF p_before IS NULL OR p_after IS NULL OR p_before<0 OR p_after<=0 OR p_after-1<>p_before THEN
+        RAISE EXCEPTION 'Ungültiger Versionswechsel.' USING ERRCODE='P1901';
+    END IF;
+    SELECT * INTO v FROM menu_components WHERE id=p_component AND location_id=p_location FOR UPDATE;
+    IF NOT FOUND OR v.row_version<>p_after THEN
+        RAISE EXCEPTION 'Komponente wurde geändert.' USING ERRCODE='55000';
+    END IF;
+    IF EXISTS(SELECT 1 FROM audit_events WHERE entity_type='menu_component' AND entity_public_id=v.public_id
+        AND action='component.food_saved' AND details->>'row_version_after'=p_after::text) THEN
+        RAISE EXCEPTION 'Versionswechsel bereits protokolliert.' USING ERRCODE='55000';
+    END IF;
+    SELECT public_id INTO v_food FROM foods WHERE id=v.food_id;
+    INSERT INTO audit_events(actor_user_id,action,entity_type,entity_public_id,details)
+    VALUES(p_actor,'component.food_saved','menu_component',v.public_id,jsonb_build_object(
+        'actor_authz_version',p_authz,'location_id',p_location,'row_version_before',p_before,
+        'row_version_after',p_after,'food_public_id',v_food)) RETURNING public_id INTO v_event;
+    RETURN v_event;
+END;$fn$;
+
+-- Private implementation: only literal-action wrappers below are app-callable.
+CREATE FUNCTION dish_template_mutate_v26(p_action text,p_actor bigint,p_authz bigint,p_location bigint,
+    p_target uuid,p_expected timestamptz,p_payload jsonb) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE v dish_templates%ROWTYPE; old_recipe bigint; next_recipe bigint; next_type smallint;
+    next_title text; next_description text; next_scope text; v_recipe uuid; before_time timestamptz; verb text;
+BEGIN
+    PERFORM begin_menu_binding_write_v26(p_actor,p_authz,p_location);
+    IF p_action NOT IN ('create','update','active') OR p_action IS NULL THEN
+        RAISE EXCEPTION 'Ungültige Aktion.' USING ERRCODE='P1901';
+    END IF;
+    IF p_action='create' THEN
+        IF p_target IS NOT NULL OR p_expected IS NOT NULL THEN
+            RAISE EXCEPTION 'Ungültige neue Gerichtvorlage.' USING ERRCODE='P1901';
+        END IF;
+    ELSE
+        IF p_target IS NULL OR p_expected IS NULL OR NOT isfinite(p_expected) THEN
+            RAISE EXCEPTION 'Ursprünglicher Stand erforderlich.' USING ERRCODE='P1901';
+        END IF;
+        SELECT d.* INTO v FROM dish_templates d LEFT JOIN recipes r ON r.id=d.recipe_id
+            WHERE d.public_id=p_target AND (d.recipe_id IS NULL OR r.location_id=p_location);
+        IF NOT FOUND THEN RAISE EXCEPTION 'Unbekannte Gerichtvorlage.' USING ERRCODE='22023'; END IF;
+        old_recipe:=v.recipe_id;
+    END IF;
+    IF p_action='active' THEN
+        PERFORM master_payload(p_payload,ARRAY['active']);
+        IF jsonb_typeof(p_payload->'active') IS DISTINCT FROM 'boolean' THEN
+            RAISE EXCEPTION 'Aktivstatus erforderlich.' USING ERRCODE='P1901';
+        END IF;
+        next_recipe:=old_recipe;
+    ELSE
+        PERFORM master_payload(p_payload,ARRAY['menu_type_code','profile_scope','title','description','recipe_public_id']);
+        IF NOT p_payload ?& ARRAY['menu_type_code','profile_scope','title','description','recipe_public_id']
+           OR EXISTS(SELECT 1 FROM jsonb_each(p_payload) f WHERE jsonb_typeof(f.value) NOT IN ('string','null'))
+           OR p_payload->>'profile_scope' IS NULL
+           OR p_payload->>'profile_scope' NOT IN ('common','patient','staff_guest') THEN
+            RAISE EXCEPTION 'Ungültige Vorlagenfelder.' USING ERRCODE='P1901';
+        END IF;
+        next_title:=master_text(p_payload->>'title',120);
+        next_description:=master_text(p_payload->>'description',2000,false);
+        next_scope:=p_payload->>'profile_scope';
+        IF p_payload->>'menu_type_code' IS NOT NULL THEN
+            SELECT id INTO next_type FROM menu_types WHERE code=p_payload->>'menu_type_code';
+            IF NOT FOUND THEN RAISE EXCEPTION 'Unbekannte Menüart.' USING ERRCODE='P1901'; END IF;
+        END IF;
+        IF p_payload->>'recipe_public_id' IS NOT NULL THEN
+            IF p_payload->>'recipe_public_id' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
+                RAISE EXCEPTION 'Ungültige Rezeptreferenz.' USING ERRCODE='P1901';
+            END IF;
+            SELECT id INTO next_recipe FROM recipes WHERE public_id=(p_payload->>'recipe_public_id')::uuid
+                AND location_id=p_location;
+            IF NOT FOUND THEN RAISE EXCEPTION 'Unbekanntes Rezept.' USING ERRCODE='22023'; END IF;
+        END IF;
+    END IF;
+    PERFORM id FROM recipes WHERE id IN (old_recipe,next_recipe) ORDER BY id FOR SHARE;
+    IF p_action<>'create' THEN
+        SELECT * INTO v FROM dish_templates WHERE public_id=p_target FOR UPDATE;
+        IF NOT FOUND OR v.updated_at IS DISTINCT FROM p_expected OR v.recipe_id IS DISTINCT FROM old_recipe THEN
+            RAISE EXCEPTION 'Gerichtvorlage wurde geändert.' USING ERRCODE='55000';
+        END IF;
+        before_time:=v.updated_at;
+    END IF;
+    IF next_recipe IS DISTINCT FROM old_recipe AND EXISTS(SELECT 1 FROM recipes WHERE id=next_recipe AND NOT active) THEN
+        RAISE EXCEPTION 'Archiviertes Rezept kann nicht neu zugeordnet werden.' USING ERRCODE='55000';
+    END IF;
+    IF p_action='create' THEN
+        INSERT INTO dish_templates(menu_type_id,profile_scope,title,description,recipe_id)
+        VALUES(next_type,next_scope,next_title,next_description,next_recipe) RETURNING * INTO v;
+        verb:='created';
+    ELSIF p_action='update' THEN
+        IF (v.menu_type_id,v.profile_scope,v.title,v.description,v.recipe_id) IS NOT DISTINCT FROM
+            (next_type,next_scope,next_title,next_description,next_recipe) THEN
+            RETURN jsonb_build_object('public_id',v.public_id,'updated_at',v.updated_at,'active',v.active);
+        END IF;
+        UPDATE dish_templates SET menu_type_id=next_type,profile_scope=next_scope,title=next_title,
+            description=next_description,recipe_id=next_recipe WHERE id=v.id RETURNING * INTO v;
+        verb:='updated';
+    ELSE
+        IF v.active=(p_payload->>'active')::boolean THEN
+            RAISE EXCEPTION 'Aktivstatus ist unverändert.' USING ERRCODE='55000';
+        END IF;
+        UPDATE dish_templates SET active=(p_payload->>'active')::boolean WHERE id=v.id RETURNING * INTO v;
+        verb:=CASE WHEN v.active THEN 'reactivated' ELSE 'archived' END;
+    END IF;
+    SELECT public_id INTO v_recipe FROM recipes WHERE id=v.recipe_id;
+    INSERT INTO audit_events(actor_user_id,action,entity_type,entity_public_id,details)
+    VALUES(p_actor,'dish_template.'||verb,'dish_template',v.public_id,jsonb_build_object(
+        'actor_authz_version',p_authz,'location_id',p_location,'updated_at_before',before_time,
+        'updated_at_after',v.updated_at,'recipe_public_id',v_recipe));
+    RETURN jsonb_build_object('public_id',v.public_id,'updated_at',v.updated_at,'active',v.active);
+END;$fn$;
+
+CREATE FUNCTION create_dish_template_v26(bigint,bigint,bigint,uuid,timestamptz,jsonb) RETURNS jsonb
+LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+    SELECT dish_template_mutate_v26('create',$1,$2,$3,$4,$5,$6);
+$fn$;
+CREATE FUNCTION update_dish_template_v26(bigint,bigint,bigint,uuid,timestamptz,jsonb) RETURNS jsonb
+LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+    SELECT dish_template_mutate_v26('update',$1,$2,$3,$4,$5,$6);
+$fn$;
+CREATE FUNCTION set_dish_template_active_v26(bigint,bigint,bigint,uuid,timestamptz,jsonb) RETURNS jsonb
+LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+    SELECT dish_template_mutate_v26('active',$1,$2,$3,$4,$5,$6);
+$fn$;
+
+REVOKE ALL ON FUNCTION validate_menu_recipe_scope_v26(),validate_dish_recipe_scope_v26(),
+    validate_menu_dish_scope_v26(),begin_menu_binding_write_v26(bigint,bigint,bigint),
+    lock_menu_recipe_revisions_v26(bigint,bigint,bigint,bigint[]),
+    lock_component_foods_v26(bigint,bigint,bigint,bigint[]),
+    record_menu_binding_write_v26(bigint,bigint,bigint,bigint,bigint,bigint),
+    record_component_food_write_v26(bigint,bigint,bigint,bigint,bigint,bigint),
+    dish_template_mutate_v26(text,bigint,bigint,bigint,uuid,timestamptz,jsonb),
+    create_dish_template_v26(bigint,bigint,bigint,uuid,timestamptz,jsonb),
+    update_dish_template_v26(bigint,bigint,bigint,uuid,timestamptz,jsonb),
+    set_dish_template_active_v26(bigint,bigint,bigint,uuid,timestamptz,jsonb)
+FROM PUBLIC,cafeteria_app,cafeteria_backup,cafeteria_auth_issuer;
+GRANT EXECUTE ON FUNCTION begin_menu_binding_write_v26(bigint,bigint,bigint),
+    lock_menu_recipe_revisions_v26(bigint,bigint,bigint,bigint[]),
+    lock_component_foods_v26(bigint,bigint,bigint,bigint[]),
+    record_menu_binding_write_v26(bigint,bigint,bigint,bigint,bigint,bigint),
+    record_component_food_write_v26(bigint,bigint,bigint,bigint,bigint,bigint),
+    create_dish_template_v26(bigint,bigint,bigint,uuid,timestamptz,jsonb),
+    update_dish_template_v26(bigint,bigint,bigint,uuid,timestamptz,jsonb),
+    set_dish_template_active_v26(bigint,bigint,bigint,uuid,timestamptz,jsonb)
+TO cafeteria_app;
+
+-- Prepared foods schema27 begin.
+
+-- Fail before DDL, sequences or ledger writes; an explicit v21 backfill is separate.
+-- Reference class before aggregates; take the final DDL mode now, avoiding upgrades.
+LOCK TABLE storage_locations IN SHARE MODE;
+LOCK TABLE foods, food_storage_locations IN ACCESS EXCLUSIVE MODE;
+DO $preflight$
+DECLARE missing bigint; examples text;
+BEGIN
+    SELECT count(*) INTO missing FROM foods f WHERE NOT EXISTS (
+        SELECT 1 FROM food_storage_locations l JOIN storage_locations s
+          ON s.id=l.storage_location_id AND s.location_id=l.location_id
+        WHERE l.food_id=f.id AND l.location_id=f.location_id AND s.active);
+    IF missing>0 THEN
+        SELECT string_agg(public_id::text, ', ' ORDER BY public_id) INTO examples FROM (
+            SELECT f.public_id FROM foods f WHERE NOT EXISTS (
+                SELECT 1 FROM food_storage_locations l JOIN storage_locations s
+                  ON s.id=l.storage_location_id AND s.location_id=l.location_id
+                WHERE l.food_id=f.id AND l.location_id=f.location_id AND s.active)
+            ORDER BY f.public_id LIMIT 20) gaps;
+        RAISE EXCEPTION 'Lagerzuordnung fehlt für % Zutaten. Beispiele: %', missing, examples
+            USING ERRCODE='55000', DETAIL='food_storage_preflight';
+    END IF;
+END;$preflight$;
+
+ALTER TABLE foods ADD COLUMN prepared_recipe_revision_id bigint;
+ALTER TABLE foods ADD CONSTRAINT foods_prepared_recipe_scope_fk
+    FOREIGN KEY(location_id,prepared_recipe_revision_id)
+    REFERENCES recipe_revisions(location_id,id) ON DELETE RESTRICT;
+CREATE INDEX foods_prepared_recipe_idx ON foods(prepared_recipe_revision_id)
+    WHERE prepared_recipe_revision_id IS NOT NULL;
+
+CREATE OR REPLACE FUNCTION protect_master_data() RETURNS trigger LANGUAGE plpgsql
+SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+BEGIN
+    IF TG_OP IN ('DELETE','TRUNCATE') THEN
+        RAISE EXCEPTION 'Archive instead of deleting master data.' USING ERRCODE='55000';
+    END IF;
+    IF NEW.id<>OLD.id OR NEW.public_id<>OLD.public_id OR NEW.created_at<>OLD.created_at
+       OR NEW.created_by IS DISTINCT FROM OLD.created_by
+       OR to_jsonb(NEW)->'location_id' IS DISTINCT FROM to_jsonb(OLD)->'location_id'
+       OR to_jsonb(NEW)->'code' IS DISTINCT FROM to_jsonb(OLD)->'code' THEN
+        RAISE EXCEPTION 'Immutable master identity.' USING ERRCODE='55000';
+    END IF;
+    IF TG_TABLE_NAME='measurement_units' THEN
+        IF NEW.dimension<>OLD.dimension OR NEW.base_factor IS DISTINCT FROM OLD.base_factor
+            OR (OLD.code IN ('G','ML','STK') AND NOT NEW.active) THEN
+            RAISE EXCEPTION 'Immutable unit semantics.' USING ERRCODE='55000';
+        END IF;
+    ELSIF TG_TABLE_NAME='foods' THEN
+        IF (to_jsonb(NEW)-ARRAY['name','category_id','base_unit_id','density_g_per_ml','piece_weight_g',
+            'note','active','allergen_review_status','updated_at','updated_by','row_version','prepared_recipe_revision_id'])
+            IS DISTINCT FROM (to_jsonb(OLD)-ARRAY['name','category_id','base_unit_id','density_g_per_ml',
+            'piece_weight_g','note','active','allergen_review_status','updated_at','updated_by','row_version','prepared_recipe_revision_id']) THEN
+            RAISE EXCEPTION 'Immutable food origin.' USING ERRCODE='55000';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$fn$;
+CREATE FUNCTION lock_prepared_graph_v27(p_location bigint) RETURNS void
+LANGUAGE plpgsql SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+BEGIN
+    -- Only called after the original actor/location guard, before all row locks.
+    PERFORM pg_advisory_xact_lock(hashtextextended('cafeteria.prepared_food_graph:'||p_location::text,2700909));
+END;$fn$;
+
+CREATE FUNCTION recipe_snapshot_complete_v27(p_snapshot jsonb) RETURNS boolean
+LANGUAGE plpgsql IMMUTABLE SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE item jsonb;
+BEGIN
+    IF COALESCE(p_snapshot->>'schema_version','') NOT IN ('1','2') OR
+       jsonb_typeof(p_snapshot->'recipe'->'ingredients') IS DISTINCT FROM 'array' THEN
+        RETURN false;
+    END IF;
+    IF jsonb_array_length(p_snapshot->'recipe'->'ingredients') NOT BETWEEN 1 AND 64 THEN RETURN false; END IF;
+    FOR item IN SELECT value FROM jsonb_array_elements(p_snapshot->'recipe'->'ingredients') LOOP
+        IF item->>'food_public_id' IS NULL OR
+           item->>'food_public_id' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' OR
+           item->>'unit_code' IS NULL OR item->>'unit_code' !~ '^[A-Z][A-Z0-9_]{0,15}$' OR
+           NOT master_quantity((item->>'quantity')::numeric) THEN RETURN false; END IF;
+    END LOOP;
+    RETURN true;
+EXCEPTION WHEN invalid_text_representation OR numeric_value_out_of_range THEN RETURN false;
+END;$fn$;
+
+-- Current semantic Food graph, deliberately distinct from frozen rendering.
+CREATE FUNCTION check_prepared_graph_v27(p_location bigint,p_food uuid,p_revision bigint) RETURNS void
+LANGUAGE plpgsql STABLE SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE queue jsonb:=jsonb_build_array(jsonb_build_object('food',p_food,'foods','[]'::jsonb,
+        'recipes','[]'::jsonb,'depth',0)); cursor_pos integer:=0; work integer:=1;
+    node jsonb; ingredient jsonb; current_food foods%ROWTYPE; revision recipe_revisions%ROWTYPE;
+    seen jsonb:='{}'; next_revision bigint;
+BEGIN
+    WHILE cursor_pos<jsonb_array_length(queue) LOOP
+        node:=queue->cursor_pos; cursor_pos:=cursor_pos+1;
+        IF node->'foods' ? (node->>'food') THEN
+            RAISE EXCEPTION 'Zutatenkreis ist nicht erlaubt.' USING ERRCODE='55000';
+        END IF;
+        SELECT * INTO current_food FROM foods WHERE public_id=(node->>'food')::uuid AND location_id=p_location;
+        IF NOT FOUND THEN RAISE EXCEPTION 'Unbekannte verknüpfte Zutat.' USING ERRCODE='22023'; END IF;
+        next_revision:=CASE WHEN current_food.public_id=p_food THEN p_revision ELSE current_food.prepared_recipe_revision_id END;
+        IF next_revision IS NULL THEN CONTINUE; END IF;
+        SELECT * INTO revision FROM recipe_revisions WHERE id=next_revision AND location_id=p_location;
+        IF NOT FOUND THEN RAISE EXCEPTION 'Unbekannte Zubereitungsrevision.' USING ERRCODE='22023'; END IF;
+        IF node->'recipes' ? revision.recipe_id::text THEN
+            RAISE EXCEPTION 'Rezeptkreis ist nicht erlaubt.' USING ERRCODE='55000';
+        END IF;
+        IF NOT recipe_snapshot_complete_v27(revision.snapshot_json) THEN
+            RAISE EXCEPTION 'Zubereitung benötigt vollständige Mengen und Zutaten.' USING ERRCODE='P1901';
+        END IF;
+        IF NOT seen ? revision.public_id::text THEN
+            IF (SELECT count(*) FROM jsonb_object_keys(seen))>=64 THEN
+                RAISE EXCEPTION 'Höchstens 64 Unterrevisionen.' USING ERRCODE='P1901';
+            END IF;
+            seen:=seen||jsonb_build_object(revision.public_id::text,true);
+        END IF;
+        FOR ingredient IN SELECT value FROM jsonb_array_elements(revision.snapshot_json->'recipe'->'ingredients') LOOP
+            IF (node->>'depth')::integer>=8 OR work>=4096 THEN
+                RAISE EXCEPTION 'Zubereitungsgraph überschreitet die Grenze.' USING ERRCODE='P1901';
+            END IF;
+            work:=work+1;
+            queue:=queue||jsonb_build_array(jsonb_build_object('food',ingredient->>'food_public_id',
+                'foods',(node->'foods')||jsonb_build_array(current_food.public_id::text),
+                'recipes',(node->'recipes')||jsonb_build_array(revision.recipe_id::text),
+                'depth',(node->>'depth')::integer+1));
+        END LOOP;
+    END LOOP;
+END;$fn$;
+
+CREATE FUNCTION assert_food_complete_v27(p_food bigint) RETURNS void
+LANGUAGE plpgsql SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE food foods%ROWTYPE; base measurement_units%ROWTYPE; revision recipe_revisions%ROWTYPE; unit jsonb;
+BEGIN
+    -- The public writer already owns this row. Deferred checks also serialize direct privileged DML.
+    SELECT * INTO food FROM foods WHERE id=p_food FOR UPDATE;
+    IF NOT FOUND THEN RETURN; END IF;
+    IF NOT EXISTS(SELECT 1 FROM food_storage_locations l JOIN storage_locations s
+        ON s.id=l.storage_location_id AND s.location_id=l.location_id
+        WHERE l.food_id=food.id AND l.location_id=food.location_id AND s.active) THEN
+        RAISE EXCEPTION 'Mindestens ein aktiver Lagerort ist erforderlich.' USING ERRCODE='55000';
+    END IF;
+    IF food.prepared_recipe_revision_id IS NULL THEN RETURN; END IF;
+    SELECT * INTO revision FROM recipe_revisions WHERE id=food.prepared_recipe_revision_id AND location_id=food.location_id;
+    IF NOT FOUND OR NOT recipe_snapshot_complete_v27(revision.snapshot_json) THEN
+        RAISE EXCEPTION 'Vollständige standortgleiche Zubereitungsrevision erforderlich.' USING ERRCODE='P1901';
+    END IF;
+    PERFORM check_prepared_snapshot_v27(revision.snapshot_json,
+        (SELECT public_id FROM recipes WHERE id=revision.recipe_id));
+    SELECT * INTO base FROM measurement_units WHERE id=food.base_unit_id;
+    SELECT value INTO unit FROM jsonb_array_elements(revision.snapshot_json->'units')
+        WHERE value->>'code'=revision.snapshot_json->'recipe'->>'servings_unit_code';
+    IF unit IS NULL OR NOT (
+        (base.dimension<>'contextual' AND base.dimension=unit->>'dimension') OR
+        (base.dimension='contextual' AND unit->>'dimension'='contextual' AND base.code=unit->>'code') OR
+        (base.dimension IN ('mass','volume') AND unit->>'dimension' IN ('mass','volume') AND
+         master_factor(food.density_g_per_ml))) THEN
+        RAISE EXCEPTION 'Ausbeute passt nicht zur Basiseinheit der Zutat.' USING ERRCODE='P1901';
+    END IF;
+END;$fn$;
+
+CREATE FUNCTION enforce_food_complete_v27() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE target bigint;
+BEGIN
+    IF TG_TABLE_NAME='foods' THEN
+        PERFORM assert_food_complete_v27(NEW.id);
+    ELSIF TG_TABLE_NAME='food_storage_locations' THEN
+        IF TG_OP<>'INSERT' THEN PERFORM assert_food_complete_v27(OLD.food_id); END IF;
+        IF TG_OP<>'DELETE' THEN PERFORM assert_food_complete_v27(NEW.food_id); END IF;
+    ELSE
+        FOR target IN SELECT food_id FROM food_storage_locations
+            WHERE storage_location_id=NEW.id ORDER BY food_id LOOP
+            PERFORM assert_food_complete_v27(target);
+        END LOOP;
+    END IF;
+    RETURN NULL;
+END;$fn$;
+CREATE CONSTRAINT TRIGGER foods_complete_v27 AFTER INSERT OR UPDATE ON foods
+    DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION enforce_food_complete_v27();
+CREATE CONSTRAINT TRIGGER food_storage_complete_v27 AFTER INSERT OR UPDATE OR DELETE ON food_storage_locations
+    DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION enforce_food_complete_v27();
+CREATE CONSTRAINT TRIGGER storage_food_complete_v27 AFTER UPDATE ON storage_locations
+    DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION enforce_food_complete_v27();
+
+CREATE FUNCTION food_save_v27(p_create boolean,p_actor bigint,p_authz bigint,p_location bigint,
+    p_target uuid,p_version bigint,p_payload jsonb) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE food foods%ROWTYPE; previous foods%ROWTYPE; refs jsonb; original_links jsonb;
+    revision recipe_revisions%ROWTYPE; source_fields text[]:=ARRAY['source_kind','source_reference','source_url','source_note','fetched_at'];
+    old_version bigint:=0; old_pin bigint; supplied_pin boolean; after_state jsonb; before_state jsonb;
+BEGIN
+    PERFORM require_master_data_actor(p_actor,p_authz,'masterdata.write');
+    PERFORM master_location(p_location);
+    PERFORM lock_prepared_graph_v27(p_location);
+    PERFORM master_payload(p_payload,ARRAY['name','category_public_id','base_unit_code','density_g_per_ml',
+        'piece_weight_g','note','source_kind','source_reference','source_url','source_note','fetched_at',
+        'storage_location_public_ids','prepared_recipe_revision_public_id','prepared_recipe_content_hash_sha256']);
+    IF NOT p_payload ?& ARRAY['name','base_unit_code','storage_location_public_ids'] OR
+       jsonb_typeof(p_payload->'storage_location_public_ids') IS DISTINCT FROM 'array' THEN
+        RAISE EXCEPTION 'Zutat, Basiseinheit und Lagerorte sind erforderlich.' USING ERRCODE='P1901';
+    END IF;
+    IF jsonb_array_length(p_payload->'storage_location_public_ids') NOT BETWEEN 1 AND 64 OR
+       EXISTS(SELECT 1 FROM jsonb_array_elements(p_payload->'storage_location_public_ids') x WHERE jsonb_typeof(x)<>'string') OR
+       jsonb_array_length(p_payload->'storage_location_public_ids')<>(SELECT count(DISTINCT x)
+           FROM jsonb_array_elements(p_payload->'storage_location_public_ids') x) OR
+       EXISTS(SELECT 1 FROM jsonb_each(p_payload-'storage_location_public_ids') f WHERE jsonb_typeof(f.value) NOT IN ('string','null')) THEN
+        RAISE EXCEPTION 'Ungültige Zutatenfelder.' USING ERRCODE='P1901';
+    END IF;
+    supplied_pin:=p_payload ? 'prepared_recipe_revision_public_id';
+    IF supplied_pin<>(p_payload ? 'prepared_recipe_content_hash_sha256') OR
+       ((p_payload->>'prepared_recipe_revision_public_id' IS NULL)<>(p_payload->>'prepared_recipe_content_hash_sha256' IS NULL)) THEN
+        RAISE EXCEPTION 'Vollständige Zubereitungsreferenz erforderlich.' USING ERRCODE='P1901';
+    END IF;
+    IF NOT p_create THEN
+        PERFORM master_expectation(p_target,p_version);
+        IF p_payload ?| source_fields THEN RAISE EXCEPTION 'Ursprung bleibt unverändert.' USING ERRCODE='P1901'; END IF;
+    END IF;
+    refs:=master_lock_food_refs((p_payload-ARRAY['prepared_recipe_revision_public_id','prepared_recipe_content_hash_sha256'])||
+        jsonb_build_object('location_id',p_location,'storage_locations',p_payload->'storage_location_public_ids'));
+    IF NOT p_create THEN
+        SELECT * INTO food FROM foods WHERE public_id=p_target AND location_id=p_location FOR UPDATE;
+        IF NOT FOUND THEN RAISE EXCEPTION 'Unbekannte Zutat.' USING ERRCODE='22023'; END IF;
+        IF food.row_version<>p_version THEN RAISE EXCEPTION 'Zutat wurde geändert.' USING ERRCODE='55000'; END IF;
+        previous:=food; old_version:=food.row_version; old_pin:=food.prepared_recipe_revision_id;
+        original_links:=master_food_links(food.id);
+        before_state:=to_jsonb(food)||original_links;
+    END IF;
+    IF supplied_pin OR p_create THEN
+        food.prepared_recipe_revision_id:=NULL;
+        IF p_payload->>'prepared_recipe_revision_public_id' IS NOT NULL THEN
+            IF p_payload->>'prepared_recipe_content_hash_sha256' !~ '^[0-9a-f]{64}$' THEN
+                RAISE EXCEPTION 'Ungültiger Revisionshash.' USING ERRCODE='P1901';
+            END IF;
+            SELECT * INTO revision FROM recipe_revisions
+                WHERE public_id=(p_payload->>'prepared_recipe_revision_public_id')::uuid AND location_id=p_location;
+            IF NOT FOUND THEN RAISE EXCEPTION 'Unbekannte Zubereitungsrevision.' USING ERRCODE='22023'; END IF;
+            IF revision.content_hash_sha256<>p_payload->>'prepared_recipe_content_hash_sha256' THEN
+                RAISE EXCEPTION 'Zubereitungsreferenz wurde geändert.' USING ERRCODE='55000';
+            END IF;
+            PERFORM id FROM recipes WHERE id=revision.recipe_id FOR SHARE;
+            IF revision.id IS DISTINCT FROM old_pin AND EXISTS(SELECT 1 FROM recipes WHERE id=revision.recipe_id AND NOT active) THEN
+                RAISE EXCEPTION 'Archivierte Zubereitung kann nicht neu gewählt werden.' USING ERRCODE='55000';
+            END IF;
+            food.prepared_recipe_revision_id:=revision.id;
+        END IF;
+    END IF;
+    food.name:=master_text(p_payload->>'name',120);
+    food.base_unit_id:=(refs->>'base_unit_id')::bigint;
+    food.category_id:=(refs->>'category_id')::bigint;
+    food.density_g_per_ml:=(p_payload->>'density_g_per_ml')::numeric;
+    food.piece_weight_g:=(p_payload->>'piece_weight_g')::numeric;
+    food.note:=master_text(COALESCE(p_payload->>'note',''),500,false);
+    IF p_create THEN
+        INSERT INTO foods(location_id,name,base_unit_id,category_id,density_g_per_ml,piece_weight_g,note,
+            source_kind,source_reference,source_url,source_note,fetched_at,prepared_recipe_revision_id,created_by,updated_by)
+        VALUES(p_location,food.name,food.base_unit_id,food.category_id,food.density_g_per_ml,food.piece_weight_g,food.note,
+            COALESCE(p_payload->>'source_kind','manual'),master_text(p_payload->>'source_reference',200,false),
+            master_text(p_payload->>'source_url',2048,false),master_text(p_payload->>'source_note',500,false),
+            (p_payload->>'fetched_at')::timestamptz,food.prepared_recipe_revision_id,p_actor,p_actor) RETURNING * INTO food;
+    ELSE
+        IF food IS NOT DISTINCT FROM previous AND original_links->'storage_locations'=refs->'storage_locations' THEN
+            PERFORM assert_food_complete_v27(food.id);
+            RETURN jsonb_build_object('public_id',food.public_id,'row_version',food.row_version);
+        END IF;
+        UPDATE foods SET name=food.name,base_unit_id=food.base_unit_id,category_id=food.category_id,
+            density_g_per_ml=food.density_g_per_ml,piece_weight_g=food.piece_weight_g,note=food.note,
+            prepared_recipe_revision_id=food.prepared_recipe_revision_id,updated_by=p_actor
+            WHERE id=food.id RETURNING * INTO food;
+    END IF;
+    PERFORM master_replace_food_links(food.id,p_location,jsonb_build_object('storage_locations',refs->'storage_locations'));
+    PERFORM assert_food_complete_v27(food.id);
+    PERFORM check_prepared_graph_v27(p_location,food.public_id,food.prepared_recipe_revision_id);
+    after_state:=to_jsonb(food)||master_food_links(food.id);
+    PERFORM master_audit(p_actor,p_authz,p_location,'food',food.public_id,
+        CASE WHEN p_create THEN 'create' ELSE 'update' END,old_version,food.row_version,
+        jsonb_build_object('before',before_state,'after',after_state));
+    RETURN jsonb_build_object('public_id',food.public_id,'row_version',food.row_version);
+EXCEPTION WHEN invalid_text_representation OR numeric_value_out_of_range OR check_violation OR
+    not_null_violation OR invalid_datetime_format THEN
+    RAISE EXCEPTION 'Ungültige vollständige Zutat.' USING ERRCODE='P1901';
+END;$fn$;
+
+CREATE FUNCTION create_food_v27(bigint,bigint,bigint,jsonb) RETURNS jsonb
+LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+    SELECT food_save_v27(true,$1,$2,$3,NULL,NULL,$4);
+$fn$;
+CREATE FUNCTION update_food_v27(bigint,bigint,bigint,uuid,bigint,jsonb) RETURNS jsonb
+LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+    SELECT food_save_v27(false,$1,$2,$3,$4,$5,$6);
+$fn$;
+
+-- Worklist entries contain identities/path metadata, not repeated snapshot bodies.
+CREATE FUNCTION check_prepared_snapshot_v27(p_snapshot jsonb,p_recipe uuid) RETURNS void
+LANGUAGE plpgsql IMMUTABLE SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE queue jsonb:=jsonb_build_array(jsonb_build_object('revision',NULL,'recipes',jsonb_build_array(p_recipe::text),
+        'foods','[]'::jsonb,'depth',0)); cursor_pos integer:=0; work integer:=1; expanded integer:=0;
+    index_nodes jsonb:='{}'; used jsonb:='{}'; node jsonb; body jsonb; entry jsonb; ingredient jsonb; food jsonb; pin jsonb;
+BEGIN
+    IF octet_length(p_snapshot::text)>2097152 THEN
+        RAISE EXCEPTION 'Rezeptabbild überschreitet 2 MiB.' USING ERRCODE='P1901';
+    END IF;
+    IF p_snapshot->>'schema_version'='2' THEN
+        IF jsonb_typeof(p_snapshot->'prepared_revisions') IS DISTINCT FROM 'array' OR
+           jsonb_array_length(p_snapshot->'prepared_revisions')>64 THEN
+            RAISE EXCEPTION 'Ungültiger Unterrevisionsindex.' USING ERRCODE='P1901';
+        END IF;
+        FOR entry IN SELECT value FROM jsonb_array_elements(p_snapshot->'prepared_revisions') LOOP
+            IF entry->>'revision_public_id' IS NULL OR index_nodes ? (entry->>'revision_public_id') THEN
+                RAISE EXCEPTION 'Doppelte oder fehlende Unterrevision.' USING ERRCODE='P1901';
+            END IF;
+            index_nodes:=index_nodes||jsonb_build_object(entry->>'revision_public_id',entry);
+        END LOOP;
+    END IF;
+    WHILE cursor_pos<jsonb_array_length(queue) LOOP
+        node:=queue->cursor_pos; cursor_pos:=cursor_pos+1;
+        body:=CASE WHEN node->>'revision' IS NULL THEN p_snapshot ELSE index_nodes->(node->>'revision')->'snapshot' END;
+        IF NOT recipe_snapshot_complete_v27(body) THEN
+            RAISE EXCEPTION 'Zutaten und Mengen müssen vollständig sein.' USING ERRCODE='P1901';
+        END IF;
+        expanded:=expanded+jsonb_array_length(body->'recipe'->'ingredients');
+        IF expanded>4096 THEN RAISE EXCEPTION 'Mehr als 4096 Zutatenverwendungen.' USING ERRCODE='P1901'; END IF;
+        FOR ingredient IN SELECT value FROM jsonb_array_elements(body->'recipe'->'ingredients') LOOP
+            IF node->'foods' ? (ingredient->>'food_public_id') THEN
+                RAISE EXCEPTION 'Zutatenkreis im Rezeptabbild.' USING ERRCODE='55000';
+            END IF;
+            -- Old v1 is terminal: never reinterpret its Foods using current pins.
+            IF body->>'schema_version'='1' THEN CONTINUE; END IF;
+            SELECT value INTO food FROM jsonb_array_elements(body->'foods')
+                WHERE value->>'public_id'=ingredient->>'food_public_id';
+            IF NOT FOUND THEN RAISE EXCEPTION 'Zutat fehlt im Rezeptabbild.' USING ERRCODE='P1901'; END IF;
+            pin:=food->'prepared_recipe';
+            IF pin IS NULL OR pin='null'::jsonb THEN CONTINUE; END IF;
+            entry:=index_nodes->(pin->>'revision_public_id');
+            IF entry IS NULL OR entry->>'recipe_public_id' IS DISTINCT FROM pin->>'recipe_public_id' OR
+               entry->>'content_hash_sha256' IS DISTINCT FROM pin->>'content_hash_sha256' THEN
+                RAISE EXCEPTION 'Unterrevisionsindex passt nicht zum Pin.' USING ERRCODE='P1901';
+            END IF;
+            IF node->'recipes' ? (pin->>'recipe_public_id') THEN
+                RAISE EXCEPTION 'Rezeptkreis im Rezeptabbild.' USING ERRCODE='55000';
+            END IF;
+            IF (node->>'depth')::integer>=8 OR work>=4096 THEN
+                RAISE EXCEPTION 'Rezeptverschachtelung überschreitet die Grenze.' USING ERRCODE='P1901';
+            END IF;
+            used:=used||jsonb_build_object(pin->>'revision_public_id',true);
+            work:=work+1;
+            queue:=queue||jsonb_build_array(jsonb_build_object('revision',pin->>'revision_public_id',
+                'recipes',(node->'recipes')||jsonb_build_array(pin->>'recipe_public_id'),
+                'foods',(node->'foods')||jsonb_build_array(ingredient->>'food_public_id'),
+                'depth',(node->>'depth')::integer+1));
+        END LOOP;
+    END LOOP;
+    IF (SELECT count(*) FROM jsonb_object_keys(used))<>(SELECT count(*) FROM jsonb_object_keys(index_nodes)) THEN
+        RAISE EXCEPTION 'Unterrevisionsindex enthält unbenutzte Einträge.' USING ERRCODE='P1901';
+    END IF;
+END;$fn$;
+
+CREATE FUNCTION merge_prepared_node_v27(p_nodes jsonb,p_node jsonb) RETURNS jsonb
+LANGUAGE plpgsql IMMUTABLE SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE key text:=p_node->>'revision_public_id';
+BEGIN
+    IF key IS NULL OR octet_length(p_node::text)>2097152 THEN
+        RAISE EXCEPTION 'Ungültiges Unterrezeptabbild.' USING ERRCODE='P1901';
+    END IF;
+    IF p_nodes ? key THEN
+        IF p_nodes->key IS DISTINCT FROM p_node THEN
+            RAISE EXCEPTION 'Widersprüchliche Unterrevision.' USING ERRCODE='55000';
+        END IF;
+        RETURN p_nodes;
+    END IF;
+    IF (SELECT count(*) FROM jsonb_object_keys(p_nodes))>=64 OR
+       octet_length(p_nodes::text)+octet_length(p_node::text)>2097152 THEN
+        RAISE EXCEPTION 'Unterrevisionsindex überschreitet die Grenze.' USING ERRCODE='P1901';
+    END IF;
+    RETURN p_nodes||jsonb_build_object(key,p_node);
+END;$fn$;
+
+CREATE FUNCTION recipe_dependency_preview_v27(p_location bigint,p_target uuid,p_version bigint) RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE recipe recipes%ROWTYPE; snapshot jsonb; food_json jsonb; food foods%ROWTYPE;
+    revision recipe_revisions%ROWTYPE; child_recipe uuid; prepared jsonb; entry jsonb;
+    food_rows jsonb:='[]'; nodes jsonb:='{}'; issues jsonb:='[]'; unit_rows jsonb; result jsonb;
+BEGIN
+    PERFORM master_expectation(p_target,p_version);
+    IF p_location IS NULL OR NOT EXISTS(SELECT 1 FROM locations WHERE id=p_location AND active) OR
+       (SELECT count(*) FROM locations WHERE active)<>1 THEN
+        RAISE EXCEPTION 'Ursprünglicher Standort ist nicht mehr aktiv.' USING ERRCODE='55000';
+    END IF;
+    SELECT * INTO recipe FROM recipes WHERE public_id=p_target AND location_id=p_location;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Unbekanntes Rezept.' USING ERRCODE='22023'; END IF;
+    IF recipe.row_version<>p_version THEN RAISE EXCEPTION 'Rezept wurde geändert.' USING ERRCODE='55000'; END IF;
+    snapshot:=recipe_snapshot_v22(recipe.id);
+    IF NOT recipe_snapshot_complete_v27(snapshot) THEN
+        issues:=jsonb_build_array(jsonb_build_object('field','ingredients','code','incomplete'));
+    END IF;
+    SELECT COALESCE(jsonb_agg(jsonb_build_object('public_id',u.public_id,'code',u.code,
+        'display_name',u.display_name,'dimension',u.dimension,'base_factor',trim_scale(u.base_factor)::text)
+        ORDER BY u.public_id),'[]') INTO unit_rows FROM measurement_units u WHERE u.id=recipe.servings_unit_id OR
+        u.id IN(SELECT i.unit_id FROM recipe_ingredients i WHERE i.recipe_id=recipe.id) OR
+        u.id IN(SELECT f.base_unit_id FROM foods f JOIN recipe_ingredients i ON i.food_id=f.id WHERE i.recipe_id=recipe.id);
+    FOR food_json IN SELECT value FROM jsonb_array_elements(snapshot->'foods') ORDER BY value->>'public_id' LOOP
+        SELECT * INTO food FROM foods WHERE public_id=(food_json->>'public_id')::uuid AND location_id=p_location;
+        prepared:='null'::jsonb;
+        IF food.prepared_recipe_revision_id IS NOT NULL THEN
+            SELECT * INTO revision FROM recipe_revisions WHERE id=food.prepared_recipe_revision_id AND location_id=p_location;
+            IF NOT FOUND THEN RAISE EXCEPTION 'Zubereitungsrevision fehlt.' USING ERRCODE='22023'; END IF;
+            SELECT public_id INTO child_recipe FROM recipes WHERE id=revision.recipe_id;
+            PERFORM check_prepared_snapshot_v27(revision.snapshot_json,child_recipe);
+            prepared:=jsonb_build_object('recipe_public_id',child_recipe,'revision_public_id',revision.public_id,
+                'content_hash_sha256',revision.content_hash_sha256);
+            entry:=prepared||jsonb_build_object('snapshot',revision.snapshot_json-'prepared_revisions');
+            nodes:=merge_prepared_node_v27(nodes,entry);
+            IF revision.snapshot_json->>'schema_version'='2' THEN
+                FOR entry IN SELECT value FROM jsonb_array_elements(revision.snapshot_json->'prepared_revisions') LOOP
+                    nodes:=merge_prepared_node_v27(nodes,entry);
+                END LOOP;
+            END IF;
+        END IF;
+        food_json:=food_json||jsonb_build_object('prepared_recipe',prepared,'base_unit',(
+            SELECT jsonb_build_object('public_id',u.public_id,'code',u.code,'display_name',u.display_name,
+                'dimension',u.dimension,'base_factor',trim_scale(u.base_factor)::text) FROM measurement_units u WHERE id=food.base_unit_id),
+            'storage_locations',(SELECT COALESCE(jsonb_agg(jsonb_build_object('public_id',s.public_id,
+                'row_version',s.row_version,'code',s.code,'name',s.name,'active',s.active) ORDER BY s.public_id),'[]')
+                FROM food_storage_locations l JOIN storage_locations s ON s.id=l.storage_location_id AND s.location_id=l.location_id
+                WHERE l.food_id=food.id AND l.location_id=p_location));
+        food_rows:=food_rows||jsonb_build_array(food_json);
+    END LOOP;
+    snapshot:=snapshot||jsonb_build_object('schema_version',2,'units',unit_rows,'foods',food_rows,
+        'prepared_revisions',(SELECT COALESCE(jsonb_agg(value ORDER BY key),'[]') FROM jsonb_each(nodes)));
+    IF octet_length(snapshot::text)>2097152 THEN RAISE EXCEPTION 'Rezeptabbild überschreitet 2 MiB.' USING ERRCODE='P1901'; END IF;
+    IF issues='[]'::jsonb THEN PERFORM check_prepared_snapshot_v27(snapshot,recipe.public_id); END IF;
+    result:=jsonb_build_object('recipe_public_id',recipe.public_id,'recipe_row_version',recipe.row_version,
+        'complete',issues='[]'::jsonb,'issues',issues,'snapshot',snapshot);
+    RETURN result||jsonb_build_object('dependency_hash_sha256',encode(public.digest(convert_to(result::text,'UTF8'),'sha256'),'hex'));
+END;$fn$;
+
+CREATE FUNCTION freeze_recipe_v27(p_actor bigint,p_authz bigint,p_location bigint,p_target uuid,
+    p_version bigint,p_dependency text) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE recipe recipes%ROWTYPE; preview jsonb; snapshot jsonb; revision recipe_revisions%ROWTYPE;
+    previous recipe_revisions%ROWTYPE; food foods%ROWTYPE; digest_value text;
+BEGIN
+    PERFORM require_master_data_actor(p_actor,p_authz,'recipe.write');
+    PERFORM master_location(p_location);
+    PERFORM lock_prepared_graph_v27(p_location);
+    PERFORM master_expectation(p_target,p_version);
+    IF p_dependency IS NULL OR p_dependency !~ '^[0-9a-f]{64}$' THEN
+        RAISE EXCEPTION 'Ursprünglicher Abhängigkeitshash erforderlich.' USING ERRCODE='P1901';
+    END IF;
+    SELECT * INTO recipe FROM recipes WHERE public_id=p_target AND location_id=p_location;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Unbekanntes Rezept.' USING ERRCODE='22023'; END IF;
+    -- Base units and recorded storage names are dependencies too; lock before Foods.
+    PERFORM u.id FROM measurement_units u WHERE u.id=recipe.servings_unit_id OR
+        u.id IN(SELECT unit_id FROM recipe_ingredients WHERE recipe_id=recipe.id) OR
+        u.id IN(SELECT f.base_unit_id FROM foods f JOIN recipe_ingredients i ON i.food_id=f.id WHERE i.recipe_id=recipe.id)
+        ORDER BY u.id FOR SHARE;
+    PERFORM t.id FROM tags t JOIN recipe_tags rt ON rt.tag_id=t.id
+        WHERE rt.recipe_id=recipe.id ORDER BY t.id FOR SHARE OF t;
+    PERFORM s.id FROM storage_locations s JOIN food_storage_locations l ON l.storage_location_id=s.id
+        WHERE l.food_id IN(SELECT food_id FROM recipe_ingredients WHERE recipe_id=recipe.id) ORDER BY s.id FOR SHARE OF s;
+    PERFORM recipe_refs_v22(p_location,recipe.id,recipe_payload_v22(recipe.id));
+    SELECT * INTO recipe FROM recipes WHERE id=recipe.id FOR UPDATE;
+    IF recipe.row_version<>p_version OR NOT recipe.active THEN
+        RAISE EXCEPTION 'Rezept wurde geändert oder archiviert.' USING ERRCODE='55000';
+    END IF;
+    preview:=recipe_dependency_preview_v27(p_location,p_target,p_version);
+    IF preview->>'dependency_hash_sha256'<>p_dependency THEN
+        RAISE EXCEPTION 'Zutatenabhängigkeiten wurden geändert.' USING ERRCODE='55000';
+    END IF;
+    IF NOT (preview->>'complete')::boolean THEN
+        RAISE EXCEPTION 'Rezept benötigt vollständige Zutaten und Mengen.' USING ERRCODE='P1901';
+    END IF;
+    FOR food IN SELECT f.* FROM foods f WHERE f.id IN(
+        SELECT food_id FROM recipe_ingredients WHERE recipe_id=recipe.id) ORDER BY f.id LOOP
+        PERFORM check_prepared_graph_v27(p_location,food.public_id,food.prepared_recipe_revision_id);
+    END LOOP;
+    snapshot:=preview->'snapshot';
+    digest_value:=encode(public.digest(convert_to(snapshot::text,'UTF8'),'sha256'),'hex');
+    SELECT * INTO previous FROM recipe_revisions WHERE recipe_id=recipe.id ORDER BY revision_number DESC LIMIT 1;
+    IF FOUND AND previous.snapshot_json=snapshot THEN
+        RAISE EXCEPTION 'Identische Revision bereits vorhanden.' USING ERRCODE='55000';
+    END IF;
+    INSERT INTO recipe_revisions(location_id,recipe_id,revision_number,snapshot_json,content_hash_sha256,created_by)
+        VALUES(p_location,recipe.id,COALESCE(previous.revision_number,0)+1,snapshot,digest_value,p_actor) RETURNING * INTO revision;
+    UPDATE recipes SET updated_by=p_actor WHERE id=recipe.id RETURNING * INTO recipe;
+    INSERT INTO audit_events(actor_user_id,action,entity_type,entity_public_id,details)
+        VALUES(p_actor,'recipe.freeze','recipe',recipe.public_id,jsonb_build_object('actor_authz_version',p_authz,
+            'location_id',p_location,'row_version_before',p_version,'row_version_after',recipe.row_version,
+            'revision_public_id',revision.public_id,'content_hash_sha256',digest_value,'dependency_hash_sha256',p_dependency));
+    RETURN jsonb_build_object('public_id',revision.public_id,'recipe_public_id',recipe.public_id,
+        'revision_number',revision.revision_number,'recipe_row_version',recipe.row_version,'content_hash_sha256',digest_value);
+END;$fn$;
+
+REVOKE ALL ON FUNCTION lock_prepared_graph_v27(bigint),recipe_snapshot_complete_v27(jsonb),
+    check_prepared_graph_v27(bigint,uuid,bigint),assert_food_complete_v27(bigint),enforce_food_complete_v27(),
+    food_save_v27(boolean,bigint,bigint,bigint,uuid,bigint,jsonb),check_prepared_snapshot_v27(jsonb,uuid),
+    merge_prepared_node_v27(jsonb,jsonb),create_food_v27(bigint,bigint,bigint,jsonb),
+    update_food_v27(bigint,bigint,bigint,uuid,bigint,jsonb),recipe_dependency_preview_v27(bigint,uuid,bigint),
+    freeze_recipe_v27(bigint,bigint,bigint,uuid,bigint,text)
+FROM PUBLIC,cafeteria_app,cafeteria_backup,cafeteria_auth_issuer;
+REVOKE ALL ON FUNCTION create_food_v21(bigint,bigint,bigint,uuid,bigint,jsonb),
+    freeze_recipe_revision_v22(bigint,bigint,bigint,uuid,bigint,jsonb)
+FROM PUBLIC,cafeteria_app,cafeteria_backup,cafeteria_auth_issuer;
+GRANT EXECUTE ON FUNCTION create_food_v27(bigint,bigint,bigint,jsonb),
+    update_food_v27(bigint,bigint,bigint,uuid,bigint,jsonb),recipe_dependency_preview_v27(bigint,uuid,bigint),
+    freeze_recipe_v27(bigint,bigint,bigint,uuid,bigint,text) TO cafeteria_app;
+
+-- Prepared foods schema27 end.
+
+-- Recipe import batches schema28 begin.
+CREATE TABLE IF NOT EXISTS recipe_import_batches (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    public_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    location_id bigint NOT NULL REFERENCES locations(id),
+    UNIQUE(location_id,id),
+    row_version bigint NOT NULL DEFAULT 1 CHECK(row_version>0),
+    status text NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','imported','cancelled')),
+    adapter_kind text NOT NULL CHECK(adapter_kind IN ('file_import','url','ai_assisted')),
+    source_filename text CHECK(source_filename=master_text(source_filename,200,false)),
+    source_sha256 text CHECK(source_sha256 ~ '^[0-9a-f]{64}$'),
+    content_type text CHECK(content_type IN ('text/csv','application/json')),
+    source_url text CHECK(source_url=master_text(source_url,2048,false) AND source_url ~ '^https?://'),
+    source_note text CHECK(source_note=master_text(source_note,500,false)),
+    fetched_at timestamptz,
+    candidate_hash_sha256 text NOT NULL CHECK(candidate_hash_sha256 ~ '^[0-9a-f]{64}$'),
+    confirmation_hash_sha256 text CHECK(confirmation_hash_sha256 ~ '^[0-9a-f]{64}$'),
+    annotations jsonb NOT NULL DEFAULT '[]'::jsonb,
+    duplicate_groups jsonb NOT NULL DEFAULT '[]'::jsonb,
+    created_by bigint NOT NULL REFERENCES users(id),
+    updated_by bigint NOT NULL REFERENCES users(id),
+    created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    imported_result jsonb,
+    CHECK(jsonb_typeof(annotations)='array' AND jsonb_typeof(duplicate_groups)='array'),
+    CHECK(adapter_kind<>'file_import' OR (
+        nullif(source_filename,'') IS NOT NULL AND source_sha256 IS NOT NULL
+        AND content_type IS NOT NULL AND fetched_at IS NOT NULL)),
+    CHECK(adapter_kind<>'url' OR (nullif(source_url,'') IS NOT NULL AND fetched_at IS NOT NULL)),
+    CHECK(adapter_kind<>'ai_assisted' OR (nullif(source_note,'') IS NOT NULL AND fetched_at IS NOT NULL))
+);
+CREATE TABLE IF NOT EXISTS recipe_import_candidates (
+    location_id bigint NOT NULL,
+    batch_id bigint NOT NULL,
+    row_number integer NOT NULL CHECK(row_number BETWEEN 1 AND 2000),
+    origin_ref text NOT NULL CHECK(origin_ref=master_text(origin_ref,80)),
+    original_payload jsonb NOT NULL CHECK(jsonb_typeof(original_payload)='object'),
+    original_source_kind text NOT NULL CHECK(original_source_kind IN ('manual','url','file_import','ai_assisted')),
+    original_source_reference text CHECK(original_source_reference=master_text(original_source_reference,200,false)),
+    original_source_url text CHECK(original_source_url=master_text(original_source_url,2048,false)
+        AND original_source_url ~ '^https?://'),
+    original_source_note text CHECK(original_source_note=master_text(original_source_note,500,false)),
+    original_fetched_at timestamptz,
+    source_line integer CHECK(source_line IS NULL OR source_line>0),
+    candidate_payload jsonb NOT NULL CHECK(jsonb_typeof(candidate_payload)='object'),
+    duplicate_decision text NOT NULL DEFAULT 'undecided'
+        CHECK(duplicate_decision IN ('undecided','create_new','skip_existing')),
+    target_recipe_public_id uuid,
+    target_row_version bigint CHECK(target_row_version IS NULL OR target_row_version>0),
+    parse_errors jsonb NOT NULL DEFAULT '[]'::jsonb CHECK(jsonb_typeof(parse_errors)='array'),
+    PRIMARY KEY(batch_id,row_number),
+    FOREIGN KEY(location_id,batch_id) REFERENCES recipe_import_batches(location_id,id) ON DELETE RESTRICT,
+    CHECK(NOT (original_payload ?| ARRAY['unreviewed','proposed_not_measured','allergen_not_checked'])),
+    CHECK(NOT (candidate_payload ?| ARRAY['unreviewed','proposed_not_measured','allergen_not_checked'])),
+    CHECK((duplicate_decision='skip_existing')=(target_recipe_public_id IS NOT NULL
+        AND target_row_version IS NOT NULL)),
+    CHECK(duplicate_decision='skip_existing' OR (target_recipe_public_id IS NULL AND target_row_version IS NULL))
+);
+CREATE INDEX recipe_import_batches_location_idx ON recipe_import_batches(location_id,created_at DESC);
+CREATE TRIGGER recipe_import_batches_version BEFORE UPDATE ON recipe_import_batches
+    FOR EACH ROW EXECUTE FUNCTION bump_row_version_and_updated_at();
+
+CREATE FUNCTION recipe_import_protect_v28() RETURNS trigger
+LANGUAGE plpgsql SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+BEGIN
+    IF TG_OP IN ('DELETE','TRUNCATE') THEN
+        RAISE EXCEPTION 'Importstapel darf nicht gelöscht werden.' USING ERRCODE='55000';
+    END IF;
+    IF TG_TABLE_NAME='recipe_import_batches' THEN
+        IF NEW.public_id<>OLD.public_id OR NEW.location_id<>OLD.location_id
+            OR NEW.adapter_kind<>OLD.adapter_kind
+            OR NEW.source_filename IS DISTINCT FROM OLD.source_filename
+            OR NEW.source_sha256 IS DISTINCT FROM OLD.source_sha256
+            OR NEW.content_type IS DISTINCT FROM OLD.content_type
+            OR NEW.source_url IS DISTINCT FROM OLD.source_url
+            OR NEW.fetched_at IS DISTINCT FROM OLD.fetched_at
+            OR NEW.duplicate_groups IS DISTINCT FROM OLD.duplicate_groups
+            OR NEW.created_by<>OLD.created_by OR NEW.created_at<>OLD.created_at THEN
+            RAISE EXCEPTION 'Importursprung ist unveränderlich.' USING ERRCODE='55000';
+        END IF;
+        IF OLD.status<>'draft' AND NEW IS DISTINCT FROM OLD THEN
+            RAISE EXCEPTION 'Importstapel ist nicht mehr bearbeitbar.' USING ERRCODE='55000';
+        END IF;
+    ELSE
+        IF NEW.batch_id<>OLD.batch_id OR NEW.location_id<>OLD.location_id
+            OR NEW.row_number<>OLD.row_number OR NEW.origin_ref<>OLD.origin_ref
+            OR NEW.original_payload IS DISTINCT FROM OLD.original_payload
+            OR NEW.original_source_kind<>OLD.original_source_kind
+            OR NEW.original_source_reference IS DISTINCT FROM OLD.original_source_reference
+            OR NEW.original_source_url IS DISTINCT FROM OLD.original_source_url
+            OR NEW.original_source_note IS DISTINCT FROM OLD.original_source_note
+            OR NEW.original_fetched_at IS DISTINCT FROM OLD.original_fetched_at
+            OR NEW.source_line IS DISTINCT FROM OLD.source_line
+            OR NEW.parse_errors IS DISTINCT FROM OLD.parse_errors THEN
+            RAISE EXCEPTION 'Importursprung ist unveränderlich.' USING ERRCODE='55000';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;$fn$;
+CREATE TRIGGER recipe_import_batches_protect BEFORE UPDATE OR DELETE ON recipe_import_batches
+    FOR EACH ROW EXECUTE FUNCTION recipe_import_protect_v28();
+CREATE TRIGGER recipe_import_candidates_protect BEFORE UPDATE OR DELETE ON recipe_import_candidates
+    FOR EACH ROW EXECUTE FUNCTION recipe_import_protect_v28();
+
+CREATE FUNCTION recipe_import_hash_v28(p_annotations jsonb, p_rows jsonb) RETURNS text
+LANGUAGE sql IMMUTABLE SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+SELECT encode(public.digest(convert_to(jsonb_build_object(
+    'annotations',COALESCE(p_annotations,'[]'::jsonb),'rows',COALESCE(p_rows,'[]'::jsonb)
+)::text,'UTF8'),'sha256'),'hex');
+$fn$;
+
+CREATE FUNCTION recipe_import_visible_note_v28(p_base text, p_annotations jsonb) RETURNS text
+LANGUAGE plpgsql IMMUTABLE SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE labels text;
+BEGIN
+    SELECT string_agg(label, '; ' ORDER BY ord) INTO labels FROM (
+        SELECT CASE value
+            WHEN 'unreviewed' THEN 'ungeprüft'
+            WHEN 'proposed_not_measured' THEN 'vorgeschlagen, nicht gemessen'
+            WHEN 'allergen_not_checked' THEN 'Allergene nicht geprüft'
+        END AS label, ordinality AS ord
+        FROM jsonb_array_elements_text(COALESCE(p_annotations,'[]'::jsonb)) WITH ORDINALITY
+    ) s WHERE label IS NOT NULL;
+    IF labels IS NULL THEN
+        RETURN master_text(p_base,500,false);
+    END IF;
+    IF NULLIF(btrim(COALESCE(p_base,'')),'') IS NULL THEN
+        RETURN master_text('Import: '||labels,500,false);
+    END IF;
+    RETURN master_text(btrim(p_base)||' [Import: '||labels||']',500,false);
+END;$fn$;
+
+CREATE FUNCTION recipe_import_save_v28(p_create boolean,p_actor bigint,p_authz bigint,p_location bigint,
+    p_target uuid,p_version bigint,p_payload jsonb) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE batch recipe_import_batches%ROWTYPE; item jsonb; origin jsonb; candidate jsonb; source jsonb;
+    v_ann jsonb; rows jsonb; action text; digest_value text; version_before bigint:=0;
+    food_ids uuid[]:=ARRAY[]::uuid[]; unit_codes text[]:=ARRAY[]::text[]; ingredient jsonb;
+    rownum integer; n integer:=0; decision text; target_id uuid; target_version bigint;
+    kind text; reference text; note text; fetched timestamptz; adapter text; sha text;
+    v_source_url text; v_source_note text; food_id text; unit_code text;
+BEGIN
+    PERFORM require_master_data_actor(p_actor,p_authz,'recipe.write');
+    PERFORM master_location(p_location);
+    IF p_payload IS NULL OR jsonb_typeof(p_payload)<>'object' OR octet_length(p_payload::text)>8388608 THEN
+        RAISE EXCEPTION 'Ungültige Importfelder.' USING ERRCODE='P1901';
+    END IF;
+    IF p_create THEN
+        PERFORM master_payload(p_payload,ARRAY['adapter_kind','source_filename','source_sha256','content_type',
+            'source_url','source_note','fetched_at','annotations','duplicate_groups','rows']);
+        IF p_target IS NOT NULL OR p_version IS NOT NULL THEN
+            RAISE EXCEPTION 'Ungültiger neuer Importstapel.' USING ERRCODE='P1901';
+        END IF;
+        adapter:=p_payload->>'adapter_kind';
+        v_ann:=COALESCE(p_payload->'annotations','[]'::jsonb);
+        rows:=p_payload->'rows';
+        v_source_url:=NULLIF(p_payload->>'source_url','');
+        v_source_note:=p_payload->>'source_note';
+    ELSE
+        PERFORM master_expectation(p_target,p_version);
+        PERFORM master_payload(p_payload,ARRAY['action','annotations','rows']);
+        SELECT * INTO batch FROM recipe_import_batches
+            WHERE public_id=p_target AND location_id=p_location FOR UPDATE;
+        IF NOT FOUND THEN RAISE EXCEPTION 'Unbekannter Importstapel.' USING ERRCODE='22023'; END IF;
+        IF batch.row_version<>p_version THEN
+            RAISE EXCEPTION 'Importstapel wurde geändert.' USING ERRCODE='55000';
+        END IF;
+        IF batch.status<>'draft' THEN
+            RAISE EXCEPTION 'Importstapel ist nicht mehr bearbeitbar.' USING ERRCODE='55000';
+        END IF;
+        version_before:=batch.row_version;
+        adapter:=batch.adapter_kind;
+        v_source_url:=batch.source_url;
+        v_source_note:=batch.source_note;
+        action:=COALESCE(p_payload->>'action','save');
+        IF action NOT IN ('save','acknowledge','cancel') THEN
+            RAISE EXCEPTION 'Ungültige Importfelder.' USING ERRCODE='P1901';
+        END IF;
+        IF action='cancel' THEN
+            UPDATE recipe_import_batches SET status='cancelled',updated_by=p_actor WHERE id=batch.id
+                RETURNING * INTO batch;
+            INSERT INTO audit_events(actor_user_id,action,entity_type,entity_public_id,details)
+                VALUES(p_actor,'recipe.import_batch','recipe_import_batch',batch.public_id,
+                    jsonb_build_object('actor_authz_version',p_authz,'location_id',p_location,
+                        'row_version_before',version_before,'row_version_after',batch.row_version,
+                        'action','cancel'));
+            RETURN jsonb_build_object('public_id',batch.public_id,'row_version',batch.row_version,
+                'candidate_hash_sha256',batch.candidate_hash_sha256,
+                'confirmation_hash_sha256',batch.confirmation_hash_sha256,'status',batch.status);
+        END IF;
+        IF action='acknowledge' THEN
+            IF batch.confirmation_hash_sha256 IS NOT DISTINCT FROM batch.candidate_hash_sha256 THEN
+                RETURN jsonb_build_object('public_id',batch.public_id,'row_version',batch.row_version,
+                    'candidate_hash_sha256',batch.candidate_hash_sha256,
+                    'confirmation_hash_sha256',batch.confirmation_hash_sha256,'status',batch.status);
+            END IF;
+            UPDATE recipe_import_batches SET confirmation_hash_sha256=candidate_hash_sha256,updated_by=p_actor
+                WHERE id=batch.id RETURNING * INTO batch;
+            INSERT INTO audit_events(actor_user_id,action,entity_type,entity_public_id,details)
+                VALUES(p_actor,'recipe.import_batch','recipe_import_batch',batch.public_id,
+                    jsonb_build_object('actor_authz_version',p_authz,'location_id',p_location,
+                        'row_version_before',version_before,'row_version_after',batch.row_version,
+                        'action','acknowledge','candidate_hash_sha256',batch.candidate_hash_sha256));
+            RETURN jsonb_build_object('public_id',batch.public_id,'row_version',batch.row_version,
+                'candidate_hash_sha256',batch.candidate_hash_sha256,
+                'confirmation_hash_sha256',batch.confirmation_hash_sha256,'status',batch.status);
+        END IF;
+        v_ann:=COALESCE(p_payload->'annotations',batch.annotations);
+        rows:=p_payload->'rows';
+        sha:=batch.source_sha256;
+        fetched:=batch.fetched_at;
+    END IF;
+    IF v_ann IS NULL OR jsonb_typeof(v_ann)<>'array' THEN
+        RAISE EXCEPTION 'Ungültige Importannotation.' USING ERRCODE='P1901';
+    END IF;
+    IF jsonb_array_length(v_ann)>3
+        OR EXISTS(SELECT 1 FROM jsonb_array_elements_text(v_ann) a
+            WHERE a NOT IN ('unreviewed','proposed_not_measured','allergen_not_checked'))
+        OR (SELECT count(*) FROM jsonb_array_elements_text(v_ann))
+            <>(SELECT count(DISTINCT value) FROM jsonb_array_elements_text(v_ann)) THEN
+        RAISE EXCEPTION 'Ungültige Importannotation.' USING ERRCODE='P1901';
+    END IF;
+    IF rows IS NULL OR jsonb_typeof(rows)<>'array' OR jsonb_array_length(rows) NOT BETWEEN 1 AND 2000 THEN
+        RAISE EXCEPTION 'Die Datei muss zwischen 1 und 2000 Rezeptzeilen enthalten.' USING ERRCODE='P1901';
+    END IF;
+    IF p_create THEN
+        sha:=p_payload->>'source_sha256';
+        IF p_payload->>'fetched_at' IS NULL THEN
+            RAISE EXCEPTION 'Abrufzeit mit Zeitzone erforderlich.' USING ERRCODE='P1901';
+        END IF;
+        fetched:=(p_payload->>'fetched_at')::timestamptz;
+    ELSE
+        IF jsonb_array_length(rows)<>(SELECT count(*) FROM recipe_import_candidates WHERE batch_id=batch.id)
+            OR EXISTS(
+                SELECT 1 FROM jsonb_array_elements(rows) r
+                WHERE NOT EXISTS(
+                    SELECT 1 FROM recipe_import_candidates c
+                    WHERE c.batch_id=batch.id AND c.row_number=(r.value->>'row_number')::integer)) THEN
+            RAISE EXCEPTION 'Importzeilen dürfen nicht hinzugefügt oder entfernt werden.' USING ERRCODE='P1901';
+        END IF;
+    END IF;
+    FOR item IN SELECT value FROM jsonb_array_elements(rows) LOOP
+        n:=n+1;
+        IF jsonb_typeof(item)<>'object' OR item ?| ARRAY['unreviewed','proposed_not_measured','allergen_not_checked'] THEN
+            RAISE EXCEPTION 'Ungültige Importfelder.' USING ERRCODE='P1901';
+        END IF;
+        rownum:=(item->>'row_number')::integer;
+        IF rownum IS DISTINCT FROM n THEN
+            RAISE EXCEPTION 'Ungültige Importfelder.' USING ERRCODE='P1901';
+        END IF;
+        IF p_create THEN
+            origin:=COALESCE(item->'original_payload','{}'::jsonb);
+            candidate:=COALESCE(NULLIF(item->'candidate_payload','null'::jsonb),origin);
+        ELSE
+            SELECT original_payload INTO origin FROM recipe_import_candidates
+                WHERE batch_id=batch.id AND row_number=rownum;
+            candidate:=COALESCE(NULLIF(item->'candidate_payload','null'::jsonb),origin);
+        END IF;
+        IF jsonb_typeof(origin)<>'object' OR jsonb_typeof(candidate)<>'object'
+            OR origin ?| ARRAY['unreviewed','proposed_not_measured','allergen_not_checked']
+            OR candidate ?| ARRAY['unreviewed','proposed_not_measured','allergen_not_checked']
+            OR EXISTS(SELECT 1 FROM jsonb_object_keys(candidate) k WHERE k NOT IN
+                ('title','description','servings','servings_unit_code','prep_minutes','cook_minutes',
+                 'source','ingredients','steps','tag_public_ids','images'))
+            OR octet_length(candidate::text)>524288 THEN
+            RAISE EXCEPTION 'Ungültige Importfelder.' USING ERRCODE='P1901';
+        END IF;
+        IF origin ? 'source' AND jsonb_typeof(origin->'source')='object' THEN
+            kind:=origin->'source'->>'kind';
+            reference:=origin->'source'->>'reference';
+            note:=origin->'source'->>'note';
+        ELSE
+            kind:=adapter;
+            reference:=CASE WHEN adapter='file_import' AND sha IS NOT NULL
+                THEN 'sha256:'||sha||':row:'||rownum::text ELSE NULL END;
+            note:=CASE WHEN adapter='file_import' AND sha IS NOT NULL THEN 'sha256:'||sha
+                ELSE v_source_note END;
+        END IF;
+        IF kind IS NULL OR kind NOT IN ('manual','url','file_import','ai_assisted') THEN
+            RAISE EXCEPTION 'Ungültige Quelle.' USING ERRCODE='P1901';
+        END IF;
+        source:=jsonb_build_object(
+            'kind',kind,
+            'reference',to_jsonb(reference),
+            'url',to_jsonb(COALESCE(NULLIF(origin->'source'->>'url',''),v_source_url)),
+            'note',to_jsonb(recipe_import_visible_note_v28(note,v_ann)),
+            'fetched_at',to_jsonb(COALESCE(NULLIF(origin->'source'->>'fetched_at',''),fetched::text)));
+        candidate:=candidate||jsonb_build_object('source',source);
+        decision:=COALESCE(item->>'duplicate_decision','undecided');
+        IF decision NOT IN ('undecided','create_new','skip_existing') THEN
+            RAISE EXCEPTION 'Ungültige Dublettenentscheidung.' USING ERRCODE='P1901';
+        END IF;
+        target_id:=NULLIF(item->>'target_recipe_public_id','')::uuid;
+        target_version:=NULLIF(item->>'target_row_version','')::bigint;
+        IF decision='skip_existing' THEN
+            IF target_id IS NULL OR target_version IS NULL THEN
+                RAISE EXCEPTION 'Überspringen braucht Zielrezept und Version.' USING ERRCODE='P1901';
+            END IF;
+            IF NOT EXISTS(SELECT 1 FROM recipes r WHERE r.public_id=target_id AND r.location_id=p_location) THEN
+                RAISE EXCEPTION 'Unbekanntes Rezept.' USING ERRCODE='22023';
+            END IF;
+        ELSIF target_id IS NOT NULL OR target_version IS NOT NULL THEN
+            RAISE EXCEPTION 'Ungültige Dublettenentscheidung.' USING ERRCODE='P1901';
+        END IF;
+        IF candidate ? 'ingredients' AND jsonb_typeof(candidate->'ingredients')='array' THEN
+            FOR ingredient IN SELECT value FROM jsonb_array_elements(candidate->'ingredients') LOOP
+                food_id:=NULLIF(ingredient->>'food_public_id','');
+                IF food_id IS NOT NULL THEN
+                    IF food_id !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
+                        RAISE EXCEPTION 'Ungültige Importfelder.' USING ERRCODE='P1901';
+                    END IF;
+                    food_ids:=food_ids||food_id::uuid;
+                END IF;
+                unit_code:=NULLIF(ingredient->>'unit_code','');
+                IF unit_code IS NOT NULL THEN
+                    IF unit_code !~ '^[A-Z][A-Z0-9_]{0,15}$' THEN
+                        RAISE EXCEPTION 'Ungültige Importfelder.' USING ERRCODE='P1901';
+                    END IF;
+                    unit_codes:=unit_codes||unit_code;
+                END IF;
+            END LOOP;
+        END IF;
+        item:=item||jsonb_build_object('candidate_payload',candidate,'duplicate_decision',decision,
+            'original_payload',origin);
+        rows:=jsonb_set(rows,ARRAY[(n-1)::text],item);
+    END LOOP;
+    IF cardinality(food_ids)>0 THEN
+        PERFORM f.id FROM foods f WHERE f.location_id=p_location AND f.public_id=ANY(food_ids) ORDER BY f.id FOR SHARE;
+        IF (SELECT count(DISTINCT x) FROM unnest(food_ids) x)
+            <>(SELECT count(*) FROM foods f WHERE f.location_id=p_location AND f.public_id=ANY(food_ids)) THEN
+            RAISE EXCEPTION 'Unbekannte Zutat.' USING ERRCODE='22023';
+        END IF;
+    END IF;
+    IF cardinality(unit_codes)>0 THEN
+        PERFORM u.id FROM measurement_units u WHERE u.code=ANY(unit_codes) ORDER BY u.id FOR SHARE;
+        IF (SELECT count(DISTINCT x) FROM unnest(unit_codes) x)
+            <>(SELECT count(*) FROM measurement_units u WHERE u.code=ANY(unit_codes)) THEN
+            RAISE EXCEPTION 'Unbekannte Einheit.' USING ERRCODE='22023';
+        END IF;
+    END IF;
+    digest_value:=recipe_import_hash_v28(v_ann,(
+        SELECT jsonb_agg(jsonb_build_object(
+            'row_number',(value->>'row_number')::int,
+            'candidate_payload',value->'candidate_payload',
+            'duplicate_decision',value->>'duplicate_decision',
+            'target_recipe_public_id',value->'target_recipe_public_id',
+            'target_row_version',value->'target_row_version') ORDER BY (value->>'row_number')::int)
+        FROM jsonb_array_elements(rows)));
+    IF p_create THEN
+        INSERT INTO recipe_import_batches(location_id,adapter_kind,source_filename,source_sha256,content_type,
+            source_url,source_note,fetched_at,candidate_hash_sha256,annotations,duplicate_groups,
+            created_by,updated_by)
+        VALUES(p_location,adapter,NULLIF(p_payload->>'source_filename',''),sha,
+            NULLIF(p_payload->>'content_type',''),v_source_url,
+            master_text(v_source_note,500,false),fetched,digest_value,v_ann,
+            COALESCE(p_payload->'duplicate_groups','[]'::jsonb),p_actor,p_actor)
+        RETURNING * INTO batch;
+        INSERT INTO recipe_import_candidates(location_id,batch_id,row_number,origin_ref,original_payload,
+            original_source_kind,original_source_reference,original_source_url,original_source_note,
+            original_fetched_at,source_line,candidate_payload,duplicate_decision,target_recipe_public_id,
+            target_row_version,parse_errors)
+        SELECT p_location,batch.id,(value->>'row_number')::int,
+            batch.public_id::text||':'||(value->>'row_number'),
+            COALESCE(value->'original_payload','{}'::jsonb),
+            COALESCE(NULLIF(value->'original_payload'->'source'->>'kind',''),adapter),
+            NULLIF(value->'original_payload'->'source'->>'reference',''),
+            NULLIF(value->'original_payload'->'source'->>'url',''),
+            NULLIF(value->'original_payload'->'source'->>'note',''),
+            COALESCE(NULLIF(value->'original_payload'->'source'->>'fetched_at','')::timestamptz,fetched),
+            NULLIF(value->>'source_line','')::int,
+            value->'candidate_payload',
+            value->>'duplicate_decision',
+            NULLIF(value->>'target_recipe_public_id','')::uuid,
+            NULLIF(value->>'target_row_version','')::bigint,
+            COALESCE(value->'parse_errors','[]'::jsonb)
+        FROM jsonb_array_elements(rows);
+        INSERT INTO audit_events(actor_user_id,action,entity_type,entity_public_id,details)
+            VALUES(p_actor,'recipe.import_batch','recipe_import_batch',batch.public_id,
+                jsonb_build_object('actor_authz_version',p_authz,'location_id',p_location,
+                    'row_version_before',0,'row_version_after',batch.row_version,
+                    'action','create','candidate_hash_sha256',digest_value));
+    ELSE
+        IF digest_value=batch.candidate_hash_sha256 AND v_ann=batch.annotations THEN
+            RETURN jsonb_build_object('public_id',batch.public_id,'row_version',batch.row_version,
+                'candidate_hash_sha256',batch.candidate_hash_sha256,
+                'confirmation_hash_sha256',batch.confirmation_hash_sha256,'status',batch.status);
+        END IF;
+        UPDATE recipe_import_candidates c SET
+            candidate_payload=r.payload->'candidate_payload',
+            duplicate_decision=r.payload->>'duplicate_decision',
+            target_recipe_public_id=NULLIF(r.payload->>'target_recipe_public_id','')::uuid,
+            target_row_version=NULLIF(r.payload->>'target_row_version','')::bigint
+        FROM jsonb_array_elements(rows) r(payload)
+        WHERE c.batch_id=batch.id AND c.row_number=(r.payload->>'row_number')::int;
+        UPDATE recipe_import_batches SET annotations=v_ann,
+            candidate_hash_sha256=digest_value,confirmation_hash_sha256=NULL,updated_by=p_actor
+            WHERE id=batch.id RETURNING * INTO batch;
+        INSERT INTO audit_events(actor_user_id,action,entity_type,entity_public_id,details)
+            VALUES(p_actor,'recipe.import_batch','recipe_import_batch',batch.public_id,
+                jsonb_build_object('actor_authz_version',p_authz,'location_id',p_location,
+                    'row_version_before',version_before,'row_version_after',batch.row_version,
+                    'action','save','candidate_hash_sha256',digest_value));
+    END IF;
+    RETURN jsonb_build_object('public_id',batch.public_id,'row_version',batch.row_version,
+        'candidate_hash_sha256',batch.candidate_hash_sha256,
+        'confirmation_hash_sha256',batch.confirmation_hash_sha256,'status',batch.status);
+END;$fn$;
+
+CREATE FUNCTION create_recipe_import_batch_v28(p_actor bigint,p_authz bigint,p_location bigint,p_payload jsonb)
+RETURNS jsonb LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+SELECT recipe_import_save_v28(true,p_actor,p_authz,p_location,NULL,NULL,p_payload);
+$fn$;
+CREATE FUNCTION update_recipe_import_batch_v28(p_actor bigint,p_authz bigint,p_location bigint,
+    p_target uuid,p_version bigint,p_payload jsonb)
+RETURNS jsonb LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+SELECT recipe_import_save_v28(false,p_actor,p_authz,p_location,p_target,p_version,p_payload);
+$fn$;
+
+REVOKE ALL ON FUNCTION recipe_import_protect_v28(),recipe_import_hash_v28(jsonb,jsonb),
+    recipe_import_visible_note_v28(text,jsonb),
+    recipe_import_save_v28(boolean,bigint,bigint,bigint,uuid,bigint,jsonb),
+    create_recipe_import_batch_v28(bigint,bigint,bigint,jsonb),
+    update_recipe_import_batch_v28(bigint,bigint,bigint,uuid,bigint,jsonb)
+FROM PUBLIC,cafeteria_app,cafeteria_backup,cafeteria_auth_issuer;
+GRANT EXECUTE ON FUNCTION create_recipe_import_batch_v28(bigint,bigint,bigint,jsonb),
+    update_recipe_import_batch_v28(bigint,bigint,bigint,uuid,bigint,jsonb) TO cafeteria_app;
+GRANT SELECT ON recipe_import_batches,recipe_import_candidates TO cafeteria_app,cafeteria_backup;
+GRANT SELECT ON SEQUENCE recipe_import_batches_id_seq TO cafeteria_backup;
+
+-- Recipe import batches schema28 end.
+
+-- Recipe import commit schema29 begin.
+CREATE FUNCTION recipe_import_head_source_v29(p_batch recipe_import_batches, p_row recipe_import_candidates)
+RETURNS jsonb
+LANGUAGE plpgsql STABLE SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE note text; fetched text; reference text;
+BEGIN
+    fetched:=COALESCE(NULLIF(p_row.original_payload->'source'->>'fetched_at',''),
+        to_char(p_row.original_fetched_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS"+00:00"'));
+    IF p_row.original_source_kind='file_import' THEN
+        note:=COALESCE(NULLIF(p_row.candidate_payload->'source'->>'note',''),
+            recipe_import_visible_note_v28(
+                NULLIF('sha256:'||COALESCE(p_batch.source_sha256,''),'sha256:'), p_batch.annotations));
+        RETURN jsonb_build_object('kind','file_import','reference',to_jsonb(p_row.origin_ref),
+            'url',to_jsonb(p_row.original_source_url),'note',to_jsonb(note),'fetched_at',to_jsonb(fetched));
+    END IF;
+    reference:=COALESCE(NULLIF(p_row.original_source_reference,''),p_row.origin_ref);
+    RETURN jsonb_build_object('kind',p_row.original_source_kind,'reference',to_jsonb(reference),
+        'url',to_jsonb(p_row.original_source_url),'note',to_jsonb(p_row.original_source_note),
+        'fetched_at',to_jsonb(fetched));
+END;$fn$;
+
+CREATE FUNCTION recipe_import_recipe_payload_v29(p_batch recipe_import_batches, p_row recipe_import_candidates)
+RETURNS jsonb
+LANGUAGE plpgsql STABLE SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE payload jsonb; ingredients jsonb:='[]'::jsonb; item jsonb; ing jsonb; src jsonb;
+BEGIN
+    src:=recipe_import_head_source_v29(p_batch,p_row);
+    payload:=p_row.candidate_payload;
+    FOR item IN SELECT value FROM jsonb_array_elements(COALESCE(payload->'ingredients','[]'::jsonb)) LOOP
+        ing:=jsonb_build_object(
+            'line_public_id',NULL,
+            'group_label',item->'group_label',
+            'ingredient_text',item->'ingredient_text',
+            'food_public_id',item->'food_public_id',
+            'quantity',item->'quantity',
+            'unit_code',item->'unit_code',
+            'note',item->'note',
+            'source_kind',to_jsonb(CASE WHEN p_row.original_source_kind='file_import'
+                THEN 'file_import' ELSE COALESCE(item->>'source_kind',p_row.original_source_kind) END),
+            'source_reference',to_jsonb(CASE WHEN p_row.original_source_kind='file_import'
+                THEN p_row.origin_ref ELSE COALESCE(NULLIF(item->>'source_reference',''),
+                    p_row.original_source_reference,p_row.origin_ref) END),
+            'fetched_at',COALESCE(item->'fetched_at',src->'fetched_at'));
+        ingredients:=ingredients||jsonb_build_array(ing);
+    END LOOP;
+    RETURN jsonb_build_object(
+        'title',payload->'title','description',payload->'description','servings',payload->'servings',
+        'servings_unit_code',payload->'servings_unit_code','prep_minutes',payload->'prep_minutes',
+        'cook_minutes',payload->'cook_minutes','source',src,'ingredients',ingredients,
+        'steps',COALESCE(payload->'steps','[]'::jsonb),
+        'tag_public_ids',COALESCE(payload->'tag_public_ids','[]'::jsonb),
+        'images',COALESCE(payload->'images','[]'::jsonb));
+END;$fn$;
+
+CREATE FUNCTION commit_recipe_import_batch_v29(p_actor bigint,p_authz bigint,p_location bigint,
+    p_target uuid,p_version bigint,p_payload jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE batch recipe_import_batches%ROWTYPE; cand recipe_import_candidates%ROWTYPE;
+    recipe recipes%ROWTYPE; payload jsonb; item jsonb; created jsonb; results jsonb:='[]'::jsonb;
+    version_before bigint; food_ids uuid[]:=ARRAY[]::uuid[]; unit_codes text[]:=ARRAY[]::text[];
+    tag_ids uuid[]:=ARRAY[]::uuid[]; skip_ids uuid[]:=ARRAY[]::uuid[];
+BEGIN
+    PERFORM require_master_data_actor(p_actor,p_authz,'recipe.import');
+    PERFORM master_location(p_location);
+    PERFORM master_expectation(p_target,p_version);
+    PERFORM master_payload(p_payload,ARRAY['candidate_hash_sha256']);
+    IF p_payload->>'candidate_hash_sha256' IS NULL
+        OR p_payload->>'candidate_hash_sha256' !~ '^[0-9a-f]{64}$' THEN
+        RAISE EXCEPTION 'Ursprüngliche Bestätigung erforderlich.' USING ERRCODE='P1901';
+    END IF;
+    SELECT * INTO batch FROM recipe_import_batches
+        WHERE public_id=p_target AND location_id=p_location;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Unbekannter Importstapel.' USING ERRCODE='22023'; END IF;
+    IF batch.status<>'draft' THEN
+        RAISE EXCEPTION 'Importstapel ist nicht mehr bearbeitbar.' USING ERRCODE='55000';
+    END IF;
+    FOR cand IN SELECT * FROM recipe_import_candidates WHERE batch_id=batch.id ORDER BY row_number LOOP
+        IF cand.duplicate_decision='skip_existing' AND cand.target_recipe_public_id IS NOT NULL THEN
+            skip_ids:=skip_ids||cand.target_recipe_public_id;
+        ELSIF cand.duplicate_decision='create_new' THEN
+            payload:=recipe_import_recipe_payload_v29(batch,cand);
+            IF NULLIF(payload->>'servings_unit_code','') IS NOT NULL THEN
+                unit_codes:=unit_codes||(payload->>'servings_unit_code');
+            END IF;
+            FOR item IN SELECT value FROM jsonb_array_elements(COALESCE(payload->'ingredients','[]'::jsonb)) LOOP
+                IF NULLIF(item->>'unit_code','') IS NOT NULL THEN
+                    unit_codes:=unit_codes||(item->>'unit_code');
+                END IF;
+                IF NULLIF(item->>'food_public_id','') IS NOT NULL
+                    AND item->>'food_public_id' ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
+                    food_ids:=food_ids||(item->>'food_public_id')::uuid;
+                END IF;
+            END LOOP;
+            FOR item IN SELECT to_jsonb(value) FROM jsonb_array_elements_text(
+                COALESCE(payload->'tag_public_ids','[]'::jsonb)) LOOP
+                IF (item#>>'{}') ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
+                    tag_ids:=tag_ids||(item#>>'{}')::uuid;
+                END IF;
+            END LOOP;
+        END IF;
+    END LOOP;
+    IF cardinality(unit_codes)>0 THEN
+        PERFORM u.id FROM measurement_units u WHERE u.code=ANY(unit_codes) ORDER BY u.id FOR SHARE;
+    END IF;
+    IF cardinality(tag_ids)>0 THEN
+        PERFORM t.id FROM tags t WHERE t.location_id=p_location AND t.public_id=ANY(tag_ids)
+            ORDER BY t.id FOR SHARE;
+    END IF;
+    IF cardinality(food_ids)>0 THEN
+        PERFORM s.id FROM storage_locations s
+            JOIN food_storage_locations l ON l.storage_location_id=s.id AND l.location_id=s.location_id
+            JOIN foods f ON f.id=l.food_id AND f.location_id=l.location_id
+            WHERE f.location_id=p_location AND f.public_id=ANY(food_ids) ORDER BY s.id FOR SHARE;
+        PERFORM f.id FROM foods f WHERE f.location_id=p_location AND f.public_id=ANY(food_ids)
+            ORDER BY f.id FOR SHARE;
+    END IF;
+    IF cardinality(skip_ids)>0 THEN
+        PERFORM r.id FROM recipes r WHERE r.location_id=p_location AND r.public_id=ANY(skip_ids)
+            ORDER BY r.id FOR UPDATE;
+    END IF;
+    SELECT * INTO batch FROM recipe_import_batches WHERE id=batch.id FOR UPDATE;
+    IF batch.row_version<>p_version THEN
+        RAISE EXCEPTION 'Importstapel wurde geändert.' USING ERRCODE='55000';
+    END IF;
+    IF batch.status<>'draft' THEN
+        RAISE EXCEPTION 'Importstapel ist nicht mehr bearbeitbar.' USING ERRCODE='55000';
+    END IF;
+    IF batch.confirmation_hash_sha256 IS NULL
+        OR batch.confirmation_hash_sha256 IS DISTINCT FROM batch.candidate_hash_sha256
+        OR batch.candidate_hash_sha256 IS DISTINCT FROM p_payload->>'candidate_hash_sha256' THEN
+        RAISE EXCEPTION 'Ursprüngliche Bestätigung erforderlich.' USING ERRCODE='55000';
+    END IF;
+    version_before:=batch.row_version;
+    FOR cand IN SELECT * FROM recipe_import_candidates WHERE batch_id=batch.id ORDER BY row_number LOOP
+        IF jsonb_array_length(COALESCE(cand.parse_errors,'[]'::jsonb))>0 THEN
+            RAISE EXCEPTION 'Importzeile ist unvollständig.' USING ERRCODE='P1901';
+        END IF;
+        IF cand.duplicate_decision NOT IN ('create_new','skip_existing') THEN
+            RAISE EXCEPTION 'Jede Zeile braucht eine Dublettenentscheidung.' USING ERRCODE='P1901';
+        END IF;
+        IF cand.duplicate_decision='skip_existing' THEN
+            SELECT * INTO recipe FROM recipes
+                WHERE public_id=cand.target_recipe_public_id AND location_id=p_location;
+            IF NOT FOUND OR NOT recipe.active
+                OR recipe.row_version IS DISTINCT FROM cand.target_row_version THEN
+                RAISE EXCEPTION 'Übersprungenes Rezept ist nicht mehr das geprüfte Ziel.'
+                    USING ERRCODE='55000';
+            END IF;
+            results:=results||jsonb_build_array(jsonb_build_object(
+                'row_number',cand.row_number,'decision','skip_existing',
+                'recipe_public_id',recipe.public_id,'recipe_row_version',recipe.row_version));
+            CONTINUE;
+        END IF;
+        payload:=recipe_import_recipe_payload_v29(batch,cand);
+        IF jsonb_typeof(payload->'ingredients') IS DISTINCT FROM 'array'
+            OR jsonb_array_length(payload->'ingredients')<1 THEN
+            RAISE EXCEPTION 'Importzeile ist unvollständig.' USING ERRCODE='P1901';
+        END IF;
+        FOR item IN SELECT value FROM jsonb_array_elements(payload->'ingredients') LOOP
+            IF NULLIF(item->>'food_public_id','') IS NULL OR NULLIF(item->>'unit_code','') IS NULL
+                OR NOT master_quantity((item->>'quantity')::numeric) THEN
+                RAISE EXCEPTION 'Importzeile ist unvollständig.' USING ERRCODE='P1901';
+            END IF;
+            IF NOT EXISTS(
+                SELECT 1 FROM foods f
+                    JOIN food_storage_locations l ON l.food_id=f.id AND l.location_id=f.location_id
+                    JOIN storage_locations s ON s.id=l.storage_location_id AND s.location_id=l.location_id
+                WHERE f.public_id=(item->>'food_public_id')::uuid AND f.location_id=p_location
+                    AND s.active) THEN
+                RAISE EXCEPTION 'Importzeile ist unvollständig.' USING ERRCODE='P1901';
+            END IF;
+        END LOOP;
+        created:=create_recipe_v22(p_actor,p_authz,p_location,NULL,NULL,payload);
+        INSERT INTO audit_events(actor_user_id,action,entity_type,entity_public_id,details)
+            VALUES(p_actor,'recipe.import','recipe',(created->>'public_id')::uuid,
+                jsonb_build_object('actor_authz_version',p_authz,'location_id',p_location,
+                    'batch_public_id',batch.public_id,'origin_ref',cand.origin_ref,
+                    'row_number',cand.row_number,'adapter_kind',batch.adapter_kind,
+                    'candidate_hash_sha256',batch.candidate_hash_sha256,
+                    'recipe_row_version',created->'row_version'));
+        results:=results||jsonb_build_array(jsonb_build_object(
+            'row_number',cand.row_number,'decision','create_new',
+            'recipe_public_id',created->>'public_id',
+            'recipe_row_version',created->'row_version'));
+    END LOOP;
+    UPDATE recipe_import_batches SET status='imported',imported_result=results,updated_by=p_actor
+        WHERE id=batch.id RETURNING * INTO batch;
+    INSERT INTO audit_events(actor_user_id,action,entity_type,entity_public_id,details)
+        VALUES(p_actor,'recipe.import_batch','recipe_import_batch',batch.public_id,
+            jsonb_build_object('actor_authz_version',p_authz,'location_id',p_location,
+                'row_version_before',version_before,'row_version_after',batch.row_version,
+                'action','commit','candidate_hash_sha256',batch.candidate_hash_sha256,
+                'imported_result',results));
+    RETURN jsonb_build_object('public_id',batch.public_id,'row_version',batch.row_version,
+        'status',batch.status,'imported_result',results,
+        'candidate_hash_sha256',batch.candidate_hash_sha256);
+EXCEPTION WHEN invalid_text_representation OR numeric_value_out_of_range OR check_violation
+    OR not_null_violation OR invalid_datetime_format OR datetime_field_overflow THEN
+    RAISE EXCEPTION 'Importzeile ist unvollständig.' USING ERRCODE='P1901';
+END;$fn$;
+
+REVOKE ALL ON FUNCTION recipe_import_head_source_v29(recipe_import_batches,recipe_import_candidates),
+    recipe_import_recipe_payload_v29(recipe_import_batches,recipe_import_candidates),
+    commit_recipe_import_batch_v29(bigint,bigint,bigint,uuid,bigint,jsonb)
+FROM PUBLIC,cafeteria_app,cafeteria_backup,cafeteria_auth_issuer;
+GRANT EXECUTE ON FUNCTION commit_recipe_import_batch_v29(bigint,bigint,bigint,uuid,bigint,jsonb)
+    TO cafeteria_app;
+-- Recipe import commit schema29 end.
+
 COMMIT;

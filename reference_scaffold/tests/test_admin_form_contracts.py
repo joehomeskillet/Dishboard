@@ -3,11 +3,12 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-from flask import Flask, request
+from flask import Flask, request, session as flask_session
 from werkzeug.datastructures import MultiDict
 
 from cafeteria import roles
 from cafeteria.admin import display_routes, rendering, workflow_routes as routes
+from cafeteria.admin import workflow_scope
 from cafeteria.component_catalog_store import AdminScope, ComponentNotFoundError, StaleComponentError
 from cafeteria.workflow_partial_store import PartialWorkflowConflictError
 from test_admin_workflow_routes import DAY, ROOT, _menu_form, _register
@@ -25,7 +26,10 @@ def form_client(monkeypatch):
     monkeypatch.setattr(roles, 'load_user_authorization', lambda *_: SimpleNamespace(
         authz_version=3, roles=['Cafeteria.Editor'],
     ))
-    monkeypatch.setattr(routes, '_scope', lambda profile: AdminScope(7, 5, profile))
+    def scoped(profile):
+        return AdminScope(7, 5, profile, 3)
+    monkeypatch.setattr(routes, '_scope', scoped)
+    monkeypatch.setattr(workflow_scope, '_scope', scoped)
     state = {'writes': [], 'renders': [], 'overview': [], 'density': 'compact'}
     monkeypatch.setattr(display_routes, 'get_admin_display', lambda *_: {
         'admin_density': state['density'], 'admin_font_size': 'normal',
@@ -44,6 +48,7 @@ def form_client(monkeypatch):
         'public_id': 'component-id', 'profile_scope': 'patient', 'active': True,
         'name': 'Gespeichert', 'category': 'side', 'origin_country_code': 'CH',
         'row_version': 9, 'usage_count': 0,
+        'food_public_id': None, 'food_name': None,
         'labels': [{'code': 'VEGAN', 'name': 'Vegan'}],
         'allergens': [{'code': 'MILK', 'name': 'Milch', 'presence': 'contains'}],
     })
@@ -76,9 +81,9 @@ def form_client(monkeypatch):
 
     def token(family, purpose='overview'):
         profile = routes.FAMILIES[family]
-        with app.app_context():
-            digest = routes._csrf_digest(AdminScope(7, 5, profile), profile, purpose, 'form-test-csrf')
-        return f'form-test-csrf.{purpose}.{digest}'
+        with app.test_request_context():
+            flask_session['_csrf_token'] = 'form-test-csrf'
+            return routes._scoped_csrf(profile, purpose, scoped(profile))
 
     return client, token, state
 
@@ -125,7 +130,7 @@ def test_menu_save_return_keeps_payload_csrf_and_selected_week(form_client, fami
     result = client.post(f'/admin/{family}/menu?return_to=week', data=fields)
     assert result.status_code == 303 and result.location == f'/admin/{family}?week={DAY}'
     assert state['writes'][0][-1] == 4
-    assert state['writes'][0][1] == AdminScope(7, 5, routes.FAMILIES[family])
+    assert state['writes'][0][1] == AdminScope(7, 5, routes.FAMILIES[family], 3)
     default = client.post(f'/admin/{family}/menu', data=fields)
     assert default.status_code == 303 and default.location.startswith(f'/admin/{family}/menu?week={DAY}&')
 
@@ -203,10 +208,15 @@ def test_component_stale_edit_and_invalid_csrf_keep_existing_rejection(form_clie
         raise StaleComponentError('Veraltet')
     monkeypatch.setattr(routes, 'update_component', stale)
     fields = _component_fields(token('patienten', 'component'), True)
-    assert client.post('/admin/patienten/komponenten/component-id', data=fields).status_code == 409
+    conflict = client.post('/admin/patienten/komponenten/component-id', data=fields)
+    assert conflict.status_code == 409
+    assert not state['writes']
+    captured = state['renders'][-1]
+    assert captured['form_values']['name'] == fields['name']
+    assert captured['form_values']['_csrf'] == fields['_csrf']
     fields['_csrf'] = 'invalid'
     assert client.post('/admin/patienten/komponenten/component-id', data=fields).status_code == 400
-    assert not state['writes'] and not state['renders']
+    assert not state['writes']
 
 
 def test_component_get_keeps_saved_metadata_when_no_form_was_submitted(form_client):

@@ -12,7 +12,7 @@ from cafeteria.master_data_types import ObjectExpectation
 from cafeteria.recipe_types import RecipeNotFoundError, RecipeValidationError
 from test_recipe_store_db import (  # noqa: F401
     pg16, installed_pg16, seeded_pg16, app_engine, payload, mutable, target,
-    snapshot, signed_in,
+    snapshot, signed_in, complete_line,
 )
 from test_recipe_store_db import master as master
 
@@ -20,14 +20,16 @@ from test_recipe_store_db import master as master
 def test_summary_pagination_archive_and_immutable_original_metadata(master):
     owner, engine, actor = master
     location = store.get_location(engine)
-    recipe = store.create_recipe(engine, actor, payload(), expected_location_id=location)
+    recipe = store.create_recipe(engine, actor, payload(ingredients=[complete_line(engine, actor)]), expected_location_id=location)
     revisions = []
     for number in range(1, 4):
         current = store.get_recipe(engine, recipe.public_id)
         data = mutable(current.payload)
         data['title'] = f'Rezept {number}'
         changed = store.update_recipe(engine, actor, target(current), data, expected_location_id=location)
-        revisions.append(store.freeze_revision(engine, actor, target(changed), expected_location_id=location))
+        preview = store.get_dependency_preview(engine, target(changed), expected_location_id=location)
+        revisions.append(store.freeze_revision(engine, actor, target(changed), expected_location_id=location,
+                                                expected_dependency_hash=preview.dependency_hash_sha256))
     store.set_recipe_active(engine, actor, ObjectExpectation(recipe.public_id, revisions[-1].recipe_row_version),
                             active=False, expected_location_id=location)
     before = snapshot(owner)

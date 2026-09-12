@@ -19,13 +19,15 @@ def test_filter_controls_combine_reset_and_keep_exact_results(request, family, p
     engine = request.getfixturevalue('admin_engine')
     with engine.connect() as connection:
         location = int(connection.execute(text('SELECT id FROM cafeteria.locations WHERE active')).scalar_one())
-    scope = AdminScope(1, location, profile)
+        actor = connection.execute(text("SELECT id,authz_version FROM cafeteria.users "
+            "WHERE public_id='00000000-0000-0000-0000-000000000002'")).one()
+    scope = AdminScope(actor.id, location, profile, actor.authz_version)
     title = 'Filterprobe Karottengemüse mit langer Bezeichnung und Kräutersauce'
     match = create_component(engine, scope, 'side', title, 'CH', 'common', ['VEGAN'], [('GLUTEN', 'contains')])
     create_component(engine, scope, 'side', 'Filterprobe Unbekannt', None, 'current', [], [])
     archived = create_component(engine, scope, 'side', 'Filterprobe Archiviert', 'DE', 'current', [], [])
     archive_component(engine, scope, str(archived['public_id']), 1)
-    _link_component(CatalogDatabase(engine, engine, location, 0), str(match['public_id']))
+    _link_component(CatalogDatabase(engine, engine, location, 0, actor.id, actor.authz_version), str(match['public_id']))
     page.set_viewport_size({'width': width, 'height': 1000})
     path = f'/admin/{family}/komponenten'
     page.goto(path)

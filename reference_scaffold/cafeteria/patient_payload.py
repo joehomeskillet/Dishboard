@@ -32,6 +32,14 @@ PATIENT_ALLOWED_COMPACT_KEYS = frozenset(
     for key in keys
 )
 EXTERNAL_FORBIDDEN_IDENTIFIER_KEYS = frozenset({'componentid', 'componentpublicid'})
+# Compact CALC/receipt keys from cost_calc DTO plus named receipts. Already
+# outside PATIENT_ALLOWED_COMPACT_KEYS; named so new cost fields cannot hide.
+PATIENT_FORBIDDEN_COST_KEYS = frozenset({
+    'unitprice', 'yieldfactor', 'amount', 'currency', 'total', 'targetservings',
+    'servingsunitcode', 'foodpublicid', 'cost', 'costs', 'costline', 'costresult',
+    'linecost', 'parsemoney', 'receipt', 'receipts', 'receiptid', 'purchaseprice',
+    'quantity', 'unitcode', 'status', 'issues', 'complete', 'lines', 'servings',
+})
 PATIENT_LABEL_CODES = frozenset({'VEGETARIAN', 'VEGAN', 'LACTOSE_FREE', 'GLUTEN_FREE'})
 PATIENT_ALLERGEN_CODES = frozenset({
     'GLUTEN', 'CRUSTACEANS', 'EGGS', 'FISH', 'PEANUTS', 'SOY', 'MILK',
@@ -95,6 +103,7 @@ PATIENT_SENSITIVE_STEMS = (
     'verrechn', 'berechn', 'inklusiv', 'inkludier', 'inbegriffen', 'cost',
     'charg', 'amount', 'currenc', 'bill', 'payabl', 'payment', 'includ', 'cout',
     'supplement', 'montant', 'factur', 'payant', 'paiement', 'prezz', 'importo',
+    'receipt', 'unitprice', 'yieldfactor', 'purchaseprice',
     'pagat', 'compres', 'chf', 'rappen', 'franken', 'stutz', 'rappli', 'raeppli',
     'frankli', 'fraenkli', 'betrag', 'wahrung', 'waehrung', 'zahlung',
 )
@@ -279,7 +288,8 @@ def _forbidden_patient_key_paths(value: Any, path: str = '$') -> list[str]:
     found: list[str] = []
     if isinstance(value, dict):
         for key, child in value.items():
-            if _normalize_patient_key(key) not in PATIENT_ALLOWED_COMPACT_KEYS:
+            compact = _normalize_patient_key(key)
+            if compact in PATIENT_FORBIDDEN_COST_KEYS or compact not in PATIENT_ALLOWED_COMPACT_KEYS:
                 found.append(f'{path}.{key}')
             found.extend(_forbidden_patient_key_paths(child, f'{path}.{key}'))
     elif isinstance(value, list):

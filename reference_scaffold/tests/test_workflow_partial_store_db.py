@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from review_support import write_expectations
+
 import json
 import os
 import re
@@ -151,7 +153,10 @@ def workflow_database() -> Iterator[WorkflowDatabase]:
 
 
 def _scope(db: WorkflowDatabase, profile: str = 'patient') -> AdminScope:
-    return AdminScope(db.actor_id, db.location_id, profile)  # type: ignore[arg-type]
+    with db.owner.connect() as connection:
+        authz = connection.execute(text('SELECT authz_version FROM cafeteria.users WHERE id=:id'),
+                                    {'id': db.actor_id}).scalar_one()
+    return AdminScope(db.actor_id, db.location_id, profile, authz)  # type: ignore[arg-type]
 
 
 def _payload(
@@ -488,7 +493,7 @@ def test_cafeteria_draft_keeps_five_days_while_the_weekend_stays_closed(
 ) -> None:
     db = workflow_database
     with db.app.connect() as connection:
-        ensure_week_connection(connection, 'staff_guest', WEEK, db.actor_id)
+        ensure_week_connection(connection, 'staff_guest', WEEK, db.actor_id, **write_expectations(connection, db.actor_id))
         connection.commit()
         draft = load_draft_connection(connection, 'staff_guest', WEEK)
 
@@ -685,7 +690,7 @@ def test_load_projection_hides_internal_fields_and_full_import_is_safe(
             expected_row_version=int(before[0]),
             actor_id=db.actor_id,
             values=_full_values('IMPORT'),
-        )
+         **write_expectations(db.app, db.actor_id))
     assert _week_state(db) == before
 
     clean_week = WEEK + timedelta(days=7)
@@ -699,7 +704,7 @@ def test_load_projection_hides_internal_fields_and_full_import_is_safe(
         expected_row_version=0,
         actor_id=db.actor_id,
         values=clean_values,
-    ) == 2
+     **write_expectations(db.app, db.actor_id)) == 2
     with db.owner.connect() as connection:
         assert connection.execute(
             text(
@@ -771,7 +776,7 @@ def test_full_import_same_version_race_has_one_complete_winner(
                 expected_row_version=1,
                 actor_id=db.actor_id,
                 values=_full_values(args[0], reverse_components=args[1]),
-            )
+             **write_expectations(db.app, db.actor_id))
         except Exception as error:  # assertion captures stale versus success
             return error
 

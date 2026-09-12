@@ -1,0 +1,16 @@
+Command: rtk gitleaks detect --redact --no-banner --log-opts=e813806b51fb5efaef5d5755c292f8027ce1b2eb..HEAD
+HEAD: 5d7edc115ff4f0bb00a36db200f8e686a47a308f
+Original exit1 (terminal color escapes omitted):
+1:00AM INF 1 commits scanned.
+1:00AM INF scan completed in 75.9ms
+1:00AM WRN leaks found: 2
+Identical retry exit1:
+1:01AM INF 1 commits scanned.
+1:01AM INF scan completed in 72.7ms
+1:01AM WRN leaks found: 2
+Redacted diagnostic report command added --report-path /tmp/wp972f785f0b97-gitleaks-redacted.json.
+Original exit1: 1 commits scanned; scan completed in68.2ms; leaks found2.
+Identical retry exit1: 1 commits scanned; scan completed in80.6ms; leaks found2.
+Both findings are SHA256 values of unchanged historical SQL sources, proved independently in gitleaks-digest-proof.json.
+Root explicitly authorized one subsequent private scan using only these two literal digests, after proof.
+No path, rule, regex, repository or global scanner exemption. The raw failures remain failures.

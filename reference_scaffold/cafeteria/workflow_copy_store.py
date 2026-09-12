@@ -13,6 +13,8 @@ from .component_catalog_store import (
     resolve_single_active_location_connection,
 )
 from .component_effects import rematerialize_auto_effects
+from .component_binding_state import prepare_bindings
+from .workflow_write_context import record_item_write, write_transaction
 
 
 def copy_previous_week(
@@ -20,17 +22,22 @@ def copy_previous_week(
     scope: AdminScope,
     target_week_start: date,
     target_row_version: int,
+    *,
+    source_row_version: int,
 ) -> int:
-    _validate_request(scope, target_week_start, target_row_version)
+    _validate_request(scope, target_week_start, target_row_version, source_row_version)
     source_week_start = target_week_start - timedelta(days=7)
-    with engine.begin() as connection:
+    with write_transaction(engine, scope) as connection:
         _require_scope(connection, scope)
         profile_id = _profile_id(connection, scope.profile_code)
+        bindings = prepare_bindings(connection, scope, (), weeks=[source_week_start, target_week_start])
         weeks = _lock_weeks(connection, scope.location_id, profile_id,
                             source_week_start, target_week_start)
         source = weeks.get(source_week_start)
         if source is None:
             raise ComponentNotFoundError('Gespeicherte Vorwoche nicht gefunden.')
+        if source['row_version'] != source_row_version:
+            raise ComponentConflictError('Vorwoche wurde zwischenzeitlich geändert.')
         target = _resolve_target(connection, scope, profile_id, target_week_start,
                                  target_row_version, source, weeks.get(target_week_start))
         source_id = int(source['id'])
@@ -41,8 +48,7 @@ def copy_previous_week(
             raise ComponentConflictError('Zielwoche enthält bereits Menüs.')
         source_items = [item for item in items if int(item['menu_week_id']) == source_id]
         source_item_ids = [int(item['id']) for item in source_items]
-        _lock_source_components(connection, scope, source_item_ids)
-        _lock_source_links(connection, source_item_ids)
+        bindings.recheck()
         children = _lock_source_children(connection, source_item_ids)
         _reject_active_publication(connection, target_id)
         _validate_prices(scope.profile_code, source_item_ids, children['prices'])
@@ -58,13 +64,15 @@ def copy_previous_week(
         return result_version
 
 
-def _validate_request(scope: AdminScope, target: date, version: int) -> None:
+def _validate_request(scope: AdminScope, target: date, version: int, source_version: int) -> None:
     if not isinstance(scope, AdminScope):
         raise ComponentCatalogValidationError('Ungültiger Admin-Scope.')
     if type(target) is not date or target.isoweekday() != 1:
         raise ComponentCatalogValidationError('Zielwoche muss ein ISO-Montag sein.')
     if type(version) is not int or version < 0:
         raise ComponentCatalogValidationError('Ungültige Zielversion.')
+    if type(source_version) is not int or source_version <= 0:
+        raise ComponentCatalogValidationError('Ursprüngliche Quellversion fehlt.')
 
 
 def _require_scope(connection: Connection, scope: AdminScope) -> None:
@@ -171,45 +179,6 @@ def _lock_items(connection: Connection, source_id: int,
                 WHERE s.menu_week_id=ANY(CAST(:week_ids AS bigint[]))
                 ORDER BY i.id FOR UPDATE OF i
                 '''), {'week_ids': [source_id, target_id]}).mappings())
-
-
-def _lock_source_components(
-    connection: Connection, scope: AdminScope, item_ids: list[int]
-) -> dict[str, Mapping[str, object]]:
-    public_ids = list(connection.execute(text('''
-                SELECT DISTINCT c.public_id::text
-                FROM cafeteria.menu_item_components mic
-                JOIN cafeteria.menu_components c ON c.id=mic.component_id
-                WHERE mic.menu_item_id=ANY(CAST(:item_ids AS bigint[]))
-                ORDER BY c.public_id::text
-                '''), {'item_ids': item_ids}).scalars())
-    rows = list(connection.execute(text('''
-                SELECT id, public_id::text AS public_id, name, row_version, active
-                FROM cafeteria.menu_components
-                WHERE public_id=ANY(CAST(:public_ids AS uuid[]))
-                  AND location_id=:location_id
-                  AND profile_scope IN ('common', :profile_code)
-                ORDER BY id FOR SHARE
-                '''), {'public_ids': public_ids, 'location_id': scope.location_id,
-                       'profile_code': scope.profile_code}).mappings())
-    by_public_id = {str(row['public_id']): row for row in rows}
-    if set(public_ids) != set(by_public_id):
-        raise ComponentNotFoundError('Komponente nicht gefunden.')
-    if any(not bool(row['active']) for row in rows):
-        raise ComponentConflictError('Archivierte Komponente kann nicht kopiert werden.')
-    return by_public_id
-
-
-def _lock_source_links(connection: Connection,
-                       item_ids: list[int]) -> list[Mapping[str, object]]:
-    return list(connection.execute(text('''
-                SELECT mic.menu_item_id, mic.sort_order, mic.component_text,
-                       c.public_id::text AS component_public_id
-                FROM cafeteria.menu_item_components mic
-                LEFT JOIN cafeteria.menu_components c ON c.id=mic.component_id
-                WHERE mic.menu_item_id=ANY(CAST(:item_ids AS bigint[]))
-                ORDER BY mic.menu_item_id, mic.sort_order FOR SHARE OF mic
-                '''), {'item_ids': item_ids}).mappings())
 
 
 def _lock_source_children(
@@ -327,11 +296,15 @@ def _clone_tree(
     connection.execute(text(
         '''
         INSERT INTO cafeteria.menu_item_components(
-            menu_item_id, sort_order, component_text, component_id, component_row_version
+            menu_item_id, sort_order, component_text, component_id, component_row_version,
+            recipe_revision_id
         )
         SELECT target_item.id, link.sort_order,
-               CASE WHEN link.component_id IS NULL THEN link.component_text ELSE current.name END,
-               current.id, current.row_version
+               CASE WHEN link.component_id IS NULL OR NOT current.active
+                    THEN link.component_text ELSE current.name END,
+               current.id, CASE WHEN current.active THEN current.row_version
+                                ELSE link.component_row_version END,
+               link.recipe_revision_id
         FROM cafeteria.menu_item_components link
         JOIN cafeteria.menu_items source_item ON source_item.id=link.menu_item_id
         JOIN cafeteria.menu_services source_service ON source_service.id=source_item.service_id
@@ -359,6 +332,7 @@ def _clone_tree(
     for item in target_items:
         if 'auto' in (item['allergen_mode'], item['origin_mode'], item['label_mode']):
             rematerialize_auto_effects(connection, int(item['id']), item)
+        record_item_write(connection, scope, int(item['id']), 0, 1)
 
 
 def _clone_manual_rows(connection: Connection, params: dict[str, object]) -> None:

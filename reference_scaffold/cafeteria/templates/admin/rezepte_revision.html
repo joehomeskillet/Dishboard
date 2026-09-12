@@ -29,6 +29,9 @@
     {{ status_badge('archived', label='Unveränderlich') }}
   </div>
   <div class="card-body">
+    {% if revision.snapshot.schema_version == 2 %}
+    <p>Revision {{ revision.revision_number }} · Erstellt am {{ revision.created_at|datetime_short }}</p>
+    {% else %}
     <dl class="row mb-0">
       <dt class="col-12 col-sm-4 col-md-3 text-secondary">Revision</dt>
       <dd class="col-12 col-sm-8 col-md-9 text-break">{{ revision.public_id }}</dd>
@@ -36,18 +39,34 @@
       <dd class="col-12 col-sm-8 col-md-9">{{ revision.created_at.isoformat() }}</dd>
       <dt class="col-12 col-sm-4 col-md-3 text-secondary">SHA-256</dt>
       <dd class="col-12 col-sm-8 col-md-9 text-break"><code>{{ revision.content_hash_sha256 }}</code></dd>
-      <dt class="col-12 col-sm-4 col-md-3 text-secondary">Herkunft</dt>
-      <dd class="col-12 col-sm-8 col-md-9">{{ payload.source.kind }}{% if payload.source.reference %} · {{ payload.source.reference }}{% endif %}</dd>
     </dl>
+    {% endif %}
     {% if payload.description %}
     <div class="text-break mt-3 pt-3 border-top">
       {% for line in payload.description.split('\n') %}{{ line }}<br>{% endfor %}
     </div>
     {% endif %}
+    <p class="mb-0{% if payload.description %} mt-3{% endif %}">Herkunft: {{ payload.source.kind }}{% if payload.source.reference %} · {{ payload.source.reference }}{% endif %}</p>
   </div>
 </section>
-{{ amount_form(calculated, url_for('admin.recipe_revision', recipe_id=recipe_id, revision_id=revision.public_id), error|default(none), target_value|default(none)) }}
+{{ amount_form(calculated, url_for('admin.recipe_revision', recipe_id=recipe_id, revision_id=revision.public_id), error|default(none), target_value|default(none), calculated.prepared) }}
 {{ ingredients(calculated) }}
+{% if calculated.prepared %}
+<section aria-labelledby="prepared-title" class="mb-3">
+  <h2 id="prepared-title">Erfasste Zubereitungen</h2>
+  <p class="text-secondary">Mengen aus dieser Revision. Spätere Änderungen an Lebensmitteln und Rezepten verändern diesen Stand nicht.</p>
+  {% for prepared in calculated.prepared %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <h3 class="card-title">{{ prepared.recipe.title }}</h3>
+      <p>Für {{ prepared.for_ingredient }} · Benötigt: <strong>{{ prepared.calculated.target }} {{ prepared.calculated.unit }}</strong></p>
+      <p class="mb-0">Originalausbeute: {{ prepared.calculated.source }} {{ prepared.calculated.unit }} · <a href="{{ url_for('admin.recipe_revision', recipe_id=prepared.revision.recipe_public_id, revision_id=prepared.revision.public_id) }}">Gespeicherte Zubereitung öffnen</a></p>
+    </div>
+  </div>
+  {{ ingredients(prepared.calculated) }}
+  {% endfor %}
+</section>
+{% endif %}
 <section class="card mb-3">
   <div class="card-header">
     <h2 class="card-title mb-0">Zubereitung</h2>
@@ -98,7 +117,7 @@
 {% endif %}
 <details class="card mb-3">
   <summary class="card-header">Vollständiger gespeicherter Revisionsstand</summary>
-  <div class="card-body text-break">{{ recorded(revision.snapshot) }}</div>
+  <div class="card-body text-break">{% if revision.snapshot.schema_version == 2 %}<dl><dt>Revision</dt><dd>{{ revision.public_id }}</dd><dt>SHA-256</dt><dd>{{ revision.content_hash_sha256 }}</dd></dl>{% endif %}{{ recorded(revision.snapshot) }}</div>
 </details>
 {{ symbols() }}
 {% endblock %}

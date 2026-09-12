@@ -180,6 +180,9 @@
             form.querySelectorAll('select[name="component_public_id"] option[data-active="0"]').forEach(option => {
                 option.disabled = !option.selected;
             });
+            form.querySelectorAll('select[name="recipe_revision_public_id"] option[data-archived="1"]').forEach(option => {
+                option.disabled = !option.selected;
+            });
             form.querySelectorAll('[name="label_code"]').forEach(control => {
                 control.disabled = !manual('label');
             });
@@ -219,7 +222,7 @@
     document.querySelectorAll('form[data-menu-editor]').forEach(form => {
         form.addEventListener('formdata', (e) => {
             for (const [selector, names] of [
-                ['.component-row', ['component_public_id', 'component_text']],
+                ['.component-row', ['component_public_id', 'component_text', 'recipe_revision_public_id']],
                 ['.origin-row', ['origin_ingredient', 'origin_country_code']],
             ]) {
                 names.forEach(name => e.formData.delete(name));
@@ -233,6 +236,34 @@
                     }
                 });
             }
+        });
+
+        form.addEventListener('input', (e) => {
+            const search = e.target.closest('[data-recipe-search]');
+            if (!search) return;
+            const select = search.closest('[data-row]')?.querySelector('select[name="recipe_revision_public_id"]');
+            if (!select) return;
+            const query = search.value.trim().toLowerCase();
+            select.querySelectorAll('option').forEach(option => {
+                if (!option.value) return;
+                const haystack = `${option.textContent || ''} ${option.dataset.yield || ''}`.toLowerCase();
+                option.hidden = Boolean(query) && !haystack.includes(query) && !option.selected;
+            });
+            select.querySelectorAll('optgroup').forEach(group => {
+                group.hidden = !Array.from(group.querySelectorAll('option')).some(option => !option.hidden);
+            });
+        });
+
+        form.addEventListener('change', (e) => {
+            const select = e.target.closest('select[name="recipe_revision_public_id"]');
+            if (!select) return;
+            const previous = select.getAttribute('data-previous-value') || '';
+            if (previous && !select.value &&
+                !window.confirm('Rezeptbindung für diese Komponente lösen? Die gespeicherte Revision bleibt unverändert, bis Sie bestätigen.')) {
+                select.value = previous;
+                return;
+            }
+            select.setAttribute('data-previous-value', select.value);
         });
 
         form.addEventListener('click', (e) => {
@@ -249,6 +280,9 @@
                     control.value = '';
                     control.classList.remove('is-invalid');
                     control.removeAttribute('aria-invalid');
+                    if (control.matches('select[name="recipe_revision_public_id"]')) {
+                        control.setAttribute('data-previous-value', '');
+                    }
                     const descriptions = (control.getAttribute('aria-describedby') || '').split(/\s+/)
                         .filter(id => id && !document.getElementById(id)?.classList.contains('field-error'));
                     if (descriptions.length) control.setAttribute('aria-describedby', descriptions.join(' '));
@@ -274,6 +308,9 @@
                 } else {
                     row.querySelectorAll('input, select').forEach(control => {
                         control.value = '';
+                        if (control.matches('select[name="recipe_revision_public_id"]')) {
+                            control.setAttribute('data-previous-value', '');
+                        }
                     });
                     focusTarget = row.querySelector('input, select');
                 }

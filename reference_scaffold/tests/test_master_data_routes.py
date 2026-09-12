@@ -14,7 +14,7 @@ from werkzeug.datastructures import MultiDict
 import cafeteria
 from cafeteria import roles
 from test_master_data_db import (  # noqa: F401
-    app_engine, installed_pg16, make_actor, pg16, seeded_pg16,
+    app_engine, installed_pg16, make_actor, pg16, seeded_pg16, seed_storage, STORAGE_PUBLIC_ID,
 )
 
 
@@ -68,6 +68,7 @@ def b3(seeded_pg16, app_engine, monkeypatch, tmp_path):  # noqa: F811
     app.extensions['cafeteria_db'] = app_engine
     app.extensions['cafeteria_auth_issuer_db'] = app_engine
     actor = make_actor(seeded_pg16)
+    seed_storage(seeded_pg16)
     client = app.test_client()
     with client.session_transaction() as session:
         session['user'] = {'id': actor.user_id, 'name': 'Küche Test'}
@@ -85,6 +86,8 @@ def fields(client, path, purpose=None):
 def create(client, kind='zutaten', **values):
     path = '/admin/grundlagen/' + kind + '/neu'
     data = fields(client, path)
+    if kind == 'zutaten':
+        data['storage_location_public_ids'] = STORAGE_PUBLIC_ID
     for key, value in values.items():
         data[key] = value
     response = client.post(path, data=data)
@@ -103,7 +106,8 @@ def snapshot(owner):
     with owner.connect() as connection:
         return {table: connection.execute(text(
             f'SELECT to_jsonb(t)::text FROM cafeteria.{table} t ORDER BY to_jsonb(t)::text'
-        )).all() for table in ('foods', 'food_tags', 'food_labels', 'food_allergens', 'audit_events')}
+        )).all() for table in ('foods', 'food_tags', 'food_labels', 'food_allergens',
+                              'storage_locations', 'food_storage_locations', 'audit_events')}
 
 
 def test_real_factory_sidebar_and_full_atomic_food_flow(b3):

@@ -47,6 +47,7 @@ class FormExpectations:
     target: ObjectExpectation | None
     expected_location_id: int
     display_values: tuple[tuple[str, str], ...]
+    dependency_hash_sha256: str | None = None
 
 
 def _signer() -> URLSafeTimedSerializer:
@@ -65,11 +66,17 @@ def _labels(labels: object) -> dict[str, str]:
 
 
 def sign_context(*, action: str, target: ObjectExpectation | None, expected_location_id: int,
-                 display_values: Mapping[str, str] | None = None) -> str:
+                 display_values: Mapping[str, str] | None = None,
+                 dependency_hash_sha256: str | None = None) -> str:
     if request.method != 'GET':
         raise FormError('Ein neuer Formularkontext darf nur beim Laden entstehen.')
     if action not in ACTIONS or (target is None) != action.endswith('.create'):
         raise FormError('Ungültiger Formularzweck.')
+    if action == 'recipe.freeze':
+        if not isinstance(dependency_hash_sha256, str) or re.fullmatch('[0-9a-f]{64}', dependency_hash_sha256) is None:
+            raise FormError('Der ursprüngliche Zutatenstand fehlt.', '_form_context')
+    elif dependency_hash_sha256 is not None:
+        raise FormError('Zutatenstand passt nicht zur Aktion.', '_form_context')
     actor = g.auth_user
     data = {'action': action, 'actor': values.positive(actor.user_id),
             'actor_version': values.positive(actor.authz_version),
@@ -77,6 +84,8 @@ def sign_context(*, action: str, target: ObjectExpectation | None, expected_loca
             'version': values.positive(target.row_version) if target else None,
             'location': values.positive(expected_location_id), 'csrf': csrf_token(),
             'labels': _labels(display_values or {})}
+    if action == 'recipe.freeze':
+        data['dependency_hash_sha256'] = dependency_hash_sha256
     return _signer().dumps(data)
 
 
@@ -95,8 +104,14 @@ def read_context(*, action: str, target_public_id: str | None,
         data = _signer().loads(form['_form_context'])
     except BadData:
         raise FormError('Formularkontext ist ungültig.', '_form_context') from None
-    if not isinstance(data, dict) or set(data) != {'action', 'actor', 'actor_version', 'target', 'version', 'location', 'csrf', 'labels'}:
+    keys = {'action', 'actor', 'actor_version', 'target', 'version', 'location', 'csrf', 'labels'}
+    if action == 'recipe.freeze':
+        keys.add('dependency_hash_sha256')
+    if not isinstance(data, dict) or set(data) != keys:
         raise FormError('Formularkontext ist ungültig.', '_form_context')
+    dependency = data.get('dependency_hash_sha256')
+    if action == 'recipe.freeze' and (not isinstance(dependency, str) or re.fullmatch('[0-9a-f]{64}', dependency) is None):
+        raise FormError('Der ursprüngliche Zutatenstand fehlt oder wurde verändert.', '_form_context')
     expected_id = values.identifier(target_public_id) if target_public_id is not None else None
     if (data['action'], data['target'], data['csrf']) != (action, expected_id, csrf):
         raise FormError('Formularkontext passt nicht zur Aktion.', '_form_context')
@@ -120,7 +135,7 @@ def read_context(*, action: str, target_public_id: str | None,
     g.recipe_form_display_values = dict(labels)
     if recipe_store.get_location(current_app.extensions['cafeteria_db']) != location:
         raise LocationConflict('Der aktive Standort wurde geändert. Ihre Eingaben wurden nicht gespeichert.')
-    return FormExpectations(actor, target, location, labels)
+    return FormExpectations(actor, target, location, labels, dependency)
 
 
 def _checked(field, function, *args, **kwargs):

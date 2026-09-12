@@ -1,6 +1,8 @@
 """Wochenvorgaben, Bereichsnamen und der Schema-20-Vertrag auf echtem PostgreSQL."""
 from __future__ import annotations
 
+from review_support import write_expectations
+
 # ruff: noqa: F401, F811
 
 import hashlib
@@ -240,7 +242,7 @@ def _schedule_rows(engine: Engine) -> int:
 def _patient_snapshot(engine: Engine, revision_code: str = 'PAT-2026-KW36-R1') -> dict[str, Any]:
     actor = _actor_id(engine)
     _save(engine, 'patient', _patient_values())
-    draft = load_draft(engine, 'patient', WEEK_START, actor_id=actor)
+    draft = load_draft(engine, 'patient', WEEK_START, actor_id=actor, **write_expectations(engine, actor))
     return build_snapshot('patient', draft, revision_code)
 
 
@@ -582,7 +584,7 @@ def test_v19_upgrade_adds_times_without_touching_rows_or_receipts(pg16):  # noqa
     assert len(services) == 5 and len(revisions) == 1
 
     applied = database.run_migrations(pg16, SCHEMA)
-    assert [entry.version for entry in applied] == list(range(4, 26))
+    assert [entry.version for entry in applied] == list(range(4, 30))
     database._execute_script(pg16, str(PERMISSIONS))
     with pg16.connect() as connection:
         assert connection.execute(text(
@@ -602,7 +604,7 @@ def test_v19_upgrade_adds_times_without_touching_rows_or_receipts(pg16):  # noqa
             'SELECT name, application_version, checksum_sha256 '
             'FROM cafeteria.schema_migrations WHERE version=20'
         )).one() == (
-            '0017_v19_to_v20.sql', 'dishboard-schema-v25',
+            '0017_v19_to_v20.sql', database.APPLICATION_VERSION,
             hashlib.sha256(next(m.path for m in plan if m.version == 20).read_bytes()).hexdigest(),
         )
         migrated = connection.execute(text(_V20_FUNCTION_SQL)).all()
@@ -625,7 +627,7 @@ def test_v19_upgrade_adds_times_without_touching_rows_or_receipts(pg16):  # noqa
 def test_week_context_reports_times_only_when_they_are_set(database_engine):  # noqa: F811
     _save(database_engine, 'staff_guest', _staff_values())
     actor = _actor_id(database_engine)
-    week_id = load_draft(database_engine, 'staff_guest', WEEK_START, actor_id=actor)['id']
+    week_id = load_draft(database_engine, 'staff_guest', WEEK_START, actor_id=actor, **write_expectations(database_engine, actor))['id']
     with database_engine.begin() as connection:
         before = json.loads(connection.execute(
             text('SELECT cafeteria.workflow_week_context(:id)::text'), {'id': week_id}
@@ -663,7 +665,7 @@ def test_week_context_reports_times_only_when_they_are_set(database_engine):  # 
 def test_sql_validator_accepts_schema_two_and_rejects_forbidden_values(database_engine):  # noqa: F811
     actor = _actor_id(database_engine)
     base = _patient_snapshot(database_engine)
-    week_id = load_draft(database_engine, 'patient', WEEK_START, actor_id=actor)['id']
+    week_id = load_draft(database_engine, 'patient', WEEK_START, actor_id=actor, **write_expectations(database_engine, actor))['id']
     with database_engine.begin() as connection:
         connection.execute(
             text("UPDATE cafeteria.menu_weeks SET workflow_state='published' WHERE id=:id"),

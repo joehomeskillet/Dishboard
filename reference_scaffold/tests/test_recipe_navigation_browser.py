@@ -12,13 +12,14 @@ from cafeteria import recipe_store as store, roles
 from cafeteria.master_data_types import ObjectExpectation
 from test_master_data_db import signed_in
 from test_recipe_store_db import payload, snapshot, target
-from test_recipe_revision_routes import a3, b3, app_engine, pg16, installed_pg16, seeded_pg16, png  # noqa: F401
+from test_recipe_revision_routes import a3, b3, app_engine, pg16, installed_pg16, seeded_pg16, png, complete_a3  # noqa: F401
 from test_recipe_images_browser import recipe_server  # noqa: F401
 from test_rendered_ui import browser  # noqa: F401
 
 
 @pytest.fixture
 def navigation(a3):  # noqa: F811
+    complete_a3(a3)
     app, owner, client, actor, public_id = a3
     engine = app.extensions['cafeteria_db']
     with signed_in(engine, actor):
@@ -26,8 +27,10 @@ def navigation(a3):  # noqa: F811
         row = store.get_recipe(engine, public_id)
         image = store.add_recipe_image(engine, actor, target(row), data=png(), content_type='image/png',
                                        caption='Navigationsbild', expected_location_id=location)
-        revision = store.freeze_revision(engine, actor, ObjectExpectation(image.public_id, image.row_version),
-                                         expected_location_id=location)
+        original = ObjectExpectation(image.public_id, image.row_version)
+        preview = store.get_dependency_preview(engine, original, expected_location_id=location)
+        revision = store.freeze_revision(engine, actor, original, expected_location_id=location,
+                                         expected_dependency_hash=preview.dependency_hash_sha256)
         book = store.create_cookbook(engine, actor, name='Navigationskochbuch', expected_location_id=location)
         store.replace_cookbook_recipes(engine, actor, ObjectExpectation(book.public_id, book.row_version),
                                       [public_id], expected_location_id=location)
@@ -107,22 +110,18 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
         assert len(boxes) == 4 and all(box is not None for box in boxes)
         assert max(box['height'] for box in boxes) - min(box['height'] for box in boxes) <= 1
         assert cards.locator('.card-body').evaluate_all('els => els.every(el => el.scrollHeight <= el.clientHeight + 1)')
-        summary = page.locator('summary').filter(has_text='Symbole')
-        summary.focus()
-        page.keyboard.press('Enter')
-        expect(page.get_by_text('Stift: Rezept bearbeiten oder ansehen.')).to_be_visible()
-        page.keyboard.press('Enter')
-        expect(page.locator('details[open]')).to_have_count(0)
         editor = page.locator(f'main a[href="/admin/rezepte/{public_id}"]')
-        assert editor.get_attribute('aria-label') and editor.get_attribute('data-bs-title')
+        expect(editor).to_have_text('Bearbeiten')
+        expect(editor).to_have_attribute('aria-label', 'Suppe bearbeiten')
+        box = editor.bounding_box()
+        assert box and box['width'] >= 48 and box['height'] >= 48
         editor.focus()
+        page.keyboard.press('Tab')
+        page.keyboard.press('Shift+Tab')
         expect(editor).to_be_focused()
-        if javascript:
-            expect(page.get_by_role('tooltip')).to_be_visible()
+        assert editor.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
         page.keyboard.press('Escape')
         expect(editor).to_be_focused()
-        if javascript:
-            expect(page.get_by_role('tooltip')).to_have_count(0)
         with page.expect_navigation(wait_until='load'):
             page.keyboard.press('Enter')
         active(page, 'Rezepte')

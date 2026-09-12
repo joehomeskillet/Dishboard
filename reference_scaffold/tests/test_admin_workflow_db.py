@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from review_support import write_expectations
+
 import json
 import os
 import re
@@ -147,7 +149,7 @@ def _staff_values(title: str = 'Cafeteria Herbst') -> dict[str, Any]:
 
 def _save(engine: Engine, profile: str, values: dict[str, Any]) -> int:
     actor_id = _actor_id(engine)
-    draft = load_draft(engine, profile, WEEK_START, actor_id=actor_id)
+    draft = load_draft(engine, profile, WEEK_START, actor_id=actor_id, **write_expectations(engine, actor_id))
     return save_draft(
         engine,
         profile,
@@ -155,7 +157,7 @@ def _save(engine: Engine, profile: str, values: dict[str, Any]) -> int:
         expected_row_version=draft['row_version'],
         actor_id=actor_id,
         values=values,
-    )
+     **write_expectations(engine, actor_id))
 
 
 def _save_reviewed(engine: Engine, profile: str, values: dict[str, Any]) -> int:
@@ -311,7 +313,7 @@ def test_staff_draft_has_only_five_lunches_and_closed_service_has_no_items(
 
 def test_stale_row_version_rejects_entire_update(database_engine: Engine) -> None:
     actor_id = _actor_id(database_engine)
-    draft = load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id)
+    draft = load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id, **write_expectations(database_engine, actor_id))
     first_version = save_draft(
         database_engine,
         'patient',
@@ -319,7 +321,7 @@ def test_stale_row_version_rejects_entire_update(database_engine: Engine) -> Non
         expected_row_version=draft['row_version'],
         actor_id=actor_id,
         values=_patient_values('Herbstküche'),
-    )
+     **write_expectations(database_engine, actor_id))
 
     with pytest.raises(StaleDraftError):
         save_draft(
@@ -329,9 +331,9 @@ def test_stale_row_version_rejects_entire_update(database_engine: Engine) -> Non
             expected_row_version=draft['row_version'],
             actor_id=actor_id,
             values=_patient_values('Winterküche'),
-        )
+         **write_expectations(database_engine, actor_id))
 
-    current = load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id)
+    current = load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id, **write_expectations(database_engine, actor_id))
     assert first_version == 2
     assert current['row_version'] == 2
     assert current['title'] == 'Herbstküche'
@@ -364,7 +366,7 @@ def test_profile_publications_are_independent_and_unsent_draft_is_not_public(
     published_patient = active_snapshot(database_engine, 'patient', '2026-09-02')
     published_staff = active_snapshot(database_engine, 'staff_guest', '2026-09-02')
 
-    patient_draft = load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id)
+    patient_draft = load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id, **write_expectations(database_engine, actor_id))
     draft_version = save_draft(
         database_engine,
         'patient',
@@ -372,7 +374,7 @@ def test_profile_publications_are_independent_and_unsent_draft_is_not_public(
         expected_row_version=patient_draft['row_version'],
         actor_id=actor_id,
         values=_patient_values('Winterküche'),
-    )
+     **write_expectations(database_engine, actor_id))
     still_public = active_snapshot(database_engine, 'patient', '2026-09-02')
     draft_version = review_saved_week(database_engine, 'patient', WEEK_START, actor_id)
     patient_second = publish_draft(
@@ -398,7 +400,7 @@ def test_admin_status_is_derived_from_saved_content_not_workflow_enum(
     database_engine: Engine,
 ) -> None:
     actor_id = _actor_id(database_engine)
-    load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id)
+    load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id, **write_expectations(database_engine, actor_id))
     assert derive_admin_status(database_engine, 'patient', WEEK_START) == 'empty'
 
     _save_reviewed(database_engine, 'patient', _patient_values())
@@ -415,19 +417,19 @@ def test_admin_status_is_derived_from_saved_content_not_workflow_enum(
         connection.execute(text("UPDATE cafeteria.menu_items SET allergen_review_status='checked'"))
     review_saved_week(database_engine, 'patient', WEEK_START, actor_id)
 
-    current = load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id)
+    current = load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id, **write_expectations(database_engine, actor_id))
     publish_draft(
         database_engine, 'patient', WEEK_START,
         expected_row_version=current['row_version'], actor_id=actor_id,
         issuer_engine=database_engine,
     )
     assert derive_admin_status(database_engine, 'patient', WEEK_START) == 'live'
-    changed = load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id)
+    changed = load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id, **write_expectations(database_engine, actor_id))
     save_draft(
         database_engine, 'patient', WEEK_START,
         expected_row_version=changed['row_version'], actor_id=actor_id,
         values=_patient_values('Geänderte Woche'),
-    )
+     **write_expectations(database_engine, actor_id))
     assert derive_admin_status(database_engine, 'patient', WEEK_START) == 'review_open'
     review_saved_week(database_engine, 'patient', WEEK_START, actor_id)
     assert derive_admin_status(database_engine, 'patient', WEEK_START) == 'changed'
@@ -562,7 +564,7 @@ def test_revision_code_uses_iso_year_across_december_30_boundary(
         values = _patient_values(title)
         for offset, day in enumerate(values['days']):
             day['date'] = (week_start + timedelta(days=offset)).isoformat()
-        draft = load_draft(database_engine, 'patient', week_start, actor_id=actor_id)
+        draft = load_draft(database_engine, 'patient', week_start, actor_id=actor_id, **write_expectations(database_engine, actor_id))
         version = save_draft(
             database_engine,
             'patient',
@@ -570,7 +572,7 @@ def test_revision_code_uses_iso_year_across_december_30_boundary(
             expected_row_version=int(draft['row_version']),
             actor_id=actor_id,
             values=values,
-        )
+         **write_expectations(database_engine, actor_id))
         version = review_saved_week(database_engine, 'patient', week_start, actor_id)
         snapshots.append(
             publish_draft(
@@ -665,7 +667,7 @@ def test_closure_is_scoped_to_date_profile_and_meal(database_engine: Engine) -> 
         'patient',
         WEEK_START,
         actor_id=_actor_id(database_engine),
-    )
+     **write_expectations(database_engine, _actor_id(database_engine)))
     sunday = draft['days'][6]
     lunch, dinner = sunday['services']
     assert lunch['meal_code'] == 'LUNCH'
@@ -688,7 +690,7 @@ def test_failed_publish_does_not_withdraw_previous_revision(database_engine: Eng
         actor_id=actor_id,
         issuer_engine=database_engine,
     )
-    draft = load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id)
+    draft = load_draft(database_engine, 'patient', WEEK_START, actor_id=actor_id, **write_expectations(database_engine, actor_id))
     changed = deepcopy(_patient_values('Winterküche'))
     changed['days'][0]['services'][0]['options'][0]['title'] = 'CHF Menü'
 
@@ -700,7 +702,7 @@ def test_failed_publish_does_not_withdraw_previous_revision(database_engine: Eng
             expected_row_version=draft['row_version'],
             actor_id=actor_id,
             values=changed,
-        )
+         **write_expectations(database_engine, actor_id))
 
     assert active_snapshot(database_engine, 'patient', '2026-09-02') == first
 
@@ -792,7 +794,7 @@ def test_publish_rejects_signage_overflow_without_replacing_active_revision(
         actor_id=actor_id,
         issuer_engine=database_engine,
     )
-    draft = load_draft(database_engine, profile_code, WEEK_START, actor_id=actor_id)
+    draft = load_draft(database_engine, profile_code, WEEK_START, actor_id=actor_id, **write_expectations(database_engine, actor_id))
     changed = values_factory()
     option = changed['days'][0]['services'][0]['options'][0]
     if overflow_kind == 'title':
@@ -806,7 +808,7 @@ def test_publish_rejects_signage_overflow_without_replacing_active_revision(
         expected_row_version=draft['row_version'],
         actor_id=actor_id,
         values=changed,
-    )
+     **write_expectations(database_engine, actor_id))
 
     with pytest.raises(WorkflowValidationError):
         publish_draft(

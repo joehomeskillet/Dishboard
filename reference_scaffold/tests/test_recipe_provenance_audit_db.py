@@ -11,7 +11,7 @@ from cafeteria.master_data_types import ObjectExpectation
 from cafeteria.recipe_types import RecipeConflictError
 from test_recipe_revision_immutable_db import png
 from test_recipe_store_db import (  # noqa: F401
-    pg16, installed_pg16, seeded_pg16, app_engine, payload, mutable, target, snapshot,
+    pg16, installed_pg16, seeded_pg16, app_engine, payload, mutable, target, snapshot, complete_line,
 )
 from test_recipe_store_db import master as master
 
@@ -28,7 +28,7 @@ def audits(owner, public_id):
 def test_step_image_requires_its_provenance_in_current_aggregate(master, historical):
     owner, engine, actor = master
     location = store.get_location(engine)
-    recipe = store.create_recipe(engine, actor, payload(), expected_location_id=location)
+    recipe = store.create_recipe(engine, actor, payload(ingredients=[complete_line(engine, actor)]), expected_location_id=location)
     attached = store.add_recipe_image(
         engine, actor, target(recipe), data=png(), content_type='image/png',
         source_url='https://example.test/licensed.png', source_license='CC0',
@@ -38,7 +38,9 @@ def test_step_image_requires_its_provenance_in_current_aggregate(master, histori
     data['steps'][0]['image_sha256'] = hashlib.sha256(png()).hexdigest()
     linked = store.update_recipe(engine, actor, target(attached), data, expected_location_id=location)
     if historical:
-        frozen = store.freeze_revision(engine, actor, target(linked), expected_location_id=location)
+        preview = store.get_dependency_preview(engine, target(linked), expected_location_id=location)
+        frozen = store.freeze_revision(engine, actor, target(linked), expected_location_id=location,
+                                       expected_dependency_hash=preview.dependency_hash_sha256)
         linked = ObjectExpectation(recipe.public_id, frozen.recipe_row_version)
     data['images'] = []
     before = snapshot(owner)
@@ -46,7 +48,10 @@ def test_step_image_requires_its_provenance_in_current_aggregate(master, histori
         store.update_recipe(engine, actor, target(linked), data, expected_location_id=location)
     assert snapshot(owner) == before
     read = store.get_recipe(engine, recipe.public_id)
-    frozen = store.freeze_revision(engine, actor, target(read), expected_location_id=location) if not historical else frozen
+    if not historical:
+        preview = store.get_dependency_preview(engine, target(read), expected_location_id=location)
+        frozen = store.freeze_revision(engine, actor, target(read), expected_location_id=location,
+                                       expected_dependency_hash=preview.dependency_hash_sha256)
     image = store.get_revision(engine, frozen.public_id).snapshot['recipe']['images'][0]
     assert image['source_url'] == 'https://example.test/licensed.png'
     assert image['source_license'] == 'CC0'

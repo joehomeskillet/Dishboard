@@ -28,7 +28,8 @@ from test_component_catalog_db import CatalogDatabase, _link_component, _scope, 
 
 FULL_KEYS = {
     'public_id', 'profile_scope', 'category', 'name', 'origin_country_code',
-    'active', 'row_version', 'usage_count', 'labels', 'allergens',
+    'active', 'row_version', 'usage_count', 'food_public_id', 'food_name',
+    'labels', 'allergens',
 }
 
 

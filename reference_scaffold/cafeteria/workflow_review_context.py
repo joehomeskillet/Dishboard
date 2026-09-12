@@ -13,6 +13,7 @@ from .component_catalog_store import AdminScope, ComponentNotFoundError
 from .workflow_partial_store import resolve_week_ref
 from .workflow_publication import require_expected_active_location
 from .workflow_store import StaleDraftError
+from .workflow_write_context import write_transaction
 
 
 _TOKEN = re.compile(r'sha256:[0-9a-f]{64}')
@@ -75,7 +76,7 @@ def review_week_context(
 ) -> str:
     if not isinstance(expected_token, str) or _TOKEN.fullmatch(expected_token) is None:
         raise ValueError('Wochenprüfversion ist ungültig.')
-    with engine.begin() as connection:
+    with write_transaction(engine, scope) as connection:
         require_expected_active_location(connection, scope.location_id, lock=True)
         week = resolve_week_ref(connection, scope, week_start, for_update=True)
         connection.execute(text('''

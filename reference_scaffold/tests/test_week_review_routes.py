@@ -49,8 +49,10 @@ def review_client(monkeypatch):
         authz_version=3, roles=['Cafeteria.Editor'],
     ))
     def scope(profile):
-        return AdminScope(7, 5, profile)
+        return AdminScope(7, 5, profile, 3)
+    from cafeteria.admin import workflow_scope
     monkeypatch.setattr(workflow_routes, '_scope', scope)
+    monkeypatch.setattr(workflow_scope, '_scope', scope)
     monkeypatch.setattr(routes, '_scope', scope)
     captured = {}
     reads, writes = [], []
@@ -79,14 +81,14 @@ def test_scoped_saved_context_get_and_exact_post_contract(review_client, family,
     path = f'/admin/{family}/wochen/pruefung'
     result = client.get(path + '?week=2026-08-31')
     assert result.status_code == 200 and result.headers['Cache-Control'] == 'no-store'
-    assert reads == [(AdminScope(7, 5, profile), WEEK)] and not writes
+    assert reads == [(AdminScope(7, 5, profile, 3), WEEK)] and not writes
     assert captured['template'] == 'admin/week_review.html'
     assert captured['can_write']
     fields = {'_csrf': captured['csrf'], 'week': WEEK.isoformat(), 'context_version': captured['review']['token']}
     result = client.post(path, data=fields)
     assert result.status_code == 303 and result.location == path + '?week=2026-08-31'
     assert result.headers['Cache-Control'] == 'no-store'
-    assert writes == [(AdminScope(7, 5, profile), WEEK, fields['context_version'])]
+    assert writes == [(AdminScope(7, 5, profile, 3), WEEK, fields['context_version'])]
 
 
 @pytest.mark.parametrize('query', ['', '?week=bad', '?week=2026-09-01', '?week=2026-08-31&week=2026-08-31', '?week=2026-08-31&profile=patient', '?week=2026-08-31&location_id=6'])

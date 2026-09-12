@@ -20,6 +20,16 @@ from test_component_metadata_master_lock_db import (  # noqa: F401
 )
 from test_operations_settings_db import _actor_id, _v19_week, _v19_snapshot, _INSERT_REVISION_SQL
 
+STORAGE_PUBLIC_ID = 'c7d9dd4a-27b6-4470-9588-e966d72596cb'
+
+
+def seed_storage(owner):
+    """Explicit synthetic storage for fixtures; never a product migration default."""
+    with owner.begin() as connection:
+        connection.execute(text('''INSERT INTO cafeteria.storage_locations(public_id,location_id,code,name)
+            SELECT CAST(:id AS uuid),id,'FIXTURE_STORAGE','Testlager' FROM cafeteria.locations WHERE active'''),
+            {'id': STORAGE_PUBLIC_ID})
+
 
 def test_ma_sql_installs_on_frozen_schema20(pg16):  # noqa: F811
     plan = database.migration_plan(SCHEMA)
@@ -63,7 +73,7 @@ def test_full_live_schema_validator_checks_upgrade_and_fresh_catalog(pg16):  # n
     assert result.returncode == 0, result.stdout
     status = json.loads(result.stdout)
     assert status['live_postgresql_executed'] is True
-    assert status['schema_version'] == 25 and status['tables'] == 52
+    assert status['schema_version'] == 29 and status['tables'] == 54
 
 
 def structure(c):
@@ -97,6 +107,7 @@ def signed_in(engine, actor):
 @pytest.fixture
 def master(seeded_pg16, app_engine):  # noqa: F811
     actor = make_actor(seeded_pg16)
+    seed_storage(seeded_pg16)
     with signed_in(app_engine, actor):
         yield seeded_pg16, app_engine, actor
 
@@ -106,7 +117,7 @@ def target(row):
 
 
 def payload(name='Karotte'):
-    return {'name': name, 'base_unit_code': 'G', 'note': ''}
+    return {'name': name, 'base_unit_code': 'G', 'note': '', 'storage_location_public_ids': [STORAGE_PUBLIC_ID]}
 
 
 def audit_count(owner):
@@ -149,7 +160,13 @@ def test_full_food_vocabulary_metadata_storage_and_proposal_roundtrip(master):
     assert store.get_proposal(engine, proposal.public_id).decision == decision
     with pytest.raises(MasterDataConflictError):
         store.accept_proposal(engine, actor, target(proposal), target(read), ['labels'])
-    food = store.replace_food_storage_locations(engine, actor, target(read), [])
+    count = audit_count(owner)
+    with pytest.raises(MasterDataValidationError):
+        store.update_food(engine, actor, target(read), {**data, 'storage_location_public_ids': []})
+    with pytest.raises(MasterDataConflictError):
+        store.replace_food_storage_locations(engine, actor, target(read), [])
+    assert store.get_food(engine, food.public_id) == read and audit_count(owner) == count
+    food = store.replace_food_storage_locations(engine, actor, target(read), [STORAGE_PUBLIC_ID])
     archived = store.set_vocabulary_active(engine, 'storage_location', actor, target(storage), active=False)
     assert not store.get_vocabulary(engine, 'storage_location', storage.public_id).active
     store.set_vocabulary_active(engine, 'storage_location', actor, target(archived), active=True)
@@ -198,8 +215,8 @@ def test_vocabulary_noop_stale_and_archive_contract(master, kind):
     with pytest.raises(MasterDataConflictError):
         store.update_vocabulary(engine, kind, actor, target(item), name='Veraltet')
     archived = store.set_vocabulary_active(engine, kind, actor, target(changed), active=False)
-    assert store.list_vocabulary(engine, kind) == ()
-    assert store.list_vocabulary(engine, kind, include_archived=True)[0].public_id == item.public_id
+    assert [row.public_id for row in store.list_vocabulary(engine, kind)] == ([STORAGE_PUBLIC_ID] if kind == 'storage_location' else [])
+    assert item.public_id in [row.public_id for row in store.list_vocabulary(engine, kind, include_archived=True)]
     with pytest.raises(MasterDataConflictError):
         store.set_vocabulary_active(engine, kind, actor, target(archived), active=False)
 

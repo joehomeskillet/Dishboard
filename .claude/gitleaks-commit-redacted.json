@@ -1,0 +1,42 @@
+[
+ {
+  "Description": "Generic API Key",
+  "StartLine": 22,
+  "EndLine": 22,
+  "StartColumn": 62,
+  "EndColumn": 138,
+  "Match": "auth.sql\": \"REDACTED\"",
+  "Secret": "REDACTED",
+  "File": ".claude/source-manifest.json",
+  "SymlinkFile": "",
+  "Commit": "5d7edc115ff4f0bb00a36db200f8e686a47a308f",
+  "Entropy": 3.867133,
+  "Author": "agent",
+  "Email": "agent@joelduss.xyz",
+  "Date": "2026-09-08T23:00:16Z",
+  "Message": "feat(db): add complete prepared foods and immutable recipe closure v27",
+  "Tags": [],
+  "RuleID": "generic-api-key",
+  "Fingerprint": "5d7edc115ff4f0bb00a36db200f8e686a47a308f:.claude/source-manifest.json:generic-api-key:22"
+ },
+ {
+  "Description": "Generic API Key",
+  "StartLine": 28,
+  "EndLine": 28,
+  "StartColumn": 32,
+  "EndColumn": 124,
+  "Match": "auth_final_hardening.sql\": \"REDACTED\"",
+  "Secret": "REDACTED",
+  "File": ".claude/source-manifest.json",
+  "SymlinkFile": "",
+  "Commit": "5d7edc115ff4f0bb00a36db200f8e686a47a308f",
+  "Entropy": 3.8419824,
+  "Author": "agent",
+  "Email": "agent@joelduss.xyz",
+  "Date": "2026-09-08T23:00:16Z",
+  "Message": "feat(db): add complete prepared foods and immutable recipe closure v27",
+  "Tags": [],
+  "RuleID": "generic-api-key",
+  "Fingerprint": "5d7edc115ff4f0bb00a36db200f8e686a47a308f:.claude/source-manifest.json:generic-api-key:28"
+ }
+]

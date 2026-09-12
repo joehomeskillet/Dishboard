@@ -19,7 +19,9 @@ _MAX_METADATA_ENTRIES = 64
 
 
 class MetadataValidationError(ValueError):
-    pass
+    def __init__(self, message: str, *, field_name: str | None = None) -> None:
+        super().__init__(message)
+        self.field_name = field_name
 
 
 class MetadataContractError(RuntimeError):
@@ -108,6 +110,8 @@ def public_component(
         'active': bool(row['active']),
         'row_version': int(row['row_version']),
         'usage_count': int(row['usage_count']),
+        'food_public_id': None if row.get('food_public_id') is None else str(row['food_public_id']),
+        'food_name': None if row.get('food_name') is None else str(row['food_name']),
         'labels': metadata[0],
         'allergens': metadata[1],
     }

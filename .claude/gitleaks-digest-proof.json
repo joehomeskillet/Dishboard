@@ -1,0 +1,14 @@
+[
+  {
+    "path": "database/migrations/0002_profile_publication_and_local_auth.sql",
+    "manifest_value": "7f8696eb886a99d841ac82be1e4b3abf1b51080c18aac07ea5290325f3e5e863",
+    "actual_file_sha256": "7f8696eb886a99d841ac82be1e4b3abf1b51080c18aac07ea5290325f3e5e863",
+    "equal": true
+  },
+  {
+    "path": "database/migrations/0008_auth_final_hardening.sql",
+    "manifest_value": "4311165d2dcd763cf9a462906d044000956eb11d16ac847ecf9351facae21e45",
+    "actual_file_sha256": "4311165d2dcd763cf9a462906d044000956eb11d16ac847ecf9351facae21e45",
+    "equal": true
+  }
+]

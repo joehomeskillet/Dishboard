@@ -12,9 +12,10 @@ from .component_catalog_store import resolve_single_active_location_connection
 from .master_data_commands import decision
 from .master_data_proposals import code as validate_code, identifier
 from .master_data_types import (
-    FoodDTO, MasterDataNotFoundError, MasterDataUnavailableError,
+    FoodDTO, MasterDataNotFoundError, MasterDataUnavailableError, PreparedRecipeDTO,
     MasterDataValidationError, ProposalDTO, SourceDTO, UnitDTO, VocabularyDTO, VocabularyKind,
 )
+from .quantities import parse_quantity
 
 
 VOCABULARY = {
@@ -32,6 +33,12 @@ FOOD = '''SELECT f.*,u.code AS unit_code,c.public_id::text AS category_public_id
           LEFT JOIN cafeteria.food_categories c ON c.id=f.category_id AND c.location_id=f.location_id'''
 PROPOSAL = '''SELECT p.*,f.public_id::text AS food_public_id FROM cafeteria.food_data_proposals p
               LEFT JOIN cafeteria.foods f ON f.id=p.food_id AND f.location_id=p.location_id'''
+PREPARED = '''SELECT r.public_id::text AS recipe_public_id, v.public_id::text AS revision_public_id,
+    v.revision_number, v.content_hash_sha256, v.snapshot_json->'recipe'->>'title' AS title,
+    v.snapshot_json->'recipe'->>'servings' AS yield_quantity,
+    v.snapshot_json->'recipe'->>'servings_unit_code' AS yield_unit_code, r.active AS recipe_active
+    FROM cafeteria.recipe_revisions v JOIN cafeteria.recipes r
+      ON r.id=v.recipe_id AND r.location_id=v.location_id'''
 
 
 @contextmanager
@@ -107,7 +114,37 @@ def food(connection: Connection, row: Mapping[str, Any]) -> FoodDTO:
         row['density_g_per_ml'], row['piece_weight_g'], row['note'], row['allergen_review_status'],
         source(row), row['active'], row['row_version'], tuple((r[0], r[1]) for r in allergens), tuple(labels),
         tuple(resolve_tag(connection, row['location_id'], key) for key in tags),
-        tuple(resolve_vocabulary(connection, row['location_id'], 'storage_location', key) for key in storage))
+        tuple(resolve_vocabulary(connection, row['location_id'], 'storage_location', key) for key in storage),
+        prepared_food_revision(connection, row['location_id'], row['prepared_recipe_revision_id'])
+        if row['prepared_recipe_revision_id'] is not None else None)
+
+
+def prepared_revision(row: Mapping[str, Any]) -> PreparedRecipeDTO:
+    return PreparedRecipeDTO(row['recipe_public_id'], row['revision_public_id'], row['revision_number'],
+        row['content_hash_sha256'], row['title'], parse_quantity(row['yield_quantity']), row['yield_unit_code'], row['recipe_active'])
+
+
+def prepared_food_revision(connection: Connection, location_id: int, revision_id: int) -> PreparedRecipeDTO:
+    row = connection.execute(text(PREPARED + ' WHERE v.location_id=:location AND v.id=:revision'),
+        {'location': location_id, 'revision': revision_id}).mappings().one_or_none()
+    if row is None:
+        raise MasterDataNotFoundError('Der zugeordnete Rezeptstand ist nicht verfügbar.')
+    return prepared_revision(dict(row))
+
+
+def list_prepared_revisions(engine: Engine, *, search: str | None = None,
+                            limit: int = 26, offset: int = 0) -> tuple[PreparedRecipeDTO, ...]:
+    values = paging(limit, offset)
+    if search is not None and (not isinstance(search, str) or len(search) > 200 or '\x00' in search):
+        raise MasterDataValidationError('Ungültige Rezeptsuche.')
+    values['search'] = (search or '').replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+    with connection(engine) as current:
+        values['location'] = resolve_single_active_location_connection(current)
+        rows = current.execute(text(PREPARED + ''' WHERE v.location_id=:location AND r.active
+            AND (v.snapshot_json->'recipe'->>'title') ILIKE '%'||:search||'%' ESCAPE E'\\\\'
+            ORDER BY lower(btrim(v.snapshot_json->'recipe'->>'title')),r.public_id,v.revision_number DESC,v.public_id
+            LIMIT :limit OFFSET :offset'''), values).mappings()
+        return tuple(prepared_revision(dict(row)) for row in rows)
 
 
 def resolve_food(connection: Connection, location_id: int, public_id: str, *, include_archived: bool = True) -> FoodDTO:
@@ -153,7 +190,7 @@ def get_vocabulary(engine: Engine, kind: VocabularyKind, public_id: str) -> Voca
 def list_foods(engine: Engine, *, include_archived: bool = False, category: str | None = None,
                tag: str | None = None, search: str | None = None, limit: int = 200, offset: int = 0) -> tuple[FoodDTO, ...]:
     values = paging(limit, offset, include_archived)
-    if search is not None and (not isinstance(search, str) or len(search) > 200):
+    if search is not None and (not isinstance(search, str) or len(search) > 200 or '\x00' in search):
         raise MasterDataValidationError('Ungültige Suche.')
     values.update(category=identifier(category) if category else None, tag=identifier(tag) if tag else None,
                   search=(search or '').replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_'))

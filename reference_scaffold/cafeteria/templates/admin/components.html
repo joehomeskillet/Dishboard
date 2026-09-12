@@ -163,7 +163,9 @@
       <tbody>
         {% for row in rows %}
         <tr class="component-row" data-public-id="{{ row.public_id }}" data-active="{{ '1' if row.active else '0' }}">
-          <th scope="row"><a class="dishboard-component-link" href="/admin/{{ family }}/komponenten/{{ row.public_id }}">{{ row.name }}{{ icon('pencil') }}</a></th>
+          <th scope="row"><a class="dishboard-component-link" href="/admin/{{ family }}/komponenten/{{ row.public_id }}">{{ row.name }}{{ icon('pencil') }}</a>
+            <div class="text-secondary fw-normal text-break">{{ 'Lebensmittel: ' ~ row.food_name if row.food_name else 'kein Lebensmittel' }}</div>
+          </th>
           <td><span class="dishboard-cell-label">Kategorie / Gültigkeit</span><div class="category">{{ categories.get(row.category, row.category) }}</div>
             <div class="scope text-secondary">{{ 'gemeinsam' if row.profile_scope == 'common' else 'nur Cafeteria' if row.profile_scope == 'staff_guest' else 'nur Patienten' }}</div>
           </td>

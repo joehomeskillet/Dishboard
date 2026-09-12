@@ -89,6 +89,10 @@ REQUIRED_FILES = (
     'database/migrations/0020_v22_to_v23.sql',
     'database/migrations/0021_v23_to_v24.sql',
     'database/migrations/0022_v24_to_v25.sql',
+    'database/migrations/0023_v25_to_v26.sql',
+    'database/migrations/0024_v26_to_v27.sql',
+    'database/migrations/0025_v27_to_v28.sql',
+    'database/migrations/0026_v28_to_v29.sql',
     'reference_scaffold/cafeteria/auth/local_users.py',
     'reference_scaffold/cafeteria/auth/access_events.py',
     'database/seed.sql', 'database/seed_demo.sql', 'database/permissions.sql',
@@ -128,6 +132,10 @@ MIGRATION_CHECKSUMS = {
     '0020_v22_to_v23.sql': '996ae384a0c589b98429f8f520cf175631c17557ffe74221e9f46dd144e7771f',
     '0021_v23_to_v24.sql': 'fc91851728fc7257cfa0ae098b8d9c94575f2ecd42f0568146e188514dfd13f6',
     '0022_v24_to_v25.sql': '33d2bb0e556c9065f2cde096a9f58482cdd40f5e2fb7b56b331d4e9d8a402a07',
+    '0023_v25_to_v26.sql': '24ac85b6833ac03b04a18eec238dde2bab1a51403f48b3baf7a9f56ac290cc58',
+    '0024_v26_to_v27.sql': '5503b214a9957a09345d3301526797ca8fa2deb146fd6bdced6875ebd86635f2',
+    '0025_v27_to_v28.sql': '136dbf46688490a46018d158acbe11a89fbd186164659c145e256f92df69399c',
+    '0026_v28_to_v29.sql': '9740215a04c93a3093543c585c8c0c700eae625f5b94837527f9da97f9259259',
 }
 
 
@@ -313,10 +321,10 @@ def main() -> int:
     check(db_result.returncode == 0, f'Schema-Validator fehlgeschlagen: {db_result.stderr or db_result.stdout}')
     if db_result.returncode == 0:
         status = json.loads(db_result.stdout)
-        check(status.get('tables') == 52, 'Schema enthaelt nicht 52 Tabellen.')
+        check(status.get('tables') == 54, 'Schema enthaelt nicht 54 Tabellen.')
         check(status.get('application_roles') == 3, 'Schema enthaelt nicht drei Rollen.')
         check(status.get('offer_profiles') == 2, 'Schema enthaelt nicht zwei Profile.')
-        check(status.get('schema_version') == 25, 'Schema-Version ist nicht 25.')
+        check(status.get('schema_version') == 29, 'Schema-Version ist nicht 29.')
         check(status.get('patient_services') == 14, 'Demo-Seed enthaelt nicht 14 Patienten-Services.')
         check(status.get('cafeteria_services') == 5, 'Demo-Seed enthaelt nicht 5 Cafeteria-Services.')
 
@@ -340,6 +348,10 @@ def main() -> int:
     migration_files.append('0020_v22_to_v23.sql')
     migration_files.append('0021_v23_to_v24.sql')
     migration_files.append('0022_v24_to_v25.sql')
+    migration_files.append('0023_v25_to_v26.sql')
+    migration_files.append('0024_v26_to_v27.sql')
+    migration_files.append('0025_v27_to_v28.sql')
+    migration_files.append('0026_v28_to_v29.sql')
 
     for mig_file in migration_files:
         mig_path = migrations_dir / mig_file

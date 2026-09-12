@@ -94,7 +94,8 @@ def _item(
         int(row['week_id']),
         int(row['service_id']),
         int(row['row_version']),
-        AdminScope(actor_id=1, location_id=database.location_id, profile_code=profile),
+        AdminScope(actor_id=database.actor_id, location_id=database.location_id, profile_code=profile,
+                   expected_authz_version=database.authz_version),
     )
 
 
@@ -108,7 +109,7 @@ def _component(
     labels: tuple[str, ...] = (),
     allergens: tuple[tuple[str, str], ...] = (),
 ) -> dict[str, object]:
-    scope = AdminScope(1, database.location_id, profile)
+    scope = AdminScope(database.actor_id, database.location_id, profile, database.authz_version)
     return create_component(
         database.app, scope, 'side', name, origin, target, labels, allergens
     )
@@ -464,6 +465,10 @@ def test_connection_helper_never_commits_or_changes_item_effects_or_review(
     connection = catalog_database.app.connect()
     transaction = connection.begin()
     try:
+        from cafeteria.component_binding_state import prepare_bindings
+        from cafeteria.component_assignment_contract import normalize_assignments
+        payload = [_assignment(str(component['public_id']), None)]
+        prepared = prepare_bindings(connection, item.scope, normalize_assignments(payload), item_ids=(item.id,))
         connection.execute(
             text('SELECT id FROM cafeteria.menu_weeks WHERE id=:id FOR UPDATE'),
             {'id': item.week_id},
@@ -476,11 +481,13 @@ def test_connection_helper_never_commits_or_changes_item_effects_or_review(
             text('SELECT id FROM cafeteria.menu_items WHERE id=:id FOR UPDATE'),
             {'id': item.id},
         ).one()
+        prepared.recheck()
         replace_component_links_connection(
             connection,
             item.scope,
             item.id,
-            [_assignment(str(component['public_id']), None)],
+            payload,
+            binding_state=prepared,
         )
         inside = connection.execute(text(
             'SELECT row_version, allergen_review_status FROM cafeteria.menu_items WHERE id=:id'

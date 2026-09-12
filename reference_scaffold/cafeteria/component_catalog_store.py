@@ -9,6 +9,8 @@ from uuid import UUID
 from sqlalchemy import Connection, Engine, text
 from sqlalchemy.exc import IntegrityError
 
+from .workflow_write_context import actor_parameters, write_transaction
+
 from cafeteria.component_catalog_filters import ComponentFilters
 from cafeteria.component_catalog_metadata import (
     AllergenInput,
@@ -62,12 +64,15 @@ class AdminScope:
     actor_id: int
     location_id: int
     profile_code: Literal['patient', 'staff_guest']
+    expected_authz_version: int | None = None
 
     def __post_init__(self) -> None:
         _positive_integer(self.actor_id, 'actor_id')
         _positive_integer(self.location_id, 'location_id')
         if type(self.profile_code) is not str or self.profile_code not in _PROFILES:
             raise ComponentCatalogValidationError('Ungültiges Profil.')
+        if self.expected_authz_version is not None:
+            _positive_integer(self.expected_authz_version, 'expected_authz_version')
 
 
 def resolve_single_active_location_connection(connection: Connection) -> int:
@@ -99,7 +104,7 @@ def create_component(
         raise ComponentCatalogValidationError('Ungültiger Komponenten-Scope.')
     profile_scope = 'common' if target_scope == 'common' else scope.profile_code
     try:
-        with engine.begin() as connection:
+        with write_transaction(engine, scope) as connection:
             _require_scope_location(connection, scope)
             row = connection.execute(
                 text(
@@ -167,9 +172,11 @@ def find_components(
                 '''
                 SELECT c.id, c.public_id::text AS public_id, c.profile_scope, c.category, c.name,
                        c.origin_country_code, c.active, c.row_version,
+                       f.public_id::text AS food_public_id, f.name AS food_name,
                        (SELECT count(*) FROM cafeteria.menu_item_components mic
                         WHERE mic.component_id=c.id) AS usage_count
                 FROM cafeteria.menu_components c
+                LEFT JOIN cafeteria.foods f ON f.id=c.food_id AND f.location_id=c.location_id
                 WHERE c.location_id=:location_id
                   AND c.profile_scope IN ('common', :profile_code)
                   AND (:status='all' OR (:status='active' AND c.active)
@@ -235,9 +242,11 @@ def get_component(
                 '''
                 SELECT c.id, c.public_id::text AS public_id, c.profile_scope, c.category, c.name,
                        c.origin_country_code, c.active, c.row_version,
+                       f.public_id::text AS food_public_id, f.name AS food_name,
                        (SELECT count(*) FROM cafeteria.menu_item_components mic
                         WHERE mic.component_id=c.id) AS usage_count
                 FROM cafeteria.menu_components c
+                LEFT JOIN cafeteria.foods f ON f.id=c.food_id AND f.location_id=c.location_id
                 WHERE c.public_id=CAST(:public_id AS uuid)
                   AND c.location_id=:location_id
                   AND c.profile_scope IN ('common', :profile_code)
@@ -268,23 +277,32 @@ def update_component(
 ) -> int:
     canonical_public_id = _public_id(public_id)
     clean_category, clean_name, clean_origin, clean_metadata = _update_payload(payload)
+    food_specified = 'food_public_id' in payload
+    requested_food = _food_public_id(payload.get('food_public_id')) if food_specified else None
     expected_version = _positive_integer(version, 'row_version')
     try:
-        with engine.begin() as connection:
+        with write_transaction(engine, scope) as connection:
             row = _lock_component(
                 connection, scope, canonical_public_id, expected_version
             )
             component_id = int(row['id'])
+            assigned_food_id: object = row['food_id']
+            if food_specified:
+                # Lock foods after the component row, matching component_binding_state.
+                assigned_food_id = _lock_assignment_foods(
+                    connection, scope, row['food_id'], requested_food,
+                )
+            food_changed = row['food_id'] != assigned_food_id
             resolved = resolve_metadata(connection, component_id, clean_metadata)
             scalar_changed = (
                 str(row['category']) != clean_category
                 or str(row['name']) != clean_name
                 or row['origin_country_code'] != clean_origin
             )
-            if not scalar_changed and not resolved.changed:
+            if not scalar_changed and not resolved.changed and not food_changed:
                 return int(row['row_version'])
             replace_metadata(connection, component_id, resolved)
-            return int(
+            new_version = int(
                 connection.execute(
                     text(
                         '''
@@ -292,6 +310,7 @@ def update_component(
                         SET category=:category,
                             name=:name,
                             origin_country_code=:origin_country_code,
+                            food_id=:food_id,
                             row_version=row_version + 1,
                             updated_at=clock_timestamp()
                         WHERE id=:component_id
@@ -303,9 +322,17 @@ def update_component(
                         'category': clean_category,
                         'name': clean_name,
                         'origin_country_code': clean_origin,
+                        'food_id': assigned_food_id,
                     },
                 ).scalar_one()
             )
+            if food_changed:
+                connection.execute(text(
+                    'SELECT cafeteria.record_component_food_write_v26('
+                    ':actor,:authz,:location,:component,:before,:after)'
+                ), {**actor_parameters(scope), 'component': component_id,
+                    'before': expected_version, 'after': new_version})
+            return new_version
     except IntegrityError as error:
         _raise_name_conflict(error)
         raise
@@ -339,7 +366,7 @@ def _set_component_active(
 ) -> int:
     canonical_public_id = _public_id(public_id)
     expected_version = _positive_integer(version, 'row_version')
-    with engine.begin() as connection:
+    with write_transaction(engine, scope) as connection:
         row = _lock_component(connection, scope, canonical_public_id, expected_version)
         if bool(row['active']) is active:
             raise ComponentConflictError('Komponente hat diesen Archivstatus bereits.')
@@ -370,7 +397,7 @@ def _lock_component(
     row = connection.execute(
         text(
             '''
-            SELECT id, active, row_version, category, name, origin_country_code
+            SELECT id, active, row_version, category, name, origin_country_code, food_id
             FROM cafeteria.menu_components
             WHERE public_id=CAST(:public_id AS uuid)
               AND location_id=:location_id
@@ -399,7 +426,8 @@ def _require_scope_location(connection: Connection, scope: AdminScope) -> None:
 def _update_payload(
     payload: Mapping[str, object],
 ) -> tuple[str, str, str | None, NormalizedMetadata]:
-    if not isinstance(payload, Mapping) or frozenset(payload) != _UPDATE_KEYS:
+    if (not isinstance(payload, Mapping)
+            or frozenset(payload) not in (_UPDATE_KEYS, _UPDATE_KEYS | {'food_public_id'})):
         raise ComponentCatalogValidationError('Ungültige Bearbeitungsfelder.')
     return (
         _category(payload['category']),
@@ -409,12 +437,67 @@ def _update_payload(
     )
 
 
+def _food_public_id(value: object) -> str | None:
+    if value is None or value == '':
+        return None
+    if type(value) is not str or _UUID_PATTERN.fullmatch(value) is None:
+        raise ComponentCatalogValidationError(
+            'Lebensmittel-ID muss eine UUID sein.', field_name='food_public_id',
+        )
+    return str(UUID(value))
+
+
+def _lock_assignment_foods(
+    connection: Connection,
+    scope: AdminScope,
+    current_food_id: object,
+    requested_public_id: str | None,
+) -> int | None:
+    new_id = None
+    if requested_public_id is not None:
+        new_id = connection.execute(
+            text(
+                '''
+                SELECT id FROM cafeteria.foods
+                WHERE public_id=CAST(:public_id AS uuid) AND location_id=:location
+                '''
+            ),
+            {'public_id': requested_public_id, 'location': scope.location_id},
+        ).scalar_one_or_none()
+        if new_id is None:
+            raise ComponentCatalogValidationError(
+                'Aktives Lebensmittel dieses Standorts auswählen.',
+                field_name='food_public_id',
+            )
+    lock_ids = sorted({
+        food_id for food_id in (current_food_id, new_id) if type(food_id) is int
+    })
+    locked = {}
+    if lock_ids:
+        for row in connection.execute(
+            text(
+                'SELECT * FROM cafeteria.lock_component_foods_v26('
+                ':actor,:authz,:location,CAST(:ids AS bigint[]))'
+            ),
+            {**actor_parameters(scope), 'ids': lock_ids},
+        ).mappings():
+            locked[int(row['food_id'])] = row
+    if requested_public_id is None:
+        return None
+    target_id = int(new_id) if new_id is not None else None
+    selected = locked.get(target_id) if target_id is not None else None
+    if selected is None or not selected['active']:
+        raise ComponentCatalogValidationError(
+            'Aktives Lebensmittel dieses Standorts auswählen.',
+            field_name='food_public_id',
+        )
+    return int(selected['food_id'])
+
+
 def _public_id(value: object) -> str:
     if type(value) is not str or _UUID_PATTERN.fullmatch(value) is None:
         raise ComponentNotFoundError('Komponente nicht gefunden.')
     return str(UUID(value))
-
-
 
 
 def _raise_name_conflict(error: IntegrityError) -> None:

@@ -61,6 +61,22 @@ class RevisionResult:
 
 
 @dataclass(frozen=True)
+class RecipeDependencyIssueDTO:
+    field: str
+    code: str
+
+
+@dataclass(frozen=True)
+class RecipeDependencyPreviewDTO:
+    recipe_public_id: str
+    recipe_row_version: int
+    complete: bool
+    issues: tuple[RecipeDependencyIssueDTO, ...]
+    snapshot: Mapping[str, object]
+    dependency_hash_sha256: str
+
+
+@dataclass(frozen=True)
 class RecipeRevisionDTO:
     public_id: str
     recipe_public_id: str
@@ -69,6 +85,8 @@ class RecipeRevisionDTO:
     snapshot: Mapping[str, object]
     created_at: datetime
     created_by: int
+    prepared_revisions: tuple[RecipeRevisionDTO, ...] = ()
+    canonical_snapshot_text: str | None = None
 
 
 @dataclass(frozen=True)

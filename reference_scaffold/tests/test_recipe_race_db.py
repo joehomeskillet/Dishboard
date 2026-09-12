@@ -11,13 +11,15 @@ from cafeteria import recipe_store as store
 from cafeteria import master_data_store as masters
 from test_recipe_store_db import (  # noqa: F401
     pg16, installed_pg16, seeded_pg16, app_engine, payload, mutable, target, snapshot, make_actor,
+    complete_line, STORAGE_PUBLIC_ID,
 )
 from test_recipe_store_db import master as master
-from test_master_data_race_db import worker, blocked, UPDATE_FOOD
+from test_master_data_race_db import worker, blocked
 from test_recipe_store_db import line
 
 UPDATE = 'SELECT cafeteria.update_recipe_v22(:actor,:version,:location,CAST(:target AS uuid),:target_version,CAST(:payload AS jsonb))'
-FREEZE = 'SELECT cafeteria.freeze_recipe_revision_v22(:actor,:version,:location,CAST(:target AS uuid),:target_version,CAST(:payload AS jsonb))'
+FREEZE = 'SELECT cafeteria.freeze_recipe_v27(:actor,:version,:location,CAST(:target AS uuid),:target_version,:dependency)'
+UPDATE_FOOD = 'SELECT cafeteria.update_food_v27(:actor,:version,:location,CAST(:target AS uuid),:target_version,CAST(:payload AS jsonb))'
 
 
 def arguments(actor, recipe, location, data):
@@ -29,10 +31,13 @@ def arguments(actor, recipe, location, data):
 def test_original_cas_serializes_edit_and_freeze(master, second_freeze):
     owner, engine, actor = master
     location = store.get_location(engine)
-    recipe = store.create_recipe(engine, actor, payload(), expected_location_id=location)
+    recipe = store.create_recipe(engine, actor, payload(ingredients=[complete_line(engine, actor)]), expected_location_id=location)
     data = mutable(store.get_recipe(engine, recipe.public_id).payload)
     first = arguments(actor, recipe, location, {**data, 'title': 'First winner'})
     second = arguments(actor, recipe, location, {} if second_freeze else {**data, 'title': 'Lost writer'})
+    if second_freeze:
+        original = store.get_dependency_preview(engine, target(recipe), expected_location_id=location)
+        second['dependency'] = original.dependency_hash_sha256
     before = snapshot(owner)
     started, state = threading.Event(), {}
     with ThreadPoolExecutor(max_workers=1) as pool:
@@ -88,10 +93,14 @@ def test_original_actor_is_rechecked_after_serialized_authorization_change(maste
 def test_food_factor_change_and_freeze_use_one_serialized_snapshot(master, freeze_first):
     owner, engine, actor = master
     location = store.get_location(engine)
-    food = masters.create_food(engine, actor, {'name': 'Milch', 'base_unit_code': 'ML', 'density_g_per_ml': '1.03'})
+    food = masters.create_food(engine, actor, {'name': 'Milch', 'base_unit_code': 'ML', 'density_g_per_ml': '1.03',
+        'storage_location_public_ids': [STORAGE_PUBLIC_ID]})
     recipe = store.create_recipe(engine, actor, payload(ingredients=[line(food_public_id=food.public_id)]), expected_location_id=location)
     freeze = arguments(actor, recipe, location, {})
-    change = arguments(actor, food, location, {'name': 'Milch', 'base_unit_code': 'ML', 'density_g_per_ml': '1.04'})
+    original = store.get_dependency_preview(engine, target(recipe), expected_location_id=location)
+    freeze['dependency'] = original.dependency_hash_sha256
+    change = arguments(actor, food, location, {'name': 'Milch', 'base_unit_code': 'ML', 'density_g_per_ml': '1.04',
+        'storage_location_public_ids': [STORAGE_PUBLIC_ID]})
     first_sql, first_args, second_sql, second_args = (FREEZE, freeze, UPDATE_FOOD, change) if freeze_first else (UPDATE_FOOD, change, FREEZE, freeze)
     started, state = threading.Event(), {}
     with ThreadPoolExecutor(max_workers=1) as pool:
@@ -101,9 +110,14 @@ def test_food_factor_change_and_freeze_use_one_serialized_snapshot(master, freez
             future = pool.submit(worker, engine, second_sql, second_args, started, state)
             blocked(owner, started, state, blocker)
         second = future.result(10)
-    assert isinstance(second, dict)
-    revision = store.get_revision(engine, (first if freeze_first else second)['public_id'])
-    assert revision.snapshot['foods'][0]['density_g_per_ml'] == ('1.03' if freeze_first else '1.04')
+    if freeze_first:
+        assert isinstance(second, dict)
+        revision = store.get_revision(engine, first['public_id'])
+        assert revision.snapshot['foods'][0]['density_g_per_ml'] == '1.03'
+    else:
+        assert second == '55000'
+        with owner.connect() as current:
+            assert current.execute(text('SELECT count(*) FROM cafeteria.recipe_revisions')).scalar_one() == 0
     assert str(masters.get_food(engine, food.public_id).density_g_per_ml) == '1.04'
 
 
@@ -111,7 +125,8 @@ def test_food_factor_change_and_freeze_use_one_serialized_snapshot(master, freez
 def test_food_archive_and_new_association_serialize(master, archive_first):
     owner, engine, actor = master
     location = store.get_location(engine)
-    food = masters.create_food(engine, actor, {'name': 'Karotte', 'base_unit_code': 'G'})
+    food = masters.create_food(engine, actor, {'name': 'Karotte', 'base_unit_code': 'G',
+        'storage_location_public_ids': [STORAGE_PUBLIC_ID]})
     recipe = store.create_recipe(engine, actor, payload(), expected_location_id=location)
     data = mutable(store.get_recipe(engine, recipe.public_id).payload)
     data['ingredients'][0]['food_public_id'] = food.public_id
