@@ -86,12 +86,12 @@ def test_catalog_revision_links_render_real_saved_pdfs_without_mutation(editor_a
     response = client.get(f'/admin/vorlagen?week={DAY}')
     assert response.status_code == 200
     assert 'Winter &amp; Festtage' in response.text and 'Winter & Festtage' not in response.text
-    assert response.text.count('Aktiver Herbst · Revision 2') == 2
-    assert response.text.count('Neuester Stand: Revision 3 · Entwurf') == 2
+    assert response.text.count('Aktiver Herbst · Version 2') == 4
+    assert response.text.count('Neuester Stand: Version 3 · Entwurf') == 2
     assert response.text.count('Festliche Kopie') == 2
     assert {link for link in MainLinks(response.text).links if link.startswith('/admin/vorlagen/screens/')} == SCREEN_TARGETS
     links = [link for link in MainLinks(response.text).links if urlsplit(link).path in PDF_TARGETS]
-    assert len(links) == 12
+    assert len(links) == 14
     for link in links:
         query = parse_qs(urlsplit(link).query)
         assert query['week'] == [DAY]
@@ -118,7 +118,7 @@ def test_read_roles_see_catalog_but_no_privileged_revision_links(editor_app, dat
     populate(admin, database_engine)
     client, _ = _login(editor_app, database_engine, [role])
     response = client.get('/admin/vorlagen')
-    assert response.status_code == 200 and 'Aktiver Herbst · Revision 2' in response.text
+    assert response.status_code == 200 and 'Aktiver Herbst · Version 2' in response.text
     assert not any(urlsplit(link).path in PDF_TARGETS for link in MainLinks(response.text).links)
     assert {link for link in MainLinks(response.text).links if link.startswith('/admin/vorlagen/screens/')} == SCREEN_TARGETS
     for link in SCREEN_TARGETS:
@@ -176,9 +176,13 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
             assert weekly_cards.count() == 2
             assert weekly_cards.locator('[data-template-id]').count() == 4
             assert weekly_cards.locator('[data-template-id="standard"]').count() == 2
-            for item in weekly_cards.locator('[data-template-id="standard"]').all():
-                expect(item.get_by_role('heading')).to_have_text('Winter & Festtage')
-                expect(item.get_by_text('Aktiver Herbst · Revision 2', exact=False)).to_be_visible()
+            for card in weekly_cards.all():
+                pane_id = card.evaluate('el => el.closest(".tab-pane").id')
+                page.locator(f'[aria-controls="{pane_id}"]').click()
+                card.locator('details summary').filter(has_text='Frühere Versionen').click()
+                for item in card.locator('[data-template-id="standard"]').all():
+                    expect(item.get_by_role('heading')).to_have_text('Winter & Festtage')
+                    expect(item.get_by_text('Aktiver Herbst · Version 2', exact=False)).to_be_visible()
             recipe_card = page.locator('article[aria-labelledby="recipe-templates-heading"]')
             assert recipe_card.locator('[data-template-id="standard"]').count() == 1
             expect(recipe_card.get_by_text('Neuester Stand: Revision 1', exact=True)).to_be_visible()
@@ -195,11 +199,39 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
             assert not any(asset.endswith('/app.css') for asset in assets)
             assert page.locator('.list-group').first.evaluate("el => getComputedStyle(el).display") == 'flex'
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-            for link in page.locator('main .btn').all():
-                link.focus()
-                expect(link).to_be_focused()
+            seen_hrefs: set[str] = set()
+
+            def check_keyboard_link(link, *, require_focus: bool = True) -> None:
+                href = link.get_attribute('href')
+                if href in seen_hrefs:
+                    return
+                seen_hrefs.add(href)
+                link.scroll_into_view_if_needed()
                 box = link.bounding_box()
                 assert box is not None and box['height'] >= 48
+                if not require_focus:
+                    return
+                link.focus()
+                expect(link).to_be_focused()
+
+            for link in page.locator('main form .btn, main .row-cards .btn, main .screens-grid .btn').all():
+                check_keyboard_link(link)
+            for card in weekly_cards.all():
+                pane_id = card.evaluate('el => el.closest(".tab-pane").id')
+                page.locator(f'[aria-controls="{pane_id}"]').click()
+                pane = page.locator(f'#{pane_id}')
+                pane.locator('details summary').filter(has_text='Frühere Versionen').click()
+                for selector in (
+                    '.output-print-section .btn',
+                    '.output-layouts-section > .btn-list .btn',
+                    '.output-content-links .btn',
+                    'details:has(summary:has-text("Frühere Versionen")) .btn',
+                ):
+                    require_focus = 'Frühere Versionen' not in selector
+                    for link in pane.locator(selector).all():
+                        check_keyboard_link(link, require_focus=require_focus)
+            for link in recipe_card.locator('.btn').all():
+                check_keyboard_link(link)
             evidence = Path(os.environ.get('CATALOG_EVIDENCE_DIR', str(tmp_path)))
             evidence.mkdir(parents=True, exist_ok=True)
             evidence.chmod(0o700)
@@ -207,7 +239,12 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
             page.get_by_role('heading', level=1).click()
             page.screenshot(path=str(screenshot), full_page=True)
             screenshot.chmod(0o600)
-            editor = weekly_cards.locator('[data-template-id="standard"]').first.get_by_role('link', name='Vorlageneditor öffnen')
+            page.locator('[aria-controls="output-cafeteria"]').click()
+            cafeteria_card = weekly_cards.first
+            cafeteria_card.locator('details summary').filter(has_text='Frühere Versionen').click()
+            editor = cafeteria_card.locator('[data-template-id="standard"]').get_by_role(
+                'link', name='Vorlageneditor öffnen',
+            )
             target = editor.get_attribute('href')
             editor.focus()
             editor.press('Enter')

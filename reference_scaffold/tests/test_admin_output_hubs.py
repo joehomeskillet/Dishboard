@@ -89,24 +89,34 @@ def test_hubs_use_existing_read_roles_and_link_all_real_targets(hub_app, databas
         assert response.status_code == 200
         assert response.headers['Cache-Control'] == 'no-store'
         html = response.get_data(as_text=True)
-        assert f'href="{path}" class="nav-link active" aria-current="page"' in html
+        assert (
+            f'href="{path}" class="nav-link active" aria-current="page"' in html
+            or f'class="nav-link active" href="{path}" aria-current="page"' in html
+        )
         links = MainLinks(html).links
         screen_links = [link for link in links if link.startswith(('/admin/screens/', '/admin/vorlagen/screens/'))]
         assert len(set(screen_links)) == (2 if path == '/admin/screens' else 6)
         links = [link for link in links if link not in screen_links]
-        expected_links = 10 if path == '/admin/screens' or role != 'Cafeteria.Admin' else 14
         if path == '/admin/vorlagen':
-            expected_links += 3
+            # area tabs (3) + noscript #output-* (2) + both families' print/public/content
+            # links (10/16) + master-data cards (3) [+ admin recipe/drucklayout/details (6)];
+            # admin also repeats each Vorlageneditor href once outside and inside «Frühere Versionen»
+            expected_links = 25 if role == 'Cafeteria.Admin' else 18
+            expected_unique_links = 23 if role == 'Cafeteria.Admin' else 18
             assert {'/admin/grundlagen?kind=foods', '/admin/rezepte', '/admin/kochbuecher'} <= set(links)
+        else:
+            expected_links = 13
+            expected_unique_links = 13
         recipe_editor_links = [link for link in links if link.startswith('/admin/vorlagen/rezepte')]
         expected_recipe_links = (
             ['/admin/vorlagen/rezepte?template=standard&revision=1']
             if path == '/admin/vorlagen' and role == 'Cafeteria.Admin' else []
         )
         assert recipe_editor_links == expected_recipe_links
-        expected_links += len(expected_recipe_links)
-        assert len(links) == expected_links and len(set(links)) == expected_links
+        assert len(links) == expected_links and len(set(links)) == expected_unique_links
         for link in links:
+            if link.startswith('#'):
+                continue
             target = client.get(link)
             assert target.status_code == 200, (link, target.status_code)
             if '/preview/print' in link:
@@ -149,7 +159,7 @@ def test_selected_week_only_changes_saved_week_destinations(hub_app, database_en
     response = client.get('/admin/vorlagen?week=2026-09-07')
     assert response.status_code == 200
     links = MainLinks(response.get_data(as_text=True)).links
-    assert sum('week=2026-09-07' in link for link in links) == 4
+    assert sum('week=2026-09-07' in link for link in links) == 5
     assert '/druck/cafeteria/woche' in links and '/druck/patienten/woche' in links
 
 
@@ -177,7 +187,24 @@ def test_hubs_responsive_keyboard_and_native_week_selection(
                 assert response is not None and response.status == 200
                 expect(page.get_by_role('heading', level=1)).to_have_text(title)
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-                for control in page.locator('main :is(.btn, .form-control)').all():
+                if path == '/admin/screens':
+                    controls = page.locator('main .screen-card .btn').all()
+                else:
+                    controls = []
+                    controls.extend(page.locator('main form :is(.btn, .form-control)').all())
+                    controls.extend(page.locator('main .row-cards .btn, main .screens-grid .btn').all())
+                    families = ('cafeteria', 'patienten') if javascript else ('cafeteria',)
+                    for family in families:
+                        if javascript:
+                            page.locator(f'[aria-controls="output-{family}"]').click()
+                        pane = page.locator('.tab-pane.active') if javascript else page.locator('#output-cafeteria')
+                        pane.locator('details summary').filter(has_text='Frühere Versionen').click()
+                        controls.extend(pane.locator('.output-print-section .btn').all())
+                        controls.extend(pane.locator('.output-layouts-section > .btn-list .btn').all())
+                        controls.extend(pane.locator('.output-content-links .btn').all())
+                        controls.extend(pane.locator('details .btn').all())
+                for control in controls:
+                    control.scroll_into_view_if_needed()
                     box = control.bounding_box()
                     assert box is not None and box['height'] >= 48
                     control.focus()
