@@ -177,6 +177,7 @@ def key_identity():
         {
             'label': identity.label,
             'scopes': list(identity.scopes),
+            'channels': list(identity.channels),
             'expires_at': (
                 identity.expires_at.isoformat() if identity.expires_at is not None else None
             ),

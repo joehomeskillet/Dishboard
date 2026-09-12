@@ -52,6 +52,14 @@ def require_api_scope(scope: str) -> Callable[[Callable[..., Any]], Callable[...
                 return _unauthorized()
             if scope and scope not in identity.scopes:
                 return _insufficient_scope()
+            if scope == 'preview.read' and kwargs.get('channel') not in identity.channels:
+                response = jsonify({
+                    'error': 'insufficient_channel',
+                    'detail': 'Der API-Schlüssel ist für diesen Kanal nicht berechtigt.',
+                })
+                response.status_code = 403
+                response.headers['Cache-Control'] = 'no-store'
+                return response
             g.api_key = identity
             response = make_response(function(*args, **kwargs))
             response.mimetype = 'application/json'

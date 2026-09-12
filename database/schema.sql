@@ -406,6 +406,11 @@ CREATE TABLE IF NOT EXISTS api_keys (
     last_used_at timestamptz,
     revoked_at timestamptz,
     revoked_by bigint REFERENCES users(id),
+    channels text[] NOT NULL CONSTRAINT api_keys_channels_check CHECK (
+        channels = ARRAY['cafeteria']::text[]
+        OR channels = ARRAY['patienten']::text[]
+        OR channels = ARRAY['cafeteria', 'patienten']::text[]
+    ),
     CHECK ((revoked_at IS NULL) = (revoked_by IS NULL))
 );
 
@@ -2555,19 +2560,25 @@ $function$;
 
 CREATE OR REPLACE FUNCTION cafeteria.create_api_key(
     p_actor_id bigint, p_label text, p_key_prefix text, p_key_hash text,
-    p_scopes text[], p_expires_at timestamptz
+    p_scopes text[], p_expires_at timestamptz, p_channels text[]
 )
 RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = pg_catalog, cafeteria, pg_temp
 AS $function$
 DECLARE
     v_public_id uuid;
+    v_now timestamptz := clock_timestamp();
 BEGIN
     PERFORM cafeteria.require_api_key_admin(p_actor_id);
+    IF p_expires_at IS NULL OR NOT isfinite(p_expires_at)
+        OR p_expires_at <= v_now OR p_expires_at > v_now + interval '2160 hours' THEN
+        RAISE EXCEPTION 'Ablaufzeit muss in der Zukunft und innerhalb von 90 Tagen liegen.'
+            USING ERRCODE='22023';
+    END IF;
     INSERT INTO cafeteria.api_keys(
-        label, key_prefix, key_hash, scopes, created_by, expires_at
+        label, key_prefix, key_hash, scopes, channels, created_by, expires_at
     ) VALUES (
-        p_label, p_key_prefix, p_key_hash, p_scopes, p_actor_id, p_expires_at
+        p_label, p_key_prefix, p_key_hash, p_scopes, p_channels, p_actor_id, p_expires_at
     ) RETURNING public_id INTO v_public_id;
     INSERT INTO cafeteria.audit_events(
         actor_user_id, action, entity_type, entity_public_id, details
@@ -2577,6 +2588,7 @@ BEGIN
             'label', p_label,
             'key_prefix', p_key_prefix,
             'scopes', p_scopes,
+            'channels', p_channels,
             'expires_at', p_expires_at
         )
     );
@@ -2623,14 +2635,14 @@ REVOKE ALL ON FUNCTION
     cafeteria.record_menu_review(bigint, bigint, text, bigint, bigint, text, text),
     cafeteria.record_week_context_review(bigint, bigint, text, bigint, text, jsonb),
     cafeteria.require_api_key_admin(bigint),
-    cafeteria.create_api_key(bigint, text, text, text, text[], timestamptz),
+    cafeteria.create_api_key(bigint, text, text, text, text[], timestamptz, text[]),
     cafeteria.revoke_api_key(bigint, uuid)
 FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
 GRANT EXECUTE ON FUNCTION
     cafeteria.workflow_week_context(bigint),
     cafeteria.record_menu_review(bigint, bigint, text, bigint, bigint, text, text),
     cafeteria.record_week_context_review(bigint, bigint, text, bigint, text, jsonb),
-    cafeteria.create_api_key(bigint, text, text, text, text[], timestamptz),
+    cafeteria.create_api_key(bigint, text, text, text, text[], timestamptz, text[]),
     cafeteria.revoke_api_key(bigint, uuid)
 TO cafeteria_app;
 

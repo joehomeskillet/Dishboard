@@ -156,11 +156,11 @@ TO cafeteria_app;
 
 REVOKE EXECUTE ON FUNCTION
     require_api_key_admin(bigint),
-    create_api_key(bigint, text, text, text, text[], timestamptz),
+    create_api_key(bigint, text, text, text, text[], timestamptz, text[]),
     revoke_api_key(bigint, uuid)
 FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
 GRANT EXECUTE ON FUNCTION
-    create_api_key(bigint, text, text, text, text[], timestamptz),
+    create_api_key(bigint, text, text, text, text[], timestamptz, text[]),
     revoke_api_key(bigint, uuid)
 TO cafeteria_app;
 

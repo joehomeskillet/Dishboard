@@ -8,7 +8,7 @@
         <section class="card mb-3" aria-labelledby="api-interfaces-title">
           <div class="card-header"><h2 class="card-title" id="api-interfaces-title">Schnittstellen</h2></div>
           <div class="card-body">
-            <p>Die REST- und FHIR-Schnittstellen sind öffentlich lesbar. Für Vorschau-Endpunkte ist ein API-Schlüssel mit Scope <code>preview.read</code> erforderlich.</p>
+            <p>Veröffentlichte Menüs sind über REST und FHIR öffentlich lesbar. Vorschauen benötigen einen API-Schlüssel mit <code>preview.read</code> und einer Berechtigung für den jeweiligen Kanal.</p>
             <p>Technische Details und Beispiele stehen in der Datei <code>docs/API.md</code>.</p>
             <ul class="list-unstyled mb-0">
               <li><a href="/api/v1/docs" target="_blank" rel="noopener">{{ icon('eye') }}Swagger UI</a></li>
@@ -19,17 +19,17 @@
           </div>
         </section>
         <section class="card mb-3" aria-labelledby="api-status-title" data-api-status>
-          <div class="card-header"><h2 class="card-title" id="api-status-title">Status</h2></div>
+          <div class="card-header"><h2 class="card-title" id="api-status-title">Veröffentlichungen</h2></div>
           <table class="table table-vcenter card-table table-mobile-lg">
             <thead>
-              <tr><th>Kanal</th><th>Publiziert</th><th>Revision</th><th>Woche</th></tr>
+              <tr><th>Kanal</th><th>Veröffentlicht</th><th>Revision</th><th>Woche</th></tr>
             </thead>
             <tbody>
               {% for channel in status.channels %}
               <tr>
                 <td data-label="Kanal">{{ 'Cafeteria' if channel.channel == 'cafeteria' else 'Patienten' }}</td>
-                <td data-label="Publiziert">
-                  {% if channel.published %}{{ status_badge('live', 'Publiziert') }}{% else %}{{ status_badge('incomplete', 'Nicht publiziert') }}{% endif %}
+                <td data-label="Veröffentlicht">
+                  {% if channel.published %}{{ status_badge('live', 'Veröffentlicht') }}{% else %}{{ status_badge('incomplete', 'Nicht veröffentlicht') }}{% endif %}
                 </td>
                 <td data-label="Revision" class="text-secondary">{{ channel.revision_id or '—' }}</td>
                 <td data-label="Woche" class="text-secondary">
@@ -37,20 +37,18 @@
                 </td>
               </tr>
               {% endfor %}
-              <tr>
-                <td data-label="Kanal">Schema-Version</td>
-                <td data-label="Publiziert" colspan="3" class="text-secondary">{{ schema_version }}</td>
-              </tr>
-              <tr>
-                <td data-label="Kanal">API-Version</td>
-                <td data-label="Publiziert" colspan="3" class="text-secondary">{{ api_version }}</td>
-              </tr>
-              <tr>
-                <td data-label="Kanal">FHIR-Version</td>
-                <td data-label="Publiziert" colspan="3" class="text-secondary">{{ fhir_version }}</td>
-              </tr>
             </tbody>
           </table>
+        </section>
+        <section class="card mb-3" aria-labelledby="api-versions-title">
+          <div class="card-header"><h2 class="card-title" id="api-versions-title">Technische Versionen</h2></div>
+          <div class="card-body">
+            <dl class="row mb-0">
+              <dt class="col-sm-4">Schema-Version</dt><dd class="col-sm-8">{{ schema_version }}</dd>
+              <dt class="col-sm-4">API-Version</dt><dd class="col-sm-8">{{ api_version }}</dd>
+              <dt class="col-sm-4">FHIR-Version</dt><dd class="col-sm-8">{{ fhir_version }}</dd>
+            </dl>
+          </div>
         </section>
         <section class="card mb-3" aria-labelledby="api-key-create-title">
           <form method="post" action="{{ url_for('admin.api_key_create') }}" id="api-key-create" class="admin-form">
@@ -63,12 +61,18 @@
                   {{ field('label', 'Bezeichnung', values.label, id='api-key-label', required=true) }}
                 </div>
                 <div class="col-12 col-sm-5 col-lg-3">
-                  <label class="form-label" for="api-key-expires">Läuft ab<span class="form-label-description">optional</span></label>
-                  <input class="form-control" id="api-key-expires" name="expires_at" type="date" value="{{ values.expires_at }}">
+                  <label class="form-label required" for="api-key-expires">Läuft ab</label>
+                  <input class="form-control" id="api-key-expires" name="expires_at" type="date" value="{{ values.expires_at }}" min="{{ min_expiry }}" max="{{ max_expiry }}" required aria-describedby="api-key-expiry-help">
+                  <p id="api-key-expiry-help" class="form-hint">Vorschlag: 30 Tage. Höchstens 90 Tage gültig; Ablauf am gewählten Tag um 23:59:59 Uhr (Europe/Zurich).</p>
                 </div>
                 <div class="col-12">
                   {{ check('scopes', 'Vorschau lesen (preview.read)', value='preview.read', checked=values.scopes_preview, id='api-key-scope-preview') }}
                 </div>
+                <fieldset class="col-12">
+                  <legend class="form-label">Kanäle (mindestens einen auswählen)</legend>
+                  {{ check('channels', 'Cafeteria', value='cafeteria', checked=values.channel_cafeteria, id='api-key-channel-cafeteria') }}
+                  {{ check('channels', 'Patienten', value='patienten', checked=values.channel_patienten, id='api-key-channel-patienten') }}
+                </fieldset>
               </div>
             </div>
             <div class="card-footer d-flex">
@@ -87,7 +91,7 @@
           <table class="table table-vcenter card-table table-mobile-lg" data-api-keys>
             <thead>
               <tr>
-                <th>Bezeichnung</th><th>Präfix</th><th>Scopes</th><th>Erstellt</th><th>Läuft ab</th>
+                <th>Bezeichnung</th><th>Präfix</th><th>Scopes / Kanäle</th><th>Erstellt</th><th>Läuft ab</th>
                 <th>Zuletzt verwendet</th><th>Status</th><th>Aktionen</th>
               </tr>
             </thead>
@@ -97,16 +101,17 @@
               <tr data-key-id="{{ key.public_id }}" data-key-state="{{ key.state }}">
                 <td data-label="Bezeichnung">{{ key.label }}</td>
                 <td data-label="Präfix"><code class="text-reset">{{ key.key_prefix }}…</code></td>
-                <td data-label="Scopes">
+                <td data-label="Scopes / Kanäle">
                   <ul class="list-inline mb-0">
                     {% for scope in key.scopes %}<li class="list-inline-item badge bg-secondary-lt">{{ scope }}</li>{% endfor %}
                   </ul>
+                  <div>{% for channel in key.channels %}{{ 'Cafeteria' if channel == 'cafeteria' else 'Patienten' }}{% if not loop.last %}, {% endif %}{% endfor %}</div>
                 </td>
                 <td data-label="Erstellt">
                   <span class="text-secondary">{{ key.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
                   <div class="text-secondary small">von {{ key.created_by_name }}</div>
                 </td>
-                <td data-label="Läuft ab" class="text-secondary">{% if key.expires_at %}{{ key.expires_at.strftime('%d.%m.%Y') }}{% else %}—{% endif %}</td>
+                <td data-label="Läuft ab" class="text-secondary">{% if key.expires_at %}{{ key.expires_at.strftime('%d.%m.%Y') }}{% else %}Bestandsschlüssel ohne Ablaufdatum{% endif %}</td>
                 <td data-label="Zuletzt verwendet" class="text-secondary">{% if key.last_used_at %}{{ key.last_used_at.strftime('%d.%m.%Y %H:%M') }}{% else %}—{% endif %}</td>
                 <td data-label="Status">
                   {% if key.state == 'active' %}{{ status_badge('live', 'Aktiv') }}

@@ -462,6 +462,7 @@ curl -sS -H 'Authorization: Bearer dbk_…' https://dishboard.joelduss.xyz/api/v
 {
   "label": "MCP lokal",
   "scopes": ["preview.read"],
+  "channels": ["cafeteria", "patienten"],
   "expires_at": null,
   "public_id": "3f1c0a2e-7b44-4c1a-9d2e-8a0b1c2d3e4f"
 }
@@ -1211,6 +1212,15 @@ Klartext `dbk_` plus 32 Zeichen aus `secrets.token_urlsafe(24)`. Regex `^dbk_[A-
 
 Scope v1: genau `preview.read`.
 
+Seit Schema 30 benötigen neue Schlüssel explizite Kanalrechte für `cafeteria`,
+`patienten` oder beide. Wochenlisten und Draft-Vorschauen prüfen diese Rechte
+zusätzlich zu `preview.read`; ein nicht erlaubter Kanal ergibt HTTP 403
+(`insufficient_channel`). `/api/v1/keys/me` liefert die Kanalrechte in `channels`.
+Bestehende Schlüssel behalten beide bisherigen Kanäle und ihr Ablaufdatum.
+Bestehende Schlüssel ohne Ablauf bleiben gültig und werden als Bestand markiert.
+Neue Schlüssel benötigen ein Ablaufdatum in der Zukunft, maximal 90 Tage entfernt;
+die Oberfläche schlägt 30 Tage vor. Öffentliche Veröffentlichungen bleiben öffentlich.
+
 ### Erstellen und Widerrufen
 
 Verwaltung unter `/admin/api` (nur `Cafeteria.Admin`). Query-Parameter auf dem GET ergeben 400.
@@ -1218,7 +1228,7 @@ Verwaltung unter `/admin/api` (nur `Cafeteria.Admin`). Query-Parameter auf dem G
 | Route | Methode | Verhalten |
 |---|---|---|
 | `/admin/api` | `GET` | Übersicht, Status, Schlüsselliste; Klartext aus der Session genau einmal |
-| `/admin/api/keys` | `POST` | Formular `_csrf`, `label`, `scopes` (nur `preview.read`), `expires_at` (leer oder `YYYY-MM-DD`, wird 23:59:59 Europe/Zurich); Erfolg 303, Klartext in der Session |
+| `/admin/api/keys` | `POST` | Formular `_csrf`, `label`, `scopes` (nur `preview.read`), `channels` (einmal pro ausgewähltem Kanal), `expires_at` (Pflicht, `YYYY-MM-DD`, 23:59:59 Europe/Zurich innerhalb von 90 Tagen); Erfolg 303, Klartext einmalig in der Session |
 | `/admin/api/keys/<public_id>/revoke` | `POST` | Formular `_csrf`; 303; bereits widerrufen → Flash «Schlüssel war bereits widerrufen.» |
 
 ### Bearer-Header

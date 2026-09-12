@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import re
-from datetime import date, datetime
+from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from flask import abort, current_app, flash, redirect, render_template, request, session, url_for
 from werkzeug.wrappers import Response
 
 from ..api.v1_routes import status_payload
-from ..api_keys import ApiKeyValidationError, create_api_key, list_api_keys, revoke_api_key
+from ..api_keys import (
+    API_KEY_MAX_LIFETIME, ApiKeyValidationError, create_api_key, list_api_keys, revoke_api_key,
+)
 from ..db import SCHEMA_VERSION
 from ..roles import require_capability
 from ..security import csrf_token, validate_csrf
@@ -16,7 +18,7 @@ from .rendering import _template_context
 from .routes import _actor_id, bp
 
 _ISO = re.compile(r'^\d{4}-\d{2}-\d{2}$')
-_CREATE_FIELDS = frozenset({'_csrf', 'label', 'scopes', 'expires_at'})
+_CREATE_FIELDS = frozenset({'_csrf', 'label', 'scopes', 'expires_at', 'channels'})
 # An unchecked scope checkbox is simply absent from the form; the store reports the validation error.
 _CREATE_REQUIRED = frozenset({'_csrf', 'label', 'expires_at'})
 
@@ -43,6 +45,8 @@ def _form_values() -> dict[str, str | bool]:
         'label': request.form.get('label', ''),
         'expires_at': request.form.get('expires_at', ''),
         'scopes_preview': 'preview.read' in request.form.getlist('scopes'),
+        'channel_cafeteria': 'cafeteria' in request.form.getlist('channels'),
+        'channel_patienten': 'patienten' in request.form.getlist('channels'),
     }
 
 
@@ -56,6 +60,10 @@ def _render_api(
         keys = list_api_keys(_db())
     except PermissionError:
         abort(403)
+    today = datetime.now(ZoneInfo('Europe/Zurich')).date()
+    max_date = (datetime.now(UTC) + API_KEY_MAX_LIFETIME).astimezone(
+        ZoneInfo('Europe/Zurich'),
+    ).date() - timedelta(days=1)
     return render_template(
         'admin/api.html',
         family='cafeteria',
@@ -68,7 +76,12 @@ def _render_api(
         csrf=csrf_token(),
         error=error,
         new_key=new_key,
-        values=values if values is not None else {'label': '', 'expires_at': '', 'scopes_preview': False},
+        min_expiry=today.isoformat(),
+        max_expiry=max_date.isoformat(),
+        values=values if values is not None else {
+            'label': '', 'expires_at': (today + timedelta(days=30)).isoformat(),
+            'scopes_preview': False, 'channel_cafeteria': False, 'channel_patienten': False,
+        },
         **_template_context(),
     )
 
@@ -91,6 +104,8 @@ def api_key_create() -> Response | tuple[str, int]:
     submitted = set(request.form)
     if not _CREATE_REQUIRED <= submitted <= _CREATE_FIELDS:
         abort(400, description='Formularfelder sind ungültig.')
+    if any(len(request.form.getlist(name)) != 1 for name in submitted - {'channels'}):
+        abort(400, description='Formularfelder dürfen nicht mehrfach angegeben werden.')
     values = _form_values()
     try:
         record, plaintext = create_api_key(
@@ -98,6 +113,7 @@ def api_key_create() -> Response | tuple[str, int]:
             actor_id=_actor_id(),
             label=request.form.get('label', ''),
             scopes=request.form.getlist('scopes'),
+            channels=request.form.getlist('channels'),
             expires_at=_parse_expires_at(request.form.get('expires_at', '')),
         )
     except PermissionError:
@@ -114,7 +130,7 @@ def api_key_revoke(public_id: str) -> Response:
     if request.args:
         abort(400, description='Formularparameter gehören in das Formular.')
     validate_csrf(request.form.get('_csrf'))
-    if set(request.form) != {'_csrf'}:
+    if set(request.form) != {'_csrf'} or len(request.form.getlist('_csrf')) != 1:
         abort(400, description='Formularfelder sind ungültig.')
     try:
         revoked = revoke_api_key(_db(), actor_id=_actor_id(), public_id=public_id)
