@@ -5490,6 +5490,2520 @@
           ]
         }
       }
+    },
+    {
+      "id": "MP-UI-DENSITY-INVENTORY",
+      "title": "Aktuelles vollständiges UI-Inventar und Dichtebefunde",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "research",
+      "status": "IN_PROGRESS",
+      "depends_on": [],
+      "existing_wp_id": "wp-3dde00c6c96c",
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "docs/superpowers/backlog-0909/ui-route-matrix.json",
+        "docs/superpowers/backlog-0909/ui-before-manifest.json",
+        "reference_scaffold/tests/test_ui_route_inventory.py",
+        "reference_scaffold/tests/test_ui_inventory_capture.py"
+      ],
+      "task": "Alle tatsächlich registrierten UI-Routen, Direktlinks, Unteransichten, Rollen und Fehlerklassen abgleichen; aktuelle Quellen/Schema statt alter 116-Routen-Metadaten erfassen. Vorherbelege synthetisch und ohne fremde Baselines.",
+      "acceptance_criteria": [
+        "A01 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A23 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M01, M20 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "docs/superpowers/backlog-0909/ui-route-matrix.json",
+        "docs/superpowers/backlog-0909/ui-before-manifest.json"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "docs/superpowers/backlog-0909/ui-route-matrix.json",
+        "docs/superpowers/backlog-0909/ui-before-manifest.json",
+        "reference_scaffold/tests/test_ui_route_inventory.py",
+        "reference_scaffold/tests/test_ui_inventory_capture.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_route_inventory.py tests/test_ui_inventory_capture.py",
+          "assertions": [
+            "Alle tatsächlich registrierten UI-Routen, Direktlinks, Unteransichten, Rollen und Fehlerklassen abgleichen; aktuelle Quellen/Schema statt alter 116-Routen-Metadaten erfassen. Vorherbelege synthetisch und ohne fremde Baselines.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M01",
+        "M20"
+      ],
+      "density_acceptance": [
+        "A01",
+        "A23"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-MANIFEST",
+      "title": "Ein zentrales Dichtemanifest und verbindliche Agentenregeln",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "IN_PROGRESS",
+      "depends_on": [],
+      "existing_wp_id": "wp-21d6454513ab",
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "AGENTS.md",
+        "CLAUDE.md"
+      ],
+      "task": "Bestehendes Manifest mit R01-R10, allen zwanzig Strukturmustern samt Interaktionen und A01-A24 konsolidieren. Widersprüche an ursprünglicher Stelle auflösen; Tokens, Fach-/Sicherheitsverträge bewahren.",
+      "acceptance_criteria": [
+        "A01 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A24 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M01-M20 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "AGENTS.md",
+        "CLAUDE.md"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "AGENTS.md",
+        "CLAUDE.md"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "documentation",
+          "command": "rtk git diff --check",
+          "assertions": [
+            "Bestehendes Manifest mit R01-R10, allen zwanzig Strukturmustern samt Interaktionen und A01-A24 konsolidieren. Widersprüche an ursprünglicher Stelle auflösen; Tokens, Fach-/Sicherheitsverträge bewahren.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M01-M20"
+      ],
+      "density_acceptance": [
+        "A01",
+        "A24"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-RECIPE",
+      "title": "Kompakter Rezepteditor als erste gemeinsame Referenz",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "IN_PROGRESS",
+      "depends_on": [],
+      "existing_wp_id": "wp-820be0c236b8",
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/rezepte_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/_rezepte_fields.html",
+        "reference_scaffold/cafeteria/static/admin-tabler.css",
+        "reference_scaffold/cafeteria/static/recipe-editor.js",
+        "reference_scaffold/tests/test_recipe_browser.py",
+        "reference_scaffold/tests/test_ui_korrektur_recipes_browser.py"
+      ],
+      "task": "Zentrale kompakte Arbeitszeilen erstmalig am Rezept einsetzen: genau eine direkt bearbeitbare Menge/Einheit, sichere Details und Zusammenfassungen, beschriftete native Strukturaktionen, 4/2- und 20/10-Fixtures. Bestehende Speicherung, Indizes, Referenzen, Warnungen, required/formnovalidate und Fehleröffnung erhalten.",
+      "acceptance_criteria": [
+        "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A04 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A05 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A06 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A07 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A08 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A09 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A10 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A11 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A12 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A16 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A17 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A18 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A20 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M02, M03, M04, M05, M06, M19 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/rezepte_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/_rezepte_fields.html",
+        "reference_scaffold/cafeteria/static/admin-tabler.css",
+        "proposed:reference_scaffold/cafeteria/static/recipe-editor.js"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/rezepte_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/_rezepte_fields.html",
+        "reference_scaffold/cafeteria/static/admin-tabler.css",
+        "proposed:reference_scaffold/cafeteria/static/recipe-editor.js",
+        "reference_scaffold/tests/test_recipe_browser.py",
+        "reference_scaffold/tests/test_ui_korrektur_recipes_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_recipe_browser.py tests/test_ui_korrektur_recipes_browser.py",
+          "assertions": [
+            "Zentrale kompakte Arbeitszeilen erstmalig am Rezept einsetzen: genau eine direkt bearbeitbare Menge/Einheit, sichere Details und Zusammenfassungen, beschriftete native Strukturaktionen, 4/2- und 20/10-Fixtures. Bestehende Speicherung, Indizes, Referenzen, Warnungen, required/formnovalidate und Fehleröffnung erhalten.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "MEDIUM",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M02",
+        "M03",
+        "M04",
+        "M05",
+        "M06",
+        "M19"
+      ],
+      "density_acceptance": [
+        "A02",
+        "A04",
+        "A05",
+        "A06",
+        "A07",
+        "A08",
+        "A09",
+        "A10",
+        "A11",
+        "A12",
+        "A16",
+        "A17",
+        "A18",
+        "A20"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-SHARED",
+      "title": "Gemeinsame Zeilen, Details und Aktionsmuster über Verwendungstypen absichern",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-MANIFEST",
+        "MP-UI-DENSITY-RECIPE"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/_macros.html",
+        "reference_scaffold/cafeteria/static/admin-tabler.css",
+        "reference_scaffold/cafeteria/static/admin.js",
+        "reference_scaffold/tests/test_ui_master_components_browser.py",
+        "reference_scaffold/tests/test_ui_reference_form_browser.py"
+      ],
+      "task": "Rezept-Referenz konsumieren und gemeinsame Ursache zentral beheben. Generische Details/Fehler/Fokus und 44px-Aktionsmuster mit bestehenden Makros/Assets; keine zweite Formularimplementierung. Gemeinsame Auswirkungen auf alle Layouttypen prüfen.",
+      "acceptance_criteria": [
+        "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A07 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A09 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A16 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A17 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A18 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A20 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A22 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M01, M03, M05, M19 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/_macros.html",
+        "reference_scaffold/cafeteria/static/admin-tabler.css",
+        "reference_scaffold/cafeteria/static/admin.js"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/_macros.html",
+        "reference_scaffold/cafeteria/static/admin-tabler.css",
+        "reference_scaffold/cafeteria/static/admin.js",
+        "reference_scaffold/tests/test_ui_master_components_browser.py",
+        "reference_scaffold/tests/test_ui_reference_form_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_master_components_browser.py tests/test_ui_reference_form_browser.py",
+          "assertions": [
+            "Rezept-Referenz konsumieren und gemeinsame Ursache zentral beheben. Generische Details/Fehler/Fokus und 44px-Aktionsmuster mit bestehenden Makros/Assets; keine zweite Formularimplementierung. Gemeinsame Auswirkungen auf alle Layouttypen prüfen.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "MEDIUM",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M01",
+        "M03",
+        "M05",
+        "M19"
+      ],
+      "density_acceptance": [
+        "A02",
+        "A07",
+        "A09",
+        "A16",
+        "A17",
+        "A18",
+        "A20",
+        "A22"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-SHELL",
+      "title": "Aufgabenrahmen, dezente Navigation und echte Arbeitsbreite",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-SHARED"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/base_tabler.html",
+        "reference_scaffold/cafeteria/templates/admin/_area_tabs.html",
+        "reference_scaffold/cafeteria/static/admin-tabler.css",
+        "reference_scaffold/tests/test_ui_master_shell_browser.py",
+        "reference_scaffold/tests/test_ui_fullwidth_shell_browser.py"
+      ],
+      "task": "Vier fachliche Haupteinstiege und genau eine Bereichsauswahl. Keine ganze schmale Formularspalte oder zusätzliche Ziertopbar; aktive Navigation dezent von Fokus trennen, volle innere Breite und lange Titel/Zoom ohne Überlauf.",
+      "acceptance_criteria": [
+        "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A03 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A16 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A17 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A18 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A22 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M01 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/base_tabler.html",
+        "reference_scaffold/cafeteria/templates/admin/_area_tabs.html",
+        "reference_scaffold/cafeteria/static/admin-tabler.css"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/base_tabler.html",
+        "reference_scaffold/cafeteria/templates/admin/_area_tabs.html",
+        "reference_scaffold/cafeteria/static/admin-tabler.css",
+        "reference_scaffold/tests/test_ui_master_shell_browser.py",
+        "reference_scaffold/tests/test_ui_fullwidth_shell_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_master_shell_browser.py tests/test_ui_fullwidth_shell_browser.py",
+          "assertions": [
+            "Vier fachliche Haupteinstiege und genau eine Bereichsauswahl. Keine ganze schmale Formularspalte oder zusätzliche Ziertopbar; aktive Navigation dezent von Fokus trennen, volle innere Breite und lange Titel/Zoom ohne Überlauf.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M01"
+      ],
+      "density_acceptance": [
+        "A02",
+        "A03",
+        "A16",
+        "A17",
+        "A18",
+        "A22"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-COMPONENTS",
+      "title": "Bausteinliste, Filter und Allergeneditor verdichten",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-SHARED"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/components.html",
+        "reference_scaffold/cafeteria/templates/admin/component_editor.html",
+        "reference_scaffold/cafeteria/static/admin-components.css",
+        "reference_scaffold/tests/test_ui_korrektur_components_browser.py",
+        "reference_scaffold/tests/test_component_filters_browser.py"
+      ],
+      "task": "Suche plus höchstens zwei häufige Filter; aktive Zusatzfilter und Reset erkennbar. Nicht ausgewählte Allergene nicht als enthält darstellen, ausgefüllte/fehlerhafte Werte erreichbar. Native POST-/disabled-Semantik unverändert; Änderungen zentraler Bausteine korrekt erklären.",
+      "acceptance_criteria": [
+        "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A03 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A07 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A09 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A10 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A16 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A19 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A20 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M08, M13, M19, M20 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/components.html",
+        "reference_scaffold/cafeteria/templates/admin/component_editor.html",
+        "reference_scaffold/cafeteria/static/admin-components.css"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/components.html",
+        "reference_scaffold/cafeteria/templates/admin/component_editor.html",
+        "reference_scaffold/cafeteria/static/admin-components.css",
+        "reference_scaffold/tests/test_ui_korrektur_components_browser.py",
+        "reference_scaffold/tests/test_component_filters_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_korrektur_components_browser.py tests/test_component_filters_browser.py",
+          "assertions": [
+            "Suche plus höchstens zwei häufige Filter; aktive Zusatzfilter und Reset erkennbar. Nicht ausgewählte Allergene nicht als enthält darstellen, ausgefüllte/fehlerhafte Werte erreichbar. Native POST-/disabled-Semantik unverändert; Änderungen zentraler Bausteine korrekt erklären.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M08",
+        "M13",
+        "M19",
+        "M20"
+      ],
+      "density_acceptance": [
+        "A02",
+        "A03",
+        "A07",
+        "A09",
+        "A10",
+        "A16",
+        "A19",
+        "A20"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-FOUNDATIONS",
+      "title": "Zutaten, Einheiten, Lagerorte und Vokabular kompakt bearbeiten",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-SHARED"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/grundlagen.html",
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_food.html",
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_unit.html",
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_vocabulary.html",
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_location_conflict.html",
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_unavailable.html",
+        "reference_scaffold/cafeteria/static/admin-grundlagen.css",
+        "reference_scaffold/tests/test_ui_korrektur_grundlagen_browser.py"
+      ],
+      "task": "Kernarbeit vor Anlage/Verwaltung; Pflichtlagerort, Nicht-erfasst-Zustände und Quellen erhalten. Alle tatsächlichen Stammdatenunteransichten inklusive Anlage/Konflikt/503 abdecken, optionale Werte ohne Datenverlust öffnen.",
+      "acceptance_criteria": [
+        "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A03 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A07 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A09 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A10 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A19 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A20 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M08, M13, M15, M19, M20 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/grundlagen.html",
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_food.html",
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_unit.html",
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_vocabulary.html",
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_location_conflict.html",
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_unavailable.html",
+        "reference_scaffold/cafeteria/static/admin-grundlagen.css"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/grundlagen.html",
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_food.html",
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_unit.html",
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_vocabulary.html",
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_location_conflict.html",
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_unavailable.html",
+        "reference_scaffold/cafeteria/static/admin-grundlagen.css",
+        "reference_scaffold/tests/test_ui_korrektur_grundlagen_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_korrektur_grundlagen_browser.py",
+          "assertions": [
+            "Kernarbeit vor Anlage/Verwaltung; Pflichtlagerort, Nicht-erfasst-Zustände und Quellen erhalten. Alle tatsächlichen Stammdatenunteransichten inklusive Anlage/Konflikt/503 abdecken, optionale Werte ohne Datenverlust öffnen.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M08",
+        "M13",
+        "M15",
+        "M19",
+        "M20"
+      ],
+      "density_acceptance": [
+        "A02",
+        "A03",
+        "A07",
+        "A09",
+        "A10",
+        "A19",
+        "A20"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-MENUEDITOR",
+      "title": "Menüeditor und gespeicherten Prüfkontext verdichten",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-SHARED"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html",
+        "reference_scaffold/cafeteria/static/admin-menu-editor.css",
+        "reference_scaffold/tests/test_ui_korrektur_editor_browser.py",
+        "reference_scaffold/tests/test_menu_conflict_nojs_browser.py"
+      ],
+      "task": "Breites Hauptformular, schmalerer gespeicherter Prüfkontext, kompakte Zuordnungen und ein dominantes Menü speichern. Beide Cafeteriapreise erhalten, Patienten ohne Preise; native Katalog/Freitext- und signed-context/CAS-Wege unverändert.",
+      "acceptance_criteria": [
+        "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A03 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A07 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A08 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A09 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A10 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A11 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A18 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A20 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M12, M19 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html",
+        "reference_scaffold/cafeteria/static/admin-menu-editor.css"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html",
+        "reference_scaffold/cafeteria/static/admin-menu-editor.css",
+        "reference_scaffold/tests/test_ui_korrektur_editor_browser.py",
+        "reference_scaffold/tests/test_menu_conflict_nojs_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_korrektur_editor_browser.py tests/test_menu_conflict_nojs_browser.py",
+          "assertions": [
+            "Breites Hauptformular, schmalerer gespeicherter Prüfkontext, kompakte Zuordnungen und ein dominantes Menü speichern. Beide Cafeteriapreise erhalten, Patienten ohne Preise; native Katalog/Freitext- und signed-context/CAS-Wege unverändert.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M12",
+        "M19"
+      ],
+      "density_acceptance": [
+        "A02",
+        "A03",
+        "A07",
+        "A08",
+        "A09",
+        "A10",
+        "A11",
+        "A18",
+        "A20"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-LISTS",
+      "title": "Menüsammlung und Wochenwahl stellen Auswahl vor Verwaltung",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-SHARED"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/menu_collection.html",
+        "reference_scaffold/cafeteria/templates/admin/week_management.html",
+        "reference_scaffold/cafeteria/static/admin-menu-collection.css",
+        "reference_scaffold/tests/test_ui_korrektur_menus_browser.py",
+        "reference_scaffold/tests/test_week_management_browser.py"
+      ],
+      "task": "Text und geplanten Eintrag vor Bildern, vorhandene Kartenansicht und KI-Kennzeichnung erhalten. Wochenwahl zuerst; genau ein Anlage-Einstieg, bei Fehler offen. Suche serverweit, echte ISO-Woche/Zeitraum und Kopierwirkung korrekt.",
+      "acceptance_criteria": [
+        "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A03 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A11 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A16 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A19 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M07, M09, M20 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/menu_collection.html",
+        "reference_scaffold/cafeteria/templates/admin/week_management.html",
+        "reference_scaffold/cafeteria/static/admin-menu-collection.css"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/menu_collection.html",
+        "reference_scaffold/cafeteria/templates/admin/week_management.html",
+        "reference_scaffold/cafeteria/static/admin-menu-collection.css",
+        "reference_scaffold/tests/test_ui_korrektur_menus_browser.py",
+        "reference_scaffold/tests/test_week_management_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_korrektur_menus_browser.py tests/test_week_management_browser.py",
+          "assertions": [
+            "Text und geplanten Eintrag vor Bildern, vorhandene Kartenansicht und KI-Kennzeichnung erhalten. Wochenwahl zuerst; genau ein Anlage-Einstieg, bei Fehler offen. Suche serverweit, echte ISO-Woche/Zeitraum und Kopierwirkung korrekt.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M07",
+        "M09",
+        "M20"
+      ],
+      "density_acceptance": [
+        "A02",
+        "A03",
+        "A11",
+        "A16",
+        "A19"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-WEEKS",
+      "title": "Cafeteria- und Patientenraster ohne Verwaltungswand",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-SHARED"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/cafeteria.html",
+        "reference_scaffold/cafeteria/templates/admin/patienten.html",
+        "reference_scaffold/cafeteria/templates/admin/_week_controls.html",
+        "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html",
+        "reference_scaffold/cafeteria/templates/admin/_week_service.html",
+        "reference_scaffold/cafeteria/templates/admin/_week_settings.html",
+        "reference_scaffold/tests/test_ui_korrektur_week_browser.py",
+        "reference_scaffold/tests/test_week_form_rerender_browser.py"
+      ],
+      "task": "Vorhandene korrekte P01-P10-Arbeit prüfen und nur reale Dichtelücken korrigieren. Cafeteria fünf reguläre Tage mit beiden Preisen und Ausnahmen, Patienten sieben Tage Mittag/Abend ohne Preise; Warnung direkt sichtbar, Details lokal und Fehler offen.",
+      "acceptance_criteria": [
+        "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A03 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A11 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A13 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A14 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A16 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A17 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A20 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M10, M11, M19 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/cafeteria.html",
+        "reference_scaffold/cafeteria/templates/admin/patienten.html",
+        "reference_scaffold/cafeteria/templates/admin/_week_controls.html",
+        "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html",
+        "reference_scaffold/cafeteria/templates/admin/_week_service.html",
+        "reference_scaffold/cafeteria/templates/admin/_week_settings.html"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/cafeteria.html",
+        "reference_scaffold/cafeteria/templates/admin/patienten.html",
+        "reference_scaffold/cafeteria/templates/admin/_week_controls.html",
+        "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html",
+        "reference_scaffold/cafeteria/templates/admin/_week_service.html",
+        "reference_scaffold/cafeteria/templates/admin/_week_settings.html",
+        "reference_scaffold/tests/test_ui_korrektur_week_browser.py",
+        "reference_scaffold/tests/test_week_form_rerender_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_korrektur_week_browser.py tests/test_week_form_rerender_browser.py",
+          "assertions": [
+            "Vorhandene korrekte P01-P10-Arbeit prüfen und nur reale Dichtelücken korrigieren. Cafeteria fünf reguläre Tage mit beiden Preisen und Ausnahmen, Patienten sieben Tage Mittag/Abend ohne Preise; Warnung direkt sichtbar, Details lokal und Fehler offen.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M10",
+        "M11",
+        "M19"
+      ],
+      "density_acceptance": [
+        "A02",
+        "A03",
+        "A11",
+        "A13",
+        "A14",
+        "A16",
+        "A17",
+        "A20"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-COOKBOOKS",
+      "title": "Kochbücher und Zuordnungen kompakt und eindeutig",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-SHARED"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/kochbuecher.html",
+        "reference_scaffold/cafeteria/templates/admin/kochbuch_editor.html",
+        "reference_scaffold/tests/test_ui_korrektur_cookbooks_browser.py"
+      ],
+      "task": "Listen-/Editormuster auf Kochbücher und Rezeptzuordnungen übertragen; vorhandene Archive/Sortier-/Speicherwege und Rezeptidentitäten erhalten; lange Namen und Leer-/Fehlerzustände prüfen.",
+      "acceptance_criteria": [
+        "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A03 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A07 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A08 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A09 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A10 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A19 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M03, M05, M18, M19, M20 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/kochbuecher.html",
+        "reference_scaffold/cafeteria/templates/admin/kochbuch_editor.html"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/kochbuecher.html",
+        "reference_scaffold/cafeteria/templates/admin/kochbuch_editor.html",
+        "reference_scaffold/tests/test_ui_korrektur_cookbooks_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_korrektur_cookbooks_browser.py",
+          "assertions": [
+            "Listen-/Editormuster auf Kochbücher und Rezeptzuordnungen übertragen; vorhandene Archive/Sortier-/Speicherwege und Rezeptidentitäten erhalten; lange Namen und Leer-/Fehlerzustände prüfen.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M03",
+        "M05",
+        "M18",
+        "M19",
+        "M20"
+      ],
+      "density_acceptance": [
+        "A02",
+        "A03",
+        "A07",
+        "A08",
+        "A09",
+        "A10",
+        "A19"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-RECIPEPAGES",
+      "title": "Rezeptliste, Revisionen, Skalierung, Bilder und Vorlagen im Gesamtinventar",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-SHARED",
+        "MP-REC-RECIPE-VIEW-PRINT",
+        "MP-REC-MENU-PROPOSAL"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/rezepte.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_revisionen.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_revision.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_scale.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_images.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_conflict.html",
+        "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html",
+        "reference_scaffold/tests/test_ui_korrektur_recipes_browser.py",
+        "reference_scaffold/tests/test_recipe_navigation_browser.py"
+      ],
+      "task": "Feature-WPs zuerst konsumieren: Ansehen/Bearbeiten/Drucken, Rezept/Vorlage/Planungsanschluss. Alle zusätzlichen Rezeptansichten samt archiviertem Objekt/kein gespeicherter Stand/Konflikt prüfen, immutable Revision und Entwurf unterscheiden. Neue Featuredateien bei Freeze ausdrücklich in Lease aufnehmen.",
+      "acceptance_criteria": [
+        "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A03 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A10 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A11 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A15 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A16 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A19 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M07, M14, M18, M19, M20 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/rezepte.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_revisionen.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_revision.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_scale.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_images.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_conflict.html",
+        "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/rezepte.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_revisionen.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_revision.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_scale.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_images.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_conflict.html",
+        "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html",
+        "reference_scaffold/tests/test_ui_korrektur_recipes_browser.py",
+        "reference_scaffold/tests/test_recipe_navigation_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_korrektur_recipes_browser.py tests/test_recipe_navigation_browser.py",
+          "assertions": [
+            "Feature-WPs zuerst konsumieren: Ansehen/Bearbeiten/Drucken, Rezept/Vorlage/Planungsanschluss. Alle zusätzlichen Rezeptansichten samt archiviertem Objekt/kein gespeicherter Stand/Konflikt prüfen, immutable Revision und Entwurf unterscheiden. Neue Featuredateien bei Freeze ausdrücklich in Lease aufnehmen.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M07",
+        "M14",
+        "M18",
+        "M19",
+        "M20"
+      ],
+      "density_acceptance": [
+        "A02",
+        "A03",
+        "A10",
+        "A11",
+        "A15",
+        "A16",
+        "A19"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-PREVIEW",
+      "title": "Gewählte Woche und veröffentlichte Ausgabe getrennt drucken",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-SHARED"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/preview.html",
+        "reference_scaffold/cafeteria/static/admin-preview.css",
+        "reference_scaffold/tests/test_ui_preview_browser.py"
+      ],
+      "task": "Prominente Aktion öffnet exakt gewählte gespeicherte Woche, veröffentlichter Plan eigener Stand. Bestehende Picker/URLs und Preise/Mahlzeiten erhalten; unterschiedliche Wochenfixture und tatsächliche PDF-Ausgabe prüfen.",
+      "acceptance_criteria": [
+        "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A03 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A15 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A16 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A20 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A22 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M14 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/preview.html",
+        "reference_scaffold/cafeteria/static/admin-preview.css"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/preview.html",
+        "reference_scaffold/cafeteria/static/admin-preview.css",
+        "reference_scaffold/tests/test_ui_preview_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_preview_browser.py",
+          "assertions": [
+            "Prominente Aktion öffnet exakt gewählte gespeicherte Woche, veröffentlichter Plan eigener Stand. Bestehende Picker/URLs und Preise/Mahlzeiten erhalten; unterschiedliche Wochenfixture und tatsächliche PDF-Ausgabe prüfen.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M14"
+      ],
+      "density_acceptance": [
+        "A02",
+        "A03",
+        "A15",
+        "A16",
+        "A20",
+        "A22"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-HUBS",
+      "title": "Ausgabehubs und Vorlageinstiege kompakt anschliessen",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-SHARED",
+        "MP-TPL-RECIPE-DISH-ENTRY"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/vorlagen.html",
+        "reference_scaffold/tests/test_ui_output_hubs_browser.py",
+        "reference_scaffold/tests/test_admin_template_catalog_browser.py"
+      ],
+      "task": "Kleinen Rezeptdruck-/Gerichtvorlagen-Hubanschluss konsumieren. Arbeitsauftrag vor Versionsverwaltung, reale Counts/Rechte/503; keine Abhängigkeit von noch fehlendem Einkaufs-PDF oder neuem Screeneditor erzwingen.",
+      "acceptance_criteria": [
+        "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A03 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A15 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A16 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A19 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A22 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M14, M20 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/vorlagen.html"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/vorlagen.html",
+        "reference_scaffold/tests/test_ui_output_hubs_browser.py",
+        "reference_scaffold/tests/test_admin_template_catalog_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_output_hubs_browser.py tests/test_admin_template_catalog_browser.py",
+          "assertions": [
+            "Kleinen Rezeptdruck-/Gerichtvorlagen-Hubanschluss konsumieren. Arbeitsauftrag vor Versionsverwaltung, reale Counts/Rechte/503; keine Abhängigkeit von noch fehlendem Einkaufs-PDF oder neuem Screeneditor erzwingen.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M14",
+        "M20"
+      ],
+      "density_acceptance": [
+        "A02",
+        "A03",
+        "A15",
+        "A16",
+        "A19",
+        "A22"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-PRINT",
+      "title": "Bestehende Drucklayouteditoren auf verständliche Arbeit ausrichten",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-SHARED",
+        "MP-REC-PRINT-TEMPLATE-ENTRY"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/print_template_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/_recipe_template_selection.html",
+        "reference_scaffold/cafeteria/templates/admin/print_template_unavailable.html",
+        "reference_scaffold/cafeteria/templates/admin/recipe_template_error.html",
+        "reference_scaffold/cafeteria/static/print-template-editor.css",
+        "reference_scaffold/tests/test_ui_korrektur_vorlagen_browser.py"
+      ],
+      "task": "Anzeige-/aktive Revision und normale Druckhandlung getrennt. Bestehende Layoutfelder und CAS/CSRF/Previewwege erhalten; keine neue Geometrie oder Renderer-API durch Dichtearbeit.",
+      "acceptance_criteria": [
+        "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A03 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A07 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A09 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A15 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A20 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A22 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M14, M15, M19 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/print_template_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/_recipe_template_selection.html",
+        "reference_scaffold/cafeteria/templates/admin/print_template_unavailable.html",
+        "reference_scaffold/cafeteria/templates/admin/recipe_template_error.html",
+        "reference_scaffold/cafeteria/static/print-template-editor.css"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/print_template_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/_recipe_template_selection.html",
+        "reference_scaffold/cafeteria/templates/admin/print_template_unavailable.html",
+        "reference_scaffold/cafeteria/templates/admin/recipe_template_error.html",
+        "reference_scaffold/cafeteria/static/print-template-editor.css",
+        "reference_scaffold/tests/test_ui_korrektur_vorlagen_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_korrektur_vorlagen_browser.py",
+          "assertions": [
+            "Anzeige-/aktive Revision und normale Druckhandlung getrennt. Bestehende Layoutfelder und CAS/CSRF/Previewwege erhalten; keine neue Geometrie oder Renderer-API durch Dichtearbeit.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M14",
+        "M15",
+        "M19"
+      ],
+      "density_acceptance": [
+        "A02",
+        "A03",
+        "A07",
+        "A09",
+        "A15",
+        "A20",
+        "A22"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-SCREENS",
+      "title": "Bildschirm- und Darstellungsverwaltung kompakt halten",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-SHARED"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/screens.html",
+        "reference_scaffold/cafeteria/templates/admin/display_settings.html",
+        "reference_scaffold/cafeteria/templates/admin/screen_template_assignment.html",
+        "reference_scaffold/cafeteria/templates/admin/screen_template_unavailable.html",
+        "reference_scaffold/tests/test_ui_korrektur_screens_browser.py"
+      ],
+      "task": "Vorhandene Auswahl/Zuweisung/Versionen task-first; echte Zustände/Fehler. Öffentliche Signage und TV-Formate unverändert, keine neue Player- oder Designerfunktion aus Skizzen.",
+      "acceptance_criteria": [
+        "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A03 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A07 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A09 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A16 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A20 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A22 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M14, M15, M20 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/screens.html",
+        "reference_scaffold/cafeteria/templates/admin/display_settings.html",
+        "reference_scaffold/cafeteria/templates/admin/screen_template_assignment.html",
+        "reference_scaffold/cafeteria/templates/admin/screen_template_unavailable.html"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/screens.html",
+        "reference_scaffold/cafeteria/templates/admin/display_settings.html",
+        "reference_scaffold/cafeteria/templates/admin/screen_template_assignment.html",
+        "reference_scaffold/cafeteria/templates/admin/screen_template_unavailable.html",
+        "reference_scaffold/tests/test_ui_korrektur_screens_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_korrektur_screens_browser.py",
+          "assertions": [
+            "Vorhandene Auswahl/Zuweisung/Versionen task-first; echte Zustände/Fehler. Öffentliche Signage und TV-Formate unverändert, keine neue Player- oder Designerfunktion aus Skizzen.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M14",
+        "M15",
+        "M20"
+      ],
+      "density_acceptance": [
+        "A02",
+        "A03",
+        "A07",
+        "A09",
+        "A16",
+        "A20",
+        "A22"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-SETTINGS",
+      "title": "Bereiche und Zeiten mit lokaler gezielter Bearbeitung",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-SHARED"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/operations.html",
+        "reference_scaffold/tests/test_ui_korrektur_ops_browser.py"
+      ],
+      "task": "Kompakte tatsächlich gespeicherte Zusammenfassung pro Bereich/Mahlzeit; leere Zeiten bleiben nicht erfasst. Jedes bestehende Formular behält eigene Speicherung, Originalversionen, Rechte und Fehlerfokus.",
+      "acceptance_criteria": [
+        "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A03 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A07 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A09 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A10 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A20 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M15, M19 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/operations.html"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/operations.html",
+        "reference_scaffold/tests/test_ui_korrektur_ops_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_korrektur_ops_browser.py",
+          "assertions": [
+            "Kompakte tatsächlich gespeicherte Zusammenfassung pro Bereich/Mahlzeit; leere Zeiten bleiben nicht erfasst. Jedes bestehende Formular behält eigene Speicherung, Originalversionen, Rechte und Fehlerfokus.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M15",
+        "M19"
+      ],
+      "density_acceptance": [
+        "A02",
+        "A03",
+        "A07",
+        "A09",
+        "A10",
+        "A20"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-BRANDING",
+      "title": "Gespeicherten Markenentwurf und Vorschau klar darstellen",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-SHARED"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/branding_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/branding_preview.html",
+        "reference_scaffold/tests/test_ui_korrektur_branding_browser.py"
+      ],
+      "task": "Entwurf gespeichert/ungespeichert/aktiv und tatsächlich dargestellte Vorschau unterscheiden. Bestehende Uploads/Farbtokens/Schrift/Versionen erhalten; keine behauptete Livevorschau oder externe Fonts.",
+      "acceptance_criteria": [
+        "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A03 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A07 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A09 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A11 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A18 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A20 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A22 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M16, M19 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/branding_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/branding_preview.html"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/branding_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/branding_preview.html",
+        "reference_scaffold/tests/test_ui_korrektur_branding_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_korrektur_branding_browser.py",
+          "assertions": [
+            "Entwurf gespeichert/ungespeichert/aktiv und tatsächlich dargestellte Vorschau unterscheiden. Bestehende Uploads/Farbtokens/Schrift/Versionen erhalten; keine behauptete Livevorschau oder externe Fonts.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M16",
+        "M19"
+      ],
+      "density_acceptance": [
+        "A02",
+        "A03",
+        "A07",
+        "A09",
+        "A11",
+        "A18",
+        "A20",
+        "A22"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-IMPORTS",
+      "title": "Import, Vorschau, Kopieren und Wochenprüfung auf Aufgabe ausrichten",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-SHARED"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/rezepte_import.html",
+        "reference_scaffold/cafeteria/templates/admin/import_preview.html",
+        "reference_scaffold/cafeteria/templates/admin/copy.html",
+        "reference_scaffold/cafeteria/templates/admin/week_review.html",
+        "reference_scaffold/tests/test_ui_korrektur_tools_browser.py",
+        "reference_scaffold/tests/test_recipe_import_browser.py"
+      ],
+      "task": "Datei/Prüfergebnis eindeutig zusammenhalten; keine alten Resultate als aktuelle darstellen. Fachfehler verständlich, technische Rohdaten nachgeordnet; Import-/Copy-/Review-Reihenfolge unverändert, keine produktiven Schreibtests.",
+      "acceptance_criteria": [
+        "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A03 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A07 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A09 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A10 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A12 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A19 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A20 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M17, M19, M20 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/rezepte_import.html",
+        "reference_scaffold/cafeteria/templates/admin/import_preview.html",
+        "reference_scaffold/cafeteria/templates/admin/copy.html",
+        "reference_scaffold/cafeteria/templates/admin/week_review.html"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/rezepte_import.html",
+        "reference_scaffold/cafeteria/templates/admin/import_preview.html",
+        "reference_scaffold/cafeteria/templates/admin/copy.html",
+        "reference_scaffold/cafeteria/templates/admin/week_review.html",
+        "reference_scaffold/tests/test_ui_korrektur_tools_browser.py",
+        "reference_scaffold/tests/test_recipe_import_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_korrektur_tools_browser.py tests/test_recipe_import_browser.py",
+          "assertions": [
+            "Datei/Prüfergebnis eindeutig zusammenhalten; keine alten Resultate als aktuelle darstellen. Fachfehler verständlich, technische Rohdaten nachgeordnet; Import-/Copy-/Review-Reihenfolge unverändert, keine produktiven Schreibtests.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M17",
+        "M19",
+        "M20"
+      ],
+      "density_acceptance": [
+        "A02",
+        "A03",
+        "A07",
+        "A09",
+        "A10",
+        "A12",
+        "A19",
+        "A20"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-USERS",
+      "title": "Benutzer-, Rechte- und Ereignisverwaltung vereinfachen",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-SHARED"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/local_users.html",
+        "reference_scaffold/cafeteria/templates/admin/local_user_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/local_user_create.html",
+        "reference_scaffold/cafeteria/templates/admin/_local_user_forms.html",
+        "reference_scaffold/cafeteria/templates/admin/local_user_events.html",
+        "reference_scaffold/cafeteria/templates/admin/local_user_unavailable.html",
+        "reference_scaffold/cafeteria/templates/admin/access_history.html",
+        "reference_scaffold/tests/test_ui_korrektur_users_browser.py"
+      ],
+      "task": "Kompakte echte Kontolisten, klare Objektaktionen und erreichbare Rechte-/Passwortwege. Separate Schutzbestätigungen erhalten; keine Zugangswerte/PII in Belegen. Rollen und fehlender Zugriff keine Leerstandsfiktion.",
+      "acceptance_criteria": [
+        "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A03 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A07 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A09 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A16 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A19 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A20 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M18, M19, M20 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/local_users.html",
+        "reference_scaffold/cafeteria/templates/admin/local_user_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/local_user_create.html",
+        "reference_scaffold/cafeteria/templates/admin/_local_user_forms.html",
+        "reference_scaffold/cafeteria/templates/admin/local_user_events.html",
+        "reference_scaffold/cafeteria/templates/admin/local_user_unavailable.html",
+        "reference_scaffold/cafeteria/templates/admin/access_history.html"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/local_users.html",
+        "reference_scaffold/cafeteria/templates/admin/local_user_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/local_user_create.html",
+        "reference_scaffold/cafeteria/templates/admin/_local_user_forms.html",
+        "reference_scaffold/cafeteria/templates/admin/local_user_events.html",
+        "reference_scaffold/cafeteria/templates/admin/local_user_unavailable.html",
+        "reference_scaffold/cafeteria/templates/admin/access_history.html",
+        "reference_scaffold/tests/test_ui_korrektur_users_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_korrektur_users_browser.py",
+          "assertions": [
+            "Kompakte echte Kontolisten, klare Objektaktionen und erreichbare Rechte-/Passwortwege. Separate Schutzbestätigungen erhalten; keine Zugangswerte/PII in Belegen. Rollen und fehlender Zugriff keine Leerstandsfiktion.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M18",
+        "M19",
+        "M20"
+      ],
+      "density_acceptance": [
+        "A02",
+        "A03",
+        "A07",
+        "A09",
+        "A16",
+        "A19",
+        "A20"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-API",
+      "title": "Schnittstellenverwaltung ohne technische Informationswand",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-IMPORTS"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/api.html",
+        "reference_scaffold/tests/test_ui_korrektur_tools_browser.py"
+      ],
+      "task": "Vorhandene Kanal-/Ablauf-/Schlüsselaktionen und Anzeigeversionen unverändert; sensible Werte nicht in Zusammenfassungen. Geltungsbereich der API-Schlüssel und Publikationsstände sichtbar, seltene Hilfen öffnen.",
+      "acceptance_criteria": [
+        "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A03 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A07 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A09 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A11 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A16 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A20 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M15, M18, M19, M20 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/api.html"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/api.html",
+        "reference_scaffold/tests/test_ui_korrektur_tools_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_korrektur_tools_browser.py",
+          "assertions": [
+            "Vorhandene Kanal-/Ablauf-/Schlüsselaktionen und Anzeigeversionen unverändert; sensible Werte nicht in Zusammenfassungen. Geltungsbereich der API-Schlüssel und Publikationsstände sichtbar, seltene Hilfen öffnen.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M15",
+        "M18",
+        "M19",
+        "M20"
+      ],
+      "density_acceptance": [
+        "A02",
+        "A03",
+        "A07",
+        "A09",
+        "A11",
+        "A16",
+        "A20"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-REGRESSION",
+      "title": "Alle inventarisierten UI-Seiten tatsächlich bedienen und vergleichen",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "verification",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-INVENTORY",
+        "MP-UI-DENSITY-SHELL",
+        "MP-UI-DENSITY-COMPONENTS",
+        "MP-UI-DENSITY-FOUNDATIONS",
+        "MP-UI-DENSITY-MENUEDITOR",
+        "MP-UI-DENSITY-LISTS",
+        "MP-UI-DENSITY-WEEKS",
+        "MP-UI-DENSITY-COOKBOOKS",
+        "MP-UI-DENSITY-RECIPEPAGES",
+        "MP-UI-DENSITY-PREVIEW",
+        "MP-UI-DENSITY-HUBS",
+        "MP-UI-DENSITY-PRINT",
+        "MP-UI-DENSITY-SCREENS",
+        "MP-UI-DENSITY-SETTINGS",
+        "MP-UI-DENSITY-BRANDING",
+        "MP-UI-DENSITY-IMPORTS",
+        "MP-UI-DENSITY-USERS",
+        "MP-UI-DENSITY-API"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "docs/superpowers/backlog-0909/ui-route-matrix.json",
+        "docs/superpowers/backlog-0909/ui-before-manifest.json",
+        "reference_scaffold/tests/test_ui_inventory_capture.py"
+      ],
+      "task": "Jede Seite 1440x900 und390x844 mit Kernaufgabe, gemeinsame Typen zusätzlich1024/768/1920/2560, reale200%-Zoom/Reflow320/Tastatur. Gleiche Vorher/Nachher-Fixtures, Breite/Höhe/Kern-y/Zeilen/Klicks/Scroll messen. Alle fehlenden Rollen/Zustände einzeln offen, öffentliche/Login/PDF/Signage-Nebenwirkungen prüfen.",
+      "acceptance_criteria": [
+        "A01-A24 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M01-M20 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "docs/superpowers/backlog-0909/ui-route-matrix.json",
+        "docs/superpowers/backlog-0909/ui-before-manifest.json"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "docs/superpowers/backlog-0909/ui-route-matrix.json",
+        "docs/superpowers/backlog-0909/ui-before-manifest.json",
+        "reference_scaffold/tests/test_ui_inventory_capture.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_inventory_capture.py",
+          "assertions": [
+            "Jede Seite 1440x900 und390x844 mit Kernaufgabe, gemeinsame Typen zusätzlich1024/768/1920/2560, reale200%-Zoom/Reflow320/Tastatur. Gleiche Vorher/Nachher-Fixtures, Breite/Höhe/Kern-y/Zeilen/Klicks/Scroll messen. Alle fehlenden Rollen/Zustände einzeln offen, öffentliche/Login/PDF/Signage-Nebenwirkungen prüfen.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M01-M20"
+      ],
+      "density_acceptance": [
+        "A01-A24"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-FUTURE",
+      "title": "Vorhandenes Inventar- und Browsergate gegen neue UI-Lücken ergänzen",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-UI-DENSITY-REGRESSION"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "reference_scaffold/tests/test_ui_route_inventory.py",
+        "reference_scaffold/tests/test_ui_inventory_capture.py",
+        "docs/superpowers/backlog-0909/ui-route-matrix.json"
+      ],
+      "task": "Bestehende Prüfarchitektur erweitern: neue/geänderte Routen benötigen M/R-Zuordnung und wirkliche Zustandsbelege; gemeinsame Änderungen prüfen alle Verwendungstypen. Keine pauschale PASS-Erbschaft oder reine Stilsuch-Abnahme.",
+      "acceptance_criteria": [
+        "A01 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A23 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A24 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M01-M20 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [
+        "docs/superpowers/backlog-0909/ui-route-matrix.json"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/tests/test_ui_route_inventory.py",
+        "reference_scaffold/tests/test_ui_inventory_capture.py",
+        "docs/superpowers/backlog-0909/ui-route-matrix.json"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ui_route_inventory.py tests/test_ui_inventory_capture.py",
+          "assertions": [
+            "Bestehende Prüfarchitektur erweitern: neue/geänderte Routen benötigen M/R-Zuordnung und wirkliche Zustandsbelege; gemeinsame Änderungen prüfen alle Verwendungstypen. Keine pauschale PASS-Erbschaft oder reine Stilsuch-Abnahme.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M01-M20"
+      ],
+      "density_acceptance": [
+        "A01",
+        "A23",
+        "A24"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
+    },
+    {
+      "id": "MP-UI-DENSITY-USABILITY",
+      "title": "Drei technisch unerfahrene Personen beobachten und Abnahme dokumentieren",
+      "requirement_ids": [
+        "UI-003",
+        "QA-001"
+      ],
+      "kind": "external_acceptance",
+      "status": "AWAITING_EXTERNAL",
+      "depends_on": [
+        "MP-UI-DENSITY-REGRESSION"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
+      ],
+      "source_anchors": [
+        "docs/superpowers/backlog-0909/evidence/mp-ui-density-usability.md"
+      ],
+      "task": "Drei reale Personen ohne Wegbeschreibung: Menge ändern, Zutat hinzufügen/verschieben, Schritt bearbeiten, fehlende Angaben finden, speichern plus Planung/Verwaltung/Ausgabe. Je Aufgabe mindestens2/3 erfolgreich; kritische Verwechslung blockiert Nutzerabnahme. Fehlende Teilnehmer ausdrücklich offen, unabhängige Entwicklung fortführen.",
+      "acceptance_criteria": [
+        "A04 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A06 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A08 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A15 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "A17 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
+        "R01-R10 und M01-M20 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
+        "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+      ],
+      "contract_files": [],
+      "wiring_files": [],
+      "owned_files": [
+        "proposed:docs/superpowers/backlog-0909/evidence/mp-ui-density-usability.md"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "deployment/*",
+        "credentials/*",
+        "production/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "documentation",
+          "command": "rtk git diff --check",
+          "assertions": [
+            "Drei reale Personen ohne Wegbeschreibung: Menge ändern, Zutat hinzufügen/verschieben, Schritt bearbeiten, fehlende Angaben finden, speichern plus Planung/Verwaltung/Ausgabe. Je Aufgabe mindestens2/3 erfolgreich; kritische Verwechslung blockiert Nutzerabnahme. Fehlende Teilnehmer ausdrücklich offen, unabhängige Entwicklung fortführen.",
+            "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren."
+          ]
+        }
+      ],
+      "external_inputs": [
+        "Drei reale technisch unerfahrene freiwillige Testpersonen und autorisierte synthetische Testumgebung"
+      ],
+      "risk": "LOW",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "cursor",
+        "grok-build"
+      ],
+      "completion_evidence": [
+        "Eigener Diff/Commit; unabhängiger Reviewer und Sprintgate",
+        "Nachweise pro Route/Rolle/Zustand mit M/R/A-ID und tatsächlichem Viewport/Ergebnis"
+      ],
+      "rollback": "Vorherigen geprüften UI-Commit wieder einsetzen; keine Datenmigration.",
+      "density_rules": [
+        "R01-R10"
+      ],
+      "density_mockups": [
+        "M01-M20"
+      ],
+      "density_acceptance": [
+        "A04",
+        "A06",
+        "A08",
+        "A15",
+        "A17"
+      ],
+      "readiness_conditions": [
+        "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
+        "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
+        "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
+      ]
     }
   ],
   "planning_addendum_2026_09_13": {

@@ -7011,13 +7011,13 @@
         "Externe Rechte/Inputs blockieren nur den abhängigen Ablauf; beauftragte ungeprüfte Draft-Erfassung braucht keine pauschale Küchenfreigabe"
       ],
       "existing_fixture_hunks": [],
-      "id": "MP-REC-PRINT-TEMPLATE-ENTRY",
-      "title": "Rezeptdruckvorlage: aktive Vorlage als Editor-Einstieg und Rückweg zum Rezept",
-      "requirement_ids": [
-        "REC-007"
-      ],
-      "kind": "implementation",
-      "status": "PLANNED",
+    "id": "MP-REC-PRINT-TEMPLATE-ENTRY",
+    "title": "Rezeptdruckvorlage: aktive Vorlage als Editor-Einstieg und Rückweg zum Rezept",
+    "requirement_ids": [
+      "REC-007"
+    ],
+    "kind": "implementation",
+    "status": "IN_PROGRESS",
       "depends_on": [
         "MP-REC-PDF-RELEASE"
       ],

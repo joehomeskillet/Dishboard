@@ -2,17 +2,63 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Tatsächlich offene SDD-Anforderungen in kurze, überprüfbare Lieferungen aufteilen. Erster UI-Sprint verbindet Gerichtvorlagen und Rezepte in beide Richtungen, führt Vorlagen in eine konkrete Tagesplanung und ergänzt Rezeptansicht, Druck sowie Druckvorlagenwahl.
+**Goal:** Alle tatsächlich offenen ursprünglichen und neuen SDD-WPs umsetzen. Der vollständige Dichteauftrag vom 13. September gilt für sämtliche UI-Seiten; der Rezepteditor ist erste Referenz. Gerichtvorlagen und Rezepte werden in beide Richtungen verbunden, Vorlagen einer konkreten Tagesplanung zugeordnet und Rezeptansicht, Druck sowie Druckvorlagenwahl ergänzt. Regelmässige geprüfte Deploys; Tests am Sprintende, danach gezielte Korrektur.
 
-**Architecture:** Die 145 ursprünglichen MP-Verträge bleiben erhalten; sieben neue Pakete ergänzen den aktuellen UI-Auftrag. Dieser Plan ergänzt den tatsächlichen Lieferstand, Abhängigkeiten, fehlende Anschlüsse und die Sprintreihenfolge; er ersetzt keine vorhandenen Writer durch konkurrierende Neuimplementierungen. Gemeinsame SQL- und UI-Verträge haben jeweils genau einen Besitzer.
+**Architecture:** Die 145 ursprünglichen MP-Verträge und sieben geprüften Feature-WPs bleiben erhalten. 24 Dichtepakete ergänzen UI-00 bis UI-09 des neuen Auftrags im bestehenden surfaces-wps.json: insgesamt 176 WPs. Dieser Plan ergänzt Lieferstand, Anschlüsse und Reihenfolge; vorhandene korrekte Implementierungen werden geprüft und konsumiert. Gemeinsame SQL- und UI-Verträge haben jeweils genau einen Besitzer.
 
 **Tech Stack:** Bestehendes Flask/Jinja/Tabler, PostgreSQL 18.6, Redis, Docker Compose und vorhandene Python-/Playwright-Testumgebung. Keine neue Dependency durch diesen Plan.
 
 **Spec:** `docs/superpowers/backlog-0909/{recipes,operations,surfaces}-sdd.md`, zugehörige `*-wps.json`, `execution-contract.md`, `docs/BACKLOG.md`, `docs/design/2026-09-09-unified-ui-design-system.md`, `docs/design/2026-09-12-patientenplan-menueditor-korrektur.md`, [Feature-SDD Gerichtvorlagen, Rezepte und Tagesplanung](../../design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md).
 
-**Baseline:** `2fa44dea36675692bfb8ad4b681dca73dba06737`, `github/main`, Schema 30; letzter belegter Deploy 12. September 2026 um 23:15:29 CEST.
+**Baseline:** Produktivcode/Image auf `2fa44dea36675692bfb8ad4b681dca73dba06737`, Schema 30; live erneut bestätigter Appstart 12. September 2026 um 23:15:29 CEST. Neue Worker starten ausdrücklich auf dem geprüften Planungsfreeze `a420992ae91fd801d0ec43d41038f57bbdd3b261`. `github/main` kann parallel fortschreiten; Root prüft neue Commits vor Integration. Gemeinsamer Haupt-Tree bleibt unangetastet.
 
-**Planungsstatus:** Beide UI-Aufträge vom 13. September 2026 sind in sieben neue Backlog-WPs eingeordnet. Fable 5.1 lieferte den Plan; getrennte GPT-Quellcodeaudits, Korrekturautor und unabhängiger Re-Review ergänzten und prüften die Verträge. Alle fünf Reviewbefunde sind geschlossen. Die Pakete bleiben `PLANNED`; nächster Schritt ist Root-Zuweisung von Vorgängerbelegen, Dateileases, Writer/Reviewer und Testpools auf dieser integrierten Basis.
+**Planungsstatus:** Fable 5.1 lieferte die sieben Feature-WPs; alle fünf anschliessenden Reviewbefunde wurden durch getrennte Autoren geschlossen. Der spätere vollständige Dichteauftrag erweitert diesen Freeze. Manifest, Rezeptreferenz und Druckvorlagen-Einstieg laufen in getrennten Worktrees. Die übrigen Pakete sind geplant; reale Nutzerabnahme wartet auf drei Personen. Aktive Besitzer/Pools stehen im Sitzungsabschnitt von file-leases.json, historische Vorschlagsleases erteilen kein Schreibrecht.
+
+## Dichteauftrag 13. September
+
+Normative Regeln, alle zwanzig Mockups und A01-A24 stehen ausschliesslich im bestehenden [zentralen UI-Manifest](../../design/2026-09-09-unified-ui-design-system.md). Quelle ist der vollständige Nutzeranhang `pasted-text-1.txt` vom 13. September. Dieser Abschnitt plant die Ausführung und begründet keine zweite Stilwelt.
+
+| Paket | Ergebnis | Muster | Vorgänger / Besitzübergabe |
+|---|---|---|---|
+| `MP-UI-DENSITY-INVENTORY` | Aktuelles vollständiges UI-Inventar und Dichtebefunde | M01, M20 | Feste Basis, kein fachlicher Vorgänger |
+| `MP-UI-DENSITY-MANIFEST` | Ein zentrales Dichtemanifest und verbindliche Agentenregeln | M01-M20 | Feste Basis, kein fachlicher Vorgänger |
+| `MP-UI-DENSITY-RECIPE` | Kompakter Rezepteditor als erste gemeinsame Referenz | M02, M03, M04, M05, M06, M19 | Feste Basis, kein fachlicher Vorgänger |
+| `MP-UI-DENSITY-SHARED` | Gemeinsame Zeilen, Details und Aktionsmuster über Verwendungstypen absichern | M01, M03, M05, M19 | MANIFEST, RECIPE |
+| `MP-UI-DENSITY-SHELL` | Aufgabenrahmen, dezente Navigation und echte Arbeitsbreite | M01 | SHARED |
+| `MP-UI-DENSITY-COMPONENTS` | Bausteinliste, Filter und Allergeneditor verdichten | M08, M13, M19, M20 | SHARED |
+| `MP-UI-DENSITY-FOUNDATIONS` | Zutaten, Einheiten, Lagerorte und Vokabular kompakt bearbeiten | M08, M13, M15, M19, M20 | SHARED |
+| `MP-UI-DENSITY-MENUEDITOR` | Menüeditor und gespeicherten Prüfkontext verdichten | M12, M19 | SHARED |
+| `MP-UI-DENSITY-LISTS` | Menüsammlung und Wochenwahl stellen Auswahl vor Verwaltung | M07, M09, M20 | SHARED |
+| `MP-UI-DENSITY-WEEKS` | Cafeteria- und Patientenraster ohne Verwaltungswand | M10, M11, M19 | SHARED |
+| `MP-UI-DENSITY-COOKBOOKS` | Kochbücher und Zuordnungen kompakt und eindeutig | M03, M05, M18, M19, M20 | SHARED |
+| `MP-UI-DENSITY-RECIPEPAGES` | Rezeptliste, Revisionen, Skalierung, Bilder und Vorlagen im Gesamtinventar | M07, M14, M18, M19, M20 | SHARED, MP-REC-RECIPE-VIEW-PRINT, MP-REC-MENU-PROPOSAL |
+| `MP-UI-DENSITY-PREVIEW` | Gewählte Woche und veröffentlichte Ausgabe getrennt drucken | M14 | SHARED |
+| `MP-UI-DENSITY-HUBS` | Ausgabehubs und Vorlageinstiege kompakt anschliessen | M14, M20 | SHARED, MP-TPL-RECIPE-DISH-ENTRY |
+| `MP-UI-DENSITY-PRINT` | Bestehende Drucklayouteditoren auf verständliche Arbeit ausrichten | M14, M15, M19 | SHARED, MP-REC-PRINT-TEMPLATE-ENTRY |
+| `MP-UI-DENSITY-SCREENS` | Bildschirm- und Darstellungsverwaltung kompakt halten | M14, M15, M20 | SHARED |
+| `MP-UI-DENSITY-SETTINGS` | Bereiche und Zeiten mit lokaler gezielter Bearbeitung | M15, M19 | SHARED |
+| `MP-UI-DENSITY-BRANDING` | Gespeicherten Markenentwurf und Vorschau klar darstellen | M16, M19 | SHARED |
+| `MP-UI-DENSITY-IMPORTS` | Import, Vorschau, Kopieren und Wochenprüfung auf Aufgabe ausrichten | M17, M19, M20 | SHARED |
+| `MP-UI-DENSITY-USERS` | Benutzer-, Rechte- und Ereignisverwaltung vereinfachen | M18, M19, M20 | SHARED |
+| `MP-UI-DENSITY-API` | Schnittstellenverwaltung ohne technische Informationswand | M15, M18, M19, M20 | IMPORTS |
+| `MP-UI-DENSITY-REGRESSION` | Alle inventarisierten UI-Seiten tatsächlich bedienen und vergleichen | M01-M20 | INVENTORY, SHELL, COMPONENTS, FOUNDATIONS, MENUEDITOR, LISTS, WEEKS, COOKBOOKS, RECIPEPAGES, PREVIEW, HUBS, PRINT, SCREENS, SETTINGS, BRANDING, IMPORTS, USERS, API |
+| `MP-UI-DENSITY-FUTURE` | Vorhandenes Inventar- und Browsergate gegen neue UI-Lücken ergänzen | M01-M20 | REGRESSION |
+| `MP-UI-DENSITY-USABILITY` | Drei technisch unerfahrene Personen beobachten und Abnahme dokumentieren | M01-M20 | REGRESSION |
+
+Die vollständigen Dateien, Kriterien, Testbefehle, Risiken und externen Eingaben stehen in `surfaces-wps.json`. Regel-/Muster-/Abnahme-IDs beziehen sich auf den neuen Dichteauftrag, nicht auf gleichnamige historische P01/A01-Korrekturen. Geplante Familien werden nach dem echten Inventarabgleich weiter geteilt, falls ein einzelner prüfbarer Diff zu gross wird. Direktseiten, Dialoge, Rollen, Leerzustände und Fehler bleiben Bestandteil ihres Besitzers.
+
+Ausführungsfolge:
+
+1. Manifest und Rezeptreferenz parallel auf a420992; Druckvorlagen-Einstieg in eigener Codex-CLI-Lane. Rezeptmenge/Einheit und native Strukturaktionen zuerst sichtbar liefern. Root pflegt Inventar-/Besitzplan. Kein Warten auf sämtliche späteren Fachketten.
+2. Sprintgate der betroffenen Abläufe und gemeinsame Layouttypen; unabhängiger Review, Fix durch anderen Autor. Manifeste aus sauberem Export, Fast-forward-fähige Integration mit zwischenzeitlichem github/main, Push und Deploy mit Apprevision/Image/Schema/HTTP-Beleg.
+3. Gemeinsame Rezeptmuster einfrieren, zentrale Details/Zeilen weiterverwenden. Danach Shell/Cafeteria/Patienten und unabhängige Baustein-/Stammdaten-/Kochbuchseiten parallel, maximal fünf schwere Jobs.
+4. Featurefolge LINK-READS → VIEW-PRINT → PROPOSAL mit Druckvorlagen-Einstieg und exklusivem Workflow-Binding. Dichtearbeit an denselben Rezept-/Vorlagen-/Menüdateien wartet auf genau deren Freeze; unabhängige Einstellungen, Ausgabe, Benutzer und Import laufen weiter.
+5. Gesamte Route-/Rolle-/Zustandsmatrix tatsächlich bedienen. Alle Seiten 1440×900 und390×844; gemeinsame Typen zusätzlich1024×768,768×1024,1920×1080,2560×1440, echter200%-Zoom und320CSS-Reflow. Gleiche synthetische Vorher/Nachher-Daten; Abweichungen ausdrücklich offen. Physische Nutzer-/Papier-/Playerabnahmen bleiben getrennt.
+6. Ursprüngliche Fachketten dieses Plans weiter umsetzen: Mengen/Einkauf, Kosten/Lager/Bestellung, URL-/Nährwert-/OFF-/Quellenarbeit sowie Screens/IAM. Reale externe Voraussetzungen blockieren ausschliesslich ihre abhängigen WPs. Kein Abschluss nach Manifest oder Rezepteditor allein.
+
+Erste Bestandsabweichung: auf a420992 existieren 82 HTML-Templates, die Matrix enthält nur76 und nennt in Metadaten75. Mindestens fünf Gerichtvorlagen- und fünf Rezeptimport-Batch-Routen fehlen; Schema25/5f5-Angaben sind historisch. Der bestehende `test_ui_route_inventory.py`-Abgleich mit `create_app()` wird erweitert, kein zweites Inventarwerkzeug eingeführt. Ein statischer Fund ist kein Browser-PASS.
+
+Besitzserialisierung: `admin-tabler.css` RECIPE → SHARED → SHELL; `_macros.html`/`admin.js` ausschliesslich SHARED, bevor nachfolgende Seiten die gemeinsame Basis übernehmen. `menu_editor.html` erhält erst den Dichtefreeze, dann MENU-TEMPLATE-BINDING/PROPOSAL und PLAN-PORTIONS. Rezept-/Druckvorlagenlinks PRINT-TEMPLATE-ENTRY → VIEW-PRINT → PRINT/RECIPEPAGES. Tool-Browsertest IMPORTS → API. Inventardateien INVENTORY → REGRESSION → FUTURE. Release-Manifeste gehören ausschliesslich Root; fremde site/*-Arbeit wird erhalten und separat auf Aufnahme geprüft.
 
 ## Global Constraints
 
