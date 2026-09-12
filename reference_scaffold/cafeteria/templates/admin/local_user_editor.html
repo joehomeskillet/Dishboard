@@ -11,28 +11,45 @@
 {{ unavailable(can_mutate) }}
 <section class="card mb-4" aria-labelledby="account-identity"><div class="card-body">
 <h2 class="card-title text-break" id="account-identity">{{ account.display_name }}</h2>
-<p class="text-secondary text-break">{{ account.username }} · Lokales Konto · <strong>{% if account.disabled_at %}Deaktiviert{% else %}Aktiv{% endif %}</strong></p>
-<dl class="row mb-0"><dt class="col-12 col-md-4">Letzte Anmeldung</dt><dd class="col-12 col-md-8">{{ format_time(account.last_login_at) }}</dd><dt class="col-12 col-md-4">Passwort zuletzt geändert</dt><dd class="col-12 col-md-8">{{ format_time(account.password_changed_at) }}</dd></dl>
-{% if account.locked_until and account.locked_until > now %}<p class="mb-0">Anmeldung vorübergehend gesperrt bis {{ format_time(account.locked_until) }}.</p>{% endif %}
+<p class="text-secondary text-break mb-3">{{ account.username }} · Lokales Konto</p>
+<dl class="row mb-0">
+  <dt class="col-12 col-md-4">Kontostatus</dt><dd class="col-12 col-md-8">{% if account.disabled_at %}Deaktiviert{% else %}Aktiv{% endif %}</dd>
+  <dt class="col-12 col-md-4">Lokale Anmeldung</dt><dd class="col-12 col-md-8">{% if account.locked_until and account.locked_until > now %}Vorübergehend gesperrt bis {{ format_time(account.locked_until) }}{% else %}Nicht vorübergehend gesperrt{% endif %}</dd>
+  <dt class="col-12 col-md-4">Letzte lokale Passwortprüfung</dt><dd class="col-12 col-md-8">{{ format_time(account.last_login_at) }}</dd>
+  <dt class="col-12 col-md-4">Passwort zuletzt geändert</dt><dd class="col-12 col-md-8">{{ format_time(account.password_changed_at) }}</dd>
+</dl>
 </div></section>
-<p>Jede Aktion wird gesondert bestätigt. Änderungen an Ihrem eigenen Konto beenden Ihre Anmeldung.</p>
-<form method="post" action="{{ url_for('admin.local_user_change', public_id=account.public_id, action='rollen') }}" class="card mb-4"{% if error_action == 'rollen' %} aria-describedby="user-error-rollen"{% endif %}>
-{{ hidden(csrf,page,status,account) }}<div class="card-header"><h2 class="card-title">Rollen ändern</h2></div><div class="card-body">
-{{ form_error(error if error_action == 'rollen' else '', 'rollen') }}{{ role_fields(role_labels,account.roles,'edit') }}
+<section aria-labelledby="account-actions-title">
+<h2 id="account-actions-title">Benutzerzugriff verwalten</h2>
+<p class="text-secondary">Rollen, Passwort und Kontostatus werden getrennt gespeichert und bestätigt.</p>
+{% set selected_roles = request.form.getlist('roles') if error_action == 'rollen' else account.roles %}
+<details id="roles-action" class="card mb-3"{% if error_action == 'rollen' %} open{% endif %}>
+<summary class="card-header"><div><h3 class="card-title mb-1">Rollen</h3><p class="text-secondary mb-0">Zugriff auf Menüs, Veröffentlichung und Verwaltung.</p></div></summary>
+<form method="post" action="{{ url_for('admin.local_user_change', public_id=account.public_id, action='rollen') }}"{% if error_action == 'rollen' %} aria-describedby="user-error-rollen"{% endif %}>
+{{ hidden(csrf,page,status,account) }}<div class="card-body">
+{{ form_error(error if error_action == 'rollen' else '', 'rollen') }}{{ role_fields(role_labels,selected_roles,'edit') }}
 {{ confirm('roles', 'Rollenänderung für ' ~ account.username ~ ' bestätigen') }}
-<p class="form-hint">Bestehende Anmeldungen werden widerrufen. Mindestens ein weiterer ungesperrter lokaler Admin muss beim Entzug der Adminrolle verbleiben.</p>
-</div><div class="card-footer"><button class="btn btn-primary"{% if not can_mutate %} disabled{% endif %}>Rollen speichern</button></div></form>
-<form method="post" action="{{ url_for('admin.local_user_change', public_id=account.public_id, action='passwort') }}" class="card mb-4"{% if error_action == 'passwort' %} aria-describedby="user-error-passwort"{% endif %}>
-{{ hidden(csrf,page,status,account) }}<div class="card-header"><h2 class="card-title">Passwort zurücksetzen</h2></div><div class="card-body">
+<p class="form-hint">Speichern widerruft bestehende Anmeldungen. Beim Entzug der Adminrolle muss ein weiterer ungesperrter lokaler Admin bestehen bleiben.</p>
+</div><div class="card-footer"><button class="btn btn-primary" type="submit"{% if not can_mutate %} disabled{% endif %}>Benutzer speichern</button></div></form>
+</details>
+<details id="password-action" class="card mb-3"{% if error_action == 'passwort' %} open{% endif %}>
+<summary class="card-header"><div><h3 class="card-title mb-1">Passwort</h3><p class="text-secondary mb-0">Neues Passwort setzen und bestehende Anmeldungen widerrufen.</p></div></summary>
+<form method="post" action="{{ url_for('admin.local_user_change', public_id=account.public_id, action='passwort') }}"{% if error_action == 'passwort' %} aria-describedby="user-error-passwort"{% endif %}>
+{{ hidden(csrf,page,status,account) }}<div class="card-body">
 {{ form_error(error if error_action == 'passwort' else '', 'passwort') }}{{ password('reset') }}
 {{ confirm('password', 'Neues Passwort für ' ~ account.username ~ ' setzen und bestehende Anmeldungen widerrufen') }}
-<p class="form-hint">Ein deaktiviertes Konto bleibt deaktiviert. Rollen und Status ändern sich durch den Passwortreset nicht.</p>
-</div><div class="card-footer"><button class="btn"{% if not can_mutate %} disabled{% endif %}>Passwort zurücksetzen</button></div></form>
+<p class="form-hint">Rollen und Kontostatus bleiben unverändert.</p>
+</div><div class="card-footer"><button class="btn" type="submit"{% if not can_mutate %} disabled{% endif %}>Passwort zurücksetzen</button></div></form>
+</details>
 {% set state_action = 'aktivieren' if account.disabled_at else 'deaktivieren' %}
-<form method="post" action="{{ url_for('admin.local_user_change', public_id=account.public_id, action=state_action) }}" class="card"{% if error_action in ['aktivieren','deaktivieren'] %} aria-describedby="user-error-{{ error_action }}"{% endif %}>
-{{ hidden(csrf,page,status,account) }}<div class="card-header"><h2 class="card-title">Konto {{ 'reaktivieren' if account.disabled_at else 'deaktivieren' }}</h2></div><div class="card-body">
+<details id="state-action" class="card"{% if error_action in ['aktivieren','deaktivieren'] %} open{% endif %}>
+<summary class="card-header"><div><h3 class="card-title mb-1">Kontostatus</h3><p class="text-secondary mb-0">Konto {{ 'reaktivieren' if account.disabled_at else 'deaktivieren' }}.</p></div></summary>
+<form method="post" action="{{ url_for('admin.local_user_change', public_id=account.public_id, action=state_action) }}"{% if error_action in ['aktivieren','deaktivieren'] %} aria-describedby="user-error-{{ error_action }}"{% endif %}>
+{{ hidden(csrf,page,status,account) }}<div class="card-body">
 {{ form_error(error if error_action in ['aktivieren','deaktivieren'] else '', error_action) }}
-<p>{% if account.disabled_at %}Das Konto kann sich wieder mit seinem bestehenden Passwort anmelden. Eine vorübergehende Anmeldesperre bleibt erhalten.{% else %}Die Anmeldung wird gesperrt; bestehende Sitzungen verlieren ihre Berechtigung. Das Konto und seine Ereignisse bleiben erhalten.{% endif %}</p>
+<p>{% if account.disabled_at %}Das Konto kann sich wieder mit seinem bestehenden Passwort anmelden. Eine vorübergehende Anmeldesperre bleibt erhalten.{% else %}Die lokale Anmeldung wird gesperrt. Bestehende Sitzungen verlieren ihre Berechtigung; Konto und Ereignisse bleiben erhalten.{% endif %}</p>
 {{ confirm('state', 'Konto ' ~ account.username ~ ' ausdrücklich ' ~ ('reaktivieren' if account.disabled_at else 'deaktivieren')) }}
-</div><div class="card-footer"><button class="btn{% if not account.disabled_at %} btn-outline-danger{% endif %}"{% if not can_mutate %} disabled{% endif %}>Konto {{ 'reaktivieren' if account.disabled_at else 'deaktivieren' }}</button></div></form>
+</div><div class="card-footer"><button class="btn{% if not account.disabled_at %} btn-outline-danger{% endif %}" type="submit"{% if not can_mutate %} disabled{% endif %}>Konto {{ 'reaktivieren' if account.disabled_at else 'deaktivieren' }}</button></div></form>
+</details>
+</section>
 {% endblock %}

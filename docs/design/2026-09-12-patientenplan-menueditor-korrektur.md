@@ -347,3 +347,11 @@ Die Bildschirmübersicht verwendet eine Bereichsauswahl und zeigt je Ausgabe zue
 Die aktive Web-Wochenvorlage steht vor dem Zuweisungsformular. «Vorlage zuweisen» öffnet das unveränderte signierte Formular bei Bedarf; Konflikt- und Validierungsantworten öffnen den Bereich, erhalten alle sechs Payload-Felder und fokussieren die Fehlerregion. Tagespläne, Bildschirmausgaben und die feste Adresse ohne Bilder bleiben ausserhalb dieser Zuordnung.
 
 Die Darstellungsseite zeigt ihre vier globalen Einstellungen zuerst. `save` bleibt einzige hervorgehobene Hauptaktion; `preview` und `reset` stehen zusammen unter «Weitere Aktionen». Werte und Wirkung von `data-density`, `data-font-size`, `data-content-width` und `data-menu-images` bleiben unverändert. Browserprüfungen decken 1366×768, 1920×1080, 768×1024, 390×844 und 200 Prozent ohne horizontalen Dokumentüberlauf ab.
+
+## 10. Umsetzung Benutzer & Zugriff
+
+Die Benutzerverwaltung überträgt P01–P10 ohne Änderung der IAM-Verträge: Die Kontenliste bleibt Hauptinhalt, das Anlegen eines lokalen Kontos liegt in einem nativen, bei Bedarf geöffneten `<details>`-Bereich. Die eigene Anlegeseite öffnet denselben Bereich; nach Validierungsfehlern bleibt er offen, Textwerte bleiben erhalten und Passwortfelder werden leer neu ausgegeben.
+
+Auf der Kontoseite sind Kontostatus, vorübergehende Sperre, letzte lokale Passwortprüfung und letzter Passwortwechsel mit ihrem jeweiligen Geltungsbereich getrennt. Rollen, Passwort und Aktivierung oder Deaktivierung bleiben eigenständige Formulare mit unveränderten Zielen, Feldnamen, Versionswerten, CSRF-Schutz und ausdrücklichen Bestätigungen. Sie werden als drei klar benannte Bedarfsbereiche dargestellt; nur der fehlerhafte Bereich öffnet automatisch.
+
+Kontoereignisse und Zugriffsverlauf bleiben getrennte Lesesichten. Wiederholte Einleitungstexte wurden in die jeweilige Tabellenüberschrift zusammengezogen. Der Zugriffsverlauf nennt weiterhin ausdrücklich seine Beweisgrenze: Ein protokollierter Entscheid belegt weder eine aktive Sitzung noch eine abgeschlossene Abmeldung.
