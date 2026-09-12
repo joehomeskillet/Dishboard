@@ -41,7 +41,8 @@ def _screenshot(page, name: str) -> None:
 def test_list_first_and_native_create_form_preserves_request_contract(
     live_accounts, browser, javascript,
 ):
-    origin, client, _, _ = live_accounts
+    origin, client, _, issuer = live_accounts
+    _create(issuer, f"ui.list.{'js' if javascript else 'nojs'}")
     cookie_name = client.application.config["SESSION_COOKIE_NAME"]
     cookie = client.get_cookie(cookie_name)
     assert cookie is not None
@@ -166,7 +167,9 @@ def test_security_action_requests_keep_targets_and_fields(live_accounts, browser
             if action == "passwort":
                 page.get_by_label("Neues Passwort", exact=True).fill("Valide!Wolken77Kette")
                 page.get_by_label("Neues Passwort bestätigen", exact=True).fill("Valide!Wolken77Kette")
-            details.get_by_label("bestätigen", exact=False).check()
+            confirmation = details.locator('input[name="confirm"]')
+            expect(confirmation).to_have_count(1)
+            confirmation.check()
             with page.expect_request(lambda request: request.method == "POST") as sent:
                 details.get_by_role("button", name=button, exact=True).click()
             request = sent.value
