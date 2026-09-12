@@ -133,7 +133,8 @@ def test_operations_normal_state_and_viewports(
         response = page.goto(OPS_PATH)
         assert response is not None and response.status == 200
 
-        expect(page.locator('main.admin-main')).to_have_attribute('data-layout', 'narrow')
+        # Full-width shell: the operations page no longer uses the narrow variant (audit group A).
+        expect(page.locator('main.admin-main')).to_have_attribute('data-layout', 'standard')
         _assert_page_container_width(page, width)
 
         expect(page.locator('h1.page-title')).to_have_text('Bereiche & Öffnungszeiten')
