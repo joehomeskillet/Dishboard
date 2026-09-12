@@ -413,3 +413,53 @@ def test_json_copy_rejects_non_serializable_supersedes() -> None:
     with pytest.raises(ValueError, match='Supersedes must be JSON-serializable'):
         _json_copy({'invalid': object()}, error='Supersedes must be JSON-serializable')
 
+
+def test_current_inventory_metadata_and_template_sources_are_consistent() -> None:
+    from cafeteria.db import SCHEMA_VERSION
+
+    matrix = json.loads(MATRIX_PATH.read_bytes())
+    assert matrix['meta']['schema'] == SCHEMA_VERSION
+    for key, rows in (('route_count', 'routes'), ('template_count', 'templates')):
+        assert matrix['meta'][key] == len(matrix[rows])
+    assert matrix['meta']['html_route_count'] == sum(row['visual'] for row in matrix['routes'])
+    assert matrix['historical_inventory']['meta']['schema'] == 25
+    assert not any(block['id'] == 'schema26_27_undeployed' for block in matrix['coverage_blocks'])
+    for row in matrix['templates']:
+        path = ROOT / 'reference_scaffold' / 'cafeteria' / 'templates' / row['path']
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == row['sha256'], row['path']
+
+
+def test_density_inventory_requires_patterns_tasks_states_and_honest_evidence() -> None:
+    matrix = json.loads(MATRIX_PATH.read_bytes())
+    endpoints = {row['endpoint'] for row in matrix['routes']}
+    for row in matrix['routes']:
+        density = row['density']
+        assert density['core_task'] and density['example_url'] and density['fixture_source']
+        assert density['owning_mp'].startswith('MP-')
+        assert density['acceptance'] and density['source_status'] == 'verified_runtime_registration'
+        if row['visual']:
+            assert density['mockups'] and set(density['mockups']) <= {f'M{i:02d}' for i in range(1, 21)}
+            assert {'M01', 'M20'} <= set(density['mockups'])
+            assert set(density['rules']) == {f'R{i:02d}' for i in range(1, 11)}
+            assert set(density['state_evidence']) == set(row['states'])
+            assert set(density['state_evidence'].values()) == {'not_run'}
+            assert density['browser_status'] == density['usability_status'] == 'not_run'
+        else:
+            assert density['browser_status'] == 'not_applicable'
+    for template in matrix['templates']:
+        assert set(template['used_by_endpoints']) <= endpoints
+    required = matrix['common']['density_verification']
+    assert [2560, 1440] in required['required_reference_viewports']
+    assert required['browser_zoom_percent'] == 200 and required['reflow_css_width'] == 320
+    assert required['followup_mp'] == 'MP-UI-DENSITY-REGRESSION'
+
+
+def test_current_inventory_append_preserves_all_historical_capture_content() -> None:
+    manifest = json.loads(MANIFEST_PATH.read_bytes())
+    current = manifest.pop('current_inventory')
+    historical = (json.dumps(manifest, ensure_ascii=False, indent=2) + '\n').encode()
+    assert hashlib.sha256(historical).hexdigest() == current['historical_manifest_sha256']
+    assert len(manifest['captures']) == current['historical_capture_count']
+    assert manifest['meta']['source_commit'] == current['historical_source_commit']
+    assert manifest['meta']['source_commit'] != current['source_commit']
+    assert current['browser_status'] == current['usability_status'] == 'not_run'

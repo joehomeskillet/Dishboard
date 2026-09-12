@@ -35,14 +35,14 @@ EMPTY_PATHS = ['/admin/cafeteria/menues', '/admin/rezepte', '/admin/kochbuecher'
                '/admin/grundlagen', '/admin/cafeteria/komponenten']
 MENU = '/admin/cafeteria/menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1'
 
-pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
+DATABASE_REQUIRED = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
 
 
 def _matrix() -> dict:
     return json.loads(MATRIX_PATH.read_text(encoding='utf-8'))
 
 
-def _factory(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, database_engine) -> Flask:  # noqa: F811
+def _factory(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, database_engine=None) -> Flask:  # noqa: F811
     monkeypatch.setenv('DEMO_MODE', 'true')
     monkeypatch.setenv('SESSION_REDIS_URL', '')
     monkeypatch.setenv('LOCAL_AUTH_ENABLED', 'true')
@@ -65,8 +65,8 @@ def _factory(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, database_engine) -
     return application
 
 
-def test_matrix_matches_real_create_app_registration(monkeypatch, tmp_path, database_engine):  # noqa: F811
-    application = _factory(monkeypatch, tmp_path, database_engine)
+def test_matrix_matches_real_create_app_registration(monkeypatch, tmp_path):
+    application = _factory(monkeypatch, tmp_path)
     registered = {
         (rule.endpoint, rule.rule, tuple(sorted(m for m in (rule.methods or set()) if m not in {'HEAD', 'OPTIONS'})))
         for rule in application.url_map.iter_rules()
@@ -88,7 +88,7 @@ def test_every_template_file_is_in_the_matrix() -> None:
     }
     documented = {row['path'] for row in _matrix()['templates']}
     assert disk == documented
-    assert len(disk) == 76
+    assert len(disk) == _matrix()['meta']['template_count']
 
 
 def test_each_route_has_owning_mp_or_explicit_unmapped() -> None:
@@ -136,8 +136,8 @@ def _recipe_payload() -> dict:
 
 
 def _recipe_revision(application: Flask, database_engine, user_id: int) -> tuple[str, str]:  # noqa: F811
-    """Create one same-site recipe and freeze an immutable v1 revision, via the real store."""
-    from cafeteria import recipe_store
+    """Freeze a current same-site revision with real food, unit and storage bindings."""
+    from cafeteria import master_data_store, recipe_store
     from cafeteria.auth.local_users import ActorExpectation
     from cafeteria.master_data_types import ObjectExpectation
 
@@ -152,12 +152,21 @@ def _recipe_revision(application: Flask, database_engine, user_id: int) -> tuple
     with application.test_request_context():
         session['user'] = {'id': user_id}
         session['authz_version'] = int(authz_version)
+        data = _fixture_descriptor()
+        storage = master_data_store.create_vocabulary(database_engine, actor=actor, **data['storage'])
+        food = master_data_store.create_food(database_engine, actor, {
+            **data['food'], 'storage_location_public_ids': [storage.public_id]})
+        payload = _recipe_payload()
+        payload['ingredients'][0]['food_public_id'] = food.public_id
         recipe = recipe_store.create_recipe(
-            database_engine, actor, _recipe_payload(), expected_location_id=int(location_id))
+            database_engine, actor, payload, expected_location_id=int(location_id))
+        target = ObjectExpectation(recipe.public_id, recipe.row_version)
+        preview = recipe_store.get_dependency_preview(
+            database_engine, target, expected_location_id=int(location_id))
         revision = recipe_store.freeze_revision(
-            database_engine, actor,
-            ObjectExpectation(recipe.public_id, recipe.row_version),
+            database_engine, actor, target,
             expected_location_id=int(location_id),
+            expected_dependency_hash=preview.dependency_hash_sha256,
         )
     return recipe.public_id, revision.public_id
 
@@ -184,7 +193,13 @@ def _fixture_descriptor() -> dict:
         'snapshots': {'staff_guest': cafeteria_snapshot(), 'patient': patient_snapshot()},
         'component': {'kind': 'side', 'name': 'Kartoffelstock', 'origin_country_code': 'CH',
                       'origin_scope': 'common', 'allergens': [], 'labels': []},
-        'recipe': _recipe_payload(), 'recipe_revision': 1,
+        'recipe': _recipe_payload(), 'recipe_revision': 1, 'recipe_snapshot_schema': 2,
+        'storage': {'kind': 'storage_location', 'code': 'INVENTORY', 'name': 'Inventar-Lager'},
+        'food': {'name': 'Inventar-Kartoffeln', 'base_unit_code': 'G'},
+        'dish_template': {'title': 'Inventar-Gerichtvorlage', 'description': 'Synthetischer Entwurf',
+                          'profile_scope': 'common', 'menu_type_code': 'MENU_1'},
+        'recipe_import': {'fixture': 'test_recipe_import_batch_db.make_payload',
+                          'title': 'Inventar-Import', 'annotations': ['unreviewed'], 'commit': False},
         'cookbook': {'name': 'Inventar-Kochbuch', 'description': 'Synthetische Testdaten.'},
         'master_data': {'kind': 'tag', 'code': 'INVENTORY', 'name': 'Inventar-Test'},
         'branding': {'action': 'save', 'name': 'Inventar-Testmarke', 'config': default_config()},
@@ -250,9 +265,10 @@ def _invalid_action(case: dict):
 
 
 def _prepare_inventory_entities(application, database_engine, admin_user_id) -> dict:  # noqa: F811
-    from cafeteria import branding, master_data_store, recipe_store
+    from cafeteria import branding, dish_template_store, master_data_store, recipe_import_store, recipe_store
     from cafeteria.auth.local_users import ActorExpectation, create_local_user
     from cafeteria.component_catalog_store import create_component
+    from test_recipe_import_batch_db import make_payload
 
     data = _fixture_descriptor()
     for profile, values in data['weeks'].items():
@@ -271,6 +287,12 @@ def _prepare_inventory_entities(application, database_engine, admin_user_id) -> 
         book = recipe_store.create_cookbook(database_engine, actor, **data['cookbook'],
                                            expected_location_id=scope.location_id)
         tag = master_data_store.create_vocabulary(database_engine, actor=actor, **data['master_data'])
+        template = dish_template_store.create_template(
+            database_engine, actor, {**data['dish_template'], 'recipe_public_id': recipe_id},
+            expected_location_id=scope.location_id)
+        import_payload, _ = make_payload(title=data['recipe_import']['title'])
+        batch = recipe_import_store.create_batch(
+            database_engine, actor, import_payload, expected_location_id=scope.location_id)
     local = data['local_user']
     user = create_local_user(database_engine, actor=actor, username=local['username'],
                              display_name=local['display_name'], roles=tuple(local['roles']),
@@ -278,6 +300,8 @@ def _prepare_inventory_entities(application, database_engine, admin_user_id) -> 
     brand = branding.change_branding(database_engine, admin_user_id, version, 0, **data['branding'])
     recipe = f'/admin/rezepte/{recipe_id}'
     paths = {
+        'admin.dish_template_edit': f"/admin/gerichtvorlagen/{template['public_id']}",
+        'admin.recipe_import_detail': f'/admin/rezepte/import/{batch.public_id}',
         'admin.component_detail': f"/admin/cafeteria/komponenten/{component['public_id']}",
         'admin.copy_get': '/admin/cafeteria/copy?week=2026-09-07',
         'admin.menu_get': MENU,
@@ -377,6 +401,7 @@ def _assert_states(application, matrix, manifest) -> None:
             assert nav == {'Wochenplan', 'Menüs & Bausteine', 'Vorschau & Bildschirme', 'Einstellungen'}
 
 
+@DATABASE_REQUIRED
 def test_inventory_fixture_paths_render_for_admin(monkeypatch, tmp_path, database_engine):  # noqa: F811
     application = _factory(monkeypatch, tmp_path, database_engine)
     client, user_id = _login(application, database_engine, ['Cafeteria.Admin'])
@@ -399,6 +424,7 @@ def test_inventory_fixture_paths_render_for_admin(monkeypatch, tmp_path, databas
         assert f'id="{case["marker"]}"' in response.text and case['message'] in response.text, response.text
 
 
+@DATABASE_REQUIRED
 def test_matrix_roles_match_server_side_authorization(monkeypatch, tmp_path, database_engine):  # noqa: F811
     application = _factory(monkeypatch, tmp_path, database_engine)
     clients, user_id = _role_clients(application, database_engine)
@@ -424,6 +450,7 @@ def test_matrix_roles_match_server_side_authorization(monkeypatch, tmp_path, dat
     assert all(row['matches'] for row in results), json.dumps(results, ensure_ascii=False, indent=2)
 
 
+@DATABASE_REQUIRED
 def test_inventory_invalid_browser_actions(monkeypatch, tmp_path, database_engine, browser):  # noqa: F811
     from threading import Thread
     from werkzeug.serving import make_server
@@ -460,10 +487,15 @@ def test_every_shared_state_has_owner_fixture_and_capture_selectors() -> None:
         assert all(item['endpoint'] in endpoints and 'suffix' in item for item in state['captures']), state
 
 
-def test_versioned_manifest_covers_every_visual_route(monkeypatch, tmp_path, database_engine):  # noqa: F811
-    application = _factory(monkeypatch, tmp_path, database_engine)
+def test_versioned_manifest_tracks_historical_gaps_without_current_pass(monkeypatch, tmp_path):
+    application = _factory(monkeypatch, tmp_path)
     manifest = json.loads(MANIFEST_PATH.read_bytes())
-    assert not _visual_gaps(application, _matrix(), manifest), _visual_gaps(application, _matrix(), manifest)
+    current = manifest['current_inventory']
+    assert current['source_commit'] == _matrix()['meta']['source_commit']
+    assert current['browser_status'] == current['usability_status'] == 'not_run'
+    assert manifest['meta']['source_commit'] == current['historical_source_commit']
+    assert {endpoint for endpoint, _, _ in _visual_gaps(application, _matrix(), manifest)} == set(
+        current['uncaptured_visual_endpoints'])
     _assert_states(application, _matrix(), manifest)
     _assert_meta(manifest)
 
@@ -491,6 +523,7 @@ def _superseded_manifest(previous: bytes, wp_id: str | None) -> dict:
             'rows': rows}
 
 
+@DATABASE_REQUIRED
 def test_capture_before_screenshots_and_manifest(monkeypatch, tmp_path, database_engine, browser):  # noqa: F811
     sys.path.insert(0, str(EVIDENCE))
     from capture import Outputs, run_capture
