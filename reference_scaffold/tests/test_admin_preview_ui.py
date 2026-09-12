@@ -48,8 +48,9 @@ def test_preview_preserves_saved_week_and_uses_readable_responsive_grid(
         }])
         page = context.new_page()
         for state, translated in (
-            ('ready', 'Bereit'), ('published', 'Publiziert'),
-            ('archived', 'Archiviert'), ('draft', 'Entwurf'),
+            ('ready', 'Nicht veröffentlicht · Bereit'), ('published', 'Veröffentlicht'),
+            ('archived', 'Nicht veröffentlicht · Archiviert'),
+            ('draft', 'Nicht veröffentlicht · Entwurf'),
         ):
             with admin_engine.begin() as connection:
                 connection.execute(
@@ -60,7 +61,7 @@ def test_preview_preserves_saved_week_and_uses_readable_responsive_grid(
             assert response.headers['cache-control'] == 'no-store'
             assert page.locator('[data-preview]').get_attribute('data-workflow-state') == state
             expect(page.locator('.preview-saved')).to_have_text(
-                f'Zuletzt gespeicherter Stand · {translated}'
+                f'Veröffentlichungsstand dieser Woche: {translated}'
             )
             assert page.locator('.preview-option h5').all_text_contents() == [
                 option['title'] for option in options
