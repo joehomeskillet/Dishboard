@@ -34,7 +34,7 @@
           <h2 class="card-title">{{ choice.name }}</h2>
           <p>{% if choice.show_menu_images %}Menübilder ergänzen die vollständigen Menütexte.{% else %}Alle Menütexte und Angaben bleiben sichtbar, ohne Fotoflächen.{% endif %}</p>
           <label class="form-check screen-choice-control py-3"><input class="form-check-input" type="radio" name="template_id" value="{{ choice.id }}" {% if values.template_id == choice.id %}checked{% endif %} required><span class="form-check-label">{{ choice.name }} auswählen</span></label>
-          <a class="btn mt-auto" href="{{ url_for('admin.screen_template_preview', family=family, template_id=choice.id) }}" aria-label="{{ choice.name }} prüfen" data-bs-toggle="tooltip" data-bs-title="{{ choice.name }} prüfen">{{ icon('eye') }}{{ choice.name }} prüfen</a>
+          <a class="btn mt-auto" href="{{ url_for('admin.screen_template_preview', family=family, template_id=choice.id) }}" aria-label="{{ choice.name }} prüfen" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ choice.name }} prüfen">{{ icon('eye') }}{{ choice.name }} prüfen</a>
         </div>
       </article>
       {% endfor %}
