@@ -1,7 +1,7 @@
 """Browser test suite for MP-UI-BRAND-OPS brand and operations settings pages.
 
 Verifies admin.branding_editor, admin.branding_preview and admin.operations_settings
-in matrix states: normal viewports, narrow 960 layout, headers, preview labelling,
+in matrix states: normal viewports, full-width layout, headers, preview labelling,
 vocabulary, 401/403, keyboard, zoom 200 %, contrast and no document overflow.
 """
 from __future__ import annotations
@@ -88,20 +88,21 @@ def test_brand_editor_normal_state_and_viewports(
         response = page.goto(BRAND_PATH)
         assert response is not None and response.status == 200
 
-        expect(page.locator('main.admin-main')).to_have_attribute('data-layout', 'narrow')
+        expect(page.locator('main.admin-main')).to_have_attribute('data-layout', 'standard')
         _assert_page_container_width(page, width)
 
         expect(page.locator('h1.page-title')).to_have_text('Erscheinungsbild')
         expect(page.locator('.page-header-subtitle')).to_contain_text('Logo, Farben und Schrift')
         expect(page.locator('.admin-page-header .btn-list')).to_have_count(0)
 
-        expect(page.locator('.brand-status')).to_contain_text('Aktuelles Design:')
+        expect(page.get_by_role('heading', name='Veröffentlichte Version', exact=True)).to_be_visible()
+        expect(page.locator('main .btn-primary:visible')).to_have_count(1)
         expect(page.locator('.admin-area-tabs a[aria-current="page"]')).to_have_text('Erscheinungsbild')
         expect(page.get_by_role('heading', name='Gespeicherte Vorschau · Version 1', exact=True)).to_be_visible()
         expect(page.get_by_text('Live-Vorschau', exact=False)).to_have_count(0)
         expect(page.locator('.brand-color-swatch')).to_have_count(4)
         expect(page.locator('iframe.brand-preview-frame')).to_have_count(1)
-        expect(page.locator('details.brand-history-card summary')).to_contain_text('Frühere Versionen')
+        expect(page.locator('details.brand-history-card summary')).to_contain_text('Weitere Aktionen')
 
         _assert_no_overflow_and_min_targets(page)
         page.screenshot(path=str(tmp_path / f'brand-ops-editor-{width}x{height}.png'), full_page=True)

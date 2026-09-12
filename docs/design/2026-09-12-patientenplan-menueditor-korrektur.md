@@ -316,3 +316,9 @@ Beide Formulare behalten ihre bisherigen POST-Ziele, CSRF-/Kontextfelder,
 `tests/test_ui_korrektur_cookbooks_browser.py` prüft beide Payloads mit und ohne
 JavaScript sowie volle Breite und fehlenden Seitenüberlauf bei 1366×768,
 1920×1080, 768×1024, 390×844 und dem 200-%-Äquivalent 720×450.
+
+## Umsetzung Erscheinungsbild
+
+Der Editor für das Erscheinungsbild folgt derselben Aktionshierarchie: «Entwurf speichern & Vorschau» ist die einzige hervorgehobene Hauptaktion. Die Aktivierung steht nachgelagert im Abschnitt «Veröffentlichte Version» und bezieht sich ausdrücklich auf den ausgewählten gespeicherten Stand. Aktive Version, ausgewählter Stand, Entwurf und Änderungszeit werden getrennt benannt.
+
+Versionsauswahl, Übernahme eines früheren Stands und Standardentwurf stehen unter «Weitere Aktionen». Vorhandene POST-Ziele, Payloads, CSRF-, Versions-, Upload-, Aktivierungs-, Wiederherstellungs- und Zurücksetzungsverträge bleiben unverändert und ohne JavaScript bedienbar. Editor und eigenständige Vorschau verwenden die volle verfügbare Breite; die Vorschau enthält keine Attrappen-Schaltfläche.

@@ -13,17 +13,6 @@
   font-family: var(--sh-font);
 }
 
-.brand-accent {
-  color: var(--app-info);
-  font-weight: 700;
-}
-
-.brand-status {
-  color: var(--app-primary);
-  background: var(--app-primary-soft);
-  border: 1px solid var(--app-primary);
-}
-
 .brand-settings-grid .card-footer .btn-primary {
   min-height: var(--app-control-min-height);
 }
@@ -59,6 +48,22 @@
   color: var(--app-text-muted);
 }
 
+.brand-preview-swatch {
+  display: inline-block;
+  width: var(--app-space-4);
+  height: var(--app-space-4);
+  border: 1px solid currentColor;
+  border-radius: var(--app-radius-control);
+}
+
+.brand-preview-swatch-primary {
+  background: var(--sh-primary);
+}
+
+.brand-preview-swatch-accent {
+  background: var(--sh-secondary);
+}
+
 .brand-preview-example .card-title {
   font-family: var(--app-font-heading);
 }
@@ -71,4 +76,5 @@
   .brand-preview-frame {
     height: 22rem;
   }
+
 }
