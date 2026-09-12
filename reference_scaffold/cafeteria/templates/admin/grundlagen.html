@@ -32,12 +32,12 @@
 {% endif %}
 {% endmacro %}
 {% block content %}
-{% set singular = {'zutaten': 'Zutat', 'einheiten': 'Einheit', 'kategorien': 'Kategorie', 'tags': 'Tag', 'lagerorte': 'Lagerort'} %}
+{% set singular = {'zutaten': 'Zutat', 'einheiten': 'Einheit', 'kategorien': 'Kategorie', 'tags': 'Kennzeichnung', 'lagerorte': 'Lagerort'} %}
 {% if kind == 'lagerorte' %}<p class="text-secondary">Kein Bestand erfasst. Lagerorte ordnen Zutaten zu; Bestandsbuchungen sind hier nicht verfügbar.</p>{% endif %}
 <nav class="mb-3" aria-label="Stammdatenbereiche"><ul class="nav nav-pills">
-{% for key, label in kinds.items() %}<li class="nav-item"><a class="nav-link{% if key == kind %} active{% endif %}"{% if key == kind %} aria-current="page"{% endif %} href="{{ url_for('admin.master_data_list', kind=query_kinds[key]) }}">{{ label }}</a></li>{% endfor %}
+{% for key, label in kinds.items() %}<li class="nav-item"><a class="nav-link{% if key == kind %} active{% endif %}"{% if key == kind %} aria-current="page"{% endif %} href="{{ url_for('admin.master_data_list', kind=query_kinds[key]) }}">{{ 'Kennzeichnungen' if key == 'tags' else label }}</a></li>{% endfor %}
 </ul></nav>
-<div class="card grundlagen-list"><div class="card-header"><div><h2 class="card-title">{{ kinds[kind] }}</h2><p class="text-secondary mb-0">{{ rows|length }} Einträge auf dieser Seite</p></div>{% if can_write %}<div class="card-actions"><a class="btn btn-primary" href="{{ url_for('admin.master_data_new', kind=kind) }}">{{ singular[kind] }} anlegen</a></div>{% endif %}</div>
+<div class="card grundlagen-list"><div class="card-header"><div><h2 class="card-title">{{ 'Kennzeichnungen' if kind == 'tags' else kinds[kind] }}</h2><p class="text-secondary mb-0">{{ rows|length }} Einträge auf dieser Seite</p></div>{% if can_write %}<div class="card-actions"><a class="btn btn-primary" href="{{ url_for('admin.master_data_new', kind=kind) }}">{{ singular[kind] }} anlegen</a></div>{% endif %}</div>
 <div class="list-group list-group-flush">
 {% for item in rows %}<div class="list-group-item"><div class="row g-2 align-items-center"><div class="col">
 <a class="text-break" href="{{ url_for('admin.master_data_detail', kind=kind, public_id=item.public_id) }}">{{ item.display_name if kind == 'einheiten' else item.name }}</a>
@@ -45,7 +45,7 @@
 {% if kind == 'zutaten' %}<div class="text-secondary">{{ item.base_unit.display_name }} · {% for storage in item.storage_locations %}<a href="{{ url_for('admin.master_data_detail', kind='lagerorte', public_id=storage.public_id) }}">{{ storage.name }}</a>{{ ', ' if not loop.last else '' }}{% else %}Lagerort fehlt{% endfor %}</div>
 {% if item.prepared_recipe %}<div><a href="{{ url_for('admin.recipe_revision', recipe_id=item.prepared_recipe.recipe_public_id, revision_id=item.prepared_recipe.revision_public_id) }}">{{ item.prepared_recipe.title }} · Stand {{ item.prepared_recipe.revision_number }}</a></div>{% endif %}{% endif %}</div>
 <div class="col-auto">{{ icon_link(url_for('admin.master_data_detail', kind=kind, public_id=item.public_id), (item.display_name if kind == 'einheiten' else item.name) ~ (' bearbeiten' if can_write else ' ansehen')) }}</div></div></div>
-{% else %}<div class="empty"><p class="empty-title">Keine passenden {{ kinds[kind] }}</p><p class="empty-subtitle text-secondary">Filter anpassen{% if can_write %} oder {{ singular[kind]|lower }} anlegen{% endif %}.</p></div>{% endfor %}
+{% else %}<div class="empty"><p class="empty-title">Keine passenden {{ 'Kennzeichnungen' if kind == 'tags' else kinds[kind] }}</p><p class="empty-subtitle text-secondary">Filter anpassen{% if can_write %} oder {{ singular[kind]|lower }} anlegen{% endif %}.</p></div>{% endfor %}
 </div><div class="card-footer">{{ pagination(page, has_next, prev_url, next_url, 'Stammdatenseiten') }}</div></div>
 {% set filters_active = request.args.get('q') or request.args.get('category') or request.args.get('tag') or request.args.get('archived') == '1' %}
 <details class="card mt-4"{% if filters_active %} open{% endif %}><summary class="card-header"><span class="card-title">Liste filtern</span></summary><div class="card-body">
@@ -53,7 +53,7 @@
 <input type="hidden" name="kind" value="{{ query_kinds[kind] }}"><div class="row g-3 align-items-end">
 {% if kind == 'zutaten' %}
 <div class="col-12 col-lg-4"><label class="form-label" for="q">Zutat suchen</label><input class="form-control" id="q" name="q" maxlength="200" value="{{ request.args.get('q', '') }}"></div>
-{% for field, label, choices in [('category', 'Kategorie', categories), ('tag', 'Tag', tags)] %}
+{% for field, label, choices in [('category', 'Kategorie', categories), ('tag', 'Kennzeichnung', tags)] %}
 <div class="col-12 col-lg-3"><label class="form-label" for="{{ field }}">{{ label }}</label><select class="form-select" id="{{ field }}" name="{{ field }}"><option value="">Alle</option>
 {% for choice in choices %}<option value="{{ choice.public_id }}"{% if request.args.get(field) == choice.public_id %} selected{% endif %}>{{ choice.name }}{% if not choice.active %} (archiviert){% endif %}</option>{% endfor %}
 </select></div>{% endfor %}{% endif %}

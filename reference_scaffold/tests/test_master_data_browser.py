@@ -228,7 +228,7 @@ def test_location_conflict_selections_are_visible_and_copyable(b3, master_server
         page.goto(base + path)
         if purpose != 'stammdaten':
             section = {
-                'tags': 'Tags ändern',
+                'tags': 'Kennzeichnungen ändern',
                 'metadaten': 'Allergene und Kostformen ändern',
                 'allergenpruefung': 'Allergenprüfung',
             }[purpose]

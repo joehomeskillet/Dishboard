@@ -1,11 +1,11 @@
 {% extends 'admin/grundlagen.html' %}
 {% from 'admin/_macros.html' import page_header %}
 {% set workflow_nav = 'master_data' %}
-{% block title %}{{ kinds[kind] }} · Grundlagen{% endblock %}
-{% block page_header %}{{ page_header(kinds[kind] ~ (' bearbeiten' if row else ' anlegen')) }}{% endblock %}
+{% block title %}{{ 'Kennzeichnungen' if kind == 'tags' else kinds[kind] }} · Grundlagen{% endblock %}
+{% block page_header %}{{ page_header(('Kennzeichnung' if kind == 'tags' else kinds[kind]) ~ (' bearbeiten' if row else ' anlegen')) }}{% endblock %}
 {% block content %}
-{% set singular = {'kategorien': 'Kategorie', 'tags': 'Tag', 'lagerorte': 'Lagerort'}[kind] %}
-<a class="btn mb-3" href="{{ url_for('admin.master_data_list', kind=query_kinds[kind]) }}">Zur {{ singular }}liste</a>{{ errors() }}
+{% set singular = {'kategorien': 'Kategorie', 'tags': 'Kennzeichnung', 'lagerorte': 'Lagerort'}[kind] %}
+<a class="btn mb-3" href="{{ url_for('admin.master_data_list', kind=query_kinds[kind]) }}">{{ 'Zur Kennzeichnungsliste' if kind == 'tags' else 'Zur ' ~ singular ~ 'liste' }}</a>{{ errors() }}
 {% if kind == 'lagerorte' %}<p class="text-secondary">Kein Bestand erfasst. Vor dem Archivieren alle zugeordneten Zutaten ausdrücklich einem anderen Lagerort zuordnen.</p><p><a href="{{ url_for('admin.master_data_list', kind='foods') }}">Zutaten und Lagerzuordnungen öffnen</a></p>{% endif %}
 {% if row %}<div class="card mb-4"><div class="card-body">{{ status_summary() }}</div></div>{% endif %}
 {% if not row %}<details class="card mb-4" open><summary class="card-header"><span class="card-title">{{ singular }} anlegen</span></summary><div class="card-body">{% else %}<div class="card mb-4"><div class="card-header"><h2 class="card-title">{{ singular }}</h2></div><div class="card-body">{% endif %}{% if row %}<p>Code: {{ row.code }} (unveränderlich)</p>{% endif %}
