@@ -5,8 +5,10 @@ import re
 from pathlib import Path
 
 from playwright.sync_api import Browser, Page, expect
+from sqlalchemy import text
 
 from cafeteria.admin import branding_routes  # noqa: F401 - blueprint registration
+from cafeteria.branding import SETTING_KEY
 from test_admin_ux_browser import admin_app, admin_engine, browser, live_server  # noqa: F401
 from test_admin_workflow_routes import _login
 from test_branding_store import _png
@@ -137,6 +139,44 @@ def test_branding_forms_keep_exact_targets_and_fields_without_javascript(
         page.locator("details.brand-history-card summary").click()
         page.get_by_role("button", name="Südhang Standard als Entwurf", exact=True).click()
         expect(page).to_have_url(re.compile(r"/admin/design/marke\?revision=4$"))
+
+        with admin_engine.connect() as connection:
+            before = connection.execute(
+                text("SELECT setting_value FROM cafeteria.settings WHERE setting_key=:key"),
+                {"key": SETTING_KEY},
+            ).scalar_one()
+        assert before["active_revision"] == 2
+        assert [revision["id"] for revision in before["revisions"]] == [1, 2, 3, 4]
+
+        page.set_viewport_size({"width": 390, "height": 844})
+        page.locator("#brand-name").fill("Sichere Eingaben bleiben erhalten")
+        page.locator("#brand-primary").fill("#8c1c4b")
+        page.locator("#brand-font_body").select_option("carlito")
+        form = page.locator('form[data-brand-action="save"]')
+        safe_fields = {
+            name: form.locator(f'[name="{name}"]').input_value()
+            for name in ("version", "name", "logo_sha256", "primary", "accent", "surface", "text", "font_body", "font_heading")
+        }
+        page.locator("#brand-upload").set_input_files(
+            {"name": "Beschaedigt.png", "mimeType": "image/png", "buffer": b"invalid-png"}
+        )
+        with page.expect_response(
+            lambda response: response.request.method == "POST" and response.url.endswith(BRAND_PATH)
+        ) as rejected:
+            page.get_by_role("button", name="Entwurf speichern & Vorschau", exact=True).click()
+        assert rejected.value.status == 400
+        expect(page.get_by_role("alert")).to_have_text(
+            "Das Logo konnte nicht als sicheres Bild gelesen werden."
+        )
+        for name, value in safe_fields.items():
+            expect(form.locator(f'[name="{name}"]')).to_have_value(value)
+        expect(page.locator("#brand-upload")).to_have_value("")
+        with admin_engine.connect() as connection:
+            after = connection.execute(
+                text("SELECT setting_value FROM cafeteria.settings WHERE setting_key=:key"),
+                {"key": SETTING_KEY},
+            ).scalar_one()
+        assert after == before
 
 
 def test_branding_editor_viewports_default_saved_and_error_states(
