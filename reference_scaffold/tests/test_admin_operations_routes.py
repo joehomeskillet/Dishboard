@@ -47,7 +47,8 @@ def _get(client, form_id):  # noqa: F811
 
 
 def _load(client, **changes):  # noqa: F811
-    form = {**_get(client, 'exception-load'), 'date': DAY, **changes}
+    form_id = 'exception-load-patient' if changes.get('profile') == 'patient' else 'exception-load'
+    form = {**_get(client, form_id), 'date': DAY, **changes}
     response = client.post(PATH, data=form)
     assert response.status_code == 200, response.get_data(as_text=True)
     return _form(response.get_data(as_text=True), 'exception-save')
@@ -276,7 +277,7 @@ def test_loaded_exception_retains_original_location_expectation(client, database
         connection.execute(text("INSERT INTO cafeteria.locations(code,name,timezone,active) VALUES ('OTHER','Anderer Standort','UTC',true)"))
     response = client.post(PATH, data=original)
     assert response.status_code == 409
-    assert 'Zeiten in UTC' in response.get_data(as_text=True)
+    assert 'Der aktive Standort wurde zwischenzeitlich geändert.' in response.get_data(as_text=True)
     with database_engine.connect() as connection:
         assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_services')).scalar_one() == 0
 
@@ -302,7 +303,7 @@ def test_schedule_retains_original_location_at_equal_revision(client, database_e
 def test_schedule_requires_its_scoped_csrf(client, database_engine, token_source):  # noqa: F811
     form = _get(client, 'schedule-patient')
     if token_source == 'raw':
-        token = _get(client, 'name-patient')['_csrf']
+        token = _get(client, 'name-patient')['_csrf'].split('.')[0]
     elif token_source == 'other_profile':
         token = _get(client, 'schedule-staff_guest')['_csrf']
     else:

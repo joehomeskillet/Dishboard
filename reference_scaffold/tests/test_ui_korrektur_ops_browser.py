@@ -48,11 +48,12 @@ def _expected_schedule_fields(profile: str) -> set[str]:
     return fields
 
 
-def _submit_and_capture(page, button_name: str) -> tuple[set[str], dict[str, list[str]]]:
+def _submit_and_capture(page, button_name: str, *, form_id: str | None = None) -> tuple[set[str], dict[str, list[str]]]:
     with page.expect_request(
         lambda request: request.method == 'POST' and urlparse(request.url).path == OPS_PATH,
     ) as request_info:
-        page.get_by_role('button', name=button_name, exact=True).click()
+        target = page.locator(f'#{form_id}') if form_id else page
+        target.get_by_role('button', name=button_name, exact=True).click()
     request = request_info.value
     assert urlparse(request.url).path == OPS_PATH
     assert request.method == 'POST'
@@ -175,8 +176,7 @@ def test_operations_requests_keep_original_form_contracts(
             assert payload['profile'] == [profile]
 
         page.locator('#exception-editor > summary').click()
-        page.locator('#profile').select_option('patient')
-        fields, payload = _submit_and_capture(page, 'Ausgabe laden')
+        fields, payload = _submit_and_capture(page, 'Ausgabe laden', form_id='exception-load-patient')
         assert fields == {'_csrf', 'action', 'profile', 'date', 'meal'}
         assert payload['action'] == ['load_exception']
 
@@ -186,3 +186,35 @@ def test_operations_requests_keep_original_form_contracts(
             'service_state', 'service_start', 'service_end', 'notice',
         }
         assert payload['action'] == ['save_exception']
+
+
+@pytest.mark.parametrize('profile', ['staff_guest', 'patient'])
+@pytest.mark.parametrize('width', [390, 1440])
+def test_profile_bound_exception_forms_work_without_javascript(
+    browser, live_server, admin_app, admin_engine, profile, width, tmp_path,  # noqa: F811
+):
+    client, _ = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    with _create_context(browser, live_server, client, javascript=False) as context:
+        page = context.new_page()
+        page.set_viewport_size({'width': width, 'height': 900})
+        page.goto(OPS_PATH)
+        page.locator('#exception-editor > summary').click()
+        assert page.locator('[id]').evaluate_all(
+            'nodes => new Set(nodes.map(node => node.id)).size === nodes.length',
+        )
+        form_id = 'exception-load' if profile == 'staff_guest' else 'exception-load-patient'
+        form = page.locator(f'#{form_id}')
+        expect(form.get_by_role('heading')).to_be_visible()
+        form.locator('[name=date]').fill('2026-08-31')
+        form.locator('[name=meal]').select_option('LUNCH')
+        _assert_no_document_overflow(page)
+        page.screenshot(path=str(tmp_path / f'operations-scoped-{profile}-{width}.png'), full_page=True)
+        fields, payload = _submit_and_capture(page, 'Ausgabe laden', form_id=form_id)
+        assert fields == {'_csrf', 'action', 'profile', 'date', 'meal'}
+        assert payload['profile'] == [profile]
+        expect(page.locator('#exception-save [name=profile]')).to_have_value(profile)
+        page.locator('#service_start').fill('11:30')
+        page.locator('#service_end').fill('13:30')
+        page.get_by_role('button', name='Ausnahme speichern', exact=True).click()
+        page.locator('#saved-exceptions > summary').click()
+        expect(page.locator('#saved-exceptions')).to_contain_text('11:30–13:30')
