@@ -78,6 +78,12 @@ belegbar sein muss. Beim Vorschlag wird der neueste gespeicherte Stand des Kopfe
 was im Formular steht. Alte Menüs, Vorlagen und PDFs werden nie nachträglich auf
 einen neueren Stand umgeschrieben.
 
+Nur Stände eines **aktiven** Rezepts dürfen neu gebunden werden. Bei archiviertem
+Vorlagenrezept bleibt dessen Altzuordnung an der Vorlage lesbar, der neue
+Menüvorschlag enthält aber keine Rezeptbindung. Ein schon gebundener archivierter
+Stand bleibt bei unveränderter Altbindung erhalten; Entfernen und späteres
+Wiederbinden zählt als Neubindung und wird abgewiesen.
+
 ### 3.1 «Matching» ist explizite Zuordnung, nicht Namensgleichheit
 
 - Zuordnung erfolgt ausschliesslich über die vorhandenen UUIDs (Rezept, Stand,
@@ -129,28 +135,54 @@ durch das Öffnen gespeichert. Ändern einer Vorlage bleibt Sache des Vorlagenfo
    Bereichszeiten Wochenenden erlauben oder der Service existiert), Mahlzeit (Cafeteria
    Mittag; Patienten Mittag/Abend), Menüart (aus Vorlage vorbelegt, änderbar).
    Zusammenfassung in Worten: «Rösti → Dienstag, 16. September · Mittag · Menü 1».
-3. Absenden (CSRF, `draft.write`): Server prüft das Raster wie `menu_get`, dann den
-   Slot.
-   - **leer** → 303 auf den Menüeditor mit `template=<uuid>`; noch nichts gespeichert.
-   - **belegt** → Seite «Dieser Platz ist bereits belegt mit «Kartoffelstock»» mit
+3. Das Einplanenformular hält beim ersten Laden den ursprünglichen Actor samt
+   Authz-Version, Standort sowie Vorlagen-UUID und `updated_at` im bestehenden
+   signierten Formkontextverfahren (`admin/workflow_scope.py`) fest. Absenden
+   (CSRF, `draft.write`) prüft diesen Originalkontext, das Raster wie `menu_get`
+   und den Slot; keine Erwartung wird aus aktuellem Zustand ersetzt.
+   - **leer** → 303 auf den Menüeditor mit `template=<uuid>` und signiertem
+     Übergabekontext, der zusätzlich das geprüfte Ziel (Profil/Woche/Tag/Mahlzeit/
+     Menüart) und ursprüngliches Create-CAS `row_version=0` bindet; noch nichts
+     gespeichert. Kein roher CSRF-Token in URL oder Logs.
+   - **belegt** → 409-Seite «Dieser Platz ist bereits belegt mit «Kartoffelstock»» mit
      «Bestehendes Menü öffnen» und «Anderes Ziel wählen». Kein Überschreiben.
    - Vorlage archiviert, Standort gewechselt → 409 mit erhaltenem Formular; ungültiges
      Raster/Bereich → 400 mit erhaltenen Werten.
-4. Menüeditor, vorbefüllt und deutlich betitelt «Neues Menü aus Vorlage «Rösti»»:
+4. Der Menü-GET validiert den mitgegebenen signierten Originalkontext und übernimmt
+   ihn unverändert bis zum Save-POST. Ein nacktes `template=<uuid>` ist kein gültiger
+   Vorschlagskontext. Actor/Authz/Standort, Vorlagenversion oder Ziel inzwischen
+   geändert oder Slot inzwischen belegt → 409 mit ursprünglichen Eingaben und
+   Erwartungen; keine neue `_scope()`-Erwartung, kein neues Create-/Update-CAS und
+   kein stiller Wechsel in den normalen Bearbeitungsmodus. «Bestehendes Menü öffnen»
+   ist ausschliesslich eine ausdrückliche neue Navigation des Benutzers.
+   Bei unverändertem Kontext: Menüeditor, vorbefüllt und deutlich betitelt
+   «Neues Menü aus Vorlage «Rösti»»:
    Menüname und Beschreibung aus der Vorlage; Baustein 1 als Text «Rösti» mit
    Rezeptstand-Auswahl auf dem neuesten gespeicherten Stand («Stand 3 vom 10.09.») mit
    Hinweis «Vorgeschlagen. Anderen Stand wählen oder ohne Rezeptbindung speichern.»;
    ohne Stand: «Das Rezept «Rösti» hat noch keinen gespeicherten Stand. Menü kann ohne
-   Rezeptbindung gespeichert werden.» + Link «Stand festhalten». Cafeteria-Preise
+   Rezeptbindung gespeichert werden.» + Link «Stand festhalten». Bei archiviertem
+   Rezept: «Rezept archiviert; für eine neue Bindung bewusst reaktivieren oder ein
+   aktives Rezept wählen»; keine archivierte Revision vorschlagen oder neu auswählbar
+   machen. Ohne solche Entscheidung bleibt der Vorschlag ohne Rezeptbindung.
+   Cafeteria-Preise
    bleiben leer und Pflicht. Kennzeichnungen im Standardmodus. Verstecktes Feld
    `dish_template_public_id`.
 5. **«Menü speichern»** (einziger Speicherweg, bestehender `menu_post`, Slot-CAS 0):
+   Der Writer prüft in derselben Schreibtransaktion vor Mutation die ursprüngliche
+   Actor/Authz-/Standorterwartung, Vorlagen-UUID/`updated_at`/Aktivstatus/Profil und
+   den ursprünglichen Zielslot/CAS unter den vorhandenen Sperren erneut. Änderungen
+   seit Einplanen → 409 mit Originalwerten, keine neue Erwartung und kein Teilwrite.
+   Live-Auth 401/403 und ungültige Signatur/CSRF werden weiterhin abgewiesen.
    Erfolg → Wochenplan mit Flash «Menü «Rösti» aus Vorlage «Rösti» für Dienstag,
    16. September, Mittag, Menü 1 gespeichert.» Die Karte zeigt «Aus Vorlage «Rösti»».
    Doppeltes Absenden → zweiter Schreibvorgang trifft `row_version` 1 ≠ 0 → 409
    «Dieses Menü wurde inzwischen gespeichert» mit Link zum Menü; kein Duplikat
    (`UNIQUE (service_id, menu_type_id)`).
-6. Späteres Bearbeiten behält den Bezug. Lösen nur über Kontrollkästchen
+6. Späteres Bearbeiten behält den Bezug, auch nach Archivierung der Vorlage:
+   unverändert mitgesendete ursprüngliche UUID ist eine erhaltene Altbindung und
+   bei Änderung anderer Menüfelder zulässig. Neubindung/Wiederbindung einer
+   archivierten Vorlage bleibt verboten. Lösen nur über Kontrollkästchen
    «Vorlagenbezug lösen» mit Bestätigung im Formular; ein altes Formular ohne das Feld
    löst nichts.
 
@@ -202,9 +234,10 @@ mit Zählung aktiv/archiviert.
 | Bereich passt nicht zum Geltungsbereich | 400 am Feld «Bereich», Werte erhalten |
 | Slot belegt | Konfliktseite mit beiden Wegen, kein Schreiben |
 | Slot inzwischen belegt (Race zwischen Einplanen und Speichern) | 409 aus Slot-CAS, Eingaben erhalten, Link zum Menü |
-| Rezept der Vorlage archiviert | Vorschlag weiterhin möglich; Baustein-Auswahl zeigt «archiviert», Stand bleibt wählbar wie bisher |
+| Rezept der Vorlage archiviert | Neuer Vorschlag ohne Rezeptbindung und mit Hinweis; keine archivierte Revision neu wählbar. Bewusste Reaktivierung oder Wahl eines aktiven Rezepts nötig. Unveränderte bestehende Altbindungen bleiben erhalten. |
+| Vorlage eines bestehenden Menüs später archiviert | Andere Menüfelder dürfen mit unverändertem ursprünglichem Vorlagenbezug gespeichert werden; explizites Lösen erlaubt, Neubindung/Wiederbindung abgewiesen. |
 | Rezept ohne Stand | Hinweis, Menü ohne Bindung speicherbar |
-| Standort während Ablauf gewechselt | 409, erneuter GET nötig |
+| Actor/Authz/Standort/Vorlagenversion oder Ziel während Ablauf gewechselt | 409 mit Originalkontext; neuer Ablauf nur bewusst vom Einplanenformular starten, nie im Menü-GET auffrischen; Live-Auth 401/403 bleibt vorgelagert. |
 | Fehlende Berechtigung | Aktionen unsichtbar; POST 403; GET-Seiten für Leser sichtbar ohne Schreibaktionen |
 | Drucken ohne Stand | Weiterleitung zu Ständen mit Erklärung |
 | PDF-Renderer lehnt ab | bestehendes 422 mit Klartext; keine Umschreibung |
@@ -233,7 +266,11 @@ mit Zählung aktiv/archiviert.
 
 - Original-Actor/Authz (`ActorExpectation`), aktiver Standort, CSRF (scoped für
   Menüformulare), CAS (`updated_at` Vorlage, `row_version` Menü/Rezept) bleiben
-  unverändert. Neue GET-Routen schreiben nie und initialisieren nichts.
+  vom Einplanenformular über POST → 303 → Menü-GET → Save unverändert gebunden
+  (§4.3). Übergabekontext nutzt die bestehende Signatur-/Formkontextinfrastruktur,
+  keine neue Bibliothek; Weitergabe und Prüfung sind Teil desselben WP-Vertrags.
+  Ursprüngliche Erwartungen werden beim finalen Schreiben transaktional erneut
+  geprüft. GET schreibt keine Fachdaten und frischt keine bestehende Erwartung auf.
 - Idempotenz: Einplanen-POST schreibt nichts (nur Prüfung und Redirect); Speichern ist
   durch Slot-CAS und `UNIQUE (service_id, menu_type_id)` doppelklicksicher.
 - Patientenkanal bleibt strukturell preisfrei; der Vorschlag erfindet keine Preise,
@@ -268,22 +305,22 @@ mit Zählung aktiv/archiviert.
 
 | ID | Fall | WP |
 |---|---|---|
-| A1 | Vorlagenliste zeigt Rezeptzustand, Verwendung und Link je Zeile; Leser ohne Schreibaktionen | LINK-READS |
+| A1 | Vorlagenliste zeigt Rezeptzustand, Verwendung und funktionierenden Link je Zeile; zunächst bestehender Editor, Umstellung auf neue Ansicht mit VIEW-PRINT; Leser ohne Schreibaktionen | LINK-READS, VIEW-PRINT |
 | A2 | Rezept ausserhalb der ersten 200 ist im Vorlagenformular findbar; gebundenes Rezept bleibt ausserhalb der Seite sichtbar | LINK-READS |
 | A3 | `/gerichtvorlagen/neu?recipe=` befüllt vor, schreibt nichts, 404 bei fremder UUID | LINK-READS |
 | A4 | Rezeptkarte: Ansehen/Bearbeiten/Drucken getrennt; Leserolle ohne Bearbeiten; keine doppelten Ziele | VIEW-PRINT |
 | A5 | Ansicht zeigt Entwurf vollständig, Hinweis «nicht festgeschrieben», Vorlagenbezug, Druckvorlage | VIEW-PRINT |
 | A6 | Drucken mit Stand öffnet PDF (Bytes + nativer Paint getrennt geprüft); ohne Stand Erklärung, kein Freeze | VIEW-PRINT |
 | A7 | Admin-Link in den Editor trägt aktive `template`/`revision`; andere Rollen nur Text | VIEW-PRINT, PRINT-TEMPLATE-ENTRY |
-| A8 | Editor ohne Parameter öffnet aktive Vorlage/Revision; nichts initialisiert; «Zurück zum Rezept» bei Kontext | PRINT-TEMPLATE-ENTRY |
+| A8 | Editor ohne Parameter öffnet aktive Vorlage/Revision; nichts initialisiert; Rückweg zunächst bestehender Editor, Umstellung auf neue Ansicht gemeinsam mit deren Route | PRINT-TEMPLATE-ENTRY, VIEW-PRINT |
 | A9 | Menüformular mit `dish_template_public_id` speichert Bezug; Rücklesen zeigt «Aus Vorlage»; UPDATE ohne Feld erhält; Lösen nur explizit | MENU-TEMPLATE-BINDING |
-| A10 | Profil-/Standortfremde oder archivierte Vorlage → 400/409, Werte erhalten; Trigger 23514 → 409 | MENU-TEMPLATE-BINDING |
+| A10 | Neue profil-/standortfremde oder archivierte Vorlagenbindung → 400/409; ursprüngliche unveränderte Altbindung nach Archivierung bei anderer Menüänderung bleibt; Lösen erlaubt; Trigger 23514 → 409 | MENU-TEMPLATE-BINDING |
 | A11 | Publikationshash und öffentliche Projektion unverändert; Kopie behält Bezug; CSV-Ersatz dokumentiert | MENU-TEMPLATE-BINDING |
 | A12 | Einplanen: Bereich/Woche/Tag/Mahlzeit/Menüart nativ, NoJS; leerer Slot → vorbefüllter Editor; belegter Slot → Konfliktseite ohne Schreiben | MENU-PROPOSAL |
-| A13 | Vorbefüllung: Titel, Beschreibung, Baustein mit vorgeschlagenem Stand, Hinweise bei fehlendem Stand/Rezept; Patienten ohne Preise | MENU-PROPOSAL |
+| A13 | Vorbefüllung: Titel, Beschreibung, aktiver Rezeptstand sichtbar vorgeschlagen; kein Stand/Rezept/archiviertes Rezept mit Hinweis ohne neue archivierte Bindung; Patienten ohne Preise | MENU-PROPOSAL |
 | A14 | Speichern → Wochenplan-Flash mit Vorlage, Tag, Mahlzeit, Menüart; Karte «Aus Vorlage» | MENU-PROPOSAL |
-| A15 | Doppelklick Einplanen/Speichern erzeugt kein Duplikat; Race → 409 mit Link | MENU-PROPOSAL |
-| A16 | Hub: Gerichtvorlagen-Karte, «Aktive Vorlage öffnen» mit IDs, «Rezept drucken» | TPL-HUB-COMPLETE |
+| A15 | Originalkontext durch alle Übergänge: Actor/Authz-/Standort-/Vorlagenversion-/Zielwechsel sowie belegter Slot nach 303 oder vor Save → 409 ohne Neusignierung/Moduswechsel/Teilwrite; doppelte Abgabe erzeugt kein Duplikat | MENU-TEMPLATE-BINDING, MENU-PROPOSAL |
+| A16 | Separat lieferbarer Hub: Gerichtvorlagen-Karte, «Aktive Vorlage öffnen» mit IDs, «Rezept drucken»; keine Abhängigkeit von Einkaufsdruck/Screen-Editor | TPL-RECIPE-DISH-ENTRY |
 | A17 | Inventar enthält Gerichtvorlagen-Familie und Rezeptansicht | UI-INVENTORY |
 | A18 | Gesamtfluss in fünf Viewports, JS/NoJS, Tastatur, Zoom, Kontrast, Rollen, Zustände; Evidenzdatei | UI-TEMPLATE-FLOW-ACCEPT |
 
@@ -295,27 +332,40 @@ Neue Pakete (alle `PLANNED`, Root vergibt Leases und setzt `READY`):
 |---|---|---|---|---|
 | 1 | `MP-REC-LINK-READS` | recipes | `recipe_link_reads.py`, Vorlagenliste/-formular | `dish_template_routes.py`, `gerichtvorlagen.html` |
 | 2 | `MP-REC-PRINT-TEMPLATE-ENTRY` | recipes | aktive Vorlage als Default, Rückweg | `recipe_print_template_routes.py`, `_recipe_template_selection.html` |
-| 3 | `MP-REC-RECIPE-VIEW-PRINT` | recipes | Ansicht, Drucken, Vorlagenbezug, Druckvorlagenanzeige | `recipe_routes.py`, `recipe_revision_routes.py`, `rezepte*.html` |
+| 3 | `MP-REC-RECIPE-VIEW-PRINT` | recipes | Ansicht, Drucken, Vorlagenbezug, Druckvorlagenanzeige samt Umschaltung der bisherigen Rezeptlinks | `recipe_routes.py`, `recipe_revision_routes.py`, `rezepte*.html`, `gerichtvorlagen.html`, `_recipe_template_selection.html` und deren Routen-/Browsertests |
 | 4 | `MP-REC-MENU-TEMPLATE-BINDING` | recipes | Vorlagenbezug im Menüwriter/-reader | Workflow-Vertragscluster (seriell mit PLAN-PORTIONS) |
 | 5 | `MP-REC-MENU-PROPOSAL` | recipes | Einplanen-Seite, Editor-Vorbefüllung, Ergebnis | `dish_template_routes.py`, `workflow_routes.py`, `rendering.py`, `menu_editor.html` |
-| 6 | `MP-UI-TEMPLATE-FLOW-ACCEPT` | surfaces | unabhängige Browserabnahme | eigener Test + Evidenz |
+| 6 | `MP-TPL-RECIPE-DISH-ENTRY` | surfaces | kleiner Rezeptdruck-/Gerichtvorlagen-Hubanschluss | `output_routes.py`, `vorlagen.html`, vorhandene Hub-/Katalog-/Browsertests |
+| 7 | `MP-UI-TEMPLATE-FLOW-ACCEPT` | surfaces | unabhängige Browserabnahme | eigener Test + Evidenz |
 
 Erweiterte Pakete: `MP-REC-DISH-TEMPLATE-WRITER` (Status/Beleg), `MP-REC-BINDINGS-ACCEPT`
 (vierte Kante), `MP-UI-INVENTORY`, `MP-UI-MATRIX`, `MP-UI-RECIPE-LISTS`,
 `MP-UI-PRINT-EDITOR`, `MP-TPL-HUB-COMPLETE`. 1 kann parallel zu 2; 3 nach 1 und 2;
 4 nach Freeze von `MP-REC-BINDINGS` und nicht gleichzeitig mit `MP-REC-PLAN-PORTIONS`;
-5 nach 1 und 4; 6 nach 3 und 5. Kein SQL-Writer in dieser Welle.
+5 nach 1 und 4; 6 nach 3 und geliefertem OUTPUT-HUBS/Vorlagen-Writer;
+7 nach 3, 5 und 6. Der spätere `MP-TPL-HUB-COMPLETE` konsumiert 6 und behält seine
+eigenen weiteren Featureabhängigkeiten. Kein SQL-Writer in dieser Welle.
+
+**Lieferbare Zwischenstände:** LINK-READS und PRINT-TEMPLATE-ENTRY verlinken zuerst
+den vorhandenen `admin.recipe_edit`; kein `url_for` auf noch unregistrierte Ansicht.
+VIEW-PRINT übernimmt `gerichtvorlagen.html` und `_recipe_template_selection.html`
+samt vorhandenen Route-/Browsertests als Schreibanschlüsse und schaltet beide Links
+zusammen mit Registrierung und Tests der neuen Ansicht um. Jede Teilrelease hat
+funktionierende GET-Ziele; BuildError-/404-Freiheit wird vor und nach Umstellung
+mit Admin/Leser und JS/NoJS geprüft. Keine neue Abhängigkeit rückwärts auf VIEW-PRINT.
 
 | Gemeinsame Datei | Writer | Regel |
 |---|---|---|
-| `admin/dish_template_routes.py`, `gerichtvorlagen.html`, `tests/test_dish_template_*.py` | LINK-READS → MENU-PROPOSAL | seriell |
+| `gerichtvorlagen.html`, `tests/test_dish_template_*.py` | LINK-READS → VIEW-PRINT → MENU-PROPOSAL | sequenzielle Dateileases, keine fachliche Zusatzabhängigkeit |
+| `admin/dish_template_routes.py` | LINK-READS → MENU-PROPOSAL | seriell |
 | `admin/workflow_routes.py`, `admin/rendering.py`, `menu_editor.html` | BINDING-UI (geliefert) · PLAN-PORTIONS · MENU-TEMPLATE-BINDING → MENU-PROPOSAL | ein aktiver Writer; PLAN-PORTIONS und BINDING nicht parallel |
 | `workflow_partial_form.py`, `workflow_item_write.py`, `workflow_partial_store.py`, `workflow_store.py` | BINDINGS (Anker) · PLAN-PORTIONS · MENU-TEMPLATE-BINDING | seriell nach Root-Lease |
+| `admin/workflow_scope.py` | MENU-TEMPLATE-BINDING | signierter Übergabevertrag; MENU-PROPOSAL konsumiert denselben geprüften Kontext |
 | `rezepte.html`, `rezepte_revisionen.html` | VIEW-PRINT → UI-RECIPE-LISTS → SEARCH-FTS/SAVED-SEARCH/BATCH-TAGS | seriell |
 | `rezepte_revision.html` | UI-REF-DETAIL (geliefert) → VIEW-PRINT | Lease |
 | `recipe_print_template_routes.py` | PRINT-TEMPLATE-ENTRY → PDF-GEOMETRY | seriell |
-| `_recipe_template_selection.html` | PRINT-TEMPLATE-ENTRY → UI-PRINT-EDITOR | seriell |
-| `vorlagen.html`, `output_routes.py` | TPL-HUB-COMPLETE (einziger Hub-Owner) | seriell |
+| `_recipe_template_selection.html`, `tests/test_recipe_template_editor_*.py` | PRINT-TEMPLATE-ENTRY → VIEW-PRINT → UI-PRINT-EDITOR | seriell |
+| `vorlagen.html`, `output_routes.py`, Hub-/Katalogtests | TPL-RECIPE-DISH-ENTRY → TPL-HUB-COMPLETE | jeweils ein Hub-Owner, kleiner Anschluss zuerst |
 | `_week_menu_card.html` | UI-KORREKTUR-WEEK (geliefert) → MENU-TEMPLATE-BINDING | Lease |
 
 Gates je WP stehen im Manifest (gezielte pytest-Listen mit realem Wrapper, Browser
