@@ -6,6 +6,20 @@
   gap: var(--tblr-spacer);
 }
 .cookbook-cards > div { min-width: 0; }
+
+.cookbook-disclosure > summary {
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.cookbook-assignment-intro {
+  color: var(--app-text-muted);
+}
+
+.cookbook-section-action {
+  margin-top: var(--tblr-spacer);
+}
+
 @media (min-width: 768px) {
   .cookbook-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

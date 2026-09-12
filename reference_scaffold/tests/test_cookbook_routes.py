@@ -236,7 +236,7 @@ if os.environ.get('TEST_DATABASE_URL'):
         path = urlsplit(response.headers['Location']).path
         book_id = path.rsplit('/', 1)[1]
         page, header_form = fields(client, path)
-        assert 'Originaltext' in page.text and 'Kochbuch' in page.text and 'Rezepte zuordnen' in page.text
+        assert 'Originaltext' in page.text and 'Kochbuch' in page.text and 'Rezept-Zuordnung' in page.text
         assert app.view_functions['admin.recipe_edit'].__module__ == 'cafeteria.admin.recipe_routes'
         assign = Forms(page.text).forms[path + '/rezepte']
         assign.setlist('recipe_public_ids', [second.public_id, first.public_id, '', '', ''])
@@ -295,7 +295,7 @@ if os.environ.get('TEST_DATABASE_URL'):
         assert client.post(path + '/status', data=status_form).status_code == 409
         assert snapshot(owner) == after_archive
         frozen = client.get(path)
-        assert frozen.status_code == 200 and 'Zuordnung speichern' not in frozen.text
+        assert frozen.status_code == 200 and path + '/rezepte' not in Forms(frozen.text).forms
         assert client.post(path, data=header_form).status_code in (400, 409)
         reactivate = Forms(client.get(path + '/status').text).forms[path + '/status']
         assert client.post(path + '/status', data=reactivate).status_code == 303

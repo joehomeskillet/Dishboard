@@ -4,23 +4,10 @@
 {% block title %}Kochbücher · Menüplanung{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='cookbook-admin.css') }}">{% endblock %}
 {% block page_header %}
-{% call page_header('Kochbücher') %}
-{% if can_write %}<a class="btn btn-primary" href="{{ url_for('admin.cookbook_new') }}">{{ icon('plus') }}Kochbuch anlegen</a>{% endif %}
-{% endcall %}
+{{ page_header('Kochbücher') }}
 {% endblock %}
 {% block content %}
 <p>Kochbücher sammeln Rezepte in einer festen Reihenfolge. Archivierte Bücher bleiben lesbar.</p>
-<details class="card mb-3">
-  <summary class="card-header">{{ icon('info-circle') }}Symbole</summary>
-  <div class="card-body">
-    <ul class="list-unstyled mb-0">
-      <li class="mb-2">{{ icon('pencil') }} Kochbuch öffnen</li>
-      <li class="mb-2">{{ icon('search') }} Liste durchsuchen</li>
-      <li class="mb-2">{{ icon('x') }} Suche zurücksetzen, ohne gespeicherte Bücher zu ändern</li>
-      <li>{{ icon('chevron-left') }}{{ icon('chevron-right') }} Vorherige und nächste Seite</li>
-    </ul>
-  </div>
-</details>
 <form class="card mb-4" method="get" action="{{ url_for('admin.cookbooks_list') }}" role="search">
   <div class="card-body">
     <div class="row g-3 align-items-end">
@@ -72,5 +59,14 @@
   <p class="empty-title">{{ 'Keine passenden Kochbücher' if search else 'Noch keine Kochbücher' }}</p>
   <p class="empty-subtitle text-secondary">{{ 'Suche ändern oder zurücksetzen.' if search else 'Ein Kochbuch anlegen, um Rezepte zu ordnen.' }}</p>
 </div>
+{% endif %}
+{% if can_write %}
+<details class="card cookbook-disclosure mt-4" id="cookbook-create">
+  <summary class="card-header cookbook-disclosure-summary">{{ icon('plus') }}<span class="card-title mb-0">Kochbuch anlegen</span></summary>
+  <div class="card-body">
+    <p>Lege ein Kochbuch an und ordne ihm danach Rezepte in gewünschter Reihenfolge zu.</p>
+    <a class="btn" href="{{ url_for('admin.cookbook_new') }}">{{ icon('plus') }}Kochbuch anlegen</a>
+  </div>
+</details>
 {% endif %}
 {% endblock %}

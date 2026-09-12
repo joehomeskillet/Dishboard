@@ -6,22 +6,13 @@
 {% set header_open = can_write and (creating or book.active) %}
 {% set recipes_open = can_write and book is not none and book.active %}
 {% block title %}{{ 'Neues Kochbuch' if creating else book.name }} · Kochbücher{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='cookbook-admin.css') }}">{% endblock %}
 {% block page_header %}
 {% call page_header('Neues Kochbuch' if creating else book.name, 'Kochbuch bearbeiten' if book and can_write and book.active else ('Kochbuch ansehen' if book else 'Kochbuch anlegen')) %}
 <a class="btn" href="{{ url_for('admin.cookbooks_list') }}">{{ icon('arrow-left') }}Zurück zur Liste</a>
 {% endcall %}
 {% endblock %}
 {% block content %}
-<details class="card mb-3">
-  <summary class="card-header">{{ icon('info-circle') }}Symbole</summary>
-  <div class="card-body">
-    <ul class="list-unstyled mb-0">
-      <li class="mb-2">{{ icon('arrow-left') }} Zurück zur Kochbuchliste</li>
-      <li class="mb-2">{{ icon('eye') }} Zugeordnetes Rezept öffnen, sofern der Rezepteditor bereitsteht</li>
-      <li>{{ icon('device-floppy') }} Speichern bleibt beschriftet. Archivieren und Reaktivieren ebenfalls.</li>
-    </ul>
-  </div>
-</details>
 {% if status_action %}
 <section class="card mb-4" aria-labelledby="cookbook-status-title">
   <div class="card-header"><h2 class="card-title" id="cookbook-status-title">{{ 'Kochbuch reaktivieren' if status_action == 'cookbook.reactivate' else 'Kochbuch archivieren' }}</h2></div>
@@ -43,7 +34,7 @@
 </section>
 {% endif %}
 <section class="card mb-4" aria-labelledby="cookbook-header-title">
-  <div class="card-header"><h2 class="card-title" id="cookbook-header-title">Kochbuch</h2></div>
+  <div class="card-header"><h2 class="card-title" id="cookbook-header-title">Kochbuchangaben</h2></div>
   <div class="card-body">
     {% if book %}<p><span class="badge {{ 'bg-green-lt' if book.active else 'bg-secondary-lt' }}">{{ 'Aktiv' if book.active else 'Archiviert' }}</span></p>{% endif %}
     {% if header_open %}
@@ -59,7 +50,7 @@
         <label class="form-label" for="cookbook-description">Beschreibung <span class="form-label-description">optional</span></label>
         <textarea class="form-control" id="cookbook-description" name="description" rows="4" maxlength="2000">{{ '' if creating else book.description or '' }}</textarea>
       </div>
-      <button class="btn btn-primary" type="submit">{{ icon('device-floppy') }}{{ 'Anlegen' if creating else 'Speichern' }}</button>
+      <button class="btn btn-primary" type="submit">{{ icon('device-floppy') }}{{ 'Kochbuch anlegen' if creating else 'Kochbuch speichern' }}</button>
     </form>
     {% elif book %}
     <h3 class="mb-2">{{ book.name }}</h3>
@@ -74,10 +65,10 @@
   {% endif %}
 </section>
 {% if book %}
-<section class="card" aria-labelledby="cookbook-recipes-title">
-  <div class="card-header"><h2 class="card-title" id="cookbook-recipes-title">Rezepte zuordnen</h2></div>
+<section class="card cookbook-assignment" aria-labelledby="cookbook-recipes-title">
+  <div class="card-header"><h2 class="card-title" id="cookbook-recipes-title">Rezept-Zuordnung</h2></div>
   <div class="card-body">
-    <p>Die sichtbare Reihenfolge ist die gespeicherte Reihenfolge. Positionszahlen ohne JavaScript eindeutig setzen; doppelte Positionen oder Rezepte werden abgelehnt. Archivierte Zuordnungen bleiben sichtbar und dürfen erhalten bleiben. Neue archivierte Rezepte stehen nicht zur Auswahl.</p>
+    <p class="cookbook-assignment-intro">Rezepte auswählen, Positionen festlegen und Zuordnung speichern.</p>
     {% if recipes_open %}
     <form method="post" action="{{ url_for('admin.cookbook_recipes', cookbook_id=book.public_id) }}" aria-labelledby="cookbook-recipes-title">
       <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
@@ -114,7 +105,7 @@
           </tbody>
         </table>
       </div>
-      <button class="btn btn-primary" type="submit">{{ icon('device-floppy') }}Zuordnung speichern</button>
+      <button class="btn cookbook-section-action" type="submit">{{ icon('device-floppy') }}Zuordnung speichern</button>
     </form>
     {% else %}
     {% if book.recipe_public_ids %}
