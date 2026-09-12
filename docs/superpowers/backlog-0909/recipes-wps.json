@@ -1563,7 +1563,7 @@
         "BAS-001"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
       "depends_on": [],
       "existing_wp_id": null,
       "sdd_sections": [
@@ -1656,7 +1656,8 @@
         "diff+commit",
         "reale Gate-Ausgabe",
         "Screenshots",
-        "Nicht gefahrene Gates ausdrücklich nennen; dieser Docs-Freeze ist kein Produkt-/Live-/Fachabnahme-PASS"
+        "Nicht gefahrene Gates ausdrücklich nennen; dieser Docs-Freeze ist kein Produkt-/Live-/Fachabnahme-PASS",
+        "2026-09-13 Nachtrag wp-61d537d988a2 (Fable 5.1): Statuskorrektur PLANNED → DEPLOYED mit Beleg. Quellstand c0839fbc803e0574582627f06692b29040bb3e53 (Produktbaseline 2fa44dea, Schema 30) enthält dish_template_store.py, admin/dish_template_routes.py, templates/admin/gerichtvorlagen.html, Sidebar-/Tab-Eintrag sowie tests/test_dish_template_routes.py und tests/test_dish_template_browser.py; Audit wp-20bbdcac693e nennt 739713c integriert; Schema-29-Release (wp-release-schema29-0912.md) importierte 32 Gerichtvorlagen über create_template. Kein ACCEPTED: Gesamtabnahme bleibt MP-REC-BINDINGS-ACCEPT. Bekannte Restlücken (Rezeptauswahl auf 200 begrenzt, kein Retained-Lookup, keine Zustands-/Verwendungsanzeige) gehören MP-REC-LINK-READS."
       ],
       "rollback": "Anwendungsrueckfall; Route und Store entfallen, die Datenbankverben bleiben ungenutzt bestehen.",
       "shared_owner_gate": {
@@ -1726,7 +1727,8 @@
       "read_only_contract_files": [
         "docs/superpowers/backlog-0909/recipes-sdd.md",
         "docs/design/2026-09-09-unified-ui-design-system.md"
-      ]
+      ],
+      "delivery_state": "DEPLOYED_SCHEMA29_30; ACCEPTANCE_PENDING_BINDINGS-ACCEPT"
     },
     {
       "id": "MP-REC-BINDINGS-ACCEPT",
@@ -1740,7 +1742,8 @@
       "depends_on": [
         "MP-REC-BINDING-UI",
         "MP-REC-COMPONENT-FOOD-UI",
-        "MP-REC-DISH-TEMPLATE-WRITER"
+        "MP-REC-DISH-TEMPLATE-WRITER",
+        "MP-REC-MENU-PROPOSAL"
       ],
       "existing_wp_id": null,
       "sdd_sections": [
@@ -1758,7 +1761,8 @@
         "Eine vor der Welle veroeffentlichte Woche behaelt ihren Publikationshash unveraendert",
         "Die vollstaendige Publikations-, Review- und Kopierregression laeuft und ihre Rohausgaben sind gespeichert",
         "Jede verbleibende REC-001-Luecke ist einzeln benannt; es wird keine pauschale Erledigung behauptet",
-        "Der Bericht trennt implementiert, unabhaengig geprueft, integriert, ausgeliefert und fachlich abgenommen"
+        "Der Bericht trennt implementiert, unabhaengig geprueft, integriert, ausgeliefert und fachlich abgenommen",
+        "Vierte Kante Menü→Vorlage (menu_items.dish_template_id) über Vorschlagsfluss, Editor, Vorwochenkopie und CSV-Ersatz geprüft; Kopf- und Standbindung getrennt belegt (Nachtrag 13.09., Feature-SDD §9 A9–A15)"
       ],
       "contract_files": [
         ".claude/rec-001-acceptance-0909.md"
@@ -1783,7 +1787,8 @@
             "Eine vor der Welle veroeffentlichte Woche behaelt ihren Publikationshash unveraendert",
             "Die vollstaendige Publikations-, Review- und Kopierregression laeuft und ihre Rohausgaben sind gespeichert",
             "Jede verbleibende REC-001-Luecke ist einzeln benannt; es wird keine pauschale Erledigung behauptet",
-            "Der Bericht trennt implementiert, unabhaengig geprueft, integriert, ausgeliefert und fachlich abgenommen"
+            "Der Bericht trennt implementiert, unabhaengig geprueft, integriert, ausgeliefert und fachlich abgenommen",
+            "Vierte Kante Menü→Vorlage (menu_items.dish_template_id) über Vorschlagsfluss, Editor, Vorwochenkopie und CSV-Ersatz geprüft; Kopf- und Standbindung getrennt belegt (Nachtrag 13.09., Feature-SDD §9 A9–A15)"
           ],
           "assignment": "NICHT GELAUFEN: Root ergänzt tatsächliche integrierte v2-/Freeze-/Race-/Boundarymodule und separate PG18-/Restore-/Imagewrapper vor Release; keine aktuellen Pools reserviert."
         }
@@ -1825,7 +1830,8 @@
         "reference_scaffold/cafeteria/admin/recipe_pdf.py",
         "database/schema.sql",
         "database/permissions.sql",
-        "deployment/postgres-backup.sh"
+        "deployment/postgres-backup.sh",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md"
       ]
     },
     {
@@ -6757,6 +6763,1002 @@
         "docs/superpowers/backlog-0909/recipes-sdd.md",
         "docs/design/2026-09-09-unified-ui-design-system.md"
       ]
+    },
+    {
+      "existing_wp_id": null,
+      "migration_group": null,
+      "external_inputs": [],
+      "planning_origin": "wp-61d537d988a2 · Fable 5.1 (claude-fable-5-1) · 2026-09-13",
+      "shared_owner_gate": {
+        "policy": "Vor READY Root-Lease mit tatsächlichem Vorgängerfreeze-Commit für jeden gemeinsamen Pfad und alle cross-slice SQL/Registry/Workflow/Recipe/Foundations/Print/Mengen-Hunks. Genau ein aktiver Writer; keine fachfremde Featureabhängigkeit als Dateisperre.",
+        "files": {
+          "reference_scaffold/cafeteria/admin/dish_template_routes.py": [
+            "MP-REC-LINK-READS",
+            "MP-REC-MENU-PROPOSAL"
+          ],
+          "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html": [
+            "MP-REC-LINK-READS",
+            "MP-REC-MENU-PROPOSAL"
+          ],
+          "reference_scaffold/tests/test_dish_template_routes.py": [
+            "MP-REC-LINK-READS",
+            "MP-REC-MENU-PROPOSAL"
+          ]
+        }
+      },
+      "readiness_conditions": [
+        "Fachliche depends_on tatsächlich integriert/geprüft, keine Freigabe aus Sourceexistenz",
+        "Root-Dateileases/Vorgängercommits, freie Migration und Fixture-Hunks vor READY zugewiesen; andere aktive Owner bewahren",
+        "Vorgeschlagene Pfade, feste SQL-Signaturen/Result-DTOs und Consumer vor Writerstart geprüft; kein geratener Dispatcher",
+        "Externe Rechte/Inputs blockieren nur den abhängigen Ablauf; beauftragte ungeprüfte Draft-Erfassung braucht keine pauschale Küchenfreigabe"
+      ],
+      "existing_fixture_hunks": [],
+      "id": "MP-REC-LINK-READS",
+      "title": "Verknüpfungszustände Gerichtvorlage ↔ Rezept lesen und gebundene Rezeptauswahl",
+      "requirement_ids": [
+        "REC-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-REC-DISH-TEMPLATE-WRITER",
+        "MP-REC-BINDINGS"
+      ],
+      "sdd_sections": [
+        "recipes-sdd.md#nachtrag-0913",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md#3-begriffe-und-kanonischer-datenvertrag",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md#41-vorlage--rezept-prüfen-und-ändern-vorhanden-ergänzt"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/dish_template_store.py:LIST",
+        "reference_scaffold/cafeteria/admin/dish_template_routes.py:_page",
+        "reference_scaffold/cafeteria/recipe_reads.py:list_recipes",
+        "reference_scaffold/cafeteria/recipe_reads.py:list_revisions",
+        "reference_scaffold/cafeteria/recipe_reads.py:connection",
+        "reference_scaffold/cafeteria/menu_recipe_choices.py:_read_recipe_choices",
+        "database/schema.sql:dish_templates",
+        "database/schema.sql:menu_items_dish_template_idx",
+        "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html"
+      ],
+      "task": "Vorher: die Vorlagenliste zeigt nur den Rezepttitel als Text, das Formular lädt bis zu 200 Rezepte ohne Suche und ohne Retained-Lookup, und weder Vorlage noch Rezept kennen Verwendung, Rezeptzustand oder neuesten gespeicherten Stand. Nachher: ein kleines Nur-Lese-Modul recipe_link_reads.py bündelt die gebundenen Abfragen der vier vorhandenen Kanten (Vorlage→Rezeptkopf, Rezept→Vorlagen, Menü→Vorlage, neuester Stand je Rezept), die Vorlagenliste zeigt Rezeptzustand und Verwendung in Klartext, das Formular erhält eine gebundene Rezeptauswahl mit Titelfilter, Seite und erhaltener aktueller Auswahl (Muster menu_recipe_choices), und /gerichtvorlagen/neu?recipe= belegt das Formular aus einem Rezept vor. Keine SQL, keine Migration, keine Store-Änderung, kein Auto-Matching. Explizite UUID-Zuordnung bleibt der einzige Schreibweg über den vorhandenen Vorlagen-Writer.",
+      "acceptance_criteria": [
+        "Neues Lesemodul recipe_link_reads.py (unter 300 Zeilen) liefert standortgebunden im REPEATABLE READ READ ONLY der bestehenden recipe_reads.connection: je Rezept-UUID verknüpfte Vorlagen (public_id, title, active, menu_type_code, profile_scope) und den neuesten gespeicherten Stand (public_id, revision_number, created_at); je Vorlage Rezeptzustand (aktiv/archiviert/kein Rezept), Anzahl gespeicherter Stände und Anzahl Menüpositionen mit dish_template_id; genau eine gebundene Abfrage je Liste, keine N+1",
+        "Gerichtvorlagenliste zeigt je Zeile Klartext: «Rezept: <Titel>» mit Link zur Rezeptansicht, «Rezept archiviert», «Kein Rezept verknüpft», «Noch kein gespeicherter Stand» und «In n Menüs verwendet»; technische IDs nur in Technische Details",
+        "Rezeptauswahl im Vorlagenformular ist gebunden: Titelfilter als GET-Formular ohne JavaScript, Seite von 50 mit echtem has_next, das aktuell gebundene Rezept bleibt ausserhalb der Seite als «Aktuelle Auswahl» erhalten; das 200-Limit entfällt; archiviertes gebundenes Rezept bleibt sichtbar und ist nicht neu wählbar",
+        "/admin/gerichtvorlagen/neu?recipe=<uuid> belegt das Formular nur vor (GET schreibt nichts); unbekannte oder standortfremde UUID liefert 404 auf der Seite ohne Vorbelegung; archiviertes Rezept zeigt Hinweis, Speichern wird serverseitig mit 55000 → 409 abgewiesen",
+        "Bestehende Verträge unverändert: v26-Verben, updated_at-CAS, draft.read/draft.write, Audit je realer Änderung; keine SQL-, Migrations- oder Store-Änderung",
+        "UI-Master vollständig gelesen; pro geänderter Route 1440x900+390x844, pro Seitentyp/shared zusätzlich 1024x768+768x1024+1920x1080, tatsächliche Coverage nennen",
+        "keyboard/NoJS/200%Zoom/Fontload/Fokus/Overflow/Kontrast; Tabler/Token, min44px und bestehende48px nicht schrumpfen, keine neue Palette/Dependency"
+      ],
+      "contract_files": [
+        "proposed:reference_scaffold/cafeteria/recipe_link_reads.py",
+        "reference_scaffold/cafeteria/admin/dish_template_routes.py"
+      ],
+      "wiring_files": [
+        "reference_scaffold/cafeteria/admin/dish_template_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html"
+      ],
+      "owned_files": [
+        "proposed:reference_scaffold/cafeteria/recipe_link_reads.py",
+        "reference_scaffold/cafeteria/admin/dish_template_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html",
+        "reference_scaffold/tests/test_dish_template_routes.py",
+        "reference_scaffold/tests/test_dish_template_browser.py",
+        "proposed:reference_scaffold/tests/test_recipe_link_reads_db.py"
+      ],
+      "forbidden_paths": [
+        "database/",
+        "reference_scaffold/cafeteria/workflow*.py",
+        "reference_scaffold/cafeteria/admin/workflow_routes.py",
+        "reference_scaffold/cafeteria/admin/rendering.py",
+        "reference_scaffold/cafeteria/recipe_reads.py",
+        "reference_scaffold/cafeteria/dish_template_store.py",
+        "reference_scaffold/cafeteria/templates/admin/rezepte*.html",
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html",
+        "reference_scaffold/cafeteria/static/vendor/*"
+      ],
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_recipe_link_reads_db.py tests/test_dish_template_routes.py tests/test_dish_template_browser.py tests/test_recipe_menu_binding_db.py",
+          "assertions": [
+            "Neues Lesemodul recipe_link_reads.py (unter 300 Zeilen) liefert standortgebunden im REPEATABLE READ READ ONLY der bestehenden recipe_reads.connection: je Rezept-UUID verknüpfte Vorlagen (public_id, title, active, menu_type_code, profile_scope) und den neuesten gespeicherten Stand (public_id, revision_number, created_at); je Vorlage Rezeptzustand (aktiv/archiviert/kein Rezept), Anzahl gespeicherter Stände und Anzahl Menüpositionen mit dish_template_id; genau eine gebundene Abfrage je Liste, keine N+1",
+            "Gerichtvorlagenliste zeigt je Zeile Klartext: «Rezept: <Titel>» mit Link zur Rezeptansicht, «Rezept archiviert», «Kein Rezept verknüpft», «Noch kein gespeicherter Stand» und «In n Menüs verwendet»; technische IDs nur in Technische Details",
+            "Rezeptauswahl im Vorlagenformular ist gebunden: Titelfilter als GET-Formular ohne JavaScript, Seite von 50 mit echtem has_next, das aktuell gebundene Rezept bleibt ausserhalb der Seite als «Aktuelle Auswahl» erhalten; das 200-Limit entfällt; archiviertes gebundenes Rezept bleibt sichtbar und ist nicht neu wählbar",
+            "/admin/gerichtvorlagen/neu?recipe=<uuid> belegt das Formular nur vor (GET schreibt nichts); unbekannte oder standortfremde UUID liefert 404 auf der Seite ohne Vorbelegung; archiviertes Rezept zeigt Hinweis, Speichern wird serverseitig mit 55000 → 409 abgewiesen",
+            "Bestehende Verträge unverändert: v26-Verben, updated_at-CAS, draft.read/draft.write, Audit je realer Änderung; keine SQL-, Migrations- oder Store-Änderung",
+            "UI-Master vollständig gelesen; pro geänderter Route 1440x900+390x844, pro Seitentyp/shared zusätzlich 1024x768+768x1024+1920x1080, tatsächliche Coverage nennen",
+            "keyboard/NoJS/200%Zoom/Fontload/Fokus/Overflow/Kontrast; Tabler/Token, min44px und bestehende48px nicht schrumpfen, keine neue Palette/Dependency"
+          ],
+          "assignment": "NICHT GELAUFEN in diesem Docs-WP; Root ersetzt benannte Wrapper/WT-Platzhalter und ordnet für HTTP/PG/Browser einen exklusiven Pool zu."
+        }
+      ],
+      "risk": "MEDIUM",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "grok-build",
+        "cursor"
+      ],
+      "completion_evidence": [
+        "diff+commit",
+        "reale Gate-Ausgabe",
+        "Screenshots 390/1440 und Matrix für Liste/Formular",
+        "Nicht gefahrene Gates ausdrücklich nennen; dieser Docs-Freeze ist kein Produkt-/Live-/Fachabnahme-PASS"
+      ],
+      "rollback": "Anwendungsrückfall: Lesemodul und Anzeige entfallen, bestehende Vorlagenpflege bleibt; keine Daten betroffen.",
+      "ui_contract": {
+        "path": "docs/design/2026-09-09-unified-ui-design-system.md",
+        "owner": "Root / sdd-backlog-root-0909",
+        "scope": "read-only prerequisite, Root integrates master and AGENTS/CLAUDE",
+        "route_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            390,
+            844
+          ]
+        ],
+        "representative_and_shared_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            1920,
+            1080
+          ]
+        ]
+      },
+      "proposed_files": [
+        "reference_scaffold/cafeteria/recipe_link_reads.py",
+        "reference_scaffold/tests/test_recipe_link_reads_db.py"
+      ],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/recipes-sdd.md",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md",
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "reference_scaffold/cafeteria/dish_template_store.py",
+        "reference_scaffold/cafeteria/recipe_reads.py",
+        "reference_scaffold/cafeteria/menu_recipe_choices.py",
+        "database/schema.sql"
+      ]
+    },
+    {
+      "existing_wp_id": null,
+      "migration_group": null,
+      "external_inputs": [],
+      "planning_origin": "wp-61d537d988a2 · Fable 5.1 (claude-fable-5-1) · 2026-09-13",
+      "shared_owner_gate": {
+        "policy": "Vor READY Root-Lease mit tatsächlichem Vorgängerfreeze-Commit für jeden gemeinsamen Pfad und alle cross-slice SQL/Registry/Workflow/Recipe/Foundations/Print/Mengen-Hunks. Genau ein aktiver Writer; keine fachfremde Featureabhängigkeit als Dateisperre.",
+        "files": {
+          "reference_scaffold/cafeteria/admin/recipe_print_template_routes.py": [
+            "MP-REC-PRINT-TEMPLATE-ENTRY",
+            "MP-REC-PDF-GEOMETRY"
+          ],
+          "reference_scaffold/cafeteria/templates/admin/_recipe_template_selection.html": [
+            "MP-REC-PRINT-TEMPLATE-ENTRY",
+            "MP-UI-PRINT-EDITOR"
+          ]
+        }
+      },
+      "readiness_conditions": [
+        "Fachliche depends_on tatsächlich integriert/geprüft, keine Freigabe aus Sourceexistenz",
+        "Root-Dateileases/Vorgängercommits, freie Migration und Fixture-Hunks vor READY zugewiesen; andere aktive Owner bewahren",
+        "Vorgeschlagene Pfade, feste SQL-Signaturen/Result-DTOs und Consumer vor Writerstart geprüft; kein geratener Dispatcher",
+        "Externe Rechte/Inputs blockieren nur den abhängigen Ablauf; beauftragte ungeprüfte Draft-Erfassung braucht keine pauschale Küchenfreigabe"
+      ],
+      "existing_fixture_hunks": [],
+      "id": "MP-REC-PRINT-TEMPLATE-ENTRY",
+      "title": "Rezeptdruckvorlage: aktive Vorlage als Editor-Einstieg und Rückweg zum Rezept",
+      "requirement_ids": [
+        "REC-007"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-REC-PDF-RELEASE"
+      ],
+      "sdd_sections": [
+        "recipes-sdd.md#nachtrag-0913",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md#46-druckvorlage-verknüpft-sichtbar"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/admin/recipe_print_template_routes.py:_arguments",
+        "reference_scaffold/cafeteria/admin/recipe_print_template_routes.py:_render_editor",
+        "reference_scaffold/cafeteria/admin/recipe_print_template_routes.py:_url",
+        "reference_scaffold/cafeteria/templates/admin/_recipe_template_selection.html",
+        "reference_scaffold/cafeteria/print_templates.py:read_templates",
+        "reference_scaffold/tests/test_recipe_template_editor_routes.py"
+      ],
+      "task": "Vorher: der Rezeptdruckvorlagen-Editor öffnet ohne template-Parameter die Vorlage «standard» und ohne revision die neueste Revision, nicht die aktive; aus einem Rezeptkontext (recipe=) gibt es keinen Rückweg zum Rezept. Nachher: fehlende Parameter lösen auf die aktive Vorlage/Revision auf (virtueller Default aus read_templates, keine Initialisierung), und der Editor zeigt bei Rezeptkontext den Rückweg. Rezeptseiten (MP-REC-RECIPE-VIEW-PRINT) verlinken zusätzlich immer mit explizit aufgelösten IDs. Keine Änderung an Renderer, Store, Konfiguration, Aktivierung oder Rechten.",
+      "acceptance_criteria": [
+        "GET /admin/vorlagen/rezepte ohne template und revision öffnet die aktive Vorlage und aktive Revision aus read_templates (virtueller Default, keine Initialisierung der settings-Zeile); explizite Parameter verhalten sich unverändert; der bestehende strikte Parametervertrag bleibt (unbekannte/mehrfache Parameter 400)",
+        "Bei recipe= erscheint im Editorkopf «Zurück zum Rezept «<Titel>»» (Rezeptansicht), bei recipe_revision= zusätzlich «Zum gespeicherten Stand n»; _url behält die Selektion wie bisher",
+        "Kopf nennt weiterhin «Aktiv für Rezept-PDFs: <Name> · Revision n» und unterscheidet angezeigte von aktiver Revision; keine Änderung an PDF-Renderer, Store, Konfiguration oder settings.write-Schutz",
+        "tests/test_recipe_template_editor_routes.py und tests/test_recipe_template_editor_browser.py bleiben grün oder werden nur für den neuen Default und den Rückweg gezielt angepasst",
+        "UI-Master vollständig gelesen; pro geänderter Route 1440x900+390x844, pro Seitentyp/shared zusätzlich 1024x768+768x1024+1920x1080, tatsächliche Coverage nennen",
+        "keyboard/NoJS/200%Zoom/Fontload/Fokus/Overflow/Kontrast; Tabler/Token, min44px und bestehende48px nicht schrumpfen, keine neue Palette/Dependency"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/admin/recipe_print_template_routes.py"
+      ],
+      "wiring_files": [
+        "reference_scaffold/cafeteria/admin/recipe_print_template_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/_recipe_template_selection.html"
+      ],
+      "owned_files": [
+        "reference_scaffold/cafeteria/admin/recipe_print_template_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/_recipe_template_selection.html",
+        "reference_scaffold/tests/test_recipe_template_editor_routes.py",
+        "reference_scaffold/tests/test_recipe_template_editor_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/",
+        "reference_scaffold/cafeteria/print_templates.py",
+        "reference_scaffold/cafeteria/print_template_config.py",
+        "reference_scaffold/cafeteria/admin/recipe_pdf.py",
+        "reference_scaffold/cafeteria/templates/admin/print_template_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/vorlagen.html",
+        "reference_scaffold/cafeteria/admin/output_routes.py",
+        "reference_scaffold/cafeteria/admin/recipe_revision_routes.py"
+      ],
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_recipe_template_editor_routes.py tests/test_recipe_template_editor_browser.py tests/test_recipe_pdf_http.py",
+          "assertions": [
+            "GET /admin/vorlagen/rezepte ohne template und revision öffnet die aktive Vorlage und aktive Revision aus read_templates (virtueller Default, keine Initialisierung der settings-Zeile); explizite Parameter verhalten sich unverändert; der bestehende strikte Parametervertrag bleibt (unbekannte/mehrfache Parameter 400)",
+            "Bei recipe= erscheint im Editorkopf «Zurück zum Rezept «<Titel>»» (Rezeptansicht), bei recipe_revision= zusätzlich «Zum gespeicherten Stand n»; _url behält die Selektion wie bisher",
+            "Kopf nennt weiterhin «Aktiv für Rezept-PDFs: <Name> · Revision n» und unterscheidet angezeigte von aktiver Revision; keine Änderung an PDF-Renderer, Store, Konfiguration oder settings.write-Schutz",
+            "tests/test_recipe_template_editor_routes.py und tests/test_recipe_template_editor_browser.py bleiben grün oder werden nur für den neuen Default und den Rückweg gezielt angepasst",
+            "UI-Master vollständig gelesen; pro geänderter Route 1440x900+390x844, pro Seitentyp/shared zusätzlich 1024x768+768x1024+1920x1080, tatsächliche Coverage nennen",
+            "keyboard/NoJS/200%Zoom/Fontload/Fokus/Overflow/Kontrast; Tabler/Token, min44px und bestehende48px nicht schrumpfen, keine neue Palette/Dependency"
+          ],
+          "assignment": "NICHT GELAUFEN in diesem Docs-WP; Root ersetzt benannte Wrapper/WT-Platzhalter und ordnet für HTTP/PG/Browser einen exklusiven Pool zu."
+        }
+      ],
+      "risk": "LOW",
+      "effort": "low",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "grok-build",
+        "cursor"
+      ],
+      "completion_evidence": [
+        "diff+commit",
+        "reale Gate-Ausgabe",
+        "Screenshots 390/1440",
+        "Nicht gefahrene Gates ausdrücklich nennen; dieser Docs-Freeze ist kein Produkt-/Live-/Fachabnahme-PASS"
+      ],
+      "rollback": "Anwendungsrückfall auf vorherige Routen; keine Daten betroffen.",
+      "ui_contract": {
+        "path": "docs/design/2026-09-09-unified-ui-design-system.md",
+        "owner": "Root / sdd-backlog-root-0909",
+        "scope": "read-only prerequisite, Root integrates master and AGENTS/CLAUDE",
+        "route_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            390,
+            844
+          ]
+        ],
+        "representative_and_shared_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            1920,
+            1080
+          ]
+        ]
+      },
+      "proposed_files": [],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/recipes-sdd.md",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md",
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "reference_scaffold/cafeteria/print_templates.py"
+      ]
+    },
+    {
+      "existing_wp_id": null,
+      "migration_group": null,
+      "external_inputs": [],
+      "planning_origin": "wp-61d537d988a2 · Fable 5.1 (claude-fable-5-1) · 2026-09-13",
+      "shared_owner_gate": {
+        "policy": "Vor READY Root-Lease mit tatsächlichem Vorgängerfreeze-Commit für jeden gemeinsamen Pfad und alle cross-slice SQL/Registry/Workflow/Recipe/Foundations/Print/Mengen-Hunks. Genau ein aktiver Writer; keine fachfremde Featureabhängigkeit als Dateisperre.",
+        "files": {
+          "reference_scaffold/cafeteria/templates/admin/rezepte.html": [
+            "MP-REC-RECIPE-VIEW-PRINT",
+            "MP-UI-RECIPE-LISTS",
+            "MP-REC-FREEZE-V2",
+            "MP-REC-SEARCH-FTS",
+            "MP-REC-SAVED-SEARCH",
+            "MP-REC-BATCH-TAGS"
+          ],
+          "reference_scaffold/cafeteria/templates/admin/rezepte_revisionen.html": [
+            "MP-REC-RECIPE-VIEW-PRINT",
+            "MP-UI-RECIPE-LISTS"
+          ],
+          "reference_scaffold/cafeteria/templates/admin/rezepte_revision.html": [
+            "MP-UI-REF-DETAIL",
+            "MP-REC-RECIPE-VIEW-PRINT"
+          ],
+          "reference_scaffold/cafeteria/admin/recipe_routes.py": [
+            "MP-REC-RECIPE-VIEW-PRINT",
+            "MP-REC-SEARCH-FTS",
+            "MP-REC-SAVED-SEARCH",
+            "MP-REC-BATCH-TAGS",
+            "MP-NUT-RECIPE-PROJECTION"
+          ]
+        }
+      },
+      "readiness_conditions": [
+        "Fachliche depends_on tatsächlich integriert/geprüft, keine Freigabe aus Sourceexistenz",
+        "Root-Dateileases/Vorgängercommits, freie Migration und Fixture-Hunks vor READY zugewiesen; andere aktive Owner bewahren",
+        "Vorgeschlagene Pfade, feste SQL-Signaturen/Result-DTOs und Consumer vor Writerstart geprüft; kein geratener Dispatcher",
+        "Externe Rechte/Inputs blockieren nur den abhängigen Ablauf; beauftragte ungeprüfte Draft-Erfassung braucht keine pauschale Küchenfreigabe"
+      ],
+      "existing_fixture_hunks": [],
+      "id": "MP-REC-RECIPE-VIEW-PRINT",
+      "title": "Rezeptkarte: Ansehen, Drucken und sichtbare Druckvorlage je Rezept",
+      "requirement_ids": [
+        "REC-001",
+        "REC-007"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-REC-LINK-READS",
+        "MP-REC-PDF-RELEASE",
+        "MP-REC-PRINT-TEMPLATE-ENTRY"
+      ],
+      "sdd_sections": [
+        "recipes-sdd.md#nachtrag-0913",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md#44-rezept-ansehen",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md#45-rezept-drucken",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md#46-druckvorlage-verknüpft-sichtbar"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/admin/recipe_routes.py:recipes_list",
+        "reference_scaffold/cafeteria/admin/recipe_revision_routes.py:render_scaled",
+        "reference_scaffold/cafeteria/admin/recipe_revision_routes.py:recipe_revision",
+        "reference_scaffold/cafeteria/admin/recipe_revision_routes.py:recipe_revision_pdf",
+        "reference_scaffold/cafeteria/admin/recipe_revision_routes.py:recipe_scale",
+        "reference_scaffold/cafeteria/templates/admin/rezepte.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_revision.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_revisionen.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_scale.html:amount_form",
+        "reference_scaffold/cafeteria/print_templates.py:read_templates",
+        "reference_scaffold/tests/test_recipe_navigation_browser.py"
+      ],
+      "task": "Vorher: die Rezeptkarte bietet nur «Bearbeiten» (für Leser dasselbe Ziel als «Ansehen» mit deaktiviertem Formular) und «Gespeicherte Stände»; es gibt keine Nur-Lese-Ansicht des Entwurfs, keine Druckaktion je Rezept und keinen sichtbaren Bezug zur aktiven Rezeptdruckvorlage. Nachher: eine kleine neue Nur-Lese-Route /rezepte/<uuid>/ansicht über bestehende Reader und Makros, drei getrennte Kartenaktionen Ansehen/Bearbeiten/Drucken, «Drucken» auf das vorhandene Revisions-PDF des neuesten Stands oder ein erklärter Weg zum Festhalten, Vorlagenbezug in Klartext und die aktive Druckvorlage als Text mit explizit aufgelöstem Admin-Link. Kein neuer PDF-Weg, keine Store-/Renderer-Änderung, kein Freeze per GET.",
+      "acceptance_criteria": [
+        "Neue Route GET /admin/rezepte/<uuid>/ansicht (draft.read, nur yield): vollständige Nur-Lese-Darstellung des aktuellen Entwurfs mit Titel, Beschreibung, Ausbeute, Zutaten/Mengen inkl. Berechnung (render_scaled, Makros aus rezepte_scale.html), Zubereitung, Bildern/Herkunft, Kennzeichnungen und Vorlagenbezug; Kopfhinweis «Entwurf · nicht festgeschrieben» mit Verweis auf den neuesten gespeicherten Stand; GET schreibt nie und erzeugt keinen Formkontext; Leser sehen keine Schreibaktionen",
+        "Rezeptkarte zeigt drei getrennte Aktionen «Ansehen», «Bearbeiten» (nur Schreibrecht und aktiv) und «Drucken»; kein Ziel doppelt; «Drucken» führt bei vorhandenem Stand direkt zum PDF des neuesten Stands mit Label «Drucken · Stand n», sonst zu «Gespeicherte Stände» mit Text «Zum Drucken zuerst einen Stand festhalten»; kein Festschreiben per GET, kein Entwurfs-PDF",
+        "Neuester Stand und Vorlagenbezug je Karte stammen aus einer gebundenen Abfrage je Seite über recipe_link_reads (keine N+1); Karte und Ansicht nennen «Keine Gerichtvorlage» mit Link «Vorlage anlegen» (/gerichtvorlagen/neu?recipe=), einen oder mehrere Vorlagennamen mit Link, archivierte Vorlagen mit Zusatz",
+        "Ansicht, Stand-Ansicht und Ständeliste zeigen «Druckvorlage: <Name> · Revision n (aktiv)» aus read_templates; nur settings.write erhält den Link /admin/vorlagen/rezepte?template=<aktiv>&revision=<aktiv>&recipe=<uuid>[&recipe_revision=<rev>]; die Ständeliste erhält je Zeile «PDF öffnen»",
+        "PDF-Route, Renderer, Vorlagenstore, Header X-Print-Template-Revision und bestehende Fehlerabbildung (422/503) bleiben unverändert; tests/test_recipe_pdf_http.py bleibt grün",
+        "Navigationstests aktualisiert: getrennte Ziele, Leserolle sieht Ansehen und Drucken ohne Bearbeiten, keine POST-/DB-Mutation durch Navigation; test_recipe_navigation_browser.py ohne Erwartung auf doppelte Editor-hrefs",
+        "UI-Master vollständig gelesen; pro geänderter Route 1440x900+390x844, pro Seitentyp/shared zusätzlich 1024x768+768x1024+1920x1080, tatsächliche Coverage nennen",
+        "keyboard/NoJS/200%Zoom/Fontload/Fokus/Overflow/Kontrast; Tabler/Token, min44px und bestehende48px nicht schrumpfen, keine neue Palette/Dependency"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/admin/recipe_revision_routes.py",
+        "reference_scaffold/cafeteria/admin/recipe_routes.py"
+      ],
+      "wiring_files": [
+        "reference_scaffold/cafeteria/admin/recipe_routes.py",
+        "reference_scaffold/cafeteria/admin/recipe_revision_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/rezepte.html",
+        "proposed:reference_scaffold/cafeteria/templates/admin/rezepte_ansicht.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_revision.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_revisionen.html"
+      ],
+      "owned_files": [
+        "reference_scaffold/cafeteria/admin/recipe_routes.py",
+        "reference_scaffold/cafeteria/admin/recipe_revision_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/rezepte.html",
+        "proposed:reference_scaffold/cafeteria/templates/admin/rezepte_ansicht.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_revision.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_revisionen.html",
+        "reference_scaffold/tests/test_recipe_routes.py",
+        "reference_scaffold/tests/test_recipe_revision_routes.py",
+        "reference_scaffold/tests/test_recipe_navigation_browser.py",
+        "proposed:reference_scaffold/tests/test_recipe_view_print_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/",
+        "reference_scaffold/cafeteria/admin/recipe_pdf.py",
+        "reference_scaffold/cafeteria/print_templates.py",
+        "reference_scaffold/cafeteria/print_template_config.py",
+        "reference_scaffold/cafeteria/admin/recipe_print_template_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/print_template_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/_recipe_template_selection.html",
+        "reference_scaffold/cafeteria/recipe_reads.py",
+        "reference_scaffold/cafeteria/recipe_store.py",
+        "reference_scaffold/cafeteria/recipe_link_reads.py",
+        "reference_scaffold/cafeteria/workflow*.py",
+        "reference_scaffold/cafeteria/static/vendor/*"
+      ],
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_recipe_routes.py tests/test_recipe_revision_routes.py tests/test_recipe_pdf_http.py tests/test_recipe_navigation_browser.py tests/test_recipe_view_print_browser.py",
+          "assertions": [
+            "Neue Route GET /admin/rezepte/<uuid>/ansicht (draft.read, nur yield): vollständige Nur-Lese-Darstellung des aktuellen Entwurfs mit Titel, Beschreibung, Ausbeute, Zutaten/Mengen inkl. Berechnung (render_scaled, Makros aus rezepte_scale.html), Zubereitung, Bildern/Herkunft, Kennzeichnungen und Vorlagenbezug; Kopfhinweis «Entwurf · nicht festgeschrieben» mit Verweis auf den neuesten gespeicherten Stand; GET schreibt nie und erzeugt keinen Formkontext; Leser sehen keine Schreibaktionen",
+            "Rezeptkarte zeigt drei getrennte Aktionen «Ansehen», «Bearbeiten» (nur Schreibrecht und aktiv) und «Drucken»; kein Ziel doppelt; «Drucken» führt bei vorhandenem Stand direkt zum PDF des neuesten Stands mit Label «Drucken · Stand n», sonst zu «Gespeicherte Stände» mit Text «Zum Drucken zuerst einen Stand festhalten»; kein Festschreiben per GET, kein Entwurfs-PDF",
+            "Neuester Stand und Vorlagenbezug je Karte stammen aus einer gebundenen Abfrage je Seite über recipe_link_reads (keine N+1); Karte und Ansicht nennen «Keine Gerichtvorlage» mit Link «Vorlage anlegen» (/gerichtvorlagen/neu?recipe=), einen oder mehrere Vorlagennamen mit Link, archivierte Vorlagen mit Zusatz",
+            "Ansicht, Stand-Ansicht und Ständeliste zeigen «Druckvorlage: <Name> · Revision n (aktiv)» aus read_templates; nur settings.write erhält den Link /admin/vorlagen/rezepte?template=<aktiv>&revision=<aktiv>&recipe=<uuid>[&recipe_revision=<rev>]; die Ständeliste erhält je Zeile «PDF öffnen»",
+            "PDF-Route, Renderer, Vorlagenstore, Header X-Print-Template-Revision und bestehende Fehlerabbildung (422/503) bleiben unverändert; tests/test_recipe_pdf_http.py bleibt grün",
+            "Navigationstests aktualisiert: getrennte Ziele, Leserolle sieht Ansehen und Drucken ohne Bearbeiten, keine POST-/DB-Mutation durch Navigation; test_recipe_navigation_browser.py ohne Erwartung auf doppelte Editor-hrefs",
+            "UI-Master vollständig gelesen; pro geänderter Route 1440x900+390x844, pro Seitentyp/shared zusätzlich 1024x768+768x1024+1920x1080, tatsächliche Coverage nennen",
+            "keyboard/NoJS/200%Zoom/Fontload/Fokus/Overflow/Kontrast; Tabler/Token, min44px und bestehende48px nicht schrumpfen, keine neue Palette/Dependency"
+          ],
+          "assignment": "NICHT GELAUFEN in diesem Docs-WP; Root ersetzt benannte Wrapper/WT-Platzhalter und ordnet für HTTP/PG/Browser einen exklusiven Pool zu."
+        }
+      ],
+      "risk": "MEDIUM",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "grok-build",
+        "cursor"
+      ],
+      "completion_evidence": [
+        "diff+commit",
+        "reale Gate-Ausgabe",
+        "Screenshots 390/1440; geöffnetes PDF (Bytes und nativer Paint getrennt)",
+        "Nicht gefahrene Gates ausdrücklich nennen; dieser Docs-Freeze ist kein Produkt-/Live-/Fachabnahme-PASS"
+      ],
+      "rollback": "Anwendungsrückfall auf vorherige Templates/Routen; keine Daten betroffen; PDF-Weg unverändert.",
+      "ui_contract": {
+        "path": "docs/design/2026-09-09-unified-ui-design-system.md",
+        "owner": "Root / sdd-backlog-root-0909",
+        "scope": "read-only prerequisite, Root integrates master and AGENTS/CLAUDE",
+        "route_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            390,
+            844
+          ]
+        ],
+        "representative_and_shared_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            1920,
+            1080
+          ]
+        ]
+      },
+      "proposed_files": [
+        "reference_scaffold/cafeteria/templates/admin/rezepte_ansicht.html",
+        "reference_scaffold/tests/test_recipe_view_print_browser.py"
+      ],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/recipes-sdd.md",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md",
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "reference_scaffold/cafeteria/recipe_link_reads.py",
+        "reference_scaffold/cafeteria/print_templates.py",
+        "reference_scaffold/cafeteria/admin/recipe_pdf.py"
+      ]
+    },
+    {
+      "existing_wp_id": null,
+      "migration_group": null,
+      "external_inputs": [],
+      "planning_origin": "wp-61d537d988a2 · Fable 5.1 (claude-fable-5-1) · 2026-09-13",
+      "shared_owner_gate": {
+        "policy": "Vor READY Root-Lease mit tatsächlichem Vorgängerfreeze-Commit für jeden gemeinsamen Pfad und alle cross-slice SQL/Registry/Workflow/Recipe/Foundations/Print/Mengen-Hunks. Genau ein aktiver Writer; keine fachfremde Featureabhängigkeit als Dateisperre.",
+        "files": {
+          "reference_scaffold/cafeteria/workflow_partial_form.py": [
+            "MP-REC-BINDINGS",
+            "MP-REC-BINDING-UI",
+            "MP-REC-PLAN-PORTIONS",
+            "MP-REC-MENU-TEMPLATE-BINDING"
+          ],
+          "reference_scaffold/cafeteria/workflow_item_write.py": [
+            "MP-REC-BINDINGS",
+            "MP-REC-MENU-TEMPLATE-BINDING"
+          ],
+          "reference_scaffold/cafeteria/workflow_partial_store.py": [
+            "MP-REC-BINDINGS",
+            "MP-REC-PLAN-PORTIONS",
+            "MP-REC-MENU-TEMPLATE-BINDING"
+          ],
+          "reference_scaffold/cafeteria/workflow_store.py": [
+            "MP-REC-BINDINGS",
+            "MP-REC-PLAN-PORTIONS",
+            "MP-REC-MENU-TEMPLATE-BINDING"
+          ],
+          "reference_scaffold/cafeteria/admin/rendering.py": [
+            "MP-REC-BINDINGS",
+            "MP-REC-BINDING-UI",
+            "MP-REC-PLAN-PORTIONS",
+            "MP-REC-MENU-TEMPLATE-BINDING",
+            "MP-REC-MENU-PROPOSAL"
+          ],
+          "reference_scaffold/cafeteria/admin/workflow_routes.py": [
+            "MP-REC-BINDINGS",
+            "MP-REC-BINDING-UI",
+            "MP-REC-PLAN-PORTIONS",
+            "MP-REC-MENU-TEMPLATE-BINDING",
+            "MP-REC-MENU-PROPOSAL"
+          ],
+          "reference_scaffold/cafeteria/templates/admin/menu_editor.html": [
+            "MP-REC-BINDING-UI",
+            "MP-REC-PLAN-PORTIONS",
+            "MP-UI-KORREKTUR-EDITOR",
+            "MP-REC-MENU-TEMPLATE-BINDING",
+            "MP-REC-MENU-PROPOSAL"
+          ],
+          "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html": [
+            "MP-UI-KORREKTUR-WEEK",
+            "MP-REC-MENU-TEMPLATE-BINDING"
+          ]
+        }
+      },
+      "readiness_conditions": [
+        "Fachliche depends_on tatsächlich integriert/geprüft, keine Freigabe aus Sourceexistenz",
+        "Root-Dateileases/Vorgängercommits, freie Migration und Fixture-Hunks vor READY zugewiesen; andere aktive Owner bewahren",
+        "Vorgeschlagene Pfade, feste SQL-Signaturen/Result-DTOs und Consumer vor Writerstart geprüft; kein geratener Dispatcher",
+        "Externe Rechte/Inputs blockieren nur den abhängigen Ablauf; beauftragte ungeprüfte Draft-Erfassung braucht keine pauschale Küchenfreigabe"
+      ],
+      "existing_fixture_hunks": [],
+      "id": "MP-REC-MENU-TEMPLATE-BINDING",
+      "title": "Vorlagenbezug der Menüposition im nativen Menüwriter und -reader führen",
+      "requirement_ids": [
+        "REC-001",
+        "REC-003"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-REC-BINDINGS",
+        "MP-REC-DISH-TEMPLATE-WRITER"
+      ],
+      "sdd_sections": [
+        "recipes-sdd.md#nachtrag-0913",
+        "recipes-sdd.md#62-menübindung",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md#3-begriffe-und-kanonischer-datenvertrag",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md#7-sicherheit-und-invarianten"
+      ],
+      "source_anchors": [
+        "database/schema.sql:menu_items",
+        "database/schema.sql:validate_menu_dish_scope_v26",
+        "reference_scaffold/cafeteria/workflow_partial_form.py:parse_menu_item_form",
+        "reference_scaffold/cafeteria/workflow_partial_form.py:_MENU_OPTIONAL",
+        "reference_scaffold/cafeteria/workflow_item_write.py:write_draft_item",
+        "reference_scaffold/cafeteria/workflow_partial_store.py:persist_menu_item",
+        "reference_scaffold/cafeteria/workflow_store.py:load_draft_connection",
+        "reference_scaffold/cafeteria/workflow_copy_store.py:_clone_tree",
+        "reference_scaffold/cafeteria/admin/rendering.py:menu_form_values",
+        "reference_scaffold/cafeteria/admin/rendering.py:_cells",
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html",
+        "reference_scaffold/cafeteria/workflow_snapshot.py"
+      ],
+      "task": "Vorher: menu_items.dish_template_id, Index und Trigger existieren seit v26, aber der native Menüwriter write_draft_item setzt die Spalte nicht, kein Reader zeigt sie, nur die Vorwochenkopie kopiert sie. Nachher: das Menüformular führt ein optionales Feld dish_template_public_id mit explizitem Lösen, Parser/Writer/Reader führen den Bezug durch INSERT, UPDATE, Load, Kopie und Karte, mit denselben Original-Actor/Scope/CSRF/Slot-CAS-Verträgen wie heute. Keine SQL, keine Migration, keine Änderung an Snapshot, Publikation, Review-Fingerprint oder Bausteinarrays. Seriell mit MP-REC-PLAN-PORTIONS im selben Workflow-Vertragscluster; Root vergibt die Lease.",
+      "acceptance_criteria": [
+        "Menüformular kennt das optionale Einzelfeld dish_template_public_id (kanonische UUID oder leer) und den Marker dish_template_detach=1; fehlendes Feld erhält einen bestehenden Bezug (alte Formulare löschen nichts); Lösen nur mit Marker; unbekannte, archivierte, standortfremde oder zum Profil unpassende Vorlage (profile_scope weder common noch Profil) → 400 am Feld mit erhaltenen Werten; Menüart der Vorlage ist nur Hinweis, Titel bleibt frei",
+        "write_draft_item setzt dish_template_id bei INSERT und führt es bei UPDATE; genau ein Versionsschritt und ein Beleg je Schreibvorgang (record_item_write unverändert); Review-Token/Fingerprint werden durch einen reinen Vorlagenbezug nicht verändert",
+        "Rücklesen: load_draft_connection liefert je Option dish_template {public_id, title, active}; Menüeditor zeigt «Aus Vorlage «<Titel>»» (archiviert mit Zusatz) und das Kontrollkästchen «Vorlagenbezug lösen»; Wochenkarte zeigt «Aus Vorlage «<Titel>»»; keine technische ID als Hauptinformation",
+        "Trigger menu_items_dish_recipe_scope (23514) wird als 409 mit Klartext abgebildet; doppelte Abgabe mit row_version 0 auf belegten Slot liefert 409 «bereits gespeichert» mit Link, kein Duplikat",
+        "Vorwochenkopie behält den Bezug (bestehend, Test); CSV-Vollersatz ersetzt Inhalt einschliesslich Bezug ohne Fehler und ohne verwaisten Bezug (Test und Dokumentation in recipes-sdd.md §12.2)",
+        "Publikationssnapshot, Hash und öffentliche Projektion bleiben bytegleich: tests/test_admin_workflow_snapshot_contract.py und tests/test_public_contracts.py grün; kein Vorlagenfeld in der öffentlichen Projektion",
+        "JS und NoJS senden dieselben Felder (verstecktes Feld und Kontrollkästchen liegen im Formular; keine admin.js-Änderung nötig); Leerzeile/Add/Remove/Reorder der Bausteine unverändert (tests/test_menu_recipe_selection_browser.py grün)",
+        "UI-Master vollständig gelesen; pro geänderter Route 1440x900+390x844, pro Seitentyp/shared zusätzlich 1024x768+768x1024+1920x1080, tatsächliche Coverage nennen",
+        "keyboard/NoJS/200%Zoom/Fontload/Fokus/Overflow/Kontrast; Tabler/Token, min44px und bestehende48px nicht schrumpfen, keine neue Palette/Dependency"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/workflow_partial_form.py",
+        "reference_scaffold/cafeteria/workflow_item_write.py",
+        "reference_scaffold/cafeteria/workflow_partial_store.py",
+        "reference_scaffold/cafeteria/workflow_store.py",
+        "reference_scaffold/cafeteria/admin/rendering.py",
+        "reference_scaffold/cafeteria/admin/workflow_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html"
+      ],
+      "wiring_files": [
+        "reference_scaffold/cafeteria/workflow_partial_form.py",
+        "reference_scaffold/cafeteria/workflow_item_write.py",
+        "reference_scaffold/cafeteria/workflow_partial_store.py",
+        "reference_scaffold/cafeteria/workflow_store.py",
+        "reference_scaffold/cafeteria/admin/rendering.py",
+        "reference_scaffold/cafeteria/admin/workflow_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html"
+      ],
+      "owned_files": [
+        "reference_scaffold/cafeteria/workflow_partial_form.py",
+        "reference_scaffold/cafeteria/workflow_item_write.py",
+        "reference_scaffold/cafeteria/workflow_partial_store.py",
+        "reference_scaffold/cafeteria/workflow_store.py",
+        "reference_scaffold/cafeteria/admin/rendering.py",
+        "reference_scaffold/cafeteria/admin/workflow_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html",
+        "proposed:reference_scaffold/tests/test_menu_template_binding_db.py",
+        "proposed:reference_scaffold/tests/test_menu_template_binding_routes.py",
+        "proposed:reference_scaffold/tests/test_menu_template_binding_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/",
+        "reference_scaffold/cafeteria/component_assignment_store.py",
+        "reference_scaffold/cafeteria/workflow_copy_store.py",
+        "reference_scaffold/cafeteria/workflow_review.py",
+        "reference_scaffold/cafeteria/workflow_snapshot.py",
+        "reference_scaffold/cafeteria/workflow_publication.py",
+        "reference_scaffold/cafeteria/csvio.py",
+        "reference_scaffold/cafeteria/static/admin.js",
+        "reference_scaffold/cafeteria/dish_template_store.py",
+        "reference_scaffold/cafeteria/admin/dish_template_routes.py",
+        "reference_scaffold/cafeteria/public/*",
+        "reference_scaffold/cafeteria/signage/*",
+        "reference_scaffold/cafeteria/templates/public/*",
+        "reference_scaffold/cafeteria/templates/signage/*"
+      ],
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_menu_template_binding_db.py tests/test_menu_template_binding_routes.py tests/test_menu_template_binding_browser.py tests/test_workflow_partial_store_db.py tests/test_admin_workflow_snapshot_contract.py tests/test_public_contracts.py tests/test_workflow_copy_store_db.py tests/test_admin_csv_import.py tests/test_menu_recipe_selection_browser.py tests/test_admin_workflow_routes.py",
+          "assertions": [
+            "Menüformular kennt das optionale Einzelfeld dish_template_public_id (kanonische UUID oder leer) und den Marker dish_template_detach=1; fehlendes Feld erhält einen bestehenden Bezug (alte Formulare löschen nichts); Lösen nur mit Marker; unbekannte, archivierte, standortfremde oder zum Profil unpassende Vorlage (profile_scope weder common noch Profil) → 400 am Feld mit erhaltenen Werten; Menüart der Vorlage ist nur Hinweis, Titel bleibt frei",
+            "write_draft_item setzt dish_template_id bei INSERT und führt es bei UPDATE; genau ein Versionsschritt und ein Beleg je Schreibvorgang (record_item_write unverändert); Review-Token/Fingerprint werden durch einen reinen Vorlagenbezug nicht verändert",
+            "Rücklesen: load_draft_connection liefert je Option dish_template {public_id, title, active}; Menüeditor zeigt «Aus Vorlage «<Titel>»» (archiviert mit Zusatz) und das Kontrollkästchen «Vorlagenbezug lösen»; Wochenkarte zeigt «Aus Vorlage «<Titel>»»; keine technische ID als Hauptinformation",
+            "Trigger menu_items_dish_recipe_scope (23514) wird als 409 mit Klartext abgebildet; doppelte Abgabe mit row_version 0 auf belegten Slot liefert 409 «bereits gespeichert» mit Link, kein Duplikat",
+            "Vorwochenkopie behält den Bezug (bestehend, Test); CSV-Vollersatz ersetzt Inhalt einschliesslich Bezug ohne Fehler und ohne verwaisten Bezug (Test und Dokumentation in recipes-sdd.md §12.2)",
+            "Publikationssnapshot, Hash und öffentliche Projektion bleiben bytegleich: tests/test_admin_workflow_snapshot_contract.py und tests/test_public_contracts.py grün; kein Vorlagenfeld in der öffentlichen Projektion",
+            "JS und NoJS senden dieselben Felder (verstecktes Feld und Kontrollkästchen liegen im Formular; keine admin.js-Änderung nötig); Leerzeile/Add/Remove/Reorder der Bausteine unverändert (tests/test_menu_recipe_selection_browser.py grün)",
+            "UI-Master vollständig gelesen; pro geänderter Route 1440x900+390x844, pro Seitentyp/shared zusätzlich 1024x768+768x1024+1920x1080, tatsächliche Coverage nennen",
+            "keyboard/NoJS/200%Zoom/Fontload/Fokus/Overflow/Kontrast; Tabler/Token, min44px und bestehende48px nicht schrumpfen, keine neue Palette/Dependency"
+          ],
+          "assignment": "NICHT GELAUFEN in diesem Docs-WP; Root ersetzt benannte Wrapper/WT-Platzhalter und ordnet für HTTP/PG/Browser einen exklusiven Pool zu."
+        }
+      ],
+      "risk": "HIGH",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "grok-build",
+        "cursor"
+      ],
+      "completion_evidence": [
+        "diff+commit",
+        "reale PostgreSQL-Gate-Ausgabe",
+        "Nachweis unveränderter Publikationshashes",
+        "Screenshots 390/1440",
+        "Nicht gefahrene Gates ausdrücklich nennen; dieser Docs-Freeze ist kein Produkt-/Live-/Fachabnahme-PASS"
+      ],
+      "rollback": "Vorheriges kompatibles Image: die Spalte ist nullable und wird von alten Readern ignoriert; gespeicherte Bezüge bleiben stehen und werden nicht umgeschrieben. Kein Umgehen ursprünglicher Actor-/CAS-Guards.",
+      "ui_contract": {
+        "path": "docs/design/2026-09-09-unified-ui-design-system.md",
+        "owner": "Root / sdd-backlog-root-0909",
+        "scope": "read-only prerequisite, Root integrates master and AGENTS/CLAUDE",
+        "route_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            390,
+            844
+          ]
+        ],
+        "representative_and_shared_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            1920,
+            1080
+          ]
+        ]
+      },
+      "proposed_files": [
+        "reference_scaffold/tests/test_menu_template_binding_db.py",
+        "reference_scaffold/tests/test_menu_template_binding_routes.py",
+        "reference_scaffold/tests/test_menu_template_binding_browser.py"
+      ],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/recipes-sdd.md",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md",
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/design/2026-09-12-patientenplan-menueditor-korrektur.md",
+        "database/schema.sql",
+        "reference_scaffold/cafeteria/workflow_copy_store.py",
+        "reference_scaffold/cafeteria/workflow_snapshot.py",
+        "reference_scaffold/cafeteria/dish_template_store.py",
+        "reference_scaffold/cafeteria/static/admin.js"
+      ]
+    },
+    {
+      "existing_wp_id": null,
+      "migration_group": null,
+      "external_inputs": [],
+      "planning_origin": "wp-61d537d988a2 · Fable 5.1 (claude-fable-5-1) · 2026-09-13",
+      "shared_owner_gate": {
+        "policy": "Vor READY Root-Lease mit tatsächlichem Vorgängerfreeze-Commit für jeden gemeinsamen Pfad und alle cross-slice SQL/Registry/Workflow/Recipe/Foundations/Print/Mengen-Hunks. Genau ein aktiver Writer; keine fachfremde Featureabhängigkeit als Dateisperre.",
+        "files": {
+          "reference_scaffold/cafeteria/admin/dish_template_routes.py": [
+            "MP-REC-LINK-READS",
+            "MP-REC-MENU-PROPOSAL"
+          ],
+          "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html": [
+            "MP-REC-LINK-READS",
+            "MP-REC-MENU-PROPOSAL"
+          ],
+          "reference_scaffold/cafeteria/admin/workflow_routes.py": [
+            "MP-REC-BINDINGS",
+            "MP-REC-BINDING-UI",
+            "MP-REC-PLAN-PORTIONS",
+            "MP-REC-MENU-TEMPLATE-BINDING",
+            "MP-REC-MENU-PROPOSAL"
+          ],
+          "reference_scaffold/cafeteria/admin/rendering.py": [
+            "MP-REC-BINDINGS",
+            "MP-REC-BINDING-UI",
+            "MP-REC-PLAN-PORTIONS",
+            "MP-REC-MENU-TEMPLATE-BINDING",
+            "MP-REC-MENU-PROPOSAL"
+          ],
+          "reference_scaffold/cafeteria/templates/admin/menu_editor.html": [
+            "MP-REC-BINDING-UI",
+            "MP-REC-PLAN-PORTIONS",
+            "MP-UI-KORREKTUR-EDITOR",
+            "MP-REC-MENU-TEMPLATE-BINDING",
+            "MP-REC-MENU-PROPOSAL"
+          ]
+        }
+      },
+      "readiness_conditions": [
+        "Fachliche depends_on tatsächlich integriert/geprüft, keine Freigabe aus Sourceexistenz",
+        "Root-Dateileases/Vorgängercommits, freie Migration und Fixture-Hunks vor READY zugewiesen; andere aktive Owner bewahren",
+        "Vorgeschlagene Pfade, feste SQL-Signaturen/Result-DTOs und Consumer vor Writerstart geprüft; kein geratener Dispatcher",
+        "Externe Rechte/Inputs blockieren nur den abhängigen Ablauf; beauftragte ungeprüfte Draft-Erfassung braucht keine pauschale Küchenfreigabe"
+      ],
+      "existing_fixture_hunks": [],
+      "id": "MP-REC-MENU-PROPOSAL",
+      "title": "Menüvorschlag aus Gerichtvorlage: Ziel wählen, Menüeditor vorbefüllen, Ergebnis bestätigen",
+      "requirement_ids": [
+        "REC-003",
+        "REC-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-REC-LINK-READS",
+        "MP-REC-MENU-TEMPLATE-BINDING"
+      ],
+      "sdd_sections": [
+        "recipes-sdd.md#nachtrag-0913",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md#43-vorlage--menüvorschlag--tag-und-plan",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md#5-fehler--leer--und-konfliktzustände"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/admin/dish_template_routes.py:dish_template_edit",
+        "reference_scaffold/cafeteria/admin/workflow_routes.py:menu_get",
+        "reference_scaffold/cafeteria/admin/workflow_routes.py:_raster",
+        "reference_scaffold/cafeteria/admin/workflow_routes.py:_render_menu_page",
+        "reference_scaffold/cafeteria/admin/workflow_routes.py:menu_post",
+        "reference_scaffold/cafeteria/admin/rendering.py:menu_form_values",
+        "reference_scaffold/cafeteria/workflow.py:PROFILE_MEALS",
+        "reference_scaffold/cafeteria/workflow.py:MENU_TYPES",
+        "reference_scaffold/cafeteria/operations_settings.py:get_schedule_connection",
+        "reference_scaffold/cafeteria/menu_recipe_choices.py:_read_recipe_choices",
+        "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html",
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html"
+      ],
+      "task": "Vorher: eine Gerichtvorlage kann nur gepflegt werden; ein Menü entsteht ausschliesslich leer im Slot des Wochenplans. Nachher: von der Vorlage aus wird ein Ziel (Bereich, Woche, Tag, Mahlzeit, Menüart) gewählt, der Slot geprüft und bei freiem Slot der bestehende Menüeditor vorbefüllt geöffnet (Titel, Beschreibung, Baustein mit sichtbar vorgeschlagenem neuestem gespeichertem Stand, versteckter Vorlagenbezug). Gespeichert wird ausschliesslich über den bestehenden menu_post mit Slot-CAS; das Ergebnis erscheint als Flash und Karte «Aus Vorlage». Belegte Slots werden nie überschrieben. Keine Persistenz eines Vorschlags, keine SQL, keine neue Menüart. Serieller Nachfolger von MP-REC-LINK-READS (Vorlagenseite) und MP-REC-MENU-TEMPLATE-BINDING (Workflow-Vertrag).",
+      "acceptance_criteria": [
+        "Aktive Vorlage mit Schreibrecht zeigt «Als Menü einplanen» → GET /admin/gerichtvorlagen/<uuid>/einplanen: native Selects für Bereich (profile_scope common → Cafeteria/Patienten wählbar, sonst fest), Woche (Montag, Standard aktuelle Woche), Tag (sieben Tage; Cafeteria Sa/So nur bei erlaubtem Wochenende oder vorhandenem Service), Mahlzeit (PROFILE_MEALS), Menüart (aus Vorlage vorbelegt, änderbar); Zusammenfassung in Worten; NoJS-fähig; Leser sehen keine Aktion",
+        "POST einplanen (CSRF, draft.write, updated_at der Vorlage als Kontext): Raster wie menu_get/_raster geprüft; leerer Slot → 303 auf /admin/<family>/menu?…&template=<uuid> ohne Schreiben; belegter Slot → Seite «Bereits belegt mit «<Titel>»» mit «Bestehendes Menü öffnen» und «Anderes Ziel wählen», kein Schreiben; archivierte Vorlage/Standortwechsel → 409, ungültiges Raster oder Bereich → 400, jeweils mit erhaltenen Werten",
+        "menu_get mit template=<uuid> auf leerem Slot befüllt vor: Titel und Beschreibung aus der Vorlage, verstecktes dish_template_public_id, Baustein 1 als Text «<Rezepttitel>» mit Rezeptstand-Auswahl auf dem neuesten gespeicherten Stand (sichtbar «Stand n vom <Datum>», Hinweis «Vorgeschlagen. Anderen Stand wählen oder ohne Rezeptbindung speichern.»); ohne Stand Hinweis mit Link «Stand festhalten», ohne Rezept kein Baustein; Cafeteria-Preise leer und Pflicht, Patienten ohne Preisfelder; Kennzeichnungen im Standardmodus; auf belegtem Slot wird template ignoriert und ein Hinweis gezeigt; GET schreibt nichts",
+        "Speichern über den bestehenden menu_post mit return_to=week: Flash «Menü «<Titel>» aus Vorlage «<Vorlage>» für <Wochentag, Datum>, <Mahlzeit>, <Menüart> gespeichert.»; Wochenkarte zeigt «Aus Vorlage»; Menüsammlung findet das Vorkommen",
+        "Doppelklick auf Einplanen erzeugt keinen Schreibvorgang; doppeltes Speichern liefert 409 mit Link zum Menü; Slot-Race zwischen Einplanen und Speichern → 409 mit erhaltenen Eingaben; kein Duplikat",
+        "Kein Vorschlagsdatensatz, keine Freigabe-Warteschlange, kein Auto-Matching; Vorlage bleibt nach dem Speichern unverändert (kein Audit auf der Vorlage)",
+        "UI-Master vollständig gelesen; pro geänderter Route 1440x900+390x844, pro Seitentyp/shared zusätzlich 1024x768+768x1024+1920x1080, tatsächliche Coverage nennen",
+        "keyboard/NoJS/200%Zoom/Fontload/Fokus/Overflow/Kontrast; Tabler/Token, min44px und bestehende48px nicht schrumpfen, keine neue Palette/Dependency"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/admin/dish_template_routes.py",
+        "reference_scaffold/cafeteria/admin/workflow_routes.py",
+        "reference_scaffold/cafeteria/admin/rendering.py"
+      ],
+      "wiring_files": [
+        "reference_scaffold/cafeteria/admin/dish_template_routes.py",
+        "reference_scaffold/cafeteria/admin/workflow_routes.py",
+        "reference_scaffold/cafeteria/admin/rendering.py",
+        "proposed:reference_scaffold/cafeteria/templates/admin/gerichtvorlage_einplanen.html",
+        "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html",
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html"
+      ],
+      "owned_files": [
+        "reference_scaffold/cafeteria/admin/dish_template_routes.py",
+        "reference_scaffold/cafeteria/admin/workflow_routes.py",
+        "reference_scaffold/cafeteria/admin/rendering.py",
+        "proposed:reference_scaffold/cafeteria/templates/admin/gerichtvorlage_einplanen.html",
+        "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html",
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html",
+        "reference_scaffold/tests/test_dish_template_routes.py",
+        "proposed:reference_scaffold/tests/test_menu_proposal_routes.py",
+        "proposed:reference_scaffold/tests/test_menu_proposal_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/",
+        "reference_scaffold/cafeteria/workflow_partial_form.py",
+        "reference_scaffold/cafeteria/workflow_item_write.py",
+        "reference_scaffold/cafeteria/workflow_partial_store.py",
+        "reference_scaffold/cafeteria/workflow_store.py",
+        "reference_scaffold/cafeteria/workflow_copy_store.py",
+        "reference_scaffold/cafeteria/dish_template_store.py",
+        "reference_scaffold/cafeteria/recipe_link_reads.py",
+        "reference_scaffold/cafeteria/static/admin.js",
+        "reference_scaffold/cafeteria/public/*",
+        "reference_scaffold/cafeteria/signage/*"
+      ],
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_menu_proposal_routes.py tests/test_menu_proposal_browser.py tests/test_dish_template_routes.py tests/test_menu_template_binding_routes.py tests/test_admin_workflow_routes.py tests/test_menu_recipe_selection_browser.py",
+          "assertions": [
+            "Aktive Vorlage mit Schreibrecht zeigt «Als Menü einplanen» → GET /admin/gerichtvorlagen/<uuid>/einplanen: native Selects für Bereich (profile_scope common → Cafeteria/Patienten wählbar, sonst fest), Woche (Montag, Standard aktuelle Woche), Tag (sieben Tage; Cafeteria Sa/So nur bei erlaubtem Wochenende oder vorhandenem Service), Mahlzeit (PROFILE_MEALS), Menüart (aus Vorlage vorbelegt, änderbar); Zusammenfassung in Worten; NoJS-fähig; Leser sehen keine Aktion",
+            "POST einplanen (CSRF, draft.write, updated_at der Vorlage als Kontext): Raster wie menu_get/_raster geprüft; leerer Slot → 303 auf /admin/<family>/menu?…&template=<uuid> ohne Schreiben; belegter Slot → Seite «Bereits belegt mit «<Titel>»» mit «Bestehendes Menü öffnen» und «Anderes Ziel wählen», kein Schreiben; archivierte Vorlage/Standortwechsel → 409, ungültiges Raster oder Bereich → 400, jeweils mit erhaltenen Werten",
+            "menu_get mit template=<uuid> auf leerem Slot befüllt vor: Titel und Beschreibung aus der Vorlage, verstecktes dish_template_public_id, Baustein 1 als Text «<Rezepttitel>» mit Rezeptstand-Auswahl auf dem neuesten gespeicherten Stand (sichtbar «Stand n vom <Datum>», Hinweis «Vorgeschlagen. Anderen Stand wählen oder ohne Rezeptbindung speichern.»); ohne Stand Hinweis mit Link «Stand festhalten», ohne Rezept kein Baustein; Cafeteria-Preise leer und Pflicht, Patienten ohne Preisfelder; Kennzeichnungen im Standardmodus; auf belegtem Slot wird template ignoriert und ein Hinweis gezeigt; GET schreibt nichts",
+            "Speichern über den bestehenden menu_post mit return_to=week: Flash «Menü «<Titel>» aus Vorlage «<Vorlage>» für <Wochentag, Datum>, <Mahlzeit>, <Menüart> gespeichert.»; Wochenkarte zeigt «Aus Vorlage»; Menüsammlung findet das Vorkommen",
+            "Doppelklick auf Einplanen erzeugt keinen Schreibvorgang; doppeltes Speichern liefert 409 mit Link zum Menü; Slot-Race zwischen Einplanen und Speichern → 409 mit erhaltenen Eingaben; kein Duplikat",
+            "Kein Vorschlagsdatensatz, keine Freigabe-Warteschlange, kein Auto-Matching; Vorlage bleibt nach dem Speichern unverändert (kein Audit auf der Vorlage)",
+            "UI-Master vollständig gelesen; pro geänderter Route 1440x900+390x844, pro Seitentyp/shared zusätzlich 1024x768+768x1024+1920x1080, tatsächliche Coverage nennen",
+            "keyboard/NoJS/200%Zoom/Fontload/Fokus/Overflow/Kontrast; Tabler/Token, min44px und bestehende48px nicht schrumpfen, keine neue Palette/Dependency"
+          ],
+          "assignment": "NICHT GELAUFEN in diesem Docs-WP; Root ersetzt benannte Wrapper/WT-Platzhalter und ordnet für HTTP/PG/Browser einen exklusiven Pool zu."
+        }
+      ],
+      "risk": "HIGH",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex",
+        "claude-code",
+        "agy",
+        "grok-build",
+        "cursor"
+      ],
+      "completion_evidence": [
+        "diff+commit",
+        "reale Gate-Ausgabe",
+        "Screenshots 390/1440 und Matrix für Einplanen-Seite; Konflikt-/Fehlerzustände",
+        "Nicht gefahrene Gates ausdrücklich nennen; dieser Docs-Freeze ist kein Produkt-/Live-/Fachabnahme-PASS"
+      ],
+      "rollback": "Anwendungsrückfall: Einplanen-Route und Vorbefüllung entfallen; bereits gespeicherte Menüs bleiben mit ihrem Bezug stehen.",
+      "ui_contract": {
+        "path": "docs/design/2026-09-09-unified-ui-design-system.md",
+        "owner": "Root / sdd-backlog-root-0909",
+        "scope": "read-only prerequisite, Root integrates master and AGENTS/CLAUDE",
+        "route_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            390,
+            844
+          ]
+        ],
+        "representative_and_shared_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            1920,
+            1080
+          ]
+        ]
+      },
+      "proposed_files": [
+        "reference_scaffold/cafeteria/templates/admin/gerichtvorlage_einplanen.html",
+        "reference_scaffold/tests/test_menu_proposal_routes.py",
+        "reference_scaffold/tests/test_menu_proposal_browser.py"
+      ],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/recipes-sdd.md",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md",
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/design/2026-09-12-patientenplan-menueditor-korrektur.md",
+        "reference_scaffold/cafeteria/workflow.py",
+        "reference_scaffold/cafeteria/workflow_partial_form.py",
+        "reference_scaffold/cafeteria/recipe_link_reads.py",
+        "reference_scaffold/cafeteria/menu_recipe_choices.py",
+        "reference_scaffold/cafeteria/operations_settings.py"
+      ]
     }
   ],
   "shared_owner_groups": {
@@ -6844,11 +7846,13 @@
     ],
     "reference_scaffold/cafeteria/workflow_partial_store.py": [
       "MP-REC-BINDINGS",
-      "MP-REC-PLAN-PORTIONS"
+      "MP-REC-PLAN-PORTIONS",
+      "MP-REC-MENU-TEMPLATE-BINDING"
     ],
     "reference_scaffold/cafeteria/workflow_store.py": [
       "MP-REC-BINDINGS",
-      "MP-REC-PLAN-PORTIONS"
+      "MP-REC-PLAN-PORTIONS",
+      "MP-REC-MENU-TEMPLATE-BINDING"
     ],
     "reference_scaffold/cafeteria/workflow_copy_store.py": [
       "MP-REC-BINDINGS",
@@ -6857,7 +7861,8 @@
     "reference_scaffold/cafeteria/workflow_partial_form.py": [
       "MP-REC-BINDINGS",
       "MP-REC-BINDING-UI",
-      "MP-REC-PLAN-PORTIONS"
+      "MP-REC-PLAN-PORTIONS",
+      "MP-REC-MENU-TEMPLATE-BINDING"
     ],
     "reference_scaffold/cafeteria/workflow_review.py": [
       "MP-REC-BINDINGS",
@@ -6866,12 +7871,16 @@
     "reference_scaffold/cafeteria/admin/workflow_routes.py": [
       "MP-REC-BINDINGS",
       "MP-REC-BINDING-UI",
-      "MP-REC-PLAN-PORTIONS"
+      "MP-REC-PLAN-PORTIONS",
+      "MP-REC-MENU-TEMPLATE-BINDING",
+      "MP-REC-MENU-PROPOSAL"
     ],
     "reference_scaffold/cafeteria/admin/rendering.py": [
       "MP-REC-BINDINGS",
       "MP-REC-BINDING-UI",
-      "MP-REC-PLAN-PORTIONS"
+      "MP-REC-PLAN-PORTIONS",
+      "MP-REC-MENU-TEMPLATE-BINDING",
+      "MP-REC-MENU-PROPOSAL"
     ],
     "reference_scaffold/cafeteria/recipe_reads.py": [
       "MP-REC-SNAPSHOT-V2",
@@ -6894,11 +7903,16 @@
       "MP-REC-FREEZE-V2",
       "MP-REC-SEARCH-FTS",
       "MP-REC-SAVED-SEARCH",
-      "MP-REC-BATCH-TAGS"
+      "MP-REC-BATCH-TAGS",
+      "MP-REC-RECIPE-VIEW-PRINT",
+      "MP-UI-RECIPE-LISTS"
     ],
     "reference_scaffold/cafeteria/templates/admin/menu_editor.html": [
       "MP-REC-BINDING-UI",
-      "MP-REC-PLAN-PORTIONS"
+      "MP-REC-PLAN-PORTIONS",
+      "MP-UI-KORREKTUR-EDITOR",
+      "MP-REC-MENU-TEMPLATE-BINDING",
+      "MP-REC-MENU-PROPOSAL"
     ],
     "reference_scaffold/cafeteria/static/admin.js": [
       "MP-REC-BINDING-UI",
@@ -6937,7 +7951,8 @@
       "MP-REC-SEARCH-FTS",
       "MP-REC-SAVED-SEARCH",
       "MP-REC-BATCH-TAGS",
-      "MP-NUT-RECIPE-PROJECTION"
+      "MP-NUT-RECIPE-PROJECTION",
+      "MP-REC-RECIPE-VIEW-PRINT"
     ],
     "reference_scaffold/cafeteria/admin/shopping_list_routes.py": [
       "MP-REC-SHOPPING-PERSIST",
@@ -6958,6 +7973,42 @@
     "reference_scaffold/cafeteria/off_fetch.py": [
       "MP-OFF-FETCH",
       "MP-OFF-REVIEW-UI"
+    ],
+    "reference_scaffold/cafeteria/admin/dish_template_routes.py": [
+      "MP-REC-LINK-READS",
+      "MP-REC-MENU-PROPOSAL"
+    ],
+    "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html": [
+      "MP-REC-LINK-READS",
+      "MP-REC-MENU-PROPOSAL"
+    ],
+    "reference_scaffold/tests/test_dish_template_routes.py": [
+      "MP-REC-LINK-READS",
+      "MP-REC-MENU-PROPOSAL"
+    ],
+    "reference_scaffold/cafeteria/admin/recipe_print_template_routes.py": [
+      "MP-REC-PRINT-TEMPLATE-ENTRY",
+      "MP-REC-PDF-GEOMETRY"
+    ],
+    "reference_scaffold/cafeteria/templates/admin/_recipe_template_selection.html": [
+      "MP-REC-PRINT-TEMPLATE-ENTRY",
+      "MP-UI-PRINT-EDITOR"
+    ],
+    "reference_scaffold/cafeteria/templates/admin/rezepte_revisionen.html": [
+      "MP-REC-RECIPE-VIEW-PRINT",
+      "MP-UI-RECIPE-LISTS"
+    ],
+    "reference_scaffold/cafeteria/templates/admin/rezepte_revision.html": [
+      "MP-UI-REF-DETAIL",
+      "MP-REC-RECIPE-VIEW-PRINT"
+    ],
+    "reference_scaffold/cafeteria/workflow_item_write.py": [
+      "MP-REC-BINDINGS",
+      "MP-REC-MENU-TEMPLATE-BINDING"
+    ],
+    "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html": [
+      "MP-UI-KORREKTUR-WEEK",
+      "MP-REC-MENU-TEMPLATE-BINDING"
     ]
   },
   "root_ui_contract": {
@@ -7006,5 +8057,26 @@
     "sql27_receipt": "author5d7edc1 PG16 58PASS91.11s; Root PG16 58PASS89.89s; PG18/combinedrelease pending",
     "foundations_receipt": "author4d5074e/Report12444:114PASS113.57s PG16_HTTP_offline;35PASS236.86s browser;Rootreviewpending",
     "foundations_root_receipt": "Root114DBPASS113.07s;35BrowserPASS241.91s;independentReviewCLEAN12446;combinedReleasePending"
+  },
+  "planning_addendum_2026_09_13": {
+    "wp_id": "wp-61d537d988a2",
+    "planner": "Fable 5.1 (claude-fable-5-1)",
+    "base": "c0839fbc803e0574582627f06692b29040bb3e53",
+    "product_baseline": "2fa44dea36675692bfb8ad4b681dca73dba06737 / schema30",
+    "spec": "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md",
+    "sdd_section": "recipes-sdd.md#nachtrag-0913",
+    "new_packages": [
+      "MP-REC-LINK-READS",
+      "MP-REC-PRINT-TEMPLATE-ENTRY",
+      "MP-REC-RECIPE-VIEW-PRINT",
+      "MP-REC-MENU-TEMPLATE-BINDING",
+      "MP-REC-MENU-PROPOSAL"
+    ],
+    "extended_packages": [
+      "MP-REC-DISH-TEMPLATE-WRITER",
+      "MP-REC-BINDINGS-ACCEPT"
+    ],
+    "sql_writers": "none; all columns, triggers and verbs exist since v26",
+    "runtime_tests_in_this_docs_wp": "NOT RUN"
   }
 }

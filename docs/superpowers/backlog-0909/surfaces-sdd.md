@@ -513,3 +513,50 @@ Inhalte erzwungen werden.
 Neue Screenshots sind **vorgeschlagene** Referenzen. Sie dürfen nicht als vom
 Auftraggeber freigegebene Baseline ausgegeben werden, und fehlschlagende
 Vergleiche werden nicht blind aktualisiert.
+
+<a id="template-flow"></a>
+## 13. Nachtrag 13. September 2026: Rezeptansicht, Druck-Einstiege, Gerichtvorlagen im Hub und Inventar
+
+Quelle: [Feature-SDD vom 13.09.](../../design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md)
+(Planungs-WP `wp-61d537d988a2`, Basis `c0839fb`, Produktbaseline `2fa44dea`/Schema 30).
+Fachliche Verträge und Writer liegen im Rezeptslice (recipes-sdd.md §12); dieser
+Abschnitt trägt nur Oberflächen-, Hub-, Inventar- und Abnahmeanschlüsse.
+
+### 13.1 Oberflächenanschlüsse
+
+- **Rezeptkarte** (`templates/admin/rezepte.html`): drei getrennte Aktionen «Ansehen»
+  (neue Nur-Lese-Route `/admin/rezepte/<uuid>/ansicht`), «Bearbeiten» (nur Schreibrecht
+  und aktiv) und «Drucken» (PDF des neuesten gespeicherten Stands; ohne Stand erklärter
+  Weg zu «Gespeicherte Stände»). Zeile «Gerichtvorlage: …» beziehungsweise «Keine
+  Gerichtvorlage · Vorlage anlegen». Keine doppelten identischen Ziele; Leserolle ohne
+  Bearbeiten. Writer: `MP-REC-RECIPE-VIEW-PRINT`; `MP-UI-RECIPE-LISTS` konsumiert danach.
+- **Rezeptansicht/Stand/Ständeliste** zeigen «Druckvorlage: Name · Revision n (aktiv)»;
+  Admin-Link mit expliziten `template`/`revision`-IDs, andere Rollen nur Text.
+- **Gerichtvorlagen** (Liste, Formular, neue Seite «Einplanen»): Listen-/Formulartyp
+  nach Masterprompt, native Selects, NoJS, Zustandsklartext («Rezept archiviert»,
+  «Noch kein gespeicherter Stand», «In n Menüs verwendet»), Konfliktseite bei belegtem
+  Slot mit zwei Wegen und ohne Schreiben. Writer im Rezeptslice.
+- **Menüeditor/Wochenkarte**: Titel «Neues Menü aus Vorlage «X»», Hinweis zum
+  vorgeschlagenen Stand, Kontrollkästchen «Vorlagenbezug lösen», Karte «Aus Vorlage «X»».
+  Bestehende Korrekturprinzipien P01–P10 und ein einziger Speicherweg bleiben.
+- **Druckvorlageneditor** (`/admin/vorlagen/rezepte`): ohne Parameter aktive
+  Vorlage/Revision, «Zurück zum Rezept» bei `recipe=`; `MP-UI-PRINT-EDITOR` erhält das.
+
+### 13.2 Hub (TPL-001)
+
+`MP-TPL-HUB-COMPLETE` ergänzt: Karte «Gerichtvorlagen» (das sind die in §8 genannten
+Menüvorlagen) mit Zählung aktiv/archiviert und Link auf `/admin/gerichtvorlagen`;
+auf der Rezeptvorlagen-Karte «Aktive Vorlage öffnen» mit explizit aufgelösten IDs
+(`standard` ohne Parameter ist nicht «aktiv»); Einstieg «Rezept drucken» zur
+Rezeptliste. Ein Hub-Owner, seriell.
+
+### 13.3 Inventar, Matrix und Abnahme
+
+`MP-UI-INVENTORY` nimmt die Gerichtvorlagen-Familie (`/admin/gerichtvorlagen`, `/neu`,
+`/<uuid>`, `/<uuid>/einplanen` samt Leer-/Konflikt-/403-Zuständen) und
+`/admin/rezepte/<uuid>/ansicht` auf; die Aufnahmen vom 11.09. bleiben historisch.
+`MP-UI-TEMPLATE-FLOW-ACCEPT` (neu, verification) nimmt den Gesamtfluss unabhängig ab:
+fünf Viewports für Liste/Formular/Einplanen, 1440/390 für die übrigen Routen, JS/NoJS,
+Tastatur/Escape/Fokus, 200 %-Zoom, reduced-motion, gemessene Kontraste, Rollen
+Leser/Editor/Admin, alle Zustände aus SDD §5, PDF-Bytes und nativer Paint getrennt.
+Screenshots sind vorgeschlagene Referenzen. `MP-UI-MATRIX` hängt daran.

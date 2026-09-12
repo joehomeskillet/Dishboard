@@ -1463,3 +1463,75 @@ Dieses Docs-WP führt keine solchen Produkttests und keinen Provideraufruf aus.
 - Keine automatische Veröffentlichung, keine automatische Allergenbestätigung,
   keine automatische Überschreibung bestätigter Daten.
 - Keine Änderung an v1-Snapshotbytes, v1-Hashes oder publizierten Menü-Snapshots.
+
+---
+
+<a id="nachtrag-0913"></a>
+## 12. Nachtrag 13. September 2026: Gerichtvorlagen, Rezeptansicht und Menüvorschlag
+
+Quelle: [Feature-SDD vom 13.09.](../../design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md),
+Planungs-WP `wp-61d537d988a2` auf `c0839fb` (Produktbaseline `2fa44dea`, Schema 30).
+Die Abschnitte 1–11 bleiben historisch unverändert; Widersprüche löst dieser Nachtrag.
+
+### 12.1 Korrigierter Ist-Stand zu 8.2
+
+Die Zeile «Gerichtvorlage → Rezept: vollständig fehlend» in 8.2 ist überholt:
+`dish_template_store.py`, `admin/dish_template_routes.py`, `templates/admin/gerichtvorlagen.html`,
+Sidebar-/Tab-Eintrag und die Tests `test_dish_template_routes.py`/`test_dish_template_browser.py`
+sind in `c0839fb` enthalten; 32 Vorlagen wurden am 12.09. über `create_template`
+importiert. `MP-REC-DISH-TEMPLATE-WRITER` wird mit diesem Beleg als `DEPLOYED` geführt
+(nicht `ACCEPTED`). Verbleibende Lücken der Vorlagenpflege: Rezeptauswahl auf die ersten
+200 Rezepte begrenzt, ohne Suche und ohne Retained-Lookup des gebundenen Rezepts.
+
+`menu_items.dish_template_id` und Trigger `menu_items_dish_recipe_scope` existieren seit
+v26, aber `workflow_item_write.write_draft_item` setzt die Spalte nicht; nur die
+Vorwochenkopie kopiert sie. Es gibt keinen Reader und keine Anzeige dieses Bezugs.
+
+### 12.2 Vertragsergänzungen
+
+- **Vier Kanten, keine Verdoppelung:** Vorlage→Rezeptkopf (`dish_templates.recipe_id`,
+  Vorlagen-Writer), Rezept→Vorlagen (abgeleitete Leserichtung), Menü→Vorlage
+  (`menu_items.dish_template_id`, nativer Menüwriter), Baustein→gespeicherter Stand
+  (`menu_item_components.recipe_revision_id`, ausdrückliche Auswahl). Kopf und Stand
+  bleiben getrennt; ein Stand wird beim Vorschlag sichtbar vorgeschlagen, nie still
+  gesetzt; alte Menüs/PDFs werden nicht umgeschrieben.
+- **Menüformular:** optionales Einzelfeld `dish_template_public_id` (kanonische UUID
+  oder leer) und Marker `dish_template_detach=1` für ausdrückliches Lösen. Fehlendes
+  Feld erhält einen bestehenden Bezug. Unbekannte, archivierte, standortfremde oder
+  zum Profil unpassende Vorlage → 400 am Feld; Trigger 23514 → 409. INSERT und UPDATE
+  führen die Spalte; Kopie behält sie; CSV-Vollersatz ersetzt sie mit dem Inhalt
+  (dokumentiert, getestet). Publikationssnapshot und Hash bleiben unverändert.
+- **Lesemodul `recipe_link_reads.py`:** gebundene, standortgebundene Read-only-Abfragen
+  je Seite (keine N+1): Vorlagen je Rezept, neuester gespeicherter Stand je Rezept,
+  Rezeptzustand und Menüverwendung je Vorlage, Vorlagentitel je Menüposition.
+- **Rezeptdruck:** unverändert der bestehende Revisions-PDF-Weg mit aktiver globaler
+  Vorlage. Neu sind nur Einstiege (Karte, Ansicht, Ständeliste) und die sichtbare
+  Druckvorlagenangabe mit explizit aufgelösten `template`/`revision`-IDs für Admins.
+  Kein Entwurfs-PDF, kein Festschreiben per GET.
+- **Druckvorlageneditor:** ohne `template`/`revision` öffnet er die aktive Vorlage und
+  Revision (virtueller Default, initialisiert nichts); mit `recipe=` zeigt er den
+  Rückweg zum Rezept.
+
+### 12.3 Pakete dieses Nachtrags
+
+| WP | Kern | Abhängigkeit |
+|---|---|---|
+| `MP-REC-LINK-READS` | Lesemodul, Vorlagenzustände, gebundene Rezeptauswahl, `?recipe=`-Vorbelegung | DISH-TEMPLATE-WRITER, BINDINGS |
+| `MP-REC-PRINT-TEMPLATE-ENTRY` | aktiver Editor-Default, Rückweg zum Rezept | PDF-RELEASE |
+| `MP-REC-RECIPE-VIEW-PRINT` | Route `/rezepte/<uuid>/ansicht`, Karte Ansehen/Bearbeiten/Drucken, Druckvorlagenangabe, Vorlagenbezug | LINK-READS, PDF-RELEASE |
+| `MP-REC-MENU-TEMPLATE-BINDING` | Vorlagenbezug im nativen Menüwriter/-reader, Karte «Aus Vorlage» | BINDINGS, DISH-TEMPLATE-WRITER; seriell mit PLAN-PORTIONS |
+| `MP-REC-MENU-PROPOSAL` | Einplanen-Seite, Slotprüfung, Editor-Vorbefüllung, Ergebnis-Flash | LINK-READS, MENU-TEMPLATE-BINDING |
+
+`MP-REC-BINDINGS-ACCEPT` prüft zusätzlich die vierte Kante und den Vorschlagsfluss.
+Erweiterte Nicht-Ziele: kein persistenter Vorschlag, kein Auto-Matching, kein
+Entwurfs-PDF, keine Migration (alle Spalten/Trigger/Verben vorhanden).
+
+### 12.4 Gates
+
+Gezielte Tests je WP stehen im Manifest; gemeinsam gelten
+`tests/test_admin_workflow_snapshot_contract.py`, `tests/test_public_contracts.py`
+(Hash/Projektion unverändert), `tests/test_workflow_copy_store_db.py`,
+`tests/test_admin_csv_import.py`, `tests/test_menu_recipe_selection_browser.py`,
+`tests/test_recipe_pdf_http.py` und `tests/test_recipe_navigation_browser.py` als
+Regressionsrahmen. UI nach 10.6; Gerichtvorlagenliste, -formular und Einplanen-Seite
+als Listen-/Formulartyp in allen fünf Viewports.
