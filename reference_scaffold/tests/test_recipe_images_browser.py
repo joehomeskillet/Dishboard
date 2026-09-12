@@ -93,16 +93,16 @@ def test_native_upload_freeze_history_scaling_and_assets(a3, recipe_server, brow
         capture(page, tmp_path, f'images-{width}-js{javascript}')
         page.goto(base + path + '/revisionen')
         with page.expect_response(lambda response: response.request.method == 'POST') as outcome:
-            page.get_by_role('button', name='Revision festschreiben', exact=True).click()
+            page.get_by_role('button', name='Gespeicherten Stand festhalten', exact=True).click()
         assert outcome.value.status == 303 and len(posts) == 2
-        expect(page.get_by_role('heading', name='Unveränderlicher Stand', exact=True)).to_be_visible()
+        expect(page.get_by_role('heading', name='Gespeicherter Stand 1', exact=True)).to_be_visible()
         revision_path = urlsplit(page.url).path
         before = snapshot(owner)
         page.get_by_label('Zielmenge · PORTION', exact=True).fill('6')
         page.get_by_role('button', name='Mengen berechnen', exact=True).click()
         expect(page.locator('td').get_by_text('0.1875', exact=True)).to_be_visible()
         assert len(posts) == 2 and snapshot(owner) == before
-        page.locator('summary').filter(has_text='Vollständiger gespeicherter Revisionsstand').click()
+        page.locator('details.card > summary').filter(has_text='Technische Details').click()
         expect(page.get_by_text('quantity_places', exact=True)).to_be_visible()
         geometry(page)
         capture(page, tmp_path, f'revision-{width}-js{javascript}')

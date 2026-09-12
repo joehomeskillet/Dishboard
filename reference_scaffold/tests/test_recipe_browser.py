@@ -52,13 +52,14 @@ def test_native_editor_rows_save_cancel_and_tabler(b3, master_server, browser, w
         assert not errors
         assert page.locator('link[href*="tabler.min.css"]').count() == 1
         assert page.locator('main [style], main style').count() == 0
-        for control in page.locator('main [data-admin-icon-action]').all():
-            assert control.get_attribute('aria-label')
+        for control in page.locator('#recipe-editor button[formaction]').all():
+            assert control.inner_text().strip()
             assert control.locator('use').get_attribute('href').split('#')[-1] in {
                 'tabler-plus', 'tabler-trash', 'tabler-chevron-left', 'tabler-chevron-right'}
         page.get_by_role('heading', level=1).click()
         page.screenshot(path=str(tmp_path / f'recipe-editor-{width}-js{javascript}.png'), full_page=True)
         before = snapshot(owner)
+        page.get_by_text('Weitere Aktionen', exact=True).click()
         page.get_by_role('link', name='Archivieren', exact=True).click()
         expect(page.get_by_role('button', name='Archivieren bestätigen')).to_be_visible()
         post_count = len(posts)
