@@ -80,12 +80,23 @@ def test_tabler_lists_preserve_navigation_and_tablet_layout(page_context, admin_
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), (route, width)
             expect(page.get_by_label('Kompakte Ansicht', exact=True)).to_have_count(0)
             expect(page.locator('main')).to_have_attribute('data-density', 'compact')
+            if route == 'wochen' and page.locator('details:has(#new-week-date)').get_attribute('open') is None:
+                if width < 992:
+                    page.keyboard.press('Escape')
+                    expect(toggle).to_have_attribute('aria-expanded', 'false')
+                    page.locator('details:has(#new-week-date)').evaluate('el => { el.open = true; }')
+                else:
+                    page.locator('#new-week-title').click()
+                expect(page.locator('details[open] #new-week-date')).to_be_visible()
             for control in page.locator('input[type="date"], input[name="title"], textarea, button[type="submit"]').all():
                 assert control.bounding_box()['height'] >= 48, (width, control.evaluate('(el) => el.outerHTML'))
             for link in page.get_by_role('navigation', name='Backend').get_by_role('link').all():
                 expect(link).to_be_visible()
                 assert link.bounding_box()['height'] >= 48
             if width < 992:
+                if route == 'wochen' and page.locator('details[open]').count():
+                    page.locator('details:has(#new-week-date)').evaluate('el => { el.open = false; }')
+                toggle.focus()
                 page.keyboard.press('Escape')
                 expect(toggle).to_have_attribute('aria-expanded', 'false')
                 expect(nav).to_be_hidden()
