@@ -23,6 +23,7 @@ def test_overview_header_submits_native_form_and_reloads_saved_values(
     page = page_context
     page.set_viewport_size({'width': viewport[0], 'height': viewport[1]})
     page.goto(f'/admin/{family}?week={DAY}')
+    page.locator('details.admin-week-settings > summary').click()
     form = page.locator(f'form[action="/admin/{family}/header"]')
     assert form.locator('[name="row_version"]').input_value() == '0'
     form.locator('[name="title"]').fill('Wochenangebot September')
@@ -63,6 +64,9 @@ def test_overview_service_uses_own_version_and_preserves_notice_without_items(
     page = page_context
     page.set_viewport_size({'width': viewport[0], 'height': viewport[1]})
     page.goto(f'/admin/{family}?week={DAY}')
+    page.locator('details.admin-week-service').evaluate_all(
+        'els => els.forEach(el => { el.open = true })',
+    )
     for day, state, notice in (
         (DAY, 'open', 'Ausgabe ab 11:30 Uhr'),
         (empty_day, 'holiday', 'Feiertag: keine Ausgabe'),
@@ -80,9 +84,12 @@ def test_overview_service_uses_own_version_and_preserves_notice_without_items(
                 f'.menu-slot[data-day="{DAY}"][data-meal="LUNCH"][data-option="MENU_1"]',
             ).get_attribute('data-row-version') == '2'
         with page.expect_response(lambda response: response.request.method == 'POST') as saved:
-            form.get_by_role('button', name='Service speichern', exact=True).click()
+            form.get_by_role('button', name='Ausgabeangaben speichern', exact=True).click()
         assert saved.value.status == 303
         page.wait_for_url(f'**/admin/{family}?week={DAY}')
+        page.locator('details.admin-week-service').evaluate_all(
+            'els => els.forEach(el => { el.open = true })',
+        )
         assert form.locator('[name="row_version"]').input_value() == '2'
         assert form.locator('[name="service_state"]').input_value() == state
         assert form.locator('[name="notice"]').input_value() == notice
@@ -111,6 +118,7 @@ def test_copy_link_on_empty_week_submits_exact_native_form(
     page = page_context
     page.set_viewport_size({'width': viewport[0], 'height': viewport[1]})
     page.goto(f'/admin/{family}?week={target}')
+    page.locator('details.admin-week-more').evaluate('el => { el.open = true }')
     page.get_by_role('link', name='Vorwoche kopieren', exact=True).click()
     form = page.locator(f'form[action="/admin/{family}/copy"]')
     fields = form.evaluate('form => Object.fromEntries(new FormData(form))')

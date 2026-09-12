@@ -64,6 +64,9 @@ def test_week_overview_responsive_matrix_without_horizontal_overflow(
     page = page_context
     page.set_viewport_size({'width': width, 'height': height})
     page.goto(f'/admin/{family}?week={DAY}')
+    page.locator('details.admin-week-settings, details.admin-week-service').evaluate_all(
+        'els => els.forEach(el => { el.open = true })',
+    )
     toggle = page.get_by_role('button', name='Menü', exact=True)
     nav = page.get_by_role('navigation', name='Backend')
     if width < 992:  # K2-A: sidebar breakpoint moved from 1200 to 992 (navbar-expand-lg)
@@ -93,7 +96,7 @@ def test_week_review_link_points_to_saved_week(page_context: Page, family: str) 
     page = page_context
     page.goto(f'/admin/{family}?week={DAY}')
     review_links = page.locator(f'a[href="/admin/{family}/wochen/pruefung?week={DAY}"]')
-    assert review_links.count() >= 2
+    assert review_links.count() == 1
     expect(review_links.first).to_be_visible()
 
 
@@ -168,6 +171,7 @@ def test_week_header_and_service_save_keep_dirty_guard_and_exact_payloads(
     page = page_context
     page.set_viewport_size({'width': 360, 'height': 800})
     page.goto(f'/admin/{family}?week={DAY}')
+    page.locator('details.admin-week-settings > summary').click()
     header = page.locator(f'form[action="/admin/{family}/header"]')
     header.locator('[name="title"]').fill('Gespeicherte Wochenangaben')
     header.locator('[name="shared_note"]').fill('Saisonales Angebot')
@@ -187,16 +191,18 @@ def test_week_header_and_service_save_keep_dirty_guard_and_exact_payloads(
     assert payload['week'] == [DAY]
     # The existing POST redirects to a legacy header fragment; inspect persisted overview data.
     page.goto(f'/admin/{family}?week={DAY}')
+    page.locator('details.admin-week-settings > summary').click()
     expect(header.locator('[name="title"]')).to_have_value('Gespeicherte Wochenangaben')
     expect(header.locator('[name="shared_note"]')).to_have_value('Saisonales Angebot')
 
+    page.locator('details.admin-week-service').first.evaluate('el => { el.open = true }')
     service = page.locator(f'form[action="/admin/{family}/service"]').first
     service.locator('[name="service_state"]').select_option('open')
     service.locator('[name="notice"]').fill('Geänderte Ausgabezeit')
     service.locator('[name="service_start"]').fill('11:45')
     service.locator('[name="service_end"]').fill('13:45')
     with page.expect_response(lambda response: response.request.method == 'POST') as saved_service:
-        service.get_by_role('button', name='Service speichern').click()
+        service.get_by_role('button', name='Ausgabeangaben speichern').click()
     assert saved_service.value.status == 303
     payload = parse_qs(saved_service.value.request.post_data, keep_blank_values=True)
     assert set(payload) == {
@@ -208,6 +214,7 @@ def test_week_header_and_service_save_keep_dirty_guard_and_exact_payloads(
     assert payload['service_start'] == ['11:45']
     assert payload['service_end'] == ['13:45']
     page.goto(f'/admin/{family}?week={DAY}')
+    page.locator('details.admin-week-service').first.evaluate('el => { el.open = true }')
     expect(service.locator('[name="service_state"]')).to_have_value('open')
     expect(service.locator('[name="notice"]')).to_have_value('Geänderte Ausgabezeit')
     expect(service.locator('[name="service_start"]')).to_have_value('11:45')

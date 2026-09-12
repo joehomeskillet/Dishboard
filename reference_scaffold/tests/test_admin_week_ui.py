@@ -103,10 +103,15 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
     page.goto(f'/admin/{family}?week={DAY}')
     expect(page.locator('main')).to_have_attribute('data-status', state)
     expect(page.locator('.status-pill')).to_have_attribute('data-status', state)
-    expect(page.locator('.weekbar')).to_contain_text('KW 36')
-    expect(page.get_by_role('status')).to_contain_text(
-        '1 Menükarte mit offener Prüfung' if state == 'review_open' else 'Keine offenen Prüfungen'
-    )
+    expect(page.locator('.page-header-subtitle')).to_contain_text('KW 36')
+    status = page.get_by_role('status')
+    if state == 'review_open':
+        expect(status).to_contain_text('1 Menükarte mit offener Prüfung')
+    elif state == 'empty':
+        expect(status).to_contain_text('Noch keine Menüs erfasst')
+    else:
+        expect(status).to_contain_text('erfassten Menükarten geprüft')
+    expect(status).not_to_contain_text('Keine offenen Prüfungen')
     assert page.locator('.menu-slot').count() == slots
     assert 'Arbeitsstand' not in page.locator('main').inner_text()
     form = page.locator(f'form[action="/admin/{family}/publish"]')
@@ -118,7 +123,7 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
     expect(form.locator('[name="week"]')).to_have_value(DAY)
     publish = form.locator('button[type="submit"]')
     publish_trigger = page.locator('[data-bs-target="#week-publish-modal"]')
-    expect(publish).to_have_text('Publizieren')
+    expect(publish).to_have_text('Veröffentlichen')
     if state == 'ready':
         expect(publish).to_be_enabled()
         expect(publish_trigger).to_be_enabled()
@@ -135,7 +140,7 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
     if family == 'patienten':
         assert re.search(r'preis|chf|rappen|kosten|price', page.content(), re.I) is None
         if state == 'empty':
-            expect(page.locator('.patient-admin-day > .card-header span').first).to_have_text('0 von 4 Menükarten erfasst')
+            expect(page.locator('.patient-admin-day > .card-header .admin-week-day-count').first).to_have_text('0 von 4 Menükarten erfasst')
     page.locator('.menu-slot').last.scroll_into_view_if_needed()
     if width < 1200:
         controls = page.locator('.admin-week-controls')
@@ -150,7 +155,7 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
         publish_trigger.click()
         modal = page.get_by_role('dialog')
         expect(modal).to_be_visible()
-        expect(modal).to_contain_text('Woche publizieren')
+        expect(modal).to_contain_text('Woche veröffentlichen')
         expect(publish).to_be_visible()
         assert modal.locator('button').evaluate_all('''buttons => buttons.every(button => {
             const box = button.getBoundingClientRect();
@@ -165,13 +170,15 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
         page.keyboard.press('Tab')
         expect(page.locator('a[href*="/preview"]')).to_be_focused()
         page.keyboard.press('Tab')
+        expect(page.get_by_role('link', name='Wochenangaben prüfen')).to_be_focused()
+        page.locator('details.admin-week-more').evaluate('el => { el.open = true }')
+        copy.focus()
         expect(copy).to_be_focused()
         assert copy.evaluate('element => getComputedStyle(element).outlineStyle !== "none"')
+        page.locator('details.admin-week-settings > summary').click()
         title = page.locator('input[name="title"]')
-        for _ in range(8):
-            page.keyboard.press('Tab')
-            if title.evaluate('element => element === document.activeElement'):
-                break
+        expect(title).to_be_visible()
+        title.focus()
         expect(title).to_be_focused()
         title.fill('Angepasste Woche')
         focused_box = title.bounding_box()
@@ -191,6 +198,7 @@ def test_week_fields_preserve_native_payloads_and_usable_widths(
     page = page_context
     page.set_viewport_size({'width': width, 'height': height})
     page.goto(f'/admin/{family}?week={DAY}')
+    page.locator('details.admin-week-settings > summary').click()
     header = page.locator(f'form[action="/admin/{family}/header"]')
     title = header.locator('[name="title"]')
     box = title.bounding_box()
@@ -204,20 +212,23 @@ def test_week_fields_preserve_native_payloads_and_usable_widths(
     assert set(payload) == {'_csrf', 'week', 'row_version', 'title', 'shared_note'}
     assert payload['week'] == [DAY] and payload['row_version'] == ['0']
     page.goto(f'/admin/{family}?week={DAY}')
+    page.locator('details.admin-week-settings > summary').click()
     expect(title).to_have_value('Wochenangebot September')
+    page.locator('details.admin-week-service').first.evaluate('el => { el.open = true }')
     service = page.locator(f'form[action="/admin/{family}/service"]').first
     service.locator('[name="service_state"]').select_option('holiday')
     service.locator('[name="notice"]').fill('Heute keine Ausgabe')
     service.locator('[name="service_start"]').fill('11:30')
     service.locator('[name="service_end"]').fill('13:30')
     with page.expect_response(lambda response: response.request.method == 'POST') as saved:
-        service.get_by_role('button', name='Service speichern', exact=True).click()
+        service.get_by_role('button', name='Ausgabeangaben speichern', exact=True).click()
     assert saved.value.status == 303
     payload = parse_qs(saved.value.request.post_data or '', keep_blank_values=True)
     assert set(payload) == {'_csrf', 'week', 'day', 'meal', 'row_version', 'service_state', 'notice', 'service_start', 'service_end'}
     assert payload['service_start'] == ['11:30'] and payload['service_end'] == ['13:30']
     assert payload['day'] == [DAY] and payload['meal'] == ['LUNCH'] and payload['row_version'] == ['0']
     page.goto(f'/admin/{family}?week={DAY}')
+    page.locator('details.admin-week-service').first.evaluate('el => { el.open = true }')
     expect(service.locator('[name="row_version"]')).to_have_value('1')
     expect(service.locator('[name="notice"]')).to_have_value('Heute keine Ausgabe')
     expect(service.locator('[name="service_start"]')).to_have_value('11:30')
@@ -264,4 +275,4 @@ def test_changed_catalog_never_reports_no_open_week_checks(
     assert page.locator('.slot-badge[data-review="open"]').count() == 1
     expect(page.get_by_role('status')).to_contain_text('1 Menükarte mit offener Prüfung')
     expect(page.get_by_role('status')).not_to_contain_text('Keine offenen Prüfungen')
-    expect(page.get_by_role('button', name='Publizieren', exact=True)).to_be_disabled()
+    expect(page.locator('[data-bs-target="#week-publish-modal"]')).to_be_disabled()

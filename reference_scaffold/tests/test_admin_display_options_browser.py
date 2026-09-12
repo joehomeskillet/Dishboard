@@ -93,16 +93,27 @@ def test_preview_global_consumers_reset_and_fresh_login(
                 assert b.locator('main .btn').first.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') == 18
                 _assert_controls(b)
                 dimensions = b.locator(cards).evaluate_all('''els => els.map(el => {
-                    const r = el.getBoundingClientRect(); return {width: r.width, height: r.height,
+                    const r = el.getBoundingClientRect(); return {y: r.y, width: r.width, height: r.height,
                         overflow: el.scrollHeight > el.clientHeight + 1};
                 })''')
                 assert dimensions
-                for axis in ('width', 'height'):
-                    assert max(d[axis] for d in dimensions) - min(d[axis] for d in dimensions) <= 1
+                if cards == '.menu-slot':
+                    rows: dict[int, list] = {}
+                    for item in dimensions:
+                        rows.setdefault(round(item['y']), []).append(item)
+                    for row in rows.values():
+                        heights = [item['height'] for item in row]
+                        assert max(heights) - min(heights) <= 1
+                    widths = [item['width'] for item in dimensions]
+                    assert max(widths) - min(widths) <= 1
+                else:
+                    for axis in ('width', 'height'):
+                        assert max(d[axis] for d in dimensions) - min(d[axis] for d in dimensions) <= 1
                 assert not any(d['overflow'] for d in dimensions)
                 assert 'Milch' in b.locator('main').inner_text()
                 if cards == '.menu-slot':
-                    assert 'Wichtiger langer Rezepturhinweis bleibt vollständig sichtbar.' in b.locator(cards).last.inner_text()
+                    last_card = b.locator(cards).last
+                    assert 'Wichtiger langer Rezepturhinweis bleibt vollständig sichtbar.' in (last_card.text_content() or '')
             b.screenshot(path=str(tmp_path / f'display-large-{family}-{width}.png'), full_page=True)
         a.goto(PATH)
         a.get_by_role('button', name='Standardwerte speichern', exact=True).click()

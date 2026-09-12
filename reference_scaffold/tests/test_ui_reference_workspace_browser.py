@@ -43,7 +43,7 @@ def _assert_no_overflow(page: Page) -> None:
 def _card_dimensions(page: Page) -> list[dict[str, float]]:
     return page.locator('.menu-slot').evaluate_all('''elements => elements.map(element => {
         const box = element.getBoundingClientRect();
-        return {height: box.height, width: box.width};
+        return {y: box.y, height: box.height, width: box.width};
     })''')
 
 
@@ -77,12 +77,12 @@ def test_workspace_page_header_and_layout_variant(page_context: Page, family: st
     page.set_viewport_size({'width': 1440, 'height': 900})
     _goto(page, family)
     expect(page.locator('main')).to_have_attribute('data-layout', 'workspace')
-    title = 'Cafeteria-Plan bearbeiten' if family == 'cafeteria' else 'Patientenplan bearbeiten'
-    expect(page.get_by_role('heading', level=1, name=title)).to_be_visible()
+    title = 'Cafeteria-Plan' if family == 'cafeteria' else 'Patientenplan'
+    expect(page.get_by_role('heading', level=1, name=title, exact=True)).to_be_visible()
     expect(page.locator('.page-breadcrumb')).to_contain_text('Wochenpläne')
     expect(page.locator('.page-header-subtitle')).to_contain_text('KW 36')
-    expect(page.locator('.page-header-subtitle')).to_contain_text('Menükarten')
-    expect(page.get_by_role('link', name='Wochenangaben prüfen').first).to_be_visible()
+    expect(page.locator('.page-header-subtitle')).to_contain_text('Mittag')
+    expect(page.get_by_role('link', name='Wochenangaben prüfen')).to_have_count(1)
     expect(page.locator('.admin-week-review-link')).to_be_visible()
     expect(page.locator('.status-pill')).to_have_attribute('data-status', 'empty')
     expect(page.locator('.status-pill .badge[data-status]')).to_be_visible()
@@ -119,9 +119,14 @@ def test_workspace_dense_week_cards_share_geometry(
     _goto(page, family)
     dimensions = _card_dimensions(page)
     assert len(dimensions) == SLOT_COUNT[family]
-    for axis in ('height', 'width'):
-        sizes = [item[axis] for item in dimensions]
-        assert max(sizes) - min(sizes) <= 1, (family, width, axis, sizes)
+    rows: dict[int, list] = {}
+    for item in dimensions:
+        rows.setdefault(round(item['y']), []).append(item)
+    for row in rows.values():
+        heights = [item['height'] for item in row]
+        assert max(heights) - min(heights) <= 1, (family, width, 'height', heights)
+    widths = [item['width'] for item in dimensions]
+    assert max(widths) - min(widths) <= 1, (family, width, 'width', widths)
     _assert_no_overflow(page)
 
 
@@ -134,7 +139,12 @@ def test_workspace_longtext_remains_readable(page_context: Page, admin_app: Flas
     page.set_viewport_size({'width': 390, 'height': 844})
     _goto(page, family)
     card = page.locator('.menu-slot').last
-    assert values['days'][-1]['services'][-1]['options'][-1]['note'].strip() in card.inner_text()
+    note = values['days'][-1]['services'][-1]['options'][-1]['note'].strip()
+    assert note in (card.text_content() or '')
+    details = card.locator('details.admin-week-note')
+    expect(details.locator('summary')).to_have_text('Hinweis anzeigen')
+    details.locator('summary').click()
+    assert note in card.inner_text()
     expect(card.locator('h3')).to_contain_text('Langtext-Menükarte')
     _assert_no_overflow(page)
 
@@ -194,6 +204,7 @@ def test_workspace_header_conflict_nojs_returns_409(
         context.add_cookies([{'name': 'session', 'value': cookie.value, 'url': live_server, 'httpOnly': True}])
         page = context.new_page()
         page.goto(f'/admin/{family}?week={DAY}')
+        page.locator('details.admin-week-settings > summary').click()
         header = page.locator(f'form[action="/admin/{family}/header"]')
         stale_version = header.locator('[name="row_version"]').input_value()
         persist_week_header(
