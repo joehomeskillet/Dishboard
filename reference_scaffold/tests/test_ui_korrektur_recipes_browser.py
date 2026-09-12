@@ -9,7 +9,7 @@ from playwright.sync_api import Page, expect
 
 from test_recipe_images_browser import recipe_server  # noqa: F401
 from test_recipe_navigation_browser import navigation  # noqa: F401
-from test_recipe_revision_routes import a3, app_engine, installed_pg16, pg16, seeded_pg16  # noqa: F401
+from test_recipe_revision_routes import a3, app_engine, b3, installed_pg16, pg16, seeded_pg16  # noqa: F401
 from test_rendered_ui import browser  # noqa: F401
 
 
@@ -127,7 +127,10 @@ def test_recipe_pages_follow_correction_contract(
                 'elements => elements.map(element => element.name)'
             )) >= {'_csrf', '_form_context', 'row_version', 'file', 'caption', 'source_url', 'source_license', 'fetched_at'}
             if height >= 768:
-                assert upload.bounding_box()['y'] < height
+                content_box = page.locator('.page-body').bounding_box()
+                upload_box = upload.bounding_box()
+                assert content_box is not None and upload_box is not None
+                assert upload_box['y'] - content_box['y'] < height
             expect(page.locator('td[data-label="Herkunft"] details').first).not_to_have_attribute('open', '')
             _check_layout(page, width)
             _capture(page, 'bilder-regulaer', width, height, javascript)
