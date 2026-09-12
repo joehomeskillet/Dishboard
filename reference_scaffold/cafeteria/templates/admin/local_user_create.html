@@ -2,8 +2,8 @@
 {% from 'admin/_macros.html' import page_header %}
 {% from 'admin/_local_user_forms.html' import create_panel, unavailable %}
 {% set workflow_nav = 'users' %}
-{% block title %}Benutzer anlegen · Benutzer & Zugriff{% endblock %}
-{% block page_header %}{% call page_header('Benutzer anlegen', 'Benutzer & Zugriff') %}<a class="btn" href="{{ url_for('admin.local_users_list', page=page, status=status) }}">Zurück zur Kontenliste</a>{% endcall %}{% endblock %}
+{% block title %}Konto anlegen · Benutzer & Zugriff{% endblock %}
+{% block page_header %}{% call page_header('Konto anlegen', 'Benutzer & Zugriff') %}<a class="btn" href="{{ url_for('admin.local_users_list', page=page, status=status) }}">Zurück zur Kontenliste</a>{% endcall %}{% endblock %}
 {% block content %}
 {{ unavailable(can_mutate) }}
 {{ create_panel(csrf, page, status, role_labels, values, request.form.getlist('roles') if request.method == 'POST' else ['Cafeteria.Editor'], error, can_mutate, true) }}
