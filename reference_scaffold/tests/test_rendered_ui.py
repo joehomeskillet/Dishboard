@@ -955,7 +955,11 @@ def test_every_admin_control_is_reachable_sized_and_non_overlapping(
               document.querySelectorAll('.skip-link').forEach(link => link.blur());
               const containmentRect = element => {
                 const cell = element.closest(
-                  '.admin-day, .admin-dish, .patient-admin-meal, .patient-admin-option, .toolbar, .admin-nav, .profile-tabs, .menu-slot, .admin-actions'
+                  '.admin-day-card, .patient-admin-day, .admin-day, .admin-dish, '
+                  + '.patient-admin-meal, .patient-admin-option, .toolbar, .admin-nav, '
+                  + '.profile-tabs, .menu-slot, .admin-actions, .admin-area-tabs, '
+                  + '.admin-page-header, .admin-week-controls, .admin-overview-form, '
+                  + '.admin-nav-collapse, .admin-sidebar, .modal-content'
                 );
                 if (!cell) return null;
                 let scrollParent = cell;
@@ -984,10 +988,12 @@ def test_every_admin_control_is_reachable_sized_and_non_overlapping(
                   top: rect.top,
                   right: rect.right,
                   bottom: rect.bottom,
-                  contained: !cellRect || (
+                  containerMissing: !cellRect && !element.matches('.skip-link'),
+                  // The skip link sits before the page shell and has no section container.
+                  contained: element.matches('.skip-link') || (cellRect && (
                     rect.left >= cellRect.left - 1 && rect.right <= cellRect.right + 1 &&
                     rect.top >= cellRect.top - 1 && rect.bottom <= cellRect.bottom + 1
-                  ),
+                  )),
                 };
               });
               const overlaps = [];
@@ -1004,13 +1010,17 @@ def test_every_admin_control_is_reachable_sized_and_non_overlapping(
                   }
                 }
               }
-              return {reachable, contained: boxes.filter(box => !box.contained), overlaps};
+              return {
+                reachable, missingContainers: boxes.filter(box => box.containerMissing),
+                contained: boxes.filter(box => !box.contained), overlaps,
+              };
             }
             """
 
         def assert_controls(root_selector: str = 'body') -> None:
             result = page.evaluate(metrics_script, root_selector)
             assert result['reachable']
+            assert result['missingContainers'] == []
             assert all(
                 item['width'] >= 44 and item['height'] >= 44 for item in result['reachable']
             ), [item for item in result['reachable'] if item['width'] < 44 or item['height'] < 44]
