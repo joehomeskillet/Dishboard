@@ -1,5 +1,20 @@
 # Gemeinsamer Ausführungsstand: Routing und Dateibesitz
 
+## Aktueller Einstieg — 13. September 2026
+
+Belegte Produktbasis: `2fa44dea36675692bfb8ad4b681dca73dba06737`, Schema 30;
+Korrekturwelle und Import sind geliefert, siehe [aktuellen Einstieg](README.md#aktueller-einstieg--13-september-2026).
+Die [Sprintfolge](../plans/2026-09-12-next-sprints.md), der [SDD-Abgleich](../plans/2026-09-12-sdd-open-work-audit.md)
+und das [Register der 145 Original-IDs](../plans/2026-09-13-sdd-work-package-register.md) führen den historischen Auditstand.
+Der [Fable-UI-Sprint](../../design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md) folgt separat; keine zusätzliche Paketanzahl vorwegnehmen.
+Alle folgenden 136er-Routingbelege, Dateileases und damaligen Zuweisungen sind historische Evidenz,
+keine aktuelle Startfreigabe und kein Nachweis laufender Worker oder übernehmbarer Pools.
+Vor jedem Start den vollständigen Dateibesitz aus allen drei aktuellen Manifesten mit Root neu abgleichen.
+Zugelassen sind Claude, Cursor, AGY, Grok, GPT und Root als begrenzter Worker; maximal fünf schwere Jobs gleichzeitig.
+Bereits gestoppte Container bleiben gestoppt. Die neue Sprintfolge mit ihrem Nachtrag hat Vorrang.
+
+## Historische Routingbelege vom 9. September
+
 Planquelle ist `de08d5101a689e3c09d2aab980cfec4dcb025017`: 136 WPs,
 35 Anforderungs-IDs. [routing-receipts.json](routing-receipts.json) enthält für
 jeden unveränderten Task den tatsächlichen CLI-Beleg mit Routing-WP-ID, Klasse,
@@ -19,7 +34,7 @@ Routing-WP-ID darf diese nicht überschreiben oder einen zweiten Writer starten.
 Transportetikett. Es erlaubt keinesfalls den gleichzeitigen Start aller 136 WPs;
 die begrenzten Dateileases und aktuelle Root-Zuweisung steuern jeden Start.
 
-## Vollständige Dateileases
+## Historische Dateileases und damalige Zuweisungen
 
 [file-leases.json](file-leases.json) leitet alle 741 Owned-Claims aus allen drei
 Manifesten ab: 447 unterschiedliche Pfade, davon 83 mit mehreren Anspruchstellern.
@@ -58,9 +73,9 @@ als auch beim späteren Freeze-Consumer indiziert. Der Reader besitzt nur seine
 vertraglichen Lese-Hunks; der Freeze-Writer wartet auf dessen Übergabe. Der
 Index erteilt keine gleichzeitigen Schreibrechte auf diese Überschneidungen.
 
-## Startkandidaten, noch keine Startfreigabe
+## Historische Startkandidaten, keine aktuelle Startfreigabe
 
-`proposed_disjoint_batches` enthält 15 derzeit dateidisjunkte Kandidaten ohne
+`proposed_disjoint_batches` enthält 15 damals dateidisjunkte Kandidaten ohne
 deklarierte offene Abhängigkeiten, externe Inputs oder geschützte Dateiüberschneidung.
 Das ist ein Vorschlag, keine Kapazitäts- oder Ausführungszusage. Für alle 136 WPs
 sind die Gründe für Aufnahme oder Zurückhaltung einzeln maschinenlesbar aufgeführt.
@@ -80,8 +95,9 @@ und [README.md](README.md) bleiben bindend.
    SDD-Abschnitte lesen. Bestehende Ausführungs-ID und laufenden Owner prüfen.
 2. Vollständigen Basiscommit, eigenen Branch/Worktree, Routing-WP-ID und tatsächliche
    Lane/Modellzuweisung eintragen. Vorhandene Teiländerungen nicht neu erzeugen.
-3. Jeden Owned-Pfad gegen den gesamten Leaseindex und aktuelle Root-Zuweisungen
-   prüfen. Geteilte Dateien erst nach Vorgängerfreeze übernehmen; reine Leseinputs
+3. Jeden Owned-Pfad aus allen drei aktuellen Manifesten vollständig neu abgleichen;
+   historische Leases ersetzen keine aktuellen Root-Zuweisungen.
+   Geteilte Dateien erst nach Vorgängerfreeze übernehmen; reine Leseinputs
    gesondert pinnen. Ein Manifest- oder Leasewechsel erfordert erneuten Abgleich.
 4. Fachliche Abhängigkeiten anhand konkreter Belege freigeben, fehlende externe
    Inputs auf den betroffenen Ablauf begrenzen. DB-/Browserarbeit braucht den

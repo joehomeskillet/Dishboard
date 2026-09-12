@@ -1,6 +1,24 @@
 # Vollständige SDD- und WP-Planung
 
-Stand: 9. September 2026, Europe/Zurich. Dieser Plan führt alle 35 IDs aus
+## Aktueller Einstieg — 13. September 2026
+
+Belegte Produktbasis: `2fa44dea36675692bfb8ad4b681dca73dba06737`, Schema 30.
+Die letzte Korrekturwelle und der Import sind geliefert: 32 Gerichtvorlagen,
+61 Rezepte, 100 Zutaten und drei Lagerorte; die Rezepte bleiben fachlich ungeprüft.
+Beleg: [finaler Releasebericht](/nvmetank1/projects/rag-stack/.claude/reports/wp-release-wave-final-0912.md).
+
+Führend ist die [neue Sprintfolge](../plans/2026-09-12-next-sprints.md), ergänzt durch
+[SDD-Abgleich](../plans/2026-09-12-sdd-open-work-audit.md) und [Register](../plans/2026-09-13-sdd-work-package-register.md).
+Die 145 Original-IDs sind die historisch gezählte Auditbasis, keine Abschlussquote.
+Der [Fable-UI-Sprint](../../design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md)
+kommt als separater Nachtrag; seine Paketanzahl wird hier nicht vorweggenommen.
+Die unten beschriebenen gelieferten Grundlagen-/Importwellen und Schema25/26-Offenstände
+sind historisch; für neue Arbeit hat die neue Sprintfolge mit ihrem Nachtrag Vorrang.
+Die alten 136er-Routing-/Dateileasebelege erteilen keine aktuelle Startfreigabe.
+Vor Start den vollständigen Dateibesitz aus allen drei Manifesten neu abgleichen;
+aktuelle Root-Zuweisung und die Grenzen in [EXECUTION-READY](EXECUTION-READY.md) beachten.
+
+Historischer Planrahmen vom 9. September 2026: Dieser Plan führt alle 35 IDs aus
 [BACKLOG.md](../../BACKLOG.md) zusammen. Er ergänzt deren Sollumfang und ersetzt
 ältere Aussagen über Ausführungsreihenfolge, ausschliessliche Agentenzuständigkeit
 und damaligen Lieferstatus. Historische Belege bleiben historische Belege.
@@ -23,8 +41,8 @@ seitenbezogene Gestaltung ist keine Grenze der Migration.
 3. [Rezepte und Grundlagen](recipes-sdd.md), [zugehörige WPs](recipes-wps.json).
 4. [Warenfluss und Fachwissen](operations-sdd.md), [zugehörige WPs](operations-wps.json).
 5. [Oberfläche, Zugriff und Abnahme](surfaces-sdd.md), [zugehörige WPs](surfaces-wps.json).
-6. [Routingbelege und Dateibesitz](EXECUTION-READY.md): vollständiger Zuordnungs-
-   und Leaseindex mit geschützten laufenden Aufgaben und möglichen Startkandidaten.
+6. [Routingbelege und Dateibesitz](EXECUTION-READY.md): historischer Zuordnungs-
+   und Leaseindex; vor Start vollständig mit aktuellem Besitz abgleichen.
 
 Die drei JSON-Dateien bilden gemeinsam den Abhängigkeitsgraphen. `MP-*` bezeichnet
 eine stabile fachliche Paket-ID; `wp-*` bezeichnet den separat erzeugten
@@ -85,7 +103,7 @@ abgenommen sind verschiedene Aussagen. Jeder Status braucht seinen eigenen
 Beleg. Testanzahl und Screenshots allein beweisen weder vollständige SDD-Erfüllung
 noch Küchen-, Lizenz-, Entra- oder physische Yodeck-Abnahme.
 
-## Verifizierter Ausgangspunkt
+## Historischer Ausgangspunkt vom 9. September
 
 Planungsquellstand: `e813806b51fb5efaef5d5755c292f8027ce1b2eb`, lokal integriert,
 Schema 26. Letzter belegter Produktivstand: `5f5f6cb535922db8453c68d871279d6b2e203391`,
@@ -112,7 +130,7 @@ Lagerorte sind bearbeitbare Vorschläge, alle Rezepte fachlich ungeprüft.
 Der Entwurf ist noch nicht importiert. Die vier Quellwochen sind bereits
 publiziert und werden beim Import nicht rückwirkend umgeschrieben.
 
-## Ausführung in Wellen
+## Historische Wellenplanung vom 9. September
 
 - Laufende Pakete bis zum Freeze fertigstellen; keine konkurrierende Neuerstellung.
 - Danach verknüpfte Grundlagen, unveränderliche Rezeptauflösung und Importvertrag
@@ -131,7 +149,7 @@ Die konkrete Freigabe ergibt sich aus dem Graphen und aktuellem Dateibesitz,
 nicht allein aus dieser Reihenfolge. Zwei nominell unabhängige WPs mit derselben
 Vertrags- oder Registrierungsdatei werden serialisiert.
 
-Der kombinierte Strukturcheck umfasst136 Pakete und alle35 Anforderungen;
+Der damalige Strukturcheck umfasste 136 Pakete und alle 35 Anforderungen;
 43 Rezepte/Grundlagen,37 Warenfluss/Fachwissen und56 Oberfläche/Abnahme,
 darin31 UI-Migrationspakete. Null Fehler. Die53 Hinweise zu leeren
 `contract_files` betreffen Pakete ohne ausgewiesenen eigenen gemeinsamen
