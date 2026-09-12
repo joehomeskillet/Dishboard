@@ -77,6 +77,22 @@ def test_local_auth_is_disabled_by_default(monkeypatch: pytest.MonkeyPatch) -> N
     assert Config().LOCAL_AUTH_ENABLED is True
 
 
+def test_entra_issuer_defaults_from_tenant(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv('ENTRA_TENANT_ID', '00000000-0000-0000-0000-000000000951')
+    monkeypatch.delenv('ENTRA_ISSUER', raising=False)
+
+    assert Config().ENTRA_ISSUER == (
+        'https://login.microsoftonline.com/00000000-0000-0000-0000-000000000951/v2.0'
+    )
+
+
+def test_entra_issuer_accepts_explicit_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv('ENTRA_TENANT_ID', '00000000-0000-0000-0000-000000000951')
+    monkeypatch.setenv('ENTRA_ISSUER', 'https://login.microsoftonline.us/custom-tenant/v2.0')
+
+    assert Config().ENTRA_ISSUER == 'https://login.microsoftonline.us/custom-tenant/v2.0'
+
+
 def test_production_allows_local_auth_while_entra_is_disabled(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

@@ -144,6 +144,12 @@ class Config:
         self.PERMANENT_SESSION_LIFETIME = int(os.getenv('SESSION_LIFETIME_SECONDS', '28800'))
         self.APP_PUBLIC_BASE_URL = os.getenv('APP_PUBLIC_BASE_URL', 'http://localhost:8080').rstrip('/')
         self.ENTRA_TENANT_ID = os.getenv('ENTRA_TENANT_ID', '')
+        default_entra_issuer = (
+            f'https://login.microsoftonline.com/{self.ENTRA_TENANT_ID}/v2.0'
+            if self.ENTRA_TENANT_ID
+            else ''
+        )
+        self.ENTRA_ISSUER = os.getenv('ENTRA_ISSUER', default_entra_issuer)
         self.ENTRA_CLIENT_ID = os.getenv('ENTRA_CLIENT_ID', '')
         self.ENTRA_CLIENT_SECRET = _secret('ENTRA_CLIENT_SECRET')
         self.TRUSTED_PROXY_PEERS = _trusted_proxy_peers()

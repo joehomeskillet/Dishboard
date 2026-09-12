@@ -12,6 +12,7 @@ from redis.exceptions import RedisError
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.pool import NullPool
+from werkzeug.datastructures import MultiDict
 
 from cafeteria import create_app
 from cafeteria import db as database
@@ -857,3 +858,200 @@ def test_real_redis_connection_failure_blocks_local_login(
     assert response.status_code == 503
     with client.session_transaction() as flask_session:
         assert 'user' not in flask_session
+
+
+def _login_entra_session(
+    application: Any,
+    client: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    oid: str,
+    provider_sid: str | None,
+) -> tuple[str, str]:
+    tenant = '00000000-0000-0000-0000-000000000911'
+    claims = {
+        'tid': tenant,
+        'oid': oid,
+        'sub': f'entra-session-{oid}',
+        'name': 'Entra Session',
+        'roles': ['Cafeteria.Editor'],
+    }
+    if provider_sid is not None:
+        claims['sid'] = provider_sid
+    application.config['ENTRA_TENANT_ID'] = tenant
+    application.config['ENTRA_ISSUER'] = f'https://login.microsoftonline.com/{tenant}/v2.0'
+    monkeypatch.setattr(auth_routes, '_client', lambda: FakeMsalClient(claims))
+    with client.session_transaction() as flask_session:
+        flask_session['auth_flow'] = {'state': 'test-state'}
+
+    response = client.get('/auth/callback')
+
+    assert response.status_code == 302
+    with client.session_transaction() as flask_session:
+        server_sid = flask_session.sid
+        assert flask_session['user'].get('sid') == provider_sid
+    issuer = f'https://login.microsoftonline.com/{tenant}/v2.0'
+    return issuer, server_sid
+
+
+@pytest.mark.parametrize(
+    ('method', 'query_string', 'data', 'expected_status'),
+    (
+        ('get', None, None, 400),
+        ('post', None, None, 400),
+        ('get', {'iss': 'issuer-only'}, None, 400),
+        ('post', None, {'sid': 'sid-only'}, 400),
+        ('get', MultiDict((('iss', 'issuer'), ('iss', 'issuer'), ('sid', 'provider-sid'))), None, 400),
+        ('post', None, MultiDict((('iss', 'issuer'), ('sid', 'provider-sid'), ('sid', 'provider-sid'))), 400),
+        ('get', {'iss': 'issuer', 'sid': 'provider-sid', 'extra': 'value'}, None, 400),
+        ('post', {'sid': 'provider-sid'}, {'iss': 'issuer', 'sid': 'provider-sid'}, 400),
+        ('get', {'iss': 'https://issuer.invalid', 'sid': 'provider-sid'}, None, 200),
+        ('post', None, {'iss': 'issuer', 'sid': 'wrong-provider-sid'}, 200),
+    ),
+)
+def test_frontchannel_logout_rejects_invalid_or_mismatched_requests_without_revocation(
+    auth_app: tuple[Any, Engine, Engine],
+    monkeypatch: pytest.MonkeyPatch,
+    method: str,
+    query_string: Any,
+    data: Any,
+    expected_status: int,
+) -> None:
+    application, _, _ = auth_app
+    client = application.test_client()
+    issuer, server_sid = _login_entra_session(
+        application,
+        client,
+        monkeypatch,
+        oid='00000000-0000-0000-0000-000000000921',
+        provider_sid='provider-sid',
+    )
+    if query_string:
+        query_string = MultiDict(query_string)
+        query_string = MultiDict(
+            (key, issuer if value == 'issuer' else value)
+            for key, value in query_string.items(multi=True)
+        )
+    if data:
+        data = MultiDict(data)
+        data = MultiDict(
+            (key, issuer if value == 'issuer' else value)
+            for key, value in data.items(multi=True)
+        )
+
+    response = getattr(client, method)(
+        '/auth/frontchannel-logout',
+        query_string=query_string,
+        data=data,
+    )
+
+    assert response.status_code == expected_status
+    assert response.get_data() == b''
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert application.session_interface.client.exists(
+        application.session_interface.key_prefix + server_sid,
+    )
+    with client.session_transaction() as flask_session:
+        assert flask_session['user']['sid'] == 'provider-sid'
+
+
+@pytest.mark.parametrize('method', ('get', 'post'))
+def test_frontchannel_logout_revokes_only_matching_entra_session(
+    auth_app: tuple[Any, Engine, Engine],
+    monkeypatch: pytest.MonkeyPatch,
+    method: str,
+) -> None:
+    application, _, _ = auth_app
+    target = application.test_client()
+    other = application.test_client()
+    issuer, target_server_sid = _login_entra_session(
+        application,
+        target,
+        monkeypatch,
+        oid='00000000-0000-0000-0000-000000000931',
+        provider_sid='target-provider-sid',
+    )
+    _, other_server_sid = _login_entra_session(
+        application,
+        other,
+        monkeypatch,
+        oid='00000000-0000-0000-0000-000000000932',
+        provider_sid='other-provider-sid',
+    )
+    parameters = {'iss': issuer, 'sid': 'target-provider-sid'}
+    kwargs = {'query_string': parameters} if method == 'get' else {'data': parameters}
+
+    response = getattr(target, method)('/auth/frontchannel-logout', **kwargs)
+
+    assert response.status_code == 200
+    assert response.get_data() == b''
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert not application.session_interface.client.exists(
+        application.session_interface.key_prefix + target_server_sid,
+    )
+    assert application.session_interface.client.exists(
+        application.session_interface.key_prefix + other_server_sid,
+    )
+    with other.session_transaction() as flask_session:
+        assert flask_session['user']['sid'] == 'other-provider-sid'
+
+
+def test_frontchannel_logout_default_denies_session_without_provider_sid(
+    auth_app: tuple[Any, Engine, Engine],
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    application, _, _ = auth_app
+    client = application.test_client()
+    issuer, server_sid = _login_entra_session(
+        application,
+        client,
+        monkeypatch,
+        oid='00000000-0000-0000-0000-000000000941',
+        provider_sid=None,
+    )
+
+    response = client.get(
+        '/auth/frontchannel-logout',
+        query_string={'iss': issuer, 'sid': 'untrusted-provider-sid'},
+    )
+
+    assert response.status_code == 200
+    assert response.get_data() == b''
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert application.session_interface.client.exists(
+        application.session_interface.key_prefix + server_sid,
+    )
+    assert 'Entra ID token has no sid claim; front-channel logout will default-deny.' in caplog.text
+
+
+def test_frontchannel_logout_never_revokes_local_session(
+    auth_app: tuple[Any, Engine, Engine],
+) -> None:
+    application, owner_engine, issuer_engine = auth_app
+    _provision(issuer_engine, owner_engine)
+    client = application.test_client()
+    assert client.post(
+        '/auth/local',
+        data=_csrf_payload(
+            client,
+            username='local.editor',
+            password='Correct-Horse-2026!Battery',
+        ),
+    ).status_code == 302
+    with client.session_transaction() as flask_session:
+        server_sid = flask_session.sid
+    issuer = f"https://login.microsoftonline.com/{application.config['ENTRA_TENANT_ID']}/v2.0"
+
+    response = client.get(
+        '/auth/frontchannel-logout',
+        query_string={'iss': issuer, 'sid': 'provider-sid'},
+    )
+
+    assert response.status_code == 200
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert application.session_interface.client.exists(
+        application.session_interface.key_prefix + server_sid,
+    )
+    with client.session_transaction() as flask_session:
+        assert flask_session['user']['provider'] == 'local'
