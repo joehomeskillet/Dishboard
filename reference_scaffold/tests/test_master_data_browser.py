@@ -64,7 +64,7 @@ def test_native_food_save_conflict_archive_and_framework(b3, master_server, brow
         page.on('response', lambda response: responses.setdefault(urlsplit(response.url).path, []).append(response.status))
         page.goto(base + '/admin/grundlagen')
         expect(page.get_by_role('heading', level=1)).to_have_text('Grundlagen')
-        expect(page.get_by_text('Keine passenden Stammdaten')).to_be_visible()
+        expect(page.get_by_text('Keine passenden Zutaten', exact=True)).to_be_visible()
         page.get_by_role('link', name='Zutat anlegen', exact=True).click()
         page.get_by_label('Name', exact=True).fill('Karotte Browser')
         page.get_by_role('button', name='Zutat speichern', exact=True).click()
@@ -84,6 +84,7 @@ def test_native_food_save_conflict_archive_and_framework(b3, master_server, brow
         expect(page.get_by_label('Name', exact=True)).to_have_value('Andere Sitzung')
         page.get_by_text('Allergenprüfung', exact=True).last.click()
         page.get_by_role('button', name='Allergenangaben als geprüft bestätigen').click()
+        page.get_by_text('Allergenprüfung', exact=True).last.click()
         expect(page.get_by_role('button', name='Prüfung zurücknehmen')).to_be_visible()
         page.get_by_text('Weitere Aktionen', exact=True).click()
         page.get_by_role('button', name='Archivieren', exact=True).click()
@@ -181,7 +182,7 @@ def test_location_conflict_native_recovery(b3, master_server, browser, width, ja
         page.screenshot(path=str(screenshot), full_page=True)
         screenshot.chmod(0o600)
         page.get_by_role('link', name='Zur aktuellen Liste').click()
-        expect(page.get_by_text('Keine passenden Stammdaten')).to_be_visible()
+        expect(page.get_by_text('Keine passenden Zutaten', exact=True)).to_be_visible()
         assert snapshot(owner) == before
 
 
