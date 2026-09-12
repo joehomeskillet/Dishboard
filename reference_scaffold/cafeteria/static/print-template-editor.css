@@ -3,6 +3,20 @@
 .print-template-editor .btn-list { min-width: 0; }
 .print-template-editor :is(.card-title, .list-group-item, .form-hint) { overflow-wrap: anywhere; }
 .print-template-editor .btn { white-space: normal; }
+.output-area-tabs {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.output-area-tabs .nav-link { min-height: 44px; }
+.output-current-template { min-width: 0; }
+.output-current-template :is(.h3, p) { overflow-wrap: anywhere; }
+.output-area-panels:has(> .tab-pane:target) > .tab-pane.active:not(:target) { display: none; }
+.output-area-panels > .tab-pane:target {
+  display: block;
+  opacity: 1;
+}
+.print-template-editor details > summary,
+.output-area-panels details > summary { min-height: 44px; }
 .print-template-preview {
   display: block;
   width: 100%;

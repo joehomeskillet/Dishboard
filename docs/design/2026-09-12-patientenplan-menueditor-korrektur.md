@@ -238,3 +238,24 @@ Lieferumfang: tatsächliche Dateipfade, Befund-ID → Änderung → Test → Erg
 Ein Test mit technisch unerfahrenen Personen soll insbesondere zeigen, ob sie ein Menü finden, nur die Beilage ändern, speichern und den Unterschied zwischen „geprüft“ und „Allergenangaben fehlen“ erklären können. Ein Agent darf fehlende Nutzerbeobachtungen nicht als durchgeführt ausgeben.
 
 **Kernziel: Volle Breite behalten, Wiederholungen entfernen, Menüs zuerst zeigen und Prüfzustände verständlich machen. Nicht erneut nur die Karten grösser machen.**
+
+## Umsetzung Druckvorlagen
+
+Die Vorlagenübersicht zeigt je Bereich zuerst aktive Druckvorlage, Version und
+Geltungsbereich. Eine einzige Bereichsauswahl funktioniert mit und ohne
+JavaScript. Frühere Versionen, weitere Vorlagen, PDF-Zugriffe, Inhaltswechsel und
+Wochenauswahl bleiben in klar benannten, bedarfsgerecht geöffneten Gruppen
+erreichbar.
+
+Im Druckvorlageneditor bleiben Vorlage und PDF-Vorschau nebeneinander auf voller
+Arbeitsbreite. Schrift, Farben, Zusatztexte und Wochenlayout werden bei Bedarf
+geöffnet; Fehler öffnen den betroffenen Bereich. «Vorlage speichern» ist einzige
+hervorgehobene Aktion, «Abbrechen» ist nachgeordnet. Aktivieren, Versionen sowie
+Kopieren und Archivieren sind getrennt gruppiert. Sichtbare Statusaussagen nennen
+Bereich und aktive beziehungsweise angezeigte Version.
+
+Formularnamen, CSRF-, Versions- und Revisionsfelder, POST-Ziele sowie Aktionen
+`save`, `activate`, `restore`, `copy`, `archive` und `reactivate` bleiben
+unverändert. Browsertests fangen Speichern, Aktivieren und Laden einer früheren
+Version mit und ohne JavaScript ab. Druck-, PDF- und öffentliche Ausgabe-Templates
+bleiben ausserhalb dieser Umsetzung.

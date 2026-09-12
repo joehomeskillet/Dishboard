@@ -22,8 +22,8 @@ def test_historical_archive_conflict_keeps_submitted_revision(editor_app, databa
     before = snapshot(database_engine)
     response = client.post(url, data=fields('archive', 3, 1))
     assert response.status_code == 409
-    assert 'Eigenschaften · Revision 1' in response.text
-    assert 'PDF-Vorschau · Revision 1' in response.text
+    assert 'Vorlage · Version 1' in response.text
+    assert 'PDF-Vorschau · Version 1' in response.text
     assert 'name="version" value="3"' in response.text
     assert 'name="revision" value="2"' not in response.text
     assert 'Aktuellen Stand neu laden' in response.text
