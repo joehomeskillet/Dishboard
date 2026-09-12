@@ -100,6 +100,7 @@ def test_admin_overview_keyboard_order_focus_and_targets(page_context: Page):
 def test_admin_editor_dirty_state_blocks_preview_and_publish(page_context: Page, family: str):
     page = page_context
     page.goto(f'/admin/{family}?week={DAY}')
+    page.locator('details.admin-week-settings > summary').click()
     page.fill('input[name="title"]', 'Neuer Titel')
 
     preview_links = page.locator('a[href*="/preview"]')
@@ -135,8 +136,9 @@ def test_admin_publish_uses_native_confirm(page_context: Page, admin_app: Flask)
 
     publish_btn.click()
     with page.expect_response(lambda response: response.request.method == 'POST') as published:
-        modal.get_by_role('button', name='Publizieren', exact=True).click()
+        modal.get_by_role('button', name='Veröffentlichen', exact=True).click()
     assert published.value.status == 303
+    page.wait_for_load_state()
     assert page.locator('.status-pill').get_attribute('data-status') == 'live'
 
 def test_admin_error_state_focuses_first_error_and_offers_retry(page_context: Page):
