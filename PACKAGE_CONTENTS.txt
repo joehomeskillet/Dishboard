@@ -1252,6 +1252,7 @@ reference_scaffold/tests/test_menu_recipe_choices_reader.py
 reference_scaffold/tests/test_menu_recipe_selection_browser.py
 reference_scaffold/tests/test_openapi_contract.py
 reference_scaffold/tests/test_operations_actor_race_db.py
+reference_scaffold/tests/test_operations_scoped_csrf.py
 reference_scaffold/tests/test_operations_settings_db.py
 reference_scaffold/tests/test_operations_weekend_db.py
 reference_scaffold/tests/test_patient_preview_access.py
