@@ -107,8 +107,8 @@ def test_native_form_targets_and_payloads_stay_complete(
         page.goto("/admin/screens/cafeteria/wochenvorlage")
         page.locator("#screen-assignment-details > summary").click()
         selected = page.locator('input[name="template_id"]:not(:checked)').first
-        selected.check()
         template_id = selected.get_attribute("value")
+        selected.check()
         with page.expect_request(
             lambda request: request.method == "POST"
         ) as submitted, page.expect_response(
@@ -184,11 +184,12 @@ def test_assignment_conflict_opens_details_preserves_values_and_focuses_error(
         for page in (current, stale):
             page.locator("#screen-assignment-details > summary").click()
             page.locator('input[name="template_id"]:not(:checked)').first.check()
+        assignment_form = stale.locator("#screen-assignment-details form")
         original = {
-            name: stale.locator(f'[name="{name}"]').input_value()
+            name: assignment_form.locator(f'[name="{name}"]').input_value()
             for name in ("_csrf", "_form_context", "version", "renderer_revision", "action")
         }
-        chosen = stale.locator('input[name="template_id"]:checked').input_value()
+        chosen = assignment_form.locator('input[name="template_id"]:checked').input_value()
 
         with current.expect_response(lambda response: response.request.method == "POST") as saved:
             current.get_by_role("button", name="Vorlage zuweisen", exact=True).click()
@@ -202,8 +203,8 @@ def test_assignment_conflict_opens_details_preserves_values_and_focuses_error(
         error = stale.locator(".error-region")
         expect(error).to_be_focused()
         for name, value in original.items():
-            expect(stale.locator(f'[name="{name}"]')).to_have_value(value)
-        expect(stale.locator(f'input[name="template_id"][value="{chosen}"]')).to_be_checked()
+            expect(assignment_form.locator(f'[name="{name}"]')).to_have_value(value)
+        expect(assignment_form.locator(f'input[name="template_id"][value="{chosen}"]')).to_be_checked()
         _assert_no_horizontal_scroll(stale)
         _screenshot(stale, f"vorlage-zuweisen-konflikt-{javascript}.png")
     finally:

@@ -87,7 +87,8 @@ def test_published_previews_and_assignment_form_are_readonly_tabler(
             for control in page.locator('main .btn, main .screen-choice-control').all():
                 assert control.bounding_box()['height'] >= 48
             expect(assignment).to_contain_text('Darstellung auswählen')
-            preview = page.get_by_role('link', name='Wochenplan ohne Bilder prüfen', exact=True)
+            preview = assignment.locator('a[href$="-week-text"]')
+            expect(preview).to_have_accessible_name('Wochenplan ohne Bilder prüfen')
             assert preview.bounding_box()['width'] >= 48
             if javascript and width == 1440:
                 preview.hover()

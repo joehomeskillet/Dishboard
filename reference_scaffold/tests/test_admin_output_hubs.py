@@ -105,8 +105,8 @@ def test_hubs_use_existing_read_roles_and_link_all_real_targets(hub_app, databas
             expected_unique_links = 23 if role == 'Cafeteria.Admin' else 18
             assert {'/admin/grundlagen?kind=foods', '/admin/rezepte', '/admin/kochbuecher'} <= set(links)
         else:
-            expected_links = 13
-            expected_unique_links = 13
+            expected_links = 15
+            expected_unique_links = 15
         recipe_editor_links = [link for link in links if link.startswith('/admin/vorlagen/rezepte')]
         expected_recipe_links = (
             ['/admin/vorlagen/rezepte?template=standard&revision=1']

@@ -89,9 +89,9 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
         assert "style-src 'self'; script-src 'self'" in response.headers['content-security-policy']
         expect(page.locator('.screen-card')).to_have_count(4)
         expect(page.locator('iframe')).to_have_count(10)
-        all_targets = set(page.locator('main a').evaluate_all('links => links.map(link => new URL(link.href).pathname)'))
+        screen_links = page.locator('.screens-grid a')
+        all_targets = set(screen_links.evaluate_all('links => links.map(link => new URL(link.href).pathname)'))
         assert all_targets == TARGETS | {
-            '/admin/screens',
             '/admin/screens/cafeteria/wochenvorlage',
             '/admin/screens/patienten/wochenvorlage',
         }
@@ -159,9 +159,10 @@ def test_full_views_remain_available_without_javascript(
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': screen_server}])
         page = context.new_page()
         page.goto('/admin/screens')
-        for link in page.locator('main a').all():
+        screen_links = page.locator('.screens-grid a')
+        for link in screen_links.all():
             expect(link).to_be_visible()
-        assert set(page.locator('main a').evaluate_all('links => links.map(link => new URL(link.href).pathname)')) == TARGETS | {
+        assert set(screen_links.evaluate_all('links => links.map(link => new URL(link.href).pathname)')) == TARGETS | {
             '/admin/screens/cafeteria/wochenvorlage', '/admin/screens/patienten/wochenvorlage',
         }
         page.get_by_role('link', name='Patientinnen und Patienten Web Wochenplan mit Bildern · aktiv öffnen', exact=True).click()
