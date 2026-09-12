@@ -263,7 +263,7 @@
         "DSP-001"
       ],
       "kind": "implementation",
-      "status": "IN_PROGRESS",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-TOKENS"
       ],
@@ -332,7 +332,8 @@
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
         "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
         "2026-09-11 Spec docs/design/2026-09-11-admin-shell-navigation-spec.md (wp-ui-shell-spec-0911, 953fd28; Cross-Review grok 8f61204, .claude/evidence/ui-design-wave-0911/reviews/shell-spec-cross-review-grok.md). Ausführung v1 wp-52c02ef0f44d (Lane grok-build, Modell grok-4.6): c66b93b (fünf Gruppen, navbar-expand-lg 992 px, Tabler-Offcanvas, layout_variant standard|narrow|workspace, page_header-Block, Sidebar 248 px; 6 eigene Browser-Tests grün, 18 fremde rote Tests dokumentiert). Fremdtest-Angleichung 813273f (agy), Orchestrator d2bf449 (aria-hidden Beschreibung), 327b556 (Fokusfarbe), 8db3ae4 (capture.py Titelknoten). Cross-Review cursor: .claude/evidence/ui-design-wave-0911/reviews/shell-impl-cross-review-cursor.md. Gate 2 auf Integration: 10 Fehler (Offcanvas-Backdrop, Sidebar-Überlauf 1100 px, to_have_text auf Nav-Links, Fokusfarbentest) → Korrektur fix/ui-shell-gate2-0911 (cursor composer-2.5) in Arbeit. Shell v2 nach Referenzpaket NAV-01 (vier Hauptbereiche Wochenplan · Menüs & Bausteine · Vorschau & Bildschirme · Einstellungen, Bereichs-Tabs _area_tabs.html) feat/ui-shell-v2-0911 (codex gpt-6-astra) in Arbeit. v1 in integrate/ui-inventory-0911, noch nicht auf github/main.",
-        "2026-09-11 20:48 CEST: Shell v1 + Makros + Referenzseiten als github/main 7e4d2a9 deployt (dishboard-deploy-main, Image neu gebaut); gezielte 124-Test-Gate der Gate-2-Korrektur (cursor 766c841) grün; breites 49-Dateien-Gate vom Host wegen Speichermangel bei 85 % abgebrochen (8 Fehler, davon 5 erwartete veraltete Assertions in test_menu_collection_browser.py) — Nach-Gate der Stufe 2 läuft. v2 (vier Hauptbereiche) weiter in Arbeit (grok-4.6 nach codex-Quotenausfall)."
+        "2026-09-11 20:48 CEST: Shell v1 + Makros + Referenzseiten als github/main 7e4d2a9 deployt (dishboard-deploy-main, Image neu gebaut); gezielte 124-Test-Gate der Gate-2-Korrektur (cursor 766c841) grün; breites 49-Dateien-Gate vom Host wegen Speichermangel bei 85 % abgebrochen (8 Fehler, davon 5 erwartete veraltete Assertions in test_menu_collection_browser.py) — Nach-Gate der Stufe 2 läuft. v2 (vier Hauptbereiche) weiter in Arbeit (grok-4.6 nach codex-Quotenausfall).",
+        "2026-09-12 v2 (wp-52c02ef0f44d-v2): codex-Entwurf (Quotenausfall) von grok-4.6 abgeschlossen, 3bc9185 — vier Einträge Wochenplan · Menüs & Bausteine · Vorschau & Bildschirme · Einstellungen, `_area_tabs.html`, Alt→Neu-Zuordnung im Bericht; 10 eigene + 183 fremde Tests grün; Cross-Review cursor CLEAN (.claude/evidence/ui-design-wave-0911/reviews/shell-v2-cross-review-cursor.md). Fremdtest-Angleichungen fix/ui-foreign-tests-0912 (grok aa063c8, 174 passed) und fix/ui-foreign-tests-v2-0912 (cursor 35aa958, 63 passed). 2026-09-12 00:25 CEST: als github/main 29ae163 deployt (Shell v2 vier Hauptbereiche + Bereichs-Tabs, Wochenübersicht R2, Brand-Ops E5)."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -904,7 +905,7 @@
         "UI-003"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-REF-LIST",
         "MP-UI-REF-FORM",
@@ -971,7 +972,8 @@
       "completion_evidence": [
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
-        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix"
+        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
+        "2026-09-11/12 Ausführung wp-27fc916afbb9: codex gpt-6-astra (Entwurf, Quotenausfall) + cursor composer-2.5 (Abschluss da1ed77): week_management.html (Liste zuerst, «Neue Woche anlegen» als details, Statusklartext), week_review.html (Ausgabehinweise), test_ui_weeks_browser.py 20/20; Cross-Review agy CLEAN (.claude/evidence/ui-design-wave-0911/reviews/weeks-cross-review-agy.md); zwei veraltete Fremdtests (H1 «Wochenübersicht», «Ausgabehinweise») in aa063c8 angeglichen. 2026-09-12 00:25 CEST: als github/main 29ae163 deployt (Shell v2 vier Hauptbereiche + Bereichs-Tabs, Wochenübersicht R2, Brand-Ops E5)."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -983,7 +985,7 @@
         "UI-003"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "INTEGRATED",
       "depends_on": [
         "MP-UI-REF-LIST",
         "MP-UI-REF-FORM",
@@ -1050,7 +1052,8 @@
       "completion_evidence": [
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
-        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix"
+        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
+        "2026-09-12 Ausführung wp-0e76810800eb: agy 14ab1fa (Admin-Shell-Wrapper, 6 rote Bestandstests, Quotenausfall) → Root-Entscheid: Vorschau bleibt eigenständig und skriptfrei; grok-4.6 2d58450 (base.html, Master-Look über Tokens/admin-preview.css, Links statt Buttons): test_ui_preview_browser.py + test_admin_preview_ui.py + test_preview_equal_cards_browser.py grün (87 passed). In integrate/ui-inventory-0911."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -1628,7 +1631,7 @@
         "TPL-001"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "INTEGRATED",
       "depends_on": [
         "MP-UI-REF-LIST",
         "MP-UI-REF-FORM",
@@ -1702,7 +1705,8 @@
       "completion_evidence": [
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
-        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix"
+        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
+        "2026-09-12 Ausführung wp-7e17c2562ba1 (antigravity-agy gemini-3.8-flash-high, db6d40f; 52 passed) + R4-Korrektur wp-7e17c2562ba1-fix (cursor cd0c626: Bereichs-Tabs, «Drucklayout ändern», «Frühere Versionen», empty-Zustände, 11/11); Cross-Review cursor FINDINGS(6) (.claude/evidence/ui-design-wave-0911/reviews/output-hubs-cross-review-cursor.md); Fremdtest-Angleichung wp-ui-output-hubs-foreign-tests-0912 (cursor) läuft. In integrate/ui-inventory-0911."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -1800,7 +1804,7 @@
         "BRD-001"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-REF-LIST",
         "MP-UI-REF-FORM",
@@ -1871,7 +1875,8 @@
       "completion_evidence": [
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
-        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix"
+        "Vorher/Nachher PNGs + echte berechnete Styles, HTTP/CSP/Console/Overflow, Rollen- und Zustandsmatrix",
+        "2026-09-12 Ausführung wp-dbe7823b31df (cursor composer-2.5, Fortsetzung nach OOM-Abbruch, ac00ee8): branding_editor/branding_preview/operations + admin-branding.css + test_ui_brand_ops_browser.py 17/17, 247/250 Nachbartests; Cross-Review agy FINDINGS(4) minor (.claude/evidence/ui-design-wave-0911/reviews/brand-ops-cross-review-agy.md): Wörterbuch «Ausgabe laden»/«Version N aktivieren» in aa063c8, narrow-Annahme durch Vollbreite überholt. 2026-09-12 00:25 CEST: als github/main 29ae163 deployt (Shell v2 vier Hauptbereiche + Bereichs-Tabs, Wochenübersicht R2, Brand-Ops E5)."
       ],
       "rollback": "Vorherigen kompatiblen Reader/Renderer mit unveränderten Daten wieder einsetzen; neue Revisionen nie rückwärts umschreiben. Migration/Fallbackread zuerst belegen, sonst Forward-Fix."
     },
@@ -4456,7 +4461,7 @@
         "UI-003"
       ],
       "kind": "implementation",
-      "status": "IN_PROGRESS",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-SHELL"
       ],
@@ -4538,7 +4543,8 @@
       "completion_evidence": [
         "diff + eigener Branchcommit",
         "Vollständige rohe Gateausgabe mit realem Binary/Fixture/Version; nicht gefahrene Gates ausdrücklich",
-        "Messwerte Container-/Hauptbereichsbreite je Viewport + Screenshots"
+        "Messwerte Container-/Hauptbereichsbreite je Viewport + Screenshots",
+        "2026-09-12 Ausführung wp-ui-fullwidth-shell-0912 (grok-4.6, 4d60042): admin-tabler.css ohne max-width für Kopf/Tabs/Inhalt, Padding 32/24/16, data-layout/data-content-width ohne Einengung, Option «Inhaltsbreite» wirkt nur noch auf die Anzeigevorschau, Master §5.2 und Shell-Spec §8 angepasst, test_ui_fullwidth_shell_browser.py (Container = Hauptbereich − 2·Padding bei 1280/1440/1920/2560); 172 passed; Cross-Review cursor FINDINGS(3) minor (.claude/evidence/ui-design-wave-0911/reviews/fullwidth-shell-cross-review-cursor.md). 2026-09-12 09:28 CEST: als github/main 30ec192 deployt (Vollbreiten-Seitenrahmen). Stufe-4-Gate: 13 veraltete «960»-Annahmen in test_ui_reference_settings/form und test_ui_menu_editor_browser → Angleichung nach dem Seiten-Audit."
       ],
       "rollback": "CSS-/Template-Rücknahme auf den vorherigen Seitenrahmen; keine Daten betroffen."
     },
@@ -4550,7 +4556,7 @@
         "UI-002"
       ],
       "kind": "verification",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "depends_on": [
         "MP-UI-FULLWIDTH-SHELL"
       ],
@@ -4615,7 +4621,8 @@
       ],
       "completion_evidence": [
         "Vollständige Prüftabelle über alle Routen mit Screenshotpfaden",
-        "Vollständige rohe Gateausgabe; nicht gefahrene Gates ausdrücklich"
+        "Vollständige rohe Gateausgabe; nicht gefahrene Gates ausdrücklich",
+        "2026-09-12 gestartet in zwei Gruppen: A (cursor composer-2.5: Bereiche & Zeiten, Bildschirme, Druckvorlagen, Wochenübersicht, Menüs, Bausteine, Kochbücher) und B (grok-4.6: Menüeditor, Grundlagen, Benutzer, Rezepte, Erscheinungsbild/Darstellung, Druckvorlagen-Editor, Schnittstellen, Kopieren/Import); Evidenz nach .claude/evidence/ui-fullwidth-0912/<gruppe>/, Prüftabelle audit.md je Gruppe, Tests test_ui_fullwidth_pages_<gruppe>_browser.py."
       ],
       "rollback": "Kein Produktrollback: nur datierte Evidenz ergänzen, fehlerhafte Belege als ungültig markieren."
     }
