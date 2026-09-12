@@ -238,3 +238,23 @@ Lieferumfang: tatsächliche Dateipfade, Befund-ID → Änderung → Test → Erg
 Ein Test mit technisch unerfahrenen Personen soll insbesondere zeigen, ob sie ein Menü finden, nur die Beilage ändern, speichern und den Unterschied zwischen „geprüft“ und „Allergenangaben fehlen“ erklären können. Ein Agent darf fehlende Nutzerbeobachtungen nicht als durchgeführt ausgeben.
 
 **Kernziel: Volle Breite behalten, Wiederholungen entfernen, Menüs zuerst zeigen und Prüfzustände verständlich machen. Nicht erneut nur die Karten grösser machen.**
+
+## Umsetzung Rezepte
+
+Die Rezeptkorrektur verwendet in sichtbaren Texten durchgehend «Kennzeichnung»
+und «Kennzeichnungen»; technische Feldnamen wie `tag_public_ids` sowie der
+Query-Parameter `tag` bleiben unverändert. Im Editor stehen Rückweg und Status
+kompakt vor dem Rezeptinhalt. Bilder, gespeicherte Stände, Mengenberechnung und
+Statuswechsel liegen unter «Weitere Aktionen».
+
+Quelle und Lizenz bleiben im Arbeitsablauf sichtbar. SHA-256, Abrufzeit,
+Herkunfts-Rohwert und vollständige Revisionsdaten sind weiterhin erreichbar,
+aber unter «Technische Details» eingeordnet. Revisionsseiten verwenden
+«Gespeicherter Stand» als Hauptbegriff; Unveränderlichkeit wird einmal erklärt,
+Revision und Prüfsumme sind Metadaten.
+
+Symbollegenden entfallen. Listen- und Zeilenaktionen besitzen sichtbare
+Textlabels. Beim Bild-Upload stehen Dateifeld, Validierung und Upload-Aktion vor
+optionalen Quellenangaben; Upload-, Format-, Verlust- und Quellenhinweise bleiben
+kontextnah erhalten. Formularnamen, Hidden Inputs, Methoden, Ziele,
+Query-Parameter, Berechtigungen und serverseitige Verarbeitung ändern sich nicht.
