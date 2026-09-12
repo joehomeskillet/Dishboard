@@ -292,8 +292,8 @@ Auf Nutzerwunsch neu aufgenommen. [Optisoft Produkte](https://optisoft.ch/preise
 
 **Quellen und vorhandene Planung:**
 
-- Übergabe: `/nvmetank1/projects/menuplan/UEBERGABE-CODEX-API-2026-09-05.md` (insbesondere §4 und §6); dortige Lane-Stände bei Wiederaufnahme neu prüfen.
-- Koordination: `/nvmetank1/projects/menuplan/KOORDINATION-API-CODEX-2026-09-05.md`, massgeblich §ÜBERGABE 01:55 und Nachtrag 02:00 für Übernahme, laufendes Gate, Migration und Restarbeiten.
+- Übergabe: `UEBERGABE-CODEX-API-2026-09-05.md` (insbesondere §4 und §6), seit 13.09.2026 aus dem Repo-Root entfernt und lokal unter `.claude/state/archive/uebergaben-2026-09-13/` archiviert; offene Reste stehen unten unter «Offene Punkte aus Übergaben».
+- Koordination: `KOORDINATION-API-CODEX-2026-09-05.md`, massgeblich §ÜBERGABE 01:55 und Nachtrag 02:00; ebenfalls archiviert unter `.claude/state/archive/uebergaben-2026-09-13/`.
 - Spec: `docs/superpowers/specs/2026-09-05-dishboard-api-mcp-fhir-design.md`, Branch `docs/api-mcp-fhir-spec-0905`, Commit `5e4750f`.
 - Briefs und Logs: `.claude/state/api-mcp-fhir-0905/`.
 
@@ -303,3 +303,43 @@ Auf Nutzerwunsch neu aufgenommen. [Optisoft Produkte](https://optisoft.ch/preise
 2. Codex übernimmt die integrierten Wellen, prüft Abschlusslogs und vollständigen Diff, führt offene Ruff-, Schema-, Swagger-Asset- und Offline-Paketprüfungen aus, aktualisiert API-Dokumentation und Manifest. Schema/Schlüssel-Store, REST, FHIR, MCP, Swagger, Admin-Verwaltung und schlüsselgeschützte Endpunkte bleiben Bestandteil der Abnahme.
 3. Unabhängige Reviews und Gates gegen den endgültigen Integrationsstand abschliessen. Externe OCR-Läufe sind nach 429/Timeout beziehungsweise null abgeschlossenen Modell-Tokens nicht verfügbar und dürfen nicht als CLEAN gelten. Native Browser-/PDF-Belege ersetzen weder einen ausgeführten Gemini-Design-Validator noch die physische Yodeck-Abnahme. **Den alten `gate.sh`-Aufruf nicht blind ausführen:** Er verweist auf eine gelöschte Datenbank. Aktuelle Wrapper und exklusiv zugeordnete Testdatenbanken verwenden; Swagger-Artefakte offline verifizieren.
 4. Erst nach erfolgreichen unabhängigen Gates integriert Codex die Lieferung und deployt nach bestehendem Runbook: Backup, kontrollierte Migration **16→17**, danach Smokes für `/api/v1/status`, `/api/v1/docs`, `/fhir/metadata` und authentifiziert `/admin/api`. Schlüssel ausschliesslich über die Admin-Verwaltung erzeugen; Klartext nicht in Chat oder Logs übernehmen. Fremde Änderungen und Worktrees erhalten.
+
+## Offene Punkte aus Übergaben (konsolidiert 13. September 2026)
+
+Die Übergabe- und Koordinationsdateien `UEBERGABE-CLAUDE-2026-09-02.md`, `UEBERGABE-CODEX-2026-09-05.md`,
+`UEBERGABE-CODEX-API-2026-09-05.md`, `KOORDINATION-API-CODEX-2026-09-05.md`,
+`UEBERGABE-CODEX-PUBLIC-SCREENS-2026-09-06.md` und `OPS-SIGNAGE-PROGRESS.md` sind aus dem Repo-Root entfernt
+(lokal archiviert unter `.claude/state/archive/uebergaben-2026-09-13/`, versionierte Fassungen in der
+Git-Historie). Ihre Pakete sind bis auf die folgenden Reste nachweislich erledigt oder durch spätere
+Lieferungen überholt: API-/MCP-/FHIR-Welle, Schema-Migrationen, Signage-Engine, Public-Screens-Mobile und die
+OPS-Signage-Rotation (`fix/ops-signage-astra-0907`) sind in `main` gemergt.
+
+### Admin/OPS — UI-Feinschliff Cafeteria-Admin
+
+- Verwaister Worktree `ui-final-p1-fix` (Branch `fix/ui-final-p1`, nie gemergt): Fehlerzusammenfassung bei
+  verstecktem `week_start`/`row_version`-Feld muss bei Save/Publish beider Profile fokussierbar und sichtbar
+  bleiben; DB dabei unverändert — Fix nicht nachweisbar umgesetzt (UEBERGABE-CLAUDE-2026-09-02.md).
+- Dieselbe Fundstelle: Cafeteria-Adminfelder bei 390 px und 1440 px — alle interaktiven Ziele ≥ 44 px, keine
+  Überlappungen — nicht nachweisbar umgesetzt (UEBERGABE-CLAUDE-2026-09-02.md).
+- Testdatei `reference_scaffold/tests/test_admin_workflow_db.py` unter 600 Zeilen aufteilen — offen, reines
+  Code-Hygiene-Item ohne bestehende Backlog-ID (UEBERGABE-CLAUDE-2026-09-02.md).
+
+### Signage — TV-Player
+
+- Lange erlaubte Tokens dürfen bei keinem der vier Signage-Player horizontal oder vertikal überlaufen (1080p und
+  4K) — für die Patienten-Rotation über die OPS-Welle nachgewiesen, für Cafeteria-Signage nicht separat bestätigt
+  (UEBERGABE-CLAUDE-2026-09-02.md; unverifiziert).
+
+### Abnahme/Nachweise — Paketvalidator und Compose
+
+- Vertragstests im Paketvalidator liefen ursprünglich aus falschem cwd/PYTHONPATH (`ModuleNotFoundError` bei
+  `cafeteria`/`manage`) — Validator seither überarbeitet, dieser Punkt nicht einzeln erneut geprüft
+  (UEBERGABE-CLAUDE-2026-09-02.md; unverifiziert).
+- Compose-Vertrag für lokal gebaute, unveränderliche Images (`sha256:<64>` zusätzlich zum Registry-Digest,
+  `--pull never`, kein Produktions-Build durch Compose) — Zielverhalten besteht, die Validierungslogik aus dem
+  verwaisten Branch `fix/urgent-local-production-deploy` ist nicht einzeln nachgewiesen
+  (UEBERGABE-CLAUDE-2026-09-02.md; unverifiziert).
+
+Bereits im Backlog: Admin-UI «Meisterniveau» (UEBERGABE-CODEX-2026-09-05.md §6) und die drei Tabler-Layout-Varianten
+für Public Screens (UEBERGABE-CODEX-PUBLIC-SCREENS-2026-09-06.md) sind in der verbindlichen UI-003-Migration
+(`docs/design/2026-09-09-unified-ui-design-system.md`, geführt über `docs/superpowers/backlog-0909/`) aufgegangen.
