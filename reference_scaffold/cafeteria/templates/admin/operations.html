@@ -4,7 +4,7 @@
 {% set layout_variant = 'standard' %}
 {% block title %}Bereiche & Öffnungszeiten · Dishboard{% endblock %}
 {% block sidebar %}{% include 'admin/_workflow_sidebar.html' %}{% endblock %}
-{% block page_header %}{{ page_header('Bereiche & Öffnungszeiten', description='Bereichsnamen, Wochenendbetrieb, Wochenvorgaben und datierte Ausnahmen für Ausgabe und Öffnungszeiten.') }}{% endblock %}
+{% block page_header %}{{ page_header('Bereiche & Öffnungszeiten', description='Ausgabe und Öffnungszeiten im Überblick; Einstellungen öffnen Sie bei Bedarf.') }}{% endblock %}
 
 {% macro validation(id) -%}
 {% if errors.get(id) %} aria-invalid="true" aria-describedby="{{ id }}-error"{% if id == errors.keys()|first %} autofocus{% endif %}{% endif %}
@@ -22,46 +22,87 @@
 {% block content %}
 {{ flash_region(get_flashed_messages()) }}
 {% if errors %}<div class="alert alert-danger error-region" role="alert" tabindex="-1">{{ icon('alert-triangle') }}Bitte die markierten Felder prüfen.</div>{% endif %}
-<p class="text-secondary">Zeiten in {{ timezone }}. Vorgaben gelten für neue Ausgaben und Öffnungszeiten. Bestehende Wochen ändern Sie bewusst mit «Wochenvorgaben übernehmen».</p>
+<section class="card mb-3" id="operations-overview" aria-labelledby="operations-overview-title">
+  <div class="card-header">
+    <h2 class="card-title" id="operations-overview-title">{{ icon('clock') }}Bereiche und Öffnungszeiten</h2>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table table-mobile-lg">
+      <thead><tr><th>Bereich</th><th>Wochenendbetrieb für neue Ausgaben</th><th>Wochenvorgaben für neue Ausgaben</th></tr></thead>
+      <tbody>
+      {% for code, schedule in schedules.items() %}
+      <tr>
+        <th scope="row">{{ area_names[code] }}</th>
+        <td data-label="Wochenendbetrieb für neue Ausgaben">
+          {% if code == 'staff_guest' %}{{ 'Möglich' if schedule.allows_weekend else 'Nicht möglich' }}
+          {% else %}Je Mahlzeit festgelegt{% endif %}
+        </td>
+        <td data-label="Wochenvorgaben für neue Ausgaben">
+          {% set missing_times = namespace(found=false) %}
+          <ul class="list-unstyled mb-0">
+          {% for slot, rule in schedule.slots.items() %}
+            {% set day, meal = slot %}
+            {% if rule.state == 'open' and not rule.start and not rule.end %}{% set missing_times.found = true %}{% endif %}
+            <li>
+              <strong>{{ day_names[day - 1] }} · {{ meal_labels[meal] }}:</strong>
+              {{ state_labels[rule.state] }}{% if rule.start or rule.end %} · {{ rule.start or '–' }}–{{ rule.end or '–' }}{% endif %}
+            </li>
+          {% endfor %}
+          </ul>
+          {% if missing_times.found %}<p class="form-hint mb-0">Offene Ausgaben ohne Zeit: Zeiten nicht eingetragen.</p>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer text-secondary">Wochenvorgaben gelten für neue Ausgaben. Zeitzone: {{ timezone }}.</div>
+</section>
 
-<div class="row row-cards mb-3">
+<h2 class="h3 mb-3">Einstellungen ändern</h2>
+
 {% for code in ['staff_guest', 'patient'] %}
-  <div class="col-12 col-lg-6">
-    <form class="card h-100" method="post" id="name-{{ code }}" action="{{ url_for('admin.operations_settings') }}">
-      <div class="card-header"><h2 class="card-title">{{ icon('pencil') }}Anzeigename · {{ area_names[code] }}</h2></div>
+  <details class="card mb-3 operations-editor" id="area-name-editor-{{ code }}"{% if errors.get('name_' ~ code) %} open{% endif %}>
+    <summary class="card-header gap-2">{{ icon('pencil') }}<span class="card-title mb-0">Bereichsname ändern · {{ area_names[code] }}</span>{{ icon('chevron-right', class='ms-auto') }}</summary>
+    <form method="post" id="name-{{ code }}" action="{{ url_for('admin.operations_settings') }}">
       <div class="card-body">
         <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="action" value="save_name_{{ code }}">
         <input type="hidden" name="expected_{{ code }}" value="{{ values.get('expected_' ~ code, area_names[code]) }}">
         {{ input('name_' ~ code, 'Bereichsname', values.get('name_' ~ code, area_names[code])) }}
         <div class="form-hint">Bereits veröffentlichte Pläne behalten ihren Namen.</div>
       </div>
-      <div class="card-footer"><button class="btn" type="submit">{{ icon('device-floppy') }}Anzeigename speichern</button></div>
+      <div class="card-footer"><button class="btn btn-primary" type="submit">{{ icon('device-floppy') }}Anzeigename speichern</button></div>
     </form>
-  </div>
+  </details>
 {% endfor %}
-</div>
 
-<form class="card mb-3" method="post" id="weekend-form" action="{{ url_for('admin.operations_settings') }}">
-  <div class="card-header"><h2 class="card-title">{{ icon('calendar-week') }}Wochenendbetrieb · {{ area_names.staff_guest }}</h2></div>
-  <div class="card-body">
-    <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="action" value="save_weekend">
-    <input type="hidden" name="expected_allows_weekend" value="{{ '1' if schedules.staff_guest.allows_weekend else '0' }}">
-    <label class="form-check form-switch" for="allows_weekend">
-      <input class="form-check-input{% if errors.get('allows_weekend') %} is-invalid{% endif %}" type="checkbox" id="allows_weekend" name="allows_weekend"{% if schedules.staff_guest.allows_weekend %} checked{% endif %}{{ validation('allows_weekend') }}>
-      <span class="form-check-label">Wochenendbetrieb möglich</span>
-    </label>
-    {{ error_text('allows_weekend') }}
-    <p class="form-hint">Erlaubt neue Ausgaben am Samstag und Sonntag. Bereits erfasste Öffnungszeiten bleiben beim Abschalten erhalten.</p>
-  </div>
-  <div class="card-footer"><button class="btn" type="submit">{{ icon('device-floppy') }}Wochenendbetrieb speichern</button></div>
-</form>
+<details class="card mb-3 operations-editor" id="weekend-editor"{% if errors.get('allows_weekend') %} open{% endif %}>
+  <summary class="card-header gap-2">{{ icon('calendar-week') }}<span class="card-title mb-0">Wochenendbetrieb ändern · {{ area_names.staff_guest }}</span>{{ icon('chevron-right', class='ms-auto') }}</summary>
+  <form method="post" id="weekend-form" action="{{ url_for('admin.operations_settings') }}">
+    <div class="card-body">
+      <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="action" value="save_weekend">
+      <input type="hidden" name="expected_allows_weekend" value="{{ '1' if schedules.staff_guest.allows_weekend else '0' }}">
+      <label class="form-check form-switch" for="allows_weekend">
+        <input class="form-check-input{% if errors.get('allows_weekend') %} is-invalid{% endif %}" type="checkbox" id="allows_weekend" name="allows_weekend"{% if schedules.staff_guest.allows_weekend %} checked{% endif %}{{ validation('allows_weekend') }}>
+        <span class="form-check-label">Neue Ausgaben am Samstag und Sonntag erlauben</span>
+      </label>
+      {{ error_text('allows_weekend') }}
+      <p class="form-hint">Bereits erfasste Öffnungszeiten bleiben beim Abschalten erhalten.</p>
+    </div>
+    <div class="card-footer"><button class="btn btn-primary" type="submit">{{ icon('device-floppy') }}Wochenendbetrieb speichern</button></div>
+  </form>
+</details>
 
 {% for code, schedule in schedules.items() %}
-<form class="card mb-3" method="post" id="schedule-{{ code }}" action="{{ url_for('admin.operations_settings') }}">
-  <div class="card-header"><h2 class="card-title">{{ icon('calendar-cog') }}Wochenvorgaben · {{ area_names[code] }}</h2></div>
+{% set schedule_error = namespace(found=false) %}
+{% for field in errors %}{% if field.startswith(code ~ '-') %}{% set schedule_error.found = true %}{% endif %}{% endfor %}
+<details class="card mb-3 operations-editor" id="schedule-editor-{{ code }}"{% if schedule_error.found or (values.get('action') == 'save_schedule' and values.get('profile') == code) %} open{% endif %}>
+<summary class="card-header gap-2">{{ icon('calendar-cog') }}<span class="card-title mb-0">Wochenvorgaben ändern · {{ area_names[code] }}</span>{{ icon('chevron-right', class='ms-auto') }}</summary>
+<form method="post" id="schedule-{{ code }}" action="{{ url_for('admin.operations_settings') }}">
   <input type="hidden" name="_csrf" value="{{ schedule_csrf[code] }}"><input type="hidden" name="action" value="save_schedule">
   <input type="hidden" name="profile" value="{{ code }}">
   <input type="hidden" name="revision" value="{{ values.get('revision', schedule.revision) if values.get('action') == 'save_schedule' and values.get('profile') == code else schedule.revision }}">
+  {% if code == 'staff_guest' and not schedule.allows_weekend %}<div class="card-body pb-0"><p class="form-hint mb-0">Samstag und Sonntag werden erst mit aktiviertem Wochenendbetrieb wirksam.</p></div>{% endif %}
   <div class="table-responsive">
     <table class="table table-vcenter card-table table-mobile-lg">
       <thead><tr><th>Tag / Mahlzeit</th><th>Betrieb</th><th>Beginn</th><th>Ende</th><th>Hinweis</th></tr></thead>
@@ -70,7 +111,7 @@
       {% set day, meal = slot %}{% set prefix = 'slot_' ~ day ~ '_' ~ meal ~ '_' %}
       {% set editing = values.get('action') == 'save_schedule' and values.get('profile') == code %}
       <tr>
-        <th scope="row">{{ day_names[day - 1] }} · {{ meal_labels[meal] }}{% if code == 'staff_guest' and day > 5 and not schedule.allows_weekend %}<div class="form-hint">Erst mit Wochenendbetrieb wirksam</div>{% endif %}</th>
+        <th scope="row">{{ day_names[day - 1] }} · {{ meal_labels[meal] }}</th>
         <td data-label="Betrieb">
           {% set id = code ~ '-' ~ prefix ~ 'state' %}
           <label class="form-label" for="{{ id }}">Betrieb</label>
@@ -86,14 +127,17 @@
       </tbody>
     </table>
   </div>
-  <div class="card-footer"><button class="btn" type="submit">{{ icon('device-floppy') }}Wochenvorgaben speichern</button></div>
+  <div class="card-footer"><button class="btn btn-primary" type="submit">{{ icon('device-floppy') }}Wochenvorgaben speichern</button></div>
 </form>
+</details>
 {% endfor %}
 
-<section class="card mb-3" id="dated-exception">
-  <div class="card-header"><h2 class="card-title">{{ icon('calendar-plus') }}Datierte Ausnahme</h2></div>
+{% set exception_error = namespace(found=false) %}
+{% for field in errors %}{% if field in ['profile', 'date', 'meal', 'service_state', 'service_start', 'service_end', 'notice'] %}{% set exception_error.found = true %}{% endif %}{% endfor %}
+<details class="card mb-3 operations-editor" id="exception-editor"{% if preview or exception_error.found %} open{% endif %}>
+  <summary class="card-header gap-2">{{ icon('calendar-plus') }}<span class="card-title mb-0">Datierte Ausnahme anlegen oder bearbeiten</span>{{ icon('chevron-right', class='ms-auto') }}</summary>
   <div class="card-body">
-    <p>Wählen Sie eine Ausgabe und laden Sie deren gespeicherten Stand. Erst «Ausnahme speichern» ändert den Plan.</p>
+    <p>Ausgabe wählen und gespeicherten Stand laden. Erst das anschliessende Speichern ändert den Plan.</p>
     <form method="post" id="exception-load" action="{{ url_for('admin.operations_settings') }}">
       <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="action" value="load_exception">
       <div class="row g-3 align-items-end">
@@ -106,7 +150,7 @@
           <label class="form-label" for="meal">Mahlzeit</label>
           <select class="form-select" id="meal" name="meal"{{ validation('meal') }}>{% for meal, label in meal_labels.items() %}<option value="{{ meal }}"{% if values.get('meal') == meal %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>{{ error_text('meal') }}
         </div>
-        <div class="col-12"><button class="btn" type="submit">{{ icon('eye') }}Ausgabe laden</button></div>
+        <div class="col-12"><button class="btn btn-primary" type="submit">{{ icon('eye') }}Ausgabe laden</button></div>
       </div>
     </form>
     {% if preview %}
@@ -125,10 +169,10 @@
     </form>
     {% endif %}
   </div>
-</section>
+</details>
 
-<section class="card">
-  <div class="card-header"><h2 class="card-title">{{ icon('calendar-week') }}Gespeicherte Ausnahmen</h2></div>
+<details class="card operations-editor" id="saved-exceptions">
+  <summary class="card-header gap-2">{{ icon('calendar-week') }}<span class="card-title mb-0">Gespeicherte Ausnahmen</span>{{ icon('chevron-right', class='ms-auto') }}</summary>
   {% if exceptions %}
   <div class="table-responsive"><table class="table table-vcenter card-table table-mobile-lg">
     <thead><tr><th>Datum / Bereich</th><th>Betrieb</th><th>Zeiten / Hinweis</th><th>Woche</th></tr></thead>
@@ -139,6 +183,6 @@
       <td><a class="btn" href="{{ url_for('admin.' ~ families[item.profile_code], week=item.week_start.isoformat()) }}">{{ icon('calendar-week') }}Woche öffnen</a></td>
     </tr>{% endfor %}</tbody>
   </table></div>
-  {% else %}<div class="card-body"><p class="text-secondary mb-0">Keine gespeicherten Ausnahmen von sieben Tagen vor heute bis acht Wochen danach.</p></div>{% endif %}
-</section>
+  {% else %}<div class="card-body"><p class="text-secondary mb-0">Keine gespeicherten Ausnahmen im Zeitraum von sieben Tagen vor heute bis acht Wochen danach.</p></div>{% endif %}
+</details>
 {% endblock %}
