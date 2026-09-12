@@ -322,3 +322,20 @@ JavaScript sowie volle Breite und fehlenden Seitenüberlauf bei 1366×768,
 Der Editor für das Erscheinungsbild folgt derselben Aktionshierarchie: «Entwurf speichern & Vorschau» ist die einzige hervorgehobene Hauptaktion. Die Aktivierung steht nachgelagert im Abschnitt «Veröffentlichte Version» und bezieht sich ausdrücklich auf den ausgewählten gespeicherten Stand. Aktive Version, ausgewählter Stand, Entwurf und Änderungszeit werden getrennt benannt.
 
 Versionsauswahl, Übernahme eines früheren Stands und Standardentwurf stehen unter «Weitere Aktionen». Vorhandene POST-Ziele, Payloads, CSRF-, Versions-, Upload-, Aktivierungs-, Wiederherstellungs- und Zurücksetzungsverträge bleiben unverändert und ohne JavaScript bedienbar. Editor und eigenständige Vorschau verwenden die volle verfügbare Breite; die Vorschau enthält keine Attrappen-Schaltfläche.
+
+## Umsetzung Werkzeuge
+
+Die Korrekturwelle umfasst auch vier vorhandene Werkzeugseiten, ohne ihre Routen,
+Formularfelder oder Schreiblogik zu ändern:
+
+| Seite | Umgesetzte Ordnung |
+|---|---|
+| Schnittstellen | API-Schlüssel stehen zuerst. Das Anlegeformular ist bei Bedarf erreichbar und öffnet bei einem Fehler automatisch. Status und technische Endpunkte bleiben nachgeordnet sichtbar. |
+| Daten importieren | Leerer Zustand, fehlerhafte Datei und gültige Import-Vorschau zeigen jeweils die nächste tatsächliche Aufgabe. Erst die Bestätigung der gültigen Vorschau übernimmt den Entwurf. |
+| Vorwoche kopieren | Quelle und Ziel stehen getrennt. Der Hinweis nennt nur belegte Wirkungen: Wochenkopf, Ausgabeangaben und Menüs werden übernommen, Prüfbestätigungen nicht; die Zielwoche bleibt ein Entwurf, muss leer sein und darf keine aktive Veröffentlichung haben. |
+| Wochenprüfung | Prüfstatus steht vor Erklärung und gespeicherten Angaben. Oberflächentexte verwenden «Ausgabeangaben»; das vorhandene Bestätigungsformular bleibt unverändert. |
+
+Browsernachweis und responsive Screenshots entstehen durch
+`reference_scaffold/tests/test_ui_korrektur_tools_browser.py` unter
+`.claude/evidence/ui-korrektur-0912/tools/`. Die Matrix umfasst 1366×768,
+1920×1080, 768×1024, 390×844 und 720×450 als 200-%-Zoomäquivalent.

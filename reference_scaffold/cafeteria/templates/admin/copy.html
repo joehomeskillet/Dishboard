@@ -27,8 +27,18 @@
       </div>
     </dl>
 
-    <p id="copy-description">Woche vom {{ source.strftime('%d.%m.%Y') }} in die leere Woche vom {{ target.strftime('%d.%m.%Y') }} kopieren.</p>
-    <form method="post" action="{{ url_for('admin.copy_post', family=family) }}" class="admin-copy-actions btn-list" aria-describedby="copy-description">
+    <p id="copy-description"><strong>Quelle:</strong> Woche vom {{ source.strftime('%d.%m.%Y') }}. <strong>Ziel:</strong> in die leere Woche vom {{ target.strftime('%d.%m.%Y') }}.</p>
+    <div id="copy-effects" class="alert alert-info" role="status">
+      <div>
+        <h2 class="h3">Was übernommen wird</h2>
+        <ul class="mb-2">
+          <li>Wochenkopf, Ausgabeangaben und Menüs werden aus der Quellwoche übernommen.</li>
+          <li>Prüfbestätigungen werden nicht übernommen; die Zielwoche bleibt ein Entwurf.</li>
+        </ul>
+        <p class="mb-0">Die Zielwoche muss leer sein und darf keine aktive Veröffentlichung haben.</p>
+      </div>
+    </div>
+    <form method="post" action="{{ url_for('admin.copy_post', family=family) }}" class="admin-copy-actions btn-list" aria-describedby="copy-description copy-effects">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
       <input type="hidden" name="source_week" value="{{ source.isoformat() }}">
       <input type="hidden" name="target_week" value="{{ target.isoformat() }}">

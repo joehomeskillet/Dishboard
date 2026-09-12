@@ -1,17 +1,15 @@
 {% extends "admin/base_tabler.html" %}
 {% from 'admin/_macros.html' import page_header %}
 {% set workflow_nav = 'import' %}
-{% block title %}CSV-Importvorschau{% endblock %}
+{% block title %}Daten importieren{% endblock %}
 {% set ready = result and result.valid and import_token %}
 {% set invalid = result and not result.valid %}
 {% set family = 'patienten' if result and result.profile == 'patient' else 'cafeteria' %}
 {% set profile_label = 'Patientenplan' if family == 'patienten' else 'Cafeteria' %}
 {% set profile = 'patient' if family == 'patienten' else 'staff_guest' %}
 {% block main_attributes %}data-state="{{ 'ready' if ready else 'error' if invalid else 'empty' }}"{% endblock %}
-{% block page_header %}{{ page_header('CSV-Import prüfen', profile_label) }}{% endblock %}
+{% block page_header %}{{ page_header('Daten importieren', profile_label) }}{% endblock %}
 {% block content %}
-    <p>Cafeteria und Patientenplan verwenden getrennte Formate. Eine Datei enthält genau einen Plan und eine Kalenderwoche.</p>
-
   {% if ready %}
   <section class="card mb-3 csv-preview-result" aria-labelledby="csv-result-title">
     <div class="card-body">
@@ -44,8 +42,9 @@
 
   <form method="post" action="{{ url_for('admin.import_preview') }}" enctype="multipart/form-data" class="card mb-3" id="csv-upload">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-    <div class="card-body">
-      {% if ready %}<h2>Andere Datei prüfen</h2>{% endif %}
+      <div class="card-body">
+      <h2>{{ 'Andere Datei prüfen' if ready else 'CSV-Datei auswählen' }}</h2>
+      <p>Cafeteria und Patientenplan verwenden getrennte Formate. Eine Datei enthält genau einen Plan und eine Kalenderwoche.</p>
       <p>Die Vorschau speichert noch keinen Entwurf.</p>
       <div class="mb-3">
         <label class="form-label" for="file">{{ 'Korrigierte CSV-Datei' if invalid else 'CSV-Datei' }}</label>
