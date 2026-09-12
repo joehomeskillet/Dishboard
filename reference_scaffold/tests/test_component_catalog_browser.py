@@ -71,7 +71,7 @@ def test_catalog_native_forms_preserve_and_remove_metadata(
     milk.locator('[name="allergen_code"]').check()
     expect(milk.locator('select')).to_be_enabled()
     with page.expect_response(lambda response: response.request.method == 'POST') as created:
-        form.get_by_role('button', name='Komponente erstellen', exact=True).click()
+        form.get_by_role('button', name='Baustein erstellen', exact=True).click()
     assert created.value.status == 303
     page.wait_for_url(f'**{list_path}/*')
     expect(page.locator('main')).to_have_attribute('data-profile-scope', profile)
@@ -93,7 +93,7 @@ def test_catalog_native_forms_preserve_and_remove_metadata(
     milk.locator('[name="allergen_code"]').uncheck()
     expect(milk.locator('select')).to_be_disabled()
     with page.expect_response(lambda response: response.request.method == 'POST') as saved:
-        detail.get_by_role('button', name='Speichern', exact=True).click()
+        detail.get_by_role('button', name='Baustein speichern', exact=True).click()
     assert saved.value.status == 303
     expect(page.locator('h1')).to_have_text('Katalog-Browsertest bearbeitet')
     expect(detail.locator('[name="label_code"][value="VEGAN"]')).to_be_checked()
@@ -105,7 +105,7 @@ def test_catalog_native_forms_preserve_and_remove_metadata(
     gluten.locator('[name="allergen_code"]').uncheck()
     expect(gluten.locator('select')).to_be_disabled()
     with page.expect_response(lambda response: response.request.method == 'POST') as cleared:
-        detail.get_by_role('button', name='Speichern', exact=True).click()
+        detail.get_by_role('button', name='Baustein speichern', exact=True).click()
     assert cleared.value.status == 303
     page.wait_for_load_state()
     with engine.connect() as connection:
@@ -116,7 +116,7 @@ def _assert_component_controls_fit(page: Page) -> None:
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
     dimensions = page.locator(
         'main .btn, main .form-control, main .form-select, main .form-check, '
-        'main summary, main .dishboard-component-link'
+        'main summary, main .component-edit-link'
     ).evaluate_all('''elements => elements.filter(e => e.getClientRects().length).map(e => ({
         height: e.getBoundingClientRect().height,
         width: e.getBoundingClientRect().width,
@@ -139,7 +139,7 @@ def test_catalog_table_cards_country_errors_and_archive_across_breakpoints(
     form.locator('[name="name"]').fill(long_name)
     form.locator('[name="category"]').select_option('side')
     form.locator('[name="origin_country_code"]').select_option('CH')
-    form.get_by_role('button', name='Komponente erstellen', exact=True).click()
+    form.get_by_role('button', name='Baustein erstellen', exact=True).click()
     page.wait_for_url(f'**{list_path}/*')
     detail_path = page.url.split(page.url.split('/admin/')[0], 1)[1]
     public_id = page.locator('main').get_attribute('data-public-id')
@@ -155,14 +155,22 @@ def test_catalog_table_cards_country_errors_and_archive_across_breakpoints(
         row = page.locator(f'.component-row[data-public-id="{public_id}"]')
         expect(row).to_contain_text(long_name)
         expect(row).to_contain_text('verwendet in 0 Gerichten')
+        edit_link = row.get_by_role('link', name='Bearbeiten', exact=True)
+        expect(edit_link).to_be_visible()
         if width < 992:
             expect(page.locator('.dishboard-component-table thead')).to_be_hidden()
             assert row.evaluate('e => getComputedStyle(e).display') == 'grid'
-            assert row.evaluate('''e => e.querySelector('th').getBoundingClientRect().width
+            assert row.evaluate('''e => e.querySelector('.component-row-name').getBoundingClientRect().width
                 >= e.getBoundingClientRect().width - 36''')
         else:
             expect(page.locator('.dishboard-component-table thead')).to_be_visible()
             assert row.evaluate('e => getComputedStyle(e).display') == 'table-row'
+            edit_box = edit_link.bounding_box()
+            assert edit_box is not None and edit_box['height'] <= 52
+            name_box = row.locator('.component-row-name').bounding_box()
+            category_box = row.locator('.category').bounding_box()
+            assert name_box is not None and category_box is not None
+            assert category_box['x'] >= name_box['x'] + name_box['width']
         _assert_component_controls_fit(page)
         if width in (360, 1200):
             page.screenshot(path=str(tmp_path / f'{family}-components-{width}.png'), full_page=True)
