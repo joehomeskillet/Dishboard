@@ -4638,7 +4638,7 @@
         "UI-003"
       ],
       "kind": "implementation",
-      "status": "IN_PROGRESS",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-FULLWIDTH-AUDIT"
       ],
@@ -4704,7 +4704,8 @@
         "claude-code"
       ],
       "completion_evidence": [
-        "2026-09-12 gestartet: wp-ui-korrektur-week-0912 (grok-build), Cross-Vendor-Review folgt vor der Integration."
+        "2026-09-12 gestartet: wp-ui-korrektur-week-0912 (grok-build), Cross-Vendor-Review folgt vor der Integration.",
+        "DEPLOYED: Stufe 10 301aea6af0526393ba80c9fc2f8bc3217f8e98ad mit sichtbarem Wochenstatus und A04-Re-Render; Root-Gates 6 + 36 passed. Release-/Image-/Schema-/Live-Belege und offene Abnahmen: docs/design/2026-09-12-correction-wave-delivery.md. Kein ACCEPTED."
       ],
       "rollback": "Template-/CSS-Rücknahme auf den vorherigen Stand; keine Daten betroffen."
     },
@@ -4717,7 +4718,7 @@
         "UI-003"
       ],
       "kind": "implementation",
-      "status": "IN_PROGRESS",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-FULLWIDTH-AUDIT"
       ],
@@ -4780,7 +4781,8 @@
         "claude-code"
       ],
       "completion_evidence": [
-        "2026-09-12 gestartet: wp-ui-korrektur-editor-0912 (codex-gpt5), Cross-Vendor-Review folgt vor der Integration."
+        "2026-09-12 gestartet: wp-ui-korrektur-editor-0912 (codex-gpt5), Cross-Vendor-Review folgt vor der Integration.",
+        "DEPLOYED: Stufe 9 7fbbfbc2a7950e8c9648edbe53c8143828785c30; Rezeptbindung in Schema29 integriert, Editor-Fokus-Fix in bb987b24f6ae1819c5b8db95cf1ff4f809076ec7 (Root 2 passed). Release-/Image-/Schema-/Live-Belege und offene Abnahmen: docs/design/2026-09-12-correction-wave-delivery.md. Kein ACCEPTED."
       ],
       "rollback": "Template-/CSS-Rücknahme auf den vorherigen Stand; keine Daten betroffen."
     },
@@ -4793,7 +4795,7 @@
         "UI-003"
       ],
       "kind": "implementation",
-      "status": "IN_PROGRESS",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-FULLWIDTH-AUDIT"
       ],
@@ -4856,7 +4858,8 @@
         "claude-code"
       ],
       "completion_evidence": [
-        "2026-09-12 gestartet: wp-ui-korrektur-components-0912 (cursor), Cross-Vendor-Review folgt vor der Integration."
+        "2026-09-12 gestartet: wp-ui-korrektur-components-0912 (cursor), Cross-Vendor-Review folgt vor der Integration.",
+        "DEPLOYED: in Stufe 9 7fbbfbc2a7950e8c9648edbe53c8143828785c30 enthalten; Archiv-Abbruch-Guard nach Selektorkorrektur unabhängig mit 19 passed geprüft. Release-/Image-/Schema-/Live-Belege und offene Abnahmen: docs/design/2026-09-12-correction-wave-delivery.md. Kein ACCEPTED."
       ],
       "rollback": "Template-/CSS-Rücknahme auf den vorherigen Stand; keine Daten betroffen."
     },
@@ -4869,7 +4872,7 @@
         "UI-003"
       ],
       "kind": "implementation",
-      "status": "IN_PROGRESS",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-FULLWIDTH-AUDIT"
       ],
@@ -4932,7 +4935,8 @@
         "claude-code"
       ],
       "completion_evidence": [
-        "2026-09-12 gestartet: wp-ui-korrektur-menus-0912 (antigravity-agy), Cross-Vendor-Review folgt vor der Integration."
+        "2026-09-12 gestartet: wp-ui-korrektur-menus-0912 (antigravity-agy), Cross-Vendor-Review folgt vor der Integration.",
+        "DEPLOYED: Menüsammlung und Wochenübersicht in Stufe 9 7fbbfbc2a7950e8c9648edbe53c8143828785c30 enthalten und im Schema29-Release fortgeführt. Release-/Image-/Schema-/Live-Belege und offene Abnahmen: docs/design/2026-09-12-correction-wave-delivery.md. Kein ACCEPTED."
       ],
       "rollback": "Template-/CSS-Rücknahme auf den vorherigen Stand; keine Daten betroffen."
     },
@@ -4945,7 +4949,7 @@
         "UI-003"
       ],
       "kind": "implementation",
-      "status": "IN_PROGRESS",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-FULLWIDTH-AUDIT"
       ],
@@ -5007,7 +5011,8 @@
         "claude-code"
       ],
       "completion_evidence": [
-        "2026-09-12 gestartet: wp-ui-korrektur-ops-0912 (codex-gpt5), Cross-Vendor-Review folgt vor der Integration."
+        "2026-09-12 gestartet: wp-ui-korrektur-ops-0912 (codex-gpt5), Cross-Vendor-Review folgt vor der Integration.",
+        "DEPLOYED: Bereiche und Öffnungszeiten in Stufe 9 7fbbfbc2a7950e8c9648edbe53c8143828785c30 enthalten; SEC003 in bb987b24f6ae1819c5b8db95cf1ff4f809076ec7 (Root 23 passed). Release-/Image-/Schema-/Live-Belege und offene Abnahmen: docs/design/2026-09-12-correction-wave-delivery.md. Kein ACCEPTED."
       ],
       "rollback": "Template-/CSS-Rücknahme auf den vorherigen Stand; keine Daten betroffen."
     },
@@ -5020,7 +5025,7 @@
         "UI-003"
       ],
       "kind": "implementation",
-      "status": "IN_PROGRESS",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-FULLWIDTH-AUDIT"
       ],
@@ -5084,7 +5089,8 @@
         "claude-code"
       ],
       "completion_evidence": [
-        "2026-09-12 gestartet: wp-ui-korrektur-vorlagen-0912 (codex-gpt5), Cross-Vendor-Review folgt vor der Integration."
+        "2026-09-12 gestartet: wp-ui-korrektur-vorlagen-0912 (codex-gpt5), Cross-Vendor-Review folgt vor der Integration.",
+        "DEPLOYED: Druckvorlagen samt Leerzustand-Fix 7afdcf8 in Stufe 9 7fbbfbc2a7950e8c9648edbe53c8143828785c30 enthalten. Release-/Image-/Schema-/Live-Belege und offene Abnahmen: docs/design/2026-09-12-correction-wave-delivery.md. Kein ACCEPTED."
       ],
       "rollback": "Template-/CSS-Rücknahme auf den vorherigen Stand; keine Daten betroffen."
     },
@@ -5097,7 +5103,7 @@
         "UI-003"
       ],
       "kind": "implementation",
-      "status": "IN_PROGRESS",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-FULLWIDTH-AUDIT"
       ],
@@ -5162,7 +5168,8 @@
         "claude-code"
       ],
       "completion_evidence": [
-        "2026-09-12 gestartet: wp-ui-korrektur-screens-0912 (codex-gpt5), Cross-Vendor-Review folgt vor der Integration."
+        "2026-09-12 gestartet: wp-ui-korrektur-screens-0912 (codex-gpt5), Cross-Vendor-Review folgt vor der Integration.",
+        "DEPLOYED: Bildschirme, Zuweisung und Darstellung in Stufe 9 7fbbfbc2a7950e8c9648edbe53c8143828785c30 enthalten. Release-/Image-/Schema-/Live-Belege und offene Abnahmen: docs/design/2026-09-12-correction-wave-delivery.md. Kein ACCEPTED; tatsächliche Player-Abnahme nicht aus HTTP-Smokes abgeleitet."
       ],
       "rollback": "Template-/CSS-Rücknahme auf den vorherigen Stand; keine Daten betroffen."
     }
