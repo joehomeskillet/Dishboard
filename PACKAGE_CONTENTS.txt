@@ -542,7 +542,6 @@ entra/README.md
 entra/redirect-uris.txt
 entra/role-mapping.yaml
 MANIFEST_SHA256.txt
-OPS-SIGNAGE-PROGRESS.md
 PACKAGE_CONTENTS.txt
 README.md
 reference_scaffold/cafeteria/__init__.py
@@ -1445,5 +1444,4 @@ tools/validate_recipe_examples.py
 tools/vendor_food_symbols.py
 tools/vendor_swagger_ui.py
 tools/vendor_tabler.py
-UEBERGABE-CLAUDE-2026-09-02.md
 VALIDATION.md
