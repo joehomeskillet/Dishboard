@@ -4,13 +4,16 @@
 {% block title %}{{ kinds[kind] }} · Grundlagen{% endblock %}
 {% block page_header %}{{ page_header(kinds[kind] ~ (' bearbeiten' if row else ' anlegen')) }}{% endblock %}
 {% block content %}
-<a class="btn mb-3" href="{{ url_for('admin.master_data_list', kind=query_kinds[kind]) }}">Zur Liste</a>{{ errors() }}{{ status_actions() }}
-<div class="card"><div class="card-body">{% if row %}<p>Code: {{ row.code }} (unveränderlich)</p>{% endif %}
+{% set singular = 'Kategorie' if kind == 'kategorien' else 'Tag' %}
+<a class="btn mb-3" href="{{ url_for('admin.master_data_list', kind=query_kinds[kind]) }}">Zur {{ singular }}liste</a>{{ errors() }}
+{% if row %}<div class="card mb-4"><div class="card-body">{{ status_summary() }}</div></div>{% endif %}
+{% if not row %}<details class="card mb-4" open><summary class="card-header"><span class="card-title">{{ singular }} anlegen</span></summary><div class="card-body">{% else %}<div class="card mb-4"><div class="card-header"><h2 class="card-title">{{ singular }}</h2></div><div class="card-body">{% endif %}{% if row %}<p>Code: {{ row.code }} (unveränderlich)</p>{% endif %}
 {% if can_write %}<form method="post" data-dirty-form action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose='name') if row else url_for('admin.master_data_new', kind=kind) }}">
 {{ form_start('name' if row else 'neu') }}<div class="row g-3">
 <div class="col-12{% if not row %} col-lg-6{% endif %}">{{ input('name', 'Name', true) }}</div>
 {% if not row %}<div class="col-12 col-lg-6">{{ input('code', 'Code (Grossbuchstaben, Ziffern, Unterstrich)', true) }}</div>{% endif %}
 </div>
 {% if kind == 'kategorien' %}{{ input('sort_order', 'Reihenfolge (1 bis 9999)', true) }}{% endif %}
-<button class="btn btn-primary" type="submit">{{ 'Änderungen speichern' if row else 'Datensatz anlegen' }}</button></form>{% else %}<p>{{ row.name if row else 'Keine Schreibberechtigung' }}</p>{% endif %}</div></div>
+<button class="btn btn-primary" type="submit">{{ singular }} speichern</button></form>{% else %}<p>{{ row.name if row else 'Keine Schreibberechtigung' }}</p>{% endif %}</div>{% if not row %}</details>{% else %}</div>{% endif %}
+{% if row %}<details class="card"><summary class="card-header"><span class="card-title">Weitere Aktionen</span></summary><div class="card-body">{{ status_actions() }}</div></details>{% endif %}
 {% endblock %}

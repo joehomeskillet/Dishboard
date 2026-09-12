@@ -17,6 +17,9 @@ from test_master_data_routes import (  # noqa: F401
 from test_rendered_ui import browser  # noqa: F401
 
 
+EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/ui-korrektur-0912/grundlagen'
+
+
 @pytest.fixture
 def master_server(b3):  # noqa: F811
     app, _, client, _ = b3
@@ -61,10 +64,10 @@ def test_native_food_save_conflict_archive_and_framework(b3, master_server, brow
         page.on('response', lambda response: responses.setdefault(urlsplit(response.url).path, []).append(response.status))
         page.goto(base + '/admin/grundlagen')
         expect(page.get_by_role('heading', level=1)).to_have_text('Grundlagen')
-        expect(page.get_by_text('Keine passenden Stammdaten')).to_be_visible()
-        page.get_by_role('link', name='Neu anlegen', exact=True).click()
+        expect(page.get_by_text('Keine passenden Zutaten', exact=True)).to_be_visible()
+        page.get_by_role('link', name='Zutat anlegen', exact=True).click()
         page.get_by_label('Name', exact=True).fill('Karotte Browser')
-        page.get_by_role('button', name='Zutat anlegen', exact=True).click()
+        page.get_by_role('button', name='Zutat speichern', exact=True).click()
         expect(page.get_by_role('heading', level=1)).to_have_text('Zutat bearbeiten')
         path = urlsplit(page.url).path
         core = page.locator('form[action$="/stammdaten"]')
@@ -72,16 +75,20 @@ def test_native_food_save_conflict_archive_and_framework(b3, master_server, brow
         assert save(client, path, 'stammdaten', name='Andere Sitzung').status_code == 303
         page.get_by_label('Name', exact=True).fill('Mein ursprünglicher Entwurf')
         with page.expect_response(lambda response: response.request.method == 'POST') as outcome:
-            page.get_by_role('button', name='Stammdaten speichern', exact=True).click()
+            page.get_by_role('button', name='Zutat speichern', exact=True).click()
         assert outcome.value.status == 409
         expect(page.locator('.error-region')).to_be_visible()
         expect(page.get_by_label('Name', exact=True)).to_have_value('Mein ursprünglicher Entwurf')
         assert core.locator('input[name="_form_context"]').input_value() == token
         page.get_by_role('link', name='Aktuellen Stand neu laden').click()
         expect(page.get_by_label('Name', exact=True)).to_have_value('Andere Sitzung')
+        page.get_by_text('Allergenprüfung', exact=True).last.click()
         page.get_by_role('button', name='Allergenangaben als geprüft bestätigen').click()
+        page.get_by_text('Allergenprüfung', exact=True).last.click()
         expect(page.get_by_role('button', name='Prüfung zurücknehmen')).to_be_visible()
+        page.get_by_text('Weitere Aktionen', exact=True).click()
         page.get_by_role('button', name='Archivieren', exact=True).click()
+        page.get_by_text('Weitere Aktionen', exact=True).click()
         expect(page.get_by_role('button', name='Reaktivieren', exact=True)).to_be_visible()
         page.get_by_role('button', name='Reaktivieren', exact=True).click()
         targets(page)
@@ -95,7 +102,7 @@ def test_native_food_save_conflict_archive_and_framework(b3, master_server, brow
         assert page.locator('.card').first.evaluate('el => getComputedStyle(el).display') == 'flex'
         expected_conflict = 'Failed to load resource: the server responded with a status of 409 (CONFLICT)'
         assert all(error == expected_conflict for error in errors) and len(errors) <= 1
-        evidence = Path(os.environ.get('MASTER_DATA_EVIDENCE_DIR', str(tmp_path)))
+        evidence = Path(os.environ.get('MASTER_DATA_EVIDENCE_DIR', str(EVIDENCE)))
         evidence.mkdir(parents=True, exist_ok=True)
         evidence.chmod(0o700)
         page.get_by_role('heading', level=1).click()
@@ -122,11 +129,12 @@ def test_browser_vocabulary_unit_forms_and_error_focus(b3, master_server, browse
                 page.get_by_label('Dimension', exact=True).select_option('count')
                 page.get_by_label('Basisfaktor (bei kontextabhängiger Einheit leer lassen)', exact=True).fill('2')
             page.locator('main button[type="submit"]').click()
+            page.get_by_text('Weitere Aktionen', exact=True).click()
             expect(page.get_by_role('button', name='Archivieren', exact=True)).to_be_visible()
             targets(page)
         page.goto(base + '/admin/grundlagen/zutaten/neu')
         page.get_by_label('Name', exact=True).fill('<unzulässig>')
-        page.get_by_role('button', name='Zutat anlegen', exact=True).click()
+        page.get_by_role('button', name='Zutat speichern', exact=True).click()
         expect(page.locator('.error-region')).to_be_visible()
         expect(page.get_by_label('Name', exact=True)).to_have_attribute('aria-invalid', 'true')
         expect(page.locator('.error-region')).to_be_focused()
@@ -154,7 +162,7 @@ def test_location_conflict_native_recovery(b3, master_server, browser, width, ja
         before = snapshot(owner)
         with page.expect_response(lambda response: response.request.method == 'POST', timeout=60000) as outcome:
             form.get_by_role(
-                'button', name='Stammdaten speichern' if existing else 'Zutat anlegen', exact=True,
+                'button', name='Zutat speichern', exact=True,
             ).click(no_wait_after=True)
         assert outcome.value.status == 409
         page.wait_for_load_state('domcontentloaded')
@@ -167,14 +175,14 @@ def test_location_conflict_native_recovery(b3, master_server, browser, width, ja
         assert page.locator('main button[type="submit"]').count() == 0
         expect(page.get_by_role('link', name='Aktuellen Stand neu laden')).to_have_attribute('href', path)
         targets(page)
-        evidence = Path(os.environ.get('MASTER_DATA_EVIDENCE_DIR', str(tmp_path)))
+        evidence = Path(os.environ.get('MASTER_DATA_EVIDENCE_DIR', str(EVIDENCE)))
         evidence.mkdir(parents=True, exist_ok=True)
         evidence.chmod(0o700)
         screenshot = evidence / f'location-conflict-{width}-js-{javascript}-existing-{existing}.png'
         page.screenshot(path=str(screenshot), full_page=True)
         screenshot.chmod(0o600)
         page.get_by_role('link', name='Zur aktuellen Liste').click()
-        expect(page.get_by_text('Keine passenden Stammdaten')).to_be_visible()
+        expect(page.get_by_text('Keine passenden Zutaten', exact=True)).to_be_visible()
         assert snapshot(owner) == before
 
 
@@ -191,6 +199,13 @@ def test_location_conflict_selections_are_visible_and_copyable(b3, master_server
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
         page = context.new_page()
         page.goto(base + path)
+        if purpose != 'stammdaten':
+            section = {
+                'tags': 'Tags ändern',
+                'metadaten': 'Allergene und Kostformen ändern',
+                'allergenpruefung': 'Allergenprüfung',
+            }[purpose]
+            page.get_by_text(section, exact=True).last.click()
         form = page.locator(f'form[action="{path}/{purpose}"]')
         expected = []
         if purpose == 'stammdaten':

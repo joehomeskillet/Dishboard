@@ -4,8 +4,9 @@
 {% block title %}Einheit · Grundlagen{% endblock %}
 {% block page_header %}{{ page_header('Einheit bearbeiten' if row else 'Einheit anlegen') }}{% endblock %}
 {% block content %}
-<a class="btn mb-3" href="{{ url_for('admin.master_data_list', kind=query_kinds[kind]) }}">Zur Einheitenliste</a>{{ errors() }}{{ status_actions() }}
-<div class="card"><div class="card-body">
+<a class="btn mb-3" href="{{ url_for('admin.master_data_list', kind=query_kinds[kind]) }}">Zur Einheitenliste</a>{{ errors() }}
+{% if row %}<div class="card mb-4"><div class="card-body">{{ status_summary() }}</div></div>{% endif %}
+{% if not row %}<details class="card mb-4" open><summary class="card-header"><span class="card-title">Einheit anlegen</span></summary><div class="card-body">{% else %}<div class="card mb-4"><div class="card-header"><h2 class="card-title">Einheit</h2></div><div class="card-body">{% endif %}
 {% if row %}<dl><dt>Code</dt><dd>{{ row.code }}</dd><dt>Dimension</dt><dd>{{ row.dimension }}</dd><dt>Basisfaktor</dt><dd>{{ row.base_factor if row.base_factor is not none else 'Kontextabhängig' }}</dd></dl><p>Code, Dimension und Faktor bleiben unverändert. Für eine andere Bedeutung eine neue Einheit anlegen.</p>{% endif %}
 {% if can_write %}<form method="post" data-dirty-form action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose='name') if row else url_for('admin.master_data_new', kind=kind) }}">
 {{ form_start('name' if row else 'neu') }}{{ input('display_name', 'Anzeigename', true) }}
@@ -14,5 +15,7 @@
 <div class="col-12 col-lg-6"><label class="form-label" for="dimension">Dimension</label><select class="form-select mb-3" id="dimension" name="dimension">{% for key, label in [('mass', 'Masse'), ('volume', 'Volumen'), ('count', 'Anzahl'), ('contextual', 'Kontextabhängig')] %}<option value="{{ key }}"{% if values.get('dimension') == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
 </div>
 <div class="row g-3"><div class="col-12 col-lg-6">{{ input('base_factor', 'Basisfaktor (bei kontextabhängiger Einheit leer lassen)') }}</div></div>{% endif %}
-<button class="btn btn-primary" type="submit">{{ 'Name speichern' if row else 'Einheit anlegen' }}</button></form>{% else %}<p>{{ row.display_name if row else 'Keine Schreibberechtigung' }}</p>{% endif %}
-</div></div>{% endblock %}
+<button class="btn btn-primary" type="submit">Einheit speichern</button></form>{% else %}<p>{{ row.display_name if row else 'Keine Schreibberechtigung' }}</p>{% endif %}
+</div>{% if not row %}</details>{% else %}</div>{% endif %}
+{% if row %}<details class="card"><summary class="card-header"><span class="card-title">Weitere Aktionen</span></summary><div class="card-body">{{ status_actions() }}</div></details>{% endif %}
+{% endblock %}

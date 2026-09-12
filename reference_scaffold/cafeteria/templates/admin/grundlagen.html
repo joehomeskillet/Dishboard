@@ -3,6 +3,7 @@
 {% set workflow_nav = 'master_data' %}
 {% block title %}Grundlagen · Menüplanung{% endblock %}
 {% block page_header %}{{ page_header('Grundlagen') }}{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-grundlagen.css') }}">{% endblock %}
 {% macro form_start(purpose) %}
 <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 <input type="hidden" name="_form_context" value="{{ tokens[purpose] }}">
@@ -13,25 +14,39 @@
 <input class="form-control" id="{{ name }}" name="{{ name }}" value="{{ values.get(name) if values.get(name) is not none else '' }}"{% if required %} required{% endif %}{% if error and error_field == name %} aria-invalid="true" aria-describedby="master-error"{% endif %}></div>
 {% endmacro %}
 {% macro errors() %}
-{% if error %}<div class="alert alert-danger error-region" id="master-error" role="alert" tabindex="-1">{{ error }}
+{% if error %}<div class="alert alert-danger error-region" id="master-error" role="alert" tabindex="-1" autofocus>{{ error }}
 <a href="{{ url_for('admin.master_data_detail', kind=kind, public_id=row.public_id) if row else url_for('admin.master_data_new', kind=kind) }}">Aktuellen Stand neu laden</a></div>{% endif %}
+{% endmacro %}
+{% macro status_summary() %}
+{% if row %}
+<p class="mb-0"><strong>Status:</strong> <span class="badge {{ 'bg-green-lt' if row.active else 'bg-secondary-lt' }}">{{ 'Aktiv' if row.active else 'Archiviert' }}</span> <span class="text-secondary">· Version {{ row.row_version }}</span></p>
+{% endif %}
 {% endmacro %}
 {% macro status_actions() %}
 {% if row %}
-<p><span class="badge {{ 'bg-green-lt' if row.active else 'bg-secondary-lt' }}">{{ 'Aktiv' if row.active else 'Archiviert' }}</span> · Version {{ row.row_version }}</p>
 {% if can_write and not (kind == 'einheiten' and row.code in ['G', 'ML', 'STK']) %}
 {% set purpose = 'archivieren' if row.active else 'reaktivieren' %}
-<form method="post" action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose=purpose) }}" class="mb-3" data-confirm="{{ 'Diesen Datensatz archivieren?' if row.active else 'Diesen Datensatz reaktivieren?' }}">
+<form method="post" action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose=purpose) }}" data-confirm="{{ 'Diesen Datensatz archivieren?' if row.active else 'Diesen Datensatz reaktivieren?' }}">
 {{ form_start(purpose) }}<button class="btn" type="submit">{{ 'Archivieren' if row.active else 'Reaktivieren' }}</button></form>
 {% elif kind == 'einheiten' and row.code in ['G', 'ML', 'STK'] %}<p class="text-secondary">Diese Basiseinheit bleibt dauerhaft aktiv.</p>{% endif %}
 {% endif %}
 {% endmacro %}
 {% block content %}
-<p>Zutaten und gemeinsame Fachbegriffe pflegen. Änderungen veröffentlichen keinen Menüplan.</p>
-<nav class="mb-4" aria-label="Stammdatenbereiche"><ul class="nav nav-pills">
+{% set singular = {'zutaten': 'Zutat', 'einheiten': 'Einheit', 'kategorien': 'Kategorie', 'tags': 'Tag'} %}
+<nav class="mb-3" aria-label="Stammdatenbereiche"><ul class="nav nav-pills">
 {% for key, label in kinds.items() %}<li class="nav-item"><a class="nav-link{% if key == kind %} active{% endif %}"{% if key == kind %} aria-current="page"{% endif %} href="{{ url_for('admin.master_data_list', kind=query_kinds[key]) }}">{{ label }}</a></li>{% endfor %}
 </ul></nav>
-<form class="card mb-4" method="get" action="{{ url_for('admin.master_data_list') }}"><div class="card-body">
+<div class="card grundlagen-list"><div class="card-header"><div><h2 class="card-title">{{ kinds[kind] }}</h2><p class="text-secondary mb-0">{{ rows|length }} Einträge auf dieser Seite</p></div>{% if can_write %}<div class="card-actions"><a class="btn btn-primary" href="{{ url_for('admin.master_data_new', kind=kind) }}">{{ singular[kind] }} anlegen</a></div>{% endif %}</div>
+<div class="list-group list-group-flush">
+{% for item in rows %}<div class="list-group-item"><div class="row g-2 align-items-center"><div class="col">
+<a class="text-break" href="{{ url_for('admin.master_data_detail', kind=kind, public_id=item.public_id) }}">{{ item.display_name if kind == 'einheiten' else item.name }}</a>
+<div class="text-secondary">{{ 'Aktiv' if item.active else 'Archiviert' }} · Version {{ item.row_version }}</div></div>
+<div class="col-auto">{{ icon_link(url_for('admin.master_data_detail', kind=kind, public_id=item.public_id), (item.display_name if kind == 'einheiten' else item.name) ~ (' bearbeiten' if can_write else ' ansehen')) }}</div></div></div>
+{% else %}<div class="empty"><p class="empty-title">Keine passenden {{ kinds[kind] }}</p><p class="empty-subtitle text-secondary">Filter anpassen{% if can_write %} oder {{ singular[kind]|lower }} anlegen{% endif %}.</p></div>{% endfor %}
+</div><div class="card-footer">{{ pagination(page, has_next, prev_url, next_url, 'Stammdatenseiten') }}</div></div>
+{% set filters_active = request.args.get('q') or request.args.get('category') or request.args.get('tag') or request.args.get('archived') == '1' %}
+<details class="card mt-4"{% if filters_active %} open{% endif %}><summary class="card-header"><span class="card-title">Liste filtern</span></summary><div class="card-body">
+<form method="get" action="{{ url_for('admin.master_data_list') }}">
 <input type="hidden" name="kind" value="{{ query_kinds[kind] }}"><div class="row g-3 align-items-end">
 {% if kind == 'zutaten' %}
 <div class="col-12 col-lg-4"><label class="form-label" for="q">Zutat suchen</label><input class="form-control" id="q" name="q" maxlength="200" value="{{ request.args.get('q', '') }}"></div>
@@ -41,13 +56,5 @@
 </select></div>{% endfor %}{% endif %}
 <div class="col-12"><label class="form-check"><input class="form-check-input" type="checkbox" name="archived" value="1"{% if request.args.get('archived') == '1' %} checked{% endif %}><span class="form-check-label">Archivierte einschliessen</span></label></div>
 <div class="col-12"><button class="btn" type="submit">Filter anwenden</button></div>
-</div></div></form>
-<div class="card"><div class="card-header"><h2 class="card-title">{{ kinds[kind] }}</h2>{% if can_write %}<div class="card-actions"><a class="btn btn-primary" href="{{ url_for('admin.master_data_new', kind=kind) }}">Neu anlegen</a></div>{% endif %}</div>
-<div class="list-group list-group-flush">
-{% for item in rows %}<div class="list-group-item"><div class="row g-2 align-items-center"><div class="col">
-<a class="text-break" href="{{ url_for('admin.master_data_detail', kind=kind, public_id=item.public_id) }}">{{ item.display_name if kind == 'einheiten' else item.name }}</a>
-<div class="text-secondary">{{ 'Aktiv' if item.active else 'Archiviert' }} · Version {{ item.row_version }}</div></div>
-<div class="col-auto">{{ icon_link(url_for('admin.master_data_detail', kind=kind, public_id=item.public_id), (item.display_name if kind == 'einheiten' else item.name) ~ (' bearbeiten' if can_write else ' ansehen')) }}</div></div></div>
-{% else %}<div class="empty"><p class="empty-title">Keine passenden Stammdaten</p><p class="empty-subtitle text-secondary">Filter anpassen oder einen Datensatz anlegen.</p></div>{% endfor %}
-</div><div class="card-footer">{{ pagination(page, has_next, prev_url, next_url, 'Stammdatenseiten') }}</div></div>
+</div></form></div></details>
 {% endblock %}

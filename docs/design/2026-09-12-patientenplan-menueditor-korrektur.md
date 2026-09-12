@@ -237,6 +237,14 @@ Lieferumfang: tatsächliche Dateipfade, Befund-ID → Änderung → Test → Erg
 
 Ein Test mit technisch unerfahrenen Personen soll insbesondere zeigen, ob sie ein Menü finden, nur die Beilage ändern, speichern und den Unterschied zwischen „geprüft“ und „Allergenangaben fehlen“ erklären können. Ein Agent darf fehlende Nutzerbeobachtungen nicht als durchgeführt ausgeben.
 
+## 10. Umsetzung Zutaten
+
+Die Grundlagenansichten folgen demselben Korrekturmuster: Bereichsauswahl, danach sofort die Liste. Filter und Anlegeformulare
+öffnen Mitarbeitende nur bei Bedarf. Auf der Zutatenansicht ist «Zutat speichern» die einzige hervorgehobene Formularaktion;
+Archivieren und Reaktivieren stehen unter «Weitere Aktionen». Gespeicherter Aktivstatus, fehlender Lagerort und fehlende
+Allergenangaben bleiben als getrennte Aussagen sichtbar. Mindestens ein Lagerort bleibt Pflicht; «Lagerort fehlt» wird nicht
+durch einen allgemeinen Prüfstatus verdeckt. Native POST-Ziele, Feldnamen, CSRF-, Kontext- und Versionswerte bleiben unverändert.
+
 **Kernziel: Volle Breite behalten, Wiederholungen entfernen, Menüs zuerst zeigen und Prüfzustände verständlich machen. Nicht erneut nur die Karten grösser machen.**
 
 ## Umsetzung Bereiche & Öffnungszeiten

@@ -5,9 +5,16 @@
 {% block page_header %}{{ page_header('Zutat bearbeiten' if row else 'Zutat anlegen') }}{% endblock %}
 {% block content %}
 <a class="btn mb-3" href="{{ url_for('admin.master_data_list', kind=query_kinds[kind]) }}">Zur Zutatenliste</a>
-{{ errors() }}{{ status_actions() }}
+{{ errors() }}
+{% if row %}<section class="card mb-4" aria-labelledby="food-status-title"><div class="card-header"><h2 class="card-title" id="food-status-title">Gespeicherter Stand</h2></div><div class="card-body grundlagen-status">
+{{ status_summary() }}
+<p><strong>Lagerort:</strong> {% for storage in row.storage_locations %}{{ storage.name }}{{ ', ' if not loop.last else '' }}{% else %}<span class="badge bg-yellow-lt">Lagerort fehlt</span> · Mindestens ein Lagerort ist Pflicht.{% endfor %}</p>
+<p><strong>Allergenangaben:</strong> {% if row.allergens %}Erfasst{% else %}<span class="badge bg-yellow-lt">Allergenangaben nicht erfasst</span>{% endif %}</p>
+<p><strong>Allergenprüfung:</strong> {{ 'Gespeicherte Angaben bestätigt' if row.allergen_review_status == 'checked' else 'Noch nicht bestätigt' }}</p>
+</div></section>
+{% else %}<div class="alert alert-info" role="status"><strong>Lagerort erforderlich:</strong> Mindestens ein Lagerort ist für jede Zutat Pflicht. Fehlt die Zuordnung, wird «Lagerort fehlt» angezeigt.</div>{% endif %}
 {% set core = 'stammdaten' if row else 'neu' %}
-<div class="card mb-4"><div class="card-header"><h2 class="card-title">Stammdaten</h2></div><div class="card-body">
+{% if not row %}<details class="card mb-4" open><summary class="card-header"><span class="card-title">Zutat anlegen</span></summary><div class="card-body">{% else %}<div class="card mb-4"><div class="card-header"><h2 class="card-title">Zutat</h2></div><div class="card-body">{% endif %}
 {% if can_write %}<form method="post" data-dirty-form action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose=core) if row else url_for('admin.master_data_new', kind=kind) }}">
 {{ form_start(core) }}{{ input('name', 'Name', true) }}
 <div class="row g-3 mb-3">
@@ -23,29 +30,30 @@
 </div>
 <label class="form-label" for="note">Notiz</label><textarea class="form-control mb-3" name="note" id="note" maxlength="500">{{ values.get('note', '') }}</textarea>
 <p class="form-hint">Dezimalzahlen mit Punkt eingeben. Archivierte Zuordnungen vor dem Speichern ausdrücklich ersetzen oder entfernen.</p>
-<button class="btn btn-primary" type="submit">{{ 'Stammdaten speichern' if row else 'Zutat anlegen' }}</button></form>
+<button class="btn btn-primary" type="submit">Zutat speichern</button></form>
 {% else %}<h3>{{ row.name if row else 'Keine Schreibberechtigung' }}</h3>{% if row %}<p>{{ row.base_unit.display_name }}{% if not row.base_unit.active %} (archiviert){% endif %} · {{ row.category.name if row.category else 'Keine Kategorie' }}{% if row.category and not row.category.active %} (archiviert){% endif %}</p><dl><dt>Dichte in g/ml</dt><dd>{{ row.density_g_per_ml if row.density_g_per_ml is not none else 'Nicht erfasst' }}</dd><dt>Stückgewicht in g</dt><dd>{{ row.piece_weight_g if row.piece_weight_g is not none else 'Nicht erfasst' }}</dd></dl><p>{{ row.note }}</p>{% endif %}{% endif %}
-</div></div>
+</div>{% if not row %}</details>{% else %}</div>{% endif %}
 {% if row %}
-<div class="card mb-4"><div class="card-header"><h2 class="card-title">Herkunft</h2></div><div class="card-body"><p>{{ 'Manuell erfasst' if row.source.kind == 'manual' else row.source.kind }}</p>{% for value in [row.source.reference, row.source.url, row.source.note, row.source.fetched_at] %}{% if value %}<p class="text-break">{{ value }}</p>{% endif %}{% endfor %}<p class="text-secondary">Die ursprüngliche Herkunft bleibt erhalten.</p></div></div>
-<div class="card mb-4"><div class="card-header"><h2 class="card-title">Tags</h2></div><div class="card-body">
+<details class="card mb-4"><summary class="card-header"><span class="card-title">Herkunft anzeigen</span></summary><div class="card-body"><p>{{ 'Manuell erfasst' if row.source.kind == 'manual' else row.source.kind }}</p>{% for value in [row.source.reference, row.source.url, row.source.note, row.source.fetched_at] %}{% if value %}<p class="text-break">{{ value }}</p>{% endif %}{% endfor %}<p class="text-secondary">Ursprüngliche Herkunft bleibt erhalten.</p></div></details>
+<details class="card mb-4"{% if error_purpose == 'tags' %} open{% endif %}><summary class="card-header"><span class="card-title">Tags ändern</span></summary><div class="card-body">
 {% if can_write %}<form method="post" action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose='tags') }}">{{ form_start('tags') }}
 {% for selected in values.tag_public_ids %}{% if selected not in tags|map(attribute='public_id')|list %}<label class="form-check"><input class="form-check-input" type="checkbox" name="tag_public_ids" value="{{ selected }}" checked><span class="form-check-label">{{ selected }} (ungültige Auswahl, bitte entfernen)</span></label>{% endif %}{% endfor %}
 {% for tag in tags %}{% if tag.active or tag.public_id in values.tag_public_ids %}<label class="form-check"><input class="form-check-input" type="checkbox" name="tag_public_ids" value="{{ tag.public_id }}"{% if tag.public_id in values.tag_public_ids %} checked{% endif %}><span class="form-check-label">{{ tag.name }}{% if not tag.active %} (archiviert, vor dem Speichern ausdrücklich entfernen){% endif %}</span></label>{% endif %}{% else %}<p>Keine Tags vorhanden.</p>{% endfor %}
 <p class="form-hint">Ohne Auswahl werden alle Tag-Zuordnungen entfernt.</p><button class="btn" type="submit">Tags speichern</button></form>
-{% else %}{% for tag in row.tags %}<p>{{ tag.name }}</p>{% else %}<p>Keine Tags zugeordnet.</p>{% endfor %}{% endif %}</div></div>
-<div class="card mb-4"><div class="card-header"><h2 class="card-title">Bestätigte Angaben</h2></div><div class="card-body">
-<p>Nur ausdrücklich bestätigte Allergene und Kostformen erfassen. Keine automatische Ableitung aus dem Namen. Nicht mehr auswählbare Angaben bleiben sichtbar und müssen vor diesem Speichern ausdrücklich entfernt werden.</p>
+{% else %}{% for tag in row.tags %}<p>{{ tag.name }}</p>{% else %}<p>Keine Tags zugeordnet.</p>{% endfor %}{% endif %}</div></details>
+<details class="card mb-4"{% if error_purpose == 'metadaten' %} open{% endif %}><summary class="card-header"><span class="card-title">Allergene und Kostformen ändern</span></summary><div class="card-body">
+<p>Nur ausdrücklich bestätigte Angaben erfassen. Fehlende Angaben bedeuten nicht «frei von».</p>
 {% if can_write %}<form method="post" action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose='metadaten') }}">{{ form_start('metadaten') }}
 <fieldset class="mb-4"><legend class="h3">Allergene</legend><div class="row g-3">{% for allergen in allergens %}<div class="col-12 col-lg-6"><label class="form-label" for="allergen_{{ allergen.code }}">{{ allergen.display_name }} ({{ allergen.code }})</label>
 <select class="form-select" id="allergen_{{ allergen.code }}" name="allergen_{{ allergen.code }}">{% for key, label in [('absent', 'Keine Angabe'), ('contains', 'Enthält'), ('may_contain', 'Kann enthalten')] %}<option value="{{ key }}"{% if values.get('allergen_' ~ allergen.code) == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>{% endfor %}</div></fieldset>
 <fieldset class="mb-3"><legend class="h3">Kostformen</legend>{% for label in labels %}<label class="form-check"><input class="form-check-input" type="checkbox" name="labels" value="{{ label.code }}"{% if label.code in values.labels %} checked{% endif %}><span class="form-check-label">{{ label.display_name }} ({{ label.code }})</span></label>{% endfor %}</fieldset>
-<button class="btn" type="submit">Bestätigte Angaben speichern</button></form>
+<button class="btn" type="submit">Allergene und Kostformen speichern</button></form>
 {% else %}{% for code, presence in row.allergens %}<p>{{ code }}: {{ 'Enthält' if presence == 'contains' else 'Kann enthalten' }}</p>{% endfor %}{% for label in row.labels %}<p>{{ label }}</p>{% endfor %}{% endif %}
-</div></div>
-<div class="card"><div class="card-header"><h2 class="card-title">Allergenprüfung</h2></div><div class="card-body">
-<p>{{ 'Geprüft' if row.allergen_review_status == 'checked' else 'Noch nicht geprüft' }}. Eine leere Liste ist keine Frei-von-Angabe.</p>
+</div></details>
+<details class="card mb-4"{% if error_purpose == 'allergenpruefung' %} open{% endif %}><summary class="card-header"><span class="card-title">Allergenprüfung</span></summary><div class="card-body">
+<p>{{ 'Gespeicherte Allergenangaben wurden bestätigt.' if row.allergen_review_status == 'checked' else 'Gespeicherte Allergenangaben sind noch nicht bestätigt.' }} Eine leere Liste ist keine Frei-von-Angabe.</p>
 {% if can_write %}<form method="post" action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose='allergenpruefung') }}">{{ form_start('allergenpruefung') }}
-<input type="hidden" name="checked" value="{{ 'false' if row.allergen_review_status == 'checked' else 'true' }}"><button class="btn" type="submit">{{ 'Prüfung zurücknehmen' if row.allergen_review_status == 'checked' else 'Allergenangaben als geprüft bestätigen' }}</button></form>{% endif %}</div></div>
+<input type="hidden" name="checked" value="{{ 'false' if row.allergen_review_status == 'checked' else 'true' }}"><button class="btn" type="submit">{{ 'Prüfung zurücknehmen' if row.allergen_review_status == 'checked' else 'Allergenangaben als geprüft bestätigen' }}</button></form>{% endif %}</div></details>
+<details class="card"><summary class="card-header"><span class="card-title">Weitere Aktionen</span></summary><div class="card-body">{{ status_actions() }}</div></details>
 {% endif %}
 {% endblock %}
