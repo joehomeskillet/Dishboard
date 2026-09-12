@@ -34,7 +34,27 @@ def master_server(b3):  # noqa: F811
 
 
 def targets(page):
-    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+    page.wait_for_load_state('load')
+    page.evaluate('document.fonts && document.fonts.ready')
+    expect(page.locator('body')).to_have_css('margin', '0px')
+    overflow = page.evaluate('''() => ({
+        innerWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        elements: [...document.querySelectorAll('body *')].flatMap(element => {
+            const box = element.getBoundingClientRect();
+            if (!box.width || (box.left >= -1 && box.right <= innerWidth + 1)) return [];
+            return [{
+                tag: element.tagName,
+                id: element.id,
+                className: String(element.className),
+                left: box.left,
+                right: box.right,
+                width: box.width,
+                text: (element.textContent || '').trim().slice(0, 120),
+            }];
+        }),
+    })''')
+    assert overflow['scrollWidth'] <= overflow['innerWidth'] + 1, overflow
     assert page.locator('main style, main [style]').count() == 0
     for control in page.locator('main :is(.btn, .form-control, .form-select)').all():
         if control.is_visible():

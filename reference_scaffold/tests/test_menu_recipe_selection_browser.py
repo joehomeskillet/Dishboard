@@ -254,7 +254,7 @@ def test_browser_select_save_reload_and_no_latest_swap(
     page.goto(EDITOR)
     _ready(page)
     page.get_by_label('Titel', exact=True).fill('Gebundenes Menü')
-    page.get_by_label('Freitext-Komponente').fill('Browser-Suppe')
+    page.get_by_label('Eigener Baustein als Text').fill('Browser-Suppe')
     page.get_by_label('Rezeptrevision').select_option(first['public_id'])
     expect(_option(page, first['public_id'])).to_be_attached()
     assert _option(page, first['public_id']).get_attribute('data-content-hash') == first['hash']
@@ -282,7 +282,7 @@ def test_browser_detach_confirm_is_not_a_side_effect(
     revision = _insert_revision(admin_engine, actor, 'Lösesuppe')
     page.goto(EDITOR)
     page.get_by_label('Titel', exact=True).fill('Mit Bindung')
-    page.get_by_label('Freitext-Komponente').fill('Lösesuppe')
+    page.get_by_label('Eigener Baustein als Text').fill('Lösesuppe')
     page.get_by_label('Rezeptrevision').select_option(revision['public_id'])
     _submit_menu(page)
     expect(page.get_by_label('Rezeptrevision')).to_have_value(revision['public_id'])
@@ -313,7 +313,7 @@ def test_browser_add_remove_reorder_keeps_three_arrays(
     page.get_by_label('Titel', exact=True).fill('Reihenfolge')
     page.locator('[name="component_text"]').fill('Oben')
     page.locator('[name="recipe_revision_public_id"]').select_option(first['public_id'])
-    page.get_by_role('button', name='Komponente hinzufügen').click()
+    page.get_by_role('button', name='Baustein hinzufügen').click()
     page.locator('[name="component_text"]').nth(1).fill('Unten')
     page.locator('[name="recipe_revision_public_id"]').nth(1).select_option(second['public_id'])
     page.locator('#components-list [data-row]').nth(1).get_by_role('button', name='Nach oben', exact=True).click()
@@ -321,7 +321,7 @@ def test_browser_add_remove_reorder_keeps_three_arrays(
     assert payload['component_text'] == ['Unten', 'Oben']
     assert payload['recipe_revision_public_id'] == [second['public_id'], first['public_id']]
     assert payload['component_public_id'] == ['', '']
-    page.get_by_role('button', name='Komponente entfernen').last.click()
+    page.get_by_role('button', name='Baustein entfernen').last.click()
     leftover = _submit_menu(page)
     assert leftover['component_text'] == ['Unten']
     assert leftover['recipe_revision_public_id'] == [second['public_id']]
@@ -337,7 +337,7 @@ def test_nojs_native_select_search_absent_and_archived_readable(
     page.goto(EDITOR)
     _ready(page)
     page.get_by_label('Titel', exact=True).fill('Ohne JavaScript')
-    page.get_by_label('Freitext-Komponente').fill('Archivsuppe')
+    page.get_by_label('Eigener Baustein als Text').fill('Archivsuppe')
     page.get_by_label('Rezeptrevision').select_option(revision['public_id'])
     page.locator('form[data-menu-editor] button[type="submit"]').click()
     page.wait_for_load_state()
@@ -370,7 +370,7 @@ def test_recipe_selector_viewports_keyboard_zoom_and_fonts(
     page.goto(_editor('patienten'))
     _ready(page)
     page.get_by_label('Titel', exact=True).fill(f'Viewport {width}')
-    page.get_by_label('Freitext-Komponente').fill(f'Sicht-{width}')
+    page.get_by_label('Eigener Baustein als Text').fill(f'Sicht-{width}')
     select = page.get_by_label('Rezeptrevision')
     expect(select).to_be_visible()
     box = select.bounding_box()

@@ -11,7 +11,7 @@ import pytest
 from playwright.sync_api import Page
 
 from test_admin_workflow_routes import DATABASE_URL, DAY, WEEK, _login, database_engine  # noqa: F401
-from test_master_data_routes import create as create_master
+from test_master_data_routes import create as create_master, fields as master_fields
 from test_recipe_routes import create, fields
 from test_rendered_ui import browser  # noqa: F401
 from test_ui_master_shell_browser import _page, site  # noqa: F401
@@ -84,11 +84,24 @@ def _local_user(client) -> str:
 
 def _pages(client) -> list[tuple[str, str, str]]:
     recipe = urlsplit(create(client, 'Fullwidth A')).path
+    storage = urlsplit(create_master(
+        client, 'lagerorte', name='Fullwidth Lager', code='FWLAGER', sort_order='1',
+    )).path
+    food_new = '/admin/grundlagen/zutaten/neu'
+    food_data = master_fields(client, food_new)
+    food_data['name'] = 'Fullwidth Karotte'
+    food_data['storage_location_public_ids'] = storage.rsplit('/', 1)[-1]
+    created_food = client.post(food_new, data=food_data)
+    assert created_food.status_code == 303, created_food.text
+    food = urlsplit(created_food.headers.get('Location', created_food.location)).path
+    complete = fields(client, recipe)
+    complete['ingredients.0.food_public_id'] = food.rsplit('/', 1)[-1]
+    saved = client.post(recipe, data=complete)
+    assert saved.status_code == 303, saved.text
     frozen = client.post(f'{recipe}/revisionen', data=fields(client, f'{recipe}/revisionen'))
     assert frozen.status_code == 303, frozen.text
     revision = urlsplit(frozen.headers.get('Location', frozen.location)).path
     draft = urlsplit(create(client, 'Fullwidth B')).path
-    food = urlsplit(create_master(client, name='Fullwidth Karotte')).path
     unit = urlsplit(create_master(
         client, 'einheiten', display_name='Fullwidth Kilogramm', code='FWKG',
         dimension='mass', base_factor='1',
