@@ -251,3 +251,50 @@ def test_recipe_import_native_cdp_zoom(b3, master_server, browser) -> None:  # n
             )
             assert icons and all(width > 0 for width in icons)
 
+
+@pytest.mark.parametrize('width,height', ((320, 844), (2560, 1440)))
+@pytest.mark.parametrize('javascript', (False, True))
+def test_recipe_import_density_missing_viewports(
+    b3, master_server, browser, width, height, javascript,  # noqa: F811
+) -> None:
+    from test_ui_korrektur_tools_browser import _assert_full_width, _assert_rendered_icons
+
+    _, _, client, _ = b3
+    path = create(client)
+    base, cookie = master_server
+    evidence = Path(__file__).resolve().parents[2] / '.claude/evidence/imports-coverage-fix-0913/after'
+    evidence.mkdir(parents=True, exist_ok=True)
+    with browser.new_context(viewport={'width': width, 'height': height},
+                             java_script_enabled=javascript, reduced_motion='reduce') as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        _open(page, base, path)
+        expect(page.locator('[data-checked-identity]')).to_contain_text('Geprüftes Ergebnis')
+        expect(page.get_by_role('button', name='Entscheidungen speichern')).to_be_visible()
+        details = page.locator('#row-1-details')
+        expect(details).not_to_have_attribute('open', '')
+        _assert_full_width(page, width)
+        targets(page)
+        summary = details.locator('summary')
+        summary.focus()
+        expect(summary).to_be_focused()
+        page.keyboard.press('Enter')
+        expect(details).to_have_attribute('open', '')
+        for label in ('Menge', 'Einheit', 'Lebensmittel-UUID', 'Zielrezept', 'Zielversion'):
+            expect(details.get_by_label(label, exact=True)).to_be_visible()
+        quantity = details.get_by_label('Menge', exact=True)
+        quantity.fill('12.5')
+        summary.focus()
+        page.keyboard.press('Enter')
+        expect(details).not_to_have_attribute('open', '')
+        assert quantity.evaluate('node => new FormData(node.form).get(node.name)') == '12.5'
+        page.keyboard.press('Enter')
+        expect(details).to_have_attribute('open', '')
+        expect(quantity).to_have_value('12.5')
+        _assert_full_width(page, width)
+        _assert_rendered_icons(page)
+        targets(page)
+        page.screenshot(path=str(evidence / f'recipe-open-{width}-js-{javascript}.png'), full_page=True)
+        summary.click()
+        expect(details).not_to_have_attribute('open', '')
+        page.screenshot(path=str(evidence / f'recipe-closed-{width}-js-{javascript}.png'), full_page=True)

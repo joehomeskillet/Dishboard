@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import pytest
 from playwright.sync_api import Page, expect
 
 from test_admin_workflow_routes import WEEK, _login, database_engine  # noqa: F401
@@ -390,3 +391,56 @@ def test_import_copy_review_native_cdp_zoom_is_not_css_zoom(site) -> None:  # no
                 assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 1')
                 proof[name] = {'zoom': zoom, 'png': capture['png']}
             (EVIDENCE / 'native-200.cdp.json').write_text(json.dumps(proof, indent=2))
+
+
+@pytest.mark.parametrize('width,height', ((320, 844), (2560, 1440)))
+@pytest.mark.parametrize('javascript', (False, True))
+def test_import_density_missing_viewports(site, width, height, javascript) -> None:  # noqa: F811
+    app, _, engine, _ = site
+    client, _ = _login(app, engine, ['Cafeteria.Admin'])
+    target = (WEEK + dt.timedelta(days=7)).isoformat()
+    evidence = ROOT / '.claude/evidence/imports-coverage-fix-0913/after'
+    evidence.mkdir(parents=True, exist_ok=True)
+    page = _page(site, client, viewport={'width': width, 'height': height},
+                 java_script_enabled=javascript)
+    try:
+        for name, path, action in (
+            ('copy', f'/admin/cafeteria/copy?week={target}', 'Vorwoche kopieren'),
+            ('review', f'/admin/cafeteria/wochen/pruefung?week={WEEK.isoformat()}',
+             'Wochenkopf und alle Ausgabehinweise als geprüft bestätigen'),
+            ('csv-empty', '/admin/import-preview', 'Vorschau prüfen'),
+        ):
+            _goto(page, path)
+            page.screenshot(path=str(evidence / f'{name}-{width}-js-{javascript}.png'), full_page=True)
+            _assert_full_width(page, width)
+            _assert_rendered_icons(page)
+            button = page.get_by_role('button', name=action, exact=True)
+            expect(button).to_be_visible()
+            button.focus()
+            expect(button).to_be_focused()
+            if name == 'review':
+                expect(page.locator('.admin-compact-row')).to_have_count(5)
+                expect(page.locator('main')).to_contain_text('Kein Ausgabehinweis')
+            if name == 'copy':
+                expect(page.locator('#copy-description')).to_contain_text('Quelle:')
+                expect(page.locator('#copy-description')).to_contain_text('Ziel:')
+        page.locator('#file').set_input_files(ROOT / 'csv/menu_cafeteria_example.csv')
+        page.get_by_role('button', name='Vorschau prüfen', exact=True).click()
+        expect(page.get_by_role('heading', name='Bereit zum Import', exact=True)).to_be_visible()
+        expect(page.get_by_role('button', name='Geprüfte Datei importieren')).to_be_visible()
+        assert page.locator('input[name="import_token"]').input_value()
+        page.screenshot(path=str(evidence / f'csv-ready-{width}-js-{javascript}.png'), full_page=True)
+        _assert_full_width(page, width)
+        _assert_rendered_icons(page)
+        page.locator('#file').set_input_files({
+            'name': 'ungueltig.csv', 'mimeType': 'text/csv',
+            'buffer': b'wrong;header\ninvalid;row\n',
+        })
+        page.get_by_role('button', name='Vorschau prüfen', exact=True).click()
+        expect(page.locator('#file-error')).to_be_visible()
+        expect(page.locator('#file')).to_have_attribute('aria-invalid', 'true')
+        page.screenshot(path=str(evidence / f'csv-error-{width}-js-{javascript}.png'), full_page=True)
+        _assert_full_width(page, width)
+        _assert_rendered_icons(page)
+    finally:
+        page.context.close()
