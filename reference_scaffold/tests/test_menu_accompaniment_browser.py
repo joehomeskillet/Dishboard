@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from urllib.parse import parse_qs
 
 import pytest
 from playwright.sync_api import Page, expect
@@ -204,8 +205,18 @@ def test_template_proposal_prefills_salad_and_shows_proposal_hint(
                 full_page=True,
             )
         page.locator('#accompaniment-none').check()
-        submitted = _submit_menu(page, 303)
+        with page.expect_response(
+            lambda response: response.request.method == 'POST'
+            and response.url.endswith('/menu?return_to=week')
+        ) as saved:
+            page.locator('form[data-menu-editor] button[type="submit"]').click()
+        response = saved.value
+        assert response.status == 303
+        data = response.request.post_data
+        assert data is not None
+        submitted = parse_qs(data, keep_blank_values=True)
         assert submitted['accompaniment'] == ['none']
+        page.wait_for_load_state()
         assert _stored_accompaniment(admin_engine) == 'none'
         card = page.locator('#menu-LUNCH-MENU_1')
         expect(card.locator('.menu-accompaniment')).to_have_count(0)
