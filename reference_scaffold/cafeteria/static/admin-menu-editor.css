@@ -80,6 +80,9 @@
   .dishboard-admin .admin-editor-layout {
     grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
   }
+  .dishboard-admin .menu-editor-review {
+    align-self: stretch;
+  }
 }
 @media (max-width: 991.98px) {
   .dishboard-admin .admin-editor-layout .review-block { position: static; }

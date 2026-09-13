@@ -399,13 +399,58 @@ def test_density_viewports_reflow_and_zoom_probe(
             }''')
             assert layout['main'] > layout['review']
             assert not layout['stacked']
+            if (width, height) == (1440, 900):
+                for summary in page.locator('details.admin-accordion:not([open]) > summary').all():
+                    summary.click()
+                metrics = page.evaluate('''() => {
+                    const main = document.querySelector('.menu-editor-main');
+                    const aside = document.querySelector('.menu-editor-review');
+                    const review = document.querySelector('#review');
+                    const mainBox = main.getBoundingClientRect();
+                    const asideBox = aside.getBoundingClientRect();
+                    const reviewBox = review.getBoundingClientRect();
+                    return {
+                        mainHeight: mainBox.height,
+                        asideHeight: asideBox.height,
+                        mainBottom: mainBox.bottom,
+                        asideBottom: asideBox.bottom,
+                        reviewTop: reviewBox.top,
+                        initialReviewY: window.scrollY + reviewBox.top,
+                    };
+                }''')
+                assert abs(metrics['asideBottom'] - metrics['mainBottom']) <= 2
+                scroll_target = metrics['initialReviewY'] + 150
+                page.evaluate('(y) => window.scrollTo(0, y)', scroll_target)
+                scrolled = page.evaluate('''() => {
+                    const main = document.querySelector('.menu-editor-main').getBoundingClientRect();
+                    const aside = document.querySelector('.menu-editor-review').getBoundingClientRect();
+                    const review = document.querySelector('#review').getBoundingClientRect();
+                    return {
+                        scrollY: window.scrollY,
+                        mainTop: main.top,
+                        reviewTop: review.top,
+                        asideBottom: aside.bottom,
+                    };
+                }''')
+                assert scrolled['scrollY'] >= scroll_target
+                assert scrolled['mainTop'] < 0
+                assert 0 <= scrolled['reviewTop'] <= 30
+                expect(page.locator('#review')).to_be_visible()
+                expect(page.locator('#review')).to_have_attribute('data-saved-review', '')
+                expect(page.locator('[data-review-scope="persisted"]')).to_be_visible()
+                page.evaluate('() => window.scrollTo(0, 0)')
         else:
             layout = page.evaluate('''() => {
                 const main = document.querySelector('.menu-editor-main').getBoundingClientRect();
                 const review = document.querySelector('.menu-editor-review').getBoundingClientRect();
-                return {stacked: review.top >= main.bottom - 1};
+                const reviewBlock = document.querySelector('#review');
+                return {
+                    stacked: review.top >= main.bottom - 1,
+                    position: window.getComputedStyle(reviewBlock).position,
+                };
             }''')
             assert layout['stacked']
+            assert layout['position'] == 'static'
     zoom_kind = 'css-viewport-dpr2-surrogate'
     try:
         session = page.context.new_cdp_session(page)
