@@ -31,13 +31,14 @@ def test_week_creation_and_tablet_layout(page_context):
             }""")
             expect(page.get_by_role('navigation', name='Backend')).to_be_hidden()
         assert not page.evaluate('document.documentElement.scrollWidth > document.documentElement.clientWidth + 1')
-        page.locator('details:has(#new-week-title)').evaluate('el => { el.open = true }')
+        expect(page.locator('#new-week-date')).to_be_hidden()
+        page.locator('#new-week-title').focus()
+        page.keyboard.press('Enter')
         expect(page.locator('#new-week-date')).to_be_visible()
         for selector in ['input[type="date"]', 'input[name="title"]', 'textarea', 'button[type="submit"]']:
             for control in page.locator(selector).all():
                 if control.is_visible():
                     assert control.bounding_box()['height'] >= 48
-    page.locator('details:has(#new-week-title)').evaluate('el => { el.open = true }')
     expect(page.locator('#new-week-date')).to_be_visible()
     page.get_by_label('Wochenbeginn (Montag)').fill('2027-01-04')
     page.get_by_label('Wochentitel', exact=True).fill('Tabletwoche')

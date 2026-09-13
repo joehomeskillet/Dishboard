@@ -42,11 +42,11 @@
   display: none;
 }
 .dishboard-admin .menu-note-content {
-  background-color: var(--app-surface-soft, #FAF9F7);
-  border: 1px solid var(--app-border-soft, #EFECE8);
-  border-radius: var(--app-radius-sm, 6px);
-  padding: var(--app-space-2, 0.5rem);
-  color: var(--app-text-muted, #596273);
+  background-color: var(--app-surface-soft);
+  border: 1px solid var(--app-border-soft);
+  border-radius: var(--app-radius-control);
+  padding: var(--app-space-2);
+  color: var(--app-text-muted);
 }
 
 /* Hide top-level description and note in menu-grid cards so they are collapsed */
@@ -57,10 +57,10 @@
 
 /* Prominent allergen warning in cards */
 .dishboard-admin .menu-grid [data-menu-metadata] > p:not(.menu-description):not(.shared-note) {
-  margin-top: var(--app-space-2, 0.5rem);
-  margin-bottom: var(--app-space-2, 0.5rem);
+  margin-top: var(--app-space-2);
+  margin-bottom: var(--app-space-2);
   font-weight: 500;
-  color: var(--app-warning-text, #854D0E);
+  color: var(--app-warning-text);
 }
 
 /* Week management card header profile tabs */
@@ -83,4 +83,37 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.dishboard-admin .week-toolbar .profile-tabs { margin-bottom: 0; }
+.dishboard-admin .week-actions .btn-icon { min-width: var(--app-space-12); }
+.dishboard-admin .week-create { min-width: 0; margin-left: auto; }
+.dishboard-admin .week-create[open] { flex-basis: 100%; }
+.dishboard-admin .week-create summary {
+  min-height: var(--app-space-12);
+  padding: var(--app-space-3);
+  cursor: pointer;
+}
+.dishboard-admin .week-create summary .card-title { margin: 0; }
+.dishboard-admin .week-copy summary { min-height: var(--app-space-12); list-style: none; }
+.dishboard-admin .week-copy summary::-webkit-details-marker { display: none; }
+.dishboard-admin :is(.week-copy, .week-create)[open] > summary .icon:last-child { transform: rotate(90deg); }
+
+/* A stacked semantic table keeps dates, review warnings and opening links together. */
+@media (max-width: 1199.98px) {
+  .dishboard-menu-table { min-width: 0; }
+  .dishboard-menu-table thead {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);
+  }
+  .dishboard-menu-table tbody { display: block; }
+  .dishboard-menu-table tr[data-menu-list-id] {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: var(--app-space-3); border-bottom: 1px solid var(--app-border);
+  }
+  .dishboard-admin .dishboard-menu-table tr[data-menu-list-id] > :is(th, td) {
+    width: auto; min-width: 0; padding: var(--app-space-2); border: 0;
+  }
+  .dishboard-menu-table tr[data-menu-list-id] > :is(th, td:nth-child(4), td:nth-child(5)) {
+    grid-column: 1 / -1;
+  }
 }
