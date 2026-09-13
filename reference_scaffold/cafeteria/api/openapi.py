@@ -421,6 +421,16 @@ def build_openapi() -> dict:
                         'type_name': {'type': 'string', 'enum': _enum_value('option', 'type_name')},
                         'title': {'type': 'string'},
                         'description': {'type': 'string'},
+                        'accompaniment_code': {
+                            'type': 'string',
+                            'enum': _enum_value('option', 'accompaniment_code'),
+                            'description': 'Nur bei gewählter Beilage.',
+                        },
+                        'accompaniment_name': {
+                            'type': 'string',
+                            'enum': _enum_value('option', 'accompaniment_name'),
+                            'description': 'Nur bei gewählter Beilage.',
+                        },
                         'components': {'type': 'array', 'items': {'type': 'string'}},
                         'labels': {'type': 'array', 'items': {'$ref': '#/components/schemas/Label'}},
                         'allergens': {'type': 'array', 'items': {'$ref': '#/components/schemas/Allergen'}},

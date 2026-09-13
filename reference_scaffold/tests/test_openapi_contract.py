@@ -8,6 +8,7 @@ from flask import Flask
 from cafeteria.api import routes as api_routes
 from cafeteria.api.openapi import build_openapi
 from cafeteria.api.v1_routes import bp as api_v1_routes
+from cafeteria.patient_payload import PATIENT_FIXED_VALUES
 
 
 def _build_test_app() -> Flask:
@@ -101,6 +102,18 @@ def test_openapi_documents_the_optional_area_name_and_serving_times():
     assert 'LUNCH' in snapshot['properties']['days']['description']
     for node in (area, service['properties']['service_start'], service['properties']['service_end']):
         assert node['description'].endswith('.')
+
+
+def test_openapi_documents_optional_accompaniment_pair_from_patient_values():
+    option = build_openapi()['components']['schemas']['Option']
+
+    for field in ('accompaniment_code', 'accompaniment_name'):
+        assert option['properties'][field] == {
+            'type': 'string',
+            'enum': sorted(PATIENT_FIXED_VALUES[('option', field)]),
+            'description': 'Nur bei gewählter Beilage.',
+        }
+        assert field not in option['required']
 
 
 def test_schema_2_example_matches_the_documented_shape():
