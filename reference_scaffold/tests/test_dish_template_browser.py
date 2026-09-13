@@ -21,7 +21,7 @@ from test_master_data_routes import (  # noqa: F401
 from test_rendered_ui import browser  # noqa: F401
 
 EVIDENCE = Path(os.environ.get(
-    'DISH_TEMPLATE_EVIDENCE_DIR', str(Path(__file__).resolve().parents[2] / '.claude/evidence/recipe-link-reads-0913'),
+    'DISH_TEMPLATE_EVIDENCE_DIR', str(Path(__file__).resolve().parents[2] / '.claude/evidence/acc-template-0913'),
 ))
 ROUTE_VIEWPORTS = ((390, 844), (1440, 900))
 SHARED_VIEWPORTS = ((1024, 768), (768, 1024), (1920, 1080), (2560, 1440))
@@ -87,10 +87,16 @@ def test_list_create_conflict_and_tabler(b3, master_server, browser, width, heig
         page.get_by_role('button', name='Speichern').click()
         expect(page.get_by_role('link', name='Browser Vorlage')).to_be_visible()
         for column in COLUMNS:
-            expect(page.get_by_role('columnheader', name=column)).to_be_visible()
-        expect(page.get_by_text('Menü 1', exact=True)).to_be_visible()
-        expect(page.get_by_text('Gemeinsam', exact=True)).to_be_visible()
-        expect(page.get_by_text('Aktiv', exact=True)).to_be_visible()
+            if width >= 768 or column == 'Titel':
+                expect(page.get_by_role('columnheader', name=column)).to_be_visible()
+            else:
+                expect(page.get_by_role('columnheader', name=column)).to_have_count(0)
+        if width >= 768:
+            expect(page.get_by_text('Menü 1', exact=True)).to_be_visible()
+            expect(page.get_by_text('Gemeinsam', exact=True)).to_be_visible()
+        else:
+            expect(page.get_by_text('Menü 1 · Gemeinsam', exact=True)).to_be_visible()
+        expect(page.locator('.badge:visible').filter(has_text='Aktiv')).to_have_count(1)
         page.get_by_role('link', name='Browser Vorlage').click()
         path = urlsplit(page.url).path
         token = page.locator('input[name="updated_at"]').input_value()
@@ -121,6 +127,57 @@ def test_list_create_conflict_and_tabler(b3, master_server, browser, width, heig
         expected_conflict = 'Failed to load resource: the server responded with a status of 409 (CONFLICT)'
         assert all(error == expected_conflict for error in errors)
         assert snapshot(owner)['dish_templates']
+
+
+@pytest.mark.parametrize('width,height', ROUTE_VIEWPORTS)
+@pytest.mark.parametrize('javascript', [False, True])
+def test_accompaniment_radio_is_native_keyboard_operable_and_visible(
+    b3, master_server, browser, width, height, javascript,  # noqa: F811
+):
+    _, _, _, _ = b3
+    base, cookie = master_server
+    with browser.new_context(
+        viewport={'width': width, 'height': height}, java_script_enabled=javascript,
+        locale='de-CH', timezone_id='Europe/Zurich', reduced_motion='reduce',
+    ) as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        assert page.goto(base + '/admin/gerichtvorlagen/neu').status == 200
+        group = page.get_by_role(
+            'group', name='Suppe oder Salat dazu (Vorschlag für neue Menüs)', exact=True,
+        )
+        expect(group).to_be_visible()
+        none = page.get_by_role('radio', name='Keine', exact=True)
+        soup = page.get_by_role('radio', name='Suppe', exact=True)
+        salad = page.get_by_role('radio', name='Salat (gemischt und grün)', exact=True)
+        expect(none).to_be_checked()
+        for code in ('none', 'soup', 'salad'):
+            bounds = page.locator(
+                f'label.form-check:has(input[name="accompaniment_default"][value="{code}"])',
+            ).bounding_box()
+            assert bounds and bounds['height'] >= 48, bounds
+        none.focus()
+        page.keyboard.press('ArrowRight')
+        expect(soup).to_be_checked()
+        page.keyboard.press('ArrowRight')
+        expect(salad).to_be_checked()
+        page.get_by_label('Titel', exact=True).fill(f'Tastatur Salat {width} {javascript}')
+        EVIDENCE.mkdir(parents=True, exist_ok=True)
+        EVIDENCE.chmod(0o700)
+        form_shot = EVIDENCE / f'accompaniment-form-{width}x{height}-js-{javascript}.png'
+        page.screenshot(path=str(form_shot), full_page=True)
+        form_shot.chmod(0o600)
+        with page.expect_navigation(wait_until='load'):
+            page.get_by_role('button', name='Speichern', exact=True).click()
+        if width >= 768:
+            expect(page.get_by_role('columnheader', name='Dazu', exact=True)).to_be_visible()
+        else:
+            expect(page.get_by_text('Dazu: Salat', exact=True)).to_be_visible()
+        expect(page.locator('use[href$="#tabler-salad"]')).to_have_count(1)
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        shot = EVIDENCE / f'accompaniment-{width}x{height}-js-{javascript}.png'
+        page.screenshot(path=str(shot), full_page=True)
+        shot.chmod(0o600)
 
 
 @pytest.mark.parametrize('width,height', ROUTE_VIEWPORTS)

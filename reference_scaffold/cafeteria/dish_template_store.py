@@ -1,9 +1,9 @@
-"""Dish-template writers call the frozen v26 SQL verbs; CAS is updated_at."""
+"""Dish-template writers use v32 create/update verbs; CAS is updated_at."""
 from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from functools import wraps
 from typing import Any, Callable, ParamSpec, TypeVar
@@ -24,11 +24,11 @@ P = ParamSpec('P')
 T = TypeVar('T')
 SQL = {
     'create': (
-        'SELECT cafeteria.create_dish_template_v26(:actor,:authz,:location,'
+        'SELECT cafeteria.create_dish_template_v32(:actor,:authz,:location,'
         'CAST(:target AS uuid),CAST(:expected AS timestamptz),CAST(:payload AS jsonb))'
     ),
     'update': (
-        'SELECT cafeteria.update_dish_template_v26(:actor,:authz,:location,'
+        'SELECT cafeteria.update_dish_template_v32(:actor,:authz,:location,'
         'CAST(:target AS uuid),CAST(:expected AS timestamptz),CAST(:payload AS jsonb))'
     ),
     'active': (
@@ -37,7 +37,8 @@ SQL = {
     ),
 }
 LIST = '''SELECT d.public_id::text AS public_id, d.updated_at, d.active, d.title, d.description,
-    d.profile_scope, mt.code AS menu_type_code, r.public_id::text AS recipe_public_id,
+    d.profile_scope, d.accompaniment_default, mt.code AS menu_type_code,
+    r.public_id::text AS recipe_public_id,
     r.title AS recipe_title
     FROM cafeteria.dish_templates d
     LEFT JOIN cafeteria.menu_types mt ON mt.id=d.menu_type_id
@@ -58,6 +59,7 @@ class DishTemplate:
     menu_type_code: str | None
     recipe_public_id: str | None
     recipe_title: str | None
+    accompaniment_default: str = field(default='none', kw_only=True)
 
 
 def _safe(function: Callable[P, T]) -> Callable[P, T]:
@@ -74,9 +76,13 @@ def _safe(function: Callable[P, T]) -> Callable[P, T]:
 
 
 def _payload(values: Mapping[str, object]) -> dict[str, object]:
-    allowed = {'menu_type_code', 'profile_scope', 'title', 'description', 'recipe_public_id'}
-    if set(values) != allowed:
+    required = {'menu_type_code', 'profile_scope', 'title', 'description', 'recipe_public_id'}
+    allowed = required | {'accompaniment_default'}
+    if not required.issubset(values) or set(values) - allowed:
         raise RecipeValidationError('Ungültige Vorlagenfelder.')
+    if ('accompaniment_default' in values
+            and values['accompaniment_default'] not in {'none', 'soup', 'salad'}):
+        raise RecipeValidationError('Bitte eine gültige Beilage wählen.')
     return dict(values)
 
 
@@ -109,7 +115,9 @@ def list_templates(engine: Engine, *, include_archived: bool = False) -> tuple[D
         return tuple(DishTemplate(
             public_id=str(row['public_id']), updated_at=row['updated_at'], active=bool(row['active']),
             title=str(row['title']), description=row['description'],
-            profile_scope=str(row['profile_scope']), menu_type_code=row['menu_type_code'],
+            profile_scope=str(row['profile_scope']),
+            accompaniment_default=str(row['accompaniment_default']),
+            menu_type_code=row['menu_type_code'],
             recipe_public_id=row['recipe_public_id'], recipe_title=row['recipe_title'],
         ) for row in rows)
 

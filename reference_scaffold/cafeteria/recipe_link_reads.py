@@ -76,7 +76,8 @@ def list_template_links(engine: Engine, *, include_archived: bool = False) -> tu
         raise RecipeValidationError('Ungültiger Vorlagenfilter.')
     with reads.connection(engine) as (current, location):
         rows = current.execute(text('''SELECT d.public_id::text AS public_id,
-            d.updated_at,d.active,d.title,d.description,d.profile_scope,mt.code AS menu_type_code,
+            d.updated_at,d.active,d.title,d.description,d.profile_scope,d.accompaniment_default,
+            mt.code AS menu_type_code,
             r.public_id::text AS recipe_public_id,r.title AS recipe_title,r.active AS recipe_active,
             (SELECT count(*) FROM cafeteria.recipe_revisions h
              WHERE h.recipe_id=r.id AND h.location_id=:location) AS revision_count,

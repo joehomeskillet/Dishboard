@@ -35,6 +35,7 @@ from .routes import bp
 SCOPES = (('common', 'Gemeinsam'), ('patient', 'Patienten'), ('staff_guest', 'Cafeteria'))
 TYPES = (('MENU_1', 'Menü 1'), ('VEGGIE', 'Vegetarisch'))
 CHOICE_ACTIONS = {'recipe_search', 'recipe_previous', 'recipe_next'}
+ACCOMPANIMENTS = {'none', 'soup', 'salad'}
 
 
 def _db():
@@ -58,18 +59,23 @@ def _fields(form=None) -> dict[str, str]:
         'menu_type_code': source.get('menu_type_code', ''),
         'profile_scope': source.get('profile_scope', 'common'),
         'recipe_public_id': source.get('recipe_public_id', ''),
+        'accompaniment_default': source.get('accompaniment_default', 'none'),
     }
 
 
 def _payload(values: dict[str, str]) -> dict[str, object]:
     recipe = values['recipe_public_id'].strip()
     menu = values['menu_type_code'].strip()
+    accompaniment = values['accompaniment_default']
+    if accompaniment not in ACCOMPANIMENTS:
+        raise RecipeValidationError('Bitte eine gültige Beilage wählen.')
     return {
         'title': values['title'],
         'description': values['description'] or None,
         'menu_type_code': menu or None,
         'profile_scope': values['profile_scope'],
         'recipe_public_id': recipe or None,
+        'accompaniment_default': accompaniment,
     }
 
 
@@ -79,6 +85,9 @@ def _page(
 ) -> Response:
     location = get_location(_db())
     values = values if values is not None else _fields()
+    template_rows = links.list_template_links(
+        _db(), include_archived=include_archived or row is not None,
+    )
     cas_value = ''
     if row:
         cas_value = (request.form.get('updated_at', '') if request.method == 'POST'
@@ -96,10 +105,14 @@ def _page(
             choices = links.list_recipe_choices(_db(), selected=values['recipe_public_id'])
     html = render_template(
         'admin/gerichtvorlagen.html', family='cafeteria', profile='staff_guest',
-        rows=links.list_template_links(_db(), include_archived=include_archived or row is not None),
+        rows=template_rows,
         row=row, values=values, error=error, can_write=_can_write(),
         location_id=location, scopes=SCOPES, types=TYPES, recipe_choices=choices,
         include_archived=include_archived, cas_value=cas_value,
+        accompaniment_error=(
+            'Bitte eine gültige Beilage wählen.'
+            if values.get('accompaniment_default') not in ACCOMPANIMENTS else ''
+        ),
     )
     response = make_response(html, status)
     response.headers['Cache-Control'] = 'no-store'
@@ -177,6 +190,7 @@ def dish_template_edit(public_id: str) -> Response:
         'title': row.title, 'description': row.description or '',
         'menu_type_code': row.menu_type_code or '', 'profile_scope': row.profile_scope,
         'recipe_public_id': row.recipe_public_id or '',
+        'accompaniment_default': row.accompaniment_default,
     }
     return _page(row=row, values=values)
 
@@ -190,6 +204,8 @@ def dish_template_save(public_id: str) -> Response:
     expected = None
     try:
         row = store.get_template(_db(), store.as_uuid(public_id))
+        if 'accompaniment_default' not in request.form:
+            values['accompaniment_default'] = row.accompaniment_default
         expected = store.parse_updated_at(request.form.get('updated_at', ''))
         action = request.form.get('action', 'save')
         if action in CHOICE_ACTIONS:
