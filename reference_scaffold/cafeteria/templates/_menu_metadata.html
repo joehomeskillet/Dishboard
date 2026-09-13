@@ -3,7 +3,7 @@
 {% if option.title is not defined or option.title %}
 <div data-menu-metadata>
   {% if option.description %}<p class="menu-description">{{ option.description }}</p>{% endif %}
-  {% if option.note %}<p class="shared-note">{{ option.note }}</p>{% endif %}
+  {% if option.note %}<p class="shared-note">{{ option.note }}</p>{% endif %}{% if option.accompaniment_name %}<p class="menu-accompaniment">Dazu: {{ option.accompaniment_name }}</p>{% endif %}
   <div class="{{ metadata_class|default('labels') }}{% if tabler %} badge-list{% endif %}">
     {% for origin in option.origins %}<span class="label {% if tabler %}badge bg-secondary-lt mw-100 text-wrap text-start{% else %}food-declaration{% endif %}">{{ symbol('countries', origin.country_code, tabler) }}<span{% if tabler %} class="text-break"{% endif %}>{{ origin.text }}</span></span>{% endfor %}
     {% for label in option.labels %}<span class="label green{% if tabler %} badge bg-green-lt mw-100 text-wrap text-break{% endif %}">{{ symbol('labels', label.code, tabler) }}{{ label.name }}</span>{% endfor %}
