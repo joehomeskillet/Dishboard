@@ -67,6 +67,71 @@ def test_recipe_density_evidence(b3, master_server, browser, count):  # noqa: F8
     assert snapshot(owner) == before
 
 
+@pytest.mark.parametrize('state', ['readonly', 'archived'])
+@pytest.mark.parametrize('javascript', [False, True])
+@pytest.mark.parametrize('width', [390, 1440])
+def test_readonly_preparation_reopens_after_escape(
+    b3, master_server, browser, monkeypatch, state, javascript, width,  # noqa: F811
+):
+    _, owner, client, _ = b3
+    original = fields(client, '/admin/rezepte/neu')
+    instruction = ('Vollständige Anleitung mit allen Arbeitsschritten.\n' * 20).rstrip('\n')
+    data = form_values(payload(steps=[{
+        'instruction': instruction, 'duration_minutes': 7, 'image_sha256': None,
+    }]))
+    data['_csrf'], data['_form_context'] = original['_csrf'], original['_form_context']
+    response = client.post('/admin/rezepte/neu', data=data)
+    assert response.status_code == 303
+    path = response.location
+    if state == 'archived':
+        assert client.post(path + '/status', data=fields(client, path + '/status')).status_code == 303
+    else:
+        monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', {'draft.read'})
+    before = snapshot(owner)
+    base, cookie = master_server
+    with browser.new_context(viewport={'width': width, 'height': 900}, java_script_enabled=javascript,
+                             reduced_motion='reduce', service_workers='block') as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        errors, posts = [], []
+        page.on('pageerror', lambda error: errors.append(str(error)))
+        page.on('request', lambda request: posts.append(request) if request.method == 'POST' else None)
+        page.goto(base + path, wait_until='networkidle')
+        detail = page.locator('#step-details-0')
+        summary = detail.locator(':scope > summary')
+        field = page.locator('[name="steps.0.instruction"]')
+        expect(summary).to_have_text('Details für Schritt 1')
+        expect(page.locator('[data-recipe-toggle="step-details-0"]')).to_be_hidden()
+        expect(page.get_by_role('button', name='Rezept speichern', exact=True)).to_have_count(0)
+        for focus in (page.locator('a[href="#ingredients-heading"]'), summary):
+            expect(detail).to_have_attribute('open', '')
+            focus.focus()
+            expect(focus).to_be_focused()
+            page.keyboard.press('Escape')
+            if javascript:
+                expect(detail).not_to_have_attribute('open', '')
+            else:
+                expect(detail).to_have_attribute('open', '')
+            expect(summary).to_be_visible()
+            summary.focus()
+            expect(summary).to_be_focused()
+            if not javascript:
+                page.keyboard.press('Enter')
+                expect(detail).not_to_have_attribute('open', '')
+            page.keyboard.press('Space')
+            expect(detail).to_have_attribute('open', '')
+            expect(field).to_be_visible()
+            expect(field).to_be_disabled()
+            expect(field).to_have_value(instruction)
+            expect(page.locator('[name="steps.0.duration_minutes"]')).to_have_value('7')
+            expect(page.locator('[name="steps.0.image_sha256"]')).to_be_visible()
+        destination = EVIDENCE / 'after'
+        destination.mkdir(parents=True, exist_ok=True)
+        page.screenshot(path=str(destination / f'preparation-{state}-{width}-js{javascript}.png'), full_page=True)
+        assert not posts and not errors
+    assert snapshot(owner) == before
+
+
 @pytest.mark.parametrize('javascript', [False, True])
 @pytest.mark.parametrize('width', [390, 1440])
 def test_compact_rows_keep_native_post_values_and_focus(b3, master_server, browser, javascript, width):  # noqa: F811
@@ -103,8 +168,14 @@ def test_compact_rows_keep_native_post_values_and_focus(b3, master_server, brows
         if javascript:
             expect(page.locator('[data-recipe-ingredient-summary]').first).to_have_text('Gruppe: Suppe · Notiz: Fein würfeln')
         page.get_by_label('Aktionen für Zutat 1', exact=True).click()
+        for operation, label in [('up', 'Nach oben'), ('down', 'Nach unten')]:
+            control = page.locator(f'button[formaction*="row_action={operation}"]').first
+            expect(control.locator('use')).to_have_attribute('href', f'/static/vendor/tabler-icons/tabler-icons.svg#tabler-arrow-{operation}')
+            expect(control.locator('span')).to_have_text(label)
+        expect(page.locator('[data-recipe-ingredient]').first.locator('button[formaction*="row_action=up"]')).to_have_count(0)
+        expect(page.locator('[data-recipe-ingredient]').last.locator('button[formaction*="row_action=down"]')).to_have_count(0)
         with page.expect_navigation(wait_until='load'):
-            page.get_by_role('button', name='Zutat 1 eine Position später', exact=True).click()
+            page.get_by_role('button', name='Zutat 1 nach unten verschieben', exact=True).click()
         expect(page.locator('[name="ingredients.1.ingredient_text"]')).to_be_focused()
         expect(page.locator('[name="ingredients.1.quantity"]')).to_have_value('2.5')
         assert page.locator('[name="ingredients.1.line_public_id"]').input_value() == original['ingredients.0.line_public_id']
