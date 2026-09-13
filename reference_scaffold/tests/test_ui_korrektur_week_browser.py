@@ -14,7 +14,7 @@ from sqlalchemy import Engine, text
 from cafeteria.workflow import publish_draft
 from cafeteria.workflow_partial_store import persist_service_state
 from test_admin_ux_browser import live_server, page_context  # noqa: F401
-from test_admin_workflow_db import WEEK_START, _actor_id, _patient_values, _save_reviewed, _staff_values
+from test_admin_workflow_db import WEEK_START, _actor_id, _patient_values, _save, _save_reviewed, _staff_values
 from test_admin_workflow_routes import DATABASE_URL, DAY, WEEK, _login, _scope
 from test_rendered_ui import admin_app, admin_engine, browser  # noqa: F401
 
@@ -398,7 +398,7 @@ def test_a12_empty_and_review_open_screenshots(
     profile = PROFILE_BY_FAMILY[family]
     values = deepcopy(_staff_values() if profile == 'staff_guest' else _patient_values())
     values['days'][0]['services'][0]['options'][0]['allergen_review_status'] = 'not_checked'
-    _save_reviewed(admin_app.extensions['cafeteria_db'], profile, values)
+    _save(admin_app.extensions['cafeteria_db'], profile, values)
     _goto(page, family)
     expect(page.locator('main')).to_have_attribute('data-status', 'review_open')
     _shot(page, family, 'review_open', 1366, 768)
