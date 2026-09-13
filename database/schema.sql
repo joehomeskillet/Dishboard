@@ -5218,6 +5218,24 @@ ALTER TABLE dish_templates
     CONSTRAINT dish_templates_accompaniment_default_check
     CHECK (accompaniment_default IN ('none', 'soup', 'salad'));
 
+-- Row-locking SELECTs need UPDATE on one column. Keep that narrow privilege
+-- while rejecting every direct app UPDATE, including statements matching no rows.
+CREATE FUNCTION reject_direct_dish_template_update_v32() RETURNS trigger
+LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+DECLARE v_table_owner name;
+BEGIN
+    SELECT pg_get_userbyid(c.relowner) INTO v_table_owner
+    FROM pg_class c WHERE c.oid=TG_RELID;
+    IF current_user IS DISTINCT FROM v_table_owner THEN
+        RAISE EXCEPTION 'Direct dish template update is not permitted.' USING ERRCODE='42501';
+    END IF;
+    RETURN NULL;
+END;$fn$;
+
+CREATE TRIGGER dish_templates_owner_update_v32
+BEFORE UPDATE ON dish_templates
+FOR EACH STATEMENT EXECUTE FUNCTION reject_direct_dish_template_update_v32();
+
 -- Schema32 accompaniment writer. v26 remains unchanged for old clients.
 CREATE FUNCTION dish_template_mutate_v32(
     p_action text,p_actor bigint,p_authz bigint,p_location bigint,
@@ -5351,6 +5369,7 @@ GRANT EXECUTE ON FUNCTION begin_menu_binding_write_v26(bigint,bigint,bigint),
 TO cafeteria_app;
 
 REVOKE ALL ON FUNCTION
+    reject_direct_dish_template_update_v32(),
     dish_template_mutate_v32(text,bigint,bigint,bigint,uuid,timestamptz,jsonb),
     create_dish_template_v32(bigint,bigint,bigint,uuid,timestamptz,jsonb),
     update_dish_template_v32(bigint,bigint,bigint,uuid,timestamptz,jsonb)

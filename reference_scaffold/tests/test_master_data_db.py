@@ -56,7 +56,10 @@ def test_ma_sql_installs_on_frozen_schema20(pg16):  # noqa: F811
     database._execute_script(pg16, str(PERMISSIONS))
     with pg16.connect() as c:
         for table in preserved:
-            assert c.execute(text(f'SELECT to_jsonb(t)::text FROM cafeteria.{table} t ORDER BY to_jsonb(t)::text')).all() == before[table]
+            projection = "(to_jsonb(t)-'accompaniment')" if table == 'menu_items' else 'to_jsonb(t)'
+            assert c.execute(text(
+                f'SELECT {projection}::text FROM cafeteria.{table} t ORDER BY {projection}::text'
+            )).all() == before[table]
         assert c.execute(text('SELECT count(*) FROM cafeteria.measurement_units')).scalar_one() == 9
         migrated = structure(c)
     with pg16.begin() as c:

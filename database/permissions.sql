@@ -291,7 +291,11 @@ TO cafeteria_app;
 -- R5a schema26 grants end.
 
 -- Schema32 accompaniment template grants begin.
+REVOKE INSERT,UPDATE,DELETE,TRUNCATE,TRIGGER,REFERENCES
+ON TABLE dish_templates FROM cafeteria_app;
+GRANT UPDATE (id) ON dish_templates TO cafeteria_app;
 REVOKE ALL ON FUNCTION
+    reject_direct_dish_template_update_v32(),
     dish_template_mutate_v32(text,bigint,bigint,bigint,uuid,timestamptz,jsonb),
     create_dish_template_v32(bigint,bigint,bigint,uuid,timestamptz,jsonb),
     update_dish_template_v32(bigint,bigint,bigint,uuid,timestamptz,jsonb)

@@ -148,12 +148,12 @@ def test_exact_acl_search_path_and_no_new_table_writes(binding):
 
 def test_template_reassignment_waits_for_concurrent_reference_then_rejects(binding):
     owner, engine, ids = binding
-    with engine.begin() as c:
+    with owner.begin() as c:
         ids['template'] = c.execute(text("INSERT INTO cafeteria.dish_templates(title) VALUES('Concurrent') RETURNING id")).scalar_one()
     started = Queue()
     def reassign():
         with pytest.raises(DBAPIError) as error:
-            with engine.begin() as c:
+            with owner.begin() as c:
                 started.put(c.execute(text('SELECT pg_backend_pid()')).scalar_one())
                 c.execute(text('UPDATE cafeteria.dish_templates SET recipe_id=:other_location_recipe WHERE id=:template'), ids)
         return error.value.orig.sqlstate

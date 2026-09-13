@@ -2,6 +2,7 @@
 # ruff: noqa: F401, F811
 import hashlib
 import json
+from datetime import datetime
 
 import pytest
 from sqlalchemy import text
@@ -19,6 +20,7 @@ from test_rec_import_commit_migration_db import rows_and_sequences
 
 PUBLIC_V32 = {'create_dish_template_v32', 'update_dish_template_v32'}
 PRIVATE_V32 = {'dish_template_mutate_v32'}
+GUARD_V32 = 'reject_direct_dish_template_update_v32'
 
 
 def _v32_structure(connection):
@@ -68,6 +70,144 @@ def _assert_sqlstate(expected, callback):
     with pytest.raises(DBAPIError) as error:
         callback()
     assert error.value.orig.sqlstate == expected
+
+
+def _execute(engine, statement, parameters=None):
+    with engine.begin() as connection:
+        return connection.execute(text(statement), parameters or {}).all()
+
+
+def _acl_contract(connection):
+    return (
+        connection.execute(text("""SELECT c.relname,COALESCE(g.rolname,'PUBLIC'),a.privilege_type,
+            a.is_grantable FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+            CROSS JOIN LATERAL aclexplode(COALESCE(c.relacl,acldefault('r',c.relowner))) a
+            LEFT JOIN pg_roles g ON g.oid=a.grantee WHERE n.nspname='cafeteria'
+            AND c.relname IN ('dish_templates','menu_items') ORDER BY 1,2,3,4""")).all(),
+        connection.execute(text("""SELECT c.relname,x.attname,COALESCE(g.rolname,'PUBLIC'),
+            a.privilege_type,a.is_grantable FROM pg_class c
+            JOIN pg_namespace n ON n.oid=c.relnamespace JOIN pg_attribute x ON x.attrelid=c.oid
+            CROSS JOIN LATERAL aclexplode(x.attacl) a
+            LEFT JOIN pg_roles g ON g.oid=a.grantee WHERE n.nspname='cafeteria'
+            AND c.relname IN ('dish_templates','menu_items') AND x.attacl IS NOT NULL
+            ORDER BY 1,2,3,4,5""")).all(),
+        connection.execute(text(f"""SELECT p.proname,pg_get_function_identity_arguments(p.oid),
+            pg_get_userbyid(p.proowner),p.prosecdef,p.proconfig,COALESCE(g.rolname,'PUBLIC'),
+            a.privilege_type,a.is_grantable FROM pg_proc p
+            JOIN pg_namespace n ON n.oid=p.pronamespace
+            CROSS JOIN LATERAL aclexplode(COALESCE(p.proacl,acldefault('f',p.proowner))) a
+            LEFT JOIN pg_roles g ON g.oid=a.grantee WHERE n.nspname='cafeteria'
+            AND p.proname IN ('validate_menu_dish_scope_v26','dish_template_mutate_v26',
+                'create_dish_template_v26','update_dish_template_v26','set_dish_template_active_v26',
+                'dish_template_mutate_v32','create_dish_template_v32','update_dish_template_v32',
+                '{GUARD_V32}') ORDER BY 1,2,6,7,8""")).all(),
+    )
+
+
+def test_bootstrap_and_v31_upgrade_have_identical_acl_contract(pg16):
+    plan = database.migration_plan(SCHEMA)
+    for migration in plan[:-1]:
+        database._execute_migration(pg16, migration)
+    with pg16.begin() as connection:
+        connection.execute(text("""GRANT SELECT,INSERT,UPDATE,DELETE ON
+            cafeteria.dish_templates,cafeteria.menu_items TO cafeteria_app"""))
+        connection.execute(text("""GRANT SELECT ON
+            cafeteria.dish_templates,cafeteria.menu_items TO cafeteria_backup"""))
+    database._execute_migration(pg16, plan[-1])
+    with pg16.connect() as connection:
+        migrated = _acl_contract(connection)
+
+    with pg16.begin() as connection:
+        connection.execute(text('DROP SCHEMA cafeteria CASCADE'))
+    database._execute_script(pg16, str(SCHEMA))
+    database._execute_script(pg16, str(PERMISSIONS))
+    with pg16.connect() as connection:
+        assert _acl_contract(connection) == migrated
+
+
+def test_app_row_locks_and_menu_scope_survive_while_direct_template_dml_is_denied(
+    seeded_pg16,
+    app_engine,
+):
+    owner, engine = seeded_pg16, app_engine
+    ids = _seed_scope_probe(owner)
+    actor = make_actor(owner)
+    ids.update(actor=actor.user_id, authz=actor.authz_version)
+    with owner.begin() as connection:
+        connection.execute(
+            text('UPDATE cafeteria.locations SET active=false WHERE id=:other_location'), ids,
+        )
+    created = _call_template(engine, ids, 26, 'create', _payload(title='ACL guard'))
+    with owner.connect() as connection:
+        template_id = connection.execute(text(
+            'SELECT id FROM cafeteria.dish_templates WHERE public_id=:id'
+        ), {'id': created['public_id']}).scalar_one()
+        trigger_contract = connection.execute(text(f"""SELECT t.tgenabled,p.proname,
+            NOT p.prosecdef,p.proconfig,p.proowner=c.relowner,
+            pg_get_userbyid(c.relowner)<>'cafeteria_app' FROM pg_trigger t
+            JOIN pg_proc p ON p.oid=t.tgfoid JOIN pg_class c ON c.oid=t.tgrelid
+            WHERE NOT t.tgisinternal AND c.oid='cafeteria.dish_templates'::regclass
+            AND p.proname='{GUARD_V32}'""")).one_or_none()
+        assert trigger_contract == (
+            'O', GUARD_V32, True, ['search_path=pg_catalog, cafeteria, pg_temp'], True, True,
+        )
+
+    lock_query = ("SELECT d.id FROM cafeteria.dish_templates d "
+                  "WHERE d.id=ANY(CAST(:ids AS bigint[])) ORDER BY d.id FOR {mode} OF d")
+    for mode in ('SHARE', 'KEY SHARE', 'NO KEY UPDATE', 'UPDATE'):
+        assert _execute(engine, lock_query.format(mode=mode), {'ids': []}) == []
+        assert len(_execute(engine, lock_query.format(mode=mode), {'ids': [template_id]})) == 1
+
+    with engine.begin() as connection:
+        connection.execute(text(
+            'UPDATE cafeteria.menu_items SET dish_template_id=:template WHERE id=:item'
+        ), {'template': template_id, 'item': ids['item']})
+        inserted = connection.execute(text("""INSERT INTO cafeteria.menu_items(
+            service_id,menu_type_id,external_id,title,sort_order,dish_template_id)
+            SELECT service_id,(SELECT id FROM cafeteria.menu_types WHERE code='VEGGIE'),
+                'ACC-ACL-INSERT','Trigger insert',2,:template
+            FROM cafeteria.menu_items WHERE id=:item RETURNING id"""), {
+                'template': template_id, 'item': ids['item'],
+            }).scalar_one()
+        connection.execute(text(
+            'UPDATE cafeteria.menu_items SET service_id=service_id WHERE id=:item'
+        ), {'item': inserted})
+
+    denied = (
+        ('42501', 'UPDATE cafeteria.dish_templates SET title=title WHERE id=:id',
+         {'id': template_id}),
+        ('42501', 'UPDATE cafeteria.dish_templates SET id=DEFAULT WHERE false', {}),
+        ('42501', 'UPDATE cafeteria.dish_templates SET id=DEFAULT WHERE id=:id',
+         {'id': template_id}),
+        ('428C9', 'UPDATE cafeteria.dish_templates SET id=id WHERE id=:id',
+         {'id': template_id}),
+        ('42501', "INSERT INTO cafeteria.dish_templates(title) VALUES('direkt')", {}),
+        ('42501', 'DELETE FROM cafeteria.dish_templates WHERE id=:id', {'id': template_id}),
+        ('42501', 'ALTER TABLE cafeteria.dish_templates DISABLE TRIGGER ALL', {}),
+    )
+    for expected, statement, parameters in denied:
+        _assert_sqlstate(expected, lambda s=statement, p=parameters: _execute(engine, s, p))
+
+    locker = engine.connect()
+    transaction = locker.begin()
+    try:
+        locker.execute(text(
+            'SELECT id FROM cafeteria.dish_templates WHERE id=:id FOR UPDATE'
+        ), {'id': template_id}).all()
+        _assert_sqlstate(
+            '55P03',
+            lambda: _call_template(engine, ids, 32, 'update', _payload(title='blocked'), created),
+        )
+    finally:
+        transaction.rollback()
+        locker.close()
+    released = _call_template(engine, ids, 32, 'update', _payload(title='released'), created)
+    inactive = _execute(engine, """SELECT cafeteria.set_dish_template_active_v26(
+        :actor,:authz,:location,:target,:expected,CAST(:payload AS jsonb))""", {
+            **ids, 'target': released['public_id'], 'expected': released['updated_at'],
+            'payload': json.dumps({'active': False}),
+        })[0][0]
+    assert inactive['active'] is False
 
 
 def test_schema31_upgrade_preserves_nonempty_data_defaults_and_fresh_contract(pg16):
@@ -194,7 +334,9 @@ def test_v32_template_defaults_validation_cas_audit_v26_compatibility_and_acl(
             'SELECT accompaniment_default,updated_at FROM cafeteria.dish_templates WHERE public_id=:id'
         ), {'id': salad['public_id']}).one()
         assert template.accompaniment_default == 'salad'
-        assert template.updated_at.isoformat() == salad['updated_at']
+        assert template.updated_at.timestamp() == pytest.approx(
+            datetime.fromisoformat(salad['updated_at']).timestamp()
+        )
         audit = connection.execute(text("""SELECT action,details FROM cafeteria.audit_events
             WHERE entity_public_id=:id AND action='dish_template.updated' ORDER BY id DESC LIMIT 1"""),
             {'id': salad['public_id']}).one()
@@ -247,7 +389,8 @@ def test_v32_template_defaults_validation_cas_audit_v26_compatibility_and_acl(
             EXISTS(SELECT 1 FROM aclexplode(COALESCE(p.proacl,acldefault('f',p.proowner))) a
                 WHERE a.grantee=0 AND a.privilege_type='EXECUTE') AS public
             FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
-            WHERE n.nspname='cafeteria' AND p.proname LIKE '%dish_template%_v32'
+            WHERE n.nspname='cafeteria' AND p.proname IN
+                ('dish_template_mutate_v32','create_dish_template_v32','update_dish_template_v32')
             ORDER BY p.proname""")).mappings().all()
         assert {row['proname'] for row in rows} == PUBLIC_V32 | PRIVATE_V32
         for row in rows:
