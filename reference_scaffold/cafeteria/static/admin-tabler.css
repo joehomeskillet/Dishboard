@@ -127,6 +127,7 @@
   --tblr-btn-disabled-bg: var(--app-surface-soft); --tblr-btn-disabled-color: var(--app-text-muted);
   white-space: normal;
 }
+.dishboard-admin .btn-icon { min-width: var(--app-space-12); }
 .dishboard-admin :is(.btn-primary, .btn-outline-primary, .btn-ghost-primary) {
   --tblr-btn-bg: var(--app-primary); --tblr-btn-border-color: var(--app-primary);
   --tblr-btn-color: var(--app-on-primary);
