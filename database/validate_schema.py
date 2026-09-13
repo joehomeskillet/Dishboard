@@ -45,6 +45,7 @@ MIGRATION_0024 = ROOT / 'database' / 'migrations' / '0024_v26_to_v27.sql'
 MIGRATION_0025 = ROOT / 'database' / 'migrations' / '0025_v27_to_v28.sql'
 MIGRATION_0026 = ROOT / 'database' / 'migrations' / '0026_v28_to_v29.sql'
 MIGRATION_0027 = ROOT / 'database' / 'migrations' / '0027_v29_to_v30.sql'
+MIGRATION_0028 = ROOT / 'database' / 'migrations' / '0028_v30_to_v31.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
 PAT_JSON = ROOT / 'demo' / 'snapshots' / 'patienten_kw36.json'
@@ -199,8 +200,8 @@ def run_live_check() -> dict[str, Any]:
                     '''
                 )
             ).mappings().one()
-        if int(row['schema_version']) != 30:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 30.")
+        if int(row['schema_version']) != 31:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 31.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
         migrated_structure = structure('cafeteria')
@@ -306,6 +307,14 @@ def main() -> int:
         migration_0018 = MIGRATION_0018.read_text(encoding='utf-8')
         migration_0020 = MIGRATION_0020.read_text(encoding='utf-8')
         migration_0024 = MIGRATION_0024.read_text(encoding='utf-8')
+        migration_0028 = MIGRATION_0028.read_text(encoding='utf-8')
+        if not migration_0028.startswith('BEGIN;') or not migration_0028.rstrip().endswith('COMMIT;'):
+            fail('Migration 0028 hat keinen strikten BEGIN/COMMIT-Vertrag.')
+        for fragment in ('lock_menu_recipe_sources_v31', 'UNION SELECT v_source',
+                         'cafeteria.begin_menu_binding_write_v26(p_actor,p_authz,p_location)',
+                         'h.id=v_source AND h.public_id=p_source AND h.location_id=p_location'):
+            if fragment not in migration_0028 or fragment not in sql:
+                fail(f'Menü-Quellrezept-Sperrvertrag fehlt: {fragment}')
         migration_0026 = MIGRATION_0026.read_text(encoding='utf-8')
         if not migration_0026.startswith('BEGIN;') or not migration_0026.rstrip().endswith('COMMIT;'):
             fail('Migration 0026 hat keinen strikten BEGIN/COMMIT-Vertrag.')
@@ -436,6 +445,8 @@ def main() -> int:
             MIGRATION_0024: '5503b214a9957a09345d3301526797ca8fa2deb146fd6bdced6875ebd86635f2',
             MIGRATION_0025: '136dbf46688490a46018d158acbe11a89fbd186164659c145e256f92df69399c',
             MIGRATION_0026: '9740215a04c93a3093543c585c8c0c700eae625f5b94837527f9da97f9259259',
+            MIGRATION_0027: '410374a06b46f45c3578dc4cd114e32af71ff7a2649d65a4273c976148b0c05b',
+            MIGRATION_0028: 'd8ab456b75926a21088680bb8b1c8cfcf7a1966b4b2de2e8dae48ded7593bb4d',
         }
         for migration_path, expected_checksum in immutable_migration_checksums.items():
             actual_checksum = hashlib.sha256(migration_path.read_bytes()).hexdigest()
@@ -700,7 +711,7 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 30,
+            'schema_version': 31,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
@@ -729,6 +740,7 @@ def main() -> int:
                 '0025_v27_to_v28.sql': hashlib.sha256(MIGRATION_0025.read_bytes()).hexdigest(),
                 '0026_v28_to_v29.sql': hashlib.sha256(MIGRATION_0026.read_bytes()).hexdigest(),
                 '0027_v29_to_v30.sql': hashlib.sha256(MIGRATION_0027.read_bytes()).hexdigest(),
+                '0028_v30_to_v31.sql': hashlib.sha256(MIGRATION_0028.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

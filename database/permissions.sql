@@ -329,4 +329,11 @@ GRANT EXECUTE ON FUNCTION commit_recipe_import_batch_v29(bigint,bigint,bigint,uu
     TO cafeteria_app;
 -- Recipe import commit schema29 grants end.
 
+-- Menu proposal source locks schema31 grants begin.
+REVOKE ALL ON FUNCTION cafeteria.lock_menu_recipe_sources_v31(bigint,bigint,bigint,bigint[],uuid)
+FROM PUBLIC,cafeteria_app,cafeteria_backup,cafeteria_auth_issuer;
+GRANT EXECUTE ON FUNCTION cafeteria.lock_menu_recipe_sources_v31(bigint,bigint,bigint,bigint[],uuid)
+TO cafeteria_app;
+-- Menu proposal source locks schema31 grants end.
+
 COMMIT;

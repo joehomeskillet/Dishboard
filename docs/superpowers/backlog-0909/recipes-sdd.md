@@ -1532,6 +1532,26 @@ Vorwochenkopie kopiert sie. Es gibt keinen Reader und keine Anzeige dieses Bezug
   Rezeptbindung; erst bewusste Reaktivierung oder aktives Rezept ermöglicht neue
   Bindung. Bestehende unveränderte Altbindungen bleiben lesbar und erhalten;
   Entfernen/Wiederbinden zählt als Neubindung und bleibt abgewiesen.
+- **Ursprüngliches Quellrezept unter Sperre (Root-Entscheidung, Schema 31):**
+  Der signierte Einplanenkontext bindet zusätzlich den ursprünglichen booleschen
+  `recipe_active`-Zustand, einschliesslich `false` für eine bereits archivierte Quelle.
+  Eine Änderung von aktiv zu archiviert führt beim Save zu 409, auch wenn der
+  vorgeschlagene Rezeptstand inzwischen aus den Bausteinen entfernt wurde. Alte
+  signierte Kontexte ohne diese Erwartung werden mit 409 abgewiesen und müssen
+  über ein neu geöffnetes Einplanenformular ersetzt werden; kein Refresh beim GET.
+  `lock_menu_recipe_sources_v31(actor, authz, location, revision_ids, source_uuid)`
+  prüft zuerst den festen ursprünglichen Guard `begin_menu_binding_write_v26`.
+  Der Quellrezeptkopf wird auch ohne Revision und bei leerer Revisionsliste in
+  dieselbe numerisch sortierte, deduplizierte Sperrmenge wie alte/neue Revisionsköpfe
+  aufgenommen. Alle Köpfe werden vor Aggregat-/Vorlagensperren `FOR SHARE` gesperrt;
+  danach werden Quellidentität und ursprünglicher Standort erneut bewiesen.
+  Der Writer prüft ursprünglichen Aktiv- und Vorlagenzustand unter Sperre erneut.
+  Archiviert gestartete Quellen bleiben ohne neue Rezeptbindung zulässig.
+  Der Definer hat den festen vertrauenswürdigen Suchpfad; `cafeteria_app` erhält
+  nur `EXECUTE`, keine neuen `UPDATE`- oder anderen Tabellen-Schreibrechte.
+  Die Sperrfunktion schreibt weder Fachdaten noch Audits. Aufrufe ohne Quelle
+  verwenden unverändert `lock_menu_recipe_revisions_v26`. Integrierte Migrations-,
+  ACL- und Race-Gates sind vor einem MENU-PROPOSAL-Release erforderlich.
 - **Navigation ohne kaputte Zwischenrelease:** LINK-READS und PRINT-TEMPLATE-ENTRY
   verlinken zunächst `admin.recipe_edit`. RECIPE-VIEW-PRINT übernimmt zusätzlich
   `gerichtvorlagen.html`, `_recipe_template_selection.html` und zugehörige bestehende
@@ -1550,7 +1570,11 @@ Vorwochenkopie kopiert sie. Es gibt keinen Reader und keine Anzeige dieses Bezug
 
 `MP-REC-BINDINGS-ACCEPT` prüft zusätzlich die vierte Kante und den Vorschlagsfluss.
 Erweiterte Nicht-Ziele: kein persistenter Vorschlag, kein Auto-Matching, kein
-Entwurfs-PDF, keine Migration (alle Spalten/Trigger/Verben vorhanden).
+Entwurfs-PDF, keine neuen Fachtabellen oder Spalten. Der echte App-Rollen-Test
+belegt eine fehlende Sperrberechtigung für revisionslose Quellrezepte; daher ist
+die additive Migration `0028_v30_to_v31.sql` für den ausdrücklichen
+`lock_menu_recipe_sources_v31`-Vertrag erforderlich. Bestehende Migrationen,
+Tabellenrechte, Fachdaten und Audit-Historie bleiben unverändert.
 
 ### 12.4 Gates
 

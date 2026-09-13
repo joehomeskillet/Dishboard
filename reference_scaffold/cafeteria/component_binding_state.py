@@ -118,6 +118,7 @@ def prepare_bindings(
     connection: Connection, scope: AdminScope, assignments: Sequence[Assignment], *,
     item_ids: Sequence[int] = (), weeks: Sequence[date] = (),
     create_weeks: Sequence[date] = (),
+    source_recipe_public_id: str | None = None,
 ) -> BindingState:
     begin_write(connection, scope)
     transaction = connection.get_transaction()
@@ -149,9 +150,17 @@ def prepare_bindings(
         'SELECT * FROM cafeteria.lock_component_foods_v26(:actor,:authz,:location,CAST(:ids AS bigint[]))'
     ), {**params, 'ids': food_ids}).mappings()
     foods = {int(row['food_id']): dict(row) for row in food_rows}
-    recipe_rows = connection.execute(text(
-        'SELECT * FROM cafeteria.lock_menu_recipe_revisions_v26(:actor,:authz,:location,CAST(:ids AS bigint[]))'
-    ), {**params, 'ids': sorted(revision_ids)}).mappings()
+    if source_recipe_public_id is not None:
+        # The original proposal head participates even when its suggested binding
+        # was removed. Acquire the entire head union in the existing lock order.
+        recipe_rows = connection.execute(text(
+            'SELECT * FROM cafeteria.lock_menu_recipe_sources_v31('
+            ':actor,:authz,:location,CAST(:ids AS bigint[]),CAST(:source AS uuid))'
+        ), {**params, 'source': source_recipe_public_id, 'ids': sorted(revision_ids)}).mappings()
+    else:
+        recipe_rows = connection.execute(text(
+            'SELECT * FROM cafeteria.lock_menu_recipe_revisions_v26(:actor,:authz,:location,CAST(:ids AS bigint[]))'
+        ), {**params, 'ids': sorted(revision_ids)}).mappings()
     recipes = {str(row['revision_public_id']): dict(row) for row in recipe_rows}
     return BindingState(connection, transaction, scope, tuple(item_ids), tuple(weeks),
                         tuple(sorted(set(weeks) | set(create_weeks))),

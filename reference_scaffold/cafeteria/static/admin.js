@@ -18,7 +18,7 @@
     });
 
     // 1. Dirty-Tracking
-    const forms = document.querySelectorAll('form');
+    const forms = document.querySelectorAll('form:not([data-dirty-tracking="off"])');
     let isDirty = false;
 
     forms.forEach(form => {
