@@ -120,6 +120,18 @@ class RecipeSheet(FPDF):
         self.paragraph(text, bold=True, size=26 if title else 15, icon=icon)
         self.ln(5)
 
+    def start_recipe(self, title: str, label: str, revision: str, amount: str) -> None:
+        """Keep a child's measured title and quantity context together when it starts."""
+        self.continuation = ''
+        required = sum(line.height for line in self.lines(title, self.epw, bold=True, size=26))
+        for text, icon in ((label, 'components'), (revision, 'history'), (amount, 'tools-kitchen-2')):
+            required += sum(line.height for line in self.lines(text, self.epw, icon=icon))
+        required += 13 + self.leading  # Heading spacing and at least one following body line.
+        if self.will_page_break(required + 12):
+            self.add_page()
+        else:
+            self.ln(12)
+
     def photo(self, data: bytes, *, logo: bool = False) -> None:
         width, height = (110.0, 42.0) if logo else (self.epw, 160.0)
         if self.will_page_break(height + 8):

@@ -139,3 +139,33 @@ def test_pinned_tabler_icons_paint_as_vectors_without_font_glyphs(tmp_path):
             crop = image.crop((int(x * ratio), int(60 * ratio), int((x + 24) * ratio), int(84 * ratio)))
             dark = sum(crop.convert('L').histogram()[:160])
             assert dark >= 30, (name, dark)
+
+
+@pytest.mark.parametrize('case', ['scaled', 'compact-prepared'])
+def test_scaled_supplement_and_continuous_prepared_page_geometry(case, tmp_path):
+    output = Path(os.environ.get('RECIPE_DOCUMENT_EVIDENCE_DIR', str(tmp_path)))
+    output.mkdir(parents=True, exist_ok=True)
+    selected = prepared_revision(compact=True) if case == 'compact-prepared' else revision()
+    before = json.dumps(selected.snapshot, default=dict, sort_keys=True)
+    data = render_recipe_pdf(selected, config=default_config(), images={},
+                             target='6' if case == 'scaled' else None)
+    pages = pdf_receipt(data, output, case)
+    reader = PdfReader(BytesIO(data))
+    body = ' '.join(' '.join(page.extract_text() for page in reader.pages).split())
+    assert json.dumps(selected.snapshot, default=dict, sort_keys=True) == before
+    if case == 'scaled':
+        assert len(pages) == 1
+        assert '0.1875 KG · Karotten' in body
+        assert 'Originalmengen' in body and '1. 0.125 KG · Karotten' in body
+    else:
+        assert len(pages) <= 2, 'Three short prepared uses must share available page space.'
+        assert body.count('Zubereitung für Gemüsemischung') == 3
+        assert body.count('Gewünscht: 3.000 KG') == 3
+        assert body.count('Arbeitsschritte, Bilder und Herkunft stehen bei der ersten Ausgabe') == 2
+        assert body.count('Gemüse waschen.') == 2
+        assert any(page.extract_text().count('Zubereitung für Gemüsemischung') >= 2 for page in reader.pages)
+        for page in reader.pages:
+            content = ' '.join(page.extract_text().split())
+            context = ('Zubereitung für Gemüsemischung Erfasste Gemüsebasis Revision 1 '
+                       'Original: 3 KG · Gewünscht: 3.000 KG')
+            assert content.count(context) == content.count('Zubereitung für Gemüsemischung')

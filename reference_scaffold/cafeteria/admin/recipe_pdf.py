@@ -88,11 +88,9 @@ def _render(revision: RecipeRevisionDTO, recipe: Mapping[str, Any], *, config: P
         pdf.paragraph(config['header_text'])
     _content(pdf, document, images)
     for prepared in document['prepared']:
-        pdf.continuation = ''
-        pdf.add_page()
-        pdf.paragraph('Zubereitung für ' + prepared['for_ingredient'], icon='components')
         _content(pdf, prepared['document'], images,
-                 details=prepared['use_number'] == prepared['first_use_number'])
+                 details=prepared['use_number'] == prepared['first_use_number'],
+                 for_ingredient=prepared['for_ingredient'])
     return bytes(pdf.output())
 
 
@@ -178,14 +176,35 @@ def _provenance(pdf: RecipeSheet, document: dict[str, Any], shown_notes: set[str
         pdf.ln(4)
 
 
-def _content(pdf: RecipeSheet, document: dict[str, Any], images: dict[str, bytes], *, details: bool = True) -> None:
-    pdf.heading(document['title'], title=True)
-    version = document['identity']['revision_number']
-    pdf.paragraph(f'Revision {version}', icon='history')
-    pdf.continuation = document['title'] + f' · Revision {version}'
+def _original_amounts(pdf: RecipeSheet, document: dict[str, Any]) -> None:
+    if not document['yield']['is_scaled']:
+        return
+    pdf.heading('Originalmengen', icon='history')
     quantity = document['yield']
-    pdf.paragraph(f'Original: {quantity["original_amount"]} {quantity["unit"]} · '
-                  f'Gewünscht: {quantity["amount"]} {quantity["unit"]}', icon='tools-kitchen-2')
+    pdf.paragraph(f'Angegebene Ausbeute: {quantity["original_amount"]} {quantity["unit"]}')
+    for row in document['ingredients']:
+        amount = row['original_amount'] if row['original_amount'] is not None else 'Menge nicht erfasst'
+        unit = ' ' + row['unit'] if row['unit'] is not None else ' · Einheit nicht erfasst'
+        pdf.paragraph(f'{row["number"]}. {amount}{unit} · {row["text"]}')
+    if document['empty_ingredients']:
+        pdf.paragraph(document['empty_ingredients'])
+
+
+def _content(pdf: RecipeSheet, document: dict[str, Any], images: dict[str, bytes], *, details: bool = True,
+             for_ingredient: str | None = None) -> None:
+    version = document['identity']['revision_number']
+    revision = f'Revision {version}'
+    quantity = document['yield']
+    amount = (f'Original: {quantity["original_amount"]} {quantity["unit"]} · '
+              f'Gewünscht: {quantity["amount"]} {quantity["unit"]}')
+    if for_ingredient is not None:
+        label = 'Zubereitung für ' + for_ingredient
+        pdf.start_recipe(document['title'], label, revision, amount)
+        pdf.paragraph(label, icon='components')
+    pdf.heading(document['title'], title=True)
+    pdf.paragraph(revision, icon='history')
+    pdf.continuation = document['title'] + ' · ' + revision
+    pdf.paragraph(amount, icon='tools-kitchen-2')
     for field, label in (('prep_minutes', 'Vorbereitung'), ('cook_minutes', 'Zubereitung')):
         if document['times'][field] is not None:
             pdf.paragraph(f'{label}: {document["times"][field]} Min.', icon='history')
@@ -211,6 +230,7 @@ def _content(pdf: RecipeSheet, document: dict[str, Any], images: dict[str, bytes
     pdf.ln(12)
     left, right = pdf.column_widths
     pdf.columns(_ingredient_lines(pdf, document, left), _step_lines(pdf, document, right, images, details))
+    _original_amounts(pdf, document)
     if details:
         _provenance(pdf, document, shown_notes)
 
