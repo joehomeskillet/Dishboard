@@ -503,8 +503,10 @@ docs/superpowers/api-claude-handoff-0906.md
 docs/superpowers/backlog-0909/execution-contract.md
 docs/superpowers/backlog-0909/EXECUTION-READY.md
 docs/superpowers/backlog-0909/file-leases.json
+docs/superpowers/backlog-0909/off-feldzuordnung-0909.md
 docs/superpowers/backlog-0909/operations-sdd.md
 docs/superpowers/backlog-0909/operations-wps.json
+docs/superpowers/backlog-0909/ops-core-regression.md
 docs/superpowers/backlog-0909/pg-trgm-entscheid-0909.md
 docs/superpowers/backlog-0909/README.md
 docs/superpowers/backlog-0909/recipes-sdd.md
@@ -1061,6 +1063,7 @@ reference_scaffold/cafeteria/templates/admin/print_template_editor.html
 reference_scaffold/cafeteria/templates/admin/print_template_unavailable.html
 reference_scaffold/cafeteria/templates/admin/recipe_template_error.html
 reference_scaffold/cafeteria/templates/admin/rezepte.html
+reference_scaffold/cafeteria/templates/admin/rezepte_ansicht.html
 reference_scaffold/cafeteria/templates/admin/rezepte_conflict.html
 reference_scaffold/cafeteria/templates/admin/rezepte_editor.html
 reference_scaffold/cafeteria/templates/admin/rezepte_images.html
@@ -1344,6 +1347,7 @@ reference_scaffold/tests/test_recipe_store_db.py
 reference_scaffold/tests/test_recipe_template_editor_browser.py
 reference_scaffold/tests/test_recipe_template_editor_routes.py
 reference_scaffold/tests/test_recipe_values.py
+reference_scaffold/tests/test_recipe_view_print_browser.py
 reference_scaffold/tests/test_rendered_ui.py
 reference_scaffold/tests/test_screen_assignment_migration_db.py
 reference_scaffold/tests/test_screen_assignment_writer_db.py
