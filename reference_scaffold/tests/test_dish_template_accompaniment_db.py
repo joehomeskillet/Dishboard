@@ -40,7 +40,8 @@ def test_store_uses_v32_optional_default_and_preserves_noop_cas(b3):  # noqa: F8
     )
     row = store.get_template(engine, row.public_id)
     assert row.accompaniment_default == 'soup'
-    assert row.updated_at.isoformat() == changed['updated_at']
+    # PostgreSQL JSON text drops trailing microsecond zeros; compare instants, not strings.
+    assert row.updated_at == store.parse_updated_at(changed['updated_at'])
     with owner.connect() as connection:
         audit = connection.execute(text("""SELECT action,details FROM cafeteria.audit_events
             WHERE entity_public_id=CAST(:public_id AS uuid)
