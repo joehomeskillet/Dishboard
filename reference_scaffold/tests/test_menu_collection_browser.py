@@ -34,7 +34,8 @@ def test_collection_navigation_search_and_mobile_layout(page_context, admin_app,
     for width, height in [(390, 844), (1440, 1100), (2560, 1440)]:
         page.set_viewport_size({'width': width, 'height': height})
         assert not page.evaluate('document.documentElement.scrollWidth > document.documentElement.clientWidth + 1')
-        assert page.locator('[data-menu-id]').first.bounding_box()['width'] >= 250
+        expect(page.locator('#menu-list')).to_be_visible()
+        assert page.locator('[data-menu-list-id]').first.bounding_box()['width'] >= 250
     page.get_by_label('Menü oder Komponente suchen').fill('Kartoffelgratin')
     page.get_by_role('button', name='Suchen', exact=True).click()
     expect(page.locator('[data-menu-id]')).to_have_count(1)
@@ -110,7 +111,7 @@ def test_icon_help_and_first_tap_work_with_and_without_javascript(
         context.add_cookies([{'name': 'session', 'value': client.get_cookie('session').value, 'url': origin}])
         page = context.new_page()
         page.goto(origin + f'/admin/{family}/menues')
-        link = page.locator('#menu-cards [data-admin-icon-action]').first
+        link = page.locator('#menu-list [data-admin-icon-action]').first
         destination = link.get_attribute('href')
         link.tap()
         page.wait_for_url(origin + destination)
@@ -137,6 +138,10 @@ def test_collection_card_list_switch_keeps_scope_search_and_editor_targets(
     page.set_viewport_size({'width': width, 'height': height})
     page.goto(f'/admin/{family}/menues')
     cards, listing = page.get_by_role('tab', name='Karten', exact=True), page.get_by_role('tab', name='Liste', exact=True)
+    expect(listing).to_have_attribute('aria-selected', 'true')
+    expect(page.locator('#menu-list')).to_be_visible()
+    expect(page.locator('#menu-cards')).to_be_hidden()
+    cards.click()
     expect(cards).to_have_attribute('aria-selected', 'true')
     expect(page.locator('#menu-cards')).to_be_visible()
     expect(page.locator('#menu-list')).to_be_hidden()
@@ -169,7 +174,7 @@ def test_collection_card_list_switch_keeps_scope_search_and_editor_targets(
         assert not any(word in page.content().lower() for word in ('price', 'rappen', 'chf'))
     page.screenshot(path=str(tmp_path / f'{family}-list-{width}.png'), full_page=True)
     listing.focus()
-    page.keyboard.press('ArrowLeft')
+    page.keyboard.press('ArrowRight')
     expect(cards).to_be_focused()
     expect(cards).to_have_attribute('aria-selected', 'true')
     expect(page.locator('#menu-cards')).to_be_visible()
