@@ -309,6 +309,7 @@ def _prepare_inventory_entities(application, database_engine, admin_user_id) -> 
     paths = {
         'admin.dish_template_edit': f"/admin/gerichtvorlagen/{template['public_id']}",
         'admin.dish_template_new': '/admin/gerichtvorlagen/neu',
+        'admin.dish_template_plan': f"/admin/gerichtvorlagen/{template['public_id']}/einplanen?week=2026-08-31",
         'admin.dish_templates_list': '/admin/gerichtvorlagen',
         'admin.recipe_import_detail': f'/admin/rezepte/import/{batch.public_id}',
         'admin.recipe_import_list': '/admin/rezepte/import',
