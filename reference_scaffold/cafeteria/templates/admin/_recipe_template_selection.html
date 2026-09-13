@@ -8,7 +8,7 @@
   <div class="card-header"><h2 class="card-title" id="recipe-selection-heading">Rezept für Vorschau und Prüfung</h2></div>
   <div class="card-body">
     {% if recipe %}<nav class="btn-list mb-3" aria-label="Rezeptkontext">
-      <a class="btn" href="{{ url_for('admin.recipe_edit', recipe_id=recipe.public_id) }}">{{ icon('arrow-left') }}Zurück zum Rezept «{{ recipe.payload.title }}»</a>
+      <a class="btn" href="{{ url_for('admin.recipe_view', recipe_id=recipe.public_id) }}">{{ icon('arrow-left') }}Zurück zum Rezept «{{ recipe.payload.title }}»</a>
       {% if recipe_revision %}<a class="btn" href="{{ url_for('admin.recipe_revision', recipe_id=recipe.public_id, revision_id=recipe_revision.public_id) }}">{{ icon('history') }}Zum gespeicherten Stand {{ recipe_revision.revision_number }}</a>{% endif %}
     </nav>{% endif %}
     <p>Einen gespeicherten Stand auswählen. Entwürfe der Druckvorlage können Sie auch ohne Rezept speichern und kopieren.</p>
@@ -44,7 +44,7 @@
       </select></div><div class="col-12 col-md-4"><button class="btn" type="submit">Gespeicherten Stand verwenden</button></div>
     </form>{% else %}<p>Noch kein gespeicherter Stand vorhanden. Die Druckvorlage bleibt bearbeitbar.</p>{% endif %}
     {{ pagination(revision_page, revision_has_next, recipe_url(revision_page=revision_page-1, revision=revision.id), recipe_url(revision_page=revision_page+1, revision=revision.id), 'Seiten der gespeicherten Rezeptstände') }}
-    <a class="btn mt-3" href="{{ url_for('admin.recipe_revisions', recipe_id=recipe.public_id) }}">Gespeicherte Rezeptstände öffnen</a>
+    <a class="btn mt-3" href="{{ url_for('admin.recipe_revisions', recipe_id=recipe.public_id) }}">{{ icon('history') }}Rezept-History öffnen</a>
     </details>
     {% endif %}
     {% if recipe_revision %}

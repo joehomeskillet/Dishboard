@@ -78,9 +78,14 @@
         "info-circle",
         "circle-check",
         "refresh",
-        "clipboard-check"
+        "clipboard-check",
+        "dots",
+        "arrow-up",
+        "arrow-down",
+        "printer",
+        "history"
       ],
-      "sha256": "a9448ddd3ce423d890c93a4a8c944692c185d9ddba009d6d07eb056d608740e1"
+      "sha256": "759fcd4c8f228dd4cab7b981a2fcb8051f749551248f6994f0651c399e746080"
     }
   ]
 }

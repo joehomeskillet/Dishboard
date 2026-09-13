@@ -159,13 +159,15 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
         page.go_back()
         page.get_by_role('link', name='Zum Rezept', exact=True).click()
         page.get_by_text('Weitere Aktionen', exact=True).click()
-        page.get_by_role('link', name='Gespeicherte Stände', exact=True).click()
+        page.get_by_role('link', name='Rezept-History', exact=True).click()
         active(page, 'Rezepte')
-        page.get_by_role('link', name='Gespeicherten Stand 1 öffnen', exact=True).click()
+        page.get_by_role('link', name='Gespeicherten Stand 1 ansehen', exact=True).click()
         assert urlsplit(page.url).path.endswith('/revisionen/' + revision_id)
         active(page, 'Rezepte')
-        page.get_by_role('link', name='Alle gespeicherten Stände', exact=True).click()
-        page.get_by_role('link', name='Zum Rezept', exact=True).click()
+        page.get_by_role('link', name='Zur Rezept-History', exact=True).click()
+        page.get_by_role('link', name='Aktuellen Entwurf ansehen', exact=True).click()
+        expect(page.get_by_text('Entwurf · nicht festgeschrieben', exact=True)).to_be_visible()
+        page.get_by_role('link', name='Bearbeiten', exact=True).click()
         page.get_by_text('Weitere Aktionen', exact=True).click()
         page.get_by_role('link', name='Mengen berechnen', exact=True).click()
         active(page, 'Rezepte')
@@ -200,11 +202,15 @@ def test_navigation_respects_read_capability_without_granting_writes(navigation,
     app, owner, client, _, public_id = a3
     monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', {'draft.read'})
     before = snapshot(owner)
-    for path in ('/admin/rezepte', '/admin/kochbuecher', f'/admin/rezepte/{public_id}/bilder'):
+    for path in ('/admin/rezepte', '/admin/kochbuecher', f'/admin/rezepte/{public_id}/bilder', f'/admin/rezepte/{public_id}/ansicht'):
         result = client.get(path)
         assert result.status_code == 200
         assert 'href="/admin/rezepte"' in result.text and 'href="/admin/kochbuecher"' in result.text
         assert 'Rezept anlegen</a>' not in result.text and 'Bild hochladen</button>' not in result.text
+    listing = client.get('/admin/rezepte').text
+    assert f'href="/admin/rezepte/{public_id}/ansicht"' in listing
+    assert f'href="/admin/rezepte/{public_id}"' not in listing
+    assert 'Drucken · Stand 1' in listing
     assert client.post('/admin/rezepte/neu', data={}).status_code == 403
     assert client.post('/admin/kochbuecher/neu', data={}).status_code == 403
     monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', set())

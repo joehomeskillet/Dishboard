@@ -7,7 +7,7 @@ from typing import Any
 from flask import abort, current_app, redirect, render_template, request, url_for
 from werkzeug.datastructures import MultiDict
 
-from .. import master_data_store as masters, recipe_store as store
+from .. import master_data_store as masters, recipe_store as store, recipe_link_reads
 from ..master_data_types import ObjectExpectation
 from ..recipe_types import RecipeConflictError, RecipeValidationError
 from ..recipe_values import identifier
@@ -16,6 +16,7 @@ from ..security import csrf_token
 from . import recipe_forms as forms
 from .recipe_errors import protected
 from .recipe_form_rows import apply_row_action
+from .recipe_revision_routes import print_template_context, render_scaled
 from .routes import bp
 
 
@@ -159,10 +160,28 @@ def recipes_list():
         tags.append((tag, 'Ausgewählter Tag · nicht mehr verfügbar'))
     filters = {'q': query, 'ingredient': ingredient, 'tag': tag, 'archived': archived}
     return render_template('admin/rezepte.html', family='cafeteria', profile='staff_guest', rows=rows[:50],
+        recipe_links=recipe_link_reads.list_recipe_links(_engine(), [row.public_id for row in rows[:50]]),
+        can_create_template=bool(capabilities() & {'*', 'draft.write'}),
         page=page, has_next=len(rows) > 50, query=query, ingredient=ingredient, tag=tag, tags=tags,
         archived=archived == '1', can_write=_can_write(),
         prev_url=url_for('admin.recipes_list', **filters, page=page - 1),
         next_url=url_for('admin.recipes_list', **filters, page=page + 1))
+
+
+@bp.get('/rezepte/<uuid:recipe_id>/ansicht')
+@protected
+def recipe_view(recipe_id):
+    _query({'yield'})
+    row = store.get_recipe(_engine(), str(recipe_id))
+    links = recipe_link_reads.list_recipe_links(_engine(), [row.public_id])[row.public_id]
+    selected = row.payload['tag_public_ids']
+    tags = {tag.public_id: tag.name + (' · archiviert' if not tag.active else '')
+            for tag in _all(masters.list_vocabulary, 'tag')} if selected else {}
+    return render_scaled('admin/rezepte_ansicht.html', row.payload,
+        recipe=row, recipe_id=row.public_id, links=links,
+        tag_names=[tags.get(key, 'Kennzeichnung nicht mehr verfügbar') for key in selected],
+        can_write=_can_write(), can_create_template=bool(capabilities() & {'*', 'draft.write'}),
+        print_template=print_template_context(row.public_id))
 
 
 @bp.route('/rezepte/neu', methods=['GET', 'POST'])

@@ -19,7 +19,7 @@
 </div>
 {% if recipe_id and can_write or links %}<details class="mb-3"><summary class="btn">Weitere Aktionen</summary><div class="d-flex flex-wrap gap-2 mt-2">
 {% if recipe_id and can_write %}<a class="btn" href="{{ url_for('admin.recipe_status', recipe_id=recipe_id) }}">{{ 'Archivieren' if active else 'Reaktivieren' }}</a>{% endif %}
-{% for name, label in [('recipe_images', 'Bilder verwalten'), ('recipe_revisions', 'Gespeicherte Stände'), ('recipe_scale', 'Mengen berechnen')] %}{% if name in links %}<a class="btn" href="{{ links[name] }}">{{ label }}</a>{% endif %}{% endfor %}</div></details>{% endif %}
+{% for name, label in [('recipe_images', 'Bilder verwalten'), ('recipe_revisions', 'Rezept-History'), ('recipe_scale', 'Mengen berechnen')] %}{% if name in links %}<a class="btn" href="{{ links[name] }}">{{ label }}</a>{% endif %}{% endfor %}</div></details>{% endif %}
 <form id="recipe-editor" method="post" action="{{ url_for('admin.recipe_edit', recipe_id=recipe_id) if recipe_id else url_for('admin.recipe_new') }}">
 {{ hidden('_csrf') }}{{ hidden('_form_context') }}{% if recipe_id %}{{ hidden('row_version') }}{% endif %}
 <fieldset{% if not active or not can_write %} disabled{% endif %}>

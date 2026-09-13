@@ -86,8 +86,9 @@ def test_recipe_pages_follow_correction_contract(
             _open(page, base, '/admin/rezepte')
             expect(page.get_by_label('Kennzeichnung', exact=True)).to_be_visible()
             expect(page.locator('main summary').filter(has_text='Symbole')).to_have_count(0)
-            expect(page.locator('.recipe-card a').first).to_contain_text('Bearbeiten')
-            assert page.locator('.recipe-card a').first.get_attribute('href').startswith('/admin/rezepte/')
+            expect(page.locator(f'.recipe-card a[href="/admin/rezepte/{recipe_id}"]')).to_contain_text('Bearbeiten')
+            expect(page.locator(f'.recipe-card a[href="/admin/rezepte/{recipe_id}/ansicht"]')).to_contain_text('Ansehen')
+            expect(page.locator(f'.recipe-card a[href="/admin/rezepte/{recipe_id}/revisionen"]')).to_contain_text('Rezept-History')
             _check_layout(page, width)
             _capture(page, 'liste-regulaer', width, height, javascript)
 
@@ -109,7 +110,7 @@ def test_recipe_pages_follow_correction_contract(
             page.get_by_text('Weitere Aktionen', exact=True).click()
             expected_links = {
                 'Bilder verwalten': f'{editor_path}/bilder',
-                'Gespeicherte Stände': f'{editor_path}/revisionen',
+                'Rezept-History': f'{editor_path}/revisionen',
                 'Mengen berechnen': f'{editor_path}/skalierung',
             }
             for label, path in expected_links.items():
@@ -137,13 +138,13 @@ def test_recipe_pages_follow_correction_contract(
 
             revisions_path = f'{editor_path}/revisionen'
             _open(page, base, revisions_path)
-            expect(page.get_by_role('heading', name='Gespeicherte Stände', exact=True)).to_be_visible()
+            expect(page.get_by_role('heading', name='Rezept-History', exact=True)).to_be_visible()
             freeze = page.locator(f'form[action="{revisions_path}"]')
             assert freeze.get_attribute('method') == 'post'
             assert set(freeze.locator('[name]').evaluate_all('elements => elements.map(element => element.name)')) == {
                 '_csrf', '_form_context', 'row_version',
             }
-            expect(page.get_by_role('link', name='Gespeicherten Stand 1 öffnen', exact=True)).to_be_visible()
+            expect(page.get_by_role('link', name='Gespeicherten Stand 1 ansehen', exact=True)).to_be_visible()
             _check_layout(page, width)
             _capture(page, 'staende-regulaer', width, height, javascript)
 

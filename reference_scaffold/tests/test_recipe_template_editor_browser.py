@@ -135,7 +135,8 @@ def test_recipe_context_return_links_work_with_and_without_javascript(recipe_edi
         with page.expect_navigation() as navigation:
             draft_link.click()
         assert navigation.value.status == 200
-        assert page.url.endswith(f'/admin/rezepte/{recipe}')
+        assert page.url.endswith(f'/admin/rezepte/{recipe}/ansicht')
+        expect(page.get_by_text('Entwurf · nicht festgeschrieben', exact=True)).to_be_visible()
         assert not failures
 
 

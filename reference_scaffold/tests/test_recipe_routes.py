@@ -296,3 +296,57 @@ def test_maximum_aggregate_get_signing_preserves_all_values_with_bounded_names(b
     assert all(signed['labels'][key] == name for key, name in selected_names.items())
     assert len([key for key in signed['labels'] if len(key) == 64]) == 63
     assert snapshot(owner) == before
+
+
+def test_view_is_complete_readonly_and_rejects_unknown_query_without_form_context(b3, monkeypatch):
+    app, owner, client, actor = b3
+    path = create(client, 'Ansicht & Herkunft')
+    data = fields(client, path)
+    for key, value in {'description': 'Nur lesen\nZweite Zeile', 'prep_minutes': '5', 'cook_minutes': '12'}.items():
+        data[key] = value
+    assert client.post(path, data=data).status_code == 303
+    before = snapshot(owner)
+    monkeypatch.setattr(routes.forms, 'sign_context', lambda **kw: pytest.fail('View must never sign'))
+    monkeypatch.setattr(routes, '_choices', lambda *args: pytest.fail('View must not load form choices'))
+    viewed = client.get(path + '/ansicht?yield=8')
+    assert viewed.status_code == 200, viewed.text
+    for text_value in ('Entwurf · nicht festgeschrieben', 'Nur lesen', 'Zweite Zeile',
+                       'Vorbereitung: 5 Minuten', 'Kochzeit: 12 Minuten', 'Zubereitung',
+                       'Zutaten und Mengen', 'Kennzeichnungen und Herkunft', 'Keine Gerichtvorlage',
+                       'Zum Drucken zuerst einen Stand festhalten', 'Ansicht &amp; Herkunft'):
+        assert text_value in viewed.text
+    assert 'name="_form_context"' not in viewed.text
+    assert 'name="row_version"' not in viewed.text
+    for query in ('yield=NaN', 'yield=0', 'yield=1&yield=2', 'page=1', 'recipe=bad'):
+        invalid = client.get(path + '/ansicht?' + query)
+        assert invalid.status_code == 400 and invalid.headers['Cache-Control'] == 'no-store'
+    assert client.get('/admin/rezepte/not-a-uuid/ansicht').status_code == 404
+    assert app.test_client().get(path + '/ansicht').status_code == 401
+    assert snapshot(owner) == before
+
+
+def test_list_loads_one_bound_link_projection_and_reader_has_no_write_actions(b3, monkeypatch):
+    _, owner, client, _ = b3
+    first, second = create(client, 'Erste'), create(client, 'Zweite')
+    called = []
+    read = routes.recipe_link_reads.list_recipe_links
+    def tracked(engine, ids):
+        called.append(ids)
+        return read(engine, ids)
+    monkeypatch.setattr(routes.recipe_link_reads, 'list_recipe_links', tracked)
+    before = snapshot(owner)
+    page = client.get('/admin/rezepte')
+    assert page.status_code == 200
+    assert called == [[first.rsplit('/', 1)[-1], second.rsplit('/', 1)[-1]]]
+    for path in (first, second):
+        assert f'href="{path}/ansicht"' in page.text and f'href="{path}"' in page.text
+        assert page.text.count(f'href="{path}/revisionen"') == 1
+    monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', {'draft.read'})
+    for path in ('/admin/rezepte', first + '/ansicht'):
+        result = client.get(path)
+        assert result.status_code == 200
+        assert f'href="{first}"' not in result.text
+        assert 'Vorlage anlegen</a>' not in result.text
+        assert 'name="_form_context"' not in result.text
+        assert 'Drucken' in result.text
+    assert snapshot(owner) == before
