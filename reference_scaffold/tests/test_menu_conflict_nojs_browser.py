@@ -55,6 +55,11 @@ def test_conflict_form_resubmit_without_javascript_keeps_original_cas(
         version = form.locator('[name="row_version"]')
         expect(version).to_have_value('1')
         expect(page.get_by_label('Menüname', exact=True)).to_have_value('Ursprünglicher Titel')
+        prices_on_page = page.locator('[name="internal_chf"], [name="external_chf"]')
+        if family == 'cafeteria':
+            expect(prices_on_page).to_have_count(2)
+        else:
+            expect(prices_on_page).to_have_count(0)
         original_csrf = form.locator('[name="_csrf"]').input_value()
 
         # Editor B saves after A has opened the original form, through the real route.

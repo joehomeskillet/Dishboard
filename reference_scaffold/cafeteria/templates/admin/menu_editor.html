@@ -67,9 +67,9 @@
 </div>
 {% endif %}
 
-<div class="row g-3 admin-editor-layout">
-  <div class="col-12 col-xl-8">
-    <form method="post" action="/admin/{{ family }}/menu" data-menu-editor>
+<div class="admin-editor-layout">
+  <div class="menu-editor-main">
+    <form method="post" action="/admin/{{ family }}/menu" class="admin-compact-form" data-menu-editor>
       <input type="hidden" name="_csrf" value="{{ csrf }}">
       <input type="hidden" name="week" value="{{ week }}">
       <input type="hidden" name="day" value="{{ cell.day }}">
@@ -77,7 +77,7 @@
       <input type="hidden" name="option" value="{{ cell.option }}">
       <input type="hidden" name="row_version" value="{{ cell.row_version }}">
 
-      <section class="card mb-3" aria-labelledby="sec-base">
+      <section class="card mb-3 admin-compact-section" aria-labelledby="sec-base">
         <div class="card-header"><h2 class="card-title mb-0" id="sec-base">Menü</h2></div>
         <div class="card-body">
           <label class="form-label" for="f-title">Menüname</label>
@@ -86,10 +86,10 @@
         </div>
       </section>
 
-      <section class="card mb-3" aria-labelledby="sec-components">
+      <section class="card mb-3 admin-compact-section" aria-labelledby="sec-components">
         <div class="card-header"><h2 class="card-title mb-0" id="sec-components">Bausteine</h2></div>
         <div class="card-body">
-          <p class="form-hint mb-3" id="components-hint">Zum Beispiel eine Beilage, Sauce oder ein Gemüse. Baustein aus Katalog wählen oder als eigener Text erfassen — nicht beides gleichzeitig. Die Reihenfolge entspricht der Anzeige.</p>
+          <p class="form-hint mb-2" id="components-hint">Aus Liste auswählen oder als eigenen Text erfassen — nicht beides gleichzeitig. Die Reihenfolge entspricht der Anzeige.</p>
           <div id="components-list" class="menu-editor-row-list" data-row-list="component" data-row-title="Baustein">
             {% set c_ids = submitted.getlist('component_public_id') if submitted.getlist else submitted.get('component_public_id', []) %}
             {% set c_texts = submitted.getlist('component_text') if submitted.getlist else submitted.get('component_text', []) %}
@@ -104,7 +104,7 @@
                 <div class="menu-editor-component-summary" data-component-summary-view hidden>
                   <strong data-component-summary>{{ c_text|default('') }}</strong>
                   <div class="menu-editor-row-actions">
-                    <button type="button" class="btn" data-edit-row>Ändern</button>
+                    <button type="button" class="btn" data-edit-row>{{ icon('pencil') }}Ändern</button>
                     <button type="button" class="btn" data-move-row="up">Nach oben</button>
                     <button type="button" class="btn" data-move-row="down">Nach unten</button>
                     <button type="button" class="btn btn-outline-danger" data-remove-row>{{ icon('trash') }}Entfernen</button>
@@ -170,10 +170,10 @@
         </div>
       </section>
 
-      <section class="card mb-3" aria-labelledby="sec-output-texts">
+      <section class="card mb-3 admin-compact-section" aria-labelledby="sec-output-texts">
         <div class="card-header"><h2 class="card-title mb-0" id="sec-output-texts">Texte auf dem Speiseplan</h2></div>
         <div class="card-body">
-          <div class="row g-3">
+          <div class="row g-2">
             <div class="col-12">
               <label class="form-label" for="f-desc">Beschreibung (auf dem Speiseplan sichtbar)</label>
               <textarea class="form-control{{ invalid_class('description') }}" id="f-desc" name="description" rows="3"{{ error_attributes('description', 'err-desc') }}>{{ submitted.get('description', '') }}</textarea>
@@ -184,32 +184,24 @@
               <textarea class="form-control{{ invalid_class('note') }}" id="f-note" name="note" rows="2"{{ error_attributes('note', 'err-note') }}>{{ submitted.get('note', '') }}</textarea>
               {{ field_error('note', 'err-note') }}
             </div>
-          </div>
-        </div>
-      </section>
-
-      {% if profile == 'staff_guest' %}
-      <section class="card mb-3" aria-labelledby="sec-prices">
-        <div class="card-header"><h2 class="card-title mb-0" id="sec-prices">Preise</h2></div>
-        <div class="card-body">
-          <div class="row g-3">
-            <div class="col-12 col-md-6 col-lg-4">
+            {% if profile == 'staff_guest' %}
+            <div class="col-12 col-sm-6">
               <label class="form-label" for="f-int">Mitarbeitende CHF</label>
               <input class="form-control{{ invalid_class('internal_chf') }}" id="f-int" name="internal_chf" inputmode="decimal" value="{{ submitted.get('internal_chf', '') }}"{{ error_attributes('internal_chf', 'err-int') }}{% if errors.get('internal_chf') %} autofocus{% endif %}>
               {{ field_error('internal_chf', 'err-int') }}
             </div>
-            <div class="col-12 col-md-6 col-lg-4">
+            <div class="col-12 col-sm-6">
               <label class="form-label" for="f-ext">Preis für externe Gäste CHF</label>
               <input class="form-control{{ invalid_class('external_chf') }}" id="f-ext" name="external_chf" inputmode="decimal" value="{{ submitted.get('external_chf', '') }}"{{ error_attributes('external_chf', 'err-ext') }}>
               {{ field_error('external_chf', 'err-ext') }}
             </div>
+            {% endif %}
           </div>
         </div>
       </section>
-      {% endif %}
 
       <section class="menu-editor-markings" aria-labelledby="sec-markings">
-        <h2 class="h3 mb-3" id="sec-markings">Kennzeichnungen</h2>
+        <h2 class="h3 mb-2" id="sec-markings">Kennzeichnungen</h2>
 
       <details class="card mb-3 admin-accordion" data-mode-section="allergen"{% if not is_auto['allergen'] or errors.get('allergen_code') or errors.get('allergen_presence') %} open{% endif %}>
         {{ mode_summary('allergen', 'Allergene', 'allergen-mode-badge') }}
@@ -295,6 +287,7 @@
       </section>
 
       <div class="admin-actions" data-sticky role="group" aria-label="Speichern und Navigation">
+        <p class="menu-editor-save-hint form-hint mb-0">Speichern übernimmt die Eingaben.</p>
         <button type="submit" class="btn btn-primary">{{ icon('device-floppy') }}Menü speichern</button>
         {# Native submit input: same form data and _csrf, only the action differs (return_to=week → 303 to the week). #}
         <input type="submit" class="btn" formaction="/admin/{{ family }}/menu?return_to=week" value="Speichern und zum Wochenplan">
@@ -303,26 +296,26 @@
     </form>
   </div>
 
-  <div class="col-12 col-xl-4">
-    <section class="card review-block" id="review" aria-labelledby="sec-review" tabindex="-1">
+  <aside class="menu-editor-review">
+    <section class="card review-block" id="review" aria-labelledby="sec-review" tabindex="-1" data-saved-review>
       <div class="card-header"><h2 class="card-title mb-0" id="sec-review">Angaben prüfen</h2></div>
       <div class="card-body">
-        <p class="form-hint">Gespeicherter Stand.</p>
+        <p class="form-hint mb-2" data-review-scope="persisted">Zuletzt gespeicherter Stand — nicht der ungespeicherte Entwurf.</p>
         {% if not origin_conflict %}
         <ul class="list-unstyled menu-editor-review-list mb-0">
           <li class="menu-editor-review-item">
             <span class="menu-editor-review-label">Labels</span>
-            <span class="menu-editor-review-value">{% if effects and effects.labels %}{{ effects.labels|join(', ') }}{% else %}Nicht erfasst{% endif %}</span>
+            <span class="menu-editor-review-value" data-review-field="labels">{% if effects and effects.labels %}{{ effects.labels|join(', ') }}{% else %}Nicht erfasst{% endif %}</span>
             <a href="#label-mode-manual" data-error-link>Im Formular ändern</a>
           </li>
           <li class="menu-editor-review-item">
             <span class="menu-editor-review-label">Allergene</span>
-            <span class="menu-editor-review-value{% if not effects or not effects.allergens %} menu-editor-review-warning{% endif %}">{% if effects and effects.allergens %}{{ effects.allergens|join(', ') }}{% else %}{{ icon('alert-triangle') }}Allergenangaben nicht erfasst{% endif %}</span>
+            <span class="menu-editor-review-value{% if not effects or not effects.allergens %} menu-editor-review-warning{% endif %}" data-review-field="allergens">{% if effects and effects.allergens %}{{ effects.allergens|join(', ') }}{% else %}{{ icon('alert-triangle') }}Allergenangaben nicht erfasst{% endif %}</span>
             <a href="#allergen-mode-manual" data-error-link>Im Formular ändern</a>
           </li>
           <li class="menu-editor-review-item">
             <span class="menu-editor-review-label">Herkunft</span>
-            <span class="menu-editor-review-value">{% if effects and effects.origins %}{{ effects.origins|join(', ') }}{% else %}Nicht erfasst{% endif %}</span>
+            <span class="menu-editor-review-value" data-review-field="origins">{% if effects and effects.origins %}{{ effects.origins|join(', ') }}{% else %}Nicht erfasst{% endif %}</span>
             <a href="#origin-mode-manual" data-error-link>Im Formular ändern</a>
           </li>
         </ul>
@@ -330,11 +323,11 @@
         {% if origin_conflict %}
         <div class="alert alert-danger error-region mb-0" role="alert">{{ icon('alert-triangle') }} {{ origin_conflict }}</div>
         {% endif %}
-        <p class="menu-editor-review-dirty-note mt-3 mb-0" data-menu-editor-dirty-note>Speichere deine Änderungen, bevor du die gespeicherten Angaben prüfst.</p>
+        <p class="menu-editor-review-dirty-note mt-3 mb-0" data-menu-editor-dirty-note>Neue Eingaben zuerst speichern. Die Prüfung beschreibt den gespeicherten Stand, nicht diesen Entwurf.</p>
       </div>
       {% if review_token %}
       <div class="card-footer menu-editor-review-actions">
-        <p class="form-hint mb-2">Bestätigt den gespeicherten Stand: Bausteine, Allergene, Herkunft, Labels.</p>
+        <p class="form-hint mb-2">Bestätigt nur den gespeicherten Stand: Bausteine, Allergene, Herkunft, Labels. Ungespeicherte Eingaben sind nicht bestätigt.</p>
         <form method="post" action="/admin/{{ family }}/menu/review">
           <input type="hidden" name="_csrf" value="{{ csrf }}">
           <input type="hidden" name="week" value="{{ week }}">
@@ -348,6 +341,6 @@
       </div>
       {% endif %}
     </section>
-  </div>
+  </aside>
 </div>
 {% endblock %}

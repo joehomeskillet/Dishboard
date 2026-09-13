@@ -12,14 +12,22 @@ from cafeteria.component_catalog_store import create_component, update_component
 from cafeteria.workflow_partial_store import persist_menu_item
 from test_admin_ux_browser import _submit_menu
 from test_admin_workflow_routes import DAY, WEEK, _payload
-from test_rendered_ui import admin_app, admin_engine, browser  # noqa: F401
+from test_rendered_ui import PATIENT_FORBIDDEN, admin_app, admin_engine, browser  # noqa: F401
 from test_ui_menu_editor_browser import (  # noqa: F401
     editor_page,
     family,
     javascript,
 )
 
-EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/ui-korrektur-0912/editor'
+EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/density-menu-0913/editor'
+DENSITY_VIEWPORTS = (
+    (1440, 900),
+    (1024, 768),
+    (768, 1024),
+    (390, 844),
+    (1920, 1080),
+    (2560, 1440),
+)
 
 
 def _menu_url(family_name: str) -> str:
@@ -45,8 +53,22 @@ def _assert_component_pairs(payload: dict[str, list[str]]) -> None:
 
 def _capture(page: Page, name: str) -> None:
     EVIDENCE.mkdir(parents=True, exist_ok=True)
-    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+    _assert_no_overflow(page)
     page.screenshot(path=str(EVIDENCE / name), full_page=True)
+
+
+def _assert_no_overflow(page: Page) -> None:
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+
+
+def _assert_one_primary_save(page: Page) -> None:
+    form = page.locator('form[data-menu-editor]')
+    expect(form.locator('.btn-primary')).to_have_count(1)
+    expect(form.get_by_role('button', name='Menü speichern', exact=True)).to_have_count(1)
+    expect(form.get_by_role('button', name='Speichern und zum Wochenplan', exact=True)).to_have_count(1)
+    secondary = form.locator('input[type="submit"][formaction*="return_to=week"]')
+    expect(secondary).to_have_count(1)
+    assert secondary.evaluate('el => !el.classList.contains("btn-primary")')
 
 
 def test_a08_unchanged_catalog_and_text_pairs_use_native_save(
@@ -187,7 +209,27 @@ def test_a10_a13_dirty_review_links_width_and_focus_order(
         return element.getBoundingClientRect().width / main.getBoundingClientRect().width;
     }''')
     assert container_ratio >= 0.95
-    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+    _assert_no_overflow(page)
+    _assert_one_primary_save(page)
+    layout = page.evaluate('''() => {
+        const main = document.querySelector('.menu-editor-main');
+        const review = document.querySelector('.menu-editor-review');
+        const form = document.querySelector('form[data-menu-editor]');
+        if (!main || !review || !form) return null;
+        const mainBox = main.getBoundingClientRect();
+        const reviewBox = review.getBoundingClientRect();
+        return {
+            mainWidth: mainBox.width,
+            reviewWidth: reviewBox.width,
+            stacked: reviewBox.top >= mainBox.bottom - 1,
+            reviewInForm: form.contains(review),
+        };
+    }''')
+    assert layout is not None
+    assert layout['mainWidth'] > layout['reviewWidth']
+    assert not layout['reviewInForm']
+    expect(page.locator('[data-review-scope="persisted"]')).to_contain_text('Zuletzt gespeicherter Stand')
+    expect(page.locator('#review')).to_have_attribute('data-saved-review', '')
 
 
 def test_a11_a12_editor_evidence_states(editor_page, family: str, javascript: bool) -> None:  # noqa: F811
@@ -204,7 +246,7 @@ def test_a11_a12_editor_evidence_states(editor_page, family: str, javascript: bo
     page.locator('[data-component-kind-option][value="text"]').last.check()
     page.locator('[name="component_text"]').last.fill('Dritte Beilage')
     page.get_by_role('button', name='Fertig').last.click()
-    for width, height in ((1366, 768), (1920, 1080), (768, 1024), (390, 844)):
+    for width, height in DENSITY_VIEWPORTS:
         page.set_viewport_size({'width': width, 'height': height})
         _capture(page, f'menu-editor-regulaer-{width}x{height}.png')
 
@@ -241,3 +283,144 @@ def test_a11_a12_editor_evidence_states(editor_page, family: str, javascript: bo
     response = page.goto(_menu_url(family))
     assert response is not None and response.status == 409
     _capture(page, 'menu-editor-konflikt-390x844.png')
+
+
+def test_a11_review_keeps_persisted_state_when_draft_changes(
+    editor_page, family: str, javascript: bool,  # noqa: F811
+) -> None:
+    page, *_ = editor_page
+    page.goto(_menu_url(family))
+    review = page.locator('#review')
+    expect(review).to_have_attribute('data-saved-review', '')
+    expect(page.locator('[data-review-scope="persisted"]')).to_contain_text(
+        'Zuletzt gespeicherter Stand — nicht der ungespeicherte Entwurf.',
+    )
+    saved_allergens = page.locator('[data-review-field="allergens"]').inner_text()
+    saved_labels = page.locator('[data-review-field="labels"]').inner_text()
+    saved_origins = page.locator('[data-review-field="origins"]').inner_text()
+    assert saved_allergens.strip()
+    assert saved_labels.strip()
+    draft_title = 'Entwurf der nicht geprüft ist'
+    page.get_by_label('Menüname', exact=True).fill(draft_title)
+    allergen = page.locator('details[data-mode-section="allergen"]')
+    if allergen.get_attribute('open') is None:
+        allergen.locator('summary').click()
+    milk = page.locator('[name="allergen_code"][value="MILK"]')
+    if milk.count() and milk.is_enabled():
+        milk.uncheck()
+    expect(review).not_to_contain_text(draft_title)
+    expect(page.locator('[data-review-field="allergens"]')).to_have_text(saved_allergens)
+    expect(page.locator('[data-review-field="labels"]')).to_have_text(saved_labels)
+    expect(page.locator('[data-review-field="origins"]')).to_have_text(saved_origins)
+    expect(page.locator('.menu-editor-review-actions')).to_contain_text('gespeicherten Stand')
+    if javascript:
+        expect(page.locator('[data-menu-editor-dirty-note]')).to_have_class(re.compile(r'\bis-dirty\b'))
+
+
+def test_cafeteria_has_both_prices_patient_has_none(
+    editor_page, family: str, javascript: bool,  # noqa: F811
+) -> None:
+    page, *_ = editor_page
+    page.goto(_menu_url(family))
+    prices = page.locator('[name="internal_chf"], [name="external_chf"]')
+    if family == 'cafeteria':
+        expect(prices).to_have_count(2)
+        expect(page.get_by_label('Mitarbeitende CHF', exact=True)).to_be_visible()
+        expect(page.get_by_label('Preis für externe Gäste CHF', exact=True)).to_be_visible()
+        return
+    expect(prices).to_have_count(0)
+    assert PATIENT_FORBIDDEN.search(page.content()) is None
+
+
+def test_compact_assignments_and_native_kind_contract(
+    editor_page, family: str, javascript: bool,  # noqa: F811
+) -> None:
+    page, *_ = editor_page
+    page.goto(_menu_url(family))
+    expect(page.get_by_role('button', name='Baustein hinzufügen', exact=True)).to_have_count(1)
+    _assert_one_primary_save(page)
+    rows = page.locator('#components-list .component-row')
+    expect(rows).to_have_count(2)
+    if javascript:
+        expect(rows.first.locator('[data-component-summary-view]')).to_be_visible()
+        expect(rows.first.locator('[data-component-edit-view]')).to_be_hidden()
+        height = rows.first.evaluate('el => el.getBoundingClientRect().height')
+        assert height >= 44
+        expect(rows.get_by_role('button', name='Ändern')).to_have_count(2)
+        expect(rows.get_by_role('button', name='Nach oben')).to_have_count(2)
+        expect(rows.get_by_role('button', name='Entfernen', exact=True)).to_have_count(2)
+    else:
+        for row in rows.all():
+            expect(row.locator('[name="component_public_id"]')).to_be_visible()
+            expect(row.locator('[name="component_text"]')).to_be_visible()
+    assert page.locator('[data-component-kind-option][name]').count() == 0
+
+
+def test_a09_origin_error_opens_closed_details(
+    editor_page, family: str, javascript: bool,  # noqa: F811
+) -> None:
+    if not javascript:
+        pytest.skip('Fehleröffnung der Herkunft braucht das vorhandene Submit-Helfer mit JS.')
+    page, *_ = editor_page
+    page.goto(_menu_url(family))
+    origin = page.locator('details[data-mode-section="origin"]')
+    if origin.get_attribute('open') is None:
+        origin.locator('summary').click()
+    page.locator('[name="origin_mode"][value="manual"]').check()
+    page.locator('[name="origin_ingredient"]').first.fill('Rind')
+    page.locator('[name="origin_country_code"]').first.select_option('')
+    if origin.get_attribute('open') is not None:
+        origin.locator('summary').click()
+    _submit_menu(page, 400)
+    expect(page.locator('.error-region[role="alert"]')).to_be_visible()
+    expect(page.locator('details[data-mode-section="origin"]')).to_have_attribute('open', '')
+    expect(page.locator('[name="origin_ingredient"]').first).to_have_value('Rind')
+    expect(page.get_by_label('Menüname', exact=True)).to_have_value('Herbstteller')
+    _assert_one_primary_save(page)
+
+
+def test_density_viewports_reflow_and_zoom_probe(
+    editor_page, family: str, javascript: bool,  # noqa: F811
+) -> None:
+    if family != 'patienten':
+        pytest.skip('Ein Familienprofil genügt für die Viewportmatrix.')
+    page, *_rest, base_url = editor_page
+    page.goto(_menu_url(family))
+    for width, height in (*DENSITY_VIEWPORTS, (320, 844)):
+        page.set_viewport_size({'width': width, 'height': height})
+        _assert_no_overflow(page)
+        _assert_one_primary_save(page)
+        expect(page.locator('#review')).to_be_visible()
+        if width >= 992:
+            layout = page.evaluate('''() => {
+                const main = document.querySelector('.menu-editor-main').getBoundingClientRect();
+                const review = document.querySelector('.menu-editor-review').getBoundingClientRect();
+                return {main: main.width, review: review.width, stacked: review.top >= main.bottom - 1};
+            }''')
+            assert layout['main'] > layout['review']
+            assert not layout['stacked']
+        else:
+            layout = page.evaluate('''() => {
+                const main = document.querySelector('.menu-editor-main').getBoundingClientRect();
+                const review = document.querySelector('.menu-editor-review').getBoundingClientRect();
+                return {stacked: review.top >= main.bottom - 1};
+            }''')
+            assert layout['stacked']
+    zoom_kind = 'css-viewport-dpr2-surrogate'
+    try:
+        session = page.context.new_cdp_session(page)
+        session.send('Emulation.setPageScaleFactor', {'pageScaleFactor': 2})
+        zoom_kind = 'cdp-page-scale-factor-2'
+        _assert_no_overflow(page)
+    except Exception as error:
+        zoom_kind = f'css-viewport-dpr2-surrogate ({type(error).__name__})'
+        with page.context.browser.new_context(
+            base_url=base_url, viewport={'width': 720, 'height': 450},
+            device_scale_factor=2, java_script_enabled=javascript, reduced_motion='reduce',
+        ) as zoom:
+            zoom.add_cookies(page.context.cookies())
+            zoom_page = zoom.new_page()
+            zoom_page.goto(_menu_url(family))
+            _assert_no_overflow(zoom_page)
+    EVIDENCE.mkdir(parents=True, exist_ok=True)
+    (EVIDENCE / 'zoom-probe.txt').write_text(f'{zoom_kind}\n', encoding='utf-8')
