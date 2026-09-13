@@ -171,7 +171,7 @@ def _lock_items(connection: Connection, source_id: int,
                 SELECT i.id, s.menu_week_id, i.service_id, i.menu_type_id,
                        mt.code AS type_code, mp.code AS meal_code, s.service_date,
                        i.dish_template_id, i.title, i.description, i.note, i.sort_order,
-                       i.allergen_mode, i.origin_mode, i.label_mode
+                       i.accompaniment, i.allergen_mode, i.origin_mode, i.label_mode
                 FROM cafeteria.menu_items i
                 JOIN cafeteria.menu_services s ON s.id=i.service_id
                 JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id
@@ -274,13 +274,15 @@ def _clone_tree(
         '''
         INSERT INTO cafeteria.menu_items(
             service_id, menu_type_id, dish_template_id, external_id, title, description,
-            note, allergen_review_status, sort_order, allergen_mode, origin_mode, label_mode
+            note, allergen_review_status, sort_order, accompaniment,
+            allergen_mode, origin_mode, label_mode
         )
         SELECT target_service.id, source_item.menu_type_id, source_item.dish_template_id,
                :external_prefix || '-' || to_char(target_service.service_date, 'YYYY-MM-DD')
                || '-' || meal.code || '-' || CASE kind.code WHEN 'MENU_1' THEN '1' ELSE '2' END,
                source_item.title, source_item.description, source_item.note, 'not_checked',
-               source_item.sort_order, source_item.allergen_mode, source_item.origin_mode,
+               source_item.sort_order, source_item.accompaniment,
+               source_item.allergen_mode, source_item.origin_mode,
                source_item.label_mode
         FROM cafeteria.menu_items source_item
         JOIN cafeteria.menu_services source_service ON source_service.id=source_item.service_id

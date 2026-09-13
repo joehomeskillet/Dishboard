@@ -12,6 +12,7 @@ from .operations_settings import normalise_time
 from .menu_template_binding import TemplateBindingValidationError, validate_template_fields
 from .component_assignment_contract import AssignmentValidationError, normalize_assignments
 from .workflow import (
+    ACCOMPANIMENT_CODES,
     MENU_TYPES,
     PROFILE_DAYS,
     PROFILE_MEALS,
@@ -32,7 +33,9 @@ _ALLERGEN_CODE = re.compile(r'[A-Z0-9_]{1,32}')
 _MENU_REQUIRED = frozenset(
     '_csrf week day meal option row_version title allergen_mode origin_mode label_mode'.split()
 )
-_MENU_OPTIONAL = frozenset('description note dish_template_public_id dish_template_detach template_context'.split())
+_MENU_OPTIONAL = frozenset(
+    'description note accompaniment dish_template_public_id dish_template_detach template_context'.split()
+)
 _MENU_REPEATED = frozenset(
     'component_public_id component_text recipe_revision_public_id allergen_code allergen_presence '
     'origin_ingredient origin_country_code label_code'.split()
@@ -440,6 +443,15 @@ def parse_menu_item_form(
         'allergens': _allergens(form, context) if modes['allergen_mode'] == 'manual' else [],
         'origins': _origins(form, context) if modes['origin_mode'] == 'manual' else [],
     }
+    if 'accompaniment' in form:
+        accompaniment = _scalar(form, 'accompaniment')
+        if accompaniment not in ACCOMPANIMENT_CODES:
+            raise _item_error(
+                context,
+                'Beilage muss Keine, Suppe oder Salat (gemischt und grün) sein.',
+                'accompaniment',
+            )
+        payload['accompaniment_code'] = accompaniment
     if profile_code == 'staff_guest':
         payload['internal_rappen'] = _price(_scalar(form, 'internal_chf'), context, 'internal_chf')
         payload['external_rappen'] = _price(_scalar(form, 'external_chf'), context, 'external_chf')

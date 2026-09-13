@@ -48,6 +48,7 @@ from .workflow_store import (
 PROFILE_MEALS = {'patient': ('LUNCH', 'DINNER'), 'staff_guest': ('LUNCH',)}
 PROFILE_DAYS = {'patient': 7, 'staff_guest': 5}
 MENU_TYPES = ('MENU_1', 'VEGGIE')
+ACCOMPANIMENT_CODES = ('none', 'soup', 'salad')
 SERVICE_STATES = {'open', 'closed', 'holiday', 'company_holiday'}
 SIGNAGE_LIMITS = {
     'staff_guest': {
@@ -126,6 +127,7 @@ def _validate_values(profile_code: str, week_start: date, values: dict[str, Any]
         'origins',
         'note',
         'allergen_review_status',
+        'accompaniment_code',
         'assignments', 'allergen_mode', 'origin_mode', 'label_mode',
     }
     if profile_code == 'staff_guest':
@@ -201,6 +203,14 @@ def _validate_values(profile_code: str, week_start: date, values: dict[str, Any]
                 for key in ('labels', 'allergens', 'origins'):
                     if key in option and not isinstance(option[key], list):
                         raise WorkflowValidationError('Menümetadaten sind ungültig.')
+                if (
+                    'accompaniment_code' in option
+                    and (
+                        type(option['accompaniment_code']) is not str
+                        or option['accompaniment_code'] not in ACCOMPANIMENT_CODES
+                    )
+                ):
+                    raise WorkflowValidationError('Beilagenwahl ist ungültig.')
                 if state != 'open':
                     continue
                 if not isinstance(option['title'], str) or not option['title'].strip():
@@ -379,6 +389,7 @@ def _full_replace_values(values: dict[str, Any]) -> dict[str, Any]:
             for option in service['options']:
                 internal = {
                     **option,
+                    'accompaniment_code': option.get('accompaniment_code', 'none'),
                     'allergen_mode': 'manual',
                     'origin_mode': 'manual',
                     'label_mode': 'manual',
@@ -400,6 +411,7 @@ def _public_option(option: dict[str, Any]) -> dict[str, Any]:
         for key in (
             'type_code', 'external_id', 'title', 'description', 'components',
             'labels', 'allergens', 'origins', 'note', 'allergen_review_status',
+            'accompaniment_code',
         )
     }
     for key in ('internal_rappen', 'external_rappen'):

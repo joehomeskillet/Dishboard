@@ -19,6 +19,11 @@ MONTHS = (
 )
 MEAL_LABELS = {'LUNCH': 'Mittag', 'DINNER': 'Abend'}
 OPTION_LABELS = {'MENU_1': 'Menü 1', 'VEGGIE': 'Vegetarisch'}
+ACCOMPANIMENT_LABELS = {
+    'none': 'Keine',
+    'soup': 'Suppe',
+    'salad': 'Salat (gemischt und grün)',
+}
 STATUS_LABELS = {
     'empty': 'Leer', 'incomplete': 'Unvollständig', 'review_open': 'Prüfung offen',
     'ready': 'Bereit', 'live': 'Live', 'changed': 'Geändert',
@@ -54,6 +59,7 @@ def menu_form_values(profile: str, option: dict[str, Any]) -> dict[str, Any]:
         'title': str(option.get('title') or ''),
         'description': str(option.get('description') or ''),
         'note': str(option.get('note') or ''),
+        'accompaniment': str(option.get('accompaniment_code') or 'none'),
         'dish_template_public_id': str((option.get('dish_template') or {}).get('public_id') or ''),
         'allergen_mode': str(option.get('allergen_mode') or 'manual'),
         'origin_mode': str(option.get('origin_mode') or 'manual'),
@@ -127,6 +133,8 @@ def _cells(
                     'components': list(option.get('components') or []),
                     'description': str(option.get('description') or ''),
                     'note': str(option.get('note') or ''),
+                    'accompaniment_code': str(option.get('accompaniment_code') or 'none'),
+                    'accompaniment_name': str(option.get('accompaniment_name') or ''),
                     'allergens': list(option.get('allergens') or []),
                     'labels': list(option.get('labels') or []),
                     'origins': list(option.get('origins') or []),

@@ -40,14 +40,17 @@ def write_draft_item(
         'type_code': option['type_code'], 'allergen_mode': option.get('allergen_mode', 'manual'),
         'origin_mode': option.get('origin_mode', 'manual'), 'label_mode': option.get('label_mode', 'manual'),
         'template_id': resolve_template_binding(scope, option, current, templates),
+        'accompaniment': option.get('accompaniment_code', 'none'),
     }
     before = int(current['row_version']) if current is not None else 0
     if current is None:
         item_id = int(connection.execute(text('''
             INSERT INTO cafeteria.menu_items(service_id,menu_type_id,external_id,title,
-                description,note,allergen_review_status,sort_order,allergen_mode,origin_mode,label_mode,dish_template_id)
+                description,note,allergen_review_status,sort_order,allergen_mode,origin_mode,label_mode,
+                dish_template_id,accompaniment)
             SELECT :service_id,mt.id,:external_id,:title,NULLIF(:description,''),NULLIF(:note,''),
-                   'not_checked',:sort_order,:allergen_mode,:origin_mode,:label_mode,:template_id
+                   'not_checked',:sort_order,:allergen_mode,:origin_mode,:label_mode,:template_id,
+                   :accompaniment
             FROM cafeteria.menu_types mt WHERE mt.code=:type_code RETURNING id
         '''), params).scalar_one())
     else:
@@ -68,7 +71,7 @@ def write_draft_item(
             UPDATE cafeteria.menu_items SET title=:title,external_id=:external_id,
                 description=NULLIF(:description,''),note=NULLIF(:note,''),sort_order=:sort_order,
                 allergen_mode=:allergen_mode,origin_mode=:origin_mode,label_mode=:label_mode,
-                dish_template_id=:template_id,
+                dish_template_id=:template_id,accompaniment=:accompaniment,
                 allergen_review_status='not_checked' WHERE id=:item_id RETURNING row_version
         '''), {**params, 'item_id': item_id}).scalar_one())
     record_item_write(connection, scope, item_id, before, after)

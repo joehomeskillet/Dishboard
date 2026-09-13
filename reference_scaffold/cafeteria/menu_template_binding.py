@@ -79,6 +79,7 @@ def lock_templates(connection: Connection, scope: AdminScope,
     """After recipe-head locks, before aggregate locks; never discover a new lock later."""
     rows = connection.execute(text('''
         SELECT d.id,d.public_id::text,d.title,d.description,d.active,d.profile_scope,d.updated_at,
+               d.accompaniment_default,
                r.public_id::text AS recipe_public_id,r.location_id AS recipe_location_id,
                r.active AS recipe_active
         FROM cafeteria.dish_templates d LEFT JOIN cafeteria.recipes r ON r.id=d.recipe_id

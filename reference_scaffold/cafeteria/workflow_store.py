@@ -17,7 +17,7 @@ from .operations_settings import (
     normalise_time,
     slot_defaults,
 )
-from .workflow_snapshot import MEAL_NAMES
+from .workflow_snapshot import ACCOMPANIMENT_NAMES, MEAL_NAMES
 
 PROFILE_MEALS = {'patient': ('LUNCH', 'DINNER'), 'staff_guest': ('LUNCH',)}
 PROFILE_DAYS = {'patient': 7, 'staff_guest': 5}
@@ -141,7 +141,7 @@ def load_draft_connection(
         SELECT i.id, s.service_date, mp.code AS meal_code, mt.code AS type_code,
                i.external_id, i.title, COALESCE(i.description, '') AS description,
                COALESCE(i.note, '') AS note, i.allergen_review_status,
-               i.allergen_mode, i.origin_mode, i.label_mode,
+               i.accompaniment, i.allergen_mode, i.origin_mode, i.label_mode,
                dt.public_id::text AS dish_template_public_id,
                dt.title AS dish_template_title,dt.active AS dish_template_active,
                ARRAY(
@@ -240,6 +240,10 @@ def load_draft_connection(
                     'allergens': list(item['allergens']) if item else [],
                     'origins': list(item['origins']) if item else [],
                     'note': item['note'] if item else '',
+                    'accompaniment_code': item['accompaniment'] if item else 'none',
+                    'accompaniment_name': (
+                        ACCOMPANIMENT_NAMES.get(str(item['accompaniment']), '') if item else ''
+                    ),
                     'dish_template': ({'public_id': item['dish_template_public_id'],
                                        'title': item['dish_template_title'],
                                        'active': item['dish_template_active']}

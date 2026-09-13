@@ -36,7 +36,7 @@ def form_client(monkeypatch):
         'admin_content_width': 'contained', 'admin_menu_images': 'show',
     })
 
-    def write(*args):
+    def write(*args, template_context=None):
         state['writes'].append(args)
         return 1
 
@@ -149,7 +149,7 @@ def test_menu_return_error_stays_in_editor_with_entered_values(form_client, monk
     client, token, state = form_client
     fields = _menu_form(_csrf=token('patienten'), title='' if not conflict else 'Mein Entwurf', note='Behalten')
     if conflict:
-        def stale(*_):
+        def stale(*_, template_context=None):
             raise PartialWorkflowConflictError('Veraltet')
         monkeypatch.setattr(routes, 'persist_menu_item', stale)
     result = client.post('/admin/patienten/menu?return_to=week', data=fields)

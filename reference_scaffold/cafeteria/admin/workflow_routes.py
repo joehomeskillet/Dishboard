@@ -90,6 +90,7 @@ _MENU_CONFLICT_ERRORS = (
 _MENU_VALUE_FIELDS = (
     'title', 'description', 'note', 'allergen_mode', 'origin_mode', 'label_mode',
     'internal_chf', 'external_chf',
+    'accompaniment',
     'dish_template_public_id', 'dish_template_detach', 'template_context',
 )
 _MENU_LIST_FIELDS = (
@@ -335,6 +336,7 @@ def _proposal_values(context: TemplateContext, scope: AdminScope) -> dict[str, o
         require_empty_template_target(connection, scope, context)
         option: dict[str, object] = {
             'title': source['title'], 'description': source['description'] or '',
+            'accompaniment_code': source['accompaniment_default'],
             'dish_template': {key: source[key] for key in ('public_id', 'title', 'active')},
             'assignments': [], 'proposal_hint': 'Ohne verknüpftes Rezept. Bausteine bei Bedarf ergänzen.',
         }
