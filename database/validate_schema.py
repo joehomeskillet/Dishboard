@@ -64,6 +64,7 @@ ALLOWED_PATIENT_COMPACT_KEYS = frozenset({
     'weekday', 'location', 'profilecode', 'revisionid', 'schemaversion',
     'sharednote', 'weekend', 'weekstart', 'servicestate',
     'servicestart', 'serviceend', 'areaname',
+    'accompanimentcode', 'accompanimentname',
 })
 
 
@@ -287,6 +288,19 @@ def run_live_check() -> dict[str, Any]:
                     '''
                 )
             ).mappings().one_or_none()
+            patient_key_decisions = dict(
+                connection.execute(
+                    text(
+                        '''
+                        SELECT key, cafeteria.patient_key_is_forbidden(key)
+                        FROM (VALUES
+                            ('accompaniment_code'), ('accompaniment_name'),
+                            ('accompaniment_price'), ('accompanimentkosten'), ('rappen')
+                        ) AS keys(key)
+                        '''
+                    )
+                ).all()
+            )
         if int(row['schema_version']) != 32:
             fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 32.")
         if int(row['revision_fn_count']) != 1:
@@ -323,6 +337,14 @@ def run_live_check() -> dict[str, Any]:
             fail('Live-Owner-Guard für dish_templates fehlt.')
         if not all(guard_contract.values()):
             fail('Live-ACL oder Owner-Guard für dish_templates ist ungültig.')
+        if patient_key_decisions != {
+            'accompaniment_code': False,
+            'accompaniment_name': False,
+            'accompaniment_price': True,
+            'accompanimentkosten': True,
+            'rappen': True,
+        }:
+            fail('Live-Patientenschlüsselvertrag für Beilagen ist ungültig.')
         migrated_structure = structure('cafeteria')
         with engine.begin() as connection:
             connection.execute(text('ALTER SCHEMA cafeteria RENAME TO cafeteria_migrated_contract'))
@@ -452,6 +474,8 @@ def main() -> int:
             "USING ERRCODE='42501'",
             'FOR EACH STATEMENT EXECUTE FUNCTION',
             "'accompaniment_default',v.accompaniment_default",
+            "'accompanimentcode'",
+            "'accompanimentname'",
         ):
             if fragment not in migration_0029 or fragment not in sql:
                 fail(f'Beilagenvertrag v32 fehlt: {fragment}')

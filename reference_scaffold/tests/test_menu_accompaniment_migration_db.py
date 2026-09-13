@@ -2,6 +2,7 @@
 # ruff: noqa: F401, F811
 import hashlib
 import json
+from copy import deepcopy
 from datetime import datetime
 
 import pytest
@@ -14,7 +15,13 @@ from test_component_metadata_master_lock_db import (
 )
 from test_component_scope_invariants_db import _seed_scope_probe
 from test_master_data_db import make_actor
-from test_operations_settings_db import _INSERT_REVISION_SQL, _actor_id, _v19_snapshot, _v19_week
+from test_operations_settings_db import (
+    _INSERT_REVISION_SQL,
+    _actor_id,
+    _patient_snapshot,
+    _v19_snapshot,
+    _v19_week,
+)
 from test_rec_import_commit_migration_db import rows_and_sequences
 
 
@@ -46,10 +53,27 @@ def _v32_structure(connection):
             FROM pg_constraint WHERE connamespace='cafeteria'::regnamespace
             AND conname IN ('menu_items_accompaniment_check',
                 'dish_templates_accompaniment_default_check') ORDER BY conname""")).all(),
-        connection.execute(text("""SELECT proname,pg_get_function_identity_arguments(oid),prosrc,
-            prosecdef,proconfig,proacl FROM pg_proc WHERE pronamespace='cafeteria'::regnamespace
-            AND proname LIKE '%dish_template%_v32' ORDER BY proname""")).all(),
+        connection.execute(text("""SELECT proname,pg_get_function_identity_arguments(oid),
+            pg_get_functiondef(oid),pg_get_userbyid(proowner),prosecdef,provolatile,
+            proisstrict,proparallel,proconfig,proacl FROM pg_proc
+            WHERE pronamespace='cafeteria'::regnamespace
+            AND (proname LIKE '%dish_template%_v32' OR proname='patient_key_is_forbidden')
+            ORDER BY proname""")).all(),
     )
+
+
+def _assert_patient_key_decisions(connection):
+    decisions = dict(connection.execute(text("""SELECT key,
+        cafeteria.patient_key_is_forbidden(key) FROM (VALUES
+        ('accompaniment_code'),('accompaniment_name'),('accompaniment_price'),
+        ('accompanimentkosten'),('rappen')) AS keys(key)""")).all())
+    assert decisions == {
+        'accompaniment_code': False,
+        'accompaniment_name': False,
+        'accompaniment_price': True,
+        'accompanimentkosten': True,
+        'rappen': True,
+    }
 
 
 def _call_template(engine, ids, version, verb, payload, previous=None):
@@ -128,6 +152,7 @@ def test_bootstrap_and_v31_upgrade_have_identical_acl_contract(pg16):
             cafeteria.dish_templates,cafeteria.menu_items TO cafeteria_backup"""))
     database._execute_migration(pg16, plan[-1])
     with pg16.connect() as connection:
+        _assert_patient_key_decisions(connection)
         migrated = _acl_contract(connection)
 
     with pg16.begin() as connection:
@@ -135,6 +160,7 @@ def test_bootstrap_and_v31_upgrade_have_identical_acl_contract(pg16):
     database._execute_script(pg16, str(SCHEMA))
     database._execute_script(pg16, str(PERMISSIONS))
     with pg16.connect() as connection:
+        _assert_patient_key_decisions(connection)
         assert _acl_contract(connection) == migrated
 
 
@@ -320,7 +346,52 @@ def test_schema31_upgrade_preserves_nonempty_data_defaults_and_fresh_contract(pg
     database._execute_script(pg16, str(SCHEMA))
     database._execute_script(pg16, str(PERMISSIONS))
     with pg16.connect() as connection:
+        _assert_patient_key_decisions(connection)
         assert _v32_structure(connection) == migrated
+
+
+def test_patient_publication_accepts_accompaniment_pair_but_rejects_numeric_name(
+    seeded_pg16,
+):
+    actor = _actor_id(seeded_pg16)
+    accepted = _patient_snapshot(seeded_pg16, 'PAT-2026-KW36-R1')
+    accepted_option = accepted['days'][0]['services'][0]['options'][0]
+    accepted_option.update({
+        'accompaniment_code': 'soup',
+        'accompaniment_name': 'Suppe',
+    })
+    with seeded_pg16.begin() as connection:
+        week_id = connection.execute(text("""SELECT w.id FROM cafeteria.menu_weeks w
+            JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+            WHERE p.code='patient' AND w.week_start=CAST(:week_start AS date)"""), {
+                'week_start': accepted['week_start'],
+            }).scalar_one()
+        connection.execute(text(
+            "UPDATE cafeteria.menu_weeks SET workflow_state='published' WHERE id=:week"
+        ), {'week': week_id})
+        connection.execute(text(_INSERT_REVISION_SQL), {
+            'week_id': week_id,
+            'revision_number': 1,
+            'revision_code': accepted['revision_id'],
+            'snapshot': json.dumps(accepted, ensure_ascii=False),
+            'actor': actor,
+        })
+
+    rejected = deepcopy(accepted)
+    rejected['revision_id'] = 'PAT-2026-KW36-R2'
+    rejected['days'][0]['services'][0]['options'][0]['accompaniment_name'] = 'Suppe 5'
+
+    def insert_rejected():
+        with seeded_pg16.begin() as connection:
+            connection.execute(text(_INSERT_REVISION_SQL), {
+                'week_id': week_id,
+                'revision_number': 2,
+                'revision_code': rejected['revision_id'],
+                'snapshot': json.dumps(rejected, ensure_ascii=False),
+                'actor': actor,
+            })
+
+    _assert_sqlstate('23514', insert_rejected)
 
 
 def test_v32_template_defaults_validation_cas_audit_v26_compatibility_and_acl(

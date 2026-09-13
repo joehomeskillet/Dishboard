@@ -10,6 +10,31 @@ ALTER TABLE cafeteria.dish_templates
     CONSTRAINT dish_templates_accompaniment_default_check
     CHECK (accompaniment_default IN ('none', 'soup', 'salad'));
 
+CREATE OR REPLACE FUNCTION cafeteria.patient_key_is_forbidden(k text)
+RETURNS boolean
+LANGUAGE sql
+IMMUTABLE
+STRICT
+PARALLEL SAFE
+AS $$
+    SELECT compact = ''
+        OR compact <> ALL (ARRAY[
+            'channel', 'days', 'date', 'notice', 'services', 'mealcode', 'mealname',
+            'options', 'allergenreviewstatus', 'allergens', 'components', 'description',
+            'externalid', 'labels', 'note', 'origins', 'title', 'typecode', 'typename',
+            'code', 'name', 'presence', 'countrycode', 'ingredient', 'text', 'state',
+            'weekday', 'location', 'profilecode', 'revisionid', 'schemaversion',
+            'sharednote', 'weekend', 'weekstart', 'servicestate',
+            'servicestart', 'serviceend', 'areaname',
+            'accompanimentcode', 'accompanimentname'
+        ]::text[])
+        OR compact ~ '(price|prices|preis|preise|cost|costs|amount|amounts|kosten|betrag|rappen|currency|chf|fee|tarif|tariff|charge)'
+    FROM (SELECT cafeteria.normalize_patient_key(k) AS compact) s;
+$$;
+
+ALTER FUNCTION cafeteria.patient_key_is_forbidden(text)
+    SET search_path = cafeteria, pg_temp;
+
 -- Row-locking SELECTs need UPDATE on one column. Keep that narrow privilege
 -- while rejecting every direct app UPDATE, including statements matching no rows.
 CREATE FUNCTION cafeteria.reject_direct_dish_template_update_v32() RETURNS trigger

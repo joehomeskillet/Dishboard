@@ -819,7 +819,8 @@ AS $$
             'code', 'name', 'presence', 'countrycode', 'ingredient', 'text', 'state',
             'weekday', 'location', 'profilecode', 'revisionid', 'schemaversion',
             'sharednote', 'weekend', 'weekstart', 'servicestate',
-            'servicestart', 'serviceend', 'areaname'
+            'servicestart', 'serviceend', 'areaname',
+            'accompanimentcode', 'accompanimentname'
         ]::text[])
         OR compact ~ '(price|prices|preis|preise|cost|costs|amount|amounts|kosten|betrag|rappen|currency|chf|fee|tarif|tariff|charge)'
     FROM (SELECT cafeteria.normalize_patient_key(k) AS compact) s;
