@@ -13,7 +13,9 @@
       "docs/superpowers/backlog-0909/file-leases.json",
       "docs/superpowers/plans/2026-09-12-next-sprints.md",
       "MANIFEST_SHA256.txt",
-      "PACKAGE_CONTENTS.txt"
+      "PACKAGE_CONTENTS.txt",
+      "docs/superpowers/backlog-0909/ui-route-matrix.json",
+      "docs/superpowers/backlog-0909/ui-before-manifest.json"
     ],
     "serial_shared_files": {
       "reference_scaffold/cafeteria/static/admin-tabler.css": [
@@ -74,6 +76,24 @@
       "reference_scaffold/tests/test_ui_korrektur_recipes_browser.py": [
         "MP-UI-DENSITY-RECIPE",
         "MP-REC-RECIPE-VIEW-PRINT"
+      ],
+      "reference_scaffold/cafeteria/menu_template_binding.py": [
+        "MP-REC-MENU-TEMPLATE-BINDING"
+      ],
+      "reference_scaffold/tests/test_menu_collection_browser.py": [
+        "MP-UI-DENSITY-LISTS"
+      ],
+      "reference_scaffold/tests/test_master_data_browser.py": [
+        "MP-UI-DENSITY-FOUNDATIONS"
+      ],
+      "reference_scaffold/tests/test_master_data_routes.py": [
+        "MP-UI-DENSITY-FOUNDATIONS"
+      ],
+      "reference_scaffold/tests/test_master_data_prepared_browser.py": [
+        "MP-UI-DENSITY-FOUNDATIONS"
+      ],
+      "reference_scaffold/cafeteria/templates/admin/_country_select.html": [
+        "MP-UI-DENSITY-COMPONENTS"
       ]
     },
     "foreign_work": "Shared main dirty AGENTS/CLAUDE is preserved; ongoing site/* and docs changes must be reconciled before release. Release manifests serialized by Root.",
@@ -97,8 +117,8 @@
         "file_reservation": "RELEASED"
       }
     ],
-    "current_integration": "8c39ca7b448f5f34b4c791457b65555368a298bd",
-    "frozen_base_note": "a420992 is the initial worker basis, retained historically. Current workers keep exact per-grant bases. This docs refresh starts on 8c39 and rebases no product worker.",
+    "current_integration": "0202fd518565fd7068ba8430b2d50641abec2cf8",
+    "frozen_base_note": "a420992 remains historical initial worker basis. This docs snapshot uses0202fd5; every actual worker keeps its explicit per-grant base, no rebase is authorized.",
     "grant_lifecycle": "grants contains only current exclusive writers. completed_grants preserves historical ownership and receipts with released file/pool reservations. Lower PROPOSAL_ONLY input_manifests/counts/files remain the historical 136-WP snapshot, not current grants.",
     "current_plan_count": 176,
     "current_requirement_count": 35,
@@ -459,9 +479,7 @@
         "root_gate": "Root independent documentation review CLEAN; no DB/browser gate",
         "deployment": "NOT_YET_DEPLOYED",
         "integration_note": "Merged per explicit Root update after the 8c39 snapshot; exact subsequent merge hash is not asserted."
-      }
-    ],
-    "grants": [
+      },
       {
         "wp_id": "MP-UI-DENSITY-SHELL",
         "routing_wp": "wp-ecabb035f0cf",
@@ -472,7 +490,7 @@
         "base": "8c39ca7b448f5f34b4c791457b65555368a298bd",
         "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/shell-acceptance-0913",
         "branch": "test/shell-acceptance-0913",
-        "status": "IN_PROGRESS",
+        "status": "DEPLOYED",
         "owned_files": [
           "reference_scaffold/cafeteria/templates/admin/base_tabler.html",
           "reference_scaffold/cafeteria/templates/admin/_area_tabs.html",
@@ -485,10 +503,21 @@
           "pg_port": 32865,
           "redis_port": 32866
         },
-        "file_reservation": "EXCLUSIVE",
-        "pool_reservation": "EXCLUSIVE",
+        "file_reservation": "RELEASED",
+        "pool_reservation": "RELEASED",
         "parallel_group": "sprint-0913-shell-menu-inventory",
-        "scope": "Full five-file SHELL acceptance; sole active owner of admin-tabler.css. Prior 8c666 alignment is integrated but does not complete this WP."
+        "scope": "Full five-file SHELL acceptance; sole active owner of admin-tabler.css. Prior 8c666 alignment is integrated but does not complete this WP.",
+        "closure_receipt": {
+          "release": "b62e5dbd136713e32cf09e61b23176d9378d5389",
+          "report": "wp-ecabb035f0cf-deploy-b62e5db.md",
+          "status": "DEPLOYED",
+          "head": "f0a93ac93fa1d4eb0bccfe1718270067f1450f38",
+          "review_record": 12755,
+          "root_gate": "16 passed in 221.45s; Root gate record12759",
+          "limits": "True browser zoom applies to week/recipe-view/recipe-editor; physical input and whole density/novice acceptance remain open.",
+          "snapshot": "2026-09-13 05:05 CEST",
+          "evidence_origin": "Root deployment report; no live verification or product tests by this docs worker."
+        }
       },
       {
         "wp_id": "MP-UI-DENSITY-MENUEDITOR",
@@ -500,7 +529,7 @@
         "base": "d661c011cb261dcb80dfb1fb5b2f963716b04fdf",
         "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/density-menu-grok-0913",
         "branch": "feat/density-menu-grok-0913",
-        "status": "IN_PROGRESS",
+        "status": "DEPLOYED",
         "owned_files": [
           "reference_scaffold/cafeteria/templates/admin/menu_editor.html",
           "reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html",
@@ -513,9 +542,25 @@
           "pg_port": 32823,
           "redis_port": 32867
         },
-        "file_reservation": "EXCLUSIVE",
-        "pool_reservation": "EXCLUSIVE",
-        "parallel_group": "sprint-0913-shell-menu-inventory"
+        "file_reservation": "RELEASED",
+        "pool_reservation": "RELEASED",
+        "parallel_group": "sprint-0913-shell-menu-inventory",
+        "closure_receipt": {
+          "release": "b62e5dbd136713e32cf09e61b23176d9378d5389",
+          "report": "wp-ecabb035f0cf-deploy-b62e5db.md",
+          "status": "DEPLOYED",
+          "head": "f86191f2746b9bda316c5d928c484111c306a729",
+          "fix_commit": "5d1869050c0e2514f72516ded28adcdb00dabc9a",
+          "fix_executor": "AGY, different author from Grok",
+          "review_record": 12756,
+          "root_gates": [
+            "Original: 65 passed, 12 intentional skips in 179.81s",
+            "Sticky correction: 4 passed, 2 intentional skips in 14.95s"
+          ],
+          "limits": "Original P2 sticky finding12751 held release until separate fix. MENUEDITOR page-scale probe is not true browser200% proof.",
+          "snapshot": "2026-09-13 05:05 CEST",
+          "evidence_origin": "Root deployment report; no live verification or product tests by this docs worker."
+        }
       },
       {
         "wp_id": "MP-UI-DENSITY-INVENTORY",
@@ -527,7 +572,7 @@
         "base": "8c39ca7b448f5f34b4c791457b65555368a298bd",
         "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/history-inventory-0913",
         "branch": "chore/history-inventory-0913",
-        "status": "IN_PROGRESS",
+        "status": "DEPLOYED",
         "owned_files": [
           "docs/superpowers/backlog-0909/ui-route-matrix.json",
           "docs/superpowers/backlog-0909/ui-before-manifest.json",
@@ -538,24 +583,167 @@
           "pg_port": 32853,
           "redis_port": 32854
         },
-        "file_reservation": "EXCLUSIVE",
-        "pool_reservation": "EXCLUSIVE",
+        "file_reservation": "RELEASED",
+        "pool_reservation": "RELEASED",
         "parallel_group": "sprint-0913-shell-menu-inventory",
-        "phase": "FROZEN_ROOT_REVIEW_PENDING",
+        "phase": "COMPLETED",
         "head": "68a89ee5397aa5221b0acd83bf353d1b8e4b249c",
         "author_gate": "9 passed; author evidence only, Root review pending",
-        "scope": "Supplemental History route inventory refresh: two JSON source manifests and only the assigned existing fixture route hunk in test_ui_route_inventory.py. Historical captures unchanged. Original inventory delivery stays INTEGRATED."
+        "scope": "Supplemental History route inventory refresh: two JSON source manifests and only the assigned existing fixture route hunk in test_ui_route_inventory.py. Historical captures unchanged. Original inventory delivery stays INTEGRATED.",
+        "closure_receipt": {
+          "release": "f32fc70fff3c805c0f35026ca444b6c40a81dea1",
+          "report": "wp-5b2e66ec76d3-deploy-f32fc70.md",
+          "report_record": 12749,
+          "status": "DEPLOYED",
+          "review_record": 12748,
+          "root_gate": "9 passed, 1 historical capture deselected in 35.89s",
+          "current_source_refresh": "d13f7fe86aa68d21bb4268cf329d3d9f30d38cb0 in 0202fd5; review12771; historical captures unchanged; current inventory belongs to Root",
+          "snapshot": "2026-09-13 05:05 CEST",
+          "evidence_origin": "Root deployment report; no live verification or product tests by this docs worker."
+        }
+      }
+    ],
+    "grants": [
+      {
+        "wp_id": "MP-REC-MENU-TEMPLATE-BINDING",
+        "routing_wp": "wp-a127e7b49932",
+        "actual_executor": "native:/root/components_reviewfix",
+        "owner": "native:/root/components_reviewfix",
+        "router_recommendation": "Recommendation metadata only; actual executor explicitly assigned by Root.",
+        "authority": "Root fixed 05:05 CEST lifecycle assignment and current scoped brief; no competing original author.",
+        "base": "4c0a76b462cb6683c070f9e04ede680d28398f65",
+        "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/menu-binding-reviewfix-0913",
+        "branch": "fix/menu-binding-reviewfix-0913",
+        "status": "IN_PROGRESS",
+        "owned_files": [
+          "proposed:reference_scaffold/cafeteria/menu_template_binding.py",
+          "reference_scaffold/cafeteria/workflow_partial_form.py",
+          "reference_scaffold/cafeteria/workflow_item_write.py",
+          "reference_scaffold/cafeteria/workflow_partial_store.py",
+          "reference_scaffold/cafeteria/workflow_store.py",
+          "reference_scaffold/cafeteria/admin/rendering.py",
+          "reference_scaffold/cafeteria/admin/workflow_routes.py",
+          "reference_scaffold/cafeteria/templates/admin/menu_editor.html",
+          "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html",
+          "proposed:reference_scaffold/tests/test_menu_template_binding_db.py",
+          "proposed:reference_scaffold/tests/test_menu_template_binding_routes.py",
+          "proposed:reference_scaffold/tests/test_menu_template_binding_browser.py",
+          "reference_scaffold/cafeteria/admin/workflow_scope.py"
+        ],
+        "pool": {
+          "name": "test-api3",
+          "pg_port": 32788,
+          "redis_port": 32789
+        },
+        "file_reservation": "EXCLUSIVE",
+        "pool_reservation": "EXCLUSIVE",
+        "parallel_group": "sprint-0913-binding-foundations-cookbooks-lists",
+        "scope": "Original13 files including helper, both writers/readers/parser/scope/routes/rendering/editor/week card and three tests. Repair currently touches seven of13 only; narrow rendering/partial-writer corrections are within this original scope, no extra files. Original author stopped. MENU-PROPOSAL remains subsequent.",
+        "prior_attempt": "Original wp-5a2b2af9fb1d freeze4c0a76b: author62 passed85.18s; independent12770 P1 stale-authority business reads on409 and P2 cross-location rebound signed source404 instead409. Not merged; no acceptance from author gate."
+      },
+      {
+        "wp_id": "MP-UI-DENSITY-FOUNDATIONS",
+        "routing_wp": "wp-c51fd9379326",
+        "actual_executor": "agy-cli",
+        "owner": "agy-cli",
+        "router_recommendation": "Recommendation metadata only; actual executor explicitly assigned by Root.",
+        "authority": "Root fixed 05:05 CEST lifecycle assignment and current scoped brief; no competing original author.",
+        "base": "0c40299266ef3a2d7f3b2fbab6340b83552fba4b",
+        "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/foundations-reviewfix-agy-0913",
+        "branch": "fix/foundations-reviewfix-agy-0913",
+        "status": "IN_PROGRESS",
+        "owned_files": [
+          "reference_scaffold/cafeteria/templates/admin/grundlagen.html",
+          "reference_scaffold/cafeteria/templates/admin/grundlagen_food.html",
+          "reference_scaffold/cafeteria/templates/admin/grundlagen_unit.html",
+          "reference_scaffold/cafeteria/templates/admin/grundlagen_vocabulary.html",
+          "reference_scaffold/cafeteria/templates/admin/grundlagen_location_conflict.html",
+          "reference_scaffold/cafeteria/templates/admin/grundlagen_unavailable.html",
+          "reference_scaffold/cafeteria/static/admin-grundlagen.css",
+          "reference_scaffold/tests/test_ui_korrektur_grundlagen_browser.py",
+          "reference_scaffold/tests/test_master_data_browser.py",
+          "reference_scaffold/tests/test_master_data_routes.py",
+          "reference_scaffold/tests/test_master_data_prepared_browser.py"
+        ],
+        "pool": {
+          "name": "test_ui_other",
+          "pg_port": 32853,
+          "redis_port": 32854
+        },
+        "file_reservation": "EXCLUSIVE",
+        "pool_reservation": "EXCLUSIVE",
+        "parallel_group": "sprint-0913-binding-foundations-cookbooks-lists",
+        "scope": "Original8 files plus three existing master-data consumers; scoped status/action/test corrections and genuine zoom proof. No shared CSS/JS/macros/backend ownership.",
+        "prior_attempt": "Cursor wp-7e91a0a117cd freeze0c40299; review12764 three findings; Root8 passed1 failed twice, report12763. Not merged."
+      },
+      {
+        "wp_id": "MP-UI-DENSITY-COOKBOOKS",
+        "routing_wp": "wp-f3edc88fef0f",
+        "actual_executor": "Claude Code via CSD",
+        "owner": "Claude Code via CSD",
+        "router_recommendation": "Recommendation metadata only; actual executor explicitly assigned by Root.",
+        "authority": "Root fixed 05:05 CEST lifecycle assignment and current scoped brief; no competing original author.",
+        "base": "b62e5dbd136713e32cf09e61b23176d9378d5389",
+        "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/density-cookbooks-claude-0913",
+        "branch": "feat/density-cookbooks-claude-0913",
+        "status": "IN_PROGRESS",
+        "owned_files": [
+          "reference_scaffold/cafeteria/templates/admin/kochbuecher.html",
+          "reference_scaffold/cafeteria/templates/admin/kochbuch_editor.html",
+          "reference_scaffold/tests/test_ui_korrektur_cookbooks_browser.py"
+        ],
+        "pool": {
+          "name": "test-recipe-print-0908",
+          "pg_port": 32865,
+          "redis_port": 32866
+        },
+        "file_reservation": "EXCLUSIVE",
+        "pool_reservation": "EXCLUSIVE",
+        "parallel_group": "sprint-0913-binding-foundations-cookbooks-lists",
+        "scope": "Exactly two cookbook templates and existing correction browser module. Existing native forms/ordering/readonly contracts preserved; no global CSS/JS/routes.",
+        "prior_attempt": "Working at05:05 snapshot; no frozen/review/deploy assertion."
+      },
+      {
+        "wp_id": "MP-UI-DENSITY-LISTS",
+        "routing_wp": "wp-30852ec2ac03",
+        "actual_executor": "native:/root/density_components",
+        "owner": "native:/root/density_components",
+        "router_recommendation": "Recommendation metadata only; actual executor explicitly assigned by Root.",
+        "authority": "Root fixed 05:05 CEST lifecycle assignment and current scoped brief; no competing original author.",
+        "base": "d340b79c8f09866df171567b247df2d99d1e6543",
+        "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/density-lists-0913",
+        "branch": "feat/density-lists-0913",
+        "status": "IN_PROGRESS",
+        "owned_files": [
+          "reference_scaffold/cafeteria/templates/admin/menu_collection.html",
+          "reference_scaffold/cafeteria/templates/admin/week_management.html",
+          "reference_scaffold/cafeteria/static/admin-menu-collection.css",
+          "reference_scaffold/tests/test_ui_korrektur_menus_browser.py",
+          "reference_scaffold/tests/test_week_management_browser.py",
+          "reference_scaffold/tests/test_menu_collection_browser.py"
+        ],
+        "pool": {
+          "name": "test-recipe-template-editor-0908",
+          "pg_port": 32823,
+          "redis_port": 32867
+        },
+        "file_reservation": "EXCLUSIVE",
+        "pool_reservation": "EXCLUSIVE",
+        "parallel_group": "sprint-0913-binding-foundations-cookbooks-lists",
+        "scope": "Original5 files plus explicitly approved test_menu_collection_browser.py consumer for default list/card toggle; existing contracts retained.",
+        "prior_attempt": "Working at05:05 snapshot; no frozen/review/deploy assertion."
       }
     ],
     "parallel_groups": [
       {
-        "id": "sprint-0913-shell-menu-inventory",
+        "id": "sprint-0913-binding-foundations-cookbooks-lists",
         "plan_ids": [
-          "MP-UI-DENSITY-SHELL",
-          "MP-UI-DENSITY-MENUEDITOR",
-          "MP-UI-DENSITY-INVENTORY"
+          "MP-REC-MENU-TEMPLATE-BINDING",
+          "MP-UI-DENSITY-FOUNDATIONS",
+          "MP-UI-DENSITY-COOKBOOKS",
+          "MP-UI-DENSITY-LISTS"
         ],
-        "rule": "Three disjoint reserved worker grants at this snapshot; inventory frozen pending Root review. WEEKS and OFF are integrated and released. Root gates use a separate pool; maximum five heavy jobs overall. Stopped pools remain stopped."
+        "rule": "Exactly four file-disjoint exclusive worker grants/four pools; Root gate or deploy is fifth heavy job at most. No stopped-container restart; current inventory and release manifests Root-only."
       }
     ],
     "documentation_grant": {
@@ -581,16 +769,16 @@
     },
     "current_input_manifests": {
       "operations-wps.json": {
-        "sha256": "4bb4dc267d7c7fa8f374ca37a7007267621742dcac05dc96fbce06db140c9f1e",
-        "bytes": 210136
+        "sha256": "53f0665ca9c953432ad8c2f8b0be10703163f02fe82625f0574ac6c55210be24",
+        "bytes": 210665
       },
       "recipes-wps.json": {
-        "sha256": "152857343baea40574ea41efab4206e4097946be0a584920c22701161c94d623",
-        "bytes": 455869
+        "sha256": "4d8efe879b46c0c26ca5628321a97c88895ace2b6a0e0a3728f978481bf47cf8",
+        "bytes": 460073
       },
       "surfaces-wps.json": {
-        "sha256": "04618a1a153b20851dd02dd0421d3ed8597456c034731dd749ca7ba5712e4540",
-        "bytes": 443756
+        "sha256": "b79f1621c7604f91067e293dd32b9091e23e63672b616dad84ec298bcd793beb",
+        "bytes": 454286
       }
     },
     "documentation_followup_grant": {
@@ -612,12 +800,15 @@
       "file_reservation": "RELEASED",
       "pool_reservation": "RELEASED"
     },
-    "snapshot": "8c39 integration ledger at 2026-09-13 03:45 CEST plus explicit Root update: WEEKS/OFF merged, inventory frozen pending review, integrated sprint gate 49 passed in 227.20s. Later operational changes remain in Root ledger.",
+    "snapshot": "Fixed 2026-09-13 05:05 CEST; deployed0202fd5 receipt12774 plus explicit Root four-writer grants. Later worker status remains solely in the operational ledger.",
     "last_verified_live": {
-      "commit": "0a5f45d6cdd94e4c217c6fc116c30680c2986420",
-      "time": "2026-09-13 03:12 CEST",
-      "report_record": 12727,
-      "source": "Root verified production receipt; no new deploy in this snapshot."
+      "commit": "0202fd518565fd7068ba8430b2d50641abec2cf8",
+      "time": "2026-09-13 05:05 CEST",
+      "report_record": 12774,
+      "report": "wp-1c9cebf0ee1c-deploy-0202fd5.md",
+      "image": "sha256:22c3d5e34618431ea56f5d51ca6f5448054d18da3b4bcebeef5ea677ef3049fe",
+      "schema": 30,
+      "source": "Root verified matching OCI/app checkout, healthy and canonical public smoke. Public smoke is not authenticated feature E2E."
     },
     "documentation_refresh_grant": {
       "routing_wp": "wp-5f8091f2fe84",
@@ -626,7 +817,7 @@
       "base": "8c39ca7b448f5f34b4c791457b65555368a298bd",
       "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/sprint-lease-refresh-0913",
       "branch": "docs/sprint-lease-refresh-0913",
-      "status": "FROZEN_PENDING_ROOT_REVIEW",
+      "status": "DEPLOYED",
       "owned_files": [
         "docs/superpowers/backlog-0909/file-leases.json",
         "docs/superpowers/backlog-0909/recipes-wps.json",
@@ -637,7 +828,374 @@
       "pool": null,
       "authority": "Explicit Root bounded five-file refresh; no product code or gates.",
       "file_reservation": "RELEASED",
-      "pool_reservation": "NONE"
+      "pool_reservation": "NONE",
+      "head": "fc4cbbd62d9efea94f974db8ade88c4f0d56721a",
+      "review_record": 12752,
+      "deployment": "b62e5dbd136713e32cf09e61b23176d9378d5389"
+    },
+    "release_receipts_0505": {
+      "f32": {
+        "commit": "f32fc70fff3c805c0f35026ca444b6c40a81dea1",
+        "time": "03:59 CEST",
+        "record": 12749,
+        "report": "wp-5b2e66ec76d3-deploy-f32fc70.md"
+      },
+      "b62": {
+        "commit": "b62e5dbd136713e32cf09e61b23176d9378d5389",
+        "time": "04:28 CEST",
+        "report": "wp-ecabb035f0cf-deploy-b62e5db.md"
+      },
+      "0202": {
+        "commit": "0202fd518565fd7068ba8430b2d50641abec2cf8",
+        "time": "05:05 CEST",
+        "record": 12774,
+        "report": "wp-1c9cebf0ee1c-deploy-0202fd5.md"
+      },
+      "limits": "Earlier completion/grant/delivery objects retain their original snapshot evidence. These receipts supersede old not-yet-deployed notes only for named included work. No whole-density, full suite, novice, physical input or final proposal acceptance."
+    },
+    "documentation_lifecycle_grant": {
+      "routing_wp": "wp-936d57b0846f",
+      "owner": "native:/root/density_plan_fix",
+      "actual_executor": "native GPT / codex-gpt5",
+      "base": "0202fd518565fd7068ba8430b2d50641abec2cf8",
+      "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/sprint-lifecycle-0505-0913",
+      "branch": "docs/sprint-lifecycle-0505-0913",
+      "owned_files": [
+        "docs/superpowers/backlog-0909/file-leases.json",
+        "docs/superpowers/backlog-0909/recipes-wps.json",
+        "docs/superpowers/backlog-0909/surfaces-wps.json",
+        "docs/superpowers/backlog-0909/operations-wps.json",
+        "docs/superpowers/plans/2026-09-12-next-sprints.md"
+      ],
+      "pool": null,
+      "status": "FROZEN_PENDING_ROOT_REVIEW",
+      "file_reservation": "RELEASED",
+      "authority": "Root five-file light docs assignment; fixed05:05 snapshot, no product gates."
+    },
+    "current_source_ownership": {
+      "source_commit": "0202fd518565fd7068ba8430b2d50641abec2cf8",
+      "scope": "Current active paths, normalized across176 WP owned_files. Historical lower files/write_claims frozen at old plan source remain unchanged. Multiple plan claimants are future contracts, never concurrent grants; only active_plan_id writes now.",
+      "files": {
+        "reference_scaffold/cafeteria/menu_template_binding.py": {
+          "active_plan_id": "MP-REC-MENU-TEMPLATE-BINDING",
+          "routing_wp": "wp-a127e7b49932",
+          "present_at_snapshot": false,
+          "plan_claimants": [
+            "MP-REC-MENU-TEMPLATE-BINDING"
+          ]
+        },
+        "reference_scaffold/cafeteria/workflow_partial_form.py": {
+          "active_plan_id": "MP-REC-MENU-TEMPLATE-BINDING",
+          "routing_wp": "wp-a127e7b49932",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-REC-BINDING-UI",
+            "MP-REC-BINDINGS",
+            "MP-REC-COMPONENT-FOOD-UI",
+            "MP-REC-MENU-TEMPLATE-BINDING",
+            "MP-REC-PLAN-PORTIONS"
+          ]
+        },
+        "reference_scaffold/cafeteria/workflow_item_write.py": {
+          "active_plan_id": "MP-REC-MENU-TEMPLATE-BINDING",
+          "routing_wp": "wp-a127e7b49932",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-REC-BINDINGS",
+            "MP-REC-MENU-TEMPLATE-BINDING"
+          ]
+        },
+        "reference_scaffold/cafeteria/workflow_partial_store.py": {
+          "active_plan_id": "MP-REC-MENU-TEMPLATE-BINDING",
+          "routing_wp": "wp-a127e7b49932",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-CALC-RULES-SUGGEST",
+            "MP-REC-BINDINGS",
+            "MP-REC-MENU-TEMPLATE-BINDING",
+            "MP-REC-PLAN-PORTIONS"
+          ]
+        },
+        "reference_scaffold/cafeteria/workflow_store.py": {
+          "active_plan_id": "MP-REC-MENU-TEMPLATE-BINDING",
+          "routing_wp": "wp-a127e7b49932",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-REC-BINDINGS",
+            "MP-REC-MENU-TEMPLATE-BINDING",
+            "MP-REC-PLAN-PORTIONS"
+          ]
+        },
+        "reference_scaffold/cafeteria/admin/rendering.py": {
+          "active_plan_id": "MP-REC-MENU-TEMPLATE-BINDING",
+          "routing_wp": "wp-a127e7b49932",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-REC-BINDING-UI",
+            "MP-REC-BINDINGS",
+            "MP-REC-COMPONENT-FOOD-UI",
+            "MP-REC-MENU-PROPOSAL",
+            "MP-REC-MENU-TEMPLATE-BINDING",
+            "MP-REC-PLAN-PORTIONS",
+            "MP-TRN-RECIPE-MENU-APPLY"
+          ]
+        },
+        "reference_scaffold/cafeteria/admin/workflow_routes.py": {
+          "active_plan_id": "MP-REC-MENU-TEMPLATE-BINDING",
+          "routing_wp": "wp-a127e7b49932",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-REC-BINDING-UI",
+            "MP-REC-BINDINGS",
+            "MP-REC-COMPONENT-FOOD-UI",
+            "MP-REC-MENU-PROPOSAL",
+            "MP-REC-MENU-TEMPLATE-BINDING",
+            "MP-REC-PLAN-PORTIONS",
+            "MP-TRN-RECIPE-MENU-APPLY"
+          ]
+        },
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html": {
+          "active_plan_id": "MP-REC-MENU-TEMPLATE-BINDING",
+          "routing_wp": "wp-a127e7b49932",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-REC-BINDING-UI",
+            "MP-REC-MENU-PROPOSAL",
+            "MP-REC-MENU-TEMPLATE-BINDING",
+            "MP-REC-PLAN-PORTIONS",
+            "MP-TRN-RECIPE-MENU-APPLY",
+            "MP-UI-DENSITY-MENUEDITOR",
+            "MP-UI-KORREKTUR-EDITOR",
+            "MP-UI-MENU-EDITOR"
+          ]
+        },
+        "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html": {
+          "active_plan_id": "MP-REC-MENU-TEMPLATE-BINDING",
+          "routing_wp": "wp-a127e7b49932",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-REC-MENU-TEMPLATE-BINDING",
+            "MP-UI-DENSITY-WEEKS",
+            "MP-UI-KORREKTUR-WEEK"
+          ]
+        },
+        "reference_scaffold/tests/test_menu_template_binding_db.py": {
+          "active_plan_id": "MP-REC-MENU-TEMPLATE-BINDING",
+          "routing_wp": "wp-a127e7b49932",
+          "present_at_snapshot": false,
+          "plan_claimants": [
+            "MP-REC-MENU-TEMPLATE-BINDING"
+          ]
+        },
+        "reference_scaffold/tests/test_menu_template_binding_routes.py": {
+          "active_plan_id": "MP-REC-MENU-TEMPLATE-BINDING",
+          "routing_wp": "wp-a127e7b49932",
+          "present_at_snapshot": false,
+          "plan_claimants": [
+            "MP-REC-MENU-TEMPLATE-BINDING"
+          ]
+        },
+        "reference_scaffold/tests/test_menu_template_binding_browser.py": {
+          "active_plan_id": "MP-REC-MENU-TEMPLATE-BINDING",
+          "routing_wp": "wp-a127e7b49932",
+          "present_at_snapshot": false,
+          "plan_claimants": [
+            "MP-REC-MENU-TEMPLATE-BINDING"
+          ]
+        },
+        "reference_scaffold/cafeteria/admin/workflow_scope.py": {
+          "active_plan_id": "MP-REC-MENU-TEMPLATE-BINDING",
+          "routing_wp": "wp-a127e7b49932",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-REC-BINDINGS",
+            "MP-REC-MENU-TEMPLATE-BINDING"
+          ]
+        },
+        "reference_scaffold/cafeteria/templates/admin/grundlagen.html": {
+          "active_plan_id": "MP-UI-DENSITY-FOUNDATIONS",
+          "routing_wp": "wp-c51fd9379326",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-BAS-FOUNDATIONS",
+            "MP-UI-DENSITY-FOUNDATIONS",
+            "MP-UI-FOUNDATIONS"
+          ]
+        },
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_food.html": {
+          "active_plan_id": "MP-UI-DENSITY-FOUNDATIONS",
+          "routing_wp": "wp-c51fd9379326",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-BAS-FOUNDATIONS",
+            "MP-OFF-REVIEW-UI",
+            "MP-UI-DENSITY-FOUNDATIONS",
+            "MP-UI-FOUNDATIONS"
+          ]
+        },
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_unit.html": {
+          "active_plan_id": "MP-UI-DENSITY-FOUNDATIONS",
+          "routing_wp": "wp-c51fd9379326",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-UI-DENSITY-FOUNDATIONS",
+            "MP-UI-FOUNDATIONS"
+          ]
+        },
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_vocabulary.html": {
+          "active_plan_id": "MP-UI-DENSITY-FOUNDATIONS",
+          "routing_wp": "wp-c51fd9379326",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-BAS-FOUNDATIONS",
+            "MP-UI-DENSITY-FOUNDATIONS",
+            "MP-UI-FOUNDATIONS"
+          ]
+        },
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_location_conflict.html": {
+          "active_plan_id": "MP-UI-DENSITY-FOUNDATIONS",
+          "routing_wp": "wp-c51fd9379326",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-BAS-FOUNDATIONS",
+            "MP-UI-DENSITY-FOUNDATIONS",
+            "MP-UI-FOUNDATIONS"
+          ]
+        },
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_unavailable.html": {
+          "active_plan_id": "MP-UI-DENSITY-FOUNDATIONS",
+          "routing_wp": "wp-c51fd9379326",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-UI-DENSITY-FOUNDATIONS",
+            "MP-UI-FOUNDATIONS"
+          ]
+        },
+        "reference_scaffold/cafeteria/static/admin-grundlagen.css": {
+          "active_plan_id": "MP-UI-DENSITY-FOUNDATIONS",
+          "routing_wp": "wp-c51fd9379326",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-UI-DENSITY-FOUNDATIONS"
+          ]
+        },
+        "reference_scaffold/tests/test_ui_korrektur_grundlagen_browser.py": {
+          "active_plan_id": "MP-UI-DENSITY-FOUNDATIONS",
+          "routing_wp": "wp-c51fd9379326",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-UI-DENSITY-FOUNDATIONS"
+          ]
+        },
+        "reference_scaffold/tests/test_master_data_browser.py": {
+          "active_plan_id": "MP-UI-DENSITY-FOUNDATIONS",
+          "routing_wp": "wp-c51fd9379326",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-BAS-FOUNDATIONS",
+            "MP-UI-DENSITY-FOUNDATIONS"
+          ]
+        },
+        "reference_scaffold/tests/test_master_data_routes.py": {
+          "active_plan_id": "MP-UI-DENSITY-FOUNDATIONS",
+          "routing_wp": "wp-c51fd9379326",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-BAS-FOUNDATIONS",
+            "MP-UI-DENSITY-FOUNDATIONS"
+          ]
+        },
+        "reference_scaffold/tests/test_master_data_prepared_browser.py": {
+          "active_plan_id": "MP-UI-DENSITY-FOUNDATIONS",
+          "routing_wp": "wp-c51fd9379326",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-BAS-FOUNDATIONS",
+            "MP-UI-DENSITY-FOUNDATIONS"
+          ]
+        },
+        "reference_scaffold/cafeteria/templates/admin/kochbuecher.html": {
+          "active_plan_id": "MP-UI-DENSITY-COOKBOOKS",
+          "routing_wp": "wp-f3edc88fef0f",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-UI-COOKBOOKS",
+            "MP-UI-DENSITY-COOKBOOKS"
+          ]
+        },
+        "reference_scaffold/cafeteria/templates/admin/kochbuch_editor.html": {
+          "active_plan_id": "MP-UI-DENSITY-COOKBOOKS",
+          "routing_wp": "wp-f3edc88fef0f",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-UI-COOKBOOKS",
+            "MP-UI-DENSITY-COOKBOOKS"
+          ]
+        },
+        "reference_scaffold/tests/test_ui_korrektur_cookbooks_browser.py": {
+          "active_plan_id": "MP-UI-DENSITY-COOKBOOKS",
+          "routing_wp": "wp-f3edc88fef0f",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-UI-DENSITY-COOKBOOKS"
+          ]
+        },
+        "reference_scaffold/cafeteria/templates/admin/menu_collection.html": {
+          "active_plan_id": "MP-UI-DENSITY-LISTS",
+          "routing_wp": "wp-30852ec2ac03",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-UI-DENSITY-LISTS",
+            "MP-UI-KORREKTUR-MENUS",
+            "MP-UI-REF-LIST"
+          ]
+        },
+        "reference_scaffold/cafeteria/templates/admin/week_management.html": {
+          "active_plan_id": "MP-UI-DENSITY-LISTS",
+          "routing_wp": "wp-30852ec2ac03",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-UI-DENSITY-LISTS",
+            "MP-UI-KORREKTUR-MENUS",
+            "MP-UI-WEEKS"
+          ]
+        },
+        "reference_scaffold/cafeteria/static/admin-menu-collection.css": {
+          "active_plan_id": "MP-UI-DENSITY-LISTS",
+          "routing_wp": "wp-30852ec2ac03",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-UI-DENSITY-LISTS",
+            "MP-UI-KORREKTUR-MENUS",
+            "MP-UI-REF-LIST"
+          ]
+        },
+        "reference_scaffold/tests/test_ui_korrektur_menus_browser.py": {
+          "active_plan_id": "MP-UI-DENSITY-LISTS",
+          "routing_wp": "wp-30852ec2ac03",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-UI-DENSITY-LISTS",
+            "MP-UI-KORREKTUR-MENUS"
+          ]
+        },
+        "reference_scaffold/tests/test_week_management_browser.py": {
+          "active_plan_id": "MP-UI-DENSITY-LISTS",
+          "routing_wp": "wp-30852ec2ac03",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-UI-DENSITY-LISTS"
+          ]
+        },
+        "reference_scaffold/tests/test_menu_collection_browser.py": {
+          "active_plan_id": "MP-UI-DENSITY-LISTS",
+          "routing_wp": "wp-30852ec2ac03",
+          "present_at_snapshot": true,
+          "plan_claimants": [
+            "MP-UI-DENSITY-LISTS"
+          ]
+        }
+      }
     }
   },
   "plan_source_commit": "de08d5101a689e3c09d2aab980cfec4dcb025017",
