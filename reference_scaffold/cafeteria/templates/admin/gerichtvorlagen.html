@@ -4,6 +4,11 @@
 {% set scope_labels = {'common': 'Gemeinsam', 'patient': 'Patienten', 'staff_guest': 'Cafeteria'} %}
 {% set type_labels = {'MENU_1': 'Menü 1', 'VEGGIE': 'Vegetarisch'} %}
 {% set editing = row or request.endpoint in ['admin.dish_template_new', 'admin.dish_template_create'] %}
+{% macro accompaniment_state(item, icon_visible=true) %}
+{% if item.accompaniment_default == 'soup' %}{% if icon_visible %}{{ icon('soup') }}{% endif %}Suppe
+{% elif item.accompaniment_default == 'salad' %}{% if icon_visible %}{{ icon('salad') }}{% endif %}Salat
+{% else %}—{% endif %}
+{% endmacro %}
 {% macro recipe_state(item) %}
 {% if item.recipe_public_id %}
 <a class="text-break" href="{{ url_for('admin.recipe_view', recipe_id=item.recipe_public_id) }}">Rezept: {{ item.recipe_title }}</a>
@@ -44,6 +49,7 @@
           <th class="d-none d-md-table-cell">Menüart</th>
           <th class="d-none d-md-table-cell">Geltungsbereich</th>
           <th class="d-none d-md-table-cell">Gebundenes Rezept</th>
+          <th class="d-none d-md-table-cell">Dazu</th>
           <th class="d-none d-md-table-cell">Aktivstatus</th>
           {% if can_write %}<th class="d-none d-md-table-cell">Planung</th>{% endif %}
         </tr>
@@ -56,6 +62,7 @@
             <div class="d-md-none">
               {% if can_write and item.active %}<a class="btn text-wrap my-2" href="{{ url_for('admin.dish_template_plan', public_id=item.public_id) }}">{{ icon('calendar-plus') }}Als Menü einplanen</a>{% endif %}
               <div class="text-secondary">{{ type_labels.get(item.menu_type_code, item.menu_type_code or '—') }} · {{ scope_labels.get(item.profile_scope, item.profile_scope) }}</div>
+              <div class="text-secondary">Dazu: {{ accompaniment_state(item, false) }}</div>
               {{ recipe_state(item) }}
               <span class="badge mt-1 {{ 'bg-green-lt' if item.active else 'bg-secondary-lt' }}">{{ 'Aktiv' if item.active else 'Archiviert' }}</span>
             </div>
@@ -63,6 +70,7 @@
           <td class="d-none d-md-table-cell">{{ type_labels.get(item.menu_type_code, item.menu_type_code or '—') }}</td>
           <td class="d-none d-md-table-cell">{{ scope_labels.get(item.profile_scope, item.profile_scope) }}</td>
           <td class="d-none d-md-table-cell">{{ recipe_state(item) }}</td>
+          <td class="d-none d-md-table-cell">{{ accompaniment_state(item) }}</td>
           <td class="d-none d-md-table-cell"><span class="badge {{ 'bg-green-lt' if item.active else 'bg-secondary-lt' }}">{{ 'Aktiv' if item.active else 'Archiviert' }}</span></td>
           {% if can_write %}<td class="d-none d-md-table-cell">{% if item.active %}<a class="btn text-wrap" href="{{ url_for('admin.dish_template_plan', public_id=item.public_id) }}">{{ icon('calendar-plus') }}Als Menü einplanen</a>{% endif %}</td>{% endif %}
         </tr>
@@ -118,6 +126,25 @@
         {% endfor %}
       </select>
     </div></div>
+    <fieldset class="mb-3" aria-describedby="accompaniment-hint{% if accompaniment_error %} accompaniment-error{% endif %}">
+      <legend class="form-label">Suppe oder Salat dazu (Vorschlag für neue Menüs)</legend>
+      <div class="d-flex flex-column flex-md-row flex-wrap gap-2">
+        <label class="form-check me-md-3">
+          <input class="form-check-input" type="radio" name="accompaniment_default" value="none"{% if values.accompaniment_default == 'none' %} checked{% endif %}{% if accompaniment_error %} aria-invalid="true"{% endif %}>
+          <span class="form-check-label">Keine</span>
+        </label>
+        <label class="form-check me-md-3">
+          <input class="form-check-input" type="radio" name="accompaniment_default" value="soup"{% if values.accompaniment_default == 'soup' %} checked{% endif %}{% if accompaniment_error %} aria-invalid="true"{% endif %}>
+          <span class="form-check-label">{{ icon('soup') }}Suppe</span>
+        </label>
+        <label class="form-check">
+          <input class="form-check-input" type="radio" name="accompaniment_default" value="salad"{% if values.accompaniment_default == 'salad' %} checked{% endif %}{% if accompaniment_error %} aria-invalid="true"{% endif %}>
+          <span class="form-check-label">{{ icon('salad') }}Salat (gemischt und grün)</span>
+        </label>
+      </div>
+      <div class="form-hint" id="accompaniment-hint">Wird beim Einplanen vorbelegt und kann im Menü geändert werden.</div>
+      {% if accompaniment_error %}<div class="invalid-feedback d-block" id="accompaniment-error">{{ accompaniment_error }}</div>{% endif %}
+    </fieldset>
     <div class="mb-3">
       <div class="row g-2 align-items-end mb-3">
         <div class="col-md-8"><label class="form-label" for="recipe-search">Rezept nach Titel suchen</label>

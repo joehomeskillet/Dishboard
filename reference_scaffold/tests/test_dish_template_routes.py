@@ -20,7 +20,7 @@ from test_master_data_routes import (  # noqa: F401
 )
 from test_recipe_store_db import payload as recipe_payload
 
-COLUMNS = ('Titel', 'Menüart', 'Geltungsbereich', 'Gebundenes Rezept', 'Aktivstatus')
+COLUMNS = ('Titel', 'Menüart', 'Geltungsbereich', 'Gebundenes Rezept', 'Dazu', 'Aktivstatus')
 
 
 def snapshot(owner):
@@ -34,7 +34,13 @@ def fields(client, path):
     response = client.get(path)
     assert response.status_code == 200, response.text
     assert path in Forms(response.text).forms, Forms(response.text).forms.keys()
-    return Forms(response.text).forms[path]
+    values = Forms(response.text).forms[path]
+    checked = re.search(
+        r'name="accompaniment_default" value="(none|soup|salad)" checked', response.text,
+    )
+    if checked:
+        values.setlist('accompaniment_default', [checked.group(1)])
+    return values
 
 
 def create(client, title='Mittagssuppe', **values):
@@ -138,6 +144,48 @@ def test_noop_update_returns_same_row_without_second_audit(b3):  # noqa: F811
     again = fields(client, path)
     assert again['updated_at'] == data['updated_at']
     assert again['title'] == 'Unverändert'
+
+
+def test_accompaniment_create_update_validation_and_reader_view(b3, monkeypatch):  # noqa: F811
+    from cafeteria import roles
+
+    app, owner, client, _ = b3
+    engine = app.extensions['cafeteria_db']
+
+    default_data = fields(client, '/admin/gerichtvorlagen/neu')
+    assert default_data['accompaniment_default'] == 'none'
+    default_data.pop('accompaniment_default')
+    default_data['title'] = 'Ohne Vorschlag'
+    assert client.post('/admin/gerichtvorlagen/neu', data=default_data).status_code == 303
+    assert store.list_templates(engine)[0].accompaniment_default == 'none'
+
+    path = create(client, title='Mit Salat', accompaniment_default='salad')
+    edit_values = fields(client, path)
+    assert edit_values['accompaniment_default'] == 'salad'
+    listing = client.get('/admin/gerichtvorlagen')
+    assert 'Dazu' in listing.text and 'Salat' in listing.text
+    assert '#tabler-salad' in listing.text
+
+    before = snapshot(owner)
+    edit_values.pop('accompaniment_default')
+    assert client.post(path, data=edit_values).status_code == 303
+    assert store.get_template(engine, path.rsplit('/', 1)[-1]).accompaniment_default == 'salad'
+    assert snapshot(owner) == before
+
+    invalid = fields(client, path)
+    invalid['title'] = 'Eingabe bleibt erhalten'
+    invalid['accompaniment_default'] = 'both'
+    rejected = client.post(path, data=invalid)
+    assert rejected.status_code == 400
+    assert 'Bitte eine gültige Beilage wählen.' in rejected.text
+    assert 'Eingabe bleibt erhalten' in rejected.text
+    assert 'aria-invalid="true"' in rejected.text
+    assert snapshot(owner) == before
+
+    monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', {'draft.read'})
+    reader = client.get('/admin/gerichtvorlagen')
+    assert reader.status_code == 200 and 'Salat' in reader.text
+    assert 'Vorlage anlegen</a>' not in reader.text and 'name="action"' not in reader.text
 
 
 def test_unchanged_active_is_55000(b3):  # noqa: F811
