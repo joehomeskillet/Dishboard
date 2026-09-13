@@ -52,10 +52,16 @@ def test_native_editor_rows_save_cancel_and_tabler(b3, master_server, browser, w
         assert not errors
         assert page.locator('link[href*="tabler.min.css"]').count() == 1
         assert page.locator('main [style], main style').count() == 0
+        actions = page.locator('#recipe-editor .admin-compact-actions > summary')
+        for summary in actions.all():
+            summary.click()
         for control in page.locator('#recipe-editor button[formaction]').all():
+            expect(control).to_be_visible()
             assert control.inner_text().strip()
             assert control.locator('use').get_attribute('href').split('#')[-1] in {
                 'tabler-plus', 'tabler-trash', 'tabler-chevron-left', 'tabler-chevron-right'}
+        for summary in actions.all():
+            summary.click()
         page.get_by_role('heading', level=1).click()
         page.screenshot(path=str(tmp_path / f'recipe-editor-{width}-js{javascript}.png'), full_page=True)
         before = snapshot(owner)
