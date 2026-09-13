@@ -1,9 +1,9 @@
 {
   "meta": {
-    "wp_id": "wp-3dde00c6c96c",
-    "lane": "codex-gpt5",
+    "wp_id": "wp-9bb209576726",
+    "lane": "native-codex",
     "model": null,
-    "identity_status": "caller_supplied_model_not_verified",
+    "identity_status": "native_codex_session_model_not_independently_verified",
     "source_provenance": {
       "inventory_commit": "f136490f7b2c19805c8f6436ebdbb657c3549dd7",
       "wp_id": "wp-fc6f91338ad3",
@@ -11,15 +11,15 @@
       "model": "grok-4.6"
     },
     "mp_id": "MP-UI-DENSITY-INVENTORY",
-    "source_commit": "d4ad17958f3874dd704f882c106ee21340baa5c1",
+    "source_commit": "8c39ca7b448f5f34b4c791457b65555368a298bd",
     "schema": 30,
     "schema_note": "Aktueller zugewiesener Quellstand; SCHEMA_VERSION aus cafeteria.db. Keine neue Live-Abnahme.",
     "baseline_status": "proposed_never_user_approved",
-    "generated_at": "2026-09-12T23:54:37+00:00",
+    "generated_at": "2026-09-13T01:48:25+00:00",
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
-    "route_count": 126,
-    "template_count": 82,
-    "html_route_count": 66,
+    "route_count": 127,
+    "template_count": 83,
+    "html_route_count": 67,
     "design_manifest_commit": "39625ccc0d8b576fae9edaeb8cf0b5c70b1af912",
     "browser_status": "not_run",
     "usability_status": "not_run"
@@ -4986,6 +4986,80 @@
       }
     },
     {
+      "endpoint": "admin.recipe_view",
+      "rule": "/admin/rezepte/<uuid:recipe_id>/ansicht",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/rezepte_ansicht.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-REC-RECIPE-VIEW-PRINT",
+      "family_variants": [],
+      "module": "cafeteria.admin.recipe_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "access_denied_401",
+        "access_denied_403",
+        "empty_or_unavailable"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js"
+      ],
+      "density": {
+        "mockups": [
+          "M01",
+          "M14",
+          "M20"
+        ],
+        "rules": [
+          "R01",
+          "R02",
+          "R03",
+          "R04",
+          "R05",
+          "R06",
+          "R07",
+          "R08",
+          "R09",
+          "R10"
+        ],
+        "acceptance": [
+          "A01",
+          "A23"
+        ],
+        "owning_mp": "MP-UI-DENSITY-RECIPEPAGES",
+        "core_task": "Aktuellen Rezeptentwurf ansehen, Mengen berechnen und Rezept-History oder vorhandenen Druckstand öffnen",
+        "example_url": "/admin/rezepte/{recipe_id}/ansicht",
+        "example_semantics": "Parameter in geschweiften Klammern sind fixture-erzeugte Identitäten, keine existierenden Live-IDs.",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py::_prepare_inventory_entities",
+        "state_evidence": {
+          "default": "not_run",
+          "access_denied_401": "not_run",
+          "access_denied_403": "not_run",
+          "empty_or_unavailable": "not_run"
+        },
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_run",
+        "usability_status": "not_run",
+        "notes": "Nur-Lese-Entwurf mit getrennten Bearbeiten-/Druckaktionen und bestehender Rezept-History. Diese Inventaraktualisierung übernimmt keine aktuellen Browser- oder Fachabnahmebelege."
+      }
+    },
+    {
       "endpoint": "admin.recipes_list",
       "rule": "/admin/rezepte",
       "methods": [
@@ -8019,6 +8093,7 @@
         "admin.recipe_revisions",
         "admin.recipe_scale",
         "admin.recipe_status",
+        "admin.recipe_view",
         "admin.recipes_list",
         "admin.screen_template_assignment",
         "admin.screen_template_preview",
@@ -8236,7 +8311,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "bdb51db6df6ebadbbb2baa82919cc27e7b791c89c7dab023727e1fb54a08a402",
+      "sha256": "d40fd98d911c77bfeb097822e35d0c7ff24b2719504e1ad36c47e33d464f66a5",
       "used_by_endpoints": [
         "admin.access_history",
         "admin.api_overview",
@@ -8281,6 +8356,7 @@
         "admin.recipe_revisions",
         "admin.recipe_scale",
         "admin.recipe_status",
+        "admin.recipe_view",
         "admin.recipes_list",
         "admin.screen_template_assignment",
         "admin.screen_template_preview",
@@ -8321,7 +8397,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "3da3e367d813d3b351ab64dd3623eb58c3dd41308f3aecb2556a0ee99398b79b",
+      "sha256": "9e450b9c43cfd81f1a7ca5472ead51683283aeacd8736363958a9b92773e543e",
       "used_by_endpoints": [
         "admin.print_template_editor",
         "admin.recipe_print_template_editor"
@@ -8495,6 +8571,7 @@
         "admin.recipe_revisions",
         "admin.recipe_scale",
         "admin.recipe_status",
+        "admin.recipe_view",
         "admin.recipes_list",
         "admin.screen_template_assignment",
         "admin.screen_template_preview",
@@ -8623,6 +8700,7 @@
         "admin.recipe_revisions",
         "admin.recipe_scale",
         "admin.recipe_status",
+        "admin.recipe_view",
         "admin.recipes_list",
         "admin.screen_template_assignment",
         "admin.screen_template_preview",
@@ -8827,7 +8905,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "8475ddd34c43cd836ba4614090d801a73a338ce1eee0d4b00c5b71a3ee163a1f",
+      "sha256": "3cfd662c9d1f8ffafbd1b670cabca581ef07ff87e6b8d5fac964e78d20899fdf",
       "used_by_endpoints": [
         "admin.dish_template_create",
         "admin.dish_template_edit",
@@ -9341,9 +9419,10 @@
         "admin/base_tabler.html"
       ],
       "includes": [
-        "admin/_macros.html"
+        "admin/_macros.html",
+        "admin/rezepte_ansicht.html"
       ],
-      "sha256": "d9cee3cbdb7752ef9dfa1640c511e728ebb85ec90b9a92960b2a6c205aa4f8d3",
+      "sha256": "144fe13a1e3a997640e90097482638227615d607820f33f7131ed5f4ddb3bed3",
       "used_by_endpoints": [
         "admin.recipes_list"
       ],
@@ -9351,6 +9430,31 @@
       "density_mockups": [
         "M01",
         "M08",
+        "M20"
+      ],
+      "current_visual_status": "not_run"
+    },
+    {
+      "path": "admin/rezepte_ansicht.html",
+      "kind": "page",
+      "extends": [
+        "admin/rezepte_revision.html"
+      ],
+      "includes": [
+        "admin/_macros.html",
+        "admin/rezepte_scale.html"
+      ],
+      "sha256": "d0d490ec1426350aa0d975ede677fa02d289e66e0efeeb3efbabd8ff75c60a50",
+      "used_by_endpoints": [
+        "admin.recipe_revision",
+        "admin.recipe_revisions",
+        "admin.recipe_view",
+        "admin.recipes_list"
+      ],
+      "owning_mp": "MP-REC-RECIPE-VIEW-PRINT",
+      "density_mockups": [
+        "M01",
+        "M14",
         "M20"
       ],
       "current_visual_status": "not_run"
@@ -9389,7 +9493,7 @@
         "admin/_macros.html",
         "admin/_rezepte_fields.html"
       ],
-      "sha256": "c4e2a92a4a95b2e2b0f384cc46698d175d0346d567cb04fea28e92ff275e417a",
+      "sha256": "745eb855c763cd483447fa8d0d58940aea9d962126a4036d290310e79418690c",
       "used_by_endpoints": [
         "admin.recipe_edit",
         "admin.recipe_new",
@@ -9463,11 +9567,15 @@
       ],
       "includes": [
         "admin/_macros.html",
+        "admin/rezepte_ansicht.html",
         "admin/rezepte_scale.html"
       ],
-      "sha256": "7f92fca0cb267f95affc93c1608979f26539f8991bfdd315aa6670c9d564af7e",
+      "sha256": "cc810c1cd7a81e99ed9c33c135efe3f454c239527942c9ebb72a2055013cf119",
       "used_by_endpoints": [
-        "admin.recipe_revision"
+        "admin.recipe_revision",
+        "admin.recipe_revisions",
+        "admin.recipe_view",
+        "admin.recipes_list"
       ],
       "owning_mp": "MP-UI-REF-DETAIL",
       "density_mockups": [
@@ -9484,9 +9592,10 @@
         "admin/base_tabler.html"
       ],
       "includes": [
-        "admin/_macros.html"
+        "admin/_macros.html",
+        "admin/rezepte_ansicht.html"
       ],
-      "sha256": "c542a4e4dfad1392da5e9f60afb0abe041648d1e3d8f4d7465a35fa4a727730e",
+      "sha256": "104b2225e2c284300dc122b53bbc1f35005c273ba8ac2a6bec1bce863923fc6c",
       "used_by_endpoints": [
         "admin.recipe_revisions"
       ],
@@ -9510,7 +9619,10 @@
       "sha256": "7e26a5aa81bdd49befc223bc7016107e4042f8d7fb728e2ae1d93feca9b1afd2",
       "used_by_endpoints": [
         "admin.recipe_revision",
-        "admin.recipe_scale"
+        "admin.recipe_revisions",
+        "admin.recipe_scale",
+        "admin.recipe_view",
+        "admin.recipes_list"
       ],
       "owning_mp": "MP-UI-REF-DETAIL",
       "density_mockups": [
