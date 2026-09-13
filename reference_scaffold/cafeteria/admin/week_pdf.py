@@ -322,10 +322,11 @@ def render_week_pdf(
         for content_row in content:
             for content_cell in content_row:
                 title, components, accompaniment, details = content_cell.paragraphs
-                if not accompaniment:
-                    content_cell.paragraphs = (
-                        title, '', ' · '.join(part for part in (components, details) if part),
-                    )
+                merged = ' · '.join(part for part in (components, details) if part)
+                if accompaniment:
+                    content_cell.paragraphs = (title, '', accompaniment, merged)
+                else:
+                    content_cell.paragraphs = (title, '', merged)
     candidates: tuple[tuple[float, float], ...] = ((9.0, 9.0), (8.5, 8.5)) if patient else ((12.0, 10.0), (11.0, 9.0), (10.0, 8.5))
     if config['text_size'] == 'standard':
         candidates = ((9.0, 9.0),) if patient else ((12.0, 10.0),)

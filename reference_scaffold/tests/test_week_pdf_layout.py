@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import replace
 from datetime import timedelta
 from io import BytesIO
+from pathlib import Path
 
 import pytest
 from pypdf import PdfReader
@@ -109,7 +110,6 @@ def test_native_layout_prints_longest_accompaniment_after_components(profile, tm
 
 @pytest.mark.parametrize('profile', ['staff_guest', 'patient'])
 def test_no_accompaniment_keeps_native_layout_bytes(profile):
-    baseline = saved_week(profile, False)
     explicit_none = saved_week(profile, False)
     for day in explicit_none['days']:
         for service in day['services']:
@@ -117,9 +117,8 @@ def test_no_accompaniment_keeps_native_layout_bytes(profile):
                 option.update(accompaniment_code='none', accompaniment_name='')
 
     chosen = config(profile)
-    assert render_week_pdf(explicit_none, profile, WEEK, chosen) == render_week_pdf(
-        baseline, profile, WEEK, chosen,
-    )
+    golden_path = Path(__file__).parent / 'fixtures' / f'golden_native_{profile}.pdf'
+    assert render_week_pdf(explicit_none, profile, WEEK, chosen) == golden_path.read_bytes()
 
 
 @pytest.mark.parametrize('profile', ['staff_guest', 'patient'])

@@ -108,20 +108,23 @@ def test_accompaniment_is_its_own_paragraph_and_fits(
     paragraph = f'Dazu: {name}'
     assert body.count(paragraph) == len(options)
     first = options[0]
-    assert body.index(first['components'][0]) < body.index(paragraph)
+    if profile == 'patient':
+        assert body.index(paragraph) < body.index(first['components'][0])
+    else:
+        assert body.index(first['components'][0]) < body.index(paragraph)
     assert body.index(paragraph) < body.index('Allergenangaben nicht erfasst')
 
 
 @pytest.mark.parametrize('profile', ['staff_guest', 'patient'])
 def test_no_accompaniment_keeps_week_pdf_bytes(profile: str) -> None:
-    baseline = saved_week(profile, False)
     explicit_none = saved_week(profile, False)
     for day in explicit_none['days']:
         for service in day['services']:
             for option in service['options']:
                 option.update(accompaniment_code='none', accompaniment_name='')
 
-    assert render_week_pdf(explicit_none, profile, WEEK) == render_week_pdf(baseline, profile, WEEK)
+    golden_path = Path(__file__).parent / 'fixtures' / f'golden_{profile}.pdf'
+    assert render_week_pdf(explicit_none, profile, WEEK) == golden_path.read_bytes()
 
 
 def test_patient_all_28_unique_menu_sentinels_survive() -> None:
