@@ -41,22 +41,30 @@
       <thead>
         <tr>
           <th>Titel</th>
-          <th>Menüart</th>
-          <th>Geltungsbereich</th>
-          <th>Gebundenes Rezept</th>
-          <th>Aktivstatus</th>
-          {% if can_write %}<th>Planung</th>{% endif %}
+          <th class="d-none d-md-table-cell">Menüart</th>
+          <th class="d-none d-md-table-cell">Geltungsbereich</th>
+          <th class="d-none d-md-table-cell">Gebundenes Rezept</th>
+          <th class="d-none d-md-table-cell">Aktivstatus</th>
+          {% if can_write %}<th class="d-none d-md-table-cell">Planung</th>{% endif %}
         </tr>
       </thead>
       <tbody>
         {% for item in rows %}
         <tr>
-          <td><a class="text-break" href="{{ url_for('admin.dish_template_edit', public_id=item.public_id) }}">{{ item.title }}</a></td>
-          <td>{{ type_labels.get(item.menu_type_code, item.menu_type_code or '—') }}</td>
-          <td>{{ scope_labels.get(item.profile_scope, item.profile_scope) }}</td>
-          <td>{{ recipe_state(item) }}</td>
-          <td><span class="badge {{ 'bg-green-lt' if item.active else 'bg-secondary-lt' }}">{{ 'Aktiv' if item.active else 'Archiviert' }}</span></td>
-          {% if can_write %}<td>{% if item.active %}<a class="btn text-wrap" href="{{ url_for('admin.dish_template_plan', public_id=item.public_id) }}">{{ icon('calendar-plus') }}Als Menü einplanen</a>{% endif %}</td>{% endif %}
+          <td>
+            <a class="text-break" href="{{ url_for('admin.dish_template_edit', public_id=item.public_id) }}">{{ item.title }}</a>
+            <div class="d-md-none">
+              {% if can_write and item.active %}<a class="btn text-wrap my-2" href="{{ url_for('admin.dish_template_plan', public_id=item.public_id) }}">{{ icon('calendar-plus') }}Als Menü einplanen</a>{% endif %}
+              <div class="text-secondary">{{ type_labels.get(item.menu_type_code, item.menu_type_code or '—') }} · {{ scope_labels.get(item.profile_scope, item.profile_scope) }}</div>
+              {{ recipe_state(item) }}
+              <span class="badge mt-1 {{ 'bg-green-lt' if item.active else 'bg-secondary-lt' }}">{{ 'Aktiv' if item.active else 'Archiviert' }}</span>
+            </div>
+          </td>
+          <td class="d-none d-md-table-cell">{{ type_labels.get(item.menu_type_code, item.menu_type_code or '—') }}</td>
+          <td class="d-none d-md-table-cell">{{ scope_labels.get(item.profile_scope, item.profile_scope) }}</td>
+          <td class="d-none d-md-table-cell">{{ recipe_state(item) }}</td>
+          <td class="d-none d-md-table-cell"><span class="badge {{ 'bg-green-lt' if item.active else 'bg-secondary-lt' }}">{{ 'Aktiv' if item.active else 'Archiviert' }}</span></td>
+          {% if can_write %}<td class="d-none d-md-table-cell">{% if item.active %}<a class="btn text-wrap" href="{{ url_for('admin.dish_template_plan', public_id=item.public_id) }}">{{ icon('calendar-plus') }}Als Menü einplanen</a>{% endif %}</td>{% endif %}
         </tr>
         {% endfor %}
       </tbody>

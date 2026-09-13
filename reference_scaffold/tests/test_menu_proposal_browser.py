@@ -1,7 +1,9 @@
 """Own native/JS proposal evidence, real browser zoom and clear conflict navigation."""
 import json
+import hashlib
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from time import sleep
 from urllib.parse import parse_qs
 
 import pytest
@@ -226,4 +228,85 @@ def test_invalid_week_keeps_native_values_and_focuses_error(
             shot(page, f'invalid-week-{width}-{javascript}')
         page.get_by_label('Woche ab Montag', exact=True).fill(DAY)
         submit(page, 'Weiter zum Menü', 303)
+        assert stored_state(admin_engine) == before
+
+
+@pytest.mark.parametrize('javascript', (True, False))
+@pytest.mark.parametrize('width,height', ((390, 844), (320, 900), (1440, 900)))
+def test_list_planning_action_stays_inside_visible_entry(
+    browser, live_server, admin_app, admin_engine, javascript, width, height,  # noqa: F811
+):
+    client, actor = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    revision = _insert_revision(admin_engine, actor, 'Gespeicherter Stand mit Kräutern')
+    title = 'Rösti mit saisonalem Herbstgemüse und frischen Kräutern'
+    template = make_template(admin_engine, recipe=int(revision['recipe_id']), title=title)
+    archived = make_template(admin_engine, active=False, title='Archivierte Vorlage')
+    root = Path(__file__).resolve().parents[2]
+    source = root / 'reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html'
+    source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
+    evidence = root / '.claude/evidence/proposal-mobile-fix-0913' / source_hash[:12]
+    evidence.mkdir(parents=True, exist_ok=True)
+    before = stored_state(admin_engine)
+    with browser.new_context(base_url=live_server, java_script_enabled=javascript,
+            viewport={'width': width, 'height': height}, reduced_motion='reduce') as context:
+        context.add_cookies([{'name': 'session', 'value': client.get_cookie('session').value, 'url': live_server}])
+        page = context.new_page()
+        assert page.goto('/admin/gerichtvorlagen?archived=1').status == 200
+        page.evaluate('document.fonts.ready')
+        link = page.get_by_role('link', name='Als Menü einplanen', exact=True)
+        expect(link).to_have_count(1)
+        # A long NoJS navigation needs a vertical wheel gesture. Never focus or
+        # auto-scroll the link horizontally before measuring clipping ancestors.
+        if link.bounding_box()['y'] + link.bounding_box()['height'] > height:
+            page.mouse.move(width // 2, height // 2)
+            page.mouse.wheel(0, height // 2)
+            for _ in range(100):
+                box = link.bounding_box()
+                if box['y'] + box['height'] <= height:
+                    break
+                sleep(0.02)
+        metrics = link.evaluate('''el => {
+            const row = el.closest('tr'), clip = el.closest('.table-responsive');
+            const title = row.querySelector('td > a');
+            const bounds = node => {const r=node.getBoundingClientRect();
+                return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height};};
+            const action = bounds(el), container = bounds(clip), heading = bounds(title);
+            const left = Math.max(0, container.left), right = Math.min(innerWidth, container.right);
+            const top = Math.max(0, container.top), bottom = Math.min(innerHeight, container.bottom);
+            const canvas = document.createElement('canvas').getContext('2d');
+            canvas.font = getComputedStyle(title).font;
+            const longestWord = Math.max(...title.textContent.trim().split(/\\s+/)
+                .map(word => canvas.measureText(word).width));
+            return {width:innerWidth,height:innerHeight,scrollX,scrollY,scrollLeft:clip.scrollLeft,
+                documentWidth:document.documentElement.scrollWidth,action,container,heading,longestWord,
+                intersectionWidth:Math.max(0,Math.min(action.right,right)-Math.max(action.left,left)),
+                intersectionHeight:Math.max(0,Math.min(action.bottom,bottom)-Math.max(action.top,top)),
+                titleContained:heading.left >= left-1 && heading.right <= right+1,
+                text:row.innerText,columns:[...row.cells].filter(c => getComputedStyle(c).display !== 'none').length};
+        }''')
+        name = f'list-{width}-{javascript}'
+        page.screenshot(path=str(evidence / f'{name}.png'), full_page=True)
+        (evidence / f'{name}.json').write_text(json.dumps({
+            'template_sha256': source_hash, 'test_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            'javascript': javascript, 'metrics': metrics,
+        }, indent=2))
+        assert metrics['scrollX'] == metrics['scrollLeft'] == 0, metrics
+        assert metrics['documentWidth'] <= width + 1, metrics
+        assert metrics['intersectionWidth'] >= metrics['action']['width'] - 1, metrics
+        assert metrics['intersectionHeight'] >= metrics['action']['height'] - 1, metrics
+        assert metrics['action']['height'] >= 48 and metrics['action']['width'] >= 48
+        assert metrics['titleContained'] and metrics['heading']['width'] >= metrics['longestWord'] - 1
+        assert title in metrics['text'] and 'Gemeinsam' in metrics['text']
+        assert 'Gespeicherter Stand mit Kräutern' in metrics['text']
+        assert '1 gespeicherte Stände' in metrics['text'] and 'In 0 Menüs verwendet' in metrics['text']
+        assert metrics['columns'] == (6 if width >= 768 else 1)
+        expect(page.locator(f'a[href="/admin/gerichtvorlagen/{archived["public_id"]}/einplanen"]')).to_have_count(0)
+        assert link.get_attribute('href') == f'/admin/gerichtvorlagen/{template["public_id"]}/einplanen'
+        link.focus()
+        expect(link).to_be_focused()
+        assert link.evaluate('(el) => getComputedStyle(el).outlineStyle') != 'none'
+        with page.expect_navigation(wait_until='load'):
+            page.keyboard.press('Enter')
+        expect(page.get_by_role('heading', name='Menü einplanen', exact=True)).to_be_visible()
+        expect(page.locator('#planning-summary')).to_contain_text(title)
         assert stored_state(admin_engine) == before
