@@ -139,8 +139,10 @@ def test_v2_http_html_and_pdf_use_original_child_on_one_readonly_snapshot(v2_htt
         event.remove(app.extensions['cafeteria_db'], 'before_cursor_execute', capture)
     assert response.status_code == 200 and response.headers['Cache-Control'] == 'no-store'
     pdf, body = extracted(response)
-    assert len(pdf.pages) >= 3 and any(list(page.images) for page in pdf.pages)
-    assert body.count('Gemüsebasis aus der Revision') == 2
+    assert len(pdf.pages) == 2 and any(list(page.images) for page in pdf.pages)
+    assert 'Gemüsebasis aus der Revision · Revision 1 Fortsetzung' in ' '.join(body.split())
+    assert body.count('Gemüsebasis aus der Revision') == 3  # Two uses and their continuation header.
+    assert body.count('Zubereitung für ') == 2
     assert 'Gemüse schonend garen und fein pürieren.' in body and 'HEUTIGER ENTWURF' not in body
     assert '0.00022222222222222222222222222222222222222222222222222' in ''.join(body.split())
     recipe_connections = {id(connection) for connection, statement in seen
@@ -157,11 +159,14 @@ def test_v2_http_html_and_pdf_use_original_child_on_one_readonly_snapshot(v2_htt
         created_at = connection.execute(text('''SELECT created_at FROM cafeteria.recipe_revisions
             WHERE public_id=CAST(:id AS uuid)'''), {'id': frozen.public_id}).scalar_one()
     # Europe/Zurich through the existing filter, not the raw UTC instant.
-    assert f'Erstellt am {datetime_short(created_at)}' in response.text
+    assert f'<time datetime="{created_at.isoformat()}">{datetime_short(created_at)}</time>' in response.text
     assert created_at.strftime('%d.%m.%Y, %H:%M %Z') not in response.text
-    # This page really converts captured units, so the shared hint must not deny it.
-    assert 'Erfasste Zubereitungen werden mit den festgehaltenen Einheiten' in response.text
-    assert 'keine Einheitenumrechnung' not in response.text
+    assert 'id="target-yield"' not in response.text
+    calculated = client.get(html_path + '?mode=scale&yield=2')
+    assert calculated.status_code == 200
+    # The explicit calculator really converts captured units; its hint must not deny it.
+    assert 'Erfasste Zubereitungen werden mit den festgehaltenen Einheiten' in calculated.text
+    assert 'keine Einheitenumrechnung' not in calculated.text
     invalid = client.get(html_path + '?yield=0')
     assert invalid.status_code == 400 and 'Erfasste Zubereitungen' in invalid.text
     assert state(owner) == before
@@ -187,18 +192,28 @@ def test_v2_native_revision_scaling_and_pdf_paint(v2_http, browser, width, javas
             expect(page.get_by_role('heading', name='Erfasste Zubereitungen')).to_be_visible()
             _targets(page)
             control = page.get_by_label('Zielmenge', exact=False)
+            expect(control).to_have_count(0)
+            page.get_by_role('link', name='Mengen berechnen', exact=True).click()
             control.fill('2')
             control.focus()
             page.keyboard.press('Tab')
             expect(page.get_by_role('button', name='Mengen berechnen')).to_be_focused()
             page.keyboard.press('Enter')
             expect(control).to_have_value('2')
+            page.get_by_role('link', name='Rezept ansehen', exact=True).click()
+            expect(control).to_have_count(0)
+            assert urlparse(page.url).path == path(frozen).removesuffix('/druck.pdf')
+            assert parse_qs(urlparse(page.url).query) == {'yield': ['2']}
             expect(page.get_by_role('link', name='Gespeicherte Zubereitung öffnen')).to_have_count(2)
             page.screenshot(path=str(output / f'recipe-v2-{width}-full.png'), full_page=True)
             page.screenshot(path=str(output / f'recipe-v2-{width}-viewport.png'))
             pdf_link = page.get_by_role('link', name='PDF öffnen')
             actual = client.get(pdf_link.get_attribute('href'))
             assert actual.status_code == 200 and actual.data.startswith(b'%PDF')
+            assert parse_qs(urlparse(pdf_link.get_attribute('href')).query) == {'yield': ['2']}
+            assert actual.headers['Cache-Control'] == 'no-store'
+            assert actual.headers['X-Recipe-Revision'] == frozen.public_id
+            assert actual.headers['X-Recipe-Content-SHA256'] == frozen.content_hash_sha256
             (output / f'recipe-v2-{width}.pdf').write_bytes(actual.data)
             if javascript:
                 pdf_link.click()
