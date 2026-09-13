@@ -20,7 +20,7 @@ from test_rendered_ui import browser  # noqa: F401
 
 
 ROOT = Path(__file__).resolve().parents[2]
-EVIDENCE = ROOT / '.claude' / 'evidence' / 'density-cookbooks-0913' / 'after'
+EVIDENCE = ROOT / '.claude' / 'evidence' / 'icon-target-grok-0913'
 LONG_NAME = ('Sommergemüse mit Kräuterkartoffeln und hausgemachter Zitronensauce '
              'für die Gemeinschaftsküche am Sonntag')
 LONG_DESCRIPTION = ('Saisonale Rezepte für die Gemeinschaftsküche, sortiert nach Aufwand. ' * 6).strip()
@@ -313,9 +313,7 @@ def _assert_core_controls(page):
         box = control.bounding_box()
         assert box is not None and box['height'] >= 44
         if 'btn-icon' in (control.get_attribute('class') or '').split():
-            # Shared .btn-icon (admin-tabler.css, SHELL-owned) renders 40 × 48 CSS px today;
-            # the manifest asks 44 × 44. Measured widths land in density-metrics.json.
-            assert box['width'] >= 40
+            assert box['width'] >= 44
             _icon_control(control)
 
 
