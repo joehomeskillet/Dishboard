@@ -11,11 +11,11 @@
       "model": "grok-4.6"
     },
     "mp_id": "MP-UI-DENSITY-INVENTORY",
-    "source_commit": "c5e17beee2ba52e9f6bab5ae9969a01a7e236d36",
+    "source_commit": "db84d2b2f1682e62e130a48a6d8c9e8cb98eb9e6",
     "schema": 30,
     "schema_note": "Aktueller zugewiesener Quellstand; SCHEMA_VERSION aus cafeteria.db. Keine neue Live-Abnahme.",
     "baseline_status": "proposed_never_user_approved",
-    "generated_at": "2026-09-13T04:36:03.599Z",
+    "generated_at": "2026-09-13T05:19:31.068Z",
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
     "route_count": 127,
     "template_count": 83,
@@ -8256,7 +8256,59 @@
       "extends": [],
       "includes": [],
       "sha256": "3c126306688abdda6c78ef5e2c91c6047857b378f07fbdbe60336be168ed437a",
-      "used_by_endpoints": [],
+      "used_by_endpoints": [
+        "admin.access_history",
+        "admin.api_overview",
+        "admin.branding_editor",
+        "admin.cafeteria",
+        "admin.component_detail",
+        "admin.components_get",
+        "admin.cookbook_edit",
+        "admin.cookbook_new",
+        "admin.cookbook_status",
+        "admin.cookbooks_list",
+        "admin.copy_get",
+        "admin.dish_template_create",
+        "admin.dish_template_edit",
+        "admin.dish_template_new",
+        "admin.dish_template_save",
+        "admin.dish_templates_list",
+        "admin.display_settings",
+        "admin.import_preview",
+        "admin.local_user_detail",
+        "admin.local_user_events",
+        "admin.local_user_new",
+        "admin.local_users_list",
+        "admin.master_data_detail",
+        "admin.master_data_list",
+        "admin.master_data_new",
+        "admin.menu_collection",
+        "admin.menu_get",
+        "admin.operations_settings",
+        "admin.patienten",
+        "admin.print_template_editor",
+        "admin.recipe_edit",
+        "admin.recipe_images",
+        "admin.recipe_import_commit",
+        "admin.recipe_import_create",
+        "admin.recipe_import_detail",
+        "admin.recipe_import_list",
+        "admin.recipe_import_save",
+        "admin.recipe_new",
+        "admin.recipe_print_template_editor",
+        "admin.recipe_revision",
+        "admin.recipe_revisions",
+        "admin.recipe_scale",
+        "admin.recipe_status",
+        "admin.recipe_view",
+        "admin.recipes_list",
+        "admin.screen_template_assignment",
+        "admin.screen_template_preview",
+        "admin.screens",
+        "admin.vorlagen",
+        "admin.week_management",
+        "admin.week_review_get"
+      ],
       "owning_mp": "MP-UI-SHELL",
       "density_mockups": [],
       "current_visual_status": "not_run"
@@ -8364,7 +8416,11 @@
         "admin.screens",
         "admin.vorlagen",
         "admin.week_management",
-        "admin.week_review_get"
+        "admin.week_review_get",
+        "public.cafeteria_week",
+        "public.cafeteria_week_without_images",
+        "public.patient_week",
+        "public.patient_week_without_images"
       ],
       "owning_mp": "MP-UI-ACCESS-HISTORY",
       "density_mockups": [
@@ -8398,7 +8454,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "9e450b9c43cfd81f1a7ca5472ead51683283aeacd8736363958a9b92773e543e",
+      "sha256": "5e62682f9598cab3bf1a13d21a3837a0ae8e12f9013277da8cb9340697800d98",
       "used_by_endpoints": [
         "admin.print_template_editor",
         "admin.recipe_print_template_editor"
@@ -8653,6 +8709,7 @@
       "kind": "layout",
       "extends": [],
       "includes": [
+        "admin/_area_tabs.html",
         "admin/_macros.html",
         "admin/_workflow_sidebar.html"
       ],
@@ -8884,7 +8941,7 @@
         "_menu_image.html",
         "admin/_macros.html"
       ],
-      "sha256": "e488a7cf329b2e58b9330e0894a843b444322ab4d5833c4da0696673a1fd865a",
+      "sha256": "73b93ce66c65e2a806991c958248d0d0d6c00c1d6c5a127152153674ef43a2fe",
       "used_by_endpoints": [
         "admin.display_settings"
       ],
@@ -9366,7 +9423,7 @@
         "admin/_macros.html",
         "admin/_recipe_template_selection.html"
       ],
-      "sha256": "b5c06dc481f5ebb76d94d183824a61092659dbc53d149810fba8a26c102c044a",
+      "sha256": "60fb82309719e3828186035eeaad95a6cb17b4e203c53972a54ef8908e2732b5",
       "used_by_endpoints": [
         "admin.print_template_editor",
         "admin.recipe_print_template_editor"
@@ -9383,8 +9440,10 @@
       "path": "admin/print_template_unavailable.html",
       "kind": "page",
       "extends": [],
-      "includes": [],
-      "sha256": "695ba218eeb1a3196a6039fa38be961f1adb6f81e85dfb94ca067b47a78fa775",
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "9661a4b3dca7dc204cfd3891e054b88ee237c0f8d6111c59fccbfe280f6282ed",
       "used_by_endpoints": [
         "admin.print_template_editor",
         "admin.recipe_print_template_editor"
@@ -9401,8 +9460,10 @@
       "path": "admin/recipe_template_error.html",
       "kind": "page",
       "extends": [],
-      "includes": [],
-      "sha256": "7a7ed526c59e2a31c558d948cc451f14b7f4a5da41839c0e2dc63c773f99ad87",
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "5fd06489f21d2f9ea4d445c64f7cce73b59e6c24aa86a91c2ab85c9917fe2a4d",
       "used_by_endpoints": [
         "admin.recipe_print_template_editor"
       ],
@@ -9643,7 +9704,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "bcf120e84ab2b9c1d4531d5b31f20c5e4f45087f3a98d971f5c15b3e05e85588",
+      "sha256": "baf4f2665bfb426e6d94b22d40c689af84e6a830f5e42d17b9ccbffc218e415b",
       "used_by_endpoints": [
         "admin.screen_template_assignment",
         "admin.screen_template_preview"
@@ -9661,8 +9722,10 @@
       "path": "admin/screen_template_unavailable.html",
       "kind": "page",
       "extends": [],
-      "includes": [],
-      "sha256": "93e9cc5d2e9fc9cdef7c21f69f3e8bb63c0bd5d637f4fe5f244410031a37489f",
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "78feecbd6729d85dfeed491f518fc6fb3d4f8b01b5e569d4dfa9bb206892ce14",
       "used_by_endpoints": [
         "admin.screen_template_assignment",
         "public.cafeteria_week",
@@ -9688,7 +9751,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "c5ec2cfb52177c3b2f7c2a47d654454b0a5ba654c286d198ed46861b22490fad",
+      "sha256": "396a9ed17df73cd0b47b41b594351e198c47527482516bfbef2ee7a0782d7206",
       "used_by_endpoints": [
         "admin.screens"
       ],
@@ -9710,7 +9773,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "620c1fcf8f23e2c72637b727d0a5dc12f8aa128e928ab709ec3ad210dd4a384d",
+      "sha256": "970dcd71b6a5a4433e3c5f282e0417fd9f9e7e5be899ccba7394940df0f71a39",
       "used_by_endpoints": [
         "admin.vorlagen"
       ],
