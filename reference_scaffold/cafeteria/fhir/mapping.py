@@ -42,6 +42,8 @@ def nutrition_product(snapshot: dict, day: dict, service: dict, option: dict, *,
         notes.append({"text": option['description']})
     if option.get('note'):
         notes.append({"text": option['note']})
+    if option.get('accompaniment_name'):
+        notes.append({"text": f"Dazu: {option['accompaniment_name']}"})
     if notes:
         resource["note"] = notes
 

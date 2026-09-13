@@ -66,6 +66,34 @@ def test_characteristics():
     assert channel['valueCodeableConcept']['coding'][0]['code'] == 'cafeteria'
 
 
+def test_accompaniment_is_an_additional_note_and_not_an_ingredient():
+    snapshot = patient_snapshot()
+    day = snapshot['days'][0]
+    service = day['services'][0]
+    option = service['options'][0]
+
+    without_accompaniment = mapping.nutrition_product(
+        snapshot, day, service, option, base_url=BASE_URL
+    )
+    with_accompaniment = mapping.nutrition_product(
+        snapshot,
+        day,
+        service,
+        {**option, 'accompaniment_code': 'soup', 'accompaniment_name': 'Suppe'},
+        base_url=BASE_URL,
+    )
+
+    assert not any(
+        note['text'].startswith('Dazu:')
+        for note in without_accompaniment.get('note', [])
+    )
+    assert with_accompaniment['note'] == [
+        *without_accompaniment.get('note', []),
+        {'text': 'Dazu: Suppe'},
+    ]
+    assert with_accompaniment.get('ingredient') == without_accompaniment.get('ingredient')
+
+
 def test_price_extensions():
     caf_products = mapping.nutrition_products(cafeteria_snapshot(), base_url=BASE_URL)
     pat_products = mapping.nutrition_products(patient_snapshot(), base_url=BASE_URL)
