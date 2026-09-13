@@ -15552,5 +15552,647 @@
         }
       ]
     }
-  ]
+  ],
+  "accompaniment_registry_2026_09_13": {
+    "authority": "Root assignment wp-582f8fccf5ce; ACC-only delta. Historical snapshot and unrelated UI grants remain unchanged.",
+    "source_base": "4711c22075383126d2af90ecaa85184ed53589eb",
+    "planning_source": "2eaa408",
+    "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+    "live_predecessor": {
+      "source": "4be7b79d69e38e70875981a70d7b975591e5218c",
+      "schema": 31,
+      "since": "2026-09-13 08:53 CEST",
+      "health": "healthy",
+      "evidence_owner": "Root; not re-run by this docs worker"
+    },
+    "migration_reservation": {
+      "path": "database/migrations/0029_v31_to_v32.sql",
+      "owner": "MP-REC-ACC-SCHEMA",
+      "waiting": [
+        "MP-REC-PLAN-PORTIONS"
+      ],
+      "rule": "One schema writer, then CORE; PLAN-PORTIONS needs later own reservation."
+    },
+    "release_gate": "Vor sichtbarer Schreiboberfläche alle Snapshot-Reader/Validatoren sowie Public/Signage/Druck/API und CSV-Roundtrip fertig integrieren. Kein sichtbares Teilrelease nach Welle1.",
+    "canonical_names": {
+      "soup": "Suppe",
+      "salad": "Salat (gemischt und grün)"
+    },
+    "csv": "F5 entschieden: Schema3 und verlustfreier Roundtrip sind Pflicht; Schema2-Import bleibt expliziter Vollersatz mit none.",
+    "touch_target_px": 48,
+    "current_structural_counts": {
+      "packages": 188,
+      "requirements": 36,
+      "acc_packages": 12
+    },
+    "package_statuses": {
+      "MP-REC-ACC-SCHEMA": "IN_PROGRESS",
+      "MP-REC-ACC-ICONS": "REVIEWED_LOCAL",
+      "MP-REC-ACC-MENU-CORE": "PLANNED",
+      "MP-REC-ACC-SNAPSHOT": "PLANNED",
+      "MP-REC-ACC-TEMPLATE": "PLANNED",
+      "MP-REC-ACC-EDITOR-UI": "PLANNED",
+      "MP-REC-ACC-PUBLIC-OUTPUT": "PLANNED",
+      "MP-REC-ACC-WEEK-PDF": "PLANNED",
+      "MP-REC-ACC-API-FHIR": "PLANNED",
+      "MP-REC-ACC-COLLECTION": "PLANNED",
+      "MP-REC-ACC-CSV": "PLANNED",
+      "MP-REC-ACC-ACCEPT": "PLANNED"
+    },
+    "icons_source_evidence": {
+      "routing_wp": "wp-0bdbe5f2eaec",
+      "source_commit": "0ca81eebb14223fbc7d69cb47a6571bd08fcc333",
+      "origin": "Actual Spark attempt hit /tmp/worktree ownership failure; Root recovered its source.",
+      "root_verification": "Unchanged tools/vendor_tabler.py --verify PASS, as reported by Root.",
+      "scope": "Verified source only; no deployment or complete consumer/UI acceptance claimed."
+    },
+    "serial_shared_files": {
+      "database/schema.sql": [
+        "MP-REC-MENU-PROPOSAL(v31)",
+        "MP-REC-ACC-SCHEMA",
+        "MP-REC-PLAN-PORTIONS"
+      ],
+      "database/permissions.sql": [
+        "MP-REC-MENU-PROPOSAL(v31)",
+        "MP-REC-ACC-SCHEMA",
+        "MP-REC-PLAN-PORTIONS"
+      ],
+      "database/validate_schema.py": [
+        "MP-REC-MENU-PROPOSAL(v31)",
+        "MP-REC-ACC-SCHEMA",
+        "MP-REC-PLAN-PORTIONS"
+      ],
+      "reference_scaffold/cafeteria/db.py": [
+        "MP-REC-MENU-PROPOSAL(v31)",
+        "MP-REC-ACC-SCHEMA",
+        "MP-REC-PLAN-PORTIONS"
+      ],
+      "tools/validate_package.py": [
+        "MP-REC-MENU-PROPOSAL(v31)",
+        "MP-REC-ACC-SCHEMA",
+        "MP-REC-PLAN-PORTIONS"
+      ],
+      "reference_scaffold/cafeteria/workflow_partial_form.py": [
+        "MP-REC-BINDINGS",
+        "MP-REC-MENU-TEMPLATE-BINDING",
+        "MP-REC-PLAN-PORTIONS",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "reference_scaffold/cafeteria/workflow_partial_store.py": [
+        "MP-REC-BINDINGS",
+        "MP-REC-MENU-TEMPLATE-BINDING",
+        "MP-REC-PLAN-PORTIONS",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "reference_scaffold/cafeteria/workflow_store.py": [
+        "MP-REC-BINDINGS",
+        "MP-REC-MENU-TEMPLATE-BINDING",
+        "MP-REC-PLAN-PORTIONS",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "reference_scaffold/cafeteria/workflow_item_write.py": [
+        "MP-REC-BINDINGS",
+        "MP-REC-MENU-TEMPLATE-BINDING",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "reference_scaffold/cafeteria/workflow.py": [
+        "MP-REC-BINDINGS",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "reference_scaffold/cafeteria/workflow_copy_store.py": [
+        "MP-REC-BINDINGS",
+        "MP-REC-PLAN-PORTIONS",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "reference_scaffold/cafeteria/admin/rendering.py": [
+        "MP-REC-MENU-TEMPLATE-BINDING",
+        "MP-REC-MENU-PROPOSAL",
+        "MP-REC-PLAN-PORTIONS",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "reference_scaffold/cafeteria/admin/workflow_routes.py": [
+        "MP-REC-MENU-TEMPLATE-BINDING",
+        "MP-REC-MENU-PROPOSAL",
+        "MP-REC-PLAN-PORTIONS",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "reference_scaffold/cafeteria/menu_template_binding.py": [
+        "MP-REC-MENU-TEMPLATE-BINDING",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "reference_scaffold/cafeteria/templates/admin/menu_editor.html": [
+        "MP-UI-DENSITY-MENUEDITOR",
+        "MP-REC-MENU-TEMPLATE-BINDING",
+        "MP-REC-MENU-PROPOSAL",
+        "MP-REC-PLAN-PORTIONS",
+        "MP-REC-ACC-EDITOR-UI"
+      ],
+      "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html": [
+        "MP-UI-DENSITY-WEEKS",
+        "MP-REC-MENU-TEMPLATE-BINDING",
+        "MP-REC-ACC-EDITOR-UI"
+      ],
+      "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html": [
+        "MP-REC-LINK-READS",
+        "MP-REC-RECIPE-VIEW-PRINT",
+        "MP-REC-MENU-PROPOSAL",
+        "MP-UI-DENSITY-RECIPEPAGES",
+        "MP-REC-ACC-TEMPLATE"
+      ],
+      "reference_scaffold/cafeteria/admin/dish_template_routes.py": [
+        "MP-REC-LINK-READS",
+        "MP-REC-MENU-PROPOSAL",
+        "MP-REC-ACC-TEMPLATE"
+      ],
+      "reference_scaffold/cafeteria/dish_template_store.py": [
+        "MP-REC-DISH-TEMPLATE-WRITER",
+        "MP-REC-ACC-TEMPLATE"
+      ],
+      "reference_scaffold/cafeteria/static/vendor/tabler-icons/tabler-icons.svg": [
+        "MP-UI-DENSITY-RECIPE(fix)",
+        "MP-REC-RECIPE-VIEW-PRINT",
+        "MP-REC-ACC-ICONS"
+      ],
+      "reference_scaffold/cafeteria/static/vendor/tabler.lock.json": [
+        "MP-UI-DENSITY-RECIPE(fix)",
+        "MP-REC-RECIPE-VIEW-PRINT",
+        "MP-REC-ACC-ICONS"
+      ],
+      "reference_scaffold/cafeteria/templates/_menu_metadata.html": [
+        "MP-REC-ACC-PUBLIC-OUTPUT"
+      ],
+      "reference_scaffold/cafeteria/workflow_snapshot.py": [
+        "MP-REC-ACC-SNAPSHOT"
+      ],
+      "reference_scaffold/cafeteria/patient_payload.py": [
+        "MP-REC-ACC-SNAPSHOT"
+      ],
+      "reference_scaffold/cafeteria/admin/menu_collection_store.py": [
+        "MP-REC-ACC-COLLECTION"
+      ],
+      "reference_scaffold/cafeteria/static/admin.js": [
+        "MP-UI-DENSITY-RECIPE",
+        "MP-UI-DENSITY-SHARED",
+        "MP-REC-PLAN-PORTIONS"
+      ]
+    },
+    "lease_policy": "SCHEMA is the sole active ACC writer under the explicit Root grant; all other future writers need fresh assignment. TEMPLATE waits for RECIPEPAGES file release if occupied; CORE/SCHEMA/PLAN-PORTIONS are serial.",
+    "current_recipe_manifest": {
+      "sha256": "6547ae9b12c61ef596a90d8c88909b309d8a4edf2c2885f456568ce7c7edf18c",
+      "bytes": 551292
+    },
+    "package_leases": [
+      {
+        "plan_id": "MP-REC-ACC-SCHEMA",
+        "state": "IN_PROGRESS",
+        "routing_wp": "wp-65e15658fc4b",
+        "active_writer": true,
+        "owned_files": [
+          "database/schema.sql",
+          "database/permissions.sql",
+          "database/validate_schema.py",
+          "database/README.md",
+          "proposed:database/migrations/0029_v31_to_v32.sql",
+          "reference_scaffold/cafeteria/db.py",
+          "tools/validate_package.py",
+          "proposed:reference_scaffold/tests/test_menu_accompaniment_migration_db.py",
+          "reference_scaffold/tests/test_database_invariants.py",
+          "reference_scaffold/tests/test_auth_database.py",
+          "reference_scaffold/tests/test_branding_migration_db.py",
+          "reference_scaffold/tests/test_component_catalog_migration_db.py",
+          "reference_scaffold/tests/test_local_user_management_migration_db.py",
+          "reference_scaffold/tests/test_master_data_db.py",
+          "reference_scaffold/tests/test_operations_settings_db.py",
+          "reference_scaffold/tests/test_prepared_food_migration_db.py",
+          "reference_scaffold/tests/test_publication_lock_contract_db.py",
+          "reference_scaffold/tests/test_rec_import_batch_migration_db.py",
+          "reference_scaffold/tests/test_rec_import_commit_migration_db.py",
+          "reference_scaffold/tests/test_recipe_binding_migration_db.py",
+          "reference_scaffold/tests/test_recipe_migration_db.py",
+          "reference_scaffold/tests/test_workflow_review_migration_db.py",
+          "reference_scaffold/tests/test_menu_recipe_sources_v31_migration.py"
+        ],
+        "contract_files": [
+          "database/schema.sql",
+          "database/permissions.sql",
+          "proposed:database/migrations/0029_v31_to_v32.sql",
+          "reference_scaffold/cafeteria/db.py"
+        ],
+        "wiring_files": [
+          "database/validate_schema.py",
+          "database/README.md",
+          "tools/validate_package.py"
+        ],
+        "read_only_contract_files": [
+          "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+          "database/migrations/0028_v30_to_v31.sql",
+          "reference_scaffold/cafeteria/dish_template_store.py"
+        ],
+        "depends_on": [
+          "MP-REC-MENU-PROPOSAL"
+        ],
+        "external_inputs": [],
+        "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/accompaniment-schema-codex-0913",
+        "execution": {
+          "state": "IN_PROGRESS",
+          "routing_wp": "wp-65e15658fc4b",
+          "actual_lane": "codex",
+          "actual_model": "gpt-5.6-sol",
+          "reasoning": "high",
+          "provider": "openai",
+          "profile": "effort-high",
+          "pty": "90840",
+          "session": "01a09999-07d8-76c1-9ab8-320c6ef7bd3c",
+          "started_at": "2026-09-13T07:08:58Z",
+          "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/accompaniment-schema-codex-0913",
+          "base": "4711c22075383126d2af90ecaa85184ed53589eb",
+          "pool_assignment": "APIint2 exclusive",
+          "authorization": "Nutzer: Mit verfügbaren GPT-Workern fortsetzen. Root bestätigt die Fortsetzung; historische Spark- und Fable-Routingvorgaben sind überholt.",
+          "evidence_owner": "Root verified actual startup; no source freeze, gate or delivery claimed."
+        }
+      },
+      {
+        "plan_id": "MP-REC-ACC-ICONS",
+        "state": "REVIEWED_LOCAL",
+        "routing_wp": "wp-0bdbe5f2eaec",
+        "active_writer": false,
+        "owned_files": [
+          "reference_scaffold/cafeteria/static/vendor/tabler.lock.json",
+          "reference_scaffold/cafeteria/static/vendor/tabler-icons/tabler-icons.svg"
+        ],
+        "contract_files": [
+          "reference_scaffold/cafeteria/static/vendor/tabler.lock.json"
+        ],
+        "wiring_files": [
+          "reference_scaffold/cafeteria/static/vendor/tabler-icons/tabler-icons.svg"
+        ],
+        "read_only_contract_files": [
+          "tools/vendor_tabler.py",
+          "docs/design/2026-09-07-admin-tabler-icon-manifest.md"
+        ],
+        "depends_on": [],
+        "external_inputs": []
+      },
+      {
+        "plan_id": "MP-REC-ACC-MENU-CORE",
+        "state": "PLANNED",
+        "routing_wp": null,
+        "active_writer": false,
+        "owned_files": [
+          "reference_scaffold/cafeteria/workflow.py",
+          "reference_scaffold/cafeteria/workflow_partial_form.py",
+          "reference_scaffold/cafeteria/workflow_partial_store.py",
+          "reference_scaffold/cafeteria/workflow_store.py",
+          "reference_scaffold/cafeteria/workflow_item_write.py",
+          "reference_scaffold/cafeteria/workflow_copy_store.py",
+          "reference_scaffold/cafeteria/admin/rendering.py",
+          "reference_scaffold/cafeteria/admin/workflow_routes.py",
+          "reference_scaffold/cafeteria/menu_template_binding.py",
+          "proposed:reference_scaffold/tests/test_menu_accompaniment_db.py",
+          "proposed:reference_scaffold/tests/test_menu_accompaniment_form.py"
+        ],
+        "contract_files": [
+          "reference_scaffold/cafeteria/workflow.py",
+          "reference_scaffold/cafeteria/workflow_partial_form.py",
+          "reference_scaffold/cafeteria/workflow_partial_store.py",
+          "reference_scaffold/cafeteria/workflow_store.py",
+          "reference_scaffold/cafeteria/workflow_item_write.py"
+        ],
+        "wiring_files": [
+          "reference_scaffold/cafeteria/workflow_copy_store.py",
+          "reference_scaffold/cafeteria/admin/rendering.py",
+          "reference_scaffold/cafeteria/admin/workflow_routes.py",
+          "reference_scaffold/cafeteria/menu_template_binding.py"
+        ],
+        "read_only_contract_files": [
+          "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+          "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md",
+          "database/schema.sql",
+          "reference_scaffold/cafeteria/workflow_snapshot.py",
+          "reference_scaffold/cafeteria/patient_payload.py",
+          "reference_scaffold/cafeteria/workflow_review.py",
+          "reference_scaffold/cafeteria/workflow_write_context.py",
+          "reference_scaffold/cafeteria/admin/workflow_scope.py"
+        ],
+        "depends_on": [
+          "MP-REC-ACC-SCHEMA",
+          "MP-REC-MENU-TEMPLATE-BINDING",
+          "MP-REC-MENU-PROPOSAL"
+        ],
+        "external_inputs": []
+      },
+      {
+        "plan_id": "MP-REC-ACC-SNAPSHOT",
+        "state": "PLANNED",
+        "routing_wp": null,
+        "active_writer": false,
+        "owned_files": [
+          "reference_scaffold/cafeteria/workflow_snapshot.py",
+          "reference_scaffold/cafeteria/patient_payload.py",
+          "reference_scaffold/tests/test_admin_workflow_snapshot_contract.py",
+          "reference_scaffold/tests/test_public_contracts.py",
+          "proposed:reference_scaffold/tests/test_menu_accompaniment_snapshot.py"
+        ],
+        "contract_files": [
+          "reference_scaffold/cafeteria/workflow_snapshot.py",
+          "reference_scaffold/cafeteria/patient_payload.py"
+        ],
+        "wiring_files": [
+          "reference_scaffold/tests/test_admin_workflow_snapshot_contract.py",
+          "reference_scaffold/tests/test_public_contracts.py"
+        ],
+        "read_only_contract_files": [
+          "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+          "reference_scaffold/cafeteria/workflow.py",
+          "reference_scaffold/cafeteria/db.py",
+          "reference_scaffold/cafeteria/csvio.py",
+          "reference_scaffold/cafeteria/api/openapi.py"
+        ],
+        "depends_on": [
+          "MP-REC-ACC-SCHEMA"
+        ],
+        "external_inputs": []
+      },
+      {
+        "plan_id": "MP-REC-ACC-TEMPLATE",
+        "state": "PLANNED",
+        "routing_wp": null,
+        "active_writer": false,
+        "owned_files": [
+          "reference_scaffold/cafeteria/dish_template_store.py",
+          "reference_scaffold/cafeteria/admin/dish_template_routes.py",
+          "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html",
+          "reference_scaffold/tests/test_dish_template_routes.py",
+          "reference_scaffold/tests/test_dish_template_browser.py",
+          "proposed:reference_scaffold/tests/test_dish_template_accompaniment_db.py"
+        ],
+        "contract_files": [
+          "reference_scaffold/cafeteria/dish_template_store.py"
+        ],
+        "wiring_files": [
+          "reference_scaffold/cafeteria/admin/dish_template_routes.py",
+          "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html"
+        ],
+        "read_only_contract_files": [
+          "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+          "docs/design/2026-09-09-unified-ui-design-system.md",
+          "database/schema.sql",
+          "tools/import_dish_templates.py",
+          "reference_scaffold/cafeteria/menu_template_binding.py",
+          "reference_scaffold/cafeteria/recipe_link_reads.py"
+        ],
+        "depends_on": [
+          "MP-REC-ACC-SCHEMA",
+          "MP-REC-MENU-PROPOSAL"
+        ],
+        "external_inputs": []
+      },
+      {
+        "plan_id": "MP-REC-ACC-EDITOR-UI",
+        "state": "PLANNED",
+        "routing_wp": null,
+        "active_writer": false,
+        "owned_files": [
+          "reference_scaffold/cafeteria/templates/admin/menu_editor.html",
+          "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html",
+          "reference_scaffold/cafeteria/static/admin-menu-editor.css",
+          "proposed:reference_scaffold/tests/test_menu_accompaniment_browser.py"
+        ],
+        "contract_files": [
+          "reference_scaffold/cafeteria/templates/admin/menu_editor.html"
+        ],
+        "wiring_files": [
+          "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html"
+        ],
+        "read_only_contract_files": [
+          "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+          "docs/design/2026-09-09-unified-ui-design-system.md",
+          "docs/design/2026-09-12-patientenplan-menueditor-korrektur.md",
+          "reference_scaffold/cafeteria/admin/rendering.py",
+          "reference_scaffold/cafeteria/workflow_partial_form.py",
+          "reference_scaffold/cafeteria/static/vendor/tabler.lock.json"
+        ],
+        "depends_on": [
+          "MP-REC-ACC-MENU-CORE",
+          "MP-REC-ACC-ICONS",
+          "MP-UI-DENSITY-MENUEDITOR",
+          "MP-UI-DENSITY-WEEKS"
+        ],
+        "external_inputs": [
+          "MP-REC-ACC-ICONS geliefert oder Text-Fallback von Root bestätigt"
+        ]
+      },
+      {
+        "plan_id": "MP-REC-ACC-PUBLIC-OUTPUT",
+        "state": "PLANNED",
+        "routing_wp": null,
+        "active_writer": false,
+        "owned_files": [
+          "reference_scaffold/cafeteria/templates/_menu_metadata.html",
+          "proposed:reference_scaffold/tests/test_menu_accompaniment_public.py"
+        ],
+        "contract_files": [
+          "reference_scaffold/cafeteria/templates/_menu_metadata.html"
+        ],
+        "wiring_files": [],
+        "read_only_contract_files": [
+          "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+          "reference_scaffold/cafeteria/workflow_snapshot.py",
+          "reference_scaffold/cafeteria/templates/signage/cafeteria_day.html",
+          "reference_scaffold/cafeteria/templates/signage/patient_day.html",
+          "reference_scaffold/cafeteria/templates/public/patient_week.html",
+          "reference_scaffold/cafeteria/templates/admin/preview.html",
+          "reference_scaffold/cafeteria/templates/admin/menu_collection.html"
+        ],
+        "depends_on": [
+          "MP-REC-ACC-SNAPSHOT",
+          "MP-REC-ACC-MENU-CORE"
+        ],
+        "external_inputs": []
+      },
+      {
+        "plan_id": "MP-REC-ACC-WEEK-PDF",
+        "state": "PLANNED",
+        "routing_wp": null,
+        "active_writer": false,
+        "owned_files": [
+          "reference_scaffold/cafeteria/admin/week_pdf_layout.py",
+          "reference_scaffold/cafeteria/admin/week_pdf.py",
+          "reference_scaffold/tests/test_week_pdf.py",
+          "reference_scaffold/tests/test_week_pdf_layout.py"
+        ],
+        "contract_files": [
+          "reference_scaffold/cafeteria/admin/week_pdf_layout.py"
+        ],
+        "wiring_files": [
+          "reference_scaffold/cafeteria/admin/week_pdf.py"
+        ],
+        "read_only_contract_files": [
+          "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+          "reference_scaffold/cafeteria/print_templates.py",
+          "reference_scaffold/cafeteria/print_template_config.py"
+        ],
+        "depends_on": [
+          "MP-REC-ACC-SNAPSHOT",
+          "MP-REC-ACC-MENU-CORE"
+        ],
+        "external_inputs": []
+      },
+      {
+        "plan_id": "MP-REC-ACC-API-FHIR",
+        "state": "PLANNED",
+        "routing_wp": null,
+        "active_writer": false,
+        "owned_files": [
+          "reference_scaffold/cafeteria/api/openapi.py",
+          "reference_scaffold/cafeteria/fhir/mapping.py",
+          "reference_scaffold/tests/test_openapi_contract.py",
+          "reference_scaffold/tests/test_fhir_mapping.py",
+          "proposed:reference_scaffold/tests/test_menu_accompaniment_api.py"
+        ],
+        "contract_files": [
+          "reference_scaffold/cafeteria/api/openapi.py",
+          "reference_scaffold/cafeteria/fhir/mapping.py"
+        ],
+        "wiring_files": [],
+        "read_only_contract_files": [
+          "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+          "reference_scaffold/cafeteria/patient_payload.py",
+          "reference_scaffold/cafeteria/api/v1_routes.py",
+          "reference_scaffold/dishboard_mcp/server.py"
+        ],
+        "depends_on": [
+          "MP-REC-ACC-SNAPSHOT"
+        ],
+        "external_inputs": []
+      },
+      {
+        "plan_id": "MP-REC-ACC-COLLECTION",
+        "state": "PLANNED",
+        "routing_wp": null,
+        "active_writer": false,
+        "owned_files": [
+          "reference_scaffold/cafeteria/admin/menu_collection_store.py",
+          "reference_scaffold/tests/test_menu_collection.py"
+        ],
+        "contract_files": [
+          "reference_scaffold/cafeteria/admin/menu_collection_store.py"
+        ],
+        "wiring_files": [],
+        "read_only_contract_files": [
+          "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+          "reference_scaffold/cafeteria/templates/admin/menu_collection.html",
+          "reference_scaffold/cafeteria/templates/_menu_metadata.html"
+        ],
+        "depends_on": [
+          "MP-REC-ACC-MENU-CORE",
+          "MP-REC-ACC-PUBLIC-OUTPUT",
+          "MP-UI-DENSITY-LISTS"
+        ],
+        "external_inputs": [
+          "Freeze von MP-UI-DENSITY-LISTS auf menu_collection.html"
+        ]
+      },
+      {
+        "plan_id": "MP-REC-ACC-CSV",
+        "state": "PLANNED",
+        "routing_wp": null,
+        "active_writer": false,
+        "owned_files": [
+          "csv/validate_menu_csv.py",
+          "reference_scaffold/cafeteria/csvio.py",
+          "csv/menu_patient_template.csv",
+          "csv/menu_cafeteria_template.csv",
+          "csv/menu_patient_example.csv",
+          "csv/menu_cafeteria_example.csv",
+          "reference_scaffold/tests/test_admin_csv_import.py",
+          "reference_scaffold/tests/test_csv_validation_followup.py",
+          "proposed:reference_scaffold/tests/test_csv_accompaniment.py"
+        ],
+        "contract_files": [
+          "csv/validate_menu_csv.py",
+          "reference_scaffold/cafeteria/csvio.py"
+        ],
+        "wiring_files": [
+          "csv/menu_patient_template.csv",
+          "csv/menu_cafeteria_template.csv",
+          "csv/menu_patient_example.csv",
+          "csv/menu_cafeteria_example.csv"
+        ],
+        "read_only_contract_files": [
+          "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+          "reference_scaffold/cafeteria/workflow.py",
+          "reference_scaffold/cafeteria/patient_payload.py"
+        ],
+        "depends_on": [
+          "MP-REC-ACC-MENU-CORE",
+          "MP-REC-ACC-SNAPSHOT"
+        ],
+        "external_inputs": []
+      },
+      {
+        "plan_id": "MP-REC-ACC-ACCEPT",
+        "state": "PLANNED",
+        "routing_wp": null,
+        "active_writer": false,
+        "owned_files": [
+          "proposed:reference_scaffold/tests/test_menu_accompaniment_flow_accept.py",
+          "proposed:docs/superpowers/menu-accompaniments-0913/acceptance-evidence.md"
+        ],
+        "contract_files": [],
+        "wiring_files": [],
+        "read_only_contract_files": [
+          "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+          "docs/design/2026-09-09-unified-ui-design-system.md"
+        ],
+        "depends_on": [
+          "MP-REC-ACC-EDITOR-UI",
+          "MP-REC-ACC-PUBLIC-OUTPUT",
+          "MP-REC-ACC-WEEK-PDF",
+          "MP-REC-ACC-API-FHIR",
+          "MP-REC-ACC-TEMPLATE",
+          "MP-REC-ACC-COLLECTION",
+          "MP-REC-ACC-CSV"
+        ],
+        "external_inputs": [
+          "Root: Inventarzeilen und Release-Belege; physische Player-/Papierabnahme separat"
+        ]
+      }
+    ],
+    "historical_implementation_model": "gpt-5.3-codex-spark",
+    "routing_authorization": "Nutzer: Mit verfügbaren GPT-Workern fortsetzen. Root bestätigt die Fortsetzung; historische Spark- und Fable-Routingvorgaben sind überholt.",
+    "schema_provider_blocker_history": {
+      "blocker_code": "BLOCKED_PROVIDER",
+      "state": "AWAITING_EXTERNAL",
+      "routing_wp": "wp-65e15658fc4b",
+      "actual_lane": "codex-gpt5-spark",
+      "actual_model": "gpt-5.3-codex-spark",
+      "invocation": "7070",
+      "exit_code": 1,
+      "observed_error": "usage limit; try again at 1:28 PM",
+      "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/accompaniment-schema-spark-0913",
+      "base": "4711c22075383126d2af90ecaa85184ed53589eb",
+      "working_tree": "clean; no product changes",
+      "pool_assignment": "APIint2; no active job after provider exit",
+      "authorization": "Root marked codex-gpt5-spark down from this actual error. User Spark instruction persists; no fallback authorized or running.",
+      "resume_condition": "Provider availability or explicit user authorization of another model; Root rechecks lease/pool before restart."
+    },
+    "schema_execution": {
+      "state": "IN_PROGRESS",
+      "routing_wp": "wp-65e15658fc4b",
+      "actual_lane": "codex",
+      "actual_model": "gpt-5.6-sol",
+      "reasoning": "high",
+      "provider": "openai",
+      "profile": "effort-high",
+      "pty": "90840",
+      "session": "01a09999-07d8-76c1-9ab8-320c6ef7bd3c",
+      "started_at": "2026-09-13T07:08:58Z",
+      "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/accompaniment-schema-codex-0913",
+      "base": "4711c22075383126d2af90ecaa85184ed53589eb",
+      "pool_assignment": "APIint2 exclusive",
+      "authorization": "Nutzer: Mit verfügbaren GPT-Workern fortsetzen. Root bestätigt die Fortsetzung; historische Spark- und Fable-Routingvorgaben sind überholt.",
+      "evidence_owner": "Root verified actual startup; no source freeze, gate or delivery claimed."
+    }
+  }
 }

@@ -11,6 +11,7 @@
     "REC-005",
     "REC-006",
     "REC-007",
+    "REC-008",
     "NUT-001",
     "OFF-001"
   ],
@@ -8127,6 +8128,1431 @@
         "reference_scaffold/cafeteria/admin/workflow_scope.py",
         "reference_scaffold/cafeteria/workflow_write_context.py"
       ]
+    },
+    {
+      "id": "MP-REC-ACC-SCHEMA",
+      "title": "Schema v32: Beilagenspalten für Menüposition und Gerichtvorlage, Vorlagen-Verben v32, Versionspins",
+      "requirement_ids": [
+        "REC-008"
+      ],
+      "kind": "implementation",
+      "status": "IN_PROGRESS",
+      "wave": 0,
+      "depends_on": [
+        "MP-REC-MENU-PROPOSAL"
+      ],
+      "existing_wp_id": "wp-65e15658fc4b",
+      "sdd_sections": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#41-schema-neue-migration-additiv-nach-schema-31",
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#7-kompatibilität-migration-release",
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#9-sicherheit"
+      ],
+      "source_anchors": [
+        "database/schema.sql:menu_items",
+        "database/schema.sql:dish_templates",
+        "database/schema.sql:master_payload",
+        "database/schema.sql:dish_template_mutate_v26",
+        "database/schema.sql:create_dish_template_v26",
+        "database/schema.sql:update_dish_template_v26",
+        "database/migrations/0027_v29_to_v30.sql",
+        "database/migrations/0028_v30_to_v31.sql",
+        "reference_scaffold/cafeteria/db.py:SCHEMA_VERSION",
+        "reference_scaffold/cafeteria/db.py:MIGRATION_FILES",
+        "database/validate_schema.py:run_live_check",
+        "tools/validate_package.py"
+      ],
+      "task": "Vorher: menu_items und dish_templates kennen keine Beilagenwahl; dish_template_mutate_v26 lehnt über master_payload jeden neuen Payload-Schlüssel ab; Versionspins stehen auf 31. Nachher: eine neue additive Migration (Root-reserviert: 0029_v31_to_v32.sql) fügt menu_items.accompaniment text NOT NULL DEFAULT 'none' CHECK IN ('none','soup','salad') und dish_templates.accompaniment_default (gleiche Regel) hinzu, legt dish_template_mutate_v32 als Kopie von v26 mit optionalem Schlüssel accompaniment_default an (fehlend: create → 'none', update → unverändert; Audit-Details um accompaniment_default ergänzt; gleiche Sperrfolge/CAS/Fehlercodes), dazu create_dish_template_v32 und update_dish_template_v32 mit denselben sechs Parametern; v26-Verben bleiben unverändert und ausführbar; set_dish_template_active_v26 bleibt das Aktivverb. REVOKE/GRANT wie 0027/0028. schema.sql, permissions.sql, validate_schema.py (Version 32, Constraint-Fragmente), db.py (SCHEMA_VERSION=32, MIGRATION_FILES), tools/validate_package.py (32), database/README.md (Listeneintrag und Absatz «Schema v32») und die Versionspin-Hunks der 15 Tests des v31-Diffs werden nachgezogen. Kein Backfill, keine Trigger-/Index-Änderung, keine Datenumschreibung. Kein Python-Writer schaltet in diesem WP auf v32 um (das tut MP-REC-ACC-TEMPLATE).",
+      "acceptance_criteria": [
+        "Migration läuft auf einem nichtleeren v31-Bestand (Menüs, Vorlagen, Publikationen) durch; beide Spalten tragen 'none'; CHECK-Constraints menu_items_accompaniment_check und dish_templates_accompaniment_default_check aktiv; schema_migrations zeigt 32; SHA der Vorgängermigrationen unverändert",
+        "create/update_dish_template_v32 akzeptieren accompaniment_default in {'none','soup','salad'}; fehlender Schlüssel: create → 'none', update → unverändert; fremder Wert oder unbekannter Schlüssel → P1901; CAS 55000 und Audit-Verben wie v26; v26-Verben liefern weiterhin dasselbe Ergebnis und lassen accompaniment_default stehen",
+        "ACL: cafeteria_app hat EXECUTE auf die v32-Verben; PUBLIC, cafeteria_backup, cafeteria_auth_issuer nicht; kein direktes DML auf dish_templates; permissions.sql und validate_schema.py belegen es",
+        "validate_schema.py (Artefaktmodus) und tools/validate_package.py erwarten 32; db.py führt die Migration in MIGRATION_FILES; database/README.md nennt Eintrag 25 (v32) und den Rollback-Hinweis I10",
+        "Alle 15 Versionspin-Tests des v31-Diffs zeigen 32 und sind grün; test_database_invariants.py grün; neuer test_menu_accompaniment_migration_db.py deckt Upgrade, Defaults, Constraints, v26/v32-Koexistenz und ACL ab",
+        "Diff enthält ausschliesslich die genannten Dateien; keine Änderung an 0028_v30_to_v31.sql oder älteren Migrationen"
+      ],
+      "contract_files": [
+        "database/schema.sql",
+        "database/permissions.sql",
+        "proposed:database/migrations/0029_v31_to_v32.sql",
+        "reference_scaffold/cafeteria/db.py"
+      ],
+      "wiring_files": [
+        "database/validate_schema.py",
+        "database/README.md",
+        "tools/validate_package.py"
+      ],
+      "owned_files": [
+        "database/schema.sql",
+        "database/permissions.sql",
+        "database/validate_schema.py",
+        "database/README.md",
+        "proposed:database/migrations/0029_v31_to_v32.sql",
+        "reference_scaffold/cafeteria/db.py",
+        "tools/validate_package.py",
+        "proposed:reference_scaffold/tests/test_menu_accompaniment_migration_db.py",
+        "reference_scaffold/tests/test_database_invariants.py",
+        "reference_scaffold/tests/test_auth_database.py",
+        "reference_scaffold/tests/test_branding_migration_db.py",
+        "reference_scaffold/tests/test_component_catalog_migration_db.py",
+        "reference_scaffold/tests/test_local_user_management_migration_db.py",
+        "reference_scaffold/tests/test_master_data_db.py",
+        "reference_scaffold/tests/test_operations_settings_db.py",
+        "reference_scaffold/tests/test_prepared_food_migration_db.py",
+        "reference_scaffold/tests/test_publication_lock_contract_db.py",
+        "reference_scaffold/tests/test_rec_import_batch_migration_db.py",
+        "reference_scaffold/tests/test_rec_import_commit_migration_db.py",
+        "reference_scaffold/tests/test_recipe_binding_migration_db.py",
+        "reference_scaffold/tests/test_recipe_migration_db.py",
+        "reference_scaffold/tests/test_workflow_review_migration_db.py",
+        "reference_scaffold/tests/test_menu_recipe_sources_v31_migration.py"
+      ],
+      "read_only_contract_files": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+        "database/migrations/0028_v30_to_v31.sql",
+        "reference_scaffold/cafeteria/dish_template_store.py"
+      ],
+      "forbidden_paths": [
+        "database/migrations/0001_initial_postgresql.sql",
+        "database/migrations/0027_v29_to_v30.sql",
+        "database/migrations/0028_v30_to_v31.sql",
+        "database/seed.sql",
+        "database/seed_demo.sql",
+        "reference_scaffold/cafeteria/workflow*.py",
+        "reference_scaffold/cafeteria/dish_template_store.py",
+        "reference_scaffold/cafeteria/templates/*",
+        "reference_scaffold/cafeteria/static/*",
+        "deployment/*",
+        "credentials/*"
+      ],
+      "migration_group": "root-serialized-after-schema31",
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_menu_accompaniment_migration_db.py tests/test_database_invariants.py tests/test_recipe_binding_migration_db.py tests/test_menu_recipe_sources_v31_migration.py tests/test_workflow_review_migration_db.py",
+          "assertions": [
+            "Upgrade v31→v32 auf nichtleerem Bestand",
+            "Defaults 'none' und Constraints",
+            "v26- und v32-Verben koexistieren; ACL wie spezifiziert",
+            "Versionspins 32"
+          ]
+        },
+        {
+          "kind": "static",
+          "command": "rtk /tmp/dishboard-shared-venv/bin/python database/validate_schema.py",
+          "assertions": [
+            "Artefaktprüfung passed",
+            "schema_version 32",
+            "Pflichtfragmente inklusive accompaniment IN ('none','soup','salad')"
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "HIGH",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex"
+      ],
+      "completion_evidence": [
+        "Migrationsprotokoll mit Exitcode",
+        "Testausgaben der genannten Tests",
+        "validate_schema-Ausgabe",
+        "Restore-Probe (Root)",
+        "WP-Bericht via rtk claude-wp-report record"
+      ],
+      "rollback": "Vor produktiver Migration geprüftes Backup. v31-App läuft auf v32-Schema (Defaults, alte Writer nennen die Spalten nicht). Nach einer Publikation mit Beilage ist ein App-Rollback nur nach Rückzug dieser Revision oder als Forward-Fix zulässig (SDD I10). Keine Rückwärtsmigration.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "grok-build"
+        ]
+      },
+      "implementation_model": "gpt-5.6-sol",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "execution": {
+        "state": "IN_PROGRESS",
+        "routing_wp": "wp-65e15658fc4b",
+        "actual_lane": "codex",
+        "actual_model": "gpt-5.6-sol",
+        "reasoning": "high",
+        "provider": "openai",
+        "profile": "effort-high",
+        "pty": "90840",
+        "session": "01a09999-07d8-76c1-9ab8-320c6ef7bd3c",
+        "started_at": "2026-09-13T07:08:58Z",
+        "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/accompaniment-schema-codex-0913",
+        "base": "4711c22075383126d2af90ecaa85184ed53589eb",
+        "pool_assignment": "APIint2 exclusive",
+        "authorization": "Nutzer: Mit verfügbaren GPT-Workern fortsetzen. Root bestätigt die Fortsetzung; historische Spark- und Fable-Routingvorgaben sind überholt.",
+        "evidence_owner": "Root verified actual startup; no source freeze, gate or delivery claimed."
+      },
+      "previous_user_model": "gpt-5.3-codex-spark",
+      "execution_history": [
+        {
+          "blocker_code": "BLOCKED_PROVIDER",
+          "state": "AWAITING_EXTERNAL",
+          "routing_wp": "wp-65e15658fc4b",
+          "actual_lane": "codex-gpt5-spark",
+          "actual_model": "gpt-5.3-codex-spark",
+          "invocation": "7070",
+          "exit_code": 1,
+          "observed_error": "usage limit; try again at 1:28 PM",
+          "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/accompaniment-schema-spark-0913",
+          "base": "4711c22075383126d2af90ecaa85184ed53589eb",
+          "working_tree": "clean; no product changes",
+          "pool_assignment": "APIint2; no active job after provider exit",
+          "authorization": "Root marked codex-gpt5-spark down from this actual error. User Spark instruction persists; no fallback authorized or running.",
+          "resume_condition": "Provider availability or explicit user authorization of another model; Root rechecks lease/pool before restart."
+        }
+      ]
+    },
+    {
+      "id": "MP-REC-ACC-ICONS",
+      "title": "Tabler-Sprite um «soup» und «salad» aus dem gepinnten Paket 3.46.0 erweitern (Root-Vendor)",
+      "requirement_ids": [
+        "REC-008"
+      ],
+      "kind": "implementation",
+      "status": "REVIEWED_LOCAL",
+      "wave": 0,
+      "depends_on": [],
+      "existing_wp_id": "wp-0bdbe5f2eaec",
+      "sdd_sections": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#6-benutzerabläufe-und-ui-skizzen-ui-manifest-r03r04r05r07-m10m12",
+        "docs/design/2026-09-07-admin-tabler-icon-manifest.md"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/static/vendor/tabler.lock.json",
+        "reference_scaffold/cafeteria/static/vendor/tabler-icons/tabler-icons.svg",
+        "tools/vendor_tabler.py",
+        "reference_scaffold/cafeteria/templates/admin/_macros.html:icon"
+      ],
+      "task": "Vorher: der lokale Sprite enthält 33 Icons, weder soup noch salad. Nachher: Root prüft im gepinnten Archiv @tabler/icons 3.46.0 (SHA laut Lock) die Existenz von soup.svg und salad.svg, ergänzt beide IDs in der Iconliste des Locks, baut den Sprite mit dem unveränderten datengetriebenen Generator neu und aktualisiert den Sprite-SHA im Lock. Fehlt ein Icon im Pin, wird kein Ersatz erfunden; der WP-Bericht hält den Text-Fallback fest und MP-REC-ACC-EDITOR-UI/TEMPLATE zeigen den Kurztext ohne Symbol. Keine Generatoränderung, kein weiterer Vendor-Writer.",
+      "acceptance_criteria": [
+        "tabler.lock.json listet soup und salad; Sprite enthält id=\"tabler-soup\" und id=\"tabler-salad\"; Lock-SHA des Sprites stimmt mit der Datei überein",
+        "tools/vendor_tabler.py --verify meldet alle Artefakte passend; test_tabler_package_verification.py und test_food_symbol_assets.py grün",
+        "Generator und alle bisherigen 33 Icons unverändert; keine Emoji-, Inline- oder externen Icons"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/static/vendor/tabler.lock.json"
+      ],
+      "wiring_files": [
+        "reference_scaffold/cafeteria/static/vendor/tabler-icons/tabler-icons.svg"
+      ],
+      "owned_files": [
+        "reference_scaffold/cafeteria/static/vendor/tabler.lock.json",
+        "reference_scaffold/cafeteria/static/vendor/tabler-icons/tabler-icons.svg"
+      ],
+      "read_only_contract_files": [
+        "tools/vendor_tabler.py",
+        "docs/design/2026-09-07-admin-tabler-icon-manifest.md"
+      ],
+      "forbidden_paths": [
+        "tools/vendor_tabler.py",
+        "reference_scaffold/cafeteria/templates/*",
+        "reference_scaffold/cafeteria/static/admin*.css",
+        "reference_scaffold/cafeteria/static/admin.js"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "static",
+          "command": "rtk /tmp/dishboard-shared-venv/bin/python -B -m pytest -q -p no:cacheprovider tests/test_tabler_package_verification.py tests/test_food_symbol_assets.py",
+          "assertions": [
+            "Sprite und Lock konsistent",
+            "beide neuen IDs vorhanden",
+            "keine unbekannten Assets"
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "LOW",
+      "effort": "low",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex"
+      ],
+      "completion_evidence": [
+        "Verify-Ausgabe des Generators",
+        "grep-Beleg der beiden IDs",
+        "Testausgaben",
+        "WP-Bericht"
+      ],
+      "rollback": "Sprite und Lock auf den vorherigen Commit zurücksetzen; abhängige UI-Pakete zeigen Text ohne Icon.",
+      "historical_routing": {
+        "preferred_lane": "root",
+        "eligible_lanes": [
+          "root"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "source_evidence": {
+        "routing_wp": "wp-0bdbe5f2eaec",
+        "source_commit": "0ca81eebb14223fbc7d69cb47a6571bd08fcc333",
+        "origin": "Actual Spark attempt hit /tmp/worktree ownership failure; Root recovered its source.",
+        "root_verification": "Unchanged tools/vendor_tabler.py --verify PASS, as reported by Root.",
+        "scope": "Verified source only; no deployment or complete consumer/UI acceptance claimed."
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
+    },
+    {
+      "id": "MP-REC-ACC-MENU-CORE",
+      "title": "Beilagenwahl in Parser, beiden Menüwritern, Entwurfsleser, Vorwochenkopie, Rendering-Werten und Vorschlag-Vorbefüllung",
+      "requirement_ids": [
+        "REC-008"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "wave": 1,
+      "depends_on": [
+        "MP-REC-ACC-SCHEMA",
+        "MP-REC-MENU-TEMPLATE-BINDING",
+        "MP-REC-MENU-PROPOSAL"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#42-draft-lesemodell-schreibmodell-formular",
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#5-invarianten-und-validierungspfade",
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#9-sicherheit"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/workflow_partial_form.py:_MENU_OPTIONAL",
+        "reference_scaffold/cafeteria/workflow_partial_form.py:parse_menu_item_form",
+        "reference_scaffold/cafeteria/workflow_partial_store.py:_PATIENT_KEYS",
+        "reference_scaffold/cafeteria/workflow_partial_store.py:_ITEM_QUERY",
+        "reference_scaffold/cafeteria/workflow_partial_store.py:_validate_item",
+        "reference_scaffold/cafeteria/workflow_partial_store.py:persist_menu_item",
+        "reference_scaffold/cafeteria/workflow_item_write.py:write_draft_item",
+        "reference_scaffold/cafeteria/workflow_store.py:load_draft_connection",
+        "reference_scaffold/cafeteria/workflow_store.py:persist_draft_connection",
+        "reference_scaffold/cafeteria/workflow.py:MENU_TYPES",
+        "reference_scaffold/cafeteria/workflow.py:_validate_values",
+        "reference_scaffold/cafeteria/workflow.py:_public_option",
+        "reference_scaffold/cafeteria/workflow.py:_full_replace_values",
+        "reference_scaffold/cafeteria/workflow_copy_store.py:_lock_items",
+        "reference_scaffold/cafeteria/admin/rendering.py:OPTION_LABELS",
+        "reference_scaffold/cafeteria/admin/rendering.py:menu_form_values",
+        "reference_scaffold/cafeteria/admin/rendering.py:_cells",
+        "reference_scaffold/cafeteria/admin/workflow_routes.py:_MENU_VALUE_FIELDS",
+        "reference_scaffold/cafeteria/admin/workflow_routes.py:_proposal_values",
+        "reference_scaffold/cafeteria/menu_template_binding.py:lock_templates",
+        "reference_scaffold/cafeteria/workflow_review.py:_TOKEN_KEYS"
+      ],
+      "task": "Vorher: kein Writer, Reader oder Parser kennt eine Beilagenwahl. Nachher: workflow.py führt ACCOMPANIMENT_CODES=('none','soup','salad') neben MENU_TYPES; _validate_values erlaubt den optionalen Optionsschlüssel accompaniment_code (fehlend → 'none', fremder Wert → WorkflowValidationError, accompaniment_name im Schreibmodell unzulässig); _public_option und _full_replace_values projizieren ihn. workflow_partial_form.py nimmt das optionale Einzelfeld accompaniment (Werte none|soup|salad, sonst 400 am Feld) und legt payload['accompaniment_code'] nur bei vorhandenem Feld an. workflow_partial_store.py erlaubt den optionalen Schlüssel in _validate_item, liest i.accompaniment in _ITEM_QUERY[_FOR_UPDATE] und schreibt INSERT/UPDATE mit accompaniment (fehlend → bestehender Wert, Create → 'none') unter unveränderten Sperren, CAS und record_item_write. workflow_item_write.py schreibt die Spalte analog (Vollersatz: fehlend → 'none'). workflow_store.py liefert je Option accompaniment_code (immer) und accompaniment_name (Kurztext aus einer Konstante, '' bei none) und übergibt den Wert an write_draft_item. workflow_copy_store.py liest und kopiert die Spalte in der Vorwochenkopie. rendering.py führt ACCOMPANIMENT_LABELS, menu_form_values['accompaniment'] und in _cells accompaniment_code/accompaniment_name. workflow_routes.py ergänzt _MENU_VALUE_FIELDS um accompaniment und setzt in _proposal_values option['accompaniment_code'] aus source['accompaniment_default']; menu_template_binding.lock_templates liest d.accompaniment_default mit. Review-Token (_TOKEN_KEYS), Snapshot, Publikation, Bausteine, admin.js und Templates bleiben unberührt. Seriell mit MP-REC-PLAN-PORTIONS im selben Workflow-Vertragscluster; Root vergibt die Lease.",
+      "acceptance_criteria": [
+        "Formular ohne Feld accompaniment → gespeicherter Wert bleibt (bestehende Route-/Browsertests unverändert grün); Feld mit none/soup/salad → Rücklesen über load_draft_connection und den Editor-GET zeigt denselben Wert; both/leer/fremd → 400 am Feld accompaniment mit erhaltenen Eingaben",
+        "Reiner Beilagenwechsel: genau row_version +1 und ein record_item_write-Beleg; Review-Payload ändert sich nur in item_row_version; Slot-CAS 0 auf belegten Slot → 409 wie heute; Original-Actor/Authz/Standort/CSRF/template_context unverändert geprüft",
+        "Beide Writer (persist_menu_item und write_draft_item) führen die Spalte bei INSERT und UPDATE; Vollimport ohne Angabe → 'none'; Vorwochenkopie kopiert den Wert (Test in test_workflow_copy_store_db.py oder neuem Test)",
+        "Draft-Lesemodell liefert accompaniment_code immer und accompaniment_name nur als Anzeige; _validate_values lehnt accompaniment_name im Schreibmodell ab; derive_admin_status bleibt für unveränderte Wochen 'live'",
+        "Vorschlag aus Vorlage mit accompaniment_default='salad' befüllt menu_form_values['accompaniment']='salad'; Speichern mit 'none' ergibt 'none'; geänderte Vorlage seit Einplanen → 409 wie heute",
+        "Keine Änderung an menu_item_components, Katalog, Effekten, workflow_review.py, workflow_snapshot.py, patient_payload.py, admin.js oder Templates; Ruff/Mypy auf eigene Dateien sauber",
+        "Neue Tests test_menu_accompaniment_db.py (Writer/Reader/Kopie/CAS/Vollersatz) und test_menu_accompaniment_form.py (Parser) grün; bestehende Gate-Tests grün; bei Pin-Brüchen in bestehenden Tests Root-Lease für die Hunks einholen, nicht still anpassen"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/workflow.py",
+        "reference_scaffold/cafeteria/workflow_partial_form.py",
+        "reference_scaffold/cafeteria/workflow_partial_store.py",
+        "reference_scaffold/cafeteria/workflow_store.py",
+        "reference_scaffold/cafeteria/workflow_item_write.py"
+      ],
+      "wiring_files": [
+        "reference_scaffold/cafeteria/workflow_copy_store.py",
+        "reference_scaffold/cafeteria/admin/rendering.py",
+        "reference_scaffold/cafeteria/admin/workflow_routes.py",
+        "reference_scaffold/cafeteria/menu_template_binding.py"
+      ],
+      "owned_files": [
+        "reference_scaffold/cafeteria/workflow.py",
+        "reference_scaffold/cafeteria/workflow_partial_form.py",
+        "reference_scaffold/cafeteria/workflow_partial_store.py",
+        "reference_scaffold/cafeteria/workflow_store.py",
+        "reference_scaffold/cafeteria/workflow_item_write.py",
+        "reference_scaffold/cafeteria/workflow_copy_store.py",
+        "reference_scaffold/cafeteria/admin/rendering.py",
+        "reference_scaffold/cafeteria/admin/workflow_routes.py",
+        "reference_scaffold/cafeteria/menu_template_binding.py",
+        "proposed:reference_scaffold/tests/test_menu_accompaniment_db.py",
+        "proposed:reference_scaffold/tests/test_menu_accompaniment_form.py"
+      ],
+      "read_only_contract_files": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md",
+        "database/schema.sql",
+        "reference_scaffold/cafeteria/workflow_snapshot.py",
+        "reference_scaffold/cafeteria/patient_payload.py",
+        "reference_scaffold/cafeteria/workflow_review.py",
+        "reference_scaffold/cafeteria/workflow_write_context.py",
+        "reference_scaffold/cafeteria/admin/workflow_scope.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "reference_scaffold/cafeteria/workflow_snapshot.py",
+        "reference_scaffold/cafeteria/patient_payload.py",
+        "reference_scaffold/cafeteria/workflow_review.py",
+        "reference_scaffold/cafeteria/workflow_publication.py",
+        "reference_scaffold/cafeteria/component_assignment_store.py",
+        "reference_scaffold/cafeteria/component_assignment_contract.py",
+        "reference_scaffold/cafeteria/csvio.py",
+        "reference_scaffold/cafeteria/dish_template_store.py",
+        "reference_scaffold/cafeteria/admin/dish_template_routes.py",
+        "reference_scaffold/cafeteria/static/admin.js",
+        "reference_scaffold/cafeteria/templates/*",
+        "reference_scaffold/cafeteria/public/*",
+        "reference_scaffold/cafeteria/signage/*",
+        "reference_scaffold/cafeteria/api/*",
+        "reference_scaffold/cafeteria/fhir/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_menu_accompaniment_db.py tests/test_menu_accompaniment_form.py tests/test_workflow_form.py tests/test_workflow_partial_store_db.py tests/test_workflow_copy_store_db.py tests/test_admin_workflow_routes.py tests/test_admin_form_contracts.py tests/test_menu_template_binding_db.py tests/test_menu_template_binding_routes.py tests/test_menu_proposal_routes.py tests/test_admin_workflow_db.py",
+          "assertions": [
+            "fehlendes Feld = unverändert; drei Werte round-trip; fremder Wert 400",
+            "ein Versionsschritt, ein Beleg, Review-Payload nur item_row_version",
+            "Kopie und Vollersatz",
+            "Vorschlag-Vorbefüllung",
+            "bestehende Verträge grün"
+          ]
+        },
+        {
+          "kind": "static",
+          "command": "rtk /root/.local/bin/ruff check reference_scaffold/cafeteria/workflow.py reference_scaffold/cafeteria/workflow_partial_form.py reference_scaffold/cafeteria/workflow_partial_store.py reference_scaffold/cafeteria/workflow_store.py reference_scaffold/cafeteria/workflow_item_write.py reference_scaffold/cafeteria/workflow_copy_store.py reference_scaffold/cafeteria/admin/rendering.py reference_scaffold/cafeteria/admin/workflow_routes.py reference_scaffold/cafeteria/menu_template_binding.py",
+          "assertions": [
+            "keine Ruff-Befunde in eigenen Dateien"
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "HIGH",
+      "effort": "high",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex"
+      ],
+      "completion_evidence": [
+        "Testausgaben mit Zählung",
+        "Ruff-/Mypy-Ausgabe",
+        "GitNexus-Impact-Belege je Symbol (Indexstand nennen)",
+        "WP-Bericht"
+      ],
+      "rollback": "Reguläres Anwendungsrelease ohne Migration; vorheriges kompatibles Image; die Spalte bleibt mit Defaults bestehen und wird von alten Writern nicht genannt.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "agy",
+          "grok-build",
+          "cursor"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
+    },
+    {
+      "id": "MP-REC-ACC-SNAPSHOT",
+      "title": "Publikationssnapshot: optionales Paar accompaniment_code/accompaniment_name und Validatoren beider Profile",
+      "requirement_ids": [
+        "REC-008"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "wave": 1,
+      "depends_on": [
+        "MP-REC-ACC-SCHEMA"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#42-draft-lesemodell-schreibmodell-formular",
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#43-was-sich-ausdrücklich-nicht-ändert",
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#7-kompatibilität-migration-release"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/workflow_snapshot.py:TYPE_NAMES",
+        "reference_scaffold/cafeteria/workflow_snapshot.py:_option",
+        "reference_scaffold/cafeteria/workflow_snapshot.py:build_snapshot",
+        "reference_scaffold/cafeteria/patient_payload.py:PATIENT_OBJECT_KEYS",
+        "reference_scaffold/cafeteria/patient_payload.py:PATIENT_OPTIONAL_KEYS",
+        "reference_scaffold/cafeteria/patient_payload.py:PATIENT_FIXED_VALUES",
+        "reference_scaffold/cafeteria/patient_payload.py:_patient_object_paths",
+        "reference_scaffold/cafeteria/patient_payload.py:validate_snapshot_payload",
+        "reference_scaffold/cafeteria/db.py:active_snapshot",
+        "reference_scaffold/cafeteria/workflow.py:derive_admin_status"
+      ],
+      "task": "Vorher: build_snapshot._option baut feste Schlüssel; der Patientenvalidator lehnt jeden weiteren Optionsschlüssel ab; gespeicherte Revisionen werden beim Lesen erneut validiert. Nachher: workflow_snapshot.py führt ACCOMPANIMENT_NAMES={'soup':'Suppe','salad':'Salat (gemischt und grün)'} neben TYPE_NAMES und gibt in _option nur bei value.get('accompaniment_code') in ('soup','salad') das Paar accompaniment_code/accompaniment_name aus; 'none' oder fehlend erzeugt keinen Schlüssel (bytegleich zu heute). patient_payload.py nimmt beide Schlüssel in PATIENT_OPTIONAL_KEYS['option'] auf (kompakte Schlüsselmenge folgt automatisch), legt feste Werte in PATIENT_FIXED_VALUES an und prüft in validate_snapshot_payload für beide Profile, dass die Schlüssel nur paarweise und mit zueinander passenden Werten vorkommen; alle übrigen Regeln (Kostenschlüssel, Identifier, Servicezustände) bleiben. Snapshot schema_version bleibt 2. Alte Revisionen ohne Schlüssel bleiben gültig. Kontrakttests test_admin_workflow_snapshot_contract.py und test_public_contracts.py werden um das Paar erweitert; neuer test_menu_accompaniment_snapshot.py deckt Omit-when-none, Paarregel, beide Profile und den Lesepfad active_snapshot/_read_last_good ab. Parallel zu MP-REC-ACC-MENU-CORE gegen den eingefrorenen Draft-Schlüssel accompaniment_code.",
+      "acceptance_criteria": [
+        "build_snapshot ohne Beilage liefert für einen bestehenden Fixture-Entwurf ein bytegleiches JSON zu vorher (Hash gleich); derive_admin_status bleibt 'live' für eine unveränderte publizierte Woche",
+        "Mit Beilage enthält die Option genau accompaniment_code∈{soup,salad} und den festen accompaniment_name; beide Validatoren akzeptieren; nur ein Schlüssel, vertauschte Werte, 'none' als Code, Freitext oder Zahlen im Namen werden abgelehnt",
+        "Patientenvalidator: kompakte Schlüsselmenge enthält accompanimentcode/accompanimentname; Kosten-/Identifier-Regeln und Servicezustände unverändert (bestehende Kontrakttests grün)",
+        "Fixture-Revisionen ohne Schlüssel (Schema 1 und 2) werden von active_snapshot und _read_last_good weiterhin angenommen",
+        "Publikation über publish_draft_scoped mit gesetzter Beilage erzeugt eine Revision mit dem Paar; Hash und Revision alter Wochen unverändert; CSV-Export ignoriert das Paar ohne Fehler",
+        "Keine Änderung an Playergrenzen, Review, Writer, Templates, API oder FHIR in diesem WP"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/workflow_snapshot.py",
+        "reference_scaffold/cafeteria/patient_payload.py"
+      ],
+      "wiring_files": [
+        "reference_scaffold/tests/test_admin_workflow_snapshot_contract.py",
+        "reference_scaffold/tests/test_public_contracts.py"
+      ],
+      "owned_files": [
+        "reference_scaffold/cafeteria/workflow_snapshot.py",
+        "reference_scaffold/cafeteria/patient_payload.py",
+        "reference_scaffold/tests/test_admin_workflow_snapshot_contract.py",
+        "reference_scaffold/tests/test_public_contracts.py",
+        "proposed:reference_scaffold/tests/test_menu_accompaniment_snapshot.py"
+      ],
+      "read_only_contract_files": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+        "reference_scaffold/cafeteria/workflow.py",
+        "reference_scaffold/cafeteria/db.py",
+        "reference_scaffold/cafeteria/csvio.py",
+        "reference_scaffold/cafeteria/api/openapi.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "reference_scaffold/cafeteria/workflow.py",
+        "reference_scaffold/cafeteria/workflow_*store.py",
+        "reference_scaffold/cafeteria/workflow_partial_form.py",
+        "reference_scaffold/cafeteria/workflow_item_write.py",
+        "reference_scaffold/cafeteria/workflow_review.py",
+        "reference_scaffold/cafeteria/csvio.py",
+        "reference_scaffold/cafeteria/api/*",
+        "reference_scaffold/cafeteria/fhir/*",
+        "reference_scaffold/cafeteria/templates/*",
+        "reference_scaffold/cafeteria/public/*",
+        "reference_scaffold/cafeteria/signage/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_menu_accompaniment_snapshot.py tests/test_admin_workflow_snapshot_contract.py tests/test_public_contracts.py tests/test_admin_workflow_db.py tests/test_public_isolation_homoglyphs.py tests/test_patient_preview_access.py",
+          "assertions": [
+            "Omit-when-none bytegleich",
+            "Paarregel und feste Werte",
+            "alte Revisionen lesbar",
+            "Publikation mit Beilage",
+            "Patientenkanal preisfrei"
+          ]
+        },
+        {
+          "kind": "static",
+          "command": "rtk /root/.local/bin/ruff check reference_scaffold/cafeteria/workflow_snapshot.py reference_scaffold/cafeteria/patient_payload.py",
+          "assertions": [
+            "keine Ruff-Befunde"
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "HIGH",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex"
+      ],
+      "completion_evidence": [
+        "Byte-/Hash-Vergleich vorher/nachher als Testausgabe",
+        "Kontrakttestausgaben",
+        "Ruff-Ausgabe",
+        "WP-Bericht"
+      ],
+      "rollback": "Reguläres Anwendungsrelease; bereits mit Beilage publizierte Revisionen sind für eine ältere App ungültig (SDD I10) und müssen vor einem App-Rollback zurückgezogen werden.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "agy",
+          "grok-build"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
+    },
+    {
+      "id": "MP-REC-ACC-TEMPLATE",
+      "title": "Gerichtvorlage: Beilagen-Vorschlag im Store (v32-Verben), Formular und Liste",
+      "requirement_ids": [
+        "REC-008"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "wave": 1,
+      "depends_on": [
+        "MP-REC-ACC-SCHEMA",
+        "MP-REC-MENU-PROPOSAL"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#63-gerichtvorlage--formular-und-liste",
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#42-draft-lesemodell-schreibmodell-formular"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/dish_template_store.py:SQL",
+        "reference_scaffold/cafeteria/dish_template_store.py:LIST",
+        "reference_scaffold/cafeteria/dish_template_store.py:DishTemplate",
+        "reference_scaffold/cafeteria/dish_template_store.py:_payload",
+        "reference_scaffold/cafeteria/admin/dish_template_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html",
+        "database/schema.sql:create_dish_template_v32",
+        "database/schema.sql:update_dish_template_v32",
+        "tools/import_dish_templates.py:create_template"
+      ],
+      "task": "Vorher: Vorlagen-Store ruft v26-Verben mit exaktem Payload; Formular und Liste kennen keinen Beilagen-Vorschlag. Nachher: dish_template_store.py ruft create/update_dish_template_v32 (Aktivverb bleibt v26), erlaubt in _payload den optionalen Schlüssel accompaniment_default (Werte none|soup|salad; fehlend bleibt zulässig, damit tools/import_dish_templates.py unverändert läuft), erweitert LIST und DishTemplate um accompaniment_default. dish_template_routes.py parst das Radiofeld accompaniment_default (fehlend → 'none' bei Neuanlage, sonst bestehender Wert; fremder Wert → 400 am Feld) und reicht es an Create/Update durch. gerichtvorlagen.html zeigt im Formular die Radiogruppe «Suppe oder Salat dazu (Vorschlag für neue Menüs)» mit «Keine», «Suppe», «Salat (gemischt und grün)» (Icons soup/salad, sofern im Sprite; sonst Text) und in der Liste eine Spalte «Dazu» mit Kurztext. Leser sehen die Angabe ohne Schreibaktionen. Keine Änderung an der Einplanen-Seite, am Menüeditor oder an Menüdaten. Seriell mit MP-UI-DENSITY-RECIPEPAGES auf gerichtvorlagen.html (Root-Reihenfolge).",
+      "acceptance_criteria": [
+        "Neue Vorlage ohne Feld → 'none'; mit soup/salad → gespeichert, Liste und Formular zeigen den Wert; Update ohne Feld lässt den Wert stehen; fremder Wert → 400 am Feld mit erhaltenen Eingaben; CAS 409 und Archivieren wie heute",
+        "Store nutzt v32-Verben; Audit-Details enthalten accompaniment_default; unveränderter Payload erzeugt keinen Versionsschritt",
+        "tools/import_dish_templates.py läuft ohne Änderung und legt Vorlagen mit 'none' an (test_dish_template_import_db.py grün)",
+        "Formular 1440×900 und 390×844: Radiogruppe nativ, 44 px, Tastatur, NoJS; Liste zeigt Spalte «Dazu»; Icons geladen oder Text-Fallback dokumentiert",
+        "Keine Änderung an gerichtvorlage_einplanen.html, menu_template_binding.py, workflow_routes.py oder Menüwritern"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/dish_template_store.py"
+      ],
+      "wiring_files": [
+        "reference_scaffold/cafeteria/admin/dish_template_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html"
+      ],
+      "owned_files": [
+        "reference_scaffold/cafeteria/dish_template_store.py",
+        "reference_scaffold/cafeteria/admin/dish_template_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html",
+        "reference_scaffold/tests/test_dish_template_routes.py",
+        "reference_scaffold/tests/test_dish_template_browser.py",
+        "proposed:reference_scaffold/tests/test_dish_template_accompaniment_db.py"
+      ],
+      "read_only_contract_files": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "database/schema.sql",
+        "tools/import_dish_templates.py",
+        "reference_scaffold/cafeteria/menu_template_binding.py",
+        "reference_scaffold/cafeteria/recipe_link_reads.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "tools/import_dish_templates.py",
+        "reference_scaffold/cafeteria/workflow*.py",
+        "reference_scaffold/cafeteria/menu_template_binding.py",
+        "reference_scaffold/cafeteria/admin/workflow_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/gerichtvorlage_einplanen.html",
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte*.html",
+        "reference_scaffold/cafeteria/static/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_dish_template_accompaniment_db.py tests/test_dish_template_routes.py tests/test_dish_template_import_db.py tests/test_recipe_link_reads_db.py",
+          "assertions": [
+            "v32-Verben mit/ohne Schlüssel",
+            "Routen 400/409",
+            "Import unverändert"
+          ]
+        },
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_dish_template_browser.py",
+          "assertions": [
+            "Radiogruppe und Spalte «Dazu» bei 1440×900 und 390×844",
+            "NoJS und Tastatur"
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "MEDIUM",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex"
+      ],
+      "completion_evidence": [
+        "Testausgaben",
+        "Screenshots 1440/390 als Vorschlag",
+        "WP-Bericht"
+      ],
+      "rollback": "Reguläres Anwendungsrelease; v26-Verben bleiben; vorheriges Image nutzt sie unverändert.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "agy",
+          "grok-build",
+          "cursor"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
+    },
+    {
+      "id": "MP-REC-ACC-EDITOR-UI",
+      "title": "Menüeditor-Radiogruppe, Prüfkontextzeile und Wochenkarte «Dazu: …»",
+      "requirement_ids": [
+        "REC-008"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "wave": 2,
+      "depends_on": [
+        "MP-REC-ACC-MENU-CORE",
+        "MP-REC-ACC-ICONS",
+        "MP-UI-DENSITY-MENUEDITOR",
+        "MP-UI-DENSITY-WEEKS"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#61-menüeditor-m12--feldgruppe-direkt-unter-dem-menünamen",
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#62-wochenplan-karte-m10m11-und-menüsammlung-m07",
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html:error_targets",
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html:sec-base",
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html:sec-review",
+        "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html",
+        "reference_scaffold/cafeteria/templates/admin/_macros.html:check",
+        "reference_scaffold/cafeteria/admin/rendering.py:menu_form_values",
+        "reference_scaffold/cafeteria/admin/rendering.py:_cells"
+      ],
+      "task": "Vorher: Editor und Karte zeigen keine Beilage. Nachher: menu_editor.html erhält in der Sektion «Menü» direkt unter dem Menünamen eine native Radiogruppe (fieldset/legend «Suppe oder Salat dazu», name accompaniment, IDs accompaniment-none|soup|salad, Werte none|soup|salad, Labels «Keine», «Suppe», «Salat (gemischt und grün)» mit icon('soup')/icon('salad'), Hinweis «Nur eine Wahl. Bausteine und Rezepte bleiben unverändert.»), vorbelegt aus form_values['accompaniment'] (Standard none); error_targets['accompaniment']='accompaniment-none'; beim Vorschlag ein Hinweis «Aus Vorlage vorgeschlagen». Der Prüfkontext (gespeicherter Stand) zeigt eine Zeile «Dazu: …»/«Keine Beilage» ohne Bestätigungssemantik. _week_menu_card.html zeigt nach den Bausteinen «Dazu: Suppe»/«Dazu: Salat (gemischt und grün)» mit Icon, nur bei gewählter Beilage. Keine admin.js-Änderung; bestehende form-check-Klassen; admin-menu-editor.css nur bei nachgewiesenem Layoutbedarf. Neuer Browsertest test_menu_accompaniment_browser.py: Editor JS/NoJS, Fehlerfall, Vorschlag-Vorbefüllung, Karte in beiden Rastern, 1440×900 und 390×844, Tastatur, 200 %-Zoom. Seriell mit MP-REC-PLAN-PORTIONS auf menu_editor.html.",
+      "acceptance_criteria": [
+        "Radiogruppe nativ, genau ein Wert, 44 px Zeilen, mobil untereinander; JS und NoJS senden dasselbe Feld; Speichern → Rücklesen zeigt die Wahl; Fehler am Feld öffnet/verlinkt die Gruppe und erhält Werte",
+        "Karte in Cafeteria- und Patientenraster zeigt die Zeile nur bei Wahl; kein Badge, Aussage vor Farbe; Icons geladen oder Text-Fallback dokumentiert (kein leeres Symbol)",
+        "Prüfkontext beschreibt den gespeicherten Stand; Review-Bestätigung unverändert",
+        "1440×900 und 390×844 geprüft, keine horizontale Seitenscrollbar, 200 %-Zoom, Tastatur/Fokus; bestehende Editor- und Wochen-Browsertests grün",
+        "Keine Änderung an admin.js, Bausteinzeilen, Vorlagenbezug, template_context oder Speicherleiste"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html"
+      ],
+      "wiring_files": [
+        "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html"
+      ],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/menu_editor.html",
+        "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html",
+        "reference_scaffold/cafeteria/static/admin-menu-editor.css",
+        "proposed:reference_scaffold/tests/test_menu_accompaniment_browser.py"
+      ],
+      "read_only_contract_files": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/design/2026-09-12-patientenplan-menueditor-korrektur.md",
+        "reference_scaffold/cafeteria/admin/rendering.py",
+        "reference_scaffold/cafeteria/workflow_partial_form.py",
+        "reference_scaffold/cafeteria/static/vendor/tabler.lock.json"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "reference_scaffold/cafeteria/static/admin.js",
+        "reference_scaffold/cafeteria/static/admin-tabler.css",
+        "reference_scaffold/cafeteria/workflow*.py",
+        "reference_scaffold/cafeteria/admin/*.py",
+        "reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html",
+        "reference_scaffold/cafeteria/templates/admin/gerichtvorlage*.html",
+        "reference_scaffold/cafeteria/templates/public/*",
+        "reference_scaffold/cafeteria/templates/signage/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_menu_accompaniment_browser.py tests/test_ui_korrektur_editor_browser.py tests/test_ui_korrektur_week_browser.py tests/test_menu_conflict_nojs_browser.py tests/test_menu_template_binding_browser.py",
+          "assertions": [
+            "Radiogruppe JS/NoJS, Fehlerfall, Vorschlag",
+            "Karte beide Raster",
+            "1440×900 und 390×844, Zoom, Tastatur",
+            "bestehende Editor-/Wochenverträge grün"
+          ]
+        }
+      ],
+      "external_inputs": [
+        "MP-REC-ACC-ICONS geliefert oder Text-Fallback von Root bestätigt"
+      ],
+      "risk": "MEDIUM",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex"
+      ],
+      "completion_evidence": [
+        "Browsertestausgaben",
+        "Screenshots 1440/390 (Vorschlag, keine Baseline)",
+        "WP-Bericht"
+      ],
+      "rollback": "Reguläres Anwendungsrelease; vorheriges Image ohne Radiogruppe; Daten bleiben.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "agy",
+          "grok-build",
+          "cursor"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
+    },
+    {
+      "id": "MP-REC-ACC-PUBLIC-OUTPUT",
+      "title": "Gemeinsames Partial _menu_metadata.html: Zeile «Dazu: …» für Public, Signage, Druck-HTML, Vorschau und Sammlung",
+      "requirement_ids": [
+        "REC-008"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "wave": 2,
+      "depends_on": [
+        "MP-REC-ACC-SNAPSHOT",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#64-öffentliche-ausgabe-signage-druck",
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#8-konsumentenmatrix"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/_menu_metadata.html",
+        "reference_scaffold/cafeteria/templates/signage/cafeteria_day.html",
+        "reference_scaffold/cafeteria/templates/signage/patient_day.html",
+        "reference_scaffold/cafeteria/templates/public/patient_week.html",
+        "reference_scaffold/cafeteria/templates/public/print_cafeteria_week.html",
+        "reference_scaffold/cafeteria/templates/admin/preview.html",
+        "reference_scaffold/cafeteria/workflow.py:SIGNAGE_LIMITS"
+      ],
+      "task": "Vorher: das Partial zeigt Beschreibung, Hinweis, Herkunft, Labels, Allergene. Nachher: das Partial gibt vor dem Kennzeichnungsblock eine Zeile <p class=\"menu-accompaniment\">Dazu: {{ option.accompaniment_name }}</p> aus, nur wenn option.accompaniment_name gesetzt ist (Snapshot-Optionen und Draft-Lesemodell liefern den Namen; Sammlung erst nach MP-REC-ACC-COLLECTION). Keine Symbole, keine neue CSS-Datei; vorhandene Absatzstile. Alle zwölf Einbindungen (Public heute/Woche/Druck, Signage Tag/Woche, Admin-Vorschau, Menüsammlung) werden regressionsgeprüft; Signage-Fit bei 1920×1080 und 3840×2160 mit gesetzter Beilage. Neuer Test test_menu_accompaniment_public.py rendert die Routen mit und ohne Beilage.",
+      "acceptance_criteria": [
+        "Public heute/Woche, Druck-HTML beider Profile, Signage Tag/Woche und Admin-Vorschau zeigen «Dazu: Suppe» bzw. «Dazu: Salat (gemischt und grün)» nur bei gesetzter Beilage; ohne Beilage bytegleiche Ausgabe zu vorher",
+        "Signage 1920×1080 und 3840×2160 mit längstem Text ohne Überlauf; Playergrenzen 36/48 unverändert",
+        "Patientenkanal zeigt keine Preise; Allergenzeilen unverändert; Legenden unverändert",
+        "Bestehende Public-/Signage-/Preview-/Sammlungstests grün; keine Änderung an Einzel-Templates, CSS oder Routen"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/_menu_metadata.html"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/_menu_metadata.html",
+        "proposed:reference_scaffold/tests/test_menu_accompaniment_public.py"
+      ],
+      "read_only_contract_files": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+        "reference_scaffold/cafeteria/workflow_snapshot.py",
+        "reference_scaffold/cafeteria/templates/signage/cafeteria_day.html",
+        "reference_scaffold/cafeteria/templates/signage/patient_day.html",
+        "reference_scaffold/cafeteria/templates/public/patient_week.html",
+        "reference_scaffold/cafeteria/templates/admin/preview.html",
+        "reference_scaffold/cafeteria/templates/admin/menu_collection.html"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "reference_scaffold/cafeteria/templates/signage/*",
+        "reference_scaffold/cafeteria/templates/public/*",
+        "reference_scaffold/cafeteria/templates/admin/*",
+        "reference_scaffold/cafeteria/static/*",
+        "reference_scaffold/cafeteria/public/*",
+        "reference_scaffold/cafeteria/signage/*",
+        "reference_scaffold/cafeteria/workflow*.py"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_menu_accompaniment_public.py tests/test_public_contracts.py tests/test_signage_cafeteria_day.py tests/test_signage_cafeteria_week.py tests/test_signage_patient.py tests/test_public_display_copy.py tests/test_admin_draft_preview.py tests/test_menu_collection.py tests/test_public_week_no_images.py",
+          "assertions": [
+            "Zeile nur bei Beilage",
+            "ohne Beilage bytegleich",
+            "alle zwölf Einbindungen rendern"
+          ]
+        },
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_signage_ops_browser.py tests/test_public_ops_browser.py tests/test_public_mobile_ui.py",
+          "assertions": [
+            "Signage 1920×1080 und 3840×2160 ohne Überlauf",
+            "Public mobil ohne horizontale Scrollbar"
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "MEDIUM",
+      "effort": "low",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex"
+      ],
+      "completion_evidence": [
+        "Testausgaben",
+        "Signage-Screenshots 1920/3840 als Vorschlag",
+        "WP-Bericht"
+      ],
+      "rollback": "Reguläres Anwendungsrelease; Partial auf vorherigen Stand.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "agy",
+          "grok-build",
+          "cursor"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
+    },
+    {
+      "id": "MP-REC-ACC-WEEK-PDF",
+      "title": "Wochen-PDF: Absatz «Dazu: …» in Cafeteria- und Patientenausgabe",
+      "requirement_ids": [
+        "REC-008"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "wave": 2,
+      "depends_on": [
+        "MP-REC-ACC-SNAPSHOT",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#64-öffentliche-ausgabe-signage-druck",
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#8-konsumentenmatrix"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/admin/week_pdf.py:_paragraphs",
+        "reference_scaffold/cafeteria/admin/week_pdf_layout.py:binding_text"
+      ],
+      "task": "Vorher: PDF-Absätze bestehen aus Titel, Bausteinen, Beschreibung/Hinweis, Labels, Herkunft, Allergenen, Preisen. Nachher: _paragraphs und binding_text geben nach den Bausteinen die Zeile «Dazu: <Name>» aus, wenn option accompaniment_name (Draft-Lesemodell oder Snapshot) gesetzt ist; sonst unverändert (bytegleiche Layout-Tests). Sonderzeichen im Namen werden wie bestehender Freitext für den Renderer maskiert. Keine Änderung an Druckvorlagen-Store, -Konfiguration, Rezept- oder Einkaufs-PDF.",
+      "acceptance_criteria": [
+        "PDF beider Profile enthält den Absatz nur bei gesetzter Beilage; ohne Beilage bestehende Layout-/Fit-Tests unverändert grün",
+        "Längster Text «Dazu: Salat (gemischt und grün)» bricht korrekt um, kein Fit-Fehler bei Standardvorlage; Bytes des PDF heruntergeladen und geöffnet getrennt geprüft",
+        "Keine Änderung an print_templates.py, print_template_config.py, recipe_pdf.py"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/admin/week_pdf_layout.py"
+      ],
+      "wiring_files": [
+        "reference_scaffold/cafeteria/admin/week_pdf.py"
+      ],
+      "owned_files": [
+        "reference_scaffold/cafeteria/admin/week_pdf_layout.py",
+        "reference_scaffold/cafeteria/admin/week_pdf.py",
+        "reference_scaffold/tests/test_week_pdf.py",
+        "reference_scaffold/tests/test_week_pdf_layout.py"
+      ],
+      "read_only_contract_files": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+        "reference_scaffold/cafeteria/print_templates.py",
+        "reference_scaffold/cafeteria/print_template_config.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "reference_scaffold/cafeteria/print_templates.py",
+        "reference_scaffold/cafeteria/print_template_config.py",
+        "reference_scaffold/cafeteria/admin/recipe_pdf.py",
+        "reference_scaffold/cafeteria/admin/print_template_routes.py",
+        "reference_scaffold/cafeteria/templates/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_week_pdf.py tests/test_week_pdf_layout.py tests/test_admin_week_print.py tests/test_week_pdf_legend.py",
+          "assertions": [
+            "Absatz nur bei Beilage",
+            "ohne Beilage unverändert",
+            "Fit mit längstem Text"
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "MEDIUM",
+      "effort": "low",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex"
+      ],
+      "completion_evidence": [
+        "Testausgaben",
+        "Beispiel-PDF beider Profile im Bericht referenziert",
+        "WP-Bericht"
+      ],
+      "rollback": "Reguläres Anwendungsrelease.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "agy",
+          "grok-build",
+          "cursor"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
+    },
+    {
+      "id": "MP-REC-ACC-API-FHIR",
+      "title": "OpenAPI-Properties, FHIR-Note und MCP-Durchreichung für die Beilage",
+      "requirement_ids": [
+        "REC-008"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "wave": 2,
+      "depends_on": [
+        "MP-REC-ACC-SNAPSHOT"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#8-konsumentenmatrix",
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#9-sicherheit"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/api/openapi.py:_enum_value",
+        "reference_scaffold/cafeteria/api/openapi.py:Option",
+        "reference_scaffold/cafeteria/fhir/mapping.py:nutrition_product",
+        "reference_scaffold/cafeteria/api/v1_routes.py:weeks_preview",
+        "reference_scaffold/dishboard_mcp/server.py"
+      ],
+      "task": "Vorher: OpenAPI-Option kennt keine Beilage; FHIR mappt Bausteine als ingredient und Beschreibung/Hinweis als note. Nachher: openapi.py ergänzt die optionalen Properties accompaniment_code (enum aus PATIENT_FIXED_VALUES) und accompaniment_name (enum aus PATIENT_FIXED_VALUES) mit Beschreibung «nur bei gewählter Beilage»; required-Liste bleibt. fhir/mapping.py fügt bei gesetztem accompaniment_name eine note {\"text\": \"Dazu: <Name>\"} hinzu; keine neue Struktur, kein ingredient. MCP bleibt unverändert; test_mcp_server.py belegt die Durchreichung eines Snapshots mit Beilage. Kontrakttests werden erweitert.",
+      "acceptance_criteria": [
+        "GET /api/v1/... weeks und weeks_preview liefern das Paar nur bei Wahl; OpenAPI-Dokument validiert gegen die Antwort (test_openapi_contract.py, test_api_v1.py, test_api_keyed.py grün)",
+        "FHIR NutritionProduct enthält note «Dazu: …» nur bei Wahl; bestehende Mapping-Tests unverändert grün",
+        "MCP reicht Snapshot mit Beilage unverändert durch (Test)",
+        "Keine Änderung an API-Schlüsseln, Kanälen, Berechtigungen oder Routen"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/api/openapi.py",
+        "reference_scaffold/cafeteria/fhir/mapping.py"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/api/openapi.py",
+        "reference_scaffold/cafeteria/fhir/mapping.py",
+        "reference_scaffold/tests/test_openapi_contract.py",
+        "reference_scaffold/tests/test_fhir_mapping.py",
+        "proposed:reference_scaffold/tests/test_menu_accompaniment_api.py"
+      ],
+      "read_only_contract_files": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+        "reference_scaffold/cafeteria/patient_payload.py",
+        "reference_scaffold/cafeteria/api/v1_routes.py",
+        "reference_scaffold/dishboard_mcp/server.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "reference_scaffold/cafeteria/api/v1_routes.py",
+        "reference_scaffold/cafeteria/api_keys.py",
+        "reference_scaffold/cafeteria/fhir/routes.py",
+        "reference_scaffold/dishboard_mcp/*",
+        "reference_scaffold/cafeteria/patient_payload.py",
+        "reference_scaffold/cafeteria/templates/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_menu_accompaniment_api.py tests/test_openapi_contract.py tests/test_api_v1.py tests/test_api_keyed.py tests/test_fhir_mapping.py tests/test_fhir_routes.py tests/test_mcp_server.py tests/test_api_docs.py",
+          "assertions": [
+            "Properties nur bei Wahl",
+            "OpenAPI-Kontrakt",
+            "FHIR note",
+            "MCP-Durchreichung"
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "MEDIUM",
+      "effort": "low",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex"
+      ],
+      "completion_evidence": [
+        "Testausgaben",
+        "OpenAPI-Diff",
+        "WP-Bericht"
+      ],
+      "rollback": "Reguläres Anwendungsrelease.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "agy",
+          "grok-build",
+          "cursor"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
+    },
+    {
+      "id": "MP-REC-ACC-COLLECTION",
+      "title": "Menüsammlung liest die Beilage (Store) und zeigt sie über das Partial",
+      "requirement_ids": [
+        "REC-008"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "wave": 3,
+      "depends_on": [
+        "MP-REC-ACC-MENU-CORE",
+        "MP-REC-ACC-PUBLIC-OUTPUT",
+        "MP-UI-DENSITY-LISTS"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#62-wochenplan-karte-m10m11-und-menüsammlung-m07",
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#8-konsumentenmatrix"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/admin/menu_collection_store.py:find_menus",
+        "reference_scaffold/cafeteria/templates/admin/menu_collection.html"
+      ],
+      "task": "Vorher: find_menus liest keine Beilage. Nachher: find_menus liest i.accompaniment und liefert accompaniment_code und accompaniment_name (Konstante aus rendering/workflow), sodass das gemeinsame Partial die Zeile «Dazu: …» zeigt. Template und CSS bleiben unverändert (DENSITY-LISTS-Grant); Suche bleibt auf Titel/Bausteine.",
+      "acceptance_criteria": [
+        "Sammlung zeigt die Zeile nur für Menüs mit Wahl; Seite 24, Blättern und Suche unverändert (test_menu_collection.py, test_menu_collection_browser.py grün)",
+        "Keine Änderung an menu_collection.html oder admin-menu-collection.css"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/admin/menu_collection_store.py"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/admin/menu_collection_store.py",
+        "reference_scaffold/tests/test_menu_collection.py"
+      ],
+      "read_only_contract_files": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+        "reference_scaffold/cafeteria/templates/admin/menu_collection.html",
+        "reference_scaffold/cafeteria/templates/_menu_metadata.html"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "reference_scaffold/cafeteria/templates/*",
+        "reference_scaffold/cafeteria/static/*",
+        "reference_scaffold/cafeteria/workflow*.py"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_menu_collection.py",
+          "assertions": [
+            "Zeile nur bei Wahl",
+            "Suche/Blättern unverändert"
+          ]
+        },
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_menu_collection_browser.py",
+          "assertions": [
+            "Liste und Karten zeigen die Zeile",
+            "1440×900 und 390×844"
+          ]
+        }
+      ],
+      "external_inputs": [
+        "Freeze von MP-UI-DENSITY-LISTS auf menu_collection.html"
+      ],
+      "risk": "LOW",
+      "effort": "low",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex"
+      ],
+      "completion_evidence": [
+        "Testausgaben",
+        "WP-Bericht"
+      ],
+      "rollback": "Reguläres Anwendungsrelease.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "agy",
+          "grok-build",
+          "cursor",
+          "cline"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
+    },
+    {
+      "id": "MP-REC-ACC-CSV",
+      "title": "CSV Schema 3: Spalte beilage_dazu in Export, Import, Validator, Vorlagen und Beispielen",
+      "requirement_ids": [
+        "REC-008"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "wave": 3,
+      "depends_on": [
+        "MP-REC-ACC-MENU-CORE",
+        "MP-REC-ACC-SNAPSHOT"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#7-kompatibilität-migration-release",
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#11-offene-fachfragen-konservativer-default-blockiert-nicht"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/csvio.py:BASE_HEADERS",
+        "reference_scaffold/cafeteria/csvio.py:snapshot_to_csv",
+        "reference_scaffold/cafeteria/csvio.py:_option",
+        "csv/validate_menu_csv.py:BASE_HEADERS",
+        "csv/validate_menu_csv.py:validate_text",
+        "reference_scaffold/cafeteria/workflow.py:_full_replace_values"
+      ],
+      "task": "Vorher: CSV Schema 2 mit exakter Headerliste; Import ist Vollersatz und setzt die Beilage auf 'none'; Export enthält keine Beilage (bis dahin dokumentiertes und getestetes Verhalten aus MP-REC-ACC-MENU-CORE/SNAPSHOT). Nachher (F5 durch Root entschieden): Header um beilage_dazu (leer|suppe|salat) erweitert, schema_version 3; Validator akzeptiert Schema 2 ohne Spalte (→ 'none') und Schema 3 mit Spalte; Export schreibt Schema 3; Import mappt auf accompaniment_code; Patienten-Semantikprüfung unverändert; CSV-Vorlagen und Beispiele aktualisiert; Runtime-Packaging-Test grün.",
+      "acceptance_criteria": [
+        "Export→Import round-trip erhält die Beilage; Schema-2-Dateien importierbar (→ 'none') mit Hinweis in der Vorschau; ungültiger Wert → Zeilenfehler am Feld",
+        "Validator-Fehlermeldungen benennen Spalte und Zeile; Patientenkanal-Prüfung unverändert",
+        "Vorlagen-/Beispiel-CSV und Packaging-Test aktualisiert; keine Änderung an workflow*.py"
+      ],
+      "contract_files": [
+        "csv/validate_menu_csv.py",
+        "reference_scaffold/cafeteria/csvio.py"
+      ],
+      "wiring_files": [
+        "csv/menu_patient_template.csv",
+        "csv/menu_cafeteria_template.csv",
+        "csv/menu_patient_example.csv",
+        "csv/menu_cafeteria_example.csv"
+      ],
+      "owned_files": [
+        "csv/validate_menu_csv.py",
+        "reference_scaffold/cafeteria/csvio.py",
+        "csv/menu_patient_template.csv",
+        "csv/menu_cafeteria_template.csv",
+        "csv/menu_patient_example.csv",
+        "csv/menu_cafeteria_example.csv",
+        "reference_scaffold/tests/test_admin_csv_import.py",
+        "reference_scaffold/tests/test_csv_validation_followup.py",
+        "proposed:reference_scaffold/tests/test_csv_accompaniment.py"
+      ],
+      "read_only_contract_files": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+        "reference_scaffold/cafeteria/workflow.py",
+        "reference_scaffold/cafeteria/patient_payload.py"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "reference_scaffold/cafeteria/workflow*.py",
+        "reference_scaffold/cafeteria/patient_payload.py",
+        "reference_scaffold/cafeteria/templates/*"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_csv_accompaniment.py tests/test_admin_csv_import.py tests/test_csv_validation_followup.py tests/test_csv_weekend_contract.py tests/test_csv_runtime_packaging.py tests/test_admin_csv_preview_ui.py",
+          "assertions": [
+            "round-trip",
+            "Schema 2 kompatibel",
+            "Fehlermeldungen",
+            "Packaging"
+          ]
+        }
+      ],
+      "external_inputs": [],
+      "risk": "MEDIUM",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex"
+      ],
+      "completion_evidence": [
+        "Testausgaben",
+        "Beispiel-CSV im Diff",
+        "WP-Bericht"
+      ],
+      "rollback": "Reguläres Anwendungsrelease; Schema-2-Dateien bleiben importierbar.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "agy",
+          "grok-build",
+          "cursor"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
+    },
+    {
+      "id": "MP-REC-ACC-ACCEPT",
+      "title": "Unabhängige Ablaufabnahme Editor → Karte → Publikation → Public/Signage/Druck/API und Inventaranschluss",
+      "requirement_ids": [
+        "REC-008"
+      ],
+      "kind": "verification",
+      "status": "PLANNED",
+      "wave": 3,
+      "depends_on": [
+        "MP-REC-ACC-EDITOR-UI",
+        "MP-REC-ACC-PUBLIC-OUTPUT",
+        "MP-REC-ACC-WEEK-PDF",
+        "MP-REC-ACC-API-FHIR",
+        "MP-REC-ACC-TEMPLATE",
+        "MP-REC-ACC-COLLECTION",
+        "MP-REC-ACC-CSV"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#13-abnahmefälle",
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md#14-gate-matrix-gezielt-kein-gesamt-suite-zwang-für-textarbeit"
+      ],
+      "source_anchors": [
+        "reference_scaffold/tests/test_ui_route_inventory.py",
+        "docs/superpowers/backlog-0909/ui-route-matrix.json",
+        "docs/superpowers/backlog-0909/ui-before-manifest.json"
+      ],
+      "task": "Ein anderer Autor als die Implementierer nimmt den Gesamtablauf mit realem Browser ab: Vorlage mit Vorschlag anlegen, einplanen, Beilage im Editor ändern, speichern, Karte prüfen, Prüfung bestätigen, publizieren, Public/Signage/Druck-HTML/PDF/API/FHIR mit und ohne Beilage vergleichen; alte publizierte Woche bleibt «live». Viewports 1440×900, 390×844 (Editor zusätzlich 1024×768, 768×1024, 1920×1080), Signage 1920×1080/3840×2160, JS/NoJS, Tastatur, 200 %-Zoom, Kontrast; Rollen Leser/Editor. Evidenzdatei mit Screenshots (Vorschlag, keine Baseline). Root führt die Inventarzeilen (ui-route-matrix.json, ui-before-manifest.json) nach; physischer Player und Küchendruck bleiben getrennte Abnahmen. Pflicht: gespeicherte Menüs in der Sammlung prüfen und CSV-Schema3 mit Beilage verlustfrei exportieren/importieren; Schema2-Vollersatz mit none ausdrücklich prüfen. Keine sichtbare Writer-Freigabe ohne diese integrierten Verbraucher.",
+      "acceptance_criteria": [
+        "SDD A1–A16 mit Beleg je Fall (bestanden/fehlgeschlagen/nicht ausgeführt/blockiert)",
+        "Alte publizierte Woche ohne Beilage bleibt nach dem Release bytegleich und «live»",
+        "Evidenzdatei registriert; fehlende Prüfungen benannt; keine Baselines ersetzt",
+        "COLLECTION und CSV integriert: Sammlung zeigt die Wahl; Schema3-Roundtrip erhält sie, expliziter Schema2-Vollersatz setzt none. F3-Namen ohne Dazu-Präfix im Datensatz; 48-px-Bedienziele gemessen."
+      ],
+      "contract_files": [],
+      "wiring_files": [],
+      "owned_files": [
+        "proposed:reference_scaffold/tests/test_menu_accompaniment_flow_accept.py",
+        "proposed:docs/superpowers/menu-accompaniments-0913/acceptance-evidence.md"
+      ],
+      "read_only_contract_files": [
+        "docs/design/2026-09-13-menu-accompaniments-sdd.md",
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "forbidden_paths": [
+        "database/*",
+        "reference_scaffold/cafeteria/*",
+        "docs/superpowers/backlog-0909/ui-route-matrix.json",
+        "docs/superpowers/backlog-0909/ui-before-manifest.json"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "browser",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_menu_accompaniment_flow_accept.py",
+          "assertions": [
+            "Gesamtablauf mit und ohne Beilage",
+            "Viewports und Rollen laut Task",
+            "alte Woche unverändert"
+          ]
+        }
+      ],
+      "external_inputs": [
+        "Root: Inventarzeilen und Release-Belege; physische Player-/Papierabnahme separat"
+      ],
+      "risk": "MEDIUM",
+      "effort": "medium",
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex"
+      ],
+      "completion_evidence": [
+        "Evidenzdatei mit Screenshots und Testausgaben",
+        "WP-Bericht"
+      ],
+      "rollback": "Nicht anwendbar (Verifikation).",
+      "historical_routing": {
+        "preferred_lane": "agy",
+        "eligible_lanes": [
+          "agy",
+          "claude-code",
+          "grok-build",
+          "cursor",
+          "codex"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
     }
   ],
   "shared_owner_groups": {
@@ -8141,7 +9567,25 @@
       "MP-REC-PLAN-PORTIONS",
       "MP-REC-SHOPPING-PERSIST",
       "MP-NUT-SCHEMA",
-      "MP-OFF-PROPOSAL-CONTRACT"
+      "MP-OFF-PROPOSAL-CONTRACT",
+      "MP-REC-ACC-SCHEMA",
+      "MP-CALC-PRICE-LEDGER",
+      "MP-CALC-RULES-SUGGEST",
+      "MP-INV-MOVEMENT-CORE",
+      "MP-INV-TRANSFER",
+      "MP-INV-COUNT-CORRECTION",
+      "MP-ORD-SUPPLIER-ARTICLE",
+      "MP-ORD-BASKET-DRAFT",
+      "MP-ORD-CONFIRM-SEND",
+      "MP-TRN-GLOSSARY-MODEL",
+      "MP-CALC-CALCULATION-RECEIPTS",
+      "MP-INV-PREPARED-BATCH-PRODUCTION",
+      "MP-SCR-WEB-DAY",
+      "MP-SCR-DEVICES",
+      "MP-SCR-PLAYLISTS",
+      "MP-SCR-EDITOR-CORE",
+      "MP-IAM-CONNECTION-DRAFTS",
+      "MP-IAM-CONNECTION-ACTIVATE"
     ],
     "database/permissions.sql": [
       "MP-BAS-SCHEMA27",
@@ -8154,7 +9598,25 @@
       "MP-REC-PLAN-PORTIONS",
       "MP-REC-SHOPPING-PERSIST",
       "MP-NUT-SCHEMA",
-      "MP-OFF-PROPOSAL-CONTRACT"
+      "MP-OFF-PROPOSAL-CONTRACT",
+      "MP-REC-ACC-SCHEMA",
+      "MP-CALC-PRICE-LEDGER",
+      "MP-CALC-RULES-SUGGEST",
+      "MP-INV-MOVEMENT-CORE",
+      "MP-INV-TRANSFER",
+      "MP-INV-COUNT-CORRECTION",
+      "MP-ORD-SUPPLIER-ARTICLE",
+      "MP-ORD-BASKET-DRAFT",
+      "MP-ORD-CONFIRM-SEND",
+      "MP-TRN-GLOSSARY-MODEL",
+      "MP-CALC-CALCULATION-RECEIPTS",
+      "MP-INV-PREPARED-BATCH-PRODUCTION",
+      "MP-SCR-WEB-DAY",
+      "MP-SCR-DEVICES",
+      "MP-SCR-PLAYLISTS",
+      "MP-SCR-EDITOR-CORE",
+      "MP-IAM-CONNECTION-DRAFTS",
+      "MP-IAM-CONNECTION-ACTIVATE"
     ],
     "database/validate_schema.py": [
       "MP-BAS-SCHEMA27",
@@ -8167,7 +9629,25 @@
       "MP-REC-PLAN-PORTIONS",
       "MP-REC-SHOPPING-PERSIST",
       "MP-NUT-SCHEMA",
-      "MP-OFF-PROPOSAL-CONTRACT"
+      "MP-OFF-PROPOSAL-CONTRACT",
+      "MP-REC-ACC-SCHEMA",
+      "MP-CALC-PRICE-LEDGER",
+      "MP-CALC-RULES-SUGGEST",
+      "MP-INV-MOVEMENT-CORE",
+      "MP-INV-TRANSFER",
+      "MP-INV-COUNT-CORRECTION",
+      "MP-ORD-SUPPLIER-ARTICLE",
+      "MP-ORD-BASKET-DRAFT",
+      "MP-ORD-CONFIRM-SEND",
+      "MP-TRN-GLOSSARY-MODEL",
+      "MP-CALC-CALCULATION-RECEIPTS",
+      "MP-INV-PREPARED-BATCH-PRODUCTION",
+      "MP-SCR-WEB-DAY",
+      "MP-SCR-DEVICES",
+      "MP-SCR-PLAYLISTS",
+      "MP-SCR-EDITOR-CORE",
+      "MP-IAM-CONNECTION-DRAFTS",
+      "MP-IAM-CONNECTION-ACTIVATE"
     ],
     "reference_scaffold/cafeteria/db.py": [
       "MP-BAS-SCHEMA27",
@@ -8180,7 +9660,25 @@
       "MP-REC-PLAN-PORTIONS",
       "MP-REC-SHOPPING-PERSIST",
       "MP-NUT-SCHEMA",
-      "MP-OFF-PROPOSAL-CONTRACT"
+      "MP-OFF-PROPOSAL-CONTRACT",
+      "MP-REC-ACC-SCHEMA",
+      "MP-CALC-PRICE-LEDGER",
+      "MP-CALC-RULES-SUGGEST",
+      "MP-INV-MOVEMENT-CORE",
+      "MP-INV-TRANSFER",
+      "MP-INV-COUNT-CORRECTION",
+      "MP-ORD-SUPPLIER-ARTICLE",
+      "MP-ORD-BASKET-DRAFT",
+      "MP-ORD-CONFIRM-SEND",
+      "MP-TRN-GLOSSARY-MODEL",
+      "MP-CALC-CALCULATION-RECEIPTS",
+      "MP-INV-PREPARED-BATCH-PRODUCTION",
+      "MP-SCR-WEB-DAY",
+      "MP-SCR-DEVICES",
+      "MP-SCR-PLAYLISTS",
+      "MP-SCR-EDITOR-CORE",
+      "MP-IAM-CONNECTION-DRAFTS",
+      "MP-IAM-CONNECTION-ACTIVATE"
     ],
     "tools/validate_package.py": [
       "MP-BAS-SCHEMA27",
@@ -8193,11 +9691,41 @@
       "MP-REC-PLAN-PORTIONS",
       "MP-REC-SHOPPING-PERSIST",
       "MP-NUT-SCHEMA",
-      "MP-OFF-PROPOSAL-CONTRACT"
+      "MP-OFF-PROPOSAL-CONTRACT",
+      "MP-REC-ACC-SCHEMA",
+      "MP-CALC-PRICE-LEDGER",
+      "MP-CALC-RULES-SUGGEST",
+      "MP-INV-MOVEMENT-CORE",
+      "MP-INV-TRANSFER",
+      "MP-INV-COUNT-CORRECTION",
+      "MP-ORD-SUPPLIER-ARTICLE",
+      "MP-ORD-BASKET-DRAFT",
+      "MP-ORD-CONFIRM-SEND",
+      "MP-TRN-GLOSSARY-MODEL",
+      "MP-CALC-CALCULATION-RECEIPTS",
+      "MP-INV-PREPARED-BATCH-PRODUCTION",
+      "MP-SCR-WEB-DAY",
+      "MP-SCR-DEVICES",
+      "MP-SCR-PLAYLISTS",
+      "MP-SCR-EDITOR-CORE",
+      "MP-IAM-CONNECTION-DRAFTS",
+      "MP-IAM-CONNECTION-ACTIVATE"
     ],
     "reference_scaffold/tests/test_master_data_db.py": [
       "MP-BAS-SCHEMA27",
-      "MP-BAS-FOUNDATIONS"
+      "MP-BAS-FOUNDATIONS",
+      "MP-REC-ACC-SCHEMA",
+      "MP-CALC-PRICE-LEDGER",
+      "MP-CALC-RULES-SUGGEST",
+      "MP-INV-MOVEMENT-CORE",
+      "MP-INV-TRANSFER",
+      "MP-INV-COUNT-CORRECTION",
+      "MP-ORD-SUPPLIER-ARTICLE",
+      "MP-ORD-BASKET-DRAFT",
+      "MP-ORD-CONFIRM-SEND",
+      "MP-TRN-GLOSSARY-MODEL",
+      "MP-CALC-CALCULATION-RECEIPTS",
+      "MP-INV-PREPARED-BATCH-PRODUCTION"
     ],
     "reference_scaffold/cafeteria/master_data_proposals.py": [
       "MP-BAS-FOUNDATIONS",
@@ -8215,22 +9743,28 @@
     "reference_scaffold/cafeteria/workflow_partial_store.py": [
       "MP-REC-BINDINGS",
       "MP-REC-PLAN-PORTIONS",
-      "MP-REC-MENU-TEMPLATE-BINDING"
+      "MP-REC-MENU-TEMPLATE-BINDING",
+      "MP-REC-ACC-MENU-CORE",
+      "MP-CALC-RULES-SUGGEST"
     ],
     "reference_scaffold/cafeteria/workflow_store.py": [
       "MP-REC-BINDINGS",
       "MP-REC-PLAN-PORTIONS",
-      "MP-REC-MENU-TEMPLATE-BINDING"
+      "MP-REC-MENU-TEMPLATE-BINDING",
+      "MP-REC-ACC-MENU-CORE"
     ],
     "reference_scaffold/cafeteria/workflow_copy_store.py": [
       "MP-REC-BINDINGS",
-      "MP-REC-PLAN-PORTIONS"
+      "MP-REC-PLAN-PORTIONS",
+      "MP-REC-ACC-MENU-CORE"
     ],
     "reference_scaffold/cafeteria/workflow_partial_form.py": [
       "MP-REC-BINDINGS",
       "MP-REC-BINDING-UI",
       "MP-REC-PLAN-PORTIONS",
-      "MP-REC-MENU-TEMPLATE-BINDING"
+      "MP-REC-MENU-TEMPLATE-BINDING",
+      "MP-REC-COMPONENT-FOOD-UI",
+      "MP-REC-ACC-MENU-CORE"
     ],
     "reference_scaffold/cafeteria/workflow_review.py": [
       "MP-REC-BINDINGS",
@@ -8241,14 +9775,20 @@
       "MP-REC-BINDING-UI",
       "MP-REC-PLAN-PORTIONS",
       "MP-REC-MENU-TEMPLATE-BINDING",
-      "MP-REC-MENU-PROPOSAL"
+      "MP-REC-MENU-PROPOSAL",
+      "MP-REC-COMPONENT-FOOD-UI",
+      "MP-REC-ACC-MENU-CORE",
+      "MP-TRN-RECIPE-MENU-APPLY"
     ],
     "reference_scaffold/cafeteria/admin/rendering.py": [
       "MP-REC-BINDINGS",
       "MP-REC-BINDING-UI",
       "MP-REC-PLAN-PORTIONS",
       "MP-REC-MENU-TEMPLATE-BINDING",
-      "MP-REC-MENU-PROPOSAL"
+      "MP-REC-MENU-PROPOSAL",
+      "MP-REC-COMPONENT-FOOD-UI",
+      "MP-REC-ACC-MENU-CORE",
+      "MP-TRN-RECIPE-MENU-APPLY"
     ],
     "reference_scaffold/cafeteria/recipe_reads.py": [
       "MP-REC-SNAPSHOT-V2",
@@ -8280,7 +9820,11 @@
       "MP-REC-PLAN-PORTIONS",
       "MP-UI-KORREKTUR-EDITOR",
       "MP-REC-MENU-TEMPLATE-BINDING",
-      "MP-REC-MENU-PROPOSAL"
+      "MP-REC-MENU-PROPOSAL",
+      "MP-REC-ACC-EDITOR-UI",
+      "MP-TRN-RECIPE-MENU-APPLY",
+      "MP-UI-MENU-EDITOR",
+      "MP-UI-DENSITY-MENUEDITOR"
     ],
     "reference_scaffold/cafeteria/static/admin.js": [
       "MP-REC-BINDING-UI",
@@ -8344,19 +9888,24 @@
     ],
     "reference_scaffold/cafeteria/admin/dish_template_routes.py": [
       "MP-REC-LINK-READS",
-      "MP-REC-MENU-PROPOSAL"
+      "MP-REC-MENU-PROPOSAL",
+      "MP-REC-DISH-TEMPLATE-WRITER",
+      "MP-REC-ACC-TEMPLATE"
     ],
     "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html": [
       "MP-REC-LINK-READS",
       "MP-REC-RECIPE-VIEW-PRINT",
       "MP-REC-MENU-PROPOSAL",
-      "MP-REC-DISH-TEMPLATE-WRITER"
+      "MP-REC-DISH-TEMPLATE-WRITER",
+      "MP-REC-ACC-TEMPLATE",
+      "MP-UI-DENSITY-RECIPEPAGES"
     ],
     "reference_scaffold/tests/test_dish_template_routes.py": [
       "MP-REC-DISH-TEMPLATE-WRITER",
       "MP-REC-LINK-READS",
       "MP-REC-RECIPE-VIEW-PRINT",
-      "MP-REC-MENU-PROPOSAL"
+      "MP-REC-MENU-PROPOSAL",
+      "MP-REC-ACC-TEMPLATE"
     ],
     "reference_scaffold/cafeteria/admin/recipe_print_template_routes.py": [
       "MP-REC-PRINT-TEMPLATE-ENTRY",
@@ -8377,11 +9926,14 @@
     ],
     "reference_scaffold/cafeteria/workflow_item_write.py": [
       "MP-REC-BINDINGS",
-      "MP-REC-MENU-TEMPLATE-BINDING"
+      "MP-REC-MENU-TEMPLATE-BINDING",
+      "MP-REC-ACC-MENU-CORE"
     ],
     "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html": [
       "MP-UI-KORREKTUR-WEEK",
-      "MP-REC-MENU-TEMPLATE-BINDING"
+      "MP-REC-MENU-TEMPLATE-BINDING",
+      "MP-REC-ACC-EDITOR-UI",
+      "MP-UI-DENSITY-WEEKS"
     ],
     "reference_scaffold/tests/test_recipe_template_editor_routes.py": [
       "MP-REC-PRINT-TEMPLATE-ENTRY",
@@ -8398,7 +9950,75 @@
     "reference_scaffold/tests/test_dish_template_browser.py": [
       "MP-REC-DISH-TEMPLATE-WRITER",
       "MP-REC-LINK-READS",
-      "MP-REC-RECIPE-VIEW-PRINT"
+      "MP-REC-RECIPE-VIEW-PRINT",
+      "MP-REC-ACC-TEMPLATE"
+    ],
+    "reference_scaffold/cafeteria/admin/week_pdf.py": [
+      "MP-REC-ACC-WEEK-PDF",
+      "MP-TPL-FREE-CORE"
+    ],
+    "reference_scaffold/cafeteria/dish_template_store.py": [
+      "MP-REC-DISH-TEMPLATE-WRITER",
+      "MP-REC-ACC-TEMPLATE"
+    ],
+    "reference_scaffold/cafeteria/menu_template_binding.py": [
+      "MP-REC-MENU-TEMPLATE-BINDING",
+      "MP-REC-ACC-MENU-CORE"
+    ],
+    "reference_scaffold/cafeteria/patient_payload.py": [
+      "MP-REC-ACC-SNAPSHOT",
+      "MP-CALC-PATIENT-GUARD"
+    ],
+    "reference_scaffold/cafeteria/static/admin-menu-editor.css": [
+      "MP-REC-ACC-EDITOR-UI",
+      "MP-UI-MENU-EDITOR",
+      "MP-UI-KORREKTUR-EDITOR",
+      "MP-UI-DENSITY-MENUEDITOR"
+    ],
+    "reference_scaffold/cafeteria/static/vendor/tabler-icons/tabler-icons.svg": [
+      "MP-REC-RECIPE-VIEW-PRINT",
+      "MP-REC-ACC-ICONS",
+      "MP-UI-DENSITY-RECIPE"
+    ],
+    "reference_scaffold/cafeteria/static/vendor/tabler.lock.json": [
+      "MP-REC-RECIPE-VIEW-PRINT",
+      "MP-REC-ACC-ICONS",
+      "MP-UI-DENSITY-RECIPE"
+    ],
+    "reference_scaffold/cafeteria/workflow.py": [
+      "MP-REC-BINDINGS",
+      "MP-REC-ACC-MENU-CORE"
+    ],
+    "reference_scaffold/tests/test_database_invariants.py": [
+      "MP-BAS-SCHEMA27",
+      "MP-REC-ACC-SCHEMA",
+      "MP-CALC-PRICE-LEDGER",
+      "MP-CALC-RULES-SUGGEST",
+      "MP-INV-MOVEMENT-CORE",
+      "MP-INV-TRANSFER",
+      "MP-INV-COUNT-CORRECTION",
+      "MP-ORD-SUPPLIER-ARTICLE",
+      "MP-ORD-BASKET-DRAFT",
+      "MP-ORD-CONFIRM-SEND",
+      "MP-TRN-GLOSSARY-MODEL",
+      "MP-CALC-CALCULATION-RECEIPTS",
+      "MP-INV-PREPARED-BATCH-PRODUCTION"
+    ],
+    "reference_scaffold/tests/test_prepared_food_migration_db.py": [
+      "MP-BAS-SCHEMA27",
+      "MP-REC-ACC-SCHEMA"
+    ],
+    "reference_scaffold/tests/test_rec_import_batch_migration_db.py": [
+      "MP-REC-IMPORT-BATCH",
+      "MP-REC-ACC-SCHEMA"
+    ],
+    "reference_scaffold/tests/test_rec_import_commit_migration_db.py": [
+      "MP-REC-IMPORT-COMMIT",
+      "MP-REC-ACC-SCHEMA"
+    ],
+    "reference_scaffold/tests/test_recipe_binding_migration_db.py": [
+      "MP-BAS-SCHEMA27",
+      "MP-REC-ACC-SCHEMA"
     ]
   },
   "root_ui_contract": {
@@ -8481,5 +10101,225 @@
       "R5 archived template retention"
     ],
     "status": "PLANNED contracts corrected; no product verification or acceptance"
+  },
+  "accompaniment_registry_2026_09_13": {
+    "authority": "Root assignment wp-582f8fccf5ce; ACC-only delta. Historical snapshot and unrelated UI grants remain unchanged.",
+    "source_base": "4711c22075383126d2af90ecaa85184ed53589eb",
+    "planning_source": "2eaa408",
+    "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+    "live_predecessor": {
+      "source": "4be7b79d69e38e70875981a70d7b975591e5218c",
+      "schema": 31,
+      "since": "2026-09-13 08:53 CEST",
+      "health": "healthy",
+      "evidence_owner": "Root; not re-run by this docs worker"
+    },
+    "migration_reservation": {
+      "path": "database/migrations/0029_v31_to_v32.sql",
+      "owner": "MP-REC-ACC-SCHEMA",
+      "waiting": [
+        "MP-REC-PLAN-PORTIONS"
+      ],
+      "rule": "One schema writer, then CORE; PLAN-PORTIONS needs later own reservation."
+    },
+    "release_gate": "Vor sichtbarer Schreiboberfläche alle Snapshot-Reader/Validatoren sowie Public/Signage/Druck/API und CSV-Roundtrip fertig integrieren. Kein sichtbares Teilrelease nach Welle1.",
+    "canonical_names": {
+      "soup": "Suppe",
+      "salad": "Salat (gemischt und grün)"
+    },
+    "csv": "F5 entschieden: Schema3 und verlustfreier Roundtrip sind Pflicht; Schema2-Import bleibt expliziter Vollersatz mit none.",
+    "touch_target_px": 48,
+    "current_structural_counts": {
+      "packages": 188,
+      "requirements": 36,
+      "acc_packages": 12
+    },
+    "package_statuses": {
+      "MP-REC-ACC-SCHEMA": "IN_PROGRESS",
+      "MP-REC-ACC-ICONS": "REVIEWED_LOCAL",
+      "MP-REC-ACC-MENU-CORE": "PLANNED",
+      "MP-REC-ACC-SNAPSHOT": "PLANNED",
+      "MP-REC-ACC-TEMPLATE": "PLANNED",
+      "MP-REC-ACC-EDITOR-UI": "PLANNED",
+      "MP-REC-ACC-PUBLIC-OUTPUT": "PLANNED",
+      "MP-REC-ACC-WEEK-PDF": "PLANNED",
+      "MP-REC-ACC-API-FHIR": "PLANNED",
+      "MP-REC-ACC-COLLECTION": "PLANNED",
+      "MP-REC-ACC-CSV": "PLANNED",
+      "MP-REC-ACC-ACCEPT": "PLANNED"
+    },
+    "icons_source_evidence": {
+      "routing_wp": "wp-0bdbe5f2eaec",
+      "source_commit": "0ca81eebb14223fbc7d69cb47a6571bd08fcc333",
+      "origin": "Actual Spark attempt hit /tmp/worktree ownership failure; Root recovered its source.",
+      "root_verification": "Unchanged tools/vendor_tabler.py --verify PASS, as reported by Root.",
+      "scope": "Verified source only; no deployment or complete consumer/UI acceptance claimed."
+    },
+    "serial_shared_files": {
+      "database/schema.sql": [
+        "MP-REC-MENU-PROPOSAL(v31)",
+        "MP-REC-ACC-SCHEMA",
+        "MP-REC-PLAN-PORTIONS"
+      ],
+      "database/permissions.sql": [
+        "MP-REC-MENU-PROPOSAL(v31)",
+        "MP-REC-ACC-SCHEMA",
+        "MP-REC-PLAN-PORTIONS"
+      ],
+      "database/validate_schema.py": [
+        "MP-REC-MENU-PROPOSAL(v31)",
+        "MP-REC-ACC-SCHEMA",
+        "MP-REC-PLAN-PORTIONS"
+      ],
+      "reference_scaffold/cafeteria/db.py": [
+        "MP-REC-MENU-PROPOSAL(v31)",
+        "MP-REC-ACC-SCHEMA",
+        "MP-REC-PLAN-PORTIONS"
+      ],
+      "tools/validate_package.py": [
+        "MP-REC-MENU-PROPOSAL(v31)",
+        "MP-REC-ACC-SCHEMA",
+        "MP-REC-PLAN-PORTIONS"
+      ],
+      "reference_scaffold/cafeteria/workflow_partial_form.py": [
+        "MP-REC-BINDINGS",
+        "MP-REC-MENU-TEMPLATE-BINDING",
+        "MP-REC-PLAN-PORTIONS",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "reference_scaffold/cafeteria/workflow_partial_store.py": [
+        "MP-REC-BINDINGS",
+        "MP-REC-MENU-TEMPLATE-BINDING",
+        "MP-REC-PLAN-PORTIONS",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "reference_scaffold/cafeteria/workflow_store.py": [
+        "MP-REC-BINDINGS",
+        "MP-REC-MENU-TEMPLATE-BINDING",
+        "MP-REC-PLAN-PORTIONS",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "reference_scaffold/cafeteria/workflow_item_write.py": [
+        "MP-REC-BINDINGS",
+        "MP-REC-MENU-TEMPLATE-BINDING",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "reference_scaffold/cafeteria/workflow.py": [
+        "MP-REC-BINDINGS",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "reference_scaffold/cafeteria/workflow_copy_store.py": [
+        "MP-REC-BINDINGS",
+        "MP-REC-PLAN-PORTIONS",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "reference_scaffold/cafeteria/admin/rendering.py": [
+        "MP-REC-MENU-TEMPLATE-BINDING",
+        "MP-REC-MENU-PROPOSAL",
+        "MP-REC-PLAN-PORTIONS",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "reference_scaffold/cafeteria/admin/workflow_routes.py": [
+        "MP-REC-MENU-TEMPLATE-BINDING",
+        "MP-REC-MENU-PROPOSAL",
+        "MP-REC-PLAN-PORTIONS",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "reference_scaffold/cafeteria/menu_template_binding.py": [
+        "MP-REC-MENU-TEMPLATE-BINDING",
+        "MP-REC-ACC-MENU-CORE"
+      ],
+      "reference_scaffold/cafeteria/templates/admin/menu_editor.html": [
+        "MP-UI-DENSITY-MENUEDITOR",
+        "MP-REC-MENU-TEMPLATE-BINDING",
+        "MP-REC-MENU-PROPOSAL",
+        "MP-REC-PLAN-PORTIONS",
+        "MP-REC-ACC-EDITOR-UI"
+      ],
+      "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html": [
+        "MP-UI-DENSITY-WEEKS",
+        "MP-REC-MENU-TEMPLATE-BINDING",
+        "MP-REC-ACC-EDITOR-UI"
+      ],
+      "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html": [
+        "MP-REC-LINK-READS",
+        "MP-REC-RECIPE-VIEW-PRINT",
+        "MP-REC-MENU-PROPOSAL",
+        "MP-UI-DENSITY-RECIPEPAGES",
+        "MP-REC-ACC-TEMPLATE"
+      ],
+      "reference_scaffold/cafeteria/admin/dish_template_routes.py": [
+        "MP-REC-LINK-READS",
+        "MP-REC-MENU-PROPOSAL",
+        "MP-REC-ACC-TEMPLATE"
+      ],
+      "reference_scaffold/cafeteria/dish_template_store.py": [
+        "MP-REC-DISH-TEMPLATE-WRITER",
+        "MP-REC-ACC-TEMPLATE"
+      ],
+      "reference_scaffold/cafeteria/static/vendor/tabler-icons/tabler-icons.svg": [
+        "MP-UI-DENSITY-RECIPE(fix)",
+        "MP-REC-RECIPE-VIEW-PRINT",
+        "MP-REC-ACC-ICONS"
+      ],
+      "reference_scaffold/cafeteria/static/vendor/tabler.lock.json": [
+        "MP-UI-DENSITY-RECIPE(fix)",
+        "MP-REC-RECIPE-VIEW-PRINT",
+        "MP-REC-ACC-ICONS"
+      ],
+      "reference_scaffold/cafeteria/templates/_menu_metadata.html": [
+        "MP-REC-ACC-PUBLIC-OUTPUT"
+      ],
+      "reference_scaffold/cafeteria/workflow_snapshot.py": [
+        "MP-REC-ACC-SNAPSHOT"
+      ],
+      "reference_scaffold/cafeteria/patient_payload.py": [
+        "MP-REC-ACC-SNAPSHOT"
+      ],
+      "reference_scaffold/cafeteria/admin/menu_collection_store.py": [
+        "MP-REC-ACC-COLLECTION"
+      ],
+      "reference_scaffold/cafeteria/static/admin.js": [
+        "MP-UI-DENSITY-RECIPE",
+        "MP-UI-DENSITY-SHARED",
+        "MP-REC-PLAN-PORTIONS"
+      ]
+    },
+    "lease_policy": "SCHEMA is the sole active ACC writer under the explicit Root grant; all other future writers need fresh assignment. TEMPLATE waits for RECIPEPAGES file release if occupied; CORE/SCHEMA/PLAN-PORTIONS are serial.",
+    "historical_implementation_model": "gpt-5.3-codex-spark",
+    "routing_authorization": "Nutzer: Mit verfügbaren GPT-Workern fortsetzen. Root bestätigt die Fortsetzung; historische Spark- und Fable-Routingvorgaben sind überholt.",
+    "schema_provider_blocker_history": {
+      "blocker_code": "BLOCKED_PROVIDER",
+      "state": "AWAITING_EXTERNAL",
+      "routing_wp": "wp-65e15658fc4b",
+      "actual_lane": "codex-gpt5-spark",
+      "actual_model": "gpt-5.3-codex-spark",
+      "invocation": "7070",
+      "exit_code": 1,
+      "observed_error": "usage limit; try again at 1:28 PM",
+      "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/accompaniment-schema-spark-0913",
+      "base": "4711c22075383126d2af90ecaa85184ed53589eb",
+      "working_tree": "clean; no product changes",
+      "pool_assignment": "APIint2; no active job after provider exit",
+      "authorization": "Root marked codex-gpt5-spark down from this actual error. User Spark instruction persists; no fallback authorized or running.",
+      "resume_condition": "Provider availability or explicit user authorization of another model; Root rechecks lease/pool before restart."
+    },
+    "schema_execution": {
+      "state": "IN_PROGRESS",
+      "routing_wp": "wp-65e15658fc4b",
+      "actual_lane": "codex",
+      "actual_model": "gpt-5.6-sol",
+      "reasoning": "high",
+      "provider": "openai",
+      "profile": "effort-high",
+      "pty": "90840",
+      "session": "01a09999-07d8-76c1-9ab8-320c6ef7bd3c",
+      "started_at": "2026-09-13T07:08:58Z",
+      "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/accompaniment-schema-codex-0913",
+      "base": "4711c22075383126d2af90ecaa85184ed53589eb",
+      "pool_assignment": "APIint2 exclusive",
+      "authorization": "Nutzer: Mit verfügbaren GPT-Workern fortsetzen. Root bestätigt die Fortsetzung; historische Spark- und Fable-Routingvorgaben sind überholt.",
+      "evidence_owner": "Root verified actual startup; no source freeze, gate or delivery claimed."
+    }
   }
 }

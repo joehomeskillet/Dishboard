@@ -10,7 +10,7 @@ Usage:
     python validate-plan.py --source-commit <sha> <manifest> [<manifest> ...]
 
 Modes:
-    full     every one of the 35 backlog requirements is covered by the given
+    full     every one of the 36 backlog requirements is covered by the given
              manifests. Only this mode can report RESULT=PASS (exit 0).
     partial  fewer slices were given. Dependencies that point into a slice which
              is not loaded are listed as unresolved instead of failing, reserved
@@ -26,10 +26,10 @@ import json
 import re
 from pathlib import Path
 
-# The 35 backlog identifiers of docs/BACKLOG.md, grouped by owning slice.
+# The 36 backlog identifiers of docs/BACKLOG.md, grouped by owning slice.
 SLICE_REQUIREMENTS = {
     'recipes': ('BAS-001', 'REC-001', 'REC-002', 'REC-003', 'REC-004', 'REC-005',
-                'REC-006', 'REC-007', 'NUT-001', 'OFF-001'),
+                'REC-006', 'REC-007', 'REC-008', 'NUT-001', 'OFF-001'),
     'operations': ('CALC-001', 'INV-001', 'ORD-001', 'PKS-001', 'TRN-001', 'OPS-001'),
     'surfaces': ('UI-001', 'UI-002', 'UI-003', 'CAT-001', 'DSP-001', 'QA-001', 'DATA-001',
                  'BRD-001', 'TPL-001', 'TPL-002', 'TPL-003', 'API-001', 'ICO-001',
