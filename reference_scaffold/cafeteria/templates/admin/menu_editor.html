@@ -13,7 +13,7 @@
 {% block main_attributes %}data-family="{{ family }}" data-week="{{ week }}"{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-menu-editor.css') }}">{% endblock %}
 {% block page_header %}
-{% call page_header('Menü bearbeiten', description=slot_title, breadcrumbs=[('Wochenplan', back_url), ('Menü',)]) %}
+{% call page_header(('Neues Menü aus Vorlage «' ~ cell.dish_template.title ~ '»') if cell.template_proposal and cell.dish_template else 'Menü bearbeiten', description=slot_title, breadcrumbs=[('Wochenplan', back_url), ('Menü',)]) %}
 <a class="btn" href="{{ back_url }}">{{ icon('arrow-left') }}Zum Wochenplan</a>
 {% endcall %}
 {% endblock %}
@@ -109,6 +109,11 @@
       <section class="card mb-3 admin-compact-section" aria-labelledby="sec-components">
         <div class="card-header"><h2 class="card-title mb-0" id="sec-components">Bausteine</h2></div>
         <div class="card-body">
+          {% if cell.proposal_hint %}
+          <p class="mb-2" id="proposal-recipe-hint">{{ icon('info-circle') }}{{ cell.proposal_hint }}</p>
+          {% if cell.proposal_freeze_url %}<a class="btn mb-2" href="{{ cell.proposal_freeze_url }}">{{ icon('history') }}Stand festhalten</a>
+          {% elif cell.proposal_recipe_url %}<a class="btn mb-2" href="{{ cell.proposal_recipe_url }}">{{ icon('eye') }}Rezept ansehen</a>{% endif %}
+          {% endif %}
           <p class="form-hint mb-2" id="components-hint">Aus Liste auswählen oder als eigenen Text erfassen — nicht beides gleichzeitig. Die Reihenfolge entspricht der Anzeige.</p>
           <div id="components-list" class="menu-editor-row-list" data-row-list="component" data-row-title="Baustein">
             {% set c_ids = submitted.getlist('component_public_id') if submitted.getlist else submitted.get('component_public_id', []) %}
@@ -308,9 +313,9 @@
 
       <div class="admin-actions" data-sticky role="group" aria-label="Speichern und Navigation">
         <p class="menu-editor-save-hint form-hint mb-0">Speichern übernimmt die Eingaben.</p>
-        <button type="submit" class="btn btn-primary">{{ icon('device-floppy') }}Menü speichern</button>
+        <button type="submit" class="btn btn-primary"{% if cell.template_proposal %} formaction="/admin/{{ family }}/menu?return_to=week"{% endif %}>{{ icon('device-floppy') }}Menü speichern</button>
         {# Native submit input: same form data and _csrf, only the action differs (return_to=week → 303 to the week). #}
-        <input type="submit" class="btn" formaction="/admin/{{ family }}/menu?return_to=week" value="Speichern und zum Wochenplan">
+        {% if not cell.template_proposal %}<input type="submit" class="btn" formaction="/admin/{{ family }}/menu?return_to=week" value="Speichern und zum Wochenplan">{% endif %}
         <a class="btn" href="{{ back_url }}">Abbrechen</a>
       </div>
     </form>

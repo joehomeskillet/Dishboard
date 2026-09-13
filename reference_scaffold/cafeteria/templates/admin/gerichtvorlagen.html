@@ -15,6 +15,7 @@
 {% block title %}Gerichtvorlagen · Menüplanung{% endblock %}
 {% block page_header %}
 {% call page_header('Gerichtvorlagen') %}
+{% if row and row.active and can_write %}<a class="btn" href="{{ url_for('admin.dish_template_plan', public_id=row.public_id) }}">{{ icon('calendar-plus') }}Als Menü einplanen</a>{% endif %}
 {% if editing %}<a class="btn" href="{{ url_for('admin.dish_templates_list') }}">{{ icon('arrow-left') }}Zur Vorlagenliste</a>
 {% elif can_write %}<a class="btn btn-primary" href="{{ url_for('admin.dish_template_new') }}">{{ icon('plus') }}Vorlage anlegen</a>{% endif %}
 {% endcall %}
@@ -44,6 +45,7 @@
           <th>Geltungsbereich</th>
           <th>Gebundenes Rezept</th>
           <th>Aktivstatus</th>
+          {% if can_write %}<th>Planung</th>{% endif %}
         </tr>
       </thead>
       <tbody>
@@ -54,6 +56,7 @@
           <td>{{ scope_labels.get(item.profile_scope, item.profile_scope) }}</td>
           <td>{{ recipe_state(item) }}</td>
           <td><span class="badge {{ 'bg-green-lt' if item.active else 'bg-secondary-lt' }}">{{ 'Aktiv' if item.active else 'Archiviert' }}</span></td>
+          {% if can_write %}<td>{% if item.active %}<a class="btn text-wrap" href="{{ url_for('admin.dish_template_plan', public_id=item.public_id) }}">{{ icon('calendar-plus') }}Als Menü einplanen</a>{% endif %}</td>{% endif %}
         </tr>
         {% endfor %}
       </tbody>

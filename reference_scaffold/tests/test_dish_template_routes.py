@@ -299,7 +299,10 @@ def test_read_only_navigation_has_no_write_actions(b3, monkeypatch):  # noqa: F8
         response = client.get(target)
         assert response.status_code == 200 and 'Rezept: Gebundenes Rezept' in response.text
         assert 'Vorlage anlegen</a>' not in response.text and 'name="action"' not in response.text
+        assert 'Als Menü einplanen' not in response.text
     viewed = client.get('/admin/rezepte/' + recipe.public_id + '/ansicht')
     assert viewed.status_code == 200 and 'name="_form_context"' not in viewed.text
     assert '>Bearbeiten</a>' not in viewed.text
     assert client.post(path, data={'action': 'recipe_search'}).status_code == 403
+    assert client.get(path + '/einplanen').status_code == 403
+    assert client.post(path + '/einplanen').status_code == 403

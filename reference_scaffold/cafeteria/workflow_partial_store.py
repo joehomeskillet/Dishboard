@@ -437,7 +437,9 @@ def persist_menu_item(
         '''), {'location': scope.location_id, 'profile': scope.profile_code, 'week': week_start,
                'day': service_date, 'meal': meal, 'option': option}).scalars().all()
         bindings = prepare_bindings(connection, scope, normalize_assignments(payload['assignments']),
-                                    item_ids=existing_ids, create_weeks=[week_start])
+                                    item_ids=existing_ids, create_weeks=[week_start],
+                                    source_recipe_public_id=(template_context.recipe_public_id
+                                                             if template_context else None))
         old_templates = connection.execute(text('''
             SELECT dish_template_id FROM cafeteria.menu_items
             WHERE id=ANY(CAST(:ids AS bigint[])) AND dish_template_id IS NOT NULL

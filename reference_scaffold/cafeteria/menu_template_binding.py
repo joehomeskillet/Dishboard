@@ -35,6 +35,7 @@ class TemplateContext:
     meal: str | None = None
     option: str | None = None
     expected_item_row_version: int | None = None
+    recipe_active: bool | None = None
 
     def require_source(self, scope: AdminScope) -> None:
         if (self.actor_id, self.authz_version, self.location_id) != (
@@ -42,6 +43,8 @@ class TemplateContext:
             raise WriteConflictError('Berechtigung oder aktiver Standort wurde zwischenzeitlich geändert.')
         if self.expires_at <= time():
             raise WriteConflictError('Der Vorschlag ist abgelaufen. Bitte erneut einplanen.')
+        if self.recipe_public_id and type(self.recipe_active) is not bool:
+            raise WriteConflictError('Der Vorschlag ist veraltet. Bitte erneut einplanen.')
 
     def require_target(self, scope: AdminScope, week: date, day: str, meal: str,
                        option: str, expected: int) -> None:
@@ -75,8 +78,9 @@ def lock_templates(connection: Connection, scope: AdminScope,
                    ) -> dict[int, dict[str, Any]]:
     """After recipe-head locks, before aggregate locks; never discover a new lock later."""
     rows = connection.execute(text('''
-        SELECT d.id,d.public_id::text,d.title,d.active,d.profile_scope,d.updated_at,
-               r.public_id::text AS recipe_public_id,r.location_id AS recipe_location_id
+        SELECT d.id,d.public_id::text,d.title,d.description,d.active,d.profile_scope,d.updated_at,
+               r.public_id::text AS recipe_public_id,r.location_id AS recipe_location_id,
+               r.active AS recipe_active
         FROM cafeteria.dish_templates d LEFT JOIN cafeteria.recipes r ON r.id=d.recipe_id
         WHERE d.id=ANY(CAST(:ids AS bigint[]))
            OR d.public_id=ANY(CAST(:public_ids AS uuid[]))
@@ -124,6 +128,7 @@ def require_template_source(row: Mapping[str, Any], scope: AdminScope,
     if (row['public_id'] != context.template_public_id
             or row['updated_at'].isoformat() != context.expected_updated_at
             or row['recipe_public_id'] != context.recipe_public_id
+            or row['recipe_active'] != context.recipe_active
             or not row['active'] or row['profile_scope'] not in ('common', scope.profile_code)):
         raise WriteConflictError('Die Gerichtvorlage wurde geändert oder archiviert. Bitte erneut einplanen.')
 

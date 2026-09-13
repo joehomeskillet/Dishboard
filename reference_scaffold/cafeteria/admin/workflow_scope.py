@@ -137,6 +137,10 @@ def read_template_context(token: str, *, target: bool) -> TemplateContext:
                 or not isinstance(context.expected_updated_at, str)):
             raise ValueError
         template_public_id(context.recipe_public_id)
+        if context.recipe_active is not None and type(context.recipe_active) is not bool:
+            raise ValueError
+        if context.recipe_public_id is None and context.recipe_active is not None:
+            raise ValueError
         if target:
             week = date.fromisoformat(context.week or '')
             day = date.fromisoformat(context.day or '')
@@ -162,7 +166,7 @@ def issue_template_source(scope: AdminScope, public_id: str) -> str:
         row = next(iter(lock_templates(connection, scope, [public_id]).values()))
         context = TemplateContext(scope.actor_id, int(scope.expected_authz_version or 0),
             scope.location_id, public_id, row['updated_at'].isoformat(),
-            row['recipe_public_id'], int(time()) + 3600)
+            row['recipe_public_id'], int(time()) + 3600, recipe_active=row['recipe_active'])
         require_template_source(row, scope, context)
     return _sign_template_context(context)
 

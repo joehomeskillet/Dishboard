@@ -1,10 +1,10 @@
 """Provenance writes use the real app-role transaction and existing aggregate CAS."""
 from dataclasses import replace
 from datetime import timedelta
-from time import time
+from time import monotonic, sleep, time
 from uuid import uuid4
 from concurrent.futures import ThreadPoolExecutor
-from threading import Barrier
+from threading import Barrier, Event
 
 import pytest
 from sqlalchemy import text
@@ -181,3 +181,82 @@ def test_template_create_race_has_one_receipt_and_one_conflict(workflow_database
         assert sorted(str(f.result(timeout=10)) for f in futures) == ['1', 'conflict']
     with db.owner.connect() as connection:
         assert connection.execute(text("SELECT count(*) FROM cafeteria.audit_events WHERE action='workflow.menu_saved'")).scalar_one() == 1
+
+
+@pytest.mark.parametrize('archive_first', (True, False))
+def test_original_recipe_head_is_locked_even_without_selected_revision(workflow_database, monkeypatch, archive_first):  # noqa: F811
+    from cafeteria import workflow_partial_store as partial
+    from test_menu_recipe_choices_reader import create_recipe
+    db = workflow_database
+    recipe = create_recipe(db.owner, db.actor_id, 'Ursprüngliches Rezept')
+    template = make_template(db.owner, recipe=recipe)
+    with db.owner.connect() as connection:
+        public_id = connection.execute(text('SELECT public_id::text FROM cafeteria.recipes WHERE id=:id'), {'id': recipe}).scalar_one()
+    context = replace(context_for(_scope(db), template), recipe_public_id=public_id, recipe_active=True)
+    payload = {**_payload(), 'dish_template_public_id': template['public_id']}
+    assert not any(row.get('recipe_revision_public_id') for row in payload['assignments'])
+    before = stored_state(db.owner)
+    held, writer_ready, archive_ready, release = Event(), Event(), Event(), Event()
+    pids = {}
+    original_prepare, original_templates = partial.prepare_bindings, partial.lock_templates
+
+    def prepare(connection, *args, **kwargs):
+        pids['writer'] = connection.execute(text('SELECT pg_backend_pid()')).scalar_one()
+        writer_ready.set()
+        return original_prepare(connection, *args, **kwargs)
+
+    def templates(connection, *args, **kwargs):
+        if not archive_first:
+            held.set()
+            assert release.wait(10)
+        return original_templates(connection, *args, **kwargs)
+
+    def write():
+        try:
+            return save(db, payload, template_context=context)
+        except WriteConflictError:
+            return 'conflict'
+
+    def archive():
+        with db.owner.begin() as connection:
+            pids['archive'] = connection.execute(text('SELECT pg_backend_pid()')).scalar_one()
+            archive_ready.set()
+            connection.execute(text('UPDATE cafeteria.recipes SET active=false WHERE id=:id'), {'id': recipe})
+            if archive_first:
+                held.set()
+                assert release.wait(10)
+
+    monkeypatch.setattr(partial, 'prepare_bindings', prepare)
+    monkeypatch.setattr(partial, 'lock_templates', templates)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first = pool.submit(archive if archive_first else write)
+        try:
+            if not held.wait(5):
+                first.result(timeout=1)
+                pytest.fail('First transaction did not reach its held-lock checkpoint')
+            second = pool.submit(write if archive_first else archive)
+            assert (writer_ready if archive_first else archive_ready).wait(5)
+            waiting = pids['writer' if archive_first else 'archive']
+            blocking = pids['archive' if archive_first else 'writer']
+            deadline = monotonic() + 3
+            observed = False
+            with db.owner.connect() as connection:
+                while monotonic() < deadline:
+                    observed = blocking in connection.execute(
+                        text('SELECT pg_blocking_pids(:pid)'), {'pid': waiting}).scalar_one()
+                    if observed:
+                        break
+                    sleep(0.01)
+            if not observed and second.done():
+                second.result(timeout=1)
+            assert observed, 'Expected the original recipe-head lock to block the concurrent transaction'
+        finally:
+            release.set()
+        first_result, second_result = first.result(timeout=10), second.result(timeout=10)
+    assert (second_result if archive_first else first_result) == ('conflict' if archive_first else 1)
+    if archive_first:
+        assert stored_state(db.owner) == before
+    else:
+        with db.owner.connect() as connection:
+            assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_items')).scalar_one() == 1
+            assert connection.execute(text("SELECT count(*) FROM cafeteria.audit_events WHERE action='workflow.menu_saved'")).scalar_one() == 1

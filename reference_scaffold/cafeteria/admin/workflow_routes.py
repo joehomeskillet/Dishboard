@@ -30,6 +30,8 @@ from ..recipe_types import RecipeNotFoundError, RecipeUnavailableError, RecipeVa
 from ..component_catalog_metadata import AllergenInput
 from ..component_catalog_filters import ComponentFilters
 from ..operations_settings import get_schedule_connection
+from ..recipe_link_reads import list_recipe_links
+from ..recipe_reads import get_recipe
 from ..public.routes import effective_today
 from ..roles import require_capability
 from ..workflow import (
@@ -46,13 +48,15 @@ from ..workflow_partial_store import (
     persist_menu_item, persist_service_state, persist_week_header, resolve_item_id, resolve_week_ref)
 from ..workflow_store import load_draft_connection
 from ..workflow_review import _review_open_connection
-from ..workflow_write_context import WriteConflictError, WritePermissionError, WriteUnavailableError
-from ..menu_template_binding import TemplateContext, lock_templates
+from ..workflow_write_context import WriteConflictError, WritePermissionError, WriteUnavailableError, write_transaction
+from ..menu_template_binding import (
+    TemplateContext, lock_templates, require_template_source, require_empty_template_target,
+)
 from .workflow_scope import _scope, _scoped_csrf, _validate_scoped_csrf, validate_copy_csrf
 from .workflow_scope import _csrf_digest as _csrf_digest
 from .workflow_scope import read_template_context, validate_menu_csrf, validate_template_target
 from .rendering import (
-    CATEGORY_LABELS, render_admin_preview, render_admin_week,
+    CATEGORY_LABELS, DAY_NAMES, MEAL_LABELS, MONTHS, OPTION_LABELS, render_admin_preview, render_admin_week,
     menu_form_values, render_component_detail, render_components, render_menu_editor)
 from .routes import bp
 
@@ -322,6 +326,42 @@ def _menu_errors(error: BaseException) -> dict[str, str]:
     return {str(field_name or 'form'): str(error)}
 
 
+def _proposal_values(context: TemplateContext, scope: AdminScope) -> dict[str, object]:
+    """Build the suggestion only after original source/target guards have succeeded."""
+    with write_transaction(_db(), scope) as connection:
+        context.require_source(scope)
+        source = next(iter(lock_templates(connection, scope, [context.template_public_id]).values()))
+        require_template_source(source, scope, context)
+        require_empty_template_target(connection, scope, context)
+        option: dict[str, object] = {
+            'title': source['title'], 'description': source['description'] or '',
+            'dish_template': {key: source[key] for key in ('public_id', 'title', 'active')},
+            'assignments': [], 'proposal_hint': 'Ohne verknüpftes Rezept. Bausteine bei Bedarf ergänzen.',
+        }
+        if context.recipe_public_id:
+            recipe = get_recipe(_db(), context.recipe_public_id)
+            if recipe.active != context.recipe_active:
+                raise WriteConflictError('Das Vorlagenrezept wurde geändert. Bitte erneut einplanen.')
+            reference = list_recipe_links(_db(), [recipe.public_id])[recipe.public_id]
+            latest = reference.latest_revision if recipe.active else None
+            option['assignments'] = [{'component_public_id': '', 'component_text': source['title'],
+                                     'recipe_revision_public_id': latest.public_id if latest else ''}]
+            option['proposal_recipe_url'] = url_for('admin.recipe_view', recipe_id=recipe.public_id)
+            if not recipe.active:
+                option['proposal_hint'] = ('Rezept archiviert. Ohne Rezeptbindung speichern oder das Rezept '
+                    'bewusst reaktivieren beziehungsweise ein aktives Rezept wählen.')
+            elif latest:
+                option['proposal_hint'] = (f'Vorgeschlagen: Stand {latest.revision_number} vom '
+                    f'{latest.created_at:%d.%m.%Y}. Anderen Stand wählen oder ohne Rezeptbindung speichern.')
+            else:
+                option['proposal_hint'] = ('Noch kein gespeicherter Stand. '
+                    'Das Menü kann ohne Rezeptbindung gespeichert werden.')
+                option['proposal_freeze_url'] = url_for('admin.recipe_revisions', recipe_id=recipe.public_id)
+        # Separate existing readers above use their own snapshots; recheck before display.
+        validate_template_target(context, scope)
+    return option
+
+
 def _render_menu_page(
     profile: str,
     family: str,
@@ -337,6 +377,7 @@ def _render_menu_page(
     force_origin_conflict: bool = False,
     submitted_row_version: str | None = None,
     template_context: TemplateContext | None = None,
+    proposal_option: dict[str, object] | None = None,
 ):
     version, title, item_id = 0, '', None
     retained_only = status == 409 or (template_context is not None and status != 200)
@@ -356,10 +397,7 @@ def _render_menu_page(
         except (PartialWorkflowNotFoundError, NoResultFound):
             pass
     elif template_context is not None and not retained_only:
-        with _db().connect() as connection:
-            templates = lock_templates(connection, scope, [template_context.template_public_id])
-            source = next(iter(templates.values()))
-        option['dish_template'] = {key: source[key] for key in ('public_id', 'title', 'active')}
+        option.update(proposal_option or {})
         if request.method == 'GET':
             form_values = {**menu_form_values(profile, option), **(form_values or {})}
 
@@ -415,6 +453,9 @@ def _render_menu_page(
         'title': title,
         'components': list(option.get('assignments') or []),
         'dish_template': option.get('dish_template'),
+        'proposal_hint': option.get('proposal_hint'),
+        'proposal_recipe_url': option.get('proposal_recipe_url'),
+        'proposal_freeze_url': option.get('proposal_freeze_url'),
         'template_proposal': template_context is not None,
         'retained_only': retained_only,
         # Review POSTs carry no menu values to retain; never offer a blank save form.
@@ -556,6 +597,7 @@ def menu_get(family: str):
             abort(400, description='Signierter Vorschlagskontext fehlt.')
         context = read_template_context(token, target=True)
         errors = {}
+        proposal_option = None
         try:
             week, day = date.fromisoformat(str(context.week)), str(context.day)
             meal, option = str(context.meal), str(context.option)
@@ -566,6 +608,7 @@ def menu_get(family: str):
                 raise WriteConflictError('Das Ziel oder die Vorlage des Vorschlags wurde geändert.')
             _raster(profile, week, day, meal, option)
             validate_template_target(context, scope)
+            proposal_option = _proposal_values(context, scope)
         except WriteConflictError as error:
             errors = _menu_errors(error)
         except _STORE_ERRORS as error:
@@ -577,7 +620,7 @@ def menu_get(family: str):
             date.fromisoformat(str(context.week)), str(context.day), str(context.meal), str(context.option),
             form_values={'template_context': token, 'dish_template_public_id': context.template_public_id},
             form_errors=errors, status=409 if errors else 200, submitted_row_version='0',
-            template_context=context)
+            template_context=context, proposal_option=proposal_option)
     week = _week_arg()
     day, meal, option = request.args.get('day'), request.args.get('meal'), request.args.get('option')
     if day is None or meal is None or option is None:
@@ -600,6 +643,15 @@ def menu_post(family: str):
             raise WriteConflictError('Berechtigung oder aktiver Standort wurde zwischenzeitlich geändert.')
         parsed = parse_menu_item_form(profile, request.form)
         context = read_template_context(parsed.template_context, target=True) if parsed.template_context else None
+        proposal_title = None
+        if context:
+            context.require_target(scope, parsed.week_start, parsed.day, parsed.meal,
+                                   parsed.option, parsed.expected_item_row_version)
+            validate_template_target(context, scope)
+            with write_transaction(_db(), scope) as connection:
+                source = next(iter(lock_templates(connection, scope, [context.template_public_id]).values()))
+                require_template_source(source, scope, context)
+                proposal_title = source['title']
         version = persist_menu_item(
             _db(), scope, parsed.week_start, parsed.day, parsed.meal,
             parsed.option, parsed.payload, parsed.expected_item_row_version,
@@ -637,7 +689,13 @@ def menu_post(family: str):
     except _STORE_ERRORS as error:
         _abort_store(error)
     if request.args.get('return_to') == 'week':
-        flash('Menü gespeichert.')
+        if proposal_title is not None:
+            service_day = date.fromisoformat(parsed.day)
+            flash(f'Menü «{parsed.payload["title"]}» aus Vorlage «{proposal_title}» für '
+                  f'{DAY_NAMES[service_day.weekday()]}, {service_day.day}. {MONTHS[service_day.month - 1]}, '
+                  f'{MEAL_LABELS[parsed.meal]}, {OPTION_LABELS[parsed.option]} gespeichert.')
+        else:
+            flash('Menü gespeichert.')
         return redirect(url_for(f'admin.{family}', week=parsed.week_start.isoformat()), 303)
     return redirect(url_for(
         'admin.menu_get', family=family, week=parsed.week_start.isoformat(),
