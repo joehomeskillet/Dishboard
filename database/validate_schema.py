@@ -46,6 +46,7 @@ MIGRATION_0025 = ROOT / 'database' / 'migrations' / '0025_v27_to_v28.sql'
 MIGRATION_0026 = ROOT / 'database' / 'migrations' / '0026_v28_to_v29.sql'
 MIGRATION_0027 = ROOT / 'database' / 'migrations' / '0027_v29_to_v30.sql'
 MIGRATION_0028 = ROOT / 'database' / 'migrations' / '0028_v30_to_v31.sql'
+MIGRATION_0029 = ROOT / 'database' / 'migrations' / '0029_v31_to_v32.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
 PAT_JSON = ROOT / 'demo' / 'snapshots' / 'patienten_kw36.json'
@@ -200,10 +201,53 @@ def run_live_check() -> dict[str, Any]:
                     '''
                 )
             ).mappings().one()
-        if int(row['schema_version']) != 31:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 31.")
+            v32_acl = connection.execute(
+                text(
+                    '''
+                    SELECT p.proname, p.prosecdef, p.proconfig,
+                           p.proowner=n.nspowner AS same_owner,
+                           has_function_privilege('cafeteria_app',p.oid,'EXECUTE') AS app,
+                           has_function_privilege('cafeteria_backup',p.oid,'EXECUTE') AS backup,
+                           has_function_privilege('cafeteria_auth_issuer',p.oid,'EXECUTE') AS issuer,
+                           EXISTS(
+                               SELECT 1
+                               FROM aclexplode(COALESCE(p.proacl,acldefault('f',p.proowner))) acl
+                               WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE'
+                           ) AS public
+                    FROM pg_proc p
+                    JOIN pg_namespace n ON n.oid=p.pronamespace
+                    WHERE n.nspname='cafeteria'
+                      AND p.proname IN (
+                          'dish_template_mutate_v32',
+                          'create_dish_template_v32',
+                          'update_dish_template_v32'
+                      )
+                    ORDER BY p.proname
+                    '''
+                )
+            ).mappings().all()
+        if int(row['schema_version']) != 32:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 32.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
+        if {item['proname'] for item in v32_acl} != {
+            'dish_template_mutate_v32',
+            'create_dish_template_v32',
+            'update_dish_template_v32',
+        }:
+            fail('Live-Datenbank hat nicht genau die drei Vorlagenfunktionen v32.')
+        for item in v32_acl:
+            expected_app = item['proname'] != 'dish_template_mutate_v32'
+            if (
+                not item['prosecdef']
+                or not item['same_owner']
+                or item['proconfig'] != ['search_path=pg_catalog, cafeteria, pg_temp']
+                or item['app'] != expected_app
+                or item['backup']
+                or item['issuer']
+                or item['public']
+            ):
+                fail(f"Live-ACL der Vorlagenfunktion ist ungültig: {item['proname']}")
         migrated_structure = structure('cafeteria')
         with engine.begin() as connection:
             connection.execute(text('ALTER SCHEMA cafeteria RENAME TO cafeteria_migrated_contract'))
@@ -315,6 +359,21 @@ def main() -> int:
                          'h.id=v_source AND h.public_id=p_source AND h.location_id=p_location'):
             if fragment not in migration_0028 or fragment not in sql:
                 fail(f'Menü-Quellrezept-Sperrvertrag fehlt: {fragment}')
+        migration_0029 = MIGRATION_0029.read_text(encoding='utf-8')
+        if not migration_0029.startswith('BEGIN;') or not migration_0029.rstrip().endswith('COMMIT;'):
+            fail('Migration 0029 hat keinen strikten BEGIN/COMMIT-Vertrag.')
+        for fragment in (
+            'menu_items_accompaniment_check',
+            'dish_templates_accompaniment_default_check',
+            "accompaniment IN ('none', 'soup', 'salad')",
+            "accompaniment_default IN ('none', 'soup', 'salad')",
+            'dish_template_mutate_v32',
+            'create_dish_template_v32',
+            'update_dish_template_v32',
+            "'accompaniment_default',v.accompaniment_default",
+        ):
+            if fragment not in migration_0029 or fragment not in sql:
+                fail(f'Beilagenvertrag v32 fehlt: {fragment}')
         migration_0026 = MIGRATION_0026.read_text(encoding='utf-8')
         if not migration_0026.startswith('BEGIN;') or not migration_0026.rstrip().endswith('COMMIT;'):
             fail('Migration 0026 hat keinen strikten BEGIN/COMMIT-Vertrag.')
@@ -711,7 +770,7 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 31,
+            'schema_version': 32,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
@@ -741,6 +800,7 @@ def main() -> int:
                 '0026_v28_to_v29.sql': hashlib.sha256(MIGRATION_0026.read_bytes()).hexdigest(),
                 '0027_v29_to_v30.sql': hashlib.sha256(MIGRATION_0027.read_bytes()).hexdigest(),
                 '0028_v30_to_v31.sql': hashlib.sha256(MIGRATION_0028.read_bytes()).hexdigest(),
+                '0029_v31_to_v32.sql': hashlib.sha256(MIGRATION_0029.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

@@ -1,4 +1,4 @@
-"""Schema30 -> 31 preserves data, historical checksums and exact privileges."""
+"""Historical schema30 -> 31 migration remains immutable and executable."""
 # ruff: noqa: F401, F811
 import hashlib
 
@@ -45,8 +45,11 @@ def assert_acl(c):
                 {'role': 'cafeteria_app', 'table': 'cafeteria.' + table, 'privilege': privilege}).scalar_one()
 
 
-def test_schema30_upgrade_preserves_all_data_and_fresh_function_catalog(pg16):
-    plan = database.migration_plan(SCHEMA)
+def test_historical_schema30_upgrade_preserves_data_and_exact_function(pg16):
+    plan = tuple(
+        migration for migration in database.migration_plan(SCHEMA)
+        if migration.version <= 31
+    )
     assert (plan[-1].version, plan[-1].path.name) == (31, '0028_v30_to_v31.sql')
     for migration in plan[:-1]:
         database._execute_migration(pg16, migration)
@@ -54,7 +57,7 @@ def test_schema30_upgrade_preserves_all_data_and_fresh_function_catalog(pg16):
     before = rows_and_sequences(pg16)
     with pg16.connect() as c:
         original_functions = structure(c)
-    assert database.run_migrations(pg16, SCHEMA) == plan
+    database._execute_migration(pg16, plan[-1])
     with pg16.connect() as c:
         assert_acl(c)  # The migration itself grants the function, before permissions refresh.
         assert [row for row in structure(c) if row.proname != 'lock_menu_recipe_sources_v31'] == original_functions
@@ -64,19 +67,6 @@ def test_schema30_upgrade_preserves_all_data_and_fresh_function_catalog(pg16):
                 f'{predicate} ORDER BY to_jsonb(t)::text')).all() == rows
         assert c.execute(text('SELECT checksum_sha256 FROM cafeteria.schema_migrations WHERE version=31')).scalar_one() == hashlib.sha256(plan[-1].path.read_bytes()).hexdigest()
     assert rows_and_sequences(pg16)[1] == before[1]
-    assert database.run_migrations(pg16, SCHEMA) == plan
-    database._execute_script(pg16, str(PERMISSIONS))
-    database._execute_script(pg16, str(PERMISSIONS))
-    with pg16.connect() as c:
-        assert_acl(c)
-        migrated = structure(c)
-    with pg16.begin() as c:
-        c.execute(text('DROP SCHEMA cafeteria CASCADE'))
-    database._execute_script(pg16, str(SCHEMA))
-    database._execute_script(pg16, str(PERMISSIONS))
-    with pg16.connect() as c:
-        assert_acl(c)
-        assert structure(c) == migrated
 
 
 def test_runtime_role_acl_cannot_be_replaced_by_direct_table_locks(seeded_pg16, app_engine):
