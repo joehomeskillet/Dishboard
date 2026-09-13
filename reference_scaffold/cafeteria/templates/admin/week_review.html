@@ -1,65 +1,63 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import page_header, status, empty_state %}
+{% from 'admin/_macros.html' import page_header, status, empty_state, icon %}
 {% set layout_variant = 'standard' %}
 {% block title %}Wochenprüfung · {{ area_names[profile] }}{% endblock %}
 {% block main_attributes %}data-week="{{ week }}"{% endblock %}
 {% block page_header %}
 <div class="text-break">
 {% call page_header('Wochenkopf und Ausgabeangaben prüfen', area_names[profile] ~ ' · Woche ab ' ~ week[8:10] ~ '.' ~ week[5:7] ~ '.' ~ week[:4]) %}
-  <a class="btn" href="{{ url_for('admin.' ~ family, week=week) }}">Zur Wochenübersicht</a>
+  <a class="btn" href="{{ url_for('admin.' ~ family, week=week) }}">{{ icon('arrow-left') }}Zur Wochenübersicht</a>
 {% endcall %}
 </div>
 {% endblock %}
 {% block content %}
 {% set context = review.context %}
 {% if review.receipt %}
-<div class="alert alert-success d-block text-break" role="status">
-  <p>{{ status('success', 'Geprüft') }} Wochenkopf und Ausgabeangaben für diesen gespeicherten Stand.</p>
+<div class="alert alert-success d-block text-break py-2" role="status">
+  <p class="mb-1">{{ status('success', 'Geprüft') }} Wochenkopf und Ausgabeangaben für diesen gespeicherten Stand.</p>
   <p class="mb-0">Dieser Stand wurde von {{ review.receipt.actor_name }} am {{ review.receipt.occurred_at|datetime_short }} geprüft.</p>
 </div>
 {% else %}
-<div class="alert alert-warning d-block">
-  <p>{{ status('review_open', 'Noch zu prüfen') }}</p>
+<div class="alert alert-warning d-block py-2">
+  <p class="mb-1">{{ status('review_open', 'Noch zu prüfen') }}</p>
   <p class="mb-0">Für den gespeicherten Wochenkopf und seine Ausgabeangaben liegt keine gültige Prüfung vor. Nach Änderungen ist eine erneute Prüfung erforderlich.</p>
 </div>
 {% endif %}
 <p data-week-review-intro>Prüfen Sie den gespeicherten Wochenkopf und alle Ausgabeangaben. Die Menüs werden einzeln geprüft. Eine Bestätigung veröffentlicht noch keinen Wochenplan.</p>
-<section class="card mb-3" aria-labelledby="week-heading">
-  <div class="card-header"><h2 class="card-title" id="week-heading">Wochenkopf</h2></div>
-  <div class="card-body text-break">
-    <dl>
-      <dt>Titel</dt><dd>{{ context.title or 'Nicht erfasst' }}</dd>
-      <dt>Wochenhinweis</dt><dd>{{ context.shared_note or 'Kein Wochenhinweis' }}</dd>
+<section class="card mb-3 admin-compact-section" aria-labelledby="week-heading">
+  <div class="card-header py-2"><h2 class="card-title mb-0" id="week-heading">Wochenkopf</h2></div>
+  <div class="card-body text-break py-2">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Titel</dt><dd class="col-sm-9">{{ context.title or 'Nicht erfasst' }}</dd>
+      <dt class="col-sm-3">Wochenhinweis</dt><dd class="col-sm-9">{{ context.shared_note or 'Kein Wochenhinweis' }}</dd>
     </dl>
   </div>
 </section>
-<h2>Ausgabeangaben</h2>
-<div class="row g-3 mb-3">
+<h2 class="h3">Ausgabeangaben</h2>
+{% if context.services %}
+<ul class="list-unstyled mb-3">
   {% for service in context.services %}
-  <div class="col-12 col-xl-6">
-    <section class="card h-100" aria-labelledby="service-{{ loop.index }}">
-      <div class="card-header">
-        <h3 class="card-title" id="service-{{ loop.index }}"><time datetime="{{ service.date }}">{{ service.date[8:10] }}.{{ service.date[5:7] }}.{{ service.date[:4] }}</time> · {{ 'Mittagessen' if service.meal == 'LUNCH' else 'Abendessen' }}</h3>
-      </div>
-      <div class="card-body text-break">
-        <dl>
-          <dt>Betriebsstatus</dt><dd>{{ service_labels[service.state] }}</dd>
-          <dt>Ausgabehinweis</dt><dd>{{ service.notice or 'Kein Ausgabehinweis' }}</dd>
-          {% if service.get('start') or service.get('end') %}<dt>Öffnungszeit</dt><dd>{{ service.get('start') or '–' }}–{{ service.get('end') or '–' }}</dd>{% endif %}
-        </dl>
-      </div>
+  <li>
+    <section class="admin-compact-row" aria-labelledby="service-{{ loop.index }}">
+      <h3 class="h4 mb-1" id="service-{{ loop.index }}"><time datetime="{{ service.date }}">{{ service.date[8:10] }}.{{ service.date[5:7] }}.{{ service.date[:4] }}</time> · {{ 'Mittagessen' if service.meal == 'LUNCH' else 'Abendessen' }}</h3>
+      <dl class="row mb-0">
+        <dt class="col-sm-3">Betriebsstatus</dt><dd class="col-sm-9">{{ service_labels[service.state] }}</dd>
+        <dt class="col-sm-3">Ausgabehinweis</dt><dd class="col-sm-9 text-break">{{ service.notice or 'Kein Ausgabehinweis' }}</dd>
+        {% if service.get('start') or service.get('end') %}<dt class="col-sm-3">Öffnungszeit</dt><dd class="col-sm-9">{{ service.get('start') or '–' }}–{{ service.get('end') or '–' }}</dd>{% endif %}
+      </dl>
     </section>
-  </div>
-  {% else %}
-  {{ empty_state('none', 'Noch keine Ausgabeangaben gespeichert.', 'Später ergänzte Ausgabeangaben müssen erneut geprüft werden.') }}
+  </li>
   {% endfor %}
-</div>
+</ul>
+{% else %}
+{{ empty_state('none', 'Noch keine Ausgabeangaben gespeichert.', 'Später ergänzte Ausgabeangaben müssen erneut geprüft werden.') }}
+{% endif %}
 {% if not review.receipt and can_write %}
 <form method="post" action="{{ url_for('admin.week_review_post', family=family) }}" class="mb-3">
   <input type="hidden" name="_csrf" value="{{ csrf }}">
   <input type="hidden" name="week" value="{{ week }}">
   <input type="hidden" name="context_version" value="{{ review.token }}">
-  <button class="btn btn-primary text-wrap" type="submit">Wochenkopf und alle Ausgabehinweise als geprüft bestätigen</button>
+  <button class="btn btn-primary text-wrap" type="submit">{{ icon('check') }}Wochenkopf und alle Ausgabehinweise als geprüft bestätigen</button>
 </form>
 {% elif not review.receipt %}
 <p role="status">Die Wochenprüfung ist offen. Zum Bestätigen benötigen Sie Bearbeitungsrechte.</p>

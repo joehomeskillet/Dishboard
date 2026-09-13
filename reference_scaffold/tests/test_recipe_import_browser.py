@@ -1,6 +1,8 @@
 """Native Rezepte-importieren pages at the UI-master viewports."""
 from __future__ import annotations
 
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from urllib.parse import urlsplit
 
 import pytest
@@ -15,6 +17,9 @@ from test_master_data_routes import (  # noqa: F401
 from test_recipe_import import json_bytes, recipe
 from test_recipe_import_routes import create
 from test_rendered_ui import browser  # noqa: F401
+from test_ui_korrektur_cookbooks_browser import _native_viewport_capture
+
+EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/density-imports-0913/after'
 
 ROUTE_VIEWPORTS = ((390, 844), (1440, 900))
 COMMIT_VIEWPORTS = (*ROUTE_VIEWPORTS, (720, 450))
@@ -159,3 +164,90 @@ def test_commit_shared_viewports(b3, master_server, browser, width, height, tmp_
         targets(page)
         shot = tmp_path / f'rezepte-import-commit-shared-{width}x{height}.png'
         page.screenshot(path=str(shot), full_page=True)
+
+
+def test_closed_row_details_stay_in_formdata_and_keep_file_identity(
+    b3, master_server, browser, tmp_path,  # noqa: F811
+) -> None:
+    _, _, client, _ = b3
+    source = tmp_path / 'rezepte.json'
+    source.write_bytes(json_bytes(recipe('Browser Import')))
+    base, cookie = master_server
+    with browser.new_context(
+        viewport={'width': 1440, 'height': 900}, java_script_enabled=True,
+        reduced_motion='reduce', service_workers='block',
+    ) as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        _open(page, base)
+        expect(page.locator('[data-empty-kind="none"]')).to_contain_text('Noch keine Importstapel')
+        page.set_input_files('#source_file', str(source))
+        page.get_by_label('ungeprüft').check()
+        page.get_by_role('button', name='Vorschau speichern').click()
+        expect(page.get_by_role('heading', name='Importstapel')).to_be_visible()
+        details = page.locator('#row-1-details')
+        expect(details).not_to_have_attribute('open', '')
+        keys = page.locator('form[action*="/admin/rezepte/import/"]').first.evaluate(
+            'form => [...new FormData(form).keys()]',
+        )
+        assert 'row.1.title' in keys
+        assert 'row.1.ingredient.0.quantity' in keys
+        assert 'row.1.ingredient.0.unit_code' in keys
+        assert 'row.1.ingredient.0.food_public_id' in keys
+        assert 'row.1.target_recipe_public_id' in keys
+        assert 'row_version' in keys
+        targets(page)
+        identity = page.locator('[data-checked-identity]')
+        expect(identity).to_contain_text('rezepte.json')
+        expect(identity).not_to_contain_text('Dateihash')
+        technical = page.locator('details').filter(has_text='Technische Details')
+        expect(technical).not_to_have_attribute('open', '')
+        technical.locator('summary').click()
+        expect(technical).to_have_attribute('open', '')
+        expect(technical).to_contain_text('Dateihash')
+        details.locator('summary').focus()
+        expect(details.locator('summary')).to_be_focused()
+        page.keyboard.press('Enter')
+        expect(details).to_have_attribute('open', '')
+        expect(page.get_by_label('Lebensmittel-UUID')).to_be_visible()
+        page.locator('#source_file').set_input_files({
+            'name': 'andere-rezepte.json',
+            'mimeType': 'application/json',
+            'buffer': json_bytes(recipe('Andere Datei')),
+        })
+        expect(identity).to_contain_text('rezepte.json')
+        expect(identity).not_to_contain_text('andere-rezepte.json')
+        EVIDENCE.mkdir(parents=True, exist_ok=True)
+        page.screenshot(path=str(EVIDENCE / 'rezepte-import-identity-1440.png'), full_page=True)
+        assert page.locator('main style').count() == 0
+
+
+def test_recipe_import_native_cdp_zoom(b3, master_server, browser) -> None:  # noqa: F811
+    _, _, client, _ = b3
+    create(client)
+    base, cookie = master_server
+    EVIDENCE.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory(prefix='recipe-import-zoom-') as profile:
+        with browser.browser_type.launch_persistent_context(
+            profile, channel='chromium', headless=True, no_viewport=True, base_url=base,
+            locale='de-CH', timezone_id='Europe/Zurich', reduced_motion='reduce',
+            args=['--no-sandbox', '--disable-dev-shm-usage', '--window-size=1440,900'],
+        ) as context:
+            context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+            page = context.pages[0]
+            page.goto('chrome://settings/appearance')
+            page.evaluate('new Promise(resolve => chrome.settingsPrivate.setDefaultZoom(2, resolve))')
+            assert page.evaluate('new Promise(resolve => chrome.settingsPrivate.getDefaultZoom(resolve))') == 2
+            page.goto(base + '/admin/rezepte/import')
+            page.evaluate('document.fonts && document.fonts.ready')
+            assert page.evaluate('[innerWidth, outerWidth, devicePixelRatio]') == [720, 1440, 2]
+            assert page.evaluate('getComputedStyle(document.documentElement).zoom') == '1'
+            capture = _native_viewport_capture(page, EVIDENCE / 'native-200-rezepte-import.png')
+            assert capture['layout']['cssVisualViewport']['zoom'] == 2
+            expect(page.get_by_role('heading', level=1)).to_have_text('Rezepte importieren')
+            assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 1')
+            icons = page.locator('main svg.icon').evaluate_all(
+                'icons => icons.map(icon => icon.getBBox().width)',
+            )
+            assert icons and all(width > 0 for width in icons)
+

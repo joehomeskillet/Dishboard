@@ -1,0 +1,23 @@
+{
+  "import-leer": {
+    "zoom": 2,
+    "png": {
+      "width": 1440,
+      "height": 813
+    }
+  },
+  "vorwoche-kopieren": {
+    "zoom": 2,
+    "png": {
+      "width": 1440,
+      "height": 813
+    }
+  },
+  "wochenpruefung": {
+    "zoom": 2,
+    "png": {
+      "width": 1440,
+      "height": 813
+    }
+  }
+}

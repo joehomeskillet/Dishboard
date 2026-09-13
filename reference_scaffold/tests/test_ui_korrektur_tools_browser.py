@@ -4,18 +4,21 @@ from __future__ import annotations
 import datetime as dt
 import json
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from playwright.sync_api import Page, expect
 
 from test_admin_workflow_routes import WEEK, _login, database_engine  # noqa: F401
 from test_rendered_ui import browser  # noqa: F401
-from test_ui_master_shell_browser import _page, site  # noqa: F401
+from test_ui_korrektur_cookbooks_browser import _native_viewport_capture
+from test_ui_master_shell_browser import _cookie, _page, site  # noqa: F401
 
 
 ROOT = Path(__file__).resolve().parents[2]
-EVIDENCE = ROOT / '.claude/evidence/ui-korrektur-0912/tools'
+EVIDENCE = ROOT / '.claude/evidence/density-imports-0913/after'
 VIEWPORTS = (
     ('desktop-1366', 1366, 768),
+    ('desktop-1440', 1440, 900),
     ('desktop-1920', 1920, 1080),
     ('tablet', 768, 1024),
     ('mobile', 390, 844),
@@ -201,7 +204,7 @@ def test_tool_pages_fit_required_viewports_and_capture_evidence(site) -> None:  
                 _goto(page, path)
                 _assert_full_width(page, width)
                 expect(page.locator(primary).first).to_be_visible()
-                if width in {1366, 1920}:
+                if width in {1366, 1440, 1920}:
                     box = page.locator(primary).first.bounding_box()
                     assert box is not None and box['y'] + box['height'] <= height, (name, box)
                 _screenshot(page, name, width, height)
@@ -233,3 +236,157 @@ def test_tool_pages_fit_required_viewports_and_capture_evidence(site) -> None:  
             _screenshot(page, 'import-fehler', width, height)
         finally:
             page.context.close()
+
+
+def _assert_rendered_icons(page: Page) -> None:
+    icons = page.locator('main svg.icon')
+    assert icons.count() > 0
+    missing = icons.evaluate_all('''icons => icons.flatMap(icon => {
+      const box = icon.getBBox();
+      const use = icon.querySelector('use');
+      const href = use && use.getAttribute('href');
+      if (href && href.includes('#tabler-') && box.width > 0 && box.height > 0) return [];
+      return [{href, width: box.width, height: box.height}];
+    })''')
+    assert missing == []
+
+
+def test_owned_import_copy_review_fit_density_viewports(site) -> None:  # noqa: F811
+    app, _, engine, _ = site
+    client, _ = _login(app, engine, ['Cafeteria.Admin'])
+    target = (WEEK + dt.timedelta(days=7)).isoformat()
+    routes = (
+        ('import-leer', '/admin/import-preview', '#csv-upload button.btn-primary'),
+        ('vorwoche-kopieren', f'/admin/cafeteria/copy?week={target}',
+         'form.admin-copy-actions button.btn-primary'),
+        ('wochenpruefung-offen', f'/admin/cafeteria/wochen/pruefung?week={WEEK.isoformat()}',
+         'main .alert'),
+    )
+    for width, height in ((1440, 900), (1024, 768), (390, 844)):
+        page = _page(site, client, viewport={'width': width, 'height': height})
+        try:
+            for name, path, primary in routes:
+                _goto(page, path)
+                _assert_full_width(page, width)
+                expect(page.locator(primary).first).to_be_visible()
+                _assert_rendered_icons(page)
+                _screenshot(page, f'density-{name}', width, height)
+        finally:
+            page.context.close()
+
+
+def test_import_checked_result_is_not_relabeled_after_new_selection(site) -> None:  # noqa: F811
+    app, _, engine, _ = site
+    client, _ = _login(app, engine, ['Cafeteria.Admin'])
+    page = _page(site, client, viewport={'width': 1440, 'height': 900})
+    try:
+        _goto(page, '/admin/import-preview')
+        expect(page.locator('main')).to_have_attribute('data-state', 'empty')
+        page.locator('input[type="file"]').set_input_files(ROOT / 'csv/menu_cafeteria_example.csv')
+        page.get_by_role('button', name='Vorschau prüfen', exact=True).click()
+        page.wait_for_load_state('networkidle')
+        result = page.locator('.csv-preview-result')
+        expect(result).to_be_visible()
+        identity = page.locator('[data-checked-identity]').inner_text()
+        week = result.get_attribute('data-checked-week')
+        profile = result.get_attribute('data-checked-profile')
+        assert week == '2026-08-31'
+        assert profile == 'staff_guest'
+        expect(result).to_contain_text('Cafeteria')
+        expect(result).not_to_contain_text('andere-datei.csv')
+        page.locator('#file').set_input_files({
+            'name': 'andere-datei.csv',
+            'mimeType': 'text/csv',
+            'buffer': b'wrong;header\ninvalid;row\n',
+        })
+        assert page.locator('[data-checked-identity]').inner_text() == identity
+        assert result.get_attribute('data-checked-week') == week
+        assert 'andere-datei.csv' not in result.inner_text()
+        expect(page.get_by_role('heading', name='Bereit zum Import', exact=True)).to_be_visible()
+        assert page.locator('input[name="import_token"]').input_value()
+        expect(page.get_by_role('heading', name='Andere Datei prüfen', exact=True)).to_be_visible()
+        _assert_rendered_icons(page)
+        _screenshot(page, 'import-stale-selection', 1440, 900)
+    finally:
+        page.context.close()
+
+
+def test_import_copy_review_disclosures_keep_payloads_and_keyboard(site) -> None:  # noqa: F811
+    app, _, engine, _ = site
+    client, _ = _login(app, engine, ['Cafeteria.Admin'])
+    target = (WEEK + dt.timedelta(days=7)).isoformat()
+    for javascript in (True, False):
+        page = _page(
+            site, client, viewport={'width': 390, 'height': 844},
+            java_script_enabled=javascript,
+        )
+        try:
+            _goto(page, '/admin/import-preview')
+            upload = page.locator('#csv-upload')
+            expect(upload.locator('details')).not_to_have_attribute('open', '')
+            names = set(upload.locator('[name]').evaluate_all('nodes => nodes.map(node => node.name)'))
+            assert names == {'_csrf', 'file'}
+            summary = upload.locator('details summary').first
+            summary.focus()
+            expect(summary).to_be_focused()
+            page.keyboard.press('Enter')
+            expect(upload.locator('details').first).to_have_attribute('open', '')
+            expect(upload.locator('details').first).to_contain_text('getrennte Formate')
+            page.keyboard.press('Enter')
+            expect(upload.locator('details').first).not_to_have_attribute('open', '')
+            assert set(upload.locator('[name]').evaluate_all('nodes => nodes.map(node => node.name)')) == names
+
+            _goto(page, f'/admin/cafeteria/copy?week={target}')
+            form = page.locator('form.admin-copy-actions')
+            fields = form.evaluate('form => Object.fromEntries(new FormData(form))')
+            assert set(fields) == {'_csrf', 'source_week', 'target_week', 'target_row_version'}
+            assert fields['source_week'] == WEEK.isoformat()
+            assert fields['target_week'] == target
+            _assert_rendered_icons(page)
+
+            _goto(page, f'/admin/cafeteria/wochen/pruefung?week={WEEK.isoformat()}')
+            review = page.locator('form:has(input[name="context_version"])')
+            review_fields = review.evaluate('form => Object.fromEntries(new FormData(form))')
+            assert set(review_fields) == {'_csrf', 'week', 'context_version'}
+            assert review_fields['week'] == WEEK.isoformat()
+            expect(page.locator('.admin-compact-row h3').first).to_be_visible()
+            _assert_full_width(page, 390)
+            _screenshot(page, f'disclosure-nojs-{javascript}', 390, 844)
+        finally:
+            page.context.close()
+
+
+def test_import_copy_review_native_cdp_zoom_is_not_css_zoom(site) -> None:  # noqa: F811
+    app, origin, engine, playwright_browser = site
+    client, _ = _login(app, engine, ['Cafeteria.Admin'])
+    target = (WEEK + dt.timedelta(days=7)).isoformat()
+    EVIDENCE.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory(prefix='density-imports-zoom-') as profile:
+        with playwright_browser.browser_type.launch_persistent_context(
+            profile, channel='chromium', headless=True, no_viewport=True,
+            locale='de-CH', timezone_id='Europe/Zurich', reduced_motion='reduce',
+            args=['--no-sandbox', '--disable-dev-shm-usage', '--window-size=1440,900'],
+        ) as context:
+            context.add_cookies([_cookie(app, client, origin)])
+            page = context.pages[0]
+            page.goto('chrome://settings/appearance')
+            page.evaluate('new Promise(resolve => chrome.settingsPrivate.setDefaultZoom(2, resolve))')
+            assert page.evaluate('new Promise(resolve => chrome.settingsPrivate.getDefaultZoom(resolve))') == 2
+            proof = {}
+            for name, path in (
+                ('import-leer', '/admin/import-preview'),
+                ('vorwoche-kopieren', f'/admin/cafeteria/copy?week={target}'),
+                ('wochenpruefung', f'/admin/cafeteria/wochen/pruefung?week={WEEK.isoformat()}'),
+            ):
+                response = page.goto(origin + path, wait_until='networkidle')
+                assert response is not None and response.status == 200
+                page.evaluate('document.fonts.ready')
+                assert page.evaluate('[innerWidth, outerWidth, devicePixelRatio]') == [720, 1440, 2]
+                assert page.evaluate('getComputedStyle(document.documentElement).zoom') == '1'
+                capture = _native_viewport_capture(page, EVIDENCE / f'native-200-{name}.png')
+                zoom = capture['layout']['cssVisualViewport']['zoom']
+                assert zoom == 2, capture['layout']
+                _assert_rendered_icons(page)
+                assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 1')
+                proof[name] = {'zoom': zoom, 'png': capture['png']}
+            (EVIDENCE / 'native-200.cdp.json').write_text(json.dumps(proof, indent=2))
