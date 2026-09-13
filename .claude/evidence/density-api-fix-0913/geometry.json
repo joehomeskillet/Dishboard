@@ -1,0 +1,114 @@
+[
+  {
+    "width": 1440,
+    "javascript": true,
+    "height": 1200,
+    "firstContentY": 152.796875,
+    "publicationY": 812.796875,
+    "documentOverflow": -15
+  },
+  {
+    "width": 390,
+    "javascript": true,
+    "height": 2601,
+    "firstContentY": 322,
+    "publicationY": 1821.125,
+    "documentOverflow": -15
+  },
+  {
+    "width": 320,
+    "javascript": true,
+    "height": 2694,
+    "firstContentY": 373,
+    "publicationY": 1872.125,
+    "documentOverflow": -15
+  },
+  {
+    "width": 2560,
+    "javascript": true,
+    "height": 1440,
+    "firstContentY": 152.796875,
+    "publicationY": 812.796875,
+    "documentOverflow": -15
+  },
+  {
+    "width": 1024,
+    "javascript": true,
+    "height": 1314,
+    "firstContentY": 203.796875,
+    "publicationY": 926.796875,
+    "documentOverflow": -15
+  },
+  {
+    "width": 768,
+    "javascript": true,
+    "height": 2524,
+    "firstContentY": 271,
+    "publicationY": 1770.125,
+    "documentOverflow": -15
+  },
+  {
+    "width": 1920,
+    "javascript": true,
+    "height": 1200,
+    "firstContentY": 152.796875,
+    "publicationY": 812.796875,
+    "documentOverflow": -15
+  },
+  {
+    "width": 1440,
+    "javascript": false,
+    "height": 1200,
+    "firstContentY": 152.796875,
+    "publicationY": 812.796875,
+    "documentOverflow": -15
+  },
+  {
+    "width": 390,
+    "javascript": false,
+    "height": 2893,
+    "firstContentY": 614,
+    "publicationY": 2113.125,
+    "documentOverflow": -15
+  },
+  {
+    "width": 320,
+    "javascript": false,
+    "height": 2986,
+    "firstContentY": 665,
+    "publicationY": 2164.125,
+    "documentOverflow": -15
+  },
+  {
+    "width": 2560,
+    "javascript": false,
+    "height": 1440,
+    "firstContentY": 152.796875,
+    "publicationY": 812.796875,
+    "documentOverflow": -15
+  },
+  {
+    "width": 1024,
+    "javascript": false,
+    "height": 1314,
+    "firstContentY": 203.796875,
+    "publicationY": 926.796875,
+    "documentOverflow": -15
+  },
+  {
+    "width": 768,
+    "javascript": false,
+    "height": 2752,
+    "firstContentY": 499,
+    "publicationY": 1998.125,
+    "documentOverflow": -15
+  },
+  {
+    "width": 1920,
+    "javascript": false,
+    "height": 1200,
+    "firstContentY": 152.796875,
+    "publicationY": 812.796875,
+    "documentOverflow": -15
+  }
+]

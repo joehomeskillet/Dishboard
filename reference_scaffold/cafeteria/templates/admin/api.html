@@ -7,14 +7,17 @@
 {% block content %}
         {% if new_key %}
         <div class="alert alert-success mb-3" data-new-key role="alert">
-          <p>{{ icon('check') }}Neuer API-Schlüssel erstellt. <code class="text-reset text-break">{{ new_key.plaintext }}</code></p>
-          <p class="mb-0">Dieser Schlüssel wird nur einmal angezeigt.</p>
+          <div class="min-w-0 w-100">
+            <p class="mb-1">{{ icon('check') }}Neuer API-Schlüssel erstellt.</p>
+            <code class="d-block text-reset text-break mb-1" data-new-key-value>{{ new_key.plaintext }}</code>
+            <p class="mb-0" data-new-key-hint>Dieser Schlüssel wird nur einmal angezeigt.</p>
+          </div>
         </div>
         {% endif %}
-        <section class="card mb-3" aria-labelledby="api-keys-title">
+        <section class="card mb-3" aria-labelledby="api-keys-title" data-api-keys>
           <div class="card-header"><h2 class="card-title" id="api-keys-title">API-Schlüssel</h2></div>
-          <table class="table table-vcenter card-table table-mobile-lg" data-api-keys>
-            {% if keys %}
+          {% if keys %}
+          <table class="table table-vcenter card-table table-mobile-lg">
             <thead>
               <tr>
                 <th>Bezeichnung</th><th>Scopes / Kanäle</th><th>Läuft ab</th><th>Status</th><th>Aktionen</th>
@@ -26,7 +29,7 @@
                 <td data-label="Bezeichnung" class="text-wrap text-break">
                   <strong>{{ key.label }}</strong>
                   <details class="admin-compact-details admin-api-key-details">
-                    <summary class="btn btn-outline-secondary" aria-label="Schlüsseldetails für {{ key.label }}">{{ icon('info-circle') }}Details</summary>
+                    <summary class="btn btn-outline-secondary" aria-label="Details zu {{ key.label }}">{{ icon('info-circle') }}Details</summary>
                     <dl class="mb-0 mt-2">
                       <dt>Präfix</dt><dd data-label="Präfix"><code class="text-reset">{{ key.key_prefix }}…</code></dd>
                       <dt>Erstellt</dt><dd>{{ key.created_at.strftime('%d.%m.%Y %H:%M') }}<br>von {{ key.created_by_name }}</dd>
@@ -57,9 +60,8 @@
               </tr>
               {% endfor %}
             </tbody>
-            {% endif %}
           </table>
-          {% if not keys %}
+          {% else %}
           <div class="card-body py-3">
             <p class="mb-0">{{ icon('info-circle') }}Noch keine API-Schlüssel vorhanden.</p>
           </div>

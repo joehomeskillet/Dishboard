@@ -21,7 +21,7 @@ site = admin_site
 
 
 ROOT = Path(__file__).resolve().parents[2]
-API_EVIDENCE = ROOT / '.claude/evidence/density-api-0913/after'
+API_EVIDENCE = ROOT / '.claude/evidence/density-api-fix-0913'
 VIEWPORTS = (
     ('desktop-1366', 1366, 768),
     ('desktop-1440', 1440, 900),
@@ -81,6 +81,7 @@ def _assert_full_width(page: Page, width: int) -> None:
 
 
 def _screenshot(page: Page, name: str, width: int, height: int, masks: list[object] | None = None) -> None:
+    API_EVIDENCE.mkdir(parents=True, exist_ok=True)
     options = {'path': str(API_EVIDENCE / f'{name}-{width}x{height}.png'), 'full_page': True}
     if masks:
         options['mask'] = masks
@@ -213,15 +214,23 @@ def test_api_density_viewports_and_publication_truth(site, monkeypatch) -> None:
                     page.keyboard.press('Enter')
                     expect(details).not_to_have_attribute('open', '')
                 assert 'dbk_' not in ' '.join(page.locator('main summary').all_text_contents())
+                key_details = page.locator('[data-key-state="active"] .admin-api-key-details')
+                key_details.locator('summary').click()
+                expect(key_details).to_have_attribute('open', '')
+                prefix_mask = _api_prefix_mask_locators(page)
+                expect(prefix_mask).to_have_count(1)
                 page.evaluate('if (document.activeElement && document.activeElement.blur) { document.activeElement.blur(); }')
                 page.evaluate('window.scrollTo(0, 0)')
-                measurements.append({'width': width, 'javascript': javascript, **page.evaluate('''() => ({
+                geometry = page.evaluate('''() => ({
                     height: document.documentElement.scrollHeight,
                     firstContentY: document.querySelector('[data-api-keys]').getBoundingClientRect().y,
-                    publicationY: document.querySelector('[data-api-status]').getBoundingClientRect().y
-                })''')})
+                    publicationY: document.querySelector('[data-api-status]').getBoundingClientRect().y,
+                    documentOverflow: document.documentElement.scrollWidth - innerWidth
+                })''')
+                assert geometry['documentOverflow'] <= 1, (width, javascript, geometry)
+                measurements.append({'width': width, 'javascript': javascript, **geometry})
                 page.screenshot(path=str(API_EVIDENCE / f'keys-{width}-js-{javascript}.png'),
-                                full_page=True, mask=[_api_prefix_mask_locators(page)])
+                                full_page=True, mask=[prefix_mask])
             finally:
                 page.context.close()
     (API_EVIDENCE / 'geometry.json').write_text(json.dumps(measurements, indent=2))
@@ -235,6 +244,8 @@ def test_api_density_native_lifecycle_and_error_retention(site, javascript, widt
     try:
         _goto(page, '/admin/api')
         expect(page.get_by_text('Noch keine API-Schlüssel vorhanden.', exact=True)).to_be_visible()
+        expect(page.locator('table[data-api-keys]')).to_have_count(0)
+        _screenshot(page, f'empty-api-js-{javascript}', width, 900)
         summary = page.locator('#api-key-create-title')
         form = page.locator('#api-key-create')
         summary.focus()
@@ -266,14 +277,30 @@ def test_api_density_native_lifecycle_and_error_retention(site, javascript, widt
         page.get_by_role('button', name='Schlüssel erstellen').click()
         expect(page.locator('[data-new-key]')).to_be_visible()
         assert 'dbk_' not in ' '.join(page.locator('main summary').all_text_contents())
+        if width == 390:
+            alert_geometry = page.locator('[data-new-key]').evaluate('''alert => {
+              const key = alert.querySelector('[data-new-key-value]').getBoundingClientRect();
+              const hint = alert.querySelector('[data-new-key-hint]').getBoundingClientRect();
+              return {
+                documentOverflow: document.documentElement.scrollWidth - innerWidth,
+                keyBottom: key.bottom,
+                hintTop: hint.top,
+              };
+            }''')
+            assert alert_geometry['documentOverflow'] <= 1, alert_geometry
+            assert alert_geometry['hintTop'] >= alert_geometry['keyBottom'], alert_geometry
         page.screenshot(path=str(API_EVIDENCE / f'created-{width}-js-{javascript}.png'), full_page=True,
                         mask=[page.locator('[data-new-key] code'), _api_prefix_mask_locators(page)])
         _goto(page, '/admin/api')
         expect(page.locator('[data-new-key]')).to_have_count(0)
+        expect(page.locator('[data-api-keys] table')).to_have_count(1)
         row = page.locator('[data-key-state="active"]')
         expect(row.locator('[data-label="Scopes / Kanäle"]')).to_contain_text('preview.read')
         expect(row.locator('[data-label="Scopes / Kanäle"]')).to_contain_text('Cafeteria, Patienten')
         details = row.locator('details')
+        expect(details.locator('summary')).to_have_attribute(
+            'aria-label', 'Details zu Synthetischer Browserzugang'
+        )
         details.locator('summary').click()
         expect(details).to_contain_text('Zuletzt verwendet')
         _assert_full_width(page, width)
