@@ -241,11 +241,17 @@ def test_editor_grids_keep_profile_scope_visible_on_small_screens(day_count: int
     ):
         cells = [dict(day=f'2026-09-{14 + day}', day_label=weekdays[day], day_short=f'{14 + day}. September',
                       meal=meal, meal_label=meal, option=option, option_label=option, row_version=0,
-                      title='', components=[], description='', note='', review_open=True, edit_url='/edit',
-                      service_state='open', service_start='', service_end='', service_row_version=0,
+                      title='', dish_template=None, components=[], description='', note='',
+                      accompaniment_code='none', accompaniment_name='', allergens=[], labels=[], origins=[],
+                      allergen_review_status='not_checked', review_open=True, edit_url='/edit',
+                      service_state='open', notice='', service_start='', service_end='', service_row_version=0,
                       internal_chf='5.00', external_chf='10.00')
                  for day in range(days) for meal in meals for option in ('MENU_1', 'VEGGIE')]
-        grid = re.search(r'<section class="(?:patient-admin-table|admin-week-days)".*?</section>', source, re.S)
+        grid = re.search(
+            r'<section class="[^"]*\b(?:patient-admin-table|admin-week-days)\b[^"]*".*?</section>',
+            source,
+            re.S,
+        )
         assert grid is not None
         weekday_assignment = re.search(r'{% set weekdays = .*?%}', patient)
         assert weekday_assignment is not None
@@ -295,7 +301,7 @@ def test_editor_grids_keep_profile_scope_visible_on_small_screens(day_count: int
             for stylesheet in (*base_styles, "admin-week-tabler.css")
         )
     )
-    assert 'class="patient-admin-day card"' in patient
-    assert 'class="card admin-day-card"' in cafeteria
+    assert re.search(r'class="[^"]*\bpatient-admin-day\b[^"]*"', patient)
+    assert re.search(r'class="[^"]*\badmin-day-card\b[^"]*"', cafeteria)
     assert re.search(r"\.patient-admin-day\b", admin_css)
     assert re.search(r"\.admin-day-card\b", admin_css)
