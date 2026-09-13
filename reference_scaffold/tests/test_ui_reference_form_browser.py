@@ -23,7 +23,7 @@ from cafeteria.component_catalog_store import (
 from test_admin_workflow_routes import _login, _scope
 from test_rendered_ui import admin_app, admin_engine, browser  # noqa: F401
 
-VIEWPORTS = [(1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080)]
+VIEWPORTS = [(1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080), (2560, 1440), (320, 844)]
 LONG_NAME = 'Ofengemüse mit Karotten, Zucchetti und frischen Kräutern ' * 3
 
 
@@ -119,7 +119,7 @@ def _capture(page: Page, tmp_path: Path, name: str) -> None:
 def _controls(page: Page) -> None:
     expect(page.locator('main')).to_have_attribute('data-layout', 'standard')
     expect(page.locator('h1')).to_have_count(1)
-    expect(page.get_by_role('navigation', name='Breadcrumb')).to_contain_text('Komponenten')
+    expect(page.get_by_role('navigation', name='Breadcrumb')).to_contain_text('Bausteine')
     expect(page.locator('main .btn-primary')).to_have_count(1)
     expect(page.locator('#component-form [readonly]')).to_have_count(0)
     sizes = page.locator('main .btn, main .form-control, main .form-select, main .form-check').evaluate_all(
@@ -154,6 +154,8 @@ def _keyboard(page: Page) -> None:
         token: getComputedStyle(e).getPropertyValue('--app-focus').trim()
     })''')
     assert focus['width'] == '2px' and focus['style'] == 'solid', focus
+    page.keyboard.press('Tab')
+    expect(page.locator('#c-food')).to_be_focused()
     page.keyboard.press('Tab')
     expect(page.locator('#c-origin')).to_be_focused()
 
@@ -195,7 +197,7 @@ def test_reference_states_and_viewports(reference, family: str, tmp_path: Path) 
                 expect(page.locator('#c-origin')).to_have_value('')
             _capture(page, tmp_path, f'{state}-{width}')
 
-    # Browser zoom equivalent: half CSS viewport and DPR 2 preserve screen size.
+    # Reflow coverage only: a smaller CSS viewport and DPR 2 are not browser zoom.
     with page.context.browser.new_context(
         base_url=page.url, viewport={'width': 720, 'height': 450},
         device_scale_factor=2, java_script_enabled=False, reduced_motion='reduce',
@@ -205,7 +207,7 @@ def test_reference_states_and_viewports(reference, family: str, tmp_path: Path) 
         _open(zoom_page, family, public_id, (720, 450))
         _controls(zoom_page)
         _keyboard(zoom_page)
-        _capture(zoom_page, tmp_path, 'zoom200-equivalent')
+        _capture(zoom_page, tmp_path, 'reflow-720-dpr2-not-browser-zoom')
 
 
 def test_validation_preserves_inputs_tokens_and_native_submit(
@@ -219,7 +221,7 @@ def test_validation_preserves_inputs_tokens_and_native_submit(
         page.locator('#c-name').fill('   ')
         page.locator('#c-origin').select_option('AT')
         with page.expect_response(lambda r: r.request.method == 'POST') as failed:
-            page.get_by_role('button', name='Speichern', exact=True).press('Enter')
+            page.get_by_role('button', name='Baustein speichern', exact=True).press('Enter')
         assert failed.value.status == 400
         expect(page.locator('#c-name')).to_have_value('   ')
         expect(page.locator('#c-origin')).to_have_value('AT')
@@ -239,7 +241,7 @@ def test_validation_preserves_inputs_tokens_and_native_submit(
         _capture(page, tmp_path, f'invalid-{width}')
         page.locator('#c-name').fill(f'Gespeichert {width}')
         with page.expect_response(lambda r: r.request.method == 'POST') as saved:
-            page.get_by_role('button', name='Speichern', exact=True).click()
+            page.get_by_role('button', name='Baustein speichern', exact=True).click()
         assert saved.value.status == 303
         payload = parse_qs(saved.value.request.post_data)
         assert all(payload[key] == [value] for key, value in tokens.items())
@@ -269,11 +271,21 @@ def test_write_rejections_keep_abort_contract(
         before = get_component(engine, scope, public_id, include_archived=True)
         page.locator('#c-name').fill('Ungespeicherter Entwurf')
         with page.expect_response(lambda r: r.request.method == 'POST') as rejected:
-            page.get_by_role('button', name='Speichern', exact=True).click()
+            page.get_by_role('button', name='Baustein speichern', exact=True).click()
         assert rejected.value.status == status
         payload = parse_qs(rejected.value.request.post_data)
         assert all(payload[key] == [value] for key, value in tokens.items())
-        expect(page.locator('#component-form')).to_have_count(0)
+        if status == 409:
+            # The existing conflict handler retains the draft and original CAS token.
+            expect(page.locator('#c-name')).to_have_value('Ungespeicherter Entwurf')
+            expect(page.locator('.error-region')).to_be_visible()
+            assert _tokens(page) == tokens
+            with page.expect_response(lambda r: r.request.method == 'POST') as still_stale:
+                page.get_by_role('button', name='Baustein speichern', exact=True).click()
+            assert still_stale.value.status == 409
+            assert _tokens(page) == tokens
+        else:
+            expect(page.locator('#component-form')).to_have_count(0)
         assert get_component(engine, scope, public_id, include_archived=True) == before
         _capture(page, tmp_path, f'abort-{status}-{width}')
 

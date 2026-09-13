@@ -378,6 +378,10 @@
 .dishboard-admin .admin-compact-summary:empty { display: none; }
 .dishboard-admin .admin-compact-detail-body { padding-top: var(--app-space-3); }
 .dishboard-admin .admin-compact-details > summary { margin-top: var(--app-space-2); }
+.dishboard-admin :is(.admin-compact-details, .admin-compact-actions) > summary {
+  min-height: var(--app-space-12); padding: var(--app-space-2) var(--app-space-3);
+  white-space: normal; overflow-wrap: anywhere; cursor: pointer;
+}
 .dishboard-admin .admin-compact-form fieldset:disabled summary.btn { pointer-events: auto; }
 .dishboard-admin .admin-compact-actions { max-width: 100%; }
 .dishboard-admin .admin-compact-actions[open] { flex-basis: 100%; }
