@@ -1268,6 +1268,7 @@ reference_scaffold/tests/test_menu_accompaniment_api.py
 reference_scaffold/tests/test_menu_accompaniment_db.py
 reference_scaffold/tests/test_menu_accompaniment_form.py
 reference_scaffold/tests/test_menu_accompaniment_migration_db.py
+reference_scaffold/tests/test_menu_accompaniment_public.py
 reference_scaffold/tests/test_menu_accompaniment_snapshot.py
 reference_scaffold/tests/test_menu_collection.py
 reference_scaffold/tests/test_menu_collection_browser.py
