@@ -7,37 +7,40 @@
 {% block content %}
         {% if new_key %}
         <div class="alert alert-success mb-3" data-new-key role="alert">
-          <p>Neuer API-Schlüssel erstellt. <code class="text-reset">{{ new_key.plaintext }}</code></p>
+          <p>{{ icon('check') }}Neuer API-Schlüssel erstellt. <code class="text-reset text-break">{{ new_key.plaintext }}</code></p>
           <p class="mb-0">Dieser Schlüssel wird nur einmal angezeigt.</p>
         </div>
         {% endif %}
         <section class="card mb-3" aria-labelledby="api-keys-title">
           <div class="card-header"><h2 class="card-title" id="api-keys-title">API-Schlüssel</h2></div>
           <table class="table table-vcenter card-table table-mobile-lg" data-api-keys>
+            {% if keys %}
             <thead>
               <tr>
-                <th>Bezeichnung</th><th>Präfix</th><th>Scopes / Kanäle</th><th>Erstellt</th><th>Läuft ab</th>
-                <th>Zuletzt verwendet</th><th>Status</th><th>Aktionen</th>
+                <th>Bezeichnung</th><th>Scopes / Kanäle</th><th>Läuft ab</th><th>Status</th><th>Aktionen</th>
               </tr>
             </thead>
-            {% if keys %}
             <tbody>
               {% for key in keys %}
               <tr data-key-id="{{ key.public_id }}" data-key-state="{{ key.state }}">
-                <td data-label="Bezeichnung">{{ key.label }}</td>
-                <td data-label="Präfix"><code class="text-reset">{{ key.key_prefix }}…</code></td>
+                <td data-label="Bezeichnung" class="text-wrap text-break">
+                  <strong>{{ key.label }}</strong>
+                  <details class="admin-compact-details admin-api-key-details">
+                    <summary class="btn btn-outline-secondary" aria-label="Schlüsseldetails für {{ key.label }}">{{ icon('info-circle') }}Details</summary>
+                    <dl class="mb-0 mt-2">
+                      <dt>Präfix</dt><dd data-label="Präfix"><code class="text-reset">{{ key.key_prefix }}…</code></dd>
+                      <dt>Erstellt</dt><dd>{{ key.created_at.strftime('%d.%m.%Y %H:%M') }}<br>von {{ key.created_by_name }}</dd>
+                      <dt>Zuletzt verwendet</dt><dd class="mb-0">{% if key.last_used_at %}{{ key.last_used_at.strftime('%d.%m.%Y %H:%M') }}{% else %}—{% endif %}</dd>
+                    </dl>
+                  </details>
+                </td>
                 <td data-label="Scopes / Kanäle">
                   <ul class="list-inline mb-0">
                     {% for scope in key.scopes %}<li class="list-inline-item badge bg-secondary-lt">{{ scope }}</li>{% endfor %}
                   </ul>
                   <div>{% for channel in key.channels %}{{ 'Cafeteria' if channel == 'cafeteria' else 'Patienten' }}{% if not loop.last %}, {% endif %}{% endfor %}</div>
                 </td>
-                <td data-label="Erstellt">
-                  <span class="text-secondary">{{ key.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
-                  <div class="text-secondary small">von {{ key.created_by_name }}</div>
-                </td>
-                <td data-label="Läuft ab" class="text-secondary">{% if key.expires_at %}{{ key.expires_at.strftime('%d.%m.%Y') }}{% else %}Bestandsschlüssel ohne Ablaufdatum{% endif %}</td>
-                <td data-label="Zuletzt verwendet" class="text-secondary">{% if key.last_used_at %}{{ key.last_used_at.strftime('%d.%m.%Y %H:%M') }}{% else %}—{% endif %}</td>
+                <td data-label="Läuft ab" class="text-secondary text-wrap">{% if key.expires_at %}{{ key.expires_at.strftime('%d.%m.%Y') }}{% else %}Bestandsschlüssel ohne Ablaufdatum{% endif %}</td>
                 <td data-label="Status">
                   {% if key.state == 'active' %}{{ status_badge('live', 'Aktiv') }}
                   {% elif key.state == 'expired' %}{{ status_badge('incomplete', 'Abgelaufen') }}
@@ -57,33 +60,32 @@
             {% endif %}
           </table>
           {% if not keys %}
-          <div class="empty">
-            <div class="empty-icon">{{ icon('info-circle') }}</div>
-            <p class="empty-title">Noch keine API-Schlüssel vorhanden.</p>
+          <div class="card-body py-3">
+            <p class="mb-0">{{ icon('info-circle') }}Noch keine API-Schlüssel vorhanden.</p>
           </div>
           {% endif %}
         </section>
-        <details class="card mb-3"{% if error %} open{% endif %}>
+        <details class="card mb-3 admin-compact-details"{% if error %} open{% endif %}>
           <summary class="card-header gap-2" id="api-key-create-title">
-            {{ icon('plus') }}<span class="card-title mb-0">Schlüssel anlegen</span>{{ icon('chevron-right', class='ms-auto') }}
+            {{ icon('plus') }}<span class="card-title mb-0">Schlüssel anlegen</span>{% if error %}<span class="text-danger">Fehler</span>{% endif %}{{ icon('chevron-right', class='ms-auto') }}
           </summary>
-          <form method="post" action="{{ url_for('admin.api_key_create') }}" id="api-key-create" class="admin-form" aria-labelledby="api-key-create-title">
+          <form method="post" action="{{ url_for('admin.api_key_create') }}" id="api-key-create" class="admin-form admin-compact-form" aria-labelledby="api-key-create-title">
             <div class="card-body">
-              {% if error %}<div class="alert alert-danger error" role="alert">{{ icon('alert-triangle') }} {{ error }}</div>{% endif %}
+              {% if error %}<div class="alert alert-danger error error-region" role="alert" tabindex="-1">{{ icon('alert-triangle') }} {{ error }}</div>{% endif %}
               <input type="hidden" name="_csrf" value="{{ csrf }}">
-              <div class="row g-3">
+              <div class="row g-2">
                 <div class="col-12 col-md-6">
                   {{ field('label', 'Bezeichnung', values.label, id='api-key-label', required=true) }}
                 </div>
-                <div class="col-12 col-sm-5 col-lg-3">
+                <div class="col-12 col-md-6">
                   <label class="form-label required" for="api-key-expires">Läuft ab</label>
                   <input class="form-control" id="api-key-expires" name="expires_at" type="date" value="{{ values.expires_at }}" min="{{ min_expiry }}" max="{{ max_expiry }}" required aria-describedby="api-key-expiry-help">
                   <p id="api-key-expiry-help" class="form-hint">Vorschlag: 30 Tage. Höchstens 90 Tage gültig; Ablauf am gewählten Tag um 23:59:59 Uhr (Europe/Zurich).</p>
                 </div>
-                <div class="col-12">
+                <div class="col-12 col-md-6">
                   {{ check('scopes', 'Vorschau lesen (preview.read)', value='preview.read', checked=values.scopes_preview, id='api-key-scope-preview') }}
                 </div>
-                <fieldset class="col-12">
+                <fieldset class="col-12 col-md-6">
                   <legend class="form-label">Kanäle (mindestens einen auswählen)</legend>
                   {{ check('channels', 'Cafeteria', value='cafeteria', checked=values.channel_cafeteria, id='api-key-channel-cafeteria') }}
                   {{ check('channels', 'Patienten', value='patienten', checked=values.channel_patienten, id='api-key-channel-patienten') }}
@@ -95,19 +97,6 @@
             </div>
           </form>
         </details>
-        <section class="card mb-3" aria-labelledby="api-interfaces-title">
-          <div class="card-header"><h2 class="card-title" id="api-interfaces-title">Technische Endpunkte</h2></div>
-          <div class="card-body">
-            <p>Veröffentlichte Menüs sind über REST und FHIR öffentlich lesbar. Vorschauen benötigen einen API-Schlüssel mit <code>preview.read</code> und einer Berechtigung für den jeweiligen Kanal.</p>
-            <p>Technische Details und Beispiele stehen in der Datei <code>docs/API.md</code>.</p>
-            <ul class="list-unstyled mb-0">
-              <li><a href="/api/v1/docs" target="_blank" rel="noopener">{{ icon('eye') }}Swagger UI</a></li>
-              <li><a href="/api/v1/openapi.json">{{ icon('info-circle') }}OpenAPI JSON</a></li>
-              <li><a href="/fhir/metadata">{{ icon('info-circle') }}FHIR CapabilityStatement</a></li>
-              <li><span class="text-secondary">Doku: <code>docs/API.md</code></span></li>
-            </ul>
-          </div>
-        </section>
         <section class="card mb-3" aria-labelledby="api-status-title" data-api-status>
           <div class="card-header"><h2 class="card-title" id="api-status-title">Veröffentlichungsstatus je Bereich</h2></div>
           <table class="table table-vcenter card-table table-mobile-lg">
@@ -130,8 +119,20 @@
             </tbody>
           </table>
         </section>
-        <section class="card mb-3" aria-labelledby="api-versions-title">
-          <div class="card-header"><h2 class="card-title" id="api-versions-title">Technische Versionen</h2></div>
+        <details class="card mb-3 admin-compact-details" data-api-help>
+          <summary class="card-header gap-2">{{ icon('info-circle') }}<h2 class="card-title mb-0" id="api-interfaces-title">Technische Endpunkte</h2>{{ icon('chevron-right', class='ms-auto') }}</summary>
+          <div class="card-body">
+            <p>Veröffentlichte Menüs sind über REST und FHIR öffentlich lesbar. Vorschauen benötigen einen API-Schlüssel mit <code>preview.read</code> und einer Berechtigung für den jeweiligen Kanal.</p>
+            <div class="btn-list mb-2">
+              <a class="btn btn-outline-secondary" href="/api/v1/docs" target="_blank" rel="noopener">{{ icon('eye') }}Swagger UI</a>
+              <a class="btn btn-outline-secondary" href="/api/v1/openapi.json">{{ icon('info-circle') }}OpenAPI JSON</a>
+              <a class="btn btn-outline-secondary text-wrap" href="/fhir/metadata">{{ icon('info-circle') }}FHIR CapabilityStatement</a>
+            </div>
+            <p class="text-secondary mb-0">Technische Details und Beispiele: <code>docs/API.md</code>.</p>
+          </div>
+        </details>
+        <details class="card mb-3 admin-compact-details" data-api-versions>
+          <summary class="card-header gap-2">{{ icon('history') }}<h2 class="card-title mb-0" id="api-versions-title">Technische Versionen</h2>{{ icon('chevron-right', class='ms-auto') }}</summary>
           <div class="card-body">
             <dl class="row mb-0">
               <dt class="col-sm-4">Schema-Version</dt><dd class="col-sm-8">{{ schema_version }}</dd>
@@ -139,5 +140,5 @@
               <dt class="col-sm-4">FHIR-Version</dt><dd class="col-sm-8">{{ fhir_version }}</dd>
             </dl>
           </div>
-        </section>
+        </details>
 {% endblock %}
