@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import threading
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from wsgiref.simple_server import make_server
 
 import pytest
@@ -30,6 +31,7 @@ from test_screen_template_routes import screen_app as screen_app  # noqa: F401
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason="TEST_DATABASE_URL fehlt.")
 
 VIEWPORTS = [(1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080)]
+EVIDENCE_DIR = Path(__file__).resolve().parents[2] / ".claude/evidence/density-hubs-0913"
 
 
 @pytest.fixture
@@ -164,6 +166,10 @@ def test_output_hubs_viewports_and_layouts(
         page.screenshot(
             path=str(tmp_path / f"vorlagen-{width}x{height}.png"), full_page=True
         )
+        EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+        page.screenshot(
+            path=str(EVIDENCE_DIR / f"vorlagen-{width}x{height}.png"), full_page=True
+        )
 
         # 3. /admin/screens/cafeteria/wochenvorlage
         res_assign = page.goto("/admin/screens/cafeteria/wochenvorlage")
@@ -254,6 +260,94 @@ def test_output_hubs_keyboard_and_zoom_200(
                     path=str(tmp_path / f"zoom-200-{name}-js-{javascript}.png"),
                     full_page=True,
                 )
+                if name == "vorlagen":
+                    EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+                    zoom_page.screenshot(
+                        path=str(EVIDENCE_DIR / f"zoom-dpr2-200-vorlagen-js-{javascript}.png"),
+                        full_page=True,
+                    )
+
+
+@pytest.mark.parametrize("javascript", [True, False], ids=["js", "nojs"])
+def test_output_hubs_reflow_320(
+    published_hub_app,
+    hub_server,
+    database_engine,  # noqa: F811
+    browser,  # noqa: F811
+    javascript: bool,
+    tmp_path: Path,
+) -> None:
+    context, page = _admin_page(
+        published_hub_app,
+        database_engine,
+        browser,
+        hub_server,
+        javascript=javascript,
+        viewport=(320, 568),
+    )
+    try:
+        res = page.goto("/admin/vorlagen")
+        assert res is not None and res.status == 200
+        expect(page.locator("h1")).to_have_text("Vorlagen")
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+        EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+        page.screenshot(
+            path=str(EVIDENCE_DIR / f"vorlagen-320-js-{javascript}.png"), full_page=True
+        )
+    finally:
+        context.close()
+
+
+def test_output_hubs_real_chrome_settings_zoom_200(
+    published_hub_app,
+    hub_server,
+    database_engine,  # noqa: F811
+    browser,  # noqa: F811
+    tmp_path: Path,
+) -> None:
+    client, _ = _login(published_hub_app, database_engine, ["Cafeteria.Admin"])
+    cookie = client.get_cookie(published_hub_app.config["SESSION_COOKIE_NAME"])
+    assert cookie is not None
+    EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+
+    with TemporaryDirectory(prefix="hubs-chrome-zoom-", dir=tmp_path) as profile:
+        with browser.browser_type.launch_persistent_context(
+            profile,
+            channel="chromium",
+            headless=True,
+            no_viewport=True,
+            base_url=hub_server,
+            locale="de-CH",
+            timezone_id="Europe/Zurich",
+            reduced_motion="reduce",
+            args=["--no-sandbox", "--disable-dev-shm-usage", "--window-size=1440,900"],
+        ) as context:
+            page = context.pages[0]
+            page.goto("chrome://settings/appearance")
+            page.evaluate(
+                "new Promise(resolve => chrome.settingsPrivate.setDefaultZoom(2, resolve))"
+            )
+            assert (
+                page.evaluate(
+                    "new Promise(resolve => chrome.settingsPrivate.getDefaultZoom(resolve))"
+                )
+                == 2
+            )
+            context.add_cookies(
+                [{"name": cookie.key, "value": cookie.value, "url": hub_server}]
+            )
+            cdp = context.new_cdp_session(page)
+            page.goto(f"{hub_server}/admin/vorlagen")
+            layout = cdp.send("Page.getLayoutMetrics")
+            assert layout["cssVisualViewport"]["zoom"] == 2
+            assert not page.evaluate("document.documentElement.scrollWidth > innerWidth + 1")
+            (EVIDENCE_DIR / "real-zoom-200-vorlagen.cdp.json").write_text(
+                json.dumps(layout, indent=2), encoding="utf-8"
+            )
+            page.screenshot(
+                path=str(EVIDENCE_DIR / "real-zoom-200-vorlagen.png"), full_page=True
+            )
+            cdp.detach()
 
 
 def test_output_hubs_matrix_error_and_conflict_states(

@@ -20,6 +20,7 @@ from test_print_template_routes import editor_app, fields  # noqa: F401
 from test_rendered_ui import browser  # noqa: F401
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
+EVIDENCE_DIR = Path(__file__).resolve().parents[2] / ".claude/evidence/density-hubs-0913"
 PDF_TARGETS = {f'/admin/vorlagen/{family}{suffix}' for family in ('cafeteria', 'patienten')
                for suffix in ('', '/vorschau.pdf')}
 SCREEN_TARGETS = {f'/admin/vorlagen/screens/{family}/{prefix}-week-{mode}'
@@ -239,6 +240,8 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
             page.get_by_role('heading', level=1).click()
             page.screenshot(path=str(screenshot), full_page=True)
             screenshot.chmod(0o600)
+            EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+            page.screenshot(path=str(EVIDENCE_DIR / f'catalog-{width}.png'), full_page=True)
             page.locator('[aria-controls="output-cafeteria"]').click()
             cafeteria_card = weekly_cards.first
             cafeteria_card.locator('details summary').filter(has_text='Frühere Versionen').click()
