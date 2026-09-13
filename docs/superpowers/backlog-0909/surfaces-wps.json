@@ -5579,7 +5579,36 @@
         "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
         "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
         "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
-      ]
+      ],
+      "execution_followup_2026_09_13": {
+        "wp_id": "MP-UI-DENSITY-INVENTORY",
+        "routing_wp": "wp-9bb209576726",
+        "owner": "native GPT (Root assigned)",
+        "actual_executor": "native GPT (Root assigned)",
+        "router_recommendation": "Recommendation metadata only; actual executor explicitly assigned by Root.",
+        "authority": "Explicit current Root assignment; source progress.md 03:45 CEST and scoped worker brief.",
+        "base": "8c39ca7b448f5f34b4c791457b65555368a298bd",
+        "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/history-inventory-0913",
+        "branch": "chore/history-inventory-0913",
+        "status": "IN_PROGRESS",
+        "owned_files": [
+          "docs/superpowers/backlog-0909/ui-route-matrix.json",
+          "docs/superpowers/backlog-0909/ui-before-manifest.json",
+          "reference_scaffold/tests/test_ui_route_inventory.py"
+        ],
+        "pool": {
+          "name": "test_ui_other",
+          "pg_port": 32853,
+          "redis_port": 32854
+        },
+        "file_reservation": "EXCLUSIVE",
+        "pool_reservation": "EXCLUSIVE",
+        "parallel_group": "sprint-0913-shell-menu-inventory",
+        "phase": "FROZEN_ROOT_REVIEW_PENDING",
+        "head": "68a89ee5397aa5221b0acd83bf353d1b8e4b249c",
+        "author_gate": "9 passed; author evidence only, Root review pending",
+        "scope": "Supplemental History route inventory refresh: two JSON source manifests and only the assigned existing fixture route hunk in test_ui_route_inventory.py. Historical captures unchanged. Original inventory delivery stays INTEGRATED."
+      }
     },
     {
       "id": "MP-UI-DENSITY-MANIFEST",
@@ -5824,7 +5853,7 @@
         "QA-001"
       ],
       "kind": "implementation",
-      "status": "IN_PROGRESS",
+      "status": "INTEGRATED",
       "depends_on": [
         "MP-UI-DENSITY-MANIFEST",
         "MP-UI-DENSITY-RECIPE"
@@ -5938,7 +5967,19 @@
           "redis_port": 32866
         },
         "parallel_group": "sprint-0913-shared-viewprint-ops-off",
-        "authority": "Explicit current Root assignment; actual executor is authorized independently of deterministic routing metadata."
+        "authority": "Explicit current Root assignment; actual executor is authorized independently of deterministic routing metadata.",
+        "status": "COMPLETED",
+        "file_reservation": "RELEASED",
+        "pool_reservation": "RELEASED"
+      },
+      "delivery_2026_09_13": {
+        "head": "338f0ca6c202958e29601b9d528c974f8e2d90d6",
+        "review_record": 12730,
+        "root_gate": "49 passed in 132.86s",
+        "status": "INTEGRATED",
+        "integration": "8c39ca7b448f5f34b4c791457b65555368a298bd",
+        "deployment": "NOT_YET_DEPLOYED",
+        "source": "Root progress.md Current integration 2026-09-13 03:45 CEST; explicit Root refresh assignment."
       }
     },
     {
@@ -5949,11 +5990,11 @@
         "QA-001"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "depends_on": [
         "MP-UI-DENSITY-SHARED"
       ],
-      "existing_wp_id": null,
+      "existing_wp_id": "wp-ecabb035f0cf",
       "sdd_sections": [
         "docs/design/2026-09-09-unified-ui-design-system.md",
         "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
@@ -6041,7 +6082,42 @@
         "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
         "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
         "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
-      ]
+      ],
+      "execution_followup_2026_09_13": {
+        "wp_id": "MP-UI-DENSITY-SHELL",
+        "routing_wp": "wp-ecabb035f0cf",
+        "owner": "native GPT (Root assigned)",
+        "actual_executor": "native GPT (Root assigned)",
+        "router_recommendation": "Recommendation metadata only; actual executor explicitly assigned by Root.",
+        "authority": "Explicit current Root assignment; source progress.md 03:45 CEST and scoped worker brief.",
+        "base": "8c39ca7b448f5f34b4c791457b65555368a298bd",
+        "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/shell-acceptance-0913",
+        "branch": "test/shell-acceptance-0913",
+        "status": "IN_PROGRESS",
+        "owned_files": [
+          "reference_scaffold/cafeteria/templates/admin/base_tabler.html",
+          "reference_scaffold/cafeteria/templates/admin/_area_tabs.html",
+          "reference_scaffold/cafeteria/static/admin-tabler.css",
+          "reference_scaffold/tests/test_ui_master_shell_browser.py",
+          "reference_scaffold/tests/test_ui_fullwidth_shell_browser.py"
+        ],
+        "pool": {
+          "name": "test-recipe-print-0908",
+          "pg_port": 32865,
+          "redis_port": 32866
+        },
+        "file_reservation": "EXCLUSIVE",
+        "pool_reservation": "EXCLUSIVE",
+        "parallel_group": "sprint-0913-shell-menu-inventory",
+        "scope": "Full five-file SHELL acceptance; sole active owner of admin-tabler.css. Prior 8c666 alignment is integrated but does not complete this WP."
+      },
+      "partial_delivery_2026_09_13": {
+        "head": "8c666d257078a5a1c3dfec31322a7b519dc55d61",
+        "status": "INTEGRATED",
+        "review_record": 12740,
+        "scope": "Cursor test alignment only; full SHELL acceptance remains open in wp-ecabb035f0cf.",
+        "deployment": "NOT_YET_DEPLOYED"
+      }
     },
     {
       "id": "MP-UI-DENSITY-COMPONENTS",
@@ -6278,11 +6354,11 @@
         "QA-001"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "depends_on": [
         "MP-UI-DENSITY-SHARED"
       ],
-      "existing_wp_id": null,
+      "existing_wp_id": "wp-50a8a27d9d6d",
       "sdd_sections": [
         "docs/design/2026-09-09-unified-ui-design-system.md",
         "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
@@ -6377,7 +6453,34 @@
         "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
         "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
         "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
-      ]
+      ],
+      "execution_followup_2026_09_13": {
+        "wp_id": "MP-UI-DENSITY-MENUEDITOR",
+        "routing_wp": "wp-50a8a27d9d6d",
+        "owner": "grok-build",
+        "actual_executor": "grok-build",
+        "router_recommendation": "Recommendation metadata only; actual executor explicitly assigned by Root.",
+        "authority": "Explicit current Root assignment; source progress.md 03:45 CEST and scoped worker brief.",
+        "base": "d661c011cb261dcb80dfb1fb5b2f963716b04fdf",
+        "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/density-menu-grok-0913",
+        "branch": "feat/density-menu-grok-0913",
+        "status": "IN_PROGRESS",
+        "owned_files": [
+          "reference_scaffold/cafeteria/templates/admin/menu_editor.html",
+          "reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html",
+          "reference_scaffold/cafeteria/static/admin-menu-editor.css",
+          "reference_scaffold/tests/test_ui_korrektur_editor_browser.py",
+          "reference_scaffold/tests/test_menu_conflict_nojs_browser.py"
+        ],
+        "pool": {
+          "name": "test-recipe-template-editor-0908",
+          "pg_port": 32823,
+          "redis_port": 32867
+        },
+        "file_reservation": "EXCLUSIVE",
+        "pool_reservation": "EXCLUSIVE",
+        "parallel_group": "sprint-0913-shell-menu-inventory"
+      }
     },
     {
       "id": "MP-UI-DENSITY-LISTS",
@@ -6489,11 +6592,11 @@
         "QA-001"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "INTEGRATED",
       "depends_on": [
         "MP-UI-DENSITY-SHARED"
       ],
-      "existing_wp_id": null,
+      "existing_wp_id": "wp-4097dd643d3c",
       "sdd_sections": [
         "docs/design/2026-09-09-unified-ui-design-system.md",
         "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
@@ -6596,7 +6699,41 @@
         "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
         "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
         "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
-      ]
+      ],
+      "execution_followup_2026_09_13": {
+        "wp_id": "MP-UI-DENSITY-WEEKS",
+        "routing_wp": "wp-4097dd643d3c",
+        "owner": "agy-cli",
+        "actual_executor": "agy-cli",
+        "router_recommendation": "Recommendation metadata only; actual executor explicitly assigned by Root.",
+        "authority": "Explicit current Root assignment; source progress.md 03:45 CEST and scoped worker brief.",
+        "base": "d661c011cb261dcb80dfb1fb5b2f963716b04fdf",
+        "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/density-weeks-agy-0913",
+        "branch": "feat/density-weeks-agy-0913",
+        "status": "INTEGRATED",
+        "owned_files": [
+          "reference_scaffold/cafeteria/templates/admin/cafeteria.html",
+          "reference_scaffold/cafeteria/templates/admin/patienten.html",
+          "reference_scaffold/cafeteria/templates/admin/_week_controls.html",
+          "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html",
+          "reference_scaffold/cafeteria/templates/admin/_week_service.html",
+          "reference_scaffold/cafeteria/templates/admin/_week_settings.html",
+          "reference_scaffold/tests/test_ui_korrektur_week_browser.py",
+          "reference_scaffold/tests/test_week_form_rerender_browser.py"
+        ],
+        "pool": {
+          "name": "test-api3",
+          "pg_port": 32788,
+          "redis_port": 32789
+        },
+        "file_reservation": "RELEASED",
+        "pool_reservation": "RELEASED",
+        "head": "5358be0c5f86ab36838104988a6af68b467f5110",
+        "review_record": 12745,
+        "root_gate": "45 passed in 124.18s",
+        "deployment": "NOT_YET_DEPLOYED",
+        "integration_note": "Merged per explicit Root update after the 8c39 snapshot; exact subsequent merge hash is not asserted."
+      }
     },
     {
       "id": "MP-UI-DENSITY-COOKBOOKS",

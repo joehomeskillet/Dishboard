@@ -5887,7 +5887,7 @@
         "OFF-001"
       ],
       "kind": "research",
-      "status": "IN_PROGRESS",
+      "status": "INTEGRATED",
       "depends_on": [],
       "existing_wp_id": "wp-645d9788f698",
       "sdd_sections": [
@@ -5937,7 +5937,8 @@
         "agy",
         "grok-build",
         "claude-code",
-        "codex"
+        "codex",
+        "cursor"
       ],
       "completion_evidence": [
         "Feldzuordnungsdokument",
@@ -5971,7 +5972,34 @@
         "branch": "docs/off-fieldmap-agy-0913",
         "pool": null,
         "parallel_group": "sprint-0913-shared-viewprint-ops-off",
-        "authority": "Explicit current Root assignment; actual executor is authorized independently of deterministic routing metadata."
+        "authority": "Explicit current Root assignment; actual executor is authorized independently of deterministic routing metadata.",
+        "status": "SUPERSEDED",
+        "file_reservation": "RELEASED",
+        "pool_reservation": "RELEASED"
+      },
+      "execution_followup_2026_09_13": {
+        "wp_id": "MP-OFF-FIELDMAP",
+        "routing_wp": "wp-5f2ec1902690",
+        "owner": "cursor-cli (Composer 2.5)",
+        "actual_executor": "cursor-cli (Composer 2.5)",
+        "router_recommendation": "agent-or-coder-plus; metadata only, actual Cursor executor explicitly assigned by Root.",
+        "authority": "Explicit current Root assignment; source progress.md 03:45 CEST and scoped worker brief.",
+        "base": "eaa7b6bcfef51ddb283c702085425aff97667709",
+        "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/off-fieldmap-cursor-finalfix-0913",
+        "branch": "docs/off-fieldmap-cursor-finalfix-0913",
+        "status": "INTEGRATED",
+        "owned_files": [
+          "docs/superpowers/backlog-0909/off-feldzuordnung-0909.md"
+        ],
+        "pool": null,
+        "file_reservation": "RELEASED",
+        "pool_reservation": "RELEASED",
+        "review_history": "Six initial findings resolved in Claude eaa7; two residual P2 findings in review 12739 (quantity unit field, input-set nutrient provenance). Cursor fe407 fixes independently CLEAN in Root record12744; old six findings are not current blockers.",
+        "head": "fe40706ec58f047fb62b4459d04874d6ffafd0b2",
+        "review_record": 12744,
+        "root_gate": "Root independent documentation review CLEAN; no DB/browser gate",
+        "deployment": "NOT_YET_DEPLOYED",
+        "integration_note": "Merged per explicit Root update after the 8c39 snapshot; exact subsequent merge hash is not asserted."
       }
     },
     {
@@ -7251,6 +7279,10 @@
             "MP-REC-LINK-READS",
             "MP-REC-RECIPE-VIEW-PRINT",
             "MP-REC-MENU-PROPOSAL"
+          ],
+          "reference_scaffold/tests/test_ui_korrektur_recipes_browser.py": [
+            "MP-UI-DENSITY-RECIPE",
+            "MP-REC-RECIPE-VIEW-PRINT"
           ]
         }
       },
@@ -7268,7 +7300,7 @@
         "REC-007"
       ],
       "kind": "implementation",
-      "status": "IN_PROGRESS",
+      "status": "INTEGRATED",
       "depends_on": [
         "MP-REC-LINK-READS",
         "MP-REC-PDF-RELEASE",
@@ -7331,7 +7363,8 @@
         "reference_scaffold/cafeteria/templates/admin/rezepte_revisionen.html",
         "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html",
         "reference_scaffold/cafeteria/templates/admin/_recipe_template_selection.html",
-        "reference_scaffold/cafeteria/templates/admin/rezepte_editor.html"
+        "reference_scaffold/cafeteria/templates/admin/rezepte_editor.html",
+        "reference_scaffold/tests/test_ui_korrektur_recipes_browser.py"
       ],
       "owned_files": [
         "reference_scaffold/cafeteria/admin/recipe_routes.py",
@@ -7352,7 +7385,8 @@
         "reference_scaffold/tests/test_recipe_template_editor_browser.py",
         "reference_scaffold/cafeteria/static/vendor/tabler-icons/tabler-icons.svg",
         "reference_scaffold/cafeteria/static/vendor/tabler.lock.json",
-        "reference_scaffold/cafeteria/templates/admin/rezepte_editor.html"
+        "reference_scaffold/cafeteria/templates/admin/rezepte_editor.html",
+        "reference_scaffold/tests/test_ui_korrektur_recipes_browser.py"
       ],
       "forbidden_paths": [
         "database/",
@@ -7370,7 +7404,7 @@
       "test_plan": [
         {
           "kind": "postgres",
-          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_recipe_routes.py tests/test_recipe_revision_routes.py tests/test_recipe_pdf_http.py tests/test_recipe_navigation_browser.py tests/test_recipe_view_print_browser.py tests/test_dish_template_routes.py tests/test_dish_template_browser.py tests/test_recipe_template_editor_routes.py tests/test_recipe_template_editor_browser.py",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_recipe_routes.py tests/test_recipe_revision_routes.py tests/test_recipe_pdf_http.py tests/test_recipe_navigation_browser.py tests/test_recipe_view_print_browser.py tests/test_dish_template_routes.py tests/test_dish_template_browser.py tests/test_recipe_template_editor_routes.py tests/test_recipe_template_editor_browser.py tests/test_ui_korrektur_recipes_browser.py",
           "assertions": [
             "Neue Route GET /admin/rezepte/<uuid>/ansicht (draft.read, nur yield): vollständige Nur-Lese-Darstellung des aktuellen Entwurfs mit Titel, Beschreibung, Ausbeute, Zutaten/Mengen inkl. Berechnung (render_scaled, Makros aus rezepte_scale.html), Zubereitung, Bildern/Herkunft, Kennzeichnungen und Vorlagenbezug; Kopfhinweis «Entwurf · nicht festgeschrieben» mit Verweis auf den neuesten gespeicherten Stand; GET schreibt nie und erzeugt keinen Formkontext; Leser sehen keine Schreibaktionen",
             "Rezeptkarte zeigt drei getrennte Aktionen «Ansehen», «Bearbeiten» (nur Schreibrecht und aktiv) und «Drucken»; kein Ziel doppelt; «Drucken» führt bei vorhandenem Stand direkt zum PDF des neuesten Stands mit Label «Drucken · Stand n», sonst zu «Rezept-History» mit Text «Zum Drucken zuerst einen Stand festhalten»; kein Festschreiben per GET, kein Entwurfs-PDF",
@@ -7386,7 +7420,8 @@
             "Alle persistierten unveränderlichen Revisionen sind erreichbar, auch jenseits der bestehenden 50er-Seite; jede Zeile zeigt Nummer/Zeit sowie Ansehen und Drucken mit der jeweiligen bestehenden Revisions-/PDF-URL. Ein aktueller Entwurf ist keine gespeicherte Revision.",
             "Mindestens drei inhaltlich verschiedene gespeicherte Stände einzeln ansehen; nach einem späteren Draft-Edit bleiben alle drei Snapshotinhalte, Revisions-UUIDs und gespeicherten Hashes unverändert. Ansicht des aktuellen Entwurfs bleibt klar getrennt.",
             "History und jede Standansicht bleiben mit draft.read und für archivierte Rezepte lesbar, ohne Schreibaktionen; fremder Standort oder falsche Rezept-Revisionszuordnung liefert404. Navigation/GET schreibt nichts; normales Draft-Save erzeugt keine automatische Revision, Festhalten bleibt ausdrücklich; keine neue Migration.",
-            "Bestehender Editor-Link wird mit exakt einem Text-Hunk in rezepte_editor.html «Rezept-History»; href links.recipe_revisions, kompakter d4ad-Editor und alle Formular-/Struktur-/CSS-/JS-Verträge bleiben unverändert. Root prüft den auf d4ad integrierten Editor; die ältere Workerbasis a633 ist kein Nachweis dieses Integrationszustands."
+            "Bestehender Editor-Link wird mit exakt einem Text-Hunk in rezepte_editor.html «Rezept-History»; href links.recipe_revisions, kompakter d4ad-Editor und alle Formular-/Struktur-/CSS-/JS-Verträge bleiben unverändert. Root prüft den auf d4ad integrierten Editor; die ältere Workerbasis a633 ist kein Nachweis dieses Integrationszustands.",
+            "Existing test_ui_korrektur_recipes_browser.py retains its route/behavior checks; only History heading and Ansehen label expectations follow the renamed existing feature."
           ],
           "assignment": "NICHT GELAUFEN in diesem Docs-WP; Root ersetzt benannte Wrapper/WT-Platzhalter und ordnet für HTTP/PG/Browser einen exklusiven Pool zu."
         }
@@ -7495,7 +7530,17 @@
           "previous_owner": "MP-UI-DENSITY-RECIPE (completed, released)",
           "forbidden": "No structure, CSS, JS or whole-file replacement.",
           "worker_base_limit": "Worker remains on a633, which predates the compact d4ad editor; Root integrates the exact text hunk into its current editor and gates that integrated version."
-        }
+        },
+        "history_consumer_handoff": {
+          "file": "reference_scaffold/tests/test_ui_korrektur_recipes_browser.py",
+          "allowed_change": "Only existing History heading and Ansehen label assertions on the existing route (two text hunks).",
+          "previous_owner": "MP-UI-DENSITY-RECIPE (completed, released)",
+          "authority": "Explicit Root grant after 835acea freeze; report wp-01034428851d post-freeze addendum.",
+          "forbidden": "No other test behavior or production edits."
+        },
+        "status": "COMPLETED",
+        "file_reservation": "RELEASED",
+        "pool_reservation": "RELEASED"
       },
       "history_clarification_2026_09_13": {
         "documentation_wp": "wp-01034428851d",
@@ -7506,6 +7551,15 @@
         ],
         "sdd_section": "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md#441-rezept-history-jeden-vorhandenen-stand-ansehen",
         "implementation_status": "Contract for the currently running VIEW-PRINT worker; no new implementation, browser or acceptance claim in this docs follow-up."
+      },
+      "delivery_2026_09_13": {
+        "head": "311a34621cc191a2f1bf90ee2a0afc536cba9d7c",
+        "review_record": 12737,
+        "root_gate": "166 passed in 521.37s; 37 warnings",
+        "status": "INTEGRATED",
+        "integration": "8c39ca7b448f5f34b4c791457b65555368a298bd",
+        "deployment": "NOT_YET_DEPLOYED",
+        "source": "Root progress.md Current integration 2026-09-13 03:45 CEST; explicit Root refresh assignment."
       }
     },
     {
