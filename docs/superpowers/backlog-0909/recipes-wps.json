@@ -7670,7 +7670,7 @@
       "task": "Vorher: menu_items.dish_template_id, Index und Trigger existieren seit v26, aber der native Menüwriter write_draft_item setzt die Spalte nicht, kein Reader zeigt sie, nur die Vorwochenkopie kopiert sie. Nachher: das Menüformular führt ein optionales Feld dish_template_public_id mit explizitem Lösen, Parser/Writer/Reader führen den Bezug durch INSERT, UPDATE, Load, Kopie und Karte, mit denselben Original-Actor/Scope/CSRF/Slot-CAS-Verträgen wie heute. Keine SQL, keine Migration, keine Änderung an Snapshot, Publikation, Review-Fingerprint oder Bausteinarrays. Seriell mit MP-REC-PLAN-PORTIONS im selben Workflow-Vertragscluster; Root vergibt die Lease. Zusätzlich liefert dieses WP vor MENU-PROPOSAL den signierten ursprünglichen Einplanen-/Übergabekontext und dessen durchgängigen Parser-/Writeranschluss. Der finale Writer prüft die ursprüngliche Vorlagenversion sowie Actor/Authz/Standort/Ziel/CAS transaktional; archivierte Altbindungen und verbotene Neubindungen werden getrennt.",
       "acceptance_criteria": [
         "Menüformular kennt das optionale Einzelfeld dish_template_public_id (kanonische UUID oder leer) und den Marker dish_template_detach=1; fehlendes Feld erhält den bestehenden Bezug. Unverändert mitgesendete ursprüngliche UUID bleibt als Altbindung auch nach Archivierung der Vorlage zulässig, wenn andere Menüfelder geändert werden. Lösen nur explizit mit Marker. Neue oder wiederhergestellte Bindung an unbekannte, archivierte, standortfremde oder zum Profil unpassende Vorlage → 400 am Feld; seit Vorschlagsbeginn geänderte Vorlage → 409. Vergleich mit der vorhandenen Menübindung erfolgt unter Lock; Menüart der Vorlage ist nur Hinweis, Titel bleibt frei.",
-        "write_draft_item setzt dish_template_id bei INSERT und führt es bei UPDATE; genau ein Versionsschritt und ein Beleg je Schreibvorgang (record_item_write unverändert); Review-Token/Fingerprint werden durch einen reinen Vorlagenbezug nicht verändert",
+        "Beide Menüwriter führen dish_template_id bei INSERT und UPDATE; genau ein Versionsschritt und ein Beleg je Schreibvorgang (record_item_write unverändert). Review-Algorithmus und bisherige Inhaltsfelder bleiben unverändert, kein zusätzliches Vorlagenfeld. Bei reinem Vorlagenbezug ändert sich der Review-Payload ausschliesslich in item_row_version; die dadurch erwartete Token-Erneuerung bleibt erhalten. Öffentliche Projektion und Hash bleiben bytegleich.",
         "Rücklesen: load_draft_connection liefert je Option dish_template {public_id, title, active}; Menüeditor zeigt «Aus Vorlage «<Titel>»» (archiviert mit Zusatz) und das Kontrollkästchen «Vorlagenbezug lösen»; Wochenkarte zeigt «Aus Vorlage «<Titel>»»; keine technische ID als Hauptinformation",
         "Trigger menu_items_dish_recipe_scope (23514) wird als 409 mit Klartext abgebildet; doppelte Abgabe mit row_version 0 auf belegten Slot liefert 409 «bereits gespeichert» mit Link, kein Duplikat",
         "Vorwochenkopie behält den Bezug (bestehend, Test); CSV-Vollersatz ersetzt Inhalt einschliesslich Bezug ohne Fehler und ohne verwaisten Bezug (Test und Dokumentation in recipes-sdd.md §12.2)",
@@ -7686,6 +7686,7 @@
         "Gezielte Übergangstests ändern jeweils Actor/Authz, aktiven Standort, Vorlagen-updated_at (auch Rezept-Neuzuordnung/Archivierung), Zielkoordinaten oder Slotbelegung zwischen Einplanenformular/POST, POST/303/Menü-GET und Menü-GET/Save. Originalwerte/CAS bleiben erhalten; 409 statt stiller Übernahme/Neusignierung, keine Menü-/Vorlagen-/Audit-Teilmutation. Explizites Öffnen des bestehenden Menüs ist eine getrennte Benutzeraktion."
       ],
       "contract_files": [
+        "reference_scaffold/cafeteria/menu_template_binding.py",
         "reference_scaffold/cafeteria/workflow_partial_form.py",
         "reference_scaffold/cafeteria/workflow_item_write.py",
         "reference_scaffold/cafeteria/workflow_partial_store.py",
@@ -7707,6 +7708,7 @@
         "reference_scaffold/cafeteria/admin/workflow_scope.py"
       ],
       "owned_files": [
+        "proposed:reference_scaffold/cafeteria/menu_template_binding.py",
         "reference_scaffold/cafeteria/workflow_partial_form.py",
         "reference_scaffold/cafeteria/workflow_item_write.py",
         "reference_scaffold/cafeteria/workflow_partial_store.py",
@@ -7742,7 +7744,7 @@
           "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_menu_template_binding_db.py tests/test_menu_template_binding_routes.py tests/test_menu_template_binding_browser.py tests/test_workflow_partial_store_db.py tests/test_admin_workflow_snapshot_contract.py tests/test_public_contracts.py tests/test_workflow_copy_store_db.py tests/test_admin_csv_import.py tests/test_menu_recipe_selection_browser.py tests/test_admin_workflow_routes.py",
           "assertions": [
             "Menüformular kennt das optionale Einzelfeld dish_template_public_id (kanonische UUID oder leer) und den Marker dish_template_detach=1; fehlendes Feld erhält den bestehenden Bezug. Unverändert mitgesendete ursprüngliche UUID bleibt als Altbindung auch nach Archivierung der Vorlage zulässig, wenn andere Menüfelder geändert werden. Lösen nur explizit mit Marker. Neue oder wiederhergestellte Bindung an unbekannte, archivierte, standortfremde oder zum Profil unpassende Vorlage → 400 am Feld; seit Vorschlagsbeginn geänderte Vorlage → 409. Vergleich mit der vorhandenen Menübindung erfolgt unter Lock; Menüart der Vorlage ist nur Hinweis, Titel bleibt frei.",
-            "write_draft_item setzt dish_template_id bei INSERT und führt es bei UPDATE; genau ein Versionsschritt und ein Beleg je Schreibvorgang (record_item_write unverändert); Review-Token/Fingerprint werden durch einen reinen Vorlagenbezug nicht verändert",
+            "Beide Menüwriter führen dish_template_id bei INSERT und UPDATE; genau ein Versionsschritt und ein Beleg je Schreibvorgang (record_item_write unverändert). Review-Algorithmus und bisherige Inhaltsfelder bleiben unverändert, kein zusätzliches Vorlagenfeld. Bei reinem Vorlagenbezug ändert sich der Review-Payload ausschliesslich in item_row_version; die dadurch erwartete Token-Erneuerung bleibt erhalten. Öffentliche Projektion und Hash bleiben bytegleich.",
             "Rücklesen: load_draft_connection liefert je Option dish_template {public_id, title, active}; Menüeditor zeigt «Aus Vorlage «<Titel>»» (archiviert mit Zusatz) und das Kontrollkästchen «Vorlagenbezug lösen»; Wochenkarte zeigt «Aus Vorlage «<Titel>»»; keine technische ID als Hauptinformation",
             "Trigger menu_items_dish_recipe_scope (23514) wird als 409 mit Klartext abgebildet; doppelte Abgabe mit row_version 0 auf belegten Slot liefert 409 «bereits gespeichert» mit Link, kein Duplikat",
             "Vorwochenkopie behält den Bezug (bestehend, Test); CSV-Vollersatz ersetzt Inhalt einschliesslich Bezug ohne Fehler und ohne verwaisten Bezug (Test und Dokumentation in recipes-sdd.md §12.2)",
@@ -7816,6 +7818,7 @@
         ]
       },
       "proposed_files": [
+        "reference_scaffold/cafeteria/menu_template_binding.py",
         "reference_scaffold/tests/test_menu_template_binding_db.py",
         "reference_scaffold/tests/test_menu_template_binding_routes.py",
         "reference_scaffold/tests/test_menu_template_binding_browser.py"

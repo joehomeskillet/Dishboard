@@ -122,6 +122,17 @@ Sichtbare Zustände, jeweils mit Klartext und ohne technische IDs als Hauptinfor
 
 ## 4. Benutzerabläufe (Soll)
 
+Root-Präzisierung zum bestehenden Review-Vertrag (13. September): Ein erfolgreicher
+Menü-Schreibvorgang erhöht weiterhin genau einmal die `row_version` und erzeugt
+genau einen Schreibbeleg. Der bestehende Review-Token enthält diese Version und
+wird deshalb auch bei einer reinen Änderung des Vorlagenbezugs erneuert. Die
+Review-Berechnung und ihre bisherigen Inhaltsfelder bleiben unverändert;
+`dish_template_id` wird nicht zusätzlich in den Review-Payload aufgenommen. Bei
+sonst gleichen Angaben darf sich der Payload nur in `item_row_version` ändern.
+Publikationssnapshot, öffentlicher Hash und öffentliche Projektion bleiben
+bytegleich. Eine wortwörtliche Token-Stabilität trotz Versionsschritt wäre mit dem
+bestehenden Vertrag unvereinbar und ist keine Abnahmeforderung.
+
 ### 4.1 Vorlage → Rezept prüfen und ändern (vorhanden, ergänzt)
 
 Vorlagenliste zeigt pro Zeile Titel, Menüart, Geltungsbereich, Rezeptzustand (§3.1),
