@@ -12,7 +12,15 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='print-template-editor.css') }}">
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/suedhang-logo.png') }}">
 {% endblock %}
-{% block page_header %}{{ page_header(label ~ ' · Vorlageneditor') }}{% endblock %}
+{% block page_header %}
+{% call page_header(label ~ ' · Vorlageneditor') %}
+<a class="btn px-2" href="{{ url_for('admin.vorlagen') if recipe_editor else url_for('admin.vorlagen', week=week) }}" aria-label="Alle Vorlagen">{{ icon('arrow-left') }}Vorlagen</a>
+{% if recipe_editor and recipe %}
+<a class="btn px-2" href="{{ url_for('admin.recipe_view', recipe_id=recipe.public_id) }}" aria-label="Zurück zum Rezept «{{ recipe.payload.title }}»">{{ icon('tools-kitchen-2') }}Rezept</a>
+{% if recipe_revision %}<a class="btn px-2" href="{{ url_for('admin.recipe_revision', recipe_id=recipe.public_id, revision_id=recipe_revision.public_id) }}" aria-label="Zum gespeicherten Stand {{ recipe_revision.revision_number }}">{{ icon('history') }}Stand {{ recipe_revision.revision_number }}</a>{% endif %}
+{% else %}<a class="btn" href="{{ url_for('admin.recipes_list') if recipe_editor else url_for('admin.' ~ family, week=week) }}">{{ icon('tools-kitchen-2' if recipe_editor else 'calendar-week') }}{{ 'Rezepte' if recipe_editor else 'Menüwoche' }}</a>{% endif %}
+{% endcall %}
+{% endblock %}
 {% macro hidden(action, selected_revision=revision.id) %}
 <input type="hidden" name="_csrf" value="{{ csrf }}">
 <input type="hidden" name="version" value="{{ expected_version }}">
@@ -21,66 +29,64 @@
 {% endmacro %}
 {% macro layout_error(field) %}{% if error and error_field == field %}aria-invalid="true" aria-describedby="template-error" autofocus{% endif %}{% endmacro %}
 {% block content %}
-{% if recipe_editor %}
-<div class="btn-list mb-3"><a class="btn" href="{{ url_for('admin.vorlagen') }}">Alle Vorlagen</a><a class="btn" href="{{ url_for('admin.recipes_list') }}">Rezepte öffnen</a></div>
-<p>A4 hoch · Fortlaufende Seiten. Zutaten, Mengen, Bilder und Herkunft bleiben vollständig erhalten.</p>
-{% else %}
-<div class="btn-list mb-3"><a class="btn" href="{{ url_for('admin.vorlagen', week=week) }}">Alle Vorlagen</a><a class="btn" href="{{ url_for('admin.' ~ family, week=week) }}">Menüwoche öffnen</a></div>
-<p>{{ 'A4 quer · Montag bis Sonntag · Mittag und Abend' if profile == 'patient' else 'A4 hoch · Alle freigegebenen Wochentage' }}. Alle Menütexte und Deklarationen bleiben vollständig erhalten.</p>
-{% endif %}
 {% if error %}
 <div class="alert alert-danger error-region" role="alert" id="template-error" tabindex="-1" {% if error_field == 'form' %}autofocus{% endif %}>
-  <div><h2 class="h4">Änderung nicht gespeichert</h2><p>{{ error }}</p><a class="btn" href="{{ editor_url }}">Aktuellen Stand neu laden</a></div>
+  <div><h2 class="h4">Änderung nicht gespeichert</h2><p>{{ error }}</p><a class="btn" href="{{ editor_url }}">{{ icon('refresh') }}Aktuellen Stand neu laden</a>{% if error_field != 'form' %}<a class="btn" href="#template-{{ 'copy-name' if error_action == 'copy' and error_field == 'name' else error_field }}" data-error-link>{{ icon('pencil') }}Zum fehlerhaften Feld</a>{% endif %}</div>
 </div>
 {% endif %}
 {% if template.archived %}
 <div class="alert alert-info" role="status">Diese Vorlage ist archiviert. Alle Revisionen bleiben einsehbar und als PDF prüfbar. Zum Bearbeiten oder Aktivieren zuerst reaktivieren.</div>
 {% endif %}
-<div class="alert alert-info" role="status" data-template-status-scope>
+<div class="d-flex flex-wrap gap-2 align-items-center mb-3" role="status" data-template-status-scope>
   {% if document.active_template == template.id and document.active_revision == revision.id %}
   <strong>Aktiv für {{ output_scope }}:</strong> Version {{ revision.id }} · {{ revision.name }}
   {% elif document.active_template == template.id %}
   <strong>Aktiv für {{ output_scope }}:</strong> Version {{ document.active_revision }} · Angezeigt: Version {{ revision.id }}
   {% else %}
   <strong>Nicht aktiv für {{ output_scope }}.</strong> Angezeigt: Version {{ revision.id }}
+  {% for active in document.templates if active.id == document.active_template %}{% for saved in active.revisions if saved.id == document.active_revision %}<span>Aktiv: {{ saved.name }} · Version {{ saved.id }}</span>{% endfor %}{% endfor %}
   {% endif %}
 </div>
+{% if not recipe_editor or active_recipe_url %}
+<div class="admin-compact-toolbar mb-3" data-template-normal-print>
+  <a class="btn" href="{{ active_recipe_url if recipe_editor else url_for('admin.print_week', family=family, week=week) }}">{{ icon('printer') }}PDF mit aktiver Vorlage öffnen</a>
+  <span class="text-secondary">{% if recipe_editor %}{{ recipe_revision.snapshot.recipe.title }} · Stand {{ recipe_revision.revision_number }}{% else %}Gespeicherte Woche ab {{ week|date_long }}{% endif %}</span>
+</div>
+{% endif %}
 {% if recipe_editor %}{% include 'admin/_recipe_template_selection.html' %}{% else %}
-<form class="card mb-4" method="get" action="{{ url_for('admin.print_template_editor', family=family) }}">
-  <div class="card-body row g-3 align-items-end">
+<form class="row g-2 align-items-end mb-3" method="get" action="{{ url_for('admin.print_template_editor', family=family) }}">
     <div class="col-12 col-sm-5"><label class="form-label" for="template-select">Vorlage</label><select class="form-select" id="template-select" name="template">
       {% for item in document.templates %}<option value="{{ item.id }}" {% if item.id == template.id %}selected{% endif %}>{{ item.revisions[-1].name }}{% if item.archived %} · Archiviert{% endif %}{% if document.active_template == item.id %} · Aktiv: Revision {{ document.active_revision }}{% endif %}</option>{% endfor %}
     </select></div>
     <div class="col-12 col-sm-4"><label class="form-label" for="template-week">Vorschauwoche ab Montag</label><input class="form-control" type="date" id="template-week" name="week" value="{{ week }}" required></div>
-    <div class="col-12 col-sm-3"><button class="btn" type="submit">Anzeigen</button></div>
-  </div>
+    <div class="col-12 col-sm-3"><button class="btn" type="submit">{{ icon('eye') }}Anzeigen</button></div>
 </form>
 {% endif %}
 <div class="row row-cards print-template-editor">
   <div class="col-12 col-xl-5">
-    <form class="card" method="post" action="{{ editor_url }}" data-template-properties>
+    <form class="card admin-compact-form" method="post" action="{{ editor_url }}" data-template-properties>
       {% if not template.archived %}{{ hidden('save') }}{% endif %}
       <div class="card-header"><h2 class="card-title" data-template-current-version>Vorlage · {{ 'Revision' if recipe_editor else 'Version' }} {{ revision.id }}</h2></div>
       <fieldset {% if template.archived %}disabled{% endif %}>
       <div class="card-body">
         <div class="mb-3"><label class="form-label" for="template-name">Vorlagenname</label><input class="form-control" id="template-name" name="name" value="{{ values.name }}" maxlength="60" required {% if error_field == 'name' and error_action != 'copy' %}aria-invalid="true" aria-describedby="template-error"{% endif %}></div>
-        <details class="border rounded mb-3" data-template-appearance {% if recipe_editor or (error and error_field in ['font', 'text_size', 'palette', 'logo', 'margin', 'spacing']) %}open{% endif %}>
-          <summary class="btn w-100 text-start justify-content-start">Schrift, Farben, Logo und Abstände</summary>
-          <div class="p-3">
+        <details class="admin-compact-details mb-3" data-template-appearance {% if error and (error_field in ['font', 'text_size', 'palette', 'logo', 'margin', 'spacing'] or (error_field == 'form' and error_action == 'save')) %}open{% endif %}>
+          <summary class="btn w-100 text-start justify-content-start">{{ icon('pencil') }}Druckgestaltung{% if error and error_field in ['font', 'text_size', 'palette', 'logo', 'margin', 'spacing'] %}<span class="text-danger" data-admin-details-error>· Fehler</span>{% endif %}</summary>
+          <div class="row g-3 pt-3">
             {% for field, field_label in [('font', 'Druckschrift'), ('text_size', 'Textgrösse'), ('palette', 'Farbpalette'), ('logo', 'Logo'), ('margin', 'Seitenränder links und rechts'), ('spacing', 'Textabstände' if recipe_editor else 'Zellenabstände')] %}
-            <div class="mb-3"><label class="form-label" for="template-{{ field }}">{{ field_label }}</label><select class="form-select" id="template-{{ field }}" name="{{ field }}" {% if error_field == field %}aria-invalid="true" aria-describedby="template-error"{% endif %}>
+            <div class="col-12 col-sm-6"><label class="form-label" for="template-{{ field }}">{{ field_label }}</label><select class="form-select" id="template-{{ field }}" name="{{ field }}" {% if error_field == field %}aria-invalid="true" aria-describedby="template-error"{% endif %}>
               {% for value, choice in choices[field].items() %}<option value="{{ value }}" {% if values[field] == value %}selected{% endif %}>{{ choice }}</option>{% endfor %}
             </select></div>
             {% endfor %}
-            <p class="form-hint">„Aktive Marke übernehmen“ verwendet die jeweils aktivierte Marke für Schrift, Farben oder Logo. Feste Auswahlen bleiben unverändert. {% if recipe_editor %}Ohne Markenlogo bleibt der Logobereich leer.{% else %}Ohne Markenlogo erscheint das Südhang-Standardlogo.{% endif %}</p>
-            {% if recipe_editor %}<p class="form-hint mb-0">Automatisch und Standard: 11 pt. Gross: 12 pt. Längere Rezepte fliessen auf weitere Seiten.</p>{% else %}
-            <p class="form-hint mb-0">Standard: {{ '9 pt' if profile == 'patient' else '12 pt, Details 10 pt' }}. Gross: {{ '10 pt' if profile == 'patient' else '14 pt, Details 12 pt' }}. Zu grosse Inhalte werden abgelehnt; nichts wird abgeschnitten.</p>
+            <p class="col-12 form-hint">„Aktive Marke übernehmen“ verwendet die jeweils aktivierte Marke für Schrift, Farben oder Logo. Feste Auswahlen bleiben unverändert. {% if recipe_editor %}Ohne Markenlogo bleibt der Logobereich leer.{% else %}Ohne Markenlogo erscheint das Südhang-Standardlogo.{% endif %}</p>
+            {% if recipe_editor %}<p class="col-12 form-hint mb-0">Automatisch und Standard: 11 pt. Gross: 12 pt. Längere Rezepte fliessen auf weitere Seiten.</p>{% else %}
+            <p class="col-12 form-hint mb-0">Standard: {{ '9 pt' if profile == 'patient' else '12 pt, Details 10 pt' }}. Gross: {{ '10 pt' if profile == 'patient' else '14 pt, Details 12 pt' }}. Zu grosse Inhalte werden abgelehnt; nichts wird abgeschnitten.</p>
             {% endif %}
           </div>
         </details>
-        <details class="border rounded mb-3" data-template-texts {% if recipe_editor or (error and error_field in ['header_text', 'footer_text']) %}open{% endif %}>
-          <summary class="btn w-100 text-start justify-content-start">Texte im Kopf- und Fussbereich</summary>
-          <div class="p-3">
+        <details class="admin-compact-details mb-3" data-template-texts {% if error and (error_field in ['header_text', 'footer_text'] or (error_field == 'form' and error_action == 'save')) %}open{% endif %}>
+          <summary class="btn w-100 text-start justify-content-start">{{ icon('pencil') }}Kopf- und Fusszeile{% if values.header_text or values.footer_text %}<span class="text-secondary">· Zusatztext vorhanden</span>{% endif %}{% if error and error_field in ['header_text', 'footer_text'] %}<span class="text-danger" data-admin-details-error>· Fehler</span>{% endif %}</summary>
+          <div class="pt-3">
             {% for field, field_label in [('header_text', 'Zusatz unter dem Kopfbereich'), ('footer_text', 'Zusatz in der Fusszeile')] %}
             <div class="mb-3"><label class="form-label" for="template-{{ field }}">{{ field_label }}</label><textarea class="form-control" id="template-{{ field }}" name="{{ field }}" maxlength="{{ text_limits[field] }}" rows="2" {% if error_field == field %}aria-invalid="true" aria-describedby="template-error"{% endif %}>{{ values[field] }}</textarea><p class="form-hint">Optional, höchstens {{ text_limits[field] }} Zeichen. Nur einfacher Text.</p></div>
             {% endfor %}
@@ -88,7 +94,7 @@
         </details>
         {% if not recipe_editor %}
         <details class="border rounded mb-3" data-template-week-layout {% if error and error_field.startswith('layout_') %}open{% endif %}>
-        <summary class="btn w-100 text-start justify-content-start">Wochenlayout ändern</summary>
+        <summary class="btn w-100 text-start justify-content-start">{{ icon('calendar-cog') }}Wochenlayout ändern</summary>
         <div class="p-3">
         <p class="text-secondary">{{ 'Individuelles Wochenlayout gespeichert.' if revision.config.layout is defined else 'Originales Wochenlayout gespeichert.' }} Alle Pflichtangaben bleiben erhalten. Menüinhalte bearbeiten Sie in der Menüwoche.</p>
         <label class="form-label" for="template-layout_mode">Layout beim Speichern</label>
@@ -99,7 +105,7 @@
         </select>
         <p class="form-hint">Für Änderungen an Raster oder Reihenfolge «Eigenes Layout speichern» wählen. Es entsteht ein neuer Entwurf; frühere Revisionen bleiben erhalten.</p>
         <details class="border rounded mb-3" {% if error and error_field.startswith('layout_') and error_field != 'layout_mode' %}open{% endif %}>
-          <summary class="btn w-100 text-start justify-content-start">Raster, Bilder und Abstände</summary>
+          <summary class="btn w-100 text-start justify-content-start">{{ icon('pencil') }}Raster, Bilder und Abstände</summary>
           <div class="p-3">
             {% for key, setting in layout_options.items() %}
             {% set field = 'layout_' ~ key %}
@@ -115,7 +121,7 @@
         </details>
         {% for group, group_label in [('header', 'Reihenfolge im Kopfbereich'), ('menu_fields', 'Reihenfolge im Menüblock'), ('footer', 'Reihenfolge im Fussbereich')] %}
         <details class="border rounded mb-3" {% if error and error_field.startswith('layout_' ~ group ~ '_') %}open{% endif %}>
-          <summary class="btn w-100 text-start justify-content-start">{{ group_label }}</summary>
+          <summary class="btn w-100 text-start justify-content-start">{{ icon('arrow-down') }}{{ group_label }}</summary>
           <fieldset class="p-3">
             <legend class="visually-hidden">{{ group_label }}</legend>
             <p class="form-hint">Jedes Feld genau einmal auswählen. Leere Menüangaben bleiben leer.</p>
@@ -136,7 +142,7 @@
         {% endif %}
       </div>
       </fieldset>
-      {% if not template.archived %}<div class="card-footer d-flex flex-column align-items-start gap-2"><div class="btn-list"><button class="btn btn-primary" type="submit">{{ 'Entwurf speichern' if recipe_editor else 'Vorlage speichern' }}</button><a class="btn" href="{{ url_for('admin.vorlagen') if recipe_editor else url_for('admin.vorlagen', week=week) }}">Abbrechen</a></div><p class="form-hint mb-0">Änderungen erscheinen nach dem Speichern in der Vorschau. Für PDF-Ausgaben bleibt die aktive Version bestehen, bis eine andere Version aktiviert wird.</p></div>{% endif %}
+      {% if not template.archived %}<div class="card-footer d-flex flex-column align-items-start gap-2"><div class="btn-list"><button class="btn btn-primary" type="submit" aria-label="{{ 'Entwurf speichern' if recipe_editor else 'Vorlage speichern' }}">{{ icon('device-floppy') }}Speichern</button><a class="btn" href="{{ url_for('admin.vorlagen') if recipe_editor else url_for('admin.vorlagen', week=week) }}">{{ icon('x') }}Abbrechen</a></div><p class="form-hint mb-0">Neue Eingaben zuerst speichern. Die Vorschau zeigt den gespeicherten Stand; die aktive Druckvorlage ändert sich erst beim Aktivieren.</p></div>{% endif %}
     </form>
   </div>
   <div class="col-12 col-xl-7">
@@ -144,47 +150,47 @@
       <div class="card-header"><h2 class="card-title" id="pdf-heading">PDF-Vorschau · {{ 'Revision' if recipe_editor else 'Version' }} {{ revision.id }}</h2></div>
       <div class="card-body">
         {% if recipe_editor %}<p>{% if recipe_revision %}{{ recipe_revision.snapshot.recipe.title }} · Rezeptrevision {{ recipe_revision.revision_number }}.{% endif %} Die Vorschau verwendet die gespeicherte Vorlagenrevision.</p>{% else %}
-        <p>Gespeicherte Woche ab {{ week|date_long }}. Vorschau und Download verwenden dieselbe Druckvorlage.</p>{% endif %}
+        <p>Gespeicherte Woche ab {{ week|date_long }}. Die Vorschau verwendet die angezeigte gespeicherte Vorlagenversion.</p>{% endif %}
+        <p class="form-hint">{% if recipe_editor %}A4 hoch · Fortlaufende Seiten. Zutaten, Mengen, Bilder und Herkunft bleiben vollständig erhalten.{% else %}{{ 'A4 quer · Montag bis Sonntag · Mittag und Abend' if profile == 'patient' else 'A4 hoch · Alle freigegebenen Wochentage' }}. Alle Menütexte und Deklarationen bleiben vollständig erhalten.{% endif %}</p>
         {% if preview_error %}<div class="alert alert-warning text-warning-emphasis" role="status">{{ preview_error }}</div>{% else %}
         <iframe class="print-template-preview {% if profile == 'patient' %}print-template-preview-landscape{% endif %}" src="{{ preview_url }}#toolbar=0&amp;navpanes=0&amp;view=Fit" title="{{ label }} PDF-Vorschau Revision {{ revision.id }}"></iframe>
-        <a class="btn mt-3" href="{{ preview_url }}" target="_blank" rel="noopener">Vorschau als PDF öffnen</a>
+        <a class="btn mt-3" href="{{ preview_url }}" target="_blank" rel="noopener">{{ icon('eye') }}Vorschau als PDF öffnen</a>
         {% endif %}
       </div>
-      <details class="card-footer" data-template-activation {% if recipe_editor or (error and error_action == 'activate') %}open{% endif %}>
-        <summary class="btn w-100 text-start justify-content-start">Aktivieren</summary>
+      <details class="card-footer admin-compact-details" data-template-activation {% if error and error_action == 'activate' %}open{% endif %}>
+        <summary class="btn w-100 text-start justify-content-start">{{ icon('file-check') }}Aktivieren</summary>
         <div class="pt-3">
           {% if document.active_template == template.id and document.active_revision == revision.id %}
           <p class="mb-2"><span class="badge bg-success-lt">Aktive Druckvorlage</span> {{ 'Revision' if recipe_editor else 'Version' }} {{ revision.id }} für {{ output_scope }}</p>
           {% elif not template.archived and (not recipe_editor or not preview_error) %}
-          <form method="post" action="{{ editor_url }}">{{ hidden('activate') }}<button class="btn" type="submit">{{ 'Revision ' ~ revision.id ~ ' prüfen und aktivieren' if recipe_editor else 'Diese Version aktivieren' }}</button></form>
+          <form method="post" action="{{ editor_url }}">{{ hidden('activate') }}<button class="btn" type="submit">{{ icon('check') }}{{ 'Revision ' ~ revision.id ~ ' prüfen und aktivieren' if recipe_editor else 'Diese Version aktivieren' }}</button></form>
           {% endif %}
           {% if recipe_editor %}
           <p class="form-hint mt-2">Aktivierung prüft die ausgewählte Rezeptrevision. Jedes Rezept wird beim PDF-Download erneut auf vollständige Ausgabe geprüft.</p>
-          {% if active_recipe_url %}<a class="btn" href="{{ active_recipe_url }}">PDF mit aktiver Vorlage öffnen</a>{% endif %}
           {% else %}<p class="form-hint mt-2">Aktivierung prüft diese Woche. Jede andere Woche wird beim PDF-Download erneut auf vollständige Lesbarkeit geprüft.</p>
-          <a class="btn" href="{{ url_for('admin.print_week', family=family, week=week) }}">PDF mit aktiver Vorlage öffnen</a>{% endif %}
+          {% endif %}
         </div>
       </details>
     </section>
-    <details class="card mb-4" data-template-versions {% if recipe_editor or (error and error_action == 'restore') %}open{% endif %}>
-      <summary class="card-header">Versionen</summary>
+    <details class="card mb-4 admin-compact-details" data-template-versions {% if error and error_action == 'restore' %}open{% endif %}>
+      <summary class="card-header">{{ icon('history') }}Versionen</summary>
       <ul class="list-group list-group-flush">
         {% for saved in template.revisions|reverse %}
-        <li class="list-group-item">
-          <p class="mb-2"><strong>{{ 'Revision' if recipe_editor else 'Version' }} {{ saved.id }} · {{ saved.name }}</strong>{% if saved.id == template.current_revision %} · Neuester Entwurf{% endif %}{% if document.active_template == template.id and document.active_revision == saved.id %} · Aktiv für {{ output_scope }}{% endif %}</p>
-          <p class="text-secondary mb-2">{% if saved.created_at %}<time datetime="{{ saved.created_at }}">{{ saved.created_at|datetime_short }}</time>{% else %}Mitgelieferte Standardvorlage{% endif %}{% if saved.restored_from %} · Wiederhergestellt aus Revision {{ saved.restored_from }}{% endif %}</p>
-          <div class="btn-list"><a class="btn" href="{{ recipe_url(revision=saved.id) if recipe_editor else url_for('admin.print_template_editor', family=family, week=week, template=template.id, revision=saved.id) }}">{{ 'Revision' if recipe_editor else 'Version' }} {{ saved.id }} ansehen</a>
-          {% if not template.archived and saved.id != template.current_revision %}<form method="post" action="{{ editor_url }}">{{ hidden('restore', saved.id) }}<button class="btn" type="submit">{{ 'Revision ' ~ saved.id ~ ' wiederherstellen' if recipe_editor else 'Version ' ~ saved.id ~ ' als neuen Entwurf laden' }}</button></form>{% endif %}</div>
+        <li class="list-group-item d-flex flex-wrap gap-2 align-items-center justify-content-between">
+          <div class="print-template-version-label"><strong>{{ 'Revision' if recipe_editor else 'Version' }} {{ saved.id }} · {{ saved.name }}</strong>{% if saved.id == template.current_revision %} · Neuester Entwurf{% endif %}{% if document.active_template == template.id and document.active_revision == saved.id %} · Aktiv für {{ output_scope }}{% endif %}
+          <div class="text-secondary">{% if saved.created_at %}<time datetime="{{ saved.created_at }}">{{ saved.created_at|datetime_short }}</time>{% else %}Mitgelieferte Standardvorlage{% endif %}{% if saved.restored_from %} · Wiederhergestellt aus Revision {{ saved.restored_from }}{% endif %}</div></div>
+          <div class="btn-list"><a class="btn btn-icon" href="{{ recipe_url(revision=saved.id) if recipe_editor else url_for('admin.print_template_editor', family=family, week=week, template=template.id, revision=saved.id) }}" aria-label="{{ 'Revision' if recipe_editor else 'Version' }} {{ saved.id }} ansehen" title="Ansehen" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="Ansehen">{{ icon('eye') }}</a>
+          {% if not template.archived and saved.id != template.current_revision %}<form method="post" action="{{ editor_url }}">{{ hidden('restore', saved.id) }}<button class="btn" type="submit" aria-label="{{ 'Revision ' ~ saved.id ~ ' wiederherstellen' if recipe_editor else 'Version ' ~ saved.id ~ ' als neuen Entwurf laden' }}">{{ icon('history') }}Als Entwurf laden</button></form>{% endif %}</div>
         </li>
         {% endfor %}
       </ul>
     </details>
-    <details class="card" data-template-more-actions {% if recipe_editor or (error and error_action in ['copy', 'archive', 'reactivate']) %}open{% endif %}>
-      <summary class="card-header">Weitere Aktionen</summary>
+    <details class="card admin-compact-details" data-template-more-actions {% if error and error_action in ['copy', 'archive', 'reactivate'] %}open{% endif %}>
+      <summary class="card-header">{{ icon('dots') }}Weitere Aktionen</summary>
       <div class="card-body">
         <section aria-labelledby="copy-heading">
           <h2 class="h4" id="copy-heading">Vorlage kopieren</h2>
-          <form method="post" action="{{ editor_url }}">{{ hidden('copy') }}<div><label class="form-label" for="template-copy-name">Name der Kopie</label><input class="form-control" id="template-copy-name" name="name" maxlength="60" required value="{{ copy_name }}" {% if error_field == 'name' and error_action == 'copy' %}aria-invalid="true" aria-describedby="template-error"{% endif %}><p class="form-hint">Übernimmt {{ 'Revision' if recipe_editor else 'Version' }} {{ revision.id }} als eigenständigen Entwurf.</p><button class="btn" type="submit">Kopie erstellen</button></div></form>
+          <form method="post" action="{{ editor_url }}">{{ hidden('copy') }}<div><label class="form-label" for="template-copy-name">Name der Kopie</label><input class="form-control" id="template-copy-name" name="name" maxlength="60" required value="{{ copy_name }}" {% if error_field == 'name' and error_action == 'copy' %}aria-invalid="true" aria-describedby="template-error"{% endif %}><p class="form-hint">Übernimmt {{ 'Revision' if recipe_editor else 'Version' }} {{ revision.id }} als eigenständigen Entwurf.</p><button class="btn" type="submit">{{ icon('copy') }}Kopie erstellen</button></div></form>
         </section>
         <hr class="my-4">
         <section aria-labelledby="archive-heading">
