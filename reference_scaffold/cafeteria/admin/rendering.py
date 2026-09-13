@@ -54,6 +54,7 @@ def menu_form_values(profile: str, option: dict[str, Any]) -> dict[str, Any]:
         'title': str(option.get('title') or ''),
         'description': str(option.get('description') or ''),
         'note': str(option.get('note') or ''),
+        'dish_template_public_id': str((option.get('dish_template') or {}).get('public_id') or ''),
         'allergen_mode': str(option.get('allergen_mode') or 'manual'),
         'origin_mode': str(option.get('origin_mode') or 'manual'),
         'label_mode': str(option.get('label_mode') or 'manual'),
@@ -122,6 +123,7 @@ def _cells(
                     'row_version': versions.get((day, meal, option_code), 0),
                     'service_row_version': int(service.get('row_version', 0)),
                     'title': option.get('title', ''),
+                    'dish_template': option.get('dish_template'),
                     'components': list(option.get('components') or []),
                     'description': str(option.get('description') or ''),
                     'note': str(option.get('note') or ''),
@@ -200,7 +202,8 @@ def render_menu_editor(
         catalog_choices=catalog_choices, allergens=allergens, labels=labels,
         effects=effects, flashes=flashes, origin_conflict=origin_conflict,
         recipe_page=recipe_page if recipe_page is not None else EMPTY_RECIPE_PAGE,
-        **_template_context(),
+        **({'user': session.get('user'), 'roles': list(getattr(g, 'auth_roles', ())),
+            'area_names': {}} if cell.get('retained_only') else _template_context()),
     )
 
 

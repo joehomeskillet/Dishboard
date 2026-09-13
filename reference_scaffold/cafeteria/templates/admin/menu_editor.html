@@ -57,16 +57,20 @@
 
 {% if errors %}
 <div class="alert alert-danger error-region d-block" role="alert" tabindex="-1">
-  <p class="mb-2">Bitte korrigieren Sie die Fehler im Formular.</p>
+  <p class="mb-2">{% if cell.review_conflict %}Die Prüfung konnte nicht bestätigt werden.{% else %}Bitte korrigieren Sie die Fehler im Formular.{% endif %}</p>
   <ul class="mb-2">
     {% for name, message in errors.items() %}
-    <li><a href="#{{ error_targets.get(name, 'f-title') }}" data-error-link>{{ message }}</a></li>
+    <li>{% if cell.review_conflict %}{{ origin_conflict or message }}{% else %}<a href="#{{ error_targets.get(name, 'f-title') }}" data-error-link>{{ message }}</a>{% endif %}</li>
     {% endfor %}
   </ul>
-  <button type="button" class="btn" data-retry-page>{{ icon('refresh') }}Erneut versuchen</button>
+  {% if not cell.review_conflict %}<button type="button" class="btn" data-retry-page>{{ icon('refresh') }}Erneut versuchen</button>{% endif %}
 </div>
 {% endif %}
 
+{% if cell.review_conflict %}
+<p>Öffnen Sie das bestehende Menü, um den aktuellen Stand zu prüfen.</p>
+<a class="btn" href="{{ cell.existing_url }}">{{ icon('chevron-right') }}Bestehendes Menü öffnen</a>
+{% else %}
 <div class="admin-editor-layout">
   <div class="menu-editor-main">
     <form method="post" action="/admin/{{ family }}/menu" class="admin-compact-form" data-menu-editor>
@@ -76,10 +80,26 @@
       <input type="hidden" name="meal" value="{{ cell.meal }}">
       <input type="hidden" name="option" value="{{ cell.option }}">
       <input type="hidden" name="row_version" value="{{ cell.row_version }}">
+      <input type="hidden" name="dish_template_public_id" value="{{ submitted.get('dish_template_public_id', '') }}">
+      {% if submitted.get('template_context') %}<input type="hidden" name="template_context" value="{{ submitted.template_context }}">{% endif %}
 
       <section class="card mb-3 admin-compact-section" aria-labelledby="sec-base">
         <div class="card-header"><h2 class="card-title mb-0" id="sec-base">Menü</h2></div>
         <div class="card-body">
+          {% if cell.dish_template or submitted.get('dish_template_public_id') %}
+          <div class="mb-2" id="template-reference">
+            {% if cell.dish_template %}
+            <a class="btn text-wrap text-start" href="{{ url_for('admin.dish_template_edit', public_id=cell.dish_template.public_id) }}">{{ icon('copy') }}Aus Vorlage «{{ cell.dish_template.title }}»{% if not cell.dish_template.active %} (archiviert){% endif %}</a>
+            {% else %}
+            <p class="text-secondary mb-0">{{ icon('copy') }}Ursprünglicher Vorlagenbezug. Aktuelle Angaben wurden nicht geladen.</p>
+            {% endif %}
+            {% if not cell.template_proposal %}
+            {{ check('dish_template_detach', 'Vorlagenbezug lösen', '1', checked=submitted.get('dish_template_detach') == '1', id='template-detach') }}
+            <p class="form-hint mb-0">Mit dem Speichern wird nur der Bezug gelöst; die Menüangaben bleiben erhalten.</p>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% if errors %}<a class="btn mb-2" href="{{ cell.existing_url }}">{{ icon('chevron-right') }}Bestehendes Menü öffnen</a>{% endif %}
           <label class="form-label" for="f-title">Menüname</label>
           <input class="form-control{{ invalid_class('title') }}" id="f-title" name="title" value="{{ submitted.get('title', '') }}"{{ error_attributes('title', 'err-title') }}>
           {{ field_error('title', 'err-title') }}
@@ -343,4 +363,5 @@
     </section>
   </aside>
 </div>
+{% endif %}
 {% endblock %}

@@ -9,6 +9,7 @@ from typing import Any
 from uuid import UUID
 
 from .operations_settings import normalise_time
+from .menu_template_binding import TemplateBindingValidationError, validate_template_fields
 from .component_assignment_contract import AssignmentValidationError, normalize_assignments
 from .workflow import (
     MENU_TYPES,
@@ -31,7 +32,7 @@ _ALLERGEN_CODE = re.compile(r'[A-Z0-9_]{1,32}')
 _MENU_REQUIRED = frozenset(
     '_csrf week day meal option row_version title allergen_mode origin_mode label_mode'.split()
 )
-_MENU_OPTIONAL = frozenset('description note'.split())
+_MENU_OPTIONAL = frozenset('description note dish_template_public_id dish_template_detach template_context'.split())
 _MENU_REPEATED = frozenset(
     'component_public_id component_text recipe_revision_public_id allergen_code allergen_presence '
     'origin_ingredient origin_country_code label_code'.split()
@@ -69,6 +70,7 @@ class ParsedMenuItem:
     option: str
     expected_item_row_version: int
     payload: dict[str, object]
+    template_context: str = ''
 
 
 @dataclass(frozen=True)
@@ -447,6 +449,16 @@ def parse_menu_item_form(
                 'Externer Preis darf nicht kleiner als interner Preis sein.',
                 'external_chf',
             )
+    for field in ('dish_template_public_id', 'dish_template_detach'):
+        if field in form:
+            payload[field] = _scalar(form, field)
+    try:
+        validate_template_fields(payload)
+    except TemplateBindingValidationError as error:
+        raise WorkflowValidationError(str(error), field_name=error.field_name) from error
+    proposal = _scalar(form, 'template_context') if 'template_context' in form else ''
+    if len(proposal) > 4096:
+        raise WorkflowValidationError('Vorschlagskontext ist ungültig.', field_name='template_context')
     return ParsedMenuItem(
         week_start=week_start,
         day=service_day.isoformat(),
@@ -454,6 +466,7 @@ def parse_menu_item_form(
         option=option_value,
         expected_item_row_version=_version(form),
         payload=payload,
+        template_context=proposal,
     )
 
 

@@ -11,6 +11,7 @@ from .component_assignment_store import replace_component_links_connection
 from .component_binding_state import BindingState
 from .component_catalog_store import AdminScope
 from .component_effects import rematerialize_auto_effects
+from .menu_template_binding import resolve_template_binding
 from .workflow_snapshot import external_id
 from .workflow_write_context import record_item_write
 
@@ -28,6 +29,7 @@ def write_draft_item(
     connection: Connection, scope: AdminScope, service_id: int, service_date: str,
     meal_code: str, option: Mapping[str, Any], sort_order: int, bindings: BindingState,
     current: Mapping[str, Any] | None,
+    templates: Mapping[int, Mapping[str, Any]],
 ) -> int:
     params = {
         'service_id': service_id,
@@ -37,14 +39,15 @@ def write_draft_item(
         'note': option.get('note', '').strip(), 'sort_order': sort_order,
         'type_code': option['type_code'], 'allergen_mode': option.get('allergen_mode', 'manual'),
         'origin_mode': option.get('origin_mode', 'manual'), 'label_mode': option.get('label_mode', 'manual'),
+        'template_id': resolve_template_binding(scope, option, current, templates),
     }
     before = int(current['row_version']) if current is not None else 0
     if current is None:
         item_id = int(connection.execute(text('''
             INSERT INTO cafeteria.menu_items(service_id,menu_type_id,external_id,title,
-                description,note,allergen_review_status,sort_order,allergen_mode,origin_mode,label_mode)
+                description,note,allergen_review_status,sort_order,allergen_mode,origin_mode,label_mode,dish_template_id)
             SELECT :service_id,mt.id,:external_id,:title,NULLIF(:description,''),NULLIF(:note,''),
-                   'not_checked',:sort_order,:allergen_mode,:origin_mode,:label_mode
+                   'not_checked',:sort_order,:allergen_mode,:origin_mode,:label_mode,:template_id
             FROM cafeteria.menu_types mt WHERE mt.code=:type_code RETURNING id
         '''), params).scalar_one())
     else:
@@ -65,6 +68,7 @@ def write_draft_item(
             UPDATE cafeteria.menu_items SET title=:title,external_id=:external_id,
                 description=NULLIF(:description,''),note=NULLIF(:note,''),sort_order=:sort_order,
                 allergen_mode=:allergen_mode,origin_mode=:origin_mode,label_mode=:label_mode,
+                dish_template_id=:template_id,
                 allergen_review_status='not_checked' WHERE id=:item_id RETURNING row_version
         '''), {**params, 'item_id': item_id}).scalar_one())
     record_item_write(connection, scope, item_id, before, after)

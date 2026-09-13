@@ -8,6 +8,7 @@ from sqlalchemy import Connection, Engine, text
 from .component_binding_state import prepare_bindings
 from .component_catalog_store import resolve_single_active_location_connection
 from .workflow_item_write import option_assignments, write_draft_item
+from .menu_template_binding import lock_templates, template_public_id
 from .workflow_write_context import begin_write, write_scope, write_transaction
 from .operations_settings import (
     OperationsSchedule,
@@ -141,6 +142,8 @@ def load_draft_connection(
                i.external_id, i.title, COALESCE(i.description, '') AS description,
                COALESCE(i.note, '') AS note, i.allergen_review_status,
                i.allergen_mode, i.origin_mode, i.label_mode,
+               dt.public_id::text AS dish_template_public_id,
+               dt.title AS dish_template_title,dt.active AS dish_template_active,
                ARRAY(
                    SELECT c.component_text FROM cafeteria.menu_item_components c
                    WHERE c.menu_item_id=i.id ORDER BY c.sort_order
@@ -180,6 +183,7 @@ def load_draft_connection(
                ), '[]'::jsonb) AS origins
                {cost_columns}
         FROM cafeteria.menu_items i
+        LEFT JOIN cafeteria.dish_templates dt ON dt.id=i.dish_template_id
         JOIN cafeteria.menu_services s ON s.id=i.service_id
         JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id
         JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id
@@ -236,6 +240,10 @@ def load_draft_connection(
                     'allergens': list(item['allergens']) if item else [],
                     'origins': list(item['origins']) if item else [],
                     'note': item['note'] if item else '',
+                    'dish_template': ({'public_id': item['dish_template_public_id'],
+                                       'title': item['dish_template_title'],
+                                       'active': item['dish_template_active']}
+                                      if item and item['dish_template_public_id'] else None),
                     'allergen_review_status': (
                         item['allergen_review_status'] if item else 'not_checked'
                     ),
@@ -312,6 +320,18 @@ def persist_draft_connection(
                  if service['service_state'] == 'open'
                  for option in service['options'] for row in option_assignments(option)]
     bindings = prepare_bindings(connection, scope, requested, weeks=[week_start])
+    old_templates = connection.execute(text('''
+        SELECT i.dish_template_id FROM cafeteria.menu_items i
+        JOIN cafeteria.menu_services s ON s.id=i.service_id
+        JOIN cafeteria.menu_weeks w ON w.id=s.menu_week_id
+        JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+        WHERE w.location_id=:location AND p.code=:profile AND w.week_start=:week
+          AND i.dish_template_id IS NOT NULL
+    '''), {'location': location_id, 'profile': profile_code, 'week': week_start}).scalars().all()
+    wanted_templates = {public_id for day in values['days'] for service in day['services']
+                        for option in service['options']
+                        if (public_id := template_public_id(option.get('dish_template_public_id')))}
+    templates = lock_templates(connection, scope, sorted(wanted_templates), old_templates)
     week = connection.execute(
         text(
             '''
@@ -345,7 +365,7 @@ def persist_draft_connection(
         for row in connection.execute(
             text(
                 '''
-                SELECT i.id,i.service_id,i.row_version,mt.code AS type_code
+                SELECT i.id,i.service_id,i.row_version,i.dish_template_id,mt.code AS type_code
                 FROM cafeteria.menu_items i JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id
                 WHERE i.service_id=ANY(CAST(:service_ids AS bigint[]))
                 ORDER BY i.id FOR UPDATE OF i
@@ -482,10 +502,11 @@ def persist_draft_connection(
                         int(service_id),
                         day_value['date'],
                         service_value['meal_code'],
-                        option,
+                        {**option, 'dish_template_detach': '1'} if reject_catalog_assignments else option,
                         sort_order,
                         bindings,
                         previous_items.get((int(service_id), option['type_code'])),
+                        templates,
                     )
     for (previous_date, previous_meal), previous_row in previous_services.items():
         if (previous_date, previous_meal) in supplied_slots:
