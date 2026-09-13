@@ -351,7 +351,7 @@
         <ul class="list-unstyled menu-editor-review-list mb-0">
           <li class="menu-editor-review-item">
             <span class="menu-editor-review-label">Beilage</span>
-            <span class="menu-editor-review-value" data-review-field="accompaniment">{% if cell.accompaniment_code == 'soup' %}Dazu: Suppe{% elif cell.accompaniment_code == 'salad' %}Dazu: Salat (gemischt und grün){% else %}Keine Beilage{% endif %}</span>
+            <span class="menu-editor-review-value" data-review-field="accompaniment">{% if cell.retained_only %}Gespeicherter Stand nicht verfügbar{% elif cell.accompaniment_code == 'soup' %}Dazu: Suppe{% elif cell.accompaniment_code == 'salad' %}Dazu: Salat (gemischt und grün){% else %}Keine Beilage{% endif %}</span>
             <a href="#accompaniment-none" data-error-link>Im Formular ändern</a>
           </li>
           <li class="menu-editor-review-item">
