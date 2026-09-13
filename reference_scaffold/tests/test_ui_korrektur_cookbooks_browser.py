@@ -1,7 +1,11 @@
-"""UX-01: cookbook list/editor hierarchy, native forms, and responsive evidence."""
+"""MP-UI-DENSITY-COOKBOOKS: compact cookbook rows, native forms, viewport, reflow and real zoom evidence."""
 from __future__ import annotations
 
+import base64
+import json
+import struct
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from urllib.parse import parse_qs, urlsplit
 
@@ -16,14 +20,49 @@ from test_rendered_ui import browser  # noqa: F401
 
 
 ROOT = Path(__file__).resolve().parents[2]
-EVIDENCE = ROOT / '.claude' / 'evidence' / 'ui-korrektur-0912' / 'cookbooks'
+EVIDENCE = ROOT / '.claude' / 'evidence' / 'density-cookbooks-0913' / 'after'
+LONG_NAME = ('Sommergemüse mit Kräuterkartoffeln und hausgemachter Zitronensauce '
+             'für die Gemeinschaftsküche am Sonntag')
+LONG_DESCRIPTION = ('Saisonale Rezepte für die Gemeinschaftsküche, sortiert nach Aufwand. ' * 6).strip()
+# CSS viewports only: reflow-320 is the 320 px reflow check, not browser zoom.
+# Real 200 % browser zoom runs separately in a persistent Chromium profile.
 VIEWPORTS = (
-    (1366, 768, '1366x768'),
-    (1920, 1080, '1920x1080'),
+    (1440, 900, '1440x900'),
+    (1024, 768, '1024x768'),
     (768, 1024, '768x1024'),
     (390, 844, '390x844'),
-    (720, 450, 'zoom-200'),
+    (1920, 1080, '1920x1080'),
+    (2560, 1440, '2560x1440'),
+    (320, 844, 'reflow-320'),
 )
+# Manifest §11 guideline: first core content within about 280 CSS px at 1440×900.
+FIRST_CONTENT_LIMIT = 280
+# Manifest §5.2: compact working rows are typically 56–72 px and may grow when wrapping.
+ROW_HEIGHT_LIMIT = 80
+DENSITY_METRICS = '''() => {
+  const top = selector => {
+    const element = document.querySelector(selector);
+    return element ? Math.round(element.getBoundingClientRect().top) : null;
+  };
+  const overflows = selector => [...document.querySelectorAll(selector)]
+    .some(element => element.scrollWidth > element.clientWidth + 1);
+  return {
+    innerWidth, innerHeight,
+    overflow: document.documentElement.scrollWidth > innerWidth + 1,
+    documentHeight: document.documentElement.scrollHeight,
+    firstCardTop: top('section[aria-label="Kochbücher"] article.card'),
+    firstFieldLabelTop: top('label[for="cookbook-name"]'),
+    firstFieldTop: top('#cookbook-name'),
+    assignmentRows: [...document.querySelectorAll('form[action$="/rezepte"] tbody tr')]
+      .map(row => Math.round(row.getBoundingClientRect().height)),
+    cardTitleOverflow: overflows('section[aria-label="Kochbücher"] .card-title'),
+    headingOverflow: overflows('h1'),
+    iconButtons: [...document.querySelectorAll('main .btn-icon')].map(element => {
+      const rect = element.getBoundingClientRect();
+      return {name: element.getAttribute('aria-label'), width: Math.round(rect.width), height: Math.round(rect.height)};
+    }),
+  };
+}'''
 
 
 def _render_template(name: str, **values) -> str:
@@ -64,68 +103,172 @@ def _render_template(name: str, **values) -> str:
         )
 
 
-def test_templates_expose_list_first_and_one_editor_primary_action(browser):  # noqa: F811
-    book = SimpleNamespace(
-        public_id='book-1',
-        row_version=3,
-        name='Testkochbuch',
-        description='Beschreibung',
-        active=True,
-        recipe_public_ids=(),
-    )
-    list_html = _render_template(
-        'admin/kochbuecher.html',
-        rows=[book],
-        page=1,
-        has_next=False,
-        search='',
-        include_archived=False,
-        can_write=True,
-        prev_url='/admin/kochbuecher',
+def _book(**overrides) -> SimpleNamespace:
+    values = dict(public_id='book-1', row_version=3, name='Testkochbuch', description='Beschreibung',
+                  active=True, recipe_public_ids=())
+    values.update(overrides)
+    return SimpleNamespace(**values)
+
+
+def _list_html(rows, *, search: str = '', can_write: bool = True) -> str:
+    return _render_template(
+        'admin/kochbuecher.html', rows=rows, page=1, has_next=False, search=search,
+        include_archived=False, can_write=can_write, prev_url='/admin/kochbuecher',
         next_url='/admin/kochbuecher?page=2',
     )
-    editor_html = _render_template(
-        'admin/kochbuch_editor.html',
-        book=book,
-        can_write=True,
-        header_token='header-token',
-        recipes_token='recipes-token',
-        status_token='',
-        status_action=None,
-        options=[('recipe-1', 'Testrezept')],
+
+
+def _editor_html(book, **overrides) -> str:
+    values = dict(
+        book=book, can_write=True, header_token='header-token', recipes_token='recipes-token',
+        status_token='', status_action=None, options=[('recipe-1', 'Testrezept')],
         names={'recipe-1': 'Testrezept'},
-        assignment_rows=[{'position': 1, 'public_id': '', 'url': None}],
+        assignment_rows=[{'position': 1, 'public_id': 'recipe-1', 'url': '/admin/rezepte/recipe-1'},
+                         {'position': 2, 'public_id': '', 'url': None}],
     )
-    page = browser.new_page(viewport={'width': 1366, 'height': 768})
+    values.update(overrides)
+    return _render_template('admin/kochbuch_editor.html', **values)
+
+
+def _icon_control(control) -> tuple[str, str]:
+    """Icon-only controls carry an accessible name, a native title and the same tooltip title."""
+    assert not control.inner_text().strip()
+    name = control.get_attribute('aria-label') or ''
+    # Without JavaScript the native title stays; Tabler's tooltip moves it to data-bs-original-title.
+    title = control.get_attribute('title') or control.get_attribute('data-bs-original-title') or ''
+    assert name and title and control.get_attribute('data-bs-title') == title, (name, title)
+    assert control.locator('svg[aria-hidden="true"] use').count() == 1
+    return name, title
+
+
+def _symbol(control) -> str:
+    return (control.locator('use').get_attribute('href') or '').rsplit('#tabler-', 1)[-1]
+
+
+def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # noqa: F811
+    page = browser.new_page(viewport={'width': 1440, 'height': 900})
     try:
-        page.set_content(list_html)
+        page.set_content(_list_html([
+            _book(), _book(public_id='book-2', name='Altes Buch', description='', active=False),
+        ]))
         cards = page.locator('section[aria-label="Kochbücher"]')
         create = page.locator('details#cookbook-create')
         expect(cards).to_be_visible()
         expect(create).to_be_visible()
+        expect(create).not_to_have_attribute('open', '')
         assert cards.evaluate(
             '(list, disclosure) => Boolean('
             'list.compareDocumentPosition(disclosure) & Node.DOCUMENT_POSITION_FOLLOWING)',
             create.element_handle(),
         )
+        rows = cards.locator('article.card')
+        assert rows.count() == 2
+        edit = rows.nth(0).get_by_role('link', name='Testkochbuch bearbeiten', exact=True)
+        view = rows.nth(1).get_by_role('link', name='Altes Buch ansehen', exact=True)
+        assert _icon_control(edit) == ('Testkochbuch bearbeiten', 'Bearbeiten')
+        assert _icon_control(view) == ('Altes Buch ansehen', 'Ansehen')
+        assert (_symbol(edit), _symbol(view)) == ('pencil', 'eye')
+        # Active is the default; only archived rows carry a status badge, so "Aktiv" is not repeated per row.
+        expect(rows.nth(0).locator('.badge')).to_have_count(0)
+        expect(rows.nth(1).locator('.badge')).to_have_text('Archiviert')
+        assert 'Aktiv' not in cards.inner_text()
+        expect(rows.nth(0).get_by_text('0 Rezepte', exact=True)).to_be_visible()
 
-        page.set_content(editor_html)
+        page.set_content(_list_html([], search='Nichts'))
+        no_match = page.locator('.empty[data-empty-kind="no_match"]')
+        expect(no_match.get_by_text('Keine passenden Kochbücher', exact=True)).to_be_visible()
+        expect(no_match.get_by_role('link', name='Suche zurücksetzen', exact=True)).to_be_visible()
+        expect(page.locator('details#cookbook-create')).not_to_have_attribute('open', '')
+
+        page.set_content(_list_html([]))
+        none = page.locator('.empty[data-empty-kind="none"]')
+        expect(none.get_by_text('Noch keine Kochbücher', exact=True)).to_be_visible()
+        assert none.locator('a').count() == 0
+        # The create disclosure stays closed even on an empty list: the existing native flow
+        # (summary opens, then exactly one "Kochbuch anlegen" link) is shared with other tests.
+        expect(page.locator('details#cookbook-create')).not_to_have_attribute('open', '')
+        assert page.get_by_role('link', name='Kochbuch anlegen', exact=True, include_hidden=True).count() == 1
+        assert page.locator('.btn-primary').count() == 0
+
+        page.set_content(_editor_html(_book()))
         expect(page.get_by_role('heading', level=2, name='Rezept-Zuordnung')).to_be_visible()
         expect(page.get_by_role('button', name='Kochbuch speichern', exact=True)).to_be_visible()
         assignment = page.get_by_role('button', name='Zuordnung speichern', exact=True)
         assert 'btn-primary' not in (assignment.get_attribute('class') or '').split()
-        assert page.locator('.btn-primary:visible').count() == 1
+        assert page.locator('.btn-primary').count() == 1
+        # Each row input keeps its own accessible name; the visible header names the columns once.
+        expect(page.get_by_label('Position 1', exact=True)).to_have_value('1')
+        expect(page.get_by_label('Rezept 1', exact=True)).to_have_value('recipe-1')
+        expect(page.get_by_label('Rezept 2', exact=True)).to_have_value('')
+        assert page.locator('form[action$="/rezepte"] label').evaluate_all(
+            'labels => labels.length === 4 && labels.every(label => label.classList.contains("visually-hidden"))',
+        )
+        expect(page.locator('form[action$="/rezepte"] thead')).to_contain_text('Position')
+        expect(page.locator('form[action$="/rezepte"] thead')).to_contain_text('Rezept')
+        open_recipe = page.get_by_role('link', name='Testrezept öffnen', exact=True)
+        assert _icon_control(open_recipe) == ('Testrezept öffnen', 'Rezept öffnen')
+        assert _symbol(open_recipe) == 'eye'
+        archive = page.get_by_role('link', name='Archivieren', exact=True)
+        assert archive.get_attribute('href') == '/admin/kochbuecher/book-1/status'
+        assert _symbol(archive) == 'archive'
+        assert page.locator('form[action="/admin/kochbuecher/book-1"] textarea[rows="2"]').count() == 1
+
+        page.set_content(_editor_html(_book(), status_action='cookbook.archive', status_token='status-token'))
+        expect(page.get_by_role('heading', level=2, name='Kochbuch archivieren')).to_be_visible()
+        confirm = page.get_by_role('button', name='Archivieren', exact=True)
+        assert 'btn-outline-danger' in (confirm.get_attribute('class') or '').split()
+        assert _symbol(confirm) == 'archive'
+        assert _symbol(page.get_by_role('link', name='Abbrechen', exact=True)) == 'x'
+        assert page.get_by_role('link', name='Archivieren', exact=True).count() == 0
+        assert page.locator('.btn-primary').count() == 1
+        status_form = Forms(page.content()).forms['/admin/kochbuecher/book-1/status']
+        assert dict(status_form) == {
+            '_csrf': 'csrf', '_form_context': 'status-token', 'row_version': '3',
+            'status_action': 'cookbook.archive',
+        }
+
+        archived = _book(active=False, recipe_public_ids=('recipe-1',))
+        page.set_content(_editor_html(archived, header_token='', recipes_token=''))
+        expect(page.locator('section[aria-labelledby="cookbook-header-title"] .badge')).to_have_text('Archiviert')
+        assert page.locator('section[aria-labelledby="cookbook-header-title"] h3').count() == 0
+        expect(page.get_by_text('Schreibgeschützt · zum Ändern zuerst reaktivieren.')).to_be_visible()
+        reactivate = page.get_by_role('link', name='Reaktivieren', exact=True)
+        assert _symbol(reactivate) == 'archive-off'
+        assert page.locator('form[action$="/rezepte"]').count() == 0
+        expect(page.locator('ol').get_by_role('link', name='Testrezept', exact=True)).to_be_visible()
+        assert page.locator('.btn-primary').count() == 0
+
+        page.set_content(_editor_html(
+            archived, header_token='', recipes_token='', status_token='status-token',
+            status_action='cookbook.reactivate',
+        ))
+        confirm = page.get_by_role('button', name='Reaktivieren', exact=True)
+        assert 'btn-primary' in (confirm.get_attribute('class') or '').split()
+        assert _symbol(confirm) == 'archive-off'
+        assert page.locator('.btn-primary').count() == 1
     finally:
         page.close()
 
 
-def _create_book(server, name: str = 'Browserbuch') -> str:
+def _create_book(server, name: str = 'Browserbuch', description: str = '') -> str:
     client = server['client']
     form = Forms(client.get('/admin/kochbuecher/neu').text).forms['/admin/kochbuecher/neu']
     form['name'] = name
+    if description:
+        form['description'] = '\n' + description
     response = client.post('/admin/kochbuecher/neu', data=form)
     assert response.status_code == 303
     return urlsplit(response.location).path
+
+
+def _assign(server, path: str, recipe_ids: list[str]) -> None:
+    client = server['client']
+    form = Forms(client.get(path).text).forms[path + '/rezepte']
+    ids = list(form.getlist('recipe_public_ids'))
+    ids[:len(recipe_ids)] = recipe_ids
+    form.setlist('recipe_public_ids', ids)
+    form.setlist('recipe_positions', list(form.getlist('recipe_positions')))
+    assert client.post(path + '/rezepte', data=form).status_code == 303
 
 
 def _context(browser, server, width: int, height: int, *, javascript: bool = True):  # noqa: F811
@@ -169,13 +312,19 @@ def _assert_core_controls(page):
             continue
         box = control.bounding_box()
         assert box is not None and box['height'] >= 44
+        if 'btn-icon' in (control.get_attribute('class') or '').split():
+            # Shared .btn-icon (admin-tabler.css, SHELL-owned) renders 40 × 48 CSS px today;
+            # the manifest asks 44 × 44. Measured widths land in density-metrics.json.
+            assert box['width'] >= 40
+            _icon_control(control)
 
 
-def test_cookbook_list_and_editor_follow_task_hierarchy_at_all_viewports(
-    cookbook_server, browser,  # noqa: F811
-):
+def test_cookbook_list_and_editor_stay_compact_at_all_viewports(cookbook_server, browser):  # noqa: F811
     path = _create_book(cookbook_server)
+    long_path = _create_book(cookbook_server, LONG_NAME, LONG_DESCRIPTION)
+    _assign(cookbook_server, path, [cookbook_server['first']])
     EVIDENCE.mkdir(parents=True, exist_ok=True)
+    metrics = {}
 
     for width, height, label in VIEWPORTS:
         context = _context(browser, cookbook_server, width, height)
@@ -186,25 +335,35 @@ def test_cookbook_list_and_editor_follow_task_hierarchy_at_all_viewports(
             create = page.locator('details#cookbook-create')
             expect(cards).to_be_visible()
             expect(create).not_to_have_attribute('open', '')
-            expect(create.locator(':scope > summary').get_by_text('Kochbuch anlegen', exact=True)).to_be_visible()
+            expect(create.locator(':scope > summary').get_by_text('Neues Kochbuch', exact=True)).to_be_visible()
             assert cards.evaluate(
                 '(list, create) => Boolean(list.compareDocumentPosition(create) & Node.DOCUMENT_POSITION_FOLLOWING)',
                 create.element_handle(),
             )
             assert page.locator('.btn-primary:visible').count() == 0
+            expect(cards.get_by_role('link', name='Browserbuch bearbeiten', exact=True)).to_be_visible()
+            expect(cards.get_by_role('link', name=f'{LONG_NAME} bearbeiten', exact=True)).to_be_visible()
+            expect(cards.get_by_text('1 Rezept', exact=True)).to_be_visible()
+            # The list shows a teaser; the full description stays editable in the editor.
+            teaser = cards.get_by_text(LONG_DESCRIPTION[:60])
+            expect(teaser).to_be_visible()
+            assert len(teaser.inner_text()) < len(LONG_DESCRIPTION)
             _assert_page_width(page, width)
             _assert_core_controls(page)
-            page.screenshot(
-                path=str(EVIDENCE / f'kochbuecher-regular-{label}.png'), full_page=True,
-            )
+            listed = page.evaluate(DENSITY_METRICS)
+            assert not listed['overflow'] and not listed['cardTitleOverflow'], listed
+            if (width, height) == (1440, 900):
+                assert listed['firstCardTop'] <= FIRST_CONTENT_LIMIT, listed
+            page.screenshot(path=str(EVIDENCE / f'kochbuecher-regular-{label}.png'), full_page=True)
 
             page.goto(cookbook_server['base'] + '/admin/kochbuecher?q=KeinTreffer')
-            expect(page.get_by_text('Keine passenden Kochbücher', exact=True)).to_be_visible()
+            no_match = page.locator('.empty[data-empty-kind="no_match"]')
+            expect(no_match.get_by_text('Keine passenden Kochbücher', exact=True)).to_be_visible()
+            expect(no_match.get_by_role('link', name='Suche zurücksetzen', exact=True)).to_be_visible()
             expect(page.locator('details#cookbook-create')).to_be_visible()
+            expect(page.locator('details#cookbook-create')).not_to_have_attribute('open', '')
             _assert_page_width(page, width)
-            page.screenshot(
-                path=str(EVIDENCE / f'kochbuecher-empty-{label}.png'), full_page=True,
-            )
+            page.screenshot(path=str(EVIDENCE / f'kochbuecher-empty-{label}.png'), full_page=True)
 
             page.goto(cookbook_server['base'] + path)
             expect(page.get_by_role('heading', level=2, name='Rezept-Zuordnung')).to_be_visible()
@@ -214,19 +373,36 @@ def test_cookbook_list_and_editor_follow_task_hierarchy_at_all_viewports(
             expect(assignment).to_be_visible()
             assert 'btn-primary' not in (assignment.get_attribute('class') or '').split()
             assert page.locator('.btn-primary:visible').count() == 1
+            expect(page.get_by_label('Position 1', exact=True)).to_have_value('1')
+            expect(page.get_by_label('Rezept 1', exact=True)).to_have_value(cookbook_server['first'])
+            expect(page.get_by_role('link', name='Alpha öffnen', exact=True)).to_be_visible()
+            expect(page.get_by_role('link', name='Archivieren', exact=True)).to_be_visible()
             _assert_page_width(page, width)
             _assert_core_controls(page)
-            page.screenshot(
-                path=str(EVIDENCE / f'kochbuch-editor-regular-{label}.png'), full_page=True,
-            )
+            editor = page.evaluate(DENSITY_METRICS)
+            assert not editor['overflow'] and len(editor['assignmentRows']) == 4, editor
+            if width >= 992:
+                assert max(editor['assignmentRows']) <= ROW_HEIGHT_LIMIT, editor
+            if (width, height) == (1440, 900):
+                assert editor['firstFieldLabelTop'] <= FIRST_CONTENT_LIMIT, editor
+            page.screenshot(path=str(EVIDENCE / f'kochbuch-editor-regular-{label}.png'), full_page=True)
+
+            page.goto(cookbook_server['base'] + long_path)
+            expect(page.get_by_role('heading', level=1)).to_have_text(LONG_NAME)
+            expect(page.locator('#cookbook-description')).to_have_value(LONG_DESCRIPTION)
+            long_editor = page.evaluate(DENSITY_METRICS)
+            assert not long_editor['overflow'] and not long_editor['headingOverflow'], long_editor
+            page.screenshot(path=str(EVIDENCE / f'kochbuch-editor-long-{label}.png'), full_page=True)
+            metrics[label] = {'list': listed, 'editor': editor, 'long_editor': long_editor}
         finally:
             context.close()
+    (EVIDENCE / 'density-metrics.json').write_text(json.dumps(metrics, ensure_ascii=False, indent=2))
 
 
 @pytest.mark.parametrize('javascript', [False, True])
 def test_cookbook_native_posts_keep_targets_and_payloads(cookbook_server, browser, javascript):  # noqa: F811
     path = _create_book(cookbook_server, f'Vertrag {javascript}')
-    context = _context(browser, cookbook_server, 1366, 768, javascript=javascript)
+    context = _context(browser, cookbook_server, 1440, 900, javascript=javascript)
     page = context.new_page()
     try:
         page.goto(cookbook_server['base'] + path)
@@ -261,7 +437,7 @@ def test_cookbook_native_posts_keep_targets_and_payloads(cookbook_server, browse
 def test_cookbook_header_conflict_is_visible_and_preserves_input(cookbook_server, browser):  # noqa: F811
     path = _create_book(cookbook_server, 'Konfliktbuch')
     EVIDENCE.mkdir(parents=True, exist_ok=True)
-    for index, (width, height, label) in enumerate(VIEWPORTS):
+    for index, (width, height, label) in enumerate(VIEWPORTS[:4]):
         context = _context(browser, cookbook_server, width, height)
         page = context.new_page()
         try:
@@ -286,3 +462,138 @@ def test_cookbook_header_conflict_is_visible_and_preserves_input(cookbook_server
             )
         finally:
             context.close()
+
+
+def _tab_to(page, target, limit: int = 12) -> None:
+    for _ in range(limit):
+        if target.evaluate('el => el === document.activeElement'):
+            return
+        page.keyboard.press('Tab')
+    raise AssertionError('keyboard focus never reached the target control')
+
+
+def _focus_ring(control) -> dict:
+    ring = control.evaluate('''el => {
+      const style = getComputedStyle(el);
+      return {outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth, boxShadow: style.boxShadow};
+    }''')
+    assert (ring['outlineStyle'] != 'none' and ring['outlineWidth'] != '0px') or ring['boxShadow'] != 'none', ring
+    return ring
+
+
+@pytest.mark.parametrize('width,height,label', [(1440, 900, '1440x900'), (390, 844, '390x844')])
+def test_cookbook_pages_work_without_javascript_and_by_keyboard(
+    cookbook_server, browser, width, height, label,  # noqa: F811
+):
+    name = f'Tastaturbuch {label}'
+    path = _create_book(cookbook_server, name)
+    _assign(cookbook_server, path, [cookbook_server['second']])
+    EVIDENCE.mkdir(parents=True, exist_ok=True)
+    context = _context(browser, cookbook_server, width, height, javascript=False)
+    page = context.new_page()
+    try:
+        page.goto(cookbook_server['base'] + '/admin/kochbuecher')
+        edit = page.get_by_role('link', name=f'{name} bearbeiten', exact=True)
+        assert _icon_control(edit) == (f'{name} bearbeiten', 'Bearbeiten')
+        page.get_by_label('Kochbuch suchen', exact=True).focus()
+        _tab_to(page, page.get_by_label('Archivierte einschliessen', exact=True))
+        _tab_to(page, page.get_by_role('button', name='Suchen', exact=True))
+        _tab_to(page, page.get_by_role('link', name='Suche zurücksetzen', exact=True))
+        _tab_to(page, edit)
+        expect(edit).to_be_focused()
+        rings = {'row-action': _focus_ring(edit)}
+        summary = page.locator('details#cookbook-create > summary')
+        summary.focus()
+        page.keyboard.press('Enter')
+        expect(page.locator('details#cookbook-create')).to_have_attribute('open', '')
+        expect(page.get_by_role('link', name='Kochbuch anlegen', exact=True)).to_be_visible()
+        assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 1')
+        page.screenshot(path=str(EVIDENCE / f'kochbuecher-nojs-{label}.png'), full_page=True)
+
+        page.goto(cookbook_server['base'] + path)
+        expect(page.get_by_label('Name', exact=True)).to_be_visible()
+        expect(page.locator('#cookbook-description')).to_be_visible()
+        expect(page.get_by_role('button', name='Kochbuch speichern', exact=True)).to_be_visible()
+        expect(page.get_by_role('button', name='Zuordnung speichern', exact=True)).to_be_visible()
+        position = page.get_by_label('Position 1', exact=True)
+        position.focus()
+        position.fill('5')
+        page.keyboard.press('Tab')
+        expect(page.get_by_label('Rezept 1', exact=True)).to_be_focused()
+        page.keyboard.press('Tab')
+        open_recipe = page.get_by_role('link', name='Beta öffnen', exact=True)
+        expect(open_recipe).to_be_focused()
+        assert _icon_control(open_recipe) == ('Beta öffnen', 'Rezept öffnen')
+        rings['recipe-link'] = _focus_ring(open_recipe)
+        expect(position).to_have_value('5')
+        assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 1')
+        page.screenshot(path=str(EVIDENCE / f'kochbuch-editor-nojs-{label}.png'), full_page=True)
+        (EVIDENCE / f'focus-rings-{label}.json').write_text(json.dumps(rings, indent=2))
+    finally:
+        context.close()
+
+
+def _native_viewport_capture(page, destination: Path) -> dict:
+    """Capture the native (zoomed) viewport via CDP, like the verified shell zoom evidence.
+
+    A beyond-viewport capture lays out hidden <details> children in Chromium, so the
+    list page with its create disclosure is captured viewport by viewport instead.
+    """
+    cdp = page.context.new_cdp_session(page)
+    try:
+        layout = cdp.send('Page.getLayoutMetrics')
+        png = base64.b64decode(cdp.send('Page.captureScreenshot', {
+            'format': 'png', 'captureBeyondViewport': False,
+        })['data'], validate=True)
+    finally:
+        cdp.detach()
+    destination.write_bytes(png)
+    assert png[:8] == b'\x89PNG\r\n\x1a\n' and png[12:16] == b'IHDR'
+    width, height = struct.unpack('>II', png[16:24])
+    outer_width, visual_height = page.evaluate('[outerWidth, visualViewport.height]')
+    assert width == outer_width and height == round(visual_height * 2), (width, height, outer_width, visual_height)
+    return {'layout': layout, 'png': {'width': width, 'height': height}}
+
+
+def test_real_browser_zoom_keeps_cookbook_rows_and_labels(cookbook_server, browser, tmp_path):  # noqa: F811
+    path = _create_book(cookbook_server, 'Zoombuch')
+    _assign(cookbook_server, path, [cookbook_server['first']])
+    EVIDENCE.mkdir(parents=True, exist_ok=True)
+    base, cookie = cookbook_server['base'], cookbook_server['cookie']
+    with TemporaryDirectory(prefix='cookbook-native-zoom-', dir=tmp_path) as profile:
+        with browser.browser_type.launch_persistent_context(
+            profile, channel='chromium', headless=True, no_viewport=True, base_url=base,
+            locale='de-CH', timezone_id='Europe/Zurich', reduced_motion='reduce',
+            args=['--no-sandbox', '--disable-dev-shm-usage', '--window-size=1440,900'],
+        ) as context:
+            page = context.pages[0]
+            page.goto('chrome://settings/appearance')
+            page.evaluate('new Promise(resolve => chrome.settingsPrivate.setDefaultZoom(2, resolve))')
+            assert page.evaluate('new Promise(resolve => chrome.settingsPrivate.getDefaultZoom(resolve))') == 2
+            context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+            cdp = context.new_cdp_session(page)
+            proof = {}
+            for name, route in (('list', '/admin/kochbuecher'), ('editor', path)):
+                page.goto(base + route)
+                layout = cdp.send('Page.getLayoutMetrics')
+                assert layout['cssVisualViewport']['zoom'] == 2, layout
+                assert page.evaluate('[innerWidth, outerWidth, devicePixelRatio]') == [720, 1440, 2]
+                assert page.evaluate('getComputedStyle(document.documentElement).zoom') == '1'
+                assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 1')
+                _assert_core_controls(page)
+                if name == 'list':
+                    expect(page.get_by_role('link', name='Zoombuch bearbeiten', exact=True)).to_be_visible()
+                    expect(page.get_by_text('1 Rezept', exact=True)).to_be_visible()
+                else:
+                    expect(page.get_by_role('button', name='Kochbuch speichern', exact=True)).to_be_visible()
+                    expect(page.get_by_role('button', name='Zuordnung speichern', exact=True)).to_be_visible()
+                    expect(page.get_by_role('link', name='Alpha öffnen', exact=True)).to_be_visible()
+                    expect(page.get_by_role('link', name='Archivieren', exact=True)).to_be_visible()
+                captures = {'top': _native_viewport_capture(page, EVIDENCE / f'native-200-{name}.png')}
+                if name == 'editor':
+                    page.locator('#cookbook-recipes-title').scroll_into_view_if_needed()
+                    captures['assignment'] = _native_viewport_capture(
+                        page, EVIDENCE / f'native-200-{name}-assignment.png',
+                    )
+                proof[name] = {'layout': layout, 'captures': captures, 'metrics': page.evaluate(DENSITY_METRICS)}
+            (EVIDENCE / 'native-200.cdp.json').write_text(json.dumps(proof, indent=2))
