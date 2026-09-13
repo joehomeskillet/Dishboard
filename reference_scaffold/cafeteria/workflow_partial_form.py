@@ -12,6 +12,7 @@ from .operations_settings import normalise_time
 from .menu_template_binding import TemplateBindingValidationError, validate_template_fields
 from .component_assignment_contract import AssignmentValidationError, normalize_assignments
 from .workflow import (
+    ACCOMPANIMENT_CODES,
     MENU_TYPES,
     PROFILE_DAYS,
     PROFILE_MEALS,
@@ -444,7 +445,7 @@ def parse_menu_item_form(
     }
     if 'accompaniment' in form:
         accompaniment = _scalar(form, 'accompaniment')
-        if accompaniment not in {'none', 'soup', 'salad'}:
+        if accompaniment not in ACCOMPANIMENT_CODES:
             raise _item_error(
                 context,
                 'Beilage muss Keine, Suppe oder Salat (gemischt und grün) sein.',

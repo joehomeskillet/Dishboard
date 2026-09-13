@@ -109,6 +109,8 @@ def _service_times(payload: Mapping[str, object]) -> tuple[str | None, str | Non
 
 
 def _validate_item(scope: AdminScope, payload: Mapping[str, object]) -> None:
+    from .workflow import ACCOMPANIMENT_CODES
+
     optional = {'dish_template_public_id', 'dish_template_detach', 'accompaniment_code'}
     _exact({key: value for key, value in payload.items() if key not in optional},
            _STAFF_KEYS if scope.profile_code == 'staff_guest' else _PATIENT_KEYS, 'Menü')
@@ -117,7 +119,7 @@ def _validate_item(scope: AdminScope, payload: Mapping[str, object]) -> None:
         'accompaniment_code' in payload
         and (
             type(payload['accompaniment_code']) is not str
-            or payload['accompaniment_code'] not in {'none', 'soup', 'salad'}
+            or payload['accompaniment_code'] not in ACCOMPANIMENT_CODES
         )
     ):
         raise PartialWorkflowValidationError('Beilagenwahl ist ungültig.')

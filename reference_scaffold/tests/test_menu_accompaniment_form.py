@@ -1,19 +1,75 @@
 from __future__ import annotations
 
+# Imported fixtures are intentionally exposed to pytest in this module.
+# ruff: noqa: F401, F811
+
 from contextlib import contextmanager
 from datetime import date
+import json
 from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
 from flask import Flask
+from sqlalchemy import Engine, text
+from werkzeug.datastructures import MultiDict
 
 from cafeteria.admin import workflow_routes
 from cafeteria.admin.rendering import _cells, menu_form_values
 from cafeteria.workflow import WorkflowValidationError, _validate_values
 from cafeteria.workflow_partial_form import parse_menu_item_form
+from cafeteria.workflow_store import load_draft_connection
+from test_admin_workflow_routes import (
+    DAY,
+    _hidden,
+    _login,
+    _menu_form as _route_menu_form,
+    _scope as _route_scope,
+)
+from test_menu_template_binding_routes import proposal, proposal_form
+from test_rendered_ui import admin_app, admin_engine  # noqa: F401
 from test_workflow_form import _menu_form
 from test_workflow_partial_store_db import _full_values
+
+
+def _template_v32(
+    engine: Engine,
+    actor_id: int,
+    accompaniment_default: str,
+    previous: dict[str, object] | None = None,
+) -> dict[str, object]:
+    scope = _route_scope(engine, actor_id)
+    statement = text(
+        "SELECT cafeteria.update_dish_template_v32("
+        ":actor,:authz,:location,CAST(:target AS uuid),"
+        "CAST(:expected AS timestamptz),CAST(:payload AS jsonb))"
+        if previous
+        else "SELECT cafeteria.create_dish_template_v32("
+        ":actor,:authz,:location,CAST(:target AS uuid),"
+        "CAST(:expected AS timestamptz),CAST(:payload AS jsonb))"
+    )
+    payload = {
+        "menu_type_code": "MENU_1",
+        "profile_scope": "common",
+        "title": "Rösti",
+        "description": "Mit Gemüse",
+        "recipe_public_id": None,
+        "accompaniment_default": accompaniment_default,
+    }
+    with engine.begin() as connection:
+        result = connection.execute(
+            statement,
+            {
+                "actor": actor_id,
+                "authz": scope.expected_authz_version,
+                "location": scope.location_id,
+                "target": previous["public_id"] if previous else None,
+                "expected": previous["updated_at"] if previous else None,
+                "payload": json.dumps(payload),
+            },
+        ).scalar_one()
+    assert isinstance(result, dict)
+    return result
 
 
 @pytest.mark.parametrize("code", ["none", "soup", "salad"])
@@ -105,6 +161,113 @@ def test_invalid_form_redisplay_retains_accompaniment() -> None:
 
     assert values["title"] == "Eigene Eingabe"
     assert values["accompaniment"] == "both"
+
+
+def test_invalid_accompaniment_route_returns_400_with_entered_values(
+    admin_app: Flask,
+    admin_engine: Engine,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client, _actor_id = _login(admin_app, admin_engine, ["Cafeteria.Admin"])
+    action = "/admin/patienten/menu"
+    page = client.get(f"{action}?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1")
+    csrf = _hidden(page.text, "_csrf", form_action=action)
+    captured: dict[str, object] = {}
+    render_menu_page = workflow_routes._render_menu_page
+
+    def capture_render(*args: object, **kwargs: object):
+        captured.update(kwargs)
+        return render_menu_page(*args, **kwargs)
+
+    monkeypatch.setattr(workflow_routes, "_render_menu_page", capture_render)
+    response = client.post(
+        action,
+        data=_route_menu_form(
+            _csrf=csrf,
+            title="Erhaltene Eingabe",
+            accompaniment="both",
+        ),
+    )
+
+    assert response.status_code == 400
+    assert captured["form_values"]["title"] == "Erhaltene Eingabe"
+    assert captured["form_values"]["accompaniment"] == "both"
+    assert captured["form_errors"] == {
+        "accompaniment": (
+            "Montag, Mittag, Menü 1: Beilage muss Keine, Suppe "
+            "oder Salat (gemischt und grün) sein."
+        )
+    }
+
+
+def test_duplicate_accompaniment_route_field_returns_400_without_write(
+    admin_app: Flask,
+    admin_engine: Engine,
+) -> None:
+    client, _actor_id = _login(admin_app, admin_engine, ["Cafeteria.Admin"])
+    action = "/admin/patienten/menu"
+    page = client.get(f"{action}?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1")
+    csrf = _hidden(page.text, "_csrf", form_action=action)
+    form = MultiDict(_route_menu_form(_csrf=csrf, accompaniment="soup"))
+    form.add("accompaniment", "salad")
+
+    response = client.post(action, data=form)
+
+    assert response.status_code == 400
+    with admin_engine.connect() as connection:
+        assert connection.execute(
+            text("SELECT count(*) FROM cafeteria.menu_items")
+        ).scalar_one() == 0
+
+
+def test_template_proposal_route_saves_explicit_none_over_salad_default(
+    admin_app: Flask,
+    admin_engine: Engine,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client, actor_id = _login(admin_app, admin_engine, ["Cafeteria.Admin"])
+    template = _template_v32(admin_engine, actor_id, "salad")
+    _source, token, url = proposal(admin_app, admin_engine, actor_id, template)
+    captured: list[dict[str, object]] = []
+    project_values = workflow_routes.menu_form_values
+
+    def capture_values(profile: str, option: dict[str, object]) -> dict[str, object]:
+        values = project_values(profile, option)
+        captured.append(values)
+        return values
+
+    monkeypatch.setattr(workflow_routes, "menu_form_values", capture_values)
+    form = proposal_form(client, url, token, template)
+
+    assert captured[-1]["accompaniment"] == "salad"
+    form["accompaniment"] = "none"
+    assert client.post("/admin/patienten/menu", data=form).status_code == 303
+
+    with admin_engine.connect() as connection:
+        draft = load_draft_connection(connection, "patient", date.fromisoformat(DAY))
+    option = draft["days"][0]["services"][0]["options"][0]
+    assert option["accompaniment_code"] == "none"
+    assert option["accompaniment_name"] == ""
+
+
+def test_template_default_change_after_proposal_returns_409_without_menu_write(
+    admin_app: Flask,
+    admin_engine: Engine,
+) -> None:
+    client, actor_id = _login(admin_app, admin_engine, ["Cafeteria.Admin"])
+    template = _template_v32(admin_engine, actor_id, "salad")
+    _source, token, url = proposal(admin_app, admin_engine, actor_id, template)
+    form = proposal_form(client, url, token, template)
+    form["accompaniment"] = "none"
+
+    _template_v32(admin_engine, actor_id, "soup", previous=template)
+    response = client.post("/admin/patienten/menu", data=form)
+
+    assert response.status_code == 409
+    with admin_engine.connect() as connection:
+        assert connection.execute(
+            text("SELECT count(*) FROM cafeteria.menu_items")
+        ).scalar_one() == 0
 
 
 def test_template_proposal_prefills_accompaniment_without_overriding_later_form_value(

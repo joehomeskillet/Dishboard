@@ -678,7 +678,9 @@ def test_load_projection_hides_internal_fields_and_full_import_is_safe(
     assert set(option) == {
         'type_code', 'external_id', 'title', 'description', 'components',
         'labels', 'allergens', 'origins', 'note', 'allergen_review_status',
+        'accompaniment_code',
     }
+    assert 'accompaniment_name' not in option
     assert 'assignments' not in option and 'allergen_mode' not in option
 
     before = _week_state(db)

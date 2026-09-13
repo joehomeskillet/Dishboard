@@ -654,17 +654,11 @@ def menu_post(family: str):
                 source = next(iter(lock_templates(connection, scope, [context.template_public_id]).values()))
                 require_template_source(source, scope, context)
                 proposal_title = source['title']
-        if context is None:
-            version = persist_menu_item(
-                _db(), scope, parsed.week_start, parsed.day, parsed.meal,
-                parsed.option, parsed.payload, parsed.expected_item_row_version,
-            )
-        else:
-            version = persist_menu_item(
-                _db(), scope, parsed.week_start, parsed.day, parsed.meal,
-                parsed.option, parsed.payload, parsed.expected_item_row_version,
-                template_context=context,
-            )
+        version = persist_menu_item(
+            _db(), scope, parsed.week_start, parsed.day, parsed.meal,
+            parsed.option, parsed.payload, parsed.expected_item_row_version,
+            template_context=context,
+        )
     except DBAPIError as error:
         if (getattr(error.orig, 'sqlstate', None) != '23514'
                 or getattr(getattr(error.orig, 'diag', None), 'constraint_name', None)
