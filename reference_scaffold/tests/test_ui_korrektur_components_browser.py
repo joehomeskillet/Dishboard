@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
+from tempfile import TemporaryDirectory
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
@@ -12,6 +14,7 @@ from werkzeug.datastructures import MultiDict
 from test_admin_workflow_routes import DATABASE_URL
 from test_component_catalog_browser import _assert_component_controls_fit, catalog_page  # noqa: F401
 from test_rendered_ui import admin_app, admin_engine, browser  # noqa: F401
+from test_recipe_freeze_v2_browser import native_full_page_capture
 
 pytestmark = pytest.mark.skipif(
     not DATABASE_URL,
@@ -19,12 +22,15 @@ pytestmark = pytest.mark.skipif(
 )
 
 ROOT = Path(__file__).resolve().parents[2]
-EVIDENCE = ROOT / '.claude' / 'evidence' / 'ui-korrektur-0912' / 'components'
+EVIDENCE = ROOT / '.claude' / 'evidence' / 'density-components-0913' / 'after'
 VIEWPORTS = (
-    (1366, 768),
+    (1440, 900),
+    (1024, 768),
     (1920, 1080),
+    (2560, 1440),
     (768, 1024),
     (390, 844),
+    (320, 844),
 )
 
 
@@ -34,10 +40,24 @@ def _form_payload(request) -> dict[str, str]:
 
 def _shot(page: Page, route: str, state: str, width: int, height: int) -> None:
     EVIDENCE.mkdir(parents=True, exist_ok=True)
-    page.screenshot(
-        path=str(EVIDENCE / f'{route}-{state}-{width}x{height}.png'),
-        full_page=True,
-    )
+    family = page.locator('main').get_attribute('data-family') or 'template'
+    name = f'{route}-{family}-{state}-{width}x{height}'
+    metrics = page.evaluate('''() => {
+        const main = document.querySelector('main');
+        const core = document.querySelector('.component-row, #component-form [name="name"]');
+        return {viewport: [innerWidth, innerHeight], dpr: devicePixelRatio,
+            documentHeight: document.documentElement.scrollHeight,
+            documentWidth: document.documentElement.scrollWidth,
+            mainWidth: main.getBoundingClientRect().width,
+            coreY: core?.getBoundingClientRect().y, scrollY,
+            font: getComputedStyle(main).fontFamily, browser: navigator.userAgent};
+    }''')
+    (EVIDENCE / f'{name}.json').write_text(json.dumps(metrics, indent=2))
+    destination = EVIDENCE / f'{name}.png'
+    if state == 'native-zoom-200':
+        native_full_page_capture(page, destination)
+    else:
+        page.screenshot(path=str(destination), full_page=True)
 
 
 def _open_editor(page: Page, family: str) -> None:
@@ -93,7 +113,7 @@ def test_components_list_layout_and_overflow(catalog_page: Page, family: str, wi
     _shot(page, 'komponenten', 'normal', width, height)
 
     page.goto(f'{list_path}?q=kein-treffer-fuer-screenshot')
-    expect(page.get_by_text('Keine Bausteine gefunden.', exact=True)).to_be_visible()
+    expect(page.get_by_text('Keine Bausteine passen zu diesen Filtern.', exact=True)).to_be_visible()
     expect(page.get_by_text('Baustein anlegen', exact=True)).to_have_count(1)
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
     _shot(page, 'komponenten', 'leer', width, height)
@@ -113,14 +133,30 @@ def test_component_editor_layout_and_overflow(catalog_page: Page, family: str, w
 
 
 @pytest.mark.parametrize('family', ['cafeteria', 'patienten'])
-def test_components_zoom_200_percent_without_horizontal_scroll(catalog_page: Page, family: str) -> None:  # noqa: F811
-    page = catalog_page
-    page.set_viewport_size({'width': 720, 'height': 450})
-    _open_editor(page, family)
-    page.goto(f'/admin/{family}/komponenten')
-    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-    expect(page.locator('.component-row').first).to_be_visible()
-    _shot(page, 'komponenten', 'zoom-200', 720, 450)
+def test_components_zoom_200_percent_without_horizontal_scroll(catalog_page: Page, family: str, tmp_path) -> None:  # noqa: F811
+    _open_editor(catalog_page, family)
+    editor_url = catalog_page.url
+    parsed = urlsplit(editor_url)
+    base_url = f'{parsed.scheme}://{parsed.netloc}'
+    browser_instance = catalog_page.context.browser
+    with TemporaryDirectory(prefix='components-zoom-', dir=tmp_path) as profile:
+        with browser_instance.browser_type.launch_persistent_context(
+            profile, channel='chromium', headless=True, no_viewport=True,
+            reduced_motion='reduce', locale='de-CH', timezone_id='Europe/Zurich',
+            args=['--no-sandbox', '--disable-dev-shm-usage', '--window-size=1440,900'],
+        ) as context:
+            page = context.pages[0]
+            page.goto('chrome://settings/appearance')
+            page.evaluate('new Promise(resolve => chrome.settingsPrivate.setDefaultZoom(2, resolve))')
+            assert page.evaluate('new Promise(resolve => chrome.settingsPrivate.getDefaultZoom(resolve))') == 2
+            context.add_cookies(catalog_page.context.cookies())
+            for route, url in [('komponenten', base_url + f'/admin/{family}/komponenten'), ('komponente', editor_url)]:
+                assert page.goto(url).status == 200
+                assert page.evaluate('devicePixelRatio === 2 && innerWidth === 720')
+                _assert_component_controls_fit(page)
+                if route == 'komponente':
+                    expect(page.locator('[data-sticky-form]')).to_have_class('card-header admin-compact-toolbar is-static')
+                _shot(page, route, 'native-zoom-200', 720, 450)
 
 
 @pytest.mark.parametrize('family', ['cafeteria', 'patienten'])
@@ -226,3 +262,105 @@ def test_error_state_opens_create_details_and_focuses_error_region(
     expect(page.locator('.error-region a[href="#c-name"]')).to_be_visible()
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
     _shot(page, 'komponenten', 'fehler', width, height)
+
+
+@pytest.mark.parametrize('family', ['cafeteria', 'patienten'])
+@pytest.mark.parametrize('width,height', [(1440, 900), (390, 844)])
+@pytest.mark.parametrize('javascript', [True, False], ids=['js', 'nojs'])
+def test_allergen_display_preserves_native_values_and_single_save(
+    catalog_page: Page, family: str, width: int, height: int, javascript: bool,  # noqa: F811
+) -> None:
+    page = catalog_page
+    path = f'/admin/{family}/komponenten'
+    page.set_viewport_size({'width': width, 'height': height})
+    page.goto(path)
+    expect(page.get_by_text('Noch keine aktiven Bausteine.', exact=True)).to_be_visible()
+    page.locator('#create-component summary').press('Enter')
+    form = page.locator('#component-form')
+    form.locator('#c-name').fill('Allergen-Roundtrip')
+    form.locator('#c-cat').select_option('side')
+    gluten = form.locator('.allergen-row').filter(has=page.locator('[value="GLUTEN"]'))
+    expect(gluten.locator('select')).to_be_disabled()
+    expect(gluten.locator('select')).to_be_hidden()
+    expect(gluten.get_by_text('Nicht ausgewählt', exact=True)).to_be_visible()
+    gluten.locator('[name="allergen_code"]').check()
+    expect(gluten.locator('select')).to_be_visible()
+    gluten.locator('select').select_option('may_contain')
+    form.get_by_role('button', name='Baustein erstellen', exact=True).click()
+    page.wait_for_url(f'**{path}/*')
+    editor_url = page.url
+    browser_instance = page.context.browser
+    with browser_instance.new_context(
+        java_script_enabled=javascript, storage_state=page.context.storage_state(),
+        reduced_motion='reduce', viewport={'width': width, 'height': height},
+    ) as context:
+        page = context.new_page()
+        page.goto(editor_url)
+        form = page.locator('#component-form')
+        save = form.get_by_role('button', name='Baustein speichern', exact=True)
+        expect(save).to_have_count(1)
+        assert save.bounding_box()['y'] + save.bounding_box()['height'] <= height
+        gluten = form.locator('.allergen-row').filter(has=page.locator('[value="GLUTEN"]'))
+        expect(gluten.locator('select')).to_have_value('may_contain')
+        expect(gluten.locator('select')).to_be_visible()
+        gluten.locator('[name="allergen_code"]').uncheck()
+        expect(gluten.locator('select')).to_be_hidden()
+        expect(gluten.get_by_text('Nicht ausgewählt', exact=True)).to_be_visible()
+        expect(gluten.locator('.component-allergen-disabled')).to_be_hidden()
+        if javascript:
+            expect(gluten.locator('select')).to_be_disabled()
+        else:
+            expect(gluten.locator('select')).to_be_enabled()
+        gluten.locator('[name="allergen_code"]').check()
+        expect(gluten.locator('select')).to_have_value('may_contain')
+        expect(gluten.locator('select')).to_be_visible()
+        expect(gluten.get_by_text('Nicht ausgewählt', exact=True)).to_be_hidden()
+        milk = form.locator('.allergen-row').filter(has=page.locator('[value="MILK"]'))
+        expect(milk.locator('select')).to_be_disabled()
+        milk.locator('[name="allergen_code"]').check()
+        expect(milk.get_by_text('Nicht ausgewählt', exact=True)).to_be_hidden()
+        if javascript:
+            expect(milk.locator('select')).to_be_enabled()
+            expect(milk.locator('select')).to_be_visible()
+            expect(milk.locator('.component-allergen-disabled')).to_be_hidden()
+        else:
+            expect(milk.locator('select')).to_be_disabled()
+            expect(milk.locator('select')).to_be_hidden()
+            expect(milk.locator('.component-allergen-disabled')).to_have_text(
+                'Ausgewählt – Präsenz mit JavaScript festlegen.')
+            expect(milk.locator('.component-allergen-disabled')).to_be_visible()
+            # The existing No-JS disabled-control limit is unchanged, not bypassed.
+            values = form.evaluate('form => { const data = new FormData(form); return '
+                '{codes: data.getAll("allergen_code"), presence: data.getAll("allergen_presence")}; }')
+            assert set(values['codes']) == {'GLUTEN', 'MILK'}
+            assert values['presence'] == ['may_contain']
+        milk.locator('[name="allergen_code"]').uncheck()
+        expect(milk.locator('select')).to_be_hidden()
+        expect(milk.get_by_text('Nicht ausgewählt', exact=True)).to_be_visible()
+        expect(milk.locator('.component-allergen-disabled')).to_be_hidden()
+        # A disclosure is never a submit or reset, including without JavaScript.
+        version = form.locator('[name="row_version"]').input_value()
+        page.get_by_text('Wirkung zentraler Änderungen', exact=True).press('Enter')
+        page.get_by_text('Wirkung zentraler Änderungen', exact=True).press('Enter')
+        expect(form.locator('[name="row_version"]')).to_have_value(version)
+        expect(gluten.locator('select')).to_have_value('may_contain')
+        form.locator('#c-name').fill('Allergen-Roundtrip bearbeitet')
+        with page.expect_request(lambda request: request.method == 'POST') as saved:
+            save.click()
+        payload = parse_qs(saved.value.post_data or '')
+        assert payload['allergen_code'] == ['GLUTEN']
+        assert payload['allergen_presence'] == ['may_contain']
+        assert payload['_csrf'] and payload['row_version'] == [version]
+        expect(page.locator('h1')).to_have_text('Allergen-Roundtrip bearbeitet')
+        expect(page.locator('#edit-presence-GLUTEN')).to_have_value('may_contain')
+        assert page.locator('.component-allergens .allergen-row').evaluate_all('''rows => rows.every(row => {
+            const name = row.querySelector('.form-check').getBoundingClientRect();
+            const input = row.querySelector('.component-allergen-presence').getBoundingClientRect();
+            return name.right <= input.left + 1 || name.bottom <= input.top + 1;
+        })''')
+        if width < 768:
+            selection = page.locator('#edit-presence-GLUTEN').bounding_box()
+            assert selection['width'] >= form.bounding_box()['width'] - 96
+        page.evaluate('scrollTo(0, 0)')
+        _assert_component_controls_fit(page)
+        _shot(page, 'komponente', f'allergen-js{javascript}', width, height)
