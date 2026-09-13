@@ -1,6 +1,5 @@
 {# iso-codes 4.20.1, German catalogue; LGPL-2.1-or-later. See docs/design/country-select-source.md. #}
 {% from 'admin/_macros.html' import select %}
-{% macro country_select(name, value, id, required=false, error=none, empty_label='Nicht erfasst', include_unknown=false, label='') -%}
 {% set countries = {
   "AF": "Afghanistan",
   "AL": "Albanien",
@@ -252,6 +251,7 @@
   "CF": "Zentralafrikanische Republik",
   "CY": "Zypern",
 } %}
+{% macro country_select(name, value, id, required=false, error=none, empty_label='Nicht erfasst', include_unknown=false, label='') -%}
 {% set selected = value if value is not none else "" %}
 {% call select(name, label, value=selected, id=id, required=required, error=error) %}
   <option value=""{% if not selected %} selected{% endif %}>{{ empty_label }}</option>

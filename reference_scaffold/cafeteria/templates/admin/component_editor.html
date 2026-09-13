@@ -115,6 +115,7 @@
               <div class="d-flex align-items-center gap-2">{{ symbol('allergens', allergen.code, true) }}{{ checkbox('allergen_code', allergen.name|default(allergen.code), value=allergen.code, checked=idx >= 0, id='edit-allergen-' ~ allergen.code) }}</div>
               <div class="component-allergen-presence">
                 <span class="component-allergen-unselected text-secondary">Nicht ausgewählt</span>
+                <span class="component-allergen-disabled text-secondary">Ausgewählt – Präsenz mit JavaScript festlegen.</span>
                 <label class="form-label" for="edit-presence-{{ allergen.code }}">Präsenz</label>
                 <select class="form-select" id="edit-presence-{{ allergen.code }}" name="allergen_presence" aria-label="Präsenz für {{ allergen.name|default(allergen.code) }}"{% if idx < 0 %} disabled{% endif %}>
                   <option value="contains"{% if presence == 'contains' %} selected{% endif %}>enthält</option>

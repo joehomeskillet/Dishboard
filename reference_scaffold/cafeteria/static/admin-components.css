@@ -14,8 +14,11 @@
 .component-allergens .form-check { margin: 0; flex: 1; overflow-wrap: anywhere; }
 .component-allergen-presence { min-width: 0; }
 .component-allergen-presence:has(select:disabled) :is(select, label),
-.component-allergen-presence:has(select:enabled) .component-allergen-unselected { display: none; }
-.component-allergen-unselected { font-size: var(--app-font-size-label); }
+.component-allergens .allergen-row:not(:has([name="allergen_code"]:checked)) .component-allergen-presence :is(select, label),
+.component-allergens .allergen-row:has([name="allergen_code"]:checked) .component-allergen-unselected,
+.component-allergen-disabled { display: none; }
+.component-allergens .allergen-row:has([name="allergen_code"]:checked) .component-allergen-presence:has(select:disabled) .component-allergen-disabled { display: block; }
+.component-allergen-unselected, .component-allergen-disabled { font-size: var(--app-font-size-label); }
 .component-allergen-presence .form-label { margin-bottom: var(--app-space-1); }
 .component-status-item dt .icon { width: var(--app-space-4); height: var(--app-space-4); vertical-align: text-bottom; }
 .component-filter-actions { min-height: var(--app-space-12); }
@@ -58,5 +61,5 @@
   .component-edit-link { width: 100%; }
 }
 @media (max-width: 767.98px) {
-  .component-allergens .allergen-row:has(select:enabled) { grid-template-columns: minmax(0, 1fr); }
+  .component-allergens .allergen-row:has([name="allergen_code"]:checked) { grid-template-columns: minmax(0, 1fr); }
 }

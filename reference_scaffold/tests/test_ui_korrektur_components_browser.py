@@ -303,12 +303,41 @@ def test_allergen_display_preserves_native_values_and_single_save(
         gluten = form.locator('.allergen-row').filter(has=page.locator('[value="GLUTEN"]'))
         expect(gluten.locator('select')).to_have_value('may_contain')
         expect(gluten.locator('select')).to_be_visible()
+        gluten.locator('[name="allergen_code"]').uncheck()
+        expect(gluten.locator('select')).to_be_hidden()
+        expect(gluten.get_by_text('Nicht ausgewählt', exact=True)).to_be_visible()
+        expect(gluten.locator('.component-allergen-disabled')).to_be_hidden()
         if javascript:
-            gluten.locator('[name="allergen_code"]').uncheck()
             expect(gluten.locator('select')).to_be_disabled()
-            expect(gluten.locator('select')).to_be_hidden()
-            gluten.locator('[name="allergen_code"]').check()
-            expect(gluten.locator('select')).to_have_value('may_contain')
+        else:
+            expect(gluten.locator('select')).to_be_enabled()
+        gluten.locator('[name="allergen_code"]').check()
+        expect(gluten.locator('select')).to_have_value('may_contain')
+        expect(gluten.locator('select')).to_be_visible()
+        expect(gluten.get_by_text('Nicht ausgewählt', exact=True)).to_be_hidden()
+        milk = form.locator('.allergen-row').filter(has=page.locator('[value="MILK"]'))
+        expect(milk.locator('select')).to_be_disabled()
+        milk.locator('[name="allergen_code"]').check()
+        expect(milk.get_by_text('Nicht ausgewählt', exact=True)).to_be_hidden()
+        if javascript:
+            expect(milk.locator('select')).to_be_enabled()
+            expect(milk.locator('select')).to_be_visible()
+            expect(milk.locator('.component-allergen-disabled')).to_be_hidden()
+        else:
+            expect(milk.locator('select')).to_be_disabled()
+            expect(milk.locator('select')).to_be_hidden()
+            expect(milk.locator('.component-allergen-disabled')).to_have_text(
+                'Ausgewählt – Präsenz mit JavaScript festlegen.')
+            expect(milk.locator('.component-allergen-disabled')).to_be_visible()
+            # The existing No-JS disabled-control limit is unchanged, not bypassed.
+            values = form.evaluate('form => { const data = new FormData(form); return '
+                '{codes: data.getAll("allergen_code"), presence: data.getAll("allergen_presence")}; }')
+            assert set(values['codes']) == {'GLUTEN', 'MILK'}
+            assert values['presence'] == ['may_contain']
+        milk.locator('[name="allergen_code"]').uncheck()
+        expect(milk.locator('select')).to_be_hidden()
+        expect(milk.get_by_text('Nicht ausgewählt', exact=True)).to_be_visible()
+        expect(milk.locator('.component-allergen-disabled')).to_be_hidden()
         # A disclosure is never a submit or reset, including without JavaScript.
         version = form.locator('[name="row_version"]').input_value()
         page.get_by_text('Wirkung zentraler Änderungen', exact=True).press('Enter')
