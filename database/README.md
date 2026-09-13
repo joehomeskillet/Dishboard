@@ -1,6 +1,6 @@
 # PostgreSQL-Datenmodell
 
-Schema-Version 31 modelliert zwei getrennte Angebotsprofile:
+Schema-Version 32 modelliert zwei getrennte Angebotsprofile:
 
 | Profil | Zeitraum | Mahlzeiten | Kosteninformationen |
 |---|---|---|---|
@@ -64,8 +64,27 @@ Der `actor-identifier` wird gegen den aktiven Benutzernamen, die E-Mail-Adresse 
 21. `0021_v23_to_v24.sql` (24): kanonische Capability-Restore-Guards für PostgreSQL 16 und 18; keine Datenänderung und kein Secret-Reset während der Migration.
 22. `0022_v24_to_v25.sql` (25): begrenzte Authentifizierungsereignisse über die Auth-Issuer-Funktion; vorhandene Audit-Historie bleibt unverändert.
 23. `0023_v25_to_v26.sql` (26): optionale Zutaten-/Rezeptbindungen mit Standortprüfung, feste Actor-/Sperr-/Audit- und Gerichtvorlagenbefehle; interne DTO-Voraussetzung ohne Freischaltung alter Writer.
+24. `0024_v26_to_v27.sql` (27): vorbereitete Zutaten, Vollständigkeitsprüfung und gesperrte Rezeptgraphen.
+25. `0025_v27_to_v28.sql` (28): Rezeptimport-Batches und Kandidaten mit begrenzten Writer-Verben.
+26. `0026_v28_to_v29.sql` (29): atomarer Rezeptimport-Commit mit unveränderlichen Ergebnissen.
+27. `0027_v29_to_v30.sql` (30): explizite API-Kanäle und enges Schlüssel-Writer-Verb.
+28. `0028_v30_to_v31.sql` (31): Sperre des ursprünglichen Quellrezepts für Menüvorschläge.
+29. `0029_v31_to_v32.sql` (32): additive Beilagenwerte für Menüpositionen und Gerichtvorlagen sowie Vorlagen-Verben v32.
 
 Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0020` bleiben beim Upgrade auf v24 byteidentisch. `schema.sql` beschreibt den aktuellen v24-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
+
+Schema v32 ergänzt `menu_items.accompaniment` und
+`dish_templates.accompaniment_default` mit dem Standard `none` und der festen
+Wertemenge `none`, `soup`, `salad`. Bestehende Zeilen werden durch den
+Spaltenstandard ohne separates Backfill als «keine Beilage» gelesen; frühere
+Migrationsbytes, Publikationsrevisionen, Trigger und Indizes bleiben unverändert.
+Die Anwendung erhält für Gerichtvorlagen nur Leserecht und `EXECUTE` auf
+`create_dish_template_v32` beziehungsweise `update_dish_template_v32`; das
+private Mutationsverb und direkte Tabellenwrites bleiben gesperrt. Die v26-Verben
+bleiben als Altclient- und Rollback-Pfad erhalten und überschreiben den neuen Wert
+nicht. Ein v31-App-Rollback auf dem v32-Schema ist dank Defaults möglich. Enthält
+eine publizierte Revision bereits eine Beilage, muss sie vor dem Rollback
+zurückgezogen oder der Validator als Forward-Fix weitergeführt werden (I10).
 
 Schema v24 prüft und repariert den kanonischen Katalogzustand der beim Backup ausgelassenen Capability-Tabellen auf PostgreSQL 16 und 18, einschliesslich der auf PostgreSQL 18 separat katalogisierten NOT-NULL-Constraints. Abweichende Constraint-, Identity-Sequenz- oder Aktivindexzustände brechen fail-closed ab; die Owner-Funktion entzieht weiterhin den ausgeschlossenen Rollen sämtliche Rechte auf die Tabellen und ihre Sequenz. Die Migration v23→24 setzt keine Secrets zurück; der ausdrückliche Hard-Reset bleibt Teil des Restore-Lebenszyklus bei gestoppten Writern.
 

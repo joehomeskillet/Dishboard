@@ -95,13 +95,20 @@ def test_upgrade_preserves_all_existing_rows_and_fresh_schema_contract(pg16):  #
     database.run_migrations(pg16, SCHEMA)
     database._execute_script(pg16, str(PERMISSIONS))
     database._execute_script(pg16, str(PERMISSIONS))
-    new_columns = {'menu_components': 'food_id', 'menu_item_components': 'recipe_revision_id', 'dish_templates': 'recipe_id'}
+    new_columns = {
+        'menu_components': ('food_id',),
+        'menu_item_components': ('recipe_revision_id',),
+        'dish_templates': ('recipe_id', 'accompaniment_default'),
+        'menu_items': ('accompaniment',),
+    }
     with pg16.connect() as c:
         for table in tables:
-            projection = f"(to_jsonb(t)-'{new_columns[table]}')" if table in new_columns else 'to_jsonb(t)'
+            projection = 'to_jsonb(t)'
+            for column in new_columns.get(table, ()):
+                projection = f"({projection}-'{column}')"
             assert c.execute(text(f'SELECT {projection}::text FROM cafeteria.{table} t ORDER BY {projection}::text')).all() == before[table]
         assert c.execute(text('SELECT to_jsonb(m) FROM cafeteria.schema_migrations m WHERE version<=25 ORDER BY version')).all() == ledger
-        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 31
+        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 32
         migrated = structure(c)
     with pg16.begin() as c:
         c.execute(text('DROP SCHEMA cafeteria CASCADE'))
@@ -141,12 +148,12 @@ def test_exact_acl_search_path_and_no_new_table_writes(binding):
 
 def test_template_reassignment_waits_for_concurrent_reference_then_rejects(binding):
     owner, engine, ids = binding
-    with engine.begin() as c:
+    with owner.begin() as c:
         ids['template'] = c.execute(text("INSERT INTO cafeteria.dish_templates(title) VALUES('Concurrent') RETURNING id")).scalar_one()
     started = Queue()
     def reassign():
         with pytest.raises(DBAPIError) as error:
-            with engine.begin() as c:
+            with owner.begin() as c:
                 started.put(c.execute(text('SELECT pg_backend_pid()')).scalar_one())
                 c.execute(text('UPDATE cafeteria.dish_templates SET recipe_id=:other_location_recipe WHERE id=:template'), ids)
         return error.value.orig.sqlstate
@@ -205,6 +212,7 @@ def wait_until_blocked(owner, pid):
 def test_historical_permissions_bytes_are_still_exact():
     permissions = PERMISSIONS.read_text()
     for begin_marker, end_marker in (
+        ('-- Schema32 accompaniment template grants begin.\n', '-- Schema32 accompaniment template grants end.\n\n'),
         ('-- Menu proposal source locks schema31 grants begin.\n', '-- Menu proposal source locks schema31 grants end.\n\n'),
         ('-- Recipe import commit schema29 grants begin.\n', '-- Recipe import commit schema29 grants end.\n\n'),
         ('-- Recipe import batches schema28 grants begin.\n', '-- Recipe import batches schema28 grants end.\n\n'),

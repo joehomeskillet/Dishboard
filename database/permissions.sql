@@ -290,6 +290,22 @@ GRANT EXECUTE ON FUNCTION begin_menu_binding_write_v26(bigint,bigint,bigint),
 TO cafeteria_app;
 -- R5a schema26 grants end.
 
+-- Schema32 accompaniment template grants begin.
+REVOKE INSERT,UPDATE,DELETE,TRUNCATE,TRIGGER,REFERENCES
+ON TABLE dish_templates FROM cafeteria_app;
+GRANT UPDATE (id) ON dish_templates TO cafeteria_app;
+REVOKE ALL ON FUNCTION
+    reject_direct_dish_template_update_v32(),
+    dish_template_mutate_v32(text,bigint,bigint,bigint,uuid,timestamptz,jsonb),
+    create_dish_template_v32(bigint,bigint,bigint,uuid,timestamptz,jsonb),
+    update_dish_template_v32(bigint,bigint,bigint,uuid,timestamptz,jsonb)
+FROM PUBLIC,cafeteria_app,cafeteria_backup,cafeteria_auth_issuer;
+GRANT EXECUTE ON FUNCTION
+    create_dish_template_v32(bigint,bigint,bigint,uuid,timestamptz,jsonb),
+    update_dish_template_v32(bigint,bigint,bigint,uuid,timestamptz,jsonb)
+TO cafeteria_app;
+-- Schema32 accompaniment template grants end.
+
 -- Prepared foods schema27 grants begin.
 REVOKE ALL ON FUNCTION lock_prepared_graph_v27(bigint),recipe_snapshot_complete_v27(jsonb),
     check_prepared_graph_v27(bigint,uuid,bigint),assert_food_complete_v27(bigint),enforce_food_complete_v27(),
