@@ -83,9 +83,11 @@
         "arrow-up",
         "arrow-down",
         "printer",
-        "history"
+        "history",
+        "salad",
+        "soup"
       ],
-      "sha256": "759fcd4c8f228dd4cab7b981a2fcb8051f749551248f6994f0651c399e746080"
+      "sha256": "c7d68245b08776d77f83a4f20f877f366506572cd67f35574b21d720658baee4"
     }
   ]
 }
