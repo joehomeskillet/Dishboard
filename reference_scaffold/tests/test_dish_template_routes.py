@@ -189,7 +189,7 @@ def test_accompaniment_create_update_validation_and_reader_view(b3, monkeypatch)
     monkeypatch.setattr(store, 'list_templates', unexpected_list_templates)
     reader = client.get('/admin/gerichtvorlagen')
     assert reader.status_code == 200
-    assert 'Dazu: Salat' in reader.text and '#tabler-salad' in reader.text
+    assert re.search(r'Dazu:\s*Salat\b', reader.text) and '#tabler-salad' in reader.text
     assert 'Vorlage anlegen</a>' not in reader.text and 'name="action"' not in reader.text
 
 
