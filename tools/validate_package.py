@@ -326,7 +326,7 @@ def main() -> int:
         check(status.get('tables') == 54, 'Schema enthaelt nicht 54 Tabellen.')
         check(status.get('application_roles') == 3, 'Schema enthaelt nicht drei Rollen.')
         check(status.get('offer_profiles') == 2, 'Schema enthaelt nicht zwei Profile.')
-        check(status.get('schema_version') == 30, 'Schema-Version ist nicht 30.')
+        check(status.get('schema_version') == 31, 'Schema-Version ist nicht 31.')
         check(status.get('patient_services') == 14, 'Demo-Seed enthaelt nicht 14 Patienten-Services.')
         check(status.get('cafeteria_services') == 5, 'Demo-Seed enthaelt nicht 5 Cafeteria-Services.')
 

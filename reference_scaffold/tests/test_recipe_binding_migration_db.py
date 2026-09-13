@@ -101,7 +101,7 @@ def test_upgrade_preserves_all_existing_rows_and_fresh_schema_contract(pg16):  #
             projection = f"(to_jsonb(t)-'{new_columns[table]}')" if table in new_columns else 'to_jsonb(t)'
             assert c.execute(text(f'SELECT {projection}::text FROM cafeteria.{table} t ORDER BY {projection}::text')).all() == before[table]
         assert c.execute(text('SELECT to_jsonb(m) FROM cafeteria.schema_migrations m WHERE version<=25 ORDER BY version')).all() == ledger
-        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 30
+        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 31
         migrated = structure(c)
     with pg16.begin() as c:
         c.execute(text('DROP SCHEMA cafeteria CASCADE'))
@@ -205,6 +205,7 @@ def wait_until_blocked(owner, pid):
 def test_historical_permissions_bytes_are_still_exact():
     permissions = PERMISSIONS.read_text()
     for begin_marker, end_marker in (
+        ('-- Menu proposal source locks schema31 grants begin.\n', '-- Menu proposal source locks schema31 grants end.\n\n'),
         ('-- Recipe import commit schema29 grants begin.\n', '-- Recipe import commit schema29 grants end.\n\n'),
         ('-- Recipe import batches schema28 grants begin.\n', '-- Recipe import batches schema28 grants end.\n\n'),
         ('-- Prepared foods schema27 grants begin.\n', '-- Prepared foods schema27 grants end.\n\n'),
@@ -213,4 +214,9 @@ def test_historical_permissions_bytes_are_still_exact():
         prefix, rest = permissions.split(begin_marker, 1)
         permissions = prefix + rest.split(end_marker, 1)[1]
     historical = permissions.replace(',\n    record_auth_access_v25(uuid,text,text,text,bigint,bigint)', '')
+    # v30 (3175e79) added channels to exactly the REVOKE and GRANT signatures.
+    v30_signature = 'create_api_key(bigint, text, text, text, text[], timestamptz, text[])'
+    assert historical.count(v30_signature) == 2
+    historical = historical.replace(v30_signature,
+        'create_api_key(bigint, text, text, text, text[], timestamptz)')
     assert hashlib.sha256(historical.encode()).hexdigest() == '85c88b1b89bb511401709dcaaa56537f98a9e74588460a90c6d944246e2f00d1'

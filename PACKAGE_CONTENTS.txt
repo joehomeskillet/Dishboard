@@ -631,6 +631,7 @@ reference_scaffold/cafeteria/master_data_store.py
 reference_scaffold/cafeteria/master_data_types.py
 reference_scaffold/cafeteria/menu_images.py
 reference_scaffold/cafeteria/menu_recipe_choices.py
+reference_scaffold/cafeteria/menu_template_binding.py
 reference_scaffold/cafeteria/operations_settings.py
 reference_scaffold/cafeteria/operations_store.py
 reference_scaffold/cafeteria/patient_payload.py
@@ -1263,6 +1264,9 @@ reference_scaffold/tests/test_menu_recipe_binding_routes.py
 reference_scaffold/tests/test_menu_recipe_bindings_db.py
 reference_scaffold/tests/test_menu_recipe_choices_reader.py
 reference_scaffold/tests/test_menu_recipe_selection_browser.py
+reference_scaffold/tests/test_menu_template_binding_browser.py
+reference_scaffold/tests/test_menu_template_binding_db.py
+reference_scaffold/tests/test_menu_template_binding_routes.py
 reference_scaffold/tests/test_openapi_contract.py
 reference_scaffold/tests/test_operations_actor_race_db.py
 reference_scaffold/tests/test_operations_scoped_csrf.py

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from '_food_symbols.html' import legend %}
+{% from 'admin/_macros.html' import icon %}
 {% block title %}Vorschau · {{ area_names[profile] }}{% endblock %}
 {% block body_class %}dishboard-admin{% endblock %}
 {% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-preview.css') }}">{% endblock %}
@@ -7,21 +8,34 @@
 {% set declarations = namespace(options=[]) %}
 {% set status_label = {'draft': 'Nicht veröffentlicht · Entwurf', 'ready': 'Nicht veröffentlicht · Bereit', 'published': 'Veröffentlicht', 'archived': 'Nicht veröffentlicht · Archiviert'}[state] %}
 <main class="admin-preview" id="main-content">
-<div class="preview-banner" role="status">PREVIEW</div>
 <section data-preview="last-saved" data-workflow-state="{{ state }}" data-week="{{ week }}" data-profile="{{ profile }}">
   <header class="preview-heading">
-  <h1>Vorschau &middot; {{ area_names[profile] }}</h1>
-  <p class="preview-context">KW {{ week_iso|iso_week }} / {{ week.isocalendar().year }} · Woche ab <time datetime="{{ week_iso }}">{{ week_iso|date_long }}</time></p>
-  <p class="preview-saved">Veröffentlichungsstand dieser Woche: {{ status_label }}</p>
-  <p class="preview-notice" role="note">Die Vorschau zeigt den gespeicherten Stand. Die Veröffentlichung ist ein eigener, bestätigter Schritt im Wochenplan.</p>
-  <nav class="preview-profiles" aria-label="Profil">
-    <a href="{{ url_for('admin.preview', family='cafeteria', week=week_iso) }}"{% if family == 'cafeteria' %} aria-current="page"{% endif %}>{{ area_names.staff_guest }}</a>
-    <a href="{{ url_for('admin.preview', family='patienten', week=week_iso) }}"{% if family == 'patienten' %} aria-current="page"{% endif %}>{{ area_names.patient }}</a>
-  </nav>
-  <p class="preview-links">
-    <a class="btn" href="{{ url_for('admin.' ~ family, week=week_iso) }}">Zurück zum Wochenplan</a>
-    <a class="btn primary" href="{{ url_for('admin.print_week', family=family, week=week_iso) }}">Wochenplan als PDF öffnen</a>
-  </p>
+  <div class="preview-title-row">
+    <h1>Vorschau &middot; {{ area_names[profile] }}</h1>
+    <div class="preview-banner" role="status">PREVIEW</div>
+  </div>
+  <div class="preview-meta">
+    <p class="preview-context">KW {{ week_iso|iso_week }} / {{ week.isocalendar().year }} · Woche ab <time datetime="{{ week_iso }}">{{ week_iso|date_long }}</time></p>
+    <p class="preview-saved">Veröffentlichungsstand dieser Woche: {{ status_label }}</p>
+  </div>
+  <div class="preview-toolbar">
+    <nav class="preview-profiles" aria-label="Profil">
+      <a href="{{ url_for('admin.preview', family='cafeteria', week=week_iso) }}"{% if family == 'cafeteria' %} aria-current="page"{% endif %}>{{ area_names.staff_guest }}</a>
+      <a href="{{ url_for('admin.preview', family='patienten', week=week_iso) }}"{% if family == 'patienten' %} aria-current="page"{% endif %}>{{ area_names.patient }}</a>
+    </nav>
+    <p class="preview-links">
+      <a class="btn primary" href="{{ url_for('admin.print_week', family=family, week=week_iso) }}">{{ icon('printer') }}PDF der gewählten Woche öffnen</a>
+      <a class="btn" href="{{ url_for('admin.' ~ family, week=week_iso) }}">{{ icon('arrow-left') }}Zurück zum Wochenplan</a>
+    </p>
+  </div>
+  <p class="preview-notice" role="note">Gewählter Stand: gespeicherte Woche KW {{ week_iso|iso_week }}, nicht automatisch der veröffentlichte Plan. Veröffentlichen bleibt ein eigener, bestätigter Schritt im Wochenplan.</p>
+  <aside class="preview-published" aria-labelledby="preview-published-title">
+    <div class="preview-published-copy">
+      <h2 id="preview-published-title">Veröffentlichter Plan</h2>
+      <p>Eigener Datenstand des Bereichs, nicht automatisch diese gespeicherte Woche.</p>
+    </div>
+    <a class="btn" href="/druck/{{ family }}/woche">{{ icon('printer') }}Veröffentlichten Plan drucken</a>
+  </aside>
 
   {% if draft.title %}
     <h2>{{ draft.title }}</h2>

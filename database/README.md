@@ -1,6 +1,6 @@
 # PostgreSQL-Datenmodell
 
-Schema-Version 24 modelliert zwei getrennte Angebotsprofile:
+Schema-Version 31 modelliert zwei getrennte Angebotsprofile:
 
 | Profil | Zeitraum | Mahlzeiten | Kosteninformationen |
 |---|---|---|---|
@@ -115,3 +115,23 @@ Die sichere Restore-Reihenfolge bei gestoppten Writern lautet exakt:
 Der erste Permissions-Lauf schliesst die durch `pg_dump --no-privileges` sonst wieder geöffneten `PUBLIC`-Ausführungsrechte. Bei Backups vor Version 8 legt `run_migrations` die Reparaturfunktion zunächst an. Die owner-geguardete Ensure-Funktion prüft das bereits bereitgestellte `pgcrypto` und stellt die beiden ausgelassenen Tabellen samt Identity-Sequenz, Constraints, Index und restriktiver ACL wieder her, auch wenn `schema_migrations` bereits Version 24 ausweist. Der zweite Permissions-Lauf beweist den endgültigen ACL-Zustand anhand der expliziten Rollenfreigaben in `permissions.sql`.
 
 Der atomare Hard-Reset verwirft alle Nonces sowie aktive und pensionierte Secrets, legt genau ein neues 32-Byte-Secret mit ID 1 an und protokolliert das Ereignis. Alte Capability-Tokens werden dadurch auch bei wiederverwendeter Secret-ID kryptografisch ungültig. Das Deployment muss diese Ausschlüsse und Reihenfolge vor dem Merge dieser DB-Änderung übernehmen; ein älteres Backup-/Restore-Skript ist nicht kompatibel.
+
+## Menüvorschläge: ursprüngliches Quellrezept (Schema 31)
+
+`0028_v30_to_v31.sql` ergänzt ausschließlich
+`lock_menu_recipe_sources_v31(actor, authz, location, revision_ids, source_uuid)`.
+Die Funktion prüft zuerst die ursprüngliche Berechtigung über
+`begin_menu_binding_write_v26` und übernimmt dessen festen `draft.write`-Vertrag.
+Sie sperrt die deduplizierte, numerisch sortierte Vereinigung der Revisionsköpfe
+und des ursprünglichen Quellrezepts `FOR SHARE`, vor Wochen-/Service-/Menü- oder
+Vorlagensperren. Danach prüft sie Identität und Standort der Quelle erneut.
+Eine leere Revisionsliste sperrt auch eine Quelle ohne Revision und liefert keine
+Zeilen; ansonsten entsprechen Rückgabe und Reihenfolge dem unveränderten v26-Helfer.
+Archivierte Quellen sind zulässig. Der Aufrufer prüft danach den ursprünglichen
+Aktivzustand und Vorlagenzustand unter Sperre und darf keinen neuen Kopf nachsperren.
+
+Der `SECURITY DEFINER` besitzt den festen Suchpfad
+`pg_catalog,cafeteria,pg_temp`; nur `cafeteria_app` erhält `EXECUTE`, keine weiteren
+Tabellenrechte. Die Funktion schreibt weder Fachdaten noch Audit-Ereignisse. Alte
+Migrationen und deren Prüfsummen bleiben unverändert. Deployment erfolgt über
+die bestehende manuelle Migration nach frischem Backup vor App-Umschaltung.

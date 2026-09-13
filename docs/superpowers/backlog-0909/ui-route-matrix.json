@@ -11,11 +11,11 @@
       "model": "grok-4.6"
     },
     "mp_id": "MP-UI-DENSITY-INVENTORY",
-    "source_commit": "e7915ecd4e88631bee3f6569a6c2bd8ed1b33cdb",
+    "source_commit": "cc0a5e109e471f443fafa1f6cb340a41cad3bfdd",
     "schema": 30,
     "schema_note": "Aktueller zugewiesener Quellstand; SCHEMA_VERSION aus cafeteria.db. Keine neue Live-Abnahme.",
     "baseline_status": "proposed_never_user_approved",
-    "generated_at": "2026-09-13T03:37:47+00:00",
+    "generated_at": "2026-09-13T04:03:56+00:00",
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
     "route_count": 127,
     "template_count": 83,
@@ -8463,7 +8463,7 @@
       "includes": [
         "_food_symbols.html"
       ],
-      "sha256": "a36aa4b860e4f1c8c09a7654b8ccf336ae105e8e80caef7492d105529a29023d",
+      "sha256": "48b11efaeb829092f628af42b90985462ff88e078314d8d1623bb08be7468191",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -8930,7 +8930,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "74a14e6cd7141283b3ccf8f5d774b7b40d00af5118ddb90f5fd494656acc34a2",
+      "sha256": "c57beba925af34fb33ce5b62ffb307e3e4d4392fc8bf4e1f9ba19bea6a13fe0c",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_list",
@@ -8954,7 +8954,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "4d5a775acf005cb8d70c27263269e69e3dc08686fba398db9dae143fd88153b2",
+      "sha256": "695d5c172e4845216fd52b92b454c58f082d3604b6e0c2e6887944d6627a1ba2",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_new"
@@ -8977,7 +8977,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "39a3fc492e11b273cc23302764dc4c3476cc13059314e5d9246b981545661dee",
+      "sha256": "cda962154bed51b75e61522a34f59c4f533c9288d0164f463769432f8a50210e",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_new"
@@ -8996,7 +8996,7 @@
       "kind": "page",
       "extends": [],
       "includes": [],
-      "sha256": "57a1ee09a2c477984904a7075ddf5bb1e1bd14923f6268ee7190e739db9022ef",
+      "sha256": "e02ad08fd2c899294e6466bd426bd82ea9c865340513b93997a052c1847776f4",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_list",
@@ -9020,7 +9020,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "8b07fc9b75513bf70f52bc678401a4f355f5634872ade868f292c4ffd1d9380a",
+      "sha256": "997526ee9fccc31c1aff0538d9b6813af76753881060add4834c372f26f5726f",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_new"
@@ -9043,7 +9043,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "a696b3f9eac11ce04c20fa86af9e369302e5fd6e35ce98205270f0e5b2c8c50a",
+      "sha256": "578ffdbaa92f99cd51bbf2bc716afb2fd0706dfadafa6b15c281632b1898fc5d",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_new"
@@ -9089,7 +9089,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "d0a054a1a8e2cfb7a055c2862edf6734903600a8e04cde60b541f03caff4e45b",
+      "sha256": "a71f6fb16a2a0e6db41ba49fbd57fdbf759698f4c8d5e8cdef19a765e401360a",
       "used_by_endpoints": [
         "admin.cookbook_edit",
         "admin.cookbook_new",
@@ -9113,7 +9113,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "9240f204934301ca573a7c6d517b2998fafedb5d5da17cd60e2dfa6d35cf04ea",
+      "sha256": "5c0464f213e4ef578215ed192eacc165112b5a2755ae3286e058ac9296e32a63",
       "used_by_endpoints": [
         "admin.cookbooks_list"
       ],
@@ -9268,7 +9268,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "4ac46e9e0f0e25f6531e4f26bf031e7ad494468bf0bc9d3db3fb60e559fa845a",
+      "sha256": "f2c03002a74071e851b459dc204b6f51c11ae0a74f6f362c81ba9d68d51e6427",
       "used_by_endpoints": [
         "admin.menu_get"
       ],
@@ -9291,7 +9291,7 @@
         "admin/_macros.html",
         "admin/_workflow_sidebar.html"
       ],
-      "sha256": "be314724bf6223e34b49ae2172d6917d8d70703ddf6d971ecd019bd6468eb66c",
+      "sha256": "2eb282a7f25deaabcc0fd45d71babcccae6d73ed0bdedf9e59525425f15691bf",
       "used_by_endpoints": [
         "admin.operations_settings"
       ],

@@ -128,7 +128,31 @@ def test_native_cookbook_order_cancel_and_framework(cookbook_server, browser, wi
         cards = page.locator('section[aria-label="Kochbücher"] article.card')
         boxes = [card.bounding_box() for card in cards.all()]
         assert len(boxes) == 5 and all(box is not None for box in boxes)
-        assert max(box['height'] for box in boxes) - min(box['height'] for box in boxes) <= 1
+        if width >= 768:
+            assert max(box['height'] for box in boxes) - min(box['height'] for box in boxes) <= 1
+        else:
+            short = cards.filter(has=page.get_by_role('heading', name='Browserbuch', exact=True))
+            short_box = short.bounding_box()
+            assert short_box['height'] <= 144 < max(box['height'] for box in boxes)
+            for card in cards.all():
+                title = card.get_by_role('heading', level=2)
+                name = title.inner_text()
+                assert name == 'Browserbuch' or name in [('Langer Titel ' * 9) + str(i) for i in range(4)]
+                assert title.evaluate('''element => {
+                    const range = document.createRange();
+                    range.selectNodeContents(element);
+                    const text = range.getBoundingClientRect(), box = element.getBoundingClientRect();
+                    return text.left >= box.left - 1 && text.right <= box.right + 1
+                        && text.top >= box.top - 1 && text.bottom <= box.bottom + 1;
+                }''')
+                action = card.get_by_role('link', name=f'{name} bearbeiten', exact=True)
+                expect(action).to_be_visible()
+                action_box, card_box, title_box = action.bounding_box(), card.bounding_box(), title.bounding_box()
+                assert action_box['width'] >= 48 and action_box['height'] >= 48
+                assert action_box['y'] >= title_box['y'] + title_box['height']
+                assert action_box['x'] + action_box['width'] <= card_box['x'] + card_box['width']
+                assert action_box['y'] + action_box['height'] <= card_box['y'] + card_box['height']
+                expect(card.get_by_text('2 Rezepte' if name == 'Browserbuch' else '0 Rezepte', exact=True)).to_be_visible()
         assert max(box['width'] for box in boxes) - min(box['width'] for box in boxes) <= 1
         assert cards.locator('.card-body').evaluate_all('els => els.every(el => el.scrollHeight <= el.clientHeight + 1)')
         destination = Path(os.environ.get('COOKBOOK_A4_EVIDENCE_DIR', str(tmp_path)))
