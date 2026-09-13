@@ -46,6 +46,8 @@ MIGRATION_0025 = ROOT / 'database' / 'migrations' / '0025_v27_to_v28.sql'
 MIGRATION_0026 = ROOT / 'database' / 'migrations' / '0026_v28_to_v29.sql'
 MIGRATION_0027 = ROOT / 'database' / 'migrations' / '0027_v29_to_v30.sql'
 MIGRATION_0028 = ROOT / 'database' / 'migrations' / '0028_v30_to_v31.sql'
+MIGRATION_0029 = ROOT / 'database' / 'migrations' / '0029_v31_to_v32.sql'
+PERMISSIONS = ROOT / 'database' / 'permissions.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
 PAT_JSON = ROOT / 'demo' / 'snapshots' / 'patienten_kw36.json'
@@ -62,6 +64,7 @@ ALLOWED_PATIENT_COMPACT_KEYS = frozenset({
     'weekday', 'location', 'profilecode', 'revisionid', 'schemaversion',
     'sharednote', 'weekend', 'weekstart', 'servicestate',
     'servicestart', 'serviceend', 'areaname',
+    'accompanimentcode', 'accompanimentname',
 })
 
 
@@ -200,10 +203,148 @@ def run_live_check() -> dict[str, Any]:
                     '''
                 )
             ).mappings().one()
-        if int(row['schema_version']) != 31:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 31.")
+            v32_acl = connection.execute(
+                text(
+                    '''
+                    SELECT p.proname, p.prosecdef, p.proconfig,
+                           p.proowner=c.relowner AS same_owner,
+                           has_function_privilege('cafeteria_app',p.oid,'EXECUTE') AS app,
+                           has_function_privilege('cafeteria_backup',p.oid,'EXECUTE') AS backup,
+                           has_function_privilege('cafeteria_auth_issuer',p.oid,'EXECUTE') AS issuer,
+                           EXISTS(
+                               SELECT 1
+                               FROM aclexplode(COALESCE(p.proacl,acldefault('f',p.proowner))) acl
+                               WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE'
+                           ) AS public
+                    FROM pg_proc p
+                    JOIN pg_namespace n ON n.oid=p.pronamespace
+                    CROSS JOIN pg_class c
+                    WHERE n.nspname='cafeteria'
+                      AND c.oid='cafeteria.dish_templates'::regclass
+                      AND p.proname IN (
+                          'dish_template_mutate_v32',
+                          'create_dish_template_v32',
+                          'update_dish_template_v32',
+                          'reject_direct_dish_template_update_v32'
+                      )
+                    ORDER BY p.proname
+                    '''
+                )
+            ).mappings().all()
+            writer_owners = connection.execute(
+                text(
+                    '''
+                    SELECT p.proname, p.proowner=c.relowner AS owner_matches
+                    FROM pg_proc p
+                    CROSS JOIN pg_class c
+                    WHERE c.oid='cafeteria.dish_templates'::regclass
+                      AND p.pronamespace='cafeteria'::regnamespace
+                      AND p.proname IN (
+                          'dish_template_mutate_v26','dish_template_mutate_v32',
+                          'reject_direct_dish_template_update_v32'
+                      )
+                    ORDER BY p.proname
+                    '''
+                )
+            ).mappings().all()
+            guard_contract = connection.execute(
+                text(
+                    '''
+                    SELECT NOT has_table_privilege(
+                               'cafeteria_app','cafeteria.dish_templates','UPDATE'
+                           ) AS no_table_update,
+                           has_column_privilege(
+                               'cafeteria_app','cafeteria.dish_templates','id','UPDATE'
+                           ) AS lock_column_update,
+                           NOT EXISTS (
+                               SELECT 1
+                               FROM pg_attribute a
+                               WHERE a.attrelid='cafeteria.dish_templates'::regclass
+                                 AND a.attnum>0
+                                 AND NOT a.attisdropped
+                                 AND a.attname<>'id'
+                                 AND has_column_privilege(
+                                     'cafeteria_app',a.attrelid,a.attnum,'UPDATE'
+                                 )
+                           ) AS no_other_column_update,
+                           NOT has_table_privilege(
+                               'cafeteria_app','cafeteria.dish_templates',
+                               'INSERT,DELETE,TRUNCATE,TRIGGER,REFERENCES'
+                           ) AS no_other_dml,
+                           t.tgenabled='O' AS trigger_enabled,
+                           t.tgtype=18 AS before_statement_update,
+                           NOT p.prosecdef AS security_invoker,
+                           p.proowner=c.relowner AS owner_matches,
+                           p.proconfig=ARRAY['search_path=pg_catalog, cafeteria, pg_temp'] AS safe_path,
+                           NOT pg_has_role(
+                               'cafeteria_app',c.relowner,'MEMBER'
+                           ) AS app_not_owner_member
+                    FROM pg_trigger t
+                    JOIN pg_proc p ON p.oid=t.tgfoid
+                    JOIN pg_class c ON c.oid=t.tgrelid
+                    WHERE NOT t.tgisinternal
+                      AND c.oid='cafeteria.dish_templates'::regclass
+                      AND p.proname='reject_direct_dish_template_update_v32'
+                    '''
+                )
+            ).mappings().one_or_none()
+            patient_key_decisions = dict(
+                connection.execute(
+                    text(
+                        '''
+                        SELECT key, cafeteria.patient_key_is_forbidden(key)
+                        FROM (VALUES
+                            ('accompaniment_code'), ('accompaniment_name'),
+                            ('accompaniment_price'), ('accompanimentkosten'), ('rappen')
+                        ) AS keys(key)
+                        '''
+                    )
+                ).all()
+            )
+        if int(row['schema_version']) != 32:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 32.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
+        if {item['proname'] for item in v32_acl} != {
+            'dish_template_mutate_v32',
+            'create_dish_template_v32',
+            'update_dish_template_v32',
+            'reject_direct_dish_template_update_v32',
+        }:
+            fail('Live-Datenbank hat nicht genau die vier Vorlagenfunktionen v32.')
+        for item in v32_acl:
+            is_guard = item['proname'] == 'reject_direct_dish_template_update_v32'
+            expected_app = item['proname'] in {
+                'create_dish_template_v32', 'update_dish_template_v32',
+            }
+            if (
+                item['prosecdef'] == is_guard
+                or not item['same_owner']
+                or item['proconfig'] != ['search_path=pg_catalog, cafeteria, pg_temp']
+                or item['app'] != expected_app
+                or item['backup']
+                or item['issuer']
+                or item['public']
+            ):
+                fail(f"Live-ACL der Vorlagenfunktion ist ungültig: {item['proname']}")
+        if {item['proname'] for item in writer_owners} != {
+            'dish_template_mutate_v26',
+            'dish_template_mutate_v32',
+            'reject_direct_dish_template_update_v32',
+        } or not all(item['owner_matches'] for item in writer_owners):
+            fail('Live-Owner der Vorlagen-Schreibfunktionen ist ungültig.')
+        if guard_contract is None:
+            fail('Live-Owner-Guard für dish_templates fehlt.')
+        if not all(guard_contract.values()):
+            fail('Live-ACL oder Owner-Guard für dish_templates ist ungültig.')
+        if patient_key_decisions != {
+            'accompaniment_code': False,
+            'accompaniment_name': False,
+            'accompaniment_price': True,
+            'accompanimentkosten': True,
+            'rappen': True,
+        }:
+            fail('Live-Patientenschlüsselvertrag für Beilagen ist ungültig.')
         migrated_structure = structure('cafeteria')
         with engine.begin() as connection:
             connection.execute(text('ALTER SCHEMA cafeteria RENAME TO cafeteria_migrated_contract'))
@@ -315,6 +456,47 @@ def main() -> int:
                          'h.id=v_source AND h.public_id=p_source AND h.location_id=p_location'):
             if fragment not in migration_0028 or fragment not in sql:
                 fail(f'Menü-Quellrezept-Sperrvertrag fehlt: {fragment}')
+        migration_0029 = MIGRATION_0029.read_text(encoding='utf-8')
+        permissions = PERMISSIONS.read_text(encoding='utf-8')
+        if not migration_0029.startswith('BEGIN;') or not migration_0029.rstrip().endswith('COMMIT;'):
+            fail('Migration 0029 hat keinen strikten BEGIN/COMMIT-Vertrag.')
+        for fragment in (
+            'menu_items_accompaniment_check',
+            'dish_templates_accompaniment_default_check',
+            "accompaniment IN ('none', 'soup', 'salad')",
+            "accompaniment_default IN ('none', 'soup', 'salad')",
+            'dish_template_mutate_v32',
+            'create_dish_template_v32',
+            'update_dish_template_v32',
+            'reject_direct_dish_template_update_v32',
+            'CREATE TRIGGER dish_templates_owner_update_v32',
+            'current_user IS DISTINCT FROM v_table_owner',
+            "USING ERRCODE='42501'",
+            'FOR EACH STATEMENT EXECUTE FUNCTION',
+            "'accompaniment_default',v.accompaniment_default",
+            "'accompanimentcode'",
+            "'accompanimentname'",
+        ):
+            if fragment not in migration_0029 or fragment not in sql:
+                fail(f'Beilagenvertrag v32 fehlt: {fragment}')
+        if (
+            'BEFORE UPDATE ON cafeteria.dish_templates' not in migration_0029
+            or 'BEFORE UPDATE ON dish_templates' not in sql
+        ):
+            fail('Beilagenvertrag v32 fehlt: BEFORE UPDATE.')
+        for fragment in (
+            'REVOKE INSERT,UPDATE,DELETE,TRUNCATE,TRIGGER,REFERENCES',
+            'GRANT UPDATE(id) ON TABLE cafeteria.dish_templates TO cafeteria_app',
+        ):
+            if fragment not in migration_0029:
+                fail(f'Beilagen-Migrations-ACL v32 fehlt: {fragment}')
+        for fragment in (
+            'REVOKE INSERT,UPDATE,DELETE,TRUNCATE,TRIGGER,REFERENCES',
+            'GRANT UPDATE (id) ON dish_templates TO cafeteria_app',
+            'reject_direct_dish_template_update_v32()',
+        ):
+            if fragment not in permissions:
+                fail(f'Beilagen-ACL v32 fehlt: {fragment}')
         migration_0026 = MIGRATION_0026.read_text(encoding='utf-8')
         if not migration_0026.startswith('BEGIN;') or not migration_0026.rstrip().endswith('COMMIT;'):
             fail('Migration 0026 hat keinen strikten BEGIN/COMMIT-Vertrag.')
@@ -711,7 +893,7 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 31,
+            'schema_version': 32,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
@@ -741,6 +923,7 @@ def main() -> int:
                 '0026_v28_to_v29.sql': hashlib.sha256(MIGRATION_0026.read_bytes()).hexdigest(),
                 '0027_v29_to_v30.sql': hashlib.sha256(MIGRATION_0027.read_bytes()).hexdigest(),
                 '0028_v30_to_v31.sql': hashlib.sha256(MIGRATION_0028.read_bytes()).hexdigest(),
+                '0029_v31_to_v32.sql': hashlib.sha256(MIGRATION_0029.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

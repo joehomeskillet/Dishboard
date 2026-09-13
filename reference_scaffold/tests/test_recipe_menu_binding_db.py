@@ -72,13 +72,15 @@ def test_independent_nullable_references_and_revision_only_update(binding):
 
 
 def test_both_global_template_scope_surfaces_and_parent_identity(binding):
-    _, engine, ids = binding
-    with engine.begin() as c:
+    owner, engine, ids = binding
+    with owner.begin() as c:
         ids['template'] = c.execute(text("INSERT INTO cafeteria.dish_templates(title) VALUES('Vorlage') RETURNING id")).scalar_one()
+    with engine.begin() as c:
         c.execute(text('UPDATE cafeteria.menu_items SET dish_template_id=:template WHERE id=:item'), ids)
-    assert_rejected(engine, 'UPDATE cafeteria.dish_templates SET recipe_id=:other_location_recipe WHERE id=:template', ids, '23514')
+    assert_rejected(owner, 'UPDATE cafeteria.dish_templates SET recipe_id=:other_location_recipe WHERE id=:template', ids, '23514')
     with engine.begin() as c:
         c.execute(text('UPDATE cafeteria.menu_items SET dish_template_id=NULL WHERE id=:item'), ids)
+    with owner.begin() as c:
         c.execute(text('UPDATE cafeteria.dish_templates SET recipe_id=:other_location_recipe WHERE id=:template'), ids)
     assert_rejected(engine, 'UPDATE cafeteria.menu_items SET dish_template_id=:template WHERE id=:item', ids, '23514')
     assert_rejected(engine, 'UPDATE cafeteria.menu_items SET service_id=service_id+1000 WHERE id=:item', ids, '23514')
