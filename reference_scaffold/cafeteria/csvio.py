@@ -13,12 +13,18 @@ from typing import BinaryIO, cast
 
 from . import patient_payload
 from .workflow import validate_draft_values
+from .workflow_snapshot import ACCOMPANIMENT_NAMES
 
-BASE_HEADERS = [
+SCHEMA_2_BASE_HEADERS = [
     'schema_version', 'profil', 'datum', 'wochentag', 'mahlzeit', 'menueart',
     'external_id', 'titel', 'beschreibung', 'beilagen', 'labels',
     'allergene_enthaelt', 'allergene_spuren', 'herkunft', 'hinweis',
     'zustand', 'zustand_text',
+]
+BASE_HEADERS = [
+    *SCHEMA_2_BASE_HEADERS[:10],
+    'beilage_dazu',
+    *SCHEMA_2_BASE_HEADERS[10:],
 ]
 PATIENT_HEADERS = BASE_HEADERS
 CAFETERIA_HEADERS = BASE_HEADERS + ['preis_mitarbeitende_chf', 'preis_externe_chf']
@@ -45,6 +51,7 @@ MONTH_NAMES = (
     'November',
     'Dezember',
 )
+CSV_ACCOMPANIMENT_CODES = {'soup': 'suppe', 'salad': 'salat'}
 
 
 
@@ -98,6 +105,20 @@ def _excel_safe(value: object) -> str:
     return "'" + text_value if text_value.startswith(('=', '+', '-', '@', '\t', '\r')) else text_value
 
 
+def _csv_accompaniment(option: dict[str, object]) -> str:
+    code = option.get('accompaniment_code')
+    name = option.get('accompaniment_name')
+    if code is None or name is None:
+        return ''
+    if type(code) is not str:
+        raise ValueError('Snapshot enthält eine ungültige Beilagenwahl.')
+    expected_name = ACCOMPANIMENT_NAMES.get(code)
+    csv_code = CSV_ACCOMPANIMENT_CODES.get(code)
+    if expected_name is None or csv_code is None or name != expected_name:
+        raise ValueError('Snapshot enthält eine ungültige Beilagenwahl.')
+    return csv_code
+
+
 def snapshot_to_csv(snapshot: dict) -> bytes:
     profile = snapshot.get('profile_code')
     if profile not in {'patient', 'staff_guest'}:
@@ -118,11 +139,12 @@ def snapshot_to_csv(snapshot: dict) -> bytes:
                 contains = [a['code'] for a in option.get('allergens', []) if a.get('presence') == 'contains']
                 traces = [a['code'] for a in option.get('allergens', []) if a.get('presence') == 'may_contain']
                 row = {
-                    'schema_version': '2', 'profil': profile, 'datum': day.get('date', ''),
+                    'schema_version': '3', 'profil': profile, 'datum': day.get('date', ''),
                     'wochentag': day.get('weekday', ''), 'mahlzeit': service.get('meal_code', ''),
                     'menueart': option.get('type_code', ''), 'external_id': option.get('external_id', ''),
                     'titel': option.get('title', ''), 'beschreibung': option.get('description', ''),
                     'beilagen': '|'.join(option.get('components', [])),
+                    'beilage_dazu': _csv_accompaniment(option),
                     'labels': '|'.join(label['code'] for label in option.get('labels', [])),
                     'allergene_enthaelt': '|'.join(contains), 'allergene_spuren': '|'.join(traces),
                     'herkunft': '|'.join(f"{origin['ingredient']}={origin['country_code']}" for origin in option.get('origins', [])),
@@ -256,6 +278,11 @@ def _option(row: dict[str, str], profile: str) -> dict[str, object]:
         'origins': _origins(row['herkunft']),
         'note': row['hinweis'].strip(),
         'allergen_review_status': 'not_checked',
+        'accompaniment_code': {
+            '': 'none',
+            'suppe': 'soup',
+            'salat': 'salad',
+        }[row.get('beilage_dazu', '').strip()],
     }
     if profile == 'staff_guest':
         option['internal_rappen'] = int(Decimal(row['preis_mitarbeitende_chf']) * 100)
@@ -338,6 +365,7 @@ def validate_upload(stream: BinaryIO) -> dict[str, object]:
     )
     result: dict[str, object] = {
         'profile': profile,
+        'schema_version': validated.get('schema_version'),
         'rows': len(rows),
         'headers': headers,
         'issues': _issues(
@@ -345,6 +373,7 @@ def validate_upload(stream: BinaryIO) -> dict[str, object]:
             patient_contract=patient_contract,
         ),
         'valid': bool(validated['valid']),
+        'warnings': list(validated.get('warnings', [])),
         'text': text_value,
     }
     if validated['valid']:

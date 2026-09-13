@@ -19,6 +19,7 @@ MENU_VALUE_FIELDS = (
     'titel',
     'beschreibung',
     'beilagen',
+    'beilage_dazu',
     'labels',
     'allergene_enthaelt',
     'allergene_spuren',
@@ -66,7 +67,7 @@ def test_service_rows_reject_mixed_open_and_closed_state_at_both_rows() -> None:
     result = _validate(headers, rows)
 
     assert result['valid'] is False
-    assert {(2, 16), (3, 16)} <= _positions(result)
+    assert {(2, 17), (3, 17)} <= _positions(result)
 
 
 def test_service_rows_reject_different_normalized_notices_at_both_rows() -> None:
@@ -78,7 +79,7 @@ def test_service_rows_reject_different_normalized_notices_at_both_rows() -> None
     result = _validate(headers, rows)
 
     assert result['valid'] is False
-    assert {(2, 17), (3, 17)} <= _positions(result)
+    assert {(2, 18), (3, 18)} <= _positions(result)
 
 
 def test_service_rows_compare_notices_after_whitespace_normalization() -> None:
@@ -98,9 +99,9 @@ def test_service_rows_compare_notices_after_whitespace_normalization() -> None:
 @pytest.mark.parametrize(
     ('field', 'value', 'column'),
     (
-        ('labels', 'UNKNOWN_LABEL', 11),
-        ('allergene_enthaelt', 'UNKNOWN_ALLERGEN', 12),
-        ('allergene_spuren', 'UNKNOWN_ALLERGEN', 13),
+        ('labels', 'UNKNOWN_LABEL', 12),
+        ('allergene_enthaelt', 'UNKNOWN_ALLERGEN', 13),
+        ('allergene_spuren', 'UNKNOWN_ALLERGEN', 14),
     ),
 )
 def test_unknown_reference_code_is_positioned_before_preview(
@@ -121,11 +122,11 @@ def test_unknown_reference_code_is_positioned_before_preview(
 @pytest.mark.parametrize(
     ('contains', 'traces', 'labels', 'origins', 'columns'),
     (
-        ('', '', 'VEGAN|VEGAN', '', {11}),
-        ('MILK|MILK', '', '', '', {12}),
-        ('MILK', 'MILK', '', '', {12, 13}),
-        ('', '', '', 'Poulet=CH|Poulet=CH', {14}),
-        ('', '', '', 'Poulet=CH|Poulet=DE', {14}),
+        ('', '', 'VEGAN|VEGAN', '', {12}),
+        ('MILK|MILK', '', '', '', {13}),
+        ('MILK', 'MILK', '', '', {13, 14}),
+        ('', '', '', 'Poulet=CH|Poulet=CH', {15}),
+        ('', '', '', 'Poulet=CH|Poulet=DE', {15}),
     ),
 )
 def test_duplicate_pipe_values_are_positioned_validation_issues(
@@ -169,8 +170,8 @@ def test_patient_semantic_policy_reports_real_row_and_field_without_reflection()
 @pytest.mark.parametrize(
     ('field', 'column'),
     (
-        ('preis_mitarbeitende_chf', 18),
-        ('preis_externe_chf', 19),
+        ('preis_mitarbeitende_chf', 19),
+        ('preis_externe_chf', 20),
     ),
 )
 def test_staff_price_parse_error_uses_exact_header_column(field: str, column: int) -> None:

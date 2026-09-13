@@ -11,7 +11,9 @@ Beispieldateien mit Daten derselben Kalenderwoche liegen als `menu_patient_examp
 
 ## Gemeinsame Spalten
 
-`schema_version;profil;datum;wochentag;mahlzeit;menueart;external_id;titel;beschreibung;beilagen;labels;allergene_enthaelt;allergene_spuren;herkunft;hinweis;zustand;zustand_text`
+Exportdateien verwenden Schema 3. Gemeinsame Spalten in exakter Reihenfolge:
+
+`schema_version;profil;datum;wochentag;mahlzeit;menueart;external_id;titel;beschreibung;beilagen;beilage_dazu;labels;allergene_enthaelt;allergene_spuren;herkunft;hinweis;zustand;zustand_text`
 
 Die Cafeteria ergänzt:
 
@@ -23,12 +25,15 @@ Die Cafeteria ergänzt:
 - Eine Datei enthält genau ein Profil und genau eine Kalenderwoche.
 - `menueart`: `MENU_1` oder `VEGGIE`.
 - `mahlzeit`: Patienten `LUNCH` oder `DINNER`; Cafeteria ausschliesslich `LUNCH`.
+- `beilage_dazu`: leer, `suppe` oder `salat`; enthält nie Preis, Zahl, Allergen- oder Nährwertangaben. Leer bedeutet «Keine».
 - Mehrfachwerte werden mit `|` getrennt.
 - Herkunft: `Zutat=CH|Zutat=DE`.
 - Kosten: Dezimalwert mit zwei Stellen, beispielsweise `11.00`; nur im Cafeteriaformat.
 - Geschlossene Services benötigen `zustand` und einen verständlichen `zustand_text`.
 - Leere Allergenspalten bedeuten „nicht deklariert“, nicht automatisch „allergenfrei“.
 - Der Export neutralisiert Zellen, die mit `=`, `+`, `-` oder `@` beginnen, gegen Tabellenkalkulationsformeln.
+- Schema-2-Dateien ohne `beilage_dazu` bleiben importierbar. Weil der Import eine Woche vollständig ersetzt, setzt Schema 2 sämtliche Beilagen auf «Keine»; die Importvorschau weist vor der Übernahme darauf hin.
+- Der Export schreibt immer Schema 3.
 
 ## Validierung
 

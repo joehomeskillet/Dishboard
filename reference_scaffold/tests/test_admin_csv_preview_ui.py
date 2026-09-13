@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+import io
 import os
 import re
 import subprocess
@@ -20,6 +22,20 @@ ROOT = Path(__file__).resolve().parents[2]
 BASE_REVISION = 'e89872e4483132bff74b7df05634e740af5d01e0'
 TEMPLATE = 'admin/import_preview.html'
 INVALID_CSV = b'wrong;header\ninvalid;row\n'
+SCHEMA_2_WARNING = 'Schema-2-Vollimport: Bestehende Beilagen werden auf «Keine» zurückgesetzt.'
+
+
+def _schema_2_example(filename: str) -> bytes:
+    source = (ROOT / 'csv' / filename).read_text(encoding='utf-8-sig')
+    reader = csv.DictReader(io.StringIO(source), delimiter=';')
+    headers = [header for header in reader.fieldnames or [] if header != 'beilage_dazu']
+    output = io.StringIO(newline='')
+    writer = csv.DictWriter(output, fieldnames=headers, delimiter=';', lineterminator='\r\n')
+    writer.writeheader()
+    for row in reader:
+        row['schema_version'] = '2'
+        writer.writerow({header: row[header] for header in headers})
+    return ('\ufeff' + output.getvalue()).encode()
 
 
 def _upload(page: Page, source: str | bytes) -> None:
@@ -163,6 +179,36 @@ def test_csv_preview_ready_exposes_destination_before_import(
         assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_items')).scalar_one() == 0
     _capture(page, 'after', f'ready-{family}', width)
     _assert_accessible_layout(page)
+
+
+def test_csv_preview_warns_for_schema_2_only_and_escapes_warning(
+    page_context: Page, admin_app: Flask, monkeypatch: pytest.MonkeyPatch,  # noqa: F811
+) -> None:
+    from cafeteria.admin import routes as admin_routes
+
+    page = page_context
+    schema_2 = _schema_2_example('menu_cafeteria_example.csv')
+    page.goto('/admin/import-preview')
+    _upload(page, schema_2)
+    warning = page.locator('[data-csv-warnings]')
+    expect(warning).to_be_visible()
+    expect(warning).to_contain_text(SCHEMA_2_WARNING)
+
+    validate_upload = admin_routes.validate_upload
+
+    def validate_with_escape_probe(stream):
+        result = validate_upload(stream)
+        if result.get('schema_version') == 2:
+            result['warnings'] = [f'{SCHEMA_2_WARNING} <script data-warning-probe>probe()</script>']
+        return result
+
+    monkeypatch.setattr(admin_routes, 'validate_upload', validate_with_escape_probe)
+    _upload(page, schema_2)
+    expect(warning).to_contain_text('<script data-warning-probe>probe()</script>')
+    assert page.locator('script[data-warning-probe]').count() == 0
+
+    _upload(page, 'menu_cafeteria_example.csv')
+    assert page.locator('[data-csv-warnings]').count() == 0
 
 
 @pytest.mark.parametrize(('family', 'profile', 'filename', 'rows'), (
