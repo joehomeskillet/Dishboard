@@ -10,10 +10,10 @@
     >
     <meta
       name="description"
-      content="Dishboard trennt Patienten-Speisepläne und Cafeteria-Angebote vom Küchenraster bis zur Publikation."
+      content="Dishboard trennt Patienten-Speisepläne und Cafeteria-Angebote vom Küchenraster bis zur Publikation — agentisch entwickelt."
     >
     <meta property="og:title" content="Dishboard — Menüplanung mit klarer Kanaltrennung">
-    <meta property="og:description" content="Dishboard trennt Patienten-Speisepläne und Cafeteria-Angebote vom Küchenraster bis zur Publikation.">
+    <meta property="og:description" content="Dishboard trennt Patienten-Speisepläne und Cafeteria-Angebote vom Küchenraster bis zur Publikation — agentisch entwickelt.">
     <meta property="og:image" content="https://joehomeskillet.github.io/Dishboard/assets/og.webp">
     <meta property="og:url" content="https://joehomeskillet.github.io/Dishboard/">
     <meta name="twitter:card" content="summary_large_image">
@@ -33,6 +33,7 @@
       </a>
       <nav aria-label="Seitennavigation">
         <a href="#profiles">Profile</a>
+        <a href="#agentic">Agentisch</a>
         <a href="#screens">Screens</a>
         <a href="#signage">Signage</a>
         <a href="#integrations">Schnittstellen</a>
@@ -44,10 +45,10 @@
     <main id="main">
       <section class="hero" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <p class="eyebrow">Menüplanung für Klinik &amp; Cafeteria</p>
+          <p class="eyebrow">Menüplanung für Klinik &amp; Cafeteria · agentisch entwickelt</p>
           <h1 id="hero-title">Zwei Zielgruppen.<br><em>Zwei Publikationen.</em><br>Kein Datenmix.</h1>
           <p class="hero-intro">
-            Dishboard führt Küchenplanung, Freigabe und Ausgabe in einer Flask-/PostgreSQL-Anwendung zusammen — mit strikt getrennten Kanälen für Patienten und Cafeteria.
+            Dishboard führt Küchenplanung, Freigabe und Ausgabe in einer Flask-/PostgreSQL-Anwendung zusammen — mit strikt getrennten Kanälen für Patienten und Cafeteria. Planung, Umsetzung, Prüfung und Integration liefen über orchestrierte KI-Coding-Agenten unter menschlicher Steuerung.
           </p>
           <div class="hero-actions" aria-label="Projektlinks">
             <a class="button button-primary" href="https://github.com/joehomeskillet/Dishboard">Code auf GitHub</a>
@@ -59,17 +60,71 @@
         <div class="hero-screenshots" aria-label="Screenshots der Anwendung">
           <img
             class="hero-shot-desktop"
-            src="assets/web-cafeteria-heute.webp"
-            alt="Cafeteria-Tagesansicht im Browser bei 1440 px Breite: Menükarten mit Preis, Mittagsangebot Montag bis Freitag"
+            src="assets/web-cafeteria-woche.webp"
+            alt="Cafeteria-Wochenangebot KW 37 mit zwei Menükarten, Live-Aufnahme vom 13. September 2026"
             width="1400" height="1069"
           >
           <img
             class="hero-shot-mobile"
-            src="assets/mobile-cafeteria-heute.webp"
-            alt="Cafeteria-Tagesansicht auf dem Smartphone: kompakte Einzelspalte mit Menüauswahl"
+            src="assets/mobile-patienten-heute.webp"
+            alt="Patienten-Tagesansicht auf dem Smartphone: Menü 1 und vegetarische Auswahl"
             width="600" height="1298"
             loading="lazy"
           >
+        </div>
+      </section>
+
+      <section class="agentic-section" id="agentic" aria-labelledby="agentic-title">
+        <div class="section-heading">
+          <p class="eyebrow">Softwareentwicklung mit KI-Agenten</p>
+          <h2 id="agentic-title">Agentisch entwickelt</h2>
+          <p>Dishboard entsteht durch orchestrierte KI-Coding-Agenten unter menschlicher Steuerung — vom Auftrag bis zum Deployment.</p>
+        </div>
+
+        <div class="agentic-flow" aria-label="Ablauf der agentischen Entwicklung">
+          <div class="flow-step"><span class="flow-icon">①</span> Auftrag</div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="flow-step"><span class="flow-icon">②</span> Work Packages</div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="flow-step"><span class="flow-icon">③</span> Worker in Worktrees</div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="flow-step"><span class="flow-icon">④</span> Gates</div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="flow-step"><span class="flow-icon">⑤</span> Review</div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="flow-step"><span class="flow-icon">⑥</span> Merge / Deploy</div>
+        </div>
+
+        <div class="agentic-grid">
+          <article class="agentic-card">
+            <p class="card-index">Orchestrator</p>
+            <h3>Claude Code</h3>
+            <p>Claude Code (Anthropic) plant, zerlegt Aufträge in Work Packages, verifiziert Ergebnisse unabhängig, integriert und merged. Merge und Deploy nur nach menschlicher Freigabe.</p>
+          </article>
+
+          <article class="agentic-card">
+            <p class="card-index">Worker-Lanes</p>
+            <h3>Sechs Agenten</h3>
+            <p>OpenAI Codex, Cursor Agent, Google Antigravity (Gemini), Grok Build, MiniMax über OpenCode, Cline. Unabhängige Cross-Vendor-Reviews (Cursor, Gemini, Grok) und Open Code Review vor jedem Merge.</p>
+          </article>
+
+          <article class="agentic-card">
+            <p class="card-index">Isolation</p>
+            <h3>Worktrees &amp; Branches</h3>
+            <p>Jedes Work Package läuft in einem eigenen Git-Worktree und Branch. Worker committen; pushen, mergen und deployen nie.</p>
+          </article>
+
+          <article class="agentic-card">
+            <p class="card-index">Gates</p>
+            <h3>Rund 1 900 Tests</h3>
+            <p>pytest-Suite mit über 4 800 Testfällen im Vollgate (PostgreSQL, Redis), Ruff, Mypy, Playwright-Browser-Gates bei 390/1440/1920/3840 px, SHA-256-Manifest, GitNexus-Impact-Analyse.</p>
+          </article>
+        </div>
+
+        <div class="agentic-facts">
+          <p><strong>Regeln:</strong> Ein gemeinsamer Ausführungsvertrag für alle Tools, <code>AGENTS.md</code> als Single Source of Truth, Work-Package-JSONs mit Dateibesitz und Routing-Belegen.</p>
+          <p><strong>Zahlen:</strong> 860 Commits auf <code>main</code> (Stand 13.09.2026) unter dem gemeinsamen Git-Benutzer <code>agent</code>; produktiv seit 2. September 2026. Menübilder sind KI-generierte Serviervorschläge (so auch in der App beschriftet).</p>
+          <p><strong>Mensch:</strong> Auftrag, Priorisierung, Freigaben und fachliche Abnahme bleiben beim Menschen; die fachliche Abnahme ist laut README noch offen.</p>
         </div>
       </section>
 
@@ -107,7 +162,7 @@
 
       <section class="screens-section" id="screens" aria-labelledby="screens-title">
         <div class="section-heading">
-          <p class="eyebrow">Echte Ansichten aus der Anwendung</p>
+          <p class="eyebrow">Live-Aufnahmen vom 13. September 2026</p>
           <h2 id="screens-title">Screens</h2>
           <p>Vier Ausgabekanäle — Web, Signage, Admin — mit jeweils eigenem Layout und eigener Route.</p>
         </div>
@@ -117,7 +172,7 @@
             <div class="screen-frame">
               <img
                 src="assets/web-patienten-woche.webp"
-                alt="Patienten-Wochenplan im Browser: sieben Tage, zwei Menüzeilen pro Tag, ohne Preise"
+                alt="Patienten-Wochenplan im Browser: sieben Tage, Menü 1 und vegetarisch pro Tag, ohne Preise"
                 width="1400" height="1069"
                 loading="lazy"
               >
@@ -148,16 +203,16 @@
           <figure class="screen-card">
             <div class="screen-frame">
               <img
-                src="assets/signage-cafeteria-tag.webp"
-                alt="Signage-Tagesansicht Cafeteria: heutiges Menü, 1920 × 1080 ohne Scrollen"
+                src="assets/signage-cafeteria-woche.webp"
+                alt="Signage-Wochenansicht Cafeteria: Montag bis Freitag, 1920 × 1080"
                 width="1400" height="788"
                 loading="lazy"
               >
             </div>
             <figcaption>
               <span class="channel-label channel-cafeteria">Cafeteria</span>
-              Signage Tag
-              <code>/signage/cafeteria/tag</code>
+              Signage Woche Cafeteria
+              <code>/signage/cafeteria/woche</code>
             </figcaption>
           </figure>
 
@@ -280,6 +335,7 @@
         <a href="https://github.com/joehomeskillet/Dishboard">GitHub-Projekt</a>
         <a href="https://dishboard.joelduss.xyz/">Live-Instanz</a>
         <a href="https://github.com/joehomeskillet/Dishboard/blob/main/docs/API.md">API-Dokumentation</a>
+        <a href="https://github.com/joehomeskillet/Dishboard/blob/main/docs/superpowers/backlog-0909/execution-contract.md">Ausführungsvertrag</a>
       </div>
     </footer>
   </body>
