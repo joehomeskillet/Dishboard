@@ -1,4 +1,5 @@
 <!doctype html>
+{% from 'admin/_macros.html' import icon %}
 <html lang="de-CH">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,7 +10,7 @@
 </head>
 <body class="admin-body dishboard-admin"><main class="container-fluid py-4">
   <h1>Rezeptvorlage · Anfrage prüfen</h1>
-  <div class="alert alert-warning" role="alert">{{ message }}</div>
-  <a class="btn" href="{{ url_for('admin.recipe_print_template_editor') }}">Zum Rezeptvorlageneditor</a>
+  <div class="alert alert-warning" role="alert">{{ icon('alert-triangle') }}<span>{{ message }}</span></div>
+  <a class="btn" href="{{ url_for('admin.recipe_print_template_editor') }}">{{ icon('arrow-left') }}Zum Rezeptvorlageneditor</a>
 </main></body>
 </html>

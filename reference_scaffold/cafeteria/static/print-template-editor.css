@@ -3,6 +3,12 @@
 .print-template-editor .btn-list { min-width: 0; }
 .print-template-editor :is(.card-title, .list-group-item, .form-hint) { overflow-wrap: anywhere; }
 .print-template-editor .btn { white-space: normal; }
+.print-template-selection,
+.print-template-version-label { min-width: 0; }
+.print-template-selection :is(summary, .btn),
+.print-template-editor summary { white-space: normal; overflow-wrap: anywhere; gap: var(--app-space-2); }
+.print-template-version-label { flex: 1 1 12rem; }
+.print-template-selection summary { min-height: var(--app-space-12); }
 .output-area-tabs {
   max-width: 100%;
   overflow-x: auto;
