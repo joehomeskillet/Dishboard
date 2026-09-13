@@ -81,6 +81,82 @@ def test_complete_week_is_one_readable_page(profile: str, notes: bool, tmp_path:
             assert min(x2, a2) - max(x1, a1) < 0.2 or min(y2, b2) - max(y1, b1) < 0.2
 
 
+@pytest.mark.parametrize('profile', ['staff_guest', 'patient'])
+@pytest.mark.parametrize(('code', 'name'), [
+    ('soup', 'Suppe'),
+    ('salad', 'Salat (gemischt und grün)'),
+])
+def test_accompaniment_is_its_own_paragraph_and_fits(
+    profile: str, code: str, name: str,
+) -> None:
+    draft = saved_week(profile, False)
+    options = [
+        option
+        for day in draft['days']
+        for service in day['services']
+        for option in service['options']
+    ]
+    for option in options:
+        option.update(
+            accompaniment_code=code,
+            accompaniment_name=name,
+        )
+
+    result_page = PdfReader(BytesIO(render_week_pdf(draft, profile, WEEK))).pages[0]
+    body = ' '.join(result_page.extract_text().split())
+    lines: list[str] = []
+    result_page.extract_text(
+        visitor_text=lambda text, cm, tm, font, size: lines.append(text.strip())
+        if text.strip() else None,
+    )
+
+    paragraph = f'Dazu: {name}'
+    assert body.count(paragraph) == len(options)
+    first = options[0]
+    components = ' · '.join(first['components'])
+    assert body.index(first['components'][0]) < body.index(paragraph)
+    assert body.index(paragraph) < body.index('Allergenangaben nicht erfasst')
+    if profile == 'patient':
+        assert any(f'{components} · Dazu:' in line for line in lines)
+    else:
+        assert paragraph in lines
+        assert not any(components in line and 'Dazu:' in line for line in lines)
+
+
+def test_patient_classic_renderer_with_notes_and_accompaniment_fits() -> None:
+    draft = saved_week('patient', True)
+    options = [
+        option
+        for day in draft['days']
+        for service in day['services']
+        if service['service_state'] == 'open'
+        for option in service['options']
+    ]
+    for option in options:
+        option.update(
+            accompaniment_code='salad',
+            accompaniment_name='Salat (gemischt und grün)',
+        )
+
+    result_page = PdfReader(BytesIO(render_week_pdf(draft, 'patient', WEEK))).pages[0]
+    body = ' '.join(result_page.extract_text().split())
+
+    assert len(options) == 28
+    assert body.count('Dazu: Salat (gemischt und grün)') == len(options)
+
+
+@pytest.mark.parametrize('profile', ['staff_guest', 'patient'])
+def test_no_accompaniment_keeps_week_pdf_bytes(profile: str) -> None:
+    explicit_none = saved_week(profile, False)
+    for day in explicit_none['days']:
+        for service in day['services']:
+            for option in service['options']:
+                option.update(accompaniment_code='none', accompaniment_name='')
+
+    golden_path = Path(__file__).parent / 'fixtures' / f'golden_{profile}.pdf'
+    assert render_week_pdf(explicit_none, profile, WEEK) == golden_path.read_bytes()
+
+
 def test_patient_all_28_unique_menu_sentinels_survive() -> None:
     draft = saved_week('patient')
     markers = []

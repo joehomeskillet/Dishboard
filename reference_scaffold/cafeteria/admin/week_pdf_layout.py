@@ -16,7 +16,8 @@ from ..print_template_config import LAYOUT_LABELS, PrintTemplateConfig, PrintTem
 from .rendering import DAY_NAMES
 from .week_pdf import (
     ASSETS, BORDER, INK, LOGOS, PALETTES, Block, WeekPdfFitError, _date_label,
-    _day_offsets, _legend, _notes, _price, _rows, _time_labels, _wrap,
+    _accompaniment_text, _day_offsets, _legend, _notes, _price, _rows,
+    _time_labels, _wrap,
 )
 from .week_pdf_symbols import ICON_GAP, ICON_HEIGHT, SymbolStrip, draw_symbol, draw_symbols, measure_symbols, origin_text
 
@@ -57,6 +58,8 @@ def binding_text(option: dict[str, Any], name: str) -> str:
         return ' · '.join(str(part) for part in (
             ' · '.join(option.get('components') or []), option.get('description'), option.get('note'),
         ) if part)
+    if name == 'accompaniment':
+        return _accompaniment_text(option)
     if name == 'origins':
         return ' · '.join(origin_text(item) for item in option.get('origins', []))
     if name == 'labels':
@@ -119,13 +122,16 @@ def measure_menu(pdf: FPDF, option: dict[str, Any], layout: WeekPdfLayout, width
                     fields.append(Field(name, x, y, image_width, height, image=image))
                     y += height
                 continue
-            text = binding_text(option, name)
+            texts = [binding_text(option, name)]
+            if name == 'components':
+                texts.append(binding_text(option, 'accompaniment'))
             subset = {key: option.get(key, []) if key == name else [] for key in ('labels', 'origins', 'allergens')}
-            block = _menu_text(pdf, text, width, size, name == 'title') if text else None
-            if block:
-                height = _block_height(pdf, block)
-                fields.append(Field(name, 0, y, width, height, block=block))
-                y += height
+            for text in texts:
+                block = _menu_text(pdf, text, width, size, name == 'title') if text else None
+                if block:
+                    height = _block_height(pdf, block)
+                    fields.append(Field(name, 0, y, width, height, block=block))
+                    y += height
             symbols = measure_symbols(subset, width) if option.get('title') else None
             if symbols and symbols.height:
                 fields.append(Field(name, 0, y, width, symbols.height, symbols=symbols))

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from io import BytesIO
@@ -53,6 +54,7 @@ class Block:
     size: float
     bold: bool = False
     leading: float = 1.0
+    stretching: float = 100.0
 
     @property
     def height(self) -> float:
@@ -61,12 +63,12 @@ class Block:
 
 @dataclass
 class MenuCell:
-    paragraphs: tuple[str, str, str]
+    paragraphs: tuple[str, ...]
     option: dict[str, Any] | None = None
 
 
 def _wrap(pdf: FPDF, text: str, width: float, size: float, bold: bool = False,
-          leading: float = 1.0) -> Block:
+          leading: float = 1.0, stretching: float = 100.0) -> Block:
     pdf.set_font('Weekly', 'B' if bold else '', size)
     text = ' '.join(text.split())
     font = cast(TTFFont, pdf.current_font)
@@ -77,20 +79,30 @@ def _wrap(pdf: FPDF, text: str, width: float, size: float, bold: bool = False,
             'Bitte Sonderzeichen (zum Beispiel Emoji) durch ausgeschriebene Wörter ersetzen, '
             'speichern und das PDF erneut öffnen.'
         )
-    lines = cast(list[str], pdf.multi_cell(
-        width, size + leading, text, dry_run=True, output='LINES', align='L',
-    ))
-    return Block(lines, size, bold, leading)
+    context = (
+        pdf.local_context(font_stretching=stretching)
+        if stretching != 100.0 else nullcontext()
+    )
+    with context:
+        lines = cast(list[str], pdf.multi_cell(
+            width, size + leading, text, dry_run=True, output='LINES', align='L',
+        ))
+    return Block(lines, size, bold, leading, stretching)
 
 
 def _draw(pdf: FPDF, block: Block, x: float, y: float) -> float:
     pdf.set_font('Weekly', 'B' if block.bold else '', block.size)
     font = cast(TTFFont, pdf.current_font)
     line_height = max(block.size + block.leading, block.size * (font.desc.ascent - font.desc.descent) / 1000 + 0.2)
-    for line in block.lines:
-        # Explicit baselines, identical to preflight: no auto page break or clipping.
-        pdf.text(x, y + block.size, line)
-        y += line_height
+    context = (
+        pdf.local_context(font_stretching=block.stretching)
+        if block.stretching != 100.0 else nullcontext()
+    )
+    with context:
+        for line in block.lines:
+            # Explicit baselines, identical to preflight: no auto page break or clipping.
+            pdf.text(x, y + block.size, line)
+            y += line_height
     return y
 
 
@@ -110,11 +122,17 @@ def _common_prices(draft: dict[str, Any], patient: bool) -> tuple[Any, Any] | No
     return next(iter(pairs)) if len(pairs) == 1 else None
 
 
-def _paragraphs(option: dict[str, Any], individual_prices: bool) -> tuple[str, str, str]:
+def _accompaniment_text(option: dict[str, Any]) -> str:
+    name = str(option.get('accompaniment_name') or '')
+    return f'Dazu: {name}' if name else ''
+
+
+def _paragraphs(option: dict[str, Any], individual_prices: bool) -> tuple[str, str, str, str]:
     title = str(option.get('title') or '')
     if not title:
-        return 'Menü noch nicht erfasst', '', ''
+        return 'Menü noch nicht erfasst', '', '', ''
     components = ' · '.join(option.get('components') or [])
+    accompaniment = _accompaniment_text(option)
     details = [str(option.get(key) or '') for key in ('description', 'note')]
     details.extend(label['name'] for label in option.get('labels', []))
     details.extend(origin_text(origin) for origin in option.get('origins', []))
@@ -129,7 +147,7 @@ def _paragraphs(option: dict[str, Any], individual_prices: bool) -> tuple[str, s
         details.append('Allergenprüfung offen')
     if individual_prices:
         details.append(f'Intern: {_price(option.get("internal_rappen"))} · Extern: {_price(option.get("external_rappen"))}')
-    return title, components, ' · '.join(part for part in details if part)
+    return title, components, accompaniment, ' · '.join(part for part in details if part)
 
 
 def _day(draft: dict[str, Any], week: date, offset: int) -> dict[str, Any]:
@@ -191,7 +209,7 @@ def _rows(draft: dict[str, Any], patient: bool, week: date, offsets: list[int],
             options = {option['type_code']: option for option in service.get('options', [])}
             for index, code in enumerate(('MENU_1', 'VEGGIE')):
                 if service and service['service_state'] != 'open':
-                    row.append(MenuCell((str(service.get('notice') or 'Kein Angebot') if index == 0 else '', '', '')))
+                    row.append(MenuCell((str(service.get('notice') or 'Kein Angebot') if index == 0 else '', '', '', '')))
                 else:
                     option = options.get(code, {})
                     row.append(MenuCell(_paragraphs(option, prices), option if option.get('title') else None))
@@ -315,8 +333,11 @@ def render_week_pdf(
     if patient:
         for content_row in content:
             for content_cell in content_row:
-                title, components, details = content_cell.paragraphs
-                content_cell.paragraphs = (title, '', ' · '.join(part for part in (components, details) if part))
+                title, components, accompaniment, details = content_cell.paragraphs
+                merged = ' · '.join(
+                    part for part in (components, accompaniment, details) if part
+                )
+                content_cell.paragraphs = (title, '', merged)
     candidates: tuple[tuple[float, float], ...] = ((9.0, 9.0), (8.5, 8.5)) if patient else ((12.0, 10.0), (11.0, 9.0), (10.0, 8.5))
     if config['text_size'] == 'standard':
         candidates = ((9.0, 9.0),) if patient else ((12.0, 10.0),)
@@ -326,7 +347,12 @@ def render_week_pdf(
         table_y = custom_y + (custom_header.height + 2 * padding if custom_header else 0.0)
         rows = [
                 [[_wrap(pdf, text, cell_width - 2 * padding, body_size if i < 2 else detail_size,
-                        i == 0, 0.5 if patient else 1.0)
+                        i == 0, 0.5 if patient else 1.0,
+                        stretching=(
+                            # Preserve 8.5 pt while fitting longest accompaniment and notes.
+                            85.0 if patient and i == 2 and cell.option is not None
+                            and _accompaniment_text(cell.option) else 100.0
+                        ))
               for i, text in enumerate(cell.paragraphs) if text] for cell in row]
             for row in content
         ]
