@@ -1,7 +1,11 @@
 # Menüplanung Klinik Südhang – Patienten und Cafeteria
 
 **Status:** Entwurf, intern technisch geprüft; nicht fachlich abgenommen.  
-**Stand:** 2. September 2026.
+**Stand:** 13. September 2026.
+
+[GitHub Page](https://joehomeskillet.github.io/Dishboard/) · [Live-Instanz](https://dishboard.joelduss.xyz)
+
+![Cafeteria-Wochenangebot, Live-Aufnahme 13.09.2026](design/screenshots/live/website-cafeteria-woche-1440x1100.png)
 
 Das Paket modelliert zwei getrennte Publikationskanäle:
 
@@ -9,6 +13,20 @@ Das Paket modelliert zwei getrennte Publikationskanäle:
 |---|---|---|---|
 | Patienten | Montag bis Sonntag, Mittag und Abend | Menü 1 und Vegetarisch | keine Kosteninformation im Kanal |
 | Cafeteria | Montag bis Freitag, nur Mittag | Menü 1 und Vegetarisch | Mitarbeitende und Externe |
+
+## Agentische Softwareentwicklung
+
+Dishboard wird durch orchestrierte KI-Coding-Agenten unter menschlicher Steuerung entwickelt. Claude Code (Anthropic) fungiert als Orchestrator: er plant, zerlegt Aufträge in Work Packages, verifiziert Ergebnisse unabhängig, integriert und merged. Merge und Deploy erfolgen nur nach menschlicher Freigabe.
+
+Sechs Worker-Lanes setzen die Work Packages um: OpenAI Codex, Cursor Agent, Google Antigravity (Gemini), Grok Build, MiniMax über OpenCode und Cline. Vor jedem Merge finden unabhängige Cross-Vendor-Reviews (Cursor, Gemini, Grok) und Open Code Review statt.
+
+- **Isolation:** Jedes Work Package läuft in einem eigenen Git-Worktree und Branch. Worker committen; pushen, mergen und deployen nie.
+- **Regeln:** Ein gemeinsamer Ausführungsvertrag für alle Tools, `AGENTS.md` als Single Source of Truth, Work-Package-JSONs mit Dateibesitz und Routing-Belegen.
+- **Gates:** pytest-Suite (rund 1 900 Testfunktionen, über 4 800 Testfälle im Vollgate mit PostgreSQL und Redis), Ruff, Mypy, Playwright-Browser-Gates bei 390/1440/1920/3840 px, Paketvalidator mit SHA-256-Manifest, GitNexus-Impact-Analyse vor Symboländerungen.
+- **Zahlen:** 860 Commits auf `main` (Stand 13.09.2026) unter dem gemeinsamen Git-Benutzer `agent`; produktiv seit 2. September 2026. Menübilder sind KI-generierte Serviervorschläge (so auch in der App beschriftet).
+- **Mensch:** Auftrag, Priorisierung, Freigaben und fachliche Abnahme bleiben beim Menschen; die fachliche Abnahme ist laut README noch offen.
+
+Belege: `docs/superpowers/backlog-0909/` (WP-Pläne, `execution-contract.md`, `file-leases.json`, `routing-receipts.json`), `.claude/evidence/` (Gate-Logs und Cross-Reviews), `AGENTS.md`.
 
 ## Wichtigste Inhalte
 
@@ -24,7 +42,7 @@ Das Paket modelliert zwei getrennte Publikationskanäle:
 | `reference_scaffold/` | Flask-Referenzgerüst mit Website, Druck, API, Backend-Prototypen und vier Signage-Routen |
 | `reference_scaffold/dishboard_mcp/` | MCP-Server (stdio) für LLM-Clients |
 | `design/prototype/` | elf eigenständige HTML-Prototypen plus Kompatibilitätskopien |
-| `design/screenshots/` | 14 primäre Screenshots plus drei Kompatibilitätskopien; 18 Live-Screenshots in `design/screenshots/live` |
+| `design/screenshots/` | 14 primäre Screenshots plus drei Kompatibilitätskopien; 18 Live-Screenshots in `design/screenshots/live` (Stand 13.09.2026) |
 | `architecture/` | System-, Daten-, Auth- und CSV-Fluss als DOT, PNG und SVG |
 | `deployment/` | Docker Compose, Secrets, Backup/Restore, Healthchecks und Runbook |
 | `entra/` | drei App-Rollen, Gruppenbeispiel und PowerShell-Bereitstellung |
