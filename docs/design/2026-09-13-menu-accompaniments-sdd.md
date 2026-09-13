@@ -3,10 +3,25 @@
 Stand: 13. September 2026. Planungs-WP `wp-f9d0d3e72dfe`, Planer Claude Fable 5.1
 (`claude-fable-5-1`), Worktree `menu-accompaniment-sdd-fable-0913`, Branch
 `docs/menu-accompaniment-sdd-fable-0913`, Basis `dd1491ee82d61579863f317fc7b64017777ae88d`
-(Produktion Schema 30). Geprüfter Nachfolgestand: Menüvorschlag-Branch
+(damalige Produktion Schema 30). Geprüfter Nachfolgestand: Menüvorschlag-Branch
 `fix/proposal-mobile-fix-0913` @ `66be61edcdd3b6bef07c1047b53e5cb22b186d9a` mit additiver
 Schema-31-Migration `database/migrations/0028_v30_to_v31.sql`. Dieser Plan zielt auf die
 Integration **nach** dem Schema-31-Release; er blockiert kein laufendes Release.
+
+Registrierungsstand `wp-582f8fccf5ce` auf `4711c22075383126d2af90ecaa85184ed53589eb`:
+Root belegt Schema31 live mit `4be7b79d69e38e70875981a70d7b975591e5218c` seit
+13.09., 08:53 CEST, healthy. ACC-SCHEMA (`wp-65e15658fc4b`) ist `IN_PROGRESS`:
+Der Nutzer erlaubt inzwischen verfügbare GPT-Worker; Root bestätigt den Start
+`gpt-5.6-sol`/high, PTY 90840, 09:08 CEST, im eigenen Worktree
+`accompaniment-schema-codex-0913` auf `4711c220`, APIint2 exklusiv. Kein Quellfreeze
+oder Abnahmebeleg. Der frühere Spark-Aufruf 7070 mit Usage-Limit/Exit 1
+(«try again at 1:28 PM») bleibt als `BLOCKED_PROVIDER` historisch erhalten;
+dessen Worktree blieb sauber ohne Produktänderungen. Die Iconquelle `0ca81eebb14223fbc7d69cb47a6571bd08fcc333`
+ist nach Root-Recovery/Generatorprüfung `REVIEWED_LOCAL`, nicht deployed.
+Zehn weitere ACC-Pakete bleiben `PLANNED`. Der wiederhergestellte Planungscommit
+`2eaa408` dokumentiert den Fable-Teilbeitrag, keine abgeschlossene Umsetzung.
+Das zentrale Register ist `docs/superpowers/backlog-0909/recipes-wps.json`, der
+aktuelle ACC-Dateibesitz steht im datierten Nachtrag von `file-leases.json`.
 
 Dieses Dokument ist Spezifikation und WP-Zuordnung, keine Implementierung, keine
 Browserprüfung und keine Abnahme. Verbindlich bleiben
@@ -19,8 +34,8 @@ und `docs/superpowers/plans/2026-09-12-next-sprints.md`. Arbeitspakete:
 `docs/superpowers/menu-accompaniments-0913/START.md`.
 
 Root-Abschluss nach tatsächlichem Fable-Sitzungslimit am 13.09.: Planung bleibt Fables
-Teilbeitrag; Umsetzung gemäss letzter Nutzerkorrektur ausschliesslich mit
-`gpt-5.3-codex-spark`, ohne stillen Modellwechsel. Root reserviert Schema32 für diese
+Teilbeitrag; Umsetzung gemäss letzter Nutzerkorrektur mit verfügbaren GPT-Workern.
+Tatsächliche Modelle je Start belegen; die frühere Spark-Vorgabe ist ersetzt. Root reserviert Schema32 für diese
 Funktion nach Schema31; PLAN-PORTIONS wartet. CSV-Roundtrip (F5) ist entschieden und
 gehört zum vollständigen Feature. Kein sichtbarer Beilagen-Release, bevor alle
 Snapshot-Reader, Ausgaben und CSV-Anschlüsse die neue Wahl erhalten können.
@@ -104,7 +119,7 @@ ergänzt ihn genau einmal. Die Namen oben sind Roots verbindliche Entscheidung F
 Der öffentliche Name ist ab der ersten Publikation Vertragsinhalt einer gespeicherten
 Revision (bytegleich, Hash). Eine spätere Umbenennung ändert nur neue Revisionen; alte
 Revisionen bleiben, wie sie sind. Deshalb wird die Formulierung vor der ersten Publikation
-bestätigt (§11, F3).
+durch Root festgelegt (§11, F3); eine erneute Bestätigung ist keine Voraussetzung.
 
 ### 4.1 Schema (neue Migration, additiv, nach Schema 31)
 
@@ -325,17 +340,18 @@ gleiche Zeile als eigener Absatz in `_paragraphs`/`binding_text`. Signage-Fit be
 |---|---|---|---|
 | F1 | Wählt die **Küche** je Menü (Suppe *oder* Salat), oder wählt der **Gast** am Ausgabepunkt zwischen Suppe und Salat, sodass ein Menü beides anbietet? Der Wortlaut «kann dazu genommen werden» lässt beides zu; der Auftrag an den Planer fixiert die Küchenwahl. | Küchenwahl je Menü, drei Werte. | Vierter Wert `soup_or_salad` («Dazu: Suppe oder Salat») per kleiner CHECK-Migration; Radio erhält eine vierte Option; Snapshot-Name ergänzt. Kein Umbau. |
 | F2 | Soll die Tagessuppe benannt werden («Kürbissuppe»)? | Nein; Hinweisfeld steht zur Verfügung. | Optionales Textfeld `accompaniment_text` (Patientenfilter!) als eigenes WP. |
-| F3 | Öffentliche Formulierung «Salat (gemischt und grün)» — Alternativen «gemischter und grüner Salat», «Salat gemischt & grün». | «Salat (gemischt und grün)»; Formular gleichlautend. | Vor der ersten Publikation ändern; danach nur für neue Revisionen. |
+| F3 | Öffentliche Formulierung und Präfix | Entschieden: «Salat (gemischt und grün)»; Formular gleichlautend. Snapshotname ohne «Dazu:». | Spätere Umbenennung nur für neue Revisionen. |
 | F4 | Gilt die Beilage in beiden Bereichen (Cafeteria und Patienten) und für Mittag **und** Abend? | Ja, überall; keine Profilregel. | Profil-/Mahlzeitregel im Parser und in `_validate_values`. |
 | F5 | CSV-Roundtrip | Entschieden durch Root: neue Spalte mit Schema3, kompatibler Schema2-Import. | CSV-WP ist Pflicht vor sichtbarem Feature-Release. |
 | F6 | Allergen-/Preisaussage zur Beilage (z. B. «im Preis inbegriffen», Suppenallergene)? | Keine Aussage; öffentliche Allergenzeile bezieht sich weiterhin nur auf das Menü. | Eigenes Fach-WP mit Datenvertrag; nicht aus diesem Plan ableiten. |
 
 ## 12. Arbeitspakete, Reihenfolge, Besitz
 
-Alle Pakete `PLANNED`; Root vergibt Leases, Migrationsnummer, Pools und setzt `READY`.
-Vollständige Verträge in `work-packages.json`. Neue Backlog-Anforderung: **REC-008
-«Menübeilage Suppe oder Salat je Menü»** (Root ergänzt `docs/BACKLOG.md` und die
-Slice-Liste in `validate-plan.py`; beide sind Root-Besitz).
+SCHEMA ist `IN_PROGRESS` (autorisierte GPT-Fortsetzung), ICONS ist `REVIEWED_LOCAL` (Quellbeleg, kein Deploy),
+die übrigen zehn Pakete sind `PLANNED`. Root vergibt weitere Leases und Pools vor
+Start. Vollständige Verträge in `work-packages.json`, identisch im zentralen
+`recipes-wps.json` registriert. **REC-008 «Menübeilage Suppe oder Salat je Menü»**
+ist in `docs/BACKLOG.md` und der Slice-Liste in `validate-plan.py` aufgenommen.
 
 | Welle | WP | Kern | Exklusiver Besitz (Auszug) | Abhängig von |
 |---|---|---|---|---|
@@ -349,13 +365,13 @@ Slice-Liste in `validate-plan.py`; beide sind Root-Besitz).
 | 2 | `MP-REC-ACC-WEEK-PDF` | PDF-Absatz | `admin/week_pdf.py`, `admin/week_pdf_layout.py`, PDF-Tests | SNAPSHOT, CORE |
 | 2 | `MP-REC-ACC-API-FHIR` | OpenAPI-Properties, FHIR-Note, MCP-Gate | `api/openapi.py`, `fhir/mapping.py`, API-/FHIR-/MCP-Tests | SNAPSHOT |
 | 3 | `MP-REC-ACC-COLLECTION` | Sammlung liest Beilage | `admin/menu_collection_store.py`, Sammlungstest | CORE, DENSITY-LISTS |
-| 3 | `MP-REC-ACC-CSV` | Spalte `beilage_dazu`, Schema 3 | `csvio.py`, `csv/validate_menu_csv.py`, CSV-Vorlagen/Beispiele, CSV-Tests | CORE, SNAPSHOT, Entscheid F5 |
-| 3 | `MP-REC-ACC-ACCEPT` | Unabhängige Browser-/Ausgabe-Abnahme, Inventaranschluss (Root) | eigener Test + Evidenz | EDITOR-UI, PUBLIC-OUTPUT, WEEK-PDF, API-FHIR, TEMPLATE |
+| 3 | `MP-REC-ACC-CSV` | Spalte `beilage_dazu`, Schema 3 | `csvio.py`, `csv/validate_menu_csv.py`, CSV-Vorlagen/Beispiele, CSV-Tests | CORE, SNAPSHOT; F5 entschieden |
+| 3 | `MP-REC-ACC-ACCEPT` | Unabhängige Browser-/Ausgabe-Abnahme, Inventaranschluss (Root) | eigener Test + Evidenz | EDITOR-UI, PUBLIC-OUTPUT, WEEK-PDF, API-FHIR, TEMPLATE, COLLECTION, CSV |
 
 Empfohlene Reihenfolge: SCHEMA unmittelbar nach dem Schema-31-Release als nächster
 SQL-Writer (zwei additive Spalten, zwei Verben; kleiner als PLAN-PORTIONS), ICONS
 parallel durch Root; danach CORE ∥ SNAPSHOT ∥ TEMPLATE; danach EDITOR-UI ∥ PUBLIC-OUTPUT ∥
-WEEK-PDF ∥ API-FHIR; zuletzt COLLECTION, CSV (nach F5) und ACCEPT. Zieht Root
+WEEK-PDF ∥ API-FHIR; zuletzt COLLECTION, verpflichtendes CSV und ACCEPT. Zieht Root
 PLAN-PORTIONS später nach, benötigt es eine neue eigene Nummer nach Schema32;
 ACC-SCHEMA bleibt `0029_v31_to_v32.sql`.
 
@@ -363,8 +379,8 @@ ACC-SCHEMA bleibt `0029_v31_to_v32.sql`.
 
 | Datei | Aktive/geplante Writer | Regel |
 |---|---|---|
-| `database/schema.sql`, `permissions.sql`, `validate_schema.py`, `db.py`, `tools/validate_package.py`, Migrationsledger | PROPOSAL (v31, in Review) → **ACC-SCHEMA** ↔ PLAN-PORTIONS (Root-Reihenfolge) | Ein SQL-Writer; Nummer erst nach Freeze des Vorgängers. |
-| `workflow_partial_form.py`, `workflow_partial_store.py`, `workflow_store.py`, `workflow_item_write.py`, `workflow.py`, `workflow_copy_store.py` | BINDINGS (Anker) · MENU-TEMPLATE-BINDING (IN_PROGRESS) · PLAN-PORTIONS · **ACC-CORE** | Seriell nach Root-Lease; ACC-CORE nie parallel zu PLAN-PORTIONS. |
+| `database/schema.sql`, `permissions.sql`, `validate_schema.py`, `db.py`, `tools/validate_package.py`, Migrationsledger | PROPOSAL (v31 live) → **ACC-SCHEMA** (`wp-65e15658fc4b`, IN_PROGRESS) → PLAN-PORTIONS (wartet) | Ein aktiver Writer: nutzerautorisierte GPT-Fortsetzung im eigenen Codex-Worktree. `0029_v31_to_v32.sql` ausschliesslich ACC. |
+| `workflow_partial_form.py`, `workflow_partial_store.py`, `workflow_store.py`, `workflow_item_write.py`, `workflow.py`, `workflow_copy_store.py` | BINDINGS/MENU-TEMPLATE-BINDING/PROPOSAL als Vorgänger · **ACC-CORE** · PLAN-PORTIONS | Nach Schema-Freeze und Root-Lease; ACC-CORE nie parallel zu PLAN-PORTIONS oder einem weiteren Workflow-Writer. |
 | `admin/workflow_routes.py`, `admin/rendering.py` | MENU-TEMPLATE-BINDING → MENU-PROPOSAL → PLAN-PORTIONS ↔ **ACC-CORE** | Seriell. |
 | `menu_template_binding.py` | MENU-TEMPLATE-BINDING → **ACC-CORE** (eine SELECT-Erweiterung) | Nach Merge des Binding-/Proposal-Standes. |
 | `templates/admin/menu_editor.html` | MENUEDITOR (deployed) → BINDING → PROPOSAL → PLAN-PORTIONS ↔ **ACC-EDITOR-UI** | Seriell; keine `admin.js`-Änderung durch ACC. |
@@ -377,7 +393,7 @@ ACC-SCHEMA bleibt `0029_v31_to_v32.sql`.
 | `admin/week_pdf*.py`, `api/openapi.py`, `fhir/mapping.py` | keine aktive Lease → ACC-WEEK-PDF / ACC-API-FHIR | Lease bei READY. |
 | `templates/admin/menu_collection.html` | DENSITY-LISTS (aktiver Grant) | ACC-COLLECTION ändert **nur** den Store; Template zeigt die Zeile über das Partial. |
 | `templates/admin/preview.html`, `admin-preview.css` | DENSITY-PREVIEW (geplant) | ACC ändert nichts daran; Zeile kommt über das Partial. |
-| Sprite/Lock | RECIPE-Fix (abgeschlossen) → VIEW-PRINT-Grant → **ACC-ICONS (Root)** | Generator unverändert; Root-Vendor-Wiring. |
+| Sprite/Lock | **ACC-ICONS** Quellstand `0ca81ee`, Root-Recovery des Spark-Teilstands | Generator unverändert und Root-Verify PASS; kein aktiver konkurrierender Vendor-Writer, kein Deploybeleg. |
 | `docs/superpowers/backlog-0909/*-wps.json`, `file-leases.json`, `ui-route-matrix.json`, `ui-before-manifest.json`, `docs/BACKLOG.md`, `validate-plan.py` | Root | Aufnahme von REC-008/ACC-Paketen und Inventarzeilen durch Root. |
 
 ## 13. Abnahmefälle
@@ -445,5 +461,7 @@ ACC-SCHEMA bleibt `0029_v31_to_v32.sql`.
   Freigabe geführt. Die Writer-Kette gilt damit als HIGH.
 - Kein Webabruf; alle Aussagen aus Quellstand `dd1491e`, dem geprüften Diff
   `dd1491e..66be61e` des Vorschlag-Branches und den genannten Manifesten.
-- Icons: lokal ist kein `@tabler/icons`-Archiv entpackt; die Existenz von `soup` und
-  `salad` in 3.46.0 ist vom Vendor-Writer im gepinnten Archiv (SHA im Lock) zu belegen.
+- Historischer Icon-Befund der Planung: kein Archiv entpackt, `soup`/`salad` noch
+  zu belegen. Nachtrag: Root hat Quelle `0ca81ee` aus dem tatsächlichen Spark-
+  `/tmp`-/Besitzfehler geborgen; unveränderter Generator-Verify PASS. Das belegt
+  die Quelle, nicht den Deploy oder die spätere tatsächliche UI-Darstellung.

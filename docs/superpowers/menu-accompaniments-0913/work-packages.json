@@ -3,23 +3,24 @@
   "slice": "recipes",
   "source_commit": "dd1491ee82d61579863f317fc7b64017777ae88d",
   "planning_origin": "wp-f9d0d3e72dfe · Claude Fable 5.1 (claude-fable-5-1) · 2026-09-13 · Worktree menu-accompaniment-sdd-fable-0913",
-  "integration_target": "Nach dem Schema-31-Release (fix/proposal-mobile-fix-0913 @ 66be61edcdd3b6bef07c1047b53e5cb22b186d9a integriert). Basis der Worker ist der von Root benannte Integrationscommit, nie dieser Planungsstand.",
+  "integration_target": "Schema31 Root-live 4be7b79d69e38e70875981a70d7b975591e5218c seit 13.09.2026 08:53 CEST, healthy; aktuelle Registrierungs-/Schema-WT-Basis 4711c22075383126d2af90ecaa85184ed53589eb. Root vergibt neue Consumer-Basen nach unabhängig geprüftem Vorgängerfreeze.",
   "requirements": ["REC-008"],
   "requirement_definitions": {
-    "REC-008": "Menübeilage: pro Menü genau eine Wahl «keine», «Suppe» oder «Salat (gemischt und grün, immer beides)»; in Menüstruktur, Gerichtvorlage, Editor, Wochenplan, Publikation, Public/Signage/Druck und API integriert; alte Menüs und gespeicherte Revisionen bleiben unverändert. Root ergänzt die ID in docs/BACKLOG.md und in SLICE_REQUIREMENTS['recipes'] von validate-plan.py."
+    "REC-008": "Menübeilage: pro Menü genau eine Wahl «keine», «Suppe» oder «Salat (gemischt und grün, immer beides)»; in Menüstruktur, Gerichtvorlage, Editor, Wochenplan, Publikation, Public/Signage/Druck und API integriert; alte Menüs und gespeicherte Revisionen bleiben unverändert. Registriert in docs/BACKLOG.md, validate-plan.py und dem zentralen recipes-wps.json; CSV-Roundtrip ist Pflicht."
   },
   "sdd": "docs/design/2026-09-13-menu-accompaniments-sdd.md",
   "start": "docs/superpowers/menu-accompaniments-0913/START.md",
-  "migration_placeholder": "Root reserviert 0029_v31_to_v32.sql (Schema32) für ACC-SCHEMA; PLAN-PORTIONS wartet. Keine bestehende Migration wird umnummeriert oder verändert.",
+  "migration_placeholder": "Reserviert: database/migrations/0029_v31_to_v32.sql für ACC; PLAN-PORTIONS wartet.",
   "root_decisions": {
-    "implementation_model": "gpt-5.3-codex-spark",
-    "routing_override": "Letzte Nutzerkorrektur hat Vorrang vor historischen preferred_lane/eligible_lanes; kein stiller Modellwechsel. Root vergibt je Auftrag die tatsächlichen Leases.",
+    "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+    "routing_override": "Nutzer: Mit verfügbaren GPT-Workern fortsetzen. Root bestätigt die Fortsetzung; historische Spark- und Fable-Routingvorgaben sind überholt.",
     "recovery": "Fable plante diese zwölf Pakete und erreichte sein Sitzungslimit vor Commit; Root sichert und präzisiert die Planung.",
     "touch_target_px": 48,
     "canonical_names": {"soup": "Suppe", "salad": "Salat (gemischt und grün)"},
     "display_prefix": "Dazu: wird nur im Verbraucher ergänzt, nie in accompaniment_name gespeichert.",
     "csv": "F5 entschieden: Schema3 und verlustfreier Roundtrip sind Pflicht; Schema2-Import bleibt expliziter Vollersatz mit none.",
-    "release_gate": "Vor sichtbarer Schreiboberfläche alle Snapshot-Reader/Validatoren sowie Public/Signage/Druck/API und CSV-Roundtrip fertig integrieren. Kein sichtbares Teilrelease nach Welle1."
+    "release_gate": "Vor sichtbarer Schreiboberfläche alle Snapshot-Reader/Validatoren sowie Public/Signage/Druck/API und CSV-Roundtrip fertig integrieren. Kein sichtbares Teilrelease nach Welle1.",
+    "historical_implementation_model": "gpt-5.3-codex-spark"
   },
   "shared_owner_gate": {
     "policy": "Vor READY Root-Lease mit tatsächlichem Vorgängerfreeze-Commit für jeden gemeinsamen Pfad. Genau ein aktiver Writer je Datei; SQL-Writer serialisiert; keine fachfremde Featureabhängigkeit als Dateisperre.",
@@ -56,15 +57,47 @@
   "readiness_conditions_common": [
     "Schema-31-Release integriert und live belegt; Basis ist der benannte Integrationscommit",
     "Root-Dateileases mit Vorgängerfreeze-Commit je gemeinsamem Pfad; genau ein aktiver Writer; SQL-Writer serialisiert",
-    "REC-008 in docs/BACKLOG.md und validate-plan.py registriert; Pakete in recipes-wps.json/file-leases.json übernommen",
+    "REC-008 und zwölf ACC-Pakete registriert; datierter ACC-Lease-Nachtrag massgeblich, kein pauschales READY.",
     "Exklusiver Testpool je DB-/Browser-Writer; höchstens fünf schwere Hostjobs; keine gestoppten Container starten",
     "Fachfragen F1–F6 der SDD §11: Defaults gelten, F3 und F5 sind durch root_decisions entschieden"
   ],
   "sequence": [
-    {"wave": 0, "packages": ["MP-REC-ACC-SCHEMA", "MP-REC-ACC-ICONS"], "gate": "Migration auf nichtleerem v31-Bestand, Restore-Probe, validate_schema 32; Sprite/Lock-Verifikation"},
-    {"wave": 1, "packages": ["MP-REC-ACC-MENU-CORE", "MP-REC-ACC-SNAPSHOT", "MP-REC-ACC-TEMPLATE"], "gate": "Gezielte DB-/Form-/Kontrakttests; Integrationsstand, noch kein sichtbarer Feature-Release"},
-    {"wave": 2, "packages": ["MP-REC-ACC-EDITOR-UI", "MP-REC-ACC-PUBLIC-OUTPUT", "MP-REC-ACC-WEEK-PDF", "MP-REC-ACC-API-FHIR"], "gate": "Browser1440/390/320/2560, Signage1920/3840, PDF, API/FHIR/MCP; Schreiboberfläche erst zusammen mit CSV freigeben"},
-    {"wave": 3, "packages": ["MP-REC-ACC-COLLECTION", "MP-REC-ACC-CSV", "MP-REC-ACC-ACCEPT"], "gate": "Sammlung, verpflichtender CSV-Schema3-Roundtrip, unabhängige Ablaufabnahme und vollständiger sichtbarer Feature-Release; gezieltes Sprintgate plus tools/validate_package.py durch Root"}
+    {
+      "wave": 0,
+      "packages": [
+        "MP-REC-ACC-SCHEMA",
+        "MP-REC-ACC-ICONS"
+      ],
+      "gate": "Migration auf nichtleerem v31-Bestand, Restore-Probe, validate_schema 32; Sprite/Lock-Verifikation"
+    },
+    {
+      "wave": 1,
+      "packages": [
+        "MP-REC-ACC-MENU-CORE",
+        "MP-REC-ACC-SNAPSHOT",
+        "MP-REC-ACC-TEMPLATE"
+      ],
+      "gate": "Gezielte DB-/Form-/Kontrakttests; Integrationsstand, noch kein sichtbarer Feature-Release"
+    },
+    {
+      "wave": 2,
+      "packages": [
+        "MP-REC-ACC-EDITOR-UI",
+        "MP-REC-ACC-PUBLIC-OUTPUT",
+        "MP-REC-ACC-WEEK-PDF",
+        "MP-REC-ACC-API-FHIR"
+      ],
+      "gate": "Browser1440/390/320/2560, Signage1920/3840, PDF, API/FHIR/MCP; Schreiboberfläche erst zusammen mit CSV freigeben"
+    },
+    {
+      "wave": 3,
+      "packages": [
+        "MP-REC-ACC-COLLECTION",
+        "MP-REC-ACC-CSV",
+        "MP-REC-ACC-ACCEPT"
+      ],
+      "gate": "Sammlung, verpflichtender CSV-Schema3-Roundtrip, unabhängige Ablaufabnahme und vollständiger sichtbarer Feature-Release; gezieltes Sprintgate plus tools/validate_package.py durch Root"
+    }
   ],
   "work_packages": [
     {
@@ -72,10 +105,10 @@
       "title": "Schema v32: Beilagenspalten für Menüposition und Gerichtvorlage, Vorlagen-Verben v32, Versionspins",
       "requirement_ids": ["REC-008"],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "wave": 0,
       "depends_on": ["MP-REC-MENU-PROPOSAL"],
-      "existing_wp_id": null,
+      "existing_wp_id": "wp-65e15658fc4b",
       "sdd_sections": [
         "docs/design/2026-09-13-menu-accompaniments-sdd.md#41-schema-neue-migration-additiv-nach-schema-31",
         "docs/design/2026-09-13-menu-accompaniments-sdd.md#7-kompatibilität-migration-release",
@@ -95,7 +128,7 @@
         "database/validate_schema.py:run_live_check",
         "tools/validate_package.py"
       ],
-      "task": "Vorher: menu_items und dish_templates kennen keine Beilagenwahl; dish_template_mutate_v26 lehnt über master_payload jeden neuen Payload-Schlüssel ab; Versionspins stehen auf 31. Nachher: eine neue additive Migration (Platzhalter <ROOT_RESERVED_MP-REC-ACC-SCHEMA>, provisorisch 0029_v31_to_v32.sql) fügt menu_items.accompaniment text NOT NULL DEFAULT 'none' CHECK IN ('none','soup','salad') und dish_templates.accompaniment_default (gleiche Regel) hinzu, legt dish_template_mutate_v32 als Kopie von v26 mit optionalem Schlüssel accompaniment_default an (fehlend: create → 'none', update → unverändert; Audit-Details um accompaniment_default ergänzt; gleiche Sperrfolge/CAS/Fehlercodes), dazu create_dish_template_v32 und update_dish_template_v32 mit denselben sechs Parametern; v26-Verben bleiben unverändert und ausführbar; set_dish_template_active_v26 bleibt das Aktivverb. REVOKE/GRANT wie 0027/0028. schema.sql, permissions.sql, validate_schema.py (Version 32, Constraint-Fragmente), db.py (SCHEMA_VERSION=32, MIGRATION_FILES), tools/validate_package.py (32), database/README.md (Listeneintrag und Absatz «Schema v32») und die Versionspin-Hunks der 15 Tests des v31-Diffs werden nachgezogen. Kein Backfill, keine Trigger-/Index-Änderung, keine Datenumschreibung. Kein Python-Writer schaltet in diesem WP auf v32 um (das tut MP-REC-ACC-TEMPLATE).",
+      "task": "Vorher: menu_items und dish_templates kennen keine Beilagenwahl; dish_template_mutate_v26 lehnt über master_payload jeden neuen Payload-Schlüssel ab; Versionspins stehen auf 31. Nachher: eine neue additive Migration (Root-reserviert: 0029_v31_to_v32.sql) fügt menu_items.accompaniment text NOT NULL DEFAULT 'none' CHECK IN ('none','soup','salad') und dish_templates.accompaniment_default (gleiche Regel) hinzu, legt dish_template_mutate_v32 als Kopie von v26 mit optionalem Schlüssel accompaniment_default an (fehlend: create → 'none', update → unverändert; Audit-Details um accompaniment_default ergänzt; gleiche Sperrfolge/CAS/Fehlercodes), dazu create_dish_template_v32 und update_dish_template_v32 mit denselben sechs Parametern; v26-Verben bleiben unverändert und ausführbar; set_dish_template_active_v26 bleibt das Aktivverb. REVOKE/GRANT wie 0027/0028. schema.sql, permissions.sql, validate_schema.py (Version 32, Constraint-Fragmente), db.py (SCHEMA_VERSION=32, MIGRATION_FILES), tools/validate_package.py (32), database/README.md (Listeneintrag und Absatz «Schema v32») und die Versionspin-Hunks der 15 Tests des v31-Diffs werden nachgezogen. Kein Backfill, keine Trigger-/Index-Änderung, keine Datenumschreibung. Kein Python-Writer schaltet in diesem WP auf v32 um (das tut MP-REC-ACC-TEMPLATE).",
       "acceptance_criteria": [
         "Migration läuft auf einem nichtleeren v31-Bestand (Menüs, Vorlagen, Publikationen) durch; beide Spalten tragen 'none'; CHECK-Constraints menu_items_accompaniment_check und dish_templates_accompaniment_default_check aktiv; schema_migrations zeigt 32; SHA der Vorgängermigrationen unverändert",
         "create/update_dish_template_v32 akzeptieren accompaniment_default in {'none','soup','salad'}; fehlender Schlüssel: create → 'none', update → unverändert; fremder Wert oder unbekannter Schlüssel → P1901; CAS 55000 und Audit-Verben wie v26; v26-Verben liefern weiterhin dasselbe Ergebnis und lassen accompaniment_default stehen",
@@ -107,7 +140,7 @@
       "contract_files": [
         "database/schema.sql",
         "database/permissions.sql",
-        "proposed:database/migrations/<ROOT_RESERVED_MP-REC-ACC-SCHEMA>.sql",
+        "proposed:database/migrations/0029_v31_to_v32.sql",
         "reference_scaffold/cafeteria/db.py"
       ],
       "wiring_files": [
@@ -120,7 +153,7 @@
         "database/permissions.sql",
         "database/validate_schema.py",
         "database/README.md",
-        "proposed:database/migrations/<ROOT_RESERVED_MP-REC-ACC-SCHEMA>.sql",
+        "proposed:database/migrations/0029_v31_to_v32.sql",
         "reference_scaffold/cafeteria/db.py",
         "tools/validate_package.py",
         "proposed:reference_scaffold/tests/test_menu_accompaniment_migration_db.py",
@@ -171,23 +204,76 @@
           "assertions": ["Artefaktprüfung passed", "schema_version 32", "Pflichtfragmente inklusive accompaniment IN ('none','soup','salad')"]
         }
       ],
-      "external_inputs": ["Root: Reservierung der Migrationsnummer nach Schema-31-Freeze (oder nach PLAN-PORTIONS, falls vorgezogen)"],
+      "external_inputs": [],
       "risk": "HIGH",
       "effort": "medium",
       "preferred_lane": "codex",
-      "eligible_lanes": ["codex", "claude-code", "grok-build"],
+      "eligible_lanes": [
+        "codex"
+      ],
       "completion_evidence": ["Migrationsprotokoll mit Exitcode", "Testausgaben der genannten Tests", "validate_schema-Ausgabe", "Restore-Probe (Root)", "WP-Bericht via rtk claude-wp-report record"],
-      "rollback": "Vor produktiver Migration geprüftes Backup. v31-App läuft auf v32-Schema (Defaults, alte Writer nennen die Spalten nicht). Nach einer Publikation mit Beilage ist ein App-Rollback nur nach Rückzug dieser Revision oder als Forward-Fix zulässig (SDD I10). Keine Rückwärtsmigration."
+      "rollback": "Vor produktiver Migration geprüftes Backup. v31-App läuft auf v32-Schema (Defaults, alte Writer nennen die Spalten nicht). Nach einer Publikation mit Beilage ist ein App-Rollback nur nach Rückzug dieser Revision oder als Forward-Fix zulässig (SDD I10). Keine Rückwärtsmigration.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "grok-build"
+        ]
+      },
+      "implementation_model": "gpt-5.6-sol",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "execution": {
+        "state": "IN_PROGRESS",
+        "routing_wp": "wp-65e15658fc4b",
+        "actual_lane": "codex",
+        "actual_model": "gpt-5.6-sol",
+        "reasoning": "high",
+        "provider": "openai",
+        "profile": "effort-high",
+        "pty": "90840",
+        "session": "01a09999-07d8-76c1-9ab8-320c6ef7bd3c",
+        "started_at": "2026-09-13T07:08:58Z",
+        "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/accompaniment-schema-codex-0913",
+        "base": "4711c22075383126d2af90ecaa85184ed53589eb",
+        "pool_assignment": "APIint2 exclusive",
+        "authorization": "Nutzer: Mit verfügbaren GPT-Workern fortsetzen. Root bestätigt die Fortsetzung; historische Spark- und Fable-Routingvorgaben sind überholt.",
+        "evidence_owner": "Root verified actual startup; no source freeze, gate or delivery claimed."
+      },
+      "previous_user_model": "gpt-5.3-codex-spark",
+      "execution_history": [
+        {
+          "blocker_code": "BLOCKED_PROVIDER",
+          "state": "AWAITING_EXTERNAL",
+          "routing_wp": "wp-65e15658fc4b",
+          "actual_lane": "codex-gpt5-spark",
+          "actual_model": "gpt-5.3-codex-spark",
+          "invocation": "7070",
+          "exit_code": 1,
+          "observed_error": "usage limit; try again at 1:28 PM",
+          "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/accompaniment-schema-spark-0913",
+          "base": "4711c22075383126d2af90ecaa85184ed53589eb",
+          "working_tree": "clean; no product changes",
+          "pool_assignment": "APIint2; no active job after provider exit",
+          "authorization": "Root marked codex-gpt5-spark down from this actual error. User Spark instruction persists; no fallback authorized or running.",
+          "resume_condition": "Provider availability or explicit user authorization of another model; Root rechecks lease/pool before restart."
+        }
+      ]
     },
     {
       "id": "MP-REC-ACC-ICONS",
       "title": "Tabler-Sprite um «soup» und «salad» aus dem gepinnten Paket 3.46.0 erweitern (Root-Vendor)",
       "requirement_ids": ["REC-008"],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "REVIEWED_LOCAL",
       "wave": 0,
       "depends_on": [],
-      "existing_wp_id": null,
+      "existing_wp_id": "wp-0bdbe5f2eaec",
       "sdd_sections": [
         "docs/design/2026-09-13-menu-accompaniments-sdd.md#6-benutzerabläufe-und-ui-skizzen-ui-manifest-r03r04r05r07-m10m12",
         "docs/design/2026-09-07-admin-tabler-icon-manifest.md"
@@ -232,13 +318,36 @@
           "assertions": ["Sprite und Lock konsistent", "beide neuen IDs vorhanden", "keine unbekannten Assets"]
         }
       ],
-      "external_inputs": ["Root: Vendor-Wiring ist ausschliesslich Root-Besitz; Zugriff auf das gepinnte Archiv (Cache oder Registry) ohne Paketinstallation im Worktree"],
+      "external_inputs": [],
       "risk": "LOW",
       "effort": "low",
-      "preferred_lane": "root",
-      "eligible_lanes": ["root"],
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex"
+      ],
       "completion_evidence": ["Verify-Ausgabe des Generators", "grep-Beleg der beiden IDs", "Testausgaben", "WP-Bericht"],
-      "rollback": "Sprite und Lock auf den vorherigen Commit zurücksetzen; abhängige UI-Pakete zeigen Text ohne Icon."
+      "rollback": "Sprite und Lock auf den vorherigen Commit zurücksetzen; abhängige UI-Pakete zeigen Text ohne Icon.",
+      "historical_routing": {
+        "preferred_lane": "root",
+        "eligible_lanes": [
+          "root"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "source_evidence": {
+        "routing_wp": "wp-0bdbe5f2eaec",
+        "source_commit": "0ca81eebb14223fbc7d69cb47a6571bd08fcc333",
+        "origin": "Actual Spark attempt hit /tmp/worktree ownership failure; Root recovered its source.",
+        "root_verification": "Unchanged tools/vendor_tabler.py --verify PASS, as reported by Root.",
+        "scope": "Verified source only; no deployment or complete consumer/UI acceptance claimed."
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
     },
     {
       "id": "MP-REC-ACC-MENU-CORE",
@@ -358,9 +467,29 @@
       "risk": "HIGH",
       "effort": "high",
       "preferred_lane": "codex",
-      "eligible_lanes": ["codex", "claude-code", "agy", "grok-build", "cursor"],
+      "eligible_lanes": [
+        "codex"
+      ],
       "completion_evidence": ["Testausgaben mit Zählung", "Ruff-/Mypy-Ausgabe", "GitNexus-Impact-Belege je Symbol (Indexstand nennen)", "WP-Bericht"],
-      "rollback": "Reguläres Anwendungsrelease ohne Migration; vorheriges kompatibles Image; die Spalte bleibt mit Defaults bestehen und wird von alten Writern nicht genannt."
+      "rollback": "Reguläres Anwendungsrelease ohne Migration; vorheriges kompatibles Image; die Spalte bleibt mit Defaults bestehen und wird von alten Writern nicht genannt.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "agy",
+          "grok-build",
+          "cursor"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
     },
     {
       "id": "MP-REC-ACC-SNAPSHOT",
@@ -446,13 +575,32 @@
           "assertions": ["keine Ruff-Befunde"]
         }
       ],
-      "external_inputs": ["Bestätigung der öffentlichen Formulierung «Salat (gemischt und grün)» vor der ersten Publikation (SDD F3); Default gilt ohne Rückmeldung"],
+      "external_inputs": [],
       "risk": "HIGH",
       "effort": "medium",
       "preferred_lane": "codex",
-      "eligible_lanes": ["codex", "claude-code", "agy", "grok-build"],
+      "eligible_lanes": [
+        "codex"
+      ],
       "completion_evidence": ["Byte-/Hash-Vergleich vorher/nachher als Testausgabe", "Kontrakttestausgaben", "Ruff-Ausgabe", "WP-Bericht"],
-      "rollback": "Reguläres Anwendungsrelease; bereits mit Beilage publizierte Revisionen sind für eine ältere App ungültig (SDD I10) und müssen vor einem App-Rollback zurückgezogen werden."
+      "rollback": "Reguläres Anwendungsrelease; bereits mit Beilage publizierte Revisionen sind für eine ältere App ungültig (SDD I10) und müssen vor einem App-Rollback zurückgezogen werden.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "agy",
+          "grok-build"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
     },
     {
       "id": "MP-REC-ACC-TEMPLATE",
@@ -537,9 +685,29 @@
       "risk": "MEDIUM",
       "effort": "medium",
       "preferred_lane": "codex",
-      "eligible_lanes": ["codex", "claude-code", "agy", "grok-build", "cursor"],
+      "eligible_lanes": [
+        "codex"
+      ],
       "completion_evidence": ["Testausgaben", "Screenshots 1440/390 als Vorschlag", "WP-Bericht"],
-      "rollback": "Reguläres Anwendungsrelease; v26-Verben bleiben; vorheriges Image nutzt sie unverändert."
+      "rollback": "Reguläres Anwendungsrelease; v26-Verben bleiben; vorheriges Image nutzt sie unverändert.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "agy",
+          "grok-build",
+          "cursor"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
     },
     {
       "id": "MP-REC-ACC-EDITOR-UI",
@@ -615,9 +783,29 @@
       "risk": "MEDIUM",
       "effort": "medium",
       "preferred_lane": "codex",
-      "eligible_lanes": ["codex", "claude-code", "agy", "grok-build", "cursor"],
+      "eligible_lanes": [
+        "codex"
+      ],
       "completion_evidence": ["Browsertestausgaben", "Screenshots 1440/390 (Vorschlag, keine Baseline)", "WP-Bericht"],
-      "rollback": "Reguläres Anwendungsrelease; vorheriges Image ohne Radiogruppe; Daten bleiben."
+      "rollback": "Reguläres Anwendungsrelease; vorheriges Image ohne Radiogruppe; Daten bleiben.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "agy",
+          "grok-build",
+          "cursor"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
     },
     {
       "id": "MP-REC-ACC-PUBLIC-OUTPUT",
@@ -692,9 +880,29 @@
       "risk": "MEDIUM",
       "effort": "low",
       "preferred_lane": "codex",
-      "eligible_lanes": ["codex", "claude-code", "agy", "grok-build", "cursor"],
+      "eligible_lanes": [
+        "codex"
+      ],
       "completion_evidence": ["Testausgaben", "Signage-Screenshots 1920/3840 als Vorschlag", "WP-Bericht"],
-      "rollback": "Reguläres Anwendungsrelease; Partial auf vorherigen Stand."
+      "rollback": "Reguläres Anwendungsrelease; Partial auf vorherigen Stand.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "agy",
+          "grok-build",
+          "cursor"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
     },
     {
       "id": "MP-REC-ACC-WEEK-PDF",
@@ -756,9 +964,29 @@
       "risk": "MEDIUM",
       "effort": "low",
       "preferred_lane": "codex",
-      "eligible_lanes": ["codex", "claude-code", "agy", "grok-build", "cursor"],
+      "eligible_lanes": [
+        "codex"
+      ],
       "completion_evidence": ["Testausgaben", "Beispiel-PDF beider Profile im Bericht referenziert", "WP-Bericht"],
-      "rollback": "Reguläres Anwendungsrelease."
+      "rollback": "Reguläres Anwendungsrelease.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "agy",
+          "grok-build",
+          "cursor"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
     },
     {
       "id": "MP-REC-ACC-API-FHIR",
@@ -826,9 +1054,29 @@
       "risk": "MEDIUM",
       "effort": "low",
       "preferred_lane": "codex",
-      "eligible_lanes": ["codex", "claude-code", "agy", "grok-build", "cursor"],
+      "eligible_lanes": [
+        "codex"
+      ],
       "completion_evidence": ["Testausgaben", "OpenAPI-Diff", "WP-Bericht"],
-      "rollback": "Reguläres Anwendungsrelease."
+      "rollback": "Reguläres Anwendungsrelease.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "agy",
+          "grok-build",
+          "cursor"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
     },
     {
       "id": "MP-REC-ACC-COLLECTION",
@@ -888,16 +1136,37 @@
       "risk": "LOW",
       "effort": "low",
       "preferred_lane": "codex",
-      "eligible_lanes": ["codex", "claude-code", "agy", "grok-build", "cursor", "cline"],
+      "eligible_lanes": [
+        "codex"
+      ],
       "completion_evidence": ["Testausgaben", "WP-Bericht"],
-      "rollback": "Reguläres Anwendungsrelease."
+      "rollback": "Reguläres Anwendungsrelease.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "agy",
+          "grok-build",
+          "cursor",
+          "cline"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
     },
     {
       "id": "MP-REC-ACC-CSV",
       "title": "CSV Schema 3: Spalte beilage_dazu in Export, Import, Validator, Vorlagen und Beispielen",
       "requirement_ids": ["REC-008"],
       "kind": "implementation",
-      "status": "AWAITING_EXTERNAL",
+      "status": "PLANNED",
       "wave": 3,
       "depends_on": ["MP-REC-ACC-MENU-CORE", "MP-REC-ACC-SNAPSHOT"],
       "existing_wp_id": null,
@@ -913,7 +1182,7 @@
         "csv/validate_menu_csv.py:validate_text",
         "reference_scaffold/cafeteria/workflow.py:_full_replace_values"
       ],
-      "task": "Vorher: CSV Schema 2 mit exakter Headerliste; Import ist Vollersatz und setzt die Beilage auf 'none'; Export enthält keine Beilage (bis dahin dokumentiertes und getestetes Verhalten aus MP-REC-ACC-MENU-CORE/SNAPSHOT). Nachher (nach Entscheid F5): Header um beilage_dazu (leer|suppe|salat) erweitert, schema_version 3; Validator akzeptiert Schema 2 ohne Spalte (→ 'none') und Schema 3 mit Spalte; Export schreibt Schema 3; Import mappt auf accompaniment_code; Patienten-Semantikprüfung unverändert; CSV-Vorlagen und Beispiele aktualisiert; Runtime-Packaging-Test grün.",
+      "task": "Vorher: CSV Schema 2 mit exakter Headerliste; Import ist Vollersatz und setzt die Beilage auf 'none'; Export enthält keine Beilage (bis dahin dokumentiertes und getestetes Verhalten aus MP-REC-ACC-MENU-CORE/SNAPSHOT). Nachher (F5 durch Root entschieden): Header um beilage_dazu (leer|suppe|salat) erweitert, schema_version 3; Validator akzeptiert Schema 2 ohne Spalte (→ 'none') und Schema 3 mit Spalte; Export schreibt Schema 3; Import mappt auf accompaniment_code; Patienten-Semantikprüfung unverändert; CSV-Vorlagen und Beispiele aktualisiert; Runtime-Packaging-Test grün.",
       "acceptance_criteria": [
         "Export→Import round-trip erhält die Beilage; Schema-2-Dateien importierbar (→ 'none') mit Hinweis in der Vorschau; ungültiger Wert → Zeilenfehler am Feld",
         "Validator-Fehlermeldungen benennen Spalte und Zeile; Patientenkanal-Prüfung unverändert",
@@ -959,13 +1228,33 @@
           "assertions": ["round-trip", "Schema 2 kompatibel", "Fehlermeldungen", "Packaging"]
         }
       ],
-      "external_inputs": ["Entscheid F5 (SDD §11): CSV-Spalte mit Schema 3 oder dauerhaft ohne Spalte"],
+      "external_inputs": [],
       "risk": "MEDIUM",
       "effort": "medium",
       "preferred_lane": "codex",
-      "eligible_lanes": ["codex", "claude-code", "agy", "grok-build", "cursor"],
+      "eligible_lanes": [
+        "codex"
+      ],
       "completion_evidence": ["Testausgaben", "Beispiel-CSV im Diff", "WP-Bericht"],
-      "rollback": "Reguläres Anwendungsrelease; Schema-2-Dateien bleiben importierbar."
+      "rollback": "Reguläres Anwendungsrelease; Schema-2-Dateien bleiben importierbar.",
+      "historical_routing": {
+        "preferred_lane": "codex",
+        "eligible_lanes": [
+          "codex",
+          "claude-code",
+          "agy",
+          "grok-build",
+          "cursor"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
     },
     {
       "id": "MP-REC-ACC-ACCEPT",
@@ -974,7 +1263,15 @@
       "kind": "verification",
       "status": "PLANNED",
       "wave": 3,
-      "depends_on": ["MP-REC-ACC-EDITOR-UI", "MP-REC-ACC-PUBLIC-OUTPUT", "MP-REC-ACC-WEEK-PDF", "MP-REC-ACC-API-FHIR", "MP-REC-ACC-TEMPLATE"],
+      "depends_on": [
+        "MP-REC-ACC-EDITOR-UI",
+        "MP-REC-ACC-PUBLIC-OUTPUT",
+        "MP-REC-ACC-WEEK-PDF",
+        "MP-REC-ACC-API-FHIR",
+        "MP-REC-ACC-TEMPLATE",
+        "MP-REC-ACC-COLLECTION",
+        "MP-REC-ACC-CSV"
+      ],
       "existing_wp_id": null,
       "sdd_sections": [
         "docs/design/2026-09-13-menu-accompaniments-sdd.md#13-abnahmefälle",
@@ -985,11 +1282,12 @@
         "docs/superpowers/backlog-0909/ui-route-matrix.json",
         "docs/superpowers/backlog-0909/ui-before-manifest.json"
       ],
-      "task": "Ein anderer Autor als die Implementierer nimmt den Gesamtablauf mit realem Browser ab: Vorlage mit Vorschlag anlegen, einplanen, Beilage im Editor ändern, speichern, Karte prüfen, Prüfung bestätigen, publizieren, Public/Signage/Druck-HTML/PDF/API/FHIR mit und ohne Beilage vergleichen; alte publizierte Woche bleibt «live». Viewports 1440×900, 390×844 (Editor zusätzlich 1024×768, 768×1024, 1920×1080), Signage 1920×1080/3840×2160, JS/NoJS, Tastatur, 200 %-Zoom, Kontrast; Rollen Leser/Editor. Evidenzdatei mit Screenshots (Vorschlag, keine Baseline). Root führt die Inventarzeilen (ui-route-matrix.json, ui-before-manifest.json) nach; physischer Player und Küchendruck bleiben getrennte Abnahmen.",
+      "task": "Ein anderer Autor als die Implementierer nimmt den Gesamtablauf mit realem Browser ab: Vorlage mit Vorschlag anlegen, einplanen, Beilage im Editor ändern, speichern, Karte prüfen, Prüfung bestätigen, publizieren, Public/Signage/Druck-HTML/PDF/API/FHIR mit und ohne Beilage vergleichen; alte publizierte Woche bleibt «live». Viewports 1440×900, 390×844 (Editor zusätzlich 1024×768, 768×1024, 1920×1080), Signage 1920×1080/3840×2160, JS/NoJS, Tastatur, 200 %-Zoom, Kontrast; Rollen Leser/Editor. Evidenzdatei mit Screenshots (Vorschlag, keine Baseline). Root führt die Inventarzeilen (ui-route-matrix.json, ui-before-manifest.json) nach; physischer Player und Küchendruck bleiben getrennte Abnahmen. Pflicht: gespeicherte Menüs in der Sammlung prüfen und CSV-Schema3 mit Beilage verlustfrei exportieren/importieren; Schema2-Vollersatz mit none ausdrücklich prüfen. Keine sichtbare Writer-Freigabe ohne diese integrierten Verbraucher.",
       "acceptance_criteria": [
         "SDD A1–A16 mit Beleg je Fall (bestanden/fehlgeschlagen/nicht ausgeführt/blockiert)",
         "Alte publizierte Woche ohne Beilage bleibt nach dem Release bytegleich und «live»",
-        "Evidenzdatei registriert; fehlende Prüfungen benannt; keine Baselines ersetzt"
+        "Evidenzdatei registriert; fehlende Prüfungen benannt; keine Baselines ersetzt",
+        "COLLECTION und CSV integriert: Sammlung zeigt die Wahl; Schema3-Roundtrip erhält sie, expliziter Schema2-Vollersatz setzt none. F3-Namen ohne Dazu-Präfix im Datensatz; 48-px-Bedienziele gemessen."
       ],
       "contract_files": [],
       "wiring_files": [],
@@ -1018,10 +1316,32 @@
       "external_inputs": ["Root: Inventarzeilen und Release-Belege; physische Player-/Papierabnahme separat"],
       "risk": "MEDIUM",
       "effort": "medium",
-      "preferred_lane": "agy",
-      "eligible_lanes": ["agy", "claude-code", "grok-build", "cursor", "codex"],
+      "preferred_lane": "codex",
+      "eligible_lanes": [
+        "codex"
+      ],
       "completion_evidence": ["Evidenzdatei mit Screenshots und Testausgaben", "WP-Bericht"],
-      "rollback": "Nicht anwendbar (Verifikation)."
+      "rollback": "Nicht anwendbar (Verifikation).",
+      "historical_routing": {
+        "preferred_lane": "agy",
+        "eligible_lanes": [
+          "agy",
+          "claude-code",
+          "grok-build",
+          "cursor",
+          "codex"
+        ]
+      },
+      "implementation_model": "Available GPT workers authorized; exact model recorded per actual dispatch receipt.",
+      "registry_origin": {
+        "planning_wp": "wp-f9d0d3e72dfe",
+        "recovered_source": "2eaa408",
+        "registry_wp": "wp-582f8fccf5ce",
+        "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
+      },
+      "previous_user_model": "gpt-5.3-codex-spark"
     }
-  ]
+  ],
+  "registry_manifest": "docs/superpowers/backlog-0909/recipes-wps.json",
+  "registry_lease_section": "docs/superpowers/backlog-0909/file-leases.json#accompaniment_registry_2026_09_13"
 }

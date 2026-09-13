@@ -1,17 +1,31 @@
 # Startauftrag — Menübeilage «Suppe oder Salat» (REC-008)
 
 Planung `wp-f9d0d3e72dfe`, Fable 5.1, 13. September 2026; Root-Abschluss nach
-Sitzungslimit. Umsetzung laut letzter Nutzerkorrektur `gpt-5.3-codex-spark`, kein
-stiller Modellwechsel. Spezifikation:
+Sitzungslimit. Letzter Nutzerauftrag: «Mit verfügbaren GPT-Workern fortsetzen».
+Er ersetzt die frühere ausschliessliche Spark-Vorgabe; tatsächliche Modelle je Start belegen. Spezifikation:
 [`docs/design/2026-09-13-menu-accompaniments-sdd.md`](../../design/2026-09-13-menu-accompaniments-sdd.md).
 Pakete: [`work-packages.json`](work-packages.json). Dieser Start braucht keine vorangegangene
 Unterhaltung. Root setzt die fünf Werte ein: **MP-ID, WP-Datei, vollständiger Basiscommit,
 eigener Worktree, Routing-WP-ID** (`rtk claude-workpackage`). Bei DB-/Browserarbeit gehört
 ein exklusiver Testpool zur Zuweisung.
 
-Integrationsziel ist der Stand **nach** dem Schema-31-Release (Vorschlag-Branch
-`fix/proposal-mobile-fix-0913` @ `66be61e` integriert). Alle Pakete sind `PLANNED`; keines
-ist `READY`, bevor Root Leases, Migrationsnummer und Pool vergeben hat.
+Schema31 ist laut Root mit `4be7b79d69e38e70875981a70d7b975591e5218c` seit
+13.09., 08:53 CEST gesund live. Registrierungsbasis ist
+`4711c22075383126d2af90ecaa85184ed53589eb`. SCHEMA ist als `wp-65e15658fc4b`
+`IN_PROGRESS`: Root bestätigt `gpt-5.6-sol`/high, Profil `effort-high`, Provider
+OpenAI, PTY 90840, Start 07:08:58Z / 09:08 CEST im eigenen Worktree
+`accompaniment-schema-codex-0913`, APIint2 exklusiv. Noch kein Quellfreeze oder Gate.
+Historischer Spark-Aufruf 7070: Usage-Limit/Exit 1 («try again at 1:28 PM»),
+`BLOCKED_PROVIDER`, sauberer Spark-Worktree `4711c220` ohne Produktänderungen.
+Die nutzerautorisierte Fortsetzung und dieser frühere Abbruch sind getrennte Belege.
+ICONS ist mit Quelle `0ca81ee` nach
+Root-Recovery und Generatorprüfung `REVIEWED_LOCAL`, nicht deployed. Die zehn
+weiteren Pakete bleiben `PLANNED`; Root vergibt Leases/Pools vor jedem Start.
+
+REC-008 und alle zwölf Pakete stehen im zentralen
+[`recipes-wps.json`](../backlog-0909/recipes-wps.json); der datierte ACC-Nachtrag in
+[`file-leases.json`](../backlog-0909/file-leases.json) enthält die genauen Pfade und
+aktuellen Grants. Historische Plan-/UI-Stände dort sind keine konkurrierende Freigabe.
 
 ## Gemeinsamer Prompt
 
@@ -53,14 +67,14 @@ Modellwechsel. Beende mit WP-REPORT: DONE|BLOCKED und konkretem Umfang.
 ## Root-Checkliste vor dem ersten READY
 
 1. Schema-31-Release integriert und live belegt; Basiscommit festhalten.
-2. Anforderung **REC-008** in `docs/BACKLOG.md` und in `SLICE_REQUIREMENTS['recipes']` von
-   `docs/superpowers/backlog-0909/validate-plan.py` ergänzen; die zwölf `MP-REC-ACC-*`-Pakete in
-   `recipes-wps.json` und die Leases in `file-leases.json` aufnehmen (alles Root-Besitz).
+2. Registrierung **REC-008** in `docs/BACKLOG.md`, `validate-plan.py`,
+   `recipes-wps.json` und dem ACC-Nachtrag in `file-leases.json` ist erfolgt.
+   Vor jedem Start die tatsächliche Root-Zuweisung und den Vorgängerfreeze prüfen.
 3. Root reserviert `0029_v31_to_v32.sql` für ACC-SCHEMA. PLAN-PORTIONS wartet und
    braucht eine spätere eigene Nummer. Nie bestehende Migrationen umnummerieren.
-4. Icons: `soup` und `salad` im gepinnten Archiv `@tabler/icons 3.46.0` (SHA im
-   `tabler.lock.json`) prüfen und als Root-Vendor-WP `MP-REC-ACC-ICONS` liefern; fehlt ein Icon,
-   gilt Text-Fallback und wird im WP-Bericht festgehalten.
+4. Icons: Quelle `0ca81ee` aus `wp-0bdbe5f2eaec` und Root-Generatorprüfung sind
+   belegt; tatsächliche Glyphen, Layout und Integration in den jeweiligen
+   Verbraucher-Gates prüfen. Ein Quellbeleg ersetzt keinen Deploybeleg.
 5. Fachfragen F1–F6 der SDD §11: Defaults gelten, F3-Formulierung und F5-CSV-Roundtrip
    sind durch Root entschieden; eine andere Antwort zu F1 (Gästewahl) vor
    `MP-REC-ACC-SCHEMA` starten lassen (vierter Wert), sonst später als kleine Constraint-Migration.
@@ -74,7 +88,7 @@ Modellwechsel. Beende mit WP-REPORT: DONE|BLOCKED und konkretem Umfang.
 | 0 | `MP-REC-ACC-SCHEMA` (ein SQL-Writer) ∥ `MP-REC-ACC-ICONS` (Root) | Schema-31-Freeze, Migrationsnummer |
 | 1 | `MP-REC-ACC-MENU-CORE` ∥ `MP-REC-ACC-SNAPSHOT` ∥ `MP-REC-ACC-TEMPLATE` | SCHEMA integriert; CORE seriell mit PLAN-PORTIONS/BINDING-Cluster; TEMPLATE seriell mit RECIPEPAGES auf `gerichtvorlagen.html` |
 | 2 | `MP-REC-ACC-EDITOR-UI` ∥ `MP-REC-ACC-PUBLIC-OUTPUT` ∥ `MP-REC-ACC-WEEK-PDF` ∥ `MP-REC-ACC-API-FHIR` | CORE + SNAPSHOT integriert; EDITOR-UI seriell mit PLAN-PORTIONS auf `menu_editor.html` |
-| 3 | `MP-REC-ACC-COLLECTION`, `MP-REC-ACC-CSV` (nach Entscheid F5), `MP-REC-ACC-ACCEPT` | Welle 2 integriert; LISTS-Freeze für COLLECTION |
+| 3 | `MP-REC-ACC-COLLECTION`, verpflichtendes `MP-REC-ACC-CSV`, `MP-REC-ACC-ACCEPT` | Welle 2 integriert; LISTS-Freeze für COLLECTION; ACCEPT erst nach COLLECTION und CSV |
 
 Drei parallele Worker je Welle sind vorgesehen; jede gemeinsame Datei hat genau einen aktiven
 Writer (SDD §12.1). Additive Schema-/Leser-Grundlagen können vorab veröffentlicht werden.
