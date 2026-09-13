@@ -11,7 +11,7 @@ from flask import (
     render_template, request, url_for,
 )
 from sqlalchemy import text
-from sqlalchemy.exc import NoResultFound
+from sqlalchemy.exc import DBAPIError, NoResultFound
 
 from ..component_assignment_store import (
     ComponentAssignmentConflictError,
@@ -47,8 +47,10 @@ from ..workflow_partial_store import (
 from ..workflow_store import load_draft_connection
 from ..workflow_review import _review_open_connection
 from ..workflow_write_context import WriteConflictError, WritePermissionError, WriteUnavailableError
+from ..menu_template_binding import TemplateContext, lock_templates
 from .workflow_scope import _scope, _scoped_csrf, _validate_scoped_csrf, validate_copy_csrf
 from .workflow_scope import _csrf_digest as _csrf_digest
+from .workflow_scope import read_template_context, validate_menu_csrf, validate_template_target
 from .rendering import (
     CATEGORY_LABELS, render_admin_preview, render_admin_week,
     menu_form_values, render_component_detail, render_components, render_menu_editor)
@@ -84,6 +86,7 @@ _MENU_CONFLICT_ERRORS = (
 _MENU_VALUE_FIELDS = (
     'title', 'description', 'note', 'allergen_mode', 'origin_mode', 'label_mode',
     'internal_chf', 'external_chf',
+    'dish_template_public_id', 'dish_template_detach', 'template_context',
 )
 _MENU_LIST_FIELDS = (
     'component_public_id', 'component_text', 'allergen_code', 'allergen_presence',
@@ -333,6 +336,7 @@ def _render_menu_page(
     status: int = 200,
     force_origin_conflict: bool = False,
     submitted_row_version: str | None = None,
+    template_context: TemplateContext | None = None,
 ):
     version, title, item_id = 0, '', None
     option: dict[str, object] = {
@@ -342,16 +346,30 @@ def _render_menu_page(
     }
     if profile == 'staff_guest':
         option.update(internal_rappen='', external_rappen='')
-    try:
-        item_id, version, title = _load_item(scope, week, day, meal, option_code)
-        option = _load_draft_option(profile, week, day, meal, option_code)
-    except ComponentCatalogConfigurationError as error:
-        abort(503, description=str(error))
-    except (PartialWorkflowNotFoundError, NoResultFound):
-        pass
+    if template_context is None:
+        try:
+            item_id, version, title = _load_item(scope, week, day, meal, option_code)
+            option = _load_draft_option(profile, week, day, meal, option_code)
+        except ComponentCatalogConfigurationError as error:
+            abort(503, description=str(error))
+        except (PartialWorkflowNotFoundError, NoResultFound):
+            pass
+    else:
+        with _db().connect() as connection:
+            templates = lock_templates(connection, scope, [template_context.template_public_id])
+            source = next(iter(templates.values()))
+        option['dish_template'] = {key: source[key] for key in ('public_id', 'title', 'active')}
+        if request.method == 'GET':
+            form_values = {**menu_form_values(profile, option), **(form_values or {})}
 
     assignments = cast(list[dict[str, object]], option.get('assignments') or [])
-    catalog_choices = _catalog_choices(scope, assignments)
+    if status == 409:
+        retained_ids = ((form_values or {}).get('component_public_id') or
+                        [row.get('component_public_id') for row in assignments])
+        catalog_choices = [{'public_id': value, 'name': 'Bisherige Auswahl', 'active': False}
+                           for value in cast(Sequence[str], retained_ids) if value]
+    else:
+        catalog_choices = _catalog_choices(scope, assignments)
     selected_revisions: Sequence[object]
     if form_values is not None:
         selected_revisions = cast(Sequence[object], form_values.get('recipe_revision_public_id') or [])
@@ -364,7 +382,7 @@ def _render_menu_page(
     review_token = None
     effects: dict[str, list[str]] = {'labels': [], 'allergens': [], 'origins': []}
     origin_conflict = ORIGIN_CONFLICT if force_origin_conflict else None
-    if item_id is not None and origin_conflict is None:
+    if item_id is not None and origin_conflict is None and status == 200:
         try:
             review_token = get_component_review_token(_db(), scope, item_id)
             effects = _display_effects(resolve_component_effects(_db(), scope, item_id))
@@ -384,11 +402,17 @@ def _render_menu_page(
         'row_version': version if submitted_row_version is None else submitted_row_version,
         'title': title,
         'components': list(option.get('assignments') or []),
+        'dish_template': option.get('dish_template'),
+        'template_proposal': template_context is not None,
+        'existing_url': url_for('admin.menu_get', family=family, week=week.isoformat(),
+                                day=day, meal=meal, option=option_code),
     }
     html = render_menu_editor(
         profile, family, week, cell,
         menu_form_values(profile, option) if form_values is None else form_values,
-        form_errors or {}, _scoped_csrf(profile, 'menu', scope), review_token,
+        form_errors or {}, (request.form.get('_csrf', '') if request.method == 'POST'
+                            else _scoped_csrf(profile, 'menu', scope,
+                                template_context=str((form_values or {}).get('template_context') or ''))), review_token,
         catalog_choices, allergens, labels, effects, _flash(),
         origin_conflict=origin_conflict, recipe_page=recipe_page,
     )
@@ -406,17 +430,27 @@ def _menu_error_response(
     keep_request_values: bool,
     origin_conflict: bool = False,
 ):
-    week = _monday(request.form.get('week'))
-    day = request.form.get('day', '')
-    meal = request.form.get('meal', '')
-    option = request.form.get('option', '')
-    _raster(profile, week, day, meal, option)
+    proposal = request.form.get('template_context', '')
+    context = read_template_context(proposal, target=True) if proposal else None
+    if context is not None:
+        # Coordinates and create mode come from the original signed target, even on conflict.
+        profile = str(context.profile)
+        family = 'patienten' if profile == 'patient' else 'cafeteria'
+        week, day = date.fromisoformat(str(context.week)), str(context.day)
+        meal, option = str(context.meal), str(context.option)
+    else:
+        week = _monday(request.form.get('week'))
+        day = request.form.get('day', '')
+        meal = request.form.get('meal', '')
+        option = request.form.get('option', '')
+        _raster(profile, week, day, meal, option)
     return _render_menu_page(
         profile, family, scope, week, day, meal, option,
         form_values=_request_menu_values() if keep_request_values else None,
         form_errors=_menu_errors(error), status=status,
         force_origin_conflict=origin_conflict,
-        submitted_row_version=request.form.get('row_version', ''),
+        submitted_row_version='0' if context else request.form.get('row_version', ''),
+        template_context=context,
     )
 
 def _week_overview(
@@ -498,12 +532,42 @@ def patienten():
 def menu_get(family: str):
     profile = profile_from_endpoint(family)
     _reject_override()
+    scope = _scope(profile)
+    source = request.args.get('template')
+    token = request.args.get('template_context', '')
+    if source is not None or token:
+        if (not token or len(request.args.getlist('template_context')) != 1
+                or len(request.args.getlist('template')) != 1):
+            abort(400, description='Signierter Vorschlagskontext fehlt.')
+        context = read_template_context(token, target=True)
+        errors = {}
+        try:
+            week, day = date.fromisoformat(str(context.week)), str(context.day)
+            meal, option = str(context.meal), str(context.option)
+            context.require_target(scope, week, day, meal, option, 0)
+            coordinates = {'week': context.week, 'day': day, 'meal': meal, 'option': option}
+            if source != context.template_public_id or any(
+                    request.args.getlist(key) != [value] for key, value in coordinates.items()):
+                raise WriteConflictError('Das Ziel oder die Vorlage des Vorschlags wurde geändert.')
+            _raster(profile, week, day, meal, option)
+            validate_template_target(context, scope)
+        except WriteConflictError as error:
+            errors = _menu_errors(error)
+        except _STORE_ERRORS as error:
+            _abort_store(error)
+        original_profile = cast(Literal['patient', 'staff_guest'], context.profile)
+        original_scope = AdminScope(context.actor_id, context.location_id, original_profile, context.authz_version)
+        return _render_menu_page(original_profile,
+            'patienten' if original_profile == 'patient' else 'cafeteria', original_scope,
+            date.fromisoformat(str(context.week)), str(context.day), str(context.meal), str(context.option),
+            form_values={'template_context': token, 'dish_template_public_id': context.template_public_id},
+            form_errors=errors, status=409 if errors else 200, submitted_row_version='0',
+            template_context=context)
     week = _week_arg()
     day, meal, option = request.args.get('day'), request.args.get('meal'), request.args.get('option')
     if day is None or meal is None or option is None:
         abort(400, description='Menüslot ist unvollständig.')
     _raster(profile, week, day, meal, option)
-    scope = _scope(profile)
     return _render_menu_page(profile, family, scope, week, day, meal, option)
 
 @bp.post('/<any(cafeteria, patienten):family>/menu')
@@ -515,13 +579,25 @@ def menu_post(family: str):
         set(request.args) != {'return_to'} or request.args.getlist('return_to') != ['week']
     ):
         abort(400, description='Rückkehrziel ist ungültig.')
-    scope = _validate_scoped_csrf(profile, {'overview', 'menu'})
+    scope = validate_menu_csrf(profile)
     try:
+        if scope != _scope(profile):
+            raise WriteConflictError('Berechtigung oder aktiver Standort wurde zwischenzeitlich geändert.')
         parsed = parse_menu_item_form(profile, request.form)
+        context = read_template_context(parsed.template_context, target=True) if parsed.template_context else None
         version = persist_menu_item(
             _db(), scope, parsed.week_start, parsed.day, parsed.meal,
             parsed.option, parsed.payload, parsed.expected_item_row_version,
+            template_context=context,
         )
+    except DBAPIError as error:
+        if (getattr(error.orig, 'sqlstate', None) != '23514'
+                or getattr(getattr(error.orig, 'diag', None), 'constraint_name', None)
+                != 'menu_items_dish_recipe_scope'):
+            raise
+        return _menu_error_response(profile, family, scope,
+            WriteConflictError('Die Gerichtvorlage passt nicht mehr zum Standort.'),
+            409, keep_request_values=True)
     except AutoOriginConflictError as error:
         return _menu_error_response(
             profile, family, scope, error, 409,

@@ -12,6 +12,9 @@ from .component_assignment_contract import normalize_assignments
 from .component_binding_state import prepare_bindings
 from .component_catalog_store import AdminScope, resolve_single_active_location_connection
 from .component_effects import rematerialize_auto_effects
+from .menu_template_binding import (
+    TemplateContext, lock_templates, resolve_template_binding, validate_template_fields,
+)
 from .operations_settings import get_schedule_connection, normalise_time
 from .workflow_snapshot import external_id
 from .workflow_store import schedule_rule
@@ -34,8 +37,8 @@ _WEEK_QUERY = 'SELECT w.id,w.location_id,p.code AS profile_code,w.week_start,w.r
 _WEEK_QUERY_FOR_UPDATE = 'SELECT w.id,w.location_id,p.code AS profile_code,w.week_start,w.row_version FROM cafeteria.menu_weeks w JOIN cafeteria.offer_profiles p ON p.id=w.profile_id WHERE w.location_id=:location_id AND p.code=:profile_code AND w.week_start=:week_start FOR UPDATE OF w'
 _SERVICE_QUERY = 'SELECT s.id,s.row_version,s.service_state FROM cafeteria.menu_services s JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id WHERE s.menu_week_id=:week_id AND s.service_date=:service_date AND mp.code=:meal'
 _SERVICE_QUERY_FOR_UPDATE = 'SELECT s.id,s.row_version,s.service_state FROM cafeteria.menu_services s JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id WHERE s.menu_week_id=:week_id AND s.service_date=:service_date AND mp.code=:meal FOR UPDATE OF s'
-_ITEM_QUERY = 'SELECT i.id,i.row_version,i.allergen_mode,i.origin_mode,i.label_mode FROM cafeteria.menu_items i JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id WHERE i.service_id=:service_id AND mt.code=:option'
-_ITEM_QUERY_FOR_UPDATE = 'SELECT i.id,i.row_version,i.allergen_mode,i.origin_mode,i.label_mode FROM cafeteria.menu_items i JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id WHERE i.service_id=:service_id AND mt.code=:option FOR UPDATE OF i'
+_ITEM_QUERY = 'SELECT i.id,i.row_version,i.dish_template_id,i.allergen_mode,i.origin_mode,i.label_mode FROM cafeteria.menu_items i JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id WHERE i.service_id=:service_id AND mt.code=:option'
+_ITEM_QUERY_FOR_UPDATE = 'SELECT i.id,i.row_version,i.dish_template_id,i.allergen_mode,i.origin_mode,i.label_mode FROM cafeteria.menu_items i JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id WHERE i.service_id=:service_id AND mt.code=:option FOR UPDATE OF i'
 
 class PartialWorkflowValidationError(ValueError):
     pass
@@ -106,7 +109,10 @@ def _service_times(payload: Mapping[str, object]) -> tuple[str | None, str | Non
 
 
 def _validate_item(scope: AdminScope, payload: Mapping[str, object]) -> None:
-    _exact(payload, _STAFF_KEYS if scope.profile_code == 'staff_guest' else _PATIENT_KEYS, 'Menü')
+    optional = {'dish_template_public_id', 'dish_template_detach'}
+    _exact({key: value for key, value in payload.items() if key not in optional},
+           _STAFF_KEYS if scope.profile_code == 'staff_guest' else _PATIENT_KEYS, 'Menü')
+    validate_template_fields(payload)
     _string(payload['title'], 'Titel', required=True)
     _string(payload['description'], 'Beschreibung')
     _string(payload['note'], 'Hinweis')
@@ -411,11 +417,14 @@ def _set_price(connection: Connection, item_id: int, scope: AdminScope, payload:
 def persist_menu_item(
     engine: Engine, scope: AdminScope, week_start: date, day: str, meal: str,
     option: str, payload: Mapping[str, object], expected_item_row_version: int,
+    *, template_context: TemplateContext | None = None,
 ) -> int:
     service_date = _slot(scope, week_start, day, meal, option)
     expected = _expected(expected_item_row_version, 'expected_item_row_version')
     _validate_item(scope, payload)
     with write_transaction(engine, scope) as connection:
+        if template_context is not None:
+            template_context.require_target(scope, week_start, day, meal, option, expected)
         existing_ids = connection.execute(text('''
             SELECT i.id FROM cafeteria.menu_items i
             JOIN cafeteria.menu_services s ON s.id=i.service_id
@@ -429,6 +438,13 @@ def persist_menu_item(
                'day': service_date, 'meal': meal, 'option': option}).scalars().all()
         bindings = prepare_bindings(connection, scope, normalize_assignments(payload['assignments']),
                                     item_ids=existing_ids, create_weeks=[week_start])
+        old_templates = connection.execute(text('''
+            SELECT dish_template_id FROM cafeteria.menu_items
+            WHERE id=ANY(CAST(:ids AS bigint[])) AND dish_template_id IS NOT NULL
+        '''), {'ids': list(existing_ids)}).scalars().all()
+        wanted_template = payload.get('dish_template_public_id')
+        templates = lock_templates(connection, scope,
+            [str(wanted_template)] if wanted_template else [], old_templates)
         week_ref, created_week = _week_for_write(connection, scope, week_start, expected == 0)
         service = _service(connection, week_ref, service_date, meal, for_update=True)
         if service is None:
@@ -462,18 +478,19 @@ def persist_menu_item(
             raise PartialWorkflowConflictError('Geschlossener Service kann kein Menü speichern.')
         current = _item(connection, int(service['id']), option, for_update=True)
         if current is not None and expected == 0:
-            raise PartialWorkflowConflictError('Menü wurde zwischenzeitlich angelegt.')
+            raise PartialWorkflowConflictError('Dieses Menü wurde bereits gespeichert. Bestehendes Menü ausdrücklich öffnen.')
         if current is None and expected > 0:
             raise PartialWorkflowNotFoundError('Menü nicht gefunden.')
         if current is not None and int(current['row_version']) != expected:
             raise PartialWorkflowConflictError('Menü wurde zwischenzeitlich geändert.')
         bindings.recheck()
+        template_id = resolve_template_binding(scope, payload, current, templates, template_context)
         if current is None:
             sql = (
                 'INSERT INTO cafeteria.menu_items(service_id,menu_type_id,external_id,title,'
                 'description,note,allergen_review_status,sort_order,allergen_mode,origin_mode,'
-                "label_mode) SELECT :service_id,id,:external_id,:title,NULLIF(:description,''),"
-                "NULLIF(:note,''),'not_checked',:sort_order,:allergen_mode,:origin_mode,:label_mode "
+                "label_mode,dish_template_id) SELECT :service_id,id,:external_id,:title,NULLIF(:description,''),"
+                "NULLIF(:note,''),'not_checked',:sort_order,:allergen_mode,:origin_mode,:label_mode,:template_id "
                 'FROM cafeteria.menu_types WHERE code=:option RETURNING id'
             )
             params = {
@@ -483,6 +500,7 @@ def persist_menu_item(
                 'note': payload['note'], 'sort_order': _OPTIONS.index(option) + 1,
                 'allergen_mode': payload['allergen_mode'], 'origin_mode': payload['origin_mode'],
                 'label_mode': payload['label_mode'], 'option': option,
+                'template_id': template_id,
             }
             item_id = int(connection.execute(text(sql), params).scalar_one())
         else:
@@ -506,11 +524,11 @@ def persist_menu_item(
             sql = (
                 "UPDATE cafeteria.menu_items SET title=:title,description=NULLIF(:description,''),"
                 "note=NULLIF(:note,''),allergen_mode=:allergen_mode,origin_mode=:origin_mode,"
-                "label_mode=:label_mode,allergen_review_status='not_checked' "
+                "label_mode=:label_mode,dish_template_id=:template_id,allergen_review_status='not_checked' "
                 'WHERE id=:item_id RETURNING row_version'
             )
             version = int(connection.execute(
-                text(sql), {'item_id': item_id, **payload}
+                text(sql), {'item_id': item_id, 'template_id': template_id, **payload}
             ).scalar_one())
         record_item_write(connection, scope, item_id, expected, version)
         _touch_week(connection, scope, week_ref, created_week)

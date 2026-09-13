@@ -5,6 +5,9 @@
     <div class="card-body{% if family == 'patienten' %} patient-admin-option{% endif %}">
       <small class="text-secondary dish-type">{{ cell.option_label }}</small>
       <h3>{{ cell.title if cell.title else 'Noch kein Gericht' }}</h3>
+      {% if cell.dish_template %}
+      <p class="mb-2"><a class="btn text-wrap text-start" href="{{ url_for('admin.dish_template_edit', public_id=cell.dish_template.public_id) }}">{{ icon('copy') }}Aus Vorlage «{{ cell.dish_template.title }}»{% if not cell.dish_template.active %} (archiviert){% endif %}</a></p>
+      {% endif %}
       {% if cell.components %}
       <ul class="admin-week-components">
         {% for component in cell.components %}
