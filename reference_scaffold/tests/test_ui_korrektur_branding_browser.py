@@ -1,9 +1,11 @@
 """UX-02 browser contract for branding draft, preview and activation hierarchy."""
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
+import pytest
 from playwright.sync_api import Browser, Page, expect
 from sqlalchemy import text
 
@@ -12,15 +14,19 @@ from cafeteria.branding import SETTING_KEY
 from test_admin_ux_browser import admin_app, admin_engine, browser, live_server  # noqa: F401
 from test_admin_workflow_routes import _login
 from test_branding_store import _png
+from test_recipe_freeze_v2_browser import native_full_page_capture
 
 BRAND_PATH = "/admin/design/marke"
-EVIDENCE = Path(__file__).resolve().parents[2] / ".claude/evidence/ui-korrektur-0912/branding"
+ROOT = Path(__file__).resolve().parents[2]
+EVIDENCE = ROOT / ".claude" / "evidence" / "branding-reviewfix-0913" / "after"
 VIEWPORTS = (
-    (1366, 768, "1366x768"),
-    (1920, 1080, "1920x1080"),
-    (768, 1024, "768x1024"),
+    (1440, 900, "1440x900"),
     (390, 844, "390x844"),
-    (720, 450, "zoom-200"),
+    (1024, 768, "1024x768"),
+    (768, 1024, "768x1024"),
+    (1920, 1080, "1920x1080"),
+    (2560, 1440, "2560x1440"),
+    (320, 844, "320x844"),
 )
 
 
@@ -38,8 +44,41 @@ def _context(playwright_browser: Browser, server_url: str, client, *, javascript
     return context
 
 
+def _assert_icons_painted(page: Page) -> None:
+    icons = page.locator(".brand-settings-grid svg:visible use")
+    assert icons.count() >= 7
+    for icon_use in icons.all():
+        box = icon_use.evaluate("el => ({width: el.getBBox().width, height: el.getBBox().height})")
+        assert box["width"] > 0 and box["height"] > 0, (
+            "unpainted icon", icon_use.get_attribute("href"), box
+        )
+
+
+def _assert_hex_values_fit(page: Page) -> list[dict]:
+    measurements = page.locator(".brand-color-field input[name]").evaluate_all("""fields => {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        return fields.map(field => {
+            const style = getComputedStyle(field);
+            context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+            const spacing = parseFloat(style.letterSpacing) || 0;
+            return {name: field.name, value: field.value,
+                textWidth: context.measureText(field.value).width + spacing * field.value.length,
+                innerWidth: field.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)};
+        });
+    }""")
+    assert len(measurements) == 4
+    for field in measurements:
+        assert len(field["value"]) == 7
+        assert field["textWidth"] <= field["innerWidth"], ("clipped hex value", field)
+    return measurements
+
+
 def _assert_viewport(page: Page, state: str) -> None:
+    page.evaluate("document.fonts.ready")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    _assert_icons_painted(page)
+    _assert_hex_values_fit(page)
     expect(page.locator("main.admin-main")).to_have_attribute("data-layout", "standard")
     expect(page.locator("main .btn-primary:visible")).to_have_count(1)
     for locator in page.locator("main :is(.btn, .form-select, .form-control):visible").all():
@@ -55,6 +94,22 @@ def _screenshot_matrix(page: Page, state: str) -> None:
         page.screenshot(
             path=str(EVIDENCE / f"branding-editor-{state}-{label}.png"),
             full_page=True,
+        )
+        (EVIDENCE / f"branding-editor-{state}-{label}.json").write_text(
+            json.dumps(
+                {
+                    "route": page.url,
+                    "viewport": {"width": width, "height": height},
+                    "state": state,
+                    "label": label,
+                    "geometry": page.evaluate(
+                        "({innerWidth, innerHeight, outerWidth, outerHeight, devicePixelRatio})"
+                    ),
+                    "hex_fields": _assert_hex_values_fit(page),
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
         )
 
 
@@ -93,7 +148,9 @@ def test_branding_forms_keep_exact_targets_and_fields_without_javascript(
     client, _ = _login(admin_app, admin_engine, ["Cafeteria.Admin"])
     with _context(browser, live_server, client, javascript=False) as context:
         page = context.new_page()
+        page.set_viewport_size({"width": 1440, "height": 900})
         page.goto(BRAND_PATH)
+        _assert_viewport(page, "nojs-1440")
 
         expected_fields = {
             "save": [
@@ -119,6 +176,9 @@ def test_branding_forms_keep_exact_targets_and_fields_without_javascript(
             expect(form).to_have_attribute("method", "post")
             expect(form).to_have_attribute("action", BRAND_PATH)
             assert form.locator("[name]").evaluate_all("els => els.map(el => el.name)") == fields
+
+        EVIDENCE.mkdir(parents=True, exist_ok=True)
+        page.screenshot(path=str(EVIDENCE / "branding-editor-nojs-1440x900.png"), full_page=True)
 
         page.locator("#brand-name").fill("Klarer Entwurf")
         page.locator("#brand-upload").set_input_files(
@@ -177,6 +237,7 @@ def test_branding_forms_keep_exact_targets_and_fields_without_javascript(
                 {"key": SETTING_KEY},
             ).scalar_one()
         assert after == before
+        _assert_viewport(page, "nojs-390-error")
 
 
 def test_branding_editor_viewports_default_saved_and_error_states(
@@ -186,16 +247,163 @@ def test_branding_editor_viewports_default_saved_and_error_states(
     with _context(browser, live_server, client) as context:
         page = context.new_page()
         page.goto(BRAND_PATH)
+        _screenshot_matrix(page, "regular")
         _screenshot_matrix(page, "empty")
 
+        # Save draft (revision 2) -> creates a selected draft distinct from active version 1
         page.locator("#brand-name").fill("Gespeicherter Stand")
         page.get_by_role("button", name="Entwurf speichern & Vorschau", exact=True).click()
         expect(page).to_have_url(re.compile(r"revision=2$"))
         _screenshot_matrix(page, "saved")
+        _screenshot_matrix(page, "selected-vs-active")
 
+        # Readonly state on active version
+        page.goto(f"{BRAND_PATH}?revision=1")
+        expect(page.get_by_role("button", name="Version 1 aktivieren", exact=True)).to_be_disabled()
+        _screenshot_matrix(page, "readonly")
+
+        # Return to revision 2 and trigger validation error (400)
+        page.goto(f"{BRAND_PATH}?revision=2")
         page.locator("#brand-primary").fill("#zzzzzz")
         page.locator('form[data-brand-action="save"]').evaluate("form => { form.noValidate = true; }")
         page.get_by_role("button", name="Entwurf speichern & Vorschau", exact=True).click()
         expect(page.locator(".alert-danger")).to_be_visible()
         expect(page.locator("#brand-primary")).to_have_value("#zzzzzz")
         _screenshot_matrix(page, "error")
+
+        # CAS conflict state (409)
+        page.goto(BRAND_PATH)
+        page.locator('form[data-brand-action="save"] input[name="version"]').evaluate("el => { el.value = '9999'; }")
+        page.locator('form[data-brand-action="save"]').evaluate("form => { form.noValidate = true; }")
+        with page.expect_response(
+            lambda response: response.request.method == "POST" and response.url.endswith(BRAND_PATH)
+        ) as conflict_response:
+            page.get_by_role("button", name="Entwurf speichern & Vorschau", exact=True).click()
+        assert conflict_response.value.status == 409
+        expect(page.locator(".alert-danger")).to_be_visible()
+        _screenshot_matrix(page, "cas-conflict")
+
+
+def test_branding_editor_keyboard_navigation(
+    browser: Browser, live_server: str, admin_app, admin_engine,  # noqa: F811
+):
+    client, _ = _login(admin_app, admin_engine, ["Cafeteria.Admin"])
+    with _context(browser, live_server, client) as context:
+        page = context.new_page()
+        page.set_viewport_size({"width": 1440, "height": 900})
+        page.goto(BRAND_PATH)
+
+        # Keyboard focus sequence
+        name_input = page.locator("#brand-name")
+        name_input.focus()
+        expect(name_input).to_be_focused()
+        outline = name_input.evaluate("el => getComputedStyle(el).outlineColor || getComputedStyle(el).boxShadow")
+        assert outline != "none" and outline != "rgba(0, 0, 0, 0)"
+
+        page.keyboard.press("Tab")
+        expect(page.locator("#brand-logo-select")).to_be_focused()
+
+        page.keyboard.press("Tab")
+        expect(page.locator("#brand-upload")).to_be_focused()
+
+        page.keyboard.press("Tab")
+        expect(page.locator("#brand-primary")).to_be_focused()
+
+        EVIDENCE.mkdir(parents=True, exist_ok=True)
+        page.screenshot(path=str(EVIDENCE / "branding-editor-keyboard-focus.png"), full_page=True)
+
+
+def test_branding_editor_native_cdp_zoom_200(
+    browser: Browser, live_server: str, admin_app, admin_engine, tmp_path: Path,  # noqa: F811
+):
+    client, _ = _login(admin_app, admin_engine, ["Cafeteria.Admin"])
+    profile_dir = tmp_path / "density-branding-zoom-profile"
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    with browser.browser_type.launch_persistent_context(
+        str(profile_dir),
+        channel="chromium",
+        headless=True,
+        no_viewport=True,
+        locale="de-CH",
+        timezone_id="Europe/Zurich",
+        reduced_motion="reduce",
+        args=["--no-sandbox", "--disable-dev-shm-usage", "--window-size=1440,900"],
+    ) as zoom_context:
+        zoom_page = zoom_context.pages[0]
+        zoom_page.goto("chrome://settings/appearance")
+        zoom_page.evaluate("new Promise(resolve => chrome.settingsPrivate.setDefaultZoom(2, resolve))")
+        assert zoom_page.evaluate("new Promise(resolve => chrome.settingsPrivate.getDefaultZoom(resolve))") == 2
+        cookie = client.get_cookie("session")
+        assert cookie is not None
+        zoom_context.add_cookies([{
+            "name": "session", "value": cookie.value, "url": live_server,
+        }])
+        zoom_page.goto(live_server + BRAND_PATH)
+        cdp = zoom_context.new_cdp_session(zoom_page)
+        metrics = cdp.send("Page.getLayoutMetrics")
+        assert metrics["cssVisualViewport"]["zoom"] == 2
+        assert zoom_page.evaluate("[innerWidth, outerWidth, devicePixelRatio]") == [720, 1440, 2]
+        assert zoom_page.evaluate("getComputedStyle(document.documentElement).zoom") == "1"
+        assert zoom_page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+        _assert_viewport(zoom_page, "zoom-200")
+
+        EVIDENCE.mkdir(parents=True, exist_ok=True)
+        native_full_page_capture(zoom_page, EVIDENCE / "branding-editor-zoom200-cdp.png")
+        (EVIDENCE / "zoom-probe.txt").write_text("chrome-settings-cdp-zoom-2\n", encoding="utf-8")
+        (EVIDENCE / "zoom-probe.json").write_text(
+            json.dumps({
+                "zoom": 2,
+                "metrics": metrics,
+                "geometry": {"innerWidth": 720, "outerWidth": 1440, "devicePixelRatio": 2},
+                "hex_fields": _assert_hex_values_fit(zoom_page),
+            }, indent=2),
+            encoding="utf-8",
+        )
+        cdp.detach()
+
+
+def test_branding_rendered_icons_reject_missing_symbols(
+    browser: Browser, live_server: str, admin_app, admin_engine,  # noqa: F811
+):
+    client, _ = _login(admin_app, admin_engine, ["Cafeteria.Admin"])
+    with _context(browser, live_server, client) as context:
+        page = context.new_page()
+        page.set_viewport_size({"width": 1440, "height": 900})
+        page.goto(BRAND_PATH)
+        summary = page.locator("details.brand-history-card summary")
+        summary.focus()
+        page.keyboard.press("Enter")
+        expect(page.locator("details.brand-history-card")).to_have_attribute("open", "")
+        expect(page.get_by_role("button", name="Südhang Standard als Entwurf", exact=True)).to_be_visible()
+        EVIDENCE.mkdir(parents=True, exist_ok=True)
+        page.screenshot(path=str(EVIDENCE / "branding-editor-open-actions-1440x900.png"), full_page=True)
+        _assert_icons_painted(page)
+        icon_use = page.locator("#brand-edit-title use")
+        original = icon_use.get_attribute("href")
+        assert original is not None
+        for missing in ("palette", "broadcast", "adjustments", "arrow-back-up", "list", "rotate"):
+            icon_use.evaluate("(el, href) => el.setAttribute('href', href)", original.split("#")[0] + "#tabler-" + missing)
+            with pytest.raises(AssertionError, match="unpainted icon"):
+                _assert_icons_painted(page)
+        icon_use.evaluate("(el, href) => el.setAttribute('href', href)", original)
+        _assert_icons_painted(page)
+
+
+def test_branding_hex_geometry_rejects_four_column_clipping(
+    browser: Browser, live_server: str, admin_app, admin_engine,  # noqa: F811
+):
+    client, _ = _login(admin_app, admin_engine, ["Cafeteria.Admin"])
+    with _context(browser, live_server, client) as context:
+        page = context.new_page()
+        page.set_viewport_size({"width": 1440, "height": 900})
+        page.goto(BRAND_PATH)
+        page.evaluate("document.fonts.ready")
+        EVIDENCE.mkdir(parents=True, exist_ok=True)
+        page.screenshot(path=str(EVIDENCE / "branding-editor-hex-fields-1440x900.png"), full_page=True)
+        _assert_hex_values_fit(page)
+        columns = page.locator("fieldset .row > div")
+        columns.evaluate_all("els => els.forEach(el => el.classList.add('col-md-3'))")
+        with pytest.raises(AssertionError, match="clipped hex value"):
+            _assert_hex_values_fit(page)
+        columns.evaluate_all("els => els.forEach(el => el.classList.remove('col-md-3'))")
+        _assert_hex_values_fit(page)

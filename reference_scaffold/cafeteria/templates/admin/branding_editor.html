@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, select, actions %}
+{% from 'admin/_macros.html' import page_header, select, actions, icon %}
 {% set workflow_nav = 'design' %}
 {% set layout_variant = 'standard' %}
 {% set active_revision = document.revisions[document.active_revision - 1] %}
@@ -9,32 +9,48 @@
 {% block page_header %}{{ page_header('Erscheinungsbild', description='Logo, Farben und Schrift für öffentliche Ausgaben bearbeiten. Entwürfe bleiben intern, bis Sie sie aktivieren.') }}{% endblock %}
 {% block content %}
 {% if brand_error %}<div class="alert alert-danger" role="alert">{{ brand_error }}{% if brand_values.logo_sha256 and brand_values.logo_sha256 != selected.config.logo_sha256 %} Bitte das neue Logo erneut auswählen.{% endif %}</div>{% endif %}
-<div class="row g-4 brand-settings-grid">
+<div class="row g-3 brand-settings-grid">
   <section class="col-12 col-xl-6" aria-labelledby="brand-edit-title">
     <form method="post" action="{{ url_for('admin.branding_editor') }}" enctype="multipart/form-data" class="card" data-brand-action="save">
       <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}">
-      <div class="card-header"><h2 class="card-title" id="brand-edit-title">Entwurf bearbeiten</h2></div>
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h2 class="card-title d-flex align-items-center gap-2 mb-0" id="brand-edit-title">{{ icon('pencil') }}<span>Entwurf bearbeiten</span></h2>
+        <span class="badge bg-secondary-lt">Basis: Version {{ selected.id }}</span>
+      </div>
       <div class="card-body">
-        <label class="form-label" for="brand-name">Name des Entwurfs</label>
-        <input class="form-control mb-3" id="brand-name" name="name" value="{{ brand_name }}" maxlength="60" required>
-        <label class="form-label" for="brand-logo-select">Logo</label>
-        <select class="form-select mb-1" id="brand-logo-select" name="logo_sha256" aria-describedby="brand-logo-hint">
-          <option value="">Südhang Standard</option>
-          {% set seen = namespace(hashes=[]) %}{% for item in document.revisions|reverse %}{% if item.config.logo_sha256 and item.config.logo_sha256 not in seen.hashes %}
-          <option value="{{ item.config.logo_sha256 }}"{% if brand_values.logo_sha256 == item.config.logo_sha256 %} selected{% endif %}>{{ item.name }} · Version {{ item.id }}</option>
-          {% set seen.hashes = seen.hashes + [item.config.logo_sha256] %}{% endif %}{% endfor %}
-        </select>
-        <p class="form-hint mb-3" id="brand-logo-hint">Bestehendes Logo aus früheren Versionen wählen oder unten ein neues hochladen.</p>
-        <label class="form-label" for="brand-upload">Neues Logo hochladen</label>
-        <input class="form-control" type="file" id="brand-upload" name="logo" accept="image/png,image/jpeg,image/webp" aria-describedby="brand-upload-hint">
-        <p class="form-hint mb-4" id="brand-upload-hint">PNG, JPEG oder WebP, höchstens 1 MiB und 2048 × 2048 Pixel. Ein neues Logo ersetzt die Auswahl im Entwurf. Es wird vollständig und ohne Verzerrung dargestellt.</p>
-        <fieldset>
-          <legend class="form-label">Farbpalette</legend>
-          <p class="form-hint">Text, Primär- und Akzentfarbe müssen zum Hintergrund ausreichend Kontrast haben (mindestens 4.5:1).</p>
-          <div class="row g-3 mb-4">
+        <div class="mb-3">
+          <label class="form-label required" for="brand-name">Name des Entwurfs</label>
+          <input class="form-control" id="brand-name" name="name" value="{{ brand_name }}" maxlength="60" required aria-describedby="brand-name-hint">
+          <p class="form-hint mb-0" id="brand-name-hint">Prägnante Bezeichnung für diesen Markenentwurf.</p>
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-12 col-sm-6">
+            <label class="form-label" for="brand-logo-select">Logo</label>
+            <select class="form-select" id="brand-logo-select" name="logo_sha256" aria-describedby="brand-logo-hint">
+              <option value="">Südhang Standard</option>
+              {% set seen = namespace(hashes=[]) %}{% for item in document.revisions|reverse %}{% if item.config.logo_sha256 and item.config.logo_sha256 not in seen.hashes %}
+              <option value="{{ item.config.logo_sha256 }}"{% if brand_values.logo_sha256 == item.config.logo_sha256 %} selected{% endif %}>{{ item.name }} · Version {{ item.id }}</option>
+              {% set seen.hashes = seen.hashes + [item.config.logo_sha256] %}{% endif %}{% endfor %}
+            </select>
+          </div>
+          <div class="col-12 col-sm-6">
+            <label class="form-label" for="brand-upload">Neues Logo hochladen</label>
+            <input class="form-control" type="file" id="brand-upload" name="logo" accept="image/png,image/jpeg,image/webp" aria-describedby="brand-upload-hint">
+          </div>
+          <div class="col-12">
+            <p class="form-hint mb-0" id="brand-logo-hint">Bestehendes Logo aus früheren Versionen wählen oder unten ein neues hochladen.</p>
+            <p class="form-hint mb-0" id="brand-upload-hint">PNG, JPEG oder WebP, höchstens 1 MiB und 2048 × 2048 Pixel. Ein neues Logo ersetzt die Auswahl im Entwurf. Es wird vollständig und ohne Verzerrung dargestellt.</p>
+          </div>
+        </div>
+        <fieldset class="mb-3">
+          <legend class="form-label mb-2 d-flex align-items-center justify-content-between">
+            <span>Farbpalette</span>
+            <span class="text-secondary small fw-normal">Kontrast &ge; 4.5:1</span>
+          </legend>
+          <div class="row g-2 mb-2">
             {% for key, label in [('primary','Primärfarbe'),('accent','Akzentfarbe'),('surface','Hintergrund'),('text','Textfarbe')] %}
             <div class="col-12 col-sm-6">
-              <label class="form-label" for="brand-{{ key }}">{{ label }}</label>
+              <label class="form-label small mb-1" for="brand-{{ key }}">{{ label }}</label>
               <div class="brand-color-field">
                 <input class="brand-color-swatch" type="color" value="{{ brand_values[key] }}" tabindex="-1" aria-hidden="true" disabled>
                 <input class="form-control" id="brand-{{ key }}" name="{{ key }}" value="{{ brand_values[key] }}" pattern="#[0-9a-fA-F]{6}" maxlength="7" required spellcheck="false" aria-describedby="brand-color-hint">
@@ -42,92 +58,117 @@
             </div>
             {% endfor %}
           </div>
-          <p id="brand-color-hint" class="form-hint">Farbwert im Format #8c1c4b.</p>
+          <p id="brand-color-hint" class="form-hint mb-0">Farbwert im Format #8c1c4b. Text, Primär- und Akzentfarbe müssen zum Hintergrund ausreichend Kontrast haben (mindestens 4.5:1).</p>
         </fieldset>
-        <div class="row g-3">
+        <div class="row g-2 mb-3">
           {% for key, label in [('font_body','Textschrift'),('font_heading','Überschriften')] %}
-          <div class="col-12 col-md-6">
+          <div class="col-12 col-sm-6">
             {{ select(key, label, choices=fonts.items(), value=brand_values[key], id='brand-' ~ key) }}
           </div>
           {% endfor %}
         </div>
+        <div class="alert alert-secondary py-2 px-3 mb-0 d-flex align-items-center gap-2" role="note">
+          {{ icon('info-circle', 'flex-shrink-0 text-secondary') }}
+          <span class="small">Eingaben gelten als <strong>ungespeicherter Entwurf</strong>. Erst mit «Entwurf speichern &amp; Vorschau» wird eine neue Version angelegt und die Vorschau aktualisiert.</span>
+        </div>
       </div>
-      <div class="card-footer">
-        {{ actions(primary={'label': 'Entwurf speichern & Vorschau', 'type': 'submit', 'name': 'action', 'value': 'save'}) }}
+      <div class="card-footer d-flex align-items-center justify-content-between flex-wrap gap-2">
+        {{ actions(primary={'label': 'Entwurf speichern & Vorschau', 'type': 'submit', 'name': 'action', 'value': 'save', 'icon': 'device-floppy'}) }}
+        <span class="text-secondary small">Erzeugt neue gespeicherte Version</span>
       </div>
     </form>
   </section>
   <section class="col-12 col-xl-6" aria-labelledby="brand-preview-title">
-    <div class="card mb-4">
-      <div class="card-header"><h2 class="card-title" id="brand-preview-title">Gespeicherte Vorschau · Version {{ selected.id }}</h2></div>
+    <div class="card mb-3">
+      <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <h2 class="card-title mb-0 d-flex align-items-center gap-2" id="brand-preview-title">{{ icon('eye') }}<span>Gespeicherte Vorschau · Version {{ selected.id }}</span></h2>
+        <span class="badge bg-secondary-lt">Stand: {{ selected.name }}</span>
+      </div>
       <div class="card-body">
-        <p class="brand-preview-meta">
+        <p class="brand-preview-meta mb-2">
           {{ selected.name }} ·
-          {% if selected.id == document.active_revision %}Aktive Version{% elif selected_revision.published %}Früher aktiv{% else %}Gespeicherter Entwurf{% endif %}
+          {% if selected.id == document.active_revision %}<span class="badge bg-success-lt">Aktive Version</span>{% elif selected_revision.published %}<span class="badge bg-secondary-lt">Früher aktiv</span>{% else %}<span class="badge bg-warning-lt">Gespeicherter Entwurf</span>{% endif %}
         </p>
         <iframe class="brand-preview-frame" src="{{ url_for('admin.branding_preview', revision=selected.id) }}" title="Markenvorschau {{ selected.name }}"></iframe>
-        <p class="form-hint mt-2 mb-0">Die Vorschau zeigt den gespeicherten Stand der gewählten Version. Neue Eingaben zuerst als Entwurf speichern.</p>
+        <div class="alert alert-info py-2 px-3 mt-2 mb-0 d-flex align-items-center gap-2" role="note">
+          {{ icon('info-circle', 'flex-shrink-0') }}
+          <span class="small">Die Vorschau zeigt den gespeicherten Stand der gewählten Version. Neue Eingaben zuerst als Entwurf speichern.</span>
+        </div>
       </div>
     </div>
-    <section class="card mb-4 brand-publication-card" aria-labelledby="brand-publication-title">
-      <div class="card-header"><h2 class="card-title" id="brand-publication-title">Veröffentlichte Version</h2></div>
-      <div class="card-body" role="status">
+    <section class="card mb-3 brand-publication-card" aria-labelledby="brand-publication-title">
+      <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <h2 class="card-title d-flex align-items-center gap-2 mb-0" id="brand-publication-title">{{ icon('file-check') }}<span>Veröffentlichte Version</span></h2>
+        {% if selected.id == document.active_revision %}
+        <span class="badge bg-success-lt">Ausgewählte Version ist aktiv</span>
+        {% else %}
+        <span class="badge bg-warning-lt">Ausgewählte Version nicht aktiv</span>
+        {% endif %}
+      </div>
+      <div class="card-body py-2" role="status">
         <dl class="brand-status-list mb-0">
-          <div class="row g-2 py-2 border-bottom">
-            <dt class="col-12 col-md-5">Aktive Version</dt>
-            <dd class="col-12 col-md-7 mb-0">
+          <div class="row g-2 py-2 border-bottom align-items-center">
+            <dt class="col-12 col-md-5 fw-bold">Aktive Version</dt>
+            <dd class="col-12 col-md-7 mb-0 d-flex align-items-center justify-content-between flex-wrap gap-1">
               <span>{{ active_revision.name }} · Version {{ document.active_revision }}</span>
               <small class="d-block mt-1 text-secondary">{% if active_revision.activated_at %}Aktiviert am {{ active_revision.activated_at|datetime_short }}{% else %}Mitgelieferter Standard{% endif %}</small>
             </dd>
           </div>
-          <div class="row g-2 py-2 border-bottom">
-            <dt class="col-12 col-md-5">Ausgewählter gespeicherter Stand</dt>
-            <dd class="col-12 col-md-7 mb-0">
+          <div class="row g-2 py-2 border-bottom align-items-center">
+            <dt class="col-12 col-md-5 fw-bold">Ausgewählter gespeicherter Stand</dt>
+            <dd class="col-12 col-md-7 mb-0 d-flex align-items-center justify-content-between flex-wrap gap-1">
               <span>{{ selected.name }} · Version {{ selected.id }}</span>
               <small class="d-block mt-1 text-secondary">{% if selected.id == document.active_revision %}Ist öffentlich aktiv{% elif selected_revision.published %}War früher aktiv{% else %}Noch nicht aktiviert{% endif %}</small>
             </dd>
           </div>
-          <div class="row g-2 py-2 border-bottom">
-            <dt class="col-12 col-md-5">Zuletzt geändert</dt>
+          <div class="row g-2 py-2 border-bottom align-items-center">
+            <dt class="col-12 col-md-5 fw-bold">Zuletzt geändert</dt>
             <dd class="col-12 col-md-7 mb-0">{% if selected_revision.created_at %}<time datetime="{{ selected_revision.created_at }}">{{ selected_revision.created_at|datetime_short }}</time>{% else %}Mitgelieferter Standard{% endif %}</dd>
           </div>
-          <div class="row g-2 pt-2">
-            <dt class="col-12 col-md-5">Entwurf</dt>
-            <dd class="col-12 col-md-7 mb-0">Die Eingaben links basieren auf Version {{ selected.id }}. Änderungen werden erst nach «Entwurf speichern &amp; Vorschau» als neuer Stand gespeichert.</dd>
+          <div class="row g-2 py-2 align-items-center">
+            <dt class="col-12 col-md-5 fw-bold">Entwurf</dt>
+            <dd class="col-12 col-md-7 mb-0 text-secondary small">Die Eingaben links basieren auf Version {{ selected.id }}. Änderungen werden erst nach «Entwurf speichern &amp; Vorschau» als neuer Stand gespeichert.</dd>
           </div>
         </dl>
-        <p class="form-hint mt-3 mb-0" id="brand-activate-hint">Aktivieren macht genau den ausgewählten gespeicherten Stand in öffentlichen Ausgaben sichtbar.</p>
+        <p class="form-hint mt-2 mb-0" id="brand-activate-hint">Aktivieren macht genau den ausgewählten gespeicherten Stand in öffentlichen Ausgaben sichtbar.</p>
       </div>
-      <div class="card-footer">
+      <div class="card-footer d-flex align-items-center justify-content-between flex-wrap gap-2">
         <form method="post" action="{{ url_for('admin.branding_editor') }}" data-brand-action="activate" data-confirm="Version {{ selected.id }} «{{ selected.name }}» als öffentliches Erscheinungsbild aktivieren?" aria-describedby="brand-activate-hint">
           <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}"><input type="hidden" name="revision" value="{{ selected.id }}">
-          <button class="btn" type="submit" name="action" value="activate"{% if selected.id == document.active_revision %} disabled{% endif %}>Version {{ selected.id }} aktivieren</button>
+          <button class="btn d-inline-flex align-items-center gap-1" type="submit" name="action" value="activate"{% if selected.id == document.active_revision %} disabled{% endif %}>{{ icon('check') }}Version {{ selected.id }} aktivieren</button>
         </form>
+        {% if selected.id == document.active_revision %}
+        <span class="text-success small d-inline-flex align-items-center gap-1">{{ icon('check') }}Bereits aktiv</span>
+        {% endif %}
       </div>
     </section>
     <details class="card brand-history-card">
-      <summary class="card-header py-3"><h2 class="card-title mb-0">Weitere Aktionen</h2></summary>
-      <div class="card-body border-bottom">
-        <h3 class="h4">Ausgewählten Stand übernehmen</h3>
-        <p class="form-hint">Erstellt aus Version {{ selected.id }} einen neuen bearbeitbaren Entwurf. Die aktive Version bleibt unverändert.</p>
+      <summary class="card-header py-2 cursor-pointer"><h2 class="card-title mb-0 d-flex align-items-center gap-2">{{ icon('dots') }}<span>Weitere Aktionen</span></h2></summary>
+      <div class="card-body border-bottom py-3">
+        <h3 class="h4 d-flex align-items-center gap-2 mb-2">{{ icon('copy') }}<span>Ausgewählten Stand übernehmen</span></h3>
+        <p class="form-hint mb-3">Erstellt aus Version {{ selected.id }} einen neuen bearbeitbaren Entwurf. Die aktive Version bleibt unverändert.</p>
         <form method="post" action="{{ url_for('admin.branding_editor') }}" data-brand-action="restore">
           <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}"><input type="hidden" name="revision" value="{{ selected.id }}">
-          <button class="btn" type="submit" name="action" value="restore">Version {{ selected.id }} als neuen Entwurf übernehmen</button>
+          <button class="btn d-inline-flex align-items-center gap-1" type="submit" name="action" value="restore">{{ icon('copy') }}Version {{ selected.id }} als neuen Entwurf übernehmen</button>
         </form>
       </div>
-      <h3 class="h4 px-4 pt-4">Version auswählen</h3>
+      <h3 class="h4 px-3 pt-3 mb-2 d-flex align-items-center gap-2">{{ icon('history') }}<span>Version auswählen</span></h3>
       <div class="list-group list-group-flush">
         {% for item in document.revisions|reverse %}
-        <a class="list-group-item list-group-item-action{% if item.id == selected.id %} active{% endif %}" href="{{ url_for('admin.branding_editor', revision=item.id) }}"{% if item.id == selected.id %} aria-current="true"{% endif %}>
-          {{ item.name }} · Version {{ item.id }}
-          <span class="ms-2">{% if item.id == document.active_revision %}Aktive Version{% elif item.published %}Früher aktiv{% else %}Gespeicherter Entwurf{% endif %}</span>
+        <a class="list-group-item list-group-item-action py-2{% if item.id == selected.id %} active{% endif %}" href="{{ url_for('admin.branding_editor', revision=item.id) }}"{% if item.id == selected.id %} aria-current="true"{% endif %}>
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-1">
+            <span>{{ item.name }} · Version {{ item.id }}</span>
+            <span class="badge {% if item.id == selected.id %}bg-white text-primary{% elif item.id == document.active_revision %}bg-success-lt{% elif item.published %}bg-secondary-lt{% else %}bg-warning-lt{% endif %}">
+              {% if item.id == document.active_revision %}Aktive Version{% elif item.published %}Früher aktiv{% else %}Gespeicherter Entwurf{% endif %}
+            </span>
+          </div>
         </a>
         {% endfor %}
       </div>
-      <div class="card-footer">
+      <div class="card-footer py-2">
         <form method="post" action="{{ url_for('admin.branding_editor') }}" data-brand-action="reset" data-confirm="Südhang Standard als neuen Entwurf anlegen?">
           <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}">
-          <button class="btn" name="action" value="reset" type="submit">Südhang Standard als Entwurf</button>
+          <button class="btn d-inline-flex align-items-center gap-1" name="action" value="reset" type="submit">{{ icon('refresh') }}Südhang Standard als Entwurf</button>
           <p class="form-hint mt-2 mb-0">Vorherige Versionen und Logos bleiben erhalten. Den neuen Standardentwurf zuerst prüfen und danach bei Bedarf aktivieren.</p>
         </form>
       </div>
