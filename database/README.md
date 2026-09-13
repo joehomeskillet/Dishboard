@@ -78,6 +78,9 @@ Schema v32 ergänzt `menu_items.accompaniment` und
 Wertemenge `none`, `soup`, `salad`. Bestehende Zeilen werden durch den
 Spaltenstandard ohne separates Backfill als «keine Beilage» gelesen; frühere
 Migrationsbytes, Publikationsrevisionen und Indizes bleiben unverändert. Für die
+geschlossene Patienten-Schlüssel-Allowlist ergänzt `0029` ausschließlich
+`accompanimentcode` und `accompanimentname`; die verbotenen Kosten-Token bleiben
+unverändert. Für die
 unveränderten Row-Lock-Pfade erhält `cafeteria_app` ausschließlich das Spaltenrecht
 `UPDATE(id)`; ein neuer `BEFORE UPDATE FOR EACH STATEMENT`-Trigger weist trotzdem
 jeden direkten App-Write ab. Vorlagenänderungen laufen weiter nur über

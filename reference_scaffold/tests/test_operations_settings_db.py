@@ -720,7 +720,11 @@ def _load_validate_schema() -> Any:
 
 
 def _patient_key_function(sql: str, source: str) -> str:
-    body = re.search(r'CREATE OR REPLACE FUNCTION patient_key_is_forbidden\(.*?\$\$;', sql, re.S)
+    body = re.search(
+        r'CREATE OR REPLACE FUNCTION (?:cafeteria\.)?patient_key_is_forbidden\(.*?\$\$;',
+        sql,
+        re.S,
+    )
     assert body is not None, f'{source}: patient_key_is_forbidden nicht gefunden.'
     return body.group(0)
 
@@ -741,21 +745,32 @@ def _sql_forbidden_tokens(sql: str, source: str) -> list[str]:
 def test_python_allowlist_mirrors_the_sql_patient_key_contract():
     """`validate_schema.py` spiegelt `patient_key_is_forbidden`; Divergenz bricht das Paketgate.
 
-    Die Baseline und Migration 0017 führen die Allowlist als SQL-Array, `validate_schema.py` hält
-    dieselbe Menge als Frozenset für die statische Snapshotprüfung. Weicht der Spiegel ab, meldet der
-    Validator gültige OPS-Schlüssel als Kosten-Schlüssel, `tools/validate_package.py` bricht vor der
-    Schemaversionsprüfung ab und das Paketgate wird rot, ohne dass eine SQL-Regel verletzt wäre.
+    Migration 0017 behält den historischen v20-Stand; Migration 0029 und die Baseline führen den
+    aktuellen v32-Stand. `validate_schema.py` hält die neueste Menge als Frozenset für die statische
+    Snapshotprüfung. Weicht der aktuelle Spiegel ab, meldet der Validator gültige OPS-Schlüssel als
+    Kosten-Schlüssel und `tools/validate_package.py` bricht vor der Schemaversionsprüfung ab.
     """
     module = _load_validate_schema()
     sources = {
         'schema.sql': SCHEMA.read_text(encoding='utf-8'),
         '0017_v19_to_v20.sql': (ROOT / 'database' / 'migrations' / '0017_v19_to_v20.sql').read_text(
             encoding='utf-8'),
+        '0029_v31_to_v32.sql': (ROOT / 'database' / 'migrations' / '0029_v31_to_v32.sql').read_text(
+            encoding='utf-8'),
     }
+    keys_by_source = {}
     for source, sql in sources.items():
         keys = _sql_allowed_keys(sql, source)
         assert len(keys) == len(set(keys)), f'{source}: doppelte Allowlist-Schlüssel.'
-        assert set(keys) == set(module.ALLOWED_PATIENT_COMPACT_KEYS), source
+        keys_by_source[source] = set(keys)
         assert set(_sql_forbidden_tokens(sql, source)) == set(
             module.FORBIDDEN_PATIENT_COMPACT_TOKENS), source
+    accompaniment_keys = {'accompanimentcode', 'accompanimentname'}
+    assert keys_by_source['0017_v19_to_v20.sql'].isdisjoint(accompaniment_keys)
+    assert keys_by_source['0017_v19_to_v20.sql'] | accompaniment_keys == (
+        keys_by_source['0029_v31_to_v32.sql']
+    )
+    current_keys = set(module.ALLOWED_PATIENT_COMPACT_KEYS)
+    assert keys_by_source['0029_v31_to_v32.sql'] == current_keys
+    assert keys_by_source['schema.sql'] == current_keys
     assert {'areaname', 'servicestart', 'serviceend'} <= set(module.ALLOWED_PATIENT_COMPACT_KEYS)

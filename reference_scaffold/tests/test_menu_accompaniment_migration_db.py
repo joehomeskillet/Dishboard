@@ -20,6 +20,7 @@ from test_operations_settings_db import (
     _INSERT_REVISION_SQL,
     _actor_id,
     _patient_snapshot,
+    _publication_attempt,
     _v19_snapshot,
     _v19_week,
 )
@@ -383,19 +384,18 @@ def test_patient_publication_accepts_accompaniment_pair_and_numeric_name_stays_f
             "UPDATE cafeteria.menu_weeks SET workflow_state='published' WHERE id=:week"
         ), {'week': week_id})
 
-    with seeded_pg16.begin() as connection:
-        connection.execute(text(_INSERT_REVISION_SQL), {
-            'week_id': week_id,
-            'revision_number': 1,
-            'revision_code': accepted['revision_id'],
-            'snapshot': json.dumps(accepted, ensure_ascii=False),
-            'actor': actor,
-        })
+    _publication_attempt(seeded_pg16, week_id, accepted, actor)
 
     rejected = deepcopy(accepted)
-    rejected['days'][0]['services'][0]['options'][0]['accompaniment_name'] = 'Suppe 5'
+    rejected_option = rejected['days'][0]['services'][0]['options'][0]
+    rejected_option['accompaniment_name'] = 'Suppe 5'
+    rejected_option['accompaniment_price'] = 5
     assert patient_text_is_forbidden(
-        rejected['days'][0]['services'][0]['options'][0]['accompaniment_name']
+        rejected_option['accompaniment_name']
+    )
+    _assert_sqlstate(
+        '23514',
+        lambda: _publication_attempt(seeded_pg16, week_id, rejected, actor),
     )
 
 

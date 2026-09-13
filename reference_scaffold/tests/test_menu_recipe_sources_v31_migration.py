@@ -97,13 +97,36 @@ def test_historical_schema30_upgrade_preserves_data_and_exact_function(
     with pg16.connect() as c:
         assert_acl(c)
         migrated = structure(c)
+    patient_key_v31_sql = (
+        SCHEMA.parent / 'migrations' / '0017_v19_to_v20.sql'
+    ).read_text(encoding='utf-8')
+    patient_key_v31_sql = patient_key_v31_sql[
+        patient_key_v31_sql.index('CREATE OR REPLACE FUNCTION patient_key_is_forbidden(k text)'):
+    ]
+    patient_key_v31_body = patient_key_v31_sql.split('AS $$', 1)[1].split('$$;', 1)[0]
+    migrated_patient_keys = [
+        row for row in migrated if row.proname == 'patient_key_is_forbidden'
+    ]
+    assert len(migrated_patient_keys) == 1
+    assert migrated_patient_keys[0].prosrc == patient_key_v31_body
     with pg16.begin() as c:
         c.execute(text('DROP SCHEMA cafeteria CASCADE'))
     database._execute_script(pg16, str(SCHEMA))
     database._execute_script(pg16, str(PERMISSIONS))
     with pg16.connect() as c:
         assert_acl(c)
-        assert [row for row in structure(c) if row.proname not in V32_FUNCTIONS] == migrated
+        bootstrap = structure(c)
+        bootstrap_patient_keys = [
+            row for row in bootstrap if row.proname == 'patient_key_is_forbidden'
+        ]
+        assert len(bootstrap_patient_keys) == 1
+        assert bootstrap_patient_keys[0][:3] + bootstrap_patient_keys[0][4:] == (
+            migrated_patient_keys[0][:3] + migrated_patient_keys[0][4:]
+        )
+        historical_exclusions = V32_FUNCTIONS | {'patient_key_is_forbidden'}
+        assert [row for row in bootstrap if row.proname not in historical_exclusions] == [
+            row for row in migrated if row.proname != 'patient_key_is_forbidden'
+        ]
 
 
 def test_runtime_role_acl_cannot_be_replaced_by_direct_table_locks(seeded_pg16, app_engine):
