@@ -49,6 +49,7 @@ database/migrations/0024_v26_to_v27.sql
 database/migrations/0025_v27_to_v28.sql
 database/migrations/0026_v28_to_v29.sql
 database/migrations/0027_v29_to_v30.sql
+database/migrations/0028_v30_to_v31.sql
 database/permissions.sql
 database/README.md
 database/schema.sql
@@ -1040,6 +1041,7 @@ reference_scaffold/cafeteria/templates/admin/component_editor.html
 reference_scaffold/cafeteria/templates/admin/components.html
 reference_scaffold/cafeteria/templates/admin/copy.html
 reference_scaffold/cafeteria/templates/admin/display_settings.html
+reference_scaffold/cafeteria/templates/admin/gerichtvorlage_einplanen.html
 reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html
 reference_scaffold/cafeteria/templates/admin/grundlagen.html
 reference_scaffold/cafeteria/templates/admin/grundlagen_food.html
@@ -1259,11 +1261,15 @@ reference_scaffold/tests/test_menu_conflict_nojs_browser.py
 reference_scaffold/tests/test_menu_images.py
 reference_scaffold/tests/test_menu_images_browser.py
 reference_scaffold/tests/test_menu_metadata_visibility.py
+reference_scaffold/tests/test_menu_proposal_browser.py
+reference_scaffold/tests/test_menu_proposal_routes.py
 reference_scaffold/tests/test_menu_recipe_binding_races_db.py
 reference_scaffold/tests/test_menu_recipe_binding_routes.py
 reference_scaffold/tests/test_menu_recipe_bindings_db.py
 reference_scaffold/tests/test_menu_recipe_choices_reader.py
 reference_scaffold/tests/test_menu_recipe_selection_browser.py
+reference_scaffold/tests/test_menu_recipe_sources_v31_db.py
+reference_scaffold/tests/test_menu_recipe_sources_v31_migration.py
 reference_scaffold/tests/test_menu_template_binding_browser.py
 reference_scaffold/tests/test_menu_template_binding_db.py
 reference_scaffold/tests/test_menu_template_binding_routes.py
