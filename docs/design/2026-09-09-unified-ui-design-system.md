@@ -253,6 +253,8 @@ Nutze das vorhandene zentrale `icon`-Makro und die tatsächlich verfügbaren Tab
 
 Hauptaktionen auch auf dem Smartphone beschriften. Ein Tooltipp oder zugänglicher Name allein ersetzt für unerfahrene Benutzer keinen sichtbaren Text. Unterstützende reine Iconbuttons nur in eindeutigem Kontext; Fokus, Name und Trefferfläche prüfen. Dekorative Icons neben Text nicht nochmals vorlesen lassen. Status nie nur durch Farbe darstellen.
 
+**Auftraggeber-Präzisierung vom 13. September 2026:** Mehr verständliche Symbole und weniger wiederholte Wörter machen die Oberfläche ruhiger. Vorhandene Tabler-Symbole gezielt auch bei kurzen Labels und unterstützenden Hinweisen einsetzen; gleichartige Texte nicht in jeder Zeile ausschreiben. Hauptaktionen und Navigation behalten kurze sichtbare Labels. Eindeutige Nebenaktionen dürfen im klaren Zeilenkontext als Symbolbutton erscheinen, mit zugänglichem Namen und verständlichem Tooltip; notwendige Warnungen und Formfeldbezeichnungen bleiben verständlich. Beispielsweise genügt in einer bereits nummerierten History-Zeile «Ansehen» mit Auge statt eines erneut ausgeschriebenen Standtitels. Keine zusätzlichen dekorativen Symbole ohne Informationswert. Diese Präzisierung gilt bei der Prüfung laufender und folgender UI-Pakete.
+
 ## 6. Tabler tatsächlich anbinden, nicht nur umfärben
 
 Untersuche zuerst die installierte Tabler-/Bootstrap-Version und die ausgelieferten CSS-Dateien. Dokumentation neuerer Versionen ist keine Aufforderung zum Upgrade.

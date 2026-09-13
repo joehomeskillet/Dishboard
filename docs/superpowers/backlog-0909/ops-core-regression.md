@@ -105,7 +105,7 @@ Unabhängiger Autor, nicht Cursor. Produktcode unverändert (read-only). Die neu
 
 Guard-Assertions (Authz, CSRF, CAS, Standortwechsel, Wochenend-URLs, Autofokus, Outline) bleiben.
 
-Befehl (Root-Zuweisung, nur die zwei Admin-Module; die übrigen 157 Checks dieses Pakets nicht erneut durch den Worker):
+Befehl (Root-Zuweisung, nur die zwei Admin-Module; die übrigen fünf Module dieses Pakets nicht erneut durch den Worker):
 
 ```
 rtk bash /nvmetank1/projects/menuplan/.claude/state/handover-2026-09-05/worker-test_ui_other-gate.sh \
