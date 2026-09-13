@@ -25,6 +25,7 @@ PATIENT_OBJECT_KEYS = {
 PATIENT_OPTIONAL_KEYS = {
     'snapshot': frozenset({'area_name'}),
     'service': frozenset({'service_state', 'notice', 'service_start', 'service_end'}),
+    'option': frozenset({'accompaniment_code', 'accompaniment_name'}),
 }
 PATIENT_ALLOWED_COMPACT_KEYS = frozenset(
     key.replace('_', '')
@@ -58,6 +59,8 @@ PATIENT_FIXED_VALUES = {
     ('service', 'service_state'): frozenset({'open', 'closed', 'holiday', 'company_holiday'}),
     ('option', 'type_code'): frozenset({'MENU_1', 'VEGGIE'}),
     ('option', 'type_name'): frozenset({'Menü 1', 'Vegetarisch'}),
+    ('option', 'accompaniment_code'): frozenset({'soup', 'salad'}),
+    ('option', 'accompaniment_name'): frozenset({'Suppe', 'Salat (gemischt und grün)'}),
     ('option', 'allergen_review_status'): frozenset({'not_checked', 'checked'}),
     ('label', 'code'): PATIENT_LABEL_CODES,
     ('allergen', 'code'): PATIENT_ALLERGEN_CODES,
@@ -345,6 +348,38 @@ def _validate_service_states(services: list[Any]) -> None:
             raise ValueError('Das Serviceende muss nach dem Servicebeginn liegen.')
 
 
+def _validate_accompaniment_pairs(days: list[Any]) -> None:
+    names = {
+        'soup': 'Suppe',
+        'salad': 'Salat (gemischt und grün)',
+    }
+    for day in days:
+        services = day.get('services', []) if isinstance(day, dict) else []
+        if not isinstance(services, list):
+            continue
+        for service in services:
+            options = service.get('options', []) if isinstance(service, dict) else []
+            if not isinstance(options, list):
+                continue
+            for option in options:
+                if not isinstance(option, dict):
+                    continue
+                has_code = 'accompaniment_code' in option
+                has_name = 'accompaniment_name' in option
+                code = option.get('accompaniment_code')
+                name = option.get('accompaniment_name')
+                if (
+                    has_code != has_name
+                    or has_code
+                    and (
+                        type(code) is not str
+                        or type(name) is not str
+                        or names.get(code) != name
+                    )
+                ):
+                    raise ValueError('Snapshot enthält eine ungültige Beilage.')
+
+
 def validate_snapshot_payload(profile_code: str, snapshot: dict[str, Any]) -> None:
     if profile_code not in PROFILES:
         raise ValueError('Unbekanntes Profil.')
@@ -358,6 +393,7 @@ def validate_snapshot_payload(profile_code: str, snapshot: dict[str, Any]) -> No
         or len(snapshot['area_name']) > 80
     ):
         raise ValueError('Der Bereichsname muss 1 bis 80 Zeichen enthalten.')
+    _validate_accompaniment_pairs(days)
     if profile_code == 'patient':
         try:
             key_paths = _forbidden_patient_key_paths(snapshot)

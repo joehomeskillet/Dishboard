@@ -9,6 +9,10 @@ from .patient_payload import validate_snapshot_payload
 WEEKDAYS = ('Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag')
 MEAL_NAMES = {'LUNCH': 'Mittag', 'DINNER': 'Abend'}
 TYPE_NAMES = {'MENU_1': 'Menü 1', 'VEGGIE': 'Vegetarisch'}
+ACCOMPANIMENT_NAMES = {
+    'soup': 'Suppe',
+    'salad': 'Salat (gemischt und grün)',
+}
 
 
 def _public_rows(
@@ -97,6 +101,10 @@ def _option(
         for allergen in option['allergens']
     ):
         raise ValueError('Allergen-Präsenz ist ungültig.')
+    accompaniment_code = value.get('accompaniment_code')
+    if type(accompaniment_code) is str and accompaniment_code in ACCOMPANIMENT_NAMES:
+        option['accompaniment_code'] = accompaniment_code
+        option['accompaniment_name'] = ACCOMPANIMENT_NAMES[accompaniment_code]
     if profile_code == 'staff_guest':
         option['prices'] = {
             'internal_rappen': value['internal_rappen'],

@@ -504,6 +504,29 @@ def test_demo_snapshots_pass_payload_validation() -> None:
 
 
 @pytest.mark.parametrize(
+    ('snapshot_factory', 'profile_code', 'code', 'name'),
+    (
+        (patient_snapshot, 'patient', 'soup', 'Suppe'),
+        (patient_snapshot, 'patient', 'salad', 'Salat (gemischt und grün)'),
+        (cafeteria_snapshot, 'staff_guest', 'soup', 'Suppe'),
+        (cafeteria_snapshot, 'staff_guest', 'salad', 'Salat (gemischt und grün)'),
+    ),
+)
+def test_snapshot_validator_accepts_fixed_accompaniment_pair(
+    snapshot_factory: Any,
+    profile_code: str,
+    code: str,
+    name: str,
+) -> None:
+    snapshot = snapshot_factory()
+    option = snapshot['days'][0]['services'][0]['options'][0]
+    option['accompaniment_code'] = code
+    option['accompaniment_name'] = name
+
+    validate_snapshot_payload(profile_code, snapshot)
+
+
+@pytest.mark.parametrize(
     ('key', 'value'),
     (
         ('price', 1250),
