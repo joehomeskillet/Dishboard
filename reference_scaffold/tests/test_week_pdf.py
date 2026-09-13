@@ -123,26 +123,63 @@ def test_accompaniment_is_its_own_paragraph_and_fits(
         assert not any(components in line and 'Dazu:' in line for line in lines)
 
 
-def test_patient_classic_renderer_with_notes_and_accompaniment_fits() -> None:
-    draft = saved_week('patient', True)
-    options = [
+def _open_options(draft: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
         option
         for day in draft['days']
         for service in day['services']
         if service['service_state'] == 'open'
         for option in service['options']
     ]
+
+
+def _with_salad(options: list[dict[str, Any]]) -> None:
     for option in options:
         option.update(
             accompaniment_code='salad',
             accompaniment_name='Salat (gemischt und grün)',
         )
 
+
+def _stretch_values(page: Any) -> list[float]:
+    return [
+        float(args[0])
+        for args, operator in page.get_contents().operations
+        if operator == b'Tz'
+    ]
+
+
+def test_patient_accompaniment_skips_stretch_when_full_width_fits() -> None:
+    draft = saved_week('patient', False)
+    options = _open_options(draft)
+    _with_salad(options)
+    result_page = PdfReader(BytesIO(render_week_pdf(draft, 'patient', WEEK))).pages[0]
+    body = ' '.join(result_page.extract_text().split())
+    assert body.count('Dazu: Salat (gemischt und grün)') == len(options)
+    assert 85.0 not in _stretch_values(result_page)
+
+
+def test_patient_classic_renderer_with_notes_and_accompaniment_fits() -> None:
+    draft = saved_week('patient', True)
+    options = _open_options(draft)
+    _with_salad(options)
+
     result_page = PdfReader(BytesIO(render_week_pdf(draft, 'patient', WEEK))).pages[0]
     body = ' '.join(result_page.extract_text().split())
 
     assert len(options) == 28
     assert body.count('Dazu: Salat (gemischt und grün)') == len(options)
+    assert 85.0 in _stretch_values(result_page)
+
+
+def test_patient_accompaniment_stretch_still_raises_when_unreadable() -> None:
+    draft = saved_week('patient')
+    options = _open_options(draft)
+    _with_salad(options)
+    for option in options:
+        option['note'] = 'Lange vollständige Rezepturangaben. ' * 100
+    with pytest.raises(WeekPdfFitError, match='A4-Seite'):
+        render_week_pdf(draft, 'patient', WEEK)
 
 
 @pytest.mark.parametrize('profile', ['staff_guest', 'patient'])

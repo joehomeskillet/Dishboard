@@ -94,11 +94,12 @@ def _draw(pdf: FPDF, block: Block, x: float, y: float) -> float:
     pdf.set_font('Weekly', 'B' if block.bold else '', block.size)
     font = cast(TTFFont, pdf.current_font)
     line_height = max(block.size + block.leading, block.size * (font.desc.ascent - font.desc.descent) / 1000 + 0.2)
-    context = (
-        pdf.local_context(font_stretching=block.stretching)
-        if block.stretching != 100.0 else nullcontext()
-    )
+    context = pdf.local_context() if block.stretching != 100.0 else nullcontext()
     with context:
+        if block.stretching != 100.0:
+            # local_context(font_stretching=…) only sets the attribute; text() never
+            # emits Tz, so set_stretching writes the operator inside q/Q.
+            pdf.set_stretching(block.stretching)
         for line in block.lines:
             # Explicit baselines, identical to preflight: no auto page break or clipping.
             pdf.text(x, y + block.size, line)
@@ -343,14 +344,21 @@ def render_week_pdf(
         candidates = ((9.0, 9.0),) if patient else ((12.0, 10.0),)
     elif config['text_size'] == 'large':
         candidates = ((10.0, 10.0),) if patient else ((14.0, 12.0),)
-    for custom_y, (body_size, detail_size) in product(header_tops, candidates):
+    attempts: list[tuple[float, tuple[float, float], float]] = [
+        (header_top, sizes, 100.0)
+        for header_top, sizes in product(header_tops, candidates)
+    ]
+    if patient:
+        attempts.extend(
+            (header_top, candidates[-1], 85.0) for header_top in header_tops
+        )
+    for custom_y, (body_size, detail_size), stretch in attempts:
         table_y = custom_y + (custom_header.height + 2 * padding if custom_header else 0.0)
         rows = [
                 [[_wrap(pdf, text, cell_width - 2 * padding, body_size if i < 2 else detail_size,
                         i == 0, 0.5 if patient else 1.0,
                         stretching=(
-                            # Preserve 8.5 pt while fitting longest accompaniment and notes.
-                            85.0 if patient and i == 2 and cell.option is not None
+                            stretch if i == 2 and cell.option is not None
                             and _accompaniment_text(cell.option) else 100.0
                         ))
               for i, text in enumerate(cell.paragraphs) if text] for cell in row]
