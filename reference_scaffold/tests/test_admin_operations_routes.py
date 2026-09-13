@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from datetime import timedelta
 from html import unescape
 
 import pytest
@@ -54,11 +55,23 @@ def _load(client, **changes):  # noqa: F811
     return _form(response.get_data(as_text=True), 'exception-save')
 
 
+def _cafeteria_week_grid(body):
+    match = re.search(r'<section class="admin-week-days"[^>]*>(.*?)</section>', body, re.S)
+    assert match, 'Wochenübersicht Cafeteria fehlt'
+    days = re.findall(r'<article class="card admin-day-card">.*?<h2>(.*?)</h2>', match.group(1), re.S)
+    slots = re.findall(r'data-day="([^"]+)" data-meal="([^"]+)" data-option="([^"]+)"', match.group(1))
+    return days, slots
+
+
 def test_get_authorization_csrf_and_shape(client, app, database_engine):  # noqa: F811
     response = client.get(PATH)
     assert response.status_code == 200 and response.headers['Cache-Control'] == 'no-store'
-    assert 'Zeiten in Europe/Zurich' in response.get_data(as_text=True)
-    assert 'aria-current="page"' in response.get_data(as_text=True)
+    body = response.get_data(as_text=True)
+    with database_engine.connect() as connection:
+        timezone = connection.execute(text('SELECT timezone FROM cafeteria.locations WHERE active')).scalar_one()
+    overview = re.search(r'id="operations-overview".*?</section>', body, re.S)
+    assert overview is not None and f'Zeitzone: {timezone}' in overview.group()
+    assert 'aria-current="page"' in body
     valid = _get(client, 'name-patient')
     for form in ({**valid, '_csrf': 'wrong'}, {**valid, 'actor_id': '1'},
                  MultiDict([*valid.items(), ('action', 'save_name_patient')])):
@@ -216,7 +229,14 @@ def test_weekend_editor_links_defaults_and_existing_services_survive_switch_off(
     for path in (saturday, sunday):
         assert client.get(path).status_code == 200
     body = client.get(f'/admin/cafeteria?week={DAY}').get_data(as_text=True)
-    assert '14 Menükarten · 7 Tage' in body
+    days, slots = _cafeteria_week_grid(body)
+    week_dates = [(WEEK + timedelta(days=offset)).isoformat() for offset in range(7)]
+    assert days == ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
+    assert 'Wochenendbetrieb: Samstag und Sonntag sind im Raster.' in body
+    assert 'Montag–Sonntag' in body
+    assert len(slots) == 14 and {slot[0] for slot in slots} == set(week_dates)
+    assert all(slot[1] == 'LUNCH' for slot in slots)
+    assert body.count('von 2 Menükarten erfasst') == 7
     assert 'Vorgabe' in body
     exception = _load(client, date='2026-09-05')
     assert client.post(PATH, data={**exception, 'service_state': 'open'}).status_code == 303
@@ -225,6 +245,11 @@ def test_weekend_editor_links_defaults_and_existing_services_survive_switch_off(
     assert client.post(PATH, data=off).status_code == 303
     assert client.get(saturday).status_code == 200
     assert client.get(sunday).status_code == 404
+    off_body = client.get(f'/admin/cafeteria?week={DAY}').get_data(as_text=True)
+    off_days, off_slots = _cafeteria_week_grid(off_body)
+    assert off_days == ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
+    assert {slot[0] for slot in off_slots} == set(week_dates[:6])
+    assert 'Montag–Samstag' in off_body
     for path in (saturday.replace('2026-09-05', '2026-09-07'),
                  saturday.replace('2026-09-05', '2026-08-30'),
                  saturday.replace('LUNCH', 'DINNER'), saturday.replace('MENU_1', 'INVALID')):
@@ -277,7 +302,8 @@ def test_loaded_exception_retains_original_location_expectation(client, database
         connection.execute(text("INSERT INTO cafeteria.locations(code,name,timezone,active) VALUES ('OTHER','Anderer Standort','UTC',true)"))
     response = client.post(PATH, data=original)
     assert response.status_code == 409
-    assert 'Der aktive Standort wurde zwischenzeitlich geändert.' in response.get_data(as_text=True)
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert 'Berechtigung oder aktiver Standort wurde zwischenzeitlich geändert.' in response.get_data(as_text=True)
     with database_engine.connect() as connection:
         assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_services')).scalar_one() == 0
 

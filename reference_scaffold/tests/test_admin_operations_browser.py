@@ -15,6 +15,14 @@ from test_admin_workflow_routes import _login
 PATH = '/admin/bereiche-zeiten'
 
 
+def _open_details(page, editor_id: str) -> None:
+    details = page.locator(f'#{editor_id}')
+    expect(details).to_have_count(1)
+    if details.get_attribute('open') is None:
+        page.locator(f'#{editor_id} > summary').click()
+    expect(details).to_have_attribute('open', '')
+
+
 @pytest.mark.parametrize('width', [390, 820, 1440])
 @pytest.mark.parametrize('javascript', [False, True])
 def test_native_operations_controls_save_focus_and_original_exception(
@@ -31,17 +39,22 @@ def test_native_operations_controls_save_focus_and_original_exception(
         _assert_controls(page)
         assert page.locator('[style], [onclick], script:not([src])').count() == 0
         page.screenshot(path=str(tmp_path / f'operations-{width}-js-{javascript}.png'), full_page=True)
+        _open_details(page, 'weekend-editor')
         page.locator('#allows_weekend').check()
         page.get_by_role('button', name='Wochenendbetrieb speichern', exact=True).click()
+        _open_details(page, 'weekend-editor')
         expect(page.locator('#allows_weekend')).to_be_checked()
+        _open_details(page, 'schedule-editor-staff_guest')
         page.locator('#staff_guest-slot_6_LUNCH_state').select_option('open')
         page.locator('#staff_guest-slot_6_LUNCH_start').fill('11:30')
         page.locator('#staff_guest-slot_6_LUNCH_end').fill('13:30')
         page.locator('#schedule-staff_guest button[type="submit"]').click()
+        _open_details(page, 'schedule-editor-staff_guest')
         expect(page.locator('#staff_guest-slot_6_LUNCH_start')).to_have_value('11:30')
         page.locator('#staff_guest-slot_6_LUNCH_end').fill('10:00')
         page.locator('#schedule-staff_guest button[type="submit"]').click()
         page.wait_for_load_state()
+        expect(page.locator('#schedule-editor-staff_guest')).to_have_attribute('open', '')
         invalid = page.locator('#staff_guest-slot_6_LUNCH_end')
         expect(invalid).to_have_attribute('aria-invalid', 'true')
         expect(invalid).to_have_attribute('autofocus', '')
@@ -51,13 +64,16 @@ def test_native_operations_controls_save_focus_and_original_exception(
         assert focused.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
         page.screenshot(path=str(tmp_path / f'operations-error-{width}-js-{javascript}.png'), full_page=True)
         page.goto(PATH)
+        _open_details(page, 'exception-editor')
         page.locator('#exception-load-date').fill('2026-09-05')
         page.locator('#exception-load-meal').select_option('LUNCH')
         page.locator('#exception-load').get_by_role('button', name='Ausgabe laden', exact=True).click()
+        expect(page.locator('#exception-editor')).to_have_attribute('open', '')
         expect(page.locator('#exception-save input[name="row_version"]')).to_have_value('0')
         expect(page.locator('#service_start')).to_have_value('11:30')
         page.locator('#service_end').fill('14:00')
         _assert_controls(page)
         page.get_by_role('button', name='Ausnahme speichern', exact=True).click()
+        _open_details(page, 'saved-exceptions')
         expect(page.locator('[data-kind="time"]')).to_be_visible()
         page.screenshot(path=str(tmp_path / f'operations-saved-{width}-js-{javascript}.png'), full_page=True)
