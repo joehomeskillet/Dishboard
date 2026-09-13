@@ -27,7 +27,8 @@
 {% endblock %}
 {% block content %}
 {% if error %}
-<div class="alert alert-danger error-region" id="dish-template-error" role="alert" tabindex="-1" autofocus>{{ error }}
+<div class="alert alert-danger error-region" id="dish-template-error" role="alert" tabindex="-1" autofocus>
+{% if accompaniment_error %}<a href="#accompaniment-none" data-error-link>{{ error }}</a>{% else %}{{ error }}{% endif %}
 {% if row %}<a href="{{ url_for('admin.dish_template_edit', public_id=row.public_id) }}">Aktuellen Stand neu laden</a>{% endif %}
 </div>
 {% endif %}
@@ -130,15 +131,15 @@
       <legend class="form-label">Suppe oder Salat dazu (Vorschlag für neue Menüs)</legend>
       <div class="d-flex flex-column flex-md-row flex-wrap gap-2">
         <label class="form-check me-md-3">
-          <input class="form-check-input" type="radio" name="accompaniment_default" value="none"{% if values.accompaniment_default == 'none' %} checked{% endif %}{% if accompaniment_error %} aria-invalid="true"{% endif %}>
+          <input class="form-check-input" id="accompaniment-none" type="radio" name="accompaniment_default" value="none"{% if values.accompaniment_default == 'none' %} checked{% endif %}{% if accompaniment_error %} aria-invalid="true"{% endif %}>
           <span class="form-check-label">Keine</span>
         </label>
         <label class="form-check me-md-3">
-          <input class="form-check-input" type="radio" name="accompaniment_default" value="soup"{% if values.accompaniment_default == 'soup' %} checked{% endif %}{% if accompaniment_error %} aria-invalid="true"{% endif %}>
+          <input class="form-check-input" id="accompaniment-soup" type="radio" name="accompaniment_default" value="soup"{% if values.accompaniment_default == 'soup' %} checked{% endif %}{% if accompaniment_error %} aria-invalid="true"{% endif %}>
           <span class="form-check-label">{{ icon('soup') }}Suppe</span>
         </label>
         <label class="form-check">
-          <input class="form-check-input" type="radio" name="accompaniment_default" value="salad"{% if values.accompaniment_default == 'salad' %} checked{% endif %}{% if accompaniment_error %} aria-invalid="true"{% endif %}>
+          <input class="form-check-input" id="accompaniment-salad" type="radio" name="accompaniment_default" value="salad"{% if values.accompaniment_default == 'salad' %} checked{% endif %}{% if accompaniment_error %} aria-invalid="true"{% endif %}>
           <span class="form-check-label">{{ icon('salad') }}Salat (gemischt und grün)</span>
         </label>
       </div>

@@ -180,11 +180,16 @@ def test_accompaniment_create_update_validation_and_reader_view(b3, monkeypatch)
     assert 'Bitte eine gültige Beilage wählen.' in rejected.text
     assert 'Eingabe bleibt erhalten' in rejected.text
     assert 'aria-invalid="true"' in rejected.text
+    assert 'href="#accompaniment-none"' in rejected.text
     assert snapshot(owner) == before
 
     monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', {'draft.read'})
+    def unexpected_list_templates(*_args, **_kwargs):
+        raise AssertionError('list rendering must use the link-reader projection')
+    monkeypatch.setattr(store, 'list_templates', unexpected_list_templates)
     reader = client.get('/admin/gerichtvorlagen')
-    assert reader.status_code == 200 and 'Salat' in reader.text
+    assert reader.status_code == 200
+    assert 'Dazu: Salat' in reader.text and '#tabler-salad' in reader.text
     assert 'Vorlage anlegen</a>' not in reader.text and 'name="action"' not in reader.text
 
 

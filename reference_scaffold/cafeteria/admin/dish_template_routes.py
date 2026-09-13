@@ -88,15 +88,6 @@ def _page(
     template_rows = links.list_template_links(
         _db(), include_archived=include_archived or row is not None,
     )
-    accompaniment_by_id = {
-        item.public_id: item.accompaniment_default
-        for item in store.list_templates(
-            _db(), include_archived=include_archived or row is not None,
-        )
-    }
-    template_rows = tuple(replace(
-        item, accompaniment_default=accompaniment_by_id[item.public_id],
-    ) for item in template_rows)
     cas_value = ''
     if row:
         cas_value = (request.form.get('updated_at', '') if request.method == 'POST'

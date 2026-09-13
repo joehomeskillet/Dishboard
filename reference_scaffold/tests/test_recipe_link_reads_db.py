@@ -34,9 +34,12 @@ def test_links_follow_all_existing_edges_and_do_not_multiply_counts(binding, mon
     with owner.begin() as current:
         recipe_id = str(current.execute(text('SELECT public_id FROM cafeteria.recipes WHERE id=:location_recipe'), ids).scalar_one())
         foreign = str(current.execute(text('SELECT public_id FROM cafeteria.recipes WHERE id=:other_location_recipe'), ids).scalar_one())
-        refs = current.execute(text('''INSERT INTO cafeteria.dish_templates(title,recipe_id,active)
-            VALUES ('Zweite',:location_recipe,true),('Archivierte',:location_recipe,false),
-                   ('Fremde Vorlage',:other_location_recipe,true) RETURNING public_id,title'''), ids).all()
+        refs = current.execute(text('''INSERT INTO cafeteria.dish_templates(
+            title,recipe_id,active,accompaniment_default)
+            VALUES ('Zweite',:location_recipe,true,'salad'),
+                   ('Archivierte',:location_recipe,false,'none'),
+                   ('Fremde Vorlage',:other_location_recipe,true,'soup')
+            RETURNING public_id,title'''), ids).all()
         current.execute(text('''UPDATE cafeteria.menu_items SET dish_template_id=(
             SELECT id FROM cafeteria.dish_templates WHERE title='Zweite') WHERE id=:item'''), ids)
         latest = current.execute(text('''INSERT INTO cafeteria.recipe_revisions(
@@ -72,6 +75,9 @@ def test_links_follow_all_existing_edges_and_do_not_multiply_counts(binding, mon
             assert {row.public_id for row in rows} == {str(row.public_id) for row in refs if row.title != 'Fremde Vorlage'}
             assert all(row.recipe_active is False and row.revision_count == 2 for row in rows)
             assert {row.title: row.menu_count for row in rows} == {'Archivierte': 0, 'Zweite': 1}
+            assert {row.title: row.accompaniment_default for row in rows} == {
+                'Archivierte': 'none', 'Zweite': 'salad',
+            }
     finally:
         event.remove(engine, 'before_cursor_execute', record)
 
