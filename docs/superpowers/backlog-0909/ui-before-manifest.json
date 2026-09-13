@@ -9836,7 +9836,7 @@
   },
   "current_inventory": {
     "wp_id": "wp-9bb209576726",
-    "source_commit": "d340b79c8f09866df171567b247df2d99d1e6543",
+    "source_commit": "e7915ecd4e88631bee3f6569a6c2bd8ed1b33cdb",
     "schema": 30,
     "route_count": 127,
     "template_count": 83,
