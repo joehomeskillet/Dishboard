@@ -20,7 +20,7 @@ from test_rendered_ui import browser  # noqa: F401
 
 
 ROOT = Path(__file__).resolve().parents[2]
-EVIDENCE = ROOT / '.claude' / 'evidence' / 'icon-target-grok-0913'
+EVIDENCE = ROOT / '.claude' / 'evidence' / 'cookbook-mobile-fix-0913' / 'after'
 LONG_NAME = ('Sommergemüse mit Kräuterkartoffeln und hausgemachter Zitronensauce '
              'für die Gemeinschaftsküche am Sonntag')
 LONG_DESCRIPTION = ('Saisonale Rezepte für die Gemeinschaftsküche, sortiert nach Aufwand. ' * 6).strip()
@@ -51,6 +51,27 @@ DENSITY_METRICS = '''() => {
     overflow: document.documentElement.scrollWidth > innerWidth + 1,
     documentHeight: document.documentElement.scrollHeight,
     firstCardTop: top('section[aria-label="Kochbücher"] article.card'),
+    cards: [...document.querySelectorAll('section[aria-label="Kochbücher"] article.card')].map(card => {
+      const body = card.querySelector('.card-body');
+      const title = card.querySelector('.card-title');
+      const description = card.querySelector('p');
+      const action = card.querySelector('.btn-icon');
+      const count = action.parentElement.previousElementSibling;
+      const rect = element => {
+        const {x, y, width, height, right, bottom} = element.getBoundingClientRect();
+        return {x, y, width, height, right, bottom};
+      };
+      const range = document.createRange();
+      range.selectNodeContents(title);
+      const style = getComputedStyle(body);
+      return {
+        name: title.textContent.trim(), card: rect(card), title: rect(title), text: rect(range),
+        description: description ? rect(description) : null,
+        action: rect(action), count: rect(count), countText: count.textContent.trim(),
+        contentWidth: body.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight),
+        contentOverflow: body.scrollHeight > body.clientHeight + 1,
+      };
+    }),
     firstFieldLabelTop: top('label[for="cookbook-name"]'),
     firstFieldTop: top('#cookbook-name'),
     assignmentRows: [...document.querySelectorAll('form[action$="/rezepte"] tbody tr')]
@@ -313,8 +334,27 @@ def _assert_core_controls(page):
         box = control.bounding_box()
         assert box is not None and box['height'] >= 44
         if 'btn-icon' in (control.get_attribute('class') or '').split():
-            assert box['width'] >= 44
+            assert box['width'] >= 48 and box['height'] >= 48
             _icon_control(control)
+
+
+def _assert_mobile_cards(cards):
+    for entry in cards:
+        card, title, text = entry['card'], entry['title'], entry['text']
+        assert not entry['contentOverflow'], entry
+        assert title['width'] >= entry['contentWidth'] - 1, entry
+        assert text['x'] >= title['x'] - 1 and text['right'] <= title['right'] + 1, entry
+        assert text['y'] >= title['y'] - 1 and text['bottom'] <= title['bottom'] + 1, entry
+        for name in ('count', 'action'):
+            control = entry[name]
+            assert control['x'] >= card['x'] and control['right'] <= card['right'], entry
+            assert control['y'] >= title['bottom'] and control['bottom'] <= card['bottom'], entry
+        assert entry['count']['right'] <= entry['action']['x'], entry
+        assert entry['action']['width'] >= 48 and entry['action']['height'] >= 48, entry
+        if entry['description']:
+            assert entry['description']['bottom'] <= min(entry['count']['y'], entry['action']['y']), entry
+        # Natural rows end just below their last control, including long wrapped content.
+        assert card['bottom'] - max(entry['count']['bottom'], entry['action']['bottom']) <= 24, entry
 
 
 def test_cookbook_list_and_editor_stay_compact_at_all_viewports(cookbook_server, browser):  # noqa: F811
@@ -350,6 +390,14 @@ def test_cookbook_list_and_editor_stay_compact_at_all_viewports(cookbook_server,
             _assert_core_controls(page)
             listed = page.evaluate(DENSITY_METRICS)
             assert not listed['overflow'] and not listed['cardTitleOverflow'], listed
+            assert {entry['name'] for entry in listed['cards']} == {'Browserbuch', LONG_NAME}
+            if width < 768:
+                _assert_mobile_cards(listed['cards'])
+                short, long = (next(entry for entry in listed['cards'] if entry['name'] == name)
+                               for name in ('Browserbuch', LONG_NAME))
+                # A short book remains a compact row beside a fully readable long fixture.
+                assert short['card']['height'] <= 144 < long['card']['height'], listed
+                assert short['countText'] == '1 Rezept' and long['countText'] == '0 Rezepte'
             if (width, height) == (1440, 900):
                 assert listed['firstCardTop'] <= FIRST_CONTENT_LIMIT, listed
             page.screenshot(path=str(EVIDENCE / f'kochbuecher-regular-{label}.png'), full_page=True)
@@ -555,6 +603,7 @@ def _native_viewport_capture(page, destination: Path) -> dict:
 
 def test_real_browser_zoom_keeps_cookbook_rows_and_labels(cookbook_server, browser, tmp_path):  # noqa: F811
     path = _create_book(cookbook_server, 'Zoombuch')
+    _create_book(cookbook_server, LONG_NAME, LONG_DESCRIPTION)
     _assign(cookbook_server, path, [cookbook_server['first']])
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     base, cookie = cookbook_server['base'], cookbook_server['cookie']
@@ -581,13 +630,20 @@ def test_real_browser_zoom_keeps_cookbook_rows_and_labels(cookbook_server, brows
                 _assert_core_controls(page)
                 if name == 'list':
                     expect(page.get_by_role('link', name='Zoombuch bearbeiten', exact=True)).to_be_visible()
+                    expect(page.get_by_role('link', name=f'{LONG_NAME} bearbeiten', exact=True)).to_be_visible()
                     expect(page.get_by_text('1 Rezept', exact=True)).to_be_visible()
+                    cards = page.evaluate(DENSITY_METRICS)['cards']
+                    _assert_mobile_cards(cards)
+                    assert next(entry for entry in cards if entry['name'] == 'Zoombuch')['card']['height'] <= 144
                 else:
                     expect(page.get_by_role('button', name='Kochbuch speichern', exact=True)).to_be_visible()
                     expect(page.get_by_role('button', name='Zuordnung speichern', exact=True)).to_be_visible()
                     expect(page.get_by_role('link', name='Alpha öffnen', exact=True)).to_be_visible()
                     expect(page.get_by_role('link', name='Archivieren', exact=True)).to_be_visible()
                 captures = {'top': _native_viewport_capture(page, EVIDENCE / f'native-200-{name}.png')}
+                if name == 'list':
+                    page.get_by_role('heading', level=2, name=LONG_NAME, exact=True).scroll_into_view_if_needed()
+                    captures['long-card'] = _native_viewport_capture(page, EVIDENCE / 'native-200-list-long-card.png')
                 if name == 'editor':
                     page.locator('#cookbook-recipes-title').scroll_into_view_if_needed()
                     captures['assignment'] = _native_viewport_capture(

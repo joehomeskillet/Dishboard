@@ -37,13 +37,13 @@
     <article class="card h-100">
       <div class="card-body">
         <div class="row g-2 align-items-center">
-          <div class="col">
+          <div class="col-12 col-md">
             <h2 class="card-title text-break mb-0">{{ book.name }}</h2>
             {% if book.description %}<p class="text-secondary text-break mb-0 mt-1">{{ book.description|truncate(160) }}</p>{% endif %}
           </div>
           {% if not book.active %}<div class="col-auto"><span class="badge bg-secondary-lt">Archiviert</span></div>{% endif %}
           <div class="col-auto text-secondary">{{ count }} {{ 'Rezept' if count == 1 else 'Rezepte' }}</div>
-          <div class="col-auto">
+          <div class="col-auto ms-auto ms-md-0">
             <a class="btn btn-icon" href="{{ url_for('admin.cookbook_edit', cookbook_id=book.public_id) }}" aria-label="{{ book.name }} {{ 'bearbeiten' if editable else 'ansehen' }}" title="{{ 'Bearbeiten' if editable else 'Ansehen' }}" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ 'Bearbeiten' if editable else 'Ansehen' }}">{{ icon('pencil' if editable else 'eye') }}</a>
           </div>
         </div>
