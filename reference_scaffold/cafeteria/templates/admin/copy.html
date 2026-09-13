@@ -1,16 +1,17 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import page_header %}
+{% from 'admin/_macros.html' import page_header, icon %}
 {% set workflow_nav = 'weeks' %}
+{% set layout_variant = 'standard' %}
 {% set week = target.isoformat() %}
 {% block title %}Vorwoche kopieren · {{ area_names[profile] }}{% endblock %}
 {% block main_attributes %}data-source-week="{{ source.isoformat() }}" data-target-week="{{ target.isoformat() }}"{% endblock %}
-{% block page_header %}{{ page_header('Vorwoche kopieren', 'Menüplanung') }}{% endblock %}
+{% block page_header %}{{ page_header('Vorwoche kopieren', area_names[profile]) }}{% endblock %}
 {% block content %}
-  <section class="card admin-copy-content">
+  <section class="card admin-copy-content admin-compact-section">
    <div class="card-body">
-    <p class="admin-copy-profile">{{ area_names[profile] }}</p>
+    <p class="admin-copy-profile mb-2">{{ area_names[profile] }}</p>
 
-    <dl class="admin-copy-weeks row g-3">
+    <dl class="admin-copy-weeks row g-2 mb-3">
       <div class="col-12 col-sm-6">
         <dt>Quellwoche</dt>
         <dd>
@@ -28,9 +29,9 @@
     </dl>
 
     <p id="copy-description"><strong>Quelle:</strong> Woche vom {{ source.strftime('%d.%m.%Y') }}. <strong>Ziel:</strong> in die leere Woche vom {{ target.strftime('%d.%m.%Y') }}.</p>
-    <div id="copy-effects" class="alert alert-info" role="status">
+    <div id="copy-effects" class="alert alert-info py-2 text-break d-block" role="status">
       <div>
-        <h2 class="h3">Was übernommen wird</h2>
+        <p class="mb-2"><strong>Was übernommen wird</strong></p>
         <ul class="mb-2">
           <li>Wochenkopf, Ausgabeangaben und Menüs werden aus der Quellwoche übernommen.</li>
           <li>Prüfbestätigungen werden nicht übernommen; die Zielwoche bleibt ein Entwurf.</li>
@@ -43,8 +44,8 @@
       <input type="hidden" name="source_week" value="{{ source.isoformat() }}">
       <input type="hidden" name="target_week" value="{{ target.isoformat() }}">
       <input type="hidden" name="target_row_version" value="{{ target_row_version }}">
-      <button type="submit" class="btn btn-primary">Vorwoche kopieren</button>
-      <a class="btn" href="{{ url_for('admin.' ~ family, week=target.isoformat()) }}">Zurück zur Wochenübersicht</a>
+      <button type="submit" class="btn btn-primary">{{ icon('copy') }}Vorwoche kopieren</button>
+      <a class="btn" href="{{ url_for('admin.' ~ family, week=target.isoformat()) }}">{{ icon('arrow-left') }}Zurück zur Wochenübersicht</a>
     </form>
    </div>
   </section>
