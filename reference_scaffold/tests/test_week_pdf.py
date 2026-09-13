@@ -104,15 +104,45 @@ def test_accompaniment_is_its_own_paragraph_and_fits(
 
     result_page = PdfReader(BytesIO(render_week_pdf(draft, profile, WEEK))).pages[0]
     body = ' '.join(result_page.extract_text().split())
+    lines: list[str] = []
+    result_page.extract_text(
+        visitor_text=lambda text, cm, tm, font, size: lines.append(text.strip())
+        if text.strip() else None,
+    )
 
     paragraph = f'Dazu: {name}'
     assert body.count(paragraph) == len(options)
     first = options[0]
-    if profile == 'patient':
-        assert body.index(paragraph) < body.index(first['components'][0])
-    else:
-        assert body.index(first['components'][0]) < body.index(paragraph)
+    components = ' · '.join(first['components'])
+    assert body.index(first['components'][0]) < body.index(paragraph)
     assert body.index(paragraph) < body.index('Allergenangaben nicht erfasst')
+    if profile == 'patient':
+        assert any(f'{components} · Dazu:' in line for line in lines)
+    else:
+        assert paragraph in lines
+        assert not any(components in line and 'Dazu:' in line for line in lines)
+
+
+def test_patient_classic_renderer_with_notes_and_accompaniment_fits() -> None:
+    draft = saved_week('patient', True)
+    options = [
+        option
+        for day in draft['days']
+        for service in day['services']
+        if service['service_state'] == 'open'
+        for option in service['options']
+    ]
+    for option in options:
+        option.update(
+            accompaniment_code='salad',
+            accompaniment_name='Salat (gemischt und grün)',
+        )
+
+    result_page = PdfReader(BytesIO(render_week_pdf(draft, 'patient', WEEK))).pages[0]
+    body = ' '.join(result_page.extract_text().split())
+
+    assert len(options) == 28
+    assert body.count('Dazu: Salat (gemischt und grün)') == len(options)
 
 
 @pytest.mark.parametrize('profile', ['staff_guest', 'patient'])

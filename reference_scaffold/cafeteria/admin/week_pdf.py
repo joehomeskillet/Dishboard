@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from io import BytesIO
@@ -53,6 +54,7 @@ class Block:
     size: float
     bold: bool = False
     leading: float = 1.0
+    stretching: float = 100.0
 
     @property
     def height(self) -> float:
@@ -66,7 +68,7 @@ class MenuCell:
 
 
 def _wrap(pdf: FPDF, text: str, width: float, size: float, bold: bool = False,
-          leading: float = 1.0) -> Block:
+          leading: float = 1.0, stretching: float = 100.0) -> Block:
     pdf.set_font('Weekly', 'B' if bold else '', size)
     text = ' '.join(text.split())
     font = cast(TTFFont, pdf.current_font)
@@ -77,20 +79,30 @@ def _wrap(pdf: FPDF, text: str, width: float, size: float, bold: bool = False,
             'Bitte Sonderzeichen (zum Beispiel Emoji) durch ausgeschriebene Wörter ersetzen, '
             'speichern und das PDF erneut öffnen.'
         )
-    lines = cast(list[str], pdf.multi_cell(
-        width, size + leading, text, dry_run=True, output='LINES', align='L',
-    ))
-    return Block(lines, size, bold, leading)
+    context = (
+        pdf.local_context(font_stretching=stretching)
+        if stretching != 100.0 else nullcontext()
+    )
+    with context:
+        lines = cast(list[str], pdf.multi_cell(
+            width, size + leading, text, dry_run=True, output='LINES', align='L',
+        ))
+    return Block(lines, size, bold, leading, stretching)
 
 
 def _draw(pdf: FPDF, block: Block, x: float, y: float) -> float:
     pdf.set_font('Weekly', 'B' if block.bold else '', block.size)
     font = cast(TTFFont, pdf.current_font)
     line_height = max(block.size + block.leading, block.size * (font.desc.ascent - font.desc.descent) / 1000 + 0.2)
-    for line in block.lines:
-        # Explicit baselines, identical to preflight: no auto page break or clipping.
-        pdf.text(x, y + block.size, line)
-        y += line_height
+    context = (
+        pdf.local_context(font_stretching=block.stretching)
+        if block.stretching != 100.0 else nullcontext()
+    )
+    with context:
+        for line in block.lines:
+            # Explicit baselines, identical to preflight: no auto page break or clipping.
+            pdf.text(x, y + block.size, line)
+            y += line_height
     return y
 
 
@@ -322,11 +334,10 @@ def render_week_pdf(
         for content_row in content:
             for content_cell in content_row:
                 title, components, accompaniment, details = content_cell.paragraphs
-                merged = ' · '.join(part for part in (components, details) if part)
-                if accompaniment:
-                    content_cell.paragraphs = (title, '', accompaniment, merged)
-                else:
-                    content_cell.paragraphs = (title, '', merged)
+                merged = ' · '.join(
+                    part for part in (components, accompaniment, details) if part
+                )
+                content_cell.paragraphs = (title, '', merged)
     candidates: tuple[tuple[float, float], ...] = ((9.0, 9.0), (8.5, 8.5)) if patient else ((12.0, 10.0), (11.0, 9.0), (10.0, 8.5))
     if config['text_size'] == 'standard':
         candidates = ((9.0, 9.0),) if patient else ((12.0, 10.0),)
@@ -336,7 +347,12 @@ def render_week_pdf(
         table_y = custom_y + (custom_header.height + 2 * padding if custom_header else 0.0)
         rows = [
                 [[_wrap(pdf, text, cell_width - 2 * padding, body_size if i < 2 else detail_size,
-                        i == 0, 0.5 if patient else 1.0)
+                        i == 0, 0.5 if patient else 1.0,
+                        stretching=(
+                            # Preserve 8.5 pt while fitting longest accompaniment and notes.
+                            85.0 if patient and i == 2 and cell.option is not None
+                            and _accompaniment_text(cell.option) else 100.0
+                        ))
               for i, text in enumerate(cell.paragraphs) if text] for cell in row]
             for row in content
         ]
