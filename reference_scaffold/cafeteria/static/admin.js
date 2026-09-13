@@ -417,29 +417,37 @@
 
     // Sticky save bar: leave the flow while a virtual keyboard shrinks the visual viewport,
     // and keep focused controls clear of the bar.
-    const stickyBar = document.querySelector('form[data-menu-editor] [data-sticky]');
-    if (stickyBar) {
+    document.querySelectorAll('form[data-menu-editor] [data-sticky], [data-sticky-form]').forEach(stickyBar => {
+        const form = stickyBar.dataset.stickyForm
+            ? document.getElementById(stickyBar.dataset.stickyForm)
+            : stickyBar.closest('form');
+        if (!form) return;
         const viewport = window.visualViewport;
         const syncSticky = () => {
-            if (!viewport) return;
-            stickyBar.classList.toggle('is-static', viewport.height < window.innerHeight - 120);
+            const height = viewport ? viewport.height : window.innerHeight;
+            stickyBar.classList.toggle('is-static', height < 700
+                || height < window.innerHeight - 120 || stickyBar.offsetHeight > height / 3);
         };
-        if (viewport) {
-            viewport.addEventListener('resize', syncSticky);
-            syncSticky();
-        }
+        stickyBar.dataset.stickyReady = 'true';
+        if (viewport) viewport.addEventListener('resize', syncSticky);
+        window.addEventListener('resize', syncSticky);
+        syncSticky();
         document.addEventListener('focusin', (e) => {
-            if (!e.target.closest('form[data-menu-editor]') || stickyBar.contains(e.target)) return;
+            if (!form.contains(e.target) || stickyBar.contains(e.target)) return;
             window.requestAnimationFrame(() => {
                 if (getComputedStyle(stickyBar).position !== 'sticky') return;
                 const bar = stickyBar.getBoundingClientRect();
                 const field = e.target.getBoundingClientRect();
-                if (bar.top < window.innerHeight && field.bottom > bar.top) {
+                if (stickyBar.dataset.stickyEdge === 'top') {
+                    if (bar.top <= 0 && field.top < bar.bottom) {
+                        window.scrollBy(0, field.top - bar.bottom - 8);
+                    }
+                } else if (bar.top < window.innerHeight && field.bottom > bar.top) {
                     window.scrollBy(0, field.bottom - bar.top + 8);
                 }
             });
         });
-    }
+    });
 
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {

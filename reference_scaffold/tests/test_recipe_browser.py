@@ -1,5 +1,6 @@
 """Native recipe editing with real PostgreSQL, Chromium and no-JavaScript coverage."""
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
+from xml.etree import ElementTree
 
 import pytest
 from playwright.sync_api import expect
@@ -52,10 +53,27 @@ def test_native_editor_rows_save_cancel_and_tabler(b3, master_server, browser, w
         assert not errors
         assert page.locator('link[href*="tabler.min.css"]').count() == 1
         assert page.locator('main [style], main style').count() == 0
+        actions = page.locator('#recipe-editor .admin-compact-actions > summary')
+        sprite_url = '/static/vendor/tabler-icons/tabler-icons.svg'
+        sprite = context.request.get(base + sprite_url)
+        assert sprite.status == 200
+        symbols = ElementTree.fromstring(sprite.body())
+        for name in ('dots', 'arrow-up', 'arrow-down', 'arrow-left'):
+            symbol = symbols.find(f"{{http://www.w3.org/2000/svg}}symbol[@id='tabler-{name}']")
+            assert symbol is not None and len(symbol)
+        expect(page.get_by_role('link', name='Zur Rezeptliste', exact=True).locator('use')).to_have_attribute('href', sprite_url + '#tabler-arrow-left')
+        expect(page.locator('.admin-compact-toolbar summary use')).to_have_attribute('href', sprite_url + '#tabler-dots')
+        for summary in actions.all():
+            expect(summary.locator('use')).to_have_attribute('href', sprite_url + '#tabler-dots')
+            summary.click()
         for control in page.locator('#recipe-editor button[formaction]').all():
+            expect(control).to_be_visible()
             assert control.inner_text().strip()
-            assert control.locator('use').get_attribute('href').split('#')[-1] in {
-                'tabler-plus', 'tabler-trash', 'tabler-chevron-left', 'tabler-chevron-right'}
+            operation = parse_qs(urlsplit(control.get_attribute('formaction')).query)['row_action'][0]
+            symbol = {'add': 'plus', 'remove': 'trash', 'up': 'arrow-up', 'down': 'arrow-down'}[operation]
+            expect(control.locator('use')).to_have_attribute('href', sprite_url + '#tabler-' + symbol)
+        for summary in actions.all():
+            summary.click()
         page.get_by_role('heading', level=1).click()
         page.screenshot(path=str(tmp_path / f'recipe-editor-{width}-js{javascript}.png'), full_page=True)
         before = snapshot(owner)

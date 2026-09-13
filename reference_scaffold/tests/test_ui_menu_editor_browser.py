@@ -186,6 +186,26 @@ def _keyboard(page: Page) -> None:
     assert focus['width'] == '2px' and focus['style'] == 'solid', focus
 
 
+def test_sticky_save_bar_retains_keyboard_guard(editor_page, family: str, javascript: bool) -> None:
+    page, _, _, _, _, _ = editor_page
+    _open(page, family, (1440, 900))
+    bar = page.locator('form[data-menu-editor] [data-sticky]')
+    expect(bar).to_have_css('position', 'sticky' if javascript else 'static')
+    if javascript:
+        page.evaluate('''() => {
+            Object.defineProperty(visualViewport, 'height', {configurable: true, value: 650});
+            visualViewport.dispatchEvent(new Event('resize'));
+        }''')
+        expect(bar).to_have_css('position', 'static')
+        page.evaluate('''() => {
+            delete visualViewport.height;
+            visualViewport.dispatchEvent(new Event('resize'));
+        }''')
+        expect(bar).to_have_css('position', 'sticky')
+    page.set_viewport_size({'width': 390, 'height': 844})
+    expect(bar).to_have_css('position', 'static')
+
+
 def test_menu_editor_states_and_viewports(editor_page, family: str, tmp_path: Path) -> None:
     page, engine, scope, profile, _, _ = editor_page
     for width, height in VIEWPORTS:
