@@ -429,6 +429,8 @@ docs/design/2026-09-12-correction-wave-delivery.md
 docs/design/2026-09-12-fullwidth-audit.md
 docs/design/2026-09-12-patientenplan-menueditor-korrektur.md
 docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md
+docs/design/2026-09-13-menu-accompaniments-sdd.md
+docs/design/2026-09-13-recipe-reading-document.md
 docs/design/admin-redesign-ui.md
 docs/design/admin-tabler-contract.md
 docs/design/country-select-source.md
@@ -526,6 +528,8 @@ docs/superpowers/backlog-execution-0906.md
 docs/superpowers/bas-rec-work-packages-0906.md
 docs/superpowers/branding-legends-0906.md
 docs/superpowers/iam-local-user-management-0906.md
+docs/superpowers/menu-accompaniments-0913/START.md
+docs/superpowers/menu-accompaniments-0913/work-packages.json
 docs/superpowers/metadata-visibility-0905.md
 docs/superpowers/plans/2026-09-01-dishboard-menuplanung.md
 docs/superpowers/plans/2026-09-02-dishboard-admin-redesign.md
@@ -565,12 +569,14 @@ reference_scaffold/cafeteria/admin/operations_routes.py
 reference_scaffold/cafeteria/admin/output_routes.py
 reference_scaffold/cafeteria/admin/print_routes.py
 reference_scaffold/cafeteria/admin/print_template_routes.py
+reference_scaffold/cafeteria/admin/recipe_document.py
 reference_scaffold/cafeteria/admin/recipe_errors.py
 reference_scaffold/cafeteria/admin/recipe_form_rows.py
 reference_scaffold/cafeteria/admin/recipe_forms.py
 reference_scaffold/cafeteria/admin/recipe_image_routes.py
 reference_scaffold/cafeteria/admin/recipe_import_routes.py
 reference_scaffold/cafeteria/admin/recipe_pdf.py
+reference_scaffold/cafeteria/admin/recipe_pdf_layout.py
 reference_scaffold/cafeteria/admin/recipe_print_template_routes.py
 reference_scaffold/cafeteria/admin/recipe_revision_routes.py
 reference_scaffold/cafeteria/admin/recipe_routes.py
@@ -729,6 +735,7 @@ reference_scaffold/cafeteria/static/menu-images.css
 reference_scaffold/cafeteria/static/print-template-editor.css
 reference_scaffold/cafeteria/static/public.css
 reference_scaffold/cafeteria/static/recipe-admin.css
+reference_scaffold/cafeteria/static/recipe-document.css
 reference_scaffold/cafeteria/static/recipe-editor.js
 reference_scaffold/cafeteria/static/signage.css
 reference_scaffold/cafeteria/static/signage.js
@@ -1024,6 +1031,7 @@ reference_scaffold/cafeteria/templates/admin/_area_tabs.html
 reference_scaffold/cafeteria/templates/admin/_country_select.html
 reference_scaffold/cafeteria/templates/admin/_local_user_forms.html
 reference_scaffold/cafeteria/templates/admin/_macros.html
+reference_scaffold/cafeteria/templates/admin/_recipe_document.html
 reference_scaffold/cafeteria/templates/admin/_recipe_template_selection.html
 reference_scaffold/cafeteria/templates/admin/_rezepte_fields.html
 reference_scaffold/cafeteria/templates/admin/_week_controls.html
@@ -1320,6 +1328,8 @@ reference_scaffold/tests/test_recipe_browser.py
 reference_scaffold/tests/test_recipe_capabilities.py
 reference_scaffold/tests/test_recipe_data_import_db.py
 reference_scaffold/tests/test_recipe_density_browser.py
+reference_scaffold/tests/test_recipe_document.py
+reference_scaffold/tests/test_recipe_document_visual.py
 reference_scaffold/tests/test_recipe_error_focus.py
 reference_scaffold/tests/test_recipe_examples.py
 reference_scaffold/tests/test_recipe_filter_reads.py
