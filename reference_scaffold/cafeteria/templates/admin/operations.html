@@ -45,7 +45,7 @@
             {% if rule.state == 'open' and not rule.start and not rule.end %}{% set missing_times.found = true %}{% endif %}
             <li>
               <strong>{{ day_names[day - 1] }} · {{ meal_labels[meal] }}:</strong>
-              {{ state_labels[rule.state] }}{% if rule.start or rule.end %} · {{ rule.start or '–' }}–{{ rule.end or '–' }}{% endif %}
+              {{ state_labels[rule.state] }}{% if rule.state == 'open' and not rule.start and not rule.end %} · Zeiten nicht eingetragen{% elif rule.start or rule.end %} · {{ rule.start or '–' }}–{{ rule.end or '–' }}{% endif %}
             </li>
           {% endfor %}
           </ul>
