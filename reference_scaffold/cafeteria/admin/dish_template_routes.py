@@ -8,7 +8,8 @@ from werkzeug.wrappers import Response
 
 from ..auth.local_users import ActorExpectation
 from .. import dish_template_store as store
-from ..recipe_reads import get_location, list_recipes
+from .. import recipe_link_reads as links
+from ..recipe_reads import get_location, get_recipe
 from ..recipe_types import RecipeConflictError, RecipeNotFoundError, RecipeValidationError
 from ..roles import capabilities, require_capability
 from ..security import validate_csrf
@@ -16,6 +17,7 @@ from .routes import bp
 
 SCOPES = (('common', 'Gemeinsam'), ('patient', 'Patienten'), ('staff_guest', 'Cafeteria'))
 TYPES = (('MENU_1', 'Menü 1'), ('VEGGIE', 'Vegetarisch'))
+CHOICE_ACTIONS = {'recipe_search', 'recipe_previous', 'recipe_next'}
 
 
 def _db():
@@ -56,23 +58,48 @@ def _payload(values: dict[str, str]) -> dict[str, object]:
 
 def _page(
     *, row=None, values=None, error: str | None = None, status: int = 200, include_archived: bool = False,
-    cas: datetime | None = None,
+    cas: datetime | None = None, search: str | None = None, offset: int | None = None,
 ) -> Response:
     location = get_location(_db())
-    recipes = [
-        {'public_id': item.public_id, 'title': item.payload.get('title') or item.public_id, 'active': item.active}
-        for item in list_recipes(_db(), include_archived=True)
-    ]
+    values = values if values is not None else _fields()
+    cas_value = ''
+    if row:
+        cas_value = (request.form.get('updated_at', '') if request.method == 'POST'
+                     else (cas or row.updated_at).isoformat())
+    choices = None
+    if row or request.endpoint in {'admin.dish_template_new', 'admin.dish_template_create'}:
+        try:
+            offset = int(request.args.get('recipe_offset', '0')) if offset is None else offset
+            choices = links.list_recipe_choices(
+                _db(), selected=values['recipe_public_id'],
+                search=request.args.get('recipe_search', '') if search is None else search, offset=offset)
+        except (ValueError, RecipeValidationError):
+            error = error or 'Ungültige Rezeptsuche.'
+            status = status if status != 200 else 400
+            choices = links.list_recipe_choices(_db(), selected=values['recipe_public_id'])
     html = render_template(
         'admin/gerichtvorlagen.html', family='cafeteria', profile='staff_guest',
-        rows=store.list_templates(_db(), include_archived=include_archived),
-        row=row, values=values or _fields(), error=error, can_write=_can_write(),
-        location_id=location, scopes=SCOPES, types=TYPES, recipes=recipes,
-        include_archived=include_archived, cas=cas or (row.updated_at if row else None),
+        rows=links.list_template_links(_db(), include_archived=include_archived or row is not None),
+        row=row, values=values, error=error, can_write=_can_write(),
+        location_id=location, scopes=SCOPES, types=TYPES, recipe_choices=choices,
+        include_archived=include_archived, cas_value=cas_value,
     )
     response = make_response(html, status)
     response.headers['Cache-Control'] = 'no-store'
     return response
+
+
+def _recipe_search(values, *, row=None, cas=None) -> Response:
+    """Redisplay the original form without persisting or renewing its CAS."""
+    try:
+        offset = int(request.form.get('recipe_offset', '0'))
+        action = request.form.get('action')
+        offset = (offset + links.PAGE_SIZE if action == 'recipe_next' else
+                  max(0, offset - links.PAGE_SIZE) if action == 'recipe_previous' else 0)
+    except ValueError:
+        offset = -1
+    return _page(row=row, values=values, cas=cas,
+                 search=request.form.get('recipe_search', ''), offset=offset)
 
 
 @bp.get('/gerichtvorlagen')
@@ -87,7 +114,15 @@ def dish_templates_list() -> Response:
 def dish_template_new() -> Response:
     if not _can_write():
         return _page(error='Diese Aktion ist nicht erlaubt.', status=403)
-    return _page(values=_fields({}))
+    values = _fields({})
+    recipe_id = request.args.get('recipe', '')
+    if recipe_id:
+        try:
+            recipe = get_recipe(_db(), recipe_id)
+        except (RecipeNotFoundError, RecipeValidationError):
+            return _page(values=values, error='Rezept nicht gefunden.', status=404)
+        values.update(recipe_public_id=recipe.public_id, title=str(recipe.payload.get('title') or ''))
+    return _page(values=values)
 
 
 @bp.post('/gerichtvorlagen/neu')
@@ -95,6 +130,8 @@ def dish_template_new() -> Response:
 def dish_template_create() -> Response:
     validate_csrf(request.form.get('_csrf'))
     values = _fields()
+    if request.form.get('action') in CHOICE_ACTIONS:
+        return _recipe_search(values)
     try:
         extra_target = request.form.get('public_id') or None
         extra_expected = request.form.get('updated_at') or None
@@ -138,6 +175,8 @@ def dish_template_save(public_id: str) -> Response:
         row = store.get_template(_db(), store.as_uuid(public_id))
         expected = store.parse_updated_at(request.form.get('updated_at', ''))
         action = request.form.get('action', 'save')
+        if action in CHOICE_ACTIONS:
+            return _recipe_search(values, row=row, cas=expected)
         location = get_location(_db())
         if action == 'archive':
             store.set_template_active(
