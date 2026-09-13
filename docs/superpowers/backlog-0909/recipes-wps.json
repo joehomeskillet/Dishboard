@@ -5887,9 +5887,9 @@
         "OFF-001"
       ],
       "kind": "research",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "depends_on": [],
-      "existing_wp_id": null,
+      "existing_wp_id": "wp-645d9788f698",
       "sdd_sections": [
         "recipes-sdd.md#810-off-001-open-food-facts"
       ],
@@ -5961,7 +5961,18 @@
       "existing_fixture_hunks": [],
       "read_only_contract_files": [
         "docs/superpowers/backlog-0909/recipes-sdd.md"
-      ]
+      ],
+      "execution_2026_09_13": {
+        "routing_wp": "wp-645d9788f698",
+        "actual_executor": "agy-cli",
+        "router_recommendation": "Recommendation metadata only; not the actual executor.",
+        "base": "a6337e66198a7c2da80862e3c9b68aff1d8de362",
+        "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/off-fieldmap-agy-0913",
+        "branch": "docs/off-fieldmap-agy-0913",
+        "pool": null,
+        "parallel_group": "sprint-0913-shared-viewprint-ops-off",
+        "authority": "Explicit current Root assignment; actual executor is authorized independently of deterministic routing metadata."
+      }
     },
     {
       "id": "MP-OFF-ADAPTER",
@@ -6153,7 +6164,7 @@
         "REC-004"
       ],
       "kind": "implementation",
-      "status": "AWAITING_EXTERNAL",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-REC-DATA-DRAFTS",
         "MP-REC-IMPORT-COMMIT",
@@ -6252,7 +6263,26 @@
       "existing_fixture_hunks": [],
       "read_only_contract_files": [
         "docs/superpowers/backlog-0909/recipes-sdd.md"
-      ]
+      ],
+      "delivery_2026_09_13": {
+        "status_correction": "Original independent recipe audit identifies completed production import; no import repeated by this documentation WP.",
+        "deployment": "057d44d5081a3cf167a19598d57680590bd8f0ca",
+        "reconfirmed_release": "2fa44dea36675692bfb8ad4b681dca73dba06737",
+        "counts": {
+          "recipes": 61,
+          "ingredients": 100,
+          "prepared_pins": 29,
+          "dish_templates": 32,
+          "storage_locations": 3
+        },
+        "resolved_input": "Concrete storage/Food/unit mapping and native confirmed batch import are evidenced in the release report.",
+        "remaining": "Imported drafts remain unreviewed; kitchen acceptance and live authenticated browser proof are separate and are not claimed.",
+        "reports": [
+          "/nvmetank1/projects/rag-stack/.claude/reports/wp-20bbdcac693e.md",
+          "/nvmetank1/projects/rag-stack/.claude/reports/wp-release-schema29-0912.md",
+          "/nvmetank1/projects/rag-stack/.claude/reports/wp-release-wave-final-0912.md"
+        ]
+      }
     },
     {
       "id": "MP-BAS-V27-RELEASE-ACCEPTANCE",
@@ -6835,7 +6865,7 @@
         "REC-001"
       ],
       "kind": "implementation",
-      "status": "IN_PROGRESS",
+      "status": "INTEGRATED",
       "depends_on": [
         "MP-REC-DISH-TEMPLATE-WRITER",
         "MP-REC-BINDINGS"
@@ -6977,10 +7007,18 @@
         "reference_scaffold/cafeteria/recipe_reads.py",
         "reference_scaffold/cafeteria/menu_recipe_choices.py",
         "database/schema.sql"
-      ]
+      ],
+      "delivery_2026_09_13": {
+        "commit": "c753fa46ee4e21bc7bb25b920fe51dc7003435e8",
+        "integration": "a6337e66198a7c2da80862e3c9b68aff1d8de362",
+        "independent_review_record": 12714,
+        "root_gate": "50 passed in 103.92s; separate test-api-int2 gate reported by Root.",
+        "deployment": "Not claimed by this integration receipt.",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-a79a95bcaa50.md"
+      }
     },
     {
-      "existing_wp_id": null,
+      "existing_wp_id": "wp-e70b3dcc746b",
       "migration_group": null,
       "external_inputs": [],
       "planning_origin": "wp-61d537d988a2 · Fable 5.1 (claude-fable-5-1) · 2026-09-13",
@@ -7144,10 +7182,17 @@
         "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md",
         "docs/design/2026-09-09-unified-ui-design-system.md",
         "reference_scaffold/cafeteria/print_templates.py"
-      ]
+      ],
+      "delivery_2026_09_13": {
+        "commit": "5c9fa4aaeda63049215a4a2e0edaa4fbaab22cfa",
+        "deployment": "3ee090d6cb5cc4b6f7863b1a8746fb53d77cfa6e",
+        "live_time": "2026-09-13 02:02 CEST",
+        "root_gate": "100 passed; full screenshot recapture excluded.",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-e70b3dcc746b-deploy-3ee090d.md"
+      }
     },
     {
-      "existing_wp_id": null,
+      "existing_wp_id": "wp-ed515a8775d2",
       "migration_group": null,
       "external_inputs": [],
       "planning_origin": "wp-61d537d988a2 · Fable 5.1 (claude-fable-5-1) · 2026-09-13",
@@ -7223,7 +7268,7 @@
         "REC-007"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "depends_on": [
         "MP-REC-LINK-READS",
         "MP-REC-PDF-RELEASE",
@@ -7396,7 +7441,22 @@
         "reference_scaffold/cafeteria/recipe_link_reads.py",
         "reference_scaffold/cafeteria/print_templates.py",
         "reference_scaffold/cafeteria/admin/recipe_pdf.py"
-      ]
+      ],
+      "execution_2026_09_13": {
+        "routing_wp": "wp-ed515a8775d2",
+        "actual_executor": "native:/root/recipe_view_print",
+        "router_recommendation": "Recommendation metadata only; not the actual executor.",
+        "base": "a6337e66198a7c2da80862e3c9b68aff1d8de362",
+        "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/recipe-view-print-0913",
+        "branch": "feat/recipe-view-print-0913",
+        "pool": {
+          "name": "test-recipe-template-editor-0908",
+          "pg_port": 32823,
+          "redis_port": 32867
+        },
+        "parallel_group": "sprint-0913-shared-viewprint-ops-off",
+        "authority": "Explicit current Root assignment; actual executor is authorized independently of deterministic routing metadata."
+      }
     },
     {
       "existing_wp_id": null,

@@ -10,11 +10,11 @@
 
 **Spec:** `docs/superpowers/backlog-0909/{recipes,operations,surfaces}-sdd.md`, zugehörige `*-wps.json`, `execution-contract.md`, `docs/BACKLOG.md`, `docs/design/2026-09-09-unified-ui-design-system.md`, `docs/design/2026-09-12-patientenplan-menueditor-korrektur.md`, [Feature-SDD Gerichtvorlagen, Rezepte und Tagesplanung](../../design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md).
 
-**Baseline:** Produktivcode/Image auf `2fa44dea36675692bfb8ad4b681dca73dba06737`, Schema 30; live erneut bestätigter Appstart 12. September 2026 um 23:15:29 CEST. Neue Worker starten ausdrücklich auf dem geprüften Planungsfreeze `a420992ae91fd801d0ec43d41038f57bbdd3b261`. `github/main` kann parallel fortschreiten; Root prüft neue Commits vor Integration. Gemeinsamer Haupt-Tree bleibt unangetastet.
+**Baseline:** Letzter hier belegter Live-Release ist `3ee090d6cb5cc4b6f7863b1a8746fb53d77cfa6e`, Schema 30, am 13. September um 02:02 CEST. Aktueller Integrationsstand ist `d4ad17958f3874dd704f882c106ee21340baa5c1`; dessen Releasevorbereitung läuft und ist noch kein Live-Beleg. `a420992ae91fd801d0ec43d41038f57bbdd3b261` bleibt die historische erste Workerbasis. Neue Worker behalten ihre genaue Basis im jeweiligen aktiven Grant; dieser Dokumentations-WP startet nach Fetch auf `a6337e66198a7c2da80862e3c9b68aff1d8de362` und rebasiert keinen Produktworker. Gemeinsamer Haupt-Tree bleibt unangetastet.
 
-Der begrenzte Planfix `wp-8bdb4f7321bd` basiert auf `2a9aed10b394e4d76bb58bd5e384a81fff84af0a` und korrigiert die beiden Befunde aus Review `wp-e7b99a14a8a0`. Der zusätzlich von Root freigegebene Graphabgleich ergänzt für PLAN-PORTIONS die bereits dokumentierten Vorgänger SHARED (`admin.js`) und MENU-PROPOSAL (`menu_editor.html`); die Featureabfolge bleibt dieselbe. Die aktiven Produktworker behalten ihre ausdrücklich zugewiesene Basis `a420992ae91fd801d0ec43d41038f57bbdd3b261`; dieser Dokumentstand ist kein Auftrag zum Rebase und kein Produkt-/Abnahmebeleg.
+Der integrierte Planfix `wp-8bdb4f7321bd` basiert auf `2a9aed10b394e4d76bb58bd5e384a81fff84af0a` und korrigiert die beiden Befunde aus Review `wp-e7b99a14a8a0`. Der zusätzlich von Root freigegebene Graphabgleich ergänzt für PLAN-PORTIONS die bereits dokumentierten Vorgänger SHARED (`admin.js`) und MENU-PROPOSAL (`menu_editor.html`); die Featureabfolge bleibt dieselbe. Die damaligen Produktworker behielten ihre ausdrücklich zugewiesene Basis `a420992ae91fd801d0ec43d41038f57bbdd3b261`; der Dokumentstand war kein Auftrag zum Rebase und kein Produkt-/Abnahmebeleg.
 
-**Planungsstatus:** Fable 5.1 lieferte die sieben Feature-WPs; alle fünf anschliessenden Reviewbefunde wurden durch getrennte Autoren geschlossen. Der spätere vollständige Dichteauftrag erweitert diesen Freeze. Manifest, Rezeptreferenz und Druckvorlagen-Einstieg laufen in getrennten Worktrees. Die übrigen Pakete sind geplant; reale Nutzerabnahme wartet auf drei Personen. Aktive Besitzer/Pools stehen im Sitzungsabschnitt von file-leases.json, historische Vorschlagsleases erteilen kein Schreibrecht.
+**Planungsstatus:** Fable 5.1 lieferte die sieben Feature-WPs; alle fünf anschliessenden Reviewbefunde wurden durch getrennte Autoren geschlossen. Der vollständige Dichteauftrag erweitert diesen Freeze. Manifest, Inventar, LINK-READS und Rezeptreferenz sind integriert; der Druckvorlagen-Einstieg ist live. VIEW-PRINT, SHARED, OPS-Regression und OFF-Feldmapping haben aktuelle getrennte Grants. Reale Nutzerabnahme wartet auf drei Personen. Aktive Besitzer/Pools stehen im Sitzungsabschnitt von file-leases.json; abgeschlossene Grants und historische Vorschlagsleases erteilen kein aktuelles Schreibrecht.
 
 ## Dichteauftrag 13. September
 
@@ -60,9 +60,9 @@ Ausführungsfolge:
 
 Erste Bestandsabweichung: auf a420992 existieren 82 HTML-Templates, die Matrix enthält nur76 und nennt in Metadaten75. Mindestens fünf Gerichtvorlagen- und fünf Rezeptimport-Batch-Routen fehlen; Schema25/5f5-Angaben sind historisch. Der bestehende `test_ui_route_inventory.py`-Abgleich mit `create_app()` wird erweitert, kein zweites Inventarwerkzeug eingeführt. Ein statischer Fund ist kein Browser-PASS.
 
-Besitzserialisierung: `admin-tabler.css` RECIPE → SHARED → SHELL; `_macros.html`/`admin.js` ausschliesslich SHARED, bevor nachfolgende Seiten die gemeinsame Basis übernehmen. `menu_editor.html` MENUEDITOR → MENU-TEMPLATE-BINDING → PROPOSAL → PLAN-PORTIONS; `_week_menu_card.html` WEEKS → MENU-TEMPLATE-BINDING. Rezept-/Druckvorlagenlinks PRINT-TEMPLATE-ENTRY → VIEW-PRINT → PRINT/RECIPEPAGES. Tool-Browsertest IMPORTS → API. Routenmatrix und beide vorhandenen Tests `test_ui_route_inventory.py`/`test_ui_inventory_capture.py` INVENTORY → REGRESSION → FUTURE; `ui-before-manifest.json` INVENTORY → REGRESSION. Release-Manifeste gehören ausschliesslich Root; fremde site/*-Arbeit wird erhalten und separat auf Aufnahme geprüft.
+Besitzserialisierung: `admin-tabler.css` RECIPE → SHARED → SHELL; `admin.js` RECIPE → SHARED → PLAN-PORTIONS; `_macros.html` ausschliesslich SHARED, bevor nachfolgende Seiten die gemeinsame Basis übernehmen. `menu_editor.html` MENUEDITOR → MENU-TEMPLATE-BINDING → PROPOSAL → PLAN-PORTIONS; `_week_menu_card.html` WEEKS → MENU-TEMPLATE-BINDING. Rezept-/Druckvorlagenlinks PRINT-TEMPLATE-ENTRY → VIEW-PRINT → PRINT/RECIPEPAGES. Tool-Browsertest IMPORTS → API. Routenmatrix und beide vorhandenen Tests `test_ui_route_inventory.py`/`test_ui_inventory_capture.py` INVENTORY → REGRESSION → FUTURE; `ui-before-manifest.json` INVENTORY → REGRESSION. Release-Manifeste gehören ausschliesslich Root; fremde site/*-Arbeit wird erhalten und separat auf Aufnahme geprüft.
 
-Der aktive RECIPE-Vertrag und sein Root-Grant enthalten zusätzlich den vorgeschlagenen `reference_scaffold/tests/test_recipe_density_browser.py` für die Dichte-Fixtures und Interaktionen. `test_recipe_browser.py` und `test_ui_korrektur_recipes_browser.py` bleiben im Besitz und im auszuführenden Testplan; die neue Datei ist noch kein Testergebnis.
+Der integrierte RECIPE-Vertrag enthält `reference_scaffold/tests/test_recipe_density_browser.py` für Dichte-Fixtures und Interaktionen. `test_recipe_browser.py` und `test_ui_korrektur_recipes_browser.py` bleiben im Vertrag und Testplan. Die vorhandene Vendor-Sprite-Datei und ihr Lock kamen für den unabhängig geprüften Iconfix hinzu; der bestehende datengetriebene Generator blieb unverändert. Der abgeschlossene Grant dokumentiert diesen Besitz, reserviert ihn aber nicht weiter.
 
 Stand 13. September, 02:02 CEST: Druckvorlagen-Einstieg `5c9fa4a`, Inventar
 `d983860`, Manifest `39625cc` und separat geprüfter Planfix `7ba8f70` sind in
@@ -75,9 +75,49 @@ Viewport-/Fokushandler in `admin.js` auch für seine mobile Speicherleiste samt
 `test_ui_menu_editor_browser.py`. LINK-READS erhält ungespeicherte Formularwerte
 bei Suche/Blättern über ein CSRF-geschütztes POST-Intent zur reinen Neuanzeige;
 GET bleibt für frische Einstiege. Der SDD-Abschnitt 4.1 und der WP-Vertrag sind
-entsprechend präzisiert. Ein separater Worker korrigiert ausschließlich die
-veralteten statischen Patientenpreis-/Gridprüfungen in `test_ui_contracts.py`.
-Konkrete Bases, Besitzer und Pools stehen in den aktiven Grants.
+entsprechend präzisiert. Der getrennt autorierte Patientenpreis-/Grid-Testfix
+`41b2b6ed76943159f968262a14079f021c8f8244` ist in `dcfc027253a84abd4ecbe8ea7267bfe3d1b4de0d`
+integriert; Root prüfte unabhängig CLEAN und 21 Tests in 1,09 Sekunden. Sein
+Dateibesitz ist freigegeben.
+
+Aktueller Liefer- und Ausführungsstand dieses Docs-Freeze:
+
+| Paket | Beleg und Status | Aktueller Besitzer / Basis / Testpool |
+|---|---|---|
+| LINK-READS | `c753fa46` in `a6337e66`, INTEGRATED; unabhängiger Review 12714 CLEAN, Root 50 Tests in 103,92 s | Alter Grant abgeschlossen; Dateien und test_ui_other freigegeben |
+| DENSITY-RECIPE | `e7f00643` plus anderer Autor `d589c2db` in `d4ad1795`, INTEGRATED; Review 12716 CLEAN, Root 98 Basisprüfungen plus 23 fokussierte Fixprüfungen in 79,08 s | Alter Grant abgeschlossen; keine neue Live-/Gesamtabnahme behauptet |
+| RECIPE-VIEW-PRINT | IN_PROGRESS, `wp-ed515a8775d2`; alle 16 WP-Dateien einschliesslich bisheriger LINK-/PRINT-Consumer | native `/root/recipe_view_print`; WT `recipe-view-print-0913`, Branch `feat/recipe-view-print-0913`, Basis `a6337e66`; exklusiv test-recipe-template-editor-0908, PG 32823 / Redis 32867 |
+| DENSITY-SHARED | IN_PROGRESS, `wp-dafb2c78258b`; fünf gemeinsame Dateien, Vorgänger MANIFEST und RECIPE integriert | native `/root/density_shared`; WT `ui-density-shared-0913`, Branch `feat/ui-density-shared-0913`, Basis `d4ad1795`; exklusiv test-recipe-print-0908, PG 32865 / Redis 32866 |
+| OPS-CORE-REGRESSION | IN_PROGRESS, `wp-0550a6f132cf`; ausschliesslich `ops-core-regression.md` | Cursor-CLI; WT `ops-regression-cursor-0913`, Branch `docs/ops-regression-cursor-0913`, Basis `a6337e66`; exklusiv test_ui_other, PG 32853 / Redis 32854 |
+| OFF-FIELDMAP | IN_PROGRESS, `wp-645d9788f698`; ausschliesslich `off-feldzuordnung-0909.md` | AGY-CLI; WT `off-fieldmap-agy-0913`, Branch `docs/off-fieldmap-agy-0913`, Basis `a6337e66`; kein DB-Pool |
+
+Die vier aktiven Grants sind dateidisjunkt. Root prüft und integriert separat;
+das Hostlimit von fünf schweren Jobs gilt einschliesslich seiner Gates. Vollständige
+Hashes und Besitzlisten stehen im aktiven Leaseabschnitt. Dessen `completed_grants`
+bewahren alte Basen und Belege mit freigegebenen Dateien/Pools. Die unteren
+PROPOSAL_ONLY-Zählungen und Quellhashes bleiben der historische 136-WP-Snapshot;
+`current_plan_count` und `current_input_manifests` beschreiben die jetzigen 176 WPs
+mit unverändert 35 Anforderungen. Ein alter IN_PROGRESS-Manifeststatus ist kein
+Nachweis einer heute laufenden Lane.
+
+Die aktuelle ausdrückliche Lane-Freigabe umfasst Cursor und AGY. Für das OPS-WP
+wird deshalb `cursor` zu `eligible_lanes` ergänzt; bevorzugte Lane und Fachvertrag
+bleiben erhalten. Deterministisches Routing und tatsächlicher Executor werden
+getrennt dokumentiert: SHARED wurde als `agent-computeruse` empfohlen und von Root
+ausdrücklich an native GPT vergeben; diese Dokumentation als `agent-or-coder-plus`
+empfohlen und ebenfalls an native GPT vergeben. Empfehlungen behaupten keine
+gestartete Modellinstanz.
+
+Nächster konkreter Freeze ist SHARED: eigener Besitz von `_macros.html`,
+`admin-tabler.css`, `admin.js`, `test_ui_master_components_browser.py` und
+`test_ui_reference_form_browser.py`. Die integrierte Rezeptreferenz konsumieren,
+vorhandene Details-/Fehleröffnung, Fokus und beschriftete native Aktionen zentral
+absichern; CSRF, Originalkontext, CAS, readonly/disabled, formaction und
+formnovalidate erhalten. Beide bestehenden Shared-Browsermodule mit der zentralen
+Viewportmatrix ausführen, betroffene Rezept-/Menüregressionen gezielt konsumieren,
+reale Routen-/Rollen-/Zustandsbelege und unabhängigen Review liefern. Erst nach
+diesem Freeze übernehmen SHELL, MENUEDITOR, WEEKS und weitere Seiten ihre Basis.
+Dieser Statusauftrag schreibt keinen Produktcode und startet keine Produktgates.
 
 ## Global Constraints
 
@@ -107,6 +147,20 @@ nächster Aktion und konkreter Quellreportzeile. Die drei Audits decken zusammen
 | Surfaces | 65 | `/nvmetank1/projects/rag-stack/.claude/reports/wp-855e496d2bb5.md` |
 
 Nicht erneut bauen: importierte Beispielgerichte/Lagerorte, Schema27–30, vorhandene Rezeptbindungen, Stapelimport, reine Schema.org-/KI-/Einkaufsadapter, Kostenkern/Patient-Guard und ausgelieferte UI-Korrekturen. Fehlende unabhängige Einzelbelege werden zugeordnet oder gezielt ergänzt.
+
+Begrenzter Statusabgleich vom 13. September: Die drei Originalaudits decken
+37 + 43 + 65 = **145 ursprüngliche WPs** ab. Bereits 24 Surface-Pakete stehen auf
+DEPLOYED; bei elf weiteren UI-Familien belegt der Audit Teilumsetzungen, keine
+vollständige Abnahme. Operations nennt zwei integrierte CALC-Kerne mit noch offenen
+unabhängigen Gesamtbelegen. Diese werden nicht allein aus Quelltext-Existenz
+hochgestuft. Der Import ist eindeutig produktiv belegt und wird als zusätzliche
+Faktenkorrektur von AWAITING_EXTERNAL auf DEPLOYED gesetzt: 61 Rezepte, 100 Zutaten,
+29 Prepared-Pins, 32 Gerichtvorlagen und drei reale Lagerorte; Schema29- und
+Finalreleasebericht belegen Wiederholung, Restore und unveränderte vier Publikationen.
+DATA-KITCHEN bleibt offen. Zusammen mit dem bereits korrigierten Vorlagenwriter
+sind damit **26 der ursprünglichen 145 WPs als DEPLOYED eingeordnet**, ohne Aussage
+über eine Abschlussquote. Die 31 Ergänzungen (sieben Feature- und 24 Dichte-WPs)
+bleiben separat erkennbar; dieser Abgleich ist kein neuer Audit aller 176 Codepfade.
 
 ## Sprintfolge und Lieferpunkte
 
@@ -161,7 +215,8 @@ enthält Links auf eine noch fehlende Route.
 einen begründeten aktuellen Status und getrennte noch offene Kriterien; keine neuen Produkt-DTOs.
 
 - [x] Vollständige 145-Paket-Tabelle aus den drei Audits mit den ursprünglichen MP-Verträgen abgleichen und versionieren.
-- [ ] Erledigten Rezeptimport sowie vorhandene Kern-/UI-Pakete richtig zuordnen. Für
+- [x] Erledigten Rezeptimport den Schema29-/Finalreleasebelegen zuordnen und seinen Status korrigieren; fachliche Küchenprüfung getrennt offen halten.
+- [ ] Verbleibende vorhandene Kern-/UI-Pakete kriterienscharf zuordnen. Für
   `MP-BAS-V27-RELEASE-ACCEPTANCE`, `MP-REC-BINDINGS-ACCEPT`, PDF und UI-Matrix fehlende
   Einzelkriterien separat führen; keinen allgemeinen Autorbericht zu `ACCEPTED` hochstufen.
 - [ ] Alte OPS-Belegcommits `4027d1b` und `9a9fc81` lesen und auf heutige Anwendbarkeit
@@ -194,13 +249,11 @@ MP-ID oder begründete Ergänzung, Dateibesitz, Abhängigkeit und gezieltes Gate
 - [x] Vorhandene Verknüpfungs-, Planungs-, Ansichts- und Druckwege durch zwei unabhängige GPT-Quellcodeaudits ermitteln: `wp-recipe-links-discovery-0913.md` und `wp-recipe-view-print-discovery-0913.md` im Reportverzeichnis.
 - [x] Jede Anforderung als bereits geliefert, Regression, echter neuer Umfang oder
   präzisierter bestehender Auftrag einordnen. Teilweise vorhandene Lösung ausdrücklich kennzeichnen.
-- [ ] Inventar auf den neuen Basiscommit aktualisieren; `/admin/gerichtvorlagen` und
-  ihre Liste/Formularzustände ergänzen. Alte 116-Routen-/Schema25-Metadaten sind kein aktueller Vollständigkeitsbeleg.
+- [x] Inventar-Metadaten und Registrierungskontrakt mit `d983860` integriert; aktuelle Liste/Formularzustände zugeordnet. Die vollständige Screenshot-Neuerfassung bleibt ein eigener offener Gateumfang.
 - [x] DEBT01–04 und die neue Zutatenkarten-Bestandsanzeige gegen den Prompt abgleichen.
   Mehrere Anforderungen an dieselbe Datei in einem vollständigen Writervertrag bündeln.
 - [x] Für gemeinsam betroffene Dateien eine Konflikttabelle und Merge-Reihenfolge festhalten.
-- [ ] Ersten UI-Dispatch mit geprüftem Fable-SDD, Basis, Writer, Reviewer und exklusivem
-  Testpool durchführen. Planung und tatsächliche Produktlieferung getrennt ausweisen.
+- [x] Erste UI-Dispatches mit geprüftem SDD, genauer Basis, Writer, unabhängigem Reviewer und exklusiven Testpools durchführen; tatsächliche Teilintegrationen und Live-Release oben getrennt belegen.
 
 ## Task 3: Fehlende Vertragszuordnungen ergänzen
 
