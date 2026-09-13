@@ -430,7 +430,12 @@ Der v1-Snapshot (`recipe_snapshot_v22`) hat die Schlüssel `schema_version` (Wer
 `public_id`, `name`, `row_version`, `density_g_per_ml`, `piece_weight_g`, die
 Quellfelder und `factor_decisions` aus akzeptierten Vorschlägen.
 
-**v1-Bytes, v1-Hashes, v1-Leser und die v1-PDF-Ausgabe bleiben unverändert.**
+**v1-Snapshotbytes, v1-Inhaltshashes und der immutable Leser-/Historyvertrag bleiben
+unverändert.** Der ausdrückliche Nutzerauftrag vom 13. September 2026 erlaubt eine
+neue lesbare HTML-/PDF-Darstellung auch bestehender v1-Revisionen; die frühere Bindung
+an bytegleiche gerenderte PDF-Ausgabe ist damit gezielt ersetzt. Daten und Hashes
+werden nicht neu geschrieben. Maßgeblich für diese Ausgabe ist der
+[gemeinsame Rezeptblattvertrag](../../design/2026-09-13-recipe-reading-document.md).
 
 ### 5.2 Neuer v2-Snapshot
 
@@ -475,8 +480,10 @@ die gemeinsame Routendatei wird ausschliesslich nacheinander bearbeitet.
 `tests/test_recipe_scaling.py` gehoert neben den vier Reader-/PDF-Gatedateien dazu.
 Der PDF-Renderer akzeptiert
 heute ausdrücklich nur schema_version 1; bloss neue DTOs reichen nicht.
-V1-Ausgabe bleibt bytegleich, v2-Darstellung und Skalierung nutzen geschlossene
-Metadaten und bestehende Mengenlogik. Keine zweite SQL-/Snapshot-Architektur.
+Die Ausgabeänderung vom 13. September 2026 gilt für v1 und v2; geschlossene
+Metadaten, exakte Kindrevisionen und bestehende Mengenlogik bleiben unverändert.
+Der reine gemeinsame Rezeptblatt-Helper ordnet nur die Ausgabe; keine zweite
+SQL-/Snapshot-Architektur und kein Umschreiben vorhandener Snapshots oder Hashes.
 Interne rekursive Decimal-Zielmengen duerfen nicht erneut durch die sechsstellige
 Storagevalidierung gerundet oder abgewiesen werden. `recipe_snapshots.py` bleibt
 als versionsneutrale immutable Konvertierung unveraendert. Root hat diese
