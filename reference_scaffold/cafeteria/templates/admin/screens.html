@@ -44,9 +44,21 @@
           {% for period, period_label, target in periods %}
           <div class="tab-pane{% if loop.first %} active show{% endif %}" id="{{ screen_id }}-{{ period }}" role="tabpanel" aria-labelledby="{{ screen_id }}-{{ period }}-tab">
             {% if channel == 'signage' %}<div class="ratio ratio-16x9">{% endif %}
-            <div class="screen-preview screen-preview-{{ channel }} rounded border{% if channel == 'signage' %} position-absolute{% endif %}" inert>
+            {% if channel == 'public' %}
+            <div class="screen-browser-frame">
+              <div class="screen-browser-toolbar" aria-hidden="true">
+                <span class="screen-browser-window-controls">
+                  <span class="screen-browser-dot screen-browser-dot-close"></span>
+                  <span class="screen-browser-dot screen-browser-dot-minimize"></span>
+                  <span class="screen-browser-dot screen-browser-dot-maximize"></span>
+                </span>
+                <span class="screen-browser-address">{{ url_for(channel ~ '.' ~ target) }}</span>
+              </div>
+            {% endif %}
+            <div class="screen-preview screen-preview-{{ channel }}{% if channel == 'signage' %} rounded border position-absolute{% endif %}" inert>
               <iframe src="{{ url_for(channel ~ '.' ~ target) }}" title="{{ label }} {{ channel_label }} {{ period_label }} – Vorschau" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
             </div>
+            {% if channel == 'public' %}</div>{% endif %}
             {% if channel == 'signage' %}</div>{% endif %}
           </div>
           {% endfor %}

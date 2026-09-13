@@ -125,15 +125,15 @@ def screen_server(screen_app: Flask) -> Iterator[str]:
         server.server_close()
 
 
-@pytest.mark.parametrize('width', [390, 820, 1440])
+@pytest.mark.parametrize('width,height', [(320, 844), (390, 844), (768, 1024), (1440, 900)])
 def test_real_screen_previews_switch_all_targets_without_frame_blocks(
     screen_app: Flask, screen_server: str, database_engine: Engine, browser: Browser,  # noqa: F811
-    width: int, tmp_path: Path,
+    width: int, height: int, tmp_path: Path,
 ) -> None:
     client, _ = _login(screen_app, database_engine, ['Cafeteria.Admin'])
     cookie = client.get_cookie(screen_app.config['SESSION_COOKIE_NAME'])
     assert cookie is not None
-    with browser.new_context(base_url=screen_server, viewport={'width': width, 'height': 1100}) as context:
+    with browser.new_context(base_url=screen_server, viewport={'width': width, 'height': height}) as context:
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': screen_server}])
         page = context.new_page()
         failures: list[str] = []
@@ -157,6 +157,8 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
         _capture_card_visuals(page, f'screens-initial-{width}')
         expect(page.locator('.screen-card')).to_have_count(4)
         expect(page.locator('iframe')).to_have_count(10)
+        expect(page.locator('.screen-browser-frame')).to_have_count(6)
+        expect(page.locator('.screen-browser-toolbar[aria-hidden="true"]')).to_have_count(6)
         screen_links = page.locator('.screens-grid a')
         all_targets = set(screen_links.evaluate_all('links => links.map(link => new URL(link.href).pathname)'))
         assert all_targets == TARGETS | {
@@ -167,6 +169,7 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
             if not card.locator('.screen-preview-details').evaluate('el => el.open'):
                 card.locator('.screen-preview-details > summary').click()
             is_web = 'Web' in card.locator('h2').inner_text()
+            expect(card.locator('.screen-browser-frame')).to_have_count(3 if is_web else 0)
             periods = ('Tagesplan', 'Wochenplan mit Bildern · Vorgabe', 'Wochenplan ohne Bilder') if is_web else (
                 'Tagesplan', 'Wochenplan ohne Bilder',
             )
@@ -178,6 +181,24 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
                 panel = card.locator('.tab-pane.active')
                 frame_element = panel.locator('iframe')
                 expect(frame_element).to_be_visible()
+                if is_web:
+                    browser_frame = panel.locator('.screen-browser-frame')
+                    expect(browser_frame.locator('.screen-browser-dot')).to_have_count(3)
+                    expect(browser_frame.locator('a')).to_have_count(0)
+                    address = browser_frame.locator('.screen-browser-address')
+                    source = frame_element.get_attribute('src')
+                    assert source is not None and source.startswith('/')
+                    expect(address).to_have_text(source)
+                    assert address.evaluate(
+                        "el => [getComputedStyle(el).overflowX, getComputedStyle(el).textOverflow, "
+                        "getComputedStyle(el).whiteSpace]",
+                    ) == ['hidden', 'ellipsis', 'nowrap']
+                    address_box = address.bounding_box()
+                    toolbar_box = browser_frame.locator('.screen-browser-toolbar').bounding_box()
+                    assert address_box is not None and toolbar_box is not None
+                    assert address_box['width'] <= toolbar_box['width']
+                else:
+                    expect(panel.locator('.screen-browser-frame')).to_have_count(0)
                 handle = frame_element.element_handle()
                 assert handle is not None
                 frame = handle.content_frame()
@@ -216,6 +237,11 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
         assert page.locator('main style, main [style]').count() == 0
         assert not failures
         page.get_by_role('heading', level=1).click()
+        expect(page.locator('.screen-preview-details[open]')).to_have_count(4)
+        if (width, height) in ((390, 844), (1440, 900)):
+            evidence = Path(__file__).resolve().parents[2] / '.claude/evidence/screens-browser-frame-0913'
+            evidence.mkdir(parents=True, exist_ok=True)
+            page.screenshot(path=str(evidence / f'admin-screens-{width}x{height}.png'), full_page=True)
         page.screenshot(path=str(tmp_path / f'screens-preview-{width}.png'), full_page=True)
 
 
