@@ -1,6 +1,7 @@
 """UX-02 browser contract for branding draft, preview and activation hierarchy."""
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -14,13 +15,14 @@ from test_admin_workflow_routes import _login
 from test_branding_store import _png
 
 BRAND_PATH = "/admin/design/marke"
-EVIDENCE = Path(__file__).resolve().parents[2] / ".claude/evidence/ui-korrektur-0912/branding"
+ROOT = Path(__file__).resolve().parents[2]
+EVIDENCE = ROOT / ".claude" / "evidence" / "density-branding-0913"
 VIEWPORTS = (
-    (1366, 768, "1366x768"),
-    (1920, 1080, "1920x1080"),
-    (768, 1024, "768x1024"),
+    (1440, 900, "1440x900"),
     (390, 844, "390x844"),
-    (720, 450, "zoom-200"),
+    (1024, 768, "1024x768"),
+    (768, 1024, "768x1024"),
+    (1920, 1080, "1920x1080"),
 )
 
 
@@ -55,6 +57,21 @@ def _screenshot_matrix(page: Page, state: str) -> None:
         page.screenshot(
             path=str(EVIDENCE / f"branding-editor-{state}-{label}.png"),
             full_page=True,
+        )
+        (EVIDENCE / f"branding-editor-{state}-{label}.json").write_text(
+            json.dumps(
+                {
+                    "route": page.url,
+                    "viewport": {"width": width, "height": height},
+                    "state": state,
+                    "label": label,
+                    "geometry": page.evaluate(
+                        "({innerWidth, innerHeight, outerWidth, outerHeight, devicePixelRatio})"
+                    ),
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
         )
 
 
@@ -119,6 +136,9 @@ def test_branding_forms_keep_exact_targets_and_fields_without_javascript(
             expect(form).to_have_attribute("method", "post")
             expect(form).to_have_attribute("action", BRAND_PATH)
             assert form.locator("[name]").evaluate_all("els => els.map(el => el.name)") == fields
+
+        EVIDENCE.mkdir(parents=True, exist_ok=True)
+        page.screenshot(path=str(EVIDENCE / "branding-editor-nojs-1440x900.png"), full_page=True)
 
         page.locator("#brand-name").fill("Klarer Entwurf")
         page.locator("#brand-upload").set_input_files(
@@ -186,16 +206,116 @@ def test_branding_editor_viewports_default_saved_and_error_states(
     with _context(browser, live_server, client) as context:
         page = context.new_page()
         page.goto(BRAND_PATH)
+        _screenshot_matrix(page, "regular")
         _screenshot_matrix(page, "empty")
 
+        # Save draft (revision 2) -> creates a selected draft distinct from active version 1
         page.locator("#brand-name").fill("Gespeicherter Stand")
         page.get_by_role("button", name="Entwurf speichern & Vorschau", exact=True).click()
         expect(page).to_have_url(re.compile(r"revision=2$"))
         _screenshot_matrix(page, "saved")
+        _screenshot_matrix(page, "selected-vs-active")
 
+        # Readonly state on active version
+        page.goto(f"{BRAND_PATH}?revision=1")
+        expect(page.get_by_role("button", name="Version 1 aktivieren", exact=True)).to_be_disabled()
+        _screenshot_matrix(page, "readonly")
+
+        # Return to revision 2 and trigger validation error (400)
+        page.goto(f"{BRAND_PATH}?revision=2")
         page.locator("#brand-primary").fill("#zzzzzz")
         page.locator('form[data-brand-action="save"]').evaluate("form => { form.noValidate = true; }")
         page.get_by_role("button", name="Entwurf speichern & Vorschau", exact=True).click()
         expect(page.locator(".alert-danger")).to_be_visible()
         expect(page.locator("#brand-primary")).to_have_value("#zzzzzz")
         _screenshot_matrix(page, "error")
+
+        # CAS conflict state (409)
+        page.goto(BRAND_PATH)
+        page.locator('form[data-brand-action="save"] input[name="version"]').evaluate("el => { el.value = '9999'; }")
+        page.locator('form[data-brand-action="save"]').evaluate("form => { form.noValidate = true; }")
+        with page.expect_response(
+            lambda response: response.request.method == "POST" and response.url.endswith(BRAND_PATH)
+        ) as conflict_response:
+            page.get_by_role("button", name="Entwurf speichern & Vorschau", exact=True).click()
+        assert conflict_response.value.status == 409
+        expect(page.locator(".alert-danger")).to_be_visible()
+        _screenshot_matrix(page, "cas-conflict")
+
+
+def test_branding_editor_keyboard_navigation(
+    browser: Browser, live_server: str, admin_app, admin_engine,  # noqa: F811
+):
+    client, _ = _login(admin_app, admin_engine, ["Cafeteria.Admin"])
+    with _context(browser, live_server, client) as context:
+        page = context.new_page()
+        page.set_viewport_size({"width": 1440, "height": 900})
+        page.goto(BRAND_PATH)
+
+        # Keyboard focus sequence
+        name_input = page.locator("#brand-name")
+        name_input.focus()
+        expect(name_input).to_be_focused()
+        outline = name_input.evaluate("el => getComputedStyle(el).outlineColor || getComputedStyle(el).boxShadow")
+        assert outline != "none" and outline != "rgba(0, 0, 0, 0)"
+
+        page.keyboard.press("Tab")
+        expect(page.locator("#brand-logo-select")).to_be_focused()
+
+        page.keyboard.press("Tab")
+        expect(page.locator("#brand-upload")).to_be_focused()
+
+        page.keyboard.press("Tab")
+        expect(page.locator("#brand-primary")).to_be_focused()
+
+        EVIDENCE.mkdir(parents=True, exist_ok=True)
+        page.screenshot(path=str(EVIDENCE / "branding-editor-keyboard-focus.png"), full_page=True)
+
+
+def test_branding_editor_native_cdp_zoom_200(
+    browser: Browser, live_server: str, admin_app, admin_engine, tmp_path: Path,  # noqa: F811
+):
+    client, _ = _login(admin_app, admin_engine, ["Cafeteria.Admin"])
+    profile_dir = tmp_path / "density-branding-zoom-profile"
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    with browser.browser_type.launch_persistent_context(
+        str(profile_dir),
+        channel="chromium",
+        headless=True,
+        no_viewport=True,
+        locale="de-CH",
+        timezone_id="Europe/Zurich",
+        reduced_motion="reduce",
+        args=["--no-sandbox", "--disable-dev-shm-usage", "--window-size=1440,900"],
+    ) as zoom_context:
+        zoom_page = zoom_context.pages[0]
+        zoom_page.goto("chrome://settings/appearance")
+        zoom_page.evaluate("new Promise(resolve => chrome.settingsPrivate.setDefaultZoom(2, resolve))")
+        assert zoom_page.evaluate("new Promise(resolve => chrome.settingsPrivate.getDefaultZoom(resolve))") == 2
+        cookie = client.get_cookie("session")
+        assert cookie is not None
+        zoom_context.add_cookies([{
+            "name": "session", "value": cookie.value, "url": live_server,
+        }])
+        zoom_page.goto(live_server + BRAND_PATH)
+        cdp = zoom_context.new_cdp_session(zoom_page)
+        metrics = cdp.send("Page.getLayoutMetrics")
+        assert metrics["cssVisualViewport"]["zoom"] == 2
+        assert zoom_page.evaluate("[innerWidth, outerWidth, devicePixelRatio]") == [720, 1440, 2]
+        assert zoom_page.evaluate("getComputedStyle(document.documentElement).zoom") == "1"
+        assert zoom_page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+        _assert_viewport(zoom_page, "zoom-200")
+
+        EVIDENCE.mkdir(parents=True, exist_ok=True)
+        zoom_page.screenshot(path=str(EVIDENCE / "branding-editor-zoom200-cdp.png"), full_page=True)
+        (EVIDENCE / "zoom-probe.txt").write_text("chrome-settings-cdp-zoom-2\n", encoding="utf-8")
+        (EVIDENCE / "zoom-probe.json").write_text(
+            json.dumps({
+                "zoom": 2,
+                "metrics": metrics,
+                "geometry": {"innerWidth": 720, "outerWidth": 1440, "devicePixelRatio": 2},
+            }, indent=2),
+            encoding="utf-8",
+        )
+        cdp.detach()
+

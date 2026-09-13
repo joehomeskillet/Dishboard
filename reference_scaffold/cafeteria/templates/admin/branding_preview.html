@@ -9,13 +9,13 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='admin-branding.css') }}">
 <link rel="stylesheet" href="{{ url_for('admin.branding_preview_css', revision=brand.id) }}">
 </head><body class="public-page brand-preview-body"><main class="p-3 brand-preview-example">
-{{ brand_logo(brand, 'mb-4', alt=brand.name, preview=true) }}
-<p class="text-secondary">Speiseplan Cafeteria · Guten Appetit</p>
-<h1>Frisch zubereitet</h1>
+{{ brand_logo(brand, 'mb-3', alt=brand.name, preview=true) }}
+<p class="text-secondary mb-2">Speiseplan Cafeteria · Guten Appetit</p>
+<h1 class="mb-3">Frisch zubereitet</h1>
 <article class="card"><div class="card-body">
-<h2 class="card-title">Pouletbrust an Kräutersauce</h2>
-<p>Kartoffelstock · Zucchetti mit Kräutern · Beilage nach Tagesangebot</p>
-<p>Enthält: Milch · Allergene noch zu prüfen.</p>
+<h2 class="card-title mb-2">Pouletbrust an Kräutersauce</h2>
+<p class="mb-2">Kartoffelstock · Zucchetti mit Kräutern · Beilage nach Tagesangebot</p>
+<p class="text-secondary small mb-3">Enthält: Milch · Allergene noch zu prüfen.</p>
 <p class="d-flex flex-wrap gap-3 mb-0" aria-label="Beispiel der gewählten Farben">
   <span class="d-inline-flex align-items-center gap-2 fw-bold"><span class="brand-preview-swatch brand-preview-swatch-primary" aria-hidden="true"></span>Primärfarbe</span>
   <span class="d-inline-flex align-items-center gap-2 fw-bold"><span class="brand-preview-swatch brand-preview-swatch-accent" aria-hidden="true"></span>Akzentfarbe</span>
