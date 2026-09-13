@@ -116,7 +116,10 @@
   font-size: calc(var(--app-font-size-body) * var(--app-font-scale));
   line-height: var(--app-line-height-body); height: auto;
 }
-.dishboard-admin .navbar-toggler { width: auto; min-width: 48px; padding: 8px 12px; margin: 8px; gap: 8px; color: var(--sh-white); }
+.dishboard-admin .navbar-toggler {
+  width: auto; min-width: 48px; padding: 8px 12px; margin: 8px; gap: 8px; color: var(--sh-white);
+  --tblr-btn-hover-bg: var(--app-sidebar-hover); --tblr-btn-active-bg: var(--app-sidebar-active);
+}
 .dishboard-admin .btn {
   --tblr-btn-font-family: var(--app-font-body); --tblr-btn-border-radius: var(--app-radius-control);
   --tblr-btn-focus-box-shadow: none; --tblr-btn-disabled-opacity: 1;

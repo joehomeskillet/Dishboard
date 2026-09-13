@@ -23,7 +23,7 @@ from test_ui_route_inventory import _factory
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
 
-VIEWPORTS = ((1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080))
+VIEWPORTS = ((1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080), (2560, 1440))
 AREAS = ('Wochenplan', 'Menüs & Bausteine', 'Vorschau & Bildschirme', 'Einstellungen')
 # Complete old-to-new entry inventory: old label, new tab, endpoint, URL, admin-only.
 ENTRIES = {
@@ -471,7 +471,7 @@ def test_native_tabs_without_javascript_and_zoom_reflow(site, tmp_path):
         nav.get_by_role('link', name=AREAS[1], exact=True).click()
         page.locator('.admin-area-tabs').get_by_role('link', name='Rezepte', exact=True).click()
         expect(page.locator('.admin-area-tabs [aria-current="page"]')).to_have_text('Rezepte')
-        for width in (320, 720):  # 1440px at 200% browser zoom gives 720 CSS pixels.
+        for width in (320, 720):  # CSS reflow; actual browser zoom is tested in the fullwidth module.
             page.set_viewport_size({'width': width, 'height': 450})
             _goto(page, '/admin/design/marke')
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
