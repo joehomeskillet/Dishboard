@@ -42,6 +42,24 @@ details.card[open] > summary.card-header .grundlagen-accordion-marker {
   margin: 0;
 }
 
+@media (min-height: 700px) {
+  #food-core-form .grundlagen-core-actions:not(.is-static) {
+    position: sticky;
+    top: auto;
+    bottom: 0;
+    z-index: 10;
+  }
+
+  #food-core-form :is(input, select, textarea, button) {
+    scroll-margin-bottom: calc(var(--app-space-12) + var(--app-space-6));
+  }
+
+  /* Text entry and link focus must stay clear of the bar without JavaScript. */
+  #food-core-form:has(input:not([type=checkbox]):focus, textarea:focus, a:focus) .grundlagen-core-actions {
+    position: static;
+  }
+}
+
 @media (min-width: 48rem) {
   .grundlagen-status {
     grid-template-columns: repeat(2, minmax(0, 1fr));

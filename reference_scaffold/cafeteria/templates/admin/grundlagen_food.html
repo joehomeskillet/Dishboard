@@ -23,7 +23,7 @@
 {{ pagination(recipe_page, recipe_has_next, recipe_prev_url, recipe_next_url, 'Rezeptauswahlseiten') }}</div></details>
 {% endif %}
 {% if not row %}<details class="card mb-4" open>{{ section_summary('Zutat anlegen', 'plus') }}<div class="card-body">{% else %}<div class="card mb-4"><div class="card-header gap-2">{{ icon('components') }}<h2 class="card-title mb-0">Zutat</h2></div><div class="card-body">{% endif %}
-{% if can_write %}<form id="food-core-form" method="post" data-dirty-form action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose=core) if row else url_for('admin.master_data_new', kind=kind) }}">
+{% if can_write %}<form id="food-core-form" class="admin-compact-form" method="post" data-dirty-form action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose=core) if row else url_for('admin.master_data_new', kind=kind) }}">
 {{ form_start(core) }}
 <div class="row g-3 mb-3">
 <div class="col-12 col-lg-6">{{ input('name', 'Name', true) }}</div>
@@ -62,7 +62,8 @@
 </div>
 <p class="form-hint mb-1">Dezimalzahlen mit Punkt eingeben. Archivierte Zuordnungen vor dem Speichern ausdrücklich ersetzen oder entfernen.</p>
 <p class="form-hint mb-3">Speichert Stammdaten, Lagerorte und Zubereitung.{% if row %} Die folgenden Abschnitte haben eigene Speicheraktionen.{% endif %}</p>
-<button class="btn btn-primary" type="submit">{{ icon('device-floppy') }}Zutat speichern</button></form>
+<div class="admin-compact-toolbar grundlagen-core-actions" data-sticky-form="food-core-form">
+<button class="btn btn-primary" type="submit" form="food-core-form">{{ icon('device-floppy') }}Zutat speichern</button></div></form>
 {% else %}<h3>{{ row.name if row else 'Keine Schreibberechtigung' }}</h3>{% if row %}<p>{{ row.base_unit.display_name }}{% if not row.base_unit.active %} (archiviert){% endif %} · {{ row.category.name if row.category else 'Keine Kategorie' }}{% if row.category and not row.category.active %} (archiviert){% endif %}</p><dl><dt>Dichte in g/ml</dt><dd>{{ row.density_g_per_ml if row.density_g_per_ml is not none else 'Nicht erfasst' }}</dd><dt>Stückgewicht in g</dt><dd>{{ row.piece_weight_g if row.piece_weight_g is not none else 'Nicht erfasst' }}</dd></dl><p>{{ row.note }}</p>{% endif %}{% endif %}
 </div>{% if not row %}</details>{% else %}</div>{% endif %}
 {% if row %}
