@@ -14,7 +14,7 @@
     <form method="post" action="{{ url_for('admin.branding_editor') }}" enctype="multipart/form-data" class="card" data-brand-action="save">
       <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}">
       <div class="card-header d-flex align-items-center justify-content-between">
-        <h2 class="card-title d-flex align-items-center gap-2 mb-0" id="brand-edit-title">{{ icon('palette') }}<span>Entwurf bearbeiten</span></h2>
+        <h2 class="card-title d-flex align-items-center gap-2 mb-0" id="brand-edit-title">{{ icon('pencil') }}<span>Entwurf bearbeiten</span></h2>
         <span class="badge bg-secondary-lt">Basis: Version {{ selected.id }}</span>
       </div>
       <div class="card-body">
@@ -49,7 +49,7 @@
           </legend>
           <div class="row g-2 mb-2">
             {% for key, label in [('primary','Primärfarbe'),('accent','Akzentfarbe'),('surface','Hintergrund'),('text','Textfarbe')] %}
-            <div class="col-12 col-sm-6 col-md-3">
+            <div class="col-12 col-sm-6">
               <label class="form-label small mb-1" for="brand-{{ key }}">{{ label }}</label>
               <div class="brand-color-field">
                 <input class="brand-color-swatch" type="color" value="{{ brand_values[key] }}" tabindex="-1" aria-hidden="true" disabled>
@@ -98,7 +98,7 @@
     </div>
     <section class="card mb-3 brand-publication-card" aria-labelledby="brand-publication-title">
       <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <h2 class="card-title d-flex align-items-center gap-2 mb-0" id="brand-publication-title">{{ icon('broadcast') }}<span>Veröffentlichte Version</span></h2>
+        <h2 class="card-title d-flex align-items-center gap-2 mb-0" id="brand-publication-title">{{ icon('file-check') }}<span>Veröffentlichte Version</span></h2>
         {% if selected.id == document.active_revision %}
         <span class="badge bg-success-lt">Ausgewählte Version ist aktiv</span>
         {% else %}
@@ -143,16 +143,16 @@
       </div>
     </section>
     <details class="card brand-history-card">
-      <summary class="card-header py-2 cursor-pointer"><h2 class="card-title mb-0 d-flex align-items-center gap-2">{{ icon('adjustments') }}<span>Weitere Aktionen</span></h2></summary>
+      <summary class="card-header py-2 cursor-pointer"><h2 class="card-title mb-0 d-flex align-items-center gap-2">{{ icon('dots') }}<span>Weitere Aktionen</span></h2></summary>
       <div class="card-body border-bottom py-3">
-        <h3 class="h4 d-flex align-items-center gap-2 mb-2">{{ icon('arrow-back-up') }}<span>Ausgewählten Stand übernehmen</span></h3>
+        <h3 class="h4 d-flex align-items-center gap-2 mb-2">{{ icon('copy') }}<span>Ausgewählten Stand übernehmen</span></h3>
         <p class="form-hint mb-3">Erstellt aus Version {{ selected.id }} einen neuen bearbeitbaren Entwurf. Die aktive Version bleibt unverändert.</p>
         <form method="post" action="{{ url_for('admin.branding_editor') }}" data-brand-action="restore">
           <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}"><input type="hidden" name="revision" value="{{ selected.id }}">
           <button class="btn d-inline-flex align-items-center gap-1" type="submit" name="action" value="restore">{{ icon('copy') }}Version {{ selected.id }} als neuen Entwurf übernehmen</button>
         </form>
       </div>
-      <h3 class="h4 px-3 pt-3 mb-2 d-flex align-items-center gap-2">{{ icon('list') }}<span>Version auswählen</span></h3>
+      <h3 class="h4 px-3 pt-3 mb-2 d-flex align-items-center gap-2">{{ icon('history') }}<span>Version auswählen</span></h3>
       <div class="list-group list-group-flush">
         {% for item in document.revisions|reverse %}
         <a class="list-group-item list-group-item-action py-2{% if item.id == selected.id %} active{% endif %}" href="{{ url_for('admin.branding_editor', revision=item.id) }}"{% if item.id == selected.id %} aria-current="true"{% endif %}>
@@ -168,7 +168,7 @@
       <div class="card-footer py-2">
         <form method="post" action="{{ url_for('admin.branding_editor') }}" data-brand-action="reset" data-confirm="Südhang Standard als neuen Entwurf anlegen?">
           <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}">
-          <button class="btn d-inline-flex align-items-center gap-1" name="action" value="reset" type="submit">{{ icon('rotate') }}Südhang Standard als Entwurf</button>
+          <button class="btn d-inline-flex align-items-center gap-1" name="action" value="reset" type="submit">{{ icon('refresh') }}Südhang Standard als Entwurf</button>
           <p class="form-hint mt-2 mb-0">Vorherige Versionen und Logos bleiben erhalten. Den neuen Standardentwurf zuerst prüfen und danach bei Bedarf aktivieren.</p>
         </form>
       </div>
