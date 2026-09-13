@@ -50,6 +50,7 @@ database/migrations/0025_v27_to_v28.sql
 database/migrations/0026_v28_to_v29.sql
 database/migrations/0027_v29_to_v30.sql
 database/migrations/0028_v30_to_v31.sql
+database/migrations/0029_v31_to_v32.sql
 database/permissions.sql
 database/README.md
 database/schema.sql
@@ -1263,6 +1264,9 @@ reference_scaffold/tests/test_master_data_race_db.py
 reference_scaffold/tests/test_master_data_routes.py
 reference_scaffold/tests/test_master_data_wiring_v27.py
 reference_scaffold/tests/test_mcp_server.py
+reference_scaffold/tests/test_menu_accompaniment_db.py
+reference_scaffold/tests/test_menu_accompaniment_form.py
+reference_scaffold/tests/test_menu_accompaniment_migration_db.py
 reference_scaffold/tests/test_menu_accompaniment_snapshot.py
 reference_scaffold/tests/test_menu_collection.py
 reference_scaffold/tests/test_menu_collection_browser.py
