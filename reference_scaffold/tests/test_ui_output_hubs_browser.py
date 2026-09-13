@@ -14,7 +14,9 @@ from xml.etree import ElementTree
 import pytest
 from playwright.sync_api import Page, expect
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
+from cafeteria import dish_template_store
 from cafeteria.branding_config import contrast
 from cafeteria.menu_images import CATALOG
 from cafeteria.public import routes as public_routes
@@ -34,7 +36,7 @@ from test_screen_template_routes import screen_app as screen_app  # noqa: F401
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason="TEST_DATABASE_URL fehlt.")
 
 VIEWPORTS = [(1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080), (2560, 1440)]
-EVIDENCE_DIR = Path(__file__).resolve().parents[2] / '.claude/evidence/tpl-dish-entry-0913'
+EVIDENCE_DIR = Path(__file__).resolve().parents[2] / '.claude/evidence/tpl-dish-entry-fix-0913'
 
 
 @pytest.fixture
@@ -476,6 +478,36 @@ def test_output_hubs_matrix_error_and_conflict_states(
         )
         expect(page.get_by_role("alert")).to_be_visible()
         page.screenshot(path=str(EVIDENCE_DIR / "unavailable-503.png"), full_page=True)
+
+
+def test_vorlagen_dish_count_unavailable_is_no_store_503(
+    published_hub_app,
+    hub_server,
+    database_engine,  # noqa: F811
+    browser,  # noqa: F811
+    monkeypatch,
+) -> None:
+    def fail_count(*_args, **_kwargs):
+        raise SQLAlchemyError('Gerichtvorlagen-Zählung nicht verfügbar.')
+
+    monkeypatch.setattr(dish_template_store, 'list_templates', fail_count)
+    context, page = _admin_page(
+        published_hub_app, database_engine, browser, hub_server, viewport=(1440, 900),
+    )
+    try:
+        response = page.goto('/admin/vorlagen')
+        assert response is not None and response.status == 503
+        assert response.headers['cache-control'] == 'no-store'
+        expect(page.get_by_role('heading', level=1)).to_have_text(
+            'Bildschirmvorlagen vorübergehend nicht verfügbar'
+        )
+        expect(page.get_by_role('alert')).to_be_visible()
+        EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+        page.screenshot(
+            path=str(EVIDENCE_DIR / 'vorlagen-count-unavailable-503.png'), full_page=True,
+        )
+    finally:
+        context.close()
 
 
 @pytest.mark.parametrize(

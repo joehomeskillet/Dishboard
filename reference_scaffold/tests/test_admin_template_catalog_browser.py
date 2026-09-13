@@ -21,7 +21,7 @@ from test_rendered_ui import browser  # noqa: F401
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
 EVIDENCE_DIR = Path(__file__).resolve().parents[2] / os.environ.get(
-    'TPL_DISH_ENTRY_EVIDENCE_DIR', '.claude/evidence/tpl-dish-entry-0913'
+    'TPL_DISH_ENTRY_EVIDENCE_DIR', '.claude/evidence/tpl-dish-entry-fix-0913'
 )
 PDF_TARGETS = {f'/admin/vorlagen/{family}{suffix}' for family in ('cafeteria', 'patienten')
                for suffix in ('', '/vorschau.pdf')}
@@ -79,6 +79,31 @@ def test_virtual_catalog_and_missing_week_never_initialize_settings(editor_app, 
             assert '<iframe' not in response.text
     assert settings(database_engine) == before
     assert '/admin/gerichtvorlagen' in MainLinks(page.text).links
+
+
+def test_recipe_active_template_link_uses_explicit_ids_and_stays_privileged(
+    editor_app, database_engine,  # noqa: F811
+):
+    admin, _ = _login(editor_app, database_engine, ['Cafeteria.Admin'])
+    editor = '/admin/vorlagen/rezepte?template=standard&revision=1'
+    assert admin.post(editor, data=fields(name='Neuer Rezeptentwurf')).status_code == 303
+
+    response = admin.get('/admin/vorlagen')
+    recipe_links = [link for link in MainLinks(response.text).links
+                    if urlsplit(link).path == '/admin/vorlagen/rezepte']
+
+    assert response.status_code == 200
+    assert '/admin/vorlagen/rezepte?template=standard&revision=2' in recipe_links
+    assert '/admin/vorlagen/rezepte?template=standard&revision=1' in recipe_links
+    assert '>Aktive Vorlage öffnen</a>' in response.text
+
+    reader, _ = _login(editor_app, database_engine, ['Cafeteria.Editor'])
+    reader_response = reader.get('/admin/vorlagen')
+    assert reader_response.status_code == 200
+    assert not any(urlsplit(link).path == '/admin/vorlagen/rezepte'
+                   for link in MainLinks(reader_response.text).links)
+    assert 'Aktive Vorlage öffnen' not in reader_response.text
+    assert reader_response.text.count('>Rezept drucken</a>') == 1
 
 
 def test_catalog_revision_links_render_real_saved_pdfs_without_mutation(editor_app, database_engine):  # noqa: F811
@@ -193,6 +218,20 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
             recipe_card = page.locator('article[aria-labelledby="recipe-templates-heading"]')
             assert recipe_card.locator('[data-template-id="standard"]').count() == 1
             expect(recipe_card.get_by_text('Neuester Stand: Revision 1', exact=True)).to_be_visible()
+            dish_card = page.locator('article.card').filter(
+                has=page.get_by_role('heading', name='Gerichtvorlagen', exact=True),
+            )
+            if width == 1440:
+                recipe_box = recipe_card.bounding_box()
+                dish_box = dish_card.bounding_box()
+                count_box = dish_card.locator('p').bounding_box()
+                action_box = dish_card.get_by_role(
+                    'link', name='Gerichtvorlagen öffnen', exact=True,
+                ).bounding_box()
+                assert recipe_box is not None and dish_box is not None
+                assert count_box is not None and action_box is not None
+                assert dish_box['height'] < recipe_box['height']
+                assert action_box['y'] - (count_box['y'] + count_box['height']) <= 24
             recipe_link = recipe_card.get_by_role('link', name='Rezeptvorlageneditor öffnen', exact=True)
             recipe_target = urlsplit(recipe_link.get_attribute('href'))
             assert recipe_target.path == '/admin/vorlagen/rezepte'

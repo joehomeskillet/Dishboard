@@ -4,7 +4,7 @@ from __future__ import annotations
 from flask import Response, abort, make_response, render_template, request
 
 from ..roles import require_capability
-from .. import recipe_link_reads
+from .. import dish_template_store
 from ..print_templates import PrintTemplateStateError, read_templates, template_revision
 from ..screen_templates import choices, read_assignment
 from .screen_template_routes import database_available
@@ -38,12 +38,12 @@ def vorlagen() -> Response:
     week = _week_arg().isoformat()
     catalogs = {}
     error = None
-    dish_template_links = recipe_link_reads.list_template_links(
+    dish_templates = dish_template_store.list_templates(
         _db(), include_archived=True,
     )
     template_counts = {
-        'active': sum(1 for template in dish_template_links if template.active),
-        'archived': sum(1 for template in dish_template_links if not template.active),
+        'active': sum(1 for template in dish_templates if template.active),
+        'archived': sum(1 for template in dish_templates if not template.active),
     }
     with _db().connect() as connection:
         screen_catalogs = {
