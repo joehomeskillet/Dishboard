@@ -70,6 +70,19 @@ def test_editor_radio_roundtrip_and_week_card_in_both_grids(
     expect(card.locator('.menu-accompaniment use[href$="#tabler-salad"]')).to_have_count(1)
     expect(page.locator('.menu-accompaniment')).to_have_count(1)
 
+    # Soup roundtrip
+    page.goto(_menu_url(family))
+    soup = page.locator('#accompaniment-soup')
+    soup.check()
+    submitted = _submit_menu(page, 303)
+    assert submitted['accompaniment'] == ['soup']
+    expect(page.locator('#accompaniment-soup')).to_be_checked()
+    expect(page.locator('[data-review-field="accompaniment"]')).to_have_text('Dazu: Suppe')
+
+    page.goto(f'/admin/{family}?week={DAY}')
+    expect(card.locator('.menu-accompaniment')).to_have_text('Dazu: Suppe')
+    expect(card.locator('.menu-accompaniment use[href$="#tabler-soup"]')).to_have_count(1)
+
 
 @pytest.mark.parametrize('family', ['patienten'])
 @pytest.mark.parametrize('javascript', [True], indirect=True, ids=['js'])
@@ -78,16 +91,27 @@ def test_invalid_value_links_error_to_radio_group_and_retains_other_values(
 ) -> None:
     page, *_ = editor_page
     page.goto(_menu_url(family))
-    page.get_by_label('Menüname', exact=True).fill('Eingabe bleibt erhalten')
-    salad = page.locator('#accompaniment-salad')
-    salad.evaluate("input => { input.value = 'both'; }")
-    salad.check()
+    
+    soup = page.locator('#accompaniment-soup')
+    soup.check()
+    page.get_by_label('Menüname', exact=True).fill('')
+    
+    _submit_menu(page, 400)
+    
+    expect(page.locator('#accompaniment-soup')).to_be_checked()
+    expect(page.locator('.error-region a[href="#f-title"]')).to_have_count(1)
+    
+    review = page.locator('[data-review-field="accompaniment"]')
+    expect(review).to_have_text('Keine Beilage')
 
-    submitted = _submit_menu(page, 400)
-    assert submitted['accompaniment'] == ['both']
+    # Also test invalid accompaniment value explicitly
+    page.evaluate("document.getElementById('accompaniment-none').value = 'both';")
+    page.locator('#accompaniment-none').check()
+    page.get_by_label('Menüname', exact=True).fill('Valid Title')
+    _submit_menu(page, 400)
+    
     expect(page.locator('.error-region a[href="#accompaniment-none"]')).to_have_count(1)
     expect(page.locator('#err-accompaniment')).to_be_visible()
-    expect(page.get_by_label('Menüname', exact=True)).to_have_value('Eingabe bleibt erhalten')
     expect(page.locator('[name="accompaniment"][aria-invalid="true"]')).to_have_count(3)
 
 
@@ -132,6 +156,11 @@ def test_template_proposal_prefills_salad_and_shows_proposal_hint(
                 path=str(EVIDENCE / f'proposal-{width}x{height}-{"js" if javascript else "nojs"}.png'),
                 full_page=True,
             )
+        page.locator('#accompaniment-none').check()
+        with page.expect_navigation():
+            page.locator('form[data-menu-editor] button[type="submit"]').click()
+        card = page.locator('#menu-LUNCH-MENU_1')
+        expect(card.locator('.menu-accompaniment')).to_have_count(0)
     finally:
         context.close()
 

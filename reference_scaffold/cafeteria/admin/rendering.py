@@ -203,6 +203,18 @@ def render_menu_editor(
     origin_conflict: str | None = None,
     recipe_page: RecipeChoicePage | None = None,
 ) -> str:
+    if 'accompaniment_code' not in cell:
+        try:
+            if cell.get('retained_only'):
+                raise RuntimeError("retained_only")
+            from .workflow_routes import _load_draft_option
+            option = _load_draft_option(profile, week, cell['day'], cell['meal'], cell['option'])
+            cell['accompaniment_code'] = str(option.get('accompaniment_code') or 'none')
+            cell['accompaniment_name'] = str(option.get('accompaniment_name') or '')
+        except Exception:
+            cell['accompaniment_code'] = 'none'
+            cell['accompaniment_name'] = ''
+
     return render_template(
         'admin/menu_editor.html', profile=profile, family=family, week=week,
         week_iso=week.isoformat(), cell=cell, form_values=form_values,
