@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import base64
 import json
+import struct
 import threading
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from wsgiref.simple_server import make_server
+from xml.etree import ElementTree
 
 import pytest
 from playwright.sync_api import Page, expect
@@ -30,8 +33,8 @@ from test_screen_template_routes import screen_app as screen_app  # noqa: F401
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason="TEST_DATABASE_URL fehlt.")
 
-VIEWPORTS = [(1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080)]
-EVIDENCE_DIR = Path(__file__).resolve().parents[2] / ".claude/evidence/density-hubs-0913"
+VIEWPORTS = [(1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080), (2560, 1440)]
+EVIDENCE_DIR = Path(__file__).resolve().parents[2] / ".claude/evidence/density-hubs-iconfix-0913"
 
 
 @pytest.fixture
@@ -128,6 +131,22 @@ def _check_contrast(page: Page) -> None:
         assert ratio >= 4.5, f"Contrast {ratio} too low for {item}"
 
 
+def _assert_served_hub_icons_render(page: Page, evidence_name: str) -> None:
+    sprite = page.request.get('/static/vendor/tabler-icons/tabler-icons.svg')
+    assert sprite.status == 200
+    symbols = {node.get('id') for node in ElementTree.fromstring(sprite.body()).iter()}
+    dimensions = page.locator('main svg.icon:visible').evaluate_all('''icons => icons.map(icon => {
+        const box = icon.getBBox();
+        return {href: icon.querySelector('use').getAttribute('href'), width: box.width, height: box.height};
+    })''')
+    assert dimensions
+    EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+    (EVIDENCE_DIR / f'{evidence_name}-icons.json').write_text(json.dumps(dimensions, indent=2))
+    missing = [icon['href'] for icon in dimensions if icon['href'].split('#')[-1] not in symbols]
+    assert missing == [], f'Visible icons missing from served sprite: {missing}'
+    assert all(icon['width'] > 0 and icon['height'] > 0 for icon in dimensions), dimensions
+
+
 @pytest.mark.parametrize("width,height", VIEWPORTS)
 def test_output_hubs_viewports_and_layouts(
     published_hub_app,
@@ -163,6 +182,7 @@ def test_output_hubs_viewports_and_layouts(
         expect(page.locator("main")).to_have_attribute("data-layout", "standard")
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
         _check_contrast(page)
+        _assert_served_hub_icons_render(page, f'vorlagen-{width}x{height}')
         page.screenshot(
             path=str(tmp_path / f"vorlagen-{width}x{height}.png"), full_page=True
         )
@@ -341,12 +361,17 @@ def test_output_hubs_real_chrome_settings_zoom_200(
             layout = cdp.send("Page.getLayoutMetrics")
             assert layout["cssVisualViewport"]["zoom"] == 2
             assert not page.evaluate("document.documentElement.scrollWidth > innerWidth + 1")
+            _assert_served_hub_icons_render(page, 'vorlagen-zoom-200')
+            capture = cdp.send('Page.captureScreenshot', {'format': 'png', 'captureBeyondViewport': False})
+            png = base64.b64decode(capture['data'])
+            pixels = struct.unpack('>II', png[16:24])
+            assert pixels[0] == 1440 and pixels[1] >= 800
+            layout['capture_kind'] = 'native CDP viewport, not full page'
+            layout['capture_pixels'] = pixels
             (EVIDENCE_DIR / "real-zoom-200-vorlagen.cdp.json").write_text(
                 json.dumps(layout, indent=2), encoding="utf-8"
             )
-            page.screenshot(
-                path=str(EVIDENCE_DIR / "real-zoom-200-vorlagen.png"), full_page=True
-            )
+            (EVIDENCE_DIR / 'real-zoom-200-vorlagen.png').write_bytes(png)
             cdp.detach()
 
 
