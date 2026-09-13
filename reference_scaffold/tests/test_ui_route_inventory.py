@@ -258,7 +258,7 @@ def _invalid_action(case: dict):
         assert save.evaluate(
             '(btn, formEl) => btn.form === formEl'
             ' && (btn.getAttribute("form") == null || btn.getAttribute("form") === formEl.id)',
-            form,
+            form.element_handle(),
         )
         with page.expect_response(lambda response: response.request.method == 'POST'
                                   and urlsplit(response.url).path == urlsplit(case['path']).path) as response:
