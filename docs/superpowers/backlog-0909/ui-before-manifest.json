@@ -9835,11 +9835,11 @@
     ]
   },
   "current_inventory": {
-    "wp_id": "wp-9bb209576726",
-    "source_commit": "db84d2b2f1682e62e130a48a6d8c9e8cb98eb9e6",
-    "schema": 30,
-    "route_count": 127,
-    "template_count": 83,
+    "wp_id": "wp-57fae963598f",
+    "source_commit": "9aa03c3bff070333258942589a512fc3c8ce5dc2",
+    "schema": 31,
+    "route_count": 129,
+    "template_count": 84,
     "historical_source_commit": "5f5f6cb535922db8453c68d871279d6b2e203391",
     "historical_manifest_sha256": "ee42bd86e5642835aeeb78f04129e39daab888f182e8664ea0a6a4500a0c16c2",
     "historical_capture_count": 172,
@@ -9848,6 +9848,7 @@
     "uncaptured_visual_endpoints": [
       "admin.dish_template_edit",
       "admin.dish_template_new",
+      "admin.dish_template_plan",
       "admin.dish_templates_list",
       "admin.recipe_import_detail",
       "admin.recipe_import_list",

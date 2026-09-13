@@ -1,6 +1,6 @@
 {
   "meta": {
-    "wp_id": "wp-9bb209576726",
+    "wp_id": "wp-57fae963598f",
     "lane": "native-codex",
     "model": null,
     "identity_status": "native_codex_session_model_not_independently_verified",
@@ -11,15 +11,15 @@
       "model": "grok-4.6"
     },
     "mp_id": "MP-UI-DENSITY-INVENTORY",
-    "source_commit": "db84d2b2f1682e62e130a48a6d8c9e8cb98eb9e6",
-    "schema": 30,
+    "source_commit": "9aa03c3bff070333258942589a512fc3c8ce5dc2",
+    "schema": 31,
     "schema_note": "Aktueller zugewiesener Quellstand; SCHEMA_VERSION aus cafeteria.db. Keine neue Live-Abnahme.",
     "baseline_status": "proposed_never_user_approved",
-    "generated_at": "2026-09-13T05:19:31.068Z",
+    "generated_at": "2026-09-13T06:28:25.865790+00:00",
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
-    "route_count": 127,
-    "template_count": 83,
-    "html_route_count": 67,
+    "route_count": 129,
+    "template_count": 84,
+    "html_route_count": 68,
     "design_manifest_commit": "39625ccc0d8b576fae9edaeb8cf0b5c70b1af912",
     "browser_status": "not_run",
     "usability_status": "not_run"
@@ -173,7 +173,7 @@
       "aria-current on active nav, aria-invalid/aria-describedby field errors"
     ],
     "source_hashes": {
-      "database/schema.sql": "4ff3af7d50f2b84ee4a5f05ba9cd91cf7df912bbc1a8dcd8381a2d22347e06be",
+      "database/schema.sql": "d277df8291e420cf4eaae88ba17c303568659dc5b409e608154877ffd4c413b5",
       "database/seed.sql": "cf7678a1e829b7115b641d6402e81b842f203fbfb727a0ef0bdcec18c605bc11",
       "database/seed_demo.sql": "26dd58d4eb0505bb96205e987a608e6a6d18dd3eee59145683132f49670468f0",
       "demo/snapshots/cafeteria_kw36.json": "1083703586354d662f43de2f8a7c42b3afeb6ac9cd125c352efacebe46c0540e",
@@ -247,7 +247,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.access_history_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -410,7 +410,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.api_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -488,7 +488,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.branding_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -563,7 +563,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.branding_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -730,7 +730,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.workflow_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -863,7 +863,7 @@
       ],
       "module": "cafeteria.admin.workflow_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -1096,7 +1096,7 @@
       ],
       "module": "cafeteria.admin.workflow_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -1177,7 +1177,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.cookbook_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -1258,7 +1258,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.cookbook_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -1386,7 +1386,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.cookbook_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -1466,7 +1466,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.cookbook_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -1549,7 +1549,7 @@
       ],
       "module": "cafeteria.admin.workflow_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -1727,7 +1727,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.dish_template_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_entities",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
       "states": [],
       "hooks": [
         "admin.js",
@@ -1776,7 +1776,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.dish_template_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_entities",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
       "states": [
         "default",
         "access_denied_401",
@@ -1855,7 +1855,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.dish_template_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_entities",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
       "states": [
         "default",
         "access_denied_401",
@@ -1911,6 +1911,136 @@
       }
     },
     {
+      "endpoint": "admin.dish_template_plan",
+      "rule": "/admin/gerichtvorlagen/<public_id>/einplanen",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/gerichtvorlage_einplanen.html"
+      ],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-REC-MENU-PROPOSAL",
+      "family_variants": [],
+      "module": "cafeteria.admin.dish_template_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
+      "states": [
+        "default",
+        "access_denied_401",
+        "access_denied_403",
+        "invalid",
+        "source_conflict_409",
+        "legacy_without_active_revision_409"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [
+          "M01",
+          "M10",
+          "M12",
+          "M19",
+          "M20"
+        ],
+        "rules": [
+          "R01",
+          "R02",
+          "R03",
+          "R04",
+          "R05",
+          "R06",
+          "R07",
+          "R08",
+          "R09",
+          "R10"
+        ],
+        "acceptance": [
+          "A01",
+          "A23"
+        ],
+        "owning_mp": "MP-REC-MENU-PROPOSAL",
+        "core_task": "Zielbereich, Woche, Datum, Mahlzeit und Menüart wählen; Vorschlag im Menüeditor öffnen",
+        "example_url": "/admin/gerichtvorlagen/{public_id}/einplanen?week=2026-08-31",
+        "example_semantics": "Parameter in geschweiften Klammern sind fixture-erzeugte Identitäten, keine existierenden Live-IDs.",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py::_prepare_inventory_entities",
+        "state_evidence": {
+          "default": "not_run",
+          "access_denied_401": "not_run",
+          "access_denied_403": "not_run",
+          "invalid": "not_run",
+          "source_conflict_409": "not_run",
+          "legacy_without_active_revision_409": "not_run"
+        },
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_run",
+        "usability_status": "not_run",
+        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+      }
+    },
+    {
+      "endpoint": "admin.dish_template_plan_post",
+      "rule": "/admin/gerichtvorlagen/<public_id>/einplanen",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "post_only",
+      "visual": false,
+      "templates": [
+        "admin/gerichtvorlage_einplanen.html"
+      ],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-REC-MENU-PROPOSAL",
+      "family_variants": [],
+      "module": "cafeteria.admin.dish_template_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-REC-MENU-PROPOSAL",
+        "core_task": "Zielauswahl prüfen oder aktualisieren; 303 zum Menüeditor, Validierungsantwort im Planungsformular",
+        "example_url": "/admin/gerichtvorlagen/{public_id}/einplanen?week=2026-08-31",
+        "example_semantics": "Parameter in geschweiften Klammern sind fixture-erzeugte Identitäten, keine existierenden Live-IDs.",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py::_prepare_inventory_entities",
+        "state_evidence": {},
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+      }
+    },
+    {
       "endpoint": "admin.dish_template_save",
       "rule": "/admin/gerichtvorlagen/<public_id>",
       "methods": [
@@ -1934,7 +2064,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.dish_template_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_entities",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
       "states": [],
       "hooks": [
         "admin.js",
@@ -1983,7 +2113,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.dish_template_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_entities",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
       "states": [
         "default",
         "access_denied_401",
@@ -2061,7 +2191,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.display_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -2187,7 +2317,7 @@
       ],
       "module": "cafeteria.admin.workflow_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -2364,7 +2494,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -2534,7 +2664,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.local_user_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -2608,7 +2738,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.local_user_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -2682,7 +2812,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.local_user_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -2756,7 +2886,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.local_user_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -2882,7 +3012,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.master_data_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -2963,7 +3093,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.master_data_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -3048,7 +3178,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.master_data_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -3131,7 +3261,7 @@
       ],
       "module": "cafeteria.admin.menu_collection_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -3209,7 +3339,7 @@
       ],
       "module": "cafeteria.admin.workflow_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -3387,7 +3517,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.operations_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -3464,7 +3594,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.workflow_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -3547,7 +3677,7 @@
       ],
       "module": "cafeteria.admin.workflow_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -3623,7 +3753,7 @@
       ],
       "module": "cafeteria.admin.print_template_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -3892,7 +4022,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.recipe_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -4069,7 +4199,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.recipe_image_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -4143,7 +4273,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.recipe_import_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_entities",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
       "states": [],
       "hooks": [
         "admin.js",
@@ -4192,7 +4322,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.recipe_import_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_entities",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
       "states": [],
       "hooks": [
         "admin.js",
@@ -4241,7 +4371,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.recipe_import_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_entities",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
       "states": [
         "default",
         "access_denied_401",
@@ -4321,7 +4451,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.recipe_import_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_entities",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
       "states": [
         "default",
         "access_denied_401",
@@ -4401,7 +4531,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.recipe_import_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_entities",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
       "states": [],
       "hooks": [
         "admin.js",
@@ -4452,7 +4582,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.recipe_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -4535,7 +4665,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.recipe_print_template_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -4653,7 +4783,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.recipe_revision_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -4775,7 +4905,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.recipe_revision_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -4850,7 +4980,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.recipe_revision_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -4927,7 +5057,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.recipe_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -5009,7 +5139,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.recipe_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -5083,7 +5213,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.recipe_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -5217,7 +5347,7 @@
       ],
       "module": "cafeteria.admin.screen_template_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -5300,7 +5430,7 @@
       ],
       "module": "cafeteria.admin.screen_template_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -5378,7 +5508,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.output_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -5457,7 +5587,7 @@
       ],
       "module": "cafeteria.admin.workflow_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -5586,7 +5716,7 @@
       "family_variants": [],
       "module": "cafeteria.admin.output_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -5712,7 +5842,7 @@
       ],
       "module": "cafeteria.admin.week_management_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -5790,7 +5920,7 @@
       ],
       "module": "cafeteria.admin.week_review_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "access_denied_401",
@@ -6001,7 +6131,7 @@
       "family_variants": [],
       "module": "cafeteria.api.docs_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema30_seed_plus_synthetic_week",
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
       "states": [
         "default",
         "empty_or_unavailable",
@@ -8064,6 +8194,8 @@
         "admin.dish_template_create",
         "admin.dish_template_edit",
         "admin.dish_template_new",
+        "admin.dish_template_plan",
+        "admin.dish_template_plan_post",
         "admin.dish_template_save",
         "admin.dish_templates_list",
         "admin.display_settings",
@@ -8271,6 +8403,8 @@
         "admin.dish_template_create",
         "admin.dish_template_edit",
         "admin.dish_template_new",
+        "admin.dish_template_plan",
+        "admin.dish_template_plan_post",
         "admin.dish_template_save",
         "admin.dish_templates_list",
         "admin.display_settings",
@@ -8344,7 +8478,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "57e9a5980c4a9ed3b1a74996940bc66a68aa29675cf8da078871b6ef7a732793",
+      "sha256": "205c28c1eee76b402f566e89853d54fd855396ec6ac19585c04441da55cc126e",
       "used_by_endpoints": [
         "admin.local_user_detail",
         "admin.local_user_new",
@@ -8379,6 +8513,8 @@
         "admin.dish_template_create",
         "admin.dish_template_edit",
         "admin.dish_template_new",
+        "admin.dish_template_plan",
+        "admin.dish_template_plan_post",
         "admin.dish_template_save",
         "admin.dish_templates_list",
         "admin.display_settings",
@@ -8599,6 +8735,8 @@
         "admin.dish_template_create",
         "admin.dish_template_edit",
         "admin.dish_template_new",
+        "admin.dish_template_plan",
+        "admin.dish_template_plan_post",
         "admin.dish_template_save",
         "admin.dish_templates_list",
         "admin.display_settings",
@@ -8671,7 +8809,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "8619d291b14c33450f8bdb0901536131237902918c1db6f203fb3eacd9231a2c",
+      "sha256": "76e214986a305d5994f9ddc0a2f8cc4717a5057778412446908c233feaf151e9",
       "used_by_endpoints": [
         "admin.access_history"
       ],
@@ -8729,6 +8867,8 @@
         "admin.dish_template_create",
         "admin.dish_template_edit",
         "admin.dish_template_new",
+        "admin.dish_template_plan",
+        "admin.dish_template_plan_post",
         "admin.dish_template_save",
         "admin.dish_templates_list",
         "admin.display_settings",
@@ -8801,7 +8941,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "fe0b7912c4257accd7c2f3ef22dfa8a4ec6f87239c587aa7c9b851e67ea39e44",
+      "sha256": "57452569b57e258fe9d41861b85d3db14f37b03570695b50b3e084cc435a4763",
       "used_by_endpoints": [
         "admin.branding_editor"
       ],
@@ -8820,7 +8960,7 @@
       "includes": [
         "_brand_logo.html"
       ],
-      "sha256": "30a8c9a0ad1e81608cdccc9d4e0019f7a62398b725f11515eda52cff83456d34",
+      "sha256": "286795810d68f3084f6d0b5cdd6bf80dfb8382524a4f217487267b7e2aa76ff6",
       "used_by_endpoints": [
         "admin.branding_preview"
       ],
@@ -8955,6 +9095,30 @@
       "current_visual_status": "not_run"
     },
     {
+      "path": "admin/gerichtvorlage_einplanen.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "0e1b834b82199295db829be96afb39065756fc6aca1cce0c8efb0ed97ec92c97",
+      "used_by_endpoints": [
+        "admin.dish_template_plan",
+        "admin.dish_template_plan_post"
+      ],
+      "owning_mp": "MP-REC-MENU-PROPOSAL",
+      "density_mockups": [
+        "M01",
+        "M10",
+        "M12",
+        "M19",
+        "M20"
+      ],
+      "current_visual_status": "not_run"
+    },
+    {
       "path": "admin/gerichtvorlagen.html",
       "kind": "page",
       "extends": [
@@ -8963,7 +9127,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "3cfd662c9d1f8ffafbd1b670cabca581ef07ff87e6b8d5fac964e78d20899fdf",
+      "sha256": "2fc540a34d33cb57fabbc3c67daa946dd779c048f8044a99d5a0eccfdd1611ec",
       "used_by_endpoints": [
         "admin.dish_template_create",
         "admin.dish_template_edit",
@@ -9194,7 +9358,7 @@
         "admin/_local_user_forms.html",
         "admin/_macros.html"
       ],
-      "sha256": "e75f1bf2dd3b4af483a9ca03267d36fd35763f2d2315ed116ec51331e87d8986",
+      "sha256": "acfa99d21588f176d97463a97d3e88b75595ec88e6c3f46ffe5988d16ad70919",
       "used_by_endpoints": [
         "admin.local_user_new"
       ],
@@ -9216,7 +9380,7 @@
         "admin/_local_user_forms.html",
         "admin/_macros.html"
       ],
-      "sha256": "ba04ed0191c383c0046eee6b236f56ea1d58ccf92974adeed6e26f7e149f146c",
+      "sha256": "9c95d9993438ce43415a699dcff25e1c0dfda118c43710cdf561fea3950d7757",
       "used_by_endpoints": [
         "admin.local_user_detail"
       ],
@@ -9237,7 +9401,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "a0a28df117613f0484c0203b7a07e2a94e0aa918128d64d55c7aeae97c3530f7",
+      "sha256": "a89485dadcc0977a0bfcdfff2ef81fd46167060fa8227fc8f6633ede354d5063",
       "used_by_endpoints": [
         "admin.local_user_events"
       ],
@@ -9253,8 +9417,10 @@
       "path": "admin/local_user_unavailable.html",
       "kind": "page",
       "extends": [],
-      "includes": [],
-      "sha256": "17f8bc0a87f71ef8f1ff0e9f882d2a9d341db6449201f0c7d329d84cbedc1b03",
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "8a543068d81f0d384772f47442a77a7db6a16d7a9593eae9ac69c0a14c1d8d20",
       "used_by_endpoints": [
         "admin.local_user_detail",
         "admin.local_user_events",
@@ -9279,7 +9445,7 @@
         "admin/_local_user_forms.html",
         "admin/_macros.html"
       ],
-      "sha256": "9ef1f86405e8493ec0fa6ad562d119f213aec06dd8e336ff15e47006cfcf1b6c",
+      "sha256": "577b80c339069baef07381d17dfa551f3f12b562cff7ae3b9ffdbfbd961be086",
       "used_by_endpoints": [
         "admin.local_users_list"
       ],
@@ -9326,7 +9492,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "f2c03002a74071e851b459dc204b6f51c11ae0a74f6f362c81ba9d68d51e6427",
+      "sha256": "072165aabea97ec3fdeecc5f71ba0cb45139d6f611a5ab837a85c0be346ee70f",
       "used_by_endpoints": [
         "admin.menu_get"
       ],
