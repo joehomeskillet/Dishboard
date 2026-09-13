@@ -643,6 +643,7 @@ reference_scaffold/cafeteria/recipe_commands.py
 reference_scaffold/cafeteria/recipe_import.py
 reference_scaffold/cafeteria/recipe_import_store.py
 reference_scaffold/cafeteria/recipe_import_types.py
+reference_scaffold/cafeteria/recipe_link_reads.py
 reference_scaffold/cafeteria/recipe_reads.py
 reference_scaffold/cafeteria/recipe_schemaorg.py
 reference_scaffold/cafeteria/recipe_snapshot_v2.py
@@ -724,6 +725,7 @@ reference_scaffold/cafeteria/static/menu-images.css
 reference_scaffold/cafeteria/static/print-template-editor.css
 reference_scaffold/cafeteria/static/public.css
 reference_scaffold/cafeteria/static/recipe-admin.css
+reference_scaffold/cafeteria/static/recipe-editor.js
 reference_scaffold/cafeteria/static/signage.css
 reference_scaffold/cafeteria/static/signage.js
 reference_scaffold/cafeteria/static/tokens.css
@@ -1304,6 +1306,7 @@ reference_scaffold/tests/test_recipe_binding_migration_db.py
 reference_scaffold/tests/test_recipe_browser.py
 reference_scaffold/tests/test_recipe_capabilities.py
 reference_scaffold/tests/test_recipe_data_import_db.py
+reference_scaffold/tests/test_recipe_density_browser.py
 reference_scaffold/tests/test_recipe_error_focus.py
 reference_scaffold/tests/test_recipe_examples.py
 reference_scaffold/tests/test_recipe_filter_reads.py
@@ -1320,6 +1323,7 @@ reference_scaffold/tests/test_recipe_import_batch_db.py
 reference_scaffold/tests/test_recipe_import_browser.py
 reference_scaffold/tests/test_recipe_import_commit_db.py
 reference_scaffold/tests/test_recipe_import_routes.py
+reference_scaffold/tests/test_recipe_link_reads_db.py
 reference_scaffold/tests/test_recipe_menu_binding_db.py
 reference_scaffold/tests/test_recipe_migration_db.py
 reference_scaffold/tests/test_recipe_navigation_browser.py
