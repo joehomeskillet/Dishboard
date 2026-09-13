@@ -5499,7 +5499,7 @@
         "QA-001"
       ],
       "kind": "research",
-      "status": "IN_PROGRESS",
+      "status": "INTEGRATED",
       "depends_on": [],
       "existing_wp_id": "wp-3dde00c6c96c",
       "sdd_sections": [
@@ -5589,7 +5589,7 @@
         "QA-001"
       ],
       "kind": "implementation",
-      "status": "IN_PROGRESS",
+      "status": "INTEGRATED",
       "depends_on": [],
       "existing_wp_id": "wp-21d6454513ab",
       "sdd_sections": [
@@ -5691,9 +5691,11 @@
         "reference_scaffold/cafeteria/static/recipe-editor.js",
         "reference_scaffold/tests/test_recipe_browser.py",
         "reference_scaffold/tests/test_ui_korrektur_recipes_browser.py",
-        "reference_scaffold/tests/test_recipe_density_browser.py"
+        "reference_scaffold/tests/test_recipe_density_browser.py",
+        "reference_scaffold/cafeteria/static/admin.js",
+        "reference_scaffold/tests/test_ui_menu_editor_browser.py"
       ],
-      "task": "Zentrale kompakte Arbeitszeilen erstmalig am Rezept einsetzen: genau eine direkt bearbeitbare Menge/Einheit, sichere Details und Zusammenfassungen, beschriftete native Strukturaktionen, 4/2- und 20/10-Fixtures. Bestehende Speicherung, Indizes, Referenzen, Warnungen, required/formnovalidate und Fehleröffnung erhalten.",
+      "task": "Zentrale kompakte Arbeitszeilen erstmalig am Rezept einsetzen: genau eine direkt bearbeitbare Menge/Einheit, sichere Details und Zusammenfassungen, beschriftete native Strukturaktionen, 4/2- und 20/10-Fixtures. Bestehende Speicherung, Indizes, Referenzen, Warnungen, required/formnovalidate und Fehleröffnung erhalten. Root erweitert den gemeinsamen vorhandenen VisualViewport-/Fokushandler in admin.js für Menü- und Rezepttoolbar; SHARED übernimmt erst nach diesem Freeze.",
       "acceptance_criteria": [
         "A02 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
         "A04 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
@@ -5711,13 +5713,15 @@
         "A20 nach zentralem Dichtemanifest: konkret für diese Seiten belegen",
         "R01-R10 und M02, M03, M04, M05, M06, M19 gelten. Korrekte bereits integrierte Arbeit erhalten; kein neuer Backend-/Datenvertrag als UI-Nebenprodukt.",
         "Vollständigen vorhandenen Formularvertrag inklusive CSRF/Originalkontext/CAS/readonly/disabled/formaction/formnovalidate erhalten; keine Werteverluste oder falschen Speicher-/Prüfaussagen.",
-        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines."
+        "Implementiert, technisch geprüft, visuell geprüft und Benutzerabnahme getrennt. Nicht gefahrene Checks nicht als PASS; keine fremden Baselines.",
+        "M06/R08: mobile Save-Leiste bleibt bei ausreichender Höhe erreichbar; vorhandener Tastatur-/Fokusschutz schützt Menü- und Rezepteditor. Gemeinsamen Handler und vorhandenen Menü-Browsergate prüfen, keine getrennte Implementierung."
       ],
       "contract_files": [
         "reference_scaffold/cafeteria/templates/admin/rezepte_editor.html",
         "reference_scaffold/cafeteria/templates/admin/_rezepte_fields.html",
         "reference_scaffold/cafeteria/static/admin-tabler.css",
-        "proposed:reference_scaffold/cafeteria/static/recipe-editor.js"
+        "proposed:reference_scaffold/cafeteria/static/recipe-editor.js",
+        "reference_scaffold/cafeteria/static/admin.js"
       ],
       "wiring_files": [],
       "owned_files": [
@@ -5727,7 +5731,9 @@
         "proposed:reference_scaffold/cafeteria/static/recipe-editor.js",
         "reference_scaffold/tests/test_recipe_browser.py",
         "reference_scaffold/tests/test_ui_korrektur_recipes_browser.py",
-        "proposed:reference_scaffold/tests/test_recipe_density_browser.py"
+        "proposed:reference_scaffold/tests/test_recipe_density_browser.py",
+        "reference_scaffold/cafeteria/static/admin.js",
+        "reference_scaffold/tests/test_ui_menu_editor_browser.py"
       ],
       "forbidden_paths": [
         "database/*",
@@ -5739,7 +5745,7 @@
       "test_plan": [
         {
           "kind": "browser",
-          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_recipe_browser.py tests/test_ui_korrektur_recipes_browser.py tests/test_recipe_density_browser.py",
+          "command": "rtk bash <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_recipe_browser.py tests/test_ui_korrektur_recipes_browser.py tests/test_recipe_density_browser.py tests/test_ui_menu_editor_browser.py",
           "assertions": [
             "Zentrale kompakte Arbeitszeilen erstmalig am Rezept einsetzen: genau eine direkt bearbeitbare Menge/Einheit, sichere Details und Zusammenfassungen, beschriftete native Strukturaktionen, 4/2- und 20/10-Fixtures. Bestehende Speicherung, Indizes, Referenzen, Warnungen, required/formnovalidate und Fehleröffnung erhalten.",
             "Genannte Gates tatsächlich ausführen und Status/Viewports/Exitcodes getrennt dokumentieren.",

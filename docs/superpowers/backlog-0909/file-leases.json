@@ -35,8 +35,11 @@
           "proposed:reference_scaffold/cafeteria/static/recipe-editor.js",
           "reference_scaffold/tests/test_recipe_browser.py",
           "reference_scaffold/tests/test_ui_korrektur_recipes_browser.py",
-          "proposed:reference_scaffold/tests/test_recipe_density_browser.py"
-        ]
+          "proposed:reference_scaffold/tests/test_recipe_density_browser.py",
+          "reference_scaffold/cafeteria/static/admin.js",
+          "reference_scaffold/tests/test_ui_menu_editor_browser.py"
+        ],
+        "scope_extension": "Root authorized existing shared viewport/focus handler and its menu-browser regression only; RECIPE freezes admin.js before SHARED."
       },
       {
         "wp_id": "MP-UI-DENSITY-INVENTORY",
@@ -45,7 +48,7 @@
         "base": "a420992ae91fd801d0ec43d41038f57bbdd3b261",
         "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/ui-density-inventory-0913",
         "branch": "test/ui-density-inventory-0913",
-        "status": "IN_PROGRESS",
+        "status": "INTEGRATED",
         "pool": {
           "name": "test_ui_other",
           "pg_port": 32853,
@@ -56,7 +59,9 @@
           "docs/superpowers/backlog-0909/ui-before-manifest.json",
           "reference_scaffold/tests/test_ui_route_inventory.py",
           "reference_scaffold/tests/test_ui_inventory_capture.py"
-        ]
+        ],
+        "head": "d983860eb49c4d4096be11b2105345589c3e93ba",
+        "pool_reservation": "RELEASED"
       },
       {
         "wp_id": "MP-REC-PRINT-TEMPLATE-ENTRY",
@@ -65,7 +70,7 @@
         "base": "a420992ae91fd801d0ec43d41038f57bbdd3b261",
         "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/recipe-print-entry-0913",
         "branch": "feat/recipe-print-entry-0913",
-        "status": "IN_PROGRESS",
+        "status": "DEPLOYED",
         "pool": {
           "name": "test-recipe-template-editor-0908",
           "pg_port": 32823,
@@ -76,7 +81,10 @@
           "reference_scaffold/cafeteria/templates/admin/_recipe_template_selection.html",
           "reference_scaffold/tests/test_recipe_template_editor_routes.py",
           "reference_scaffold/tests/test_recipe_template_editor_browser.py"
-        ]
+        ],
+        "head": "5c9fa4aaeda63049215a4a2e0edaa4fbaab22cfa",
+        "deployment": "3ee090d6cb5cc4b6f7863b1a8746fb53d77cfa6e",
+        "pool_reservation": "RELEASED"
       },
       {
         "id": "MP-UI-DENSITY-MANIFEST",
@@ -84,12 +92,35 @@
         "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/ui-density-manifest-0913",
         "branch": "docs/ui-density-manifest-0913",
         "head": "39625ccc0d8b576fae9edaeb8cf0b5c70b1af912",
-        "state": "COMMITTED_AWAITING_INDEPENDENT_REVIEW",
+        "state": "INTEGRATED",
         "reviewer": "native:/root/sprint_plan_review",
         "owned_files": [
           "AGENTS.md",
           "CLAUDE.md",
           "docs/design/2026-09-09-unified-ui-design-system.md"
+        ],
+        "review_record": 12697
+      },
+      {
+        "wp_id": "MP-REC-LINK-READS",
+        "routing_wp": "wp-48be07f78359",
+        "owner": "native:/root/recipe_links_flow",
+        "base": "ca51f56ab36b3512b78bcfbaa90f729d31751ef1",
+        "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/recipe-link-reads-0913",
+        "branch": "feat/recipe-link-reads-0913",
+        "status": "IN_PROGRESS",
+        "pool": {
+          "name": "test_ui_other",
+          "pg_port": 32853,
+          "redis_port": 32854
+        },
+        "owned_files": [
+          "proposed:reference_scaffold/cafeteria/recipe_link_reads.py",
+          "reference_scaffold/cafeteria/admin/dish_template_routes.py",
+          "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html",
+          "reference_scaffold/tests/test_dish_template_routes.py",
+          "reference_scaffold/tests/test_dish_template_browser.py",
+          "proposed:reference_scaffold/tests/test_recipe_link_reads_db.py"
         ]
       }
     ],
@@ -100,6 +131,7 @@
         "MP-UI-DENSITY-SHELL"
       ],
       "reference_scaffold/cafeteria/static/admin.js": [
+        "MP-UI-DENSITY-RECIPE",
         "MP-UI-DENSITY-SHARED",
         "MP-REC-PLAN-PORTIONS"
       ],
@@ -140,9 +172,27 @@
       "docs/superpowers/backlog-0909/ui-before-manifest.json": [
         "MP-UI-DENSITY-INVENTORY",
         "MP-UI-DENSITY-REGRESSION"
+      ],
+      "reference_scaffold/tests/test_ui_menu_editor_browser.py": [
+        "MP-UI-DENSITY-RECIPE"
       ]
     },
-    "foreign_work": "Shared main dirty AGENTS/CLAUDE is preserved; ongoing site/* and docs changes must be reconciled before release. Release manifests serialized by Root."
+    "foreign_work": "Shared main dirty AGENTS/CLAUDE is preserved; ongoing site/* and docs changes must be reconciled before release. Release manifests serialized by Root.",
+    "gate_fixes": [
+      {
+        "routing_wp": "wp-82b3aaf0a387",
+        "owner": "native:/root/density_plan_fix",
+        "base": "3ee090d6cb5cc4b6f7863b1a8746fb53d77cfa6e",
+        "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/patient-cost-gatefix-0913",
+        "branch": "test/patient-cost-gatefix-0913",
+        "status": "IN_PROGRESS",
+        "owned_files": [
+          "reference_scaffold/tests/test_ui_contracts.py"
+        ],
+        "pool": null,
+        "scope": "Fail-closed patient include cost guard and real grid structure assertions; no production changes."
+      }
+    ]
   },
   "plan_source_commit": "de08d5101a689e3c09d2aab980cfec4dcb025017",
   "local_cherry_pick_base": "feab241b3a9081a03a8147c57d3e3030336fb382",

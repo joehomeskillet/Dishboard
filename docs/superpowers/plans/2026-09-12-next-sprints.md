@@ -64,6 +64,21 @@ Besitzserialisierung: `admin-tabler.css` RECIPE → SHARED → SHELL; `_macros.h
 
 Der aktive RECIPE-Vertrag und sein Root-Grant enthalten zusätzlich den vorgeschlagenen `reference_scaffold/tests/test_recipe_density_browser.py` für die Dichte-Fixtures und Interaktionen. `test_recipe_browser.py` und `test_ui_korrektur_recipes_browser.py` bleiben im Besitz und im auszuführenden Testplan; die neue Datei ist noch kein Testergebnis.
 
+Stand 13. September, 02:02 CEST: Druckvorlagen-Einstieg `5c9fa4a`, Inventar
+`d983860`, Manifest `39625cc` und separat geprüfter Planfix `7ba8f70` sind in
+Release `3ee090d6cb5cc4b6f7863b1a8746fb53d77cfa6e` integriert und live. Der
+integrierte Sprintgate bestand mit 100 Tests; vollständige Screenshot-Neuerfassung
+blieb ausdrücklich ausgenommen. Image-Revision, Health und Schema 30 sind belegt.
+
+Aktuelle Anschlussentscheidungen: RECIPE übernimmt vor SHARED den bestehenden
+Viewport-/Fokushandler in `admin.js` auch für seine mobile Speicherleiste samt
+`test_ui_menu_editor_browser.py`. LINK-READS erhält ungespeicherte Formularwerte
+bei Suche/Blättern über ein CSRF-geschütztes POST-Intent zur reinen Neuanzeige;
+GET bleibt für frische Einstiege. Der SDD-Abschnitt 4.1 und der WP-Vertrag sind
+entsprechend präzisiert. Ein separater Worker korrigiert ausschließlich die
+veralteten statischen Patientenpreis-/Gridprüfungen in `test_ui_contracts.py`.
+Konkrete Bases, Besitzer und Pools stehen in den aktiven Grants.
+
 ## Global Constraints
 
 - Aktuelle Nutzeranweisungen vor historischen Dokumentständen; „SDD“ bezeichnet die vorhandenen Software-Design-Verträge.

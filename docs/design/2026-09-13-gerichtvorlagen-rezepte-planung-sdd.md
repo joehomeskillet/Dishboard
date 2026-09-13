@@ -115,9 +115,17 @@ Sichtbare Zustände, jeweils mit Klartext und ohne technische IDs als Hauptinfor
 
 Vorlagenliste zeigt pro Zeile Titel, Menüart, Geltungsbereich, Rezeptzustand (§3.1),
 Verwendung und Aktivstatus. Das Formular behält das native Rezept-Select, erhält aber
-eine gebundene Auswahl: Titelfilter als GET-Formular (NoJS), Seite von 50, das aktuell
+eine gebundene Auswahl: Titelfilter ohne JavaScript, Seite von 50, das aktuell
 gebundene Rezept bleibt ausserhalb der Seite als «Aktuelle Auswahl» erhalten. Das
 200-Limit entfällt.
+
+Für frische Einstiege bleibt ein GET-Titelfilter möglich. Während der Bearbeitung
+laufen Suche und Blättern über ein CSRF-geschütztes POST-Intent mit
+`formnovalidate`, das sämtliche ungespeicherten Formularwerte erhält und nur neu
+anzeigt. Es schreibt weder Fachdaten noch Audit und legt keinen neuen
+Formularzustand in Session oder Store an. CSRF-Token gelangen nie in die URL.
+Diese Root-Präzisierung vom 13. September verhindert Datenverlust durch Navigation
+aus einem bereits bearbeiteten Formular.
 
 ### 4.2 Rezept → Vorlagen sehen und anlegen
 

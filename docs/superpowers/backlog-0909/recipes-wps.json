@@ -6792,7 +6792,7 @@
       ]
     },
     {
-      "existing_wp_id": null,
+      "existing_wp_id": "wp-48be07f78359",
       "migration_group": null,
       "external_inputs": [],
       "planning_origin": "wp-61d537d988a2 · Fable 5.1 (claude-fable-5-1) · 2026-09-13",
@@ -6835,7 +6835,7 @@
         "REC-001"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "depends_on": [
         "MP-REC-DISH-TEMPLATE-WRITER",
         "MP-REC-BINDINGS"
@@ -6856,11 +6856,11 @@
         "database/schema.sql:menu_items_dish_template_idx",
         "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html"
       ],
-      "task": "Vorher: die Vorlagenliste zeigt nur den Rezepttitel als Text, das Formular lädt bis zu 200 Rezepte ohne Suche und ohne Retained-Lookup, und weder Vorlage noch Rezept kennen Verwendung, Rezeptzustand oder neuesten gespeicherten Stand. Nachher: ein kleines Nur-Lese-Modul recipe_link_reads.py bündelt die gebundenen Abfragen der vier vorhandenen Kanten (Vorlage→Rezeptkopf, Rezept→Vorlagen, Menü→Vorlage, neuester Stand je Rezept), die Vorlagenliste zeigt Rezeptzustand und Verwendung in Klartext, das Formular erhält eine gebundene Rezeptauswahl mit Titelfilter, Seite und erhaltener aktueller Auswahl (Muster menu_recipe_choices), und /gerichtvorlagen/neu?recipe= belegt das Formular aus einem Rezept vor. Keine SQL, keine Migration, keine Store-Änderung, kein Auto-Matching. Explizite UUID-Zuordnung bleibt der einzige Schreibweg über den vorhandenen Vorlagen-Writer. Die Rezeptlinks verwenden bis zur späteren Umschaltung durch RECIPE-VIEW-PRINT ausschliesslich den vorhandenen admin.recipe_edit; dieser Zwischenstand hat eigene Navigationsgates.",
+      "task": "Vorher: die Vorlagenliste zeigt nur den Rezepttitel als Text, das Formular lädt bis zu 200 Rezepte ohne Suche und ohne Retained-Lookup, und weder Vorlage noch Rezept kennen Verwendung, Rezeptzustand oder neuesten gespeicherten Stand. Nachher: ein kleines Nur-Lese-Modul recipe_link_reads.py bündelt die gebundenen Abfragen der vier vorhandenen Kanten (Vorlage→Rezeptkopf, Rezept→Vorlagen, Menü→Vorlage, neuester Stand je Rezept), die Vorlagenliste zeigt Rezeptzustand und Verwendung in Klartext, das Formular erhält eine gebundene Rezeptauswahl mit Titelfilter, Seite und erhaltener aktueller Auswahl (Muster menu_recipe_choices), und /gerichtvorlagen/neu?recipe= belegt das Formular aus einem Rezept vor. Keine SQL, keine Migration, keine Store-Änderung, kein Auto-Matching. Explizite UUID-Zuordnung bleibt der einzige Schreibweg über den vorhandenen Vorlagen-Writer. Die Rezeptlinks verwenden bis zur späteren Umschaltung durch RECIPE-VIEW-PRINT ausschliesslich den vorhandenen admin.recipe_edit; dieser Zwischenstand hat eigene Navigationsgates. Root-Entscheid 2026-09-13: Suche/Blättern während Bearbeitung erhält alle ungespeicherten Formularwerte über ein CSRF-geschütztes POST-Intent mit formnovalidate, das nur neu anzeigt und weder Store noch Audit schreibt. GET-Titelfilter bleibt für frische Einstiege zulässig; keine CSRF-Token in URLs.",
       "acceptance_criteria": [
         "Neues Lesemodul recipe_link_reads.py (unter 300 Zeilen) liefert standortgebunden im REPEATABLE READ READ ONLY der bestehenden recipe_reads.connection: je Rezept-UUID verknüpfte Vorlagen (public_id, title, active, menu_type_code, profile_scope) und den neuesten gespeicherten Stand (public_id, revision_number, created_at); je Vorlage Rezeptzustand (aktiv/archiviert/kein Rezept), Anzahl gespeicherter Stände und Anzahl Menüpositionen mit dish_template_id; genau eine gebundene Abfrage je Liste, keine N+1",
         "Gerichtvorlagenliste zeigt je Zeile Klartext: «Rezept: <Titel>» mit Link zum bereits registrierten admin.recipe_edit, «Rezept archiviert», «Kein Rezept verknüpft», «Noch kein gespeicherter Stand» und «In n Menüs verwendet»; technische IDs nur in Technische Details. Dieses WP verwendet keinen Endpoint der erst später gelieferten Rezeptansicht.",
-        "Rezeptauswahl im Vorlagenformular ist gebunden: Titelfilter als GET-Formular ohne JavaScript, Seite von 50 mit echtem has_next, das aktuell gebundene Rezept bleibt ausserhalb der Seite als «Aktuelle Auswahl» erhalten; das 200-Limit entfällt; archiviertes gebundenes Rezept bleibt sichtbar und ist nicht neu wählbar",
+        "Rezeptauswahl im Vorlagenformular ist gebunden: Titelfilter ohne JavaScript (GET für frische Einstiege; bei Bearbeitung CSRF-geschütztes POST-Intent unter Erhalt sämtlicher Formularwerte), Seite von 50 mit echtem has_next, das aktuell gebundene Rezept bleibt ausserhalb der Seite als «Aktuelle Auswahl» erhalten; das 200-Limit entfällt; archiviertes gebundenes Rezept bleibt sichtbar und ist nicht neu wählbar",
         "/admin/gerichtvorlagen/neu?recipe=<uuid> belegt das Formular nur vor (GET schreibt nichts); unbekannte oder standortfremde UUID liefert 404 auf der Seite ohne Vorbelegung; archiviertes Rezept zeigt Hinweis, Speichern wird serverseitig mit 55000 → 409 abgewiesen",
         "Bestehende Verträge unverändert: v26-Verben, updated_at-CAS, draft.read/draft.write, Audit je realer Änderung; keine SQL-, Migrations- oder Store-Änderung",
         "UI-Master vollständig gelesen; pro geänderter Route 1440x900+390x844, pro Seitentyp/shared zusätzlich 1024x768+768x1024+1920x1080, tatsächliche Coverage nennen",
@@ -6901,7 +6901,7 @@
           "assertions": [
             "Neues Lesemodul recipe_link_reads.py (unter 300 Zeilen) liefert standortgebunden im REPEATABLE READ READ ONLY der bestehenden recipe_reads.connection: je Rezept-UUID verknüpfte Vorlagen (public_id, title, active, menu_type_code, profile_scope) und den neuesten gespeicherten Stand (public_id, revision_number, created_at); je Vorlage Rezeptzustand (aktiv/archiviert/kein Rezept), Anzahl gespeicherter Stände und Anzahl Menüpositionen mit dish_template_id; genau eine gebundene Abfrage je Liste, keine N+1",
             "Gerichtvorlagenliste zeigt je Zeile Klartext: «Rezept: <Titel>» mit Link zum bereits registrierten admin.recipe_edit, «Rezept archiviert», «Kein Rezept verknüpft», «Noch kein gespeicherter Stand» und «In n Menüs verwendet»; technische IDs nur in Technische Details. Dieses WP verwendet keinen Endpoint der erst später gelieferten Rezeptansicht.",
-            "Rezeptauswahl im Vorlagenformular ist gebunden: Titelfilter als GET-Formular ohne JavaScript, Seite von 50 mit echtem has_next, das aktuell gebundene Rezept bleibt ausserhalb der Seite als «Aktuelle Auswahl» erhalten; das 200-Limit entfällt; archiviertes gebundenes Rezept bleibt sichtbar und ist nicht neu wählbar",
+            "Rezeptauswahl im Vorlagenformular ist gebunden: Titelfilter ohne JavaScript (GET für frische Einstiege; bei Bearbeitung CSRF-geschütztes POST-Intent unter Erhalt sämtlicher Formularwerte), Seite von 50 mit echtem has_next, das aktuell gebundene Rezept bleibt ausserhalb der Seite als «Aktuelle Auswahl» erhalten; das 200-Limit entfällt; archiviertes gebundenes Rezept bleibt sichtbar und ist nicht neu wählbar",
             "/admin/gerichtvorlagen/neu?recipe=<uuid> belegt das Formular nur vor (GET schreibt nichts); unbekannte oder standortfremde UUID liefert 404 auf der Seite ohne Vorbelegung; archiviertes Rezept zeigt Hinweis, Speichern wird serverseitig mit 55000 → 409 abgewiesen",
             "Bestehende Verträge unverändert: v26-Verben, updated_at-CAS, draft.read/draft.write, Audit je realer Änderung; keine SQL-, Migrations- oder Store-Änderung",
             "UI-Master vollständig gelesen; pro geänderter Route 1440x900+390x844, pro Seitentyp/shared zusätzlich 1024x768+768x1024+1920x1080, tatsächliche Coverage nennen",
@@ -7019,7 +7019,7 @@
         "REC-007"
       ],
       "kind": "implementation",
-      "status": "IN_PROGRESS",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-REC-PDF-RELEASE"
       ],
