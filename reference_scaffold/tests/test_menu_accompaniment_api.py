@@ -10,6 +10,7 @@ from cafeteria.api.v1_routes import bp as api_v1_bp
 from cafeteria.api_keys import API_KEY_SCOPES, create_api_key
 from cafeteria.workflow_partial_store import persist_menu_item
 import dishboard_mcp.server as mcp_server
+from test_api_keys_db import _create_user
 from test_mcp_server import invoke_tool
 from test_workflow_partial_store_db import (
     WEEK,
@@ -31,9 +32,14 @@ def _keyed_app(db: WorkflowDatabase) -> tuple[Flask, str]:
     app.config.update(SECRET_KEY='menu-accompaniment-api-test-secret')
     app.extensions['cafeteria_db'] = db.app
     app.register_blueprint(api_v1_bp)
+    api_admin_id = _create_user(
+        db.owner,
+        suffix='913',
+        roles=['Cafeteria.Admin'],
+    )
     _, token = create_api_key(
         db.app,
-        actor_id=db.actor_id,
+        actor_id=api_admin_id,
         label='Beilagen-API-Test',
         scopes=API_KEY_SCOPES,
         channels=('patienten',),
