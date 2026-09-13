@@ -18,7 +18,7 @@
 <a class="btn" href="{{ url_for('admin.recipes_list') }}">{{ icon('arrow-left') }}Zur Rezeptliste</a>
 {% if recipe_id and can_write or links %}<details class="admin-compact-actions"><summary class="btn">{{ icon('dots') }}Weitere Aktionen</summary><div class="d-flex flex-wrap gap-2 mt-2">
 {% if recipe_id and can_write %}<a class="btn" href="{{ url_for('admin.recipe_status', recipe_id=recipe_id) }}">{{ 'Archivieren' if active else 'Reaktivieren' }}</a>{% endif %}
-{% for name, label in [('recipe_images', 'Bilder verwalten'), ('recipe_revisions', 'Gespeicherte Stände'), ('recipe_scale', 'Mengen berechnen')] %}{% if name in links %}<a class="btn" href="{{ links[name] }}">{{ label }}</a>{% endif %}{% endfor %}</div></details>{% endif %}
+{% for name, label in [('recipe_images', 'Bilder verwalten'), ('recipe_revisions', 'Rezept-History'), ('recipe_scale', 'Mengen berechnen')] %}{% if name in links %}<a class="btn" href="{{ links[name] }}">{{ label }}</a>{% endif %}{% endfor %}</div></details>{% endif %}
 <span class="text-secondary" role="status">{{ 'Entwurf · Änderungen werden erst mit Speichern übernommen.' if active else 'Archiviert · Lesbar, zum Bearbeiten zuerst reaktivieren.' }}</span>
 {% if can_write and active %}<button class="btn btn-primary ms-auto" type="submit" form="recipe-editor">{{ icon('device-floppy') }}{{ 'Rezept speichern' if recipe_id else 'Rezept anlegen' }}</button>{% endif %}
 </div>

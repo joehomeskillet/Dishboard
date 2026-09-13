@@ -81,9 +81,11 @@
         "clipboard-check",
         "dots",
         "arrow-up",
-        "arrow-down"
+        "arrow-down",
+        "printer",
+        "history"
       ],
-      "sha256": "4f3750db10948856b1d75996a9d7d03f75ccb8bc63794ca32ac33a97e6d44c65"
+      "sha256": "759fcd4c8f228dd4cab7b981a2fcb8051f749551248f6994f0651c399e746080"
     }
   ]
 }

@@ -8,6 +8,7 @@ import pytest
 from PIL import Image
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
+from werkzeug.datastructures import MultiDict
 
 from cafeteria import recipe_store as store, roles
 from cafeteria.admin import recipe_revision_routes, recipe_image_routes  # noqa: F401
@@ -15,6 +16,7 @@ from cafeteria.admin import recipe_forms as forms
 from test_master_data_routes import Forms, b3, pg16, installed_pg16, seeded_pg16, app_engine  # noqa: F401
 from test_master_data_db import signed_in
 from test_recipe_store_db import payload, line, target, snapshot, mutable, complete_line
+from test_recipe_error_focus import parse as parse_recovery
 
 
 @pytest.fixture
@@ -137,7 +139,9 @@ def test_original_context_errors_retain_values_without_mutation(a3, suffix, mode
     assert response.status_code == status and response.headers['Cache-Control'] == 'no-store'
     assert snapshot(owner) == before
     if status in (400, 409):
-        recovered = Forms(response.text).forms['']
+        assert '<section aria-label="Ursprüngliche Eingaben"' in response.text
+        assert not Forms(response.text).forms
+        recovered = MultiDict(parse_recovery(response.text).hidden)
         for key, value in original.items(multi=True):
             if key != 'file':
                 assert value in recovered.getlist(key)
@@ -225,4 +229,84 @@ def test_read_only_scaling_invalid_target_and_archived_recipe(a3):
         result = client.get(f'/admin/rezepte/{public_id}/{suffix}')
         assert result.status_code == 200
         assert 'name="_form_context"' not in result.text
+    assert snapshot(owner) == before
+
+
+def test_view_print_latest_revision_is_distinct_from_current_draft(a3, monkeypatch):
+    complete_a3(a3)
+    app, owner, client, actor, public_id = a3
+    path = f'/admin/rezepte/{public_id}'
+    first = client.post(path + '/revisionen', data=fields(client, path + '/revisionen'))
+    assert first.status_code == 303
+    edit(a3, title='Zweiter Stand')
+    second = client.post(path + '/revisionen', data=fields(client, path + '/revisionen'))
+    assert second.status_code == 303
+    edit(a3, title='Nur im Entwurf')
+    before = snapshot(owner)
+    monkeypatch.setattr(forms, 'sign_context', lambda **kwargs: pytest.fail('Viewing never signs'))
+    for suffix in ('', '/ansicht'):
+        result = client.get('/admin/rezepte' if not suffix else path + suffix)
+        assert result.status_code == 200
+        assert f'href="{second.location}/druck.pdf"' in result.text
+        assert 'Drucken · Stand 2' in result.text
+        assert f'href="{first.location}/druck.pdf"' not in result.text
+    assert 'Nur im Entwurf' in client.get(path + '/ansicht').text
+    historical = client.get(second.location)
+    assert 'Zweiter Stand' in historical.text and 'Nur im Entwurf' not in historical.text
+    assert 'Druckvorlage:' in historical.text and 'Revision 1 (aktiv)' in historical.text
+    monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', {'draft.read'})
+    revisions = client.get(path + '/revisionen')
+    assert revisions.status_code == 200
+    assert revisions.text.count('PDF öffnen</a>') == 2
+    for suffix in ('/ansicht', '/revisionen', second.location.removeprefix(path)):
+        result = client.get(path + suffix)
+        assert result.status_code == 200
+        assert 'Druckvorlage:' in result.text and '/admin/vorlagen/rezepte?' not in result.text
+        assert 'name="_form_context"' not in result.text
+        assert f'href="{path}"' not in result.text
+    assert snapshot(owner) == before
+
+
+def test_history_every_stand_remains_readable_after_draft_changes_and_archive(a3, monkeypatch):
+    complete_a3(a3)
+    app, owner, client, actor, public_id = a3
+    path = f'/admin/rezepte/{public_id}'
+    history = []
+    for number in range(1, 4):
+        edit(a3, title=f'Suppe in Stand {number}', description=f'Anleitung aus Stand {number}')
+        response = client.post(path + '/revisionen', data=fields(client, path + '/revisionen'))
+        assert response.status_code == 303
+        history.append((response.location, client.get(response.location).text))
+    changed = edit(a3, title='Aktueller Entwurf', description='Noch nicht festgehalten')
+    engine = app.extensions['cafeteria_db']
+    with signed_in(engine, actor):
+        store.set_recipe_active(engine, actor, target(changed), active=False,
+                                expected_location_id=store.get_location(engine))
+    monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', {'draft.read'})
+    before = snapshot(owner)
+    listing = client.get(path + '/revisionen')
+    assert listing.status_code == 200 and 'Rezept-History' in listing.text
+    assert 'Dieses Rezept ist archiviert' in listing.text
+    assert listing.text.count('Ansehen</a>') == 3 and listing.text.count('<time datetime=') == 3
+    for number, (url, original) in enumerate(history, 1):
+        assert f'href="{url}"' in listing.text and f'href="{url}/druck.pdf"' in listing.text
+        current = client.get(url)
+        assert current.status_code == 200
+        assert f'Anleitung aus Stand {number}' in current.text
+        assert 'Noch nicht festgehalten' not in current.text
+        # Role changes affect navigation, but the recorded recipe remains identical.
+        assert f'Suppe in Stand {number}' in original and f'Suppe in Stand {number}' in current.text
+        assert client.get(url + '/druck.pdf').status_code == 200
+        assert client.get(url.replace(public_id, str(uuid4()), 1)).status_code == 404
+    draft = client.get(path + '/ansicht')
+    assert draft.status_code == 200 and 'Noch nicht festgehalten' in draft.text
+    assert 'Bearbeiten</a>' not in draft.text and 'name="_form_context"' not in draft.text
+    assert snapshot(owner) == before
+    with owner.begin() as connection:
+        connection.execute(text('UPDATE cafeteria.locations SET active=false'))
+        connection.execute(text("INSERT INTO cafeteria.locations(code,name,active) VALUES('HISTORY_OTHER','Andere Küche',true)"))
+    before = snapshot(owner)
+    for url, _ in history:
+        assert client.get(url).status_code == 404
+    assert client.get(path + '/ansicht').status_code == 404
     assert snapshot(owner) == before

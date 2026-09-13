@@ -101,6 +101,17 @@ def test_missing_selection_uses_active_template_revision_but_explicit_template_k
     with app.extensions['cafeteria_db'].connect() as connection:
         document = read_templates(connection, 'recipe')
         assert document['active_template'] == copy_id and document['active_revision'] == 1
+    before = state(recipe_editor[1])
+    for suffix in ('ansicht', 'revisionen', 'revisionen/' + revision.public_id):
+        response = client.get(f'/admin/rezepte/{recipe}/{suffix}')
+        assert response.status_code == 200
+        assert 'Aktive Kopie · Revision 1 (aktiv)' in response.text
+        link = f'/admin/vorlagen/rezepte?template={copy_id}&amp;revision=1&amp;recipe={recipe}'
+        if suffix.startswith('revisionen/'):
+            link += '&amp;recipe_revision=' + revision.public_id
+        assert f'href="{link}"' in response.text
+        assert client.get(link.replace('&amp;', '&')).status_code == 200
+    assert state(recipe_editor[1]) == before
 
 
 def test_recipe_context_links_back_to_draft_and_selected_saved_revision(recipe_editor):
@@ -109,7 +120,8 @@ def test_recipe_context_links_back_to_draft_and_selected_saved_revision(recipe_e
 
     selected = client.get(path(recipe, revision.public_id))
     assert selected.status_code == 200
-    assert f'href="/admin/rezepte/{recipe}"' in selected.text
+    assert f'href="/admin/rezepte/{recipe}/ansicht"' in selected.text
+    assert client.get(f'/admin/rezepte/{recipe}/ansicht').status_code == 200
     assert 'Zurück zum Rezept «Suppe»' in selected.text
     assert f'href="/admin/rezepte/{recipe}/revisionen/{revision.public_id}"' in selected.text
     assert 'Zum gespeicherten Stand 1' in selected.text
@@ -262,6 +274,14 @@ def test_archived_recipe_and_revision_pagination_keep_explicit_historical_choice
     assert f'value="{first.public_id}"' not in recent.text
     old = client.get(BASE + '?' + urlencode({'recipe': recipe, 'revision_page': 2}))
     assert old.status_code == 200 and f'value="{first.public_id}"' in old.text
+    history = client.get(f'/admin/rezepte/{recipe}/revisionen')
+    assert history.status_code == 200 and 'Rezept-History' in history.text
+    assert history.text.count('Ansehen</a>') == 50
+    assert f'href="/admin/rezepte/{recipe}/revisionen/{first.public_id}"' not in history.text
+    earliest = client.get(f'/admin/rezepte/{recipe}/revisionen?page=2')
+    assert earliest.status_code == 200 and earliest.text.count('Ansehen</a>') == 1
+    assert f'href="/admin/rezepte/{recipe}/revisionen/{first.public_id}"' in earliest.text
+    assert client.get(f'/admin/rezepte/{recipe}/revisionen/{first.public_id}').status_code == 200
     # No implicit choice, including a directly selected archived recipe.
     assert '<iframe' not in recent.text and '<iframe' not in old.text
     selected = client.get(path(recipe, first.public_id, revision_page=2))

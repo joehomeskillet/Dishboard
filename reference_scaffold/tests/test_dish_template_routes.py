@@ -226,10 +226,10 @@ def test_prefill_get_does_not_write_and_uses_the_existing_recipe_editor(b3):  # 
     assert snapshot(owner) == before
     path = create(client, recipe_public_id=recipe.public_id)
     listing = client.get('/admin/gerichtvorlagen')
-    assert f'href="/admin/rezepte/{recipe.public_id}"' in listing.text
+    assert f'href="/admin/rezepte/{recipe.public_id}/ansicht"' in listing.text
     assert 'Rezept: Vorbelegte Suppe' in listing.text
     assert 'Noch kein gespeicherter Stand' in listing.text and 'In 0 Menüs verwendet' in listing.text
-    assert client.get('/admin/rezepte/' + recipe.public_id).status_code == 200
+    assert client.get('/admin/rezepte/' + recipe.public_id + '/ansicht').status_code == 200
     assert client.get(path).status_code == 200
 
 
@@ -299,5 +299,7 @@ def test_read_only_navigation_has_no_write_actions(b3, monkeypatch):  # noqa: F8
         response = client.get(target)
         assert response.status_code == 200 and 'Rezept: Gebundenes Rezept' in response.text
         assert 'Vorlage anlegen</a>' not in response.text and 'name="action"' not in response.text
-    assert client.get('/admin/rezepte/' + recipe.public_id).status_code == 200
+    viewed = client.get('/admin/rezepte/' + recipe.public_id + '/ansicht')
+    assert viewed.status_code == 200 and 'name="_form_context"' not in viewed.text
+    assert '>Bearbeiten</a>' not in viewed.text
     assert client.post(path, data={'action': 'recipe_search'}).status_code == 403

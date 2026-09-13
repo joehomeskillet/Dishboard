@@ -153,7 +153,8 @@ def test_recipe_link_search_and_retained_selection_without_data_loss(
         assert link.evaluate('el => getComputedStyle(el).outlineStyle !== "none" || getComputedStyle(el).boxShadow !== "none"')
         with page.expect_navigation(wait_until='load') as navigation:
             page.keyboard.press('Enter')
-        assert navigation.value.status == 200 and urlsplit(page.url).path == '/admin/rezepte/' + ids[-1]
+        assert navigation.value.status == 200 and urlsplit(page.url).path == '/admin/rezepte/' + ids[-1] + '/ansicht'
+        expect(page.get_by_text('Entwurf · nicht festgeschrieben', exact=True)).to_be_visible()
         assert page.goto(base + path).status == 200
         EVIDENCE.mkdir(parents=True, exist_ok=True)
         if read_only:

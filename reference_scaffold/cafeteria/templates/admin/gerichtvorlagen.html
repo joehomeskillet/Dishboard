@@ -6,7 +6,7 @@
 {% set editing = row or request.endpoint in ['admin.dish_template_new', 'admin.dish_template_create'] %}
 {% macro recipe_state(item) %}
 {% if item.recipe_public_id %}
-<a class="text-break" href="{{ url_for('admin.recipe_edit', recipe_id=item.recipe_public_id) }}">Rezept: {{ item.recipe_title }}</a>
+<a class="text-break" href="{{ url_for('admin.recipe_view', recipe_id=item.recipe_public_id) }}">Rezept: {{ item.recipe_title }}</a>
 {% if not item.recipe_active %}<div>Rezept archiviert</div>{% endif %}
 <div class="text-secondary">{{ (item.revision_count ~ ' gespeicherte Stände') if item.revision_count else 'Noch kein gespeicherter Stand' }}</div>
 {% else %}Kein Rezept verknüpft{% endif %}

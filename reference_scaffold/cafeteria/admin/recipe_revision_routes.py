@@ -13,7 +13,7 @@ from ..branding import BrandingStateError
 from ..master_data_types import ObjectExpectation
 from ..print_branding import load_pdf_branding
 from ..print_template_config import PrintTemplateValidationError
-from ..print_templates import PrintTemplateStateError, active_template
+from ..print_templates import PrintTemplateStateError, active_template, read_templates, template_revision
 from ..quantities import QuantityError, parse_quantity
 from ..recipe_reads import recipe_print_input
 from ..recipe_types import RecipeConfigurationError, RecipeValidationError
@@ -40,6 +40,21 @@ def render_scaled(template: str, payload: Mapping[str, object], **context):
     return render_template(template, payload=payload, calculated=calculated, **context)
 
 
+def print_template_context(recipe_id: str, revision_id: str | None = None) -> dict:
+    try:
+        with current_app.extensions['cafeteria_db'].connect() as connection:
+            document = read_templates(connection, 'recipe')
+        template_id, number = document['active_template'], document['active_revision']
+        revision = template_revision(document, template_id, number)
+    except (PrintTemplateStateError, PrintTemplateValidationError):
+        raise RecipeConfigurationError('Gespeicherte Rezeptdruckdaten sind nicht verfügbar.') from None
+    link = None
+    if capabilities() & {'*', 'settings.write'}:
+        link = url_for('admin.recipe_print_template_editor', template=template_id,
+                       revision=number, recipe=recipe_id, recipe_revision=revision_id)
+    return {'name': revision['name'], 'number': number, 'url': link}
+
+
 @bp.get('/rezepte/<uuid:recipe_id>/revisionen')
 @protected
 def recipe_revisions(recipe_id: UUID):
@@ -59,7 +74,8 @@ def recipe_revisions(recipe_id: UUID):
         display_values={'recipe': str(row.payload['title'])}, dependency_hash_sha256=preview.dependency_hash_sha256
     ) if writable and preview is not None and preview.complete else None
     return render_template('admin/rezepte_revisionen.html', family='cafeteria', profile='staff_guest', recipe=row, revisions=revisions[:50],
-                           page=page, has_next=len(revisions) > 50, token=token, preview=preview), (
+                           page=page, has_next=len(revisions) > 50, token=token, preview=preview,
+                           can_write=writable, print_template=print_template_context(row.public_id)), (
                                400 if preview is not None and not preview.complete else 200)
 
 
@@ -88,7 +104,8 @@ def recipe_revision(recipe_id: UUID, revision_id: UUID):
     payload = revision.snapshot.get('recipe')
     if not isinstance(payload, Mapping):
         raise RecipeConfigurationError('Revisionsstand nicht verfügbar.')
-    return render_scaled('admin/rezepte_revision.html', payload, revision=revision, recipe_id=str(recipe_id))
+    return render_scaled('admin/rezepte_revision.html', payload, revision=revision, recipe_id=str(recipe_id),
+                         print_template=print_template_context(str(recipe_id), revision.public_id))
 
 
 @bp.get('/rezepte/<uuid:recipe_id>/revisionen/<uuid:revision_id>/druck.pdf')
