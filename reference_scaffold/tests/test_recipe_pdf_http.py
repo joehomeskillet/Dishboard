@@ -142,7 +142,7 @@ def test_v2_http_html_and_pdf_use_original_child_on_one_readonly_snapshot(v2_htt
     assert len(pdf.pages) >= 3 and any(list(page.images) for page in pdf.pages)
     assert body.count('Gemüsebasis aus der Revision') == 2
     assert 'Gemüse schonend garen und fein pürieren.' in body and 'HEUTIGER ENTWURF' not in body
-    assert '0.00022222222222222222222222222222222222222222222222222' in body
+    assert '0.00022222222222222222222222222222222222222222222222222' in ''.join(body.split())
     recipe_connections = {id(connection) for connection, statement in seen
                           if 'recipe_revisions' in statement or 'recipe_assets' in statement}
     assert len(recipe_connections) == 1
@@ -303,6 +303,20 @@ def test_revision_link_preserves_only_valid_selected_yield(pdf_http):
         assert urlparse(links.urls[0]).path == path(frozen)
         assert parse_qs(urlparse(links.urls[0]).query) == {'yield': [expected]}
         assert client.get(links.urls[0]).status_code == 200
+    assert state(owner) == before
+
+
+def test_old_conditional_pdf_request_returns_complete_current_layout_without_caching(pdf_http):
+    _, owner, client, _, _, frozen, _ = pdf_http
+    before = state(owner)
+    response = client.get(path(frozen), headers={'If-None-Match': '"previous-recipe-layout"',
+                                                'If-Modified-Since': 'Sun, 13 Sep 2026 12:00:00 GMT'})
+    assert response.status_code == 200 and response.data.startswith(b'%PDF')
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert 'ETag' not in response.headers and 'Last-Modified' not in response.headers
+    assert response.headers['X-Recipe-Revision'] == frozen.public_id
+    assert response.headers['X-Recipe-Content-SHA256'] == frozen.content_hash_sha256
+    assert 'Quelle und Herkunft' in extracted(response)[1]
     assert state(owner) == before
 
 

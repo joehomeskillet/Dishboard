@@ -78,7 +78,7 @@ def test_decimal_yield_preserves_missing_quantities_units_and_original_inputs():
     assert 'Original: 4 PORTION · Gewünscht: 6 PORTION' in body
     assert '0.1875 KG · Karotten' in body
     assert 'Salz Nach Geschmack' in body and '0 KG' not in body and 'None' not in body
-    assert 'Allergenangaben in dieser Revision nicht erfasst' in body
+    assert 'Allergenangaben sind in diesen Rezeptdaten nicht erfasst.' in body
     assert 'FOREIGN LIVE NAME' not in body and 'allergenfrei' not in body
     assert 'Vorbereitung: 10 Min.' in body and 'Zubereitung: 25 Min.' in body and 'Schritt 1 · 0 Min.' in body
     assert body.index('Suppe 0.1875') < body.index('Zum Abschmecken') < body.index('Schritt 1')
@@ -276,7 +276,8 @@ def test_v2_repeated_preparation_preserves_each_amount_and_prints_full_steps_onc
     assert body.count('Erfasste Gemüsebasis') == 2
     assert body.count('Gemüse waschen.') == 2  # Parent plus first full child; repeated use points back.
     assert 'Arbeitsschritte, Bilder und Herkunft stehen bei der ersten Ausgabe' in body
-    assert '0.00022222222222222222222222222222222222222222222222222 G' in body
+    # Narrow ingredient columns may wrap the captured 50-digit decimal, never round it.
+    assert '0.00022222222222222222222222222222222222222222222222222G' in ''.join(body.split())
     assert data == render(selected, target='2')
 
 
