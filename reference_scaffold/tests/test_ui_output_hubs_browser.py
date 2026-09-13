@@ -490,6 +490,7 @@ def test_output_hubs_matrix_empty_states(
         assert page.goto(route).status == 200
         expect(page.locator("h1")).to_have_text(title)
         if focus_role == "iframe":
+            page.locator('.screen-preview-details > summary').first.click()
             frame = page.frame_locator(".screen-preview iframe").first
             expect(frame.locator("body")).to_be_attached()
             expect(frame.get_by_text(empty_text, exact=False)).to_be_visible()

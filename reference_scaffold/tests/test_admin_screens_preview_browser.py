@@ -96,6 +96,7 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
             '/admin/screens/patienten/wochenvorlage',
         }
         for card in page.locator('.screen-card').all():
+            card.locator('.screen-preview-details > summary').click()
             is_web = 'Web' in card.locator('h2').inner_text()
             periods = ('Tagesplan', 'Wochenplan mit Bildern · aktiv', 'Wochenplan ohne Bilder') if is_web else (
                 'Tagesplan', 'Wochenplan ohne Bilder',
@@ -195,6 +196,7 @@ def test_unpublished_screens_show_the_source_message_in_each_preview(
         page.on('response', record_status)
         page.goto('/admin/screens')
         for card in page.locator('.screen-card').all():
+            card.locator('.screen-preview-details > summary').click()
             for tab in card.get_by_role('tab').all():
                 tab.click()
                 frame = card.locator('.tab-pane.active iframe').content_frame
