@@ -37,8 +37,8 @@ _WEEK_QUERY = 'SELECT w.id,w.location_id,p.code AS profile_code,w.week_start,w.r
 _WEEK_QUERY_FOR_UPDATE = 'SELECT w.id,w.location_id,p.code AS profile_code,w.week_start,w.row_version FROM cafeteria.menu_weeks w JOIN cafeteria.offer_profiles p ON p.id=w.profile_id WHERE w.location_id=:location_id AND p.code=:profile_code AND w.week_start=:week_start FOR UPDATE OF w'
 _SERVICE_QUERY = 'SELECT s.id,s.row_version,s.service_state FROM cafeteria.menu_services s JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id WHERE s.menu_week_id=:week_id AND s.service_date=:service_date AND mp.code=:meal'
 _SERVICE_QUERY_FOR_UPDATE = 'SELECT s.id,s.row_version,s.service_state FROM cafeteria.menu_services s JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id WHERE s.menu_week_id=:week_id AND s.service_date=:service_date AND mp.code=:meal FOR UPDATE OF s'
-_ITEM_QUERY = 'SELECT i.id,i.row_version,i.dish_template_id,i.allergen_mode,i.origin_mode,i.label_mode FROM cafeteria.menu_items i JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id WHERE i.service_id=:service_id AND mt.code=:option'
-_ITEM_QUERY_FOR_UPDATE = 'SELECT i.id,i.row_version,i.dish_template_id,i.allergen_mode,i.origin_mode,i.label_mode FROM cafeteria.menu_items i JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id WHERE i.service_id=:service_id AND mt.code=:option FOR UPDATE OF i'
+_ITEM_QUERY = 'SELECT i.id,i.row_version,i.dish_template_id,i.accompaniment,i.allergen_mode,i.origin_mode,i.label_mode FROM cafeteria.menu_items i JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id WHERE i.service_id=:service_id AND mt.code=:option'
+_ITEM_QUERY_FOR_UPDATE = 'SELECT i.id,i.row_version,i.dish_template_id,i.accompaniment,i.allergen_mode,i.origin_mode,i.label_mode FROM cafeteria.menu_items i JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id WHERE i.service_id=:service_id AND mt.code=:option FOR UPDATE OF i'
 
 class PartialWorkflowValidationError(ValueError):
     pass
@@ -109,10 +109,18 @@ def _service_times(payload: Mapping[str, object]) -> tuple[str | None, str | Non
 
 
 def _validate_item(scope: AdminScope, payload: Mapping[str, object]) -> None:
-    optional = {'dish_template_public_id', 'dish_template_detach'}
+    optional = {'dish_template_public_id', 'dish_template_detach', 'accompaniment_code'}
     _exact({key: value for key, value in payload.items() if key not in optional},
            _STAFF_KEYS if scope.profile_code == 'staff_guest' else _PATIENT_KEYS, 'Menü')
     validate_template_fields(payload)
+    if (
+        'accompaniment_code' in payload
+        and (
+            type(payload['accompaniment_code']) is not str
+            or payload['accompaniment_code'] not in {'none', 'soup', 'salad'}
+        )
+    ):
+        raise PartialWorkflowValidationError('Beilagenwahl ist ungültig.')
     _string(payload['title'], 'Titel', required=True)
     _string(payload['description'], 'Beschreibung')
     _string(payload['note'], 'Hinweis')
@@ -492,12 +500,15 @@ def persist_menu_item(
             raise PartialWorkflowConflictError('Menü wurde zwischenzeitlich geändert.')
         bindings.recheck()
         template_id = resolve_template_binding(scope, payload, current, templates, template_context)
+        accompaniment = payload.get(
+            'accompaniment_code', current['accompaniment'] if current is not None else 'none'
+        )
         if current is None:
             sql = (
                 'INSERT INTO cafeteria.menu_items(service_id,menu_type_id,external_id,title,'
                 'description,note,allergen_review_status,sort_order,allergen_mode,origin_mode,'
-                "label_mode,dish_template_id) SELECT :service_id,id,:external_id,:title,NULLIF(:description,''),"
-                "NULLIF(:note,''),'not_checked',:sort_order,:allergen_mode,:origin_mode,:label_mode,:template_id "
+                "label_mode,dish_template_id,accompaniment) SELECT :service_id,id,:external_id,:title,NULLIF(:description,''),"
+                "NULLIF(:note,''),'not_checked',:sort_order,:allergen_mode,:origin_mode,:label_mode,:template_id,:accompaniment "
                 'FROM cafeteria.menu_types WHERE code=:option RETURNING id'
             )
             params = {
@@ -508,6 +519,7 @@ def persist_menu_item(
                 'allergen_mode': payload['allergen_mode'], 'origin_mode': payload['origin_mode'],
                 'label_mode': payload['label_mode'], 'option': option,
                 'template_id': template_id,
+                'accompaniment': accompaniment,
             }
             item_id = int(connection.execute(text(sql), params).scalar_one())
         else:
@@ -531,11 +543,17 @@ def persist_menu_item(
             sql = (
                 "UPDATE cafeteria.menu_items SET title=:title,description=NULLIF(:description,''),"
                 "note=NULLIF(:note,''),allergen_mode=:allergen_mode,origin_mode=:origin_mode,"
-                "label_mode=:label_mode,dish_template_id=:template_id,allergen_review_status='not_checked' "
+                "label_mode=:label_mode,dish_template_id=:template_id,accompaniment=:accompaniment,"
+                "allergen_review_status='not_checked' "
                 'WHERE id=:item_id RETURNING row_version'
             )
             version = int(connection.execute(
-                text(sql), {'item_id': item_id, 'template_id': template_id, **payload}
+                text(sql), {
+                    'item_id': item_id,
+                    'template_id': template_id,
+                    'accompaniment': accompaniment,
+                    **payload,
+                }
             ).scalar_one())
         record_item_write(connection, scope, item_id, expected, version)
         _touch_week(connection, scope, week_ref, created_week)

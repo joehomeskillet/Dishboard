@@ -90,6 +90,7 @@ _MENU_CONFLICT_ERRORS = (
 _MENU_VALUE_FIELDS = (
     'title', 'description', 'note', 'allergen_mode', 'origin_mode', 'label_mode',
     'internal_chf', 'external_chf',
+    'accompaniment',
     'dish_template_public_id', 'dish_template_detach', 'template_context',
 )
 _MENU_LIST_FIELDS = (
@@ -335,6 +336,7 @@ def _proposal_values(context: TemplateContext, scope: AdminScope) -> dict[str, o
         require_empty_template_target(connection, scope, context)
         option: dict[str, object] = {
             'title': source['title'], 'description': source['description'] or '',
+            'accompaniment_code': source['accompaniment_default'],
             'dish_template': {key: source[key] for key in ('public_id', 'title', 'active')},
             'assignments': [], 'proposal_hint': 'Ohne verknüpftes Rezept. Bausteine bei Bedarf ergänzen.',
         }
@@ -652,11 +654,17 @@ def menu_post(family: str):
                 source = next(iter(lock_templates(connection, scope, [context.template_public_id]).values()))
                 require_template_source(source, scope, context)
                 proposal_title = source['title']
-        version = persist_menu_item(
-            _db(), scope, parsed.week_start, parsed.day, parsed.meal,
-            parsed.option, parsed.payload, parsed.expected_item_row_version,
-            template_context=context,
-        )
+        if context is None:
+            version = persist_menu_item(
+                _db(), scope, parsed.week_start, parsed.day, parsed.meal,
+                parsed.option, parsed.payload, parsed.expected_item_row_version,
+            )
+        else:
+            version = persist_menu_item(
+                _db(), scope, parsed.week_start, parsed.day, parsed.meal,
+                parsed.option, parsed.payload, parsed.expected_item_row_version,
+                template_context=context,
+            )
     except DBAPIError as error:
         if (getattr(error.orig, 'sqlstate', None) != '23514'
                 or getattr(getattr(error.orig, 'diag', None), 'constraint_name', None)
