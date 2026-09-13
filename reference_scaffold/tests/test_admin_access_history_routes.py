@@ -20,7 +20,7 @@ def test_empty_history_and_navigation_are_native_private_tabler(admin_account):
     response = client.get(PATH)
     assert response.status_code == 200 and response.headers['Cache-Control'] == 'no-store'
     assert b'vendor/tabler/tabler.min.css' in response.data
-    assert b'Keine Zugriffsereignisse' in response.data
+    assert 'Noch keine Zugriffsereignisse erfasst.' in response.text
     assert 'Frühere Anmeldungen werden nicht ergänzt.' in response.text
     assert 'weder eine aktive Sitzung noch eine abgeschlossene Abmeldung' in response.text
     for path in ('/admin/benutzer', '/admin/benutzer/protokoll', f'/admin/benutzer/{target.public_id}'):

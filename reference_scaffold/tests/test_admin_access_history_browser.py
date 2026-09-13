@@ -37,7 +37,7 @@ def test_native_history_filters_pagination_keyboard_and_outage(
         response = page.goto(origin + PATH, wait_until='networkidle')
         assert response.status == 200 and response.headers['cache-control'] == 'no-store'
         assert "style-src 'self'; script-src 'self'" in response.headers['content-security-policy']
-        expect(page.get_by_text('Keine Zugriffsereignisse in dieser Auswahl', exact=True)).to_be_visible()
+        expect(page.get_by_text('Noch keine Zugriffsereignisse erfasst.', exact=True)).to_be_visible()
         _layout(page)
         page.screenshot(path=str(tmp_path / f'access-empty-{width}.png'), full_page=True)
 
@@ -67,7 +67,7 @@ def test_native_history_filters_pagination_keyboard_and_outage(
         assert page.locator('tbody td[data-label="Ereignis"]').all_text_contents() == ['Anmeldung akzeptiert'] * 9
         _layout(page)
         page.screenshot(path=str(tmp_path / f'access-filtered-{width}.png'), full_page=True)
-        page.get_by_role('link', name='Zurücksetzen', exact=True).click()
+        page.get_by_role('link', name='Filter zurücksetzen', exact=True).click()
         navigation = page.get_by_role('navigation', name='Zugriffsereignisseiten', exact=True)
         navigation.get_by_role('link', name='Weiter', exact=True).click()
         expect(page.locator('tbody tr')).to_have_count(6)
