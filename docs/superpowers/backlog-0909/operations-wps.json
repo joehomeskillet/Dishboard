@@ -3262,9 +3262,9 @@
         "OPS-001"
       ],
       "kind": "verification",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "depends_on": [],
-      "existing_wp_id": null,
+      "existing_wp_id": "wp-0550a6f132cf",
       "sdd_sections": [
         "operations-sdd.md#8-ops-001--bereiche-und-zeiten"
       ],
@@ -3320,7 +3320,8 @@
       "eligible_lanes": [
         "codex",
         "grok-build",
-        "claude-code"
+        "claude-code",
+        "cursor"
       ],
       "completion_evidence": [
         "this planning document",
@@ -3340,7 +3341,22 @@
       ],
       "proposed_files": [
         "docs/superpowers/backlog-0909/ops-core-regression.md"
-      ]
+      ],
+      "execution_2026_09_13": {
+        "routing_wp": "wp-0550a6f132cf",
+        "actual_executor": "cursor-cli",
+        "router_recommendation": "Recommendation metadata only; not the actual executor.",
+        "base": "a6337e66198a7c2da80862e3c9b68aff1d8de362",
+        "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/ops-regression-cursor-0913",
+        "branch": "docs/ops-regression-cursor-0913",
+        "pool": {
+          "name": "test_ui_other",
+          "pg_port": 32853,
+          "redis_port": 32854
+        },
+        "parallel_group": "sprint-0913-shared-viewprint-ops-off",
+        "authority": "Explicit current Root assignment; actual executor is authorized independently of deterministic routing metadata."
+      }
     },
     {
       "id": "MP-OPS-DATED-EXCEPTION-ACCEPTANCE",

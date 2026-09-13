@@ -5677,7 +5677,7 @@
         "QA-001"
       ],
       "kind": "implementation",
-      "status": "IN_PROGRESS",
+      "status": "INTEGRATED",
       "depends_on": [],
       "existing_wp_id": "wp-820be0c236b8",
       "sdd_sections": [
@@ -5733,7 +5733,9 @@
         "reference_scaffold/tests/test_ui_korrektur_recipes_browser.py",
         "proposed:reference_scaffold/tests/test_recipe_density_browser.py",
         "reference_scaffold/cafeteria/static/admin.js",
-        "reference_scaffold/tests/test_ui_menu_editor_browser.py"
+        "reference_scaffold/tests/test_ui_menu_editor_browser.py",
+        "reference_scaffold/cafeteria/static/vendor/tabler-icons/tabler-icons.svg",
+        "reference_scaffold/cafeteria/static/vendor/tabler.lock.json"
       ],
       "forbidden_paths": [
         "database/*",
@@ -5800,7 +5802,19 @@
         "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
         "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
         "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
-      ]
+      ],
+      "delivery_2026_09_13": {
+        "commit": "e7f006439bbd605a366e09d498803629afb787a9",
+        "different_author_fix": "d589c2dba0d1c27d7ccfa40e799301f81c166e06",
+        "integration": "d4ad17958f3874dd704f882c106ee21340baa5c1",
+        "independent_review_record": 12716,
+        "root_gates": [
+          "98 tests PASS on the recipe basis, as reported by Root.",
+          "23 focused fix tests passed in 79.08s on separate detached worktree / test-api-int2."
+        ],
+        "scope_extension": "Root authorized existing vendor sprite and lock for action icons; existing data-driven generator unchanged. Shared admin.js/focus consumer remains included before SHARED.",
+        "deployment": "Release preparation in progress; no new live proof in this receipt."
+      }
     },
     {
       "id": "MP-UI-DENSITY-SHARED",
@@ -5810,12 +5824,12 @@
         "QA-001"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "depends_on": [
         "MP-UI-DENSITY-MANIFEST",
         "MP-UI-DENSITY-RECIPE"
       ],
-      "existing_wp_id": null,
+      "existing_wp_id": "wp-dafb2c78258b",
       "sdd_sections": [
         "docs/design/2026-09-09-unified-ui-design-system.md",
         "docs/superpowers/plans/2026-09-12-next-sprints.md#dichteauftrag-13-september"
@@ -5910,7 +5924,22 @@
         "Root weist exakte Basis, aktiven Dateibesitz und exklusiven freien Pool vor Write/Gate zu.",
         "Gemeinsame Dateien und Feature-Anschlüsse seriell einfrieren; vollständige Verbraucher in Besitz übernehmen.",
         "Kein Gesamtabschluss nur durch Rezepteditor oder Manifest. Fehlende Person/Gerät blockiert nur abhängige Abnahme."
-      ]
+      ],
+      "execution_2026_09_13": {
+        "routing_wp": "wp-dafb2c78258b",
+        "actual_executor": "native:/root/density_shared",
+        "router_recommendation": "agent-computeruse; actual native GPT execution explicitly authorized by Root.",
+        "base": "d4ad17958f3874dd704f882c106ee21340baa5c1",
+        "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/ui-density-shared-0913",
+        "branch": "feat/ui-density-shared-0913",
+        "pool": {
+          "name": "test-recipe-print-0908",
+          "pg_port": 32865,
+          "redis_port": 32866
+        },
+        "parallel_group": "sprint-0913-shared-viewprint-ops-off",
+        "authority": "Explicit current Root assignment; actual executor is authorized independently of deterministic routing metadata."
+      }
     },
     {
       "id": "MP-UI-DENSITY-SHELL",
