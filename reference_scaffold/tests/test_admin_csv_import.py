@@ -243,7 +243,7 @@ def test_invalid_patient_header_reports_position_without_import_action_or_write(
         count = connection.execute(text('SELECT count(*) FROM cafeteria.menu_items')).scalar_one()
     assert response.status_code == 200
     assert 'Zeile 1' in body
-    assert 'Spalte 18' in body
+    assert 'Spalte 19' in body
     assert 'name="import_token"' not in body
     assert count == 0
 
@@ -404,7 +404,7 @@ def test_ragged_extra_csv_cell_is_a_positioned_issue_not_server_error(client) ->
 
     assert response.status_code == 200
     assert 'Zeile 2' in body
-    assert 'Spalte 18' in body
+    assert 'Spalte 19' in body
     assert 'name="import_token"' not in body
     assert 'CHF-ATTACK' not in body
     assert re.search(r'CHF|Intern|Extern|0\.00|Preis|price|rappen|kosten|cost', body, re.I) is None
@@ -431,7 +431,7 @@ def test_malformed_origin_is_a_positioned_issue_not_server_error(client) -> None
 
     assert response.status_code == 200
     assert 'Zeile 2' in body
-    assert 'Spalte 14' in body
+    assert 'Spalte 15' in body
     assert 'name="import_token"' not in body
 
 

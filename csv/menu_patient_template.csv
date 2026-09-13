@@ -1,1 +1,1 @@
-﻿schema_version;profil;datum;wochentag;mahlzeit;menueart;external_id;titel;beschreibung;beilagen;labels;allergene_enthaelt;allergene_spuren;herkunft;hinweis;zustand;zustand_text
+﻿schema_version;profil;datum;wochentag;mahlzeit;menueart;external_id;titel;beschreibung;beilagen;beilage_dazu;labels;allergene_enthaelt;allergene_spuren;herkunft;hinweis;zustand;zustand_text

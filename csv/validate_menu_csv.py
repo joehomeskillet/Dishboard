@@ -12,14 +12,24 @@ from collections import Counter, defaultdict
 from collections.abc import Sequence
 from pathlib import Path
 
-BASE_HEADERS = [
+SCHEMA_2_BASE_HEADERS = [
     'schema_version', 'profil', 'datum', 'wochentag', 'mahlzeit', 'menueart',
     'external_id', 'titel', 'beschreibung', 'beilagen', 'labels',
     'allergene_enthaelt', 'allergene_spuren', 'herkunft', 'hinweis',
     'zustand', 'zustand_text',
 ]
+BASE_HEADERS = [
+    *SCHEMA_2_BASE_HEADERS[:10],
+    'beilage_dazu',
+    *SCHEMA_2_BASE_HEADERS[10:],
+]
 PATIENT_HEADERS = BASE_HEADERS
 CAFETERIA_HEADERS = BASE_HEADERS + ['preis_mitarbeitende_chf', 'preis_externe_chf']
+SCHEMA_2_PATIENT_HEADERS = SCHEMA_2_BASE_HEADERS
+SCHEMA_2_CAFETERIA_HEADERS = SCHEMA_2_BASE_HEADERS + [
+    'preis_mitarbeitende_chf',
+    'preis_externe_chf',
+]
 PROFILES = {'patient', 'staff_guest'}
 MEALS = {'LUNCH', 'DINNER'}
 MENU_TYPES = {'MENU_1', 'VEGGIE'}
@@ -123,6 +133,16 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
 
     profiles = {row.get('profil', '').strip() for row in rows if row.get('profil', '').strip()}
     profile = next(iter(profiles)) if len(profiles) == 1 else None
+    schema_versions = {
+        row.get('schema_version', '').strip()
+        for row in rows
+        if row.get('schema_version', '').strip()
+    }
+    schema_version = (
+        int(next(iter(schema_versions)))
+        if len(schema_versions) == 1 and schema_versions <= {'2', '3'}
+        else None
+    )
     if not rows:
         add_error('CSV enthält keine Datenzeilen.')
     if len(profiles) != 1 or profile not in PROFILES:
@@ -131,7 +151,16 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
             field='profil',
         )
 
-    expected = PATIENT_HEADERS if profile == 'patient' else CAFETERIA_HEADERS if profile == 'staff_guest' else None
+    if len(schema_versions) > 1:
+        add_error('Alle Zeilen müssen dieselbe schema_version enthalten.', field='schema_version')
+    expected = None
+    if schema_version is not None and profile is not None:
+        expected = {
+            (2, 'patient'): SCHEMA_2_PATIENT_HEADERS,
+            (2, 'staff_guest'): SCHEMA_2_CAFETERIA_HEADERS,
+            (3, 'patient'): PATIENT_HEADERS,
+            (3, 'staff_guest'): CAFETERIA_HEADERS,
+        }.get((schema_version, profile))
     if expected is not None and headers != expected:
         missing = [h for h in expected if h not in headers]
         extra = [h for h in headers if h not in expected]
@@ -173,8 +202,12 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
                     field=key,
                 )
 
-        if row.get('schema_version') != '2':
-            add_error('schema_version muss 2 sein.', line=line_number, field='schema_version')
+        if row.get('schema_version') not in {'2', '3'}:
+            add_error(
+                'schema_version muss 2 oder 3 sein.',
+                line=line_number,
+                field='schema_version',
+            )
         if row.get('profil') not in PROFILES:
             add_error('ungültiges profil.', line=line_number, field='profil')
 
@@ -242,7 +275,7 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
                     field='zustand_text',
                 )
             closed_fields = (
-                'external_id', 'titel', 'beschreibung', 'beilagen', 'labels',
+                'external_id', 'titel', 'beschreibung', 'beilagen', 'beilage_dazu', 'labels',
                 'allergene_enthaelt', 'allergene_spuren', 'herkunft', 'hinweis',
                 'preis_mitarbeitende_chf', 'preis_externe_chf',
             )
@@ -266,6 +299,16 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
             seen_external.add(row['external_id'].strip())
         if not row.get('titel', '').strip():
             add_error('titel fehlt.', line=line_number, field='titel')
+        if schema_version == 3 and row.get('beilage_dazu', '').strip() not in {
+            '',
+            'suppe',
+            'salat',
+        }:
+            add_error(
+                'beilage_dazu muss leer, suppe oder salat sein.',
+                line=line_number,
+                field='beilage_dazu',
+            )
 
         labels = _pipe_parts(row.get('labels', ''))
         if len(labels) != len(set(labels)):
@@ -392,9 +435,15 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
     if len(rows) > 10_000:
         add_error('Mehr als 10 000 Datenzeilen sind nicht erlaubt.')
 
+    if schema_version == 2:
+        warnings.append(
+            'Schema-2-Vollimport: Bestehende Beilagen werden auf «Keine» zurückgesetzt.'
+        )
+
     return {
         'source': source,
         'profile': profile,
+        'schema_version': schema_version,
         'rows': len(rows),
         'headers': headers,
         'errors': errors,
