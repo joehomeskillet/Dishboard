@@ -25,7 +25,7 @@ from test_ui_output_hubs_browser import (  # noqa: F401
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason="TEST_DATABASE_URL fehlt.")
 
-EVIDENCE = Path(__file__).resolve().parents[2] / ".claude/evidence/density-screens-0913/after"
+EVIDENCE = Path(__file__).resolve().parents[2] / ".claude/evidence/card-visuals-0913/screens-consumer"
 VIEWPORTS = [
     (1366, 768), (1920, 1080), (768, 1024), (390, 844),
     (1440, 900), (1024, 768), (2560, 1440), (320, 844),
@@ -94,7 +94,8 @@ def test_lists_and_settings_come_first_at_required_viewports(
         expect(page.get_by_text("Vorlage für Web-Wochenplan:", exact=False)).to_have_count(2)
         body = page.locator("main").inner_text().lower()
         assert "verbunden" not in body and "zuletzt gesehen" not in body
-        expect(page.locator('.screen-preview-details[open]')).to_have_count(0)
+        expect(page.locator('.screen-preview-details[open]')).to_have_count(2)
+        expect(page.locator('.screen-preview-details[open] .screen-preview-signage')).to_have_count(4)
         first_action = page.locator('.screen-card .btn').first.bounding_box()
         assert first_action is not None and first_action['y'] < height
         assert first_action['y'] < page.locator('.screen-preview-details > summary').first.bounding_box()['y']
@@ -392,6 +393,7 @@ def test_required_pages_have_no_overflow_at_200_percent_zoom(
         proof = {}
         for path, name in (
             ("/admin/screens", "bildschirme"),
+            ("/admin/cafeteria?week=2026-08-31", "cafeteria"),
             ("/admin/screens/cafeteria/wochenvorlage", "vorlage-zuweisen"),
             ("/admin/design/darstellung", "darstellung"),
         ):
@@ -403,6 +405,16 @@ def test_required_pages_have_no_overflow_at_200_percent_zoom(
             proof[name] = metrics
             if name == 'vorlage-zuweisen':
                 page.locator('#screen-assignment-details > summary').click()
+            if name == 'cafeteria':
+                photo = page.locator('[data-menu-image] img').first
+                expect(photo).to_be_visible()
+                photo.scroll_into_view_if_needed()
+                assert photo.evaluate('el => el.complete && el.naturalWidth > 0')
+            if name == 'bildschirme':
+                preview = page.locator('.tab-pane.active .screen-preview-signage').first
+                box = preview.bounding_box()
+                assert box['width'] >= 220 and abs(box['width'] / box['height'] - 16 / 9) < .01
+                preview.scroll_into_view_if_needed()
             _assert_no_horizontal_scroll(page)
             _assert_rendered_icons_and_targets(page)
             # Playwright full_page clips real browser zoom; capture the native viewport.

@@ -57,10 +57,10 @@
 </div>
 {% endif %}
 
-<section class="admin-week-days" aria-label="Wochenübersicht Cafeteria">
+<section class="admin-week-days d-block d-md-grid" aria-label="Wochenübersicht Cafeteria">
   {% for day, grouped in day_cells|groupby('day') %}
   {% set day_row = grouped|first %}
-  <article class="card admin-day-card">
+  <article class="card admin-day-card mb-3 mb-md-0">
     <div class="card-header admin-week-day-head">
       <h2>{{ day_row.day_label }}</h2>
       <time datetime="{{ day }}">{{ day_row.day_short }}</time>
