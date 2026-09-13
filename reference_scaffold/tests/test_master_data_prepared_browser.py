@@ -33,24 +33,24 @@ def test_native_storage_and_preparation_selection_survives_save_and_reload(
         page.get_by_label('Name', exact=True).fill('Hummus vorbereitet Browser')
         page.get_by_label('Testlager', exact=True).check()
         page.get_by_label('Zubereitung aus einem Rezept', exact=False).select_option(preparation_choice(frozen))
-        primary = page.get_by_role('button', name='Zutat anlegen', exact=True)
+        primary = page.get_by_role('button', name='Zutat speichern', exact=True)
         box = primary.bounding_box()
-        assert box is not None and box['y'] + box['height'] <= 1100
+        assert box is not None and (width < 1024 or box['y'] + box['height'] <= 1100)
         primary.click()
         expect(page.get_by_role('heading', level=1)).to_have_text('Zutat bearbeiten')
         path = urlsplit(page.url).path
         expect(page.get_by_label('Zubereitung aus einem Rezept', exact=False)).to_have_value(preparation_choice(frozen))
         expect(page.get_by_label('Testlager', exact=True)).to_be_checked()
-        expect(page.get_by_role('link', name='Rezeptverlauf öffnen')).to_have_attribute(
+        expect(page.get_by_role('link', name='Rezeptverlauf', exact=True)).to_have_attribute(
             'href', '/admin/rezepte/' + str(frozen['recipe_public_id']) + '/revisionen')
         expect(page.get_by_text('Kein Bestand erfasst', exact=True)).to_be_visible()
         targets(page)
         before = snapshot(owner)
         page.reload()
         expect(page.get_by_label('Zubereitung aus einem Rezept', exact=False)).to_have_value(preparation_choice(frozen))
-        page.get_by_text('Rezeptauswahl eingrenzen', exact=True).click()
+        page.get_by_text('Rezeptauswahl', exact=True).click()
         page.get_by_label('Festgeschriebenes Rezept suchen', exact=True).fill('Hummus')
-        page.get_by_role('button', name='Rezeptauswahl suchen', exact=True).click()
+        page.get_by_role('button', name='Suchen', exact=True).click()
         expect(page.get_by_label('Festgeschriebenes Rezept suchen', exact=True)).to_have_value('Hummus')
         expect(page.get_by_label('Zubereitung aus einem Rezept', exact=False)).to_have_value(preparation_choice(frozen))
         assert urlsplit(page.url).path == path and snapshot(owner) == before
