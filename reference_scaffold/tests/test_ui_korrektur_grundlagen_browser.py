@@ -1,6 +1,7 @@
 """Correction-wave proof for list-first master data pages and native forms."""
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from urllib.parse import parse_qsl, urlsplit
 
@@ -19,7 +20,7 @@ from test_master_data_routes import (  # noqa: F401
 from test_rendered_ui import browser  # noqa: F401
 
 
-EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/ui-korrektur-0912/grundlagen'
+EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/density-foundations-0913'
 VIEWPORTS = (
     (1366, 768, 'desktop'),
     (1920, 1080, 'wide'),
@@ -44,6 +45,10 @@ def _assert_no_horizontal_scroll(page) -> None:
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
 
 
+def _apply_browser_zoom(page) -> None:
+    page.evaluate("document.documentElement.style.zoom = '2'")
+
+
 @pytest.mark.parametrize(('width', 'height', 'state'), VIEWPORTS)
 def test_ingredient_list_is_first_full_width_and_visible(
     b3, master_server, browser, width, height, state,  # noqa: F811
@@ -55,16 +60,22 @@ def test_ingredient_list_is_first_full_width_and_visible(
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
         page = context.new_page()
         page.goto(base + '/admin/grundlagen', wait_until='networkidle')
+        if state == 'zoom-200':
+            _apply_browser_zoom(page)
 
         assert page.locator('nav[aria-label="Stammdatenbereiche"]').count() == 1
         assert page.locator('main .btn-primary').count() == 1
+        expect(page.locator('main .btn-primary').first).to_contain_text('Anlegen')
+        expect(page.locator('nav[aria-label="Stammdatenbereiche"] .icon use').first).to_have_attribute(
+            'href', re.compile(r'tabler-')
+        )
         first = page.locator('.grundlagen-list .list-group-item').first
         expect(first).to_be_visible()
         box = first.bounding_box()
         assert box is not None
         if width in {1366, 1920}:
             assert box['y'] + box['height'] <= height
-        expect(page.locator('details').filter(has_text='Liste filtern').first).not_to_have_attribute('open', '')
+        expect(page.locator('details').filter(has_text='Filter').first).not_to_have_attribute('open', '')
         _assert_no_horizontal_scroll(page)
 
         if width >= 1024:
@@ -83,7 +94,7 @@ def test_ingredient_list_is_first_full_width_and_visible(
 
         page.goto(base + '/admin/grundlagen?q=zzzz-kein-treffer', wait_until='networkidle')
         expect(page.get_by_text('Keine passenden Zutaten', exact=True)).to_be_visible()
-        expect(page.locator('details').filter(has_text='Liste filtern').first).to_have_attribute('open', '')
+        expect(page.locator('details').filter(has_text='Filter').first).to_have_attribute('open', '')
         _assert_no_horizontal_scroll(page)
         _screenshot(page, f'liste-leer-{state}-{width}x{height}.png')
 
@@ -104,6 +115,9 @@ def test_ingredient_form_keeps_native_payload_and_opens_on_error(
         form_details = page.locator('main details').filter(has_text='Zutat anlegen').first
         expect(form_details).to_have_attribute('open', '')
         assert page.locator('main .btn-primary').count() == 1
+        expect(page.get_by_role('button', name='Zutat speichern', exact=True).locator('.icon use')).to_have_attribute(
+            'href', re.compile(r'tabler-device-floppy')
+        )
         page.get_by_label('Name', exact=True).fill('<unzulässig>')
         storage = page.get_by_label('Testlager', exact=True)
         storage.check()
@@ -145,10 +159,12 @@ def test_ingredient_statuses_and_secondary_actions_stay_separate(
         page = context.new_page()
         page.goto(base + path)
 
-        status = page.locator('#food-status-title').locator('xpath=../..')
+        status = page.locator('.grundlagen-status')
         expect(status.get_by_text('Aktiv', exact=True)).to_be_visible()
-        expect(status.get_by_text('Lagerort fehlt', exact=True)).to_be_visible()
-        expect(status.get_by_text('Allergenangaben nicht erfasst', exact=True)).to_be_visible()
+        lagerort_line = status.locator('p').filter(has_text='Lagerort')
+        expect(lagerort_line).to_be_visible()
+        assert 'Testlager' in lagerort_line.inner_text() or 'Lagerort fehlt' in lagerort_line.inner_text()
+        expect(status.locator('.badge', has_text='Allergenangaben nicht erfasst')).to_be_visible()
         expect(status.get_by_text('Noch nicht bestätigt', exact=False)).to_be_visible()
         expect(page.get_by_role('button', name='Archivieren', exact=True)).not_to_be_visible()
         page.get_by_text('Weitere Aktionen', exact=True).click()
