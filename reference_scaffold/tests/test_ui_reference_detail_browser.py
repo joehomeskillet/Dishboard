@@ -47,7 +47,9 @@ def detail_revisions(a3):  # noqa: F811
         data_norm['steps'][0]['duration_minutes'] = 25
         data_norm['description'] = 'Klassisches Menürezept mit Bild und Zubereitungsschritten.'
         row_norm = store.update_recipe(engine, actor, target(row_norm), data_norm, expected_location_id=loc)
-        rev_normal = store.freeze_revision(engine, actor, target(row_norm), expected_location_id=loc)
+        preview_norm = store.get_dependency_preview(engine, target(row_norm), expected_location_id=loc)
+        rev_normal = store.freeze_revision(engine, actor, target(row_norm), expected_location_id=loc,
+            expected_dependency_hash=preview_norm.dependency_hash_sha256)
 
         # 2. Recipe revision without images
         p_no_img = payload(
@@ -64,7 +66,9 @@ def detail_revisions(a3):  # noqa: F811
             ],
         )
         row_no_img = store.create_recipe(engine, actor, p_no_img, expected_location_id=loc)
-        rev_no_img = store.freeze_revision(engine, actor, target(row_no_img), expected_location_id=loc)
+        preview_no_img = store.get_dependency_preview(engine, target(row_no_img), expected_location_id=loc)
+        rev_no_img = store.freeze_revision(engine, actor, target(row_no_img), expected_location_id=loc,
+            expected_dependency_hash=preview_no_img.dependency_hash_sha256)
 
         # 3. Long text recipe revision
         long_title = 'Traditioneller geschmorter Rindsbraten mit Wurzelgemüse und Rotweinsauce nach Landgasthof-Art'
@@ -85,7 +89,9 @@ def detail_revisions(a3):  # noqa: F811
             ],
         )
         row_long = store.create_recipe(engine, actor, p_long, expected_location_id=loc)
-        rev_long = store.freeze_revision(engine, actor, target(row_long), expected_location_id=loc)
+        preview_long = store.get_dependency_preview(engine, target(row_long), expected_location_id=loc)
+        rev_long = store.freeze_revision(engine, actor, target(row_long), expected_location_id=loc,
+            expected_dependency_hash=preview_long.dependency_hash_sha256)
 
         # 4. Empty recipe revision without ingredients or preparation steps
         p_empty = payload(
@@ -95,7 +101,9 @@ def detail_revisions(a3):  # noqa: F811
             steps=[],
         )
         row_empty = store.create_recipe(engine, actor, p_empty, expected_location_id=loc)
-        rev_empty = store.freeze_revision(engine, actor, target(row_empty), expected_location_id=loc)
+        preview_empty = store.get_dependency_preview(engine, target(row_empty), expected_location_id=loc)
+        rev_empty = store.freeze_revision(engine, actor, target(row_empty), expected_location_id=loc,
+            expected_dependency_hash=preview_empty.dependency_hash_sha256)
 
     return {
         'normal': (row_norm.public_id, rev_normal.public_id, rev_normal.revision_number, rev_normal.content_hash_sha256),
@@ -187,15 +195,17 @@ def test_detail_reference_normal_all_viewports(detail_revisions, detail_server, 
         breadcrumbs = page.locator('nav[aria-label="Breadcrumb"] .breadcrumb-item')
         expect(breadcrumbs.first).to_contain_text('Rezepte')
         expect(breadcrumbs.nth(1)).to_be_visible()
-        expect(breadcrumbs.last).to_contain_text('Revisionen')
+        expect(breadcrumbs.last).to_contain_text('Rezept-History')
 
         # H1 & Subtitle
         expect(page.locator('h1.page-title')).to_be_visible()
         expect(page.locator('.page-header-subtitle')).to_contain_text(f'Unveränderlicher Revisionsstand {rev_num}')
-        expect(page.locator('.page-header-subtitle')).to_contain_text('Erstellt:')
+        expect(page.locator('#recipe-document')).to_contain_text('Erstellt:')
+        assert page.locator('#recipe-document time').first.get_attribute('datetime')
+        expect(page.locator('#recipe-document time').first).to_be_visible()
 
         # Header Actions
-        back_btn = page.get_by_role('link', name='Alle Revisionen')
+        back_btn = page.get_by_role('link', name='Zur Rezept-History')
         expect(back_btn).to_be_visible()
         expect(back_btn).to_have_attribute('href', f'/admin/rezepte/{recipe_id}/revisionen')
 
@@ -204,14 +214,14 @@ def test_detail_reference_normal_all_viewports(detail_revisions, detail_server, 
         assert f'/admin/rezepte/{recipe_id}/revisionen/{rev_id}/druck.pdf' in pdf_btn.get_attribute('href')
 
         # Status badge & Immutable card
-        expect(page.get_by_role('heading', name='Unveränderlicher Stand')).to_be_visible()
-        status_badge = page.locator('[data-status="archived"]')
-        expect(status_badge).to_have_text('Unveränderlich')
-        expect(page.get_by_text(sha256)).to_be_visible()
-        expect(page.get_by_text(rev_id)).to_be_visible()
+        expect(page.get_by_role('heading', name=f'Gespeicherter Stand {rev_num}')).to_be_visible()
+        expect(page.get_by_text('Dieser gespeicherte Stand bleibt unverändert.', exact=False)).to_be_visible()
+        page.locator('details.card > summary').filter(has_text='Technische Details').click()
+        expect(page.get_by_text(sha256, exact=True).first).to_be_visible()
+        expect(page.get_by_text(rev_id, exact=True).first).to_be_visible()
 
         # Scaling and Ingredients table
-        table = page.locator('main table.card-table')
+        table = page.locator('#recipe-document .recipe-ingredients')
         expect(table).to_be_visible()
         table_fs = table.evaluate('el => parseFloat(getComputedStyle(el).fontSize)')
         assert table_fs >= 14
@@ -220,20 +230,20 @@ def test_detail_reference_normal_all_viewports(detail_revisions, detail_server, 
         expect(page.get_by_role('heading', name='Zubereitung')).to_be_visible()
         step_img = page.locator('main ol img')
         if step_img.count() > 0:
-            expect(step_img.first).to_have_attribute('width', '320')
-            expect(step_img.first).to_have_attribute('height', '240')
+            expect(step_img.first).to_have_attribute('src', page.locator('main figure img').first.get_attribute('src'))
+            assert step_img.first.evaluate('el => el.complete && el.naturalWidth > 0')
 
         # Gallery images
         expect(page.get_by_role('heading', name='Bilder und Herkunft')).to_be_visible()
         gallery_img = page.locator('main figure img')
-        expect(gallery_img.first).to_have_attribute('width', '480')
-        expect(gallery_img.first).to_have_attribute('height', '360')
+        assert gallery_img.first.evaluate('el => el.complete && el.naturalWidth > 0')
+        assert gallery_img.first.evaluate('el => el.naturalHeight > 0')
 
         # Snapshot details
-        summary = page.locator('summary').filter(has_text='Vollständiger gespeicherter Revisionsstand')
+        summary = page.locator('details.card > summary').filter(has_text='Technische Details')
         expect(summary).to_be_visible()
-        summary.click()
         expect(page.locator('details[open]')).to_be_visible()
+        expect(page.get_by_role('heading', name='Vollständige Daten', exact=True)).to_be_visible()
 
         # Geometry and accessibility checks
         assert_geometry(page)
@@ -257,7 +267,7 @@ def test_detail_reference_no_images_state(detail_revisions, detail_server, brows
         expect(page.locator('main img')).to_have_count(0)
 
         # Core sections present
-        expect(page.get_by_role('heading', name='Unveränderlicher Stand')).to_be_visible()
+        expect(page.get_by_role('heading', name=f'Gespeicherter Stand {rev_num}')).to_be_visible()
         expect(page.get_by_role('heading', name='Zutaten und Mengen')).to_be_visible()
         expect(page.get_by_role('heading', name='Zubereitung')).to_be_visible()
 
@@ -323,9 +333,9 @@ def test_detail_reference_zoom_200_percent(detail_revisions, detail_server, brow
 
         expect(page.locator('h1.page-title')).to_be_visible()
         expect(page.locator('.page-header-subtitle')).to_contain_text(f'Unveränderlicher Revisionsstand {rev_num}')
-        expect(page.get_by_role('link', name='Alle Revisionen')).to_be_visible()
+        expect(page.get_by_role('link', name='Zur Rezept-History')).to_be_visible()
         expect(page.get_by_role('link', name='PDF öffnen')).to_be_visible()
-        expect(page.get_by_role('heading', name='Unveränderlicher Stand')).to_be_visible()
+        expect(page.get_by_role('heading', name=f'Gespeicherter Stand {rev_num}')).to_be_visible()
 
         assert_zoom_geometry(page)
         capture_screenshot(page, tmp_path, f'detail-zoom200-{width}x{height}')
@@ -344,6 +354,7 @@ def test_detail_reference_scaling_and_pdf_query(detail_revisions, detail_server,
         assert page.goto(url).status == 200
 
         # Perform scaling calculation
+        page.get_by_role('link', name='Mengen berechnen', exact=True).click()
         yield_input = page.locator('#target-yield')
         expect(yield_input).to_be_visible()
         yield_input.fill('8')
@@ -379,7 +390,7 @@ def test_detail_reference_no_js_and_keyboard(detail_revisions, detail_server, br
         assert page.goto(url).status == 200
 
         # Keyboard tab through action links and form inputs
-        back_btn = page.get_by_role('link', name='Alle Revisionen')
+        back_btn = page.get_by_role('link', name='Zur Rezept-History')
         back_btn.focus()
         expect(back_btn).to_be_focused()
 
@@ -387,6 +398,7 @@ def test_detail_reference_no_js_and_keyboard(detail_revisions, detail_server, br
         pdf_btn.focus()
         expect(pdf_btn).to_be_focused()
 
+        page.get_by_role('link', name='Mengen berechnen', exact=True).click()
         yield_input = page.locator('#target-yield')
         yield_input.focus()
         expect(yield_input).to_be_focused()
@@ -407,7 +419,7 @@ def test_detail_reference_focus_ring(detail_revisions, detail_server, browser, w
         page = context.new_page()
         assert page.goto(url).status == 200
 
-        back_btn = page.get_by_role('link', name='Alle Revisionen')
+        back_btn = page.get_by_role('link', name='Zur Rezept-History')
         back_btn.focus()
         expect(back_btn).to_be_focused()
         assert_focus_ring(back_btn)
@@ -417,6 +429,7 @@ def test_detail_reference_focus_ring(detail_revisions, detail_server, browser, w
         expect(pdf_btn).to_be_focused()
         assert_focus_ring(pdf_btn)
 
+        page.get_by_role('link', name='Mengen berechnen', exact=True).click()
         yield_input = page.locator('#target-yield')
         yield_input.focus()
         expect(yield_input).to_be_focused()

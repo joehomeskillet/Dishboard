@@ -1,0 +1,82 @@
+{% from 'admin/_macros.html' import icon %}
+{% macro text_lines(value) %}{% for line in value.split('\n') %}{{ line }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% endmacro %}
+{% macro recipe_body(doc, asset_recipe_id, prefix) %}
+{% if doc.identity.kind == 'revision' %}
+<h2 class="h4">Gespeicherter Stand {{ doc.identity.revision_number }}</h2>
+<p class="text-secondary">Erstellt: <time datetime="{{ doc.identity.created_at }}">{{ doc.identity.created_at|datetime_short }}</time> · Dieser gespeicherte Stand bleibt unverändert.</p>
+{% endif %}
+{% if doc.description %}<p class="recipe-description">{{ text_lines(doc.description) }}</p>{% endif %}
+<ul class="recipe-metadata list-unstyled">
+<li>{{ icon('tools-kitchen-2') }} <strong>{{ 'Berechnete' if doc.yield.is_scaled else 'Angegebene' }} Ausbeute:</strong> {{ doc.yield.amount }} {{ doc.yield.unit }}</li>
+{% if doc.times.prep_minutes is not none %}<li>Vorbereitung: {{ doc.times.prep_minutes }} Minuten</li>{% endif %}
+{% if doc.times.cook_minutes is not none %}<li>Kochzeit: {{ doc.times.cook_minutes }} Minuten</li>{% endif %}
+</ul>
+<div class="recipe-warnings alert alert-warning d-block">
+{% for warning in doc.warnings %}<p data-warning="{{ warning.code }}">{% if loop.first %}{{ icon('alert-triangle') }} {% endif %}{{ warning.text }}</p>{% endfor %}
+{% for note in doc.source_notes|unique %}<p class="recipe-source-note">{{ text_lines(note) }}</p>{% endfor %}
+</div>
+<div class="recipe-columns">
+<section aria-labelledby="{{ prefix }}-ingredients">
+<h2 id="{{ prefix }}-ingredients">Zutaten und Mengen</h2>
+<ul class="recipe-ingredients list-unstyled">
+{% for row in doc.ingredients %}
+<li class="recipe-ingredient" id="{{ prefix }}-ingredient-{{ row.number }}">
+{% if row.group_label and (loop.first or row.group_label != doc.ingredients[loop.index0 - 1].group_label) %}<h3 class="recipe-group">{{ row.group_label }}</h3>{% endif %}
+<div><strong class="recipe-amount">{{ row.amount if row.amount is not none else 'Menge nicht erfasst' }}{% if row.unit %} {{ row.unit }}{% else %} · Einheit nicht erfasst{% endif %}</strong> <span>{{ row.text }}</span></div>
+{% if row.note %}<p class="mb-0">{{ text_lines(row.note) }}</p>{% endif %}
+</li>
+{% else %}<li>{{ doc.empty_ingredients }}</li>{% endfor %}
+</ul>
+</section>
+<section aria-labelledby="{{ prefix }}-steps">
+<h2 id="{{ prefix }}-steps">{{ icon('tools-kitchen-2') }} Zubereitung</h2>
+{% if doc.steps %}<ol class="recipe-steps">
+{% for step in doc.steps %}<li>
+<div>{{ text_lines(step.instruction) }}</div>
+{% if step.duration_minutes is not none %}<p class="text-secondary mb-0">{{ step.duration_minutes }} Minuten</p>{% endif %}
+{% if step.image_sha256 %}<img class="recipe-image img-fluid mt-2" src="{{ url_for('admin.recipe_asset', recipe_id=asset_recipe_id, sha256=step.image_sha256) }}" alt="Bild zu Schritt {{ step.number }}" loading="lazy">{% endif %}
+</li>{% endfor %}
+</ol>{% else %}<p>{{ doc.empty_steps }}</p>{% endif %}
+</section>
+</div>
+{% if doc.images %}<section aria-labelledby="{{ prefix }}-images">
+<h2 id="{{ prefix }}-images">Bilder und Herkunft</h2>
+<div class="row g-3">
+{% for image in doc.images %}<figure class="col-12 col-md-6">
+<img class="recipe-image img-fluid" src="{{ url_for('admin.recipe_asset', recipe_id=asset_recipe_id, sha256=image.sha256) }}" alt="{{ image.caption or 'Rezeptbild ' ~ loop.index }}" loading="lazy">
+<figcaption>{{ image.caption or 'Ohne Bildunterschrift' }}<br>Quelle: {{ image.source_url or 'Nicht angegeben' }}<br>Lizenz: {{ image.source_license or 'Nicht angegeben' }}<br>Abrufzeit: {{ image.fetched_at or 'Nicht angegeben' }}</figcaption>
+</figure>{% endfor %}
+</div></section>{% endif %}
+<details class="recipe-originals mt-3">
+<summary class="btn">Originalmengen ansehen</summary>
+<p class="mt-2">Originalausbeute: {{ doc.yield.original_amount }} {{ doc.yield.unit }}</p>
+<ul>{% for row in doc.ingredients %}<li>{{ row.text }}: {{ row.original_amount if row.original_amount is not none else 'Menge nicht erfasst' }} {{ row.unit or 'Einheit nicht erfasst' }}</li>{% endfor %}</ul>
+</details>
+<details class="recipe-provenance mt-2">
+<summary class="btn">Herkunft ansehen</summary>
+<ol class="mt-2">
+{% for origin in doc.provenance %}<li>
+<strong>{{ origin.label }}</strong>{% if origin.source.reference %} · {{ origin.source.reference }}{% endif %}
+{% if origin.source.url %}<div>Quellenadresse: {{ origin.source.url }}</div>{% endif %}
+{% if origin.source.fetched_at %}<div>Abrufzeit: {{ origin.source.fetched_at }}</div>{% endif %}
+{% if origin.source.note %}<div>Quellennotiz: {{ text_lines(origin.source.note) }}</div>{% endif %}
+<div>Gilt für: {% for use in origin.uses %}{% if use == 'recipe' %}Rezept{% else %}{% set number = use.split(':')[1]|int %}<a href="#{{ prefix }}-ingredient-{{ number }}">Zutat {{ number }} · {{ doc.ingredients[number - 1].text }}</a>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</div>
+</li>{% endfor %}
+</ol></details>
+{% endmacro %}
+<article id="recipe-document" class="recipe-document" aria-label="Rezeptblatt" data-document-version="{{ document.document_version }}">
+{{ recipe_body(document, recipe_id, 'recipe') }}
+{% if document.prepared %}
+<section class="recipe-prepared mt-4" aria-labelledby="prepared-title">
+<h2 id="prepared-title">Erfasste Zubereitungen</h2>
+<p>Mengen aus dieser Revision. Spätere Änderungen an Lebensmitteln und Rezepten verändern diesen Stand nicht.</p>
+{% for use in document.prepared %}
+<section class="recipe-prepared-use mt-3" id="prepared-{{ use.use_number }}" data-revision="{{ use.document.identity.revision_public_id }}">
+<h3>{{ use.document.title }}</h3>
+<p>Für {{ use.for_ingredient }} · Benötigt: <strong>{{ use.document.yield.amount }} {{ use.document.yield.unit }}</strong> · <a href="{{ url_for('admin.recipe_revision', recipe_id=use.document.identity.recipe_public_id, revision_id=use.document.identity.revision_public_id) }}">Gespeicherte Zubereitung öffnen</a></p>
+{{ recipe_body(use.document, use.document.identity.recipe_public_id, 'prepared-' ~ use.use_number) }}
+</section>
+{% endfor %}
+</section>
+{% endif %}
+</article>

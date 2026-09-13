@@ -310,3 +310,93 @@ def test_history_every_stand_remains_readable_after_draft_changes_and_archive(a3
         assert client.get(url).status_code == 404
     assert client.get(path + '/ansicht').status_code == 404
     assert snapshot(owner) == before
+
+
+def test_reading_document_and_explicit_revision_calculator_keep_exact_stand(a3):
+    complete_a3(a3)
+    _, owner, client, _, public_id = a3
+    root = f'/admin/rezepte/{public_id}'
+    frozen = client.post(root + '/revisionen', data=fields(client, root + '/revisionen'))
+    assert frozen.status_code == 303
+    before = snapshot(owner)
+    for path in (root + '/ansicht', frozen.location):
+        detail = client.get(path + '?yield=6')
+        assert detail.status_code == 200 and detail.headers['Cache-Control'] == 'no-store'
+        body = detail.text.split('<article id="recipe-document"', 1)[1].split('</article>', 1)[0]
+        assert not any(tag in body for tag in ('<input', '<select', '<textarea', '<form', '<table'))
+        assert '0.1875 KG' in body and 'Berechnete Ausbeute:' in body
+        assert 'Originalmengen ansehen' in body and '0.125' in body
+        assert 'Allergenangaben sind in diesen Rezeptdaten nicht erfasst.' in body
+        assert '10 Minuten' in body and '0 Minuten' in body
+    calculator = client.get(frozen.location + '?mode=scale&yield=6')
+    assert calculator.status_code == 200
+    assert 'name="mode" value="scale"' in calculator.text
+    assert '0.1875' in calculator.text and 'value="6"' in calculator.text
+    assert f'href="{frozen.location}?yield=6"' in calculator.text
+    assert f'href="{frozen.location}/druck.pdf?yield=6"' in calculator.text
+    for query in ('mode=edit', 'mode=', 'mode=scale&mode=scale', 'yield=6&yield=7'):
+        assert client.get(frozen.location + '?' + query).status_code == 400
+    invalid = client.get(frozen.location + '?mode=scale&yield=NaN')
+    assert invalid.status_code == 400 and 'value="NaN"' in invalid.text and 'aria-invalid="true"' in invalid.text
+    assert snapshot(owner) == before
+
+
+@pytest.mark.parametrize('prepared', [False, True])
+def test_document_partial_retains_legacy_and_exact_child_contents_without_current_reads(prepared):
+    from flask import Flask
+    from pathlib import Path
+    from cafeteria.admin.recipe_document import build_recipe_document
+    from test_recipe_pdf import prepared_revision, recipe, revision
+    app = Flask(__name__, template_folder=str(Path(__file__).resolve().parents[1] / 'cafeteria/templates'))
+    from cafeteria.template_filters import datetime_short
+    app.add_template_filter(datetime_short, 'datetime_short')
+    app.add_url_rule('/recipes/<recipe_id>/images/<sha256>', endpoint='admin.recipe_asset')
+    app.add_url_rule('/recipes/<recipe_id>/revisions/<revision_id>', endpoint='admin.recipe_revision')
+    values = recipe()
+    values.update(prep_minutes=None, cook_minutes=0, steps=[])
+    values['source'].update(kind='ai_assisted', fetched_at='2026-09-13T08:00:00Z',
+                            note='Synthetischer Hinweis: ungeprüft; Ausbeute nicht gemessen.')
+    values['ingredients'][0].update(quantity=None, unit_code=None, note='Nur ein Kochhinweis')
+    selected = prepared_revision() if prepared else revision(values)
+    document = build_recipe_document(selected.snapshot['recipe'], '2', revision=selected)
+    with app.test_request_context():
+        html = app.jinja_env.get_template('admin/_recipe_document.html').render(document=document, recipe_id=selected.recipe_public_id)
+    assert not any(tag in html for tag in ('<input', '<select', '<textarea', '<form', '<table'))
+    if prepared:
+        assert html.count('class="recipe-prepared-use mt-3"') == 2
+        for use in document['prepared']:
+            child = use['document']
+            assert child['yield']['amount'] in html and child['ingredients'][0]['amount'] in html
+            assert child['identity']['revision_public_id'] in html
+            for step in child['steps']:
+                for line in step['instruction'].split('\n'):
+                    assert line in html
+    else:
+        assert 'Keine Schritte gespeichert.' in html and 'Menge nicht erfasst' in html
+        assert 'Einheit nicht erfasst' in html and 'Kochzeit: 0 Minuten' in html
+        assert 'Vorbereitung:' not in html
+        assert values['source']['note'] in html and 'KI-unterstützte Angaben;' in html
+        assert 'Nur ein Kochhinweis' in html
+        assert 'class="recipe-source-note">Nur ein Kochhinweis' not in html
+
+
+def test_long_reading_document_html_keeps_all_sixty_rows_and_forty_steps():
+    from flask import Flask
+    from pathlib import Path
+    from cafeteria.admin.recipe_document import build_recipe_document
+    from cafeteria.template_filters import datetime_short
+    from test_recipe_pdf import recipe
+    values = recipe()
+    values['ingredients'] = [dict(values['ingredients'][0], ingredient_text=f'Zutat Ende {n}') for n in range(60)]
+    values['steps'] = [{'instruction': f'Anleitung Ende {n}\nFortsetzung {n}', 'duration_minutes': None,
+                        'image_sha256': None} for n in range(40)]
+    app = Flask(__name__, template_folder=str(Path(__file__).resolve().parents[1] / 'cafeteria/templates'))
+    app.add_template_filter(datetime_short, 'datetime_short')
+    with app.test_request_context():
+        html = app.jinja_env.get_template('admin/_recipe_document.html').render(
+            document=build_recipe_document(values), recipe_id='synthetic-draft')
+    assert html.count('class="recipe-ingredient"') == 60
+    for n in range(60):
+        assert f'Zutat Ende {n}' in html
+    for n in range(40):
+        assert f'Anleitung Ende {n}<br>Fortsetzung {n}' in html
