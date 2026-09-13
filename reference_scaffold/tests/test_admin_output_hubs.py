@@ -12,10 +12,12 @@ from sqlalchemy import text
 from werkzeug.serving import make_server
 
 import cafeteria
+from cafeteria import dish_template_store
 from cafeteria.admin import display_routes, workflow_routes  # noqa: F401
 from cafeteria.public import routes as public_routes
 from cafeteria.security import csrf_token
 from cafeteria.signage import routes as signage_routes
+from sqlalchemy.exc import SQLAlchemyError
 from test_admin_workflow_db import _patient_values, _save, _staff_values
 from test_admin_workflow_routes import (  # noqa: F401
     DATABASE_URL, DAY, ROOT, _login, database_engine,
@@ -103,6 +105,11 @@ def test_hubs_use_existing_read_roles_and_link_all_real_targets(hub_app, databas
             # admin also repeats each Vorlageneditor href once outside and inside «Frühere Versionen»
             expected_links = 25 if role == 'Cafeteria.Admin' else 18
             expected_unique_links = 23 if role == 'Cafeteria.Admin' else 18
+            assert '/admin/gerichtvorlagen' in links
+            assert '/admin/rezepte' in links
+            assert html.count('>Rezept drucken</a>') == 1
+            expected_links += 2
+            expected_unique_links += 1
             assert {'/admin/grundlagen?kind=foods', '/admin/rezepte', '/admin/kochbuecher'} <= set(links)
         else:
             expected_links = 15
@@ -125,6 +132,52 @@ def test_hubs_use_existing_read_roles_and_link_all_real_targets(hub_app, databas
             elif link.startswith(('/cafeteria/', '/patienten/', '/signage/', '/druck/')):
                 assert '?' not in link
                 assert target.headers['X-Snapshot-Revision']
+
+
+def test_dish_template_count_failure_is_explicit_no_store_503(
+    hub_app, database_engine, monkeypatch,  # noqa: F811
+):
+    client, _ = _login(hub_app, database_engine, ['Cafeteria.Editor'])
+
+    def fail_count(*_args, **_kwargs):
+        raise SQLAlchemyError('Gerichtvorlagen-Zählung nicht verfügbar.')
+
+    monkeypatch.setattr(dish_template_store, 'list_templates', fail_count)
+    response = client.get('/admin/vorlagen')
+
+    assert response.status_code == 503
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert 'vorübergehend nicht verfügbar' in response.get_data(as_text=True)
+
+
+def test_hub_counts_active_and_archived_dish_templates_exactly(hub_app, database_engine):  # noqa: F811
+    with database_engine.begin() as connection:
+        connection.execute(text(
+            "INSERT INTO cafeteria.dish_templates(title,active) "
+            "VALUES ('Aktive Hubvorlage',true),('Archivierte Hubvorlage',false)"
+        ))
+    client, _ = _login(hub_app, database_engine, ['Cafeteria.Editor'])
+
+    response = client.get('/admin/vorlagen')
+
+    assert response.status_code == 200
+    assert 'Menüvorlagen (1 aktiv, 1 archiviert)' in response.get_data(as_text=True)
+
+
+def test_draft_read_only_role_gets_working_recipe_print_entry(
+    hub_app, database_engine, monkeypatch,  # noqa: F811
+):
+    monkeypatch.setitem(cafeteria.roles.ROLE_CAPABILITIES, 'Cafeteria.Editor', {'draft.read'})
+    client, _ = _login(hub_app, database_engine, ['Cafeteria.Editor'])
+
+    response = client.get('/admin/vorlagen')
+    links = MainLinks(response.get_data(as_text=True)).links
+
+    assert response.status_code == 200
+    assert response.get_data(as_text=True).count('>Rezept drucken</a>') == 1
+    assert links.count('/admin/rezepte') == 2
+    assert client.get('/admin/rezepte').status_code == 200
+    assert not any(link.startswith('/admin/vorlagen/rezepte') for link in links)
 
 
 def test_hubs_reject_missing_roles_and_stale_authorization(hub_app, database_engine, monkeypatch):  # noqa: F811

@@ -20,7 +20,9 @@ from test_print_template_routes import editor_app, fields  # noqa: F401
 from test_rendered_ui import browser  # noqa: F401
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
-EVIDENCE_DIR = Path(__file__).resolve().parents[2] / ".claude/evidence/density-hubs-0913"
+EVIDENCE_DIR = Path(__file__).resolve().parents[2] / os.environ.get(
+    'TPL_DISH_ENTRY_EVIDENCE_DIR', '.claude/evidence/tpl-dish-entry-fix-0913'
+)
 PDF_TARGETS = {f'/admin/vorlagen/{family}{suffix}' for family in ('cafeteria', 'patienten')
                for suffix in ('', '/vorschau.pdf')}
 SCREEN_TARGETS = {f'/admin/vorlagen/screens/{family}/{prefix}-week-{mode}'
@@ -76,6 +78,32 @@ def test_virtual_catalog_and_missing_week_never_initialize_settings(editor_app, 
             assert 'noch keine gespeicherten Menüs' in response.text
             assert '<iframe' not in response.text
     assert settings(database_engine) == before
+    assert '/admin/gerichtvorlagen' in MainLinks(page.text).links
+
+
+def test_recipe_active_template_link_uses_explicit_ids_and_stays_privileged(
+    editor_app, database_engine,  # noqa: F811
+):
+    admin, _ = _login(editor_app, database_engine, ['Cafeteria.Admin'])
+    editor = '/admin/vorlagen/rezepte?template=standard&revision=1'
+    assert admin.post(editor, data=fields(name='Neuer Rezeptentwurf')).status_code == 303
+
+    response = admin.get('/admin/vorlagen')
+    recipe_links = [link for link in MainLinks(response.text).links
+                    if urlsplit(link).path == '/admin/vorlagen/rezepte']
+
+    assert response.status_code == 200
+    assert '/admin/vorlagen/rezepte?template=standard&revision=2' in recipe_links
+    assert '/admin/vorlagen/rezepte?template=standard&revision=1' in recipe_links
+    assert '>Aktive Vorlage öffnen</a>' in response.text
+
+    reader, _ = _login(editor_app, database_engine, ['Cafeteria.Editor'])
+    reader_response = reader.get('/admin/vorlagen')
+    assert reader_response.status_code == 200
+    assert not any(urlsplit(link).path == '/admin/vorlagen/rezepte'
+                   for link in MainLinks(reader_response.text).links)
+    assert 'Aktive Vorlage öffnen' not in reader_response.text
+    assert reader_response.text.count('>Rezept drucken</a>') == 1
 
 
 def test_catalog_revision_links_render_real_saved_pdfs_without_mutation(editor_app, database_engine):  # noqa: F811
@@ -90,10 +118,12 @@ def test_catalog_revision_links_render_real_saved_pdfs_without_mutation(editor_a
     assert response.text.count('Aktiver Herbst · Version 2') == 4
     assert response.text.count('Neuester Stand: Version 3 · Entwurf') == 2
     assert response.text.count('Festliche Kopie') == 2
+    links = MainLinks(response.text).links
+    assert '/admin/gerichtvorlagen' in links
     assert {link for link in MainLinks(response.text).links if link.startswith('/admin/vorlagen/screens/')} == SCREEN_TARGETS
-    links = [link for link in MainLinks(response.text).links if urlsplit(link).path in PDF_TARGETS]
-    assert len(links) == 14
-    for link in links:
+    pdf_links = [link for link in links if urlsplit(link).path in PDF_TARGETS]
+    assert len(pdf_links) == 14
+    for link in pdf_links:
         query = parse_qs(urlsplit(link).query)
         assert query['week'] == [DAY]
         result = client.get(link)
@@ -121,6 +151,7 @@ def test_read_roles_see_catalog_but_no_privileged_revision_links(editor_app, dat
     response = client.get('/admin/vorlagen')
     assert response.status_code == 200 and 'Aktiver Herbst · Version 2' in response.text
     assert not any(urlsplit(link).path in PDF_TARGETS for link in MainLinks(response.text).links)
+    assert '/admin/gerichtvorlagen' in MainLinks(response.text).links
     assert {link for link in MainLinks(response.text).links if link.startswith('/admin/vorlagen/screens/')} == SCREEN_TARGETS
     for link in SCREEN_TARGETS:
         assert client.get(link).status_code == 404
@@ -145,7 +176,7 @@ def test_corrupt_catalog_is_explicit_no_store_503_without_replacement(editor_app
 
 @pytest.mark.parametrize('width', [390, 1440])
 def test_catalog_browser_real_assets_revision_names_and_keyboard(
-    editor_app, database_engine, browser, width, tmp_path: Path,  # noqa: F811
+    editor_app, database_engine, browser, width,  # noqa: F811
 ):
     client, _ = _login(editor_app, database_engine, ['Cafeteria.Admin'])
     populate(client, database_engine)
@@ -187,6 +218,20 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
             recipe_card = page.locator('article[aria-labelledby="recipe-templates-heading"]')
             assert recipe_card.locator('[data-template-id="standard"]').count() == 1
             expect(recipe_card.get_by_text('Neuester Stand: Revision 1', exact=True)).to_be_visible()
+            dish_card = page.locator('article.card').filter(
+                has=page.get_by_role('heading', name='Gerichtvorlagen', exact=True),
+            )
+            if width == 1440:
+                recipe_box = recipe_card.bounding_box()
+                dish_box = dish_card.bounding_box()
+                count_box = dish_card.locator('p').bounding_box()
+                action_box = dish_card.get_by_role(
+                    'link', name='Gerichtvorlagen öffnen', exact=True,
+                ).bounding_box()
+                assert recipe_box is not None and dish_box is not None
+                assert count_box is not None and action_box is not None
+                assert dish_box['height'] < recipe_box['height']
+                assert action_box['y'] - (count_box['y'] + count_box['height']) <= 24
             recipe_link = recipe_card.get_by_role('link', name='Rezeptvorlageneditor öffnen', exact=True)
             recipe_target = urlsplit(recipe_link.get_attribute('href'))
             assert recipe_target.path == '/admin/vorlagen/rezepte'
@@ -233,15 +278,11 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
                         check_keyboard_link(link, require_focus=require_focus)
             for link in recipe_card.locator('.btn').all():
                 check_keyboard_link(link)
-            evidence = Path(os.environ.get('CATALOG_EVIDENCE_DIR', str(tmp_path)))
-            evidence.mkdir(parents=True, exist_ok=True)
-            evidence.chmod(0o700)
-            screenshot = evidence / f'catalog-{width}.png'
-            page.get_by_role('heading', level=1).click()
-            page.screenshot(path=str(screenshot), full_page=True)
-            screenshot.chmod(0o600)
             EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+            EVIDENCE_DIR.chmod(0o700)
+            page.get_by_role('heading', level=1).click()
             page.screenshot(path=str(EVIDENCE_DIR / f'catalog-{width}.png'), full_page=True)
+            Path(EVIDENCE_DIR / f'catalog-{width}.png').chmod(0o600)
             page.locator('[aria-controls="output-cafeteria"]').click()
             cafeteria_card = weekly_cards.first
             cafeteria_card.locator('details summary').filter(has_text='Frühere Versionen').click()

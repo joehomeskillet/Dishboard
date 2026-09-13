@@ -4,6 +4,7 @@ from __future__ import annotations
 from flask import Response, abort, make_response, render_template, request
 
 from ..roles import require_capability
+from .. import dish_template_store
 from ..print_templates import PrintTemplateStateError, read_templates, template_revision
 from ..screen_templates import choices, read_assignment
 from .screen_template_routes import database_available
@@ -37,9 +38,18 @@ def vorlagen() -> Response:
     week = _week_arg().isoformat()
     catalogs = {}
     error = None
+    dish_templates = dish_template_store.list_templates(
+        _db(), include_archived=True,
+    )
+    template_counts = {
+        'active': sum(1 for template in dish_templates if template.active),
+        'archived': sum(1 for template in dish_templates if not template.active),
+    }
     with _db().connect() as connection:
-        screen_catalogs = {family: {'active': read_assignment(connection, profile), 'choices': choices(profile)}
-                           for family, profile in [('cafeteria', 'staff_guest'), ('patienten', 'patient')]}
+        screen_catalogs = {
+            family: {'active': read_assignment(connection, profile), 'choices': choices(profile)}
+            for family, profile in [('cafeteria', 'staff_guest'), ('patienten', 'patient')]
+        }
     try:
         with _db().connect() as connection:
             for family, profile in [('cafeteria', 'staff_guest'), ('patienten', 'patient'), ('rezepte', 'recipe')]:
@@ -53,7 +63,7 @@ def vorlagen() -> Response:
     response = make_response(render_template(
         'admin/vorlagen.html', family='cafeteria', profile='staff_guest',
         week=week, catalogs=catalogs, catalog_error=error, **_template_context(),
-        screen_catalogs=screen_catalogs,
+        screen_catalogs=screen_catalogs, dish_template_counts=template_counts,
     ), 503 if error else 200)
     response.headers['Cache-Control'] = 'no-store'
     return response
