@@ -78,7 +78,7 @@ def test_decimal_yield_preserves_missing_quantities_units_and_original_inputs():
     assert 'Original: 4 PORTION · Gewünscht: 6 PORTION' in body
     assert '0.1875 KG · Karotten' in body
     assert 'Salz Nach Geschmack' in body and '0 KG' not in body and 'None' not in body
-    assert 'Allergenangaben in dieser Revision nicht erfasst' in body
+    assert 'Allergenangaben sind in diesen Rezeptdaten nicht erfasst.' in body
     assert 'FOREIGN LIVE NAME' not in body and 'allergenfrei' not in body
     assert 'Vorbereitung: 10 Min.' in body and 'Zubereitung: 25 Min.' in body and 'Schritt 1 · 0 Min.' in body
     assert body.index('Suppe 0.1875') < body.index('Zum Abschmecken') < body.index('Schritt 1')
@@ -233,7 +233,7 @@ def test_v2_without_original_canonical_evidence_fails_closed():
         render(revision(schema_version=2))
 
 
-def prepared_revision():
+def prepared_revision(*, compact=False):
     """Self-consistent offline DTO; real PostgreSQL canonical equivalence has separate DB tests."""
     def recorded(public_id, recipe_id, body, children=()):
         raw = json.dumps(body, ensure_ascii=False)
@@ -247,6 +247,8 @@ def prepared_revision():
                    'bases': {'mass': 'G', 'volume': 'ML', 'count': 'STK'}, 'contextual': 'same-code-only'}
     child_recipe = recipe()
     child_recipe.update(title='Erfasste Gemüsebasis', servings='3', servings_unit_code='KG', images=[])
+    if compact:
+        child_recipe.update(description=None, prep_minutes=None, cook_minutes=None)
     # A captured v1 child inside a v2 closure is complete under SQL27: linked and quantified.
     child_recipe['ingredients'] = [dict(child_recipe['ingredients'][0], quantity='1', unit_code='G',
                                         food_public_id='00000000-0000-0000-0000-000000000006')]
@@ -257,8 +259,10 @@ def prepared_revision():
     food_id = '00000000-0000-0000-0000-000000000005'
     parent = recipe()
     parent.update(title='Teller mit Zubereitung', servings='3')
+    if compact:
+        parent.update(description=None, prep_minutes=None, cook_minutes=None)
     parent['ingredients'] = [dict(parent['ingredients'][0], ingredient_text='Gemüsemischung',
-        food_public_id=food_id, quantity='1', unit_code='G')] * 2
+        food_public_id=food_id, quantity='3000' if compact else '1', unit_code='G')] * (3 if compact else 2)
     # JSON-compatible source body is retained separately from the immutable DTO.
     child_body = json.loads(child.canonical_snapshot_text)
     return recorded('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002',
@@ -273,11 +277,40 @@ def test_v2_repeated_preparation_preserves_each_amount_and_prints_full_steps_onc
     selected = prepared_revision()
     data = render(selected, target='2')
     body = text(data)
-    assert body.count('Erfasste Gemüsebasis') == 2
+    continuations = body.count('Erfasste Gemüsebasis · Revision 1 Fortsetzung')
+    assert body.count('Erfasste Gemüsebasis') == 2 + continuations
+    assert body.count('Zubereitung für Gemüsemischung') == 2
     assert body.count('Gemüse waschen.') == 2  # Parent plus first full child; repeated use points back.
     assert 'Arbeitsschritte, Bilder und Herkunft stehen bei der ersten Ausgabe' in body
-    assert '0.00022222222222222222222222222222222222222222222222222 G' in body
+    # Narrow ingredient columns may wrap the captured 50-digit decimal, never round it.
+    assert '0.00022222222222222222222222222222222222222222222222222G' in ''.join(body.split())
     assert data == render(selected, target='2')
+
+
+def test_scaled_original_amounts_are_complete_in_a_named_supplement():
+    source = recipe()
+    source['ingredients'][0]['quantity'] = '0.123456'
+    before = copy.deepcopy(source)
+    body = text(render(revision(source), target='6'))
+    cooking, supplement = body.split('Originalmengen', 1)
+    assert '0.185184 KG · Karotten' in cooking and '0.123456 KG' not in cooking
+    assert 'Angegebene Ausbeute: 4 PORTION' in supplement
+    assert '1. 0.123456 KG · Karotten' in supplement
+    assert '2. Menge nicht erfasst · Einheit nicht erfasst · Salz' in supplement
+    assert body.index('Schritt 1') < body.index('Originalmengen') < body.index('Quelle und Herkunft')
+    assert 'Originalmengen' not in text(render(revision(source)))
+    assert source == before
+
+
+def test_prepared_uses_keep_each_scaled_and_original_amount():
+    selected = prepared_revision()
+    body = text(render(selected, target='2'))
+    assert body.count('Originalmengen') == 3  # Parent and both independently scaled child uses.
+    assert body.count('1. 1 G · Karotten') == 2
+    assert body.count('Angegebene Ausbeute: 3 KG') == 2
+    assert body.count('Zubereitung für Gemüsemischung') == 2
+    assert body.count('Gemüse waschen.') == 2
+    assert '0.00022222222222222222222222222222222222222222222222222G' in ''.join(body.split())
 
 
 @pytest.mark.parametrize('field,value', [('title', '🥜'), ('description', 'Text\x00'),
