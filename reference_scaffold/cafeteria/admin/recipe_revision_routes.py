@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from uuid import UUID
+from typing import Any
 
 from flask import Response, abort, current_app, redirect, render_template, request, url_for
 from sqlalchemy import text
@@ -21,6 +22,7 @@ from ..roles import capabilities
 from . import recipe_forms as forms
 from .recipe_errors import protected
 from .recipe_pdf import RecipePdfError, render_recipe_pdf
+from .recipe_document import build_recipe_document
 from .recipe_scaling import scaled_recipe
 from .routes import bp
 
@@ -32,12 +34,28 @@ def query_fields(allowed: set[str]) -> None:
 
 def render_scaled(template: str, payload: Mapping[str, object], **context):
     context.update(family='cafeteria', profile='staff_guest')
+    revision = context.get('revision')
+    route = dict(recipe_id=context['recipe_id'])
+    if revision is not None:
+        route['revision_id'] = revision.public_id
+    endpoint = 'admin.recipe_revision' if revision is not None else 'admin.recipe_view'
+    target = request.args.get('yield')
+    selected: dict[str, Any] = {'yield': target}
+    context.update(read_url=url_for(endpoint, **route, **selected),
+                   scale_url=url_for(endpoint, **route, mode='scale', **selected) if revision is not None
+                   else url_for('admin.recipe_scale', **route, **selected),
+                   scale_action=url_for(endpoint, **route) if revision is not None
+                   else url_for('admin.recipe_scale', **route))
     try:
-        calculated = scaled_recipe(payload, request.args.get('yield'), revision=context.get('revision'))
+        document = build_recipe_document(payload, target, revision=revision)
     except forms.FormError as error:
-        return render_template(template, payload=payload, calculated=scaled_recipe(payload, revision=context.get('revision')),
-                               target_value=request.args.get('yield'), error=str(error), **context), 400
-    return render_template(template, payload=payload, calculated=calculated, **context)
+        context['read_url'] = url_for(endpoint, **route)
+        return render_template('admin/rezepte_scale.html', payload=payload,
+                               calculated=scaled_recipe(payload, revision=revision),
+                               target_value=target, error=str(error), **context), 400
+    if template == 'admin/rezepte_scale.html':
+        context['calculated'] = scaled_recipe(payload, target, revision=revision)
+    return render_template(template, payload=payload, document=document, **context)
 
 
 def print_template_context(recipe_id: str, revision_id: str | None = None) -> dict:
@@ -97,14 +115,17 @@ def recipe_freeze(recipe_id: UUID):
 @bp.get('/rezepte/<uuid:recipe_id>/revisionen/<uuid:revision_id>')
 @protected
 def recipe_revision(recipe_id: UUID, revision_id: UUID):
-    query_fields({'yield'})
+    query_fields({'yield', 'mode'})
+    if request.args.get('mode', 'scale') != 'scale':
+        raise forms.FormError('Ungültiger Ansichtsmodus.')
     revision = store.get_revision(current_app.extensions['cafeteria_db'], str(revision_id))
     if revision.recipe_public_id != str(recipe_id):
         abort(404)
     payload = revision.snapshot.get('recipe')
     if not isinstance(payload, Mapping):
         raise RecipeConfigurationError('Revisionsstand nicht verfügbar.')
-    return render_scaled('admin/rezepte_revision.html', payload, revision=revision, recipe_id=str(recipe_id),
+    template = 'admin/rezepte_scale.html' if request.args.get('mode') == 'scale' else 'admin/rezepte_revision.html'
+    return render_scaled(template, payload, revision=revision, recipe_id=str(recipe_id),
                          print_template=print_template_context(str(recipe_id), revision.public_id))
 
 

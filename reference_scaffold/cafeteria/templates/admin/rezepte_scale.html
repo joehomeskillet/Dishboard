@@ -1,7 +1,8 @@
 {% from 'admin/_macros.html' import page_header, icon %}
-{% macro amount_form(calculated, action, error=none, target_value=none, converts_units=false) %}
+{% macro amount_form(calculated, action, error=none, target_value=none, converts_units=false, mode=none) %}
 {% if error %}<div class="alert alert-danger error-region" id="yield-error" role="alert">{{ error }}</div>{% endif %}
 <form method="get" action="{{ action }}" class="row g-3 align-items-end mb-3">
+{% if mode %}<input type="hidden" name="mode" value="{{ mode }}">{% endif %}
 <div class="col-12 col-sm-6 col-lg-4"><label class="form-label" for="target-yield">Zielmenge · {{ calculated.unit }}</label><input class="form-control{% if error %} is-invalid{% endif %}" type="text" inputmode="decimal" id="target-yield" name="yield" value="{{ target_value if target_value is not none else calculated.target }}" required aria-describedby="{{ 'yield-error' if error else 'yield-hint' }}"{% if error %} aria-invalid="true" autofocus{% endif %}><div class="form-hint" id="yield-hint">Positiv, Dezimalpunkt; gleiche Einheit wie die gespeicherte Ausbeute.</div></div>
 <div class="col-12 col-sm-auto"><button class="btn btn-primary" type="submit">Mengen berechnen</button></div>
 </form>
@@ -17,10 +18,17 @@
 {% if payload is defined %}
 {% extends 'admin/base_tabler.html' %}
 {% block title %}Mengen berechnen · {{ payload.title }}{% endblock %}
-{% block page_header %}{% call page_header('Mengen berechnen', payload.title) %}<a class="btn" href="{{ url_for('admin.recipe_edit', recipe_id=recipe_id) }}">{{ icon('arrow-left') }}Zum Rezept</a>{% endcall %}{% endblock %}
+{% block page_header %}{% call page_header('Mengen berechnen', payload.title) %}
+<a class="btn" href="{{ read_url }}">{{ icon('eye') }}Rezept ansehen</a>
+{% if revision is defined %}<a class="btn" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=revision.public_id, yield=calculated.target) }}">{{ icon('printer') }}PDF öffnen</a>{% endif %}
+{% endcall %}{% endblock %}
 {% block content %}
-<div class="alert alert-info" role="status">Gespeicherter Entwurf{% if not recipe.active %} · Archiviert{% endif %}. Diese Ansicht verändert das Rezept nicht.</div>
-{{ amount_form(calculated, url_for('admin.recipe_scale', recipe_id=recipe_id), error|default(none), target_value|default(none)) }}
+<div class="alert alert-info" role="status">{% if revision is defined %}Gespeicherter Stand {{ revision.revision_number }} · unverändert{% else %}Gespeicherter Entwurf{% if not recipe.active %} · Archiviert{% endif %}{% endif %}. Diese Ansicht verändert das Rezept nicht.</div>
+{{ amount_form(calculated, scale_action, error|default(none), target_value|default(none), calculated.prepared|default(false), 'scale' if revision is defined else none) }}
 {{ ingredients(calculated) }}
+{% for prepared in calculated.prepared|default([]) %}
+<h2>{{ prepared.recipe.title }}</h2><p>Für {{ prepared.for_ingredient }} · Benötigt: {{ prepared.calculated.target }} {{ prepared.calculated.unit }}</p>
+{{ ingredients(prepared.calculated) }}
+{% endfor %}
 {% endblock %}
 {% endif %}

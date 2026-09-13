@@ -1,7 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% set layout_variant = 'standard' %}
 {% from 'admin/_macros.html' import page_header, icon %}
-{% from 'admin/rezepte_scale.html' import amount_form, ingredients %}
 {% from 'admin/rezepte_ansicht.html' import print_reference %}
 {% set workflow_nav = 'recipes' %}
 {% macro recorded(value) %}
@@ -9,114 +8,21 @@
 {% elif value is sequence and value is not string %}<ol>{% for item in value %}<li class="text-break">{{ recorded(item) }}</li>{% else %}<li>Keine Einträge</li>{% endfor %}</ol>
 {% elif value is none %}Nicht angegeben{% elif value is sameas true %}Ja{% elif value is sameas false %}Nein{% else %}{% for line in (value|string).split('\n') %}{{ line }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% endif %}
 {% endmacro %}
-{% block title %}Gespeicherter Stand {{ revision.revision_number }} · {{ payload.title }}{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='recipe-document.css') }}">{% endblock %}
+{% block title %}{{ document.title }} · Gespeicherter Stand {{ revision.revision_number }}{% endblock %}
 {% block page_header %}
-{% call page_header(
-  'Gespeicherter Stand ' ~ revision.revision_number,
-  description='Dieser gespeicherte Stand bleibt unverändert. Erstellt: ' ~ revision.created_at.isoformat() ~ '.',
-  breadcrumbs=[
-    ('Rezepte', url_for('admin.recipes_list')),
-    (payload.title, url_for('admin.recipe_view', recipe_id=recipe_id)),
-    ('Rezept-History', url_for('admin.recipe_revisions', recipe_id=recipe_id)),
-  ]
-) %}
-  <a class="btn" href="{{ url_for('admin.recipe_revisions', recipe_id=recipe_id) }}">{{ icon('arrow-left') }}Zur Rezept-History</a>
-  <a class="btn btn-primary" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=revision.public_id, yield=calculated.target) }}">{{ icon('printer') }}PDF öffnen</a>
+{% call page_header(document.title, 'Unveränderlicher Revisionsstand ' ~ revision.revision_number,
+  breadcrumbs=[('Rezepte', url_for('admin.recipes_list')), ('Rezept-History', url_for('admin.recipe_revisions', recipe_id=recipe_id))]) %}
+<a class="btn" href="{{ url_for('admin.recipe_revisions', recipe_id=recipe_id) }}">{{ icon('arrow-left') }}Zur Rezept-History</a>
+<a class="btn" href="{{ scale_url }}">{{ icon('refresh') }}Mengen berechnen</a>
+<a class="btn btn-primary" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=revision.public_id, yield=document.yield.amount) }}">{{ icon('printer') }}PDF öffnen</a>
 {% endcall %}
 {% endblock %}
 {% block content %}
+{% block recipe_context %}{% endblock %}
+{% include 'admin/_recipe_document.html' %}
+<div class="recipe-reading-actions mt-3">
 {{ print_reference(print_template) }}
-{% block recipe_summary %}
-<section class="card mb-3">
-  <div class="card-header"><h2 class="card-title mb-0">{{ payload.title }}</h2></div>
-  <div class="card-body">
-    {% if revision.snapshot.schema_version == 2 %}
-    <p>Revision {{ revision.revision_number }} · Erstellt am {{ revision.created_at|datetime_short }}</p>
-    {% else %}
-    <dl class="row mb-0">
-      <dt class="col-12 col-sm-4 col-md-3 text-secondary">Erstellt</dt>
-      <dd class="col-12 col-sm-8 col-md-9">{{ revision.created_at.isoformat() }}</dd>
-      <dt class="col-12 col-sm-4 col-md-3 text-secondary">Quelle</dt>
-      <dd class="col-12 col-sm-8 col-md-9 text-break">{{ payload.source.reference or payload.source.url or 'Nicht angegeben' }}</dd>
-    </dl>
-    {% endif %}
-    {% if payload.description %}
-    <div class="text-break mt-3 pt-3 border-top">
-      {% for line in payload.description.split('\n') %}{{ line }}<br>{% endfor %}
-    </div>
-    {% endif %}
-    <p class="mb-0{% if payload.description %} mt-3{% endif %}">Herkunft: {{ payload.source.kind }}{% if payload.source.reference %} · {{ payload.source.reference }}{% endif %}</p>
-  </div>
-</section>
-{% endblock %}
-{% block recipe_amounts %}
-{{ amount_form(calculated, url_for('admin.recipe_revision', recipe_id=recipe_id, revision_id=revision.public_id), error|default(none), target_value|default(none), calculated.prepared) }}
-{% endblock %}
-{{ ingredients(calculated) }}
-{% if calculated.prepared %}
-<section aria-labelledby="prepared-title" class="mb-3">
-  <h2 id="prepared-title">Erfasste Zubereitungen</h2>
-  <p class="text-secondary">Mengen aus dieser Revision. Spätere Änderungen an Lebensmitteln und Rezepten verändern diesen Stand nicht.</p>
-  {% for prepared in calculated.prepared %}
-  <div class="card mb-3">
-    <div class="card-body">
-      <h3 class="card-title">{{ prepared.recipe.title }}</h3>
-      <p>Für {{ prepared.for_ingredient }} · Benötigt: <strong>{{ prepared.calculated.target }} {{ prepared.calculated.unit }}</strong></p>
-      <p class="mb-0">Originalausbeute: {{ prepared.calculated.source }} {{ prepared.calculated.unit }} · <a href="{{ url_for('admin.recipe_revision', recipe_id=prepared.revision.recipe_public_id, revision_id=prepared.revision.public_id) }}">Gespeicherte Zubereitung öffnen</a></p>
-    </div>
-  </div>
-  {{ ingredients(prepared.calculated) }}
-  {% endfor %}
-</section>
-{% endif %}
-<section class="card mb-3">
-  <div class="card-header">
-    <h2 class="card-title mb-0">Zubereitung</h2>
-  </div>
-  <div class="card-body">
-    <ol class="mb-0">
-      {% for step in payload.steps %}
-      <li class="mb-3 text-break">
-        {% for line in step.instruction.split('\n') %}{{ line }}<br>{% endfor %}
-        {% if step.duration_minutes is not none %}
-        <p class="text-secondary mb-2 mt-1">{{ step.duration_minutes }} Minuten</p>
-        {% endif %}
-        {% if step.image_sha256 %}
-        <div>
-          <img class="img-fluid rounded" width="320" height="240" src="{{ url_for('admin.recipe_asset', recipe_id=recipe_id, sha256=step.image_sha256) }}" alt="Bild zu Schritt {{ loop.index }}" loading="lazy">
-        </div>
-        {% endif %}
-      </li>
-      {% else %}
-      <li>Keine Schritte gespeichert.</li>
-      {% endfor %}
-    </ol>
-  </div>
-</section>
-{% if payload.images %}
-<section class="card mb-3">
-  <div class="card-header">
-    <h2 class="card-title mb-0">Bilder und Herkunft</h2>
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      {% for image in payload.images %}
-      <div class="col-12 col-md-6 col-lg-4">
-        <figure class="mb-0">
-          <img class="img-fluid rounded mb-2" width="480" height="360" src="{{ url_for('admin.recipe_asset', recipe_id=recipe_id, sha256=image.sha256) }}" alt="{{ image.caption or 'Rezeptbild ' ~ loop.index }}" loading="lazy">
-          <figcaption class="text-break text-secondary small">
-            <strong>{{ image.caption or 'Ohne Bildunterschrift' }}</strong><br>
-            Quelle: {{ image.source_url or 'Nicht angegeben' }}<br>
-            Lizenz: {{ image.source_license or 'Nicht angegeben' }}
-            <details class="mt-2"><summary class="btn">Technische Details</summary><dl class="mt-2 mb-0"><dt>SHA-256</dt><dd class="text-break"><code>{{ image.sha256 }}</code></dd><dt>Abrufzeit</dt><dd class="text-break">{{ image.fetched_at or 'Nicht angegeben' }}</dd></dl></details>
-          </figcaption>
-        </figure>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-{% endif %}
 {% block recipe_metadata %}<details class="card mb-3">
   <summary class="card-header">Technische Details</summary>
   <div class="card-body text-break">
@@ -132,4 +38,5 @@
   </div>
 </details>
 {% endblock %}
+</div>
 {% endblock %}

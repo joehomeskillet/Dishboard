@@ -7,39 +7,25 @@
 {% macro print_reference(template) %}
 <p class="text-break">Druckvorlage: {% if template.url %}<a href="{{ template.url }}">{{ template.name }} · Revision {{ template.number }} (aktiv)</a>{% else %}{{ template.name }} · Revision {{ template.number }} (aktiv){% endif %}</p>
 {% endmacro %}
-{% from 'admin/rezepte_scale.html' import amount_form %}
 {% from 'admin/_macros.html' import page_header, icon %}
 {% if payload is defined %}
 {% extends 'admin/rezepte_revision.html' %}
-{% block title %}{{ payload.title }} · Rezept ansehen{% endblock %}
+{% block title %}{{ document.title }} · Rezept ansehen{% endblock %}
 {% block page_header %}
-{% call page_header(payload.title, 'Entwurf · nicht festgeschrieben' ~ (' · Archiviert' if not recipe.active else ''), breadcrumbs=[('Rezepte', url_for('admin.recipes_list'))]) %}
+{% call page_header(document.title, 'Entwurf · nicht festgeschrieben' ~ (' · Archiviert' if not recipe.active else ''), breadcrumbs=[('Rezepte', url_for('admin.recipes_list'))]) %}
 <a class="btn" href="{{ url_for('admin.recipes_list') }}">{{ icon('arrow-left') }}Zur Rezeptliste</a>
 {% if can_write and recipe.active %}<a class="btn" href="{{ url_for('admin.recipe_edit', recipe_id=recipe_id) }}">{{ icon('pencil') }}Bearbeiten</a>{% endif %}
-{% if links.latest_revision %}<a class="btn" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=links.latest_revision.public_id) }}">{{ icon('printer') }}Drucken · Stand {{ links.latest_revision.revision_number }}</a>{% endif %}
+<a class="btn" href="{{ scale_url }}">{{ icon('refresh') }}Mengen berechnen</a>
+<a class="btn" href="{{ url_for('admin.recipe_revisions', recipe_id=recipe_id) }}">{{ icon('history') }}Rezept-History</a>
+{% if links.latest_revision %}<a class="btn btn-primary" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=links.latest_revision.public_id) }}">{{ icon('printer') }}Drucken · Stand {{ links.latest_revision.revision_number }}</a>{% endif %}
 {% endcall %}
 {% endblock %}
-{% block recipe_summary %}
-{% if payload.source.kind == 'ai_assisted' %}<p class="alert alert-warning">KI-unterstützter Rezeptentwurf · Angaben vor Verwendung fachlich prüfen.</p>{% endif %}
-<div class="mb-3 text-break">
-{% if payload.description %}<p>{% for line in payload.description.split('\n') %}{{ line }}{% if not loop.last %}<br>{% endif %}{% endfor %}</p>{% endif %}
-{% if payload.prep_minutes is not none %}<span>Vorbereitung: {{ payload.prep_minutes }} Minuten. </span>{% endif %}
-{% if payload.cook_minutes is not none %}<span>Kochzeit: {{ payload.cook_minutes }} Minuten.</span>{% endif %}
-{{ template_links(links, recipe_id, can_create_template) }}
-<p class="mt-2">{% if links.latest_revision %}<a href="{{ url_for('admin.recipe_revision', recipe_id=recipe_id, revision_id=links.latest_revision.public_id) }}">Neuester gespeicherter Stand {{ links.latest_revision.revision_number }}</a> · Der Druck verwendet diesen unveränderlichen Stand, nicht den Entwurf.
-{% else %}Zum Drucken zuerst einen Stand festhalten.{% endif %}
-<a class="btn mt-2" href="{{ url_for('admin.recipe_revisions', recipe_id=recipe_id) }}">{{ icon('history') }}Rezept-History</a></p>
-</div>
+{% block recipe_context %}
+<p>{% if links.latest_revision %}<a href="{{ url_for('admin.recipe_revision', recipe_id=recipe_id, revision_id=links.latest_revision.public_id) }}">Neuester gespeicherter Stand {{ links.latest_revision.revision_number }}</a> · Der Druck verwendet diesen unveränderlichen Stand, nicht den Entwurf.
+{% else %}Zum Drucken zuerst einen Stand festhalten.{% endif %}</p>
 {% endblock %}
-{% block recipe_amounts %}{{ amount_form(calculated, url_for('admin.recipe_view', recipe_id=recipe_id), error|default(none), target_value|default(none)) }}{% endblock %}
 {% block recipe_metadata %}
-<section class="card mb-3"><div class="card-body">
-<h2 class="card-title">Kennzeichnungen und Herkunft</h2>
+{{ template_links(links, recipe_id, can_create_template) }}
 <p>Kennzeichnungen: {{ tag_names|join(', ') if tag_names else 'Nicht erfasst' }}</p>
-<p>Quelle: {{ {'manual': 'Manuell erfasst', 'url': 'Quellenadresse', 'file_import': 'Dateiimport', 'ai_assisted': 'KI-unterstützte Vorlage'}.get(payload.source.kind, payload.source.kind) }}{% if payload.source.reference %} · {{ payload.source.reference }}{% endif %}</p>
-{% if payload.source.url %}<p class="text-break">Quellenadresse: {{ payload.source.url }}</p>{% endif %}
-{% if payload.source.note %}<p class="text-break">{% for line in payload.source.note.split('\n') %}{{ line }}{% if not loop.last %}<br>{% endif %}{% endfor %}</p>{% endif %}
-{% if payload.source.fetched_at %}<p>Abrufzeit: {{ payload.source.fetched_at }}</p>{% endif %}
-</div></section>
 {% endblock %}
 {% endif %}

@@ -16,10 +16,10 @@ from test_recipe_template_editor_routes import (  # noqa: F401
 )
 from test_print_template_browser import browser, _context  # noqa: F401
 
-EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/recipe-view-print-0913'
+EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/recipe-reading-html-0913'
 VIEWPORTS = ((1440, 900, True), (390, 844, False), (390, 844, True),
              (1440, 900, False), (1024, 768, True), (768, 1024, True),
-             (1920, 1080, True), (2560, 1440, True))
+             (1920, 1080, True), (2560, 1440, True), (320, 844, True), (320, 844, False))
 
 
 @pytest.fixture
@@ -72,10 +72,15 @@ def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, rec
         assert navigation.value.status == 200
         expect(page.get_by_text('Entwurf · nicht festgeschrieben', exact=True)).to_be_visible()
         assert page.locator('main [name="_form_context"]').count() == 0
+        assert page.locator('#recipe-document input, #recipe-document select, #recipe-document textarea').count() == 0
+        page.get_by_role('link', name='Mengen berechnen', exact=True).click()
         page.get_by_label('Zielmenge · PORTION', exact=True).fill('8')
         page.get_by_role('button', name='Mengen berechnen', exact=True).click()
         assert 'yield=8' in page.url
         expect(page.locator('main table tbody tr').first.locator('[data-label="Berechnet"]')).to_have_text('2')
+        page.get_by_role('link', name='Rezept ansehen', exact=True).click()
+        expect(page.locator('#recipe-document .recipe-amount').first).to_have_text('2 G')
+        assert page.locator('#recipe-document table, #recipe-document input').count() == 0
         page.get_by_role('link', name='Gericht zur Suppe', exact=True).click()
         assert page.url.endswith(template)
         page.goto('/admin/gerichtvorlagen')
@@ -175,7 +180,7 @@ def test_history_opens_each_of_three_archived_stands(view_print, recipe_editor, 
             assert navigation.value.status == 200
             assert page.url.endswith(root + '/revisionen/' + revision.public_id)
             expect(page.get_by_role('heading', name=f'Gespeicherter Stand {number}', exact=True)).to_be_visible()
-            summary = page.locator('main section.card').first
+            summary = page.locator('#recipe-document')
             expect(summary.get_by_text('Erster Absatz' if number == 1 else f'Anleitung für gespeicherten Stand {number}', exact=False)).to_be_visible()
             expect(page.get_by_text('Aktueller Entwurf nach Stand 3', exact=True)).to_have_count(0)
             accessibility._accessible_capture(page, f'history-stand-{number}-{width}', methods=['GET'])
@@ -183,3 +188,84 @@ def test_history_opens_each_of_three_archived_stands(view_print, recipe_editor, 
         page.get_by_role('link', name='Aktuellen Entwurf ansehen', exact=True).click()
         expect(page.get_by_text('Aktueller Entwurf nach Stand 3', exact=True)).to_be_visible()
     assert state(owner) == before
+
+
+@pytest.fixture
+def readable_recipe(recipe_editor):  # noqa: F811
+    from test_recipe_store_db import payload, complete_line
+    app, _, _, actor = recipe_editor
+    engine = app.extensions['cafeteria_db']
+    with signed_in(engine, actor):
+        location = store.get_location(engine)
+        ingredients = [complete_line(engine, actor, name, quantity=amount, unit_code='G')
+                       for name, amount in [('Karotte', '800'), ('Wasser', '200'), ('Salz', '8'), ('Kräuter', '4')]]
+        ingredients[0].update(group_label='Gemüse', note='Gleichmässig schneiden')
+        values = payload(title='Gemüsesuppe · Leseprüfung', servings='4', ingredients=ingredients,
+                         description='Synthetisches Rezeptblatt mit vier Zutaten und zwei Schritten.',
+                         prep_minutes=0, cook_minutes=20,
+                         steps=[{'instruction': 'Gemüse waschen und schneiden.\nMit Wasser aufkochen.',
+                                 'duration_minutes': 0, 'image_sha256': None},
+                                {'instruction': 'Salz und Kräuter zugeben. Vollständig abschmecken.',
+                                 'duration_minutes': None, 'image_sha256': None}])
+        values['source'].update(kind='ai_assisted', reference='Synthetische Testquelle', fetched_at='2026-09-13T08:00:00Z',
+                               note='Ungeprüft. Ausbeute nicht gemessen; vor Verwendung prüfen.')
+        row = store.create_recipe(engine, actor, values, expected_location_id=location)
+        preview = store.get_dependency_preview(engine, target(row), expected_location_id=location)
+        revision = store.freeze_revision(engine, actor, target(row), expected_location_id=location,
+                                         expected_dependency_hash=preview.dependency_hash_sha256)
+    return row.public_id, revision.public_id
+
+
+@pytest.mark.parametrize('width,height', [(1440, 900), (390, 844), (320, 844), (2560, 1440)])
+@pytest.mark.parametrize('javascript', [False, True])
+def test_readable_recipe_content_and_explicit_mode(readable_recipe, recipe_editor, recipe_server, browser,  # noqa: F811
+                                                  monkeypatch, width, height, javascript):
+    recipe, revision = readable_recipe
+    root = f'/admin/rezepte/{recipe}'
+    before = state(recipe_editor[1])
+    monkeypatch.setattr(accessibility, 'EVIDENCE', EVIDENCE)
+    with _context(browser, recipe_server, recipe_editor[2], width, javascript=javascript) as context:
+        page = context.new_page()
+        page.set_viewport_size({'width': width, 'height': height})
+        for label, path in [('draft', root + '/ansicht'), ('saved', root + '/revisionen/' + revision)]:
+            assert page.goto(path).status == 200
+            document = page.locator('#recipe-document')
+            expect(document.locator('input, select, textarea, form, table')).to_have_count(0)
+            expect(document.locator('.recipe-ingredient')).to_have_count(4)
+            expect(document.locator('.recipe-steps > li')).to_have_count(2)
+            expect(document.get_by_text('Vorbereitung: 0 Minuten', exact=True)).to_be_visible()
+            expect(document.get_by_text('Kochzeit: 20 Minuten', exact=True)).to_be_visible()
+            expect(document.locator('.recipe-source-note')).to_have_text('Ungeprüft. Ausbeute nicht gemessen; vor Verwendung prüfen.')
+            expect(document.locator('[data-warning="ai_source"]')).to_be_visible()
+            warning_boxes = [item.bounding_box() for item in document.locator('.recipe-warnings p').all()]
+            assert len(warning_boxes) == 3 and all(warning_boxes)
+            assert all(later['y'] >= earlier['y'] + earlier['height']
+                       for earlier, later in zip(warning_boxes, warning_boxes[1:]))
+            expect(document.locator('.recipe-steps')).to_contain_text('Vollständig abschmecken.')
+            ingredients, steps = document.locator('.recipe-columns > section').all()
+            left, right = ingredients.bounding_box(), steps.bounding_box()
+            assert left and right
+            if width >= 768:
+                assert abs(left['y'] - right['y']) <= 1 and right['width'] >= 1.9 * left['width']
+            else:
+                assert right['y'] >= left['y'] + left['height']
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+            for glyph in document.locator('use').all():
+                assert glyph.evaluate('el => el.getBBox().width > 0 && el.getBBox().height > 0')
+            originals = document.get_by_text('Originalmengen ansehen', exact=True)
+            originals.focus()
+            expect(originals).to_be_focused()
+            page.keyboard.press('Enter')
+            expect(document.get_by_text('Originalausbeute: 4 PORTION', exact=True)).to_be_visible()
+            page.keyboard.press('Enter')
+            accessibility._accessible_capture(page, f'complete-{label}-{width}-js{javascript}', methods=['GET'])
+            page.get_by_role('link', name='Mengen berechnen', exact=True).click()
+            page.get_by_label('Zielmenge · PORTION', exact=True).fill('6')
+            page.get_by_role('button', name='Mengen berechnen', exact=True).click()
+            if label == 'saved':
+                assert 'mode=scale' in page.url and revision in page.url
+                assert 'yield=6' in page.get_by_role('link', name='PDF öffnen', exact=True).get_attribute('href')
+            page.get_by_role('link', name='Rezept ansehen', exact=True).click()
+            expect(page.locator('.recipe-amount').first).to_have_text('1200 G')
+            expect(page.locator('#recipe-document input, #recipe-document table')).to_have_count(0)
+    assert state(recipe_editor[1]) == before
