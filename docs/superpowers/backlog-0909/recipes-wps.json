@@ -7272,7 +7272,8 @@
       "depends_on": [
         "MP-REC-LINK-READS",
         "MP-REC-PDF-RELEASE",
-        "MP-REC-PRINT-TEMPLATE-ENTRY"
+        "MP-REC-PRINT-TEMPLATE-ENTRY",
+        "MP-UI-DENSITY-RECIPE"
       ],
       "sdd_sections": [
         "recipes-sdd.md#nachtrag-0913",
@@ -7299,18 +7300,23 @@
         "reference_scaffold/tests/test_recipe_template_editor_routes.py",
         "reference_scaffold/tests/test_recipe_template_editor_browser.py"
       ],
-      "task": "Vorher: die Rezeptkarte bietet nur «Bearbeiten» (für Leser dasselbe Ziel als «Ansehen» mit deaktiviertem Formular) und «Gespeicherte Stände»; es gibt keine Nur-Lese-Ansicht des Entwurfs, keine Druckaktion je Rezept und keinen sichtbaren Bezug zur aktiven Rezeptdruckvorlage. Nachher: eine kleine neue Nur-Lese-Route /rezepte/<uuid>/ansicht über bestehende Reader und Makros, drei getrennte Kartenaktionen Ansehen/Bearbeiten/Drucken, «Drucken» auf das vorhandene Revisions-PDF des neuesten Stands oder ein erklärter Weg zum Festhalten, Vorlagenbezug in Klartext und die aktive Druckvorlage als Text mit explizit aufgelöstem Admin-Link. Kein neuer PDF-Weg, keine Store-/Renderer-Änderung, kein Freeze per GET. Die Umstellung aller bis dahin bestehenden Rezepteditor-Einstiege in Gerichtvorlagen und Rezeptdruckvorlagen-Auswahl auf die neue Ansicht gehört inklusive Anschlussdateien/Tests atomar zu dieser Release.",
+      "task": "Vorher: die Rezeptkarte bietet nur «Bearbeiten» (für Leser dasselbe Ziel als «Ansehen» mit deaktiviertem Formular) und «Gespeicherte Stände»; es gibt keine Nur-Lese-Ansicht des Entwurfs, keine Druckaktion je Rezept und keinen sichtbaren Bezug zur aktiven Rezeptdruckvorlage. Nachher: eine kleine neue Nur-Lese-Route /rezepte/<uuid>/ansicht über bestehende Reader und Makros, drei getrennte Kartenaktionen Ansehen/Bearbeiten/Drucken, «Drucken» auf das vorhandene Revisions-PDF des neuesten Stands oder ein erklärter Weg zum Festhalten, Vorlagenbezug in Klartext und die aktive Druckvorlage als Text mit explizit aufgelöstem Admin-Link. Kein neuer PDF-Weg, keine Store-/Renderer-Änderung, kein Freeze per GET. Die Umstellung aller bis dahin bestehenden Rezepteditor-Einstiege in Gerichtvorlagen und Rezeptdruckvorlagen-Auswahl auf die neue Ansicht gehört inklusive Anschlussdateien/Tests atomar zu dieser Release. Zusätzlicher Nutzerauftrag vom 13. September: vorhandene «Gespeicherte Stände» als «Rezept-History» umbenennen und erweitern, keine zweite History. Sichtbarer Einstieg auf Rezeptkarte und Ansicht; alle persistierten immutable Revisionen mit Nummer/Zeit und je eigenem Ansehen-/Drucken-Ziel über bestehende URLs/Reader/Daten. Mindestens drei unterschiedliche Standinhalte bleiben nach Draft-Edit unverändert; draft.read und archivierte Rezepte bleiben lesbar, fremder Standort/falsche Rezept-Revisionszuordnung404. Aktuellen Entwurf klar trennen; normales Speichern erzeugt keine automatische Revision, keine neue Migration. Root gewährt zusätzlich genau einen Wiring-Hunk in rezepte_editor.html: vorhandenen Linktext «Gespeicherte Stände» zu «Rezept-History» ändern, href links.recipe_revisions erhalten; kompakte d4ad-Struktur unverändert. RECIPE-Freeze geht dieser Übergabe voraus, keine SHARED-Abhängigkeit; Workerbasis a633 bleibt als Gategrenze ausdrücklich sichtbar.",
       "acceptance_criteria": [
         "Neue Route GET /admin/rezepte/<uuid>/ansicht (draft.read, nur yield): vollständige Nur-Lese-Darstellung des aktuellen Entwurfs mit Titel, Beschreibung, Ausbeute, Zutaten/Mengen inkl. Berechnung (render_scaled, Makros aus rezepte_scale.html), Zubereitung, Bildern/Herkunft, Kennzeichnungen und Vorlagenbezug; Kopfhinweis «Entwurf · nicht festgeschrieben» mit Verweis auf den neuesten gespeicherten Stand; GET schreibt nie und erzeugt keinen Formkontext; Leser sehen keine Schreibaktionen",
-        "Rezeptkarte zeigt drei getrennte Aktionen «Ansehen», «Bearbeiten» (nur Schreibrecht und aktiv) und «Drucken»; kein Ziel doppelt; «Drucken» führt bei vorhandenem Stand direkt zum PDF des neuesten Stands mit Label «Drucken · Stand n», sonst zu «Gespeicherte Stände» mit Text «Zum Drucken zuerst einen Stand festhalten»; kein Festschreiben per GET, kein Entwurfs-PDF",
+        "Rezeptkarte zeigt drei getrennte Aktionen «Ansehen», «Bearbeiten» (nur Schreibrecht und aktiv) und «Drucken»; kein Ziel doppelt; «Drucken» führt bei vorhandenem Stand direkt zum PDF des neuesten Stands mit Label «Drucken · Stand n», sonst zu «Rezept-History» mit Text «Zum Drucken zuerst einen Stand festhalten»; kein Festschreiben per GET, kein Entwurfs-PDF",
         "Neuester Stand und Vorlagenbezug je Karte stammen aus einer gebundenen Abfrage je Seite über recipe_link_reads (keine N+1); Karte und Ansicht nennen «Keine Gerichtvorlage» mit Link «Vorlage anlegen» (/gerichtvorlagen/neu?recipe=), einen oder mehrere Vorlagennamen mit Link, archivierte Vorlagen mit Zusatz",
-        "Ansicht, Stand-Ansicht und Ständeliste zeigen «Druckvorlage: <Name> · Revision n (aktiv)» aus read_templates; nur settings.write erhält den Link /admin/vorlagen/rezepte?template=<aktiv>&revision=<aktiv>&recipe=<uuid>[&recipe_revision=<rev>]; die Ständeliste erhält je Zeile «PDF öffnen»",
+        "Ansicht, Stand-Ansicht und Ständeliste zeigen «Druckvorlage: <Name> · Revision n (aktiv)» aus read_templates; nur settings.write erhält den Link /admin/vorlagen/rezepte?template=<aktiv>&revision=<aktiv>&recipe=<uuid>[&recipe_revision=<rev>]; die Rezept-History erhält je Zeile «Ansehen» und «Drucken» auf die bestehende Revisions-/PDF-URL",
         "PDF-Route, Renderer, Vorlagenstore, Header X-Print-Template-Revision und bestehende Fehlerabbildung (422/503) bleiben unverändert; tests/test_recipe_pdf_http.py bleibt grün",
         "Navigationstests aktualisiert: getrennte Ziele, Leserolle sieht Ansehen und Drucken ohne Bearbeiten, keine POST-/DB-Mutation durch Navigation; test_recipe_navigation_browser.py ohne Erwartung auf doppelte Editor-hrefs",
         "UI-Master vollständig gelesen; pro geänderter Route 1440x900+390x844, pro Seitentyp/shared zusätzlich 1024x768+768x1024+1920x1080, tatsächliche Coverage nennen",
         "keyboard/NoJS/200%Zoom/Fontload/Fokus/Overflow/Kontrast; Tabler/Token, min44px und bestehende48px nicht schrumpfen, keine neue Palette/Dependency",
         "Gemeinsam mit Registrierung von /admin/rezepte/<uuid>/ansicht werden bisherige recipe_edit-Links in gerichtvorlagen.html und _recipe_template_selection.html auf die neue Ansicht umgestellt. Beide Anschlussdateien und ihre vorhandenen Routen-/Browsertests gehören diesem WP; keine halbe Release mit unregistriertem url_for-Ziel. Vorherige LINK-READS/PRINT-TEMPLATE-ENTRY-Releases bleiben nachweislich mit bestehenden Zielen funktionsfähig.",
-        "Route-/Browsergates prüfen Gerichtvorlagenliste und Rezeptdruckvorlageneditor vor/nach Linkumschaltung, GET 200 statt BuildError/404, passende Rollen sowie JS/NoJS. Root serialisiert diese Dateien nach LINK-READS/PRINT-TEMPLATE-ENTRY und mit MENU-PROPOSAL/UI-PRINT-EDITOR; keine zyklischen Featureabhängigkeiten."
+        "Route-/Browsergates prüfen Gerichtvorlagenliste und Rezeptdruckvorlageneditor vor/nach Linkumschaltung, GET 200 statt BuildError/404, passende Rollen sowie JS/NoJS. Root serialisiert diese Dateien nach LINK-READS/PRINT-TEMPLATE-ENTRY und mit MENU-PROPOSAL/UI-PRINT-EDITOR; keine zyklischen Featureabhängigkeiten.",
+        "Sichtbarer Einstieg «Rezept-History» auf Rezeptkarte und Ansicht benennt die bestehende Funktion «Gespeicherte Stände» um und erweitert sie; vorhandene URLs, Reader, Pagination und Revisionsdaten weiterverwenden, keine zweite History.",
+        "Alle persistierten unveränderlichen Revisionen sind erreichbar, auch jenseits der bestehenden 50er-Seite; jede Zeile zeigt Nummer/Zeit sowie Ansehen und Drucken mit der jeweiligen bestehenden Revisions-/PDF-URL. Ein aktueller Entwurf ist keine gespeicherte Revision.",
+        "Mindestens drei inhaltlich verschiedene gespeicherte Stände einzeln ansehen; nach einem späteren Draft-Edit bleiben alle drei Snapshotinhalte, Revisions-UUIDs und gespeicherten Hashes unverändert. Ansicht des aktuellen Entwurfs bleibt klar getrennt.",
+        "History und jede Standansicht bleiben mit draft.read und für archivierte Rezepte lesbar, ohne Schreibaktionen; fremder Standort oder falsche Rezept-Revisionszuordnung liefert404. Navigation/GET schreibt nichts; normales Draft-Save erzeugt keine automatische Revision, Festhalten bleibt ausdrücklich; keine neue Migration.",
+        "Bestehender Editor-Link wird mit exakt einem Text-Hunk in rezepte_editor.html «Rezept-History»; href links.recipe_revisions, kompakter d4ad-Editor und alle Formular-/Struktur-/CSS-/JS-Verträge bleiben unverändert. Root prüft den auf d4ad integrierten Editor; die ältere Workerbasis a633 ist kein Nachweis dieses Integrationszustands."
       ],
       "contract_files": [
         "reference_scaffold/cafeteria/admin/recipe_revision_routes.py",
@@ -7324,7 +7330,8 @@
         "reference_scaffold/cafeteria/templates/admin/rezepte_revision.html",
         "reference_scaffold/cafeteria/templates/admin/rezepte_revisionen.html",
         "reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html",
-        "reference_scaffold/cafeteria/templates/admin/_recipe_template_selection.html"
+        "reference_scaffold/cafeteria/templates/admin/_recipe_template_selection.html",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_editor.html"
       ],
       "owned_files": [
         "reference_scaffold/cafeteria/admin/recipe_routes.py",
@@ -7342,7 +7349,10 @@
         "reference_scaffold/tests/test_dish_template_routes.py",
         "reference_scaffold/tests/test_dish_template_browser.py",
         "reference_scaffold/tests/test_recipe_template_editor_routes.py",
-        "reference_scaffold/tests/test_recipe_template_editor_browser.py"
+        "reference_scaffold/tests/test_recipe_template_editor_browser.py",
+        "reference_scaffold/cafeteria/static/vendor/tabler-icons/tabler-icons.svg",
+        "reference_scaffold/cafeteria/static/vendor/tabler.lock.json",
+        "reference_scaffold/cafeteria/templates/admin/rezepte_editor.html"
       ],
       "forbidden_paths": [
         "database/",
@@ -7363,15 +7373,20 @@
           "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_recipe_routes.py tests/test_recipe_revision_routes.py tests/test_recipe_pdf_http.py tests/test_recipe_navigation_browser.py tests/test_recipe_view_print_browser.py tests/test_dish_template_routes.py tests/test_dish_template_browser.py tests/test_recipe_template_editor_routes.py tests/test_recipe_template_editor_browser.py",
           "assertions": [
             "Neue Route GET /admin/rezepte/<uuid>/ansicht (draft.read, nur yield): vollständige Nur-Lese-Darstellung des aktuellen Entwurfs mit Titel, Beschreibung, Ausbeute, Zutaten/Mengen inkl. Berechnung (render_scaled, Makros aus rezepte_scale.html), Zubereitung, Bildern/Herkunft, Kennzeichnungen und Vorlagenbezug; Kopfhinweis «Entwurf · nicht festgeschrieben» mit Verweis auf den neuesten gespeicherten Stand; GET schreibt nie und erzeugt keinen Formkontext; Leser sehen keine Schreibaktionen",
-            "Rezeptkarte zeigt drei getrennte Aktionen «Ansehen», «Bearbeiten» (nur Schreibrecht und aktiv) und «Drucken»; kein Ziel doppelt; «Drucken» führt bei vorhandenem Stand direkt zum PDF des neuesten Stands mit Label «Drucken · Stand n», sonst zu «Gespeicherte Stände» mit Text «Zum Drucken zuerst einen Stand festhalten»; kein Festschreiben per GET, kein Entwurfs-PDF",
+            "Rezeptkarte zeigt drei getrennte Aktionen «Ansehen», «Bearbeiten» (nur Schreibrecht und aktiv) und «Drucken»; kein Ziel doppelt; «Drucken» führt bei vorhandenem Stand direkt zum PDF des neuesten Stands mit Label «Drucken · Stand n», sonst zu «Rezept-History» mit Text «Zum Drucken zuerst einen Stand festhalten»; kein Festschreiben per GET, kein Entwurfs-PDF",
             "Neuester Stand und Vorlagenbezug je Karte stammen aus einer gebundenen Abfrage je Seite über recipe_link_reads (keine N+1); Karte und Ansicht nennen «Keine Gerichtvorlage» mit Link «Vorlage anlegen» (/gerichtvorlagen/neu?recipe=), einen oder mehrere Vorlagennamen mit Link, archivierte Vorlagen mit Zusatz",
-            "Ansicht, Stand-Ansicht und Ständeliste zeigen «Druckvorlage: <Name> · Revision n (aktiv)» aus read_templates; nur settings.write erhält den Link /admin/vorlagen/rezepte?template=<aktiv>&revision=<aktiv>&recipe=<uuid>[&recipe_revision=<rev>]; die Ständeliste erhält je Zeile «PDF öffnen»",
+            "Ansicht, Stand-Ansicht und Ständeliste zeigen «Druckvorlage: <Name> · Revision n (aktiv)» aus read_templates; nur settings.write erhält den Link /admin/vorlagen/rezepte?template=<aktiv>&revision=<aktiv>&recipe=<uuid>[&recipe_revision=<rev>]; die Rezept-History erhält je Zeile «Ansehen» und «Drucken» auf die bestehende Revisions-/PDF-URL",
             "PDF-Route, Renderer, Vorlagenstore, Header X-Print-Template-Revision und bestehende Fehlerabbildung (422/503) bleiben unverändert; tests/test_recipe_pdf_http.py bleibt grün",
             "Navigationstests aktualisiert: getrennte Ziele, Leserolle sieht Ansehen und Drucken ohne Bearbeiten, keine POST-/DB-Mutation durch Navigation; test_recipe_navigation_browser.py ohne Erwartung auf doppelte Editor-hrefs",
             "UI-Master vollständig gelesen; pro geänderter Route 1440x900+390x844, pro Seitentyp/shared zusätzlich 1024x768+768x1024+1920x1080, tatsächliche Coverage nennen",
             "keyboard/NoJS/200%Zoom/Fontload/Fokus/Overflow/Kontrast; Tabler/Token, min44px und bestehende48px nicht schrumpfen, keine neue Palette/Dependency",
             "Gemeinsam mit Registrierung von /admin/rezepte/<uuid>/ansicht werden bisherige recipe_edit-Links in gerichtvorlagen.html und _recipe_template_selection.html auf die neue Ansicht umgestellt. Beide Anschlussdateien und ihre vorhandenen Routen-/Browsertests gehören diesem WP; keine halbe Release mit unregistriertem url_for-Ziel. Vorherige LINK-READS/PRINT-TEMPLATE-ENTRY-Releases bleiben nachweislich mit bestehenden Zielen funktionsfähig.",
-            "Route-/Browsergates prüfen Gerichtvorlagenliste und Rezeptdruckvorlageneditor vor/nach Linkumschaltung, GET 200 statt BuildError/404, passende Rollen sowie JS/NoJS. Root serialisiert diese Dateien nach LINK-READS/PRINT-TEMPLATE-ENTRY und mit MENU-PROPOSAL/UI-PRINT-EDITOR; keine zyklischen Featureabhängigkeiten."
+            "Route-/Browsergates prüfen Gerichtvorlagenliste und Rezeptdruckvorlageneditor vor/nach Linkumschaltung, GET 200 statt BuildError/404, passende Rollen sowie JS/NoJS. Root serialisiert diese Dateien nach LINK-READS/PRINT-TEMPLATE-ENTRY und mit MENU-PROPOSAL/UI-PRINT-EDITOR; keine zyklischen Featureabhängigkeiten.",
+            "Sichtbarer Einstieg «Rezept-History» auf Rezeptkarte und Ansicht benennt die bestehende Funktion «Gespeicherte Stände» um und erweitert sie; vorhandene URLs, Reader, Pagination und Revisionsdaten weiterverwenden, keine zweite History.",
+            "Alle persistierten unveränderlichen Revisionen sind erreichbar, auch jenseits der bestehenden 50er-Seite; jede Zeile zeigt Nummer/Zeit sowie Ansehen und Drucken mit der jeweiligen bestehenden Revisions-/PDF-URL. Ein aktueller Entwurf ist keine gespeicherte Revision.",
+            "Mindestens drei inhaltlich verschiedene gespeicherte Stände einzeln ansehen; nach einem späteren Draft-Edit bleiben alle drei Snapshotinhalte, Revisions-UUIDs und gespeicherten Hashes unverändert. Ansicht des aktuellen Entwurfs bleibt klar getrennt.",
+            "History und jede Standansicht bleiben mit draft.read und für archivierte Rezepte lesbar, ohne Schreibaktionen; fremder Standort oder falsche Rezept-Revisionszuordnung liefert404. Navigation/GET schreibt nichts; normales Draft-Save erzeugt keine automatische Revision, Festhalten bleibt ausdrücklich; keine neue Migration.",
+            "Bestehender Editor-Link wird mit exakt einem Text-Hunk in rezepte_editor.html «Rezept-History»; href links.recipe_revisions, kompakter d4ad-Editor und alle Formular-/Struktur-/CSS-/JS-Verträge bleiben unverändert. Root prüft den auf d4ad integrierten Editor; die ältere Workerbasis a633 ist kein Nachweis dieses Integrationszustands."
           ],
           "assignment": "NICHT GELAUFEN in diesem Docs-WP; Root ersetzt benannte Wrapper/WT-Platzhalter und ordnet für HTTP/PG/Browser einen exklusiven Pool zu."
         }
@@ -7455,7 +7470,42 @@
           "redis_port": 32867
         },
         "parallel_group": "sprint-0913-shared-viewprint-ops-off",
-        "authority": "Explicit current Root assignment; actual executor is authorized independently of deterministic routing metadata."
+        "authority": "Explicit current Root assignment; actual executor is authorized independently of deterministic routing metadata.",
+        "vendor_handoff": {
+          "source_commit": "d4ad17958f3874dd704f882c106ee21340baa5c1",
+          "previous_owner": "MP-UI-DENSITY-RECIPE (completed, released)",
+          "files": [
+            "reference_scaffold/cafeteria/static/vendor/tabler-icons/tabler-icons.svg",
+            "reference_scaffold/cafeteria/static/vendor/tabler.lock.json"
+          ],
+          "pinned_package": "@tabler/icons 3.46.0",
+          "preserve_symbols": [
+            "tabler-dots",
+            "tabler-arrow-up",
+            "tabler-arrow-down"
+          ],
+          "allowed": "Add printer/history symbols from the pinned package; keep the current Root sprite and lock additions. Import these two current Root files into the worker based on a633; do not rebase or replace other files.",
+          "generator": "Existing data-driven generator unchanged and not granted; actual generator changes need explicit Root scope extension.",
+          "exclusive_owner": "MP-REC-RECIPE-VIEW-PRINT"
+        },
+        "editor_link_handoff": {
+          "file": "reference_scaffold/cafeteria/templates/admin/rezepte_editor.html",
+          "allowed_change": "Exactly the existing link text Gespeicherte Stände -> Rezept-History; href stays links.recipe_revisions.",
+          "source_commit": "d4ad17958f3874dd704f882c106ee21340baa5c1",
+          "previous_owner": "MP-UI-DENSITY-RECIPE (completed, released)",
+          "forbidden": "No structure, CSS, JS or whole-file replacement.",
+          "worker_base_limit": "Worker remains on a633, which predates the compact d4ad editor; Root integrates the exact text hunk into its current editor and gates that integrated version."
+        }
+      },
+      "history_clarification_2026_09_13": {
+        "documentation_wp": "wp-01034428851d",
+        "source": "Direct current user instruction relayed by Root; explicit clarification of the existing stored-revisions feature.",
+        "original_user_text": [
+          "rezepte müssen history haben und jeder stand soll angeschaut werden können.",
+          "Vorhandene gespeicherte Stände gibt es ja schon, evtl die funktion umbenennen und erweitern."
+        ],
+        "sdd_section": "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md#441-rezept-history-jeden-vorhandenen-stand-ansehen",
+        "implementation_status": "Contract for the currently running VIEW-PRINT worker; no new implementation, browser or acceptance claim in this docs follow-up."
       }
     },
     {

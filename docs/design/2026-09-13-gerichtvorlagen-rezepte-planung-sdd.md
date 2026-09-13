@@ -19,6 +19,17 @@ in `recipes-wps.json` und `surfaces-wps.json` (Nachtrag 13.09.).
 
 > https://dishboard.joelduss.xyz/admin/rezepte button pro rezept für die direkt ansicht und eines für drucken fehlt, muss in vorlagen als druckvorlage verknüpft sein.
 
+Zusätzliche Nutzeraufträge vom 13. September 2026, in `wp-01034428851d`
+dem laufenden `MP-REC-RECIPE-VIEW-PRINT` zugeordnet:
+
+> rezepte müssen history haben und jeder stand soll angeschaut werden können.
+
+> Vorhandene gespeicherte Stände gibt es ja schon, evtl die funktion umbenennen und erweitern.
+
+Die bestehende Funktion «Gespeicherte Stände» wird als **«Rezept-History»**
+sichtbar umbenannt und erweitert. Bestehende URLs, Reader und Revisionsdaten bleiben
+die Grundlage; dieser Nachtrag führt keine zweite History ein (§4.4.1).
+
 Die URLs sind Kontext für den Quellabgleich. Ein externer Webabruf fand nicht statt;
 alle Aussagen unten stammen aus dem Quellstand `c0839fb` und den drei Audits
 (`wp-20bbdcac693e`, `wp-855e496d2bb5`, `wp-4a3597a72ed7`) sowie den beiden
@@ -210,13 +221,38 @@ gespeicherten Stand. Wiederverwendet `render_scaled` und die Makros aus
 Rezeptkarte: **«Ansehen»** (Ansicht), **«Bearbeiten»** (nur Schreibrecht und aktiv),
 **«Drucken»**. Kein Ziel doppelt.
 
+#### 4.4.1 Rezept-History: jeden vorhandenen Stand ansehen
+
+Rezeptkarte und Rezeptansicht bieten den sichtbaren Einstieg **«Rezept-History»**
+zur bestehenden Ständeliste. Im bestehenden Editor wird ausschliesslich der
+Linktext «Gespeicherte Stände» zu «Rezept-History» geändert; das Ziel
+`links.recipe_revisions` bleibt gleich. Sie erschliesst alle bereits persistierten,
+unveränderlichen Rezeptrevisionen mit Standnummer und Zeitpunkt, auch über die
+vorhandene Seitengrenze hinaus. Jede Zeile bietet **«Ansehen»** über die bestehende
+Revisions-URL und **«Drucken»** über deren bestehende PDF-URL; keine Verwechslung
+mit dem aktuellen Entwurf oder dem neuesten Stand. Bestehende URLs/Reader und
+Revisionsdaten weiterverwenden; vorhandene Pagination erhalten.
+
+Jede Standansicht zeigt genau den damaligen Snapshot. Mindestens drei inhaltlich
+unterschiedliche gespeicherte Stände einzeln öffnen und vergleichen; eine spätere
+Änderung des aktuellen Entwurfs verändert weder ihren Inhalt noch ihre Identität
+oder gespeicherten Hashes. Der aktuelle Entwurf bleibt getrennt als
+«Entwurf · nicht festgeschrieben» bezeichnet.
+
+Leser mit `draft.read` können History und Standansichten auch bei archivierten
+Rezepten öffnen, ohne Schreibaktionen. Fremder Standort oder nicht zum Rezept
+gehörende Revisions-UUID führt zu 404. GET-Navigation schreibt nichts. Normales
+Speichern des Entwurfs erzeugt keine automatische Revision; der vorhandene
+ausdrückliche Festhalteablauf bleibt massgeblich. Keine neue Migration und kein
+zweiter History-Store werden aus diesem Auftrag abgeleitet.
+
 ### 4.5 Rezept drucken
 
 «Drucken» führt bei vorhandenem gespeichertem Stand direkt zum vorhandenen PDF des
 **neuesten** Stands; das Label nennt ihn («Drucken · Stand 3»). Ohne Stand führt die
-Aktion zu «Gespeicherte Stände» mit dem Text «Zum Drucken zuerst einen Stand
+Aktion zu «Rezept-History» mit dem Text «Zum Drucken zuerst einen Stand
 festhalten» – der bestehende Freeze-Ablauf bleibt der einzige Schreibweg, nie ein GET.
-Die Ständeliste erhält je Zeile «PDF öffnen». Ein Entwurfs-PDF wird nicht eingeführt
+Die History erhält je Zeile «Ansehen» und «Drucken» auf den vorhandenen Stand-/PDF-URLs. Ein Entwurfs-PDF wird nicht eingeführt
 (Entscheidung D6).
 
 ### 4.6 Druckvorlage verknüpft sichtbar
@@ -331,6 +367,8 @@ mit Zählung aktiv/archiviert.
 | A16 | Separat lieferbarer Hub: Gerichtvorlagen-Karte, «Aktive Vorlage öffnen» mit IDs, «Rezept drucken»; keine Abhängigkeit von Einkaufsdruck/Screen-Editor | TPL-RECIPE-DISH-ENTRY |
 | A17 | Inventar enthält Gerichtvorlagen-Familie und Rezeptansicht | UI-INVENTORY |
 | A18 | Gesamtfluss in fünf Viewports, JS/NoJS, Tastatur, Zoom, Kontrast, Rollen, Zustände; Evidenzdatei | UI-TEMPLATE-FLOW-ACCEPT |
+| A19 | Sichtbarer Einstieg «Rezept-History» erweitert die vorhandene Ständeliste; alle persistierten Revisionen mit Nummer/Zeit und einzeln funktionierendem Ansehen/Drucken, einschliesslich Pagination | VIEW-PRINT |
+| A20 | Mindestens drei inhaltlich verschiedene Standansichten bleiben nach weiterem Draft-Edit unverändert; Leser und archivierte Rezepte lesbar, fremder Standort/falsche Rezept-Revisionszuordnung404; GET ohne Write und normales Save ohne automatische Revision | VIEW-PRINT |
 
 ## 10. Arbeitspakete, Reihenfolge und Konflikte
 
@@ -371,8 +409,10 @@ mit Admin/Leser und JS/NoJS geprüft. Keine neue Abhängigkeit rückwärts auf V
 | `admin/workflow_scope.py` | MENU-TEMPLATE-BINDING | signierter Übergabevertrag; MENU-PROPOSAL konsumiert denselben geprüften Kontext |
 | `rezepte.html`, `rezepte_revisionen.html` | VIEW-PRINT → UI-RECIPE-LISTS → SEARCH-FTS/SAVED-SEARCH/BATCH-TAGS | seriell |
 | `rezepte_revision.html` | UI-REF-DETAIL (geliefert) → VIEW-PRINT | Lease |
+| `rezepte_editor.html` | RECIPE → VIEW-PRINT | exakt ein Wiring-Hunk: bestehender Linktext wird «Rezept-History», href bleibt `links.recipe_revisions`; Root-Dichteeditor aus `d4ad` erhalten, keine Struktur-/CSS-/JS-Änderung oder ganze Dateiersetzung |
 | `recipe_print_template_routes.py` | PRINT-TEMPLATE-ENTRY → PDF-GEOMETRY | seriell |
 | `_recipe_template_selection.html`, `tests/test_recipe_template_editor_*.py` | PRINT-TEMPLATE-ENTRY → VIEW-PRINT → UI-PRINT-EDITOR | seriell |
+| `static/vendor/tabler-icons/tabler-icons.svg`, `static/vendor/tabler.lock.json` | abgeschlossener RECIPE-Fix → aktiver VIEW-PRINT-Grant | Root übergibt beide Dateien aus `d4ad17958f3874dd704f882c106ee21340baa5c1` an den Worker auf Basis `a633`; `tabler-dots`, `tabler-arrow-up`, `tabler-arrow-down` erhalten; Printer-/History-Symbole ausschliesslich aus Pin `@tabler/icons` 3.46.0 ergänzen, kein weiterer Vendor-Writer |
 | `vorlagen.html`, `output_routes.py`, Hub-/Katalogtests | TPL-RECIPE-DISH-ENTRY → TPL-HUB-COMPLETE | jeweils ein Hub-Owner, kleiner Anschluss zuerst |
 | `_week_menu_card.html` | UI-KORREKTUR-WEEK (geliefert) → MENU-TEMPLATE-BINDING | Lease |
 
@@ -380,6 +420,15 @@ Gates je WP stehen im Manifest (gezielte pytest-Listen mit realem Wrapper, Brows
 390/1440 und Matrix für Seitentypen). Release: reguläre Anwendungsreleases ohne
 Migration; Rollback = vorheriges kompatibles Image, keine Daten betroffen, ausser dem
 Menüwriter-Bezug, dessen Spalte nullable ist und von alten Readern ignoriert wird.
+Vendor-Grant und einzelner Editor-Linkhunk ergänzen den bisherigen VIEW-PRINT-Besitz
+von 16 auf 19 Dateien. Der Editorübergang wird durch RECIPE → VIEW-PRINT abgesichert;
+es entsteht keine Abhängigkeit von SHARED. Der Worker behält Basis `a633`, welche
+den kompakten Root-Editor aus `d4ad` noch nicht enthält. Root integriert nur den
+freigegebenen Linkhunk in den aktuellen Editor und prüft genau diesen Stand mit
+seinem Integrationsgate; ein Gate auf der älteren Workerbasis ersetzt das nicht.
+Der bestehende Generator ist datengetrieben; solange er unverändert bleibt,
+erhält er keinen zusätzlichen Schreibbesitz. Eine tatsächliche Generatoränderung
+benötigt zuvor einen ausdrücklich ergänzten Root-Grant.
 
 ## 11. Nicht-Ziele
 

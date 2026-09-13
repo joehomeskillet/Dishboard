@@ -66,6 +66,10 @@
       ],
       "reference_scaffold/tests/test_ui_menu_editor_browser.py": [
         "MP-UI-DENSITY-RECIPE"
+      ],
+      "reference_scaffold/cafeteria/templates/admin/rezepte_editor.html": [
+        "MP-UI-DENSITY-RECIPE",
+        "MP-REC-RECIPE-VIEW-PRINT"
       ]
     },
     "foreign_work": "Shared main dirty AGENTS/CLAUDE is preserved; ongoing site/* and docs changes must be reconciled before release. Release manifests serialized by Root.",
@@ -260,10 +264,38 @@
           "reference_scaffold/tests/test_dish_template_routes.py",
           "reference_scaffold/tests/test_dish_template_browser.py",
           "reference_scaffold/tests/test_recipe_template_editor_routes.py",
-          "reference_scaffold/tests/test_recipe_template_editor_browser.py"
+          "reference_scaffold/tests/test_recipe_template_editor_browser.py",
+          "reference_scaffold/cafeteria/static/vendor/tabler-icons/tabler-icons.svg",
+          "reference_scaffold/cafeteria/static/vendor/tabler.lock.json",
+          "reference_scaffold/cafeteria/templates/admin/rezepte_editor.html"
         ],
         "file_reservation": "EXCLUSIVE",
-        "pool_reservation": "EXCLUSIVE"
+        "pool_reservation": "EXCLUSIVE",
+        "vendor_handoff": {
+          "source_commit": "d4ad17958f3874dd704f882c106ee21340baa5c1",
+          "previous_owner": "MP-UI-DENSITY-RECIPE (completed, released)",
+          "files": [
+            "reference_scaffold/cafeteria/static/vendor/tabler-icons/tabler-icons.svg",
+            "reference_scaffold/cafeteria/static/vendor/tabler.lock.json"
+          ],
+          "pinned_package": "@tabler/icons 3.46.0",
+          "preserve_symbols": [
+            "tabler-dots",
+            "tabler-arrow-up",
+            "tabler-arrow-down"
+          ],
+          "allowed": "Add printer/history symbols from the pinned package; keep the current Root sprite and lock additions. Import these two current Root files into the worker based on a633; do not rebase or replace other files.",
+          "generator": "Existing data-driven generator unchanged and not granted; actual generator changes need explicit Root scope extension.",
+          "exclusive_owner": "MP-REC-RECIPE-VIEW-PRINT"
+        },
+        "editor_link_handoff": {
+          "file": "reference_scaffold/cafeteria/templates/admin/rezepte_editor.html",
+          "allowed_change": "Exactly the existing link text Gespeicherte Stände -> Rezept-History; href stays links.recipe_revisions.",
+          "source_commit": "d4ad17958f3874dd704f882c106ee21340baa5c1",
+          "previous_owner": "MP-UI-DENSITY-RECIPE (completed, released)",
+          "forbidden": "No structure, CSS, JS or whole-file replacement.",
+          "worker_base_limit": "Worker remains on a633, which predates the compact d4ad editor; Root integrates the exact text hunk into its current editor and gates that integrated version."
+        }
       },
       {
         "wp_id": "MP-UI-DENSITY-SHARED",
@@ -370,13 +402,28 @@
         "bytes": 209165
       },
       "recipes-wps.json": {
-        "sha256": "76a0f64135b7c1fc383528633f1838f12927a941103e44c1a0c9fece1b40cf5c",
-        "bytes": 445712
+        "sha256": "4f7a507be94f21cbfe60b26321e52041c7824ad51d72a28d6b2d1cda246590bf",
+        "bytes": 452572
       },
       "surfaces-wps.json": {
         "sha256": "230e2add2e3e0942128f6f7e311afdd87b26340fb348300cf6fd9bb5298ef68b",
         "bytes": 436538
       }
+    },
+    "documentation_followup_grant": {
+      "routing_wp": "wp-01034428851d",
+      "owner": "native:/root/density_plan_fix",
+      "base": "4e6ec5ca71d43d092b3ad087648ff14e3094ece9",
+      "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/sprint-status-0913",
+      "branch": "docs/sprint-status-0913",
+      "status": "IN_PROGRESS",
+      "owned_files": [
+        "docs/superpowers/backlog-0909/recipes-wps.json",
+        "docs/superpowers/backlog-0909/file-leases.json",
+        "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md"
+      ],
+      "pool": null,
+      "authority": "Explicit Root follow-up on the existing clean branch; prior five-file freeze stays included for later Root review."
     }
   },
   "plan_source_commit": "de08d5101a689e3c09d2aab980cfec4dcb025017",
