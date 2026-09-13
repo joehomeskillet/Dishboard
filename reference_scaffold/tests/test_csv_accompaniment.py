@@ -20,7 +20,7 @@ from test_admin_workflow_db import (
     _drop_schema,
     _patient_values,
     _save_reviewed,
-    database_engine,
+    database_engine,  # noqa: F401
 )
 
 
@@ -152,7 +152,7 @@ def test_templates_and_examples_ship_schema_3_accompaniment_contract() -> None:
 
 
 def test_published_week_csv_roundtrip_preserves_accompaniments_in_empty_week(
-    database_engine,
+    database_engine,  # noqa: F811
 ) -> None:
     values = _patient_values()
     first_service = values['days'][0]['services'][0]
