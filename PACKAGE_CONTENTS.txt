@@ -1128,6 +1128,10 @@ reference_scaffold/manage.py
 reference_scaffold/README.md
 reference_scaffold/requirements-mcp.txt
 reference_scaffold/requirements.txt
+reference_scaffold/tests/fixtures/golden_native_patient.pdf
+reference_scaffold/tests/fixtures/golden_native_staff_guest.pdf
+reference_scaffold/tests/fixtures/golden_patient.pdf
+reference_scaffold/tests/fixtures/golden_staff_guest.pdf
 reference_scaffold/tests/fixtures/weekly_print_notes.json
 reference_scaffold/tests/local_user_test_support.py
 reference_scaffold/tests/prepared_food_fixtures.py
