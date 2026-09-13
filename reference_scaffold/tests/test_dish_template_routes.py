@@ -213,3 +213,91 @@ def test_store_create_with_target_and_bad_scope(b3):  # noqa: F811
     payload['profile_scope'] = 'kitchen'
     with pytest.raises(RecipeValidationError, match='Ungültige Vorlagenfelder'):
         store.create_template(engine, actor, payload, expected_location_id=location)
+
+
+def test_prefill_get_does_not_write_and_uses_the_existing_recipe_editor(b3):  # noqa: F811
+    app, owner, client, actor = b3
+    recipe = make_recipe(app.extensions['cafeteria_db'], actor, 'Vorbelegte Suppe')
+    before = snapshot(owner)
+    response = client.get('/admin/gerichtvorlagen/neu', query_string={'recipe': recipe.public_id})
+    assert response.status_code == 200
+    values = Forms(response.text).forms['/admin/gerichtvorlagen/neu']
+    assert values['recipe_public_id'] == recipe.public_id and values['title'] == 'Vorbelegte Suppe'
+    assert snapshot(owner) == before
+    path = create(client, recipe_public_id=recipe.public_id)
+    listing = client.get('/admin/gerichtvorlagen')
+    assert f'href="/admin/rezepte/{recipe.public_id}"' in listing.text
+    assert 'Rezept: Vorbelegte Suppe' in listing.text
+    assert 'Noch kein gespeicherter Stand' in listing.text and 'In 0 Menüs verwendet' in listing.text
+    assert client.get('/admin/rezepte/' + recipe.public_id).status_code == 200
+    assert client.get(path).status_code == 200
+
+
+def test_unknown_foreign_and_archived_prefill(b3):  # noqa: F811
+    app, owner, client, actor = b3
+    for public_id in (str(uuid4()), foreign_recipe(owner, actor), 'not-a-uuid'):
+        before = snapshot(owner)
+        response = client.get('/admin/gerichtvorlagen/neu', query_string={'recipe': public_id})
+        assert response.status_code == 404 and 'Rezept nicht gefunden.' in response.text
+        values = Forms(response.text).forms['/admin/gerichtvorlagen/neu']
+        assert values['recipe_public_id'] == values['title'] == ''
+        assert snapshot(owner) == before
+    engine = app.extensions['cafeteria_db']
+    recipe = make_recipe(engine, actor, 'Archiv für Vorbelegung')
+    with signed_in(engine, actor):
+        recipes.set_recipe_active(engine, actor, ObjectExpectation(recipe.public_id, recipe.row_version),
+                                  active=False, expected_location_id=recipes.get_location(engine))
+    before = snapshot(owner)
+    response = client.get('/admin/gerichtvorlagen/neu', query_string={'recipe': recipe.public_id})
+    assert response.status_code == 200 and 'Rezept archiviert' in response.text
+    values = Forms(response.text).forms['/admin/gerichtvorlagen/neu']
+    assert client.post('/admin/gerichtvorlagen/neu', data=values).status_code == 409
+    assert snapshot(owner) == before
+
+
+def test_search_intents_preserve_unsaved_fields_and_original_cas_without_writes(b3):  # noqa: F811
+    from test_recipe_link_reads_db import seed_recipe_page
+    _, owner, client, actor = b3
+    ids = seed_recipe_page(owner, actor)
+    path = create(client, recipe_public_id=ids[-1])
+    original = fields(client, path)
+    newer = original.copy()
+    newer['title'] = 'Andere Sitzung'
+    assert client.post(path, data=newer).status_code == 303
+    for name, value in {'title': '', 'description': 'Ungespeichert\nZweite Zeile', 'menu_type_code': 'VEGGIE',
+                        'profile_scope': 'patient', 'action': 'recipe_search', 'recipe_search': '205'}.items():
+        original[name] = value
+    before = snapshot(owner)
+    response = client.post(path, data=original)
+    assert response.status_code == 200
+    returned = Forms(response.text).forms[path]
+    for name in ('title', 'description', 'menu_type_code', 'profile_scope', 'recipe_public_id', 'updated_at'):
+        assert returned[name] == original[name]
+    assert snapshot(owner) == before
+    returned['title'] = 'Mein Titel'
+    returned['description'] = 'Gültige Beschreibung'
+    returned['action'] = 'save'
+    assert client.post(path, data=returned).status_code == 409
+    assert snapshot(owner) == before
+    no_csrf = original.copy()
+    no_csrf.pop('_csrf')
+    assert client.post(path, data=no_csrf).status_code == 400
+    original['updated_at'] = 'invalid-original-token'
+    invalid = client.post(path, data=original)
+    assert invalid.status_code == 400
+    assert Forms(invalid.text).forms[path]['updated_at'] == original['updated_at']
+    assert snapshot(owner) == before
+
+
+def test_read_only_navigation_has_no_write_actions(b3, monkeypatch):  # noqa: F811
+    from cafeteria import roles
+    app, _, client, actor = b3
+    recipe = make_recipe(app.extensions['cafeteria_db'], actor)
+    path = create(client, recipe_public_id=recipe.public_id)
+    monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', {'draft.read'})
+    for target in ('/admin/gerichtvorlagen', path):
+        response = client.get(target)
+        assert response.status_code == 200 and 'Rezept: Gebundenes Rezept' in response.text
+        assert 'Vorlage anlegen</a>' not in response.text and 'name="action"' not in response.text
+    assert client.get('/admin/rezepte/' + recipe.public_id).status_code == 200
+    assert client.post(path, data={'action': 'recipe_search'}).status_code == 403
