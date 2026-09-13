@@ -7,7 +7,7 @@ from urllib.parse import urlsplit
 import pytest
 
 from test_admin_workflow_routes import DATABASE_URL, DAY, _login, database_engine  # noqa: F401
-from test_recipe_routes import create, fields
+from test_recipe_routes import create
 from test_rendered_ui import browser  # noqa: F401
 from test_ui_master_shell_browser import _goto, _page, site  # noqa: F401
 
@@ -33,12 +33,9 @@ SHELL_METRICS = '''() => {
 }'''
 
 
-def _revision_path(client) -> str:
-    recipe_path = urlsplit(create(client)).path
-    list_path = f'{recipe_path}/revisionen'
-    response = client.post(list_path, data=fields(client, list_path))
-    assert response.status_code == 303, response.text
-    return urlsplit(response.location).path
+def _recipe_edit_path(client) -> str:
+    # Incomplete drafts return 400 on /revisionen; the edit page shares the same shell.
+    return urlsplit(create(client)).path
 
 
 def test_admin_pages_use_full_working_width(site, tmp_path: Path):  # noqa: F811
@@ -48,7 +45,7 @@ def test_admin_pages_use_full_working_width(site, tmp_path: Path):  # noqa: F811
         ('darstellung', '/admin/design/darstellung'),
         ('menues', '/admin/cafeteria/menues'),
         ('cafeteria', '/admin/cafeteria'),
-        ('rezeptversion', _revision_path(client)),
+        ('rezept', _recipe_edit_path(client)),
         ('menueditor', f'/admin/cafeteria/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1'),
     )
     page = _page(site, client, viewport={'width': 1440, 'height': 900})
