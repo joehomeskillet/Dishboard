@@ -11,11 +11,11 @@
       "model": "grok-4.6"
     },
     "mp_id": "MP-UI-DENSITY-INVENTORY",
-    "source_commit": "42a58f927a13b4b032bfbaea217a3bbbfbe60c0a",
+    "source_commit": "d340b79c8f09866df171567b247df2d99d1e6543",
     "schema": 30,
     "schema_note": "Aktueller zugewiesener Quellstand; SCHEMA_VERSION aus cafeteria.db. Keine neue Live-Abnahme.",
     "baseline_status": "proposed_never_user_approved",
-    "generated_at": "2026-09-13T02:19:36+00:00",
+    "generated_at": "2026-09-13T02:55:25+00:00",
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
     "route_count": 127,
     "template_count": 83,
@@ -8268,7 +8268,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "933645f1a89531ab2595dea513839b7e2af3922d074b12b2d83b684dd1f88246",
+      "sha256": "2169b0a9209ced82b9cdd71e8577bdceef4dede891dfd4460c2727bf3cfd185f",
       "used_by_endpoints": [
         "admin.component_detail",
         "admin.components_get",
@@ -8813,7 +8813,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "a6a93796ee89ea20044bd749b348efaf26da0e0120875f5d18e1768c8f56192a",
+      "sha256": "806ebc84a0d759ce5a057de26ef6824c2f4b69f1a3df64c0a4a17540b8d9261d",
       "used_by_endpoints": [
         "admin.component_detail"
       ],
@@ -8837,7 +8837,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "d164de788f342d63de029d189a803ad63a45b74ccee56c4bba81ff3de79977c7",
+      "sha256": "bcee5c9c80166a5d40ac7160cc7108ef73a1572363081462e4390dfe0bce031f",
       "used_by_endpoints": [
         "admin.components_get"
       ],
