@@ -3262,7 +3262,7 @@
         "OPS-001"
       ],
       "kind": "verification",
-      "status": "IN_PROGRESS",
+      "status": "INTEGRATED",
       "depends_on": [],
       "existing_wp_id": "wp-0550a6f132cf",
       "sdd_sections": [
@@ -3355,7 +3355,26 @@
           "redis_port": 32854
         },
         "parallel_group": "sprint-0913-shared-viewprint-ops-off",
-        "authority": "Explicit current Root assignment; actual executor is authorized independently of deterministic routing metadata."
+        "authority": "Explicit current Root assignment; actual executor is authorized independently of deterministic routing metadata.",
+        "status": "COMPLETED",
+        "file_reservation": "RELEASED",
+        "pool_reservation": "RELEASED"
+      },
+      "delivery_2026_09_13": {
+        "head": "5e592a80dd824a796f09ecaa8a6528309b6cedf9",
+        "root_gate": "166 passed in 99.26s",
+        "fix_routing_wp": "wp-e5ff3dfa8ab0",
+        "fix_executor": "grok-build",
+        "original_attempt": "Cursor wp-0550a6f132cf: 157 passed, 9 failed in 271.14s; retained as failed attempt, not acceptance.",
+        "fix_owned_files": [
+          "docs/superpowers/backlog-0909/ops-core-regression.md",
+          "reference_scaffold/tests/test_admin_operations_routes.py",
+          "reference_scaffold/tests/test_admin_operations_browser.py"
+        ],
+        "status": "INTEGRATED",
+        "integration": "8c39ca7b448f5f34b4c791457b65555368a298bd",
+        "deployment": "NOT_YET_DEPLOYED",
+        "source": "Root progress.md Current integration 2026-09-13 03:45 CEST; explicit Root refresh assignment."
       }
     },
     {

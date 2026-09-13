@@ -10,11 +10,11 @@
 
 **Spec:** `docs/superpowers/backlog-0909/{recipes,operations,surfaces}-sdd.md`, zugehörige `*-wps.json`, `execution-contract.md`, `docs/BACKLOG.md`, `docs/design/2026-09-09-unified-ui-design-system.md`, `docs/design/2026-09-12-patientenplan-menueditor-korrektur.md`, [Feature-SDD Gerichtvorlagen, Rezepte und Tagesplanung](../../design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md).
 
-**Baseline:** Letzter hier belegter Live-Release ist `3ee090d6cb5cc4b6f7863b1a8746fb53d77cfa6e`, Schema 30, am 13. September um 02:02 CEST. Aktueller Integrationsstand ist `d4ad17958f3874dd704f882c106ee21340baa5c1`; dessen Releasevorbereitung läuft und ist noch kein Live-Beleg. `a420992ae91fd801d0ec43d41038f57bbdd3b261` bleibt die historische erste Workerbasis. Neue Worker behalten ihre genaue Basis im jeweiligen aktiven Grant; dieser Dokumentations-WP startet nach Fetch auf `a6337e66198a7c2da80862e3c9b68aff1d8de362` und rebasiert keinen Produktworker. Gemeinsamer Haupt-Tree bleibt unangetastet.
+**Baseline (Snapshot dieses Refresh):** Letzter belegter Live-Release bleibt 0a5f45d6cdd94e4c217c6fc116c30680c2986420, Schema 30, am 13. September um 03:12 CEST (Report 12727). Der Integrationsledger vom 13. September 03:45 CEST belegt 8c39ca7b448f5f34b4c791457b65555368a298bd; spätere Root-Meldungen bestätigen WEEKS und OFF integriert sowie 49 integrierte Sprintprüfungen in 227,20 s. Kein neuer Deploy wird daraus abgeleitet. a420992ae91fd801d0ec43d41038f57bbdd3b261 bleibt die historische erste Workerbasis; genaue aktuelle Basen stehen im Grant. Dieser Docs-Refresh startet nach Fetch auf 8c39 und rebasiert keinen Produktworker.
 
 Der integrierte Planfix `wp-8bdb4f7321bd` basiert auf `2a9aed10b394e4d76bb58bd5e384a81fff84af0a` und korrigiert die beiden Befunde aus Review `wp-e7b99a14a8a0`. Der zusätzlich von Root freigegebene Graphabgleich ergänzt für PLAN-PORTIONS die bereits dokumentierten Vorgänger SHARED (`admin.js`) und MENU-PROPOSAL (`menu_editor.html`); die Featureabfolge bleibt dieselbe. Die damaligen Produktworker behielten ihre ausdrücklich zugewiesene Basis `a420992ae91fd801d0ec43d41038f57bbdd3b261`; der Dokumentstand war kein Auftrag zum Rebase und kein Produkt-/Abnahmebeleg.
 
-**Planungsstatus:** Fable 5.1 lieferte die sieben Feature-WPs; alle fünf anschliessenden Reviewbefunde wurden durch getrennte Autoren geschlossen. Der vollständige Dichteauftrag erweitert diesen Freeze. Manifest, Inventar, LINK-READS und Rezeptreferenz sind integriert; der Druckvorlagen-Einstieg ist live. VIEW-PRINT, SHARED, OPS-Regression und OFF-Feldmapping haben aktuelle getrennte Grants. Reale Nutzerabnahme wartet auf drei Personen. Aktive Besitzer/Pools stehen im Sitzungsabschnitt von file-leases.json; abgeschlossene Grants und historische Vorschlagsleases erteilen kein aktuelles Schreibrecht.
+**Planungsstatus:** Fable 5.1 lieferte die sieben Feature-WPs; alle fünf anschliessenden Reviewbefunde wurden durch getrennte Autoren geschlossen. Der vollständige Dichteauftrag erweitert diesen Freeze. Manifest, Inventar, LINK-READS und Rezeptreferenz sind integriert; der Druckvorlagen-Einstieg ist live. VIEW-PRINT, SHARED, OPS-Regression, WEEKS und OFF-Feldmapping sind nach Root-Belegen integriert, noch nicht neu deployed. SHELL bleibt nach integriertem Testalignment fachlich offen; SHELL-Abnahme, MENUEDITOR und Inventaranschluss haben getrennte aktuelle Grants. Reale Nutzerabnahme wartet auf drei Personen. Aktive Besitzer/Pools stehen im Sitzungsabschnitt von file-leases.json; abgeschlossene Grants und historische Vorschlagsleases erteilen kein aktuelles Schreibrecht.
 
 ## Dichteauftrag 13. September
 
@@ -80,44 +80,29 @@ entsprechend präzisiert. Der getrennt autorierte Patientenpreis-/Grid-Testfix
 integriert; Root prüfte unabhängig CLEAN und 21 Tests in 1,09 Sekunden. Sein
 Dateibesitz ist freigegeben.
 
-Aktueller Liefer- und Ausführungsstand dieses Docs-Freeze:
+Liefer- und Ausführungsstand des Refresh wp-5f8091f2fe84 (8c39-Ledger plus ausdrückliches Root-Update; spätere Änderungen führt der operative Ledger):
 
-| Paket | Beleg und Status | Aktueller Besitzer / Basis / Testpool |
+| Paket | Beleg und Status | Besitz / verbleibender Schritt |
 |---|---|---|
-| LINK-READS | `c753fa46` in `a6337e66`, INTEGRATED; unabhängiger Review 12714 CLEAN, Root 50 Tests in 103,92 s | Alter Grant abgeschlossen; Dateien und test_ui_other freigegeben |
-| DENSITY-RECIPE | `e7f00643` plus anderer Autor `d589c2db` in `d4ad1795`, INTEGRATED; Review 12716 CLEAN, Root 98 Basisprüfungen plus 23 fokussierte Fixprüfungen in 79,08 s | Alter Grant abgeschlossen; keine neue Live-/Gesamtabnahme behauptet |
-| RECIPE-VIEW-PRINT | IN_PROGRESS, `wp-ed515a8775d2`; alle 16 WP-Dateien einschliesslich bisheriger LINK-/PRINT-Consumer | native `/root/recipe_view_print`; WT `recipe-view-print-0913`, Branch `feat/recipe-view-print-0913`, Basis `a6337e66`; exklusiv test-recipe-template-editor-0908, PG 32823 / Redis 32867 |
-| DENSITY-SHARED | IN_PROGRESS, `wp-dafb2c78258b`; fünf gemeinsame Dateien, Vorgänger MANIFEST und RECIPE integriert | native `/root/density_shared`; WT `ui-density-shared-0913`, Branch `feat/ui-density-shared-0913`, Basis `d4ad1795`; exklusiv test-recipe-print-0908, PG 32865 / Redis 32866 |
-| OPS-CORE-REGRESSION | IN_PROGRESS, `wp-0550a6f132cf`; ausschliesslich `ops-core-regression.md` | Cursor-CLI; WT `ops-regression-cursor-0913`, Branch `docs/ops-regression-cursor-0913`, Basis `a6337e66`; exklusiv test_ui_other, PG 32853 / Redis 32854 |
-| OFF-FIELDMAP | IN_PROGRESS, `wp-645d9788f698`; ausschliesslich `off-feldzuordnung-0909.md` | AGY-CLI; WT `off-fieldmap-agy-0913`, Branch `docs/off-fieldmap-agy-0913`, Basis `a6337e66`; kein DB-Pool |
+| LINK-READS / DENSITY-RECIPE | Frühere Integrationsbelege c753/a633 und e7+d589/d4ad bleiben erhalten; Rezepteditor und Links zuletzt live in 0a5f45d, Report 12727 | Historische Grants freigegeben |
+| RECIPE-VIEW-PRINT | 311a3462 INTEGRATED; Review 12737 CLEAN, Root 166 Tests in 521,37 s (37 Warnungen) | 20 ursprüngliche und ergänzte Besitzpfade freigegeben; kein neuer Live-Beleg |
+| DENSITY-SHARED | 338f0ca6 INTEGRATED; Review 12730 CLEAN, Root 49 Tests in 132,86 s | Fünf Dateien und alter Pool freigegeben; admin-tabler.css jetzt ausschliesslich SHELL |
+| OPS-CORE-REGRESSION | Grok-Fix 5e592a80 INTEGRATED; Root 166 Tests in 99,26 s | Cursor-Erstlauf mit neun Fehlern bleibt historisch dokumentiert; dessen alte Reservation ist aufgehoben |
+| DENSITY-SHELL | 8c666d25 Testalignment INTEGRATED, Review 12740 CLEAN; vollständige SHELL-Abnahme weiterhin IN_PROGRESS | Native GPT, wp-ecabb035f0cf, WT shell-acceptance-0913, Branch test/shell-acceptance-0913, Basis 8c39; genau fünf Shell-Dateien, exklusiv test-recipe-print-0908, PG 32865 / Redis 32866 |
+| DENSITY-MENUEDITOR | IN_PROGRESS, wp-50a8a27d9d6d; kein Abnahmebeleg aus laufendem Worker | Grok, WT density-menu-grok-0913, Branch feat/density-menu-grok-0913, Basis d661c011; fünf Brief-Dateien, exklusiv test-recipe-template-editor-0908, PG 32823 / Redis 32867 |
+| DENSITY-WEEKS | 5358be0c nach Root-Update INTEGRATED; Review 12745 CLEAN, Root 45 Tests in 124,18 s; kein neuer Deploy | AGY-Grant mit acht Dateien und test-api3, PG 32788 / Redis 32789, abgeschlossen und freigegeben |
+| DENSITY-INVENTORY Anschluss | Ursprünglicher Inventarstand bleibt INTEGRATED; History-Refresh 68a89ee5 frozen, neun Autorprüfungen, Root-Review ausstehend | Native GPT, wp-9bb209576726, WT history-inventory-0913, Branch chore/history-inventory-0913, Basis 8c39; genau zwei Inventar-JSONs und ein bestehender Fixture-Routenhunk in test_ui_route_inventory.py, exklusiv test_ui_other, PG 32853 / Redis 32854 |
+| OFF-FIELDMAP | Cursor fe40706e nach Root-Update INTEGRATED, Review 12744 CLEAN; kein Produkt-/Live-Beleg | wp-5f2ec1902690, WT off-fieldmap-cursor-finalfix-0913, Branch docs/off-fieldmap-cursor-finalfix-0913, Basis eaa7b6bc; allein off-feldzuordnung-0909.md, kein Pool, Grant freigegeben |
 
-Die vier aktiven Grants sind dateidisjunkt. Root prüft und integriert separat;
-das Hostlimit von fünf schweren Jobs gilt einschliesslich seiner Gates. Vollständige
-Hashes und Besitzlisten stehen im aktiven Leaseabschnitt. Dessen `completed_grants`
-bewahren alte Basen und Belege mit freigegebenen Dateien/Pools. Die unteren
-PROPOSAL_ONLY-Zählungen und Quellhashes bleiben der historische 136-WP-Snapshot;
-`current_plan_count` und `current_input_manifests` beschreiben die jetzigen 176 WPs
-mit unverändert 35 Anforderungen. Ein alter IN_PROGRESS-Manifeststatus ist kein
-Nachweis einer heute laufenden Lane.
+Der alte OFF-Erstbefund mit sechs Punkten wurde in eaa7 aufgearbeitet; Review 12739 bestätigte noch zwei P2-Befunde (Einheitenfeld und Input-Set-Herkunft). Der anschliessende Cursor-Fix fe407 wurde von Root CLEAN geprüft. Die sechs alten Punkte werden nicht als aktuelle Blockade fortgeschrieben.
 
-Die aktuelle ausdrückliche Lane-Freigabe umfasst Cursor und AGY. Für das OPS-WP
-wird deshalb `cursor` zu `eligible_lanes` ergänzt; bevorzugte Lane und Fachvertrag
-bleiben erhalten. Deterministisches Routing und tatsächlicher Executor werden
-getrennt dokumentiert: SHARED wurde als `agent-computeruse` empfohlen und von Root
-ausdrücklich an native GPT vergeben; diese Dokumentation als `agent-or-coder-plus`
-empfohlen und ebenfalls an native GPT vergeben. Empfehlungen behaupten keine
-gestartete Modellinstanz.
+VIEW-PRINT erhält den nach 835acea ausdrücklich freigegebenen zwanzigsten Consumer test_ui_korrektur_recipes_browser.py: ausschliesslich bestehende History-Überschrift und Ansehen-Label auf der vorhandenen Route, zwei Texthunks. Besitzübergabe RECIPE → VIEW-PRINT, ohne neue Featureabhängigkeit. Der bereits vereinbarte einzelne Editor-Linkhunk und die aktuelle Vendor-Sprite/Lock-Übernahme aus d4ad bleiben erhalten; keine ganze Editorersetzung von der älteren Workerbasis a633.
 
-Nächster konkreter Freeze ist SHARED: eigener Besitz von `_macros.html`,
-`admin-tabler.css`, `admin.js`, `test_ui_master_components_browser.py` und
-`test_ui_reference_form_browser.py`. Die integrierte Rezeptreferenz konsumieren,
-vorhandene Details-/Fehleröffnung, Fokus und beschriftete native Aktionen zentral
-absichern; CSRF, Originalkontext, CAS, readonly/disabled, formaction und
-formnovalidate erhalten. Beide bestehenden Shared-Browsermodule mit der zentralen
-Viewportmatrix ausführen, betroffene Rezept-/Menüregressionen gezielt konsumieren,
-reale Routen-/Rollen-/Zustandsbelege und unabhängigen Review liefern. Erst nach
-diesem Freeze übernehmen SHELL, MENUEDITOR, WEEKS und weitere Seiten ihre Basis.
-Dieser Statusauftrag schreibt keinen Produktcode und startet keine Produktgates.
+Drei aktuelle Grants sind dateidisjunkt; der eingefrorene Inventaranschluss hält seine Reservation bis Root-Review. Alle vier alten aktiven Grants und die inzwischen integrierten WEEKS-/OFF-Folgegrants stehen mit freigegebenen Dateien/Pools unter completed_grants. Der aktuelle Shell-Writer besitzt als Einziger admin-tabler.css. Root-Gates zählen zum Hostlimit von fünf schweren Jobs; gestoppte Pools bleiben gestoppt.
+
+Tatsächliche Executor und Routingempfehlung bleiben getrennt. Native SHELL/Inventar, Grok MENUEDITOR, AGY WEEKS und Cursor OFF sind ausdrücklich von Root vergeben; für OFF ist Cursor jetzt auch in eligible_lanes enthalten. Die historischen unteren PROPOSAL_ONLY-Zählungen, Quellhashes und Besitzdaten bleiben unverändert. Aktuelle drei Manifest-Prüfsummen beschreiben weiterhin 176 WPs mit 35 Anforderungen.
+
+SHARED ist eingefroren und integriert. Der konkrete nächste offene Freeze ist die vollständige SHELL-Abnahme im bereits vergebenen Fünf-Dateien-Paket; der integrierte Cursor-Testabgleich erfüllt diesen Gesamtvertrag allein nicht. MENUEDITOR läuft unabhängig, WEEKS ist bereits integriert. Dieser Statusauftrag schreibt keinen Produktcode und startet keine Produktgates.
 
 ## Global Constraints
 
