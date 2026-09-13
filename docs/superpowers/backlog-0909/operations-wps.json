@@ -3375,6 +3375,15 @@
         "integration": "8c39ca7b448f5f34b4c791457b65555368a298bd",
         "deployment": "NOT_YET_DEPLOYED",
         "source": "Root progress.md Current integration 2026-09-13 03:45 CEST; explicit Root refresh assignment."
+      },
+      "delivery_2026_09_13_0505": {
+        "release": "f32fc70fff3c805c0f35026ca444b6c40a81dea1",
+        "report": "wp-5b2e66ec76d3-deploy-f32fc70.md",
+        "report_record": 12749,
+        "status": "INTEGRATED",
+        "scope": "Reviewed regression document/test corrections included; historical failed attempts retained, no full application acceptance.",
+        "snapshot": "2026-09-13 05:05 CEST",
+        "evidence_origin": "Root deployment report; no live verification or product tests by this docs worker."
       }
     },
     {

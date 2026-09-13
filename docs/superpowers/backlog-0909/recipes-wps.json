@@ -6000,6 +6000,15 @@
         "root_gate": "Root independent documentation review CLEAN; no DB/browser gate",
         "deployment": "NOT_YET_DEPLOYED",
         "integration_note": "Merged per explicit Root update after the 8c39 snapshot; exact subsequent merge hash is not asserted."
+      },
+      "delivery_2026_09_13_0505": {
+        "release": "f32fc70fff3c805c0f35026ca444b6c40a81dea1",
+        "report": "wp-5b2e66ec76d3-deploy-f32fc70.md",
+        "report_record": 12749,
+        "status": "INTEGRATED",
+        "scope": "Reviewed documentation included in the release; no external OFF data acceptance inferred.",
+        "snapshot": "2026-09-13 05:05 CEST",
+        "evidence_origin": "Root deployment report; no live verification or product tests by this docs worker."
       }
     },
     {
@@ -7300,7 +7309,7 @@
         "REC-007"
       ],
       "kind": "implementation",
-      "status": "INTEGRATED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-REC-LINK-READS",
         "MP-REC-PDF-RELEASE",
@@ -7560,10 +7569,18 @@
         "integration": "8c39ca7b448f5f34b4c791457b65555368a298bd",
         "deployment": "NOT_YET_DEPLOYED",
         "source": "Root progress.md Current integration 2026-09-13 03:45 CEST; explicit Root refresh assignment."
+      },
+      "delivery_2026_09_13_0505": {
+        "release": "f32fc70fff3c805c0f35026ca444b6c40a81dea1",
+        "report": "wp-5b2e66ec76d3-deploy-f32fc70.md",
+        "report_record": 12749,
+        "status": "DEPLOYED",
+        "snapshot": "2026-09-13 05:05 CEST",
+        "evidence_origin": "Root deployment report; no live verification or product tests by this docs worker."
       }
     },
     {
-      "existing_wp_id": null,
+      "existing_wp_id": "wp-a127e7b49932",
       "migration_group": null,
       "external_inputs": [],
       "planning_origin": "wp-61d537d988a2 · Fable 5.1 (claude-fable-5-1) · 2026-09-13",
@@ -7618,6 +7635,9 @@
           "reference_scaffold/cafeteria/admin/workflow_scope.py": [
             "MP-REC-BINDINGS",
             "MP-REC-MENU-TEMPLATE-BINDING"
+          ],
+          "reference_scaffold/cafeteria/menu_template_binding.py": [
+            "MP-REC-MENU-TEMPLATE-BINDING"
           ]
         }
       },
@@ -7635,7 +7655,7 @@
         "REC-003"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "depends_on": [
         "MP-REC-BINDINGS",
         "MP-REC-DISH-TEMPLATE-WRITER",
@@ -7834,7 +7854,44 @@
         "reference_scaffold/cafeteria/dish_template_store.py",
         "reference_scaffold/cafeteria/static/admin.js",
         "reference_scaffold/cafeteria/workflow_write_context.py"
-      ]
+      ],
+      "execution_2026_09_13_0505": {
+        "wp_id": "MP-REC-MENU-TEMPLATE-BINDING",
+        "routing_wp": "wp-a127e7b49932",
+        "actual_executor": "native:/root/components_reviewfix",
+        "owner": "native:/root/components_reviewfix",
+        "router_recommendation": "Recommendation metadata only; actual executor explicitly assigned by Root.",
+        "authority": "Root fixed 05:05 CEST lifecycle assignment and current scoped brief; no competing original author.",
+        "base": "4c0a76b462cb6683c070f9e04ede680d28398f65",
+        "worktree": "/nvmetank1/projects/menuplan/.claude/worktrees/menu-binding-reviewfix-0913",
+        "branch": "fix/menu-binding-reviewfix-0913",
+        "status": "IN_PROGRESS",
+        "owned_files": [
+          "proposed:reference_scaffold/cafeteria/menu_template_binding.py",
+          "reference_scaffold/cafeteria/workflow_partial_form.py",
+          "reference_scaffold/cafeteria/workflow_item_write.py",
+          "reference_scaffold/cafeteria/workflow_partial_store.py",
+          "reference_scaffold/cafeteria/workflow_store.py",
+          "reference_scaffold/cafeteria/admin/rendering.py",
+          "reference_scaffold/cafeteria/admin/workflow_routes.py",
+          "reference_scaffold/cafeteria/templates/admin/menu_editor.html",
+          "reference_scaffold/cafeteria/templates/admin/_week_menu_card.html",
+          "proposed:reference_scaffold/tests/test_menu_template_binding_db.py",
+          "proposed:reference_scaffold/tests/test_menu_template_binding_routes.py",
+          "proposed:reference_scaffold/tests/test_menu_template_binding_browser.py",
+          "reference_scaffold/cafeteria/admin/workflow_scope.py"
+        ],
+        "pool": {
+          "name": "test-api3",
+          "pg_port": 32788,
+          "redis_port": 32789
+        },
+        "file_reservation": "EXCLUSIVE",
+        "pool_reservation": "EXCLUSIVE",
+        "parallel_group": "sprint-0913-binding-foundations-cookbooks-lists",
+        "scope": "Original13 files including helper, both writers/readers/parser/scope/routes/rendering/editor/week card and three tests. Repair currently touches seven of13 only; narrow rendering/partial-writer corrections are within this original scope, no extra files. Original author stopped. MENU-PROPOSAL remains subsequent.",
+        "prior_attempt": "Original wp-5a2b2af9fb1d freeze4c0a76b: author62 passed85.18s; independent12770 P1 stale-authority business reads on409 and P2 cross-location rebound signed source404 instead409. Not merged; no acceptance from author gate."
+      }
     },
     {
       "existing_wp_id": null,
