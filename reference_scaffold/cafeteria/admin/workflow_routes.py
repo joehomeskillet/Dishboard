@@ -382,6 +382,7 @@ def _render_menu_page(
     proposal_option: dict[str, object] | None = None,
 ):
     version, title, item_id = 0, '', None
+    accompaniment_code, accompaniment_name = 'none', ''
     retained_only = status == 409 or (template_context is not None and status != 200)
     option: dict[str, object] = {
         'title': '', 'description': '', 'note': '',
@@ -394,6 +395,8 @@ def _render_menu_page(
         try:
             item_id, version, title = _load_item(scope, week, day, meal, option_code)
             option = _load_draft_option(profile, week, day, meal, option_code)
+            accompaniment_code = str(option.get('accompaniment_code') or 'none')
+            accompaniment_name = str(option.get('accompaniment_name') or '')
         except ComponentCatalogConfigurationError as error:
             abort(503, description=str(error))
         except (PartialWorkflowNotFoundError, NoResultFound):
@@ -460,6 +463,8 @@ def _render_menu_page(
         'proposal_freeze_url': option.get('proposal_freeze_url'),
         'template_proposal': template_context is not None,
         'retained_only': retained_only,
+        'accompaniment_code': accompaniment_code,
+        'accompaniment_name': accompaniment_name,
         # Review POSTs carry no menu values to retain; never offer a blank save form.
         'review_conflict': retained_only and form_values is None,
         'existing_url': url_for('admin.menu_get', family=family, week=week.isoformat(),
