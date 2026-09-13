@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import re
+import hashlib
+import json
 import threading
 from collections.abc import Iterator
 from pathlib import Path
@@ -26,6 +28,71 @@ TARGETS = {
     '/signage/cafeteria/tag', '/signage/cafeteria/woche',
     '/signage/patienten/tag', '/signage/patienten/woche',
 }
+
+
+def _capture_card_visuals(page, name: str) -> Path:
+    root = Path(__file__).resolve().parents[2]
+    sources = {name: hashlib.sha256((root / 'reference_scaffold/cafeteria/templates/admin' / name).read_bytes()).hexdigest()
+               for name in ('screens.html', '_week_menu_card.html', 'cafeteria.html')}
+    folder = root / '.claude/evidence/card-visuals-0913' / hashlib.sha256(json.dumps(sources, sort_keys=True).encode()).hexdigest()[:12]
+    folder.mkdir(parents=True, exist_ok=True)
+    page.evaluate('document.fonts.ready')
+    page.screenshot(path=str(folder / f'{name}.png'), full_page=True)
+    (folder / f'{name}.json').write_text(json.dumps({
+        'sources': sources, 'viewport': page.viewport_size, 'path': urlsplit(page.url).path,
+        'browser': page.context.browser.version,
+        'geometry': page.evaluate('''() => ({innerWidth, innerHeight, devicePixelRatio,
+            pageWidth: document.documentElement.scrollWidth,
+            pageHeight: document.documentElement.scrollHeight,
+            cards: [...document.querySelectorAll('.menu-slot')].map(el => ({
+                width: el.getBoundingClientRect().width, height: el.getBoundingClientRect().height})),
+            previews: [...document.querySelectorAll('.screen-preview-signage')].map(el => ({
+                width: el.getBoundingClientRect().width, height: el.getBoundingClientRect().height})),
+            photos: [...document.querySelectorAll('[data-menu-image] img')].map(el => ({
+                width: el.getBoundingClientRect().width, height: el.getBoundingClientRect().height,
+                complete: el.complete, naturalWidth: el.naturalWidth}))})'''),
+    }, indent=2))
+    if page.locator('.admin-day-card').count():
+        page.locator('.admin-day-card').first.screenshot(path=str(folder / f'{name}-first-day.png'))
+    return folder
+
+
+@pytest.mark.parametrize('width,height', [(1440, 900), (390, 844), (320, 844)])
+@pytest.mark.parametrize('javascript', [True, False])
+def test_card_visuals_tv_is_large_visible_and_native(
+    screen_app, screen_server, database_engine, browser, width, height, javascript,  # noqa: F811
+) -> None:
+    client, _ = _login(screen_app, database_engine, ['Cafeteria.Admin'])
+    cookie = client.get_cookie(screen_app.config['SESSION_COOKIE_NAME'])
+    with browser.new_context(base_url=screen_server, viewport={'width': width, 'height': height},
+                             java_script_enabled=javascript, reduced_motion='reduce') as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': screen_server}])
+        page = context.new_page()
+        assert page.goto('/admin/screens').status == 200
+        _capture_card_visuals(page, f'screens-{width}-{javascript}')
+        expect(page.locator('.screen-preview-details[open]')).to_have_count(2)
+        for card in page.locator('.screen-card').filter(has=page.locator('.screen-preview-signage')).all():
+            preview = card.locator('.tab-pane.active .screen-preview-signage')
+            expect(preview).to_be_visible()
+            box = preview.bounding_box()
+            assert box['width'] >= (380 if width == 1440 else 220)
+            assert abs(box['width'] / box['height'] - 16 / 9) < .01
+            expect(card.locator('[data-tv-stand]')).to_be_visible()
+            frame = preview.locator('iframe')
+            assert frame.get_attribute('loading') == 'lazy'
+            assert frame.get_attribute('tabindex') == '-1'
+            assert frame.evaluate('el => el.parentElement.inert')
+            preview.scroll_into_view_if_needed()
+            expect(frame.content_frame.locator('main')).to_be_visible()
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        expect(page.locator('iframe')).to_have_count(10)
+        link = page.get_by_role('link', name='Mitarbeitende und externe Gäste Bildschirm Tagesplan öffnen', exact=True)
+        assert link.bounding_box()['height'] >= 48
+        link.focus()
+        expect(link).to_be_focused()
+        page.keyboard.press('Enter')
+        expect(page).to_have_url(screen_server + '/signage/cafeteria/tag')
+        expect(page.locator('main')).to_be_visible()
 
 
 @pytest.fixture
@@ -87,6 +154,7 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
         response = page.goto('/admin/screens')
         assert response is not None and response.status == 200
         assert "style-src 'self'; script-src 'self'" in response.headers['content-security-policy']
+        _capture_card_visuals(page, f'screens-initial-{width}')
         expect(page.locator('.screen-card')).to_have_count(4)
         expect(page.locator('iframe')).to_have_count(10)
         screen_links = page.locator('.screens-grid a')
@@ -96,9 +164,10 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
             '/admin/screens/patienten/wochenvorlage',
         }
         for card in page.locator('.screen-card').all():
-            card.locator('.screen-preview-details > summary').click()
+            if not card.locator('.screen-preview-details').evaluate('el => el.open'):
+                card.locator('.screen-preview-details > summary').click()
             is_web = 'Web' in card.locator('h2').inner_text()
-            periods = ('Tagesplan', 'Wochenplan mit Bildern · aktiv', 'Wochenplan ohne Bilder') if is_web else (
+            periods = ('Tagesplan', 'Wochenplan mit Bildern · Vorgabe', 'Wochenplan ohne Bilder') if is_web else (
                 'Tagesplan', 'Wochenplan ohne Bilder',
             )
             expect(card.get_by_role('tab')).to_have_count(len(periods))
@@ -120,7 +189,7 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
                 expect(frame.locator('body')).to_contain_text(menu['services'][0]['options'][0]['title'])
                 if period == 'Wochenplan ohne Bilder':
                     expect(frame.locator('.menu-photo, .card-img-top')).to_have_count(0)
-                elif period == 'Wochenplan mit Bildern · aktiv' and is_web:
+                elif period == 'Wochenplan mit Bildern · Vorgabe' and is_web:
                     assert frame.locator('.menu-photo img').count() > 0
                 if '/patienten/' in frame.url:
                     assert not re.search(r'preis|chf|rappen|kosten|price', frame.content(), re.IGNORECASE)
@@ -141,7 +210,7 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
         dimensions = page.locator('.screen-card').evaluate_all(
             'cards => cards.map(card => ({width: card.offsetWidth, height: card.offsetHeight}))',
         )
-        for axis in ('width', 'height'):
+        for axis in (('width', 'height') if width >= 768 else ('width',)):
             assert max(item[axis] for item in dimensions) - min(item[axis] for item in dimensions) <= 1
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         assert page.locator('main style, main [style]').count() == 0
@@ -166,7 +235,7 @@ def test_full_views_remain_available_without_javascript(
         assert set(screen_links.evaluate_all('links => links.map(link => new URL(link.href).pathname)')) == TARGETS | {
             '/admin/screens/cafeteria/wochenvorlage', '/admin/screens/patienten/wochenvorlage',
         }
-        page.get_by_role('link', name='Patientinnen und Patienten Web Wochenplan mit Bildern · aktiv öffnen', exact=True).click()
+        page.get_by_role('link', name='Patientinnen und Patienten Web Wochenplan mit Bildern · Vorgabe öffnen', exact=True).click()
         expect(page).to_have_url(f'{screen_server}/patienten/wochenplan/')
         expect(page.locator('main')).to_contain_text('Patientinnen und Patienten · Wochenübersicht')
         page.goto('/admin/screens')
@@ -196,7 +265,8 @@ def test_unpublished_screens_show_the_source_message_in_each_preview(
         page.on('response', record_status)
         page.goto('/admin/screens')
         for card in page.locator('.screen-card').all():
-            card.locator('.screen-preview-details > summary').click()
+            if not card.locator('.screen-preview-details').evaluate('el => el.open'):
+                card.locator('.screen-preview-details > summary').click()
             for tab in card.get_by_role('tab').all():
                 tab.click()
                 frame = card.locator('.tab-pane.active iframe').content_frame

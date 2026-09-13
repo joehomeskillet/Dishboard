@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+import json
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
@@ -13,8 +14,61 @@ from test_admin_ux_browser import live_server  # noqa: F401
 from test_admin_workflow_db import _patient_values, _save, _staff_values
 from test_admin_workflow_routes import DATABASE_URL, DAY, _login
 from test_rendered_ui import admin_app, admin_engine, browser  # noqa: F401
+from cafeteria.menu_images import CATALOG
+from test_admin_screens_preview_browser import _capture_card_visuals
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
+
+
+@pytest.mark.parametrize('width,height', [(1440, 900), (390, 844), (320, 844)])
+@pytest.mark.parametrize('javascript', [True, False])
+def test_card_visuals_cafeteria_exact_image_and_fallback(
+    browser, live_server, admin_app, admin_engine, width, height, javascript,  # noqa: F811
+) -> None:
+    image = next(row for row in json.loads(CATALOG.read_text()) if row['status'] == 'ready')
+    values = _staff_values()
+    options = values['days'][0]['services'][0]['options']
+    options[0].update(title=image['title'], components=image['components'])
+    options[1].update(title=image['title'], components=[*image['components'], 'Abweichende Beilage'])
+    _save(admin_engine, 'staff_guest', values)
+    client, _ = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    cookie = client.get_cookie('session')
+    with browser.new_context(base_url=live_server, viewport={'width': width, 'height': height},
+                             java_script_enabled=javascript, reduced_motion='reduce') as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': live_server}])
+        page = context.new_page()
+        assert page.goto(f'/admin/cafeteria?week={DAY}').status == 200
+        _capture_card_visuals(page, f'cafeteria-{width}-{javascript}')
+        card = page.locator('.menu-slot').first
+        photo = card.locator('[data-menu-image] img')
+        expect(photo).to_be_visible()
+        assert photo.get_attribute('src') == '/static/' + image['file']
+        assert page.request.get(photo.get_attribute('src')).status == 200
+        assert photo.get_attribute('loading') == 'lazy'
+        assert photo.evaluate('el => el.complete && el.naturalWidth > 0')
+        assert photo.evaluate('el => getComputedStyle(el).objectFit') == 'cover'
+        box = photo.bounding_box()
+        assert box['width'] >= 130 and abs(box['width'] / box['height'] - 16 / 9) < .01
+        expect(card.locator('figcaption')).to_have_text('KI-generierter Serviervorschlag')
+        missing = page.locator('.menu-slot').nth(1)
+        expect(missing.locator('[data-menu-image] img')).to_have_count(0)
+        expect(missing.get_by_text('Kein passendes Menübild', exact=True)).to_be_visible()
+        expect(card).to_contain_text('Mitarbeitende CHF')
+        expect(card).to_contain_text('Externe CHF')
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        edit = card.get_by_role('link', name='Bearbeiten:', exact=False)
+        assert card.locator('h3').bounding_box()['y'] < box['y']
+        assert edit.bounding_box()['y'] + edit.bounding_box()['height'] <= photo.bounding_box()['y']
+        if width < 768:
+            later = page.locator('.menu-slot').nth(2).bounding_box()
+            assert later['height'] < card.bounding_box()['height'] - box['height'] / 2
+        href = edit.get_attribute('href')
+        edit.focus()
+        page.keyboard.press('Enter')
+        expect(page).to_have_url(live_server + href)
+        expect(page.get_by_label('Menüname', exact=True)).to_have_value(image['title'])
+        assert page.goto(f'/admin/patienten?week={DAY}').status == 200
+        expect(page.locator('[data-menu-image]')).to_have_count(0)
 
 
 def _assert_edit_link_context(page: Page, family: str, titles: list[str]) -> None:
