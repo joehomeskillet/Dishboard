@@ -34,6 +34,10 @@ $$;
 
 ALTER FUNCTION cafeteria.patient_key_is_forbidden(text)
     SET search_path = cafeteria, pg_temp;
+REVOKE ALL ON FUNCTION cafeteria.patient_key_is_forbidden(text)
+FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
+GRANT EXECUTE ON FUNCTION cafeteria.patient_key_is_forbidden(text)
+TO cafeteria_app;
 
 -- Row-locking SELECTs need UPDATE on one column. Keep that narrow privilege
 -- while rejecting every direct app UPDATE, including statements matching no rows.

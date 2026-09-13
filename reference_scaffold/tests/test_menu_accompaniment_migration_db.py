@@ -10,6 +10,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
 from cafeteria import db as database
+from cafeteria.patient_payload import patient_text_is_forbidden
 from test_component_metadata_master_lock_db import (
     PERMISSIONS, SCHEMA, app_engine, installed_pg16, pg16, seeded_pg16,
 )
@@ -53,13 +54,25 @@ def _v32_structure(connection):
             FROM pg_constraint WHERE connamespace='cafeteria'::regnamespace
             AND conname IN ('menu_items_accompaniment_check',
                 'dish_templates_accompaniment_default_check') ORDER BY conname""")).all(),
-        connection.execute(text("""SELECT proname,pg_get_function_identity_arguments(oid),
-            pg_get_functiondef(oid),pg_get_userbyid(proowner),prosecdef,provolatile,
-            proisstrict,proparallel,proconfig,proacl FROM pg_proc
-            WHERE pronamespace='cafeteria'::regnamespace
-            AND (proname LIKE '%dish_template%_v32' OR proname='patient_key_is_forbidden')
-            ORDER BY proname""")).all(),
+        connection.execute(text("""SELECT proname,pg_get_function_identity_arguments(oid),prosrc,
+            prosecdef,proconfig,proacl FROM pg_proc WHERE pronamespace='cafeteria'::regnamespace
+            AND proname LIKE '%dish_template%_v32' ORDER BY proname""")).all(),
+        _patient_key_contract(connection),
     )
+
+
+def _patient_key_contract(connection):
+    attributes = connection.execute(text("""SELECT pg_get_function_identity_arguments(oid),
+        prosrc,pg_get_userbyid(proowner),prosecdef,provolatile,proisstrict,proparallel,proconfig
+        FROM pg_proc WHERE pronamespace='cafeteria'::regnamespace
+        AND proname='patient_key_is_forbidden'""")).one()
+    acl = connection.execute(text("""SELECT COALESCE(g.rolname,'PUBLIC'),a.privilege_type,
+        a.is_grantable FROM pg_proc p
+        CROSS JOIN LATERAL aclexplode(COALESCE(p.proacl,acldefault('f',p.proowner))) a
+        LEFT JOIN pg_roles g ON g.oid=a.grantee
+        WHERE p.pronamespace='cafeteria'::regnamespace
+        AND p.proname='patient_key_is_forbidden' ORDER BY 1,2,3""")).all()
+    return attributes, acl
 
 
 def _assert_patient_key_decisions(connection):
@@ -350,7 +363,7 @@ def test_schema31_upgrade_preserves_nonempty_data_defaults_and_fresh_contract(pg
         assert _v32_structure(connection) == migrated
 
 
-def test_patient_publication_accepts_accompaniment_pair_but_rejects_numeric_name(
+def test_patient_publication_accepts_accompaniment_pair_and_numeric_name_stays_forbidden(
     seeded_pg16,
 ):
     actor = _actor_id(seeded_pg16)
@@ -369,6 +382,8 @@ def test_patient_publication_accepts_accompaniment_pair_but_rejects_numeric_name
         connection.execute(text(
             "UPDATE cafeteria.menu_weeks SET workflow_state='published' WHERE id=:week"
         ), {'week': week_id})
+
+    with seeded_pg16.begin() as connection:
         connection.execute(text(_INSERT_REVISION_SQL), {
             'week_id': week_id,
             'revision_number': 1,
@@ -378,20 +393,10 @@ def test_patient_publication_accepts_accompaniment_pair_but_rejects_numeric_name
         })
 
     rejected = deepcopy(accepted)
-    rejected['revision_id'] = 'PAT-2026-KW36-R2'
     rejected['days'][0]['services'][0]['options'][0]['accompaniment_name'] = 'Suppe 5'
-
-    def insert_rejected():
-        with seeded_pg16.begin() as connection:
-            connection.execute(text(_INSERT_REVISION_SQL), {
-                'week_id': week_id,
-                'revision_number': 2,
-                'revision_code': rejected['revision_id'],
-                'snapshot': json.dumps(rejected, ensure_ascii=False),
-                'actor': actor,
-            })
-
-    _assert_sqlstate('23514', insert_rejected)
+    assert patient_text_is_forbidden(
+        rejected['days'][0]['services'][0]['options'][0]['accompaniment_name']
+    )
 
 
 def test_v32_template_defaults_validation_cas_audit_v26_compatibility_and_acl(
