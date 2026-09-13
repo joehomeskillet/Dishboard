@@ -41,6 +41,17 @@
 .dishboard-admin form[data-component-enhanced] .menu-editor-component-row.is-editing .menu-editor-component-summary { display: none; }
 .dishboard-admin .menu-editor-entry-kind-options { display: flex; flex-wrap: wrap; gap: var(--app-space-2); }
 .dishboard-admin .menu-editor-entry-kind-options .form-check { min-height: var(--app-space-12); margin: 0; }
+.dishboard-admin .menu-accompaniment-options {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--app-space-2);
+  margin-bottom: var(--app-space-1);
+}
+.dishboard-admin .menu-accompaniment-options .form-check {
+  display: flex; align-items: center; min-height: var(--app-space-12); margin: 0;
+  padding-block: var(--app-space-2);
+}
+.dishboard-admin .menu-accompaniment-options .form-check-label {
+  display: inline-flex; align-items: center; gap: var(--app-space-1); min-width: 0;
+}
 .dishboard-admin .menu-editor-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--app-space-2); }
 .dishboard-admin .menu-editor-markings { margin-top: var(--app-space-3); }
 .dishboard-admin .allergen-row + .allergen-row { margin-top: var(--app-space-2); }
@@ -90,6 +101,7 @@
 }
 @media (max-height: 480px) { .dishboard-admin .admin-actions { position: static; } }
 @media (max-width: 767.98px) {
+  .dishboard-admin .menu-accompaniment-options { grid-template-columns: minmax(0, 1fr); }
   .dishboard-admin .menu-editor-component-summary { grid-template-columns: minmax(0, 1fr); }
   .dishboard-admin .menu-editor-row-actions .btn { flex: 1 1 auto; }
 }

@@ -15,6 +15,9 @@
         {% endfor %}
       </ul>
       {% endif %}
+      {% if cell.accompaniment_name %}
+      <p class="menu-accompaniment">{% if cell.accompaniment_code == 'soup' %}{{ icon('soup') }}{% elif cell.accompaniment_code == 'salad' %}{{ icon('salad') }}{% endif %}Dazu: {{ cell.accompaniment_name }}</p>
+      {% endif %}
       {% if cell.title %}
       <div data-menu-metadata>
         {% if not cell.allergens %}
