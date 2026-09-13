@@ -114,6 +114,37 @@ def test_pagination_keeps_duplicate_titles_as_individual_occurrences(client, dat
     assert 'q=Wiederkehrendes' in body
 
 
+def test_collection_returns_and_renders_selected_accompaniment(client, database_engine):
+    scope = _scope(client, database_engine)
+    selected = _payload()
+    selected['accompaniment_code'] = 'salad'
+    _save(database_engine, scope, title='Menü mit Beilage', payload=selected)
+    _save(database_engine, scope, week=WEEK + timedelta(days=7), title='Menü ohne Beilage')
+
+    rows, has_next = find_menus(database_engine, scope)
+    by_title = {row['title']: row for row in rows}
+    assert not has_next
+    assert by_title['Menü mit Beilage']['accompaniment_code'] == 'salad'
+    assert by_title['Menü mit Beilage']['accompaniment_name'] == 'Salat (gemischt und grün)'
+    assert by_title['Menü ohne Beilage']['accompaniment_code'] == 'none'
+    assert by_title['Menü ohne Beilage']['accompaniment_name'] == ''
+
+    body = client.get('/admin/patienten/menues').get_data(as_text=True)
+    assert body.count('Dazu: Salat (gemischt und grün)') == 1
+    assert 'Dazu: Suppe' not in body
+
+
+def test_search_does_not_match_accompaniment_name(client, database_engine):
+    scope = _scope(client, database_engine)
+    payload = _payload()
+    payload['accompaniment_code'] = 'salad'
+    _save(database_engine, scope, title='Eigenständiges Menü', payload=payload)
+
+    response = client.get('/admin/patienten/menues', query_string={'q': 'gemischt'})
+    assert response.status_code == 200
+    assert 'Eigenständiges Menü' not in response.get_data(as_text=True)
+
+
 def test_metadata_is_escaped_and_stale_component_review_is_visible(client, database_engine):
     scope = _scope(client, database_engine)
     component = create_component(database_engine, scope, 'side', 'Beilage', None, 'current', [], [])

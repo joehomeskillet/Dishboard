@@ -9,6 +9,7 @@ from ..component_catalog_store import (
     AdminScope, ComponentCatalogConfigurationError,
     resolve_single_active_location_connection,
 )
+from ..workflow_snapshot import ACCOMPANIMENT_NAMES
 
 PAGE_SIZE = 24
 
@@ -25,7 +26,8 @@ def find_menus(
         rows = connection.execute(text(r'''
             WITH page_items AS MATERIALIZED (
                 SELECT i.id, i.title, COALESCE(i.description, '') AS description,
-                       COALESCE(i.note, '') AS note, i.allergen_review_status,
+                       COALESCE(i.note, '') AS note, i.accompaniment AS accompaniment_code,
+                       i.allergen_review_status,
                        w.week_start, w.workflow_state, s.service_date,
                        mp.code AS meal_code, mp.sort_order AS meal_order,
                        mt.code AS type_code, mt.sort_order AS type_order
@@ -84,4 +86,9 @@ def find_menus(
             'query': query, 'pattern': '%' + escape_like(query) + '%',
             'limit': PAGE_SIZE + 1, 'offset': (page - 1) * PAGE_SIZE,
         }).mappings().all()
-    return [dict(row) for row in rows[:PAGE_SIZE]], len(rows) > PAGE_SIZE
+    menus = [dict(row) for row in rows[:PAGE_SIZE]]
+    for menu in menus:
+        menu['accompaniment_name'] = ACCOMPANIMENT_NAMES.get(
+            str(menu['accompaniment_code']), '',
+        )
+    return menus, len(rows) > PAGE_SIZE
