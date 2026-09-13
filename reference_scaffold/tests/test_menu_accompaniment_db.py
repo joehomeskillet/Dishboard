@@ -277,9 +277,10 @@ def test_slot_writer_accompaniment_reaches_valid_active_snapshot(
 ) -> None:
     db = workflow_database
     values = (
-        deepcopy(_full_values("E2E"))
+        # Patient titles must not contain digits (patient payload treats them as cost values).
+        deepcopy(_full_values("ENDE"))
         if profile == "patient"
-        else _staff_values("E2E")
+        else _staff_values("ENDE")
     )
     week_version = import_draft(
         db.app,
@@ -339,6 +340,8 @@ def test_unselected_database_publication_matches_legacy_snapshot_hash(
         values=_full_values("UNCHANGED"),
         **write_expectations(db.app, db.actor_id),
     )
+    reviewed_version = review_saved_week(db.app, "patient", WEEK, db.actor_id)
+    # Load after the review so allergen_review_status matches the published draft.
     with db.app.connect() as connection:
         draft = load_draft_connection(connection, "patient", WEEK)
     legacy_draft = deepcopy(draft)
@@ -348,7 +351,6 @@ def test_unselected_database_publication_matches_legacy_snapshot_hash(
                 option.pop("accompaniment_code")
                 option.pop("accompaniment_name")
 
-    reviewed_version = review_saved_week(db.app, "patient", WEEK, db.actor_id)
     snapshot = publish_draft_scoped(
         db.app,
         "patient",
@@ -375,16 +377,17 @@ def test_unselected_database_publication_matches_legacy_snapshot_hash(
     ).encode()
 
     assert snapshot_bytes == legacy_bytes
-    digest = hashlib.sha256(snapshot_bytes).hexdigest()
+    # The revision hash is computed by the database over snapshot_json::text (jsonb canonical text).
     with db.app.connect() as connection:
-        stored_hash = connection.execute(
+        stored_hash, legacy_digest = connection.execute(
             text(
-                "SELECT content_hash_sha256 FROM cafeteria.publication_revisions "
-                "WHERE revision_code=:revision"
+                "SELECT content_hash_sha256, "
+                "encode(public.digest(convert_to(CAST(:legacy AS jsonb)::text, 'UTF8'), 'sha256'), 'hex') "
+                "FROM cafeteria.publication_revisions WHERE revision_code=:revision"
             ),
-            {"revision": snapshot["revision_id"]},
-        ).scalar_one()
-    assert stored_hash == digest
+            {"revision": snapshot["revision_id"], "legacy": legacy_bytes.decode()},
+        ).one()
+    assert stored_hash == legacy_digest
     assert active_snapshot(db.app, "patient", WEEK.isoformat()) == snapshot
 
 
