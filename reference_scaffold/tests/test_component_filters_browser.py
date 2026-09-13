@@ -52,13 +52,22 @@ def test_filter_controls_combine_reset_and_keep_exact_results(request, family, p
     for key, value in params.items():
         expect(form.locator(f'[name="{key}"]')).to_have_value(value)
     expect(form.locator('#f-origin option:checked')).to_have_text('Schweiz')
+    page.locator('.component-filter-advanced summary').click()
+    summary = page.locator('.component-active-filters')
+    expect(summary).to_contain_text('verwendet')
+    expect(summary).to_contain_text('enthält')
+    expect(summary).to_contain_text('Herkunft: CH')
+    expect(summary).to_be_visible()
+    expect(form.get_by_role('link', name='Zurücksetzen', exact=True)).to_be_visible()
+    page.locator('.component-filter-advanced summary').press('Enter')
+    expect(form.locator('#f-allergen')).to_have_value('GLUTEN')
     _assert_component_controls_fit(page)
     page.screenshot(path=str(tmp_path / f'component-filters-{family}-{width}.png'), full_page=True)
 
     form.locator('#f-origin').select_option('DE')
     form.get_by_role('button', name='Suchen', exact=True).click()
     expect(page.locator('#component-result-count')).to_have_text('0 Treffer')
-    expect(page.get_by_text('Keine Bausteine gefunden.', exact=True)).to_be_visible()
+    expect(page.get_by_text('Keine Bausteine passen zu diesen Filtern.', exact=True)).to_be_visible()
     form.get_by_role('link', name='Zurücksetzen', exact=True).click()
     assert urlsplit(page.url).query == ''
     expect(page.locator('#component-result-count')).to_have_text('2 Treffer')

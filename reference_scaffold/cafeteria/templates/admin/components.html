@@ -46,12 +46,22 @@
       </div>
       <div class="col-12 col-lg-4 d-flex flex-wrap gap-2 align-items-center component-filter-actions">
         <button type="submit" class="btn btn-primary">{{ icon('search') }}Suchen</button>
-        <a class="btn btn-outline-secondary" href="/admin/{{ family }}/komponenten">Zurücksetzen</a>
+        <a class="btn btn-outline-secondary" href="/admin/{{ family }}/komponenten">{{ icon('refresh') }}Zurücksetzen</a>
         <span id="component-result-count" class="text-secondary" role="status">{{ rows|length }} Treffer</span>
       </div>
     </div>
     <details class="component-filter-advanced mt-2"{% if active_filters and (active_filters.usage or active_filters.allergen or active_filters.presence or active_filters.label or active_filters.origin) %} open{% endif %}>
-      <summary class="component-filter-advanced-summary">Weitere Filter</summary>
+      <summary class="component-filter-advanced-summary">{{ icon('chevron-right') }}Weitere Filter
+        {% if active_filters %}
+        <span class="component-active-filters">
+          {% if active_filters.usage %}<span>Verwendung: {{ 'verwendet' if active_filters.usage == 'used' else 'nicht verwendet' }}</span>{% endif %}
+          {% if active_filters.allergen %}<span>Allergen: {% if active_filters.allergen == 'unknown' %}nicht erfasst{% else %}{{ (allergens|selectattr('code', 'equalto', active_filters.allergen)|map(attribute='name')|first)|default(active_filters.allergen) }}{% endif %}</span>{% endif %}
+          {% if active_filters.presence %}<span>{{ 'enthält' if active_filters.presence == 'contains' else 'kann Spuren enthalten' }}</span>{% endif %}
+          {% if active_filters.label %}<span>{{ (labels|selectattr('code', 'equalto', active_filters.label)|map(attribute='name')|first)|default(active_filters.label) }}</span>{% endif %}
+          {% if active_filters.origin %}<span>Herkunft: {{ 'nicht erfasst' if active_filters.origin == 'unknown' else active_filters.origin }}</span>{% endif %}
+        </span>
+        {% endif %}
+      </summary>
       <div class="component-filter-fields row g-2 align-items-end mt-2">
         <div class="col-12 col-md-6 col-xl-3">
           <label class="form-label" for="f-usage">Verwendung in Menüs</label>
@@ -126,7 +136,10 @@
     </table>
   </div>
   {% else %}
-  <div class="card"><div class="empty"><p class="empty-title">Keine Bausteine gefunden.</p></div></div>
+  {% set filtered = query or category or (active_filters and (active_filters.usage or active_filters.allergen or active_filters.presence or active_filters.label or active_filters.origin or active_filters.status != 'active')) %}
+  <div class="card"><div class="card-body py-3">
+    <p class="mb-0">{{ icon('search' if filtered else 'components') }}{{ 'Keine Bausteine passen zu diesen Filtern.' if filtered else 'Noch keine aktiven Bausteine.' }}</p>
+  </div></div>
   {% endif %}
 </div>
 
@@ -176,13 +189,15 @@
           <p class="form-hint" id="create-allergen-hint">Geltungsbereich: gespeicherter Katalogstand. Nicht ausgewählte Allergene sind nicht als allergenfrei bestätigt.</p>
           {% set a_codes = submitted.getlist('allergen_code') if submitted.getlist else submitted.get('allergen_code', []) %}
           {% set a_pres = submitted.getlist('allergen_presence') if submitted.getlist else submitted.get('allergen_presence', []) %}
-          <div class="allergen-list">
+          <div class="allergen-list component-allergens">
             {% for allergen in allergens|default([]) %}
               {% set idx = a_codes.index(allergen.code) if allergen.code in a_codes else -1 %}
               {% set presence = a_pres[idx] if idx >= 0 and idx < a_pres|length else 'contains' %}
-              <div class="allergen-row row g-2 align-items-center mb-2">
-                <div class="col-12 col-sm-6 d-flex align-items-center gap-2">{{ symbol('allergens', allergen.code, true) }}{{ check('allergen_code', allergen.name|default(allergen.code), value=allergen.code, checked=idx >= 0, id='create-allergen-' ~ allergen.code) }}</div>
-                <div class="col-12 col-sm-6">
+              <div class="allergen-row admin-compact-row">
+                <div class="d-flex align-items-center gap-2">{{ symbol('allergens', allergen.code, true) }}{{ check('allergen_code', allergen.name|default(allergen.code), value=allergen.code, checked=idx >= 0, id='create-allergen-' ~ allergen.code) }}</div>
+                <div class="component-allergen-presence">
+                  <span class="component-allergen-unselected text-secondary">Nicht ausgewählt</span>
+                  <label class="form-label" for="create-presence-{{ allergen.code }}">Präsenz</label>
                   <select class="form-select" id="create-presence-{{ allergen.code }}" name="allergen_presence" aria-label="Präsenz für {{ allergen.name|default(allergen.code) }}"{% if idx < 0 %} disabled{% endif %}>
                     <option value="contains"{% if presence == 'contains' %} selected{% endif %}>enthält</option>
                     <option value="may_contain"{% if presence == 'may_contain' %} selected{% endif %}>kann Spuren enthalten</option>
