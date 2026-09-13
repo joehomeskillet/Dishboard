@@ -70,6 +70,13 @@ def test_preview_global_consumers_reset_and_fresh_login(
                                 (f'/admin/{family}/menues', '.menu-grid article[data-menu-id]')]:
                 response = b.goto(path)
                 assert response is not None and response.status == 200
+                if cards != '.menu-slot':
+                    b.get_by_role('tab', name='Karten', exact=True).click()
+                    intended = b.locator(cards).filter(has_text='Wichtiger langer Rezepturhinweis')
+                    while intended.count() == 0:
+                        b.get_by_role('navigation', name='Ergebnisseiten').get_by_role('link', name='Weiter', exact=True).click()
+                        b.get_by_role('tab', name='Karten', exact=True).click()
+                    expect(intended.locator('.badge').filter(has_text='Milch')).to_be_visible()
                 expect(b.locator('main')).to_have_attribute('data-font-size', 'large')
                 expect(b.locator('main')).to_have_attribute('data-content-width', 'full')
                 expect(b.locator('main')).to_have_attribute('data-menu-images', 'hide')

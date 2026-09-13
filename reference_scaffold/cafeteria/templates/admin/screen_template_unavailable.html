@@ -1,3 +1,4 @@
+{% from 'admin/_macros.html' import icon %}
 <!doctype html>
 <html lang="de-CH">
 <head>
@@ -13,12 +14,12 @@
 <main class="container-fluid py-4 unavailable-container">
   <div class="card">
     <div class="card-header">
-      <h1 class="card-title">Bildschirmvorlagen vorübergehend nicht verfügbar</h1>
+      <h1 class="card-title">{{ icon('alert-triangle', class='me-2') }}Bildschirmvorlagen vorübergehend nicht verfügbar</h1>
     </div>
     <div class="card-body">
       <div class="alert alert-warning" role="alert">Die Anfrage konnte nicht abgeschlossen werden. Bitte versuchen Sie es später erneut.</div>
-      <p class="text-secondary small mb-3">Die gespeicherte Bildschirmvorlage ist zurzeit nicht erreichbar. Es wurde keine neue Vorlage zugewiesen.</p>
-      <a class="btn btn-primary" href="{{ request.path }}">Erneut laden</a>
+      <p class="text-secondary small mb-3">Die gespeicherte Bildschirmvorlage ist zurzeit nicht erreichbar.{% if request.method == 'POST' %} Der Abschluss der Zuweisung konnte nicht bestätigt werden. Laden Sie den gespeicherten Stand, bevor Sie erneut zuweisen.{% endif %}</p>
+      <a class="btn btn-primary" href="{{ request.path }}">{{ icon('refresh') }}Erneut laden</a>
     </div>
   </div>
 </main>

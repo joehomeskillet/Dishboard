@@ -1,13 +1,13 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, select, field, actions %}
+{% from 'admin/_macros.html' import page_header, select, field, icon %}
 {% set workflow_nav = 'design' %}
 {% set layout_variant = 'narrow' %}
 {% block title %}Darstellung · Design & Marke{% endblock %}
 {% block page_header %}{{ page_header('Design & Marke', description='Anzeige im Administrationsbereich einstellen.', breadcrumbs=[('Design & Marke', url_for('admin.branding_editor')), ('Darstellung', none)]) }}{% endblock %}
 {% block content %}
-  <form method="post" action="{{ url_for('admin.display_settings') }}" class="card mb-4" id="display-settings-form">
+  <form method="post" action="{{ url_for('admin.display_settings') }}" class="card mb-4 admin-compact-form" id="display-settings-form">
     <input type="hidden" name="_csrf" value="{{ csrf }}">
-    <div class="card-header"><h2 class="card-title">Anzeige einstellen</h2></div>
+    <div class="card-header"><h2 class="card-title">{{ icon('pencil', class='me-2') }}Anzeige einstellen</h2></div>
     <div class="card-body">
       {% if display_errors %}
       <div class="alert alert-danger error-region mb-3" role="alert" aria-live="polite" tabindex="-1" autofocus>
@@ -17,8 +17,6 @@
       <p>Eingaben wurden nicht gespeichert. Korrigieren Sie markierte Felder.</p>
       {% elif display_preview %}
       <p>Vorschau gilt nur auf dieser Seite. Einstellungen sind noch nicht gespeichert.</p>
-      {% else %}
-      <p>Gespeicherte Einstellungen gelten für alle Benutzer und Geräte im Adminbereich. Geöffnete Seiten übernehmen sie beim nächsten Laden.</p>
       {% endif %}
       <div class="row g-3">
         {% for key, label, choices, hint in [
@@ -34,21 +32,17 @@
       </div>
     </div>
     <div class="card-footer display-form-actions">
-      {% call actions() %}
-        <button type="submit" class="btn btn-primary" name="action" value="save">Darstellung speichern</button>
-      {% endcall %}
-      <div class="mt-3" aria-labelledby="display-more-actions-title">
-        <h3 class="h4 mb-2" id="display-more-actions-title">Weitere Aktionen</h3>
-        {% call actions() %}
-        <button type="submit" class="btn" name="action" value="preview">Vorschau aktualisieren</button>
-        <button type="submit" class="btn" id="display-reset-btn" name="action" value="reset" aria-describedby="display-reset-hint">Standardwerte speichern</button>
-        {% endcall %}
-        <p class="form-hint mt-2 mb-0" id="display-reset-hint">Standardwerte speichern setzt für alle Benutzer Kompakt, Normal, Begrenzt und Anzeigen.</p>
+      <p>Gespeicherte Einstellungen gelten für alle Benutzer und Geräte im Adminbereich. Geöffnete Seiten übernehmen sie beim nächsten Laden.</p>
+      <div class="btn-list">
+        <button type="submit" class="btn btn-primary" name="action" value="save">{{ icon('device-floppy') }}Darstellung speichern</button>
+        <button type="submit" class="btn" name="action" value="preview" aria-label="Vorschau aktualisieren">{{ icon('eye') }}Vorschau</button>
+        <button type="submit" class="btn" id="display-reset-btn" name="action" value="reset" aria-label="Standardwerte speichern" aria-describedby="display-reset-hint">{{ icon('refresh') }}Standardwerte</button>
       </div>
+      <p class="form-hint mt-2 mb-0" id="display-reset-hint">Standardwerte speichern setzt für alle Benutzer Kompakt, Normal, Begrenzt und Anzeigen.</p>
     </div>
   </form>
 <section aria-labelledby="display-preview-title">
-  <h2 id="display-preview-title">Vorschau</h2>
+  <h2 id="display-preview-title">{{ icon('eye', class='me-2') }}Vorschau</h2>
   <p role="status">{% if display_preview %}Vorschau der Auswahl – noch nicht gespeichert.{% else %}Beispiel für die Darstellung. Auswahl ändern und Vorschau aktualisieren, bevor Sie speichern.{% endif %}</p>
   <div class="display-preview" data-density="{{ display_values.admin_density }}" data-font-size="{{ display_values.admin_font_size }}" data-content-width="{{ display_values.admin_content_width }}" data-menu-images="{{ display_values.admin_menu_images }}">
     <article class="card">
@@ -60,7 +54,7 @@
         <div class="mb-3">
           {{ field('example', 'Notiz (Beispiel)', value='Frisch zubereitet', id='display-example', readonly=true) }}
         </div>
-        <a class="btn" href="{{ url_for('admin.menu_collection', family='cafeteria') }}">Menüs öffnen</a>
+        <a class="btn" href="{{ url_for('admin.menu_collection', family='cafeteria') }}">{{ icon('calendar-week') }}Menüs öffnen</a>
       </div>
     </article>
   </div>

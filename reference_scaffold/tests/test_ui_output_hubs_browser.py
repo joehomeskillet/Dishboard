@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import base64
 import json
+import struct
 import threading
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from wsgiref.simple_server import make_server
+from xml.etree import ElementTree
 
 import pytest
 from playwright.sync_api import Page, expect
@@ -29,7 +33,8 @@ from test_screen_template_routes import screen_app as screen_app  # noqa: F401
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason="TEST_DATABASE_URL fehlt.")
 
-VIEWPORTS = [(1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080)]
+VIEWPORTS = [(1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080), (2560, 1440)]
+EVIDENCE_DIR = Path(__file__).resolve().parents[2] / ".claude/evidence/density-hubs-iconfix-0913"
 
 
 @pytest.fixture
@@ -126,6 +131,22 @@ def _check_contrast(page: Page) -> None:
         assert ratio >= 4.5, f"Contrast {ratio} too low for {item}"
 
 
+def _assert_served_hub_icons_render(page: Page, evidence_name: str) -> None:
+    sprite = page.request.get('/static/vendor/tabler-icons/tabler-icons.svg')
+    assert sprite.status == 200
+    symbols = {node.get('id') for node in ElementTree.fromstring(sprite.body()).iter()}
+    dimensions = page.locator('main svg.icon:visible').evaluate_all('''icons => icons.map(icon => {
+        const box = icon.getBBox();
+        return {href: icon.querySelector('use').getAttribute('href'), width: box.width, height: box.height};
+    })''')
+    assert dimensions
+    EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+    (EVIDENCE_DIR / f'{evidence_name}-icons.json').write_text(json.dumps(dimensions, indent=2))
+    missing = [icon['href'] for icon in dimensions if icon['href'].split('#')[-1] not in symbols]
+    assert missing == [], f'Visible icons missing from served sprite: {missing}'
+    assert all(icon['width'] > 0 and icon['height'] > 0 for icon in dimensions), dimensions
+
+
 @pytest.mark.parametrize("width,height", VIEWPORTS)
 def test_output_hubs_viewports_and_layouts(
     published_hub_app,
@@ -161,8 +182,13 @@ def test_output_hubs_viewports_and_layouts(
         expect(page.locator("main")).to_have_attribute("data-layout", "standard")
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
         _check_contrast(page)
+        _assert_served_hub_icons_render(page, f'vorlagen-{width}x{height}')
         page.screenshot(
             path=str(tmp_path / f"vorlagen-{width}x{height}.png"), full_page=True
+        )
+        EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+        page.screenshot(
+            path=str(EVIDENCE_DIR / f"vorlagen-{width}x{height}.png"), full_page=True
         )
 
         # 3. /admin/screens/cafeteria/wochenvorlage
@@ -254,6 +280,99 @@ def test_output_hubs_keyboard_and_zoom_200(
                     path=str(tmp_path / f"zoom-200-{name}-js-{javascript}.png"),
                     full_page=True,
                 )
+                if name == "vorlagen":
+                    EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+                    zoom_page.screenshot(
+                        path=str(EVIDENCE_DIR / f"zoom-dpr2-200-vorlagen-js-{javascript}.png"),
+                        full_page=True,
+                    )
+
+
+@pytest.mark.parametrize("javascript", [True, False], ids=["js", "nojs"])
+def test_output_hubs_reflow_320(
+    published_hub_app,
+    hub_server,
+    database_engine,  # noqa: F811
+    browser,  # noqa: F811
+    javascript: bool,
+    tmp_path: Path,
+) -> None:
+    context, page = _admin_page(
+        published_hub_app,
+        database_engine,
+        browser,
+        hub_server,
+        javascript=javascript,
+        viewport=(320, 568),
+    )
+    try:
+        res = page.goto("/admin/vorlagen")
+        assert res is not None and res.status == 200
+        expect(page.locator("h1")).to_have_text("Vorlagen")
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+        EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+        page.screenshot(
+            path=str(EVIDENCE_DIR / f"vorlagen-320-js-{javascript}.png"), full_page=True
+        )
+    finally:
+        context.close()
+
+
+def test_output_hubs_real_chrome_settings_zoom_200(
+    published_hub_app,
+    hub_server,
+    database_engine,  # noqa: F811
+    browser,  # noqa: F811
+    tmp_path: Path,
+) -> None:
+    client, _ = _login(published_hub_app, database_engine, ["Cafeteria.Admin"])
+    cookie = client.get_cookie(published_hub_app.config["SESSION_COOKIE_NAME"])
+    assert cookie is not None
+    EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+
+    with TemporaryDirectory(prefix="hubs-chrome-zoom-", dir=tmp_path) as profile:
+        with browser.browser_type.launch_persistent_context(
+            profile,
+            channel="chromium",
+            headless=True,
+            no_viewport=True,
+            base_url=hub_server,
+            locale="de-CH",
+            timezone_id="Europe/Zurich",
+            reduced_motion="reduce",
+            args=["--no-sandbox", "--disable-dev-shm-usage", "--window-size=1440,900"],
+        ) as context:
+            page = context.pages[0]
+            page.goto("chrome://settings/appearance")
+            page.evaluate(
+                "new Promise(resolve => chrome.settingsPrivate.setDefaultZoom(2, resolve))"
+            )
+            assert (
+                page.evaluate(
+                    "new Promise(resolve => chrome.settingsPrivate.getDefaultZoom(resolve))"
+                )
+                == 2
+            )
+            context.add_cookies(
+                [{"name": cookie.key, "value": cookie.value, "url": hub_server}]
+            )
+            cdp = context.new_cdp_session(page)
+            page.goto(f"{hub_server}/admin/vorlagen")
+            layout = cdp.send("Page.getLayoutMetrics")
+            assert layout["cssVisualViewport"]["zoom"] == 2
+            assert not page.evaluate("document.documentElement.scrollWidth > innerWidth + 1")
+            _assert_served_hub_icons_render(page, 'vorlagen-zoom-200')
+            capture = cdp.send('Page.captureScreenshot', {'format': 'png', 'captureBeyondViewport': False})
+            png = base64.b64decode(capture['data'])
+            pixels = struct.unpack('>II', png[16:24])
+            assert pixels[0] == 1440 and pixels[1] >= 800
+            layout['capture_kind'] = 'native CDP viewport, not full page'
+            layout['capture_pixels'] = pixels
+            (EVIDENCE_DIR / "real-zoom-200-vorlagen.cdp.json").write_text(
+                json.dumps(layout, indent=2), encoding="utf-8"
+            )
+            (EVIDENCE_DIR / 'real-zoom-200-vorlagen.png').write_bytes(png)
+            cdp.detach()
 
 
 def test_output_hubs_matrix_error_and_conflict_states(
@@ -396,6 +515,7 @@ def test_output_hubs_matrix_empty_states(
         assert page.goto(route).status == 200
         expect(page.locator("h1")).to_have_text(title)
         if focus_role == "iframe":
+            page.locator('.screen-preview-details > summary').first.click()
             frame = page.frame_locator(".screen-preview iframe").first
             expect(frame.locator("body")).to_be_attached()
             expect(frame.get_by_text(empty_text, exact=False)).to_be_visible()
