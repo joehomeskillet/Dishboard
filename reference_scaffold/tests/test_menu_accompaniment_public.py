@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from copy import deepcopy
 from datetime import date
+from pathlib import Path
 
 import pytest
 from flask import Flask
@@ -13,11 +14,12 @@ from cafeteria.admin import menu_collection_routes
 from cafeteria.workflow_partial_store import persist_menu_item
 from test_admin_workflow_routes import (
     DAY,
+    ROOT,
     WEEK,
     _login,
     _payload,
+    _register,
     _scope,
-    app as workflow_app,  # noqa: F401 - imported pytest fixture
     database_engine as database_engine,
 )
 from test_public_mobile_ui import http_app as http_app
@@ -74,6 +76,23 @@ def _assert_only_accompaniment_changed(before: str, after: str, count: int) -> N
         assert block.index(ACCOMPANIMENT_MARKUP) < labels.start()
 
 
+@pytest.fixture
+def admin_app(database_engine: Engine, tmp_path: Path) -> Flask:  # noqa: F811
+    application = Flask(
+        __name__,
+        template_folder=str(ROOT / 'reference_scaffold' / 'cafeteria' / 'templates'),
+    )
+    application.config.update(
+        SECRET_KEY='accompaniment-public-tests',
+        LAST_GOOD_DIR=str(tmp_path),
+        DEMO_MODE=True,
+        DEMO_TODAY='2026-09-02',
+    )
+    application.extensions['cafeteria_db'] = database_engine
+    application.extensions['cafeteria_auth_issuer_db'] = database_engine
+    return _register(application)
+
+
 @pytest.mark.parametrize(('path', 'profile', 'count'), SNAPSHOT_ROUTES)
 def test_snapshot_routes_add_only_the_selected_accompaniment_line(
     app: Flask,
@@ -98,10 +117,10 @@ def test_snapshot_routes_add_only_the_selected_accompaniment_line(
 
 
 def test_admin_preview_adds_only_the_selected_accompaniment_line(
-    workflow_app: Flask,  # noqa: F811
+    admin_app: Flask,
     database_engine: Engine,
 ) -> None:
-    client, actor_id = _login(workflow_app, database_engine, ['Cafeteria.Admin'])
+    client, actor_id = _login(admin_app, database_engine, ['Cafeteria.Admin'])
     scope = _scope(database_engine, actor_id)
     payload = _payload()
     version = persist_menu_item(
@@ -141,11 +160,11 @@ def test_admin_preview_adds_only_the_selected_accompaniment_line(
 
 
 def test_menu_collection_partial_renders_the_name_supplied_by_its_reader(
-    workflow_app: Flask,  # noqa: F811
+    admin_app: Flask,
     database_engine: Engine,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    client, _ = _login(workflow_app, database_engine, ['Cafeteria.Admin'])
+    client, _ = _login(admin_app, database_engine, ['Cafeteria.Admin'])
     row = {
         'id': 1,
         'title': 'Gespeichertes Menü',
@@ -169,6 +188,11 @@ def test_menu_collection_partial_renders_the_name_supplied_by_its_reader(
         menu_collection_routes,
         'find_menus',
         lambda *_args, **_kwargs: (rows, False),
+    )
+    monkeypatch.setattr(
+        menu_collection_routes,
+        'review_open',
+        lambda *_args, **_kwargs: False,
     )
     baseline = client.get('/admin/patienten/menues')
     assert baseline.status_code == 200
