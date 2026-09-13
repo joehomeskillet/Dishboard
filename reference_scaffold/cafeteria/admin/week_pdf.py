@@ -61,7 +61,7 @@ class Block:
 
 @dataclass
 class MenuCell:
-    paragraphs: tuple[str, str, str]
+    paragraphs: tuple[str, ...]
     option: dict[str, Any] | None = None
 
 
@@ -110,11 +110,17 @@ def _common_prices(draft: dict[str, Any], patient: bool) -> tuple[Any, Any] | No
     return next(iter(pairs)) if len(pairs) == 1 else None
 
 
-def _paragraphs(option: dict[str, Any], individual_prices: bool) -> tuple[str, str, str]:
+def _accompaniment_text(option: dict[str, Any]) -> str:
+    name = str(option.get('accompaniment_name') or '')
+    return f'Dazu: {name}' if name else ''
+
+
+def _paragraphs(option: dict[str, Any], individual_prices: bool) -> tuple[str, str, str, str]:
     title = str(option.get('title') or '')
     if not title:
-        return 'Menü noch nicht erfasst', '', ''
+        return 'Menü noch nicht erfasst', '', '', ''
     components = ' · '.join(option.get('components') or [])
+    accompaniment = _accompaniment_text(option)
     details = [str(option.get(key) or '') for key in ('description', 'note')]
     details.extend(label['name'] for label in option.get('labels', []))
     details.extend(origin_text(origin) for origin in option.get('origins', []))
@@ -129,7 +135,7 @@ def _paragraphs(option: dict[str, Any], individual_prices: bool) -> tuple[str, s
         details.append('Allergenprüfung offen')
     if individual_prices:
         details.append(f'Intern: {_price(option.get("internal_rappen"))} · Extern: {_price(option.get("external_rappen"))}')
-    return title, components, ' · '.join(part for part in details if part)
+    return title, components, accompaniment, ' · '.join(part for part in details if part)
 
 
 def _day(draft: dict[str, Any], week: date, offset: int) -> dict[str, Any]:
@@ -191,7 +197,7 @@ def _rows(draft: dict[str, Any], patient: bool, week: date, offsets: list[int],
             options = {option['type_code']: option for option in service.get('options', [])}
             for index, code in enumerate(('MENU_1', 'VEGGIE')):
                 if service and service['service_state'] != 'open':
-                    row.append(MenuCell((str(service.get('notice') or 'Kein Angebot') if index == 0 else '', '', '')))
+                    row.append(MenuCell((str(service.get('notice') or 'Kein Angebot') if index == 0 else '', '', '', '')))
                 else:
                     option = options.get(code, {})
                     row.append(MenuCell(_paragraphs(option, prices), option if option.get('title') else None))
@@ -315,8 +321,11 @@ def render_week_pdf(
     if patient:
         for content_row in content:
             for content_cell in content_row:
-                title, components, details = content_cell.paragraphs
-                content_cell.paragraphs = (title, '', ' · '.join(part for part in (components, details) if part))
+                title, components, accompaniment, details = content_cell.paragraphs
+                if not accompaniment:
+                    content_cell.paragraphs = (
+                        title, '', ' · '.join(part for part in (components, details) if part),
+                    )
     candidates: tuple[tuple[float, float], ...] = ((9.0, 9.0), (8.5, 8.5)) if patient else ((12.0, 10.0), (11.0, 9.0), (10.0, 8.5))
     if config['text_size'] == 'standard':
         candidates = ((9.0, 9.0),) if patient else ((12.0, 10.0),)

@@ -14,7 +14,7 @@ import pytest
 from pypdf import PdfReader
 
 from cafeteria.admin.week_pdf import ASSETS, WeekPdfFitError, render_week_pdf
-from cafeteria.admin.week_pdf_layout import Field, _check_fields
+from cafeteria.admin.week_pdf_layout import Field, _check_fields, binding_text
 from cafeteria.print_template_config import default_config, default_layout
 from test_week_pdf import WEEK, saved_week
 from test_print_branding_pdf import BRAND, INHERIT
@@ -80,6 +80,46 @@ def test_complete_native_layout_has_all_slots_and_readable_geometry(profile, gri
         assert body.count('Extern: 16.60 CHF') == 10
     geometry(payload, tmp_path / f'{profile}-{grid}.pdf')
     assert draft == before
+
+
+@pytest.mark.parametrize('profile', ['staff_guest', 'patient'])
+def test_native_layout_prints_longest_accompaniment_after_components(profile, tmp_path):
+    draft = saved_week(profile, False)
+    options = [
+        option
+        for day in draft['days']
+        for service in day['services']
+        for option in service['options']
+    ]
+    for option in options:
+        option.update(
+            accompaniment_code='salad',
+            accompaniment_name='Salat (gemischt und grün)',
+        )
+
+    assert binding_text(options[0], 'accompaniment') == 'Dazu: Salat (gemischt und grün)'
+    payload = render_week_pdf(draft, profile, WEEK, config(profile))
+    body = ' '.join(page(payload).extract_text().split())
+
+    assert body.count('Dazu: Salat (gemischt und grün)') == len(options)
+    assert body.index(options[0]['components'][0]) < body.index('Dazu: Salat')
+    assert body.index('Dazu: Salat') < body.index('Allergenangaben nicht erfasst')
+    geometry(payload, tmp_path / f'{profile}-accompaniment.pdf')
+
+
+@pytest.mark.parametrize('profile', ['staff_guest', 'patient'])
+def test_no_accompaniment_keeps_native_layout_bytes(profile):
+    baseline = saved_week(profile, False)
+    explicit_none = saved_week(profile, False)
+    for day in explicit_none['days']:
+        for service in day['services']:
+            for option in service['options']:
+                option.update(accompaniment_code='none', accompaniment_name='')
+
+    chosen = config(profile)
+    assert render_week_pdf(explicit_none, profile, WEEK, chosen) == render_week_pdf(
+        baseline, profile, WEEK, chosen,
+    )
 
 
 @pytest.mark.parametrize('profile', ['staff_guest', 'patient'])

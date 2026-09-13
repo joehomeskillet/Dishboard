@@ -81,6 +81,49 @@ def test_complete_week_is_one_readable_page(profile: str, notes: bool, tmp_path:
             assert min(x2, a2) - max(x1, a1) < 0.2 or min(y2, b2) - max(y1, b1) < 0.2
 
 
+@pytest.mark.parametrize('profile', ['staff_guest', 'patient'])
+@pytest.mark.parametrize(('code', 'name'), [
+    ('soup', 'Suppe'),
+    ('salad', 'Salat (gemischt und grün)'),
+])
+def test_accompaniment_is_its_own_paragraph_and_fits(
+    profile: str, code: str, name: str,
+) -> None:
+    draft = saved_week(profile, False)
+    options = [
+        option
+        for day in draft['days']
+        for service in day['services']
+        for option in service['options']
+    ]
+    for option in options:
+        option.update(
+            accompaniment_code=code,
+            accompaniment_name=name,
+        )
+
+    result_page = PdfReader(BytesIO(render_week_pdf(draft, profile, WEEK))).pages[0]
+    body = ' '.join(result_page.extract_text().split())
+
+    paragraph = f'Dazu: {name}'
+    assert body.count(paragraph) == len(options)
+    first = options[0]
+    assert body.index(first['components'][0]) < body.index(paragraph)
+    assert body.index(paragraph) < body.index('Allergenangaben nicht erfasst')
+
+
+@pytest.mark.parametrize('profile', ['staff_guest', 'patient'])
+def test_no_accompaniment_keeps_week_pdf_bytes(profile: str) -> None:
+    baseline = saved_week(profile, False)
+    explicit_none = saved_week(profile, False)
+    for day in explicit_none['days']:
+        for service in day['services']:
+            for option in service['options']:
+                option.update(accompaniment_code='none', accompaniment_name='')
+
+    assert render_week_pdf(explicit_none, profile, WEEK) == render_week_pdf(baseline, profile, WEEK)
+
+
 def test_patient_all_28_unique_menu_sentinels_survive() -> None:
     draft = saved_week('patient')
     markers = []
