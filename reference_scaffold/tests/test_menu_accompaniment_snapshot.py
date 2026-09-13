@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import csv
 import hashlib
+import io
 import json
 from pathlib import Path
 import sys
@@ -99,7 +101,7 @@ def test_patient_compact_key_allowlist_contains_accompaniment_pair() -> None:
     assert {'accompanimentcode', 'accompanimentname'} <= PATIENT_ALLOWED_COMPACT_KEYS
 
 
-def test_csv_export_ignores_accompaniment_pair_without_changing_bytes() -> None:
+def test_csv_export_writes_accompaniment_pair_only_into_beilage_dazu() -> None:
     baseline = cafeteria_snapshot()
     selected = deepcopy(baseline)
     _option(selected).update(
@@ -107,7 +109,15 @@ def test_csv_export_ignores_accompaniment_pair_without_changing_bytes() -> None:
         accompaniment_name='Salat (gemischt und grün)',
     )
 
-    assert snapshot_to_csv(selected) == snapshot_to_csv(baseline)
+    def rows(snapshot: dict[str, Any]) -> list[dict[str, str]]:
+        payload = snapshot_to_csv(snapshot).decode('utf-8-sig')
+        return list(csv.DictReader(io.StringIO(payload), delimiter=';'))
+
+    before, after = rows(baseline), rows(selected)
+    assert [row['beilage_dazu'] for row in before] == [''] * len(before)
+    assert after[0]['beilage_dazu'] == 'salat'
+    assert [row['beilage_dazu'] for row in after[1:]] == [''] * (len(after) - 1)
+    assert [{**row, 'beilage_dazu': ''} for row in after] == before
 
 
 @pytest.mark.parametrize('schema_version', (1, 2))
