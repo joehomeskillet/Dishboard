@@ -135,12 +135,17 @@ footer p {
   .integrations-grid {
     grid-template-columns: 1fr;
   }
+
+  .agentic-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* ── Mobile breakpoint ── */
 @media (max-width: 44rem) {
   .site-header,
   .hero,
+  .agentic-section,
   .profile-section,
   .signage-section,
   .screens-section,
@@ -148,6 +153,24 @@ footer p {
   .closing-section,
   footer {
     width: min(calc(100% - 2rem), var(--content-width));
+  }
+
+  .agentic-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .agentic-flow {
+    gap: var(--space-1);
+    padding: var(--space-3);
+  }
+
+  .flow-step {
+    font-size: 0.8rem;
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .flow-arrow {
+    font-size: 0.9rem;
   }
 
   .header-link {
