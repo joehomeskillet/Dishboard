@@ -292,9 +292,9 @@
   {%- if primary_content -%}
     {%- if primary_content is mapping -%}
       {%- if primary_content.url or primary_content.href -%}
-        <a href="{{ primary_content.url or primary_content.href }}" class="btn btn-primary{% if primary_content.class %} {{ primary_content.class }}{% endif %}"{% if primary_content.id %} id="{{ primary_content.id }}"{% endif %}{% if primary_content.disabled %} aria-disabled="true" tabindex="-1"{% endif %}>{{ primary_content.label or primary_content.text }}</a>
+        <a href="{{ primary_content.url or primary_content.href }}" class="btn btn-primary{% if primary_content.class %} {{ primary_content.class }}{% endif %}"{% if primary_content.id %} id="{{ primary_content.id }}"{% endif %}{% if primary_content.disabled %} aria-disabled="true" tabindex="-1"{% endif %}>{% if primary_content.icon %}{{ icon(primary_content.icon) }}{% endif %}{{ primary_content.label or primary_content.text }}</a>
       {%- else -%}
-        <button type="{{ primary_content.type|default('submit') }}" class="btn btn-primary{% if primary_content.class %} {{ primary_content.class }}{% endif %}"{% if primary_content.id %} id="{{ primary_content.id }}"{% endif %}{% if primary_content.name %} name="{{ primary_content.name }}"{% endif %}{% if primary_content.value %} value="{{ primary_content.value }}"{% endif %}{% if primary_content.disabled %} disabled{% endif %}>{{ primary_content.label or primary_content.text }}</button>
+        <button type="{{ primary_content.type|default('submit') }}" class="btn btn-primary{% if primary_content.class %} {{ primary_content.class }}{% endif %}"{% if primary_content.id %} id="{{ primary_content.id }}"{% endif %}{% if primary_content.name %} name="{{ primary_content.name }}"{% endif %}{% if primary_content.value is defined %} value="{{ primary_content.value }}"{% endif %}{% if primary_content.form %} form="{{ primary_content.form }}"{% endif %}{% if primary_content.formaction %} formaction="{{ primary_content.formaction }}"{% endif %}{% if primary_content.formmethod %} formmethod="{{ primary_content.formmethod }}"{% endif %}{% if primary_content.formenctype %} formenctype="{{ primary_content.formenctype }}"{% endif %}{% if primary_content.formtarget %} formtarget="{{ primary_content.formtarget }}"{% endif %}{% if primary_content.formnovalidate %} formnovalidate{% endif %}{% if primary_content.disabled %} disabled{% endif %}>{% if primary_content.icon %}{{ icon(primary_content.icon) }}{% endif %}{{ primary_content.label or primary_content.text }}</button>
       {%- endif -%}
     {%- elif primary_content is string and not ('<' in primary_content) -%}
       <button type="submit" class="btn btn-primary">{{ primary_content }}</button>
@@ -309,9 +309,9 @@
       {%- for item in secondary -%}
         {%- if item is mapping -%}
           {%- if item.url or item.href -%}
-            <a href="{{ item.url or item.href }}" class="btn{% if item.class %} {{ item.class }}{% endif %}"{% if item.id %} id="{{ item.id }}"{% endif %}{% if item.disabled %} aria-disabled="true" tabindex="-1"{% endif %}>{{ item.label or item.text }}</a>
+            <a href="{{ item.url or item.href }}" class="btn{% if item.class %} {{ item.class }}{% endif %}"{% if item.id %} id="{{ item.id }}"{% endif %}{% if item.disabled %} aria-disabled="true" tabindex="-1"{% endif %}>{% if item.icon %}{{ icon(item.icon) }}{% endif %}{{ item.label or item.text }}</a>
           {%- else -%}
-            <button type="{{ item.type|default('button') }}" class="btn{% if item.class %} {{ item.class }}{% endif %}"{% if item.id %} id="{{ item.id }}"{% endif %}{% if item.name %} name="{{ item.name }}"{% endif %}{% if item.value %} value="{{ item.value }}"{% endif %}{% if item.disabled %} disabled{% endif %}>{{ item.label or item.text }}</button>
+            <button type="{{ item.type|default('button') }}" class="btn{% if item.class %} {{ item.class }}{% endif %}"{% if item.id %} id="{{ item.id }}"{% endif %}{% if item.name %} name="{{ item.name }}"{% endif %}{% if item.value is defined %} value="{{ item.value }}"{% endif %}{% if item.form %} form="{{ item.form }}"{% endif %}{% if item.formaction %} formaction="{{ item.formaction }}"{% endif %}{% if item.formmethod %} formmethod="{{ item.formmethod }}"{% endif %}{% if item.formenctype %} formenctype="{{ item.formenctype }}"{% endif %}{% if item.formtarget %} formtarget="{{ item.formtarget }}"{% endif %}{% if item.formnovalidate %} formnovalidate{% endif %}{% if item.disabled %} disabled{% endif %}>{% if item.icon %}{{ icon(item.icon) }}{% endif %}{{ item.label or item.text }}</button>
           {%- endif -%}
         {%- else -%}
           {{ item }}

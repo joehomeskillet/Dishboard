@@ -7,6 +7,7 @@ from threading import Thread
 
 import pytest
 from flask import render_template_string, request
+from playwright.sync_api import expect
 from werkzeug.serving import make_server
 
 from cafeteria.branding_config import contrast
@@ -20,6 +21,8 @@ VIEWPORTS = [
     (768, 1024),
     (390, 844),
     (1920, 1080),
+    (2560, 1440),
+    (320, 844),
 ]
 
 
@@ -134,6 +137,36 @@ def macro_site(monkeypatch, tmp_path, database_engine, browser):  # noqa: F811
           </div>
         </div>
         {% endblock %}''', family='cafeteria', profile='staff_guest', brand=app.jinja_env.undefined())
+
+    @app.get('/__macro_details__')
+    def macro_details():
+        return render_template_string('''{% extends 'admin/base_tabler.html' %}
+        {% from 'admin/_macros.html' import page_header, field, actions, form_errors, icon %}
+        {% block page_header %}{{ page_header('Kompakte Arbeitszeile') }}{% endblock %}
+        {% block content %}
+        {% if errors %}{{ form_errors({'detail-name': 'Bezeichnung überprüfen'}) }}{% endif %}
+        <form id="details-form" class="admin-compact-form" method="post" action="/__macro_submit__">
+          <div class="admin-compact-row">
+            <div class="admin-compact-line">
+              <div class="admin-compact-name">Kartoffelstock mit ausführlicher Bezeichnung</div>
+              <div class="admin-compact-quantity">{{ field('quantity', 'Menge', '100') }}</div>
+              <div class="admin-compact-unit">{{ field('unit', 'Einheit', 'Gramm', readonly=true) }}</div>
+            </div>
+            <details id="outer-details" class="admin-compact-details"{% if errors and not closed %} open{% endif %}>
+              <summary>Weitere Angaben</summary>
+              <details id="inner-details" class="admin-compact-details"{% if errors and not closed %} open{% endif %}>
+                <summary>Bezeichnung</summary>
+                {{ field('name', 'Bezeichnung', 'Entwurf', id='detail-name', required=true, error='Bezeichnung überprüfen' if errors else none) }}
+                {{ field('omitted', 'Nicht verfügbar', 'Nicht senden', disabled=true) }}
+              </details>
+            </details>
+          </div>
+          <div class="admin-compact-toolbar" data-sticky-form="details-form" data-sticky-edge="top">
+            {{ actions(primary={'label': 'Speichern', 'icon': 'device-floppy', 'id': 'details-save', 'name': 'intent', 'value': 'save'}, secondary=[{'label': 'Zeile hinzufügen', 'icon': 'plus', 'id': 'details-add', 'type': 'submit', 'name': 'row', 'value': 0, 'form': 'details-form', 'formaction': '/__macro_submit__?intent=add', 'formmethod': 'post', 'formenctype': 'application/x-www-form-urlencoded', 'formtarget': '_self', 'formnovalidate': true}]) }}
+          </div>
+        </form>
+        {% endblock %}''', errors=request.args.get('errors') == '1', closed=request.args.get('closed') == '1',
+            family='cafeteria', profile='staff_guest', brand=app.jinja_env.undefined())
 
     server = make_server('127.0.0.1', 0, app, threaded=True)
     thread = Thread(target=server.serve_forever, daemon=True)
@@ -382,3 +415,100 @@ def test_master_responsive_viewports_and_screenshots(macro_site, width, height, 
     page.screenshot(path=str(screenshot_file), full_page=True)
     assert screenshot_file.is_file()
     assert screenshot_file.stat().st_size > 1000
+
+
+@pytest.mark.parametrize('width,height', VIEWPORTS)
+def test_compact_details_keyboard_values_and_targets(macro_site, width, height, tmp_path):
+    page, _, _, last_post = macro_site
+    page.set_viewport_size({'width': width, 'height': height})
+    page.goto('/__macro_details__', wait_until='networkidle')
+    page.locator('#quantity').fill('123')
+    for panel in ('outer-details', 'inner-details'):
+        summary = page.locator(f'#{panel} > summary')
+        summary.focus()
+        summary.press('Enter')
+        expect(page.locator(f'#{panel}')).to_have_attribute('open', '')
+    page.locator('#detail-name').fill('Unveränderter Entwurf')
+    page.locator('#detail-name').press('Escape')
+    expect(page.locator('#inner-details > summary')).to_be_focused()
+    expect(page.locator('#inner-details')).not_to_have_attribute('open', '')
+    assert not last_post
+    expect(page.locator('#detail-name')).to_have_value('Unveränderter Entwurf')
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+    targets = page.locator('main :is(.btn, .form-control, summary)').evaluate_all(
+        'es => es.filter(e => e.getClientRects().length).map(e => [e.id, e.getBoundingClientRect().height])'
+    )
+    assert targets and all(height >= 48 for _, height in targets), targets
+    for button in ('details-save', 'details-add'):
+        expect(page.locator(f'#{button} svg')).to_have_attribute('aria-hidden', 'true')
+        assert page.locator(f'#{button}').inner_text().strip()
+    page.screenshot(path=str(tmp_path / f'compact-details-{width}.png'), full_page=True)
+    page.locator('#details-save').click()
+    page.wait_for_load_state('networkidle')
+    assert last_post == {'quantity': '123', 'unit': 'Gramm', 'name': 'Unveränderter Entwurf', 'intent': 'save'}
+
+
+def test_compact_native_and_server_errors_open_nested_details(macro_site):
+    page, _, _, last_post = macro_site
+    page.goto('/__macro_details__', wait_until='networkidle')
+    page.locator('#outer-details > summary').click()
+    page.locator('#inner-details > summary').click()
+    page.locator('#detail-name').fill('')
+    page.locator('#outer-details > summary').click()
+    page.locator('#details-save').click()
+    expect(page.locator('#detail-name')).to_be_focused()
+    for panel in ('inner-details', 'outer-details'):
+        expect(page.locator(f'#{panel}')).to_have_attribute('open', '')
+        expect(page.locator(f'#{panel} > summary')).to_contain_text('Fehler')
+    assert not last_post
+    page.locator('#detail-name').press('Escape')
+    expect(page.locator('#inner-details > summary')).to_contain_text('Fehler')
+    page.locator('#inner-details > summary').press('Enter')
+    page.locator('#detail-name').fill('Korrigiert')
+    expect(page.locator('[data-admin-details-error]')).to_have_count(0)
+    page.goto('/__macro_details__?errors=1&closed=1', wait_until='networkidle')
+    expect(page.locator('.error-region')).to_be_focused()
+    expect(page.locator('#inner-details')).to_have_attribute('open', '')
+    page.locator('#outer-details > summary').click()
+    expect(page.locator('#outer-details > summary')).to_contain_text('Fehler')
+    page.locator('[data-error-link]').click()
+    expect(page.locator('#detail-name')).to_be_focused()
+
+
+@pytest.mark.parametrize('javascript', [True, False], ids=['js', 'nojs'])
+def test_compact_structure_action_keeps_native_form_contract(macro_site, javascript):
+    original, _, _, last_post = macro_site
+    original.goto('/__macro_details__')
+    with original.context.browser.new_context(java_script_enabled=javascript) as context:
+        context.add_cookies(original.context.cookies())
+        page = context.new_page()
+        page.goto(original.url)
+        page.locator('#outer-details > summary').click()
+        page.locator('#inner-details > summary').click()
+        page.locator('#detail-name').fill('')
+        page.locator('#outer-details > summary').click()
+        with page.expect_response(lambda response: response.request.method == 'POST') as response:
+            page.locator('#details-add').press('Enter')
+        assert response.value.url.endswith('/__macro_submit__?intent=add')
+        assert last_post == {'quantity': '100', 'unit': 'Gramm', 'name': '', 'row': '0'}
+
+
+def test_compact_sticky_toolbar_yields_to_small_visual_viewport(macro_site):
+    page, _, _, _ = macro_site
+    page.goto('/__macro_details__', wait_until='networkidle')
+    toolbar = page.locator('[data-sticky-form]')
+    expect(toolbar).to_have_css('position', 'sticky')
+    page.evaluate('''() => {
+        Object.defineProperty(visualViewport, 'height', {configurable: true, value: 430});
+        visualViewport.dispatchEvent(new Event('resize'));
+    }''')
+    expect(toolbar).to_have_css('position', 'static')
+    page.locator('#quantity').focus()
+    expect(page.locator('#quantity')).to_be_in_viewport()
+    page.evaluate('''() => {
+        delete visualViewport.height;
+        visualViewport.dispatchEvent(new Event('resize'));
+    }''')
+    expect(toolbar).to_have_css('position', 'sticky')
+    page.set_viewport_size({'width': 390, 'height': 430})
+    expect(toolbar).to_have_css('position', 'static')

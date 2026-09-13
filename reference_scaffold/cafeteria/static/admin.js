@@ -110,15 +110,45 @@
         if (componentRow) setComponentRowEditing(componentRow, true);
     }
 
+    // Disclosures retain their controls and show errors even after being closed again.
+    function syncDetailsErrors() {
+        document.querySelectorAll('details').forEach(details => {
+            const summary = details.querySelector(':scope > summary');
+            if (!summary || summary.hidden) return;
+            const invalid = details.querySelector('[aria-invalid="true"]:not(:disabled):not([type="hidden"]), [data-admin-native-invalid]');
+            let badge = summary.querySelector('[data-admin-details-error]');
+            if (invalid && !badge) {
+                badge = document.createElement('span');
+                badge.dataset.adminDetailsError = '';
+                badge.className = 'text-danger';
+                badge.textContent = ' · Fehler';
+                summary.append(badge);
+            } else if (!invalid) badge?.remove();
+        });
+    }
+    document.addEventListener('invalid', event => {
+        revealAncestors(event.target);
+        event.target.setAttribute('data-admin-native-invalid', '');
+        syncDetailsErrors();
+    }, true);
+    document.addEventListener('input', event => {
+        if (!event.target.hasAttribute('data-admin-native-invalid')) return;
+        if (event.target.validity.valid) event.target.removeAttribute('data-admin-native-invalid');
+        syncDetailsErrors();
+    });
+
     // 3. Fehlerfokus
     const errorRegion = document.querySelector('.error-region');
     const retryBtn = errorRegion ? errorRegion.querySelector('[data-retry-page]') : null;
     function focusFirstError() {
+        const invalidFields = document.querySelectorAll('[aria-invalid="true"]:not(:disabled):not([type="hidden"])');
+        invalidFields.forEach(revealAncestors);
+        syncDetailsErrors();
         if (errorRegion) {
             errorRegion.focus();
             if (!errorRegion.hasAttribute('data-focus-invalid')) return;
         }
-        const firstInvalid = document.querySelector('[aria-invalid="true"]:not(:disabled):not([type="hidden"])');
+        const firstInvalid = invalidFields[0];
         if (firstInvalid) {
             revealAncestors(firstInvalid);
             firstInvalid.focus();
