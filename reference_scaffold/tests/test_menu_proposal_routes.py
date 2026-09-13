@@ -266,6 +266,7 @@ def test_planning_transport_rejects_tampering_before_business_reads(
     monkeypatch.setattr(dish_template_routes, 'lock_templates', reader)
     before = stored_state(admin_engine)
     response = client.post(path, data=form)
-    assert response.status_code == (409 if tamper == 'route' else 400)
+    # A changed profile invalidates the existing scoped-form binding (409).
+    assert response.status_code == (409 if tamper in ('route', 'source_profile') else 400)
     reader.assert_not_called()
     assert stored_state(admin_engine) == before

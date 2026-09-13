@@ -306,3 +306,46 @@ def test_read_only_navigation_has_no_write_actions(b3, monkeypatch):  # noqa: F8
     assert client.post(path, data={'action': 'recipe_search'}).status_code == 403
     assert client.get(path + '/einplanen').status_code == 403
     assert client.post(path + '/einplanen').status_code == 403
+
+
+@pytest.mark.parametrize('recipe_state', ('none', 'no_revision', 'active', 'archived'))
+def test_native_proposal_real_runtime_role(b3, recipe_state):  # noqa: F811
+    from test_menu_proposal_routes import editor_form, planning
+    from test_menu_recipe_selection_browser import _insert_revision
+    from test_menu_template_binding_db import make_template, stored_state
+    app, owner, client, actor = b3
+    engine = app.extensions['cafeteria_db']
+    with engine.connect() as connection:
+        assert connection.execute(text('SELECT current_user')).scalar_one() == 'cafeteria_app'
+    recipe_id = None
+    if recipe_state == 'no_revision':
+        recipe = make_recipe(engine, actor)
+        with owner.connect() as connection:
+            recipe_id = connection.execute(text(
+                'SELECT id FROM cafeteria.recipes WHERE public_id=CAST(:public_id AS uuid)'
+            ), {'public_id': recipe.public_id}).scalar_one()
+    elif recipe_state in ('active', 'archived'):
+        revision = _insert_revision(owner, actor.user_id, 'Einplanbares Rezept')
+        recipe_id = int(revision['recipe_id'])
+        if recipe_state == 'archived':
+            with owner.begin() as connection:
+                connection.execute(text('UPDATE cafeteria.recipes SET active=false WHERE id=:id'),
+                                   {'id': recipe_id})
+    template = make_template(owner, recipe=recipe_id)
+    before = stored_state(owner)
+    path, source, _ = planning(client, template, area='patient')
+    selected = client.post(path, data=source)
+    assert selected.status_code == 303, selected.text
+    menu, _ = editor_form(client, selected.location)
+    assert bool(menu['recipe_revision_public_id']) == (recipe_state == 'active')
+    assert stored_state(owner) == before
+    target = '/admin/patienten/menu?return_to=week'
+    saved = client.post(target, data=menu)
+    assert saved.status_code == 303, saved.text
+    assert 'Aus Vorlage «Rösti»' in client.get(saved.location).text
+    after = stored_state(owner)
+    assert after['dish_templates'] == before['dish_templates']
+    assert len(after['menu_items']) == len(before['menu_items']) + 1
+    assert len(after['audit_events']) == len(before['audit_events']) + 1
+    assert client.post(target, data=menu).status_code == 409
+    assert stored_state(owner) == after

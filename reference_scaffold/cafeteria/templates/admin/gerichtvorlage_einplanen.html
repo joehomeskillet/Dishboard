@@ -21,7 +21,7 @@
 </div>
 {% endif %}
 {% if values.template_context %}
-<form method="post" action="{{ url_for('admin.dish_template_plan_post', public_id=public_id) }}" class="card" id="planning-target" aria-labelledby="planning-title">
+<form method="post" action="{{ url_for('admin.dish_template_plan_post', public_id=public_id) }}" class="card" id="planning-target" aria-labelledby="planning-title" data-dirty-tracking="off">
   <input type="hidden" name="_csrf" value="{{ values._csrf }}">
   <input type="hidden" name="template_context" value="{{ values.template_context }}">
   <input type="hidden" name="source_profile" value="{{ values.source_profile }}">

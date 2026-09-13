@@ -13,6 +13,7 @@ from test_admin_workflow_routes import DAY, _login
 from test_menu_recipe_selection_browser import _insert_revision
 from test_menu_template_binding_db import make_template, stored_state
 from test_menu_proposal_routes import editor_form, planning
+from test_recipe_freeze_v2_browser import native_full_page_capture
 from test_rendered_ui import admin_app, admin_engine, browser  # noqa: F401
 
 EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/menu-proposal-0913'
@@ -26,7 +27,11 @@ def shot(page, name):
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
     assert page.locator('h1').count() == 1
     EVIDENCE.mkdir(parents=True, exist_ok=True)
-    page.screenshot(path=str(EVIDENCE / f'{name}.png'), full_page=True)
+    destination = EVIDENCE / f'{name}.png'
+    if name.endswith('native-zoom-200'):
+        native_full_page_capture(page, destination)
+    else:
+        page.screenshot(path=str(destination), full_page=True)
     metrics = page.evaluate('''() => {
         const main = document.querySelector('main'), body = document.querySelector('.page-body');
         const primary = document.querySelector('.page-body .btn-primary');
@@ -101,6 +106,7 @@ def test_native_proposal_forms_save_and_keep_accessible_layout(
         if not javascript:
             submit(page, 'Ziel aktualisieren', 200)
         expect(page.locator('#planning-summary')).to_contain_text('Dienstag, 1. September 2026')
+        expect(page.locator('.flash-region')).not_to_contain_text('Zuerst speichern')
         page.get_by_label('Wochentag', exact=True).select_option('0')
         if not javascript:
             submit(page, 'Ziel aktualisieren', 200)
@@ -127,6 +133,8 @@ def test_native_proposal_forms_save_and_keep_accessible_layout(
         else:
             expect(page.locator('[name="internal_chf"], [name="external_chf"]')).to_have_count(0)
         page.get_by_label('Menüname', exact=True).fill('Rösti für den Wochenplan')
+        if javascript:
+            expect(page.locator('.flash-region')).to_contain_text('Zuerst speichern')
         saved = submit(page, 'Menü speichern', 303)
         assert saved['row_version'] == ['0']
         assert saved['recipe_revision_public_id'] == [revision['public_id']]
