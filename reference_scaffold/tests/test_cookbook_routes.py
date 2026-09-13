@@ -187,6 +187,7 @@ if os.environ.get('TEST_DATABASE_URL'):
     from cafeteria.admin import cookbook_routes as cookbooks
     from test_master_data_routes import b3, pg16, installed_pg16, seeded_pg16, app_engine  # noqa: F401
     from test_master_data_db import signed_in
+    from test_recipe_error_focus import parse as parse_recovery
     from test_recipe_store_db import payload, snapshot, target
 
 
@@ -415,10 +416,23 @@ if os.environ.get('TEST_DATABASE_URL'):
         response = client.post(path + '/rezepte', data=data)
         assert response.status_code == (400 if mode == 'invalid' else 409)
         assert snapshot(owner) == before
-        assert dict(Forms(response.text).forms[''].lists()) == dict(data.lists())
+        # The shared recovery page is read-only: no repostable form or submit control; the
+        # original values are echoed as hidden inputs inside the «Ursprüngliche Eingaben»
+        # section in the exact submitted multi-value order, with names and context intact.
+        assert '<section aria-label="Ursprüngliche Eingaben"' in response.text
+        assert not Forms(response.text).forms
+        assert '<form' not in response.text and 'type="submit"' not in response.text
+        recovered = parse_recovery(response.text).hidden
+        assert recovered == list(data.items(multi=True))
+        assert dict(MultiDict(recovered).lists()) == dict(data.lists())
         assert 'Alpha' in response.text and 'Beta' in response.text
         if mode == 'scope':
             assert 'href="/admin/kochbuecher"' in response.text and f'href="{path}"' not in response.text
+        # Re-posting the unchanged original is rejected again without enriching, signing or writing.
+        repeated = client.post(path + '/rezepte', data=data)
+        assert repeated.status_code == response.status_code
+        assert parse_recovery(repeated.text).hidden == recovered
+        assert snapshot(owner) == before
 
 
     @pytest.mark.parametrize('reader', ['get_location', 'get_cookbook', 'list_recipes'])
