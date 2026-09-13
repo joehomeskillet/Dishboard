@@ -14,6 +14,8 @@ sys.path.insert(0, str(ROOT_DEFAULT / 'tools'))
 from demo_snapshots import cafeteria_snapshot, patient_snapshot  # noqa: E402
 from validate_menu_csv import CAFETERIA_HEADERS, PATIENT_HEADERS  # noqa: E402
 
+EXAMPLE_ACCOMPANIMENTS = {'MENU_1': 'suppe', 'VEGGIE': 'salat'}
+
 
 def join_codes(values: list[dict], key: str = 'code') -> str:
     return '|'.join(str(value[key]) for value in values)
@@ -27,7 +29,7 @@ def export(snapshot: dict, path: Path, headers: list[str]) -> None:
                 contains = [item for item in option.get('allergens', []) if item.get('presence') == 'contains']
                 traces = [item for item in option.get('allergens', []) if item.get('presence') == 'may_contain']
                 row = {
-                    'schema_version': '2',
+                    'schema_version': '3',
                     'profil': snapshot['profile_code'],
                     'datum': day['date'],
                     'wochentag': day['weekday'],
@@ -37,6 +39,11 @@ def export(snapshot: dict, path: Path, headers: list[str]) -> None:
                     'titel': option['title'],
                     'beschreibung': option.get('description', ''),
                     'beilagen': '|'.join(option.get('components', [])),
+                    'beilage_dazu': (
+                        EXAMPLE_ACCOMPANIMENTS.get(option['type_code'], '')
+                        if day['date'] == snapshot['week_start'] and service['meal_code'] == 'LUNCH'
+                        else ''
+                    ),
                     'labels': join_codes(option.get('labels', [])),
                     'allergene_enthaelt': join_codes(contains),
                     'allergene_spuren': join_codes(traces),

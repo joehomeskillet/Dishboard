@@ -13,6 +13,7 @@ from typing import BinaryIO, cast
 
 from . import patient_payload
 from .workflow import validate_draft_values
+from .workflow_snapshot import ACCOMPANIMENT_NAMES
 
 SCHEMA_2_BASE_HEADERS = [
     'schema_version', 'profil', 'datum', 'wochentag', 'mahlzeit', 'menueart',
@@ -50,10 +51,7 @@ MONTH_NAMES = (
     'November',
     'Dezember',
 )
-CSV_ACCOMPANIMENT_VALUES = {
-    'soup': ('Suppe', 'suppe'),
-    'salad': ('Salat (gemischt und grün)', 'salat'),
-}
+CSV_ACCOMPANIMENT_CODES = {'soup': 'suppe', 'salad': 'salat'}
 
 
 
@@ -114,10 +112,11 @@ def _csv_accompaniment(option: dict[str, object]) -> str:
         return ''
     if type(code) is not str:
         raise ValueError('Snapshot enthält eine ungültige Beilagenwahl.')
-    expected = CSV_ACCOMPANIMENT_VALUES.get(code)
-    if expected is None or name != expected[0]:
+    expected_name = ACCOMPANIMENT_NAMES.get(code)
+    csv_code = CSV_ACCOMPANIMENT_CODES.get(code)
+    if expected_name is None or csv_code is None or name != expected_name:
         raise ValueError('Snapshot enthält eine ungültige Beilagenwahl.')
-    return expected[1]
+    return csv_code
 
 
 def snapshot_to_csv(snapshot: dict) -> bytes:

@@ -9,6 +9,8 @@
 
 Die Patienten-Dateien enthalten keine Kostenspalten. Eine Datei darf nur ein Profil und eine ISO-Kalenderwoche enthalten. Das technische Mehrdateien-Bundle ist nicht mehr der primäre Küchenweg und wurde aus dem MVP entfernt.
 
+Vorlagen, Beispiele und Exporte verwenden Schema 3. Die gemeinsame Spalte `beilage_dazu` steht direkt nach `beilagen` und enthält leer, `suppe` oder `salat`; leer bedeutet «Keine». Schema-2-Dateien ohne diese Spalte bleiben importierbar. Da der Import die Woche vollständig ersetzt, setzt ein Schema-2-Import bestehende Beilagen auf «Keine» und zeigt diesen Hinweis vor der Übernahme. Exporte schreiben immer Schema 3.
+
 Validierung:
 
 ```bash

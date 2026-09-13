@@ -20,6 +20,14 @@
         <p class="csv-checked-identity mb-2" data-checked-identity>Geprüftes Ergebnis der zuletzt geprüften Datei, nicht einer neuen Auswahl.</p>
         <p class="csv-target"><strong>{{ profile_label }}</strong><br>KW {{ result.week_start.isocalendar().week }} · ab {{ result.week_start.strftime('%d.%m.%Y') }}</p>
         <p>{{ result.rows }} Datenzeilen geprüft</p>
+        {% if result.warnings %}
+        <div class="alert alert-warning d-block text-break py-2" data-csv-warnings>
+          {{ icon('alert-triangle', class='me-2') }}
+          {% for warning in result.warnings %}
+          <span{% if not loop.last %} class="d-block mb-1"{% endif %}>{{ warning }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
       </div>
       <p>Die geprüfte Datei wird erst mit dem nächsten Schritt als Entwurf übernommen. «Geprüfte Datei importieren» gilt für dieses Ergebnis, nicht für eine neu ausgewählte Datei.</p>
       <form method="post" action="{{ url_for('admin.import_csv') }}">
