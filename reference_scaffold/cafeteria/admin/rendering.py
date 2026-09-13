@@ -202,7 +202,8 @@ def render_menu_editor(
         catalog_choices=catalog_choices, allergens=allergens, labels=labels,
         effects=effects, flashes=flashes, origin_conflict=origin_conflict,
         recipe_page=recipe_page if recipe_page is not None else EMPTY_RECIPE_PAGE,
-        **_template_context(),
+        **({'user': session.get('user'), 'roles': list(getattr(g, 'auth_roles', ())),
+            'area_names': {}} if cell.get('retained_only') else _template_context()),
     )
 
 

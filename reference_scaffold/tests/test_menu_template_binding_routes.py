@@ -1,5 +1,6 @@
 """Signed source -> target -> editor -> save transitions keep the original authority."""
 from dataclasses import asdict
+from unittest.mock import Mock
 from urllib.parse import urlencode
 
 import pytest
@@ -15,6 +16,18 @@ from test_menu_template_binding_db import make_template, stored_state
 from test_rendered_ui import admin_app, admin_engine  # noqa: F401
 from test_menu_recipe_selection_browser import _foreign_revision, _insert_revision
 from test_master_data_db import make_actor
+
+
+def forbid_redisplay_reads(monkeypatch):
+    from cafeteria.admin import rendering, workflow_routes
+    names = ('lock_templates', '_load_item', '_load_draft_option', '_catalog_choices',
+             '_recipe_choice_page', '_master_choices', 'get_component_review_token',
+             'resolve_component_effects', '_scoped_csrf')
+    for name in names:
+        monkeypatch.setattr(workflow_routes, name,
+            Mock(side_effect=AssertionError(f'Rejected form must not call {name}')))
+    monkeypatch.setattr(rendering, '_template_context',
+        Mock(side_effect=AssertionError('Rejected form must not refresh area settings')))
 
 
 def proposal(app, engine, actor, template, family='patienten'):
@@ -71,7 +84,7 @@ def test_original_context_roundtrip_and_duplicate_submission(admin_app, admin_en
 
 @pytest.mark.parametrize('stage', ('source', 'target', 'editor'))
 @pytest.mark.parametrize('change', ('version', 'archive', 'authz'))
-def test_transition_conflicts_keep_source_expectations(admin_app, admin_engine, stage, change):  # noqa: F811
+def test_transition_conflicts_keep_source_expectations(admin_app, admin_engine, monkeypatch, stage, change):  # noqa: F811
     client, actor = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
     template = make_template(admin_engine)
     source, token, url = proposal(admin_app, admin_engine, actor, template)
@@ -79,15 +92,15 @@ def test_transition_conflicts_keep_source_expectations(admin_app, admin_engine, 
     with admin_engine.begin() as connection:
         if change == 'authz':
             connection.execute(text('UPDATE cafeteria.users SET authz_version=authz_version+1 WHERE id=:id'), {'id': actor})
-        else:
-            connection.execute(text('UPDATE cafeteria.dish_templates SET title=:title,active=:active WHERE id=:id'),
-                               {**template, 'title': 'Geändert', 'active': change != 'archive'})
+        connection.execute(text('UPDATE cafeteria.dish_templates SET title=:title,active=:active WHERE id=:id'),
+                           {**template, 'title': 'Neue vertrauliche Vorlagenangabe', 'active': change != 'archive'})
     # Emulate a refreshed live session while keeping the original source/form expectations.
     if change == 'authz':
         current = _scope(admin_engine, actor)
         with client.session_transaction() as session:
             session['authz_version'] = current.expected_authz_version
     before = stored_state(admin_engine)
+    forbid_redisplay_reads(monkeypatch)
     if stage == 'source':
         with admin_app.test_request_context(), pytest.raises(WriteConflictError):
             bind_template_target(source, _scope(admin_engine, actor), WEEK, DAY, 'LUNCH', 'MENU_1')
@@ -96,8 +109,13 @@ def test_transition_conflicts_keep_source_expectations(admin_app, admin_engine, 
         assert response.status_code == 409
         assert _hidden(response.text, 'row_version') == '0'
         assert _hidden(response.text, 'template_context') == token
+        assert 'Neue vertrauliche Vorlagenangabe' not in response.text
         if form:
             assert _hidden(response.text, '_csrf', form_action='/admin/patienten/menu') == form['_csrf']
+            assert client.post('/admin/patienten/menu', data=form).status_code == 409
+        else:
+            assert _hidden(response.text, '_csrf', form_action='/admin/patienten/menu') == ''
+            assert client.get(url).status_code == 409
     assert stored_state(admin_engine) == before
 
 
@@ -125,13 +143,14 @@ def test_final_form_cannot_change_proposal_authority(admin_app, admin_engine, ch
     assert stored_state(admin_engine) == before
 
 
-def test_validation_redisplay_keeps_signature_and_values(admin_app, admin_engine):  # noqa: F811
+def test_validation_redisplay_keeps_signature_and_values(admin_app, admin_engine, monkeypatch):  # noqa: F811
     client, actor = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
     template = make_template(admin_engine)
     _, token, url = proposal(admin_app, admin_engine, actor, template)
     form = proposal_form(client, url, token, template)
     form.update(title='', description='Noch nicht gespeichert')
     before = stored_state(admin_engine)
+    forbid_redisplay_reads(monkeypatch)
     response = client.post('/admin/patienten/menu', data=form)
     assert response.status_code == 400
     assert _hidden(response.text, '_csrf', form_action='/admin/patienten/menu') == form['_csrf']
@@ -155,7 +174,7 @@ def test_bare_template_and_duplicate_fields_are_rejected(admin_app, admin_engine
 
 
 @pytest.mark.parametrize('stage', ('source', 'target', 'editor'))
-@pytest.mark.parametrize('change', ('actor', 'location', 'expired', 'recipe', 'slot'))
+@pytest.mark.parametrize('change', ('actor', 'location', 'expired', 'recipe', 'foreign_recipe', 'slot'))
 def test_other_original_transitions_are_conflicts(admin_app, admin_engine, monkeypatch, stage, change):  # noqa: F811
     client, actor = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
     template = make_template(admin_engine)
@@ -174,14 +193,21 @@ def test_other_original_transitions_are_conflicts(admin_app, admin_engine, monke
             connection.execute(text("INSERT INTO cafeteria.locations(code,name,active) VALUES('NEU','Neues Haus',true)"))
     elif change == 'expired':
         monkeypatch.setattr('cafeteria.menu_template_binding.time', lambda: 2**40)
-    elif change == 'recipe':
-        recipe = _insert_revision(admin_engine, actor, 'Neue Zuordnung')
+    elif change in ('recipe', 'foreign_recipe'):
+        recipe = (_foreign_revision(admin_engine, actor) if change == 'foreign_recipe'
+                  else _insert_revision(admin_engine, actor, 'Neue Zuordnung'))
         with admin_engine.begin() as connection:
             connection.execute(text('UPDATE cafeteria.dish_templates SET recipe_id=:recipe WHERE id=:id'),
                                {'id': template['id'], 'recipe': int(recipe['recipe_id'])})
     else:
         assert client.post('/admin/patienten/menu', data=form).status_code == 303
+    if change != 'slot':
+        with admin_engine.begin() as connection:
+            connection.execute(text('UPDATE cafeteria.dish_templates SET title=:title WHERE id=:id'),
+                {**template, 'title': 'Neue vertrauliche Vorlagenangabe'})
+    form.update(title='Mein <em>Vorschlag</em>', description='Ursprüngliche Eingabe')
     before = stored_state(admin_engine)
+    forbid_redisplay_reads(monkeypatch)
     if stage == 'source':
         with admin_app.test_request_context(), pytest.raises(WriteConflictError):
             bind_template_target(source, _scope(admin_engine, current_actor), WEEK, DAY, 'LUNCH', 'MENU_1')
@@ -190,8 +216,16 @@ def test_other_original_transitions_are_conflicts(admin_app, admin_engine, monke
         assert response.status_code == 409
         assert _hidden(response.text, 'template_context') == token
         assert _hidden(response.text, 'row_version') == '0'
+        assert 'Neue vertrauliche Vorlagenangabe' not in response.text
         if stage == 'editor':
             assert _hidden(response.text, '_csrf', form_action='/admin/patienten/menu') == form['_csrf']
+            assert 'Mein &lt;em&gt;Vorschlag&lt;/em&gt;' in response.text
+            assert '<em>Vorschlag</em>' not in response.text
+            assert 'Ursprüngliche Eingabe' in response.text
+            assert client.post('/admin/patienten/menu', data=form).status_code == 409
+        else:
+            assert _hidden(response.text, '_csrf', form_action='/admin/patienten/menu') == ''
+            assert client.get(url).status_code == 409
     assert stored_state(admin_engine) == before
 
 

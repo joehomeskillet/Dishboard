@@ -339,6 +339,7 @@ def _render_menu_page(
     template_context: TemplateContext | None = None,
 ):
     version, title, item_id = 0, '', None
+    retained_only = status == 409 or (template_context is not None and status != 200)
     option: dict[str, object] = {
         'title': '', 'description': '', 'note': '',
         'allergen_mode': 'manual', 'origin_mode': 'manual', 'label_mode': 'manual',
@@ -346,7 +347,7 @@ def _render_menu_page(
     }
     if profile == 'staff_guest':
         option.update(internal_rappen='', external_rappen='')
-    if template_context is None:
+    if template_context is None and not retained_only:
         try:
             item_id, version, title = _load_item(scope, week, day, meal, option_code)
             option = _load_draft_option(profile, week, day, meal, option_code)
@@ -354,7 +355,7 @@ def _render_menu_page(
             abort(503, description=str(error))
         except (PartialWorkflowNotFoundError, NoResultFound):
             pass
-    else:
+    elif template_context is not None and not retained_only:
         with _db().connect() as connection:
             templates = lock_templates(connection, scope, [template_context.template_public_id])
             source = next(iter(templates.values()))
@@ -363,7 +364,7 @@ def _render_menu_page(
             form_values = {**menu_form_values(profile, option), **(form_values or {})}
 
     assignments = cast(list[dict[str, object]], option.get('assignments') or [])
-    if status == 409:
+    if retained_only:
         retained_ids = ((form_values or {}).get('component_public_id') or
                         [row.get('component_public_id') for row in assignments])
         catalog_choices = [{'public_id': value, 'name': 'Bisherige Auswahl', 'active': False}
@@ -377,8 +378,19 @@ def _render_menu_page(
         selected_revisions = [
             assignment.get('recipe_revision_public_id') or '' for assignment in assignments
         ]
-    recipe_page = _recipe_choice_page(selected_revisions)
-    allergens, labels = _master_choices()
+    allergens: list[dict[str, object]]
+    labels: list[dict[str, object]]
+    if retained_only:
+        recipe_page = RecipeChoicePage(query=RecipeChoiceQuery(), choices=(),
+            retained=tuple(unreadable_choice(str(value)) for value in selected_revisions if value),
+            has_next=False, next_offset=None, previous_offset=None)
+        allergens = [{'code': value, 'name': value} for value in
+                     cast(Sequence[str], (form_values or {}).get('allergen_code') or [])]
+        labels = [{'code': value, 'name': value} for value in
+                  cast(Sequence[str], (form_values or {}).get('label_code') or [])]
+    else:
+        recipe_page = _recipe_choice_page(selected_revisions)
+        allergens, labels = _master_choices()
     review_token = None
     effects: dict[str, list[str]] = {'labels': [], 'allergens': [], 'origins': []}
     origin_conflict = ORIGIN_CONFLICT if force_origin_conflict else None
@@ -404,6 +416,7 @@ def _render_menu_page(
         'components': list(option.get('assignments') or []),
         'dish_template': option.get('dish_template'),
         'template_proposal': template_context is not None,
+        'retained_only': retained_only,
         'existing_url': url_for('admin.menu_get', family=family, week=week.isoformat(),
                                 day=day, meal=meal, option=option_code),
     }
@@ -411,7 +424,7 @@ def _render_menu_page(
         profile, family, week, cell,
         menu_form_values(profile, option) if form_values is None else form_values,
         form_errors or {}, (request.form.get('_csrf', '') if request.method == 'POST'
-                            else _scoped_csrf(profile, 'menu', scope,
+                            else '' if retained_only else _scoped_csrf(profile, 'menu', scope,
                                 template_context=str((form_values or {}).get('template_context') or ''))), review_token,
         catalog_choices, allergens, labels, effects, _flash(),
         origin_conflict=origin_conflict, recipe_page=recipe_page,

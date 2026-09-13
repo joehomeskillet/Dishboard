@@ -36,7 +36,7 @@ def stored_state(engine):
     with engine.connect() as connection:
         return {table: tuple(connection.execute(text(
             f'SELECT to_jsonb(t)::text FROM cafeteria.{table} t ORDER BY 1'
-        )).scalars()) for table in ('menu_weeks', 'menu_services', 'menu_items',
+        )).scalars()) for table in ('dish_templates', 'menu_weeks', 'menu_services', 'menu_items',
                                    'menu_item_components', 'audit_events')}
 
 

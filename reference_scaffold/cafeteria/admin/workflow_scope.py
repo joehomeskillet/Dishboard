@@ -14,14 +14,15 @@ from typing import Literal, cast
 from flask import abort, current_app, request, session
 
 from ..component_catalog_store import (
-    AdminScope, ComponentCatalogConfigurationError, resolve_single_active_location_connection,
+    AdminScope, ComponentCatalogConfigurationError, ComponentNotFoundError,
+    resolve_single_active_location_connection,
 )
 from ..security import csrf_token, validate_csrf
 from ..menu_template_binding import (
     TemplateContext, lock_templates, require_empty_template_target,
     require_template_source, template_public_id,
 )
-from ..workflow_write_context import write_transaction
+from ..workflow_write_context import WriteConflictError, write_transaction
 
 
 def _scope(profile: str) -> AdminScope:
@@ -182,7 +183,10 @@ def bind_template_target(source_token: str, scope: AdminScope, week: date,
 def validate_template_target(context: TemplateContext, scope: AdminScope) -> None:
     with write_transaction(current_app.extensions['cafeteria_db'], scope) as connection:
         context.require_source(scope)
-        row = next(iter(lock_templates(connection, scope, [context.template_public_id]).values()))
+        try:
+            row = next(iter(lock_templates(connection, scope, [context.template_public_id]).values()))
+        except ComponentNotFoundError as error:
+            raise WriteConflictError('Die ursprüngliche Gerichtvorlage ist nicht mehr verfügbar.') from error
         require_template_source(row, scope, context)
         require_empty_template_target(connection, scope, context)
 

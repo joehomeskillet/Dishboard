@@ -82,9 +82,13 @@
       <section class="card mb-3 admin-compact-section" aria-labelledby="sec-base">
         <div class="card-header"><h2 class="card-title mb-0" id="sec-base">Menü</h2></div>
         <div class="card-body">
-          {% if cell.dish_template %}
+          {% if cell.dish_template or submitted.get('dish_template_public_id') %}
           <div class="mb-2" id="template-reference">
+            {% if cell.dish_template %}
             <a class="btn text-wrap text-start" href="{{ url_for('admin.dish_template_edit', public_id=cell.dish_template.public_id) }}">{{ icon('copy') }}Aus Vorlage «{{ cell.dish_template.title }}»{% if not cell.dish_template.active %} (archiviert){% endif %}</a>
+            {% else %}
+            <p class="text-secondary mb-0">{{ icon('copy') }}Ursprünglicher Vorlagenbezug. Aktuelle Angaben wurden nicht geladen.</p>
+            {% endif %}
             {% if not cell.template_proposal %}
             {{ check('dish_template_detach', 'Vorlagenbezug lösen', '1', checked=submitted.get('dish_template_detach') == '1', id='template-detach') }}
             <p class="form-hint mb-0">Mit dem Speichern wird nur der Bezug gelöst; die Menüangaben bleiben erhalten.</p>

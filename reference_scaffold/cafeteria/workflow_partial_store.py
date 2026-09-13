@@ -10,7 +10,7 @@ from sqlalchemy import Connection, Engine, text
 from .component_assignment_store import replace_component_links_connection
 from .component_assignment_contract import normalize_assignments
 from .component_binding_state import prepare_bindings
-from .component_catalog_store import AdminScope, resolve_single_active_location_connection
+from .component_catalog_store import AdminScope, ComponentNotFoundError, resolve_single_active_location_connection
 from .component_effects import rematerialize_auto_effects
 from .menu_template_binding import (
     TemplateContext, lock_templates, resolve_template_binding, validate_template_fields,
@@ -18,7 +18,7 @@ from .menu_template_binding import (
 from .operations_settings import get_schedule_connection, normalise_time
 from .workflow_snapshot import external_id
 from .workflow_store import schedule_rule
-from .workflow_write_context import record_item_write, write_transaction
+from .workflow_write_context import WriteConflictError, record_item_write, write_transaction
 
 
 _MEALS = {'patient': ('LUNCH', 'DINNER'), 'staff_guest': ('LUNCH',)}
@@ -443,8 +443,13 @@ def persist_menu_item(
             WHERE id=ANY(CAST(:ids AS bigint[])) AND dish_template_id IS NOT NULL
         '''), {'ids': list(existing_ids)}).scalars().all()
         wanted_template = payload.get('dish_template_public_id')
-        templates = lock_templates(connection, scope,
-            [str(wanted_template)] if wanted_template else [], old_templates)
+        try:
+            templates = lock_templates(connection, scope,
+                [str(wanted_template)] if wanted_template else [], old_templates)
+        except ComponentNotFoundError as error:
+            if template_context is None or wanted_template != template_context.template_public_id:
+                raise
+            raise WriteConflictError('Die ursprüngliche Gerichtvorlage ist nicht mehr verfügbar.') from error
         week_ref, created_week = _week_for_write(connection, scope, week_start, expected == 0)
         service = _service(connection, week_ref, service_date, meal, for_update=True)
         if service is None:
