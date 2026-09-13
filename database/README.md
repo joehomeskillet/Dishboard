@@ -77,10 +77,17 @@ Schema v32 ergänzt `menu_items.accompaniment` und
 `dish_templates.accompaniment_default` mit dem Standard `none` und der festen
 Wertemenge `none`, `soup`, `salad`. Bestehende Zeilen werden durch den
 Spaltenstandard ohne separates Backfill als «keine Beilage» gelesen; frühere
-Migrationsbytes, Publikationsrevisionen, Trigger und Indizes bleiben unverändert.
-Die Anwendung erhält für Gerichtvorlagen nur Leserecht und `EXECUTE` auf
-`create_dish_template_v32` beziehungsweise `update_dish_template_v32`; das
-private Mutationsverb und direkte Tabellenwrites bleiben gesperrt. Die v26-Verben
+Migrationsbytes, Publikationsrevisionen und Indizes bleiben unverändert. Für die
+unveränderten Row-Lock-Pfade erhält `cafeteria_app` ausschließlich das Spaltenrecht
+`UPDATE(id)`; ein neuer `BEFORE UPDATE FOR EACH STATEMENT`-Trigger weist trotzdem
+jeden direkten App-Write ab. Vorlagenänderungen laufen weiter nur über
+`create_dish_template_v32` beziehungsweise `update_dish_template_v32`; das private
+Mutationsverb bleibt gesperrt. Direkte Wartungs-Updates sind ausschließlich in einer
+Sitzung als exakter Tabellenowner möglich: Nicht besitzende Superuser und Mitglieder
+der Owner-Rolle werden ebenfalls abgewiesen. Bei einem Ownerwechsel müssen
+`dish_template_mutate_v26`, `dish_template_mutate_v32` und
+`reject_direct_dish_template_update_v32` gemeinsam auf den neuen Tabellenowner
+übertragen werden, sonst schlagen Vorlagenwrites fail-closed fehl. Die v26-Verben
 bleiben als Altclient- und Rollback-Pfad erhalten und überschreiben den neuen Wert
 nicht. Ein v31-App-Rollback auf dem v32-Schema ist dank Defaults möglich. Enthält
 eine publizierte Revision bereits eine Beilage, muss sie vor dem Rollback

@@ -13,6 +13,24 @@ from test_component_metadata_master_lock_db import (
 from test_rec_import_commit_migration_db import rows_and_sequences
 
 SIGNATURE = 'cafeteria.lock_menu_recipe_sources_v31(bigint,bigint,bigint,bigint[],uuid)'
+V32_FUNCTIONS = {
+    'create_dish_template_v32',
+    'dish_template_mutate_v32',
+    'reject_direct_dish_template_update_v32',
+    'update_dish_template_v32',
+}
+
+
+def refresh_permissions_v31(engine, tmp_path):
+    permissions = PERMISSIONS.read_text(encoding='utf-8')
+    start = permissions.index('-- Schema32 accompaniment template grants begin.')
+    end = permissions.index('-- Schema32 accompaniment template grants end.')
+    historical = tmp_path / 'permissions-v31.sql'
+    historical.write_text(
+        permissions[:start] + permissions[end + len('-- Schema32 accompaniment template grants end.'):],
+        encoding='utf-8',
+    )
+    database._execute_script(engine, str(historical))
 
 
 def structure(c):
@@ -45,11 +63,17 @@ def assert_acl(c):
                 {'role': 'cafeteria_app', 'table': 'cafeteria.' + table, 'privilege': privilege}).scalar_one()
 
 
-def test_historical_schema30_upgrade_preserves_data_and_exact_function(pg16):
-    plan = tuple(
-        migration for migration in database.migration_plan(SCHEMA)
-        if migration.version <= 31
+def test_historical_schema30_upgrade_preserves_data_and_exact_function(
+    pg16,
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setattr(
+        database,
+        'MIGRATION_FILES',
+        tuple(entry for entry in database.MIGRATION_FILES if entry[0] <= 31),
     )
+    plan = database.migration_plan(SCHEMA)
     assert (plan[-1].version, plan[-1].path.name) == (31, '0028_v30_to_v31.sql')
     for migration in plan[:-1]:
         database._execute_migration(pg16, migration)
@@ -57,7 +81,7 @@ def test_historical_schema30_upgrade_preserves_data_and_exact_function(pg16):
     before = rows_and_sequences(pg16)
     with pg16.connect() as c:
         original_functions = structure(c)
-    database._execute_migration(pg16, plan[-1])
+    assert database.run_migrations(pg16, SCHEMA) == plan
     with pg16.connect() as c:
         assert_acl(c)  # The migration itself grants the function, before permissions refresh.
         assert [row for row in structure(c) if row.proname != 'lock_menu_recipe_sources_v31'] == original_functions
@@ -67,6 +91,19 @@ def test_historical_schema30_upgrade_preserves_data_and_exact_function(pg16):
                 f'{predicate} ORDER BY to_jsonb(t)::text')).all() == rows
         assert c.execute(text('SELECT checksum_sha256 FROM cafeteria.schema_migrations WHERE version=31')).scalar_one() == hashlib.sha256(plan[-1].path.read_bytes()).hexdigest()
     assert rows_and_sequences(pg16)[1] == before[1]
+    assert database.run_migrations(pg16, SCHEMA) == plan
+    refresh_permissions_v31(pg16, tmp_path)
+    refresh_permissions_v31(pg16, tmp_path)
+    with pg16.connect() as c:
+        assert_acl(c)
+        migrated = structure(c)
+    with pg16.begin() as c:
+        c.execute(text('DROP SCHEMA cafeteria CASCADE'))
+    database._execute_script(pg16, str(SCHEMA))
+    database._execute_script(pg16, str(PERMISSIONS))
+    with pg16.connect() as c:
+        assert_acl(c)
+        assert [row for row in structure(c) if row.proname not in V32_FUNCTIONS] == migrated
 
 
 def test_runtime_role_acl_cannot_be_replaced_by_direct_table_locks(seeded_pg16, app_engine):

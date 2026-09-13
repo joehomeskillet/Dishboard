@@ -206,7 +206,7 @@ def run_live_check() -> dict[str, Any]:
                 text(
                     '''
                     SELECT p.proname, p.prosecdef, p.proconfig,
-                           p.proowner=n.nspowner AS same_owner,
+                           p.proowner=c.relowner AS same_owner,
                            has_function_privilege('cafeteria_app',p.oid,'EXECUTE') AS app,
                            has_function_privilege('cafeteria_backup',p.oid,'EXECUTE') AS backup,
                            has_function_privilege('cafeteria_auth_issuer',p.oid,'EXECUTE') AS issuer,
@@ -217,11 +217,29 @@ def run_live_check() -> dict[str, Any]:
                            ) AS public
                     FROM pg_proc p
                     JOIN pg_namespace n ON n.oid=p.pronamespace
+                    CROSS JOIN pg_class c
                     WHERE n.nspname='cafeteria'
+                      AND c.oid='cafeteria.dish_templates'::regclass
                       AND p.proname IN (
                           'dish_template_mutate_v32',
                           'create_dish_template_v32',
                           'update_dish_template_v32',
+                          'reject_direct_dish_template_update_v32'
+                      )
+                    ORDER BY p.proname
+                    '''
+                )
+            ).mappings().all()
+            writer_owners = connection.execute(
+                text(
+                    '''
+                    SELECT p.proname, p.proowner=c.relowner AS owner_matches
+                    FROM pg_proc p
+                    CROSS JOIN pg_class c
+                    WHERE c.oid='cafeteria.dish_templates'::regclass
+                      AND p.pronamespace='cafeteria'::regnamespace
+                      AND p.proname IN (
+                          'dish_template_mutate_v26','dish_template_mutate_v32',
                           'reject_direct_dish_template_update_v32'
                       )
                     ORDER BY p.proname
@@ -253,10 +271,13 @@ def run_live_check() -> dict[str, Any]:
                                'INSERT,DELETE,TRUNCATE,TRIGGER,REFERENCES'
                            ) AS no_other_dml,
                            t.tgenabled='O' AS trigger_enabled,
+                           t.tgtype=18 AS before_statement_update,
                            NOT p.prosecdef AS security_invoker,
                            p.proowner=c.relowner AS owner_matches,
                            p.proconfig=ARRAY['search_path=pg_catalog, cafeteria, pg_temp'] AS safe_path,
-                           pg_get_userbyid(c.relowner)<>'cafeteria_app' AS app_not_owner
+                           NOT pg_has_role(
+                               'cafeteria_app',c.relowner,'MEMBER'
+                           ) AS app_not_owner_member
                     FROM pg_trigger t
                     JOIN pg_proc p ON p.oid=t.tgfoid
                     JOIN pg_class c ON c.oid=t.tgrelid
@@ -265,7 +286,7 @@ def run_live_check() -> dict[str, Any]:
                       AND p.proname='reject_direct_dish_template_update_v32'
                     '''
                 )
-            ).one()
+            ).mappings().one_or_none()
         if int(row['schema_version']) != 32:
             fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 32.")
         if int(row['revision_fn_count']) != 1:
@@ -292,7 +313,15 @@ def run_live_check() -> dict[str, Any]:
                 or item['public']
             ):
                 fail(f"Live-ACL der Vorlagenfunktion ist ungültig: {item['proname']}")
-        if not all(guard_contract):
+        if {item['proname'] for item in writer_owners} != {
+            'dish_template_mutate_v26',
+            'dish_template_mutate_v32',
+            'reject_direct_dish_template_update_v32',
+        } or not all(item['owner_matches'] for item in writer_owners):
+            fail('Live-Owner der Vorlagen-Schreibfunktionen ist ungültig.')
+        if guard_contract is None:
+            fail('Live-Owner-Guard für dish_templates fehlt.')
+        if not all(guard_contract.values()):
             fail('Live-ACL oder Owner-Guard für dish_templates ist ungültig.')
         migrated_structure = structure('cafeteria')
         with engine.begin() as connection:
@@ -426,6 +455,11 @@ def main() -> int:
         ):
             if fragment not in migration_0029 or fragment not in sql:
                 fail(f'Beilagenvertrag v32 fehlt: {fragment}')
+        if (
+            'BEFORE UPDATE ON cafeteria.dish_templates' not in migration_0029
+            or 'BEFORE UPDATE ON dish_templates' not in sql
+        ):
+            fail('Beilagenvertrag v32 fehlt: BEFORE UPDATE.')
         for fragment in (
             'REVOKE INSERT,UPDATE,DELETE,TRUNCATE,TRIGGER,REFERENCES',
             'GRANT UPDATE(id) ON TABLE cafeteria.dish_templates TO cafeteria_app',

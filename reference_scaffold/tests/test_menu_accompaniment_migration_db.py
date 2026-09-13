@@ -23,6 +23,19 @@ PRIVATE_V32 = {'dish_template_mutate_v32'}
 GUARD_V32 = 'reject_direct_dish_template_update_v32'
 
 
+def test_live_validator_pins_owner_guard_catalog_contract():
+    validator = (SCHEMA.parent / 'validate_schema.py').read_text(encoding='utf-8')
+    compact = ''.join(validator.split())
+    for fragment in (
+        't.tgtype=18 AS before_statement_update',
+        "'dish_template_mutate_v26','dish_template_mutate_v32'",
+        'p.proowner=c.relowner AS owner_matches',
+        "NOT pg_has_role('cafeteria_app',c.relowner,'MEMBER') AS app_not_owner_member",
+        ').mappings().one_or_none()',
+    ):
+        assert ''.join(fragment.split()) in compact
+
+
 def _v32_structure(connection):
     return (
         connection.execute(text("""SELECT table_name,column_name,data_type,is_nullable,column_default
@@ -142,15 +155,26 @@ def test_app_row_locks_and_menu_scope_survive_while_direct_template_dml_is_denie
         template_id = connection.execute(text(
             'SELECT id FROM cafeteria.dish_templates WHERE public_id=:id'
         ), {'id': created['public_id']}).scalar_one()
-        trigger_contract = connection.execute(text(f"""SELECT t.tgenabled,p.proname,
+        trigger_contract = connection.execute(text(f"""SELECT t.tgenabled,t.tgtype,p.proname,
             NOT p.prosecdef,p.proconfig,p.proowner=c.relowner,
-            pg_get_userbyid(c.relowner)<>'cafeteria_app' FROM pg_trigger t
+            NOT pg_has_role('cafeteria_app',c.relowner,'MEMBER') FROM pg_trigger t
             JOIN pg_proc p ON p.oid=t.tgfoid JOIN pg_class c ON c.oid=t.tgrelid
             WHERE NOT t.tgisinternal AND c.oid='cafeteria.dish_templates'::regclass
             AND p.proname='{GUARD_V32}'""")).one_or_none()
         assert trigger_contract == (
-            'O', GUARD_V32, True, ['search_path=pg_catalog, cafeteria, pg_temp'], True, True,
+            'O', 18, GUARD_V32, True,
+            ['search_path=pg_catalog, cafeteria, pg_temp'], True, True,
         )
+        writer_owners = connection.execute(text("""SELECT p.proname,p.proowner=c.relowner
+            FROM pg_proc p CROSS JOIN pg_class c
+            WHERE c.oid='cafeteria.dish_templates'::regclass
+            AND p.pronamespace='cafeteria'::regnamespace
+            AND p.proname IN ('dish_template_mutate_v26','dish_template_mutate_v32')
+            ORDER BY p.proname""")).all()
+        assert writer_owners == [
+            ('dish_template_mutate_v26', True),
+            ('dish_template_mutate_v32', True),
+        ]
 
     lock_query = ("SELECT d.id FROM cafeteria.dish_templates d "
                   "WHERE d.id=ANY(CAST(:ids AS bigint[])) ORDER BY d.id FOR {mode} OF d")
