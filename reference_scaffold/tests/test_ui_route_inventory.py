@@ -253,10 +253,17 @@ def _invalid_action(case: dict):
             field.select_option(case['value'])
         else:
             field.fill(case['value'])
+        save = page.get_by_role('button', name=case['button'], exact=True)
+        assert save.count() == 1
+        assert save.evaluate(
+            '(btn, formEl) => btn.form === formEl'
+            ' && (btn.getAttribute("form") == null || btn.getAttribute("form") === formEl.id)',
+            form,
+        )
         with page.expect_response(lambda response: response.request.method == 'POST'
                                   and urlsplit(response.url).path == urlsplit(case['path']).path) as response:
             with page.expect_navigation(wait_until='domcontentloaded'):
-                form.get_by_role('button', name=case['button'], exact=True).click()
+                save.click()
         assert response.value.status == 400
         error = page.locator('#' + case['marker'])
         error.wait_for(state='visible')
