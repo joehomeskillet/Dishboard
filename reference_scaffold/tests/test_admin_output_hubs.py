@@ -103,6 +103,14 @@ def test_hubs_use_existing_read_roles_and_link_all_real_targets(hub_app, databas
             # admin also repeats each Vorlageneditor href once outside and inside «Frühere Versionen»
             expected_links = 25 if role == 'Cafeteria.Admin' else 18
             expected_unique_links = 23 if role == 'Cafeteria.Admin' else 18
+            assert '/admin/gerichtvorlagen' in links
+            if role == 'Cafeteria.Admin':
+                assert '/admin/rezepte' in links
+                expected_links += 2
+                expected_unique_links += 1
+            else:
+                expected_links += 1
+                expected_unique_links += 1
             assert {'/admin/grundlagen?kind=foods', '/admin/rezepte', '/admin/kochbuecher'} <= set(links)
         else:
             expected_links = 15

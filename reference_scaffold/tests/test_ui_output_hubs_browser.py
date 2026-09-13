@@ -34,7 +34,7 @@ from test_screen_template_routes import screen_app as screen_app  # noqa: F401
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason="TEST_DATABASE_URL fehlt.")
 
 VIEWPORTS = [(1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080), (2560, 1440)]
-EVIDENCE_DIR = Path(__file__).resolve().parents[2] / ".claude/evidence/density-hubs-iconfix-0913"
+EVIDENCE_DIR = Path(__file__).resolve().parents[2] / '.claude/evidence/tpl-dish-entry-0913'
 
 
 @pytest.fixture
@@ -172,7 +172,7 @@ def test_output_hubs_viewports_and_layouts(
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
         _check_contrast(page)
         page.screenshot(
-            path=str(tmp_path / f"screens-{width}x{height}.png"), full_page=True
+            path=str(EVIDENCE_DIR / f"screens-{width}x{height}.png"), full_page=True
         )
 
         # 2. /admin/vorlagen
@@ -183,9 +183,6 @@ def test_output_hubs_viewports_and_layouts(
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
         _check_contrast(page)
         _assert_served_hub_icons_render(page, f'vorlagen-{width}x{height}')
-        page.screenshot(
-            path=str(tmp_path / f"vorlagen-{width}x{height}.png"), full_page=True
-        )
         EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
         page.screenshot(
             path=str(EVIDENCE_DIR / f"vorlagen-{width}x{height}.png"), full_page=True
@@ -208,7 +205,7 @@ def test_output_hubs_viewports_and_layouts(
         )
         _check_contrast(page)
         page.screenshot(
-            path=str(tmp_path / f"assignment-{width}x{height}.png"), full_page=True
+            path=str(EVIDENCE_DIR / f"assignment-{width}x{height}.png"), full_page=True
         )
     finally:
         context.close()
@@ -277,7 +274,7 @@ def test_output_hubs_keyboard_and_zoom_200(
                     "document.documentElement.scrollWidth <= innerWidth + 1"
                 )
                 zoom_page.screenshot(
-                    path=str(tmp_path / f"zoom-200-{name}-js-{javascript}.png"),
+                    path=str(EVIDENCE_DIR / f"zoom-200-{name}-js-{javascript}.png"),
                     full_page=True,
                 )
                 if name == "vorlagen":
@@ -438,7 +435,7 @@ def test_output_hubs_matrix_error_and_conflict_states(
         expect(stale.locator('[name="version"]')).to_have_value("0")
         expect(stale.get_by_role("alert")).to_be_focused()
         assert stale.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
-        stale.screenshot(path=str(tmp_path / "conflict-409.png"), full_page=True)
+        stale.screenshot(path=str(EVIDENCE_DIR / "conflict-409.png"), full_page=True)
         stale.close()
 
         # State: access_denied_403 (editor has no write capability)
@@ -478,7 +475,7 @@ def test_output_hubs_matrix_error_and_conflict_states(
             "Bildschirmvorlagen vorübergehend nicht verfügbar"
         )
         expect(page.get_by_role("alert")).to_be_visible()
-        page.screenshot(path=str(tmp_path / "unavailable-503.png"), full_page=True)
+        page.screenshot(path=str(EVIDENCE_DIR / "unavailable-503.png"), full_page=True)
 
 
 @pytest.mark.parametrize(
@@ -533,6 +530,6 @@ def test_output_hubs_matrix_empty_states(
             focus_target = page.get_by_role(focus_role).first
         focus_target.focus()
         expect(focus_target).to_be_focused()
-        page.screenshot(path=str(tmp_path / f"empty-{route.strip('/').replace('/', '-')}.png"), full_page=True)
+        page.screenshot(path=str(EVIDENCE_DIR / f"empty-{route.strip('/').replace('/', '-')}.png"), full_page=True)
     finally:
         context.close()
