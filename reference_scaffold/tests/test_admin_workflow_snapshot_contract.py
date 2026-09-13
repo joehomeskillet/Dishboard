@@ -151,6 +151,25 @@ def test_snapshot_projects_exact_public_metadata_and_detaches_source() -> None:
     assert snapshot == frozen
 
 
+@pytest.mark.parametrize(
+    ('code', 'name'),
+    (
+        ('soup', 'Suppe'),
+        ('salad', 'Salat (gemischt und grün)'),
+    ),
+)
+def test_snapshot_projects_selected_accompaniment_pair(code: str, name: str) -> None:
+    draft = _staff_draft()
+    draft['days'][0]['services'][0]['options'][0]['accompaniment_code'] = code
+
+    snapshot = build_snapshot('staff_guest', draft, 'CAF-2026-KW37-R1')
+    option = snapshot['days'][0]['services'][0]['options'][0]
+
+    assert option['accompaniment_code'] == code
+    assert option['accompaniment_name'] == name
+    assert not option['accompaniment_name'].startswith('Dazu:')
+
+
 def test_snapshot_is_schema_two_with_area_name_and_only_set_times() -> None:
     draft = _staff_draft()
     draft['area_name'] = '  Mitarbeitende und externe Gäste  '
