@@ -349,7 +349,10 @@ def test_location_conflict_retains_complete_original_form_without_rebinding(b3, 
         response = client.post(action, data=data)
         assert response.status_code == 409
         assert response.headers['Cache-Control'] == 'no-store'
-        returned = Forms(response.text).forms[action]
+        section_html = re.search(r'<section[^>]*aria-label="Ursprüngliche Eingaben"[^>]*>(.*?)</section>', response.text, re.S)
+        returned = MultiDict()
+        for name, value in re.findall(r'<input type="hidden" name="([^"]+)" value="([^"]*)"', section_html.group(1) if section_html else ''):
+            returned.add(name, unescape(value))
         assert dict(returned.lists()) == dict(data.lists())
         visible = [unescape(value).removeprefix('\n') for value in re.findall(r'<textarea\b[^>]*>(.*?)</textarea>', response.text, re.S)]
         for key, value in data.items(multi=True):
@@ -359,7 +362,7 @@ def test_location_conflict_retains_complete_original_form_without_rebinding(b3, 
             assert 'Ursprünglicher Code: ALT&lt;&amp;' in response.text
             assert 'Allergen · ursprünglicher Code ALT' in response.text
         assert f'href="{path}"' in response.text
-        assert 'Aktuellen Stand neu laden' in response.text
+        assert 'Neu laden' in response.text
         assert client.post(action, data=returned).status_code == 409
     assert state() == before
     if purpose == 'neu':

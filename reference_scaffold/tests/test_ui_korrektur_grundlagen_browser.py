@@ -1,7 +1,10 @@
 """Correction-wave proof for list-first master data pages and native forms."""
 from __future__ import annotations
 
+import json
+import re
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from urllib.parse import parse_qsl, urlsplit
 
 import pytest
@@ -19,13 +22,16 @@ from test_master_data_routes import (  # noqa: F401
 from test_rendered_ui import browser  # noqa: F401
 
 
-EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/ui-korrektur-0912/grundlagen'
+EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/density-foundations-reviewfix-0913'
 VIEWPORTS = (
-    (1366, 768, 'desktop'),
+    (1440, 900, 'desktop-1440'),
+    (2560, 1440, 'wide-2560'),
     (1920, 1080, 'wide'),
+    (1366, 768, 'desktop'),
+    (1024, 768, 'desktop-1024'),
     (768, 1024, 'tablet'),
     (390, 844, 'mobile'),
-    (720, 450, 'zoom-200'),
+    (320, 844, 'reflow-320'),
 )
 
 
@@ -58,13 +64,17 @@ def test_ingredient_list_is_first_full_width_and_visible(
 
         assert page.locator('nav[aria-label="Stammdatenbereiche"]').count() == 1
         assert page.locator('main .btn-primary').count() == 1
+        expect(page.locator('main .btn-primary').first).to_contain_text('Anlegen')
+        expect(page.locator('nav[aria-label="Stammdatenbereiche"] .icon use').first).to_have_attribute(
+            'href', re.compile(r'tabler-')
+        )
         first = page.locator('.grundlagen-list .list-group-item').first
         expect(first).to_be_visible()
         box = first.bounding_box()
         assert box is not None
-        if width in {1366, 1920}:
+        if width in {1366, 1440, 1920, 2560}:
             assert box['y'] + box['height'] <= height
-        expect(page.locator('details').filter(has_text='Liste filtern').first).not_to_have_attribute('open', '')
+        expect(page.locator('details').filter(has_text='Filter').first).not_to_have_attribute('open', '')
         _assert_no_horizontal_scroll(page)
 
         if width >= 1024:
@@ -83,9 +93,72 @@ def test_ingredient_list_is_first_full_width_and_visible(
 
         page.goto(base + '/admin/grundlagen?q=zzzz-kein-treffer', wait_until='networkidle')
         expect(page.get_by_text('Keine passenden Zutaten', exact=True)).to_be_visible()
-        expect(page.locator('details').filter(has_text='Liste filtern').first).to_have_attribute('open', '')
+        expect(page.locator('details').filter(has_text='Filter').first).to_have_attribute('open', '')
         _assert_no_horizontal_scroll(page)
         _screenshot(page, f'liste-leer-{state}-{width}x{height}.png')
+
+
+def test_ingredient_list_genuine_browser_zoom_200(
+    b3, master_server, browser, tmp_path,  # noqa: F811
+):
+    _, _, client, _ = b3
+    create(client, name='Erste sichtbare Zutat')
+    base, cookie = master_server
+    with TemporaryDirectory(prefix='grundlagen-native-zoom-', dir=tmp_path) as profile:
+        with browser.browser_type.launch_persistent_context(
+            profile,
+            channel='chromium',
+            headless=True,
+            no_viewport=True,
+            locale='de-CH',
+            timezone_id='Europe/Zurich',
+            reduced_motion='reduce',
+            args=['--no-sandbox', '--disable-dev-shm-usage', '--window-size=1440,900'],
+        ) as context:
+            page = context.pages[0]
+            page.goto('chrome://settings/appearance')
+            page.evaluate('new Promise(resolve => chrome.settingsPrivate.setDefaultZoom(2, resolve))')
+            assert page.evaluate('new Promise(resolve => chrome.settingsPrivate.getDefaultZoom(resolve))') == 2
+            context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+            page.goto(base + '/admin/grundlagen', wait_until='networkidle')
+            cdp = context.new_cdp_session(page)
+            zoom = cdp.send('Page.getLayoutMetrics')['cssVisualViewport']['zoom']
+            assert zoom == 2
+            assert page.evaluate('[innerWidth, outerWidth, devicePixelRatio]') == [720, 1440, 2]
+            assert page.evaluate('getComputedStyle(document.documentElement).zoom') == '1'
+
+            assert page.locator('nav[aria-label="Stammdatenbereiche"]').count() == 1
+            assert page.locator('main .btn-primary').count() == 1
+            expect(page.locator('main .btn-primary').first).to_contain_text('Anlegen')
+            expect(page.locator('nav[aria-label="Stammdatenbereiche"] .icon use').first).to_have_attribute(
+                'href', re.compile(r'tabler-')
+            )
+            first = page.locator('.grundlagen-list .list-group-item').first
+            expect(first).to_be_visible()
+            expect(page.locator('details').filter(has_text='Filter').first).not_to_have_attribute('open', '')
+            _assert_no_horizontal_scroll(page)
+            _prepare_evidence()
+            _screenshot(page, 'liste-regulaer-zoom-200-1440x900.png')
+            proof = cdp.send('Page.getLayoutMetrics')
+            proof['zoom'] = zoom
+            proof['devicePixelRatio'] = 2
+            (EVIDENCE / 'liste-regulaer-zoom-200-1440x900.cdp.json').write_text(json.dumps(proof, indent=2))
+
+            # Verify zoom persists across page.goto for empty state too
+            page.goto(base + '/admin/grundlagen?q=zzzz-kein-treffer', wait_until='networkidle')
+            empty_zoom = cdp.send('Page.getLayoutMetrics')['cssVisualViewport']['zoom']
+            assert empty_zoom == 2
+            assert page.evaluate('[innerWidth, outerWidth, devicePixelRatio]') == [720, 1440, 2]
+            assert page.evaluate('getComputedStyle(document.documentElement).zoom') == '1'
+            expect(page.get_by_text('Keine passenden Zutaten', exact=True)).to_be_visible()
+            expect(page.locator('details').filter(has_text='Filter').first).to_have_attribute('open', '')
+            _assert_no_horizontal_scroll(page)
+            _screenshot(page, 'liste-leer-zoom-200-1440x900.png')
+            empty_proof = cdp.send('Page.getLayoutMetrics')
+            empty_proof['zoom'] = empty_zoom
+            empty_proof['devicePixelRatio'] = 2
+            (EVIDENCE / 'liste-leer-zoom-200-1440x900.cdp.json').write_text(json.dumps(empty_proof, indent=2))
+            cdp.detach()
 
 
 @pytest.mark.parametrize('javascript', [False, True])
@@ -104,6 +177,9 @@ def test_ingredient_form_keeps_native_payload_and_opens_on_error(
         form_details = page.locator('main details').filter(has_text='Zutat anlegen').first
         expect(form_details).to_have_attribute('open', '')
         assert page.locator('main .btn-primary').count() == 1
+        expect(page.get_by_role('button', name='Zutat speichern', exact=True).locator('.icon use')).to_have_attribute(
+            'href', re.compile(r'tabler-device-floppy')
+        )
         page.get_by_label('Name', exact=True).fill('<unzulässig>')
         storage = page.get_by_label('Testlager', exact=True)
         storage.check()
@@ -145,11 +221,15 @@ def test_ingredient_statuses_and_secondary_actions_stay_separate(
         page = context.new_page()
         page.goto(base + path)
 
-        status = page.locator('#food-status-title').locator('xpath=../..')
+        status = page.locator('.grundlagen-status')
         expect(status.get_by_text('Aktiv', exact=True)).to_be_visible()
-        expect(status.get_by_text('Lagerort fehlt', exact=True)).to_be_visible()
-        expect(status.get_by_text('Allergenangaben nicht erfasst', exact=True)).to_be_visible()
+        lagerort_line = status.locator('p').filter(has_text='Lagerort')
+        expect(lagerort_line).to_be_visible()
+        assert 'Testlager' in lagerort_line.inner_text() or 'Lagerort fehlt' in lagerort_line.inner_text()
+        expect(status.locator('.badge', has_text='Allergenangaben nicht erfasst')).to_be_visible()
         expect(status.get_by_text('Noch nicht bestätigt', exact=False)).to_be_visible()
+        allergen_status = status.locator('p').filter(has_text='Allergenprüfung')
+        expect(allergen_status.locator('.icon use')).to_have_attribute('href', re.compile(r'tabler-clipboard-check'))
         expect(page.get_by_role('button', name='Archivieren', exact=True)).not_to_be_visible()
         page.get_by_text('Weitere Aktionen', exact=True).click()
         expect(page.get_by_role('button', name='Archivieren', exact=True)).to_be_visible()

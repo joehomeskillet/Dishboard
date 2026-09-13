@@ -85,7 +85,7 @@ def test_native_food_save_conflict_archive_and_framework(b3, master_server, brow
         page.goto(base + '/admin/grundlagen')
         expect(page.get_by_role('heading', level=1)).to_have_text('Grundlagen')
         expect(page.get_by_text('Keine passenden Zutaten', exact=True)).to_be_visible()
-        page.get_by_role('link', name='Zutat anlegen', exact=True).click()
+        page.get_by_role('link', name='Anlegen', exact=True).click()
         page.get_by_label('Name', exact=True).fill('Karotte Browser')
         page.get_by_label('Testlager', exact=True).check()
         page.get_by_role('button', name='Zutat speichern', exact=True).click()
@@ -101,10 +101,10 @@ def test_native_food_save_conflict_archive_and_framework(b3, master_server, brow
         expect(page.locator('.error-region')).to_be_visible()
         expect(page.get_by_label('Name', exact=True)).to_have_value('Mein ursprünglicher Entwurf')
         assert core.locator('input[name="_form_context"]').input_value() == token
-        page.get_by_role('link', name='Aktuellen Stand neu laden').click()
+        page.get_by_role('link', name='Neu laden').click()
         expect(page.get_by_label('Name', exact=True)).to_have_value('Andere Sitzung')
         page.get_by_text('Allergenprüfung', exact=True).last.click()
-        page.get_by_role('button', name='Allergenangaben als geprüft bestätigen').click()
+        page.get_by_role('button', name='Als geprüft bestätigen').click()
         page.get_by_text('Allergenprüfung', exact=True).last.click()
         expect(page.get_by_role('button', name='Prüfung zurücknehmen')).to_be_visible()
         page.get_by_text('Weitere Aktionen', exact=True).click()
@@ -130,7 +130,7 @@ def test_native_food_save_conflict_archive_and_framework(b3, master_server, brow
         screenshot = evidence / f'food-{width}-js-{javascript}.png'
         page.screenshot(path=str(screenshot), full_page=True)
         screenshot.chmod(0o600)
-        page.get_by_role('link', name='Zur Zutatenliste', exact=True).click()
+        page.get_by_role('link', name='Zur Liste', exact=True).click()
         expect(page.get_by_role('link', name='Andere Sitzung bearbeiten')).to_be_visible()
         targets(page)
 
@@ -205,7 +205,7 @@ def test_location_conflict_native_recovery(b3, master_server, browser, width, ja
         ) == original
         assert page.locator('main form').count() == 0
         assert page.locator('main button[type="submit"]').count() == 0
-        expect(page.get_by_role('link', name='Aktuellen Stand neu laden')).to_have_attribute('href', path)
+        expect(page.get_by_role('link', name='Neu laden', exact=True)).to_have_attribute('href', path)
         targets(page)
         evidence = Path(os.environ.get('MASTER_DATA_EVIDENCE_DIR', str(EVIDENCE)))
         evidence.mkdir(parents=True, exist_ok=True)
@@ -213,7 +213,7 @@ def test_location_conflict_native_recovery(b3, master_server, browser, width, ja
         screenshot = evidence / f'location-conflict-{width}-js-{javascript}-existing-{existing}.png'
         page.screenshot(path=str(screenshot), full_page=True)
         screenshot.chmod(0o600)
-        page.get_by_role('link', name='Zur aktuellen Liste').click()
+        page.get_by_role('link', name='Zur Liste', exact=True).click()
         expect(page.get_by_text('Keine passenden Zutaten', exact=True)).to_be_visible()
         assert snapshot(owner) == before
 
@@ -233,8 +233,8 @@ def test_location_conflict_selections_are_visible_and_copyable(b3, master_server
         page.goto(base + path)
         if purpose != 'stammdaten':
             section = {
-                'tags': 'Kennzeichnungen ändern',
-                'metadaten': 'Allergene und Kostformen ändern',
+                'tags': 'Kennzeichnungen',
+                'metadaten': 'Allergene und Kostformen',
                 'allergenpruefung': 'Allergenprüfung',
             }[purpose]
             page.get_by_text(section, exact=True).last.click()

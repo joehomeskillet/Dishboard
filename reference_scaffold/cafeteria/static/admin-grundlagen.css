@@ -5,11 +5,32 @@
 details.card > summary.card-header {
   min-height: 3rem;
   cursor: pointer;
-  list-style-position: inside;
+  list-style: none;
+  display: flex;
+  align-items: center;
+}
+
+details.card > summary.card-header::-webkit-details-marker {
+  display: none;
 }
 
 details.card > summary.card-header::marker {
-  color: var(--app-primary);
+  content: '';
+}
+
+details.card > summary.card-header .grundlagen-accordion-marker {
+  flex: none;
+  transition: transform 200ms cubic-bezier(.2, 0, 0, 1);
+}
+
+details.card[open] > summary.card-header .grundlagen-accordion-marker {
+  transform: rotate(90deg);
+}
+
+.grundlagen-list .nav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 3rem;
 }
 
 .grundlagen-status {
@@ -21,8 +42,32 @@ details.card > summary.card-header::marker {
   margin: 0;
 }
 
+@media (min-height: 700px) {
+  #food-core-form .grundlagen-core-actions:not(.is-static) {
+    position: sticky;
+    top: auto;
+    bottom: 0;
+    z-index: 10;
+  }
+
+  #food-core-form :is(input, select, textarea, button) {
+    scroll-margin-bottom: calc(var(--app-space-12) + var(--app-space-6));
+  }
+
+  /* Text entry and link focus must stay clear of the bar without JavaScript. */
+  #food-core-form:has(input:not([type=checkbox]):focus, textarea:focus, a:focus) .grundlagen-core-actions {
+    position: static;
+  }
+}
+
 @media (min-width: 48rem) {
   .grundlagen-status {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  details.card > summary.card-header .grundlagen-accordion-marker {
+    transition: none;
   }
 }
