@@ -57,16 +57,20 @@
 
 {% if errors %}
 <div class="alert alert-danger error-region d-block" role="alert" tabindex="-1">
-  <p class="mb-2">Bitte korrigieren Sie die Fehler im Formular.</p>
+  <p class="mb-2">{% if cell.review_conflict %}Die Prüfung konnte nicht bestätigt werden.{% else %}Bitte korrigieren Sie die Fehler im Formular.{% endif %}</p>
   <ul class="mb-2">
     {% for name, message in errors.items() %}
-    <li><a href="#{{ error_targets.get(name, 'f-title') }}" data-error-link>{{ message }}</a></li>
+    <li>{% if cell.review_conflict %}{{ origin_conflict or message }}{% else %}<a href="#{{ error_targets.get(name, 'f-title') }}" data-error-link>{{ message }}</a>{% endif %}</li>
     {% endfor %}
   </ul>
-  <button type="button" class="btn" data-retry-page>{{ icon('refresh') }}Erneut versuchen</button>
+  {% if not cell.review_conflict %}<button type="button" class="btn" data-retry-page>{{ icon('refresh') }}Erneut versuchen</button>{% endif %}
 </div>
 {% endif %}
 
+{% if cell.review_conflict %}
+<p>Öffnen Sie das bestehende Menü, um den aktuellen Stand zu prüfen.</p>
+<a class="btn" href="{{ cell.existing_url }}">{{ icon('chevron-right') }}Bestehendes Menü öffnen</a>
+{% else %}
 <div class="admin-editor-layout">
   <div class="menu-editor-main">
     <form method="post" action="/admin/{{ family }}/menu" class="admin-compact-form" data-menu-editor>
@@ -359,4 +363,5 @@
     </section>
   </aside>
 </div>
+{% endif %}
 {% endblock %}

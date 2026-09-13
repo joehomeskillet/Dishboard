@@ -417,6 +417,8 @@ def _render_menu_page(
         'dish_template': option.get('dish_template'),
         'template_proposal': template_context is not None,
         'retained_only': retained_only,
+        # Review POSTs carry no menu values to retain; never offer a blank save form.
+        'review_conflict': retained_only and form_values is None,
         'existing_url': url_for('admin.menu_get', family=family, week=week.isoformat(),
                                 day=day, meal=meal, option=option_code),
     }

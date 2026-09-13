@@ -616,6 +616,78 @@ def test_origin_conflict_is_controlled_409(client, database_engine: Engine, app:
     assert _counts(database_engine) == before
 
 
+@pytest.mark.parametrize('family,profile', (('patienten', 'patient'), ('cafeteria', 'staff_guest')))
+@pytest.mark.parametrize('conflict', ('fingerprint', 'version', 'origin'))
+def test_review_conflict_has_only_navigation(
+    client, database_engine: Engine, app: Flask, monkeypatch: pytest.MonkeyPatch,
+    family: str, profile: str, conflict: str,
+) -> None:
+    from test_menu_template_binding_db import make_template, stored_state
+
+    scope = _scope(database_engine, _session_actor_id(client), profile)
+    engine = app.extensions['cafeteria_db']
+    potato = create_component(engine, scope, 'side', 'Kartoffel', 'CH', 'common', (), ())
+    rice = create_component(engine, scope, 'side', 'Reis', 'DE', 'current', (), ())
+    payload = {**_payload(staff=profile == 'staff_guest'),
+               'description': 'Beschreibung bleibt erhalten', 'note': 'Hinweis bleibt erhalten',
+               'origin_mode': 'auto', 'origins': [],
+               'dish_template_public_id': make_template(database_engine)['public_id'],
+               'assignments': [{'component_public_id': str(row['public_id']), 'component_text': None}
+                               for row in (potato, rice)]}
+    version = persist_menu_item(engine, scope, WEEK, DAY, 'LUNCH', 'MENU_1', payload, 0)
+    editor = f'/admin/{family}/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1'
+    action = f'/admin/{family}/menu/review'
+    initial = client.get(editor)
+    assert initial.status_code == 200
+    form = {name: _hidden(initial.text, name, form_action=action) for name in
+            ('_csrf', 'week', 'day', 'meal', 'option', 'row_version', 'component_version')}
+    if conflict == 'version':
+        persist_menu_item(engine, scope, WEEK, DAY, 'LUNCH', 'MENU_1', payload, version)
+    else:
+        update_component(engine, scope, str(rice['public_id']), {
+            'category': 'side', 'name': 'Kartoffel' if conflict == 'origin' else 'Basmatireis',
+            'origin_country_code': 'DE', 'label_codes': [], 'allergens': [],
+        }, int(rice['row_version']))
+        with database_engine.connect() as connection:
+            assert connection.execute(text('SELECT row_version FROM cafeteria.menu_items')).scalar_one() == version
+    before = stored_state(database_engine)
+    render = workflow_routes._render_menu_page
+
+    def forbidden(*_args, **_kwargs):
+        pytest.fail('Rejected review redisplay must not read business data or sign authority')
+
+    def retained_render(*args, **kwargs):
+        with monkeypatch.context() as guard:
+            for name in ('_db', '_load_item', '_load_draft_option', '_catalog_choices',
+                         '_recipe_choice_page', '_master_choices', '_scoped_csrf'):
+                guard.setattr(workflow_routes, name, forbidden)
+            return render(*args, **kwargs)
+
+    with monkeypatch.context() as guarded:
+        guarded.setattr(workflow_routes, '_render_menu_page', retained_render)
+        for _ in range(2):
+            response = client.post(action, data=form)
+            assert response.status_code == 409
+            body = response.text
+            if conflict == 'origin':
+                assert ORIGIN_CONFLICT in body
+            assert 'Bestehendes Menü öffnen' in body
+            assert editor.replace('&', '&amp;') in body
+            assert 'data-menu-editor' not in body
+            assert 'data-saved-review' not in body
+            assert 'data-error-link' not in body
+            assert 'data-retry-page' not in body
+            assert 'Menü speichern' not in body
+            assert 'name="row_version"' not in body
+            assert stored_state(database_engine) == before
+    current = client.get(editor)
+    assert current.status_code == (409 if conflict == 'origin' else 200)
+    assert 'value="Kartoffelgratin"' in current.text
+    assert 'Beschreibung bleibt erhalten' in current.text
+    assert 'Hinweis bleibt erhalten' in current.text
+    assert 'data-menu-editor' in current.text
+
+
 def test_patient_csv_export_never_reflects_internal_validation_category(
     client,
     monkeypatch: pytest.MonkeyPatch,
