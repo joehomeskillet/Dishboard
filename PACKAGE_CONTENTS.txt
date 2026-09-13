@@ -1263,6 +1263,7 @@ reference_scaffold/tests/test_master_data_race_db.py
 reference_scaffold/tests/test_master_data_routes.py
 reference_scaffold/tests/test_master_data_wiring_v27.py
 reference_scaffold/tests/test_mcp_server.py
+reference_scaffold/tests/test_menu_accompaniment_snapshot.py
 reference_scaffold/tests/test_menu_collection.py
 reference_scaffold/tests/test_menu_collection_browser.py
 reference_scaffold/tests/test_menu_conflict_nojs_browser.py
