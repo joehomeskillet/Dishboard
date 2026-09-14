@@ -1,9 +1,13 @@
 -- Rollback: Die v32-Anwendung bleibt wegen nullable Spalten technisch startbar, aber:
--- a) v32-Writer verwerfen Zielmengen beim Speichern und Kopieren still.
+-- a) v32-Writer verwerfen Zielmengen beim Speichern und Kopieren still und öffnen dabei kein
+--    Review (das CAS-/Review-Token der v32-App kennt target_quantity/target_quantity_unit_id nicht).
 -- b) Vor App-Rollback Zielmengen sichern oder Verlust ausdrücklich akzeptieren, sonst Forward-Fix.
 -- c) Kein `init-db` oder `run_migrations` mit v32-Code gegen eine v33-DB.
 -- Ein Schema-Rollback auf v32 ist ausschliesslich per geprüftem Restore erlaubt.
 -- Deploy: Backup abgeschlossen, keine langen Transaktionen (pg_stat_activity), App im Wartungsmodus oder kurzes Fenster.
+-- Lock: `SET LOCAL lock_timeout = '5s'` unten laesst die Migration bei einer Lock-Warteschlange
+-- (z. B. laufendes Backup) mit SQLSTATE 55P03 abbrechen; lange Transaktionen abwarten und die
+-- Migration danach erneut starten.
 BEGIN;
 SET LOCAL lock_timeout = '5s';
 

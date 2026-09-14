@@ -1,9 +1,10 @@
 """Schema32 -> 33 target portions migration and exact database contract."""
-# ruff: noqa: F401, F811
 from __future__ import annotations
 
+from datetime import date
 from decimal import Decimal
 import hashlib
+import importlib.util
 import json
 import os
 import subprocess
@@ -15,6 +16,9 @@ from sqlalchemy.exc import DBAPIError
 from test_rec_import_commit_migration_db import rows_and_sequences
 
 from cafeteria import db as database
+from cafeteria.component_assignment_store import replace_component_links
+from cafeteria.component_catalog_store import AdminScope
+from cafeteria.workflow_copy_store import copy_previous_week
 from test_component_metadata_master_lock_db import (  # noqa: F401
     PERMISSIONS,
     ROOT,
@@ -32,6 +36,14 @@ from test_operations_settings_db import (
     _v19_snapshot,
     _v19_week,
 )
+
+
+_VP_SPEC = importlib.util.spec_from_file_location(
+    'rec_plan_portions_package_validator', ROOT / 'tools' / 'validate_package.py'
+)
+assert _VP_SPEC is not None and _VP_SPEC.loader is not None
+validate_package = importlib.util.module_from_spec(_VP_SPEC)
+_VP_SPEC.loader.exec_module(validate_package)
 
 
 TARGET_CHECK = 'menu_item_components_target_quantity_check'
@@ -177,16 +189,12 @@ def test_v32_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16
             'SELECT max(version) FROM cafeteria.schema_migrations'
         )).scalar_one() == 33
         
-        import hashlib
-        import sys
-        sys.path.insert(0, str(ROOT))
-        import tools.validate_package as vp
         mig33 = connection.execute(text("""SELECT name,checksum_sha256,application_version
             FROM cafeteria.schema_migrations WHERE version=33""")).one()
         assert mig33[0] == '0030_v32_to_v33.sql'
         expected_sha = hashlib.sha256((SCHEMA.parent / 'migrations' / '0030_v32_to_v33.sql').read_bytes()).hexdigest()
         assert mig33[1] == expected_sha
-        assert mig33[1] == vp.MIGRATION_CHECKSUMS['0030_v32_to_v33.sql']
+        assert mig33[1] == validate_package.MIGRATION_CHECKSUMS['0030_v32_to_v33.sql']
         
         assert _app_surface(connection) == surface_before
         migrated_contract = _target_contract(connection)
@@ -224,12 +232,12 @@ def test_v32_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16
     ],
 )
 def test_target_quantity_check_rejects_incomplete_nonpositive_or_unbound_values(
-    seeded_pg16,
-    app_engine,
+    seeded_pg16,  # noqa: F811
+    app_engine,  # noqa: F811
     quantity,
     unit,
     revision,
-):  # noqa: F811
+):
     ids = _seed_scope_probe(seeded_pg16)
     actor = make_actor(seeded_pg16)
     ids.update(actor=actor.user_id, authz=actor.authz_version)
@@ -254,7 +262,7 @@ def test_target_quantity_check_rejects_incomplete_nonpositive_or_unbound_values(
     assert error.value.orig.diag.constraint_name == TARGET_CHECK
 
 
-def test_target_quantity_exact_fk_null_pair_and_v32_app_paths(seeded_pg16, app_engine):  # noqa: F811
+def test_target_quantity_exact_fk_null_pair(seeded_pg16, app_engine):  # noqa: F811
     ids = _seed_scope_probe(seeded_pg16)
     actor = make_actor(seeded_pg16)
     ids.update(actor=actor.user_id, authz=actor.authz_version)
@@ -286,20 +294,6 @@ def test_target_quantity_exact_fk_null_pair_and_v32_app_paths(seeded_pg16, app_e
             ids).scalar_one()
         assert quantity == Decimal('2.500000')
         assert format(quantity, 'f') == '2.500000'
-        
-        # Test v32 save and copy path (P3-5)
-        # 1. Update (save) component: should drop target_quantity
-        connection.execute(text("""DELETE FROM cafeteria.menu_item_components WHERE menu_item_id=:item"""), ids)
-        connection.execute(text("""INSERT INTO cafeteria.menu_item_components(
-            menu_item_id,sort_order,component_text,recipe_revision_id)
-            VALUES(:item,2,'Exakt',:revision)"""), {
-                **ids,
-                'revision': revision_id,
-            })
-        dropped_quantity = connection.execute(text("""SELECT target_quantity
-            FROM cafeteria.menu_item_components WHERE menu_item_id=:item AND sort_order=2"""),
-            ids).scalar_one()
-        assert dropped_quantity is None
 
     with pytest.raises(DBAPIError) as error:
         with app_engine.begin() as connection:
@@ -312,6 +306,90 @@ def test_target_quantity_exact_fk_null_pair_and_v32_app_paths(seeded_pg16, app_e
                 })
     assert error.value.orig.sqlstate == '23503'
     assert error.value.orig.diag.constraint_name == TARGET_FK
+
+
+def test_v32_store_and_copy_paths_silently_drop_target_quantity(seeded_pg16, app_engine):  # noqa: F811
+    """Rollback-Beleg fuer den 0030-Kopf: v32-Speicher- und Kopierpfad kennen target_quantity nicht.
+
+    ``replace_component_links`` (component_assignment_store.py) und ``copy_previous_week``
+    (workflow_copy_store.py) sind der heutige, unveraenderte App-Code (v32-Verhalten; PP-STORE
+    steht noch aus). Beide ersetzen Komponentenzeilen ueber DELETE + INSERT mit einer expliziten
+    Spaltenliste ohne target_quantity/target_quantity_unit_id. Dieser Test laeuft auf einer per
+    ``run_migrations`` migrierten v33-Datenbank (seeded_pg16), setzt per Owner-SQL eine Zielmenge
+    an einer gebundenen Komponente und belegt per Assertion: beide Pfade laufen fehlerfrei, die
+    Zielmenge und ihre Einheit sind danach NULL, die Rezeptbindung bleibt erhalten. Wird mit
+    PP-STORE bewusst angepasst, sobald die Store-Funktionen die neuen Spalten kennen.
+    """
+    ids = _seed_scope_probe(seeded_pg16)
+    actor = make_actor(seeded_pg16)
+    ids.update(actor=actor.user_id, authz=actor.authz_version)
+    scope = AdminScope(ids['actor'], ids['location'], 'patient', ids['authz'])
+    with seeded_pg16.begin() as connection:
+        # master_location() requires exactly one active location; _seed_scope_probe leaves
+        # other_location active too.
+        connection.execute(text(
+            'UPDATE cafeteria.locations SET active=false WHERE id=:other_location'
+        ), ids)
+        revision_id = _insert_recipe_revision(connection, ids)
+        revision_public_id = str(connection.execute(text(
+            'SELECT public_id FROM cafeteria.recipe_revisions WHERE id=:revision'
+        ), {'revision': revision_id}).scalar_one())
+        unit_id = connection.execute(text(
+            "SELECT id FROM cafeteria.measurement_units WHERE code='PORTION'"
+        )).scalar_one()
+        item_version = connection.execute(text(
+            'SELECT row_version FROM cafeteria.menu_items WHERE id=:item'
+        ), ids).scalar_one()
+
+    binding_assignment = {
+        'component_public_id': None,
+        'component_text': 'Gebunden',
+        'recipe_revision_public_id': revision_public_id,
+    }
+    # Real v32 save path: binds the component via the current app code.
+    item_version = replace_component_links(
+        app_engine, scope, ids['item'], [binding_assignment], item_version,
+    )
+
+    # Simulate a previously stored target quantity (e.g. left over from a forward-fixed
+    # PP-STORE write) directly on the row, as only the owner/test engine can today.
+    with seeded_pg16.begin() as connection:
+        connection.execute(text("""UPDATE cafeteria.menu_item_components
+            SET target_quantity=2.500000, target_quantity_unit_id=:unit
+            WHERE menu_item_id=:item"""), {**ids, 'unit': unit_id})
+
+    # Real v32 save path again with the identical assignment: no error, quantity dropped.
+    item_version = replace_component_links(
+        app_engine, scope, ids['item'], [binding_assignment], item_version,
+    )
+    with seeded_pg16.connect() as connection:
+        saved = connection.execute(text("""SELECT recipe_revision_id,target_quantity,
+            target_quantity_unit_id FROM cafeteria.menu_item_components
+            WHERE menu_item_id=:item"""), ids).one()
+    assert saved == (revision_id, None, None)
+
+    # Re-apply a target quantity and prove the real v32 copy path drops it too.
+    with seeded_pg16.begin() as connection:
+        connection.execute(text("""UPDATE cafeteria.menu_item_components
+            SET target_quantity=2.500000, target_quantity_unit_id=:unit
+            WHERE menu_item_id=:item"""), {**ids, 'unit': unit_id})
+        source_week_version = connection.execute(text(
+            'SELECT row_version FROM cafeteria.menu_weeks WHERE id=:week'
+        ), ids).scalar_one()
+
+    target_week_start = date(2026, 9, 14)
+    copy_previous_week(
+        app_engine, scope, target_week_start, 0, source_row_version=source_week_version,
+    )
+    with seeded_pg16.connect() as connection:
+        copied = connection.execute(text("""SELECT link.recipe_revision_id,link.target_quantity,
+            link.target_quantity_unit_id
+            FROM cafeteria.menu_item_components link
+            JOIN cafeteria.menu_items item ON item.id=link.menu_item_id
+            JOIN cafeteria.menu_services service ON service.id=item.service_id
+            JOIN cafeteria.menu_weeks week ON week.id=service.menu_week_id
+            WHERE week.week_start=:week_start"""), {'week_start': target_week_start}).one()
+    assert copied == (revision_id, None, None)
 
 
 def test_validate_schema_reports_live_schema_33(pg16):  # noqa: F811

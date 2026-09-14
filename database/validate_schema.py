@@ -579,6 +579,7 @@ def main() -> int:
         for fragment in (
             'target_quantity numeric(18,6)',
             'target_quantity_unit_id bigint',
+            'menu_item_components_target_quantity_check',
             'menu_item_components_target_quantity_unit_idx',
         ):
             if fragment not in migration_0030 or fragment not in sql:
@@ -716,7 +717,7 @@ def main() -> int:
             MIGRATION_0027: '410374a06b46f45c3578dc4cd114e32af71ff7a2649d65a4273c976148b0c05b',
             MIGRATION_0028: 'd8ab456b75926a21088680bb8b1c8cfcf7a1966b4b2de2e8dae48ded7593bb4d',
             MIGRATION_0029: '55c703040fe2461654d869be983548bf6d1c40ce5ce769c3dedddaf6146dd2da',
-            MIGRATION_0030: '25990932ea51e49e296ceba59c92122d18a3b8c47986ee69b2a6f69905f28a15',
+            MIGRATION_0030: 'df6363e0d5539afa0cc67bed192e32d1bcb38a8f531bd2ebc28835118c7a32c2',
         }
         for migration_path, expected_checksum in immutable_migration_checksums.items():
             actual_checksum = hashlib.sha256(migration_path.read_bytes()).hexdigest()
