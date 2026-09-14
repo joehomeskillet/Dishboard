@@ -94,6 +94,8 @@ REQUIRED_FILES = (
     'database/migrations/0025_v27_to_v28.sql',
     'database/migrations/0026_v28_to_v29.sql',
     'database/migrations/0027_v29_to_v30.sql',
+    'database/migrations/0028_v30_to_v31.sql',
+    'database/migrations/0029_v31_to_v32.sql',
     'reference_scaffold/cafeteria/auth/local_users.py',
     'reference_scaffold/cafeteria/auth/access_events.py',
     'database/seed.sql', 'database/seed_demo.sql', 'database/permissions.sql',
@@ -138,6 +140,8 @@ MIGRATION_CHECKSUMS = {
     '0025_v27_to_v28.sql': '136dbf46688490a46018d158acbe11a89fbd186164659c145e256f92df69399c',
     '0026_v28_to_v29.sql': '9740215a04c93a3093543c585c8c0c700eae625f5b94837527f9da97f9259259',
     '0027_v29_to_v30.sql': '410374a06b46f45c3578dc4cd114e32af71ff7a2649d65a4273c976148b0c05b',
+    '0028_v30_to_v31.sql': 'd8ab456b75926a21088680bb8b1c8cfcf7a1966b4b2de2e8dae48ded7593bb4d',
+    '0029_v31_to_v32.sql': '55c703040fe2461654d869be983548bf6d1c40ce5ce769c3dedddaf6146dd2da',
 }
 
 
@@ -355,6 +359,8 @@ def main() -> int:
     migration_files.append('0025_v27_to_v28.sql')
     migration_files.append('0026_v28_to_v29.sql')
     migration_files.append('0027_v29_to_v30.sql')
+    migration_files.append('0028_v30_to_v31.sql')
+    migration_files.append('0029_v31_to_v32.sql')
 
     for mig_file in migration_files:
         mig_path = migrations_dir / mig_file

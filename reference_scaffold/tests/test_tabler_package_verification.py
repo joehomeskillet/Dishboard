@@ -157,7 +157,23 @@ def test_live_pytest_failure_preserves_each_output_stream(monkeypatch, capsys, s
 
 @pytest.mark.parametrize(
     'migration_name',
-    ['0015_v17_to_v18.sql', '0016_v18_to_v19.sql', '0017_v19_to_v20.sql', '0018_v20_to_v21.sql', '0019_v21_to_v22.sql', '0020_v22_to_v23.sql', '0021_v23_to_v24.sql'],
+    [
+        '0015_v17_to_v18.sql',
+        '0016_v18_to_v19.sql',
+        '0017_v19_to_v20.sql',
+        '0018_v20_to_v21.sql',
+        '0019_v21_to_v22.sql',
+        '0020_v22_to_v23.sql',
+        '0021_v23_to_v24.sql',
+        '0022_v24_to_v25.sql',
+        '0023_v25_to_v26.sql',
+        '0024_v26_to_v27.sql',
+        '0025_v27_to_v28.sql',
+        '0026_v28_to_v29.sql',
+        '0027_v29_to_v30.sql',
+        '0028_v30_to_v31.sql',
+        '0029_v31_to_v32.sql',
+    ],
 )
 @pytest.mark.parametrize('fault', [None, 'schema17', 'schema18', 'tables32', 'missing', 'modified'])
 def test_package_requires_branding_schema_and_pinned_migration(monkeypatch, capsys, fault, migration_name):
@@ -181,8 +197,8 @@ def test_package_requires_branding_schema_and_pinned_migration(monkeypatch, caps
     result = validator.main()
     output = capsys.readouterr().out
     errors = {
-        'schema17': '[FEHLER] Schema-Version ist nicht 29.',
-        'schema18': '[FEHLER] Schema-Version ist nicht 29.',
+        'schema17': '[FEHLER] Schema-Version ist nicht 32.',
+        'schema18': '[FEHLER] Schema-Version ist nicht 32.',
         'tables32': '[FEHLER] Schema enthaelt nicht 54 Tabellen.',
         'missing': f'[FEHLER] Migration-Datei fehlt: {migration_name}',
         'modified': f'[FEHLER] Migration-Checksum falsch {migration_name}:',
