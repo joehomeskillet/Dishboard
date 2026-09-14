@@ -145,7 +145,7 @@ MIGRATION_CHECKSUMS = {
     '0028_v30_to_v31.sql': 'd8ab456b75926a21088680bb8b1c8cfcf7a1966b4b2de2e8dae48ded7593bb4d',
     '0029_v31_to_v32.sql': '55c703040fe2461654d869be983548bf6d1c40ce5ce769c3dedddaf6146dd2da',
     '0030_v32_to_v33.sql': 'df6363e0d5539afa0cc67bed192e32d1bcb38a8f531bd2ebc28835118c7a32c2',
-    '0031_v33_to_v34.sql': '91144cb440705dbb80c73d90bce70ea2c0bda43918d419b52049e427d1690de2',
+    '0031_v33_to_v34.sql': '3aeb090c46b080a65eb0d4c548b982f05eadca6807c0e8ede3f772d0f88f4a3c',
 }
 
 
