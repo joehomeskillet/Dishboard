@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import unicodedata
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from decimal import Decimal
@@ -333,19 +334,32 @@ def _unit_ids_by_code(connection: Connection, assignments: Sequence[Assignment])
     }
 
 
-def _old_targets_by_sort_order(
+def _identity_key(
+    component_id: int | None, component_text: object, revision_id: int | None
+) -> tuple[object, ...]:
+    """Content identity of a component row: catalog component id or normalized text, plus revision."""
+    if component_id is not None:
+        return ('component', component_id, revision_id)
+    return ('text', ' '.join(unicodedata.normalize('NFC', str(component_text)).split()), revision_id)
+
+
+def _old_targets_by_identity(
     connection: Connection, item_id: int, old: Sequence[Mapping[str, object]]
-) -> dict[int, tuple[Decimal | None, int | None]]:
+) -> dict[tuple[object, ...], list[tuple[Decimal | None, int | None]]]:
     if not old:
         return {}
     rows = connection.execute(
         text(
-            'SELECT sort_order, target_quantity, target_quantity_unit_id '
-            'FROM cafeteria.menu_item_components WHERE menu_item_id=:item_id'
+            'SELECT component_id, component_text, recipe_revision_id, target_quantity, '
+            'target_quantity_unit_id FROM cafeteria.menu_item_components WHERE menu_item_id=:item_id'
         ),
         {'item_id': item_id},
     ).mappings()
-    return {int(row['sort_order']): (row['target_quantity'], row['target_quantity_unit_id']) for row in rows}
+    targets: dict[tuple[object, ...], list[tuple[Decimal | None, int | None]]] = {}
+    for row in rows:
+        key = _identity_key(row['component_id'], row['component_text'], row['recipe_revision_id'])
+        targets.setdefault(key, []).append((row['target_quantity'], row['target_quantity_unit_id']))
+    return targets
 
 
 def _resolve_targets(
@@ -359,14 +373,24 @@ def _resolve_targets(
 
     A row that carries the target keys is validated fresh (unit exists, matches the bound
     revision's declared servings unit, requires a bound revision). A row that omits both keys
-    keeps whatever was stored for the SAME position only if that position's resolved revision
-    is unchanged; this never guesses a target across a changed or removed binding.
+    keeps a stored target only through content identity (catalog component id or normalized
+    text, plus the bound revision), never through its position; see the loop for ambiguity.
     """
-    old_targets = _old_targets_by_sort_order(connection, item_id, old)
+    old_targets = _old_targets_by_identity(connection, item_id, old)
     servings_units = _revision_servings_units(connection, state)
     unit_ids = _unit_ids_by_code(connection, assignments)
+    keys: list[tuple[object, ...]] = []
+    for assignment in assignments:
+        component = state.components.get(assignment.component_public_id or '')
+        recipe = state.recipes.get(assignment.recipe_revision_public_id or '')
+        keys.append(_identity_key(
+            int(component['id']) if component is not None else None,
+            assignment.component_text,
+            int(recipe['revision_id']) if recipe is not None else None,
+        ))
+    new_counts = Counter(keys)
     resolved: list[tuple[Decimal | None, int | None]] = []
-    for position, assignment in enumerate(assignments, 1):
+    for assignment, key in zip(assignments, keys, strict=True):
         recipe = state.recipes.get(assignment.recipe_revision_public_id or '')
         if assignment.target_field_present:
             if assignment.target_quantity is None:
@@ -386,12 +410,12 @@ def _resolve_targets(
                 )
             resolved.append((Decimal(assignment.target_quantity), unit_id))
             continue
-        previous = old_targets.get(position)
-        previous_row = old[position - 1] if previous is not None and position <= len(old) else None
-        new_revision_id = int(recipe['revision_id']) if recipe is not None else None
-        if (previous is not None and previous[0] is not None and previous_row is not None
-                and previous_row['recipe_revision_id'] == new_revision_id):
-            resolved.append(previous)
+        # Carry only a unique match: exactly one old and one new row share this identity.
+        # Duplicates could pair the wrong rows, so they drop the target instead of guessing;
+        # a changed component or revision is a different identity and never carries.
+        candidates = old_targets.get(key, [])
+        if len(candidates) == 1 and new_counts[key] == 1:
+            resolved.append(candidates[0])
         else:
             resolved.append((None, None))
     return resolved
