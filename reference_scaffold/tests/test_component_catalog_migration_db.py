@@ -451,7 +451,7 @@ def test_v13_real_postgres_contract_covers_catalog_constraints_and_component_lin
     expected_columns = {'menu_components': catalog_columns, 'component_allergens': 'component_id allergen_id presence'.split(), 'component_labels': 'component_id label_id'.split(), 'menu_items': 'allergen_mode origin_mode label_mode'.split(), 'menu_item_components': 'component_id component_row_version'.split()}
     column_contract = {(row[0], row[1]): row[2:] for row in columns}
     assert database.SCHEMA_VERSION == version == 33
-    assert database.APPLICATION_VERSION == 'dishboard-schema-v32'
+    assert database.APPLICATION_VERSION == 'dishboard-schema-v33'
     assert (plan[-1].version, plan[-1].path.name) == (33, '0030_v32_to_v33.sql')
     assert MIGRATION.read_text(encoding='utf-8').startswith('BEGIN;')
     assert MIGRATION.read_text(encoding='utf-8').rstrip().endswith('COMMIT;')

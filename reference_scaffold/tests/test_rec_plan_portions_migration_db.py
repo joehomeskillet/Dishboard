@@ -12,6 +12,7 @@ import sys
 import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
+from test_rec_import_commit_migration_db import rows_and_sequences
 
 from cafeteria import db as database
 from test_component_metadata_master_lock_db import (  # noqa: F401
@@ -78,7 +79,19 @@ def _app_surface(connection):
         FROM pg_proc p WHERE p.pronamespace='cafeteria'::regnamespace
         AND has_function_privilege('cafeteria_app',p.oid,'EXECUTE')
         ORDER BY p.oid::regprocedure::text""")).scalars().all()
-    return tables, executable
+    
+    # P3-4d: Tabellenrechte aller drei App-Rollen
+    table_rights = {}
+    for role in ('cafeteria_app', 'cafeteria_backup', 'cafeteria_auth_issuer'):
+        rights = connection.execute(text("""
+            SELECT table_name, privilege_type
+            FROM information_schema.role_table_grants
+            WHERE table_schema='cafeteria' AND grantee=:role
+            ORDER BY table_name, privilege_type
+        """), {'role': role}).all()
+        table_rights[role] = rights
+        
+    return tables, executable, table_rights
 
 
 def _insert_recipe_revision(connection, ids):
@@ -130,14 +143,18 @@ def test_v32_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16
         })
         components_before = connection.execute(text("""SELECT to_jsonb(link)::text
             FROM cafeteria.menu_item_components link ORDER BY menu_item_id,sort_order""")).all()
-        publication_before = connection.execute(text("""SELECT snapshot_json::text,
-            encode(digest(convert_to(snapshot_json::text,'UTF8'),'sha256'),'hex')
-            FROM cafeteria.publication_revisions WHERE menu_week_id=:week"""), {
-                'week': week,
-            }).one()
+        
+        publication_before = connection.execute(text("""SELECT to_jsonb(r)::text
+            FROM cafeteria.publication_revisions r ORDER BY id""")).all()
+        active_pub_before = connection.execute(text("""SELECT to_jsonb(a)::text
+            FROM cafeteria.active_publications a ORDER BY menu_week_id""")).all()
+            
         ledger_before = connection.execute(text("""SELECT version,name,checksum_sha256,
             application_version FROM cafeteria.schema_migrations ORDER BY version""")).all()
         surface_before = _app_surface(connection)
+        
+        target_contract_before = _target_contract(connection)
+        rows_and_seqs_before = rows_and_sequences(pg16)
 
     assert database.run_migrations(pg16, SCHEMA) == plan
     with pg16.connect() as connection:
@@ -145,19 +162,47 @@ def test_v32_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16
             (to_jsonb(link)-'target_quantity'-'target_quantity_unit_id')::text
             FROM cafeteria.menu_item_components link ORDER BY menu_item_id,sort_order""")).all()
         assert components_after == components_before
-        assert connection.execute(text("""SELECT snapshot_json::text,
-            encode(digest(convert_to(snapshot_json::text,'UTF8'),'sha256'),'hex')
-            FROM cafeteria.publication_revisions WHERE menu_week_id=:week"""), {
-                'week': week,
-            }).one() == publication_before
+        
+        publication_after = connection.execute(text("""SELECT to_jsonb(r)::text
+            FROM cafeteria.publication_revisions r ORDER BY id""")).all()
+        active_pub_after = connection.execute(text("""SELECT to_jsonb(a)::text
+            FROM cafeteria.active_publications a ORDER BY menu_week_id""")).all()
+        assert publication_after == publication_before
+        assert active_pub_after == active_pub_before
+            
         assert connection.execute(text("""SELECT version,name,checksum_sha256,
             application_version FROM cafeteria.schema_migrations
             WHERE version<=32 ORDER BY version""")).all() == ledger_before
         assert connection.execute(text(
             'SELECT max(version) FROM cafeteria.schema_migrations'
         )).scalar_one() == 33
+        
+        import hashlib
+        import sys
+        sys.path.insert(0, str(ROOT))
+        import tools.validate_package as vp
+        mig33 = connection.execute(text("""SELECT name,checksum_sha256,application_version
+            FROM cafeteria.schema_migrations WHERE version=33""")).one()
+        assert mig33[0] == '0030_v32_to_v33.sql'
+        expected_sha = hashlib.sha256((SCHEMA.parent / 'migrations' / '0030_v32_to_v33.sql').read_bytes()).hexdigest()
+        assert mig33[1] == expected_sha
+        assert mig33[1] == vp.MIGRATION_CHECKSUMS['0030_v32_to_v33.sql']
+        
         assert _app_surface(connection) == surface_before
         migrated_contract = _target_contract(connection)
+        
+        # Check ACL match
+        assert migrated_contract[4] == target_contract_before[4]  # table acl
+        assert migrated_contract[5] == target_contract_before[5]  # column acl
+        
+        rows_and_seqs_after = rows_and_sequences(pg16)
+        assert rows_and_seqs_after == rows_and_seqs_before
+        
+        # Verify existing rows have both new cols NULL
+        new_cols = connection.execute(text("""SELECT target_quantity, target_quantity_unit_id 
+            FROM cafeteria.menu_item_components""")).all()
+        for row in new_cols:
+            assert row[0] is None and row[1] is None
 
     with pg16.begin() as connection:
         connection.execute(text('DROP SCHEMA cafeteria CASCADE'))
@@ -240,6 +285,20 @@ def test_target_quantity_exact_fk_null_pair_and_v32_app_paths(seeded_pg16, app_e
             ids).scalar_one()
         assert quantity == Decimal('2.500000')
         assert format(quantity, 'f') == '2.500000'
+        
+        # Test v32 save and copy path (P3-5)
+        # 1. Update (save) component: should drop target_quantity
+        connection.execute(text("""DELETE FROM cafeteria.menu_item_components WHERE menu_item_id=:item"""), ids)
+        connection.execute(text("""INSERT INTO cafeteria.menu_item_components(
+            menu_item_id,sort_order,component_text,recipe_revision_id)
+            VALUES(:item,2,'Exakt',:revision)"""), {
+                **ids,
+                'revision': revision_id,
+            })
+        dropped_quantity = connection.execute(text("""SELECT target_quantity
+            FROM cafeteria.menu_item_components WHERE menu_item_id=:item AND sort_order=2"""),
+            ids).scalar_one()
+        assert dropped_quantity is None
 
     with pytest.raises(DBAPIError) as error:
         with app_engine.begin() as connection:

@@ -394,25 +394,17 @@ def run_live_check() -> dict[str, Any]:
         }:
             fail('Live-Constraints für Zielmengen fehlen.')
         target_fk = target_constraints_by_name['menu_item_components_target_quantity_unit_id_fkey']
-        if (
-            target_fk[:3] != ('f', 'r', 'cafeteria.measurement_units')
-            or 'FOREIGN KEY (target_quantity_unit_id)' not in target_fk[3]
-            or 'ON DELETE RESTRICT' not in target_fk[3]
+        target_fk_def = re.sub(r'\s+', ' ', target_fk[3]).strip()
+        if target_fk_def != 'FOREIGN KEY (target_quantity_unit_id) REFERENCES cafeteria.measurement_units(id) ON DELETE RESTRICT':
+            fail(f'Live-FK für Zielmengeneinheit ist ungültig: {target_fk_def}')
+        target_check_def = ''.join(target_constraints_by_name['menu_item_components_target_quantity_check'][3].split()).lower()
+        if target_check_def not in (
+            'check(((target_quantityisnull)and(target_quantity_unit_idisnull))or((target_quantityisnotnull)and(target_quantity_unit_idisnotnull)and(target_quantity>(0)::numeric)and(recipe_revision_idisnotnull)))',
+            'check(((target_quantityisnull)and(target_quantity_unit_idisnull))or((target_quantityisnotnull)and(target_quantity_unit_idisnotnull)and(target_quantity>0::numeric)and(recipe_revision_idisnotnull)))',
+            'check(((target_quantityisnotnull)and(target_quantity_unit_idisnotnull)and(target_quantity>(0)::numeric)and(recipe_revision_idisnotnull))or((target_quantityisnull)and(target_quantity_unit_idisnull)))',
+            'check(((target_quantityisnotnull)and(target_quantity_unit_idisnotnull)and(target_quantity>0::numeric)and(recipe_revision_idisnotnull))or((target_quantityisnull)and(target_quantity_unit_idisnull)))'
         ):
-            fail('Live-FK für Zielmengeneinheit ist ungültig.')
-        target_check = ''.join(
-            target_constraints_by_name['menu_item_components_target_quantity_check'][3].split()
-        ).lower()
-        for fragment in (
-            'target_quantityisnull',
-            'target_quantity_unit_idisnull',
-            'target_quantityisnotnull',
-            'target_quantity_unit_idisnotnull',
-            'target_quantity>0::numeric',
-            'recipe_revision_idisnotnull',
-        ):
-            if fragment not in target_check:
-                fail(f'Live-CHECK für Zielmengen ist ungültig: {fragment}')
+            fail(f'Live-CHECK für Zielmengen ist ungültig: {target_check_def}')
         if (
             len(target_indexes) != 1
             or '(target_quantity_unit_id)' not in target_indexes[0][1]
@@ -572,19 +564,26 @@ def main() -> int:
         ):
             if fragment not in permissions:
                 fail(f'Beilagen-ACL v32 fehlt: {fragment}')
-        if 'BEGIN;' not in migration_0030 or not migration_0030.rstrip().endswith('COMMIT;'):
+        mig_30_lines = [line.strip() for line in migration_0030.splitlines() if line.strip() and not line.strip().startswith('--')]
+        if not mig_30_lines or mig_30_lines[0] != 'BEGIN;' or not migration_0030.rstrip().endswith('COMMIT;'):
             fail('Migration 0030 hat keinen strikten BEGIN/COMMIT-Vertrag.')
+        m30_norm = ''.join(migration_0030.split()).lower()
+        sql_norm = ''.join(sql.split()).lower()
+        if 'target_quantity_unit_idbigintreferencescafeteria.measurement_units(id)ondeleterestrict' not in m30_norm:
+            fail('Zielmengenvertrag v33 (FK) fehlt in Migration 0030.')
+        if 'target_quantity_unit_idbigintreferencesmeasurement_units(id)ondeleterestrict' not in sql_norm:
+            fail('Zielmengenvertrag v33 (FK) fehlt in schema.sql.')
+        check_str = 'check((target_quantityisnullandtarget_quantity_unit_idisnull)or(target_quantityisnotnullandtarget_quantity_unit_idisnotnullandtarget_quantity>0andrecipe_revision_idisnotnull))'
+        if check_str not in m30_norm:
+            fail('Zielmengenvertrag v33 (CHECK) fehlt in Migration 0030.')
+        if check_str not in sql_norm:
+            fail('Zielmengenvertrag v33 (CHECK) fehlt in schema.sql.')
         for fragment in (
             'target_quantity numeric(18,6)',
             'target_quantity_unit_id bigint',
-            'REFERENCES cafeteria.measurement_units(id) ON DELETE RESTRICT',
-            'menu_item_components_target_quantity_check',
-            'target_quantity > 0',
-            'recipe_revision_id IS NOT NULL',
             'menu_item_components_target_quantity_unit_idx',
         ):
-            schema_fragment = fragment.replace('cafeteria.measurement_units', 'measurement_units')
-            if fragment not in migration_0030 or schema_fragment not in sql:
+            if fragment not in migration_0030 or fragment not in sql:
                 fail(f'Zielmengenvertrag v33 fehlt: {fragment}')
         migration_0026 = MIGRATION_0026.read_text(encoding='utf-8')
         if not migration_0026.startswith('BEGIN;') or not migration_0026.rstrip().endswith('COMMIT;'):
@@ -718,6 +717,8 @@ def main() -> int:
             MIGRATION_0026: '9740215a04c93a3093543c585c8c0c700eae625f5b94837527f9da97f9259259',
             MIGRATION_0027: '410374a06b46f45c3578dc4cd114e32af71ff7a2649d65a4273c976148b0c05b',
             MIGRATION_0028: 'd8ab456b75926a21088680bb8b1c8cfcf7a1966b4b2de2e8dae48ded7593bb4d',
+            MIGRATION_0029: '55c703040fe2461654d869be983548bf6d1c40ce5ce769c3dedddaf6146dd2da',
+            MIGRATION_0030: '25990932ea51e49e296ceba59c92122d18a3b8c47986ee69b2a6f69905f28a15',
         }
         for migration_path, expected_checksum in immutable_migration_checksums.items():
             actual_checksum = hashlib.sha256(migration_path.read_bytes()).hexdigest()

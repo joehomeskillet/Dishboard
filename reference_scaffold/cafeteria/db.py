@@ -20,7 +20,7 @@ from .database_roles import (
 from .patient_payload import PROFILES, validate_snapshot_payload
 
 SCHEMA_VERSION = 33
-APPLICATION_VERSION = 'dishboard-schema-v32'
+APPLICATION_VERSION = 'dishboard-schema-v33'
 SYSTEM_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000001'
 DEMO_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000002'
 
