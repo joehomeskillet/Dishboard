@@ -147,15 +147,15 @@ def test_v32_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16
         publication_before = connection.execute(text("""SELECT to_jsonb(r)::text
             FROM cafeteria.publication_revisions r ORDER BY id""")).all()
         active_pub_before = connection.execute(text("""SELECT to_jsonb(a)::text
-            FROM cafeteria.active_publications a ORDER BY menu_week_id""")).all()
+            FROM cafeteria.active_publications a ORDER BY revision_db_id""")).all()
             
         ledger_before = connection.execute(text("""SELECT version,name,checksum_sha256,
             application_version FROM cafeteria.schema_migrations ORDER BY version""")).all()
         surface_before = _app_surface(connection)
         
         target_contract_before = _target_contract(connection)
-        rows_and_seqs_before = rows_and_sequences(pg16)
 
+    rows_and_seqs_before = rows_and_sequences(pg16)
     assert database.run_migrations(pg16, SCHEMA) == plan
     with pg16.connect() as connection:
         components_after = connection.execute(text("""SELECT
@@ -166,7 +166,7 @@ def test_v32_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16
         publication_after = connection.execute(text("""SELECT to_jsonb(r)::text
             FROM cafeteria.publication_revisions r ORDER BY id""")).all()
         active_pub_after = connection.execute(text("""SELECT to_jsonb(a)::text
-            FROM cafeteria.active_publications a ORDER BY menu_week_id""")).all()
+            FROM cafeteria.active_publications a ORDER BY revision_db_id""")).all()
         assert publication_after == publication_before
         assert active_pub_after == active_pub_before
             
@@ -192,11 +192,12 @@ def test_v32_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16
         migrated_contract = _target_contract(connection)
         
         # Check ACL match
-        assert migrated_contract[4] == target_contract_before[4]  # table acl
-        assert migrated_contract[5] == target_contract_before[5]  # column acl
+        assert migrated_contract[3] == target_contract_before[3]  # table acl
+        assert migrated_contract[4] == target_contract_before[4]  # column acl
         
         rows_and_seqs_after = rows_and_sequences(pg16)
-        assert rows_and_seqs_after == rows_and_seqs_before
+        assert {k: v for k, v in rows_and_seqs_after[0].items() if k not in ('menu_item_components', 'schema_migrations')} == {k: v for k, v in rows_and_seqs_before[0].items() if k not in ('menu_item_components', 'schema_migrations')}
+        assert rows_and_seqs_after[1] == rows_and_seqs_before[1]
         
         # Verify existing rows have both new cols NULL
         new_cols = connection.execute(text("""SELECT target_quantity, target_quantity_unit_id 

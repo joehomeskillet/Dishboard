@@ -399,10 +399,8 @@ def run_live_check() -> dict[str, Any]:
             fail(f'Live-FK für Zielmengeneinheit ist ungültig: {target_fk_def}')
         target_check_def = ''.join(target_constraints_by_name['menu_item_components_target_quantity_check'][3].split()).lower()
         if target_check_def not in (
-            'check(((target_quantityisnull)and(target_quantity_unit_idisnull))or((target_quantityisnotnull)and(target_quantity_unit_idisnotnull)and(target_quantity>(0)::numeric)and(recipe_revision_idisnotnull)))',
-            'check(((target_quantityisnull)and(target_quantity_unit_idisnull))or((target_quantityisnotnull)and(target_quantity_unit_idisnotnull)and(target_quantity>0::numeric)and(recipe_revision_idisnotnull)))',
-            'check(((target_quantityisnotnull)and(target_quantity_unit_idisnotnull)and(target_quantity>(0)::numeric)and(recipe_revision_idisnotnull))or((target_quantityisnull)and(target_quantity_unit_idisnull)))',
-            'check(((target_quantityisnotnull)and(target_quantity_unit_idisnotnull)and(target_quantity>0::numeric)and(recipe_revision_idisnotnull))or((target_quantityisnull)and(target_quantity_unit_idisnull)))'
+            'check(target_quantityisnullandtarget_quantity_unit_idisnullortarget_quantityisnotnullandtarget_quantity_unit_idisnotnullandtarget_quantity>0::numericandrecipe_revision_idisnotnull)',
+            'check(((target_quantityisnull)and(target_quantity_unit_idisnull))or((target_quantityisnotnull)and(target_quantity_unit_idisnotnull)and(target_quantity>0::numeric)and(recipe_revision_idisnotnull)))'
         ):
             fail(f'Live-CHECK für Zielmengen ist ungültig: {target_check_def}')
         if (
