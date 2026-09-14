@@ -281,6 +281,56 @@
         }
     }
 
+    // Target quantity: unit always mirrors the bound revision's own unit (D3, no conversion),
+    // and only accompanies a non-empty quantity (component_assignment_contract pair rule).
+    function revisionUnitCode(select) {
+        const option = select?.selectedOptions[0];
+        if (!option || !option.value) return '';
+        const parts = (option.dataset.yield || '').split(' ');
+        return parts.length > 1 ? parts[parts.length - 1] : '';
+    }
+
+    function syncTargetQuantityField(row, unitDisplayNames, { resetQuantity = false } = {}) {
+        const quantity = row.querySelector('[name="target_quantity"]');
+        const unit = row.querySelector('[name="target_quantity_unit_code"]');
+        const select = row.querySelector('select[name="recipe_revision_public_id"]');
+        if (!quantity || !unit || !select) return;
+        if (resetQuantity) {
+            quantity.value = '';
+            quantity.classList.remove('is-invalid');
+            quantity.removeAttribute('aria-invalid');
+        }
+        const bound = Boolean(select.value);
+        quantity.readOnly = !bound;
+        const selectedOption = bound ? select.selectedOptions[0] : null;
+        // An archived/unreadable-but-still-bound revision carries no metadata (data-readable="0");
+        // its stored unit cannot be recomputed here, so the hidden field is left untouched
+        // instead of clobbering a value the server correctly rendered. The unit always mirrors
+        // the bound revision regardless of whether a quantity is typed yet (an empty quantity
+        // makes the form parser ignore the unit anyway), so a NoJS user can type a brand-new
+        // value into an already-bound row without any script keeping the pairing in sync.
+        const metadataAvailable = Boolean(selectedOption && selectedOption.dataset.readable === '1');
+        const code = metadataAvailable ? revisionUnitCode(select) : '';
+        if (!bound) {
+            unit.value = '';
+        } else if (metadataAvailable) {
+            unit.value = code;
+        }
+        const unitLabel = row.querySelector('[data-target-quantity-unit-label]');
+        if (unitLabel) unitLabel.textContent = code ? ` (${unitDisplayNames[code] || code})` : '';
+        const hint = row.querySelector('[data-target-quantity-hint]');
+        if (hint) {
+            const yieldParts = metadataAvailable ? (selectedOption.dataset.yield || '').split(' ') : [];
+            const yieldUnit = yieldParts.length > 1 ? yieldParts.pop() : '';
+            const yieldText = yieldUnit ? `${yieldParts.join(' ')} ${unitDisplayNames[yieldUnit] || yieldUnit}` : '';
+            hint.textContent = !bound
+                ? 'Nur mit gebundener Rezeptrevision verfügbar.'
+                : yieldText
+                    ? `leer = deklarierte Ausbeute (${yieldText}). Dezimalpunkt verwenden, z. B. 2.5.`
+                    : 'Angaben zur deklarierten Ausbeute für diese Revision derzeit nicht verfügbar. Dezimalpunkt verwenden, z. B. 2.5.';
+        }
+    }
+
     forms.forEach(form => {
         syncMetadataControls(form);
         form.addEventListener('change', () => syncMetadataControls(form));
@@ -288,11 +338,16 @@
 
     document.querySelectorAll('form[data-menu-editor]').forEach(form => {
         form.setAttribute('data-component-enhanced', '');
+        let unitDisplayNames = {};
+        try {
+            unitDisplayNames = JSON.parse(form.dataset.unitDisplayNames || '{}');
+        } catch { /* keep raw unit codes if the map failed to parse */ }
         form.querySelectorAll('.component-row').forEach(row => {
             row.querySelector('[data-component-summary-view]')?.removeAttribute('hidden');
             row.querySelector('[data-component-kind]')?.removeAttribute('hidden');
             row.querySelector('[data-finish-row]')?.removeAttribute('hidden');
             syncComponentRow(row);
+            syncTargetQuantityField(row, unitDisplayNames);
         });
         const dirtyNote = document.querySelector('[data-menu-editor-dirty-note]');
         const markReviewDirty = () => dirtyNote?.classList.add('is-dirty');
@@ -300,7 +355,9 @@
         form.addEventListener('change', markReviewDirty);
         form.addEventListener('input', (e) => {
             const row = e.target.closest('.component-row');
-            if (row) syncComponentRow(row);
+            if (!row) return;
+            syncComponentRow(row);
+            if (e.target.matches('[data-target-quantity-input]')) syncTargetQuantityField(row, unitDisplayNames);
         });
         form.addEventListener('change', (e) => {
             const kindOption = e.target.closest('[data-component-kind-option]');
@@ -318,7 +375,10 @@
 
         form.addEventListener('formdata', (e) => {
             for (const [selector, names] of [
-                ['.component-row', ['component_public_id', 'component_text', 'recipe_revision_public_id']],
+                ['.component-row', [
+                    'component_public_id', 'component_text', 'recipe_revision_public_id',
+                    'target_quantity', 'target_quantity_unit_code',
+                ]],
                 ['.origin-row', ['origin_ingredient', 'origin_country_code']],
             ]) {
                 names.forEach(name => e.formData.delete(name));
@@ -360,6 +420,8 @@
                 return;
             }
             select.setAttribute('data-previous-value', select.value);
+            const row = select.closest('.component-row');
+            if (row) syncTargetQuantityField(row, unitDisplayNames, { resetQuantity: true });
         });
 
         form.addEventListener('click', (e) => {
@@ -404,6 +466,7 @@
                         option.checked = option.value === 'catalog';
                     });
                     syncComponentRow(clone);
+                    syncTargetQuantityField(clone, unitDisplayNames, { resetQuantity: true });
                     focusTarget = clone.querySelector('[name="component_public_id"]');
                 } else {
                     focusTarget = clone.querySelector('input, select');
@@ -434,6 +497,7 @@
                             option.checked = option.value === 'catalog';
                         });
                         setComponentRowEditing(row, true);
+                        syncTargetQuantityField(row, unitDisplayNames, { resetQuantity: true });
                     }
                     focusTarget = row.querySelector('[name="component_public_id"], input, select');
                 }

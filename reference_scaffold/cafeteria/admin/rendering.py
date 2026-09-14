@@ -73,6 +73,12 @@ def menu_form_values(profile: str, option: dict[str, Any]) -> dict[str, Any]:
         'recipe_revision_public_id': [
             str(assignment.get('recipe_revision_public_id') or '') for assignment in assignments
         ],
+        'target_quantity': [
+            str(assignment.get('target_quantity') or '') for assignment in assignments
+        ],
+        'target_quantity_unit_code': [
+            str(assignment.get('target_quantity_unit_code') or '') for assignment in assignments
+        ],
         'allergen_code': [str(allergen.get('code') or '') for allergen in allergens],
         'allergen_presence': [
             str(allergen.get('presence') or '') for allergen in allergens
@@ -87,6 +93,23 @@ def menu_form_values(profile: str, option: dict[str, Any]) -> dict[str, Any]:
         values['internal_chf'] = _chf(option.get('internal_rappen'))
         values['external_chf'] = _chf(option.get('external_rappen'))
     return values
+
+
+def _unit_display_names() -> dict[str, str]:
+    """Anzeigenamen (z. B. 'Portionen') für measurement_units.code; read-only, cached per request."""
+    if hasattr(g, 'unit_display_names'):
+        return g.unit_display_names
+    engine = current_app.extensions.get('cafeteria_db')
+    if engine is None or not hasattr(engine, 'connect'):
+        g.unit_display_names = {}
+        return g.unit_display_names
+    from ..master_data_reads import list_units
+
+    g.unit_display_names = {
+        unit.code: unit.display_name
+        for unit in list_units(engine, include_archived=True, limit=500)
+    }
+    return g.unit_display_names
 
 
 def _lookup(draft: dict[str, Any] | None) -> dict[tuple[str, str, str], dict[str, Any]]:
@@ -210,6 +233,7 @@ def render_menu_editor(
         catalog_choices=catalog_choices, allergens=allergens, labels=labels,
         effects=effects, flashes=flashes, origin_conflict=origin_conflict,
         recipe_page=recipe_page if recipe_page is not None else EMPTY_RECIPE_PAGE,
+        unit_display_names={} if cell.get('retained_only') else _unit_display_names(),
         **({'user': session.get('user'), 'roles': list(getattr(g, 'auth_roles', ())),
             'area_names': {}} if cell.get('retained_only') else _template_context()),
     )
