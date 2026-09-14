@@ -52,6 +52,10 @@ MONTH_NAMES = (
     'Dezember',
 )
 CSV_ACCOMPANIMENT_CODES = {'soup': 'suppe', 'salad': 'salat'}
+ACCOMPANIMENT_CODES_BY_CSV_VALUE = {
+    '': 'none',
+    **{csv_value: code for code, csv_value in CSV_ACCOMPANIMENT_CODES.items()},
+}
 
 
 
@@ -108,8 +112,10 @@ def _excel_safe(value: object) -> str:
 def _csv_accompaniment(option: dict[str, object]) -> str:
     code = option.get('accompaniment_code')
     name = option.get('accompaniment_name')
-    if code is None or name is None:
+    if code is None and name is None:
         return ''
+    if code is None or name is None:
+        raise ValueError('Snapshot enthält eine ungültige Beilagenwahl.')
     if type(code) is not str:
         raise ValueError('Snapshot enthält eine ungültige Beilagenwahl.')
     expected_name = ACCOMPANIMENT_NAMES.get(code)
@@ -260,6 +266,13 @@ def _patient_semantic_issues(
 
 
 def _option(row: dict[str, str], profile: str) -> dict[str, object]:
+    beilage_dazu_raw = row.get('beilage_dazu')
+    beilage_dazu = '' if beilage_dazu_raw is None else beilage_dazu_raw.strip()
+    accompaniment_code = ACCOMPANIMENT_CODES_BY_CSV_VALUE.get(beilage_dazu)
+    if accompaniment_code is None:
+        raise ValueError(
+            f'Feld beilage_dazu enthält einen unzulässigen Wert: {beilage_dazu!r}.'
+        )
     option: dict[str, object] = {
         'type_code': row['menueart'],
         'external_id': row['external_id'].strip(),
@@ -278,11 +291,7 @@ def _option(row: dict[str, str], profile: str) -> dict[str, object]:
         'origins': _origins(row['herkunft']),
         'note': row['hinweis'].strip(),
         'allergen_review_status': 'not_checked',
-        'accompaniment_code': {
-            '': 'none',
-            'suppe': 'soup',
-            'salat': 'salad',
-        }[row.get('beilage_dazu', '').strip()],
+        'accompaniment_code': accompaniment_code,
     }
     if profile == 'staff_guest':
         option['internal_rappen'] = int(Decimal(row['preis_mitarbeitende_chf']) * 100)
@@ -386,7 +395,7 @@ def validate_upload(stream: BinaryIO) -> dict[str, object]:
         try:
             week_start, values = _draft_values(profile, rows)
             validate_draft_values(str(profile), week_start, values)
-        except (ArithmeticError, KeyError, TypeError, ValueError):
+        except (ArithmeticError, AttributeError, KeyError, TypeError, ValueError):
             result['issues'] = [
                 {
                     'line': 1,

@@ -51,7 +51,9 @@ Abgewiesen werden insbesondere:
 - fehlende Menüart,
 - doppelte Kombination aus Datum, Mahlzeit und Menüart,
 - ungültige Kostenformate,
-- leere `external_id` oder Titel.
+- leere `external_id` oder Titel,
+- ungültiges `beilage_dazu` (Schema 3: nur leer, `suppe` oder `salat`),
+- gemischte `schema_version` innerhalb derselben Datei.
 
 Der vollständige Import in den Editor muss zuerst eine Vorschau mit Zeile, Spalte und Fehlertext zeigen. Ohne fehlerfreie Vorschau wird kein Datensatz übernommen.
 

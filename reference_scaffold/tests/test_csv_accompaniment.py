@@ -3,6 +3,9 @@ from __future__ import annotations
 import csv
 import io
 
+import pytest
+
+from cafeteria import csvio
 from cafeteria import db as database
 from cafeteria.csvio import CAFETERIA_HEADERS, PATIENT_HEADERS, snapshot_to_csv, validate_upload
 from cafeteria.db import active_snapshot
@@ -112,6 +115,139 @@ def test_schema_3_export_import_maps_values_and_positions_invalid_field() -> Non
         (issue['line'], issue['column'], issue['message'])
         for issue in staff_invalid['issues']
     } >= {(2, 11, 'beilage_dazu muss leer, suppe oder salat sein.')}
+
+
+def test_snapshot_to_csv_raises_on_unpaired_accompaniment_keys() -> None:
+    base_option = {
+        'type_code': 'MENU_1', 'external_id': 'X1', 'title': 'Titel', 'description': '',
+        'components': [], 'labels': [], 'allergens': [], 'origins': [], 'note': '',
+    }
+    snapshot = {
+        'profile_code': 'patient',
+        'days': [
+            {
+                'date': '2026-08-31',
+                'weekday': 'Montag',
+                'services': [
+                    {
+                        'meal_code': 'LUNCH',
+                        'service_state': 'open',
+                        'notice': '',
+                        'options': [{**base_option, 'accompaniment_code': 'soup'}],
+                    }
+                ],
+            }
+        ],
+    }
+    with pytest.raises(ValueError):
+        snapshot_to_csv(snapshot)
+
+    snapshot['days'][0]['services'][0]['options'][0] = {
+        **base_option,
+        'accompaniment_name': 'Suppe',
+    }
+    with pytest.raises(ValueError):
+        snapshot_to_csv(snapshot)
+
+
+def test_mixed_schema_version_rejects_file_but_still_flags_invalid_accompaniment() -> None:
+    values = _patient_values()
+    values['days'][0]['services'][0]['options'][0]['accompaniment_code'] = 'soup'
+    snapshot = _snapshot_from_values(values)
+    exported = snapshot_to_csv(snapshot).decode('utf-8-sig')
+    reader = csv.DictReader(io.StringIO(exported), delimiter=';')
+    fieldnames = reader.fieldnames or []
+    rows = list(reader)
+    rows[0]['schema_version'] = '2'
+    rows[1]['beilage_dazu'] = 'beides'
+
+    buffer = io.StringIO(newline='')
+    writer = csv.DictWriter(buffer, fieldnames=fieldnames, delimiter=';', lineterminator='\n')
+    writer.writeheader()
+    writer.writerows(rows)
+
+    result = validate_upload(io.BytesIO(('\ufeff' + buffer.getvalue()).encode()))
+
+    assert result['valid'] is False
+    assert result['schema_version'] is None
+    beilage_column = fieldnames.index('beilage_dazu') + 1
+    schema_column = fieldnames.index('schema_version') + 1
+    columns = {issue['column'] for issue in result['issues']}
+    assert schema_column in columns
+    assert (3, beilage_column) in {
+        (issue['line'], issue['column']) for issue in result['issues']
+    }
+
+
+def test_option_rejects_unknown_accompaniment_value_with_field_context() -> None:
+    row = {
+        'menueart': 'MENU_1', 'external_id': 'X1', 'titel': 'Titel', 'beschreibung': '',
+        'beilagen': '', 'labels': '', 'allergene_enthaelt': '', 'allergene_spuren': '',
+        'herkunft': '', 'hinweis': '', 'beilage_dazu': 'beides',
+    }
+    with pytest.raises(ValueError, match='beilage_dazu'):
+        csvio._option(row, 'patient')
+
+
+def test_option_normalizes_none_accompaniment_cell_without_attribute_error() -> None:
+    row = {
+        'menueart': 'MENU_1', 'external_id': 'X1', 'titel': 'Titel', 'beschreibung': '',
+        'beilagen': '', 'labels': '', 'allergene_enthaelt': '', 'allergene_spuren': '',
+        'herkunft': '', 'hinweis': '', 'beilage_dazu': None,
+    }
+    assert csvio._option(row, 'patient')['accompaniment_code'] == 'none'
+
+
+def test_schema_2_full_replace_resets_existing_accompaniments_to_none(
+    database_engine,  # noqa: F811
+) -> None:
+    values = _patient_values()
+    values['days'][0]['services'][0]['options'][0]['accompaniment_code'] = 'soup'
+    values['days'][0]['services'][0]['options'][1]['accompaniment_code'] = 'salad'
+    schema_3_bytes = snapshot_to_csv(_snapshot_from_values(values))
+
+    actor_id = _actor_id(database_engine)
+    imported_schema_3 = validate_upload(io.BytesIO(schema_3_bytes))
+    assert imported_schema_3['valid'] is True
+    version = import_draft(
+        database_engine,
+        'patient',
+        WEEK_START,
+        expected_row_version=0,
+        actor_id=actor_id,
+        values=imported_schema_3['values'],
+        **write_expectations(database_engine, actor_id),
+    )
+    assert _first_codes(
+        load_draft(
+            database_engine,
+            'patient',
+            WEEK_START,
+            actor_id=actor_id,
+            **write_expectations(database_engine, actor_id),
+        )
+    )[:2] == ['soup', 'salad']
+
+    imported_schema_2 = validate_upload(io.BytesIO(_schema_2(schema_3_bytes)))
+    assert imported_schema_2['valid'] is True
+    import_draft(
+        database_engine,
+        'patient',
+        WEEK_START,
+        expected_row_version=version,
+        actor_id=actor_id,
+        values=imported_schema_2['values'],
+        **write_expectations(database_engine, actor_id),
+    )
+
+    reloaded = load_draft(
+        database_engine,
+        'patient',
+        WEEK_START,
+        actor_id=actor_id,
+        **write_expectations(database_engine, actor_id),
+    )
+    assert set(_first_codes(reloaded)) == {'none'}
 
 
 def test_schema_2_import_defaults_none_and_reports_replacement_notice() -> None:
