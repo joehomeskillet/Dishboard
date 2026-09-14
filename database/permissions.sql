@@ -307,13 +307,13 @@ TO cafeteria_app;
 -- Schema32 accompaniment template grants end.
 
 -- Schema34 shopping list grants begin.
--- Postgres grantet neuen Funktionen sonst EXECUTE an PUBLIC per Default; die
--- Trigger-Funktion wird nie direkt aufgerufen (nur implizit ueber die Trigger).
-REVOKE ALL ON FUNCTION shopping_list_revision_protect_v34()
-FROM PUBLIC,cafeteria_app,cafeteria_backup,cafeteria_auth_issuer;
+-- Postgres grantet neuen Funktionen sonst EXECUTE an PUBLIC; die Trigger-Funktionen werden
+-- nie direkt aufgerufen, nur implizit über die Trigger.
+REVOKE ALL ON FUNCTION shopping_list_scope_protect_v34(), shopping_list_revision_protect_v34()
+FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
 -- Reine Tabellenrechte, keine SECURITY-DEFINER-Funktion. Listen/manuelle Zeilen/Status sind
--- app-seitig CAS-gefuehrt (row_version bzw. Upsert); Revisionen sind append-only (SELECT/
--- INSERT, kein UPDATE/DELETE, zusaetzlich durch den Immutability-Trigger erzwungen).
+-- app-seitig CAS-geführt (row_version bzw. Upsert); Revisionen sind append-only (SELECT/
+-- INSERT, kein UPDATE/DELETE, zusätzlich durch den Immutability-Trigger erzwungen).
 GRANT SELECT, INSERT, UPDATE, DELETE ON
     shopping_lists, shopping_list_manual_items, shopping_list_line_status
 TO cafeteria_app;
