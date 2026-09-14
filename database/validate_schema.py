@@ -48,6 +48,7 @@ MIGRATION_0027 = ROOT / 'database' / 'migrations' / '0027_v29_to_v30.sql'
 MIGRATION_0028 = ROOT / 'database' / 'migrations' / '0028_v30_to_v31.sql'
 MIGRATION_0029 = ROOT / 'database' / 'migrations' / '0029_v31_to_v32.sql'
 MIGRATION_0030 = ROOT / 'database' / 'migrations' / '0030_v32_to_v33.sql'
+MIGRATION_0031 = ROOT / 'database' / 'migrations' / '0031_v33_to_v34.sql'
 PERMISSIONS = ROOT / 'database' / 'permissions.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
@@ -338,8 +339,60 @@ def run_live_check() -> dict[str, Any]:
                     '''
                 )
             ).tuples().all()
-        if int(row['schema_version']) != 33:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 33.")
+            shopping_tables = (
+                'shopping_lists', 'shopping_list_revisions',
+                'shopping_list_manual_items', 'shopping_list_line_status',
+            )
+            shopping_columns = connection.execute(
+                text(
+                    '''
+                    SELECT table_name,column_name,data_type,udt_name,is_nullable,
+                           numeric_precision,numeric_scale,ordinal_position
+                    FROM information_schema.columns
+                    WHERE table_schema='cafeteria' AND table_name=ANY(:tables)
+                    ORDER BY table_name,ordinal_position
+                    '''
+                ),
+                {'tables': list(shopping_tables)},
+            ).tuples().all()
+            shopping_constraints = connection.execute(
+                text(
+                    '''
+                    SELECT rel.relname,con.conname,con.contype,pg_get_constraintdef(con.oid,true)
+                    FROM pg_constraint con
+                    JOIN pg_class rel ON rel.oid=con.conrelid
+                    JOIN pg_namespace ns ON ns.oid=rel.relnamespace
+                    WHERE ns.nspname='cafeteria' AND rel.relname=ANY(:tables)
+                    ORDER BY rel.relname,con.conname
+                    '''
+                ),
+                {'tables': list(shopping_tables)},
+            ).tuples().all()
+            shopping_indexes = connection.execute(
+                text(
+                    '''
+                    SELECT tablename,indexname,indexdef FROM pg_indexes
+                    WHERE schemaname='cafeteria' AND tablename=ANY(:tables)
+                    ORDER BY tablename,indexname
+                    '''
+                ),
+                {'tables': list(shopping_tables)},
+            ).tuples().all()
+            shopping_triggers = connection.execute(
+                text(
+                    '''
+                    SELECT rel.relname,trg.tgname,pg_get_triggerdef(trg.oid,true)
+                    FROM pg_trigger trg
+                    JOIN pg_class rel ON rel.oid=trg.tgrelid
+                    JOIN pg_namespace ns ON ns.oid=rel.relnamespace
+                    WHERE NOT trg.tgisinternal AND ns.nspname='cafeteria' AND rel.relname=ANY(:tables)
+                    ORDER BY rel.relname,trg.tgname
+                    '''
+                ),
+                {'tables': list(shopping_tables)},
+            ).tuples().all()
+        if int(row['schema_version']) != 34:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 34.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
         if {item['proname'] for item in v32_acl} != {
@@ -409,6 +462,110 @@ def run_live_check() -> dict[str, Any]:
             or 'WHERE (target_quantity_unit_id IS NOT NULL)' not in target_indexes[0][1]
         ):
             fail('Live-Index für Zielmengeneinheit ist ungültig.')
+        if {item[0] for item in shopping_columns} != set(shopping_tables):
+            fail('Live-Tabellenvertrag für Einkaufslisten fehlt.')
+        shopping_constraints_by_table: dict[str, dict[str, tuple[str, str]]] = {}
+        for table_name, conname, contype, condef in shopping_constraints:
+            shopping_constraints_by_table.setdefault(table_name, {})[conname] = (
+                contype, re.sub(r'\s+', ' ', condef).strip(),
+            )
+
+        def shopping_check(table_name: str, conname: str) -> str:
+            entry = shopping_constraints_by_table.get(table_name, {}).get(conname)
+            if entry is None:
+                fail(f'Live-CHECK für Einkaufslisten fehlt: {table_name}.{conname}')
+            return ''.join(entry[1].split()).lower()
+
+        quantity_unit_check = shopping_check(
+            'shopping_list_manual_items', 'shopping_list_manual_items_check',
+        )
+        if quantity_unit_check not in (
+            'check(((quantityisnull)=(unit_idisnull)))',
+            'check((quantityisnull)=(unit_idisnull))',
+        ):
+            fail(f'Live-CHECK für Mengen-/Einheitenpaarung ist ungültig: {quantity_unit_check}')
+        policy_check = shopping_check('shopping_list_revisions', 'shopping_list_revisions_policy_check')
+        if policy_check not in (
+            "check((policy=any(array['leaf'::text,'prepared'::text])))",
+            "check(policy=any(array['leaf'::text,'prepared'::text]))",
+        ):
+            fail(f'Live-CHECK für Bedarfspolitik ist ungültig: {policy_check}')
+        hash_check = shopping_check(
+            'shopping_list_revisions', 'shopping_list_revisions_content_hash_sha256_check',
+        )
+        if hash_check not in (
+            "check((content_hash_sha256=encode(digest(convert_to((snapshot_json)::text,'utf8'::name),'sha256'::text),'hex'::text)))",
+            "check(content_hash_sha256=encode(digest(convert_to(snapshot_json::text,'utf8'::name),'sha256'::text),'hex'::text))",
+            "check((content_hash_sha256=encode(public.digest(convert_to((snapshot_json)::text,'utf8'::name),'sha256'::text),'hex'::text)))",
+            "check(content_hash_sha256=encode(public.digest(convert_to(snapshot_json::text,'utf8'::name),'sha256'::text),'hex'::text))",
+        ):
+            fail(f'Live-CHECK für Revisions-Hash ist ungültig: {hash_check}')
+
+        def shopping_fk(table_name: str, conname: str) -> str:
+            entry = shopping_constraints_by_table.get(table_name, {}).get(conname)
+            if entry is None:
+                fail(f'Live-FK für Einkaufslisten fehlt: {table_name}.{conname}')
+            return entry[1]
+
+        expected_shopping_fks = {
+            ('shopping_lists', 'shopping_lists_location_id_fkey'):
+                'FOREIGN KEY (location_id) REFERENCES cafeteria.locations(id) ON DELETE RESTRICT',
+            ('shopping_lists', 'shopping_lists_menu_week_id_fkey'):
+                'FOREIGN KEY (menu_week_id) REFERENCES cafeteria.menu_weeks(id) ON DELETE RESTRICT',
+            ('shopping_list_revisions', 'shopping_list_revisions_shopping_list_id_fkey'):
+                'FOREIGN KEY (shopping_list_id) REFERENCES cafeteria.shopping_lists(id) ON DELETE RESTRICT',
+            ('shopping_list_manual_items', 'shopping_list_manual_items_shopping_list_id_fkey'):
+                'FOREIGN KEY (shopping_list_id) REFERENCES cafeteria.shopping_lists(id) ON DELETE RESTRICT',
+            ('shopping_list_manual_items', 'shopping_list_manual_items_unit_id_fkey'):
+                'FOREIGN KEY (unit_id) REFERENCES cafeteria.measurement_units(id) ON DELETE RESTRICT',
+            ('shopping_list_line_status', 'shopping_list_line_status_shopping_list_id_fkey'):
+                'FOREIGN KEY (shopping_list_id) REFERENCES cafeteria.shopping_lists(id) ON DELETE RESTRICT',
+            ('shopping_list_line_status', 'shopping_list_line_status_revision_id_fkey'):
+                'FOREIGN KEY (revision_id) REFERENCES cafeteria.shopping_list_revisions(id) ON DELETE RESTRICT',
+        }
+        for (table_name, conname), expected_def in expected_shopping_fks.items():
+            actual_def = shopping_fk(table_name, conname)
+            if actual_def != expected_def:
+                fail(f'Live-FK für Einkaufslisten ist ungültig: {table_name}.{conname}: {actual_def}')
+        shopping_indexes_by_table: dict[str, dict[str, str]] = {}
+        for table_name, indexname, indexdef in shopping_indexes:
+            shopping_indexes_by_table.setdefault(table_name, {})[indexname] = indexdef
+        unit_index = shopping_indexes_by_table.get('shopping_list_manual_items', {}).get(
+            'shopping_list_manual_items_unit_id_idx',
+        )
+        if (
+            unit_index is None
+            or '(unit_id)' not in unit_index
+            or 'WHERE (unit_id IS NOT NULL)' not in unit_index
+        ):
+            fail('Live-Index für Einkaufslisten-Einheiten ist ungültig.')
+        shopping_triggers_by_table: dict[str, dict[str, str]] = {}
+        for table_name, tgname, tgdef in shopping_triggers:
+            shopping_triggers_by_table.setdefault(table_name, {})[tgname] = tgdef
+        revision_triggers = shopping_triggers_by_table.get('shopping_list_revisions', {})
+        if set(revision_triggers) != {
+            'shopping_list_revisions_immutable', 'shopping_list_revisions_no_truncate',
+        }:
+            fail('Live-Immutability-Trigger für Einkaufslistenrevisionen fehlt.')
+        immutable_def = revision_triggers['shopping_list_revisions_immutable']
+        if not (
+            immutable_def.startswith('CREATE TRIGGER shopping_list_revisions_immutable BEFORE ')
+            and 'UPDATE' in immutable_def
+            and 'DELETE' in immutable_def
+            and 'ON cafeteria.shopping_list_revisions' in immutable_def
+            and 'FOR EACH ROW' in immutable_def
+        ):
+            fail(f'Live-Immutability-Trigger für Einkaufslistenrevisionen ist ungültig: {immutable_def}')
+        if 'BEFORE TRUNCATE ON cafeteria.shopping_list_revisions' not in revision_triggers[
+            'shopping_list_revisions_no_truncate'
+        ]:
+            fail('Live-TRUNCATE-Trigger für Einkaufslistenrevisionen ist ungültig.')
+        if set(shopping_triggers_by_table.get('shopping_lists', {})) != {'trg_shopping_lists_version'}:
+            fail('Live-CAS-Trigger für shopping_lists fehlt.')
+        if set(shopping_triggers_by_table.get('shopping_list_manual_items', {})) != {
+            'trg_shopping_list_manual_items_version',
+        }:
+            fail('Live-CAS-Trigger für shopping_list_manual_items fehlt.')
         migrated_structure = structure('cafeteria')
         with engine.begin() as connection:
             connection.execute(text('ALTER SCHEMA cafeteria RENAME TO cafeteria_migrated_contract'))
@@ -522,6 +679,7 @@ def main() -> int:
                 fail(f'Menü-Quellrezept-Sperrvertrag fehlt: {fragment}')
         migration_0029 = MIGRATION_0029.read_text(encoding='utf-8')
         migration_0030 = MIGRATION_0030.read_text(encoding='utf-8')
+        migration_0031 = MIGRATION_0031.read_text(encoding='utf-8')
         permissions = PERMISSIONS.read_text(encoding='utf-8')
         if not migration_0029.startswith('BEGIN;') or not migration_0029.rstrip().endswith('COMMIT;'):
             fail('Migration 0029 hat keinen strikten BEGIN/COMMIT-Vertrag.')
@@ -584,6 +742,40 @@ def main() -> int:
         ):
             if fragment not in migration_0030 or fragment not in sql:
                 fail(f'Zielmengenvertrag v33 fehlt: {fragment}')
+        mig_31_lines = [line.strip() for line in migration_0031.splitlines() if line.strip() and not line.strip().startswith('--')]
+        if not mig_31_lines or mig_31_lines[0] != 'BEGIN;' or not migration_0031.rstrip().endswith('COMMIT;'):
+            fail('Migration 0031 hat keinen strikten BEGIN/COMMIT-Vertrag.')
+        m31_norm = ''.join(migration_0031.split()).lower()
+        for fragment_norm in (
+            "checked_quantitytextnotnullcheck(btrim(checked_quantity)<>''andlength(checked_quantity)<=100)",
+            'content_hash_sha256=encode(public.digest(convert_to(snapshot_json::text,\'utf8\'),\'sha256\'),\'hex\')',
+            'check((quantityisnull)=(unit_idisnull))',
+            "policytextnotnullcheck(policyin('leaf','prepared'))",
+        ):
+            normalized_fragment = ''.join(fragment_norm.split()).lower()
+            if normalized_fragment not in m31_norm:
+                fail(f'Einkaufslistenvertrag v34 (Migration) fehlt: {fragment_norm}')
+            if normalized_fragment not in sql_norm:
+                fail(f'Einkaufslistenvertrag v34 (schema.sql) fehlt: {fragment_norm}')
+        for fragment in (
+            'CREATE TABLE',
+            'shopping_lists',
+            'shopping_list_revisions',
+            'shopping_list_manual_items',
+            'shopping_list_line_status',
+            'shopping_list_revision_protect_v34',
+            'shopping_list_revisions_immutable',
+            'shopping_list_revisions_no_truncate',
+            'trg_shopping_lists_version',
+            'trg_shopping_list_manual_items_version',
+            'shopping_list_manual_items_unit_id_idx',
+        ):
+            if fragment not in migration_0031 or fragment not in sql:
+                fail(f'Einkaufslistenvertrag v34 fehlt: {fragment}')
+        if 'GRANT SELECT, INSERT ON shopping_list_revisions TO cafeteria_app' not in migration_0031:
+            fail('Einkaufslistenvertrag v34 (Migration) fehlt: GRANT SELECT, INSERT ON shopping_list_revisions')
+        if 'GRANT SELECT, INSERT ON shopping_list_revisions TO cafeteria_app' not in permissions:
+            fail('Einkaufslistenvertrag v34 (permissions.sql) fehlt: GRANT SELECT, INSERT ON shopping_list_revisions')
         migration_0026 = MIGRATION_0026.read_text(encoding='utf-8')
         if not migration_0026.startswith('BEGIN;') or not migration_0026.rstrip().endswith('COMMIT;'):
             fail('Migration 0026 hat keinen strikten BEGIN/COMMIT-Vertrag.')
@@ -718,6 +910,7 @@ def main() -> int:
             MIGRATION_0028: 'd8ab456b75926a21088680bb8b1c8cfcf7a1966b4b2de2e8dae48ded7593bb4d',
             MIGRATION_0029: '55c703040fe2461654d869be983548bf6d1c40ce5ce769c3dedddaf6146dd2da',
             MIGRATION_0030: 'df6363e0d5539afa0cc67bed192e32d1bcb38a8f531bd2ebc28835118c7a32c2',
+            MIGRATION_0031: '91144cb440705dbb80c73d90bce70ea2c0bda43918d419b52049e427d1690de2',
         }
         for migration_path, expected_checksum in immutable_migration_checksums.items():
             actual_checksum = hashlib.sha256(migration_path.read_bytes()).hexdigest()
@@ -738,6 +931,8 @@ def main() -> int:
             'recipes', 'recipe_ingredients', 'recipe_steps', 'recipe_tags', 'recipe_images',
             'recipe_assets', 'recipe_revisions', 'cookbooks', 'cookbook_recipes',
             'recipe_import_batches', 'recipe_import_candidates',
+            'shopping_lists', 'shopping_list_revisions', 'shopping_list_manual_items',
+            'shopping_list_line_status',
         }
         missing = required_tables - set(tables)
         if missing:
@@ -982,7 +1177,7 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 33,
+            'schema_version': 34,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
@@ -1014,6 +1209,7 @@ def main() -> int:
                 '0028_v30_to_v31.sql': hashlib.sha256(MIGRATION_0028.read_bytes()).hexdigest(),
                 '0029_v31_to_v32.sql': hashlib.sha256(MIGRATION_0029.read_bytes()).hexdigest(),
                 '0030_v32_to_v33.sql': hashlib.sha256(MIGRATION_0030.read_bytes()).hexdigest(),
+                '0031_v33_to_v34.sql': hashlib.sha256(MIGRATION_0031.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

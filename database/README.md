@@ -71,6 +71,7 @@ Der `actor-identifier` wird gegen den aktiven Benutzernamen, die E-Mail-Adresse 
 28. `0028_v30_to_v31.sql` (31): Sperre des ursprünglichen Quellrezepts für Menüvorschläge.
 29. `0029_v31_to_v32.sql` (32): additive Beilagenwerte für Menüpositionen und Gerichtvorlagen sowie Vorlagen-Verben v32.
 30. `0030_v32_to_v33.sql` (33): additive Zielmenge (`target_quantity`/`target_quantity_unit_id`) für Menüpositionskomponenten.
+31. `0031_v33_to_v34.sql` (34): persistierte Einkaufslisten (`shopping_lists`, unveränderliche `shopping_list_revisions`, `shopping_list_manual_items`, `shopping_list_line_status`); reine Tabellenrechte, kein neues Definer-Verb.
 
 Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0020` bleiben beim Upgrade auf v24 byteidentisch. `schema.sql` beschreibt den aktuellen v24-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
 

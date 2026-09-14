@@ -9,6 +9,7 @@ import json
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 from sqlalchemy import text
@@ -123,12 +124,28 @@ def _insert_recipe_revision(connection, ids):
 
 def test_v32_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16):  # noqa: F811
     plan = database.migration_plan(SCHEMA)
-    assert (plan[-1].version, plan[-1].path.name) == (33, '0030_v32_to_v33.sql')
+    # Seit 0031 ist 0030 nicht mehr das letzte Element im Gesamtplan (Schema34
+    # Einkaufslisten); Version 33 bleibt hier ueber ihre eigene Nummer gesucht statt
+    # ueber plan[-1] (Muster test_menu_accompaniment_migration_db.py).
+    mig33 = next(migration for migration in plan if migration.version == 33)
+    assert (mig33.version, mig33.path.name) == (33, '0030_v32_to_v33.sql')
     for migration in plan:
         if migration.version <= 32:
             database._execute_migration(pg16, migration)
     database._execute_script(pg16, str(SCHEMA.parent / 'seed.sql'))
-    database._execute_script(pg16, str(PERMISSIONS))
+    # Seit 0031 grantet permissions.sql auch auf die erst mit Schema34 entstehenden
+    # shopping_*-Tabellen; vor der eigenen Migration (hier nur bis 32) muss dieser Block
+    # entfernt werden, sonst schlaegt das Skript an den fehlenden Tabellen fehl.
+    permissions_text = PERMISSIONS.read_text(encoding='utf-8')
+    begin_marker = '-- Schema34 shopping list grants begin.\n'
+    end_marker = '-- Schema34 shopping list grants end.\n\n'
+    prefix, rest = permissions_text.split(begin_marker, 1)
+    permissions_v32 = prefix + rest.split(end_marker, 1)[1]
+    permissions_scratch = Path(os.environ.get('CLAUDE_SANDBOX_SCRATCHPAD', '/tmp')) / \
+        'permissions_v32_without_shopping.sql'
+    permissions_scratch.parent.mkdir(parents=True, exist_ok=True)
+    permissions_scratch.write_text(permissions_v32, encoding='utf-8')
+    database._execute_script(pg16, str(permissions_scratch))
 
     ids = _seed_scope_probe(pg16)
     actor = make_actor(pg16)
@@ -185,27 +202,48 @@ def test_v32_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16
         assert connection.execute(text("""SELECT version,name,checksum_sha256,
             application_version FROM cafeteria.schema_migrations
             WHERE version<=32 ORDER BY version""")).all() == ledger_before
+        # Seit 0031 laeuft run_migrations() hier bis Schema34 (Einkaufslisten) durch;
+        # max(version) und die App-Oberflaeche schliessen daher den neuen Stand mit ein.
         assert connection.execute(text(
             'SELECT max(version) FROM cafeteria.schema_migrations'
-        )).scalar_one() == 33
-        
+        )).scalar_one() == 34
+
         mig33 = connection.execute(text("""SELECT name,checksum_sha256,application_version
             FROM cafeteria.schema_migrations WHERE version=33""")).one()
         assert mig33[0] == '0030_v32_to_v33.sql'
         expected_sha = hashlib.sha256((SCHEMA.parent / 'migrations' / '0030_v32_to_v33.sql').read_bytes()).hexdigest()
         assert mig33[1] == expected_sha
         assert mig33[1] == validate_package.MIGRATION_CHECKSUMS['0030_v32_to_v33.sql']
-        
-        assert _app_surface(connection) == surface_before
+
+        after_surface = _app_surface(connection)
+        # existing_tables muss auch Views (z. B. active_publications) abdecken: pg_tables
+        # (surface_before[0]) kennt nur echte Tabellen, role_table_grants aber auch Views.
+        existing_tables = set(surface_before[0]) | {
+            row[0] for rights in surface_before[2].values() for row in rights
+        }
+        filtered_after_surface = (
+            [name for name in after_surface[0] if name in existing_tables],
+            after_surface[1],
+            {
+                role: [row for row in rights if row[0] in existing_tables]
+                for role, rights in after_surface[2].items()
+            },
+        )
+        assert filtered_after_surface == surface_before
         migrated_contract = _target_contract(connection)
         
         # Check ACL match
         assert migrated_contract[3] == target_contract_before[3]  # table acl
         assert migrated_contract[4] == target_contract_before[4]  # column acl
         
+        # Seit 0031 laeuft run_migrations() hier bis Schema34 (Einkaufslisten) durch;
+        # nur Tabellen/Sequenzen vergleichen, die bereits vor dieser Migration existierten
+        # (Muster: bestehende Ausnahme fuer menu_item_components/schema_migrations erweitert).
         rows_and_seqs_after = rows_and_sequences(pg16)
-        assert {k: v for k, v in rows_and_seqs_after[0].items() if k not in ('menu_item_components', 'schema_migrations')} == {k: v for k, v in rows_and_seqs_before[0].items() if k not in ('menu_item_components', 'schema_migrations')}
-        assert rows_and_seqs_after[1] == rows_and_seqs_before[1]
+        before_table_names = set(rows_and_seqs_before[0])
+        assert {k: v for k, v in rows_and_seqs_after[0].items() if k in before_table_names and k not in ('menu_item_components', 'schema_migrations')} == {k: v for k, v in rows_and_seqs_before[0].items() if k not in ('menu_item_components', 'schema_migrations')}
+        before_seq_names = {name for name, _ in rows_and_seqs_before[1]}
+        assert [pair for pair in rows_and_seqs_after[1] if pair[0] in before_seq_names] == rows_and_seqs_before[1]
         
         # Verify existing rows have both new cols NULL
         new_cols = connection.execute(text("""SELECT target_quantity, target_quantity_unit_id 
@@ -399,7 +437,7 @@ def test_v33_store_and_copy_paths_preserve_target_quantity_when_absent_from_assi
     assert copied == (revision_id, Decimal('2.500000'), unit_id)
 
 
-def test_validate_schema_reports_live_schema_33(pg16):  # noqa: F811
+def test_validate_schema_reports_live_schema_34(pg16):  # noqa: F811
     environment = os.environ.copy()
     result = subprocess.run(
         [sys.executable, str(ROOT / 'database' / 'validate_schema.py'), '--live'],
@@ -412,6 +450,6 @@ def test_validate_schema_reports_live_schema_33(pg16):  # noqa: F811
     assert result.returncode == 0, result.stdout + result.stderr
     status = json.loads(result.stdout)
     assert status['artifact_check'] == 'passed'
-    assert status['schema_version'] == status['live_schema_version'] == 33
+    assert status['schema_version'] == status['live_schema_version'] == 34
     assert status['baseline_migration_equivalent'] is True
     assert len(status['migration_checksums']['0030_v32_to_v33.sql']) == hashlib.sha256().digest_size * 2

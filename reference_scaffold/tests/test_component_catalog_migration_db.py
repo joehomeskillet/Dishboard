@@ -450,9 +450,9 @@ def test_v13_real_postgres_contract_covers_catalog_constraints_and_component_lin
     catalog_columns = 'id public_id location_id profile_scope category name origin_country_code active row_version created_at updated_at'.split()
     expected_columns = {'menu_components': catalog_columns, 'component_allergens': 'component_id allergen_id presence'.split(), 'component_labels': 'component_id label_id'.split(), 'menu_items': 'allergen_mode origin_mode label_mode'.split(), 'menu_item_components': 'component_id component_row_version'.split()}
     column_contract = {(row[0], row[1]): row[2:] for row in columns}
-    assert database.SCHEMA_VERSION == version == 33
-    assert database.APPLICATION_VERSION == 'dishboard-schema-v33'
-    assert (plan[-1].version, plan[-1].path.name) == (33, '0030_v32_to_v33.sql')
+    assert database.SCHEMA_VERSION == version == 34
+    assert database.APPLICATION_VERSION == 'dishboard-schema-v34'
+    assert (plan[-1].version, plan[-1].path.name) == (34, '0031_v33_to_v34.sql')
     assert MIGRATION.read_text(encoding='utf-8').startswith('BEGIN;')
     assert MIGRATION.read_text(encoding='utf-8').rstrip().endswith('COMMIT;')
     validator = (ROOT / 'database' / 'validate_schema.py').read_text(encoding='utf-8')
@@ -526,7 +526,19 @@ def test_v15_migration_installs_role_scoped_active_location_lock(pg16: Engine) -
             item for item in database.migration_plan(SCHEMA) if item.version == version
         )
         database._execute_migration(pg16, migration)
-    database._execute_script(pg16, str(ROOT / 'database' / 'permissions.sql'))
+    # Seit 0031 grantet permissions.sql auch auf die erst mit Schema34 entstehenden
+    # shopping_*-Tabellen; vor Version 33 muss dieser Block entfernt werden, sonst
+    # schlaegt das Skript an den fehlenden Tabellen fehl.
+    permissions_text = (ROOT / 'database' / 'permissions.sql').read_text(encoding='utf-8')
+    begin_marker = '-- Schema34 shopping list grants begin.\n'
+    end_marker = '-- Schema34 shopping list grants end.\n\n'
+    prefix, rest = permissions_text.split(begin_marker, 1)
+    permissions_v32 = prefix + rest.split(end_marker, 1)[1]
+    permissions_scratch = Path(os.environ.get('CLAUDE_SANDBOX_SCRATCHPAD', '/tmp')) / \
+        'permissions_v32_without_shopping_component_catalog.sql'
+    permissions_scratch.parent.mkdir(parents=True, exist_ok=True)
+    permissions_scratch.write_text(permissions_v32, encoding='utf-8')
+    database._execute_script(pg16, str(permissions_scratch))
 
     with pg16.begin() as connection:
         location_id = int(
