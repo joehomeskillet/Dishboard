@@ -96,7 +96,7 @@ _MENU_VALUE_FIELDS = (
 _MENU_LIST_FIELDS = (
     'component_public_id', 'component_text', 'allergen_code', 'allergen_presence',
     'origin_ingredient', 'origin_country_code', 'label_code',
-    'recipe_revision_public_id',
+    'recipe_revision_public_id', 'target_quantity', 'target_quantity_unit_code',
 )
 def profile_from_endpoint(endpoint: str) -> str:
     profile = FAMILIES.get(endpoint)

@@ -11,6 +11,7 @@ from uuid import UUID
 from .operations_settings import normalise_time
 from .menu_template_binding import TemplateBindingValidationError, validate_template_fields
 from .component_assignment_contract import AssignmentValidationError, normalize_assignments
+from .quantities import QuantityError, parse_quantity
 from .workflow import (
     ACCOMPANIMENT_CODES,
     MENU_TYPES,
@@ -37,7 +38,8 @@ _MENU_OPTIONAL = frozenset(
     'description note accompaniment dish_template_public_id dish_template_detach template_context'.split()
 )
 _MENU_REPEATED = frozenset(
-    'component_public_id component_text recipe_revision_public_id allergen_code allergen_presence '
+    'component_public_id component_text recipe_revision_public_id target_quantity '
+    'target_quantity_unit_code allergen_code allergen_presence '
     'origin_ingredient origin_country_code label_code'.split()
 )
 
@@ -226,6 +228,36 @@ def _paired(
     return left_values, right_values
 
 
+def _target_quantity_pair(
+    quantity_raw: str,
+    unit_raw: str,
+    context: str,
+) -> tuple[str | None, str | None]:
+    """Validate one row's target-quantity pair; format errors land on 'target_quantity'.
+
+    The hidden unit field always mirrors the bound revision's own unit (see template),
+    independent of whether a quantity is currently entered, so a NoJS user can type a
+    brand-new quantity into an already-bound row without a script keeping it in sync.
+    An empty quantity therefore always means "no target" and any leftover/pre-filled
+    unit value is ignored rather than raising a spurious pairing error. Cross-field
+    checks that need the database (unit exists, unit matches the revision) stay in the
+    store, per the PP-STORE interface contract.
+    """
+    quantity = quantity_raw.strip()
+    if not quantity:
+        return None, None
+    unit = unit_raw.strip()
+    if not unit:
+        raise _item_error(
+            context, 'Zielmenge und Zieleinheit müssen gemeinsam angegeben werden.', 'target_quantity',
+        )
+    try:
+        parse_quantity(quantity)
+    except QuantityError as error:
+        raise _item_error(context, str(error), 'target_quantity') from error
+    return quantity, unit
+
+
 def _assignments(form: Mapping[str, object], context: str) -> list[dict[str, str | None]]:
     public_ids, texts = _paired(form, 'component_public_id', 'component_text', context)
     revisions = None
@@ -234,6 +266,19 @@ def _assignments(form: Mapping[str, object], context: str) -> list[dict[str, str
         if len(revisions) != len(public_ids):
             raise _item_error(context, 'Zusammengehörige Rezeptfelder sind unvollständig.',
                               'recipe_revision_public_id')
+    targets = target_units = None
+    target_fields_present = {'target_quantity', 'target_quantity_unit_code'} & set(form)
+    if target_fields_present:
+        if len(target_fields_present) == 1:
+            raise _item_error(
+                context, 'Zielmenge und Zieleinheit müssen gemeinsam angegeben werden.', 'target_quantity',
+            )
+        targets = _repeated(form, 'target_quantity')
+        target_units = _repeated(form, 'target_quantity_unit_code')
+        if len(targets) != len(public_ids) or len(target_units) != len(public_ids):
+            raise _item_error(
+                context, 'Zusammengehörige Zielmengenfelder sind unvollständig.', 'target_quantity',
+            )
     result = []
     for index, (public_id_raw, component_text) in enumerate(zip(public_ids, texts, strict=True)):
         revision = revisions[index] if revisions is not None else None
@@ -254,6 +299,10 @@ def _assignments(form: Mapping[str, object], context: str) -> list[dict[str, str
             row = {'component_public_id': None, 'component_text': component_text}
         if revisions is not None:
             row['recipe_revision_public_id'] = revision if revision else None
+        if targets is not None:
+            quantity, unit = _target_quantity_pair(targets[index], target_units[index], context)
+            row['target_quantity'] = quantity
+            row['target_quantity_unit_code'] = unit
         result.append(row)
     try:
         normalize_assignments(result)

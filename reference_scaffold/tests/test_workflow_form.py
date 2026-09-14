@@ -652,6 +652,150 @@ def test_partial_forms_reject_forbidden_profile_internal_and_master_ids(
         assert raised.value.field_name == field
 
 
+def test_parse_menu_item_form_includes_target_quantity_pair_when_form_sends_arrays() -> None:
+    form = _menu_form()
+    form.add('component_public_id', '')
+    form.add('component_text', 'Kartoffelstock')
+    form.add('recipe_revision_public_id', '22222222-2222-4222-8222-222222222222')
+    form.add('target_quantity', '2.5')
+    form.add('target_quantity_unit_code', 'PORTION')
+
+    parsed = parse_menu_item_form('patient', form)
+
+    assert parsed.payload['assignments'] == [{
+        'component_public_id': None,
+        'component_text': 'Kartoffelstock',
+        'recipe_revision_public_id': '22222222-2222-4222-8222-222222222222',
+        'target_quantity': '2.5',
+        'target_quantity_unit_code': 'PORTION',
+    }]
+
+
+def test_parse_menu_item_form_clears_target_quantity_with_empty_pair() -> None:
+    form = _menu_form()
+    form.add('component_public_id', '')
+    form.add('component_text', 'Kartoffelstock')
+    form.add('recipe_revision_public_id', '22222222-2222-4222-8222-222222222222')
+    form.add('target_quantity', '')
+    form.add('target_quantity_unit_code', '')
+
+    parsed = parse_menu_item_form('patient', form)
+
+    row = parsed.payload['assignments'][0]
+    assert row['target_quantity'] is None
+    assert row['target_quantity_unit_code'] is None
+
+
+def test_parse_menu_item_form_omits_target_quantity_keys_when_fields_absent_from_form() -> None:
+    form = _menu_form()
+    form.add('component_public_id', '')
+    form.add('component_text', 'Kartoffelstock')
+    form.add('recipe_revision_public_id', '22222222-2222-4222-8222-222222222222')
+
+    parsed = parse_menu_item_form('patient', form)
+
+    row = parsed.payload['assignments'][0]
+    assert 'target_quantity' not in row
+    assert 'target_quantity_unit_code' not in row
+
+
+@pytest.mark.parametrize('present_field', ['target_quantity', 'target_quantity_unit_code'])
+def test_parse_menu_item_form_rejects_target_quantity_field_sent_alone(present_field: str) -> None:
+    form = _menu_form()
+    form.add('component_public_id', '')
+    form.add('component_text', 'Kartoffelstock')
+    form.add('recipe_revision_public_id', '22222222-2222-4222-8222-222222222222')
+    form.add(present_field, '2.5' if present_field == 'target_quantity' else 'PORTION')
+
+    with pytest.raises(WorkflowValidationError, match='gemeinsam angegeben') as raised:
+        parse_menu_item_form('patient', form)
+
+    assert raised.value.field_name == 'target_quantity'
+
+
+def test_parse_menu_item_form_ignores_prefilled_unit_when_quantity_empty() -> None:
+    """The hidden unit field mirrors the bound revision even with no quantity typed yet
+    (so a NoJS user can enter a fresh value); an empty quantity always means no target."""
+    form = _menu_form()
+    form.add('component_public_id', '')
+    form.add('component_text', 'Kartoffelstock')
+    form.add('recipe_revision_public_id', '22222222-2222-4222-8222-222222222222')
+    form.add('target_quantity', '')
+    form.add('target_quantity_unit_code', 'PORTION')
+
+    parsed = parse_menu_item_form('patient', form)
+
+    row = parsed.payload['assignments'][0]
+    assert row['target_quantity'] is None
+    assert row['target_quantity_unit_code'] is None
+
+
+def test_parse_menu_item_form_rejects_target_quantity_row_pair_mismatch() -> None:
+    form = _menu_form()
+    form.add('component_public_id', '')
+    form.add('component_text', 'Kartoffelstock')
+    form.add('recipe_revision_public_id', '22222222-2222-4222-8222-222222222222')
+    form.add('target_quantity', '2.5')
+    form.add('target_quantity_unit_code', '')
+
+    with pytest.raises(WorkflowValidationError, match='gemeinsam angegeben') as raised:
+        parse_menu_item_form('patient', form)
+
+    assert raised.value.field_name == 'target_quantity'
+
+
+@pytest.mark.parametrize('amount', ['0', '-1', '-2.5', '2,5', 'abc'])
+def test_parse_menu_item_form_rejects_invalid_target_quantity(amount: str) -> None:
+    form = _menu_form()
+    form.add('component_public_id', '')
+    form.add('component_text', 'Kartoffelstock')
+    form.add('recipe_revision_public_id', '22222222-2222-4222-8222-222222222222')
+    form.add('target_quantity', amount)
+    form.add('target_quantity_unit_code', 'PORTION')
+
+    with pytest.raises(WorkflowValidationError) as raised:
+        parse_menu_item_form('patient', form)
+
+    assert raised.value.field_name == 'target_quantity'
+
+
+def test_parse_menu_item_form_rejects_target_quantity_array_length_mismatch() -> None:
+    form = _menu_form()
+    form.add('component_public_id', '')
+    form.add('component_text', 'Kartoffelstock')
+    form.add('component_public_id', '')
+    form.add('component_text', 'Broccoli')
+    form.add('recipe_revision_public_id', '22222222-2222-4222-8222-222222222222')
+    form.add('recipe_revision_public_id', '')
+    form.add('target_quantity', '2.5')
+    form.add('target_quantity_unit_code', 'PORTION')
+
+    with pytest.raises(WorkflowValidationError, match='unvollständig') as raised:
+        parse_menu_item_form('patient', form)
+
+    assert raised.value.field_name == 'target_quantity'
+
+
+def test_parse_menu_item_form_sends_empty_target_quantity_for_rows_without_revision() -> None:
+    form = _menu_form()
+    form.add('component_public_id', '')
+    form.add('component_text', 'Kartoffelstock')
+    form.add('component_public_id', '')
+    form.add('component_text', 'Broccoli')
+    form.add('recipe_revision_public_id', '22222222-2222-4222-8222-222222222222')
+    form.add('recipe_revision_public_id', '')
+    form.add('target_quantity', '2.5')
+    form.add('target_quantity', '')
+    form.add('target_quantity_unit_code', 'PORTION')
+    form.add('target_quantity_unit_code', '')
+
+    parsed = parse_menu_item_form('patient', form)
+
+    assert parsed.payload['assignments'][0]['target_quantity'] == '2.5'
+    assert parsed.payload['assignments'][1]['target_quantity'] is None
+    assert parsed.payload['assignments'][1]['target_quantity_unit_code'] is None
+
+
 def test_menu_form_rejects_reverse_misalignment_for_every_repeated_pair() -> None:
     for left_key, right_key in (
         ('component_public_id', 'component_text'),
