@@ -5219,6 +5219,7 @@ ALTER TABLE dish_templates
     CONSTRAINT dish_templates_accompaniment_default_check
     CHECK (accompaniment_default IN ('none', 'soup', 'salad'));
 
+
 -- Row-locking SELECTs need UPDATE on one column. Keep that narrow privilege
 -- while rejecting every direct app UPDATE, including statements matching no rows.
 CREATE FUNCTION reject_direct_dish_template_update_v32() RETURNS trigger
@@ -5379,6 +5380,26 @@ GRANT EXECUTE ON FUNCTION
     create_dish_template_v32(bigint,bigint,bigint,uuid,timestamptz,jsonb),
     update_dish_template_v32(bigint,bigint,bigint,uuid,timestamptz,jsonb)
 TO cafeteria_app;
+
+-- schema33: plan portions target quantity.
+ALTER TABLE menu_item_components
+    ADD COLUMN target_quantity numeric(18,6),
+    ADD COLUMN target_quantity_unit_id bigint
+        REFERENCES measurement_units(id) ON DELETE RESTRICT,
+    ADD CONSTRAINT menu_item_components_target_quantity_check CHECK (
+        (target_quantity IS NULL AND target_quantity_unit_id IS NULL)
+        OR (
+            target_quantity IS NOT NULL
+            AND target_quantity_unit_id IS NOT NULL
+            AND target_quantity > 0
+            AND recipe_revision_id IS NOT NULL
+        )
+    );
+
+-- Bindungsmuster schema26, RESTRICT-Prüfung beim Löschen einer Einheit
+CREATE INDEX menu_item_components_target_quantity_unit_idx
+    ON menu_item_components(target_quantity_unit_id)
+    WHERE target_quantity_unit_id IS NOT NULL;
 
 -- Prepared foods schema27 begin.
 

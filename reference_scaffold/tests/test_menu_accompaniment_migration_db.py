@@ -157,14 +157,17 @@ def _acl_contract(connection):
 
 def test_bootstrap_and_v31_upgrade_have_identical_acl_contract(pg16):
     plan = database.migration_plan(SCHEMA)
-    for migration in plan[:-1]:
+    v32 = next(migration for migration in plan if migration.version == 32)
+    for migration in plan:
+        if migration.version >= 32:
+            break
         database._execute_migration(pg16, migration)
     with pg16.begin() as connection:
         connection.execute(text("""GRANT SELECT,INSERT,UPDATE,DELETE ON
             cafeteria.dish_templates,cafeteria.menu_items TO cafeteria_app"""))
         connection.execute(text("""GRANT SELECT ON
             cafeteria.dish_templates,cafeteria.menu_items TO cafeteria_backup"""))
-    database._execute_migration(pg16, plan[-1])
+    database._execute_migration(pg16, v32)
     with pg16.connect() as connection:
         _assert_patient_key_decisions(connection)
         migrated = _acl_contract(connection)
@@ -276,8 +279,11 @@ def test_app_row_locks_and_menu_scope_survive_while_direct_template_dml_is_denie
 
 def test_schema31_upgrade_preserves_nonempty_data_defaults_and_fresh_contract(pg16):
     plan = database.migration_plan(SCHEMA)
-    assert (plan[-1].version, plan[-1].path.name) == (32, '0029_v31_to_v32.sql')
-    for migration in plan[:-1]:
+    v32 = next(migration for migration in plan if migration.version == 32)
+    assert v32.path.name == '0029_v31_to_v32.sql'
+    for migration in plan:
+        if migration.version >= 32:
+            break
         database._execute_migration(pg16, migration)
     database._execute_script(pg16, str(SCHEMA.parent / 'seed.sql'))
 
@@ -311,7 +317,7 @@ def test_schema31_upgrade_preserves_nonempty_data_defaults_and_fresh_contract(pg
         ), {'week': week}).scalar_one()
     before = rows_and_sequences(pg16)
 
-    assert database.run_migrations(pg16, SCHEMA) == plan
+    database._execute_migration(pg16, v32)
     with pg16.connect() as connection:
         assert connection.execute(text(
             'SELECT count(*) FROM cafeteria.menu_items WHERE accompaniment<>\'none\''

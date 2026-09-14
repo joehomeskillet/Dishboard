@@ -96,6 +96,7 @@ REQUIRED_FILES = (
     'database/migrations/0027_v29_to_v30.sql',
     'database/migrations/0028_v30_to_v31.sql',
     'database/migrations/0029_v31_to_v32.sql',
+    'database/migrations/0030_v32_to_v33.sql',
     'reference_scaffold/cafeteria/auth/local_users.py',
     'reference_scaffold/cafeteria/auth/access_events.py',
     'database/seed.sql', 'database/seed_demo.sql', 'database/permissions.sql',
@@ -142,6 +143,7 @@ MIGRATION_CHECKSUMS = {
     '0027_v29_to_v30.sql': '410374a06b46f45c3578dc4cd114e32af71ff7a2649d65a4273c976148b0c05b',
     '0028_v30_to_v31.sql': 'd8ab456b75926a21088680bb8b1c8cfcf7a1966b4b2de2e8dae48ded7593bb4d',
     '0029_v31_to_v32.sql': '55c703040fe2461654d869be983548bf6d1c40ce5ce769c3dedddaf6146dd2da',
+    '0030_v32_to_v33.sql': 'df6363e0d5539afa0cc67bed192e32d1bcb38a8f531bd2ebc28835118c7a32c2',
 }
 
 
@@ -330,7 +332,7 @@ def main() -> int:
         check(status.get('tables') == 54, 'Schema enthaelt nicht 54 Tabellen.')
         check(status.get('application_roles') == 3, 'Schema enthaelt nicht drei Rollen.')
         check(status.get('offer_profiles') == 2, 'Schema enthaelt nicht zwei Profile.')
-        check(status.get('schema_version') == 32, 'Schema-Version ist nicht 32.')
+        check(status.get('schema_version') == 33, 'Schema-Version ist nicht 33.')
         check(status.get('patient_services') == 14, 'Demo-Seed enthaelt nicht 14 Patienten-Services.')
         check(status.get('cafeteria_services') == 5, 'Demo-Seed enthaelt nicht 5 Cafeteria-Services.')
 
@@ -361,6 +363,7 @@ def main() -> int:
     migration_files.append('0027_v29_to_v30.sql')
     migration_files.append('0028_v30_to_v31.sql')
     migration_files.append('0029_v31_to_v32.sql')
+    migration_files.append('0030_v32_to_v33.sql')
 
     for mig_file in migration_files:
         mig_path = migrations_dir / mig_file

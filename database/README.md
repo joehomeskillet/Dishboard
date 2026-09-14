@@ -70,6 +70,7 @@ Der `actor-identifier` wird gegen den aktiven Benutzernamen, die E-Mail-Adresse 
 27. `0027_v29_to_v30.sql` (30): explizite API-Kanäle und enges Schlüssel-Writer-Verb.
 28. `0028_v30_to_v31.sql` (31): Sperre des ursprünglichen Quellrezepts für Menüvorschläge.
 29. `0029_v31_to_v32.sql` (32): additive Beilagenwerte für Menüpositionen und Gerichtvorlagen sowie Vorlagen-Verben v32.
+30. `0030_v32_to_v33.sql` (33): additive Zielmenge (`target_quantity`/`target_quantity_unit_id`) für Menüpositionskomponenten.
 
 Vor jedem Skip wird der aufgezeichnete SHA-256-Wert gegen die unveränderte Datei geprüft; Drift oder Versionslücken brechen ab. `0001` bis `0020` bleiben beim Upgrade auf v24 byteidentisch. `schema.sql` beschreibt den aktuellen v24-Leerstand in derselben Katalogstruktur wie die sequenziellen Migrationen, wird vom Runner aber nicht als wiederholbare Migration missbraucht. Das Paket behauptet kein Alembic-Setup.
 
@@ -95,6 +96,23 @@ bleiben als Altclient- und Rollback-Pfad erhalten und überschreiben den neuen W
 nicht. Ein v31-App-Rollback auf dem v32-Schema ist dank Defaults möglich. Enthält
 eine publizierte Revision bereits eine Beilage, muss sie vor dem Rollback
 zurückgezogen oder der Validator als Forward-Fix weitergeführt werden (I10).
+
+Schema v33 ergänzt `menu_item_components.target_quantity` (`numeric(18,6)`, nullable) und
+`target_quantity_unit_id` (nullable FK auf `measurement_units(id)`, `ON DELETE RESTRICT`) mit dem
+benannten Constraint `menu_item_components_target_quantity_check`: beide Spalten sind entweder
+gemeinsam NULL oder gemeinsam gesetzt mit `target_quantity > 0` und vorhandener Rezeptbindung
+(`recipe_revision_id IS NOT NULL`). Der partielle Index
+`menu_item_components_target_quantity_unit_idx` folgt dem Bindungsmuster aus schema26 und
+beschleunigt die RESTRICT-Prüfung beim Löschen einer Einheit. `cafeteria_app` erhält keine neuen
+Rechte; die bestehende Tabellenberechtigung auf `menu_item_components` deckt die neuen Spalten ab.
+Die Migration läuft `SET LOCAL lock_timeout = '5s'` direkt nach `BEGIN;`: Bei einer
+Lock-Warteschlange (z. B. laufendes Backup) bricht sie mit SQLSTATE `55P03` ab; lange Transaktionen
+abwarten und danach erneut starten. Ein v32-App-Rollback bleibt dank nullbarer Spalten technisch
+möglich, verwirft dabei aber analog I10 Zielmengen beim Speichern und Kopieren still und öffnet
+dafür kein Review, weil das v32-CAS-/Review-Token die neuen Spalten nicht kennt; vor einem Rollback
+Zielmengen sichern oder den Verlust ausdrücklich akzeptieren, sonst Forward-Fix. `init-db` bzw.
+`run_migrations` mit v32-Code gegen eine v33-Datenbank bricht ab. Ein Schema-Rollback auf v32 ist
+ausschließlich per geprüftem Restore erlaubt.
 
 Schema v24 prüft und repariert den kanonischen Katalogzustand der beim Backup ausgelassenen Capability-Tabellen auf PostgreSQL 16 und 18, einschliesslich der auf PostgreSQL 18 separat katalogisierten NOT-NULL-Constraints. Abweichende Constraint-, Identity-Sequenz- oder Aktivindexzustände brechen fail-closed ab; die Owner-Funktion entzieht weiterhin den ausgeschlossenen Rollen sämtliche Rechte auf die Tabellen und ihre Sequenz. Die Migration v23→24 setzt keine Secrets zurück; der ausdrückliche Hard-Reset bleibt Teil des Restore-Lebenszyklus bei gestoppten Writern.
 
