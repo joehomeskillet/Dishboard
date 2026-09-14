@@ -1195,6 +1195,7 @@ reference_scaffold/tests/test_auth_config.py
 reference_scaffold/tests/test_auth_database.py
 reference_scaffold/tests/test_auth_frontchannel_logout.py
 reference_scaffold/tests/test_auth_live_hardening.py
+reference_scaffold/tests/test_auth_local_login_browser.py
 reference_scaffold/tests/test_auth_proxy_security.py
 reference_scaffold/tests/test_auth_routes.py
 reference_scaffold/tests/test_branding_browser.py
