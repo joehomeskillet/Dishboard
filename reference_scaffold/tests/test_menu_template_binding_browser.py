@@ -1,5 +1,6 @@
 """Native and JS form flows; screenshots are evidence, never replacement baselines."""
 from pathlib import Path
+from urllib.parse import parse_qs
 
 import pytest
 from playwright.sync_api import expect
@@ -149,8 +150,20 @@ def test_proposal_conflict_resubmit_preserves_original_hidden_authority(
         page.locator('[name="component_text"]').first.fill('Rösti')
         assert client.post('/admin/patienten/menu', data=form).status_code == 303
         before = stored_state(admin_engine)
-        first = _submit_menu(page, 409)
-        second = _submit_menu(page, 409)
+        submissions = []
+        for _ in range(2):
+            with page.expect_response(
+                lambda response: response.request.method == 'POST'
+                and response.url.endswith('/menu?return_to=week')
+            ) as rejected:
+                page.locator('form[data-menu-editor] button[type="submit"]').click()
+            response = rejected.value
+            assert response.status == 409
+            data = response.request.post_data
+            assert data is not None
+            submissions.append(parse_qs(data, keep_blank_values=True))
+            page.wait_for_load_state()
+        first, second = submissions
         assert first['template_context'] == second['template_context'] == [token]
         assert first['_csrf'] == second['_csrf']
         assert first['row_version'] == second['row_version'] == ['0']
