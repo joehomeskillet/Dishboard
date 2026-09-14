@@ -783,7 +783,7 @@
         "source_status": "verified_runtime_registration",
         "browser_status": "not_run",
         "usability_status": "not_run",
-        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme. Beilagen-Abnahme 2026-09-14 (MP-REC-ACC-ACCEPT, tests/test_menu_accompaniment_flow_accept.py): Kartenzeile «Dazu: …» nur bei Wahl im Wochenraster; Belege .claude/evidence/acc-accept-0914/ (nicht versioniert); Status bleibt not_run bis Capture-Lauf."
       }
     },
     {
@@ -1828,7 +1828,7 @@
         "source_status": "verified_runtime_registration",
         "browser_status": "not_run",
         "usability_status": "not_run",
-        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme. Beilagen-Abnahme 2026-09-14 (MP-REC-ACC-ACCEPT, tests/test_menu_accompaniment_flow_accept.py): Radiogruppe «Suppe oder Salat dazu» (Editor); Leser ohne Schreibaktion; Belege .claude/evidence/acc-accept-0914/ (nicht versioniert); Status bleibt not_run bis Capture-Lauf."
       }
     },
     {
@@ -1907,7 +1907,7 @@
         "source_status": "verified_runtime_registration",
         "browser_status": "not_run",
         "usability_status": "not_run",
-        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme. Beilagen-Abnahme 2026-09-14 (MP-REC-ACC-ACCEPT, tests/test_menu_accompaniment_flow_accept.py): Radiogruppe «Suppe oder Salat dazu» (Editor); Leser ohne Schreibaktion; Belege .claude/evidence/acc-accept-0914/ (nicht versioniert); Status bleibt not_run bis Capture-Lauf."
       }
     },
     {
@@ -1988,7 +1988,7 @@
         "source_status": "verified_runtime_registration",
         "browser_status": "not_run",
         "usability_status": "not_run",
-        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme. Beilagen-Abnahme 2026-09-14 (MP-REC-ACC-ACCEPT, tests/test_menu_accompaniment_flow_accept.py): Vorschlag «Salat» an Menüeditor übergeben (JS/NoJS); Belege .claude/evidence/acc-accept-0914/ (nicht versioniert); Status bleibt not_run bis Capture-Lauf."
       }
     },
     {
@@ -3309,7 +3309,7 @@
         "source_status": "verified_runtime_registration",
         "browser_status": "not_run",
         "usability_status": "not_run",
-        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme. Beilagen-Abnahme 2026-09-14 (MP-REC-ACC-ACCEPT, tests/test_menu_accompaniment_flow_accept.py): Kartenansicht mit optionaler «Dazu:»-Zeile (A13); Belege .claude/evidence/acc-accept-0914/ (nicht versioniert); Status bleibt not_run bis Capture-Lauf."
       }
     },
     {
@@ -3391,7 +3391,7 @@
         "source_status": "verified_runtime_registration",
         "browser_status": "not_run",
         "usability_status": "not_run",
-        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme. Beilagen-Abnahme 2026-09-14 (MP-REC-ACC-ACCEPT, tests/test_menu_accompaniment_flow_accept.py): Radiogruppe default/invalid mit Feldfehler, Werteerhalt, Tastatur, 200-%-Zoom, 48-px-Ziele; Belege .claude/evidence/acc-accept-0914/ (nicht versioniert); Status bleibt not_run bis Capture-Lauf."
       }
     },
     {
@@ -3647,7 +3647,7 @@
         "source_status": "verified_runtime_registration",
         "browser_status": "not_run",
         "usability_status": "not_run",
-        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme. Beilagen-Abnahme 2026-09-14 (MP-REC-ACC-ACCEPT, tests/test_menu_accompaniment_flow_accept.py): Kartenzeile «Dazu: …» nur bei Wahl im Wochenraster; Belege .claude/evidence/acc-accept-0914/ (nicht versioniert); Status bleibt not_run bis Capture-Lauf."
       }
     },
     {
@@ -7924,7 +7924,7 @@
         "source_status": "verified_runtime_registration",
         "browser_status": "not_run",
         "usability_status": "not_run",
-        "notes": "Muster nur soweit fachlich passend; öffentliche, Login-, Druck- und Signage-Layouts behalten ihre Ausgabegrenzen."
+        "notes": "Muster nur soweit fachlich passend; öffentliche, Login-, Druck- und Signage-Layouts behalten ihre Ausgabegrenzen. Beilagen-Abnahme 2026-09-14 (MP-REC-ACC-ACCEPT, tests/test_menu_accompaniment_flow_accept.py): optionale «Dazu:»-Zeile, Fit 1920×1080 und 3840×2160 (A9); Belege .claude/evidence/acc-accept-0914/ (nicht versioniert); Status bleibt not_run bis Capture-Lauf."
       }
     },
     {
@@ -7992,7 +7992,7 @@
         "source_status": "verified_runtime_registration",
         "browser_status": "not_run",
         "usability_status": "not_run",
-        "notes": "Muster nur soweit fachlich passend; öffentliche, Login-, Druck- und Signage-Layouts behalten ihre Ausgabegrenzen."
+        "notes": "Muster nur soweit fachlich passend; öffentliche, Login-, Druck- und Signage-Layouts behalten ihre Ausgabegrenzen. Beilagen-Abnahme 2026-09-14 (MP-REC-ACC-ACCEPT, tests/test_menu_accompaniment_flow_accept.py): optionale «Dazu:»-Zeile, Fit 1920×1080 und 3840×2160 (A9); Belege .claude/evidence/acc-accept-0914/ (nicht versioniert); Status bleibt not_run bis Capture-Lauf."
       }
     },
     {
@@ -8060,7 +8060,7 @@
         "source_status": "verified_runtime_registration",
         "browser_status": "not_run",
         "usability_status": "not_run",
-        "notes": "Muster nur soweit fachlich passend; öffentliche, Login-, Druck- und Signage-Layouts behalten ihre Ausgabegrenzen."
+        "notes": "Muster nur soweit fachlich passend; öffentliche, Login-, Druck- und Signage-Layouts behalten ihre Ausgabegrenzen. Beilagen-Abnahme 2026-09-14 (MP-REC-ACC-ACCEPT, tests/test_menu_accompaniment_flow_accept.py): optionale «Dazu:»-Zeile, Fit 1920×1080 und 3840×2160 (A9); Belege .claude/evidence/acc-accept-0914/ (nicht versioniert); Status bleibt not_run bis Capture-Lauf."
       }
     },
     {
@@ -8128,7 +8128,7 @@
         "source_status": "verified_runtime_registration",
         "browser_status": "not_run",
         "usability_status": "not_run",
-        "notes": "Muster nur soweit fachlich passend; öffentliche, Login-, Druck- und Signage-Layouts behalten ihre Ausgabegrenzen."
+        "notes": "Muster nur soweit fachlich passend; öffentliche, Login-, Druck- und Signage-Layouts behalten ihre Ausgabegrenzen. Beilagen-Abnahme 2026-09-14 (MP-REC-ACC-ACCEPT, tests/test_menu_accompaniment_flow_accept.py): optionale «Dazu:»-Zeile, Fit 1920×1080 und 3840×2160 (A9); Belege .claude/evidence/acc-accept-0914/ (nicht versioniert); Status bleibt not_run bis Capture-Lauf."
       }
     },
     {
