@@ -47,6 +47,7 @@ MIGRATION_0026 = ROOT / 'database' / 'migrations' / '0026_v28_to_v29.sql'
 MIGRATION_0027 = ROOT / 'database' / 'migrations' / '0027_v29_to_v30.sql'
 MIGRATION_0028 = ROOT / 'database' / 'migrations' / '0028_v30_to_v31.sql'
 MIGRATION_0029 = ROOT / 'database' / 'migrations' / '0029_v31_to_v32.sql'
+MIGRATION_0030 = ROOT / 'database' / 'migrations' / '0030_v32_to_v33.sql'
 PERMISSIONS = ROOT / 'database' / 'permissions.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
@@ -301,8 +302,44 @@ def run_live_check() -> dict[str, Any]:
                     )
                 ).all()
             )
-        if int(row['schema_version']) != 32:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 32.")
+            target_columns = connection.execute(
+                text(
+                    '''
+                    SELECT column_name,data_type,is_nullable,numeric_precision,numeric_scale
+                    FROM information_schema.columns
+                    WHERE table_schema='cafeteria'
+                      AND table_name='menu_item_components'
+                      AND column_name IN ('target_quantity','target_quantity_unit_id')
+                    ORDER BY ordinal_position
+                    '''
+                )
+            ).tuples().all()
+            target_constraints = connection.execute(
+                text(
+                    '''
+                    SELECT con.conname,con.contype,con.confdeltype,
+                           con.confrelid::regclass::text,pg_get_constraintdef(con.oid,true)
+                    FROM pg_constraint con
+                    WHERE con.conrelid='cafeteria.menu_item_components'::regclass
+                      AND con.conname IN (
+                          'menu_item_components_target_quantity_check',
+                          'menu_item_components_target_quantity_unit_id_fkey'
+                      )
+                    ORDER BY con.conname
+                    '''
+                )
+            ).tuples().all()
+            target_indexes = connection.execute(
+                text(
+                    '''
+                    SELECT indexname,indexdef FROM pg_indexes
+                    WHERE schemaname='cafeteria' AND tablename='menu_item_components'
+                      AND indexname='menu_item_components_target_quantity_unit_idx'
+                    '''
+                )
+            ).tuples().all()
+        if int(row['schema_version']) != 33:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 33.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
         if {item['proname'] for item in v32_acl} != {
@@ -345,6 +382,43 @@ def run_live_check() -> dict[str, Any]:
             'rappen': True,
         }:
             fail('Live-Patientenschlüsselvertrag für Beilagen ist ungültig.')
+        if target_columns != [
+            ('target_quantity', 'numeric', 'YES', 18, 6),
+            ('target_quantity_unit_id', 'bigint', 'YES', 64, 0),
+        ]:
+            fail('Live-Spaltenvertrag für Zielmengen ist ungültig.')
+        target_constraints_by_name = {item[0]: item[1:] for item in target_constraints}
+        if set(target_constraints_by_name) != {
+            'menu_item_components_target_quantity_check',
+            'menu_item_components_target_quantity_unit_id_fkey',
+        }:
+            fail('Live-Constraints für Zielmengen fehlen.')
+        target_fk = target_constraints_by_name['menu_item_components_target_quantity_unit_id_fkey']
+        if (
+            target_fk[:3] != ('f', 'r', 'cafeteria.measurement_units')
+            or 'FOREIGN KEY (target_quantity_unit_id)' not in target_fk[3]
+            or 'ON DELETE RESTRICT' not in target_fk[3]
+        ):
+            fail('Live-FK für Zielmengeneinheit ist ungültig.')
+        target_check = ''.join(
+            target_constraints_by_name['menu_item_components_target_quantity_check'][3].split()
+        ).lower()
+        for fragment in (
+            'target_quantityisnull',
+            'target_quantity_unit_idisnull',
+            'target_quantityisnotnull',
+            'target_quantity_unit_idisnotnull',
+            'target_quantity>0::numeric',
+            'recipe_revision_idisnotnull',
+        ):
+            if fragment not in target_check:
+                fail(f'Live-CHECK für Zielmengen ist ungültig: {fragment}')
+        if (
+            len(target_indexes) != 1
+            or '(target_quantity_unit_id)' not in target_indexes[0][1]
+            or 'WHERE (target_quantity_unit_id IS NOT NULL)' not in target_indexes[0][1]
+        ):
+            fail('Live-Index für Zielmengeneinheit ist ungültig.')
         migrated_structure = structure('cafeteria')
         with engine.begin() as connection:
             connection.execute(text('ALTER SCHEMA cafeteria RENAME TO cafeteria_migrated_contract'))
@@ -457,6 +531,7 @@ def main() -> int:
             if fragment not in migration_0028 or fragment not in sql:
                 fail(f'Menü-Quellrezept-Sperrvertrag fehlt: {fragment}')
         migration_0029 = MIGRATION_0029.read_text(encoding='utf-8')
+        migration_0030 = MIGRATION_0030.read_text(encoding='utf-8')
         permissions = PERMISSIONS.read_text(encoding='utf-8')
         if not migration_0029.startswith('BEGIN;') or not migration_0029.rstrip().endswith('COMMIT;'):
             fail('Migration 0029 hat keinen strikten BEGIN/COMMIT-Vertrag.')
@@ -497,6 +572,20 @@ def main() -> int:
         ):
             if fragment not in permissions:
                 fail(f'Beilagen-ACL v32 fehlt: {fragment}')
+        if 'BEGIN;' not in migration_0030 or not migration_0030.rstrip().endswith('COMMIT;'):
+            fail('Migration 0030 hat keinen strikten BEGIN/COMMIT-Vertrag.')
+        for fragment in (
+            'target_quantity numeric(18,6)',
+            'target_quantity_unit_id bigint',
+            'REFERENCES cafeteria.measurement_units(id) ON DELETE RESTRICT',
+            'menu_item_components_target_quantity_check',
+            'target_quantity > 0',
+            'recipe_revision_id IS NOT NULL',
+            'menu_item_components_target_quantity_unit_idx',
+        ):
+            schema_fragment = fragment.replace('cafeteria.measurement_units', 'measurement_units')
+            if fragment not in migration_0030 or schema_fragment not in sql:
+                fail(f'Zielmengenvertrag v33 fehlt: {fragment}')
         migration_0026 = MIGRATION_0026.read_text(encoding='utf-8')
         if not migration_0026.startswith('BEGIN;') or not migration_0026.rstrip().endswith('COMMIT;'):
             fail('Migration 0026 hat keinen strikten BEGIN/COMMIT-Vertrag.')
@@ -893,7 +982,7 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 32,
+            'schema_version': 33,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
@@ -924,6 +1013,7 @@ def main() -> int:
                 '0027_v29_to_v30.sql': hashlib.sha256(MIGRATION_0027.read_bytes()).hexdigest(),
                 '0028_v30_to_v31.sql': hashlib.sha256(MIGRATION_0028.read_bytes()).hexdigest(),
                 '0029_v31_to_v32.sql': hashlib.sha256(MIGRATION_0029.read_bytes()).hexdigest(),
+                '0030_v32_to_v33.sql': hashlib.sha256(MIGRATION_0030.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

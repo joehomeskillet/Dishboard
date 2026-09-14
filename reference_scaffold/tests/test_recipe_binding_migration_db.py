@@ -97,7 +97,9 @@ def test_upgrade_preserves_all_existing_rows_and_fresh_schema_contract(pg16):  #
     database._execute_script(pg16, str(PERMISSIONS))
     new_columns = {
         'menu_components': ('food_id',),
-        'menu_item_components': ('recipe_revision_id',),
+        'menu_item_components': (
+            'recipe_revision_id', 'target_quantity', 'target_quantity_unit_id',
+        ),
         'dish_templates': ('recipe_id', 'accompaniment_default'),
         'menu_items': ('accompaniment',),
     }
@@ -108,7 +110,7 @@ def test_upgrade_preserves_all_existing_rows_and_fresh_schema_contract(pg16):  #
                 projection = f"({projection}-'{column}')"
             assert c.execute(text(f'SELECT {projection}::text FROM cafeteria.{table} t ORDER BY {projection}::text')).all() == before[table]
         assert c.execute(text('SELECT to_jsonb(m) FROM cafeteria.schema_migrations m WHERE version<=25 ORDER BY version')).all() == ledger
-        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 32
+        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 33
         migrated = structure(c)
     with pg16.begin() as c:
         c.execute(text('DROP SCHEMA cafeteria CASCADE'))
