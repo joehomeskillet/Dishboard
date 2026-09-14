@@ -353,31 +353,43 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
 
 
 /* Auth */
-.auth-shell { display: flex; justify-content: center; align-items: flex-start; width: 100%; min-height: 100vh; padding: clamp(1.5rem, 4vw, 3rem) 1rem; background: var(--sh-canvas); }
-.auth-card { display: flex; flex-direction: column; width: 100%; max-width: 28rem; margin-top: 3rem; padding: 0; background: var(--sh-panel); border: 1px solid var(--sh-border); border-radius: var(--sh-radius-lg); box-shadow: var(--sh-shadow); }
-.auth-card-header { padding: 2rem 1.5rem 1.5rem; text-align: center; border-bottom: 1px solid var(--sh-border); }
-.auth-eyebrow { margin: 0 0 0.75rem; color: var(--sh-magenta); font-size: 0.75rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; }
-.auth-card-header h1 { margin: 0 0 1rem; font-size: clamp(1.75rem, 4vw, 2.5rem); line-height: 1.1; letter-spacing: -0.025em; }
+.auth-shell { position: relative; display: flex; justify-content: center; align-items: flex-start; width: 100%; min-height: 100vh; padding: clamp(1.5rem, 4vw, 3rem) 1rem clamp(4.5rem, 10vw, 6rem); background: linear-gradient(160deg, var(--sh-teal-950) 0%, var(--sh-teal-800) 100%); }
+.auth-card { display: flex; flex-direction: column; width: 100%; max-width: 28rem; margin-top: 3rem; padding: 0; background: var(--sh-panel); border: 1px solid var(--sh-border); border-radius: var(--sh-radius-lg); box-shadow: var(--sh-shadow); overflow: hidden; }
+.auth-card-header { padding: 2rem 1.5rem 1.5rem; border-bottom: 1px solid var(--sh-border); }
+.auth-card-header .site-logo { display: inline-flex; align-items: center; min-width: 48px; min-height: 48px; margin: 0 0 1.25rem; }
+.auth-card-header .brand-logo { height: 40px; object-fit: contain; object-position: left center; }
+.auth-card-header h1 { margin: 0 0 0.5rem; font-size: clamp(1.75rem, 4vw, 2.5rem); line-height: 1.1; letter-spacing: -0.025em; }
 .auth-lead { margin: 0; color: var(--sh-ink-muted); font-size: 0.95rem; line-height: 1.5; }
 .auth-alert { margin: 1.5rem 1.5rem 0; padding: 1rem 1.25rem; border-radius: var(--sh-radius-md); color: var(--sh-magenta); background: var(--sh-magenta-soft); font-size: 0.9rem; font-weight: 600; line-height: 1.5; }
-.auth-form { display: flex; flex-direction: column; padding: 1.5rem; gap: 1.25rem; }
+.auth-form { display: flex; flex-direction: column; padding: 1.5rem; gap: 1.5rem; }
 .auth-field { display: flex; flex-direction: column; gap: 0.5rem; }
-.auth-field label { display: block; color: var(--sh-ink); font-size: 0.9rem; font-weight: 600; }
+/* Text label above its field: opt out of the global 44px label target meant for inline controls. */
+.auth-field label { display: block; min-height: 0; color: var(--sh-ink); font-size: 0.9rem; font-weight: 600; }
 .auth-input { display: block; width: 100%; min-height: 48px; padding: 0.75rem 1rem; border: 1px solid var(--sh-border); border-radius: var(--sh-radius-sm); color: var(--sh-ink); background: var(--sh-white); font-size: 1rem; font-family: inherit; }
 .auth-input:hover { border-color: var(--sh-teal-700); }
 .auth-input:focus { outline: none; box-shadow: var(--sh-focus); }
-.auth-submit { display: block; width: 100%; min-height: 48px; padding: 0.75rem 1rem; border: none; border-radius: var(--sh-radius-sm); color: var(--sh-white); background: var(--sh-magenta); font-size: 1rem; font-weight: 700; cursor: pointer; transition: background-color 0.15s ease-in-out; }
+.auth-actions { display: flex; justify-content: flex-end; }
+.auth-submit { display: inline-flex; align-items: center; justify-content: center; width: auto; min-width: 160px; min-height: 48px; padding: 0.75rem 1.5rem; border: none; border-radius: var(--sh-radius-sm); color: var(--sh-white); background: var(--sh-magenta); font-size: 1rem; font-weight: 700; cursor: pointer; transition: background-color 0.15s ease-in-out; }
 .auth-submit:hover { background: var(--sh-teal-950); }
 .auth-submit:focus { outline: none; box-shadow: var(--sh-focus); }
 .auth-submit:active { background: var(--sh-teal-950); }
-.auth-footer { padding: 0 1.5rem 1.5rem; }
-.auth-divider { margin: 1.5rem 0 1rem; text-align: center; color: var(--sh-ink-muted); font-size: 0.85rem; font-weight: 600; }
-.auth-divider::before { content: ''; display: block; width: 100%; height: 1px; background: var(--sh-border); margin-bottom: 1rem; }
-.auth-entra-link { display: block; padding: 0.75rem 1rem; text-align: center; color: var(--sh-ink); background: var(--sh-panel-soft); border: 1px solid var(--sh-border); border-radius: var(--sh-radius-sm); font-weight: 600; text-decoration: none; transition: all 0.15s ease-in-out; }
-.auth-entra-link:hover { border-color: var(--sh-teal-700); background: var(--sh-teal-050); }
-.auth-entra-link:focus { outline: none; box-shadow: var(--sh-focus); }
-.auth-note { margin: 0.75rem 0 0; text-align: center; color: var(--sh-ink-muted); font-size: 0.8rem; }
-.auth-copyright { margin: 0; padding: 1rem 1.5rem; border-top: 1px solid var(--sh-border); text-align: center; color: var(--sh-ink-muted); font-size: 0.75rem; }
+.auth-org { padding: 0 1.5rem 1.5rem; }
+.auth-org-divider { margin: 1.5rem 0 1rem; text-align: center; color: var(--sh-ink-muted); font-size: 0.85rem; font-weight: 600; }
+.auth-org-divider::before { content: ''; display: block; width: 100%; height: 1px; background: var(--sh-border); margin-bottom: 1rem; }
+.auth-org-link { display: block; min-height: 48px; padding: 0.75rem 1rem; text-align: center; color: var(--sh-ink); background: var(--sh-panel-soft); border: 1px solid var(--sh-border); border-radius: var(--sh-radius-sm); font-weight: 600; text-decoration: none; transition: all 0.15s ease-in-out; }
+.auth-org-link:hover { border-color: var(--sh-teal-700); background: var(--sh-teal-050); }
+.auth-org-link:focus { outline: none; box-shadow: var(--sh-focus); }
+.auth-card-footer { margin: 0; padding: 1rem 1.5rem; border-top: 1px solid var(--sh-border); background: var(--sh-panel-soft); text-align: center; color: var(--sh-ink-muted); font-size: 0.8125rem; }
+/* 48px link targets; the extra hit area is transparent padding, so text position and size stay. */
+.auth-page-links { position: absolute; right: clamp(0.5rem, calc(4vw - 0.5rem), 1.5rem); bottom: clamp(0.25rem, calc(4vw - 0.75rem), 0.75rem); display: flex; flex-wrap: wrap; gap: 0 0.25rem; }
+.auth-page-links a { display: inline-flex; align-items: center; min-height: 48px; padding: 0 0.5rem; color: var(--sh-white); font-size: 0.8125rem; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.auth-page-links a:hover { text-decoration-thickness: 2px; }
+.auth-page-links a:focus { outline: none; box-shadow: var(--sh-focus); border-radius: 4px; }
+
+@media (max-width: 480px) {
+  .auth-actions { justify-content: stretch; }
+  .auth-submit { width: 100%; }
+}
 
 @media print {
   body { color: var(--sh-ink); background: var(--sh-white); }

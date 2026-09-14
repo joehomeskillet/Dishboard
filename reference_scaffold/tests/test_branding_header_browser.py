@@ -52,7 +52,8 @@ def _assert_logo_box(page: Page, selector: str, height: int, size: tuple[int, in
         assert abs(bounds[3] - bounds[1] - size[1] * scale) <= 2, (bounds, metrics)
 
 
-def _assert_equal_cards(page: Page, selector: str, count: int) -> None:
+def _assert_equal_cards(page: Page, selector: str, count: int,
+                        axes: tuple[str, ...] = ('width', 'height')) -> None:
     cards = page.locator(selector)
     expect(cards).to_have_count(count)
     dimensions = cards.evaluate_all('''cards => cards.map(card => {
@@ -60,7 +61,7 @@ def _assert_equal_cards(page: Page, selector: str, count: int) -> None:
         return {width: box.width, height: box.height,
             clipped: card.scrollWidth > card.clientWidth + 1 || card.scrollHeight > card.clientHeight + 1};
     })''')
-    for axis in ('width', 'height'):
+    for axis in axes:
         values = [box[axis] for box in dimensions]
         assert max(values) - min(values) <= 1, dimensions
     assert not any(box['clipped'] for box in dimensions)
@@ -111,10 +112,16 @@ def test_header_logos_keep_fixed_boxes_and_full_images(
             box = link.bounding_box()
             assert box is not None and box['height'] >= 48, box
         page.screenshot(path=str(tmp_path / f'admin-navigation-{width}.png'))
-        navigation.get_by_role('link', name='Screens', exact=True).click()
+        # Shell v2 contract: the output area entry lands on its "Bildschirme" tab (/admin/screens).
+        navigation.get_by_role('link', name='Vorschau & Bildschirme', exact=True).click()
         expect(page).to_have_url(origin + '/admin/screens')
+        expect(page.locator('.admin-area-tabs').get_by_role('link', name='Bildschirme', exact=True)).to_have_attribute(
+            'aria-current', 'page',
+        )
         page.evaluate('document.fonts.ready')
-        _assert_equal_cards(page, '.screen-card', 4)
+        # Screens contract (test_admin_screens_preview_browser.py): equal widths everywhere; equal
+        # heights in the two-column grid from 768px. Stacked mobile TV/web previews differ in height.
+        _assert_equal_cards(page, '.screen-card', 4, ('width', 'height') if width >= 768 else ('width',))
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
 
         for path, count in PUBLIC_PAGES:
@@ -133,8 +140,23 @@ def test_header_logos_keep_fixed_boxes_and_full_images(
 
         page.goto(origin + '/auth/local', wait_until='load')
         page.evaluate('document.fonts.ready')
-        _assert_logo_box(page, '.site-logo-img', 40, size)
-        login_logo = page.locator('.site-logo')
+        # The login logo now sits top-left inside the card header (no separate site header).
+        expect(page.locator('.site-header')).to_have_count(0)
+        _assert_logo_box(page, '.auth-card-header .site-logo-img', 40, size)
+        placement = page.locator('.auth-card-header .site-logo-img').evaluate('''image => {
+            const box = image.getBoundingClientRect();
+            const header = image.closest('.auth-card-header').getBoundingClientRect();
+            const card = image.closest('.auth-card').getBoundingClientRect();
+            const inside = outer => box.left >= outer.left && box.right <= outer.right + 1
+                && box.top >= outer.top && box.bottom <= outer.bottom + 1;
+            return {inHeader: inside(header), inCard: inside(card),
+                    leftAligned: Math.abs(box.left - header.left - parseFloat(
+                        getComputedStyle(image.closest('.auth-card-header')).paddingLeft)) <= 1,
+                    aboveTitle: box.bottom <= document.querySelector('#local-login-title')
+                        .getBoundingClientRect().top};
+        }''')
+        assert all(placement.values()), placement
+        login_logo = page.locator('.auth-card-header .site-logo')
         box = login_logo.bounding_box()
         assert box is not None and box['width'] >= 48 and box['height'] >= 48
         page.screenshot(path=str(tmp_path / f'login-header-{width}.png'))
