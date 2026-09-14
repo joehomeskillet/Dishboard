@@ -10062,7 +10062,7 @@
       "includes": [
         "_brand_logo.html"
       ],
-      "sha256": "5fc5120ad8ceb3db5a954883448de7787b746714ac001caec25fcee654d5f84a",
+      "sha256": "9ebd9ffd0f63dab3ea9f705c6ae6edc820bd4191c5f720173ba13d566cb186ed",
       "used_by_endpoints": [
         "auth.local_login"
       ],
