@@ -4,24 +4,33 @@ Recipes/foods are built through the real ``create_food_v27``/``create_recipe_v22
 ``freeze_recipe_v27`` flow (``prepared_food_fixtures``), never hand-crafted snapshot JSON, so
 every ``recipe_revisions`` row here is byte-for-byte what production would freeze -- including
 its canonical-hash/closure verification chain that ``shopping_list_store`` reads through.
+Concurrency tests hold a real lock on a second owner connection and wait on ``pg_locks`` until
+the store call is blocked, so every conflict below is a genuine PostgreSQL outcome.
 """
 from __future__ import annotations
 
+import json
+import time
+from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 
 import pytest
 from sqlalchemy import text
 
 from cafeteria.shopping_list_store import (
-    ShoppingListConflictError, ShoppingListNotFoundError, ShoppingListValidationError, ShoppingScope,
+    ShoppingListActorDeniedError, ShoppingListConflictError, ShoppingListNotFoundError, ShoppingListRetryError,
+    ShoppingListStaleActorError, ShoppingListUnavailableError, ShoppingListValidationError, ShoppingScope,
     add_manual_item, archive_shopping_list, candidate_components, compute_revision, create_shopping_list,
-    get_shopping_list, list_shopping_lists, set_line_checked,
+    delete_manual_item, get_shopping_list, list_shopping_lists, set_line_checked, set_manual_item_checked,
+    update_manual_item,
 )
 from prepared_food_fixtures import (  # noqa: F401
     app_engine, create_food, execute, freeze, installed_pg16, pg16, preview, seeded_pg16,
 )
 from test_component_scope_invariants_db import _seed_scope_probe
 from test_master_data_db import make_actor
+
+SHOPPING_TABLES = ('shopping_lists', 'shopping_list_revisions', 'shopping_list_manual_items', 'shopping_list_line_status')
 
 
 @pytest.fixture
@@ -40,7 +49,7 @@ def store(seeded_pg16, app_engine):  # noqa: F811
 
 
 def _scope(ids):
-    return ShoppingScope(ids['actor'], ids['location'])
+    return ShoppingScope(ids['actor'], ids['location'], ids['authz'])
 
 
 def _item_public(owner, item_id):
@@ -100,6 +109,49 @@ def _compute(engine, ids, list_id, *, item_public=None, sort_order=1, policy='le
         engine, _scope(ids), list_id, component_ids=[f'{item_public}:{sort_order}'], policy=policy,
         expected_row_version=expected_row_version,
     )
+
+
+def _computed_list(store, title='Nebenlaeufig'):
+    """List with one computed revision (row_version 2) holding exactly one line."""
+    owner, engine, ids = store
+    ids['owner'] = owner
+    food = create_food(engine, ids, 'Zutat')
+    _bound_component(owner, engine, ids, [_ingredient(food, '100', 'G')])
+    list_id = create_shopping_list(engine, _scope(ids), title=title)
+    revision_1 = _compute(engine, ids, list_id)
+    line = get_shopping_list(engine, _scope(ids), list_id)['selected_revision']['lines'][0]
+    return list_id, revision_1, line
+
+
+def _shopping_state(owner):
+    with owner.connect() as c:
+        return {table: c.execute(text(f'SELECT to_jsonb(t)::text FROM cafeteria.{table} t ORDER BY 1')).scalars().all()
+                for table in SHOPPING_TABLES}
+
+
+def _count(owner, table):
+    with owner.connect() as c:
+        return c.execute(text(f'SELECT count(*) FROM cafeteria.{table}')).scalar_one()
+
+
+def _wait_for_blocked(owner, count):
+    deadline = time.monotonic() + 4
+    while time.monotonic() < deadline:
+        with owner.connect() as c:
+            blocked = c.execute(text('''SELECT count(*) FROM pg_locks l JOIN pg_stat_activity a ON a.pid=l.pid
+                                        WHERE NOT l.granted AND a.datname=current_database()''')).scalar_one()
+        if blocked >= count:
+            return
+        time.sleep(0.02)
+    raise AssertionError(f'expected {count} blocked lock requests, saw {blocked}')
+
+
+def _status_revision(owner, list_id):
+    with owner.connect() as c:
+        return c.execute(text('''SELECT r.public_id::text FROM cafeteria.shopping_list_line_status s
+                                 JOIN cafeteria.shopping_list_revisions r ON r.id=s.revision_id
+                                 JOIN cafeteria.shopping_lists l ON l.id=s.shopping_list_id
+                                 WHERE l.public_id=CAST(:id AS uuid)'''), {'id': list_id}).scalars().all()
 
 
 def test_mass_units_of_same_food_sum_via_real_bound_revision(store):  # noqa: F811
@@ -268,7 +320,7 @@ def test_manual_items_survive_recompute(store):  # noqa: F811
 def test_location_isolation_foreign_scope_cannot_read_or_write(store):  # noqa: F811
     owner, engine, ids = store
     list_id = create_shopping_list(engine, _scope(ids), title='Standortliste')
-    foreign_scope = ShoppingScope(ids['actor'], ids['other_location'])
+    foreign_scope = ShoppingScope(ids['actor'], ids['other_location'], ids['authz'])
     with pytest.raises(ShoppingListNotFoundError):
         get_shopping_list(engine, foreign_scope, list_id)
     with pytest.raises(ShoppingListNotFoundError):
@@ -276,6 +328,18 @@ def test_location_isolation_foreign_scope_cannot_read_or_write(store):  # noqa: 
     with owner.connect() as c:
         assert c.execute(text('SELECT archived_at FROM cafeteria.shopping_lists WHERE public_id=CAST(:id AS uuid)'),
                          {'id': list_id}).scalar_one() is None
+
+
+def test_foreign_menu_week_is_rejected_on_create_and_writes_nothing(store):  # noqa: F811
+    owner, engine, ids = store
+    with owner.begin() as c:
+        foreign_week = str(c.execute(text('''INSERT INTO cafeteria.menu_weeks(location_id, profile_id, week_start)
+            SELECT :other_location, id, DATE '2026-09-14' FROM cafeteria.offer_profiles WHERE code='patient'
+            RETURNING public_id'''), ids).scalar_one())
+    before = _shopping_state(owner)
+    with pytest.raises(ShoppingListValidationError):
+        create_shopping_list(engine, _scope(ids), title='Fremdwoche', menu_week_public_id=foreign_week)
+    assert _shopping_state(owner) == before
 
 
 def test_read_functions_write_nothing(store):  # noqa: F811
@@ -317,3 +381,183 @@ def test_app_role_engine_suffices_for_every_store_call(store):  # noqa: F811
         assert c.execute(text('SELECT current_user')).scalar_one() == 'cafeteria_app'
     _compute(engine, ids, list_id)
     assert get_shopping_list(engine, scope, list_id)['selected_revision'] is not None
+
+
+def test_authz_change_between_load_and_write_is_stale_and_writes_nothing(store):  # noqa: F811
+    owner, engine, ids = store
+    list_id, revision_1, line = _computed_list(store)
+    scope = _scope(ids)
+    manual_id = add_manual_item(engine, scope, list_id, item_text='Servietten')
+    item_public = _item_public(owner, ids['item'])
+    with owner.begin() as c:
+        c.execute(text("INSERT INTO cafeteria.user_role_cache(user_id, role_code, source) VALUES (:actor, 'Cafeteria.Editor', 'local')"), ids)
+        assert c.execute(text('SELECT authz_version FROM cafeteria.users WHERE id=:actor'), ids).scalar_one() != ids['authz']
+    before = _shopping_state(owner)
+    calls = (
+        lambda: create_shopping_list(engine, scope, title='Neu'),
+        lambda: archive_shopping_list(engine, scope, list_id, expected_row_version=2),
+        lambda: compute_revision(engine, scope, list_id, component_ids=[f'{item_public}:1'], policy='leaf', expected_row_version=2),
+        lambda: set_line_checked(engine, scope, list_id, revision_public_id=revision_1, line_key=line['line_key'], checked=True),
+        lambda: add_manual_item(engine, scope, list_id, item_text='Becher'),
+        lambda: update_manual_item(engine, scope, list_id, manual_id, expected_row_version=1, item_text='Tassen'),
+        lambda: set_manual_item_checked(engine, scope, list_id, manual_id, checked=True),
+        lambda: delete_manual_item(engine, scope, list_id, manual_id),
+        lambda: list_shopping_lists(engine, scope),
+        lambda: get_shopping_list(engine, scope, list_id),
+    )
+    for call in calls:
+        with pytest.raises(ShoppingListStaleActorError):
+            call()
+    assert _shopping_state(owner) == before
+
+
+def test_disabled_or_roleless_actor_is_denied_for_reads_and_writes(store):  # noqa: F811
+    owner, engine, ids = store
+    list_id = create_shopping_list(engine, _scope(ids), title='Sperre')
+    with owner.begin() as c:
+        roleless = c.execute(text("INSERT INTO cafeteria.users(auth_provider, display_name) VALUES ('local', 'Ohne Rolle') "
+                                  'RETURNING id, authz_version')).one()
+        c.execute(text('UPDATE cafeteria.users SET disabled_at=clock_timestamp() WHERE id=:actor'), ids)
+        disabled_authz = c.execute(text('SELECT authz_version FROM cafeteria.users WHERE id=:actor'), ids).scalar_one()
+    before = _shopping_state(owner)
+    for scope in (ShoppingScope(ids['actor'], ids['location'], disabled_authz),
+                  ShoppingScope(roleless.id, ids['location'], roleless.authz_version)):
+        for call in (lambda: create_shopping_list(engine, scope, title='Neu'),
+                     lambda: add_manual_item(engine, scope, list_id, item_text='Becher'),
+                     lambda: get_shopping_list(engine, scope, list_id)):
+            with pytest.raises(ShoppingListActorDeniedError) as denied:
+                call()
+            assert not isinstance(denied.value, ShoppingListStaleActorError)
+    assert _shopping_state(owner) == before
+
+
+def test_serialization_failure_during_compute_maps_to_retry(store):  # noqa: F811
+    owner, engine, ids = store
+    list_id = create_shopping_list(engine, _scope(ids), title='Serialisierung')
+    ids['owner'] = owner
+    food = create_food(engine, ids, 'Zutat')
+    _bound_component(owner, engine, ids, [_ingredient(food, '100', 'G')])
+    item_public = _item_public(owner, ids['item'])
+    with ThreadPoolExecutor(1) as pool, owner.connect() as blocker:
+        blocker.execute(text("UPDATE cafeteria.shopping_lists SET note='Parallel' WHERE public_id=CAST(:id AS uuid)"), {'id': list_id})
+        call = pool.submit(compute_revision, engine, _scope(ids), list_id, component_ids=[f'{item_public}:1'],
+                           policy='leaf', expected_row_version=1)
+        _wait_for_blocked(owner, 1)
+        blocker.commit()
+        with pytest.raises(ShoppingListRetryError) as retry:
+            call.result(timeout=30)
+    assert str(retry.value) == 'Die Einkaufsliste wird gerade bearbeitet. Bitte erneut versuchen.'
+    assert retry.value.__cause__ is None and retry.value.__suppress_context__
+    assert _count(owner, 'shopping_list_revisions') == 0
+
+
+def test_concurrent_revision_number_unique_conflict_maps_to_conflict(store):  # noqa: F811
+    owner, engine, ids = store
+    ids['owner'] = owner
+    food = create_food(engine, ids, 'Zutat')
+    _bound_component(owner, engine, ids, [_ingredient(food, '100', 'G')])
+    item_public = _item_public(owner, ids['item'])
+    list_id = create_shopping_list(engine, _scope(ids), title='Eindeutig')
+    snapshot = json.dumps({'inputs': [], 'result': {'lines': []}})
+    with ThreadPoolExecutor(1) as pool, owner.connect() as blocker:
+        blocker.execute(text('''INSERT INTO cafeteria.shopping_list_revisions(
+                shopping_list_id, revision_number, policy, snapshot_json, content_hash_sha256, computed_by)
+            SELECT id, 1, 'leaf', CAST(:snap AS jsonb),
+                   encode(public.digest(convert_to(CAST(:snap AS jsonb)::text, 'UTF8'), 'sha256'), 'hex'), :actor
+            FROM cafeteria.shopping_lists WHERE public_id=CAST(:id AS uuid)'''),
+            {'snap': snapshot, 'actor': ids['actor'], 'id': list_id})
+        call = pool.submit(compute_revision, engine, _scope(ids), list_id, component_ids=[f'{item_public}:1'],
+                           policy='leaf', expected_row_version=1)
+        _wait_for_blocked(owner, 1)
+        blocker.commit()
+        with pytest.raises(ShoppingListConflictError) as conflict:
+            call.result(timeout=30)
+    assert type(conflict.value) is ShoppingListConflictError
+    assert 'duplicate' not in str(conflict.value) and conflict.value.__cause__ is None
+    assert _count(owner, 'shopping_list_revisions') == 1
+
+
+def test_lock_timeout_maps_to_retry(store):  # noqa: F811
+    owner, engine, ids = store
+    list_id = create_shopping_list(engine, _scope(ids), title='Sperrfrist')
+    with ThreadPoolExecutor(1) as pool, owner.connect() as blocker:
+        blocker.execute(text('SELECT id FROM cafeteria.shopping_lists WHERE public_id=CAST(:id AS uuid) FOR UPDATE'), {'id': list_id})
+        call = pool.submit(archive_shopping_list, engine, _scope(ids), list_id, expected_row_version=1)
+        with pytest.raises(ShoppingListRetryError):
+            call.result(timeout=15)
+        blocker.rollback()
+    with owner.connect() as c:
+        assert c.execute(text('SELECT archived_at FROM cafeteria.shopping_lists WHERE public_id=CAST(:id AS uuid)'),
+                         {'id': list_id}).scalar_one() is None
+
+
+def test_database_data_exception_maps_to_validation(store):  # noqa: F811
+    owner, engine, ids = store
+    ids['owner'] = owner
+    item_public = _item_public(owner, ids['item'])
+    list_id = create_shopping_list(engine, _scope(ids), title='Datenfehler')
+    with pytest.raises(ShoppingListValidationError) as invalid:
+        compute_revision(engine, _scope(ids), list_id, component_ids=[f'{item_public}:99999999999'],
+                         policy='leaf', expected_row_version=1)
+    assert str(invalid.value) == 'Die Angaben sind ungültig.' and invalid.value.__cause__ is None
+    assert _count(owner, 'shopping_list_revisions') == 0
+
+
+def test_other_database_error_maps_to_unavailable_without_details(store):  # noqa: F811
+    owner, engine, ids = store
+    create_shopping_list(engine, _scope(ids), title='Rechte')
+    with owner.begin() as c:
+        c.execute(text('REVOKE SELECT ON cafeteria.shopping_lists FROM cafeteria_app'))
+    with pytest.raises(ShoppingListUnavailableError) as unavailable:
+        list_shopping_lists(engine, _scope(ids))
+    assert str(unavailable.value) == 'Einkaufslisten sind derzeit nicht verfügbar.'
+    assert unavailable.value.__cause__ is None and unavailable.value.__suppress_context__
+
+
+def test_running_compute_blocks_check_which_never_lands_on_superseded_revision(store):  # noqa: F811
+    owner, engine, ids = store
+    list_id, revision_1, line = _computed_list(store)
+    item_public = _item_public(owner, ids['item'])
+    with ThreadPoolExecutor(2) as pool, owner.connect() as blocker:
+        blocker.execute(text('SELECT id FROM cafeteria.shopping_lists WHERE public_id=CAST(:id AS uuid) FOR UPDATE'), {'id': list_id})
+        compute = pool.submit(compute_revision, engine, _scope(ids), list_id, component_ids=[f'{item_public}:1'],
+                              policy='leaf', expected_row_version=2)
+        _wait_for_blocked(owner, 1)
+        check = pool.submit(set_line_checked, engine, _scope(ids), list_id, revision_public_id=revision_1,
+                            line_key=line['line_key'], checked=True)
+        _wait_for_blocked(owner, 2)
+        assert not check.done()
+        blocker.commit()
+        revision_2 = compute.result(timeout=30)
+        with pytest.raises(ShoppingListValidationError):
+            check.result(timeout=30)
+    assert _status_revision(owner, list_id) == []
+    assert get_shopping_list(engine, _scope(ids), list_id)['selected_revision']['lines'][0]['checked_status'] == 'open'
+    set_line_checked(engine, _scope(ids), list_id, revision_public_id=revision_2, line_key=line['line_key'], checked=True)
+    assert _status_revision(owner, list_id) == [revision_2]
+    assert get_shopping_list(engine, _scope(ids), list_id)['selected_revision']['lines'][0]['checked_status'] == 'checked'
+
+
+def test_in_flight_check_is_seen_by_compute_and_carried_to_newest_revision(store):  # noqa: F811
+    owner, engine, ids = store
+    list_id, revision_1, line = _computed_list(store)
+    item_public = _item_public(owner, ids['item'])
+    signature = f"{format(Decimal(line['quantity']), 'f')} {line['unit_code']}"
+    with ThreadPoolExecutor(2) as pool, owner.connect() as blocker:
+        blocker.execute(text('''INSERT INTO cafeteria.shopping_list_line_status(
+                shopping_list_id, line_key, revision_id, checked_quantity, checked_by)
+            SELECT l.id, :key, r.id, :signature, :actor FROM cafeteria.shopping_lists l
+            JOIN cafeteria.shopping_list_revisions r ON r.shopping_list_id=l.id AND r.public_id=CAST(:revision AS uuid)
+            WHERE l.public_id=CAST(:id AS uuid)'''),
+            {'key': line['line_key'], 'signature': signature, 'actor': ids['actor'], 'revision': revision_1, 'id': list_id})
+        check = pool.submit(set_line_checked, engine, _scope(ids), list_id, revision_public_id=revision_1,
+                            line_key=line['line_key'], checked=True)
+        _wait_for_blocked(owner, 1)
+        compute = pool.submit(compute_revision, engine, _scope(ids), list_id, component_ids=[f'{item_public}:1'],
+                              policy='leaf', expected_row_version=2)
+        _wait_for_blocked(owner, 2)
+        blocker.rollback()
+        assert check.result(timeout=30) is None
+        revision_2 = compute.result(timeout=30)
+    assert _status_revision(owner, list_id) == [revision_2]
+    assert get_shopping_list(engine, _scope(ids), list_id)['selected_revision']['lines'][0]['checked_status'] == 'checked'

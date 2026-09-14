@@ -1,40 +1,35 @@
 """MP-REC-SHOPPING-PERSIST store: shopping lists, immutable compute revisions, manual items.
 
-``line_key`` (PK of shopping_list_line_status, embedded in every returned line) is
-``sha256(json([status, unit_code, captured]))[:16] + ':' + readable``, where ``captured`` is the
-exact food-identity/unit-dimension/base-factor/density/piece-weight tuple
-``shopping_aggregate.AggregateLine`` already merged on (or the normalized free text for an
-incomplete row), and ``readable`` is the food public id or that normalized text; total <= 300
-characters.
+``line_key`` = ``sha256(json([status, unit_code, captured]))[:16] + ':' + readable`` (<= 300 chars,
+right-trimmed): ``captured`` is the identity/unit/factor tuple ``AggregateLine`` merged on (or the
+normalized free text of an incomplete row), ``readable`` the food public id or that text. A checked
+row follows a recompute only with an unchanged quantity+unit signature; otherwise it keeps its old
+revision and reads as ``changed_open``. Only ``set_line_checked(checked=False)`` deletes a row.
 
-Checked-status carryover (``compute_revision``): a checked row is re-pointed at the newest
-revision only when its quantity+unit signature is unchanged; otherwise it is left pointing at the
-older revision it was last valid for, which readers classify as ``changed_open``. Nothing is
-deleted by ``compute_revision`` itself; only ``set_line_checked(checked=False)`` removes a row.
-
-No SECURITY DEFINER verb is added or used (root decision S3/S4): every write here is a plain
-app-role transaction with a ``FOR UPDATE`` row lock plus a ``row_version`` compare-and-swap, the
-same shape ``component_assignment_store._mutate_links`` uses. No audit event is written:
-``cafeteria_app`` only holds SELECT on ``audit_events``; every audit write elsewhere goes through
-a SECURITY DEFINER verb this work package may not add.
-
-Revision reads reuse ``recipe_reads._get_revision_connection`` (the existing verified snapshot/
-closure/food-factor reader) instead of re-implementing snapshot parsing; it is private by
-convention only, and ``recipe_reads.py`` is outside this work package's file ownership.
+``_transaction`` re-checks the original actor (active, unchanged ``authz_version``, draft role; writes
+hold ``FOR SHARE`` on the user) and the active location, and maps SQLSTATEs without database details.
+``compute_revision`` (REPEATABLE READ) takes SHARE ROW EXCLUSIVE on ``shopping_list_line_status``
+before its snapshot, ``set_line_checked`` ROW EXCLUSIVE and then the list row lock: a check never
+lands on a superseded revision and a recompute never misses a committed check. No SECURITY DEFINER
+verb, no audit write (the app holds only SELECT on ``audit_events``); revision reads reuse the
+verified private reader ``recipe_reads._get_revision_connection``.
 """
 from __future__ import annotations
 
 import hashlib
 import json
 import unicodedata
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Mapping, Sequence
 from uuid import UUID
 
 from sqlalchemy import Connection, Engine, text
+from sqlalchemy.exc import DBAPIError
 
-from .component_catalog_store import resolve_single_active_location_connection
+from .component_catalog_store import ComponentCatalogConfigurationError, resolve_single_active_location_connection
 from .quantities import FoodFactors, QuantityError, Unit, parse_quantity
 from .recipe_reads import _get_revision_connection
 from .recipe_types import RecipeValidationError
@@ -42,46 +37,87 @@ from .recipe_values import recipe_text
 from .shopping_aggregate import AggregateLine, IngredientNeed, RevisionNeed, aggregate
 
 _POLICIES = ('leaf', 'prepared')
+_LOCK_TIMEOUT = "SET LOCAL lock_timeout = '5s'"
+_MODES = {
+    'read': ('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY',),
+    'write': (_LOCK_TIMEOUT,),
+    'compute': ('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ', _LOCK_TIMEOUT,
+                'LOCK TABLE cafeteria.shopping_list_line_status IN SHARE ROW EXCLUSIVE MODE'),
+    'check': (_LOCK_TIMEOUT, 'LOCK TABLE cafeteria.shopping_list_line_status IN ROW EXCLUSIVE MODE'),
+}
+_ACTOR = '''SELECT u.disabled_at IS NULL AS active, u.authz_version, EXISTS (
+    SELECT 1 FROM cafeteria.user_role_cache r JOIN cafeteria.application_roles a ON a.role_code=r.role_code AND a.active
+    WHERE r.user_id=u.id AND r.role_code IN ('Cafeteria.Editor', 'Cafeteria.Publisher', 'Cafeteria.Admin')
+) AS drafts FROM cafeteria.users u WHERE u.id=:actor'''
 
 
 class ShoppingListError(ValueError):
-    pass
+    """Base class; messages never carry database details."""
 class ShoppingListValidationError(ShoppingListError):
-    pass
-
-
+    """Invalid input, including SQLSTATE 22xxx/23502/23503/23514."""
 class ShoppingListNotFoundError(ShoppingListError):
-    pass
-
-
+    """List, line, item or location not visible in the scope."""
 class ShoppingListConflictError(ShoppingListError):
-    pass
+    """Original row_version CAS or SQLSTATE 23505/55000; reload before retrying."""
+class ShoppingListRetryError(ShoppingListConflictError):
+    """SQLSTATE 40001/40P01/55P03 (serialization, deadlock, lock timeout); the same request may be retried."""
+class ShoppingListActorDeniedError(ShoppingListError):
+    """Original actor missing, disabled or without a draft role."""
+class ShoppingListStaleActorError(ShoppingListActorDeniedError):
+    """Original actor's authz_version changed since the page was loaded."""
+class ShoppingListUnavailableError(ShoppingListError):
+    """Any other database or location configuration failure."""
 
 
 @dataclass(frozen=True)
 class ShoppingScope:
-    """Location-wide scope; shopping lists are not profile/patient-bound (SDD 8.4)."""
-
+    """Original actor scope with ``AdminScope`` field names; location-wide, no profile (SDD 8.4)."""
     actor_id: int
     location_id: int
+    expected_authz_version: int
 
     def __post_init__(self) -> None:
-        for value, label in ((self.actor_id, 'actor_id'), (self.location_id, 'location_id')):
-            if type(value) is not int or value <= 0:
-                raise ShoppingListValidationError(f'{label} muss eine positive Ganzzahl sein.')
+        for label in ('actor_id', 'location_id', 'expected_authz_version'):
+            _positive(getattr(self, label), label)
+
+
+def _mapped(state: str) -> ShoppingListError:
+    if state in ('40001', '40P01', '55P03'):
+        return ShoppingListRetryError('Die Einkaufsliste wird gerade bearbeitet. Bitte erneut versuchen.')
+    if state in ('23505', '55000'):
+        return ShoppingListConflictError('Die Einkaufsliste wurde zwischenzeitlich geändert. Bitte neu laden.')
+    if state.startswith('22') or state in ('23502', '23503', '23514'):
+        return ShoppingListValidationError('Die Angaben sind ungültig.')
+    return ShoppingListUnavailableError('Einkaufslisten sind derzeit nicht verfügbar.')
+
+
+@contextmanager
+def _transaction(engine: Engine, scope: ShoppingScope, mode: str = 'write') -> Iterator[Connection]:
+    try:
+        with engine.begin() as connection:
+            for statement in _MODES[mode]:
+                connection.execute(text(statement))
+            actor = connection.execute(text(_ACTOR if mode == 'read' else _ACTOR + ' FOR SHARE OF u'),
+                                       {'actor': scope.actor_id}).mappings().one_or_none()
+            if actor is None or not actor['active']:
+                raise ShoppingListActorDeniedError('Aktiver Benutzer erforderlich.')
+            if actor['authz_version'] != scope.expected_authz_version:
+                raise ShoppingListStaleActorError('Berechtigung wurde geändert. Bitte neu laden.')
+            if not actor['drafts']:
+                raise ShoppingListActorDeniedError('Einkaufslisten sind nicht erlaubt.')
+            if resolve_single_active_location_connection(connection) != scope.location_id:
+                raise ShoppingListNotFoundError('Standort nicht gefunden.')
+            yield connection
+    except ComponentCatalogConfigurationError:
+        raise ShoppingListUnavailableError('Genau ein aktiver Standort ist erforderlich.') from None
+    except DBAPIError as error:
+        raise _mapped(getattr(error.orig, 'sqlstate', None) or '') from None
 
 
 def _text(value: object, maximum: int, *, multiline: bool = False, required: bool = True) -> str | None:
     try:
         return recipe_text(value, maximum, multiline=multiline, required=required)
     except RecipeValidationError as error:
-        raise ShoppingListValidationError(str(error)) from error
-
-
-def _quantity(value: str | Decimal) -> Decimal:
-    try:
-        return parse_quantity(value)
-    except QuantityError as error:
         raise ShoppingListValidationError(str(error)) from error
 
 
@@ -104,19 +140,8 @@ def _decimal_str(value: Decimal | None) -> str | None:
     return format(value, 'f') if value is not None else None
 
 
-def _require_location(connection: Connection, scope: ShoppingScope) -> None:
-    if resolve_single_active_location_connection(connection) != scope.location_id:
-        raise ShoppingListNotFoundError('Standort nicht gefunden.')
-
-
-def _read_only(engine: Engine) -> Connection:
-    connection = engine.connect()
-    connection.execute(text('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY'))
-    return connection
-
-
-def _lock_list(connection: Connection, scope: ShoppingScope, public_id: str, expected_row_version: int) -> Mapping[str, object]:
-    _positive(expected_row_version, 'expected_row_version')
+def _lock_list(connection: Connection, scope: ShoppingScope, public_id: str,
+               expected_row_version: int | None = None) -> Mapping[str, object]:
     row = connection.execute(
         text('SELECT id, row_version FROM cafeteria.shopping_lists WHERE public_id=CAST(:id AS uuid) '
              'AND location_id=:location FOR UPDATE'),
@@ -124,14 +149,13 @@ def _lock_list(connection: Connection, scope: ShoppingScope, public_id: str, exp
     ).mappings().one_or_none()
     if row is None:
         raise ShoppingListNotFoundError('Einkaufsliste nicht gefunden.')
-    if row['row_version'] != expected_row_version:
+    if expected_row_version is not None and row['row_version'] != expected_row_version:
         raise ShoppingListConflictError('Die Einkaufsliste wurde zwischenzeitlich geändert.')
     return row
 
 
 def list_shopping_lists(engine: Engine, scope: ShoppingScope, *, include_archived: bool = False) -> tuple[dict[str, object], ...]:
-    with _read_only(engine) as connection:
-        _require_location(connection, scope)
+    with _transaction(engine, scope, 'read') as connection:
         rows = connection.execute(
             text('''
                 SELECT l.public_id, l.title, l.note, w.public_id AS menu_week_public_id, l.row_version,
@@ -170,10 +194,9 @@ def create_shopping_list(
 ) -> str:
     title = _text(title, 120)
     note = _text(note, 2000, multiline=True, required=False)
-    with engine.begin() as connection:
-        _require_location(connection, scope)
+    with _transaction(engine, scope) as connection:
         week_id = None
-        if menu_week_public_id is not None:
+        if menu_week_public_id is not None:  # the schema does not tie the week to the list's location
             week_id = connection.execute(
                 text('SELECT id FROM cafeteria.menu_weeks WHERE public_id=CAST(:id AS uuid) AND location_id=:location'),
                 {'id': _uuid(menu_week_public_id), 'location': scope.location_id},
@@ -189,8 +212,8 @@ def create_shopping_list(
 
 
 def archive_shopping_list(engine: Engine, scope: ShoppingScope, public_id: str, *, expected_row_version: int) -> int:
-    with engine.begin() as connection:
-        _require_location(connection, scope)
+    _positive(expected_row_version, 'expected_row_version')
+    with _transaction(engine, scope) as connection:
         row = _lock_list(connection, scope, public_id, expected_row_version)
         return connection.execute(
             text('UPDATE cafeteria.shopping_lists SET archived_at=clock_timestamp(), updated_by=:actor '
@@ -200,8 +223,7 @@ def archive_shopping_list(engine: Engine, scope: ShoppingScope, public_id: str, 
 
 
 def get_shopping_list(engine: Engine, scope: ShoppingScope, public_id: str) -> dict[str, object]:
-    with _read_only(engine) as connection:
-        _require_location(connection, scope)
+    with _transaction(engine, scope, 'read') as connection:
         head = connection.execute(
             text('SELECT id, public_id, title, note, row_version, archived_at, '
                  '(SELECT public_id FROM cafeteria.menu_weeks WHERE id=shopping_lists.menu_week_id) AS menu_week_public_id '
@@ -262,8 +284,7 @@ def get_shopping_list(engine: Engine, scope: ShoppingScope, public_id: str) -> d
 
 
 def candidate_components(engine: Engine, scope: ShoppingScope, *, menu_week_public_id: str) -> tuple[dict[str, object], ...]:
-    with _read_only(engine) as connection:
-        _require_location(connection, scope)
+    with _transaction(engine, scope, 'read') as connection:
         rows = connection.execute(
             text('''
                 SELECT it.public_id AS menu_item_public_id, it.title AS menu_item_title, srv.service_date,
@@ -370,23 +391,15 @@ def _revision_need(dto: object, target_servings: Decimal, by_public_id: Mapping[
     return RevisionNeed(dto.public_id, dto.content_hash_sha256, source_servings, target_servings, tuple(ingredients))
 
 
-def _normalize_text(value: object) -> str:
-    return ' '.join(unicodedata.normalize('NFC', str(value)).split())
-
-
-def _captured_json(captured: tuple[object, ...]) -> list[object]:
-    return [format(value, 'f') if isinstance(value, Decimal) else value for value in captured]
-
-
 def _line_key(line: AggregateLine) -> str:
-    payload = json.dumps([line.status, line.unit_code, _captured_json(line.captured)], sort_keys=True)
-    digest = hashlib.sha256(payload.encode('utf-8')).hexdigest()[:16]
+    captured = [format(value, 'f') if isinstance(value, Decimal) else value for value in line.captured]
+    digest = hashlib.sha256(json.dumps([line.status, line.unit_code, captured], sort_keys=True).encode('utf-8')).hexdigest()[:16]
     if line.food_public_id is not None:
         readable = line.food_public_id
     else:
         raw = line.captured[1] if len(line.captured) > 1 and isinstance(line.captured[1], str) else ''
-        readable = _normalize_text(raw) or 'freitext'
-    return f'{digest}:{readable}'[:300]
+        readable = ' '.join(unicodedata.normalize('NFC', raw).split()) or 'freitext'
+    return f'{digest}:{readable}'[:300].rstrip()
 
 
 def _line_signature(quantity: Decimal | None, unit_code: str) -> str:
@@ -399,9 +412,8 @@ def compute_revision(
 ) -> str:
     if policy not in _POLICIES:
         raise ShoppingListValidationError('Bedarfspolitik ist leaf oder prepared.')
-    with engine.begin() as connection:
-        connection.execute(text('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ'))
-        _require_location(connection, scope)
+    _positive(expected_row_version, 'expected_row_version')
+    with _transaction(engine, scope, 'compute') as connection:
         list_row = _lock_list(connection, scope, list_public_id, expected_row_version)
         selected = _resolve_selected_components(connection, scope.location_id, component_ids)
         needs, inputs = [], []
@@ -469,14 +481,8 @@ def set_line_checked(
 ) -> None:
     if type(checked) is not bool:
         raise ShoppingListValidationError('checked muss boolesch sein.')
-    with engine.begin() as connection:
-        _require_location(connection, scope)
-        list_row = connection.execute(
-            text('SELECT id FROM cafeteria.shopping_lists WHERE public_id=CAST(:id AS uuid) AND location_id=:location'),
-            {'id': _uuid(list_public_id), 'location': scope.location_id},
-        ).mappings().one_or_none()
-        if list_row is None:
-            raise ShoppingListNotFoundError('Einkaufsliste nicht gefunden.')
+    with _transaction(engine, scope, 'check') as connection:
+        list_row = _lock_list(connection, scope, list_public_id)
         latest = connection.execute(
             text('SELECT id, public_id, snapshot_json FROM cafeteria.shopping_list_revisions '
                  'WHERE shopping_list_id=:id ORDER BY revision_number DESC LIMIT 1'),
@@ -516,7 +522,10 @@ def _resolve_manual_unit(connection: Connection, quantity: str | None, unit_code
     ).scalar_one_or_none()
     if unit_id is None:
         raise ShoppingListValidationError('Einheit ist unbekannt.')
-    return _quantity(quantity), unit_id
+    try:
+        return parse_quantity(quantity), unit_id
+    except QuantityError as error:
+        raise ShoppingListValidationError(str(error)) from error
 
 
 def _lock_manual_item(connection: Connection, scope: ShoppingScope, list_public_id: str, item_public_id: str) -> Mapping[str, object]:
@@ -537,14 +546,8 @@ def add_manual_item(
     quantity: str | None = None, unit_code: str | None = None,
 ) -> str:
     item_text = _text(item_text, 200)
-    with engine.begin() as connection:
-        _require_location(connection, scope)
-        list_id = connection.execute(
-            text('SELECT id FROM cafeteria.shopping_lists WHERE public_id=CAST(:id AS uuid) AND location_id=:location FOR UPDATE'),
-            {'id': _uuid(list_public_id), 'location': scope.location_id},
-        ).scalar_one_or_none()
-        if list_id is None:
-            raise ShoppingListNotFoundError('Einkaufsliste nicht gefunden.')
+    with _transaction(engine, scope) as connection:
+        list_id = _lock_list(connection, scope, list_public_id)['id']
         amount, unit_id = _resolve_manual_unit(connection, quantity, unit_code)
         sort_order = connection.execute(
             text('SELECT COALESCE(MAX(sort_order), 0) + 1 FROM cafeteria.shopping_list_manual_items WHERE shopping_list_id=:id'),
@@ -565,8 +568,7 @@ def update_manual_item(
 ) -> int:
     item_text = _text(item_text, 200)
     _positive(expected_row_version, 'expected_row_version')
-    with engine.begin() as connection:
-        _require_location(connection, scope)
+    with _transaction(engine, scope) as connection:
         row = _lock_manual_item(connection, scope, list_public_id, item_public_id)
         if row['row_version'] != expected_row_version:
             raise ShoppingListConflictError('Die Position wurde zwischenzeitlich geändert.')
@@ -582,8 +584,7 @@ def update_manual_item(
 def set_manual_item_checked(engine: Engine, scope: ShoppingScope, list_public_id: str, item_public_id: str, *, checked: bool) -> int:
     if type(checked) is not bool:
         raise ShoppingListValidationError('checked muss boolesch sein.')
-    with engine.begin() as connection:
-        _require_location(connection, scope)
+    with _transaction(engine, scope) as connection:
         row = _lock_manual_item(connection, scope, list_public_id, item_public_id)
         return connection.execute(
             text('UPDATE cafeteria.shopping_list_manual_items SET checked=:checked, updated_by=:actor WHERE id=:id '
@@ -593,7 +594,6 @@ def set_manual_item_checked(engine: Engine, scope: ShoppingScope, list_public_id
 
 
 def delete_manual_item(engine: Engine, scope: ShoppingScope, list_public_id: str, item_public_id: str) -> None:
-    with engine.begin() as connection:
-        _require_location(connection, scope)
+    with _transaction(engine, scope) as connection:
         row = _lock_manual_item(connection, scope, list_public_id, item_public_id)
         connection.execute(text('DELETE FROM cafeteria.shopping_list_manual_items WHERE id=:id'), {'id': row['id']})
