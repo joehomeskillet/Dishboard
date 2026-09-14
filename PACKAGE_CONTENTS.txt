@@ -1370,6 +1370,7 @@ reference_scaffold/tests/test_recipe_migration_db.py
 reference_scaffold/tests/test_recipe_navigation_browser.py
 reference_scaffold/tests/test_recipe_pdf.py
 reference_scaffold/tests/test_recipe_pdf_http.py
+reference_scaffold/tests/test_recipe_plan_portions_db.py
 reference_scaffold/tests/test_recipe_print_input_db.py
 reference_scaffold/tests/test_recipe_print_template_store.py
 reference_scaffold/tests/test_recipe_provenance_audit_db.py
