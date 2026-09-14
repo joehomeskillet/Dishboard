@@ -58,6 +58,26 @@ UI-Capture-Promotion `ui-before-manifest.json`, CSV-Review-P3 zu gemischten
 Proposal auf belegtem Slot im Prüfkontext «Keine Beilage» zeigt. Dafür wurden keine
 neuen Pakete erfunden.
 
+## Nachtrag — 14. September 2026: PLAN-PORTIONS Zielmenge
+
+`MP-REC-PLAN-PORTIONS` (REC-003) ist `DEPLOYED`: PP-SCHEMA (Schema 33, Release `f5aa399`),
+PP-STORE (`c052eda`) und PP-UI (`5e5c055`) sind live. Eine optionale Zielmenge mit Einheit
+ist je gebundener Rezeptrevision im Menüeditor speicherbar, wird verlustfrei zurückgelesen,
+in die Vorwochenkopie übernommen und entwertet Review-CAS-Tokens korrekt; Publikation und
+bestehende Publikationshashes bleiben unverändert. Belege stehen im Registry-Eintrag
+`delivery_2026_09_14` in [recipes-wps.json](superpowers/backlog-0909/recipes-wps.json).
+
+Die vier zugrundeliegenden `depends_on`-Pakete `MP-REC-BINDING-UI`, `MP-REC-FREEZE-V2`,
+`MP-BAS-SCHEMA27` und `MP-REC-MENU-PROPOSAL` waren im Registry-Stand veraltet
+(`PLANNED`/`IN_PROGRESS`), obwohl ihr Code bereits in Release `7d0595d` bzw. (SCHEMA27)
+in der aktuellen Live-Schemakette enthalten ist; Status auf `DEPLOYED` korrigiert, jeweils
+mit Datei-/Commit-Beleg im selben Registry-Eintrag. `MP-REC-SHOPPING-AGGREGATE` (`396fc49`)
+ist ebenfalls `DEPLOYED`, spätestens seit Release `d306f7a`.
+
+Offen: keine separate unabhängige PLAN-PORTIONS-Abnahme-Session (externe Lanes am 14.9.
+erschöpft); UI-Capture-Promotion `ui-before-manifest.json` nicht gelaufen. Nächster Schritt
+`MP-REC-SHOPPING-PERSIST` wartet auf verfügbare GPT-Lanes (Codex ab 2026-09-19, 10:16 CEST).
+
 ## Nachtrag — 13. September 2026: Gerichtvorlagen ↔ Rezepte, Menüvorschlag, Rezeptansicht und Druck
 
 Produktbaseline `2fa44dea`/Schema 30 (live seit 12.09.2026, 23:15 CEST); Planung auf
