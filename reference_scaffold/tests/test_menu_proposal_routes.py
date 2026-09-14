@@ -270,3 +270,36 @@ def test_planning_transport_rejects_tampering_before_business_reads(
     assert response.status_code == (409 if tamper in ('route', 'source_profile') else 400)
     reader.assert_not_called()
     assert stored_state(admin_engine) == before
+
+def test_proposal_on_occupied_slot_fails_closed(admin_app, admin_engine):  # noqa: F811
+    from test_admin_workflow_routes import DAY, WEEK, _menu_form
+    from test_master_data_routes import Forms
+    client, actor = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    template = make_template(admin_engine)
+    
+    # Generate proposal first (when slot is empty)
+    path, pform, _ = planning(client, template, area='patient')
+    post_resp = client.post(path, data=pform)
+    assert post_resp.status_code == 303
+    target_url = post_resp.location
+    
+    # Occupy the slot concurrently
+    resp = client.get(f'/admin/patienten/menu?week={WEEK}&day={DAY}&meal=LUNCH&option=MENU_1')
+    native = Forms(resp.text).forms['/admin/patienten/menu']
+    form = _menu_form(_csrf=native['_csrf'], title='Existing Menu',
+        description='', component_public_id='', component_text='Existing',
+        recipe_revision_public_id='', dish_template_public_id='',
+        template_context='', day=DAY, week=WEEK, meal='LUNCH', option='MENU_1')
+    saved = client.post('/admin/patienten/menu?return_to=week', data=form)
+    assert saved.status_code == 303, saved.text
+    
+    # Try to GET the proposal on the now-occupied slot
+    proposal_get = client.get(target_url)
+    
+    # It must return 409 Conflict because require_empty_template_target blocks it
+    assert proposal_get.status_code == 409
+    
+    # The view must fall back to retained_only mode and show that the saved state is unavailable,
+    # NOT showing "Keine Beilage" and NOT showing proposal components in the review column.
+    assert "Gespeicherter Stand nicht verfügbar" in proposal_get.text
+    assert "Keine Beilage" not in proposal_get.text
