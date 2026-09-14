@@ -308,17 +308,21 @@ def test_target_quantity_exact_fk_null_pair(seeded_pg16, app_engine):  # noqa: F
     assert error.value.orig.diag.constraint_name == TARGET_FK
 
 
-def test_v32_store_and_copy_paths_silently_drop_target_quantity(seeded_pg16, app_engine):  # noqa: F811
-    """Rollback-Beleg fuer den 0030-Kopf: v32-Speicher- und Kopierpfad kennen target_quantity nicht.
+def test_v33_store_and_copy_paths_preserve_target_quantity_when_absent_from_assignment(
+    seeded_pg16, app_engine,  # noqa: F811
+):
+    """PP-STORE-Beleg: Speicher- und Kopierpfad kennen target_quantity jetzt und erhalten sie.
 
-    ``replace_component_links`` (component_assignment_store.py) und ``copy_previous_week``
-    (workflow_copy_store.py) sind der heutige, unveraenderte App-Code (v32-Verhalten; PP-STORE
-    steht noch aus). Beide ersetzen Komponentenzeilen ueber DELETE + INSERT mit einer expliziten
-    Spaltenliste ohne target_quantity/target_quantity_unit_id. Dieser Test laeuft auf einer per
-    ``run_migrations`` migrierten v33-Datenbank (seeded_pg16), setzt per Owner-SQL eine Zielmenge
-    an einer gebundenen Komponente und belegt per Assertion: beide Pfade laufen fehlerfrei, die
-    Zielmenge und ihre Einheit sind danach NULL, die Rezeptbindung bleibt erhalten. Wird mit
-    PP-STORE bewusst angepasst, sobald die Store-Funktionen die neuen Spalten kennen.
+    Vor PP-STORE (siehe git-Historie dieses Tests) ersetzten ``replace_component_links``
+    (component_assignment_store.py) und ``copy_previous_week`` (workflow_copy_store.py)
+    Komponentenzeilen ueber DELETE + INSERT mit einer expliziten Spaltenliste ohne
+    target_quantity/target_quantity_unit_id und verwarfen eine bestehende Zielmenge dabei
+    still (Rollback-Beleg fuer den 0030-Kopf). Nach PP-STORE gilt die im Interface-Contract
+    festgelegte Praesenzregel: fehlen beide Schluessel (``target_quantity``,
+    ``target_quantity_unit_code``) im Assignment, bleibt eine bereits gespeicherte Zielmenge
+    an der UNVERAENDERTEN Rezeptbindung erhalten (Store und Kopie). Der Rollback-Kopf in
+    0030_v32_to_v33.sql bleibt unveraendert: die Migration selbst wird hier nicht angefasst,
+    dieser Test dokumentiert nur den jetzigen App-Code-Stand.
     """
     ids = _seed_scope_probe(seeded_pg16)
     actor = make_actor(seeded_pg16)
@@ -346,19 +350,21 @@ def test_v32_store_and_copy_paths_silently_drop_target_quantity(seeded_pg16, app
         'component_text': 'Gebunden',
         'recipe_revision_public_id': revision_public_id,
     }
-    # Real v32 save path: binds the component via the current app code.
+    # Real save path: binds the component via the current app code. The assignment
+    # carries neither target_quantity nor target_quantity_unit_code (both keys absent).
     item_version = replace_component_links(
         app_engine, scope, ids['item'], [binding_assignment], item_version,
     )
 
-    # Simulate a previously stored target quantity (e.g. left over from a forward-fixed
-    # PP-STORE write) directly on the row, as only the owner/test engine can today.
+    # Store a target quantity directly on the row (as the store's own write would after
+    # a save that DOES carry the target keys), as only the owner/test engine does here.
     with seeded_pg16.begin() as connection:
         connection.execute(text("""UPDATE cafeteria.menu_item_components
             SET target_quantity=2.500000, target_quantity_unit_id=:unit
             WHERE menu_item_id=:item"""), {**ids, 'unit': unit_id})
 
-    # Real v32 save path again with the identical assignment: no error, quantity dropped.
+    # Real save path again with the identical assignment (still no target keys): PP-STORE's
+    # presence rule preserves the stored quantity because the bound revision is unchanged.
     item_version = replace_component_links(
         app_engine, scope, ids['item'], [binding_assignment], item_version,
     )
@@ -366,9 +372,10 @@ def test_v32_store_and_copy_paths_silently_drop_target_quantity(seeded_pg16, app
         saved = connection.execute(text("""SELECT recipe_revision_id,target_quantity,
             target_quantity_unit_id FROM cafeteria.menu_item_components
             WHERE menu_item_id=:item"""), ids).one()
-    assert saved == (revision_id, None, None)
+    assert saved == (revision_id, Decimal('2.500000'), unit_id)
 
-    # Re-apply a target quantity and prove the real v32 copy path drops it too.
+    # Re-apply a target quantity (idempotent, already set) and prove the real copy path
+    # carries it over verbatim together with the bound revision.
     with seeded_pg16.begin() as connection:
         connection.execute(text("""UPDATE cafeteria.menu_item_components
             SET target_quantity=2.500000, target_quantity_unit_id=:unit
@@ -389,7 +396,7 @@ def test_v32_store_and_copy_paths_silently_drop_target_quantity(seeded_pg16, app
             JOIN cafeteria.menu_services service ON service.id=item.service_id
             JOIN cafeteria.menu_weeks week ON week.id=service.menu_week_id
             WHERE week.week_start=:week_start"""), {'week_start': target_week_start}).one()
-    assert copied == (revision_id, None, None)
+    assert copied == (revision_id, Decimal('2.500000'), unit_id)
 
 
 def test_validate_schema_reports_live_schema_33(pg16):  # noqa: F811
