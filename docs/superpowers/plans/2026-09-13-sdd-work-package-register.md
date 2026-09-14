@@ -60,19 +60,19 @@ Manifest: 3 READY, 30 PLANNED, 4 AWAITING_EXTERNAL.
 
 ## Rezepte und Grundlagen — 43 IDs
 
-Manifest: 28 PLANNED, 4 IN_PROGRESS, 4 READY, 4 AWAITING_EXTERNAL, 3 REVIEWED_LOCAL.
+Manifest: 24 PLANNED, 3 IN_PROGRESS, 4 READY, 4 AWAITING_EXTERNAL, 3 REVIEWED_LOCAL, 5 DEPLOYED (Stand 14.9.).
 
 | Original-ID | Manifeststatus | Auditierte Ist-Einordnung | Nächster Schritt / Blocker laut Audit | Quelle |
 |---|---|---|---|---|
-| MP-BAS-SCHEMA27 | IN_PROGRESS | Im Schema30-Livequellstand enthalten. Status korrigieren; besondere PG18-Abnahme unten getrennt. | vorhandene Migration-/Releasebelege zuordnen. | R:15 |
+| MP-BAS-SCHEMA27 | DEPLOYED | Im Schema30-Livequellstand enthalten. Status korrigiert 14.9.: Migration 0024 (v27) ist Voraussetzung der aktuellen Live-Schemaversion 33 (`recipes-wps.json` `delivery_2026_09_14`); besondere PG18-Abnahme unten weiterhin getrennt. | vorhandene Migration-/Releasebelege zuordnen. | R:15 |
 | MP-BAS-FOUNDATIONS | IN_PROGRESS | Consumer und zugehörige Tests vorhanden; aktuelle Grundlagenkorrekturen ausgeliefert. Keine Neuimplementierung. | Pflichtlager, Pin und No-op-Belege bündeln. | R:16 |
 | MP-REC-BINDINGS | IN_PROGRESS | Backendbindung integriert; aktueller Release enthält Menübindungsregression. | drei Wege in BINDINGS-ACCEPT vollständig zuordnen. | R:17 |
 | MP-REC-DATA-DRAFTS | REVIEWED_LOCAL | Datensatz integriert und über Folgepaket importiert. | Dataset-/Importprovenienz verbinden. | R:18 |
 | MP-REC-PDF-RELEASE | REVIEWED_LOCAL | PDF bereits ausgeliefert; benannter Live-Abnahmebericht fehlt. | authentifizierten tatsächlichen Rezept-PDF-Download öffnen und prüfen. | R:19 |
 | MP-REC-IMPORT-PARSER | REVIEWED_LOCAL | Integriert, produktiver Import nutzt ihn. | bestehenden Parser-/Importbeleg referenzieren. | R:20 |
 | MP-REC-SNAPSHOT-V2 | IN_PROGRESS | Reader, Skalierung, Revision-/PDF-Consumer vorhanden; `ac424a6`, `02f64b2` integriert. | besondere Historien-/PG18-Belege in Releaseabnahme nachweisen. | R:21 |
-| MP-REC-FREEZE-V2 | PLANNED | `01b97e0` samt Freeze-DB-Test integriert; produktiver Prepared-Pin-Import vorhanden. | Originalkontext/Childhash-Belege bündeln. | R:22 |
-| MP-REC-BINDING-UI | PLANNED | Menüeditor und Browsertests vorhanden; Root14 im Release29-Bericht. | exakte Revision, Ablösen, Copy/CSV in Gesamtabnahme. | R:23 |
+| MP-REC-FREEZE-V2 | DEPLOYED | `01b97e0` samt Freeze-DB-Test integriert; produktiver Prepared-Pin-Import vorhanden. Status korrigiert 14.9.: Code vollständig commitet in Live-Release 7d0595d (`recipes-wps.json` `delivery_2026_09_14`). | Originalkontext/Childhash-Belege bündeln. | R:22 |
+| MP-REC-BINDING-UI | DEPLOYED | Menüeditor und Browsertests vorhanden; Root14 im Release29-Bericht. Status korrigiert 14.9.: Code vollständig commitet in Live-Release 7d0595d (`recipes-wps.json` `delivery_2026_09_14`). | exakte Revision, Ablösen, Copy/CSV in Gesamtabnahme. | R:23 |
 | MP-REC-COMPONENT-FOOD-UI | READY | Auswahl-/Writer-/Browserdateien vorhanden; keine erneute Vergabe. | Foodauswahl, Rücklesen und ausdrückliches Ablösen zuordnen. | R:24 |
 | MP-REC-DISH-TEMPLATE-WRITER | PLANNED | `739713c` integriert; 32 Vorlagen produktiv über nativen Writer. | CRUD/CAS/Archivierung in Gesamtabnahme. | R:25 |
 | MP-REC-BINDINGS-ACCEPT | PLANNED | Benannter Gesamtbericht fehlt; einzelne | Gates ersetzen vollständige Kriterienzuordnung nicht. Gate: alle drei Wege, vollständige Publikations-/Review-/Copyregression und unveränderter Publikationshash. | R:26 |
@@ -91,8 +91,8 @@ Manifest: 28 PLANNED, 4 IN_PROGRESS, 4 READY, 4 AWAITING_EXTERNAL, 3 REVIEWED_LO
 | MP-REC-SEARCH-TRGM | PLANNED | Extension/Tests fehlen. | genehmigte Migration+Restore sowie echte Tippfehler-/Performancefälle. | R:39 |
 | MP-REC-SAVED-SEARCH | PLANNED | Store/Schema/Tests fehlen. | Filter speichern/laden, Besitzer-/Standort/CAS, aktuelle Readrechte. | R:40 |
 | MP-REC-BATCH-TAGS | PLANNED | Modul/Schema/Tests fehlen. | 12 bestätigte Ziele, ein Konflikt → alle unverändert; Replay ohne Doppelbump. | R:41 |
-| MP-REC-PLAN-PORTIONS | PLANNED | Assignment enthält Revision, keine persistierte Zielausbeute; dedizierte Tests fehlen. | Zielmenge/-einheit speichern, wiederladen, kopieren, CAS/Review entwerten. | R:42 |
-| MP-REC-SHOPPING-AGGREGATE | PLANNED | `396fc49` integriert; Autor9/9, nur Testaufrufer. | unabhängige reine Mengen-/Prepared-/Provenienzabnahme; Produktanschluss folgt. | R:43 |
+| MP-REC-PLAN-PORTIONS | DEPLOYED | Status korrigiert 14.9.: Zielmenge über PP-SCHEMA (Schema 33, f5aa399)/PP-STORE (c052eda)/PP-UI (5e5c055) live (`recipes-wps.json` `delivery_2026_09_14`). | Keine separate unabhängige Abnahme-Session; UI-Capture-Promotion offen; Nachfolger MP-REC-SHOPPING-PERSIST wartet auf GPT-Lanes (Codex ab 2026-09-19 10:16). | R:42 |
+| MP-REC-SHOPPING-AGGREGATE | DEPLOYED | `396fc49` integriert; Autor9/9, nur Testaufrufer. Status korrigiert 14.9.: vor Release d306f7a (13.9.) bereits live, genaue Release nicht bestimmt (`recipes-wps.json` `delivery_2026_09_14`). | unabhängige reine Mengen-/Prepared-/Provenienzabnahme; Produktanschluss folgt. | R:43 |
 | MP-REC-SHOPPING-PERSIST | PLANNED | Schema, Store, Route, Template und Tests fehlen. | Plan/Rezeptauswahl → Liste; manuelle Zeilen, Abhaken, bewusste Neuberechnung, historische Belege und CAS. | R:44 |
 | MP-REC-SHOPPING-PDF | PLANNED | PDF-Modul und Listenroute fehlen. | genaue Listenrevision authentifiziert herunterladen/öffnen; Umbruch und no-store. | R:45 |
 | MP-REC-PDF-GEOMETRY | PLANNED | Rezeptprofil weiterhin acht Eigenschaften; `layout` abgelehnt. | begrenzten gewählten Layoutgriff sichtbar im PDF beweisen; Wochenregression bleibt grün. | R:46 |

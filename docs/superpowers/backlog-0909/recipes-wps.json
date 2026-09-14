@@ -24,7 +24,7 @@
         "REC-001"
       ],
       "kind": "implementation",
-      "status": "IN_PROGRESS",
+      "status": "DEPLOYED",
       "depends_on": [],
       "existing_wp_id": "wp-972f785f0b97",
       "sdd_sections": [
@@ -150,6 +150,13 @@
       ],
       "rollback": "Nur mit Datenwiederherstellung. Die Lagerpflicht und die verschaerften Freezeregeln sind nicht rueckwaertskompatibel; ein Rueckfall verlangt Wiederherstellung des Datenstands vor der Migration und den passenden Anwendungsstand. Ein altes Image allein genuegt nicht.",
       "delivery_state": "AUTHOR_DB_FREEZE; ROOT_PG16_VERIFIED; COMBINED_RELEASE_PENDING",
+      "delivery_2026_09_14": {
+        "release": "7d0595d28d2eee9dfdb5861ff310b638ae574338",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-plan-portions-readiness-0914.md",
+        "evidence": "database/migrations/0024_v26_to_v27.sql vorhanden, vier weitere Migrationen 0025-0029 bereits darauf; reference_scaffold/cafeteria/db.py:22 SCHEMA_VERSION war im Analyse-Worktree bereits 32; aktuelle Live-Schemaversion 33 (wp-f5aa3996d86f-deploy.md) setzt die sequentielle Migrationskette 27→33 und damit 0024 zwingend voraus.",
+        "verification": "Statische Codeprüfung im Analyse-Worktree HEAD 7d0595d (bestätigte Live-Release, siehe MP-REC-ACC-TEMPLATE/-EDITOR-UI/-COLLECTION/-CSV/-ACCEPT delivery_2026_09_14 in dieser Datei); kein eigener Testlauf durch diesen Beleg.",
+        "status_correction": "IN_PROGRESS → DEPLOYED; delivery_state war durch nachfolgende Releases (bis Schema 33) überholt."
+      },
       "shared_owner_gate": {
         "policy": "Vor READY Root-Lease mit tatsächlichem Vorgängerfreeze-Commit für jeden gemeinsamen Pfad und alle cross-slice SQL/Registry/Workflow/Recipe/Foundations/Print/Mengen-Hunks. Genau ein aktiver Writer; keine fachfremde Featureabhängigkeit als Dateisperre.",
         "files": {
@@ -1069,7 +1076,7 @@
         "REC-001"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-REC-SNAPSHOT-V2"
       ],
@@ -1159,6 +1166,13 @@
         "Nicht gefahrene Gates ausdrücklich nennen; dieser Docs-Freeze ist kein Produkt-/Live-/Fachabnahme-PASS"
       ],
       "rollback": "Gemeinsam mit SQL27 und v2-Readern integrieren; entzogene v22-Freeze-Freigabe nicht als Fallback reaktivieren.",
+      "delivery_2026_09_14": {
+        "release": "7d0595d28d2eee9dfdb5861ff310b638ae574338",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-plan-portions-readiness-0914.md",
+        "evidence": "database/schema.sql:5760 CREATE FUNCTION recipe_dependency_preview_v27(...), :5819 CREATE FUNCTION freeze_recipe_v27(...), :5880-5888 REVOKE ALL/GRANT EXECUTE für cafeteria_app; recipe_commands.py:94 ruft freeze_recipe_v27 auf; recipe_store.py:21 get_dependency_preview; admin/recipe_revision_routes.py:89 store.get_dependency_preview, :102 recipe_freeze; admin/recipe_forms.py:68 sign_context.",
+        "verification": "Statische Codeprüfung im Analyse-Worktree HEAD 7d0595d (bestätigte Live-Release, siehe MP-REC-ACC-TEMPLATE/-EDITOR-UI/-COLLECTION/-CSV/-ACCEPT delivery_2026_09_14 in dieser Datei); kein eigener Testlauf durch diesen Beleg.",
+        "status_correction": "PLANNED → DEPLOYED; Registry war veraltet, Code bereits in Release 7d0595d live."
+      },
       "shared_owner_gate": {
         "policy": "Vor READY Root-Lease mit tatsächlichem Vorgängerfreeze-Commit für jeden gemeinsamen Pfad und alle cross-slice SQL/Registry/Workflow/Recipe/Foundations/Print/Mengen-Hunks. Genau ein aktiver Writer; keine fachfremde Featureabhängigkeit als Dateisperre.",
         "files": {
@@ -1234,7 +1248,7 @@
         "REC-001"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-REC-BINDINGS"
       ],
@@ -1326,6 +1340,13 @@
         "Nicht gefahrene Gates ausdrücklich nennen; dieser Docs-Freeze ist kein Produkt-/Live-/Fachabnahme-PASS"
       ],
       "rollback": "Nur schema-/bindingkompatibler Source-Fallback mit Save/Load/Copy/LegacyDTO-Proof; nullable Spalten beweisen nicht, dass alte Writer gespeicherte Bindungen erhalten. Kein Detach oder Umgehen ursprünglicher Actor-/CAS-Guards.",
+      "delivery_2026_09_14": {
+        "release": "7d0595d28d2eee9dfdb5861ff310b638ae574338",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-plan-portions-readiness-0914.md",
+        "evidence": "reference_scaffold/cafeteria/templates/admin/menu_editor.html:140-147 drei ausgerichtete Arrays component_public_id[]/component_text[]/recipe_revision_public_id[]; :192-205 Select recipe_revision_public_id mit Option „Rezeptbindung lösen\" und Optgroups; admin/rendering.py:74 assignment.get('recipe_revision_public_id'); Gate-Datei reference_scaffold/tests/test_menu_recipe_selection_browser.py vorhanden.",
+        "verification": "Statische Codeprüfung im Analyse-Worktree HEAD 7d0595d (bestätigte Live-Release, siehe MP-REC-ACC-TEMPLATE/-EDITOR-UI/-COLLECTION/-CSV/-ACCEPT delivery_2026_09_14 in dieser Datei); kein eigener Testlauf durch diesen Beleg.",
+        "status_correction": "PLANNED → DEPLOYED; Registry war veraltet, Code bereits in Release 7d0595d live."
+      },
       "shared_owner_gate": {
         "policy": "Vor READY Root-Lease mit tatsächlichem Vorgängerfreeze-Commit für jeden gemeinsamen Pfad und alle cross-slice SQL/Registry/Workflow/Recipe/Foundations/Print/Mengen-Hunks. Genau ein aktiver Writer; keine fachfremde Featureabhängigkeit als Dateisperre.",
         "files": {
@@ -4382,7 +4403,7 @@
         "REC-003"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-REC-BINDING-UI",
         "MP-REC-FREEZE-V2",
@@ -4512,6 +4533,32 @@
         "Nicht gefahrene Gates ausdrücklich nennen; dieser Docs-Freeze ist kein Produkt-/Live-/Fachabnahme-PASS"
       ],
       "rollback": "Forward-Fix oder Root-geprüfter schema-/readerkompatibler Source-Fallback; bei notwendigem früheren Stand getesteter DB/Assetrestore. Kein blindes altes Image und kein Schema-/JSON-Downgrade.",
+      "delivery_2026_09_14": {
+        "schema": {
+          "release": "f5aa3996d86fc04ae049e905972e3d3498541710",
+          "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-f5aa3996d86f-deploy.md",
+          "root_gate": "PP-SCHEMA bindings26 (8 Dateien): 226 passed in 304.64s, GATE_EXIT=0",
+          "review": "/nvmetank1/projects/rag-stack/.claude/reports/wp-pp-schema-0914-review.md FINDINGS(10) → Nachprüfung FINDINGS(5, P2 Scheintest) → /nvmetank1/projects/rag-stack/.claude/reports/wp-pp-schema-0914-judge.md WAVE-REVIEW: CLEAN"
+        },
+        "store": {
+          "release": "c052edaa61018307f17ab42b2004aaeb2cbce74c",
+          "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-c052edaa6101-deploy.md",
+          "root_gate": "bindings26 182 passed in 238.61s; Recipeprint 297 passed in 367.71s",
+          "review": "/nvmetank1/projects/rag-stack/.claude/reports/wp-pp-store-0914-review.md FINDINGS(1) P1 Präsenzregel-Identitätsabgleich an sort_order → Fix f96a4fe → Nachprüfung WAVE-REVIEW: CLEAN"
+        },
+        "ui": {
+          "release": "5e5c05578b0471e6c4368b9e227c0d155c64232e",
+          "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-5e5c05578b04-deploy.md",
+          "root_gate": "UIother 3 failed, 336 passed, 12 skipped → Root-CSS-Fix 0302956 → Nachlauf 70 passed, 12 skipped; Release-Gate Integration 217 passed",
+          "review": "/nvmetank1/projects/rag-stack/.claude/reports/wp-pp-ui-0914-review.md FINDINGS(1) P2 Mobil-Grid-Overflow → Root-CSS-Fix behoben"
+        },
+        "status_correction": "PLANNED → DEPLOYED; PP-SCHEMA (Schema 33) live f5aa399, PP-STORE live c052eda, PP-UI live 5e5c055. Zielmenge im Menüeditor speicherbar/ladbar/kopierbar (D3/D4 geprüft), Publikationshash unberührt.",
+        "open_followups": [
+          "Keine separate unabhängige PLAN-PORTIONS-Abnahme-Session (externe Lanes am 2026-09-14 erschöpft); Abnahme stützt sich auf Browser-Suite, AGY-Review und Root-Sichtprüfung 390×844.",
+          "UI-Capture-Promotion (ui-before-manifest.json) nicht gelaufen.",
+          "Nächster Schritt MP-REC-SHOPPING-PERSIST wartet auf verfügbare GPT-Lanes (Codex ab 2026-09-19 10:16)."
+        ]
+      },
       "shared_owner_gate": {
         "policy": "Vor READY Root-Lease mit tatsächlichem Vorgängerfreeze-Commit für jeden gemeinsamen Pfad und alle cross-slice SQL/Registry/Workflow/Recipe/Foundations/Print/Mengen-Hunks. Genau ein aktiver Writer; keine fachfremde Featureabhängigkeit als Dateisperre.",
         "files": {
@@ -4689,7 +4736,7 @@
         "REC-003"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-REC-SNAPSHOT-V2"
       ],
@@ -4757,6 +4804,13 @@
         "Nicht gefahrene Gates ausdrücklich nennen; dieser Docs-Freeze ist kein Produkt-/Live-/Fachabnahme-PASS"
       ],
       "rollback": "Anwendungsrueckfall; das Modul hat ohne Aufrufer keine Laufzeitwirkung.",
+      "delivery_2026_09_14": {
+        "commit": "396fc49c5cb18543795dd7688880a42d81ada335",
+        "commit_date": "2026-09-10 00:52:45 +0200",
+        "first_live_release": "vor d306f7a live, genaue Release nicht bestimmt (396fc49 vom 2026-09-10 ist bereits Ancestor von d306f7a vom 2026-09-13, dem chronologisch ältesten geprüften Release; git merge-base --is-ancestor 396fc49 d306f7a Exit 0)",
+        "acceptance_criteria_check": "Alle 5 Kriterien durch reference_scaffold/tests/test_shopping_aggregate.py abgedeckt: Masseneinheiten-Summe/Dichteumrechnung/Trennung ohne Dichte (test_mass_units_of_the_same_food_sum_to_grams, test_volume_with_captured_density_joins_mass, test_volume_without_density_stays_separate); Provenienz-Immutabilität (test_later_factor_mutation_does_not_change_captured_result); Prepared-Policy leaf/prepared ohne Doppelzählung (test_prepared_leaf_policy_counts_leaves_not_the_intermediate, test_prepared_policy_counts_intermediate_not_leaves); geteilter Kindindex (test_shared_child_index_does_not_collapse_two_occurrences); keine DB/Netzwerkimporte und unbekannte Menge bleibt incomplete statt 0 (test_module_has_no_database_or_network_imports, test_unknown_quantity_is_incomplete_not_zero). Kein fehlendes Kriterium.",
+        "status_correction": "PLANNED → DEPLOYED; 396fc49 ist spätestens mit Release d306f7a live, ggf. bereits früher."
+      },
       "shared_owner_gate": {
         "policy": "Vor READY Root-Lease mit tatsächlichem Vorgängerfreeze-Commit für jeden gemeinsamen Pfad und alle cross-slice SQL/Registry/Workflow/Recipe/Foundations/Print/Mengen-Hunks. Genau ein aktiver Writer; keine fachfremde Featureabhängigkeit als Dateisperre.",
         "files": {}
@@ -7955,7 +8009,7 @@
         "REC-001"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-REC-LINK-READS",
         "MP-REC-MENU-TEMPLATE-BINDING"
@@ -8073,6 +8127,13 @@
         "Nicht gefahrene Gates ausdrücklich nennen; dieser Docs-Freeze ist kein Produkt-/Live-/Fachabnahme-PASS"
       ],
       "rollback": "Anwendungsrückfall: Einplanen-Route und Vorbefüllung entfallen; bereits gespeicherte Menüs bleiben mit ihrem Bezug stehen.",
+      "delivery_2026_09_14": {
+        "release": "7d0595d28d2eee9dfdb5861ff310b638ae574338",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-plan-portions-readiness-0914.md",
+        "evidence": "admin/dish_template_routes.py:276 @bp.get('/gerichtvorlagen/<public_id>/einplanen'), :305 @bp.post(...), :265 Render von admin/gerichtvorlage_einplanen.html, :293 WriteConflictError bei geänderter Vorlage; Template gerichtvorlage_einplanen.html vorhanden; Gate-Dateien test_menu_proposal_routes.py/test_menu_proposal_browser.py vorhanden; Commits 234b968/ed7f7a1/8ab0be4.",
+        "verification": "Statische Codeprüfung im Analyse-Worktree HEAD 7d0595d (bestätigte Live-Release, siehe MP-REC-ACC-TEMPLATE/-EDITOR-UI/-COLLECTION/-CSV/-ACCEPT delivery_2026_09_14 in dieser Datei); kein eigener Testlauf durch diesen Beleg.",
+        "status_correction": "PLANNED → DEPLOYED; Registry war veraltet, Code bereits in Release 7d0595d live."
+      },
       "ui_contract": {
         "path": "docs/design/2026-09-09-unified-ui-design-system.md",
         "owner": "Root / sdd-backlog-root-0909",
