@@ -239,6 +239,11 @@ def test_admin_cards_load_real_local_symbols(
         assert PATIENT_FORBIDDEN.search(body) is None
     page = _load_page(app, browser, body, width)
     try:
+        if not preview:
+            cards_tab = page.get_by_role('tab', name='Karten')
+            cards_tab.click()
+            expect(cards_tab).to_have_attribute('aria-selected', 'true')
+            expect(page.locator('#menu-cards')).to_be_visible()
         _assert_visible_symbols(page)
         if not preview:
             expect(page.locator('[data-menu-metadata] .badge')).to_have_count(4)
