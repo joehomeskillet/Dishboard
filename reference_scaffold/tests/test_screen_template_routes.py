@@ -1,5 +1,6 @@
 """Registered screen routes with real PostgreSQL and original signed forms."""
 import json
+import re
 from concurrent.futures import ThreadPoolExecutor
 from html import unescape
 from time import monotonic
@@ -70,7 +71,11 @@ def test_bad_form_is400_preserves_original_values_and_does_not_write(screen_app,
     html = response.get_data(as_text=True)
     assert unescape(_hidden(html, '_form_context')) == data['_form_context']
     assert unescape(_hidden(html, 'version')) == data['version']
-    assert 'value="patient-week-text" checked' in html
+    assert re.search(
+        r'<input\b(?=[^>]*\bname="template_id")(?=[^>]*\bvalue="patient-week-text")'
+        r'(?=[^>]*\bchecked\b)[^>]*>',
+        html,
+    )
     assert '<invalid>' not in html
     assert state(database_engine) == before
 
