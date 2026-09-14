@@ -40,7 +40,7 @@
   position: sticky;
   top: env(safe-area-inset-top, 0px);
   z-index: 20;
-  margin-bottom: var(--app-space-2);
+  margin-bottom: var(--app-space-1);
   padding: var(--app-space-1) var(--app-space-4);
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-card);
@@ -51,7 +51,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--app-space-1) var(--app-space-2);
-  margin: 0 0 var(--app-space-2);
+  margin: 0 0 var(--app-space-1);
   font-size: var(--app-font-size-label);
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-status .status-pill {
