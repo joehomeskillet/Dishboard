@@ -158,6 +158,24 @@ def test_validator_path_not_found_raises_error():
             resolver_empty()
 
 
+def test_csv_artifacts_ship_schema_3_headers():
+    """(e) The four CSV template/example artefacts carry the Schema-3 header with beilage_dazu."""
+    csv_root = WORKTREE_ROOT / "csv"
+    for filename, expected_headers in (
+        ("menu_patient_template.csv", csvio.PATIENT_HEADERS),
+        ("menu_cafeteria_template.csv", csvio.CAFETERIA_HEADERS),
+        ("menu_patient_example.csv", csvio.PATIENT_HEADERS),
+        ("menu_cafeteria_example.csv", csvio.CAFETERIA_HEADERS),
+    ):
+        path = csv_root / filename
+        assert path.is_file(), f"CSV-Artefakt fehlt: {path}"
+        first_line = path.read_text(encoding="utf-8-sig").splitlines()[0]
+        assert first_line.split(";") == expected_headers, (
+            f"{filename} trägt nicht den Schema-3-Header mit beilage_dazu: {first_line}"
+        )
+        assert "beilage_dazu" in expected_headers
+
+
 def test_validator_function_uses_validator_path():
     """_validator() function uses _validator_path() to resolve the module."""
     # This is tested implicitly by any call to csvio._validator()

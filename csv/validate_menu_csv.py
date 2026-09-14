@@ -299,7 +299,7 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
             seen_external.add(row['external_id'].strip())
         if not row.get('titel', '').strip():
             add_error('titel fehlt.', line=line_number, field='titel')
-        if schema_version == 3 and row.get('beilage_dazu', '').strip() not in {
+        if row.get('schema_version') == '3' and row.get('beilage_dazu', '').strip() not in {
             '',
             'suppe',
             'salat',
