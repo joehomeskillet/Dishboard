@@ -180,6 +180,27 @@ Manifest: 24 DEPLOYED, 28 PLANNED, 8 READY, 5 AWAITING_EXTERNAL.
 | MP-UI-KORREKTUR-VORLAGEN | DEPLOYED | Korrekturwelle ausgeliefert; keine erneut offene P1/P2-Implementierung. | Nach neuem UI-Prompt abnehmen; gemeinsame JS-/Dokumentationsbesitzer serialisieren. | S:20 |
 | MP-UI-KORREKTUR-SCREENS | DEPLOYED | Korrekturwelle ausgeliefert; keine erneut offene P1/P2-Implementierung. | Nach neuem UI-Prompt abnehmen; gemeinsame JS-/Dokumentationsbesitzer serialisieren. | S:20 |
 
+## Nachtrag 14. September 2026 — Beilagen-Welle, 12 neue IDs
+
+Diese zwölf IDs gehören nicht zu den 145 ursprünglichen SDD-Arbeitspaketen. Git-Graph und Deploy-Berichte belegen jeweils die erste Live-Release; `DEPLOYED` ersetzt keine getrennte physische Abnahme.
+
+| ACC-ID | Status | Erste Live-Release | Beleg / Abgrenzung |
+|---|---|---|---|
+| MP-REC-ACC-ICONS | DEPLOYED | `d306f7a8913d9c8c79e88edd39013b43a389a0e0` | `wp-d306f7a8913d-deploy.md`; Tabler-Generatorprüfung bestanden. |
+| MP-REC-ACC-SNAPSHOT | DEPLOYED | `17fa06f13836915f2fe7dba73f20858bf5f88b79` | `wp-17fa06f13836-deploy.md`; 2197 Tests bestanden. |
+| MP-REC-ACC-SCHEMA | DEPLOYED | `e0eee83ad0e4aec32e4fafae1395aac4fcbe3e78` | `wp-e0eee83ad0e4-deploy.md`; Schema 32 manuell migriert und live belegt. |
+| MP-REC-ACC-MENU-CORE | DEPLOYED | `e0eee83ad0e4aec32e4fafae1395aac4fcbe3e78` | `wp-e0eee83ad0e4-deploy.md`; MENU-CORE/SNAPSHOT/Patienten-E2E 2252 Tests bestanden. |
+| MP-REC-ACC-API-FHIR | DEPLOYED | `826c245259b397d0b78a55abfa81e770fb91ebcc` | `wp-826c245259b3-deploy.md`; 63 Tests sowie Live-OpenAPI/FHIR belegt. |
+| MP-REC-ACC-PUBLIC-OUTPUT | DEPLOYED | `485aeda9908436bc6f5b5b30fb0858b3eadfc89c` | `wp-485aeda99084-deploy.md`; 2130 Tests und Signage-Fit FHD/4K. |
+| MP-REC-ACC-WEEK-PDF | DEPLOYED | `89e8c972fabf1f71568db2a4f73b544da0cf5938` | `wp-89e8c972fabf-deploy.md`; 78 Tests bestanden. |
+| MP-REC-ACC-TEMPLATE | DEPLOYED | `7d0595d28d2eee9dfdb5861ff310b638ae574338` | `wp-7d0595d28d2e-deploy.md`; kombinierter Integrations-Gate 430 bestanden, 12 übersprungen. |
+| MP-REC-ACC-EDITOR-UI | DEPLOYED | `7d0595d28d2eee9dfdb5861ff310b638ae574338` | `wp-7d0595d28d2e-deploy.md`; 201 Tests bestanden, A02-Baseline getrennt offen. |
+| MP-REC-ACC-COLLECTION | DEPLOYED | `7d0595d28d2eee9dfdb5861ff310b638ae574338` | `wp-7d0595d28d2e-deploy.md`; 101 Tests bestanden, acht Baselinefehler. |
+| MP-REC-ACC-CSV | DEPLOYED | `7d0595d28d2eee9dfdb5861ff310b638ae574338` | `wp-7d0595d28d2e-deploy.md`; 94 Tests bestanden; zwei CSV-Review-P3 bleiben offen. |
+| MP-REC-ACC-ACCEPT | DEPLOYED | `7d0595d28d2eee9dfdb5861ff310b638ae574338` | `wp-acc-accept-0914.md`; A1–A16 bestanden, physischer Player und Küchendruck getrennt. |
+
+Offen bleiben A02 Cafeteria 1366×768, nicht gelaufene UI-Capture-Promotion `ui-before-manifest.json`, CSV-P3 für gemischte `schema_version`-Tests und Doku-Aufzählung sowie Root-Beobachtung P3: Proposal auf belegtem Slot zeigt im Prüfkontext «Keine Beilage». Diese Punkte erzeugen keine neuen Pakete.
+
 ## Grenze der Übertragung
 
 Die drei Audits führten keine neuen Tests, Browserprüfungen oder OCR-Reviews aus. Ihre zitierten Autoren-, Integrations- und Releasebelege bleiben entsprechend begrenzt. Fehlende zugeordnete Abnahmebelege sind keine neu bestätigten Produktfehler. Dieses Register ersetzt weder die spätere unabhängige Abnahme noch den aktuellen Freigabe- und Besitzplan.

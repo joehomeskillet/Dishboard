@@ -8136,7 +8136,14 @@
         "REC-008"
       ],
       "kind": "implementation",
-      "status": "IN_PROGRESS",
+      "status": "DEPLOYED",
+      "delivery_2026_09_14": {
+        "release": "e0eee83ad0e4aec32e4fafae1395aac4fcbe3e78",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-e0eee83ad0e4-deploy.md",
+        "root_gate": "APIint2  schema/pin/migration/allowlist (20 Dateien):          461 passed in 358.35s, GATE_EXIT=0",
+        "review": "/nvmetank1/projects/rag-stack/.claude/reports/wp-27cca8642aa2-review.md",
+        "status_correction": "IN_PROGRESS → DEPLOYED; ece427a ist erstmals in Release e0eee83 enthalten, Schema 32 wurde manuell migriert und live belegt."
+      },
       "wave": 0,
       "depends_on": [
         "MP-REC-MENU-PROPOSAL"
@@ -8320,7 +8327,14 @@
         "REC-008"
       ],
       "kind": "implementation",
-      "status": "REVIEWED_LOCAL",
+      "status": "DEPLOYED",
+      "delivery_2026_09_14": {
+        "release": "d306f7a8913d9c8c79e88edd39013b43a389a0e0",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-d306f7a8913d-deploy.md",
+        "root_gate": "TABLER VERIFY: 5 artifacts match tabler.lock.json.",
+        "review": "Root-Generatorprüfung laut Deploy-Bericht",
+        "status_correction": "REVIEWED_LOCAL → DEPLOYED; 0ca81ee ist erstmals in Release d306f7a enthalten und live belegt."
+      },
       "wave": 0,
       "depends_on": [],
       "existing_wp_id": "wp-0bdbe5f2eaec",
@@ -8415,7 +8429,14 @@
         "REC-008"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
+      "delivery_2026_09_14": {
+        "release": "e0eee83ad0e4aec32e4fafae1395aac4fcbe3e78",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-e0eee83ad0e4-deploy.md",
+        "root_gate": "Recipeprint MENU-CORE/SNAPSHOT/Patienten-E2E (13 Dateien):    2252 passed in 391.22s, GATE_EXIT=0",
+        "review": "/nvmetank1/projects/rag-stack/.claude/reports/wp-454e31b4f910-review.md",
+        "status_correction": "PLANNED → DEPLOYED; 5ba3ba9 ist erstmals in Release e0eee83 enthalten und live belegt."
+      },
       "wave": 1,
       "depends_on": [
         "MP-REC-ACC-SCHEMA",
@@ -8576,7 +8597,14 @@
         "REC-008"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
+      "delivery_2026_09_14": {
+        "release": "17fa06f13836915f2fe7dba73f20858bf5f88b79",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-17fa06f13836-deploy.md",
+        "root_gate": "2197 passed in 126.01s (0:02:06)",
+        "review": "/nvmetank1/projects/rag-stack/.claude/reports/wp-77e3668830b7-review.md",
+        "status_correction": "PLANNED → DEPLOYED; cf0cf7c ist erstmals in Release 17fa06f enthalten und live belegt."
+      },
       "wave": 1,
       "depends_on": [
         "MP-REC-ACC-SCHEMA"
@@ -8704,7 +8732,14 @@
         "REC-008"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
+      "delivery_2026_09_14": {
+        "release": "7d0595d28d2eee9dfdb5861ff310b638ae574338",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-7d0595d28d2e-deploy.md",
+        "root_gate": "Kombinierter Integrations-Gate 4a808f8 (UIother): `430 passed, 12 skipped in 590.55s`.",
+        "review": "/nvmetank1/projects/rag-stack/.claude/reports/wp-17225e6b6e42-review.md",
+        "status_correction": "PLANNED → DEPLOYED; abd8f6f ist erstmals in Release 7d0595d enthalten und live belegt."
+      },
       "wave": 1,
       "depends_on": [
         "MP-REC-ACC-SCHEMA",
@@ -8827,7 +8862,19 @@
         "REC-008"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
+      "delivery_2026_09_14": {
+        "release": "7d0595d28d2eee9dfdb5861ff310b638ae574338",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-7d0595d28d2e-deploy.md",
+        "root_gate": "UIother 201 passed, 1 Baseline (A02)",
+        "review": "/nvmetank1/projects/rag-stack/.claude/reports/wp-73fcdab5c0dd-review.md",
+        "status_correction": "PLANNED → DEPLOYED; ecb4eef ist erstmals in Release 7d0595d enthalten und live belegt.",
+        "open_followups": [
+          "A02 Cafeteria 1366×768: bestehende Baseline +6 px; Fix 3f53b13 nicht übernommen.",
+          "UI-Capture-Promotion ui-before-manifest.json nicht gelaufen; Dichtestatus bleibt not_run.",
+          "Proposal auf belegtem Slot zeigt im Prüfkontext «Keine Beilage»; Root-Beobachtung P3."
+        ]
+      },
       "wave": 2,
       "depends_on": [
         "MP-REC-ACC-MENU-CORE",
@@ -8943,7 +8990,14 @@
         "REC-008"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
+      "delivery_2026_09_14": {
+        "release": "485aeda9908436bc6f5b5b30fb0858b3eadfc89c",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-485aeda99084-deploy.md",
+        "root_gate": "UIother, alle 12 Einbindungen + Signage-Fit FHD/4K: `2130 passed in 260.59s`, GATE_EXIT=0",
+        "review": "Root-Diffprüfung laut Deploy-Bericht",
+        "status_correction": "PLANNED → DEPLOYED; c07a8ca ist erstmals in Release 485aeda enthalten und live belegt."
+      },
       "wave": 2,
       "depends_on": [
         "MP-REC-ACC-SNAPSHOT",
@@ -9056,7 +9110,14 @@
         "REC-008"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
+      "delivery_2026_09_14": {
+        "release": "89e8c972fabf1f71568db2a4f73b544da0cf5938",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-89e8c972fabf-deploy.md",
+        "root_gate": "Recipeprint `78 passed in 17.91s`, GATE_EXIT=0",
+        "review": "/nvmetank1/projects/rag-stack/.claude/reports/wp-336d17e85a66-review.md",
+        "status_correction": "PLANNED → DEPLOYED; 0c2bf99 ist erstmals in Release 89e8c97 enthalten und live belegt."
+      },
       "wave": 2,
       "depends_on": [
         "MP-REC-ACC-SNAPSHOT",
@@ -9153,7 +9214,14 @@
         "REC-008"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
+      "delivery_2026_09_14": {
+        "release": "826c245259b397d0b78a55abfa81e770fb91ebcc",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-826c245259b3-deploy.md",
+        "root_gate": "Templateeditor: `63 passed in 8.59s`, GATE_EXIT=0",
+        "review": "Root-Diffprüfung laut Deploy-Bericht",
+        "status_correction": "PLANNED → DEPLOYED; 855f1ac ist erstmals in Release 826c245 enthalten und live belegt."
+      },
       "wave": 2,
       "depends_on": [
         "MP-REC-ACC-SNAPSHOT"
@@ -9256,7 +9324,14 @@
         "REC-008"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
+      "delivery_2026_09_14": {
+        "release": "7d0595d28d2eee9dfdb5861ff310b638ae574338",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-7d0595d28d2e-deploy.md",
+        "root_gate": "Templateeditor 101 passed, 8 Baseline",
+        "review": "Root-Diffprüfung laut Deploy-Bericht",
+        "status_correction": "PLANNED → DEPLOYED; 1f363b0 ist erstmals in Release 7d0595d enthalten und live belegt."
+      },
       "wave": 3,
       "depends_on": [
         "MP-REC-ACC-MENU-CORE",
@@ -9356,7 +9431,18 @@
         "REC-008"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
+      "delivery_2026_09_14": {
+        "release": "7d0595d28d2eee9dfdb5861ff310b638ae574338",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-7d0595d28d2e-deploy.md",
+        "root_gate": "Recipeprint 94 passed",
+        "review": "/nvmetank1/projects/rag-stack/.claude/reports/wp-0b7800406396-review.md",
+        "status_correction": "PLANNED → DEPLOYED; fff6c0c ist erstmals in Release 7d0595d enthalten und live belegt.",
+        "open_followups": [
+          "CSV-Review-P3: gemischte schema_version 2/3 ausdrücklich testen.",
+          "CSV-Review-P3: Doku-Aufzählung um ungültiges beilage_dazu und gemischte schema_version ergänzen."
+        ]
+      },
       "wave": 3,
       "depends_on": [
         "MP-REC-ACC-MENU-CORE",
@@ -9465,7 +9551,14 @@
         "REC-008"
       ],
       "kind": "verification",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
+      "delivery_2026_09_14": {
+        "release": "7d0595d28d2eee9dfdb5861ff310b638ae574338",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-7d0595d28d2e-deploy.md",
+        "root_gate": "5 passed; A1–A16 bestanden",
+        "review": "/nvmetank1/projects/rag-stack/.claude/reports/wp-acc-accept-0914.md",
+        "status_correction": "PLANNED → DEPLOYED; fd5ed22 ist erstmals in Release 7d0595d enthalten. Verifikation A1–A16 bestanden; physischer Player und Küchendruck bleiben getrennt."
+      },
       "wave": 3,
       "depends_on": [
         "MP-REC-ACC-EDITOR-UI",
@@ -10135,18 +10228,18 @@
       "acc_packages": 12
     },
     "package_statuses": {
-      "MP-REC-ACC-SCHEMA": "IN_PROGRESS",
-      "MP-REC-ACC-ICONS": "REVIEWED_LOCAL",
-      "MP-REC-ACC-MENU-CORE": "PLANNED",
-      "MP-REC-ACC-SNAPSHOT": "PLANNED",
-      "MP-REC-ACC-TEMPLATE": "PLANNED",
-      "MP-REC-ACC-EDITOR-UI": "PLANNED",
-      "MP-REC-ACC-PUBLIC-OUTPUT": "PLANNED",
-      "MP-REC-ACC-WEEK-PDF": "PLANNED",
-      "MP-REC-ACC-API-FHIR": "PLANNED",
-      "MP-REC-ACC-COLLECTION": "PLANNED",
-      "MP-REC-ACC-CSV": "PLANNED",
-      "MP-REC-ACC-ACCEPT": "PLANNED"
+      "MP-REC-ACC-SCHEMA": "DEPLOYED",
+      "MP-REC-ACC-ICONS": "DEPLOYED",
+      "MP-REC-ACC-MENU-CORE": "DEPLOYED",
+      "MP-REC-ACC-SNAPSHOT": "DEPLOYED",
+      "MP-REC-ACC-TEMPLATE": "DEPLOYED",
+      "MP-REC-ACC-EDITOR-UI": "DEPLOYED",
+      "MP-REC-ACC-PUBLIC-OUTPUT": "DEPLOYED",
+      "MP-REC-ACC-WEEK-PDF": "DEPLOYED",
+      "MP-REC-ACC-API-FHIR": "DEPLOYED",
+      "MP-REC-ACC-COLLECTION": "DEPLOYED",
+      "MP-REC-ACC-CSV": "DEPLOYED",
+      "MP-REC-ACC-ACCEPT": "DEPLOYED"
     },
     "icons_source_evidence": {
       "routing_wp": "wp-0bdbe5f2eaec",

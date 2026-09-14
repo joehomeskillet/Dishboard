@@ -28,7 +28,7 @@ Letzter belegter Produktivstand ist `5f5f6cb`/Schema 25; seit 9. September,
 Public Screens sind bereits live. Der ältere Stand darunter ist historisch.
 Planung bedeutet keine Fertigmeldung der Umsetzung oder Abnahme.
 
-## Nachtrag — 13. September 2026: REC-008 Menübeilage Suppe oder Salat
+## Nachtrag — 14. September 2026: REC-008 Menübeilage Suppe oder Salat
 
 Pro Menü genau eine Wahl: **keine**, **Suppe** oder **Salat (gemischt und grün,
 immer beides)**. Die Beilage gehört in Menüstruktur und Gerichtvorlagen-Vorschlag,
@@ -39,30 +39,24 @@ wird der gewählte Formularwert; alte Menüs, Publikationsbytes und Hashes bleib
 [Startauftrag](superpowers/menu-accompaniments-0913/START.md) führen zwölf
 `MP-REC-ACC-*`-Pakete. Sie sind in [recipes-wps.json](superpowers/backlog-0909/recipes-wps.json)
 und dem datierten ACC-Nachtrag von [file-leases.json](superpowers/backlog-0909/file-leases.json)
-registriert: insgesamt 188 Pakete für 36 Anforderungen, keine Fertigquote.
+registriert: insgesamt 188 Pakete für 36 Anforderungen. Alle zwölf ACC-Pakete sind
+belegt `DEPLOYED`; ihre erste Live-Release steht paketweise im Registry-Eintrag
+`delivery_2026_09_14`.
 
-Bestätigter Root-Stand: Schema 31 ist mit `4be7b79d69e38e70875981a70d7b975591e5218c`
-seit 13.09., 08:53 CEST gesund live. Schema 32 / `0029_v31_to_v32.sql` ist für
-ACC reserviert; PLAN-PORTIONS wartet auf eine spätere eigene Reservierung.
-`MP-REC-ACC-SCHEMA` (`wp-65e15658fc4b`) ist `IN_PROGRESS`: Nach dem Nutzerauftrag
-«Mit verfügbaren GPT-Workern fortsetzen» bestätigt Root den Start mit
-`gpt-5.6-sol`/high im eigenen Worktree `accompaniment-schema-codex-0913`
-(PTY 90840, 09:08 CEST, APIint2 exklusiv). Noch kein Quellfreeze oder Abnahmebeleg.
-Historisch bleibt `BLOCKED_PROVIDER` erhalten: Spark-Aufruf 7070 endete mit Usage-Limit,
-Exit 1 («try again at 1:28 PM»); der Worktree bleibt sauber auf `4711c220`, ohne
-Produktänderungen. Root hat die Spark-Lane nach diesem Fehler als ausgefallen markiert.
-Die Iconquelle `0ca81eebb14223fbc7d69cb47a6571bd08fcc333`
-(`wp-0bdbe5f2eaec`) ist nach Root-Recovery und Generatorprüfung `REVIEWED_LOCAL`,
-ausdrücklich nicht deployed. Die zehn übrigen Pakete sind `PLANNED`.
+Die gestaffelte Auslieferung begann mit ICONS in `d306f7a`, SNAPSHOT in `17fa06f`,
+SCHEMA/MENU-CORE samt manueller Schema-32-Migration in `e0eee83`, API/FHIR in
+`826c245`, PUBLIC-OUTPUT in `485aeda` und WEEK-PDF in `89e8c97`. Release
+`7d0595d28d2eee9dfdb5861ff310b638ae574338` brachte TEMPLATE, EDITOR-UI,
+COLLECTION, CSV und ACCEPT erstmals live. Die unabhängige Verifikation meldet
+A1–A16 bestanden; physischer Player und Küchendruck bleiben getrennte Abnahmen.
 
-Der nach dem Fable-Sitzungslimit gesicherte Plan `2eaa408` bleibt als Herkunft
-erhalten. Die letzte Nutzerentscheidung erlaubt verfügbare GPT-Worker und ersetzt
-die frühere ausschliessliche Spark-Vorgabe; tatsächliche Modelle je Start belegen. F3 ist entschieden:
-`accompaniment_name` enthält «Suppe» oder «Salat (gemischt und grün)», niemals
-«Dazu:». F5 ist entschieden: verlustfreier CSV-Schema-3-Roundtrip samt explizitem
-Schema-2-Import gehört dazu. Keine sichtbare Schreiboberfläche vor Integration
-aller Snapshot-Reader, öffentlichen Ausgaben und CSV-Verbraucher; mindestens
-48 px Bedienziele, ein Writer je Datei und unabhängige Gesamtabnahme bleiben Pflicht.
+F3 bleibt: `accompaniment_name` enthält «Suppe» oder «Salat (gemischt und grün)»,
+niemals «Dazu:». F5 bleibt: verlustfreier CSV-Schema-3-Roundtrip samt explizitem
+Schema-2-Import. Offen sind A02 Cafeteria 1366×768, die nicht gelaufene
+UI-Capture-Promotion `ui-before-manifest.json`, CSV-Review-P3 zu gemischten
+`schema_version`-Tests und Doku-Aufzählung sowie die Root-Beobachtung P3, dass ein
+Proposal auf belegtem Slot im Prüfkontext «Keine Beilage» zeigt. Dafür wurden keine
+neuen Pakete erfunden.
 
 ## Nachtrag — 13. September 2026: Gerichtvorlagen ↔ Rezepte, Menüvorschlag, Rezeptansicht und Druck
 
@@ -280,7 +274,7 @@ Planung und Einkaufslisten bauen auf Rezepten, Portionen und Einheiten auf. Reze
 | ID | Auftrag | Umfang / noch offen |
 |---|---|---|
 | REC-003 | Rezeptplanung und Einkaufslisten | Rezepte mit Portionszahlen in bestehende Tages-/Wochenplanung aufnehmen; Einkaufszettel aus Plan oder Rezeptauswahl, Mengen/Einheiten sinnvoll zusammenführen, ergänzen und abhaken. Einkaufslisten druckbar. |
-| REC-008 | Menübeilage Suppe oder Salat | Genau eine Wahl je Menü: keine, Suppe oder Salat (gemischt und grün, immer beides). Gerichtvorlage schlägt vor; Menü speichert die Wahl. Editor, Karte, Snapshot, Public/Signage/Druck, API/FHIR/MCP und CSV-Roundtrip vollständig anschliessen; alte Revisionen erhalten. Zwölf ACC-WPs, kein sichtbarer Teilrelease. |
+| REC-008 | Menübeilage Suppe oder Salat | `DEPLOYED` seit `7d0595d`: genau eine Wahl je Menü, Gerichtvorlagen-Vorschlag, Editor/Karte/Snapshot, Public/Signage/Druck, API/FHIR/MCP, Sammlung und CSV-Roundtrip angeschlossen; alte Revisionen erhalten. A02, Capture-Promotion, CSV-P3 sowie physischer Player/Küchendruck bleiben getrennt offen. |
 | REC-007 | **Rezepte drucken und Drucklayout bearbeiten** | Rezept- und Einkaufslisten-PDFs unter Vorlagen, mit editierbarem Layout, Logo, Zutaten, Portionen, Schritten, Bildern und Legenden. Sinnvolle Seitenumbrüche für lange Rezepte; Einseitenpflicht gilt weiterhin für Wochenpläne. |
 | REC-002 | KI-Hilfen für Rezepte | Bilder/Dokumente erkennen, Rezeptschritte strukturieren und sortieren, Zutaten zuordnen, Nährwerte und weitere Metadaten vorschlagen. Quellen und Schätzstatus anzeigen; menschliche Prüfung vor Übernahme. |
 
