@@ -231,7 +231,8 @@ def test_editor_viewport_matrix_split_touch_and_sticky_bar(page_context: Page, f
         form = page.locator('form[data-menu-editor]')
         review = page.locator('#review')
         form_box, review_box = _box(form), _box(review)
-        if width >= 1200:
+        # The compact editor (f86191f) splits form and review from 992px, like test_ui_korrektur_editor_browser.
+        if width >= 992:
             assert review_box['x'] >= form_box['x'] + form_box['width'] - 1, width
             assert abs(review_box['y'] - form_box['y']) < 8, width
         else:
@@ -269,7 +270,7 @@ def test_editor_viewport_matrix_split_touch_and_sticky_bar(page_context: Page, f
         last_section = form.locator('details.admin-accordion').last
         last_box = _box(last_section)
         assert last_box['y'] + last_box['height'] <= bar_box['y'] + 1, 'Save bar covers the last section.'
-        if width < 1200:
+        if width < 992:
             review_box = _box(review)
             assert review_box['y'] >= bar_box['y'] + bar_box['height'] - 1, 'Save bar covers the review panel.'
 
