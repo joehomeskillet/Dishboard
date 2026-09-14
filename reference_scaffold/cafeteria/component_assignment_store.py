@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Mapping, Sequence
+from decimal import Decimal
 
 from sqlalchemy import Connection, Engine, text
 
@@ -44,6 +45,8 @@ def assign_component(
     expected_item_row_version: int,
     *,
     recipe_revision_public_id: str | None = None,
+    target_quantity: str | None = None,
+    target_quantity_unit_code: str | None = None,
 ) -> int:
     assignment = _normalize_assignments(
         [
@@ -51,6 +54,8 @@ def assign_component(
                 'component_public_id': component_public_id,
                 'component_text': component_text,
                 'recipe_revision_public_id': recipe_revision_public_id,
+                'target_quantity': target_quantity,
+                'target_quantity_unit_code': target_quantity_unit_code,
             }
         ]
     )[0]
@@ -249,14 +254,16 @@ def _replace_component_links_connection(
     for food_id, count in new_foods.items():
         if not state.foods[food_id]['active'] and count > old_foods[food_id]:
             raise ComponentAssignmentConflictError('Archivierte Zutat kann nicht neu zugewiesen werden.')
+    targets = _resolve_targets(connection, item_id, old, assignments, state)
     connection.execute(
         text('DELETE FROM cafeteria.menu_item_components WHERE menu_item_id=:item_id'),
         {'item_id': item_id},
     )
     rows = []
-    for sort_order, assignment in enumerate(assignments, 1):
+    for sort_order, (assignment, target) in enumerate(zip(assignments, targets, strict=True), 1):
         component = by_public_id.get(assignment.component_public_id or '')
         recipe = state.recipes.get(assignment.recipe_revision_public_id or '')
+        target_quantity, target_quantity_unit_id = target
         rows.append(
             {
                 'item_id': item_id,
@@ -269,6 +276,8 @@ def _replace_component_links_connection(
                     int(component['row_version']) if component is not None else None
                 ),
                 'recipe_revision_id': int(recipe['revision_id']) if recipe is not None else None,
+                'target_quantity': target_quantity,
+                'target_quantity_unit_id': target_quantity_unit_id,
             }
         )
     if rows:
@@ -277,15 +286,115 @@ def _replace_component_links_connection(
                 '''
                 INSERT INTO cafeteria.menu_item_components(
                     menu_item_id, sort_order, component_text, component_id, component_row_version,
-                    recipe_revision_id
+                    recipe_revision_id, target_quantity, target_quantity_unit_id
                 ) VALUES (
                     :item_id, :sort_order, :component_text, :component_id, :component_version,
-                    :recipe_revision_id
+                    :recipe_revision_id, :target_quantity, :target_quantity_unit_id
                 )
                 '''
             ),
             rows,
         )
+
+
+def _revision_servings_units(
+    connection: Connection, state: BindingState
+) -> dict[int, str | None]:
+    revision_ids = sorted({int(row['revision_id']) for row in state.recipes.values()})
+    if not revision_ids:
+        return {}
+    return {
+        int(row['id']): row['unit_code']
+        for row in connection.execute(
+            text(
+                '''
+                SELECT id, snapshot_json->'recipe'->>'servings_unit_code' AS unit_code
+                FROM cafeteria.recipe_revisions WHERE id=ANY(CAST(:ids AS bigint[]))
+                '''
+            ),
+            {'ids': revision_ids},
+        ).mappings()
+    }
+
+
+def _unit_ids_by_code(connection: Connection, assignments: Sequence[Assignment]) -> dict[str, int]:
+    codes = sorted({
+        row.target_quantity_unit_code for row in assignments
+        if row.target_field_present and row.target_quantity_unit_code is not None
+    })
+    if not codes:
+        return {}
+    return {
+        str(row['code']): int(row['id'])
+        for row in connection.execute(
+            text('SELECT id, code FROM cafeteria.measurement_units WHERE code=ANY(CAST(:codes AS text[]))'),
+            {'codes': codes},
+        ).mappings()
+    }
+
+
+def _old_targets_by_sort_order(
+    connection: Connection, item_id: int, old: Sequence[Mapping[str, object]]
+) -> dict[int, tuple[Decimal | None, int | None]]:
+    if not old:
+        return {}
+    rows = connection.execute(
+        text(
+            'SELECT sort_order, target_quantity, target_quantity_unit_id '
+            'FROM cafeteria.menu_item_components WHERE menu_item_id=:item_id'
+        ),
+        {'item_id': item_id},
+    ).mappings()
+    return {int(row['sort_order']): (row['target_quantity'], row['target_quantity_unit_id']) for row in rows}
+
+
+def _resolve_targets(
+    connection: Connection,
+    item_id: int,
+    old: Sequence[Mapping[str, object]],
+    assignments: Sequence[Assignment],
+    state: BindingState,
+) -> list[tuple[Decimal | None, int | None]]:
+    """Validate D3 and resolve each row's stored target quantity/unit.
+
+    A row that carries the target keys is validated fresh (unit exists, matches the bound
+    revision's declared servings unit, requires a bound revision). A row that omits both keys
+    keeps whatever was stored for the SAME position only if that position's resolved revision
+    is unchanged; this never guesses a target across a changed or removed binding.
+    """
+    old_targets = _old_targets_by_sort_order(connection, item_id, old)
+    servings_units = _revision_servings_units(connection, state)
+    unit_ids = _unit_ids_by_code(connection, assignments)
+    resolved: list[tuple[Decimal | None, int | None]] = []
+    for position, assignment in enumerate(assignments, 1):
+        recipe = state.recipes.get(assignment.recipe_revision_public_id or '')
+        if assignment.target_field_present:
+            if assignment.target_quantity is None:
+                resolved.append((None, None))
+                continue
+            if recipe is None:
+                raise ComponentAssignmentValidationError(
+                    'Zielmenge erfordert eine gebundene Rezeptrevision.'
+                )
+            unit_id = unit_ids.get(assignment.target_quantity_unit_code or '')
+            if unit_id is None:
+                raise ComponentAssignmentValidationError('Zieleinheit ist unbekannt.')
+            expected_unit = servings_units.get(int(recipe['revision_id']))
+            if assignment.target_quantity_unit_code != expected_unit:
+                raise ComponentAssignmentValidationError(
+                    'Zieleinheit muss der Ausbeuteeinheit der gebundenen Rezeptrevision entsprechen.'
+                )
+            resolved.append((Decimal(assignment.target_quantity), unit_id))
+            continue
+        previous = old_targets.get(position)
+        previous_row = old[position - 1] if previous is not None and position <= len(old) else None
+        new_revision_id = int(recipe['revision_id']) if recipe is not None else None
+        if (previous is not None and previous[0] is not None and previous_row is not None
+                and previous_row['recipe_revision_id'] == new_revision_id):
+            resolved.append(previous)
+        else:
+            resolved.append((None, None))
+    return resolved
 
 
 def _normalize_assignments(value: object) -> list[Assignment]:

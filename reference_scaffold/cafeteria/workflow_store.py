@@ -149,15 +149,21 @@ def load_draft_connection(
                    WHERE c.menu_item_id=i.id ORDER BY c.sort_order
                ) AS components,
                COALESCE((
-                   SELECT jsonb_agg(jsonb_build_object(
-                       'component_public_id', mc.public_id::text,
-                       'component_text', CASE WHEN c.component_id IS NULL
-                                              THEN c.component_text ELSE NULL END,
-                       'recipe_revision_public_id', rr.public_id::text
-                   ) ORDER BY c.sort_order)
+                   SELECT jsonb_agg(
+                       jsonb_build_object(
+                           'component_public_id', mc.public_id::text,
+                           'component_text', CASE WHEN c.component_id IS NULL
+                                                  THEN c.component_text ELSE NULL END,
+                           'recipe_revision_public_id', rr.public_id::text
+                       ) || CASE WHEN c.target_quantity IS NOT NULL THEN jsonb_build_object(
+                                'target_quantity', c.target_quantity::text,
+                                'target_quantity_unit_code', tu.code
+                            ) ELSE '{{}}'::jsonb END
+                   ORDER BY c.sort_order)
                    FROM cafeteria.menu_item_components c
                    LEFT JOIN cafeteria.menu_components mc ON mc.id=c.component_id
                    LEFT JOIN cafeteria.recipe_revisions rr ON rr.id=c.recipe_revision_id
+                   LEFT JOIN cafeteria.measurement_units tu ON tu.id=c.target_quantity_unit_id
                    WHERE c.menu_item_id=i.id
                ), '[]'::jsonb) AS assignments,
                COALESCE((

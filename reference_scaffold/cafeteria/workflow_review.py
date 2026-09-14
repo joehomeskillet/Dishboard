@@ -50,6 +50,8 @@ _ROW_KEYS = {
 }
 _TOKEN_PATTERN = re.compile(r'sha256:[0-9a-f]{64}')
 _RECIPE_KEYS = frozenset({'recipe_revision_public_id', 'recipe_content_hash_sha256'})
+_TARGET_KEYS = frozenset({'target_quantity', 'target_quantity_unit_code'})
+_UNIT_CODE_PATTERN = re.compile(r'[A-Z][A-Z0-9_]{0,15}')
 
 
 def _positive_integer(value: object, label: str) -> int:
@@ -82,8 +84,12 @@ def _validate_components(value: object) -> None:
     ordering = []
     for raw in value:
         has_recipe = isinstance(raw, Mapping) and bool(_RECIPE_KEYS.intersection(raw))
-        row = _exact_mapping(raw, _COMPONENT_KEYS | _RECIPE_KEYS if has_recipe else _COMPONENT_KEYS,
-                             'Komponente')
+        has_target = isinstance(raw, Mapping) and bool(_TARGET_KEYS.intersection(raw))
+        keys = _COMPONENT_KEYS | (_RECIPE_KEYS if has_recipe else frozenset()) | (
+            _TARGET_KEYS if has_target else frozenset())
+        row = _exact_mapping(raw, keys, 'Komponente')
+        if has_target and not has_recipe:
+            raise ValueError('Zielmenge ohne Rezeptbezug ist ungültig.')
         if has_recipe:
             revision = _string(row['recipe_revision_public_id'], 'recipe_revision_public_id')
             try:
@@ -94,6 +100,11 @@ def _validate_components(value: object) -> None:
             digest = _string(row['recipe_content_hash_sha256'], 'recipe_content_hash_sha256')
             if re.fullmatch(r'[0-9a-f]{64}', digest) is None:
                 raise ValueError('Rezeptinhaltshash ist ungültig.')
+        if has_target:
+            _string(row['target_quantity'], 'target_quantity')
+            unit_code = _string(row['target_quantity_unit_code'], 'target_quantity_unit_code')
+            if _UNIT_CODE_PATTERN.fullmatch(unit_code) is None:
+                raise ValueError('target_quantity_unit_code hat ein ungültiges Format.')
         ordering.append(_positive_integer(row['sort_order'], 'sort_order'))
         _string(row['component_text'], 'component_text')
         public_id = row['component_public_id']
@@ -239,6 +250,9 @@ def _review_payload(
             **({'recipe_revision_public_id': str(row['recipe_revision_public_id']),
                 'recipe_content_hash_sha256': str(row['recipe_content_hash_sha256'])}
                if row['recipe_revision_public_id'] is not None else {}),
+            **({'target_quantity': str(row['target_quantity']),
+                'target_quantity_unit_code': str(row['target_quantity_unit_code'])}
+               if row['target_quantity'] is not None else {}),
         }
         for row in connection.execute(
             text(
@@ -248,10 +262,12 @@ def _review_payload(
                        mic.component_row_version AS stored_component_row_version,
                        c.row_version AS current_component_row_version,
                        rr.public_id::text AS recipe_revision_public_id,
-                       rr.content_hash_sha256 AS recipe_content_hash_sha256
+                       rr.content_hash_sha256 AS recipe_content_hash_sha256,
+                       mic.target_quantity, tu.code AS target_quantity_unit_code
                 FROM cafeteria.menu_item_components mic
                 LEFT JOIN cafeteria.menu_components c ON c.id=mic.component_id
                 LEFT JOIN cafeteria.recipe_revisions rr ON rr.id=mic.recipe_revision_id
+                LEFT JOIN cafeteria.measurement_units tu ON tu.id=mic.target_quantity_unit_id
                 WHERE mic.menu_item_id=:item_id
                 ORDER BY mic.sort_order
                 '''

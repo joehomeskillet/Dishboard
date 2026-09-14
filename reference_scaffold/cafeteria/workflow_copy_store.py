@@ -299,14 +299,14 @@ def _clone_tree(
         '''
         INSERT INTO cafeteria.menu_item_components(
             menu_item_id, sort_order, component_text, component_id, component_row_version,
-            recipe_revision_id
+            recipe_revision_id, target_quantity, target_quantity_unit_id
         )
         SELECT target_item.id, link.sort_order,
                CASE WHEN link.component_id IS NULL OR NOT current.active
                     THEN link.component_text ELSE current.name END,
                current.id, CASE WHEN current.active THEN current.row_version
                                 ELSE link.component_row_version END,
-               link.recipe_revision_id
+               link.recipe_revision_id, link.target_quantity, link.target_quantity_unit_id
         FROM cafeteria.menu_item_components link
         JOIN cafeteria.menu_items source_item ON source_item.id=link.menu_item_id
         JOIN cafeteria.menu_services source_service ON source_service.id=source_item.service_id
