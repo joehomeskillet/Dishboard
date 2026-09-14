@@ -32,6 +32,11 @@ ACTOR_IDENTIFIER = 'login-m365.admin@example.invalid'
 LOCAL_USERNAME = 'kueche.m365'
 LOCAL_PASSWORD = 'Correct-Horse-2026!Battery'
 EVIDENCE = ROOT / '.claude' / 'evidence' / 'auth-login-m365-0914'
+# Manifest §5.2 spacing scale: a label sits directly above its field (8px, --app-space-2, the
+# installed Tabler .form-label margin); separate field groups keep the 24px form grid gap.
+LABEL_FIELD_GAP_MAX_PX = 8
+FORM_GROUP_GAP_MIN_PX = 24
+TARGET_MIN_PX = 48
 pytestmark = pytest.mark.skipif(
     not DATABASE_URL or not REDIS_URL,
     reason='TEST_DATABASE_URL und TEST_REDIS_URL für isolierte Auth-Tests fehlen.',
@@ -43,6 +48,18 @@ _LAYOUT_JS = """
   const submit = document.querySelector('.auth-submit');
   const cardRect = card.getBoundingClientRect();
   const submitRect = submit.getBoundingClientRect();
+  const fields = [...document.querySelectorAll('.auth-field')].map(field => {
+    const label = field.querySelector('label');
+    const input = field.querySelector('.auth-input');
+    // Rendered text lines of the label, to detect a label box inflated beyond its text.
+    const range = document.createRange();
+    range.selectNodeContents(label);
+    const style = getComputedStyle(label);
+    return {label: label.getBoundingClientRect(), input: input.getBoundingClientRect(),
+            lines: range.getClientRects().length, fontSize: parseFloat(style.fontSize),
+            labelMinHeight: style.minHeight};
+  });
+  const nav = document.querySelector('.auth-page-links').getBoundingClientRect();
   return {
     viewportOverflow: document.documentElement.scrollWidth > innerWidth + 1,
     clippedElements: [...document.querySelectorAll('.auth-shell, .auth-card')]
@@ -50,9 +67,40 @@ _LAYOUT_JS = """
       .map(el => el.className),
     cardCentered: Math.abs((cardRect.left + cardRect.right) / 2 - innerWidth / 2) <= 2,
     buttonHeight: submitRect.height,
+    labelFieldGaps: fields.map(field => ({gap: field.input.top - field.label.bottom,
+                                          labelHeight: field.label.height,
+                                          textLinesMaxHeight: field.lines * field.fontSize * 1.5,
+                                          labelMinHeight: field.labelMinHeight})),
+    fieldGroupGaps: fields.slice(1).map((field, index) => field.label.top - fields[index].input.bottom),
+    pageLinks: [...document.querySelectorAll('.auth-page-links a')].map(link => {
+      const box = link.getBoundingClientRect();
+      const style = getComputedStyle(link);
+      return {height: box.height, width: box.width, fontSize: style.fontSize,
+              background: style.backgroundColor, border: style.borderTopStyle};
+    }),
+    pageLinksBelowCard: nav.top >= cardRect.bottom,
   };
 }
 """
+
+
+def _assert_form_rhythm_and_targets(metrics: dict) -> None:
+    """Label directly above its field, separated groups, 48px footer link targets without bloat."""
+    assert len(metrics['labelFieldGaps']) == 2, metrics
+    for field in metrics['labelFieldGaps']:
+        # Label bottom edge is its text: box no taller than its lines at the manifest line-height 1.5.
+        assert field['labelHeight'] <= field['textLinesMaxHeight'], metrics['labelFieldGaps']
+        assert 0 <= round(field['gap'], 2) <= LABEL_FIELD_GAP_MAX_PX, metrics['labelFieldGaps']
+    assert metrics['fieldGroupGaps'], metrics
+    assert all(round(gap, 2) >= FORM_GROUP_GAP_MIN_PX for gap in metrics['fieldGroupGaps']), (
+        metrics['fieldGroupGaps'], metrics['labelFieldGaps'])
+    assert len(metrics['pageLinks']) == 2, metrics
+    for link in metrics['pageLinks']:
+        assert link['height'] >= TARGET_MIN_PX and link['width'] >= TARGET_MIN_PX, metrics['pageLinks']
+        # The larger hit area stays a plain text link: same small type, no filled or boxed chrome.
+        assert link['fontSize'] == '13px', metrics['pageLinks']
+        assert link['background'] == 'rgba(0, 0, 0, 0)' and link['border'] == 'none', metrics['pageLinks']
+    assert metrics['pageLinksBelowCard'] is True, metrics
 
 
 def _role_database_url(role: str, password: str) -> str:
@@ -161,6 +209,7 @@ def test_auth_local_login_layout_contrast_and_tab_order(live_site, browser):  # 
             assert metrics['clippedElements'] == [], metrics
             assert metrics['cardCentered'] is True, metrics
             assert metrics['buttonHeight'] >= 48, metrics
+            _assert_form_rhythm_and_targets(metrics)
             page.screenshot(path=str(EVIDENCE / f'auth-local-{width}x{height}.png'), full_page=True)
 
         # Footer link contrast against the teal page background (real pixels).
@@ -218,6 +267,7 @@ def test_auth_local_login_zoom_200_native(live_site, browser, tmp_path):  # noqa
             assert metrics['viewportOverflow'] is False, metrics
             assert metrics['clippedElements'] == [], metrics
             assert metrics['buttonHeight'] >= 48, metrics
+            _assert_form_rhythm_and_targets(metrics)
             page.screenshot(path=str(EVIDENCE / 'auth-local-zoom200-1440.png'), full_page=True)
 
 

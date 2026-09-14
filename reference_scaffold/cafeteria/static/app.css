@@ -361,9 +361,10 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
 .auth-card-header h1 { margin: 0 0 0.5rem; font-size: clamp(1.75rem, 4vw, 2.5rem); line-height: 1.1; letter-spacing: -0.025em; }
 .auth-lead { margin: 0; color: var(--sh-ink-muted); font-size: 0.95rem; line-height: 1.5; }
 .auth-alert { margin: 1.5rem 1.5rem 0; padding: 1rem 1.25rem; border-radius: var(--sh-radius-md); color: var(--sh-magenta); background: var(--sh-magenta-soft); font-size: 0.9rem; font-weight: 600; line-height: 1.5; }
-.auth-form { display: flex; flex-direction: column; padding: 1.5rem; gap: 1.25rem; }
+.auth-form { display: flex; flex-direction: column; padding: 1.5rem; gap: 1.5rem; }
 .auth-field { display: flex; flex-direction: column; gap: 0.5rem; }
-.auth-field label { display: block; color: var(--sh-ink); font-size: 0.9rem; font-weight: 600; }
+/* Text label above its field: opt out of the global 44px label target meant for inline controls. */
+.auth-field label { display: block; min-height: 0; color: var(--sh-ink); font-size: 0.9rem; font-weight: 600; }
 .auth-input { display: block; width: 100%; min-height: 48px; padding: 0.75rem 1rem; border: 1px solid var(--sh-border); border-radius: var(--sh-radius-sm); color: var(--sh-ink); background: var(--sh-white); font-size: 1rem; font-family: inherit; }
 .auth-input:hover { border-color: var(--sh-teal-700); }
 .auth-input:focus { outline: none; box-shadow: var(--sh-focus); }
@@ -379,8 +380,9 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
 .auth-org-link:hover { border-color: var(--sh-teal-700); background: var(--sh-teal-050); }
 .auth-org-link:focus { outline: none; box-shadow: var(--sh-focus); }
 .auth-card-footer { margin: 0; padding: 1rem 1.5rem; border-top: 1px solid var(--sh-border); background: var(--sh-panel-soft); text-align: center; color: var(--sh-ink-muted); font-size: 0.8125rem; }
-.auth-page-links { position: absolute; right: clamp(1rem, 4vw, 2rem); bottom: clamp(1rem, 4vw, 1.5rem); display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; }
-.auth-page-links a { display: inline-block; padding: 0.25rem 0; color: var(--sh-white); font-size: 0.8125rem; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+/* 48px link targets; the extra hit area is transparent padding, so text position and size stay. */
+.auth-page-links { position: absolute; right: clamp(0.5rem, calc(4vw - 0.5rem), 1.5rem); bottom: clamp(0.25rem, calc(4vw - 0.75rem), 0.75rem); display: flex; flex-wrap: wrap; gap: 0 0.25rem; }
+.auth-page-links a { display: inline-flex; align-items: center; min-height: 48px; padding: 0 0.5rem; color: var(--sh-white); font-size: 0.8125rem; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 .auth-page-links a:hover { text-decoration-thickness: 2px; }
 .auth-page-links a:focus { outline: none; box-shadow: var(--sh-focus); border-radius: 4px; }
 
