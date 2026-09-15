@@ -1,0 +1,256 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header, icon, field, select, form_errors, empty_state, status %}
+{% set workflow_nav = 'shopping_lists' %}
+{% block title %}{{ detail.title }} · Einkaufslisten{% endblock %}
+{% block page_header %}
+{% call page_header(detail.title, breadcrumbs=[('Einkaufslisten', url_for('admin.shopping_lists_index')), (detail.title, none)]) %}
+<a class="btn" href="{{ url_for('admin.shopping_lists_index') }}">{{ icon('arrow-left') }}Zur Listenübersicht</a>
+{% endcall %}
+{% endblock %}
+{% block content %}
+{%- macro line_status(line) -%}
+{%- if line.checked_status == 'checked' -%}{{ status('active', label='Abgehakt') }}
+{%- elif line.checked_status == 'changed_open' -%}{{ icon('alert-triangle', class='text-warning me-1') }}Geändert, erneut offen
+{%- elif line.checked_status == 'not_current' -%}<span class="text-secondary">nicht aktuell</span>
+{%- else -%}{{ status('draft', label='Offen') }}{%- endif -%}
+{%- endmacro -%}
+{%- set policy_labels = {'leaf': 'Blattbedarf', 'prepared': 'Vorbereiteter Bedarf'} -%}
+{%- set detail_url = url_for('admin.shopping_list_detail', public_id=detail.public_id) -%}
+{% if summary %}{{ form_errors(summary) }}{% endif %}
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-sm-6 col-xl-3"><div class="text-secondary">Notiz</div><div class="text-break">{{ detail.note or '—' }}</div></div>
+      <div class="col-sm-6 col-xl-3"><div class="text-secondary">Woche</div><div>{{ week_labels.get(detail.menu_week_public_id, 'Keine Woche') }}</div></div>
+      <div class="col-sm-6 col-xl-2"><div class="text-secondary">Status</div><div>{% if detail.archived_at %}{{ status('archived') }}{% else %}{{ status('active') }}{% endif %}</div></div>
+      <div class="col-sm-6 col-xl-4">
+        {% if selected %}
+        <form method="get" action="{{ detail_url }}">
+          <label class="form-label" for="revision">Revision {{ selected.revision_number }} von {{ detail.revisions|length }}</label>
+          <select class="form-select" id="revision" name="revision">
+            {% for rev in detail.revisions %}
+            <option value="{{ rev.public_id }}"{% if selected.public_id == rev.public_id %} selected{% endif %}>Revision {{ rev.revision_number }} · {{ rev.computed_at.strftime('%d.%m.%Y %H:%M') }}</option>
+            {% endfor %}
+          </select>
+          <button class="btn mt-2" type="submit">{{ icon('eye') }}Revision anzeigen</button>
+        </form>
+        {% else %}<div class="text-secondary">Revision</div><div>Noch keine Berechnung</div>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% if selected and not selected.is_latest %}
+<div class="alert alert-warning mb-4" role="status">
+  <div class="d-flex flex-wrap align-items-center gap-3">
+    <div class="d-flex gap-2 flex-grow-1">
+      {{ icon('history', class='alert-icon flex-shrink-0') }}
+      <div>
+        <div class="fw-bold">Beleg vom {{ selected.computed_at.strftime('%d.%m.%Y %H:%M') }}, nicht aktuell.</div>
+        <div>Revision {{ selected.revision_number }} · {{ policy_labels.get(selected.policy, selected.policy) }}. Abhaken und Neu berechnen sind nur in der aktuellen Revision möglich.</div>
+      </div>
+    </div>
+    <a class="btn" href="{{ detail_url }}">{{ icon('eye') }}Aktuelle Revision anzeigen</a>
+  </div>
+</div>
+{% endif %}
+{% if can_write and not detail.archived_at and is_latest_view %}
+<section class="card mb-4" aria-labelledby="berechnen-title">
+  <div class="card-header"><h2 class="card-title" id="berechnen-title">Neu berechnen</h2></div>
+  <div class="card-body">
+    <form method="get" action="{{ detail_url }}" class="row g-2 align-items-end mb-3">
+      <div class="col-md-8">
+        <label class="form-label" for="compute_week">Woche für die Bausteinauswahl</label>
+        <select class="form-select" id="compute_week" name="compute_week">
+          <option value="">Woche wählen</option>
+          {% for week in weeks %}
+          <option value="{{ week.public_id }}"{% if week_public_id == week.public_id %} selected{% endif %}>{{ week.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-auto"><button class="btn" type="submit">Woche laden</button></div>
+    </form>
+    {% if week_public_id and not candidates %}
+    <p class="text-secondary">Keine gebundenen Bausteine in dieser Woche.</p>
+    {% elif candidates %}
+    {%- set component_error = field_errors.component_ids if error_form == 'compute' else none -%}
+    {%- set policy_error = field_errors.policy if error_form == 'compute' else none -%}
+    {%- set counter = namespace(value=0) -%}
+    <form method="post" action="{{ url_for('admin.shopping_list_compute', public_id=detail.public_id) }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="row_version" value="{{ detail.row_version }}">
+      <input type="hidden" name="menu_week_public_id" value="{{ week_public_id }}">
+      {% for group in candidates %}
+      <fieldset class="mb-3">
+        <legend class="form-label">{{ day_names[group.service_date.weekday()] }}, {{ group.service_date.strftime('%d.%m.%Y') }} · {{ group.meal_period_display_name }}</legend>
+        {% for item in group.menu_items %}
+        <div class="mb-2">
+          <div class="fw-bold">{{ item.menu_item_title }}</div>
+          {% for component in item.components %}
+          {%- set counter.value = counter.value + 1 -%}
+          {%- set component_field = 'component_ids' if counter.value == 1 else 'component_ids-' ~ counter.value -%}
+          <label class="form-check{% if component_error %} is-invalid{% endif %}" for="{{ component_field }}">
+            <input class="form-check-input{% if component_error %} is-invalid{% endif %}" type="checkbox" id="{{ component_field }}" name="component_ids" value="{{ component.component_id }}"{% if component.component_id in selected_components %} checked{% endif %}{% if component_error %} aria-invalid="true" aria-describedby="component_ids-error"{% endif %}>
+            <span class="form-check-label">{{ component.component_text }} — {{ component.recipe_title }} ({{ component.target_quantity }} {{ unit_names.get(component.target_quantity_unit_code, component.target_quantity_unit_code or '') }})</span>
+          </label>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </fieldset>
+      {% endfor %}
+      {% if component_error %}<div class="invalid-feedback d-block field-error mb-3" id="component_ids-error">{{ component_error }}</div>{% endif %}
+      <fieldset class="mb-3">
+        <legend class="form-label">Bedarfspolitik</legend>
+        {% for code, label in policies %}
+        {%- set policy_field = 'policy' if loop.first else 'policy-' ~ code -%}
+        <label class="form-check me-3{% if policy_error %} is-invalid{% endif %}" for="{{ policy_field }}">
+          <input class="form-check-input{% if policy_error %} is-invalid{% endif %}" type="radio" id="{{ policy_field }}" name="policy" value="{{ code }}"{% if policy == code %} checked{% endif %}{% if policy_error %} aria-invalid="true" aria-describedby="policy-error"{% endif %}>
+          <span class="form-check-label">{{ label }}</span>
+        </label>
+        {% endfor %}
+        {% if policy_error %}<div class="invalid-feedback d-block field-error" id="policy-error">{{ policy_error }}</div>{% endif %}
+      </fieldset>
+      <button class="btn btn-primary" type="submit">{{ icon('refresh') }}Neu berechnen</button>
+    </form>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+{% if selected %}
+{%- set line_actions = can_write and selected.is_latest -%}
+<section class="card mb-4" aria-labelledby="ergebnis-title">
+  <div class="card-header"><h2 class="card-title" id="ergebnis-title">Ergebnis · Revision {{ selected.revision_number }}</h2></div>
+  {% if selected.lines %}
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead><tr>
+        <th>Zutat</th>
+        <th class="d-none d-md-table-cell">Menge</th>
+        <th class="d-none d-md-table-cell">Status</th>
+        <th class="d-none d-md-table-cell">Herkunft</th>
+        {% if line_actions %}<th>Aktion</th>{% endif %}
+      </tr></thead>
+      <tbody>
+        {% for line in selected.lines %}
+        <tr>
+          <td>
+            {{ line.food_name or line.food_public_id }}
+            <div class="d-md-none text-secondary">{{ line.quantity }} {{ line.unit_name or line.unit_code }} · {{ line_status(line) }}</div>
+          </td>
+          <td class="d-none d-md-table-cell text-nowrap">{{ line.quantity }} {{ line.unit_name or line.unit_code }}</td>
+          <td class="d-none d-md-table-cell">{{ line_status(line) }}</td>
+          <td class="d-none d-md-table-cell">
+            <details><summary class="btn">{{ icon('chevron-right') }}Details</summary>
+              {% if line.food_public_id %}<div class="small">Food-ID: <code class="text-break">{{ line.food_public_id }}</code></div>{% endif %}
+              <div class="small">Einheitencode: <code>{{ line.unit_code }}</code></div>
+              <div class="small">Schlüssel: <code class="text-break">{{ line.line_key }}</code></div>
+            </details>
+          </td>
+          {% if line_actions %}
+          <td>
+            <form method="post" action="{{ url_for('admin.shopping_list_line_toggle', public_id=detail.public_id) }}">
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+              <input type="hidden" name="revision_public_id" value="{{ selected.public_id }}">
+              <input type="hidden" name="line_key" value="{{ line.line_key }}">
+              {% if line.checked_status == 'checked' %}
+              <input type="hidden" name="checked" value="false">
+              <button class="btn text-wrap" type="submit">{{ icon('x') }}Wieder öffnen</button>
+              {% else %}
+              <input type="hidden" name="checked" value="true">
+              <button class="btn btn-primary text-wrap" type="submit">{{ icon('check') }}Abhaken</button>
+              {% endif %}
+            </form>
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-secondary">Keine vollständigen Zeilen.</div>
+  {% endif %}
+  {% if selected.incomplete_lines %}
+  <div class="card-body border-top">
+    <h3 class="card-title">{{ icon('alert-triangle', class='text-warning me-1') }}Unvollständig</h3>
+    <ul class="mb-0">
+      {% for line in selected.incomplete_lines %}
+      <li>{{ line.food_name or line.ingredient_text or line.food_public_id or 'Freitext' }}{% if line.quantity %} · {{ line.quantity }} {{ line.unit_name or line.unit_code }}{% endif %} · {{ line.reason or 'Kein Grund erfasst' }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</section>
+{% else %}
+{{ empty_state('none', 'Noch keine Berechnung', 'Eine Woche wählen und Bausteine auswählen, um die Liste zu berechnen.') }}
+{% endif %}
+{%- set item_actions = can_write and is_latest_view -%}
+<section class="card" aria-labelledby="manuell-title">
+  <div class="card-header flex-wrap gap-2">
+    <h2 class="card-title" id="manuell-title">Manuelle Positionen</h2>
+    {% if not is_latest_view %}<span class="text-secondary">Aktueller Stand, nicht Teil des Belegs</span>{% endif %}
+  </div>
+  {% if detail.manual_items %}
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <tbody>
+        {% for item in detail.manual_items %}
+        {%- set is_error_item = error_item == item.public_id -%}
+        {%- set shown = item_values if is_error_item else item -%}
+        {%- set errors = field_errors if is_error_item else {} -%}
+        <tr>
+          <td>
+            {% if item_actions %}
+            <form method="post" action="{{ url_for('admin.shopping_list_manual_update', public_id=detail.public_id, item_public_id=item.public_id) }}" class="row g-2 align-items-end">
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+              <input type="hidden" name="expected_row_version" value="{{ item.row_version }}">
+              <div class="col-12 col-lg-5 col-xxl-3">{{ field('item_text', 'Text', shown.item_text, required=true, id='item-text-' ~ item.public_id, error=errors.get('item_text')) }}</div>
+              <div class="col-5 col-lg-3 col-xxl-2">{{ field('quantity', 'Menge', shown.quantity or '', id='item-qty-' ~ item.public_id, error=errors.get('quantity')) }}</div>
+              <div class="col-7 col-lg-4 col-xxl-3">
+                {% call select('unit_code', 'Einheit', id='item-unit-' ~ item.public_id, value=shown.unit_code or '', placeholder='Keine', error=errors.get('unit_code')) %}
+                {% for unit in units %}<option value="{{ unit.code }}"{% if shown.unit_code == unit.code %} selected{% endif %}>{{ unit.display_name }}</option>{% endfor %}
+                {% endcall %}
+              </div>
+              <div class="col-12 col-xxl-4 btn-list">
+                <button class="btn" type="submit" name="action" value="save">{{ icon('device-floppy') }}Speichern</button>
+                {% if item.checked %}
+                <button class="btn" type="submit" name="action" value="uncheck" formnovalidate>{{ icon('x') }}Wieder öffnen</button>
+                {% else %}
+                <button class="btn" type="submit" name="action" value="check" formnovalidate>{{ icon('check') }}Abhaken</button>
+                {% endif %}
+                <button class="btn" type="submit" name="action" value="delete" formnovalidate data-confirm="Diese Position löschen?">{{ icon('trash') }}Löschen</button>
+              </div>
+            </form>
+            {% else %}
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <span class="text-break">{{ item.item_text }}</span>
+              {% if item.quantity %}<span>{{ item.quantity }} {{ unit_names.get(item.unit_code, item.unit_code) }}</span>{% endif %}
+              {% if item.checked %}{{ status('active', label='Abgehakt') }}{% else %}{{ status('draft', label='Offen') }}{% endif %}
+            </div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-secondary">Noch keine manuellen Positionen.</div>
+  {% endif %}
+  {% if item_actions %}
+  {%- set new_errors = field_errors if error_form == 'new_item' else {} -%}
+  <div class="card-body">
+    <form method="post" action="{{ url_for('admin.shopping_list_manual_create', public_id=detail.public_id) }}" class="row g-2 align-items-end">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <div class="col-12 col-lg-5 col-xxl-3">{{ field('item_text', 'Text', new_item_values.item_text, required=true, id='new-item-text', error=new_errors.get('item_text')) }}</div>
+      <div class="col-5 col-lg-3 col-xxl-2">{{ field('quantity', 'Menge (optional)', new_item_values.quantity, id='new-item-qty', error=new_errors.get('quantity')) }}</div>
+      <div class="col-7 col-lg-4 col-xxl-3">
+        {% call select('unit_code', 'Einheit', id='new-item-unit', value=new_item_values.unit_code, placeholder='Keine', error=new_errors.get('unit_code')) %}
+        {% for unit in units %}<option value="{{ unit.code }}"{% if new_item_values.unit_code == unit.code %} selected{% endif %}>{{ unit.display_name }}</option>{% endfor %}
+        {% endcall %}
+      </div>
+      <div class="col-12 col-xxl-4"><button class="btn btn-primary" type="submit">{{ icon('plus') }}Position hinzufügen</button></div>
+    </form>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -110,7 +110,7 @@ def test_upgrade_preserves_all_existing_rows_and_fresh_schema_contract(pg16):  #
                 projection = f"({projection}-'{column}')"
             assert c.execute(text(f'SELECT {projection}::text FROM cafeteria.{table} t ORDER BY {projection}::text')).all() == before[table]
         assert c.execute(text('SELECT to_jsonb(m) FROM cafeteria.schema_migrations m WHERE version<=25 ORDER BY version')).all() == ledger
-        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 33
+        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 34
         migrated = structure(c)
     with pg16.begin() as c:
         c.execute(text('DROP SCHEMA cafeteria CASCADE'))
@@ -214,6 +214,7 @@ def wait_until_blocked(owner, pid):
 def test_historical_permissions_bytes_are_still_exact():
     permissions = PERMISSIONS.read_text()
     for begin_marker, end_marker in (
+        ('-- Schema34 shopping list grants begin.\n', '-- Schema34 shopping list grants end.\n\n'),
         ('-- Schema32 accompaniment template grants begin.\n', '-- Schema32 accompaniment template grants end.\n\n'),
         ('-- Menu proposal source locks schema31 grants begin.\n', '-- Menu proposal source locks schema31 grants end.\n\n'),
         ('-- Recipe import commit schema29 grants begin.\n', '-- Recipe import commit schema29 grants end.\n\n'),

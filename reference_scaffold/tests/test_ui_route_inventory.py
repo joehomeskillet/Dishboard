@@ -198,6 +198,7 @@ def _fixture_descriptor() -> dict:
         'food': {'name': 'Inventar-Kartoffeln', 'base_unit_code': 'G'},
         'dish_template': {'title': 'Inventar-Gerichtvorlage', 'description': 'Synthetischer Entwurf',
                           'profile_scope': 'common', 'menu_type_code': 'MENU_1'},
+        'shopping_list': {'title': 'Inventar Einkaufsliste'},
         'recipe_import': {'fixture': 'test_recipe_import_batch_db.make_payload',
                           'title': 'Inventar-Import', 'annotations': ['unreviewed'], 'commit': False},
         'cookbook': {'name': 'Inventar-Kochbuch', 'description': 'Synthetische Testdaten.'},
@@ -273,6 +274,7 @@ def _invalid_action(case: dict):
 
 def _prepare_inventory_entities(application, database_engine, admin_user_id) -> dict:  # noqa: F811
     from cafeteria import branding, dish_template_store, master_data_store, recipe_import_store, recipe_store
+    from cafeteria import shopping_list_store
     from cafeteria.auth.local_users import ActorExpectation, create_local_user
     from cafeteria.component_catalog_store import create_component
     from test_recipe_import_batch_db import make_payload
@@ -300,6 +302,9 @@ def _prepare_inventory_entities(application, database_engine, admin_user_id) -> 
         import_payload, _ = make_payload(title=data['recipe_import']['title'])
         batch = recipe_import_store.create_batch(
             database_engine, actor, import_payload, expected_location_id=scope.location_id)
+        shopping_list_public_id = shopping_list_store.create_shopping_list(
+            database_engine, shopping_list_store.ShoppingScope(admin_user_id, scope.location_id, version),
+            title=data['shopping_list']['title'])
     local = data['local_user']
     user = create_local_user(database_engine, actor=actor, username=local['username'],
                              display_name=local['display_name'], roles=tuple(local['roles']),
@@ -311,6 +316,8 @@ def _prepare_inventory_entities(application, database_engine, admin_user_id) -> 
         'admin.dish_template_new': '/admin/gerichtvorlagen/neu',
         'admin.dish_template_plan': f"/admin/gerichtvorlagen/{template['public_id']}/einplanen?week=2026-08-31",
         'admin.dish_templates_list': '/admin/gerichtvorlagen',
+        'admin.shopping_lists_index': '/admin/einkaufslisten',
+        'admin.shopping_list_detail': f'/admin/einkaufslisten/{shopping_list_public_id}',
         'admin.recipe_import_detail': f'/admin/rezepte/import/{batch.public_id}',
         'admin.recipe_import_list': '/admin/rezepte/import',
         'admin.component_detail': f"/admin/cafeteria/komponenten/{component['public_id']}",

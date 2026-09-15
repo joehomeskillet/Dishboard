@@ -48,6 +48,7 @@ MIGRATION_0027 = ROOT / 'database' / 'migrations' / '0027_v29_to_v30.sql'
 MIGRATION_0028 = ROOT / 'database' / 'migrations' / '0028_v30_to_v31.sql'
 MIGRATION_0029 = ROOT / 'database' / 'migrations' / '0029_v31_to_v32.sql'
 MIGRATION_0030 = ROOT / 'database' / 'migrations' / '0030_v32_to_v33.sql'
+MIGRATION_0031 = ROOT / 'database' / 'migrations' / '0031_v33_to_v34.sql'
 PERMISSIONS = ROOT / 'database' / 'permissions.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
@@ -71,6 +72,338 @@ ALLOWED_PATIENT_COMPACT_KEYS = frozenset({
 
 def fail(message: str) -> NoReturn:
     raise ValueError(message)
+
+
+# Schema34-Einkaufslistenvertrag: eine Quelle für Artefaktmodus (Quelltext in 0031, schema.sql,
+# permissions.sql) und Live-Modus (Katalog nach run_migrations, PostgreSQL 16).
+SHOPPING_TABLES = (
+    'shopping_lists', 'shopping_list_revisions', 'shopping_list_manual_items', 'shopping_list_line_status',
+)
+SHOPPING_SEQUENCES = (
+    'shopping_lists_id_seq', 'shopping_list_revisions_id_seq', 'shopping_list_manual_items_id_seq',
+)
+# (Spaltenquelltext, (data_type, is_nullable, column_default, identity_generation, precision, scale))
+_IDENTITY = ('bigint', 'NO', None, 'ALWAYS', 64, 0)
+_PUBLIC_ID = ('uuid', 'NO', 'gen_random_uuid()', None, None, None)
+_BIGINT_NOT_NULL = ('bigint', 'NO', None, None, 64, 0)
+_TEXT_NOT_NULL = ('text', 'NO', None, None, None, None)
+_ROW_VERSION = ('bigint', 'NO', '1', None, 64, 0)
+_CLOCK = ('timestamp with time zone', 'NO', 'clock_timestamp()', None, None, None)
+SHOPPING_COLUMNS: dict[str, tuple[tuple[str, tuple[Any, ...]], ...]] = {
+    'shopping_lists': (
+        ('id bigint GENERATED ALWAYS AS IDENTITY', _IDENTITY),
+        ('public_id uuid NOT NULL DEFAULT gen_random_uuid()', _PUBLIC_ID),
+        ('location_id bigint NOT NULL', _BIGINT_NOT_NULL),
+        ('menu_week_id bigint', ('bigint', 'YES', None, None, 64, 0)),
+        ('title text NOT NULL', _TEXT_NOT_NULL),
+        ('note text', ('text', 'YES', None, None, None, None)),
+        ('row_version bigint NOT NULL DEFAULT 1', _ROW_VERSION),
+        ('created_by bigint NOT NULL', _BIGINT_NOT_NULL),
+        ('updated_by bigint NOT NULL', _BIGINT_NOT_NULL),
+        ('created_at timestamptz NOT NULL DEFAULT clock_timestamp()', _CLOCK),
+        ('updated_at timestamptz NOT NULL DEFAULT clock_timestamp()', _CLOCK),
+        ('archived_at timestamptz', ('timestamp with time zone', 'YES', None, None, None, None)),
+    ),
+    'shopping_list_revisions': (
+        ('id bigint GENERATED ALWAYS AS IDENTITY', _IDENTITY),
+        ('public_id uuid NOT NULL DEFAULT gen_random_uuid()', _PUBLIC_ID),
+        ('shopping_list_id bigint NOT NULL', _BIGINT_NOT_NULL),
+        ('revision_number integer NOT NULL', ('integer', 'NO', None, None, 32, 0)),
+        ('policy text NOT NULL', _TEXT_NOT_NULL),
+        ('snapshot_json jsonb NOT NULL', ('jsonb', 'NO', None, None, None, None)),
+        ('content_hash_sha256 text NOT NULL', _TEXT_NOT_NULL),
+        ('computed_by bigint NOT NULL', _BIGINT_NOT_NULL),
+        ('computed_at timestamptz NOT NULL DEFAULT clock_timestamp()', _CLOCK),
+    ),
+    'shopping_list_manual_items': (
+        ('id bigint GENERATED ALWAYS AS IDENTITY', _IDENTITY),
+        ('public_id uuid NOT NULL DEFAULT gen_random_uuid()', _PUBLIC_ID),
+        ('shopping_list_id bigint NOT NULL', _BIGINT_NOT_NULL),
+        ('sort_order integer NOT NULL', ('integer', 'NO', None, None, 32, 0)),
+        ('item_text text NOT NULL', _TEXT_NOT_NULL),
+        ('quantity numeric(18,6)', ('numeric', 'YES', None, None, 18, 6)),
+        ('unit_id bigint', ('bigint', 'YES', None, None, 64, 0)),
+        ('checked boolean NOT NULL DEFAULT false', ('boolean', 'NO', 'false', None, None, None)),
+        ('row_version bigint NOT NULL DEFAULT 1', _ROW_VERSION),
+        ('created_by bigint NOT NULL', _BIGINT_NOT_NULL),
+        ('updated_by bigint NOT NULL', _BIGINT_NOT_NULL),
+        ('created_at timestamptz NOT NULL DEFAULT clock_timestamp()', _CLOCK),
+        ('updated_at timestamptz NOT NULL DEFAULT clock_timestamp()', _CLOCK),
+    ),
+    'shopping_list_line_status': (
+        ('shopping_list_id bigint NOT NULL', _BIGINT_NOT_NULL),
+        ('line_key text NOT NULL', _TEXT_NOT_NULL),
+        ('revision_id bigint NOT NULL', _BIGINT_NOT_NULL),
+        ('checked_quantity text NOT NULL', _TEXT_NOT_NULL),
+        ('checked_by bigint NOT NULL', _BIGINT_NOT_NULL),
+        ('checked_at timestamptz NOT NULL DEFAULT clock_timestamp()', _CLOCK),
+    ),
+}
+
+
+def _restrict_fk(columns: str, target: str, target_columns: str = 'id') -> tuple[str, str, str]:
+    clause = f'FOREIGN KEY ({columns}) REFERENCES {{schema}}{target}({target_columns}) ON DELETE RESTRICT'
+    return 'f', clause.format(schema=''), clause.format(schema='cafeteria.')
+
+
+def _check(source: str, live: str) -> tuple[str, str, str]:
+    return 'c', f'CHECK ({source})', f'CHECK ({live})'
+
+
+def _trimmed_text_check(column: str, maximum: int) -> tuple[str, str, str]:
+    return _check(
+        f"{column} = btrim({column}, E' \\t\\r\\n') AND length({column}) BETWEEN 1 AND {maximum}",
+        f"{column} = btrim({column}, ' \t\r\n'::text) AND length({column}) >= 1 AND length({column}) <= {maximum}",
+    )
+
+
+# (Tabelle, Constraint) -> (contype, Quelltext, pg_get_constraintdef(oid, true)); Reihenfolge = Quelltext.
+SHOPPING_CONSTRAINTS: dict[tuple[str, str], tuple[str, str, str]] = {
+    ('shopping_lists', 'shopping_lists_pkey'): ('p', 'PRIMARY KEY (id)', 'PRIMARY KEY (id)'),
+    ('shopping_lists', 'shopping_lists_public_id_key'): ('u', 'UNIQUE (public_id)', 'UNIQUE (public_id)'),
+    ('shopping_lists', 'shopping_lists_location_id_fkey'): _restrict_fk('location_id', 'locations'),
+    ('shopping_lists', 'shopping_lists_menu_week_id_fkey'): _restrict_fk('menu_week_id', 'menu_weeks'),
+    ('shopping_lists', 'shopping_lists_created_by_fkey'): _restrict_fk('created_by', 'users'),
+    ('shopping_lists', 'shopping_lists_updated_by_fkey'): _restrict_fk('updated_by', 'users'),
+    ('shopping_lists', 'shopping_lists_title_check'): _trimmed_text_check('title', 120),
+    ('shopping_lists', 'shopping_lists_note_check'): _check(
+        "note IS NULL OR (note = btrim(note, E' \\t\\r\\n') AND length(note) <= 2000)",
+        "note IS NULL OR note = btrim(note, ' \t\r\n'::text) AND length(note) <= 2000",
+    ),
+    ('shopping_lists', 'shopping_lists_row_version_check'): _check('row_version > 0', 'row_version > 0'),
+    ('shopping_list_revisions', 'shopping_list_revisions_pkey'): ('p', 'PRIMARY KEY (id)', 'PRIMARY KEY (id)'),
+    ('shopping_list_revisions', 'shopping_list_revisions_public_id_key'): (
+        'u', 'UNIQUE (public_id)', 'UNIQUE (public_id)',
+    ),
+    ('shopping_list_revisions', 'shopping_list_revisions_id_shopping_list_id_key'): (
+        'u', 'UNIQUE (id, shopping_list_id)', 'UNIQUE (id, shopping_list_id)',
+    ),
+    ('shopping_list_revisions', 'shopping_list_revisions_shopping_list_id_revision_number_key'): (
+        'u', 'UNIQUE (shopping_list_id, revision_number)', 'UNIQUE (shopping_list_id, revision_number)',
+    ),
+    ('shopping_list_revisions', 'shopping_list_revisions_shopping_list_id_fkey'): _restrict_fk(
+        'shopping_list_id', 'shopping_lists',
+    ),
+    ('shopping_list_revisions', 'shopping_list_revisions_computed_by_fkey'): _restrict_fk('computed_by', 'users'),
+    ('shopping_list_revisions', 'shopping_list_revisions_revision_number_check'): _check(
+        'revision_number > 0', 'revision_number > 0',
+    ),
+    ('shopping_list_revisions', 'shopping_list_revisions_policy_check'): _check(
+        "policy IN ('leaf', 'prepared')", "policy = ANY (ARRAY['leaf'::text, 'prepared'::text])",
+    ),
+    ('shopping_list_revisions', 'shopping_list_revisions_snapshot_json_check'): _check(
+        "jsonb_typeof(snapshot_json) = 'object' AND snapshot_json ?& ARRAY['inputs', 'result'] "
+        "AND jsonb_typeof(snapshot_json -> 'inputs') = 'array' "
+        "AND jsonb_typeof(snapshot_json -> 'result') = 'object'",
+        "jsonb_typeof(snapshot_json) = 'object'::text AND snapshot_json ?& ARRAY['inputs'::text, 'result'::text] "
+        "AND jsonb_typeof(snapshot_json -> 'inputs'::text) = 'array'::text "
+        "AND jsonb_typeof(snapshot_json -> 'result'::text) = 'object'::text",
+    ),
+    ('shopping_list_revisions', 'shopping_list_revisions_content_hash_sha256_check'): _check(
+        "content_hash_sha256 = encode(public.digest(convert_to(snapshot_json::text, 'UTF8'), 'sha256'), 'hex')",
+        "content_hash_sha256 = encode(digest(convert_to(snapshot_json::text, 'UTF8'::name), 'sha256'::text), 'hex'::text)",
+    ),
+    ('shopping_list_manual_items', 'shopping_list_manual_items_pkey'): ('p', 'PRIMARY KEY (id)', 'PRIMARY KEY (id)'),
+    ('shopping_list_manual_items', 'shopping_list_manual_items_public_id_key'): (
+        'u', 'UNIQUE (public_id)', 'UNIQUE (public_id)',
+    ),
+    ('shopping_list_manual_items', 'shopping_list_manual_items_shopping_list_id_sort_order_key'): (
+        'u', 'UNIQUE (shopping_list_id, sort_order)', 'UNIQUE (shopping_list_id, sort_order)',
+    ),
+    ('shopping_list_manual_items', 'shopping_list_manual_items_shopping_list_id_fkey'): _restrict_fk(
+        'shopping_list_id', 'shopping_lists',
+    ),
+    ('shopping_list_manual_items', 'shopping_list_manual_items_unit_id_fkey'): _restrict_fk(
+        'unit_id', 'measurement_units',
+    ),
+    ('shopping_list_manual_items', 'shopping_list_manual_items_created_by_fkey'): _restrict_fk('created_by', 'users'),
+    ('shopping_list_manual_items', 'shopping_list_manual_items_updated_by_fkey'): _restrict_fk('updated_by', 'users'),
+    ('shopping_list_manual_items', 'shopping_list_manual_items_sort_order_check'): _check(
+        'sort_order > 0', 'sort_order > 0',
+    ),
+    ('shopping_list_manual_items', 'shopping_list_manual_items_item_text_check'): _trimmed_text_check('item_text', 200),
+    ('shopping_list_manual_items', 'shopping_list_manual_items_quantity_check'): _check(
+        'quantity IS NULL OR quantity > 0', 'quantity IS NULL OR quantity > 0::numeric',
+    ),
+    ('shopping_list_manual_items', 'shopping_list_manual_items_quantity_unit_check'): _check(
+        '(quantity IS NULL) = (unit_id IS NULL)', '(quantity IS NULL) = (unit_id IS NULL)',
+    ),
+    ('shopping_list_manual_items', 'shopping_list_manual_items_row_version_check'): _check(
+        'row_version > 0', 'row_version > 0',
+    ),
+    ('shopping_list_line_status', 'shopping_list_line_status_pkey'): (
+        'p', 'PRIMARY KEY (shopping_list_id, line_key)', 'PRIMARY KEY (shopping_list_id, line_key)',
+    ),
+    ('shopping_list_line_status', 'shopping_list_line_status_revision_id_fkey'): _restrict_fk(
+        'revision_id, shopping_list_id', 'shopping_list_revisions', 'id, shopping_list_id',
+    ),
+    ('shopping_list_line_status', 'shopping_list_line_status_checked_by_fkey'): _restrict_fk('checked_by', 'users'),
+    ('shopping_list_line_status', 'shopping_list_line_status_line_key_check'): _trimmed_text_check('line_key', 300),
+    ('shopping_list_line_status', 'shopping_list_line_status_checked_quantity_check'): _trimmed_text_check(
+        'checked_quantity', 100,
+    ),
+}
+# Index -> (Tabelle, Quelltext, pg_indexes.indexdef); PK-/UNIQUE-Indizes folgen aus SHOPPING_CONSTRAINTS.
+SHOPPING_INDEXES: dict[str, tuple[str, str, str]] = {
+    'shopping_lists_location_id_idx': (
+        'shopping_lists', 'ON shopping_lists(location_id)', 'ON cafeteria.shopping_lists USING btree (location_id)',
+    ),
+    'shopping_lists_menu_week_id_idx': (
+        'shopping_lists',
+        'ON shopping_lists(menu_week_id) WHERE menu_week_id IS NOT NULL',
+        'ON cafeteria.shopping_lists USING btree (menu_week_id) WHERE (menu_week_id IS NOT NULL)',
+    ),
+    'shopping_list_manual_items_unit_id_idx': (
+        'shopping_list_manual_items',
+        'ON shopping_list_manual_items(unit_id) WHERE unit_id IS NOT NULL',
+        'ON cafeteria.shopping_list_manual_items USING btree (unit_id) WHERE (unit_id IS NOT NULL)',
+    ),
+}
+# Trigger-Funktion -> plpgsql-Rumpf; beide SECURITY INVOKER mit festem search_path, ohne EXECUTE-Grant.
+SHOPPING_FUNCTIONS: dict[str, str] = {
+    'shopping_list_scope_protect_v34': (
+        'BEGIN IF NEW.location_id IS DISTINCT FROM OLD.location_id THEN '
+        "RAISE EXCEPTION 'Der Standort einer Einkaufsliste ist unveränderlich.' USING ERRCODE='55000'; "
+        'END IF; RETURN NEW; END;'
+    ),
+    'shopping_list_revision_protect_v34': (
+        "BEGIN RAISE EXCEPTION 'Einkaufslisten-Berechnungsrevisionen sind unveränderlich.' "
+        "USING ERRCODE='55000'; END;"
+    ),
+}
+# Trigger -> (Tabelle, Zeitpunkt im Quelltext, Zeitpunkt im Katalog, Ebene, Funktion)
+SHOPPING_TRIGGERS: dict[str, tuple[str, str, str, str, str]] = {
+    'trg_shopping_lists_version': (
+        'shopping_lists', 'BEFORE UPDATE', 'BEFORE UPDATE', 'ROW', 'bump_row_version_and_updated_at',
+    ),
+    'trg_shopping_list_manual_items_version': (
+        'shopping_list_manual_items', 'BEFORE UPDATE', 'BEFORE UPDATE', 'ROW', 'bump_row_version_and_updated_at',
+    ),
+    'shopping_lists_scope_protect': (
+        'shopping_lists', 'BEFORE UPDATE', 'BEFORE UPDATE', 'ROW', 'shopping_list_scope_protect_v34',
+    ),
+    'shopping_list_revisions_immutable': (
+        'shopping_list_revisions', 'BEFORE UPDATE OR DELETE', 'BEFORE DELETE OR UPDATE', 'ROW',
+        'shopping_list_revision_protect_v34',
+    ),
+    'shopping_list_revisions_no_truncate': (
+        'shopping_list_revisions', 'BEFORE TRUNCATE', 'BEFORE TRUNCATE', 'STATEMENT',
+        'shopping_list_revision_protect_v34',
+    ),
+}
+SHOPPING_ACL_STATEMENTS = (
+    'REVOKE ALL ON FUNCTION shopping_list_scope_protect_v34(), shopping_list_revision_protect_v34() '
+    'FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;',
+    'GRANT SELECT, INSERT, UPDATE, DELETE ON shopping_lists, shopping_list_manual_items, '
+    'shopping_list_line_status TO cafeteria_app;',
+    'GRANT SELECT, INSERT ON shopping_list_revisions TO cafeteria_app;',
+    'GRANT SELECT ON shopping_lists, shopping_list_revisions, shopping_list_manual_items, '
+    'shopping_list_line_status TO cafeteria_backup;',
+    'GRANT SELECT ON SEQUENCE shopping_lists_id_seq, shopping_list_revisions_id_seq, '
+    'shopping_list_manual_items_id_seq TO cafeteria_backup;',
+)
+# Exakte Nicht-Owner-ACL (Relation, Grantee, Recht, grantable) nach Migration bzw. Bootstrap.
+SHOPPING_LIVE_ACL = frozenset({
+    *(
+        (table, 'cafeteria_app', privilege, False)
+        for table in ('shopping_lists', 'shopping_list_manual_items', 'shopping_list_line_status')
+        for privilege in ('SELECT', 'INSERT', 'UPDATE', 'DELETE')
+    ),
+    ('shopping_list_revisions', 'cafeteria_app', 'SELECT', False),
+    ('shopping_list_revisions', 'cafeteria_app', 'INSERT', False),
+    *((relation, 'cafeteria_backup', 'SELECT', False) for relation in (*SHOPPING_TABLES, *SHOPPING_SEQUENCES)),
+})
+SHOPPING_SCHEMA_BLOCK = ('-- schema34: shopping lists.\n', '-- schema34: shopping lists end.\n')
+SHOPPING_PERMISSIONS_BLOCK = (
+    '-- Schema34 shopping list grants begin.\n', '-- Schema34 shopping list grants end.\n',
+)
+SHOPPING_ROLLBACK_COMMAND = '`APP_IMAGE=<v33-Digest> docker compose up -d --wait --no-deps app`'
+
+
+def normalize_sql(value: str) -> str:
+    """Whitespace-Läufe zu einem Leerzeichen, keine Leerzeichen an Klammern und Kommas."""
+    return re.sub(r' ?([(),]) ?', r'\1', ' '.join(value.split()))
+
+
+def sql_statements(script: str) -> list[str]:
+    """Normalisierte Anweisungen ohne Ganzzeilen-Kommentare; $fn$-Rümpfe bleiben zusammen."""
+    body = '\n'.join(line for line in script.splitlines() if not line.lstrip().startswith('--'))
+    statements: list[str] = []
+    start = index = 0
+    while index < len(body):
+        if body.startswith('$fn$', index):
+            index = body.index('$fn$', index + 4) + 4
+            continue
+        if body[index] == ';':
+            statements.append(normalize_sql(body[start:index + 1]))
+            start = index + 1
+        index += 1
+    if body[start:].strip():
+        fail(f'SQL endet ohne Semikolon: {normalize_sql(body[start:])[:80]}')
+    return statements
+
+
+def shopping_ddl_statements(create_table: str) -> list[str]:
+    statements = []
+    for table in SHOPPING_TABLES:
+        items = [source for source, _ in SHOPPING_COLUMNS[table]] + [
+            f'CONSTRAINT {name} {source}'
+            for (owner, name), (_, source, _) in SHOPPING_CONSTRAINTS.items()
+            if owner == table
+        ]
+        statements.append(f'{create_table} {table} ({", ".join(items)});')
+    statements.extend(f'CREATE INDEX {name} {source};' for name, (_, source, _) in SHOPPING_INDEXES.items())
+
+    def trigger(name: str) -> str:
+        table, timing, _, level, function = SHOPPING_TRIGGERS[name]
+        return f'CREATE TRIGGER {name} {timing} ON {table} FOR EACH {level} EXECUTE FUNCTION {function}();'
+
+    statements.extend(
+        trigger(name) for name, spec in SHOPPING_TRIGGERS.items() if spec[4] not in SHOPPING_FUNCTIONS
+    )
+    for function, body in SHOPPING_FUNCTIONS.items():
+        statements.append(
+            f'CREATE FUNCTION {function}() RETURNS trigger LANGUAGE plpgsql '
+            f'SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$ {body}$fn$;'
+        )
+        statements.extend(trigger(name) for name, spec in SHOPPING_TRIGGERS.items() if spec[4] == function)
+    return [normalize_sql(statement) for statement in statements]
+
+
+def _statement_diff(actual: list[str], expected: list[str]) -> str:
+    return json.dumps({
+        'unexpected': [statement for statement in actual if statement not in expected],
+        'missing': [statement for statement in expected if statement not in actual],
+    }, ensure_ascii=False)
+
+
+def check_shopping_list_artifacts(migration_0031: str, sql: str, permissions: str) -> None:
+    ddl = shopping_ddl_statements('CREATE TABLE')
+    acl = [normalize_sql(statement) for statement in SHOPPING_ACL_STATEMENTS]
+    expected_migration = [
+        'BEGIN;', "SET LOCAL lock_timeout = '5s';", normalize_sql('SET search_path TO cafeteria, public;'),
+        *ddl, *acl, 'COMMIT;',
+    ]
+    migration_statements = sql_statements(migration_0031)
+    if migration_statements != expected_migration:
+        fail('Einkaufslistenvertrag v34 (Migration 0031) weicht ab: '
+             + _statement_diff(migration_statements, expected_migration))
+    if SHOPPING_ROLLBACK_COMMAND not in migration_0031:
+        fail('Einkaufslistenvertrag v34 (Migration 0031) ohne Compose-Rollbackbefehl.')
+    for label, text_value, (begin_marker, end_marker), expected in (
+        ('schema.sql', sql, SHOPPING_SCHEMA_BLOCK, shopping_ddl_statements('CREATE TABLE IF NOT EXISTS')),
+        ('permissions.sql', permissions, SHOPPING_PERMISSIONS_BLOCK, acl),
+    ):
+        if text_value.count(begin_marker) != 1 or text_value.count(end_marker) != 1:
+            fail(f'Einkaufslistenvertrag v34 ({label}) hat keinen eindeutigen Block.')
+        prefix, rest = text_value.split(begin_marker, 1)
+        block, suffix = rest.split(end_marker, 1)
+        if 'shopping_' in prefix or 'shopping_' in suffix:
+            fail(f'Einkaufslistenvertrag v34 ({label}) hat Objekte ausserhalb des Blocks.')
+        block_statements = sql_statements(block)
+        if block_statements != expected:
+            fail(f'Einkaufslistenvertrag v34 ({label}) weicht ab: '
+                 + _statement_diff(block_statements, expected))
 
 
 def table_block(sql: str, name: str) -> str:
@@ -338,8 +671,101 @@ def run_live_check() -> dict[str, Any]:
                     '''
                 )
             ).tuples().all()
-        if int(row['schema_version']) != 33:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 33.")
+            shopping_parameters = {'tables': list(SHOPPING_TABLES)}
+            shopping_columns = connection.execute(
+                text(
+                    '''
+                    SELECT table_name,column_name,data_type,is_nullable,column_default,
+                           identity_generation,numeric_precision,numeric_scale
+                    FROM information_schema.columns
+                    WHERE table_schema='cafeteria' AND table_name=ANY(:tables)
+                    ORDER BY table_name,ordinal_position
+                    '''
+                ),
+                shopping_parameters,
+            ).tuples().all()
+            shopping_constraints = connection.execute(
+                text(
+                    '''
+                    SELECT rel.relname,con.conname,con.contype,pg_get_constraintdef(con.oid,true)
+                    FROM pg_constraint con
+                    JOIN pg_class rel ON rel.oid=con.conrelid
+                    WHERE rel.relnamespace='cafeteria'::regnamespace AND rel.relname=ANY(:tables)
+                      AND con.contype<>'n'
+                    ORDER BY rel.relname,con.conname
+                    '''
+                ),
+                shopping_parameters,
+            ).tuples().all()
+            shopping_indexes = connection.execute(
+                text(
+                    '''
+                    SELECT tablename,indexname,indexdef FROM pg_indexes
+                    WHERE schemaname='cafeteria' AND tablename=ANY(:tables)
+                    ORDER BY tablename,indexname
+                    '''
+                ),
+                shopping_parameters,
+            ).tuples().all()
+            shopping_triggers = connection.execute(
+                text(
+                    '''
+                    SELECT rel.relname,trg.tgname,pg_get_triggerdef(trg.oid,true)
+                    FROM pg_trigger trg
+                    JOIN pg_class rel ON rel.oid=trg.tgrelid
+                    WHERE NOT trg.tgisinternal AND rel.relnamespace='cafeteria'::regnamespace
+                      AND rel.relname=ANY(:tables)
+                    ORDER BY rel.relname,trg.tgname
+                    '''
+                ),
+                shopping_parameters,
+            ).tuples().all()
+            shopping_functions = connection.execute(
+                text(
+                    '''
+                    SELECT p.proname,pg_get_function_identity_arguments(p.oid) AS arguments,
+                           p.prokind,p.prosecdef,p.proconfig,p.prosrc,
+                           p.prorettype='trigger'::regtype AS returns_trigger,
+                           p.proowner=c.relowner AS same_owner,
+                           p.proacl IS NOT NULL AND NOT EXISTS (
+                               SELECT 1 FROM aclexplode(p.proacl) acl WHERE acl.grantee<>p.proowner
+                           ) AS owner_only_acl,
+                           has_function_privilege('public',p.oid,'EXECUTE') AS public,
+                           has_function_privilege('cafeteria_app',p.oid,'EXECUTE') AS app,
+                           has_function_privilege('cafeteria_backup',p.oid,'EXECUTE') AS backup,
+                           has_function_privilege('cafeteria_auth_issuer',p.oid,'EXECUTE') AS issuer
+                    FROM pg_proc p
+                    CROSS JOIN pg_class c
+                    WHERE p.pronamespace='cafeteria'::regnamespace AND p.proname LIKE 'shopping%'
+                      AND c.oid='cafeteria.shopping_lists'::regclass
+                    ORDER BY p.proname
+                    '''
+                )
+            ).mappings().all()
+            shopping_relations = connection.execute(
+                text(
+                    '''
+                    SELECT relname,relkind::text FROM pg_class
+                    WHERE relnamespace='cafeteria'::regnamespace AND relkind IN ('r','S')
+                      AND relname LIKE 'shopping%'
+                    ORDER BY relname
+                    '''
+                )
+            ).tuples().all()
+            shopping_acl = connection.execute(
+                text(
+                    '''
+                    SELECT rel.relname,COALESCE(role.rolname,'PUBLIC'),acl.privilege_type,acl.is_grantable
+                    FROM pg_class rel
+                    CROSS JOIN LATERAL aclexplode(rel.relacl) acl
+                    LEFT JOIN pg_roles role ON role.oid=acl.grantee
+                    WHERE rel.relnamespace='cafeteria'::regnamespace AND rel.relkind IN ('r','S')
+                      AND rel.relname LIKE 'shopping%' AND acl.grantee<>rel.relowner
+                    '''
+                )
+            ).tuples().all()
+        if int(row['schema_version']) != 34:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 34.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
         if {item['proname'] for item in v32_acl} != {
@@ -409,6 +835,98 @@ def run_live_check() -> dict[str, Any]:
             or 'WHERE (target_quantity_unit_id IS NOT NULL)' not in target_indexes[0][1]
         ):
             fail('Live-Index für Zielmengeneinheit ist ungültig.')
+        shopping_mismatches: list[object] = []
+
+        def expect(label: str, actual: object, expected: object) -> None:
+            if actual == expected:
+                return
+            if isinstance(actual, dict) and isinstance(expected, dict):
+                for key in sorted(set(actual) | set(expected)):
+                    if actual.get(key) != expected.get(key):
+                        shopping_mismatches.append({
+                            'object': f'{label}:{key}', 'actual': actual.get(key), 'expected': expected.get(key),
+                        })
+                return
+            shopping_mismatches.append({'object': label, 'actual': actual, 'expected': expected})
+
+        for table_name in SHOPPING_TABLES:
+            expect(
+                f'columns:{table_name}',
+                [list(item[1:]) for item in shopping_columns if item[0] == table_name],
+                [[source.split()[0], *live] for source, live in SHOPPING_COLUMNS[table_name]],
+            )
+        expect(
+            'constraints',
+            {f'{table}.{name}': [contype, condef] for table, name, contype, condef in shopping_constraints},
+            {f'{table}.{name}': [contype, live] for (table, name), (contype, _, live) in SHOPPING_CONSTRAINTS.items()},
+        )
+        # Indexmenge exakt: PK-/UNIQUE-Indizes (Definition über die Constraints geprüft) plus
+        # die expliziten Indizes mit exakter Definition.
+        expect(
+            'index names',
+            sorted(f'{table}.{name}' for table, name, _ in shopping_indexes),
+            sorted([
+                *(
+                    f'{table}.{name}'
+                    for (table, name), (contype, _, _) in SHOPPING_CONSTRAINTS.items()
+                    if contype in ('p', 'u')
+                ),
+                *(f'{table}.{name}' for name, (table, _, _) in SHOPPING_INDEXES.items()),
+            ]),
+        )
+        expect(
+            'indexes',
+            {name: indexdef for _, name, indexdef in shopping_indexes if name in SHOPPING_INDEXES},
+            {name: f'CREATE INDEX {name} {live}' for name, (_, _, live) in SHOPPING_INDEXES.items()},
+        )
+        expect(
+            'triggers',
+            {f'{table}.{name}': triggerdef for table, name, triggerdef in shopping_triggers},
+            {
+                f'{table}.{name}': (
+                    f'CREATE TRIGGER {name} {timing} ON cafeteria.{table} '
+                    f'FOR EACH {level} EXECUTE FUNCTION cafeteria.{function}()'
+                )
+                for name, (table, _, timing, level, function) in SHOPPING_TRIGGERS.items()
+            },
+        )
+        expect(
+            'functions',
+            {
+                item['proname']: {
+                    'arguments': item['arguments'], 'prokind': item['prokind'],
+                    'security_definer': item['prosecdef'], 'config': item['proconfig'],
+                    'source': normalize_sql(item['prosrc']), 'returns_trigger': item['returns_trigger'],
+                    'same_owner': item['same_owner'], 'owner_only_acl': item['owner_only_acl'],
+                    'execute': [item['public'], item['app'], item['backup'], item['issuer']],
+                }
+                for item in shopping_functions
+            },
+            {
+                name: {
+                    'arguments': '', 'prokind': 'f', 'security_definer': False,
+                    'config': ['search_path=pg_catalog, cafeteria, pg_temp'],
+                    'source': normalize_sql(body), 'returns_trigger': True, 'same_owner': True,
+                    'owner_only_acl': True, 'execute': [False, False, False, False],
+                }
+                for name, body in SHOPPING_FUNCTIONS.items()
+            },
+        )
+        expect(
+            'relations',
+            sorted([name, kind] for name, kind in shopping_relations),
+            sorted(
+                [*([name, 'r'] for name in SHOPPING_TABLES), *([name, 'S'] for name in SHOPPING_SEQUENCES)]
+            ),
+        )
+        expect(
+            'acl',
+            sorted(list(item) for item in shopping_acl),
+            sorted(list(item) for item in SHOPPING_LIVE_ACL),
+        )
+        if shopping_mismatches:
+            fail('Live-Einkaufslistenvertrag v34 ist ungültig: '
+                 + json.dumps(shopping_mismatches, ensure_ascii=False, default=str))
         migrated_structure = structure('cafeteria')
         with engine.begin() as connection:
             connection.execute(text('ALTER SCHEMA cafeteria RENAME TO cafeteria_migrated_contract'))
@@ -522,6 +1040,7 @@ def main() -> int:
                 fail(f'Menü-Quellrezept-Sperrvertrag fehlt: {fragment}')
         migration_0029 = MIGRATION_0029.read_text(encoding='utf-8')
         migration_0030 = MIGRATION_0030.read_text(encoding='utf-8')
+        migration_0031 = MIGRATION_0031.read_text(encoding='utf-8')
         permissions = PERMISSIONS.read_text(encoding='utf-8')
         if not migration_0029.startswith('BEGIN;') or not migration_0029.rstrip().endswith('COMMIT;'):
             fail('Migration 0029 hat keinen strikten BEGIN/COMMIT-Vertrag.')
@@ -584,6 +1103,10 @@ def main() -> int:
         ):
             if fragment not in migration_0030 or fragment not in sql:
                 fail(f'Zielmengenvertrag v33 fehlt: {fragment}')
+        mig_31_lines = [line.strip() for line in migration_0031.splitlines() if line.strip() and not line.strip().startswith('--')]
+        if not mig_31_lines or mig_31_lines[0] != 'BEGIN;' or not migration_0031.rstrip().endswith('COMMIT;'):
+            fail('Migration 0031 hat keinen strikten BEGIN/COMMIT-Vertrag.')
+        check_shopping_list_artifacts(migration_0031, sql, permissions)
         migration_0026 = MIGRATION_0026.read_text(encoding='utf-8')
         if not migration_0026.startswith('BEGIN;') or not migration_0026.rstrip().endswith('COMMIT;'):
             fail('Migration 0026 hat keinen strikten BEGIN/COMMIT-Vertrag.')
@@ -718,6 +1241,7 @@ def main() -> int:
             MIGRATION_0028: 'd8ab456b75926a21088680bb8b1c8cfcf7a1966b4b2de2e8dae48ded7593bb4d',
             MIGRATION_0029: '55c703040fe2461654d869be983548bf6d1c40ce5ce769c3dedddaf6146dd2da',
             MIGRATION_0030: 'df6363e0d5539afa0cc67bed192e32d1bcb38a8f531bd2ebc28835118c7a32c2',
+            MIGRATION_0031: '3aeb090c46b080a65eb0d4c548b982f05eadca6807c0e8ede3f772d0f88f4a3c',
         }
         for migration_path, expected_checksum in immutable_migration_checksums.items():
             actual_checksum = hashlib.sha256(migration_path.read_bytes()).hexdigest()
@@ -738,6 +1262,8 @@ def main() -> int:
             'recipes', 'recipe_ingredients', 'recipe_steps', 'recipe_tags', 'recipe_images',
             'recipe_assets', 'recipe_revisions', 'cookbooks', 'cookbook_recipes',
             'recipe_import_batches', 'recipe_import_candidates',
+            'shopping_lists', 'shopping_list_revisions', 'shopping_list_manual_items',
+            'shopping_list_line_status',
         }
         missing = required_tables - set(tables)
         if missing:
@@ -982,7 +1508,7 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 33,
+            'schema_version': 34,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
@@ -1014,6 +1540,7 @@ def main() -> int:
                 '0028_v30_to_v31.sql': hashlib.sha256(MIGRATION_0028.read_bytes()).hexdigest(),
                 '0029_v31_to_v32.sql': hashlib.sha256(MIGRATION_0029.read_bytes()).hexdigest(),
                 '0030_v32_to_v33.sql': hashlib.sha256(MIGRATION_0030.read_bytes()).hexdigest(),
+                '0031_v33_to_v34.sql': hashlib.sha256(MIGRATION_0031.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

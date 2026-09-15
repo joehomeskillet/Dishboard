@@ -39,6 +39,7 @@ ENTRIES = {
         ('Rezepte', 'Rezepte', 'recipes_list', '/admin/rezepte', False),
         ('Kochbücher', 'Kochbücher', 'cookbooks_list', '/admin/kochbuecher', False),
         ('Gerichtvorlagen', 'Gerichtvorlagen', 'dish_templates_list', '/admin/gerichtvorlagen', False),
+        ('Einkaufslisten', 'Einkaufslisten', 'shopping_lists_index', '/admin/einkaufslisten', False),
     ),
     'Vorschau & Bildschirme': (
         ('Vorschau', 'Vorschau', 'preview', '/admin/cafeteria/preview', False),
