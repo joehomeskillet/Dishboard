@@ -70,8 +70,14 @@ def _item(pdf: RecipeSheet, row_text: str, *, checkbox: bool) -> None:
 def _line_label(line: Mapping[str, object]) -> str:
     name = line.get('food_name') or line.get('ingredient_text')
     if not isinstance(name, str) or not name:
-        raise ShoppingPdfError('Eine Position dieser Einkaufsliste hat keinen Namen.')
+        return 'Freitext'
     return name
+
+
+def _revision_number(value: object) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+        raise ShoppingPdfError('Die Revisionsnummer dieser Einkaufsliste ist ungültig.')
+    return value
 
 
 def _line_row(line: Mapping[str, object]) -> str:
@@ -97,6 +103,11 @@ def _manual_row(item: Mapping[str, object]) -> str:
 def _section(pdf: RecipeSheet, title: str, rows: list[str], *, icon: str, checkbox: bool) -> None:
     if not rows:
         return
+    indent = pdf.body_size + 8 if checkbox else 0
+    first_wrapped = pdf.lines(rows[0], pdf.epw - indent)
+    required = 4 * pdf.leading + sum(line.height for line in first_wrapped)
+    if pdf.will_page_break(required):
+        pdf.add_page()
     pdf.heading(title, icon=icon)
     for row in rows:
         _item(pdf, row, checkbox=checkbox)
@@ -123,7 +134,7 @@ def _render(detail: Mapping[str, object], selected: Mapping[str, object], *,
     if config['header_text']:
         pdf.paragraph(config['header_text'])
     pdf.heading(title, title=True)
-    pdf.paragraph(f'Beleg {selected.get("revision_number")}', icon='file-check')
+    pdf.paragraph(f'Beleg {_revision_number(selected.get("revision_number"))}', icon='file-check')
     pdf.paragraph(policy, icon='components')
     pdf.paragraph('Berechnet am ' + _computed_at_text(selected.get('computed_at')), icon='history')
     note = detail.get('note')
@@ -156,6 +167,5 @@ def render_shopping_pdf(detail: Mapping[str, object], *, config: PrintTemplateCo
         return _render(detail, selected, config=config, branding=branding)
     except ShoppingPdfError:
         raise
-    except (RecipePdfError, RecipeConfigurationError, RecipeValidationError, FPDFException,
-            OSError, ValueError, KeyError, TypeError, AttributeError):
+    except (RecipePdfError, RecipeConfigurationError, RecipeValidationError, FPDFException, OSError):
         raise ShoppingPdfError('Die Einkaufsliste kann nicht vollständig als PDF ausgegeben werden.') from None

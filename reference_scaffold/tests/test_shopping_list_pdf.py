@@ -148,3 +148,85 @@ def test_unsupported_character_raises_shopping_pdf_error():
 def test_missing_selected_revision_raises():
     with pytest.raises(ShoppingPdfError):
         render(_detail(selected_revision=None))
+
+
+def test_line_without_name_prints_freitext():
+    detail = _detail(selected_revision=_selected_revision(
+        lines=[_line(food_name=None, ingredient_text=None, line_key='blank')],
+        incomplete_lines=[_line(food_name=None, ingredient_text=None, quantity=None, completeness='incomplete',
+                                reason='ohne Namen', line_key='inc-blank')],
+    ))
+    body = text(render(detail))
+    assert 'Freitext' in body
+    assert body.count('Freitext') == 2
+    with pytest.raises(ShoppingPdfError):
+        render(_detail(manual_items=(
+            {'public_id': 'm-empty', 'sort_order': 1, 'item_text': '', 'quantity': None,
+             'unit_code': None, 'checked': False, 'row_version': 1},
+        )))
+
+
+def test_section_heading_is_never_orphaned():
+    filler = [_line(food_name=f'Füller{index:03d}', quantity='1', unit_code='STK', unit_name='Stück',
+                      line_key=f'fill{index}') for index in range(42)]
+    incomplete = _line(food_name='Unvollständig mit langem Namen ' + ('x' * 120), quantity=None,
+                       completeness='incomplete', reason='fehlende Menge', line_key='inc-long')
+    manual = {'public_id': 'm1', 'sort_order': 1, 'item_text': 'Manuell ' + ('y' * 120), 'quantity': '2',
+              'unit_code': 'STK', 'checked': False, 'row_version': 1}
+    detail = _detail(
+        selected_revision=_selected_revision(lines=filler, incomplete_lines=[incomplete]),
+        manual_items=(manual,),
+    )
+    reader = PdfReader(BytesIO(render(detail)))
+    sections = (
+        ('Einkaufspositionen', tuple(f'Füller{index:03d}' for index in range(42))),
+        ('Unvollständige Mengen', ('Unvollständig mit langem Namen', 'fehlende Menge')),
+        ('Manuelle Positionen', ('Manuell ',)),
+    )
+    for page in reader.pages:
+        page_body = page_text(page)
+        for heading, markers in sections:
+            if heading in page_body:
+                assert any(marker in page_body for marker in markers), (
+                    f'Section heading {heading!r} orphaned on page without content'
+                )
+
+
+def test_invalid_revision_number_raises():
+    for revision_number in (None, 0, -1, '3'):
+        with pytest.raises(ShoppingPdfError):
+            render(_detail(selected_revision=_selected_revision(revision_number=revision_number)))
+
+
+def test_unit_code_is_used_when_unit_name_missing():
+    detail = _detail(selected_revision=_selected_revision(lines=[
+        _line(unit_name=None, unit_code='KG', food_name='Mehl', line_key='u1'),
+    ]))
+    assert '2,5 KG · Mehl' in text(render(detail))
+
+
+def test_long_names_and_note_wrap_completely():
+    long_name = 'N' * 320
+    long_note = 'H' * 320
+    detail = _detail(
+        note=long_note,
+        selected_revision=_selected_revision(lines=[_line(food_name=long_name, line_key='long')]),
+    )
+    compact = text(render(detail)).replace(' ', '')
+    assert long_name in compact
+    assert long_note in compact
+
+
+def test_only_manual_items_render():
+    detail = _detail(
+        selected_revision=_selected_revision(lines=[], incomplete_lines=[]),
+        manual_items=(
+            {'public_id': 'm1', 'sort_order': 1, 'item_text': 'Nur manuell', 'quantity': '1',
+             'unit_code': 'STK', 'checked': False, 'row_version': 1},
+        ),
+    )
+    body = text(render(detail))
+    assert 'Manuelle Positionen' in body
+    assert 'Nur manuell' in body
+    assert 'Einkaufspositionen' not in body
+    assert 'Unvollständige Mengen' not in body
