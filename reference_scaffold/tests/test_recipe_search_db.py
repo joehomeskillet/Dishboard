@@ -9,7 +9,9 @@ import pytest
 from sqlalchemy import event, text
 
 from cafeteria import master_data_store as masters, recipe_store as store
-from cafeteria.recipe_reads import LIST_RECIPES_SQL, _list_recipes_connection
+from cafeteria.recipe_reads import (
+    LIST_RECIPES_SQL, LIST_RECIPES_TEXT_SEARCH_SQL, _list_recipes_connection,
+)
 from cafeteria.recipe_types import RecipeValidationError
 from test_master_data_db import signed_in
 from test_master_data_routes import (  # noqa: F401
@@ -194,6 +196,30 @@ def test_stopword_only_query_returns_no_rows_and_blank_is_ignored(search_lab):
     assert store.list_recipes(engine, text_search='und der') == ()
 
 
+def test_list_without_text_search_uses_original_statement(search_lab):
+    lab = search_lab
+    engine, location = lab['engine'], lab['location']
+    executed: list[str] = []
+
+    def capture(_conn, _cursor, statement, _parameters, _context, _executemany):
+        executed.append(statement)
+
+    event.listen(engine, 'before_cursor_execute', capture)
+    try:
+        values = {'archived': False, 'limit': 200, 'offset': 0, 'search': '',
+                  'ingredient': '', 'tag': None, 'text_search': '', 'location': location}
+        with engine.begin() as current:
+            current.execute(text('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY'))
+            _list_recipes_connection(current, values)
+    finally:
+        event.remove(engine, 'before_cursor_execute', capture)
+
+    list_sql = next(stmt for stmt in executed if 'FROM cafeteria.recipes r' in stmt)
+    assert 'to_tsvector' not in list_sql.lower()
+    assert 'ts_rank_cd' not in list_sql.lower()
+    assert 'CROSS JOIN LATERAL' not in list_sql
+
+
 @pytest.mark.parametrize('value', [True, 3, ['x'], 'x' * 201, '\x00'])
 def test_invalid_text_search_rejected_before_database(value):
     from cafeteria.recipe_reads import list_recipes
@@ -227,17 +253,27 @@ def test_search_timing_and_explain_on_realistic_volume(search_lab):
             "SELECT count(*) FROM cafeteria.recipes WHERE location_id=:location"), {'location': location}).scalar_one()
     assert recipe_count >= 300
 
-    values = {'archived': False, 'limit': 200, 'offset': 0, 'search': '', 'ingredient': '',
-              'tag': None, 'text_search': 'feuerprobe', 'location': location}
+    search_values = {'archived': False, 'limit': 200, 'offset': 0, 'search': '', 'ingredient': '',
+                     'tag': None, 'text_search': 'feuerprobe', 'location': location}
+    plain_values = {**search_values, 'text_search': ''}
     with engine.begin() as current:
         current.execute(text('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY'))
         started = time.monotonic()
-        result = _list_recipes_connection(current, values)
+        result = _list_recipes_connection(current, search_values)
         elapsed = time.monotonic() - started
-        explain = current.execute(text('EXPLAIN (ANALYZE, BUFFERS) ' + LIST_RECIPES_SQL), values).all()
+        explain_search = current.execute(
+            text('EXPLAIN (ANALYZE, BUFFERS) ' + LIST_RECIPES_TEXT_SEARCH_SQL), search_values).all()
+        explain_plain = current.execute(
+            text('EXPLAIN (ANALYZE, BUFFERS) ' + LIST_RECIPES_SQL), plain_values).all()
     assert ids(result) == {target_hit.public_id}
     assert elapsed <= 2.0
-    plan = '\n'.join(row[0] for row in explain)
-    assert 'Execution Time' in plan
+    search_plan = '\n'.join(row[0] for row in explain_search)
+    plain_plan = '\n'.join(row[0] for row in explain_plain)
+    assert 'Execution Time' in search_plan
+    assert 'Execution Time' in plain_plan
+    assert 'to_tsvector' not in plain_plan.lower()
+    assert 'ts_rank_cd' not in plain_plan.lower()
     print(f'\n--- EXPLAIN (ANALYZE, BUFFERS) list_recipes text_search on {recipe_count} recipes '
-          f'(≥15 ingredients, ≥5 steps each) ---\n{plan}\n--- elapsed(python)={elapsed:.4f}s ---')
+          f'(≥15 ingredients, ≥5 steps each) ---\n{search_plan}\n--- elapsed(python)={elapsed:.4f}s ---')
+    print(f'\n--- EXPLAIN (ANALYZE, BUFFERS) list_recipes without text_search on {recipe_count} '
+          f'recipes (≥15 ingredients, ≥5 steps each) ---\n{plain_plan}\n---')

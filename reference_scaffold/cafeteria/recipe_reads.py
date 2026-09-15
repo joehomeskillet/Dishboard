@@ -60,10 +60,7 @@ _TEXT_SEARCH_DOCUMENT = r'''(setweight(to_tsvector('pg_catalog.german'::regconfi
     ),'')),'C'))'''
 _TEXT_SEARCH_QUERY = "websearch_to_tsquery('pg_catalog.german'::regconfig, :text_search)"
 
-# Exposed so tests can run EXPLAIN on the exact production statement (F8 root freeze).
-LIST_RECIPES_SQL = f'''SELECT r.public_id,r.row_version,r.active,
-            cafeteria.recipe_payload_v22(r.id) AS payload FROM cafeteria.recipes r
-            WHERE r.location_id=:location AND (:archived OR r.active)
+_LIST_RECIPES_FILTERS = '''WHERE r.location_id=:location AND (:archived OR r.active)
             AND strpos(lower(r.title),lower(:search))>0
             AND (:ingredient='' OR EXISTS (
                 SELECT 1 FROM cafeteria.recipe_ingredients i
@@ -75,10 +72,23 @@ LIST_RECIPES_SQL = f'''SELECT r.public_id,r.row_version,r.active,
                 SELECT 1 FROM cafeteria.recipe_tags rt
                 JOIN cafeteria.tags t ON t.id=rt.tag_id AND t.location_id=rt.location_id
                 WHERE rt.recipe_id=r.id AND rt.location_id=r.location_id
-                AND t.public_id=CAST(:tag AS uuid)))
-            AND (:text_search='' OR {_TEXT_SEARCH_DOCUMENT} @@ {_TEXT_SEARCH_QUERY})
-            ORDER BY CASE WHEN :text_search<>'' THEN ts_rank_cd({_TEXT_SEARCH_DOCUMENT},{_TEXT_SEARCH_QUERY}) END
-                DESC NULLS LAST, lower(r.title),r.public_id LIMIT :limit OFFSET :offset'''
+                AND t.public_id=CAST(:tag AS uuid)))'''
+
+# Unchanged from 8ab614c — no FTS document or rank when text_search is blank after strip().
+LIST_RECIPES_SQL = f'''SELECT r.public_id,r.row_version,r.active,
+            cafeteria.recipe_payload_v22(r.id) AS payload FROM cafeteria.recipes r
+            {_LIST_RECIPES_FILTERS}
+            ORDER BY lower(r.title),r.public_id LIMIT :limit OFFSET :offset'''
+
+# Exposed so tests can run EXPLAIN on the exact production statement (F8 root freeze).
+LIST_RECIPES_TEXT_SEARCH_SQL = f'''SELECT r.public_id,r.row_version,r.active,
+            cafeteria.recipe_payload_v22(r.id) AS payload FROM cafeteria.recipes r
+            CROSS JOIN LATERAL (SELECT {_TEXT_SEARCH_DOCUMENT} AS doc,
+                {_TEXT_SEARCH_QUERY} AS query) s
+            {_LIST_RECIPES_FILTERS}
+            AND s.doc @@ s.query
+            ORDER BY ts_rank_cd(s.doc, s.query) DESC, lower(r.title), r.public_id
+            LIMIT :limit OFFSET :offset'''
 
 
 def list_recipes(engine: Engine, *, include_archived: bool = False, search: str | None = None,
@@ -101,8 +111,9 @@ def list_recipes(engine: Engine, *, include_archived: bool = False, search: str 
 
 
 def _list_recipes_connection(current: Connection, values: Mapping[str, object]) -> tuple[RecipeDTO, ...]:
+    sql = LIST_RECIPES_TEXT_SEARCH_SQL if values['text_search'] else LIST_RECIPES_SQL
     return tuple(RecipeDTO(str(row.public_id), row.row_version, row.active, frozen_json(row.payload))
-                 for row in current.execute(text(LIST_RECIPES_SQL), values))
+                 for row in current.execute(text(sql), values))
 
 
 def get_recipe(engine: Engine, public_id: str) -> RecipeDTO:
