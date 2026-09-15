@@ -589,6 +589,7 @@ reference_scaffold/cafeteria/admin/rendering.py
 reference_scaffold/cafeteria/admin/routes.py
 reference_scaffold/cafeteria/admin/screen_template_routes.py
 reference_scaffold/cafeteria/admin/shopping_list_routes.py
+reference_scaffold/cafeteria/admin/shopping_pdf.py
 reference_scaffold/cafeteria/admin/week_management_routes.py
 reference_scaffold/cafeteria/admin/week_pdf.py
 reference_scaffold/cafeteria/admin/week_pdf_layout.py
@@ -1409,6 +1410,8 @@ reference_scaffold/tests/test_screen_template_store.py
 reference_scaffold/tests/test_shopping_aggregate.py
 reference_scaffold/tests/test_shopping_list_browser.py
 reference_scaffold/tests/test_shopping_list_db.py
+reference_scaffold/tests/test_shopping_list_pdf.py
+reference_scaffold/tests/test_shopping_list_pdf_http.py
 reference_scaffold/tests/test_shopping_list_routes.py
 reference_scaffold/tests/test_signage_cafeteria_day.py
 reference_scaffold/tests/test_signage_cafeteria_week.py
