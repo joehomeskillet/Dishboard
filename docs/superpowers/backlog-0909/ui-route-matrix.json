@@ -10174,7 +10174,7 @@
         "admin/_macros.html",
         "admin/rezepte_ansicht.html"
       ],
-      "sha256": "144fe13a1e3a997640e90097482638227615d607820f33f7131ed5f4ddb3bed3",
+      "sha256": "ae49344aa837ba7b1a36c444eff6826910c3a79c74fecbdaa9ef429b05c364d1",
       "used_by_endpoints": [
         "admin.recipes_list"
       ],

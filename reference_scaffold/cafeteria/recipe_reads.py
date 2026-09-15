@@ -41,22 +41,26 @@ def get_location(engine: Engine) -> int:
         return location
 
 
-def list_recipes(engine: Engine, *, include_archived: bool = False, search: str | None = None,
-                 ingredient: str | None = None, tag: str | None = None,
-                 limit: int = 200, offset: int = 0) -> tuple[RecipeDTO, ...]:
-    values = paging(limit, offset, include_archived)
-    for value in (search, ingredient):
-        if value is not None and (not isinstance(value, str) or len(value) > 200 or '\x00' in value):
-            raise RecipeValidationError('Ungültige Suche.')
-    values['search'] = search or ''
-    values['ingredient'] = ingredient or ''
-    values['tag'] = None if tag is None or tag == '' else identifier(tag)
-    with connection(engine) as (current, location):
-        values['location'] = location
-        return tuple(RecipeDTO(str(row.public_id), row.row_version, row.active, frozen_json(row.payload))
-                     for row in current.execute(text('''SELECT r.public_id,r.row_version,r.active,
-            cafeteria.recipe_payload_v22(r.id) AS payload FROM cafeteria.recipes r
-            WHERE r.location_id=:location AND (:archived OR r.active)
+# Weighted per-recipe search document built at read time from four zero-schema-change
+# sources (F2 root freeze): title (A), description+step instructions (C), ingredient
+# text/linked food name (B). No cross-row generated column exists in PostgreSQL, so the
+# ingredient/step aggregation is a deterministically ordered correlated subquery per row.
+_TEXT_SEARCH_DOCUMENT = r'''(setweight(to_tsvector('pg_catalog.german'::regconfig, r.title),'A')
+    || setweight(to_tsvector('pg_catalog.german'::regconfig, coalesce(r.description,'')),'C')
+    || setweight(to_tsvector('pg_catalog.german'::regconfig, coalesce((
+        SELECT string_agg(concat_ws(' ', i.ingredient_text, f.name), E'\n' ORDER BY i.sort_order)
+        FROM cafeteria.recipe_ingredients i
+        LEFT JOIN cafeteria.foods f ON f.id=i.food_id AND f.location_id=i.location_id
+        WHERE i.recipe_id=r.id AND i.location_id=r.location_id
+    ),'')),'B')
+    || setweight(to_tsvector('pg_catalog.german'::regconfig, coalesce((
+        SELECT string_agg(s.instruction, E'\n' ORDER BY s.step_number)
+        FROM cafeteria.recipe_steps s
+        WHERE s.recipe_id=r.id AND s.location_id=r.location_id
+    ),'')),'C'))'''
+_TEXT_SEARCH_QUERY = "websearch_to_tsquery('pg_catalog.german'::regconfig, :text_search)"
+
+_LIST_RECIPES_FILTERS = '''WHERE r.location_id=:location AND (:archived OR r.active)
             AND strpos(lower(r.title),lower(:search))>0
             AND (:ingredient='' OR EXISTS (
                 SELECT 1 FROM cafeteria.recipe_ingredients i
@@ -68,8 +72,48 @@ def list_recipes(engine: Engine, *, include_archived: bool = False, search: str 
                 SELECT 1 FROM cafeteria.recipe_tags rt
                 JOIN cafeteria.tags t ON t.id=rt.tag_id AND t.location_id=rt.location_id
                 WHERE rt.recipe_id=r.id AND rt.location_id=r.location_id
-                AND t.public_id=CAST(:tag AS uuid)))
-            ORDER BY lower(r.title),r.public_id LIMIT :limit OFFSET :offset'''), values))
+                AND t.public_id=CAST(:tag AS uuid)))'''
+
+# Unchanged from 8ab614c — no FTS document or rank when text_search is blank after strip().
+LIST_RECIPES_SQL = f'''SELECT r.public_id,r.row_version,r.active,
+            cafeteria.recipe_payload_v22(r.id) AS payload FROM cafeteria.recipes r
+            {_LIST_RECIPES_FILTERS}
+            ORDER BY lower(r.title),r.public_id LIMIT :limit OFFSET :offset'''
+
+# Exposed so tests can run EXPLAIN on the exact production statement (F8 root freeze).
+LIST_RECIPES_TEXT_SEARCH_SQL = f'''SELECT r.public_id,r.row_version,r.active,
+            cafeteria.recipe_payload_v22(r.id) AS payload FROM cafeteria.recipes r
+            CROSS JOIN LATERAL (SELECT {_TEXT_SEARCH_DOCUMENT} AS doc,
+                {_TEXT_SEARCH_QUERY} AS query) s
+            {_LIST_RECIPES_FILTERS}
+            AND s.doc @@ s.query
+            ORDER BY ts_rank_cd(s.doc, s.query) DESC, lower(r.title), r.public_id
+            LIMIT :limit OFFSET :offset'''
+
+
+def list_recipes(engine: Engine, *, include_archived: bool = False, search: str | None = None,
+                 ingredient: str | None = None, tag: str | None = None,
+                 text_search: str | None = None,
+                 limit: int = 200, offset: int = 0) -> tuple[RecipeDTO, ...]:
+    values = paging(limit, offset, include_archived)
+    for value in (search, ingredient, text_search):
+        if value is not None and (not isinstance(value, str) or len(value) > 200 or '\x00' in value):
+            raise RecipeValidationError('Ungültige Suche.')
+    values['search'] = search or ''
+    values['ingredient'] = ingredient or ''
+    values['tag'] = None if tag is None or tag == '' else identifier(tag)
+    # F4 root freeze: blank input or a stripped query of only stopwords does not raise;
+    # an empty string after strip() disables the filter entirely (identical to no text_search).
+    values['text_search'] = (text_search or '').strip()
+    with connection(engine) as (current, location):
+        values['location'] = location
+        return _list_recipes_connection(current, values)
+
+
+def _list_recipes_connection(current: Connection, values: Mapping[str, object]) -> tuple[RecipeDTO, ...]:
+    sql = LIST_RECIPES_TEXT_SEARCH_SQL if values['text_search'] else LIST_RECIPES_SQL
+    return tuple(RecipeDTO(str(row.public_id), row.row_version, row.active, frozen_json(row.payload))
+                 for row in current.execute(text(sql), values))
 
 
 def get_recipe(engine: Engine, public_id: str) -> RecipeDTO:

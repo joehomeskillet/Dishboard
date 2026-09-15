@@ -3378,11 +3378,25 @@
         "REC-006"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "INTEGRATED",
       "depends_on": [
         "MP-BAS-SCHEMA27"
       ],
       "existing_wp_id": null,
+      "integration_2026_09_15": {
+        "branch": "integrate/fts-0915 (auf Livestand 8ab614c)",
+        "freeze": ".claude/state/opus5-0913/brief-search-fts-common.md F1–F9",
+        "root_decision_f2": "Keine generierten tsvector-Spalten und keine Migration: PG16-Probe zeigte NEW.search_tsv=null im BEFORE-Trigger, der foods-Guard (schema.sql:3267) hätte jede Umbenennung abgelehnt; Suchdokument wird zur Lesezeit je Rezept gebaut. Kriterien Folgemigration/Upgrade-Restore-ACL entfallen dadurch.",
+        "commits": "FTS-READ d2b8408 (Sonnet), Fix 87f1b92 (Cursor composer-2.5: getrennte SQL ohne/mit Suche); FTS-UI 91d4e58 (Sonnet)",
+        "reviews": "AGY wp-fts-read-0915-review: FINDINGS(1) P2 Suchdokument auch ohne Suche im SQL → behoben 87f1b92",
+        "measurement": "EXPLAIN ANALYZE 321 Rezepte × 16 Zutaten × 6 Schritte: 28.6 ms (Autorbericht wp-fts-read-0915.md, beide Varianten in wp-fts-read-0915-fix.md)",
+        "root_gate": "UIother: test_recipe_search_db/routes/browser + test_recipe_filter_reads + test_ui_route_inventory + test_ui_inventory_capture + test_master_data_routes → 111 passed, GATE_EXIT=0",
+        "open_items": [
+          "Kompositum «Kartoffelsuppe» wird von «kartoffel suppe» nicht gefunden (pg_catalog.german ohne Zerlegung, Test dokumentiert)",
+          "zeilenübergreifende Phrasennachbarschaft zwischen Zutaten möglich (F7)",
+          "bei aktiver Suche wird das Dokument je Zeile ggf. zweimal ausgewertet (P3, 28.6 ms gemessen)"
+        ]
+      },
       "sdd_sections": [
         "recipes-sdd.md#87-rec-006-suche-und-tags"
       ],
