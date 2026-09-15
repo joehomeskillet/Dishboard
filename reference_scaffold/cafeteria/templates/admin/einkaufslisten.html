@@ -1,0 +1,88 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header, icon, field, textarea, form_errors, empty_state %}
+{% set workflow_nav = 'shopping_lists' %}
+{% block title %}Einkaufslisten · Menüplanung{% endblock %}
+{% block page_header %}
+{% call page_header('Einkaufslisten', description='Bausteine gebundener Rezepte einer Woche zu einer Einkaufsliste zusammenfassen.') %}
+<a class="btn btn-primary" href="#einkaufsliste-neu">{{ icon('plus') }}Neue Einkaufsliste</a>
+{% endcall %}
+{% endblock %}
+{% block content %}
+{% if error %}{{ form_errors(error) }}{% endif %}
+<form class="mb-3 d-flex flex-wrap gap-2 align-items-center" method="get" action="{{ url_for('admin.shopping_lists_index') }}">
+  <label class="form-check mb-0">
+    <input class="form-check-input" type="checkbox" name="archived" value="1"{% if include_archived %} checked{% endif %}>
+    <span class="form-check-label">Archivierte einschliessen</span>
+  </label>
+  <button class="btn" type="submit">Filter anwenden</button>
+</form>
+{% if rows %}
+<div class="card mb-4">
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr>
+          <th>Titel</th>
+          <th class="d-none d-md-table-cell">Quellwoche</th>
+          <th class="d-none d-md-table-cell">Letzte Berechnung</th>
+          <th class="d-none d-md-table-cell">Offen / abgehakt</th>
+          {% if can_write %}<th class="d-none d-md-table-cell">Aktion</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in rows %}
+        <tr>
+          <td>
+            <a class="text-break" href="{{ url_for('admin.shopping_list_detail', public_id=item.public_id) }}">{{ item.title }}</a>
+            {% if item.archived_at %}<span class="badge bg-secondary-lt ms-1">Archiviert</span>{% endif %}
+            <div class="d-md-none text-secondary">
+              {{ week_labels.get(item.menu_week_public_id, 'Keine Woche') }} ·
+              {% if item.latest_computed_at %}{{ item.latest_computed_at.strftime('%d.%m.%Y %H:%M') }}{% else %}Noch nicht berechnet{% endif %}
+              · {{ item.open_count }} offen / {{ item.checked_count }} abgehakt
+            </div>
+          </td>
+          <td class="d-none d-md-table-cell">{{ week_labels.get(item.menu_week_public_id, '—') }}</td>
+          <td class="d-none d-md-table-cell">{% if item.latest_computed_at %}{{ item.latest_computed_at.strftime('%d.%m.%Y %H:%M') }}{% else %}Noch nicht berechnet{% endif %}</td>
+          <td class="d-none d-md-table-cell">{{ item.open_count }} offen / {{ item.checked_count }} abgehakt</td>
+          {% if can_write %}
+          <td class="d-none d-md-table-cell">
+            {% if not item.archived_at %}
+            <form method="post" action="{{ url_for('admin.shopping_list_archive', public_id=item.public_id) }}">
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+              <input type="hidden" name="row_version" value="{{ item.row_version }}">
+              <button class="btn" type="submit" data-confirm="Diese Einkaufsliste archivieren?">{{ icon('archive') }}Archivieren</button>
+            </form>
+            {% endif %}
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+{{ empty_state('none', 'Noch keine Einkaufslisten', 'Eine Einkaufsliste anlegen, um Bausteine einer Woche zusammenzufassen.') }}
+{% endif %}
+{% if can_write %}
+<section class="card" id="einkaufsliste-neu" aria-labelledby="einkaufsliste-neu-title">
+  <div class="card-header"><h2 class="card-title" id="einkaufsliste-neu-title">Neue Einkaufsliste</h2></div>
+  <form class="card-body" method="post" action="{{ url_for('admin.shopping_lists_create') }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <div class="mb-3">{{ field('title', 'Titel', values.title, required=true) }}</div>
+    <div class="mb-3">{{ textarea('note', 'Notiz', values.note, required=false, hint='Optional', rows=2) }}</div>
+    <div class="mb-3">
+      <label class="form-label" for="menu_week_public_id">Woche <span class="text-secondary">(optional)</span></label>
+      <select class="form-select" id="menu_week_public_id" name="menu_week_public_id">
+        <option value="">Keine Woche</option>
+        {% for week in weeks %}
+        <option value="{{ week.public_id }}"{% if values.menu_week_public_id == week.public_id %} selected{% endif %}>{{ week.label }}</option>
+        {% endfor %}
+      </select>
+      <div class="form-hint">Bestimmt die vorgeschlagenen Bausteine bei «Neu berechnen»; kann leer bleiben.</div>
+    </div>
+    <button class="btn btn-primary" type="submit">{{ icon('device-floppy') }}Einkaufsliste anlegen</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

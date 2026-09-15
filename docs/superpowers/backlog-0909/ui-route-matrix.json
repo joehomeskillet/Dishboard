@@ -17,9 +17,9 @@
     "baseline_status": "proposed_never_user_approved",
     "generated_at": "2026-09-13T07:15:51.719096+00:00",
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
-    "route_count": 129,
-    "template_count": 85,
-    "html_route_count": 68,
+    "route_count": 137,
+    "template_count": 87,
+    "html_route_count": 70,
     "design_manifest_commit": "39625ccc0d8b576fae9edaeb8cf0b5c70b1af912",
     "browser_status": "not_run",
     "usability_status": "not_run"
@@ -8171,6 +8171,458 @@
         "usability_status": "not_applicable",
         "notes": "Muster nur soweit fachlich passend; öffentliche, Login-, Druck- und Signage-Layouts behalten ihre Ausgabegrenzen."
       }
+    },
+    {
+      "endpoint": "admin.shopping_lists_index",
+      "rule": "/admin/einkaufslisten",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/einkaufslisten.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-REC-SHOPPING-PERSIST",
+      "family_variants": [],
+      "module": "cafeteria.admin.shopping_list_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
+      "states": [
+        "default",
+        "access_denied_401",
+        "access_denied_403",
+        "empty_or_unavailable",
+        "invalid",
+        "conflict_if_versioned"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [
+          "M01",
+          "M09",
+          "M20"
+        ],
+        "rules": [
+          "R01",
+          "R02",
+          "R03",
+          "R04",
+          "R05",
+          "R06",
+          "R07",
+          "R08",
+          "R09",
+          "R10"
+        ],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-REC-SHOPPING-PERSIST",
+        "core_task": "Einkaufslisten der Woche einsehen und eine neue Liste anlegen",
+        "example_url": "/admin/einkaufslisten",
+        "example_semantics": "Parameter in geschweiften Klammern sind fixture-erzeugte Identitäten, keine existierenden Live-IDs.",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py::_fixture_descriptor",
+        "state_evidence": {
+          "default": "not_run",
+          "access_denied_401": "not_run",
+          "access_denied_403": "not_run",
+          "empty_or_unavailable": "not_run",
+          "invalid": "not_run",
+          "conflict_if_versioned": "not_run"
+        },
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_run",
+        "usability_status": "not_run",
+        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+      }
+    },
+    {
+      "endpoint": "admin.shopping_lists_create",
+      "rule": "/admin/einkaufslisten",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "post_only",
+      "visual": false,
+      "templates": [
+        "admin/einkaufslisten.html"
+      ],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-REC-SHOPPING-PERSIST",
+      "family_variants": [],
+      "module": "cafeteria.admin.shopping_list_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-REC-SHOPPING-PERSIST",
+        "core_task": "Bestehende post_only-Antwort; kein eigenständiger UI-Screen",
+        "example_url": "/admin/einkaufslisten",
+        "example_semantics": "Parameter in geschweiften Klammern sind fixture-erzeugte Identitäten, keine existierenden Live-IDs.",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py::_prepare_inventory_entities",
+        "state_evidence": {},
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+      }
+    },
+    {
+      "endpoint": "admin.shopping_list_detail",
+      "rule": "/admin/einkaufslisten/<public_id>",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/einkaufsliste.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-REC-SHOPPING-PERSIST",
+      "family_variants": [],
+      "module": "cafeteria.admin.shopping_list_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
+      "states": [
+        "default",
+        "access_denied_401",
+        "access_denied_403",
+        "empty_or_unavailable",
+        "invalid",
+        "conflict_if_versioned"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [
+          "M01",
+          "M03",
+          "M12",
+          "M19",
+          "M20"
+        ],
+        "rules": [
+          "R01",
+          "R02",
+          "R03",
+          "R04",
+          "R05",
+          "R06",
+          "R07",
+          "R08",
+          "R09",
+          "R10"
+        ],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-REC-SHOPPING-PERSIST",
+        "core_task": "Einkaufsliste berechnen, Zeilen abhaken und manuelle Positionen pflegen",
+        "example_url": "/admin/einkaufslisten/{public_id}",
+        "example_semantics": "Parameter in geschweiften Klammern sind fixture-erzeugte Identitäten, keine existierenden Live-IDs.",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py::_prepare_inventory_entities",
+        "state_evidence": {
+          "default": "not_run",
+          "access_denied_401": "not_run",
+          "access_denied_403": "not_run",
+          "empty_or_unavailable": "not_run",
+          "invalid": "not_run",
+          "conflict_if_versioned": "not_run"
+        },
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_run",
+        "usability_status": "not_run",
+        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+      }
+    },
+    {
+      "endpoint": "admin.shopping_list_compute",
+      "rule": "/admin/einkaufslisten/<public_id>/berechnen",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "post_only",
+      "visual": false,
+      "templates": [
+        "admin/einkaufsliste.html"
+      ],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-REC-SHOPPING-PERSIST",
+      "family_variants": [],
+      "module": "cafeteria.admin.shopping_list_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-REC-SHOPPING-PERSIST",
+        "core_task": "Bestehende post_only-Antwort; kein eigenständiger UI-Screen",
+        "example_url": "/admin/einkaufslisten/{public_id}/berechnen",
+        "example_semantics": "Parameter in geschweiften Klammern sind fixture-erzeugte Identitäten, keine existierenden Live-IDs.",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py::_prepare_inventory_entities",
+        "state_evidence": {},
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+      }
+    },
+    {
+      "endpoint": "admin.shopping_list_archive",
+      "rule": "/admin/einkaufslisten/<public_id>/archivieren",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "post_only",
+      "visual": false,
+      "templates": [
+        "admin/einkaufslisten.html"
+      ],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-REC-SHOPPING-PERSIST",
+      "family_variants": [],
+      "module": "cafeteria.admin.shopping_list_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-REC-SHOPPING-PERSIST",
+        "core_task": "Bestehende post_only-Antwort; kein eigenständiger UI-Screen",
+        "example_url": "/admin/einkaufslisten/{public_id}/archivieren",
+        "example_semantics": "Parameter in geschweiften Klammern sind fixture-erzeugte Identitäten, keine existierenden Live-IDs.",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py::_prepare_inventory_entities",
+        "state_evidence": {},
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+      }
+    },
+    {
+      "endpoint": "admin.shopping_list_line_toggle",
+      "rule": "/admin/einkaufslisten/<public_id>/zeilen",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "post_only",
+      "visual": false,
+      "templates": [
+        "admin/einkaufsliste.html"
+      ],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-REC-SHOPPING-PERSIST",
+      "family_variants": [],
+      "module": "cafeteria.admin.shopping_list_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-REC-SHOPPING-PERSIST",
+        "core_task": "Bestehende post_only-Antwort; kein eigenständiger UI-Screen",
+        "example_url": "/admin/einkaufslisten/{public_id}/zeilen",
+        "example_semantics": "Parameter in geschweiften Klammern sind fixture-erzeugte Identitäten, keine existierenden Live-IDs.",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py::_prepare_inventory_entities",
+        "state_evidence": {},
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+      }
+    },
+    {
+      "endpoint": "admin.shopping_list_manual_create",
+      "rule": "/admin/einkaufslisten/<public_id>/positionen",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "post_only",
+      "visual": false,
+      "templates": [
+        "admin/einkaufsliste.html"
+      ],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-REC-SHOPPING-PERSIST",
+      "family_variants": [],
+      "module": "cafeteria.admin.shopping_list_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-REC-SHOPPING-PERSIST",
+        "core_task": "Bestehende post_only-Antwort; kein eigenständiger UI-Screen",
+        "example_url": "/admin/einkaufslisten/{public_id}/positionen",
+        "example_semantics": "Parameter in geschweiften Klammern sind fixture-erzeugte Identitäten, keine existierenden Live-IDs.",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py::_prepare_inventory_entities",
+        "state_evidence": {},
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+      }
+    },
+    {
+      "endpoint": "admin.shopping_list_manual_update",
+      "rule": "/admin/einkaufslisten/<public_id>/positionen/<item_public_id>",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "post_only",
+      "visual": false,
+      "templates": [
+        "admin/einkaufsliste.html"
+      ],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-REC-SHOPPING-PERSIST",
+      "family_variants": [],
+      "module": "cafeteria.admin.shopping_list_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema31_seed_plus_synthetic_entities",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-REC-SHOPPING-PERSIST",
+        "core_task": "Bestehende post_only-Antwort; kein eigenständiger UI-Screen",
+        "example_url": "/admin/einkaufslisten/{public_id}/positionen/{item_public_id}",
+        "example_semantics": "Parameter in geschweiften Klammern sind fixture-erzeugte Identitäten, keine existierenden Live-IDs.",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py::_prepare_inventory_entities",
+        "state_evidence": {},
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+      }
     }
   ],
   "templates": [
@@ -8389,7 +8841,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "3c126306688abdda6c78ef5e2c91c6047857b378f07fbdbe60336be168ed437a",
+      "sha256": "49f3d2721e0a444becf84430ac7b9ca1be17956b25c420a2042899a9723e5ec6",
       "used_by_endpoints": [
         "admin.access_history",
         "admin.api_overview",
@@ -10470,6 +10922,52 @@
       "density_mockups": [
         "M01",
         "M14",
+        "M20"
+      ],
+      "current_visual_status": "not_run"
+    },
+    {
+      "path": "admin/einkaufslisten.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "aeaf5a3518192427e3a0006ebb338ae5b2cc2fd2593ea3c350eb20649293f86b",
+      "used_by_endpoints": [
+        "admin.shopping_list_archive",
+        "admin.shopping_lists_create",
+        "admin.shopping_lists_index"
+      ],
+      "owning_mp": "MP-REC-SHOPPING-PERSIST",
+      "density_mockups": [
+        "M01",
+        "M20"
+      ],
+      "current_visual_status": "not_run"
+    },
+    {
+      "path": "admin/einkaufsliste.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "8e60c80276879f29c4bd4ac5720be548db9715542b936e9ff47b52e762b701fb",
+      "used_by_endpoints": [
+        "admin.shopping_list_compute",
+        "admin.shopping_list_detail",
+        "admin.shopping_list_line_toggle",
+        "admin.shopping_list_manual_create",
+        "admin.shopping_list_manual_update"
+      ],
+      "owning_mp": "MP-REC-SHOPPING-PERSIST",
+      "density_mockups": [
+        "M01",
         "M20"
       ],
       "current_visual_status": "not_run"
