@@ -58,7 +58,8 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
             page.keyboard.press('Enter')
         expect(page.locator('.recipe-card')).to_have_count(3)
         assert parse_qs(urlsplit(page.url).query) == filters | {'page': ['2']}
-        ids = page.locator('.recipe-card a[aria-label]').evaluate_all(
+        # Cards carry "… ansehen" (/ansicht) and "… bearbeiten" (/<id>) links since the read-only view split.
+        ids = page.locator('.recipe-card a[aria-label$=" bearbeiten"]').evaluate_all(
             'els => els.map(el => el.pathname.split("/").pop())')
         assert ids == expected[50:]
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')

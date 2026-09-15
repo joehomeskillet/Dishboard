@@ -13,9 +13,9 @@ from werkzeug.serving import make_server
 from cafeteria import recipe_store as store, roles
 from test_master_data_db import make_actor, signed_in
 from test_recipe_revision_routes import (  # noqa: F401
-    a3, app_engine, b3, edit, installed_pg16, pg16, png, seeded_pg16, snapshot,
+    a3, app_engine, b3, complete_a3, edit, installed_pg16, pg16, png, seeded_pg16, snapshot,
 )
-from test_recipe_store_db import line, mutable, payload, target
+from test_recipe_store_db import complete_line, mutable, payload, target
 from test_rendered_ui import browser  # noqa: F401
 
 VIEWPORTS = [
@@ -32,6 +32,7 @@ FOCUS_COLOR = 'rgb(163, 22, 77)'
 
 @pytest.fixture
 def detail_revisions(a3):  # noqa: F811
+    complete_a3(a3)
     app, owner, client, actor, recipe_id = a3
     engine = app.extensions['cafeteria_db']
     with signed_in(engine, actor):
@@ -56,9 +57,9 @@ def detail_revisions(a3):  # noqa: F811
             title='Gemüsebouillon ohne Bilder',
             description='Leichte klare Brühe ohne beigefügte Bilddokumente.',
             ingredients=[
-                line('Karotten', quantity='0.5', unit_code='KG'),
-                line('Lauch', quantity='0.25', unit_code='KG'),
-                line('Wasser', quantity='2.0', unit_code='L'),
+                complete_line(engine, actor, 'Karotten', quantity='0.5', unit_code='KG'),
+                complete_line(engine, actor, 'Lauch', quantity='0.25', unit_code='KG'),
+                complete_line(engine, actor, 'Wasser', quantity='2.0', unit_code='L'),
             ],
             steps=[
                 {'instruction': 'Gemüse waschen und klein schneiden.', 'duration_minutes': 10, 'image_sha256': None},
@@ -78,10 +79,12 @@ def detail_revisions(a3):  # noqa: F811
             title=long_title,
             description=long_desc,
             ingredients=[
-                line('Rindsschulter gut gelagert und pariert vom regionalen Metzger', quantity='1.8', unit_code='KG',
-                     note='Zimmertemperatur annehmen lassen vor dem Anbraten'),
-                line('Fein gewürfeltes Röstgemüse bestehend aus Sellerie, Karotten und Lauch', quantity='0.6', unit_code='KG',
-                     note='Gleichmässig in 1 cm grosse Würfel schneiden'),
+                complete_line(engine, actor, 'Rindsschulter gut gelagert und pariert vom regionalen Metzger',
+                              quantity='1.8', unit_code='KG',
+                              note='Zimmertemperatur annehmen lassen vor dem Anbraten'),
+                complete_line(engine, actor, 'Fein gewürfeltes Röstgemüse bestehend aus Sellerie, Karotten und Lauch',
+                              quantity='0.6', unit_code='KG',
+                              note='Gleichmässig in 1 cm grosse Würfel schneiden'),
             ],
             steps=[
                 {'instruction': long_instruction, 'duration_minutes': 120, 'image_sha256': None},
@@ -101,15 +104,12 @@ def detail_revisions(a3):  # noqa: F811
             steps=[],
         )
         row_empty = store.create_recipe(engine, actor, p_empty, expected_location_id=loc)
-        preview_empty = store.get_dependency_preview(engine, target(row_empty), expected_location_id=loc)
-        rev_empty = store.freeze_revision(engine, actor, target(row_empty), expected_location_id=loc,
-            expected_dependency_hash=preview_empty.dependency_hash_sha256)
 
     return {
         'normal': (row_norm.public_id, rev_normal.public_id, rev_normal.revision_number, rev_normal.content_hash_sha256),
         'no_images': (row_no_img.public_id, rev_no_img.public_id, rev_no_img.revision_number, rev_no_img.content_hash_sha256),
         'long_text': (row_long.public_id, rev_long.public_id, rev_long.revision_number, rev_long.content_hash_sha256),
-        'empty': (row_empty.public_id, rev_empty.public_id, rev_empty.revision_number, rev_empty.content_hash_sha256),
+        'empty': (row_empty.public_id, None, None, None),
     }
 
 
@@ -298,9 +298,9 @@ def test_detail_reference_long_text_state(detail_revisions, detail_server, brows
 
 @pytest.mark.parametrize('width,height', ZOOM_VIEWPORTS)
 def test_detail_reference_empty_state(detail_revisions, detail_server, browser, width, height, tmp_path):  # noqa: F811
-    recipe_id, rev_id, rev_num, _ = detail_revisions['empty']
+    recipe_id, _, _, _ = detail_revisions['empty']
     base, cookie, _ = detail_server
-    url = f'{base}/admin/rezepte/{recipe_id}/revisionen/{rev_id}'
+    url = f'{base}/admin/rezepte/{recipe_id}/ansicht'
 
     with browser.new_context(viewport={'width': width, 'height': height}, java_script_enabled=True,
                              reduced_motion='reduce', service_workers='block') as context:
@@ -309,7 +309,7 @@ def test_detail_reference_empty_state(detail_revisions, detail_server, browser, 
         assert page.goto(url).status == 200
 
         expect(page.locator('h1.page-title')).to_contain_text('Leeres Rezept ohne Inhalt')
-        expect(page.locator('.page-header-subtitle')).to_contain_text(f'Unveränderlicher Revisionsstand {rev_num}')
+        expect(page.get_by_text('Entwurf · nicht festgeschrieben', exact=True)).to_be_visible()
         expect(page.get_by_text('Keine Zutaten gespeichert.')).to_be_visible()
         expect(page.get_by_text('Keine Schritte gespeichert.')).to_be_visible()
 

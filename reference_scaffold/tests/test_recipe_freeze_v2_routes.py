@@ -2,11 +2,13 @@
 import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
+from werkzeug.datastructures import MultiDict
 
 from cafeteria import recipe_store as store, master_data_store as masters, roles
 from cafeteria.admin import recipe_forms as forms
 from test_master_data_db import signed_in
 from test_master_data_routes import Forms
+from test_recipe_error_focus import parse as parse_recovery
 from test_recipe_freeze_v2_db import full_state
 from test_recipe_revision_routes import (  # noqa: F401
     a3, b3, app_engine, pg16, installed_pg16, seeded_pg16, complete_a3, edit, fields,
@@ -84,7 +86,9 @@ def test_changed_dependency_is_409_and_only_deliberate_new_get_can_sign_again(re
         patch.setattr(store, 'get_dependency_preview', lambda *args, **kwargs: pytest.fail('POST must not preview'))
         response = client.post(path, data=original)
     assert response.status_code == 409 and response.headers['Cache-Control'] == 'no-store'
-    recovered = Forms(response.text).forms['']
+    assert '<section aria-label="Ursprüngliche Eingaben"' in response.text
+    assert not Forms(response.text).forms
+    recovered = MultiDict(parse_recovery(response.text).hidden)
     assert recovered['_form_context'] == original['_form_context']
     assert 'Aktuellen Stand bewusst neu laden' in response.text and full_state(owner) == before
     listing = client.get('/admin/rezepte')
