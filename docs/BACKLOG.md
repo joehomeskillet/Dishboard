@@ -28,6 +28,10 @@ Letzter belegter Produktivstand ist `5f5f6cb`/Schema 25; seit 9. September,
 Public Screens sind bereits live. Der ältere Stand darunter ist historisch.
 Planung bedeutet keine Fertigmeldung der Umsetzung oder Abnahme.
 
+## Nachtrag — 15. September 2026: Einkaufslisten
+
+Status korrigiert: `MP-REC-SHOPPING-PERSIST` ist über Schema 34 (`47428b7`) live. Einkaufslisten mit manuellen Zeilen, Abhakstatus und historischen Belegen sind implementiert. Offen bleiben P3-Live-Validator, Demo-Reseed und PDF-Druck.
+
 ## Nachtrag — 14. September 2026: REC-008 Menübeilage Suppe oder Salat
 
 Pro Menü genau eine Wahl: **keine**, **Suppe** oder **Salat (gemischt und grün,

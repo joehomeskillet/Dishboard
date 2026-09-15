@@ -5366,7 +5366,7 @@
         "UI-003"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-UI-OUTPUT-HUBS",
         "MP-REC-DISH-TEMPLATE-WRITER",
@@ -5374,6 +5374,19 @@
         "MP-REC-PRINT-TEMPLATE-ENTRY"
       ],
       "existing_wp_id": null,
+      "delivery_2026_09_13": {
+        "release": "02d3645194a37dca27db79f5267830f407e99b05",
+        "schema": 31,
+        "commits": "f3a61ac (codex spark), Review-Fix 38ceade (Cursor gpt-5.6-sol-high)",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-02d3645194a3-deploy.md",
+        "root_gate": "Templateeditor PG32823: tests/test_admin_output_hubs.py tests/test_admin_template_catalog_browser.py tests/test_ui_output_hubs_browser.py → 46 passed in 147.47s, GATE_EXIT=0",
+        "review": "grok-4.6 wp-20c5b18cf7e6-review.md FINDINGS(4) → Fix wp-20c5b18cf7e6-fix.md, Root-Diffprüfung",
+        "status_correction": "PLANNED → DEPLOYED (15.9. nachgetragen): Karten Gerichtvorlagen/Rezeptdruck in vorlagen.html seit 02d3645 live, im Livestand 47428b7 enthalten",
+        "open_items": [
+          "UI-Inventar für die Hub-Karten nicht separat promotet",
+          "OCR/GitNexus damals UNAVAILABLE"
+        ]
+      },
       "sdd_sections": [
         "surfaces-sdd.md#template-flow",
         "docs/design/2026-09-13-gerichtvorlagen-rezepte-planung-sdd.md#46-druckvorlage-verknüpft-sichtbar"

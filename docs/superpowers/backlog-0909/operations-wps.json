@@ -18,9 +18,20 @@
         "CALC-001"
       ],
       "kind": "implementation",
-      "status": "READY",
+      "status": "DEPLOYED",
       "depends_on": [],
       "existing_wp_id": null,
+      "acceptance_2026_09_15": {
+        "source_commit": "f75bc3c",
+        "live_release": "47428b79f496c572fd941e376d3eb684767d2e10",
+        "root_gate": "rtk env -C reference_scaffold /tmp/dishboard-shared-venv/bin/python -m pytest -q -p no:cacheprovider tests/test_cost_calc.py tests/test_quantities.py → 111 passed in 1.18s",
+        "criteria_mapping": "A1 1.80/2.250, fehlender Preis amount None, PORTION/STK-Grenzen und AST-Prüfung ohne float/SQLAlchemy in tests/test_cost_calc.py belegt",
+        "status_correction": "READY → DEPLOYED: reiner Rechenkern seit f75bc3c im Livestand, unabhängige Root-Nachprüfung (Opus-Orchestrator, nicht Autor)",
+        "open_items": [
+          "keine UI-/Persistenzanbindung (MP-CALC-ADMIN-UI, MP-CALC-PRICE-LEDGER folgen)",
+          "Küchenabnahme MP-CALC-KITCHEN-ACCEPTANCE extern offen"
+        ]
+      },
       "sdd_sections": [
         "operations-sdd.md#31-ziel-und-grenze",
         "operations-sdd.md#32-datenmodell-und-dto",

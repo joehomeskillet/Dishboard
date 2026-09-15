@@ -20,7 +20,7 @@ Manifest: 3 READY, 30 PLANNED, 4 AWAITING_EXTERNAL.
 
 | Original-ID | Manifeststatus | Auditierte Ist-Einordnung | Nächster Schritt / Blocker laut Audit | Quelle |
 |---|---|---|---|---|
-| MP-CALC-COST-CORE | READY | In HEAD: `f75bc3c`; Autorbericht 111 Tests zweimal. Manifest und unabhängigen Abnahmebeleg ergänzen; keine Neuimplementierung. | Vorhandene Belege prüfen; gezielt Kostenkern + quantities, wenn unabhängiger Beleg fehlt. | O:11 |
+| MP-CALC-COST-CORE | DEPLOYED | Abnahme 15.9.: `f75bc3c` im Livestand `47428b7`; Root-Nachprüfung `test_cost_calc.py` + `test_quantities.py` 111 passed (`operations-wps.json` `acceptance_2026_09_15`). | Keine UI-/Persistenzanbindung; Küchenabnahme extern offen. | O:11 |
 | MP-CALC-PATIENT-GUARD | PLANNED | In HEAD: `c72acc1`; Autorbericht 22 Tests zweimal. End-to-end Preisfreiheit ist dadurch nicht vollständig abgenommen. | DTO-Deny, Altpatientensnapshot, staff_guest-Preise; HTML/PDF-Kostenausschluss zuordnen. | O:12 |
 | MP-CALC-PRICE-LEDGER | PLANNED | Vorgesehener Store/Tests fehlen. Datierte immutable Preisrevisionen, CAS/ACL/Migration fehlen als Lieferbeleg. | Zwei konkurrierende Editionen, Intervallgrenzen, Altbytes, PG-Upgrade/Restore/ACL. | O:13 |
 | MP-CALC-RECIPE-PROJECTION | PLANNED | `recipe_cost.py` fehlt; Kosten aus exakt gewählter Rezept-/Preisrevision. | 250 G × 4 CHF/KG = 1 CHF; Preview ohne Writes, alte Preisedition stabil. | O:14 |
@@ -93,7 +93,7 @@ Manifest: 24 PLANNED, 3 IN_PROGRESS, 4 READY, 4 AWAITING_EXTERNAL, 3 REVIEWED_LO
 | MP-REC-BATCH-TAGS | PLANNED | Modul/Schema/Tests fehlen. | 12 bestätigte Ziele, ein Konflikt → alle unverändert; Replay ohne Doppelbump. | R:41 |
 | MP-REC-PLAN-PORTIONS | DEPLOYED | Status korrigiert 14.9.: Zielmenge über PP-SCHEMA (Schema 33, f5aa399)/PP-STORE (c052eda)/PP-UI (5e5c055) live (`recipes-wps.json` `delivery_2026_09_14`). | Keine separate unabhängige Abnahme-Session; UI-Capture-Promotion offen; Nachfolger MP-REC-SHOPPING-PERSIST wartet auf GPT-Lanes (Codex ab 2026-09-19 10:16). | R:42 |
 | MP-REC-SHOPPING-AGGREGATE | DEPLOYED | `396fc49` integriert; Autor9/9, nur Testaufrufer. Status korrigiert 14.9.: vor Release d306f7a (13.9.) bereits live, genaue Release nicht bestimmt (`recipes-wps.json` `delivery_2026_09_14`). | unabhängige reine Mengen-/Prepared-/Provenienzabnahme; Produktanschluss folgt. | R:43 |
-| MP-REC-SHOPPING-PERSIST | PLANNED | Schema, Store, Route, Template und Tests fehlen. | Plan/Rezeptauswahl → Liste; manuelle Zeilen, Abhaken, bewusste Neuberechnung, historische Belege und CAS. | R:44 |
+| MP-REC-SHOPPING-PERSIST | DEPLOYED | Status korrigiert 15.9.: Einkaufslisten über Schema 34 (47428b7) live (`recipes-wps.json` `delivery_2026_09_15`). | Live-Validator P3, Demo-Reseed blockiert, Tabellensperre; MP-REC-SHOPPING-PDF wartet auf Abnahme. | R:44 |
 | MP-REC-SHOPPING-PDF | PLANNED | PDF-Modul und Listenroute fehlen. | genaue Listenrevision authentifiziert herunterladen/öffnen; Umbruch und no-store. | R:45 |
 | MP-REC-PDF-GEOMETRY | PLANNED | Rezeptprofil weiterhin acht Eigenschaften; `layout` abgelehnt. | begrenzten gewählten Layoutgriff sichtbar im PDF beweisen; Wochenregression bleibt grün. | R:46 |
 | MP-NUT-SCHEMA | PLANNED | Keine Nährwertpersistenz/-tests. | Unknown≠0, Decimal/Bezugsmenge, append-only Editionen, CAS/ACL/Migration. | R:47 |
