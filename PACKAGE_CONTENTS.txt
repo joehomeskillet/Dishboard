@@ -1390,6 +1390,9 @@ reference_scaffold/tests/test_recipe_revision_routes.py
 reference_scaffold/tests/test_recipe_routes.py
 reference_scaffold/tests/test_recipe_scaling.py
 reference_scaffold/tests/test_recipe_schemaorg.py
+reference_scaffold/tests/test_recipe_search_browser.py
+reference_scaffold/tests/test_recipe_search_db.py
+reference_scaffold/tests/test_recipe_search_routes.py
 reference_scaffold/tests/test_recipe_snapshot_v2_db.py
 reference_scaffold/tests/test_recipe_store_db.py
 reference_scaffold/tests/test_recipe_template_editor_browser.py
