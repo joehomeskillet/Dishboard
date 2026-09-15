@@ -17,7 +17,7 @@
     "baseline_status": "proposed_never_user_approved",
     "generated_at": "2026-09-13T07:15:51.719096+00:00",
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
-    "route_count": 137,
+    "route_count": 138,
     "template_count": 87,
     "html_route_count": 70,
     "design_manifest_commit": "39625ccc0d8b576fae9edaeb8cf0b5c70b1af912",
@@ -8380,6 +8380,53 @@
       }
     },
     {
+      "endpoint": "admin.shopping_list_pdf",
+      "rule": "/admin/einkaufslisten/<public_id>/druck.pdf",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "download",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-REC-SHOPPING-PDF",
+      "family_variants": [],
+      "module": "cafeteria.admin.shopping_list_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-REC-SHOPPING-PDF",
+        "core_task": "Einkaufslisten-Revision als PDF herunterladen; kein eigenständiger UI-Screen",
+        "example_url": "/admin/einkaufslisten/{public_id}/druck.pdf",
+        "example_semantics": "Parameter in geschweiften Klammern sind fixture-erzeugte Identitäten, keine existierenden Live-IDs.",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py::_prepare_inventory_entities",
+        "state_evidence": {},
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+      }
+    },
+    {
       "endpoint": "admin.shopping_list_compute",
       "rule": "/admin/einkaufslisten/<public_id>/berechnen",
       "methods": [
@@ -10957,7 +11004,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "75841583fe661dc4508b5af5b8eba22da73195155efb6dd4b016a36b572beb1a",
+      "sha256": "0f2bd7519d43ba505dc84dfe4bb63330b4a854286f2b5fc92a5c01bf2e89394c",
       "used_by_endpoints": [
         "admin.shopping_list_compute",
         "admin.shopping_list_detail",
