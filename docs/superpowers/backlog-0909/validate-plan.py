@@ -41,7 +41,8 @@ ALL_REQUIREMENTS = frozenset(sum(SLICE_REQUIREMENTS.values(), ()))
 # told apart from a genuinely missing one.
 SLICE_ID_PREFIXES = {
     'recipes': ('MP-REC-', 'MP-BAS-', 'MP-NUT-', 'MP-OFF-'),
-    'operations': ('MP-CALC-', 'MP-INV-', 'MP-ORD-', 'MP-PKS-', 'MP-TRN-', 'MP-OPS-'),
+    'operations': ('MP-CALC-', 'MP-INV-', 'MP-ORD-', 'MP-PKS-', 'MP-TRN-', 'MP-OPS-',
+                 'MP-CAL-'),
     'surfaces': ('MP-UI-', 'MP-SCR-', 'MP-TPL-', 'MP-API-', 'MP-ICO-', 'MP-IAM-',
                  'MP-QA-', 'MP-DATA-', 'MP-BRD-', 'MP-CAT-', 'MP-DSP-'),
 }

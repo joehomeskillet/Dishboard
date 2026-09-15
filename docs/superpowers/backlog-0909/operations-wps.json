@@ -137,7 +137,8 @@
       "acceptance_criteria": [
         "Patienten-DTO, HTML und PDF enthalten keine Kosten-/Preis-/Receiptfelder",
         "staff_guest behält seine bisherigen Verkaufspreisfelder",
-        "vorhandene Patientenregression plus gezielter neuer Kostenfeldfall tatsächlich ausgeführt"
+        "vorhandene Patientenregression plus gezielter neuer Kostenfeldfall tatsächlich ausgeführt",
+        "R8: cost_total und rappen_suggestion explizit in PATIENT_FORBIDDEN_COST_KEYS, bevor Kosten persistiert werden; historische Snapshots nicht umschreiben"
       ],
       "contract_files": [
         "reference_scaffold/cafeteria/patient_payload.py",
@@ -229,7 +230,10 @@
         "DDL, Upgrade, Restore und Versionsledger sind gemeinsam geprüft",
         "Root reserviert echte freie Migration und relevante Version-/Ledgerfixture-Hunks vor READY; canonical/ACL/Validator/db.py/Packagevalidator gemeinsam konsistent",
         "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG; kein historischer Migrationsrewrite",
-        "Geteilte Version-/Ledgerfixtures nur mit exklusivem Root-Lease und eng begrenzten Versions-/Tabellenzahl-/Ledgerassert-Hunks; aktuelle Foundations-Fixtures nicht ersetzen"
+        "Geteilte Version-/Ledgerfixtures nur mit exklusivem Root-Lease und eng begrenzten Versions-/Tabellenzahl-/Ledgerassert-Hunks; aktuelle Foundations-Fixtures nicht ersetzen",
+        "R6: Kalender-heute, Zeitraumgrenzen und Preisstichtag aus derselben Quelle effective_today()/Europe/Zurich; Standortfilter implizit",
+        "R7: Preise, Lieferanten, Artikel masterdata.write mit SECURITY-DEFINER-Writer + master_audit",
+        "R12: Migration mit Backup-Owner Root, Alt-App-Probe und dokumentiertem App-Rollback"
       ],
       "contract_files": [
         "reference_scaffold/cafeteria/food_price_store.py",
@@ -640,7 +644,7 @@
         "reference_scaffold/cafeteria/operations_settings.py:36-58,208-248",
         "database/schema.sql:settings"
       ],
-      "task": "Standortbezogene cost_rules.v1 mit Original-Actor/Authz/Standort und Settings-CAS in einem eng begrenzten neuen SQL-Verb ausschließlich für cost_rules.v1; operations_settings.save_schedule ist fest auf operations_schedule begrenzt und kein generischer Writer. Vorhandene SQL-Actor-/Standortguards wiederverwenden; keine Erweiterung dieses OPS-Moduls. Rechenbeleg bindet Regelversion+Bytes. Vorschlag bleibt read-only; ausdrückliche Übernahme durch den vorhandenen Workflowwriter nach dessen Owner-Freeze, Original-Item-/Wochen-CAS und draft.write. Nur staff_guest-Entwurf, keine Veröffentlichung/Patientenpreise. Kein zweiter Aggregatebump/Audit.",
+      "task": "Standortbezogene cost_rules.v1 mit Original-Actor/Authz/Standort und Settings-CAS in einem eng begrenzten neuen SQL-Verb ausschließlich für cost_rules.v1; operations_settings.save_schedule ist fest auf operations_schedule begrenzt und kein generischer Writer. Vorhandene SQL-Actor-/Standortguards wiederverwenden; keine Erweiterung dieses OPS-Moduls. Rechenbeleg bindet Regelversion+Bytes. Vorschlag bleibt read-only; ausdrückliche Übernahme durch den vorhandenen Workflowwriter nach dessen Owner-Freeze, Original-Item-/Wochen-CAS und draft.write. Nur staff_guest-Entwurf, keine Veröffentlichung/Patientenpreise. Kein zweiter Aggregatebump/Audit. Alleiniger Schreiber der Schema-Fünfergruppe für 0038 inklusive Kalkulationsbeleg-DDL; MP-CALC-CALCULATION-RECEIPTS testet Verhalten gegen dieses Schema.",
       "acceptance_criteria": [
         "GET Vorschlag schreibt nichts",
         "veralteter Item-/Wochen-CAS409; Actor-/Authzentzug im bestehenden 401/403-Mapping ohne Teilwrite",
@@ -649,7 +653,8 @@
         "historischer Beleg behält alte Regelbytes",
         "Root reserviert echte freie Migration und relevante Version-/Ledgerfixture-Hunks vor READY; canonical/ACL/Validator/db.py/Packagevalidator gemeinsam konsistent",
         "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG; kein historischer Migrationsrewrite",
-        "Geteilte Version-/Ledgerfixtures nur mit exklusivem Root-Lease und eng begrenzten Versions-/Tabellenzahl-/Ledgerassert-Hunks; aktuelle Foundations-Fixtures nicht ersetzen"
+        "Geteilte Version-/Ledgerfixtures nur mit exklusivem Root-Lease und eng begrenzten Versions-/Tabellenzahl-/Ledgerassert-Hunks; aktuelle Foundations-Fixtures nicht ersetzen",
+        "R12: Migration mit Backup-Owner Root, Alt-App-Probe und dokumentiertem App-Rollback"
       ],
       "contract_files": [
         "reference_scaffold/cafeteria/cost_rules.py",
@@ -957,8 +962,7 @@
       "kind": "implementation",
       "status": "PLANNED",
       "depends_on": [
-        "MP-BAS-SCHEMA27",
-        "MP-BAS-FOUNDATIONS"
+        "MP-INV-SCHEMA"
       ],
       "existing_wp_id": null,
       "sdd_sections": [
@@ -980,44 +984,16 @@
         "zwei Abgänge beobachten echten Blockingzustand; keine Überziehung",
         "kein UPDATE/DELETE auf Journal und keine App-DML/private EXECUTE",
         "Actor/Site-Entzug und Validierungsfehler rollen TX samt Audit zurück",
-        "Root reserviert echte freie Migration und relevante Version-/Ledgerfixture-Hunks vor READY; canonical/ACL/Validator/db.py/Packagevalidator gemeinsam konsistent",
-        "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG; kein historischer Migrationsrewrite",
-        "Geteilte Version-/Ledgerfixtures nur mit exklusivem Root-Lease und eng begrenzten Versions-/Tabellenzahl-/Ledgerassert-Hunks; aktuelle Foundations-Fixtures nicht ersetzen"
+        "verhält sich gegen das Schema von MP-INV-SCHEMA; keine eigene Migration"
       ],
       "contract_files": [
         "reference_scaffold/cafeteria/inventory_store.py",
-        "database/schema.sql",
-        "database/permissions.sql",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
-        "tools/validate_package.py",
-        "database/migrations/<ROOT_RESERVED_MP-INV-MOVEMENT-CORE>.sql",
-        "reference_scaffold/tests/test_inventory_store_db.py",
-        "reference_scaffold/tests/test_inv_movement_core_migration_db.py",
-        "reference_scaffold/tests/test_database_invariants.py",
-        "reference_scaffold/tests/test_master_data_db.py"
+        "reference_scaffold/tests/test_inventory_store_db.py"
       ],
-      "wiring_files": [
-        "database/schema.sql",
-        "database/permissions.sql",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
-        "tools/validate_package.py",
-        "reference_scaffold/tests/test_database_invariants.py",
-        "reference_scaffold/tests/test_master_data_db.py"
-      ],
+      "wiring_files": [],
       "owned_files": [
         "reference_scaffold/cafeteria/inventory_store.py",
-        "reference_scaffold/tests/test_inventory_store_db.py",
-        "database/schema.sql",
-        "database/permissions.sql",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
-        "tools/validate_package.py",
-        "database/migrations/<ROOT_RESERVED_MP-INV-MOVEMENT-CORE>.sql",
-        "reference_scaffold/tests/test_inv_movement_core_migration_db.py",
-        "reference_scaffold/tests/test_database_invariants.py",
-        "reference_scaffold/tests/test_master_data_db.py"
+        "reference_scaffold/tests/test_inventory_store_db.py"
       ],
       "forbidden_paths": [
         "database/migrations/0024_v26_to_v27.sql",
@@ -1025,21 +1001,18 @@
         "reference_scaffold/cafeteria/templates/admin/grundlagen.html",
         "reference_scaffold/cafeteria/workflow_partial_store.py"
       ],
-      "migration_group": "root-serialized-after-schema27",
+      "migration_group": null,
       "test_plan": [
         {
           "kind": "postgres",
-          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_inventory_store_db.py tests/test_inv_movement_core_migration_db.py",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_inventory_store_db.py",
           "assertions": [
             "5 KG Zugang minus 1 KG Abgang bleibt 4000 G in gespeicherter Kontobasis",
             "heutige Foodbasis G→KG oder Dichteänderung verändert alten Saldo nicht",
             "inkompatible Basisdimension blockiert neue Buchung400; kein stiller Rebase",
             "zwei Abgänge beobachten echten Blockingzustand; keine Überziehung",
             "kein UPDATE/DELETE auf Journal und keine App-DML/private EXECUTE",
-            "Actor/Site-Entzug und Validierungsfehler rollen TX samt Audit zurück",
-            "Root reserviert echte freie Migration und relevante Version-/Ledgerfixture-Hunks vor READY; canonical/ACL/Validator/db.py/Packagevalidator gemeinsam konsistent",
-            "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG; kein historischer Migrationsrewrite",
-            "Geteilte Version-/Ledgerfixtures nur mit exklusivem Root-Lease und eng begrenzten Versions-/Tabellenzahl-/Ledgerassert-Hunks; aktuelle Foundations-Fixtures nicht ersetzen"
+            "Actor/Site-Entzug und Validierungsfehler rollen TX samt Audit zurück"
           ],
           "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT und gezielte Version-/Ledgerregression vor READY zu. Reale Browserfälle: 1440/390/keyboard/NoJS, keine fremden Pools."
         }
@@ -1062,13 +1035,6 @@
       "shared_owner_gate": {
         "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Kein paralleler SQL-/Registry-/Sidebar-/Storewriter. Aktive BAS/R5/Recipe-Owner zuerst integrieren; keine semantische Wartepflicht auf sachfremde externe Rechte.",
         "files": [
-          "database/schema.sql",
-          "database/permissions.sql",
-          "database/validate_schema.py",
-          "reference_scaffold/cafeteria/db.py",
-          "tools/validate_package.py",
-          "reference_scaffold/tests/test_database_invariants.py",
-          "reference_scaffold/tests/test_master_data_db.py",
           "reference_scaffold/cafeteria/inventory_store.py"
         ]
       },
@@ -1079,10 +1045,11 @@
         "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
       ],
       "proposed_files": [
-        "database/migrations/<ROOT_RESERVED_MP-INV-MOVEMENT-CORE>.sql",
         "reference_scaffold/cafeteria/inventory_store.py",
-        "reference_scaffold/tests/test_inv_movement_core_migration_db.py",
         "reference_scaffold/tests/test_inventory_store_db.py"
+      ],
+      "read_only_contract_files": [
+        "database/migrations/<ROOT_RESERVED_MP-INV-SCHEMA>.sql"
       ]
     },
     {
@@ -1199,61 +1166,30 @@
         "Paarreferenzen/Vorzeichen und gleiche normalisierte Menge SQL-erzwungen",
         "gleichzeitiger Transfer gegen Foodwriter/Lagerortarchivierung misst Blocking ohne inverse Locks",
         "gleicher Replay ein Transfer, anderer Payload409",
-        "Root reserviert echte freie Migration und relevante Version-/Ledgerfixture-Hunks vor READY; canonical/ACL/Validator/db.py/Packagevalidator gemeinsam konsistent",
-        "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG; kein historischer Migrationsrewrite",
-        "Geteilte Version-/Ledgerfixtures nur mit exklusivem Root-Lease und eng begrenzten Versions-/Tabellenzahl-/Ledgerassert-Hunks; aktuelle Foundations-Fixtures nicht ersetzen"
+        "verhält sich gegen das Schema von MP-INV-SCHEMA; keine eigene Migration"
       ],
       "contract_files": [
         "reference_scaffold/cafeteria/inventory_store.py",
-        "database/schema.sql",
-        "database/permissions.sql",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
-        "tools/validate_package.py",
-        "database/migrations/<ROOT_RESERVED_MP-INV-TRANSFER>.sql",
-        "reference_scaffold/tests/test_inventory_transfer_db.py",
-        "reference_scaffold/tests/test_inv_transfer_migration_db.py",
-        "reference_scaffold/tests/test_database_invariants.py",
-        "reference_scaffold/tests/test_master_data_db.py"
+        "reference_scaffold/tests/test_inventory_transfer_db.py"
       ],
-      "wiring_files": [
-        "database/schema.sql",
-        "database/permissions.sql",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
-        "tools/validate_package.py",
-        "reference_scaffold/tests/test_database_invariants.py",
-        "reference_scaffold/tests/test_master_data_db.py"
-      ],
+      "wiring_files": [],
       "owned_files": [
         "reference_scaffold/cafeteria/inventory_store.py",
-        "reference_scaffold/tests/test_inventory_transfer_db.py",
-        "database/schema.sql",
-        "database/permissions.sql",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
-        "tools/validate_package.py",
-        "database/migrations/<ROOT_RESERVED_MP-INV-TRANSFER>.sql",
-        "reference_scaffold/tests/test_inv_transfer_migration_db.py",
-        "reference_scaffold/tests/test_database_invariants.py",
-        "reference_scaffold/tests/test_master_data_db.py"
+        "reference_scaffold/tests/test_inventory_transfer_db.py"
       ],
       "forbidden_paths": [
         "reference_scaffold/cafeteria/master_data_store.py"
       ],
-      "migration_group": "root-serialized-after-schema27",
+      "migration_group": null,
       "test_plan": [
         {
           "kind": "postgres",
-          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_inventory_transfer_db.py tests/test_inv_transfer_migration_db.py",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_inventory_transfer_db.py",
           "assertions": [
             "Abbruch zwischen beiden Inserts rollt beide Zeilen samt Audit zurück",
             "Paarreferenzen/Vorzeichen und gleiche normalisierte Menge SQL-erzwungen",
             "gleichzeitiger Transfer gegen Foodwriter/Lagerortarchivierung misst Blocking ohne inverse Locks",
-            "gleicher Replay ein Transfer, anderer Payload409",
-            "Root reserviert echte freie Migration und relevante Version-/Ledgerfixture-Hunks vor READY; canonical/ACL/Validator/db.py/Packagevalidator gemeinsam konsistent",
-            "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG; kein historischer Migrationsrewrite",
-            "Geteilte Version-/Ledgerfixtures nur mit exklusivem Root-Lease und eng begrenzten Versions-/Tabellenzahl-/Ledgerassert-Hunks; aktuelle Foundations-Fixtures nicht ersetzen"
+            "gleicher Replay ein Transfer, anderer Payload409"
           ],
           "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT und gezielte Version-/Ledgerregression vor READY zu. Reale Browserfälle: 1440/390/keyboard/NoJS, keine fremden Pools."
         }
@@ -1276,13 +1212,6 @@
       "shared_owner_gate": {
         "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Kein paralleler SQL-/Registry-/Sidebar-/Storewriter. Aktive BAS/R5/Recipe-Owner zuerst integrieren; keine semantische Wartepflicht auf sachfremde externe Rechte.",
         "files": [
-          "database/schema.sql",
-          "database/permissions.sql",
-          "database/validate_schema.py",
-          "reference_scaffold/cafeteria/db.py",
-          "tools/validate_package.py",
-          "reference_scaffold/tests/test_database_invariants.py",
-          "reference_scaffold/tests/test_master_data_db.py",
           "reference_scaffold/cafeteria/inventory_store.py"
         ]
       },
@@ -1293,10 +1222,11 @@
         "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
       ],
       "proposed_files": [
-        "database/migrations/<ROOT_RESERVED_MP-INV-TRANSFER>.sql",
         "reference_scaffold/cafeteria/inventory_store.py",
-        "reference_scaffold/tests/test_inv_transfer_migration_db.py",
         "reference_scaffold/tests/test_inventory_transfer_db.py"
+      ],
+      "read_only_contract_files": [
+        "database/migrations/<ROOT_RESERVED_MP-INV-SCHEMA>.sql"
       ]
     },
     {
@@ -1326,62 +1256,31 @@
         "erster Count0 ist erfasst und nicht unbekannt",
         "negativer Count ungültig, negativer Korrekturdelta gültig mit explizitem Vorzeichen",
         "geänderte Kontoversion/ursprünglicher Ort409; Actor-/Authzentzug nach bestehendem 401/403-Mapping ohne Teilwrite",
-        "Root reserviert echte freie Migration und relevante Version-/Ledgerfixture-Hunks vor READY; canonical/ACL/Validator/db.py/Packagevalidator gemeinsam konsistent",
-        "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG; kein historischer Migrationsrewrite",
-        "Geteilte Version-/Ledgerfixtures nur mit exklusivem Root-Lease und eng begrenzten Versions-/Tabellenzahl-/Ledgerassert-Hunks; aktuelle Foundations-Fixtures nicht ersetzen"
+        "verhält sich gegen das Schema von MP-INV-SCHEMA; keine eigene Migration"
       ],
       "contract_files": [
         "reference_scaffold/cafeteria/inventory_store.py",
-        "database/schema.sql",
-        "database/permissions.sql",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
-        "tools/validate_package.py",
-        "database/migrations/<ROOT_RESERVED_MP-INV-COUNT-CORRECTION>.sql",
-        "reference_scaffold/tests/test_inventory_count_db.py",
-        "reference_scaffold/tests/test_inv_count_correction_migration_db.py",
-        "reference_scaffold/tests/test_database_invariants.py",
-        "reference_scaffold/tests/test_master_data_db.py"
+        "reference_scaffold/tests/test_inventory_count_db.py"
       ],
-      "wiring_files": [
-        "database/schema.sql",
-        "database/permissions.sql",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
-        "tools/validate_package.py",
-        "reference_scaffold/tests/test_database_invariants.py",
-        "reference_scaffold/tests/test_master_data_db.py"
-      ],
+      "wiring_files": [],
       "owned_files": [
         "reference_scaffold/cafeteria/inventory_store.py",
-        "reference_scaffold/tests/test_inventory_count_db.py",
-        "database/schema.sql",
-        "database/permissions.sql",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
-        "tools/validate_package.py",
-        "database/migrations/<ROOT_RESERVED_MP-INV-COUNT-CORRECTION>.sql",
-        "reference_scaffold/tests/test_inv_count_correction_migration_db.py",
-        "reference_scaffold/tests/test_database_invariants.py",
-        "reference_scaffold/tests/test_master_data_db.py"
+        "reference_scaffold/tests/test_inventory_count_db.py"
       ],
       "forbidden_paths": [
         "database/schema.sql:foods"
       ],
-      "migration_group": "root-serialized-after-schema27",
+      "migration_group": null,
       "test_plan": [
         {
           "kind": "postgres",
-          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_inventory_count_db.py tests/test_inv_count_correction_migration_db.py",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_inventory_count_db.py",
           "assertions": [
             "Count5→3 bucht Betrag2/sign=-1",
             "Count3→3 wird posted ohne Movement, Replay ohne zweiten Audit",
             "erster Count0 ist erfasst und nicht unbekannt",
             "negativer Count ungültig, negativer Korrekturdelta gültig mit explizitem Vorzeichen",
-            "geänderte Kontoversion/ursprünglicher Ort409; Actor-/Authzentzug nach bestehendem 401/403-Mapping ohne Teilwrite",
-            "Root reserviert echte freie Migration und relevante Version-/Ledgerfixture-Hunks vor READY; canonical/ACL/Validator/db.py/Packagevalidator gemeinsam konsistent",
-            "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG; kein historischer Migrationsrewrite",
-            "Geteilte Version-/Ledgerfixtures nur mit exklusivem Root-Lease und eng begrenzten Versions-/Tabellenzahl-/Ledgerassert-Hunks; aktuelle Foundations-Fixtures nicht ersetzen"
+            "geänderte Kontoversion/ursprünglicher Ort409; Actor-/Authzentzug nach bestehendem 401/403-Mapping ohne Teilwrite"
           ],
           "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT und gezielte Version-/Ledgerregression vor READY zu. Reale Browserfälle: 1440/390/keyboard/NoJS, keine fremden Pools."
         }
@@ -1404,13 +1303,6 @@
       "shared_owner_gate": {
         "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Kein paralleler SQL-/Registry-/Sidebar-/Storewriter. Aktive BAS/R5/Recipe-Owner zuerst integrieren; keine semantische Wartepflicht auf sachfremde externe Rechte.",
         "files": [
-          "database/schema.sql",
-          "database/permissions.sql",
-          "database/validate_schema.py",
-          "reference_scaffold/cafeteria/db.py",
-          "tools/validate_package.py",
-          "reference_scaffold/tests/test_database_invariants.py",
-          "reference_scaffold/tests/test_master_data_db.py",
           "reference_scaffold/cafeteria/inventory_store.py"
         ]
       },
@@ -1421,10 +1313,11 @@
         "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
       ],
       "proposed_files": [
-        "database/migrations/<ROOT_RESERVED_MP-INV-COUNT-CORRECTION>.sql",
         "reference_scaffold/cafeteria/inventory_store.py",
-        "reference_scaffold/tests/test_inv_count_correction_migration_db.py",
         "reference_scaffold/tests/test_inventory_count_db.py"
+      ],
+      "read_only_contract_files": [
+        "database/migrations/<ROOT_RESERVED_MP-INV-SCHEMA>.sql"
       ]
     },
     {
@@ -1439,7 +1332,8 @@
         "MP-INV-MOVEMENT-CORE",
         "MP-REC-BINDINGS",
         "MP-REC-FREEZE-V2",
-        "MP-REC-IMPORT-BATCH"
+        "MP-REC-IMPORT-BATCH",
+        "MP-CAL-EVENTS-SCHEMA"
       ],
       "existing_wp_id": null,
       "sdd_sections": [
@@ -1454,7 +1348,8 @@
         "persist_menu_item ändert Movement-Zahl nicht",
         "recipe freeze ändert Movement-Zahl nicht",
         "CSV-Wochenimport ändert Movement-Zahl nicht",
-        "Hash/Zeilenzahl vor/nach Plan, Freeze und Import unverändert"
+        "Hash/Zeilenzahl vor/nach Plan, Freeze und Import unverändert",
+        "R10: Anlass-Writes buchen keinen Bestand; Nachweis umfasst Anlass-Writes sobald MP-CAL-EVENTS-SCHEMA existiert"
       ],
       "contract_files": [
         "reference_scaffold/tests/test_inventory_no_plan_debit_db.py"
@@ -1724,7 +1619,7 @@
       "kind": "implementation",
       "status": "PLANNED",
       "depends_on": [
-        "MP-BAS-SCHEMA27"
+        "MP-ORD-SCHEMA"
       ],
       "existing_wp_id": null,
       "sdd_sections": [
@@ -1743,64 +1638,33 @@
         "cafeteria_app kein DELETE auf suppliers",
         "Artikeländerung erhöht genau seine Version, alte Sendbelege bleiben unverändert",
         "realer Editor masterdata.write erlaubt; fremder Standort abgewiesen",
-        "Root reserviert echte freie Migration und relevante Version-/Ledgerfixture-Hunks vor READY; canonical/ACL/Validator/db.py/Packagevalidator gemeinsam konsistent",
-        "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG; kein historischer Migrationsrewrite",
-        "Geteilte Version-/Ledgerfixtures nur mit exklusivem Root-Lease und eng begrenzten Versions-/Tabellenzahl-/Ledgerassert-Hunks; aktuelle Foundations-Fixtures nicht ersetzen"
+        "verhält sich gegen das Schema von MP-ORD-SCHEMA; keine eigene Migration"
       ],
       "contract_files": [
         "reference_scaffold/cafeteria/order_store.py",
-        "database/schema.sql",
-        "database/permissions.sql",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
-        "tools/validate_package.py",
-        "database/migrations/<ROOT_RESERVED_MP-ORD-SUPPLIER-ARTICLE>.sql",
-        "reference_scaffold/tests/test_order_supplier_db.py",
-        "reference_scaffold/tests/test_ord_supplier_article_migration_db.py",
-        "reference_scaffold/tests/test_database_invariants.py",
-        "reference_scaffold/tests/test_master_data_db.py"
+        "reference_scaffold/tests/test_order_supplier_db.py"
       ],
-      "wiring_files": [
-        "database/schema.sql",
-        "database/permissions.sql",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
-        "tools/validate_package.py",
-        "reference_scaffold/tests/test_database_invariants.py",
-        "reference_scaffold/tests/test_master_data_db.py"
-      ],
+      "wiring_files": [],
       "owned_files": [
         "reference_scaffold/cafeteria/order_store.py",
-        "reference_scaffold/tests/test_order_supplier_db.py",
-        "database/schema.sql",
-        "database/permissions.sql",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
-        "tools/validate_package.py",
-        "database/migrations/<ROOT_RESERVED_MP-ORD-SUPPLIER-ARTICLE>.sql",
-        "reference_scaffold/tests/test_ord_supplier_article_migration_db.py",
-        "reference_scaffold/tests/test_database_invariants.py",
-        "reference_scaffold/tests/test_master_data_db.py"
+        "reference_scaffold/tests/test_order_supplier_db.py"
       ],
       "forbidden_paths": [
         "database/migrations/0024_v26_to_v27.sql",
         "reference_scaffold/cafeteria/master_data_proposals.py"
       ],
-      "migration_group": "root-serialized-after-schema27",
+      "migration_group": null,
       "test_plan": [
         {
           "kind": "postgres",
-          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_order_supplier_db.py tests/test_ord_supplier_article_migration_db.py",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_order_supplier_db.py",
           "assertions": [
             "code-Format wie Stammdaten",
             "Artikel ohne Food speicherbar",
             "Food anderer Location 400",
             "cafeteria_app kein DELETE auf suppliers",
             "Artikeländerung erhöht genau seine Version, alte Sendbelege bleiben unverändert",
-            "realer Editor masterdata.write erlaubt; fremder Standort abgewiesen",
-            "Root reserviert echte freie Migration und relevante Version-/Ledgerfixture-Hunks vor READY; canonical/ACL/Validator/db.py/Packagevalidator gemeinsam konsistent",
-            "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG; kein historischer Migrationsrewrite",
-            "Geteilte Version-/Ledgerfixtures nur mit exklusivem Root-Lease und eng begrenzten Versions-/Tabellenzahl-/Ledgerassert-Hunks; aktuelle Foundations-Fixtures nicht ersetzen"
+            "realer Editor masterdata.write erlaubt; fremder Standort abgewiesen"
           ],
           "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT und gezielte Version-/Ledgerregression vor READY zu. Reale Browserfälle: 1440/390/keyboard/NoJS, keine fremden Pools."
         }
@@ -1823,13 +1687,6 @@
       "shared_owner_gate": {
         "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Kein paralleler SQL-/Registry-/Sidebar-/Storewriter. Aktive BAS/R5/Recipe-Owner zuerst integrieren; keine semantische Wartepflicht auf sachfremde externe Rechte.",
         "files": [
-          "database/schema.sql",
-          "database/permissions.sql",
-          "database/validate_schema.py",
-          "reference_scaffold/cafeteria/db.py",
-          "tools/validate_package.py",
-          "reference_scaffold/tests/test_database_invariants.py",
-          "reference_scaffold/tests/test_master_data_db.py",
           "reference_scaffold/cafeteria/order_store.py"
         ]
       },
@@ -1840,10 +1697,11 @@
         "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
       ],
       "proposed_files": [
-        "database/migrations/<ROOT_RESERVED_MP-ORD-SUPPLIER-ARTICLE>.sql",
         "reference_scaffold/cafeteria/order_store.py",
-        "reference_scaffold/tests/test_ord_supplier_article_migration_db.py",
         "reference_scaffold/tests/test_order_supplier_db.py"
+      ],
+      "read_only_contract_files": [
+        "database/migrations/<ROOT_RESERVED_MP-ORD-SCHEMA>.sql"
       ]
     },
     {
@@ -1855,8 +1713,7 @@
       "kind": "implementation",
       "status": "PLANNED",
       "depends_on": [
-        "MP-ORD-SUPPLIER-ARTICLE",
-        "MP-BAS-SCHEMA27"
+        "MP-ORD-SUPPLIER-ARTICLE"
       ],
       "existing_wp_id": null,
       "sdd_sections": [
@@ -1872,61 +1729,32 @@
         "Preview/Download lässt Korbzeilen/Status/Audit unverändert",
         "archivierte/fremde neue Artikelwahl abgewiesen, historische Belege erhalten",
         "spätere bestätigte Korbversion bleibt uneditierbar",
-        "Root reserviert echte freie Migration und relevante Version-/Ledgerfixture-Hunks vor READY; canonical/ACL/Validator/db.py/Packagevalidator gemeinsam konsistent",
-        "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG; kein historischer Migrationsrewrite",
-        "Geteilte Version-/Ledgerfixtures nur mit exklusivem Root-Lease und eng begrenzten Versions-/Tabellenzahl-/Ledgerassert-Hunks; aktuelle Foundations-Fixtures nicht ersetzen"
+        "verhält sich gegen das Schema von MP-ORD-SCHEMA; keine eigene Migration",
+        "R2: line_cost(Rohmenge in Basiseinheit der Zutat, Ledgerpreis je Basiseinheit); Gebinde nur Bestellmenge; inkompatible Einheit, fehlender Preis, Freitextartikel und manuelle Zeilen → ohne Kalkulation/unvollständig, nie 0; Gebindepreise nicht in diesem Programm",
+        "R7: Korb draft.write"
       ],
       "contract_files": [
         "reference_scaffold/cafeteria/order_store.py",
-        "database/schema.sql",
-        "database/permissions.sql",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
-        "tools/validate_package.py",
-        "database/migrations/<ROOT_RESERVED_MP-ORD-BASKET-DRAFT>.sql",
-        "reference_scaffold/tests/test_order_basket_db.py",
-        "reference_scaffold/tests/test_ord_basket_draft_migration_db.py",
-        "reference_scaffold/tests/test_database_invariants.py",
-        "reference_scaffold/tests/test_master_data_db.py"
+        "reference_scaffold/tests/test_order_basket_db.py"
       ],
-      "wiring_files": [
-        "database/schema.sql",
-        "database/permissions.sql",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
-        "tools/validate_package.py",
-        "reference_scaffold/tests/test_database_invariants.py",
-        "reference_scaffold/tests/test_master_data_db.py"
-      ],
+      "wiring_files": [],
       "owned_files": [
         "reference_scaffold/cafeteria/order_store.py",
-        "reference_scaffold/tests/test_order_basket_db.py",
-        "database/schema.sql",
-        "database/permissions.sql",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
-        "tools/validate_package.py",
-        "database/migrations/<ROOT_RESERVED_MP-ORD-BASKET-DRAFT>.sql",
-        "reference_scaffold/tests/test_ord_basket_draft_migration_db.py",
-        "reference_scaffold/tests/test_database_invariants.py",
-        "reference_scaffold/tests/test_master_data_db.py"
+        "reference_scaffold/tests/test_order_basket_db.py"
       ],
       "forbidden_paths": [
         "reference_scaffold/cafeteria/csvio.py"
       ],
-      "migration_group": "root-serialized-after-schema27",
+      "migration_group": null,
       "test_plan": [
         {
           "kind": "postgres",
-          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_order_basket_db.py tests/test_ord_basket_draft_migration_db.py",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_order_basket_db.py",
           "assertions": [
             "stale Korb409 ohne Teilersatz",
             "Preview/Download lässt Korbzeilen/Status/Audit unverändert",
             "archivierte/fremde neue Artikelwahl abgewiesen, historische Belege erhalten",
-            "spätere bestätigte Korbversion bleibt uneditierbar",
-            "Root reserviert echte freie Migration und relevante Version-/Ledgerfixture-Hunks vor READY; canonical/ACL/Validator/db.py/Packagevalidator gemeinsam konsistent",
-            "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG; kein historischer Migrationsrewrite",
-            "Geteilte Version-/Ledgerfixtures nur mit exklusivem Root-Lease und eng begrenzten Versions-/Tabellenzahl-/Ledgerassert-Hunks; aktuelle Foundations-Fixtures nicht ersetzen"
+            "spätere bestätigte Korbversion bleibt uneditierbar"
           ],
           "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT und gezielte Version-/Ledgerregression vor READY zu. Reale Browserfälle: 1440/390/keyboard/NoJS, keine fremden Pools."
         }
@@ -1949,13 +1777,6 @@
       "shared_owner_gate": {
         "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Kein paralleler SQL-/Registry-/Sidebar-/Storewriter. Aktive BAS/R5/Recipe-Owner zuerst integrieren; keine semantische Wartepflicht auf sachfremde externe Rechte.",
         "files": [
-          "database/schema.sql",
-          "database/permissions.sql",
-          "database/validate_schema.py",
-          "reference_scaffold/cafeteria/db.py",
-          "tools/validate_package.py",
-          "reference_scaffold/tests/test_database_invariants.py",
-          "reference_scaffold/tests/test_master_data_db.py",
           "reference_scaffold/cafeteria/order_store.py"
         ]
       },
@@ -1966,10 +1787,11 @@
         "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
       ],
       "proposed_files": [
-        "database/migrations/<ROOT_RESERVED_MP-ORD-BASKET-DRAFT>.sql",
         "reference_scaffold/cafeteria/order_store.py",
-        "reference_scaffold/tests/test_ord_basket_draft_migration_db.py",
         "reference_scaffold/tests/test_order_basket_db.py"
+      ],
+      "read_only_contract_files": [
+        "database/migrations/<ROOT_RESERVED_MP-ORD-SCHEMA>.sql"
       ]
     },
     {
@@ -1996,7 +1818,8 @@
         "Formelzellen neutralisiert wie vorhandener Export",
         "deterministische identische CSVbytes bei gleichen Quellen",
         "kein SQL-/Netz-/Dateiwrite und kein Statuswechsel",
-        "Download heißt CSV herunterladen, kein BESTELLEN"
+        "Download heißt CSV herunterladen, kein BESTELLEN",
+        "R2: line_cost(Rohmenge in Basiseinheit der Zutat, Ledgerpreis je Basiseinheit); Gebinde nur Bestellmenge; inkompatible Einheit, fehlender Preis, Freitextartikel und manuelle Zeilen → ohne Kalkulation/unvollständig, nie 0; Gebindepreise nicht in diesem Programm"
       ],
       "contract_files": [
         "reference_scaffold/cafeteria/order_export.py",
@@ -3613,66 +3436,36 @@
         "fehlende Werte werden als incomplete gespeichert, nie vollständige Nullkosten behauptet",
         "zwei gleiche Requests erzeugen genau ein Receipt/Audit; anderer Inhalt409",
         "Preview schreibt nichts, gleiche TX für Beleg und Audit",
-        "Root reserviert echte freie Migration und relevante Version-/Ledgerfixture-Hunks vor READY; canonical/ACL/Validator/db.py/Packagevalidator gemeinsam konsistent",
-        "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG; kein historischer Migrationsrewrite",
-        "Geteilte Version-/Ledgerfixtures nur mit exklusivem Root-Lease und eng begrenzten Versions-/Tabellenzahl-/Ledgerassert-Hunks; aktuelle Foundations-Fixtures nicht ersetzen"
+        "verhält sich gegen das Schema von MP-CALC-RULES-SUGGEST; keine eigene Migration"
       ],
       "contract_files": [
-        "database/schema.sql",
-        "database/permissions.sql",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
-        "tools/validate_package.py",
-        "database/migrations/<ROOT_RESERVED_MP-CALC-CALCULATION-RECEIPTS>.sql",
         "reference_scaffold/cafeteria/cost_receipts.py",
-        "reference_scaffold/tests/test_cost_receipts_db.py",
-        "reference_scaffold/tests/test_calc_calculation_receipts_migration_db.py",
-        "reference_scaffold/tests/test_database_invariants.py",
-        "reference_scaffold/tests/test_master_data_db.py"
+        "reference_scaffold/tests/test_cost_receipts_db.py"
       ],
       "read_only_contract_files": [
-        "docs/superpowers/backlog-0909/operations-sdd.md"
+        "docs/superpowers/backlog-0909/operations-sdd.md",
+        "database/migrations/<ROOT_RESERVED_MP-CALC-RULES-SUGGEST>.sql"
       ],
-      "wiring_files": [
-        "database/schema.sql",
-        "database/permissions.sql",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
-        "tools/validate_package.py",
-        "reference_scaffold/tests/test_database_invariants.py",
-        "reference_scaffold/tests/test_master_data_db.py"
-      ],
+      "wiring_files": [],
       "owned_files": [
         "reference_scaffold/cafeteria/cost_receipts.py",
-        "reference_scaffold/tests/test_cost_receipts_db.py",
-        "database/schema.sql",
-        "database/permissions.sql",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
-        "tools/validate_package.py",
-        "database/migrations/<ROOT_RESERVED_MP-CALC-CALCULATION-RECEIPTS>.sql",
-        "reference_scaffold/tests/test_calc_calculation_receipts_migration_db.py",
-        "reference_scaffold/tests/test_database_invariants.py",
-        "reference_scaffold/tests/test_master_data_db.py"
+        "reference_scaffold/tests/test_cost_receipts_db.py"
       ],
       "forbidden_paths": [
         "database/migrations/0024_v26_to_v27.sql",
         "demo/linked_recipe_drafts.json"
       ],
-      "migration_group": "root-serialized-after-schema27",
+      "migration_group": null,
       "test_plan": [
         {
           "kind": "postgres",
-          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_cost_receipts_db.py tests/test_calc_calculation_receipts_migration_db.py",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_cost_receipts_db.py",
           "assertions": [
             "Preis-/Food-/Regeländerung nach Beleg verändert weder Bytes noch reproduziertes Ergebnis",
             "gespeicherte Childrevisionen einschließlich geteilter Enkel hashverifiziert",
             "fehlende Werte werden als incomplete gespeichert, nie vollständige Nullkosten behauptet",
             "zwei gleiche Requests erzeugen genau ein Receipt/Audit; anderer Inhalt409",
-            "Preview schreibt nichts, gleiche TX für Beleg und Audit",
-            "Root reserviert echte freie Migration und relevante Version-/Ledgerfixture-Hunks vor READY; canonical/ACL/Validator/db.py/Packagevalidator gemeinsam konsistent",
-            "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG; kein historischer Migrationsrewrite",
-            "Geteilte Version-/Ledgerfixtures nur mit exklusivem Root-Lease und eng begrenzten Versions-/Tabellenzahl-/Ledgerassert-Hunks; aktuelle Foundations-Fixtures nicht ersetzen"
+            "Preview schreibt nichts, gleiche TX für Beleg und Audit"
           ],
           "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT und gezielte Version-/Ledgerregression vor READY zu. Reale Browserfälle: 1440/390/keyboard/NoJS, keine fremden Pools."
         }
@@ -3693,15 +3486,7 @@
       "rollback": "Forward-Fix; unveränderliche Belege und historische Zeilen bleiben erhalten.",
       "shared_owner_gate": {
         "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Kein paralleler SQL-/Registry-/Sidebar-/Storewriter. Aktive BAS/R5/Recipe-Owner zuerst integrieren; keine semantische Wartepflicht auf sachfremde externe Rechte.",
-        "files": [
-          "database/schema.sql",
-          "database/permissions.sql",
-          "database/validate_schema.py",
-          "reference_scaffold/cafeteria/db.py",
-          "tools/validate_package.py",
-          "reference_scaffold/tests/test_database_invariants.py",
-          "reference_scaffold/tests/test_master_data_db.py"
-        ]
+        "files": []
       },
       "readiness_conditions": [
         "Alle fachlichen depends_on mit tatsächlichen Freeze-/Gatebelegen erfüllt; fremde aktive Owner freigegeben",
@@ -3710,9 +3495,7 @@
         "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
       ],
       "proposed_files": [
-        "database/migrations/<ROOT_RESERVED_MP-CALC-CALCULATION-RECEIPTS>.sql",
         "reference_scaffold/cafeteria/cost_receipts.py",
-        "reference_scaffold/tests/test_calc_calculation_receipts_migration_db.py",
         "reference_scaffold/tests/test_cost_receipts_db.py"
       ]
     },
@@ -3755,7 +3538,8 @@
         "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG; kein historischer Migrationsrewrite",
         "Upgrade mit altem unchargiertem Journal behält alle Zeilen/Salden; explizite Restmenge plus neue Chargen ist konsistent, kein erfundener Chargen-Backfill",
         "Geteilte Version-/Ledgerfixtures nur mit exklusivem Root-Lease und eng begrenzten Versions-/Tabellenzahl-/Ledgerassert-Hunks; aktuelle Foundations-Fixtures nicht ersetzen",
-        "UI-Master vollständig lesen und integrieren: alle betroffenen Routen 1440x900/390x844; repräsentative Seitentypen und gemeinsame Komponenten zusätzlich 1024x768/768x1024/1920x1080, keyboard/NoJS/200%-Zoom/Kontrast/Fokus mit echter Abdeckungstabelle."
+        "UI-Master vollständig lesen und integrieren: alle betroffenen Routen 1440x900/390x844; repräsentative Seitentypen und gemeinsame Komponenten zusätzlich 1024x768/768x1024/1920x1080, keyboard/NoJS/200%-Zoom/Kontrast/Fokus mit echter Abdeckungstabelle.",
+        "R12: Migration mit Backup-Owner Root, Alt-App-Probe und dokumentiertem App-Rollback"
       ],
       "contract_files": [
         "database/schema.sql",
@@ -3908,7 +3692,8 @@
         "stale signierter Kontext409 statt neue Latest-Wahl",
         "1440/390, keyboard/NoJS und bestehende Sidebarziele",
         "ohne Rechte-/Adapterinput trotzdem nutzbarer manueller Entwurf/Download",
-        "UI-Master vollständig lesen und integrieren: alle betroffenen Routen 1440x900/390x844; repräsentative Seitentypen und gemeinsame Komponenten zusätzlich 1024x768/768x1024/1920x1080, keyboard/NoJS/200%-Zoom/Kontrast/Fokus mit echter Abdeckungstabelle."
+        "UI-Master vollständig lesen und integrieren: alle betroffenen Routen 1440x900/390x844; repräsentative Seitentypen und gemeinsame Komponenten zusätzlich 1024x768/768x1024/1920x1080, keyboard/NoJS/200%-Zoom/Kontrast/Fokus mit echter Abdeckungstabelle.",
+        "R2: line_cost(Rohmenge in Basiseinheit der Zutat, Ledgerpreis je Basiseinheit); Gebinde nur Bestellmenge; inkompatible Einheit, fehlender Preis, Freitextartikel und manuelle Zeilen → ohne Kalkulation/unvollständig, nie 0; Gebindepreise nicht in diesem Programm"
       ],
       "contract_files": [
         "reference_scaffold/cafeteria/admin/order_routes.py",
@@ -3989,6 +3774,1537 @@
         "reference_scaffold/tests/test_admin_order_browser.py",
         "reference_scaffold/tests/test_admin_order_routes.py",
         "docs/design/2026-09-09-unified-ui-design-system.md"
+      ]
+    },
+    {
+      "id": "MP-CAL-READ",
+      "title": "Reader Menüs und Ausnahmen je Datumsbereich",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "operations-sdd.md#31-ziel-und-grenze"
+      ],
+      "source_anchors": [
+        "database/schema.sql:menu_services",
+        "reference_scaffold/cafeteria/workflow.py:PROFILE_MEALS"
+      ],
+      "task": "Eine Bereichsabfrage über service_date für Menüs und datierte Ausnahmen. Kein Kalender-JS. Standort implizit. Filter Cafeteria/Patienten, Standard beide.",
+      "acceptance_criteria": [
+        "Eine Bereichsabfrage, keine Schleife über Tage",
+        "R5: candidate_components(engine, scope, *, date_from, date_to) in diesem WP eingefroren; spätere Erweiterungen nur additiv",
+        "R6: Kalender-heute, Zeitraumgrenzen und Preisstichtag aus derselben Quelle effective_today()/Europe/Zurich; Standortfilter implizit",
+        "R7: Kalender lesen draft.read"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/calendar_reads.py",
+        "reference_scaffold/tests/test_calendar_reads_db.py"
+      ],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/operations-sdd.md"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/calendar_reads.py",
+        "reference_scaffold/tests/test_calendar_reads_db.py"
+      ],
+      "forbidden_paths": [
+        "database/migrations/0024_v26_to_v27.sql",
+        "reference_scaffold/cafeteria/roles.py",
+        "reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_calendar_reads_db.py",
+          "assertions": [
+            "Eine Bereichsabfrage, keine Schleife über Tage",
+            "R5: candidate_components(engine, scope, *, date_from, date_to) in diesem WP eingefroren; spätere Erweiterungen nur additiv",
+            "R6: Kalender-heute, Zeitraumgrenzen und Preisstichtag aus derselben Quelle effective_today()/Europe/Zurich; Standortfilter implizit",
+            "R7: Kalender lesen draft.read"
+          ],
+          "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT vor READY zu. Keine fremden Pools, kein Schema ohne ROOT-FREEZE."
+        }
+      ],
+      "external_inputs": [],
+      "risk": "HIGH",
+      "effort": "medium",
+      "preferred_lane": "grok-build",
+      "eligible_lanes": [
+        "grok-build",
+        "claude-code",
+        "agy"
+      ],
+      "completion_evidence": [
+        "diff+commit",
+        "reale Gate-Ausgabe",
+        "Nicht gefahrene Gates ausdrücklich nennen"
+      ],
+      "rollback": "Forward-Fix; kein Schema-Downgrade ohne Root-Restore.",
+      "shared_owner_gate": {
+        "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Schema-Fünfergruppe nur im exclusive-writer WP der Welle.",
+        "files": []
+      },
+      "readiness_conditions": [
+        "Alle fachlichen depends_on mit tatsächlichen Freeze-/Gatebelegen erfüllt",
+        "ROOT-FREEZE im Küchenkalender-Ledger bevor Schema geschrieben wird",
+        "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
+      ],
+      "proposed_files": [
+        "reference_scaffold/cafeteria/calendar_reads.py",
+        "reference_scaffold/tests/test_calendar_reads_db.py"
+      ]
+    },
+    {
+      "id": "MP-CAL-DESIGN",
+      "title": "Designentscheid Monatsraster Küchenkalender",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "kind": "research",
+      "status": "PLANNED",
+      "depends_on": [],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "operations-sdd.md#31-ziel-und-grenze"
+      ],
+      "source_anchors": [
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "task": "Schriftlicher Designentscheid für das Monatsraster: Zelleninhalt, Filter E1, Anlass-Marker, keine neue JS-Kalenderbibliothek, layout_variant=calendar.",
+      "acceptance_criteria": [
+        "R11: ui-route-matrix.json; 390×844 und 1440×900 Pflicht; bei neuem Muster zusätzlich 1024×768, 768×1024, 1920×1080; layout_variant=calendar",
+        "Keine vendored Kalenderbibliothek und kein inline JS (CSP script-src self)",
+        "Anlässe als Marker, nicht als dritte Mahlzeit"
+      ],
+      "contract_files": [
+        "docs/design/2026-09-15-kitchen-calendar-month.md"
+      ],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/operations-sdd.md",
+        "docs/superpowers/backlog-0909/ui-route-matrix.json",
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "docs/design/2026-09-15-kitchen-calendar-month.md"
+      ],
+      "forbidden_paths": [
+        "reference_scaffold/",
+        "database/",
+        "tools/"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "unit",
+          "command": "UNASSIGNED: bounded design-doc review named by Root before execution",
+          "assertions": [
+            "R11: ui-route-matrix.json; 390×844 und 1440×900 Pflicht; bei neuem Muster zusätzlich 1024×768, 768×1024, 1920×1080; layout_variant=calendar",
+            "Keine vendored Kalenderbibliothek und kein inline JS (CSP script-src self)",
+            "Anlässe als Marker, nicht als dritte Mahlzeit"
+          ],
+          "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT vor READY zu. Keine fremden Pools, kein Schema ohne ROOT-FREEZE."
+        }
+      ],
+      "external_inputs": [],
+      "risk": "MEDIUM",
+      "effort": "low",
+      "preferred_lane": "grok-build",
+      "eligible_lanes": [
+        "grok-build",
+        "claude-code",
+        "agy"
+      ],
+      "completion_evidence": [
+        "diff+commit",
+        "reale Gate-Ausgabe",
+        "Nicht gefahrene Gates ausdrücklich nennen"
+      ],
+      "rollback": "Forward-Fix; kein Schema-Downgrade ohne Root-Restore.",
+      "shared_owner_gate": {
+        "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Schema-Fünfergruppe nur im exclusive-writer WP der Welle.",
+        "files": []
+      },
+      "readiness_conditions": [
+        "Alle fachlichen depends_on mit tatsächlichen Freeze-/Gatebelegen erfüllt",
+        "ROOT-FREEZE im Küchenkalender-Ledger bevor Schema geschrieben wird",
+        "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
+      ],
+      "proposed_files": [
+        "docs/design/2026-09-15-kitchen-calendar-month.md"
+      ],
+      "ui_contract": {
+        "path": "docs/design/2026-09-09-unified-ui-design-system.md",
+        "owner": "Root / sdd-backlog-root-0909",
+        "scope": "read-only prerequisite, Root integrates master and AGENTS/CLAUDE",
+        "layout_variant": "calendar",
+        "route_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            390,
+            844
+          ]
+        ],
+        "representative_and_shared_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            1920,
+            1080
+          ]
+        ]
+      }
+    },
+    {
+      "id": "MP-CAL-MONTH",
+      "title": "Monatsraster mit Menüs, Status und Ausnahmen",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-CAL-READ",
+        "MP-CAL-DESIGN"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "operations-sdd.md#31-ziel-und-grenze"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/calendar_reads.py"
+      ],
+      "task": "Monatsraster rendert Menüs, Workflow-Status, Ausnahmen und Anlass-Marker.",
+      "acceptance_criteria": [
+        "R11: ui-route-matrix.json; 390×844 und 1440×900 Pflicht; bei neuem Muster zusätzlich 1024×768, 768×1024, 1920×1080; layout_variant=calendar",
+        "Filter Cafeteria/Patienten, Standard beide",
+        "Anlässe nur als Marker; kein Einfluss auf Publikation"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/calendar_month.py",
+        "reference_scaffold/cafeteria/templates/admin/kuechenkalender.html",
+        "reference_scaffold/tests/test_calendar_month_browser.py"
+      ],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/operations-sdd.md",
+        "docs/superpowers/backlog-0909/ui-route-matrix.json",
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/calendar_month.py",
+        "reference_scaffold/cafeteria/templates/admin/kuechenkalender.html",
+        "reference_scaffold/tests/test_calendar_month_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/migrations/0024_v26_to_v27.sql",
+        "reference_scaffold/cafeteria/roles.py",
+        "reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_calendar_month_browser.py",
+          "assertions": [
+            "R11: ui-route-matrix.json; 390×844 und 1440×900 Pflicht; bei neuem Muster zusätzlich 1024×768, 768×1024, 1920×1080; layout_variant=calendar",
+            "Filter Cafeteria/Patienten, Standard beide",
+            "Anlässe nur als Marker; kein Einfluss auf Publikation"
+          ],
+          "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT vor READY zu. Keine fremden Pools, kein Schema ohne ROOT-FREEZE."
+        }
+      ],
+      "external_inputs": [],
+      "risk": "HIGH",
+      "effort": "medium",
+      "preferred_lane": "grok-build",
+      "eligible_lanes": [
+        "grok-build",
+        "claude-code",
+        "agy"
+      ],
+      "completion_evidence": [
+        "diff+commit",
+        "reale Gate-Ausgabe",
+        "Nicht gefahrene Gates ausdrücklich nennen"
+      ],
+      "rollback": "Forward-Fix; kein Schema-Downgrade ohne Root-Restore.",
+      "shared_owner_gate": {
+        "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Schema-Fünfergruppe nur im exclusive-writer WP der Welle.",
+        "files": []
+      },
+      "readiness_conditions": [
+        "Alle fachlichen depends_on mit tatsächlichen Freeze-/Gatebelegen erfüllt",
+        "ROOT-FREEZE im Küchenkalender-Ledger bevor Schema geschrieben wird",
+        "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
+      ],
+      "proposed_files": [
+        "reference_scaffold/cafeteria/calendar_month.py",
+        "reference_scaffold/cafeteria/templates/admin/kuechenkalender.html",
+        "reference_scaffold/tests/test_calendar_month_browser.py"
+      ],
+      "ui_contract": {
+        "path": "docs/design/2026-09-09-unified-ui-design-system.md",
+        "owner": "Root / sdd-backlog-root-0909",
+        "scope": "read-only prerequisite, Root integrates master and AGENTS/CLAUDE",
+        "layout_variant": "calendar",
+        "route_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            390,
+            844
+          ]
+        ],
+        "representative_and_shared_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            1920,
+            1080
+          ]
+        ]
+      }
+    },
+    {
+      "id": "MP-CAL-NAV",
+      "title": "Kalender-Menüpunkt, Vor/Zurück und Datumssprung",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-CAL-MONTH"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "operations-sdd.md#31-ziel-und-grenze"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html"
+      ],
+      "task": "Einziger neuer Schreiber von Sidebar/Basislayout/Kalenderrouten. Vor/Zurück und Datumssprung. Bestehende Wochenrouten nicht semantisch ändern.",
+      "acceptance_criteria": [
+        "R11: ui-route-matrix.json; 390×844 und 1440×900 Pflicht; bei neuem Muster zusätzlich 1024×768, 768×1024, 1920×1080; layout_variant=calendar",
+        "Unter den MP-CAL-* Paketen ist nur dieses WP Schreiber von _workflow_sidebar.html"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/admin/calendar_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html",
+        "reference_scaffold/cafeteria/admin/__init__.py",
+        "reference_scaffold/tests/test_calendar_nav_browser.py"
+      ],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/operations-sdd.md",
+        "docs/superpowers/backlog-0909/ui-route-matrix.json",
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "wiring_files": [
+        "reference_scaffold/cafeteria/admin/__init__.py",
+        "reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html"
+      ],
+      "owned_files": [
+        "reference_scaffold/cafeteria/admin/calendar_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html",
+        "reference_scaffold/cafeteria/admin/__init__.py",
+        "reference_scaffold/tests/test_calendar_nav_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/migrations/0024_v26_to_v27.sql",
+        "reference_scaffold/cafeteria/roles.py"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_calendar_nav_browser.py",
+          "assertions": [
+            "R11: ui-route-matrix.json; 390×844 und 1440×900 Pflicht; bei neuem Muster zusätzlich 1024×768, 768×1024, 1920×1080; layout_variant=calendar",
+            "Unter den MP-CAL-* Paketen ist nur dieses WP Schreiber von _workflow_sidebar.html"
+          ],
+          "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT vor READY zu. Keine fremden Pools, kein Schema ohne ROOT-FREEZE."
+        }
+      ],
+      "external_inputs": [],
+      "risk": "HIGH",
+      "effort": "medium",
+      "preferred_lane": "grok-build",
+      "eligible_lanes": [
+        "grok-build",
+        "claude-code",
+        "agy"
+      ],
+      "completion_evidence": [
+        "diff+commit",
+        "reale Gate-Ausgabe",
+        "Nicht gefahrene Gates ausdrücklich nennen"
+      ],
+      "rollback": "Forward-Fix; kein Schema-Downgrade ohne Root-Restore.",
+      "shared_owner_gate": {
+        "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Schema-Fünfergruppe nur im exclusive-writer WP der Welle.",
+        "files": []
+      },
+      "readiness_conditions": [
+        "Alle fachlichen depends_on mit tatsächlichen Freeze-/Gatebelegen erfüllt",
+        "ROOT-FREEZE im Küchenkalender-Ledger bevor Schema geschrieben wird",
+        "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
+      ],
+      "proposed_files": [
+        "reference_scaffold/cafeteria/admin/calendar_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html",
+        "reference_scaffold/cafeteria/admin/__init__.py",
+        "reference_scaffold/tests/test_calendar_nav_browser.py"
+      ],
+      "ui_contract": {
+        "path": "docs/design/2026-09-09-unified-ui-design-system.md",
+        "owner": "Root / sdd-backlog-root-0909",
+        "scope": "read-only prerequisite, Root integrates master and AGENTS/CLAUDE",
+        "layout_variant": "calendar",
+        "route_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            390,
+            844
+          ]
+        ],
+        "representative_and_shared_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            1920,
+            1080
+          ]
+        ]
+      }
+    },
+    {
+      "id": "MP-CAL-EVENTS-SCHEMA",
+      "title": "Anlass-Kopf Schema 0032 ohne Bausteine",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-BAS-SCHEMA27"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "operations-sdd.md#24-trust-cas-audit-archiv"
+      ],
+      "source_anchors": [
+        "database/schema.sql:menu_services"
+      ],
+      "task": "Alleiniger Schreiber der Schema-Fünfergruppe für 0032: Anlass-Kopf ohne Komponentengraph. SECURITY DEFINER + Audit. Gästezahl skaliert nichts.",
+      "acceptance_criteria": [
+        "R3: Anlass-Kopf (Datum, Zeitfenster, Standort, Bereich patient/staff_guest/beide, Titel, Gästezahl, Notiz, row_version, Audit) ohne eigene Bausteine; nicht in Publikations-/Signage-/Patientensnapshots; kein Einfluss auf menu_weeks.workflow_state; Gästezahl skaliert nichts",
+        "R7: Anlass schreiben draft.write",
+        "R12: Migration mit Backup-Owner Root, Alt-App-Probe und dokumentiertem App-Rollback",
+        "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG"
+      ],
+      "contract_files": [
+        "database/schema.sql",
+        "database/permissions.sql",
+        "database/validate_schema.py",
+        "reference_scaffold/cafeteria/db.py",
+        "tools/validate_package.py",
+        "database/migrations/<ROOT_RESERVED_MP-CAL-EVENTS-SCHEMA>.sql",
+        "reference_scaffold/tests/test_cal_events_schema_migration_db.py",
+        "reference_scaffold/tests/test_database_invariants.py",
+        "reference_scaffold/tests/test_master_data_db.py",
+        "reference_scaffold/cafeteria/calendar_event_store.py",
+        "reference_scaffold/tests/test_calendar_event_store_db.py"
+      ],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/operations-sdd.md"
+      ],
+      "wiring_files": [
+        "database/schema.sql",
+        "database/permissions.sql",
+        "database/validate_schema.py",
+        "reference_scaffold/cafeteria/db.py",
+        "tools/validate_package.py",
+        "reference_scaffold/tests/test_database_invariants.py",
+        "reference_scaffold/tests/test_master_data_db.py"
+      ],
+      "owned_files": [
+        "database/schema.sql",
+        "database/permissions.sql",
+        "database/validate_schema.py",
+        "reference_scaffold/cafeteria/db.py",
+        "tools/validate_package.py",
+        "database/migrations/<ROOT_RESERVED_MP-CAL-EVENTS-SCHEMA>.sql",
+        "reference_scaffold/tests/test_cal_events_schema_migration_db.py",
+        "reference_scaffold/tests/test_database_invariants.py",
+        "reference_scaffold/tests/test_master_data_db.py",
+        "reference_scaffold/cafeteria/calendar_event_store.py",
+        "reference_scaffold/tests/test_calendar_event_store_db.py"
+      ],
+      "forbidden_paths": [
+        "database/migrations/0024_v26_to_v27.sql",
+        "reference_scaffold/cafeteria/roles.py"
+      ],
+      "migration_group": "root-serialized-after-schema27",
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_calendar_event_store_db.py tests/test_cal_events_schema_migration_db.py",
+          "assertions": [
+            "R3: Anlass-Kopf (Datum, Zeitfenster, Standort, Bereich patient/staff_guest/beide, Titel, Gästezahl, Notiz, row_version, Audit) ohne eigene Bausteine; nicht in Publikations-/Signage-/Patientensnapshots; kein Einfluss auf menu_weeks.workflow_state; Gästezahl skaliert nichts",
+            "R7: Anlass schreiben draft.write",
+            "R12: Migration mit Backup-Owner Root, Alt-App-Probe und dokumentiertem App-Rollback",
+            "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG"
+          ],
+          "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT vor READY zu. Keine fremden Pools, kein Schema ohne ROOT-FREEZE."
+        }
+      ],
+      "external_inputs": [],
+      "risk": "HIGH",
+      "effort": "high",
+      "preferred_lane": "grok-build",
+      "eligible_lanes": [
+        "grok-build",
+        "claude-code",
+        "agy"
+      ],
+      "completion_evidence": [
+        "diff+commit",
+        "reale Gate-Ausgabe",
+        "Nicht gefahrene Gates ausdrücklich nennen"
+      ],
+      "rollback": "Forward-Fix; kein Schema-Downgrade ohne Root-Restore.",
+      "shared_owner_gate": {
+        "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Schema-Fünfergruppe nur im exclusive-writer WP der Welle.",
+        "files": [
+          "database/schema.sql",
+          "database/permissions.sql",
+          "database/validate_schema.py",
+          "reference_scaffold/cafeteria/db.py",
+          "tools/validate_package.py",
+          "reference_scaffold/tests/test_database_invariants.py",
+          "reference_scaffold/tests/test_master_data_db.py"
+        ]
+      },
+      "readiness_conditions": [
+        "Alle fachlichen depends_on mit tatsächlichen Freeze-/Gatebelegen erfüllt",
+        "ROOT-FREEZE im Küchenkalender-Ledger bevor Schema geschrieben wird",
+        "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
+      ],
+      "proposed_files": [
+        "database/schema.sql",
+        "database/permissions.sql",
+        "database/validate_schema.py",
+        "reference_scaffold/cafeteria/db.py",
+        "database/migrations/<ROOT_RESERVED_MP-CAL-EVENTS-SCHEMA>.sql",
+        "reference_scaffold/tests/test_cal_events_schema_migration_db.py",
+        "reference_scaffold/tests/test_database_invariants.py",
+        "reference_scaffold/tests/test_master_data_db.py",
+        "reference_scaffold/cafeteria/calendar_event_store.py",
+        "reference_scaffold/tests/test_calendar_event_store_db.py"
+      ]
+    },
+    {
+      "id": "MP-CAL-EVENTS-UI",
+      "title": "Anlass anlegen und bearbeiten, Marker im Monat",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-CAL-EVENTS-SCHEMA",
+        "MP-CAL-MONTH"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "operations-sdd.md#31-ziel-und-grenze"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/calendar_event_store.py"
+      ],
+      "task": "Formular Anlass anlegen/bearbeiten; Marker im Monatsraster. Keine Bausteine.",
+      "acceptance_criteria": [
+        "R11: ui-route-matrix.json; 390×844 und 1440×900 Pflicht; bei neuem Muster zusätzlich 1024×768, 768×1024, 1920×1080; layout_variant=calendar",
+        "R7: Anlass schreiben draft.write",
+        "Anlass ändert menu_weeks.workflow_state nicht"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/admin/calendar_event_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/kuechenkalender_anlass.html",
+        "reference_scaffold/tests/test_calendar_event_browser.py"
+      ],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/operations-sdd.md",
+        "docs/superpowers/backlog-0909/ui-route-matrix.json",
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/admin/calendar_event_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/kuechenkalender_anlass.html",
+        "reference_scaffold/tests/test_calendar_event_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/migrations/0024_v26_to_v27.sql",
+        "reference_scaffold/cafeteria/roles.py",
+        "reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_calendar_event_browser.py",
+          "assertions": [
+            "R11: ui-route-matrix.json; 390×844 und 1440×900 Pflicht; bei neuem Muster zusätzlich 1024×768, 768×1024, 1920×1080; layout_variant=calendar",
+            "R7: Anlass schreiben draft.write",
+            "Anlass ändert menu_weeks.workflow_state nicht"
+          ],
+          "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT vor READY zu. Keine fremden Pools, kein Schema ohne ROOT-FREEZE."
+        }
+      ],
+      "external_inputs": [],
+      "risk": "HIGH",
+      "effort": "medium",
+      "preferred_lane": "grok-build",
+      "eligible_lanes": [
+        "grok-build",
+        "claude-code",
+        "agy"
+      ],
+      "completion_evidence": [
+        "diff+commit",
+        "reale Gate-Ausgabe",
+        "Nicht gefahrene Gates ausdrücklich nennen"
+      ],
+      "rollback": "Forward-Fix; kein Schema-Downgrade ohne Root-Restore.",
+      "shared_owner_gate": {
+        "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Schema-Fünfergruppe nur im exclusive-writer WP der Welle.",
+        "files": []
+      },
+      "readiness_conditions": [
+        "Alle fachlichen depends_on mit tatsächlichen Freeze-/Gatebelegen erfüllt",
+        "ROOT-FREEZE im Küchenkalender-Ledger bevor Schema geschrieben wird",
+        "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
+      ],
+      "proposed_files": [
+        "reference_scaffold/cafeteria/admin/calendar_event_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/kuechenkalender_anlass.html",
+        "reference_scaffold/tests/test_calendar_event_browser.py"
+      ],
+      "ui_contract": {
+        "path": "docs/design/2026-09-09-unified-ui-design-system.md",
+        "owner": "Root / sdd-backlog-root-0909",
+        "scope": "read-only prerequisite, Root integrates master and AGENTS/CLAUDE",
+        "layout_variant": "calendar",
+        "route_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            390,
+            844
+          ]
+        ],
+        "representative_and_shared_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            1920,
+            1080
+          ]
+        ]
+      }
+    },
+    {
+      "id": "MP-CAL-EVENT-DEMAND",
+      "title": "Anlass-Bedarf Schema 0034 und Reader-Union",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-CAL-EVENTS-SCHEMA",
+        "MP-REC-SHOPPING-PERIOD"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "operations-sdd.md#31-ziel-und-grenze"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/shopping_list_reads.py"
+      ],
+      "task": "Alleiniger Schreiber der Schema-Fünfergruppe für 0034. Bedarfskopien (Rezeptrevision + Zielportion kopiert). candidate_components additiv als Union.",
+      "acceptance_criteria": [
+        "R3: Bedarf aus Anlässen über dieselbe DTO wie menu_item_components (Rezeptrevision + Zielportion kopiert); ein Reader candidate_components als Union über Datum",
+        "R12: Migration mit Backup-Owner Root, Alt-App-Probe und dokumentiertem App-Rollback",
+        "Zielportion kopiert, nicht live gejoint",
+        "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG"
+      ],
+      "contract_files": [
+        "database/schema.sql",
+        "database/permissions.sql",
+        "database/validate_schema.py",
+        "reference_scaffold/cafeteria/db.py",
+        "tools/validate_package.py",
+        "database/migrations/<ROOT_RESERVED_MP-CAL-EVENT-DEMAND>.sql",
+        "reference_scaffold/tests/test_cal_event_demand_migration_db.py",
+        "reference_scaffold/tests/test_database_invariants.py",
+        "reference_scaffold/tests/test_master_data_db.py",
+        "reference_scaffold/cafeteria/calendar_event_demand.py",
+        "reference_scaffold/cafeteria/shopping_list_reads.py",
+        "reference_scaffold/tests/test_calendar_event_demand_db.py"
+      ],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/operations-sdd.md"
+      ],
+      "wiring_files": [
+        "database/schema.sql",
+        "database/permissions.sql",
+        "database/validate_schema.py",
+        "reference_scaffold/cafeteria/db.py",
+        "tools/validate_package.py",
+        "reference_scaffold/tests/test_database_invariants.py",
+        "reference_scaffold/tests/test_master_data_db.py",
+        "reference_scaffold/cafeteria/shopping_list_reads.py"
+      ],
+      "owned_files": [
+        "database/schema.sql",
+        "database/permissions.sql",
+        "database/validate_schema.py",
+        "reference_scaffold/cafeteria/db.py",
+        "tools/validate_package.py",
+        "database/migrations/<ROOT_RESERVED_MP-CAL-EVENT-DEMAND>.sql",
+        "reference_scaffold/tests/test_cal_event_demand_migration_db.py",
+        "reference_scaffold/tests/test_database_invariants.py",
+        "reference_scaffold/tests/test_master_data_db.py",
+        "reference_scaffold/cafeteria/calendar_event_demand.py",
+        "reference_scaffold/cafeteria/shopping_list_reads.py",
+        "reference_scaffold/tests/test_calendar_event_demand_db.py"
+      ],
+      "forbidden_paths": [
+        "database/migrations/0024_v26_to_v27.sql",
+        "reference_scaffold/cafeteria/roles.py"
+      ],
+      "migration_group": "root-serialized-after-schema27",
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_calendar_event_demand_db.py tests/test_cal_event_demand_migration_db.py",
+          "assertions": [
+            "R3: Bedarf aus Anlässen über dieselbe DTO wie menu_item_components (Rezeptrevision + Zielportion kopiert); ein Reader candidate_components als Union über Datum",
+            "R12: Migration mit Backup-Owner Root, Alt-App-Probe und dokumentiertem App-Rollback",
+            "Zielportion kopiert, nicht live gejoint",
+            "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG"
+          ],
+          "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT vor READY zu. Keine fremden Pools, kein Schema ohne ROOT-FREEZE."
+        }
+      ],
+      "external_inputs": [],
+      "risk": "HIGH",
+      "effort": "high",
+      "preferred_lane": "grok-build",
+      "eligible_lanes": [
+        "grok-build",
+        "claude-code",
+        "agy"
+      ],
+      "completion_evidence": [
+        "diff+commit",
+        "reale Gate-Ausgabe",
+        "Nicht gefahrene Gates ausdrücklich nennen"
+      ],
+      "rollback": "Forward-Fix; kein Schema-Downgrade ohne Root-Restore.",
+      "shared_owner_gate": {
+        "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Schema-Fünfergruppe nur im exclusive-writer WP der Welle.",
+        "files": [
+          "database/schema.sql",
+          "database/permissions.sql",
+          "database/validate_schema.py",
+          "reference_scaffold/cafeteria/db.py",
+          "tools/validate_package.py",
+          "reference_scaffold/tests/test_database_invariants.py",
+          "reference_scaffold/tests/test_master_data_db.py"
+        ]
+      },
+      "readiness_conditions": [
+        "Alle fachlichen depends_on mit tatsächlichen Freeze-/Gatebelegen erfüllt",
+        "ROOT-FREEZE im Küchenkalender-Ledger bevor Schema geschrieben wird",
+        "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
+      ],
+      "proposed_files": [
+        "database/schema.sql",
+        "database/permissions.sql",
+        "database/validate_schema.py",
+        "reference_scaffold/cafeteria/db.py",
+        "database/migrations/<ROOT_RESERVED_MP-CAL-EVENT-DEMAND>.sql",
+        "reference_scaffold/tests/test_cal_event_demand_migration_db.py",
+        "reference_scaffold/tests/test_database_invariants.py",
+        "reference_scaffold/tests/test_master_data_db.py",
+        "reference_scaffold/cafeteria/calendar_event_demand.py",
+        "reference_scaffold/cafeteria/shopping_list_reads.py",
+        "reference_scaffold/tests/test_calendar_event_demand_db.py"
+      ]
+    },
+    {
+      "id": "MP-CAL-DAY",
+      "title": "Tagesansicht Küchenkalender",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-CAL-NAV"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "operations-sdd.md#31-ziel-und-grenze"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/calendar_reads.py"
+      ],
+      "task": "Tagesansicht nach Monat plus Wochensprung. Kein Schema.",
+      "acceptance_criteria": [
+        "R11: ui-route-matrix.json; 390×844 und 1440×900 Pflicht; bei neuem Muster zusätzlich 1024×768, 768×1024, 1920×1080; layout_variant=calendar"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/kuechenkalender_tag.html",
+        "reference_scaffold/tests/test_calendar_day_browser.py"
+      ],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/operations-sdd.md",
+        "docs/superpowers/backlog-0909/ui-route-matrix.json",
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/kuechenkalender_tag.html",
+        "reference_scaffold/tests/test_calendar_day_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/migrations/0024_v26_to_v27.sql",
+        "reference_scaffold/cafeteria/roles.py",
+        "reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_calendar_day_browser.py",
+          "assertions": [
+            "R11: ui-route-matrix.json; 390×844 und 1440×900 Pflicht; bei neuem Muster zusätzlich 1024×768, 768×1024, 1920×1080; layout_variant=calendar"
+          ],
+          "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT vor READY zu. Keine fremden Pools, kein Schema ohne ROOT-FREEZE."
+        }
+      ],
+      "external_inputs": [],
+      "risk": "MEDIUM",
+      "effort": "medium",
+      "preferred_lane": "grok-build",
+      "eligible_lanes": [
+        "grok-build",
+        "claude-code",
+        "agy"
+      ],
+      "completion_evidence": [
+        "diff+commit",
+        "reale Gate-Ausgabe",
+        "Nicht gefahrene Gates ausdrücklich nennen"
+      ],
+      "rollback": "Forward-Fix; kein Schema-Downgrade ohne Root-Restore.",
+      "shared_owner_gate": {
+        "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Schema-Fünfergruppe nur im exclusive-writer WP der Welle.",
+        "files": []
+      },
+      "readiness_conditions": [
+        "Alle fachlichen depends_on mit tatsächlichen Freeze-/Gatebelegen erfüllt",
+        "ROOT-FREEZE im Küchenkalender-Ledger bevor Schema geschrieben wird",
+        "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
+      ],
+      "proposed_files": [
+        "reference_scaffold/cafeteria/templates/admin/kuechenkalender_tag.html",
+        "reference_scaffold/tests/test_calendar_day_browser.py"
+      ],
+      "ui_contract": {
+        "path": "docs/design/2026-09-09-unified-ui-design-system.md",
+        "owner": "Root / sdd-backlog-root-0909",
+        "scope": "read-only prerequisite, Root integrates master and AGENTS/CLAUDE",
+        "layout_variant": "calendar",
+        "route_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            390,
+            844
+          ]
+        ],
+        "representative_and_shared_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            1920,
+            1080
+          ]
+        ]
+      }
+    },
+    {
+      "id": "MP-CAL-LIST",
+      "title": "Listenansicht Küchenkalender",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-CAL-NAV"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "operations-sdd.md#31-ziel-und-grenze"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/calendar_reads.py"
+      ],
+      "task": "Listenansicht nach Monat plus Wochensprung. Kein Schema.",
+      "acceptance_criteria": [
+        "R11: ui-route-matrix.json; 390×844 und 1440×900 Pflicht; bei neuem Muster zusätzlich 1024×768, 768×1024, 1920×1080; layout_variant=calendar"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/templates/admin/kuechenkalender_liste.html",
+        "reference_scaffold/tests/test_calendar_list_browser.py"
+      ],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/operations-sdd.md",
+        "docs/superpowers/backlog-0909/ui-route-matrix.json",
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/templates/admin/kuechenkalender_liste.html",
+        "reference_scaffold/tests/test_calendar_list_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/migrations/0024_v26_to_v27.sql",
+        "reference_scaffold/cafeteria/roles.py",
+        "reference_scaffold/cafeteria/templates/admin/_workflow_sidebar.html"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_calendar_list_browser.py",
+          "assertions": [
+            "R11: ui-route-matrix.json; 390×844 und 1440×900 Pflicht; bei neuem Muster zusätzlich 1024×768, 768×1024, 1920×1080; layout_variant=calendar"
+          ],
+          "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT vor READY zu. Keine fremden Pools, kein Schema ohne ROOT-FREEZE."
+        }
+      ],
+      "external_inputs": [],
+      "risk": "MEDIUM",
+      "effort": "medium",
+      "preferred_lane": "grok-build",
+      "eligible_lanes": [
+        "grok-build",
+        "claude-code",
+        "agy"
+      ],
+      "completion_evidence": [
+        "diff+commit",
+        "reale Gate-Ausgabe",
+        "Nicht gefahrene Gates ausdrücklich nennen"
+      ],
+      "rollback": "Forward-Fix; kein Schema-Downgrade ohne Root-Restore.",
+      "shared_owner_gate": {
+        "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Schema-Fünfergruppe nur im exclusive-writer WP der Welle.",
+        "files": []
+      },
+      "readiness_conditions": [
+        "Alle fachlichen depends_on mit tatsächlichen Freeze-/Gatebelegen erfüllt",
+        "ROOT-FREEZE im Küchenkalender-Ledger bevor Schema geschrieben wird",
+        "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
+      ],
+      "proposed_files": [
+        "reference_scaffold/cafeteria/templates/admin/kuechenkalender_liste.html",
+        "reference_scaffold/tests/test_calendar_list_browser.py"
+      ],
+      "ui_contract": {
+        "path": "docs/design/2026-09-09-unified-ui-design-system.md",
+        "owner": "Root / sdd-backlog-root-0909",
+        "scope": "read-only prerequisite, Root integrates master and AGENTS/CLAUDE",
+        "layout_variant": "calendar",
+        "route_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            390,
+            844
+          ]
+        ],
+        "representative_and_shared_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            1920,
+            1080
+          ]
+        ]
+      }
+    },
+    {
+      "id": "MP-CALC-PRICE-UI",
+      "title": "Einkaufspreis am Zutatenblatt",
+      "requirement_ids": [
+        "CALC-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-CALC-PRICE-LEDGER"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "operations-sdd.md#33-verhalten"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/food_price_store.py"
+      ],
+      "task": "Preis je Basiseinheit am Zutatenblatt. SECURITY DEFINER + master_audit.",
+      "acceptance_criteria": [
+        "R7: Preise, Lieferanten, Artikel masterdata.write mit SECURITY-DEFINER-Writer + master_audit",
+        "Preisrevisionen unveränderlich; Korrektur nur als neue Revision"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/admin/food_price_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_food.html",
+        "reference_scaffold/tests/test_food_price_browser.py"
+      ],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/operations-sdd.md",
+        "docs/superpowers/backlog-0909/ui-route-matrix.json",
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/admin/food_price_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_food.html",
+        "reference_scaffold/tests/test_food_price_browser.py"
+      ],
+      "forbidden_paths": [
+        "database/migrations/0024_v26_to_v27.sql",
+        "reference_scaffold/cafeteria/roles.py"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_food_price_browser.py",
+          "assertions": [
+            "R7: Preise, Lieferanten, Artikel masterdata.write mit SECURITY-DEFINER-Writer + master_audit",
+            "Preisrevisionen unveränderlich; Korrektur nur als neue Revision"
+          ],
+          "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT vor READY zu. Keine fremden Pools, kein Schema ohne ROOT-FREEZE."
+        }
+      ],
+      "external_inputs": [],
+      "risk": "HIGH",
+      "effort": "medium",
+      "preferred_lane": "grok-build",
+      "eligible_lanes": [
+        "grok-build",
+        "claude-code",
+        "agy"
+      ],
+      "completion_evidence": [
+        "diff+commit",
+        "reale Gate-Ausgabe",
+        "Nicht gefahrene Gates ausdrücklich nennen"
+      ],
+      "rollback": "Forward-Fix; kein Schema-Downgrade ohne Root-Restore.",
+      "shared_owner_gate": {
+        "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Schema-Fünfergruppe nur im exclusive-writer WP der Welle.",
+        "files": []
+      },
+      "readiness_conditions": [
+        "Alle fachlichen depends_on mit tatsächlichen Freeze-/Gatebelegen erfüllt",
+        "ROOT-FREEZE im Küchenkalender-Ledger bevor Schema geschrieben wird",
+        "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
+      ],
+      "proposed_files": [
+        "reference_scaffold/cafeteria/admin/food_price_routes.py",
+        "reference_scaffold/cafeteria/templates/admin/grundlagen_food.html",
+        "reference_scaffold/tests/test_food_price_browser.py"
+      ],
+      "ui_contract": {
+        "path": "docs/design/2026-09-09-unified-ui-design-system.md",
+        "owner": "Root / sdd-backlog-root-0909",
+        "scope": "read-only prerequisite, Root integrates master and AGENTS/CLAUDE",
+        "layout_variant": "calendar",
+        "route_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            390,
+            844
+          ]
+        ],
+        "representative_and_shared_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            1920,
+            1080
+          ]
+        ]
+      }
+    },
+    {
+      "id": "MP-CALC-SHOPPING-COST",
+      "title": "CHF je Einkaufsliste und Zeitraum nach R2",
+      "requirement_ids": [
+        "CALC-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-CALC-PRICE-LEDGER",
+        "MP-CALC-PATIENT-GUARD",
+        "MP-REC-SHOPPING-PERIOD"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "operations-sdd.md#33-verhalten"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/cost_calc.py:line_cost"
+      ],
+      "task": "Summen auf Einkaufsliste und Zeitraum über line_cost(Rohmenge in Basis, Ledgerpreis je Basis). Nie 0 für fehlenden Preis.",
+      "acceptance_criteria": [
+        "R2: line_cost(Rohmenge in Basiseinheit der Zutat, Ledgerpreis je Basiseinheit); Gebinde nur Bestellmenge; inkompatible Einheit, fehlender Preis, Freitextartikel und manuelle Zeilen → ohne Kalkulation/unvollständig, nie 0; Gebindepreise nicht in diesem Programm"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/shopping_cost.py",
+        "reference_scaffold/tests/test_shopping_cost.py"
+      ],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/operations-sdd.md"
+      ],
+      "wiring_files": [],
+      "owned_files": [
+        "reference_scaffold/cafeteria/shopping_cost.py",
+        "reference_scaffold/tests/test_shopping_cost.py"
+      ],
+      "forbidden_paths": [
+        "database/migrations/0024_v26_to_v27.sql",
+        "reference_scaffold/cafeteria/roles.py"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk /tmp/dishboard-shared-venv/bin/python -B -m pytest reference_scaffold/tests/test_shopping_cost.py -q -p no:cacheprovider",
+          "assertions": [
+            "R2: line_cost(Rohmenge in Basiseinheit der Zutat, Ledgerpreis je Basiseinheit); Gebinde nur Bestellmenge; inkompatible Einheit, fehlender Preis, Freitextartikel und manuelle Zeilen → ohne Kalkulation/unvollständig, nie 0; Gebindepreise nicht in diesem Programm"
+          ],
+          "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT vor READY zu. Keine fremden Pools, kein Schema ohne ROOT-FREEZE."
+        }
+      ],
+      "external_inputs": [],
+      "risk": "HIGH",
+      "effort": "medium",
+      "preferred_lane": "grok-build",
+      "eligible_lanes": [
+        "grok-build",
+        "claude-code",
+        "agy"
+      ],
+      "completion_evidence": [
+        "diff+commit",
+        "reale Gate-Ausgabe",
+        "Nicht gefahrene Gates ausdrücklich nennen"
+      ],
+      "rollback": "Forward-Fix; kein Schema-Downgrade ohne Root-Restore.",
+      "shared_owner_gate": {
+        "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Schema-Fünfergruppe nur im exclusive-writer WP der Welle.",
+        "files": []
+      },
+      "readiness_conditions": [
+        "Alle fachlichen depends_on mit tatsächlichen Freeze-/Gatebelegen erfüllt",
+        "ROOT-FREEZE im Küchenkalender-Ledger bevor Schema geschrieben wird",
+        "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
+      ],
+      "proposed_files": [
+        "reference_scaffold/cafeteria/shopping_cost.py",
+        "reference_scaffold/tests/test_shopping_cost.py"
+      ]
+    },
+    {
+      "id": "MP-ORD-SCHEMA",
+      "title": "Lieferanten- und Korb-DDL Schema 0035",
+      "requirement_ids": [
+        "ORD-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-BAS-SCHEMA27"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "operations-sdd.md#52-datenmodell"
+      ],
+      "source_anchors": [
+        "database/schema.sql:foods"
+      ],
+      "task": "Alleiniger Schreiber der Schema-Fünfergruppe für 0035: suppliers, supplier_articles inklusive pack_size/Bestelleinheit, Korb-DDL, R9-Index. Kein Store-Verhalten.",
+      "acceptance_criteria": [
+        "R9: partieller Unique-Index supplier_articles(location_id, food_id) WHERE preferred AND active AND food_id IS NOT NULL",
+        "R7: Preise, Lieferanten, Artikel masterdata.write mit SECURITY-DEFINER-Writer + master_audit",
+        "R12: Migration mit Backup-Owner Root, Alt-App-Probe und dokumentiertem App-Rollback",
+        "E5 pack_size und Bestelleinheit in supplier_articles",
+        "E7 food_id optional; Artikel ohne Zutat ohne Kalkulation",
+        "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG"
+      ],
+      "contract_files": [
+        "database/schema.sql",
+        "database/permissions.sql",
+        "database/validate_schema.py",
+        "reference_scaffold/cafeteria/db.py",
+        "tools/validate_package.py",
+        "database/migrations/<ROOT_RESERVED_MP-ORD-SCHEMA>.sql",
+        "reference_scaffold/tests/test_ord_schema_migration_db.py",
+        "reference_scaffold/tests/test_database_invariants.py",
+        "reference_scaffold/tests/test_master_data_db.py"
+      ],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/operations-sdd.md"
+      ],
+      "wiring_files": [
+        "database/schema.sql",
+        "database/permissions.sql",
+        "database/validate_schema.py",
+        "reference_scaffold/cafeteria/db.py",
+        "tools/validate_package.py",
+        "reference_scaffold/tests/test_database_invariants.py",
+        "reference_scaffold/tests/test_master_data_db.py"
+      ],
+      "owned_files": [
+        "database/schema.sql",
+        "database/permissions.sql",
+        "database/validate_schema.py",
+        "reference_scaffold/cafeteria/db.py",
+        "tools/validate_package.py",
+        "database/migrations/<ROOT_RESERVED_MP-ORD-SCHEMA>.sql",
+        "reference_scaffold/tests/test_ord_schema_migration_db.py",
+        "reference_scaffold/tests/test_database_invariants.py",
+        "reference_scaffold/tests/test_master_data_db.py",
+        "reference_scaffold/tests/test_ord_schema_migration_db.py"
+      ],
+      "forbidden_paths": [
+        "database/migrations/0024_v26_to_v27.sql",
+        "reference_scaffold/cafeteria/roles.py"
+      ],
+      "migration_group": "root-serialized-after-schema27",
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_ord_schema_migration_db.py",
+          "assertions": [
+            "R9: partieller Unique-Index supplier_articles(location_id, food_id) WHERE preferred AND active AND food_id IS NOT NULL",
+            "R7: Preise, Lieferanten, Artikel masterdata.write mit SECURITY-DEFINER-Writer + master_audit",
+            "R12: Migration mit Backup-Owner Root, Alt-App-Probe und dokumentiertem App-Rollback",
+            "E5 pack_size und Bestelleinheit in supplier_articles",
+            "E7 food_id optional; Artikel ohne Zutat ohne Kalkulation",
+            "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG"
+          ],
+          "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT vor READY zu. Keine fremden Pools, kein Schema ohne ROOT-FREEZE."
+        }
+      ],
+      "external_inputs": [],
+      "risk": "HIGH",
+      "effort": "high",
+      "preferred_lane": "grok-build",
+      "eligible_lanes": [
+        "grok-build",
+        "claude-code",
+        "agy"
+      ],
+      "completion_evidence": [
+        "diff+commit",
+        "reale Gate-Ausgabe",
+        "Nicht gefahrene Gates ausdrücklich nennen"
+      ],
+      "rollback": "Forward-Fix; kein Schema-Downgrade ohne Root-Restore.",
+      "shared_owner_gate": {
+        "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Schema-Fünfergruppe nur im exclusive-writer WP der Welle.",
+        "files": [
+          "database/schema.sql",
+          "database/permissions.sql",
+          "database/validate_schema.py",
+          "reference_scaffold/cafeteria/db.py",
+          "tools/validate_package.py",
+          "reference_scaffold/tests/test_database_invariants.py",
+          "reference_scaffold/tests/test_master_data_db.py"
+        ]
+      },
+      "readiness_conditions": [
+        "Alle fachlichen depends_on mit tatsächlichen Freeze-/Gatebelegen erfüllt",
+        "ROOT-FREEZE im Küchenkalender-Ledger bevor Schema geschrieben wird",
+        "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
+      ],
+      "proposed_files": [
+        "database/schema.sql",
+        "database/permissions.sql",
+        "database/validate_schema.py",
+        "reference_scaffold/cafeteria/db.py",
+        "database/migrations/<ROOT_RESERVED_MP-ORD-SCHEMA>.sql",
+        "reference_scaffold/tests/test_ord_schema_migration_db.py",
+        "reference_scaffold/tests/test_database_invariants.py",
+        "reference_scaffold/tests/test_master_data_db.py",
+        "reference_scaffold/tests/test_ord_schema_migration_db.py"
+      ]
+    },
+    {
+      "id": "MP-INV-SCHEMA",
+      "title": "Bestandsjournal-DDL Schema 0036",
+      "requirement_ids": [
+        "INV-001"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-BAS-FOUNDATIONS"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "operations-sdd.md#42-datenmodell"
+      ],
+      "source_anchors": [
+        "database/schema.sql:food_storage_locations"
+      ],
+      "task": "Alleiniger Schreiber der Schema-Fünfergruppe für 0036: Journal, Umbuchung, Zählung. Kein Store-Verhalten. foods erhält keine Bestandsspalte.",
+      "acceptance_criteria": [
+        "R7: Bestand gemäss operations-sdd.md; keine neue Rolle, roles.py unverändert",
+        "R12: Migration mit Backup-Owner Root, Alt-App-Probe und dokumentiertem App-Rollback",
+        "kein foods.balance; unbekannt ≠ 0",
+        "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG"
+      ],
+      "contract_files": [
+        "database/schema.sql",
+        "database/permissions.sql",
+        "database/validate_schema.py",
+        "reference_scaffold/cafeteria/db.py",
+        "tools/validate_package.py",
+        "database/migrations/<ROOT_RESERVED_MP-INV-SCHEMA>.sql",
+        "reference_scaffold/tests/test_inv_schema_migration_db.py",
+        "reference_scaffold/tests/test_database_invariants.py",
+        "reference_scaffold/tests/test_master_data_db.py"
+      ],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/operations-sdd.md"
+      ],
+      "wiring_files": [
+        "database/schema.sql",
+        "database/permissions.sql",
+        "database/validate_schema.py",
+        "reference_scaffold/cafeteria/db.py",
+        "tools/validate_package.py",
+        "reference_scaffold/tests/test_database_invariants.py",
+        "reference_scaffold/tests/test_master_data_db.py"
+      ],
+      "owned_files": [
+        "database/schema.sql",
+        "database/permissions.sql",
+        "database/validate_schema.py",
+        "reference_scaffold/cafeteria/db.py",
+        "tools/validate_package.py",
+        "database/migrations/<ROOT_RESERVED_MP-INV-SCHEMA>.sql",
+        "reference_scaffold/tests/test_inv_schema_migration_db.py",
+        "reference_scaffold/tests/test_database_invariants.py",
+        "reference_scaffold/tests/test_master_data_db.py",
+        "reference_scaffold/tests/test_inv_schema_migration_db.py"
+      ],
+      "forbidden_paths": [
+        "database/migrations/0024_v26_to_v27.sql",
+        "reference_scaffold/cafeteria/roles.py"
+      ],
+      "migration_group": "root-serialized-after-schema27",
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_inv_schema_migration_db.py",
+          "assertions": [
+            "R7: Bestand gemäss operations-sdd.md; keine neue Rolle, roles.py unverändert",
+            "R12: Migration mit Backup-Owner Root, Alt-App-Probe und dokumentiertem App-Rollback",
+            "kein foods.balance; unbekannt ≠ 0",
+            "alter→neuer Schema-Upgrade, Restore und App-ACL auf echtem PG"
+          ],
+          "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT vor READY zu. Keine fremden Pools, kein Schema ohne ROOT-FREEZE."
+        }
+      ],
+      "external_inputs": [],
+      "risk": "HIGH",
+      "effort": "high",
+      "preferred_lane": "grok-build",
+      "eligible_lanes": [
+        "grok-build",
+        "claude-code",
+        "agy"
+      ],
+      "completion_evidence": [
+        "diff+commit",
+        "reale Gate-Ausgabe",
+        "Nicht gefahrene Gates ausdrücklich nennen"
+      ],
+      "rollback": "Forward-Fix; kein Schema-Downgrade ohne Root-Restore.",
+      "shared_owner_gate": {
+        "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Schema-Fünfergruppe nur im exclusive-writer WP der Welle.",
+        "files": [
+          "database/schema.sql",
+          "database/permissions.sql",
+          "database/validate_schema.py",
+          "reference_scaffold/cafeteria/db.py",
+          "tools/validate_package.py",
+          "reference_scaffold/tests/test_database_invariants.py",
+          "reference_scaffold/tests/test_master_data_db.py"
+        ]
+      },
+      "readiness_conditions": [
+        "Alle fachlichen depends_on mit tatsächlichen Freeze-/Gatebelegen erfüllt",
+        "ROOT-FREEZE im Küchenkalender-Ledger bevor Schema geschrieben wird",
+        "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
+      ],
+      "proposed_files": [
+        "database/schema.sql",
+        "database/permissions.sql",
+        "database/validate_schema.py",
+        "reference_scaffold/cafeteria/db.py",
+        "database/migrations/<ROOT_RESERVED_MP-INV-SCHEMA>.sql",
+        "reference_scaffold/tests/test_inv_schema_migration_db.py",
+        "reference_scaffold/tests/test_database_invariants.py",
+        "reference_scaffold/tests/test_master_data_db.py",
+        "reference_scaffold/tests/test_inv_schema_migration_db.py"
       ]
     }
   ],

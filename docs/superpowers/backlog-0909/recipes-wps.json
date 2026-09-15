@@ -1807,7 +1807,8 @@
         "Der Bericht trennt implementiert, unabhaengig geprueft, integriert, ausgeliefert und fachlich abgenommen",
         "Vierte Kante Menü→Vorlage (menu_items.dish_template_id) über Vorschlagsfluss, Editor, Vorwochenkopie und CSV-Ersatz geprüft; Kopf- und Standbindung getrennt belegt (Nachtrag 13.09., Feature-SDD §9 A9–A15)",
         "Gezielte Übergangstests ändern jeweils Actor/Authz, aktiven Standort, Vorlagen-updated_at (auch Rezept-Neuzuordnung/Archivierung), Zielkoordinaten oder Slotbelegung zwischen Einplanenformular/POST, POST/303/Menü-GET und Menü-GET/Save. Originalwerte/CAS bleiben erhalten; 409 statt stiller Übernahme/Neusignierung, keine Menü-/Vorlagen-/Audit-Teilmutation. Explizites Öffnen des bestehenden Menüs ist eine getrennte Benutzeraktion.",
-        "Unveränderte Altbindung an inzwischen archivierte Vorlage oder Rezeptrevision bei sonstigen Menüänderungen erhalten; neue/Wiederbindungen archivierter Ziele abweisen, explizites Lösen erlauben."
+        "Unveränderte Altbindung an inzwischen archivierte Vorlage oder Rezeptrevision bei sonstigen Menüänderungen erhalten; neue/Wiederbindungen archivierter Ziele abweisen, explizites Lösen erlauben.",
+        "kein Wellentor; MOVEMENT-CORE und Welle 4/5 warten nicht auf dieses WP"
       ],
       "contract_files": [
         ".claude/rec-001-acceptance-0909.md"
@@ -2076,57 +2077,42 @@
         "reference_scaffold/cafeteria/roles.py:ROLE_CAPABILITIES",
         "database/schema.sql:recipes"
       ],
-      "task": "Standortgebundener persistenter Importdraft mit unveränderlicher BatchUUID/Adapter-/Dateihash-/Zeilenursprungsprovenienz und getrennt versionierten bearbeitbaren Kandidaten, Food-/Unitzuordnungen und expliziten Dublettenentscheidungen. Preview/Entscheidungsedit entwertet Originalsignatur. Fileparser bleibt file_import, URL/AI-Adapter behalten ihre Originalquelle. Vorhandene source-Feldlimits übernehmen; echte Route→Store→Formular mit recipe.write/CSRF/Original-Actor/Authz/Site/CAS. Unreviewed/proposed_not_measured/allergen_not_checked als explizite bounded Batchannotation und sichtbare Recipe-source.note erhalten; nicht als unbekannte Top-levelkeys in den strikten recipe_payload einschleusen. Keine automatische fachliche Freigabe aus erfolgreichem Speichern/Freeze.",
+      "task": "Belege zuordnen: vorhandene Import-Batch-Tabellen und Verben (Schema 34) nutzen. Standortgebundener persistenter Importdraft mit unveränderlicher BatchUUID/Adapter-/Dateihash-/Zeilenursprungsprovenienz und getrennt versionierten bearbeitbaren Kandidaten, Food-/Unitzuordnungen und expliziten Dublettenentscheidungen. Preview/Entscheidungsedit entwertet Originalsignatur. Fileparser bleibt file_import, URL/AI-Adapter behalten ihre Originalquelle. Vorhandene source-Feldlimits übernehmen; echte Route→Store→Formular mit recipe.write/CSRF/Original-Actor/Authz/Site/CAS. Unreviewed/proposed_not_measured/allergen_not_checked als explizite bounded Batchannotation und sichtbare Recipe-source.note erhalten; nicht als unbekannte Top-levelkeys in den strikten recipe_payload einschleusen. Keine automatische fachliche Freigabe aus erfolgreichem Speichern/Freeze.",
       "acceptance_criteria": [
         "Quelldokument/hash/Originalrow bleiben bei Kandidatenedit unverändert",
         "neuer Kandidatenhash/Batchversion invalidiert vorherige Bestätigung",
         "unaufgelöste Food-/Unitzeilen können als Import-draft gespeichert werden, keine automatische Rezeptanlage",
         "keine automatische Veröffentlichung/Allergenfreigabe oder source_kind-Umetikettierung",
         "GET no-store und schreibfrei; reales Formular samt Konfliktpfad/NoJS getestet",
-        "Root reserviert echte Folgemigration und schmale Version-/Ledgerfixture-Hunks vor READY; canonical/ACL/Validator/db.py/Packagevalidator gemeinsam",
         "echter Upgrade/Restore/ACL-Test, kein historischer Migrationsrewrite und keine private EXECUTE/App-DML-Freigabe",
         "UI-Master vollständig gelesen; pro geänderter Route1440x900+390x844, pro Seitentyp/shared zusätzlich1024x768+768x1024+1920x1080, tatsächliche Coverage nennen",
         "keyboard/NoJS/200%Zoom/Fontload/Fokus/Overflow/Kontrast; Tabler/Token, min44px und bestehende48px nicht schrumpfen, keine neue Palette/Dependency",
-        "Unreviewed/proposed_not_measured/allergen_not_checked als explizite bounded Batchannotation und sichtbare Recipe-source.note erhalten; nicht als unbekannte Top-levelkeys in den strikten recipe_payload einschleusen. Keine automatische fachliche Freigabe aus erfolgreichem Speichern/Freeze."
+        "Unreviewed/proposed_not_measured/allergen_not_checked als explizite bounded Batchannotation und sichtbare Recipe-source.note erhalten; nicht als unbekannte Top-levelkeys in den strikten recipe_payload einschleusen. Keine automatische fachliche Freigabe aus erfolgreichem Speichern/Freeze.",
+        "Bestehende Import-Batch-Tabellen und Verben wiederverwenden; keine neue Migration"
       ],
       "contract_files": [
-        "database/schema.sql",
-        "database/permissions.sql",
         "reference_scaffold/cafeteria/recipe_import_store.py",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
         "reference_scaffold/cafeteria/admin/recipe_import_routes.py",
         "reference_scaffold/cafeteria/admin/__init__.py",
         "reference_scaffold/cafeteria/templates/admin/rezepte_import.html",
         "reference_scaffold/tests/test_recipe_import_batch_db.py",
         "reference_scaffold/tests/test_recipe_import_routes.py",
-        "reference_scaffold/tests/test_recipe_import_browser.py",
-        "tools/validate_package.py",
-        "database/migrations/<ROOT_RESERVED_MP-REC-IMPORT-BATCH>.sql",
-        "reference_scaffold/tests/test_rec_import_batch_migration_db.py"
+        "reference_scaffold/tests/test_recipe_import_browser.py"
       ],
       "wiring_files": [
-        "reference_scaffold/cafeteria/db.py",
         "reference_scaffold/cafeteria/recipe_import_store.py",
         "reference_scaffold/cafeteria/admin/recipe_import_routes.py",
         "reference_scaffold/cafeteria/admin/__init__.py",
         "reference_scaffold/cafeteria/templates/admin/rezepte_import.html"
       ],
       "owned_files": [
-        "database/schema.sql",
-        "database/permissions.sql",
-        "database/validate_schema.py",
-        "reference_scaffold/cafeteria/db.py",
         "reference_scaffold/cafeteria/recipe_import_store.py",
         "reference_scaffold/cafeteria/admin/recipe_import_routes.py",
         "reference_scaffold/cafeteria/admin/__init__.py",
         "reference_scaffold/cafeteria/templates/admin/rezepte_import.html",
         "reference_scaffold/tests/test_recipe_import_batch_db.py",
         "reference_scaffold/tests/test_recipe_import_routes.py",
-        "reference_scaffold/tests/test_recipe_import_browser.py",
-        "tools/validate_package.py",
-        "database/migrations/<ROOT_RESERVED_MP-REC-IMPORT-BATCH>.sql",
-        "reference_scaffold/tests/test_rec_import_batch_migration_db.py"
+        "reference_scaffold/tests/test_recipe_import_browser.py"
       ],
       "forbidden_paths": [
         "database/migrations/0024_v26_to_v27.sql",
@@ -2134,22 +2120,22 @@
         "reference_scaffold/cafeteria/workflow*.py",
         "reference_scaffold/cafeteria/master_data_*.py"
       ],
-      "migration_group": "root-serialized-after-schema27",
+      "migration_group": null,
       "test_plan": [
         {
           "kind": "postgres",
-          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_recipe_import_batch_db.py tests/test_recipe_import_routes.py tests/test_recipe_import_browser.py tests/test_rec_import_batch_migration_db.py",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_recipe_import_batch_db.py tests/test_recipe_import_routes.py tests/test_recipe_import_browser.py",
           "assertions": [
             "Quelldokument/hash/Originalrow bleiben bei Kandidatenedit unverändert",
             "neuer Kandidatenhash/Batchversion invalidiert vorherige Bestätigung",
             "unaufgelöste Food-/Unitzeilen können als Import-draft gespeichert werden, keine automatische Rezeptanlage",
             "keine automatische Veröffentlichung/Allergenfreigabe oder source_kind-Umetikettierung",
             "GET no-store und schreibfrei; reales Formular samt Konfliktpfad/NoJS getestet",
-            "Root reserviert echte Folgemigration und schmale Version-/Ledgerfixture-Hunks vor READY; canonical/ACL/Validator/db.py/Packagevalidator gemeinsam",
             "echter Upgrade/Restore/ACL-Test, kein historischer Migrationsrewrite und keine private EXECUTE/App-DML-Freigabe",
             "UI-Master vollständig gelesen; pro geänderter Route1440x900+390x844, pro Seitentyp/shared zusätzlich1024x768+768x1024+1920x1080, tatsächliche Coverage nennen",
             "keyboard/NoJS/200%Zoom/Fontload/Fokus/Overflow/Kontrast; Tabler/Token, min44px und bestehende48px nicht schrumpfen, keine neue Palette/Dependency",
-            "Unreviewed/proposed_not_measured/allergen_not_checked als explizite bounded Batchannotation und sichtbare Recipe-source.note erhalten; nicht als unbekannte Top-levelkeys in den strikten recipe_payload einschleusen. Keine automatische fachliche Freigabe aus erfolgreichem Speichern/Freeze."
+            "Unreviewed/proposed_not_measured/allergen_not_checked als explizite bounded Batchannotation und sichtbare Recipe-source.note erhalten; nicht als unbekannte Top-levelkeys in den strikten recipe_payload einschleusen. Keine automatische fachliche Freigabe aus erfolgreichem Speichern/Freeze.",
+            "Bestehende Import-Batch-Tabellen und Verben wiederverwenden; keine neue Migration"
           ],
           "assignment": "NICHT GELAUFEN in diesem Docs-WP; Root ersetzt benannte Wrapper/WT-Platzhalter und ordnet für HTTP/PG/Browser einen exklusiven Pool zu. Reine Tests ohne DB dürfen den vorhandenen python -B -m pytest Runner nutzen."
         }
@@ -2173,71 +2159,6 @@
       "shared_owner_gate": {
         "policy": "Vor READY Root-Lease mit tatsächlichem Vorgängerfreeze-Commit für jeden gemeinsamen Pfad und alle cross-slice SQL/Registry/Workflow/Recipe/Foundations/Print/Mengen-Hunks. Genau ein aktiver Writer; keine fachfremde Featureabhängigkeit als Dateisperre.",
         "files": {
-          "database/schema.sql": [
-            "MP-BAS-SCHEMA27",
-            "MP-REC-IMPORT-BATCH",
-            "MP-REC-IMPORT-COMMIT",
-            "MP-REC-SEARCH-FTS",
-            "MP-REC-SEARCH-TRGM",
-            "MP-REC-SAVED-SEARCH",
-            "MP-REC-BATCH-TAGS",
-            "MP-REC-PLAN-PORTIONS",
-            "MP-REC-SHOPPING-PERSIST",
-            "MP-NUT-SCHEMA",
-            "MP-OFF-PROPOSAL-CONTRACT"
-          ],
-          "database/permissions.sql": [
-            "MP-BAS-SCHEMA27",
-            "MP-REC-IMPORT-BATCH",
-            "MP-REC-IMPORT-COMMIT",
-            "MP-REC-SEARCH-FTS",
-            "MP-REC-SEARCH-TRGM",
-            "MP-REC-SAVED-SEARCH",
-            "MP-REC-BATCH-TAGS",
-            "MP-REC-PLAN-PORTIONS",
-            "MP-REC-SHOPPING-PERSIST",
-            "MP-NUT-SCHEMA",
-            "MP-OFF-PROPOSAL-CONTRACT"
-          ],
-          "database/validate_schema.py": [
-            "MP-BAS-SCHEMA27",
-            "MP-REC-IMPORT-BATCH",
-            "MP-REC-IMPORT-COMMIT",
-            "MP-REC-SEARCH-FTS",
-            "MP-REC-SEARCH-TRGM",
-            "MP-REC-SAVED-SEARCH",
-            "MP-REC-BATCH-TAGS",
-            "MP-REC-PLAN-PORTIONS",
-            "MP-REC-SHOPPING-PERSIST",
-            "MP-NUT-SCHEMA",
-            "MP-OFF-PROPOSAL-CONTRACT"
-          ],
-          "reference_scaffold/cafeteria/db.py": [
-            "MP-BAS-SCHEMA27",
-            "MP-REC-IMPORT-BATCH",
-            "MP-REC-IMPORT-COMMIT",
-            "MP-REC-SEARCH-FTS",
-            "MP-REC-SEARCH-TRGM",
-            "MP-REC-SAVED-SEARCH",
-            "MP-REC-BATCH-TAGS",
-            "MP-REC-PLAN-PORTIONS",
-            "MP-REC-SHOPPING-PERSIST",
-            "MP-NUT-SCHEMA",
-            "MP-OFF-PROPOSAL-CONTRACT"
-          ],
-          "tools/validate_package.py": [
-            "MP-BAS-SCHEMA27",
-            "MP-REC-IMPORT-BATCH",
-            "MP-REC-IMPORT-COMMIT",
-            "MP-REC-SEARCH-FTS",
-            "MP-REC-SEARCH-TRGM",
-            "MP-REC-SAVED-SEARCH",
-            "MP-REC-BATCH-TAGS",
-            "MP-REC-PLAN-PORTIONS",
-            "MP-REC-SHOPPING-PERSIST",
-            "MP-NUT-SCHEMA",
-            "MP-OFF-PROPOSAL-CONTRACT"
-          ],
           "reference_scaffold/cafeteria/admin/__init__.py": [
             "MP-REC-DISH-TEMPLATE-WRITER",
             "MP-REC-IMPORT-BATCH",
@@ -2315,8 +2236,6 @@
         "reference_scaffold/tests/test_recipe_import_batch_db.py",
         "reference_scaffold/tests/test_recipe_import_routes.py",
         "reference_scaffold/tests/test_recipe_import_browser.py",
-        "database/migrations/<ROOT_RESERVED_MP-REC-IMPORT-BATCH>.sql",
-        "reference_scaffold/tests/test_rec_import_batch_migration_db.py",
         "docs/design/2026-09-09-unified-ui-design-system.md"
       ],
       "existing_fixture_hunks": [
@@ -5137,7 +5056,7 @@
         "REC-007"
       ],
       "kind": "implementation",
-      "status": "INTEGRATED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-REC-SHOPPING-PERSIST",
         "MP-REC-PDF-RELEASE"
@@ -5234,6 +5153,7 @@
         "grok-build"
       ],
       "completion_evidence": [
+        "live e0da7ab74ec5c0d5b9bc751cb3a09c2633e530f4 schema 34 shopping list PDF (e0da7ab)",
         "diff+commit",
         "geoeffnetes PDF",
         "reale Gate-Ausgabe",
@@ -9763,6 +9683,133 @@
         "registry_base": "4711c22075383126d2af90ecaa85184ed53589eb"
       },
       "previous_user_model": "gpt-5.3-codex-spark"
+    },
+    {
+      "id": "MP-REC-SHOPPING-PERIOD",
+      "title": "Zeitraum-Einkaufsliste und Periode-API",
+      "requirement_ids": [
+        "REC-003"
+      ],
+      "kind": "implementation",
+      "status": "PLANNED",
+      "depends_on": [
+        "MP-REC-SHOPPING-PERSIST"
+      ],
+      "existing_wp_id": null,
+      "sdd_sections": [
+        "recipes-sdd.md#84-rec-003-planung-und-einkauf"
+      ],
+      "source_anchors": [
+        "reference_scaffold/cafeteria/shopping_list_reads.py"
+      ],
+      "task": "candidate_components auf date_from/date_to einfrieren. Zeitraum-Einkaufsliste über denselben Store. Event-Union später nur additiv.",
+      "acceptance_criteria": [
+        "R5: candidate_components(engine, scope, *, date_from, date_to) in diesem WP eingefroren; spätere Erweiterungen nur additiv",
+        "R6: Kalender-heute, Zeitraumgrenzen und Preisstichtag aus derselben Quelle effective_today()/Europe/Zurich; Standortfilter implizit"
+      ],
+      "contract_files": [
+        "reference_scaffold/cafeteria/shopping_list_reads.py",
+        "reference_scaffold/cafeteria/shopping_list_store.py",
+        "reference_scaffold/tests/test_shopping_list_period_db.py"
+      ],
+      "read_only_contract_files": [
+        "docs/superpowers/backlog-0909/recipes-sdd.md",
+        "docs/design/2026-09-09-unified-ui-design-system.md",
+        "docs/superpowers/backlog-0909/ui-route-matrix.json",
+        "docs/design/2026-09-09-unified-ui-design-system.md"
+      ],
+      "wiring_files": [
+        "reference_scaffold/cafeteria/shopping_list_reads.py",
+        "reference_scaffold/cafeteria/shopping_list_store.py"
+      ],
+      "owned_files": [
+        "reference_scaffold/cafeteria/shopping_list_reads.py",
+        "reference_scaffold/cafeteria/shopping_list_store.py",
+        "reference_scaffold/tests/test_shopping_list_period_db.py"
+      ],
+      "forbidden_paths": [
+        "database/migrations/0024_v26_to_v27.sql",
+        "reference_scaffold/cafeteria/roles.py"
+      ],
+      "migration_group": null,
+      "test_plan": [
+        {
+          "kind": "postgres",
+          "command": "rtk <ROOT_ASSIGNED_GATE> <OWN_WORKTREE> -q -p no:cacheprovider tests/test_shopping_list_period_db.py",
+          "assertions": [
+            "R5: candidate_components(engine, scope, *, date_from, date_to) in diesem WP eingefroren; spätere Erweiterungen nur additiv",
+            "R6: Kalender-heute, Zeitraumgrenzen und Preisstichtag aus derselben Quelle effective_today()/Europe/Zurich; Standortfilter implizit"
+          ],
+          "assignment": "NICHT GELAUFEN. Root weist Wrapper/WT vor READY zu. Keine fremden Pools, kein Schema ohne ROOT-FREEZE."
+        }
+      ],
+      "external_inputs": [],
+      "risk": "HIGH",
+      "effort": "medium",
+      "preferred_lane": "grok-build",
+      "eligible_lanes": [
+        "grok-build",
+        "claude-code",
+        "agy"
+      ],
+      "completion_evidence": [
+        "diff+commit",
+        "reale Gate-Ausgabe",
+        "Nicht gefahrene Gates ausdrücklich nennen"
+      ],
+      "rollback": "Forward-Fix; kein Schema-Downgrade ohne Root-Restore.",
+      "shared_owner_gate": {
+        "policy": "Vor READY Root-Lease für jeden gemeinsamen Pfad, tatsächlichen Vorgängerfreeze samt Commit eintragen, danach nur ein aktiver Writer. Schema-Fünfergruppe nur im exclusive-writer WP der Welle.",
+        "files": []
+      },
+      "readiness_conditions": [
+        "Alle fachlichen depends_on mit tatsächlichen Freeze-/Gatebelegen erfüllt",
+        "ROOT-FREEZE im Küchenkalender-Ledger bevor Schema geschrieben wird",
+        "Kein Test dieses Plans gilt ohne tatsächlichen späteren Lauf als PASS"
+      ],
+      "proposed_files": [
+        "reference_scaffold/cafeteria/shopping_list_reads.py",
+        "reference_scaffold/cafeteria/shopping_list_store.py",
+        "reference_scaffold/tests/test_shopping_list_period_db.py"
+      ],
+      "ui_contract": {
+        "path": "docs/design/2026-09-09-unified-ui-design-system.md",
+        "owner": "Root / sdd-backlog-root-0909",
+        "scope": "read-only prerequisite, Root integrates master and AGENTS/CLAUDE",
+        "layout_variant": "calendar",
+        "route_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            390,
+            844
+          ]
+        ],
+        "representative_and_shared_viewports": [
+          [
+            1440,
+            900
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            1920,
+            1080
+          ]
+        ]
+      }
     }
   ],
   "shared_owner_groups": {
