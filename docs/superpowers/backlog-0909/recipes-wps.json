@@ -4949,7 +4949,7 @@
         "review": "SP-SCHEMA: /nvmetank1/projects/rag-stack/.claude/reports/wp-sp-schema-0914-review.md FINDINGS(14: 5×P2) → Nachprüfung 0×P2, 4×P3 offen (/nvmetank1/projects/rag-stack/.claude/reports/wp-sp-schema-0914-fix.md); SP-STORE: /nvmetank1/projects/rag-stack/.claude/reports/wp-sp-store-0914-review.md FINDINGS(2×P1, P2) → Nachprüfung CLEAN / SECURITY PASSED (/nvmetank1/projects/rag-stack/.claude/reports/wp-sp-store-0914-fix.md); SP-UI: /nvmetank1/projects/rag-stack/.claude/reports/wp-sp-ui-0914-review.md FINDINGS(3×P2, 3×P3) → Nachprüfung CLEAN (/nvmetank1/projects/rag-stack/.claude/reports/wp-sp-ui-0914-fix.md)",
         "status_correction": "PLANNED → DEPLOYED; 47428b7 ist deployed und belegt gemäss Deploy-Bericht (Schema 34, Cutover abgeschlossen)",
         "open_items": [
-          "Live-Validator ohne Trigger-Aktiv/Spaltenrechte",
+          "erledigt 15.9. (4d962af, 0d80774; Root-Gate api-int 280 passed): Live-Check prüft Spalten-ACL der Einkaufslisten-Tabellen und tgenabled aller Trigger im Schema cafeteria",
           "menu_week_id-Standort nur im Store",
           "Demo-Reseed in Dev blockiert durch unveränderliche Revisionen",
           "Tabellensperre serialisiert Neuberechnungen",

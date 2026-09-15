@@ -30,7 +30,7 @@ Planung bedeutet keine Fertigmeldung der Umsetzung oder Abnahme.
 
 ## Nachtrag — 15. September 2026: Einkaufslisten
 
-Status korrigiert: `MP-REC-SHOPPING-PERSIST` ist über Schema 34 (`47428b7`) live. Einkaufslisten mit manuellen Zeilen, Abhakstatus und historischen Belegen sind implementiert. Offen bleiben P3-Live-Validator, Demo-Reseed und PDF-Druck.
+Status korrigiert: `MP-REC-SHOPPING-PERSIST` ist über Schema 34 (`47428b7`) live. Einkaufslisten mit manuellen Zeilen, Abhakstatus und historischen Belegen sind implementiert. Offen bleiben Demo-Reseed und PDF-Druck; der P3-Live-Validator (deaktivierte Trigger, Spaltenrechte) ist seit 15.9. behoben.
 
 ## Nachtrag — 14. September 2026: REC-008 Menübeilage Suppe oder Salat
 
