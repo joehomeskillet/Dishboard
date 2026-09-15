@@ -5151,7 +5151,7 @@
         "root_gate": "bindings26: test_shopping_list_pdf_http/routes/db/pdf/browser + test_rec_shopping_persist_migration_db → 95 passed, GATE_EXIT=0; UIother: test_ui_route_inventory/test_ui_inventory_capture/test_recipe_pdf(_http)/test_week_pdf*/test_print_template_pdf/test_print_branding_pdf → 326 passed, GATE_EXIT=0",
         "ui_inventory": "admin.shopping_list_pdf (download, nicht visuell) ergänzt; einkaufsliste.html-Hash aktualisiert",
         "open_items": [
-          "Auslieferung wartet auf formale authentifizierte Live-Abnahme MP-REC-PDF-RELEASE (Nutzerfreigabe offen)",
+          "Nutzervorgabe 15.9. «einkauflisten sollen ausdruckbar sein» → Auslieferung ohne formale authentifizierte Live-Abnahme MP-REC-PDF-RELEASE; diese Abnahme bleibt offen",
           "keine Kategorie-/Lagerortgruppierung (Snapshot ohne Kategorie, D5)",
           "Screenshot-Promotion/visuelle Abnahme des Drucklinks nur Worker-Evidenz"
         ]
