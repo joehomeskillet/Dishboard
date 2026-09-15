@@ -873,3 +873,25 @@ def test_validate_schema_live_guard_clean_state_is_empty(installed_pg16):  # noq
     """Ohne Manipulation meldet die Live-Prüfung für Trigger/ACL der Schema-34-Tabellen keine Abweichung."""
     with installed_pg16.connect() as connection:
         assert validate_schema.shopping_live_guard_mismatches(connection) == []
+
+
+def test_validate_schema_disabled_trigger_flags_recipe_revisions_immutable(installed_pg16):  # noqa: F811
+    """Ein deaktivierter Schutz-Trigger muss live als Fehler mit Triggername gemeldet werden."""
+    table, trigger = 'recipe_revisions', 'recipe_revisions_immutable'
+    with installed_pg16.begin() as connection:
+        connection.execute(text(f'ALTER TABLE cafeteria.{table} DISABLE TRIGGER {trigger}'))
+    try:
+        with installed_pg16.connect() as connection:
+            mismatches = validate_schema.disabled_trigger_mismatches(connection)
+        assert any(item['object'] == f'trigger_enabled:{table}.{trigger}' for item in mismatches), mismatches
+    finally:
+        with installed_pg16.begin() as connection:
+            connection.execute(text(f'ALTER TABLE cafeteria.{table} ENABLE TRIGGER {trigger}'))
+    with installed_pg16.connect() as connection:
+        assert validate_schema.disabled_trigger_mismatches(connection) == []
+
+
+def test_validate_schema_disabled_trigger_clean_state_is_empty(installed_pg16):  # noqa: F811
+    """Ohne Manipulation meldet die Live-Prüfung für alle Schutz-Trigger keine Abweichung."""
+    with installed_pg16.connect() as connection:
+        assert validate_schema.disabled_trigger_mismatches(connection) == []

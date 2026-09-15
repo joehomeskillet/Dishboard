@@ -373,6 +373,39 @@ def shopping_live_guard_mismatches(connection: Any) -> list[dict[str, object]]:
     return mismatches
 
 
+def disabled_trigger_mismatches(connection: Any) -> list[dict[str, object]]:
+    """Live-Abweichungen: nicht-interne Trigger im Schema cafeteria mit tgenabled <> 'O'.
+
+    Shopping-Trigger werden von shopping_live_guard_mismatches separat geprüft
+    (inkl. fehlender Trigger); hier nur die übrigen Schutz-Trigger.
+    """
+    from sqlalchemy import text
+
+    mismatches: list[dict[str, object]] = []
+    disabled = connection.execute(
+        text(
+            '''
+            SELECT rel.relname, trg.tgname, trg.tgenabled
+            FROM pg_trigger trg
+            JOIN pg_class rel ON rel.oid=trg.tgrelid
+            WHERE NOT trg.tgisinternal
+              AND rel.relnamespace='cafeteria'::regnamespace
+              AND trg.tgenabled <> 'O'
+              AND trg.tgname <> ALL(:shopping_triggers)
+            ORDER BY rel.relname, trg.tgname
+            '''
+        ),
+        {'shopping_triggers': list(SHOPPING_TRIGGERS)},
+    ).tuples().all()
+    for table, name, tgenabled in disabled:
+        mismatches.append({
+            'object': f'trigger_enabled:{table}.{name}',
+            'actual': tgenabled,
+            'expected': 'O',
+        })
+    return mismatches
+
+
 def normalize_sql(value: str) -> str:
     """Whitespace-Läufe zu einem Leerzeichen, keine Leerzeichen an Klammern und Kommas."""
     return re.sub(r' ?([(),]) ?', r'\1', ' '.join(value.split()))
@@ -818,6 +851,7 @@ def run_live_check() -> dict[str, Any]:
                 )
             ).tuples().all()
             shopping_guard_mismatches = shopping_live_guard_mismatches(connection)
+            disabled_guard_mismatches = disabled_trigger_mismatches(connection)
         if int(row['schema_version']) != 34:
             fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 34.")
         if int(row['revision_fn_count']) != 1:
@@ -982,6 +1016,9 @@ def run_live_check() -> dict[str, Any]:
         if shopping_mismatches:
             fail('Live-Einkaufslistenvertrag v34 ist ungültig: '
                  + json.dumps(shopping_mismatches, ensure_ascii=False, default=str))
+        if disabled_guard_mismatches:
+            fail('Live-Schutz-Trigger sind deaktiviert: '
+                 + json.dumps(disabled_guard_mismatches, ensure_ascii=False, default=str))
         migrated_structure = structure('cafeteria')
         with engine.begin() as connection:
             connection.execute(text('ALTER SCHEMA cafeteria RENAME TO cafeteria_migrated_contract'))
