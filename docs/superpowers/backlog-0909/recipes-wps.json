@@ -5112,12 +5112,25 @@
         "REC-007"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "INTEGRATED",
       "depends_on": [
         "MP-REC-SHOPPING-PERSIST",
         "MP-REC-PDF-RELEASE"
       ],
       "existing_wp_id": null,
+      "integration_2026_09_15": {
+        "branch": "integrate/acc-release-0914 (auf Livestand 8ab614c, nicht gepusht)",
+        "freeze": ".claude/state/opus5-0913/brief-shopping-pdf-common.md (D1 Rezeptvorlage wiederverwenden, D2 Link nur Detailseite, D3 ?revision=, D4 kein Abhakstatus, D5 flache Liste, D9 HTTP)",
+        "commits": "SPDF-RENDER fb198ae (Sonnet), Fix b2a8baa (Cursor composer-2.5), Root-Test abda9bc; SPDF-ROUTE 1c3a720 (Sonnet), Fix 692450d (Cursor composer-2.5); Baseline-Test 8532368 (Sonnet)",
+        "reviews": "AGY wp-spdf-render-0915-review.md FINDINGS(4) → behoben; AGY wp-spdf-route-0915-review.md: no-store-P1 widerlegt (admin after_request), 422/503-Tests + abort ergänzt",
+        "root_gate": "bindings26: test_shopping_list_pdf_http/routes/db/pdf/browser + test_rec_shopping_persist_migration_db → 95 passed, GATE_EXIT=0; UIother: test_ui_route_inventory/test_ui_inventory_capture/test_recipe_pdf(_http)/test_week_pdf*/test_print_template_pdf/test_print_branding_pdf → 326 passed, GATE_EXIT=0",
+        "ui_inventory": "admin.shopping_list_pdf (download, nicht visuell) ergänzt; einkaufsliste.html-Hash aktualisiert",
+        "open_items": [
+          "Auslieferung wartet auf formale authentifizierte Live-Abnahme MP-REC-PDF-RELEASE (Nutzerfreigabe offen)",
+          "keine Kategorie-/Lagerortgruppierung (Snapshot ohne Kategorie, D5)",
+          "Screenshot-Promotion/visuelle Abnahme des Drucklinks nur Worker-Evidenz"
+        ]
+      },
       "sdd_sections": [
         "recipes-sdd.md#84-rec-003-planung-und-einkauf",
         "recipes-sdd.md#88-rec-007-rezeptdruck-und-layout"
