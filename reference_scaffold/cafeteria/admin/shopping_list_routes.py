@@ -3,7 +3,10 @@
 Every request builds a fresh ``ShoppingScope`` from the original request actor
 (``g.auth_user``, set by ``require_capability``) and the currently active location;
 all reads/writes go through ``shopping_list_store`` so authz/location/CAS checks
-happen exactly once, in the store. GET never writes.
+happen exactly once, in the store. GET never writes. Result lines render only the
+names captured in the revision snapshot (no per-line lookup); ``?revision=`` shows an
+older receipt read-only. A validation error with a known ``field`` is marked at that
+field and linked from the summary; submitted values are kept.
 """
 from __future__ import annotations
 
@@ -16,8 +19,7 @@ from werkzeug.wrappers import Response
 
 from .. import shopping_list_store as store
 from ..component_catalog_store import ComponentCatalogConfigurationError
-from ..master_data_reads import get_food, list_units
-from ..master_data_types import MasterDataNotFoundError
+from ..master_data_reads import list_units
 from ..recipe_reads import get_location
 from ..roles import capabilities, require_capability
 from ..security import validate_csrf
@@ -26,6 +28,11 @@ from .routes import bp
 
 POLICIES = (('leaf', 'Blattbedarf (Standard)'), ('prepared', 'Vorbereiteter Bedarf'))
 _PROFILE_LABELS = {'patient': 'Patienten', 'staff_guest': 'Cafeteria'}
+_CREATE_IDS = {'title': 'title', 'note': 'note', 'menu_week_public_id': 'menu_week_public_id'}
+_COMPUTE_IDS = {'component_ids': 'component_ids', 'policy': 'policy'}
+_NEW_ITEM_IDS = {'item_text': 'new-item-text', 'quantity': 'new-item-qty', 'unit_code': 'new-item-unit'}
+_ITEM_PREFIXES = {'item_text': 'item-text', 'quantity': 'item-qty', 'unit_code': 'item-unit'}
+_ITEM_FIELDS = ('item_text', 'quantity', 'unit_code')
 
 
 def _db():
@@ -66,6 +73,22 @@ def _bail(error: store.ShoppingListError) -> NoReturn:
     abort(_status_for(error), description=str(error))
 
 
+def _errors(error: store.ShoppingListError | None, element_ids: Mapping[str, str]) -> tuple[dict[str, str], object]:
+    """Field messages for the form macros and the summary: a link to the field only when that field is rendered."""
+    if error is None:
+        return {}, None
+    field = error.field
+    if field is not None and field in element_ids:
+        return {field: str(error)}, {element_ids[field]: str(error)}
+    return {}, str(error)
+
+
+def _no_store(html: str, status: int) -> Response:
+    response = make_response(html, status)
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
 def _row_version(raw: str) -> int:
     try:
         value = int(raw)
@@ -102,20 +125,6 @@ def _grouped_candidates(rows: tuple[Mapping[str, object], ...]) -> list[dict[str
     return groups
 
 
-def _food_names(lines: tuple[Mapping[str, object], ...], incomplete: tuple[Mapping[str, object], ...]) -> dict[str, str]:
-    """Display names for result lines; the store snapshot only carries the food's public_id."""
-    cache: dict[str, str] = {}
-    for line in (*lines, *incomplete):
-        food_public_id = line.get('food_public_id')
-        if not food_public_id or food_public_id in cache:
-            continue
-        try:
-            cache[food_public_id] = get_food(_db(), food_public_id).name
-        except MasterDataNotFoundError:
-            pass
-    return cache
-
-
 def _list_page(*, values=None, error=None, status=200, include_archived=False):
     scope = _scope()
     try:
@@ -123,16 +132,14 @@ def _list_page(*, values=None, error=None, status=200, include_archived=False):
     except store.ShoppingListError as caught:
         _bail(caught)
     weeks = _weeks(scope.location_id)
-    week_labels = {week['public_id']: week['label'] for week in weeks}
+    field_errors, summary = _errors(error, _CREATE_IDS)
     html = render_template(
         'admin/einkaufslisten.html', family='cafeteria', profile='staff_guest',
-        rows=rows, weeks=weeks, week_labels=week_labels,
+        rows=rows, weeks=weeks, week_labels={week['public_id']: week['label'] for week in weeks},
         values=values if values is not None else {'title': '', 'note': '', 'menu_week_public_id': ''},
-        error=error, can_write=_can_write(), include_archived=include_archived,
+        field_errors=field_errors, summary=summary, can_write=_can_write(), include_archived=include_archived,
     )
-    response = make_response(html, status)
-    response.headers['Cache-Control'] = 'no-store'
-    return response
+    return _no_store(html, status)
 
 
 @bp.get('/einkaufslisten')
@@ -156,7 +163,7 @@ def shopping_lists_create() -> Response:
     except store.ShoppingListError as error:
         status = _status_for(error)
         if status in (400, 409):
-            return _list_page(values=values, error=str(error), status=status)
+            return _list_page(values=values, error=error, status=status)
         _bail(error)
     return redirect(url_for('admin.shopping_list_detail', public_id=public_id), 303)
 
@@ -172,60 +179,61 @@ def shopping_list_archive(public_id: str) -> Response:
     except store.ShoppingListError as error:
         status = _status_for(error)
         if status in (400, 409):
-            return _list_page(error=str(error), status=status)
+            return _list_page(error=error, status=status)
         _bail(error)
     return redirect(url_for('admin.shopping_lists_index'), 303)
 
 
 def _detail_page(
-    public_id: str, *, error=None, status=200, compute_week=None, selected_components=None,
-    policy='leaf', manual_error=None, manual_values=None, viewed_revision_public_id=None,
+    public_id: str, *, error: store.ShoppingListError | None = None, status: int = 200, form: str | None = None,
+    values: Mapping[str, str] | None = None, item_public_id: str | None = None, compute_week: str | None = None,
+    selected_components=None, policy: str = 'leaf', revision: str | None = None,
 ):
+    """``form`` names the posted form (``compute``, ``new_item`` or ``item``) whose fields carry the error and ``values``."""
     scope = _scope()
     try:
-        detail = store.get_shopping_list(_db(), scope, public_id)
+        detail = store.get_shopping_list(_db(), scope, public_id, revision_public_id=revision)
     except store.ShoppingListError as caught:
         _bail(caught)
+    selected = detail['selected_revision']
+    is_latest_view = selected is None or selected['is_latest']
+    can_write = _can_write()
     weeks = _weeks(scope.location_id)
-    week_labels = {week['public_id']: week['label'] for week in weeks}
-    revisions = detail['revisions']
-    latest_public_id = revisions[0]['public_id'] if revisions else None
-    viewed = next((rev for rev in revisions if rev['public_id'] == viewed_revision_public_id), None) \
-        if viewed_revision_public_id else None
-    is_latest_view = viewed is None or viewed['public_id'] == latest_public_id
-    current_number = viewed['revision_number'] if viewed else (revisions[0]['revision_number'] if revisions else 0)
     week_public_id = compute_week if compute_week is not None else (detail['menu_week_public_id'] or '')
     candidates: tuple[Mapping[str, object], ...] = ()
-    if week_public_id and is_latest_view:
+    if week_public_id and is_latest_view and can_write and not detail['archived_at']:
         try:
             candidates = store.candidate_components(_db(), scope, menu_week_public_id=week_public_id)
         except store.ShoppingListError:
             candidates = ()
-    food_names: dict[str, str] = {}
-    if detail['selected_revision']:
-        food_names = _food_names(detail['selected_revision']['lines'], detail['selected_revision']['incomplete_lines'])
+    element_ids: Mapping[str, str] = {}
+    if form == 'compute' and candidates:
+        element_ids = _COMPUTE_IDS
+    elif form == 'new_item':
+        element_ids = _NEW_ITEM_IDS
+    elif form == 'item' and any(item['public_id'] == item_public_id for item in detail['manual_items']):
+        element_ids = {field: f'{prefix}-{item_public_id}' for field, prefix in _ITEM_PREFIXES.items()}
+    field_errors, summary = _errors(error, element_ids)
+    units = list_units(_db(), limit=500)
+    blank = dict.fromkeys(_ITEM_FIELDS, '')
     html = render_template(
         'admin/einkaufsliste.html', family='cafeteria', profile='staff_guest', day_names=DAY_NAMES,
-        detail=detail, weeks=weeks, week_labels=week_labels, food_names=food_names,
+        detail=detail, selected=selected, weeks=weeks, week_labels={week['public_id']: week['label'] for week in weeks},
         candidates=_grouped_candidates(candidates), week_public_id=week_public_id, policies=POLICIES,
-        policy=policy, selected_components=selected_components or set(), can_write=_can_write(),
-        error=error, manual_error=manual_error,
-        manual_values=manual_values or {'item_text': '', 'quantity': '', 'unit_code': ''},
-        revision_count=len(revisions), current_number=current_number, viewed_revision=viewed,
-        viewed_public_id=viewed['public_id'] if viewed else latest_public_id, is_latest_view=is_latest_view,
-        units=list_units(_db(), limit=500),
+        policy=policy, selected_components=selected_components or set(), can_write=can_write,
+        is_latest_view=is_latest_view, summary=summary, field_errors=field_errors, error_form=form,
+        new_item_values=values if form == 'new_item' and values else blank,
+        item_values=values if form == 'item' else None, error_item=item_public_id if form == 'item' else None,
+        units=units, unit_names={unit.code: unit.display_name for unit in units},
     )
-    response = make_response(html, status)
-    response.headers['Cache-Control'] = 'no-store'
-    return response
+    return _no_store(html, status)
 
 
 @bp.get('/einkaufslisten/<public_id>')
 @require_capability('draft.read')
 def shopping_list_detail(public_id: str) -> Response:
     return _detail_page(
-        public_id, compute_week=request.args.get('compute_week'),
-        viewed_revision_public_id=request.args.get('revision'),
+        public_id, compute_week=request.args.get('compute_week'), revision=request.args.get('revision') or None,
     )
 
 
@@ -246,9 +254,9 @@ def shopping_list_compute(public_id: str) -> Response:
         status = _status_for(error)
         if status == 400:
             return _detail_page(public_id, compute_week=week, selected_components=set(component_ids),
-                                policy=policy, error=str(error), status=400)
+                                policy=policy, error=error, form='compute', status=400)
         if status == 409:
-            return _detail_page(public_id, compute_week=week, error=str(error), status=409)
+            return _detail_page(public_id, compute_week=week, error=error, status=409)
         _bail(error)
     return redirect(url_for('admin.shopping_list_detail', public_id=public_id), 303)
 
@@ -266,9 +274,13 @@ def shopping_list_line_toggle(public_id: str) -> Response:
     except store.ShoppingListError as error:
         status = _status_for(error)
         if status in (400, 404, 409):
-            return _detail_page(public_id, error=str(error), status=status)
+            return _detail_page(public_id, error=error, status=status)
         _bail(error)
     return redirect(url_for('admin.shopping_list_detail', public_id=public_id), 303)
+
+
+def _item_values() -> dict[str, str]:
+    return {field: request.form.get(field, '') for field in _ITEM_FIELDS}
 
 
 @bp.post('/einkaufslisten/<public_id>/positionen')
@@ -276,8 +288,7 @@ def shopping_list_line_toggle(public_id: str) -> Response:
 def shopping_list_manual_create(public_id: str) -> Response:
     validate_csrf(request.form.get('_csrf'))
     scope = _scope()
-    values = {'item_text': request.form.get('item_text', ''), 'quantity': request.form.get('quantity', ''),
-              'unit_code': request.form.get('unit_code', '')}
+    values = _item_values()
     try:
         store.add_manual_item(
             _db(), scope, public_id, item_text=values['item_text'],
@@ -286,7 +297,7 @@ def shopping_list_manual_create(public_id: str) -> Response:
     except store.ShoppingListError as error:
         status = _status_for(error)
         if status in (400, 409):
-            return _detail_page(public_id, manual_error=str(error), manual_values=values, status=status)
+            return _detail_page(public_id, error=error, form='new_item', values=values, status=status)
         _bail(error)
     return redirect(url_for('admin.shopping_list_detail', public_id=public_id), 303)
 
@@ -297,17 +308,16 @@ def shopping_list_manual_update(public_id: str, item_public_id: str) -> Response
     validate_csrf(request.form.get('_csrf'))
     scope = _scope()
     action = request.form.get('action', 'save')
-    values = {'item_text': request.form.get('item_text', ''), 'quantity': request.form.get('quantity', ''),
-              'unit_code': request.form.get('unit_code', '')}
+    values = _item_values()
     try:
+        expected = _row_version(request.form.get('expected_row_version', ''))
         if action == 'delete':
-            store.delete_manual_item(_db(), scope, public_id, item_public_id)
-        elif action == 'check':
-            store.set_manual_item_checked(_db(), scope, public_id, item_public_id, checked=True)
-        elif action == 'uncheck':
-            store.set_manual_item_checked(_db(), scope, public_id, item_public_id, checked=False)
+            store.delete_manual_item(_db(), scope, public_id, item_public_id, expected_row_version=expected)
+        elif action in ('check', 'uncheck'):
+            store.set_manual_item_checked(
+                _db(), scope, public_id, item_public_id, expected_row_version=expected, checked=action == 'check',
+            )
         else:
-            expected = _row_version(request.form.get('expected_row_version', ''))
             store.update_manual_item(
                 _db(), scope, public_id, item_public_id, expected_row_version=expected,
                 item_text=values['item_text'], quantity=values['quantity'] or None,
@@ -315,7 +325,9 @@ def shopping_list_manual_update(public_id: str, item_public_id: str) -> Response
             )
     except store.ShoppingListError as error:
         status = _status_for(error)
-        if status in (400, 409):
-            return _detail_page(public_id, error=str(error), status=status)
+        if status == 400 and action == 'save':
+            return _detail_page(public_id, error=error, form='item', values=values, item_public_id=item_public_id, status=400)
+        if status in (400, 409):  # a conflict reloads the current item state; nothing submitted is re-shown
+            return _detail_page(public_id, error=error, status=status)
         _bail(error)
     return redirect(url_for('admin.shopping_list_detail', public_id=public_id), 303)

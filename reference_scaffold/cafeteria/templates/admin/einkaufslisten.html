@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, field, textarea, form_errors, empty_state %}
+{% from 'admin/_macros.html' import page_header, icon, field, select, textarea, form_errors, empty_state %}
 {% set workflow_nav = 'shopping_lists' %}
 {% block title %}Einkaufslisten · Menüplanung{% endblock %}
 {% block page_header %}
@@ -8,7 +8,7 @@
 {% endcall %}
 {% endblock %}
 {% block content %}
-{% if error %}{{ form_errors(error) }}{% endif %}
+{% if summary %}{{ form_errors(summary) }}{% endif %}
 <form class="mb-3 d-flex flex-wrap gap-2 align-items-center" method="get" action="{{ url_for('admin.shopping_lists_index') }}">
   <label class="form-check mb-0">
     <input class="form-check-input" type="checkbox" name="archived" value="1"{% if include_archived %} checked{% endif %}>
@@ -69,17 +69,12 @@
   <div class="card-header"><h2 class="card-title" id="einkaufsliste-neu-title">Neue Einkaufsliste</h2></div>
   <form class="card-body" method="post" action="{{ url_for('admin.shopping_lists_create') }}">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-    <div class="mb-3">{{ field('title', 'Titel', values.title, required=true) }}</div>
-    <div class="mb-3">{{ textarea('note', 'Notiz', values.note, required=false, hint='Optional', rows=2) }}</div>
+    <div class="mb-3">{{ field('title', 'Titel', values.title, required=true, error=field_errors.get('title')) }}</div>
+    <div class="mb-3">{{ textarea('note', 'Notiz', values.note, required=false, hint='Optional', rows=2, error=field_errors.get('note')) }}</div>
     <div class="mb-3">
-      <label class="form-label" for="menu_week_public_id">Woche <span class="text-secondary">(optional)</span></label>
-      <select class="form-select" id="menu_week_public_id" name="menu_week_public_id">
-        <option value="">Keine Woche</option>
-        {% for week in weeks %}
-        <option value="{{ week.public_id }}"{% if values.menu_week_public_id == week.public_id %} selected{% endif %}>{{ week.label }}</option>
-        {% endfor %}
-      </select>
-      <div class="form-hint">Bestimmt die vorgeschlagenen Bausteine bei «Neu berechnen»; kann leer bleiben.</div>
+      {% call select('menu_week_public_id', 'Woche (optional)', value=values.menu_week_public_id, placeholder='Keine Woche', error=field_errors.get('menu_week_public_id'), hint='Bestimmt die vorgeschlagenen Bausteine bei «Neu berechnen»; kann leer bleiben.') %}
+      {% for week in weeks %}<option value="{{ week.public_id }}"{% if values.menu_week_public_id == week.public_id %} selected{% endif %}>{{ week.label }}</option>{% endfor %}
+      {% endcall %}
     </div>
     <button class="btn btn-primary" type="submit">{{ icon('device-floppy') }}Einkaufsliste anlegen</button>
   </form>

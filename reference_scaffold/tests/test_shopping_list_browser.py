@@ -15,6 +15,7 @@ from sqlalchemy import text
 from werkzeug.serving import make_server
 
 import cafeteria
+from cafeteria.shopping_list_store import add_manual_item, compute_revision, create_shopping_list
 from test_rendered_ui import browser  # noqa: F401
 from test_shopping_list_db import (  # noqa: F401
     _bound_component, _ingredient, _item_public, _scope, app_engine, create_food,
@@ -83,10 +84,23 @@ def _select_and_submit(page, selector, value, *, submit_label):
 
 
 EVIDENCE.mkdir(parents=True, exist_ok=True)
+# Rendered controls below the 48px target of the page contract (hidden elements have no client rects).
+SMALL_TARGETS = '''() => [...document.querySelectorAll('main :is(a.btn, button, input:not([type=hidden], .form-check-input), select, textarea, .form-check, summary)')]
+    .filter(element => element.getClientRects().length && element.getBoundingClientRect().height < 48)
+    .map(element => `${element.getBoundingClientRect().height}px ${element.outerHTML.slice(0, 100)}`)'''
+# Selects whose selected option text does not fit between the padding (left text, right arrow).
+CLIPPED_SELECTS = '''() => [...document.querySelectorAll('main select')].filter(select => select.getClientRects().length).filter(select => {
+    const style = getComputedStyle(select), context = document.createElement('canvas').getContext('2d');
+    context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    const width = context.measureText(select.options[select.selectedIndex]?.text ?? '').width;
+    return width + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight) > select.clientWidth + 1;
+}).map(select => `${select.name}: ${select.options[select.selectedIndex].text}`)'''
 
 
 def _shot(page, name):
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), name
+    assert page.evaluate(SMALL_TARGETS) == [], name
+    assert page.evaluate(CLIPPED_SELECTS) == [], name
     EVIDENCE.chmod(0o700)
     path = EVIDENCE / f'{name}.png'
     page.screenshot(path=str(path), full_page=True)
@@ -126,7 +140,7 @@ def test_full_lifecycle_create_compute_check_recompute_and_manual_item(
         checkbox.check()
         with page.expect_navigation(wait_until='load'):
             page.get_by_role('button', name='Neu berechnen', exact=True).click()
-        assert '1000 G' in page.inner_text('main')
+        assert '1000 Gramm' in page.inner_text('main')
         _shot(page, f'detail-computed-{width}x{height}-js-{javascript}')
 
         with page.expect_navigation(wait_until='load'):
@@ -142,7 +156,7 @@ def test_full_lifecycle_create_compute_check_recompute_and_manual_item(
         page.locator('input[name="component_ids"]').first.check()
         with page.expect_navigation(wait_until='load'):
             page.get_by_role('button', name='Neu berechnen', exact=True).click()
-        assert '2000 G' in page.inner_text('main')
+        assert '2000 Gramm' in page.inner_text('main')
         assert 'Geändert, erneut offen' in page.inner_text('main')
         _shot(page, f'detail-recomputed-{width}x{height}-js-{javascript}')
 
@@ -160,8 +174,12 @@ def test_full_lifecycle_create_compute_check_recompute_and_manual_item(
         page.locator('select[name="revision"]').select_option(index=1)
         with page.expect_navigation(wait_until='load'):
             page.get_by_role('button', name='Revision anzeigen', exact=True).click()
-        expect(page.get_by_text('Zeilendetails und Abhaken sind nur für die aktuellste Revision', exact=False)).to_be_visible()
-        expect(page.get_by_role('button', name='Abhaken')).to_have_count(0)
+        expect(page.get_by_text('Beleg vom', exact=False)).to_contain_text('nicht aktuell')
+        main = page.inner_text('main')
+        assert 'Testmehl' in main and '1000 Gramm' in main and '2000 Gramm' not in main and 'Servietten' in main
+        assert main.count('nicht aktuell') == 2, main  # notice + the visible status of the single line
+        for label in ('Abhaken', 'Wieder öffnen', 'Neu berechnen', 'Position hinzufügen', 'Speichern', 'Löschen'):
+            expect(page.get_by_role('button', name=label)).to_have_count(0)
         _shot(page, f'detail-older-revision-{width}x{height}-js-{javascript}')
         assert not errors
 
@@ -171,10 +189,11 @@ def test_detail_shared_viewports_no_overflow_and_48px_targets(server, browser, w
     base, cookie, owner, engine, ids = server
     _seed_component(owner, engine, ids)
     week_public = _week_public(owner, ids)
-    with owner.begin() as connection:
-        list_id = connection.execute(text('''INSERT INTO cafeteria.shopping_lists(
-                location_id, menu_week_id, title, created_by, updated_by)
-            VALUES (:location, :week, 'Geteilte Ansicht', :actor, :actor) RETURNING public_id'''), ids).scalar_one()
+    scope = _scope(ids)
+    list_id = create_shopping_list(engine, scope, title='Geteilte Ansicht', menu_week_public_id=week_public)
+    compute_revision(engine, scope, list_id, component_ids=[f'{_item_public(owner, ids["item"])}:1'], policy='leaf',
+                     expected_row_version=1)
+    add_manual_item(engine, scope, list_id, item_text='Servietten', quantity='2', unit_code='TL')
     with browser.new_context(viewport={'width': width, 'height': height}, reduced_motion='reduce',
                              locale='de-CH', timezone_id='Europe/Zurich') as context:
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
@@ -182,11 +201,10 @@ def test_detail_shared_viewports_no_overflow_and_48px_targets(server, browser, w
         assert page.goto(f'{base}/admin/einkaufslisten/{list_id}').status == 200
         expect(page.locator('#compute_week')).to_have_value(week_public)
         expect(page.locator('input[name="component_ids"]').first).to_be_visible()
-        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-        for control in page.locator('main :is(.btn, .form-control, .form-select)').all():
-            if control.is_visible():
-                box = control.bounding_box()
-                assert box is not None and box['height'] >= 44
+        expect(page.get_by_role('button', name='Abhaken', exact=True)).to_have_count(2)
+        page.locator('main summary').first.click()
+        assert page.locator('main details').first.get_attribute('open') is not None
+        page.evaluate('window.scrollTo(0, 0)')  # full-page capture of the fixed sidebar starts at the top
         _shot(page, f'detail-shared-{width}x{height}')
 
 

@@ -5,14 +5,17 @@ Real Flask test client against the same PostgreSQL fixtures as the store's own
 """
 from __future__ import annotations
 
+from html.parser import HTMLParser
+
 import pytest
-from sqlalchemy import text
+from sqlalchemy import event, text
 
 import cafeteria
 from cafeteria import roles
-from cafeteria.shopping_list_store import create_shopping_list
+from cafeteria.shopping_list_store import add_manual_item, compute_revision, create_shopping_list, update_manual_item
+from prepared_food_fixtures import food_payload, update_food
 from test_shopping_list_db import (  # noqa: F401
-    _bound_component, _ingredient, _item_public, _scope, app_engine, create_food,
+    _bound_component, _compute, _ingredient, _item_public, _scope, app_engine, create_food,
     installed_pg16, pg16, seeded_pg16, store,
 )
 
@@ -25,6 +28,38 @@ def _state(owner):
         return {table: connection.execute(
             text(f'SELECT to_jsonb(t)::text FROM cafeteria.{table} t ORDER BY 1')
         ).scalars().all() for table in TABLES}
+
+
+class _Markup(HTMLParser):
+    """Attributes by element id, every link target and each select's selected values, from the rendered page."""
+
+    def __init__(self, markup: str) -> None:
+        super().__init__()
+        self.by_id: dict[str, dict[str, str]] = {}
+        self.links: list[str] = []
+        self.selected: dict[str, list[str]] = {}
+        self._select = ''
+        self.feed(markup)
+
+    def handle_starttag(self, tag, attrs):
+        attributes = {name: value or '' for name, value in attrs}
+        if 'id' in attributes:
+            self.by_id[attributes['id']] = attributes
+        if tag == 'a' and 'href' in attributes:
+            self.links.append(attributes['href'])
+        if tag == 'select':
+            self._select = attributes.get('id', '')
+        if tag == 'option' and 'selected' in attributes:
+            self.selected.setdefault(self._select, []).append(attributes.get('value', ''))
+
+
+def _assert_field_error(markup: _Markup, element_id: str, value: str | None = None) -> None:
+    element = markup.by_id[element_id]
+    assert 'is-invalid' in element['class'].split() and element.get('aria-invalid') == 'true', element
+    assert f'{element_id}-error' in element.get('aria-describedby', '').split(), element
+    assert f'{element_id}-error' in markup.by_id and f'#{element_id}' in markup.links
+    if value is not None:
+        assert element['value'] == value
 
 
 @pytest.fixture
@@ -96,6 +131,7 @@ def test_create_validation_error_preserves_note_and_writes_nothing(client):
     })
     assert response.status_code == 400
     assert 'Mein unveröffentlichter Text bleibt erhalten' in response.text
+    _assert_field_error(_Markup(response.text), 'title', '')
     assert _state(owner) == before
 
 
@@ -147,22 +183,135 @@ def test_manual_item_add_check_and_delete(client):
         ).scalar_one())
     checked = test_client.post(
         f'/admin/einkaufslisten/{list_id}/positionen/{item_public}',
-        data={'_csrf': CSRF, 'action': 'check', 'item_text': '', 'quantity': '', 'unit_code': ''},
+        data={'_csrf': CSRF, 'action': 'check', 'expected_row_version': '1', 'item_text': '', 'quantity': '', 'unit_code': ''},
     )
     assert checked.status_code == 303
     with owner.connect() as connection:
         assert connection.execute(
-            text('SELECT checked FROM cafeteria.shopping_list_manual_items WHERE public_id=CAST(:id AS uuid)'),
+            text('SELECT checked, row_version FROM cafeteria.shopping_list_manual_items WHERE public_id=CAST(:id AS uuid)'),
             {'id': item_public},
-        ).scalar_one() is True
+        ).one() == (True, 2)
     before = _state(owner)
     deleted = test_client.post(
         f'/admin/einkaufslisten/{list_id}/positionen/{item_public}',
-        data={'_csrf': CSRF, 'action': 'delete', 'item_text': '', 'quantity': '', 'unit_code': ''},
+        data={'_csrf': CSRF, 'action': 'delete', 'expected_row_version': '2', 'item_text': '', 'quantity': '', 'unit_code': ''},
     )
     assert deleted.status_code == 303
     after = _state(owner)
     assert len(after['shopping_list_manual_items']) == len(before['shopping_list_manual_items']) - 1
+
+
+def test_manual_item_check_or_delete_with_stale_row_version_is_409_with_reloaded_state(client):
+    owner, engine, test_client, ids = client
+    scope = _scope(ids)
+    list_id = create_shopping_list(engine, scope, title='Positionskonflikt')
+    item = add_manual_item(engine, scope, list_id, item_text='Becher')
+    update_manual_item(engine, scope, list_id, item, expected_row_version=1, item_text='Tassen')
+    before = _state(owner)
+    for action in ('check', 'uncheck', 'delete'):
+        response = test_client.post(f'/admin/einkaufslisten/{list_id}/positionen/{item}', data={
+            '_csrf': CSRF, 'action': action, 'expected_row_version': '1', 'item_text': 'Becher', 'quantity': '', 'unit_code': '',
+        })
+        assert response.status_code == 409, action
+        assert 'zwischenzeitlich geändert' in response.text
+        assert _Markup(response.text).by_id[f'item-text-{item}']['value'] == 'Tassen'
+        assert _state(owner) == before
+
+
+def test_detail_reads_captured_names_from_the_snapshot_with_constant_query_count(client):
+    owner, engine, test_client, ids = client
+    ids['owner'] = owner
+    letters = 'ABCDEFGHIJKLMNOPQRST'
+    foods = [create_food(engine, ids, f'Zutat {letter}') for letter in letters]
+    _bound_component(owner, engine, ids, [_ingredient(food, '10', 'G') for food in foods], sort_order=1, label='Zwanzig')
+    _bound_component(owner, engine, ids, [_ingredient(foods[0], '10', 'G')], sort_order=2, label='Eine')
+    item_public, scope = _item_public(owner, ids['item']), _scope(ids)
+    one = create_shopping_list(engine, scope, title='Eine Zeile')
+    compute_revision(engine, scope, one, component_ids=[f'{item_public}:2'], policy='leaf', expected_row_version=1)
+    twenty = create_shopping_list(engine, scope, title='Zwanzig Zeilen')
+    compute_revision(engine, scope, twenty, component_ids=[f'{item_public}:1'], policy='leaf', expected_row_version=1)
+    statements: list[str] = []
+
+    def count(connection, cursor, statement, parameters, context, executemany):
+        statements.append(statement)
+
+    def page(list_id):
+        statements.clear()
+        event.listen(engine, 'before_cursor_execute', count)
+        try:
+            response = test_client.get(f'/admin/einkaufslisten/{list_id}')
+        finally:
+            event.remove(engine, 'before_cursor_execute', count)
+        assert response.status_code == 200
+        return response.text, len(statements)
+
+    page(one)  # warm per-process caches so both measured requests take the same path
+    single, single_count = page(one)
+    many, many_count = page(twenty)
+    assert single_count == many_count, (single_count, many_count)
+    assert all(f'Zutat {letter}' in many for letter in letters)
+    assert '10 Gramm' in single and not any('FROM cafeteria.foods' in statement for statement in statements)
+
+
+def test_older_revision_shows_its_own_lines_read_only_after_a_food_rename(client):
+    owner, engine, test_client, ids = client
+    ids['owner'] = owner
+    food = create_food(engine, ids, 'Mehl vorher')
+    _bound_component(owner, engine, ids, [_ingredient(food, '250', 'G')])
+    list_id = create_shopping_list(engine, _scope(ids), title='Belegansicht')
+    revision_1 = _compute(engine, ids, list_id)
+    update_food(engine, ids, food, food_payload(ids, 'Mehl nachher'))
+    _compute(engine, ids, list_id, expected_row_version=2)
+    before = _state(owner)
+    old = test_client.get(f'/admin/einkaufslisten/{list_id}?revision={revision_1}')
+    assert old.status_code == 200 and _state(owner) == before
+    assert 'Mehl vorher' in old.text and 'Mehl nachher' not in old.text and '250 Gramm' in old.text
+    assert 'Beleg vom' in old.text and 'nicht aktuell' in old.text
+    assert 'name="line_key"' not in old.text and '/berechnen' not in old.text and 'name="action"' not in old.text
+    latest = test_client.get(f'/admin/einkaufslisten/{list_id}')
+    assert 'Mehl nachher' in latest.text and 'name="line_key"' in latest.text and 'nicht aktuell' not in latest.text
+    unknown = test_client.get(f'/admin/einkaufslisten/{list_id}?revision=11111111-1111-4111-8111-111111111111')
+    assert unknown.status_code == 404
+
+
+def test_manual_item_validation_marks_the_field_links_the_summary_and_keeps_inputs(client):
+    owner, engine, test_client, ids = client
+    scope = _scope(ids)
+    list_id = create_shopping_list(engine, scope, title='Feldfehler')
+    item = add_manual_item(engine, scope, list_id, item_text='Becher')
+    before = _state(owner)
+    created = test_client.post(f'/admin/einkaufslisten/{list_id}/positionen', data={
+        '_csrf': CSRF, 'item_text': 'Servietten', 'quantity': 'viele', 'unit_code': 'STK',
+    })
+    assert created.status_code == 400 and _state(owner) == before
+    markup = _Markup(created.text)
+    _assert_field_error(markup, 'new-item-qty', 'viele')
+    assert markup.by_id['new-item-text']['value'] == 'Servietten' and 'is-invalid' not in markup.by_id['new-item-text']['class']
+    assert markup.selected['new-item-unit'] == ['STK']
+    updated = test_client.post(f'/admin/einkaufslisten/{list_id}/positionen/{item}', data={
+        '_csrf': CSRF, 'action': 'save', 'expected_row_version': '1', 'item_text': 'Tassen', 'quantity': '2', 'unit_code': '',
+    })
+    assert updated.status_code == 400 and _state(owner) == before
+    markup = _Markup(updated.text)
+    _assert_field_error(markup, f'item-unit-{item}')
+    assert markup.by_id[f'item-text-{item}']['value'] == 'Tassen' and markup.by_id[f'item-qty-{item}']['value'] == '2'
+
+
+def test_compute_selection_error_is_marked_on_the_components(client):
+    owner, engine, test_client, ids = client
+    ids['owner'] = owner
+    _bound_component(owner, engine, ids, [_ingredient(create_food(engine, ids, 'Zutat'), '100', 'G')])
+    with owner.connect() as connection:
+        week_public = str(connection.execute(text('SELECT public_id FROM cafeteria.menu_weeks WHERE id=:week'), ids).scalar_one())
+    list_id = create_shopping_list(engine, _scope(ids), title='Auswahlfehler')
+    before = _state(owner)
+    response = test_client.post(f'/admin/einkaufslisten/{list_id}/berechnen', data={
+        '_csrf': CSRF, 'row_version': '1', 'policy': 'prepared', 'menu_week_public_id': week_public,
+    })
+    assert response.status_code == 400 and _state(owner) == before
+    markup = _Markup(response.text)
+    _assert_field_error(markup, 'component_ids')
+    assert markup.by_id['policy-prepared'].get('checked') == ''
 
 
 def test_foreign_active_location_is_404(client):

@@ -10935,7 +10935,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "aeaf5a3518192427e3a0006ebb338ae5b2cc2fd2593ea3c350eb20649293f86b",
+      "sha256": "d66b81389148a5bda63eaab6c2f99c1916bb79d780db1f7119c11378798d63a6",
       "used_by_endpoints": [
         "admin.shopping_list_archive",
         "admin.shopping_lists_create",
@@ -10957,7 +10957,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "8e60c80276879f29c4bd4ac5720be548db9715542b936e9ff47b52e762b701fb",
+      "sha256": "75841583fe661dc4508b5af5b8eba22da73195155efb6dd4b016a36b572beb1a",
       "used_by_endpoints": [
         "admin.shopping_list_compute",
         "admin.shopping_list_detail",

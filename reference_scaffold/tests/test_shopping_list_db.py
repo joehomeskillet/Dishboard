@@ -25,7 +25,7 @@ from cafeteria.shopping_list_store import (
     update_manual_item,
 )
 from prepared_food_fixtures import (  # noqa: F401
-    app_engine, create_food, execute, freeze, installed_pg16, pg16, preview, seeded_pg16,
+    app_engine, create_food, execute, food_payload, freeze, installed_pg16, pg16, preview, seeded_pg16, update_food,
 )
 from test_component_scope_invariants_db import _seed_scope_probe
 from test_master_data_db import make_actor
@@ -317,6 +317,72 @@ def test_manual_items_survive_recompute(store):  # noqa: F811
     assert manual_items[0]['quantity'] == '2.000000' and manual_items[0]['item_text'] == 'Servietten'
 
 
+def test_older_revision_reads_its_own_snapshot_with_names_captured_at_compute(store):  # noqa: F811
+    owner, engine, ids = store
+    ids['owner'] = owner
+    food = create_food(engine, ids, 'Alter Name')
+    _bound_component(owner, engine, ids, [_ingredient(food, '100', 'G')])
+    scope = _scope(ids)
+    list_id = create_shopping_list(engine, scope, title='Beleg')
+    revision_1 = _compute(engine, ids, list_id)
+    key = get_shopping_list(engine, scope, list_id)['selected_revision']['lines'][0]['line_key']
+    set_line_checked(engine, scope, list_id, revision_public_id=revision_1, line_key=key, checked=True)
+    update_food(engine, ids, food, food_payload(ids, 'Neuer Name'))
+    revision_2 = _compute(engine, ids, list_id, expected_row_version=2)
+    old = get_shopping_list(engine, scope, list_id, revision_public_id=revision_1)['selected_revision']
+    latest = get_shopping_list(engine, scope, list_id)['selected_revision']
+    assert (old['public_id'], old['is_latest'], latest['public_id'], latest['is_latest']) == (revision_1, False, revision_2, True)
+    view = [(line['food_name'], Decimal(line['quantity']), line['unit_code'], line['unit_name'], line['checked_status'])
+            for line in (old['lines'][0], latest['lines'][0])]
+    assert view == [('Alter Name', Decimal('100'), 'G', 'Gramm', 'not_current'), ('Neuer Name', Decimal('100'), 'G', 'Gramm', 'checked')]
+    with pytest.raises(ShoppingListNotFoundError):
+        get_shopping_list(engine, scope, list_id, revision_public_id='11111111-1111-4111-8111-111111111111')
+
+
+def test_manual_item_check_and_delete_require_the_current_row_version(store):  # noqa: F811
+    owner, engine, ids = store
+    scope = _scope(ids)
+    list_id = create_shopping_list(engine, scope, title='Positionen')
+    item = add_manual_item(engine, scope, list_id, item_text='Becher')
+    assert update_manual_item(engine, scope, list_id, item, expected_row_version=1, item_text='Tassen') == 2
+    before = _shopping_state(owner)
+    for call in (lambda: set_manual_item_checked(engine, scope, list_id, item, expected_row_version=1, checked=True),
+                 lambda: delete_manual_item(engine, scope, list_id, item, expected_row_version=1)):
+        with pytest.raises(ShoppingListConflictError):
+            call()
+    assert _shopping_state(owner) == before
+    assert set_manual_item_checked(engine, scope, list_id, item, expected_row_version=2, checked=True) == 3
+    delete_manual_item(engine, scope, list_id, item, expected_row_version=3)
+    assert get_shopping_list(engine, scope, list_id)['manual_items'] == ()
+
+
+def test_validation_errors_name_the_offending_field_and_write_nothing(store):  # noqa: F811
+    owner, engine, ids = store
+    scope = _scope(ids)
+    list_id = create_shopping_list(engine, scope, title='Felder')
+    before = _shopping_state(owner)
+    foreign = '11111111-1111-4111-8111-111111111111'
+    cases = (
+        ('title', lambda: create_shopping_list(engine, scope, title='  ')),
+        ('note', lambda: create_shopping_list(engine, scope, title='Neu', note='x' * 2001)),
+        ('menu_week_public_id', lambda: create_shopping_list(engine, scope, title='Neu', menu_week_public_id=foreign)),
+        ('item_text', lambda: add_manual_item(engine, scope, list_id, item_text='')),
+        ('quantity', lambda: add_manual_item(engine, scope, list_id, item_text='Becher', quantity='viele', unit_code='STK')),
+        ('quantity', lambda: add_manual_item(engine, scope, list_id, item_text='Becher', unit_code='STK')),
+        ('unit_code', lambda: add_manual_item(engine, scope, list_id, item_text='Becher', quantity='2')),
+        ('unit_code', lambda: add_manual_item(engine, scope, list_id, item_text='Becher', quantity='2', unit_code='NIX')),
+        ('component_ids', lambda: compute_revision(engine, scope, list_id, component_ids=[], policy='leaf', expected_row_version=1)),
+        ('component_ids', lambda: compute_revision(engine, scope, list_id, component_ids=[f'{foreign}:1'], policy='leaf',
+                                                   expected_row_version=1)),
+        ('policy', lambda: compute_revision(engine, scope, list_id, component_ids=[], policy='alles', expected_row_version=1)),
+    )
+    for field, call in cases:
+        with pytest.raises(ShoppingListValidationError) as invalid:
+            call()
+        assert invalid.value.field == field, (field, str(invalid.value))
+    assert _shopping_state(owner) == before
+
+
 def test_location_isolation_foreign_scope_cannot_read_or_write(store):  # noqa: F811
     owner, engine, ids = store
     list_id = create_shopping_list(engine, _scope(ids), title='Standortliste')
@@ -400,8 +466,8 @@ def test_authz_change_between_load_and_write_is_stale_and_writes_nothing(store):
         lambda: set_line_checked(engine, scope, list_id, revision_public_id=revision_1, line_key=line['line_key'], checked=True),
         lambda: add_manual_item(engine, scope, list_id, item_text='Becher'),
         lambda: update_manual_item(engine, scope, list_id, manual_id, expected_row_version=1, item_text='Tassen'),
-        lambda: set_manual_item_checked(engine, scope, list_id, manual_id, checked=True),
-        lambda: delete_manual_item(engine, scope, list_id, manual_id),
+        lambda: set_manual_item_checked(engine, scope, list_id, manual_id, expected_row_version=1, checked=True),
+        lambda: delete_manual_item(engine, scope, list_id, manual_id, expected_row_version=1),
         lambda: list_shopping_lists(engine, scope),
         lambda: get_shopping_list(engine, scope, list_id),
     )
@@ -500,6 +566,7 @@ def test_database_data_exception_maps_to_validation(store):  # noqa: F811
         compute_revision(engine, _scope(ids), list_id, component_ids=[f'{item_public}:99999999999'],
                          policy='leaf', expected_row_version=1)
     assert str(invalid.value) == 'Die Angaben sind ungültig.' and invalid.value.__cause__ is None
+    assert invalid.value.field is None
     assert _count(owner, 'shopping_list_revisions') == 0
 
 
