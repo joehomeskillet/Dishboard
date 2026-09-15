@@ -7,8 +7,12 @@ from io import BytesIO
 from uuid import uuid4
 
 from pypdf import PdfReader
+from sqlalchemy.exc import OperationalError
 
 from cafeteria import roles
+from cafeteria.admin import shopping_list_routes as routes
+from cafeteria.admin.shopping_pdf import ShoppingPdfError
+from cafeteria.print_templates import PrintTemplateStateError
 from cafeteria.shopping_list_store import add_manual_item, create_shopping_list
 from test_shopping_list_db import (  # noqa: F401
     _bound_component, _compute, _ingredient, _item_public, _scope, app_engine, create_food,
@@ -139,3 +143,83 @@ def test_pdf_route_get_performs_no_writes(client):  # noqa: F811
     before = _state(owner)
     assert test_client.get(_path(list_id)).status_code == 200
     assert _state(owner) == before
+
+
+def test_pdf_route_error_responses_are_no_store(client):  # noqa: F811
+    owner, engine, test_client, ids = client
+    ids['owner'] = owner
+    scope = _scope(ids)
+    food = create_food(engine, ids, 'Zutat')
+    _bound_component(owner, engine, ids, [_ingredient(food, '100', 'G')])
+    list_id = create_shopping_list(engine, scope, title='Fehlerkopf')
+    _compute(engine, ids, list_id)
+    bad_query = test_client.get(f'/admin/einkaufslisten/{list_id}/druck.pdf?unknown=1')
+    assert bad_query.status_code == 400
+    assert bad_query.headers['Cache-Control'] == 'no-store'
+    missing_revision = test_client.get(_path(list_id, str(uuid4())))
+    assert missing_revision.status_code == 404
+    assert missing_revision.headers['Cache-Control'] == 'no-store'
+
+
+def test_pdf_route_template_failure_returns_422_no_store(client, monkeypatch):  # noqa: F811
+    owner, engine, test_client, ids = client
+    ids['owner'] = owner
+    scope = _scope(ids)
+    food = create_food(engine, ids, 'Zutat')
+    _bound_component(owner, engine, ids, [_ingredient(food, '100', 'G')])
+    list_id = create_shopping_list(engine, scope, title='Vorlagenfehler')
+    _compute(engine, ids, list_id)
+
+    def fail_template(*args, **kwargs):
+        raise PrintTemplateStateError('Vorlagen nicht verfügbar')
+
+    monkeypatch.setattr(routes, 'active_template', fail_template)
+    response = test_client.get(_path(list_id))
+    assert response.status_code == 422
+    assert 'nicht vollständig als PDF' in response.text
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert response.mimetype != 'application/pdf'
+    assert not response.data.startswith(b'%PDF')
+
+
+def test_pdf_route_renderer_failure_returns_422(client, monkeypatch):  # noqa: F811
+    owner, engine, test_client, ids = client
+    ids['owner'] = owner
+    scope = _scope(ids)
+    food = create_food(engine, ids, 'Zutat')
+    _bound_component(owner, engine, ids, [_ingredient(food, '100', 'G')])
+    list_id = create_shopping_list(engine, scope, title='Rendererfehler')
+    _compute(engine, ids, list_id)
+
+    def fail_render(*args, **kwargs):
+        raise ShoppingPdfError('nicht darstellbar')
+
+    monkeypatch.setattr(routes, 'render_shopping_pdf', fail_render)
+    response = test_client.get(_path(list_id))
+    assert response.status_code == 422
+    assert 'nicht vollständig als PDF' in response.text
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert response.mimetype != 'application/pdf'
+    assert not response.data.startswith(b'%PDF')
+
+
+def test_pdf_route_database_failure_returns_503_no_store(client, monkeypatch):  # noqa: F811
+    owner, engine, test_client, ids = client
+    ids['owner'] = owner
+    scope = _scope(ids)
+    food = create_food(engine, ids, 'Zutat')
+    _bound_component(owner, engine, ids, [_ingredient(food, '100', 'G')])
+    list_id = create_shopping_list(engine, scope, title='Datenbankfehler')
+    _compute(engine, ids, list_id)
+
+    def fail_database(*args, **kwargs):
+        raise OperationalError('PRIVATE_DETAIL', {}, RuntimeError('PRIVATE_DETAIL'))
+
+    monkeypatch.setattr(routes, 'active_template', fail_database)
+    response = test_client.get(_path(list_id))
+    assert response.status_code == 503
+    assert 'Einkaufslisten sind derzeit nicht verfügbar' in response.text
+    assert 'PRIVATE_DETAIL' not in response.text
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert response.mimetype != 'application/pdf'
+    assert not response.data.startswith(b'%PDF')

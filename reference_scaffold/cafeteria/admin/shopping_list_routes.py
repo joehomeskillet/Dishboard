@@ -248,12 +248,6 @@ def _reject_unknown_query(allowed: set[str]) -> None:
         raise store.ShoppingListValidationError('Ungültige Druckparameter.')
 
 
-def _pdf_error(message: str, status: int) -> Response:
-    response = make_response(message, status)
-    response.headers['Cache-Control'] = 'no-store'
-    return response
-
-
 @bp.get('/einkaufslisten/<public_id>/druck.pdf')
 @require_capability('draft.read')
 def shopping_list_pdf(public_id: str) -> Response:
@@ -276,10 +270,9 @@ def shopping_list_pdf(public_id: str) -> Response:
                 branding = load_pdf_branding(connection, 'recipe', config)
         data = render_shopping_pdf(detail, config=config, branding=branding)
     except (PrintTemplateStateError, PrintTemplateValidationError, BrandingStateError, ShoppingPdfError):
-        return _pdf_error(
-            'Diese Einkaufsliste kann mit der aktiven Druckvorlage nicht vollständig als PDF ausgegeben werden.', 422)
+        abort(422, description='Diese Einkaufsliste kann mit der aktiven Druckvorlage nicht vollständig als PDF ausgegeben werden.')
     except SQLAlchemyError:
-        return _pdf_error('Einkaufslisten sind derzeit nicht verfügbar. Bitte später erneut versuchen.', 503)
+        abort(503, description='Einkaufslisten sind derzeit nicht verfügbar. Bitte später erneut versuchen.')
     revision_number = cast(int, selected['revision_number'])
     revision_id = cast(str, selected['public_id'])
     response = Response(data, mimetype='application/pdf')
