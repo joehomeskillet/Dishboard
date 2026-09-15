@@ -3378,11 +3378,22 @@
         "REC-006"
       ],
       "kind": "implementation",
-      "status": "INTEGRATED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-BAS-SCHEMA27"
       ],
       "existing_wp_id": null,
+      "delivery_2026_09_15": {
+        "release": "780b07def5c34a785c349e2f6c7561a57e52c108",
+        "schema": 34,
+        "migration": "keine (Root-Entscheid F2)",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-780b07def5c3-deploy.md",
+        "root_gate": "UIother: 113 passed in 252.24s, GATE_EXIT=0",
+        "live_proof": "Container sha256:d6f25802…, OCI revision 780b07d healthy; /health/ready ready schema 34; /admin/rezepte?text=suppe 401 anonym",
+        "open_items": [
+          "authentifizierte Live-Sichtprüfung der Suche nicht gelaufen"
+        ]
+      },
       "integration_2026_09_15": {
         "branch": "integrate/fts-0915 (auf Livestand 8ab614c)",
         "freeze": ".claude/state/opus5-0913/brief-search-fts-common.md F1–F9",

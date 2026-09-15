@@ -86,7 +86,7 @@ Manifest: 24 PLANNED, 3 IN_PROGRESS, 4 READY, 4 AWAITING_EXTERNAL, 3 REVIEWED_LO
 | MP-REC-URL-FETCH | PLANNED | Fetchdatei/-tests fehlen; kein tatsächlicher Webimport. Microdata und Routeanschluss ebenfalls in diesem WP. | öffentliche HTTPS-Quelle → Preview/Commit; DNS-/Redirect-/Bytegrenzen und interne Ziele abweisen. | R:34 |
 | MP-REC-AI-EXTRACTION | PLANNED | `3ee468c` integriert; Autor6/6, keine Produktaufrufer. | reine Adapterabnahme und Originalprovenienz bei Folgeanschluss. | R:35 |
 | MP-REC-AI-PROVIDER | AWAITING_EXTERNAL | Providerdatei/-tests fehlen; Anbieterfreigabe fehlt. | Nach Freigabe: Dokument → Unsicherheit → manuelle Batchübernahme, keine automatische Allergenbestätigung. | R:36 |
-| MP-REC-SEARCH-FTS | INTEGRATED | 15.9.: Suchfeld «Suche» + gewichtetes Lesezeit-Suchdokument ohne Schemaänderung (Root-Entscheid F2, `recipes-wps.json` `integration_2026_09_15`). | Auslieferung mit nächstem Release; Kompositum ohne Zerlegung. | R:37 |
+| MP-REC-SEARCH-FTS | DEPLOYED | 15.9.: live `780b07d`; Suchfeld «Suche» + gewichtetes Lesezeit-Suchdokument ohne Schemaänderung (Root-Entscheid F2, `recipes-wps.json` `delivery_2026_09_15`). | Kompositum ohne Zerlegung; authentifizierte Live-Sichtprüfung offen. | R:37 |
 | MP-REC-TRGM-DECISION | READY | Bericht `e86a429` integriert; ausdrücklich keine Betriebs-/Aktivierungsfreigabe. | Betriebsentscheidung protokollieren. | R:38 |
 | MP-REC-SEARCH-TRGM | PLANNED | Extension/Tests fehlen. | genehmigte Migration+Restore sowie echte Tippfehler-/Performancefälle. | R:39 |
 | MP-REC-SAVED-SEARCH | PLANNED | Store/Schema/Tests fehlen. | Filter speichern/laden, Besitzer-/Standort/CAS, aktuelle Readrechte. | R:40 |
