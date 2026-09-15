@@ -4837,7 +4837,7 @@
         "REC-003"
       ],
       "kind": "implementation",
-      "status": "PLANNED",
+      "status": "DEPLOYED",
       "depends_on": [
         "MP-REC-SHOPPING-AGGREGATE",
         "MP-REC-PLAN-PORTIONS",
@@ -4940,6 +4940,24 @@
         "Nicht gefahrene Gates ausdrücklich nennen; dieser Docs-Freeze ist kein Produkt-/Live-/Fachabnahme-PASS"
       ],
       "rollback": "Forward-Fix oder Root-geprüfter schema-/readerkompatibler Source-Fallback; bei notwendigem früheren Stand getesteter DB/Assetrestore. Kein blindes altes Image und kein Schema-/JSON-Downgrade.",
+      "delivery_2026_09_15": {
+        "release": "47428b79f496c572fd941e376d3eb684767d2e10",
+        "schema": 34,
+        "migration": "0031_v33_to_v34.sql",
+        "report": "/nvmetank1/projects/rag-stack/.claude/reports/wp-47428b79f496-deploy.md",
+        "root_gate": "Recipeprint DB/API/FHIR/MCP/Workflow/Shopping/Invarianten (22 Dateien): 511 passed in 627.87s, GATE_EXIT=0\nUIother Inventar/Shopping/ACCEPT/PLAN-PORTIONS/Login/Shell/Workflow (11 Dateien): 217 passed in 426.39s, GATE_EXIT=0",
+        "review": "SP-SCHEMA: /nvmetank1/projects/rag-stack/.claude/reports/wp-sp-schema-0914-review.md FINDINGS(14: 5×P2) → Nachprüfung 0×P2, 4×P3 offen (/nvmetank1/projects/rag-stack/.claude/reports/wp-sp-schema-0914-fix.md); SP-STORE: /nvmetank1/projects/rag-stack/.claude/reports/wp-sp-store-0914-review.md FINDINGS(2×P1, P2) → Nachprüfung CLEAN / SECURITY PASSED (/nvmetank1/projects/rag-stack/.claude/reports/wp-sp-store-0914-fix.md); SP-UI: /nvmetank1/projects/rag-stack/.claude/reports/wp-sp-ui-0914-review.md FINDINGS(3×P2, 3×P3) → Nachprüfung CLEAN (/nvmetank1/projects/rag-stack/.claude/reports/wp-sp-ui-0914-fix.md)",
+        "status_correction": "PLANNED → DEPLOYED; 47428b7 ist deployed und belegt gemäss Deploy-Bericht (Schema 34, Cutover abgeschlossen)",
+        "open_items": [
+          "Live-Validator ohne Trigger-Aktiv/Spaltenrechte",
+          "menu_week_id-Standort nur im Store",
+          "Demo-Reseed in Dev blockiert durch unveränderliche Revisionen",
+          "Tabellensperre serialisiert Neuberechnungen",
+          "keine separate unabhängige Abnahme-Session",
+          "UI-Capture-Promotion",
+          "MP-REC-SHOPPING-PDF wartet auf formale Live-Abnahme MP-REC-PDF-RELEASE"
+        ]
+      },
       "shared_owner_gate": {
         "policy": "Vor READY Root-Lease mit tatsächlichem Vorgängerfreeze-Commit für jeden gemeinsamen Pfad und alle cross-slice SQL/Registry/Workflow/Recipe/Foundations/Print/Mengen-Hunks. Genau ein aktiver Writer; keine fachfremde Featureabhängigkeit als Dateisperre.",
         "files": {
