@@ -23,6 +23,7 @@ from test_shopping_list_db import (  # noqa: F401
 )
 
 EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/sp-ui-0914'
+PDF_EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/spdf-route-0915'
 ROUTE_VIEWPORTS = ((390, 844), (1440, 900))
 SHARED_VIEWPORTS = ((1024, 768), (768, 1024), (1920, 1080))
 
@@ -103,6 +104,17 @@ def _shot(page, name):
     assert page.evaluate(CLIPPED_SELECTS) == [], name
     EVIDENCE.chmod(0o700)
     path = EVIDENCE / f'{name}.png'
+    page.screenshot(path=str(path), full_page=True)
+    path.chmod(0o600)
+
+
+def _pdf_shot(page, name):
+    """SPDF-ROUTE evidence lives in its own directory; never overwrites another WP's PNGs."""
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), name
+    assert page.evaluate(SMALL_TARGETS) == [], name
+    PDF_EVIDENCE.mkdir(parents=True, exist_ok=True)
+    PDF_EVIDENCE.chmod(0o700)
+    path = PDF_EVIDENCE / f'{name}.png'
     page.screenshot(path=str(path), full_page=True)
     path.chmod(0o600)
 
@@ -241,3 +253,31 @@ def test_keyboard_and_200_percent_zoom(server, browser, tmp_path):  # noqa: F811
             assert page.evaluate('devicePixelRatio') == 2 and page.evaluate('innerWidth') == 720
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             _shot(page, 'detail-native-200-percent')
+
+
+@pytest.mark.parametrize('width,height', ((1440, 900), (390, 844)))
+def test_pdf_link_visible_focusable_and_serves_pdf(server, browser, width, height):  # noqa: F811
+    base, cookie, owner, engine, ids = server
+    _seed_component(owner, engine, ids)
+    scope = _scope(ids)
+    list_id = create_shopping_list(engine, scope, title='PDF-Link')
+    revision = compute_revision(
+        engine, scope, list_id, component_ids=[f'{_item_public(owner, ids["item"])}:1'],
+        policy='leaf', expected_row_version=1,
+    )
+    with browser.new_context(viewport={'width': width, 'height': height}, reduced_motion='reduce',
+                             locale='de-CH', timezone_id='Europe/Zurich') as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        assert page.goto(f'{base}/admin/einkaufslisten/{list_id}').status == 200
+        link = page.get_by_role('link', name='Als PDF drucken', exact=True)
+        expect(link).to_be_visible()
+        href = link.get_attribute('href')
+        assert href == f'/admin/einkaufslisten/{list_id}/druck.pdf?revision={revision}'
+        link.focus()
+        expect(link).to_be_focused()
+        response = page.request.get(base + href)
+        assert response.status == 200
+        assert response.headers['content-type'] == 'application/pdf'
+        page.evaluate('window.scrollTo(0, 0)')
+        _pdf_shot(page, f'pdf-link-{width}x{height}')

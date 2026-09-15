@@ -118,7 +118,10 @@
 {% if selected %}
 {%- set line_actions = can_write and selected.is_latest -%}
 <section class="card mb-4" aria-labelledby="ergebnis-title">
-  <div class="card-header"><h2 class="card-title" id="ergebnis-title">Ergebnis · Revision {{ selected.revision_number }}</h2></div>
+  <div class="card-header flex-wrap gap-2">
+    <h2 class="card-title" id="ergebnis-title">Ergebnis · Revision {{ selected.revision_number }}</h2>
+    <a class="btn" href="{{ url_for('admin.shopping_list_pdf', public_id=detail.public_id, revision=selected.public_id) }}">{{ icon('printer') }}Als PDF drucken</a>
+  </div>
   {% if selected.lines %}
   <div class="table-responsive">
     <table class="table table-vcenter card-table">

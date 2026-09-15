@@ -11,20 +11,26 @@ field and linked from the summary; submitted values are kept.
 from __future__ import annotations
 
 from itertools import groupby
-from typing import Mapping, NoReturn
+from typing import Mapping, NoReturn, cast
 
 from flask import abort, current_app, g, make_response, redirect, render_template, request, session, url_for
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.wrappers import Response
 
 from .. import shopping_list_store as store
+from ..branding import BrandingStateError
 from ..component_catalog_store import ComponentCatalogConfigurationError
 from ..master_data_reads import list_units
+from ..print_branding import load_pdf_branding
+from ..print_template_config import PrintTemplateValidationError
+from ..print_templates import PrintTemplateStateError, active_template
 from ..recipe_reads import get_location
 from ..roles import capabilities, require_capability
 from ..security import validate_csrf
 from .rendering import DAY_NAMES
 from .routes import bp
+from .shopping_pdf import ShoppingPdfError, render_shopping_pdf
 
 POLICIES = (('leaf', 'Blattbedarf (Standard)'), ('prepared', 'Vorbereiteter Bedarf'))
 _PROFILE_LABELS = {'patient': 'Patienten', 'staff_guest': 'Cafeteria'}
@@ -235,6 +241,54 @@ def shopping_list_detail(public_id: str) -> Response:
     return _detail_page(
         public_id, compute_week=request.args.get('compute_week'), revision=request.args.get('revision') or None,
     )
+
+
+def _reject_unknown_query(allowed: set[str]) -> None:
+    if set(request.args) - allowed or any(len(request.args.getlist(key)) != 1 for key in request.args):
+        raise store.ShoppingListValidationError('Ungültige Druckparameter.')
+
+
+def _pdf_error(message: str, status: int) -> Response:
+    response = make_response(message, status)
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
+@bp.get('/einkaufslisten/<public_id>/druck.pdf')
+@require_capability('draft.read')
+def shopping_list_pdf(public_id: str) -> Response:
+    """One immutable revision, rendered from the same snapshot as the detail page; no live reads."""
+    try:
+        _reject_unknown_query({'revision'})
+        scope = _scope()
+        detail = store.get_shopping_list(_db(), scope, public_id, revision_public_id=request.args.get('revision'))
+    except store.ShoppingListError as error:
+        _bail(error)
+    raw_selected = detail['selected_revision']
+    if raw_selected is None:
+        abort(404)
+    selected = cast(Mapping[str, object], raw_selected)
+    try:
+        with _db().connect().execution_options(isolation_level='REPEATABLE READ') as connection:
+            with connection.begin():
+                connection.execute(text('SET TRANSACTION READ ONLY'))
+                config, template_revision_id = active_template(connection, 'recipe')
+                branding = load_pdf_branding(connection, 'recipe', config)
+        data = render_shopping_pdf(detail, config=config, branding=branding)
+    except (PrintTemplateStateError, PrintTemplateValidationError, BrandingStateError, ShoppingPdfError):
+        return _pdf_error(
+            'Diese Einkaufsliste kann mit der aktiven Druckvorlage nicht vollständig als PDF ausgegeben werden.', 422)
+    except SQLAlchemyError:
+        return _pdf_error('Einkaufslisten sind derzeit nicht verfügbar. Bitte später erneut versuchen.', 503)
+    revision_number = cast(int, selected['revision_number'])
+    revision_id = cast(str, selected['public_id'])
+    response = Response(data, mimetype='application/pdf')
+    response.headers['Content-Disposition'] = (
+        f'inline; filename="einkaufsliste-{public_id}-beleg-{revision_number}.pdf"')
+    response.headers['Cache-Control'] = 'no-store'
+    response.headers['X-Shopping-List-Revision'] = revision_id
+    response.headers['X-Print-Template-Revision'] = template_revision_id
+    return response
 
 
 @bp.post('/einkaufslisten/<public_id>/berechnen')
