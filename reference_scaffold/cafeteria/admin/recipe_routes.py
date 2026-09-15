@@ -142,7 +142,7 @@ def _get_editor(recipe_id=None, *, confirmation=False):
 @bp.get('/rezepte')
 @protected
 def recipes_list():
-    _query({'q', 'ingredient', 'tag', 'archived', 'page'})
+    _query({'q', 'ingredient', 'tag', 'archived', 'page', 'text'})
     raw_page = request.args.get('page', '1')
     if not raw_page.isascii() or not raw_page.isdecimal() or len(raw_page) > 6 or not 1 <= int(raw_page) <= 100000:
         abort(400)
@@ -152,18 +152,21 @@ def recipes_list():
     page, query = int(raw_page), request.args.get('q', '')
     ingredient, tag = request.args.get('ingredient', ''), request.args.get('tag', '')
     tag = identifier(tag) if tag else ''
-    rows = store.list_recipes(_engine(), search=query, ingredient=ingredient, tag=tag,
+    text_query = request.args.get('text', '')
+    rows = store.list_recipes(_engine(), search=query, ingredient=ingredient, tag=tag, text_search=text_query,
                              include_archived=archived == '1', limit=51, offset=(page - 1) * 50)
     tags = [(row.public_id, row.name + (' · archiviert' if not row.active else ''))
             for row in _all(masters.list_vocabulary, 'tag')]
     if tag and tag not in {key for key, _ in tags}:
         tags.append((tag, 'Ausgewählter Tag · nicht mehr verfügbar'))
     filters = {'q': query, 'ingredient': ingredient, 'tag': tag, 'archived': archived}
+    if text_query:
+        filters['text'] = text_query
     return render_template('admin/rezepte.html', family='cafeteria', profile='staff_guest', rows=rows[:50],
         recipe_links=recipe_link_reads.list_recipe_links(_engine(), [row.public_id for row in rows[:50]]),
         can_create_template=bool(capabilities() & {'*', 'draft.write'}),
         page=page, has_next=len(rows) > 50, query=query, ingredient=ingredient, tag=tag, tags=tags,
-        archived=archived == '1', can_write=_can_write(),
+        text=text_query, archived=archived == '1', can_write=_can_write(),
         prev_url=url_for('admin.recipes_list', **filters, page=page - 1),
         next_url=url_for('admin.recipes_list', **filters, page=page + 1))
 
