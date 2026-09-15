@@ -52,6 +52,7 @@ database/migrations/0027_v29_to_v30.sql
 database/migrations/0028_v30_to_v31.sql
 database/migrations/0029_v31_to_v32.sql
 database/migrations/0030_v32_to_v33.sql
+database/migrations/0031_v33_to_v34.sql
 database/permissions.sql
 database/README.md
 database/schema.sql
@@ -587,6 +588,7 @@ reference_scaffold/cafeteria/admin/recipe_scaling.py
 reference_scaffold/cafeteria/admin/rendering.py
 reference_scaffold/cafeteria/admin/routes.py
 reference_scaffold/cafeteria/admin/screen_template_routes.py
+reference_scaffold/cafeteria/admin/shopping_list_routes.py
 reference_scaffold/cafeteria/admin/week_management_routes.py
 reference_scaffold/cafeteria/admin/week_pdf.py
 reference_scaffold/cafeteria/admin/week_pdf_layout.py
@@ -668,6 +670,8 @@ reference_scaffold/cafeteria/roles.py
 reference_scaffold/cafeteria/screen_templates.py
 reference_scaffold/cafeteria/security.py
 reference_scaffold/cafeteria/shopping_aggregate.py
+reference_scaffold/cafeteria/shopping_list_reads.py
+reference_scaffold/cafeteria/shopping_list_store.py
 reference_scaffold/cafeteria/signage/__init__.py
 reference_scaffold/cafeteria/signage/routes.py
 reference_scaffold/cafeteria/static/admin-branding.css
@@ -1052,6 +1056,8 @@ reference_scaffold/cafeteria/templates/admin/component_editor.html
 reference_scaffold/cafeteria/templates/admin/components.html
 reference_scaffold/cafeteria/templates/admin/copy.html
 reference_scaffold/cafeteria/templates/admin/display_settings.html
+reference_scaffold/cafeteria/templates/admin/einkaufsliste.html
+reference_scaffold/cafeteria/templates/admin/einkaufslisten.html
 reference_scaffold/cafeteria/templates/admin/gerichtvorlage_einplanen.html
 reference_scaffold/cafeteria/templates/admin/gerichtvorlagen.html
 reference_scaffold/cafeteria/templates/admin/grundlagen.html
@@ -1341,6 +1347,7 @@ reference_scaffold/tests/test_quantities_db.py
 reference_scaffold/tests/test_rec_import_batch_migration_db.py
 reference_scaffold/tests/test_rec_import_commit_migration_db.py
 reference_scaffold/tests/test_rec_plan_portions_migration_db.py
+reference_scaffold/tests/test_rec_shopping_persist_migration_db.py
 reference_scaffold/tests/test_recipe_ai_extraction.py
 reference_scaffold/tests/test_recipe_binding_migration_db.py
 reference_scaffold/tests/test_recipe_browser.py
@@ -1397,6 +1404,9 @@ reference_scaffold/tests/test_screen_template_navigation.py
 reference_scaffold/tests/test_screen_template_routes.py
 reference_scaffold/tests/test_screen_template_store.py
 reference_scaffold/tests/test_shopping_aggregate.py
+reference_scaffold/tests/test_shopping_list_browser.py
+reference_scaffold/tests/test_shopping_list_db.py
+reference_scaffold/tests/test_shopping_list_routes.py
 reference_scaffold/tests/test_signage_cafeteria_day.py
 reference_scaffold/tests/test_signage_cafeteria_week.py
 reference_scaffold/tests/test_signage_engine.py
