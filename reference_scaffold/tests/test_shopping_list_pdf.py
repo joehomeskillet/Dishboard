@@ -167,29 +167,18 @@ def test_line_without_name_prints_freitext():
 
 
 def test_section_heading_is_never_orphaned():
+    # 24 short lines leave room for the heading but not for the long first incomplete position on page 1
+    # (root red-check: the pre-fix renderer printed the heading alone at the bottom of page 1).
     filler = [_line(food_name=f'Füller{index:03d}', quantity='1', unit_code='STK', unit_name='Stück',
-                      line_key=f'fill{index}') for index in range(42)]
-    incomplete = _line(food_name='Unvollständig mit langem Namen ' + ('x' * 120), quantity=None,
-                       completeness='incomplete', reason='fehlende Menge', line_key='inc-long')
-    manual = {'public_id': 'm1', 'sort_order': 1, 'item_text': 'Manuell ' + ('y' * 120), 'quantity': '2',
-              'unit_code': 'STK', 'checked': False, 'row_version': 1}
-    detail = _detail(
-        selected_revision=_selected_revision(lines=filler, incomplete_lines=[incomplete]),
-        manual_items=(manual,),
-    )
-    reader = PdfReader(BytesIO(render(detail)))
-    sections = (
-        ('Einkaufspositionen', tuple(f'Füller{index:03d}' for index in range(42))),
-        ('Unvollständige Mengen', ('Unvollständig mit langem Namen', 'fehlende Menge')),
-        ('Manuelle Positionen', ('Manuell ',)),
-    )
-    for page in reader.pages:
-        page_body = page_text(page)
-        for heading, markers in sections:
-            if heading in page_body:
-                assert any(marker in page_body for marker in markers), (
-                    f'Section heading {heading!r} orphaned on page without content'
-                )
+                    line_key=f'f{index}') for index in range(24)]
+    incomplete = _line(food_name='Offen ' + 'lang ' * 60, quantity=None, completeness='incomplete',
+                       reason='fehlende Menge', line_key='inc')
+    detail = _detail(selected_revision=_selected_revision(lines=filler, incomplete_lines=[incomplete]))
+    pages = [page_text(page) for page in PdfReader(BytesIO(render(detail))).pages]
+    headed = [number for number, body in enumerate(pages) if 'Unvollständige Mengen' in body]
+    assert len(pages) >= 2
+    assert headed and headed != [0]
+    assert all('fehlende Menge' in pages[number] for number in headed)
 
 
 def test_invalid_revision_number_raises():
