@@ -8,7 +8,7 @@
 {% block content %}
 <p>Rezeptentwürfe finden und bearbeiten. Speichern veröffentlicht keinen Menüplan.</p>
 <form class="card mb-4" method="get" action="{{ url_for('admin.recipes_list') }}"><div class="card-body">
-<div class="row g-3 align-items-end"><div class="col-12 col-lg-8"><label class="form-label" for="text">Suche</label><input class="form-control" id="text" name="text" maxlength="200" value="{{ text }}" aria-describedby="text-hint">
+<div class="row g-3 align-items-end"><div class="col-12"><label class="form-label" for="text">Suche</label><input class="form-control" id="text" name="text" maxlength="200" value="{{ text }}" aria-describedby="text-hint">
 <p class="form-hint mb-0" id="text-hint">Durchsucht Titel, Zutaten und Zubereitung. Alle Wörter müssen vorkommen; "Anführungszeichen" suchen eine Wortfolge.</p></div>
 <div class="col-12 col-md-4"><label class="form-label" for="q">Nach Rezepttitel suchen</label><input class="form-control" id="q" name="q" maxlength="200" value="{{ query }}"></div>
 <div class="col-12 col-md-4"><label class="form-label" for="ingredient">Zutat</label><input class="form-control" id="ingredient" name="ingredient" maxlength="200" value="{{ ingredient }}"></div>
