@@ -309,9 +309,14 @@ def test_revision_link_preserves_only_valid_selected_yield(pdf_http):
     for requested, expected, status in [('6.500', '6.5', 200), ('NaN', '4', 400)]:
         response = client.get(path(frozen).removesuffix('/druck.pdf'), query_string={'yield': requested})
         assert response.status_code == status and 'PDF öffnen' in response.text
-        # v1 has no captured preparations, so the original wording stays exactly as it was.
-        assert 'keine Einheitenumrechnung' in response.text
-        assert 'festgehaltenen Einheiten' not in response.text
+        # The calculator hint lives on the explicit mode=scale page since the read-only
+        # document and the quantity calculator were split; v1 has no captured
+        # preparations, so its original wording stays exactly as it was.
+        calculated = client.get(path(frozen).removesuffix('/druck.pdf'),
+                                 query_string={'mode': 'scale', 'yield': requested})
+        assert calculated.status_code == status
+        assert 'keine Einheitenumrechnung' in calculated.text
+        assert 'festgehaltenen Einheiten' not in calculated.text
         links = Links()
         links.feed(response.text)
         assert len(links.urls) == 1
