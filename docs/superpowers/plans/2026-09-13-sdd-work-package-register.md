@@ -20,7 +20,7 @@ Manifest: 3 READY, 30 PLANNED, 4 AWAITING_EXTERNAL.
 
 | Original-ID | Manifeststatus | Auditierte Ist-Einordnung | Nächster Schritt / Blocker laut Audit | Quelle |
 |---|---|---|---|---|
-| MP-CALC-COST-CORE | READY | In HEAD: `f75bc3c`; Autorbericht 111 Tests zweimal. Manifest und unabhängigen Abnahmebeleg ergänzen; keine Neuimplementierung. | Vorhandene Belege prüfen; gezielt Kostenkern + quantities, wenn unabhängiger Beleg fehlt. | O:11 |
+| MP-CALC-COST-CORE | DEPLOYED | Abnahme 15.9.: `f75bc3c` im Livestand `47428b7`; Root-Nachprüfung `test_cost_calc.py` + `test_quantities.py` 111 passed (`operations-wps.json` `acceptance_2026_09_15`). | Keine UI-/Persistenzanbindung; Küchenabnahme extern offen. | O:11 |
 | MP-CALC-PATIENT-GUARD | PLANNED | In HEAD: `c72acc1`; Autorbericht 22 Tests zweimal. End-to-end Preisfreiheit ist dadurch nicht vollständig abgenommen. | DTO-Deny, Altpatientensnapshot, staff_guest-Preise; HTML/PDF-Kostenausschluss zuordnen. | O:12 |
 | MP-CALC-PRICE-LEDGER | PLANNED | Vorgesehener Store/Tests fehlen. Datierte immutable Preisrevisionen, CAS/ACL/Migration fehlen als Lieferbeleg. | Zwei konkurrierende Editionen, Intervallgrenzen, Altbytes, PG-Upgrade/Restore/ACL. | O:13 |
 | MP-CALC-RECIPE-PROJECTION | PLANNED | `recipe_cost.py` fehlt; Kosten aus exakt gewählter Rezept-/Preisrevision. | 250 G × 4 CHF/KG = 1 CHF; Preview ohne Writes, alte Preisedition stabil. | O:14 |
