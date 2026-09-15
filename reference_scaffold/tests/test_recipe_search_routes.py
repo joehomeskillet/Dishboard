@@ -95,6 +95,29 @@ def test_overlong_text_query_400_without_database_write(b3):  # noqa: F811
     assert complete_snapshot(owner) == before
 
 
+def test_control_character_text_query_400_without_database_write(b3):  # noqa: F811
+    _, owner, client, _ = b3
+    before = complete_snapshot(owner)
+    response = client.get('/admin/rezepte', query_string={'text': 'suppe\x00'})
+    assert response.status_code == 400 and response.headers['Cache-Control'] == 'no-store'
+    assert complete_snapshot(owner) == before
+
+
+def test_text_search_field_links_hint_with_aria_describedby(b3, search_lab):  # noqa: F811
+    response = b3[2].get('/admin/rezepte')
+    assert response.status_code == 200
+    html = response.text
+    assert re.search(
+        r'<input[^>]*\bid="text"[^>]*\baria-describedby="text-hint"[^>]*>',
+        html,
+    ) or re.search(
+        r'<input[^>]*\baria-describedby="text-hint"[^>]*\bid="text"[^>]*>',
+        html,
+    )
+    assert 'id="text-hint"' in html
+    assert 'Durchsucht Titel, Zutaten und Zubereitung' in html
+
+
 def test_list_without_text_unchanged(b3, search_lab):  # noqa: F811
     lab = search_lab
     lab['recipe']('Alpha Suppe')
