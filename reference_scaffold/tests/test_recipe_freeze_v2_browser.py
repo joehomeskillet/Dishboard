@@ -122,7 +122,7 @@ def test_preview_and_list_are_native_readonly_with_exact_prepared_selection(prep
         child = page.get_by_role('link', name='Hausgemachte Gemüsebasis · gespeicherter Stand', exact=True)
         expect(child.locator('..')).to_contain_text('Originalausbeute: 1000 G')
         assert '/revisionen/' in child.get_attribute('href')
-        expect(page.get_by_role('button', name='Revision festschreiben', exact=True)).to_be_visible()
+        expect(page.get_by_role('button', name='Gespeicherten Stand festhalten', exact=True)).to_be_visible()
         proof(page, tmp_path / f'freeze-preview-{width}.png', expected_status=200, requests=methods.copy())
         detail = page.get_by_text('Prüfnachweis anzeigen', exact=True)
         detail.focus()
@@ -150,7 +150,7 @@ def test_native_freeze_conflict_keeps_original_until_explicit_reload(ready, reci
         rename_food(ready)
         before = full_state(owner)
         with page.expect_response(lambda response: response.request.method == 'POST') as outcome:
-            page.get_by_role('button', name='Revision festschreiben', exact=True).click()
+            page.get_by_role('button', name='Gespeicherten Stand festhalten', exact=True).click()
         assert outcome.value.status == 409
         expect(page.get_by_role('heading', name='Rezeptaktion nicht möglich', exact=True)).to_be_visible()
         assert page.locator('input[name="_form_context"]').input_value() == original
@@ -164,9 +164,9 @@ def test_native_freeze_conflict_keeps_original_until_explicit_reload(ready, reci
         assert page.locator('input[name="_form_context"]').input_value() != original
         assert full_state(owner) == before
         with page.expect_response(lambda response: response.request.method == 'POST') as outcome:
-            page.get_by_role('button', name='Revision festschreiben', exact=True).click()
+            page.get_by_role('button', name='Gespeicherten Stand festhalten', exact=True).click()
         assert outcome.value.status == 303
-        expect(page.get_by_role('heading', name='Unveränderlicher Stand', exact=True)).to_be_visible()
+        expect(page.locator('.page-header-subtitle')).to_contain_text('Unveränderlicher Revisionsstand 1')
         assert '/revisionen/' in urlsplit(page.url).path
 
 
