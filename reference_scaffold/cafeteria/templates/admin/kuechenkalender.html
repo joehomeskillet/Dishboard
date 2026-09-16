@@ -1,0 +1,32 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header, icon %}
+{% set workflow_nav = 'calendar' %}
+{% block title %}Küchenkalender · Menüplanung{% endblock %}
+{% block page_header %}{{ page_header('Küchenkalender') }}{% endblock %}
+{% block content %}
+<p class="text-secondary">{{ icon('info-circle', class='text-secondary') }}Monat {{ month_label }}. Filter Standard: Cafeteria und Patienten.</p>
+<div class="table-responsive">
+<table class="table table-sm table-bordered mb-0" aria-label="Monatsraster Küchenkalender">
+  <thead>
+    <tr>
+      <th scope="col">Mo</th><th scope="col">Di</th><th scope="col">Mi</th>
+      <th scope="col">Do</th><th scope="col">Fr</th><th scope="col">Sa</th><th scope="col">So</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for week in weeks %}
+    <tr>
+      {% for cell in week %}
+      <td class="{% if not cell.in_month %}text-secondary{% endif %}">
+        <div class="fw-bold">{{ cell.date.day }}</div>
+        {% for row in cell.services %}
+        <span class="badge {{ 'bg-green-lt' if row.service_state == 'open' else 'bg-secondary-lt' }}">{{ row.profile_code }} {{ row.meal_code }}</span>
+        {% endfor %}
+      </td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
