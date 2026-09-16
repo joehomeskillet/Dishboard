@@ -49,6 +49,7 @@ MIGRATION_0028 = ROOT / 'database' / 'migrations' / '0028_v30_to_v31.sql'
 MIGRATION_0029 = ROOT / 'database' / 'migrations' / '0029_v31_to_v32.sql'
 MIGRATION_0030 = ROOT / 'database' / 'migrations' / '0030_v32_to_v33.sql'
 MIGRATION_0031 = ROOT / 'database' / 'migrations' / '0031_v33_to_v34.sql'
+MIGRATION_0032 = ROOT / 'database' / 'migrations' / '0032_v34_to_v35.sql'
 PERMISSIONS = ROOT / 'database' / 'permissions.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
@@ -852,8 +853,8 @@ def run_live_check() -> dict[str, Any]:
             ).tuples().all()
             shopping_guard_mismatches = shopping_live_guard_mismatches(connection)
             disabled_guard_mismatches = disabled_trigger_mismatches(connection)
-        if int(row['schema_version']) != 34:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 34.")
+        if int(row['schema_version']) != 35:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 35.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
         if {item['proname'] for item in v32_acl} != {
@@ -1199,6 +1200,21 @@ def main() -> int:
         if not mig_31_lines or mig_31_lines[0] != 'BEGIN;' or not migration_0031.rstrip().endswith('COMMIT;'):
             fail('Migration 0031 hat keinen strikten BEGIN/COMMIT-Vertrag.')
         check_shopping_list_artifacts(migration_0031, sql, permissions)
+        migration_0032 = MIGRATION_0032.read_text(encoding='utf-8')
+        mig_32_lines = [line.strip() for line in migration_0032.splitlines() if line.strip() and not line.strip().startswith('--')]
+        if not mig_32_lines or mig_32_lines[0] != 'BEGIN;' or not migration_0032.rstrip().endswith('COMMIT;'):
+            fail('Migration 0032 hat keinen strikten BEGIN/COMMIT-Vertrag.')
+        for fragment in (
+            "profile_scope IN ('patient', 'staff_guest', 'both')",
+            'kitchen_event_scope_protect_v35',
+            'guest_count integer NOT NULL DEFAULT 0',
+        ):
+            if fragment not in migration_0032 or fragment not in sql:
+                fail(f'Anlass-Kopf-Vertrag fehlt: {fragment}')
+        if 'CREATE TABLE kitchen_events' not in migration_0032:
+            fail('Anlass-Kopf-Vertrag fehlt: CREATE TABLE kitchen_events')
+        if 'CREATE TABLE IF NOT EXISTS kitchen_events' not in sql:
+            fail('Anlass-Kopf-Vertrag fehlt: CREATE TABLE IF NOT EXISTS kitchen_events')
         migration_0026 = MIGRATION_0026.read_text(encoding='utf-8')
         if not migration_0026.startswith('BEGIN;') or not migration_0026.rstrip().endswith('COMMIT;'):
             fail('Migration 0026 hat keinen strikten BEGIN/COMMIT-Vertrag.')
@@ -1334,6 +1350,7 @@ def main() -> int:
             MIGRATION_0029: '55c703040fe2461654d869be983548bf6d1c40ce5ce769c3dedddaf6146dd2da',
             MIGRATION_0030: 'df6363e0d5539afa0cc67bed192e32d1bcb38a8f531bd2ebc28835118c7a32c2',
             MIGRATION_0031: '3aeb090c46b080a65eb0d4c548b982f05eadca6807c0e8ede3f772d0f88f4a3c',
+            MIGRATION_0032: '6eeec799dad37cb60bc54cdaf691c5abd0c451244e4b4931fe34ea3ee359ca41',
         }
         for migration_path, expected_checksum in immutable_migration_checksums.items():
             actual_checksum = hashlib.sha256(migration_path.read_bytes()).hexdigest()
@@ -1355,7 +1372,7 @@ def main() -> int:
             'recipe_assets', 'recipe_revisions', 'cookbooks', 'cookbook_recipes',
             'recipe_import_batches', 'recipe_import_candidates',
             'shopping_lists', 'shopping_list_revisions', 'shopping_list_manual_items',
-            'shopping_list_line_status',
+            'shopping_list_line_status', 'kitchen_events',
         }
         missing = required_tables - set(tables)
         if missing:
@@ -1600,7 +1617,7 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 34,
+            'schema_version': 35,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
@@ -1633,6 +1650,7 @@ def main() -> int:
                 '0029_v31_to_v32.sql': hashlib.sha256(MIGRATION_0029.read_bytes()).hexdigest(),
                 '0030_v32_to_v33.sql': hashlib.sha256(MIGRATION_0030.read_bytes()).hexdigest(),
                 '0031_v33_to_v34.sql': hashlib.sha256(MIGRATION_0031.read_bytes()).hexdigest(),
+                '0032_v34_to_v35.sql': hashlib.sha256(MIGRATION_0032.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

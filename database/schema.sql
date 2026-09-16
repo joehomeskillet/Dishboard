@@ -5538,6 +5538,56 @@ CREATE TRIGGER shopping_list_revisions_no_truncate BEFORE TRUNCATE ON shopping_l
     FOR EACH STATEMENT EXECUTE FUNCTION shopping_list_revision_protect_v34();
 -- schema34: shopping lists end.
 
+-- schema35: kitchen events.
+CREATE TABLE IF NOT EXISTS kitchen_events (
+    id bigint GENERATED ALWAYS AS IDENTITY,
+    public_id uuid NOT NULL DEFAULT gen_random_uuid(),
+    location_id bigint NOT NULL,
+    event_date date NOT NULL,
+    starts_at time,
+    ends_at time,
+    profile_scope text NOT NULL,
+    title text NOT NULL,
+    guest_count integer NOT NULL DEFAULT 0,
+    note text,
+    row_version bigint NOT NULL DEFAULT 1,
+    created_by bigint NOT NULL,
+    updated_by bigint NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    archived_at timestamptz,
+    CONSTRAINT kitchen_events_pkey PRIMARY KEY (id),
+    CONSTRAINT kitchen_events_public_id_key UNIQUE (public_id),
+    CONSTRAINT kitchen_events_location_id_fkey FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE RESTRICT,
+    CONSTRAINT kitchen_events_created_by_fkey FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT,
+    CONSTRAINT kitchen_events_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE RESTRICT,
+    CONSTRAINT kitchen_events_profile_scope_check CHECK (profile_scope IN ('patient', 'staff_guest', 'both')),
+    CONSTRAINT kitchen_events_title_check CHECK (title = btrim(title, E' \t\r\n') AND length(title) BETWEEN 1 AND 120),
+    CONSTRAINT kitchen_events_note_check CHECK (note IS NULL OR (note = btrim(note, E' \t\r\n') AND length(note) <= 2000)),
+    CONSTRAINT kitchen_events_guest_count_check CHECK (guest_count >= 0),
+    CONSTRAINT kitchen_events_row_version_check CHECK (row_version > 0),
+    CONSTRAINT kitchen_events_time_window_check CHECK (starts_at IS NULL OR ends_at IS NULL OR ends_at > starts_at)
+);
+
+CREATE INDEX IF NOT EXISTS kitchen_events_location_date_idx
+    ON kitchen_events(location_id, event_date)
+    WHERE archived_at IS NULL;
+
+CREATE TRIGGER trg_kitchen_events_version BEFORE UPDATE ON kitchen_events
+    FOR EACH ROW EXECUTE FUNCTION bump_row_version_and_updated_at();
+
+CREATE FUNCTION kitchen_event_scope_protect_v35() RETURNS trigger
+LANGUAGE plpgsql SET search_path=pg_catalog,cafeteria,pg_temp AS $fn$
+BEGIN
+    IF NEW.location_id IS DISTINCT FROM OLD.location_id THEN
+        RAISE EXCEPTION 'Der Standort eines Anlasses ist unveränderlich.' USING ERRCODE='55000';
+    END IF;
+    RETURN NEW;
+END;$fn$;
+CREATE TRIGGER kitchen_events_scope_protect BEFORE UPDATE ON kitchen_events
+    FOR EACH ROW EXECUTE FUNCTION kitchen_event_scope_protect_v35();
+-- schema35: kitchen events end.
+
 -- Prepared foods schema27 begin.
 
 -- Fail before DDL, sequences or ledger writes; an explicit v21 backfill is separate.

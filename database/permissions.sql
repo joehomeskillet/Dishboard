@@ -326,6 +326,14 @@ GRANT SELECT ON SEQUENCE
 TO cafeteria_backup;
 -- Schema34 shopping list grants end.
 
+-- Schema35 kitchen event grants begin.
+REVOKE ALL ON FUNCTION kitchen_event_scope_protect_v35()
+FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
+GRANT SELECT, INSERT, UPDATE, DELETE ON kitchen_events TO cafeteria_app;
+GRANT SELECT ON kitchen_events TO cafeteria_backup;
+GRANT SELECT ON SEQUENCE kitchen_events_id_seq TO cafeteria_backup;
+-- Schema35 kitchen event grants end.
+
 -- Prepared foods schema27 grants begin.
 REVOKE ALL ON FUNCTION lock_prepared_graph_v27(bigint),recipe_snapshot_complete_v27(jsonb),
     check_prepared_graph_v27(bigint,uuid,bigint),assert_food_complete_v27(bigint),enforce_food_complete_v27(),

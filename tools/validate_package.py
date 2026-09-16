@@ -98,6 +98,7 @@ REQUIRED_FILES = (
     'database/migrations/0029_v31_to_v32.sql',
     'database/migrations/0030_v32_to_v33.sql',
     'database/migrations/0031_v33_to_v34.sql',
+    'database/migrations/0032_v34_to_v35.sql',
     'reference_scaffold/cafeteria/auth/local_users.py',
     'reference_scaffold/cafeteria/auth/access_events.py',
     'database/seed.sql', 'database/seed_demo.sql', 'database/permissions.sql',
@@ -146,6 +147,7 @@ MIGRATION_CHECKSUMS = {
     '0029_v31_to_v32.sql': '55c703040fe2461654d869be983548bf6d1c40ce5ce769c3dedddaf6146dd2da',
     '0030_v32_to_v33.sql': 'df6363e0d5539afa0cc67bed192e32d1bcb38a8f531bd2ebc28835118c7a32c2',
     '0031_v33_to_v34.sql': '3aeb090c46b080a65eb0d4c548b982f05eadca6807c0e8ede3f772d0f88f4a3c',
+    '0032_v34_to_v35.sql': '6eeec799dad37cb60bc54cdaf691c5abd0c451244e4b4931fe34ea3ee359ca41',
 }
 
 
@@ -331,10 +333,10 @@ def main() -> int:
     check(db_result.returncode == 0, f'Schema-Validator fehlgeschlagen: {db_result.stderr or db_result.stdout}')
     if db_result.returncode == 0:
         status = json.loads(db_result.stdout)
-        check(status.get('tables') == 58, 'Schema enthaelt nicht 58 Tabellen.')
+        check(status.get('tables') == 59, 'Schema enthaelt nicht 59 Tabellen.')
         check(status.get('application_roles') == 3, 'Schema enthaelt nicht drei Rollen.')
         check(status.get('offer_profiles') == 2, 'Schema enthaelt nicht zwei Profile.')
-        check(status.get('schema_version') == 34, 'Schema-Version ist nicht 34.')
+        check(status.get('schema_version') == 35, 'Schema-Version ist nicht 35.')
         check(status.get('patient_services') == 14, 'Demo-Seed enthaelt nicht 14 Patienten-Services.')
         check(status.get('cafeteria_services') == 5, 'Demo-Seed enthaelt nicht 5 Cafeteria-Services.')
 
@@ -367,6 +369,7 @@ def main() -> int:
     migration_files.append('0029_v31_to_v32.sql')
     migration_files.append('0030_v32_to_v33.sql')
     migration_files.append('0031_v33_to_v34.sql')
+    migration_files.append('0032_v34_to_v35.sql')
 
     for mig_file in migration_files:
         mig_path = migrations_dir / mig_file
