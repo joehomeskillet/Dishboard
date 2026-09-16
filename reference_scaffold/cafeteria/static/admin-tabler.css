@@ -519,6 +519,11 @@
   color: var(--app-primary); font-weight: 600;
 }
 .kitchen-cal-empty { margin: var(--app-space-2) 0; color: var(--app-text-muted); }
+.kitchen-cal-event {
+  display: block; min-height: 44px; padding-block: var(--app-space-1);
+  font-weight: 600; color: var(--app-primary);
+}
+.kitchen-cal-event:is(:hover, :focus-visible) { text-decoration: underline; }
 .kitchen-cal-notice { margin: 0; font-size: var(--app-font-size-small); }
 .kitchen-cal-list { display: none; list-style: none; padding: 0; margin: 0; }
 .kitchen-cal-list-day {

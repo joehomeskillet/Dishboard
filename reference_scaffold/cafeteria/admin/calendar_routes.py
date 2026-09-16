@@ -1,12 +1,14 @@
 """Kitchen calendar admin route: month jump, prev/next, draft.read."""
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import date
 
 from flask import current_app, make_response, render_template, request
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.wrappers import Response
 
+from ..calendar_event_store import list_events
 from ..calendar_month import annotate_month, month_weeks, present_month
 from ..calendar_reads import effective_today, list_calendar_range
 from ..component_catalog_store import ComponentCatalogConfigurationError
@@ -59,16 +61,34 @@ def kitchen_calendar() -> Response:
     prev_year, prev_month = _shift_month(year, month, -1)
     next_year, next_month = _shift_month(year, month, 1)
     services: tuple[dict, ...] = ()
+    events: tuple[dict, ...] = ()
     status = 200
     try:
         engine = current_app.extensions['cafeteria_db']
         location = get_location(engine)
         services = list_calendar_range(engine, location, date_from, date_to)
+        events = list_events(engine, location, date_from, date_to)
     except (ComponentCatalogConfigurationError, SQLAlchemyError, KeyError, TypeError):
         status = 503
     weeks = present_month(
         annotate_month(year, month, services, profiles=allowed), today,
     )
+    visible_scopes = {'patient', 'staff_guest', 'both'}
+    if profiles == 'patient':
+        visible_scopes = {'patient', 'both'}
+    elif profiles == 'cafeteria':
+        visible_scopes = {'staff_guest', 'both'}
+    by_day: dict[date, list[dict]] = defaultdict(list)
+    for event in events:
+        if str(event['profile_scope']) not in visible_scopes:
+            continue
+        day = event['event_date']
+        if not isinstance(day, date):
+            day = date.fromisoformat(str(day))
+        by_day[day].append(event)
+    for week in weeks:
+        for cell in week:
+            cell['events'] = by_day.get(cell['date'], [])
     allowed_caps = capabilities()
     can_write = '*' in allowed_caps or 'draft.write' in allowed_caps
     plan_family = 'patienten' if profiles == 'patient' else 'cafeteria'

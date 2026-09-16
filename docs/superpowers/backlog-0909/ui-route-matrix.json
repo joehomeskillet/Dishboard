@@ -17,9 +17,9 @@
     "baseline_status": "proposed_never_user_approved",
     "generated_at": "2026-09-13T07:15:51.719096+00:00",
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
-    "route_count": 139,
-    "template_count": 88,
-    "html_route_count": 71,
+    "route_count": 143,
+    "template_count": 89,
+    "html_route_count": 73,
     "design_manifest_commit": "39625ccc0d8b576fae9edaeb8cf0b5c70b1af912",
     "browser_status": "not_run",
     "usability_status": "not_run"
@@ -8739,6 +8739,146 @@
         "usability_status": "not_run",
         "notes": "R11 viewports: 390×844, 1440×900, 1024×768, 768×1024, 1920×1080. layout_variant=calendar. Playwright-Capture nicht gelaufen."
       }
+    },
+    {
+      "endpoint": "admin.kitchen_event_new",
+      "rule": "/admin/kuechenkalender/anlass",
+      "methods": ["GET"],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": ["admin/kuechenkalender_anlass.html"],
+      "capability": "draft.write",
+      "roles": ["Cafeteria.Editor", "Cafeteria.Publisher", "Cafeteria.Admin"],
+      "method_roles": {},
+      "layout_variant": "calendar",
+      "owning_mp": "MP-CAL-EVENTS-UI",
+      "family_variants": [],
+      "module": "cafeteria.admin.calendar_event_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": ["default", "access_denied_401"],
+      "hooks": ["admin.js", "tabler.min.js", "csrf"],
+      "density": {
+        "mockups": ["M01", "M20"],
+        "rules": ["R01", "R02", "R03", "R04", "R05", "R06", "R07", "R08", "R09", "R10"],
+        "acceptance": ["A01"],
+        "owning_mp": "MP-CAL-EVENTS-UI",
+        "core_task": "Anlass anlegen",
+        "example_url": "/admin/kuechenkalender/anlass",
+        "example_semantics": "date Query-Parameter optional.",
+        "fixture_source": "reference_scaffold/tests/test_calendar_event_routes.py",
+        "state_evidence": {"default": "not_run", "access_denied_401": "not_run"},
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_run",
+        "usability_status": "not_run",
+        "notes": "R11 viewports: 390×844, 1440×900, 1024×768, 768×1024, 1920×1080. layout_variant=calendar."
+      }
+    },
+    {
+      "endpoint": "admin.kitchen_event_create",
+      "rule": "/admin/kuechenkalender/anlass",
+      "methods": ["POST"],
+      "blueprint": "admin",
+      "classification": "form",
+      "visual": false,
+      "templates": ["admin/kuechenkalender_anlass.html"],
+      "capability": "draft.write",
+      "roles": ["Cafeteria.Editor", "Cafeteria.Publisher", "Cafeteria.Admin"],
+      "method_roles": {},
+      "layout_variant": "calendar",
+      "owning_mp": "MP-CAL-EVENTS-UI",
+      "family_variants": [],
+      "module": "cafeteria.admin.calendar_event_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": ["admin.js", "csrf"],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": ["A01"],
+        "owning_mp": "MP-CAL-EVENTS-UI",
+        "core_task": "Anlass speichern",
+        "example_url": "/admin/kuechenkalender/anlass",
+        "example_semantics": "POST, Redirect zum Monat.",
+        "fixture_source": "reference_scaffold/tests/test_calendar_event_routes.py",
+        "state_evidence": {},
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "notes": "Kein eigener Screen."
+      }
+    },
+    {
+      "endpoint": "admin.kitchen_event_edit",
+      "rule": "/admin/kuechenkalender/anlass/<public_id>",
+      "methods": ["GET"],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": ["admin/kuechenkalender_anlass.html"],
+      "capability": "draft.read",
+      "roles": ["Cafeteria.Editor", "Cafeteria.Publisher", "Cafeteria.Admin"],
+      "method_roles": {},
+      "layout_variant": "calendar",
+      "owning_mp": "MP-CAL-EVENTS-UI",
+      "family_variants": [],
+      "module": "cafeteria.admin.calendar_event_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": ["default", "access_denied_401"],
+      "hooks": ["admin.js", "tabler.min.js", "csrf"],
+      "density": {
+        "mockups": ["M01", "M20"],
+        "rules": ["R01", "R02", "R03", "R04", "R05", "R06", "R07", "R08", "R09", "R10"],
+        "acceptance": ["A01"],
+        "owning_mp": "MP-CAL-EVENTS-UI",
+        "core_task": "Anlass bearbeiten",
+        "example_url": "/admin/kuechenkalender/anlass/{public_id}",
+        "example_semantics": "public_id ist fixture-erzeugt.",
+        "fixture_source": "reference_scaffold/tests/test_calendar_event_routes.py",
+        "state_evidence": {"default": "not_run", "access_denied_401": "not_run"},
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_run",
+        "usability_status": "not_run",
+        "notes": "R11 viewports: 390×844, 1440×900, 1024×768, 768×1024, 1920×1080. layout_variant=calendar."
+      }
+    },
+    {
+      "endpoint": "admin.kitchen_event_save",
+      "rule": "/admin/kuechenkalender/anlass/<public_id>",
+      "methods": ["POST"],
+      "blueprint": "admin",
+      "classification": "form",
+      "visual": false,
+      "templates": ["admin/kuechenkalender_anlass.html"],
+      "capability": "draft.write",
+      "roles": ["Cafeteria.Editor", "Cafeteria.Publisher", "Cafeteria.Admin"],
+      "method_roles": {},
+      "layout_variant": "calendar",
+      "owning_mp": "MP-CAL-EVENTS-UI",
+      "family_variants": [],
+      "module": "cafeteria.admin.calendar_event_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": ["admin.js", "csrf"],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": ["A01"],
+        "owning_mp": "MP-CAL-EVENTS-UI",
+        "core_task": "Anlass aktualisieren",
+        "example_url": "/admin/kuechenkalender/anlass/{public_id}",
+        "example_semantics": "POST, Redirect zum Monat.",
+        "fixture_source": "reference_scaffold/tests/test_calendar_event_routes.py",
+        "state_evidence": {},
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "notes": "Kein eigener Screen."
+      }
     }
   ],
   "templates": [
@@ -9951,11 +10091,34 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "ba48787ba32f1975d6b1bb460b01c7c702aefc5a313696d202c62bb1b784da0a",
+      "sha256": "93a9e457d5b1ca72572954adb476ccf8f6868f6820ee34382c841aee80ff91a9",
       "used_by_endpoints": [
         "admin.kitchen_calendar"
       ],
       "owning_mp": "MP-CAL-MONTH",
+      "density_mockups": [
+        "M01",
+        "M20"
+      ],
+      "current_visual_status": "not_run"
+    },
+    {
+      "path": "admin/kuechenkalender_anlass.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "930c3eaad1092970c1a6bb19e380bb36d9ae18fd8842707bcc4e9a4b3533bf34",
+      "used_by_endpoints": [
+        "admin.kitchen_event_create",
+        "admin.kitchen_event_edit",
+        "admin.kitchen_event_new",
+        "admin.kitchen_event_save"
+      ],
+      "owning_mp": "MP-CAL-EVENTS-UI",
       "density_mockups": [
         "M01",
         "M20"

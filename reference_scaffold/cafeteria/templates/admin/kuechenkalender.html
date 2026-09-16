@@ -12,6 +12,9 @@
 {{ url_for('admin.menu_get', family=family, week=week_start.isoformat(), day=day.isoformat(), meal=meal, option=type_code) }}
 {%- endmacro %}
 {%- macro day_body(cell) -%}
+  {% for event in cell.events %}
+  <a class="kitchen-cal-event" href="{{ url_for('admin.kitchen_event_edit', public_id=event.public_id) }}">{{ event.title }}</a>
+  {% endfor %}
   {% if cell.groups %}
     {% for group in cell.groups %}
     <section class="kitchen-cal-area" aria-label="{{ group.profile_label }}">
@@ -35,7 +38,7 @@
       {% endfor %}
     </section>
     {% endfor %}
-  {% else %}
+  {% elif not cell.events %}
     <p class="kitchen-cal-empty">Keine Einträge</p>
     {% if can_write %}
     <a class="btn" href="{{ plan_href(cell.date, plan_family, cell.plan_week_start) }}">{{ icon('plus') }}Planen</a>
@@ -53,6 +56,9 @@
     </form>
     <a class="btn" href="{{ url_for('admin.kitchen_calendar', year=next_year, month=next_month, profiles=profiles) }}" aria-label="Nächster Monat">{{ icon('chevron-right') }}</a>
     <a class="btn{% if year == today.year and month == today.month %} btn-primary{% endif %}" href="{{ url_for('admin.kitchen_calendar', year=today.year, month=today.month, profiles=profiles) }}">Heute</a>
+    {% if can_write %}
+    <a class="btn" href="{{ url_for('admin.kitchen_event_new', date=jump_value + '-01') }}">{{ icon('plus') }}Anlass</a>
+    {% endif %}
   </div>
   <div class="kitchen-cal-filters" role="group" aria-label="Anzeigen">
     <span class="kitchen-cal-filters-label">Anzeigen:</span>

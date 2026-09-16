@@ -151,6 +151,7 @@ def present_month(
                 ),
                 'plan_week_start': _week_start(day),
                 'groups': groups,
+                'events': [],
             })
         presented.append(row)
     return presented

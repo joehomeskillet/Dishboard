@@ -1,0 +1,31 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header, icon, field, select, textarea, form_errors %}
+{% set workflow_nav = 'calendar' %}
+{% set layout_variant = 'calendar' %}
+{% block title %}{{ 'Anlass bearbeiten' if event else 'Anlass anlegen' }} · Küchenkalender{% endblock %}
+{% block page_header %}
+{% call page_header('Anlass' if event else 'Neuer Anlass', breadcrumbs=[('Küchenkalender', url_for('admin.kitchen_calendar')), ('Anlass', none)]) %}
+<a class="btn" href="{{ url_for('admin.kitchen_calendar') }}">{{ icon('arrow-left') }}Zum Kalender</a>
+{% endcall %}
+{% endblock %}
+{% block content %}
+{% if field_errors %}{{ form_errors(field_errors) }}{% endif %}
+<form class="card" method="post" action="{{ url_for('admin.kitchen_event_save', public_id=event.public_id) if event else url_for('admin.kitchen_event_create') }}">
+  <div class="card-body">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    {% if values.row_version %}<input type="hidden" name="row_version" value="{{ values.row_version }}">{% endif %}
+    <div class="mb-3">{{ field('event_date', 'Datum', values.event_date, type='date', required=true, error=field_errors.get('event_date')) }}</div>
+    <div class="mb-3">{{ field('starts_at', 'Beginn', values.starts_at, type='time', required=false, error=field_errors.get('starts_at')) }}</div>
+    <div class="mb-3">{{ field('ends_at', 'Ende', values.ends_at, type='time', required=false, error=field_errors.get('ends_at')) }}</div>
+    <div class="mb-3">
+      {% call select('profile_scope', 'Bereich', value=values.profile_scope, error=field_errors.get('profile_scope')) %}
+      {% for code in scopes %}<option value="{{ code }}"{% if values.profile_scope == code %} selected{% endif %}>{{ scope_labels[code] }}</option>{% endfor %}
+      {% endcall %}
+    </div>
+    <div class="mb-3">{{ field('title', 'Titel', values.title, required=true, error=field_errors.get('title')) }}</div>
+    <div class="mb-3">{{ field('guest_count', 'Gästezahl', values.guest_count, type='number', required=true, error=field_errors.get('guest_count'), hint='Dient nur der Anzeige, skaliert keine Mengen.') }}</div>
+    <div class="mb-3">{{ textarea('note', 'Notiz', values.note, required=false, rows=3, error=field_errors.get('note')) }}</div>
+    <button class="btn btn-primary" type="submit">{{ icon('device-floppy') }}Speichern</button>
+  </div>
+</form>
+{% endblock %}
