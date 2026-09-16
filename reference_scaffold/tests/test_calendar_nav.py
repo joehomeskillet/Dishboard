@@ -1,6 +1,7 @@
 """CAL-NAV: kitchen calendar menu, prev/next, date jump, draft.read."""
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import date
 from pathlib import Path
@@ -85,9 +86,16 @@ def test_matrix_documents_calendar_route_and_r11() -> None:
     assert row['layout_variant'] == 'calendar'
     assert row['owning_mp'] == 'MP-CAL-NAV'
     assert row['capability'] == 'draft.read'
+    assert {'M01', 'M20'} <= set(row['density']['mockups'])
+    assert set(row['density']['rules']) == {f'R{i:02d}' for i in range(1, 11)}
     notes = row['density']['notes']
     for viewport in ('390×844', '1440×900', '1024×768', '768×1024', '1920×1080'):
         assert viewport in notes
     template = next(item for item in matrix['templates'] if item['path'] == 'admin/kuechenkalender.html')
     assert 'admin.kitchen_calendar' in template['used_by_endpoints']
     assert template['owning_mp'] == 'MP-CAL-MONTH'
+    for path in ('admin/_area_tabs.html', 'admin/_workflow_sidebar.html'):
+        partial = next(item for item in matrix['templates'] if item['path'] == path)
+        assert 'admin.kitchen_calendar' in partial['used_by_endpoints']
+        disk = SCAFFOLD / 'cafeteria' / 'templates' / path
+        assert hashlib.sha256(disk.read_bytes()).hexdigest() == partial['sha256']

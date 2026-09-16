@@ -8707,13 +8707,20 @@
       ],
       "density": {
         "mockups": [
-          "M01"
+          "M01",
+          "M20"
         ],
         "rules": [
           "R01",
           "R02",
+          "R03",
+          "R04",
           "R05",
-          "R09"
+          "R06",
+          "R07",
+          "R08",
+          "R09",
+          "R10"
         ],
         "acceptance": [
           "A01"
@@ -8950,7 +8957,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "49f3d2721e0a444becf84430ac7b9ca1be17956b25c420a2042899a9723e5ec6",
+      "sha256": "b4f292de5a7bbd3bdce7aefa982e4d186a090e404d8829fc439ad8ee1a095672",
       "used_by_endpoints": [
         "admin.access_history",
         "admin.api_overview",
@@ -8972,6 +8979,7 @@
         "admin.dish_templates_list",
         "admin.display_settings",
         "admin.import_preview",
+        "admin.kitchen_calendar",
         "admin.local_user_detail",
         "admin.local_user_events",
         "admin.local_user_new",
@@ -9304,7 +9312,7 @@
         "_brand_logo.html",
         "admin/_macros.html"
       ],
-      "sha256": "97d34f947a936fd295643933232f9ffcc0d7d1c57d832444d7cc0d4937ce9d30",
+      "sha256": "f39ef288d326785e7157adbbc314bdce020f7e87501dc0bbc04a7e2f5d839cad",
       "used_by_endpoints": [
         "admin.access_history",
         "admin.api_overview",
@@ -9326,6 +9334,7 @@
         "admin.dish_templates_list",
         "admin.display_settings",
         "admin.import_preview",
+        "admin.kitchen_calendar",
         "admin.local_user_detail",
         "admin.local_user_events",
         "admin.local_user_new",
