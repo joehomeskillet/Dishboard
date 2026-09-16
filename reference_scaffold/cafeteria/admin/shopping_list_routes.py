@@ -10,6 +10,7 @@ field and linked from the summary; submitted values are kept.
 """
 from __future__ import annotations
 
+from datetime import timedelta
 from itertools import groupby
 from typing import Mapping, NoReturn, cast
 
@@ -117,7 +118,9 @@ def _weeks(location_id: int) -> tuple[dict[str, str], ...]:
         label = f"{row['week_start']:%d.%m.%Y} · {_PROFILE_LABELS.get(row['profile_code'], row['profile_code'])}"
         if row['title']:
             label += f" · {row['title']}"
-        result.append({'public_id': str(row['public_id']), 'label': label})
+        result.append({
+            'public_id': str(row['public_id']), 'label': label, 'week_start': row['week_start'],
+        })
     return tuple(result)
 
 
@@ -208,8 +211,15 @@ def _detail_page(
     week_public_id = compute_week if compute_week is not None else (detail['menu_week_public_id'] or '')
     candidates: tuple[Mapping[str, object], ...] = ()
     if week_public_id and is_latest_view and can_write and not detail['archived_at']:
+        week = next((item for item in weeks if item['public_id'] == week_public_id), None)
         try:
-            candidates = store.candidate_components(_db(), scope, menu_week_public_id=week_public_id)
+            if week is None:
+                raise store.ShoppingListNotFoundError('Woche nicht gefunden.')
+            start = week['week_start']
+            candidates = store.candidate_components(
+                _db(), scope, date_from=start, date_to=start + timedelta(days=6),
+                menu_week_public_id=week_public_id,
+            )
         except store.ShoppingListError:
             candidates = ()
     element_ids: Mapping[str, str] = {}
