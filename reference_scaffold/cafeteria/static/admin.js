@@ -588,3 +588,10 @@ document.querySelectorAll('[data-bs-toggle="offcanvas"][aria-controls]').forEach
     target.addEventListener('shown.bs.offcanvas', () => toggle.setAttribute('aria-expanded', 'true'));
     target.addEventListener('hidden.bs.offcanvas', () => toggle.setAttribute('aria-expanded', 'false'));
 });
+
+document.querySelectorAll('form[data-autosubmit]').forEach(form => {
+    form.addEventListener('change', () => {
+        if (typeof form.requestSubmit === 'function') form.requestSubmit();
+        else form.submit();
+    });
+});

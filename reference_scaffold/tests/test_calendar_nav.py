@@ -74,8 +74,16 @@ def test_template_has_prev_next_jump_and_calendar_layout() -> None:
     assert 'admin.kitchen_calendar' in text
     assert 'prev_year' in text and 'next_year' in text
     assert 'name="jump"' in text
+    assert 'data-autosubmit' in text
+    assert 'Heute' in text
+    assert 'kitchen-cal-toolbar' in text
+    assert 'kitchen-cal-list' in text
+    assert 'Keine Einträge' in text
+    assert 'Zum Monat' not in text
     assert 'profiles=both' in text or "profiles='both'" in text
     assert '<script' not in text.lower()
+    assert 'patient LUNCH' not in text
+    assert 'staff_guest LUNCH' not in text
 
 
 def test_matrix_documents_calendar_route_and_r11() -> None:

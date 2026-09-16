@@ -14,7 +14,7 @@ def test_effective_today_uses_europe_zurich() -> None:
 
 
 def test_list_calendar_range_sql_is_one_between_query() -> None:
-    assert calendar_reads._SERVICES.count('SELECT') == 1
-    assert 'BETWEEN :start AND :end' in calendar_reads._SERVICES
+    assert calendar_reads._SERVICES.count('BETWEEN :start AND :end') == 1
+    assert 'menu_items' in calendar_reads._SERVICES
     assert list_calendar_range.__doc__ is not None
 

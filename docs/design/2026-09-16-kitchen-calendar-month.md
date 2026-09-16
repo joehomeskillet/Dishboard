@@ -31,6 +31,14 @@ Raster. Anlässe sind Marker, nicht `menu_weeks.workflow_state`.
 - `layout_variant=calendar`
 - Tokens und Tabler aus dem Unified-UI-Manifest; keine harten Hex-Farben
 
+## Werkzeugleiste und Darstellung (2026-09-16)
+
+Eine gemeinsame Kalender-Werkzeugleiste: Vor/Zurück, zentrale Monatsauswahl (`type=month`, autosubmit, Filter bleibt in der URL), «Heute», Bereichsfilter Beide/Cafeteria/Patienten. Kein zusätzlicher Bestätigungsbutton mit JS; ohne JS bleibt ein `noscript`-Absenden.
+
+Raster: sieben gleich breite Spalten, Mindestzellenhöhe, Nachbartage gedämpft, Heute über `effective_today()` (Europe/Zurich). Sichtbare Labels: `staff_guest`→Cafeteria, `patient`→Patienten, `LUNCH`→Mittagessen, `DINNER`→Abendessen. Menütitel aus `menu_items` in derselben Bereichsabfrage. Status nur aus `service_state` (Geschlossen/Feiertag/Betriebsferien), nie aus leerem Tag oder Wochenende.
+
+Mobil unter 768px: Tagesliste des gewählten Monats statt sieben Mini-Spalten, dieselben Filter und Aktionen. Tageskopf führt in den bestehenden Wochenplan; Menütitel auf `admin.menu_get`.
+
 ## Nicht in diesem Entscheid
 
-Schema 0032, Anlass-Bausteine, Einkaufssummen im Raster, Tages-/Listenansicht (später).
+Schema 0032, Anlass-Bausteine, Einkaufssummen im Raster. MP-CAL-DAY/LIST als eigene Pakete bleiben später; die mobil Liste ist die responsive Darstellung desselben Monats.

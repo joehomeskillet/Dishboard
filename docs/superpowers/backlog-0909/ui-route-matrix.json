@@ -9951,7 +9951,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "fb37d812290af9d1e02df77661b8ac2cf54561db14ee7eac38674a08f7d7b11b",
+      "sha256": "ba48787ba32f1975d6b1bb460b01c7c702aefc5a313696d202c62bb1b784da0a",
       "used_by_endpoints": [
         "admin.kitchen_calendar"
       ],

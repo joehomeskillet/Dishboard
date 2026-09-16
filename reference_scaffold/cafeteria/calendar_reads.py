@@ -1,6 +1,7 @@
 """Kitchen calendar range reader: one service_date query, Zurich today."""
 from __future__ import annotations
 
+import json
 from datetime import date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -14,11 +15,19 @@ _SERVICES = """
            s.service_state, COALESCE(s.notice, '') AS notice, s.row_version,
            to_char(s.service_start, 'HH24:MI') AS service_start,
            to_char(s.service_end, 'HH24:MI') AS service_end,
-           w.week_start, w.workflow_state, w.public_id AS week_public_id
+           w.week_start, w.workflow_state, w.public_id AS week_public_id,
+           coalesce(items.menus, '[]'::jsonb) AS menus
     FROM cafeteria.menu_services s
     JOIN cafeteria.menu_weeks w ON w.id=s.menu_week_id
     JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
     JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id
+    LEFT JOIN LATERAL (
+        SELECT jsonb_agg(jsonb_build_object('title', i.title, 'type_code', mt.code)
+                         ORDER BY mt.sort_order, i.sort_order) AS menus
+        FROM cafeteria.menu_items i
+        JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id
+        WHERE i.service_id=s.id
+    ) items ON true
     WHERE w.location_id=:location_id AND s.service_date BETWEEN :start AND :end
     ORDER BY s.service_date, p.code, mp.sort_order
 """
@@ -54,4 +63,27 @@ def list_calendar_range(
         'week_start': row['week_start'],
         'workflow_state': row['workflow_state'],
         'week_public_id': str(row['week_public_id']),
+        'menus': _menus(row['menus']),
     } for row in rows)
+
+
+def _menus(raw: object) -> tuple[dict[str, str], ...]:
+    if raw in (None, '', b''):
+        payload: object = []
+    elif isinstance(raw, (bytes, bytearray)):
+        payload = json.loads(raw)
+    elif isinstance(raw, str):
+        payload = json.loads(raw)
+    else:
+        payload = raw
+    if not isinstance(payload, list):
+        return ()
+    items = []
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        title = str(item.get('title') or '').strip()
+        if not title:
+            continue
+        items.append({'title': title, 'type_code': str(item.get('type_code') or 'MENU_1')})
+    return tuple(items)

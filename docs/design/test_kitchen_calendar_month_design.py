@@ -15,3 +15,6 @@ def test_design_decision_records_r11_and_calendar_variant() -> None:
     assert 'Anlässe als Marker' in text or 'Anlass-Marker' in text
     assert 'Keine vendored Kalenderbibliothek' in text
     assert 'Standard beide' in text
+    assert 'Werkzeugleiste' in text
+    assert 'Mittagessen' in text
+    assert 'Tagesliste' in text

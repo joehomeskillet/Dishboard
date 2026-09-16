@@ -7,11 +7,11 @@ from flask import current_app, make_response, render_template, request
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.wrappers import Response
 
-from ..calendar_month import annotate_month, month_weeks
+from ..calendar_month import annotate_month, month_weeks, present_month
 from ..calendar_reads import effective_today, list_calendar_range
 from ..component_catalog_store import ComponentCatalogConfigurationError
 from ..recipe_reads import get_location
-from ..roles import require_capability
+from ..roles import capabilities, require_capability
 from .routes import bp
 
 _MONTH_NAMES = (
@@ -66,21 +66,30 @@ def kitchen_calendar() -> Response:
         services = list_calendar_range(engine, location, date_from, date_to)
     except (ComponentCatalogConfigurationError, SQLAlchemyError, KeyError, TypeError):
         status = 503
-    weeks = annotate_month(year, month, services, profiles=allowed)
+    weeks = present_month(
+        annotate_month(year, month, services, profiles=allowed), today,
+    )
+    allowed_caps = capabilities()
+    can_write = '*' in allowed_caps or 'draft.write' in allowed_caps
+    plan_family = 'patienten' if profiles == 'patient' else 'cafeteria'
     html = render_template(
         'admin/kuechenkalender.html',
         family='cafeteria',
         profile='staff_guest',
         weeks=weeks,
+        weekday_names=('Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'),
         month_label=f'{_MONTH_NAMES[month - 1]} {year}',
         year=year,
         month=month,
+        today=today,
         prev_year=prev_year,
         prev_month=prev_month,
         next_year=next_year,
         next_month=next_month,
         profiles=profiles,
         jump_value=f'{year:04d}-{month:02d}',
+        can_write=can_write,
+        plan_family=plan_family,
     )
     response = make_response(html, status)
     response.headers['Cache-Control'] = 'no-store'

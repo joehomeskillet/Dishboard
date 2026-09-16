@@ -466,3 +466,73 @@
     flex-wrap: wrap; overflow-x: auto; overscroll-behavior-x: contain;
   }
 }
+
+.dishboard-admin .admin-main[data-layout="calendar"] .admin-page-header .page-header {
+  padding-block: var(--app-space-3);
+}
+.dishboard-admin .admin-main[data-layout="calendar"] .admin-area-tabs {
+  margin-top: var(--app-space-2);
+}
+.kitchen-cal-toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: var(--app-space-3); margin-bottom: var(--app-space-4);
+}
+.kitchen-cal-month-nav, .kitchen-cal-filters {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--app-space-2);
+}
+.kitchen-cal-jump { display: flex; align-items: center; gap: var(--app-space-2); min-width: 11rem; }
+.kitchen-cal-jump .form-control { min-height: 44px; }
+.kitchen-cal-filters-label { font-weight: 600; color: var(--app-text-muted); }
+.kitchen-cal-toolbar .btn { min-height: 44px; min-width: 44px; }
+.kitchen-cal-table { table-layout: fixed; width: 100%; }
+.kitchen-cal-table col { width: 14.2857%; }
+.kitchen-cal-table th {
+  text-align: left; font-weight: 600; padding: var(--app-space-2) var(--app-space-3);
+  background: var(--app-surface-soft);
+}
+.kitchen-cal-day {
+  vertical-align: top; height: 10rem; padding: var(--app-space-2);
+}
+.kitchen-cal-day-muted { color: var(--app-text-muted); background: var(--app-surface-soft); }
+.kitchen-cal-day-today { background: var(--app-primary-soft); }
+.kitchen-cal-day-head {
+  display: flex; align-items: baseline; gap: var(--app-space-2);
+  min-height: 44px; font-weight: 700; color: inherit; text-decoration: none;
+}
+.kitchen-cal-day-head:is(:hover, :focus-visible) { color: var(--app-primary); }
+.kitchen-cal-today-mark { font-weight: 600; font-size: var(--app-font-size-small); color: var(--app-primary); }
+.kitchen-cal-area { margin-top: var(--app-space-2); }
+.kitchen-cal-area-title {
+  display: flex; align-items: center; gap: var(--app-space-1);
+  margin: 0; font-size: var(--app-font-size-small); font-weight: 700;
+}
+.kitchen-cal-meal { margin-top: var(--app-space-1); }
+.kitchen-cal-meal-label { font-size: var(--app-font-size-small); color: var(--app-text-muted); }
+.kitchen-cal-dish {
+  display: block; color: var(--app-text); overflow-wrap: anywhere;
+  min-height: 44px; padding-block: var(--app-space-1);
+}
+.kitchen-cal-dish:is(:hover, :focus-visible) { color: var(--app-primary); }
+.kitchen-cal-more { margin-top: var(--app-space-1); }
+.kitchen-cal-more summary {
+  cursor: pointer; min-height: 44px; display: flex; align-items: center;
+  color: var(--app-primary); font-weight: 600;
+}
+.kitchen-cal-empty { margin: var(--app-space-2) 0; color: var(--app-text-muted); }
+.kitchen-cal-notice { margin: 0; font-size: var(--app-font-size-small); }
+.kitchen-cal-list { display: none; list-style: none; padding: 0; margin: 0; }
+.kitchen-cal-list-day {
+  padding: var(--app-space-4) 0; border-bottom: 1px solid var(--app-border);
+}
+.kitchen-cal-list-head { margin: 0 0 var(--app-space-2); font-size: 1.25rem; }
+.kitchen-cal-list-head a { color: inherit; text-decoration: none; }
+.kitchen-cal-list-head a:is(:hover, :focus-visible) { color: var(--app-primary); }
+.dishboard-admin .admin-main[data-layout="calendar"] :is(a, button, summary, input):focus-visible {
+  outline: 2px solid var(--app-focus); outline-offset: 2px;
+}
+@media (max-width: 767.98px) {
+  .kitchen-cal-grid { display: none; }
+  .kitchen-cal-list { display: block; }
+  .kitchen-cal-toolbar { flex-direction: column; align-items: stretch; }
+}
+
