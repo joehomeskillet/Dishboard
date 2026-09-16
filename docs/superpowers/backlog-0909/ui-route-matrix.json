@@ -17,9 +17,9 @@
     "baseline_status": "proposed_never_user_approved",
     "generated_at": "2026-09-13T07:15:51.719096+00:00",
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
-    "route_count": 138,
-    "template_count": 87,
-    "html_route_count": 70,
+    "route_count": 139,
+    "template_count": 88,
+    "html_route_count": 71,
     "design_manifest_commit": "39625ccc0d8b576fae9edaeb8cf0b5c70b1af912",
     "browser_status": "not_run",
     "usability_status": "not_run"
@@ -8670,6 +8670,68 @@
         "usability_status": "not_applicable",
         "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
       }
+    },
+    {
+      "endpoint": "admin.kitchen_calendar",
+      "rule": "/admin/kuechenkalender",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/kuechenkalender.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "calendar",
+      "owning_mp": "MP-CAL-NAV",
+      "family_variants": [],
+      "module": "cafeteria.admin.calendar_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [
+        "default",
+        "access_denied_401"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [
+          "M01"
+        ],
+        "rules": [
+          "R01",
+          "R02",
+          "R05",
+          "R09"
+        ],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-CAL-NAV",
+        "core_task": "Monatsraster mit Vor/Zurück und Datumssprung",
+        "example_url": "/admin/kuechenkalender",
+        "example_semantics": "year, month, jump und profiles sind Query-Parameter, keine Live-IDs.",
+        "fixture_source": "reference_scaffold/tests/test_calendar_nav.py",
+        "state_evidence": {
+          "default": "not_run",
+          "access_denied_401": "not_run"
+        },
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_run",
+        "usability_status": "not_run",
+        "notes": "R11 viewports: 390×844, 1440×900, 1024×768, 768×1024, 1920×1080. layout_variant=calendar. Playwright-Capture nicht gelaufen."
+      }
     }
   ],
   "templates": [
@@ -9867,6 +9929,26 @@
         "M01",
         "M08",
         "M12",
+        "M20"
+      ],
+      "current_visual_status": "not_run"
+    },
+    {
+      "path": "admin/kuechenkalender.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "fb37d812290af9d1e02df77661b8ac2cf54561db14ee7eac38674a08f7d7b11b",
+      "used_by_endpoints": [
+        "admin.kitchen_calendar"
+      ],
+      "owning_mp": "MP-CAL-MONTH",
+      "density_mockups": [
+        "M01",
         "M20"
       ],
       "current_visual_status": "not_run"
