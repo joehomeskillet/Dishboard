@@ -431,7 +431,13 @@ def test_read_functions_write_nothing(store):  # noqa: F811
     before = _fingerprint()
     list_shopping_lists(engine, scope)
     get_shopping_list(engine, scope, list_id)
-    candidate_components(engine, scope, menu_week_public_id=week_public)
+    with owner.connect() as c:
+        week_start = c.execute(
+            text('SELECT week_start FROM cafeteria.menu_weeks WHERE id=:id'), {'id': ids['week']},
+        ).scalar_one()
+    candidate_components(
+        engine, scope, date_from=week_start, date_to=week_start, menu_week_public_id=week_public,
+    )
     assert _fingerprint() == before
 
 

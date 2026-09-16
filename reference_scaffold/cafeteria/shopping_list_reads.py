@@ -11,6 +11,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal
 from typing import Mapping
 from uuid import UUID
@@ -238,7 +239,19 @@ def get_shopping_list(
     }
 
 
-def candidate_components(engine: Engine, scope: ShoppingScope, *, menu_week_public_id: str) -> tuple[dict[str, object], ...]:
+def candidate_components(
+    engine: Engine, scope: ShoppingScope, *, date_from: date, date_to: date,
+    menu_week_public_id: str | None = None,
+) -> tuple[dict[str, object], ...]:
+    if date_to < date_from:
+        raise ShoppingListValidationError('date_to liegt vor date_from', field='date_to')
+    params: dict[str, object] = {
+        'location': scope.location_id, 'date_from': date_from, 'date_to': date_to,
+    }
+    week_sql = ''
+    if menu_week_public_id is not None:
+        week_sql = ' AND w.public_id=CAST(:week AS uuid)'
+        params['week'] = _uuid(menu_week_public_id)
     with _transaction(engine, scope, 'read') as connection:
         rows = connection.execute(
             text('''
@@ -256,10 +269,11 @@ def candidate_components(engine: Engine, scope: ShoppingScope, *, menu_week_publ
                 JOIN cafeteria.recipe_revisions rr ON rr.id=c.recipe_revision_id
                 JOIN cafeteria.recipes r ON r.id=rr.recipe_id
                 LEFT JOIN cafeteria.measurement_units tu ON tu.id=c.target_quantity_unit_id
-                WHERE w.location_id=:location AND w.public_id=CAST(:week AS uuid) AND c.recipe_revision_id IS NOT NULL
+                WHERE w.location_id=:location AND srv.service_date BETWEEN :date_from AND :date_to
+                  AND c.recipe_revision_id IS NOT NULL''' + week_sql + '''
                 ORDER BY srv.service_date, mp.sort_order, it.sort_order, c.sort_order
             '''),
-            {'location': scope.location_id, 'week': _uuid(menu_week_public_id)},
+            params,
         ).mappings().all()
     return tuple({
         'component_id': f'{row["menu_item_public_id"]}:{row["sort_order"]}',
