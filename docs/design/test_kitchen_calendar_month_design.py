@@ -10,5 +10,8 @@ def test_design_decision_records_r11_and_calendar_variant() -> None:
     assert '390×844' in text
     assert '1440×900' in text
     assert '1024×768' in text
-    assert 'keine vendored Kalenderbibliothek' in text.lower() or 'Keine vendored Kalenderbibliothek' in text
+    assert '768×1024' in text
+    assert '1920×1080' in text
+    assert 'Anlässe als Marker' in text or 'Anlass-Marker' in text
+    assert 'Keine vendored Kalenderbibliothek' in text
     assert 'Standard beide' in text
