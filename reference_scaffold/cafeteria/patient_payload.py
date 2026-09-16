@@ -40,6 +40,7 @@ PATIENT_FORBIDDEN_COST_KEYS = frozenset({
     'servingsunitcode', 'foodpublicid', 'cost', 'costs', 'costline', 'costresult',
     'linecost', 'parsemoney', 'receipt', 'receipts', 'receiptid', 'purchaseprice',
     'quantity', 'unitcode', 'status', 'issues', 'complete', 'lines', 'servings',
+    'costtotal', 'rappensuggestion',
 })
 PATIENT_LABEL_CODES = frozenset({'VEGETARIAN', 'VEGAN', 'LACTOSE_FREE', 'GLUTEN_FREE'})
 PATIENT_ALLERGEN_CODES = frozenset({

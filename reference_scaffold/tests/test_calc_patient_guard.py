@@ -20,6 +20,7 @@ from cafeteria.patient_payload import (  # noqa: E402
 from demo_snapshots import cafeteria_snapshot, patient_snapshot  # noqa: E402
 
 RECEIPT_KEYS = ('receipt', 'receipts', 'receipt_id', 'purchase_price')
+R8_KEYS = ('cost_total', 'rappen_suggestion')
 
 
 def _calc_compact_keys() -> tuple[str, ...]:
@@ -37,13 +38,18 @@ def test_named_deny_list_covers_shipped_cost_dto_fields():
         assert _normalize_patient_key(key) in PATIENT_FORBIDDEN_COST_KEYS
 
 
+def test_r8_named_cost_keys_are_on_the_deny_list():
+    for key in R8_KEYS:
+        assert _normalize_patient_key(key) in PATIENT_FORBIDDEN_COST_KEYS
+
+
 def test_legacy_patient_snapshot_without_cost_keys_remains_valid():
     snapshot = patient_snapshot()
     validate_snapshot_payload('patient', snapshot)
     validate_snapshot_payload('patient', deepcopy(snapshot))
 
 
-@pytest.mark.parametrize('key', (*_calc_compact_keys(), *RECEIPT_KEYS))
+@pytest.mark.parametrize('key', (*_calc_compact_keys(), *RECEIPT_KEYS, *R8_KEYS))
 def test_calc_and_receipt_keys_are_rejected_on_patient_option(key):
     snapshot = deepcopy(patient_snapshot())
     snapshot['days'][0]['services'][0]['options'][0][key] = 1
