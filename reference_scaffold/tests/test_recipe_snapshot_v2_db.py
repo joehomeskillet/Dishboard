@@ -58,9 +58,12 @@ def test_real_v2_pdf_prints_both_uses_and_original_child_content(prepared):
     data = render_recipe_pdf(revision, config=default_config(), images={}, target='2')
     body = pdf_text(data)
     assert 'Tellergericht' in body
-    assert body.count('Helle Sauce') == 2
-    assert body.count('Dunkle Sauce') == 1
-    assert body.count('Gemüsebasis') == 3
+    helle_cont = body.count('Helle Sauce · Revision 1 Fortsetzung')
+    dunkle_cont = body.count('Dunkle Sauce · Revision 1 Fortsetzung')
+    base_cont = body.count('Gemüsebasis · Revision 1 Fortsetzung')
+    assert body.count('Helle Sauce') == 2 + helle_cont
+    assert body.count('Dunkle Sauce') == 1 + dunkle_cont
+    assert body.count('Gemüsebasis') == 3 + base_cont
     assert 'Zubereitung für' in body
 
 
