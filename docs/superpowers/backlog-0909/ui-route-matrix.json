@@ -11073,7 +11073,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "d66b81389148a5bda63eaab6c2f99c1916bb79d780db1f7119c11378798d63a6",
+      "sha256": "0bdf7b0a338f68c00a63b3ce51fcb4222aaaa341873f21821935a46734c9371b",
       "used_by_endpoints": [
         "admin.shopping_list_archive",
         "admin.shopping_lists_create",

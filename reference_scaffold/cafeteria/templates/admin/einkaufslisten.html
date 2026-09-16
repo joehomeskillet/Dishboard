@@ -26,7 +26,7 @@
           <th class="d-none d-md-table-cell">Quellwoche</th>
           <th class="d-none d-md-table-cell">Letzte Berechnung</th>
           <th class="d-none d-md-table-cell">Offen / abgehakt</th>
-          {% if can_write %}<th class="d-none d-md-table-cell">Aktion</th>{% endif %}
+          <th>Aktion</th>
         </tr>
       </thead>
       <tbody>
@@ -44,17 +44,20 @@
           <td class="d-none d-md-table-cell">{{ week_labels.get(item.menu_week_public_id, '—') }}</td>
           <td class="d-none d-md-table-cell">{% if item.latest_computed_at %}{{ item.latest_computed_at.strftime('%d.%m.%Y %H:%M') }}{% else %}Noch nicht berechnet{% endif %}</td>
           <td class="d-none d-md-table-cell">{{ item.open_count }} offen / {{ item.checked_count }} abgehakt</td>
-          {% if can_write %}
-          <td class="d-none d-md-table-cell">
-            {% if not item.archived_at %}
-            <form method="post" action="{{ url_for('admin.shopping_list_archive', public_id=item.public_id) }}">
-              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-              <input type="hidden" name="row_version" value="{{ item.row_version }}">
-              <button class="btn" type="submit" data-confirm="Diese Einkaufsliste archivieren?">{{ icon('archive') }}Archivieren</button>
-            </form>
-            {% endif %}
+          <td>
+            <div class="d-flex flex-wrap gap-2">
+              {% if item.latest_revision_public_id %}
+              <a class="btn" href="{{ url_for('admin.shopping_list_pdf', public_id=item.public_id, revision=item.latest_revision_public_id) }}">{{ icon('printer') }}Drucken · Stand {{ item.latest_revision_number }}<span class="visually-hidden"> · {{ item.title }}</span></a>
+              {% endif %}
+              {% if can_write and not item.archived_at %}
+              <form method="post" action="{{ url_for('admin.shopping_list_archive', public_id=item.public_id) }}">
+                <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                <input type="hidden" name="row_version" value="{{ item.row_version }}">
+                <button class="btn" type="submit" data-confirm="Diese Einkaufsliste archivieren?">{{ icon('archive') }}Archivieren</button>
+              </form>
+              {% endif %}
+            </div>
           </td>
-          {% endif %}
         </tr>
         {% endfor %}
       </tbody>

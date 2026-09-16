@@ -342,3 +342,22 @@ def test_archive_requires_cas_and_marks_the_row_archived(client):
             text('SELECT archived_at IS NOT NULL FROM cafeteria.shopping_lists WHERE public_id=CAST(:id AS uuid)'),
             {'id': list_id},
         ).scalar_one() is True
+
+
+def test_index_offers_pdf_print_for_computed_list_only(client):
+    owner, engine, test_client, ids = client
+    ids['owner'] = owner
+    empty_id = create_shopping_list(engine, _scope(ids), title='Leer ohne Druck')
+    food = create_food(engine, ids, 'Zutat')
+    _bound_component(owner, engine, ids, [_ingredient(food, '100', 'G')])
+    computed_id = create_shopping_list(engine, _scope(ids), title='Berechnet mit Druck')
+    revision = _compute(engine, ids, computed_id)
+    response = test_client.get('/admin/einkaufslisten')
+    assert response.status_code == 200
+    markup = _Markup(response.text)
+    pdf = f'/admin/einkaufslisten/{computed_id}/druck.pdf?revision={revision}'
+    assert pdf in markup.links
+    assert 'Drucken · Stand' in response.text
+    assert not any(
+        f'/admin/einkaufslisten/{empty_id}/druck.pdf' in href for href in markup.links
+    )
