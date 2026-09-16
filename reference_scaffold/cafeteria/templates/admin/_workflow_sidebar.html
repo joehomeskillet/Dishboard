@@ -36,7 +36,7 @@
   </div>
   <div class="admin-user"><div><strong>{{ user.name if user else 'Küche Administration' }}</strong><span>{{ roles|default([])|join(', ') }}</span></div></div>
   <nav class="admin-nav" aria-label="Backend">
-    {% for key, href, label in [('weeks', weeks_url, 'Wochenpläne'), ('management', url_for('admin.week_management', family=family), 'Wochenverwaltung'), ('menus', '/admin/' ~ family ~ '/menues', 'Menüs'), ('components', '/admin/' ~ family ~ '/komponenten', 'Komponenten'), ('import', url_for('admin.import_preview'), 'CSV Import')] %}
+    {% for key, href, label in [('weeks', weeks_url, 'Wochenpläne'), ('calendar', url_for('admin.kitchen_calendar'), 'Küchenkalender'), ('management', url_for('admin.week_management', family=family), 'Wochenverwaltung'), ('menus', '/admin/' ~ family ~ '/menues', 'Menüs'), ('components', '/admin/' ~ family ~ '/komponenten', 'Komponenten'), ('import', url_for('admin.import_preview'), 'CSV Import')] %}
     <a href="{{ href }}"{% if workflow_nav == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
     {% endfor %}
     <a href="{{ url_for('admin.master_data_list') }}"{% if workflow_nav == 'master_data' %} class="active" aria-current="page"{% endif %}>Grundlagen</a>

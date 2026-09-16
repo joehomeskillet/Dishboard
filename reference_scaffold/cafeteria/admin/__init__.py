@@ -21,6 +21,7 @@ from . import cookbook_routes as cookbook_routes
 from . import dish_template_routes as dish_template_routes
 from . import shopping_list_routes as shopping_list_routes
 from . import recipe_import_routes as recipe_import_routes
+from . import calendar_routes as calendar_routes
 from ..roles import capabilities
 from .routes import bp as bp
 from .rendering import _template_context
