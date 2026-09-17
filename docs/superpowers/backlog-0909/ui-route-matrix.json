@@ -12,7 +12,7 @@
     },
     "mp_id": "MP-UI-DENSITY-INVENTORY",
     "source_commit": "33b897e13d39ea1183089a3fcabfb6a1454b0291",
-    "schema": 39,
+    "schema": 41,
     "schema_note": "Aktueller zugewiesener Quellstand; SCHEMA_VERSION aus cafeteria.db. Keine neue Live-Abnahme.",
     "baseline_status": "proposed_never_user_approved",
     "generated_at": "2026-09-13T07:15:51.719096+00:00",

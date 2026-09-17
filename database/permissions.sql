@@ -378,6 +378,11 @@ GRANT SELECT ON SEQUENCE inventory_accounts_id_seq, inventory_movements_id_seq T
 REVOKE ALL ON FUNCTION inventory_movement_protect_v39() FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
 -- Schema39 inventory grants end.
 
+GRANT SELECT, INSERT ON prepared_batch_runs, calculation_receipts TO cafeteria_app;
+GRANT SELECT ON prepared_batch_runs, calculation_receipts TO cafeteria_backup;
+GRANT SELECT ON SEQUENCE prepared_batch_runs_id_seq, calculation_receipts_id_seq TO cafeteria_backup;
+REVOKE ALL ON FUNCTION calculation_receipt_protect_v41() FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
+
 -- Prepared foods schema27 grants begin.
 REVOKE ALL ON FUNCTION lock_prepared_graph_v27(bigint),recipe_snapshot_complete_v27(jsonb),
     check_prepared_graph_v27(bigint,uuid,bigint),assert_food_complete_v27(bigint),enforce_food_complete_v27(),
