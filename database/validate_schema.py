@@ -51,6 +51,7 @@ MIGRATION_0030 = ROOT / 'database' / 'migrations' / '0030_v32_to_v33.sql'
 MIGRATION_0031 = ROOT / 'database' / 'migrations' / '0031_v33_to_v34.sql'
 MIGRATION_0032 = ROOT / 'database' / 'migrations' / '0032_v34_to_v35.sql'
 MIGRATION_0033 = ROOT / 'database' / 'migrations' / '0033_v35_to_v36.sql'
+MIGRATION_0034 = ROOT / 'database' / 'migrations' / '0034_v36_to_v37.sql'
 PERMISSIONS = ROOT / 'database' / 'permissions.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
@@ -854,8 +855,8 @@ def run_live_check() -> dict[str, Any]:
             ).tuples().all()
             shopping_guard_mismatches = shopping_live_guard_mismatches(connection)
             disabled_guard_mismatches = disabled_trigger_mismatches(connection)
-        if int(row['schema_version']) != 36:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 36.")
+        if int(row['schema_version']) != 37:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 37.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
         if {item['proname'] for item in v32_acl} != {
@@ -1227,6 +1228,9 @@ def main() -> int:
         ):
             if fragment not in migration_0033 or fragment not in sql:
                 fail(f'Preisledger-Vertrag fehlt: {fragment}')
+        migration_0034 = MIGRATION_0034.read_text(encoding='utf-8')
+        if 'CREATE TABLE kitchen_event_demand_items' not in migration_0034 or 'kitchen_event_demand_items' not in sql:
+            fail('Anlass-Bedarf-Vertrag fehlt: kitchen_event_demand_items')
         migration_0026 = MIGRATION_0026.read_text(encoding='utf-8')
         if not migration_0026.startswith('BEGIN;') or not migration_0026.rstrip().endswith('COMMIT;'):
             fail('Migration 0026 hat keinen strikten BEGIN/COMMIT-Vertrag.')
@@ -1364,6 +1368,7 @@ def main() -> int:
             MIGRATION_0031: '3aeb090c46b080a65eb0d4c548b982f05eadca6807c0e8ede3f772d0f88f4a3c',
             MIGRATION_0032: '6eeec799dad37cb60bc54cdaf691c5abd0c451244e4b4931fe34ea3ee359ca41',
             MIGRATION_0033: 'bc01eb651cd0b69e8e6b2651c3737367acc7c96c6991c7043620db4d7d2f0471',
+            MIGRATION_0034: '6108bbc4e3bee43a5cb7e1f0596158d453b4bcb75f3f0d12621bd531f132c297',
         }
         for migration_path, expected_checksum in immutable_migration_checksums.items():
             actual_checksum = hashlib.sha256(migration_path.read_bytes()).hexdigest()
@@ -1387,6 +1392,7 @@ def main() -> int:
             'shopping_lists', 'shopping_list_revisions', 'shopping_list_manual_items',
             'shopping_list_line_status', 'kitchen_events',
             'food_price_heads', 'food_purchase_price_revisions',
+            'kitchen_event_demand_items',
         }
         missing = required_tables - set(tables)
         if missing:
@@ -1631,7 +1637,7 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 36,
+            'schema_version': 37,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
@@ -1666,6 +1672,7 @@ def main() -> int:
                 '0031_v33_to_v34.sql': hashlib.sha256(MIGRATION_0031.read_bytes()).hexdigest(),
                 '0032_v34_to_v35.sql': hashlib.sha256(MIGRATION_0032.read_bytes()).hexdigest(),
                 '0033_v35_to_v36.sql': hashlib.sha256(MIGRATION_0033.read_bytes()).hexdigest(),
+                '0034_v36_to_v37.sql': hashlib.sha256(MIGRATION_0034.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

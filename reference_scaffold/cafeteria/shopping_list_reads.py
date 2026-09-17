@@ -275,7 +275,23 @@ def candidate_components(
             '''),
             params,
         ).mappings().all()
-    return tuple({
+        event_rows = connection.execute(
+            text('''
+                SELECT e.public_id AS menu_item_public_id, e.title AS menu_item_title, e.event_date AS service_date,
+                       d.sort_order, d.component_text, rr.public_id AS recipe_revision_public_id,
+                       r.title AS recipe_title, d.target_quantity, tu.code AS target_quantity_unit_code
+                FROM cafeteria.kitchen_events e
+                JOIN cafeteria.kitchen_event_demand_items d ON d.event_id=e.id
+                JOIN cafeteria.recipe_revisions rr ON rr.id=d.recipe_revision_id
+                JOIN cafeteria.recipes r ON r.id=rr.recipe_id
+                JOIN cafeteria.measurement_units tu ON tu.id=d.target_quantity_unit_id
+                WHERE e.location_id=:location AND e.archived_at IS NULL
+                  AND e.event_date BETWEEN :date_from AND :date_to
+                ORDER BY e.event_date, d.sort_order
+            '''),
+            {'location': params['location'], 'date_from': params['date_from'], 'date_to': params['date_to']},
+        ).mappings().all()
+    menu = [{
         'component_id': f'{row["menu_item_public_id"]}:{row["sort_order"]}',
         'menu_item_public_id': str(row['menu_item_public_id']), 'menu_item_title': row['menu_item_title'],
         'service_date': row['service_date'], 'meal_period_code': row['meal_period_code'],
@@ -283,4 +299,16 @@ def candidate_components(
         'recipe_revision_public_id': str(row['recipe_revision_public_id']), 'recipe_title': row['recipe_title'],
         'target_quantity': _decimal_str(row['target_quantity']) or row['declared_servings'],
         'target_quantity_unit_code': row['target_quantity_unit_code'] or row['declared_unit_code'],
-    } for row in rows)
+        'source': 'menu',
+    } for row in rows]
+    events = [{
+        'component_id': f'event:{row["menu_item_public_id"]}:{row["sort_order"]}',
+        'menu_item_public_id': str(row['menu_item_public_id']), 'menu_item_title': row['menu_item_title'],
+        'service_date': row['service_date'], 'meal_period_code': 'EVENT',
+        'meal_period_display_name': 'Anlass', 'component_text': row['component_text'],
+        'recipe_revision_public_id': str(row['recipe_revision_public_id']), 'recipe_title': row['recipe_title'],
+        'target_quantity': _decimal_str(row['target_quantity']),
+        'target_quantity_unit_code': row['target_quantity_unit_code'],
+        'source': 'event',
+    } for row in event_rows]
+    return tuple(menu + events)

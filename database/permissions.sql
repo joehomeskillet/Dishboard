@@ -347,6 +347,12 @@ GRANT SELECT ON food_price_heads, food_purchase_price_revisions TO cafeteria_bac
 GRANT SELECT ON SEQUENCE food_price_heads_id_seq, food_purchase_price_revisions_id_seq TO cafeteria_backup;
 -- Schema36 food purchase price grants end.
 
+-- Schema37 kitchen event demand grants begin.
+GRANT SELECT, INSERT, UPDATE, DELETE ON kitchen_event_demand_items TO cafeteria_app;
+GRANT SELECT ON kitchen_event_demand_items TO cafeteria_backup;
+GRANT SELECT ON SEQUENCE kitchen_event_demand_items_id_seq TO cafeteria_backup;
+-- Schema37 kitchen event demand grants end.
+
 -- Prepared foods schema27 grants begin.
 REVOKE ALL ON FUNCTION lock_prepared_graph_v27(bigint),recipe_snapshot_complete_v27(jsonb),
     check_prepared_graph_v27(bigint,uuid,bigint),assert_food_complete_v27(bigint),enforce_food_complete_v27(),

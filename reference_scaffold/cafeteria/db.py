@@ -19,8 +19,8 @@ from .database_roles import (
 )
 from .patient_payload import PROFILES, validate_snapshot_payload
 
-SCHEMA_VERSION = 36
-APPLICATION_VERSION = 'dishboard-schema-v36'
+SCHEMA_VERSION = 37
+APPLICATION_VERSION = 'dishboard-schema-v37'
 SYSTEM_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000001'
 DEMO_USER_PUBLIC_ID = '00000000-0000-0000-0000-000000000002'
 
@@ -66,6 +66,7 @@ MIGRATION_FILES = (
     (34, '0031_v33_to_v34.sql'),
     (35, '0032_v34_to_v35.sql'),
     (36, '0033_v35_to_v36.sql'),
+    (37, '0034_v36_to_v37.sql'),
 )
 MIGRATION_LOCK_ID = 731_905_005
 DEFAULT_CAPABILITY_TTL = timedelta(minutes=5)

@@ -67,6 +67,38 @@
 {% else %}<h3>{{ row.name if row else 'Keine Schreibberechtigung' }}</h3>{% if row %}<p>{{ row.base_unit.display_name }}{% if not row.base_unit.active %} (archiviert){% endif %} · {{ row.category.name if row.category else 'Keine Kategorie' }}{% if row.category and not row.category.active %} (archiviert){% endif %}</p><dl><dt>Dichte in g/ml</dt><dd>{{ row.density_g_per_ml if row.density_g_per_ml is not none else 'Nicht erfasst' }}</dd><dt>Stückgewicht in g</dt><dd>{{ row.piece_weight_g if row.piece_weight_g is not none else 'Nicht erfasst' }}</dd></dl><p>{{ row.note }}</p>{% endif %}{% endif %}
 </div>{% if not row %}</details>{% else %}</div>{% endif %}
 {% if row %}
+<section class="card mb-4" aria-labelledby="food-price-title">
+<div class="card-header gap-2">{{ icon('coin') }}<h2 class="card-title mb-0" id="food-price-title">Einkaufspreis</h2></div>
+<div class="card-body">
+{% set current = namespace(rev=none) %}
+{% for rev in price_revisions %}{% if rev.is_current %}{% set current.rev = rev %}{% endif %}{% endfor %}
+{% if current.rev %}
+<p>Aktuelle Preisliste, Stand {{ current.rev.revision_number }}.</p>
+<ul>
+{% for item in current.rev.edition_json.intervals %}
+<li>{{ item.valid_from }} – {{ item.valid_to or 'offen' }}: {{ item.unit_price }} {{ item.currency }} / {{ item.unit.code }}</li>
+{% endfor %}
+</ul>
+{% else %}
+<p>Kein Einkaufspreis erfasst. Fehlender Preis erscheint in Kalkulationen als unvollständig, nicht als 0.</p>
+{% endif %}
+{% if can_write %}
+<form method="post" action="{{ url_for('admin.food_price_save', public_id=row.public_id) }}">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+{% if current.rev %}<input type="hidden" name="head_row_version" value="{{ current.rev.head_row_version }}">{% endif %}
+<div class="row g-3">
+<div class="col-12 col-md-3"><label class="form-label" for="valid_from">Gültig ab</label><input class="form-control" type="date" id="valid_from" name="valid_from" required></div>
+<div class="col-12 col-md-3"><label class="form-label" for="valid_to">Gültig bis (exklusiv)</label><input class="form-control" type="date" id="valid_to" name="valid_to"></div>
+<div class="col-12 col-md-2"><label class="form-label" for="unit_price">CHF je Einheit</label><input class="form-control" id="unit_price" name="unit_price" required inputmode="decimal"></div>
+<div class="col-12 col-md-2"><label class="form-label" for="unit_code">Einheit</label><input class="form-control" id="unit_code" name="unit_code" value="{{ row.base_unit.code if row.base_unit else 'KG' }}" required></div>
+<div class="col-12 col-md-2 d-flex align-items-end"><button class="btn btn-primary" type="submit">{{ icon('device-floppy') }}Preis speichern</button></div>
+</div>
+<p class="form-hint mt-2">Speichert eine neue unveränderliche Preisliste. Alte Stände bleiben erhalten.</p>
+</form>
+{% endif %}
+</div></section>
+{% endif %}
+{% if row %}
 <div class="card mb-4"><div class="card-header gap-2">{{ icon('copy', class='text-secondary') }}<h2 class="card-title mb-0">Verknüpfungen</h2></div><div class="card-body">
 <dl><dt>Lagerorte</dt><dd>{% for storage in row.storage_locations %}<a href="{{ url_for('admin.master_data_detail', kind='lagerorte', public_id=storage.public_id) }}">{{ storage.name }}</a>{{ ', ' if not loop.last else '' }}{% else %}Lagerort fehlt{% endfor %}</dd>
 <dt>Bestand</dt><dd>Kein Bestand erfasst</dd><dt>Zubereitung</dt><dd>{% if row.prepared_recipe %}<a href="{{ url_for('admin.recipe_revision', recipe_id=row.prepared_recipe.recipe_public_id, revision_id=row.prepared_recipe.revision_public_id) }}">{{ icon('tools-kitchen-2', class='text-secondary') }}{{ row.prepared_recipe.title }} · Stand {{ row.prepared_recipe.revision_number }}</a><br>Ausbeute: {{ '{:f}'.format(row.prepared_recipe.yield_quantity) }} {{ row.prepared_recipe.yield_unit_code }}{% if not row.prepared_recipe.recipe_active %} · Rezept archiviert{% endif %}

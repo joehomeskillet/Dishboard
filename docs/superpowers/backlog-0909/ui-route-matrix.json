@@ -12,12 +12,12 @@
     },
     "mp_id": "MP-UI-DENSITY-INVENTORY",
     "source_commit": "33b897e13d39ea1183089a3fcabfb6a1454b0291",
-    "schema": 36,
+    "schema": 37,
     "schema_note": "Aktueller zugewiesener Quellstand; SCHEMA_VERSION aus cafeteria.db. Keine neue Live-Abnahme.",
     "baseline_status": "proposed_never_user_approved",
     "generated_at": "2026-09-13T07:15:51.719096+00:00",
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
-    "route_count": 143,
+    "route_count": 144,
     "template_count": 89,
     "html_route_count": 73,
     "design_manifest_commit": "39625ccc0d8b576fae9edaeb8cf0b5c70b1af912",
@@ -8879,6 +8879,41 @@
         "usability_status": "not_applicable",
         "notes": "Kein eigener Screen."
       }
+    },
+    {
+      "endpoint": "admin.food_price_save",
+      "rule": "/admin/grundlagen/zutaten/<public_id>/preis",
+      "methods": ["POST"],
+      "blueprint": "admin",
+      "classification": "form",
+      "visual": false,
+      "templates": ["admin/grundlagen_food.html"],
+      "capability": "masterdata.write",
+      "roles": ["Cafeteria.Editor", "Cafeteria.Publisher", "Cafeteria.Admin"],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-CALC-PRICE-UI",
+      "family_variants": [],
+      "module": "cafeteria.admin.food_price_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": ["admin.js", "csrf"],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": ["A01"],
+        "owning_mp": "MP-CALC-PRICE-UI",
+        "core_task": "Einkaufspreis anhängen",
+        "example_url": "/admin/grundlagen/zutaten/{public_id}/preis",
+        "example_semantics": "POST, Redirect zum Zutatenblatt.",
+        "fixture_source": "reference_scaffold/tests/test_food_price_browser.py",
+        "state_evidence": {},
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "notes": "Kein eigener Screen."
+      }
     }
   ],
   "templates": [
@@ -9910,7 +9945,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "695d5c172e4845216fd52b92b454c58f082d3604b6e0c2e6887944d6627a1ba2",
+      "sha256": "a6c6b3560f12108a2986a5a35dffe7098ce03f5b1df13e9cf804efceb2f03dd3",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_new"
