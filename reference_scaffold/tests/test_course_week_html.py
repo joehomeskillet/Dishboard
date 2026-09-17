@@ -116,3 +116,13 @@ def test_course_editor_retains_bound_recipe_outside_search_page(app, database_en
     veggie_select = html.split('name="VEGGIE_soup_recipe"', 1)[1].split('</select>', 1)[0]
     assert 'Weiterhin gebundene Auswahl' in veggie_select
     assert other['public_id'] in veggie_select
+
+
+def test_course_week_html_allergens_rendered(app) -> None:
+    with app.test_request_context():
+        from flask import render_template_string
+        template = """{% set service={'soup': {'state': 'planned', 'title': 'Suppe', 'allergens': [{'code': 'MILK', 'name': 'Milch', 'presence': 'contains'}], 'labels': [{'code': 'VEGAN', 'name': 'Vegan'}]}} %}{% include 'admin/_service_courses.html' %}"""
+        html = render_template_string(template)
+        assert 'Suppe: Suppe' in html
+        assert 'Milch' in html
+        assert 'Vegan' in html

@@ -1,0 +1,61 @@
+--- reference_scaffold/tests/test_public_contracts.py
++++ reference_scaffold/tests/test_public_contracts.py
+@@ -957,32 +957,31 @@
+     draft = {
+         'area_name': 'Test',
+         'week_start': '2026-09-14',
++        'week_end': '2026-09-20',
+         'location': {'code': 'TEST', 'name': 'Test'},
+         'title': 'Test',
+         'shared_note': '',
+-        'days': [{
+-            'date': '2026-09-14',
+-            'services': [{
+-                'meal_code': 'LUNCH',
+-                'service_state': 'open',
+-                'soup': {
+-                    'state': 'planned', 'title': 'Testsuppe', 'recipe_public_id': '123e4567-e89b-12d3-a456-426614174000',
+-                    'allergens': [{'code': 'MILK', 'name': 'Milch', 'presence': 'contains'}]
+-                },
+-                'dessert': {
+-                    'state': 'not_offered'
+-                },
+-                'options': [{
+-                    'type_code': 'MENU_1',
+-                    'title': 'Test',
+-                    'soup_override': {
+-                        'state': 'planned', 'title': 'Extra Suppe',
+-                        'allergens': [{'code': 'GLUTEN', 'name': 'Gluten', 'presence': 'contains'}]
+-                    },
+-                    'dessert_override': {
+-                        'state': 'not_offered'
+-                    }
+-                }]
+-            }]
+-        }]
++        'days': []
+     }
++    for i in range(7):
++        draft['days'].append({
++            'date': f'2026-09-{14+i}',
++            'weekday': ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'][i],
++            'state': 'open',
++            'notice': '',
++            'services': [
++                {
++                    'meal_code': 'LUNCH', 'service_state': 'open',
++                    'soup': {'state': 'planned', 'title': 'Testsuppe', 'recipe_public_id': '123e4567-e89b-12d3-a456-426614174000', 'allergens': [{'code': 'MILK', 'name': 'Milch', 'presence': 'contains'}]},
++                    'dessert': {'state': 'not_offered'},
++                    'options': [{'type_code': 'MENU_1', 'type_name': 'Menü 1', 'title': 'Test', 'external_id': f'PATIENT-2026-09-{14+i}-LUNCH-1', 'soup_override': {'state': 'planned', 'title': 'Extra Suppe', 'allergens': [{'code': 'GLUTEN', 'name': 'Gluten', 'presence': 'contains'}]}, 'dessert_override': {'state': 'not_offered'}}]
++                },
++                {
++                    'meal_code': 'DINNER', 'service_state': 'open',
++                    'soup': {'state': 'not_offered'}, 'dessert': {'state': 'not_offered'},
++                    'options': [{'type_code': 'MENU_1', 'type_name': 'Menü 1', 'title': 'Test', 'external_id': f'PATIENT-2026-09-{14+i}-DINNER-1', 'soup_override': {'state': 'not_offered'}, 'dessert_override': {'state': 'not_offered'}}]
++                }
++            ]
++        })
+ 
+     try:
+-        snapshot = build_snapshot('staff_guest', draft, 'REV1')
++        snapshot = build_snapshot('patient', draft, 'PAT-2026-KW37-R1')

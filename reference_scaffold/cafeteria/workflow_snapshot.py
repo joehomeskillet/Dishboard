@@ -151,7 +151,7 @@ def build_snapshot(
                 course = value.get(course_key)
                 if isinstance(course, dict) and course.get('state') in ('planned', 'not_offered'):
                     service[course_key] = {
-                        key: course[key] for key in ('state', 'title', 'recipe_public_id') if key in course
+                        key: course[key] for key in ('state', 'title', 'recipe_public_id', 'allergens', 'labels', 'nutrition') if key in course
                     }
             if state == 'open':
                 for option, source in zip(options, value.get('options') or ()):
@@ -160,7 +160,7 @@ def build_snapshot(
                         if isinstance(course, dict) and course.get('state') in ('planned', 'not_offered'):
                             option[course_key] = {
                                 key: course[key]
-                                for key in ('state', 'title', 'recipe_public_id') if key in course
+                                for key in ('state', 'title', 'recipe_public_id', 'allergens', 'labels', 'nutrition') if key in course
                             }
             # Zeiten frieren nur ein, wenn sie gesetzt sind; der Patientenvertrag bleibt strikt.
             for key in ('service_start', 'service_end'):

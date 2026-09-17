@@ -368,3 +368,24 @@ def test_inaccessible_csv_course_uuid_rolls_back_draft_and_earlier_days(
     assert draft['title'] != 'Import darf nicht bleiben'
     monday_title = draft['days'][0]['services'][0]['options'][0]['title']
     assert monday_title == 'Rindsgeschnetzeltes'
+
+def test_snapshot_course_passes_allergens() -> None:
+    from cafeteria.course_store import snapshot_course
+    assert snapshot_course({'state': 'not_offered'}) == {'state': 'not_offered', 'title': ''}
+    assert snapshot_course({
+        'state': 'planned', 'title': 'Test',
+        'allergens': [{'code': 'MILK'}], 'labels': [{'code': 'VEGAN'}], 'nutrition': {'kcal': 100}
+    }) == {
+        'state': 'planned', 'title': 'Test',
+        'allergens': [{'code': 'MILK'}], 'labels': [{'code': 'VEGAN'}], 'nutrition': {'kcal': 100}
+    }
+
+
+
+def test_defektes_snapshot_json_loggt(app, caplog) -> None:
+    from cafeteria.course_store import _flags_from_snapshot
+    with app.app_context():
+        caplog.clear()
+        res = _flags_from_snapshot("{defekt", {"recipe_public_id": "1234"})
+        assert res == {'allergens': None, 'labels': None, 'nutrition': None}
+        assert "Defektes Snapshot-JSON für Rezept/Revision 1234" in caplog.text

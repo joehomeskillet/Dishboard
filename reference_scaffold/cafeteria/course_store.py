@@ -7,6 +7,7 @@ from datetime import date
 from typing import Any
 from uuid import UUID
 
+from flask import current_app
 from sqlalchemy import Connection, Engine, text
 
 from .component_catalog_store import AdminScope
@@ -40,7 +41,7 @@ def effective_course(shared: Mapping[str, Any] | None, exception: Mapping[str, A
     return unplanned()
 
 
-def snapshot_course(view: Mapping[str, Any] | None) -> dict[str, str] | None:
+def snapshot_course(view: Mapping[str, Any] | None) -> dict[str, Any] | None:
     """Public/signage projection: omit unplanned; never invent a positive label."""
     if view is None or view.get('state') in (None, 'unplanned'):
         return None
@@ -50,10 +51,14 @@ def snapshot_course(view: Mapping[str, Any] | None) -> dict[str, str] | None:
     title = str(view.get('title') or '').strip()
     if state != 'planned' or not title:
         return None
-    payload = {'state': 'planned', 'title': title}
+    payload: dict[str, Any] = {'state': 'planned', 'title': title}
     recipe = view.get('recipe_public_id')
     if recipe:
         payload['recipe_public_id'] = str(recipe)
+    for field in ('allergens', 'labels', 'nutrition'):
+        val = view.get(field)
+        if val:
+            payload[field] = val
     return payload
 
 
@@ -78,11 +83,14 @@ def _latest_revision(connection: Connection, location_id: int, recipe_public_id:
     return row
 
 
-def _flags_from_snapshot(snapshot: object) -> dict[str, Any]:
+def _flags_from_snapshot(snapshot: object, row: Mapping[str, Any] | None = None) -> dict[str, Any]:
     if isinstance(snapshot, (bytes, bytearray, str)):
         try:
             snapshot = json.loads(snapshot)
         except (TypeError, ValueError, json.JSONDecodeError):
+            if row:
+                identifier = row.get('recipe_public_id') or row.get('revision_public_id') or 'unbekannt'
+                current_app.logger.warning(f"Defektes Snapshot-JSON für Rezept/Revision {identifier}")
             snapshot = None
     recipe = snapshot.get('recipe') if isinstance(snapshot, dict) else None
     if not isinstance(recipe, dict):
@@ -100,7 +108,7 @@ def _flags_from_snapshot(snapshot: object) -> dict[str, Any]:
 def _row_view(row: Mapping[str, Any] | None) -> dict[str, Any]:
     if row is None:
         return unplanned()
-    flags = _flags_from_snapshot(row.get('snapshot_json'))
+    flags = _flags_from_snapshot(row.get('snapshot_json'), row)
     return {
         'state': row['planning_state'],
         'title': row['title'],
