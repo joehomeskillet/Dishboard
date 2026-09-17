@@ -22,12 +22,13 @@ PATIENT_OBJECT_KEYS = {
     'label': frozenset({'code', 'name'}),
     'allergen': frozenset({'code', 'name', 'presence'}),
     'origin': frozenset({'ingredient', 'country_code', 'text'}),
+    'nutrition': frozenset({'kcal', 'kj', 'fat', 'carbohydrates', 'protein', 'salt', 'sugar', 'saturatedfat', 'fiber'}),
 }
 PATIENT_OPTIONAL_KEYS = {
     'snapshot': frozenset({'area_name'}),
     'service': frozenset({'service_state', 'notice', 'service_start', 'service_end', 'soup', 'dessert'}),
     'option': frozenset({'accompaniment_code', 'accompaniment_name', 'soup_override', 'dessert_override'}),
-    'course': frozenset({'title', 'recipe_public_id'}),
+    'course': frozenset({'title', 'recipe_public_id', 'allergens', 'labels', 'nutrition'}),
 }
 PATIENT_ALLOWED_COMPACT_KEYS = frozenset(
     key.replace('_', '')
@@ -289,6 +290,12 @@ def _patient_object_paths(value: Any, kind: str, path: str) -> list[str]:
             found.extend(_patient_list_paths(child, 'allergen', child_path))
         elif kind == 'option' and key == 'origins':
             found.extend(_patient_list_paths(child, 'origin', child_path))
+        elif kind == 'course' and key == 'labels':
+            found.extend(_patient_list_paths(child, 'label', child_path))
+        elif kind == 'course' and key == 'allergens':
+            found.extend(_patient_list_paths(child, 'allergen', child_path))
+        elif kind == 'course' and key == 'nutrition':
+            found.extend(_patient_object_paths(child, 'nutrition', child_path))
         elif _patient_scalar_is_invalid(kind, key, child):
             found.append(child_path)
     return found

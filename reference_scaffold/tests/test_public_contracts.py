@@ -944,3 +944,88 @@ def test_public_and_signage_show_shared_courses_once_per_meal(app: Flask) -> Non
         assert 'Prüfung offen' not in body
         assert 'Allergenprüfung offen' not in body
         assert 'Poulet' in body or 'Pastetli' in body or 'Hackbraten' in body
+
+def test_shared_course_with_allergens_in_public_snapshot() -> None:
+    from cafeteria.workflow_snapshot import build_snapshot
+    draft = {
+        'area_name': 'Test',
+        'week_start': '2026-09-14',
+        'week_end': '2026-09-20',
+        'location': {'code': 'TEST', 'name': 'Test'},
+        'title': 'Test',
+        'shared_note': '',
+        'days': [{
+            'date': f'2026-09-{14+i}',
+            'weekday': ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'][i],
+            'state': 'open',
+            'notice': '',
+            'services': [
+                {
+                    'meal_code': 'LUNCH',
+                    'service_state': 'open',
+                    'soup': {
+                        'state': 'planned', 'title': 'Testsuppe', 'recipe_public_id': '123e4567-e89b-12d3-a456-426614174000',
+                        'allergens': [{'code': 'MILK', 'name': 'Milch', 'presence': 'contains'}]
+                    },
+                    'dessert': {
+                        'state': 'not_offered'
+                    },
+                    'options': [
+                        {
+                            'external_id': f'PATIENT-2026-09-{14+i}-LUNCH-1',
+                            'type_code': 'MENU_1',
+                            'type_name': 'Menü 1',
+                            'title': 'Test',
+                            'soup_override': {
+                                'state': 'planned', 'title': 'Extra Suppe',
+                                'allergens': [{'code': 'GLUTEN', 'name': 'Gluten', 'presence': 'contains'}]
+                            },
+                            'dessert_override': {'state': 'not_offered'}
+                        },
+                        {
+                            'external_id': f'PATIENT-2026-09-{14+i}-LUNCH-2',
+                            'type_code': 'VEGGIE',
+                            'type_name': 'Vegetarisch',
+                            'title': 'Test',
+                            'soup_override': {'state': 'not_offered'},
+                            'dessert_override': {'state': 'not_offered'}
+                        }
+                    ]
+                },
+                {
+                    'meal_code': 'DINNER',
+                    'service_state': 'open',
+                    'soup': {'state': 'not_offered'},
+                    'dessert': {'state': 'not_offered'},
+                    'options': [
+                        {
+                            'external_id': f'PATIENT-2026-09-{14+i}-DINNER-1',
+                            'type_code': 'MENU_1',
+                            'type_name': 'Menü 1',
+                            'title': 'Test',
+                            'soup_override': {'state': 'not_offered'},
+                            'dessert_override': {'state': 'not_offered'}
+                        },
+                        {
+                            'external_id': f'PATIENT-2026-09-{14+i}-DINNER-2',
+                            'type_code': 'VEGGIE',
+                            'type_name': 'Vegetarisch',
+                            'title': 'Test',
+                            'soup_override': {'state': 'not_offered'},
+                            'dessert_override': {'state': 'not_offered'}
+                        }
+                    ]
+                }
+            ]
+        } for i in range(7)]
+    }
+
+    snapshot = build_snapshot('patient', draft, 'PAT-2026-KW37-R1')
+    service = snapshot['days'][0]['services'][0]
+    assert 'allergens' in service['soup']
+    assert service['soup']['allergens'][0]['code'] == 'MILK'
+    assert 'allergens' not in service['dessert']
+    option = service['options'][0]
+    assert 'allergens' in option['soup_override']
+    assert option['soup_override']['allergens'][0]['code'] == 'GLUTEN'
+    assert 'allergens' not in option['dessert_override']

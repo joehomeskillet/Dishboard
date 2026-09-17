@@ -145,3 +145,12 @@ def test_cafeteria_week_signage_shows_soup_dessert_not_as_extra_slots(app: Flask
     assert html.count('Dessert: Fruchtsalat') == 5
     assert html.count('cafe-week-slot') == 10
     assert 'Prüfung offen' not in html
+
+def test_signage_course_allergens_rendered(app) -> None:
+    with app.test_request_context():
+        from flask import render_template_string
+        template = "{% set service={'soup': {'state': 'planned', 'title': 'Suppe', 'allergens': [{'code': 'MILK', 'name': 'Milch', 'presence': 'contains'}], 'labels': [{'code': 'VEGAN', 'name': 'Vegan'}]}} %}{% include 'admin/_service_courses.html' %}"
+        html = render_template_string(template)
+        assert 'Suppe: Suppe' in html
+        assert 'Milch' in html
+        assert 'Vegan' in html
