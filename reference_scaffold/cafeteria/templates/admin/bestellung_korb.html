@@ -31,6 +31,19 @@
 </tbody></table>
 <button class="btn btn-primary" type="submit">Korb speichern</button>
 </form>
+<section class="card mt-4">
+  <div class="card-header"><h2 class="card-title">Nettobedarf übernehmen</h2></div>
+  <form method="post" action="{{ url_for('admin.order_basket_from_demand', public_id=basket.public_id) }}" class="card-body row g-2">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="row_version" value="{{ basket.row_version }}">
+    <div class="col-md-6"><label class="form-label" for="demand_food">Zutat-UUID</label>
+      <input class="form-control" id="demand_food" name="food_public_id"></div>
+    <div class="col-md-3"><label class="form-label" for="need_quantity">Rohmenge</label>
+      <input class="form-control" id="need_quantity" name="need_quantity"></div>
+    <div class="col-md-3 d-flex align-items-end"><button class="btn" type="submit">In Entwurf übernehmen</button></div>
+    <p class="text-secondary mb-0">Gebinde runden nur die Bestellmenge. Es entsteht kein Journal und kein Sendauftrag.</p>
+  </form>
+</section>
 <h2 class="mt-4">CSV-Vorschau</h2>
 <pre class="bg-light p-3">{{ preview }}</pre>
 {% endblock %}

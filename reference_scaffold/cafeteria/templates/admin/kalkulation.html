@@ -1,0 +1,72 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header, icon %}
+{% set workflow_nav = 'cost' %}
+{% block title %}Kalkulation · Menüplanung{% endblock %}
+{% block page_header %}{{ page_header('Kalkulation') }}{% endblock %}
+{% block content %}
+<p class="text-secondary">Vorschau schreibt nichts. Fehlender Preis bleibt unvollständig, nie 0. Bestätigen speichert einen unveränderlichen Beleg.</p>
+
+<section class="card mb-4">
+  <div class="card-header"><h2 class="card-title">Projektion</h2></div>
+  <form method="post" action="{{ url_for('admin.cost_preview') }}" class="card-body row g-2">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <div class="col-md-3"><label class="form-label" for="kind">Art</label>
+      <select class="form-select" id="kind" name="kind">
+        <option value="recipe"{% if kind|default('recipe') == 'recipe' %} selected{% endif %}>Rezept</option>
+        <option value="prepared"{% if kind|default('') == 'prepared' %} selected{% endif %}>Zubereitung</option>
+        <option value="menu"{% if kind|default('') == 'menu' %} selected{% endif %}>Menü</option>
+      </select>
+    </div>
+    <div class="col-md-4"><label class="form-label" for="revision_public_id">Rezeptrevision-UUID</label>
+      <input class="form-control" id="revision_public_id" name="revision_public_id" value="{{ revision_public_id|default('') }}" required>
+    </div>
+    <div class="col-md-4"><label class="form-label" for="menu_revision_public_id">Weitere Menü-Revision</label>
+      <input class="form-control" id="menu_revision_public_id" name="menu_revision_public_id" value="{{ menu_revision_public_ids[0] if menu_revision_public_ids|default([]) else '' }}">
+    </div>
+    <div class="col-md-2"><label class="form-label" for="as_of">Stichtag</label>
+      <input class="form-control" id="as_of" name="as_of" type="date" value="{{ as_of }}" required>
+    </div>
+    <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary" type="submit">{{ icon('search') }}Vorschau</button></div>
+  </form>
+</section>
+
+{% if projection %}
+<section class="card mb-4">
+  <div class="card-header"><h2 class="card-title">Ergebnis</h2></div>
+  <div class="card-body">
+    {% if projection.complete %}
+      <p>Summe: {{ projection.total }} CHF</p>
+    {% else %}
+      <p>Unvollständig — fehlender Preis oder fehlende Umrechnung, nicht als 0.</p>
+    {% endif %}
+    <table class="table">
+      <thead><tr><th>Zutat</th><th>Menge</th><th>Status</th><th>Betrag</th></tr></thead>
+      <tbody>
+      {% for line in projection.lines %}
+        <tr>
+          <td>{{ line.food_public_id or 'ohne Zutat' }}</td>
+          <td>{% if line.quantity is not none %}{{ line.quantity }} {{ line.unit_code }}{% endif %}</td>
+          <td>{{ 'vollständig' if line.status == 'complete' else 'unvollständig' }}</td>
+          <td>{% if line.amount is not none %}{{ line.amount }} CHF{% else %}—{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <form method="post" action="{{ url_for('admin.cost_confirm') }}" class="mt-3">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="kind" value="{{ kind|default('recipe') }}">
+      <input type="hidden" name="revision_public_id" value="{{ revision_public_id|default('') }}">
+      {% for extra in menu_revision_public_ids|default([]) %}
+      <input type="hidden" name="menu_revision_public_id" value="{{ extra }}">
+      {% endfor %}
+      <input type="hidden" name="as_of" value="{{ as_of }}">
+      {% for food_id, revision_id in projection.price_revisions.items() %}
+        <input type="hidden" name="price_food_id" value="{{ food_id }}">
+        <input type="hidden" name="price_revision_id" value="{{ revision_id }}">
+      {% endfor %}
+      <button class="btn btn-primary" type="submit">Beleg bestätigen</button>
+    </form>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

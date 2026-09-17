@@ -7,7 +7,7 @@ from uuid import UUID
 
 from sqlalchemy import Engine, text
 
-from .inventory_store import post_movement
+from .inventory_store import post_movement_on
 from .shopping_list_reads import ShoppingScope
 
 
@@ -38,15 +38,17 @@ def produce_batch(
             'location': scope.location_id, 'revision': revision_id, 'food': food_id,
             'storage': storage_id, 'qty': Decimal(str(output_quantity)), 'actor': scope.actor_id,
         }).scalar_one()
-    for item in inputs:
-        post_movement(
-            engine, scope, food_public_id=item['food_public_id'], storage_public_id=item['storage_public_id'],
-            kind='issue', quantity=item['quantity'], unit_code=item['unit_code'],
+        for item in inputs:
+            post_movement_on(
+                connection, scope, food_public_id=item['food_public_id'],
+                storage_public_id=item['storage_public_id'], kind='issue',
+                quantity=item['quantity'], unit_code=item['unit_code'],
+                note=f'batch:{run_id}',
+            )
+        post_movement_on(
+            connection, scope, food_public_id=output_food_public_id,
+            storage_public_id=output_storage_public_id, kind='receipt',
+            quantity=output_quantity, unit_code=output_unit_code,
             note=f'batch:{run_id}',
         )
-    post_movement(
-        engine, scope, food_public_id=output_food_public_id, storage_public_id=output_storage_public_id,
-        kind='receipt', quantity=output_quantity, unit_code=output_unit_code,
-        note=f'batch:{run_id}',
-    )
-    return str(run_id)
+        return str(run_id)

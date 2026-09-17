@@ -4,7 +4,9 @@ from __future__ import annotations
 from flask import Response, current_app, flash, g, redirect, render_template, request, url_for
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from ..order_basket_store import create_basket, get_basket, list_baskets, replace_basket_lines
+from ..order_basket_store import (
+    OrderBasketError, create_basket, fill_from_demand, get_basket, list_baskets, replace_basket_lines,
+)
 from ..order_csv import basket_csv_bytes
 from ..recipe_reads import get_location
 from ..roles import require_capability
@@ -98,6 +100,26 @@ def order_basket_save(public_id: str) -> WerkzeugResponse:
         lines=lines,
     )
     flash('Korb gespeichert.')
+    return redirect(url_for('admin.order_basket', public_id=public_id), 303)
+
+
+@bp.post('/bestellung/korb/<public_id>/bedarf')
+@require_capability('draft.write')
+def order_basket_from_demand(public_id: str) -> WerkzeugResponse:
+    validate_csrf(request.form.get('_csrf'))
+    foods = request.form.getlist('food_public_id')
+    qtys = request.form.getlist('need_quantity')
+    demands = [{'food_public_id': food, 'quantity': qty} for food, qty in zip(foods, qtys) if food and qty]
+    try:
+        fill_from_demand(
+            _db(), _scope(), public_id,
+            expected_row_version=int(request.form.get('row_version') or 0),
+            demands=demands,
+        )
+    except (OrderBasketError, ValueError) as error:
+        flash(str(error))
+        return redirect(url_for('admin.order_basket', public_id=public_id), 303)
+    flash('Bedarf in den Entwurfskorb übernommen. Rohmenge bleibt sichtbar; Gebinde sind gerundet.')
     return redirect(url_for('admin.order_basket', public_id=public_id), 303)
 
 

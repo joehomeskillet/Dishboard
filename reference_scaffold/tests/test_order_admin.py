@@ -20,3 +20,4 @@ def test_order_home_is_registered() -> None:
     with app.test_request_context():
         assert url_for('admin.order_home') == '/admin/bestellung'
         assert 'csv' in url_for('admin.order_basket_csv', public_id='00000000-0000-4000-8000-000000000001')
+        assert url_for('admin.order_basket_from_demand', public_id='00000000-0000-4000-8000-000000000001').endswith('/bedarf')

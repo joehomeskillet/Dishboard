@@ -6,19 +6,48 @@
 {% block content %}
 <p>{% if captured %}{{ balance_label }}{% else %}Kein Bestand erfasst{% endif %}</p>
 <p class="text-secondary">Ohne Journal und ohne bestätigte Zählung gibt es keinen Saldo 0.</p>
-<form method="post" action="{{ url_for('admin.inventory_move') }}" class="card">
-<div class="card-body row g-2">
-<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-<div class="col-md-3"><label class="form-label" for="food_public_id">Zutat-UUID</label><input class="form-control" id="food_public_id" name="food_public_id" required></div>
-<div class="col-md-3"><label class="form-label" for="storage_public_id">Lagerort-UUID</label><input class="form-control" id="storage_public_id" name="storage_public_id" required></div>
-<div class="col-md-2"><label class="form-label" for="kind">Art</label>
-<select class="form-select" id="kind" name="kind">
-<option value="receipt">Zugang</option>
-<option value="issue">Abgang</option>
-<option value="correction">Korrektur</option>
-</select></div>
-<div class="col-md-2"><label class="form-label" for="quantity">Menge</label><input class="form-control" id="quantity" name="quantity" required></div>
-<div class="col-md-1"><label class="form-label" for="unit_code">Einheit</label><input class="form-control" id="unit_code" name="unit_code" value="KG" required></div>
-<div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary" type="submit">Buchen</button></div>
-</div></form>
+
+<section class="card mb-4">
+  <div class="card-header"><h2 class="card-title">Zugang / Abgang</h2></div>
+  <form method="post" action="{{ url_for('admin.inventory_move') }}" class="card-body row g-2">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <div class="col-md-3"><label class="form-label" for="food_public_id">Zutat-UUID</label><input class="form-control" id="food_public_id" name="food_public_id" value="{{ food_public_id|default('') }}" required></div>
+    <div class="col-md-3"><label class="form-label" for="storage_public_id">Lagerort-UUID</label><input class="form-control" id="storage_public_id" name="storage_public_id" value="{{ storage_public_id|default('') }}" required></div>
+    <div class="col-md-2"><label class="form-label" for="kind">Art</label>
+      <select class="form-select" id="kind" name="kind">
+        <option value="receipt">Zugang</option>
+        <option value="issue">Abgang</option>
+        <option value="correction">Korrektur</option>
+      </select>
+    </div>
+    <div class="col-md-2"><label class="form-label" for="quantity">Menge</label><input class="form-control" id="quantity" name="quantity" required></div>
+    <div class="col-md-1"><label class="form-label" for="unit_code">Einheit</label><input class="form-control" id="unit_code" name="unit_code" value="KG" required></div>
+    <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary" type="submit">Buchen</button></div>
+  </form>
+</section>
+
+<section class="card mb-4">
+  <div class="card-header"><h2 class="card-title">Umbuchung</h2></div>
+  <form method="post" action="{{ url_for('admin.inventory_transfer') }}" class="card-body row g-2">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <div class="col-md-3"><label class="form-label" for="transfer_food">Zutat-UUID</label><input class="form-control" id="transfer_food" name="food_public_id" required></div>
+    <div class="col-md-3"><label class="form-label" for="source_storage_public_id">Von Lagerort</label><input class="form-control" id="source_storage_public_id" name="source_storage_public_id" required></div>
+    <div class="col-md-3"><label class="form-label" for="dest_storage_public_id">Nach Lagerort</label><input class="form-control" id="dest_storage_public_id" name="dest_storage_public_id" required></div>
+    <div class="col-md-1"><label class="form-label" for="transfer_qty">Menge</label><input class="form-control" id="transfer_qty" name="quantity" required></div>
+    <div class="col-md-1"><label class="form-label" for="transfer_unit">Einheit</label><input class="form-control" id="transfer_unit" name="unit_code" value="KG" required></div>
+    <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary" type="submit">Umbuchen</button></div>
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-header"><h2 class="card-title">Zählung</h2></div>
+  <form method="post" action="{{ url_for('admin.inventory_count') }}" class="card-body row g-2">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <div class="col-md-4"><label class="form-label" for="count_food">Zutat-UUID</label><input class="form-control" id="count_food" name="food_public_id" required></div>
+    <div class="col-md-4"><label class="form-label" for="count_storage">Lagerort-UUID</label><input class="form-control" id="count_storage" name="storage_public_id" required></div>
+    <div class="col-md-2"><label class="form-label" for="counted_quantity">Gezählte Menge</label><input class="form-control" id="counted_quantity" name="counted_quantity" required></div>
+    <div class="col-md-1"><label class="form-label" for="count_unit">Einheit</label><input class="form-control" id="count_unit" name="unit_code" value="KG" required></div>
+    <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary" type="submit">Zählung bestätigen</button></div>
+  </form>
+</section>
 {% endblock %}

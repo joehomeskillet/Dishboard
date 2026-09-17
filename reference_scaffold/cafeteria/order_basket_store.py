@@ -8,6 +8,7 @@ from uuid import UUID
 from sqlalchemy import Engine, text
 
 from .calendar_event_store import CalendarEventConflictError, CalendarEventValidationError
+from .inventory_demand import packs_for
 from .shopping_list_reads import ShoppingScope, _transaction as _shop_tx
 
 
@@ -53,7 +54,11 @@ def replace_basket_lines(
             raise CalendarEventValidationError('Nur Entwurfskörbe sind editierbar.')
         if basket['row_version'] != expected_row_version:
             raise CalendarEventConflictError('Der Korb wurde zwischenzeitlich geändert.')
-        connection.execute(text('DELETE FROM cafeteria.order_basket_lines WHERE basket_id=:id'), {'id': basket['id']})
+        existing = connection.execute(text(
+            'SELECT count(*) FROM cafeteria.order_basket_lines WHERE basket_id=:id'
+        ), {'id': basket['id']}).scalar_one()
+        if existing:
+            raise OrderBasketError('Bestehende Korbzeilen können nicht ersetzt werden.')
         for index, line in enumerate(lines, start=1):
             article = connection.execute(text(
                 'SELECT id FROM cafeteria.supplier_articles WHERE public_id=CAST(:id AS uuid) AND location_id=:location AND active'
@@ -103,3 +108,45 @@ def list_baskets(engine: Engine, location_id: int) -> tuple[dict[str, Any], ...]
             WHERE b.location_id=:location ORDER BY b.updated_at DESC
         '''), {'location': location_id}).mappings().all()
     return tuple(dict(row) for row in rows)
+
+
+def fill_from_demand(
+    engine: Engine, scope: ShoppingScope, basket_public_id: str, *,
+    expected_row_version: int, demands: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], ...]:
+    """Draft lines from net need, rounded to packs. Never writes inventory movements."""
+    lines: list[dict[str, Any]] = []
+    filled: list[dict[str, Any]] = []
+    needs: dict[str, Decimal] = {}
+    for demand in demands:
+        food = _uuid(str(demand['food_public_id']))
+        needs[food] = needs.get(food, Decimal('0')) + Decimal(str(demand['quantity']))
+    with engine.connect() as connection:
+        for food, need in needs.items():
+            article = connection.execute(text('''
+                SELECT a.public_id, a.pack_size
+                FROM cafeteria.supplier_articles a
+                JOIN cafeteria.foods f ON f.id=a.food_id
+                JOIN cafeteria.order_baskets b ON b.supplier_id=a.supplier_id
+                WHERE b.public_id=CAST(:basket AS uuid) AND b.location_id=:location
+                  AND f.public_id=CAST(:food AS uuid) AND a.location_id=:location
+                  AND a.preferred AND a.active
+            '''), {
+                'basket': _uuid(basket_public_id), 'location': scope.location_id, 'food': food,
+            }).mappings().one_or_none()
+            if article is None:
+                raise OrderBasketError('Kein bevorzugter Artikel für die Zutat.')
+            pack = Decimal(str(article['pack_size']))
+            packs = packs_for(need, pack)
+            order_qty = packs * pack
+            lines.append({'article_public_id': str(article['public_id']), 'quantity': str(order_qty)})
+            filled.append({
+                'article_public_id': str(article['public_id']),
+                'raw_quantity': need,
+                'order_quantity': order_qty,
+                'pack_size': pack,
+            })
+    replace_basket_lines(
+        engine, scope, basket_public_id, expected_row_version=expected_row_version, lines=lines,
+    )
+    return tuple(filled)

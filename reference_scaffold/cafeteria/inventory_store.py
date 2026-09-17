@@ -1,15 +1,15 @@
-"""Append-only inventory journal. No stock column on foods. Unknown until first movement."""
+"""Append-only inventory journal. No stock column on foods. Unknown until first capture."""
 from __future__ import annotations
 
 import json
 from decimal import Decimal
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import Engine, text
 
 from .quantities import FoodFactors, QuantityError, Unit, convert
-from .shopping_list_reads import ShoppingScope, _transaction as _shop_tx
+from .shopping_list_reads import ShoppingScope
 
 
 class InventoryError(ValueError):
@@ -81,41 +81,138 @@ def _ensure_account(connection, scope: ShoppingScope, food_public_id: str, stora
     }).mappings().one())
 
 
-def post_movement(
-    engine: Engine, scope: ShoppingScope, *, food_public_id: str, storage_public_id: str,
+def _lock_account(connection, account_id: int) -> None:
+    connection.execute(text(
+        'SELECT id FROM cafeteria.inventory_accounts WHERE id=:id FOR UPDATE'
+    ), {'id': account_id}).scalar_one()
+
+
+def _sum_base(connection, account_id: int) -> Decimal:
+    current = connection.execute(text(
+        'SELECT COALESCE(SUM(sign * normalized_base_quantity), 0) FROM cafeteria.inventory_movements WHERE account_id=:id'
+    ), {'id': account_id}).scalar_one()
+    return Decimal(str(current))
+
+
+def _lookup_unit(connection, unit_code: str) -> dict[str, Any]:
+    return dict(connection.execute(text(
+        'SELECT public_id, code, dimension, base_factor FROM cafeteria.measurement_units WHERE code=:code'
+    ), {'code': unit_code}).mappings().one())
+
+
+def _sign_for(kind: str, sign: int | None) -> int:
+    if kind in ('receipt', 'transfer_in'):
+        return 1
+    if kind in ('issue', 'transfer_out'):
+        return -1
+    if kind in ('count_adjust', 'correction'):
+        if sign not in (-1, 1):
+            raise InventoryError('Korrektur braucht ein Vorzeichen.')
+        return sign
+    raise InventoryError('Ungültige Bewegungsart.')
+
+
+def post_movement_on(
+    connection, scope: ShoppingScope, *, food_public_id: str, storage_public_id: str,
     kind: str, quantity: str | Decimal, unit_code: str, note: str | None = None,
+    sign: int | None = None,
 ) -> str:
     qty = Decimal(str(quantity))
     if qty <= 0:
         raise InventoryError('Menge muss positiv sein.')
-    sign = 1 if kind in ('receipt', 'transfer_in') else -1
+    resolved = _sign_for(kind, sign)
+    account = _ensure_account(connection, scope, food_public_id, storage_public_id)
+    _lock_account(connection, account['id'])
+    unit_snap = _unit_from_row(_lookup_unit(connection, unit_code))
+    try:
+        base_qty = _to_base(qty, unit_snap, account['base_unit_snapshot'], account['food_factors_snapshot'])
+    except QuantityError as error:
+        raise InventoryError(str(error)) from error
+    if resolved < 0 and _sum_base(connection, account['id']) - base_qty < 0:
+        raise InventoryInsufficientError('Bestand würde negativ.')
+    return str(connection.execute(text('''
+        INSERT INTO cafeteria.inventory_movements(
+            account_id, kind, quantity, sign, unit_id, unit_snapshot, normalized_base_quantity, note, created_by)
+        VALUES (:account, :kind, :qty, :sign,
+                (SELECT id FROM cafeteria.measurement_units WHERE code=:unit),
+                CAST(:usnap AS jsonb), :base, :note, :actor)
+        RETURNING public_id
+    '''), {
+        'account': account['id'], 'kind': kind, 'qty': qty, 'sign': resolved,
+        'unit': unit_code, 'usnap': json.dumps(unit_snap),
+        'base': base_qty, 'note': note, 'actor': scope.actor_id,
+    }).scalar_one())
+
+
+def post_movement(
+    engine: Engine, scope: ShoppingScope, *, food_public_id: str, storage_public_id: str,
+    kind: str, quantity: str | Decimal, unit_code: str, note: str | None = None,
+    sign: int | None = None,
+) -> str:
+    with engine.begin() as connection:
+        connection.execute(text("SET LOCAL lock_timeout = '5s'"))
+        return post_movement_on(
+            connection, scope, food_public_id=food_public_id, storage_public_id=storage_public_id,
+            kind=kind, quantity=quantity, unit_code=unit_code, note=note, sign=sign,
+        )
+
+
+def transfer(
+    engine: Engine, scope: ShoppingScope, *, food_public_id: str,
+    source_storage_public_id: str, dest_storage_public_id: str,
+    quantity: str | Decimal, unit_code: str,
+) -> dict[str, str]:
+    if _uuid(source_storage_public_id) == _uuid(dest_storage_public_id):
+        raise InventoryError('Quelle und Ziel müssen verschieden sein.')
+    pair = str(uuid4())
+    note = f'transfer:{pair}'
+    with engine.begin() as connection:
+        connection.execute(text("SET LOCAL lock_timeout = '5s'"))
+        source = _ensure_account(connection, scope, food_public_id, source_storage_public_id)
+        dest = _ensure_account(connection, scope, food_public_id, dest_storage_public_id)
+        for account_id in sorted((source['id'], dest['id'])):
+            _lock_account(connection, account_id)
+        outgoing = post_movement_on(
+            connection, scope, food_public_id=food_public_id, storage_public_id=source_storage_public_id,
+            kind='transfer_out', quantity=quantity, unit_code=unit_code, note=note,
+        )
+        incoming = post_movement_on(
+            connection, scope, food_public_id=food_public_id, storage_public_id=dest_storage_public_id,
+            kind='transfer_in', quantity=quantity, unit_code=unit_code, note=note,
+        )
+    return {'pair': pair, 'transfer_out': outgoing, 'transfer_in': incoming}
+
+
+def post_count(
+    engine: Engine, scope: ShoppingScope, *, food_public_id: str, storage_public_id: str,
+    counted_quantity: str | Decimal, unit_code: str,
+) -> dict[str, Any]:
+    counted = Decimal(str(counted_quantity))
+    if counted < 0:
+        raise InventoryError('Zählmenge darf nicht negativ sein.')
     with engine.begin() as connection:
         connection.execute(text("SET LOCAL lock_timeout = '5s'"))
         account = _ensure_account(connection, scope, food_public_id, storage_public_id)
-        unit = connection.execute(text(
-            'SELECT public_id, code, dimension, base_factor FROM cafeteria.measurement_units WHERE code=:code'
-        ), {'code': unit_code}).mappings().one()
-        unit_snap = _unit_from_row(unit)
-        base_qty = _to_base(qty, unit_snap, account['base_unit_snapshot'], account['food_factors_snapshot'])
-        if sign < 0:
-            current = connection.execute(text(
-                'SELECT COALESCE(SUM(sign * normalized_base_quantity), 0) FROM cafeteria.inventory_movements WHERE account_id=:id'
-            ), {'id': account['id']}).scalar_one()
-            if Decimal(str(current)) - base_qty < 0:
-                raise InventoryInsufficientError('Bestand würde negativ.')
-        public_id = connection.execute(text('''
-            INSERT INTO cafeteria.inventory_movements(
-                account_id, kind, quantity, sign, unit_id, unit_snapshot, normalized_base_quantity, note, created_by)
-            VALUES (:account, :kind, :qty, :sign,
-                    (SELECT id FROM cafeteria.measurement_units WHERE code=:unit),
-                    CAST(:usnap AS jsonb), :base, :note, :actor)
-            RETURNING public_id
-        '''), {
-            'account': account['id'], 'kind': kind, 'qty': qty, 'sign': sign,
-            'unit': unit_code, 'usnap': json.dumps(unit_snap),
-            'base': base_qty, 'note': note, 'actor': scope.actor_id,
-        }).scalar_one()
-        return str(public_id)
+        _lock_account(connection, account['id'])
+        current = _sum_base(connection, account['id'])
+        unit_snap = _unit_from_row(_lookup_unit(connection, unit_code))
+        try:
+            counted_base = Decimal('0') if counted == 0 else _to_base(
+                counted, unit_snap, account['base_unit_snapshot'], account['food_factors_snapshot'])
+        except QuantityError as error:
+            raise InventoryError(str(error)) from error
+        delta = counted_base - current
+        if delta == 0:
+            return {'posted': True, 'movement_public_id': None, 'delta': Decimal('0'), 'sign': None}
+        sign = 1 if delta > 0 else -1
+        abs_delta = abs(delta)
+        qty_field = _to_base(
+            abs_delta, account['base_unit_snapshot'], unit_snap, account['food_factors_snapshot'])
+        public_id = post_movement_on(
+            connection, scope, food_public_id=food_public_id, storage_public_id=storage_public_id,
+            kind='count_adjust', quantity=qty_field, unit_code=unit_code, note='count', sign=sign,
+        )
+        return {'posted': True, 'movement_public_id': public_id, 'delta': qty_field, 'sign': sign}
 
 
 def balance(engine: Engine, location_id: int, food_public_id: str, storage_public_id: str) -> dict[str, Any]:
@@ -123,8 +220,7 @@ def balance(engine: Engine, location_id: int, food_public_id: str, storage_publi
         row = connection.execute(text('''
             SELECT a.public_id, a.base_unit_snapshot,
                    (SELECT COALESCE(SUM(sign * normalized_base_quantity), 0)
-                    FROM cafeteria.inventory_movements m WHERE m.account_id=a.id) AS qty,
-                   EXISTS (SELECT 1 FROM cafeteria.inventory_movements m WHERE m.account_id=a.id) AS captured
+                    FROM cafeteria.inventory_movements m WHERE m.account_id=a.id) AS qty
             FROM cafeteria.inventory_accounts a
             JOIN cafeteria.foods f ON f.id=a.food_id
             JOIN cafeteria.storage_locations s ON s.id=a.storage_location_id
@@ -133,12 +229,13 @@ def balance(engine: Engine, location_id: int, food_public_id: str, storage_publi
         '''), {
             'location': location_id, 'food': _uuid(food_public_id), 'storage': _uuid(storage_public_id),
         }).mappings().one_or_none()
-    if row is None or not row['captured']:
+    if row is None:
         return {'captured': False, 'quantity': None, 'unit_code': None, 'label': 'Kein Bestand erfasst'}
     snap = row['base_unit_snapshot']
+    qty = Decimal(str(row['qty']))
     return {
         'captured': True,
-        'quantity': Decimal(str(row['qty'])),
+        'quantity': qty,
         'unit_code': snap['code'],
-        'label': f"{row['qty']} {snap['code']}",
+        'label': f'{qty} {snap["code"]}',
     }

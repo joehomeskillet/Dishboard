@@ -9132,9 +9132,10 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "b4f292de5a7bbd3bdce7aefa982e4d186a090e404d8829fc439ad8ee1a095672",
+      "sha256": "41ab513a2d06b8784ffb03b3e8f9f84120554abfff4e7c5b5b8c77878d5a44c6",
       "used_by_endpoints": [
         "admin.access_history",
+        "admin.cost_home",
         "admin.api_overview",
         "admin.branding_editor",
         "admin.cafeteria",
