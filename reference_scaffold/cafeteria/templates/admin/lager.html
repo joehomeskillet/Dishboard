@@ -1,0 +1,24 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header, icon %}
+{% set workflow_nav = 'inventory' %}
+{% block title %}Lager · Menüplanung{% endblock %}
+{% block page_header %}{{ page_header('Lager') }}{% endblock %}
+{% block content %}
+<p>{% if captured %}{{ balance_label }}{% else %}Kein Bestand erfasst{% endif %}</p>
+<p class="text-secondary">Ohne Journal und ohne bestätigte Zählung gibt es keinen Saldo 0.</p>
+<form method="post" action="{{ url_for('admin.inventory_move') }}" class="card">
+<div class="card-body row g-2">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<div class="col-md-3"><label class="form-label" for="food_public_id">Zutat-UUID</label><input class="form-control" id="food_public_id" name="food_public_id" required></div>
+<div class="col-md-3"><label class="form-label" for="storage_public_id">Lagerort-UUID</label><input class="form-control" id="storage_public_id" name="storage_public_id" required></div>
+<div class="col-md-2"><label class="form-label" for="kind">Art</label>
+<select class="form-select" id="kind" name="kind">
+<option value="receipt">Zugang</option>
+<option value="issue">Abgang</option>
+<option value="correction">Korrektur</option>
+</select></div>
+<div class="col-md-2"><label class="form-label" for="quantity">Menge</label><input class="form-control" id="quantity" name="quantity" required></div>
+<div class="col-md-1"><label class="form-label" for="unit_code">Einheit</label><input class="form-control" id="unit_code" name="unit_code" value="KG" required></div>
+<div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary" type="submit">Buchen</button></div>
+</div></form>
+{% endblock %}

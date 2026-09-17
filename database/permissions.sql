@@ -27,8 +27,11 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON
     menu_weeks, menu_services, dish_templates, component_allergens, component_labels,
     menu_items, menu_item_prices, menu_item_components, menu_item_labels,
     menu_item_allergens, origin_declarations,
-    import_batches, import_rows, settings
+    import_batches, import_rows, settings,
+    kitchen_events, kitchen_event_demand_items
 TO cafeteria_app;
+GRANT SELECT, INSERT, UPDATE ON inventory_accounts TO cafeteria_app;
+GRANT SELECT, INSERT ON inventory_movements TO cafeteria_app;
 GRANT SELECT, INSERT, UPDATE ON menu_components TO cafeteria_app;
 GRANT SELECT, INSERT ON branding_assets TO cafeteria_app;
 
@@ -365,6 +368,15 @@ REVOKE DELETE ON suppliers, supplier_articles, order_baskets, order_basket_lines
 GRANT SELECT ON suppliers, supplier_articles, order_baskets, order_basket_lines TO cafeteria_backup;
 GRANT SELECT ON SEQUENCE suppliers_id_seq, supplier_articles_id_seq, order_baskets_id_seq, order_basket_lines_id_seq TO cafeteria_backup;
 -- Schema38 supplier and basket grants end.
+
+-- Schema39 inventory grants begin.
+GRANT SELECT, INSERT, UPDATE ON inventory_accounts TO cafeteria_app;
+GRANT SELECT, INSERT ON inventory_movements TO cafeteria_app;
+REVOKE UPDATE, DELETE ON inventory_movements FROM cafeteria_app;
+GRANT SELECT ON inventory_accounts, inventory_movements TO cafeteria_backup;
+GRANT SELECT ON SEQUENCE inventory_accounts_id_seq, inventory_movements_id_seq TO cafeteria_backup;
+REVOKE ALL ON FUNCTION inventory_movement_protect_v39() FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;
+-- Schema39 inventory grants end.
 
 -- Prepared foods schema27 grants begin.
 REVOKE ALL ON FUNCTION lock_prepared_graph_v27(bigint),recipe_snapshot_complete_v27(jsonb),

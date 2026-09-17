@@ -450,6 +450,6 @@ def test_validate_schema_reports_live_schema_34(pg16):  # noqa: F811
     assert result.returncode == 0, result.stdout + result.stderr
     status = json.loads(result.stdout)
     assert status['artifact_check'] == 'passed'
-    assert status['schema_version'] == status['live_schema_version'] == 38
+    assert status['schema_version'] == status['live_schema_version'] == 39
     assert status['baseline_migration_equivalent'] is True
     assert len(status['migration_checksums']['0030_v32_to_v33.sql']) == hashlib.sha256().digest_size * 2

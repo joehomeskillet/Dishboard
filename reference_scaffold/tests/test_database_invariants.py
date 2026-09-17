@@ -300,8 +300,9 @@ def test_migration_plan_is_ordered_and_preserves_0001_bytes() -> None:
         (36, '0033_v35_to_v36.sql'),
         (37, '0034_v36_to_v37.sql'),
         (38, '0035_v37_to_v38.sql'),
+        (39, '0036_v38_to_v39.sql'),
     ]
-    assert database.SCHEMA_VERSION == 38
+    assert database.SCHEMA_VERSION == 39
     migrations = ROOT / 'database' / 'migrations'
     assert hashlib.sha256((migrations / '0001_initial_postgresql.sql').read_bytes()).hexdigest() == (
         'd1001f657858b4fec9a466517bf4117add8b28160dda7aebf7c43c21e6e6fff0'
@@ -332,7 +333,7 @@ def test_empty_database_runs_0001_then_0002(database_engine: Engine) -> None:
         local_credentials = connection.execute(
             text("SELECT to_regclass('cafeteria.local_credentials')")
         ).scalar_one()
-    assert [row.version for row in rows] == list(range(4, 39))
+    assert [row.version for row in rows] == list(range(4, 40))
     assert rows[0].name == '0001_initial_postgresql.sql'
     assert rows[1].name == '0002_profile_publication_and_local_auth.sql'
     assert rows[2].name == '0003_patient_key_and_withdrawal_contracts.sql'
@@ -387,7 +388,7 @@ def test_v4_fixture_migrates_without_replaying_0001() -> None:
         versions = connection.execute(
             text('SELECT version FROM cafeteria.schema_migrations ORDER BY version')
         ).scalars().all()
-    assert versions == list(range(4, 39))
+    assert versions == list(range(4, 40))
     _drop_schema(engine)
     engine.dispose()
 
@@ -1111,7 +1112,7 @@ def test_v4_draft_revision_is_withdrawn_and_not_public() -> None:
                 '''
             )
         ).all()
-    assert versions == list(range(4, 39))
+    assert versions == list(range(4, 40))
     assert int(public_rows) == 0
     assert withdrawn[0] is True
     assert 'v4' in withdrawn[1]
