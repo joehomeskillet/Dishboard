@@ -1,7 +1,5 @@
-"""Write week/calendar HTML twice to the goal scratch dir for launch comparison."""
+"""Render week/calendar HTML twice and assert the markup is byte-stable across launches."""
 from __future__ import annotations
-
-from pathlib import Path
 
 from cafeteria.admin import calendar_routes as calendar_routes  # noqa: F401
 from cafeteria.course_store import persist_service_courses
@@ -12,15 +10,14 @@ from test_workflow_partial_store_db import _payload, _service_payload
 
 pytest_plugins = ['test_admin_workflow_routes']
 
-SCRATCH = Path('/tmp/grok-goal-f7e8c549e979/implementer')
 TARGETS = {
-    'cafeteria': ('/admin/cafeteria?week=' + DAY, SCRATCH / 'week-cafeteria.html'),
-    'patienten': ('/admin/patienten?week=' + DAY, SCRATCH / 'week-patienten.html'),
-    'kuechenkalender': ('/admin/kuechenkalender?year=2026&month=8', SCRATCH / 'kuechenkalender.html'),
+    'cafeteria': '/admin/cafeteria?week=' + DAY,
+    'patienten': '/admin/patienten?week=' + DAY,
+    'kuechenkalender': '/admin/kuechenkalender?year=2026&month=8',
 }
 
 
-def test_week_and_calendar_html_is_stable_across_two_launches(app, database_engine) -> None:
+def test_week_and_calendar_html_is_stable_across_two_launches(app, database_engine, tmp_path) -> None:
     client, user_id = _login(app, database_engine, ['Cafeteria.Admin'])
     engine = app.extensions['cafeteria_db']
     cafeteria = _scope(database_engine, user_id, 'staff_guest')
@@ -37,21 +34,20 @@ def test_week_and_calendar_html_is_stable_across_two_launches(app, database_engi
         dessert={'state': 'not_offered'},
         exceptions=[],
     )
-    SCRATCH.mkdir(parents=True, exist_ok=True)
     first: dict[str, str] = {}
     for launch in (1, 2):
         lines = []
-        for name, (path, dest) in TARGETS.items():
+        for name, path in TARGETS.items():
             response = client.get(path)
             html = response.get_data(as_text=True)
             lines.append(f'{path} {response.status_code} {len(html)}')
             assert response.status_code == 200, path
-            dest.write_text(html)
+            (tmp_path / f'{name}.html').write_text(html)
             if launch == 1:
                 first[name] = html
             else:
                 assert html == first[name]
-        (SCRATCH / f'launch-{launch}.log').write_text('\n'.join(lines) + '\n')
+        (tmp_path / f'launch-{launch}.log').write_text('\n'.join(lines) + '\n')
     cafeteria_html = first['cafeteria']
     assert cafeteria_html.count('Suppe: Gemüsesuppe') == 1
     assert 'Kein Dessert' in cafeteria_html
