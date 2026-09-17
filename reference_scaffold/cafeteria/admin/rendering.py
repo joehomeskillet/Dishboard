@@ -3,12 +3,14 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Any
 
-from flask import current_app, g, render_template, session, url_for
+from flask import current_app, g, has_request_context, render_template, request, session, url_for
 from werkzeug.datastructures import MultiDict
 
 from ..component_catalog_store import AdminScope
 from ..component_catalog_filters import ComponentFilters
-from ..course_store import COURSE_KINDS, effective_course, load_week_courses, unplanned
+from ..course_store import (
+    COURSE_KINDS, effective_course, load_week_courses, summarize_course_issues, unplanned,
+)
 from ..menu_recipe_choices import EMPTY_RECIPE_PAGE, RecipeChoicePage, RecipeChoiceQuery, list_recipe_choices
 from ..operations_settings import get_area_names, get_schedule, slot_defaults
 from ..recipe_types import RecipeNotFoundError, RecipeUnavailableError, RecipeValidationError
@@ -222,10 +224,33 @@ def render_admin_week(
     week_courses: dict[tuple[str, str], dict[str, Any]] = {}
     if engine is not None and hasattr(engine, 'connect'):
         week_courses = load_week_courses(engine, scope.location_id, week, profile)
+    selected_revisions: list[str] = []
+    for block in week_courses.values():
+        for course in (block.get('shared') or {}).values():
+            revision = course.get('recipe_revision_public_id')
+            if revision:
+                selected_revisions.append(str(revision))
+        for option_exc in (block.get('exceptions') or {}).values():
+            for course in option_exc.values():
+                revision = course.get('recipe_revision_public_id')
+                if revision:
+                    selected_revisions.append(str(revision))
+    search = ''
+    offset = 0
+    if has_request_context():
+        search = str(request.args.get('recipe_search') or '')
+        try:
+            offset = max(int(request.args.get('recipe_offset') or 0), 0)
+        except (TypeError, ValueError):
+            offset = 0
     try:
-        recipe_page = list_recipe_choices(engine, (), RecipeChoiceQuery()) if engine is not None else EMPTY_RECIPE_PAGE
+        recipe_page = (
+            list_recipe_choices(engine, selected_revisions, RecipeChoiceQuery(search=search, offset=offset))
+            if engine is not None else EMPTY_RECIPE_PAGE
+        )
     except (RecipeUnavailableError, RecipeValidationError, RecipeNotFoundError, TypeError):
         recipe_page = EMPTY_RECIPE_PAGE
+    course_issues = summarize_course_issues(week_courses)
     return render_template(
         f'admin/{family}.html', profile=profile, family=family, week=week,
         week_iso=week.isoformat(), iso_week=week.isocalendar()[1], scope=scope,
@@ -237,6 +262,7 @@ def render_admin_week(
         week_form_errors=form_errors or {},
         cells=_cells(profile, family, week, draft, versions, services, week_courses),
         recipe_page=recipe_page,
+        course_issues=course_issues,
         schedule_defaults_csrf=_scoped_csrf(profile, 'schedule_defaults', scope),
         **_template_context(),
     )

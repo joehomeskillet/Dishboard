@@ -9,15 +9,20 @@ from sqlalchemy import text
 
 from cafeteria.course_store import (
     capture_week_courses,
+    course_issue_flags,
     effective_course,
     load_week_courses,
     persist_service_courses,
     restore_week_courses,
+    summarize_course_issues,
     unplanned,
 )
+from cafeteria.workflow import WorkflowValidationError, import_draft, load_draft
 from cafeteria.workflow_copy_store import copy_previous_week
 from cafeteria.workflow_partial_store import PartialWorkflowValidationError, persist_menu_item
 from prepared_food_fixtures import create_food, create_recipe, execute, freeze
+from review_support import write_expectations
+from test_admin_workflow_db import _staff_values
 from test_workflow_partial_store_db import WEEK, WorkflowDatabase, _payload, _scope
 
 pytest_plugins = ['test_workflow_partial_store_db']
@@ -245,3 +250,121 @@ def test_capture_restore_keeps_courses_after_item_rewrite(workflow_database: Wor
     restored = load_week_courses(db.app, db.location_id, WEEK, 'staff_guest')[(WEEK.isoformat(), 'LUNCH')]
     assert restored['shared']['soup']['title'] == 'Restoresuppe'
     assert restored['shared']['dessert']['state'] == 'not_offered'
+
+
+def test_shared_course_with_two_problems_counted_once(workflow_database: WorkflowDatabase) -> None:
+    db = workflow_database
+    scope = _scope(db, 'staff_guest')
+    soup = _freeze_named(db, 'Gemüsesuppe')
+    persist_menu_item(db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH', 'MENU_1', _payload(staff=True), 0)
+    persist_menu_item(db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH', 'VEGGIE', _payload(title='Gemüse', staff=True), 0)
+    persist_service_courses(
+        db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+        soup={'state': 'planned', 'recipe_public_id': soup['recipe_public_id']},
+        dessert={'state': 'unplanned'},
+    )
+    packed = load_week_courses(db.app, db.location_id, WEEK, 'staff_guest')
+    shared = packed[(WEEK.isoformat(), 'LUNCH')]['shared']['soup']
+    flags = course_issue_flags(shared)
+    assert flags['missing_allergens'] is True
+    assert flags['missing_nutrition'] is True
+    summary = summarize_course_issues(packed)
+    assert summary['affected_assignments'] == 1
+    assert summary['missing_allergens'] == 1
+    assert summary['missing_nutrition'] == 1
+    assert len(summary['items']) == 1
+    assert summary['items'][0]['kind'] == 'soup'
+    assert summary['items'][0]['scope'] == 'shared'
+    assert summary['items'][0]['problems'] == ('missing_allergens', 'missing_nutrition')
+
+
+def test_missing_allergens_do_not_invent_positive_label_or_auto_review(
+    workflow_database: WorkflowDatabase,
+) -> None:
+    db = workflow_database
+    scope = _scope(db, 'staff_guest')
+    soup = _freeze_named(db, 'Gemüsesuppe')
+    persist_menu_item(db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH', 'MENU_1', _payload(staff=True), 0)
+    persist_service_courses(
+        db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+        soup={'state': 'planned', 'recipe_public_id': soup['recipe_public_id']},
+        dessert={'state': 'unplanned'},
+    )
+    packed = load_week_courses(db.app, db.location_id, WEEK, 'staff_guest')
+    shared = packed[(WEEK.isoformat(), 'LUNCH')]['shared']['soup']
+    flags = course_issue_flags(shared)
+    assert flags['positive_labels'] == ()
+    assert flags['allergen_review_status'] == 'not_checked'
+    assert shared['allergen_review_status'] == 'not_checked'
+    summary = summarize_course_issues(packed)
+    assert summary['items'][0]['positive_labels'] == ()
+    assert summary['items'][0]['allergen_review_status'] == 'not_checked'
+    invented = course_issue_flags({
+        'state': 'planned', 'title': 'Gemüsesuppe', 'allergens': None, 'labels': None,
+        'nutrition': None,
+    })
+    assert invented['positive_labels'] == ()
+    assert invented['allergen_review_status'] == 'not_checked'
+    assert invented['missing_allergens'] is True
+
+
+def test_inaccessible_csv_course_uuid_rolls_back_draft_and_earlier_days(
+    workflow_database: WorkflowDatabase,
+) -> None:
+    db = workflow_database
+    scope = _scope(db, 'staff_guest')
+    original = _freeze_named(db, 'AlteSuppe')
+    replacement = _freeze_named(db, 'NeueSuppe')
+    monday = WEEK.isoformat()
+    tuesday = (WEEK + timedelta(days=1)).isoformat()
+    persist_menu_item(db.app, scope, WEEK, monday, 'LUNCH', 'MENU_1', _payload(staff=True), 0)
+    persist_menu_item(db.app, scope, WEEK, tuesday, 'LUNCH', 'MENU_1', _payload(title='Dienstag', staff=True), 0)
+    persist_service_courses(
+        db.app, scope, WEEK, monday, 'LUNCH',
+        soup={'state': 'planned', 'recipe_public_id': original['recipe_public_id']},
+        dessert={'state': 'unplanned'},
+    )
+    with db.owner.connect() as connection:
+        version = connection.execute(text(
+            '''SELECT w.row_version FROM cafeteria.menu_weeks w
+               JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+               WHERE w.location_id=:loc AND p.code='staff_guest' AND w.week_start=:week'''
+        ), {'loc': db.location_id, 'week': WEEK}).scalar_one()
+    csv_courses = {
+        (monday, 'LUNCH'): {
+            'soup': {
+                'state': 'planned', 'recipe_public_id': replacement['recipe_public_id'],
+                'line': 2, 'field': 'soup',
+            },
+            'dessert': {'state': 'unplanned', 'line': 2, 'field': 'dessert'},
+            'exceptions': [],
+        },
+        (tuesday, 'LUNCH'): {
+            'soup': {
+                'state': 'planned',
+                'recipe_public_id': '00000000-0000-4000-8000-000000000099',
+                'line': 4, 'field': 'soup',
+            },
+            'dessert': {'state': 'unplanned', 'line': 4, 'field': 'dessert'},
+            'exceptions': [],
+        },
+    }
+    with pytest.raises(WorkflowValidationError, match='Zeile 4: Rezeptangabe ist ungültig oder nicht zugänglich'):
+        import_draft(
+            db.app, 'staff_guest', WEEK,
+            expected_row_version=int(version),
+            actor_id=db.actor_id,
+            values=_staff_values(title='Import darf nicht bleiben'),
+            csv_courses=csv_courses,
+            **write_expectations(db.app, db.actor_id),
+        )
+    packed = load_week_courses(db.app, db.location_id, WEEK, 'staff_guest')
+    assert packed[(monday, 'LUNCH')]['shared']['soup']['title'] == 'AlteSuppe'
+    tuesday_block = packed.get((tuesday, 'LUNCH'), {'shared': {'soup': unplanned()}})
+    assert tuesday_block['shared']['soup']['state'] == 'unplanned'
+    draft = load_draft(
+        db.app, 'staff_guest', WEEK, actor_id=db.actor_id, **write_expectations(db.app, db.actor_id),
+    )
+    assert draft['title'] != 'Import darf nicht bleiben'
+    monday_title = draft['days'][0]['services'][0]['options'][0]['title']
+    assert monday_title == 'Rindsgeschnetzeltes'

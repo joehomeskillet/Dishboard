@@ -1,6 +1,7 @@
 """Shared soup/dessert per service, with optional per-menu exceptions."""
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping, Sequence
 from datetime import date
 from typing import Any
@@ -77,21 +78,122 @@ def _latest_revision(connection: Connection, location_id: int, recipe_public_id:
     return row
 
 
+def _flags_from_snapshot(snapshot: object) -> dict[str, Any]:
+    if isinstance(snapshot, (bytes, bytearray, str)):
+        try:
+            snapshot = json.loads(snapshot)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            snapshot = None
+    recipe = snapshot.get('recipe') if isinstance(snapshot, dict) else None
+    if not isinstance(recipe, dict):
+        recipe = snapshot if isinstance(snapshot, dict) else {}
+    allergens = recipe.get('allergens')
+    labels = recipe.get('labels')
+    nutrition = recipe.get('nutrition')
+    return {
+        'allergens': allergens if isinstance(allergens, list) else None,
+        'labels': labels if isinstance(labels, list) else None,
+        'nutrition': nutrition if isinstance(nutrition, dict) else None,
+    }
+
+
 def _row_view(row: Mapping[str, Any] | None) -> dict[str, Any]:
     if row is None:
         return unplanned()
+    flags = _flags_from_snapshot(row.get('snapshot_json'))
     return {
         'state': row['planning_state'],
         'title': row['title'],
         'recipe_public_id': str(row['recipe_public_id']) if row['recipe_public_id'] else None,
         'recipe_revision_public_id': str(row['revision_public_id']) if row['revision_public_id'] else None,
+        'allergens': flags['allergens'],
+        'labels': flags['labels'],
+        'nutrition': flags['nutrition'],
+        'allergen_review_status': 'not_checked',
+    }
+
+
+def course_issue_flags(view: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Open items for one assignment. Missing data is never a positive label."""
+    course = dict(view or unplanned())
+    if course.get('state') != 'planned':
+        return {
+            'missing_allergens': False,
+            'missing_nutrition': False,
+            'positive_labels': (),
+            'allergen_review_status': course.get('allergen_review_status') or 'not_checked',
+        }
+    allergens = course.get('allergens')
+    nutrition = course.get('nutrition')
+    labels = course.get('labels')
+    return {
+        'missing_allergens': not isinstance(allergens, list) or len(allergens) == 0,
+        'missing_nutrition': not isinstance(nutrition, dict) or len(nutrition) == 0,
+        'positive_labels': tuple(labels) if isinstance(labels, list) else (),
+        'allergen_review_status': 'not_checked',
+    }
+
+
+def summarize_course_issues(
+    packed: Mapping[tuple[str, str], Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Count shared soup/dessert once per assignment, not once per menu variant."""
+    missing_allergens = 0
+    missing_nutrition = 0
+    affected = 0
+    items: list[dict[str, Any]] = []
+    for (day, meal), block in packed.items():
+        shared = block.get('shared') or {}
+        exceptions = block.get('exceptions') or {}
+        for kind in COURSE_KINDS:
+            course = shared.get(kind) or unplanned()
+            flags = course_issue_flags(course)
+            problems = [name for name in ('missing_allergens', 'missing_nutrition') if flags[name]]
+            if problems:
+                affected += 1
+                if flags['missing_allergens']:
+                    missing_allergens += 1
+                if flags['missing_nutrition']:
+                    missing_nutrition += 1
+                items.append({
+                    'day': day, 'meal': meal, 'kind': kind, 'scope': 'shared',
+                    'option': None, 'title': course.get('title'),
+                    'problems': tuple(problems),
+                    'positive_labels': flags['positive_labels'],
+                    'allergen_review_status': flags['allergen_review_status'],
+                })
+            for option, option_exc in exceptions.items():
+                override = option_exc.get(kind)
+                if not override:
+                    continue
+                flags = course_issue_flags(override)
+                problems = [name for name in ('missing_allergens', 'missing_nutrition') if flags[name]]
+                if not problems:
+                    continue
+                affected += 1
+                if flags['missing_allergens']:
+                    missing_allergens += 1
+                if flags['missing_nutrition']:
+                    missing_nutrition += 1
+                items.append({
+                    'day': day, 'meal': meal, 'kind': kind, 'scope': 'exception',
+                    'option': option, 'title': override.get('title'),
+                    'problems': tuple(problems),
+                    'positive_labels': flags['positive_labels'],
+                    'allergen_review_status': flags['allergen_review_status'],
+                })
+    return {
+        'affected_assignments': affected,
+        'missing_allergens': missing_allergens,
+        'missing_nutrition': missing_nutrition,
+        'items': items,
     }
 
 
 def load_service_courses(connection: Connection, service_id: int) -> dict[str, dict[str, Any]]:
     rows = connection.execute(text('''
         SELECT c.course_kind, c.planning_state, rr.public_id AS revision_public_id,
-               r.public_id AS recipe_public_id,
+               r.public_id AS recipe_public_id, rr.snapshot_json AS snapshot_json,
                COALESCE(rr.snapshot_json #>> '{recipe,title}', r.title) AS title
         FROM cafeteria.menu_service_courses c
         LEFT JOIN cafeteria.recipe_revisions rr ON rr.id=c.recipe_revision_id
@@ -107,7 +209,7 @@ def load_item_exceptions(connection: Connection, item_ids: Sequence[int]) -> dic
         return {}
     rows = connection.execute(text('''
         SELECT e.menu_item_id, e.course_kind, e.planning_state, rr.public_id AS revision_public_id,
-               r.public_id AS recipe_public_id,
+               r.public_id AS recipe_public_id, rr.snapshot_json AS snapshot_json,
                COALESCE(rr.snapshot_json #>> '{recipe,title}', r.title) AS title
         FROM cafeteria.menu_item_course_exceptions e
         LEFT JOIN cafeteria.recipe_revisions rr ON rr.id=e.recipe_revision_id
@@ -146,7 +248,7 @@ def load_week_courses_connection(
     if ids:
         for row in connection.execute(text('''
             SELECT c.service_id, c.course_kind, c.planning_state, rr.public_id AS revision_public_id,
-                   r.public_id AS recipe_public_id,
+                   r.public_id AS recipe_public_id, rr.snapshot_json AS snapshot_json,
                    COALESCE(rr.snapshot_json #>> '{recipe,title}', r.title) AS title
             FROM cafeteria.menu_service_courses c
             LEFT JOIN cafeteria.recipe_revisions rr ON rr.id=c.recipe_revision_id
@@ -157,6 +259,7 @@ def load_week_courses_connection(
         for row in connection.execute(text('''
             SELECT i.service_id, mt.code AS option_code, e.course_kind, e.planning_state,
                    rr.public_id AS revision_public_id, r.public_id AS recipe_public_id,
+                   rr.snapshot_json AS snapshot_json,
                    COALESCE(rr.snapshot_json #>> '{recipe,title}', r.title) AS title
             FROM cafeteria.menu_item_course_exceptions e
             JOIN cafeteria.menu_items i ON i.id=e.menu_item_id
@@ -204,22 +307,39 @@ def attach_courses_to_draft(
                         option[f'{kind}_override'] = override
 
 
+def _course_import_error(payload: Mapping[str, Any], cause: Exception) -> PartialWorkflowValidationError:
+    line = payload.get('line')
+    if line:
+        return PartialWorkflowValidationError(
+            f'Zeile {line}: Rezeptangabe ist ungültig oder nicht zugänglich.'
+        )
+    if isinstance(cause, PartialWorkflowValidationError):
+        return cause
+    return PartialWorkflowValidationError('Rezeptangabe ist ungültig oder nicht zugänglich.')
+
+
 def _resolve_revision(
     connection: Connection, location_id: int, payload: Mapping[str, Any], *, field: str,
 ) -> int:
-    recipe = payload.get('recipe_public_id') or payload.get('recipe_revision_public_id')
-    if not recipe:
-        raise PartialWorkflowValidationError(f'{field} braucht ein Rezept.')
-    if payload.get('recipe_revision_public_id') and not payload.get('recipe_public_id'):
-        row = connection.execute(text('''
-            SELECT rr.id FROM cafeteria.recipe_revisions rr
-            JOIN cafeteria.recipes r ON r.id=rr.recipe_id
-            WHERE rr.public_id=CAST(:id AS uuid) AND r.location_id=:location
-        '''), {'id': _uuid(str(recipe), 'Rezeptrevision'), 'location': location_id}).scalar_one_or_none()
-        if row is None:
-            raise PartialWorkflowValidationError('Rezeptrevision nicht gefunden.')
-        return int(row)
-    return int(_latest_revision(connection, location_id, str(recipe))['id'])
+    try:
+        recipe = payload.get('recipe_public_id') or payload.get('recipe_revision_public_id')
+        if not recipe:
+            raise PartialWorkflowValidationError(f'{field} braucht ein Rezept.')
+        if payload.get('recipe_revision_public_id') and not payload.get('recipe_public_id'):
+            row = connection.execute(text('''
+                SELECT rr.id FROM cafeteria.recipe_revisions rr
+                JOIN cafeteria.recipes r ON r.id=rr.recipe_id
+                WHERE rr.public_id=CAST(:id AS uuid) AND r.location_id=:location
+            '''), {'id': _uuid(str(recipe), 'Rezeptrevision'), 'location': location_id}).scalar_one_or_none()
+            if row is None:
+                raise PartialWorkflowValidationError('Rezeptrevision nicht gefunden.')
+            return int(row)
+        return int(_latest_revision(connection, location_id, str(recipe))['id'])
+    except PartialWorkflowValidationError as error:
+        wrapped = _course_import_error(payload, error)
+        if wrapped is error:
+            raise
+        raise wrapped from error
 
 
 def _upsert_shared(
@@ -253,68 +373,80 @@ def _upsert_shared(
     })
 
 
+def persist_service_courses_connection(
+    connection: Connection, scope: AdminScope, week_start: date, day: str, meal: str, *,
+    soup: Mapping[str, Any], dessert: Mapping[str, Any],
+    exceptions: Sequence[Mapping[str, Any]] | None = None,
+) -> None:
+    """Write shared soup+dessert on an open write connection (no nested transaction)."""
+    if meal not in ('LUNCH', 'DINNER'):
+        raise PartialWorkflowValidationError('Ungültige Mahlzeit.')
+    service_date = date.fromisoformat(day)
+    week = resolve_week_ref(connection, scope, week_start, for_update=True)
+    service = connection.execute(text('''
+        SELECT s.id FROM cafeteria.menu_services s
+        JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id
+        WHERE s.menu_week_id=:week AND s.service_date=:day AND mp.code=:meal
+        FOR UPDATE OF s
+    '''), {'week': week.week_id, 'day': service_date, 'meal': meal}).scalar_one_or_none()
+    if service is None:
+        raise PartialWorkflowNotFoundError('Ausgabe nicht gefunden. Zuerst Ausgabeangaben oder ein Menü speichern.')
+    service_id = int(service)
+    _upsert_shared(connection, location_id=scope.location_id, service_id=service_id,
+                   actor_id=scope.actor_id, kind='soup', payload=soup)
+    _upsert_shared(connection, location_id=scope.location_id, service_id=service_id,
+                   actor_id=scope.actor_id, kind='dessert', payload=dessert)
+    if exceptions is None:
+        return
+    connection.execute(text('''
+        DELETE FROM cafeteria.menu_item_course_exceptions e
+        USING cafeteria.menu_items i
+        WHERE e.menu_item_id=i.id AND i.service_id=:service
+    '''), {'service': service_id})
+    for item in exceptions:
+        option = str(item.get('option') or '')
+        kind = str(item.get('kind') or '')
+        if kind not in COURSE_KINDS:
+            raise PartialWorkflowValidationError('Ungültiger Gang.')
+        state = str(item.get('state') or 'inherit')
+        if state == 'inherit':
+            continue
+        menu_item = connection.execute(text('''
+            SELECT i.id FROM cafeteria.menu_items i
+            JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id
+            WHERE i.service_id=:service AND mt.code=:option
+            FOR UPDATE OF i
+        '''), {'service': service_id, 'option': option}).scalar_one_or_none()
+        if menu_item is None:
+            raise PartialWorkflowNotFoundError('Menüvariante nicht gefunden.')
+        revision_id = None
+        if state == 'planned':
+            revision_id = _resolve_revision(
+                connection, scope.location_id, item, field=COURSE_LABELS[kind],
+            )
+        elif state != 'not_offered':
+            raise PartialWorkflowValidationError('Ungültige Menüabweichung.')
+        connection.execute(text('''
+            INSERT INTO cafeteria.menu_item_course_exceptions(
+                menu_item_id, course_kind, planning_state, recipe_revision_id, created_by, updated_by)
+            VALUES (:item, :kind, :state, :revision, :actor, :actor)
+        '''), {
+            'item': int(menu_item), 'kind': kind, 'state': state,
+            'revision': revision_id, 'actor': scope.actor_id,
+        })
+
+
 def persist_service_courses(
     engine: Engine, scope: AdminScope, week_start: date, day: str, meal: str, *,
     soup: Mapping[str, Any], dessert: Mapping[str, Any],
     exceptions: Sequence[Mapping[str, Any]] | None = None,
 ) -> None:
     """Atomically write shared soup+dessert and named menu exceptions for one service."""
-    if meal not in ('LUNCH', 'DINNER'):
-        raise PartialWorkflowValidationError('Ungültige Mahlzeit.')
-    service_date = date.fromisoformat(day)
     with write_transaction(engine, scope) as connection:
-        week = resolve_week_ref(connection, scope, week_start, for_update=True)
-        service = connection.execute(text('''
-            SELECT s.id FROM cafeteria.menu_services s
-            JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id
-            WHERE s.menu_week_id=:week AND s.service_date=:day AND mp.code=:meal
-            FOR UPDATE OF s
-        '''), {'week': week.week_id, 'day': service_date, 'meal': meal}).scalar_one_or_none()
-        if service is None:
-            raise PartialWorkflowNotFoundError('Ausgabe nicht gefunden. Zuerst Ausgabeangaben oder ein Menü speichern.')
-        service_id = int(service)
-        _upsert_shared(connection, location_id=scope.location_id, service_id=service_id,
-                       actor_id=scope.actor_id, kind='soup', payload=soup)
-        _upsert_shared(connection, location_id=scope.location_id, service_id=service_id,
-                       actor_id=scope.actor_id, kind='dessert', payload=dessert)
-        if exceptions is None:
-            return
-        connection.execute(text('''
-            DELETE FROM cafeteria.menu_item_course_exceptions e
-            USING cafeteria.menu_items i
-            WHERE e.menu_item_id=i.id AND i.service_id=:service
-        '''), {'service': service_id})
-        for item in exceptions:
-            option = str(item.get('option') or '')
-            kind = str(item.get('kind') or '')
-            if kind not in COURSE_KINDS:
-                raise PartialWorkflowValidationError('Ungültiger Gang.')
-            state = str(item.get('state') or 'inherit')
-            if state == 'inherit':
-                continue
-            menu_item = connection.execute(text('''
-                SELECT i.id FROM cafeteria.menu_items i
-                JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id
-                WHERE i.service_id=:service AND mt.code=:option
-                FOR UPDATE OF i
-            '''), {'service': service_id, 'option': option}).scalar_one_or_none()
-            if menu_item is None:
-                raise PartialWorkflowNotFoundError('Menüvariante nicht gefunden.')
-            revision_id = None
-            if state == 'planned':
-                revision_id = _resolve_revision(
-                    connection, scope.location_id, item, field=COURSE_LABELS[kind],
-                )
-            elif state != 'not_offered':
-                raise PartialWorkflowValidationError('Ungültige Menüabweichung.')
-            connection.execute(text('''
-                INSERT INTO cafeteria.menu_item_course_exceptions(
-                    menu_item_id, course_kind, planning_state, recipe_revision_id, created_by, updated_by)
-                VALUES (:item, :kind, :state, :revision, :actor, :actor)
-            '''), {
-                'item': int(menu_item), 'kind': kind, 'state': state,
-                'revision': revision_id, 'actor': scope.actor_id,
-            })
+        persist_service_courses_connection(
+            connection, scope, week_start, day, meal,
+            soup=soup, dessert=dessert, exceptions=exceptions,
+        )
 
 
 def capture_week_courses(connection: Connection, week_id: int) -> dict[str, Any]:
@@ -344,8 +476,8 @@ def capture_week_courses(connection: Connection, week_id: int) -> dict[str, Any]
     return {'shared': shared, 'exceptions': exceptions}
 
 
-def restore_week_courses(
-    engine: Engine, scope: AdminScope, week_start: date, captured: Mapping[str, Any],
+def restore_week_courses_connection(
+    connection: Connection, scope: AdminScope, week_start: date, captured: Mapping[str, Any],
 ) -> None:
     grouped: dict[tuple[str, str], dict[str, Any]] = {}
     for row in captured.get('shared') or ():
@@ -369,10 +501,17 @@ def restore_week_courses(
             item['recipe_public_id'] = row['recipe_public_id']
         slot['exceptions'].append(item)
     for (day, meal), slot in grouped.items():
-        persist_service_courses(
-            engine, scope, week_start, day, meal,
+        persist_service_courses_connection(
+            connection, scope, week_start, day, meal,
             soup=slot['soup'], dessert=slot['dessert'], exceptions=slot['exceptions'],
         )
+
+
+def restore_week_courses(
+    engine: Engine, scope: AdminScope, week_start: date, captured: Mapping[str, Any],
+) -> None:
+    with write_transaction(engine, scope) as connection:
+        restore_week_courses_connection(connection, scope, week_start, captured)
 
 
 def clone_week_courses(

@@ -347,7 +347,10 @@ def import_draft(
     expected_location_id: int,
     csv_courses: dict[tuple[str, str], dict[str, Any]] | None = None,
 ) -> int:
-    from .course_store import capture_week_courses, persist_service_courses, restore_week_courses
+    from .course_store import (
+        capture_week_courses, persist_service_courses_connection, restore_week_courses_connection,
+    )
+    from .workflow_partial_store import PartialWorkflowValidationError
     validate_draft_values(profile_code, week_start, values)
     import_values = _full_replace_values(values)
     scope = write_scope(actor_id, expected_location_id, profile_code, expected_authz_version)
@@ -380,17 +383,19 @@ def import_draft(
             expected_location_id=expected_location_id,
             reject_catalog_assignments=True,
         )
-    admin_scope = write_scope(actor_id, expected_location_id, profile_code, expected_authz_version)
-    if csv_courses:
-        for (day, meal), slot in csv_courses.items():
-            persist_service_courses(
-                engine, admin_scope, week_start, day, meal,
-                soup=slot.get('soup') or {'state': 'unplanned'},
-                dessert=slot.get('dessert') or {'state': 'unplanned'},
-                exceptions=slot.get('exceptions') or [],
-            )
-    elif captured:
-        restore_week_courses(engine, admin_scope, week_start, captured)
+        try:
+            if csv_courses:
+                for (day, meal), slot in csv_courses.items():
+                    persist_service_courses_connection(
+                        connection, scope, week_start, day, meal,
+                        soup=slot.get('soup') or {'state': 'unplanned'},
+                        dessert=slot.get('dessert') or {'state': 'unplanned'},
+                        exceptions=slot.get('exceptions') or [],
+                    )
+            elif captured:
+                restore_week_courses_connection(connection, scope, week_start, captured)
+        except PartialWorkflowValidationError as error:
+            raise WorkflowValidationError(str(error)) from error
     return version
 
 

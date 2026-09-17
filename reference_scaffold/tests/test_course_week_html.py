@@ -52,6 +52,10 @@ def test_cafeteria_week_shows_shared_course_once(app, database_engine: Engine) -
     assert 'Kein Dessert' in html
     assert 'Gänge planen' in html
     assert 'action="/admin/cafeteria/courses"' in html
+    assert 'Allergenangaben fehlen' in html
+    assert 'id="course-issues"' in html
+    assert 'Gänge ohne Allergenangaben' in html or 'Gang prüfen' in html
+    assert 'name="recipe_search"' in html
 
 
 def test_course_form_saves_atomically(app, database_engine: Engine) -> None:
@@ -80,3 +84,35 @@ def test_course_form_saves_atomically(app, database_engine: Engine) -> None:
     body = response.get_data(as_text=True)
     assert 'Keine Suppe' in body
     assert 'Dessert noch nicht geplant' in body
+
+
+def test_course_editor_retains_bound_recipe_outside_search_page(app, database_engine: Engine) -> None:
+    client, user_id = _login(app, database_engine, ['Cafeteria.Admin'])
+    engine = app.extensions['cafeteria_db']
+    scope = _scope(database_engine, user_id, 'staff_guest')
+    persist_menu_item(engine, scope, WEEK, DAY, 'LUNCH', 'MENU_1', _payload(staff=True), 0)
+    persist_menu_item(engine, scope, WEEK, DAY, 'LUNCH', 'VEGGIE', _payload(title='Gemüse', staff=True), 0)
+    soup = _recipe(engine, user_id, scope.location_id, 'Gemüsesuppe')
+    other = _recipe(engine, user_id, scope.location_id, 'Tomatensuppe')
+    persist_service_courses(
+        engine, scope, WEEK, DAY, 'LUNCH',
+        soup={'state': 'planned', 'recipe_public_id': soup['public_id']},
+        dessert={'state': 'unplanned'},
+        exceptions=[{
+            'option': 'VEGGIE', 'kind': 'soup', 'state': 'planned',
+            'recipe_public_id': other['public_id'],
+        }],
+    )
+    page = client.get(f'/admin/cafeteria?week={DAY}&recipe_search=zzzz-kein-treffer')
+    html = page.get_data(as_text=True)
+    assert page.status_code == 200
+    assert 'name="recipe_search"' in html
+    assert 'zzzz-kein-treffer' in html
+    assert html.count('Weiterhin gebundene Auswahl') >= 1
+    assert soup['public_id'] in html
+    assert other['public_id'] in html
+    assert 'Gemüsesuppe' in html
+    assert 'Tomatensuppe' in html
+    veggie_select = html.split('name="VEGGIE_soup_recipe"', 1)[1].split('</select>', 1)[0]
+    assert 'Weiterhin gebundene Auswahl' in veggie_select
+    assert other['public_id'] in veggie_select

@@ -60,6 +60,12 @@
     {% if allergen_stats.review_open > 0 %}
     <span class="badge bg-yellow-lt text-warning admin-week-status-chip" aria-label="{{ allergen_stats.review_open }} {{ 'Menükarte' if allergen_stats.review_open == 1 else 'Menükarten' }} mit Allergenprüfung offen">{{ allergen_stats.review_open }} {{ 'Allergenprüfung' if allergen_stats.review_open == 1 else 'Allergenprüfungen' }} offen</span>
     {% endif %}
+    {% if course_issues is defined and course_issues.affected_assignments %}
+    <a class="badge bg-yellow-lt text-warning admin-week-status-chip" href="#course-issues" aria-label="{{ course_issues.affected_assignments }} {{ 'Gang' if course_issues.affected_assignments == 1 else 'Gänge' }} mit offenen Angaben">{{ course_issues.affected_assignments }} {{ 'Gang' if course_issues.affected_assignments == 1 else 'Gänge' }} prüfen</a>
+    {% endif %}
+    {% if course_issues is defined and course_issues.missing_allergens %}
+    <span class="badge bg-yellow-lt text-warning admin-week-status-chip" aria-label="{{ course_issues.missing_allergens }} {{ 'Gang' if course_issues.missing_allergens == 1 else 'Gänge' }} ohne Allergenangaben">{{ course_issues.missing_allergens }} Gänge ohne Allergenangaben</span>
+    {% endif %}
   </div>
   <div class="admin-actions btn-list" data-sticky>
     {% if publish_blocked and status == 'review_open' %}
@@ -89,6 +95,15 @@
     <p id="week-publish-guidance" class="admin-week-guidance">{% if status == 'empty' %}Zuerst Gerichte erfassen, danach die Woche prüfen und publizieren.{% elif status == 'incomplete' %}Zuerst die Woche vervollständigen, danach publizieren.{% else %}Zuerst offene Prüfungen abschliessen, danach publizieren.{% endif %}</p>
     {% endif %}
   </div>
+  {% if course_issues is defined and course_issues['items'] %}
+  <ul id="course-issues" class="list-unstyled mb-0">
+    {% for item in course_issues['items'] %}
+    <li>
+      <a href="#course-{{ item.day }}-{{ item.meal }}">{{ item.day }} · {{ 'Mittag' if item.meal == 'LUNCH' else 'Abend' }} · {{ 'Suppe' if item.kind == 'soup' else 'Dessert' }}{% if item.option %} · {{ 'Vegetarisch' if item.option == 'VEGGIE' else 'Menü 1' }}{% endif %}: {% if 'missing_allergens' in item.problems %}Allergenangaben fehlen{% endif %}{% if 'missing_nutrition' in item.problems %}{% if 'missing_allergens' in item.problems %} · {% endif %}Nährwertangaben fehlen{% endif %}</a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
 </section>
 
 <div class="modal modal-blur fade" id="week-publish-modal" tabindex="-1" aria-labelledby="week-publish-title" aria-hidden="true">

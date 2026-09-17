@@ -1,0 +1,27 @@
+{% if recipe_page is defined and recipe_page.query is defined %}
+<form method="get" action="/admin/{{ family }}" class="card card-sm mb-3" aria-label="Rezepte für Gänge suchen">
+  <div class="card-body">
+    <input type="hidden" name="week" value="{{ week_value }}">
+    <div class="row g-2 align-items-end">
+      <div class="col-12 col-md-8">
+        <label class="form-label" for="course-recipe-search">Rezept nach Titel suchen</label>
+        <input class="form-control" id="course-recipe-search" name="recipe_search" value="{{ recipe_page.query.search }}" maxlength="200">
+      </div>
+      <div class="col-12 col-md-auto">
+        <button class="btn" type="submit">{{ icon('search') }}Rezepte suchen</button>
+      </div>
+      {% if recipe_page.previous_offset is not none %}
+      <div class="col-auto">
+        <button class="btn" type="submit" name="recipe_offset" value="{{ recipe_page.previous_offset }}">Vorherige Seite</button>
+      </div>
+      {% endif %}
+      {% if recipe_page.has_next and recipe_page.next_offset is not none %}
+      <div class="col-auto">
+        <button class="btn" type="submit" name="recipe_offset" value="{{ recipe_page.next_offset }}">Nächste Seite</button>
+      </div>
+      {% endif %}
+    </div>
+    <p class="form-hint mb-0">Suche und Seitenwechsel speichern die Gänge nicht. Bereits geplante Rezepte bleiben in der Auswahl erhalten.</p>
+  </div>
+</form>
+{% endif %}

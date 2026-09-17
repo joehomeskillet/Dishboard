@@ -41,6 +41,11 @@ DAY_NAMES = {
     5: 'Freitag', 6: 'Samstag', 7: 'Sonntag',
 }
 PRICE_HEADER_PATTERN = re.compile(r'(preis|price|chf|rappen|kosten)', re.I)
+RECIPE_ID_RE = re.compile(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+)
+COURSE_GELTUNG = {'', 'gemeinsam', 'ausnahme'}
+COURSE_EMPTY = {'', 'keine'}
 DANGEROUS_PREFIXES = ('=', '+', '-', '@', '\t', '\r')
 LABEL_CODES = {'VEGETARIAN', 'VEGAN', 'LACTOSE_FREE', 'GLUTEN_FREE'}
 ALLERGEN_CODES = {
@@ -283,6 +288,7 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
                 'external_id', 'titel', 'beschreibung', 'beilagen', 'beilage_dazu', 'labels',
                 'allergene_enthaelt', 'allergene_spuren', 'herkunft', 'hinweis',
                 'preis_mitarbeitende_chf', 'preis_externe_chf',
+                'suppe', 'suppe_geltung', 'dessert', 'dessert_geltung',
             )
             populated = next(
                 (field for field in closed_fields if row.get(field, '').strip()),
@@ -314,6 +320,22 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
                 line=line_number,
                 field='beilage_dazu',
             )
+        if row.get('schema_version') == '4':
+            for field, geltung_field in (('suppe', 'suppe_geltung'), ('dessert', 'dessert_geltung')):
+                raw = row.get(field, '').strip().lstrip("'")
+                geltung = row.get(geltung_field, '').strip()
+                if geltung not in COURSE_GELTUNG:
+                    add_error(
+                        f'{geltung_field} muss leer, gemeinsam oder ausnahme sein.',
+                        line=line_number,
+                        field=geltung_field,
+                    )
+                if raw not in COURSE_EMPTY and RECIPE_ID_RE.fullmatch(raw) is None:
+                    add_error(
+                        f'{field} muss leer, keine oder eine gültige Rezept-UUID sein.',
+                        line=line_number,
+                        field=field,
+                    )
 
         labels = _pipe_parts(row.get('labels', ''))
         if len(labels) != len(set(labels)):

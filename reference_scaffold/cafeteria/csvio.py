@@ -137,7 +137,7 @@ def _csv_course_fields(service: dict[str, object], option: dict[str, object]) ->
 def extract_csv_courses(rows: list[dict[str, str]]) -> dict[tuple[str, str], dict[str, object]]:
     """Build persist payloads from schema-4 course columns. Empty cells stay unplanned."""
     grouped: dict[tuple[str, str], dict[str, object]] = {}
-    for row in rows:
+    for line_number, row in enumerate(rows, start=2):
         if row.get('schema_version') != '4':
             continue
         key = (row.get('datum') or '', row.get('mahlzeit') or '')
@@ -150,7 +150,9 @@ def extract_csv_courses(rows: list[dict[str, str]]) -> dict[tuple[str, str], dic
             ('dessert', row.get('dessert') or '', row.get('dessert_geltung') or 'gemeinsam'),
         ):
             payload = _payload_from_cell(cell)
-            if geltung == 'ausnahme':
+            payload['line'] = line_number
+            payload['field'] = kind
+            if geltung.strip() == 'ausnahme':
                 item = {'option': option, 'kind': kind, **payload}
                 slot['exceptions'].append(item)
             elif option == 'MENU_1' or slot[kind].get('state') == 'unplanned':
@@ -202,7 +204,10 @@ def snapshot_to_csv(snapshot: dict) -> bytes:
             for option in options:
                 contains = [a['code'] for a in option.get('allergens', []) if a.get('presence') == 'contains']
                 traces = [a['code'] for a in option.get('allergens', []) if a.get('presence') == 'may_contain']
-                soup, soup_g, dessert, dessert_g = _csv_course_fields(service, option)
+                if state != 'open':
+                    soup, soup_g, dessert, dessert_g = '', '', '', ''
+                else:
+                    soup, soup_g, dessert, dessert_g = _csv_course_fields(service, option)
                 row = {
                     'schema_version': '4', 'profil': profile, 'datum': day.get('date', ''),
                     'wochentag': day.get('weekday', ''), 'mahlzeit': service.get('meal_code', ''),
