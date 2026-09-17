@@ -16,7 +16,8 @@ _SERVICES = """
            to_char(s.service_start, 'HH24:MI') AS service_start,
            to_char(s.service_end, 'HH24:MI') AS service_end,
            w.week_start, w.workflow_state, w.public_id AS week_public_id,
-           coalesce(items.menus, '[]'::jsonb) AS menus
+           coalesce(items.menus, '[]'::jsonb) AS menus,
+           coalesce(course_rows.courses, '{}'::jsonb) AS courses
     FROM cafeteria.menu_services s
     JOIN cafeteria.menu_weeks w ON w.id=s.menu_week_id
     JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
@@ -28,6 +29,16 @@ _SERVICES = """
         JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id
         WHERE i.service_id=s.id
     ) items ON true
+    LEFT JOIN LATERAL (
+        SELECT jsonb_object_agg(c.course_kind, jsonb_build_object(
+            'state', c.planning_state,
+            'title', COALESCE(rr.snapshot_json #>> '{recipe,title}', r.title, '')
+        )) AS courses
+        FROM cafeteria.menu_service_courses c
+        LEFT JOIN cafeteria.recipe_revisions rr ON rr.id=c.recipe_revision_id
+        LEFT JOIN cafeteria.recipes r ON r.id=rr.recipe_id
+        WHERE c.service_id=s.id
+    ) course_rows ON true
     WHERE w.location_id=:location_id AND s.service_date BETWEEN :start AND :end
     ORDER BY s.service_date, p.code, mp.sort_order
 """
@@ -64,6 +75,7 @@ def list_calendar_range(
         'workflow_state': row['workflow_state'],
         'week_public_id': str(row['week_public_id']),
         'menus': _menus(row['menus']),
+        'courses': _courses(row['courses']),
     } for row in rows)
 
 
@@ -87,3 +99,23 @@ def _menus(raw: object) -> tuple[dict[str, str], ...]:
             continue
         items.append({'title': title, 'type_code': str(item.get('type_code') or 'MENU_1')})
     return tuple(items)
+
+
+def _courses(raw: object) -> dict[str, dict[str, str]]:
+    if raw in (None, '', b'', {}):
+        payload: object = {}
+    elif isinstance(raw, (bytes, bytearray, str)):
+        payload = json.loads(raw)
+    else:
+        payload = raw
+    if not isinstance(payload, dict):
+        return {}
+    result: dict[str, dict[str, str]] = {}
+    for kind, value in payload.items():
+        if kind not in ('soup', 'dessert') or not isinstance(value, dict):
+            continue
+        state = str(value.get('state') or '')
+        if state not in ('planned', 'not_offered'):
+            continue
+        result[str(kind)] = {'state': state, 'title': str(value.get('title') or '')}
+    return result

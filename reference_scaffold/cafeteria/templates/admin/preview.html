@@ -55,6 +55,7 @@
         {% for service in day.services %}
           <div class="preview-service">
             <h4>{{ 'Mittagessen' if service.meal_code == 'LUNCH' else 'Abendessen' }}</h4>
+            {% include 'admin/_service_courses.html' %}
             {% if service.service_state == 'open' and (service.get('service_start') or service.get('service_end')) %}<p class="service-time">{{ service.get('service_start') or '–' }}–{{ service.get('service_end') or '–' }}</p>{% endif %}
             {% if service.service_state != 'open' %}
               <p class="service-notice">{{ service.notice }}</p>

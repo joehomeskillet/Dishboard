@@ -919,3 +919,28 @@ def test_patient_api_and_signage_never_use_cafeteria_payload(app: Flask) -> None
     assert 'CHF' not in signage
     assert 'Kichererbsen-Curry' not in signage
     assert 'Pastetli mit Brätkügeli' in signage
+
+
+def test_snapshot_validator_accepts_shared_soup_and_dessert() -> None:
+    for profile, factory in (('patient', patient_snapshot), ('staff_guest', cafeteria_snapshot)):
+        snapshot = factory()
+        validate_snapshot_payload(profile, snapshot)
+        service = snapshot['days'][0]['services'][0]
+        assert service['soup'] == {'state': 'planned', 'title': 'Gemüsesuppe'}
+        assert service['dessert'] == {'state': 'planned', 'title': 'Fruchtsalat'}
+
+
+def test_public_and_signage_show_shared_courses_once_per_meal(app: Flask) -> None:
+    cafeteria_week = app.test_client().get('/cafeteria/wochenangebot/').get_data(as_text=True)
+    cafeteria_signage = app.test_client().get('/signage/cafeteria/woche').get_data(as_text=True)
+    patient_week = app.test_client().get('/patienten/wochenplan/').get_data(as_text=True)
+    patient_signage = app.test_client().get('/signage/patienten/woche').get_data(as_text=True)
+    assert cafeteria_week.count('Suppe: Gemüsesuppe') == 5
+    assert cafeteria_week.count('Dessert: Fruchtsalat') == 5
+    assert cafeteria_signage.count('Suppe: Gemüsesuppe') == 5
+    assert patient_week.count('Suppe: Gemüsesuppe') == 14
+    assert patient_signage.count('Dessert: Fruchtsalat') == 14
+    for body in (cafeteria_week, cafeteria_signage, patient_week, patient_signage):
+        assert 'Prüfung offen' not in body
+        assert 'Allergenprüfung offen' not in body
+        assert 'Poulet' in body or 'Pastetli' in body or 'Hackbraten' in body

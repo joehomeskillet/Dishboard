@@ -345,10 +345,25 @@ def import_draft(
     values: dict[str, Any],
     expected_authz_version: int,
     expected_location_id: int,
+    csv_courses: dict[tuple[str, str], dict[str, Any]] | None = None,
 ) -> int:
+    from .course_store import (
+        capture_week_courses, persist_service_courses_connection, restore_week_courses_connection,
+    )
+    from .workflow_partial_store import PartialWorkflowValidationError
     validate_draft_values(profile_code, week_start, values)
     import_values = _full_replace_values(values)
     scope = write_scope(actor_id, expected_location_id, profile_code, expected_authz_version)
+    captured = None
+    if csv_courses is None:
+        with engine.connect() as connection:
+            week_id = connection.execute(text(
+                '''SELECT w.id FROM cafeteria.menu_weeks w
+                   JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+                   WHERE w.location_id=:loc AND p.code=:profile AND w.week_start=:week'''
+            ), {'loc': expected_location_id, 'profile': profile_code, 'week': week_start}).scalar_one_or_none()
+            if week_id is not None:
+                captured = capture_week_courses(connection, int(week_id))
     with write_transaction(engine, scope) as connection:
         persisted_version = expected_row_version
         if expected_row_version == 0:
@@ -357,7 +372,7 @@ def import_draft(
                                           expected_location_id=expected_location_id):
                 raise StaleDraftError('Der Entwurf wurde zwischenzeitlich geändert.')
             persisted_version = 1
-        return persist_draft_connection(
+        version = persist_draft_connection(
             connection,
             profile_code,
             week_start,
@@ -368,6 +383,20 @@ def import_draft(
             expected_location_id=expected_location_id,
             reject_catalog_assignments=True,
         )
+        try:
+            if csv_courses:
+                for (day, meal), slot in csv_courses.items():
+                    persist_service_courses_connection(
+                        connection, scope, week_start, day, meal,
+                        soup=slot.get('soup') or {'state': 'unplanned'},
+                        dessert=slot.get('dessert') or {'state': 'unplanned'},
+                        exceptions=slot.get('exceptions') or [],
+                    )
+            elif captured:
+                restore_week_courses_connection(connection, scope, week_start, captured)
+        except PartialWorkflowValidationError as error:
+            raise WorkflowValidationError(str(error)) from error
+    return version
 
 
 def current_draft_row_version(engine: Engine, profile_code: str, week_start: date) -> int:

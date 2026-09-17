@@ -147,6 +147,21 @@ def build_snapshot(
                 'notice': str(value.get('notice', '')).strip(),
                 'options': options,
             }
+            for course_key in ('soup', 'dessert'):
+                course = value.get(course_key)
+                if isinstance(course, dict) and course.get('state') in ('planned', 'not_offered'):
+                    service[course_key] = {
+                        key: course[key] for key in ('state', 'title', 'recipe_public_id') if key in course
+                    }
+            if state == 'open':
+                for option, source in zip(options, value.get('options') or ()):
+                    for course_key in ('soup_override', 'dessert_override'):
+                        course = source.get(course_key)
+                        if isinstance(course, dict) and course.get('state') in ('planned', 'not_offered'):
+                            option[course_key] = {
+                                key: course[key]
+                                for key in ('state', 'title', 'recipe_public_id') if key in course
+                            }
             # Zeiten frieren nur ein, wenn sie gesetzt sind; der Patientenvertrag bleibt strikt.
             for key in ('service_start', 'service_end'):
                 time_value = value.get(key)

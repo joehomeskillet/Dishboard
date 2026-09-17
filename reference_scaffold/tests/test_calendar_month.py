@@ -44,6 +44,26 @@ def test_month_weeks_covers_four_five_and_six_week_months() -> None:
     assert all(len(week) == 7 for week in month_weeks(2022, 1))
 
 
+def test_present_month_keeps_courses_off_the_main_dish_list() -> None:
+    from cafeteria.calendar_month import present_month
+
+    services = (
+        {
+            'profile_code': 'staff_guest', 'service_date': date(2026, 9, 16),
+            'meal_code': 'LUNCH', 'service_state': 'open', 'week_start': date(2026, 9, 14),
+            'menus': ({'title': 'Risotto', 'type_code': 'MENU_1'},),
+            'courses': {
+                'soup': {'state': 'planned', 'title': 'Gemüsesuppe'},
+                'dessert': {'state': 'not_offered', 'title': ''},
+            },
+        },
+    )
+    weeks = present_month(annotate_month(2026, 9, services), date(2026, 9, 16))
+    lunch = weeks[2][2]['groups'][0]['meals'][0]
+    assert lunch['courses']['soup']['title'] == 'Gemüsesuppe'
+    assert [item['title'] for item in lunch['visible']] == ['Risotto']
+
+
 def test_present_month_uses_german_labels_today_and_overflow() -> None:
     from cafeteria.calendar_month import present_month
 

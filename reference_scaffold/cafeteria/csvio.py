@@ -28,6 +28,9 @@ BASE_HEADERS = [
 ]
 PATIENT_HEADERS = BASE_HEADERS
 CAFETERIA_HEADERS = BASE_HEADERS + ['preis_mitarbeitende_chf', 'preis_externe_chf']
+COURSE_HEADERS = ['suppe', 'suppe_geltung', 'dessert', 'dessert_geltung']
+SCHEMA_4_PATIENT_HEADERS = PATIENT_HEADERS + COURSE_HEADERS
+SCHEMA_4_CAFETERIA_HEADERS = CAFETERIA_HEADERS + COURSE_HEADERS
 MAX_UPLOAD_BYTES = 1_000_000
 STATE_CODES = {
     'offen': 'open',
@@ -109,6 +112,63 @@ def _excel_safe(value: object) -> str:
     return "'" + text_value if text_value.startswith(('=', '+', '-', '@', '\t', '\r')) else text_value
 
 
+def _course_cell(course: object) -> str:
+    if not isinstance(course, dict):
+        return ''
+    if course.get('state') == 'not_offered':
+        return 'keine'
+    if course.get('state') == 'planned':
+        return str(course.get('recipe_public_id') or '')
+    return ''
+
+
+def _csv_course_fields(service: dict[str, object], option: dict[str, object]) -> tuple[str, str, str, str]:
+    soup, dessert = _course_cell(service.get('soup')), _course_cell(service.get('dessert'))
+    soup_g, dessert_g = 'gemeinsam', 'gemeinsam'
+    soup_override = option.get('soup_override')
+    dessert_override = option.get('dessert_override')
+    if isinstance(soup_override, dict):
+        soup, soup_g = _course_cell(soup_override), 'ausnahme'
+    if isinstance(dessert_override, dict):
+        dessert, dessert_g = _course_cell(dessert_override), 'ausnahme'
+    return soup, soup_g, dessert, dessert_g
+
+
+def extract_csv_courses(rows: list[dict[str, str]]) -> dict[tuple[str, str], dict[str, object]]:
+    """Build persist payloads from schema-4 course columns. Empty cells stay unplanned."""
+    grouped: dict[tuple[str, str], dict[str, object]] = {}
+    for line_number, row in enumerate(rows, start=2):
+        if row.get('schema_version') != '4':
+            continue
+        key = (row.get('datum') or '', row.get('mahlzeit') or '')
+        slot = grouped.setdefault(key, {
+            'soup': {'state': 'unplanned'}, 'dessert': {'state': 'unplanned'}, 'exceptions': [],
+        })
+        option = row.get('menueart') or ''
+        for kind, cell, geltung in (
+            ('soup', row.get('suppe') or '', row.get('suppe_geltung') or 'gemeinsam'),
+            ('dessert', row.get('dessert') or '', row.get('dessert_geltung') or 'gemeinsam'),
+        ):
+            payload = _payload_from_cell(cell)
+            payload['line'] = line_number
+            payload['field'] = kind
+            if geltung.strip() == 'ausnahme':
+                item = {'option': option, 'kind': kind, **payload}
+                slot['exceptions'].append(item)
+            elif option == 'MENU_1' or slot[kind].get('state') == 'unplanned':
+                slot[kind] = payload
+    return grouped
+
+
+def _payload_from_cell(cell: str) -> dict[str, str]:
+    value = cell.strip().lstrip("'")
+    if value == '':
+        return {'state': 'unplanned'}
+    if value in {'-', 'keine'}:
+        return {'state': 'not_offered'}
+    return {'state': 'planned', 'recipe_public_id': value}
+
+
 def _csv_accompaniment(option: dict[str, object]) -> str:
     code = option.get('accompaniment_code')
     name = option.get('accompaniment_name')
@@ -129,7 +189,7 @@ def snapshot_to_csv(snapshot: dict) -> bytes:
     profile = snapshot.get('profile_code')
     if profile not in {'patient', 'staff_guest'}:
         raise ValueError('Unbekanntes Snapshot-Profil.')
-    headers = PATIENT_HEADERS if profile == 'patient' else CAFETERIA_HEADERS
+    headers = SCHEMA_4_PATIENT_HEADERS if profile == 'patient' else SCHEMA_4_CAFETERIA_HEADERS
     buffer = io.StringIO(newline='')
     writer = csv.DictWriter(buffer, fieldnames=headers, delimiter=';', lineterminator='\r\n')
     writer.writeheader()
@@ -144,8 +204,12 @@ def snapshot_to_csv(snapshot: dict) -> bytes:
             for option in options:
                 contains = [a['code'] for a in option.get('allergens', []) if a.get('presence') == 'contains']
                 traces = [a['code'] for a in option.get('allergens', []) if a.get('presence') == 'may_contain']
+                if state != 'open':
+                    soup, soup_g, dessert, dessert_g = '', '', '', ''
+                else:
+                    soup, soup_g, dessert, dessert_g = _csv_course_fields(service, option)
                 row = {
-                    'schema_version': '3', 'profil': profile, 'datum': day.get('date', ''),
+                    'schema_version': '4', 'profil': profile, 'datum': day.get('date', ''),
                     'wochentag': day.get('weekday', ''), 'mahlzeit': service.get('meal_code', ''),
                     'menueart': option.get('type_code', ''), 'external_id': option.get('external_id', ''),
                     'titel': option.get('title', ''), 'beschreibung': option.get('description', ''),
@@ -157,6 +221,8 @@ def snapshot_to_csv(snapshot: dict) -> bytes:
                     'hinweis': option.get('note', ''),
                     'zustand': STATE_NAMES[state],
                     'zustand_text': service.get('notice', '') if state != 'open' else '',
+                    'suppe': soup, 'suppe_geltung': soup_g,
+                    'dessert': dessert, 'dessert_geltung': dessert_g,
                 }
                 if profile == 'staff_guest' and state == 'open':
                     costs = option['prices']
@@ -411,4 +477,5 @@ def validate_upload(stream: BinaryIO) -> dict[str, object]:
         else:
             result['week_start'] = week_start
             result['values'] = values
+            result['csv_courses'] = extract_csv_courses(rows) if validated.get('schema_version') == 4 else None
     return result

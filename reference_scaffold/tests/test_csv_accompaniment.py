@@ -29,7 +29,8 @@ from test_admin_workflow_db import (
 
 def _schema_2(csv_bytes: bytes) -> bytes:
     reader = csv.DictReader(io.StringIO(csv_bytes.decode('utf-8-sig')), delimiter=';')
-    headers = [header for header in reader.fieldnames or [] if header != 'beilage_dazu']
+    drop = {'beilage_dazu', 'suppe', 'suppe_geltung', 'dessert', 'dessert_geltung'}
+    headers = [header for header in reader.fieldnames or [] if header not in drop]
     rows = list(reader)
     buffer = io.StringIO(newline='')
     writer = csv.DictWriter(buffer, fieldnames=headers, delimiter=';', lineterminator='\r\n')
@@ -76,7 +77,10 @@ def test_schema_3_export_import_maps_values_and_positions_invalid_field() -> Non
     rows = list(reader)
 
     assert (reader.fieldnames or [])[10] == 'beilage_dazu'
-    assert {row['schema_version'] for row in rows} == {'3'}
+    assert {row['schema_version'] for row in rows} == {'4'}
+    assert 'suppe' in (reader.fieldnames or [])
+    assert 'dessert' in (reader.fieldnames or [])
+    assert 'suppe_geltung' in (reader.fieldnames or [])
     assert [row['beilage_dazu'] for row in rows[:3]] == ['suppe', 'salat', '']
     imported = validate_upload(io.BytesIO(exported))
     assert imported['valid'] is True
@@ -341,3 +345,62 @@ def test_published_week_csv_roundtrip_preserves_accompaniments_in_empty_week(
         **write_expectations(database_engine, new_actor_id),
     )
     assert _first_codes(reloaded) == ['soup', 'salad', 'none']
+
+
+def test_schema_4_invalid_course_uuid_is_a_positioned_issue() -> None:
+    values = _patient_values()
+    exported = snapshot_to_csv(_snapshot_from_values(values))
+    decoded = exported.decode('utf-8-sig')
+    reader = csv.DictReader(io.StringIO(decoded), delimiter=';')
+    headers = list(reader.fieldnames or [])
+    rows = list(reader)
+    rows[0]['suppe'] = 'not-a-uuid'
+    rows[0]['suppe_geltung'] = 'gemeinsam'
+    buffer = io.StringIO(newline='')
+    writer = csv.DictWriter(buffer, fieldnames=headers, delimiter=';', lineterminator='\n')
+    writer.writeheader()
+    writer.writerows(rows)
+    csv_text = buffer.getvalue()
+    exact = csvio._validator().validate_text(csv_text, '<upload>')
+    assert exact['valid'] is False
+    suppe_column = headers.index('suppe') + 1
+    assert {
+        (issue['line'], issue['column'])
+        for issue in exact['issues']
+    } >= {(2, suppe_column)}
+    assert any(
+        issue['line'] == 2 and 'suppe muss leer, keine oder eine gültige Rezept-UUID' in issue['message']
+        for issue in exact['issues']
+    )
+    invalid = validate_upload(io.BytesIO(('\ufeff' + csv_text).encode()))
+    assert invalid['valid'] is False
+    assert {
+        (issue['line'], issue['column'])
+        for issue in invalid['issues']
+    } >= {(2, suppe_column)}
+
+
+def test_schema_4_inaccessible_uuid_is_format_ok_and_carries_line() -> None:
+    values = _patient_values()
+    exported = snapshot_to_csv(_snapshot_from_values(values))
+    decoded = exported.decode('utf-8-sig')
+    reader = csv.DictReader(io.StringIO(decoded), delimiter=';')
+    headers = list(reader.fieldnames or [])
+    rows = list(reader)
+    missing = '00000000-0000-4000-8000-000000000099'
+    rows[0]['suppe'] = missing
+    rows[0]['suppe_geltung'] = 'gemeinsam'
+    buffer = io.StringIO(newline='')
+    writer = csv.DictWriter(buffer, fieldnames=headers, delimiter=';', lineterminator='\n')
+    writer.writeheader()
+    writer.writerows(rows)
+    imported = validate_upload(io.BytesIO(('\ufeff' + buffer.getvalue()).encode()))
+    assert imported['valid'] is True
+    courses = imported['csv_courses']
+    assert courses is not None
+    first_day = values['days'][0]['date']
+    payload = courses[(first_day, 'LUNCH')]['soup']
+    assert payload['state'] == 'planned'
+    assert payload['recipe_public_id'] == missing
+    assert payload['line'] == 2
+    assert payload['field'] == 'soup'

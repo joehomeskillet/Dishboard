@@ -1,0 +1,85 @@
+{# Atomic soup+dessert editor. Context: meal_cell, day_iso, meal_code, meal_label, family, week_value, week_csrf, recipe_page, shared, exceptions. #}
+{% set recipe_choices = (recipe_page.choices if recipe_page is defined else []) %}
+{% set recipe_retained = (recipe_page.retained if recipe_page is defined else []) %}
+{% set form_id = 'course-' ~ day_iso ~ '-' ~ meal_code %}
+{% set course_open = week_form_kind|default(none) == 'courses' and week_form_values.get('day') == day_iso and week_form_values.get('meal') == meal_code %}
+{% set soup = shared.get('soup', {'state': 'unplanned'}) %}
+{% set dessert = shared.get('dessert', {'state': 'unplanned'}) %}
+{% macro course_recipe_options(selected_id) %}
+              <option value="">Rezept wählen</option>
+              {% if recipe_choices %}
+              <optgroup label="Gefundene Rezepte">
+              {% for choice in recipe_choices %}
+                {% if choice.selectable %}
+                <option value="{{ choice.recipe_public_id }}"{% if selected_id == choice.recipe_public_id %} selected{% endif %}>{{ choice.title }}</option>
+                {% endif %}
+              {% endfor %}
+              </optgroup>
+              {% endif %}
+              {% if recipe_retained %}
+              <optgroup label="Weiterhin gebundene Auswahl">
+              {% for choice in recipe_retained %}
+                <option value="{{ choice.recipe_public_id }}"{% if selected_id == choice.recipe_public_id %} selected{% endif %}>{% if choice.title %}{{ choice.title }}{% else %}Gebundene Auswahl bleibt erhalten{% endif %}</option>
+              {% endfor %}
+              </optgroup>
+              {% endif %}
+{% endmacro %}
+<details class="admin-week-course-editor" id="{{ form_id }}"{% if course_open %} open{% endif %}>
+  <summary>Gänge planen</summary>
+  <form method="post" action="/admin/{{ family }}/courses" class="card card-sm mb-3">
+    <div class="card-body">
+      <input type="hidden" name="_csrf" value="{{ week_csrf }}">
+      <input type="hidden" name="week" value="{{ week_value }}">
+      <input type="hidden" name="day" value="{{ day_iso }}">
+      <input type="hidden" name="meal" value="{{ meal_code }}">
+      <p class="text-secondary mb-2">{{ meal_label }} · gilt für alle Menüs dieser Ausgabe.</p>
+      {% for kind, course, kind_label in (('soup', soup, 'Suppe'), ('dessert', dessert, 'Dessert')) %}
+      <fieldset class="mb-3">
+        <legend class="form-label">{{ kind_label }}</legend>
+        <div class="row g-2">
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="{{ form_id }}-{{ kind }}-state">Status</label>
+            <select class="form-select" id="{{ form_id }}-{{ kind }}-state" name="{{ kind }}_state">
+              <option value="unplanned"{% if course.state == 'unplanned' %} selected{% endif %}>Noch nicht geplant</option>
+              <option value="planned"{% if course.state == 'planned' %} selected{% endif %}>Geplant</option>
+              <option value="not_offered"{% if course.state == 'not_offered' %} selected{% endif %}>Nicht angeboten</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-8">
+            <label class="form-label" for="{{ form_id }}-{{ kind }}-recipe">Rezept</label>
+            <select class="form-select" id="{{ form_id }}-{{ kind }}-recipe" name="{{ kind }}_recipe">
+              {{ course_recipe_options(course.recipe_public_id) }}
+            </select>
+          </div>
+        </div>
+      </fieldset>
+      {% endfor %}
+      <details class="mb-3">
+        <summary>Abweichungen je Menü</summary>
+        {% for option_code, option_label in (('MENU_1', 'Menü 1'), ('VEGGIE', 'Vegetarisch')) %}
+          {% set option_exc = exceptions.get(option_code, {}) %}
+          {% for kind, kind_label in (('soup', 'Suppe'), ('dessert', 'Dessert')) %}
+            {% set override = option_exc.get(kind, {'state': 'inherit'}) %}
+            <div class="row g-2 mb-2">
+              <div class="col-12 col-md-4">
+                <label class="form-label" for="{{ form_id }}-{{ option_code }}-{{ kind }}-state">{{ option_label }} · {{ kind_label }}</label>
+                <select class="form-select" id="{{ form_id }}-{{ option_code }}-{{ kind }}-state" name="{{ option_code }}_{{ kind }}_state">
+                  <option value="inherit"{% if override.state not in ('planned', 'not_offered') %} selected{% endif %}>Gemeinsame Auswahl verwenden</option>
+                  <option value="planned"{% if override.state == 'planned' %} selected{% endif %}>Andere Auswahl</option>
+                  <option value="not_offered"{% if override.state == 'not_offered' %} selected{% endif %}>Für dieses Menü nicht anbieten</option>
+                </select>
+              </div>
+              <div class="col-12 col-md-8">
+                <label class="form-label" for="{{ form_id }}-{{ option_code }}-{{ kind }}-recipe">Rezept</label>
+                <select class="form-select" id="{{ form_id }}-{{ option_code }}-{{ kind }}-recipe" name="{{ option_code }}_{{ kind }}_recipe">
+                  {{ course_recipe_options(override.recipe_public_id) }}
+                </select>
+              </div>
+            </div>
+          {% endfor %}
+        {% endfor %}
+      </details>
+      <button type="submit" class="btn btn-primary">{{ icon('device-floppy') }}Gänge speichern</button>
+    </div>
+  </form>
+</details>

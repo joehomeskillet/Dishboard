@@ -1,0 +1,31 @@
+{# Compact soup/dessert row for one meal. Context: kind, shared, exceptions, meal_cell, week_value, family. #}
+{% set labels = {'soup': 'Suppe', 'dessert': 'Dessert'} %}
+{% set empty_labels = {'soup': 'Suppe noch nicht geplant', 'dessert': 'Dessert noch nicht geplant'} %}
+{% set none_labels = {'soup': 'Keine Suppe', 'dessert': 'Kein Dessert'} %}
+{% set course = shared.get(kind, {'state': 'unplanned'}) %}
+{% set form_id = 'course-' ~ day_iso ~ '-' ~ meal_code %}
+<div class="admin-week-course" data-course="{{ kind }}">
+  {% if course.state == 'planned' %}
+  <span>{{ labels[kind] }}: {{ course.title }} · Für alle Menüs</span>
+  {% if not course.allergens %}
+  <span class="badge bg-yellow-lt text-warning">Allergenangaben fehlen</span>
+  {% endif %}
+  {% if course.labels %}
+  <span class="text-secondary">{{ course.labels|join(', ') }}</span>
+  {% endif %}
+  {% elif course.state == 'not_offered' %}
+  <span>{{ none_labels[kind] }}</span>
+  {% else %}
+  <span>{{ empty_labels[kind] }}</span>
+  {% endif %}
+  <a class="btn" href="#{{ form_id }}">{{ icon('pencil') }}{% if course.state == 'unplanned' %}{{ labels[kind] }} planen{% else %}{{ labels[kind] }} bearbeiten{% endif %}</a>
+</div>
+{% for option_code, option_exc in exceptions.items() %}
+  {% set override = option_exc.get(kind) %}
+  {% if override %}
+  <p class="admin-week-course-exception">
+    {% if option_code == 'VEGGIE' %}Vegetarisch{% else %}Menü 1{% endif %}:
+    {% if override.state == 'not_offered' %}{{ none_labels[kind] }}{% else %}{{ labels[kind] }}: {{ override.title }}{% if not override.allergens %} <span class="badge bg-yellow-lt text-warning">Allergenangaben fehlen</span>{% endif %}{% if override.labels %} <span class="text-secondary">{{ override.labels|join(', ') }}</span>{% endif %}{% endif %}
+  </p>
+  {% endif %}
+{% endfor %}

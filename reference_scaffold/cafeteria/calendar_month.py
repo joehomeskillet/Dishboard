@@ -110,9 +110,12 @@ def present_month(
                         'week_start': week_start,
                         'week_public_id': str(service.get('week_public_id') or ''),
                         'items': [],
+                        'courses': service.get('courses') or {},
                     }
                     profile_bucket[meal] = entry
                 entry['items'].extend(_menus(service))
+                if service.get('courses'):
+                    entry['courses'] = service['courses']
             groups = []
             for profile in _PROFILE_ORDER:
                 meals = grouped.get(profile)

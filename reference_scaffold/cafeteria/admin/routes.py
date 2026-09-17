@@ -186,6 +186,7 @@ def import_csv():
             values=result['values'],
             expected_authz_version=token_payload['expected_authz_version'],
             expected_location_id=token_payload['expected_location_id'],
+            csv_courses=result.get('csv_courses'),
         )
     except (WorkflowValidationError, ValueError) as error:
         abort(

@@ -1,0 +1,19 @@
+{% if service.soup or service.dessert %}
+<p class="service-courses">
+  {% if service.soup %}
+    {% if service.soup.state == 'not_offered' %}Keine Suppe{% else %}Suppe: {{ service.soup.title }}{% endif %}
+  {% endif %}
+  {% if service.soup and service.dessert %} · {% endif %}
+  {% if service.dessert %}
+    {% if service.dessert.state == 'not_offered' %}Kein Dessert{% else %}Dessert: {{ service.dessert.title }}{% endif %}
+  {% endif %}
+</p>
+{% endif %}
+{% for option in service.options %}
+  {% if option.soup_override %}
+  <p class="service-course-exception">{{ option.type_name }}: {% if option.soup_override.state == 'not_offered' %}keine Suppe{% else %}Suppe: {{ option.soup_override.title }}{% endif %}</p>
+  {% endif %}
+  {% if option.dessert_override %}
+  <p class="service-course-exception">{{ option.type_name }}: {% if option.dessert_override.state == 'not_offered' %}kein Dessert{% else %}Dessert: {{ option.dessert_override.title }}{% endif %}</p>
+  {% endif %}
+{% endfor %}

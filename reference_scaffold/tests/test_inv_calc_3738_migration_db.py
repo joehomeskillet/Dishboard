@@ -8,12 +8,12 @@ from test_component_scope_invariants_db import _seed_scope_probe
 from test_rec_import_commit_migration_db import rows_and_sequences
 
 
-def test_plan_ends_at_schema_42() -> None:
+def test_plan_ends_at_schema_43() -> None:
     plan = database.migration_plan(SCHEMA)
-    assert database.SCHEMA_VERSION == 42
-    assert (plan[-1].version, plan[-1].path.name) == (42, '0039_v41_to_v42.sql')
+    assert database.SCHEMA_VERSION == 43
+    assert (plan[-1].version, plan[-1].path.name) == (43, '0040_v42_to_v43.sql')
     names = [item.path.name for item in plan[-2:]]
-    assert names == ['0038_v40_to_v41.sql', '0039_v41_to_v42.sql']
+    assert names == ['0039_v41_to_v42.sql', '0040_v42_to_v43.sql']
 
 
 def test_upgrade_adds_batch_and_receipt_tables(pg16):  # noqa: F811
@@ -27,7 +27,7 @@ def test_upgrade_adds_batch_and_receipt_tables(pg16):  # noqa: F811
     with pg16.connect() as connection:
         assert connection.execute(text(
             'SELECT max(version) FROM cafeteria.schema_migrations'
-        )).scalar_one() == 42
+        )).scalar_one() == 43
         assert connection.execute(text(
             "SELECT to_regclass('cafeteria.prepared_batch_runs') IS NOT NULL"
         )).scalar_one() is True

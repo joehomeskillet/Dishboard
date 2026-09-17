@@ -25,6 +25,9 @@ BASE_HEADERS = [
 ]
 PATIENT_HEADERS = BASE_HEADERS
 CAFETERIA_HEADERS = BASE_HEADERS + ['preis_mitarbeitende_chf', 'preis_externe_chf']
+COURSE_HEADERS = ['suppe', 'suppe_geltung', 'dessert', 'dessert_geltung']
+SCHEMA_4_PATIENT_HEADERS = PATIENT_HEADERS + COURSE_HEADERS
+SCHEMA_4_CAFETERIA_HEADERS = CAFETERIA_HEADERS + COURSE_HEADERS
 SCHEMA_2_PATIENT_HEADERS = SCHEMA_2_BASE_HEADERS
 SCHEMA_2_CAFETERIA_HEADERS = SCHEMA_2_BASE_HEADERS + [
     'preis_mitarbeitende_chf',
@@ -38,6 +41,11 @@ DAY_NAMES = {
     5: 'Freitag', 6: 'Samstag', 7: 'Sonntag',
 }
 PRICE_HEADER_PATTERN = re.compile(r'(preis|price|chf|rappen|kosten)', re.I)
+RECIPE_ID_RE = re.compile(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+)
+COURSE_GELTUNG = {'', 'gemeinsam', 'ausnahme'}
+COURSE_EMPTY = {'', 'keine'}
 DANGEROUS_PREFIXES = ('=', '+', '-', '@', '\t', '\r')
 LABEL_CODES = {'VEGETARIAN', 'VEGAN', 'LACTOSE_FREE', 'GLUTEN_FREE'}
 ALLERGEN_CODES = {
@@ -140,7 +148,7 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
     }
     schema_version = (
         int(next(iter(schema_versions)))
-        if len(schema_versions) == 1 and schema_versions <= {'2', '3'}
+        if len(schema_versions) == 1 and schema_versions <= {'2', '3', '4'}
         else None
     )
     if not rows:
@@ -160,6 +168,8 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
             (2, 'staff_guest'): SCHEMA_2_CAFETERIA_HEADERS,
             (3, 'patient'): PATIENT_HEADERS,
             (3, 'staff_guest'): CAFETERIA_HEADERS,
+            (4, 'patient'): SCHEMA_4_PATIENT_HEADERS,
+            (4, 'staff_guest'): SCHEMA_4_CAFETERIA_HEADERS,
         }.get((schema_version, profile))
     if expected is not None and headers != expected:
         missing = [h for h in expected if h not in headers]
@@ -202,9 +212,9 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
                     field=key,
                 )
 
-        if row.get('schema_version') not in {'2', '3'}:
+        if row.get('schema_version') not in {'2', '3', '4'}:
             add_error(
-                'schema_version muss 2 oder 3 sein.',
+                'schema_version muss 2, 3 oder 4 sein.',
                 line=line_number,
                 field='schema_version',
             )
@@ -278,6 +288,7 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
                 'external_id', 'titel', 'beschreibung', 'beilagen', 'beilage_dazu', 'labels',
                 'allergene_enthaelt', 'allergene_spuren', 'herkunft', 'hinweis',
                 'preis_mitarbeitende_chf', 'preis_externe_chf',
+                'suppe', 'suppe_geltung', 'dessert', 'dessert_geltung',
             )
             populated = next(
                 (field for field in closed_fields if row.get(field, '').strip()),
@@ -299,7 +310,7 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
             seen_external.add(row['external_id'].strip())
         if not row.get('titel', '').strip():
             add_error('titel fehlt.', line=line_number, field='titel')
-        if row.get('schema_version') == '3' and row.get('beilage_dazu', '').strip() not in {
+        if row.get('schema_version') in {'3', '4'} and row.get('beilage_dazu', '').strip() not in {
             '',
             'suppe',
             'salat',
@@ -309,6 +320,22 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
                 line=line_number,
                 field='beilage_dazu',
             )
+        if row.get('schema_version') == '4':
+            for field, geltung_field in (('suppe', 'suppe_geltung'), ('dessert', 'dessert_geltung')):
+                raw = row.get(field, '').strip().lstrip("'")
+                geltung = row.get(geltung_field, '').strip()
+                if geltung not in COURSE_GELTUNG:
+                    add_error(
+                        f'{geltung_field} muss leer, gemeinsam oder ausnahme sein.',
+                        line=line_number,
+                        field=geltung_field,
+                    )
+                if raw not in COURSE_EMPTY and RECIPE_ID_RE.fullmatch(raw) is None:
+                    add_error(
+                        f'{field} muss leer, keine oder eine gültige Rezept-UUID sein.',
+                        line=line_number,
+                        field=field,
+                    )
 
         labels = _pipe_parts(row.get('labels', ''))
         if len(labels) != len(set(labels)):

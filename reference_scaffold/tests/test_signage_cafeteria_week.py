@@ -137,3 +137,11 @@ def test_week_retains_distinct_notes_and_allergen_presence(app: Flask) -> None:
         assert html.count(text) == 1
     for text in ('Enthält: Milch', 'Kann enthalten: Soja', 'Allergenangabe ungeklärt: Sellerie'):
         assert text in html
+
+
+def test_cafeteria_week_signage_shows_soup_dessert_not_as_extra_slots(app: Flask) -> None:
+    html = app.test_client().get('/signage/cafeteria/woche').get_data(as_text=True)
+    assert html.count('Suppe: Gemüsesuppe') == 5
+    assert html.count('Dessert: Fruchtsalat') == 5
+    assert html.count('cafe-week-slot') == 10
+    assert 'Prüfung offen' not in html

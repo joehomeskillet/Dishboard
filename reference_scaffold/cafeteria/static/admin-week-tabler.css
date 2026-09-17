@@ -205,6 +205,42 @@
   margin: 0;
   font-size: var(--app-font-size-title);
 }
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--app-space-2);
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-thumb img {
+  width: 72px;
+  height: 64px;
+  max-height: 72px;
+  object-fit: cover;
+  border-radius: var(--app-radius-control);
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--app-space-2);
+  margin: var(--app-space-2) 0;
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course .btn,
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course-editor summary,
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course-editor .btn,
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course-editor .form-select {
+  min-height: var(--app-control-min-height);
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course-exception {
+  margin: 0;
+  color: var(--app-text-muted);
+  font-size: var(--app-font-size-small);
+}
+.kitchen-cal-course {
+  margin: var(--app-space-1) 0 0;
+  font-size: var(--app-font-size-small);
+  color: var(--app-text-muted);
+}
 .dishboard-admin .admin-main[data-layout="workspace"] .menu-slot p {
   margin: 0;
 }

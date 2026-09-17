@@ -194,6 +194,23 @@ def test_no_accompaniment_keeps_week_pdf_bytes(profile: str) -> None:
     assert render_week_pdf(explicit_none, profile, WEEK) == golden_path.read_bytes()
 
 
+@pytest.mark.parametrize('profile', ['staff_guest', 'patient'])
+def test_shared_courses_appear_once_per_meal_not_as_extra_mains(profile: str) -> None:
+    draft = saved_week(profile, False)
+    for day in draft['days']:
+        for service in day['services']:
+            service['soup'] = {'state': 'planned', 'title': 'Gemüsesuppe'}
+            service['dessert'] = {'state': 'planned', 'title': 'Fruchtsalat'}
+    body = ' '.join(PdfReader(BytesIO(render_week_pdf(draft, profile, WEEK))).pages[0].extract_text().split())
+    meals = 5 if profile == 'staff_guest' else 14
+    assert body.count('Suppe: Gemüsesuppe') == meals
+    assert body.count('Dessert: Fruchtsalat') == meals
+    for day in draft['days']:
+        for service in day['services']:
+            for option in service['options']:
+                assert option['title'] in body
+
+
 def test_patient_all_28_unique_menu_sentinels_survive() -> None:
     draft = saved_week('patient')
     markers = []

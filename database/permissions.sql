@@ -26,6 +26,7 @@ REVOKE ALL ON ALL SEQUENCES IN SCHEMA cafeteria FROM cafeteria_app, cafeteria_ba
 GRANT SELECT, INSERT, UPDATE, DELETE ON
     menu_weeks, menu_services, dish_templates, component_allergens, component_labels,
     menu_items, menu_item_prices, menu_item_components, menu_item_labels,
+    menu_service_courses, menu_item_course_exceptions,
     menu_item_allergens, origin_declarations,
     import_batches, import_rows, settings,
     kitchen_events, kitchen_event_demand_items
@@ -428,5 +429,8 @@ FROM PUBLIC,cafeteria_app,cafeteria_backup,cafeteria_auth_issuer;
 GRANT EXECUTE ON FUNCTION cafeteria.lock_menu_recipe_sources_v31(bigint,bigint,bigint,bigint[],uuid)
 TO cafeteria_app;
 -- Menu proposal source locks schema31 grants end.
+
+GRANT SELECT ON SEQUENCE menu_service_courses_id_seq, menu_item_course_exceptions_id_seq
+TO cafeteria_backup;
 
 COMMIT;

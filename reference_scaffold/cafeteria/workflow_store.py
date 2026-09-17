@@ -279,7 +279,7 @@ def load_draft_connection(
                 }
             )
         days.append({'date': service_date, 'services': day_services})
-    return {
+    draft = {
         'id': int(week['id']),
         'profile_code': profile_code,
         'week_start': week['week_start'].isoformat(),
@@ -293,6 +293,9 @@ def load_draft_connection(
         'allows_weekend': allows_weekend,
         'days': days,
     }
+    from .course_store import attach_courses_to_draft
+    attach_courses_to_draft(connection, location_id, week['week_start'], profile_code, draft)
+    return draft
 
 
 def draft_row_version(engine: Engine, profile_code: str, week_start: date) -> int:
