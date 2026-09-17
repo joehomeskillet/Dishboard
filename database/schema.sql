@@ -7389,4 +7389,67 @@ FROM PUBLIC,cafeteria_app,cafeteria_backup,cafeteria_auth_issuer;
 GRANT EXECUTE ON FUNCTION cafeteria.lock_menu_recipe_sources_v31(bigint,bigint,bigint,bigint[],uuid)
 TO cafeteria_app;
 
+-- schema43: shared soup/dessert per service plus optional menu-item exceptions.
+CREATE TABLE IF NOT EXISTS menu_service_courses (
+    id bigint GENERATED ALWAYS AS IDENTITY,
+    public_id uuid NOT NULL DEFAULT gen_random_uuid(),
+    location_id bigint NOT NULL,
+    service_id bigint NOT NULL,
+    course_kind text NOT NULL,
+    planning_state text NOT NULL,
+    recipe_revision_id bigint,
+    row_version bigint NOT NULL DEFAULT 1,
+    created_by bigint NOT NULL,
+    updated_by bigint NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    CONSTRAINT menu_service_courses_pkey PRIMARY KEY (id),
+    CONSTRAINT menu_service_courses_public_id_key UNIQUE (public_id),
+    CONSTRAINT menu_service_courses_service_kind_key UNIQUE (service_id, course_kind),
+    CONSTRAINT menu_service_courses_location_fkey FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE RESTRICT,
+    CONSTRAINT menu_service_courses_service_fkey FOREIGN KEY (service_id) REFERENCES menu_services(id) ON DELETE CASCADE,
+    CONSTRAINT menu_service_courses_revision_fkey FOREIGN KEY (recipe_revision_id) REFERENCES recipe_revisions(id) ON DELETE RESTRICT,
+    CONSTRAINT menu_service_courses_created_by_fkey FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT,
+    CONSTRAINT menu_service_courses_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE RESTRICT,
+    CONSTRAINT menu_service_courses_kind_check CHECK (course_kind IN ('soup', 'dessert')),
+    CONSTRAINT menu_service_courses_state_check CHECK (planning_state IN ('planned', 'not_offered')),
+    CONSTRAINT menu_service_courses_row_version_check CHECK (row_version > 0),
+    CONSTRAINT menu_service_courses_content_check CHECK (
+        (planning_state = 'planned' AND recipe_revision_id IS NOT NULL)
+        OR (planning_state = 'not_offered' AND recipe_revision_id IS NULL)
+    )
+);
+
+CREATE TABLE IF NOT EXISTS menu_item_course_exceptions (
+    id bigint GENERATED ALWAYS AS IDENTITY,
+    public_id uuid NOT NULL DEFAULT gen_random_uuid(),
+    menu_item_id bigint NOT NULL,
+    course_kind text NOT NULL,
+    planning_state text NOT NULL,
+    recipe_revision_id bigint,
+    row_version bigint NOT NULL DEFAULT 1,
+    created_by bigint NOT NULL,
+    updated_by bigint NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    CONSTRAINT menu_item_course_exceptions_pkey PRIMARY KEY (id),
+    CONSTRAINT menu_item_course_exceptions_public_id_key UNIQUE (public_id),
+    CONSTRAINT menu_item_course_exceptions_item_kind_key UNIQUE (menu_item_id, course_kind),
+    CONSTRAINT menu_item_course_exceptions_item_fkey FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE CASCADE,
+    CONSTRAINT menu_item_course_exceptions_revision_fkey FOREIGN KEY (recipe_revision_id) REFERENCES recipe_revisions(id) ON DELETE RESTRICT,
+    CONSTRAINT menu_item_course_exceptions_created_by_fkey FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT,
+    CONSTRAINT menu_item_course_exceptions_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE RESTRICT,
+    CONSTRAINT menu_item_course_exceptions_kind_check CHECK (course_kind IN ('soup', 'dessert')),
+    CONSTRAINT menu_item_course_exceptions_state_check CHECK (planning_state IN ('planned', 'not_offered')),
+    CONSTRAINT menu_item_course_exceptions_row_version_check CHECK (row_version > 0),
+    CONSTRAINT menu_item_course_exceptions_content_check CHECK (
+        (planning_state = 'planned' AND recipe_revision_id IS NOT NULL)
+        OR (planning_state = 'not_offered' AND recipe_revision_id IS NULL)
+    )
+);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON menu_service_courses, menu_item_course_exceptions TO cafeteria_app;
+GRANT SELECT ON menu_service_courses, menu_item_course_exceptions TO cafeteria_backup;
+GRANT SELECT ON SEQUENCE menu_service_courses_id_seq, menu_item_course_exceptions_id_seq TO cafeteria_backup;
+
 COMMIT;

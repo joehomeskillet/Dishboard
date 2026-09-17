@@ -18,14 +18,16 @@ PATIENT_OBJECT_KEYS = {
         'components', 'labels', 'allergens', 'origins', 'note',
         'allergen_review_status',
     }),
+    'course': frozenset({'state'}),
     'label': frozenset({'code', 'name'}),
     'allergen': frozenset({'code', 'name', 'presence'}),
     'origin': frozenset({'ingredient', 'country_code', 'text'}),
 }
 PATIENT_OPTIONAL_KEYS = {
     'snapshot': frozenset({'area_name'}),
-    'service': frozenset({'service_state', 'notice', 'service_start', 'service_end'}),
-    'option': frozenset({'accompaniment_code', 'accompaniment_name'}),
+    'service': frozenset({'service_state', 'notice', 'service_start', 'service_end', 'soup', 'dessert'}),
+    'option': frozenset({'accompaniment_code', 'accompaniment_name', 'soup_override', 'dessert_override'}),
+    'course': frozenset({'title', 'recipe_public_id'}),
 }
 PATIENT_ALLOWED_COMPACT_KEYS = frozenset(
     key.replace('_', '')
@@ -63,6 +65,7 @@ PATIENT_FIXED_VALUES = {
     ('option', 'accompaniment_code'): frozenset({'soup', 'salad'}),
     ('option', 'accompaniment_name'): frozenset({'Suppe', 'Salat (gemischt und grün)'}),
     ('option', 'allergen_review_status'): frozenset({'not_checked', 'checked'}),
+    ('course', 'state'): frozenset({'planned', 'not_offered'}),
     ('label', 'code'): PATIENT_LABEL_CODES,
     ('allergen', 'code'): PATIENT_ALLERGEN_CODES,
     ('allergen', 'presence'): frozenset({'contains', 'may_contain'}),
@@ -75,6 +78,9 @@ PATIENT_EXTERNAL_ID_RE = re.compile(
 PATIENT_LOCATION_CODE_RE = re.compile(r'^[A-Z][A-Z_]{1,31}$')
 PATIENT_COUNTRY_CODE_RE = re.compile(r'^[A-Z]{2}$')
 PATIENT_TIME_RE = re.compile(r'^(?:[01][0-9]|2[0-3]):[0-5][0-9]$')
+PATIENT_UUID_RE = re.compile(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+)
 PATIENT_STRUCTURAL_PATTERNS = {
     ('snapshot', 'revision_id'): PATIENT_REVISION_RE,
     ('snapshot', 'week_start'): PATIENT_ISO_DATE_RE,
@@ -84,6 +90,7 @@ PATIENT_STRUCTURAL_PATTERNS = {
     ('service', 'service_start'): PATIENT_TIME_RE,
     ('service', 'service_end'): PATIENT_TIME_RE,
     ('option', 'external_id'): PATIENT_EXTERNAL_ID_RE,
+    ('course', 'recipe_public_id'): PATIENT_UUID_RE,
     ('origin', 'country_code'): PATIENT_COUNTRY_CODE_RE,
 }
 PATIENT_MONTH = (
@@ -270,6 +277,10 @@ def _patient_object_paths(value: Any, kind: str, path: str) -> list[str]:
             found.extend(_patient_list_paths(child, 'service', child_path))
         elif kind == 'service' and key == 'options':
             found.extend(_patient_list_paths(child, 'option', child_path))
+        elif kind == 'service' and key in ('soup', 'dessert'):
+            found.extend(_patient_object_paths(child, 'course', child_path))
+        elif kind == 'option' and key in ('soup_override', 'dessert_override'):
+            found.extend(_patient_object_paths(child, 'course', child_path))
         elif kind == 'option' and key == 'components':
             found.extend(_patient_list_paths(child, 'text', child_path))
         elif kind == 'option' and key == 'labels':

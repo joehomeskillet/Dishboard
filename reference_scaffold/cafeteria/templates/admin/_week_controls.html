@@ -41,7 +41,9 @@
 <section class="admin-week-controls" aria-label="Wochenstatus und Aktionen">
   <div class="admin-week-status" role="status">
     <span class="status-pill" data-status="{{ status }}">{{ status_badge(status, label=status_label) }}</span>
+    {% if status_short != status_label %}
     <span class="admin-week-status-copy" aria-label="{{ status_plain }}">{{ status_short }}</span>
+    {% endif %}
     {% if open_checks %}
     <span class="badge bg-secondary-lt admin-week-status-chip" aria-label="{{ open_checks }} {{ 'Menükarte' if open_checks == 1 else 'Menükarten' }} mit offener Prüfung">{{ open_checks }} {{ 'Kartenprüfung' if open_checks == 1 else 'Kartenprüfungen' }} offen</span>
     {% elif filled_slots > 0 %}
@@ -60,9 +62,14 @@
     {% endif %}
   </div>
   <div class="admin-actions btn-list" data-sticky>
+    {% if publish_blocked and status == 'review_open' %}
+    <a class="btn btn-primary admin-week-review-link" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}">{{ icon('clipboard-check') }}Offene Punkte prüfen</a>
+    <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#week-publish-modal" disabled aria-describedby="week-publish-guidance">{{ publish_label }}</button>
+    {% else %}
     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#week-publish-modal"{% if publish_blocked %} disabled aria-describedby="week-publish-guidance"{% endif %}>{{ publish_label }}</button>
-    <a class="btn" href="/admin/{{ family }}/preview?week={{ week_value }}" target="_blank" rel="noopener">{{ icon('eye') }}Vorschau</a>
     <a class="btn admin-week-review-link" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}">{{ icon('clipboard-check') }}Wochenangaben prüfen</a>
+    {% endif %}
+    <a class="btn" href="/admin/{{ family }}/preview?week={{ week_value }}" target="_blank" rel="noopener">{{ icon('eye') }}Vorschau</a>
     <details class="admin-week-more">
       <summary class="btn">Weitere Aktionen</summary>
       <div class="admin-week-more-menu">

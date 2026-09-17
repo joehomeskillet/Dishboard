@@ -8,8 +8,10 @@ from werkzeug.datastructures import MultiDict
 
 from ..component_catalog_store import AdminScope
 from ..component_catalog_filters import ComponentFilters
-from ..menu_recipe_choices import EMPTY_RECIPE_PAGE, RecipeChoicePage
+from ..course_store import COURSE_KINDS, effective_course, load_week_courses, unplanned
+from ..menu_recipe_choices import EMPTY_RECIPE_PAGE, RecipeChoicePage, RecipeChoiceQuery, list_recipe_choices
 from ..operations_settings import get_area_names, get_schedule, slot_defaults
+from ..recipe_types import RecipeNotFoundError, RecipeUnavailableError, RecipeValidationError
 from ..workflow import MENU_TYPES, PROFILE_DAYS, PROFILE_MEALS
 
 DAY_NAMES = ('Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag')
@@ -128,8 +130,10 @@ def _cells(
     profile: str, family: str, week: date, draft: dict[str, Any] | None,
     versions: dict[tuple[str, str, str], int],
     services: dict[tuple[str, str], dict[str, Any]],
+    week_courses: dict[tuple[str, str], dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     options = _lookup(draft)
+    packed = week_courses or {}
     cells: list[dict[str, Any]] = []
     draft_services = {
         (str(day['date']), str(service['meal_code'])): service
@@ -142,8 +146,12 @@ def _cells(
         day = service_day.isoformat()
         for meal in PROFILE_MEALS[profile]:
             service = {**draft_services.get((day, meal), {}), **services.get((day, meal), {})}
+            course_block = packed.get((day, meal), {})
+            shared_courses = course_block.get('shared') or {kind: unplanned() for kind in COURSE_KINDS}
+            course_exceptions = course_block.get('exceptions') or {}
             for option_code in MENU_TYPES:
                 option = options.get((day, meal, option_code), {})
+                option_exc = course_exceptions.get(option_code) or {}
                 cell: dict[str, Any] = {
                     'day': day, 'day_label': DAY_NAMES[offset],
                     'day_short': f'{service_day.day}. {MONTHS[service_day.month - 1]}',
@@ -171,6 +179,14 @@ def _cells(
                         'admin.menu_get', family=family, week=week.isoformat(),
                         day=day, meal=meal, option=option_code,
                     ),
+                    'shared_courses': shared_courses,
+                    'meal_exceptions': course_exceptions,
+                    'course_exceptions': option_exc,
+                    'effective_courses': {
+                        kind: effective_course(shared_courses.get(kind), option_exc.get(kind))
+                        for kind in COURSE_KINDS
+                    },
+                    'course_form_id': f'course-{day}-{meal}',
                 }
                 if profile == 'staff_guest':
                     cell['internal_chf'] = _chf(option.get('internal_rappen'))
@@ -202,6 +218,14 @@ def render_admin_week(
                                      'service_end': rule.end, 'options': []})
             days.append({'date': day.isoformat(), 'services': day_services})
         draft = {'days': days, 'row_version': 0, 'title': '', 'shared_note': ''}
+    engine = current_app.extensions.get('cafeteria_db')
+    week_courses: dict[tuple[str, str], dict[str, Any]] = {}
+    if engine is not None and hasattr(engine, 'connect'):
+        week_courses = load_week_courses(engine, scope.location_id, week, profile)
+    try:
+        recipe_page = list_recipe_choices(engine, (), RecipeChoiceQuery()) if engine is not None else EMPTY_RECIPE_PAGE
+    except (RecipeUnavailableError, RecipeValidationError, RecipeNotFoundError, TypeError):
+        recipe_page = EMPTY_RECIPE_PAGE
     return render_template(
         f'admin/{family}.html', profile=profile, family=family, week=week,
         week_iso=week.isoformat(), iso_week=week.isocalendar()[1], scope=scope,
@@ -211,7 +235,8 @@ def render_admin_week(
         shared_note='' if draft is None else str(draft.get('shared_note') or ''),
         week_form_kind=form_kind, week_form_values=form_values or {},
         week_form_errors=form_errors or {},
-        cells=_cells(profile, family, week, draft, versions, services),
+        cells=_cells(profile, family, week, draft, versions, services, week_courses),
+        recipe_page=recipe_page,
         schedule_defaults_csrf=_scoped_csrf(profile, 'schedule_defaults', scope),
         **_template_context(),
     )

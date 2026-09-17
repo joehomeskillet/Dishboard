@@ -47,6 +47,7 @@
     <div>
       <h2 class="{{ 'mb-1' if time_label else 'mb-3' }}">{{ day.weekday }}, {{ day.date|date_long }}</h2>
       {% if time_label %}<div class="text-secondary mb-3">{{ time_label }}</div>{% endif %}
+      {% include 'admin/_service_courses.html' %}
     </div>
     {% if service.service_state|default('open') == 'open' %}
     <div class="row g-4 public-menu-options">

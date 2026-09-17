@@ -29,7 +29,8 @@ from test_admin_workflow_db import (
 
 def _schema_2(csv_bytes: bytes) -> bytes:
     reader = csv.DictReader(io.StringIO(csv_bytes.decode('utf-8-sig')), delimiter=';')
-    headers = [header for header in reader.fieldnames or [] if header != 'beilage_dazu']
+    drop = {'beilage_dazu', 'suppe', 'suppe_geltung', 'dessert', 'dessert_geltung'}
+    headers = [header for header in reader.fieldnames or [] if header not in drop]
     rows = list(reader)
     buffer = io.StringIO(newline='')
     writer = csv.DictWriter(buffer, fieldnames=headers, delimiter=';', lineterminator='\r\n')
@@ -76,7 +77,7 @@ def test_schema_3_export_import_maps_values_and_positions_invalid_field() -> Non
     rows = list(reader)
 
     assert (reader.fieldnames or [])[10] == 'beilage_dazu'
-    assert {row['schema_version'] for row in rows} == {'3'}
+    assert {row['schema_version'] for row in rows} == {'4'}
     assert [row['beilage_dazu'] for row in rows[:3]] == ['suppe', 'salat', '']
     imported = validate_upload(io.BytesIO(exported))
     assert imported['valid'] is True

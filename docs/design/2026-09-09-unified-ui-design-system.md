@@ -707,6 +707,10 @@ Patienten bleiben ein Sieben-Tage-Plan. Darstellung der Mahlzeiten nebeneinander
 
 **Pflicht:** Die nächsten Tage folgen tatsächlich als Tagesgruppen; die Zusammenfassungszeile ist nur eine Verkürzung der Zeichnung. Weder Wochenende noch Abendangebot weglassen. Gefüllte Hinweise kurz erkennbar machen. Standardmässig nicht die grossen Zeit-/Betriebsformulare vor jedes Menü stellen.
 
+#### M11b — Gemeinsame Gänge (Suppe, Dessert)
+
+Suppe und Dessert sind eigenständige Planungszuweisungen pro Datum, Profil und Mahlzeit, nicht Beilagen eines Hauptgerichts. In der Wochenansicht steht die gemeinsame Suppe vor den Hauptmenüs, das gemeinsame Dessert danach; einmal je Ausgabe, nicht als zusätzliche grosse Menükarte. Menüabweichungen werden gezielt geöffnet und an der betroffenen Variante bezeichnet. „Noch nicht geplant“ und „nicht angeboten“ bleiben unterscheidbar. Verwaltungsvorschaubilder bleiben 64–96 px breit. Die globale Infoleiste zählt gemeinsame Gänge einmal, nicht je Menüvariante. Der Küchenkalender zeigt Gänge kompakt unter der Ausgabe, nicht als weitere Hauptgerichte.
+
 **Status und Wirkung:** Eine Veröffentlichung sagt nichts über fehlende Angaben oder ungespeicherte Änderungen aus. Den vorhandenen Prüfstand separat erklären. „Ausgabeangaben ändern“ öffnet ausschliesslich das bestehende Formular und dessen eigene Speicheraktion. Kein globales „Alles speichern“, wenn es keine gemeinsame Transaktion gibt.
 
 #### M12 — Menüeditor: breite Hauptarbeit, schmalerer Prüfkontext

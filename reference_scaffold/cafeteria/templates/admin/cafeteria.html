@@ -64,12 +64,19 @@
     <div class="card-header admin-week-day-head">
       <h2>{{ day_row.day_label }}</h2>
       <time datetime="{{ day }}">{{ day_row.day_short }}</time>
-      <span class="text-secondary admin-week-day-count">{{ grouped|selectattr('row_version', 'gt', 0)|list|length }} von 2 Menükarten erfasst</span>
+      {% set filled = grouped|selectattr('row_version', 'gt', 0)|list|length %}
+      {% if filled < 2 %}
+      <span class="text-secondary admin-week-day-count">{{ filled }} von 2 Menükarten erfasst</span>
+      {% endif %}
       {% if day_row.service_row_version == 0 %}<span class="badge bg-secondary-lt" title="Vorgabe, noch nicht gespeichert">Vorgabe, noch nicht gespeichert</span>{% endif %}
     </div>
     <div class="card-body">
       {% with meal_code='LUNCH', meal_label='Mittag', meal_cell=day_row, day_iso=day, service_index=loop.index0 %}
       {% include 'admin/_week_service.html' %}
+      {% set shared = day_row.shared_courses|default({}) %}
+      {% set exceptions = day_row.meal_exceptions|default({}) %}
+      {% with kind='soup' %}{% include 'admin/_course_line.html' %}{% endwith %}
+      {% include 'admin/_course_editor.html' %}
       {% endwith %}
       <div class="row g-3 admin-menu-options">
         {% for cell in grouped %}
@@ -79,6 +86,9 @@
         {% endwith %}
         {% endfor %}
       </div>
+      {% with meal_code='LUNCH', meal_label='Mittag', meal_cell=day_row, day_iso=day, shared=day_row.shared_courses|default({}), exceptions=day_row.meal_exceptions|default({}) %}
+      {% with kind='dessert' %}{% include 'admin/_course_line.html' %}{% endwith %}
+      {% endwith %}
     </div>
   </article>
   {% endfor %}

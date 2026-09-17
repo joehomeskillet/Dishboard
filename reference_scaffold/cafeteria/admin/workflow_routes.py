@@ -43,6 +43,7 @@ from ..workflow_copy_store import copy_previous_week
 from ..workflow_partial_form import (
     parse_component_archive_form, parse_component_create_form, parse_component_unarchive_form,
     parse_component_update_form, parse_menu_item_form, parse_service_form, parse_week_header_form)
+from ..course_store import parse_course_form, persist_service_courses
 from ..workflow_partial_store import (
     PartialWorkflowConflictError, PartialWorkflowNotFoundError, PartialWorkflowValidationError,
     persist_menu_item, persist_service_state, persist_week_header, resolve_item_id, resolve_week_ref)
@@ -834,9 +835,46 @@ def service_post(family: str):
     return redirect(url_for(f'admin.{family}', week=parsed.week_start.isoformat()), 303)
 
 
+@bp.post('/<any(cafeteria, patienten):family>/courses')
+@require_capability('draft.write')
+def courses_post(family: str):
+    profile = profile_from_endpoint(family)
+    _reject_override()
+    scope = _validate_scoped_csrf(profile, {'overview'})
+    try:
+        week = _monday(request.form.get('week'))
+        day = request.form.get('day', '')
+        meal = request.form.get('meal', '')
+        _raster(profile, week, day, meal, None)
+        parsed = parse_course_form(request.form)
+        persist_service_courses(
+            _db(), scope, week, day, meal,
+            soup=parsed['soup'], dessert=parsed['dessert'], exceptions=parsed['exceptions'],
+        )
+    except WorkflowValidationError as error:
+        return _week_form_error(profile, scope, 'courses', error, 400)
+    except PartialWorkflowValidationError as error:
+        return _week_form_error(profile, scope, 'courses', error, 400)
+    except PartialWorkflowNotFoundError as error:
+        return _week_form_error(profile, scope, 'courses', error, 404)
+    except PartialWorkflowConflictError as error:
+        return _week_form_error(profile, scope, 'courses', error, 409)
+    except _STORE_ERRORS as error:
+        _abort_store(error)
+    flash('Gänge gespeichert.')
+    return redirect(url_for(f'admin.{family}', week=week.isoformat()) + f'#course-{day}-{meal}', 303)
+
+
 def _week_form_error(
     profile: str, scope: AdminScope, kind: str, error: BaseException, status: int,
 ):
+    if kind == 'courses':
+        week = _monday(request.form.get('week'))
+        return make_response(_week_overview(
+            profile, week=week, scope=scope, form_kind=kind,
+            form_values={key: request.form.get(key, '') for key in request.form},
+            form_errors=_menu_errors(error),
+        ), status)
     fields = {'title', 'shared_note'} if kind == 'header' else {
         'day', 'meal', 'service_state', 'notice', 'service_start', 'service_end',
     }

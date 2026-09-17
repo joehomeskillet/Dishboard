@@ -56,12 +56,19 @@
     <div class="card-header admin-week-day-head">
       <h2>{{ day_name }}</h2>
       <time datetime="{{ day_iso }}">{{ day_cells and day_cells[0].day_short }}</time>
-      <span class="text-secondary admin-week-day-count">{{ day_cells|selectattr('row_version', 'gt', 0)|list|length }} von 4 Menükarten erfasst</span>
+      {% set filled = day_cells|selectattr('row_version', 'gt', 0)|list|length %}
+      {% if filled < 4 %}
+      <span class="text-secondary admin-week-day-count">{{ filled }} von 4 Menükarten erfasst</span>
+      {% endif %}
     </div>
     <div class="card-body patient-admin-meals">
       <div class="patient-admin-meal">
         {% with meal_code='LUNCH', meal_label='Mittag', meal_cell=lunch, day_iso=day_iso, service_index=service_index %}
         {% include 'admin/_week_service.html' %}
+        {% set shared = lunch.shared_courses|default({}) %}
+        {% set exceptions = lunch.meal_exceptions|default({}) %}
+        {% with kind='soup' %}{% include 'admin/_course_line.html' %}{% endwith %}
+        {% include 'admin/_course_editor.html' %}
         {% endwith %}
         <div class="row g-3 admin-menu-options">
           {% for cell in lunch_cells %}
@@ -71,10 +78,17 @@
           {% endwith %}
           {% endfor %}
         </div>
+        {% with meal_code='LUNCH', meal_label='Mittag', meal_cell=lunch, day_iso=day_iso, shared=lunch.shared_courses|default({}), exceptions=lunch.meal_exceptions|default({}) %}
+        {% with kind='dessert' %}{% include 'admin/_course_line.html' %}{% endwith %}
+        {% endwith %}
       </div>
       <div class="patient-admin-meal">
         {% with meal_code='DINNER', meal_label='Abend', meal_cell=dinner, day_iso=day_iso, service_index=service_index %}
         {% include 'admin/_week_service.html' %}
+        {% set shared = dinner.shared_courses|default({}) %}
+        {% set exceptions = dinner.meal_exceptions|default({}) %}
+        {% with kind='soup' %}{% include 'admin/_course_line.html' %}{% endwith %}
+        {% include 'admin/_course_editor.html' %}
         {% endwith %}
         <div class="row g-3 admin-menu-options">
           {% for cell in dinner_cells %}
@@ -84,6 +98,9 @@
           {% endwith %}
           {% endfor %}
         </div>
+        {% with meal_code='DINNER', meal_label='Abend', meal_cell=dinner, day_iso=day_iso, shared=dinner.shared_courses|default({}), exceptions=dinner.meal_exceptions|default({}) %}
+        {% with kind='dessert' %}{% include 'admin/_course_line.html' %}{% endwith %}
+        {% endwith %}
       </div>
     </div>
   </article>

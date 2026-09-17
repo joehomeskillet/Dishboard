@@ -14,6 +14,7 @@ from .component_catalog_store import (
 )
 from .component_effects import rematerialize_auto_effects
 from .component_binding_state import prepare_bindings
+from .course_store import clone_week_courses
 from .workflow_write_context import record_item_write, write_transaction
 
 
@@ -326,6 +327,13 @@ def _clone_tree(
         '''
     ), params)
     _clone_manual_rows(connection, params)
+    clone_week_courses(
+        connection,
+        source_week_id=source_id,
+        target_week_id=target_id,
+        location_id=scope.location_id,
+        actor_id=scope.actor_id,
+    )
     target_items = connection.execute(text(
         '''SELECT i.id, i.allergen_mode, i.origin_mode, i.label_mode
            FROM cafeteria.menu_items i JOIN cafeteria.menu_services s ON s.id=i.service_id

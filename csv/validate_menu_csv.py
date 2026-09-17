@@ -25,6 +25,9 @@ BASE_HEADERS = [
 ]
 PATIENT_HEADERS = BASE_HEADERS
 CAFETERIA_HEADERS = BASE_HEADERS + ['preis_mitarbeitende_chf', 'preis_externe_chf']
+COURSE_HEADERS = ['suppe', 'suppe_geltung', 'dessert', 'dessert_geltung']
+SCHEMA_4_PATIENT_HEADERS = PATIENT_HEADERS + COURSE_HEADERS
+SCHEMA_4_CAFETERIA_HEADERS = CAFETERIA_HEADERS + COURSE_HEADERS
 SCHEMA_2_PATIENT_HEADERS = SCHEMA_2_BASE_HEADERS
 SCHEMA_2_CAFETERIA_HEADERS = SCHEMA_2_BASE_HEADERS + [
     'preis_mitarbeitende_chf',
@@ -140,7 +143,7 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
     }
     schema_version = (
         int(next(iter(schema_versions)))
-        if len(schema_versions) == 1 and schema_versions <= {'2', '3'}
+        if len(schema_versions) == 1 and schema_versions <= {'2', '3', '4'}
         else None
     )
     if not rows:
@@ -160,6 +163,8 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
             (2, 'staff_guest'): SCHEMA_2_CAFETERIA_HEADERS,
             (3, 'patient'): PATIENT_HEADERS,
             (3, 'staff_guest'): CAFETERIA_HEADERS,
+            (4, 'patient'): SCHEMA_4_PATIENT_HEADERS,
+            (4, 'staff_guest'): SCHEMA_4_CAFETERIA_HEADERS,
         }.get((schema_version, profile))
     if expected is not None and headers != expected:
         missing = [h for h in expected if h not in headers]
@@ -202,9 +207,9 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
                     field=key,
                 )
 
-        if row.get('schema_version') not in {'2', '3'}:
+        if row.get('schema_version') not in {'2', '3', '4'}:
             add_error(
-                'schema_version muss 2 oder 3 sein.',
+                'schema_version muss 2, 3 oder 4 sein.',
                 line=line_number,
                 field='schema_version',
             )
@@ -299,7 +304,7 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
             seen_external.add(row['external_id'].strip())
         if not row.get('titel', '').strip():
             add_error('titel fehlt.', line=line_number, field='titel')
-        if row.get('schema_version') == '3' and row.get('beilage_dazu', '').strip() not in {
+        if row.get('schema_version') in {'3', '4'} and row.get('beilage_dazu', '').strip() not in {
             '',
             'suppe',
             'salat',

@@ -23,6 +23,13 @@
       <div class="kitchen-cal-meal">
         <div class="kitchen-cal-meal-label">{{ meal.meal_label }}{% if meal.state_label %} · {{ meal.state_label }}{% endif %}</div>
         {% if meal.notice and meal.state != 'open' %}<p class="kitchen-cal-notice">{{ meal.notice }}</p>{% endif %}
+        {% if meal.courses %}
+        <p class="kitchen-cal-course">
+          {% if meal.courses.soup %}{% if meal.courses.soup.state == 'not_offered' %}Keine Suppe{% else %}Suppe: {{ meal.courses.soup.title }}{% endif %}{% endif %}
+          {% if meal.courses.soup and meal.courses.dessert %} · {% endif %}
+          {% if meal.courses.dessert %}{% if meal.courses.dessert.state == 'not_offered' %}Kein Dessert{% else %}Dessert: {{ meal.courses.dessert.title }}{% endif %}{% endif %}
+        </p>
+        {% endif %}
         {% for item in meal.visible %}
         <a class="kitchen-cal-dish" href="{{ menu_href(group.family, meal.week_start, cell.date, meal.meal_code, item.type_code) }}">{{ item.title }}</a>
         {% endfor %}
