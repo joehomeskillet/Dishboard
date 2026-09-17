@@ -2,26 +2,43 @@
 {% from 'admin/_macros.html' import page_header, icon %}
 {% set workflow_nav = 'inventory' %}
 {% block title %}Lager · Menüplanung{% endblock %}
-{% block page_header %}{{ page_header('Lager') }}{% endblock %}
+{% block page_header %}
+{{ page_header('Lager', description='Zutaten und Lagerorte kommen aus Grundlagen. Ohne Journal und ohne bestätigte Zählung gibt es keinen Saldo 0.') }}
+{% endblock %}
 {% block content %}
-<p>{% if captured %}{{ balance_label }}{% else %}Kein Bestand erfasst{% endif %}</p>
-<p class="text-secondary">Ohne Journal und ohne bestätigte Zählung gibt es keinen Saldo 0.</p>
-<form method="get" action="{{ url_for('admin.inventory_home') }}" class="card mb-4">
-  <div class="card-body row g-2">
-    <div class="col-md-5"><label class="form-label" for="lookup_food">Zutat-UUID anzeigen</label>
-      <input class="form-control" id="lookup_food" name="food_public_id" value="{{ food_public_id|default('') }}"></div>
-    <div class="col-md-5"><label class="form-label" for="lookup_storage">Lagerort-UUID anzeigen</label>
-      <input class="form-control" id="lookup_storage" name="storage_public_id" value="{{ storage_public_id|default('') }}"></div>
-    <div class="col-md-2 d-flex align-items-end"><button class="btn" type="submit">Saldo anzeigen</button></div>
-  </div>
-</form>
+<p>{% if selected %}{{ selected.food_name }} · {{ selected.storage_name }}: {% if captured %}{{ balance_label }}{% else %}Kein Bestand erfasst{% endif %}{% elif captured %}{{ balance_label }}{% else %}Ohne gewählte Zuordnung kein Saldo.{% endif %}</p>
 
+<section class="card mb-4">
+  <div class="card-header"><h2 class="card-title">Zuordnungen aus Grundlagen</h2></div>
+  <div class="card-body">
+    {% if slots %}
+    <table class="table">
+      <thead><tr><th>Zutat</th><th>Lagerort</th><th>Bestand</th><th>Aktion</th></tr></thead>
+      <tbody>
+      {% for slot in slots %}
+        <tr{% if selected and slot.food_public_id == selected.food_public_id and slot.storage_public_id == selected.storage_public_id %} class="table-active"{% endif %}>
+          <td><a href="{{ url_for('admin.master_data_detail', kind='zutaten', public_id=slot.food_public_id) }}">{{ slot.food_name }}</a></td>
+          <td>{{ slot.storage_name }}</td>
+          <td>{% if slot.captured %}{{ slot.label }}{% else %}Kein Bestand erfasst{% endif %}</td>
+          <td><a class="btn" href="{{ url_for('admin.inventory_home', food_public_id=slot.food_public_id, storage_public_id=slot.storage_public_id) }}">{{ icon('archive') }}Öffnen</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>Keine aktive Zutat mit Lagerort in Grundlagen. Zuerst in <a href="{{ url_for('admin.master_data_list', kind='zutaten') }}">Grundlagen</a> zuordnen.</p>
+    {% endif %}
+  </div>
+</section>
+
+{% if selected %}
 <section class="card mb-4">
   <div class="card-header"><h2 class="card-title">Zugang / Abgang</h2></div>
   <form method="post" action="{{ url_for('admin.inventory_move') }}" class="card-body row g-2">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-    <div class="col-md-3"><label class="form-label" for="food_public_id">Zutat-UUID</label><input class="form-control" id="food_public_id" name="food_public_id" value="{{ food_public_id|default('') }}" required></div>
-    <div class="col-md-3"><label class="form-label" for="storage_public_id">Lagerort-UUID</label><input class="form-control" id="storage_public_id" name="storage_public_id" value="{{ storage_public_id|default('') }}" required></div>
+    <input type="hidden" name="food_public_id" value="{{ selected.food_public_id }}">
+    <input type="hidden" name="storage_public_id" value="{{ selected.storage_public_id }}">
+    <div class="col-md-4"><p class="mb-0"><strong>{{ selected.food_name }}</strong><br><span class="text-secondary">{{ selected.storage_name }}</span></p></div>
     <div class="col-md-2"><label class="form-label" for="kind">Art</label>
       <select class="form-select" id="kind" name="kind">
         <option value="receipt">Zugang</option>
@@ -30,8 +47,8 @@
       </select>
     </div>
     <div class="col-md-2"><label class="form-label" for="quantity">Menge</label><input class="form-control" id="quantity" name="quantity" required></div>
-    <div class="col-md-1"><label class="form-label" for="unit_code">Einheit</label><input class="form-control" id="unit_code" name="unit_code" value="KG" required></div>
-    <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary" type="submit">Buchen</button></div>
+    <div class="col-md-2"><label class="form-label" for="unit_code">Einheit</label><input class="form-control" id="unit_code" name="unit_code" value="{{ unit_code }}" required></div>
+    <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary" type="submit">Buchen</button></div>
   </form>
 </section>
 
@@ -39,12 +56,21 @@
   <div class="card-header"><h2 class="card-title">Umbuchung</h2></div>
   <form method="post" action="{{ url_for('admin.inventory_transfer') }}" class="card-body row g-2">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-    <div class="col-md-3"><label class="form-label" for="transfer_food">Zutat-UUID</label><input class="form-control" id="transfer_food" name="food_public_id" required></div>
-    <div class="col-md-3"><label class="form-label" for="source_storage_public_id">Von Lagerort</label><input class="form-control" id="source_storage_public_id" name="source_storage_public_id" required></div>
-    <div class="col-md-3"><label class="form-label" for="dest_storage_public_id">Nach Lagerort</label><input class="form-control" id="dest_storage_public_id" name="dest_storage_public_id" required></div>
-    <div class="col-md-1"><label class="form-label" for="transfer_qty">Menge</label><input class="form-control" id="transfer_qty" name="quantity" required></div>
-    <div class="col-md-1"><label class="form-label" for="transfer_unit">Einheit</label><input class="form-control" id="transfer_unit" name="unit_code" value="KG" required></div>
-    <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary" type="submit">Umbuchen</button></div>
+    <input type="hidden" name="food_public_id" value="{{ selected.food_public_id }}">
+    <input type="hidden" name="source_storage_public_id" value="{{ selected.storage_public_id }}">
+    <div class="col-md-3"><p class="mb-0">Von <strong>{{ selected.storage_name }}</strong></p></div>
+    <div class="col-md-3"><label class="form-label" for="dest_storage_public_id">Nach Lagerort</label>
+      <select class="form-select" id="dest_storage_public_id" name="dest_storage_public_id" required>
+        {% for dest_id, dest_name in dests %}
+          {% if dest_id != selected.storage_public_id %}
+          <option value="{{ dest_id }}">{{ dest_name }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2"><label class="form-label" for="transfer_qty">Menge</label><input class="form-control" id="transfer_qty" name="quantity" required></div>
+    <div class="col-md-2"><label class="form-label" for="transfer_unit">Einheit</label><input class="form-control" id="transfer_unit" name="unit_code" value="{{ unit_code }}" required></div>
+    <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary" type="submit">Umbuchen</button></div>
   </form>
 </section>
 
@@ -52,11 +78,13 @@
   <div class="card-header"><h2 class="card-title">Zählung</h2></div>
   <form method="post" action="{{ url_for('admin.inventory_count') }}" class="card-body row g-2">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-    <div class="col-md-4"><label class="form-label" for="count_food">Zutat-UUID</label><input class="form-control" id="count_food" name="food_public_id" required></div>
-    <div class="col-md-4"><label class="form-label" for="count_storage">Lagerort-UUID</label><input class="form-control" id="count_storage" name="storage_public_id" required></div>
-    <div class="col-md-2"><label class="form-label" for="counted_quantity">Gezählte Menge</label><input class="form-control" id="counted_quantity" name="counted_quantity" required></div>
-    <div class="col-md-1"><label class="form-label" for="count_unit">Einheit</label><input class="form-control" id="count_unit" name="unit_code" value="KG" required></div>
-    <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary" type="submit">Zählung bestätigen</button></div>
+    <input type="hidden" name="food_public_id" value="{{ selected.food_public_id }}">
+    <input type="hidden" name="storage_public_id" value="{{ selected.storage_public_id }}">
+    <div class="col-md-4"><p class="mb-0"><strong>{{ selected.food_name }}</strong><br><span class="text-secondary">{{ selected.storage_name }}</span></p></div>
+    <div class="col-md-3"><label class="form-label" for="counted_quantity">Gezählte Menge</label><input class="form-control" id="counted_quantity" name="counted_quantity" required></div>
+    <div class="col-md-3"><label class="form-label" for="count_unit">Einheit</label><input class="form-control" id="count_unit" name="unit_code" value="{{ unit_code }}" required></div>
+    <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary" type="submit">Zählung bestätigen</button></div>
   </form>
 </section>
+{% endif %}
 {% endblock %}

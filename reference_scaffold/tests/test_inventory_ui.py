@@ -12,8 +12,13 @@ def test_lager_template_unknown_label() -> None:
     assert 'admin.inventory_count' in text
     assert 'Umbuchung' in text
     assert 'Zählung' in text
-    assert 'method="get"' in text
-    assert 'Saldo anzeigen' in text
+    assert 'Zuordnungen aus Grundlagen' in text
+    assert 'admin.master_data_detail' in text
+    assert 'admin.inventory_home' in text
+    assert 'Zutat-UUID' not in text
+    food = (Path(__file__).resolve().parents[1] / 'cafeteria' / 'templates' / 'admin' / 'grundlagen_food.html').read_text(encoding='utf-8')
+    assert 'admin.inventory_home' in food
+    assert 'food_public_id' in food
 
 
 def test_inventory_routes_registered() -> None:

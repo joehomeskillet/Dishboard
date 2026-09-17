@@ -5,7 +5,7 @@ from flask import current_app, flash, g, redirect, render_template, request, url
 from werkzeug.wrappers import Response
 
 from ..inventory_store import (
-    InventoryError, InventoryInsufficientError, balance, post_count, post_movement, transfer,
+    InventoryError, InventoryInsufficientError, balance, list_assigned_slots, post_count, post_movement, transfer,
 )
 from ..recipe_reads import get_location
 from ..roles import require_capability
@@ -31,15 +31,28 @@ def _home_redirect(*, food: str = '', storage: str = '') -> Response:
 @bp.get('/lager')
 @require_capability('draft.read')
 def inventory_home() -> Response:
+    location_id = get_location(_db())
+    slots = list_assigned_slots(_db(), location_id)
     food = request.args.get('food_public_id') or ''
     storage = request.args.get('storage_public_id') or ''
-    stock = {'captured': False, 'label': 'Kein Bestand erfasst'}
+    selected = next(
+        (item for item in slots
+         if item['food_public_id'] == food and item['storage_public_id'] == storage),
+        None,
+    )
+    stock = {'captured': False, 'label': 'Kein Bestand erfasst', 'unit_code': 'KG'}
     if food and storage:
-        stock = balance(_db(), get_location(_db()), food, storage)
+        stock = balance(_db(), location_id, food, storage)
+        if selected and not stock.get('unit_code'):
+            stock = {**stock, 'unit_code': selected['unit_code']}
+    dests = tuple({item['storage_public_id']: item['storage_name'] for item in slots}.items())
     response = render_template(
         'admin/lager.html', family='cafeteria', profile='staff_guest',
-        balance_label=stock['label'], captured=stock['captured'],
+        slots=slots, selected=selected,
+        balance_label=stock['label'], captured=stock.get('captured', False),
         food_public_id=food, storage_public_id=storage,
+        unit_code=stock.get('unit_code') or (selected['unit_code'] if selected else 'G'),
+        dests=dests,
     )
     return response
 

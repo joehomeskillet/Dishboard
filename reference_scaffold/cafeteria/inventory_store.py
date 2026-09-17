@@ -239,3 +239,46 @@ def balance(engine: Engine, location_id: int, food_public_id: str, storage_publi
         'unit_code': snap['code'],
         'label': f'{qty} {snap["code"]}',
     }
+
+
+def list_assigned_slots(engine: Engine, location_id: int) -> tuple[dict[str, Any], ...]:
+    """Food × Lagerort pairs from Grundlagen assignments. Unknown until first capture."""
+    with engine.connect() as connection:
+        rows = connection.execute(text('''
+            SELECT f.public_id::text AS food_public_id, f.name AS food_name, u.code AS unit_code,
+                   s.public_id::text AS storage_public_id, s.name AS storage_name,
+                   a.id AS account_id, a.base_unit_snapshot,
+                   (SELECT COALESCE(SUM(m.sign * m.normalized_base_quantity), 0)
+                    FROM cafeteria.inventory_movements m WHERE m.account_id=a.id) AS qty
+            FROM cafeteria.foods f
+            JOIN cafeteria.food_storage_locations fs
+              ON fs.food_id=f.id AND fs.location_id=f.location_id
+            JOIN cafeteria.storage_locations s
+              ON s.id=fs.storage_location_id AND s.location_id=fs.location_id
+            JOIN cafeteria.measurement_units u ON u.id=f.base_unit_id
+            LEFT JOIN cafeteria.inventory_accounts a
+              ON a.food_id=f.id AND a.storage_location_id=s.id AND a.location_id=f.location_id
+            WHERE f.location_id=:location AND f.active AND s.active
+            ORDER BY lower(btrim(f.name)), s.sort_order, s.public_id
+            LIMIT 200
+        '''), {'location': location_id}).mappings().all()
+    slots = []
+    for row in rows:
+        if row['account_id'] is None:
+            slots.append({
+                'food_public_id': row['food_public_id'], 'food_name': row['food_name'],
+                'storage_public_id': row['storage_public_id'], 'storage_name': row['storage_name'],
+                'captured': False, 'quantity': None, 'unit_code': row['unit_code'],
+                'label': 'Kein Bestand erfasst',
+            })
+            continue
+        snap = row['base_unit_snapshot']
+        qty = Decimal(str(row['qty']))
+        unit = snap['code']
+        slots.append({
+            'food_public_id': row['food_public_id'], 'food_name': row['food_name'],
+            'storage_public_id': row['storage_public_id'], 'storage_name': row['storage_name'],
+            'captured': True, 'quantity': qty, 'unit_code': unit,
+            'label': f'{qty} {unit}',
+        })
+    return tuple(slots)

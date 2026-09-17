@@ -132,15 +132,25 @@ def render_detail(kind: str, row: Any = None, *, error: Exception | None = None,
     allowed = capabilities()
     template = 'food' if kind == 'zutaten' else 'unit' if kind == 'einheiten' else 'vocabulary'
     price_revisions = ()
+    stock = {}
     if kind == 'zutaten' and row:
         from .food_price_routes import load_food_prices
-        price_revisions = load_food_prices(forms.engine(), row.public_id)
+        from ..inventory_store import balance
+        from ..recipe_reads import get_location
+        engine = forms.engine()
+        price_revisions = load_food_prices(engine, row.public_id)
+        if engine is not None:
+            location_id = get_location(engine)
+            stock = {
+                item.public_id: balance(engine, location_id, row.public_id, item.public_id)
+                for item in row.storage_locations
+            }
     return make_response(render_template(
         f'admin/grundlagen_{template}.html', family='cafeteria', profile='staff_guest', kind=kind,
         kinds=forms.KINDS, query_kinds=forms.QUERY_KINDS, row=row, values=values, tokens=tokens, versions=versions, error=error,
         error_field=getattr(error, 'field', 'display_name' if kind == 'einheiten' else 'name'),
         error_purpose=purpose, can_write='*' in allowed or 'masterdata.write' in allowed,
-        price_revisions=price_revisions, **selected,
+        price_revisions=price_revisions, stock=stock, **selected,
     ), 409 if isinstance(error, MasterDataConflictError) else 400 if error else 200)
 
 
