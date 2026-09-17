@@ -128,6 +128,22 @@ def _accompaniment_text(option: dict[str, Any]) -> str:
     return f'Dazu: {name}' if name else ''
 
 
+def course_line(service: Mapping[str, Any] | None, kind: str) -> str:
+    """Compact soup/dessert line for a meal; empty when unplanned."""
+    if not service:
+        return ''
+    course = service.get(kind)
+    if not isinstance(course, dict):
+        return ''
+    state = str(course.get('state') or '')
+    if state == 'not_offered':
+        return 'Keine Suppe' if kind == 'soup' else 'Kein Dessert'
+    title = str(course.get('title') or '').strip()
+    if state == 'planned' and title:
+        return f"{'Suppe' if kind == 'soup' else 'Dessert'}: {title}"
+    return ''
+
+
 def _paragraphs(option: dict[str, Any], individual_prices: bool) -> tuple[str, str, str, str]:
     title = str(option.get('title') or '')
     if not title:
@@ -213,7 +229,14 @@ def _rows(draft: dict[str, Any], patient: bool, week: date, offsets: list[int],
                     row.append(MenuCell((str(service.get('notice') or 'Kein Angebot') if index == 0 else '', '', '', '')))
                 else:
                     option = options.get(code, {})
-                    row.append(MenuCell(_paragraphs(option, prices), option if option.get('title') else None))
+                    title, components, accompaniment, details = _paragraphs(option, prices)
+                    extra = course_line(service, 'soup' if index == 0 else 'dessert')
+                    if extra:
+                        details = f'{extra} · {details}' if details else extra
+                    row.append(MenuCell(
+                        (title, components, accompaniment, details),
+                        option if option.get('title') else None,
+                    ))
         rows.append(row)
     return rows
 

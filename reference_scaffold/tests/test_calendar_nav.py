@@ -84,6 +84,11 @@ def test_template_has_prev_next_jump_and_calendar_layout() -> None:
     assert '<script' not in text.lower()
     assert 'patient LUNCH' not in text
     assert 'staff_guest LUNCH' not in text
+    assert 'kitchen-cal-course' in text
+    assert 'meal.courses.soup' in text
+    assert 'meal.courses.dessert' in text
+    assert 'Keine Suppe' in text
+    assert 'kitchen-cal-dish' in text
 
 
 def test_matrix_documents_calendar_route_and_r11() -> None:

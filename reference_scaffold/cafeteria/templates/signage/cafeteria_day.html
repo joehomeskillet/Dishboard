@@ -13,6 +13,7 @@
 {% block content %}
 {% set declarations = namespace(options=[]) %}
 {% if lunch.service_state|default('open') == 'open' %}
+{% with service=lunch %}{% include 'admin/_service_courses.html' %}{% endwith %}
 <section class="row g-4 hero-food-grid" aria-label="Zwei Mittagsmenüs">
   {% for option in lunch.options %}
   {% if option.title %}{% set declarations.options = declarations.options + [option] %}{% endif %}

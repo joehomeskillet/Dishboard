@@ -367,6 +367,9 @@ def test_csv_roundtrip_preserves_two_rows_and_notice_for_each_closed_service(
 
     assert len(rows) == expected_rows
     assert ('preis_mitarbeitende_chf' in (reader.fieldnames or [])) is has_cost_columns
+    assert 'suppe' in (reader.fieldnames or [])
+    assert 'dessert' in (reader.fieldnames or [])
+    assert 'suppe_geltung' in (reader.fieldnames or [])
     if profile == 'patient':
         assert re.search(
             r'\b(?:CHF|Intern|Extern|Preis|price|rappen|kosten|cost)\b|0\.00',

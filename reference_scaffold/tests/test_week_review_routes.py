@@ -82,6 +82,7 @@ def test_scoped_saved_context_get_and_exact_post_contract(review_client, family,
     result = client.get(path + '?week=2026-08-31')
     assert result.status_code == 200 and result.headers['Cache-Control'] == 'no-store'
     assert reads == [(AdminScope(7, 5, profile, 3), WEEK)] and not writes
+    assert captured['week'] == WEEK.isoformat()
     assert captured['template'] == 'admin/week_review.html'
     assert captured['can_write']
     fields = {'_csrf': captured['csrf'], 'week': WEEK.isoformat(), 'context_version': captured['review']['token']}

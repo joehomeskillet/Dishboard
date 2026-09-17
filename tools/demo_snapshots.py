@@ -185,8 +185,11 @@ def cafeteria_snapshot() -> dict[str, Any]:
                 'services': [{
                     'meal_code': 'LUNCH',
                     'meal_name': 'Mittag',
+                    'service_state': 'open',
                     'service_start': CAFETERIA_TIMES[0],
                     'service_end': CAFETERIA_TIMES[1],
+                    'soup': {'state': 'planned', 'title': 'Gemüsesuppe'},
+                    'dessert': {'state': 'planned', 'title': 'Fruchtsalat'},
                     'options': options,
                 }],
             })
@@ -225,8 +228,11 @@ def patient_snapshot() -> dict[str, Any]:
             services.append({
                 'meal_code': meal_code,
                 'meal_name': meal_name,
+                'service_state': 'open',
                 'service_start': PATIENT_TIMES[meal_code][0],
                 'service_end': PATIENT_TIMES[meal_code][1],
+                'soup': {'state': 'planned', 'title': 'Gemüsesuppe'},
+                'dessert': {'state': 'planned', 'title': 'Fruchtsalat'},
                 'options': options,
             })
         days.append({

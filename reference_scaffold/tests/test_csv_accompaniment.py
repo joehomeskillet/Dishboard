@@ -78,6 +78,9 @@ def test_schema_3_export_import_maps_values_and_positions_invalid_field() -> Non
 
     assert (reader.fieldnames or [])[10] == 'beilage_dazu'
     assert {row['schema_version'] for row in rows} == {'4'}
+    assert 'suppe' in (reader.fieldnames or [])
+    assert 'dessert' in (reader.fieldnames or [])
+    assert 'suppe_geltung' in (reader.fieldnames or [])
     assert [row['beilage_dazu'] for row in rows[:3]] == ['suppe', 'salat', '']
     imported = validate_upload(io.BytesIO(exported))
     assert imported['valid'] is True
