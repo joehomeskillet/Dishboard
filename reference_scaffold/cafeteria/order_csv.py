@@ -17,12 +17,13 @@ def csv_cell(value: object) -> str:
 def basket_csv_bytes(basket: Mapping[str, Any]) -> bytes:
     buffer = io.StringIO()
     writer = csv.writer(buffer, lineterminator='\n')
-    writer.writerow(['Artikelcode', 'Name', 'Menge', 'Einheit', 'Gebinde', 'Ohne Zutat'])
+    writer.writerow(['Artikelcode', 'Name', 'Menge', 'Rohmenge', 'Einheit', 'Gebinde', 'Ohne Zutat'])
     for line in basket.get('lines') or ():
         writer.writerow([
             csv_cell(line.get('article_code')),
             csv_cell(line.get('article_name')),
             csv_cell(line.get('quantity')),
+            csv_cell(line.get('raw_quantity')),
             csv_cell(line.get('order_unit_code')),
             csv_cell(line.get('pack_size')),
             'ja' if line.get('without_food') else 'nein',

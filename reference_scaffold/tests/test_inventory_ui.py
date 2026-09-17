@@ -12,6 +12,8 @@ def test_lager_template_unknown_label() -> None:
     assert 'admin.inventory_count' in text
     assert 'Umbuchung' in text
     assert 'Zählung' in text
+    assert 'method="get"' in text
+    assert 'Saldo anzeigen' in text
 
 
 def test_inventory_routes_registered() -> None:
@@ -23,3 +25,6 @@ def test_inventory_routes_registered() -> None:
         assert url_for('admin.inventory_home') == '/admin/lager'
         assert url_for('admin.inventory_transfer') == '/admin/lager/umbuchung'
         assert url_for('admin.inventory_count') == '/admin/lager/zaehlung'
+        lookup = url_for('admin.inventory_home', food_public_id='abc', storage_public_id='def')
+        assert 'food_public_id=abc' in lookup
+        assert 'storage_public_id=def' in lookup

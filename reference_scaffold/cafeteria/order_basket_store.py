@@ -54,12 +54,11 @@ def replace_basket_lines(
             raise CalendarEventValidationError('Nur Entwurfskörbe sind editierbar.')
         if basket['row_version'] != expected_row_version:
             raise CalendarEventConflictError('Der Korb wurde zwischenzeitlich geändert.')
-        existing = connection.execute(text(
-            'SELECT count(*) FROM cafeteria.order_basket_lines WHERE basket_id=:id'
-        ), {'id': basket['id']}).scalar_one()
-        if existing:
-            raise OrderBasketError('Bestehende Korbzeilen können nicht ersetzt werden.')
-        for index, line in enumerate(lines, start=1):
+        existing = list(connection.execute(text(
+            'SELECT id FROM cafeteria.order_basket_lines WHERE basket_id=:id ORDER BY sort_order FOR UPDATE'
+        ), {'id': basket['id']}).scalars().all())
+        prepared: list[tuple[int, Decimal, Decimal | None]] = []
+        for line in lines:
             article = connection.execute(text(
                 'SELECT id FROM cafeteria.supplier_articles WHERE public_id=CAST(:id AS uuid) AND location_id=:location AND active'
             ), {'id': _uuid(str(line['article_public_id'])), 'location': scope.location_id}).scalar_one_or_none()
@@ -68,10 +67,25 @@ def replace_basket_lines(
             qty = Decimal(str(line['quantity']))
             if qty <= 0:
                 raise CalendarEventValidationError('Menge muss positiv sein.')
-            connection.execute(text('''
-                INSERT INTO cafeteria.order_basket_lines(basket_id, article_id, quantity, sort_order)
-                VALUES (:basket, :article, :qty, :sort)
-            '''), {'basket': basket['id'], 'article': article, 'qty': qty, 'sort': index})
+            raw = None if line.get('raw_quantity') in (None, '') else Decimal(str(line['raw_quantity']))
+            if raw is not None and raw < 0:
+                raise CalendarEventValidationError('Rohmenge darf nicht negativ sein.')
+            prepared.append((article, qty, raw))
+        if len(prepared) < len(existing):
+            raise OrderBasketError('Zeilen können nicht entfernt werden.')
+        for index, (article, qty, raw) in enumerate(prepared, start=1):
+            if index <= len(existing):
+                connection.execute(text('''
+                    UPDATE cafeteria.order_basket_lines
+                    SET article_id=:article, quantity=:qty, raw_quantity=:raw, sort_order=:sort
+                    WHERE id=:id
+                '''), {'article': article, 'qty': qty, 'raw': raw, 'sort': index, 'id': existing[index - 1]})
+            else:
+                connection.execute(text('''
+                    INSERT INTO cafeteria.order_basket_lines(
+                        basket_id, article_id, quantity, raw_quantity, sort_order)
+                    VALUES (:basket, :article, :qty, :raw, :sort)
+                '''), {'basket': basket['id'], 'article': article, 'qty': qty, 'raw': raw, 'sort': index})
         connection.execute(text(
             'UPDATE cafeteria.order_baskets SET updated_by=:actor WHERE id=:id'
         ), {'actor': scope.actor_id, 'id': basket['id']})
@@ -88,7 +102,7 @@ def get_basket(engine: Engine, location_id: int, public_id: str) -> dict[str, An
         if head is None:
             raise CalendarEventValidationError('Korb nicht gefunden.')
         lines = connection.execute(text('''
-            SELECT l.public_id, l.quantity, l.sort_order, a.public_id AS article_public_id, a.name AS article_name,
+            SELECT l.public_id, l.quantity, l.raw_quantity, l.sort_order, a.public_id AS article_public_id, a.name AS article_name,
                    a.article_code, a.pack_size, a.food_id IS NULL AS without_food, u.code AS order_unit_code
             FROM cafeteria.order_basket_lines l
             JOIN cafeteria.supplier_articles a ON a.id=l.article_id
@@ -139,7 +153,11 @@ def fill_from_demand(
             pack = Decimal(str(article['pack_size']))
             packs = packs_for(need, pack)
             order_qty = packs * pack
-            lines.append({'article_public_id': str(article['public_id']), 'quantity': str(order_qty)})
+            lines.append({
+                'article_public_id': str(article['public_id']),
+                'quantity': str(order_qty),
+                'raw_quantity': str(need),
+            })
             filled.append({
                 'article_public_id': str(article['public_id']),
                 'raw_quantity': need,

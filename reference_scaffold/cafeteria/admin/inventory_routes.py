@@ -22,6 +22,12 @@ def _scope() -> ShoppingScope:
     return ShoppingScope(g.auth_user.user_id, get_location(_db()), g.auth_user.authz_version)
 
 
+def _home_redirect(*, food: str = '', storage: str = '') -> Response:
+    food = food or request.form.get('food_public_id') or ''
+    storage = storage or request.form.get('storage_public_id') or request.form.get('dest_storage_public_id') or ''
+    return redirect(url_for('admin.inventory_home', food_public_id=food, storage_public_id=storage), 303)
+
+
 @bp.get('/lager')
 @require_capability('draft.read')
 def inventory_home() -> Response:
@@ -54,9 +60,9 @@ def inventory_move() -> Response:
         )
     except (InventoryInsufficientError, InventoryError, ValueError) as error:
         flash(str(error))
-        return redirect(url_for('admin.inventory_home'), 303)
+        return _home_redirect()
     flash('Bewegung gebucht.')
-    return redirect(url_for('admin.inventory_home'), 303)
+    return _home_redirect()
 
 
 @bp.post('/lager/umbuchung')
@@ -74,9 +80,15 @@ def inventory_transfer() -> Response:
         )
     except (InventoryInsufficientError, InventoryError, ValueError) as error:
         flash(str(error))
-        return redirect(url_for('admin.inventory_home'), 303)
+        return _home_redirect(
+            food=request.form.get('food_public_id') or '',
+            storage=request.form.get('dest_storage_public_id') or '',
+        )
     flash('Umbuchung gebucht.')
-    return redirect(url_for('admin.inventory_home'), 303)
+    return _home_redirect(
+        food=request.form.get('food_public_id') or '',
+        storage=request.form.get('dest_storage_public_id') or '',
+    )
 
 
 @bp.post('/lager/zaehlung')
@@ -93,9 +105,9 @@ def inventory_count() -> Response:
         )
     except (InventoryInsufficientError, InventoryError, ValueError) as error:
         flash(str(error))
-        return redirect(url_for('admin.inventory_home'), 303)
+        return _home_redirect()
     if result['movement_public_id'] is None:
         flash('Zählung bestätigt, ohne Bewegung.')
     else:
         flash('Zählkorrektur gebucht.')
-    return redirect(url_for('admin.inventory_home'), 303)
+    return _home_redirect()

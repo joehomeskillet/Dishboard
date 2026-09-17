@@ -829,7 +829,7 @@ def test_validate_schema_reports_live_schema_34(pg16):  # noqa: F811
     assert result.returncode == 0, result.stdout + result.stderr
     status = json.loads(result.stdout)
     assert status['artifact_check'] == 'passed'
-    assert status['schema_version'] == status['live_schema_version'] == 41
+    assert status['schema_version'] == status['live_schema_version'] == 42
     assert status['baseline_migration_equivalent'] is True
     migration_sha = hashlib.sha256(
         (SCHEMA.parent / 'migrations' / '0031_v33_to_v34.sql').read_bytes()

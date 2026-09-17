@@ -13,12 +13,15 @@
 <form method="post" action="{{ url_for('admin.order_basket_save', public_id=basket.public_id) }}">
 <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 <input type="hidden" name="row_version" value="{{ basket.row_version }}">
-<table class="table"><thead><tr><th>Artikel</th><th>Menge</th></tr></thead><tbody>
+<table class="table"><thead><tr><th>Artikel</th><th>Bestellmenge</th><th>Rohmenge</th><th>Gebinde</th></tr></thead><tbody>
 {% for line in basket.lines %}
 <tr>
 <td>{{ line.article_name }} ({{ line.article_code }})
 <input type="hidden" name="article_public_id" value="{{ line.article_public_id }}"></td>
 <td><input class="form-control" name="quantity" value="{{ line.quantity }}"></td>
+<td><input class="form-control" name="raw_quantity" value="{{ line.raw_quantity if line.raw_quantity is not none else '' }}" readonly>
+{% if line.raw_quantity is not none %}<span class="text-secondary">Rohmenge {{ line.raw_quantity }}</span>{% endif %}</td>
+<td>{{ line.pack_size }} {{ line.order_unit_code }}</td>
 </tr>
 {% endfor %}
 <tr>
@@ -27,6 +30,8 @@
 {% for row in articles %}<option value="{{ row.public_id }}">{{ row.name }}</option>{% endfor %}
 </select></td>
 <td><input class="form-control" name="quantity" placeholder="Menge"></td>
+<td><input class="form-control" name="raw_quantity" placeholder="Rohmenge"></td>
+<td></td>
 </tr>
 </tbody></table>
 <button class="btn btn-primary" type="submit">Korb speichern</button>

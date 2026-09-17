@@ -6,6 +6,15 @@
 {% block content %}
 <p>{% if captured %}{{ balance_label }}{% else %}Kein Bestand erfasst{% endif %}</p>
 <p class="text-secondary">Ohne Journal und ohne bestätigte Zählung gibt es keinen Saldo 0.</p>
+<form method="get" action="{{ url_for('admin.inventory_home') }}" class="card mb-4">
+  <div class="card-body row g-2">
+    <div class="col-md-5"><label class="form-label" for="lookup_food">Zutat-UUID anzeigen</label>
+      <input class="form-control" id="lookup_food" name="food_public_id" value="{{ food_public_id|default('') }}"></div>
+    <div class="col-md-5"><label class="form-label" for="lookup_storage">Lagerort-UUID anzeigen</label>
+      <input class="form-control" id="lookup_storage" name="storage_public_id" value="{{ storage_public_id|default('') }}"></div>
+    <div class="col-md-2 d-flex align-items-end"><button class="btn" type="submit">Saldo anzeigen</button></div>
+  </div>
+</form>
 
 <section class="card mb-4">
   <div class="card-header"><h2 class="card-title">Zugang / Abgang</h2></div>

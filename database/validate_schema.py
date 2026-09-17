@@ -56,6 +56,7 @@ MIGRATION_0035 = ROOT / 'database' / 'migrations' / '0035_v37_to_v38.sql'
 MIGRATION_0036 = ROOT / 'database' / 'migrations' / '0036_v38_to_v39.sql'
 MIGRATION_0037 = ROOT / 'database' / 'migrations' / '0037_v39_to_v40.sql'
 MIGRATION_0038 = ROOT / 'database' / 'migrations' / '0038_v40_to_v41.sql'
+MIGRATION_0039 = ROOT / 'database' / 'migrations' / '0039_v41_to_v42.sql'
 PERMISSIONS = ROOT / 'database' / 'permissions.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
@@ -859,8 +860,8 @@ def run_live_check() -> dict[str, Any]:
             ).tuples().all()
             shopping_guard_mismatches = shopping_live_guard_mismatches(connection)
             disabled_guard_mismatches = disabled_trigger_mismatches(connection)
-        if int(row['schema_version']) != 41:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 41.")
+        if int(row['schema_version']) != 42:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 42.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
         if {item['proname'] for item in v32_acl} != {
@@ -1431,6 +1432,8 @@ def main() -> int:
             "w.workflow_state = 'published'",
             'withdraw_publication_revision',
             'issue_publication_capability',
+            'calculation_receipts_subject_key',
+            'order_basket_lines_raw_qty_check',
             'auth_capability_secrets',
             'FOR UPDATE OF w',
             'patient_key_is_forbidden',
@@ -1653,7 +1656,7 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 41,
+            'schema_version': 42,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
@@ -1693,6 +1696,7 @@ def main() -> int:
                 '0036_v38_to_v39.sql': hashlib.sha256(MIGRATION_0036.read_bytes()).hexdigest(),
                 '0037_v39_to_v40.sql': hashlib.sha256(MIGRATION_0037.read_bytes()).hexdigest(),
                 '0038_v40_to_v41.sql': hashlib.sha256(MIGRATION_0038.read_bytes()).hexdigest(),
+                '0039_v41_to_v42.sql': hashlib.sha256(MIGRATION_0039.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

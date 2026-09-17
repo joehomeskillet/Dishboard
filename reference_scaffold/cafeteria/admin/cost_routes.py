@@ -7,7 +7,7 @@ from uuid import UUID
 from flask import current_app, flash, g, make_response, redirect, render_template, request, url_for
 from werkzeug.wrappers import Response
 
-from ..calculation_receipts import append_receipt
+from ..calculation_receipts import CalculationReceiptConflictError, append_receipt
 from ..food_price_store import list_price_revisions
 from ..public.routes import effective_today
 from ..recipe_cost import project_menu, project_prepared, project_recipe
@@ -145,6 +145,9 @@ def cost_confirm() -> Response:
         append_receipt(
             _db(), _scope(), kind=projection['kind'], subject_public_id=subject, payload=payload,
         )
+    except CalculationReceiptConflictError as error:
+        flash(str(error))
+        return redirect(url_for('admin.cost_home'), 303)
     except Exception as error:
         flash(str(error))
         return redirect(url_for('admin.cost_home'), 303)

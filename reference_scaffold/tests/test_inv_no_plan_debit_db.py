@@ -6,9 +6,15 @@ from sqlalchemy import text
 
 from cafeteria.calendar_event_store import EventScope, create_event
 from cafeteria.csvio import validate_upload
+from cafeteria.workflow import import_draft
+from cafeteria.workflow_partial_store import persist_menu_item
 from prepared_food_fixtures import create_food, create_recipe, freeze, prepared  # noqa: F401
+from review_support import write_expectations
 from test_component_metadata_master_lock_db import (  # noqa: F401
     app_engine, installed_pg16, pg16, seeded_pg16,
+)
+from test_workflow_partial_store_db import (  # noqa: F401
+    WEEK, WorkflowDatabase, _full_values, _payload, _scope, workflow_database,
 )
 
 
@@ -35,3 +41,20 @@ def test_csv_validate_does_not_post_movements(prepared):  # noqa: F811
     before = _movements(owner)
     validate_upload(BytesIO(b'profil;cafeteria\n'))
     assert _movements(owner) == before
+
+
+def test_persist_menu_item_does_not_post_movements(workflow_database: WorkflowDatabase) -> None:
+    db = workflow_database
+    before = _movements(db.owner)
+    persist_menu_item(db.app, _scope(db), WEEK, WEEK.isoformat(), 'LUNCH', 'MENU_1', _payload(), 0)
+    assert _movements(db.owner) == before
+
+
+def test_import_draft_does_not_post_movements(workflow_database: WorkflowDatabase) -> None:
+    db = workflow_database
+    before = _movements(db.owner)
+    import_draft(
+        db.app, 'patient', WEEK, expected_row_version=0, actor_id=db.actor_id,
+        values=_full_values('OhneLager'), **write_expectations(db.app, db.actor_id),
+    )
+    assert _movements(db.owner) == before

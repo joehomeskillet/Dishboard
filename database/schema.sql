@@ -5967,6 +5967,7 @@ CREATE TABLE IF NOT EXISTS order_basket_lines (
     basket_id bigint NOT NULL,
     article_id bigint NOT NULL,
     quantity numeric(18,6) NOT NULL,
+    raw_quantity numeric(18,6),
     sort_order smallint NOT NULL,
     CONSTRAINT order_basket_lines_pkey PRIMARY KEY (id),
     CONSTRAINT order_basket_lines_public_id_key UNIQUE (public_id),
@@ -5974,6 +5975,7 @@ CREATE TABLE IF NOT EXISTS order_basket_lines (
     CONSTRAINT order_basket_lines_basket_fkey FOREIGN KEY (basket_id) REFERENCES order_baskets(id) ON DELETE RESTRICT,
     CONSTRAINT order_basket_lines_article_fkey FOREIGN KEY (article_id) REFERENCES supplier_articles(id) ON DELETE RESTRICT,
     CONSTRAINT order_basket_lines_quantity_check CHECK (quantity > 0),
+    CONSTRAINT order_basket_lines_raw_qty_check CHECK (raw_quantity IS NULL OR raw_quantity >= 0),
     CONSTRAINT order_basket_lines_sort_check CHECK (sort_order BETWEEN 1 AND 64)
 );
 
@@ -6174,7 +6176,8 @@ CREATE TABLE IF NOT EXISTS calculation_receipts (
     CONSTRAINT calculation_receipts_location_fkey FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE RESTRICT,
     CONSTRAINT calculation_receipts_created_by_fkey FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT,
     CONSTRAINT calculation_receipts_kind_check CHECK (kind IN ('recipe','prepared','menu','shopping')),
-    CONSTRAINT calculation_receipts_hash_check CHECK (content_hash_sha256 ~ '^[0-9a-f]{64}$')
+    CONSTRAINT calculation_receipts_hash_check CHECK (content_hash_sha256 ~ '^[0-9a-f]{64}$'),
+    CONSTRAINT calculation_receipts_subject_key UNIQUE (location_id, kind, subject_public_id)
 );
 
 CREATE FUNCTION calculation_receipt_protect_v41() RETURNS trigger

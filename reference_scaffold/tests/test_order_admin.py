@@ -10,6 +10,9 @@ def test_templates_have_no_send_action() -> None:
         text = (root / name).read_text(encoding='utf-8')
         assert 'BESTELLEN' not in text
         assert 'send_pending' not in text or 'Status' in text
+        if name == 'bestellung_korb.html':
+            assert 'Rohmenge' in text
+            assert 'Gebinde' in text
 
 
 def test_order_home_is_registered() -> None:

@@ -35,5 +35,6 @@ def test_fill_from_demand_rounds_packs_without_journal(prepared):  # noqa: F811
     updated = get_basket(engine, ids['location'], basket_id)
     assert updated['status'] == 'draft'
     assert Decimal(str(updated['lines'][0]['quantity'])) == Decimal('10.0')
+    assert Decimal(str(updated['lines'][0]['raw_quantity'])) == Decimal('8')
     with owner.connect() as connection:
         assert connection.execute(text('SELECT count(*) FROM cafeteria.inventory_movements')).scalar_one() == 0

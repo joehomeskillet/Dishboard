@@ -4,6 +4,7 @@ from __future__ import annotations
 from flask import Response, current_app, flash, g, redirect, render_template, request, url_for
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from ..calendar_event_store import CalendarEventConflictError, CalendarEventValidationError
 from ..order_basket_store import (
     OrderBasketError, create_basket, fill_from_demand, get_basket, list_baskets, replace_basket_lines,
 )
@@ -93,12 +94,25 @@ def order_basket_save(public_id: str) -> WerkzeugResponse:
     validate_csrf(request.form.get('_csrf'))
     codes = request.form.getlist('article_public_id')
     qtys = request.form.getlist('quantity')
-    lines = [{'article_public_id': code, 'quantity': qty} for code, qty in zip(codes, qtys) if code and qty]
-    replace_basket_lines(
-        _db(), _scope(), public_id,
-        expected_row_version=int(request.form.get('row_version') or 0),
-        lines=lines,
-    )
+    raws = request.form.getlist('raw_quantity')
+    lines = []
+    for index, (code, qty) in enumerate(zip(codes, qtys)):
+        if not code or not qty:
+            continue
+        raw = raws[index] if index < len(raws) else ''
+        item = {'article_public_id': code, 'quantity': qty}
+        if raw:
+            item['raw_quantity'] = raw
+        lines.append(item)
+    try:
+        replace_basket_lines(
+            _db(), _scope(), public_id,
+            expected_row_version=int(request.form.get('row_version') or 0),
+            lines=lines,
+        )
+    except (OrderBasketError, CalendarEventConflictError, CalendarEventValidationError, ValueError) as error:
+        flash(str(error))
+        return redirect(url_for('admin.order_basket', public_id=public_id), 303)
     flash('Korb gespeichert.')
     return redirect(url_for('admin.order_basket', public_id=public_id), 303)
 

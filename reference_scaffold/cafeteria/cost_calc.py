@@ -27,6 +27,13 @@ class CostLine:
     issues: tuple[CostIssue, ...]
 
 
+@dataclass(frozen=True)
+class CostResult:
+    complete: bool
+    total: Decimal | None
+    lines: tuple[CostLine, ...]
+
+
 def parse_money(value: str | Decimal) -> Decimal:
     return parse_quantity(value)
 

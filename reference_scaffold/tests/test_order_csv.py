@@ -28,6 +28,7 @@ def test_preview_bytes_are_stable_and_neutral() -> None:
     assert first == second
     assert b"'=HYPERLINK" in first
     assert b'BESTELLEN' not in first
+    assert b'Rohmenge' in first
 
 
 def test_order_modules_have_no_http_clients() -> None:
