@@ -145,9 +145,16 @@ def test_unsupported_character_raises_shopping_pdf_error():
         render(_detail(title='🥕 Einkauf'))
 
 
-def test_missing_selected_revision_raises():
-    with pytest.raises(ShoppingPdfError):
-        render(_detail(selected_revision=None))
+def test_missing_selected_revision_prints_uncomputed_list():
+    body = text(render(_detail(
+        selected_revision=None,
+        revisions=(),
+        manual_items=({'public_id': 'm1', 'sort_order': 1, 'item_text': 'Servietten',
+                       'quantity': '3', 'unit_code': 'STK'},),
+    )))
+    assert 'Wocheneinkauf KW37' in body
+    assert 'Noch nicht berechnet' in body
+    assert 'Servietten' in body
 
 
 def test_line_without_name_prints_freitext():

@@ -5,6 +5,11 @@
 {% block page_header %}
 {% call page_header(detail.title, breadcrumbs=[('Einkaufslisten', url_for('admin.shopping_lists_index')), (detail.title, none)]) %}
 <a class="btn" href="{{ url_for('admin.shopping_lists_index') }}">{{ icon('arrow-left') }}Zur Listenübersicht</a>
+{% if selected %}
+<a class="btn btn-primary" href="{{ url_for('admin.shopping_list_pdf', public_id=detail.public_id, revision=selected.public_id) }}">{{ icon('printer') }}Drucken · Stand {{ selected.revision_number }}</a>
+{% else %}
+<a class="btn btn-primary" href="{{ url_for('admin.shopping_list_pdf', public_id=detail.public_id) }}">{{ icon('printer') }}Drucken</a>
+{% endif %}
 {% endcall %}
 {% endblock %}
 {% block content %}

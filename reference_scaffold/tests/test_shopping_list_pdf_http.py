@@ -102,10 +102,19 @@ def test_pdf_route_unknown_or_foreign_revision_404(client):  # noqa: F811
     assert test_client.get(_path(list_id, foreign_revision)).status_code == 404
 
 
-def test_pdf_route_list_without_revision_404(client):  # noqa: F811
+def test_pdf_route_list_without_revision_prints_current_list(client):  # noqa: F811
     owner, engine, test_client, ids = client
     list_id = create_shopping_list(engine, _scope(ids), title='Ohne Beleg')
-    assert test_client.get(_path(list_id)).status_code == 404
+    add_manual_item(engine, _scope(ids), list_id, item_text='Servietten', quantity='3', unit_code='STK')
+    response = test_client.get(_path(list_id))
+    assert response.status_code == 200
+    assert response.mimetype == 'application/pdf' and response.data.startswith(b'%PDF')
+    assert 'X-Shopping-List-Revision' not in response.headers
+    assert response.headers['Content-Disposition'] == f'inline; filename="einkaufsliste-{list_id}.pdf"'
+    _, text_content = _extract(response)
+    assert 'Ohne Beleg' in text_content
+    assert 'Noch nicht berechnet' in text_content
+    assert 'Servietten' in text_content
 
 
 def test_pdf_route_rejects_unknown_query_400(client):  # noqa: F811

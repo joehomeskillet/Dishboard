@@ -269,9 +269,7 @@ def shopping_list_pdf(public_id: str) -> Response:
     except store.ShoppingListError as error:
         _bail(error)
     raw_selected = detail['selected_revision']
-    if raw_selected is None:
-        abort(404)
-    selected = cast(Mapping[str, object], raw_selected)
+    selected = cast(Mapping[str, object], raw_selected) if isinstance(raw_selected, Mapping) else None
     try:
         with _db().connect().execution_options(isolation_level='REPEATABLE READ') as connection:
             with connection.begin():
@@ -283,13 +281,18 @@ def shopping_list_pdf(public_id: str) -> Response:
         abort(422, description='Diese Einkaufsliste kann mit der aktiven Druckvorlage nicht vollständig als PDF ausgegeben werden.')
     except SQLAlchemyError:
         abort(503, description='Einkaufslisten sind derzeit nicht verfügbar. Bitte später erneut versuchen.')
-    revision_number = cast(int, selected['revision_number'])
-    revision_id = cast(str, selected['public_id'])
+    if selected is None:
+        filename = f'einkaufsliste-{public_id}.pdf'
+        revision_id = None
+    else:
+        revision_number = cast(int, selected['revision_number'])
+        revision_id = cast(str, selected['public_id'])
+        filename = f'einkaufsliste-{public_id}-beleg-{revision_number}.pdf'
     response = Response(data, mimetype='application/pdf')
-    response.headers['Content-Disposition'] = (
-        f'inline; filename="einkaufsliste-{public_id}-beleg-{revision_number}.pdf"')
+    response.headers['Content-Disposition'] = f'inline; filename="{filename}"'
     response.headers['Cache-Control'] = 'no-store'
-    response.headers['X-Shopping-List-Revision'] = revision_id
+    if revision_id is not None:
+        response.headers['X-Shopping-List-Revision'] = revision_id
     response.headers['X-Print-Template-Revision'] = template_revision_id
     return response
 

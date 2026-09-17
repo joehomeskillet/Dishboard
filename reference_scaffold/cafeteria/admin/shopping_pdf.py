@@ -114,17 +114,13 @@ def _section(pdf: RecipeSheet, title: str, rows: list[str], *, icon: str, checkb
         pdf.ln(4)
 
 
-def _render(detail: Mapping[str, object], selected: Mapping[str, object], *,
-            config: PrintTemplateConfig, branding: PdfBranding | None) -> bytes:
+def _sheet(detail: Mapping[str, object], *, config: PrintTemplateConfig,
+           branding: PdfBranding | None, subject: str) -> RecipeSheet:
     title = _text_or_raise(detail.get('title'), 'Diese Einkaufsliste hat keinen Titel.')
-    revision_id = _text_or_raise(selected.get('public_id'), 'Die Revision dieser Einkaufsliste ist ungültig.')
-    policy = _POLICY_LABELS.get(cast(str, selected.get('policy')))
-    if policy is None:
-        raise ShoppingPdfError('Die Bedarfsart dieser Revision ist ungültig.')
     pdf = RecipeSheet(config, branding)
     pdf.set_title(title)
     pdf.set_creator('Dishboard · fpdf2')
-    pdf.set_subject(f'Einkaufslistenrevision {revision_id}')
+    pdf.set_subject(subject)
     if config['logo'] != 'none':
         logo = branding.logo_png if branding and config['logo'] == 'active_brand' else None
         if config['logo'] != 'active_brand':
@@ -134,6 +130,23 @@ def _render(detail: Mapping[str, object], selected: Mapping[str, object], *,
     if config['header_text']:
         pdf.paragraph(config['header_text'])
     pdf.heading(title, title=True)
+    return pdf
+
+
+def _manual_section(pdf: RecipeSheet, detail: Mapping[str, object]) -> None:
+    manual_items = cast(list, detail.get('manual_items') or [])
+    _section(pdf, 'Manuelle Positionen',
+             [_manual_row(cast(Mapping[str, object], item)) for item in manual_items],
+             icon='plus', checkbox=True)
+
+
+def _render(detail: Mapping[str, object], selected: Mapping[str, object], *,
+            config: PrintTemplateConfig, branding: PdfBranding | None) -> bytes:
+    revision_id = _text_or_raise(selected.get('public_id'), 'Die Revision dieser Einkaufsliste ist ungültig.')
+    policy = _POLICY_LABELS.get(cast(str, selected.get('policy')))
+    if policy is None:
+        raise ShoppingPdfError('Die Bedarfsart dieser Revision ist ungültig.')
+    pdf = _sheet(detail, config=config, branding=branding, subject=f'Einkaufslistenrevision {revision_id}')
     pdf.paragraph(f'Beleg {_revision_number(selected.get("revision_number"))}', icon='file-check')
     pdf.paragraph(policy, icon='components')
     pdf.paragraph('Berechnet am ' + _computed_at_text(selected.get('computed_at')), icon='history')
@@ -149,21 +162,31 @@ def _render(detail: Mapping[str, object], selected: Mapping[str, object], *,
     _section(pdf, 'Unvollständige Mengen',
              [_incomplete_row(cast(Mapping[str, object], line)) for line in incomplete],
              icon='alert-triangle', checkbox=True)
-    manual_items = cast(list, detail.get('manual_items') or [])
-    _section(pdf, 'Manuelle Positionen',
-             [_manual_row(cast(Mapping[str, object], item)) for item in manual_items],
-             icon='plus', checkbox=True)
+    _manual_section(pdf, detail)
+    return bytes(pdf.output())
+
+
+def _render_uncomputed(detail: Mapping[str, object], *, config: PrintTemplateConfig,
+                       branding: PdfBranding | None) -> bytes:
+    pdf = _sheet(detail, config=config, branding=branding, subject='Einkaufsliste ohne Berechnung')
+    pdf.paragraph('Noch nicht berechnet', icon='history')
+    note = detail.get('note')
+    if isinstance(note, str) and note:
+        pdf.ln(4)
+        pdf.paragraph(note, icon='info-circle')
+    pdf.ln(8)
+    _manual_section(pdf, detail)
     return bytes(pdf.output())
 
 
 def render_shopping_pdf(detail: Mapping[str, object], *, config: PrintTemplateConfig,
                         branding: PdfBranding | None = None) -> bytes:
-    """Render one immutable, selected shopping list revision, or fail before returning any bytes."""
+    """Render the selected revision, or the current list if none has been computed."""
     config = validate_config(config, 'recipe')
     selected = detail.get('selected_revision')
-    if not isinstance(selected, Mapping):
-        raise ShoppingPdfError('Für diese Einkaufsliste ist keine Revision zum Drucken ausgewählt.')
     try:
+        if not isinstance(selected, Mapping):
+            return _render_uncomputed(detail, config=config, branding=branding)
         return _render(detail, selected, config=config, branding=branding)
     except ShoppingPdfError:
         raise

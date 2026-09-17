@@ -48,6 +48,8 @@
             <div class="d-flex flex-wrap gap-2">
               {% if item.latest_revision_public_id %}
               <a class="btn" href="{{ url_for('admin.shopping_list_pdf', public_id=item.public_id, revision=item.latest_revision_public_id) }}">{{ icon('printer') }}Drucken · Stand {{ item.latest_revision_number }}<span class="visually-hidden"> · {{ item.title }}</span></a>
+              {% else %}
+              <a class="btn" href="{{ url_for('admin.shopping_list_pdf', public_id=item.public_id) }}">{{ icon('printer') }}Drucken<span class="visually-hidden"> · {{ item.title }}</span></a>
               {% endif %}
               {% if can_write and not item.archived_at %}
               <form method="post" action="{{ url_for('admin.shopping_list_archive', public_id=item.public_id) }}">

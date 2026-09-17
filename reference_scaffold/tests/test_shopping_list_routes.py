@@ -358,6 +358,6 @@ def test_index_offers_pdf_print_for_computed_list_only(client):
     pdf = f'/admin/einkaufslisten/{computed_id}/druck.pdf?revision={revision}'
     assert pdf in markup.links
     assert 'Drucken · Stand' in response.text
-    assert not any(
-        f'/admin/einkaufslisten/{empty_id}/druck.pdf' in href for href in markup.links
+    assert any(
+        href == f'/admin/einkaufslisten/{empty_id}/druck.pdf' for href in markup.links
     )
