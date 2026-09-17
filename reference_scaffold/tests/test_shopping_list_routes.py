@@ -6,6 +6,7 @@ Real Flask test client against the same PostgreSQL fixtures as the store's own
 from __future__ import annotations
 
 from html.parser import HTMLParser
+from pathlib import Path
 
 import pytest
 from sqlalchemy import event, text
@@ -105,7 +106,9 @@ def test_get_routes_write_nothing(client):
     list_id = create_shopping_list(engine, _scope(ids), title='Lesetest')
     before = _state(owner)
     assert test_client.get('/admin/einkaufslisten').status_code == 200
-    assert test_client.get(f'/admin/einkaufslisten/{list_id}').status_code == 200
+    detail = test_client.get(f'/admin/einkaufslisten/{list_id}')
+    assert detail.status_code == 200
+    assert 'Nettobedarf' in (Path(__file__).resolve().parents[1] / 'cafeteria' / 'templates' / 'admin' / 'einkaufsliste.html').read_text(encoding='utf-8')
     assert _state(owner) == before
 
 

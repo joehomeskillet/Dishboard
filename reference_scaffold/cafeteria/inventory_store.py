@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping, Sequence
 from decimal import Decimal
 from typing import Any
 from uuid import UUID, uuid4
 
 from sqlalchemy import Engine, text
 
+from .inventory_demand import net_demand
 from .quantities import FoodFactors, QuantityError, Unit, convert
 from .shopping_list_reads import ShoppingScope
 
@@ -282,3 +284,75 @@ def list_assigned_slots(engine: Engine, location_id: int) -> tuple[dict[str, Any
             'label': f'{qty} {unit}',
         })
     return tuple(slots)
+
+
+def food_stock(engine: Engine, location_id: int, food_public_id: str) -> dict[str, Any]:
+    """Sum captured accounts for one food. Mixed frozen bases stay unknown."""
+    with engine.connect() as connection:
+        rows = connection.execute(text('''
+            SELECT a.base_unit_snapshot,
+                   (SELECT COALESCE(SUM(m.sign * m.normalized_base_quantity), 0)
+                    FROM cafeteria.inventory_movements m WHERE m.account_id=a.id) AS qty
+            FROM cafeteria.inventory_accounts a
+            JOIN cafeteria.foods f ON f.id=a.food_id
+            WHERE a.location_id=:location AND f.public_id=CAST(:food AS uuid)
+        '''), {'location': location_id, 'food': _uuid(food_public_id)}).mappings().all()
+    if not rows:
+        return {'captured': False, 'quantity': None, 'unit_code': None, 'label': 'Kein Bestand erfasst'}
+    codes = {row['base_unit_snapshot']['code'] for row in rows}
+    if len(codes) != 1:
+        return {'captured': False, 'quantity': None, 'unit_code': None, 'label': 'Bestand nicht vergleichbar'}
+    qty = sum((Decimal(str(row['qty'])) for row in rows), Decimal('0'))
+    code = next(iter(codes))
+    return {'captured': True, 'quantity': qty, 'unit_code': code, 'label': f'{qty} {code}'}
+
+
+def _convert_need(connection, quantity: Decimal, from_code: str, to_code: str,
+                  food_public_id: str, location_id: int) -> Decimal:
+    if from_code == to_code:
+        return quantity
+    src = _unit_from_row(_lookup_unit(connection, from_code))
+    dest = _unit_from_row(_lookup_unit(connection, to_code))
+    food = connection.execute(text('''
+        SELECT density_g_per_ml, piece_weight_g FROM cafeteria.foods
+        WHERE public_id=CAST(:food AS uuid) AND location_id=:location
+    '''), {'food': _uuid(food_public_id), 'location': location_id}).mappings().one()
+    factors = {
+        'density_g_per_ml': None if food['density_g_per_ml'] is None else str(food['density_g_per_ml']),
+        'piece_weight_g': None if food['piece_weight_g'] is None else str(food['piece_weight_g']),
+    }
+    return _to_base(quantity, src, dest, factors)
+
+
+def attach_stock(engine: Engine, location_id: int, lines: Sequence[Mapping[str, Any]]) -> tuple[dict[str, Any], ...]:
+    """Annotate shopping lines with captured stock and net demand. Unknown stock does not reduce need."""
+    attached = []
+    with engine.connect() as connection:
+        for line in lines:
+            food = line.get('food_public_id')
+            raw = line.get('quantity')
+            need = None if raw in (None, '') else Decimal(str(raw))
+            if not food:
+                attached.append({
+                    **line,
+                    'stock': {'captured': False, 'quantity': None, 'unit_code': None, 'label': 'Kein Bestand erfasst'},
+                    'net': {'complete': False, 'quantity': None, 'reason': 'Keine Zutat'},
+                })
+                continue
+            stock = food_stock(engine, location_id, str(food))
+            if need is None or not stock.get('captured') or not stock.get('unit_code') or not line.get('unit_code'):
+                attached.append({**line, 'stock': stock, 'net': net_demand(need, stock)})
+                continue
+            try:
+                converted = _convert_need(
+                    connection, need, str(line['unit_code']), str(stock['unit_code']),
+                    str(food), location_id,
+                )
+            except QuantityError:
+                attached.append({
+                    **line, 'stock': stock,
+                    'net': {'complete': False, 'quantity': None, 'reason': 'Bestand nicht umrechenbar'},
+                })
+                continue
+            attached.append({**line, 'stock': stock, 'net': net_demand(converted, stock)})
+    return tuple(attached)

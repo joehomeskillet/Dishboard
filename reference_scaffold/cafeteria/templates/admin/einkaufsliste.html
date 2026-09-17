@@ -132,27 +132,23 @@
     <table class="table table-vcenter card-table">
       <thead><tr>
         <th>Zutat</th>
-        <th class="d-none d-md-table-cell">Menge</th>
+        <th class="d-none d-md-table-cell">Bedarf</th>
+        <th class="d-none d-md-table-cell">Bestand</th>
+        <th class="d-none d-md-table-cell">Nettobedarf</th>
         <th class="d-none d-md-table-cell">Status</th>
-        <th class="d-none d-md-table-cell">Herkunft</th>
         {% if line_actions %}<th>Aktion</th>{% endif %}
       </tr></thead>
       <tbody>
         {% for line in selected.lines %}
         <tr>
           <td>
-            {{ line.food_name or line.food_public_id }}
-            <div class="d-md-none text-secondary">{{ line.quantity }} {{ line.unit_name or line.unit_code }} · {{ line_status(line) }}</div>
+            {% if line.food_public_id %}<a href="{{ url_for('admin.master_data_detail', kind='zutaten', public_id=line.food_public_id) }}">{{ line.food_name or line.food_public_id }}</a>{% else %}{{ line.food_name or line.food_public_id }}{% endif %}
+            <div class="d-md-none text-secondary">{{ line.quantity }} {{ line.unit_name or line.unit_code }} · {% if line.stock and line.stock.captured %}Bestand {{ line.stock.label }}{% else %}Kein Bestand erfasst{% endif %} · {{ line_status(line) }}</div>
           </td>
           <td class="d-none d-md-table-cell text-nowrap">{{ line.quantity }} {{ line.unit_name or line.unit_code }}</td>
+          <td class="d-none d-md-table-cell">{% if line.stock and line.stock.captured %}{{ line.stock.label }}{% else %}Kein Bestand erfasst{% endif %}</td>
+          <td class="d-none d-md-table-cell">{% if line.net and line.net.complete %}{{ line.net.quantity }} {{ line.stock.unit_code }}{% else %}{{ line.net.reason if line.net else 'Kein Bestand erfasst' }}{% endif %}</td>
           <td class="d-none d-md-table-cell">{{ line_status(line) }}</td>
-          <td class="d-none d-md-table-cell">
-            <details><summary class="btn">{{ icon('chevron-right') }}Details</summary>
-              {% if line.food_public_id %}<div class="small">Food-ID: <code class="text-break">{{ line.food_public_id }}</code></div>{% endif %}
-              <div class="small">Einheitencode: <code>{{ line.unit_code }}</code></div>
-              <div class="small">Schlüssel: <code class="text-break">{{ line.line_key }}</code></div>
-            </details>
-          </td>
           {% if line_actions %}
           <td>
             <form method="post" action="{{ url_for('admin.shopping_list_line_toggle', public_id=detail.public_id) }}">

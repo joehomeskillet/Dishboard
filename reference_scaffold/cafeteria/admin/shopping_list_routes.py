@@ -22,6 +22,7 @@ from werkzeug.wrappers import Response
 from .. import shopping_list_store as store
 from ..branding import BrandingStateError
 from ..component_catalog_store import ComponentCatalogConfigurationError
+from ..inventory_store import attach_stock
 from ..master_data_reads import list_units
 from ..print_branding import load_pdf_branding
 from ..print_template_config import PrintTemplateValidationError
@@ -232,6 +233,8 @@ def _detail_page(
     field_errors, summary = _errors(error, element_ids)
     units = list_units(_db(), limit=500)
     blank = dict.fromkeys(_ITEM_FIELDS, '')
+    if isinstance(selected, dict) and selected.get('lines') is not None:
+        selected = {**selected, 'lines': attach_stock(_db(), scope.location_id, selected['lines'])}
     html = render_template(
         'admin/einkaufsliste.html', family='cafeteria', profile='staff_guest', day_names=DAY_NAMES,
         detail=detail, selected=selected, weeks=weeks, week_labels={week['public_id']: week['label'] for week in weeks},
