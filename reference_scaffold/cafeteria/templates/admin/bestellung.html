@@ -1,0 +1,40 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header, icon %}
+{% set workflow_nav = 'orders' %}
+{% block title %}Bestellung · Menüplanung{% endblock %}
+{% block page_header %}{{ page_header('Bestellvorbereitung') }}{% endblock %}
+{% block content %}
+<p class="text-secondary">Vorschau und CSV bleiben Entwurf. Es gibt keinen Sendauftrag.</p>
+<section class="card mb-4"><div class="card-header"><h2 class="card-title">Lieferanten</h2></div><div class="card-body">
+<ul>{% for row in suppliers %}<li>{{ row.code }} · {{ row.name }}{% if not row.active %} (inaktiv){% endif %}</li>{% else %}<li>Keine Lieferanten.</li>{% endfor %}</ul>
+<form method="post" action="{{ url_for('admin.order_supplier_create') }}" class="row g-2">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<div class="col-md-3"><label class="form-label" for="code">Code</label><input class="form-control" id="code" name="code" required></div>
+<div class="col-md-6"><label class="form-label" for="name">Name</label><input class="form-control" id="name" name="name" required></div>
+<div class="col-md-3 d-flex align-items-end"><button class="btn btn-primary" type="submit">{{ icon('plus') }}Lieferant</button></div>
+</form></div></section>
+<section class="card mb-4"><div class="card-header"><h2 class="card-title">Artikel</h2></div><div class="card-body">
+<ul>{% for row in articles %}<li>{{ row.article_code }} · {{ row.name }} · Gebinde {{ row.pack_size }} {{ row.order_unit_code }}{% if row.without_food %} · ohne Zutat{% endif %}</li>{% else %}<li>Keine Artikel.</li>{% endfor %}</ul>
+<form method="post" action="{{ url_for('admin.order_article_create') }}" class="row g-2">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<div class="col-md-3"><label class="form-label" for="supplier_public_id">Lieferant</label>
+<select class="form-select" id="supplier_public_id" name="supplier_public_id" required>
+{% for row in suppliers %}<option value="{{ row.public_id }}">{{ row.name }}</option>{% endfor %}
+</select></div>
+<div class="col-md-2"><label class="form-label" for="article_code">Artikelcode</label><input class="form-control" id="article_code" name="article_code" required></div>
+<div class="col-md-3"><label class="form-label" for="article_name">Name</label><input class="form-control" id="name" name="name" required></div>
+<div class="col-md-2"><label class="form-label" for="order_unit_code">Einheit</label><input class="form-control" id="order_unit_code" name="order_unit_code" value="KG" required></div>
+<div class="col-md-1"><label class="form-label" for="pack_size">Gebinde</label><input class="form-control" id="pack_size" name="pack_size" value="1" required></div>
+<div class="col-md-1 d-flex align-items-end"><button class="btn" type="submit">{{ icon('plus') }}Artikel</button></div>
+</form></div></section>
+<section class="card"><div class="card-header"><h2 class="card-title">Körbe</h2></div><div class="card-body">
+<ul>{% for row in baskets %}<li><a href="{{ url_for('admin.order_basket', public_id=row.public_id) }}">{{ row.supplier_name }} · {{ row.status }}</a></li>{% else %}<li>Keine Körbe.</li>{% endfor %}</ul>
+<form method="post" action="{{ url_for('admin.order_basket_create') }}" class="row g-2">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<div class="col-md-6"><label class="form-label" for="basket_supplier">Lieferant</label>
+<select class="form-select" id="basket_supplier" name="supplier_public_id" required>
+{% for row in suppliers %}<option value="{{ row.public_id }}">{{ row.name }}</option>{% endfor %}
+</select></div>
+<div class="col-md-3 d-flex align-items-end"><button class="btn btn-primary" type="submit">Korb anlegen</button></div>
+</form></div></section>
+{% endblock %}

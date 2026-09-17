@@ -52,6 +52,7 @@ MIGRATION_0031 = ROOT / 'database' / 'migrations' / '0031_v33_to_v34.sql'
 MIGRATION_0032 = ROOT / 'database' / 'migrations' / '0032_v34_to_v35.sql'
 MIGRATION_0033 = ROOT / 'database' / 'migrations' / '0033_v35_to_v36.sql'
 MIGRATION_0034 = ROOT / 'database' / 'migrations' / '0034_v36_to_v37.sql'
+MIGRATION_0035 = ROOT / 'database' / 'migrations' / '0035_v37_to_v38.sql'
 PERMISSIONS = ROOT / 'database' / 'permissions.sql'
 SEED = ROOT / 'database' / 'seed.sql'
 CAF_JSON = ROOT / 'demo' / 'snapshots' / 'cafeteria_kw36.json'
@@ -855,8 +856,8 @@ def run_live_check() -> dict[str, Any]:
             ).tuples().all()
             shopping_guard_mismatches = shopping_live_guard_mismatches(connection)
             disabled_guard_mismatches = disabled_trigger_mismatches(connection)
-        if int(row['schema_version']) != 37:
-            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 37.")
+        if int(row['schema_version']) != 38:
+            fail(f"Live-Schema-Version ist {row['schema_version']}, erwartet 38.")
         if int(row['revision_fn_count']) != 1:
             fail('Live-Datenbank hat nicht genau eine validate_publication_revision-Funktion.')
         if {item['proname'] for item in v32_acl} != {
@@ -1231,6 +1232,9 @@ def main() -> int:
         migration_0034 = MIGRATION_0034.read_text(encoding='utf-8')
         if 'CREATE TABLE kitchen_event_demand_items' not in migration_0034 or 'kitchen_event_demand_items' not in sql:
             fail('Anlass-Bedarf-Vertrag fehlt: kitchen_event_demand_items')
+        migration_0035 = MIGRATION_0035.read_text(encoding='utf-8')
+        if 'supplier_articles_preferred_food_idx' not in migration_0035 or 'supplier_articles_preferred_food_idx' not in sql:
+            fail('Bestell-Vertrag fehlt: R9 preferred unique index')
         migration_0026 = MIGRATION_0026.read_text(encoding='utf-8')
         if not migration_0026.startswith('BEGIN;') or not migration_0026.rstrip().endswith('COMMIT;'):
             fail('Migration 0026 hat keinen strikten BEGIN/COMMIT-Vertrag.')
@@ -1369,6 +1373,7 @@ def main() -> int:
             MIGRATION_0032: '6eeec799dad37cb60bc54cdaf691c5abd0c451244e4b4931fe34ea3ee359ca41',
             MIGRATION_0033: 'bc01eb651cd0b69e8e6b2651c3737367acc7c96c6991c7043620db4d7d2f0471',
             MIGRATION_0034: '6108bbc4e3bee43a5cb7e1f0596158d453b4bcb75f3f0d12621bd531f132c297',
+            MIGRATION_0035: '1c8ba2fe6887a891f55e3f5acb8188aa3fcb98eec885b30e2e01c36264ba40af',
         }
         for migration_path, expected_checksum in immutable_migration_checksums.items():
             actual_checksum = hashlib.sha256(migration_path.read_bytes()).hexdigest()
@@ -1393,6 +1398,7 @@ def main() -> int:
             'shopping_list_line_status', 'kitchen_events',
             'food_price_heads', 'food_purchase_price_revisions',
             'kitchen_event_demand_items',
+            'suppliers', 'supplier_articles', 'order_baskets', 'order_basket_lines',
         }
         missing = required_tables - set(tables)
         if missing:
@@ -1637,7 +1643,7 @@ def main() -> int:
             'patient_services': sum(len(day['services']) for day in pat['days']),
             'patient_menu_options': sum(len(service['options']) for day in pat['days'] for service in day['services']),
             'schema_sha256': hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
-            'schema_version': 37,
+            'schema_version': 38,
             'migration_checksums': {
                 '0001_initial_postgresql.sql': baseline_checksum,
                 '0002_profile_publication_and_local_auth.sql': hashlib.sha256(MIGRATION_0002.read_bytes()).hexdigest(),
@@ -1673,6 +1679,7 @@ def main() -> int:
                 '0032_v34_to_v35.sql': hashlib.sha256(MIGRATION_0032.read_bytes()).hexdigest(),
                 '0033_v35_to_v36.sql': hashlib.sha256(MIGRATION_0033.read_bytes()).hexdigest(),
                 '0034_v36_to_v37.sql': hashlib.sha256(MIGRATION_0034.read_bytes()).hexdigest(),
+                '0035_v37_to_v38.sql': hashlib.sha256(MIGRATION_0035.read_bytes()).hexdigest(),
             },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))

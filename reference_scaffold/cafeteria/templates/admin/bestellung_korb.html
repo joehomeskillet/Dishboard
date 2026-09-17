@@ -1,0 +1,36 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header, icon %}
+{% set workflow_nav = 'orders' %}
+{% block title %}Korb · Bestellung{% endblock %}
+{% block page_header %}
+{% call page_header('Korb ' ~ basket.supplier_name) %}
+<a class="btn" href="{{ url_for('admin.order_home') }}">{{ icon('arrow-left') }}Übersicht</a>
+<a class="btn" href="{{ url_for('admin.order_basket_csv', public_id=basket.public_id) }}">{{ icon('download') }}CSV herunterladen</a>
+{% endcall %}
+{% endblock %}
+{% block content %}
+<p>Status: {{ basket.status }}. Vorschau und Download ändern den Status nicht.</p>
+<form method="post" action="{{ url_for('admin.order_basket_save', public_id=basket.public_id) }}">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<input type="hidden" name="row_version" value="{{ basket.row_version }}">
+<table class="table"><thead><tr><th>Artikel</th><th>Menge</th></tr></thead><tbody>
+{% for line in basket.lines %}
+<tr>
+<td>{{ line.article_name }} ({{ line.article_code }})
+<input type="hidden" name="article_public_id" value="{{ line.article_public_id }}"></td>
+<td><input class="form-control" name="quantity" value="{{ line.quantity }}"></td>
+</tr>
+{% endfor %}
+<tr>
+<td><select class="form-select" name="article_public_id">
+<option value="">Artikel hinzufügen</option>
+{% for row in articles %}<option value="{{ row.public_id }}">{{ row.name }}</option>{% endfor %}
+</select></td>
+<td><input class="form-control" name="quantity" placeholder="Menge"></td>
+</tr>
+</tbody></table>
+<button class="btn btn-primary" type="submit">Korb speichern</button>
+</form>
+<h2 class="mt-4">CSV-Vorschau</h2>
+<pre class="bg-light p-3">{{ preview }}</pre>
+{% endblock %}

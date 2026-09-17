@@ -24,6 +24,7 @@ from . import recipe_import_routes as recipe_import_routes
 from . import calendar_routes as calendar_routes
 from . import calendar_event_routes as calendar_event_routes
 from . import food_price_routes as food_price_routes
+from . import order_routes as order_routes
 from ..roles import capabilities
 from .routes import bp as bp
 from .rendering import _template_context

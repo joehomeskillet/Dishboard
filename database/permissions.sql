@@ -353,6 +353,19 @@ GRANT SELECT ON kitchen_event_demand_items TO cafeteria_backup;
 GRANT SELECT ON SEQUENCE kitchen_event_demand_items_id_seq TO cafeteria_backup;
 -- Schema37 kitchen event demand grants end.
 
+-- Schema38 supplier and basket grants begin.
+REVOKE ALL ON FUNCTION supplier_mutate_v38(text, bigint, bigint, bigint, uuid, bigint, jsonb),
+    supplier_article_mutate_v38(text, bigint, bigint, bigint, uuid, bigint, jsonb)
+FROM PUBLIC, cafeteria_backup, cafeteria_auth_issuer;
+GRANT EXECUTE ON FUNCTION supplier_mutate_v38(text, bigint, bigint, bigint, uuid, bigint, jsonb),
+    supplier_article_mutate_v38(text, bigint, bigint, bigint, uuid, bigint, jsonb)
+TO cafeteria_app;
+GRANT SELECT, INSERT, UPDATE ON suppliers, supplier_articles, order_baskets, order_basket_lines TO cafeteria_app;
+REVOKE DELETE ON suppliers, supplier_articles, order_baskets, order_basket_lines FROM cafeteria_app;
+GRANT SELECT ON suppliers, supplier_articles, order_baskets, order_basket_lines TO cafeteria_backup;
+GRANT SELECT ON SEQUENCE suppliers_id_seq, supplier_articles_id_seq, order_baskets_id_seq, order_basket_lines_id_seq TO cafeteria_backup;
+-- Schema38 supplier and basket grants end.
+
 -- Prepared foods schema27 grants begin.
 REVOKE ALL ON FUNCTION lock_prepared_graph_v27(bigint),recipe_snapshot_complete_v27(jsonb),
     check_prepared_graph_v27(bigint,uuid,bigint),assert_food_complete_v27(bigint),enforce_food_complete_v27(),
