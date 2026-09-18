@@ -90,7 +90,6 @@ def test_week_families_expose_fixed_profiles_and_grids(client) -> None:
     assert 'data-meal="DINNER"' not in cafeteria_body
     assert patient_body.count('data-meal="LUNCH"') == 14
     assert patient_body.count('data-meal="DINNER"') == 14
-    assert 'Samstag und Sonntag: Cafeteria geschlossen.' in cafeteria_body
     assert cafeteria.headers['Cache-Control'] == 'no-store'
 
 

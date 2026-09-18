@@ -23,6 +23,7 @@ def test_record_rejects_invalid_database_values(field, value):
         'label': 'Record boundary',
         'key_prefix': generate_api_key()[1],
         'scopes': ['preview.read'],
+        'channels': ['cafeteria', 'patienten'],
         'created_at': datetime(2026, 9, 6, tzinfo=UTC),
         'created_by_name': 'Test Admin',
         'expires_at': None,

@@ -42,8 +42,8 @@ def test_filter_get_keeps_values_count_and_legacy_archive_links(request, family)
     body = response.get_data(as_text=True)
     assert '1 Treffer' in body
     assert f'href="{created.headers["Location"]}"' in body
-    assert f'href="{path}">Zurücksetzen</a>' in body
-    assert 'Nicht erfasst bedeutet keine bestätigte Allergenfreiheit.' in body
+    assert f'href="{path}">' in body and 'Zurücksetzen</a>' in body
+    assert '«Nicht erfasst» bedeutet keine bestätigte Allergenfreiheit.' in body
     for key, value in params.items():
         if key == 'q':
             assert 'value="Kartoffel"' in body

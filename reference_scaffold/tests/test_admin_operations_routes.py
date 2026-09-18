@@ -56,9 +56,9 @@ def _load(client, **changes):  # noqa: F811
 
 
 def _cafeteria_week_grid(body):
-    match = re.search(r'<section class="admin-week-days"[^>]*>(.*?)</section>', body, re.S)
+    match = re.search(r'<section class="admin-week-days[^"]*"[^>]*>(.*?)</section>', body, re.S)
     assert match, 'Wochenübersicht Cafeteria fehlt'
-    days = re.findall(r'<article class="card admin-day-card">.*?<h2>(.*?)</h2>', match.group(1), re.S)
+    days = re.findall(r'<article class="card admin-day-card[^"]*">.*?<h2>(.*?)</h2>', match.group(1), re.S)
     slots = re.findall(r'data-day="([^"]+)" data-meal="([^"]+)" data-option="([^"]+)"', match.group(1))
     return days, slots
 

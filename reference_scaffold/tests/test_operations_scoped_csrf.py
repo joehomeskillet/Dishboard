@@ -78,7 +78,7 @@ def test_operations_reject_actor_replay_even_with_same_raw_token(client, app, da
     with other.session_transaction() as session:
         session['user'] = {'id': actor, 'name': 'Andere Küche'}
         session['authz_version'] = version
-        session['_csrf_token'] = form['_csrf'].split('.')[0]
+        session['_csrf_token'] = form['_csrf'].split('.')[1]
     before = _snapshot(database_engine)
     assert other.post(PATH, data=form).status_code == 409
     assert _snapshot(database_engine) == before

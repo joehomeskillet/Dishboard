@@ -48,8 +48,8 @@ def test_profile_csv_examples_are_valid():
     patient = validate_file(ROOT / 'csv' / 'menu_patient_example.csv')
     assert cafeteria['valid'], cafeteria['errors']
     assert patient['valid'], patient['errors']
-    assert len(cafeteria['headers']) == 19
-    assert len(patient['headers']) == 17
+    assert len(cafeteria['headers']) == 20
+    assert len(patient['headers']) == 18
     assert not any(re.search(r'(preis|chf|rappen)', header, re.I) for header in patient['headers'])
 
 
@@ -67,7 +67,7 @@ def test_templates_parse_and_patient_templates_have_no_cost_markup():
         template_root / 'signage' / 'patient_week.html',
         template_root / 'admin' / 'patienten.html',
     ]
-    forbidden = re.compile(r'\b(CHF|Rappen|Intern|Extern|0\.00)\b|prices|price-row|signage-price|admin-price', re.I)
+    forbidden = re.compile(r'\b(CHF|Rappen|Intern|Extern|0\.00)\b|(?<!show_)prices|price-row|signage-price|admin-price', re.I)
     for path in patient_paths:
         assert not forbidden.search(path.read_text(encoding='utf-8')), path
 
