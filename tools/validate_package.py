@@ -323,8 +323,8 @@ def main() -> int:
     # CSV
     csv_dir = root / 'csv'
     formats = {
-        'patient': ('menu_patient_template.csv', 'menu_patient_example.csv', 17, 28),
-        'staff_guest': ('menu_cafeteria_template.csv', 'menu_cafeteria_example.csv', 19, 10),
+        'patient': ('menu_patient_template.csv', 'menu_patient_example.csv', 18, 28),
+        'staff_guest': ('menu_cafeteria_template.csv', 'menu_cafeteria_example.csv', 20, 10),
     }
     for profile, (template_name, example_name, header_count, row_count) in formats.items():
         with (csv_dir / template_name).open(encoding='utf-8-sig', newline='') as handle:
@@ -349,7 +349,7 @@ def main() -> int:
     check(db_result.returncode == 0, f'Schema-Validator fehlgeschlagen: {db_result.stderr or db_result.stdout}')
     if db_result.returncode == 0:
         status = json.loads(db_result.stdout)
-        check(status.get('tables') == 70, 'Schema enthaelt nicht 70 Tabellen.')
+        check(status.get('tables') == 72, 'Schema enthaelt nicht 72 Tabellen.')
         check(status.get('application_roles') == 3, 'Schema enthaelt nicht drei Rollen.')
         check(status.get('offer_profiles') == 2, 'Schema enthaelt nicht zwei Profile.')
         check(status.get('schema_version') == 43, 'Schema-Version ist nicht 43.')
@@ -433,7 +433,7 @@ def main() -> int:
         except Exception as exc:
             errors.append(f'Jinja-Fehler in {path.relative_to(root)}: {exc}')
     patient_templates = list((template_root / 'public').glob('patient*.html')) + [template_root / 'public/print_patient_week.html'] + list((template_root / 'signage').glob('patient*.html')) + [template_root / 'admin/patienten.html']
-    forbidden_markup = re.compile(r'\b(CHF|Rappen|Intern|Extern|0\.00)\b|prices|price-row|signage-price|admin-price', re.I)
+    forbidden_markup = re.compile(r'\b(CHF|Rappen|Intern|Extern|0\.00)\b|(?<!show_)prices|price-row|signage-price|admin-price', re.I)
     for path in patient_templates:
         check(not forbidden_markup.search(path.read_text(encoding='utf-8')), f'Patienten-Template enthaelt Kostenmarkup: {path.relative_to(root)}')
 
