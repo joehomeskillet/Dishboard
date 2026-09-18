@@ -225,3 +225,45 @@ html:has(.signage-cafe-day),.signage-body:has(.signage-cafe-day){width:auto;heig
 .signage-shell .card{overflow:hidden}
 .signage-shell .card-status-top{inset-inline:0;top:0;z-index:1}
 .signage-shell .food-legend{color:var(--sh-ink-muted)}
+
+/* Gänge in den Kopfzeilen (Soup, Dessert) - passend zum UI-Manifest M11b */
+.signage-shell .service-courses,
+.signage-shell .service-course-exception {
+  margin: 0;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.2vw;
+  align-items: center;
+  font-size: clamp(18px, 0.94vw, 36px);
+  color: inherit;
+  font-weight: 500;
+  line-height: 1.1;
+  min-width: 0;
+}
+.signage-shell .service-courses .signage-tags,
+.signage-shell .service-course-exception .signage-tags {
+  flex-wrap: wrap;
+  margin: 0;
+}
+.signage-shell .service-courses + .service-courses,
+.signage-shell .service-courses + .service-course-exception,
+.signage-shell .service-course-exception + .service-course-exception {
+  margin-top: 0;
+  margin-left: 0.4vw;
+}
+
+/* Wochenboards: nur Symbole für Allergene in den Gängen, um Platz zu sparen */
+.signage-cafe-week .service-courses .label.amber span,
+.signage-cafe-week .service-course-exception .label.amber span,
+.patient-board .service-courses .label.amber span,
+.patient-board .service-course-exception .label.amber span {
+  display: none;
+}
+
+
+.patient-board-shell:has(.service-courses),
+.patient-board-shell:has(.service-course-exception) {
+  padding-top: 0.8vh;
+  padding-bottom: 0.5vh;
+  gap: 0.5vh;
+}

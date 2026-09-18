@@ -206,3 +206,27 @@ def test_week_paging_preserves_updates_and_never_restores_withdrawn_content(
         assert FORBIDDEN.search(page.content()) is None
     finally:
         page.close()
+
+@pytest.mark.parametrize('surface', ('tag', 'woche'))
+def test_course_line_is_visible_and_scales(live_signage: tuple[str, Flask], browser: Browser, surface: str) -> None:
+    base_url, application = live_signage
+    page = browser.new_page(viewport={'width': 1920, 'height': 1080}, reduced_motion='reduce')
+    try:
+        response = page.goto(f'{base_url}/signage/patienten/{surface}')
+        assert response and response.status == 200
+        page.evaluate('document.fonts.ready')
+        
+        locator = page.locator('.service-courses').first
+        expect(locator).to_be_visible()
+        expect(locator).to_contain_text('Gemüsesuppe')
+        
+        box = locator.bounding_box()
+        assert box is not None
+        assert box['y'] >= 0 and box['x'] >= 0
+        assert box['y'] + box['height'] <= 1080
+        assert box['x'] + box['width'] <= 1920
+        
+        font_size = locator.evaluate('node => parseFloat(getComputedStyle(node).fontSize)')
+        assert font_size >= 18
+    finally:
+        page.close()

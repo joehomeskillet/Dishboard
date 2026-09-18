@@ -7,13 +7,17 @@
 {% block channel %}
 <div class="signage-brand">
   {{ brand_logo(brand, 'signage-logo') }}
-  <h1 class="signage-kicker m-0">{{ area_name if area_name else 'Cafeteria · Mittag für Mitarbeitende und externe Gäste' }}{% if lunch %}{% set time_label = lunch|service_time_label('staff_guest') %}{% if time_label %} · {{ time_label }}{% endif %}{% endif %}</h1>
+  <h1 class="signage-kicker m-0 d-flex align-items-center gap-2 text-nowrap overflow-hidden">
+    <span class="text-truncate">{{ area_name if area_name else 'Cafeteria · Mittag für Mitarbeitende und externe Gäste' }}{% if lunch %}{% set time_label = lunch|service_time_label('staff_guest') %}{% if time_label %} · {{ time_label }}{% endif %}{% endif %}</span>
+    {% if lunch and lunch.service_state|default('open') == 'open' %}
+    {% with service=lunch %}{% include 'admin/_service_courses.html' %}{% endwith %}
+    {% endif %}
+  </h1>
 </div>
 {% endblock %}
 {% block content %}
 {% set declarations = namespace(options=[]) %}
 {% if lunch.service_state|default('open') == 'open' %}
-{% with service=lunch %}{% include 'admin/_service_courses.html' %}{% endwith %}
 <section class="row g-4 hero-food-grid" aria-label="Zwei Mittagsmenüs">
   {% for option in lunch.options %}
   {% if option.title %}{% set declarations.options = declarations.options + [option] %}{% endif %}
