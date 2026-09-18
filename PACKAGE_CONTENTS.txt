@@ -641,6 +641,7 @@ reference_scaffold/cafeteria/fhir/routes.py
 reference_scaffold/cafeteria/food_symbols.py
 reference_scaffold/cafeteria/health/__init__.py
 reference_scaffold/cafeteria/health/routes.py
+reference_scaffold/cafeteria/inventory_store.py
 reference_scaffold/cafeteria/master_data_commands.py
 reference_scaffold/cafeteria/master_data_proposals.py
 reference_scaffold/cafeteria/master_data_reads.py
