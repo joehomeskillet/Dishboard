@@ -358,8 +358,14 @@ def test_schema31_upgrade_preserves_nonempty_data_defaults_and_fresh_contract(pg
                 query = (f'SELECT to_jsonb(t)::text FROM cafeteria.{table} t '
                          'ORDER BY to_jsonb(t)::text')
             assert connection.execute(text(query)).all() == rows
-        migrated = _v32_structure(connection)
     assert rows_and_sequences(pg16)[1] == before[1]
+
+    for migration in plan:
+        if migration.version > 32:
+            database._execute_migration(pg16, migration)
+
+    with pg16.connect() as connection:
+        migrated = _v32_structure(connection)
 
     with pg16.begin() as connection:
         connection.execute(text('DROP SCHEMA cafeteria CASCADE'))
