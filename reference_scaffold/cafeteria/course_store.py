@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Mapping, Sequence
 from datetime import date
 from typing import Any
 from uuid import UUID
 
-from flask import current_app
 from sqlalchemy import Connection, Engine, text
 
 from .component_catalog_store import AdminScope
@@ -17,6 +17,8 @@ from .workflow_partial_store import (
     resolve_week_ref,
 )
 from .workflow_write_context import write_transaction
+
+_logger = logging.getLogger(__name__)
 
 COURSE_KINDS = ('soup', 'dessert')
 COURSE_LABELS = {'soup': 'Suppe', 'dessert': 'Dessert'}
@@ -90,7 +92,9 @@ def _flags_from_snapshot(snapshot: object, row: Mapping[str, Any] | None = None)
         except (TypeError, ValueError, json.JSONDecodeError):
             if row:
                 identifier = row.get('recipe_public_id') or row.get('revision_public_id') or 'unbekannt'
-                current_app.logger.warning(f"Defektes Snapshot-JSON für Rezept/Revision {identifier}")
+                _logger.warning(
+                    'Defektes Snapshot-JSON für Rezept/Revision %s', identifier,
+                )
             snapshot = None
     recipe = snapshot.get('recipe') if isinstance(snapshot, dict) else None
     if not isinstance(recipe, dict):

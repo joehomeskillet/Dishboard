@@ -35,7 +35,11 @@ from cafeteria.operations_settings import (
     save_schedule,
     slot_defaults,
 )
-from cafeteria.patient_payload import patient_text_is_forbidden, validate_snapshot_payload
+from cafeteria.patient_payload import (
+    PATIENT_ALLOWED_COMPACT_KEYS,
+    patient_text_is_forbidden,
+    validate_snapshot_payload,
+)
 from cafeteria.workflow import load_draft
 from cafeteria.workflow_snapshot import build_snapshot
 
@@ -780,3 +784,4 @@ def test_python_allowlist_mirrors_the_sql_patient_key_contract():
     assert keys_by_source['0040_v42_to_v43.sql'] == current_keys
     assert keys_by_source['schema.sql'] == current_keys
     assert {'areaname', 'servicestart', 'serviceend'} <= set(module.ALLOWED_PATIENT_COMPACT_KEYS)
+    assert PATIENT_ALLOWED_COMPACT_KEYS == module.ALLOWED_PATIENT_COMPACT_KEYS
