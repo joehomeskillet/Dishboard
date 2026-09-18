@@ -96,7 +96,7 @@ def test_archive_reactivate_native_lifecycle(editor_app: Any, editor_server: str
         expect(item.get_by_text('Standard', exact=True)).to_be_visible()
         _targets(page)
         page.screenshot(path=str(tmp_path / f'archive-catalog-{family}-{width}-js{javascript}.png'), full_page=True)
-        item.get_by_role('link', name='Vorlage bearbeiten', exact=False).click()
+        item.get_by_role('link', name='Vorlageneditor öffnen', exact=True).click()
         page.locator('details[data-template-more-actions] summary').click()
         expect(page.get_by_role('button', name='Vorlage reaktivieren', exact=True)).to_be_visible()
         assert snapshot(database_engine) == before
