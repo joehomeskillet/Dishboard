@@ -24,10 +24,11 @@ def test_brand_selection_saved_preview_and_activation(editor_app, editor_server,
         page.on('console', lambda message: errors.append(message.text) if message.type == 'error' else None)
         response = page.goto(f'/admin/vorlagen/{family}?week={DAY}')
         assert response is not None and response.status == 200
+        page.locator('details[data-template-appearance] summary').click()
         for label in ('Druckschrift', 'Farbpalette', 'Logo'):
             page.get_by_label(label, exact=True).select_option('active_brand')
-        page.get_by_role('button', name='Entwurf speichern und prüfen', exact=True).click()
-        expect(page.get_by_role('heading', name='PDF-Vorschau · Revision 2', exact=True)).to_be_visible()
+        page.get_by_role('button', name='Vorlage speichern', exact=True).click()
+        expect(page.get_by_role('heading', name='PDF-Vorschau · Version 2', exact=True)).to_be_visible()
         for label in ('Druckschrift', 'Farbpalette', 'Logo'):
             expect(page.get_by_label(label, exact=True)).to_have_value('active_brand')
         frame = page.locator('iframe')
@@ -42,8 +43,9 @@ def test_brand_selection_saved_preview_and_activation(editor_app, editor_server,
         frame.scroll_into_view_if_needed()
         _wait_for_pdf_paint(page, frame, tmp_path / f'brand-pdf-{family}-{width}.png')
         page.screenshot(path=str(tmp_path / f'brand-editor-{family}-{width}.png'), full_page=True)
-        page.get_by_role('button', name='Revision 2 prüfen und aktivieren', exact=True).click()
-        expect(page.get_by_text('Aktive Druckvorlage', exact=True)).to_be_visible()
+        page.locator('details[data-template-activation] summary').click()
+        page.get_by_role('button', name='Diese Version aktivieren', exact=True).click()
+        expect(page.locator('[data-template-status-scope]')).to_contain_text('Version 2')
         download = client.get(f'/admin/{family}/preview/print?week={DAY}')
         assert download.data == preview.data and download.headers['X-Brand-Revision'] == '2'
         assert not errors

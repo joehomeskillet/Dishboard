@@ -286,17 +286,7 @@ def list_assigned_slots(engine: Engine, location_id: int) -> tuple[dict[str, Any
     return tuple(slots)
 
 
-def food_stock(engine: Engine, location_id: int, food_public_id: str) -> dict[str, Any]:
-    """Sum captured accounts for one food. Mixed frozen bases stay unknown."""
-    with engine.connect() as connection:
-        rows = connection.execute(text('''
-            SELECT a.base_unit_snapshot,
-                   (SELECT COALESCE(SUM(m.sign * m.normalized_base_quantity), 0)
-                    FROM cafeteria.inventory_movements m WHERE m.account_id=a.id) AS qty
-            FROM cafeteria.inventory_accounts a
-            JOIN cafeteria.foods f ON f.id=a.food_id
-            WHERE a.location_id=:location AND f.public_id=CAST(:food AS uuid)
-        '''), {'location': location_id, 'food': _uuid(food_public_id)}).mappings().all()
+def _food_stock_from_rows(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     if not rows:
         return {'captured': False, 'quantity': None, 'unit_code': None, 'label': 'Kein Bestand erfasst'}
     codes = {row['base_unit_snapshot']['code'] for row in rows}
@@ -305,6 +295,29 @@ def food_stock(engine: Engine, location_id: int, food_public_id: str) -> dict[st
     qty = sum((Decimal(str(row['qty'])) for row in rows), Decimal('0'))
     code = next(iter(codes))
     return {'captured': True, 'quantity': qty, 'unit_code': code, 'label': f'{qty} {code}'}
+
+
+def _food_stocks(connection, location_id: int, food_public_ids: set[str]) -> dict[str, dict[str, Any]]:
+    if not food_public_ids:
+        return {}
+    rows = connection.execute(text('''
+        SELECT f.public_id::text AS food_public_id, a.base_unit_snapshot,
+               (SELECT COALESCE(SUM(m.sign * m.normalized_base_quantity), 0)
+                FROM cafeteria.inventory_movements m WHERE m.account_id=a.id) AS qty
+        FROM cafeteria.inventory_accounts a
+        JOIN cafeteria.foods f ON f.id=a.food_id
+        WHERE a.location_id=:location AND f.public_id = ANY(CAST(:foods AS uuid[]))
+    '''), {'location': location_id, 'foods': list(_uuid(food_id) for food_id in food_public_ids)}).mappings().all()
+    grouped: dict[str, list[Mapping[str, Any]]] = {}
+    for row in rows:
+        grouped.setdefault(row['food_public_id'], []).append(row)
+    return {food_id: _food_stock_from_rows(grouped.get(food_id, ())) for food_id in food_public_ids}
+
+
+def food_stock(engine: Engine, location_id: int, food_public_id: str) -> dict[str, Any]:
+    """Sum captured accounts for one food. Mixed frozen bases stay unknown."""
+    with engine.connect() as connection:
+        return _food_stocks(connection, location_id, {food_public_id})[food_public_id]
 
 
 def _convert_need(connection, quantity: Decimal, from_code: str, to_code: str,
@@ -326,8 +339,10 @@ def _convert_need(connection, quantity: Decimal, from_code: str, to_code: str,
 
 def attach_stock(engine: Engine, location_id: int, lines: Sequence[Mapping[str, Any]]) -> tuple[dict[str, Any], ...]:
     """Annotate shopping lines with captured stock and net demand. Unknown stock does not reduce need."""
+    food_ids = {str(line['food_public_id']) for line in lines if line.get('food_public_id')}
     attached = []
     with engine.connect() as connection:
+        stocks = _food_stocks(connection, location_id, food_ids)
         for line in lines:
             food = line.get('food_public_id')
             raw = line.get('quantity')
@@ -339,7 +354,7 @@ def attach_stock(engine: Engine, location_id: int, lines: Sequence[Mapping[str, 
                     'net': {'complete': False, 'quantity': None, 'reason': 'Keine Zutat'},
                 })
                 continue
-            stock = food_stock(engine, location_id, str(food))
+            stock = stocks[str(food)]
             if need is None or not stock.get('captured') or not stock.get('unit_code') or not line.get('unit_code'):
                 attached.append({**line, 'stock': stock, 'net': net_demand(need, stock)})
                 continue

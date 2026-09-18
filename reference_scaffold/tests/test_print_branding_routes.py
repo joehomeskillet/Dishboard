@@ -87,7 +87,7 @@ def test_standard_brand_logo_and_explicit_none_match_preview_fit_and_download(
     _save(database_engine, profile, _staff_values() if profile == 'staff_guest' else _patient_values())
     editor = f'/admin/vorlagen/{family}?week={DAY}'
     for revision, logo in ((2, 'active_brand'), (3, 'none')):
-        assert 'Ohne individuelles Markenlogo erscheint das Südhang-Standardlogo.' in client.get(editor).text
+        assert 'Ohne Markenlogo erscheint das Südhang-Standardlogo.' in client.get(editor).text
         version = 2 * (revision - 2)
         assert client.post(editor, data=fields(version=version, font='active_brand',
                                               palette='active_brand', logo=logo)).status_code == 303

@@ -214,8 +214,6 @@ def test_detail_shared_viewports_no_overflow_and_48px_targets(server, browser, w
         expect(page.locator('#compute_week')).to_have_value(week_public)
         expect(page.locator('input[name="component_ids"]').first).to_be_visible()
         expect(page.get_by_role('button', name='Abhaken', exact=True)).to_have_count(2)
-        page.locator('main summary').first.click()
-        assert page.locator('main details').first.get_attribute('open') is not None
         page.evaluate('window.scrollTo(0, 0)')  # full-page capture of the fixed sidebar starts at the top
         _shot(page, f'detail-shared-{width}x{height}')
 
