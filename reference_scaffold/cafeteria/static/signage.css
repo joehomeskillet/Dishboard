@@ -128,7 +128,7 @@ html:has(.signage-cafe-day),.signage-body:has(.signage-cafe-day){width:auto;heig
 }
 
 /* Variante C: Cafeteria week — five equal Tabler day cards, complete menu declarations. */
-.signage-cafe-week{gap:.5vh;padding:1vh 2.8vw}
+.signage-cafe-week{gap:.5vh;padding:0vh 2.8vw}
 .signage-cafe-week .signage-datetime{display:grid;grid-template-columns:auto auto;gap:.3vh .8vw}
 .signage-cafe-week .signage-weekday{grid-column:1/-1;font-size:clamp(42px,2.19vw,84px);line-height:1.2}
 .signage-cafe-week .signage-calendar-date,.signage-cafe-week .signage-clock{margin:0}
@@ -192,7 +192,7 @@ html:has(.signage-cafe-day),.signage-body:has(.signage-cafe-day){width:auto;heig
 .patient-board-page-label,.cafe-week-page-label{margin:0 0 .5vh;color:var(--sh-ink-muted);font-size:clamp(18px,.94vw,36px);line-height:1.2}
 /* Legacy board (snapshot without 'area_name'): three or four quarter-width day cards
    carrying both meals, exactly the geometry those publications show today. */
-.patient-board-shell{padding:1.8vh 1.1vw 1.5vh;gap:1vh}
+.patient-board-shell{padding:0.6vh 1.1vw 0.5vh;gap:1vh}
 .patient-board.row{display:flex;flex-wrap:nowrap;gap:.45vw;margin:0;--tblr-gutter-x:0}
 .patient-board .patient-week-day.card{display:grid;grid-template-rows:auto repeat(2,minmax(0,1fr));flex:0 0 calc((100% - 1.35vw)/4);gap:0;padding:0;margin:0;border:0;border-radius:var(--sh-radius-md);background:var(--sh-panel);box-shadow:var(--sh-shadow-soft)}
 .patient-board .patient-week-day>.card-header{min-height:0;padding:.6vh .3vw;border-radius:0;background:var(--sh-panel);color:var(--sh-ink);gap:0}
@@ -225,3 +225,36 @@ html:has(.signage-cafe-day),.signage-body:has(.signage-cafe-day){width:auto;heig
 .signage-shell .card{overflow:hidden}
 .signage-shell .card-status-top{inset-inline:0;top:0;z-index:1}
 .signage-shell .food-legend{color:var(--sh-ink-muted)}
+
+/* Gänge in den Kopfzeilen (Soup, Dessert) - passend zum UI-Manifest M11b */
+.signage-shell .service-courses,
+.signage-shell .service-course-exception {
+  margin: 0;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.2vw;
+  align-items: center;
+  font-size: clamp(18px, 0.94vw, 36px);
+  color: inherit;
+  font-weight: 500;
+  line-height: 1.1;
+  min-width: 0;
+}
+.signage-shell .service-courses .signage-tags,
+.signage-shell .service-course-exception .signage-tags {
+  flex-wrap: nowrap;
+  margin: 0;
+}
+.signage-shell .service-courses + .service-courses,
+.signage-shell .service-courses + .service-course-exception,
+.signage-shell .service-course-exception + .service-course-exception {
+  margin-top: 0;
+  margin-left: 0.4vw;
+}
+.signage-shell .service-courses .label,
+.signage-shell .service-course-exception .label {
+  font-size: clamp(14px, 0.75vw, 24px);
+}
+.signage-shell .service-courses span.d-inline-flex {
+  flex-wrap: wrap !important;
+}

@@ -26,8 +26,11 @@
   <div class="col">
   <article class="card card-sm cafe-week-day">
     {% set time_label = meal|service_time_label('staff_guest') %}
-    <header class="card-header bg-teal-lt"><h2 class="card-title mb-0">{{ day.weekday }}</h2><span>{{ day.date|date_short }}{% if time_label %} · {{ time_label }}{% endif %}</span></header>
-    {% with service=meal %}{% include 'admin/_service_courses.html' %}{% endwith %}
+    <header class="card-header bg-teal-lt d-flex flex-wrap align-items-center gap-1">
+      <h2 class="card-title mb-0 flex-shrink-0">{{ day.weekday }}</h2>
+      {% with service=meal %}{% include 'admin/_service_courses.html' %}{% endwith %}
+      <span class="ms-auto flex-shrink-0">{{ day.date|date_short }}{% if time_label %} · {{ time_label }}{% endif %}</span>
+    </header>
     {% if meal.service_state|default('open') == 'open' %}
     <div class="card-body cafe-week-menus">
     {% for option in meal.options %}
@@ -37,7 +40,8 @@
       <div class="slot-type">{{ option.type_name }}</div>
       <div class="slot-body"><h3 class="card-title">{{ option.title }}</h3><p class="cafe-week-components">{{ option.components|join(' · ') }}</p>
         {% set description = '' if option.description == option.components|join(' · ') else option.description %}
-        {% with option=dict(option, description=description), metadata_class='signage-tags' %}
+        {% if description %}<p class="mt-0 mb-0"><small>{{ description }}</small></p>{% endif %}
+        {% with option=dict(option, description=''), metadata_class='signage-tags' %}
         {% include '_menu_metadata.html' %}
         {% endwith %}
       </div>

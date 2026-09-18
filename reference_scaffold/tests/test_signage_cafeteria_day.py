@@ -120,3 +120,26 @@ def test_hero_food_closed_screen_keeps_the_shared_shell(
         page.screenshot(path=str(tmp_path / f'cafeteria-closed-{closure}-{width}x{height}.png'))
     finally:
         page.close()
+
+def test_course_line_is_visible_and_scales(live_signage: tuple[str, Flask], browser: Browser) -> None:
+    base_url, application = live_signage
+    page = browser.new_page(viewport={'width': 1920, 'height': 1080}, reduced_motion='reduce')
+    try:
+        response = page.goto(f'{base_url}/signage/cafeteria/tag')
+        assert response and response.status == 200
+        page.evaluate('document.fonts.ready')
+        
+        locator = page.locator('.service-courses').first
+        expect(locator).to_be_visible()
+        expect(locator).to_contain_text('Gemüsesuppe')
+        
+        box = locator.bounding_box()
+        assert box is not None
+        assert box['y'] >= 0 and box['x'] >= 0
+        assert box['y'] + box['height'] <= 1080
+        assert box['x'] + box['width'] <= 1920
+        
+        font_size = locator.evaluate('node => parseFloat(getComputedStyle(node).fontSize)')
+        assert font_size >= 18
+    finally:
+        page.close()

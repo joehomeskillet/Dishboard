@@ -230,7 +230,7 @@ def test_ac13_public_courses_with_allergens_and_exceptions(browser, live_public_
         page.goto('/cafeteria/wochenangebot/')
         day_section = page.locator(f'#tag-{DAY}')
         expect(day_section).to_contain_text('Milchsuppe')
-        expect(day_section).to_contain_text('Milch')
+        expect(day_section.locator('.signage-tags .label.amber').first).to_contain_text('Milch')
         expect(day_section).to_contain_text('Kein Dessert')
         
         expect(day_section).to_contain_text('Fruchtsalat')
@@ -240,7 +240,7 @@ def test_ac13_public_courses_with_allergens_and_exceptions(browser, live_public_
         page.goto('/signage/cafeteria/woche')
         board = page.locator('.cafe-week-layout').first
         expect(board).to_contain_text('Milchsuppe')
-        expect(board).to_contain_text('Milch')
+        expect(board.locator('.signage-tags .label.amber').first).to_contain_text('Milch')
         expect(board).to_contain_text('Kein Dessert')
         
         expect(board).to_contain_text('Fruchtsalat')
