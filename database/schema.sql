@@ -820,7 +820,10 @@ AS $$
             'weekday', 'location', 'profilecode', 'revisionid', 'schemaversion',
             'sharednote', 'weekend', 'weekstart', 'servicestate',
             'servicestart', 'serviceend', 'areaname',
-            'accompanimentcode', 'accompanimentname'
+            'accompanimentcode', 'accompanimentname',
+            'carbohydrates', 'dessert', 'dessertoverride', 'fat', 'fiber', 'kcal', 'kj',
+            'nutrition', 'protein', 'recipepublicid', 'salt', 'saturatedfat', 'soup',
+            'soupoverride', 'sugar'
         ]::text[])
         OR compact ~ '(price|prices|preis|preise|cost|costs|amount|amounts|kosten|betrag|rappen|currency|chf|fee|tarif|tariff|charge)'
     FROM (SELECT cafeteria.normalize_patient_key(k) AS compact) s;

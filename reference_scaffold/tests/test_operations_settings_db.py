@@ -757,9 +757,13 @@ def test_python_allowlist_mirrors_the_sql_patient_key_contract():
             encoding='utf-8'),
         '0029_v31_to_v32.sql': (ROOT / 'database' / 'migrations' / '0029_v31_to_v32.sql').read_text(
             encoding='utf-8'),
+        '0040_v42_to_v43.sql': (ROOT / 'database' / 'migrations' / '0040_v42_to_v43.sql').read_text(
+            encoding='utf-8'),
     }
     keys_by_source = {}
     for source, sql in sources.items():
+        if source == '0040_v42_to_v43.sql' and 'patient_key_is_forbidden' not in sql:
+            continue
         keys = _sql_allowed_keys(sql, source)
         assert len(keys) == len(set(keys)), f'{source}: doppelte Allowlist-Schlüssel.'
         keys_by_source[source] = set(keys)
@@ -770,7 +774,9 @@ def test_python_allowlist_mirrors_the_sql_patient_key_contract():
     assert keys_by_source['0017_v19_to_v20.sql'] | accompaniment_keys == (
         keys_by_source['0029_v31_to_v32.sql']
     )
+    course_keys = {'carbohydrates', 'dessert', 'dessertoverride', 'fat', 'fiber', 'kcal', 'kj', 'nutrition', 'protein', 'recipepublicid', 'salt', 'saturatedfat', 'soup', 'soupoverride', 'sugar'}
+    assert keys_by_source['0029_v31_to_v32.sql'] | course_keys == keys_by_source['0040_v42_to_v43.sql']
     current_keys = set(module.ALLOWED_PATIENT_COMPACT_KEYS)
-    assert keys_by_source['0029_v31_to_v32.sql'] == current_keys
+    assert keys_by_source['0040_v42_to_v43.sql'] == current_keys
     assert keys_by_source['schema.sql'] == current_keys
     assert {'areaname', 'servicestart', 'serviceend'} <= set(module.ALLOWED_PATIENT_COMPACT_KEYS)

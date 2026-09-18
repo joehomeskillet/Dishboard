@@ -66,4 +66,31 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON menu_service_courses, menu_item_course_e
 GRANT SELECT ON menu_service_courses, menu_item_course_exceptions TO cafeteria_backup;
 GRANT SELECT ON SEQUENCE menu_service_courses_id_seq, menu_item_course_exceptions_id_seq TO cafeteria_backup;
 
+CREATE OR REPLACE FUNCTION patient_key_is_forbidden(k text)
+RETURNS boolean
+LANGUAGE sql
+IMMUTABLE
+STRICT
+PARALLEL SAFE
+AS $$
+    SELECT compact = ''
+        OR compact <> ALL (ARRAY[
+            'channel', 'days', 'date', 'notice', 'services', 'mealcode', 'mealname',
+            'options', 'allergenreviewstatus', 'allergens', 'components', 'description',
+            'externalid', 'labels', 'note', 'origins', 'title', 'typecode', 'typename',
+            'code', 'name', 'presence', 'countrycode', 'ingredient', 'text', 'state',
+            'weekday', 'location', 'profilecode', 'revisionid', 'schemaversion',
+            'sharednote', 'weekend', 'weekstart', 'servicestate',
+            'servicestart', 'serviceend', 'areaname',
+            'accompanimentcode', 'accompanimentname',
+            'carbohydrates', 'dessert', 'dessertoverride', 'fat', 'fiber', 'kcal', 'kj',
+            'nutrition', 'protein', 'recipepublicid', 'salt', 'saturatedfat', 'soup',
+            'soupoverride', 'sugar'
+        ]::text[])
+        OR compact ~ '(price|prices|preis|preise|cost|costs|amount|amounts|kosten|betrag|rappen|currency|chf|fee|tarif|tariff|charge)'
+    FROM (SELECT cafeteria.normalize_patient_key(k) AS compact) s;
+$$;
+-- CREATE OR REPLACE setzt alle Eigenschaften ausser Owner und Rechten neu; die Haertung aus 0029 erneut binden.
+ALTER FUNCTION cafeteria.patient_key_is_forbidden(text) SET search_path = cafeteria, pg_temp;
+
 COMMIT;

@@ -430,6 +430,7 @@ GRANT EXECUTE ON FUNCTION cafeteria.lock_menu_recipe_sources_v31(bigint,bigint,b
 TO cafeteria_app;
 -- Menu proposal source locks schema31 grants end.
 
+GRANT SELECT ON menu_service_courses, menu_item_course_exceptions TO cafeteria_backup;
 GRANT SELECT ON SEQUENCE menu_service_courses_id_seq, menu_item_course_exceptions_id_seq
 TO cafeteria_backup;
 
