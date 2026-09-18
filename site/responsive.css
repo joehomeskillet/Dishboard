@@ -213,6 +213,17 @@ footer p {
     min-height: auto;
   }
 
+  .menu-board {
+    display: grid;
+    min-height: auto;
+  }
+
+  .menu-sheet {
+    position: static;
+    width: 100%;
+    transform: none;
+  }
+
   .signage-copy {
     position: static;
   }

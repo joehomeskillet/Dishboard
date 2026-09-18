@@ -80,7 +80,10 @@ def order_basket_create() -> WerkzeugResponse:
 @require_capability('draft.read')
 def order_basket(public_id: str) -> WerkzeugResponse:
     location = get_location(_db())
-    basket = get_basket(_db(), location, public_id)
+    try:
+        basket = get_basket(_db(), location, public_id)
+    except CalendarEventValidationError:
+        return ('', 404)
     preview = basket_csv_bytes(basket).decode('utf-8')
     return render_template(
         'admin/bestellung_korb.html', family='cafeteria', profile='staff_guest',
@@ -140,7 +143,10 @@ def order_basket_from_demand(public_id: str) -> WerkzeugResponse:
 @bp.get('/bestellung/korb/<public_id>/csv')
 @require_capability('draft.read')
 def order_basket_csv(public_id: str) -> Response:
-    basket = get_basket(_db(), get_location(_db()), public_id)
+    try:
+        basket = get_basket(_db(), get_location(_db()), public_id)
+    except CalendarEventValidationError:
+        return Response('', status=404)
     payload = basket_csv_bytes(basket)
     response = Response(payload, mimetype='text/csv; charset=utf-8')
     response.headers['Content-Disposition'] = 'attachment; filename="bestellvorschau.csv"'

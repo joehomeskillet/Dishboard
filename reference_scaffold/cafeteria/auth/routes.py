@@ -289,6 +289,18 @@ def frontchannel_logout():
     parameter_names = set(parameters)
     issuer_values = parameters.getlist('iss')
     sid_values = parameters.getlist('sid')
+    user = session.get('user')
+    local_session = isinstance(user, dict) and user.get('provider') == 'local'
+    if not parameter_names and not unexpected_parameters:
+        if local_session:
+            _clear_session_for_logout('auth.frontchannel.requested')
+        elif user:
+            response = current_app.make_response(('', 400))
+            response.headers['Cache-Control'] = 'no-store'
+            return response
+        response = current_app.make_response(('', 200))
+        response.headers['Cache-Control'] = 'no-store'
+        return response
     if (
         parameter_names != {'iss', 'sid'}
         or unexpected_parameters
@@ -304,7 +316,6 @@ def frontchannel_logout():
         return response
 
     expected_issuer = current_app.config.get('ENTRA_ISSUER', '')
-    user = session.get('user')
     stored_sid = user.get('sid') if isinstance(user, dict) and user.get('provider') == 'entra' else None
     if (
         expected_issuer
