@@ -273,10 +273,16 @@ def _invalid_action(case: dict):
 
 
 def _prepare_inventory_entities(application, database_engine, admin_user_id) -> dict:  # noqa: F811
+    from datetime import date
+
     from cafeteria import branding, dish_template_store, master_data_store, recipe_import_store, recipe_store
     from cafeteria import shopping_list_store
     from cafeteria.auth.local_users import ActorExpectation, create_local_user
+    from cafeteria.calendar_event_store import EventScope, create_event
     from cafeteria.component_catalog_store import create_component
+    from cafeteria.order_basket_store import create_basket
+    from cafeteria.shopping_list_reads import ShoppingScope
+    from cafeteria.supplier_store import create_supplier
     from test_recipe_import_batch_db import make_payload
 
     data = _fixture_descriptor()
@@ -310,6 +316,14 @@ def _prepare_inventory_entities(application, database_engine, admin_user_id) -> 
                              display_name=local['display_name'], roles=tuple(local['roles']),
                              password=secrets.token_urlsafe(32))
     brand = branding.change_branding(database_engine, admin_user_id, version, 0, **data['branding'])
+    shopping_scope = ShoppingScope(admin_user_id, scope.location_id, version)
+    event_scope = EventScope(admin_user_id, scope.location_id, version)
+    supplier = create_supplier(database_engine, actor, {'code': 'INV', 'name': 'Inventar-Lieferant'})
+    basket_id = create_basket(database_engine, shopping_scope, supplier.public_id)
+    event_id = create_event(
+        database_engine, event_scope, event_date=date(2026, 9, 6),
+        title='Inventar-Anlass', profile_scope='both',
+    )
     recipe = f'/admin/rezepte/{recipe_id}'
     paths = {
         'admin.dish_template_edit': f"/admin/gerichtvorlagen/{template['public_id']}",
@@ -340,12 +354,21 @@ def _prepare_inventory_entities(application, database_engine, admin_user_id) -> 
         'admin.recipe_revision': f'{recipe}/revisionen/{revision_id}',
         'admin.screen_template_assignment': '/admin/screens/cafeteria/wochenvorlage',
         'admin.screen_template_preview': f"/admin/vorlagen/screens/cafeteria/{data['screen_template']}",
+        'admin.cost_home': '/admin/kalkulation',
+        'admin.inventory_home': '/admin/lager',
+        'admin.kitchen_calendar': '/admin/kuechenkalender',
+        'admin.kitchen_event_new': '/admin/kuechenkalender/anlass',
+        'admin.kitchen_event_edit': f'/admin/kuechenkalender/anlass/{event_id}',
+        'admin.order_home': '/admin/bestellung',
+        'admin.order_basket': f'/admin/bestellung/korb/{basket_id}',
+        'admin.order_basket_csv': f'/admin/bestellung/korb/{basket_id}/csv',
     }
     cases = _invalid_cases(recipe)
     # The recorder captures the menu editor itself (all five viewports); listing it again
     # would overwrite the same screenshot file with a duplicate manifest row.
     return {'endpoint_paths': paths,
-            'extra_admin_paths': [path for key, path in paths.items() if key != 'admin.menu_get'],
+            'extra_admin_paths': [path for key, path in paths.items()
+                                  if key not in {'admin.menu_get', 'admin.order_basket_csv'}],
             'reference_paths': [paths['admin.recipe_revision']], 'invalid_cases': cases,
             'state_captures': [(case['path'], 'invalid', _invalid_action(case)) for case in cases]}
 
@@ -451,6 +474,7 @@ def test_matrix_roles_match_server_side_authorization(monkeypatch, tmp_path, dat
     prepared = _prepare_inventory_entities(application, database_engine, user_id)
     adapter = application.url_map.bind('localhost')
     paths = set(prepared['extra_admin_paths'])
+    paths.add(prepared['endpoint_paths']['admin.order_basket_csv'])
     for rule in application.url_map.iter_rules():
         if rule.endpoint.startswith('admin.') and 'GET' in rule.methods and rule.arguments <= {'family'}:
             paths.update(adapter.build(rule.endpoint, {'family': family} if rule.arguments else {})

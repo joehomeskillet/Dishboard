@@ -123,7 +123,9 @@ def test_schema29_migration_preserves_legacy_rights_expiry_and_authentication(da
     with owner.begin() as connection:
         connection.execute(text('DROP SCHEMA cafeteria CASCADE'))
     with monkeypatch.context() as patch:
-        patch.setattr(database, 'MIGRATION_FILES', database.MIGRATION_FILES[:-1])
+        patch.setattr(database, 'MIGRATION_FILES', tuple(
+            item for item in database.MIGRATION_FILES if item[0] < 30
+        ))
         database.run_migrations(owner, ROOT / 'database/schema.sql')
     database._execute_script(owner, str(ROOT / 'database/seed.sql'))
     actor = _create_user(owner, suffix='905', roles=['Cafeteria.Admin'])

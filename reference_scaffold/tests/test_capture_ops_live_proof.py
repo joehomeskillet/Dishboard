@@ -234,7 +234,7 @@ def test_ops_dom_audit_on_actual_operations_template_without_network(browser, wi
     env = Environment(loader=ChoiceLoader([
         DictLoader({
             'admin/base_tabler.html': '{% block content %}{% endblock %}',
-            'admin/_macros.html': '{% macro icon(name) %}{% endmacro %}'
+            'admin/_macros.html': '{% macro icon(name, class="", label=none) %}{% endmacro %}'
                                  '{% macro page_header(a,b) %}{% endmacro %}'
                                  '{% macro flash_region(a) %}{% endmacro %}',
         }), FileSystemLoader(ROOT / 'reference_scaffold/cafeteria/templates'),
@@ -243,6 +243,10 @@ def test_ops_dom_audit_on_actual_operations_template_without_network(browser, wi
         url_for=lambda *_args, **_kwargs: tool.OPS_PATH, get_flashed_messages=lambda: [],
         errors={}, values={}, preview=False, exceptions=[], timezone='Europe/Zurich',
         today=date(2026, 9, 7), csrf='synthetic', schedule_csrf={'patient': 'synthetic', 'staff_guest': 'synthetic'},
+        operations_csrf={
+            profile: {action: 'synthetic' for action in ('save_name', 'save_weekend', 'load_exception', 'save_exception')}
+            for profile in ('patient', 'staff_guest')
+        },
         area_names={'patient': 'Stationen', 'staff_guest': 'Restaurant'},
         schedules={profile: default_schedule(profile) for profile in ('patient', 'staff_guest')},
         day_names=('Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'),

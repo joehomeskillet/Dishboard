@@ -31,7 +31,7 @@ OPS_AUDIT = """() => {
         weekend_switch: one('#weekend-form .form-switch input#allows_weekend[type="checkbox"]'),
         exception_loader: ['profile', 'date', 'meal'].every(name =>
             one(`#exception-load [name="${name}"]`)),
-        exceptions_section: [...document.querySelectorAll('h2')].some(element =>
+        exceptions_section: [...document.querySelectorAll('.card-title, h2')].some(element =>
             element.textContent.trim() === 'Gespeicherte Ausnahmen'),
         active_navigation: one('a[href="/admin/bereiche-zeiten"][aria-current="page"]')
     };

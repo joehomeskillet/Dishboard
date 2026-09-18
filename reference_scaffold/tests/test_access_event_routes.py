@@ -173,23 +173,36 @@ def test_logout_rejects_real_old_cookie_even_if_audit_fails(auth_app, frontchann
             statement = ('UPDATE cafeteria.users SET authz_version=authz_version+1 WHERE id=:id' if condition == 'stale'
                          else 'UPDATE cafeteria.users SET disabled_at=clock_timestamp() WHERE id=:id')
             connection.execute(text(statement), {'id': actor})
-    response = client.get('/auth/frontchannel-logout') if frontchannel else client.post('/auth/logout', data={'_csrf': csrf})
-    assert response.status_code == (200 if frontchannel else 302)
+    if frontchannel:
+        # Hardened contract (1726aee, ce4852e): parameterless front-channel logout
+        # must not revoke local sessions; see test_auth_frontchannel_logout.py for Entra positives.
+        response = client.get('/auth/frontchannel-logout')
+        assert response.status_code == 400
+        assert app.session_interface.client.exists(app.session_interface.key_prefix + sid)
+        with client.session_transaction() as session:
+            assert 'user' in session
+        recorded = events(owner)
+        assert len(recorded) == 1
+        assert recorded[0].action == 'auth.login.accepted'
+        assert all(event.action != 'auth.frontchannel.requested' for event in recorded)
+        assert client.get('/auth/frontchannel-logout').status_code == 400
+        assert events(owner) == recorded
+        return
+
+    response = client.post('/auth/logout', data={'_csrf': csrf})
+    assert response.status_code == 302
     assert not app.session_interface.client.exists(app.session_interface.key_prefix + sid)
     replay = app.test_client(use_cookies=False).get('/admin/cafeteria', headers={'Cookie': f'{cookie_name}={cookie}'})
     assert replay.status_code == 401
     recorded = events(owner)
     assert len(recorded) == (1 if condition == 'audit_outage' else 2)
     if condition != 'audit_outage':
-        assert recorded[-1].action == ('auth.frontchannel.requested' if frontchannel else 'auth.logout.requested')
+        assert recorded[-1].action == 'auth.logout.requested'
         assert recorded[-1].actor_user_id == (actor if condition == 'normal' else None)
-    if frontchannel:
-        assert client.get('/auth/frontchannel-logout').status_code == 200
-    else:
-        client.get('/auth/local')
-        with client.session_transaction() as session:
-            csrf = session['_csrf_token']
-        assert client.post('/auth/logout', data={'_csrf': csrf}).status_code == 302
+    client.get('/auth/local')
+    with client.session_transaction() as session:
+        csrf = session['_csrf_token']
+    assert client.post('/auth/logout', data={'_csrf': csrf}).status_code == 302
     assert events(owner) == recorded
 
 
