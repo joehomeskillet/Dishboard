@@ -43,7 +43,7 @@ def _identities(engine):
 
 def test_v18_upgrade_preserves_every_identity_field_and_matches_fresh_schema(pg16):  # noqa: F811
     plan = database.migration_plan(SCHEMA)
-    assert [entry.version for entry in plan] == list(range(4, 35))
+    assert [entry.version for entry in plan] == list(range(4, database.SCHEMA_VERSION + 1))
     historical = [migration for migration in plan if migration.version <= 18]
     assert historical[-1].version == 18
     for migration in historical:

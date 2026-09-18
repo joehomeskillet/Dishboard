@@ -12,13 +12,19 @@ from test_rec_import_commit_migration_db import rows_and_sequences
 
 def test_plan_ends_at_schema_37() -> None:
     plan = database.migration_plan(SCHEMA)
-    assert database.SCHEMA_VERSION == 37
-    assert (plan[-1].version, plan[-1].path.name) == (37, '0034_v36_to_v37.sql')
+    assert database.SCHEMA_VERSION >= 37
+    v37 = next(m for m in plan if m.version == 37)
+    assert v37.path.name == '0034_v36_to_v37.sql'
 
 
-def test_v36_upgrade_adds_event_demand_table(pg16):  # noqa: F811
+def test_v36_upgrade_adds_event_demand_table(pg16, monkeypatch):  # noqa: F811
+    monkeypatch.setattr(
+        database,
+        'MIGRATION_FILES',
+        tuple(entry for entry in database.MIGRATION_FILES if entry[0] <= 37),
+    )
     plan = database.migration_plan(SCHEMA)
-    for migration in plan:
+    for migration in plan[:-1]:
         if migration.version <= 36:
             database._execute_migration(pg16, migration)
     database._execute_script(pg16, str(SCHEMA.parent / 'seed.sql'))

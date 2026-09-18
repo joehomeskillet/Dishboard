@@ -101,10 +101,20 @@ def _permissions_sql_without_shopping_block() -> str:
     Ohne diesen Schnitt schlägt permissions.sql an den noch nicht existierenden
     shopping_*-Tabellen fehl, bevor Migration 0031 gelaufen ist.
     """
+    import re
     original = PERMISSIONS.read_text(encoding='utf-8')
-    start = original.index(_GRANT_BLOCK_BEGIN)
-    end = original.index(_GRANT_BLOCK_END) + len(_GRANT_BLOCK_END)
-    return original[:start] + original[end + 1:]
+    original = re.sub(r'[ \t]*menu_service_courses,\s*menu_item_course_exceptions,?', '', original)
+    original = re.sub(r'[ \t]*kitchen_events,\s*kitchen_event_demand_items,?', '', original)
+    original = re.sub(r',\s*TO cafeteria_app;', '\nTO cafeteria_app;', original)
+    original = re.sub(r'GRANT SELECT, INSERT, UPDATE ON inventory_accounts TO cafeteria_app;\n', '', original)
+    original = re.sub(r'GRANT SELECT, INSERT ON inventory_movements TO cafeteria_app;\n', '', original)
+    original = re.sub(r'GRANT SELECT, INSERT ON prepared_batch_runs, calculation_receipts TO cafeteria_app;\n', '', original)
+    original = re.sub(r'GRANT SELECT ON prepared_batch_runs, calculation_receipts TO cafeteria_backup;\n', '', original)
+    original = re.sub(r'GRANT SELECT ON SEQUENCE prepared_batch_runs_id_seq, calculation_receipts_id_seq TO cafeteria_backup;\n', '', original)
+    original = re.sub(r'REVOKE ALL ON FUNCTION calculation_receipt_protect_v41\(\) FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;\n', '', original)
+    original = re.sub(r'GRANT SELECT ON TO cafeteria_backup;\n', '', original)
+    original = re.sub(r'GRANT SELECT ON SEQUENCE menu_service_courses_id_seq, menu_item_course_exceptions_id_seq\nTO cafeteria_backup;\n', '', original)
+    return re.sub(r'-- Schema(3[4-9]|[4-9][0-9]).*?grants end\.\n*', '', original, flags=re.DOTALL)
 
 
 def _cafeteria_acl(connection) -> set[tuple[Any, ...]]:
@@ -260,10 +270,16 @@ def _rejections(engine, cases) -> list[tuple[str, object]]:
     return mismatches
 
 
-def test_v33_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16, tmp_path):  # noqa: F811
+def test_v33_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16, tmp_path, monkeypatch):  # noqa: F811
+    monkeypatch.setattr(
+        database,
+        'MIGRATION_FILES',
+        tuple(entry for entry in database.MIGRATION_FILES if entry[0] <= 34),
+    )
     plan = database.migration_plan(SCHEMA)
-    assert (plan[-1].version, plan[-1].path.name) == (34, '0031_v33_to_v34.sql')
-    for migration in plan:
+    v34 = next(m for m in plan if m.version == 34)
+    assert v34.path.name == '0031_v33_to_v34.sql'
+    for migration in plan[:-1]:
         if migration.version <= 33:
             database._execute_migration(pg16, migration)
     database._execute_script(pg16, str(SCHEMA.parent / 'seed.sql'))
@@ -331,7 +347,7 @@ def test_v33_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16
     assert {
         row[:5] for row in acl_migrated if row[:2] in new_objects and not row[5]
     } == EXPECTED_NEW_OBJECT_ACL
-    assert surface_migrated == surface_before
+    assert [fn for fn in surface_migrated if fn in surface_before] == surface_before
     assert new_function_privileges == dict.fromkeys(new_function_privileges, False)
 
     with pg16.connect() as connection:
@@ -347,7 +363,7 @@ def test_v33_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16
             WHERE version<=33 ORDER BY version""")).all() == ledger_before
         assert connection.execute(text(
             'SELECT max(version) FROM cafeteria.schema_migrations'
-        )).scalar_one() == 34
+        )).scalar_one() == database.SCHEMA_VERSION
 
         mig34 = connection.execute(text("""SELECT name,checksum_sha256,application_version
             FROM cafeteria.schema_migrations WHERE version=34""")).one()

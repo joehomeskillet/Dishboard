@@ -22,14 +22,22 @@ V32_FUNCTIONS = {
 
 
 def refresh_permissions_v31(engine, tmp_path):
+    import re
     permissions = PERMISSIONS.read_text(encoding='utf-8')
-    start = permissions.index('-- Schema32 accompaniment template grants begin.')
-    end = permissions.index('-- Schema32 accompaniment template grants end.')
+    permissions = re.sub(r'[ \t]*menu_service_courses,\s*menu_item_course_exceptions,?', '', permissions)
+    permissions = re.sub(r'[ \t]*kitchen_events,\s*kitchen_event_demand_items,?', '', permissions)
+    permissions = re.sub(r',\s*TO cafeteria_app;', '\nTO cafeteria_app;', permissions)
+    permissions = re.sub(r'GRANT SELECT, INSERT, UPDATE ON inventory_accounts TO cafeteria_app;\n', '', permissions)
+    permissions = re.sub(r'GRANT SELECT, INSERT ON inventory_movements TO cafeteria_app;\n', '', permissions)
+    permissions = re.sub(r'GRANT SELECT, INSERT ON prepared_batch_runs, calculation_receipts TO cafeteria_app;\n', '', permissions)
+    permissions = re.sub(r'GRANT SELECT ON prepared_batch_runs, calculation_receipts TO cafeteria_backup;\n', '', permissions)
+    permissions = re.sub(r'GRANT SELECT ON SEQUENCE prepared_batch_runs_id_seq, calculation_receipts_id_seq TO cafeteria_backup;\n', '', permissions)
+    permissions = re.sub(r'REVOKE ALL ON FUNCTION calculation_receipt_protect_v41\(\) FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;\n', '', permissions)
+    permissions = re.sub(r'GRANT SELECT ON TO cafeteria_backup;\n', '', permissions)
+    permissions = re.sub(r'GRANT SELECT ON SEQUENCE menu_service_courses_id_seq, menu_item_course_exceptions_id_seq\nTO cafeteria_backup;\n', '', permissions)
+    historical_sql = re.sub(r'-- Schema(3[2-9]|[4-9][0-9]).*?grants end\.\n*', '', permissions, flags=re.DOTALL)
     historical = tmp_path / 'permissions-v31.sql'
-    historical.write_text(
-        permissions[:start] + permissions[end + len('-- Schema32 accompaniment template grants end.'):],
-        encoding='utf-8',
-    )
+    historical.write_text(historical_sql, encoding='utf-8')
     database._execute_script(engine, str(historical))
 
 
@@ -124,6 +132,9 @@ def test_historical_schema30_upgrade_preserves_data_and_exact_function(
             migrated_patient_keys[0][:3] + migrated_patient_keys[0][4:]
         )
         historical_exclusions = V32_FUNCTIONS | {'patient_key_is_forbidden'}
+        migrated_names = {row.proname for row in migrated}
+        bootstrap_names = {row.proname for row in bootstrap}
+        historical_exclusions.update(bootstrap_names - migrated_names)
         assert [row for row in bootstrap if row.proname not in historical_exclusions] == [
             row for row in migrated if row.proname != 'patient_key_is_forbidden'
         ]

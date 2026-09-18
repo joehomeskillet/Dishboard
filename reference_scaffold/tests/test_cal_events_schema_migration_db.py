@@ -17,17 +17,23 @@ SCHEMA = ROOT / 'database' / 'schema.sql'
 
 def test_plan_ends_at_schema_35() -> None:
     plan = database.migration_plan(SCHEMA)
-    assert database.SCHEMA_VERSION == 35
-    assert (plan[-1].version, plan[-1].path.name) == (35, '0032_v34_to_v35.sql')
+    assert database.SCHEMA_VERSION >= 35
+    v35 = next(m for m in plan if m.version == 35)
+    assert v35.path.name == '0032_v34_to_v35.sql'
     expected = hashlib.sha256(
         (SCHEMA.parent / 'migrations' / '0032_v34_to_v35.sql').read_bytes()
     ).hexdigest()
     assert expected == '6eeec799dad37cb60bc54cdaf691c5abd0c451244e4b4931fe34ea3ee359ca41'
 
 
-def test_v34_upgrade_adds_kitchen_events_without_touching_weeks(pg16):  # noqa: F811
+def test_v34_upgrade_adds_kitchen_events_without_touching_weeks(pg16, monkeypatch):  # noqa: F811
+    monkeypatch.setattr(
+        database,
+        'MIGRATION_FILES',
+        tuple(entry for entry in database.MIGRATION_FILES if entry[0] <= 35),
+    )
     plan = database.migration_plan(SCHEMA)
-    for migration in plan:
+    for migration in plan[:-1]:
         if migration.version <= 34:
             database._execute_migration(pg16, migration)
     database._execute_script(pg16, str(SCHEMA.parent / 'seed.sql'))
