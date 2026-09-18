@@ -727,7 +727,9 @@ def run_live_check() -> dict[str, Any]:
                         SELECT key, cafeteria.patient_key_is_forbidden(key)
                         FROM (VALUES
                             ('accompaniment_code'), ('accompaniment_name'),
-                            ('accompaniment_price'), ('accompanimentkosten'), ('rappen')
+                            ('accompaniment_price'), ('accompanimentkosten'), ('rappen'),
+                            ('soup'), ('dessert'), ('soupoverride'), ('dessertoverride'),
+                            ('recipepublicid'), ('nutrition'), ('fat'), ('salt'), ('kj')
                         ) AS keys(key)
                         '''
                     )
@@ -906,6 +908,15 @@ def run_live_check() -> dict[str, Any]:
             'accompaniment_price': True,
             'accompanimentkosten': True,
             'rappen': True,
+            'soup': False,
+            'dessert': False,
+            'soupoverride': False,
+            'dessertoverride': False,
+            'recipepublicid': False,
+            'nutrition': False,
+            'fat': False,
+            'salt': False,
+            'kj': False,
         }:
             fail('Live-Patientenschlüsselvertrag für Beilagen ist ungültig.')
         if target_columns != [

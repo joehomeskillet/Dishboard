@@ -1,6 +1,7 @@
 """Shared soup/dessert persist, resolve, copy independence, CSV restore."""
 from __future__ import annotations
 
+import logging
 import secrets
 from datetime import timedelta
 
@@ -383,10 +384,19 @@ def test_snapshot_course_passes_allergens() -> None:
 
 
 
-def test_defektes_snapshot_json_loggt(app, caplog) -> None:
+def test_defektes_snapshot_json_loggt(caplog) -> None:
     from cafeteria.course_store import _flags_from_snapshot
-    with app.app_context():
-        caplog.clear()
-        res = _flags_from_snapshot("{defekt", {"recipe_public_id": "1234"})
-        assert res == {'allergens': None, 'labels': None, 'nutrition': None}
-        assert "Defektes Snapshot-JSON für Rezept/Revision 1234" in caplog.text
+
+    caplog.set_level(logging.WARNING, logger='cafeteria.course_store')
+    res = _flags_from_snapshot('{defekt', {'recipe_public_id': '1234'})
+    assert res == {'allergens': None, 'labels': None, 'nutrition': None}
+    assert 'Defektes Snapshot-JSON für Rezept/Revision 1234' in caplog.text
+
+
+def test_defektes_snapshot_json_loggt_ohne_app_kontext(caplog) -> None:
+    from cafeteria.course_store import _flags_from_snapshot
+
+    caplog.set_level(logging.WARNING, logger='cafeteria.course_store')
+    res = _flags_from_snapshot('{defekt', {'recipe_public_id': '5678'})
+    assert res == {'allergens': None, 'labels': None, 'nutrition': None}
+    assert 'Defektes Snapshot-JSON für Rezept/Revision 5678' in caplog.text
