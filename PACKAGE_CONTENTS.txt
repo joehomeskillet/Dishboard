@@ -1222,7 +1222,10 @@ reference_scaffold/tests/test_branding_logo_browser.py
 reference_scaffold/tests/test_branding_migration_db.py
 reference_scaffold/tests/test_branding_routes.py
 reference_scaffold/tests/test_branding_store.py
+reference_scaffold/tests/test_cal_event_demand_migration_db.py
+reference_scaffold/tests/test_cal_events_schema_migration_db.py
 reference_scaffold/tests/test_calc_patient_guard.py
+reference_scaffold/tests/test_calc_price_ledger_migration_db.py
 reference_scaffold/tests/test_calendar_month.py
 reference_scaffold/tests/test_calendar_nav.py
 reference_scaffold/tests/test_capability_restore_canonical_live.py
@@ -1282,6 +1285,7 @@ reference_scaffold/tests/test_food_symbol_assets.py
 reference_scaffold/tests/test_food_symbols.py
 reference_scaffold/tests/test_github_pages.py
 reference_scaffold/tests/test_inv_calc_3738_migration_db.py
+reference_scaffold/tests/test_inv_schema_migration_db.py
 reference_scaffold/tests/test_local_user_management_cli.py
 reference_scaffold/tests/test_local_user_management_db.py
 reference_scaffold/tests/test_local_user_management_migration_db.py
@@ -1328,6 +1332,7 @@ reference_scaffold/tests/test_operations_actor_race_db.py
 reference_scaffold/tests/test_operations_scoped_csrf.py
 reference_scaffold/tests/test_operations_settings_db.py
 reference_scaffold/tests/test_operations_weekend_db.py
+reference_scaffold/tests/test_ord_schema_migration_db.py
 reference_scaffold/tests/test_patient_preview_access.py
 reference_scaffold/tests/test_prepared_food_closure_db.py
 reference_scaffold/tests/test_prepared_food_db.py
