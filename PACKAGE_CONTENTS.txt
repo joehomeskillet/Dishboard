@@ -571,6 +571,7 @@ reference_scaffold/cafeteria/admin/master_data_routes.py
 reference_scaffold/cafeteria/admin/menu_collection_routes.py
 reference_scaffold/cafeteria/admin/menu_collection_store.py
 reference_scaffold/cafeteria/admin/operations_routes.py
+reference_scaffold/cafeteria/admin/order_routes.py
 reference_scaffold/cafeteria/admin/output_routes.py
 reference_scaffold/cafeteria/admin/print_routes.py
 reference_scaffold/cafeteria/admin/print_template_routes.py
