@@ -16,6 +16,7 @@ from cafeteria.admin import routes as admin_routes  # noqa: E402
 from cafeteria.api import routes as api_routes  # noqa: E402
 from cafeteria.auth.service import AuthorizationState  # noqa: E402
 from cafeteria.db import validate_snapshot_payload  # noqa: E402
+from cafeteria.patient_payload import patient_text_is_forbidden  # noqa: E402
 from cafeteria.public import routes as public_routes  # noqa: E402
 from cafeteria import roles as role_module  # noqa: E402
 from cafeteria.signage import routes as signage_routes  # noqa: E402
@@ -46,6 +47,45 @@ HOMOGLYPH_KEY_PROBES = (
     pytest.param('C\ua730H', '12.50', id='ipa-smallcap-f-chf-key'),
     pytest.param('Gesamtbetr\u0251g', 1250, id='ipa-alpha-gesamtbetrag-key'),
     pytest.param('Fr\u0251nken', 1250, id='ipa-alpha-franken-key'),
+)
+
+KITCHEN_COMPOUND_CHF_ALLOWED = (
+    pytest.param('milchfrei', id='milchfrei'),
+    pytest.param('Fischfilet', id='fischfilet'),
+    pytest.param('Frischfisch', id='frischfisch'),
+    pytest.param('Rauchfisch', id='rauchfisch'),
+    pytest.param('Fleischfond', id='fleischfond'),
+    pytest.param('Knoblauchfrei', id='knoblauchfrei'),
+    pytest.param('Milchfett', id='milchfett'),
+    pytest.param('Fischfrikadelle', id='fischfrikadelle'),
+    pytest.param('Kalbfleischfrikassee', id='kalbfleischfrikassee'),
+    pytest.param('Kaffee', id='kaffee'),
+    pytest.param('Rohkost', id='rohkost'),
+    pytest.param('Vollkost', id='vollkost'),
+    pytest.param('Preiselbeeren', id='preiselbeeren'),
+    pytest.param('Laktosefreiheit', id='laktosefreiheit'),
+    pytest.param(
+        'Kokos im Namen belegt keine Milchfreiheit.',
+        id='milchfreiheit-sentence',
+    ),
+    pytest.param('Hirschfilet', id='hirschfilet'),
+    pytest.param('Lauchfond', id='lauchfond'),
+    pytest.param('Buchfink', id='buchfink'),
+)
+
+CURRENCY_CHF_STILL_FORBIDDEN = (
+    pytest.param('CHF', id='upper-chf'),
+    pytest.param('chf', id='lower-chf'),
+    pytest.param('C H F', id='spaced-chf'),
+    pytest.param('c.h.f.', id='dotted-chf'),
+    pytest.param('Betrag CHF', id='betrag-chf'),
+    pytest.param('sFr', id='sfr'),
+    pytest.param('Kostenlos', id='kostenlos'),
+    pytest.param('Inklusive Salat', id='inklusive-salat'),
+    pytest.param('Berechnung', id='berechnung'),
+    pytest.param('Charge', id='charge'),
+    pytest.param('Preis', id='preis'),
+    pytest.param('12 CHF', id='amount-chf'),
 )
 
 SAFE_MENU_PROBES = (
@@ -214,6 +254,16 @@ def assert_channel_rejects(app: Flask, monkeypatch: pytest.MonkeyPatch, path: st
         body,
         re.I,
     ) is None
+
+
+@pytest.mark.parametrize('value', KITCHEN_COMPOUND_CHF_ALLOWED)
+def test_patient_text_allows_kitchen_compounds_with_chf_junction(value: str) -> None:
+    assert patient_text_is_forbidden(value) is False
+
+
+@pytest.mark.parametrize('value', CURRENCY_CHF_STILL_FORBIDDEN)
+def test_patient_text_still_forbids_currency_and_cost_terms(value: str) -> None:
+    assert patient_text_is_forbidden(value) is True
 
 
 @pytest.mark.parametrize(('field', 'value'), HOMOGLYPH_VALUE_PROBES)
