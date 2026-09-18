@@ -1252,6 +1252,7 @@ reference_scaffold/tests/test_cookbook_routes.py
 reference_scaffold/tests/test_cookbooks_browser.py
 reference_scaffold/tests/test_cost_calc.py
 reference_scaffold/tests/test_country_select_template.py
+reference_scaffold/tests/test_course_browser.py
 reference_scaffold/tests/test_course_html_captures.py
 reference_scaffold/tests/test_course_store_db.py
 reference_scaffold/tests/test_course_week_html.py
