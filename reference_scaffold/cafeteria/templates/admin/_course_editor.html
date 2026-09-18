@@ -26,7 +26,8 @@
 {% endmacro %}
 <details class="admin-week-course-editor" id="{{ form_id }}"{% if course_open %} open{% endif %}>
   <summary>Gänge planen</summary>
-  <form method="post" action="/admin/{{ family }}/courses" class="card card-sm mb-3">
+  {% include 'admin/_course_recipe_search.html' %}
+  <form method="post" action="/admin/{{ family }}/courses" class="card card-sm mb-0">
     <div class="card-body">
       <input type="hidden" name="_csrf" value="{{ week_csrf }}">
       <input type="hidden" name="week" value="{{ week_value }}">

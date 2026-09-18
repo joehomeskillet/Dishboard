@@ -205,31 +205,53 @@
   margin: 0;
   font-size: var(--app-font-size-title);
 }
-.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-card-head {
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-meal-stack {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--app-space-2);
+  flex-direction: column;
+  gap: var(--app-space-1);
+  min-width: 0;
 }
-.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-thumb img {
-  width: 72px;
-  height: 64px;
-  max-height: 72px;
-  object-fit: cover;
-  border-radius: var(--app-radius-control);
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-meal-stack > .admin-week-service {
+  order: 1;
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-meal-stack > .admin-week-course[data-course="soup"] {
+  order: 2;
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-meal-stack > .admin-menu-options {
+  order: 3;
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-meal-stack > .admin-week-course[data-course="dessert"] {
+  order: 4;
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course {
+  margin: 0;
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--app-space-1) var(--app-space-2);
+  margin: 0;
+  font-size: var(--app-font-size-label);
+  line-height: 1.35;
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course-editor {
+  margin: 0;
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course-editor > summary {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--app-space-2);
-  margin: var(--app-space-2) 0;
+  min-height: 48px;
+  cursor: pointer;
+  list-style: none;
 }
-.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course .btn,
-.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course-editor summary,
-.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course-editor .btn,
-.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course-editor .form-select {
-  min-height: var(--app-control-min-height);
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course-editor > summary::-webkit-details-marker {
+  display: none;
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course-editor .admin-week-course-search {
+  margin-bottom: var(--app-space-2);
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course-exception {
   margin: 0;
@@ -367,7 +389,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-.dishboard-admin .admin-main[data-layout="workspace"] :is(.admin-week-controls, .admin-overview-form, .menu-slot, .patient-admin-day, .admin-week-settings, .admin-week-service)
+.dishboard-admin .admin-main[data-layout="workspace"] :is(.admin-week-controls, .admin-overview-form, .menu-slot, .patient-admin-day, .admin-week-settings, .admin-week-service, .admin-week-course-editor)
   :is(a, button, input, select, textarea, summary) {
   scroll-margin-top: 8rem;
 }
@@ -380,7 +402,7 @@
   .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-controls {
     position: static;
   }
-  .dishboard-admin .admin-main[data-layout="workspace"] :is(.admin-week-controls, .admin-overview-form, .menu-slot, .patient-admin-day, .admin-week-settings, .admin-week-service)
+  .dishboard-admin .admin-main[data-layout="workspace"] :is(.admin-week-controls, .admin-overview-form, .menu-slot, .patient-admin-day, .admin-week-settings, .admin-week-service, .admin-week-course-editor)
     :is(a, button, input, select, textarea, summary) {
     scroll-margin-top: var(--app-space-6);
   }

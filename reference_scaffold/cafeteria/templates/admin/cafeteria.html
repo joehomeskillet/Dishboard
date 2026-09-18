@@ -46,7 +46,6 @@
 {% endif %}
 
 {% include 'admin/_week_controls.html' %}
-{% include 'admin/_course_recipe_search.html' %}
 {% include 'admin/_week_settings.html' %}
 
 {% if status == 'empty' %}
@@ -73,22 +72,22 @@
     </div>
     <div class="card-body">
       {% with meal_code='LUNCH', meal_label='Mittag', meal_cell=day_row, day_iso=day, service_index=loop.index0 %}
-      {% include 'admin/_week_service.html' %}
       {% set shared = day_row.shared_courses|default({}) %}
       {% set exceptions = day_row.meal_exceptions|default({}) %}
-      {% with kind='soup' %}{% include 'admin/_course_line.html' %}{% endwith %}
-      {% include 'admin/_course_editor.html' %}
-      {% endwith %}
-      <div class="row g-3 admin-menu-options">
-        {% for cell in grouped %}
-        {% if cell.title %}{% set declarations.options = declarations.options + [cell] %}{% endif %}
-        {% with show_prices=true %}
-        {% include 'admin/_week_menu_card.html' %}
-        {% endwith %}
-        {% endfor %}
+      <div class="admin-week-meal-stack">
+        {% include 'admin/_week_service.html' %}
+        <div class="row g-3 admin-menu-options">
+          {% for cell in grouped %}
+          {% if cell.title %}{% set declarations.options = declarations.options + [cell] %}{% endif %}
+          {% with show_prices=true %}
+          {% include 'admin/_week_menu_card.html' %}
+          {% endwith %}
+          {% endfor %}
+        </div>
+        {% with kind='soup' %}{% include 'admin/_course_line.html' %}{% endwith %}
+        {% with kind='dessert' %}{% include 'admin/_course_line.html' %}{% endwith %}
       </div>
-      {% with meal_code='LUNCH', meal_label='Mittag', meal_cell=day_row, day_iso=day, shared=day_row.shared_courses|default({}), exceptions=day_row.meal_exceptions|default({}) %}
-      {% with kind='dessert' %}{% include 'admin/_course_line.html' %}{% endwith %}
+      {% include 'admin/_course_editor.html' %}
       {% endwith %}
     </div>
   </article>

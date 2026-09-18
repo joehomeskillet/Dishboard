@@ -5,20 +5,21 @@
 {% set course = shared.get(kind, {'state': 'unplanned'}) %}
 {% set form_id = 'course-' ~ day_iso ~ '-' ~ meal_code %}
 <div class="admin-week-course" data-course="{{ kind }}">
-  {% if course.state == 'planned' %}
-  <span>{{ labels[kind] }}: {{ course.title }} · Für alle Menüs</span>
-  {% if not course.allergens %}
-  <span class="badge bg-yellow-lt text-warning">Allergenangaben fehlen</span>
-  {% endif %}
-  {% if course.labels %}
-  <span class="text-secondary">{{ course.labels|join(', ') }}</span>
-  {% endif %}
-  {% elif course.state == 'not_offered' %}
-  <span>{{ none_labels[kind] }}</span>
-  {% else %}
-  <span>{{ empty_labels[kind] }}</span>
-  {% endif %}
-  <a class="btn" href="#{{ form_id }}">{{ icon('pencil') }}{% if course.state == 'unplanned' %}{{ labels[kind] }} planen{% else %}{{ labels[kind] }} bearbeiten{% endif %}</a>
+  <p class="admin-week-course-line mb-0">
+    {% if course.state == 'planned' %}
+    <span>{{ labels[kind] }}: {{ course.title }} · Für alle Menüs</span>
+    {% if not course.allergens %}
+    <span class="badge bg-yellow-lt text-warning">Allergenangaben fehlen</span>
+    {% endif %}
+    {% if course.labels %}
+    <span class="text-secondary">{{ course.labels|join(', ') }}</span>
+    {% endif %}
+    {% elif course.state == 'not_offered' %}
+    <span>{{ none_labels[kind] }}</span>
+    {% else %}
+    <span>{{ empty_labels[kind] }}</span>
+    {% endif %}
+  </p>
 </div>
 {% for option_code, option_exc in exceptions.items() %}
   {% set override = option_exc.get(kind) %}
