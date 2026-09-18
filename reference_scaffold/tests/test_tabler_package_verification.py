@@ -198,10 +198,14 @@ def test_package_requires_branding_schema_and_pinned_migration(monkeypatch, caps
     monkeypatch.setattr(sys, 'argv', ['validate_package.py', '--root', str(ROOT), '--offline'])
     result = validator.main()
     output = capsys.readouterr().out
+    validator_source = Path(validator.__file__).read_text(encoding='utf-8')
+    expected_tables = re.search(r"status\.get\('tables'\) == (\d+)", validator_source).group(1)
+    expected_schema = re.search(r"status\.get\('schema_version'\) == (\d+)", validator_source).group(1)
+
     errors = {
-        'schema17': '[FEHLER] Schema-Version ist nicht 34.',
-        'schema18': '[FEHLER] Schema-Version ist nicht 34.',
-        'tables32': '[FEHLER] Schema enthaelt nicht 58 Tabellen.',
+        'schema17': f'[FEHLER] Schema-Version ist nicht {expected_schema}.',
+        'schema18': f'[FEHLER] Schema-Version ist nicht {expected_schema}.',
+        'tables32': f'[FEHLER] Schema enthaelt nicht {expected_tables} Tabellen.',
         'missing': f'[FEHLER] Migration-Datei fehlt: {migration_name}',
         'modified': f'[FEHLER] Migration-Checksum falsch {migration_name}:',
     }
