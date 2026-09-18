@@ -90,5 +90,7 @@ AS $$
         OR compact ~ '(price|prices|preis|preise|cost|costs|amount|amounts|kosten|betrag|rappen|currency|chf|fee|tarif|tariff|charge)'
     FROM (SELECT cafeteria.normalize_patient_key(k) AS compact) s;
 $$;
+-- CREATE OR REPLACE setzt alle Eigenschaften ausser Owner und Rechten neu; die Haertung aus 0029 erneut binden.
+ALTER FUNCTION cafeteria.patient_key_is_forbidden(text) SET search_path = cafeteria, pg_temp;
 
 COMMIT;
