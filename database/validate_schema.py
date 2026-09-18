@@ -77,6 +77,8 @@ ALLOWED_PATIENT_COMPACT_KEYS = frozenset({
     'servicestart', 'serviceend', 'areaname',
     'accompanimentcode', 'accompanimentname',
     'soup', 'dessert', 'soupoverride', 'dessertoverride', 'recipepublicid',
+    'carbohydrates', 'fat', 'fiber', 'kcal', 'kj',
+    'nutrition', 'protein', 'salt', 'saturatedfat', 'sugar'
 })
 
 
