@@ -17,9 +17,9 @@
     "baseline_status": "proposed_never_user_approved",
     "generated_at": "2026-09-13T07:15:51.719096+00:00",
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
-    "route_count": 144,
-    "template_count": 89,
-    "html_route_count": 73,
+    "route_count": 160,
+    "template_count": 97,
+    "html_route_count": 79,
     "design_manifest_commit": "39625ccc0d8b576fae9edaeb8cf0b5c70b1af912",
     "browser_status": "not_run",
     "usability_status": "not_run"
@@ -8743,13 +8743,21 @@
     {
       "endpoint": "admin.kitchen_event_new",
       "rule": "/admin/kuechenkalender/anlass",
-      "methods": ["GET"],
+      "methods": [
+        "GET"
+      ],
       "blueprint": "admin",
       "classification": "html",
       "visual": true,
-      "templates": ["admin/kuechenkalender_anlass.html"],
+      "templates": [
+        "admin/kuechenkalender_anlass.html"
+      ],
       "capability": "draft.write",
-      "roles": ["Cafeteria.Editor", "Cafeteria.Publisher", "Cafeteria.Admin"],
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
       "method_roles": {},
       "layout_variant": "calendar",
       "owning_mp": "MP-CAL-EVENTS-UI",
@@ -8757,18 +8765,44 @@
       "module": "cafeteria.admin.calendar_event_routes",
       "source_discovered": true,
       "fixture": "not_visual",
-      "states": ["default", "access_denied_401"],
-      "hooks": ["admin.js", "tabler.min.js", "csrf"],
+      "states": [
+        "default",
+        "access_denied_401"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
       "density": {
-        "mockups": ["M01", "M20"],
-        "rules": ["R01", "R02", "R03", "R04", "R05", "R06", "R07", "R08", "R09", "R10"],
-        "acceptance": ["A01"],
+        "mockups": [
+          "M01",
+          "M20"
+        ],
+        "rules": [
+          "R01",
+          "R02",
+          "R03",
+          "R04",
+          "R05",
+          "R06",
+          "R07",
+          "R08",
+          "R09",
+          "R10"
+        ],
+        "acceptance": [
+          "A01"
+        ],
         "owning_mp": "MP-CAL-EVENTS-UI",
         "core_task": "Anlass anlegen",
         "example_url": "/admin/kuechenkalender/anlass",
         "example_semantics": "date Query-Parameter optional.",
         "fixture_source": "reference_scaffold/tests/test_calendar_event_routes.py",
-        "state_evidence": {"default": "not_run", "access_denied_401": "not_run"},
+        "state_evidence": {
+          "default": "not_run",
+          "access_denied_401": "not_run"
+        },
         "source_status": "verified_runtime_registration",
         "browser_status": "not_run",
         "usability_status": "not_run",
@@ -8778,13 +8812,21 @@
     {
       "endpoint": "admin.kitchen_event_create",
       "rule": "/admin/kuechenkalender/anlass",
-      "methods": ["POST"],
+      "methods": [
+        "POST"
+      ],
       "blueprint": "admin",
       "classification": "form",
       "visual": false,
-      "templates": ["admin/kuechenkalender_anlass.html"],
+      "templates": [
+        "admin/kuechenkalender_anlass.html"
+      ],
       "capability": "draft.write",
-      "roles": ["Cafeteria.Editor", "Cafeteria.Publisher", "Cafeteria.Admin"],
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
       "method_roles": {},
       "layout_variant": "calendar",
       "owning_mp": "MP-CAL-EVENTS-UI",
@@ -8793,11 +8835,16 @@
       "source_discovered": true,
       "fixture": "not_visual",
       "states": [],
-      "hooks": ["admin.js", "csrf"],
+      "hooks": [
+        "admin.js",
+        "csrf"
+      ],
       "density": {
         "mockups": [],
         "rules": [],
-        "acceptance": ["A01"],
+        "acceptance": [
+          "A01"
+        ],
         "owning_mp": "MP-CAL-EVENTS-UI",
         "core_task": "Anlass speichern",
         "example_url": "/admin/kuechenkalender/anlass",
@@ -8813,13 +8860,21 @@
     {
       "endpoint": "admin.kitchen_event_edit",
       "rule": "/admin/kuechenkalender/anlass/<public_id>",
-      "methods": ["GET"],
+      "methods": [
+        "GET"
+      ],
       "blueprint": "admin",
       "classification": "html",
       "visual": true,
-      "templates": ["admin/kuechenkalender_anlass.html"],
+      "templates": [
+        "admin/kuechenkalender_anlass.html"
+      ],
       "capability": "draft.read",
-      "roles": ["Cafeteria.Editor", "Cafeteria.Publisher", "Cafeteria.Admin"],
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
       "method_roles": {},
       "layout_variant": "calendar",
       "owning_mp": "MP-CAL-EVENTS-UI",
@@ -8827,18 +8882,44 @@
       "module": "cafeteria.admin.calendar_event_routes",
       "source_discovered": true,
       "fixture": "not_visual",
-      "states": ["default", "access_denied_401"],
-      "hooks": ["admin.js", "tabler.min.js", "csrf"],
+      "states": [
+        "default",
+        "access_denied_401"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
       "density": {
-        "mockups": ["M01", "M20"],
-        "rules": ["R01", "R02", "R03", "R04", "R05", "R06", "R07", "R08", "R09", "R10"],
-        "acceptance": ["A01"],
+        "mockups": [
+          "M01",
+          "M20"
+        ],
+        "rules": [
+          "R01",
+          "R02",
+          "R03",
+          "R04",
+          "R05",
+          "R06",
+          "R07",
+          "R08",
+          "R09",
+          "R10"
+        ],
+        "acceptance": [
+          "A01"
+        ],
         "owning_mp": "MP-CAL-EVENTS-UI",
         "core_task": "Anlass bearbeiten",
         "example_url": "/admin/kuechenkalender/anlass/{public_id}",
         "example_semantics": "public_id ist fixture-erzeugt.",
         "fixture_source": "reference_scaffold/tests/test_calendar_event_routes.py",
-        "state_evidence": {"default": "not_run", "access_denied_401": "not_run"},
+        "state_evidence": {
+          "default": "not_run",
+          "access_denied_401": "not_run"
+        },
         "source_status": "verified_runtime_registration",
         "browser_status": "not_run",
         "usability_status": "not_run",
@@ -8848,13 +8929,21 @@
     {
       "endpoint": "admin.kitchen_event_save",
       "rule": "/admin/kuechenkalender/anlass/<public_id>",
-      "methods": ["POST"],
+      "methods": [
+        "POST"
+      ],
       "blueprint": "admin",
       "classification": "form",
       "visual": false,
-      "templates": ["admin/kuechenkalender_anlass.html"],
+      "templates": [
+        "admin/kuechenkalender_anlass.html"
+      ],
       "capability": "draft.write",
-      "roles": ["Cafeteria.Editor", "Cafeteria.Publisher", "Cafeteria.Admin"],
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
       "method_roles": {},
       "layout_variant": "calendar",
       "owning_mp": "MP-CAL-EVENTS-UI",
@@ -8863,11 +8952,16 @@
       "source_discovered": true,
       "fixture": "not_visual",
       "states": [],
-      "hooks": ["admin.js", "csrf"],
+      "hooks": [
+        "admin.js",
+        "csrf"
+      ],
       "density": {
         "mockups": [],
         "rules": [],
-        "acceptance": ["A01"],
+        "acceptance": [
+          "A01"
+        ],
         "owning_mp": "MP-CAL-EVENTS-UI",
         "core_task": "Anlass aktualisieren",
         "example_url": "/admin/kuechenkalender/anlass/{public_id}",
@@ -8883,13 +8977,21 @@
     {
       "endpoint": "admin.food_price_save",
       "rule": "/admin/grundlagen/zutaten/<public_id>/preis",
-      "methods": ["POST"],
+      "methods": [
+        "POST"
+      ],
       "blueprint": "admin",
       "classification": "form",
       "visual": false,
-      "templates": ["admin/grundlagen_food.html"],
+      "templates": [
+        "admin/grundlagen_food.html"
+      ],
       "capability": "masterdata.write",
-      "roles": ["Cafeteria.Editor", "Cafeteria.Publisher", "Cafeteria.Admin"],
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
       "method_roles": {},
       "layout_variant": "admin_tabler",
       "owning_mp": "MP-CALC-PRICE-UI",
@@ -8898,11 +9000,16 @@
       "source_discovered": true,
       "fixture": "not_visual",
       "states": [],
-      "hooks": ["admin.js", "csrf"],
+      "hooks": [
+        "admin.js",
+        "csrf"
+      ],
       "density": {
         "mockups": [],
         "rules": [],
-        "acceptance": ["A01"],
+        "acceptance": [
+          "A01"
+        ],
         "owning_mp": "MP-CALC-PRICE-UI",
         "core_task": "Einkaufspreis anhängen",
         "example_url": "/admin/grundlagen/zutaten/{public_id}/preis",
@@ -8913,6 +9020,908 @@
         "browser_status": "not_applicable",
         "usability_status": "not_applicable",
         "notes": "Kein eigener Screen."
+      }
+    },
+    {
+      "endpoint": "admin.cost_confirm",
+      "rule": "/admin/kalkulation/beleg",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "masterdata.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-FOUNDATIONS",
+      "family_variants": [],
+      "module": "cafeteria.admin.cost_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-UI-FOUNDATIONS",
+        "core_task": "admin.cost_confirm",
+        "example_url": "/admin/kalkulation/beleg",
+        "example_semantics": "Runtime registration merged from create_app().",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py",
+        "state_evidence": {},
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "source_status": "verified_runtime_registration"
+      }
+    },
+    {
+      "endpoint": "admin.cost_home",
+      "rule": "/admin/kalkulation",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/kalkulation.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-FOUNDATIONS",
+      "family_variants": [],
+      "module": "cafeteria.admin.cost_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [
+          "M01",
+          "M20"
+        ],
+        "rules": [
+          "R01",
+          "R02",
+          "R03",
+          "R04",
+          "R05",
+          "R06",
+          "R07",
+          "R08",
+          "R09",
+          "R10"
+        ],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-UI-FOUNDATIONS",
+        "core_task": "admin.cost_home",
+        "example_url": "/admin/kalkulation",
+        "example_semantics": "Runtime registration merged from create_app().",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py",
+        "state_evidence": {
+          "default": "not_run",
+          "empty": "not_run",
+          "invalid": "not_run",
+          "access_denied_401": "not_run",
+          "access_denied_403": "not_run"
+        },
+        "browser_status": "not_run",
+        "usability_status": "not_run",
+        "source_status": "verified_runtime_registration"
+      }
+    },
+    {
+      "endpoint": "admin.cost_preview",
+      "rule": "/admin/kalkulation/vorschau",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/kalkulation.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-FOUNDATIONS",
+      "family_variants": [],
+      "module": "cafeteria.admin.cost_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [
+          "M01",
+          "M20"
+        ],
+        "rules": [
+          "R01",
+          "R02",
+          "R03",
+          "R04",
+          "R05",
+          "R06",
+          "R07",
+          "R08",
+          "R09",
+          "R10"
+        ],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-UI-FOUNDATIONS",
+        "core_task": "admin.cost_preview",
+        "example_url": "/admin/kalkulation/vorschau",
+        "example_semantics": "Runtime registration merged from create_app().",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py",
+        "state_evidence": {
+          "default": "not_run",
+          "empty": "not_run",
+          "invalid": "not_run",
+          "access_denied_401": "not_run",
+          "access_denied_403": "not_run"
+        },
+        "browser_status": "not_run",
+        "usability_status": "not_run",
+        "source_status": "verified_runtime_registration"
+      }
+    },
+    {
+      "endpoint": "admin.courses_post",
+      "rule": "/admin/<any(cafeteria, patienten):family>/courses",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-MENU-EDITOR",
+      "family_variants": [],
+      "module": "cafeteria.admin.workflow_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-UI-MENU-EDITOR",
+        "core_task": "admin.courses_post",
+        "example_url": "/admin/cafeteria/courses",
+        "example_semantics": "Runtime registration merged from create_app().",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py",
+        "state_evidence": {},
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "source_status": "verified_runtime_registration"
+      }
+    },
+    {
+      "endpoint": "admin.inventory_count",
+      "rule": "/admin/lager/zaehlung",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-FOUNDATIONS",
+      "family_variants": [],
+      "module": "cafeteria.admin.inventory_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-UI-FOUNDATIONS",
+        "core_task": "admin.inventory_count",
+        "example_url": "/admin/lager/zaehlung",
+        "example_semantics": "Runtime registration merged from create_app().",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py",
+        "state_evidence": {},
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "source_status": "verified_runtime_registration"
+      }
+    },
+    {
+      "endpoint": "admin.inventory_home",
+      "rule": "/admin/lager",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/lager.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-FOUNDATIONS",
+      "family_variants": [],
+      "module": "cafeteria.admin.inventory_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [
+          "M01",
+          "M20"
+        ],
+        "rules": [
+          "R01",
+          "R02",
+          "R03",
+          "R04",
+          "R05",
+          "R06",
+          "R07",
+          "R08",
+          "R09",
+          "R10"
+        ],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-UI-FOUNDATIONS",
+        "core_task": "admin.inventory_home",
+        "example_url": "/admin/lager",
+        "example_semantics": "Runtime registration merged from create_app().",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py",
+        "state_evidence": {
+          "default": "not_run",
+          "empty": "not_run",
+          "invalid": "not_run",
+          "access_denied_401": "not_run",
+          "access_denied_403": "not_run"
+        },
+        "browser_status": "not_run",
+        "usability_status": "not_run",
+        "source_status": "verified_runtime_registration"
+      }
+    },
+    {
+      "endpoint": "admin.inventory_move",
+      "rule": "/admin/lager/bewegung",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-FOUNDATIONS",
+      "family_variants": [],
+      "module": "cafeteria.admin.inventory_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-UI-FOUNDATIONS",
+        "core_task": "admin.inventory_move",
+        "example_url": "/admin/lager/bewegung",
+        "example_semantics": "Runtime registration merged from create_app().",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py",
+        "state_evidence": {},
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "source_status": "verified_runtime_registration"
+      }
+    },
+    {
+      "endpoint": "admin.inventory_transfer",
+      "rule": "/admin/lager/umbuchung",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-FOUNDATIONS",
+      "family_variants": [],
+      "module": "cafeteria.admin.inventory_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-UI-FOUNDATIONS",
+        "core_task": "admin.inventory_transfer",
+        "example_url": "/admin/lager/umbuchung",
+        "example_semantics": "Runtime registration merged from create_app().",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py",
+        "state_evidence": {},
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "source_status": "verified_runtime_registration"
+      }
+    },
+    {
+      "endpoint": "admin.order_article_create",
+      "rule": "/admin/bestellung/artikel",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "masterdata.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COPY-IMPORT",
+      "family_variants": [],
+      "module": "cafeteria.admin.order_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-UI-COPY-IMPORT",
+        "core_task": "admin.order_article_create",
+        "example_url": "/admin/bestellung/artikel",
+        "example_semantics": "Runtime registration merged from create_app().",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py",
+        "state_evidence": {},
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "source_status": "verified_runtime_registration"
+      }
+    },
+    {
+      "endpoint": "admin.order_basket",
+      "rule": "/admin/bestellung/korb/<public_id>",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/bestellung_korb.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COPY-IMPORT",
+      "family_variants": [],
+      "module": "cafeteria.admin.order_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [
+          "M01",
+          "M20"
+        ],
+        "rules": [
+          "R01",
+          "R02",
+          "R03",
+          "R04",
+          "R05",
+          "R06",
+          "R07",
+          "R08",
+          "R09",
+          "R10"
+        ],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-UI-COPY-IMPORT",
+        "core_task": "admin.order_basket",
+        "example_url": "/admin/bestellung/korb/<public_id>",
+        "example_semantics": "Runtime registration merged from create_app().",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py",
+        "state_evidence": {
+          "default": "not_run",
+          "empty": "not_run",
+          "invalid": "not_run",
+          "access_denied_401": "not_run",
+          "access_denied_403": "not_run"
+        },
+        "browser_status": "not_run",
+        "usability_status": "not_run",
+        "source_status": "verified_runtime_registration"
+      }
+    },
+    {
+      "endpoint": "admin.order_basket_create",
+      "rule": "/admin/bestellung/korb",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COPY-IMPORT",
+      "family_variants": [],
+      "module": "cafeteria.admin.order_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-UI-COPY-IMPORT",
+        "core_task": "admin.order_basket_create",
+        "example_url": "/admin/bestellung/korb",
+        "example_semantics": "Runtime registration merged from create_app().",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py",
+        "state_evidence": {},
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "source_status": "verified_runtime_registration"
+      }
+    },
+    {
+      "endpoint": "admin.order_basket_csv",
+      "rule": "/admin/bestellung/korb/<public_id>/csv",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COPY-IMPORT",
+      "family_variants": [],
+      "module": "cafeteria.admin.order_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [
+          "M01",
+          "M20"
+        ],
+        "rules": [
+          "R01",
+          "R02",
+          "R03",
+          "R04",
+          "R05",
+          "R06",
+          "R07",
+          "R08",
+          "R09",
+          "R10"
+        ],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-UI-COPY-IMPORT",
+        "core_task": "admin.order_basket_csv",
+        "example_url": "/admin/bestellung/korb/<public_id>/csv",
+        "example_semantics": "Runtime registration merged from create_app().",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py",
+        "state_evidence": {
+          "default": "not_run",
+          "empty": "not_run",
+          "invalid": "not_run",
+          "access_denied_401": "not_run",
+          "access_denied_403": "not_run"
+        },
+        "browser_status": "not_run",
+        "usability_status": "not_run",
+        "source_status": "verified_runtime_registration"
+      }
+    },
+    {
+      "endpoint": "admin.order_basket_from_demand",
+      "rule": "/admin/bestellung/korb/<public_id>/bedarf",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COPY-IMPORT",
+      "family_variants": [],
+      "module": "cafeteria.admin.order_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-UI-COPY-IMPORT",
+        "core_task": "admin.order_basket_from_demand",
+        "example_url": "/admin/bestellung/korb/<public_id>/bedarf",
+        "example_semantics": "Runtime registration merged from create_app().",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py",
+        "state_evidence": {},
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "source_status": "verified_runtime_registration"
+      }
+    },
+    {
+      "endpoint": "admin.order_basket_save",
+      "rule": "/admin/bestellung/korb/<public_id>",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "draft.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COPY-IMPORT",
+      "family_variants": [],
+      "module": "cafeteria.admin.order_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-UI-COPY-IMPORT",
+        "core_task": "admin.order_basket_save",
+        "example_url": "/admin/bestellung/korb/<public_id>",
+        "example_semantics": "Runtime registration merged from create_app().",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py",
+        "state_evidence": {},
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "source_status": "verified_runtime_registration"
+      }
+    },
+    {
+      "endpoint": "admin.order_home",
+      "rule": "/admin/bestellung",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": [
+        "admin/bestellung.html"
+      ],
+      "capability": "draft.read",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COPY-IMPORT",
+      "family_variants": [],
+      "module": "cafeteria.admin.order_routes",
+      "source_discovered": true,
+      "fixture": "isolated_pg_schema25_seed_plus_synthetic_week",
+      "states": [
+        "default",
+        "empty",
+        "invalid",
+        "access_denied_401",
+        "access_denied_403"
+      ],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [
+          "M01",
+          "M20"
+        ],
+        "rules": [
+          "R01",
+          "R02",
+          "R03",
+          "R04",
+          "R05",
+          "R06",
+          "R07",
+          "R08",
+          "R09",
+          "R10"
+        ],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-UI-COPY-IMPORT",
+        "core_task": "admin.order_home",
+        "example_url": "/admin/bestellung",
+        "example_semantics": "Runtime registration merged from create_app().",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py",
+        "state_evidence": {
+          "default": "not_run",
+          "empty": "not_run",
+          "invalid": "not_run",
+          "access_denied_401": "not_run",
+          "access_denied_403": "not_run"
+        },
+        "browser_status": "not_run",
+        "usability_status": "not_run",
+        "source_status": "verified_runtime_registration"
+      }
+    },
+    {
+      "endpoint": "admin.order_supplier_create",
+      "rule": "/admin/bestellung/lieferanten",
+      "methods": [
+        "POST"
+      ],
+      "blueprint": "admin",
+      "classification": "redirect",
+      "visual": false,
+      "templates": [],
+      "capability": "masterdata.write",
+      "roles": [
+        "Cafeteria.Editor",
+        "Cafeteria.Publisher",
+        "Cafeteria.Admin"
+      ],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COPY-IMPORT",
+      "family_variants": [],
+      "module": "cafeteria.admin.order_routes",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [
+        "admin.js",
+        "tabler.min.js",
+        "csrf"
+      ],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-UI-COPY-IMPORT",
+        "core_task": "admin.order_supplier_create",
+        "example_url": "/admin/bestellung/lieferanten",
+        "example_semantics": "Runtime registration merged from create_app().",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py",
+        "state_evidence": {},
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "source_status": "verified_runtime_registration"
       }
     }
   ],
@@ -9403,7 +10412,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "808c2e6b5f0ec66197bf25677d8a8f691d76ecb58714ec90ad2704b43cc0cf3b",
+      "sha256": "bfbaf91be6928014e4fd3eeb1204e1ccc74dfddb2871d0685ab2eb5cf8a0c7ff",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -9425,7 +10434,7 @@
       "includes": [
         "_food_symbols.html"
       ],
-      "sha256": "52bfcf56c9da6037665b8b75e10c8dc3ccadcae096bade839892800d9d37a86f",
+      "sha256": "a9372e77468d6912cb2f84a94d543d62bf625be0c0dfa9dc7be3ea15bf9b3355",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -9756,7 +10765,7 @@
         "admin/_week_service.html",
         "admin/_week_settings.html"
       ],
-      "sha256": "1012b63ed88d3f7958e6d0a55bdb5913e793796032753a9c3af8f93f51767c69",
+      "sha256": "ce3365c9a7f7439e32c938bd108391b235ef0be40e7762fe18fc85f4c8b70910",
       "used_by_endpoints": [
         "admin.cafeteria"
       ],
@@ -9946,7 +10955,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "a6c6b3560f12108a2986a5a35dffe7098ce03f5b1df13e9cf804efceb2f03dd3",
+      "sha256": "75b0319618dc15c9430ed25a7fa332c18a5a785eb4c708bf0f50418430b945ff",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_new"
@@ -10127,7 +11136,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "93a9e457d5b1ca72572954adb476ccf8f6868f6820ee34382c841aee80ff91a9",
+      "sha256": "f321fa00f5d5f5ebe8af12b71d334d26528e5cf8f867c36849e5c322758a4f53",
       "used_by_endpoints": [
         "admin.kitchen_calendar"
       ],
@@ -10354,7 +11363,7 @@
         "admin/_week_service.html",
         "admin/_week_settings.html"
       ],
-      "sha256": "76dc7c93b7a47f3833293e8f7c822146ff31dccf7661dee5a566208c19a55319",
+      "sha256": "dcd62f9ff2ccc226891f00e056a24e651b5ccf3a291678719800a600c223de77",
       "used_by_endpoints": [
         "admin.patienten"
       ],
@@ -10380,7 +11389,7 @@
         "_menu_metadata.html",
         "admin/_macros.html"
       ],
-      "sha256": "236255841d7f1d55fccd26e64cb6f787cbc8329601c18e4965dfcb0d7827913d",
+      "sha256": "96f9e65f84fefc782b4aae97f0edd7e047115f472bbfb80770be31b53790b478",
       "used_by_endpoints": [
         "admin.preview"
       ],
@@ -10947,7 +11956,7 @@
         "_menu_image.html",
         "_menu_metadata.html"
       ],
-      "sha256": "953a8c62fdd71b2dfe46042aa1996f0b5ff0762b5eb3dd0fa9ebc56b96ca388b",
+      "sha256": "4237e0d95d1b27e6a115511c955d7d4698671f389a6bb94fd39f51e4673f7661",
       "used_by_endpoints": [
         "admin.screen_template_preview",
         "public.cafeteria_week",
@@ -11017,7 +12026,7 @@
         "_menu_image.html",
         "_menu_metadata.html"
       ],
-      "sha256": "6482b5907c02cac8400a280c27f1debe301ffceae13f11b048483799d07fa065",
+      "sha256": "9c84fafd8176c31b563361e9575fca1a5e3e80be4da9499bfd63f83cc4608e28",
       "used_by_endpoints": [
         "admin.screen_template_preview",
         "public.patient_week",
@@ -11157,7 +12166,7 @@
         "_menu_image.html",
         "_menu_metadata.html"
       ],
-      "sha256": "3c2ef6186d4ad9313a46760a2ac728e5ac22bffc5d096ad3f7b503aa795b2987",
+      "sha256": "07a290872a9582b18a5b7f9817be3ef059e60fa42ecd982ee4cf6ab909840676",
       "used_by_endpoints": [
         "signage.cafeteria_day"
       ],
@@ -11180,7 +12189,7 @@
         "_food_symbols.html",
         "_menu_metadata.html"
       ],
-      "sha256": "7dc7e2708d09cfc988e4d4d0099ad666686f9f68c0233ca7746303f7b3eaca92",
+      "sha256": "06e6f7d3b8c0e78042e37793b9707fb9224bf21d00090a89e3cde666cc6e625c",
       "used_by_endpoints": [
         "signage.cafeteria_week"
       ],
@@ -11204,7 +12213,7 @@
         "_menu_image.html",
         "_menu_metadata.html"
       ],
-      "sha256": "30d5385913a43ed2d9f2379ae58fd8984fa75d8d6268873ed2a273b974b2bca6",
+      "sha256": "093b8e82fe9825032c3015ea1598241f6f8baf0143f243b9990496101636bc43",
       "used_by_endpoints": [
         "signage.patient_day"
       ],
@@ -11227,7 +12236,7 @@
         "_food_symbols.html",
         "_menu_metadata.html"
       ],
-      "sha256": "084ffb63a2e458c198c32a12d23f47b004d87ec67e69a212060d648b215ed051",
+      "sha256": "be3af93434133dd04461167d27435a00b29948833c816c3c3b652aad0ec7ca0f",
       "used_by_endpoints": [
         "signage.patient_week"
       ],
@@ -11272,7 +12281,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "0bdf7b0a338f68c00a63b3ce51fcb4222aaaa341873f21821935a46734c9371b",
+      "sha256": "afc3c29ab2936fb2ac005699dde0864c84ff07ef6635dfc3bcce3d77e46ea5bd",
       "used_by_endpoints": [
         "admin.shopping_list_archive",
         "admin.shopping_lists_create",
@@ -11294,7 +12303,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "0f2bd7519d43ba505dc84dfe4bb63330b4a854286f2b5fc92a5c01bf2e89394c",
+      "sha256": "ce6787d7d6a05095cd38d1efb070f336c37890ea0f35a7bdfc8703d2864c4868",
       "used_by_endpoints": [
         "admin.shopping_list_compute",
         "admin.shopping_list_detail",
@@ -11308,6 +12317,127 @@
         "M20"
       ],
       "current_visual_status": "not_run"
+    },
+    {
+      "path": "admin/_course_editor.html",
+      "kind": "partial",
+      "extends": [],
+      "includes": [
+        "admin/_course_recipe_search.html"
+      ],
+      "sha256": "d4bbf17598dc72c089e2d3589b00fcd8b0fb0656f9fc3b7dc9fa5ab6a35f52c3",
+      "used_by_endpoints": [
+        "admin.cafeteria",
+        "admin.patienten"
+      ],
+      "owning_mp": "MP-UI-REF-WORKSPACE"
+    },
+    {
+      "path": "admin/_course_line.html",
+      "kind": "partial",
+      "extends": [],
+      "includes": [],
+      "sha256": "b67aa5b04b571f299611d92943032a758d4c9624f2d0dac16105fe2bb7e1526e",
+      "used_by_endpoints": [
+        "admin.cafeteria",
+        "admin.patienten"
+      ],
+      "owning_mp": "MP-UI-REF-WORKSPACE"
+    },
+    {
+      "path": "admin/_course_recipe_search.html",
+      "kind": "partial",
+      "extends": [],
+      "includes": [],
+      "sha256": "a697788cb8ff1b307db9c9d2341af5878244c6b63983a1bc50ee5b9f94c7cf54",
+      "used_by_endpoints": [
+        "admin.cafeteria",
+        "admin.patienten"
+      ],
+      "owning_mp": "MP-UI-REF-WORKSPACE"
+    },
+    {
+      "path": "admin/_service_courses.html",
+      "kind": "partial",
+      "extends": [],
+      "includes": [
+        "_food_symbols.html"
+      ],
+      "sha256": "a009d6c891b63f67199ddbc6ed55d8bb8dde4448fa7b0e4e620301b287c84e6c",
+      "used_by_endpoints": [
+        "admin.preview",
+        "admin.screen_template_preview",
+        "public.cafeteria_week",
+        "public.cafeteria_week_without_images",
+        "public.patient_week",
+        "public.patient_week_without_images",
+        "signage.cafeteria_day",
+        "signage.cafeteria_week",
+        "signage.patient_day",
+        "signage.patient_week"
+      ],
+      "owning_mp": "MP-UI-PREVIEW"
+    },
+    {
+      "path": "admin/bestellung.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "24ad389571abe4b88843ed176997f747d043f173093115bbfbbb9187abd8ba76",
+      "used_by_endpoints": [
+        "admin.order_home"
+      ],
+      "owning_mp": "MP-UI-COPY-IMPORT"
+    },
+    {
+      "path": "admin/bestellung_korb.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "f93350097b5abf414fc43e473b3db8ac335ac746e4fcb0bf85babea1ff25ac18",
+      "used_by_endpoints": [
+        "admin.order_basket"
+      ],
+      "owning_mp": "MP-UI-COPY-IMPORT"
+    },
+    {
+      "path": "admin/kalkulation.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "5f453f079c67c02e17f06ce512d197220bd15aea65ad2f84049a9a7575e02f1f",
+      "used_by_endpoints": [
+        "admin.cost_home",
+        "admin.cost_preview"
+      ],
+      "owning_mp": "MP-UI-FOUNDATIONS"
+    },
+    {
+      "path": "admin/lager.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html"
+      ],
+      "includes": [
+        "admin/_macros.html"
+      ],
+      "sha256": "5a3ffa1415a24e6cca1cc3ec413973827a037f158a1458b1afdc9711fccd29b0",
+      "used_by_endpoints": [
+        "admin.inventory_home"
+      ],
+      "owning_mp": "MP-UI-FOUNDATIONS"
     }
   ],
   "states": [
@@ -11487,6 +12617,22 @@
         "admin.recipe_print_template_preview"
       ],
       "status": "classified_download_not_visual"
+    },
+    {
+      "id": "post_only_html_form",
+      "reason": "POST-only HTML previews are exercised through form fixtures, not bare GET screenshots.",
+      "endpoints": [
+        "admin.cost_preview"
+      ],
+      "status": "blocked_post_only_html"
+    },
+    {
+      "id": "native_csv_bytes",
+      "reason": "CSV attachment bytes are separate from HTML screenshots.",
+      "endpoints": [
+        "admin.order_basket_csv"
+      ],
+      "status": "blocked_classified_download"
     }
   ],
   "historical_inventory": {
