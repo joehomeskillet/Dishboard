@@ -1,5 +1,5 @@
 {% if recipe_page is defined and recipe_page.query is defined %}
-<form method="get" action="/admin/{{ family }}" class="card card-sm mb-3" aria-label="Rezepte für Gänge suchen">
+<form method="get" action="/admin/{{ family }}" class="card card-sm mb-3 admin-week-course-search" aria-label="Rezepte für Gänge suchen">
   <div class="card-body">
     <input type="hidden" name="week" value="{{ week_value }}">
     <div class="row g-2 align-items-end">

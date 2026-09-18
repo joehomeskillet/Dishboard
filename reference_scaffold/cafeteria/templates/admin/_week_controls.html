@@ -73,9 +73,9 @@
     <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#week-publish-modal" disabled aria-describedby="week-publish-guidance">{{ publish_label }}</button>
     {% else %}
     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#week-publish-modal"{% if publish_blocked %} disabled aria-describedby="week-publish-guidance"{% endif %}>{{ publish_label }}</button>
-    <a class="btn admin-week-review-link" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}">{{ icon('clipboard-check') }}Wochenangaben prüfen</a>
     {% endif %}
     <a class="btn" href="/admin/{{ family }}/preview?week={{ week_value }}" target="_blank" rel="noopener">{{ icon('eye') }}Vorschau</a>
+    <a class="btn admin-week-review-link" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}">{{ icon('clipboard-check') }}Wochenangaben prüfen</a>
     <details class="admin-week-more">
       <summary class="btn">Weitere Aktionen</summary>
       <div class="admin-week-more-menu">

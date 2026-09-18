@@ -3,20 +3,8 @@
 <div class="col-12 col-md-6">
   <article class="card menu-slot h-100" data-day="{{ cell.day }}" data-meal="{{ cell.meal }}" data-option="{{ cell.option }}" data-row-version="{{ cell.row_version }}">
     <div class="card-body{% if family == 'patienten' %} patient-admin-option{% endif %}">
-      <div class="admin-week-card-head">
-        <div>
-          <small class="text-secondary dish-type">{{ cell.option_label }}</small>
-          <h3>{{ cell.title if cell.title else 'Noch kein Gericht' }}</h3>
-        </div>
-        {% if family == 'cafeteria' and cell.title and admin_menu_images|default('show') != 'hide' %}
-          {% set image_file = cell|menu_image %}
-          {% if image_file %}
-          <figure class="admin-week-thumb mb-0" data-menu-image>
-            <img src="{{ url_for('static', filename=image_file) }}" alt="Serviervorschlag: {{ cell.title }}" width="72" height="64" loading="lazy" decoding="async">
-          </figure>
-          {% endif %}
-        {% endif %}
-      </div>
+      <small class="text-secondary dish-type">{{ cell.option_label }}</small>
+      <h3>{{ cell.title if cell.title else 'Noch kein Gericht' }}</h3>
       {% if cell.dish_template %}
       <p class="mb-2"><a class="btn text-wrap text-start" href="{{ url_for('admin.dish_template_edit', public_id=cell.dish_template.public_id) }}">{{ icon('copy') }}Aus Vorlage «{{ cell.dish_template.title }}»{% if not cell.dish_template.active %} (archiviert){% endif %}</a></p>
       {% endif %}
@@ -74,8 +62,18 @@
       <div class="mt-auto">
         <a class="btn" href="{{ cell.edit_url }}" aria-label="Bearbeiten: {{ cell.day_label }}, {{ cell.day_short }}, {{ cell.meal_label }}, {{ cell.option_label }} – {{ cell.title if cell.title else 'Noch kein Gericht' }}">{{ icon('pencil') }}Menü bearbeiten</a>
       </div>
-      {% if family == 'cafeteria' and cell.title and admin_menu_images|default('show') != 'hide' and not (cell|menu_image) %}
+      {% if family == 'cafeteria' and cell.title and admin_menu_images|default('show') != 'hide' %}
+        {% set image_file = cell|menu_image %}
+        {% if image_file %}
+        <figure class="mb-2" data-menu-image>
+          <div class="ratio ratio-16x9 overflow-hidden rounded">
+            <img class="w-100 h-100 object-fit-cover" src="{{ url_for('static', filename=image_file) }}" alt="Serviervorschlag: {{ cell.title }}" width="1200" height="896" loading="lazy" decoding="async">
+          </div>
+          <figcaption class="text-secondary small mt-1">KI-generierter Serviervorschlag</figcaption>
+        </figure>
+        {% else %}
         <p class="text-secondary small" data-menu-image>Kein passendes Menübild</p>
+        {% endif %}
       {% endif %}
       {% if cell.title and (cell.description or cell.note) %}
         {% if hint_len >= 140 %}
