@@ -9,9 +9,9 @@ from cafeteria.course_store import persist_service_courses
 from cafeteria.workflow_partial_store import persist_menu_item, persist_service_state
 from prepared_food_fixtures import create_food, create_recipe, execute, freeze
 from test_admin_workflow_routes import DAY, WEEK, _hidden, _login, _scope
+from test_admin_workflow_routes import app as app  # noqa: F401
+from test_admin_workflow_routes import database_engine as database_engine  # noqa: F401
 from test_workflow_partial_store_db import _payload, _service_payload
-
-pytest_plugins = ['test_admin_workflow_routes']
 
 
 def _recipe(engine: Engine, user_id: int, location_id: int, name: str) -> dict:

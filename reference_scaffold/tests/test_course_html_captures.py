@@ -5,10 +5,10 @@ from cafeteria.admin import calendar_routes as calendar_routes  # noqa: F401
 from cafeteria.course_store import persist_service_courses
 from cafeteria.workflow_partial_store import persist_menu_item, persist_service_state
 from test_admin_workflow_routes import DAY, WEEK, _login, _scope
+from test_admin_workflow_routes import app as app  # noqa: F401
+from test_admin_workflow_routes import database_engine as database_engine  # noqa: F401
 from test_course_week_html import _recipe
 from test_workflow_partial_store_db import _payload, _service_payload
-
-pytest_plugins = ['test_admin_workflow_routes']
 
 TARGETS = {
     'cafeteria': '/admin/cafeteria?week=' + DAY,

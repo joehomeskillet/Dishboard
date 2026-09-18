@@ -23,9 +23,10 @@ from cafeteria.workflow_partial_store import PartialWorkflowValidationError, per
 from prepared_food_fixtures import create_food, create_recipe, execute, freeze
 from review_support import write_expectations
 from test_admin_workflow_db import _staff_values
+from test_admin_workflow_routes import app as app  # noqa: F401
+from test_admin_workflow_routes import database_engine as database_engine  # noqa: F401
 from test_workflow_partial_store_db import WEEK, WorkflowDatabase, _payload, _scope
-
-pytest_plugins = ['test_workflow_partial_store_db']
+from test_workflow_partial_store_db import workflow_database as workflow_database  # noqa: F401
 
 
 def _ids(db: WorkflowDatabase) -> dict[str, object]:
