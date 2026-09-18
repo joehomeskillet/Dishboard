@@ -95,26 +95,78 @@ _GRANT_BLOCK_END = '-- Schema34 shopping list grants end.'
 _REVISION_HASH = "encode(pg_catalog.sha256(convert_to(CAST(:snapshot_json AS jsonb)::text,'UTF8')),'hex')"
 
 
+def _strip_permissions_for_schema_level(permissions_text: str, max_schema: int) -> str:
+    """Entfernt Grant-Referenzen auf Objekte oberhalb max_schema aus permissions.sql."""
+    import re
+
+    original = permissions_text
+    if max_schema < 35:
+        original = re.sub(
+            r'[ \t]*menu_service_courses,\s*menu_item_course_exceptions,?', '', original
+        )
+        original = re.sub(
+            r'GRANT SELECT ON SEQUENCE menu_service_courses_id_seq, menu_item_course_exceptions_id_seq\nTO cafeteria_backup;\n',
+            '',
+            original,
+        )
+    if max_schema < 36:
+        original = re.sub(
+            r'[ \t]*kitchen_events,\s*kitchen_event_demand_items,?', '', original
+        )
+    if max_schema < 39:
+        original = re.sub(r',\s*TO cafeteria_app;', '\nTO cafeteria_app;', original)
+    if max_schema < 40:
+        original = re.sub(
+            r'GRANT SELECT, INSERT, UPDATE ON inventory_accounts TO cafeteria_app;\n', '', original
+        )
+        original = re.sub(
+            r'GRANT SELECT, INSERT ON inventory_movements TO cafeteria_app;\n', '', original
+        )
+    if max_schema < 41:
+        original = re.sub(
+            r'GRANT SELECT, INSERT ON prepared_batch_runs, calculation_receipts TO cafeteria_app;\n',
+            '',
+            original,
+        )
+        original = re.sub(
+            r'GRANT SELECT ON prepared_batch_runs, calculation_receipts TO cafeteria_backup;\n',
+            '',
+            original,
+        )
+        original = re.sub(
+            r'GRANT SELECT ON SEQUENCE prepared_batch_runs_id_seq, calculation_receipts_id_seq TO cafeteria_backup;\n',
+            '',
+            original,
+        )
+    if max_schema < 42:
+        original = re.sub(
+            r'REVOKE ALL ON FUNCTION calculation_receipt_protect_v41\(\) FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;\n',
+            '',
+            original,
+        )
+        original = re.sub(r'GRANT SELECT ON TO cafeteria_backup;\n', '', original)
+    first_removed_schema = max_schema + 1
+    if first_removed_schema < 40:
+        block_pattern = (
+            rf'-- Schema(3[{first_removed_schema % 10}-9]|[4-9][0-9]).*?grants end\.\n*'
+        )
+    else:
+        block_pattern = rf'-- Schema({first_removed_schema}|[4-9][0-9]).*?grants end\.\n*'
+    return re.sub(block_pattern, '', original, flags=re.DOTALL)
+
+
 def _permissions_sql_without_shopping_block() -> str:
     """Der aktuelle permissions.sql-Text ohne den v34-Block (für den v33-Zwischenstand).
 
     Ohne diesen Schnitt schlägt permissions.sql an den noch nicht existierenden
     shopping_*-Tabellen fehl, bevor Migration 0031 gelaufen ist.
     """
-    import re
-    original = PERMISSIONS.read_text(encoding='utf-8')
-    original = re.sub(r'[ \t]*menu_service_courses,\s*menu_item_course_exceptions,?', '', original)
-    original = re.sub(r'[ \t]*kitchen_events,\s*kitchen_event_demand_items,?', '', original)
-    original = re.sub(r',\s*TO cafeteria_app;', '\nTO cafeteria_app;', original)
-    original = re.sub(r'GRANT SELECT, INSERT, UPDATE ON inventory_accounts TO cafeteria_app;\n', '', original)
-    original = re.sub(r'GRANT SELECT, INSERT ON inventory_movements TO cafeteria_app;\n', '', original)
-    original = re.sub(r'GRANT SELECT, INSERT ON prepared_batch_runs, calculation_receipts TO cafeteria_app;\n', '', original)
-    original = re.sub(r'GRANT SELECT ON prepared_batch_runs, calculation_receipts TO cafeteria_backup;\n', '', original)
-    original = re.sub(r'GRANT SELECT ON SEQUENCE prepared_batch_runs_id_seq, calculation_receipts_id_seq TO cafeteria_backup;\n', '', original)
-    original = re.sub(r'REVOKE ALL ON FUNCTION calculation_receipt_protect_v41\(\) FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;\n', '', original)
-    original = re.sub(r'GRANT SELECT ON TO cafeteria_backup;\n', '', original)
-    original = re.sub(r'GRANT SELECT ON SEQUENCE menu_service_courses_id_seq, menu_item_course_exceptions_id_seq\nTO cafeteria_backup;\n', '', original)
-    return re.sub(r'-- Schema(3[4-9]|[4-9][0-9]).*?grants end\.\n*', '', original, flags=re.DOTALL)
+    return _strip_permissions_for_schema_level(PERMISSIONS.read_text(encoding='utf-8'), 33)
+
+
+def _permissions_sql_for_v34() -> str:
+    """permissions.sql für eine nur bis Schema34 migrierte DB (shopping-Block bleibt)."""
+    return _strip_permissions_for_schema_level(PERMISSIONS.read_text(encoding='utf-8'), 34)
 
 
 def _cafeteria_acl(connection) -> set[tuple[Any, ...]]:
@@ -347,7 +399,7 @@ def test_v33_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16
     assert {
         row[:5] for row in acl_migrated if row[:2] in new_objects and not row[5]
     } == EXPECTED_NEW_OBJECT_ACL
-    assert [fn for fn in surface_migrated if fn in surface_before] == surface_before
+    assert surface_migrated == surface_before
     assert new_function_privileges == dict.fromkeys(new_function_privileges, False)
 
     with pg16.connect() as connection:
@@ -363,7 +415,7 @@ def test_v33_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16
             WHERE version<=33 ORDER BY version""")).all() == ledger_before
         assert connection.execute(text(
             'SELECT max(version) FROM cafeteria.schema_migrations'
-        )).scalar_one() == database.SCHEMA_VERSION
+        )).scalar_one() == 34
 
         mig34 = connection.execute(text("""SELECT name,checksum_sha256,application_version
             FROM cafeteria.schema_migrations WHERE version=34""")).one()
@@ -373,7 +425,7 @@ def test_v33_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16
         ).hexdigest()
         assert mig34[1] == expected_sha
         assert mig34[1] == validate_package.MIGRATION_CHECKSUMS['0031_v33_to_v34.sql']
-        assert mig34[2] == 'dishboard-schema-v34'
+        assert mig34[2] == database.APPLICATION_VERSION
 
         target_quantity_row = connection.execute(text("""SELECT target_quantity,
             target_quantity_unit_id FROM cafeteria.menu_item_components
@@ -405,7 +457,9 @@ def test_v33_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16
         migrated_app.dispose()
 
     # Der Bootstrap-Grantblock ändert an der migrierten DB nichts.
-    database._execute_script(pg16, str(PERMISSIONS))
+    scratch = tmp_path / 'permissions_v34_idempotent.sql'
+    scratch.write_text(_permissions_sql_for_v34(), encoding='utf-8')
+    database._execute_script(pg16, str(scratch))
     with pg16.connect() as connection:
         assert _cafeteria_acl(connection) == acl_migrated
 
