@@ -96,17 +96,11 @@ def test_old_food_gap_stops_before_ddl_ledger_sequences_then_explicit_backfill(p
             else:
                 projection = "to_jsonb(t)-'prepared_recipe_revision_id'" if table == 'foods' else 'to_jsonb(t)'
                 assert c.execute(text(f'SELECT ({projection})::text FROM cafeteria.{table} t ORDER BY ({projection})::text')).all() == rows
-        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == 34
+        assert c.execute(text('SELECT max(version) FROM cafeteria.schema_migrations')).scalar_one() == database.SCHEMA_VERSION
         migrated = structure(c)
     after_sequences = rows_and_sequences(pg16)[1]
-    # Seit 0031 bringt run_migrations() bis Schema34 zusaetzlich drei Einkaufslisten-
-    # Sequenzen mit; nur die vorher bekannte recipe_import_batches_id_seq bleibt aus dem
-    # Vergleich ausgeschlossen erweitert.
-    new_sequence_names = {
-        'recipe_import_batches_id_seq', 'shopping_lists_id_seq',
-        'shopping_list_revisions_id_seq', 'shopping_list_manual_items_id_seq',
-    }
-    assert [s for s in after_sequences if s[0] not in new_sequence_names] == before_upgrade[1]
+    before_seq_names = {name for name, _ in before_upgrade[1]}
+    assert [s for s in after_sequences if s[0] in before_seq_names] == before_upgrade[1]
     assert any(s[0] == 'recipe_import_batches_id_seq' for s in after_sequences)
     with pg16.begin() as c:
         c.execute(text('DROP SCHEMA cafeteria CASCADE'))

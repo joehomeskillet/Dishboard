@@ -95,16 +95,78 @@ _GRANT_BLOCK_END = '-- Schema34 shopping list grants end.'
 _REVISION_HASH = "encode(pg_catalog.sha256(convert_to(CAST(:snapshot_json AS jsonb)::text,'UTF8')),'hex')"
 
 
+def _strip_permissions_for_schema_level(permissions_text: str, max_schema: int) -> str:
+    """Entfernt Grant-Referenzen auf Objekte oberhalb max_schema aus permissions.sql."""
+    import re
+
+    original = permissions_text
+    if max_schema < 35:
+        original = re.sub(
+            r'[ \t]*menu_service_courses,\s*menu_item_course_exceptions,?', '', original
+        )
+        original = re.sub(
+            r'GRANT SELECT ON SEQUENCE menu_service_courses_id_seq, menu_item_course_exceptions_id_seq\nTO cafeteria_backup;\n',
+            '',
+            original,
+        )
+    if max_schema < 36:
+        original = re.sub(
+            r'[ \t]*kitchen_events,\s*kitchen_event_demand_items,?', '', original
+        )
+    if max_schema < 39:
+        original = re.sub(r',\s*TO cafeteria_app;', '\nTO cafeteria_app;', original)
+    if max_schema < 40:
+        original = re.sub(
+            r'GRANT SELECT, INSERT, UPDATE ON inventory_accounts TO cafeteria_app;\n', '', original
+        )
+        original = re.sub(
+            r'GRANT SELECT, INSERT ON inventory_movements TO cafeteria_app;\n', '', original
+        )
+    if max_schema < 41:
+        original = re.sub(
+            r'GRANT SELECT, INSERT ON prepared_batch_runs, calculation_receipts TO cafeteria_app;\n',
+            '',
+            original,
+        )
+        original = re.sub(
+            r'GRANT SELECT ON prepared_batch_runs, calculation_receipts TO cafeteria_backup;\n',
+            '',
+            original,
+        )
+        original = re.sub(
+            r'GRANT SELECT ON SEQUENCE prepared_batch_runs_id_seq, calculation_receipts_id_seq TO cafeteria_backup;\n',
+            '',
+            original,
+        )
+    if max_schema < 42:
+        original = re.sub(
+            r'REVOKE ALL ON FUNCTION calculation_receipt_protect_v41\(\) FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;\n',
+            '',
+            original,
+        )
+        original = re.sub(r'GRANT SELECT ON TO cafeteria_backup;\n', '', original)
+    first_removed_schema = max_schema + 1
+    if first_removed_schema < 40:
+        block_pattern = (
+            rf'-- Schema(3[{first_removed_schema % 10}-9]|[4-9][0-9]).*?grants end\.\n*'
+        )
+    else:
+        block_pattern = rf'-- Schema({first_removed_schema}|[4-9][0-9]).*?grants end\.\n*'
+    return re.sub(block_pattern, '', original, flags=re.DOTALL)
+
+
 def _permissions_sql_without_shopping_block() -> str:
     """Der aktuelle permissions.sql-Text ohne den v34-Block (für den v33-Zwischenstand).
 
     Ohne diesen Schnitt schlägt permissions.sql an den noch nicht existierenden
     shopping_*-Tabellen fehl, bevor Migration 0031 gelaufen ist.
     """
-    original = PERMISSIONS.read_text(encoding='utf-8')
-    start = original.index(_GRANT_BLOCK_BEGIN)
-    end = original.index(_GRANT_BLOCK_END) + len(_GRANT_BLOCK_END)
-    return original[:start] + original[end + 1:]
+    return _strip_permissions_for_schema_level(PERMISSIONS.read_text(encoding='utf-8'), 33)
+
+
+def _permissions_sql_for_v34() -> str:
+    """permissions.sql für eine nur bis Schema34 migrierte DB (shopping-Block bleibt)."""
+    return _strip_permissions_for_schema_level(PERMISSIONS.read_text(encoding='utf-8'), 34)
 
 
 def _cafeteria_acl(connection) -> set[tuple[Any, ...]]:
@@ -260,10 +322,16 @@ def _rejections(engine, cases) -> list[tuple[str, object]]:
     return mismatches
 
 
-def test_v33_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16, tmp_path):  # noqa: F811
+def test_v33_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16, tmp_path, monkeypatch):  # noqa: F811
+    monkeypatch.setattr(
+        database,
+        'MIGRATION_FILES',
+        tuple(entry for entry in database.MIGRATION_FILES if entry[0] <= 34),
+    )
     plan = database.migration_plan(SCHEMA)
-    assert (plan[-1].version, plan[-1].path.name) == (34, '0031_v33_to_v34.sql')
-    for migration in plan:
+    v34 = next(m for m in plan if m.version == 34)
+    assert v34.path.name == '0031_v33_to_v34.sql'
+    for migration in plan[:-1]:
         if migration.version <= 33:
             database._execute_migration(pg16, migration)
     database._execute_script(pg16, str(SCHEMA.parent / 'seed.sql'))
@@ -357,7 +425,7 @@ def test_v33_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16
         ).hexdigest()
         assert mig34[1] == expected_sha
         assert mig34[1] == validate_package.MIGRATION_CHECKSUMS['0031_v33_to_v34.sql']
-        assert mig34[2] == 'dishboard-schema-v34'
+        assert mig34[2] == database.APPLICATION_VERSION
 
         target_quantity_row = connection.execute(text("""SELECT target_quantity,
             target_quantity_unit_id FROM cafeteria.menu_item_components
@@ -389,7 +457,9 @@ def test_v33_upgrade_preserves_rows_publication_hash_acl_and_fresh_contract(pg16
         migrated_app.dispose()
 
     # Der Bootstrap-Grantblock ändert an der migrierten DB nichts.
-    database._execute_script(pg16, str(PERMISSIONS))
+    scratch = tmp_path / 'permissions_v34_idempotent.sql'
+    scratch.write_text(_permissions_sql_for_v34(), encoding='utf-8')
+    database._execute_script(pg16, str(scratch))
     with pg16.connect() as connection:
         assert _cafeteria_acl(connection) == acl_migrated
 

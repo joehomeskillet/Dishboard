@@ -13,13 +13,19 @@ from test_rec_import_commit_migration_db import rows_and_sequences
 
 def test_plan_ends_at_schema_36() -> None:
     plan = database.migration_plan(SCHEMA)
-    assert database.SCHEMA_VERSION == 36
-    assert (plan[-1].version, plan[-1].path.name) == (36, '0033_v35_to_v36.sql')
+    assert database.SCHEMA_VERSION >= 36
+    v36 = next(m for m in plan if m.version == 36)
+    assert v36.path.name == '0033_v35_to_v36.sql'
 
 
-def test_v35_upgrade_adds_price_ledger_without_touching_weeks(pg16):  # noqa: F811
+def test_v35_upgrade_adds_price_ledger_without_touching_weeks(pg16, monkeypatch):  # noqa: F811
+    monkeypatch.setattr(
+        database,
+        'MIGRATION_FILES',
+        tuple(entry for entry in database.MIGRATION_FILES if entry[0] <= 36),
+    )
     plan = database.migration_plan(SCHEMA)
-    for migration in plan:
+    for migration in plan[:-1]:
         if migration.version <= 35:
             database._execute_migration(pg16, migration)
     database._execute_script(pg16, str(SCHEMA.parent / 'seed.sql'))

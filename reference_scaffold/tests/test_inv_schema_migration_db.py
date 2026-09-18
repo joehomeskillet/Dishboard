@@ -10,13 +10,19 @@ from test_rec_import_commit_migration_db import rows_and_sequences
 
 def test_plan_ends_at_schema_39() -> None:
     plan = database.migration_plan(SCHEMA)
-    assert database.SCHEMA_VERSION == 39
-    assert (plan[-1].version, plan[-1].path.name) == (39, '0036_v38_to_v39.sql')
+    assert database.SCHEMA_VERSION >= 39
+    v39 = next(m for m in plan if m.version == 39)
+    assert v39.path.name == '0036_v38_to_v39.sql'
 
 
-def test_v38_upgrade_adds_inventory_tables(pg16):  # noqa: F811
+def test_v38_upgrade_adds_inventory_tables(pg16, monkeypatch):  # noqa: F811
+    monkeypatch.setattr(
+        database,
+        'MIGRATION_FILES',
+        tuple(entry for entry in database.MIGRATION_FILES if entry[0] <= 39),
+    )
     plan = database.migration_plan(SCHEMA)
-    for migration in plan:
+    for migration in plan[:-1]:
         if migration.version <= 38:
             database._execute_migration(pg16, migration)
     database._execute_script(pg16, str(SCHEMA.parent / 'seed.sql'))

@@ -2017,6 +2017,8 @@ def test_app_grants_are_column_scoped_and_owner_issuance_still_works(
         'create_dish_template_v32', 'update_dish_template_v32',
         'create_recipe_import_batch_v28', 'update_recipe_import_batch_v28',
         'commit_recipe_import_batch_v29',
+        'append_food_price_revision_v36',
+        'supplier_mutate_v38', 'supplier_article_mutate_v38',
     }
     assert {row['proname'] for row in definer_privileges} == master_commands | {
         'record_auth_access_v25',

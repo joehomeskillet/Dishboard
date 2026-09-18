@@ -529,11 +529,20 @@ def test_v15_migration_installs_role_scoped_active_location_lock(pg16: Engine) -
     # Seit 0031 grantet permissions.sql auch auf die erst mit Schema34 entstehenden
     # shopping_*-Tabellen; vor Version 33 muss dieser Block entfernt werden, sonst
     # schlaegt das Skript an den fehlenden Tabellen fehl.
+    import re
     permissions_text = (ROOT / 'database' / 'permissions.sql').read_text(encoding='utf-8')
-    begin_marker = '-- Schema34 shopping list grants begin.\n'
-    end_marker = '-- Schema34 shopping list grants end.\n\n'
-    prefix, rest = permissions_text.split(begin_marker, 1)
-    permissions_v32 = prefix + rest.split(end_marker, 1)[1]
+    permissions_text = re.sub(r'[ \t]*menu_service_courses,\s*menu_item_course_exceptions,?', '', permissions_text)
+    permissions_text = re.sub(r'[ \t]*kitchen_events,\s*kitchen_event_demand_items,?', '', permissions_text)
+    permissions_text = re.sub(r',\s*TO cafeteria_app;', '\nTO cafeteria_app;', permissions_text)
+    permissions_text = re.sub(r'GRANT SELECT, INSERT, UPDATE ON inventory_accounts TO cafeteria_app;\n', '', permissions_text)
+    permissions_text = re.sub(r'GRANT SELECT, INSERT ON inventory_movements TO cafeteria_app;\n', '', permissions_text)
+    permissions_text = re.sub(r'GRANT SELECT, INSERT ON prepared_batch_runs, calculation_receipts TO cafeteria_app;\n', '', permissions_text)
+    permissions_text = re.sub(r'GRANT SELECT ON prepared_batch_runs, calculation_receipts TO cafeteria_backup;\n', '', permissions_text)
+    permissions_text = re.sub(r'GRANT SELECT ON SEQUENCE prepared_batch_runs_id_seq, calculation_receipts_id_seq TO cafeteria_backup;\n', '', permissions_text)
+    permissions_text = re.sub(r'REVOKE ALL ON FUNCTION calculation_receipt_protect_v41\(\) FROM PUBLIC, cafeteria_app, cafeteria_backup, cafeteria_auth_issuer;\n', '', permissions_text)
+    permissions_text = re.sub(r'GRANT SELECT ON TO cafeteria_backup;\n', '', permissions_text)
+    permissions_text = re.sub(r'GRANT SELECT ON SEQUENCE menu_service_courses_id_seq, menu_item_course_exceptions_id_seq\nTO cafeteria_backup;\n', '', permissions_text)
+    permissions_v32 = re.sub(r'-- Schema(3[4-9]|[4-9][0-9]).*?grants end\.\n*', '', permissions_text, flags=re.DOTALL)
     permissions_scratch = Path(os.environ.get('CLAUDE_SANDBOX_SCRATCHPAD', '/tmp')) / \
         'permissions_v32_without_shopping_component_catalog.sql'
     permissions_scratch.parent.mkdir(parents=True, exist_ok=True)
