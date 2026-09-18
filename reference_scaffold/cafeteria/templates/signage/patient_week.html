@@ -35,7 +35,7 @@
     <header class="card-header d-flex flex-column"><h2 class="card-title m-0">{{ day.weekday }}</h2><span>{{ day.date|date_short }}</span></header>
     <section class="patient-week-cell {{ 'dinner' if meal_code == 'DINNER' else '' }}">
       {% set time_label = meal|service_time_label('patient') if meal else '' %}
-      <div class="meal-name d-flex flex-wrap align-items-center gap-1">
+      <div class="meal-name d-flex text-nowrap overflow-hidden align-items-center gap-1">
         <div class="flex-shrink-0">{{ time_label if time_label else meal_name }}</div>
         {% if meal %}{% with service=meal %}{% include 'admin/_service_courses.html' %}{% endwith %}{% endif %}
       </div>
@@ -74,7 +74,7 @@
     {% for meal in day.services %}
     <section class="patient-week-cell {{ 'dinner' if meal.meal_code == 'DINNER' else '' }}">
       {% set time_label = meal|service_time_label('patient') %}
-      <div class="meal-name d-flex flex-wrap align-items-center gap-1">
+      <div class="meal-name d-flex text-nowrap overflow-hidden align-items-center gap-1">
         <div class="flex-shrink-0">{{ meal.meal_name }}{% if time_label %} · {{ time_label }}{% endif %}</div>
         {% with service=meal %}{% include 'admin/_service_courses.html' %}{% endwith %}
       </div>
