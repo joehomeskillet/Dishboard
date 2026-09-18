@@ -116,7 +116,7 @@ PATIENT_SENSITIVE_STEMS = (
     'charg', 'amount', 'currenc', 'bill', 'payabl', 'payment', 'includ', 'cout',
     'supplement', 'montant', 'factur', 'payant', 'paiement', 'prezz', 'importo',
     'receipt', 'unitprice', 'yieldfactor', 'purchaseprice',
-    'pagat', 'compres', 'chf', 'rappen', 'franken', 'stutz', 'rappli', 'raeppli',
+    'pagat', 'compres', 'rappen', 'franken', 'stutz', 'rappli', 'raeppli',
     'frankli', 'fraenkli', 'betrag', 'wahrung', 'waehrung', 'zahlung',
 )
 PATIENT_SENSITIVE_EXACT = frozenset({
@@ -169,17 +169,27 @@ def _patient_semantic_tokens(value: str) -> list[str]:
     ).split()
 
 
+def _patient_form_has_sensitive_chf(form: str) -> bool:
+    short_chf_skeleton = form.replace('i', '').replace('l', '')
+    if len(form) <= 5 and short_chf_skeleton == 'chf':
+        return True
+    if 'chf' not in form:
+        return False
+    if form in PATIENT_SENSITIVE_EXACT:
+        return True
+    return form.startswith('chf') or form.endswith('chf')
+
+
 def _patient_form_is_sensitive(form: str) -> bool:
     for safe_food_lexeme in ('preiselbeer', 'costine', 'aufbewahrung'):
         form = form.replace(safe_food_lexeme, '')
     ascii_il_skeleton = re.sub(r'[il]+', 'i', form)
-    short_chf_skeleton = form.replace('i', '').replace('l', '')
     return (
         form in PATIENT_SENSITIVE_EXACT
         or form.startswith(('pric', 'surcharg'))
         or any(stem in form for stem in PATIENT_SENSITIVE_STEMS)
         or any(stem in ascii_il_skeleton for stem in ('price', 'pricing'))
-        or len(form) <= 5 and short_chf_skeleton == 'chf'
+        or _patient_form_has_sensitive_chf(form)
     )
 
 
