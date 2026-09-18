@@ -49,8 +49,8 @@
         {% set time_label = meal|service_time_label('patient') %}
         {# Meal name and serving time share one subgrid track, so the menu cards keep theirs. #}
         <div>
-          <h3 class="mt-2 text-secondary {{ 'mb-1' if time_label else 'mb-2' }}">{{ meal.meal_name }}</h3>
-          {% if time_label %}<div class="text-secondary mb-2">{{ time_label }}</div>{% endif %}
+          <h3 class="mt-1 text-secondary mb-1">{{ meal.meal_name }}</h3>
+          {% if time_label %}<div class="text-secondary mb-1">{{ time_label }}</div>{% endif %}
           {% with service=meal %}{% include 'admin/_service_courses.html' %}{% endwith %}
         </div>
         {% if meal.service_state|default('open') == 'open' %}

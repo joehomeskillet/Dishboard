@@ -68,6 +68,23 @@
   gap: .5rem;
   overflow-wrap: anywhere;
 }
+/* Shared courses (soup, dessert) — UI manifest M11b */
+.public-page .service-courses,
+.public-page .service-course-exception {
+  margin: 0;
+  font-size: var(--app-font-size-small);
+  line-height: 1.2;
+  color: var(--sh-ink-muted);
+}
+.public-page .service-course-exception + .service-course-exception {
+  margin-top: var(--app-space-1);
+}
+.public-page :is(.service-courses, .service-course-exception) .signage-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1);
+  vertical-align: baseline;
+}
 /* Share fractional rows across every day and meal; long content sets all card heights. */
 .public-page :is(.public-menu-options, .public-menu-day, .public-menu-week) {
   display: grid;
