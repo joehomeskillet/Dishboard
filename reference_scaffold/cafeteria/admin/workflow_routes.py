@@ -850,6 +850,8 @@ def courses_post(family: str):
         persist_service_courses(
             _db(), scope, week, day, meal,
             soup=parsed['soup'], dessert=parsed['dessert'], exceptions=parsed['exceptions'],
+            soup_row_version=parsed['soup_row_version'],
+            dessert_row_version=parsed['dessert_row_version'],
         )
     except WorkflowValidationError as error:
         return _week_form_error(profile, scope, 'courses', error, 400)

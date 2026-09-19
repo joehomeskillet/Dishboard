@@ -12,6 +12,7 @@ from sqlalchemy import Connection, Engine, text
 
 from .component_catalog_store import AdminScope
 from .workflow_partial_store import (
+    PartialWorkflowConflictError,
     PartialWorkflowNotFoundError,
     PartialWorkflowValidationError,
     resolve_week_ref,
@@ -113,7 +114,7 @@ def _row_view(row: Mapping[str, Any] | None) -> dict[str, Any]:
     if row is None:
         return unplanned()
     flags = _flags_from_snapshot(row.get('snapshot_json'), row)
-    return {
+    view = {
         'state': row['planning_state'],
         'title': row['title'],
         'recipe_public_id': str(row['recipe_public_id']) if row['recipe_public_id'] else None,
@@ -123,6 +124,9 @@ def _row_view(row: Mapping[str, Any] | None) -> dict[str, Any]:
         'nutrition': flags['nutrition'],
         'allergen_review_status': 'not_checked',
     }
+    if row.get('row_version') is not None:
+        view['row_version'] = int(row['row_version'])
+    return view
 
 
 def course_issue_flags(view: Mapping[str, Any] | None) -> dict[str, Any]:
@@ -204,7 +208,7 @@ def summarize_course_issues(
 
 def load_service_courses(connection: Connection, service_id: int) -> dict[str, dict[str, Any]]:
     rows = connection.execute(text('''
-        SELECT c.course_kind, c.planning_state, rr.public_id AS revision_public_id,
+        SELECT c.course_kind, c.planning_state, c.row_version, rr.public_id AS revision_public_id,
                r.public_id AS recipe_public_id, rr.snapshot_json AS snapshot_json,
                COALESCE(rr.snapshot_json #>> '{recipe,title}', r.title) AS title
         FROM cafeteria.menu_service_courses c
@@ -220,8 +224,9 @@ def load_item_exceptions(connection: Connection, item_ids: Sequence[int]) -> dic
     if not item_ids:
         return {}
     rows = connection.execute(text('''
-        SELECT e.menu_item_id, e.course_kind, e.planning_state, rr.public_id AS revision_public_id,
-               r.public_id AS recipe_public_id, rr.snapshot_json AS snapshot_json,
+        SELECT e.menu_item_id, e.course_kind, e.planning_state, e.row_version,
+               rr.public_id AS revision_public_id, r.public_id AS recipe_public_id,
+               rr.snapshot_json AS snapshot_json,
                COALESCE(rr.snapshot_json #>> '{recipe,title}', r.title) AS title
         FROM cafeteria.menu_item_course_exceptions e
         LEFT JOIN cafeteria.recipe_revisions rr ON rr.id=e.recipe_revision_id
@@ -259,8 +264,9 @@ def load_week_courses_connection(
     by_service_exc: dict[int, dict[str, dict[str, dict[str, Any]]]] = {}
     if ids:
         for row in connection.execute(text('''
-            SELECT c.service_id, c.course_kind, c.planning_state, rr.public_id AS revision_public_id,
-                   r.public_id AS recipe_public_id, rr.snapshot_json AS snapshot_json,
+            SELECT c.service_id, c.course_kind, c.planning_state, c.row_version,
+                   rr.public_id AS revision_public_id, r.public_id AS recipe_public_id,
+                   rr.snapshot_json AS snapshot_json,
                    COALESCE(rr.snapshot_json #>> '{recipe,title}', r.title) AS title
             FROM cafeteria.menu_service_courses c
             LEFT JOIN cafeteria.recipe_revisions rr ON rr.id=c.recipe_revision_id
@@ -270,8 +276,8 @@ def load_week_courses_connection(
             by_service_shared.setdefault(int(row['service_id']), {})[str(row['course_kind'])] = _row_view(row)
         for row in connection.execute(text('''
             SELECT i.service_id, mt.code AS option_code, e.course_kind, e.planning_state,
-                   rr.public_id AS revision_public_id, r.public_id AS recipe_public_id,
-                   rr.snapshot_json AS snapshot_json,
+                   e.row_version, rr.public_id AS revision_public_id,
+                   r.public_id AS recipe_public_id, rr.snapshot_json AS snapshot_json,
                    COALESCE(rr.snapshot_json #>> '{recipe,title}', r.title) AS title
             FROM cafeteria.menu_item_course_exceptions e
             JOIN cafeteria.menu_items i ON i.id=e.menu_item_id
@@ -303,14 +309,15 @@ def attach_courses_to_draft(
             key = (str(day['date']), str(service['meal_code']))
             block = packed.get(key, {'shared': {kind: unplanned() for kind in COURSE_KINDS}, 'exceptions': {}})
             shared = block['shared']
+            exceptions = block['exceptions']
             service['shared_courses'] = shared
+            service['course_exceptions'] = exceptions
             soup = snapshot_course(shared['soup'])
             dessert = snapshot_course(shared['dessert'])
             if soup is not None:
                 service['soup'] = soup
             if dessert is not None:
                 service['dessert'] = dessert
-            exceptions = block['exceptions']
             for option in service.get('options') or ():
                 option_exc = exceptions.get(str(option.get('type_code') or ''), {})
                 for kind in COURSE_KINDS:
@@ -354,15 +361,70 @@ def _resolve_revision(
         raise wrapped from error
 
 
+def _expected_course_version(value: int, label: str) -> int:
+    if type(value) is not int or value < 0:
+        raise PartialWorkflowValidationError(f'{label} ist ungültig.')
+    return value
+
+
+def _course_conflict(kind: str) -> PartialWorkflowConflictError:
+    return PartialWorkflowConflictError(f'{COURSE_LABELS[kind]} wurde zwischenzeitlich geändert.')
+
+
 def _upsert_shared(
     connection: Connection, *, location_id: int, service_id: int, actor_id: int,
-    kind: str, payload: Mapping[str, Any],
+    kind: str, payload: Mapping[str, Any], expected_row_version: int | None = None,
 ) -> None:
     state = str(payload.get('state') or 'unplanned')
     if state not in ('unplanned', 'planned', 'not_offered'):
         raise PartialWorkflowValidationError('Ungültiger Gangstatus.')
     if kind not in COURSE_KINDS:
         raise PartialWorkflowValidationError('Ungültiger Gang.')
+    existing = connection.execute(text('''
+        SELECT id, row_version FROM cafeteria.menu_service_courses
+        WHERE service_id=:service AND course_kind=:kind FOR UPDATE
+    '''), {'service': service_id, 'kind': kind}).mappings().one_or_none()
+    if expected_row_version is not None:
+        expected = _expected_course_version(expected_row_version, f'{COURSE_LABELS[kind]}-Version')
+        if state == 'unplanned':
+            if existing is None:
+                if expected != 0:
+                    raise _course_conflict(kind)
+                return
+            if int(existing['row_version']) != expected:
+                raise _course_conflict(kind)
+            connection.execute(text(
+                'DELETE FROM cafeteria.menu_service_courses WHERE id=:id'
+            ), {'id': int(existing['id'])})
+            return
+        revision_id = None
+        if state == 'planned':
+            revision_id = _resolve_revision(connection, location_id, payload, field=COURSE_LABELS[kind])
+        if existing is None:
+            if expected != 0:
+                raise _course_conflict(kind)
+            connection.execute(text('''
+                INSERT INTO cafeteria.menu_service_courses(
+                    location_id, service_id, course_kind, planning_state, recipe_revision_id,
+                    created_by, updated_by)
+                VALUES (:location, :service, :kind, :state, :revision, :actor, :actor)
+            '''), {
+                'location': location_id, 'service': service_id, 'kind': kind, 'state': state,
+                'revision': revision_id, 'actor': actor_id,
+            })
+            return
+        if int(existing['row_version']) != expected:
+            raise _course_conflict(kind)
+        connection.execute(text('''
+            UPDATE cafeteria.menu_service_courses
+            SET planning_state=:state, recipe_revision_id=:revision,
+                updated_by=:actor, updated_at=clock_timestamp(),
+                row_version=row_version + 1
+            WHERE id=:id
+        '''), {
+            'state': state, 'revision': revision_id, 'actor': actor_id, 'id': int(existing['id']),
+        })
+        return
     if state == 'unplanned':
         connection.execute(text(
             'DELETE FROM cafeteria.menu_service_courses WHERE service_id=:service AND course_kind=:kind'
@@ -385,10 +447,97 @@ def _upsert_shared(
     })
 
 
+def _upsert_exception(
+    connection: Connection, *, location_id: int, menu_item_id: int, actor_id: int,
+    kind: str, state: str, payload: Mapping[str, Any], expected_row_version: int | None,
+) -> None:
+    if kind not in COURSE_KINDS:
+        raise PartialWorkflowValidationError('Ungültiger Gang.')
+    existing = connection.execute(text('''
+        SELECT id, row_version FROM cafeteria.menu_item_course_exceptions
+        WHERE menu_item_id=:item AND course_kind=:kind FOR UPDATE
+    '''), {'item': menu_item_id, 'kind': kind}).mappings().one_or_none()
+    if state == 'inherit':
+        if expected_row_version is not None:
+            expected = _expected_course_version(
+                expected_row_version, f'{COURSE_LABELS[kind]}-Version',
+            )
+            if existing is None:
+                if expected != 0:
+                    raise _course_conflict(kind)
+                return
+            if int(existing['row_version']) != expected:
+                raise _course_conflict(kind)
+            connection.execute(text(
+                'DELETE FROM cafeteria.menu_item_course_exceptions WHERE id=:id'
+            ), {'id': int(existing['id'])})
+        elif existing is not None:
+            connection.execute(text(
+                'DELETE FROM cafeteria.menu_item_course_exceptions WHERE id=:id'
+            ), {'id': int(existing['id'])})
+        return
+    if state not in ('planned', 'not_offered'):
+        raise PartialWorkflowValidationError('Ungültige Menüabweichung.')
+    revision_id = None
+    if state == 'planned':
+        revision_id = _resolve_revision(
+            connection, location_id, payload, field=COURSE_LABELS[kind],
+        )
+    if expected_row_version is not None:
+        expected = _expected_course_version(
+            expected_row_version, f'{COURSE_LABELS[kind]}-Version',
+        )
+        if existing is None:
+            if expected != 0:
+                raise _course_conflict(kind)
+            connection.execute(text('''
+                INSERT INTO cafeteria.menu_item_course_exceptions(
+                    menu_item_id, course_kind, planning_state, recipe_revision_id, created_by, updated_by)
+                VALUES (:item, :kind, :state, :revision, :actor, :actor)
+            '''), {
+                'item': menu_item_id, 'kind': kind, 'state': state,
+                'revision': revision_id, 'actor': actor_id,
+            })
+            return
+        if int(existing['row_version']) != expected:
+            raise _course_conflict(kind)
+        connection.execute(text('''
+            UPDATE cafeteria.menu_item_course_exceptions
+            SET planning_state=:state, recipe_revision_id=:revision,
+                updated_by=:actor, updated_at=clock_timestamp(),
+                row_version=row_version + 1
+            WHERE id=:id
+        '''), {
+            'state': state, 'revision': revision_id, 'actor': actor_id, 'id': int(existing['id']),
+        })
+        return
+    if existing is None:
+        connection.execute(text('''
+            INSERT INTO cafeteria.menu_item_course_exceptions(
+                menu_item_id, course_kind, planning_state, recipe_revision_id, created_by, updated_by)
+            VALUES (:item, :kind, :state, :revision, :actor, :actor)
+        '''), {
+            'item': menu_item_id, 'kind': kind, 'state': state,
+            'revision': revision_id, 'actor': actor_id,
+        })
+    else:
+        connection.execute(text('''
+            UPDATE cafeteria.menu_item_course_exceptions
+            SET planning_state=:state, recipe_revision_id=:revision,
+                updated_by=:actor, updated_at=clock_timestamp(),
+                row_version=row_version + 1
+            WHERE id=:id
+        '''), {
+            'state': state, 'revision': revision_id, 'actor': actor_id, 'id': int(existing['id']),
+        })
+
+
 def persist_service_courses_connection(
     connection: Connection, scope: AdminScope, week_start: date, day: str, meal: str, *,
     soup: Mapping[str, Any], dessert: Mapping[str, Any],
     exceptions: Sequence[Mapping[str, Any]] | None = None,
+    soup_row_version: int | None = None,
+    dessert_row_version: int | None = None,
 ) -> None:
     """Write shared soup+dessert on an open write connection (no nested transaction)."""
     if meal not in ('LUNCH', 'DINNER'):
@@ -405,24 +554,19 @@ def persist_service_courses_connection(
         raise PartialWorkflowNotFoundError('Ausgabe nicht gefunden. Zuerst Ausgabeangaben oder ein Menü speichern.')
     service_id = int(service)
     _upsert_shared(connection, location_id=scope.location_id, service_id=service_id,
-                   actor_id=scope.actor_id, kind='soup', payload=soup)
+                   actor_id=scope.actor_id, kind='soup', payload=soup,
+                   expected_row_version=soup_row_version)
     _upsert_shared(connection, location_id=scope.location_id, service_id=service_id,
-                   actor_id=scope.actor_id, kind='dessert', payload=dessert)
+                   actor_id=scope.actor_id, kind='dessert', payload=dessert,
+                   expected_row_version=dessert_row_version)
     if exceptions is None:
         return
-    connection.execute(text('''
-        DELETE FROM cafeteria.menu_item_course_exceptions e
-        USING cafeteria.menu_items i
-        WHERE e.menu_item_id=i.id AND i.service_id=:service
-    '''), {'service': service_id})
     for item in exceptions:
         option = str(item.get('option') or '')
         kind = str(item.get('kind') or '')
         if kind not in COURSE_KINDS:
             raise PartialWorkflowValidationError('Ungültiger Gang.')
         state = str(item.get('state') or 'inherit')
-        if state == 'inherit':
-            continue
         menu_item = connection.execute(text('''
             SELECT i.id FROM cafeteria.menu_items i
             JOIN cafeteria.menu_types mt ON mt.id=i.menu_type_id
@@ -430,34 +574,36 @@ def persist_service_courses_connection(
             FOR UPDATE OF i
         '''), {'service': service_id, 'option': option}).scalar_one_or_none()
         if menu_item is None:
+            if state == 'inherit':
+                continue
             raise PartialWorkflowNotFoundError('Menüvariante nicht gefunden.')
-        revision_id = None
-        if state == 'planned':
-            revision_id = _resolve_revision(
-                connection, scope.location_id, item, field=COURSE_LABELS[kind],
-            )
-        elif state != 'not_offered':
-            raise PartialWorkflowValidationError('Ungültige Menüabweichung.')
-        connection.execute(text('''
-            INSERT INTO cafeteria.menu_item_course_exceptions(
-                menu_item_id, course_kind, planning_state, recipe_revision_id, created_by, updated_by)
-            VALUES (:item, :kind, :state, :revision, :actor, :actor)
-        '''), {
-            'item': int(menu_item), 'kind': kind, 'state': state,
-            'revision': revision_id, 'actor': scope.actor_id,
-        })
+        expected_version = item.get('row_version')
+        version = (
+            _expected_course_version(int(expected_version), f'{COURSE_LABELS[kind]}-Version')
+            if expected_version is not None and soup_row_version is not None
+            else None
+        )
+        _upsert_exception(
+            connection, location_id=scope.location_id, menu_item_id=int(menu_item),
+            actor_id=scope.actor_id, kind=kind, state=state, payload=item,
+            expected_row_version=version,
+        )
 
 
 def persist_service_courses(
     engine: Engine, scope: AdminScope, week_start: date, day: str, meal: str, *,
     soup: Mapping[str, Any], dessert: Mapping[str, Any],
     exceptions: Sequence[Mapping[str, Any]] | None = None,
+    soup_row_version: int | None = None,
+    dessert_row_version: int | None = None,
 ) -> None:
     """Atomically write shared soup+dessert and named menu exceptions for one service."""
     with write_transaction(engine, scope) as connection:
         persist_service_courses_connection(
             connection, scope, week_start, day, meal,
             soup=soup, dessert=dessert, exceptions=exceptions,
+            soup_row_version=soup_row_version,
+            dessert_row_version=dessert_row_version,
         )
 
 
@@ -575,6 +721,18 @@ def parse_course_form(form: Mapping[str, Any]) -> dict[str, Any]:
             raise PartialWorkflowValidationError('Ungültiger Gangstatus.')
         return value
 
+    def _version(name: str) -> int:
+        raw = form.get(name)
+        if raw is None or str(raw).strip() == '':
+            return 0
+        try:
+            value = int(raw)
+        except (TypeError, ValueError) as error:
+            raise PartialWorkflowValidationError(f'{name} ist ungültig.') from error
+        if value < 0:
+            raise PartialWorkflowValidationError(f'{name} ist ungültig.')
+        return value
+
     def _payload(prefix: str) -> dict[str, Any]:
         state = _state(f'{prefix}_state')
         if state == 'inherit':
@@ -592,7 +750,10 @@ def parse_course_form(form: Mapping[str, Any]) -> dict[str, Any]:
             if f'{prefix}_state' not in form:
                 continue
             state = _state(f'{prefix}_state')
-            item: dict[str, Any] = {'option': option, 'kind': kind, 'state': state}
+            item: dict[str, Any] = {
+                'option': option, 'kind': kind, 'state': state,
+                'row_version': _version(f'{prefix}_row_version'),
+            }
             recipe = str(form.get(f'{prefix}_recipe') or '').strip()
             if state == 'planned':
                 item['recipe_public_id'] = recipe
@@ -601,4 +762,6 @@ def parse_course_form(form: Mapping[str, Any]) -> dict[str, Any]:
         'soup': _payload('soup'),
         'dessert': _payload('dessert'),
         'exceptions': exceptions,
+        'soup_row_version': _version('soup_row_version'),
+        'dessert_row_version': _version('dessert_row_version'),
     }

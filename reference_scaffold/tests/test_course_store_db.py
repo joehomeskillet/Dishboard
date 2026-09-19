@@ -3,11 +3,13 @@ from __future__ import annotations
 
 import logging
 import secrets
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
 import pytest
 from sqlalchemy import text
 
+from cafeteria import course_store
 from cafeteria.course_store import (
     capture_week_courses,
     course_issue_flags,
@@ -18,7 +20,14 @@ from cafeteria.course_store import (
     summarize_course_issues,
     unplanned,
 )
-from cafeteria.workflow import WorkflowValidationError, import_draft, load_draft
+from cafeteria.workflow import (
+    WorkflowValidationError,
+    _draft_values,
+    import_draft,
+    load_draft,
+    validate_publication_fit,
+)
+from cafeteria.workflow_partial_store import PartialWorkflowConflictError
 from cafeteria.workflow_copy_store import copy_previous_week
 from cafeteria.workflow_partial_store import PartialWorkflowValidationError, persist_menu_item
 from prepared_food_fixtures import create_food, create_recipe, execute, freeze
@@ -370,6 +379,110 @@ def test_inaccessible_csv_course_uuid_rolls_back_draft_and_earlier_days(
     assert draft['title'] != 'Import darf nicht bleiben'
     monday_title = draft['days'][0]['services'][0]['options'][0]['title']
     assert monday_title == 'Rindsgeschnetzeltes'
+
+def test_schema3_import_captures_courses_after_write_transaction_begins(
+    workflow_database: WorkflowDatabase,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    db = workflow_database
+    scope = _scope(db, 'staff_guest')
+    soup = _freeze_named(db, 'ErfassSuppe')
+    persist_menu_item(db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH', 'MENU_1', _payload(staff=True), 0)
+    persist_service_courses(
+        db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+        soup={'state': 'planned', 'recipe_public_id': soup['recipe_public_id']},
+        dessert={'state': 'unplanned'},
+    )
+    with db.owner.connect() as connection:
+        version = connection.execute(text(
+            '''SELECT w.row_version FROM cafeteria.menu_weeks w
+               JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+               WHERE w.location_id=:loc AND p.code='staff_guest' AND w.week_start=:week'''
+        ), {'loc': db.location_id, 'week': WEEK}).scalar_one()
+    events: list[str] = []
+    import cafeteria.workflow_write_context as workflow_write_context
+
+    original_begin = workflow_write_context.begin_write
+    original_capture = capture_week_courses
+
+    def spy_begin(connection, scope):
+        events.append('begin_write')
+        return original_begin(connection, scope)
+
+    def spy_capture(connection, week_id):
+        events.append('capture')
+        assert 'begin_write' in events
+        return original_capture(connection, week_id)
+
+    monkeypatch.setattr(workflow_write_context, 'begin_write', spy_begin)
+    monkeypatch.setattr(course_store, 'capture_week_courses', spy_capture)
+    import_draft(
+        db.app, 'staff_guest', WEEK,
+        expected_row_version=int(version),
+        actor_id=db.actor_id,
+        values=_staff_values(title='Schema-3-Import'),
+        **write_expectations(db.app, db.actor_id),
+    )
+    assert events.index('capture') > events.index('begin_write')
+
+
+def test_concurrent_course_writes_second_gets_stale_conflict(
+    workflow_database: WorkflowDatabase,
+) -> None:
+    db = workflow_database
+    scope = _scope(db, 'staff_guest')
+    first = _freeze_named(db, 'KonkurrenzSuppeA')
+    second = _freeze_named(db, 'KonkurrenzSuppeB')
+    persist_menu_item(db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH', 'MENU_1', _payload(staff=True), 0)
+    persist_service_courses(
+        db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+        soup={'state': 'planned', 'recipe_public_id': first['recipe_public_id']},
+        dessert={'state': 'unplanned'},
+        soup_row_version=0,
+        dessert_row_version=0,
+    )
+    packed = load_week_courses(db.app, db.location_id, WEEK, 'staff_guest')
+    soup_version = int(packed[(WEEK.isoformat(), 'LUNCH')]['shared']['soup']['row_version'])
+    outcomes: list[str] = []
+
+    def write(recipe: dict[str, object]) -> None:
+        try:
+            persist_service_courses(
+                db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+                soup={'state': 'planned', 'recipe_public_id': recipe['recipe_public_id']},
+                dessert={'state': 'unplanned'},
+                soup_row_version=soup_version,
+                dessert_row_version=0,
+            )
+            outcomes.append('ok')
+        except PartialWorkflowConflictError:
+            outcomes.append('stale')
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(write, first), pool.submit(write, second)]
+        for future in futures:
+            future.result()
+    assert sorted(outcomes) == ['ok', 'stale']
+
+
+def test_publication_rejects_planned_course_without_title(
+    workflow_database: WorkflowDatabase,
+) -> None:
+    db = workflow_database
+    scope = _scope(db, 'staff_guest')
+    persist_menu_item(db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH', 'MENU_1', _payload(staff=True), 0)
+    draft = load_draft(
+        db.app, 'staff_guest', WEEK, actor_id=db.actor_id, **write_expectations(db.app, db.actor_id),
+    )
+    service = draft['days'][0]['services'][0]
+    service['shared_courses'] = {
+        'soup': {'state': 'planned', 'title': ''},
+        'dessert': {'state': 'unplanned'},
+    }
+    service['course_exceptions'] = {}
+    with pytest.raises(WorkflowValidationError, match='Titel fehlt'):
+        validate_publication_fit('staff_guest', _draft_values(draft), draft=draft)
+
 
 def test_snapshot_course_passes_allergens() -> None:
     from cafeteria.course_store import snapshot_course
