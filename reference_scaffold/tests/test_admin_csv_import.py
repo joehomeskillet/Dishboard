@@ -21,7 +21,14 @@ from cafeteria import db as database
 from cafeteria.security import csrf_token
 from cafeteria.workflow_partial_store import persist_week_header
 from cafeteria.workflow_snapshot import build_snapshot
+from cafeteria.course_store import load_week_courses, persist_service_courses
+from cafeteria.workflow import import_draft
+from review_support import write_expectations
+from test_admin_workflow_db import _staff_values
 from test_admin_workflow_routes import _scope, _session_actor_id
+from test_course_store_db import _freeze_named
+from test_workflow_partial_store_db import WEEK, WorkflowDatabase, _payload, _scope as workflow_scope
+from test_workflow_partial_store_db import workflow_database as workflow_database  # noqa: F401
 
 ROOT = Path(__file__).resolve().parents[2]
 DATABASE_URL = os.getenv('TEST_DATABASE_URL')
@@ -584,6 +591,50 @@ def test_import_week_creation_and_persistence_roll_back_together_on_database_err
         ).one()
     assert response.status_code == 500
     assert tuple(counts) == (0, 0, 0)
+
+
+def test_schema3_import_preserves_course_state_seen_under_week_lock(
+    workflow_database: WorkflowDatabase,
+) -> None:
+    """A course change committed before import must survive schema-3 full replace."""
+    db = workflow_database
+    scope = workflow_scope(db, 'staff_guest')
+    original = _freeze_named(db, 'ImportOriginal')
+    replacement = _freeze_named(db, 'ImportErsatz')
+    from cafeteria.workflow_partial_store import persist_menu_item
+
+    persist_menu_item(db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH', 'MENU_1', _payload(staff=True), 0)
+    persist_service_courses(
+        db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+        soup={'state': 'planned', 'recipe_public_id': original['recipe_public_id']},
+        dessert={'state': 'unplanned'},
+        soup_row_version=0,
+        dessert_row_version=0,
+    )
+    packed = load_week_courses(db.app, db.location_id, WEEK, 'staff_guest')
+    soup_version = int(packed[(WEEK.isoformat(), 'LUNCH')]['shared']['soup']['row_version'])
+    persist_service_courses(
+        db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+        soup={'state': 'planned', 'recipe_public_id': replacement['recipe_public_id']},
+        dessert={'state': 'unplanned'},
+        soup_row_version=soup_version,
+        dessert_row_version=0,
+    )
+    with db.owner.connect() as connection:
+        version = connection.execute(text(
+            '''SELECT w.row_version FROM cafeteria.menu_weeks w
+               JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+               WHERE w.location_id=:loc AND p.code='staff_guest' AND w.week_start=:week'''
+        ), {'loc': db.location_id, 'week': WEEK}).scalar_one()
+    import_draft(
+        db.app, 'staff_guest', WEEK,
+        expected_row_version=int(version),
+        actor_id=db.actor_id,
+        values=_staff_values(title='CSV Vollersatz'),
+        **write_expectations(db.app, db.actor_id),
+    )
+    after = load_week_courses(db.app, db.location_id, WEEK, 'staff_guest')
+    assert after[(WEEK.isoformat(), 'LUNCH')]['shared']['soup']['title'] == 'ImportErsatz'
 
 
 @pytest.mark.parametrize(

@@ -298,9 +298,37 @@ def validate_publication_fit(
     values: dict[str, Any],
     *,
     require_review: bool = True,
+    draft: dict[str, Any] | None = None,
 ) -> None:
     if profile_code not in SIGNAGE_LIMITS:
         raise WorkflowValidationError('Unbekanntes Profil.')
+    if draft is not None:
+        from .course_store import COURSE_KINDS, COURSE_LABELS
+        for day_index, day in enumerate(draft.get('days') or ()):
+            for service in day.get('services') or ():
+                if service.get('service_state') != 'open':
+                    continue
+                meal_code = str(service['meal_code'])
+                shared = service.get('shared_courses') or {}
+                for kind in COURSE_KINDS:
+                    course = shared.get(kind) or {}
+                    if course.get('state') == 'planned' and not str(course.get('title') or '').strip():
+                        raise WorkflowValidationError(
+                            f'{COURSE_LABELS[kind]} ist geplant, aber der Titel fehlt.',
+                            field_name=f'course_{day_index}_{meal_code}_{kind}',
+                        )
+                for option_code, option_exc in (service.get('course_exceptions') or {}).items():
+                    for kind in COURSE_KINDS:
+                        override = option_exc.get(kind)
+                        if override is None:
+                            continue
+                        if override.get('state') == 'planned' and not str(override.get('title') or '').strip():
+                            raise WorkflowValidationError(
+                                f'{COURSE_LABELS[kind]} ist geplant, aber der Titel fehlt.',
+                                field_name=(
+                                    f'course_{day_index}_{meal_code}_{option_code}_{kind}'
+                                ),
+                            )
     for day_index, day in enumerate(values['days']):
         for service in day['services']:
             if service['service_state'] != 'open':
@@ -354,16 +382,6 @@ def import_draft(
     validate_draft_values(profile_code, week_start, values)
     import_values = _full_replace_values(values)
     scope = write_scope(actor_id, expected_location_id, profile_code, expected_authz_version)
-    captured = None
-    if csv_courses is None:
-        with engine.connect() as connection:
-            week_id = connection.execute(text(
-                '''SELECT w.id FROM cafeteria.menu_weeks w
-                   JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
-                   WHERE w.location_id=:loc AND p.code=:profile AND w.week_start=:week'''
-            ), {'loc': expected_location_id, 'profile': profile_code, 'week': week_start}).scalar_one_or_none()
-            if week_id is not None:
-                captured = capture_week_courses(connection, int(week_id))
     with write_transaction(engine, scope) as connection:
         persisted_version = expected_row_version
         if expected_row_version == 0:
@@ -372,6 +390,16 @@ def import_draft(
                                           expected_location_id=expected_location_id):
                 raise StaleDraftError('Der Entwurf wurde zwischenzeitlich geändert.')
             persisted_version = 1
+        captured = None
+        if csv_courses is None:
+            week_id = connection.execute(text(
+                '''SELECT w.id FROM cafeteria.menu_weeks w
+                   JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+                   WHERE w.location_id=:loc AND p.code=:profile AND w.week_start=:week
+                   FOR UPDATE OF w'''
+            ), {'loc': expected_location_id, 'profile': profile_code, 'week': week_start}).scalar_one_or_none()
+            if week_id is not None:
+                captured = capture_week_courses(connection, int(week_id))
         version = persist_draft_connection(
             connection,
             profile_code,
@@ -647,7 +675,7 @@ def publish_draft_scoped(
         draft = load_draft_connection(connection, profile_code, week_start)
         values = _draft_values(draft)
         _validate_values(profile_code, week_start, values)
-        validate_publication_fit(profile_code, values)
+        validate_publication_fit(profile_code, values, draft=draft)
         if any(_review_open_connection(connection, item_id) for item_id in item_ids):
             raise WorkflowValidationError('Allergendeklaration ist nicht geprüft.')
         if week_context_review_open_connection(connection, int(draft['id'])):
