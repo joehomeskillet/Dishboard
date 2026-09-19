@@ -8,22 +8,22 @@
   </span>
   {% endif %}
 {% endmacro %}
+{% macro course_text(kind_label, course, empty_text) %}
+  {% if course.state == 'not_offered' %}{{ empty_text }}{% else %}{{ kind_label }}: {{ course.title }}{% endif %}
+{% endmacro %}
 {% if service.soup or service.dessert %}
-<p class="service-courses">
-  {% if service.soup %}
-    {% if service.soup.state == 'not_offered' %}Keine Suppe{% else %}Suppe: {{ service.soup.title }}{{ course_tags(service.soup) }}{% endif %}
-  {% endif %}
-  {% if service.soup and service.dessert %} · {% endif %}
-  {% if service.dessert %}
-    {% if service.dessert.state == 'not_offered' %}Kein Dessert{% else %}Dessert: {{ service.dessert.title }}{{ course_tags(service.dessert) }}{% endif %}
-  {% endif %}
+{% set course_line_text %}{% if service.soup %}{{ course_text('Suppe', service.soup, 'Keine Suppe') }}{% endif %}{% if service.soup and service.dessert %} · {% endif %}{% if service.dessert %}{{ course_text('Dessert', service.dessert, 'Kein Dessert') }}{% endif %}{% endset %}
+{% set show_course_tags = (service.soup and service.soup.state != 'not_offered' and (service.soup.labels or service.soup.allergens))
+  or (service.dessert and service.dessert.state != 'not_offered' and (service.dessert.labels or service.dessert.allergens)) %}
+<p class="service-courses{% if show_course_tags %} service-courses--tagged{% endif %}">
+  {% if show_course_tags %}<span class="service-course-text">{{ course_line_text }}</span>{% else %}{{ course_line_text }}{% endif %}{% if service.soup and service.soup.state != 'not_offered' %}{{ course_tags(service.soup) }}{% endif %}{% if service.dessert and service.dessert.state != 'not_offered' %}{{ course_tags(service.dessert) }}{% endif %}
 </p>
 {% endif %}
 {% for option in service.options %}
   {% if option.soup_override %}
-  <p class="service-course-exception">{{ option.type_name }}: {% if option.soup_override.state == 'not_offered' %}keine Suppe{% else %}Suppe: {{ option.soup_override.title }}{{ course_tags(option.soup_override) }}{% endif %}</p>
+  <p class="service-course-exception{% if option.soup_override.labels or option.soup_override.allergens %} service-course-exception--tagged{% endif %}">{{ option.type_name }}: {% if option.soup_override.state == 'not_offered' %}keine Suppe{% elif option.soup_override.labels or option.soup_override.allergens %}<span class="service-course-text">Suppe: {{ option.soup_override.title }}</span>{{ course_tags(option.soup_override) }}{% else %}Suppe: {{ option.soup_override.title }}{% endif %}</p>
   {% endif %}
   {% if option.dessert_override %}
-  <p class="service-course-exception">{{ option.type_name }}: {% if option.dessert_override.state == 'not_offered' %}kein Dessert{% else %}Dessert: {{ option.dessert_override.title }}{{ course_tags(option.dessert_override) }}{% endif %}</p>
+  <p class="service-course-exception{% if option.dessert_override.labels or option.dessert_override.allergens %} service-course-exception--tagged{% endif %}">{{ option.type_name }}: {% if option.dessert_override.state == 'not_offered' %}kein Dessert{% elif option.dessert_override.labels or option.dessert_override.allergens %}<span class="service-course-text">Dessert: {{ option.dessert_override.title }}</span>{{ course_tags(option.dessert_override) }}{% else %}Dessert: {{ option.dessert_override.title }}{% endif %}</p>
   {% endif %}
 {% endfor %}

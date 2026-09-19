@@ -240,9 +240,27 @@ html:has(.signage-cafe-day),.signage-body:has(.signage-cafe-day){width:auto;heig
   line-height: 1.1;
   min-width: 0;
 }
-.signage-shell .service-courses .signage-tags,
-.signage-shell .service-course-exception .signage-tags {
-  flex-wrap: wrap;
+.signage-shell .meal-name .service-courses--tagged,
+.signage-shell .meal-label .service-courses--tagged,
+.signage-shell .signage-kicker .service-courses--tagged,
+.signage-shell .cafe-week-day > .service-courses--tagged,
+.signage-shell .service-course-exception--tagged {
+  flex: 1 1 0;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+.signage-shell .service-courses--tagged .service-course-text,
+.signage-shell .service-course-exception--tagged .service-course-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.signage-shell .service-courses--tagged .signage-tags,
+.signage-shell .service-course-exception--tagged .signage-tags {
+  flex-shrink: 0;
+  flex-wrap: nowrap;
   margin: 0;
 }
 .signage-shell .service-courses + .service-courses,
