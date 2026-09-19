@@ -11,13 +11,42 @@ Beispieldateien mit Daten derselben Kalenderwoche liegen als `menu_patient_examp
 
 ## Gemeinsame Spalten
 
-Exportdateien verwenden Schema 3. Gemeinsame Spalten in exakter Reihenfolge:
+Exportdateien verwenden Schema 4. Gemeinsame Spalten in exakter Reihenfolge:
 
 `schema_version;profil;datum;wochentag;mahlzeit;menueart;external_id;titel;beschreibung;beilagen;beilage_dazu;labels;allergene_enthaelt;allergene_spuren;herkunft;hinweis;zustand;zustand_text`
 
 Die Cafeteria ergänzt:
 
 `preis_mitarbeitende_chf;preis_externe_chf`
+
+Schema 4 ergänzt danach die vier Gang-Spalten:
+
+`suppe;suppe_geltung;dessert;dessert_geltung`
+
+## Schema 4 — gemeinsame Gänge
+
+Die Spalten `suppe` und `dessert` beschreiben den geplanten Gang pro Service (Datum und Mahlzeit).
+Die zugehörigen `*_geltung`-Spalten steuern, ob der Wert für alle Menüarten gilt oder nur als Ausnahme.
+
+Erlaubte Werte in `suppe` und `dessert`:
+
+- leer — Gang noch nicht geplant
+- `keine` oder `-` — Gang wird nicht angeboten
+- Rezept-UUID — geplanter Gang mit verknüpftem Rezept
+
+Erlaubte Werte in `suppe_geltung` und `dessert_geltung`:
+
+- `gemeinsam` — Wert gilt für den gesamten Service (Standard, wenn die Spalte leer ist)
+- `ausnahme` — Wert gilt nur für die Menüart der aktuellen Zeile (`MENU_1` oder `VEGGIE`)
+
+Bei widersprüchlichen gemeinsamen Angaben in mehreren Zeilen desselben Services gilt die Zeile
+mit `menueart=MENU_1`, andernfalls die erste geplante Angabe (siehe `extract_csv_courses`).
+
+Ist eine angegebene Rezept-UUID ungültig oder für den Standort nicht zugänglich, meldet der Import
+«Zeile N: Rezeptangabe ist ungültig oder nicht zugänglich.» und rollt die gesamte Datei zurück.
+Es werden keine Teilübernahmen geschrieben.
+
+Schema-3-Dateien ohne Gang-Spalten bleiben importierbar; der Import behandelt fehlende Gänge wie bisher.
 
 ## Regeln
 
@@ -33,7 +62,8 @@ Die Cafeteria ergänzt:
 - Leere Allergenspalten bedeuten „nicht deklariert“, nicht automatisch „allergenfrei“.
 - Der Export neutralisiert Zellen, die mit `=`, `+`, `-` oder `@` beginnen, gegen Tabellenkalkulationsformeln.
 - Schema-2-Dateien ohne `beilage_dazu` bleiben importierbar. Weil der Import eine Woche vollständig ersetzt, setzt Schema 2 sämtliche Beilagen auf «Keine»; die Importvorschau weist vor der Übernahme darauf hin.
-- Der Export schreibt immer Schema 3.
+- Schema-3-Dateien ohne Gang-Spalten bleiben importierbar; fehlende Gänge gelten als ungeplant.
+- Der Export schreibt immer Schema 4.
 
 ## Validierung
 
@@ -52,7 +82,8 @@ Abgewiesen werden insbesondere:
 - doppelte Kombination aus Datum, Mahlzeit und Menüart,
 - ungültige Kostenformate,
 - leere `external_id` oder Titel,
-- ungültiges `beilage_dazu` (Schema 3: nur leer, `suppe` oder `salat`),
+- ungültiges `beilage_dazu` (Schema 3/4: nur leer, `suppe` oder `salat`),
+- ungültige Gang-Zellen oder Geltung in Schema-4-Dateien,
 - gemischte `schema_version` innerhalb derselben Datei.
 
 Der vollständige Import in den Editor muss zuerst eine Vorschau mit Zeile, Spalte und Fehlertext zeigen. Ohne fehlerfreie Vorschau wird kein Datensatz übernommen.

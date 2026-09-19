@@ -27,6 +27,10 @@ MENU_VALUE_FIELDS = (
     'hinweis',
     'preis_mitarbeitende_chf',
     'preis_externe_chf',
+    'suppe',
+    'suppe_geltung',
+    'dessert',
+    'dessert_geltung',
 )
 
 

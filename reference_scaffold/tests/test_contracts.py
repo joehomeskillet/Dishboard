@@ -48,8 +48,8 @@ def test_profile_csv_examples_are_valid():
     patient = validate_file(ROOT / 'csv' / 'menu_patient_example.csv')
     assert cafeteria['valid'], cafeteria['errors']
     assert patient['valid'], patient['errors']
-    assert len(cafeteria['headers']) == 20
-    assert len(patient['headers']) == 18
+    assert len(cafeteria['headers']) == 24
+    assert len(patient['headers']) == 22
     assert not any(re.search(r'(preis|chf|rappen)', header, re.I) for header in patient['headers'])
 
 

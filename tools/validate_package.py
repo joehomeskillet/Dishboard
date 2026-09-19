@@ -202,6 +202,18 @@ def run(command: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
+def _schema_4_csv_headers(root: Path) -> dict[str, list[str]]:
+    scaffold = root / 'reference_scaffold'
+    if str(scaffold) not in sys.path:
+        sys.path.insert(0, str(scaffold))
+    from cafeteria.csvio import SCHEMA_4_CAFETERIA_HEADERS, SCHEMA_4_PATIENT_HEADERS
+
+    return {
+        'patient': SCHEMA_4_PATIENT_HEADERS,
+        'staff_guest': SCHEMA_4_CAFETERIA_HEADERS,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
@@ -322,19 +334,23 @@ def main() -> int:
 
     # CSV
     csv_dir = root / 'csv'
+    schema_headers = _schema_4_csv_headers(root)
     formats = {
-        'patient': ('menu_patient_template.csv', 'menu_patient_example.csv', 18, 28),
-        'staff_guest': ('menu_cafeteria_template.csv', 'menu_cafeteria_example.csv', 20, 10),
+        'patient': ('menu_patient_template.csv', 'menu_patient_example.csv', 28),
+        'staff_guest': ('menu_cafeteria_template.csv', 'menu_cafeteria_example.csv', 10),
     }
-    for profile, (template_name, example_name, header_count, row_count) in formats.items():
+    for profile, (template_name, example_name, row_count) in formats.items():
+        expected_headers = schema_headers[profile]
         with (csv_dir / template_name).open(encoding='utf-8-sig', newline='') as handle:
             template_headers = next(csv.reader(handle, delimiter=';'))
         with (csv_dir / example_name).open(encoding='utf-8-sig', newline='') as handle:
             reader = csv.DictReader(handle, delimiter=';')
             example_headers = reader.fieldnames or []
             rows = list(reader)
+        check(template_headers == expected_headers, f'{profile}: Vorlage weicht von csvio-Schema-4-Header ab.')
+        check(example_headers == expected_headers, f'{profile}: Beispiel weicht von csvio-Schema-4-Header ab.')
         check(template_headers == example_headers, f'{profile}: Vorlage und Beispiel haben andere Header.')
-        check(len(example_headers) == header_count, f'{profile}: falsche Headerzahl {len(example_headers)}.')
+        check(len(example_headers) == len(expected_headers), f'{profile}: falsche Headerzahl {len(example_headers)}.')
         check(len(rows) == row_count, f'{profile}: falsche Beispielzeilenzahl {len(rows)}.')
         result = run([sys.executable, 'validate_menu_csv.py', example_name, '--json'], csv_dir)
         check(result.returncode == 0, f'{profile}: CSV-Validator fehlgeschlagen: {result.stderr or result.stdout}')
