@@ -8,7 +8,7 @@ fasst sie nicht neu.
 ## Betrieb
 
 - [Projekt- und Agentenregeln](../AGENTS.md) — Zweck: verbindliche Arbeits- und Governance-Regeln; Stand: 2026-09-13.
-- [Änderungsprotokoll](../CHANGELOG.md) — Zweck: chronologische Produkt- und Betriebsänderungen; Stand: 2026-09-02.
+- [Änderungsprotokoll](../CHANGELOG.md) — Zweck: chronologische Produkt- und Betriebsänderungen; Stand: 2026-09-20.
 - [PostgreSQL-Datenmodell](../database/README.md) — Zweck: PostgreSQL-Datenmodell; Stand: 2026-09-15.
 - [Docker-Compose-Deployment](../deployment/README.md) — Zweck: Docker-Compose-Deployment; Stand: 2026-09-02.
 - [Docker-Secrets](../deployment/secrets/README.md) — Zweck: Docker-Secrets; Stand: 2026-09-02.
@@ -98,4 +98,3 @@ fasst sie nicht neu.
 - [Dokumentationsarchiv](archive/README.md) — Zweck: abgeschlossene, ersetzte oder widersprüchliche Arbeitsstände; Stand: 2026-09-20.
 - `GROK_KRITIK_UMSETZUNG.md` bleibt als historischer, paketvertraglich referenzierter Altstand am bisherigen Ort.
 - Nachweise und Wellenbelege bleiben an ihren bisherigen Pfaden, insbesondere unter `.claude/evidence/` und den jeweiligen Design-/Delivery-Verzeichnissen; sie gelten nicht automatisch als aktuelle Spezifikation.
-
