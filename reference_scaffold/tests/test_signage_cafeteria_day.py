@@ -10,6 +10,10 @@ from test_rendered_ui import _set_unbroken_signage_boundaries
 from test_rendered_ui import app as app
 from test_rendered_ui import browser as browser
 from test_signage_engine import live_signage as live_signage
+from test_signage_patient import (
+    _assert_course_band_allergens_and_title,
+    _set_long_course_with_allergens,
+)
 
 
 def test_distinct_menu_description_is_retained_once(app: Flask) -> None:
@@ -141,5 +145,24 @@ def test_course_line_is_visible_and_scales(live_signage: tuple[str, Flask], brow
         
         font_size = locator.evaluate('node => parseFloat(getComputedStyle(node).fontSize)')
         assert font_size >= 18
+    finally:
+        page.close()
+
+
+def test_long_course_title_keeps_allergens_visible_on_day_board(
+    live_signage: tuple[str, Flask], browser: Browser,
+) -> None:
+    base_url, application = live_signage
+    snapshot = application.config['TEST_SNAPSHOTS']['staff_guest']
+    _set_long_course_with_allergens(snapshot)
+    page = browser.new_page(viewport={'width': 1920, 'height': 1080}, reduced_motion='reduce')
+    try:
+        response = page.goto(f'{base_url}/signage/cafeteria/tag')
+        assert response and response.status == 200
+        page.evaluate('document.fonts.ready')
+        _assert_course_band_allergens_and_title(
+            page, 'h1.signage-kicker', viewport_width=1920, viewport_height=1080,
+        )
+        _assert_visible_contents(page)
     finally:
         page.close()

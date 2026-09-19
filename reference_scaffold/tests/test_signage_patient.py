@@ -13,6 +13,60 @@ from test_rendered_ui import browser as browser
 from test_signage_engine import live_signage as live_signage
 
 FORBIDDEN = re.compile(r'preis|chf|rappen|kosten|price|intern|extern|money|currency', re.I)
+LONG_COURSE_TITLE = 'Kürbiscremesuppe mit gerösteten Kernen und frischen Kräutern'
+COURSE_ALLERGENS = (
+    {'code': 'MILK', 'name': 'Milch', 'presence': 'contains'},
+    {'code': 'GLUTEN', 'name': 'Gluten', 'presence': 'contains'},
+)
+
+
+def _set_long_course_with_allergens(snapshot: dict) -> None:
+    course = {
+        'state': 'planned',
+        'title': LONG_COURSE_TITLE,
+        'allergens': list(COURSE_ALLERGENS),
+    }
+    for day in snapshot['days']:
+        for meal in day['services']:
+            meal['soup'] = dict(course)
+
+
+def _assert_course_band_allergens_and_title(page: Page, band_selector: str, *, viewport_width: int, viewport_height: int) -> None:
+    band = page.locator(band_selector).first
+    expect(band).to_be_visible()
+    band_box = band.bounding_box()
+    assert band_box is not None
+
+    tags = band.locator('.service-courses .signage-tags .label.amber')
+    expect(tags).to_have_count(2)
+    for index in range(tags.count()):
+        tag = tags.nth(index)
+        expect(tag).to_be_visible()
+        tag_box = tag.bounding_box()
+        assert tag_box is not None
+        assert tag_box['x'] >= -1
+        assert tag_box['y'] >= -1
+        assert tag_box['x'] + tag_box['width'] <= viewport_width + 1
+        assert tag_box['y'] + tag_box['height'] <= viewport_height + 1
+        assert tag_box['x'] >= band_box['x'] - 1
+        assert tag_box['y'] >= band_box['y'] - 1
+        assert tag_box['x'] + tag_box['width'] <= band_box['x'] + band_box['width'] + 1
+        assert tag_box['y'] + tag_box['height'] <= band_box['y'] + band_box['height'] + 1
+
+    title = band.locator('.service-course-text').first
+    expect(title).to_be_visible()
+    metrics = title.evaluate(
+        """node => ({
+          scrollWidth: node.scrollWidth,
+          clientWidth: node.clientWidth,
+          textOverflow: getComputedStyle(node).textOverflow,
+          text: node.textContent,
+        })""",
+    )
+    if metrics['scrollWidth'] > metrics['clientWidth'] + 1:
+        assert metrics['textOverflow'] == 'ellipsis'
+    else:
+        assert LONG_COURSE_TITLE in metrics['text']
 
 
 def _assert_full_surface(page: Page, menu_selector: str) -> None:
@@ -228,5 +282,26 @@ def test_course_line_is_visible_and_scales(live_signage: tuple[str, Flask], brow
         
         font_size = locator.evaluate('node => parseFloat(getComputedStyle(node).fontSize)')
         assert font_size >= 18
+    finally:
+        page.close()
+
+
+def test_long_course_title_keeps_allergens_visible_on_week_board(
+    live_signage: tuple[str, Flask], browser: Browser,
+) -> None:
+    base_url, application = live_signage
+    snapshot = application.config['TEST_SNAPSHOTS']['patient']
+    _set_legacy_snapshot(snapshot, 2)
+    _set_long_course_with_allergens(snapshot)
+    page = browser.new_page(viewport={'width': 1920, 'height': 1080}, reduced_motion='reduce')
+    try:
+        response = page.goto(f'{base_url}/signage/patienten/woche')
+        assert response and response.status == 200
+        page.evaluate('document.fonts.ready')
+        visible = '[data-signage-page]:not([hidden])'
+        _assert_course_band_allergens_and_title(
+            page, f'{visible} .meal-name', viewport_width=1920, viewport_height=1080,
+        )
+        _assert_full_surface(page, f'{visible} .patient-week-option')
     finally:
         page.close()
