@@ -73,6 +73,22 @@ KITCHEN_COMPOUND_CHF_ALLOWED = (
     pytest.param('Buchfink', id='buchfink'),
 )
 
+KITCHEN_SENSITIVE_STEM_ALLOWED = (
+    pytest.param('Prezzemolo', id='prezzemolo'),
+    pytest.param('Risotto al prezzemolo', id='risotto-prezzemolo'),
+    pytest.param('Prezzemolo fresco', id='prezzemolo-fresco'),
+    pytest.param('Costata', id='costata'),
+    pytest.param('Costata di manzo', id='costata-manzo'),
+    pytest.param('Costoletta di vitello', id='costoletta-vitello'),
+    pytest.param('Costine di agnello', id='costine-agnello'),
+    pytest.param('Couteaux', id='couteaux'),
+    pytest.param('Couteaux de Saint-Jacques', id='couteaux-saint-jacques'),
+    pytest.param('Chargrilled', id='chargrilled'),
+    pytest.param('Chargrilled salmon', id='chargrilled-salmon'),
+    pytest.param('Frankenwein', id='frankenwein'),
+    pytest.param('Montantebianco', id='montantebianco'),
+)
+
 CURRENCY_CHF_STILL_FORBIDDEN = (
     pytest.param('CHF', id='upper-chf'),
     pytest.param('chf', id='lower-chf'),
@@ -86,6 +102,14 @@ CURRENCY_CHF_STILL_FORBIDDEN = (
     pytest.param('Charge', id='charge'),
     pytest.param('Preis', id='preis'),
     pytest.param('12 CHF', id='amount-chf'),
+    pytest.param('Prezzo', id='prezzo'),
+    pytest.param('Prezzo 12', id='prezzo-12'),
+    pytest.param('Costo', id='costo'),
+    pytest.param('Costi', id='costi'),
+    pytest.param('Coût', id='cout'),
+    pytest.param('Frankenbetrag', id='frankenbetrag'),
+    pytest.param('Franken', id='franken'),
+    pytest.param('Gratis Suppe', id='gratis-suppe'),
 )
 
 SAFE_MENU_PROBES = (
@@ -258,6 +282,11 @@ def assert_channel_rejects(app: Flask, monkeypatch: pytest.MonkeyPatch, path: st
 
 @pytest.mark.parametrize('value', KITCHEN_COMPOUND_CHF_ALLOWED)
 def test_patient_text_allows_kitchen_compounds_with_chf_junction(value: str) -> None:
+    assert patient_text_is_forbidden(value) is False
+
+
+@pytest.mark.parametrize('value', KITCHEN_SENSITIVE_STEM_ALLOWED)
+def test_patient_text_allows_kitchen_lexemes_with_sensitive_stems(value: str) -> None:
     assert patient_text_is_forbidden(value) is False
 
 
