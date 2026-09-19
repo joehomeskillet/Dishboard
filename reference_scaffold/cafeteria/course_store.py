@@ -9,6 +9,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import Connection, Engine, text
+from sqlalchemy.engine import RowMapping
 
 from .component_catalog_store import AdminScope
 from .workflow_partial_store import (
@@ -25,6 +26,7 @@ COURSE_KINDS = ('soup', 'dessert')
 COURSE_LABELS = {'soup': 'Suppe', 'dessert': 'Dessert'}
 _UNPLANNED = {
     'state': 'unplanned',
+    'public_id': None,
     'title': None,
     'recipe_public_id': None,
     'recipe_revision_public_id': None,
@@ -86,7 +88,9 @@ def _latest_revision(connection: Connection, location_id: int, recipe_public_id:
     return row
 
 
-def _flags_from_snapshot(snapshot: object, row: Mapping[str, Any] | None = None) -> dict[str, Any]:
+def _flags_from_snapshot(
+    snapshot: object, row: Mapping[str, Any] | RowMapping | None = None,
+) -> dict[str, Any]:
     if isinstance(snapshot, (bytes, bytearray, str)):
         try:
             snapshot = json.loads(snapshot)
@@ -110,12 +114,13 @@ def _flags_from_snapshot(snapshot: object, row: Mapping[str, Any] | None = None)
     }
 
 
-def _row_view(row: Mapping[str, Any] | None) -> dict[str, Any]:
+def _row_view(row: Mapping[str, Any] | RowMapping | None) -> dict[str, Any]:
     if row is None:
         return unplanned()
     flags = _flags_from_snapshot(row.get('snapshot_json'), row)
     view = {
         'state': row['planning_state'],
+        'public_id': str(row['public_id']) if row.get('public_id') else None,
         'title': row['title'],
         'recipe_public_id': str(row['recipe_public_id']) if row['recipe_public_id'] else None,
         'recipe_revision_public_id': str(row['revision_public_id']) if row['revision_public_id'] else None,
@@ -208,7 +213,8 @@ def summarize_course_issues(
 
 def load_service_courses(connection: Connection, service_id: int) -> dict[str, dict[str, Any]]:
     rows = connection.execute(text('''
-        SELECT c.course_kind, c.planning_state, c.row_version, rr.public_id AS revision_public_id,
+        SELECT c.course_kind, c.planning_state, c.public_id, c.row_version,
+               rr.public_id AS revision_public_id,
                r.public_id AS recipe_public_id, rr.snapshot_json AS snapshot_json,
                COALESCE(rr.snapshot_json #>> '{recipe,title}', r.title) AS title
         FROM cafeteria.menu_service_courses c
@@ -224,7 +230,7 @@ def load_item_exceptions(connection: Connection, item_ids: Sequence[int]) -> dic
     if not item_ids:
         return {}
     rows = connection.execute(text('''
-        SELECT e.menu_item_id, e.course_kind, e.planning_state, e.row_version,
+        SELECT e.menu_item_id, e.course_kind, e.planning_state, e.public_id, e.row_version,
                rr.public_id AS revision_public_id, r.public_id AS recipe_public_id,
                rr.snapshot_json AS snapshot_json,
                COALESCE(rr.snapshot_json #>> '{recipe,title}', r.title) AS title
@@ -264,7 +270,7 @@ def load_week_courses_connection(
     by_service_exc: dict[int, dict[str, dict[str, dict[str, Any]]]] = {}
     if ids:
         for row in connection.execute(text('''
-            SELECT c.service_id, c.course_kind, c.planning_state, c.row_version,
+            SELECT c.service_id, c.course_kind, c.planning_state, c.public_id, c.row_version,
                    rr.public_id AS revision_public_id, r.public_id AS recipe_public_id,
                    rr.snapshot_json AS snapshot_json,
                    COALESCE(rr.snapshot_json #>> '{recipe,title}', r.title) AS title
@@ -276,7 +282,7 @@ def load_week_courses_connection(
             by_service_shared.setdefault(int(row['service_id']), {})[str(row['course_kind'])] = _row_view(row)
         for row in connection.execute(text('''
             SELECT i.service_id, mt.code AS option_code, e.course_kind, e.planning_state,
-                   e.row_version, rr.public_id AS revision_public_id,
+                   e.public_id, e.row_version, rr.public_id AS revision_public_id,
                    r.public_id AS recipe_public_id, rr.snapshot_json AS snapshot_json,
                    COALESCE(rr.snapshot_json #>> '{recipe,title}', r.title) AS title
             FROM cafeteria.menu_item_course_exceptions e
@@ -371,6 +377,21 @@ def _course_conflict(kind: str) -> PartialWorkflowConflictError:
     return PartialWorkflowConflictError(f'{COURSE_LABELS[kind]} wurde zwischenzeitlich geändert.')
 
 
+def _check_course_identity(
+    existing: Mapping[str, Any] | RowMapping | None,
+    expected_version: int,
+    expected_public_id: str,
+    kind: str,
+) -> None:
+    if existing is None:
+        if expected_version != 0 or expected_public_id:
+            raise _course_conflict(kind)
+        return
+    if (int(existing['row_version']) != expected_version
+            or str(existing['public_id']) != expected_public_id):
+        raise _course_conflict(kind)
+
+
 def _upsert_shared(
     connection: Connection, *, location_id: int, service_id: int, actor_id: int,
     kind: str, payload: Mapping[str, Any], expected_row_version: int | None = None,
@@ -381,18 +402,16 @@ def _upsert_shared(
     if kind not in COURSE_KINDS:
         raise PartialWorkflowValidationError('Ungültiger Gang.')
     existing = connection.execute(text('''
-        SELECT id, row_version FROM cafeteria.menu_service_courses
+        SELECT id, public_id, row_version FROM cafeteria.menu_service_courses
         WHERE service_id=:service AND course_kind=:kind FOR UPDATE
     '''), {'service': service_id, 'kind': kind}).mappings().one_or_none()
     if expected_row_version is not None:
         expected = _expected_course_version(expected_row_version, f'{COURSE_LABELS[kind]}-Version')
+        expected_public_id = str(payload.get('public_id') or '').strip()
+        _check_course_identity(existing, expected, expected_public_id, kind)
         if state == 'unplanned':
             if existing is None:
-                if expected != 0:
-                    raise _course_conflict(kind)
                 return
-            if int(existing['row_version']) != expected:
-                raise _course_conflict(kind)
             connection.execute(text(
                 'DELETE FROM cafeteria.menu_service_courses WHERE id=:id'
             ), {'id': int(existing['id'])})
@@ -401,8 +420,6 @@ def _upsert_shared(
         if state == 'planned':
             revision_id = _resolve_revision(connection, location_id, payload, field=COURSE_LABELS[kind])
         if existing is None:
-            if expected != 0:
-                raise _course_conflict(kind)
             connection.execute(text('''
                 INSERT INTO cafeteria.menu_service_courses(
                     location_id, service_id, course_kind, planning_state, recipe_revision_id,
@@ -413,8 +430,6 @@ def _upsert_shared(
                 'revision': revision_id, 'actor': actor_id,
             })
             return
-        if int(existing['row_version']) != expected:
-            raise _course_conflict(kind)
         connection.execute(text('''
             UPDATE cafeteria.menu_service_courses
             SET planning_state=:state, recipe_revision_id=:revision,
@@ -454,7 +469,7 @@ def _upsert_exception(
     if kind not in COURSE_KINDS:
         raise PartialWorkflowValidationError('Ungültiger Gang.')
     existing = connection.execute(text('''
-        SELECT id, row_version FROM cafeteria.menu_item_course_exceptions
+        SELECT id, public_id, row_version FROM cafeteria.menu_item_course_exceptions
         WHERE menu_item_id=:item AND course_kind=:kind FOR UPDATE
     '''), {'item': menu_item_id, 'kind': kind}).mappings().one_or_none()
     if state == 'inherit':
@@ -462,12 +477,10 @@ def _upsert_exception(
             expected = _expected_course_version(
                 expected_row_version, f'{COURSE_LABELS[kind]}-Version',
             )
+            expected_public_id = str(payload.get('public_id') or '').strip()
+            _check_course_identity(existing, expected, expected_public_id, kind)
             if existing is None:
-                if expected != 0:
-                    raise _course_conflict(kind)
                 return
-            if int(existing['row_version']) != expected:
-                raise _course_conflict(kind)
             connection.execute(text(
                 'DELETE FROM cafeteria.menu_item_course_exceptions WHERE id=:id'
             ), {'id': int(existing['id'])})
@@ -478,18 +491,19 @@ def _upsert_exception(
         return
     if state not in ('planned', 'not_offered'):
         raise PartialWorkflowValidationError('Ungültige Menüabweichung.')
+    if expected_row_version is not None:
+        expected = _expected_course_version(
+            expected_row_version, f'{COURSE_LABELS[kind]}-Version',
+        )
+        expected_public_id = str(payload.get('public_id') or '').strip()
+        _check_course_identity(existing, expected, expected_public_id, kind)
     revision_id = None
     if state == 'planned':
         revision_id = _resolve_revision(
             connection, location_id, payload, field=COURSE_LABELS[kind],
         )
     if expected_row_version is not None:
-        expected = _expected_course_version(
-            expected_row_version, f'{COURSE_LABELS[kind]}-Version',
-        )
         if existing is None:
-            if expected != 0:
-                raise _course_conflict(kind)
             connection.execute(text('''
                 INSERT INTO cafeteria.menu_item_course_exceptions(
                     menu_item_id, course_kind, planning_state, recipe_revision_id, created_by, updated_by)
@@ -499,8 +513,6 @@ def _upsert_exception(
                 'revision': revision_id, 'actor': actor_id,
             })
             return
-        if int(existing['row_version']) != expected:
-            raise _course_conflict(kind)
         connection.execute(text('''
             UPDATE cafeteria.menu_item_course_exceptions
             SET planning_state=:state, recipe_revision_id=:revision,
@@ -737,7 +749,10 @@ def parse_course_form(form: Mapping[str, Any]) -> dict[str, Any]:
         state = _state(f'{prefix}_state')
         if state == 'inherit':
             raise PartialWorkflowValidationError('Ungültiger Gangstatus.')
-        payload: dict[str, Any] = {'state': state}
+        payload: dict[str, Any] = {
+            'state': state,
+            'public_id': str(form.get(f'{prefix}_public_id') or '').strip(),
+        }
         recipe = str(form.get(f'{prefix}_recipe') or '').strip()
         if state == 'planned':
             payload['recipe_public_id'] = recipe
@@ -752,6 +767,7 @@ def parse_course_form(form: Mapping[str, Any]) -> dict[str, Any]:
             state = _state(f'{prefix}_state')
             item: dict[str, Any] = {
                 'option': option, 'kind': kind, 'state': state,
+                'public_id': str(form.get(f'{prefix}_public_id') or '').strip(),
                 'row_version': _version(f'{prefix}_row_version'),
             }
             recipe = str(form.get(f'{prefix}_recipe') or '').strip()

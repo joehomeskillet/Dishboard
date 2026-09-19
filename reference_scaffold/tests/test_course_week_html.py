@@ -5,7 +5,7 @@ import secrets
 
 from sqlalchemy import Engine, text
 
-from cafeteria.course_store import persist_service_courses
+from cafeteria.course_store import load_week_courses, persist_service_courses
 from cafeteria.workflow_partial_store import persist_menu_item, persist_service_state
 from prepared_food_fixtures import create_food, create_recipe, execute, freeze
 from test_admin_workflow_routes import DAY, WEEK, _hidden, _login, _scope
@@ -105,6 +105,9 @@ def test_course_editor_retains_bound_recipe_outside_search_page(app, database_en
     )
     page = client.get(f'/admin/cafeteria?week={DAY}&recipe_search=zzzz-kein-treffer')
     html = page.get_data(as_text=True)
+    courses = load_week_courses(engine, scope.location_id, WEEK, 'staff_guest')[(DAY, 'LUNCH')]
+    shared_id = courses['shared']['soup']['public_id']
+    exception_id = courses['exceptions']['VEGGIE']['soup']['public_id']
     assert page.status_code == 200
     assert 'name="recipe_search"' in html
     assert 'zzzz-kein-treffer' in html
@@ -116,6 +119,9 @@ def test_course_editor_retains_bound_recipe_outside_search_page(app, database_en
     veggie_select = html.split('name="VEGGIE_soup_recipe"', 1)[1].split('</select>', 1)[0]
     assert 'Weiterhin gebundene Auswahl' in veggie_select
     assert other['public_id'] in veggie_select
+    assert f'name="soup_public_id" value="{shared_id}"' in html
+    assert f'name="VEGGIE_soup_public_id" value="{exception_id}"' in html
+    assert 'name="dessert_public_id" value=""' in html
 
 
 def test_course_week_html_allergens_rendered(app) -> None:

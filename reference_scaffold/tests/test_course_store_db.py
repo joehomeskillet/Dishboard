@@ -5,6 +5,8 @@ import logging
 import secrets
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
+from threading import Event
+from time import monotonic, sleep
 
 import pytest
 from sqlalchemy import text
@@ -380,7 +382,7 @@ def test_inaccessible_csv_course_uuid_rolls_back_draft_and_earlier_days(
     monday_title = draft['days'][0]['services'][0]['options'][0]['title']
     assert monday_title == 'Rindsgeschnetzeltes'
 
-def test_schema3_import_captures_courses_after_write_transaction_begins(
+def test_schema3_import_captures_courses_after_week_lock_blocks_concurrent_writer(
     workflow_database: WorkflowDatabase,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -394,36 +396,186 @@ def test_schema3_import_captures_courses_after_write_transaction_begins(
         dessert={'state': 'unplanned'},
     )
     with db.owner.connect() as connection:
-        version = connection.execute(text(
-            '''SELECT w.row_version FROM cafeteria.menu_weeks w
+        week_id, version = connection.execute(text(
+            '''SELECT w.id, w.row_version FROM cafeteria.menu_weeks w
                JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
                WHERE w.location_id=:loc AND p.code='staff_guest' AND w.week_start=:week'''
-        ), {'loc': db.location_id, 'week': WEEK}).scalar_one()
-    events: list[str] = []
-    import cafeteria.workflow_write_context as workflow_write_context
-
-    original_begin = workflow_write_context.begin_write
+        ), {'loc': db.location_id, 'week': WEEK}).one()
+    capture_started = Event()
+    release_capture = Event()
     original_capture = capture_week_courses
 
-    def spy_begin(connection, scope):
-        events.append('begin_write')
-        return original_begin(connection, scope)
-
     def spy_capture(connection, week_id):
-        events.append('capture')
-        assert 'begin_write' in events
+        capture_started.set()
+        assert release_capture.wait(timeout=10), 'Gang-Erfassung wurde nicht freigegeben.'
         return original_capture(connection, week_id)
 
-    monkeypatch.setattr(workflow_write_context, 'begin_write', spy_begin)
     monkeypatch.setattr(course_store, 'capture_week_courses', spy_capture)
-    import_draft(
-        db.app, 'staff_guest', WEEK,
-        expected_row_version=int(version),
-        actor_id=db.actor_id,
-        values=_staff_values(title='Schema-3-Import'),
-        **write_expectations(db.app, db.actor_id),
+
+    def run_import() -> int:
+        return import_draft(
+            db.app, 'staff_guest', WEEK,
+            expected_row_version=int(version),
+            actor_id=db.actor_id,
+            values=_staff_values(title='Schema-3-Import'),
+            **write_expectations(db.app, db.actor_id),
+        )
+
+    writer_started = Event()
+    writer_pid: list[int] = []
+
+    def concurrent_week_writer() -> None:
+        with db.owner.begin() as connection:
+            writer_pid.append(int(connection.execute(text('SELECT pg_backend_pid()')).scalar_one()))
+            writer_started.set()
+            connection.execute(text(
+                'UPDATE cafeteria.menu_weeks SET title=title WHERE id=:week RETURNING id'
+            ), {'week': int(week_id)}).scalar_one()
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        import_future = pool.submit(run_import)
+        assert capture_started.wait(timeout=10), 'Gang-Erfassung wurde nicht erreicht.'
+        try:
+            writer_future = pool.submit(concurrent_week_writer)
+            assert writer_started.wait(timeout=10), 'Paralleler Schreiber wurde nicht gestartet.'
+            deadline = monotonic() + 10
+            wait_event = None
+            while monotonic() < deadline:
+                with db.owner.connect() as connection:
+                    wait_event = connection.execute(text(
+                        '''SELECT wait_event_type || ':' || wait_event
+                           FROM pg_stat_activity WHERE pid=:pid'''
+                    ), {'pid': writer_pid[0]}).scalar_one_or_none()
+                if wait_event and wait_event.startswith('Lock:'):
+                    break
+                sleep(0.02)
+            assert wait_event and wait_event.startswith('Lock:'), wait_event
+        finally:
+            release_capture.set()
+        import_future.result(timeout=20)
+        writer_future.result(timeout=20)
+
+
+def test_shared_course_rejects_delete_reinsert_aba(
+    workflow_database: WorkflowDatabase,
+) -> None:
+    db = workflow_database
+    scope = _scope(db, 'staff_guest')
+    first = _freeze_named(db, 'ABA-Suppe A')
+    second = _freeze_named(db, 'ABA-Suppe B')
+    persist_menu_item(db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH', 'MENU_1', _payload(staff=True), 0)
+    persist_service_courses(
+        db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+        soup={'state': 'planned', 'recipe_public_id': first['recipe_public_id']},
+        dessert={'state': 'unplanned'},
     )
-    assert events.index('capture') > events.index('begin_write')
+    loaded = load_week_courses(db.app, db.location_id, WEEK, 'staff_guest')[(WEEK.isoformat(), 'LUNCH')]
+    stale = loaded['shared']['soup']
+
+    persist_service_courses(
+        db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+        soup={'state': 'unplanned', 'public_id': stale['public_id']},
+        dessert={'state': 'unplanned', 'public_id': ''},
+        soup_row_version=int(stale['row_version']), dessert_row_version=0,
+    )
+    persist_service_courses(
+        db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+        soup={'state': 'planned', 'recipe_public_id': second['recipe_public_id'], 'public_id': ''},
+        dessert={'state': 'unplanned', 'public_id': ''},
+        soup_row_version=0, dessert_row_version=0,
+    )
+    replacement = load_week_courses(
+        db.app, db.location_id, WEEK, 'staff_guest',
+    )[(WEEK.isoformat(), 'LUNCH')]['shared']['soup']
+
+    with pytest.raises(PartialWorkflowConflictError, match='Suppe wurde zwischenzeitlich geändert'):
+        persist_service_courses(
+            db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+            soup={
+                'state': 'planned', 'recipe_public_id': first['recipe_public_id'],
+                'public_id': stale['public_id'],
+            },
+            dessert={'state': 'unplanned', 'public_id': ''},
+            soup_row_version=int(stale['row_version']), dessert_row_version=0,
+        )
+    with pytest.raises(PartialWorkflowConflictError, match='Suppe wurde zwischenzeitlich geändert'):
+        persist_service_courses(
+            db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+            soup={'state': 'not_offered', 'public_id': ''},
+            dessert={'state': 'unplanned', 'public_id': ''},
+            soup_row_version=int(replacement['row_version']), dessert_row_version=0,
+        )
+    with pytest.raises(PartialWorkflowConflictError, match='Suppe wurde zwischenzeitlich geändert'):
+        persist_service_courses(
+            db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+            soup={'state': 'planned', 'recipe_public_id': 'manipuliert', 'public_id': ''},
+            dessert={'state': 'unplanned', 'public_id': ''},
+            soup_row_version=int(replacement['row_version']), dessert_row_version=0,
+        )
+    current = load_week_courses(
+        db.app, db.location_id, WEEK, 'staff_guest',
+    )[(WEEK.isoformat(), 'LUNCH')]['shared']['soup']
+    assert current['public_id'] == replacement['public_id']
+    assert current['title'] == 'ABA-Suppe B'
+
+
+def test_course_exception_rejects_delete_reinsert_aba(
+    workflow_database: WorkflowDatabase,
+) -> None:
+    db = workflow_database
+    scope = _scope(db, 'staff_guest')
+    first = _freeze_named(db, 'ABA-Ausnahme A')
+    second = _freeze_named(db, 'ABA-Ausnahme B')
+    persist_menu_item(db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH', 'MENU_1', _payload(staff=True), 0)
+    persist_service_courses(
+        db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+        soup={'state': 'unplanned'}, dessert={'state': 'unplanned'},
+        exceptions=[{
+            'option': 'MENU_1', 'kind': 'soup', 'state': 'planned',
+            'recipe_public_id': first['recipe_public_id'],
+        }],
+    )
+    loaded = load_week_courses(db.app, db.location_id, WEEK, 'staff_guest')[(WEEK.isoformat(), 'LUNCH')]
+    stale = loaded['exceptions']['MENU_1']['soup']
+
+    persist_service_courses(
+        db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+        soup={'state': 'unplanned', 'public_id': ''}, dessert={'state': 'unplanned', 'public_id': ''},
+        exceptions=[{
+            'option': 'MENU_1', 'kind': 'soup', 'state': 'inherit',
+            'row_version': stale['row_version'], 'public_id': stale['public_id'],
+        }],
+        soup_row_version=0, dessert_row_version=0,
+    )
+    persist_service_courses(
+        db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+        soup={'state': 'unplanned', 'public_id': ''}, dessert={'state': 'unplanned', 'public_id': ''},
+        exceptions=[{
+            'option': 'MENU_1', 'kind': 'soup', 'state': 'planned',
+            'recipe_public_id': second['recipe_public_id'], 'row_version': 0, 'public_id': '',
+        }],
+        soup_row_version=0, dessert_row_version=0,
+    )
+    replacement = load_week_courses(
+        db.app, db.location_id, WEEK, 'staff_guest',
+    )[(WEEK.isoformat(), 'LUNCH')]['exceptions']['MENU_1']['soup']
+
+    with pytest.raises(PartialWorkflowConflictError, match='Suppe wurde zwischenzeitlich geändert'):
+        persist_service_courses(
+            db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+            soup={'state': 'unplanned', 'public_id': ''}, dessert={'state': 'unplanned', 'public_id': ''},
+            exceptions=[{
+                'option': 'MENU_1', 'kind': 'soup', 'state': 'planned',
+                'recipe_public_id': first['recipe_public_id'],
+                'row_version': stale['row_version'], 'public_id': stale['public_id'],
+            }],
+            soup_row_version=0, dessert_row_version=0,
+        )
+    current = load_week_courses(
+        db.app, db.location_id, WEEK, 'staff_guest',
+    )[(WEEK.isoformat(), 'LUNCH')]['exceptions']['MENU_1']['soup']
+    assert current['public_id'] == replacement['public_id']
+    assert current['title'] == 'ABA-Ausnahme B'
 
 
 def test_concurrent_course_writes_second_gets_stale_conflict(
@@ -443,14 +595,18 @@ def test_concurrent_course_writes_second_gets_stale_conflict(
     )
     packed = load_week_courses(db.app, db.location_id, WEEK, 'staff_guest')
     soup_version = int(packed[(WEEK.isoformat(), 'LUNCH')]['shared']['soup']['row_version'])
+    soup_public_id = str(packed[(WEEK.isoformat(), 'LUNCH')]['shared']['soup']['public_id'])
     outcomes: list[str] = []
 
     def write(recipe: dict[str, object]) -> None:
         try:
             persist_service_courses(
                 db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
-                soup={'state': 'planned', 'recipe_public_id': recipe['recipe_public_id']},
-                dessert={'state': 'unplanned'},
+                soup={
+                    'state': 'planned', 'recipe_public_id': recipe['recipe_public_id'],
+                    'public_id': soup_public_id,
+                },
+                dessert={'state': 'unplanned', 'public_id': ''},
                 soup_row_version=soup_version,
                 dessert_row_version=0,
             )

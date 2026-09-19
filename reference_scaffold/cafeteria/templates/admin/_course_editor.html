@@ -35,6 +35,7 @@
       <input type="hidden" name="meal" value="{{ meal_code }}">
       <p class="text-secondary mb-2">{{ meal_label }} · gilt für alle Menüs dieser Ausgabe.</p>
       {% for kind, course, kind_label in (('soup', soup, 'Suppe'), ('dessert', dessert, 'Dessert')) %}
+      <input type="hidden" name="{{ kind }}_public_id" value="{{ course.public_id|default('', true) }}">
       <input type="hidden" name="{{ kind }}_row_version" value="{{ course.row_version|default(0) }}">
       <fieldset class="mb-3">
         <legend class="form-label">{{ kind_label }}</legend>
@@ -62,6 +63,7 @@
           {% set option_exc = exceptions.get(option_code, {}) %}
           {% for kind, kind_label in (('soup', 'Suppe'), ('dessert', 'Dessert')) %}
             {% set override = option_exc.get(kind, {'state': 'inherit'}) %}
+            <input type="hidden" name="{{ option_code }}_{{ kind }}_public_id" value="{{ override.public_id|default('', true) }}">
             <input type="hidden" name="{{ option_code }}_{{ kind }}_row_version" value="{{ override.row_version|default(0) }}">
             <div class="row g-2 mb-2">
               <div class="col-12 col-md-4">
