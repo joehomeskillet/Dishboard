@@ -46,6 +46,7 @@ RECIPE_ID_RE = re.compile(
 )
 COURSE_GELTUNG = {'', 'gemeinsam', 'ausnahme'}
 COURSE_EMPTY = {'', 'keine'}
+COURSE_CELL_MAX_LENGTH = 37
 DANGEROUS_PREFIXES = ('=', '+', '-', '@', '\t', '\r')
 LABEL_CODES = {'VEGETARIAN', 'VEGAN', 'LACTOSE_FREE', 'GLUTEN_FREE'}
 ALLERGEN_CODES = {
@@ -72,6 +73,14 @@ def _column_number(headers: Sequence[str], field: str | None, fallback: int = 1)
 
 def _pipe_parts(value: str) -> list[str]:
     return [part.strip() for part in value.split('|') if part.strip()]
+
+
+def normalise_course_cell(value: str) -> str:
+    if len(value) > COURSE_CELL_MAX_LENGTH:
+        raise ValueError(f'darf höchstens {COURSE_CELL_MAX_LENGTH} Zeichen lang sein')
+    if any(ord(character) < 32 for character in value):
+        raise ValueError('enthält C0-Kontrollzeichen')
+    return value.strip().removeprefix("'")
 
 
 def validate_text(text: str, source: str = '<stream>') -> dict:
@@ -322,7 +331,11 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
             )
         if row.get('schema_version') == '4':
             for field, geltung_field in (('suppe', 'suppe_geltung'), ('dessert', 'dessert_geltung')):
-                raw = row.get(field, '').strip().lstrip("'")
+                raw = None
+                try:
+                    raw = normalise_course_cell(row.get(field, ''))
+                except ValueError as error:
+                    add_error(f'{field} {error}.', line=line_number, field=field)
                 geltung = row.get(geltung_field, '').strip()
                 if geltung not in COURSE_GELTUNG:
                     add_error(
@@ -330,7 +343,7 @@ def validate_text(text: str, source: str = '<stream>') -> dict:
                         line=line_number,
                         field=geltung_field,
                     )
-                if raw not in COURSE_EMPTY and RECIPE_ID_RE.fullmatch(raw) is None:
+                if raw is not None and raw not in COURSE_EMPTY and RECIPE_ID_RE.fullmatch(raw) is None:
                     add_error(
                         f'{field} muss leer, keine oder eine gültige Rezept-UUID sein.',
                         line=line_number,

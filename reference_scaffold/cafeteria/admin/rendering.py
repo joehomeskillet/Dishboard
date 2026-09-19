@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Any
 
-from flask import current_app, g, has_request_context, render_template, request, session, url_for
+from flask import abort, current_app, g, has_request_context, render_template, request, session, url_for
 from werkzeug.datastructures import MultiDict
 
 from ..component_catalog_store import AdminScope
@@ -11,7 +11,10 @@ from ..component_catalog_filters import ComponentFilters
 from ..course_store import (
     COURSE_KINDS, effective_course, load_week_courses, summarize_course_issues, unplanned,
 )
-from ..menu_recipe_choices import EMPTY_RECIPE_PAGE, RecipeChoicePage, RecipeChoiceQuery, list_recipe_choices
+from ..menu_recipe_choices import (
+    CHOICE_PAGE_LIMIT, EMPTY_RECIPE_PAGE, RecipeChoicePage, RecipeChoiceQuery,
+    list_recipe_choices,
+)
 from ..operations_settings import get_area_names, get_schedule, slot_defaults
 from ..recipe_types import RecipeNotFoundError, RecipeUnavailableError, RecipeValidationError
 from ..workflow import MENU_TYPES, PROFILE_DAYS, PROFILE_MEALS
@@ -36,6 +39,7 @@ CATEGORY_LABELS = {
     'meat': 'Fleisch', 'side': 'Beilage', 'vegetable': 'Gemüse',
     'sauce': 'Sauce', 'dessert': 'Dessert', 'other': 'Weiteres',
 }
+MAX_RECIPE_OFFSET = CHOICE_PAGE_LIMIT * 200
 
 
 def _chf(rappen: object) -> str:
@@ -239,10 +243,16 @@ def render_admin_week(
     offset = 0
     if has_request_context():
         search = str(request.args.get('recipe_search') or '')
-        try:
-            offset = max(int(request.args.get('recipe_offset') or 0), 0)
-        except (TypeError, ValueError):
-            offset = 0
+        raw_offset = request.args.get('recipe_offset')
+        if raw_offset is not None:
+            if (
+                len(request.args.getlist('recipe_offset')) != 1
+                or not raw_offset.isascii()
+                or not raw_offset.isdecimal()
+                or int(raw_offset) > MAX_RECIPE_OFFSET
+            ):
+                abort(400, description='Rezeptseite ist ungültig.')
+            offset = int(raw_offset)
     try:
         recipe_page = (
             list_recipe_choices(engine, selected_revisions, RecipeChoiceQuery(search=search, offset=offset))

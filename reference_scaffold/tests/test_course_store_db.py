@@ -197,6 +197,71 @@ def test_invalid_assignment_is_rejected_without_partial_write(workflow_database:
     assert packed['shared']['dessert']['state'] == 'unplanned'
 
 
+def test_new_inactive_course_recipe_binding_is_rejected_without_disclosure(
+    workflow_database: WorkflowDatabase,
+) -> None:
+    db = workflow_database
+    scope = _scope(db, 'staff_guest')
+    soup = _freeze_named(db, 'Archivierte Suppe')
+    persist_menu_item(
+        db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH', 'MENU_1', _payload(staff=True), 0,
+    )
+    with db.owner.begin() as connection:
+        connection.execute(
+            text('UPDATE cafeteria.recipes SET active=false WHERE public_id=:recipe'),
+            {'recipe': soup['recipe_public_id']},
+        )
+
+    with pytest.raises(PartialWorkflowValidationError) as caught:
+        persist_service_courses(
+            db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+            soup={'state': 'planned', 'recipe_public_id': soup['recipe_public_id']},
+            dessert={'state': 'unplanned'},
+            soup_row_version=0,
+            dessert_row_version=0,
+        )
+
+    assert str(caught.value) == 'Rezeptangabe ist ungültig oder nicht zugänglich.'
+    packed = load_week_courses(db.app, db.location_id, WEEK, 'staff_guest')
+    assert packed[(WEEK.isoformat(), 'LUNCH')]['shared']['soup']['state'] == 'unplanned'
+
+
+def test_existing_inactive_course_recipe_binding_can_be_saved_unchanged(
+    workflow_database: WorkflowDatabase,
+) -> None:
+    db = workflow_database
+    scope = _scope(db, 'staff_guest')
+    soup = _freeze_named(db, 'Retained Suppe')
+    persist_menu_item(
+        db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH', 'MENU_1', _payload(staff=True), 0,
+    )
+    persist_service_courses(
+        db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+        soup={'state': 'planned', 'recipe_public_id': soup['recipe_public_id']},
+        dessert={'state': 'unplanned'},
+        soup_row_version=0,
+        dessert_row_version=0,
+    )
+    before = load_week_courses(db.app, db.location_id, WEEK, 'staff_guest')
+    soup_version = int(before[(WEEK.isoformat(), 'LUNCH')]['shared']['soup']['row_version'])
+    with db.owner.begin() as connection:
+        connection.execute(
+            text('UPDATE cafeteria.recipes SET active=false WHERE public_id=:recipe'),
+            {'recipe': soup['recipe_public_id']},
+        )
+
+    persist_service_courses(
+        db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+        soup={'state': 'planned', 'recipe_public_id': soup['recipe_public_id']},
+        dessert={'state': 'unplanned'},
+        soup_row_version=soup_version,
+        dessert_row_version=0,
+    )
+
+    after = load_week_courses(db.app, db.location_id, WEEK, 'staff_guest')
+    assert after[(WEEK.isoformat(), 'LUNCH')]['shared']['soup']['title'] == 'Retained Suppe'
+
+
 def test_copy_creates_independent_assignments(workflow_database: WorkflowDatabase) -> None:
     db = workflow_database
     scope = _scope(db, 'staff_guest')

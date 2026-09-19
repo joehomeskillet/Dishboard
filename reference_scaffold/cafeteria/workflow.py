@@ -391,15 +391,14 @@ def import_draft(
                 raise StaleDraftError('Der Entwurf wurde zwischenzeitlich geändert.')
             persisted_version = 1
         captured = None
-        if csv_courses is None:
-            week_id = connection.execute(text(
-                '''SELECT w.id FROM cafeteria.menu_weeks w
-                   JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
-                   WHERE w.location_id=:loc AND p.code=:profile AND w.week_start=:week
-                   FOR UPDATE OF w'''
-            ), {'loc': expected_location_id, 'profile': profile_code, 'week': week_start}).scalar_one_or_none()
-            if week_id is not None:
-                captured = capture_week_courses(connection, int(week_id))
+        week_id = connection.execute(text(
+            '''SELECT w.id FROM cafeteria.menu_weeks w
+               JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+               WHERE w.location_id=:loc AND p.code=:profile AND w.week_start=:week
+               FOR UPDATE OF w'''
+        ), {'loc': expected_location_id, 'profile': profile_code, 'week': week_start}).scalar_one_or_none()
+        if week_id is not None:
+            captured = capture_week_courses(connection, int(week_id))
         version = persist_draft_connection(
             connection,
             profile_code,
@@ -414,11 +413,27 @@ def import_draft(
         try:
             if csv_courses:
                 for (day, meal), slot in csv_courses.items():
+                    retained_shared = {
+                        str(row['course_kind']): int(row['recipe_revision_id'])
+                        for row in (captured or {}).get('shared', ())
+                        if str(row['day']) == day and str(row['meal']) == meal
+                        and row.get('recipe_revision_id') is not None
+                    }
+                    retained_exceptions = {
+                        (str(row['option']), str(row['course_kind'])): int(
+                            row['recipe_revision_id']
+                        )
+                        for row in (captured or {}).get('exceptions', ())
+                        if str(row['day']) == day and str(row['meal']) == meal
+                        and row.get('recipe_revision_id') is not None
+                    }
                     persist_service_courses_connection(
                         connection, scope, week_start, day, meal,
                         soup=slot.get('soup') or {'state': 'unplanned'},
                         dessert=slot.get('dessert') or {'state': 'unplanned'},
                         exceptions=slot.get('exceptions') or [],
+                        retained_shared_revisions=retained_shared,
+                        retained_exception_revisions=retained_exceptions,
                     )
             elif captured:
                 restore_week_courses_connection(connection, scope, week_start, captured)

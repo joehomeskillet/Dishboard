@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import secrets
 
+import pytest
 from sqlalchemy import Engine, text
 
 from cafeteria.course_store import persist_service_courses
@@ -116,6 +117,30 @@ def test_course_editor_retains_bound_recipe_outside_search_page(app, database_en
     veggie_select = html.split('name="VEGGIE_soup_recipe"', 1)[1].split('</select>', 1)[0]
     assert 'Weiterhin gebundene Auswahl' in veggie_select
     assert other['public_id'] in veggie_select
+
+
+def test_course_recipe_offset_accepts_bounded_last_page(app, database_engine: Engine) -> None:
+    client, _user_id = _login(app, database_engine, ['Cafeteria.Admin'])
+
+    response = client.get(f'/admin/cafeteria?week={DAY}&recipe_offset=10000')
+
+    assert response.status_code == 200
+    assert 'name="recipe_offset" value="9950"' in response.get_data(as_text=True)
+
+
+@pytest.mark.parametrize('recipe_offset', ['10001', '-1', 'ungueltig'])
+def test_course_recipe_offset_rejects_invalid_values(
+    app,
+    database_engine: Engine,
+    recipe_offset: str,
+) -> None:
+    client, _user_id = _login(app, database_engine, ['Cafeteria.Admin'])
+
+    response = client.get(
+        f'/admin/cafeteria?week={DAY}&recipe_offset={recipe_offset}',
+    )
+
+    assert response.status_code == 400
 
 
 def test_course_week_html_allergens_rendered(app) -> None:

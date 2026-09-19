@@ -72,17 +72,33 @@ def _uuid(value: str, field: str) -> str:
         raise PartialWorkflowValidationError(f'Ungültige {field}.') from error
 
 
-def _latest_revision(connection: Connection, location_id: int, recipe_public_id: str) -> Mapping[str, Any]:
+def _latest_revision(
+    connection: Connection,
+    location_id: int,
+    recipe_public_id: str,
+    *,
+    retained_revision_id: int | None = None,
+) -> Mapping[str, Any]:
     row = connection.execute(text('''
         SELECT rr.id, rr.public_id, r.public_id AS recipe_public_id,
                COALESCE(rr.snapshot_json #>> '{recipe,title}', r.title) AS title
         FROM cafeteria.recipes r
         JOIN cafeteria.recipe_revisions rr ON rr.recipe_id=r.id
         WHERE r.location_id=:location AND r.public_id=CAST(:recipe AS uuid)
+          AND (r.active OR EXISTS (
+              SELECT 1 FROM cafeteria.recipe_revisions retained
+              WHERE retained.id=:retained_revision AND retained.recipe_id=r.id
+          ))
         ORDER BY rr.revision_number DESC LIMIT 1
-    '''), {'location': location_id, 'recipe': _uuid(recipe_public_id, 'Rezeptangabe')}).mappings().one_or_none()
+    '''), {
+        'location': location_id,
+        'recipe': _uuid(recipe_public_id, 'Rezeptangabe'),
+        'retained_revision': retained_revision_id,
+    }).mappings().one_or_none()
     if row is None:
-        raise PartialWorkflowValidationError('Rezeptrevision nicht gefunden.')
+        raise PartialWorkflowValidationError(
+            'Rezeptangabe ist ungültig oder nicht zugänglich.'
+        )
     return row
 
 
@@ -338,7 +354,12 @@ def _course_import_error(payload: Mapping[str, Any], cause: Exception) -> Partia
 
 
 def _resolve_revision(
-    connection: Connection, location_id: int, payload: Mapping[str, Any], *, field: str,
+    connection: Connection,
+    location_id: int,
+    payload: Mapping[str, Any],
+    *,
+    field: str,
+    retained_revision_id: int | None = None,
 ) -> int:
     try:
         recipe = payload.get('recipe_public_id') or payload.get('recipe_revision_public_id')
@@ -349,11 +370,26 @@ def _resolve_revision(
                 SELECT rr.id FROM cafeteria.recipe_revisions rr
                 JOIN cafeteria.recipes r ON r.id=rr.recipe_id
                 WHERE rr.public_id=CAST(:id AS uuid) AND r.location_id=:location
-            '''), {'id': _uuid(str(recipe), 'Rezeptrevision'), 'location': location_id}).scalar_one_or_none()
+                  AND (r.active OR EXISTS (
+                      SELECT 1 FROM cafeteria.recipe_revisions retained
+                      WHERE retained.id=:retained_revision AND retained.recipe_id=r.id
+                  ))
+            '''), {
+                'id': _uuid(str(recipe), 'Rezeptrevision'),
+                'location': location_id,
+                'retained_revision': retained_revision_id,
+            }).scalar_one_or_none()
             if row is None:
-                raise PartialWorkflowValidationError('Rezeptrevision nicht gefunden.')
+                raise PartialWorkflowValidationError(
+                    'Rezeptangabe ist ungültig oder nicht zugänglich.'
+                )
             return int(row)
-        return int(_latest_revision(connection, location_id, str(recipe))['id'])
+        return int(_latest_revision(
+            connection,
+            location_id,
+            str(recipe),
+            retained_revision_id=retained_revision_id,
+        )['id'])
     except PartialWorkflowValidationError as error:
         wrapped = _course_import_error(payload, error)
         if wrapped is error:
@@ -374,6 +410,7 @@ def _course_conflict(kind: str) -> PartialWorkflowConflictError:
 def _upsert_shared(
     connection: Connection, *, location_id: int, service_id: int, actor_id: int,
     kind: str, payload: Mapping[str, Any], expected_row_version: int | None = None,
+    retained_revision_id: int | None = None,
 ) -> None:
     state = str(payload.get('state') or 'unplanned')
     if state not in ('unplanned', 'planned', 'not_offered'):
@@ -381,9 +418,11 @@ def _upsert_shared(
     if kind not in COURSE_KINDS:
         raise PartialWorkflowValidationError('Ungültiger Gang.')
     existing = connection.execute(text('''
-        SELECT id, row_version FROM cafeteria.menu_service_courses
+        SELECT id, row_version, recipe_revision_id FROM cafeteria.menu_service_courses
         WHERE service_id=:service AND course_kind=:kind FOR UPDATE
     '''), {'service': service_id, 'kind': kind}).mappings().one_or_none()
+    if existing is not None and existing['recipe_revision_id'] is not None:
+        retained_revision_id = int(existing['recipe_revision_id'])
     if expected_row_version is not None:
         expected = _expected_course_version(expected_row_version, f'{COURSE_LABELS[kind]}-Version')
         if state == 'unplanned':
@@ -399,7 +438,10 @@ def _upsert_shared(
             return
         revision_id = None
         if state == 'planned':
-            revision_id = _resolve_revision(connection, location_id, payload, field=COURSE_LABELS[kind])
+            revision_id = _resolve_revision(
+                connection, location_id, payload, field=COURSE_LABELS[kind],
+                retained_revision_id=retained_revision_id,
+            )
         if existing is None:
             if expected != 0:
                 raise _course_conflict(kind)
@@ -432,7 +474,10 @@ def _upsert_shared(
         return
     revision_id = None
     if state == 'planned':
-        revision_id = _resolve_revision(connection, location_id, payload, field=COURSE_LABELS[kind])
+        revision_id = _resolve_revision(
+            connection, location_id, payload, field=COURSE_LABELS[kind],
+            retained_revision_id=retained_revision_id,
+        )
     connection.execute(text('''
         INSERT INTO cafeteria.menu_service_courses(
             location_id, service_id, course_kind, planning_state, recipe_revision_id, created_by, updated_by)
@@ -450,13 +495,16 @@ def _upsert_shared(
 def _upsert_exception(
     connection: Connection, *, location_id: int, menu_item_id: int, actor_id: int,
     kind: str, state: str, payload: Mapping[str, Any], expected_row_version: int | None,
+    retained_revision_id: int | None = None,
 ) -> None:
     if kind not in COURSE_KINDS:
         raise PartialWorkflowValidationError('Ungültiger Gang.')
     existing = connection.execute(text('''
-        SELECT id, row_version FROM cafeteria.menu_item_course_exceptions
+        SELECT id, row_version, recipe_revision_id FROM cafeteria.menu_item_course_exceptions
         WHERE menu_item_id=:item AND course_kind=:kind FOR UPDATE
     '''), {'item': menu_item_id, 'kind': kind}).mappings().one_or_none()
+    if existing is not None and existing['recipe_revision_id'] is not None:
+        retained_revision_id = int(existing['recipe_revision_id'])
     if state == 'inherit':
         if expected_row_version is not None:
             expected = _expected_course_version(
@@ -482,6 +530,7 @@ def _upsert_exception(
     if state == 'planned':
         revision_id = _resolve_revision(
             connection, location_id, payload, field=COURSE_LABELS[kind],
+            retained_revision_id=retained_revision_id,
         )
     if expected_row_version is not None:
         expected = _expected_course_version(
@@ -538,6 +587,8 @@ def persist_service_courses_connection(
     exceptions: Sequence[Mapping[str, Any]] | None = None,
     soup_row_version: int | None = None,
     dessert_row_version: int | None = None,
+    retained_shared_revisions: Mapping[str, int] | None = None,
+    retained_exception_revisions: Mapping[tuple[str, str], int] | None = None,
 ) -> None:
     """Write shared soup+dessert on an open write connection (no nested transaction)."""
     if meal not in ('LUNCH', 'DINNER'):
@@ -555,10 +606,12 @@ def persist_service_courses_connection(
     service_id = int(service)
     _upsert_shared(connection, location_id=scope.location_id, service_id=service_id,
                    actor_id=scope.actor_id, kind='soup', payload=soup,
-                   expected_row_version=soup_row_version)
+                   expected_row_version=soup_row_version,
+                   retained_revision_id=(retained_shared_revisions or {}).get('soup'))
     _upsert_shared(connection, location_id=scope.location_id, service_id=service_id,
                    actor_id=scope.actor_id, kind='dessert', payload=dessert,
-                   expected_row_version=dessert_row_version)
+                   expected_row_version=dessert_row_version,
+                   retained_revision_id=(retained_shared_revisions or {}).get('dessert'))
     if exceptions is None:
         return
     for item in exceptions:
@@ -587,6 +640,7 @@ def persist_service_courses_connection(
             connection, location_id=scope.location_id, menu_item_id=int(menu_item),
             actor_id=scope.actor_id, kind=kind, state=state, payload=item,
             expected_row_version=version,
+            retained_revision_id=(retained_exception_revisions or {}).get((option, kind)),
         )
 
 
@@ -611,7 +665,7 @@ def capture_week_courses(connection: Connection, week_id: int) -> dict[str, Any]
     """Preserve shared courses and exceptions across a full CSV replace of schema 2/3."""
     shared = [dict(row) for row in connection.execute(text('''
         SELECT s.service_date::text AS day, mp.code AS meal, c.course_kind, c.planning_state,
-               r.public_id::text AS recipe_public_id
+               c.recipe_revision_id, r.public_id::text AS recipe_public_id
         FROM cafeteria.menu_service_courses c
         JOIN cafeteria.menu_services s ON s.id=c.service_id
         JOIN cafeteria.meal_periods mp ON mp.id=s.meal_period_id
@@ -621,7 +675,7 @@ def capture_week_courses(connection: Connection, week_id: int) -> dict[str, Any]
     '''), {'week': week_id}).mappings()]
     exceptions = [dict(row) for row in connection.execute(text('''
         SELECT s.service_date::text AS day, mp.code AS meal, mt.code AS option, e.course_kind,
-               e.planning_state, r.public_id::text AS recipe_public_id
+               e.planning_state, e.recipe_revision_id, r.public_id::text AS recipe_public_id
         FROM cafeteria.menu_item_course_exceptions e
         JOIN cafeteria.menu_items i ON i.id=e.menu_item_id
         JOIN cafeteria.menu_services s ON s.id=i.service_id
@@ -638,6 +692,8 @@ def restore_week_courses_connection(
     connection: Connection, scope: AdminScope, week_start: date, captured: Mapping[str, Any],
 ) -> None:
     grouped: dict[tuple[str, str], dict[str, Any]] = {}
+    retained_shared: dict[tuple[str, str], dict[str, int]] = {}
+    retained_exceptions: dict[tuple[str, str], dict[tuple[str, str], int]] = {}
     for row in captured.get('shared') or ():
         key = (str(row['day']), str(row['meal']))
         slot = grouped.setdefault(key, {
@@ -646,6 +702,10 @@ def restore_week_courses_connection(
         payload = {'state': row['planning_state']}
         if row.get('recipe_public_id'):
             payload['recipe_public_id'] = row['recipe_public_id']
+        if row.get('recipe_revision_id') is not None:
+            retained_shared.setdefault(key, {})[str(row['course_kind'])] = int(
+                row['recipe_revision_id']
+            )
         slot[str(row['course_kind'])] = payload
     for row in captured.get('exceptions') or ():
         key = (str(row['day']), str(row['meal']))
@@ -657,11 +717,17 @@ def restore_week_courses_connection(
         }
         if row.get('recipe_public_id'):
             item['recipe_public_id'] = row['recipe_public_id']
+        if row.get('recipe_revision_id') is not None:
+            retained_exceptions.setdefault(key, {})[
+                (str(row['option']), str(row['course_kind']))
+            ] = int(row['recipe_revision_id'])
         slot['exceptions'].append(item)
     for (day, meal), slot in grouped.items():
         persist_service_courses_connection(
             connection, scope, week_start, day, meal,
             soup=slot['soup'], dessert=slot['dessert'], exceptions=slot['exceptions'],
+            retained_shared_revisions=retained_shared.get((day, meal)),
+            retained_exception_revisions=retained_exceptions.get((day, meal)),
         )
 
 
