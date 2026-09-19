@@ -8,10 +8,10 @@ Der Start-Commit jedes Pakets muss diese Korrekturen nachweislich enthalten.
 
 ## 1. Bindende Grundlage und Umfang
 
-- [BAS/REC-Datenvertrag](2026-09-06-bas-rec-data-contract.md), besonders §3, §5, §7/8 und M-B.
+- [BAS/REC-Datenvertrag](../../../../design/2026-09-06-bas-rec-data-contract.md), besonders §3, §5, §7/8 und M-B.
 - [Arbeitspakete R1–R4](../superpowers/bas-rec-work-packages-0906.md): dieser Plan umfasst den Rezept-Admin einschließlich der R3-/R4-Verbraucher; keine erneute M-B-Migration.
-- [R1-Addendum](2026-09-07-rec-r1-contract-addendum.md): exakte Payloads, DTOs, Fehler und unveränderliche Quellen.
-- [Tabler-Vertrag](admin-tabler-contract.md) und [Symbolmanifest](2026-09-07-admin-tabler-icon-manifest.md).
+- [R1-Addendum](../../../../design/2026-09-07-rec-r1-contract-addendum.md): exakte Payloads, DTOs, Fehler und unveränderliche Quellen.
+- [Tabler-Vertrag](../../../../design/admin-tabler-contract.md) und [Symbolmanifest](../../../../design/2026-09-07-admin-tabler-icon-manifest.md).
 - Tatsächliche Imports: `cafeteria.recipe_store`, `recipe_types`, `master_data_store`, `master_data_types`, `quantities`; keine Route greift direkt auf SQL oder interne Dispatcher zu.
 
 Ergebnis: Rezepte finden, vollständig bearbeiten, Bilder und Quellen sehen, Revisionen

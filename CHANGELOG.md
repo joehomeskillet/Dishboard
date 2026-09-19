@@ -1,5 +1,14 @@
 # Änderungsprotokoll
 
+## Dokumentationsbereinigung vom 20. September 2026
+
+- 25 abgeschlossene oder ersetzte Planungs-, Übergabe- und Umsetzungsnotizen
+  verlustfrei nach `docs/archive/2026-09/` verschoben.
+- `docs/README.md` als Wegweiser für geltende Betriebs-, Fach-, UI-,
+  Schnittstellen- und Planungsdokumente ergänzt.
+- Relative Verweise auf archivierte Originale aktualisiert; maschinell gebundene
+  Altstände und sämtliche Nachweisverzeichnisse blieben an ihrem bisherigen Ort.
+
 ## Welle 3: Finalisierung vom 2. September 2026
 
 ### Authentifizierung und Benutzer-Management

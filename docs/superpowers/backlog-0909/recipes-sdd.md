@@ -55,9 +55,9 @@ zeigt bis zum Vorliegen des Journals ausdrücklich `Kein Bestand erfasst`.
   BAS-001, REC-001 bis REC-007, NUT-001 und OFF-001.
 - [docs/design/2026-09-05-screens-vorlagen-verwaltung.md](../../design/2026-09-05-screens-vorlagen-verwaltung.md),
   Abschnitte 5, 10, 11 und 12.
-- [docs/superpowers/bas-rec-work-packages-0906.md](../bas-rec-work-packages-0906.md),
+- [docs/superpowers/bas-rec-work-packages-0906.md](../../archive/2026-09/docs/superpowers/bas-rec-work-packages-0906.md),
   Pakete B1 bis B4 und R1 bis R7 samt Freigabegrenzen.
-- [docs/superpowers/backlog-execution-0906.md](../backlog-execution-0906.md),
+- [docs/superpowers/backlog-execution-0906.md](../../archive/2026-09/docs/superpowers/backlog-execution-0906.md),
   Ausführungspfad Stufen 9 bis 12.
 - [docs/CSV_IMPORT_EXPORT.md](../../CSV_IMPORT_EXPORT.md) für die bestehenden
   CSV-Konventionen (Semikolon, UTF-8 mit optionalem BOM, führende Spalte

@@ -28,6 +28,12 @@ Sechs Worker-Lanes setzen die Work Packages um: OpenAI Codex, Cursor Agent, Goog
 
 Belege: `docs/superpowers/backlog-0909/` (WP-Pläne, `execution-contract.md`, `file-leases.json`, `routing-receipts.json`), `.claude/evidence/` (Gate-Logs und Cross-Reviews), `AGENTS.md`.
 
+## Dokumentation
+
+Der [Dokumentationswegweiser](docs/README.md) führt zu allen aktuellen
+Spezifikationen, Betriebsdokumenten, Schnittstellen und Planungsgrundlagen. Er
+trennt geltende Dokumente von Nachweisen und archivierten Arbeitsständen.
+
 ## Wichtigste Inhalte
 
 | Pfad | Inhalt |

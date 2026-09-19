@@ -34,11 +34,11 @@ Die folgenden Nachweise betreffen den damaligen Schema-19-Release. Seine Sicheru
 
 Neu live sind die lokale Benutzerverwaltung und gleich grosse Menükarten in beiden HTML-Wochen-Druckprofilen, auch mobil. Frische Nachweise: [IAM](/tmp/dishboard-iam-readonly-live-after-deploy-0906/proof.json) **208 Checks/12 PNG**, [Screens](/tmp/dishboard-screen-variants-live-iam-0906/proof.json) **386 Checks/20 PNG**, [API/Admin/PDF](/tmp/dishboard-iam-api-admin-live-0906/proof.json) **194 Checks/18 PNG**. Alle **788 Checks bestanden**, 50 Screenshots; der Screens-Beleg enthält separat acht abgebrochene Bildabrufe. IAM-Abnahme ausschliesslich lesend, kein produktiver IAM-Schreibtest. Vollständiger Login-/Logout-Zugriffsverlauf bleibt offen.
 
-Die beiden Produktionssicherungen vor/nach Schema 19 sind von Root mit Hash und TOC geprüft. Ein Schema-19-kompatibler UI-off-Fallback `ff4fbc9` ist vorbereitet, unabhängig mit 177 Tests sowie Datei-/AST-/pip-Prüfungen bestätigt und nicht aktiv. Exakte Images und Backup-Hashes stehen im [aktuellen Backlog](../BACKLOG.md). Nach MIME-/Geometrie-Korrektur des Operators hat Root dessen 87 Tests, Ruff/Mypy und zweimal den vollständigen Live-Lauf geprüft: jeweils 798 Checks/40 PNG, null Fehler. Der rohe Status bleibt `incomplete`, weil individuelle öffentliche/Vorschau-Logos aktuell nicht verwendet werden und Zustandsabdeckung vom Live-Inhalt abhängt. Diese Branding-Varianten, physisches Yodeck, fachliche Küchen-/Druckbestätigung und externer Design-Validator bleiben offen.
+Die beiden Produktionssicherungen vor/nach Schema 19 sind von Root mit Hash und TOC geprüft. Ein Schema-19-kompatibler UI-off-Fallback `ff4fbc9` ist vorbereitet, unabhängig mit 177 Tests sowie Datei-/AST-/pip-Prüfungen bestätigt und nicht aktiv. Exakte Images und Backup-Hashes stehen im [aktuellen Backlog](../../../../BACKLOG.md). Nach MIME-/Geometrie-Korrektur des Operators hat Root dessen 87 Tests, Ruff/Mypy und zweimal den vollständigen Live-Lauf geprüft: jeweils 798 Checks/40 PNG, null Fehler. Der rohe Status bleibt `incomplete`, weil individuelle öffentliche/Vorschau-Logos aktuell nicht verwendet werden und Zustandsabdeckung vom Live-Inhalt abhängt. Diese Branding-Varianten, physisches Yodeck, fachliche Küchen-/Druckbestätigung und externer Design-Validator bleiben offen.
 
 ## Aktive Ausführung — 7. September 2026
 
-**35 IDs, keine Abschlussquote:** 17 IDs haben produktive Teilumfänge, einschliesslich OPS-001 und BAS-001 mit B1/B2; das sind keine 17 vollständigen Abschlüsse. 16 weitere grössere Umsetzungen bleiben offen, QA-001/DATA-001 begleiten als zwei fortlaufende Abnahmen. Freie Vorlagengestaltung, vollständige Screen-Zuordnungen und sämtliche Rezept-/Stammdaten-/Warenwirtschaftspakete behalten ihren Restumfang. Die ältere Lieferfolge unten ordnet Abhängigkeiten; ihr damaliger Status ist historisch. Aktuelle Einzelstände und vollständige ID-Zuordnung stehen in [BACKLOG.md](../BACKLOG.md).
+**35 IDs, keine Abschlussquote:** 17 IDs haben produktive Teilumfänge, einschliesslich OPS-001 und BAS-001 mit B1/B2; das sind keine 17 vollständigen Abschlüsse. 16 weitere grössere Umsetzungen bleiben offen, QA-001/DATA-001 begleiten als zwei fortlaufende Abnahmen. Freie Vorlagengestaltung, vollständige Screen-Zuordnungen und sämtliche Rezept-/Stammdaten-/Warenwirtschaftspakete behalten ihren Restumfang. Die ältere Lieferfolge unten ordnet Abhängigkeiten; ihr damaliger Status ist historisch. Aktuelle Einzelstände und vollständige ID-Zuordnung stehen in [BACKLOG.md](../../../../BACKLOG.md).
 
 Die früher unterbrochene OPS-Welle ist geprüft und produktiv. Ihre technischen Live-Nachweise
 stehen oben; fachliche Bestätigung und physische Playerabnahme werden dadurch nicht ersetzt.
@@ -54,7 +54,7 @@ vollständigem Root-Diffreview und unabhängig **101 passed in 1.26s**, Ruff PAS
 für zwei Dateien integriert ([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)).
 B1 ist mit `3d35cbb` produktiv. B2 ist nach erfüllter OPS-Schema-20-Voraussetzung mit Fix
 `7ca5286` unabhängig geprüft und mit `2cfc43f`/Schema 21 produktiv. B3 ist seit `783fab3` ebenfalls produktiv. [BAS/REC-Pakete](bas-rec-work-packages-0906.md)
-und [Datenvertrag](../design/2026-09-06-bas-rec-data-contract.md) erhalten sämtliche Restaufträge.
+und [Datenvertrag](../../../../design/2026-09-06-bas-rec-data-contract.md) erhalten sämtliche Restaufträge.
 
 **HugeRTE-Eignungsprobe:** 1.0.13 ist lokal browsergeprüft; Text, Fett, Listen und Silver-Linkdialog
 funktionieren unter strikter CSP, dennoch bleibt eine Style-CSP-Verletzung. Silver ist kein
@@ -70,7 +70,7 @@ Dieser Abschnitt dokumentiert den damaligen Schema-17-Stand. Seine offenen Marke
 
 Die folgenden Vor-Deploy-Angaben zu `1bff82e` und «noch nicht deployed» sind für diesen Lieferumfang historisch. Live-Restbefunde: Favicon HTTP 404, physische Yodeck-Abnahme und externer Design-Validator. Wegen des Favicon bleibt der rohe Rotations-Gesamtstatus `passed:false`; Rotation und Layout bestanden. **Alle 35 Backlog-IDs und der vollständige Restumfang bleiben unverändert**, insbesondere freie Vorlagengestaltung, Markenpflege/Uploads, Screen-Zuordnungen und vollständige PDF-Symbole/Legenden.
 
-Stand: 6. September 2026. Aktives Nutzerziel: **«arbeite alles ab an was du jetzt dran bist und das backlog»**. Der Umfang umfasst sämtliche offenen Einträge in [BACKLOG.md](../BACKLOG.md), nicht nur die erste Welle. Kleine Lieferungen sind Zwischenstände, keine Erfüllung des Gesamtziels.
+Stand: 6. September 2026. Aktives Nutzerziel: **«arbeite alles ab an was du jetzt dran bist und das backlog»**. Der Umfang umfasst sämtliche offenen Einträge in [BACKLOG.md](../../../../BACKLOG.md), nicht nur die erste Welle. Kleine Lieferungen sind Zwischenstände, keine Erfüllung des Gesamtziels.
 
 ## Historischer Vor-Deploy-Liefer- und Prüfstand — durch Nachtrag oben abgelöst
 

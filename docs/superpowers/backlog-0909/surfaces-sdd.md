@@ -15,7 +15,7 @@ Er ersetzt ältere visuelle Vorgaben, nicht Fachlichkeit, Sicherheit oder Archit
 Seine Palette wird hier nicht kopiert. Sie ist Nutzerentscheidung, kein bestätigtes Corporate
 Design. Der vorliegende SDD konkretisiert Dateibesitz und fachliche Restgrenzen.
 Weitere Grundlagen: [Haupt-SDD](../../SDD_Klinik_Suedhang_Cafeteria_v3.0.md),
-[Backlog](../../BACKLOG.md), [bisherige Ausführung](../backlog-execution-0906.md),
+[Backlog](../../BACKLOG.md), [bisherige Ausführung](../../archive/2026-09/docs/superpowers/backlog-execution-0906.md),
 [Screen-/Vorlagenvertrag](../../design/2026-09-05-screens-vorlagen-verwaltung.md),
 [natives PDF](../../design/2026-09-08-native-pdf-layout-contract.md),
 [Zugriffshistorie](../../design/2026-09-08-authentication-access-history.md).
