@@ -7,7 +7,12 @@ import pytest
 
 from cafeteria import csvio
 from cafeteria import db as database
-from cafeteria.csvio import CAFETERIA_HEADERS, PATIENT_HEADERS, snapshot_to_csv, validate_upload
+from cafeteria.csvio import (
+    SCHEMA_4_CAFETERIA_HEADERS,
+    SCHEMA_4_PATIENT_HEADERS,
+    snapshot_to_csv,
+    validate_upload,
+)
 from cafeteria.db import active_snapshot
 from cafeteria.workflow import import_draft, load_draft, publish_draft
 from cafeteria.workflow_snapshot import build_snapshot
@@ -268,10 +273,10 @@ def test_schema_2_import_defaults_none_and_reports_replacement_notice() -> None:
     assert set(_first_codes(imported['values'])) == {'none'}
 
 
-def test_templates_and_examples_ship_schema_3_accompaniment_contract() -> None:
+def test_templates_and_examples_ship_schema_4_accompaniment_contract() -> None:
     for profile, prefix, expected_headers in (
-        ('patient', 'menu_patient', PATIENT_HEADERS),
-        ('staff_guest', 'menu_cafeteria', CAFETERIA_HEADERS),
+        ('patient', 'menu_patient', SCHEMA_4_PATIENT_HEADERS),
+        ('staff_guest', 'menu_cafeteria', SCHEMA_4_CAFETERIA_HEADERS),
     ):
         template = (ROOT / 'csv' / f'{prefix}_template.csv').read_text(encoding='utf-8-sig')
         assert template.splitlines() == [';'.join(expected_headers)]
@@ -283,7 +288,7 @@ def test_templates_and_examples_ship_schema_3_accompaniment_contract() -> None:
         )
         rows = list(reader)
         assert reader.fieldnames == expected_headers
-        assert {row['schema_version'] for row in rows} == {'3'}
+        assert {row['schema_version'] for row in rows} == {'4'}
         assert {row['beilage_dazu'] for row in rows} <= {'', 'suppe', 'salat'}
         assert {'suppe', 'salat'} <= {row['beilage_dazu'] for row in rows}
         validated = validate_upload(io.BytesIO(example))

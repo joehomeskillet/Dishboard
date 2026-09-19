@@ -28,7 +28,8 @@ SCHEMA_2_WARNING = 'Schema-2-Vollimport: Bestehende Beilagen werden auf Â«KeineÂ
 def _schema_2_example(filename: str) -> bytes:
     source = (ROOT / 'csv' / filename).read_text(encoding='utf-8-sig')
     reader = csv.DictReader(io.StringIO(source), delimiter=';')
-    headers = [header for header in reader.fieldnames or [] if header != 'beilage_dazu']
+    drop = {'beilage_dazu', 'suppe', 'suppe_geltung', 'dessert', 'dessert_geltung'}
+    headers = [header for header in reader.fieldnames or [] if header not in drop]
     output = io.StringIO(newline='')
     writer = csv.DictWriter(output, fieldnames=headers, delimiter=';', lineterminator='\r\n')
     writer.writeheader()
