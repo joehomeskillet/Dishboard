@@ -22,7 +22,7 @@ from cafeteria.security import csrf_token
 from cafeteria.workflow_partial_store import persist_week_header
 from cafeteria.workflow_snapshot import build_snapshot
 from cafeteria.course_store import load_week_courses, persist_service_courses
-from cafeteria.workflow import import_draft
+from cafeteria.workflow import WorkflowValidationError, import_draft
 from review_support import write_expectations
 from test_admin_workflow_db import _staff_values
 from test_admin_workflow_routes import _scope, _session_actor_id
@@ -635,6 +635,93 @@ def test_schema3_import_preserves_course_state_seen_under_week_lock(
     )
     after = load_week_courses(db.app, db.location_id, WEEK, 'staff_guest')
     assert after[(WEEK.isoformat(), 'LUNCH')]['shared']['soup']['title'] == 'ImportErsatz'
+
+
+def _schema_4_with_shared_soup(recipe_public_id: str) -> dict[str, object]:
+    exported = snapshot_to_csv(_snapshot('staff_guest'))
+    reader = csv.DictReader(io.StringIO(exported.decode('utf-8-sig')), delimiter=';')
+    headers = list(reader.fieldnames or [])
+    rows = list(reader)
+    first_day = rows[0]['datum']
+    for row in rows:
+        if row['datum'] == first_day and row['mahlzeit'] == 'LUNCH':
+            row['suppe'] = recipe_public_id
+            row['suppe_geltung'] = 'gemeinsam'
+    buffer = io.StringIO(newline='')
+    writer = csv.DictWriter(buffer, fieldnames=headers, delimiter=';', lineterminator='\n')
+    writer.writeheader()
+    writer.writerows(rows)
+    result = validate_upload(io.BytesIO(('\ufeff' + buffer.getvalue()).encode()))
+    assert result['valid'] is True
+    return result
+
+
+def test_schema4_import_rejects_new_inactive_course_recipe_without_disclosure(
+    workflow_database: WorkflowDatabase,
+) -> None:
+    db = workflow_database
+    soup = _freeze_named(db, 'Inaktive Importsuppe')
+    with db.owner.begin() as connection:
+        connection.execute(
+            text('UPDATE cafeteria.recipes SET active=false WHERE public_id=:recipe'),
+            {'recipe': soup['recipe_public_id']},
+        )
+    imported = _schema_4_with_shared_soup(str(soup['recipe_public_id']))
+
+    with pytest.raises(WorkflowValidationError) as caught:
+        import_draft(
+            db.app, 'staff_guest', WEEK,
+            expected_row_version=0,
+            actor_id=db.actor_id,
+            values=imported['values'],
+            csv_courses=imported['csv_courses'],
+            **write_expectations(db.app, db.actor_id),
+        )
+
+    assert str(caught.value) == 'Zeile 2: Rezeptangabe ist ungültig oder nicht zugänglich.'
+
+
+def test_schema4_import_keeps_same_inactive_course_recipe_binding(
+    workflow_database: WorkflowDatabase,
+) -> None:
+    db = workflow_database
+    scope = workflow_scope(db, 'staff_guest')
+    soup = _freeze_named(db, 'Retained Importsuppe')
+    from cafeteria.workflow_partial_store import persist_menu_item
+
+    persist_menu_item(
+        db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH', 'MENU_1', _payload(staff=True), 0,
+    )
+    persist_service_courses(
+        db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
+        soup={'state': 'planned', 'recipe_public_id': soup['recipe_public_id']},
+        dessert={'state': 'unplanned'},
+        soup_row_version=0,
+        dessert_row_version=0,
+    )
+    with db.owner.begin() as connection:
+        version = connection.execute(text(
+            '''SELECT w.row_version FROM cafeteria.menu_weeks w
+               JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+               WHERE w.location_id=:loc AND p.code='staff_guest' AND w.week_start=:week'''
+        ), {'loc': db.location_id, 'week': WEEK}).scalar_one()
+        connection.execute(
+            text('UPDATE cafeteria.recipes SET active=false WHERE public_id=:recipe'),
+            {'recipe': soup['recipe_public_id']},
+        )
+    imported = _schema_4_with_shared_soup(str(soup['recipe_public_id']))
+
+    import_draft(
+        db.app, 'staff_guest', WEEK,
+        expected_row_version=int(version),
+        actor_id=db.actor_id,
+        values=imported['values'],
+        csv_courses=imported['csv_courses'],
+        **write_expectations(db.app, db.actor_id),
+    )
+
+    after = load_week_courses(db.app, db.location_id, WEEK, 'staff_guest')
+    assert after[(WEEK.isoformat(), 'LUNCH')]['shared']['soup']['title'] == 'Retained Importsuppe'
 
 
 @pytest.mark.parametrize(

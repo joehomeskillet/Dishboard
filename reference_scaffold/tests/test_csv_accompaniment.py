@@ -385,6 +385,44 @@ def test_schema_4_invalid_course_uuid_is_a_positioned_issue() -> None:
     } >= {(2, suppe_column)}
 
 
+@pytest.mark.parametrize(
+    ('raw_value', 'message'),
+    (
+        ("''00000000-0000-4000-8000-000000000001", 'höchstens 37 Zeichen'),
+        ('00000000-0000-4000-8000-000000000001\x01', 'C0-Kontrollzeichen'),
+    ),
+)
+def test_schema_4_course_cell_rejects_raw_length_and_controls_with_position(
+    raw_value: str,
+    message: str,
+) -> None:
+    values = _patient_values()
+    exported = snapshot_to_csv(_snapshot_from_values(values))
+    reader = csv.DictReader(
+        io.StringIO(exported.decode('utf-8-sig')),
+        delimiter=';',
+    )
+    headers = list(reader.fieldnames or [])
+    rows = list(reader)
+    rows[0]['suppe'] = raw_value
+    buffer = io.StringIO(newline='')
+    writer = csv.DictWriter(buffer, fieldnames=headers, delimiter=';', lineterminator='\n')
+    writer.writeheader()
+    writer.writerows(rows)
+
+    exact = csvio._validator().validate_text(buffer.getvalue(), '<upload>')
+
+    suppe_column = headers.index('suppe') + 1
+    matching = [
+        issue for issue in exact['issues']
+        if issue['line'] == 2 and issue['column'] == suppe_column
+    ]
+    assert matching
+    assert any('suppe' in issue['message'] and message in issue['message'] for issue in matching)
+    with pytest.raises(ValueError, match=message):
+        csvio._payload_from_cell(raw_value)
+
+
 def test_schema_4_inaccessible_uuid_is_format_ok_and_carries_line() -> None:
     values = _patient_values()
     exported = snapshot_to_csv(_snapshot_from_values(values))

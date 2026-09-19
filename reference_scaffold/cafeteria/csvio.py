@@ -161,7 +161,7 @@ def extract_csv_courses(rows: list[dict[str, str]]) -> dict[tuple[str, str], dic
 
 
 def _payload_from_cell(cell: str) -> dict[str, str]:
-    value = cell.strip().lstrip("'")
+    value = cast(str, _validator().normalise_course_cell(cell))
     if value == '':
         return {'state': 'unplanned'}
     if value in {'-', 'keine'}:
