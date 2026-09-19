@@ -212,7 +212,7 @@ Dieser Abschnitt beschreibt den damaligen Schema-17-Deploy; aktueller Release un
 
 Die früheren Angaben «lokal vorbereitet», «noch nicht deployed» und Produktion `1bff82e` sind für diesen Lieferumfang historisch und durch diesen Nachtrag abgelöst. Live-Restbefunde: impliziter Favicon-Abruf HTTP 404, physische Yodeck-Abnahme und externer Design-Validator. Der rohe Rotations-Gesamtstatus bleibt wegen des Favicon-404 `passed:false`; Rotation und Layout bestanden. **Alle 35 Backlog-IDs und ihr vollständiger Restumfang bleiben erhalten**; der erste Eigenschaftseditor und die Darstellungsauswahl erfüllen die umfassenden Vorlagen-/Markenaufträge nicht.
 
-**Historischer Vor-Deploy-Stand:** **6. September 2026**, vorbereitete Lieferung `69ef540`. Nutzerauftrag: gesamten Backlog umsetzen. [Ausführungsplan und laufende Pakete](superpowers/backlog-execution-0906.md). «Lokal vorbereitet» bezeichnete implementierte Änderungen mit Teilnachweisen, ohne Produktivabnahme. Damals bestätigte Produktion: `1bff82e`, Schema 16; die neue API-/Public-/Admin-Lieferung war noch nicht deployed. Die Tabler-Basis war bereits produktiv; [Nachweise und verbleibende Abnahme](design/tabler-integration-evidence-0905.md) sind separat dokumentiert.
+**Historischer Vor-Deploy-Stand:** **6. September 2026**, vorbereitete Lieferung `69ef540`. Nutzerauftrag: gesamten Backlog umsetzen. [Ausführungsplan und laufende Pakete](archive/2026-09/docs/superpowers/backlog-execution-0906.md). «Lokal vorbereitet» bezeichnete implementierte Änderungen mit Teilnachweisen, ohne Produktivabnahme. Damals bestätigte Produktion: `1bff82e`, Schema 16; die neue API-/Public-/Admin-Lieferung war noch nicht deployed. Die Tabler-Basis war bereits produktiv; [Nachweise und verbleibende Abnahme](design/tabler-integration-evidence-0905.md) sind separat dokumentiert.
 
 **Verbindlicher Nutzerentscheid: Alles im Admin bleibt Tabler.** Das gilt für Formulare, Felder, Buttons, Dialoge, Navigation und sämtliche Fremdeditoren. Eine Tabler-Shell um eine fremde Bedienoberfläche genügt nicht. Tandoor und Pauli sind Funktionsvorbilder, kein Vue-/Vuetify-Ersatz für den Admin. GrapesJS, pdfme und andere Editor-Kandidaten dürfen erst nach nachgewiesener vollständiger Tabler-Bedienoberfläche freigegeben werden.
 
@@ -291,7 +291,7 @@ Root hat den vollständigen 433-Zeilen-Diff gelesen und selbst **101 passed in 1
 und Mypy PASS für zwei Dateien bestätigt ([JUnit](/tmp/dishboard-root-quantities-b1-0906.xml)).
 B1 ist seit `3d35cbb` produktiv; Produktion verwendet inzwischen `783fab3`/Schema 21.
 [Gemeinsamer Vertrag](design/2026-09-06-bas-rec-data-contract.md) und
-[Arbeitspakete](superpowers/bas-rec-work-packages-0906.md) trennen B1 von B2, das nach erfüllter OPS-Schema-20-Voraussetzung
+[Arbeitspakete](archive/2026-09/docs/superpowers/bas-rec-work-packages-0906.md) trennen B1 von B2, das nach erfüllter OPS-Schema-20-Voraussetzung
 mit Fix `7ca5286` unabhängig geprüft und nun produktiv ist. B3 ist nach Plan und Review (Registrierungen 12161/12164) seit `783fab3` produktiv. R1-A ist geprüft; R1-B mit Migration 0019/Schema 22 bleibt trotz 590 Root-Tests wegen des bestätigten Lizenzbefunds ohne Gesamtfreigabe. R2-UI bleibt geplant. BAS-001/REC-001 und ihr vollständiger Restumfang bleiben offen.
 
 | ID | Auftrag | Umfang / noch offen |

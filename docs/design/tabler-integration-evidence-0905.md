@@ -1,6 +1,6 @@
 # Tabler-Integration: Nachweise vom 5. September 2026
 
-Releasebasis: `1a3004af42592d686947148df53b549350183bf3`. Massstab ist die [verbindliche SDD](../superpowers/tabler-sdd-user-2026-09-05.md), Kapitel 19–20. **Tabler ist seit 5. September 2026, 22:07 Uhr Schweizer Zeit produktiv; der Container läuft gesund.** Der vollständige authentifizierte Live-Nachweis besteht mit 42 Seiten und 847 Prüfungen, ohne Fehler oder nicht verfügbare Prüfungen. Lokale Browserprüfungen und dieser Go-live ersetzen keine vollständige Geräteabnahme.
+Releasebasis: `1a3004af42592d686947148df53b549350183bf3`. Massstab ist die [verbindliche SDD](../archive/2026-09/docs/superpowers/tabler-sdd-user-2026-09-05.md), Kapitel 19–20. **Tabler ist seit 5. September 2026, 22:07 Uhr Schweizer Zeit produktiv; der Container läuft gesund.** Der vollständige authentifizierte Live-Nachweis besteht mit 42 Seiten und 847 Prüfungen, ohne Fehler oder nicht verfügbare Prüfungen. Lokale Browserprüfungen und dieser Go-live ersetzen keine vollständige Geräteabnahme.
 
 ## T01–T12
 
@@ -8,7 +8,7 @@ Testdateien liegen unter [`reference_scaffold/tests`](../../reference_scaffold/t
 
 | WP | Aktueller Stand | Konkreter Nachweis / Restpunkt |
 |---|---|---|
-| T01 | Struktur erfasst; Gerät offen | [Markup-Vertrag](admin-tabler-contract.md) und [ursprünglicher Gap-Audit](tabler-sdd-gap-0905.md). Exaktes XCover-Modell, Android-/Browserversion und echte Bildschirmtastatur fehlen weiterhin. |
+| T01 | Struktur erfasst; Gerät offen | [Markup-Vertrag](admin-tabler-contract.md) und [ursprünglicher Gap-Audit](../archive/2026-09/docs/design/tabler-sdd-gap-0905.md). Exaktes XCover-Modell, Android-/Browserversion und echte Bildschirmtastatur fehlen weiterhin. |
 | T02 | Gepinnt und lokal vorhanden | [`tabler.lock.json`](../../reference_scaffold/cafeteria/static/vendor/tabler.lock.json): Core **1.5.0**, Icons **3.46.0**, Quellen-/Dateihashes; lokale CSS-, JS-, SVG- und Lizenzdateien. [`vendor_tabler.py`](../../tools/vendor_tabler.py) bietet Reproduktion und Offline-Prüfung. |
 | T03 | Integriert; saubere Paketabnahme bestanden | [`base_tabler.html`](../../reference_scaffold/cafeteria/templates/admin/base_tabler.html) lädt lokale Assets. `test_week_overviews_extend_tabler_base_and_load_assets` und `test_tabler_styles_do_not_load_on_public_or_login_pages`. Der vollständige Validatorlauf aus `/tmp/dishboard-tabler-final` endet mit Exit 0; Vendorprüfung aller fünf Artefakte, Schema mit 13 Migrationsdateien sowie CSS- und Screenshotprüfungen sind bestanden. |
 | T04 | Implementiert und im Browser geprüft | Eigene Tabler-Basis, gemeinsame Sidebar, mobile Klappnavigation, Umschaltung bei 1200 px. `test_admin_shell_ui.py`, `test_admin_tabler_browser.py`; Screenshots unten. |
