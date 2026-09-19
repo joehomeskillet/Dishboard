@@ -14,6 +14,24 @@ Dieses Dokument ist eigenständig verwendbar. Die beiden älteren Entwürfe zum 
 
 ---
 
+## Auftraggeber-Entscheid 2026-09-20
+
+Gemäss Auftraggeber-Entscheid im Handoff (`docs/design/uiux-handoff-2026-09-20/`) werden folgende Regeln und Strukturen ersetzt bzw. präzisiert:
+* **M01 Seitenrahmen/Tabs/Statuslage:** Horizontale Haupt-Untermenüs entfallen; stattdessen eingerückte Kontextnavigation in der Sidebar (nur bei aktivem Oberpunkt). Neue Seitenstruktur: Titel + ein Satz Kontext → rechts höchstens EINE primäre globale Aktion → Statusbar über volle Inhaltsbreite → Filter/Suche nur wenn nötig → Hauptinhalt → Sekundäres/Technisches.
+* **R07:** Das Statusbar-Designsystem rückt als globale Komponente (3–5 Slots) zentral unter den Titel.
+* **R08:** Hauptaktion standardmässig oben rechts im Seitenkopf. Bei langen Editoren ist eine kompakte sticky Aktionsleiste zulässig.
+* **A17 (Testmatrix) & Mobile:** Pflichtbreiten 360, 768, 1024, 1440 px. Sidebar darf mobil zu Drawer werden.
+* **Begrifflichkeiten:** Der Navigationspunkt «Grundlagen» heisst neu «Zutaten». Der Seitentitel entspricht stets dem Navigationspunkt. Bestehende URLs und Endpoints bleiben unverändert.
+
+**Ausdrücklich unverändert bleiben:**
+* 200-%-Browserzoom-Test und sichtbarer Fokus (2px Outline mit Abstand).
+* Mindesthöhen der Bedienelemente (hier gilt der strengere Wert von **48px** basierend auf Test `test_rendered_ui.py` gegenüber den Token-Variablen).
+* Fehlende Angaben dürfen niemals als «allergenfrei» dargestellt werden.
+* Ohne-JS-Bedienbarkeit und Erhalt der `<noscript>`-Redundanz.
+* Erhalt bestehender CSRF- und Backend-Sicherheitsgrenzen.
+* Verbindliche Token-Pflicht für alle Styles.
+* Signage und öffentliche Seiten sind nicht Teil dieser Umsetzungs-Welle.
+
 ## 1. Dein Auftrag
 
 Migriere das bestehende Frontend auf das hier festgelegte Designsystem. Setze die Änderungen im Repository um; liefere nicht lediglich Vorschläge oder ein weiteres Konzept.
@@ -42,8 +60,8 @@ Versteckte Warnungen, verlorene Werte und eine breite Hülle mit weiterhin riesi
 | R04 | Häufige Änderungen unmittelbar | Menge und Einheit direkt in der Zutatenübersicht ändern. Eine einfache Änderung darf keine zusätzliche Klickstrecke benötigen. |
 | R05 | Verständliche Symbole | Tabler-Icon plus kurzer sichtbarer Text für Navigation und Hauptaktionen. Gleiche Bedeutung überall gleich darstellen. |
 | R06 | Sichere Detailbereiche | Auf-/Zuklappen speichert und verwirft nichts. Neue oder fehlerhafte Einträge passend öffnen. Gefüllte Zusatzangaben im Kurztext erkennbar lassen. |
-| R07 | Wahrheitsgetreue Zustände | Gespeichert, geprüft und veröffentlicht unterscheiden. Fehlende Angaben nicht durch einen allgemeinen grünen Haken verdecken. |
-| R08 | Erreichbare Aktionen | Eine hervorgehobene Speicherhandlung je Formular, erreichbar ohne Scrollreise. Seltene Aktionen in einem beschrifteten Menü. |
+| R07 | Wahrheitsgetreue Zustände | Gespeichert, geprüft und veröffentlicht unterscheiden. Fehlende Angaben nicht durch einen allgemeinen grünen Haken verdecken. *(Ersetzt am 2026-09-20 durch: Statusbar als globales Designsystem (3–5 Slots) zentral unter dem Titel. Warnungen immer mit Text, Farbe nie alleiniger Träger. Keine erfundenen Daten.)* |
+| R08 | Erreichbare Aktionen | Eine hervorgehobene Speicherhandlung je Formular, erreichbar ohne Scrollreise. Seltene Aktionen in einem beschrifteten Menü. *(Ersetzt am 2026-09-20 durch: Primäraktion standardmässig oben rechts im Seitenkopf. Bei langen Editoren ist eine kompakte sticky Aktionsleiste das zulässige Mittel.)* |
 | R09 | Ruhige Gestaltung | Bestehende Farben, Schriften und Tokens behalten. Weniger verschachtelte Rahmen, klare Kanten, keine Schmuckkarten oder dekorativen Kennzahlen. |
 | R10 | Vollständiger Nachweis | Jede Seite prüfen. Ein Screenshot, HTTP 200, erfolgreicher Build oder Breitenwert ersetzt weder Interaktion noch Gesamtaudit. |
 
@@ -369,36 +387,38 @@ Die Skizzen zeigen verschiedenartige Seitentypen und Zustände, nicht 20 neu zu 
 
 #### M01 — Gemeinsamer Seitenrahmen für alle internen Arbeitsseiten
 
-Desktop; Sidebar links, gesamte verbleibende Breite rechts. Der Marker `>` steht nur für die dezente aktive Auswahl.
+*(Ersetzt am 2026-09-20 durch: Eingerückte Sidebar, Statusbar unter dem Titel, keine horizontalen Tabs)*
+Desktop; Sidebar links, gesamte verbleibende Breite rechts. Der Marker `>` steht nur für die dezente aktive Auswahl. Unterpunkte erscheinen eingerückt NUR bei aktivem Oberpunkt.
 
 ```text
 +----------------------+  +---------------------------------------------------------------------------------+
 | SUEDHANG             |  | SEITENTITEL / aktuelles Objekt                            [Hauptaktion]         |
 | Menueplanung         |  | Kurzer Kontext nur, wenn er bei dieser Aufgabe hilft.                           |
 +----------------------+  +---------------------------------------------------------------------------------+
-| > Wochenplan         |  | [Unterbereich 1] [Unterbereich 2] [Unterbereich 3]                              |
-|   Menues &           |  +---------------------------------------------------------------------------------+
-|   Bausteine          |  | Suche / Filter / Status: eine zusammengehoerige Werkzeugleiste                  |
-|   Vorschau &         |  +---------------------------------------------------------------------------------+
-|   Bildschirme        |  | ARBEITSINHALT: Liste, Formular, Wochenplan oder Editor                          |
+|   Wochenplan         |  | [STATUSBAR: 3-5 kompakte Felder | Neutral/Erfolg/Warnung/Fehler]                |
+| > Menues & Bausteine |  +---------------------------------------------------------------------------------+
+|     Menues           |  | Suche / Filter: nur wenn noetig, unter der Statusbar                            |
+|     Bausteine        |  +---------------------------------------------------------------------------------+
+|     Zutaten          |  | ARBEITSINHALT: Liste, Formular, Wochenplan oder Editor                          |
+|     ...              |  |                                                                                 |
+|   Vorschau &         |  | Die Flaeche reicht bis zum gemeinsamen rechten Seitenrand.                      |
+|   Bildschirme        |  | Keine zusaetzliche schmale zentrierte Gesamtspalte.                             |
 |   Einstellungen      |  |                                                                                 |
-|                      |  | Die Flaeche reicht bis zum gemeinsamen rechten Seitenrand.                      |
-|                      |  | Keine zusaetzliche schmale zentrierte Gesamtspalte.                             |
-|                      |  |                                                                                 |
 |                      |  | Kurze Felder nebeneinander. Lange Inhalte erhalten mehr Raum.                   |
 |                      |  | Keine leeren Karten, um freie Flaeche kuenstlich zu fuellen.                    |
 |                      |  |                                                                                 |
 |                      |  | Details am betroffenen Objekt oeffnen, nicht alles dauerhaft.                   |
 |                      |  |                                                                                 |
 |                      |  +---------------------------------------------------------------------------------+
-| Konto                |  | Rueckmeldung / Zustand                         [S] Passende Aktion              |
-| Abmelden             |  | Leiste nur, wenn diese Seite eine entsprechende Aufgabe hat.                    |
+|                      |  | [Sekundaeres / Technisches nachrangig bzw. einklappbar]                         |
+| Konto                |  |                                                                                 |
+| Abmelden             |  |                                                                                 |
 +----------------------+  +---------------------------------------------------------------------------------+
 ```
 
 **Pflicht:** Kopf, Bereichsnavigation und Hauptinhalt nutzen dieselben äusseren Kanten. Eine zusätzliche Topbar nur für tatsächliche Funktionen, nie als leere Zierfläche. Der Bereichstitel darf ohne Karte stehen.
 
-**Responsive:** Unterhalb der bestehenden Sidebar-Schwelle wird die Navigation über „Menü“ geöffnet. Sie darf das Formular nicht auf eine schmale Restfläche drücken. Für Login und öffentliche Ausgaben dieses Muster nicht blind erzwingen.
+**Responsive:** Unterhalb der bestehenden Sidebar-Schwelle wird die Navigation über „Menü“ geöffnet (als Drawer/kompakte Navigation zulässig). Sie darf das Formular nicht auf eine schmale Restfläche drücken. Für Login und öffentliche Ausgaben dieses Muster nicht blind erzwingen.
 
 #### M02 — Rezepteditor: kompakter Ausgangszustand
 
@@ -1131,7 +1151,7 @@ Nutze die vorhandenen Testmittel. Neue reine Entwicklungsabhängigkeiten nur im 
 | A14 | Cafeteriaumfang | Fünf reguläre Tage, vorhandene Menüarten und beide Preisgruppen korrekt; Ausnahmen aus bestehender Konfiguration erhalten. |
 | A15 | Druckdatenstand | Absichtlich unterschiedliche gewählte/veröffentlichte Wochen ergeben korrekt beschriftete und tatsächlich passende Ausgaben. |
 | A16 | Symbole und Texte | Vorhandene Icons geladen; gleiche Handlung gleich; Hauptaktionen auf Desktop und Mobil sichtbar beschriftet. |
-| A17 | Bedienbarkeit | Maus, Tastatur, Touch, Trefferflächen, Fokus, Smartphone und echte Zoom-/Reflowprüfungen korrekt. |
+| A17 | Bedienbarkeit | Maus, Tastatur, Touch, Trefferflächen, Fokus, Smartphone und echte Zoom-/Reflowprüfungen korrekt. *(Ersetzt am 2026-09-20 durch: Pflichtbreiten 360, 768, 1024, 1440 px in der Testmatrix. Sidebar darf mobil zu Drawer werden.)* |
 | A18 | Sticky-Leisten | Kein Feld, Fehler oder Fokus verdeckt; eingeblendete mobile Tastatur und geringe Höhe berücksichtigt. |
 | A19 | Suche und Leerzustände | Gesamte bestehende Suchsemantik erhalten; Datenleerstand, Filtertrefferlosigkeit, Fehler und Rechte unterscheiden. |
 | A20 | Bestehende Sicherheitsgrenzen | CSRF, Formularkontext, Rollen, Versionierung, Session- und Serverprüfungen unverändert wirksam. |
