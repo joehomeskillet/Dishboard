@@ -1,4 +1,4 @@
-"""Measured, single-page PDFs of a saved week; no publication or live data access."""
+"""Measured A4 PDFs of a saved week; no publication or live data access."""
 from __future__ import annotations
 
 from collections.abc import Mapping
