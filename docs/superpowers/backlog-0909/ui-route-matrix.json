@@ -12363,7 +12363,7 @@
       "includes": [
         "_food_symbols.html"
       ],
-      "sha256": "a009d6c891b63f67199ddbc6ed55d8bb8dde4448fa7b0e4e620301b287c84e6c",
+      "sha256": "ebad0e44407b1baeede0c8bca7361b1109782b162e016829fceff01cfee4058e",
       "used_by_endpoints": [
         "admin.preview",
         "admin.screen_template_preview",
