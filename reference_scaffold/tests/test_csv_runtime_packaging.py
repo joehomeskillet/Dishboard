@@ -1,7 +1,10 @@
 """Tests for CSV validator runtime packaging in both repo and container layouts."""
 from __future__ import annotations
 
+import importlib.util
 import os
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -15,6 +18,14 @@ TEST_FILE = Path(__file__).resolve()
 TESTS_DIR = TEST_FILE.parent  # .../reference_scaffold/tests
 SCAFFOLD_ROOT = TESTS_DIR.parent  # .../reference_scaffold
 WORKTREE_ROOT = SCAFFOLD_ROOT.parent  # The worktree root
+
+_BUILD_MANIFEST_SPEC = importlib.util.spec_from_file_location(
+    'build_manifest',
+    WORKTREE_ROOT / 'tools' / 'build_manifest.py',
+)
+assert _BUILD_MANIFEST_SPEC is not None and _BUILD_MANIFEST_SPEC.loader is not None
+build_manifest = importlib.util.module_from_spec(_BUILD_MANIFEST_SPEC)
+_BUILD_MANIFEST_SPEC.loader.exec_module(build_manifest)
 
 
 def test_dockerfile_contains_csv_copy_and_database():
@@ -185,3 +196,25 @@ def test_validator_function_uses_validator_path():
     validator_module = csvio._validator()
     assert hasattr(validator_module, "validate_text"), \
         "Validator module does not have validate_text function"
+
+
+def test_build_manifest_excludes_claude_and_verify_passes():
+    """Paketliste ignoriert .claude/** und das Repository-Manifest ist konsistent."""
+    included = build_manifest.included_files(WORKTREE_ROOT)
+    claude_paths = [
+        relative.as_posix()
+        for path in included
+        for relative in [path.relative_to(WORKTREE_ROOT)]
+        if '.claude' in relative.parts
+    ]
+    assert claude_paths == [], f'.claude-Pfade im Paket: {claude_paths}'
+
+    result = subprocess.run(
+        [sys.executable, 'tools/build_manifest.py', '--verify', '--root', str(WORKTREE_ROOT)],
+        cwd=WORKTREE_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert 'Paketliste und SHA-256-Manifest: OK' in result.stdout

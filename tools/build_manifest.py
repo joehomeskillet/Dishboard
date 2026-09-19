@@ -8,11 +8,15 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import subprocess
 from pathlib import Path, PurePosixPath
 
 CONTENTS_NAME = 'PACKAGE_CONTENTS.txt'
 MANIFEST_NAME = 'MANIFEST_SHA256.txt'
-EXCLUDED_DIRS = {'__pycache__', '.pytest_cache', '.git', '.mypy_cache', '.ruff_cache'}
+EXCLUDED_DIRS = {
+    '__pycache__', '.pytest_cache', '.git', '.mypy_cache', '.ruff_cache',
+    '.claude', '.playwright-mcp', '.serena', '.vscode',
+}
 EXCLUDED_SUFFIXES = {'.pyc', '.pyo'}
 
 
@@ -24,17 +28,57 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _is_package_path(relative: PurePosixPath | Path) -> bool:
+    posix = relative.as_posix() if isinstance(relative, Path) else str(relative)
+    parts = PurePosixPath(posix).parts
+    if any(part in EXCLUDED_DIRS for part in parts):
+        return False
+    if PurePosixPath(posix).suffix.lower() in EXCLUDED_SUFFIXES:
+        return False
+    if PurePosixPath(posix).name in {'.DS_Store', 'Thumbs.db'}:
+        return False
+    if posix == 'deployment/.env':
+        return False
+    return True
+
+
+def _tracked_relative_paths(root: Path) -> set[str] | None:
+    try:
+        result = subprocess.run(
+            ['git', 'ls-files', '-z'],
+            cwd=root,
+            capture_output=True,
+            check=False,
+        )
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    return {
+        path
+        for path in result.stdout.decode('utf-8', 'surrogateescape').split('\0')
+        if path
+    }
+
+
 def included_files(root: Path) -> list[Path]:
+    tracked = _tracked_relative_paths(root)
+    if tracked is not None:
+        files: list[Path] = []
+        for relative_posix in sorted(tracked, key=str.casefold):
+            if not _is_package_path(relative_posix):
+                continue
+            path = root / relative_posix
+            if path.is_file() and not path.is_symlink():
+                files.append(path)
+        return files
+
     files: list[Path] = []
     for path in root.rglob('*'):
         if not path.is_file() or path.is_symlink():
             continue
         relative = path.relative_to(root)
-        if any(part in EXCLUDED_DIRS for part in relative.parts):
-            continue
-        if path.suffix.lower() in EXCLUDED_SUFFIXES or path.name in {'.DS_Store', 'Thumbs.db'}:
-            continue
-        if relative.as_posix() == 'deployment/.env':
+        if not _is_package_path(relative):
             continue
         files.append(path)
     return sorted(files, key=lambda value: value.relative_to(root).as_posix().casefold())
