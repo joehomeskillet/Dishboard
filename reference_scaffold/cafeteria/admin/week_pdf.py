@@ -65,6 +65,9 @@ class Block:
 class MenuCell:
     paragraphs: tuple[str, ...]
     option: dict[str, Any] | None = None
+    declarations: tuple[dict[str, Any], ...] = ()
+    course_declarations: tuple[dict[str, Any], ...] = ()
+    course_lines: tuple[str, ...] = ()
 
 
 def _wrap(pdf: FPDF, text: str, width: float, size: float, bold: bool = False,
@@ -128,20 +131,43 @@ def _accompaniment_text(option: dict[str, Any]) -> str:
     return f'Dazu: {name}' if name else ''
 
 
-def course_line(service: Mapping[str, Any] | None, kind: str) -> str:
-    """Compact soup/dessert line for a meal; empty when unplanned."""
-    if not service:
-        return ''
-    course = service.get(kind)
+def _declaration_details(
+    value: Mapping[str, Any], *, missing: bool, review: bool,
+) -> list[str]:
+    details = [str(label.get('name') or '') for label in value.get('labels', [])]
+    details.extend(origin_text(origin) for origin in value.get('origins', []))
+    allergens = value.get('allergens') or []
+    for presence, label in (('contains', 'Enthält'), ('may_contain', 'Kann enthalten')):
+        names = [item['name'] for item in allergens if item['presence'] == presence]
+        if names:
+            details.append(f'{label}: {", ".join(names)}')
+    if missing and not allergens:
+        details.append('Allergenangaben nicht erfasst')
+    elif review and value.get('allergen_review_status') != 'checked':
+        details.append('Allergenprüfung offen')
+    return [part for part in details if part]
+
+
+def _course_text(course: object, kind: str, override: bool) -> str:
     if not isinstance(course, dict):
         return ''
     state = str(course.get('state') or '')
+    label = 'Suppe' if kind == 'soup' else 'Dessert'
     if state == 'not_offered':
-        return 'Keine Suppe' if kind == 'soup' else 'Kein Dessert'
+        empty = 'Keine Suppe' if kind == 'soup' else 'Kein Dessert'
+        return f'{label} abweichend: {empty}' if override else empty
     title = str(course.get('title') or '').strip()
     if state == 'planned' and title:
-        return f"{'Suppe' if kind == 'soup' else 'Dessert'}: {title}"
+        heading = f'{label} abweichend' if override else label
+        return ' · '.join((f'{heading}: {title}', *_declaration_details(
+            course, missing=False, review=False,
+        )))
     return ''
+
+
+def course_line(service: Mapping[str, Any] | None, kind: str) -> str:
+    """Compact shared soup/dessert line for a meal; empty when unplanned."""
+    return _course_text(service.get(kind), kind, False) if service else ''
 
 
 def _paragraphs(option: dict[str, Any], individual_prices: bool) -> tuple[str, str, str, str]:
@@ -151,20 +177,45 @@ def _paragraphs(option: dict[str, Any], individual_prices: bool) -> tuple[str, s
     components = ' · '.join(option.get('components') or [])
     accompaniment = _accompaniment_text(option)
     details = [str(option.get(key) or '') for key in ('description', 'note')]
-    details.extend(label['name'] for label in option.get('labels', []))
-    details.extend(origin_text(origin) for origin in option.get('origins', []))
-    allergens = option.get('allergens') or []
-    for presence, label in (('contains', 'Enthält'), ('may_contain', 'Kann enthalten')):
-        names = [item['name'] for item in allergens if item['presence'] == presence]
-        if names:
-            details.append(f'{label}: {", ".join(names)}')
-    if not allergens:
-        details.append('Allergenangaben nicht erfasst')
-    elif option.get('allergen_review_status') != 'checked':
-        details.append('Allergenprüfung offen')
+    details.extend(_declaration_details(option, missing=True, review=True))
     if individual_prices:
         details.append(f'Intern: {_price(option.get("internal_rappen"))} · Extern: {_price(option.get("external_rappen"))}')
     return title, components, accompaniment, ' · '.join(part for part in details if part)
+
+
+def _course_entries(
+    service: Mapping[str, Any], option: Mapping[str, Any], code: str,
+    options: Mapping[str, Mapping[str, Any]],
+) -> tuple[tuple[str, dict[str, Any]], ...]:
+    """Visible overrides plus the one shared course anchored in this menu column."""
+    entries: list[tuple[str, dict[str, Any]]] = []
+    for kind in ('soup', 'dessert'):
+        override_key = f'{kind}_override'
+        override = option.get(override_key)
+        inheriting = [
+            candidate for candidate in ('MENU_1', 'VEGGIE')
+            if not isinstance(options.get(candidate, {}).get(override_key), dict)
+        ]
+        default_anchor = 'MENU_1' if kind == 'soup' else 'VEGGIE'
+        shared_anchor = (
+            default_anchor if default_anchor in inheriting
+            else inheriting[0] if inheriting else None
+        )
+        course = (
+            override if isinstance(override, dict)
+            else service.get(kind) if code == shared_anchor else None
+        )
+        text = _course_text(course, kind, isinstance(override, dict))
+        if text and isinstance(course, dict):
+            entries.append((text, course))
+    return tuple(entries)
+
+
+def _combined_declarations(sources: tuple[dict[str, Any], ...]) -> dict[str, Any]:
+    return {
+        field: [row for source in sources for row in source.get(field, [])]
+        for field in ('allergens', 'origins', 'labels')
+    }
 
 
 def _day(draft: dict[str, Any], week: date, offset: int) -> dict[str, Any]:
@@ -230,12 +281,25 @@ def _rows(draft: dict[str, Any], patient: bool, week: date, offsets: list[int],
                 else:
                     option = options.get(code, {})
                     title, components, accompaniment, details = _paragraphs(option, prices)
-                    extra = course_line(service, 'soup' if index == 0 else 'dessert')
-                    if extra:
+                    course_entries = _course_entries(service, option, code, options)
+                    course_lines = tuple(text for text, _ in course_entries)
+                    course_declarations = tuple(
+                        course for _, course in course_entries
+                        if course.get('state') == 'planned' and course.get('title')
+                    )
+                    if course_lines:
+                        extra = ' · '.join(course_lines)
                         details = f'{extra} · {details}' if details else extra
+                    declarations = (
+                        *((option,) if option.get('title') else ()),
+                        *course_declarations,
+                    )
                     row.append(MenuCell(
                         (title, components, accompaniment, details),
                         option if option.get('title') else None,
+                        declarations,
+                        course_declarations,
+                        course_lines,
                     ))
         rows.append(row)
     return rows
@@ -244,7 +308,9 @@ def _rows(draft: dict[str, Any], patient: bool, week: date, offsets: list[int],
 def _legend(pdf: FPDF, content: list[list[MenuCell]], width: float, patient: bool) -> tuple[
     Block, list[list[tuple[Block, SymbolMark | None]]], list[float], float,
 ]:
-    legend = food_legend(cell.option for row in content for cell in row if cell.option is not None)
+    legend = food_legend(
+        declaration for row in content for cell in row for declaration in cell.declarations
+    )
     columns = 4 if patient else 3
     cell_width = width / columns
     items: list[tuple[Block, SymbolMark | None]] = []
@@ -344,7 +410,8 @@ def render_week_pdf(
     content = _rows(draft, patient, week, offsets, not patient and common_prices is None)
     legend_heading, legend_rows, legend_heights, legend_width = _legend(pdf, content, width, patient)
     legend_height = legend_heading.height + sum(legend_heights) + 2 * PAD if legend_rows else 0.0
-    symbols = [[measure_symbols(cell.option, cell_width - 2 * padding) for cell in row] for row in content]
+    symbols = [[measure_symbols(_combined_declarations(cell.declarations), cell_width - 2 * padding)
+                for cell in row] for row in content]
     day_leading = 0.5 if patient else 1.0
     day_blocks: list[list[Block]] = [
         [] if not labels else [

@@ -12,6 +12,41 @@ from cafeteria.admin.week_pdf import WeekPdfFitError, render_week_pdf
 from test_week_pdf import WEEK, saved_week
 
 
+def test_course_allergens_labels_symbols_and_legend_are_printed_without_mutation():
+    draft = saved_week('staff_guest', False)
+    baseline_page = PdfReader(BytesIO(render_week_pdf(draft, 'staff_guest', WEEK))).pages[0]
+    baseline_symbol_paints = sum(
+        operator == b'g' and args == [0]
+        for args, operator in baseline_page.get_contents().operations
+    )
+    draft['days'][0]['services'][0]['soup'] = {
+        'state': 'planned',
+        'title': 'Kräutercremesuppe',
+        'labels': [{'code': 'VEGAN', 'name': 'Vegan'}],
+        'allergens': [
+            {'code': 'MILK', 'name': 'Milch', 'presence': 'contains'},
+            {'code': 'EGGS', 'name': 'Eier', 'presence': 'may_contain'},
+        ],
+        'nutrition': {'energy_kcal': 120},
+    }
+    original = deepcopy(draft)
+
+    page = PdfReader(BytesIO(render_week_pdf(draft, 'staff_guest', WEEK))).pages[0]
+    body = ' '.join(page.extract_text().split())
+    menu_text, legend = body.split('Legende der gedruckten Menüs', 1)
+    symbol_paints = sum(
+        operator == b'g' and args == [0]
+        for args, operator in page.get_contents().operations
+    )
+
+    assert draft == original
+    assert 'Suppe: Kräutercremesuppe · Vegan · Enthält: Milch · Kann enthalten: Eier' in menu_text
+    assert legend.count('Enthält: Milch') == 1
+    assert legend.count('Kann enthalten: Eier') == 1
+    assert legend.count('Vegan') == 1
+    assert symbol_paints >= baseline_symbol_paints + 6
+
+
 @pytest.mark.parametrize('profile', ['staff_guest', 'patient'])
 def test_printed_week_has_complete_deduplicated_legend_without_hidden_options(profile, tmp_path):
     draft = saved_week(profile, False)

@@ -211,6 +211,63 @@ def test_shared_courses_appear_once_per_meal_not_as_extra_mains(profile: str) ->
                 assert option['title'] in body
 
 
+@pytest.mark.parametrize('type_code', ['MENU_1', 'VEGGIE'])
+def test_soup_override_replaces_shared_course_for_its_menu_type(type_code: str) -> None:
+    draft = saved_week('staff_guest', False)
+    service = draft['days'][0]['services'][0]
+    service['soup'] = {'state': 'planned', 'title': 'Gemeinsame Gemüsesuppe'}
+    option = next(option for option in service['options'] if option['type_code'] == type_code)
+    option['soup_override'] = {
+        'state': 'planned',
+        'title': 'Selleriecremesuppe',
+        'labels': [{'code': 'VEGAN', 'name': 'Vegan'}],
+        'allergens': [{'code': 'CELERY', 'name': 'Sellerie', 'presence': 'contains'}],
+    }
+
+    body = ' '.join(PdfReader(BytesIO(render_week_pdf(draft, 'staff_guest', WEEK))).pages[0].extract_text().split())
+
+    assert body.count('Suppe: Gemeinsame Gemüsesuppe') == 1
+    assert body.count('Suppe abweichend: Selleriecremesuppe') == 1
+    assert 'Vegan · Enthält: Sellerie' in body
+
+
+def test_not_offered_soup_has_no_declarations() -> None:
+    draft = saved_week('staff_guest', False)
+    draft['days'][0]['services'][0]['soup'] = {
+        'state': 'not_offered',
+        'title': 'NICHTDRUCKEN',
+        'labels': [{'code': 'VEGAN', 'name': 'NICHTDRUCKENLABEL'}],
+        'allergens': [{'code': 'MILK', 'name': 'NICHTDRUCKENALLERGEN', 'presence': 'contains'}],
+    }
+
+    body = ' '.join(PdfReader(BytesIO(render_week_pdf(draft, 'staff_guest', WEEK))).pages[0].extract_text().split())
+
+    assert 'Keine Suppe' in body
+    assert 'NICHTDRUCKEN' not in body
+    assert 'NICHTDRUCKENLABEL' not in body
+    assert 'NICHTDRUCKENALLERGEN' not in body
+
+
+def test_patient_course_does_not_print_price_or_cost_fields() -> None:
+    draft = saved_week('patient', False)
+    draft['days'][0]['services'][0]['soup'] = {
+        'state': 'planned',
+        'title': 'Kartoffelsuppe',
+        'labels': [],
+        'allergens': [],
+        'internal_rappen': 1234,
+        'external_rappen': 5678,
+        'price_text': 'KOSTENMARKER 12.34 CHF',
+    }
+
+    body = ' '.join(PdfReader(BytesIO(render_week_pdf(draft, 'patient', WEEK))).pages[0].extract_text().split())
+
+    assert 'Suppe: Kartoffelsuppe' in body
+    assert 'KOSTENMARKER' not in body
+    assert '12.34 CHF' not in body
+    assert '56.78 CHF' not in body
+
+
 def test_patient_all_28_unique_menu_sentinels_survive() -> None:
     draft = saved_week('patient')
     markers = []

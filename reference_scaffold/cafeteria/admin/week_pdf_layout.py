@@ -105,10 +105,35 @@ def _block_height(pdf: FPDF, block: Block) -> float:
     return block.height + max(0.0, descent - block.leading) + 0.2
 
 
-def measure_menu(pdf: FPDF, option: dict[str, Any], layout: WeekPdfLayout, width: float,
-                 size: float, context: str) -> list[Field]:
+def _course_fields(
+    pdf: FPDF, lines: tuple[str, ...], declarations: tuple[dict[str, Any], ...],
+    width: float, size: float, context: str,
+) -> list[Field]:
     fields: list[Field] = []
     y = 0.0
+    try:
+        for text in lines:
+            block = _menu_text(pdf, text, width, size, False)
+            height = _block_height(pdf, block)
+            fields.append(Field('components', 0, y, width, height, block=block))
+            y += height
+        symbols = measure_symbols({
+            field: [row for source in declarations for row in source.get(field, [])]
+            for field in ('labels', 'origins', 'allergens')
+        }, width)
+        if symbols.height:
+            fields.append(Field('allergens', 0, y, width, symbols.height, symbols=symbols))
+    except WeekPdfFitError as error:
+        raise WeekPdfFitError(f'{context} · Gänge: {error}') from error
+    return fields
+
+
+def measure_menu(pdf: FPDF, option: dict[str, Any], layout: WeekPdfLayout, width: float,
+                 size: float, context: str, *, course_lines: tuple[str, ...] = (),
+                 course_declarations: tuple[dict[str, Any], ...] = ()) -> list[Field]:
+    fields: list[Field] = []
+    y = 0.0
+    courses_added = False
     for name in layout['menu_fields']:
         try:
             if name == 'image':
@@ -136,8 +161,24 @@ def measure_menu(pdf: FPDF, option: dict[str, Any], layout: WeekPdfLayout, width
             if symbols and symbols.height:
                 fields.append(Field(name, 0, y, width, symbols.height, symbols=symbols))
                 y += symbols.height
+            if name == 'title':
+                courses = _course_fields(
+                    pdf, course_lines, course_declarations, width, size, context,
+                )
+                for field in courses:
+                    field.y += y
+                fields.extend(courses)
+                y += fields_height(courses)
+                courses_added = True
         except WeekPdfFitError as error:
             raise WeekPdfFitError(f'{context} · {LAYOUT_LABELS[name]}: {error}') from error
+    if not courses_added:
+        courses = _course_fields(
+            pdf, course_lines, course_declarations, width, size, context,
+        )
+        for field in courses:
+            field.y += y
+        fields.extend(courses)
     return fields
 
 
@@ -299,9 +340,24 @@ def render_layout(draft: dict[str, Any], profile: str, week: date, config: Print
             for cell, context in zip(row, context_row, strict=True):
                 option = cell.option
                 if option is None:
-                    cells.append([_text(pdf, cell.paragraphs[0], cell_width - 2 * pad, size, context)] if cell.paragraphs[0] else [])
+                    cell_fields = [
+                        _text(pdf, cell.paragraphs[0], cell_width - 2 * pad, size, context)
+                    ] if cell.paragraphs[0] else []
+                    courses = _course_fields(
+                        pdf, cell.course_lines, cell.course_declarations,
+                        cell_width - 2 * pad, size, context,
+                    )
+                    offset = fields_height(cell_fields)
+                    for field in courses:
+                        field.y += offset
+                    cell_fields.extend(courses)
+                    cells.append(cell_fields)
                 else:
-                    cells.append(measure_menu(pdf, option, layout, cell_width - 2 * pad, size, context))
+                    cells.append(measure_menu(
+                        pdf, option, layout, cell_width - 2 * pad, size, context,
+                        course_lines=cell.course_lines,
+                        course_declarations=cell.course_declarations,
+                    ))
             measured.append(cells)
         has_photos = any(field.image for row in measured for cell in row for field in cell)
         footer = _footer(pdf, draft, config, width, has_photos)
