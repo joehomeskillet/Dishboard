@@ -17,6 +17,7 @@ from pypdf import PdfReader
 from cafeteria.admin.week_pdf import ASSETS, WeekPdfFitError, render_week_pdf
 from cafeteria.admin.week_pdf_layout import Field, _check_fields, binding_text
 from cafeteria.print_template_config import default_config, default_layout
+from cafeteria.workflow import PUBLICATION_COMPONENTS_LIMIT, PUBLICATION_TITLE_LIMIT
 from test_week_pdf import WEEK, saved_week
 from test_print_branding_pdf import BRAND, INHERIT
 
@@ -31,31 +32,121 @@ def page(payload):
     return reader.pages[0]
 
 
-def geometry(payload, path):
-    result_page = page(payload)
-    width, height = float(result_page.mediabox.width), float(result_page.mediabox.height)
-    assert sorted((width, height)) == pytest.approx([595.28, 841.89], abs=0.02)
-    sizes = []
-    result_page.extract_text(visitor_text=lambda text, cm, tm, font, size: sizes.append(size) if text.strip() else None)
-    assert min(sizes) >= 8.5
+def geometry(payload, path, expected_pages=1):
+    reader = PdfReader(BytesIO(payload))
+    assert len(reader.pages) == expected_pages
     path.write_bytes(payload)
     result = subprocess.run(['pdftotext', '-bbox', str(path), '-'], capture_output=True, text=True, check=True)
-    words = ET.fromstring(result.stdout).findall('.//{http://www.w3.org/1999/xhtml}word')
-    boxes = [tuple(float(word.attrib[key]) for key in ('xMin', 'yMin', 'xMax', 'yMax')) for word in words]
-    assert boxes
-    for index, (x1, y1, x2, y2) in enumerate(boxes):
-        assert 0 <= x1 < x2 <= width and 0 <= y1 < y2 <= height
-        for a1, b1, a2, b2 in boxes[index + 1:]:
-            assert min(x2, a2) - max(x1, a1) < 0.2 or min(y2, b2) - max(y1, b1) < 0.2
-    transforms = []
-    result_page.extract_text(visitor_operand_before=lambda op, args, cm, tm: transforms.append(cm) if op == b'Do' else None)
-    for a, b, c, d, e, f in transforms:
-        assert b == c == 0
-        x1, y1, x2, y2 = e, height - f - d, e + a, height - f
-        assert 0 <= x1 < x2 <= width and 0 <= y1 < y2 <= height
-        for a1, b1, a2, b2 in boxes:
-            assert min(x2, a2) - max(x1, a1) < 0.2 or min(y2, b2) - max(y1, b1) < 0.2
-    return words
+    xml_pages = ET.fromstring(result.stdout).findall('.//{http://www.w3.org/1999/xhtml}page')
+    assert len(xml_pages) == expected_pages
+    all_words = []
+    for result_page, xml_page in zip(reader.pages, xml_pages, strict=True):
+        width, height = float(result_page.mediabox.width), float(result_page.mediabox.height)
+        assert sorted((width, height)) == pytest.approx([595.28, 841.89], abs=0.02)
+        sizes = []
+        result_page.extract_text(
+            visitor_text=lambda text, cm, tm, font, size: sizes.append(size)
+            if text.strip() else None,
+        )
+        assert min(sizes) >= 8.5
+        words = xml_page.findall('.//{http://www.w3.org/1999/xhtml}word')
+        all_words.extend(words)
+        boxes = [
+            tuple(float(word.attrib[key]) for key in ('xMin', 'yMin', 'xMax', 'yMax'))
+            for word in words
+        ]
+        assert boxes
+        for index, (x1, y1, x2, y2) in enumerate(boxes):
+            assert 0 <= x1 < x2 <= width and 0 <= y1 < y2 <= height
+            for a1, b1, a2, b2 in boxes[index + 1:]:
+                assert min(x2, a2) - max(x1, a1) < 0.2 or min(y2, b2) - max(y1, b1) < 0.2
+        transforms = []
+        result_page.extract_text(
+            visitor_operand_before=lambda op, args, cm, tm: transforms.append(cm)
+            if op == b'Do' else None,
+        )
+        for a, b, c, d, e, f in transforms:
+            assert b == c == 0
+            x1, y1, x2, y2 = e, height - f - d, e + a, height - f
+            assert 0 <= x1 < x2 <= width and 0 <= y1 < y2 <= height
+            for a1, b1, a2, b2 in boxes:
+                assert min(x2, a2) - max(x1, a1) < 0.2 or min(y2, b2) - max(y1, b1) < 0.2
+    return all_words
+
+
+def _boundary_text(marker: str, length: int) -> str:
+    assert len(marker) < length
+    return marker + 'X' * (length - len(marker))
+
+
+def _declared_course(marker: str) -> dict[str, object]:
+    return {
+        'state': 'planned',
+        'title': _boundary_text(marker, PUBLICATION_TITLE_LIMIT),
+        'labels': [
+            {'code': 'VEGAN', 'name': 'Vegan'},
+            {'code': 'VEGETARIAN', 'name': 'Vegetarisch'},
+        ],
+        'allergens': [
+            {'code': 'MILK', 'name': 'Milch', 'presence': 'contains'},
+            {'code': 'GLUTEN', 'name': 'Glutenhaltiges Getreide', 'presence': 'contains'},
+            {'code': 'EGGS', 'name': 'Eier', 'presence': 'may_contain'},
+            {'code': 'CELERY', 'name': 'Sellerie', 'presence': 'may_contain'},
+        ],
+    }
+
+
+@pytest.mark.parametrize('profile', ['staff_guest', 'patient'])
+def test_boundary_week_with_declared_courses_and_daily_override_fits(profile, tmp_path):
+    draft = saved_week(profile, False)
+    expected_shared_soups: list[str] = []
+    expected_desserts: list[str] = []
+    expected_overrides: list[str] = []
+    for day_index, day in enumerate(draft['days']):
+        for service_index, service in enumerate(day['services']):
+            for option_index, option in enumerate(service['options']):
+                title_marker = f'MENUE-{day_index}-{service_index}-{option_index}-'
+                component_marker = f'KOMPONENTE-{day_index}-{service_index}-{option_index}-'
+                option['title'] = _boundary_text(title_marker, PUBLICATION_TITLE_LIMIT)
+                option['components'] = [
+                    _boundary_text(component_marker, PUBLICATION_COMPONENTS_LIMIT)
+                ]
+            soup = _declared_course(f'SUPPE-{day_index}-{service_index}-')
+            dessert = _declared_course(f'DESSERT-{day_index}-{service_index}-')
+            service['soup'] = soup
+            service['dessert'] = dessert
+            expected_shared_soups.append(str(soup['title']))
+            expected_desserts.append(str(dessert['title']))
+        override = _declared_course(f'ABWEICHUNG-{day_index}-')
+        day['services'][0]['options'][0]['soup_override'] = override
+        expected_overrides.append(str(override['title']))
+
+    payload = render_week_pdf(draft, profile, WEEK, config(profile))
+    reader = PdfReader(BytesIO(payload))
+    page_count = len(reader.pages)
+    assert page_count == (1 if profile == 'staff_guest' else 2)
+    body = ''.join(
+        ''.join(result_page.extract_text().split()) for result_page in reader.pages
+    )
+    assert all(value in body for value in expected_shared_soups)
+    assert all(value in body for value in expected_desserts)
+    assert all(value in body for value in expected_overrides)
+    for declaration in (
+        'Enthält:Milch', 'Enthält:GlutenhaltigesGetreide',
+        'Kannenthalten:Eier', 'Kannenthalten:Sellerie', 'Vegan', 'Vegetarisch',
+    ):
+        assert declaration in body
+    font_sizes: list[float] = []
+    for result_page in reader.pages:
+        result_page.extract_text(
+            visitor_text=lambda text, cm, tm, font, size: font_sizes.append(size)
+            if text.strip() else None,
+        )
+    assert min(font_sizes) >= 8.5
+    geometry(
+        payload, tmp_path / f'{profile}-dense-courses.pdf',
+        expected_pages=page_count,
+    )
 
 
 @pytest.mark.parametrize('profile', ['staff_guest', 'patient'])

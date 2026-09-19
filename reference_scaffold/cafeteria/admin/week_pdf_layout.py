@@ -105,6 +105,24 @@ def _block_height(pdf: FPDF, block: Block) -> float:
     return block.height + max(0.0, descent - block.leading) + 0.2
 
 
+def _compact_course_lines(
+    lines: tuple[str, ...], declarations: tuple[dict[str, Any], ...],
+) -> tuple[str, ...]:
+    """Keep course titles in cells while symbols and legend carry declarations."""
+    compact: list[str] = []
+    declaration_index = 0
+    for line in lines:
+        if declaration_index < len(declarations):
+            title = str(declarations[declaration_index].get('title') or '').strip()
+            marker = f': {title}'
+            if title and marker in line:
+                compact.append(line[:line.index(marker) + len(marker)])
+                declaration_index += 1
+                continue
+        compact.append(line)
+    return tuple(compact)
+
+
 def _course_fields(
     pdf: FPDF, lines: tuple[str, ...], declarations: tuple[dict[str, Any], ...],
     width: float, size: float, context: str,
@@ -333,70 +351,90 @@ def render_layout(draft: dict[str, Any], profile: str, week: date, config: Print
     if patient and config['text_size'] == 'auto':
         candidates = (9.0, 8.5)
     fit_error: WeekPdfFitError | None = None
-    for size in candidates:
-        measured: list[list[list[Field]]] = []
-        for row, context_row in zip(content, contexts, strict=True):
-            cells = []
-            for cell, context in zip(row, context_row, strict=True):
-                option = cell.option
-                if option is None:
-                    cell_fields = [
-                        _text(pdf, cell.paragraphs[0], cell_width - 2 * pad, size, context)
-                    ] if cell.paragraphs[0] else []
-                    courses = _course_fields(
-                        pdf, cell.course_lines, cell.course_declarations,
-                        cell_width - 2 * pad, size, context,
-                    )
-                    offset = fields_height(cell_fields)
-                    for field in courses:
-                        field.y += offset
-                    cell_fields.extend(courses)
-                    cells.append(cell_fields)
-                else:
-                    cells.append(measure_menu(
-                        pdf, option, layout, cell_width - 2 * pad, size, context,
-                        course_lines=cell.course_lines,
-                        course_declarations=cell.course_declarations,
-                    ))
-            measured.append(cells)
-        has_photos = any(field.image for row in measured for cell in row for field in cell)
-        footer = _footer(pdf, draft, config, width, has_photos)
-        footer_h = fields_height(footer)
-        available = pdf.h - 2 * margin - header_h - heading_h - legend_h - footer_h - 4 * GAP
-        heights = [max(row_field.height, *(fields_height(cell) for cell in row)) + 2 * pad
-                   for row, row_field in zip(measured, row_fields, strict=True)]
-        if sum(heights) <= available:
-            break
-        largest_row = max(range(len(measured)), key=lambda index: heights[index])
-        largest_cell = max(range(len(measured[largest_row])), key=lambda index: fields_height(measured[largest_row][index]))
-        fields = measured[largest_row][largest_cell]
-        field_name = max(fields, key=lambda item: item.height).name if fields else 'Tag/Angebot'
-        fit_error = WeekPdfFitError(
-            f'{contexts[largest_row][largest_cell]} · {LAYOUT_LABELS.get(field_name, field_name)}: Die vollständige Woche passt '
-            'mit diesem Layout nicht lesbar auf eine A4-Seite. Bitte Raster, Bildgrösse oder '
-            'Abstände ändern oder lange Texte kürzen; Pflichtangaben beibehalten.'
+    fitted = False
+    has_course_declarations = any(
+        cell.course_declarations for row in content for cell in row
+    )
+    compact_modes = (False, True) if has_course_declarations else (False,)
+    single_page = (tuple(range(len(content))),)
+    strategies: list[tuple[tuple[tuple[int, ...], ...], bool]] = [
+        (single_page, compact_courses) for compact_courses in compact_modes
+    ]
+    if has_course_declarations and patient and layout['grid'] == 'days_columns' and len(content) == 4:
+        split_by_meal = (tuple(range(2)), tuple(range(2, 4)))
+        strategies.extend(
+            (split_by_meal, compact_courses) for compact_courses in compact_modes
         )
-    else:
+    page_groups: tuple[tuple[int, ...], ...] = single_page
+    for candidate_pages, compact_courses in strategies:
+        for size in candidates:
+            measured: list[list[list[Field]]] = []
+            for row, context_row in zip(content, contexts, strict=True):
+                cells = []
+                for cell, context in zip(row, context_row, strict=True):
+                    option = cell.option
+                    course_lines = (
+                        _compact_course_lines(cell.course_lines, cell.course_declarations)
+                        if compact_courses else cell.course_lines
+                    )
+                    course_declarations = cell.course_declarations
+                    if option is None:
+                        cell_fields = [
+                            _text(pdf, cell.paragraphs[0], cell_width - 2 * pad, size, context)
+                        ] if cell.paragraphs[0] else []
+                        courses = _course_fields(
+                            pdf, course_lines, course_declarations,
+                            cell_width - 2 * pad, size, context,
+                        )
+                        offset = fields_height(cell_fields)
+                        for field in courses:
+                            field.y += offset
+                        cell_fields.extend(courses)
+                        cells.append(cell_fields)
+                    else:
+                        cells.append(measure_menu(
+                            pdf, option, layout, cell_width - 2 * pad, size, context,
+                            course_lines=course_lines,
+                            course_declarations=course_declarations,
+                        ))
+                measured.append(cells)
+            has_photos = any(field.image for row in measured for cell in row for field in cell)
+            footer = _footer(pdf, draft, config, width, has_photos)
+            footer_h = fields_height(footer)
+            available = pdf.h - 2 * margin - header_h - heading_h - legend_h - footer_h - 4 * GAP
+            heights = [max(row_field.height, *(fields_height(cell) for cell in row)) + 2 * pad
+                       for row, row_field in zip(measured, row_fields, strict=True)]
+            if all(sum(heights[index] for index in page_rows) <= available
+                   for page_rows in candidate_pages):
+                fitted = True
+                page_groups = candidate_pages
+                break
+            largest_row = max(range(len(measured)), key=lambda index: heights[index])
+            largest_cell = max(
+                range(len(measured[largest_row])),
+                key=lambda index: fields_height(measured[largest_row][index]),
+            )
+            fields = measured[largest_row][largest_cell]
+            field_name = max(fields, key=lambda item: item.height).name if fields else 'Tag/Angebot'
+            fit_error = WeekPdfFitError(
+                f'{contexts[largest_row][largest_cell]} · {LAYOUT_LABELS.get(field_name, field_name)}: Die vollständige Woche passt '
+                'mit diesem Layout nicht lesbar auf die vorgesehenen A4-Seiten. Bitte Menütitel, Komponenten, '
+                'Gangtitel oder optionale Notizen kürzen; Pflichtangaben und Deklarationen beibehalten.'
+            )
+        if fitted:
+            break
+    if not fitted:
         raise fit_error or WeekPdfFitError('Die vollständige Woche passt nicht auf eine A4-Seite.')
     _check_fields(footer, width, footer_h, 'Fussbereich')
-    for measured_row, height, context_row in zip(measured, heights, contexts, strict=True):
-        for measured_cell, context in zip(measured_row, context_row, strict=True):
-            _check_fields(measured_cell, cell_width - 2 * pad, height - 2 * pad, context)
+    painted_heights = list(heights)
+    for page_rows in page_groups:
+        for index in page_rows:
+            for measured_cell, context in zip(measured[index], contexts[index], strict=True):
+                _check_fields(
+                    measured_cell, cell_width - 2 * pad,
+                    painted_heights[index] - 2 * pad, context,
+                )
     # All sizes and bounds are fixed before the first visible mark is emitted.
-    if branding and config['palette'] == 'active_brand':
-        pdf.set_fill_color(*fill)
-        pdf.rect(0, 0, pdf.w, pdf.h, style='F')
-    pdf.set_text_color(*blue)
-    for field in header:
-        if field.name == 'logo' and config['logo'] == 'active_brand' and branding and branding.logo_png:
-            pdf.image(BytesIO(branding.logo_png), margin + field.x, margin + field.y,
-                      w=field.width, h=field.height, keep_aspect_ratio=True)
-        else:
-            draw_fields(pdf, [field], margin, margin, layout['alignment'])
-    pdf.set_draw_color(*BORDER)
-    pdf.set_line_width(0.4)
-    y = margin + header_h + GAP
-
     def paint_legend(top: float) -> float:
         if not legend_rows:
             return top
@@ -415,25 +453,50 @@ def render_layout(draft: dict[str, Any], profile: str, week: date, config: Print
             current += height
         return top + legend_h + GAP
 
-    if layout['legend_position'] == 'top':
-        y = paint_legend(y)
-    pdf.set_fill_color(*fill)
-    pdf.rect(margin, y, width, heading_h, style='DF')
-    pdf.set_text_color(*blue)
-    for index, field in enumerate(heading_fields):
-        draw_fields(pdf, [field], margin + stub + index * cell_width + pad, y + pad, layout['alignment'])
-    y += heading_h
-    pdf.set_text_color(*ink)
-    for measured_row, height, label in zip(measured, heights, row_fields, strict=True):
-        pdf.rect(margin, y, stub, height)
-        draw_fields(pdf, [label], margin + pad, y + pad, layout['alignment'])
-        for index, measured_cell in enumerate(measured_row):
-            x = margin + stub + index * cell_width
-            pdf.rect(x, y, cell_width, height)
-            draw_fields(pdf, measured_cell, x + pad, y + pad, layout['alignment'])
-        y += height
-    y += GAP
-    if layout['legend_position'] == 'bottom':
-        y = paint_legend(y)
-    draw_fields(pdf, footer, margin, y, layout['alignment'])
+    for page_index, page_rows in enumerate(page_groups):
+        if page_index:
+            pdf.add_page()
+        if branding and config['palette'] == 'active_brand':
+            pdf.set_fill_color(*fill)
+            pdf.rect(0, 0, pdf.w, pdf.h, style='F')
+        pdf.set_text_color(*blue)
+        for field in header:
+            if field.name == 'logo' and config['logo'] == 'active_brand' and branding and branding.logo_png:
+                pdf.image(BytesIO(branding.logo_png), margin + field.x, margin + field.y,
+                          w=field.width, h=field.height, keep_aspect_ratio=True)
+            else:
+                draw_fields(pdf, [field], margin, margin, layout['alignment'])
+        pdf.set_draw_color(*BORDER)
+        pdf.set_line_width(0.4)
+        y = margin + header_h + GAP
+        if layout['legend_position'] == 'top':
+            y = paint_legend(y)
+        pdf.set_fill_color(*fill)
+        pdf.rect(margin, y, width, heading_h, style='DF')
+        pdf.set_text_color(*blue)
+        for index, field in enumerate(heading_fields):
+            draw_fields(
+                pdf, [field], margin + stub + index * cell_width + pad,
+                y + pad, layout['alignment'],
+            )
+        y += heading_h
+        pdf.set_text_color(*ink)
+        for row_index in page_rows:
+            height = painted_heights[row_index]
+            pdf.rect(margin, y, stub, height)
+            draw_fields(
+                pdf, [row_fields[row_index]], margin + pad, y + pad,
+                layout['alignment'],
+            )
+            for index, measured_cell in enumerate(measured[row_index]):
+                x = margin + stub + index * cell_width
+                pdf.rect(x, y, cell_width, height)
+                draw_fields(
+                    pdf, measured_cell, x + pad, y + pad, layout['alignment'],
+                )
+            y += height
+        y += GAP
+        if layout['legend_position'] == 'bottom':
+            y = paint_legend(y)
+        draw_fields(pdf, footer, margin, y, layout['alignment'])
     return bytes(pdf.output())
