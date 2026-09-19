@@ -132,6 +132,20 @@ PATIENT_SENSITIVE_EXACT = frozenset({
 })
 PATIENT_MAX_SEMANTIC_FORM_LENGTH = 64
 PATIENT_UNSAFE_BIDI_CLASSES = frozenset({'LRE', 'RLE', 'LRO', 'RLO', 'PDF', 'LRI', 'RLI', 'FSI', 'PDI'})
+# Küchenlexeme, die vor PATIENT_SENSITIVE_STEMS aus der Form entfernt werden.
+# Nur eindeutige Lebensmittel/Zubereitungen — kein Lexem, das Kostenbegriffe tarnen kann.
+PATIENT_SAFE_FOOD_LEXEMES = (
+    'preiselbeer',   # Preiselbeere/-sauce, nicht Preis-/prezzo
+    'costine',       # ital. Rippchen (costine di …), nicht costo/Kosten
+    'aufbewahrung',  # Lagerhinweis, nicht Währung (währung)
+    'prezzemol',     # ital. Petersilie (prezzemolo), nicht prezzo
+    'costata',       # ital. Rippensteak, nicht costo
+    'costolett',     # ital. Kotelett (costoletta), nicht costo
+    'couteau',       # frz. Messer/Harengsfilets (couteaux), nicht coût
+    'chargrill',     # gegrillt (chargrilled), nicht Charge
+    'frankenwein',   # Franken-Wein, nicht Franken/Währung
+    'montantebianco',  # ital. Mont-Blanc-Dessert, nicht montant
+)
 
 
 def _normalise_decimal_digits(value: str) -> str:
@@ -181,7 +195,7 @@ def _patient_form_has_sensitive_chf(form: str) -> bool:
 
 
 def _patient_form_is_sensitive(form: str) -> bool:
-    for safe_food_lexeme in ('preiselbeer', 'costine', 'aufbewahrung'):
+    for safe_food_lexeme in PATIENT_SAFE_FOOD_LEXEMES:
         form = form.replace(safe_food_lexeme, '')
     ascii_il_skeleton = re.sub(r'[il]+', 'i', form)
     return (
