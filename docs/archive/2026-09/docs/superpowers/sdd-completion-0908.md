@@ -80,7 +80,7 @@ three signage rendering modules. The 64-test selection uses an exclusive Postgre
 and covers branding routes, browser/header/logo behavior, cached revisions and card/contrast
 regressions. Ruff covers changed Python source/test and capture helper; Mypy is scoped to the
 changed production module, not a claim of a globally clean type check. Gitleaks scans the two
-product commits. [Committed screenshot evidence](../../design/screenshots/public-white-0908/README.md)
+product commits. [Committed screenshot evidence](../../../../../design/screenshots/public-white-0908/README.md)
 includes a complete 16-view final metric matrix and seven representative PNGs. Raw baseline,
 rejected intermediate and additional final images remain protected in the proof worktree.
 
