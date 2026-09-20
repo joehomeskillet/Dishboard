@@ -11431,7 +11431,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "9661a4b3dca7dc204cfd3891e054b88ee237c0f8d6111c59fccbfe280f6282ed",
+      "sha256": "9bb4bbc90fbd583ca76db8786417caadd67102c9b83b8fd334afe7c24ab6d40e",
       "used_by_endpoints": [
         "admin.print_template_editor",
         "admin.recipe_print_template_editor"
