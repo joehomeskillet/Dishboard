@@ -5,7 +5,16 @@
 {% set week = target.isoformat() %}
 {% block title %}Vorwoche kopieren · {{ area_names[profile] }}{% endblock %}
 {% block main_attributes %}data-source-week="{{ source.isoformat() }}" data-target-week="{{ target.isoformat() }}"{% endblock %}
-{% block page_header %}{{ page_header('Vorwoche kopieren', area_names[profile]) }}{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-week-tabler.css') }}">{% endblock %}
+{% block page_header %}
+{% call page_header('Vorwoche kopieren', 'Wochenkopf, Ausgabeangaben und Menüs in eine leere Zielwoche übernehmen.', status_items=[
+  {'label': 'Bereich', 'value': area_names[profile]},
+  {'label': 'Quellwoche', 'value': 'KW ' ~ source.isocalendar().week, 'detail': source.strftime('%d.%m.%Y')},
+  {'label': 'Zielwoche', 'value': 'KW ' ~ target.isocalendar().week, 'detail': target.strftime('%d.%m.%Y')}
+]) %}
+<button type="submit" form="week-copy-form" class="btn btn-primary">{{ icon('copy') }}Vorwoche kopieren</button>
+{% endcall %}
+{% endblock %}
 {% block content %}
   <section class="card admin-copy-content admin-compact-section">
    <div class="card-body">
@@ -39,12 +48,11 @@
         <p class="mb-0">Die Zielwoche muss leer sein und darf keine aktive Veröffentlichung haben.</p>
       </div>
     </div>
-    <form method="post" action="{{ url_for('admin.copy_post', family=family) }}" class="admin-copy-actions btn-list" aria-describedby="copy-description copy-effects">
+    <form id="week-copy-form" method="post" action="{{ url_for('admin.copy_post', family=family) }}" class="admin-copy-actions btn-list" aria-describedby="copy-description copy-effects">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
       <input type="hidden" name="source_week" value="{{ source.isoformat() }}">
       <input type="hidden" name="target_week" value="{{ target.isoformat() }}">
       <input type="hidden" name="target_row_version" value="{{ target_row_version }}">
-      <button type="submit" class="btn btn-primary">{{ icon('copy') }}Vorwoche kopieren</button>
       <a class="btn" href="{{ url_for('admin.' ~ family, week=target.isoformat()) }}">{{ icon('arrow-left') }}Zurück zur Wochenübersicht</a>
     </form>
    </div>
