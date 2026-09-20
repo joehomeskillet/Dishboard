@@ -1334,6 +1334,18 @@ Monatskalender zur Orientierung; Zielmodell SDD v2 §5.4.
 
 **Responsive:** Kalenderzellen dürfen umbrechen; Filter und «Heute» bleiben erreichbar.
 
+##### Modul Küchenkalender (Monat) (2026-09-20)
+
+**Seitenrahmen:** `page_header('Küchenkalender', description='Monatsübersicht …', status_items=[…])` mit höchstens einer Primäraktion «Anlass anlegen» rechts (`draft.write`). Statusbar aus vorhandenen Template-Werten: `month_label`, `profiles` (Beide/Cafeteria/Patienten), gezählte geplante Tage im Monat, optional `Anlässe` aus `cell.events`, optional `Heute` wenn `year/month == today`. Keine erfundenen Workflow- oder Prüfstatus-Slots.
+
+**Steuerung:** Monatsnavigation (Vor/Zurück, `type=month`-Sprung mit `<noscript>`-Submit, Heute) und Bereichsfilter als kompakte Button-Gruppe mit `profiles`-Query-Parameter in einer `kitchen-cal-toolbar`. Filter bleiben native Links/GET ohne JavaScript.
+
+**Raster:** Desktop `kitchen-cal-grid` mit verdichteten Zellen, Mahlzeit-Labels, `+ n weitere` in `details`, Anlass-Links und leerem Zustand mit direkter «Planen»-Aktion. Mobil `kitchen-cal-list` (eine Spalte, kein Dokument-Overflow bei 360 px).
+
+**Anlass-Formular (`kuechenkalender_anlass.html`):** Titel «Anlass anlegen»/«Anlass bearbeiten»; Statusbar aus `values.event_date`, `scope_labels[profile_scope]`, `guest_count`, optional `row_version`. Pflichtfelder Datum, Bereich, Titel, Gästezahl sichtbar; Beginn, Ende, Notiz und `row_version` in `disclosure_section` «Weitere Optionen» (öffnet bei Inhalt/Fehler). `form_footer` mit «Abbrechen» zum Kalender und einer «Speichern»-Primäraktion. Alle Feldnamen und POST-Ziele unverändert.
+
+**Nachweis:** `tests/test_calendar_event_routes.py`, `tests/test_calendar_nav.py`.
+
 #### M30 — Tagesansicht
 
 Operativer Arbeitsplatz für einen einzelnen Tag; Zielmodell SDD v2 §6.
