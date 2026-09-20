@@ -176,6 +176,8 @@ def _controls(page: Page, family: str, *, component_rows: int | None = 2, requir
 def _keyboard(page: Page) -> None:
     page.locator('#f-title').focus()
     page.keyboard.press('Tab')
+    expect(page.locator('#accompaniment-none')).to_be_focused()
+    page.keyboard.press('Tab')
     assert page.evaluate('document.activeElement.closest("#components-list") !== null')
     page.locator('#f-desc').focus()
     focus = page.locator('#f-desc').evaluate('''e => ({

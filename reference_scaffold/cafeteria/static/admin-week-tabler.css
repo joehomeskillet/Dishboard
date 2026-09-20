@@ -1,4 +1,15 @@
 /* Week workspace layout for cafeteria/patienten reference grids. */
+.dishboard-admin .admin-main[data-layout="standard"][data-week],
+.dishboard-admin .admin-main[data-layout="standard"][data-week] form {
+  min-width: 0;
+}
+.dishboard-admin .admin-main[data-layout="standard"][data-week] form .btn {
+  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .dishboard-admin .admin-main[data-layout="workspace"] #week-publish-modal .btn-close {
   min-width: var(--app-control-min-height);
   min-height: var(--app-control-min-height);

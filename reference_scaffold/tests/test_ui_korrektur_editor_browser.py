@@ -10,7 +10,6 @@ from playwright.sync_api import Page, expect
 
 from cafeteria.component_catalog_store import create_component, update_component
 from cafeteria.workflow_partial_store import persist_menu_item
-from test_admin_ux_browser import _submit_menu
 from test_admin_workflow_routes import DAY, WEEK, _payload
 from test_rendered_ui import PATIENT_FORBIDDEN, admin_app, admin_engine, browser  # noqa: F401
 from test_ui_menu_editor_browser import (  # noqa: F401
@@ -42,6 +41,29 @@ def _pairs(page: Page) -> dict[str, list[str]]:
     for name, value in entries:
         result.setdefault(name, []).append(value)
     return result
+
+
+def _submit_menu_form(page: Page, status: int) -> dict[str, list[str]]:
+    with page.expect_response(
+        lambda response: response.request.method == 'POST' and response.url.endswith('/menu')
+    ) as submitted:
+        page.get_by_role('button', name='Menü speichern', exact=True).click()
+    response = submitted.value
+    assert response.status == status
+    data = response.request.post_data
+    assert data is not None
+    page.wait_for_load_state()
+    return parse_qs(data, keep_blank_values=True)
+
+
+def _tab_to(page: Page, selector: str, limit: int = 80) -> None:
+    target = page.locator(selector).first
+    expect(target).to_have_count(1)
+    for _ in range(limit):
+        page.keyboard.press('Tab')
+        if target.evaluate('element => element === document.activeElement'):
+            return
+    raise AssertionError(f'Focus did not reach {selector!r} after {limit} Tab presses')
 
 
 def _assert_component_pairs(payload: dict[str, list[str]]) -> None:
@@ -175,8 +197,6 @@ def test_a09_add_move_remove_keeps_visual_payload_order(editor_page, family: str
 def test_a10_a13_dirty_review_links_width_and_focus_order(
     editor_page, family: str, javascript: bool,  # noqa: F811
 ) -> None:
-    if not javascript:
-        pytest.skip('Dirty-Hervorhebung und Fokusöffnung benötigen JavaScript.')
     page, *_ = editor_page
     page.set_viewport_size({'width': 1366, 'height': 768})
     page.goto(_menu_url(family))
@@ -184,25 +204,24 @@ def test_a10_a13_dirty_review_links_width_and_focus_order(
     note = page.locator('[data-menu-editor-dirty-note]')
     expect(note).to_be_visible()
     expect(note).not_to_have_class('is-dirty')
-    page.get_by_label('Menüname', exact=True).fill('Geänderter Herbstteller')
-    expect(note).to_have_class(re.compile(r'\bis-dirty\b'))
+    if javascript:
+        page.get_by_label('Menüname', exact=True).fill('Geänderter Herbstteller')
+        expect(note).to_have_class(re.compile(r'\bis-dirty\b'))
 
-    ordered = page.evaluate('''() => {
-        const nodes = [
-            document.querySelector('#f-title'),
-            document.querySelector('[data-edit-row]'),
-            document.querySelector('#sec-markings + details summary, #sec-markings ~ details summary'),
-            document.querySelector('[data-sticky] .btn-primary'),
-            document.querySelector('#review a[data-error-link]'),
-        ];
-        return nodes.every(Boolean) && nodes.slice(1).every((node, index) =>
-            Boolean(nodes[index].compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING));
-    }''')
-    assert ordered
-    link = page.locator('#review a[href="#allergen-mode-manual"]')
-    link.click()
-    expect(page.locator('details[data-mode-section="allergen"]')).to_have_attribute('open', '')
-    expect(page.locator('#allergen-mode-manual')).to_be_focused()
+    page.locator('#f-title').focus()
+    page.keyboard.press('Tab')
+    expect(page.locator('#accompaniment-none')).to_be_focused()
+    page.keyboard.press('Tab')
+    assert page.evaluate('document.activeElement.closest("#components-list") !== null')
+    _tab_to(page, '#sec-markings ~ details summary')
+    _tab_to(page, '[data-sticky] .btn-primary')
+    _tab_to(page, '#review a[data-error-link]')
+
+    if javascript:
+        link = page.locator('#review a[href="#allergen-mode-manual"]')
+        link.click()
+        expect(page.locator('details[data-mode-section="allergen"]')).to_have_attribute('open', '')
+        expect(page.locator('#allergen-mode-manual')).to_be_focused()
 
     container_ratio = page.locator('.page-body > .container-xl').evaluate('''element => {
         const main = document.querySelector('main.admin-main');
@@ -264,7 +283,7 @@ def test_a11_a12_editor_evidence_states(editor_page, family: str, javascript: bo
     page.locator('[name="origin_mode"][value="manual"]').check()
     page.locator('[name="origin_ingredient"]').fill('Rind')
     page.locator('[name="origin_country_code"]').select_option('')
-    _submit_menu(page, 400)
+    _submit_menu_form(page, 400)
     page.set_viewport_size({'width': 390, 'height': 844})
     _capture(page, 'menu-editor-fehler-390x844.png')
 
@@ -359,8 +378,6 @@ def test_compact_assignments_and_native_kind_contract(
 def test_a09_origin_error_opens_closed_details(
     editor_page, family: str, javascript: bool,  # noqa: F811
 ) -> None:
-    if not javascript:
-        pytest.skip('Fehleröffnung der Herkunft braucht das vorhandene Submit-Helfer mit JS.')
     page, *_ = editor_page
     page.goto(_menu_url(family))
     origin = page.locator('details[data-mode-section="origin"]')
@@ -371,7 +388,7 @@ def test_a09_origin_error_opens_closed_details(
     page.locator('[name="origin_country_code"]').first.select_option('')
     if origin.get_attribute('open') is not None:
         origin.locator('summary').click()
-    _submit_menu(page, 400)
+    _submit_menu_form(page, 400)
     expect(page.locator('.error-region[role="alert"]')).to_be_visible()
     expect(page.locator('details[data-mode-section="origin"]')).to_have_attribute('open', '')
     expect(page.locator('[name="origin_ingredient"]').first).to_have_value('Rind')

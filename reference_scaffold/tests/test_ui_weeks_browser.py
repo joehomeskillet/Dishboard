@@ -135,7 +135,7 @@ def _before(page: Page, app, path: str, template: str, tmp_path: Path) -> None:
         app.jinja_env.cache.clear()
 
 
-def _zoom(page: Page, tmp_path: Path, name: str) -> bool:
+def _zoom(page: Page, tmp_path: Path, name: str) -> dict[str, object]:
     page.evaluate("document.documentElement.style.zoom = '2'")
     region = page.get_by_role('region', name='Wochenliste', exact=True)
     if region.count() and region.evaluate('e => e.scrollWidth > e.clientWidth + 1'):
@@ -146,11 +146,28 @@ def _zoom(page: Page, tmp_path: Path, name: str) -> bool:
     page.screenshot(path=str(tmp_path / f'zoom200-{name}.png'), full_page=True)
     overflow = page.locator('body *:visible').evaluate_all('''es => es.filter(e => {
         const r = e.getBoundingClientRect(); return r.right > innerWidth + 1;
-    }).map(e => ({tag: e.tagName, class: e.className, text: e.textContent.slice(0, 100)}))''')
-    fits = page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-    (tmp_path / f'zoom200-{name}.json').write_text(json.dumps({'fits': fits, 'overflow': overflow}), encoding='utf-8')
+    }).map(e => {
+        const r = e.getBoundingClientRect();
+        const parent = e.parentElement.getBoundingClientRect();
+        const style = getComputedStyle(e);
+        return {
+            tag: e.tagName, class: e.className, text: e.textContent.slice(0, 100),
+            box: {left: r.left, right: r.right, width: r.width},
+            parent: {left: parent.left, right: parent.right, width: parent.width},
+            display: style.display, flexWrap: style.flexWrap, minWidth: style.minWidth,
+            maxWidth: style.maxWidth, whiteSpace: style.whiteSpace, overflowWrap: style.overflowWrap,
+        };
+    })''')
+    metrics = page.evaluate('''() => ({
+        clientWidth: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        viewportWidth: innerWidth,
+        fits: document.documentElement.scrollWidth <= innerWidth + 1,
+    })''')
+    metrics['overflow'] = overflow
+    (tmp_path / f'zoom200-{name}.json').write_text(json.dumps(metrics), encoding='utf-8')
     page.evaluate("document.documentElement.style.zoom = ''")
-    return fits
+    return metrics
 
 
 def test_management_states_creation_copy_and_pagination(weeks_ui, tmp_path):
@@ -189,13 +206,17 @@ def test_management_states_creation_copy_and_pagination(weeks_ui, tmp_path):
             row = page.locator('tr[data-week-id]')
             expect(row).to_contain_text('31.08.2026 – 06.09.2026')
             expect(row).to_contain_text('KW 36 / 2026')
-            row.get_by_role('link', name='Woche öffnen', exact=True).click()
+            open_week = row.get_by_role('link', name='Öffnen', exact=True)
+            expect(open_week).to_be_visible()
+            expect(open_week).to_have_attribute('href', f'/admin/{family}?week={WEEK}')
+            open_week.click()
             assert page.url.endswith(f'/admin/{family}?week={WEEK}')
             _goto(page, path)
-            row.get_by_role('link', name='Vorschau', exact=True).click()
+            row.get_by_role('link', name='Vorschau für Woche ab 31.08.2026', exact=True).click()
             assert '/preview?week=' in page.url
             _goto(page, path)
-            row.get_by_role('link', name='In Folgewoche kopieren', exact=True).click()
+            row.locator('details.week-copy summary').click()
+            row.get_by_role('link', name='Kopieren vorbereiten', exact=True).click()
             expect(page.locator('main')).to_have_attribute('data-source-week', str(WEEK))
             expect(page.locator('main')).to_have_attribute('data-target-week', str(WEEK + timedelta(days=7)))
             expect(page.locator('#copy-description')).to_contain_text('in die leere Woche')
@@ -333,7 +354,8 @@ def test_zoom_200_percent_both_routes(weeks_ui, tmp_path):
         for width, height in CORE:
             page.set_viewport_size({'width': width, 'height': height})
             outcomes[f'{name}-{width}'] = _zoom(page, tmp_path, f'{name}-{width}')
-    assert all(outcomes.values()), outcomes
+    failures = {name: metrics for name, metrics in outcomes.items() if not metrics['fits']}
+    assert not failures, failures
 
 
 def test_access_errors_and_failed_writes_preserve_versions(weeks_ui, monkeypatch, tmp_path):

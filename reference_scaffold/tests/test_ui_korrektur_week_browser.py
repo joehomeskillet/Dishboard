@@ -381,10 +381,19 @@ def test_a11_a12_full_width_and_no_horizontal_scroll(
     _save_reviewed(admin_app.extensions['cafeteria_db'], profile, _staff_values() if profile == 'staff_guest' else _patient_values())
     page = page_context
     page.set_viewport_size({'width': width, 'height': height})
-    _goto(page, family)
-    _assert_no_overflow(page)
-    _assert_page_container_width(page, width)
-    _shot(page, family, 'regular', width, height)
+    for route, state, zoom in (
+        (f'/admin/{family}?week={DAY}', 'regular', 1),
+        (f'/admin/{family}/wochen/pruefung?week={DAY}', 'review-zoom200', 2),
+    ):
+        response = page.goto(route)
+        assert response is not None and response.status == 200
+        page.evaluate('document.fonts.ready')
+        page.evaluate('(zoom) => { document.documentElement.style.zoom = String(zoom); }', zoom)
+        _assert_no_overflow(page)
+        if zoom == 1:
+            _assert_page_container_width(page, width)
+        _shot(page, family, state, width, height)
+        page.evaluate("document.documentElement.style.zoom = ''")
 
 
 @pytest.mark.parametrize('family', FAMILIES)
