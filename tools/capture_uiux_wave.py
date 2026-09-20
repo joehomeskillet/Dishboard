@@ -413,6 +413,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not database_url or not redis_url:
         print('TEST_DATABASE_URL and TEST_REDIS_URL are required.', file=sys.stderr)
         return 1
+    # The capture drops and rebuilds the cafeteria schema: only a disposable local test database.
+    target = make_url(database_url)
+    if target.host not in ('127.0.0.1', 'localhost', '::1') or 'test' not in (target.database or ''):
+        print('Refusing: TEST_DATABASE_URL must be a loopback database whose name contains "test".',
+              file=sys.stderr)
+        return 1
 
     out_dir = args.out.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
