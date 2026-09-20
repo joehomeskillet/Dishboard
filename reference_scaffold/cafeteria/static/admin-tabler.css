@@ -434,6 +434,54 @@
   .dishboard-admin .admin-compact-unit { flex: 1 1 calc(50% - var(--app-space-2)); }
   .dishboard-admin .admin-compact-line { align-items: end; }
 }
+/* M21–M25 opt-in shared patterns; existing module rows retain their contracts. */
+.dishboard-admin .admin-option-group { min-width: 0; margin-bottom: var(--app-space-3); }
+.dishboard-admin .admin-option-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--app-space-2); }
+.dishboard-admin .admin-option-row {
+  display: flex; align-items: center; gap: var(--app-space-2); min-width: 0;
+  padding: var(--app-space-1); border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-control);
+}
+.dishboard-admin .admin-option-row:has(input:checked) { border: 2px solid var(--app-primary); }
+.dishboard-admin .admin-option-label {
+  display: flex; align-items: center; gap: var(--app-space-2); flex: 1 1 45%;
+  min-width: 48px; margin: 0; padding: var(--app-space-2);
+}
+.dishboard-admin .admin-option-label .form-check-input { float: none; flex: none; margin: 0; }
+.dishboard-admin .admin-option-label .form-check-label { overflow-wrap: anywhere; }
+.dishboard-admin .admin-option-row .form-select { flex: 1 1 55%; min-width: 0; width: 55%; }
+.dishboard-admin .admin-option-row .form-select:disabled { display: none; }
+.dishboard-admin .admin-filter-bar,
+.dishboard-admin .admin-filter-slots,
+.dishboard-admin .admin-list-row,
+.dishboard-admin .admin-list-actions,
+.dishboard-admin .admin-list-markings,
+.dishboard-admin .admin-form-footer,
+.dishboard-admin .admin-form-main {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--app-space-2); min-width: 0;
+}
+.dishboard-admin .admin-filter-bar { align-items: end; margin-bottom: var(--app-space-3); }
+.dishboard-admin .admin-filter-search { flex: 1 1 16rem; min-width: 0; }
+.dishboard-admin .admin-filter-slots { flex: 1 1 12rem; }
+.dishboard-admin .admin-filter-slots > * { max-width: 100%; }
+.dishboard-admin .admin-filter-more[open] { flex-basis: 100%; }
+.dishboard-admin .admin-list-row { padding: var(--app-space-2) 0; border-bottom: 1px solid var(--app-border); }
+.dishboard-admin .admin-list-name { flex: 1 1 14rem; min-width: 0; overflow-wrap: anywhere; }
+.dishboard-admin .admin-list-subtitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--app-text-muted); }
+.dishboard-admin .admin-list-actions { margin-inline-start: auto; }
+.dishboard-admin .admin-form-footer { padding: var(--app-space-2) 0; background: var(--app-bg); }
+.dishboard-admin .admin-form-main { margin-inline-start: auto; }
+.dishboard-admin .admin-disclosure { margin-bottom: var(--app-space-3); }
+@media (min-width: 768px) {
+  .dishboard-admin .admin-option-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1440px) {
+  .dishboard-admin .admin-option-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-height: 700px) {
+  .dishboard-admin .admin-form-footer[data-sticky-ready]:not(.is-static) { position: sticky; bottom: 0; z-index: 10; }
+  .dishboard-admin form:has(:is(input, select, textarea):focus, .is-invalid) .admin-form-footer[data-sticky-ready] { position: static; }
+}
 .dishboard-admin :is(.form-hint, small, .small) { font-size: calc(var(--app-font-size-small) * var(--app-font-scale)); }
 .dishboard-admin .form-hint { color: var(--app-text-muted); }
 .dishboard-admin .table { --tblr-table-color: var(--app-text); --tblr-table-border-color: var(--app-border); }

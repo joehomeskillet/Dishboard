@@ -364,3 +364,85 @@
   {% for message in messages %}<div class="alert alert-info flash">{{ message }}</div>{% endfor %}
 </div>
 {%- endmacro %}
+
+{%- macro option_detail_group(options, submitted=none, errors=none, id='allergen', label='Allergene', code_name='allergen_code', detail_name='allergen_presence', manual=true, field_prefix=none, choices=none, mode='allergen') -%}
+{%- from '_food_symbols.html' import symbol -%}
+{%- set submitted = submitted or {} -%}
+{%- set errors = errors or {} -%}
+{%- set codes = submitted.getlist(code_name) if submitted.getlist else submitted.get(code_name, []) -%}
+{%- set details = submitted.getlist(detail_name) if submitted.getlist else submitted.get(detail_name, []) -%}
+{%- set choices = choices or [('contains', 'enthält'), ('may_contain', 'kann Spuren enthalten')] -%}
+{%- set count = namespace(value=0) -%}
+<fieldset class="admin-option-group" data-option-group data-option-mode="{{ mode }}" data-option-manual="{{ 'true' if manual else 'false' }}" aria-describedby="{{ id }}-hint">
+  <legend class="form-label">{{ label }}</legend>
+  {% for name, error_id in [(code_name, 'err-allergen-code'), (detail_name, 'err-allergen-presence')] %}
+    {% if errors.get(name) %}<div class="invalid-feedback d-block field-error" id="{{ error_id }}">{{ errors[name] }}</div>{% endif %}
+  {% endfor %}
+  <div class="admin-option-grid allergen-list">
+  {% for option in options %}
+    {% set code = option.code %}
+    {% set title = option.name|default(option.display_name|default(code)) %}
+    {% set idx = codes.index(code) if code in codes else -1 %}
+    {% set presence = submitted.get(field_prefix ~ code, 'absent') if field_prefix else (details[idx] if idx >= 0 and idx < details|length else 'contains') %}
+    {% set selected = presence != 'absent' if field_prefix else idx >= 0 %}
+    {% set presence_invalid = errors.get(field_prefix ~ code) if field_prefix else (errors.get(detail_name) and manual and idx >= 0 and (idx >= details|length or presence not in choices|map(attribute=0)|list)) %}
+    {% set field_id = id ~ '-' ~ code|lower %}
+    {% if selected %}{% set count.value = count.value + 1 %}{% endif %}
+    <div class="admin-option-row{% if mode == 'allergen' %} allergen-row{% endif %}" data-option-detail{% if field_prefix %} data-option-keyed{% endif %}>
+      <label class="form-check admin-option-label" for="{{ field_id }}">
+        <input class="form-check-input" id="{{ field_id }}" type="checkbox" data-option-check{% if not field_prefix %} name="{{ code_name }}"{% else %} hidden{% endif %} value="{{ code }}"{% if selected %} checked{% endif %}{% if not manual %} disabled{% endif %}>
+        <span class="form-check-label">{% if mode == 'allergen' and code|food_symbol('allergens') %}{{ symbol('allergens', code, true) }}{% else %}{{ icon(option.icon|default('check')) }}{% endif %}{{ title }}</span>
+      </label>
+      {% if field_prefix %}<input type="hidden" data-option-absent name="{{ field_prefix }}{{ code }}" value="absent" disabled>{% endif %}
+      <label class="visually-hidden" for="{{ field_id }}-presence">Präsenz für {{ title }}</label>
+      <select class="form-select{{ ' is-invalid' if presence_invalid else '' }}" id="{{ field_id }}-presence" name="{{ field_prefix ~ code if field_prefix else detail_name }}" data-option-presence aria-label="Präsenz für {{ title }}"{% if presence_invalid %} aria-invalid="true" aria-describedby="{{ field_id ~ '-error' if field_prefix else 'err-allergen-presence' }}"{% endif %}{% if not manual or (not field_prefix and not selected) %} disabled{% endif %}>
+        {% if field_prefix %}<option value="absent"{% if presence == 'absent' %} selected{% endif %}>Keine Angabe</option>{% endif %}
+        {% for value, text in choices %}<option value="{{ value }}"{% if presence == value %} selected{% endif %}>{{ text }}</option>{% endfor %}
+      </select>
+      {% if field_prefix and presence_invalid %}<div class="invalid-feedback d-block field-error" id="{{ field_id }}-error">{{ presence_invalid }}</div>{% endif %}
+    </div>
+  {% endfor %}
+  </div>
+  <p class="form-hint" data-option-count aria-live="polite">{{ count.value }} ausgewählt</p>
+  <p class="form-hint" id="{{ id }}-hint">Nicht ausgewählt bedeutet nicht: allergenfrei bestätigt.</p>
+</fieldset>
+{%- endmacro %}
+
+{%- macro filter_bar(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters') -%}
+<form class="admin-filter-bar" method="get" action="{{ action }}" data-dirty-tracking="off" role="search">
+  <div class="admin-filter-search">{{ field(search_name, 'Suche', search_value, type='search', id=id ~ '-search') }}</div>
+  {% if filters %}<div class="admin-filter-slots">{{ filters }}</div>{% endif %}
+  {% if more_filters %}<details class="admin-compact-details admin-filter-more"><summary>{{ icon('search') }}Weitere Filter</summary><div class="admin-filter-slots">{{ more_filters }}</div></details>{% endif %}
+  <button class="btn" type="submit">{{ icon('search') }}Filtern</button>
+  {% if active and reset_url %}<a class="btn" href="{{ reset_url }}">{{ icon('x') }}Filter zurücksetzen</a>{% endif %}
+</form>
+{%- endmacro %}
+
+{%- macro list_row(name, subtitle, state, action, markings=none, overflow=0, more_actions=none) -%}
+<div class="admin-list-row">
+  <div class="admin-list-name"><strong>{{ name }}</strong><div class="admin-list-subtitle" title="{{ subtitle }}">{{ subtitle }}</div></div>
+  {{ status_badge(state) }}
+  {% if markings or overflow %}<div class="admin-list-markings">{{ markings or '' }}{% if overflow %}<span class="badge" aria-label="{{ overflow }} weitere Kennzeichnungen">+{{ overflow }}</span>{% endif %}</div>{% endif %}
+  <div class="admin-list-actions">
+    {{ actions(secondary=[action]) }}
+    {% if more_actions %}<details class="admin-compact-actions"><summary>{{ icon('dots') }}Weitere Aktionen</summary>{{ more_actions }}</details>{% endif %}
+  </div>
+</div>
+{%- endmacro %}
+
+{%- macro form_footer(primary, cancel_url, rare=none, sticky=false, form_id=none) -%}
+<div class="admin-form-footer"{% if sticky %} data-sticky{% if form_id %} data-sticky-form="{{ form_id }}"{% endif %}{% endif %}>
+  {% if rare %}<div class="admin-form-rare">{{ rare }}</div>{% endif %}
+  <div class="admin-form-main">
+    <a class="btn" href="{{ cancel_url }}">{{ icon('x') }}Abbrechen</a>
+    {{ actions(primary=primary) }}
+  </div>
+</div>
+{%- endmacro %}
+
+{%- macro disclosure_section(title='Weitere Optionen', id=none, open=false, has_content=false, has_error=false) -%}
+<details class="admin-compact-details admin-disclosure"{% if id %} id="{{ id }}"{% endif %}{% if open or has_content or has_error %} open{% endif %}>
+  <summary>{{ icon('chevron-right') }}{{ title }}{% if has_content %}<span class="text-secondary"> · enthält Angaben</span>{% endif %}</summary>
+  <div class="admin-compact-detail-body">{{ caller() if caller else '' }}</div>
+</details>
+{%- endmacro %}
