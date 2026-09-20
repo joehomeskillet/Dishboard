@@ -11136,7 +11136,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "f321fa00f5d5f5ebe8af12b71d334d26528e5cf8f867c36849e5c322758a4f53",
+      "sha256": "4ce87dcfd6558382d436208054ae953d5e9c773f687ada5935bc40b521871d14",
       "used_by_endpoints": [
         "admin.kitchen_calendar"
       ],
@@ -11156,7 +11156,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "930c3eaad1092970c1a6bb19e380bb36d9ae18fd8842707bcc4e9a4b3533bf34",
+      "sha256": "1395be4b9d1fb385dec5b20001730d3a4cb591c6c05e54d6ec318914d6c1f6f4",
       "used_by_endpoints": [
         "admin.kitchen_event_create",
         "admin.kitchen_event_edit",
