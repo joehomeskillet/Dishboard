@@ -427,10 +427,15 @@ def test_sidebar_and_adjacent_contrasts(site, tmp_path):
     })''')
     for pair in pairs:
         assert contrast(_hex(pair['text']), _hex(pair['bg'])) >= 4.5, pair
-    active = page.locator('.admin-sidebar .nav-link.active')
-    active_styles = _styles(active)
-    assert 'rgb(243, 166, 192)' in active_styles['box-shadow']
-    assert contrast('#ffffff', _hex(active_styles['background-color'])) >= 3
+    # Contextual navigation marks the active area and, inside it, the current page.
+    active_links = page.locator('.admin-sidebar .nav-link.active')
+    expect(active_links).to_have_count(2)
+    for index in range(2):
+        active_styles = _styles(active_links.nth(index))
+        assert 'rgb(243, 166, 192)' in active_styles['box-shadow']
+        assert contrast('#ffffff', _hex(active_styles['background-color'])) >= 3
+    active = page.locator('.admin-sidebar .admin-nav-subitems .nav-link[aria-current="page"]')
+    expect(active).to_have_count(1)
     active.focus()
     page.keyboard.press('Tab')
     focused = page.locator('.admin-sidebar :focus-visible')
