@@ -318,7 +318,13 @@
 .dishboard-admin [data-menu-metadata] .label { padding: 4px 8px; border-radius: var(--sh-radius-sm); background: var(--sh-panel-soft); }
 .dishboard-admin [data-menu-metadata] :is(p, .label), .dishboard-admin .card-title { overflow-wrap: anywhere; }
 .dishboard-admin :is(a, button, summary, input, select, textarea, [tabindex]):focus-visible { outline: 2px solid var(--app-focus); outline-offset: 2px; }
-.dishboard-admin .admin-sidebar :is(a, button):focus-visible { outline-color: var(--app-surface); }
+.dishboard-admin .admin-sidebar :is(a, button, summary):focus-visible { outline-color: var(--app-surface); }
+.dishboard-admin .admin-nojs-nav { width: 100%; }
+.dishboard-admin .admin-nojs-nav > summary {
+  display: flex; align-items: center; gap: var(--app-space-2);
+  min-height: 48px; padding: 0 var(--app-space-3); cursor: pointer;
+  color: var(--app-sidebar-text);
+}
 .dishboard-admin .skip-link { position: fixed; top: 8px; left: 8px; z-index: 1100; padding: 12px; color: var(--sh-white); background: var(--sh-primary); transform: translateY(-200%); }
 .dishboard-admin .skip-link:focus { transform: translateY(0); }
 @media (min-width: 992px) {

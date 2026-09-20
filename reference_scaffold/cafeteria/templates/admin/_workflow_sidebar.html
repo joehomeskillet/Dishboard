@@ -56,7 +56,9 @@
       {{ brand_logo(brand, 'admin-logo', width=164, height=32) }}
       <span>Menüplanung</span>
     </div>
-    <noscript><nav class="admin-nav d-lg-none" aria-label="Backend">
+    <noscript><details class="admin-nojs-nav d-lg-none">
+      <summary>{{ icon('dots') }}<span>Menü</span></summary>
+      <nav class="admin-nav" aria-label="Backend">
       {{ area_links() }}
       <form method="post" action="{{ url_for('auth.logout') }}" class="admin-logout-form">
         <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
@@ -65,7 +67,8 @@
           <span>Abmelden</span>
         </button>
       </form>
-    </nav></noscript>
+      </nav>
+    </details></noscript>
     <div class="offcanvas-lg offcanvas-start admin-nav-collapse" id="sidebar-menu" tabindex="-1" aria-labelledby="sidebar-menu-label">
       <span id="sidebar-menu-label" class="visually-hidden">Navigation</span>
       <nav class="admin-nav" aria-label="Backend">
