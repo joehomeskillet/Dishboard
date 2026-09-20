@@ -548,6 +548,9 @@ docs/design/uiux-handoff-2026-09-20/04_MOCKUPS/README.md
 docs/design/uiux-handoff-2026-09-20/04_MOCKUPS/ui.css
 docs/design/uiux-handoff-2026-09-20/05_IMPLEMENTATION/IMPLEMENTATION_PLAN.md
 docs/design/uiux-handoff-2026-09-20/06_QA/ACCEPTANCE_CHECKLIST.md
+docs/design/uiux-handoff-2026-09-20/07_ERGAENZUNGEN/Ergaenzungsprompt_Globale_UI_Vereinfachung.md
+docs/design/uiux-handoff-2026-09-20/07_ERGAENZUNGEN/Ergaenzungsprompt_Kompakte_Formulare.md
+docs/design/uiux-handoff-2026-09-20/07_ERGAENZUNGEN/README.md
 docs/design/uiux-handoff-2026-09-20/README.md
 docs/DOCKER_COMPOSE_RUNBOOK.md
 docs/ENTRA_SSO_BETRIEBSKONZEPT.md
