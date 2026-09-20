@@ -37,7 +37,7 @@
   {% endif %}
 </div>
 <details class="admin-week-service"{% if service_open %} open{% endif %}>
-  <summary>Ausgabeangaben ändern</summary>
+<summary>{{ icon('pencil') }}Ausgabeangaben ändern</summary>
   <form method="post" action="/admin/{{ family }}/service" class="card card-sm mb-3 admin-week-service-form">
     <div class="card-body">
       {{ form_errors(service_errors.values()|list) }}

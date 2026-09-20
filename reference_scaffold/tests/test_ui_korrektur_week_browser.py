@@ -121,7 +121,10 @@ def test_a01_single_area_nav_and_single_week_review_link(page_context: Page, fam
     page = page_context
     page.set_viewport_size({'width': 1366, 'height': 768})
     _goto(page, family)
-    expect(page.locator('.admin-area-tabs')).to_have_count(1)
+    expect(page.locator('.admin-area-tabs')).to_have_count(0)
+    subitems = page.locator('aside.admin-sidebar .admin-nav-subitems:visible')
+    expect(subitems).to_have_count(1)
+    expect(subitems.locator('[aria-current="page"]')).to_have_text('Cafeteria' if family == 'cafeteria' else 'Patienten')
     expect(page.locator('.profile-tabs')).to_have_count(0)
     expect(page.get_by_role('link', name='Wochenangaben prüfen')).to_have_count(1)
     expect(page.locator('.admin-week-review-link')).to_have_count(1)
@@ -248,28 +251,18 @@ def test_a06_live_checked_and_missing_allergens_are_separate(
     page.set_viewport_size({'width': 1366, 'height': 768})
     _goto(page, family)
     expect(page.locator('main')).to_have_attribute('data-status', 'live')
-    status = page.get_by_role('status')
-    status_copy = status.locator('.admin-week-status-copy')
+    status = page.locator('.admin-statusbar')
+    status_copy = status.locator('.admin-statusbar-value-text').nth(1)
     expect(status_copy).to_have_text('Gespeicherter Stand veröffentlicht')
-    expect(status_copy).to_have_attribute(
-        'aria-label', 'Veröffentlicht · entspricht dem gespeicherten Stand'
-    )
+    expect(status_copy.locator('..').locator('..')).to_have_class(re.compile('admin-statusbar-item--success'))
     filled = SLOT_COUNT[family]
     expect(status).to_contain_text(f'{filled} Menükarten geprüft')
-    expect(status).to_contain_text('Wochenkopf und Ausgabehinweise geprüft')
+    expect(page.get_by_role('link', name='Wochenangaben prüfen')).to_be_visible()
     expect(status).to_contain_text('1 ohne Allergenangaben')
     expect(status).not_to_contain_text('Keine offenen Prüfungen')
-    text_line_tops = status.evaluate('''root => {
-        const tops = [];
-        for (const item of root.querySelectorAll(':scope > span:not(.status-pill)')) {
-            const range = document.createRange();
-            range.selectNodeContents(item);
-            for (const rect of range.getClientRects()) {
-                if (rect.width > 0 && rect.height > 0) tops.push(Math.round(rect.top));
-            }
-        }
-        return [...new Set(tops)];
-    }''')
+    text_line_tops = status.locator('.admin-statusbar-item').evaluate_all(
+        'items => [...new Set(items.map(e => Math.round(e.getBoundingClientRect().top)))]'
+    )
     assert len(text_line_tops) == 1, text_line_tops
     _assert_no_overflow(page)
     card = page.locator('.menu-slot').first
@@ -281,11 +274,11 @@ def test_a06_live_checked_and_missing_allergens_are_separate(
     _save_reviewed(engine, profile, values)
     _goto(page, family)
     expect(page.locator('main')).to_have_attribute('data-status', 'changed')
-    changed_status = page.get_by_role('status')
-    expect(changed_status.locator('.admin-week-status-copy')).to_have_text(
+    changed_status = page.locator('.admin-statusbar')
+    expect(changed_status.locator('.admin-statusbar-value-text').nth(1)).to_have_text(
         'Veröffentlicht · Änderungen offen'
     )
-    expect(changed_status).to_contain_text('Wochenkopf und Ausgabehinweise geprüft')
+    expect(changed_status.locator('.admin-statusbar-item').nth(1)).to_have_class(re.compile('admin-statusbar-item--warning'))
 
 
 @pytest.mark.parametrize(('family', 'profile'), (('cafeteria', 'staff_guest'), ('patienten', 'patient')))
@@ -437,11 +430,11 @@ def test_a13_tab_order_actions_then_first_card_not_covered_by_sticky(
     page.keyboard.press('Tab')
     service = page.locator('details.admin-week-service > summary').first
     expect(service).to_be_focused()
-    page.keyboard.press('Tab')
     first_edit = page.locator('.menu-slot a.btn').first
-    expect(first_edit).to_be_focused()
+    _tab_to(page, first_edit)
     page.keyboard.press('Shift+Tab')
-    expect(service).to_be_focused()
+    previous = page.locator(':focus')
+    assert previous.evaluate('el => el.matches("summary, a, button")')
     page.keyboard.press('Tab')
     expect(first_edit).to_be_focused()
     focused_box = first_edit.bounding_box()

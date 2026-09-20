@@ -38,44 +38,48 @@
 {% endif %}
 {% set csv_profile = 'patienten' if family == 'patienten' else 'cafeteria' %}
 
-<section class="admin-week-controls" aria-label="Wochenstatus und Aktionen">
-  <div class="admin-week-status" role="status">
-    <span class="status-pill" data-status="{{ status }}">{{ status_badge(status, label=status_label) }}</span>
-    {% if status_short != status_label %}
-    <span class="admin-week-status-copy" aria-label="{{ status_plain }}">{{ status_short }}</span>
-    {% endif %}
-    {% if open_checks %}
-    <span class="badge bg-secondary-lt admin-week-status-chip" aria-label="{{ open_checks }} {{ 'Menükarte' if open_checks == 1 else 'Menükarten' }} mit offener Prüfung">{{ open_checks }} {{ 'Kartenprüfung' if open_checks == 1 else 'Kartenprüfungen' }} offen</span>
-    {% elif filled_slots > 0 %}
-    <span class="badge bg-secondary-lt admin-week-status-chip" aria-label="Alle {{ filled_slots }} erfassten Menükarten geprüft">{{ filled_slots }} Menükarten geprüft</span>
-    {% endif %}
-    {% if status == 'review_open' and open_checks == 0 %}
-    <span class="badge bg-secondary-lt admin-week-status-chip" aria-label="Wochenkopf und Ausgabehinweise noch zu prüfen">Wochenkopf und Ausgabehinweise: Prüfung offen</span>
-    {% elif status in ('ready', 'live', 'changed') %}
-    <span class="badge bg-secondary-lt admin-week-status-chip" aria-label="Wochenkopf und Ausgabehinweise geprüft">Wochenkopf und Ausgabehinweise geprüft</span>
-    {% endif %}
-    {% if allergen_stats.missing > 0 %}
-    <span class="badge bg-yellow-lt text-warning admin-week-status-chip" aria-label="{{ allergen_stats.missing }} {{ 'Menükarte' if allergen_stats.missing == 1 else 'Menükarten' }} ohne Allergenangaben">{{ allergen_stats.missing }} ohne Allergenangaben</span>
-    {% endif %}
-    {% if allergen_stats.review_open > 0 %}
-    <span class="badge bg-yellow-lt text-warning admin-week-status-chip" aria-label="{{ allergen_stats.review_open }} {{ 'Menükarte' if allergen_stats.review_open == 1 else 'Menükarten' }} mit Allergenprüfung offen">{{ allergen_stats.review_open }} {{ 'Allergenprüfung' if allergen_stats.review_open == 1 else 'Allergenprüfungen' }} offen</span>
-    {% endif %}
-    {% if course_issues is defined and course_issues.affected_assignments %}
-    <a class="badge bg-yellow-lt text-warning admin-week-status-chip" href="#course-issues" aria-label="{{ course_issues.affected_assignments }} {{ 'Gang' if course_issues.affected_assignments == 1 else 'Gänge' }} mit offenen Angaben">{{ course_issues.affected_assignments }} {{ 'Gang' if course_issues.affected_assignments == 1 else 'Gänge' }} prüfen</a>
-    {% endif %}
-    {% if course_issues is defined and course_issues.missing_allergens %}
-    <span class="badge bg-yellow-lt text-warning admin-week-status-chip" aria-label="{{ course_issues.missing_allergens }} {{ 'Gang' if course_issues.missing_allergens == 1 else 'Gänge' }} ohne Allergenangaben">{{ course_issues.missing_allergens }} Gänge ohne Allergenangaben</span>
-    {% endif %}
-  </div>
-  <div class="admin-actions btn-list" data-sticky>
+{% macro overview_header(heading, description) %}
+  {% set items = [
+    {'label': 'Woche', 'value': 'KW ' ~ iso_week, 'detail': date_range},
+    {'label': 'Wochenstatus', 'value': status_short, 'variant': 'success' if status == 'live' else ('warning' if publish_blocked or status == 'changed' else 'neutral')}
+  ] %}
+  {% if filled_slots %}
+    {% set items = items + [{'label': 'Kartenprüfungen', 'value': (open_checks ~ ' offen') if open_checks else (filled_slots ~ ' Menükarten geprüft'), 'variant': 'warning' if open_checks else 'neutral'}] %}
+  {% endif %}
+  {% if allergen_stats.missing or allergen_stats.review_open %}
+    {% set items = items + [{'label': 'Allergenangaben', 'value': allergen_stats.missing ~ ' ohne Allergenangaben', 'detail': (allergen_stats.review_open ~ ' Allergenprüfungen offen') if allergen_stats.review_open else none, 'variant': 'warning'}] %}
+  {% endif %}
+  {% if course_issues is defined and (course_issues.affected_assignments or course_issues.missing_allergens) %}
+    {% set items = items + [{'label': 'Gänge', 'value': course_issues.affected_assignments ~ ' Gänge prüfen', 'detail': course_issues.missing_allergens ~ ' Gänge ohne Allergenangaben', 'variant': 'warning'}] %}
+  {% endif %}
+  {% call page_header(heading, description, status_items=items) %}
     {% if publish_blocked and status == 'review_open' %}
-    <a class="btn btn-primary admin-week-review-link" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}">{{ icon('clipboard-check') }}Offene Punkte prüfen</a>
-    <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#week-publish-modal" disabled aria-describedby="week-publish-guidance">{{ publish_label }}</button>
+    <a class="btn btn-primary" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}#week-review-form">{{ icon('clipboard-check') }}Offene Punkte prüfen</a>
     {% else %}
     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#week-publish-modal"{% if publish_blocked %} disabled aria-describedby="week-publish-guidance"{% endif %}>{{ publish_label }}</button>
     {% endif %}
+  {% endcall %}
+{% endmacro %}
+
+<section class="admin-week-controls" aria-label="Wochenstatus und Aktionen">
+  <div class="admin-actions btn-list" data-sticky>
+    {% if publish_blocked and status == 'review_open' %}
+    <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#week-publish-modal" disabled aria-describedby="week-publish-guidance">{{ publish_label }}</button>
+    {% endif %}
     <a class="btn" href="/admin/{{ family }}/preview?week={{ week_value }}" target="_blank" rel="noopener">{{ icon('eye') }}Vorschau</a>
     <a class="btn admin-week-review-link" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}">{{ icon('clipboard-check') }}Wochenangaben prüfen</a>
+    {% if course_issues is defined and course_issues['items'] %}
+    <details id="course-issues" class="admin-week-issues">
+      <summary class="btn">{{ icon('clipboard-check') }}Gangangaben prüfen</summary>
+      <ul class="list-unstyled mb-0">
+        {% for item in course_issues['items'] %}
+        <li>
+          <a href="#course-{{ item.day }}-{{ item.meal }}">{{ item.day }} · {{ 'Mittag' if item.meal == 'LUNCH' else 'Abend' }} · {{ 'Suppe' if item.kind == 'soup' else 'Dessert' }}{% if item.option %} · {{ 'Vegetarisch' if item.option == 'VEGGIE' else 'Menü 1' }}{% endif %}: {% if 'missing_allergens' in item.problems %}Allergenangaben fehlen{% endif %}{% if 'missing_nutrition' in item.problems %}{% if 'missing_allergens' in item.problems %} · {% endif %}Nährwertangaben fehlen{% endif %}</a>
+        </li>
+        {% endfor %}
+      </ul>
+    </details>
+    {% endif %}
     <details class="admin-week-more">
       <summary class="btn">Weitere Aktionen</summary>
       <div class="admin-week-more-menu">
@@ -95,16 +99,15 @@
     <p id="week-publish-guidance" class="admin-week-guidance">{% if status == 'empty' %}Zuerst Gerichte erfassen, danach die Woche prüfen und publizieren.{% elif status == 'incomplete' %}Zuerst die Woche vervollständigen, danach publizieren.{% else %}Zuerst offene Prüfungen abschliessen, danach publizieren.{% endif %}</p>
     {% endif %}
   </div>
-  {% if course_issues is defined and course_issues['items'] %}
-  <ul id="course-issues" class="list-unstyled mb-0">
-    {% for item in course_issues['items'] %}
-    <li>
-      <a href="#course-{{ item.day }}-{{ item.meal }}">{{ item.day }} · {{ 'Mittag' if item.meal == 'LUNCH' else 'Abend' }} · {{ 'Suppe' if item.kind == 'soup' else 'Dessert' }}{% if item.option %} · {{ 'Vegetarisch' if item.option == 'VEGGIE' else 'Menü 1' }}{% endif %}: {% if 'missing_allergens' in item.problems %}Allergenangaben fehlen{% endif %}{% if 'missing_nutrition' in item.problems %}{% if 'missing_allergens' in item.problems %} · {% endif %}Nährwertangaben fehlen{% endif %}</a>
-    </li>
-    {% endfor %}
-  </ul>
-  {% endif %}
 </section>
+
+<noscript>
+  <details class="admin-week-nojs-publish">
+    <summary>Veröffentlichung bestätigen</summary>
+    <p>Gespeicherte Woche: KW {{ iso_week }} · {{ title }}. Bitte prüfen, ob alle Angaben korrekt sind.</p>
+    <button type="submit" form="week-publish-form" class="btn"{% if publish_blocked %} disabled aria-describedby="week-publish-guidance"{% endif %}>{{ publish_label }}</button>
+  </details>
+</noscript>
 
 <div class="modal modal-blur fade" id="week-publish-modal" tabindex="-1" aria-labelledby="week-publish-title" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered" role="document">
@@ -129,7 +132,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn" data-bs-dismiss="modal">Abbrechen</button>
-        <button type="submit" class="btn btn-primary"{% if publish_blocked %} disabled{% endif %}>{{ icon('check') }}{{ publish_label }}</button>
+        <button type="submit" class="btn"{% if publish_blocked %} disabled{% endif %}>{{ icon('check') }}{{ publish_label }}</button>
       </div>
     </form>
   </div>

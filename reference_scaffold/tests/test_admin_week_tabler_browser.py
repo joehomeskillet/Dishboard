@@ -1,21 +1,115 @@
 from __future__ import annotations
 
+import json
 import re
 from urllib.parse import parse_qs
 
 import pytest
 from flask import Flask
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page, expect, sync_playwright
 
 from test_admin_ux_browser import (  # noqa: F401
     admin_app, admin_engine, browser, live_server, page_context,
 )
 from test_admin_workflow_db import _patient_values, _save, _save_reviewed, _staff_values
-from test_admin_workflow_routes import DAY, DATABASE_URL
+from test_admin_workflow_routes import DAY, DATABASE_URL, WEEK, _login, _scope
+from test_course_week_html import _recipe
+from cafeteria.course_store import persist_service_courses
+from cafeteria.menu_images import CATALOG
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
 
 VIEWPORTS = ((360, 800), (768, 1024), (820, 1180), (1024, 768), (1199, 800), (1200, 800), (1280, 800))
+
+
+@pytest.mark.parametrize('family,profile', [('cafeteria', 'staff_guest'), ('patienten', 'patient')])
+def test_wp21_density_keyboard_and_nojs(admin_app, admin_engine, live_server, tmp_path, family, profile):  # noqa: F811
+    values = _staff_values() if family == 'cafeteria' else _patient_values()
+    if family == 'cafeteria':
+        photo = next(row for row in json.loads(CATALOG.read_text()) if row['status'] == 'ready')
+        for day in values['days']:
+            day['services'][0]['options'][0].update(title=photo['title'], components=photo['components'])
+    _save(admin_engine, profile, values)
+    client, user_id = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    if family == 'cafeteria':
+        engine = admin_app.extensions['cafeteria_db']
+        scope = _scope(admin_engine, user_id, profile)
+        soup = _recipe(engine, user_id, scope.location_id, 'Gemüsesuppe')
+        dessert = _recipe(engine, user_id, scope.location_id, 'Fruchtsalat')
+        for day in values['days']:
+            persist_service_courses(engine, scope, WEEK, day['date'], 'LUNCH',
+                                    soup={'state': 'planned', 'recipe_public_id': soup['public_id']},
+                                    dessert={'state': 'planned', 'recipe_public_id': dessert['public_id']})
+    cookie = client.get_cookie('session')
+    measurements = []
+    with sync_playwright() as playwright:
+        with playwright.chromium.launch(headless=True) as own_browser:
+            for javascript in (True, False):
+                with own_browser.new_context(base_url=live_server, java_script_enabled=javascript,
+                                             reduced_motion='reduce') as context:
+                    context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': live_server}])
+                    page = context.new_page()
+                    for width, height in ((360, 800), (768, 1024), (1024, 768), (1440, 900)):
+                        page.set_viewport_size({'width': width, 'height': height})
+                        assert page.goto(f'/admin/{family}?week={DAY}').status == 200
+                        page.evaluate('document.fonts.ready')
+                        metrics = page.evaluate('''() => {
+                            const days = [...document.querySelectorAll('.admin-day-card, .patient-admin-day')];
+                            const boxes = days.map(e => e.getBoundingClientRect());
+                            const meals = [...days[0].querySelectorAll('.patient-admin-meal')];
+                            const image = days[0].querySelector('[data-menu-image] img');
+                            const mealGaps = meals.map(meal => {
+                                const parts = [...meal.querySelectorAll('.admin-week-meal-head, .menu-slot, .admin-week-service, .admin-week-course')]
+                                    .map(e => e.getBoundingClientRect()).sort((a, b) => a.top - b.top);
+                                let end = meal.getBoundingClientRect().top, gap = 0;
+                                for (const part of parts) {
+                                    gap = Math.max(gap, part.top - end);
+                                    end = Math.max(end, part.bottom);
+                                }
+                                return Math.max(gap, meal.getBoundingClientRect().bottom - end);
+                            });
+                            return {width: innerWidth, documentWidth: document.documentElement.scrollWidth,
+                                dayHeight: boxes[0].height, firstDayTop: boxes[0].top,
+                                visibleDays: boxes.filter(r => r.top >= 0 && r.bottom <= innerHeight).length,
+                                mealOffset: meals.length ? Math.abs(meals[0].getBoundingClientRect().top -
+                                    meals[1].getBoundingClientRect().top) : 0,
+                                imageWidth: image ? image.getBoundingClientRect().width : 0,
+                                imageHeight: image ? image.getBoundingClientRect().height : 0,
+                                mealGap: Math.max(0, ...mealGaps),
+                                cardParts: [...days[0].querySelector('.menu-slot .card-body').children].map(e =>
+                                    ({tag: e.tagName, cls: e.className, height: e.getBoundingClientRect().height,
+                                      top: e.getBoundingClientRect().top})),
+                                dayParts: [...days[0].querySelectorAll('.card-header, .card-body, .admin-week-meal-head, .admin-week-service, .admin-week-course, .admin-week-course-editor')].filter(e => !e.closest('form')).map(e =>
+                                    ({cls: e.className, height: e.getBoundingClientRect().height, top: e.getBoundingClientRect().top}))};
+                        }''')
+                        metrics.update(family=family, javascript=javascript)
+                        measurements.append(metrics)
+                        page.screenshot(path=str(tmp_path / f'{family}-{width}-{javascript}.png'), full_page=True)
+                        page.screenshot(path=str(tmp_path / f'{family}-{width}-{javascript}-viewport.png'))
+                        assert metrics['documentWidth'] <= width + 1, metrics
+                        expect(page.locator('.admin-statusbar')).to_be_visible()
+                        expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+                        if family == 'cafeteria':
+                            expect(page.locator('.admin-day-card').first).to_contain_text('Suppe: Gemüsesuppe')
+                            expect(page.locator('.admin-day-card').first).to_contain_text('Dessert: Fruchtsalat')
+                            expect(page.locator('.admin-day-card').first).to_contain_text('Allergenangaben fehlen')
+                        service = page.locator('.admin-week-service > summary').first
+                        service.focus()
+                        page.keyboard.press('Enter')
+                        expect(page.locator('.admin-week-service[open]').first).to_be_visible()
+                        page.keyboard.press('Tab')
+                        expect(page.locator('.admin-week-service select').first).to_be_focused()
+                        assert page.locator(':focus').evaluate('e => parseFloat(getComputedStyle(e).outlineWidth)') >= 2
+    (tmp_path / 'measurements.json').write_text(json.dumps(measurements, indent=2))
+    print('WP21_METRICS=' + json.dumps(measurements))
+    desktop = [row for row in measurements if row['width'] == 1440]
+    for row in desktop:
+        assert row['dayHeight'] <= (260 if family == 'cafeteria' else 300), row
+        assert row['mealOffset'] <= 8, row
+        assert row['mealGap'] <= 160, row
+        assert max(row['imageWidth'], row['imageHeight']) <= 96, row
+        if family == 'cafeteria':
+            assert row['visibleDays'] >= 2, row
 
 
 @pytest.mark.parametrize('family', ('cafeteria', 'patienten'))
@@ -35,6 +129,36 @@ def test_week_overviews_extend_tabler_base_and_load_assets(page_context: Page, f
     else:
         assert page.locator('article.patient-admin-day.card').count() == 7
     assert page.locator('[style], script:not([src])').count() == 0
+
+
+@pytest.mark.parametrize('family,profile,values', [
+    ('cafeteria', 'staff_guest', _staff_values), ('patienten', 'patient', _patient_values),
+])
+def test_wp21_nojs_publish_keeps_exact_payload(admin_app, admin_engine, live_server, browser, family, profile, values):  # noqa: F811
+    _save_reviewed(admin_app.extensions['cafeteria_db'], profile, values())
+    client, _ = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    cookie = client.get_cookie('session')
+    # This module's existing sync_playwright fixture is already active in the full suite.
+    with browser.new_context(base_url=live_server, java_script_enabled=False,
+                             viewport={'width': 360, 'height': 800}) as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': live_server}])
+        page = context.new_page()
+        page.goto(f'/admin/{family}?week={DAY}')
+        form = page.locator('#week-publish-form')
+        before = dict(form.locator('input[name]').evaluate_all('els => els.map(e => [e.name, e.value])'))
+        summary = page.locator('.admin-week-nojs-publish > summary')
+        summary.focus()
+        page.keyboard.press('Enter')
+        page.keyboard.press('Tab')
+        expect(page.locator('.admin-week-nojs-publish button')).to_be_focused()
+        with page.expect_response(lambda response: response.request.method == 'POST') as published:
+            page.keyboard.press('Enter')
+        assert published.value.status == 303
+        assert parse_qs(published.value.request.post_data, keep_blank_values=True) == {
+            key: [value] for key, value in before.items()
+        }
+        assert set(before) == {'_csrf', 'week', 'row_version'}
+        expect(page.locator('main')).to_have_attribute('data-status', 'live')
 
 
 @pytest.mark.parametrize('family', ('cafeteria', 'patienten'))

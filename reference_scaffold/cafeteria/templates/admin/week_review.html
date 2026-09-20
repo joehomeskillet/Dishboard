@@ -6,7 +6,12 @@
 {% block main_attributes %}data-week="{{ week }}"{% endblock %}
 {% block page_header %}
 <div class="text-break">
-{% call page_header('Wochenkopf und Ausgabeangaben prüfen', area_names[profile] ~ ' · Woche ab ' ~ week[8:10] ~ '.' ~ week[5:7] ~ '.' ~ week[:4]) %}
+{% call page_header('Wochenangaben prüfen', 'Gespeicherten Wochenkopf und Ausgabeangaben bestätigen.', status_items=[
+  {'label': 'Bereich', 'value': area_names[profile]},
+  {'label': 'Woche ab', 'value': week[8:10] ~ '.' ~ week[5:7] ~ '.' ~ week[:4]},
+  {'label': 'Prüfstatus', 'value': 'Geprüft' if review.receipt else 'Noch zu prüfen', 'variant': 'success' if review.receipt else 'warning'}
+]) %}
+  {% if not review.receipt and can_write %}<button class="btn btn-primary text-wrap" type="submit" form="week-review-form">{{ icon('check') }}Wochenkopf und alle Ausgabehinweise als geprüft bestätigen</button>{% endif %}
   <a class="btn" href="{{ url_for('admin.' ~ family, week=week) }}">{{ icon('arrow-left') }}Zur Wochenübersicht</a>
 {% endcall %}
 </div>
@@ -54,11 +59,10 @@
 {{ empty_state('none', 'Noch keine Ausgabeangaben gespeichert.', 'Später ergänzte Ausgabeangaben müssen erneut geprüft werden.') }}
 {% endif %}
 {% if not review.receipt and can_write %}
-<form method="post" action="{{ url_for('admin.week_review_post', family=family) }}" class="mb-3">
+<form id="week-review-form" method="post" action="{{ url_for('admin.week_review_post', family=family) }}" class="mb-3">
   <input type="hidden" name="_csrf" value="{{ csrf }}">
   <input type="hidden" name="week" value="{{ week }}">
   <input type="hidden" name="context_version" value="{{ review.token }}">
-  <button class="btn btn-primary text-wrap" type="submit">{{ icon('check') }}Wochenkopf und alle Ausgabehinweise als geprüft bestätigen</button>
 </form>
 {% elif not review.receipt %}
 <p role="status">Die Wochenprüfung ist offen. Zum Bestätigen benötigen Sie Bearbeitungsrechte.</p>

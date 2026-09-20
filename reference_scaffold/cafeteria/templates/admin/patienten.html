@@ -30,9 +30,11 @@
 {% block main_attributes %}data-family="{{ family }}" data-week="{{ week_value }}" data-status="{{ status }}"{% endblock %}
 {% block page_styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin-week-tabler.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin-wochenplan-kern.css') }}">
 {% endblock %}
 {% block page_header %}
-{{ page_header('Patientenplan', week_header_description, breadcrumbs=[{'label': 'Wochenpläne', 'url': url_for('admin.patienten')}]) }}
+{% from 'admin/_week_controls.html' import overview_header with context %}
+{{ overview_header('Patienten', 'Mittag und Abend für alle sieben Tage planen.') }}
 {% endblock %}
 {% block content %}
 {% set declarations = namespace(options=[]) %}
@@ -79,13 +81,9 @@
           {% with kind='soup' %}{% include 'admin/_course_line.html' %}{% endwith %}
           {% with kind='dessert' %}{% include 'admin/_course_line.html' %}{% endwith %}
         </div>
-        {% endwith %}
-      </div>
-      {% with meal_code='LUNCH', meal_label='Mittag', meal_cell=lunch, day_iso=day_iso, service_index=service_index %}
-      {% set shared = lunch.shared_courses|default({}) %}
-      {% set exceptions = lunch.meal_exceptions|default({}) %}
       {% include 'admin/_course_editor.html' %}
       {% endwith %}
+      </div>
       <div class="patient-admin-meal">
         {% with meal_code='DINNER', meal_label='Abend', meal_cell=dinner, day_iso=day_iso, service_index=service_index %}
         {% set shared = dinner.shared_courses|default({}) %}
@@ -103,13 +101,9 @@
           {% with kind='soup' %}{% include 'admin/_course_line.html' %}{% endwith %}
           {% with kind='dessert' %}{% include 'admin/_course_line.html' %}{% endwith %}
         </div>
-        {% endwith %}
-      </div>
-      {% with meal_code='DINNER', meal_label='Abend', meal_cell=dinner, day_iso=day_iso, service_index=service_index %}
-      {% set shared = dinner.shared_courses|default({}) %}
-      {% set exceptions = dinner.meal_exceptions|default({}) %}
       {% include 'admin/_course_editor.html' %}
       {% endwith %}
+      </div>
     </div>
   </article>
   {% endfor %}

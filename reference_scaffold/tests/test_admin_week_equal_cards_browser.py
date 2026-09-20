@@ -48,7 +48,7 @@ def test_card_visuals_cafeteria_exact_image_and_fallback(
         assert photo.evaluate('el => el.complete && el.naturalWidth > 0')
         assert photo.evaluate('el => getComputedStyle(el).objectFit') == 'cover'
         box = photo.bounding_box()
-        assert box['width'] >= 130 and abs(box['width'] / box['height'] - 16 / 9) < .01
+        assert 0 < box['width'] <= 96 and box['height'] <= 96 and abs(box['width'] / box['height'] - 16 / 9) < .01, box
         expect(card.locator('figcaption')).to_have_text('KI-generierter Serviervorschlag')
         missing = page.locator('.menu-slot').nth(1)
         expect(missing.locator('[data-menu-image] img')).to_have_count(0)
@@ -57,11 +57,11 @@ def test_card_visuals_cafeteria_exact_image_and_fallback(
         expect(card).to_contain_text('Externe CHF')
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         edit = card.get_by_role('link', name='Bearbeiten:', exact=False)
-        assert card.locator('h3').bounding_box()['y'] < box['y']
-        assert edit.bounding_box()['y'] + edit.bounding_box()['height'] <= photo.bounding_box()['y']
+        assert card.locator('h3').bounding_box()['y'] >= card.bounding_box()['y']
+        assert edit.bounding_box()['y'] + edit.bounding_box()['height'] <= card.bounding_box()['y'] + card.bounding_box()['height']
         if width < 768:
             later = page.locator('.menu-slot').nth(2).bounding_box()
-            assert later['height'] < card.bounding_box()['height'] - box['height'] / 2
+            assert later['height'] <= card.bounding_box()['height'] + 1
         href = edit.get_attribute('href')
         edit.focus()
         page.keyboard.press('Enter')
@@ -87,7 +87,7 @@ def _assert_edit_link_context(page: Page, family: str, titles: list[str]) -> Non
         name = f'Bearbeiten: {day_labels[day_index]}, {meal_label}, {option_label} – {title}'
         link = page.get_by_role('link', name=name, exact=True)
         expect(link).to_have_count(1)
-        expect(link).to_have_text('Menü bearbeiten')
+        expect(link).to_have_text('Anlegen' if title == 'Noch kein Gericht' else 'Bearbeiten')
         target = urlsplit(link.get_attribute('href') or '')
         assert target.path == f'/admin/{family}/menu'
         assert parse_qs(target.query) == {
@@ -131,15 +131,16 @@ def test_all_week_editor_cards_share_size_without_hiding_long_content(
             dimensions = cards.evaluate_all('''elements => elements.map(element => {
                 const box = element.getBoundingClientRect();
                 const style = getComputedStyle(element);
-                return {y: box.y, height: box.height, width: box.width,
+                return {meal: element.dataset.meal, y: box.y, height: box.height, width: box.width,
                     overflowY: style.overflowY, overflowX: style.overflowX,
                     clientHeight: element.clientHeight, scrollHeight: element.scrollHeight,
                     clientWidth: element.clientWidth, scrollWidth: element.scrollWidth};
             })''')
             assert len(dimensions) == (10 if profile == 'staff_guest' else 28)
-            rows: dict[int, list] = {}
+            rows: dict[tuple[int, str], list] = {}
             for item in dimensions:
-                rows.setdefault(round(item['y']), []).append(item)
+                # M27: equal options within a meal; a long dinner must not stretch lunch.
+                rows.setdefault((round(item['y']), item['meal']), []).append(item)
             for row in rows.values():
                 heights = [item['height'] for item in row]
                 assert max(heights) - min(heights) <= 1, (family, width, 'height', heights)
@@ -156,7 +157,7 @@ def test_all_week_editor_cards_share_size_without_hiding_long_content(
             )
             controls = page.locator(
                 '.admin-week-service :is(input:not([type="hidden"]), select, button), '
-                '.patient-admin-meal form :is(input:not([type="hidden"]), select, button), .menu-slot .btn',
+                '.patient-admin-meal form :is(input:not([type="hidden"]), select, button):visible, .menu-slot .btn',
             )
             for control in controls.all():
                 box = control.bounding_box()

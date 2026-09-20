@@ -1458,6 +1458,35 @@ Operativer Arbeitsplatz für einen einzelnen Tag; Zielmodell SDD v2 §6.
 
 **Responsive:** Meal-Gruppen untereinander; Add-Karten und Primäraktionen bleiben tastaturbedienbar.
 
+##### Modul Wochenplan-Kern: Cafeteria-Woche, Patienten-Raster, gemeinsame Wochen-Partials (2026-09-20)
+
+M10/M11 und die frühere Bildgrössenregel in M11b sind für die operative Wochenansicht
+ersetzt am 2026-09-20 durch M26/M27: kompakte Tagesgruppen, Menü-Thumbnails mit maximal
+96 px Kantenlänge, festem Seitenverhältnis und Lazy Loading. Mittag und Abend stehen
+auf breiten Arbeitsflächen nebeneinander; Gang-Editoren gehören zur jeweiligen Mahlzeit.
+Lange Inhalte dürfen wachsen, Warntexte und beide Cafeteriapreise bleiben lesbar.
+
+Die gemeinsame Wochensteuerung verwendet `page_header(..., status_items=...)`:
+KW/Zeitraum, tatsächlicher Wochenstatus, Kartenprüfungen, fehlende/offene
+Allergenangaben und vorhandene Gangprobleme. Keine technischen Revisionen oder IDs.
+Gangprobleme behalten das Ziel `#course-issues`; das derzeitige gemeinsame Makro
+unterstützt keine Linkwerte, daher steht die native Warnaktion in der Werkzeugleiste.
+Die wichtigste Wochenaktion steht im Kopf; Vorschau und Wochenprüfung bleiben
+sekundär, seltene Aktionen im nativen «Weitere Aktionen»-Bereich.
+
+Alle Formularnamen, Werte, CSRF-/CAS-Felder und Gang-Partials bleiben unverändert.
+Die gesperrten Gang-Partials liefern eigene Primärbuttons innerhalb eingeklappter
+Formulare; deren Umstellung auf neutrale Buttons benötigt den Integrationsowner.
+Keine Suche, Filter, Tageskopie oder Schnellerfassung aus dem Mockup hinzuerfinden.
+
+Die Cafeteria ordnet gemeinsame Gänge neben den beiden Menüoptionen an; im
+Patientenraster stehen die Gänge unter der jeweiligen Mahlzeit. Alle Allergen-
+und Prüfhinweise bleiben als Text sichtbar. Gangprobleme lassen sich am nativen
+Ziel `#course-issues` aufklappen. Ohne JavaScript erlaubt eine native Bestätigung
+die Veröffentlichung über dasselbe Formular mit unveränderten CSRF-/CAS-Feldern.
+Kopieren zeigt Quelle und Ziel einmal in der Statusbar. Browser-Messungen prüfen
+360/768/1024/1440 px, Thumbnailgrösse, Tageshöhe, Mahlzeitenausrichtung und Tastatur.
+
 ## 9. Wiederverwendung statt Seitensonderlösungen
 
 Nutze vorhandene Strukturen. Fehlen gemeinsame Bausteine, lege sie in der passenden bestehenden Projektstruktur an. Geeignete Verträge sind:
