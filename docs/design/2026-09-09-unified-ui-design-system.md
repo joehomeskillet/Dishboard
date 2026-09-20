@@ -1372,7 +1372,7 @@ Die gemeinsame Wochensteuerung verwendet `page_header(..., status_items=...)`:
 KW/Zeitraum, tatsächlicher Wochenstatus, Kartenprüfungen, fehlende/offene
 Allergenangaben und vorhandene Gangprobleme. Keine technischen Revisionen oder IDs.
 Gangprobleme behalten das Ziel `#course-issues`; das derzeitige gemeinsame Makro
-unterstützt keine Linkwerte, daher steht der native Warnlink in der Werkzeugleiste.
+unterstützt keine Linkwerte, daher steht die native Warnaktion in der Werkzeugleiste.
 Die wichtigste Wochenaktion steht im Kopf; Vorschau und Wochenprüfung bleiben
 sekundär, seltene Aktionen im nativen «Weitere Aktionen»-Bereich.
 

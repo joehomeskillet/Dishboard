@@ -134,32 +134,31 @@ def test_week_overviews_extend_tabler_base_and_load_assets(page_context: Page, f
 @pytest.mark.parametrize('family,profile,values', [
     ('cafeteria', 'staff_guest', _staff_values), ('patienten', 'patient', _patient_values),
 ])
-def test_wp21_nojs_publish_keeps_exact_payload(admin_app, admin_engine, live_server, family, profile, values):  # noqa: F811
+def test_wp21_nojs_publish_keeps_exact_payload(admin_app, admin_engine, live_server, browser, family, profile, values):  # noqa: F811
     _save_reviewed(admin_app.extensions['cafeteria_db'], profile, values())
     client, _ = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
     cookie = client.get_cookie('session')
-    with sync_playwright() as playwright:
-        with playwright.chromium.launch(headless=True) as own_browser:
-            with own_browser.new_context(base_url=live_server, java_script_enabled=False,
-                                         viewport={'width': 360, 'height': 800}) as context:
-                context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': live_server}])
-                page = context.new_page()
-                page.goto(f'/admin/{family}?week={DAY}')
-                form = page.locator('#week-publish-form')
-                before = dict(form.locator('input[name]').evaluate_all('els => els.map(e => [e.name, e.value])'))
-                summary = page.locator('.admin-week-nojs-publish > summary')
-                summary.focus()
-                page.keyboard.press('Enter')
-                page.keyboard.press('Tab')
-                expect(page.locator('.admin-week-nojs-publish button')).to_be_focused()
-                with page.expect_response(lambda response: response.request.method == 'POST') as published:
-                    page.keyboard.press('Enter')
-                assert published.value.status == 303
-                assert parse_qs(published.value.request.post_data, keep_blank_values=True) == {
-                    key: [value] for key, value in before.items()
-                }
-                assert set(before) == {'_csrf', 'week', 'row_version'}
-                expect(page.locator('main')).to_have_attribute('data-status', 'live')
+    # This module's existing sync_playwright fixture is already active in the full suite.
+    with browser.new_context(base_url=live_server, java_script_enabled=False,
+                             viewport={'width': 360, 'height': 800}) as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': live_server}])
+        page = context.new_page()
+        page.goto(f'/admin/{family}?week={DAY}')
+        form = page.locator('#week-publish-form')
+        before = dict(form.locator('input[name]').evaluate_all('els => els.map(e => [e.name, e.value])'))
+        summary = page.locator('.admin-week-nojs-publish > summary')
+        summary.focus()
+        page.keyboard.press('Enter')
+        page.keyboard.press('Tab')
+        expect(page.locator('.admin-week-nojs-publish button')).to_be_focused()
+        with page.expect_response(lambda response: response.request.method == 'POST') as published:
+            page.keyboard.press('Enter')
+        assert published.value.status == 303
+        assert parse_qs(published.value.request.post_data, keep_blank_values=True) == {
+            key: [value] for key, value in before.items()
+        }
+        assert set(before) == {'_csrf', 'week', 'row_version'}
+        expect(page.locator('main')).to_have_attribute('data-status', 'live')
 
 
 @pytest.mark.parametrize('family', ('cafeteria', 'patienten'))
