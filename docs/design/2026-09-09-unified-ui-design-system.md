@@ -32,6 +32,79 @@ Gemäss Auftraggeber-Entscheid im Handoff (`docs/design/uiux-handoff-2026-09-20/
 * Verbindliche Token-Pflicht für alle Styles.
 * Signage und öffentliche Seiten sind nicht Teil dieser Umsetzungs-Welle.
 
+## Auftraggeber-Ergänzung 2026-09-20: Vereinfachung und kompakte Formulare
+
+Ergänzung zu den Auftraggeber-Prompts «Kompakte Formulare» und «Globale UI-Vereinfachung» (`docs/design/uiux-handoff-2026-09-20/07_ERGAENZUNGEN/`). Beispielbilder sind Denkweise und Komposition, keine Datenquelle und kein Funktionsumfang.
+
+### Grundprinzip
+
+> «Zeige nur, was im aktuellen Kontext gebraucht wird.»
+
+Komplexität darf im Datenmodell und Backend existieren; sie darf nicht ungefiltert und dauerhaft im UI landen. Funktionalität, Validierung und Speichersemantik bleiben unverändert.
+
+### Entscheidungsregel
+
+Wenn zwei Varianten fachlich gleichwertig sind, verwende diejenige, die:
+
+1. weniger Erklärung benötigt,
+2. weniger permanente UI-Elemente zeigt,
+3. weniger Klicks im häufigsten Workflow benötigt,
+4. weniger Platz verbraucht,
+5. bereits an anderer Stelle als gemeinsames Pattern eingesetzt werden kann.
+
+### Informationshierarchie
+
+Priorität absteigend:
+
+1. aktuelle Aufgabe,
+2. für die Entscheidung notwendige Informationen,
+3. Status und Warnungen,
+4. Primäraktion,
+5. optionale Details,
+6. technische und administrative Informationen.
+
+Stufen 5 und 6 standardmässig einklappen oder zurückhaltend darstellen, sofern sie nicht unmittelbar benötigt werden.
+
+### Platzverbrauch
+
+Vertikalen Platz als knappe Ressource behandeln. «Kompakt ist nicht gequetscht»: Mindesthöhen der Bedienelemente (**48 px**), sichtbarer Fokus, Lesbarkeit und 200-%-Zoom bleiben verbindlich. Keine riesigen Karten für wenige Informationen, keine dauerhaft sichtbaren Detailfelder für nicht ausgewählte Optionen, keine künstlich gestreckten Einzelfelder über die volle Breite ohne Grund.
+
+### Prüffragen je Seite
+
+Vor jeder Vereinfachung kurz prüfen:
+
+- Kann Feld, Text, Button, Status oder Abschnitt entfallen?
+- Kann etwas erst bei Bedarf eingeblendet werden?
+- Werden dieselben Informationen mehrfach gezeigt?
+- Sind Formulare unnötig lang oder breit?
+- Gibt es dauerhaft sichtbare Detailfelder für nicht ausgewählte Optionen?
+- Sind Aktionen über mehrere Stellen verteilt?
+- Gibt es zu viele gleichwertig wirkende Buttons?
+- Kann ein sinnvoller Standard einen Arbeitsschritt einsparen?
+- Lassen sich Listen, Filter und Aktionen kompakter darstellen?
+- Ist Tabelle statt vieler grosser Karten sinnvoller – oder umgekehrt?
+- Sind Überschriften, Hilfetexte oder technische Angaben für den Normalfall nötig?
+- Werden interne IDs, Revisionen oder technische Zustände unnötig prominent gezeigt?
+- Gibt es grosse Leerflächen oder gestreckte Eingabefelder?
+- Ist sofort erkennbar: Wo bin ich? Was ist der Zustand? Was ist die nächste Handlung?
+- Ist die gleiche Funktion in anderen Modulen anders aufgebaut?
+
+### Vorgehen
+
+Phase 1 — UI-Audit → Phase 2 — gemeinsame Komponenten → Phase 3 — Module → Phase 4 — Detailseiten und Sonderzustände → Phase 5 — Regression. Keine vorhandene Fachfunktion entfernen; Backend-Verträge, Datenmodell, Validierung und Berechtigungen erhalten.
+
+### Beispielbilder: übernommen / nicht übernommen
+
+| Im Beispielbild | Entscheidung | Grund |
+|---|---|---|
+| Horizontale Modul-Tabs über der Liste und alle Module flach in der Sidebar | nicht übernehmen | SDD «nicht verhandelbar»: keine horizontale Modul-Untermenüleiste; Unterpunkte nur eingerückt in der Sidebar bei aktivem Oberpunkt |
+| Globale Suche mit Tastenkürzel, Benachrichtigungsglocke, Hilfe, Datumsnavigation in einer Kopfleiste | nicht Teil der Welle | neue Fachfunktionen; Handoff verlangt «keine neue Businesslogik» |
+| «Löschen» im Formularfuss | nur wo die Funktion heute existiert (sonst Archivieren/Reaktivieren) | keine neue Fachfunktion |
+| Schritt-Assistent, Timer/Bild je Zubereitungsschritt, Raster-Ansicht, Duplizieren | nur wo heute vorhanden | keine neue Fachfunktion |
+| «Alle als ‹nicht enthalten› setzen» und stiller Standardwert | nur mit unveränderter Speichersemantik | «Nicht ausgewählt» oder «ungeprüft» darf nie als «allergenfrei» gespeichert oder angezeigt werden; Prüfstatus wird durch die Oberfläche nicht verändert |
+| Beispielwerte (Gerichte, Daten, Lieferanten, Bestände) | keine Datenquelle | Mockup-Inhalte |
+| Eine Filterzeile, eine Zeile pro Datensatz, Status-Badges, Zeilenaktionen, Auswahl-Chips mit Detail nach Auswahl, «Weitere Optionen» eingeklappt, einheitlicher Formularfuss, 2–3 Spalten gross / 1 Spalte mobil | übernehmen | verbindliche Muster M21–M25 |
+
 ## 1. Dein Auftrag
 
 Migriere das bestehende Frontend auf das hier festgelegte Designsystem. Setze die Änderungen im Repository um; liefere nicht lediglich Vorschläge oder ein weiteres Konzept.
@@ -56,12 +129,12 @@ Versteckte Warnungen, verlorene Werte und eine breite Hülle mit weiterhin riesi
 |---|---|---|
 | R01 | Volle Arbeitsbreite | Hauptbereich rechts der Navigation vollständig nutzen; keine schmalen inneren Gesamtwrapper und kein `100vw` über die Sidebar hinweg. |
 | R02 | Inhalt statt Verwaltungswand | Nach kompaktem Kopf und notwendiger Orientierung kommt die eigentliche Arbeit. Keine lange Strecke aus Hinweisen, Einrichtung und doppelten Aktionen davor. |
-| R03 | Kompakte wiederholte Objekte | Eine Arbeitszeile pro Zutat, Schritt, Baustein oder Zuordnung. Zusatzfelder nur bei Bedarf; nicht eine hohe offene Card je Objekt. |
+| R03 | Kompakte wiederholte Objekte | Eine Arbeitszeile pro Zutat, Schritt, Baustein oder Zuordnung. Zusatzfelder nur bei Bedarf; nicht eine hohe offene Card je Objekt. *(präzisiert am 2026-09-20: siehe Auftraggeber-Ergänzung / Muster M21, M23)* |
 | R04 | Häufige Änderungen unmittelbar | Menge und Einheit direkt in der Zutatenübersicht ändern. Eine einfache Änderung darf keine zusätzliche Klickstrecke benötigen. |
 | R05 | Verständliche Symbole | Tabler-Icon plus kurzer sichtbarer Text für Navigation und Hauptaktionen. Gleiche Bedeutung überall gleich darstellen. |
-| R06 | Sichere Detailbereiche | Auf-/Zuklappen speichert und verwirft nichts. Neue oder fehlerhafte Einträge passend öffnen. Gefüllte Zusatzangaben im Kurztext erkennbar lassen. |
+| R06 | Sichere Detailbereiche | Auf-/Zuklappen speichert und verwirft nichts. Neue oder fehlerhafte Einträge passend öffnen. Gefüllte Zusatzangaben im Kurztext erkennbar lassen. *(präzisiert am 2026-09-20: siehe Auftraggeber-Ergänzung / Muster M21, M25)* |
 | R07 | Wahrheitsgetreue Zustände | Gespeichert, geprüft und veröffentlicht unterscheiden. Fehlende Angaben nicht durch einen allgemeinen grünen Haken verdecken. *(Ersetzt am 2026-09-20 durch: Statusbar als globales Designsystem (3–5 Slots) zentral unter dem Titel. Warnungen immer mit Text, Farbe nie alleiniger Träger. Keine erfundenen Daten.)* |
-| R08 | Erreichbare Aktionen | Eine hervorgehobene Speicherhandlung je Formular, erreichbar ohne Scrollreise. Seltene Aktionen in einem beschrifteten Menü. *(Ersetzt am 2026-09-20 durch: Primäraktion standardmässig oben rechts im Seitenkopf. Bei langen Editoren ist eine kompakte sticky Aktionsleiste das zulässige Mittel.)* |
+| R08 | Erreichbare Aktionen | Eine hervorgehobene Speicherhandlung je Formular, erreichbar ohne Scrollreise. Seltene Aktionen in einem beschrifteten Menü. *(Ersetzt am 2026-09-20 durch: Primäraktion standardmässig oben rechts im Seitenkopf. Bei langen Editoren ist eine kompakte sticky Aktionsleiste das zulässige Mittel.)* *(präzisiert am 2026-09-20: siehe Auftraggeber-Ergänzung / Muster M24)* |
 | R09 | Ruhige Gestaltung | Bestehende Farben, Schriften und Tokens behalten. Weniger verschachtelte Rahmen, klare Kanten, keine Schmuckkarten oder dekorativen Kennzahlen. |
 | R10 | Vollständiger Nachweis | Jede Seite prüfen. Ein Screenshot, HTTP 200, erfolgreicher Build oder Breitenwert ersetzt weder Interaktion noch Gesamtaudit. |
 
@@ -979,6 +1052,110 @@ Drei alternative Zustände desselben Listenmusters; nicht gleichzeitig auf der S
 
 **Übertragung:** Dieses Muster gilt für Menüs, Rezepte, Kochbücher, Vorlagen, Medien und Benutzerlisten genauso. Die fachliche Benennung und erlaubte Anlagehandlung anpassen; keine Funktionsattrappen hinzufügen.
 
+#### M21 — Auswahl mit Detail nach Auswahl
+
+Generisches Muster für wiederholte Optionen mit optionalem Detail; Beispiel Allergene. Desktop mit 2–4 Spalten, mobil eine Spalte.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| ALLERGENE                                                                                                |
+| Eingabe: ( ) Manuell  ( ) Automatisch                                                                    |
++----------------------------------------------------------------------------------------------------------+
+| [v] Gluten          [ ] Krebstiere        [v] Eier            [ ] Fisch                                  |
+| [ ] Erdnuesse       [v] Milch             [ ] Schalenfruechte  [ ] Sellerie                              |
+| [ ] Senf            [ ] Sesam             [ ] Sulfite          [ ] Lupinen                                |
+| [ ] Soja            [ ] Weichtiere                                                                       |
+| 3 von 14 ausgewaehlt                                                                                     |
++----------------------------------------------------------------------------------------------------------+
+| Details (optional)  [v]  Nur fuer ausgewaehlte Allergene                                                 |
+|   Gluten    Praesenz [Enthaelt      v]                                                                   |
+|   Eier      Praesenz [Enthaelt      v]                                                                   |
+|   Milch     Praesenz [Enthaelt      v]                                                                   |
+| [!] Nicht ausgewaehlt bedeutet nicht: allergenfrei bestaetigt.                                           |
++----------------------------------------------------------------------------------------------------------+
+|                                                      [Abbrechen]  [S] Speichern                          |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Auswahl als echte Formularelemente (Checkbox, Select o.ä.) mit Icon und Text. Ausgewählt = Rahmen + Haken + Text, nie nur Farbe. Detailfeld erscheint nur für ausgewählte Optionen; Zähler «n ausgewählt». Ohne JavaScript dürfen Detailfelder sichtbar bleiben; Bedienung muss möglich sein. Keine lange zweispaltige Wiederholungsliste mit dauerhaft sichtbarem Detail je Zeile.
+
+**Sicherheitsregel:** Feldnamen, gesendete Werte, Standardwerte und Prüfstatus bleiben unverändert; «nicht ausgewählt» oder «ungeprüft» wird nie als «allergenfrei» gespeichert oder dargestellt; eine Sammelaktion wie «alle als nicht enthalten setzen» nur, wenn der Wert im Datenmodell heute existiert, und sie verändert den Prüfstatus nicht.
+
+**Responsive:** 2–4 Spalten ab Tablet/Desktop; eine Spalte auf schmalen Displays. Chips umbrechen statt horizontal scrollen.
+
+#### M22 — Eine Filterzeile
+
+Gemeinsame Filterleiste für alle Listenmodule; dieselbe Reihenfolge überall.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| MENUES                                                                               [+] Menue anlegen     |
++----------------------------------------------------------------------------------------------------------+
+| Suche [                                    ]  Kategorie [Alle v]  Status [Alle v]  [Weitere Filter v]  |
+|                                                                                    [Filter zuruecksetzen] |
++----------------------------------------------------------------------------------------------------------+
+| 8 von 8 Menues                                                                                           |
+| Name / Unterzeile              Kategorie    Status        Kennzeichnungen              Aktion            |
+| Apfelmus / Mittag 12.09.       Dessert      Aktiv         [GF] [V]                     [E] Bearbeiten   |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Suche zuerst. Höchstens 2–3 häufige Filter sichtbar; weitere unter «Weitere Filter». «Filter zurücksetzen» nur bei aktivem Filter. Gleiche Reihenfolge in Menüs, Bausteinen, Zutaten, Rezepten und allen übrigen Modulen.
+
+**Responsive:** Filterzeile umbrechen; Suche bleibt erkennbar an erster Position. Keine zweite parallele Filterleiste.
+
+#### M23 — Eine Zeile pro Datensatz
+
+Kompakte Listenzeile mit klarer Hierarchie und einer sichtbaren Zeilenaktion.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| Kartoffelstock / Beilage, in 2 Menues verwendet    [Aktiv]  [GF] [V] [+2]           [E] Bearbeiten [...] |
+| Apfelmus / Mittag 12.09., Cafeteria                [Entwurf] [GF] [V]               [E] Bearbeiten [...] |
++----------------------------------------------------------------------------------------------------------+
+| [...] Weitere Aktionen  ->  Duplizieren (nur wenn vorhanden) | Archivieren | ...                       |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Name plus einzeilige Unterzeile. Status als Badge. Kennzeichnungs-Icons mit Text oder `aria-label`. Genau eine sichtbare Zeilenaktion («Bearbeiten» oder «Ansehen») plus beschriftetes «Weitere Aktionen»-Menü für seltene Aktionen. Überlauf bei Kennzeichnungen als «+n», nicht als Badge-Wolke.
+
+**Responsive:** Zeile darf bei Bedarf wachsen; Aktionen bleiben erreichbar. Keine drei gleichwertigen Icon-Buttons ohne Beschriftung.
+
+#### M24 — Formularfuss
+
+Einheitliche Aktionsleiste am Ende jedes Formulars und Editors.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| ... Formularinhalt ...                                                                                   |
++----------------------------------------------------------------------------------------------------------+
+| [Loeschen]                                              [Abbrechen]  [S] Speichern                       |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Links destruktive oder seltene Aktion (nur wo vorhanden: Archivieren, Löschen). Rechts «Abbrechen» und genau eine Primäraktion «Speichern». Bei langen Editoren kompakte Sticky-Leiste gemäss R08; sie verdeckt weder Feld noch Fehler noch Fokus.
+
+**Responsive:** Sticky-Leiste darf bei mobiler Tastatur in den Dokumentfluss wechseln. Primäraktion bleibt beschriftet.
+
+#### M25 — Weitere Optionen
+
+Seltene oder technische Angaben in nativem `<details>`; Kurztext zeigt vorhandenen Inhalt.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| Name [Kartoffelstock                     ]  Kategorie [Beilage v]                                        |
+| [>] Weitere Optionen  —  Quelle erfasst, 1 technische Angabe                                           |
++----------------------------------------------------------------------------------------------------------+
+| [v] Weitere Optionen  —  Quelle erfasst, 1 technische Angabe                                           |
+|   Quelle [Manuell v]                                                                                     |
+|   Interne Notiz [Optional                                                                        ]       |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Natives `<details>`/`<summary>` verwenden. Öffnet sich automatisch bei Fehler oder gefülltem Inhalt (siehe R06). Kurztext im Summary zeigt, dass Inhalte vorhanden sind. Auf-/Zuklappen speichert und verwirft nichts.
+
+**Responsive:** Summary bleibt vollständig lesbar; Inhalt folgt dem gemeinsamen Formular-Grid.
+
 ## 9. Wiederverwendung statt Seitensonderlösungen
 
 Nutze vorhandene Strukturen. Fehlen gemeinsame Bausteine, lege sie in der passenden bestehenden Projektstruktur an. Geeignete Verträge sind:
@@ -1159,6 +1336,9 @@ Nutze die vorhandenen Testmittel. Neue reine Entwicklungsabhängigkeiten nur im 
 | A22 | Öffentliche Nebenwirkungen | Website, Login, Druck/PDF und Signage nicht durch Admin-Styles beschädigt oder mit Admininhalten vermischt. |
 | A23 | Vergleichbare Belege | Gleiche Daten/Viewports, echte Screenshots und nachvollziehbare Aufgabenmessung; Baselines nicht blind ersetzt. |
 | A24 | Zukunftsgate | Neue/geänderte UI-Routen und gemeinsame Komponenten sind mit passenden Inventar-, Funktions- und Browserprüfungen verbunden. |
+| A25 | Auswahl mit Detail nach Auswahl | Kein dauerhaft sichtbares Detailfeld bei nicht ausgewählter Option; Feldnamen, Werte, Standardwerte und Prüfstatus unverändert; «nicht ausgewählt» nie als «allergenfrei» (M21). |
+| A26 | Eine Primäraktion je Kontext | Pro Formular genau eine hervorgehobene Speicherhandlung; destruktive Aktionen links, seltene im «Weitere Aktionen»-Menü (M24, R08). |
+| A27 | Einheitliche Listenstruktur | Dieselbe Filterzeile und Zeilenaufbau in allen Modulen; Suche zuerst, «Filter zurücksetzen» nur bei Aktivität (M22, M23). |
 
 ### 12.2 Nutzertest mit mindestens drei tatsächlichen Personen
 
