@@ -245,7 +245,8 @@ def test_existing_inactive_course_recipe_binding_can_be_saved_unchanged(
         dessert_row_version=0,
     )
     before = load_week_courses(db.app, db.location_id, WEEK, 'staff_guest')
-    soup_version = int(before[(WEEK.isoformat(), 'LUNCH')]['shared']['soup']['row_version'])
+    saved_soup = before[(WEEK.isoformat(), 'LUNCH')]['shared']['soup']
+    soup_version = int(saved_soup['row_version'])
     with db.owner.begin() as connection:
         connection.execute(
             text('UPDATE cafeteria.recipes SET active=false WHERE public_id=:recipe'),
@@ -254,7 +255,10 @@ def test_existing_inactive_course_recipe_binding_can_be_saved_unchanged(
 
     persist_service_courses(
         db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
-        soup={'state': 'planned', 'recipe_public_id': soup['recipe_public_id']},
+        soup={
+            'state': 'planned', 'recipe_public_id': soup['recipe_public_id'],
+            'public_id': str(saved_soup['public_id']),
+        },
         dessert={'state': 'unplanned'},
         soup_row_version=soup_version,
         dessert_row_version=0,
