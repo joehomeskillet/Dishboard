@@ -208,13 +208,29 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
             assert control_box['y'] >= label_box['y'] + label_box['height'] - 1
             assert abs(control_box['x'] - label_box['x']) <= 1
         first_allergen = main.locator('.allergen-row').first
-        label_box = first_allergen.locator('label').first.bounding_box()  # reference form adds a label per presence select
-        select_box = first_allergen.locator('select').bounding_box()
+        # The presence select only exists for a chosen allergen: measure it in that state, then restore.
+        checkbox = first_allergen.locator('[name="allergen_code"]')
+        presence = first_allergen.locator('[name="allergen_presence"]')
+        unselected = first_allergen.get_by_text('Nicht ausgewählt', exact=True)
+        expect(checkbox).not_to_be_checked()
+        expect(presence).to_be_hidden()
+        expect(presence).to_be_disabled()
+        expect(unselected).to_be_visible()
+        checkbox.check()
+        expect(presence).to_be_visible()
+        expect(presence).to_be_enabled()
+        expect(unselected).to_be_hidden()
+        label_box = first_allergen.locator('label').first.bounding_box()
+        select_box = presence.bounding_box()
         assert label_box is not None and select_box is not None
         if width >= 1000:
             assert select_box['x'] >= label_box['x'] + label_box['width']
         else:
             assert select_box['y'] >= label_box['y'] + label_box['height']
+        checkbox.uncheck()
+        expect(presence).to_be_hidden()
+        expect(presence).to_be_disabled()
+        expect(unselected).to_be_visible()
 
     if page_kind == 'catalog' and shell == '.page':
         expect(primary).to_have_class(re.compile(r'\bcard-header\b'))
@@ -253,7 +269,7 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
     if family == 'patienten':
         assert not re.search(r'preis|chf|rappen|kosten|price', page.content(), re.IGNORECASE)
 
-    if collapsed or page_kind == 'catalog':
+    if collapsed or page_kind in {'catalog', 'detail'}:
         # Fresh load so sequential focus starts at the document: skip link, menu button, then navigation.
         page.goto(routes[page_kind])
     page.keyboard.press('Tab')
