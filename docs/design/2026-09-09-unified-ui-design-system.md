@@ -105,6 +105,67 @@ Phase 1 — UI-Audit → Phase 2 — gemeinsame Komponenten → Phase 3 — Modu
 | Beispielwerte (Gerichte, Daten, Lieferanten, Bestände) | keine Datenquelle | Mockup-Inhalte |
 | Eine Filterzeile, eine Zeile pro Datensatz, Status-Badges, Zeilenaktionen, Auswahl-Chips mit Detail nach Auswahl, «Weitere Optionen» eingeklappt, einheitlicher Formularfuss, 2–3 Spalten gross / 1 Spalte mobil | übernehmen | verbindliche Muster M21–M25 |
 
+## Auftraggeber-Design-System v2 (2026-09-20)
+
+Verbindliche Ergänzung aus `docs/design/design-system-v2-2026-09-20/` (SDD v2, Manifest v2, Update-Prompt, Review-Checkliste). **Vorrangregel:** Dieses Paket geht dem ersten Handoff (`docs/design/uiux-handoff-2026-09-20/`) vor. Referenzpriorität gemäss SDD v2 §19: akzeptierte Einstellungs-Screens definieren die Designsprache; generierte Mockups liefern Interaktionsprinzipien, keine pixelgenaue Vorlage; Ist-Screens belegen Fachlichkeit und Anti-Patterns. Bei Konflikt: Fachfunktion des Ist-Systems erhalten.
+
+**Leitsatz (Manifest v2):** «So wenig UI wie möglich, so viel Information wie nötig.» Jede Ansicht folgt der Seitenhierarchie **Kontext → Status → Aufgabe → Primäraktion → Details**.
+
+### Navigation
+
+Drei Hauptpunkte mit Kontext-Unterpunkten in der linken Sidebar (nur sichtbar beim aktiven Hauptpunkt; keine horizontale Doppel-Navigation):
+
+| Hauptpunkt | Unterpunkte |
+|---|---|
+| **Wochenplan** | Cafeteria · Patienten · Wochenübersicht · Küchenkalender |
+| **Menüs & Bausteine** | Menüs · Bausteine · Zutaten · Rezepte · Kochbücher · Gerichtvorlagen · Einkaufslisten · Bestellung · Lager · Kalkulation |
+| **Einstellungen** | Bereiche & Öffnungszeiten · Erscheinungsbild · Darstellung · Daten importieren · Schnittstellen · Benutzer & Zugriff |
+
+Editor-interne Tabs oder Stepper sind zulässig, wenn sie echte Bearbeitungsschritte darstellen und keine globale Navigation duplizieren. Der bisherige Unterpunkt «Wochenverwaltung» heisst neu **«Wochenübersicht»**; URL und Endpoint bleiben unverändert.
+
+### Statusleiste
+
+Eigene wiederverwendbare Komponente unter dem Seitenkopf. Nur entscheidungsrelevante Angaben (z. B. Prüfstand, offene Kartenprüfungen, fehlende Allergenangaben, Veröffentlichungsstatus, Zeitraum/KW). **Statuschips dürfen direkt filtern oder navigieren** — als Link mit sichtbarem Text, nicht nur als Farbindikator. Keine Dekoration ohne Informations- oder Aktionswert.
+
+### Bilder
+
+In operativen Planungs- und Listenansichten nur **kleine Thumbnails** mit festem Seitenverhältnis und Lazy Loading. Grosse Bilder nur in Vorschau oder Detail, wenn visuell relevant. Keine bildschirmfüllenden Food-Fotos in der Arbeitsplanung.
+
+### Verbotene Anti-Patterns (Manifest v2 §14)
+
+1. horizontale Subnavigation zusätzlich zur Sidebar;
+2. mehrere gleich starke Primärbuttons;
+3. permanent sichtbare Sonderoptionen;
+4. Status nur durch Farbe;
+5. technische IDs als Hauptinformation;
+6. grosse leere Karten;
+7. Fullscreen-Food-Fotos in operativen Planungslisten;
+8. unterschiedliche Filter-/Speicherlogik pro Modul;
+9. Icons ohne Text, wenn Bedeutung nicht offensichtlich;
+10. Hilfetexte, die dieselbe Information ständig wiederholen.
+
+### Definition of Done (Manifest v2 §15)
+
+Jede UI-Änderung ist konsistent mit bestehenden Komponenten, platzsparender als vorher, Keyboard- und Responsive-tauglich, Status und Aktionen eindeutig. Der **häufigste Workflow darf nicht länger** werden. Es existiert ein **Vorher/Nachher-Screenshot** für Review.
+
+### Reihenfolge der Umsetzung (Update-Prompt)
+
+1. Shell und kontextuelle Navigation
+2. Statusbar, Toolbar, Filter und Actions
+3. Wochenplan vollständig (Cafeteria, Patienten, Wochenübersicht, Küchenkalender, Tagesansicht)
+4. Menüeditor inkl. Allergene
+5. Menüs & Bausteine vollständig
+6. Einstellungen ohne Verschlechterung
+7. Responsive, A11y und Regression
+
+### Abweichungen und Präzisierungen gegenüber v2
+
+| Thema | Entscheidung |
+|---|---|
+| Touch-Ziele | **48 px** für zentrale Bedienelemente bleiben verbindlich (strenger als «ca. 44 px» in SDD v2 §13; erfüllt die v2-Vorgabe). |
+| Allergen-Detail | Inline-Detail direkt an der gewählten Option (M21): Formulare senden Allergen und Präsenz als indexgepaarte Wiederholfelder; das Detailfeld wird deaktiviert statt versteckt und bleibt im selben Container. |
+| Referenzbilder v2 | Die Ordner `accepted-settings/`, `current-modules/`, `current-weekplan/` und `generated-mockups/` fehlten in der Lieferung; bis zur Nachlieferung gilt für den Wochenplan der Text des SDD v2 §5–§6 als Zielmodell (M26–M30). |
+
 ## 1. Dein Auftrag
 
 Migriere das bestehende Frontend auf das hier festgelegte Designsystem. Setze die Änderungen im Repository um; liefere nicht lediglich Vorschläge oder ein weiteres Konzept.
@@ -1156,6 +1217,127 @@ Seltene oder technische Angaben in nativem `<details>`; Kurztext zeigt vorhanden
 
 **Responsive:** Summary bleibt vollständig lesbar; Inhalt folgt dem gemeinsamen Formular-Grid.
 
+#### M26 — Wochenplan Cafeteria — kompakte Wochenplanung
+
+Kompakte Wochenplanung statt riesiger Einzelkarten; Zielmodell SDD v2 §5.1.
+
+```text
++----------------------------------------------------------------------------------------------------------------------------+
+| WOCHENPLAN / Cafeteria                                                                                                     |
+| [<] Vorherige KW   [7.–11. September 2026 / KW 37]   [>] Naechste KW   [Heute]   [Filter]   [Suche........]  [+] Menue   |
+| [Pruefung offen]  [3 ohne Allergenangaben]  [Veroeffentlicht]                                                              |
++----------------------------------------------------------------------------------------------------------------------------+
+| MONTAG 7.9. — Geoeffnet                                                                                                    |
+| +------------------+  +------------------+  +------------------+  +------------------+                                       |
+| | Suppe            |  | Menue 1          |  | Vegetarisch      |  | Dessert          |                                       |
+| | [img] Tomatensuppe|  | [img] Pouletbrust|  | [img] Risotto    |  | [img] Apfelmus   |                                       |
+| | Kartoffel, Brot  |  | Kartoffelstock   |  | Gemuese          |  |                  |                                       |
+| | [Entwurf] [!] Allergene fehlen | [Entwurf] [!] Allergene fehlen | [+] Dessert planen |                                       |
+| | [E] Bearbeiten   |  | [E] Bearbeiten   |  | [E] Bearbeiten   |  |                  |                                       |
+| +------------------+  +------------------+  +------------------+  +------------------+                                       |
+| DIENSTAG bis FREITAG folgen mit demselben Tagesmuster.                                                                     |
++----------------------------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Toolbar mit Zeitraum/KW, Vor/Zurück, Heute, Filter, Suche und genau einer Primäraktion. Je Tag eine kompakte Gruppe mit den konfigurierten Slots (Suppe, Menü 1, Vegetarisch, Dessert …): Gerichtname, wichtigste Komponenten, Status-Badge, Allergenwarnung mit Text, kleines Thumbnail, «Bearbeiten». Nicht geplante Slots als kompakte Add-Aktion («+ Suppe planen»). Keine bildschirmfüllenden Food-Fotos. Versteckte Versions-/Konfliktfelder, CSRF, Prüf- und Veröffentlichungsstatus der Allergendeklaration, Rollenbedingungen und bestehende Formularziele bleiben unverändert; fehlende oder ungeprüfte Allergenangaben erscheinen nie als allergenfrei.
+
+**Responsive:** Bei unzureichender Spaltenbreite in chronologische Tagesabschnitte wechseln (siehe M10). Thumbnails und Badges bleiben lesbar; keine Schriftverkleinerung.
+
+#### M27 — Wochenplan Patienten — Raster
+
+Klare Rasterstruktur statt verstreuter Karten; Zielmodell SDD v2 §5.2.
+
+```text
++----------------------------------------------------------------------------------------------------------------------------+
+| WOCHENPLAN / Patienten                                                                                                     |
+| [<] Vorherige KW   [7.–13. September 2026 / KW 37]   [>] Naechste KW   [Heute]   [Filter]   [Suche........]              |
+| [Pruefung offen]  [5 ohne Allergenangaben]                                                                                 |
++----------------------------------------------------------------------------------------------------------------------------+
+| Tag          | MITTAG                                              | ABEND                                                |
+|--------------+-----------------------------------------------------+------------------------------------------------------|
+| Montag 7.9.  | Menue 1: Pouletgeschnetzeltes, Reis                 | Menue 1: Schinken-Kaese-Toast                        |
+|              | [!] Allergene fehlen  [E] Bearbeiten                | [!] Allergene fehlen  [E] Bearbeiten                 |
+|              | Vegetarisch: Gemuesegeschnetzeltes                  | [+] Dessert planen                                   |
+|              | [E] Bearbeiten                                      |                                                      |
+| Dienstag …   | (gleiches Raster)                                   |                                                      |
+| … Sonntag    | Alle 7 Tage x Mittag/Abend x vorhandene Menuearten  |                                                      |
++----------------------------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Zeile = Tag; Spaltengruppe = Mittag/Abend; darin kompakte Slots mit Gerichtname, Komponenten, Status-Badge, Allergenwarnung mit Text und «Bearbeiten». Nicht geplante Positionen als Add-Aktion («+ Suppe planen», «+ Dessert planen»), nicht als wiederholter Fliesstext. Tagesdetail bei Bedarf öffnen. Versteckte Versions-/Konfliktfelder, CSRF, Prüf- und Veröffentlichungsstatus der Allergendeklaration, Rollenbedingungen und bestehende Formularziele bleiben unverändert; fehlende oder ungeprüfte Allergenangaben erscheinen nie als allergenfrei.
+
+**Responsive:** Sieben Tage und beide Mahlzeiten bleiben erreichbar; bei schmalem Viewport Tagesgruppen untereinander statt unleserlichem Raster. Keine Preise.
+
+#### M28 — Wochenübersicht — Tabelle
+
+Kompakte Verwaltungsliste; Zielmodell SDD v2 §5.3.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| WOCHENPLAN / Wochenuebersicht                                                 [+] Neue Woche anlegen     |
++----------------------------------------------------------------------------------------------------------+
+| KW/Zeitraum              | Titel              | Bereich    | Status        | Offene Punkte | Aktionen   |
+| 7.–13. September / KW 37| Herbstwoche        | Cafeteria  | Veroeffentlicht| 2            | [O] Oeffnen [...] |
+| 31. Aug.–6. Sep. / KW 36| —                  | Patienten  | Zu pruefen    | 5            | [O] Oeffnen [...] |
++----------------------------------------------------------------------------------------------------------+
+| [...] Weitere Aktionen  ->  Kopieren | Vorschau | Archivieren (nur wenn vorhanden)                        |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Spalten KW/Zeitraum · Titel · Bereich · Status · offene Punkte · Aktionen. «Öffnen» ist die primäre Zeilenaktion; Kopieren, Vorschau und Archivieren im beschrifteten Overflow. Versteckte Versions-/Konfliktfelder, CSRF, Prüf- und Veröffentlichungsstatus der Allergendeklaration, Rollenbedingungen und bestehende Formularziele bleiben unverändert; fehlende oder ungeprüfte Allergenangaben erscheinen nie als allergenfrei.
+
+**Responsive:** Tabelle darf in priorisierte Listen wechseln; «Öffnen» bleibt sichtbar beschriftet.
+
+#### M29 — Küchenkalender — Monat
+
+Monatskalender zur Orientierung; Zielmodell SDD v2 §5.4.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| WOCHENPLAN / Kuechenkalender                                                                             |
+| [<] Vorheriger Monat   September 2026   [>] Naechster Monat   [Heute]   Filter: [Beide|Cafeteria|Patienten] |
++----------------------------------------------------------------------------------------------------------+
+| Mo    Di    Mi    Do    Fr    Sa    So                                                                   |
+|  7     8     9    10    11    12    13                                                                 |
+| Poulet Hack- Rind- Schwei- Zander  —     —                                                             |
+| [C]   [C]   [C]   [C]   [C]                                                                              |
+| Suppe Suppe Suppe Suppe Suppe                                                                            |
+| +2    +1                                                                                                 |
+| 14    15    ...                                                                                          |
+| (Heute: 9.9. dezent markiert, nicht dominant)                                                            |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Kurze Gerichtnamen, Bereichs-/Mahlzeit-Label, Filter «Beide | Cafeteria | Patienten». Bei Überfüllung «+ n weitere». Heute klar markieren, aber nicht dominant. Klick öffnet Tagesdetail. Versteckte Versions-/Konfliktfelder, CSRF, Prüf- und Veröffentlichungsstatus der Allergendeklaration, Rollenbedingungen und bestehende Formularziele bleiben unverändert; fehlende oder ungeprüfte Allergenangaben erscheinen nie als allergenfrei.
+
+**Responsive:** Kalenderzellen dürfen umbrechen; Filter und «Heute» bleiben erreichbar.
+
+#### M30 — Tagesansicht
+
+Operativer Arbeitsplatz für einen einzelnen Tag; Zielmodell SDD v2 §6.
+
+```text
++----------------------------------------------------------------------------------------------------------+
+| WOCHENPLAN / Tagesansicht                                                                                |
+| [<] Vorheriger Tag   Dienstag, 8. September 2026   [>] Naechster Tag   [Heute]   [...] Tag kopieren     |
++----------------------------------------------------------------------------------------------------------+
+| MITTAG                                                                                                   |
+| +---------------------------+  +---------------------------+  +---------------------------+              |
+| | [img] Menue 1             |  | [img] Vegetarisch         |  | [+] Suppe planen          |              |
+| | Pouletbrust an Kraeutersauce| | Gemuese-Curry, Reis       |  |                           |              |
+| | Kartoffelstock            |  | [Entwurf] [!] Allergene   |  |                           |              |
+| | [Entwurf] [!] Allergene   |  | [E] Bearbeiten  [...]     |  |                           |              |
+| | [E] Bearbeiten  [...]     |  |                           |  |                           |              |
+| +---------------------------+  +---------------------------+  +---------------------------+              |
+| ABEND                                                                                                    |
+| (gleiches Kartenmuster)                                                                                  |
++----------------------------------------------------------------------------------------------------------+
+```
+
+**Pflicht:** Datum mit Vor/Zurück und Heute; Gruppen Mittag/Abend. Karten mit kleinem Bild, Gerichtname, Typ, Komponenten, Allergene, Status, «Bearbeiten» und Overflow. Nicht geplante Slots als kompakte Add-Karten. Versteckte Versions-/Konfliktfelder, CSRF, Prüf- und Veröffentlichungsstatus der Allergendeklaration, Rollenbedingungen und bestehende Formularziele bleiben unverändert; fehlende oder ungeprüfte Allergenangaben erscheinen nie als allergenfrei.
+
+**Responsive:** Meal-Gruppen untereinander; Add-Karten und Primäraktionen bleiben tastaturbedienbar.
+
 ## 9. Wiederverwendung statt Seitensonderlösungen
 
 Nutze vorhandene Strukturen. Fehlen gemeinsame Bausteine, lege sie in der passenden bestehenden Projektstruktur an. Geeignete Verträge sind:
@@ -1339,6 +1521,10 @@ Nutze die vorhandenen Testmittel. Neue reine Entwicklungsabhängigkeiten nur im 
 | A25 | Auswahl mit Detail nach Auswahl | Kein dauerhaft sichtbares Detailfeld bei nicht ausgewählter Option; Feldnamen, Werte, Standardwerte und Prüfstatus unverändert; «nicht ausgewählt» nie als «allergenfrei» (M21). |
 | A26 | Eine Primäraktion je Kontext | Pro Formular genau eine hervorgehobene Speicherhandlung; destruktive Aktionen links, seltene im «Weitere Aktionen»-Menü (M24, R08). |
 | A27 | Einheitliche Listenstruktur | Dieselbe Filterzeile und Zeilenaufbau in allen Modulen; Suche zuerst, «Filter zurücksetzen» nur bei Aktivität (M22, M23). |
+| A28 | Wochenplan Desktop-Dichte | Wochenplan-Ansichten bei 1440 px ohne grosse Leerflächen und ohne bildschirmfüllende Food-Fotos (M26–M30, SDD v2 §5). |
+| A29 | Nicht geplante Slots | Leere Planungspositionen als kompakte Add-Aktion («+ Suppe planen»), nicht als Fliesstext oder grosse Leerkarten. |
+| A30 | Statuschips mit Handlung | Statuschips mit sichtbarem Text; optional als Link zum Filtern oder Navigieren, nicht nur als Farbindikator. |
+| A31 | Review-Checkliste v2 | `docs/design/design-system-v2-2026-09-20/06_QA/UI_REVIEW_CHECKLIST_V2.md` je UI-Paket vollständig abgehakt. |
 
 ### 12.2 Nutzertest mit mindestens drei tatsächlichen Personen
 
