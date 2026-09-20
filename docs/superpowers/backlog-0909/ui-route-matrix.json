@@ -10253,7 +10253,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "58c3d17595b2cce9ee2d4bd8790e6e66d343eb6a04ba8da4138ce24f9713020d",
+      "sha256": "6b3e39277c614cd1c25b06f6ebb32592baf390f749a70998bea4205412576389",
       "used_by_endpoints": [
         "admin.access_history",
         "admin.api_overview",
@@ -10497,7 +10497,7 @@
         "_brand_logo.html",
         "admin/_macros.html"
       ],
-      "sha256": "24e409efa26cf1a789fa15b61c41b74737f610839cb9138e47770fb62247dde9",
+      "sha256": "1fb7d4ae95646f2eefb59f9c75dac2f09fd8ba4a54e7451cf4d8f78f12efbd93",
       "used_by_endpoints": [
         "admin.access_history",
         "admin.api_overview",
