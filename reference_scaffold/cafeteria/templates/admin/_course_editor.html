@@ -1,4 +1,5 @@
 {# Atomic soup+dessert editor. Context: meal_cell, day_iso, meal_code, meal_label, family, week_value, week_csrf, recipe_page, shared, exceptions. #}
+{% from 'admin/_macros.html' import disclosure_section %}
 {% set recipe_choices = (recipe_page.choices if recipe_page is defined else []) %}
 {% set recipe_retained = (recipe_page.retained if recipe_page is defined else []) %}
 {% set form_id = 'course-' ~ day_iso ~ '-' ~ meal_code %}
@@ -25,7 +26,7 @@
               {% endif %}
 {% endmacro %}
 <details class="admin-week-course-editor" id="{{ form_id }}"{% if course_open %} open{% endif %}>
-  <summary>Gänge planen</summary>
+  <summary>{{ icon('chevron-right') }}Gänge planen</summary>
   {% include 'admin/_course_recipe_search.html' %}
   <form method="post" action="/admin/{{ family }}/courses" class="card card-sm mb-0">
     <div class="card-body">
@@ -37,8 +38,10 @@
       {% for kind, course, kind_label in (('soup', soup, 'Suppe'), ('dessert', dessert, 'Dessert')) %}
       <input type="hidden" name="{{ kind }}_public_id" value="{{ course.public_id|default('', true) }}">
       <input type="hidden" name="{{ kind }}_row_version" value="{{ course.row_version|default(0) }}">
-      <fieldset class="mb-3">
-        <legend class="form-label">{{ kind_label }}</legend>
+      <details class="admin-compact-details mb-2"{% if course.state == 'planned' or course.recipe_public_id|default('') or course_open %} open{% endif %}>
+      <summary>{{ icon('chevron-right') }}{{ kind_label }}{% if course.state == 'unplanned' %} planen{% else %} · Details{% endif %}</summary>
+      <fieldset class="mb-2">
+        <legend class="visually-hidden">{{ kind_label }}</legend>
         <div class="row g-2">
           <div class="col-12 col-md-4">
             <label class="form-label" for="{{ form_id }}-{{ kind }}-state">Status</label>
@@ -56,15 +59,18 @@
           </div>
         </div>
       </fieldset>
+      </details>
       {% endfor %}
-      <details class="mb-3">
-        <summary>Abweichungen je Menü</summary>
+      {% call disclosure_section(title='Weitere Optionen', id=form_id ~ '-exceptions', has_content=exceptions|length > 0, has_error=course_open) %}
+        <p class="form-label">Abweichungen je Menü</p>
         {% for option_code, option_label in (('MENU_1', 'Menü 1'), ('VEGGIE', 'Vegetarisch')) %}
           {% set option_exc = exceptions.get(option_code, {}) %}
           {% for kind, kind_label in (('soup', 'Suppe'), ('dessert', 'Dessert')) %}
             {% set override = option_exc.get(kind, {'state': 'inherit'}) %}
             <input type="hidden" name="{{ option_code }}_{{ kind }}_public_id" value="{{ override.public_id|default('', true) }}">
             <input type="hidden" name="{{ option_code }}_{{ kind }}_row_version" value="{{ override.row_version|default(0) }}">
+            <details class="admin-compact-details mb-2"{% if override.state in ('planned', 'not_offered') or override.recipe_public_id|default('') or course_open %} open{% endif %}>
+            <summary>{{ icon('chevron-right') }}{{ option_label }} · {{ kind_label }}</summary>
             <div class="row g-2 mb-2">
               <div class="col-12 col-md-4">
                 <label class="form-label" for="{{ form_id }}-{{ option_code }}-{{ kind }}-state">{{ option_label }} · {{ kind_label }}</label>
@@ -81,10 +87,13 @@
                 </select>
               </div>
             </div>
+            </details>
           {% endfor %}
         {% endfor %}
-      </details>
-      <button type="submit" class="btn btn-primary">{{ icon('device-floppy') }}Gänge speichern</button>
+      {% endcall %}
+      <div class="admin-form-footer"><div class="admin-form-main">
+        <button type="submit" class="btn btn-primary">{{ icon('device-floppy') }}Speichern</button>
+      </div></div>
     </div>
   </form>
 </details>

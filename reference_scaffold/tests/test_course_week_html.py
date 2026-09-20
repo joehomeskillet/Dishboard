@@ -157,3 +157,27 @@ def test_course_week_html_allergens_rendered(app) -> None:
         assert 'Suppe: Suppe' in html
         assert 'Milch' in html
         assert 'Vegan' in html
+
+
+@pytest.mark.parametrize('has_error,exceptions', [
+    (False, {}),
+    (True, {}),
+    (False, {'VEGGIE': {'soup': {'state': 'not_offered', 'public_id': 'saved', 'row_version': 3}}}),
+])
+def test_course_options_open_for_errors_or_existing_exceptions(app, has_error, exceptions) -> None:
+    from flask import render_template_string
+    with app.test_request_context():
+        html = render_template_string(
+            "{% from 'admin/_macros.html' import icon %}{% include 'admin/_course_editor.html' %}",
+            day_iso=DAY, meal_code='LUNCH', meal_label='Mittag', family='cafeteria',
+            week_value=DAY, week_csrf='test-token', shared={}, exceptions=exceptions,
+            week_form_kind='courses' if has_error else None,
+            week_form_values={'day': DAY, 'meal': 'LUNCH'},
+        )
+    assert (f'id="course-{DAY}-LUNCH-exceptions" open' in html) == (has_error or bool(exceptions))
+    assert 'Weitere Optionen' in html
+    if exceptions:
+        assert 'name="VEGGIE_soup_public_id" value="saved"' in html
+        assert 'name="VEGGIE_soup_row_version" value="3"' in html
+    assert 'name="soup_state"' in html
+    assert 'name="dessert_state"' in html
