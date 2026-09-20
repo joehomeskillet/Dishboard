@@ -1,0 +1,96 @@
+{# Keys describe presentation only; callers retain URLs, form fields and permissions. #}
+{% from 'admin/_macros.html' import icon, page_header, filter_bar %}
+{% from '_food_symbols.html' import symbol %}
+
+{% macro sem_icon(key) -%}
+  {%- set item = sem(key) -%}
+  {%- if item.resolved_icon.startswith('food:') -%}
+    {%- set parts = item.resolved_icon.split(':') -%}
+    {{- symbol(parts[1], parts[2], tabler=true) -}}
+  {%- else -%}{{ icon(item.resolved_icon) }}{%- endif -%}
+{%- endmacro %}
+
+{% macro icon_label(key) -%}
+  <span class="ui-sem-label" data-semantic="{{ key }}">{{ sem_icon(key) }}<span>{{ t(sem(key).label_key) }}</span></span>
+{%- endmacro %}
+
+{% macro icon_button(key, href=none, name=none, value=none, icon_only=false, type='submit', id=none, form=none, consequence_key=none) -%}
+  {{- require_icon_only(key, icon_only) -}}{{- require_consequence(key, consequence_key) -}}
+  {%- set item = sem(key) -%}
+  {%- set variant = 'btn-primary' if item.role == 'primary' else 'btn-danger' if item.role == 'danger' else '' -%}
+  <{{ 'a' if href is not none else 'button' }} class="btn ui-sem-control {{ variant }}" data-semantic="{{ key }}" title="{{ t(item.tooltip_key) }}"{% if icon_only %} aria-label="{{ t(item.aria_key) }}"{% endif %}{% if id %} id="{{ id }}"{% endif %}{% if href is not none %} href="{{ href }}"{% else %} type="{{ type }}"{% if name is not none %} name="{{ name }}"{% endif %}{% if value is not none %} value="{{ value }}"{% endif %}{% if form %} form="{{ form }}"{% endif %}{% endif %}>{{ sem_icon(key) }}{% if not icon_only %}<span>{{ t(item.label_key) }}</span>{% endif %}</{{ 'a' if href is not none else 'button' }}>
+  {% if consequence_key %}<p class="ui-sem-consequence">{{ t(sem(consequence_key).label_key) }}</p>{% endif %}
+{%- endmacro %}
+
+{% macro status_badge_sem(key) -%}
+  {%- set item = sem(key) -%}
+  {%- set color = {'success':'success', 'warning':'warning', 'danger':'danger'}.get(item.role, 'secondary') -%}
+  <span class="badge bg-{{ color }}-lt ui-sem-label" data-semantic="{{ key }}">{{ sem_icon(key) }}<span>{{ t(item.label_key) }}</span></span>
+{%- endmacro %}
+
+{% macro diet_icon(key) -%}{{ icon_label(key) }}{%- endmacro %}
+
+{% macro allergen_icon(key, presence=none, checked=false) -%}
+  {%- if key == 'allergen.none' or key == 'allergen.unknown' -%}
+    {{ icon_label('allergen.unknown') }}
+  {%- else -%}
+    {%- set message = 'allergen.contains' if checked and presence == 'contains' else 'allergen.may_contain' if checked and presence == 'may_contain' else 'allergen.unchecked' -%}
+    <span class="ui-sem-label" data-semantic="{{ key }}">{{ sem_icon(key) }}<span>{{ t(sem(message).label_key, name=t(sem(key).label_key)) }}</span></span>
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro symbol_row(diets=[], allergens=[], properties=[], status=[]) -%}
+  <div class="ui-sem-symbol-row">
+    <div data-symbol-group="diet">{% for key in diets %}{{ diet_icon(key) }}{% endfor %}</div>
+    <div data-symbol-group="allergens">
+      {% for item in allergens %}
+        {% if item is mapping %}{{ allergen_icon(item.key, item.presence|default(none), item.checked|default(false)) }}
+        {% else %}{{ allergen_icon(item) }}{% endif %}
+      {% else %}{{ icon_label('allergen.unknown') }}{% endfor %}
+    </div>
+    <div data-symbol-group="properties">{% for key in properties %}{{ icon_label(key) }}{% endfor %}</div>
+    <div data-symbol-group="status">{% for key in status %}{{ status_badge_sem(key) }}{% endfor %}</div>
+  </div>
+{%- endmacro %}
+
+{% macro action_menu(items) -%}
+  <details class="ui-sem-actions">
+    <summary class="ui-sem-control">{{ icon_label('actions.more') }}</summary>
+    <div class="ui-sem-action-items">
+      {% for item in items %}{{ icon_button(item.key, href=item.href|default(none), name=item.name|default(none), value=item.value|default(none), type=item.type|default('submit'), form=item.form|default(none), consequence_key=item.consequence_key|default(none)) }}{% endfor %}
+    </div>
+  </details>
+{%- endmacro %}
+
+{% macro empty_state_sem(key, description_key=none, action_key=none, href=none) -%}
+  <div class="empty" data-semantic="{{ key }}">
+    <div class="empty-icon">{{ sem_icon(key) }}</div>
+    <p class="empty-title">{{ t(sem(key).label_key) }}</p>
+    <p class="empty-subtitle text-secondary">{{ t(sem(description_key).label_key if description_key else sem(key).tooltip_key) }}</p>
+    {% if action_key %}<div class="empty-action">{{ icon_button(action_key, href=href) }}</div>{% endif %}
+  </div>
+{%- endmacro %}
+
+{% macro confirm_dialog(key, consequence_key, confirm_key, id='semantic-confirm', open=false, name=none, value=none, form=none) -%}
+  <dialog class="ui-sem-dialog" id="{{ id }}" aria-labelledby="{{ id }}-title" aria-describedby="{{ id }}-consequence"{% if open %} open{% endif %}>
+    <h2 id="{{ id }}-title">{{ icon_label(key) }}</h2>
+    <p id="{{ id }}-consequence">{{ t(sem(consequence_key).label_key) }}</p>
+    {{ icon_button(confirm_key, name=name, value=value, form=form, consequence_key=consequence_key) }}
+    {# Native close path: works without JavaScript and never submits the owning form. #}
+    <form method="dialog" class="ui-sem-dialog-cancel">{{ icon_button('actions.cancel', type='submit') }}</form>
+    {{ caller() if caller else '' }}
+  </dialog>
+{%- endmacro %}
+
+{% macro status_bar(title_key, items=[], description_key=none, actions=none) -%}
+  {% set translated = [] %}
+  {% for item in items %}
+    {% set ignored = translated.append({'label': t(sem(item.key).label_key), 'value': item.value, 'detail': t(sem(item.detail_key).label_key) if item.detail_key|default(none) else none, 'variant': item.variant|default('neutral')}) %}
+  {% endfor %}
+  {{ page_header(t(sem(title_key).label_key), description=t(sem(description_key).label_key) if description_key else none, actions=actions, status_items=translated) }}
+{%- endmacro %}
+
+{% macro filter_bar_sem(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters') -%}
+  {# Existing filter labels remain German until the owner migrates the shared macro. #}
+  {{ filter_bar(action, search_name=search_name, search_value=search_value, filters=filters, more_filters=more_filters, active=active, reset_url=reset_url, id=id) }}
+{%- endmacro %}

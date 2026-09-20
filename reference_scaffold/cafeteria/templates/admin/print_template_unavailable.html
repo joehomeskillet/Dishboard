@@ -1,19 +1,20 @@
 <!doctype html>
-{% from 'admin/_macros.html' import icon %}
-<html lang="de-CH">
+{% from 'ui/_semantic.html' import icon_label, icon_button %}
+<html lang="{{ ui_locale }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Druckvorlagen vorübergehend nicht verfügbar</title>
+  <title>{{ t('ui.print_unavailable.label') }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='admin-tabler.css') }}">
+  {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='ui-semantic.css') }}">{% endblock %}
 </head>
 <body class="admin-body dishboard-admin">
 <main class="container-fluid py-4">
-  <h1>Druckvorlagen vorübergehend nicht verfügbar</h1>
-  <div class="alert alert-warning" role="alert">{{ icon('alert-triangle') }}<span>Die Anfrage konnte nicht abgeschlossen werden. Bitte versuchen Sie es später erneut.</span></div>
-  <a class="btn" href="{{ url_for('admin.vorlagen') }}">{{ icon('arrow-left') }}Zur Vorlagenübersicht</a>
+  <h1>{{ t('ui.print_unavailable.label') }}</h1>
+  <div class="alert alert-warning" role="alert">{{ icon_label('ui.request_failed') }}</div>
+  {{ icon_button('ui.templates_back', href=url_for('admin.vorlagen')) }}
 </main>
 </body>
 </html>

@@ -8,12 +8,14 @@ from .config import Config
 from .db import init_app_database
 from .security import csrf_token
 from .template_filters import register_template_filters
+from .ui import register_ui
 
 
 def create_app() -> Flask:
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object(Config())
     register_template_filters(app)
+    register_ui(app)
 
     redis_url = app.config.get('SESSION_REDIS_URL')
     redis_client = None

@@ -166,6 +166,92 @@ Jede UI-Änderung ist konsistent mit bestehenden Komponenten, platzsparender als
 | Allergen-Detail | Inline-Detail direkt an der gewählten Option (M21): Formulare senden Allergen und Präsenz als indexgepaarte Wiederholfelder; das Detailfeld wird deaktiviert statt versteckt und bleibt im selben Container. |
 | Referenzbilder v2 | Die Ordner `accepted-settings/`, `current-modules/`, `current-weekplan/` und `generated-mockups/` fehlten in der Lieferung; bis zur Nachlieferung gilt für den Wochenplan der Text des SDD v2 §5–§6 als Zielmodell (M26–M30). |
 
+## Auftraggeber-Paket Semantic UI Language (2026-09-20)
+
+Verbindliche Quelle: `docs/design/semantic-ui-language-2026-09-20/`, einschliesslich
+`IMPORT_NOTES.md`. Dieses Paket präzisiert Icon-/Label-Regeln; Fachlichkeit,
+Berechtigungen, URLs, Datenverträge und die bestehenden M21–M30 bleiben erhalten.
+
+**Modell:** `semantic_key → icon → resolved_icon → label_key → tooltip_key → aria_key
+→ erlaubte Darstellung → Rolle`. Die Laufzeit-Registry enthält keine übersetzten
+sichtbaren Texte. Die 184 Seed-Semantiken bleiben erhalten; vollständige Nachrichten
+für zusätzliche Zustände werden zentral ergänzt, nicht in Templates erfunden.
+
+**Kanonische Verben:** Anlegen = neues Objekt; Hinzufügen = bestehendes Objekt
+zuordnen; Bearbeiten = ändern; **Öffnen ersetzt Ansehen** für reines Lesen;
+Speichern = persistieren; Bestätigen = Entscheidung bestätigen; Löschen = destruktiv
+entfernen; Archivieren = aufbewahren, aus aktiver Nutzung nehmen; Kopieren = Duplikat;
+Vorschau = Ausgabe prüfen. Gleiche Bedeutung verwendet denselben Schlüssel.
+
+**Darstellungsstufen:** Icon-only ausschliesslich bei expliziter Registry-Erlaubnis,
+immer mit übersetztem `title` und `aria-label`; sonst Icon + kurzes Label.
+Destruktive Aktionen benötigen Icon + explizites Label + Folgetext. Navigation bleibt
+Icon + Text. Status besitzt sichtbaren Text; Farbe ergänzt nur. Bedienziele mindestens
+48 × 48 px, sichtbarer Tastaturfokus, native Bedienbarkeit ohne JavaScript.
+
+**Symbolreihenfolge:** Kostform → Allergene → Eigenschaften → Prüf-/Status.
+Fehlende und ungeprüfte Allergendaten erhalten einen eigenen Texthinweis. Sie sind
+keine Bestätigung von Allergenfreiheit. Deklarierte Präsenz bleibt Teil der Anzeige.
+
+**Mehrsprachigkeit:** DE primär, EN zweite Seed-Locale. `UI_LOCALE` wählt nur
+vorhandene Locales; kein Sprachschalter und keine URL-/Cookie-Auswahl. `t(key, **params)`
+verwendet vollständige Message-Keys und benannte, escapte Parameter. Entwicklung/Test
+zeigt fehlende Übersetzungen als `⟦key⟧` mit Warnung; Produktion nutzt DE-Fallback und
+warnt einmal je Schlüssel. Test-Locale `xx` wird zur Laufzeit verlängert. Schlüssel,
+Locale-Symmetrie, Assets und Icon-only-Politik werden beim App-Start validiert.
+
+**Icon-Fallback:** Ziel-Icon bleibt dokumentiert; `resolved_icon` benennt das
+ausgelieferte Symbol. Fehlende Tabler-Icons erhalten ausschliesslich zentrale,
+bewusste Ersatzzuordnungen. Ein neutrales Ersatzsymbol erzwingt Text. Geprüfte eigene
+Food-SVGs haben bei Allergenen und vorhandenen Kostformen Vorrang. Sprite-Erweiterung
+ist ein separates Paket mit Herkunfts-/Lizenznachweis.
+
+**Makros** in `templates/ui/_semantic.html` (Schlüssel sind Registry-Keys):
+
+```jinja
+sem_icon(key)
+icon_label(key)
+icon_button(key, href=none, name=none, value=none, icon_only=false,
+            type='submit', id=none, form=none, consequence_key=none)
+status_badge_sem(key)
+symbol_row(diets=[], allergens=[], properties=[], status=[])
+diet_icon(key)
+allergen_icon(key, presence=none, checked=false)
+action_menu(items)
+empty_state_sem(key, description_key=none, action_key=none, href=none)
+confirm_dialog(key, consequence_key, confirm_key, id='semantic-confirm',
+               open=false, name=none, value=none, form=none)
+status_bar(title_key, items=[], description_key=none, actions=none)
+filter_bar_sem(action, search_name='q', search_value='', filters=none,
+               more_filters=none, active=false, reset_url=none, id='filters')
+```
+
+StatusBar delegiert an `page_header(status_items=…)`, FilterBar an `filter_bar`.
+Bestehende gemeinsame Makros werden nicht doppelt implementiert. Ihre noch festen
+deutschen Labels bleiben bis zur Migration durch ihren Eigentümer dokumentierter
+Nachzug. ConfirmDialog ist ein Markup-Baustein für vorhandene Bestätigungsflüsse,
+keine neue Bestätigungsseite, kein neues Submit-/CSRF-Verhalten.
+
+**Nachweise:** `test_ui_semantics.py` prüft Registry, reale Assets, Locales,
+Fehlerschlüssel, Fallback, Escaping, Pseudo-Länge und verbotene Icon-only-Aufrufe.
+`test_ui_semantic_macros_browser.py` prüft echte Browser mit eigenem Playwright-Start:
+DE/EN/xx bei 360/768/1024/1440 px, Namen, Tooltips, Fokus, native Tastaturbedienung,
+48-px-Ziele, Symbolreihenfolge und Reflow. `test_ui_hardcoded_strings_report.py`
+misst übrige Templates; ausschliesslich die migrierte Beweis-Seite hat Nulltoleranz.
+Zusätzlich gelten bestehende Shell-/Public-/Signage-/Factory-Gates.
+
+Abgleich gemäss `IMPORT_NOTES.md`:
+
+| Thema | Befund | Verbindliche Folge |
+|---|---|---|
+| Icon-Verfügbarkeit | 35 lokale Symbole; 118 von 143 Ziel-Icons fehlen | Zentrales Mapping; Sprite separat erweitern |
+| Allergen-Icons | Eigene geprüfte Food-SVGs vorhanden | Diese statt Tabler verwenden |
+| Verb Öffnen | Frühere Regel verwendete Ansehen | Öffnen für Lesen, Bearbeiten für Ändern |
+| Bedienziele | Paket nennt ungefähr 44 px | Strengere Projektvorgabe 48 px bleibt |
+| Allergen-Editor | Paket zeigt separate Detailliste | M21: Inline-Detail, indexgepaarte Felder, deaktiviert statt versteckt |
+| Mehrsprachigkeit | Bisher keine zentrale Übersetzungsschicht | Registry + Resolver + Makros vor Modul-Migration; keine neue Abhängigkeit |
+| Doppelte Labels | Sieben deutsche Labels mehrfach | Zulässig bei verschiedener Semantik; Schlüssel müssen eindeutig sein |
+
 ## 1. Dein Auftrag
 
 Migriere das bestehende Frontend auf das hier festgelegte Designsystem. Setze die Änderungen im Repository um; liefere nicht lediglich Vorschläge oder ein weiteres Konzept.
