@@ -41,9 +41,11 @@
 {% macro overview_header(heading, description) %}
   {% set items = [
     {'label': 'Woche', 'value': 'KW ' ~ iso_week, 'detail': date_range},
-    {'label': 'Wochenstatus', 'value': status_short, 'variant': 'success' if status == 'live' else ('warning' if publish_blocked or status == 'changed' else 'neutral')},
-    {'label': 'Kartenprüfungen', 'value': (open_checks ~ ' offen') if open_checks else (filled_slots ~ ' Menükarten geprüft'), 'variant': 'warning' if open_checks else 'neutral'}
+    {'label': 'Wochenstatus', 'value': status_short, 'variant': 'success' if status == 'live' else ('warning' if publish_blocked or status == 'changed' else 'neutral')}
   ] %}
+  {% if filled_slots %}
+    {% set items = items + [{'label': 'Kartenprüfungen', 'value': (open_checks ~ ' offen') if open_checks else (filled_slots ~ ' Menükarten geprüft'), 'variant': 'warning' if open_checks else 'neutral'}] %}
+  {% endif %}
   {% if allergen_stats.missing or allergen_stats.review_open %}
     {% set items = items + [{'label': 'Allergenangaben', 'value': allergen_stats.missing ~ ' ohne Allergenangaben', 'detail': (allergen_stats.review_open ~ ' Allergenprüfungen offen') if allergen_stats.review_open else none, 'variant': 'warning'}] %}
   {% endif %}
@@ -52,7 +54,7 @@
   {% endif %}
   {% call page_header(heading, description, status_items=items) %}
     {% if publish_blocked and status == 'review_open' %}
-    <a class="btn btn-primary" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}">{{ icon('clipboard-check') }}Offene Punkte prüfen</a>
+    <a class="btn btn-primary" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}#week-review-form">{{ icon('clipboard-check') }}Offene Punkte prüfen</a>
     {% else %}
     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#week-publish-modal"{% if publish_blocked %} disabled aria-describedby="week-publish-guidance"{% endif %}>{{ publish_label }}</button>
     {% endif %}
@@ -66,7 +68,18 @@
     {% endif %}
     <a class="btn" href="/admin/{{ family }}/preview?week={{ week_value }}" target="_blank" rel="noopener">{{ icon('eye') }}Vorschau</a>
     <a class="btn admin-week-review-link" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}">{{ icon('clipboard-check') }}Wochenangaben prüfen</a>
-    {% if course_issues is defined and course_issues['items'] %}<a class="btn" href="#course-issues">{{ icon('clipboard-check') }}Gangangaben prüfen</a>{% endif %}
+    {% if course_issues is defined and course_issues['items'] %}
+    <details id="course-issues" class="admin-week-issues">
+      <summary class="btn">{{ icon('clipboard-check') }}Gangangaben prüfen</summary>
+      <ul class="list-unstyled mb-0">
+        {% for item in course_issues['items'] %}
+        <li>
+          <a href="#course-{{ item.day }}-{{ item.meal }}">{{ item.day }} · {{ 'Mittag' if item.meal == 'LUNCH' else 'Abend' }} · {{ 'Suppe' if item.kind == 'soup' else 'Dessert' }}{% if item.option %} · {{ 'Vegetarisch' if item.option == 'VEGGIE' else 'Menü 1' }}{% endif %}: {% if 'missing_allergens' in item.problems %}Allergenangaben fehlen{% endif %}{% if 'missing_nutrition' in item.problems %}{% if 'missing_allergens' in item.problems %} · {% endif %}Nährwertangaben fehlen{% endif %}</a>
+        </li>
+        {% endfor %}
+      </ul>
+    </details>
+    {% endif %}
     <details class="admin-week-more">
       <summary class="btn">Weitere Aktionen</summary>
       <div class="admin-week-more-menu">
@@ -86,16 +99,15 @@
     <p id="week-publish-guidance" class="admin-week-guidance">{% if status == 'empty' %}Zuerst Gerichte erfassen, danach die Woche prüfen und publizieren.{% elif status == 'incomplete' %}Zuerst die Woche vervollständigen, danach publizieren.{% else %}Zuerst offene Prüfungen abschliessen, danach publizieren.{% endif %}</p>
     {% endif %}
   </div>
-  {% if course_issues is defined and course_issues['items'] %}
-  <ul id="course-issues" class="list-unstyled mb-0">
-    {% for item in course_issues['items'] %}
-    <li>
-      <a href="#course-{{ item.day }}-{{ item.meal }}">{{ item.day }} · {{ 'Mittag' if item.meal == 'LUNCH' else 'Abend' }} · {{ 'Suppe' if item.kind == 'soup' else 'Dessert' }}{% if item.option %} · {{ 'Vegetarisch' if item.option == 'VEGGIE' else 'Menü 1' }}{% endif %}: {% if 'missing_allergens' in item.problems %}Allergenangaben fehlen{% endif %}{% if 'missing_nutrition' in item.problems %}{% if 'missing_allergens' in item.problems %} · {% endif %}Nährwertangaben fehlen{% endif %}</a>
-    </li>
-    {% endfor %}
-  </ul>
-  {% endif %}
 </section>
+
+<noscript>
+  <details class="admin-week-nojs-publish">
+    <summary>Veröffentlichung bestätigen</summary>
+    <p>Gespeicherte Woche: KW {{ iso_week }} · {{ title }}. Bitte prüfen, ob alle Angaben korrekt sind.</p>
+    <button type="submit" form="week-publish-form" class="btn"{% if publish_blocked %} disabled aria-describedby="week-publish-guidance"{% endif %}>{{ publish_label }}</button>
+  </details>
+</noscript>
 
 <div class="modal modal-blur fade" id="week-publish-modal" tabindex="-1" aria-labelledby="week-publish-title" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered" role="document">

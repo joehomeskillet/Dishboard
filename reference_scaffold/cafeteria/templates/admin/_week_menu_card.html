@@ -3,10 +3,15 @@
 <div class="col-12 col-md-6">
   <article class="card menu-slot h-100" data-day="{{ cell.day }}" data-meal="{{ cell.meal }}" data-option="{{ cell.option }}" data-row-version="{{ cell.row_version }}">
     <div class="card-body{% if family == 'patienten' %} patient-admin-option{% endif %}">
+      <div class="admin-week-card-title">
       <small class="text-secondary dish-type">{{ cell.option_label }}</small>
       <h3>{{ cell.title if cell.title else 'Noch kein Gericht' }}</h3>
+      </div>
       {% if cell.dish_template %}
-      <p class="mb-2"><a class="btn text-wrap text-start" href="{{ url_for('admin.dish_template_edit', public_id=cell.dish_template.public_id) }}">{{ icon('copy') }}Aus Vorlage «{{ cell.dish_template.title }}»{% if not cell.dish_template.active %} (archiviert){% endif %}</a></p>
+      <details class="admin-week-template">
+        <summary>Weitere Optionen</summary>
+        <a class="btn text-wrap text-start" href="{{ url_for('admin.dish_template_edit', public_id=cell.dish_template.public_id) }}">{{ icon('copy') }}Aus Vorlage «{{ cell.dish_template.title }}»{% if not cell.dish_template.active %} (archiviert){% endif %}</a>
+      </details>
       {% endif %}
       {% if cell.components %}
       <ul class="admin-week-components">
@@ -32,14 +37,17 @@
         <p>Allergenprüfung offen</p>
         {% endif %}
         <div class="labels badge-list">
-          {% for origin in cell.origins %}
-          <span class="label badge bg-secondary-lt mw-100 text-wrap text-start">{{ symbol('countries', origin.country_code, true) }}<span class="text-break">{{ origin.text }}</span></span>
-          {% endfor %}
-          {% for label in cell.labels %}
+          {% for label in cell.labels if label.code|lower in ('vegan', 'vegetarian') %}
           <span class="label green badge bg-green-lt mw-100 text-wrap text-break">{{ symbol('labels', label.code, true) }}{{ label.name }}</span>
           {% endfor %}
           {% for allergen in cell.allergens %}
           <span class="label amber badge bg-yellow-lt mw-100 text-wrap text-start">{{ symbol('allergens', allergen.code, true) }}<span class="text-break">{{ allergen_text(allergen) }}</span></span>
+          {% endfor %}
+          {% for label in cell.labels if label.code|lower not in ('vegan', 'vegetarian') %}
+          <span class="label green badge bg-green-lt mw-100 text-wrap text-break">{{ symbol('labels', label.code, true) }}{{ label.name }}</span>
+          {% endfor %}
+          {% for origin in cell.origins %}
+          <span class="label badge bg-secondary-lt mw-100 text-wrap text-start">{{ symbol('countries', origin.country_code, true) }}<span class="text-break">{{ origin.text }}</span></span>
           {% endfor %}
         </div>
       </div>
@@ -72,7 +80,7 @@
           <figcaption class="visually-hidden">KI-generierter Serviervorschlag</figcaption>
         </figure>
         {% else %}
-        <p class="text-secondary small" data-menu-image>Kein passendes Menübild</p>
+        <p class="text-secondary small admin-week-image-missing" data-menu-image>Kein passendes Menübild</p>
         {% endif %}
       {% endif %}
       {% if cell.title and (cell.description or cell.note) %}

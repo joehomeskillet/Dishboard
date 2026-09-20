@@ -82,7 +82,8 @@ def test_real_week_review_saved_content_and_explicit_confirmation(
     response = page.goto(_url(family))
     assert response is not None and response.status == 200
     assert response.headers['cache-control'] == 'no-store'
-    expect(page.get_by_role('heading', name='Wochenkopf und Ausgabeangaben prüfen')).to_be_visible()
+    expect(page.get_by_role('heading', name='Wochenangaben prüfen', exact=True)).to_be_visible()
+    expect(page.locator('.admin-statusbar')).to_contain_text('Noch zu prüfen')
     for value in [values['title'], values['shared_note']]:
         expect(page.get_by_text(value, exact=True)).to_be_visible()
     services = [service for day in values['days'] for service in day['services']]

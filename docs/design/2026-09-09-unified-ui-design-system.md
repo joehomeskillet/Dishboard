@@ -1381,6 +1381,14 @@ Die gesperrten Gang-Partials liefern eigene Primärbuttons innerhalb eingeklappt
 Formulare; deren Umstellung auf neutrale Buttons benötigt den Integrationsowner.
 Keine Suche, Filter, Tageskopie oder Schnellerfassung aus dem Mockup hinzuerfinden.
 
+Die Cafeteria ordnet gemeinsame Gänge neben den beiden Menüoptionen an; im
+Patientenraster stehen die Gänge unter der jeweiligen Mahlzeit. Alle Allergen-
+und Prüfhinweise bleiben als Text sichtbar. Gangprobleme lassen sich am nativen
+Ziel `#course-issues` aufklappen. Ohne JavaScript erlaubt eine native Bestätigung
+die Veröffentlichung über dasselbe Formular mit unveränderten CSRF-/CAS-Feldern.
+Kopieren zeigt Quelle und Ziel einmal in der Statusbar. Browser-Messungen prüfen
+360/768/1024/1440 px, Thumbnailgrösse, Tageshöhe, Mahlzeitenausrichtung und Tastatur.
+
 ## 9. Wiederverwendung statt Seitensonderlösungen
 
 Nutze vorhandene Strukturen. Fehlen gemeinsame Bausteine, lege sie in der passenden bestehenden Projektstruktur an. Geeignete Verträge sind:

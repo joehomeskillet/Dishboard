@@ -1,4 +1,10 @@
 /* M26/M27: local week workspace, using the shared theme and native disclosures. */
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-statusbar {
+  margin-block: var(--app-space-2);
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-statusbar-item {
+  padding: var(--app-space-2);
+}
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-controls {
   position: static;
   padding: 0;
@@ -22,10 +28,10 @@
   content: none;
 }
 .dishboard-admin .admin-main[data-layout="workspace"] :is(.admin-day-card > .card-body, .patient-admin-day > .card-body) {
-  padding: var(--app-space-2);
+  padding: var(--app-space-1) var(--app-space-2);
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-day-head {
-  padding: var(--app-space-1) var(--app-space-2);
+  padding: 0 var(--app-space-2);
   min-height: 0;
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-day-head h2 {
@@ -43,7 +49,8 @@
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-meal-head {
   grid-column: 1 / -1;
   margin: 0;
-  gap: var(--app-space-1) var(--app-space-2);
+  gap: 0 var(--app-space-2);
+  font-size: var(--app-font-size-label);
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-service {
   min-width: 0;
@@ -93,18 +100,32 @@
   font-size: var(--app-font-size-label);
   line-height: inherit;
 }
+.dishboard-admin .admin-main[data-layout="workspace"] .menu-slot [data-menu-metadata] .labels {
+  margin-bottom: 0;
+}
 .dishboard-admin .admin-main[data-layout="workspace"] .menu-slot .admin-week-card-action {
   grid-column: 2;
-  grid-row: 4 / span 3;
+  grid-row: 3 / span 3;
   align-self: end;
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .menu-slot .admin-week-thumbnail {
   grid-column: 2;
-  grid-row: 1 / span 3;
+  grid-row: 1 / span 2;
   width: 96px;
   max-width: 100%;
   margin: 0;
   justify-self: end;
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-card-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--app-space-2);
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .menu-slot .admin-week-image-missing {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  max-width: 96px;
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .menu-slot :is(.admin-week-note, .menu-description, .shared-note) {
   grid-column: 1 / -1;
@@ -120,6 +141,26 @@
   white-space: normal;
   overflow-wrap: anywhere;
 }
+.dishboard-admin .admin-main[data-layout="workspace"] :is(.admin-week-issues, .admin-week-nojs-publish, .admin-week-template) > summary {
+  min-height: 48px;
+  padding: var(--app-space-2);
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-issues[open] {
+  flex-basis: 100%;
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-issues a {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 767.98px) {
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-statusbar-item {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: var(--app-space-2);
+  }
+}
 @media (min-width: 768px) {
   .dishboard-admin .admin-main[data-layout="workspace"] .admin-menu-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -129,7 +170,71 @@
   }
 }
 @media (min-width: 1200px) {
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card > .card-body {
+    grid-template-columns: minmax(0, 17.5rem) minmax(0, 1fr) auto;
+  }
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card .admin-week-meal-head {
+    grid-column: 1;
+    grid-row: 1;
+    align-content: center;
+  }
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card .admin-week-service {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card .admin-week-course-editor {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card .admin-menu-options {
+    grid-column: 2 / -1;
+    grid-row: 2 / span 2;
+  }
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card .admin-week-course {
+    grid-column: 1;
+    align-self: start;
+  }
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card .admin-week-course-line {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0 var(--app-space-1);
+    font-size: var(--app-font-size-label);
+  }
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card .admin-week-course-line > span {
+    grid-column: 1;
+  }
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card .admin-week-course-line > .btn {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    align-self: center;
+    padding-inline: var(--app-space-1);
+    font-size: var(--app-font-size-label);
+  }
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card .admin-week-course[data-course="soup"] {
+    grid-row: 2;
+  }
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card .admin-week-course[data-course="dessert"] {
+    grid-row: 3;
+  }
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card :is(.admin-week-service, .admin-week-course-editor)[open] {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
   .dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-meals {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-meal .admin-week-course {
+    grid-row: 4;
+    grid-column: auto;
+  }
+  .dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-meal .admin-menu-options {
+    grid-row: 3;
+  }
+  .dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-option > :is([data-menu-metadata], .admin-week-review-line) {
+    grid-column: 1 / -1;
+  }
+  .dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-option .admin-week-card-action {
+    grid-row: 1 / span 2;
+    align-self: center;
   }
 }
