@@ -138,7 +138,12 @@ def _controls(page: Page) -> None:
       const inner = box.getBoundingClientRect().width - pad;
       return Math.abs(inner - (main.clientWidth - pad)) <= 1;
     }''')
-    assert page.locator('#component-form .card-footer').evaluate('e => getComputedStyle(e).position') == 'static'
+    expect(page.locator('[data-sticky-form="component-form"]')).to_have_count(1)
+    expect(page.locator(
+        '[data-sticky-form="component-form"] button',
+        has_text='Baustein speichern',
+    )).to_have_count(1)
+    expect(page.locator('#component-form .card-footer')).to_have_count(0)
     for field_id in ('c-name', 'c-cat'):
         expect(page.locator(f'label[for="{field_id}"]')).to_have_class('form-label required')
     expect(page.locator('#c-origin')).not_to_have_attribute('required', '')
@@ -155,9 +160,9 @@ def _keyboard(page: Page) -> None:
     })''')
     assert focus['width'] == '2px' and focus['style'] == 'solid', focus
     page.keyboard.press('Tab')
-    expect(page.locator('#c-food')).to_be_focused()
-    page.keyboard.press('Tab')
     expect(page.locator('#c-origin')).to_be_focused()
+    page.keyboard.press('Tab')
+    expect(page.locator('#c-food')).to_be_focused()
 
 
 def test_reference_states_and_viewports(reference, family: str, tmp_path: Path) -> None:

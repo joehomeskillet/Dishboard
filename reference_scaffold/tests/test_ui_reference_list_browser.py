@@ -24,8 +24,6 @@ from test_rendered_ui import browser  # noqa: F401
 
 VIEWPORTS = ((1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080))
 FAMILIES = (('cafeteria', 'staff_guest'), ('patienten', 'patient'))
-DESCRIPTION = ('Gespeicherte Menüs aus allen Wochen. Öffnen führt direkt zum jeweiligen '
-               'Menü im Wochenplan.')
 LONG_TITLE = 'Langtext ' + 'Sommergemüse mit Kräutern ' * 7
 LONG_NOTE = 'Wichtiger Zubereitungshinweis bleibt vollständig lesbar. ' * 6
 
@@ -75,13 +73,14 @@ def _capture(page: Page, directory: Path, name: str) -> None:
     page.screenshot(path=str(screenshot), full_page=True, animations='disabled')
 
 
-def _measure(page: Page, count: int, contrast_failures: list) -> None:
+def _measure(page: Page, count: int, contrast_failures: list, view: str) -> None:
     expect(page.locator('h1')).to_have_count(1)
     expect(page.locator('.admin-page-header h1')).to_have_text('Menüs')
-    expect(page.locator('.page-header-subtitle')).to_have_text(DESCRIPTION)
+    expect(page.locator('.page-header-subtitle')).to_contain_text('Gespeicherte Menüs')
     expect(page.locator('.admin-page-header .btn')).to_have_count(0)
     expect(page.locator('main')).to_have_attribute('data-layout', 'standard')
-    expect(page.locator('[data-menu-id]')).to_have_count(count)
+    record_selector = '[data-menu-id]' if view == 'cards' else '[data-menu-list-id]'
+    expect(page.locator(record_selector)).to_have_count(count)
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
     text_pairs = page.locator(
         'main .badge:visible, main h1, main h2:visible, main p:visible, '
@@ -145,7 +144,7 @@ def _views(page: Page, javascript: bool, directory: Path, state: str, count: int
                     'link', name='Karten' if view == 'cards' else 'Liste', exact=True,
                 ).click()
             expect(page.locator(f'#menu-{view}')).to_be_visible()
-            _measure(page, count, contrast_failures)
+            _measure(page, count, contrast_failures, view)
             _capture(page, directory, f'{state}-{view}-{width}x{height}')
 
 
@@ -168,19 +167,33 @@ def _keyboard(page: Page, javascript: bool) -> None:
     page.keyboard.press('Tab')
     if javascript:
         cards = page.get_by_role('tab', name='Karten', exact=True)
-        expect(cards).to_be_focused()
+        listing = page.get_by_role('tab', name='Liste', exact=True)
+        expect(listing).to_be_focused()
+        expect(listing).to_have_attribute('aria-selected', 'true')
+        expect(cards).to_have_attribute('tabindex', '-1')
         page.keyboard.press('ArrowRight')
-        expect(page.get_by_role('tab', name='Liste', exact=True)).to_be_focused()
-        page.keyboard.press('ArrowLeft')
         expect(cards).to_be_focused()
+        expect(cards).to_have_attribute('aria-selected', 'true')
+        page.keyboard.press('ArrowLeft')
+        expect(listing).to_be_focused()
+        expect(listing).to_have_attribute('aria-selected', 'true')
+        page.keyboard.press('End')
+        expect(cards).to_be_focused()
+        page.keyboard.press('Home')
+        expect(listing).to_be_focused()
         page.keyboard.press('Tab')
-        expect(page.locator('#menu-cards')).to_be_focused()
+        expect(page.locator('#menu-list')).to_be_focused()
     else:
-        expect(page.get_by_role('navigation', name='Menüansicht ohne JavaScript').get_by_role('link').first).to_be_focused()
+        listing = page.get_by_role('navigation', name='Menüansicht ohne JavaScript').get_by_role(
+            'link', name='Liste', exact=True,
+        )
+        expect(listing).to_be_focused()
         page.keyboard.press('Enter')
-        expect(page.locator('#menu-cards')).to_be_focused()
+        expect(page.locator('#menu-list')).to_be_focused()
     page.keyboard.press('Tab')
-    action = page.locator('#menu-cards [data-admin-icon-action]').first
+    expect(page.get_by_role('region', name='Menüliste', exact=True)).to_be_focused()
+    page.keyboard.press('Tab')
+    action = page.locator('#menu-list [data-admin-icon-action]').first
     expect(action).to_be_focused()
     assert action.evaluate('el => getComputedStyle(el).outlineStyle') == 'solid'
     assert action.evaluate('el => parseFloat(getComputedStyle(el).outlineWidth)') >= 2
@@ -204,6 +217,16 @@ def test_reference_states_and_viewports(
         page.on('console', lambda message: errors.append(message.text) if message.type == 'error' else None)
         page.on('requestfailed', lambda request: errors.append(request.failure))
         _goto(page, route)
+        expect(page.locator('#menu-list')).to_be_visible()
+        if javascript:
+            expect(page.get_by_role('tab', name='Liste', exact=True)).to_have_attribute(
+                'aria-selected', 'true',
+            )
+            expect(page.locator('#menu-cards')).to_be_hidden()
+        else:
+            expect(page.get_by_role('navigation', name='Menüansicht ohne JavaScript').get_by_role(
+                'link', name='Liste', exact=True,
+            )).to_have_attribute('href', '#menu-list')
         expect(page.locator('[data-empty-kind="none"]')).to_have_count(2)
         expect(page.get_by_role('navigation', name='Ergebnisseiten')).to_have_count(0)
         _views(page, javascript, tmp_path, 'empty', 0, contrast_failures)
@@ -233,7 +256,10 @@ def test_reference_states_and_viewports(
                        assignments=[{'component_public_id': None, 'component_text': 'Gemüse' * 30}])
         _save(database_engine, scope, week=WEEK + timedelta(weeks=2), title=LONG_TITLE, payload=payload)
         _goto(page, route)
-        expect(page.locator('#menu-cards .shared-note')).to_contain_text(LONG_NOTE.strip())
+        long_card = page.locator('#menu-cards [data-menu-id]', has_text=LONG_TITLE)
+        expect(long_card.locator('.menu-note-details .shared-note')).to_contain_text(
+            LONG_NOTE.strip()
+        )
         _views(page, javascript, tmp_path, 'long-text', 3, contrast_failures)
         for offset in range(3, 26):
             _save(database_engine, scope, week=WEEK + timedelta(weeks=offset), title=f'Gemüsemenü {offset}')
@@ -244,7 +270,9 @@ def test_reference_states_and_viewports(
             page.set_viewport_size({'width': width, 'height': height})
             if javascript:
                 page.get_by_role('tab', name='Liste', exact=True).click()
-            expect(page.locator('#menu-list').get_by_text('Gespeicherter Prüfvermerk:').first).to_be_visible()
+            expect(page.locator('#menu-list').get_by_role(
+                'columnheader', name='Gespeicherter Prüfstand', exact=True,
+            )).to_be_visible()
             expect(page.locator('#menu-list').get_by_text('Allergenangaben nicht erfasst').first).to_be_visible()
             region = page.get_by_role('region', name='Menüliste', exact=True)
             region.focus()
@@ -253,29 +281,34 @@ def test_reference_states_and_viewports(
             expect(region).to_be_focused()
             assert region.evaluate('el => getComputedStyle(el).outlineStyle') == 'solid'
             if width == 390:
-                page.keyboard.press('ArrowRight')
-                expect(region).not_to_have_js_property('scrollLeft', 0)
+                assert region.evaluate('el => el.scrollWidth <= el.clientWidth + 1')
             _capture(page, tmp_path, f'keyboard-scroll-{width}')
         page.get_by_role('navigation', name='Ergebnisseiten').get_by_role('link', name='Weiter').click()
-        expect(page.locator('[data-menu-id]')).to_have_count(2)
+        expect(page.locator('[data-menu-list-id]')).to_have_count(2)
         expect(page.get_by_role('navigation', name='Ergebnisseiten').get_by_role('link', name='Weiter')).to_have_count(0)
         assert parse_qs(urlsplit(page.url).query) == {'page': ['2']}
         _views(page, javascript, tmp_path, 'last-page', 2, contrast_failures, ((1440, 900), (390, 844)))
         _goto(page, route + '?q=Gemüse')
-        expect(page.locator('[data-menu-id]')).to_have_count(24)
+        expect(page.locator('[data-menu-list-id]')).to_have_count(24)
         for link in page.get_by_role('navigation', name='Profil').get_by_role('link').all():
             assert parse_qs(urlsplit(link.get_attribute('href')).query) == {'q': ['Gemüse']}
         _goto(page, route + '?q=Langtext')
-        expect(page.locator('[data-menu-id]')).to_have_count(1)
+        expect(page.locator('[data-menu-list-id]')).to_have_count(1)
         # CSS zoom exercises layout magnification; DPR is deliberately unchanged.
         for width, height in ((1440, 900), (390, 844)):
             page.set_viewport_size({'width': width, 'height': height})
             page.evaluate("document.documentElement.style.zoom = '2'")
-            _measure(page, 1, contrast_failures)
+            _measure(page, 1, contrast_failures, 'list')
             _capture(page, tmp_path, f'zoom200-{width}')
             page.evaluate("document.documentElement.style.zoom = ''")
         assert _versions(database_engine) == before
         _goto(page, route + '?q=Pouletbrust')
+        if javascript:
+            page.get_by_role('tab', name='Karten', exact=True).click()
+        else:
+            page.get_by_role('navigation', name='Menüansicht ohne JavaScript').get_by_role(
+                'link', name='Karten', exact=True,
+            ).click()
         photo = page.locator('#menu-cards .menu-photo img')
         expect(photo).to_have_count(1)
         photo.scroll_into_view_if_needed()

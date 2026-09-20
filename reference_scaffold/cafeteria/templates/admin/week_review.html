@@ -2,6 +2,7 @@
 {% from 'admin/_macros.html' import page_header, status, empty_state, icon %}
 {% set layout_variant = 'standard' %}
 {% block title %}Wochenprüfung · {{ area_names[profile] }}{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-week-tabler.css') }}">{% endblock %}
 {% block main_attributes %}data-week="{{ week }}"{% endblock %}
 {% block page_header %}
 <div class="text-break">

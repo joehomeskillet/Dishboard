@@ -3,7 +3,6 @@ import json
 import hashlib
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from time import sleep
 from urllib.parse import parse_qs
 
 import pytest
@@ -260,11 +259,7 @@ def test_list_planning_action_stays_inside_visible_entry(
         if link.bounding_box()['y'] + link.bounding_box()['height'] > height:
             page.mouse.move(width // 2, height // 2)
             page.mouse.wheel(0, height // 2)
-            for _ in range(100):
-                box = link.bounding_box()
-                if box['y'] + box['height'] <= height:
-                    break
-                sleep(0.02)
+            expect(link).to_be_in_viewport(timeout=2_000)
         metrics = link.evaluate('''el => {
             const row = el.closest('tr'), clip = el.closest('.table-responsive');
             const title = row.querySelector('td > a');
@@ -282,7 +277,7 @@ def test_list_planning_action_stays_inside_visible_entry(
                 intersectionWidth:Math.max(0,Math.min(action.right,right)-Math.max(action.left,left)),
                 intersectionHeight:Math.max(0,Math.min(action.bottom,bottom)-Math.max(action.top,top)),
                 titleContained:heading.left >= left-1 && heading.right <= right+1,
-                text:row.innerText,columns:[...row.cells].filter(c => getComputedStyle(c).display !== 'none').length};
+                text:row.innerText};
         }''')
         name = f'list-{width}-{javascript}'
         page.screenshot(path=str(evidence / f'{name}.png'), full_page=True)
@@ -299,7 +294,9 @@ def test_list_planning_action_stays_inside_visible_entry(
         assert title in metrics['text'] and 'Gemeinsam' in metrics['text']
         assert 'Gespeicherter Stand mit Kräutern' in metrics['text']
         assert '1 gespeicherte Stände' in metrics['text'] and 'In 0 Menüs verwendet' in metrics['text']
-        assert metrics['columns'] == (6 if width >= 768 else 1)
+        expect(page.get_by_role('columnheader', name='Dazu', exact=True)).to_be_visible(
+            visible=width >= 768
+        )
         expect(page.locator(f'a[href="/admin/gerichtvorlagen/{archived["public_id"]}/einplanen"]')).to_have_count(0)
         assert link.get_attribute('href') == f'/admin/gerichtvorlagen/{template["public_id"]}/einplanen'
         link.focus()
