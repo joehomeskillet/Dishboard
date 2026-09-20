@@ -5,17 +5,17 @@ import re
 from pathlib import Path
 
 import pytest
-from playwright.sync_api import Page, expect
+from playwright.sync_api import expect
 
 from cafeteria.course_store import persist_service_courses
 from cafeteria.workflow import publish_draft
 from cafeteria.workflow_partial_store import persist_menu_item, persist_service_state
-from test_admin_ux_browser import live_server  # noqa: F401
+from test_admin_ux_browser import live_server as live_server
 from test_admin_workflow_routes import DAY, WEEK, _login, _scope
 from test_course_week_html import _recipe
-from test_rendered_ui import admin_app, admin_engine, browser  # noqa: F401
-from test_rendered_ui import app  # noqa: F401
-from test_public_mobile_ui import http_app, public_server  # noqa: F401
+from test_rendered_ui import admin_app as admin_app, admin_engine as admin_engine, browser as browser
+from test_rendered_ui import app as app
+from test_public_mobile_ui import http_app as http_app, public_server as public_server
 from test_workflow_partial_store_db import _payload, _service_payload
 
 EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/sdd-courses-browser-0918'
@@ -98,6 +98,8 @@ def test_ac12_course_issues_in_info_bar(browser, live_server, admin_app, admin_e
         issue_chip = page.locator('a.admin-week-status-chip[href="#course-issues"]')
         expect(issue_chip).to_have_count(1)
         expect(issue_chip).to_contain_text('Gang prüfen')
+        expect(issue_chip).to_have_attribute('aria-label', '1 Gang mit offenen Angaben')
+        expect(page.locator('.admin-week-status-chip[aria-label="1 Gang ohne Allergenangaben"]')).to_have_count(1)
         
         issue_chip.click()
         expect(page.locator('#course-issues')).to_be_in_viewport()
@@ -106,6 +108,63 @@ def test_ac12_course_issues_in_info_bar(browser, live_server, admin_app, admin_e
         expect(page.locator(f'.menu-slot[data-day="{DAY}"][data-option="MENU_1"]')).not_to_contain_text('Geprüft')
         
         page.screenshot(path=str(EVIDENCE / 'ac12-course-issues-infobar.png'), full_page=True)
+    finally:
+        context.close()
+
+
+@pytest.mark.parametrize('javascript_enabled', [True, False])
+@pytest.mark.parametrize('family', ['cafeteria', 'patienten'])
+def test_course_disclosure_form_contract_and_viewports(
+    browser, live_server, admin_app, admin_engine, javascript_enabled, family,
+) -> None:
+    client, user_id = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    scope = _scope(admin_engine, user_id, 'staff_guest' if family == 'cafeteria' else 'patient')
+    persist_service_state(admin_engine, scope, WEEK, DAY, 'LUNCH', _service_payload(), 0)
+    recipe = _recipe(admin_engine, user_id, scope.location_id, 'Gemüsesuppe')
+    context = browser.new_context(base_url=live_server, java_script_enabled=javascript_enabled)
+    cookie = client.get_cookie('session')
+    assert cookie is not None
+    context.add_cookies([{'name': 'session', 'value': cookie.value, 'url': live_server}])
+    EVIDENCE.mkdir(parents=True, exist_ok=True)
+    try:
+        page = context.new_page()
+        page.goto(f'/admin/{family}?week={DAY}')
+        editor = page.locator(f'#course-{DAY}-LUNCH')
+        form = editor.locator('form[method="post"]')
+        fields = dict(form.evaluate('(form) => Array.from(new FormData(form).entries())'))
+        expected = {'_csrf': fields['_csrf'], 'week': DAY, 'day': DAY, 'meal': 'LUNCH'}
+        for prefix in ('soup', 'dessert', 'MENU_1_soup', 'MENU_1_dessert', 'VEGGIE_soup', 'VEGGIE_dessert'):
+            expected.update({
+                f'{prefix}_public_id': '', f'{prefix}_row_version': '0',
+                f'{prefix}_state': 'inherit' if prefix.startswith(('MENU_1', 'VEGGIE')) else 'unplanned',
+                f'{prefix}_recipe': '',
+            })
+        assert fields == expected
+        for width in (360, 768, 1024, 1440):
+            page.set_viewport_size({'width': width, 'height': 900})
+            if not editor.evaluate('(el) => el.open'):
+                editor.locator(':scope > summary').click()
+            expect(form.locator('select[name="soup_recipe"]')).not_to_be_visible()
+            for summary in editor.locator('summary:visible').all():
+                assert summary.bounding_box()['height'] >= 48
+            assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+            page.screenshot(path=str(EVIDENCE / f'wp26-{family}-{javascript_enabled}-{width}.png'), full_page=True)
+        # Native disclosures never alter which fields are submitted, including CAS.
+        editor.locator(':scope > summary').click()
+        page.locator(f'a[href="#course-{DAY}-LUNCH-soup-state"]').click()
+        expect(form.locator('select[name="soup_state"]')).to_be_visible()
+        if javascript_enabled:
+            expect(form.locator('select[name="soup_state"]')).to_be_focused()
+        form.locator('select[name="soup_state"]').select_option('planned')
+        expect(form.locator('select[name="soup_recipe"]')).to_be_visible()
+        form.locator('select[name="soup_recipe"]').select_option(recipe['public_id'])
+        expected['soup_state'] = 'planned'
+        expected['soup_recipe'] = recipe['public_id']
+        assert dict(form.evaluate('(form) => Array.from(new FormData(form).entries())')) == expected
+        with page.expect_navigation():
+            form.get_by_role('button', name='Speichern', exact=True).click()
+        expect(page.locator('[data-course="soup"]').first).to_contain_text('Suppe: Gemüsesuppe')
+        expect(page.locator('[data-course="soup"]').first).to_contain_text('Allergenangaben fehlen')
     finally:
         context.close()
 

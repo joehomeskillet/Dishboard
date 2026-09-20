@@ -877,6 +877,12 @@ Suppe und Dessert sind eigenständige Planungszuweisungen pro Datum, Profil und 
 
 **Status und Wirkung:** Eine Veröffentlichung sagt nichts über fehlende Angaben oder ungespeicherte Änderungen aus. Den vorhandenen Prüfstand separat erklären. „Ausgabeangaben ändern“ öffnet ausschliesslich das bestehende Formular und dessen eigene Speicheraktion. Kein globales „Alles speichern“, wenn es keine gemeinsame Transaktion gibt.
 
+##### Modul Gänge (Suppe/Dessert) im Wochenplan (2026-09-20)
+
+Nicht geplante Gänge erhalten eine kompakte «Suppe planen»-/«Dessert planen»-Aktion; bestehende Gänge eine beschriftete Aktion «Bearbeiten». Ziele sind die vorhandenen Gangfelder im atomaren Ausgabeformular. Statuswerte `unplanned`, `planned`, `not_offered` und `inherit` bleiben unverändert. Die Rezeptauswahl liegt in einem nativen Detailbereich, offen bei vorhandener Auswahl oder Formularfehler. Suche und Abweichungen stehen nachrangig; «Weitere Optionen» öffnet bei Abweichungen oder Fehlern automatisch. Keine Auswahl wird beim Einklappen deaktiviert, zurückgesetzt oder ausgelassen. Ein Formularfuss enthält genau eine Aktion «Speichern».
+
+Die vorhandene globale Gangwarnung bleibt Aufgabe der Wochenplan-Statusbar (WP21): `course_issues.affected_assignments` und `course_issues.missing_allergens`, Ziel `#course-issues`. Kein zweiter Seitenkopf im wiederholten Partial. Rezept-Suchfelder erhalten pro Ausgabe eindeutige IDs. CSP, No-JS-Bedienbarkeit, 48-px-Ziele und alle POST-/CAS-Felder bleiben erhalten. Public-/Signage-Ausgaben bleiben unverändert. Nachweise: `test_course_browser.py`, `test_course_week_html.py`, `test_course_html_captures.py`.
+
 #### M12 — Menüeditor: breite Hauptarbeit, schmalerer Prüfkontext
 
 Volle Seitenbreite mit gemeinsamem Zwei-Spalten-Layout. Auf schmalen Geräten stehen die Bereiche untereinander.

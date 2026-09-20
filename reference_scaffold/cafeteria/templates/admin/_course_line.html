@@ -17,7 +17,11 @@
     {% elif course.state == 'not_offered' %}
     <span>{{ none_labels[kind] }}</span>
     {% else %}
-    <span>{{ empty_labels[kind] }}</span>
+    <a class="btn text-wrap" href="#{{ form_id }}-{{ kind }}-state" data-error-link aria-label="{{ labels[kind] }} planen · {{ day_iso }} · {{ meal_code }}">{{ icon('plus') }}{{ labels[kind] }} planen</a>
+    <span class="visually-hidden">{{ empty_labels[kind] }}</span>
+    {% endif %}
+    {% if course.state in ('planned', 'not_offered') %}
+    <a class="btn text-wrap ms-auto" href="#{{ form_id }}-{{ kind }}-state" data-error-link aria-label="{{ labels[kind] }} bearbeiten · {{ day_iso }} · {{ meal_code }}">{{ icon('pencil') }}Bearbeiten</a>
     {% endif %}
   </p>
 </div>
