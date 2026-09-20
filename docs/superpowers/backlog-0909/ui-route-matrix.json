@@ -12325,7 +12325,7 @@
       "includes": [
         "admin/_course_recipe_search.html"
       ],
-      "sha256": "3371e08f0e18a654a32b2f565dbb28b422807adae840750048b2fcbc69cb6879",
+      "sha256": "604bfb80f5d1e728240e10e28f672bc5b0364c1dc0d23845c10295247164de24",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
