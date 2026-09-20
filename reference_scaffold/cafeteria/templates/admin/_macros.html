@@ -8,10 +8,32 @@
 <a class="btn btn-icon w-100" href="{{ href }}" aria-label="{{ label }}" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ label }}">{{ icon('pencil') }}</a>
 {%- endmacro %}
 
-{%- macro page_header(title, description=none, breadcrumbs=none, actions=none, pretitle=none) -%}
+{%- macro page_header(title, description=none, breadcrumbs=none, actions=none, pretitle=none, status_items=[]) -%}
 {%- if title and title|trim -%}
 {%- set action_content = caller() if caller else actions -%}
 {%- set subtitle = description if description is not none else pretitle -%}
+{%- set allowed_status_variants = ['neutral', 'success', 'warning', 'danger'] -%}
+{%- set status = namespace(count=0) -%}
+{%- set status_content -%}
+  {%- for item in status_items if item is mapping -%}
+    {%- set item_label = item.label|default(none) -%}
+    {%- set item_value = item.value|default(none) -%}
+    {%- if status.count < 5 and item_label is not none and item_label|string|trim and item_value is not none and item_value|string|trim -%}
+      {%- set item_variant = item.variant|default('neutral', true) -%}
+      {%- if item_variant not in allowed_status_variants -%}{%- set item_variant = 'neutral' -%}{%- endif -%}
+      {%- set status.count = status.count + 1 -%}
+      <div class="admin-statusbar-item admin-statusbar-item--{{ item_variant }}">
+        <dt class="admin-statusbar-label">{{ item_label }}</dt>
+        <dd class="admin-statusbar-value">
+          <span class="admin-statusbar-value-text">{{ item_value }}</span>
+          {%- if item.detail|default(none) is not none and item.detail|string|trim -%}
+          <span class="admin-statusbar-detail">{{ item.detail }}</span>
+          {%- endif -%}
+        </dd>
+      </div>
+    {%- endif -%}
+  {%- endfor -%}
+{%- endset -%}
 <div class="page-header">
   <div class="container-xl">
     {%- if breadcrumbs and breadcrumbs|length > 0 -%}
@@ -42,6 +64,11 @@
       </div>
       {%- endif -%}
     </div>
+    {%- if status.count > 0 -%}
+    <dl class="admin-statusbar" aria-label="Status">
+      {{- status_content -}}
+    </dl>
+    {%- endif -%}
   </div>
 </div>
 {%- endif -%}

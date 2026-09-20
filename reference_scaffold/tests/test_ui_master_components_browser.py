@@ -44,7 +44,14 @@ def macro_site(monkeypatch, tmp_path, database_engine, browser):  # noqa: F811
         return render_template_string('''{% extends 'admin/base_tabler.html' %}
         {% from 'admin/_macros.html' import page_header, field, select, textarea, checkbox, check, form_errors, status_badge, status, empty_state, pagination, actions, icon %}
         {% block page_header %}
-        {{ page_header('Komponenten-Testseite', description='Prüfung aller Master-Makros und Zustände', breadcrumbs=[('Admin', '/admin'), ('Komponenten', none)]) }}
+        {{ page_header('Komponenten-Testseite', description='Prüfung aller Master-Makros und Zustände', breadcrumbs=[('Admin', '/admin'), ('Komponenten', none)], status_items=[
+          {'label': 'Status', 'value': 'Entwurf', 'variant': 'neutral'},
+          {'label': 'Freigabe', 'value': 'Freigegeben', 'variant': 'success', 'detail': 'Heute geprüft'},
+          {'label': 'Offene Angaben', 'value': '2', 'variant': 'warning'},
+          {'label': 'Validierung', 'value': 'Eingabe prüfen', 'variant': 'danger'},
+          {'label': 'Fehlende Werte', 'value': 0, 'variant': 'neutral'},
+          {'label': 'Wird ausgelassen', 'value': '   ', 'variant': 'success'}
+        ]) }}
         {% endblock %}
         {% block content %}
         <div class="row g-3">
@@ -225,6 +232,7 @@ def test_master_page_header_semantics(macro_site):
         assert 'class="page-header-subtitle"' not in empty_header
         assert 'class="page-breadcrumb"' not in empty_header
         assert 'class="btn-list"' not in empty_header
+        assert 'class="admin-statusbar"' not in empty_header
 
 
 def test_master_form_controls_and_error_states(macro_site):
