@@ -1,0 +1,1842 @@
+[
+  {
+    "category": "actions",
+    "semantic_key": "actions.add",
+    "ascii": "[+]",
+    "label_de": "Anlegen",
+    "label_en": "Create",
+    "tabler_icon": "plus",
+    "icon_only_allowed": "no",
+    "role": "primary"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.add_existing",
+    "ascii": "[+]",
+    "label_de": "Hinzufügen",
+    "label_en": "Add",
+    "tabler_icon": "circle-plus",
+    "icon_only_allowed": "no",
+    "role": "primary"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.edit",
+    "ascii": "[E]",
+    "label_de": "Bearbeiten",
+    "label_en": "Edit",
+    "tabler_icon": "edit",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.save",
+    "ascii": "[OK]",
+    "label_de": "Speichern",
+    "label_en": "Save",
+    "tabler_icon": "device-floppy",
+    "icon_only_allowed": "no",
+    "role": "primary"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.confirm",
+    "ascii": "[OK]",
+    "label_de": "Bestätigen",
+    "label_en": "Confirm",
+    "tabler_icon": "check",
+    "icon_only_allowed": "no",
+    "role": "primary"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.cancel",
+    "ascii": "[X]",
+    "label_de": "Abbrechen",
+    "label_en": "Cancel",
+    "tabler_icon": "x",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.close",
+    "ascii": "[X]",
+    "label_de": "Schliessen",
+    "label_en": "Close",
+    "tabler_icon": "x",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.delete",
+    "ascii": "[DEL]",
+    "label_de": "Löschen",
+    "label_en": "Delete",
+    "tabler_icon": "trash",
+    "icon_only_allowed": "no",
+    "role": "danger"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.archive",
+    "ascii": "[ARC]",
+    "label_de": "Archivieren",
+    "label_en": "Archive",
+    "tabler_icon": "archive",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.restore",
+    "ascii": "[RES]",
+    "label_de": "Wiederherstellen",
+    "label_en": "Restore",
+    "tabler_icon": "restore",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.copy",
+    "ascii": "[CP]",
+    "label_de": "Kopieren",
+    "label_en": "Copy",
+    "tabler_icon": "copy",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.move",
+    "ascii": "[MV]",
+    "label_de": "Verschieben",
+    "label_en": "Move",
+    "tabler_icon": "arrows-move",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.more",
+    "ascii": "[...]",
+    "label_de": "Mehr",
+    "label_en": "More",
+    "tabler_icon": "dots",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.open",
+    "ascii": "[>]",
+    "label_de": "Öffnen",
+    "label_en": "Open",
+    "tabler_icon": "chevron-right",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.back",
+    "ascii": "[<]",
+    "label_de": "Zurück",
+    "label_en": "Back",
+    "tabler_icon": "arrow-left",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.next",
+    "ascii": "[>]",
+    "label_de": "Weiter",
+    "label_en": "Next",
+    "tabler_icon": "arrow-right",
+    "icon_only_allowed": "no",
+    "role": "primary"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.refresh",
+    "ascii": "[R]",
+    "label_de": "Aktualisieren",
+    "label_en": "Refresh",
+    "tabler_icon": "refresh",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.undo",
+    "ascii": "[U]",
+    "label_de": "Rückgängig",
+    "label_en": "Undo",
+    "tabler_icon": "arrow-back-up",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.redo",
+    "ascii": "[RE]",
+    "label_de": "Wiederholen",
+    "label_en": "Redo",
+    "tabler_icon": "arrow-forward-up",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.preview",
+    "ascii": "[V]",
+    "label_de": "Vorschau",
+    "label_en": "Preview",
+    "tabler_icon": "eye",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.print",
+    "ascii": "[P]",
+    "label_de": "Drucken",
+    "label_en": "Print",
+    "tabler_icon": "printer",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.download",
+    "ascii": "[DL]",
+    "label_de": "Herunterladen",
+    "label_en": "Download",
+    "tabler_icon": "download",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.upload",
+    "ascii": "[UL]",
+    "label_de": "Hochladen",
+    "label_en": "Upload",
+    "tabler_icon": "upload",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.import",
+    "ascii": "[IN]",
+    "label_de": "Importieren",
+    "label_en": "Import",
+    "tabler_icon": "file-import",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.export",
+    "ascii": "[OUT]",
+    "label_de": "Exportieren",
+    "label_en": "Export",
+    "tabler_icon": "file-export",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.retry",
+    "ascii": "[R]",
+    "label_de": "Erneut versuchen",
+    "label_en": "Retry",
+    "tabler_icon": "reload",
+    "icon_only_allowed": "no",
+    "role": "primary"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.ok",
+    "ascii": "[OK]",
+    "label_de": "OK",
+    "label_en": "OK",
+    "tabler_icon": "circle-check",
+    "icon_only_allowed": "yes",
+    "role": "success"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.success",
+    "ascii": "[OK]",
+    "label_de": "Erfolgreich",
+    "label_en": "Successful",
+    "tabler_icon": "circle-check",
+    "icon_only_allowed": "yes",
+    "role": "success"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.info",
+    "ascii": "[i]",
+    "label_de": "Info",
+    "label_en": "Info",
+    "tabler_icon": "info-circle",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.warning",
+    "ascii": "[!]",
+    "label_de": "Achtung",
+    "label_en": "Warning",
+    "tabler_icon": "alert-triangle",
+    "icon_only_allowed": "no",
+    "role": "warning"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.error",
+    "ascii": "[X]",
+    "label_de": "Fehler",
+    "label_en": "Error",
+    "tabler_icon": "circle-x",
+    "icon_only_allowed": "no",
+    "role": "danger"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.active",
+    "ascii": "[ON]",
+    "label_de": "Aktiv",
+    "label_en": "Active",
+    "tabler_icon": "circle-check",
+    "icon_only_allowed": "yes",
+    "role": "success"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.inactive",
+    "ascii": "[OFF]",
+    "label_de": "Inaktiv",
+    "label_en": "Inactive",
+    "tabler_icon": "circle-minus",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.pending",
+    "ascii": "[...]",
+    "label_de": "Offen",
+    "label_en": "Pending",
+    "tabler_icon": "clock",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.progress",
+    "ascii": "[~]",
+    "label_de": "In Arbeit",
+    "label_en": "In progress",
+    "tabler_icon": "loader",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.done",
+    "ascii": "[OK]",
+    "label_de": "Erledigt",
+    "label_en": "Done",
+    "tabler_icon": "checks",
+    "icon_only_allowed": "yes",
+    "role": "success"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.blocked",
+    "ascii": "[!]",
+    "label_de": "Blockiert",
+    "label_en": "Blocked",
+    "tabler_icon": "ban",
+    "icon_only_allowed": "no",
+    "role": "danger"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.missing",
+    "ascii": "[-]",
+    "label_de": "Fehlt",
+    "label_en": "Missing",
+    "tabler_icon": "circle-dashed",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.partial",
+    "ascii": "[~]",
+    "label_de": "Teilweise",
+    "label_en": "Partial",
+    "tabler_icon": "circle-half",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.unknown",
+    "ascii": "[?]",
+    "label_de": "Unbekannt",
+    "label_en": "Unknown",
+    "tabler_icon": "help-circle",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.locked",
+    "ascii": "[L]",
+    "label_de": "Gesperrt",
+    "label_en": "Locked",
+    "tabler_icon": "lock",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.readonly",
+    "ascii": "[RO]",
+    "label_de": "Nur lesen",
+    "label_en": "Read only",
+    "tabler_icon": "eye",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.online",
+    "ascii": "[ON]",
+    "label_de": "Online",
+    "label_en": "Online",
+    "tabler_icon": "wifi",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.offline",
+    "ascii": "[OFF]",
+    "label_de": "Offline",
+    "label_en": "Offline",
+    "tabler_icon": "wifi-off",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.synced",
+    "ascii": "[SYNC]",
+    "label_de": "Synchronisiert",
+    "label_en": "Synced",
+    "tabler_icon": "cloud-check",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "status",
+    "semantic_key": "status.unsynced",
+    "ascii": "[!]",
+    "label_de": "Nicht synchronisiert",
+    "label_en": "Not synced",
+    "tabler_icon": "cloud-off",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "review",
+    "semantic_key": "review.unchecked",
+    "ascii": "[?]",
+    "label_de": "Ungeprüft",
+    "label_en": "Unchecked",
+    "tabler_icon": "circle-dashed",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "review",
+    "semantic_key": "review.pending",
+    "ascii": "[!]",
+    "label_de": "Prüfung offen",
+    "label_en": "Review required",
+    "tabler_icon": "alert-circle",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "review",
+    "semantic_key": "review.running",
+    "ascii": "[...]",
+    "label_de": "Wird geprüft",
+    "label_en": "Reviewing",
+    "tabler_icon": "loader",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "review",
+    "semantic_key": "review.approved",
+    "ascii": "[OK]",
+    "label_de": "Geprüft",
+    "label_en": "Approved",
+    "tabler_icon": "circle-check",
+    "icon_only_allowed": "yes",
+    "role": "success"
+  },
+  {
+    "category": "review",
+    "semantic_key": "review.rejected",
+    "ascii": "[X]",
+    "label_de": "Abgelehnt",
+    "label_en": "Rejected",
+    "tabler_icon": "circle-x",
+    "icon_only_allowed": "no",
+    "role": "danger"
+  },
+  {
+    "category": "review",
+    "semantic_key": "review.changed",
+    "ascii": "[*]",
+    "label_de": "Seit Prüfung geändert",
+    "label_en": "Changed since review",
+    "tabler_icon": "edit-circle",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "publish",
+    "semantic_key": "publish.draft",
+    "ascii": "[D]",
+    "label_de": "Entwurf",
+    "label_en": "Draft",
+    "tabler_icon": "pencil",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "publish",
+    "semantic_key": "publish.ready",
+    "ascii": "[R]",
+    "label_de": "Bereit",
+    "label_en": "Ready",
+    "tabler_icon": "checks",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "publish",
+    "semantic_key": "publish.published",
+    "ascii": "[PUB]",
+    "label_de": "Veröffentlicht",
+    "label_en": "Published",
+    "tabler_icon": "world-check",
+    "icon_only_allowed": "yes",
+    "role": "success"
+  },
+  {
+    "category": "publish",
+    "semantic_key": "publish.hidden",
+    "ascii": "[H]",
+    "label_de": "Ausgeblendet",
+    "label_en": "Hidden",
+    "tabler_icon": "eye-off",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "publish",
+    "semantic_key": "publish.scheduled",
+    "ascii": "[T]",
+    "label_de": "Geplant",
+    "label_en": "Scheduled",
+    "tabler_icon": "calendar-time",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "view",
+    "semantic_key": "view.search",
+    "ascii": "[/]",
+    "label_de": "Suchen",
+    "label_en": "Search",
+    "tabler_icon": "search",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "view",
+    "semantic_key": "view.filter",
+    "ascii": "[F]",
+    "label_de": "Filter",
+    "label_en": "Filter",
+    "tabler_icon": "filter",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "view",
+    "semantic_key": "view.reset",
+    "ascii": "[R]",
+    "label_de": "Zurücksetzen",
+    "label_en": "Reset",
+    "tabler_icon": "filter-off",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "view",
+    "semantic_key": "view.list",
+    "ascii": "[=]",
+    "label_de": "Liste",
+    "label_en": "List",
+    "tabler_icon": "list",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "view",
+    "semantic_key": "view.cards",
+    "ascii": "[##]",
+    "label_de": "Karten",
+    "label_en": "Cards",
+    "tabler_icon": "layout-cards",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "view",
+    "semantic_key": "view.grid",
+    "ascii": "[#]",
+    "label_de": "Raster",
+    "label_en": "Grid",
+    "tabler_icon": "grid-dots",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "view",
+    "semantic_key": "view.compact",
+    "ascii": "[C]",
+    "label_de": "Kompakt",
+    "label_en": "Compact",
+    "tabler_icon": "layout-list",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "view",
+    "semantic_key": "view.detail",
+    "ascii": "[D]",
+    "label_de": "Detail",
+    "label_en": "Detail",
+    "tabler_icon": "list-details",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "view",
+    "semantic_key": "view.fullscreen",
+    "ascii": "[FS]",
+    "label_de": "Vollbild",
+    "label_en": "Fullscreen",
+    "tabler_icon": "maximize",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "view",
+    "semantic_key": "view.expand",
+    "ascii": "[+]",
+    "label_de": "Aufklappen",
+    "label_en": "Expand",
+    "tabler_icon": "chevron-down",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "view",
+    "semantic_key": "view.collapse",
+    "ascii": "[-]",
+    "label_de": "Einklappen",
+    "label_en": "Collapse",
+    "tabler_icon": "chevron-up",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "time",
+    "semantic_key": "time.today",
+    "ascii": "[T]",
+    "label_de": "Heute",
+    "label_en": "Today",
+    "tabler_icon": "calendar-event",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "time",
+    "semantic_key": "time.date",
+    "ascii": "[DT]",
+    "label_de": "Datum",
+    "label_en": "Date",
+    "tabler_icon": "calendar",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "time",
+    "semantic_key": "time.time",
+    "ascii": "[TM]",
+    "label_de": "Zeit",
+    "label_en": "Time",
+    "tabler_icon": "clock",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "time",
+    "semantic_key": "time.week",
+    "ascii": "[W]",
+    "label_de": "Woche",
+    "label_en": "Week",
+    "tabler_icon": "calendar-week",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "time",
+    "semantic_key": "time.month",
+    "ascii": "[M]",
+    "label_de": "Monat",
+    "label_en": "Month",
+    "tabler_icon": "calendar-month",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "time",
+    "semantic_key": "time.previous",
+    "ascii": "[<]",
+    "label_de": "Vorheriger Zeitraum",
+    "label_en": "Previous period",
+    "tabler_icon": "chevron-left",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "time",
+    "semantic_key": "time.next",
+    "ascii": "[>]",
+    "label_de": "Nächster Zeitraum",
+    "label_en": "Next period",
+    "tabler_icon": "chevron-right",
+    "icon_only_allowed": "no",
+    "role": "primary"
+  },
+  {
+    "category": "meal",
+    "semantic_key": "meal.breakfast",
+    "ascii": "[FR]",
+    "label_de": "Frühstück",
+    "label_en": "Breakfast",
+    "tabler_icon": "coffee",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "meal",
+    "semantic_key": "meal.lunch",
+    "ascii": "[MI]",
+    "label_de": "Mittagessen",
+    "label_en": "Lunch",
+    "tabler_icon": "tools-kitchen-2",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "meal",
+    "semantic_key": "meal.dinner",
+    "ascii": "[AB]",
+    "label_de": "Abendessen",
+    "label_en": "Dinner",
+    "tabler_icon": "moon-stars",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "meal",
+    "semantic_key": "meal.snack",
+    "ascii": "[ZN]",
+    "label_de": "Zwischenmahlzeit",
+    "label_en": "Snack",
+    "tabler_icon": "apple",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "meal",
+    "semantic_key": "meal.soup",
+    "ascii": "[S]",
+    "label_de": "Suppe",
+    "label_en": "Soup",
+    "tabler_icon": "bowl-spoon",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "meal",
+    "semantic_key": "meal.starter",
+    "ascii": "[V]",
+    "label_de": "Vorspeise",
+    "label_en": "Starter",
+    "tabler_icon": "salad",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "meal",
+    "semantic_key": "meal.main",
+    "ascii": "[H]",
+    "label_de": "Hauptgericht",
+    "label_en": "Main course",
+    "tabler_icon": "tools-kitchen-2",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "meal",
+    "semantic_key": "meal.side",
+    "ascii": "[B]",
+    "label_de": "Beilage",
+    "label_en": "Side dish",
+    "tabler_icon": "leaf",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "meal",
+    "semantic_key": "meal.salad",
+    "ascii": "[A]",
+    "label_de": "Salat",
+    "label_en": "Salad",
+    "tabler_icon": "salad",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "meal",
+    "semantic_key": "meal.dessert",
+    "ascii": "[D]",
+    "label_de": "Dessert",
+    "label_en": "Dessert",
+    "tabler_icon": "cake",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "meal",
+    "semantic_key": "meal.beverage",
+    "ascii": "[G]",
+    "label_de": "Getränk",
+    "label_en": "Beverage",
+    "tabler_icon": "cup",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "diet",
+    "semantic_key": "diet.vegetarian",
+    "ascii": "[V]",
+    "label_de": "Vegetarisch",
+    "label_en": "Vegetarian",
+    "tabler_icon": "leaf",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "diet",
+    "semantic_key": "diet.vegan",
+    "ascii": "[VG]",
+    "label_de": "Vegan",
+    "label_en": "Vegan",
+    "tabler_icon": "plant-2",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "diet",
+    "semantic_key": "diet.meat",
+    "ascii": "[FL]",
+    "label_de": "Fleisch",
+    "label_en": "Meat",
+    "tabler_icon": "meat",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "diet",
+    "semantic_key": "diet.fish",
+    "ascii": "[FI]",
+    "label_de": "Fisch",
+    "label_en": "Fish",
+    "tabler_icon": "fish",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "diet",
+    "semantic_key": "diet.glutenfree",
+    "ascii": "[GF]",
+    "label_de": "Glutenfrei",
+    "label_en": "Gluten-free",
+    "tabler_icon": "wheat-off",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "diet",
+    "semantic_key": "diet.lactosefree",
+    "ascii": "[LF]",
+    "label_de": "Laktosefrei",
+    "label_en": "Lactose-free",
+    "tabler_icon": "milk-off",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "diet",
+    "semantic_key": "diet.bio",
+    "ascii": "[BIO]",
+    "label_de": "Bio",
+    "label_en": "Organic",
+    "tabler_icon": "leaf-2",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "diet",
+    "semantic_key": "diet.regional",
+    "ascii": "[REG]",
+    "label_de": "Regional",
+    "label_en": "Regional",
+    "tabler_icon": "map-pin",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "diet",
+    "semantic_key": "diet.seasonal",
+    "ascii": "[SAI]",
+    "label_de": "Saisonal",
+    "label_en": "Seasonal",
+    "tabler_icon": "calendar-heart",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "diet",
+    "semantic_key": "diet.recommended",
+    "ascii": "[*]",
+    "label_de": "Empfehlung",
+    "label_en": "Recommended",
+    "tabler_icon": "star",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "recipe",
+    "semantic_key": "recipe.recipe",
+    "ascii": "[R]",
+    "label_de": "Rezept",
+    "label_en": "Recipe",
+    "tabler_icon": "recipe",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "recipe",
+    "semantic_key": "recipe.ingredient",
+    "ascii": "[Z]",
+    "label_de": "Zutat",
+    "label_en": "Ingredient",
+    "tabler_icon": "carrot",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "recipe",
+    "semantic_key": "recipe.step",
+    "ascii": "[#]",
+    "label_de": "Schritt",
+    "label_en": "Step",
+    "tabler_icon": "list-numbers",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "recipe",
+    "semantic_key": "recipe.quantity",
+    "ascii": "[Q]",
+    "label_de": "Menge",
+    "label_en": "Quantity",
+    "tabler_icon": "scale",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "recipe",
+    "semantic_key": "recipe.unit",
+    "ascii": "[U]",
+    "label_de": "Einheit",
+    "label_en": "Unit",
+    "tabler_icon": "ruler-measure",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "recipe",
+    "semantic_key": "recipe.portion",
+    "ascii": "[P]",
+    "label_de": "Portion",
+    "label_en": "Portion",
+    "tabler_icon": "users",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "recipe",
+    "semantic_key": "recipe.duration",
+    "ascii": "[T]",
+    "label_de": "Dauer",
+    "label_en": "Duration",
+    "tabler_icon": "clock",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "recipe",
+    "semantic_key": "recipe.temperature",
+    "ascii": "[C]",
+    "label_de": "Temperatur",
+    "label_en": "Temperature",
+    "tabler_icon": "temperature",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "recipe",
+    "semantic_key": "recipe.cut",
+    "ascii": "[CUT]",
+    "label_de": "Schneiden",
+    "label_en": "Cut",
+    "tabler_icon": "knife",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "recipe",
+    "semantic_key": "recipe.cook",
+    "ascii": "[COOK]",
+    "label_de": "Kochen",
+    "label_en": "Cook",
+    "tabler_icon": "flame",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "recipe",
+    "semantic_key": "recipe.bake",
+    "ascii": "[BAKE]",
+    "label_de": "Backen",
+    "label_en": "Bake",
+    "tabler_icon": "oven",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "recipe",
+    "semantic_key": "recipe.cool",
+    "ascii": "[COOL]",
+    "label_de": "Kühlen",
+    "label_en": "Chill",
+    "tabler_icon": "snowflake",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "recipe",
+    "semantic_key": "recipe.freeze",
+    "ascii": "[ICE]",
+    "label_de": "Tiefkühlen",
+    "label_en": "Freeze",
+    "tabler_icon": "snowflake",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "recipe",
+    "semantic_key": "recipe.thaw",
+    "ascii": "[THAW]",
+    "label_de": "Auftauen",
+    "label_en": "Thaw",
+    "tabler_icon": "temperature-sun",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "stock",
+    "semantic_key": "stock.stock",
+    "ascii": "[ST]",
+    "label_de": "Bestand",
+    "label_en": "Stock",
+    "tabler_icon": "packages",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "stock",
+    "semantic_key": "stock.ok",
+    "ascii": "[OK]",
+    "label_de": "Bestand OK",
+    "label_en": "Stock OK",
+    "tabler_icon": "package",
+    "icon_only_allowed": "yes",
+    "role": "success"
+  },
+  {
+    "category": "stock",
+    "semantic_key": "stock.low",
+    "ascii": "[!]",
+    "label_de": "Bestand niedrig",
+    "label_en": "Low stock",
+    "tabler_icon": "package-off",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "stock",
+    "semantic_key": "stock.empty",
+    "ascii": "[0]",
+    "label_de": "Nicht vorrätig",
+    "label_en": "Out of stock",
+    "tabler_icon": "box-off",
+    "icon_only_allowed": "yes",
+    "role": "danger"
+  },
+  {
+    "category": "stock",
+    "semantic_key": "stock.location",
+    "ascii": "[LOC]",
+    "label_de": "Lagerort",
+    "label_en": "Storage location",
+    "tabler_icon": "map-pin",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "stock",
+    "semantic_key": "stock.dry",
+    "ascii": "[DRY]",
+    "label_de": "Trockenlager",
+    "label_en": "Dry storage",
+    "tabler_icon": "building-warehouse",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "stock",
+    "semantic_key": "stock.fridge",
+    "ascii": "[COLD]",
+    "label_de": "Kühlraum",
+    "label_en": "Cold storage",
+    "tabler_icon": "snowflake",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "stock",
+    "semantic_key": "stock.freezer",
+    "ascii": "[ICE]",
+    "label_de": "Tiefkühler",
+    "label_en": "Freezer",
+    "tabler_icon": "snowflake",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "order",
+    "semantic_key": "order.shopping_list",
+    "ascii": "[L]",
+    "label_de": "Einkaufsliste",
+    "label_en": "Shopping list",
+    "tabler_icon": "list-check",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "order",
+    "semantic_key": "order.cart",
+    "ascii": "[C]",
+    "label_de": "Warenkorb",
+    "label_en": "Cart",
+    "tabler_icon": "shopping-cart",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "order",
+    "semantic_key": "order.supplier",
+    "ascii": "[SUP]",
+    "label_de": "Lieferant",
+    "label_en": "Supplier",
+    "tabler_icon": "truck-delivery",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "order",
+    "semantic_key": "order.order",
+    "ascii": "[ORD]",
+    "label_de": "Bestellung",
+    "label_en": "Order",
+    "tabler_icon": "clipboard-list",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "order",
+    "semantic_key": "order.ordered",
+    "ascii": "[>]",
+    "label_de": "Bestellt",
+    "label_en": "Ordered",
+    "tabler_icon": "send",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "order",
+    "semantic_key": "order.delivered",
+    "ascii": "[OK]",
+    "label_de": "Geliefert",
+    "label_en": "Delivered",
+    "tabler_icon": "truck-delivery",
+    "icon_only_allowed": "yes",
+    "role": "success"
+  },
+  {
+    "category": "order",
+    "semantic_key": "order.cancelled",
+    "ascii": "[X]",
+    "label_de": "Storniert",
+    "label_en": "Cancelled",
+    "tabler_icon": "circle-x",
+    "icon_only_allowed": "no",
+    "role": "danger"
+  },
+  {
+    "category": "data",
+    "semantic_key": "data.price",
+    "ascii": "[CHF]",
+    "label_de": "Preis",
+    "label_en": "Price",
+    "tabler_icon": "currency-frank",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "data",
+    "semantic_key": "data.calculation",
+    "ascii": "[SUM]",
+    "label_de": "Kalkulation",
+    "label_en": "Calculation",
+    "tabler_icon": "calculator",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "data",
+    "semantic_key": "data.total",
+    "ascii": "[=]",
+    "label_de": "Total",
+    "label_en": "Total",
+    "tabler_icon": "sum",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "data",
+    "semantic_key": "data.csv",
+    "ascii": "[CSV]",
+    "label_de": "CSV",
+    "label_en": "CSV",
+    "tabler_icon": "file-type-csv",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "data",
+    "semantic_key": "data.pdf",
+    "ascii": "[PDF]",
+    "label_de": "PDF",
+    "label_en": "PDF",
+    "tabler_icon": "file-type-pdf",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "data",
+    "semantic_key": "data.image",
+    "ascii": "[IMG]",
+    "label_de": "Bild",
+    "label_en": "Image",
+    "tabler_icon": "photo",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "data",
+    "semantic_key": "data.history",
+    "ascii": "[HIS]",
+    "label_de": "Verlauf",
+    "label_en": "History",
+    "tabler_icon": "history",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "data",
+    "semantic_key": "data.revision",
+    "ascii": "[REV]",
+    "label_de": "Revision",
+    "label_en": "Revision",
+    "tabler_icon": "versions",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "data",
+    "semantic_key": "data.manual",
+    "ascii": "[M]",
+    "label_de": "Manuell",
+    "label_en": "Manual",
+    "tabler_icon": "hand-click",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "data",
+    "semantic_key": "data.inherited",
+    "ascii": "[->]",
+    "label_de": "Geerbt",
+    "label_en": "Inherited",
+    "tabler_icon": "hierarchy",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "data",
+    "semantic_key": "data.automatic",
+    "ascii": "[A]",
+    "label_de": "Automatisch",
+    "label_en": "Automatic",
+    "tabler_icon": "automation",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "data",
+    "semantic_key": "data.ai",
+    "ascii": "[AI]",
+    "label_de": "KI-Vorschlag",
+    "label_en": "AI suggestion",
+    "tabler_icon": "sparkles",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "admin",
+    "semantic_key": "admin.user",
+    "ascii": "[U]",
+    "label_de": "Benutzer",
+    "label_en": "User",
+    "tabler_icon": "user",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "admin",
+    "semantic_key": "admin.users",
+    "ascii": "[UU]",
+    "label_de": "Benutzer",
+    "label_en": "Users",
+    "tabler_icon": "users",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "admin",
+    "semantic_key": "admin.role",
+    "ascii": "[R]",
+    "label_de": "Rolle",
+    "label_en": "Role",
+    "tabler_icon": "user-shield",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "admin",
+    "semantic_key": "admin.permission",
+    "ascii": "[P]",
+    "label_de": "Berechtigung",
+    "label_en": "Permission",
+    "tabler_icon": "key",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "admin",
+    "semantic_key": "admin.admin",
+    "ascii": "[ADM]",
+    "label_de": "Administrator",
+    "label_en": "Administrator",
+    "tabler_icon": "shield-lock",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "admin",
+    "semantic_key": "admin.settings",
+    "ascii": "[SET]",
+    "label_de": "Einstellungen",
+    "label_en": "Settings",
+    "tabler_icon": "settings",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "admin",
+    "semantic_key": "admin.appearance",
+    "ascii": "[UI]",
+    "label_de": "Erscheinungsbild",
+    "label_en": "Appearance",
+    "tabler_icon": "palette",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "admin",
+    "semantic_key": "admin.interface",
+    "ascii": "[API]",
+    "label_de": "Schnittstelle",
+    "label_en": "Interface",
+    "tabler_icon": "plug-connected",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "admin",
+    "semantic_key": "admin.api_key",
+    "ascii": "[KEY]",
+    "label_de": "API-Schlüssel",
+    "label_en": "API key",
+    "tabler_icon": "key",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "admin",
+    "semantic_key": "admin.connected",
+    "ascii": "[OK]",
+    "label_de": "Verbunden",
+    "label_en": "Connected",
+    "tabler_icon": "plug-connected",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "admin",
+    "semantic_key": "admin.disconnected",
+    "ascii": "[X]",
+    "label_de": "Getrennt",
+    "label_en": "Disconnected",
+    "tabler_icon": "plug-off",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "admin",
+    "semantic_key": "admin.sync",
+    "ascii": "[SYNC]",
+    "label_de": "Synchronisieren",
+    "label_en": "Synchronize",
+    "tabler_icon": "refresh",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "admin",
+    "semantic_key": "admin.webhook",
+    "ascii": "[WH]",
+    "label_de": "Webhook",
+    "label_en": "Webhook",
+    "tabler_icon": "webhook",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "admin",
+    "semantic_key": "admin.opening_hours",
+    "ascii": "[TIME]",
+    "label_de": "Öffnungszeiten",
+    "label_en": "Opening hours",
+    "tabler_icon": "clock-hour-4",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "admin",
+    "semantic_key": "admin.area",
+    "ascii": "[AREA]",
+    "label_de": "Bereich",
+    "label_en": "Area",
+    "tabler_icon": "layout",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "allergen",
+    "semantic_key": "allergen.gluten",
+    "ascii": "[GL]",
+    "label_de": "Gluten",
+    "label_en": "Gluten",
+    "tabler_icon": "wheat",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "allergen",
+    "semantic_key": "allergen.crustaceans",
+    "ascii": "[KR]",
+    "label_de": "Krebstiere",
+    "label_en": "Crustaceans",
+    "tabler_icon": "crab",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "allergen",
+    "semantic_key": "allergen.eggs",
+    "ascii": "[EI]",
+    "label_de": "Eier",
+    "label_en": "Eggs",
+    "tabler_icon": "egg",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "allergen",
+    "semantic_key": "allergen.fish",
+    "ascii": "[FI]",
+    "label_de": "Fisch",
+    "label_en": "Fish",
+    "tabler_icon": "fish",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "allergen",
+    "semantic_key": "allergen.peanuts",
+    "ascii": "[ER]",
+    "label_de": "Erdnüsse",
+    "label_en": "Peanuts",
+    "tabler_icon": "peanut",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "allergen",
+    "semantic_key": "allergen.soy",
+    "ascii": "[SO]",
+    "label_de": "Soja",
+    "label_en": "Soy",
+    "tabler_icon": "seedling",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "allergen",
+    "semantic_key": "allergen.milk",
+    "ascii": "[MI]",
+    "label_de": "Milch",
+    "label_en": "Milk",
+    "tabler_icon": "milk",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "allergen",
+    "semantic_key": "allergen.nuts",
+    "ascii": "[SN]",
+    "label_de": "Schalenfrüchte",
+    "label_en": "Tree nuts",
+    "tabler_icon": "nut",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "allergen",
+    "semantic_key": "allergen.celery",
+    "ascii": "[SE]",
+    "label_de": "Sellerie",
+    "label_en": "Celery",
+    "tabler_icon": "carrot",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "allergen",
+    "semantic_key": "allergen.mustard",
+    "ascii": "[SF]",
+    "label_de": "Senf",
+    "label_en": "Mustard",
+    "tabler_icon": "bottle",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "allergen",
+    "semantic_key": "allergen.sesame",
+    "ascii": "[SS]",
+    "label_de": "Sesam",
+    "label_en": "Sesame",
+    "tabler_icon": "dots",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "allergen",
+    "semantic_key": "allergen.sulfites",
+    "ascii": "[SU]",
+    "label_de": "Sulfite",
+    "label_en": "Sulphites",
+    "tabler_icon": "flask",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "allergen",
+    "semantic_key": "allergen.lupin",
+    "ascii": "[LU]",
+    "label_de": "Lupinen",
+    "label_en": "Lupin",
+    "tabler_icon": "flower",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "allergen",
+    "semantic_key": "allergen.molluscs",
+    "ascii": "[WT]",
+    "label_de": "Weichtiere",
+    "label_en": "Molluscs",
+    "tabler_icon": "shell",
+    "icon_only_allowed": "yes",
+    "role": "warning"
+  },
+  {
+    "category": "allergen",
+    "semantic_key": "allergen.none",
+    "ascii": "[0]",
+    "label_de": "Keine Allergene",
+    "label_en": "No allergens",
+    "tabler_icon": "circle-check",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  },
+  {
+    "category": "allergen",
+    "semantic_key": "allergen.unknown",
+    "ascii": "[?]",
+    "label_de": "Nicht erfasst",
+    "label_en": "Not recorded",
+    "tabler_icon": "alert-triangle",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  },
+  {
+    "category": "allergen",
+    "semantic_key": "allergen.inherited",
+    "ascii": "[->]",
+    "label_de": "Geerbt",
+    "label_en": "Inherited",
+    "tabler_icon": "hierarchy",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  },
+  {
+    "category": "allergen",
+    "semantic_key": "allergen.manual",
+    "ascii": "[M]",
+    "label_de": "Manuell",
+    "label_en": "Manual",
+    "tabler_icon": "hand-click",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  },
+  {
+    "category": "navigation",
+    "semantic_key": "navigation.dashboard",
+    "ascii": "[HOME]",
+    "label_de": "Übersicht",
+    "label_en": "Dashboard",
+    "tabler_icon": "home",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  },
+  {
+    "category": "navigation",
+    "semantic_key": "navigation.weekplan",
+    "ascii": "[W]",
+    "label_de": "Wochenplan",
+    "label_en": "Weekly plan",
+    "tabler_icon": "calendar-week",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  },
+  {
+    "category": "navigation",
+    "semantic_key": "navigation.menus",
+    "ascii": "[MENU]",
+    "label_de": "Menüs",
+    "label_en": "Menus",
+    "tabler_icon": "tools-kitchen-2",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  },
+  {
+    "category": "navigation",
+    "semantic_key": "navigation.components",
+    "ascii": "[COMP]",
+    "label_de": "Bausteine",
+    "label_en": "Components",
+    "tabler_icon": "blocks",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  },
+  {
+    "category": "navigation",
+    "semantic_key": "navigation.ingredients",
+    "ascii": "[ING]",
+    "label_de": "Zutaten",
+    "label_en": "Ingredients",
+    "tabler_icon": "carrot",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  },
+  {
+    "category": "navigation",
+    "semantic_key": "navigation.recipes",
+    "ascii": "[REC]",
+    "label_de": "Rezepte",
+    "label_en": "Recipes",
+    "tabler_icon": "recipe",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  },
+  {
+    "category": "navigation",
+    "semantic_key": "navigation.cookbooks",
+    "ascii": "[BOOK]",
+    "label_de": "Kochbücher",
+    "label_en": "Cookbooks",
+    "tabler_icon": "book",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  },
+  {
+    "category": "navigation",
+    "semantic_key": "navigation.templates",
+    "ascii": "[TPL]",
+    "label_de": "Gerichtvorlagen",
+    "label_en": "Dish templates",
+    "tabler_icon": "template",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  },
+  {
+    "category": "navigation",
+    "semantic_key": "navigation.shopping",
+    "ascii": "[SHOP]",
+    "label_de": "Einkaufslisten",
+    "label_en": "Shopping lists",
+    "tabler_icon": "list-check",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  },
+  {
+    "category": "navigation",
+    "semantic_key": "navigation.orders",
+    "ascii": "[ORD]",
+    "label_de": "Bestellung",
+    "label_en": "Orders",
+    "tabler_icon": "clipboard-list",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  },
+  {
+    "category": "navigation",
+    "semantic_key": "navigation.stock",
+    "ascii": "[ST]",
+    "label_de": "Lager",
+    "label_en": "Stock",
+    "tabler_icon": "packages",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  },
+  {
+    "category": "navigation",
+    "semantic_key": "navigation.costing",
+    "ascii": "[SUM]",
+    "label_de": "Kalkulation",
+    "label_en": "Costing",
+    "tabler_icon": "calculator",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  },
+  {
+    "category": "navigation",
+    "semantic_key": "navigation.screens",
+    "ascii": "[SCR]",
+    "label_de": "Vorschau & Bildschirme",
+    "label_en": "Preview & screens",
+    "tabler_icon": "device-tv",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  },
+  {
+    "category": "navigation",
+    "semantic_key": "navigation.settings",
+    "ascii": "[SET]",
+    "label_de": "Einstellungen",
+    "label_en": "Settings",
+    "tabler_icon": "settings",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  }
+]

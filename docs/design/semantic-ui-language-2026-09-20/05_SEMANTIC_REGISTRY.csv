@@ -1,0 +1,185 @@
+﻿category,semantic_key,ascii,label_de,label_en,tabler_icon,icon_only_allowed,role
+actions,actions.add,[+],Anlegen,Create,plus,no,primary
+actions,actions.add_existing,[+],Hinzufügen,Add,circle-plus,no,primary
+actions,actions.edit,[E],Bearbeiten,Edit,edit,yes,neutral
+actions,actions.save,[OK],Speichern,Save,device-floppy,no,primary
+actions,actions.confirm,[OK],Bestätigen,Confirm,check,no,primary
+actions,actions.cancel,[X],Abbrechen,Cancel,x,yes,neutral
+actions,actions.close,[X],Schliessen,Close,x,yes,neutral
+actions,actions.delete,[DEL],Löschen,Delete,trash,no,danger
+actions,actions.archive,[ARC],Archivieren,Archive,archive,yes,neutral
+actions,actions.restore,[RES],Wiederherstellen,Restore,restore,yes,neutral
+actions,actions.copy,[CP],Kopieren,Copy,copy,yes,neutral
+actions,actions.move,[MV],Verschieben,Move,arrows-move,yes,neutral
+actions,actions.more,[...],Mehr,More,dots,yes,neutral
+actions,actions.open,[>],Öffnen,Open,chevron-right,yes,neutral
+actions,actions.back,[<],Zurück,Back,arrow-left,yes,neutral
+actions,actions.next,[>],Weiter,Next,arrow-right,no,primary
+actions,actions.refresh,[R],Aktualisieren,Refresh,refresh,yes,neutral
+actions,actions.undo,[U],Rückgängig,Undo,arrow-back-up,yes,neutral
+actions,actions.redo,[RE],Wiederholen,Redo,arrow-forward-up,yes,neutral
+actions,actions.preview,[V],Vorschau,Preview,eye,yes,neutral
+actions,actions.print,[P],Drucken,Print,printer,yes,neutral
+actions,actions.download,[DL],Herunterladen,Download,download,yes,neutral
+actions,actions.upload,[UL],Hochladen,Upload,upload,yes,neutral
+actions,actions.import,[IN],Importieren,Import,file-import,yes,neutral
+actions,actions.export,[OUT],Exportieren,Export,file-export,yes,neutral
+actions,actions.retry,[R],Erneut versuchen,Retry,reload,no,primary
+status,status.ok,[OK],OK,OK,circle-check,yes,success
+status,status.success,[OK],Erfolgreich,Successful,circle-check,yes,success
+status,status.info,[i],Info,Info,info-circle,yes,neutral
+status,status.warning,[!],Achtung,Warning,alert-triangle,no,warning
+status,status.error,[X],Fehler,Error,circle-x,no,danger
+status,status.active,[ON],Aktiv,Active,circle-check,yes,success
+status,status.inactive,[OFF],Inaktiv,Inactive,circle-minus,yes,neutral
+status,status.pending,[...],Offen,Pending,clock,yes,warning
+status,status.progress,[~],In Arbeit,In progress,loader,yes,neutral
+status,status.done,[OK],Erledigt,Done,checks,yes,success
+status,status.blocked,[!],Blockiert,Blocked,ban,no,danger
+status,status.missing,[-],Fehlt,Missing,circle-dashed,yes,warning
+status,status.partial,[~],Teilweise,Partial,circle-half,yes,warning
+status,status.unknown,[?],Unbekannt,Unknown,help-circle,yes,neutral
+status,status.locked,[L],Gesperrt,Locked,lock,yes,neutral
+status,status.readonly,[RO],Nur lesen,Read only,eye,yes,neutral
+status,status.online,[ON],Online,Online,wifi,yes,neutral
+status,status.offline,[OFF],Offline,Offline,wifi-off,yes,warning
+status,status.synced,[SYNC],Synchronisiert,Synced,cloud-check,yes,neutral
+status,status.unsynced,[!],Nicht synchronisiert,Not synced,cloud-off,yes,warning
+review,review.unchecked,[?],Ungeprüft,Unchecked,circle-dashed,yes,warning
+review,review.pending,[!],Prüfung offen,Review required,alert-circle,yes,warning
+review,review.running,[...],Wird geprüft,Reviewing,loader,yes,neutral
+review,review.approved,[OK],Geprüft,Approved,circle-check,yes,success
+review,review.rejected,[X],Abgelehnt,Rejected,circle-x,no,danger
+review,review.changed,[*],Seit Prüfung geändert,Changed since review,edit-circle,yes,neutral
+publish,publish.draft,[D],Entwurf,Draft,pencil,yes,neutral
+publish,publish.ready,[R],Bereit,Ready,checks,yes,neutral
+publish,publish.published,[PUB],Veröffentlicht,Published,world-check,yes,success
+publish,publish.hidden,[H],Ausgeblendet,Hidden,eye-off,yes,neutral
+publish,publish.scheduled,[T],Geplant,Scheduled,calendar-time,yes,neutral
+view,view.search,[/],Suchen,Search,search,yes,neutral
+view,view.filter,[F],Filter,Filter,filter,yes,neutral
+view,view.reset,[R],Zurücksetzen,Reset,filter-off,yes,neutral
+view,view.list,[=],Liste,List,list,yes,neutral
+view,view.cards,[##],Karten,Cards,layout-cards,yes,neutral
+view,view.grid,[#],Raster,Grid,grid-dots,yes,neutral
+view,view.compact,[C],Kompakt,Compact,layout-list,yes,neutral
+view,view.detail,[D],Detail,Detail,list-details,yes,neutral
+view,view.fullscreen,[FS],Vollbild,Fullscreen,maximize,yes,neutral
+view,view.expand,[+],Aufklappen,Expand,chevron-down,yes,neutral
+view,view.collapse,[-],Einklappen,Collapse,chevron-up,yes,neutral
+time,time.today,[T],Heute,Today,calendar-event,yes,neutral
+time,time.date,[DT],Datum,Date,calendar,yes,neutral
+time,time.time,[TM],Zeit,Time,clock,yes,neutral
+time,time.week,[W],Woche,Week,calendar-week,yes,neutral
+time,time.month,[M],Monat,Month,calendar-month,yes,neutral
+time,time.previous,[<],Vorheriger Zeitraum,Previous period,chevron-left,yes,neutral
+time,time.next,[>],Nächster Zeitraum,Next period,chevron-right,no,primary
+meal,meal.breakfast,[FR],Frühstück,Breakfast,coffee,yes,neutral
+meal,meal.lunch,[MI],Mittagessen,Lunch,tools-kitchen-2,yes,neutral
+meal,meal.dinner,[AB],Abendessen,Dinner,moon-stars,yes,neutral
+meal,meal.snack,[ZN],Zwischenmahlzeit,Snack,apple,yes,neutral
+meal,meal.soup,[S],Suppe,Soup,bowl-spoon,yes,neutral
+meal,meal.starter,[V],Vorspeise,Starter,salad,yes,neutral
+meal,meal.main,[H],Hauptgericht,Main course,tools-kitchen-2,yes,neutral
+meal,meal.side,[B],Beilage,Side dish,leaf,yes,neutral
+meal,meal.salad,[A],Salat,Salad,salad,yes,neutral
+meal,meal.dessert,[D],Dessert,Dessert,cake,yes,neutral
+meal,meal.beverage,[G],Getränk,Beverage,cup,yes,neutral
+diet,diet.vegetarian,[V],Vegetarisch,Vegetarian,leaf,yes,neutral
+diet,diet.vegan,[VG],Vegan,Vegan,plant-2,yes,neutral
+diet,diet.meat,[FL],Fleisch,Meat,meat,yes,neutral
+diet,diet.fish,[FI],Fisch,Fish,fish,yes,neutral
+diet,diet.glutenfree,[GF],Glutenfrei,Gluten-free,wheat-off,yes,neutral
+diet,diet.lactosefree,[LF],Laktosefrei,Lactose-free,milk-off,yes,neutral
+diet,diet.bio,[BIO],Bio,Organic,leaf-2,yes,neutral
+diet,diet.regional,[REG],Regional,Regional,map-pin,yes,neutral
+diet,diet.seasonal,[SAI],Saisonal,Seasonal,calendar-heart,yes,neutral
+diet,diet.recommended,[*],Empfehlung,Recommended,star,yes,neutral
+recipe,recipe.recipe,[R],Rezept,Recipe,recipe,yes,neutral
+recipe,recipe.ingredient,[Z],Zutat,Ingredient,carrot,yes,neutral
+recipe,recipe.step,[#],Schritt,Step,list-numbers,yes,neutral
+recipe,recipe.quantity,[Q],Menge,Quantity,scale,yes,neutral
+recipe,recipe.unit,[U],Einheit,Unit,ruler-measure,yes,neutral
+recipe,recipe.portion,[P],Portion,Portion,users,yes,neutral
+recipe,recipe.duration,[T],Dauer,Duration,clock,yes,neutral
+recipe,recipe.temperature,[C],Temperatur,Temperature,temperature,yes,neutral
+recipe,recipe.cut,[CUT],Schneiden,Cut,knife,yes,neutral
+recipe,recipe.cook,[COOK],Kochen,Cook,flame,yes,neutral
+recipe,recipe.bake,[BAKE],Backen,Bake,oven,yes,neutral
+recipe,recipe.cool,[COOL],Kühlen,Chill,snowflake,yes,neutral
+recipe,recipe.freeze,[ICE],Tiefkühlen,Freeze,snowflake,yes,neutral
+recipe,recipe.thaw,[THAW],Auftauen,Thaw,temperature-sun,yes,neutral
+stock,stock.stock,[ST],Bestand,Stock,packages,yes,neutral
+stock,stock.ok,[OK],Bestand OK,Stock OK,package,yes,success
+stock,stock.low,[!],Bestand niedrig,Low stock,package-off,yes,warning
+stock,stock.empty,[0],Nicht vorrätig,Out of stock,box-off,yes,danger
+stock,stock.location,[LOC],Lagerort,Storage location,map-pin,yes,neutral
+stock,stock.dry,[DRY],Trockenlager,Dry storage,building-warehouse,yes,neutral
+stock,stock.fridge,[COLD],Kühlraum,Cold storage,snowflake,yes,neutral
+stock,stock.freezer,[ICE],Tiefkühler,Freezer,snowflake,yes,neutral
+order,order.shopping_list,[L],Einkaufsliste,Shopping list,list-check,yes,neutral
+order,order.cart,[C],Warenkorb,Cart,shopping-cart,yes,neutral
+order,order.supplier,[SUP],Lieferant,Supplier,truck-delivery,yes,neutral
+order,order.order,[ORD],Bestellung,Order,clipboard-list,yes,neutral
+order,order.ordered,[>],Bestellt,Ordered,send,yes,neutral
+order,order.delivered,[OK],Geliefert,Delivered,truck-delivery,yes,success
+order,order.cancelled,[X],Storniert,Cancelled,circle-x,no,danger
+data,data.price,[CHF],Preis,Price,currency-frank,yes,neutral
+data,data.calculation,[SUM],Kalkulation,Calculation,calculator,yes,neutral
+data,data.total,[=],Total,Total,sum,yes,neutral
+data,data.csv,[CSV],CSV,CSV,file-type-csv,yes,neutral
+data,data.pdf,[PDF],PDF,PDF,file-type-pdf,yes,neutral
+data,data.image,[IMG],Bild,Image,photo,yes,neutral
+data,data.history,[HIS],Verlauf,History,history,yes,neutral
+data,data.revision,[REV],Revision,Revision,versions,yes,neutral
+data,data.manual,[M],Manuell,Manual,hand-click,yes,neutral
+data,data.inherited,[->],Geerbt,Inherited,hierarchy,yes,neutral
+data,data.automatic,[A],Automatisch,Automatic,automation,yes,neutral
+data,data.ai,[AI],KI-Vorschlag,AI suggestion,sparkles,yes,neutral
+admin,admin.user,[U],Benutzer,User,user,yes,neutral
+admin,admin.users,[UU],Benutzer,Users,users,yes,neutral
+admin,admin.role,[R],Rolle,Role,user-shield,yes,neutral
+admin,admin.permission,[P],Berechtigung,Permission,key,yes,neutral
+admin,admin.admin,[ADM],Administrator,Administrator,shield-lock,yes,neutral
+admin,admin.settings,[SET],Einstellungen,Settings,settings,yes,neutral
+admin,admin.appearance,[UI],Erscheinungsbild,Appearance,palette,yes,neutral
+admin,admin.interface,[API],Schnittstelle,Interface,plug-connected,yes,neutral
+admin,admin.api_key,[KEY],API-Schlüssel,API key,key,yes,neutral
+admin,admin.connected,[OK],Verbunden,Connected,plug-connected,yes,neutral
+admin,admin.disconnected,[X],Getrennt,Disconnected,plug-off,yes,neutral
+admin,admin.sync,[SYNC],Synchronisieren,Synchronize,refresh,yes,neutral
+admin,admin.webhook,[WH],Webhook,Webhook,webhook,yes,neutral
+admin,admin.opening_hours,[TIME],Öffnungszeiten,Opening hours,clock-hour-4,yes,neutral
+admin,admin.area,[AREA],Bereich,Area,layout,yes,neutral
+allergen,allergen.gluten,[GL],Gluten,Gluten,wheat,yes,warning
+allergen,allergen.crustaceans,[KR],Krebstiere,Crustaceans,crab,yes,warning
+allergen,allergen.eggs,[EI],Eier,Eggs,egg,yes,warning
+allergen,allergen.fish,[FI],Fisch,Fish,fish,yes,warning
+allergen,allergen.peanuts,[ER],Erdnüsse,Peanuts,peanut,yes,warning
+allergen,allergen.soy,[SO],Soja,Soy,seedling,yes,warning
+allergen,allergen.milk,[MI],Milch,Milk,milk,yes,warning
+allergen,allergen.nuts,[SN],Schalenfrüchte,Tree nuts,nut,yes,warning
+allergen,allergen.celery,[SE],Sellerie,Celery,carrot,yes,warning
+allergen,allergen.mustard,[SF],Senf,Mustard,bottle,yes,warning
+allergen,allergen.sesame,[SS],Sesam,Sesame,dots,yes,warning
+allergen,allergen.sulfites,[SU],Sulfite,Sulphites,flask,yes,warning
+allergen,allergen.lupin,[LU],Lupinen,Lupin,flower,yes,warning
+allergen,allergen.molluscs,[WT],Weichtiere,Molluscs,shell,yes,warning
+allergen,allergen.none,[0],Keine Allergene,No allergens,circle-check,no,neutral
+allergen,allergen.unknown,[?],Nicht erfasst,Not recorded,alert-triangle,no,neutral
+allergen,allergen.inherited,[->],Geerbt,Inherited,hierarchy,no,neutral
+allergen,allergen.manual,[M],Manuell,Manual,hand-click,no,neutral
+navigation,navigation.dashboard,[HOME],Übersicht,Dashboard,home,no,neutral
+navigation,navigation.weekplan,[W],Wochenplan,Weekly plan,calendar-week,no,neutral
+navigation,navigation.menus,[MENU],Menüs,Menus,tools-kitchen-2,no,neutral
+navigation,navigation.components,[COMP],Bausteine,Components,blocks,no,neutral
+navigation,navigation.ingredients,[ING],Zutaten,Ingredients,carrot,no,neutral
+navigation,navigation.recipes,[REC],Rezepte,Recipes,recipe,no,neutral
+navigation,navigation.cookbooks,[BOOK],Kochbücher,Cookbooks,book,no,neutral
+navigation,navigation.templates,[TPL],Gerichtvorlagen,Dish templates,template,no,neutral
+navigation,navigation.shopping,[SHOP],Einkaufslisten,Shopping lists,list-check,no,neutral
+navigation,navigation.orders,[ORD],Bestellung,Orders,clipboard-list,no,neutral
+navigation,navigation.stock,[ST],Lager,Stock,packages,no,neutral
+navigation,navigation.costing,[SUM],Kalkulation,Costing,calculator,no,neutral
+navigation,navigation.screens,[SCR],Vorschau & Bildschirme,Preview & screens,device-tv,no,neutral
+navigation,navigation.settings,[SET],Einstellungen,Settings,settings,no,neutral
