@@ -612,11 +612,16 @@ def test_schema3_import_preserves_course_state_seen_under_week_lock(
         dessert_row_version=0,
     )
     packed = load_week_courses(db.app, db.location_id, WEEK, 'staff_guest')
-    soup_version = int(packed[(WEEK.isoformat(), 'LUNCH')]['shared']['soup']['row_version'])
+    loaded_soup = packed[(WEEK.isoformat(), 'LUNCH')]['shared']['soup']
+    soup_version = int(loaded_soup['row_version'])
+    soup_public_id = str(loaded_soup['public_id'])
     persist_service_courses(
         db.app, scope, WEEK, WEEK.isoformat(), 'LUNCH',
-        soup={'state': 'planned', 'recipe_public_id': replacement['recipe_public_id']},
-        dessert={'state': 'unplanned'},
+        soup={
+            'state': 'planned', 'recipe_public_id': replacement['recipe_public_id'],
+            'public_id': soup_public_id,
+        },
+        dessert={'state': 'unplanned', 'public_id': ''},
         soup_row_version=soup_version,
         dessert_row_version=0,
     )
