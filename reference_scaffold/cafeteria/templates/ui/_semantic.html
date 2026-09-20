@@ -76,6 +76,8 @@
     <h2 id="{{ id }}-title">{{ icon_label(key) }}</h2>
     <p id="{{ id }}-consequence">{{ t(sem(consequence_key).label_key) }}</p>
     {{ icon_button(confirm_key, name=name, value=value, form=form, consequence_key=consequence_key) }}
+    {# Native close path: works without JavaScript and never submits the owning form. #}
+    <form method="dialog" class="ui-sem-dialog-cancel">{{ icon_button('actions.cancel', type='submit') }}</form>
     {{ caller() if caller else '' }}
   </dialog>
 {%- endmacro %}

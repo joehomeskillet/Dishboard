@@ -18,6 +18,19 @@ from cafeteria.ui.semantics import (
 from cafeteria.food_symbols import food_symbol
 
 
+# Written out independently of the code under test: a wrong mapping must fail here.
+EXPECTED_FOOD = {
+    'diet.vegetarian': ('labels', 'VEGETARIAN'), 'diet.vegan': ('labels', 'VEGAN'),
+    'allergen.gluten': ('allergens', 'GLUTEN'), 'allergen.crustaceans': ('allergens', 'CRUSTACEANS'),
+    'allergen.eggs': ('allergens', 'EGGS'), 'allergen.fish': ('allergens', 'FISH'),
+    'allergen.peanuts': ('allergens', 'PEANUTS'), 'allergen.soy': ('allergens', 'SOY'),
+    'allergen.milk': ('allergens', 'MILK'), 'allergen.nuts': ('allergens', 'NUTS'),
+    'allergen.celery': ('allergens', 'CELERY'), 'allergen.mustard': ('allergens', 'MUSTARD'),
+    'allergen.sesame': ('allergens', 'SESAME'), 'allergen.sulfites': ('allergens', 'SULPHITES'),
+    'allergen.lupin': ('allergens', 'LUPIN'), 'allergen.molluscs': ('allergens', 'MOLLUSCS'),
+}
+
+
 @pytest.fixture
 def semantic_app():
     app = Flask('semantic-tests', template_folder=str(ROOT.parent / 'templates'),
@@ -37,9 +50,10 @@ def test_registry_source_schema_and_frozen_resolution():
     assert len(read_json(ROOT / 'icon_fallbacks.json')) == 118
     available = sprite_icons()
     assert len(available) == 35
+    assert FOOD == EXPECTED_FOOD
     for key, item in registry.items():
-        if key in FOOD:
-            kind, code = FOOD[key]
+        if key in EXPECTED_FOOD:
+            kind, code = EXPECTED_FOOD[key]
             assert item.resolved_icon == f'food:{kind}:{code}'
             asset = food_symbol(code, kind)
             assert asset and (STATIC / asset.filename).is_file()
@@ -123,6 +137,13 @@ def test_parameters_escape_even_markup_and_named_fields_reorder():
         resolver.translate('message', 'en', first='A')
     with pytest.raises(SemanticError, match='unsupported UI_LOCALE'):
         resolver.translate('message', '../../en')
+
+
+def test_production_keeps_the_page_when_a_parameter_is_missing(caplog):
+    production = Translator({'de': {'message': '{first} vor {second}'}}, production=True)
+    result = production.translate('message', 'de', first=Markup('<b>A</b>'))
+    assert result == '&lt;b&gt;A&lt;/b&gt; vor {second}'
+    assert "Missing UI translation parameters ['second'] for message" in caplog.text
 
 
 def test_globals_allowlist_and_icon_only_policy(semantic_app):

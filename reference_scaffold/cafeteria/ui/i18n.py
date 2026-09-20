@@ -80,10 +80,15 @@ class Translator:
         names = message_fields(key, message)
         missing = names - params.keys()
         if missing:
-            raise SemanticError(f'{key}: missing parameters {sorted(missing)}')
+            if not self.production:
+                raise SemanticError(f'{key}: missing parameters {sorted(missing)}')
+            # A template bug must not take a kitchen page down: keep the visible
+            # placeholder, log it, and let tests (which raise above) catch the cause.
+            LOGGER.error('Missing UI translation parameters %s for %s', sorted(missing), key)
         # Escape the entire result, including str(Markup) parameters. No HTML or
         # __html__ protocol supplied by a caller becomes trusted markup here.
-        return escape(message.format_map({name: str(params[name]) for name in names}))
+        values = {name: str(params[name]) if name in params else '{' + name + '}' for name in names}
+        return escape(message.format_map(values))
 
 
 def translate(key: str, locale: str | None = None, **params: object) -> Markup:
