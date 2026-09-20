@@ -47,10 +47,17 @@ def test_tabler_lists_preserve_navigation_and_tablet_layout(page_context, admin_
     _save(admin_engine, 'staff_guest', _staff_values())
     _save(admin_engine, 'patient', _patient_values())
     page = page_context
-    for route, row in [('menues', '[data-menu-id]'), ('wochen', '[data-week-id]')]:
+    for route, row in [('menues', '[data-menu-list-id]'), ('wochen', '[data-week-id]')]:
         response = page.goto(f'/admin/{family}/{route}')
         assert response.status == 200
         expect(page.locator(row).first).to_be_visible()
+        if route == 'menues':
+            expect(page.locator('#menu-list')).to_be_visible()
+            expect(page.locator('#menu-cards')).to_be_hidden()
+            page.get_by_role('tab', name='Karten', exact=True).click()
+            expect(page.locator('[data-menu-id]').first).to_be_visible()
+            page.get_by_role('tab', name='Liste', exact=True).click()
+            expect(page.locator('#menu-list')).to_be_visible()
         assert page.locator('link[href$="vendor/tabler/tabler.min.css"]').count() == 1
         assert page.locator('link[href$="/app.css"]').count() == 0
         assert page.locator('script[src$="vendor/tabler/tabler.min.js"]').count() == 1

@@ -26,20 +26,22 @@ MISSING = 'Allergenangaben nicht erfasst'
 def _assert_metadata(page: Page, *, filled: bool) -> None:
     metadata = page.locator('[data-menu-metadata]')
     assert metadata.count() >= 2
-    first, second = metadata.nth(0), metadata.nth(1)
+    filled_metadata = metadata.filter(has_text='Kartoffel: CH')
+    missing_metadata = metadata.filter(has_text=MISSING)
     if filled:
-        expect(first).to_contain_text(DESCRIPTION)
-        expect(first).to_contain_text(NOTE)
-        assert sorted(first.locator('.label').all_text_contents()) == sorted([
+        expect(filled_metadata).to_have_count(1)
+        expect(page.get_by_text(DESCRIPTION, exact=True)).to_have_count(1)
+        expect(page.get_by_text(NOTE, exact=True)).to_have_count(1)
+        assert sorted(filled_metadata.locator('.label').all_text_contents()) == sorted([
             'Kartoffel: CH', 'Vegetarisch', 'Enthält: Milch', 'Kann enthalten: Sellerie',
         ])
-        expect(first).not_to_contain_text(MISSING)
+        expect(filled_metadata).not_to_contain_text(MISSING)
     else:
-        expect(first).to_contain_text(MISSING)
-        assert first.locator('.label').count() == 0
-        assert first.locator('.menu-description, .shared-note').count() == 0
-    expect(second).to_contain_text(MISSING)
-    assert second.locator('.label').count() == 0
+        expect(filled_metadata).to_have_count(0)
+        expect(page.get_by_text(DESCRIPTION, exact=True)).to_have_count(0)
+        expect(page.get_by_text(NOTE, exact=True)).to_have_count(0)
+    expect(missing_metadata).to_have_count(metadata.count() - (1 if filled else 0))
+    assert missing_metadata.locator('.label').count() == 0
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
     assert metadata.evaluate_all(
         'els => els.every(el => el.scrollWidth <= el.clientWidth + 1)'
@@ -101,7 +103,11 @@ def test_saved_metadata_reaches_overview_preview_editor_and_error_response(
     invalid = client.post(f'/admin/{family}/menu', data={
         '_csrf': _hidden(editor_body, '_csrf', form_action=f'/admin/{family}/menu'),
         'week': DAY, 'day': DAY, 'meal': 'LUNCH', 'option': 'MENU_1', 'row_version': '1',
-        'title': '', 'allergen_mode': 'manual', 'origin_mode': 'manual', 'label_mode': 'manual',
+        'title': '', 'description': DESCRIPTION, 'note': NOTE,
+        'allergen_mode': 'manual', 'allergen_code': ['MILK', 'CELERY'],
+        'allergen_presence': ['contains', 'may_contain'],
+        'origin_mode': 'manual', 'origin_ingredient': ['Kartoffel'],
+        'origin_country_code': ['CH'], 'label_mode': 'manual', 'label_code': ['VEGETARIAN'],
     })
     assert invalid.status_code == 400
     for body in (editor_body, invalid.get_data(as_text=True)):
@@ -113,12 +119,18 @@ def test_saved_metadata_reaches_overview_preview_editor_and_error_response(
                 review = page.locator('.review-block')
                 expect(review).to_have_count(1)
                 expect(review).to_be_visible()
-                expect(review).to_contain_text('Enthält: Milch')
-                expect(review).to_contain_text('Kann enthalten: Sellerie')
-                expect(review).not_to_contain_text('Enthält: Sellerie')
-                expect(review).not_to_contain_text(MISSING)
+                expect(page.locator('#f-desc')).to_have_value(DESCRIPTION)
+                expect(page.locator('#f-note')).to_have_value(NOTE)
+                expect(page.locator('#allergen-milk')).to_be_checked()
+                expect(page.get_by_label('Präsenz für Milch', exact=True)).to_have_value('contains')
+                expect(page.locator('#allergen-celery')).to_be_checked()
+                expect(page.get_by_label('Präsenz für Sellerie', exact=True)).to_have_value('may_contain')
+                expect(page.locator('#label-vegetarian')).to_be_checked()
+                expect(page.locator('#origin-0-ingredient')).to_have_value('Kartoffel')
+                expect(page.locator('#origin-0-country')).to_have_value('CH')
                 expect(review).to_contain_text('Zuletzt gespeicherter Stand')
-                expect(review.locator('li').filter(has_text='Allergene:')).to_be_visible()
+                expect(review.get_by_text('Allergene', exact=True)).to_be_visible()
+                expect(review.locator('[data-review-field="allergens"]')).to_be_visible()
                 assert review.evaluate('el => el.scrollWidth <= el.clientWidth + 1')
             finally:
                 page.close()

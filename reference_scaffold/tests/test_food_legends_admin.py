@@ -36,27 +36,39 @@ def test_admin_legends_explain_only_the_rendered_cards(
     cookie = client.get_cookie('session')
     assert cookie is not None
     week = values['days'][0]['date']
+
+    def assert_rendered_legend(page) -> None:
+        legend = page.locator('.food-legend:visible')
+        expect(legend).to_have_count(1)
+        assert legend.inner_text().count('Enthält: Milch') == 1
+        assert legend.inner_text().count('Kann enthalten: Milch') == 1
+        assert legend.inner_text().count('Schweiz') == 1
+        assert 'Fisch' not in legend.inner_text()
+        assert 'Sesam' not in legend.inner_text()
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        assert legend.locator('img').evaluate_all(
+            'nodes => nodes.every(n => n.complete && n.naturalWidth > 0)'
+        )
+
     with browser.new_context(base_url=live_server) as context:
         context.add_cookies([{'name': 'session', 'value': cookie.value, 'url': live_server, 'httpOnly': True}])
         page = context.new_page()
         for width in (390, 1440):
             page.set_viewport_size({'width': width, 'height': 1100})
-            for suffix in ('', '/preview', '/menues'):
-                path = f'/admin/{family}{suffix}' + (f'?week={week}' if suffix != '/menues' else '')
-                response = page.goto(path, wait_until='load')
+            for suffix, name in (('', 'week'), ('/preview', 'preview')):
+                response = page.goto(f'/admin/{family}{suffix}?week={week}', wait_until='load')
                 assert response and response.status == 200
-                legend = page.locator('.food-legend:visible')
-                expect(legend).to_have_count(1)
-                assert legend.inner_text().count('Enthält: Milch') == 1
-                assert legend.inner_text().count('Kann enthalten: Milch') == 1
-                assert legend.inner_text().count('Schweiz') == 1
-                assert 'Fisch' not in legend.inner_text()
-                assert 'Sesam' not in legend.inner_text()
-                assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-                assert legend.locator('img').evaluate_all('nodes => nodes.every(n => n.complete && n.naturalWidth > 0)')
-                page.screenshot(path=str(tmp_path / f'{family}-{suffix.replace("/", "") or "week"}-{width}.png'), full_page=True)
-                if suffix == '/menues':
-                    page.get_by_role('tab', name='Liste', exact=True).click()
-                    expect(page.locator('.food-legend:visible')).to_have_count(0)
-                    page.get_by_role('tab', name='Karten', exact=True).click()
-                    expect(page.locator('.food-legend:visible')).to_have_count(1)
+                assert_rendered_legend(page)
+                page.screenshot(
+                    path=str(tmp_path / f'{family}-{name}-{width}.png'), full_page=True
+                )
+            response = page.goto(f'/admin/{family}/menues', wait_until='load')
+            assert response and response.status == 200
+            expect(page.get_by_role('tab', name='Liste', exact=True)).to_have_attribute('aria-selected', 'true')
+            expect(page.locator('#menu-list')).to_be_visible()
+            expect(page.locator('#menu-cards')).to_be_hidden()
+            expect(page.locator('.food-legend:visible')).to_have_count(0)
+            page.get_by_role('tab', name='Karten', exact=True).click()
+            expect(page.locator('#menu-cards')).to_be_visible()
+            assert_rendered_legend(page)
+            page.screenshot(path=str(tmp_path / f'{family}-cards-{width}.png'), full_page=True)
