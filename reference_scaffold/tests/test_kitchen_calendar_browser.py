@@ -25,7 +25,9 @@ pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehl
 
 CALENDAR_URL = '/admin/kuechenkalender?jump=2026-09'
 FULL_DAY = 2
+EMPTY_DAY = 7
 EXPECTED_DISHES_FULL_DAY = 6
+MOBILE_DOC_HEIGHT_BEFORE = 4812
 VIEWPORTS = ((360, 800), (768, 1024), (1024, 900), (1440, 900))
 
 
@@ -109,6 +111,37 @@ def _full_day_cell(page: Page):
     ).first
 
 
+def _empty_day_cell(page: Page):
+    return page.locator('.kitchen-cal-grid td.kitchen-cal-day:not(.kitchen-cal-day-muted)').filter(
+        has=page.locator('.kitchen-cal-day-num', has_text=str(EMPTY_DAY)),
+    ).first
+
+
+def _empty_week_row(page: Page):
+    return page.locator('.kitchen-cal-table tbody tr').filter(
+        has=page.locator('.kitchen-cal-day-num', has_text=str(EMPTY_DAY)),
+    ).first
+
+
+def _empty_list_day(page: Page):
+    return page.locator('.kitchen-cal-list-day').filter(
+        has=page.locator('.kitchen-cal-list-head a', has_text=re.compile(rf'{EMPTY_DAY}\. September')),
+    ).first
+
+
+def _boxes_overlap(left: dict[str, float], right: dict[str, float]) -> bool:
+    left_right = left['x'] + left['width']
+    left_bottom = left['y'] + left['height']
+    right_right = right['x'] + right['width']
+    right_bottom = right['y'] + right['height']
+    return not (
+        left_right <= right['x']
+        or right_right <= left['x']
+        or left_bottom <= right['y']
+        or right_bottom <= left['y']
+    )
+
+
 def _dish_counts(cell) -> dict[str, int]:
     return cell.evaluate('''(element) => {
         const dishes = [...element.querySelectorAll('.kitchen-cal-dish')];
@@ -137,9 +170,29 @@ def test_compact_full_day_cell_and_week_rows(
         assert metrics['within900'] >= 4, metrics
 
         counts = _dish_counts(cell)
-        assert counts['visible'] <= 4, counts
+        assert counts['visible'] <= 3, counts
         assert counts['total'] == EXPECTED_DISHES_FULL_DAY, counts
         assert counts['visible'] + counts['overflow'] == EXPECTED_DISHES_FULL_DAY, counts
+
+        empty_row = _empty_week_row(page)
+        row_box = empty_row.bounding_box()
+        assert row_box is not None, 'empty week row missing'
+        assert row_box['height'] <= 72, f'empty week row height {row_box["height"]:.1f}px exceeds 72px'
+
+        empty_cell = _empty_day_cell(page)
+        head = empty_cell.locator('.kitchen-cal-day-head')
+        plan = empty_cell.locator('.kitchen-cal-plan')
+        assert plan.count() == 1
+        head_box = head.bounding_box()
+        plan_box = plan.bounding_box()
+        assert head_box is not None and plan_box is not None
+        assert not _boxes_overlap(head_box, plan_box), {
+            'head': head_box,
+            'plan': plan_box,
+        }
+        head.focus()
+        page.keyboard.press('Tab')
+        assert plan.evaluate('element => element === document.activeElement') is True
 
         page.screenshot(path=str(tmp_path / 'kitchen-calendar-1440x900.png'), full_page=True)
     finally:
@@ -177,6 +230,32 @@ def test_calendar_has_no_horizontal_overflow(
             innerWidth: window.innerWidth,
         })''')
         if width == 360:
+            empty_day = _empty_list_day(page)
+            day_box = empty_day.bounding_box()
+            assert day_box is not None, 'empty mobile list day missing'
+            assert day_box['height'] <= 64, f'empty mobile day height {day_box["height"]:.1f}px exceeds 64px'
+
+            doc_height = page.evaluate('document.documentElement.scrollHeight')
+            max_height = MOBILE_DOC_HEIGHT_BEFORE * 0.65
+            assert doc_height <= max_height, (
+                f'mobile document height {doc_height}px not at least 35% smaller than '
+                f'{MOBILE_DOC_HEIGHT_BEFORE}px (max {max_height:.0f}px)'
+            )
+
+            head = empty_day.locator('.kitchen-cal-list-head > a').first
+            plan = empty_day.locator('.kitchen-cal-plan')
+            assert plan.count() == 1
+            head_box = head.bounding_box()
+            plan_box = plan.bounding_box()
+            assert head_box is not None and plan_box is not None
+            assert not _boxes_overlap(head_box, plan_box), {
+                'head': head_box,
+                'plan': plan_box,
+            }
+            head.focus()
+            page.keyboard.press('Tab')
+            assert plan.evaluate('element => element === document.activeElement') is True
+
             page.screenshot(path=str(tmp_path / 'kitchen-calendar-360x800.png'), full_page=True)
     finally:
         context.close()
