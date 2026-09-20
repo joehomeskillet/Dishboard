@@ -240,10 +240,6 @@ def test_shell_styles_statusbar_variants_and_contextual_subnav(site):  # noqa: F
                 <div class="admin-statusbar-item admin-statusbar-item--danger"><dt class="admin-statusbar-label">Fehler</dt><dd class="admin-statusbar-value">Speichern fehlgeschlagen</dd></div>
                 <div class="admin-statusbar-item admin-statusbar-item--neutral"><dt class="admin-statusbar-label">Kontext</dt><dd class="admin-statusbar-value">KW 38</dd></div>
               </dl>`);
-            document.querySelector('.admin-nav .navbar-nav').insertAdjacentHTML('beforeend', `
-              <li class="admin-nav-subgroup"><ul class="admin-nav-subitems">
-                <li class="nav-item"><a class="nav-link" href="#"><span class="nav-link-title">Zutaten</span></a></li>
-              </ul></li>`);
         }''')
         statusbar = page.locator('.admin-statusbar')
         expect(statusbar).to_have_css('display', 'grid')
@@ -254,7 +250,10 @@ def test_shell_styles_statusbar_variants_and_contextual_subnav(site):  # noqa: F
             item = statusbar.locator(f'.admin-statusbar-item--{variant}').first
             colors.append(item.evaluate('el => [getComputedStyle(el).color, getComputedStyle(el).backgroundColor]'))
         assert len({tuple(color) for color in colors}) == len(variants), colors
-        subitems = page.locator('.admin-nav-subitems')
+        # The real contextual sub-navigation of the active area, not an injected stand-in.
+        subitems = page.locator('.admin-nav:visible .admin-nav-subitems')
+        expect(subitems).to_have_count(1)
+        expect(subitems.get_by_role('link', name='Zutaten', exact=True)).to_be_visible()
         assert subitems.evaluate('el => parseFloat(getComputedStyle(el).marginLeft) > 0')
         assert subitems.evaluate('el => getComputedStyle(el).borderLeftStyle') == 'solid'
 
