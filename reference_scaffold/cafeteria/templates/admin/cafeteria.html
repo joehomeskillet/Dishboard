@@ -32,9 +32,11 @@
 {% block main_attributes %}data-family="{{ family }}" data-week="{{ week_value }}" data-status="{{ status }}" data-loading-region aria-busy="{{ 'true' if status == 'loading' else 'false' }}"{% endblock %}
 {% block page_styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin-week-tabler.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin-wochenplan-kern.css') }}">
 {% endblock %}
 {% block page_header %}
-{{ page_header('Cafeteria-Plan', week_header_description, breadcrumbs=[{'label': 'Wochenpläne', 'url': url_for('admin.cafeteria')}]) }}
+{% from 'admin/_week_controls.html' import overview_header with context %}
+{{ overview_header('Cafeteria', 'Menüs und gemeinsame Gänge für die Mittagsausgabe planen.') }}
 {% if last_cell.day_label == 'Sonntag' %}
 <div class="container-xl"><p class="form-hint mb-0">Wochenendbetrieb: Samstag und Sonntag sind im Raster.</p></div>
 {% endif %}
