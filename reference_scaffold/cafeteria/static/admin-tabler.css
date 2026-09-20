@@ -93,6 +93,16 @@
 .dishboard-admin .admin-sidebar .nav-link-icon,
 .dishboard-admin .admin-sidebar .nav-link-icon .icon { width: 20px; height: 20px; flex: none; }
 .dishboard-admin .admin-sidebar .navbar-nav { gap: 4px; }
+.dishboard-admin .admin-sidebar .admin-nav-subitems {
+  display: grid; gap: var(--app-space-1); list-style: none;
+  margin: var(--app-space-1) 0 var(--app-space-3) var(--app-space-8);
+  padding: 0 0 0 var(--app-space-2);
+  border-left: 1px solid var(--app-sidebar-hover);
+}
+.dishboard-admin .admin-sidebar .admin-nav-subitems .nav-link {
+  min-height: 48px; padding: var(--app-space-2) var(--app-space-3);
+  font-size: var(--app-font-size-label);
+}
 .dishboard-admin .admin-user-profile { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .dishboard-admin .admin-user-info { display: grid; min-width: 0; }
 .dishboard-admin .admin-user-name { color: var(--app-sidebar-text); overflow-wrap: anywhere; }
@@ -423,11 +433,11 @@
 .dishboard-admin .table { --tblr-table-color: var(--app-text); --tblr-table-border-color: var(--app-border); }
 .dishboard-admin :is(.admin-main, .display-preview)[data-density="compact"] { --app-card-inset: var(--app-space-6); }
 .dishboard-admin :is(.admin-main, .display-preview)[data-density="comfortable"] { --app-card-inset: var(--app-space-8); }
-.dishboard-admin .admin-main > :is(header, .admin-area-tabs, .page-body),
+.dishboard-admin .admin-main > :is(header, .page-body),
 .dishboard-admin .admin-main .page-header {
   padding-inline: 0; margin-inline: 0; min-width: 0;
 }
-.dishboard-admin .admin-main > :is(header, .admin-area-tabs, .page-body) > .container-xl,
+.dishboard-admin .admin-main > :is(header, .page-body) > .container-xl,
 .dishboard-admin .admin-main .page-header > .container-xl {
   max-width: none; width: 100%; margin-inline: 0;
   padding-inline: var(--app-page-padding); min-width: 0;
@@ -442,16 +452,42 @@
 .dishboard-admin .page-header-subtitle {
   color: var(--app-text-muted); font-size: 1rem; margin-top: var(--app-space-1);
 }
-.dishboard-admin .admin-area-tabs { margin-top: var(--app-space-4); min-width: 0; }
-.dishboard-admin .admin-area-tabs .nav-tabs { flex-wrap: wrap; gap: var(--app-space-1); }
-.dishboard-admin .admin-area-tabs .nav-tabs .nav-link {
-  display: flex; align-items: center; white-space: normal; min-height: 48px;
-  padding: var(--app-space-2) var(--app-space-3); color: var(--app-text);
-  background: transparent; border: 0; border-bottom: 2px solid transparent; border-radius: 0;
+.dishboard-admin .admin-statusbar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: var(--app-space-2); width: 100%; min-width: 0;
+  margin: var(--app-space-4) 0; padding: 0;
 }
-.dishboard-admin .admin-area-tabs .nav-tabs .nav-link:is(.active, [aria-current="page"]) {
-  color: var(--app-primary); background: var(--app-primary-soft);
-  border-bottom-color: var(--app-primary); font-weight: 600;
+.dishboard-admin .admin-statusbar-item {
+  min-width: 0; margin: 0; padding: var(--app-space-3) var(--app-space-4);
+  color: var(--app-neutral-text); background: var(--app-neutral-soft);
+  border: 1px solid var(--app-border); border-left: 4px solid var(--app-neutral-text);
+  border-radius: var(--app-radius-control); overflow-wrap: anywhere;
+}
+.dishboard-admin .admin-statusbar-label {
+  margin: 0 0 var(--app-space-1); color: inherit;
+  font-size: var(--app-font-size-small); font-weight: 600;
+}
+.dishboard-admin .admin-statusbar-value { margin: 0; color: inherit; font-weight: 700; }
+.dishboard-admin .admin-statusbar-detail {
+  display: block; margin-top: var(--app-space-1); color: inherit;
+  font-size: var(--app-font-size-small); font-weight: 400;
+}
+.dishboard-admin .admin-statusbar-item--neutral {
+  color: var(--app-neutral-text); background: var(--app-neutral-soft);
+  border-left-color: var(--app-neutral-text);
+}
+.dishboard-admin .admin-statusbar-item--success {
+  color: var(--app-success-text); background: var(--app-success-soft);
+  border-left-color: var(--app-success-text);
+}
+.dishboard-admin .admin-statusbar-item--warning {
+  color: var(--app-warning-text); background: var(--app-warning-soft);
+  border-left-color: var(--app-warning-text);
+}
+.dishboard-admin .admin-statusbar-item--danger {
+  color: var(--app-danger-text); background: var(--app-danger-soft);
+  border-left-color: var(--app-danger-text);
 }
 .dishboard-admin .display-preview[data-content-width="contained"] { max-width: var(--app-container-width); margin-inline: auto; }
 .dishboard-admin .display-preview[data-content-width="full"] { max-width: none; }
@@ -462,16 +498,10 @@
   .dishboard-admin { --app-page-padding: var(--app-space-4); }
   .dishboard-admin :is(.admin-main, .display-preview)[data-density="compact"] { --app-card-inset: var(--app-space-4); }
   .dishboard-admin :is(.admin-main, .display-preview)[data-density="comfortable"] { --app-card-inset: var(--app-space-6); }
-  .dishboard-admin .admin-area-tabs .nav-tabs {
-    flex-wrap: wrap; overflow-x: auto; overscroll-behavior-x: contain;
-  }
 }
 
 .dishboard-admin .admin-main[data-layout="calendar"] .admin-page-header .page-header {
   padding-block: var(--app-space-3);
-}
-.dishboard-admin .admin-main[data-layout="calendar"] .admin-area-tabs {
-  margin-top: var(--app-space-2);
 }
 .kitchen-cal-toolbar {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
@@ -540,4 +570,3 @@
   .kitchen-cal-list { display: block; }
   .kitchen-cal-toolbar { flex-direction: column; align-items: stretch; }
 }
-

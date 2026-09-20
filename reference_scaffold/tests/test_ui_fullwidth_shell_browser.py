@@ -29,7 +29,7 @@ SHELL_METRICS = '''() => {
   const cs = getComputedStyle(box);
   const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
   const containers = [...document.querySelectorAll(
-    '.admin-page-header .container-xl, .admin-area-tabs > .container-xl, .page-body > .container-xl'
+    '.admin-page-header .container-xl, .page-body > .container-xl'
   )].map(el => el.getBoundingClientRect());
   return {
     maxWidth: cs.maxWidth,
@@ -101,7 +101,7 @@ def test_admin_pages_use_full_working_width(site, tmp_path: Path, javascript):  
 def _capture_shell(page, name, *, title=None, native=False, viewport_only=False):
     metrics = page.evaluate(SHELL_METRICS)
     assert not metrics['overflow'], metrics
-    expect(page.locator('.admin-area-tabs')).to_have_count(1)
+    expect(page.locator('.admin-area-tabs')).to_have_count(0)
     if title:
         heading = page.get_by_role('heading', level=1)
         expect(heading).to_have_text(title)
@@ -221,6 +221,49 @@ def test_low_height_recipe_focus_and_save_remain_reachable(site, javascript):  #
             return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
         }''')
         _capture_shell(page, f'low-height-focus-js{javascript}')
+    finally:
+        page.context.close()
+
+
+def test_shell_styles_statusbar_variants_and_contextual_subnav(site):  # noqa: F811
+    app, _, engine, _ = site
+    client, _ = _login(app, engine, ['Cafeteria.Admin'])
+    page = _page(site, client, viewport={'width': 1440, 'height': 900})
+    try:
+        _goto(page, '/admin/cafeteria/menues')
+        page.locator('.page-body > .container-xl').evaluate('''container => {
+            container.insertAdjacentHTML('afterbegin', `
+              <dl class="admin-statusbar" aria-label="Status">
+                <div class="admin-statusbar-item admin-statusbar-item--neutral"><dt class="admin-statusbar-label">Bereich</dt><dd class="admin-statusbar-value">Cafeteria</dd></div>
+                <div class="admin-statusbar-item admin-statusbar-item--success"><dt class="admin-statusbar-label">Status</dt><dd class="admin-statusbar-value">Betriebsbereit</dd></div>
+                <div class="admin-statusbar-item admin-statusbar-item--warning"><dt class="admin-statusbar-label">Prüfung</dt><dd class="admin-statusbar-value">Hinweis offen</dd></div>
+                <div class="admin-statusbar-item admin-statusbar-item--danger"><dt class="admin-statusbar-label">Fehler</dt><dd class="admin-statusbar-value">Speichern fehlgeschlagen</dd></div>
+                <div class="admin-statusbar-item admin-statusbar-item--neutral"><dt class="admin-statusbar-label">Kontext</dt><dd class="admin-statusbar-value">KW 38</dd></div>
+              </dl>`);
+            document.querySelector('.admin-nav .navbar-nav').insertAdjacentHTML('beforeend', `
+              <li class="admin-nav-subgroup"><ul class="admin-nav-subitems">
+                <li class="nav-item"><a class="nav-link" href="#"><span class="nav-link-title">Zutaten</span></a></li>
+              </ul></li>`);
+        }''')
+        statusbar = page.locator('.admin-statusbar')
+        expect(statusbar).to_have_css('display', 'grid')
+        expect(statusbar.locator('.admin-statusbar-item')).to_have_count(5)
+        variants = ('neutral', 'success', 'warning', 'danger')
+        colors = []
+        for variant in variants:
+            item = statusbar.locator(f'.admin-statusbar-item--{variant}').first
+            colors.append(item.evaluate('el => [getComputedStyle(el).color, getComputedStyle(el).backgroundColor]'))
+        assert len({tuple(color) for color in colors}) == len(variants), colors
+        subitems = page.locator('.admin-nav-subitems')
+        assert subitems.evaluate('el => parseFloat(getComputedStyle(el).marginLeft) > 0')
+        assert subitems.evaluate('el => getComputedStyle(el).borderLeftStyle') == 'solid'
+
+        page.set_viewport_size({'width': 360, 'height': 800})
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        boxes = statusbar.locator('.admin-statusbar-item').evaluate_all(
+            'items => items.map(item => item.getBoundingClientRect())'
+        )
+        assert all(box['width'] <= statusbar.bounding_box()['width'] + 1 for box in boxes)
     finally:
         page.context.close()
 

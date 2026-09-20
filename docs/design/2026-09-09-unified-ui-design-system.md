@@ -362,7 +362,7 @@ Prüfe berechnete Styles im Browser. Verhindere unbeabsichtigte Auswirkungen auf
 
 Alle regulären internen Tools verwenden denselben Seitenrahmen: Sidebar, bei benötigten Funktionen Topbar, Seitenkopf und Hauptinhalt. Topbar-Inhalte nicht erfinden; ohne zusätzliche Funktion keine leere Zierleiste erzeugen. Die gewählte Anwendungslösung wird zentral umgesetzt, nicht pro Tool neu entschieden.
 
-Der Hauptbereich braucht `min-width: 0`. Seine Breite wird aus dem verfügbaren Bereich neben der Sidebar berechnet; kein `100vw` über die Sidebar hinweg. Kopf, Bereichsnavigation und Hauptinhalt teilen dieselben äusseren Kanten. Auch innere Gesamtcontainer und Formulare nutzen die volle Arbeitsbreite. Nur einzelne kurze Felder und Lesetexte lokal begrenzen; breite Hauptarbeit mit schmalerem Prüfkontext ist ein gemeinsames Layoutmuster, keine schmale Gesamtspalte.
+Der Hauptbereich braucht `min-width: 0`. Seine Breite wird aus dem verfügbaren Bereich neben der Sidebar berechnet; kein `100vw` über die Sidebar hinweg. Die frühere Vorgabe «Kopf, Bereichsnavigation und Hauptinhalt teilen dieselben äusseren Kanten» ist am 2026-09-20 ersetzt durch: Seitenkopf, Statusbar und Hauptinhalt teilen dieselben äusseren Kanten; eine horizontale Bereichsnavigation existiert nicht mehr. Auch innere Gesamtcontainer und Formulare nutzen die volle Arbeitsbreite. Nur einzelne kurze Felder und Lesetexte lokal begrenzen; breite Hauptarbeit mit schmalerem Prüfkontext ist ein gemeinsames Layoutmuster, keine schmale Gesamtspalte.
 
 Die Sidebar erhält das vorhandene Original-Logo und den Produktnamen. Kein Logo nachzeichnen, keinen Claim ergänzen. Die vier fachlichen Haupteinstiege bleiben **Wochenplan**, **Menüs & Bausteine**, **Vorschau & Bildschirme** und **Einstellungen**, entsprechend vorhandenen Rechten. Unterfunktionen im Bereich zeigen, nicht erneut als 14 gleichrangige Sidebarlinks.
 
@@ -490,6 +490,8 @@ Desktop; Sidebar links, gesamte verbleibende Breite rechts. Der Marker `>` steht
 ```
 
 **Pflicht:** Kopf, Bereichsnavigation und Hauptinhalt nutzen dieselben äusseren Kanten. Eine zusätzliche Topbar nur für tatsächliche Funktionen, nie als leere Zierfläche. Der Bereichstitel darf ohne Karte stehen.
+
+**WP1-Shell-Vertrag, umgesetzt am 2026-09-20:** Der frühere Pflichtsatz «Kopf, Bereichsnavigation und Hauptinhalt» ist ersetzt durch «Seitenkopf, Statusbar und Hauptinhalt». `base_tabler.html` ruft `render_tabs()` nicht mehr auf. `.admin-statusbar` stellt 1–5 Slots als responsive Grid ohne horizontales Dokument-Scrolling dar. Jeder Slot verwendet `.admin-statusbar-item` plus genau eine Variante `--neutral`, `--success`, `--warning` oder `--danger`; Varianten bilden ausschliesslich auf die bestehenden `--app-*-text`-/`--app-*-soft`-Tokens ab. `.admin-nav-subitems` liefert Einrückung, Trennlinie und mindestens 48 px hohe Unterpunkte. Die 34 zentralen `--app-*`-Farbtokens bleiben unverändert. Nachweis: `test_ui_fullwidth_shell_browser.py`, `test_admin_display_browser.py`, `test_ui_master_tokens_browser.py`.
 
 **Responsive:** Unterhalb der bestehenden Sidebar-Schwelle wird die Navigation über „Menü“ geöffnet (als Drawer/kompakte Navigation zulässig). Sie darf das Formular nicht auf eine schmale Restfläche drücken. Für Login und öffentliche Ausgaben dieses Muster nicht blind erzwingen.
 
