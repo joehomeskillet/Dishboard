@@ -11,6 +11,24 @@
 
 ---
 
+## Auftraggeber-Entscheid 2026-09-20
+
+Gemäss Auftraggeber-Entscheid im Handoff (`docs/design/uiux-handoff-2026-09-20/`) werden folgende Regeln und Strukturen ersetzt bzw. präzisiert:
+* **M01 Seitenrahmen/Tabs/Statuslage:** Horizontale Haupt-Untermenüs entfallen; stattdessen eingerückte Kontextnavigation in der Sidebar (nur bei aktivem Oberpunkt). Neue Seitenstruktur: Titel + ein Satz Kontext → rechts höchstens EINE primäre globale Aktion → Statusbar über volle Inhaltsbreite → Filter/Suche nur wenn nötig → Hauptinhalt → Sekundäres/Technisches.
+* **R07:** Das Statusbar-Designsystem rückt als globale Komponente (3–5 Slots) zentral unter den Titel.
+* **R08:** Hauptaktion standardmässig oben rechts im Seitenkopf. Bei langen Editoren ist eine kompakte sticky Aktionsleiste zulässig.
+* **A17 (Testmatrix) & Mobile:** Pflichtbreiten 360, 768, 1024, 1440 px. Sidebar darf mobil zu Drawer werden.
+* **Begrifflichkeiten:** Der Navigationspunkt «Grundlagen» heisst neu «Zutaten». Der Seitentitel entspricht stets dem Navigationspunkt. Bestehende URLs und Endpoints bleiben unverändert.
+
+**Ausdrücklich unverändert bleiben:**
+* 200-%-Browserzoom-Test und sichtbarer Fokus (2px Outline mit Abstand).
+* Mindesthöhen der Bedienelemente (hier gilt der strengere Wert von **48px** basierend auf Test `test_rendered_ui.py` gegenüber den Token-Variablen).
+* Fehlende Angaben dürfen niemals als «allergenfrei» dargestellt werden.
+* Ohne-JS-Bedienbarkeit und Erhalt der `<noscript>`-Redundanz.
+* Erhalt bestehender CSRF- und Backend-Sicherheitsgrenzen.
+* Verbindliche Token-Pflicht für alle Styles.
+* Signage und öffentliche Seiten sind nicht Teil dieser Umsetzungs-Welle.
+
 ## 1. Zweck und Geltung
 
 Dieses Dokument definiert die verbindliche Architektur und visuelle Spezifikation für den Administrations-Seitenrahmen (Admin-Shell), die aufgabenbezogene Hauptnavigation, das responsive Verhalten, den Seitenkopf-Vertrag sowie die Zuordnung der Layoutvarianten für die Menüplanungs-Anwendung Südhang Dishboard.
@@ -119,7 +137,7 @@ Die Prüfung von `_workflow_sidebar.html` (Zeilen 63–106) deckt gravierende Do
 ### 3.1 Verbindliche Regeln für die Zielstruktur
 1. **Keine neuen Menüpunkte:** Alle 14 bestehenden Einträge der Administrationssicht bleiben vollständig erreichbar. Es werden keine neuen Pfade erfunden.
 2. **Bedingte Sichtbarkeit erhalten:** Die Zugriffsprüfungen (`can_browse_recipes`, `can_manage_users`, `can_configure_display`) bleiben identisch zur Matrix (`ui-route-matrix.json`). «API & Schnittstellen» bleibt in der Navigation sichtbar wie heute (`always_visible_admin`); die Capability der Route ist `api.keys.manage`.
-3. **Aufgabenbezogene Gruppierung (Master §7):** Die Menüpunkte werden in 5 logische Aufgabengruppen gegliedert. Leere Gruppen werden ausgeblendet, falls der eingeloggte Benutzer keine Berechtigung für die darin enthaltenen Einträge besitzt.
+3. **Aufgabenbezogene Gruppierung (Master §7):** Die Menüpunkte werden in 5 logische Aufgabengruppen gegliedert. Leere Gruppen werden ausgeblendet, falls der eingeloggte Benutzer keine Berechtigung für die darin enthaltenen Einträge besitzt. *(Ersetzt am 2026-09-20 durch: Horizontale Haupt-Untermenü-Tabs entfallen. Unterpunkte erscheinen eingerückt in der linken Sidebar NUR bei aktivem Oberpunkt. Neue Gruppenstruktur z.B. «Menüs & Bausteine»: Menüs, Bausteine, Zutaten, Rezepte, Kochbücher, Gerichtvorlagen, Einkaufslisten, Bestellung, Lager, Kalkulation; «Einstellungen»: Bereiche & Öffnungszeiten, Erscheinungsbild, Darstellung, Daten importieren, Schnittstellen, Benutzer & Zugriff.)*
 4. **Zweizeilige Menüeinträge:** Jeder Eintrag erhält neben dem Hauptlabel eine prägnante Kurzbeschreibung von **maximal 28 Zeichen**, die ausschliesslich bestehende Funktionen beschreibt.
 5. **Icons aus dem vorhandenen Sprite:** Jeder Menüpunkt behält sein heutiges Tabler-Icon aus `tabler.lock.json` `icons[]` und dem Sprite. Keine neue Bibliothek (Master §4.1). Differenzierung durch weitere IDs ist Assetarbeit und kein Bestandteil von `MP-UI-SHELL` (siehe Abschnitt 3.3).
 
@@ -133,7 +151,7 @@ Die Prüfung von `_workflow_sidebar.html` (Zeilen 63–106) deckt gravierende Do
 | **Arbeitsbereich** | **Komponenten** | Bausteine & Beilagen | `admin.components_get` | Editor, Publisher, Admin | `components` |
 | **Rezepte** | **Rezepte** | Rezepturen & Zubereitung | `admin.recipes_list` | `can_browse_recipes` (Editor, Publisher, Admin) | `tools-kitchen-2` |
 | **Rezepte** | **Kochbücher** | Rezeptsammlungen führen | `admin.cookbooks_list` | `can_browse_recipes` (Editor, Publisher, Admin) | `copy` |
-| **Rezepte** | **Grundlagen** | Einheiten & Vokabular | `admin.master_data_list` | Editor, Publisher, Admin | `components` |
+| **Rezepte** | **Grundlagen** *(Ersetzt am 2026-09-20 durch: **Zutaten**)* | Einheiten & Vokabular | `admin.master_data_list` | Editor, Publisher, Admin | `components` |
 | **Ausgabe** | **Screens** | Bildschirme verwalten | `admin.screens` | Editor, Publisher, Admin | `eye` |
 | **Ausgabe** | **Vorlagen** | Druck- & Bildschirmvorlagen | `admin.vorlagen` | Editor, Publisher, Admin | `copy` |
 | **Daten & Schnittstellen** | **CSV Import** | Pläne per CSV einlesen | `admin.import_preview` | Editor, Publisher, Admin | `file-import` |
@@ -289,7 +307,7 @@ Das Paket `MP-UI-TOKENS` muss bei der Implementierung folgende Kontrastverhältn
    - Südhang-Markenlogo mittig oder linksbündig.
    - Kein überflüssiger Zierrat, keine Attrappen.
 2. **Fokusführung beim Öffnen:**
-   Beim Klick auf den Menübutton öffnet sich die Navigation via Tabler-Collapse/Offcanvas. Der Fokus wird unmittelbar auf das erste fokussierbare Element innerhalb des Menüs (oder den Schliessen-Button) gesetzt.
+   Beim Klick auf den Menübutton öffnet sich die Navigation via Tabler-Collapse/Offcanvas. *(Ersetzt am 2026-09-20 durch: Burger-Menü-Dropdown-Verhalten auf zeitgemässes Drawer-Konzept anheben. Sidebar wird mobil als Drawer eingeblendet, nicht als Dropdown unter dem Header.)* Der Fokus wird unmittelbar auf das erste fokussierbare Element innerhalb des Menüs (oder den Schliessen-Button) gesetzt.
 3. **Fokusfalle:**
    Solange das mobile Menü offen ist, bleibt der Tastaturfokus darin. `Tab` und `Shift+Tab` zyklieren zwischen dem ersten und letzten fokussierbaren Element des Menüs. Der Fokus verlässt das Menü erst, wenn es schliesst.
 4. **Escape-Taste:**
@@ -307,7 +325,7 @@ Das Paket `MP-UI-TOKENS` muss bei der Implementierung folgende Kontrastverhältn
 
 ### 7.1 Der einheitliche Seitenkopf-Vertrag (Master §7)
 Jede Administrationsseite besitzt einen klar strukturierten Seitenkopf:
-1. **Genau eine H1:** Schriftfamilie gemäss `MP-UI-BRAND-DECISION` (Konflikt K1, Fira Sans vs. Master Arial/Georgia — **Nicht-Ziel von MP-UI-SHELL**; Mapping gehört `MP-UI-BRAND-DECISION`, belegt in `ui-route-matrix.json` `common.fonts.conflict` Zeile 152 und `design-reference-0911.md` Zeile 32). Grössen, Gewichte und Zeilenhöhen bleiben Master §5.2: `font-size: 2.125rem; font-weight: 700; line-height: 1.2` ab Desktop; `1.75rem` mobil. Card-Titel: `1.25rem`, Gewicht `700`, Zeilenhöhe `1.3`.
+1. **Genau eine H1:** *(Neu am 2026-09-20: Der Seitentitel entspricht stets dem Navigationspunkt).* Schriftfamilie gemäss `MP-UI-BRAND-DECISION` (Konflikt K1, Fira Sans vs. Master Arial/Georgia — **Nicht-Ziel von MP-UI-SHELL**; Mapping gehört `MP-UI-BRAND-DECISION`, belegt in `ui-route-matrix.json` `common.fonts.conflict` Zeile 152 und `design-reference-0911.md` Zeile 32). Grössen, Gewichte und Zeilenhöhen bleiben Master §5.2: `font-size: 2.125rem; font-weight: 700; line-height: 1.2` ab Desktop; `1.75rem` mobil. Card-Titel: `1.25rem`, Gewicht `700`, Zeilenhöhe `1.3`.
 2. **Optionale Beschreibung:** Ein kurzer, prägnanter Satz (`color: var(--app-text-muted); font-size: 1rem; margin-top: 4px;`), der den echten Zweck der Seite erklärt. Keine leeren Fülltexte wie «Hier können Sie X verwalten».
 3. **Breadcrumb:** Wird nur angezeigt, wenn ein echter hierarchischer Elternpfad existiert. Enthält funktionierende Links mit echtem Ziel. Kein erfundener Knoten «System».
 4. **Primäre Aktion(en) rechts:** Rechtsbündig angeordnete Aktionsgruppe (`.btn-list`), die bei Platzmangel auf schmalen Bildschirmen harmonisch unter die Überschrift umbricht.
@@ -441,7 +459,7 @@ Die folgende Tabelle weist **jeder einzelnen visuellen Admin-Route** aus `ui-rou
 | **CSV Import** | «Daten importieren» | Funktionsorientiert statt dateiformat-orientiert; CSV ist technisches Detail. | **Option «Daten importieren» empfehlen** |
 | **Screens** | «Bildschirme» | Deutsche Standardsprache gemäss Sprachkonzept. | Vorerst «Screens» beibehalten |
 | **Vorlagen** | «Ausgabevorlagen» | Schützt vor Verwechslung mit «Menüvorlagen» (belegt in `design-reference-0911.md`). | **Option «Ausgabevorlagen» prüfen** |
-| **Grundlagen** | «Stammdaten» | Klärt die Funktion als zentrale Datenbasis (Einheiten, Vokabular). | Abhängig von Gruppenentscheid (siehe 9.2) |
+| **Grundlagen** | «Zutaten» | *(Auftraggeber-Entscheid 2026-09-20: Begriff «Grundlagen» heisst neu «Zutaten»)* | **Beschlossen am 2026-09-20** |
 | **Publizieren** (Buttontext heute, `cafeteria.html:59`, `patienten.html:57`) | «Veröffentlichen» | Offener Konflikt in `design-reference-0911.md` Zeile 34 (UX-Wörterbuch vs. heutiger Button). | **Nicht beschlossen;** Standard bleibt «Publizieren» |
 | H1 «Menüs» (`menu_collection.html:7`) | «Menüsammlung Cafeteria/Patienten» | Macht die Sparte im Titel sichtbar. | Nur Option |
 | Inline «Neue Komponente» (`components.html:26`) | Eigene Create-H1 «Neue Komponente anlegen» | Es gibt heute keine Create-Seite. | Nur Option |
@@ -449,7 +467,7 @@ Die folgende Tabelle weist **jeder einzelnen visuellen Admin-Route** aus `ui-rou
 | H1 «Cafeteria-Plan bearbeiten» / «Patientenplan bearbeiten» (`cafeteria.html:23`, `patienten.html:21`) | «Cafeteria-Wochenplan bearbeiten» / «Patienten-Wochenplan bearbeiten» | Nennt die Woche im Titel. | Nur Option |
 | Wochenaktionen in `.admin-actions` (`cafeteria.html:58–61`) | Umzug von Publizieren, Vorschau und «Vorwoche kopieren» in den Seitenkopf | Heute liegt im Header nur «Wochenangaben prüfen» (`cafeteria.html:27`). | Nur Option; Standard belässt den heutigen Ort |
 
-### 9.2 Fachliche Einordnung von «Grundlagen»
+### 9.2 Fachliche Einordnung von «Grundlagen» *(Neu am 2026-09-20: heisst verbindlich «Zutaten»)*
 *Fragestellung:* Gehört «Grundlagen» (`admin.master_data_list`) fachlich in die Gruppe «Rezepte» oder in eine eigenständige Gruppe «Stammdaten»?
 
 **Befund aus Matrix und Codebase:**
