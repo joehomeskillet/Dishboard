@@ -466,14 +466,32 @@ def test_native_sidebar_without_javascript_and_zoom_reflow(site, tmp_path):
     page = _page(site, client, viewport={'width': 390, 'height': 844}, java_script_enabled=False)
     try:
         _goto(page, '/admin/cafeteria')
+        disclosure = page.locator('.admin-nojs-nav')
+        expect(disclosure).not_to_have_attribute('open', '')
+        assert disclosure.bounding_box()['height'] <= 64
+        summary = disclosure.locator('summary')
+        assert summary.bounding_box()['height'] >= 48
+        assert summary.locator('use').evaluate('el => el.getBBox().width > 0')
+        summary.focus()
+        expect(summary).to_be_focused()
+        assert summary.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
+        page.keyboard.press('Enter')
         nav = page.locator('.admin-nav:visible')
         expect(nav.get_by_role('link')).to_have_count(8)
+        for link in nav.get_by_role('link').all():
+            page.keyboard.press('Tab')
+            expect(link).to_be_focused()
+        page.keyboard.press('Tab')
+        expect(nav.get_by_role('button', name='Abmelden')).to_be_focused()
         nav.get_by_role('link', name=AREAS[1], exact=True).click()
+        disclosure.locator('summary').click()
         page.locator('.admin-nav:visible').get_by_role('link', name='Rezepte', exact=True).click()
+        disclosure.locator('summary').click()
         expect(page.locator('.admin-nav:visible [aria-current="page"]')).to_have_text('Rezepte')
         for width in (320, 720):  # CSS reflow; actual browser zoom is tested in the fullwidth module.
             page.set_viewport_size({'width': width, 'height': 450})
             _goto(page, '/admin/design/marke')
+            disclosure.locator('summary').click()
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             for link in page.locator('.admin-nav:visible .admin-nav-subitems a').all():
                 box = link.bounding_box()

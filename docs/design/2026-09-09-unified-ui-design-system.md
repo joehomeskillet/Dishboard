@@ -558,7 +558,7 @@ Desktop; Sidebar links, gesamte verbleibende Breite rechts. Der Marker `>` steht
 
 **WP3-Statusbar-Makrovertrag, umgesetzt am 2026-09-20:** `page_header(title, description=none, breadcrumbs=none, actions=none, pretitle=none, status_items=[])` bleibt für alle bisherigen Aufrufe kompatibel. Jeder Eintrag ist ein Mapping mit `label`, `value`, optional `detail` und optional `variant`; zugelassen sind `neutral`, `success`, `warning` und `danger`, unbekannte Varianten fallen auf `neutral` zurück. Das Makro rendert höchstens fünf nichtleere, beschriftete Werte als semantische Liste `dl.admin-statusbar` mit `dt.admin-statusbar-label` und `dd.admin-statusbar-value`. `0` ist ein echter Wert; `none`, leere Zeichenketten und unbeschriftete Werte werden weggelassen. Varianten nutzen `.admin-statusbar-item--neutral|success|warning|danger`; sichtbare Labels und Werte tragen die Bedeutung, nie Farbe allein. Nachweis: `test_ui_master_components_browser.py` und `test_admin_statusbar_browser.py`, inklusive Browser-Reflow bei 360 px ohne horizontalen Dokument-Overflow.
 
-**Responsive:** Unterhalb der bestehenden Sidebar-Schwelle wird die Navigation über „Menü“ geöffnet (als Drawer/kompakte Navigation zulässig). Sie darf das Formular nicht auf eine schmale Restfläche drücken. Für Login und öffentliche Ausgaben dieses Muster nicht blind erzwingen.
+**Responsive:** Unterhalb der bestehenden Sidebar-Schwelle wird die Navigation über „Menü“ geöffnet (als Drawer/kompakte Navigation zulässig). Ohne JavaScript bleibt die Mobilnavigation in einem nativen, standardmässig geschlossenen `details.admin-nojs-nav` mit 48 px hoher, fokussierbarer Summary «Menü»; Links und Unterpunkte werden erst nach dem Öffnen angezeigt. Sie darf das Formular nicht auf eine schmale Restfläche drücken. Für Login und öffentliche Ausgaben dieses Muster nicht blind erzwingen.
 
 #### M02 — Rezepteditor: kompakter Ausgangszustand
 
@@ -1150,6 +1150,8 @@ Generisches Muster für wiederholte Optionen mit optionalem Detail; Beispiel All
 
 **Responsive:** 2–4 Spalten ab Tablet/Desktop; eine Spalte auf schmalen Displays. Chips umbrechen statt horizontal scrollen.
 
+**Technischer Vertrag (2026-09-20):** `option_detail_group(options, submitted=none, errors=none, id='allergen', label='Allergene', code_name='allergen_code', detail_name='allergen_presence', manual=true, field_prefix=none, choices=none, mode='allergen')` ergänzt `_macros.html`; Optionen liefern `code` und `name` bzw. `display_name`, generische Optionen optional `icon`. `submitted` ist ein MultiDict oder ein Mapping mit Listen der wiederholten Werte. `.admin-option-group[data-option-group][data-option-mode][data-option-manual]` enthält `.admin-option-grid` mit einer Spalte mobil, zwei ab 768 px und drei ab 1440 px. Je `.admin-option-row[data-option-detail]` stehen Checkbox `[data-option-check]`, Icon/Text und Select `[data-option-presence]` inline; Allergene behalten zusätzlich `.allergen-row`. Index-Paarungs-Regel: **deaktivieren, nie nur verstecken; gleicher Container, gleiche Reihenfolge**. Für Wiederholfelder bleiben `allergen_code`/`allergen_presence`, Werte `contains|may_contain`, Standard `contains` sowie `field-error`, `is-invalid`, `aria-invalid` und `aria-describedby="err-allergen-presence"` erhalten; Checkbox und Detail sind bei nicht manuellem Modus deaktiviert, das Detail zusätzlich bei fehlender Auswahl. CSS blendet deaktivierte Details aus. Ohne JS bleiben vorausgewählte Paare bearbeitbar und korrekt sendbar; neue Checkboxauswahl aktiviert kein Select, die bisherige serverseitige Ablehnung unterschiedlicher Listenlängen bleibt bestehen. `field_prefix='allergen_'` verwendet dagegen ausdrücklich gesendete Einzelfelder `allergen_<CODE>` mit `absent|contains|may_contain`: ohne JS native Selects; mit JS unbenannte Checkboxen, deaktivierte Selects und je ein nur bei Abwahl aktiver `[data-option-absent]`-Hiddenwert. Kein Prüfstatus wird verändert. `[data-option-count][aria-live="polite"]` zählt die Auswahl (ohne JS Renderstand); der Hinweis «Nicht ausgewählt bedeutet nicht: allergenfrei bestätigt.» bleibt sichtbar. Nachweis: `test_admin_shared_patterns_browser.py` mit unsortierter DOM-/Klickreihenfolge, FormData-Submit, Moduswechsel, generischen Namen, explizitem `absent`, No-JS-POST und vier Viewports; bestehende Modul-Allergentests bleiben unverändert.
+
 #### M22 — Eine Filterzeile
 
 Gemeinsame Filterleiste für alle Listenmodule; dieselbe Reihenfolge überall.
@@ -1171,6 +1173,8 @@ Gemeinsame Filterleiste für alle Listenmodule; dieselbe Reihenfolge überall.
 
 **Responsive:** Filterzeile umbrechen; Suche bleibt erkennbar an erster Position. Keine zweite parallele Filterleiste.
 
+**Technischer Vertrag (2026-09-20):** `filter_bar(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters')` rendert `form.admin-filter-bar[method=get][role=search][data-dirty-tracking=off]`. Das beschriftete Suchfeld steht zuerst; `filters` und `more_filters` sind in Jinja erfasste Markup-Slots mit unveränderten Parameternamen. Aufrufer übergeben höchstens drei häufige Filter in `.admin-filter-slots`; zusätzliche stehen in `details.admin-filter-more` mit Summary «Weitere Filter». Der Reset-Link erscheint nur bei `active` und übergebener URL. Native GET-Übermittlung und Details funktionieren ohne JS; keine neuen JS-Hooks. Nachweis: `test_admin_shared_patterns_browser.py` prüft GET-Parameter, bedingten Reset, Semantik, Fokus, 48-px-Ziele und Reflow bei 360/768/1024/1440 px.
+
 #### M23 — Eine Zeile pro Datensatz
 
 Kompakte Listenzeile mit klarer Hierarchie und einer sichtbaren Zeilenaktion.
@@ -1188,6 +1192,8 @@ Kompakte Listenzeile mit klarer Hierarchie und einer sichtbaren Zeilenaktion.
 
 **Responsive:** Zeile darf bei Bedarf wachsen; Aktionen bleiben erreichbar. Keine drei gleichwertigen Icon-Buttons ohne Beschriftung.
 
+**Technischer Vertrag (2026-09-20):** `list_row(name, subtitle, state, action, markings=none, overflow=0, more_actions=none)` rendert `.admin-list-row` mit `.admin-list-name`, einzeiliger `.admin-list-subtitle` (vollständiger Text im DOM und `title`), bestehendem `status_badge(state)` und `.admin-list-markings`. Der Aufrufer begrenzt den Kennzeichnungs-Slot; `overflow` ergänzt ein beschriftetes «+n». `action` verwendet das bestehende `actions`-Mapping (Link oder Button samt Formularattributen); genau diese Aktion steht offen in `.admin-list-actions`. Ein übergebener `more_actions`-Slot erscheint in `details.admin-compact-actions` mit «Weitere Aktionen». Keine neuen `data-`-Hooks, native Links/Buttons/Details bleiben ohne JS bedienbar. Nachweis: `test_admin_shared_patterns_browser.py` für eine sichtbare Aktion, Status, Überlauf, Tastatur, 48-px-Ziele und vier Breiten.
+
 #### M24 — Formularfuss
 
 Einheitliche Aktionsleiste am Ende jedes Formulars und Editors.
@@ -1203,6 +1209,8 @@ Einheitliche Aktionsleiste am Ende jedes Formulars und Editors.
 **Pflicht:** Links destruktive oder seltene Aktion (nur wo vorhanden: Archivieren, Löschen). Rechts «Abbrechen» und genau eine Primäraktion «Speichern». Bei langen Editoren kompakte Sticky-Leiste gemäss R08; sie verdeckt weder Feld noch Fehler noch Fokus.
 
 **Responsive:** Sticky-Leiste darf bei mobiler Tastatur in den Dokumentfluss wechseln. Primäraktion bleibt beschriftet.
+
+**Technischer Vertrag (2026-09-20):** `form_footer(primary, cancel_url, rare=none, sticky=false, form_id=none)` rendert `.admin-form-footer`, links den optionalen Jinja-Slot `.admin-form-rare`, rechts `.admin-form-main` mit «Abbrechen» vor genau einer über `actions(primary=...)` gerenderten Speicheraktion. `primary` übernimmt dessen vorhandenen Mapping-Vertrag einschliesslich `name`, `value`, `formaction` und weiterer Formularattribute; Slots dürfen keine zusätzliche Primäraktion enthalten. `sticky` setzt `data-sticky`, optional `data-sticky-form`. Der vorhandene Viewport-Guard setzt `data-sticky-ready`/`.is-static`; erst nach Initialisierung und ab 700 px Höhe wird der Fuss sticky. Kleine Visual Viewports, mobile Tastatur, überhohe Leisten sowie fokussierte Eingabefelder oder Fehler im Formular lassen ihn im Dokumentfluss. Ohne JS bleibt er statisch. Nachweis: `test_admin_shared_patterns_browser.py` prüft genau eine `.btn-primary`, Submit, Fokus und geringe Höhe mit/ohne JS; bestehende Komponenten-Gates sichern `actions` ab.
 
 #### M25 — Weitere Optionen
 
@@ -1222,6 +1230,8 @@ Seltene oder technische Angaben in nativem `<details>`; Kurztext zeigt vorhanden
 **Pflicht:** Natives `<details>`/`<summary>` verwenden. Öffnet sich automatisch bei Fehler oder gefülltem Inhalt (siehe R06). Kurztext im Summary zeigt, dass Inhalte vorhanden sind. Auf-/Zuklappen speichert und verwirft nichts.
 
 **Responsive:** Summary bleibt vollständig lesbar; Inhalt folgt dem gemeinsamen Formular-Grid.
+
+**Technischer Vertrag (2026-09-20):** `{% call disclosure_section(title='Weitere Optionen', id=none, open=false, has_content=false, has_error=false) %}…{% endcall %}` rendert `details.admin-compact-details.admin-disclosure` und `.admin-compact-detail-body`. `open`, `has_content` oder `has_error` öffnen serverseitig; `has_content` ergänzt «enthält Angaben» im Summary. Keine neuen `data-`-Attribute oder JavaScript-Abhängigkeit; native Tastaturbedienung erhält Formularwerte. Nachweis: `test_admin_shared_patterns_browser.py` für explizites Öffnen, Fehler/Inhalt, leeren geschlossenen Zustand, Fokus und responsive Zielgrössen mit und ohne JS.
 
 #### M26 — Wochenplan Cafeteria — kompakte Wochenplanung
 

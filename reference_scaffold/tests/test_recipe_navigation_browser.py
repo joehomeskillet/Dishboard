@@ -51,16 +51,22 @@ def _close_sidebar_menu(page) -> None:
 
 
 def sidebar(page, width, javascript, label):
+    disclosure = page.locator('.admin-nojs-nav:visible')
+    if disclosure.count() and disclosure.get_attribute('open') is None:
+        disclosure.locator('summary').click()
     nav = page.locator('nav[aria-label="Backend"]:visible')
     if javascript and width < 992 and nav.count() == 0:
         page.get_by_role('button', name='Menü', exact=True).click()
+        page.wait_for_selector('#sidebar-menu.show:not(.showing)')
     if nav.get_by_role('link', name=label, exact=True).count() == 0:
         with page.expect_navigation(wait_until='load'):
             nav.get_by_role('link', name='Menüs & Bausteine', exact=True).click()
         nav = page.locator('nav[aria-label="Backend"]:visible')
         if javascript and width < 992:
             page.get_by_role('button', name='Menü', exact=True).click()
-            page.wait_for_selector('#sidebar-menu.show')
+            page.wait_for_selector('#sidebar-menu.show:not(.showing)')
+        elif disclosure.count():
+            disclosure.locator('summary').click()
     link = nav.get_by_role('link', name=label, exact=True)
     expect(link).to_be_visible()
     link.focus()
@@ -72,10 +78,13 @@ def sidebar(page, width, javascript, label):
 
 
 def active(page, label):
+    disclosure = page.locator('.admin-nojs-nav:visible')
+    if disclosure.count() and disclosure.get_attribute('open') is None:
+        disclosure.locator('summary').click()
     toggle = page.get_by_role('button', name='Menü', exact=True)
     if page.locator('nav[aria-label="Backend"]:visible').count() == 0:
         toggle.click()
-        page.wait_for_selector('#sidebar-menu.show')
+        page.wait_for_selector('#sidebar-menu.show:not(.showing)')
     selected = page.locator('nav[aria-label="Backend"]:visible a[aria-current="page"]')
     expect(selected).to_have_count(1)
     expect(selected).to_have_text(label)

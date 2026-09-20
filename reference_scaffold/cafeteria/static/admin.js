@@ -196,17 +196,36 @@
     }
 
     // Native successful controls must match the strict repeated-field contract.
-    function syncMetadataControls(form) {
+    function syncMetadataControls(form, changedControl = null) {
         const menuEditor = form.matches('[data-menu-editor]');
         const manual = name => !menuEditor ||
             form.querySelector(`input[name="${name}_mode"]:checked`)?.value === 'manual';
-        form.querySelectorAll('.allergen-row').forEach(row => {
-            const checkbox = row.querySelector('input[name="allergen_code"]');
-            const presence = row.querySelector('select[name="allergen_presence"]');
+        form.querySelectorAll('.allergen-row, [data-option-detail]').forEach(row => {
+            const checkbox = row.querySelector('[data-option-check], input[name="allergen_code"]');
+            const presence = row.querySelector('[data-option-presence], select[name="allergen_presence"]');
             if (checkbox && presence) {
-                checkbox.disabled = !manual('allergen');
+                const group = row.closest('[data-option-group]');
+                const mode = group?.dataset.optionMode || 'allergen';
+                const modeControl = form.querySelector(`input[name="${mode}_mode"]:checked`);
+                const editable = group
+                    ? (modeControl ? modeControl.value === 'manual' : group.dataset.optionManual === 'true')
+                    : manual('allergen');
+                if (row.hasAttribute('data-option-keyed')) {
+                    checkbox.hidden = false;
+                    if (changedControl === presence) {
+                        checkbox.checked = presence.value !== 'absent';
+                        if (!checkbox.checked) checkbox.focus();
+                    }
+                    if (checkbox.checked && presence.value === 'absent') presence.value = 'contains';
+                    row.querySelector('[data-option-absent]').disabled = !editable || checkbox.checked;
+                }
+                checkbox.disabled = !editable;
                 presence.disabled = checkbox.disabled || !checkbox.checked;
             }
+        });
+        form.querySelectorAll('[data-option-group]').forEach(group => {
+            const count = group.querySelectorAll('[data-option-check]:checked').length;
+            group.querySelector('[data-option-count]').textContent = `${count} ausgewählt`;
         });
         if (menuEditor) {
             form.querySelectorAll('select[name="component_public_id"] option[data-active="0"]').forEach(option => {
@@ -333,7 +352,7 @@
 
     forms.forEach(form => {
         syncMetadataControls(form);
-        form.addEventListener('change', () => syncMetadataControls(form));
+        form.addEventListener('change', event => syncMetadataControls(form, event.target));
     });
 
     document.querySelectorAll('form[data-menu-editor]').forEach(form => {
@@ -511,7 +530,7 @@
 
     // Sticky save bar: leave the flow while a virtual keyboard shrinks the visual viewport,
     // and keep focused controls clear of the bar.
-    document.querySelectorAll('form[data-menu-editor] [data-sticky], [data-sticky-form]').forEach(stickyBar => {
+    document.querySelectorAll('form[data-menu-editor] [data-sticky], [data-sticky-form], .admin-form-footer[data-sticky]').forEach(stickyBar => {
         const form = stickyBar.dataset.stickyForm
             ? document.getElementById(stickyBar.dataset.stickyForm)
             : stickyBar.closest('form');
