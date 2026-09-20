@@ -59,13 +59,14 @@ def test_anonymous_kitchen_calendar_is_401(monkeypatch, tmp_path) -> None:
     assert application.test_client().get('/admin/kuechenkalender').status_code == 401
 
 
-def test_area_tabs_and_sidebar_expose_calendar() -> None:
+def test_navigation_model_exposes_calendar_without_duplicate_sidebar_data() -> None:
     tabs = TABS.read_text(encoding='utf-8')
     sidebar = SIDEBAR.read_text(encoding='utf-8')
     assert 'kitchen_calendar' in tabs
     assert 'Küchenkalender' in tabs
-    assert 'kitchen_calendar' in sidebar
-    assert 'Küchenkalender' in sidebar
+    assert 'area_nav.areas' in sidebar
+    assert 'kitchen_calendar' not in sidebar
+    assert 'Küchenkalender' not in sidebar
 
 
 def test_template_has_prev_next_jump_and_calendar_layout() -> None:

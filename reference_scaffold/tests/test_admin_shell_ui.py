@@ -86,28 +86,36 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
     elif shell == '.page':
         expect(toggle).to_be_hidden()
     weeks = navigation.get_by_role('link', name='Wochenplan' if shell == '.page' else 'Wochenpläne', exact=True)
-    catalog = (page.locator('.admin-area-tabs').get_by_role('link', name='Bausteine', exact=True)
+    catalog = (navigation.get_by_role('link', name='Bausteine', exact=True)
                if shell == '.page' else navigation.get_by_role('link', name=re.compile(r'^Komponenten\b')))
     week_href = weeks.get_attribute('href')
     assert week_href is not None
     week_url = urlsplit(week_href)
     assert week_url.path == f'/admin/{family}'
     assert parse_qs(week_url.query) == ({'week': [DAY]} if page_kind == 'editor' else {})
-    if page_kind != 'editor' or shell != '.page':
-        expect(catalog).to_have_attribute('href', f'/admin/{family}/komponenten')
+    expect(catalog).to_have_attribute('href', f'/admin/{family}/komponenten')
     if shell == '.page':
         expect(navigation.get_by_role('link', name='Menüs & Bausteine', exact=True)).to_have_attribute('href', f'/admin/{family}/menues')
+        expect(page.locator('.admin-area-tabs')).to_have_count(0)
+        expect(navigation.locator('.admin-nav-area.active > .nav-link .nav-link-title')).to_have_text(
+            'Menüs & Bausteine',
+        )
+        expect(navigation.locator('.admin-nav-subitems')).to_have_count(1)
+        assert navigation.locator('.admin-nav-subitems .nav-link-title').all_inner_texts() == [
+            'Menüs', 'Bausteine', 'Zutaten', 'Rezepte', 'Kochbücher', 'Gerichtvorlagen',
+            'Einkaufslisten', 'Bestellung', 'Lager', 'Kalkulation',
+        ]
     expect(navigation.get_by_text('Signage', exact=True)).to_have_count(0)
     assert navigation.locator('a[href^="/signage/"]').count() == 0
     if shell == '.page':
         output = navigation.get_by_role('link', name='Vorschau & Bildschirme', exact=True)
         assert urlsplit(output.get_attribute('href')).path == '/admin/screens'
-        expect(navigation.get_by_role('link')).to_have_count(4)
+        expect(navigation.get_by_role('link')).to_have_count(14)
     else:
         expect(navigation.get_by_role('link', name=re.compile(r'^Screens\b'))).to_have_attribute('href', '/admin/screens')
         expect(navigation.get_by_role('link', name=re.compile(r'^Vorlagen\b'))).to_have_attribute('href', '/admin/vorlagen')
     expect(navigation.locator('[aria-current="page"]')).to_contain_text(
-        ('Wochenplan' if page_kind == 'editor' else 'Menüs & Bausteine') if shell == '.page'
+        ('Menüs' if page_kind == 'editor' else 'Bausteine') if shell == '.page'
         else ('Wochenpläne' if page_kind == 'editor' else 'Komponenten'),
     )
 

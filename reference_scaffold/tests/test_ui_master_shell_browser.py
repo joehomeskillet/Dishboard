@@ -1,4 +1,4 @@
-"""MP-UI-SHELL-V2: four areas, native tabs, permissions and responsive geometry."""
+"""MP-UI-SHELL-V2: four areas, contextual sidebar, permissions and responsive geometry."""
 from __future__ import annotations
 
 import json
@@ -31,6 +31,7 @@ ENTRIES = {
         ('Wochenpläne', 'Cafeteria', 'cafeteria', '/admin/cafeteria', False),
         ('Patienten', 'Patienten', 'patienten', '/admin/patienten', False),
         ('Wochenverwaltung', 'Wochenübersicht', 'week_management', '/admin/cafeteria/wochen', False),
+        ('Küchenkalender', 'Küchenkalender', 'kitchen_calendar', '/admin/kuechenkalender', False),
     ),
     'Menüs & Bausteine': (
         ('Menüs', 'Menüs', 'menu_collection', '/admin/cafeteria/menues', False),
@@ -40,6 +41,9 @@ ENTRIES = {
         ('Kochbücher', 'Kochbücher', 'cookbooks_list', '/admin/kochbuecher', False),
         ('Gerichtvorlagen', 'Gerichtvorlagen', 'dish_templates_list', '/admin/gerichtvorlagen', False),
         ('Einkaufslisten', 'Einkaufslisten', 'shopping_lists_index', '/admin/einkaufslisten', False),
+        ('Bestellung', 'Bestellung', 'order_home', '/admin/bestellung', False),
+        ('Lager', 'Lager', 'inventory_home', '/admin/lager', False),
+        ('Kalkulation', 'Kalkulation', 'cost_home', '/admin/kalkulation', False),
     ),
     'Vorschau & Bildschirme': (
         ('Vorschau', 'Vorschau', 'preview', '/admin/cafeteria/preview', False),
@@ -155,7 +159,7 @@ def _goto(page, path: str):
 
 
 def _titles(page) -> list[str]:
-    return page.locator('.admin-nav .nav-link-title').all_inner_texts()
+    return page.locator('.admin-nav-area > .nav-link .nav-link-title').all_inner_texts()
 
 
 def test_navigation_roles_targets_and_current(site, database_engine, tmp_path):  # noqa: F811
@@ -169,8 +173,9 @@ def test_navigation_roles_targets_and_current(site, database_engine, tmp_path): 
         _goto(page, '/admin/cafeteria')
         assert _titles(page) == list(AREAS)
         expect(page.locator('.nav-group, .nav-link-desc')).to_have_count(0)
-        current = page.locator('.admin-nav a[aria-current="page"] .nav-link-title')
-        expect(current).to_have_text('Wochenplan')
+        navigation = page.locator('.admin-nav')
+        current = navigation.locator('a[aria-current="page"] .nav-link-title')
+        expect(current).to_have_text('Cafeteria')
         expect(page.locator('.admin-user-role')).to_have_text(
             {'Cafeteria.Admin': 'Administration', 'Cafeteria.Publisher': 'Freigabe & Redaktion',
              'Cafeteria.Editor': 'Küchenplanung'}[role],
@@ -178,27 +183,27 @@ def test_navigation_roles_targets_and_current(site, database_engine, tmp_path): 
         evidence = []
         for area, entries in ENTRIES.items():
             _goto(page, '/admin/cafeteria')
-            page.locator('.admin-nav').get_by_role('link', name=area, exact=True).click()
+            navigation.get_by_role('link', name=area, exact=True).click()
             page.wait_for_load_state('networkidle')
-            expect(current).to_have_text(area)
-            tabs = page.locator('.admin-area-tabs')
+            expect(navigation.locator('.admin-nav-area.active > .nav-link .nav-link-title')).to_have_text(area)
+            subnav = navigation.locator('.admin-nav-subitems')
             allowed = [entry for entry in entries if role == 'Cafeteria.Admin' or not entry[4]]
-            assert tabs.get_by_role('link').all_text_contents() == [entry[1] for entry in allowed]
+            assert subnav.locator('.nav-link-title').all_inner_texts() == [entry[1] for entry in allowed]
             for old, label, endpoint, path, _ in allowed:
                 assert 'admin.' + endpoint in app.view_functions
-                link = tabs.get_by_role('link', name=label, exact=True)
+                link = subnav.get_by_role('link', name=label, exact=True)
                 href = link.get_attribute('href')
                 assert href and urlsplit(href).path == path
                 status = page.request.get(origin + href).status
                 # Existing API link is visible to all roles, but server remains admin-only.
                 assert status == (403 if endpoint == 'api_overview' and role != 'Cafeteria.Admin' else 200)
-                evidence.append({'old': old, 'area': area, 'tab': label, 'href': href, 'status': status})
+                evidence.append({'old': old, 'area': area, 'item': label, 'href': href, 'status': status})
             page.screenshot(path=str(tmp_path / f'{role}-{area.split()[0]}.png'), full_page=True)
         (tmp_path / f'{role}-navigation.json').write_text(json.dumps(evidence, ensure_ascii=False, indent=2))
         page.context.close()
 
 
-def test_output_area_entry_keeps_all_output_tabs_reachable(site):
+def test_output_area_entry_keeps_all_output_items_reachable(site):
     app, origin, engine, _ = site
     client, _ = _login(app, engine, ['Cafeteria.Admin'])
     page = _page(site, client, viewport={'width': 1440, 'height': 900})
@@ -209,14 +214,14 @@ def test_output_area_entry_keeps_all_output_tabs_reachable(site):
         assert urlsplit(entry.get_attribute('href')).path == '/admin/screens'
         entry.click()
         page.wait_for_load_state('networkidle')
-        tabs = page.locator('.admin-area-tabs')
-        expect(tabs).to_be_visible()
-        expect(page.locator('.admin-nav [aria-current="page"] .nav-link-title')).to_have_text(AREAS[2])
-        assert tabs.get_by_role('link').all_text_contents() == ['Vorschau', 'Bildschirme', 'Druckvorlagen']
-        expect(tabs.get_by_role('link', name='Bildschirme', exact=True)).to_have_attribute(
+        subnav = page.locator('.admin-nav-subitems')
+        expect(subnav).to_be_visible()
+        expect(page.locator('.admin-nav-area.active > .nav-link .nav-link-title')).to_have_text(AREAS[2])
+        assert subnav.locator('.nav-link-title').all_inner_texts() == ['Vorschau', 'Bildschirme', 'Druckvorlagen']
+        expect(subnav.get_by_role('link', name='Bildschirme', exact=True)).to_have_attribute(
             'aria-current', 'page',
         )
-        preview = tabs.get_by_role('link', name='Vorschau', exact=True)
+        preview = subnav.get_by_role('link', name='Vorschau', exact=True)
         href = preview.get_attribute('href')
         assert href and urlsplit(href).path == '/admin/cafeteria/preview'
         assert page.request.get(origin + href).status == 200
@@ -235,13 +240,13 @@ def test_current_area_and_tab_on_each_entry(site, width):
                 if endpoint == 'preview':
                     continue  # Standalone output: covered by the explicit failing entry test.
                 _goto(page, path)
-                expect(page.locator('.admin-nav [aria-current="page"] .nav-link-title')).to_have_text(area)
-                expect(page.locator('.admin-area-tabs [aria-current="page"]')).to_have_text(label)
+                expect(page.locator('.admin-nav-area.active > .nav-link .nav-link-title')).to_have_text(area)
+                expect(page.locator('.admin-nav-subitems [aria-current="page"]')).to_have_text(label)
         for route, tab in (('wochen', 'Wochenübersicht'), ('menues', 'Menüs'), ('komponenten', 'Bausteine')):
             _goto(page, f'/admin/patienten/{route}')
-            expect(page.locator('.admin-area-tabs [aria-current="page"]')).to_have_text(tab)
+            expect(page.locator('.admin-nav-subitems [aria-current="page"]')).to_have_text(tab)
             expect(page.locator('.admin-nav').get_by_role('link', name='Wochenplan', exact=True, include_hidden=True)).to_have_attribute('href', '/admin/patienten')
-            for link in page.locator('.admin-area-tabs a').all():
+            for link in page.locator('.admin-nav-subitems a').all():
                 assert '/admin/cafeteria/' not in link.get_attribute('href')
     finally:
         page.context.close()
@@ -305,13 +310,14 @@ def test_mobile_focus_escape_and_viewports(site, database_engine, tmp_path):  # 
         for route in ('/admin/cafeteria', '/admin/cafeteria/menues', '/admin/screens', '/admin/design/marke'):
             _goto(page, route)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), (route, width, height)
-            for link in page.locator('.admin-area-tabs a').all():
-                assert link.bounding_box()['height'] >= 44
             if width >= 992:
-                for link in page.locator('.admin-nav a').all():
+                for link in page.locator('.admin-nav-area > .nav-link').all():
                     assert link.bounding_box()['height'] >= 56
                     assert float(link.evaluate('el => getComputedStyle(el).fontSize').removesuffix('px')) >= 15
                     assert link.locator('.nav-link-title').evaluate('el => el.scrollWidth <= el.clientWidth + 1')
+                for link in page.locator('.admin-nav-subitems .nav-link').all():
+                    assert link.bounding_box()['height'] >= 48
+                    assert float(link.evaluate('el => getComputedStyle(el).fontSize').removesuffix('px')) >= 13
             page.screenshot(path=str(tmp_path / f'shell-{route.split("/")[-1]}-{width}x{height}.png'), full_page=True)
     page.context.close()
 
@@ -358,9 +364,9 @@ def test_layout_min_width_overlap_and_padding(site, database_engine):  # noqa: F
             assert metrics['maxWidth'] == 'none', (variant, viewport_width, metrics)
             assert abs(metrics['contentWidth'] - metrics['expected']) <= 1, (variant, viewport_width, metrics)
             widths.setdefault(variant, {})[viewport_width] = metrics
-        containers = page.locator('.admin-page-header > .container-xl, .admin-area-tabs > .container-xl, .page-body > .container-xl').all()
+        containers = page.locator('.admin-page-header > .container-xl, .page-body > .container-xl').all()
         boxes = [container.bounding_box() for container in containers]
-        assert len(boxes) == 3
+        assert len(boxes) == 2
         assert max(box['x'] for box in boxes) - min(box['x'] for box in boxes) <= 1
         assert max(box['width'] for box in boxes) - min(box['width'] for box in boxes) <= 1
     assert {variant: widths[variant][1920]['maxWidth'] for variant in widths} == {
@@ -420,11 +426,8 @@ def test_keyboard_focus_and_sidebar_contrast(site, database_engine, tmp_path):  
     page.keyboard.press('Escape')
     expect(toggle).to_be_focused()
     page.keyboard.press('Tab')
-    # Header action precedes tabs; both remain before the content.
+    # With module tabs removed, header action precedes content directly.
     expect(page.get_by_role('link', name='Aktion', exact=True)).to_be_focused()
-    for link in page.locator('.admin-area-tabs a').all():
-        page.keyboard.press('Tab')
-        expect(link).to_be_focused()
     page.keyboard.press('Tab')
     expect(page.locator('#shell-action')).to_be_focused()
     page.set_viewport_size({'width': 1440, 'height': 900})
@@ -445,38 +448,34 @@ def test_keyboard_focus_and_sidebar_contrast(site, database_engine, tmp_path):  
     assert contrast(_hex(measured['text']), _hex(measured['sidebar'])) >= 4.5
     assert contrast(_hex(measured['label']), _hex(measured['sidebar'])) >= 4.5
     assert contrast(_hex(measured['indicator']), _hex(measured['activeBg'])) >= 3
-    tabs = page.locator('.admin-area-tabs a')
-    for link in tabs.all():
+    for link in page.locator('.admin-nav-subitems a').all():
         styles = link.evaluate('''el => {
           const s = getComputedStyle(el);
-          return {text:s.color, bg:s.backgroundColor, border:s.borderBottomColor,
-                  page:getComputedStyle(document.body).backgroundColor};
+          return {text:s.color, bg:s.backgroundColor,
+                  sidebar:getComputedStyle(el.closest('.admin-sidebar')).backgroundColor};
         }''')
-        background = styles['page'] if styles['bg'] == 'rgba(0, 0, 0, 0)' else styles['bg']
+        background = styles['sidebar'] if styles['bg'] == 'rgba(0, 0, 0, 0)' else styles['bg']
         assert contrast(_hex(styles['text']), _hex(background)) >= 4.5
-        if link.get_attribute('aria-current'):
-            assert contrast(_hex(styles['border']), _hex(background)) >= 3
-            assert contrast(_hex(styles['border']), _hex(styles['page'])) >= 3
     (tmp_path / 'sidebar-contrast.json').write_text(json.dumps(measured, indent=2))
     page.context.close()
 
 
-def test_native_tabs_without_javascript_and_zoom_reflow(site, tmp_path):
+def test_native_sidebar_without_javascript_and_zoom_reflow(site, tmp_path):
     app, _, engine, _ = site
     client, _ = _login(app, engine, ['Cafeteria.Admin'])
     page = _page(site, client, viewport={'width': 390, 'height': 844}, java_script_enabled=False)
     try:
         _goto(page, '/admin/cafeteria')
         nav = page.locator('.admin-nav:visible')
-        expect(nav.get_by_role('link')).to_have_count(4)
+        expect(nav.get_by_role('link')).to_have_count(8)
         nav.get_by_role('link', name=AREAS[1], exact=True).click()
-        page.locator('.admin-area-tabs').get_by_role('link', name='Rezepte', exact=True).click()
-        expect(page.locator('.admin-area-tabs [aria-current="page"]')).to_have_text('Rezepte')
+        page.locator('.admin-nav:visible').get_by_role('link', name='Rezepte', exact=True).click()
+        expect(page.locator('.admin-nav:visible [aria-current="page"]')).to_have_text('Rezepte')
         for width in (320, 720):  # CSS reflow; actual browser zoom is tested in the fullwidth module.
             page.set_viewport_size({'width': width, 'height': 450})
             _goto(page, '/admin/design/marke')
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-            for link in page.locator('.admin-area-tabs a').all():
+            for link in page.locator('.admin-nav:visible .admin-nav-subitems a').all():
                 box = link.bounding_box()
                 assert box['height'] >= 44 and 0 <= box['x'] < box['x'] + box['width'] <= width
             page.screenshot(path=str(tmp_path / f'no-js-reflow-{width}.png'), full_page=True)

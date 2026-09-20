@@ -112,10 +112,14 @@ def test_header_logos_keep_fixed_boxes_and_full_images(
             box = link.bounding_box()
             assert box is not None and box['height'] >= 48, box
         page.screenshot(path=str(tmp_path / f'admin-navigation-{width}.png'))
-        # Shell v2 contract: the output area entry lands on its "Bildschirme" tab (/admin/screens).
-        navigation.get_by_role('link', name='Vorschau & Bildschirme', exact=True).click()
+        # Contextual output navigation stays in the sidebar and keeps the existing URL.
+        navigation.get_by_role('link', name='Bildschirme', exact=True).click()
         expect(page).to_have_url(origin + '/admin/screens')
-        expect(page.locator('.admin-area-tabs').get_by_role('link', name='Bildschirme', exact=True)).to_have_attribute(
+        if width < 1200:
+            page.get_by_role('button', name='Menü', exact=True).click()
+        navigation = page.get_by_role('navigation', name='Backend')
+        expect(navigation).to_be_visible()
+        expect(navigation.get_by_role('link', name='Bildschirme', exact=True)).to_have_attribute(
             'aria-current', 'page',
         )
         page.evaluate('document.fonts.ready')

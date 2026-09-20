@@ -138,10 +138,23 @@ Die Prüfung von `_workflow_sidebar.html` (Zeilen 63–106) deckt gravierende Do
 1. **Keine neuen Menüpunkte:** Alle 14 bestehenden Einträge der Administrationssicht bleiben vollständig erreichbar. Es werden keine neuen Pfade erfunden.
 2. **Bedingte Sichtbarkeit erhalten:** Die Zugriffsprüfungen (`can_browse_recipes`, `can_manage_users`, `can_configure_display`) bleiben identisch zur Matrix (`ui-route-matrix.json`). «API & Schnittstellen» bleibt in der Navigation sichtbar wie heute (`always_visible_admin`); die Capability der Route ist `api.keys.manage`.
 3. **Aufgabenbezogene Gruppierung (Master §7):** Die Menüpunkte werden in 5 logische Aufgabengruppen gegliedert. Leere Gruppen werden ausgeblendet, falls der eingeloggte Benutzer keine Berechtigung für die darin enthaltenen Einträge besitzt. *(Ersetzt am 2026-09-20 durch: Horizontale Haupt-Untermenü-Tabs entfallen. Unterpunkte erscheinen eingerückt in der linken Sidebar NUR bei aktivem Oberpunkt. Neue Gruppenstruktur z.B. «Menüs & Bausteine»: Menüs, Bausteine, Zutaten, Rezepte, Kochbücher, Gerichtvorlagen, Einkaufslisten, Bestellung, Lager, Kalkulation; «Einstellungen»: Bereiche & Öffnungszeiten, Erscheinungsbild, Darstellung, Daten importieren, Schnittstellen, Benutzer & Zugriff.)*
-4. **Zweizeilige Menüeinträge:** Jeder Eintrag erhält neben dem Hauptlabel eine prägnante Kurzbeschreibung von **maximal 28 Zeichen**, die ausschliesslich bestehende Funktionen beschreibt.
+4. **Zweizeilige Menüeinträge:** *(Ersetzt am 2026-09-20 durch: Ober- und Unterpunkte verwenden Tabler-Icon plus sichtbares Kurzlabel; erfundene Beschreibungen werden nicht ergänzt. Unterpunkte bleiben mindestens 48 px hoch.)*
 5. **Icons aus dem vorhandenen Sprite:** Jeder Menüpunkt behält sein heutiges Tabler-Icon aus `tabler.lock.json` `icons[]` und dem Sprite. Keine neue Bibliothek (Master §4.1). Differenzierung durch weitere IDs ist Assetarbeit und kein Bestandteil von `MP-UI-SHELL` (siehe Abschnitt 3.3).
 
 ### 3.2 Vollständige Matrix der Ziel-Navigation
+
+Die folgende Fünf-Gruppen-Matrix ist am 2026-09-20 durch den implementierten Vier-Bereiche-Vertrag ersetzt. `_area_tabs.html` ist das einzige serverseitige Navigationsmodell. Es verwendet explizite Endpoint-Mengen statt `startswith` und exportiert `area_nav.areas`, `area_nav.selected.area`, `area_nav.selected.item` und `area_nav.href`. `_workflow_sidebar.html` rendert vier Oberpunkte und nur für den aktiven Oberpunkt dessen eingerückte Unterpunkte; der aktive Unterpunkt trägt `aria-current="page"`. Dasselbe Makro bedient Desktop, Offcanvas und No-JS, inklusive bestehender Capability-Prädikate.
+
+Verbindliche Unterpunkte sind:
+
+- **Wochenplan:** Wochenplan, Wochenverwaltung, Küchenkalender, Woche kopieren.
+- **Menüs & Bausteine:** Menüs, Bausteine, Zutaten, Rezepte, Kochbücher, Gerichtvorlagen, Einkaufslisten, Bestellung, Lager, Kalkulation.
+- **Vorschau & Bildschirme:** Vorschau, Bildschirme, Druckvorlagen.
+- **Einstellungen:** Bereiche & Öffnungszeiten, Erscheinungsbild, Darstellung, Daten importieren, Schnittstellen, Benutzer & Zugriff.
+
+«Zutaten» bezeichnet weiterhin die vorhandenen `admin.master_data_*`-Endpunkte; URLs und Berechtigungen bleiben unverändert. Nachweis: `test_admin_shell_ui.py`, `test_ui_master_shell_browser.py`, `test_recipe_navigation_browser.py`, `test_calendar_nav.py`, `test_branding_header_browser.py`.
+
+**Historische, ersetzte Fünf-Gruppen-Matrix:**
 
 | Gruppe | Menüeintrag (Heutiges Label) | Kurzbeschreibung (≤ 28 Zeichen) | Registrierter Flask-Endpunkt | Erforderliche Rollen / Prädikat | Heutiges Sprite-Icon (bleibt) |
 |---|---|---|---|---|---|

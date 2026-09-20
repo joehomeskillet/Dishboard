@@ -1,18 +1,8 @@
 {% from 'admin/_macros.html' import icon %}
 {% from '_brand_logo.html' import brand_logo %}
-{% if request.endpoint in ['admin.recipes_list', 'admin.recipe_new', 'admin.recipe_edit', 'admin.recipe_form_rows', 'admin.recipe_status', 'admin.recipe_revisions', 'admin.recipe_freeze', 'admin.recipe_revision', 'admin.recipe_scale', 'admin.recipe_images'] %}{% set workflow_nav = 'recipes' %}{% elif request.endpoint in ['admin.cookbooks_list', 'admin.cookbook_new', 'admin.cookbook_edit', 'admin.cookbook_recipes', 'admin.cookbook_status'] %}{% set workflow_nav = 'cookbooks' %}{% elif request.endpoint in ['admin.dish_templates_list', 'admin.dish_template_new', 'admin.dish_template_create', 'admin.dish_template_edit', 'admin.dish_template_save'] %}{% set workflow_nav = 'dish_templates' %}{% endif %}
 {% set user_name = user.name if user else 'Küche Administration' %}
 {% set _roles = roles|default([]) %}
 {% set display_role_title = 'Administration' if 'Cafeteria.Admin' in _roles else 'Freigabe & Redaktion' if 'Cafeteria.Publisher' in _roles else 'Küchenplanung' if 'Cafeteria.Editor' in _roles else '' %}
-{% set weeks_url = url_for('admin.' ~ family, week=week) if week is defined and week else url_for('admin.' ~ family) %}
-{% macro nav_link(key, href, icon_name, label, current) -%}
-<li class="nav-item{% if current == key %} active{% endif %}">
-  <a href="{{ href }}" class="nav-link{% if current == key %} active{% endif %}"{% if current == key %} aria-current="page"{% endif %}>
-    <span class="nav-link-icon">{{ icon(icon_name) }}</span>
-    <span class="nav-link-title">{{ label }}</span>
-  </a>
-</li>
-{%- endmacro %}
 {% macro area_links() %}
 <ul class="navbar-nav">
   {% for key, label, icon_name, landing, tabs in area_nav.areas %}
@@ -23,7 +13,23 @@
       {% if tab[0] == wanted %}{% set pick.target = tab %}{% endif %}
     {% endfor %}
     {% if pick.target %}
-      {{ nav_link(key, area_nav.href(pick.target), icon_name, label, area_nav.selected.area) }}
+      <li class="nav-item admin-nav-area{% if area_nav.selected.area == key %} active{% endif %}">
+        <a href="{{ area_nav.href(pick.target) }}" class="nav-link{% if area_nav.selected.area == key %} active{% endif %}"{% if area_nav.selected.area == key and not area_nav.selected.item %} aria-current="page"{% endif %}>
+          <span class="nav-link-icon">{{ icon(icon_name) }}</span>
+          <span class="nav-link-title">{{ label }}</span>
+        </a>
+        {% if area_nav.selected.area == key %}
+        <ul class="admin-nav-subitems" aria-label="{{ label }} Unterpunkte">
+          {% for tab in tabs if tab[3] %}
+          <li class="nav-item{% if tab[0] == area_nav.selected.item %} active{% endif %}">
+            <a href="{{ area_nav.href(tab) }}" class="nav-link{% if tab[0] == area_nav.selected.item %} active{% endif %}"{% if tab[0] == area_nav.selected.item %} aria-current="page"{% endif %}>
+              <span class="nav-link-title">{{ tab[2] }}</span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </li>
     {% endif %}
   {% endfor %}
 </ul>
@@ -36,23 +42,7 @@
   </div>
   <div class="admin-user"><div><strong>{{ user.name if user else 'Küche Administration' }}</strong><span>{{ roles|default([])|join(', ') }}</span></div></div>
   <nav class="admin-nav" aria-label="Backend">
-    {% for key, href, label in [('weeks', weeks_url, 'Wochenpläne'), ('calendar', url_for('admin.kitchen_calendar'), 'Küchenkalender'), ('management', url_for('admin.week_management', family=family), 'Wochenverwaltung'), ('menus', '/admin/' ~ family ~ '/menues', 'Menüs'), ('components', '/admin/' ~ family ~ '/komponenten', 'Komponenten'), ('import', url_for('admin.import_preview'), 'CSV Import')] %}
-    <a href="{{ href }}"{% if workflow_nav == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
-    {% endfor %}
-    <a href="{{ url_for('admin.master_data_list') }}"{% if workflow_nav == 'master_data' %} class="active" aria-current="page"{% endif %}>Grundlagen</a>
-    {% if can_browse_recipes %}
-    {% for key, endpoint, label in [('recipes', 'recipes_list', 'Rezepte'), ('cookbooks', 'cookbooks_list', 'Kochbücher')] %}
-    <a href="{{ url_for('admin.' ~ endpoint) }}"{% if workflow_nav == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
-    {% endfor %}
-    {% endif %}
-    {% for key, label in [('screens', 'Screens'), ('vorlagen', 'Vorlagen')] %}
-    <a href="{{ url_for('admin.' ~ key) }}"{% if workflow_nav == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
-    {% endfor %}
-    {% if can_manage_users %}<a href="{{ url_for('admin.local_users_list') }}">Benutzer &amp; Zugriff</a>{% endif %}
-    {% if can_configure_display %}
-    <a href="{{ url_for('admin.branding_editor') }}">Design &amp; Marke</a>
-    <a href="{{ url_for('admin.operations_settings') }}"{% if workflow_nav == 'operations' %} class="active" aria-current="page"{% endif %}>{{ icon('calendar-cog') }}Bereiche &amp; Zeiten</a>
-    {% endif %}
+    {{ area_links() }}
     <form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button type="submit">Abmelden</button></form>
   </nav>
 </aside>

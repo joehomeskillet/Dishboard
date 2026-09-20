@@ -2,16 +2,6 @@
 {% set nav_family = family|default('cafeteria', true) %}
 {% set week_args = {'week': week} if week is defined and week else {} %}
 {% set family_args = {'family': nav_family} %}
-{% set current_tab = workflow_nav|default('') %}
-{% if request.endpoint == 'admin.preview' %}
-  {% set current_tab = 'preview' %}
-{% elif request.endpoint == 'admin.display_settings' %}
-  {% set current_tab = 'display' %}
-{% elif not current_tab and request.endpoint %}
-  {% if request.endpoint.startswith('admin.recipe_') %}{% set current_tab = 'recipes' %}
-  {% elif request.endpoint.startswith('admin.cookbook_') %}{% set current_tab = 'cookbooks' %}{% endif %}
-{% endif %}
-{% if current_tab == 'weeks' %}{% set current_tab = nav_family %}{% endif %}
 {# Area: key, label, icon, sidebar landing tab key ('family' = active family). #}
 {# Tab: key, endpoint, label, visible, url_for kwargs. Preview stays a tab; it has no admin shell. #}
 {% set areas = [
@@ -47,9 +37,74 @@
     ('users', 'local_users_list', 'Benutzer & Zugriff', can_manage_users, {})
   ])
 ] %}
-{% set selected = namespace(area='') %}
+
+{# Explicit endpoint sets keep unrelated routes out of contextual navigation. #}
+{% set family_endpoints = [
+  'admin.dashboard', 'admin.cafeteria', 'admin.patienten', 'admin.copy_get',
+  'admin.copy_post', 'admin.publish', 'admin.week_review_get', 'admin.week_review_post'
+] %}
+{% set item_endpoints = [
+  ('management', ['admin.week_management', 'admin.week_create']),
+  ('calendar', ['admin.kitchen_calendar', 'admin.kitchen_event_new', 'admin.kitchen_event_create',
+                'admin.kitchen_event_edit', 'admin.kitchen_event_save']),
+  ('menus', ['admin.menu_collection', 'admin.menu_get', 'admin.menu_post', 'admin.menu_review',
+             'admin.header_get', 'admin.header_post', 'admin.service_get', 'admin.service_post',
+             'admin.courses_post']),
+  ('components', ['admin.components_get', 'admin.components_create', 'admin.component_detail',
+                  'admin.component_update', 'admin.component_archive', 'admin.component_unarchive']),
+  ('master_data', ['admin.master_data_list', 'admin.master_data_new', 'admin.master_data_detail',
+                   'admin.master_data_change', 'admin.food_price_save']),
+  ('recipes', ['admin.recipes_list', 'admin.recipe_view', 'admin.recipe_new', 'admin.recipe_edit',
+               'admin.recipe_form_rows', 'admin.recipe_status', 'admin.recipe_images', 'admin.recipe_asset',
+               'admin.recipe_import_list', 'admin.recipe_import_create', 'admin.recipe_import_detail',
+               'admin.recipe_import_save', 'admin.recipe_import_commit', 'admin.recipe_revisions',
+               'admin.recipe_freeze', 'admin.recipe_revision', 'admin.recipe_revision_pdf',
+               'admin.recipe_scale', 'admin.recipe_print_template_editor',
+               'admin.recipe_print_template_preview']),
+  ('cookbooks', ['admin.cookbooks_list', 'admin.cookbook_new', 'admin.cookbook_edit',
+                 'admin.cookbook_recipes', 'admin.cookbook_status']),
+  ('dish_templates', ['admin.dish_templates_list', 'admin.dish_template_new',
+                      'admin.dish_template_create', 'admin.dish_template_edit',
+                      'admin.dish_template_save', 'admin.dish_template_plan',
+                      'admin.dish_template_plan_post']),
+  ('shopping_lists', ['admin.shopping_lists_index', 'admin.shopping_lists_create',
+                      'admin.shopping_list_archive', 'admin.shopping_list_detail',
+                      'admin.shopping_list_pdf', 'admin.shopping_list_compute',
+                      'admin.shopping_list_line_toggle', 'admin.shopping_list_manual_create',
+                      'admin.shopping_list_manual_update']),
+  ('orders', ['admin.order_home', 'admin.order_supplier_create', 'admin.order_article_create',
+              'admin.order_basket_create', 'admin.order_basket', 'admin.order_basket_save',
+              'admin.order_basket_from_demand', 'admin.order_basket_csv']),
+  ('inventory', ['admin.inventory_home', 'admin.inventory_move', 'admin.inventory_transfer',
+                 'admin.inventory_count']),
+  ('cost', ['admin.cost_home', 'admin.cost_preview', 'admin.cost_confirm']),
+  ('preview', ['admin.preview']),
+  ('screens', ['admin.screens', 'admin.screen_template_assignment', 'admin.screen_template_preview']),
+  ('vorlagen', ['admin.vorlagen', 'admin.print_template_editor', 'admin.print_template_preview']),
+  ('operations', ['admin.operations_settings', 'admin.schedule_defaults']),
+  ('design', ['admin.branding_editor', 'admin.branding_preview', 'admin.branding_preview_css',
+              'admin.branding_preview_logo']),
+  ('display', ['admin.display_settings']),
+  ('import', ['admin.import_preview', 'admin.import_csv', 'admin.export_csv']),
+  ('api', ['admin.api_overview', 'admin.api_key_create', 'admin.api_key_revoke']),
+  ('users', ['admin.local_users_list', 'admin.local_user_new', 'admin.local_user_create',
+             'admin.local_user_detail', 'admin.local_user_change', 'admin.local_user_events',
+             'admin.access_history'])
+] %}
+{% set selected = namespace(area='', item='') %}
+{% if request.endpoint in family_endpoints %}{% set selected.item = nav_family %}{% endif %}
+{% for item, endpoints in item_endpoints if request.endpoint in endpoints %}
+  {% set selected.item = item %}
+{% endfor %}
+{% if not selected.item %}
+  {% set fallback_item = workflow_nav|default('') %}
+  {% if fallback_item == 'weeks' %}{% set fallback_item = nav_family %}{% endif %}
+  {% for key, label, icon_name, landing, tabs in areas %}
+    {% for tab in tabs if tab[0] == fallback_item %}{% set selected.item = fallback_item %}{% endfor %}
+  {% endfor %}
+{% endif %}
 {% for key, label, icon_name, landing, tabs in areas %}
-  {% for tab in tabs if tab[0] == current_tab %}{% set selected.area = key %}{% endfor %}
+  {% for tab in tabs if tab[0] == selected.item %}{% set selected.area = key %}{% endfor %}
 {% endfor %}
 
 {% macro href(tab) -%}{{ url_for('admin.' ~ tab[1], **tab[4]) }}{%- endmacro %}
@@ -60,7 +115,7 @@
   <div class="container-xl">
     <ul class="nav nav-tabs">
       {% for tab in tabs if tab[3] %}
-      <li class="nav-item"><a class="nav-link{% if tab[0] == current_tab %} active{% endif %}" href="{{ href(tab) }}"{% if tab[0] == current_tab %} aria-current="page"{% endif %}>{{ tab[2] }}</a></li>
+      <li class="nav-item"><a class="nav-link{% if tab[0] == selected.item %} active{% endif %}" href="{{ href(tab) }}"{% if tab[0] == selected.item %} aria-current="page"{% endif %}>{{ tab[2] }}</a></li>
       {% endfor %}
     </ul>
   </div>
