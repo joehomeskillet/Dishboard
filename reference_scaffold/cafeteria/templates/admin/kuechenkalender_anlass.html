@@ -4,14 +4,11 @@
 {% set layout_variant = 'calendar' %}
 {% block title %}{{ 'Anlass bearbeiten' if event else 'Anlass anlegen' }} · Küchenkalender{% endblock %}
 {% block page_header %}
-{%- set event_status = [
+{% set event_status = [
   {'label': 'Datum', 'value': values.event_date, 'variant': 'neutral'},
   {'label': 'Bereich', 'value': scope_labels[values.profile_scope], 'variant': 'neutral'},
   {'label': 'Gäste', 'value': values.guest_count, 'variant': 'neutral'},
-] -%}
-{%- if event and values.row_version -%}
-  {%- set event_status = event_status + [{'label': 'Version', 'value': values.row_version, 'variant': 'neutral'}] -%}
-{%- endif -%}
+] %}
 {{ page_header(
   'Anlass bearbeiten' if event else 'Anlass anlegen',
   description='Anlass für die Küchenplanung erfassen.',
@@ -20,12 +17,13 @@
 ) }}
 {% endblock %}
 {% block content %}
-{%- set optional_content = values.starts_at or values.ends_at or values.note -%}
-{%- set optional_errors = field_errors.get('starts_at') or field_errors.get('ends_at') or field_errors.get('note') -%}
+{% set optional_content = values.starts_at or values.ends_at or values.note %}
+{% set optional_errors = field_errors.get('starts_at') or field_errors.get('ends_at') or field_errors.get('note') %}
 {% if field_errors %}{{ form_errors(field_errors) }}{% endif %}
 <form class="card" id="kitchen-event-form" method="post" action="{{ url_for('admin.kitchen_event_save', public_id=event.public_id) if event else url_for('admin.kitchen_event_create') }}">
   <div class="card-body">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    {% if values.row_version %}<input type="hidden" name="row_version" value="{{ values.row_version }}">{% endif %}
     <div class="row g-3">
       <div class="col-12 col-md-6">{{ field('event_date', 'Datum', values.event_date, type='date', required=true, error=field_errors.get('event_date')) }}</div>
       <div class="col-12 col-md-6">
@@ -41,7 +39,6 @@
       <div class="col-12 col-md-6">{{ field('starts_at', 'Beginn', values.starts_at, type='time', required=false, error=field_errors.get('starts_at')) }}</div>
       <div class="col-12 col-md-6">{{ field('ends_at', 'Ende', values.ends_at, type='time', required=false, error=field_errors.get('ends_at')) }}</div>
       <div class="col-12">{{ textarea('note', 'Notiz', values.note, required=false, rows=3, error=field_errors.get('note')) }}</div>
-      {% if values.row_version %}<input type="hidden" name="row_version" value="{{ values.row_version }}">{% endif %}
     </div>
     {% endcall %}
   </div>

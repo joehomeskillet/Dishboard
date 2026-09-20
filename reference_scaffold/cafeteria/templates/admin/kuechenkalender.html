@@ -3,80 +3,95 @@
 {% set workflow_nav = 'calendar' %}
 {% set layout_variant = 'calendar' %}
 {% block title %}Küchenkalender · Menüplanung{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-kitchen-calendar.css') }}">{% endblock %}
 {% block page_header %}
-{%- set profile_labels = {'both': 'Beide', 'cafeteria': 'Cafeteria', 'patient': 'Patienten'} -%}
-{%- set cal_stats = namespace(days=0, events=0) -%}
-{%- for week in weeks -%}
-  {%- for cell in week if cell.in_month -%}
-    {%- if cell.groups -%}{%- set cal_stats.days = cal_stats.days + 1 -%}{%- endif -%}
-    {%- set cal_stats.events = cal_stats.events + (cell.events|length) -%}
-  {%- endfor -%}
-{%- endfor -%}
-{%- set calendar_status = [
+{% set profile_labels = {'both': 'Beide', 'cafeteria': 'Cafeteria', 'patient': 'Patienten'} %}
+{% set month_days = namespace(total=0, planned=0) %}
+{% for week in weeks %}
+  {% for cell in week if cell.in_month %}
+    {% set month_days.total = month_days.total + 1 %}
+    {% if cell.groups %}{% set month_days.planned = month_days.planned + 1 %}{% endif %}
+  {% endfor %}
+{% endfor %}
+{% set planned_value = month_days.planned ~ ' von ' ~ month_days.total %}
+{% set planned_variant = 'warning' if month_days.planned == 0 else 'neutral' %}
+{% set planned_display = 'Keine Tage geplant' if month_days.planned == 0 else planned_value %}
+{% set cal_stats = namespace(events=0) %}
+{% for week in weeks %}
+  {% for cell in week if cell.in_month %}
+    {% set cal_stats.events = cal_stats.events + (cell.events|length) %}
+  {% endfor %}
+{% endfor %}
+{% set calendar_status = [
   {'label': 'Monat', 'value': month_label, 'variant': 'neutral'},
   {'label': 'Anzeige', 'value': profile_labels[profiles], 'variant': 'neutral'},
-  {'label': 'Geplante Tage', 'value': cal_stats.days if cal_stats.days else 'Keine', 'variant': 'success' if cal_stats.days else 'warning'},
-] -%}
-{%- if cal_stats.events -%}
-  {%- set calendar_status = calendar_status + [{'label': 'Anlässe', 'value': cal_stats.events, 'variant': 'neutral'}] -%}
-{%- endif -%}
-{%- if year == today.year and month == today.month -%}
-  {%- set calendar_status = calendar_status + [{'label': 'Heute', 'value': today.strftime('%d.%m.%Y'), 'variant': 'success'}] -%}
-{%- endif -%}
+  {'label': 'Geplante Tage', 'value': planned_display, 'variant': planned_variant},
+] %}
+{% if cal_stats.events %}
+  {% set calendar_status = calendar_status + [{'label': 'Anlässe', 'value': cal_stats.events, 'variant': 'neutral'}] %}
+{% endif %}
 {% call page_header('Küchenkalender', description='Monatsübersicht der geplanten Menüs und Anlässe.', status_items=calendar_status) %}
-  {%- if can_write -%}
+  {% if can_write %}
   <a class="btn btn-primary" href="{{ url_for('admin.kitchen_event_new', date=jump_value + '-01') }}">{{ icon('plus') }}Anlass anlegen</a>
-  {%- endif -%}
+  {% endif %}
 {% endcall %}
 {% endblock %}
 {% block content %}
-{%- macro plan_href(day, family, week_start) -%}
+{% macro plan_href(day, family, week_start) %}
 {{ url_for('admin.' ~ family, week=week_start.isoformat()) }}
-{%- endmacro %}
-{%- macro menu_href(family, week_start, day, meal, type_code) -%}
+{% endmacro %}
+{% macro menu_href(family, week_start, day, meal, type_code) %}
 {{ url_for('admin.menu_get', family=family, week=week_start.isoformat(), day=day.isoformat(), meal=meal, option=type_code) }}
-{%- endmacro %}
-{%- macro day_body(cell) -%}
-  {%- for event in cell.events -%}
+{% endmacro %}
+{% macro day_body(cell) %}
+  {% set day_ns = namespace(visible_count=0, overflow=[]) %}
+  {% for event in cell.events %}
   <a class="kitchen-cal-event" href="{{ url_for('admin.kitchen_event_edit', public_id=event.public_id) }}">{{ event.title }}</a>
-  {%- endfor -%}
-  {%- if cell.groups -%}
-    {%- for group in cell.groups -%}
+  {% endfor %}
+  {% if cell.groups %}
+    {% for group in cell.groups %}
     <section class="kitchen-cal-area" aria-label="{{ group.profile_label }}">
-      <h4 class="kitchen-cal-area-title">{{ icon('tools-kitchen-2' if group.profile_code == 'staff_guest' else 'users') }}{{ group.profile_label }}</h4>
-      {%- for meal in group.meals -%}
+      {% for meal in group.meals %}
       <div class="kitchen-cal-meal">
-        <div class="kitchen-cal-meal-label">{{ meal.meal_label }}{% if meal.state_label %} · {{ meal.state_label }}{% endif %}</div>
-        {%- if meal.notice and meal.state != 'open' -%}<p class="kitchen-cal-notice">{{ meal.notice }}</p>{%- endif -%}
-        {%- if meal.courses -%}
+        <div class="kitchen-cal-meal-label">{{ group.profile_label }} · {{ meal.meal_label }}{% if meal.state_label %} · {{ meal.state_label }}{% endif %}</div>
+        {% if meal.notice and meal.state != 'open' %}<p class="kitchen-cal-notice">{{ meal.notice }}</p>{% endif %}
+        {% if meal.courses %}
         <p class="kitchen-cal-course">
-          {%- if meal.courses.soup -%}{% if meal.courses.soup.state == 'not_offered' %}Keine Suppe{% else %}Suppe: {{ meal.courses.soup.title }}{% endif %}{% endif -%}
-          {%- if meal.courses.soup and meal.courses.dessert %} · {% endif -%}
-          {%- if meal.courses.dessert -%}{% if meal.courses.dessert.state == 'not_offered' %}Kein Dessert{% else %}Dessert: {{ meal.courses.dessert.title }}{% endif %}{% endif -%}
+          {% if meal.courses.soup %}{% if meal.courses.soup.state == 'not_offered' %}Keine Suppe{% else %}Suppe: {{ meal.courses.soup.title }}{% endif %}{% endif %}
+          {% if meal.courses.soup and meal.courses.dessert %} · {% endif %}
+          {% if meal.courses.dessert %}{% if meal.courses.dessert.state == 'not_offered' %}Kein Dessert{% else %}Dessert: {{ meal.courses.dessert.title }}{% endif %}{% endif %}
         </p>
-        {%- endif -%}
-        {%- for item in meal.visible -%}
-        <a class="kitchen-cal-dish" href="{{ menu_href(group.family, meal.week_start, cell.date, meal.meal_code, item.type_code) }}">{{ item.title }}</a>
-        {%- endfor -%}
-        {%- if meal.extra -%}
-        <details class="kitchen-cal-more">
-          <summary>+ {{ meal.extra|length }} weitere</summary>
-          {%- for item in meal.extra -%}
-          <a class="kitchen-cal-dish" href="{{ menu_href(group.family, meal.week_start, cell.date, meal.meal_code, item.type_code) }}">{{ item.title }}</a>
-          {%- endfor -%}
-        </details>
-        {%- endif -%}
+        {% endif %}
+        {% for item in meal.visible %}
+          {% if day_ns.visible_count < 4 %}
+          <a class="kitchen-cal-dish" href="{{ menu_href(group.family, meal.week_start, cell.date, meal.meal_code, item.type_code) }}" title="{{ item.title }}">{{ item.title }}</a>
+          {% set day_ns.visible_count = day_ns.visible_count + 1 %}
+          {% else %}
+          {% set _ = day_ns.overflow.append({'item': item, 'group': group, 'meal': meal}) %}
+          {% endif %}
+        {% endfor %}
+        {% for item in meal.extra %}
+        {% set _ = day_ns.overflow.append({'item': item, 'group': group, 'meal': meal}) %}
+        {% endfor %}
       </div>
-      {%- endfor -%}
+      {% endfor %}
     </section>
-    {%- endfor -%}
-  {%- elif not cell.events -%}
+    {% endfor %}
+    {% if day_ns.overflow %}
+    <details class="kitchen-cal-more">
+      <summary>+ {{ day_ns.overflow|length }} weitere</summary>
+      {% for entry in day_ns.overflow %}
+      <a class="kitchen-cal-dish" href="{{ menu_href(entry.group.family, entry.meal.week_start, cell.date, entry.meal.meal_code, entry.item.type_code) }}" title="{{ entry.item.title }}">{{ entry.item.title }}</a>
+      {% endfor %}
+    </details>
+    {% endif %}
+  {% elif not cell.events %}
     <p class="kitchen-cal-empty">Keine Einträge für diesen Tag.</p>
-    {%- if can_write -%}
-    <a class="btn btn-primary" href="{{ plan_href(cell.date, plan_family, cell.plan_week_start) }}">{{ icon('calendar-week') }}Planen</a>
-    {%- endif -%}
-  {%- endif -%}
-{%- endmacro %}
+    {% if can_write %}
+    <a class="btn" href="{{ plan_href(cell.date, plan_family, cell.plan_week_start) }}">{{ icon('plus') }}Planen</a>
+    {% endif %}
+  {% endif %}
+{% endmacro %}
 <div class="kitchen-cal-toolbar" role="region" aria-label="Kalendersteuerung">
   <div class="kitchen-cal-month-nav" role="group" aria-label="Monat wählen">
     <a class="btn" href="{{ url_for('admin.kitchen_calendar', year=prev_year, month=prev_month, profiles=profiles) }}" aria-label="Vorheriger Monat">{{ icon('chevron-left') }}</a>
@@ -87,12 +102,12 @@
       <noscript><button class="btn" type="submit">Anzeigen</button></noscript>
     </form>
     <a class="btn" href="{{ url_for('admin.kitchen_calendar', year=next_year, month=next_month, profiles=profiles) }}" aria-label="Nächster Monat">{{ icon('chevron-right') }}</a>
-    <a class="btn{% if year == today.year and month == today.month %} btn-primary{% endif %}" href="{{ url_for('admin.kitchen_calendar', year=today.year, month=today.month, profiles=profiles) }}">Heute</a>
+    <a class="btn{% if year == today.year and month == today.month %} active{% endif %}" href="{{ url_for('admin.kitchen_calendar', year=today.year, month=today.month, profiles=profiles) }}"{% if year == today.year and month == today.month %} aria-current="true"{% endif %}>{% if year == today.year and month == today.month %}{{ icon('check') }}{% endif %}Heute</a>
   </div>
   <div class="kitchen-cal-filters" role="group" aria-label="Bereich filtern">
-    <a class="btn{% if profiles == 'both' %} btn-primary{% endif %}" href="{{ url_for('admin.kitchen_calendar', year=year, month=month, profiles='both') }}">Beide</a>
-    <a class="btn{% if profiles == 'cafeteria' %} btn-primary{% endif %}" href="{{ url_for('admin.kitchen_calendar', year=year, month=month, profiles='cafeteria') }}">Cafeteria</a>
-    <a class="btn{% if profiles == 'patient' %} btn-primary{% endif %}" href="{{ url_for('admin.kitchen_calendar', year=year, month=month, profiles='patient') }}">Patienten</a>
+    <a class="btn{% if profiles == 'both' %} active{% endif %}" href="{{ url_for('admin.kitchen_calendar', year=year, month=month, profiles='both') }}"{% if profiles == 'both' %} aria-current="true"{% endif %}>{% if profiles == 'both' %}{{ icon('check') }}{% endif %}Beide</a>
+    <a class="btn{% if profiles == 'cafeteria' %} active{% endif %}" href="{{ url_for('admin.kitchen_calendar', year=year, month=month, profiles='cafeteria') }}"{% if profiles == 'cafeteria' %} aria-current="true"{% endif %}>{% if profiles == 'cafeteria' %}{{ icon('check') }}{% endif %}Cafeteria</a>
+    <a class="btn{% if profiles == 'patient' %} active{% endif %}" href="{{ url_for('admin.kitchen_calendar', year=year, month=month, profiles='patient') }}"{% if profiles == 'patient' %} aria-current="true"{% endif %}>{% if profiles == 'patient' %}{{ icon('check') }}{% endif %}Patienten</a>
   </div>
 </div>
 <div class="kitchen-cal-grid">
@@ -102,36 +117,36 @@
   </colgroup>
   <thead>
     <tr>
-      {%- for name in weekday_names -%}<th scope="col">{{ name }}</th>{%- endfor -%}
+      {% for name in weekday_names %}<th scope="col">{{ name }}</th>{% endfor %}
     </tr>
   </thead>
   <tbody>
-    {%- for week in weeks -%}
+    {% for week in weeks %}
     <tr>
-      {%- for cell in week -%}
+      {% for cell in week %}
       <td class="kitchen-cal-day{% if not cell.in_month %} kitchen-cal-day-muted{% endif %}{% if cell.is_today %} kitchen-cal-day-today{% endif %}">
         <a class="kitchen-cal-day-head" href="{{ plan_href(cell.date, (cell.groups[0].family if cell.groups else plan_family), cell.plan_week_start) }}">
           <span class="kitchen-cal-day-num">{{ cell.date.day }}</span>
-          {%- if cell.is_today -%}<span class="kitchen-cal-today-mark">Heute</span>{%- endif -%}
+          {% if cell.is_today %}<span class="kitchen-cal-today-mark">Heute</span>{% endif %}
         </a>
         {{ day_body(cell) }}
       </td>
-      {%- endfor -%}
+      {% endfor %}
     </tr>
-    {%- endfor -%}
+    {% endfor %}
   </tbody>
 </table>
 </div>
 <ol class="kitchen-cal-list" aria-label="Kalendertage">
-  {%- for week in weeks -%}
-    {%- for cell in week if cell.in_month -%}
+  {% for week in weeks %}
+    {% for cell in week if cell.in_month %}
     <li class="kitchen-cal-list-day{% if cell.is_today %} kitchen-cal-day-today{% endif %}">
       <h2 class="kitchen-cal-list-head">
         <a href="{{ plan_href(cell.date, (cell.groups[0].family if cell.groups else plan_family), cell.plan_week_start) }}">{{ cell.list_label }}{% if cell.is_today %} · Heute{% endif %}</a>
       </h2>
       {{ day_body(cell) }}
     </li>
-    {%- endfor -%}
-  {%- endfor -%}
+    {% endfor %}
+  {% endfor %}
 </ol>
 {% endblock %}
