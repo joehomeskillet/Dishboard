@@ -14,7 +14,7 @@
 .component-allergens .form-check { margin: 0; flex: 1; overflow-wrap: anywhere; }
 .component-allergen-presence { min-width: 0; }
 .component-allergen-presence:has(select:disabled) :is(select, label),
-.component-allergens .allergen-row:not(:has([name="allergen_code"]:checked)) .component-allergen-presence :is(select, label),
+.component-allergen-presence:has(select[hidden]) label,
 .component-allergens .allergen-row:has([name="allergen_code"]:checked) .component-allergen-unselected,
 .component-allergen-disabled { display: none; }
 .component-allergens .allergen-row:has([name="allergen_code"]:checked) .component-allergen-presence:has(select:disabled) .component-allergen-disabled { display: block; }

@@ -11,7 +11,6 @@ from playwright.sync_api import expect
 from werkzeug.datastructures import MultiDict
 from werkzeug.serving import make_server
 
-from cafeteria.workflow import WorkflowValidationError
 from cafeteria.workflow_partial_form import _allergens
 from test_admin_workflow_routes import _login, database_engine  # noqa: F401
 from test_rendered_ui import browser  # noqa: F401
@@ -92,7 +91,7 @@ def _pairs(page, codes='allergen_code', details='allergen_presence'):
     page.get_by_role('button', name='Speichern', exact=True).click()
     entries = page.evaluate('window.submitted')
     left = [value for key, value in entries if key == codes]
-    right = [value for key, value in entries if key == details]
+    right = [dict(entries)[f'{details}__{code}'] for code in left]
     assert len(left) == len(right)
     return list(zip(left, right, strict=True))
 
@@ -105,8 +104,9 @@ def test_option_detail_pairing_survives_non_sorted_toggles(shared_site):
             page.locator(f'[name="allergen_code"][value="{code}"]').set_checked(checked)
         page.locator('#allergen-lupin-presence').select_option('may_contain')
         assert _pairs(page) == [('GLUTEN', 'contains'), ('LUPIN', 'may_contain')]
-        expect(page.locator('#allergen-milk-presence')).to_be_disabled()
-        expect(page.locator('#allergen-egg-presence')).to_be_disabled()
+        expect(page.locator('#allergen-milk-presence')).to_be_enabled()
+        expect(page.locator('#allergen-milk-presence')).to_be_hidden()
+        expect(page.locator('#allergen-egg-presence')).to_be_enabled()
         page.locator('[name="allergen_code"][value="MILK"]').check()
         page.locator('[name="allergen_code"][value="LUPIN"]').uncheck()
         assert _pairs(page) == [('MILK', 'may_contain'), ('GLUTEN', 'contains')]
@@ -129,7 +129,7 @@ def test_option_detail_nojs_preserves_initial_successful_controls(shared_site, k
     try:
         expect(page.locator('[data-option-detail] select')).to_have_count(4)
         if kind == 'paired':
-            expect(page.locator('#allergen-gluten-presence')).to_be_disabled()
+            expect(page.locator('#allergen-gluten-presence')).to_be_enabled()
             expect(page.locator('#allergen-milk-presence')).to_be_enabled()
         else:
             page.locator('select[name="allergen_GLUTEN"]').select_option('contains')
@@ -138,7 +138,7 @@ def test_option_detail_nojs_preserves_initial_successful_controls(shared_site, k
         result = page.locator('body').inner_text()
         data = json.loads(result)
         if kind == 'paired':
-            assert list(zip(data['allergen_code'], data['allergen_presence'], strict=True)) == [
+            assert [(code, data[f'allergen_presence__{code}'][0]) for code in data['allergen_code']] == [
                 ('MILK', 'may_contain'), ('EGG', 'contains')]
         else:
             assert data['allergen_MILK'] == ['may_contain']
@@ -251,24 +251,26 @@ def test_option_detail_server_disabled_and_error_links(shared_site, javascript):
         page.goto(page.url.replace('auto=1', 'invalid=1'))
         presence = page.locator('#allergen-milk-presence')
         expect(presence).to_have_attribute('aria-invalid', 'true')
-        expect(presence).to_have_attribute('aria-describedby', 'err-allergen-presence')
-        expect(page.locator('#err-allergen-presence.field-error')).to_have_text('Bitte prüfen')
+        expect(presence).to_have_attribute('aria-describedby', 'allergen-milk-error')
+        expect(page.locator('#allergen-milk-error.field-error')).to_have_text('Bitte prüfen')
         assert 'is-invalid' in presence.get_attribute('class').split()
     finally:
         page.context.close()
 
 
-def test_option_detail_nojs_new_selection_is_rejected_by_existing_parser(shared_site):
+def test_option_detail_nojs_new_selection_preserves_identity(shared_site):
     page = _page(shared_site, javascript=False)
     try:
         page.locator('#allergen-lupin').check()
-        expect(page.locator('#allergen-lupin-presence')).to_be_disabled()
+        expect(page.locator('#allergen-lupin-presence')).to_be_enabled()
+        page.locator('#allergen-lupin-presence').select_option('may_contain')
         with page.expect_navigation():
             page.get_by_role('button', name='Speichern', exact=True).click()
         data = json.loads(page.locator('body').inner_text())
         submitted = MultiDict((key, value) for key, values in data.items() for value in values)
-        with pytest.raises(WorkflowValidationError, match='Zusammengehörige Felder sind unvollständig'):
-            _allergens(submitted, 'Makro-Test')
+        assert {row['code']: row['presence'] for row in _allergens(submitted, 'Makro-Test')} == {
+            'MILK': 'may_contain', 'EGG': 'contains', 'LUPIN': 'may_contain',
+        }
     finally:
         page.context.close()
 

@@ -210,11 +210,11 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         first_allergen = main.locator('.allergen-row').first
         # The presence select only exists for a chosen allergen: measure it in that state, then restore.
         checkbox = first_allergen.locator('[name="allergen_code"]')
-        presence = first_allergen.locator('[name="allergen_presence"]')
+        presence = first_allergen.locator('[name^="allergen_presence__"]')
         unselected = first_allergen.get_by_text('Nicht ausgewählt', exact=True)
         expect(checkbox).not_to_be_checked()
         expect(presence).to_be_hidden()
-        expect(presence).to_be_disabled()
+        expect(presence).to_be_enabled()
         expect(unselected).to_be_visible()
         checkbox.check()
         expect(presence).to_be_visible()
@@ -229,7 +229,7 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
             assert select_box['y'] >= label_box['y'] + label_box['height']
         checkbox.uncheck()
         expect(presence).to_be_hidden()
-        expect(presence).to_be_disabled()
+        expect(presence).to_be_enabled()
         expect(unselected).to_be_visible()
 
     if page_kind == 'catalog' and shell == '.page':

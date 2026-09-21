@@ -267,7 +267,7 @@ def test_menu_manual_metadata_and_optional_rows_roundtrip(
     assert payload['component_public_id'] == ['', '']
     assert payload['origin_ingredient'] == ['Rind', 'Kartoffel']
     assert payload['origin_country_code'] == ['CH', 'DE']
-    assert dict(zip(payload['allergen_code'], payload['allergen_presence'], strict=True)) == {
+    assert {code: payload[f'allergen_presence__{code}'][0] for code in payload['allergen_code']} == {
         'MILK': 'may_contain', 'GLUTEN': 'contains',
     }
     page.reload()

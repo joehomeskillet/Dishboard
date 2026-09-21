@@ -192,17 +192,20 @@
           <div class="allergen-list component-allergens">
             {% for allergen in allergens|default([]) %}
               {% set idx = a_codes.index(allergen.code) if allergen.code in a_codes else -1 %}
-              {% set presence = a_pres[idx] if idx >= 0 and idx < a_pres|length else 'contains' %}
+              {% set presence_name = 'allergen_presence__' ~ allergen.code %}
+              {% set presence = submitted.get(presence_name, a_pres[idx] if idx >= 0 and idx < a_pres|length else 'contains') %}
+              {% set presence_error = errors.get(presence_name) %}
               <div class="allergen-row admin-compact-row">
                 <div class="d-flex align-items-center gap-2">{{ symbol('allergens', allergen.code, true) }}{{ check('allergen_code', allergen.name|default(allergen.code), value=allergen.code, checked=idx >= 0, id='create-allergen-' ~ allergen.code) }}</div>
                 <div class="component-allergen-presence">
                   <span class="component-allergen-unselected text-secondary">Nicht ausgewählt</span>
-                  <span class="component-allergen-disabled text-secondary">Ausgewählt – Präsenz mit JavaScript festlegen.</span>
                   <label class="form-label" for="create-presence-{{ allergen.code }}">Präsenz</label>
-                  <select class="form-select" id="create-presence-{{ allergen.code }}" name="allergen_presence" aria-label="Präsenz für {{ allergen.name|default(allergen.code) }}"{% if idx < 0 %} disabled{% endif %}>
+                  <select class="form-select{{ ' is-invalid' if presence_error else '' }}" id="create-presence-{{ allergen.code }}" name="{{ presence_name }}" aria-label="Präsenz für {{ allergen.name|default(allergen.code) }}"{% if presence_error %} aria-invalid="true" aria-describedby="create-presence-{{ allergen.code }}-error"{% endif %}>
+                    {% if presence not in ['contains', 'may_contain'] %}<option value="{{ presence }}" selected>{{ presence }}</option>{% endif %}
                     <option value="contains"{% if presence == 'contains' %} selected{% endif %}>enthält</option>
                     <option value="may_contain"{% if presence == 'may_contain' %} selected{% endif %}>kann Spuren enthalten</option>
                   </select>
+                  {% if presence_error %}<div class="invalid-feedback d-block field-error" id="create-presence-{{ allergen.code }}-error">{{ presence_error }}</div>{% endif %}
                 </div>
               </div>
             {% endfor %}

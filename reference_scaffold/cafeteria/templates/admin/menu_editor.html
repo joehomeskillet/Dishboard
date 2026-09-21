@@ -25,6 +25,7 @@
 {% set errors = form_errors|default({}) %}
 {% set is_auto = {'allergen': submitted.get('allergen_mode', 'auto') == 'auto', 'origin': submitted.get('origin_mode', 'auto') == 'auto', 'label': submitted.get('label_mode', 'auto') == 'auto'} %}
 {% set error_targets = {'title': 'f-title', 'description': 'f-desc', 'note': 'f-note', 'accompaniment': 'accompaniment-none', 'internal_chf': 'f-int', 'external_chf': 'f-ext', 'component_public_id': 'component-0-id', 'component_text': 'component-0-text', 'recipe_revision_public_id': 'component-0-recipe', 'target_quantity': 'component-0-target-quantity', 'allergen_code': 'allergen-mode-manual', 'allergen_presence': 'allergen-mode-manual', 'origin_ingredient': 'origin-0-ingredient', 'origin_country_code': 'origin-0-country', 'label_code': 'label-mode-manual'} %}
+{% for allergen in allergens %}{% set _ = error_targets.update({'allergen_presence__' ~ allergen.code: 'allergen-' ~ allergen.code|lower ~ '-presence'}) %}{% endfor %}
 {% macro error_attributes(name, error_id, hint_id=none) %}{% if errors.get(name) %} aria-invalid="true"{% endif %}{% if hint_id or errors.get(name) %} aria-describedby="{{ hint_id or '' }}{{ ' ' if hint_id and errors.get(name) else '' }}{{ error_id if errors.get(name) else '' }}"{% endif %}{% endmacro %}
 {% macro invalid_class(name) %}{% if errors.get(name) %} is-invalid{% endif %}{% endmacro %}
 {% macro field_error(name, error_id) %}{% if errors.get(name) %}<div class="invalid-feedback d-block field-error" id="{{ error_id }}">{{ errors[name] }}</div>{% endif %}{% endmacro %}

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from urllib.parse import parse_qs, parse_qsl, urlsplit
+from urllib.parse import parse_qs, parse_qsl, urlencode, urlsplit
 import json
 
 import pytest
@@ -83,7 +83,7 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, tmp_pat
                     'option': ['MENU_1'], 'row_version': ['1'], 'dish_template_public_id': [''],
                     'title': ['Referenzmenü'], 'accompaniment': ['none'], 'description': [''], 'note': [''],
                     'allergen_mode': ['manual'], 'allergen_code': ['GLUTEN', 'MILK'],
-                    'allergen_presence': ['contains', 'may_contain'], 'origin_mode': ['manual'],
+                    'origin_mode': ['manual'],
                     'label_mode': ['manual'], 'component_public_id': [''], 'component_text': ['Kartoffeln'],
                     'recipe_revision_public_id': [''], 'target_quantity': [''], 'target_quantity_unit_code': [''],
                     'origin_ingredient': ['Reis', 'Rind'], 'origin_country_code': ['IT', 'CH'],
@@ -93,6 +93,10 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, tmp_pat
                 actual = {}
                 for key, value in sanitized:
                     actual.setdefault(key, []).append(value)
+                presence_fields = {key: value for key, value in actual.items() if key.startswith('allergen_presence__')}
+                assert presence_fields['allergen_presence__GLUTEN'] == ['contains']
+                assert presence_fields['allergen_presence__MILK'] == ['may_contain']
+                expected.update(presence_fields)
                 assert actual == expected
                 print('WP04_REFERENCE', family, javascript, json.dumps(sanitized, ensure_ascii=False))
                 print('WP04_METRICS', family, javascript, json.dumps(metrics), str(tmp_path))
@@ -100,26 +104,40 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, tmp_pat
                 saved_review = page.locator('#review').inner_text()
                 for code, selected in [('MILK', False), ('LUPIN', True), ('GLUTEN', False), ('GLUTEN', True)]:
                     page.locator(f'[name="allergen_code"][value="{code}"]').set_checked(selected)
-                if javascript:
-                    page.locator('#allergen-lupin-presence').select_option('may_contain')
-                    expect(page.locator('#allergen-milk-presence')).to_be_disabled()
-                else:
-                    # Existing macro contract: a new No-JS selection cannot enable its detail.
-                    expect(page.locator('#allergen-lupin-presence')).to_be_disabled()
+                page.locator('#allergen-lupin-presence').select_option('may_contain')
+                expect(page.locator('#allergen-milk-presence')).to_be_enabled()
                 expect(page.locator('#review')).to_have_text(saved_review)
                 with page.expect_response(lambda r: r.request.method == 'POST' and r.url.endswith('/menu')) as changed:
                     page.get_by_role('button', name='Menü speichern', exact=True).click()
                 submitted = parse_qs(changed.value.request.post_data, keep_blank_values=True)
                 assert submitted['allergen_code'] == ['GLUTEN', 'LUPIN']
-                if javascript:
-                    assert changed.value.status == 303
-                    assert list(zip(submitted['allergen_code'], submitted['allergen_presence'], strict=True)) == [
-                        ('GLUTEN', 'contains'), ('LUPIN', 'may_contain'),
-                    ]
-                    next_version = 3
-                else:
-                    # Check the unsafe substitution after independently proving automatic mode.
-                    next_version = 3 if changed.value.status == 303 else 2
+                assert changed.value.status == 303
+                assert [(code, submitted[f'allergen_presence__{code}'][0]) for code in submitted['allergen_code']] == [
+                    ('GLUTEN', 'contains'), ('LUPIN', 'may_contain'),
+                ]
+                page.wait_for_load_state()
+                page.reload()
+                assert page.locator('[name="allergen_code"]:checked').evaluate_all('(els) => els.map(e => e.value)') == ['GLUTEN', 'LUPIN']
+                expect(page.locator('#allergen-gluten-presence')).to_have_value('contains')
+                expect(page.locator('#allergen-lupin-presence')).to_have_value('may_contain')
+                next_version = 3
+
+                def invalid_presence(route):
+                    fields = parse_qsl(route.request.post_data, keep_blank_values=True)
+                    route.continue_(post_data=urlencode([
+                        (key, 'invalid' if key == 'allergen_presence__GLUTEN' else value)
+                        for key, value in fields]))
+
+                page.route('**/menu', invalid_presence, times=1)
+                with page.expect_response(lambda r: r.request.method == 'POST' and r.url.endswith('/menu')) as invalid:
+                    page.get_by_role('button', name='Menü speichern', exact=True).click()
+                assert invalid.value.status == 400
+                presence = page.locator('#allergen-gluten-presence')
+                expect(presence).to_have_value('invalid')
+                expect(presence).to_have_attribute('aria-invalid', 'true')
+                expect(presence).to_have_attribute('aria-describedby', 'allergen-gluten-error')
+                expect(page.locator('#allergen-gluten-error')).to_contain_text('ungültig')
+                expect(page.locator('#allergen-lupin-presence')).to_have_value('may_contain')
                 payload.update(allergen_mode='auto', allergens=[])
                 persist_menu_item(database_engine, _scope(client, database_engine, profile), WEEK,
                                   WEEK.isoformat(), 'LUNCH', 'MENU_1', payload, next_version)
@@ -130,11 +148,8 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, tmp_pat
                 assert automatic.value.status == 303
                 assert auto_fields['allergen_mode'] == ['auto']
                 assert 'allergen_code' not in auto_fields and 'allergen_presence' not in auto_fields
+                assert not any(key.startswith('allergen_presence__') for key in auto_fields)
                 print('WP04_AUTO', family, javascript, automatic.value.status, 'no allergen fields')
-                if not javascript:
-                    # Equal-length substitution must fail, not attach MILK presence to LUPIN.
-                    assert changed.value.status == 400, (changed.value.status, submitted['allergen_code'],
-                                                       submitted.get('allergen_presence'))
 
 
 def test_collection_navigation_search_and_mobile_layout(page_context, admin_app, admin_engine):
