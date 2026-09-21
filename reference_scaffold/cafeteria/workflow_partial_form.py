@@ -119,6 +119,8 @@ def _validate_shape(
     non_string = next((key for key in keys if type(key) is not str), None)
     if non_string is not None:
         raise WorkflowValidationError('Formularfeldname ist ungültig.')
+    if 'allergen_presence' in repeated:
+        optional |= frozenset(key for key in keys if key.startswith('allergen_presence__'))
     unexpected = keys - required - optional - repeated
     if unexpected:
         field_name = sorted(unexpected)[0]
@@ -335,16 +337,44 @@ def _labels(form: Mapping[str, object], context: str) -> list[str]:
 
 
 def _allergens(form: Mapping[str, object], context: str) -> list[dict[str, str]]:
-    codes, presences = _paired(form, 'allergen_code', 'allergen_presence', context)
+    codes, presences = _allergen_fields(form, context)
     result = []
+    seen = set()
     for raw_code, presence in zip(codes, presences, strict=True):
         code = raw_code.strip()
         if not code:
             raise _item_error(context, 'Allergen ist leer.', 'allergen_code')
+        if code in seen:
+            raise _item_error(context, 'Allergen ist doppelt erfasst.', 'allergen_code')
+        seen.add(code)
         if presence not in _ALLERGEN_PRESENCES:
             raise _item_error(context, 'Allergen-Angabe ist ungültig.', 'allergen_presence')
         result.append({'code': code, 'presence': presence})
     return result
+
+
+def _allergen_fields(form: Mapping[str, object], context: str) -> tuple[list[str], list[str]]:
+    keyed = any(key.startswith('allergen_presence__') for key in form)
+    if not keyed and 'allergen_presence' in form:
+        return _paired(form, 'allergen_code', 'allergen_presence', context)
+    if 'allergen_presence' in form:
+        raise _item_error(context, 'Allergenangaben sind widersprüchlich.', 'allergen_presence')
+    codes = _repeated(form, 'allergen_code')
+    presences = []
+    seen = set()
+    for raw_code in codes:
+        code = raw_code.strip()
+        if code in seen:
+            raise _item_error(context, 'Allergen ist doppelt erfasst.', 'allergen_code')
+        seen.add(code)
+        field = f'allergen_presence__{code}'
+        if field not in form:
+            raise _item_error(context, 'Zusammengehörige Allergenfelder sind unvollständig.', field)
+        presence = _scalar(form, field)
+        if presence not in _ALLERGEN_PRESENCES:
+            raise _item_error(context, 'Allergen-Angabe ist ungültig.', field)
+        presences.append(presence)
+    return codes, presences
 
 
 def _origins(form: Mapping[str, object], context: str) -> list[dict[str, str]]:
@@ -479,7 +509,10 @@ def parse_menu_item_form(
     for field, mode in modes.items():
         if mode not in _MODES:
             raise _item_error(context, 'Modus muss auto oder manual sein.', field)
-    _manual_values(form, modes['allergen_mode'], ('allergen_code', 'allergen_presence'), context)
+    _manual_values(form, modes['allergen_mode'], (
+        'allergen_code', 'allergen_presence',
+        *(key for key in form if key.startswith('allergen_presence__')),
+    ), context)
     _manual_values(form, modes['origin_mode'], ('origin_ingredient', 'origin_country_code'), context)
     _manual_values(form, modes['label_mode'], ('label_code',), context)
     payload: dict[str, Any] = {
@@ -550,8 +583,9 @@ def _component_metadata(form: Mapping[str, object]) -> dict[str, object]:
         if _LABEL_CODE.fullmatch(label) is None or label in labels:
             raise WorkflowValidationError('Kennzeichnung ist ungültig.', field_name='label_code')
         labels.append(label)
-    codes = _repeated(form, 'allergen_code')
-    presences = _repeated(form, 'allergen_presence')
+    codes, presences = _allergen_fields(form, 'Baustein') if 'allergen_presence' not in form or any(
+        key.startswith('allergen_presence__') for key in form
+    ) else (_repeated(form, 'allergen_code'), _repeated(form, 'allergen_presence'))
     if len(codes) != len(presences):
         raise WorkflowValidationError(
             'Zusammengehörige Allergenfelder sind unvollständig.',
