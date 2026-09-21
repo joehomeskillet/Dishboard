@@ -45,8 +45,8 @@ def test_compact_default_without_local_control_preserves_help_and_targets(
             page.goto(f'/admin/{family}/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1')
             expect(page.locator('main')).to_have_attribute('data-density', 'compact')
             expect(page.get_by_label('Kompakte Ansicht', exact=True)).to_have_count(0)
-            for summary in page.locator('details:not([open]) > summary').all():
-                summary.click()
+            while page.locator('details:not([open]) > summary:visible').count():
+                page.locator('details:not([open]) > summary:visible').first.click()
             visible_hints = page.locator('.form-hint:visible')
             assert visible_hints.count() > 0
             for hint in visible_hints.all():
@@ -55,7 +55,7 @@ def test_compact_default_without_local_control_preserves_help_and_targets(
                 hint = row.locator('.menu-editor-row-hint')
                 if javascript:
                     expect(hint).to_be_hidden()
-                    row.get_by_role('button', name='Ändern', exact=True).click()
+                    row.get_by_role('button', name='Bearbeiten', exact=True).click()
                     expect(hint).to_be_visible()
                     row.get_by_role('button', name='Fertig', exact=True).click()
                     expect(hint).to_be_hidden()
