@@ -127,7 +127,7 @@ def _capture(page: Page, tmp_path: Path, name: str) -> None:
 def _controls(page: Page, family: str, *, component_rows: int | None = 2, require_modes: bool = True) -> None:
     expect(page.locator('main')).to_have_attribute('data-layout', 'standard')
     expect(page.locator('h1')).to_have_count(1)
-    expect(page.locator('h1')).to_have_text('Menü bearbeiten')
+    expect(page.locator('h1')).to_have_text('Menüs')
     expect(page.get_by_role('navigation', name='Breadcrumb')).to_contain_text('Wochenplan')
     expect(page.locator('form[data-menu-editor] .btn-primary')).to_have_count(1)
     expect(page.locator('#sec-components')).to_have_text('Bausteine')
@@ -179,6 +179,8 @@ def _keyboard(page: Page) -> None:
     expect(page.locator('#accompaniment-none')).to_be_focused()
     page.keyboard.press('Tab')
     assert page.evaluate('document.activeElement.closest("#components-list") !== null')
+    if page.locator('#sec-output-texts').get_attribute('open') is None:
+        page.locator('#sec-output-texts > summary').click()
     page.locator('#f-desc').focus()
     focus = page.locator('#f-desc').evaluate('''e => ({
         width: getComputedStyle(e).outlineWidth, style: getComputedStyle(e).outlineStyle,
@@ -237,7 +239,7 @@ def test_menu_editor_states_and_viewports(editor_page, family: str, tmp_path: Pa
             _controls(page, family, component_rows=1, require_modes=False)
             _keyboard(page)
             if state == 'dense-long':
-                expect(page.locator('h1')).to_have_text('Menü bearbeiten')
+                expect(page.locator('h1')).to_have_text('Menüs')
                 expect(page.locator('.page-header-subtitle')).not_to_have_text('')
             _capture(page, tmp_path, f'{state}-{width}')
 
@@ -248,9 +250,11 @@ def test_validation_preserves_inputs_and_tokens(editor_page, family: str, javasc
         _open(page, family, (width, height))
         tokens = _tokens(page)
         page.locator('#f-title').fill('')
+        if page.locator('#sec-output-texts').get_attribute('open') is None:
+            page.locator('#sec-output-texts > summary').click()
         page.locator('#f-desc').fill('Behalten')
         if javascript:
-            page.get_by_role('button', name='Ändern').first.click()
+            page.get_by_role('button', name='Bearbeiten').first.click()
             page.locator('[data-component-kind-option][value="text"]').first.check()
         page.locator('#component-0-text').fill('Freitext behalten')
         with page.expect_response(lambda r: r.request.method == 'POST') as failed:

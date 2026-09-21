@@ -144,6 +144,8 @@ def test_admin_publish_uses_native_confirm(page_context: Page, admin_app: Flask)
 def test_admin_error_state_focuses_first_error_and_offers_retry(page_context: Page):
     page = page_context
     page.goto(f'/admin/cafeteria/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1')
+    if page.locator('#sec-output-texts').get_attribute('open') is None:
+        page.locator('#sec-output-texts > summary').click()
     page.fill('input[name="internal_chf"]', 'invalid')
     page.click('form[data-menu-editor] button[type="submit"]')
     page.wait_for_load_state()
@@ -182,6 +184,8 @@ def _open_menu(page: Page, family: str, width: int, height: int) -> None:
     page.set_viewport_size({'width': width, 'height': height})
     page.goto(f'/admin/{family}/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1')
     page.get_by_label('Menüname', exact=True).fill('Herbstteller')
+    if page.locator('#sec-output-texts').get_attribute('open') is None:
+        page.locator('#sec-output-texts > summary').click()
     page.get_by_label('Beschreibung (auf dem Speiseplan sichtbar)', exact=True).fill('Mit Gemüse')
     page.get_by_label('Hinweis (auf dem Speiseplan sichtbar)', exact=True).fill('Frisch zubereitet')
     if family == 'cafeteria':
@@ -239,7 +243,7 @@ def test_menu_manual_metadata_and_optional_rows_roundtrip(
         if index:
             page.get_by_role('button', name='Baustein hinzufügen').click()
         else:
-            page.get_by_role('button', name='Ändern').first.click()
+            page.get_by_role('button', name='Bearbeiten').first.click()
         page.locator('[data-component-kind-option][value="text"]').nth(index).check()
         page.locator('[name="component_text"]').nth(index).fill(text)
     page.get_by_role('button', name='Baustein hinzufügen').click()
@@ -256,7 +260,7 @@ def test_menu_manual_metadata_and_optional_rows_roundtrip(
     for code, presence in (('MILK', 'may_contain'), ('GLUTEN', 'contains')):
         checkbox = page.locator(f'[name="allergen_code"][value="{code}"]')
         checkbox.check()
-        checkbox.locator('xpath=ancestor::div[@class="allergen-row"]').locator('select').select_option(presence)
+        page.locator(f'#allergen-{code.lower()}-presence').select_option(presence)
     page.locator('[name="label_code"][value="VEGAN"]').check()
     payload = _submit_menu(page)
     assert payload['component_text'] == ['Blattsalat', 'Gebäck']
@@ -275,7 +279,7 @@ def test_menu_manual_metadata_and_optional_rows_roundtrip(
     )
     assert sorted(origins) == [('Kartoffel', 'DE'), ('Rind', 'CH')]
     expect(page.locator('[name="allergen_code"][value="MILK"]')).to_be_checked()
-    expect(page.locator('.allergen-row').filter(has=page.locator('[value="MILK"]')).locator('select')).to_have_value('may_contain')
+    expect(page.locator('#allergen-milk-presence')).to_have_value('may_contain')
     expect(page.locator('[name="label_code"][value="VEGAN"]')).to_be_checked()
     for mode in ('allergen', 'origin', 'label'):
         page.locator(f'[name="{mode}_mode"][value="auto"]').check()
@@ -313,7 +317,7 @@ def test_menu_catalog_pair_errors_and_archived_assignment_survive(
     public_id = str(component['public_id'])
     page = page_context
     _open_menu(page, 'patienten', width, height)
-    page.get_by_role('button', name='Ändern').click()
+    page.get_by_role('button', name='Bearbeiten').click()
     page.locator('[name="component_public_id"]').select_option(public_id)
     page.locator('[name="component_text"]').evaluate("el => el.value = 'Ungültige zweite Auswahl'")
     payload = _submit_menu(page, 400)

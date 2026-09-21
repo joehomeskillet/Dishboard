@@ -77,7 +77,8 @@ def _measure(page: Page, count: int, contrast_failures: list, view: str) -> None
     expect(page.locator('h1')).to_have_count(1)
     expect(page.locator('.admin-page-header h1')).to_have_text('Menüs')
     expect(page.locator('.page-header-subtitle')).to_contain_text('Gespeicherte Menüs')
-    expect(page.locator('.admin-page-header .btn')).to_have_count(0)
+    expect(page.locator('.admin-page-header .btn')).to_have_count(1)
+    expect(page.locator('.admin-page-header .btn-primary')).to_have_text('Zum Wochenplan')
     expect(page.locator('main')).to_have_attribute('data-layout', 'standard')
     record_selector = '[data-menu-id]' if view == 'cards' else '[data-menu-list-id]'
     expect(page.locator(record_selector)).to_have_count(count)
@@ -110,19 +111,25 @@ def _measure(page: Page, count: int, contrast_failures: list, view: str) -> None
             if finding not in contrast_failures:
                 contrast_failures.append(finding)
     for link in page.locator('[data-admin-icon-action]:visible').all():
-        assert link.inner_text() == 'Öffnen'
+        assert link.inner_text() == 'Bearbeiten'
         box = link.bounding_box()
         assert box is not None and box['height'] >= 48
     geometry = page.locator('[data-menu-id]:visible').evaluate_all('''cards => cards.map(el => {
         const r = el.getBoundingClientRect(), s = getComputedStyle(el);
-        return {width: r.width, height: r.height, radius: s.borderRadius, shadow: s.boxShadow,
+        return {width: r.width, height: r.height, top: r.top, radius: s.borderRadius, shadow: s.boxShadow,
+                scroll: [el.scrollWidth, el.clientWidth, el.scrollHeight, el.clientHeight],
+                overflowing: [...el.querySelectorAll('*')].filter(child =>
+                    child.getClientRects().length && child.scrollWidth > child.clientWidth + 1
+                ).map(child => [child.tagName, child.className, child.scrollWidth, child.clientWidth]),
                 overflow: el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1};
     })''')
     if geometry:
-        for axis in ('width', 'height'):
-            assert max(card[axis] for card in geometry) - min(card[axis] for card in geometry) <= 1
+        assert max(card['width'] for card in geometry) - min(card['width'] for card in geometry) <= 1
+        for card in geometry:
+            same_row = [other['height'] for other in geometry if abs(other['top'] - card['top']) <= 1]
+            assert max(same_row) - min(same_row) <= 1
         assert all(card['radius'] == '12px' and card['shadow'] != 'none'
-                   and not card['overflow'] for card in geometry), geometry
+                   and not card['overflow'] for card in geometry), json.dumps(geometry)
     for cell in page.locator('.dishboard-menu-table :is(th, td):visible').all():
         assert cell.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') >= 14
     assert page.locator('[data-menu-id]:visible :is(h2, p, li)').evaluate_all('''els => els.every(el => {
@@ -151,19 +158,17 @@ def _views(page: Page, javascript: bool, directory: Path, state: str, count: int
 def _keyboard(page: Page, javascript: bool) -> None:
     page.locator('main').focus()
     page.keyboard.press('Tab')
-    expect(page.locator('.admin-area-tabs [aria-current="page"]')).to_be_focused()
-    expect(page.locator('.admin-area-tabs [aria-current="page"]')).to_have_text('Menüs')
-    for link in page.locator('.admin-area-tabs a').all()[1:]:
-        page.keyboard.press('Tab')
-        expect(link).to_be_focused()
+    expect(page.locator('main .btn-primary')).to_be_focused()
+    expect(page.locator('main .btn-primary')).to_have_text('Zum Wochenplan')
+    expect(page.locator('.admin-area-tabs')).to_have_count(0)
+    page.keyboard.press('Tab')
+    expect(page.locator('#menu-query-search')).to_be_focused()
     page.keyboard.press('Tab')
     expect(page.get_by_role('navigation', name='Profil').get_by_role('link').first).to_be_focused()
     page.keyboard.press('Tab')
     expect(page.get_by_role('navigation', name='Profil').get_by_role('link').last).to_be_focused()
     page.keyboard.press('Tab')
-    expect(page.locator('#menu-query')).to_be_focused()
-    page.keyboard.press('Tab')
-    expect(page.get_by_role('button', name='Suchen', exact=True)).to_be_focused()
+    expect(page.get_by_role('button', name='Filtern', exact=True)).to_be_focused()
     page.keyboard.press('Tab')
     if javascript:
         cards = page.get_by_role('tab', name='Karten', exact=True)
@@ -231,7 +236,9 @@ def test_reference_states_and_viewports(
         expect(page.get_by_role('navigation', name='Ergebnisseiten')).to_have_count(0)
         _views(page, javascript, tmp_path, 'empty', 0, contrast_failures)
         _save(database_engine, scope, title='Pouletbrust an Kräutersauce', payload=_photo_payload(profile))
-        _save(database_engine, scope, week=WEEK + timedelta(weeks=1), title='Tomatensuppe')
+        reviewed_payload = _payload(staff=profile == 'staff_guest')
+        reviewed_payload['allergens'] = [{'code': 'GLUTEN', 'presence': 'contains'}]
+        _save(database_engine, scope, week=WEEK + timedelta(weeks=1), title='Tomatensuppe', payload=reviewed_payload)
         with database_engine.begin() as connection:
             connection.execute(text("UPDATE cafeteria.menu_items SET allergen_review_status='checked'"))
             row = connection.execute(text("SELECT id,row_version FROM cafeteria.menu_items WHERE title='Tomatensuppe'")).one()
@@ -241,16 +248,17 @@ def test_reference_states_and_viewports(
         _goto(page, route)
         _keyboard(page, javascript)
         expect(page.locator('#menu-cards [data-status="success"]')).to_have_count(1)
-        expect(page.locator('#menu-cards [data-status="review_open"]')).to_have_count(1)
+        expect(page.locator('#menu-cards [data-review="open"] [data-status="warning"]')).to_have_count(1)
+        expect(page.locator('#menu-cards [data-review="open"]')).to_contain_text('Allergenangaben nicht erfasst')
         _views(page, javascript, tmp_path, 'normal', 2, contrast_failures)
         assert _versions(database_engine) == before
-        page.get_by_label('Menü oder Komponente suchen').fill('KeinTreffer')
-        page.get_by_role('button', name='Suchen', exact=True).click()
-        expect(page.locator('#menu-query')).to_have_value('KeinTreffer')
+        page.get_by_label('Suche').fill('KeinTreffer')
+        page.get_by_role('button', name='Filtern', exact=True).click()
+        expect(page.locator('#menu-query-search')).to_have_value('KeinTreffer')
         expect(page.locator('[data-empty-kind="no_match"]')).to_have_count(2)
         _views(page, javascript, tmp_path, 'no-match', 0, contrast_failures)
-        page.get_by_role('link', name='Suche zurücksetzen', exact=True).click()
-        expect(page.locator('#menu-query')).to_have_value('')
+        page.get_by_role('search').get_by_role('link', name='Filter zurücksetzen', exact=True).click()
+        expect(page.locator('#menu-query-search')).to_have_value('')
         payload = _payload(staff=profile == 'staff_guest')
         payload.update(description='Saisonales Gemüse schonend zubereiten. ' * 8, note=LONG_NOTE,
                        assignments=[{'component_public_id': None, 'component_text': 'Gemüse' * 30}])

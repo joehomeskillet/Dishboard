@@ -54,7 +54,22 @@
 }
 .dishboard-admin .menu-editor-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--app-space-2); }
 .dishboard-admin .menu-editor-markings { margin-top: var(--app-space-3); }
-.dishboard-admin .allergen-row + .allergen-row { margin-top: var(--app-space-2); }
+.dishboard-admin .menu-editor-markings .admin-option-row { margin: 0; }
+.dishboard-admin .menu-editor-markings .admin-option-row { flex-direction: column; align-items: stretch; }
+.dishboard-admin .menu-editor-markings .admin-option-label { min-height: var(--app-space-12); }
+.dishboard-admin .menu-editor-markings [data-option-presence] { width: 100%; max-width: none; }
+.dishboard-admin .menu-origin-heading,
+.dishboard-admin .menu-origin-fields {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: var(--app-space-2); align-items: start;
+}
+.dishboard-admin .menu-origin-heading { font-weight: var(--app-font-weight-semibold, 600); }
+.dishboard-admin .menu-origin-fields > .row { display: contents; }
+.dishboard-admin .menu-origin-fields > .row > div { width: auto; padding: 0; margin: 0; min-width: 0; }
+.dishboard-admin .menu-origin-fields .menu-editor-row-actions { margin-top: 0 !important; }
+.dishboard-admin .menu-editor-origin-row { padding: var(--app-space-2); }
+.dishboard-admin .menu-origin-fields .form-label:empty { display: none; }
+.dishboard-admin .menu-origin-fields .mb-3 { margin-bottom: 0 !important; }
 .dishboard-admin textarea.form-control { min-height: calc(var(--app-space-12) * 2); resize: vertical; }
 .dishboard-admin [data-density="compact"] textarea.form-control { min-height: var(--app-space-12); }
 .dishboard-admin .admin-editor-layout .review-block { position: sticky; top: var(--app-space-2); align-self: start; }
@@ -108,6 +123,9 @@
 }
 @media (max-height: 480px) { .dishboard-admin .admin-actions { position: static; } }
 @media (max-width: 767.98px) {
+  .dishboard-admin .menu-origin-heading { grid-template-columns: minmax(0, 1fr); }
+  .dishboard-admin .menu-origin-heading span:not(:first-child) { display: none; }
+  .dishboard-admin .menu-origin-fields { grid-template-columns: minmax(0, 1fr); }
   .dishboard-admin .menu-accompaniment-options { grid-template-columns: minmax(0, 1fr); }
   .dishboard-admin .menu-editor-component-summary { grid-template-columns: minmax(0, 1fr); }
   .dishboard-admin .menu-editor-review-component { grid-template-columns: minmax(0, 1fr); }

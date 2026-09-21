@@ -997,6 +997,39 @@ Volle Seitenbreite mit gemeinsamem Zwei-Spalten-Layout. Auf schmalen Geräten st
 
 **Geltungsbereich:** Diese Skizze zeigt Patienten, deshalb ohne Preisfelder. In der Cafeteria bleiben beide vorhandenen Preisgruppen als kompakte Feldgruppe erhalten. Menübausteine dürfen die bestehende klare Auswahlart Katalog/Freitext erhalten; Rezeptzutaten aus M03 sind fachlich etwas anderes. Eine existierende seitliche Bearbeitung verwendet dasselbe Formularmuster; keine neue Panel-API bauen.
 
+##### Modul Menüs und Menüeditor inkl. Allergene (2026-09-20)
+
+Die Menüliste bleibt die Standardansicht. M22 liefert Suche und Profilwechsel;
+M23 wird als semantische Tabelle mit mobiler Zeilendarstellung angewendet.
+Je Menü steht genau ein zusammengefasster Prüfstatus mit Text neben «Bearbeiten».
+Karten folgen der Höhe ihrer jeweiligen Rasterzeile; mobil erzwingt eine
+aufgeklappte Karte keine Leerfläche in den übrigen Karten.
+Die Statusbar zeigt Profil und offene Prüfungen ausschliesslich für die geladene
+Ergebnisseite; fehlende Gesamt-, Wochen- oder Veröffentlichungsdaten werden nicht
+ersetzt. Im Editor stammen Profil und Tag aus dem bestehenden Kontext. Fehlende
+gespeicherte Allergenangaben bleiben eine Warnung, nie eine Frei-von-Aussage.
+
+Die bisherige permanente Allergen-Detailspalte ist ersetzt am 2026-09-20 durch
+`option_detail_group(allergens, submitted=submitted, errors=errors,
+manual=not is_auto['allergen'])` (M21). Auswahl und Präsenz bleiben indexgepaart
+im selben Container. In der schmaleren Editorspalte steht die Präsenz unter dem
+gewählten Allergen, damit Namen und Werte lesbar bleiben. Herkunft verwendet eine
+gemeinsame Kopfzeile und zugänglich beschriftete Wiederholfelder. Reihenfolge der
+Arbeitsbereiche: Titel/Beilage, Bausteine, Kennzeichnungen, weitere Angaben.
+`disclosure_section` öffnet weitere Angaben bei Inhalt oder Fehler. Verdeckte
+CSRF-/Versionsfelder bleiben unmittelbar im Formular; gespeicherter Prüfstand und
+Prüfformular bleiben sichtbar und getrennt vom Entwurf. Die bestehende Sticky-Leiste
+behält «Menü speichern» als einzige Primäraktion.
+
+Pflichtnachweis: tatsächliche Referenz-POSTs beider Profile mit/ohne JavaScript,
+identische Feldwerte und Reihenfolge innerhalb aller Wiederholfelder sowie
+unsortiertes An-/Abwählen. No-JS darf beim Austausch ausgewählter Allergene keine
+alte Präsenz einer neuen Checkbox zuordnen. Der WP04-Regressionsfall dokumentiert
+hier einen offenen Fehler des gemeinsamen Makro-/Parser-Vertrags: gleiche
+Listenlängen reichen nicht als Paarungsnachweis. Dieser Fall blockiert die
+Integration bis zur separaten Korrektur des gemeinsamen Vertrags. Keine UI-Freigabe
+aus erfolgreichen Referenz-POSTs allein ableiten.
+
 #### M13 — Baustein bearbeiten: eindeutige Allergenfelder
 
 Editormuster für einen zentralen Baustein. Beispielwerte sind Eingaben, keine fachliche Deklaration.
