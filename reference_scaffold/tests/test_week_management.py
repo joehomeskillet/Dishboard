@@ -11,6 +11,7 @@ from cafeteria.admin import week_management_routes  # noqa: F401 - register rout
 from cafeteria.admin.week_management_routes import find_weeks
 from cafeteria.component_catalog_store import AdminScope, ComponentCatalogConfigurationError
 from cafeteria.workflow_partial_store import persist_week_header
+from cafeteria.ui import register_ui
 from test_admin_workflow_routes import (
     DATABASE_URL, WEEK, _login,
     app as app, client as client, database_engine as database_engine,
@@ -18,6 +19,11 @@ from test_admin_workflow_routes import (
 from test_menu_collection import _save, _scope
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='Isolierte PostgreSQL-Testdatenbank fehlt.')
+
+
+@pytest.fixture(autouse=True)
+def semantic_ui(app):
+    register_ui(app)
 
 
 def _form(client, family='patienten', **changes):

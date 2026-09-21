@@ -1396,6 +1396,30 @@ Kompakte Verwaltungsliste; Zielmodell SDD v2 §5.3.
 
 **Responsive:** Tabelle darf in priorisierte Listen wechseln; «Öffnen» bleibt sichtbar beschriftet.
 
+##### Modul Wochenübersicht (Tabelle der gespeicherten Wochen) (2026-09-20)
+
+M28 konkretisiert: KW/Zeitraum, Titel, Status und Aktionen. Die Seite zeigt genau
+einen Bereich; daher keine redundante Bereichsspalte. Offene Punkte pro Woche
+fehlen im vorhandenen Kontext und werden nicht erfunden. Cafeteria/Patienten sind
+native Bereichsfilter mit `active` und `aria-current="true"`, ohne Primärfarbe.
+`page_header(status_items=...)` zeigt den Bereich aus `area_names[profile]`;
+Gespeicherte Wochen (`rows|length`) und Noch zu prüfen (`row.status == 'review_open'`)
+nur bei vollständig geladenem Bestand (`page == 1 and not has_next`). Gesamtzahlen
+über mehrere Seiten benötigen eine separate Backend-Erweiterung.
+
+Eine neutrale Aktion «Öffnen» je Zeile; Vorschau und «Kopieren vorbereiten» samt
+Quell-/Zielhinweis in nativem «Weitere Aktionen». Normale geschlossene Zeilen bei
+1440 px höchstens 64 px; lange Inhalte, Zoom und offene Details dürfen wachsen.
+Bei höchstens 1000 px Inhaltsbreite priorisierte Liste ohne horizontales Scrollen,
+auch bei Zoom. Genau eine
+`.btn-primary`: «Neue Woche anlegen» im Kopf als native Disclosure. Wochenhinweis
+unter «Weitere Optionen», bei Inhalt/Fehler offen. Alle Formularfelder und Ziele,
+CSRF, CAS und Capability-Bedingungen bleiben erhalten. Eigene Styles ausschliesslich
+in `admin-wochenuebersicht.css`; gemeinsame Tokens und semantische Aktionsmakros.
+Nachweise: `test_week_management.py`, `test_week_management_browser.py` (eigener
+Playwright-Start, 360/768/1024/1440 px, Tastatur und No-JS), management-Fälle in
+`test_ui_weeks_browser.py`; keine Abschwächung der Review-/Zoom-Prüfungen.
+
 #### M29 — Küchenkalender — Monat
 
 Monatskalender zur Orientierung; Zielmodell SDD v2 §5.4.
