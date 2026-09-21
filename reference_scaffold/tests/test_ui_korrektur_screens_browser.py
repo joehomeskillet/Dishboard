@@ -88,14 +88,16 @@ def test_lists_and_settings_come_first_at_required_viewports(
     try:
         assert page.goto("/admin/screens").status == 200
         expect(page.get_by_role("heading", level=1)).to_have_text("Bildschirme")
-        expect(page.locator('nav[aria-label="Bereich"]')).to_have_count(1)
+        expect(page.locator('nav[aria-label="Bereich"]')).to_have_count(0)
+        expect(page.locator('.admin-statusbar-item')).to_have_count(2)
+        expect(page.locator('main .btn-primary')).to_have_count(0)
         first_screen = page.locator(".screen-card").first.bounding_box()
         assert first_screen is not None and first_screen["y"] < height
         expect(page.get_by_text("Vorlage für Web-Wochenplan:", exact=False)).to_have_count(2)
         body = page.locator("main").inner_text().lower()
         assert "verbunden" not in body and "zuletzt gesehen" not in body
-        expect(page.locator('.screen-preview-details[open]')).to_have_count(2)
-        expect(page.locator('.screen-preview-details[open] .screen-preview-signage')).to_have_count(4)
+        expect(page.locator('.screen-preview-details[open]')).to_have_count(0)
+        expect(page.locator('.screen-preview-details .screen-preview-signage')).to_have_count(4)
         first_action = page.locator('.screen-card .btn').first.bounding_box()
         assert first_action is not None and first_action['y'] < height
         assert first_action['y'] < page.locator('.screen-preview-details > summary').first.bounding_box()['y']
@@ -105,7 +107,9 @@ def test_lists_and_settings_come_first_at_required_viewports(
         _screenshot(page, f"bildschirme-regulaer-{width}x{height}-{javascript}.png")
 
         assert page.goto("/admin/screens/cafeteria/wochenvorlage").status == 200
-        expect(page.locator("#active-screen-template-title")).to_have_text("Aktive Vorlage")
+        expect(page.locator('.admin-statusbar')).to_contain_text('Vorgabe')
+        expect(page.locator('.admin-statusbar')).to_contain_text('Wochenplan mit Bildern')
+        expect(page.locator('#screen-assignment-version')).not_to_have_attribute('open', '')
         assignment = page.locator("#screen-assignment-details")
         expect(assignment).not_to_have_attribute("open", "")
         assert assignment.locator(":scope > summary").bounding_box()["y"] < height
@@ -172,7 +176,7 @@ def test_native_form_targets_and_payloads_stay_complete(
         ) as submitted, page.expect_response(
             lambda response: response.request.method == "POST"
         ) as response:
-            page.get_by_role("button", name="Vorlage zuweisen", exact=True).click()
+            page.get_by_role("button", name="Speichern", exact=True).click()
         assert response.value.status == 303
         request = submitted.value
         payload = parse_qs(request.post_data or "", keep_blank_values=True)
@@ -188,7 +192,8 @@ def test_native_form_targets_and_payloads_stay_complete(
         assert payload["template_id"] == [template_id]
         assert payload["renderer_revision"] == ["1"]
         assert payload["action"] == ["activate"]
-        expect(page.locator('.badge.bg-green-lt')).to_have_text('Aktiv')
+        expect(page.locator('.admin-statusbar-item--success')).to_contain_text('Aktiv')
+        page.locator('#screen-assignment-version > summary').click()
         expect(page.get_by_text('Zuordnung 1', exact=False)).to_be_visible()
 
         page.goto("/admin/design/darstellung")
@@ -252,10 +257,10 @@ def test_assignment_conflict_opens_details_preserves_values_and_focuses_error(
         chosen = assignment_form.locator('input[name="template_id"]:checked').input_value()
 
         with current.expect_response(lambda response: response.request.method == "POST") as saved:
-            current.get_by_role("button", name="Vorlage zuweisen", exact=True).click()
+            current.get_by_role("button", name="Speichern", exact=True).click()
         assert saved.value.status == 303
         with stale.expect_response(lambda response: response.request.method == "POST") as conflict:
-            stale.get_by_role("button", name="Vorlage zuweisen", exact=True).click()
+            stale.get_by_role("button", name="Speichern", exact=True).click()
         assert conflict.value.status == 409
 
         details = stale.locator("#screen-assignment-details")
@@ -331,7 +336,7 @@ def test_empty_and_unavailable_states_have_scoped_messages_and_evidence(
         )
     try:
         with unavailable.expect_response(lambda response: response.request.method == 'POST') as failed:
-            unavailable.get_by_role('button', name='Vorlage zuweisen', exact=True).click()
+            unavailable.get_by_role('button', name='Speichern', exact=True).click()
         assert failed.value.status == 503
         expect(unavailable.get_by_text('Der Abschluss der Zuweisung konnte nicht bestätigt werden.', exact=False)).to_be_visible()
         _assert_no_horizontal_scroll(unavailable)
@@ -343,7 +348,7 @@ def test_empty_and_unavailable_states_have_scoped_messages_and_evidence(
         )
         expect(unavailable.get_by_text("Die gespeicherte Bildschirmvorlage ist zurzeit nicht erreichbar.", exact=True)).to_be_visible()
         expect(unavailable.get_by_text('Es wurde keine neue Vorlage zugewiesen.', exact=False)).to_have_count(0)
-        expect(unavailable.get_by_role('link', name='Erneut laden')).to_have_attribute('href', '/admin/screens/cafeteria/wochenvorlage')
+        expect(unavailable.get_by_role('link', name='Aktualisieren')).to_have_attribute('href', '/admin/screens/cafeteria/wochenvorlage')
         _assert_no_horizontal_scroll(unavailable)
         _assert_rendered_icons_and_targets(unavailable)
         _screenshot(unavailable, f"vorlage-nicht-verfuegbar-{width}x{height}-{javascript}.png")
@@ -411,6 +416,7 @@ def test_required_pages_have_no_overflow_at_200_percent_zoom(
                 photo.scroll_into_view_if_needed()
                 assert photo.evaluate('el => el.complete && el.naturalWidth > 0')
             if name == 'bildschirme':
+                page.locator('.screen-preview-details').nth(1).locator(':scope > summary').click()
                 preview = page.locator('.tab-pane.active .screen-preview-signage').first
                 box = preview.bounding_box()
                 assert box['width'] >= 220 and abs(box['width'] / box['height'] - 16 / 9) < .01

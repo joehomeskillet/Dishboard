@@ -1,25 +1,25 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon %}
+{% from 'ui/_semantic.html' import icon_label %}
 {% set workflow_nav = 'screens' %}
 {% set layout_variant = 'standard' %}
 {% block title %}Bildschirme · Menüplanung{% endblock %}
 {% block page_styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin-screens.css') }}">
 {% endblock %}
-{% block page_header %}{{ page_header('Bildschirme', description='Veröffentlichte Tages- und Wochenpläne für Web und Bildschirme öffnen.') }}{% endblock %}
+{% block page_header %}{{ page_header('Bildschirme', description='Veröffentlichte Tages- und Wochenpläne für Web und Bildschirme öffnen.', status_items=[
+  {'label': area_names.staff_guest, 'value': assignments.staff_guest.template.name, 'detail': 'Vorgabe' if assignments.staff_guest.version == 0 else t('status.active.label'), 'variant': 'neutral' if assignments.staff_guest.version == 0 else 'success'},
+  {'label': area_names.patient, 'value': assignments.patient.template.name, 'detail': 'Vorgabe' if assignments.patient.version == 0 else t('status.active.label'), 'variant': 'neutral' if assignments.patient.version == 0 else 'success'}
+]) }}{% endblock %}
 {% block content %}
-<nav class="nav nav-tabs mb-3 screens-area-tabs" aria-label="Bereich">
-  <a class="nav-link active" href="#screens-cafeteria">{{ area_names.staff_guest }}</a>
-  <a class="nav-link" href="#screens-patienten">{{ area_names.patient }}</a>
-</nav>
-<div class="screens-grid d-block d-md-grid">
+<div class="screens-grid screens-overview">
   {% for label, endpoint in [(area_names.staff_guest, 'cafeteria'), (area_names.patient, 'patient')] %}
   {% for channel, channel_label, day_suffix in [('public', 'Web', 'today'), ('signage', 'Bildschirm', 'day')] %}
   {% set screen_id = endpoint ~ '-' ~ channel %}
   {% set output_profile = 'staff_guest' if endpoint == 'cafeteria' else 'patient' %}
   {% set periods = [('day', 'Tagesplan', endpoint ~ '_' ~ day_suffix), ('week', assignments[output_profile].template.name ~ (' · Vorgabe' if assignments[output_profile].version == 0 else ' · aktiv') if channel == 'public' else 'Wochenplan ohne Bilder', endpoint ~ '_week')] %}
   {% if channel == 'public' %}{% set periods = periods + [('week-no-images', 'Wochenplan ohne Bilder', endpoint ~ '_week_without_images')] %}{% endif %}
-    <article class="card screen-card mb-3 mb-md-0"{% if loop.first %} id="screens-{{ 'cafeteria' if endpoint == 'cafeteria' else 'patienten' }}"{% endif %} aria-labelledby="{{ screen_id }}-title">
+    <article class="card screen-card"{% if loop.first %} id="screens-{{ 'cafeteria' if endpoint == 'cafeteria' else 'patienten' }}"{% endif %} aria-labelledby="{{ screen_id }}-title">
       <div class="card-header"><h2 class="card-title" id="{{ screen_id }}-title">{{ label }} · {{ channel_label }}</h2></div>
       <div class="card-body d-flex flex-column gap-2">
         <p class="screen-status mb-0">
@@ -27,12 +27,18 @@
           {% else %}Anzeige: Tages- oder Wochenplan des aktuell veröffentlichten Stands.{% endif %}
         </p>
         <div class="btn-list mt-0">
-          {% for period, period_label, target in periods %}
-          <a class="btn{% if period == 'day' %} btn-primary{% endif %}" href="{{ url_for(channel ~ '.' ~ target) }}" aria-label="{{ label }} {{ channel_label }} {{ period_label }} öffnen">{{ icon('eye' if period == 'day' else 'calendar-week') }}{{ 'Tagesplan' if period == 'day' else 'Ohne Bilder' if period == 'week-no-images' else 'Wochenplan' }}</a>
+          <a class="btn" href="{{ url_for(channel ~ '.' ~ periods[0][2]) }}" aria-label="{{ label }} {{ channel_label }} Tagesplan öffnen">{{ icon_label('actions.open') }}</a>
+          <details class="screen-more-actions">
+            <summary class="btn">Weitere Aktionen</summary>
+            <div class="btn-list">
+          {% for period, period_label, target in periods[1:] %}
+          <a class="btn" href="{{ url_for(channel ~ '.' ~ target) }}" aria-label="{{ label }} {{ channel_label }} {{ period_label }} öffnen">{{ icon('calendar-week') }}{{ 'Ohne Bilder' if period == 'week-no-images' else 'Wochenplan' }}</a>
           {% endfor %}
           {% if channel == 'public' %}<a class="btn" href="{{ url_for('admin.screen_template_assignment', family='cafeteria' if endpoint == 'cafeteria' else 'patienten') }}">{{ icon('pencil') }}Vorlage zuweisen</a>{% endif %}
+            </div>
+          </details>
         </div>
-        <details class="screen-preview-details mt-2"{% if channel == 'signage' %} open{% endif %}>
+        <details class="screen-preview-details">
           <summary class="card-header gap-2 px-0">{{ icon('eye') }}Vorschau{{ icon('chevron-right', class='ms-auto') }}</summary>
           <div class="pt-2">
         <div class="nav nav-pills nav-fill" role="tablist" aria-label="{{ label }} {{ channel_label }} Vorschau">

@@ -1,4 +1,5 @@
-{% from 'admin/_macros.html' import icon %}
+{% from 'admin/_macros.html' import page_header, empty_state %}
+{% from 'ui/_semantic.html' import icon_label %}
 <!doctype html>
 <html lang="de-CH">
 <head>
@@ -12,15 +13,12 @@
 </head>
 <body class="admin-body dishboard-admin">
 <main class="container-fluid py-4 unavailable-container">
-  <div class="card">
-    <div class="card-header">
-      <h1 class="card-title">{{ icon('alert-triangle', class='me-2') }}Bildschirmvorlagen vorübergehend nicht verfügbar</h1>
-    </div>
-    <div class="card-body">
-      <div class="alert alert-warning" role="alert">Die Anfrage konnte nicht abgeschlossen werden. Bitte versuchen Sie es später erneut.</div>
-      <p class="text-secondary small mb-3">Die gespeicherte Bildschirmvorlage ist zurzeit nicht erreichbar.{% if request.method == 'POST' %} Der Abschluss der Zuweisung konnte nicht bestätigt werden. Laden Sie den gespeicherten Stand, bevor Sie erneut zuweisen.{% endif %}</p>
-      <a class="btn btn-primary" href="{{ request.path }}">{{ icon('refresh') }}Erneut laden</a>
-    </div>
+  {{ page_header('Bildschirmvorlagen vorübergehend nicht verfügbar') }}
+  <div role="alert">
+    {% set unavailable_text %}Die gespeicherte Bildschirmvorlage ist zurzeit nicht erreichbar.{% if request.method == 'POST' %} Der Abschluss der Zuweisung konnte nicht bestätigt werden. Laden Sie den gespeicherten Stand, bevor Sie erneut zuweisen.{% endif %}{% endset %}
+    {% call empty_state('error', t('ui.request_failed.label'), unavailable_text) %}
+      <a class="btn btn-primary" href="{{ request.path }}">{{ icon_label('actions.refresh') }}</a>
+    {% endcall %}
   </div>
 </main>
 </body>

@@ -2,11 +2,12 @@
 import json
 import re
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from urllib.parse import urlsplit
 
 import pytest
-from playwright.sync_api import expect
+from playwright.sync_api import expect, sync_playwright
 from sqlalchemy import text
 from werkzeug.serving import make_server
 
@@ -172,7 +173,7 @@ def test_real_activation_changes_canonical_view_and_preserves_original_conflict(
         for version, (mode, name) in enumerate([('text', 'ohne Bilder'), ('photo', 'mit Bildern')], 1):
             page.get_by_role('radio', name=f'Wochenplan {name} auswählen', exact=True).check()
             with page.expect_response(lambda response: response.request.method == 'POST') as result:
-                page.get_by_role('button', name='Vorlage zuweisen', exact=True).click()
+                page.get_by_role('button', name='Speichern', exact=True).click()
             assert result.value.status == 303
             expect(page.locator('[name="version"]')).to_have_value(str(version))
             assert page.goto(path).headers['cache-control'] == 'no-store'
@@ -188,7 +189,7 @@ def test_real_activation_changes_canonical_view_and_preserves_original_conflict(
         stale.get_by_role('radio', name='Wochenplan ohne Bilder auswählen', exact=True).check()
         before = state(database_engine)
         with stale.expect_response(lambda response: response.request.method == 'POST') as result:
-            stale.get_by_role('button', name='Vorlage zuweisen', exact=True).click()
+            stale.get_by_role('button', name='Speichern', exact=True).click()
         assert result.value.status == 409
         expect(stale.locator('[name="_form_context"]')).to_have_value(token)
         expect(stale.locator('[name="version"]')).to_have_value('0')
@@ -199,7 +200,7 @@ def test_real_activation_changes_canonical_view_and_preserves_original_conflict(
         assert state(database_engine) == before
         stale.locator('[name="renderer_revision"]').evaluate("input => input.value = '2'")
         with stale.expect_response(lambda response: response.request.method == 'POST') as result:
-            stale.get_by_role('button', name='Vorlage zuweisen', exact=True).click()
+            stale.get_by_role('button', name='Speichern', exact=True).click()
         assert result.value.status == 400
         expect(stale.get_by_role('alert')).to_have_text('Aktion oder Rendererrevision ist ungültig.')
         expect(stale.locator('[name="_form_context"]')).to_have_value(token)
@@ -219,3 +220,91 @@ def test_real_activation_changes_canonical_view_and_preserves_original_conflict(
         assert page.locator('.menu-photo').count() == 0
         expect(page.get_by_role('heading', level=1)).to_have_text('Bildschirmvorlagen vorübergehend nicht verfügbar')
         assert state(database_engine) == before_failure
+
+
+def _assert_wp23_compact_frames_payload_order_and_keyboard(
+    published_app, server, database_engine, javascript, tmp_path: Path,  # noqa: F811
+):
+    """Own browser start; measure the same default state as the pre-edit probe."""
+    client, _ = _login(published_app, database_engine, ['Cafeteria.Admin'])
+    cookie = client.get_cookie(published_app.config['SESSION_COOKIE_NAME'])
+    assert cookie is not None
+    baseline = {360: (2572, 468.1875), 768: (1450, 586.40625),
+                1024: (1385, 581.90625), 1440: (1567, 672.90625)}
+    with sync_playwright() as playwright:
+        instance = playwright.chromium.launch(
+            headless=True, args=['--no-sandbox', '--disable-dev-shm-usage'],
+        )
+        try:
+            with instance.new_context(base_url=server, java_script_enabled=javascript) as context:
+                context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': server}])
+                page = context.new_page()
+                for width, height in [(360, 800), (768, 1024), (1024, 768), (1440, 900)]:
+                    page.set_viewport_size({'width': width, 'height': height})
+                    assert page.goto('/admin/screens').status == 200
+                    page.evaluate('document.fonts.ready')
+                    metrics = page.evaluate('''() => ({
+                        pageHeight: document.documentElement.scrollHeight,
+                        cardHeight: document.querySelector('.screen-card').getBoundingClientRect().height,
+                        primary: document.querySelectorAll('main .btn-primary').length,
+                        openDetails: document.querySelectorAll('main details[open]').length,
+                        scrollWidth: document.documentElement.scrollWidth
+                    })''')
+                    print('WP23_AFTER', width, javascript, json.dumps(metrics))
+                    assert metrics['pageHeight'] < baseline[width][0]
+                    assert metrics['cardHeight'] < baseline[width][1]
+                    assert metrics['scrollWidth'] <= width
+                    assert metrics['primary'] == metrics['openDetails'] == 0
+                    expect(page.locator('.admin-statusbar-item')).to_have_count(2)
+                    expect(page.locator('.screen-card')).to_have_count(4)
+                    expect(page.locator('.screen-card .btn:visible')).to_have_count(8)
+                    page.screenshot(path=str(tmp_path / f'wp23-{width}-{javascript}.png'), full_page=True)
+                    for selector in ('.screen-more-actions', '.screen-preview-details'):
+                        details = page.locator(selector).first
+                        summary = details.locator(':scope > summary')
+                        summary.focus()
+                        page.keyboard.press('Enter')
+                        expect(details).to_have_attribute('open', '')
+                        expect(summary).to_be_focused()
+                        assert summary.bounding_box()['height'] >= 48
+                        assert summary.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
+                        page.keyboard.press('Enter')
+                        expect(details).not_to_have_attribute('open', '')
+                    assert page.goto('/admin/screens/cafeteria/wochenvorlage').status == 200
+                    form = page.locator('#screen-assignment-details form')
+                    fields = form.evaluate('form => Array.from(new FormData(form))')
+                    assert [name for name, _ in fields] == [
+                        '_csrf', '_form_context', 'version', 'renderer_revision', 'action', 'template_id',
+                    ]
+                    assert all(value for _, value in fields[:2])
+                    assert fields[2:] == [['version', '0'], ['renderer_revision', '1'],
+                                         ['action', 'activate'], ['template_id', 'cafeteria-week-photo']]
+                    summary = page.locator('#screen-assignment-details > summary')
+                    summary.focus()
+                    page.keyboard.press('Enter')
+                    expect(page.locator('.admin-form-footer .btn-primary')).to_have_text('Speichern')
+                    assert form.evaluate('form => Array.from(new FormData(form))') == fields
+                    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+                    expect(page.locator('#screen-assignment-version')).not_to_have_attribute('open', '')
+                    for target in page.locator('main .btn:visible, main summary:visible').all():
+                        assert target.bounding_box()['height'] >= 48
+                    assert page.goto('/admin/cafeteria/preview?week=2026-08-31').status == 200
+                    expect(page.locator('.page-header .admin-statusbar')).to_have_count(1)
+                    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+                    expect(page.locator('main .btn-primary')).to_have_count(1)
+                    expect(page.locator('script, style, [style], form, button')).to_have_count(0)
+        finally:
+            instance.close()
+
+
+@pytest.mark.parametrize('javascript', [False, True], ids=['nojs', 'js'])
+def test_wp23_compact_frames_payload_order_and_keyboard(
+    published_app, server, database_engine, javascript, tmp_path: Path,  # noqa: F811
+):
+    # The module's existing browser fixture owns a sync event loop on the main thread.
+    # Keep this explicitly independent Playwright start on its own thread.
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        executor.submit(
+            _assert_wp23_compact_frames_payload_order_and_keyboard,
+            published_app, server, database_engine, javascript, tmp_path,
+        ).result(timeout=120)

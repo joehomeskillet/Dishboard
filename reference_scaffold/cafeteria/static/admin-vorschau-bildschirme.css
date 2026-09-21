@@ -1,0 +1,27 @@
+/* Shared page_header markup in the deliberately script-free saved-week preview. */
+.admin-preview .page-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--app-space-3);
+}
+
+.admin-preview .admin-statusbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2) var(--app-space-4);
+  margin: var(--app-space-2) 0;
+  padding: var(--app-space-1) 0;
+  border-block: 1px solid var(--app-border);
+}
+
+.admin-preview .admin-statusbar-item { min-width: 0; }
+.admin-preview .admin-statusbar-label {
+  color: var(--app-text-muted);
+  font-size: var(--app-font-size-small);
+}
+.admin-preview .admin-statusbar-value { margin: 0; }
+.admin-preview .admin-statusbar-item--success {
+  border-inline-start: var(--app-space-1) solid var(--app-success);
+  padding-inline-start: var(--app-space-2);
+}
