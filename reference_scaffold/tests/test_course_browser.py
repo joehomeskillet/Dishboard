@@ -95,15 +95,21 @@ def test_ac12_course_issues_in_info_bar(browser, live_server, admin_app, admin_e
         
         page.goto(f'/admin/cafeteria?week={DAY}')
         
-        issue_chip = page.locator('a.admin-week-status-chip[href="#course-issues"]')
-        expect(issue_chip).to_have_count(1)
-        expect(issue_chip).to_contain_text('Gang prüfen')
-        expect(issue_chip).to_have_attribute('aria-label', '1 Gang mit offenen Angaben')
-        expect(page.locator('.admin-week-status-chip[aria-label="1 Gang ohne Allergenangaben"]')).to_have_count(1)
-        
-        issue_chip.click()
-        expect(page.locator('#course-issues')).to_be_in_viewport()
-        expect(page.locator('#course-issues')).to_contain_text('Allergenangaben fehlen')
+        # Since the week plan core the course warnings live in the shared status bar;
+        # the list of affected courses opens from the native «Gangangaben prüfen» disclosure.
+        course_status = page.locator('dl.admin-statusbar .admin-statusbar-item').filter(
+            has=page.locator('dt', has_text='Gänge'))
+        expect(course_status).to_have_count(1)
+        expect(course_status).to_have_class(re.compile(r'admin-statusbar-item--warning'))
+        expect(course_status.locator('.admin-statusbar-value-text')).to_have_text('1 Gang prüfen')
+        expect(course_status.locator('.admin-statusbar-detail')).to_have_text('1 Gang ohne Allergenangaben')
+
+        issues = page.locator('details#course-issues')
+        expect(issues).to_have_count(1)
+        issues.locator('summary').click()
+        expect(issues).to_have_attribute('open', '')
+        expect(issues).to_be_in_viewport()
+        expect(issues).to_contain_text('Allergenangaben fehlen')
         
         expect(page.locator(f'.menu-slot[data-day="{DAY}"][data-option="MENU_1"]')).not_to_contain_text('Geprüft')
         

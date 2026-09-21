@@ -50,7 +50,9 @@
     {% set items = items + [{'label': 'Allergenangaben', 'value': allergen_stats.missing ~ ' ohne Allergenangaben', 'detail': (allergen_stats.review_open ~ ' Allergenprüfungen offen') if allergen_stats.review_open else none, 'variant': 'warning'}] %}
   {% endif %}
   {% if course_issues is defined and (course_issues.affected_assignments or course_issues.missing_allergens) %}
-    {% set items = items + [{'label': 'Gänge', 'value': course_issues.affected_assignments ~ ' Gänge prüfen', 'detail': course_issues.missing_allergens ~ ' Gänge ohne Allergenangaben', 'variant': 'warning'}] %}
+    {% set course_noun = 'Gang' if course_issues.affected_assignments == 1 else 'Gänge' %}
+    {% set missing_noun = 'Gang' if course_issues.missing_allergens == 1 else 'Gänge' %}
+    {% set items = items + [{'label': 'Gänge', 'value': course_issues.affected_assignments ~ ' ' ~ course_noun ~ ' prüfen', 'detail': (course_issues.missing_allergens ~ ' ' ~ missing_noun ~ ' ohne Allergenangaben') if course_issues.missing_allergens else none, 'variant': 'warning'}] %}
   {% endif %}
   {% call page_header(heading, description, status_items=items) %}
     {% if publish_blocked and status == 'review_open' %}
