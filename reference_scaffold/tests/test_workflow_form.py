@@ -806,7 +806,9 @@ def test_menu_form_rejects_reverse_misalignment_for_every_repeated_pair() -> Non
         form.add(left_key, 'A')
         with pytest.raises(WorkflowValidationError, match='unvollständig') as raised:
             parse_menu_item_form('patient', form)
-        assert raised.value.field_name == right_key
+        assert raised.value.field_name == (
+            'allergen_presence__A' if right_key == 'allergen_presence' else right_key
+        )
 
 
 @pytest.mark.parametrize(

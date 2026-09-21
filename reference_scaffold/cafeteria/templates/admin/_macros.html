@@ -383,9 +383,10 @@
     {% set code = option.code %}
     {% set title = option.name|default(option.display_name|default(code)) %}
     {% set idx = codes.index(code) if code in codes else -1 %}
-    {% set presence = submitted.get(field_prefix ~ code, 'absent') if field_prefix else (details[idx] if idx >= 0 and idx < details|length else 'contains') %}
+    {% set presence_name = field_prefix ~ code if field_prefix else detail_name ~ '__' ~ code %}
+    {% set presence = submitted.get(field_prefix ~ code, 'absent') if field_prefix else submitted.get(presence_name, details[idx] if idx >= 0 and idx < details|length else 'contains') %}
     {% set selected = presence != 'absent' if field_prefix else idx >= 0 %}
-    {% set presence_invalid = errors.get(field_prefix ~ code) if field_prefix else (errors.get(detail_name) and manual and idx >= 0 and (idx >= details|length or presence not in choices|map(attribute=0)|list)) %}
+    {% set presence_invalid = errors.get(field_prefix ~ code) if field_prefix else (errors.get(presence_name) or (errors.get(detail_name) if manual and idx >= 0 and (idx >= details|length or presence not in choices|map(attribute=0)|list) else none)) %}
     {% set field_id = id ~ '-' ~ code|lower %}
     {% if selected %}{% set count.value = count.value + 1 %}{% endif %}
     <div class="admin-option-row{% if mode == 'allergen' %} allergen-row{% endif %}" data-option-detail{% if field_prefix %} data-option-keyed{% endif %}>
@@ -395,11 +396,12 @@
       </label>
       {% if field_prefix %}<input type="hidden" data-option-absent name="{{ field_prefix }}{{ code }}" value="absent" disabled>{% endif %}
       <label class="visually-hidden" for="{{ field_id }}-presence">Präsenz für {{ title }}</label>
-      <select class="form-select{{ ' is-invalid' if presence_invalid else '' }}" id="{{ field_id }}-presence" name="{{ field_prefix ~ code if field_prefix else detail_name }}" data-option-presence aria-label="Präsenz für {{ title }}"{% if presence_invalid %} aria-invalid="true" aria-describedby="{{ field_id ~ '-error' if field_prefix else 'err-allergen-presence' }}"{% endif %}{% if not manual or (not field_prefix and not selected) %} disabled{% endif %}>
+      <select class="form-select{{ ' is-invalid' if presence_invalid else '' }}" id="{{ field_id }}-presence" name="{{ presence_name }}" data-option-presence aria-label="Präsenz für {{ title }}"{% if presence_invalid %} aria-invalid="true" aria-describedby="{{ field_id }}-error"{% endif %}{% if not manual %} disabled{% endif %}>
+        {% if not field_prefix and presence not in choices|map(attribute=0)|list %}<option value="{{ presence }}" selected>{{ presence }}</option>{% endif %}
         {% if field_prefix %}<option value="absent"{% if presence == 'absent' %} selected{% endif %}>Keine Angabe</option>{% endif %}
         {% for value, text in choices %}<option value="{{ value }}"{% if presence == value %} selected{% endif %}>{{ text }}</option>{% endfor %}
       </select>
-      {% if field_prefix and presence_invalid %}<div class="invalid-feedback d-block field-error" id="{{ field_id }}-error">{{ presence_invalid }}</div>{% endif %}
+      {% if presence_invalid %}<div class="invalid-feedback d-block field-error" id="{{ field_id }}-error">{{ presence_invalid }}</div>{% endif %}
     </div>
   {% endfor %}
   </div>

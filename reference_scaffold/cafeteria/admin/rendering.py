@@ -88,9 +88,8 @@ def menu_form_values(profile: str, option: dict[str, Any]) -> dict[str, Any]:
             str(assignment.get('target_quantity_unit_code') or '') for assignment in assignments
         ],
         'allergen_code': [str(allergen.get('code') or '') for allergen in allergens],
-        'allergen_presence': [
-            str(allergen.get('presence') or '') for allergen in allergens
-        ],
+        **{f"allergen_presence__{allergen['code']}": str(allergen.get('presence') or '')
+           for allergen in allergens},
         'origin_ingredient': [str(origin.get('ingredient') or '') for origin in origins],
         'origin_country_code': [
             str(origin.get('country_code') or '') for origin in origins

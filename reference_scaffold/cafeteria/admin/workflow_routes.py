@@ -320,6 +320,8 @@ def _request_menu_values() -> dict[str, object]:
             continue
         request_name = name if name in request.form else f'{name}[]'
         values[name] = request.form.getlist(request_name)
+    values.update({name: request.form.get(name, '') for name in request.form
+                   if name.startswith('allergen_presence__')})
     return values
 
 

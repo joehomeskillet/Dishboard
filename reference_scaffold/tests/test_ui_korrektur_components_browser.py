@@ -188,10 +188,14 @@ def test_create_edit_archive_payloads_unchanged(
         create.locator('[name="category"]').select_option('side')
         create.locator('[name="origin_country_code"]').select_option('CH')
         create.locator('[name="target_scope"][value="current"]').check()
+        presence_names = set(create.locator('[name^="allergen_presence__"]').evaluate_all(
+            '(els) => els.map(e => e.name)'))
+        assert len(presence_names) == 14
         with page.expect_request(lambda request: request.method == 'POST' and request.url.endswith(list_path)) as created:
             create.get_by_role('button', name='Baustein erstellen', exact=True).click()
         payload = _form_payload(created.value)
-        assert set(payload) == {'_csrf', 'name', 'category', 'origin_country_code', 'target_scope'}
+        assert set(payload) == {'_csrf', 'name', 'category', 'origin_country_code', 'target_scope'} | presence_names
+        assert all(payload[name] == 'contains' for name in presence_names)
         assert payload['name'] == 'Korrektur-Payload-Test'
         assert payload['category'] == 'side'
         assert payload['origin_country_code'] == 'CH'
@@ -204,7 +208,8 @@ def test_create_edit_archive_payloads_unchanged(
         with page.expect_request(lambda request: request.method == 'POST' and detail_path in request.url) as saved:
             detail.get_by_role('button', name='Baustein speichern', exact=True).click()
         saved_payload = _form_payload(saved.value)
-        assert set(saved_payload) == {'_csrf', 'row_version', 'name', 'category', 'origin_country_code'}
+        assert set(saved_payload) == {'_csrf', 'row_version', 'name', 'category', 'origin_country_code'} | presence_names
+        assert all(saved_payload[name] == 'contains' for name in presence_names)
         assert saved_payload['_csrf']
         assert saved_payload['row_version']
 
@@ -280,7 +285,7 @@ def test_allergen_display_preserves_native_values_and_single_save(
     form.locator('#c-name').fill('Allergen-Roundtrip')
     form.locator('#c-cat').select_option('side')
     gluten = form.locator('.allergen-row').filter(has=page.locator('[value="GLUTEN"]'))
-    expect(gluten.locator('select')).to_be_disabled()
+    expect(gluten.locator('select')).to_be_enabled()
     expect(gluten.locator('select')).to_be_hidden()
     expect(gluten.get_by_text('Nicht ausgewählt', exact=True)).to_be_visible()
     gluten.locator('[name="allergen_code"]').check()
@@ -304,38 +309,30 @@ def test_allergen_display_preserves_native_values_and_single_save(
         expect(gluten.locator('select')).to_have_value('may_contain')
         expect(gluten.locator('select')).to_be_visible()
         gluten.locator('[name="allergen_code"]').uncheck()
-        expect(gluten.locator('select')).to_be_hidden()
+        if javascript:
+            expect(gluten.locator('select')).to_be_hidden()
+        else:
+            expect(gluten.locator('select')).to_be_visible()
         expect(gluten.get_by_text('Nicht ausgewählt', exact=True)).to_be_visible()
         expect(gluten.locator('.component-allergen-disabled')).to_be_hidden()
-        if javascript:
-            expect(gluten.locator('select')).to_be_disabled()
-        else:
-            expect(gluten.locator('select')).to_be_enabled()
+        expect(gluten.locator('select')).to_be_enabled()
         gluten.locator('[name="allergen_code"]').check()
         expect(gluten.locator('select')).to_have_value('may_contain')
         expect(gluten.locator('select')).to_be_visible()
         expect(gluten.get_by_text('Nicht ausgewählt', exact=True)).to_be_hidden()
         milk = form.locator('.allergen-row').filter(has=page.locator('[value="MILK"]'))
-        expect(milk.locator('select')).to_be_disabled()
+        expect(milk.locator('select')).to_be_enabled()
         milk.locator('[name="allergen_code"]').check()
         expect(milk.get_by_text('Nicht ausgewählt', exact=True)).to_be_hidden()
-        if javascript:
-            expect(milk.locator('select')).to_be_enabled()
-            expect(milk.locator('select')).to_be_visible()
-            expect(milk.locator('.component-allergen-disabled')).to_be_hidden()
-        else:
-            expect(milk.locator('select')).to_be_disabled()
-            expect(milk.locator('select')).to_be_hidden()
-            expect(milk.locator('.component-allergen-disabled')).to_have_text(
-                'Ausgewählt – Präsenz mit JavaScript festlegen.')
-            expect(milk.locator('.component-allergen-disabled')).to_be_visible()
-            # The existing No-JS disabled-control limit is unchanged, not bypassed.
-            values = form.evaluate('form => { const data = new FormData(form); return '
-                '{codes: data.getAll("allergen_code"), presence: data.getAll("allergen_presence")}; }')
-            assert set(values['codes']) == {'GLUTEN', 'MILK'}
-            assert values['presence'] == ['may_contain']
+        expect(milk.locator('select')).to_be_enabled()
+        expect(milk.locator('select')).to_be_visible()
+        expect(milk.locator('.component-allergen-disabled')).to_be_hidden()
+        milk.locator('select').select_option('may_contain')
         milk.locator('[name="allergen_code"]').uncheck()
-        expect(milk.locator('select')).to_be_hidden()
+        if javascript:
+            expect(milk.locator('select')).to_be_hidden()
+        else:
+            expect(milk.locator('select')).to_be_visible()
         expect(milk.get_by_text('Nicht ausgewählt', exact=True)).to_be_visible()
         expect(milk.locator('.component-allergen-disabled')).to_be_hidden()
         # A disclosure is never a submit or reset, including without JavaScript.
@@ -349,7 +346,7 @@ def test_allergen_display_preserves_native_values_and_single_save(
             save.click()
         payload = parse_qs(saved.value.post_data or '')
         assert payload['allergen_code'] == ['GLUTEN']
-        assert payload['allergen_presence'] == ['may_contain']
+        assert payload['allergen_presence__GLUTEN'] == ['may_contain']
         assert payload['_csrf'] and payload['row_version'] == [version]
         expect(page.locator('h1')).to_have_text('Allergen-Roundtrip bearbeitet')
         expect(page.locator('#edit-presence-GLUTEN')).to_have_value('may_contain')

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import re
 import threading
+from urllib.parse import parse_qs, parse_qsl, urlencode, urlsplit
 from collections.abc import Iterator
 from wsgiref.simple_server import make_server
 
@@ -17,6 +19,68 @@ pytestmark = pytest.mark.skipif(
     not DATABASE_URL,
     reason='TEST_DATABASE_URL für eine isolierte PostgreSQL-Testdatenbank fehlt.',
 )
+
+
+@pytest.mark.parametrize('family', ['cafeteria', 'patienten'])
+@pytest.mark.parametrize('javascript', [True, False], ids=['js', 'nojs'])
+def test_keyed_presence_swap_and_error_roundtrip(catalog_page, family, javascript):
+    catalog_page.goto(f'/admin/{family}/komponenten')
+    url = urlsplit(catalog_page.url)
+    origin = f'{url.scheme}://{url.netloc}'
+    with catalog_page.context.browser.new_context(
+        base_url=origin, storage_state=catalog_page.context.storage_state(),
+        java_script_enabled=javascript,
+    ) as context:
+        page = context.new_page()
+        path = f'/admin/{family}/komponenten'
+        page.goto(path)
+        page.locator('#create-component summary').click()
+        form = page.locator(f'form[action="{path}"][method="post"]')
+        form.locator('[name="name"]').fill('Identitätstest')
+        form.locator('[name="category"]').select_option('side')
+        for code, presence in [('GLUTEN', 'contains'), ('MILK', 'may_contain')]:
+            form.locator(f'[name="allergen_code"][value="{code}"]').check()
+            form.locator(f'[name="allergen_presence__{code}"]').select_option(presence)
+        with page.expect_response(lambda r: r.request.method == 'POST') as created:
+            form.get_by_role('button', name='Baustein erstellen', exact=True).click()
+        assert created.value.status == 303
+        page.wait_for_url(f'**{path}/*')
+        form = page.locator('#component-form')
+        form.locator('[name="allergen_code"][value="MILK"]').uncheck()
+        form.locator('[name="allergen_code"][value="LUPIN"]').check()
+        form.locator('[name="allergen_presence__LUPIN"]').select_option('may_contain')
+        with page.expect_response(lambda r: r.request.method == 'POST') as saved:
+            form.get_by_role('button', name='Baustein speichern', exact=True).click()
+        assert saved.value.status == 303
+        fields = parse_qs(saved.value.request.post_data)
+        assert fields['allergen_code'] == ['GLUTEN', 'LUPIN']
+        assert fields['allergen_presence__GLUTEN'] == ['contains']
+        assert fields['allergen_presence__LUPIN'] == ['may_contain']
+        assert fields['allergen_presence__MILK'] == ['may_contain']
+        assert 'allergen_presence' not in fields
+        page.wait_for_load_state()
+        page.reload()
+        assert form.locator('[name="allergen_code"]:checked').evaluate_all(
+            '(els) => els.map(e => e.value)') == ['GLUTEN', 'LUPIN']
+        expect(form.locator('[name="allergen_presence__GLUTEN"]')).to_have_value('contains')
+        expect(form.locator('[name="allergen_presence__LUPIN"]')).to_have_value('may_contain')
+
+        def invalid_presence(route):
+            fields = parse_qsl(route.request.post_data, keep_blank_values=True)
+            route.continue_(post_data=urlencode([
+                (key, 'invalid' if key == 'allergen_presence__GLUTEN' else value)
+                for key, value in fields]))
+
+        page.route('**' + path + '/*', invalid_presence, times=1)
+        with page.expect_response(lambda r: r.request.method == 'POST') as invalid:
+            form.get_by_role('button', name='Baustein speichern', exact=True).click()
+        assert invalid.value.status == 400
+        presence = page.locator('[name="allergen_presence__GLUTEN"]')
+        expect(presence).to_have_value('invalid')
+        expect(presence).to_have_attribute('aria-invalid', 'true')
+        expect(presence).to_have_class(re.compile(r'\bis-invalid\b'))
+        expect(page.locator('#' + presence.get_attribute('aria-describedby'))).to_contain_text('ungültig')
+        expect(page.locator('[name="allergen_presence__LUPIN"]')).to_have_value('may_contain')
 
 
 @pytest.fixture
@@ -65,7 +129,7 @@ def test_catalog_native_forms_preserve_and_remove_metadata(
     form.locator('[name="label_code"][value="VEGAN"]').check()
     gluten = form.locator('.allergen-row').filter(has=page.locator('[value="GLUTEN"]'))
     milk = form.locator('.allergen-row').filter(has=page.locator('[value="MILK"]'))
-    expect(gluten.locator('select')).to_be_disabled()
+    expect(gluten.locator('select')).to_be_enabled()
     gluten.locator('[name="allergen_code"]').check()
     gluten.locator('select').select_option('may_contain')
     milk.locator('[name="allergen_code"]').check()
@@ -91,7 +155,7 @@ def test_catalog_native_forms_preserve_and_remove_metadata(
     expect(milk.locator('[name="allergen_code"]')).to_be_checked()
     detail.locator('[name="name"]').fill('Katalog-Browsertest bearbeitet')
     milk.locator('[name="allergen_code"]').uncheck()
-    expect(milk.locator('select')).to_be_disabled()
+    expect(milk.locator('select')).to_be_enabled()
     with page.expect_response(lambda response: response.request.method == 'POST') as saved:
         detail.get_by_role('button', name='Baustein speichern', exact=True).click()
     assert saved.value.status == 303
@@ -103,7 +167,7 @@ def test_catalog_native_forms_preserve_and_remove_metadata(
     # Clearing native checkboxes intentionally removes the complete metadata set.
     detail.locator('[name="label_code"][value="VEGAN"]').uncheck()
     gluten.locator('[name="allergen_code"]').uncheck()
-    expect(gluten.locator('select')).to_be_disabled()
+    expect(gluten.locator('select')).to_be_enabled()
     with page.expect_response(lambda response: response.request.method == 'POST') as cleared:
         detail.get_by_role('button', name='Baustein speichern', exact=True).click()
     assert cleared.value.status == 303
@@ -243,7 +307,7 @@ def test_component_error_template_retains_submitted_state(
     expect(form.locator('[name="label_code"]')).not_to_be_checked()
     expect(form.locator('[name="allergen_code"][value="MILK"]')).not_to_be_checked()
     expect(form.locator('[name="allergen_code"][value="GLUTEN"]')).to_be_checked()
-    expect(form.locator('select[name="allergen_presence"]:enabled')).to_have_value('may_contain')
+    expect(form.locator('select[name="allergen_presence__GLUTEN"]')).to_have_value('may_contain')
     expect(form.locator('[name="_csrf"]')).to_have_value('template-only-csrf')
     if template == 'components.html':
         expect(page.locator('#create-component')).to_have_attribute('open', '')

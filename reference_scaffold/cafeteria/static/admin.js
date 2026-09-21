@@ -202,7 +202,7 @@
             form.querySelector(`input[name="${name}_mode"]:checked`)?.value === 'manual';
         form.querySelectorAll('.allergen-row, [data-option-detail]').forEach(row => {
             const checkbox = row.querySelector('[data-option-check], input[name="allergen_code"]');
-            const presence = row.querySelector('[data-option-presence], select[name="allergen_presence"]');
+            const presence = row.querySelector('[data-option-presence], select[name^="allergen_presence__"]');
             if (checkbox && presence) {
                 const group = row.closest('[data-option-group]');
                 const mode = group?.dataset.optionMode || 'allergen';
@@ -220,7 +220,9 @@
                     row.querySelector('[data-option-absent]').disabled = !editable || checkbox.checked;
                 }
                 checkbox.disabled = !editable;
-                presence.disabled = checkbox.disabled || !checkbox.checked;
+                presence.disabled = checkbox.disabled || (row.hasAttribute('data-option-keyed') && !checkbox.checked);
+                presence.hidden = !checkbox.checked || !editable;
+                presence.classList.toggle('d-none', presence.hidden);
             }
         });
         form.querySelectorAll('[data-option-group]').forEach(group => {
