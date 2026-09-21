@@ -159,7 +159,9 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         heading = main.get_by_role('heading', level=1)
         subtitle = main.locator('.page-header-subtitle')
         assert DAY not in heading.inner_text()
-        expect(heading).to_have_text('Menü bearbeiten')
+        # Page title equals the sidebar item; the task lives in the context line.
+        expect(heading).to_have_text('Menüs')
+        expect(subtitle).to_contain_text('Menü bearbeiten')
         expect(subtitle).to_contain_text('Mittag')
         expect(subtitle).to_contain_text('Menü 1')
         assert not re.search(r'LUNCH|MENU_1', heading.inner_text())

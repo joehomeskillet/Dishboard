@@ -233,7 +233,7 @@ def test_shell_styles_statusbar_variants_and_contextual_subnav(site):  # noqa: F
         _goto(page, '/admin/cafeteria/menues')
         page.locator('.page-body > .container-xl').evaluate('''container => {
             container.insertAdjacentHTML('afterbegin', `
-              <dl class="admin-statusbar" aria-label="Status">
+              <dl class="admin-statusbar" aria-label="Status" data-style-probe>
                 <div class="admin-statusbar-item admin-statusbar-item--neutral"><dt class="admin-statusbar-label">Bereich</dt><dd class="admin-statusbar-value">Cafeteria</dd></div>
                 <div class="admin-statusbar-item admin-statusbar-item--success"><dt class="admin-statusbar-label">Status</dt><dd class="admin-statusbar-value">Betriebsbereit</dd></div>
                 <div class="admin-statusbar-item admin-statusbar-item--warning"><dt class="admin-statusbar-label">Prüfung</dt><dd class="admin-statusbar-value">Hinweis offen</dd></div>
@@ -241,7 +241,8 @@ def test_shell_styles_statusbar_variants_and_contextual_subnav(site):  # noqa: F
                 <div class="admin-statusbar-item admin-statusbar-item--neutral"><dt class="admin-statusbar-label">Kontext</dt><dd class="admin-statusbar-value">KW 38</dd></div>
               </dl>`);
         }''')
-        statusbar = page.locator('.admin-statusbar')
+        # The menus page carries its own status bar; the style probe is the injected one.
+        statusbar = page.locator('.admin-statusbar[data-style-probe]')
         expect(statusbar).to_have_css('display', 'grid')
         expect(statusbar.locator('.admin-statusbar-item')).to_have_count(5)
         variants = ('neutral', 'success', 'warning', 'danger')

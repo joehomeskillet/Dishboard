@@ -123,7 +123,10 @@ def test_admin_publish_uses_native_confirm(page_context: Page, admin_app: Flask)
 
     publish_btn = page.locator('[data-bs-target="#week-publish-modal"]')
     assert publish_btn.is_enabled()
-    assert page.locator('.status-pill').get_attribute('data-status') == 'ready'
+    # The week status lives in the shared status bar since the week plan core package.
+    week_status = page.locator('dl.admin-statusbar .admin-statusbar-item').filter(
+        has=page.locator('dt', has_text='Wochenstatus')).locator('dd')
+    expect(week_status).to_contain_text('Noch nicht veröffentlicht · bereit')
 
     publish_btn.click()
     modal = page.locator('#week-publish-modal')
@@ -132,14 +135,14 @@ def test_admin_publish_uses_native_confirm(page_context: Page, admin_app: Flask)
     modal.get_by_role('button', name='Abbrechen', exact=True).click()
     expect(modal).to_be_hidden()
     expect(publish_btn).to_be_focused()
-    assert page.locator('.status-pill').get_attribute('data-status') == 'ready'
+    expect(week_status).to_contain_text('Noch nicht veröffentlicht · bereit')
 
     publish_btn.click()
     with page.expect_response(lambda response: response.request.method == 'POST') as published:
         modal.get_by_role('button', name='Veröffentlichen', exact=True).click()
     assert published.value.status == 303
     page.wait_for_load_state()
-    assert page.locator('.status-pill').get_attribute('data-status') == 'live'
+    expect(week_status).to_contain_text('Gespeicherter Stand veröffentlicht')
 
 def test_admin_error_state_focuses_first_error_and_offers_retry(page_context: Page):
     page = page_context

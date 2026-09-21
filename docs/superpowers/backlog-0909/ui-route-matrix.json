@@ -18,7 +18,7 @@
     "generated_at": "2026-09-13T07:15:51.719096+00:00",
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
     "route_count": 160,
-    "template_count": 97,
+    "template_count": 98,
     "html_route_count": 79,
     "design_manifest_commit": "39625ccc0d8b576fae9edaeb8cf0b5c70b1af912",
     "browser_status": "not_run",
@@ -12438,6 +12438,18 @@
         "admin.inventory_home"
       ],
       "owning_mp": "MP-UI-FOUNDATIONS"
+    },
+    {
+      "path": "ui/_semantic.html",
+      "kind": "partial",
+      "extends": [],
+      "includes": [],
+      "sha256": "b8c074c61ca115d0f9d1070d09ddfcc6049784028cfb1547bb3ca89f4018cc66",
+      "used_by_endpoints": [
+        "admin.print_template_editor",
+        "admin.recipe_print_template_editor"
+      ],
+      "owning_mp": "MP-UI-PRINT-EDITOR"
     }
   ],
   "states": [
