@@ -1179,12 +1179,13 @@ def test_admin_patient_overview_has_no_cost_vocabulary(admin_app: Flask, admin_e
 @_NEEDS_DB
 def test_admin_overview_actions_and_regions(admin_app: Flask, admin_engine: Engine) -> None:
     client, _ = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    # Page title equals the sidebar item since the week plan core (design system v2 §3/§4).
     for family, heading in (
-        ('cafeteria', 'Cafeteria-Plan'),
-        ('patienten', 'Patientenplan'),
+        ('cafeteria', 'Cafeteria'),
+        ('patienten', 'Patienten'),
     ):
         html = client.get(f'/admin/{family}?week={DAY}').get_data(as_text=True)
-        assert re.search(rf'<h1[^>]*>{re.escape(heading)}</h1>', html)
+        assert re.search(rf'<h1[^>]*>\s*{re.escape(heading)}\s*</h1>', html)
         assert 'class="skip-link"' in html
         assert 'href="#main-content"' in html
         assert 'aria-live="polite"' in html
