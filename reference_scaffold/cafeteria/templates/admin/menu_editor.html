@@ -1,6 +1,5 @@
 {% extends "admin/base_tabler.html" %}
-{% from '_food_symbols.html' import symbol %}
-{% from 'admin/_macros.html' import icon, page_header, check %}
+{% from 'admin/_macros.html' import icon, page_header, check, option_detail_group, disclosure_section %}
 {% from 'admin/_country_select.html' import country_select %}
 {% set layout_variant = 'standard' %}
 {% set day_title = cell.day_label|default(cell.day|date_long) %}
@@ -13,7 +12,11 @@
 {% block main_attributes %}data-family="{{ family }}" data-week="{{ week }}"{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-menu-editor.css') }}">{% endblock %}
 {% block page_header %}
-{% call page_header(('Neues Menü aus Vorlage «' ~ cell.dish_template.title ~ '»') if cell.template_proposal and cell.dish_template else 'Menü bearbeiten', description=slot_title, breadcrumbs=[('Wochenplan', back_url), ('Menü',)]) %}
+{% call page_header('Menüs', description=(('Neues Menü aus Vorlage «' ~ cell.dish_template.title ~ '»') if cell.template_proposal and cell.dish_template else 'Menü bearbeiten') ~ ' · ' ~ slot_title, breadcrumbs=[('Wochenplan', back_url), ('Menü',)], status_items=[
+  {'label': 'Profil', 'value': 'Cafeteria' if profile == 'staff_guest' else 'Patienten'},
+  {'label': 'Tag', 'value': day_title},
+  {'label': 'Allergene', 'value': 'Allergenangaben nicht erfasst' if not cell.retained_only and not origin_conflict and (not effects or not effects.allergens) else none, 'variant': 'warning'}
+]) %}
 <a class="btn" href="{{ back_url }}">{{ icon('arrow-left') }}Zum Wochenplan</a>
 {% endcall %}
 {% endblock %}
@@ -166,7 +169,7 @@
                 <div class="menu-editor-component-summary" data-component-summary-view hidden>
                   <strong data-component-summary>{{ c_text|default('') }}</strong>
                   <div class="menu-editor-row-actions">
-                    <button type="button" class="btn" data-edit-row>{{ icon('pencil') }}Ändern</button>
+                    <button type="button" class="btn" data-edit-row>{{ icon('pencil') }}Bearbeiten</button>
                     <button type="button" class="btn" data-move-row="up">Nach oben</button>
                     <button type="button" class="btn" data-move-row="down">Nach unten</button>
                     <button type="button" class="btn btn-outline-danger" data-remove-row>{{ icon('trash') }}Entfernen</button>
@@ -239,36 +242,6 @@
         </div>
       </section>
 
-      <section class="card mb-3 admin-compact-section" aria-labelledby="sec-output-texts">
-        <div class="card-header"><h2 class="card-title mb-0" id="sec-output-texts">Texte auf dem Speiseplan</h2></div>
-        <div class="card-body">
-          <div class="row g-2">
-            <div class="col-12">
-              <label class="form-label" for="f-desc">Beschreibung (auf dem Speiseplan sichtbar)</label>
-              <textarea class="form-control{{ invalid_class('description') }}" id="f-desc" name="description" rows="3"{{ error_attributes('description', 'err-desc') }}>{{ submitted.get('description', '') }}</textarea>
-              {{ field_error('description', 'err-desc') }}
-            </div>
-            <div class="col-12">
-              <label class="form-label" for="f-note">Hinweis (auf dem Speiseplan sichtbar)</label>
-              <textarea class="form-control{{ invalid_class('note') }}" id="f-note" name="note" rows="2"{{ error_attributes('note', 'err-note') }}>{{ submitted.get('note', '') }}</textarea>
-              {{ field_error('note', 'err-note') }}
-            </div>
-            {% if profile == 'staff_guest' %}
-            <div class="col-12 col-sm-6">
-              <label class="form-label" for="f-int">Mitarbeitende CHF</label>
-              <input class="form-control{{ invalid_class('internal_chf') }}" id="f-int" name="internal_chf" inputmode="decimal" value="{{ submitted.get('internal_chf', '') }}"{{ error_attributes('internal_chf', 'err-int') }}{% if errors.get('internal_chf') %} autofocus{% endif %}>
-              {{ field_error('internal_chf', 'err-int') }}
-            </div>
-            <div class="col-12 col-sm-6">
-              <label class="form-label" for="f-ext">Preis für externe Gäste CHF</label>
-              <input class="form-control{{ invalid_class('external_chf') }}" id="f-ext" name="external_chf" inputmode="decimal" value="{{ submitted.get('external_chf', '') }}"{{ error_attributes('external_chf', 'err-ext') }}>
-              {{ field_error('external_chf', 'err-ext') }}
-            </div>
-            {% endif %}
-          </div>
-        </div>
-      </section>
-
       <section class="menu-editor-markings" aria-labelledby="sec-markings">
         <h2 class="h3 mb-2" id="sec-markings">Kennzeichnungen</h2>
 
@@ -276,31 +249,7 @@
         {{ mode_summary('allergen', 'Allergene', 'allergen-mode-badge') }}
         <div class="card-body">
           {{ mode_radios('allergen') }}
-          {{ field_error('allergen_code', 'err-allergen-code') }}
-          {{ field_error('allergen_presence', 'err-allergen-presence') }}
-          <div class="allergen-list">
-            {% set a_codes = submitted.getlist('allergen_code') if submitted.getlist else submitted.get('allergen_code', []) %}
-            {% set a_pres = submitted.getlist('allergen_presence') if submitted.getlist else submitted.get('allergen_presence', []) %}
-            {% for allergen in allergens %}
-            {% set idx = a_codes.index(allergen.code) if allergen.code in a_codes else -1 %}
-            {% set presence = a_pres[idx] if idx >= 0 and idx < a_pres|length else 'contains' %}
-            {% set presence_invalid = errors.get('allergen_presence') and not is_auto['allergen'] and idx >= 0 and (idx >= a_pres|length or presence not in ['contains', 'may_contain']) %}
-            <div class="allergen-row">
-              <div class="row g-2 align-items-center">
-                <div class="col-12 col-md-6">
-                  <label class="form-check" for="allergen-{{ allergen.code|lower }}"><input class="form-check-input" id="allergen-{{ allergen.code|lower }}" type="checkbox" name="allergen_code" value="{{ allergen.code }}"{% if idx >= 0 %} checked{% endif %}{% if is_auto['allergen'] %} disabled{% endif %}><span class="form-check-label">{{ symbol('allergens', allergen.code, true) }}{{ allergen.name|default(allergen.code) }}</span></label>
-                </div>
-                <div class="col-12 col-md-6">
-                  <label class="form-label" for="allergen-{{ allergen.code|lower }}-presence">Präsenz für {{ allergen.name|default(allergen.code) }}</label>
-                  <select class="form-select{{ ' is-invalid' if presence_invalid else '' }}" id="allergen-{{ allergen.code|lower }}-presence" name="allergen_presence" aria-label="Präsenz für {{ allergen.name|default(allergen.code) }}"{% if presence_invalid %}{{ error_attributes('allergen_presence', 'err-allergen-presence') }}{% endif %}{% if idx < 0 or is_auto['allergen'] %} disabled{% endif %}>
-                    <option value="contains"{% if presence == 'contains' %} selected{% endif %}>enthält</option>
-                    <option value="may_contain"{% if presence == 'may_contain' %} selected{% endif %}>kann Spuren enthalten</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
+          {{ option_detail_group(allergens, submitted=submitted, errors=errors, manual=not is_auto['allergen']) }}
         </div>
       </details>
 
@@ -308,21 +257,22 @@
         {{ mode_summary('origin', 'Herkunft', 'origin-mode-badge') }}
         <div class="card-body">
           {{ mode_radios('origin') }}
+          <div class="menu-origin-heading" aria-hidden="true"><span>Zutat</span><span>Land</span><span></span></div>
           <div class="origin-list menu-editor-row-list" id="origins-list" data-row-list="origin" data-row-title="Herkunft">
             {% set o_ings = submitted.getlist('origin_ingredient') if submitted.getlist else submitted.get('origin_ingredient', []) %}
             {% set o_ccs = submitted.getlist('origin_country_code') if submitted.getlist else submitted.get('origin_country_code', []) %}
             {% set o_count = [o_ings|length, o_ccs|length, 1]|max %}
             {% for i in range(o_count) %}
             <fieldset class="origin-row menu-editor-origin-row" data-row>
-              <legend class="form-label" data-row-legend>Herkunft {{ i + 1 }}</legend>
-              <div class="menu-editor-row-body">
+              <legend class="visually-hidden" data-row-legend>Herkunft {{ i + 1 }}</legend>
+              <div class="menu-editor-row-body menu-origin-fields">
                 <div class="row g-2">
                   <div class="col-12 col-lg-6">
-                    <label class="form-label" for="origin-{{ i }}-ingredient">Zutat</label>
+                    <label class="visually-hidden" for="origin-{{ i }}-ingredient">Zutat</label>
                     <input class="form-control{{ invalid_class('origin_ingredient') }}" id="origin-{{ i }}-ingredient" name="origin_ingredient" placeholder="Zutat" aria-label="Zutat" value="{{ o_ings[i] if i < o_ings|length else '' }}"{{ error_attributes('origin_ingredient', 'err-origin-ingredient') }}{% if is_auto['origin'] %} disabled{% endif %}>
                   </div>
                   <div class="col-12 col-lg-6">
-                    <label class="form-label" for="origin-{{ i }}-country">Land</label>
+                    <label class="visually-hidden" for="origin-{{ i }}-country">Land</label>
                     {{ country_select('origin_country_code', o_ccs[i] if i < o_ccs|length else '', 'origin-' ~ i ~ '-country', error=errors.get('origin_country_code')) }}
                   </div>
                 </div>
@@ -354,6 +304,33 @@
         </div>
       </details>
       </section>
+
+      {% call disclosure_section(id='sec-output-texts', has_content=submitted.get('description') or submitted.get('note') or submitted.get('internal_chf') or submitted.get('external_chf'), has_error=errors.get('description') or errors.get('note') or errors.get('internal_chf') or errors.get('external_chf')) %}
+          <div class="row g-2">
+            <div class="col-12 col-lg-6">
+              <label class="form-label" for="f-desc">Beschreibung (auf dem Speiseplan sichtbar)</label>
+              <textarea class="form-control{{ invalid_class('description') }}" id="f-desc" name="description" rows="3"{{ error_attributes('description', 'err-desc') }}>{{ submitted.get('description', '') }}</textarea>
+              {{ field_error('description', 'err-desc') }}
+            </div>
+            <div class="col-12 col-lg-6">
+              <label class="form-label" for="f-note">Hinweis (auf dem Speiseplan sichtbar)</label>
+              <textarea class="form-control{{ invalid_class('note') }}" id="f-note" name="note" rows="2"{{ error_attributes('note', 'err-note') }}>{{ submitted.get('note', '') }}</textarea>
+              {{ field_error('note', 'err-note') }}
+            </div>
+            {% if profile == 'staff_guest' %}
+            <div class="col-12 col-sm-6">
+              <label class="form-label" for="f-int">Mitarbeitende CHF</label>
+              <input class="form-control{{ invalid_class('internal_chf') }}" id="f-int" name="internal_chf" inputmode="decimal" value="{{ submitted.get('internal_chf', '') }}"{{ error_attributes('internal_chf', 'err-int') }}{% if errors.get('internal_chf') %} autofocus{% endif %}>
+              {{ field_error('internal_chf', 'err-int') }}
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label" for="f-ext">Preis für externe Gäste CHF</label>
+              <input class="form-control{{ invalid_class('external_chf') }}" id="f-ext" name="external_chf" inputmode="decimal" value="{{ submitted.get('external_chf', '') }}"{{ error_attributes('external_chf', 'err-ext') }}>
+              {{ field_error('external_chf', 'err-ext') }}
+            </div>
+            {% endif %}
+          </div>
+      {% endcall %}
 
       <div class="admin-actions" data-sticky role="group" aria-label="Speichern und Navigation">
         <p class="menu-editor-save-hint form-hint mb-0">Speichern übernimmt die Eingaben.</p>

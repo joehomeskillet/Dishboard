@@ -171,7 +171,7 @@ def test_menu_collection_ui_korrektur(live_branding, database_engine, browser, t
             details = gratin_card.locator('details.menu-note-details')
             expect(details).to_have_count(1)
             summary = details.locator('summary')
-            expect(summary).to_contain_text('Hinweise')
+            expect(summary).to_contain_text('Details')
 
             # Before open, description is inside details content
             expect(details.locator('.menu-description')).to_contain_text(long_desc)
@@ -184,7 +184,7 @@ def test_menu_collection_ui_korrektur(live_branding, database_engine, browser, t
             # 6. Exactly one action button per card
             actions = gratin_card.locator('.card-footer .btn')
             expect(actions).to_have_count(1)
-            expect(actions).to_contain_text('Öffnen')
+            expect(actions).to_contain_text('Bearbeiten')
             assert actions.bounding_box()['height'] >= 48
             if width in (390, 1440):
                 _shot(page, f'{family}-menues-cards-{width}x{height}')

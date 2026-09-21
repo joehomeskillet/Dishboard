@@ -100,7 +100,7 @@ def test_a08_unchanged_catalog_and_text_pairs_use_native_save(
     page.goto(_menu_url(family))
     assert page.locator('[data-component-kind-option][name]').count() == 0
     if javascript:
-        expect(page.get_by_role('button', name='Ändern')).to_have_count(2)
+        expect(page.get_by_role('button', name='Bearbeiten')).to_have_count(2)
         expect(page.locator('[data-component-summary]')).to_have_text(['Kartoffelstock', 'Blattsalat'])
     else:
         for row in page.locator('#components-list .component-row').all():
@@ -127,14 +127,14 @@ def test_a08_switching_input_kind_clears_other_value(editor_page, family: str, j
     page.goto(_menu_url(family))
     rows = page.locator('#components-list .component-row')
 
-    rows.first.get_by_role('button', name='Ändern').click()
+    rows.first.get_by_role('button', name='Bearbeiten').click()
     rows.first.locator('[data-component-kind-option][value="text"]').check()
     expect(rows.first.locator('[name="component_public_id"]')).to_have_value('')
     expect(rows.first.locator('[name="component_public_id"]')).to_be_hidden()
     expect(rows.first.locator('[name="component_text"]')).to_be_visible()
     rows.first.locator('[name="component_text"]').fill('Knöpfli')
 
-    rows.nth(1).get_by_role('button', name='Ändern').click()
+    rows.nth(1).get_by_role('button', name='Bearbeiten').click()
     rows.nth(1).locator('[data-component-kind-option][value="catalog"]').check()
     expect(rows.nth(1).locator('[name="component_text"]')).to_have_value('')
     expect(rows.nth(1).locator('[name="component_text"]')).to_be_hidden()
@@ -155,13 +155,13 @@ def test_a08_reopening_empty_input_kind_focuses_selected_control(editor_page, fa
         ('text', 'component_text', 'component_public_id'),
         ('catalog', 'component_public_id', 'component_text'),
     ):
-        row.get_by_role('button', name='Ändern').click()
+        row.get_by_role('button', name='Bearbeiten').click()
         option = row.locator(f'[data-component-kind-option][value="{kind}"]')
         option.check()
         expect(row.locator(f'[name="{name}"]')).to_have_value('')
         expect(row.locator(f'[name="{other_name}"]')).to_have_value('')
         row.get_by_role('button', name='Fertig').click()
-        edit = row.get_by_role('button', name='Ändern')
+        edit = row.get_by_role('button', name='Bearbeiten')
         expect(edit).to_be_focused()
         edit.press('Enter')
         expect(option).to_be_checked()
@@ -365,7 +365,7 @@ def test_compact_assignments_and_native_kind_contract(
         expect(rows.first.locator('[data-component-edit-view]')).to_be_hidden()
         height = rows.first.evaluate('el => el.getBoundingClientRect().height')
         assert height >= 44
-        expect(rows.get_by_role('button', name='Ändern')).to_have_count(2)
+        expect(rows.get_by_role('button', name='Bearbeiten')).to_have_count(2)
         expect(rows.get_by_role('button', name='Nach oben')).to_have_count(2)
         expect(rows.get_by_role('button', name='Entfernen', exact=True)).to_have_count(2)
     else:
@@ -449,7 +449,7 @@ def test_density_viewports_reflow_and_zoom_probe(
                         asideBottom: aside.bottom,
                     };
                 }''')
-                assert scrolled['scrollY'] >= scroll_target
+                assert scrolled['scrollY'] >= scroll_target - 1  # Chromium rounds CSS scroll pixels.
                 assert scrolled['mainTop'] < 0
                 assert 0 <= scrolled['reviewTop'] <= 30
                 expect(page.locator('#review')).to_be_visible()
