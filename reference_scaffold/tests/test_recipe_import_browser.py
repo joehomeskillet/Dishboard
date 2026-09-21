@@ -21,7 +21,7 @@ from test_ui_korrektur_cookbooks_browser import _native_viewport_capture
 
 EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/density-imports-0913/after'
 
-ROUTE_VIEWPORTS = ((390, 844), (1440, 900))
+ROUTE_VIEWPORTS = ((360, 844), (1440, 900))
 COMMIT_VIEWPORTS = (*ROUTE_VIEWPORTS, (720, 450))
 SHARED_VIEWPORTS = ((1024, 768), (768, 1024), (1920, 1080))
 
@@ -50,7 +50,7 @@ def test_upload_conflict_keyboard_and_tabler(b3, master_server, browser, width, 
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.on('console', lambda message: errors.append(message.text) if message.type == 'error' else None)
         _open(page, base)
-        expect(page.get_by_role('heading', level=1)).to_have_text('Rezepte importieren')
+        expect(page.get_by_role('heading', level=1)).to_have_text('Rezepte')
         expect(page.get_by_text('Noch keine Importstapel')).to_be_visible()
         page.set_input_files('#source_file', str(source))
         page.get_by_label('ungeprüft').check()
@@ -66,7 +66,7 @@ def test_upload_conflict_keyboard_and_tabler(b3, master_server, browser, width, 
         assert client.post(path, data=data).status_code == 303
         stale_title.fill('Mein ursprünglicher Entwurf')
         with page.expect_response(lambda response: response.request.method == 'POST') as outcome:
-            page.get_by_role('button', name='Entscheidungen speichern').click()
+            page.get_by_role('button', name='Speichern', exact=True).click()
         assert outcome.value.status == 409
         expect(page.locator('#recipe-import-error')).to_be_visible()
         expect(page.get_by_label('Titel', exact=True)).to_have_value('Mein ursprünglicher Entwurf')
@@ -98,8 +98,9 @@ def test_shared_layout_viewports(b3, master_server, browser, width, height, tmp_
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
         page = context.new_page()
         _open(page, base)
-        expect(page.get_by_role('heading', level=1)).to_have_text('Rezepte importieren')
-        expect(page.get_by_role('columnheader', name='Datei')).to_be_visible()
+        expect(page.get_by_role('heading', level=1)).to_have_text('Rezepte')
+        expect(page.locator('thead th').first).to_have_text('Datei')
+        expect(page.locator('td[data-label="Datei"]').first).to_be_visible()
         targets(page)
         shot = tmp_path / f'rezepte-import-shared-{width}x{height}.png'
         page.screenshot(path=str(shot), full_page=True)
@@ -134,18 +135,21 @@ def test_commit_confirmation_and_recipe_link(b3, master_server, browser, width, 
         page.on('dialog', lambda dialog: dialog.accept())
         _open(page, base, path)
         expect(page.get_by_role('heading', name='Importstapel übernehmen')).to_be_visible()
+        expect(page.locator('main .btn-primary')).to_have_count(1)
+        expect(page.locator('.admin-statusbar')).to_contain_text('Erledigt')
         expect(page.get_by_text('keine Veröffentlichung')).to_be_visible()
         targets(page)
         confirm_shot = tmp_path / f'rezepte-import-confirm-{width}-js-{javascript}.png'
         page.screenshot(path=str(confirm_shot), full_page=True)
         page.get_by_role('button', name='Importstapel übernehmen').click()
         expect(page.get_by_role('heading', name='Übernommene Rezepte')).to_be_visible()
-        expect(page.get_by_role('link', name='Rezept öffnen')).to_be_visible()
+        expect(page.locator('.admin-statusbar')).to_contain_text('Übernommen')
+        expect(page.get_by_role('link', name='Bearbeiten', exact=True)).to_be_visible()
         targets(page)
         shot = tmp_path / f'rezepte-import-commit-{width}-js-{javascript}.png'
         page.screenshot(path=str(shot), full_page=True)
-        page.get_by_role('link', name='Rezept öffnen').click()
-        expect(page.get_by_role('heading', level=1)).to_have_text('Rezept bearbeiten')
+        page.get_by_role('link', name='Bearbeiten', exact=True).click()
+        expect(page.get_by_role('heading', level=1)).to_have_text('Rezepte')
 
 
 @pytest.mark.parametrize('width,height', SHARED_VIEWPORTS)
@@ -196,11 +200,20 @@ def test_closed_row_details_stay_in_formdata_and_keep_file_identity(
         assert 'row.1.ingredient.0.food_public_id' in keys
         assert 'row.1.target_recipe_public_id' in keys
         assert 'row_version' in keys
+        form = page.locator('form[action*="/admin/rezepte/import/"]').first
+        original = form.evaluate('f => [...new FormData(f)]')
+        decision = page.get_by_label('Dublettenentscheidung', exact=True)
+        initial_decision = decision.input_value()
+        decision.select_option('skip_existing')
+        expect(page.locator('[data-duplicate-target]')).not_to_have_attribute('hidden', '')
+        decision.select_option(initial_decision)
+        expect(page.locator('[data-duplicate-target]')).to_have_attribute('hidden', '')
+        assert form.evaluate('f => [...new FormData(f)]') == original
         targets(page)
         identity = page.locator('[data-checked-identity]')
         expect(identity).to_contain_text('rezepte.json')
         expect(identity).not_to_contain_text('Dateihash')
-        technical = page.locator('details').filter(has_text='Technische Details')
+        technical = page.locator('#import-technical')
         expect(technical).not_to_have_attribute('open', '')
         technical.locator('summary').click()
         expect(technical).to_have_attribute('open', '')
@@ -210,6 +223,7 @@ def test_closed_row_details_stay_in_formdata_and_keep_file_identity(
         page.keyboard.press('Enter')
         expect(details).to_have_attribute('open', '')
         expect(page.get_by_label('Lebensmittel-UUID')).to_be_visible()
+        page.locator('[data-import-upload] > summary').click()
         page.locator('#source_file').set_input_files({
             'name': 'andere-rezepte.json',
             'mimeType': 'application/json',
@@ -244,7 +258,7 @@ def test_recipe_import_native_cdp_zoom(b3, master_server, browser) -> None:  # n
             assert page.evaluate('getComputedStyle(document.documentElement).zoom') == '1'
             capture = _native_viewport_capture(page, EVIDENCE / 'native-200-rezepte-import.png')
             assert capture['layout']['cssVisualViewport']['zoom'] == 2
-            expect(page.get_by_role('heading', level=1)).to_have_text('Rezepte importieren')
+            expect(page.get_by_role('heading', level=1)).to_have_text('Rezepte')
             assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 1')
             icons = page.locator('main svg.icon').evaluate_all(
                 'icons => icons.map(icon => icon.getBBox().width)',
@@ -270,7 +284,7 @@ def test_recipe_import_density_missing_viewports(
         page = context.new_page()
         _open(page, base, path)
         expect(page.locator('[data-checked-identity]')).to_contain_text('Geprüftes Ergebnis')
-        expect(page.get_by_role('button', name='Entscheidungen speichern')).to_be_visible()
+        expect(page.get_by_role('button', name='Speichern', exact=True)).to_be_visible()
         details = page.locator('#row-1-details')
         expect(details).not_to_have_attribute('open', '')
         _assert_full_width(page, width)
@@ -280,6 +294,9 @@ def test_recipe_import_density_missing_viewports(
         expect(summary).to_be_focused()
         page.keyboard.press('Enter')
         expect(details).to_have_attribute('open', '')
+        if javascript:
+            expect(details.get_by_label('Zielrezept', exact=True)).not_to_be_visible()
+            page.get_by_label('Dublettenentscheidung').select_option('skip_existing')
         for label in ('Menge', 'Einheit', 'Lebensmittel-UUID', 'Zielrezept', 'Zielversion'):
             expect(details.get_by_label(label, exact=True)).to_be_visible()
         quantity = details.get_by_label('Menge', exact=True)

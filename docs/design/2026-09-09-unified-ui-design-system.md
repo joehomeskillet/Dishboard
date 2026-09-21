@@ -682,6 +682,32 @@ Desktop; vier Beispielzutaten, zwei Schritte. Der Seitenkopf enthält ein eindeu
 
 **Keine Scheinlösung:** Nicht die gesamte Zutatenliste hinter einem Akkordeon verstecken. Nicht alle Zutaten gleichzeitig in grossen Detailkarten darstellen. Die Warnung bleibt sichtbar, auch wenn technische Quellenangaben geschlossen sind. Der Standardzustand darf bei echten Pflichtfehlern automatisch grösser werden.
 
+##### Modul Rezepte (2026-09-20)
+
+Die Rezeptübersicht verwendet M22/M23: Suche und Kennzeichnung zuerst, Titel-,
+Zutaten- und Archivfilter in nativen Details. Aktive Zusatzfilter öffnen sich;
+alle bestehenden GET-Parameter bleiben kombinierbar. Rezeptkarten sind ersetzt
+am 2026-09-20 durch kompakte, unabhängig wachsende Zeilen: Titel/Ausbeute,
+textlicher Entwurfsstatus, eine direkte Bearbeiten-/Öffnen-Aktion und weitere
+Aktionen im nativen Menü. Ein ausgeklapptes Menü streckt keine Nachbarzeilen.
+
+Alle Rezeptseiten verwenden `page_header(..., status_items=...)` mit echten
+Filter-, Objekt-, Mengen- oder Importzuständen. Technische Revisionen, IDs und
+Hashes sind keine Statusslots. KI-Prüfpflicht bleibt Warnung; ein gespeicherter
+Entwurf oder Import bestätigt keine Allergenfreigabe. Fehlende globale Prüfzahlen
+werden nicht durch Zahlen der aktuellen Ergebnisseite ersetzt.
+
+Editor-Sprunglinks und direkt bedienbare Mengen bleiben erhalten. Kennzeichnungen
+verwenden ab 1024 px drei Spalten, mobil eine; ausgewählte Werte öffnen den
+Bereich. Quellenangaben stehen unter «Weitere Optionen», bei Inhalt geöffnet.
+Im Import liegt ein weiterer Upload nachrangig. Zielrezept und Zielversion
+erscheinen mit JavaScript bei «Vorhandenes überspringen», bei vorhandenen Werten
+oder Fehlern; ohne JavaScript bleiben sie in nativen Details erreichbar. Die
+Controls bleiben stets im Formular und werden weder deaktiviert noch geleert.
+Bestätigter Import hat genau eine dominante Übernahmeaktion; Speichern bleibt
+dann sekundär. CSRF, CAS, signierte Kontexte und alle gesendeten Werte bleiben
+unverändert. Browsernachweise: Rezeptsuche, Filter, Import und Portionsplanung.
+
 #### M03 — Rezeptzutat: nur die benötigten Details öffnen
 
 Dieselbe Liste wie M02; die erste Zutat ist geöffnet. Andere Zutaten bleiben direkt erreichbar.

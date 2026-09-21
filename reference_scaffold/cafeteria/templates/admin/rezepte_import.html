@@ -1,21 +1,27 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, empty_state, status %}
+{% from 'admin/_macros.html' import page_header, icon, empty_state, status, disclosure_section %}
+{% from 'ui/_semantic.html' import icon_label %}
 {% set workflow_nav = 'recipes' %}
 {% set layout_variant = 'standard' %}
 {% block title %}Rezepte importieren · Menüplanung{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='recipe-admin.css') }}">{% endblock %}
+{% block page_scripts %}<script src="{{ url_for('static', filename='recipe-editor.js') }}" defer></script>{% endblock %}
 {% block page_header %}
-{% call page_header('Rezepte importieren') %}
+{% set status_items = [{'label': t('actions.import.label'), 'value': t('actions.preview.label') if not batch else ('Übernommen' if batch.status == 'imported' else t('publish.draft.label')), 'variant': 'success' if batch and batch.status == 'imported' else 'neutral'}] %}
+{% if error %}{% set ignored = status_items.append({'label': t('actions.save.label'), 'value': t('status.error.label'), 'variant': 'danger'}) %}{% elif batch and batch.status == 'draft' %}{% set ignored = status_items.append({'label': t('actions.confirm.label'), 'value': t('status.done.label') if batch.confirmation_hash_sha256 else t('status.pending.label'), 'variant': 'neutral' if batch.confirmation_hash_sha256 else 'warning'}) %}{% endif %}
+{% call page_header(t('navigation.recipes.label'), 'CSV- oder JSON-Rezepte als standortgebundenen Entwurf speichern.', status_items=status_items) %}
 <a class="btn" href="{{ url_for('admin.recipes_list') }}">{{ icon('arrow-left') }}Zu den Rezepten</a>
 {% endcall %}
 {% endblock %}
 {% block content %}
-<p>CSV- oder JSON-Rezepte als standortgebundenen Entwurf speichern. Speichern legt keine Rezepte an, veröffentlicht nichts und bestätigt keine Allergene.</p>
+<p>Speichern legt keine Rezepte an, veröffentlicht nichts und bestätigt keine Allergene.</p>
 {% if error %}
 <div class="alert alert-danger error-region" id="recipe-import-error" role="alert" tabindex="-1" autofocus>{{ icon('alert-triangle', class='me-2') }}{{ error }}
 {% if batch %}<a href="{{ url_for('admin.recipe_import_detail', batch_id=batch.public_id) }}">Aktuellen Stand neu laden</a>{% endif %}
 </div>
 {% endif %}
 
+{% if batch %}<details class="admin-compact-details mb-3" data-import-upload><summary class="btn">{{ icon_label('actions.upload') }}</summary>{% endif %}
 <section class="card mb-3 admin-compact-section" aria-labelledby="recipe-import-upload-title">
   <div class="card-header py-2"><h2 class="card-title mb-0" id="recipe-import-upload-title">{{ 'Andere Datei wählen' if batch else 'Datei importieren' }}</h2></div>
   <form class="card-body py-2 admin-compact-form" method="post" action="{{ url_for('admin.recipe_import_create') }}" enctype="multipart/form-data">
@@ -32,7 +38,7 @@
     <p class="form-hint mb-2">Höchstens 5 MiB, UTF-8, Schema Version 1. Unaufgelöste Zutaten bleiben Entwurf.</p>
     <fieldset class="mb-0">
       <legend class="form-label">Batch-Annotationen</legend>
-      <div class="admin-compact-line">
+      <div class="recipe-tag-options">
       {% for code, label in annotation_labels %}
       <label class="form-check" for="upload-{{ code }}">
         <input class="form-check-input" id="upload-{{ code }}" type="checkbox" name="annotation" value="{{ code }}">
@@ -43,11 +49,12 @@
     </fieldset>
   </form>
 </section>
+{% if batch %}</details>{% endif %}
 
 {% if batch %}
 <section class="card mb-3 admin-compact-section" aria-labelledby="recipe-import-batch-title" data-checked-file="{{ batch.source_filename or '' }}" data-batch-id="{{ batch.public_id }}">
   <div class="card-header py-2">
-    <h2 class="card-title mb-0" id="recipe-import-batch-title">Importstapel {{ batch.public_id }}</h2>
+    <h2 class="card-title mb-0 text-break" id="recipe-import-batch-title">Importstapel · {{ batch.source_filename or 'Datei importieren' }}</h2>
   </div>
   <form class="card-body py-2 admin-compact-form" method="post" action="{{ url_for('admin.recipe_import_save', batch_id=batch.public_id) }}">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
@@ -62,16 +69,16 @@
     Noch keine Bestätigung. Übernahme in Rezepte braucht zuerst diese Signatur.
     {% endif %}
     </p>
-    <details class="admin-compact-details mb-2"{% if error %} open{% endif %}>
-      <summary class="btn">{{ icon('chevron-right') }}Technische Details</summary>
-      <div class="admin-compact-detail-body text-break">
+    {% call disclosure_section(id='import-technical', has_error=error) %}
+      <div class="text-break">
+        <p class="mb-1">Importstapel {{ batch.public_id }} · Version {{ batch.row_version }}</p>
         <p class="mb-1">Adapter {{ batch.adapter_kind }} · Status {{ batch.status }} · Dateihash {{ batch.source_sha256 or '—' }}</p>
         {% if batch.confirmation_hash_sha256 %}<p class="mb-0">Bestätigte Signatur {{ batch.confirmation_hash_sha256 }}.</p>{% endif %}
       </div>
-    </details>
+    {% endcall %}
     <fieldset class="mb-3">
       <legend class="form-label">Sichtbare Quellennotiz</legend>
-      <div class="admin-compact-line">
+      <div class="recipe-tag-options">
       {% for code, label in annotation_labels %}
       <label class="form-check" for="batch-{{ code }}">
         <input class="form-check-input" id="batch-{{ code }}" type="checkbox" name="annotation" value="{{ code }}"{% if code in batch.annotations %} checked{% endif %}>
@@ -99,7 +106,7 @@
         </div>
       </div>
       <p class="admin-compact-summary text-secondary">Quellennotiz: {{ payload.source.note if payload.source else '—' }}{% if payload.ingredients %} · {{ payload.ingredients|map(attribute='ingredient_text')|join(', ') }}{% endif %}</p>
-      <details class="admin-compact-details" id="row-{{ candidate.row_number }}-details"{% if error %} open{% endif %}>
+      <details class="admin-compact-details" id="row-{{ candidate.row_number }}-details"{% if error or candidate.target_recipe_public_id or candidate.target_row_version %} open{% endif %}>
         <summary class="btn">{{ icon('chevron-right') }}Details für Zeile {{ candidate.row_number }}</summary>
         <div class="admin-compact-detail-body">
           <p class="text-secondary">Ursprung {{ candidate.origin_ref }} · {{ candidate.original_source_kind }} bleibt unverändert.</p>
@@ -120,7 +127,7 @@
             <input class="form-control" id="row-{{ candidate.row_number }}-ing-{{ loop.index0 }}-food" name="row.{{ candidate.row_number }}.ingredient.{{ loop.index0 }}.food_public_id" value="{{ ingredient.food_public_id or '' }}" maxlength="36">
           </div>
           {% endfor %}
-          <div class="row g-2">
+          <div class="row g-2" data-duplicate-target>
             <div class="col-12 col-md-6">
               <label class="form-label" for="row-{{ candidate.row_number }}-target">Zielrezept</label>
               <input class="form-control" id="row-{{ candidate.row_number }}-target" name="row.{{ candidate.row_number }}.target_recipe_public_id" value="{{ candidate.target_recipe_public_id or '' }}" maxlength="36">
@@ -135,9 +142,9 @@
     </article>
     {% endfor %}
     {% if batch.status == 'draft' %}
-    <div class="btn-list mt-3">
-      <button class="btn btn-primary" type="submit" name="action" value="save">{{ icon('device-floppy') }}Entscheidungen speichern</button>
-      <button class="btn" type="submit" name="action" value="acknowledge">{{ icon('check') }}Vorschau bestätigen</button>
+    <div class="admin-form-footer mt-3">
+      <button class="btn{% if not (batch.confirmation_hash_sha256 and can_import) %} btn-primary{% endif %}" type="submit" name="action" value="save">{{ icon_label('actions.save') }}</button>
+      <button class="btn" type="submit" name="action" value="acknowledge">{{ icon_label('actions.confirm') }}</button>
       <button class="btn" type="submit" name="action" value="cancel">{{ icon('x') }}Stapel verwerfen</button>
     </div>
     {% endif %}
@@ -148,7 +155,7 @@
 <section class="card mb-3 admin-compact-section" aria-labelledby="recipe-import-commit-title">
   <div class="card-header py-2"><h2 class="card-title mb-0" id="recipe-import-commit-title">Importstapel übernehmen</h2></div>
   <div class="card-body py-2">
-    <p>Importstapel {{ batch.public_id }} (Version {{ batch.row_version }}) wird in Rezepte übernommen. Neu angelegte Rezepte erhalten je Version 1. Vorhandene Rezepte und deren Herkunft bleiben unverändert. Es erfolgt keine Veröffentlichung und keine Allergenfreigabe.</p>
+    <p>Vorhandene Rezepte und deren Herkunft bleiben unverändert. Es erfolgt keine Veröffentlichung und keine Allergenfreigabe.</p>
     {% if can_import %}
     <form method="post" action="{{ url_for('admin.recipe_import_commit', batch_id=batch.public_id) }}">
       <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
@@ -172,7 +179,7 @@
       <li class="admin-compact-line py-1">
         <span>Zeile {{ item.row_number }} · {{ item.decision }}</span>
         {% if item.recipe_public_id %}
-        <a class="btn" href="{{ url_for('admin.recipe_edit', recipe_id=item.recipe_public_id) }}">{{ icon('eye') }}Rezept öffnen</a>
+        <a class="btn" href="{{ url_for('admin.recipe_edit', recipe_id=item.recipe_public_id) }}">{{ icon_label('actions.edit') }}</a>
         {% endif %}
       </li>
       {% endfor %}
@@ -185,22 +192,18 @@
 {% if batches %}
 <div class="card admin-compact-section">
   <div class="table-responsive">
-    <table class="table table-vcenter card-table">
+    <table class="table table-vcenter card-table table-mobile-lg">
       <thead>
         <tr>
           <th>Datei</th>
           <th>Status</th>
-          <th>Adapter</th>
-          <th>Version</th>
         </tr>
       </thead>
       <tbody>
         {% for item in batches %}
         <tr>
-          <td><a class="text-break" href="{{ url_for('admin.recipe_import_detail', batch_id=item.public_id) }}">{{ item.source_filename or item.public_id }}</a></td>
-          <td>{{ status(item.status, mapping={'draft': ('Entwurf', 'secondary'), 'imported': ('Übernommen', 'success')}) }}</td>
-          <td>{{ item.adapter_kind }}</td>
-          <td>{{ item.row_version }}</td>
+          <td data-label="Datei"><a class="text-break" href="{{ url_for('admin.recipe_import_detail', batch_id=item.public_id) }}">{{ item.source_filename or t('actions.open.label') }}</a></td>
+          <td data-label="Status">{{ status(item.status, mapping={'draft': ('Entwurf', 'secondary'), 'imported': ('Übernommen', 'success')}) }}</td>
         </tr>
         {% endfor %}
       </tbody>

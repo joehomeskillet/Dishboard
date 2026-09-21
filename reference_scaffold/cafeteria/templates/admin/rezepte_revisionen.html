@@ -1,9 +1,10 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, pagination %}
+{% from 'admin/_macros.html' import page_header, icon, pagination, disclosure_section %}
+{% from 'ui/_semantic.html' import icon_label %}
 {% from 'admin/rezepte_ansicht.html' import print_reference %}
 {% set workflow_nav = 'recipes' %}
 {% block title %}Rezept-History · {{ recipe.payload.title }}{% endblock %}
-{% block page_header %}{% call page_header('Rezept-History', recipe.payload.title) %}<a class="btn" href="{{ url_for('admin.recipe_view', recipe_id=recipe.public_id) }}">{{ icon('arrow-left') }}Aktuellen Entwurf ansehen</a>{% endcall %}{% endblock %}
+{% block page_header %}{% call page_header(t('navigation.recipes.label'), recipe.payload.title, status_items=[{'label': t('recipe.recipe.label'), 'value': t('publish.draft.label') if recipe.active else 'Archiviert', 'variant': 'neutral'}, {'label': t('recipe.ingredient.label'), 'value': t('status.missing.label') if preview and not preview.complete else none, 'variant': 'warning'}]) %}<a class="btn" href="{{ url_for('admin.recipe_view', recipe_id=recipe.public_id) }}">{{ icon_label('actions.open') }}</a>{% endcall %}{% endblock %}
 {% block content %}
 {{ print_reference(print_template) }}
 <section class="card mb-3" id="recipe-freeze"><div class="card-body">
@@ -41,7 +42,7 @@
 {% endif %}
 <section class="card" id="recipe-history"><div class="card-header"><h2 class="card-title">Alle gespeicherten Stände</h2></div>
 {% if revisions %}<table class="table table-vcenter card-table table-mobile-lg"><thead><tr><th>Stand</th><th>Erstellt</th><th>Metadaten</th><th>Aktion</th></tr></thead><tbody>
-{% for item in revisions %}<tr><td data-label="Stand">Gespeicherter Stand {{ item.revision_number }}</td><td data-label="Erstellt"><time datetime="{{ item.created_at.isoformat() }}">{{ item.created_at|datetime_short }}</time></td><td class="text-break" data-label="Metadaten">Revision {{ item.revision_number }}<details class="mt-2"><summary class="btn">Technische Details</summary><p class="mt-2 mb-0 text-break"><strong>Prüfsumme:</strong> <code>{{ item.content_hash_sha256 }}</code></p></details></td><td data-label="Aktion"><div class="d-flex flex-wrap gap-2"><a class="btn" href="{{ url_for('admin.recipe_revision', recipe_id=recipe.public_id, revision_id=item.public_id) }}" aria-label="Gespeicherten Stand {{ item.revision_number }} ansehen">{{ icon('eye') }}Ansehen</a><a class="btn" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe.public_id, revision_id=item.public_id) }}" aria-label="PDF von Stand {{ item.revision_number }} öffnen">{{ icon('printer') }}PDF öffnen</a></div></td></tr>{% endfor %}
+{% for item in revisions %}<tr><td data-label="Stand">Gespeicherter Stand {{ item.revision_number }}</td><td data-label="Erstellt"><time datetime="{{ item.created_at.isoformat() }}">{{ item.created_at|datetime_short }}</time></td><td class="text-break" data-label="Metadaten">Revision {{ item.revision_number }}{% call disclosure_section() %}<p class="mt-2 mb-0 text-break"><strong>Prüfsumme:</strong> <code>{{ item.content_hash_sha256 }}</code></p>{% endcall %}</td><td data-label="Aktion"><div class="d-flex flex-wrap gap-2"><a class="btn" href="{{ url_for('admin.recipe_revision', recipe_id=recipe.public_id, revision_id=item.public_id) }}" aria-label="Gespeicherten Stand {{ item.revision_number }} ansehen">{{ icon_label('actions.open') }}</a><a class="btn" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe.public_id, revision_id=item.public_id) }}" aria-label="PDF von Stand {{ item.revision_number }} öffnen">{{ icon('printer') }}PDF öffnen</a></div></td></tr>{% endfor %}
 </tbody></table>{% else %}<div class="card-body"><p class="mb-0">Noch keine gespeicherten Stände vorhanden.</p></div>{% endif %}
 </section>
 {{ pagination(page, has_next, url_for('admin.recipe_revisions', recipe_id=recipe.public_id, page=page-1), url_for('admin.recipe_revisions', recipe_id=recipe.public_id, page=page+1), 'Seiten der gespeicherten Stände') }}

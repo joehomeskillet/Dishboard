@@ -1,9 +1,15 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon %}
+{% from 'admin/_macros.html' import page_header, icon, disclosure_section %}
+{% from 'ui/_semantic.html' import icon_label %}
 {% from 'admin/_rezepte_fields.html' import field, hidden, select, row_button, row_actions with context %}
 {% set workflow_nav = 'recipes' %}
 {% block title %}Rezept · Menüplanung{% endblock %}
-{% block page_header %}{{ page_header('Rezeptstatus bestätigen' if confirmation else 'Rezept bearbeiten' if recipe_id else 'Rezept anlegen') }}{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='recipe-admin.css') }}">{% endblock %}
+{% block page_header %}
+{% set status_items = [{'label': t('recipe.recipe.label'), 'value': t('publish.draft.label') if active else 'Archiviert', 'variant': 'neutral'}] %}
+{% if payload.source.kind == 'ai_assisted' or payload.ingredients|selectattr('source_kind', 'equalto', 'ai_assisted')|list %}{% set ignored = status_items.append({'label': t('data.ai.label'), 'value': t('review.pending.label'), 'variant': 'warning'}) %}{% endif %}
+{{ page_header(t('navigation.recipes.label'), payload.title or t('actions.add.label'), status_items=status_items) }}
+{% endblock %}
 {% block page_scripts %}<script src="{{ url_for('static', filename='recipe-editor.js') }}" defer></script>{% endblock %}
 {% block content %}
 {% if confirmation %}
@@ -11,7 +17,7 @@
 <p>{{ 'Archivieren erhält Zutaten, Bilder und gespeicherte Stände. Das Rezept bleibt lesbar.' if active else 'Dieses Rezept wieder zur Bearbeitung freigeben?' }}</p>
 <form method="post" action="{{ url_for('admin.recipe_status', recipe_id=recipe_id) }}">{{ hidden('_csrf') }}{{ hidden('_form_context') }}{{ hidden('row_version') }}
 <input type="hidden" name="active" value="{{ '0' if active else '1' }}"><div class="d-flex flex-wrap gap-2">
-<button class="btn btn-primary" type="submit">{{ 'Archivieren bestätigen' if active else 'Reaktivieren bestätigen' }}</button>
+<button class="btn btn-primary" type="submit">{{ icon_label('actions.confirm') }}</button>
 <a class="btn" href="{{ url_for('admin.recipe_edit', recipe_id=recipe_id) }}">Abbrechen</a></div></form></div></div>
 {% else %}
 <div class="admin-compact-toolbar" data-sticky-form="recipe-editor" data-sticky-edge="top">
@@ -20,7 +26,7 @@
 {% if recipe_id and can_write %}<a class="btn" href="{{ url_for('admin.recipe_status', recipe_id=recipe_id) }}">{{ 'Archivieren' if active else 'Reaktivieren' }}</a>{% endif %}
 {% for name, label in [('recipe_images', 'Bilder verwalten'), ('recipe_revisions', 'Rezept-History'), ('recipe_scale', 'Mengen berechnen')] %}{% if name in links %}<a class="btn" href="{{ links[name] }}">{{ label }}</a>{% endif %}{% endfor %}</div></details>{% endif %}
 <span class="text-secondary" role="status">{{ 'Entwurf · Änderungen werden erst mit Speichern übernommen.' if active else 'Archiviert · Lesbar, zum Bearbeiten zuerst reaktivieren.' }}</span>
-{% if can_write and active %}<button class="btn btn-primary ms-auto" type="submit" form="recipe-editor">{{ icon('device-floppy') }}{{ 'Rezept speichern' if recipe_id else 'Rezept anlegen' }}</button>{% endif %}
+{% if can_write and active %}<button class="btn btn-primary ms-auto" type="submit" form="recipe-editor">{{ icon_label('actions.save' if recipe_id else 'actions.add') }}</button>{% endif %}
 </div>
 {% if payload.source.kind == 'ai_assisted' or payload.ingredients|selectattr('source_kind', 'equalto', 'ai_assisted')|list %}<p class="alert alert-warning" role="status">{{ icon('alert-triangle') }} KI-unterstützte Vorlage · Zutaten, Mengen und Zubereitung vor der Verwendung prüfen.</p>{% endif %}
 <nav class="d-flex flex-wrap gap-2 mb-2" aria-label="Rezeptabschnitte">
@@ -55,10 +61,10 @@
 {{ field(prefix ~ 'note', 'Zutatennotiz', maximum=500) }}
 {{ hidden(prefix ~ 'source_kind') }}{{ hidden(prefix ~ 'source_reference') }}{{ hidden(prefix ~ 'fetched_at') }}
 <p class="text-break mb-2"><strong>Herkunft:</strong> {{ source_names.get(row.source_kind, 'Nicht angegeben') }}</p>
-<details><summary class="btn">Technische Details</summary><dl class="row mt-3 mb-0">
+{% call disclosure_section(has_content=row.fetched_at) %}<dl class="row mt-3 mb-0">
 <dt class="col-12 col-sm-4 text-secondary">Herkunftsart</dt><dd class="col-12 col-sm-8 text-break">{{ row.source_kind or 'Nicht angegeben' }}</dd>
 <dt class="col-12 col-sm-4 text-secondary">Abrufzeit</dt><dd class="col-12 col-sm-8 text-break">{{ row.fetched_at or 'Nicht angegeben' }}</dd>
-</dl></details>
+</dl>{% endcall %}
 </div></details></div>
 {% else %}<p>Noch keine Zutatenzeilen.</p>{% endfor %}
 </section>
@@ -78,32 +84,33 @@
 {% else %}<p>Noch keine Zubereitungsschritte.</p>{% endfor %}
 </section>
 <section id="recipe-more" class="admin-compact-section" aria-labelledby="recipe-more-heading"><h2 id="recipe-more-heading">Weitere Angaben</h2>
-<details class="admin-compact-row"><summary class="admin-compact-section-heading"><h3 class="mb-0">Kennzeichnungen</h3><span class="ms-auto">{{ data.getlist('tag_public_ids')|length }} ausgewählt</span>{{ icon('chevron-right') }}</summary><div class="admin-compact-detail-body">
+<details class="admin-compact-row"{% if data.getlist('tag_public_ids') %} open{% endif %}><summary class="admin-compact-section-heading"><h3 class="mb-0">Kennzeichnungen</h3><span class="ms-auto">{{ data.getlist('tag_public_ids')|length }} ausgewählt</span>{{ icon('chevron-right') }}</summary><div class="admin-compact-detail-body recipe-tag-options">
 {% for value, label in choices.tags %}<label class="form-check"><input class="form-check-input" type="checkbox" name="tag_public_ids" value="{{ value }}"{% if value in data.getlist('tag_public_ids') %} checked{% endif %}><span class="form-check-label">{{ label }}</span></label>
 {% else %}<p>Keine Kennzeichnungen verfügbar.</p>{% endfor %}</div></details>
-<details class="admin-compact-row"{% if row_kind == 'images' %} open{% endif %}><summary class="admin-compact-section-heading"><h3 id="images-heading" class="mb-0">Bilder</h3><span class="ms-auto">{{ payload.images|length }} Bilder</span>{{ icon('chevron-right') }}</summary><div class="admin-compact-detail-body">
+<details class="admin-compact-row"{% if row_kind == 'images' or payload.images %} open{% endif %}><summary class="admin-compact-section-heading"><h3 id="images-heading" class="mb-0">Bilder</h3><span class="ms-auto">{{ payload.images|length }} Bilder</span>{{ icon('chevron-right') }}</summary><div class="admin-compact-detail-body">
 {% for row in payload.images %}{% set prefix = 'images.' ~ loop.index0 ~ '.' %}
 <div class="admin-compact-row"><h4 class="text-break">{{ row.caption or 'Bild ' ~ loop.index }}</h4>
 {{ hidden(prefix ~ 'sha256') }}{{ field(prefix ~ 'caption', 'Bildunterschrift', maximum=500, focus=row_kind == 'images' and loop.index0 == [row_index, payload.images|length - 1]|min) }}
 {{ field(prefix ~ 'source_url', 'Bildquelle', readonly=true) }}{{ field(prefix ~ 'source_license', 'Bildlizenz', readonly=true) }}
-<details class="mb-3"><summary class="btn">Technische Details</summary><div class="mt-3">
+{% call disclosure_section(has_content=row.fetched_at) %}<div class="mt-3">
 {{ field(prefix ~ 'fetched_at', 'Abrufzeit', readonly=true) }}
 <p class="text-break mb-0"><strong>SHA-256:</strong> <code>{{ row.sha256 }}</code></p>
-</div></details>
+</div>{% endcall %}
 {{ row_actions('images', loop.index0, payload.images|length, 'Bild ' ~ loop.index) }}</div>
 {% else %}<p>Keine Bilder gespeichert.</p>{% endfor %}
 <p class="form-hint">Vor dem Entfernen eines Bildes dessen Auswahl bei den Zubereitungsschritten aufheben. Bereits gespeicherte Stände behalten ihre Bilder und Quellen. Neue Bilder werden nach dem Speichern über die Bildverwaltung hinzugefügt.</p></div></details>
-<details class="admin-compact-row"><summary class="admin-compact-section-heading"><h3 class="mb-0">Quelle</h3><span class="text-break ms-auto">{{ source_names.get(payload.source.kind, 'Ursprüngliche Herkunft') }}</span>{{ icon('chevron-right') }}</summary><div class="admin-compact-detail-body">
+{% call disclosure_section(id='recipe-source', has_content=payload.source.reference or payload.source.url or payload.source.note or payload.source.fetched_at) %}
+<h3>Quelle</h3>
 {% if recipe_id %}{{ hidden('source.kind') }}<p><strong>Herkunft:</strong> {{ source_names.get(payload.source.kind, 'Ursprüngliche Herkunft') }}</p>
 {% else %}{{ select('source.kind', 'Herkunftsart', [('manual','Manuell erfasst'),('url','Quellenadresse')], blank=false) }}{% endif %}
 {{ field('source.reference', 'Quellenbeleg', readonly=recipe_id is not none, maximum=200) }}
 {{ field('source.url', 'Quellenadresse', readonly=recipe_id is not none, maximum=2048) }}
 {{ field('source.note', 'Quellennotiz', readonly=recipe_id is not none, maximum=500) }}
-<details><summary class="btn">Technische Details</summary><div class="mt-3">
+{% call disclosure_section(has_content=payload.source.fetched_at) %}<div class="mt-3">
 <p class="text-break"><strong>Herkunftsart (Rohwert):</strong> <code>{{ data.get('source.kind', '') or 'Nicht angegeben' }}</code></p>
 {{ field('source.fetched_at', 'Abrufzeit mit Zeitzone', readonly=recipe_id is not none) }}
-</div></details>
-</div></details></section>
+</div>{% endcall %}
+{% endcall %}</section>
 </fieldset>
 </form>
 {% endif %}

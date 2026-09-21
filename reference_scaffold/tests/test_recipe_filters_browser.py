@@ -14,7 +14,7 @@ from test_recipe_filter_reads import (  # noqa: F401
 from test_rendered_ui import browser  # noqa: F401
 
 
-@pytest.mark.parametrize('width', [390, 1440])
+@pytest.mark.parametrize('width', [360, 768, 1024, 1440])
 @pytest.mark.parametrize('javascript', [False, True])
 def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, master_server, browser,  # noqa: F811
                                                        width, javascript, tmp_path):
@@ -37,6 +37,8 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         assert response.status == 200 and response.headers['cache-control'] == 'no-store'
         form = page.locator('form[action="/admin/rezepte"]')
         assert form.get_attribute('method') == 'get'
+        form.locator('summary').focus()
+        page.keyboard.press('Enter')
         for label in ('Nach Rezepttitel suchen', 'Zutat', 'Kennzeichnung'):
             control = page.get_by_label(label, exact=True)
             control.focus()
@@ -74,10 +76,11 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         expect(page.get_by_label('Zutat', exact=True)).to_have_value('')
         expect(page.get_by_label('Kennzeichnung', exact=True)).to_have_value('')
         expect(page.get_by_label('Archivierte einschliessen', exact=True)).not_to_be_checked()
+        form.locator('summary').click()
         page.get_by_label('Kennzeichnung', exact=True).select_option(filter_catalog['tag'])
         page.get_by_label('Zutat', exact=True).fill('keine solche Zutat')
         page.get_by_role('button', name='Suchen', exact=True).click()
-        expect(page.get_by_role('heading', name='Keine passenden Rezepte', exact=True)).to_be_visible()
+        expect(page.locator('[data-empty-kind="no_match"] .empty-title')).to_have_text('Keine passenden Rezepte')
         expect(page.get_by_label('Kennzeichnung', exact=True)).to_have_value(filter_catalog['tag'])
         expect(page.locator('#tag option:checked')).to_have_text('Regional · archiviert')
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
