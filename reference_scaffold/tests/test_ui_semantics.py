@@ -207,3 +207,20 @@ def test_statusbar_without_href_preserves_markup(semantic_app):
         '<span class="admin-statusbar-detail">2 Angaben fehlen</span></dd>\n'
         '      </div></dl>'
     )
+
+
+@pytest.mark.parametrize('locale', ['de', 'en'])
+def test_admin_shell_locale_and_single_semantic_stylesheet(semantic_app, locale):
+    from bs4 import BeautifulSoup
+
+    semantic_app.config['UI_LOCALE'] = locale
+    with semantic_app.test_request_context():
+        html = render_template_string(
+            "{% extends 'admin/base_tabler.html' %}{% block sidebar %}{% endblock %}"
+            "{% block content %}Admin{% endblock %}"
+        )
+    document = BeautifulSoup(html, 'html.parser')
+    assert document.html['lang'] == locale
+    styles = [node['href'] for node in document.select('link[rel="stylesheet"]')]
+    assert styles.count('/static/ui-semantic.css') == 1
+    assert styles.index('/static/ui-semantic.css') == styles.index('/static/admin-tabler.css') + 1
