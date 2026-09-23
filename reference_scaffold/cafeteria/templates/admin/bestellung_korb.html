@@ -1,11 +1,14 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, disclosure_section %}
-{% from 'ui/_semantic.html' import icon_label %}
+{% from 'ui/_semantic.html' import icon_label, status_badge_sem %}
+{# Status labels only; no send action or state transition. #}
+{% set order_states = {'draft': 'publish.draft', 'abandoned': 'ui.order_abandoned', 'send_pending': 'ui.order_pending', 'sent': 'ui.order_sent', 'send_unknown': 'ui.order_unknown'} %}
 {% set workflow_nav = 'orders' %}
+{% set state_key = order_states.get(basket.status, 'status.unknown') %}
 {% set basket_status = [
-  {'label': t('order.cart.label'), 'value': t('publish.draft.label') if basket.status == 'draft' else basket.status, 'variant': 'neutral'},
+  {'label': t('order.cart.label'), 'value': status_badge_sem(state_key), 'variant': sem(state_key).role},
   {'label': t('order.supplier.label'), 'value': basket.supplier_name, 'variant': 'neutral'},
-  {'label': 'Zeilen', 'value': basket.lines|length, 'variant': 'warning' if not basket.lines else 'neutral'},
+  {'label': t('ui.order_lines.label'), 'value': basket.lines|length, 'variant': 'warning' if not basket.lines else 'neutral'},
 ] %}
 {% block title %}Bestellung · Menüplanung{% endblock %}
 {% block page_styles %}
@@ -13,7 +16,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='admin-bestellung.css') }}">
 {% endblock %}
 {% block page_header %}
-{% call page_header(t('navigation.orders.label'), description=basket.supplier_name ~ '. Vorschau und CSV bleiben Entwurf. Es gibt keinen Sendauftrag.', status_items=basket_status) %}
+{% call page_header(t('navigation.orders.label'), description=basket.supplier_name ~ '. ' ~ t('ui.order_description.label'), status_items=basket_status) %}
 <a class="btn" href="{{ url_for('admin.order_basket_csv', public_id=basket.public_id) }}">{{ icon_label('actions.download') }}</a>
 {% endcall %}
 {% endblock %}
@@ -52,7 +55,7 @@
 </div>
 </div>
 </form>
-{% call disclosure_section(title='Weitere Optionen', id='korb-weitere', open=false) %}
+{% call disclosure_section(title=t('ui.order_more.label'), id='korb-weitere', open=false) %}
 <form method="post" action="{{ url_for('admin.order_basket_from_demand', public_id=basket.public_id) }}" class="row g-2">
 <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 <input type="hidden" name="row_version" value="{{ basket.row_version }}">
