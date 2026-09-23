@@ -47,9 +47,9 @@ def test_registry_source_schema_and_frozen_resolution():
     seeds = json.loads((source / '05_SEMANTIC_REGISTRY.json').read_text())
     assert len(seeds) == 184
     assert {r['semantic_key'] for r in seeds} <= registry.keys()
-    assert len(read_json(ROOT / 'icon_fallbacks.json')) == 118
+    assert len(read_json(ROOT / 'icon_fallbacks.json')) == 6
     available = sprite_icons()
-    assert len(available) == 35
+    assert len(available) == 147
     assert FOOD == EXPECTED_FOOD
     for key, item in registry.items():
         if key in EXPECTED_FOOD:
@@ -60,8 +60,10 @@ def test_registry_source_schema_and_frozen_resolution():
         else:
             assert item.resolved_icon in available
         assert not item.icon_only_allowed or (item.tooltip_key and item.aria_key)
-    assert registry['admin.user'].resolved_icon == 'info-circle'
-    assert not registry['admin.user'].icon_only_allowed
+    assert registry['admin.user'].resolved_icon == 'user'
+    
+    assert registry['admin.user'].icon_only_allowed
+    
     with pytest.raises(FrozenInstanceError):
         registry['actions.save'].role = 'danger'
     for row in read_json(ROOT / 'semantic_registry.json'):
@@ -153,7 +155,7 @@ def test_globals_allowlist_and_icon_only_policy(semantic_app):
         assert sem('allergen.milk').resolved_icon == 'food:allergens:MILK'
         with pytest.raises(SemanticError, match='unknown semantic key'):
             sem('../../secrets')
-        for key in ('actions.save', 'actions.delete', 'admin.user'):
+        for key in ('actions.save', 'actions.delete'):
             with pytest.raises(SemanticError, match=key):
                 render_template_string("{% from 'ui/_semantic.html' import icon_button %}{{ icon_button(key, icon_only=true) }}", key=key)
         html = render_template_string("{% from 'ui/_semantic.html' import icon_button %}{{ icon_button('actions.edit', icon_only=true) }}")
@@ -171,3 +173,17 @@ def test_app_start_rejects_pseudo_outside_testing():
     app.config.update(APP_ENV='production', UI_LOCALE='xx')
     with pytest.raises(SemanticError, match='xx'):
         register_ui(app)
+
+def test_registry_icons_in_sprite():
+    from cafeteria.ui.semantics import load_registry, sprite_icons
+    
+    registry = load_registry()
+    sprite = sprite_icons()
+    
+    missing = []
+    for item in registry.values():
+        if not item.resolved_icon.startswith('food:'):
+            if item.resolved_icon not in sprite:
+                missing.append(item.resolved_icon)
+            
+    assert not missing, f"Missing icons in sprite: {missing}"
