@@ -1405,6 +1405,18 @@ Seltene oder technische Angaben in nativem `<details>`; Kurztext zeigt vorhanden
 
 **Technischer Vertrag (2026-09-20):** `{% call disclosure_section(title='Weitere Optionen', id=none, open=false, has_content=false, has_error=false) %}…{% endcall %}` rendert `details.admin-compact-details.admin-disclosure` und `.admin-compact-detail-body`. `open`, `has_content` oder `has_error` öffnen serverseitig; `has_content` ergänzt «enthält Angaben» im Summary. Keine neuen `data-`-Attribute oder JavaScript-Abhängigkeit; native Tastaturbedienung erhält Formularwerte. Nachweis: `test_admin_shared_patterns_browser.py` für explizites Öffnen, Fehler/Inhalt, leeren geschlossenen Zustand, Fokus und responsive Zielgrössen mit und ohne JS.
 
+##### Modul Einkaufslisten (2026-09-20)
+
+**Seitenrahmen:** `page_header('Einkaufslisten', description='Bausteine gebundener Rezepte …', status_items=[…])` mit höchstens einer Primäraktion «Anlegen» als natives Disclosure (`draft.write`). Die Detailseite nutzt den Listentitel, Breadcrumb «Einkaufslisten» und eine sekundäre Aktion «Drucken». Genau eine `.btn-primary` im `main`: auf der Liste die Summary «Anlegen», im Detail «Neu berechnen», sobald Bausteine wählbar sind. Zeilenaktionen (Öffnen, Abhaken, Hinzufügen, Speichern, Archivieren, Löschen) bleiben neutral. Aktive Archivfilter tragen `active` und `aria-current="true"`.
+
+**Statusbar aus vorhandenen Template-Werten:** Liste: `Positionen` aus Summe `item.open_count` / `item.checked_count` (warning bei offenen, success nur wenn abgehakte existieren und keine offenen); optional `Archiviert` aus gezählten `item.archived_at`, nur wenn `include_archived`. Detail: `Woche` aus `week_labels[detail.menu_week_public_id]` (warning ohne Woche); `Liste` Aktiv/Archiviert aus `detail.archived_at`; `Berechnung` aus `selected.computed_at` bzw. «Noch nicht berechnet», Detailtext die Bedarfspolitik; `Positionen` aus Zeilen-`checked_status` plus `detail.manual_items`; `Unvollständig` nur bei `selected.incomplete_lines`. Kein `row_version`, keine interne ID, kein Bestellstatus (keine Quelle).
+
+**Liste:** Eine Filterzeile «Aktive» / «Archivierte einschliessen» (`archived=1`). Kompakte `list_row` mit Unterzeile Woche · Berechnung · offen/abgehakt, Statusbadge, Zeilenaktion «Öffnen», Drucken und Archivieren unter «Weitere Aktionen». Empty State mit direkter Aktion zum Disclosure. Anlageformular geschlossen, offen bei `field_errors`/`summary`; Titel sichtbar, Notiz und Woche in `disclosure_section` «Weitere Optionen». Feldnamen `_csrf`, `title`, `note`, `menu_week_public_id` unverändert.
+
+**Detail:** Meta-Karten entfallen. Berechnungsstand als GET-Filter `revision` plus «Öffnen». Notiz in «Weitere Optionen». Neu berechnen kompakt, Bausteine ab 1024 px zweispaltig, ab 1440 px dreispaltig; POST `_csrf`, `row_version`, `menu_week_public_id`, `component_ids`, `policy` unverändert. Ergebnis- und manuelle Zeilen kompakt; Abhaken/Wieder öffnen ohne Primärfarbe. Manuelle POST-Felder `item_text`, `quantity`, `unit_code`, `expected_row_version`, `action` und IDs `new-item-*` / `item-*-{id}` unverändert. Moduleigene Styles nur in `admin-einkaufslisten.css`.
+
+**Nachweis:** `tests/test_shopping_list_browser.py` (eigener `sync_playwright()`-Start, 360/768/1024/1440, No-JS, Tastatur, Statusbar, eine Primäraktion, kein Dokument-Overflow); fachliche Verträge in `tests/test_shopping_list_routes.py`, `tests/test_shopping_list_db.py`, `tests/test_shopping_list_pdf_http.py`.
+
 #### M26 — Wochenplan Cafeteria — kompakte Wochenplanung
 
 Kompakte Wochenplanung statt riesiger Einzelkarten; Zielmodell SDD v2 §5.1.

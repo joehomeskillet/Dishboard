@@ -10,7 +10,7 @@ import threading
 from pathlib import Path
 
 import pytest
-from playwright.sync_api import expect
+from playwright.sync_api import expect, sync_playwright
 from sqlalchemy import text
 from werkzeug.serving import make_server
 
@@ -137,9 +137,10 @@ def test_full_lifecycle_create_compute_check_recompute_and_manual_item(
         assert page.goto(base + '/admin/einkaufslisten').status == 200
         expect(page.get_by_role('heading', level=1)).to_have_text('Einkaufslisten')
         expect(page.get_by_text('Noch keine Einkaufslisten', exact=True)).to_be_visible()
+        page.locator('#einkaufsliste-neu-title').click()
         page.get_by_label('Titel', exact=True).fill('Browser Einkaufsliste')
         with page.expect_navigation(wait_until='load'):
-            page.get_by_role('button', name='Einkaufsliste anlegen', exact=True).click()
+            page.locator('.shopping-create-form button[type="submit"]').click()
         expect(page.get_by_role('heading', level=1)).to_have_text('Browser Einkaufsliste')
         expect(page.locator('.empty-title', has_text='Noch keine Berechnung')).to_be_visible()
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
@@ -177,7 +178,7 @@ def test_full_lifecycle_create_compute_check_recompute_and_manual_item(
         new_unit_value = page.locator('#new-item-unit option').nth(1).get_attribute('value')
         page.locator('#new-item-unit').select_option(new_unit_value)
         with page.expect_navigation(wait_until='load'):
-            page.get_by_role('button', name='Position hinzufügen', exact=True).click()
+            page.get_by_role('button', name='Hinzufügen', exact=True).click()
         expect(page.locator('input[value="Servietten"]')).to_be_visible()
         with page.expect_navigation(wait_until='load'):
             page.get_by_role('button', name='Abhaken', exact=True).last.click()
@@ -185,12 +186,12 @@ def test_full_lifecycle_create_compute_check_recompute_and_manual_item(
 
         page.locator('select[name="revision"]').select_option(index=1)
         with page.expect_navigation(wait_until='load'):
-            page.get_by_role('button', name='Revision anzeigen', exact=True).click()
+            page.get_by_role('button', name='Öffnen', exact=True).click()
         expect(page.get_by_text('Beleg vom', exact=False)).to_contain_text('nicht aktuell')
         main = page.inner_text('main')
         assert 'Testmehl' in main and '1000 Gramm' in main and '2000 Gramm' not in main and 'Servietten' in main
         assert main.count('nicht aktuell') == 2, main  # notice + the visible status of the single line
-        for label in ('Abhaken', 'Wieder öffnen', 'Neu berechnen', 'Position hinzufügen', 'Speichern', 'Löschen'):
+        for label in ('Abhaken', 'Wieder öffnen', 'Neu berechnen', 'Hinzufügen', 'Speichern', 'Löschen'):
             expect(page.get_by_role('button', name=label)).to_have_count(0)
         _shot(page, f'detail-older-revision-{width}x{height}-js-{javascript}')
         assert not errors
@@ -268,7 +269,7 @@ def test_pdf_link_visible_focusable_and_serves_pdf(server, browser, width, heigh
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
         page = context.new_page()
         assert page.goto(f'{base}/admin/einkaufslisten/{list_id}').status == 200
-        link = page.get_by_role('link', name='Als PDF drucken', exact=True)
+        link = page.get_by_role('link', name='Drucken', exact=True)
         expect(link).to_be_visible()
         href = link.get_attribute('href')
         assert href == f'/admin/einkaufslisten/{list_id}/druck.pdf?revision={revision}'
@@ -279,3 +280,106 @@ def test_pdf_link_visible_focusable_and_serves_pdf(server, browser, width, heigh
         assert response.headers['content-type'] == 'application/pdf'
         page.evaluate('window.scrollTo(0, 0)')
         _pdf_shot(page, f'pdf-link-{width}x{height}')
+
+
+FRAME_VIEWPORTS = ((360, 844), (768, 1024), (1024, 768), (1440, 900))
+
+
+def _assert_shopping_frame(browser_instance, base, cookie, list_id):
+    for javascript in (False, True):
+        context = browser_instance.new_context(
+            viewport={'width': 1440, 'height': 900}, java_script_enabled=javascript,
+            reduced_motion='reduce', locale='de-CH', timezone_id='Europe/Zurich',
+        )
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        try:
+            for width, height in FRAME_VIEWPORTS:
+                page.set_viewport_size({'width': width, 'height': height})
+                assert page.goto(base + '/admin/einkaufslisten').status == 200
+                list_metrics = page.evaluate('''() => ({
+                    width: innerWidth,
+                    scrollWidth: document.documentElement.scrollWidth,
+                    primaryCount: document.querySelectorAll('main .btn-primary').length,
+                    rowHeights: [...document.querySelectorAll('.shopping-list .admin-list-row')]
+                        .map(e => e.getBoundingClientRect().height),
+                    createFields: [...document.querySelectorAll('.shopping-create-form [name]')].map(e => e.name),
+                })''')
+                assert list_metrics['scrollWidth'] <= width + 1, (javascript, width, list_metrics)
+                assert list_metrics['primaryCount'] == 1, (javascript, width, list_metrics)
+                assert sorted(list_metrics['createFields']) == ['_csrf', 'menu_week_public_id', 'note', 'title']
+                if width == 1440:
+                    assert list_metrics['rowHeights'] and max(list_metrics['rowHeights']) <= 72, list_metrics
+                statusbar = page.locator('dl.admin-statusbar')
+                expect(statusbar).to_be_visible()
+                expect(statusbar.locator('.admin-statusbar-item').filter(
+                    has=page.get_by_text('Positionen', exact=True)
+                )).to_contain_text('offen')
+                expect(page.locator('.shopping-filter .active')).to_have_attribute('aria-current', 'true')
+                expect(page.get_by_role('link', name='Öffnen', exact=True).first).to_be_visible()
+
+                assert page.goto(f'{base}/admin/einkaufslisten/{list_id}').status == 200
+                detail_metrics = page.evaluate('''() => ({
+                    width: innerWidth,
+                    scrollWidth: document.documentElement.scrollWidth,
+                    primaryCount: document.querySelectorAll('main .btn-primary').length,
+                    lineToggle: [...new Set([...document.querySelectorAll('form[action$="/zeilen"] [name]')]
+                        .map(e => e.name))].sort(),
+                })''')
+                assert detail_metrics['scrollWidth'] <= width + 1, (javascript, width, detail_metrics)
+                assert detail_metrics['primaryCount'] == 1, (javascript, width, detail_metrics)
+                assert detail_metrics['lineToggle'] == ['_csrf', 'checked', 'line_key', 'revision_public_id']
+                detail_bar = page.locator('dl.admin-statusbar')
+                expect(detail_bar).to_be_visible()
+                for label in ('Woche', 'Liste', 'Berechnung', 'Positionen'):
+                    expect(detail_bar.locator('.admin-statusbar-item').filter(
+                        has=page.get_by_text(label, exact=True)
+                    )).to_have_count(1)
+                expect(page.get_by_role('button', name='Abhaken', exact=True)).to_have_count(2)
+                expect(page.get_by_role('button', name='Neu berechnen', exact=True)).to_have_count(1)
+            if javascript:
+                page.set_viewport_size({'width': 1440, 'height': 900})
+                assert page.goto(f'{base}/admin/einkaufslisten/{list_id}').status == 200
+                page.get_by_role('heading', level=1).focus()
+                page.keyboard.press('Tab')
+                focused = page.evaluate('document.activeElement.tagName')
+                assert focused in ('A', 'BUTTON', 'SELECT', 'INPUT', 'SUMMARY')
+                outline = page.evaluate(
+                    'getComputedStyle(document.activeElement).outlineStyle'
+                )
+                assert outline == 'solid'
+        finally:
+            context.close()
+
+
+def test_frame_statusbar_viewports_keyboard_and_no_js(server):
+    """Own sync_playwright() start in a worker thread (pytest here already owns an asyncio loop)."""
+    base, cookie, owner, engine, ids = server
+    _seed_component(owner, engine, ids)
+    week_public = _week_public(owner, ids)
+    scope = _scope(ids)
+    list_id = create_shopping_list(engine, scope, title='Rahmen Einkaufsliste', menu_week_public_id=week_public)
+    compute_revision(engine, scope, list_id, component_ids=[f'{_item_public(owner, ids["item"])}:1'], policy='leaf',
+                     expected_row_version=1)
+    add_manual_item(engine, scope, list_id, item_text='Servietten', quantity='2', unit_code='TL')
+    failures: list[BaseException] = []
+
+    def run():
+        try:
+            with sync_playwright() as playwright:
+                instance = playwright.chromium.launch(
+                    headless=True, args=['--no-sandbox', '--disable-dev-shm-usage'],
+                )
+                try:
+                    _assert_shopping_frame(instance, base, cookie, list_id)
+                finally:
+                    instance.close()
+        except BaseException as caught:  # noqa: BLE001 — surface thread failures to the parent test
+            failures.append(caught)
+
+    thread = threading.Thread(target=run)
+    thread.start()
+    thread.join(timeout=240)
+    assert not thread.is_alive()
+    assert failures == [], failures
+

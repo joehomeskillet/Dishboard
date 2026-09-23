@@ -1,88 +1,81 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, field, select, textarea, form_errors, empty_state %}
+{% from 'admin/_macros.html' import page_header, icon, field, select, textarea, form_errors, empty_state, list_row, disclosure_section %}
+{% from 'ui/_semantic.html' import icon_label, sem_icon %}
 {% set workflow_nav = 'shopping_lists' %}
 {% block title %}Einkaufslisten · Menüplanung{% endblock %}
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='ui-semantic.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin-einkaufslisten.css') }}">
+{% endblock %}
+{% block main_attributes %}data-shopping-lists{% endblock %}
 {% block page_header %}
-{% call page_header('Einkaufslisten', description='Bausteine gebundener Rezepte einer Woche zu einer Einkaufsliste zusammenfassen.') %}
-<a class="btn btn-primary" href="#einkaufsliste-neu">{{ icon('plus') }}Neue Einkaufsliste</a>
+{% set counts = namespace(open=0, checked=0, archived=0) %}
+{% for item in rows %}
+  {% set counts.open = counts.open + item.open_count %}
+  {% set counts.checked = counts.checked + item.checked_count %}
+  {% if item.archived_at %}{% set counts.archived = counts.archived + 1 %}{% endif %}
+{% endfor %}
+{% set status_items = [] %}
+{% if rows %}
+  {% set pos_variant = 'warning' if counts.open else ('success' if counts.checked else 'neutral') %}
+  {% set status_items = [{'label': 'Positionen', 'value': counts.open ~ ' offen / ' ~ counts.checked ~ ' abgehakt', 'variant': pos_variant}] %}
+  {% if include_archived %}
+    {% set status_items = status_items + [{'label': 'Archiviert', 'value': counts.archived, 'variant': 'neutral'}] %}
+  {% endif %}
+{% endif %}
+{% call page_header('Einkaufslisten', description='Bausteine gebundener Rezepte einer Woche zu einer Einkaufsliste zusammenfassen.', status_items=status_items) %}
+{% if can_write %}
+<details class="shopping-create" id="einkaufsliste-neu"{% if field_errors or summary %} open{% endif %}>
+  <summary class="btn btn-primary" id="einkaufsliste-neu-title">{{ icon_label('actions.add') }}</summary>
+  <form class="shopping-create-form" method="post" action="{{ url_for('admin.shopping_lists_create') }}" aria-labelledby="einkaufsliste-neu-title">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <div class="shopping-create-fields">
+      {{ field('title', 'Titel', values.title, required=true, error=field_errors.get('title')) }}
+      {% call disclosure_section(title='Weitere Optionen', id='einkaufsliste-neu-extra', has_content=values.note or values.menu_week_public_id, has_error=field_errors.get('note') or field_errors.get('menu_week_public_id')) %}
+      {{ textarea('note', 'Notiz', values.note, required=false, rows=2, error=field_errors.get('note')) }}
+      {% call select('menu_week_public_id', 'Woche (optional)', value=values.menu_week_public_id, placeholder='Keine Woche', error=field_errors.get('menu_week_public_id')) %}
+      {% for week in weeks %}<option value="{{ week.public_id }}"{% if values.menu_week_public_id == week.public_id %} selected{% endif %}>{{ week.label }}</option>{% endfor %}
+      {% endcall %}
+      {% endcall %}
+    </div>
+    <button class="btn" type="submit">{{ icon_label('actions.add') }}</button>
+  </form>
+</details>
+{% endif %}
 {% endcall %}
 {% endblock %}
 {% block content %}
 {% if summary %}{{ form_errors(summary) }}{% endif %}
-<form class="mb-3 d-flex flex-wrap gap-2 align-items-center" method="get" action="{{ url_for('admin.shopping_lists_index') }}">
-  <label class="form-check mb-0">
-    <input class="form-check-input" type="checkbox" name="archived" value="1"{% if include_archived %} checked{% endif %}>
-    <span class="form-check-label">Archivierte einschliessen</span>
-  </label>
-  <button class="btn" type="submit">Filter anwenden</button>
-</form>
+<nav class="shopping-filter btn-group mb-3" role="group" aria-label="Archivfilter">
+  <a class="btn{% if not include_archived %} active{% endif %}"{% if not include_archived %} aria-current="true"{% endif %} href="{{ url_for('admin.shopping_lists_index') }}">Aktive</a>
+  <a class="btn{% if include_archived %} active{% endif %}"{% if include_archived %} aria-current="true"{% endif %} href="{{ url_for('admin.shopping_lists_index', archived='1') }}">Archivierte einschliessen</a>
+</nav>
 {% if rows %}
-<div class="card mb-4">
-  <div class="table-responsive">
-    <table class="table table-vcenter card-table">
-      <thead>
-        <tr>
-          <th>Titel</th>
-          <th class="d-none d-md-table-cell">Quellwoche</th>
-          <th class="d-none d-md-table-cell">Letzte Berechnung</th>
-          <th class="d-none d-md-table-cell">Offen / abgehakt</th>
-          <th>Aktion</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in rows %}
-        <tr>
-          <td>
-            <a class="text-break" href="{{ url_for('admin.shopping_list_detail', public_id=item.public_id) }}">{{ item.title }}</a>
-            {% if item.archived_at %}<span class="badge bg-secondary-lt ms-1">Archiviert</span>{% endif %}
-            <div class="d-md-none text-secondary">
-              {{ week_labels.get(item.menu_week_public_id, 'Keine Woche') }} ·
-              {% if item.latest_computed_at %}{{ item.latest_computed_at.strftime('%d.%m.%Y %H:%M') }}{% else %}Noch nicht berechnet{% endif %}
-              · {{ item.open_count }} offen / {{ item.checked_count }} abgehakt
-            </div>
-          </td>
-          <td class="d-none d-md-table-cell">{{ week_labels.get(item.menu_week_public_id, '—') }}</td>
-          <td class="d-none d-md-table-cell">{% if item.latest_computed_at %}{{ item.latest_computed_at.strftime('%d.%m.%Y %H:%M') }}{% else %}Noch nicht berechnet{% endif %}</td>
-          <td class="d-none d-md-table-cell">{{ item.open_count }} offen / {{ item.checked_count }} abgehakt</td>
-          <td>
-            <div class="d-flex flex-wrap gap-2">
-              {% if item.latest_revision_public_id %}
-              <a class="btn" href="{{ url_for('admin.shopping_list_pdf', public_id=item.public_id, revision=item.latest_revision_public_id) }}">{{ icon('printer') }}Drucken · Stand {{ item.latest_revision_number }}<span class="visually-hidden"> · {{ item.title }}</span></a>
-              {% else %}
-              <a class="btn" href="{{ url_for('admin.shopping_list_pdf', public_id=item.public_id) }}">{{ icon('printer') }}Drucken<span class="visually-hidden"> · {{ item.title }}</span></a>
-              {% endif %}
-              {% if can_write and not item.archived_at %}
-              <form method="post" action="{{ url_for('admin.shopping_list_archive', public_id=item.public_id) }}">
-                <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-                <input type="hidden" name="row_version" value="{{ item.row_version }}">
-                <button class="btn" type="submit" data-confirm="Diese Einkaufsliste archivieren?">{{ icon('archive') }}Archivieren</button>
-              </form>
-              {% endif %}
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-{% else %}
-{{ empty_state('none', 'Noch keine Einkaufslisten', 'Eine Einkaufsliste anlegen, um Bausteine einer Woche zusammenzufassen.') }}
-{% endif %}
-{% if can_write %}
-<section class="card" id="einkaufsliste-neu" aria-labelledby="einkaufsliste-neu-title">
-  <div class="card-header"><h2 class="card-title" id="einkaufsliste-neu-title">Neue Einkaufsliste</h2></div>
-  <form class="card-body" method="post" action="{{ url_for('admin.shopping_lists_create') }}">
-    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-    <div class="mb-3">{{ field('title', 'Titel', values.title, required=true, error=field_errors.get('title')) }}</div>
-    <div class="mb-3">{{ textarea('note', 'Notiz', values.note, required=false, hint='Optional', rows=2, error=field_errors.get('note')) }}</div>
-    <div class="mb-3">
-      {% call select('menu_week_public_id', 'Woche (optional)', value=values.menu_week_public_id, placeholder='Keine Woche', error=field_errors.get('menu_week_public_id'), hint='Bestimmt die vorgeschlagenen Bausteine bei «Neu berechnen»; kann leer bleiben.') %}
-      {% for week in weeks %}<option value="{{ week.public_id }}"{% if values.menu_week_public_id == week.public_id %} selected{% endif %}>{{ week.label }}</option>{% endfor %}
-      {% endcall %}
-    </div>
-    <button class="btn btn-primary" type="submit">{{ icon('device-floppy') }}Einkaufsliste anlegen</button>
-  </form>
+<section class="shopping-list" aria-label="Einkaufslisten">
+  {% for item in rows %}
+  {% set week_text = week_labels.get(item.menu_week_public_id, 'Keine Woche') %}
+  {% set computed = item.latest_computed_at.strftime('%d.%m.%Y %H:%M') if item.latest_computed_at else 'Noch nicht berechnet' %}
+  {% set subtitle = week_text ~ ' · ' ~ computed ~ ' · ' ~ item.open_count ~ ' offen / ' ~ item.checked_count ~ ' abgehakt' %}
+  {% set more %}
+    {% if item.latest_revision_public_id %}
+    <a class="btn" href="{{ url_for('admin.shopping_list_pdf', public_id=item.public_id, revision=item.latest_revision_public_id) }}">{{ sem_icon('actions.print') }}Drucken · Stand {{ item.latest_revision_number }}<span class="visually-hidden"> · {{ item.title }}</span></a>
+    {% else %}
+    <a class="btn" href="{{ url_for('admin.shopping_list_pdf', public_id=item.public_id) }}">{{ icon_label('actions.print') }}<span class="visually-hidden"> · {{ item.title }}</span></a>
+    {% endif %}
+    {% if can_write and not item.archived_at %}
+    <form method="post" action="{{ url_for('admin.shopping_list_archive', public_id=item.public_id) }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="row_version" value="{{ item.row_version }}">
+      <button class="btn" type="submit" data-confirm="Diese Einkaufsliste archivieren?">{{ icon_label('actions.archive') }}</button>
+    </form>
+    {% endif %}
+  {% endset %}
+  {{ list_row(item.title, subtitle, 'archived' if item.archived_at else 'active', {'href': url_for('admin.shopping_list_detail', public_id=item.public_id), 'label': t(sem('actions.open').label_key)}, more_actions=more) }}
+  {% endfor %}
 </section>
+{% else %}
+{% call empty_state('none', 'Noch keine Einkaufslisten', 'Eine Einkaufsliste anlegen, um Bausteine einer Woche zusammenzufassen.') %}
+{% if can_write %}<a class="btn" href="#einkaufsliste-neu">{{ icon_label('actions.add') }}</a>{% endif %}
+{% endcall %}
 {% endif %}
 {% endblock %}
