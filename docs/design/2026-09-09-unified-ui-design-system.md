@@ -1366,6 +1366,12 @@ Kompakte Listenzeile mit klarer Hierarchie und einer sichtbaren Zeilenaktion.
 
 **Technischer Vertrag (2026-09-20):** `list_row(name, subtitle, state, action, markings=none, overflow=0, more_actions=none)` rendert `.admin-list-row` mit `.admin-list-name`, einzeiliger `.admin-list-subtitle` (vollständiger Text im DOM und `title`), bestehendem `status_badge(state)` und `.admin-list-markings`. Der Aufrufer begrenzt den Kennzeichnungs-Slot; `overflow` ergänzt ein beschriftetes «+n». `action` verwendet das bestehende `actions`-Mapping (Link oder Button samt Formularattributen); genau diese Aktion steht offen in `.admin-list-actions`. Ein übergebener `more_actions`-Slot erscheint in `details.admin-compact-actions` mit «Weitere Aktionen». Keine neuen `data-`-Hooks, native Links/Buttons/Details bleiben ohne JS bedienbar. Nachweis: `test_admin_shared_patterns_browser.py` für eine sichtbare Aktion, Status, Überlauf, Tastatur, 48-px-Ziele und vier Breiten.
 
+##### Modul Bestellung (2026-09-20)
+
+Die Bestellübersicht folgt M01/M20/M23/M25: Seitentitel `Bestellung` (Navigationspunkt), ein Satz Kontext ohne Sendauftrag, genau eine Primäraktion «Anlegen» im Seitenkopf. Statusbar aus vorhandenen Listenwerten `baskets`, `suppliers` und `articles` (Zähler, `0` ist ein Wert, `warning` wenn leer). Körbe sind der primäre Arbeitsbereich mit kompakter Zeile und «Öffnen»; Lieferanten und Artikel stehen nachrangig. Dauerhaft offene Anlageformulare sind native `details` «Anlegen», geöffnet nur wenn der jeweilige Bestand fehlt. Empty States nennen den nächsten Schritt. Kein Slot «gesendet», keine `row_version` in der Statusbar.
+
+Das Korbdetail nutzt dieselbe Statusbar mit Entwurf (`publish.draft`, immer `neutral`), Lieferantennamen und Zeilenzahl. «Speichern» ist die einzige Primäraktion; CSV ist «Herunterladen». Nettobedarf (Zutat-UUID/`food_public_id`, Rohmenge) und CSV-Vorschau liegen unter «Weitere Optionen» bzw. «Vorschau». Tabellenzeilen werden unter 768 px als Liste gestapelt (`table-mobile-lg` plus Modul-CSS). `_csrf`, `row_version` und die Wiederholfelder `article_public_id`/`quantity`/`raw_quantity` bleiben im Speicherformular. Nachweis: `test_order_admin.py` (Statusbar, 360 px ohne Überlauf, Formularnamen, Tastatur, No-JS).
+
 #### M24 — Formularfuss
 
 Einheitliche Aktionsleiste am Ende jedes Formulars und Editors.
