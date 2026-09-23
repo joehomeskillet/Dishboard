@@ -1,60 +1,74 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, select, field, icon %}
+{% from 'admin/_macros.html' import page_header, select, field %}
+{% from 'ui/_semantic.html' import icon_button, icon_label %}
 {% set workflow_nav = 'design' %}
-{% set layout_variant = 'narrow' %}
+{% set layout_variant = 'standard' %}
 {% block title %}Darstellung · Design & Marke{% endblock %}
-{% block page_header %}{{ page_header('Design & Marke', description='Anzeige im Administrationsbereich einstellen.', breadcrumbs=[('Design & Marke', url_for('admin.branding_editor')), ('Darstellung', none)]) }}{% endblock %}
+{% block page_styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin-settings-darstellung.css') }}">
+{% endblock %}
+{% block page_header %}
+  {% set state = icon_label('status.error' if display_errors else 'actions.preview' if display_preview else 'status.active') %}
+  {{ page_header('Darstellung', description='Gespeicherte Einstellungen gelten für alle Benutzer und Geräte im Adminbereich.', status_items=[
+    {'label': t('admin.settings.label'), 'value': state, 'variant': 'danger' if display_errors else 'warning' if display_preview else 'neutral', 'detail': 'Eingaben wurden nicht gespeichert. Korrigieren Sie markierte Felder.' if display_errors else 'Vorschau der Auswahl – noch nicht gespeichert.' if display_preview else none},
+    {'label': 'Abstände', 'value': {'compact': 'Kompakt', 'comfortable': 'Komfortabel'}.get(display_values.admin_density), 'variant': 'neutral'},
+    {'label': 'Menübilder', 'value': {'show': 'Anzeigen', 'hide': 'Ausblenden'}.get(display_values.admin_menu_images), 'variant': 'neutral'},
+  ]) }}
+{% endblock %}
 {% block content %}
   <form method="post" action="{{ url_for('admin.display_settings') }}" class="card mb-4 admin-compact-form" id="display-settings-form">
     <input type="hidden" name="_csrf" value="{{ csrf }}">
-    <div class="card-header"><h2 class="card-title">{{ icon('pencil', class='me-2') }}Anzeige einstellen</h2></div>
     <div class="card-body">
       {% if display_errors %}
-      <div class="alert alert-danger error-region mb-3" role="alert" aria-live="polite" tabindex="-1" autofocus>
+      <div class="alert alert-danger error-region d-block mb-3" role="alert" aria-live="polite" tabindex="-1" autofocus>
         <h3 class="alert-title mb-1">Bitte überprüfen Sie die Einstellungen:</h3>
         <ul class="mb-0 ps-3">{% for key, message in display_errors.items() %}<li><a href="#{{ key|replace('_', '-') }}" data-error-link>{{ message }}</a></li>{% endfor %}</ul>
       </div>
-      <p>Eingaben wurden nicht gespeichert. Korrigieren Sie markierte Felder.</p>
-      {% elif display_preview %}
-      <p>Vorschau gilt nur auf dieser Seite. Einstellungen sind noch nicht gespeichert.</p>
       {% endif %}
       <div class="row g-3">
         {% for key, label, choices, hint in [
-          ('admin_density', 'Abstände', [('compact', 'Kompakt'), ('comfortable', 'Komfortabel')], 'Kompakt zeigt kleinere Kartenabstände. Bedienflächen und wichtige Hinweise bleiben gut lesbar.'),
-          ('admin_font_size', 'Schriftgröße', [('normal', 'Normal'), ('large', 'Groß')], 'Größere Schrift für Inhalte und Bedienelemente im Adminbereich.'),
+          ('admin_density', 'Abstände', [('compact', 'Kompakt'), ('comfortable', 'Komfortabel')], 'Kompakt zeigt kleinere Kartenabstände.'),
+          ('admin_font_size', 'Schriftgrösse', [('normal', 'Normal'), ('large', 'Gross')], none),
           ('admin_content_width', 'Inhaltsbreite', [('contained', 'Begrenzt'), ('full', 'Voll')], 'Die Arbeitsfläche nutzt immer die volle Breite neben der Navigation. Begrenzt und Voll gelten nur noch für die Vorschau auf dieser Seite.'),
           ('admin_menu_images', 'Menübilder', [('show', 'Anzeigen'), ('hide', 'Ausblenden')], 'Serviervorschläge in Menükarten und Admin-Vorschau. Menütexte, Allergene und Prüfhinweise bleiben immer sichtbar.'),
         ] %}
         <div class="col-12 col-md-6">
-          {{ select(key, label, choices=choices, value=display_values[key], id=key|replace('_', '-'), error=display_errors.get(key), hint=hint) }}
+          {{ select(key, label, choices=choices, value=display_values[key], id=key|replace('_', '-'), error=display_errors.get(key), hint=hint if key != 'admin_menu_images' else none) }}
         </div>
         {% endfor %}
       </div>
     </div>
     <div class="card-footer display-form-actions">
-      <p>Gespeicherte Einstellungen gelten für alle Benutzer und Geräte im Adminbereich. Geöffnete Seiten übernehmen sie beim nächsten Laden.</p>
-      <div class="btn-list">
-        <button type="submit" class="btn btn-primary" name="action" value="save">{{ icon('device-floppy') }}Darstellung speichern</button>
-        <button type="submit" class="btn" name="action" value="preview" aria-label="Vorschau aktualisieren">{{ icon('eye') }}Vorschau</button>
-        <button type="submit" class="btn" id="display-reset-btn" name="action" value="reset" aria-label="Standardwerte speichern" aria-describedby="display-reset-hint">{{ icon('refresh') }}Standardwerte</button>
+      <div class="admin-form-footer">
+        <details class="admin-compact-details admin-form-rare" id="display-more"{% if display_errors %} open{% endif %}>
+          <summary>{{ t('ui.disclosure.more_options.label') }}</summary>
+          <div class="admin-compact-detail-body">
+            <p class="form-hint" id="display-reset-hint">Standardwerte speichern setzt für alle Benutzer Kompakt, Normal, Begrenzt und Anzeigen.</p>
+            <button type="submit" class="btn" id="display-reset-btn" name="action" value="reset" aria-label="Standardwerte speichern" aria-describedby="display-reset-hint">{{ icon_label('view.reset') }}</button>
+          </div>
+        </details>
+        <div class="admin-form-main">
+          {{ icon_button('actions.preview', name='action', value='preview') }}
+          {{ icon_button('actions.save', name='action', value='save') }}
+        </div>
       </div>
-      <p class="form-hint mt-2 mb-0" id="display-reset-hint">Standardwerte speichern setzt für alle Benutzer Kompakt, Normal, Begrenzt und Anzeigen.</p>
     </div>
   </form>
 <section aria-labelledby="display-preview-title">
-  <h2 id="display-preview-title">{{ icon('eye', class='me-2') }}Vorschau</h2>
-  <p role="status">{% if display_preview %}Vorschau der Auswahl – noch nicht gespeichert.{% else %}Beispiel für die Darstellung. Auswahl ändern und Vorschau aktualisieren, bevor Sie speichern.{% endif %}</p>
+  <h2 id="display-preview-title">{{ icon_label('actions.preview') }}</h2>
   <div class="display-preview" data-density="{{ display_values.admin_density }}" data-font-size="{{ display_values.admin_font_size }}" data-content-width="{{ display_values.admin_content_width }}" data-menu-images="{{ display_values.admin_menu_images }}">
     <article class="card">
       <div class="card-header"><h3 class="card-title">Pouletbrust an Kräutersauce</h3></div>
-      <div class="card-body">
+      <div class="card-body display-preview-content">
         {% with option={'title': 'Pouletbrust an Kräutersauce', 'components': ['Kartoffelstock', 'Zucchetti']}, admin_menu_images=display_values.admin_menu_images %}{% include '_menu_image.html' %}{% endwith %}
+        <div class="display-preview-text">
         <p>Kartoffelstock · Zucchetti</p>
         <p>Enthält: Milch · Allergene noch prüfen.</p>
         <div class="mb-3">
           {{ field('example', 'Notiz (Beispiel)', value='Frisch zubereitet', id='display-example', readonly=true) }}
         </div>
-        <a class="btn" href="{{ url_for('admin.menu_collection', family='cafeteria') }}">{{ icon('calendar-week') }}Menüs öffnen</a>
+        {{ icon_button('actions.open', href=url_for('admin.menu_collection', family='cafeteria')) }}
+        </div>
       </div>
     </article>
   </div>
