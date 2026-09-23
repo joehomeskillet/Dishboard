@@ -646,6 +646,46 @@ Desktop; Sidebar links, gesamte verbleibende Breite rechts. Der Marker `>` steht
 
 **Responsive:** Unterhalb der bestehenden Sidebar-Schwelle wird die Navigation über „Menü“ geöffnet (als Drawer/kompakte Navigation zulässig). Ohne JavaScript bleibt die Mobilnavigation in einem nativen, standardmässig geschlossenen `details.admin-nojs-nav` mit 48 px hoher, fokussierbarer Summary «Menü»; Links und Unterpunkte werden erst nach dem Öffnen angezeigt. Sie darf das Formular nicht auf eine schmale Restfläche drücken. Für Login und öffentliche Ausgaben dieses Muster nicht blind erzwingen.
 
+##### Modul Zutaten / Grundlagen (2026-09-20)
+
+Die Grundlagen-Endpunkte bleiben unter dem Navigationstitel «Zutaten». Der
+Untertitel unterscheidet Anlage, Bearbeitung und Wiederherstellung; die lokale
+Stammdatenwahl bleibt als fachlicher Filter erhalten. Liste: eine Primäraktion
+«Anlegen» im Seitenkopf, Suche vor den Daten, zusätzliche Filter in einem nativen
+Aufklappbereich, aktive Auswahl mit `active` und `aria-current="true"`. Zeilen
+zeigen Name, Status und Zuordnung ohne technische Version; genau eine beschriftete
+Bearbeiten-/Öffnen-Aktion. Leere Ergebnisse bieten einen direkten nächsten Schritt.
+
+Der frühere offene Statusblock ist ersetzt am 2026-09-20 durch `page_header`
+mit `status_items`: Aktiv/Archiviert, vorhandene Lagerorte, Erfassungszustand der
+Allergene und separat deren gespeicherter Prüfstatus. Nur bestätigte Prüfung nutzt
+`success`; fehlende Angaben bleiben textuelle Warnungen. Listen zeigen den echten
+Archivfilter, keine scheinbare globale Anzahl. Version, IDs und Revisionen sind
+keine Statusslots. Fehlende Bestands-/Aufgabensummen werden nicht erfunden.
+
+Im Editor bleibt Stammdaten-Speichern die einzige Primäraktion.
+Speichern bleibt unterhalb von 1024 px im Dokumentfluss, damit ohne JavaScript
+kein Eingabefeld durch die Leiste verdeckt wird. Unabhängige
+Preis-, Kennzeichnungs- und Allergenformulare speichern weiterhin separat und
+neutral. Optionale Rezeptverknüpfung, Dichte, Stückgewicht und Notiz nutzen
+`disclosure_section` («Weitere Optionen»), geöffnet bei Inhalt oder Feldfehler.
+Technische Angaben und Archivierung sind nachrangig. Versteckte CAS-/CSRF-Felder
+bleiben direkt in ihren ursprünglichen Formularen.
+
+Allergene verwenden das gemeinsame `option_detail_group` mit `field_prefix='allergen_'`:
+`allergen_CODE=absent|contains|may_contain` bleibt der POST-Vertrag. Mit JavaScript
+erscheint das Präsenzfeld erst nach Auswahl; ohne JavaScript bleiben native Selects
+mit «Keine Angabe» erreichbar. Erfasste Allergene und fehlerhafte Angaben
+öffnen den zugehörigen Abschnitt serverseitig.
+`absent` heisst weiterhin «Keine Angabe», niemals «allergenfrei». Kostformen und
+Allergenbereiche nutzen mehrere Spalten ab 1024 px und eine Spalte mobil.
+
+Nachweis: `test_wp06_measured_layout_and_native_forms` misst 360/768/1024/1440 px
+mit und ohne JavaScript, Primäraktionen, Zeilen-/Seitenhöhe, Überlauf und
+Tastaturfokus. `test_wp06_allergen_payload_and_review_are_independent` vergleicht
+native POST-Felder vor/nach Auswahl und prüft den getrennten Prüfstatus. Bestehende
+Browsertests behalten CAS-, Standortkonflikt-, Recovery- und 48-px-Assertions.
+
 #### M02 — Rezepteditor: kompakter Ausgangszustand
 
 Desktop; vier Beispielzutaten, zwei Schritte. Der Seitenkopf enthält ein eindeutiges Objekt, nicht mehrfach denselben Titel.

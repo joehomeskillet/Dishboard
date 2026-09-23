@@ -1,8 +1,13 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, icon_link, pagination %}
+{% from 'admin/_macros.html' import page_header, icon, pagination, empty_state, disclosure_section %}
+{% from 'ui/_semantic.html' import icon_label, icon_button %}
 {% set workflow_nav = 'master_data' %}
-{% block title %}Grundlagen · Menüplanung{% endblock %}
-{% block page_header %}{{ page_header('Grundlagen') }}{% endblock %}
+{% block title %}{{ t('navigation.ingredients.label') }} · Menüplanung{% endblock %}
+{% block page_header %}
+{% call page_header(t('navigation.ingredients.label'), description='Grundlagen', status_items=[{'label': t('view.filter.label'), 'value': 'Archivierte einschliessen' if request.args.get('archived') == '1' else t('status.active.label'), 'variant': 'neutral'}]) %}
+{% if can_write %}{{ icon_button('actions.add', href=url_for('admin.master_data_new', kind=kind)) }}{% endif %}
+{% endcall %}
+{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-grundlagen.css') }}">{% endblock %}
 {% set kind_icons = {'zutaten': 'components', 'einheiten': 'copy', 'kategorien': 'dots', 'tags': 'clipboard-check', 'lagerorte': 'archive'} %}
 {% macro form_start(purpose) %}
@@ -20,7 +25,7 @@
 {% endmacro %}
 {% macro status_summary() %}
 {% if row %}
-<p class="mb-0">{{ icon('circle-check' if row.active else 'archive', class='text-secondary') }}<strong>Status:</strong> <span class="badge {{ 'bg-green-lt' if row.active else 'bg-secondary-lt' }}">{{ 'Aktiv' if row.active else 'Archiviert' }}</span> <span class="text-secondary">· Version {{ row.row_version }}</span></p>
+<p class="mb-0 text-secondary">Version {{ row.row_version }}</p>
 {% endif %}
 {% endmacro %}
 {% macro status_actions() %}
@@ -28,7 +33,7 @@
 {% if can_write and not (kind == 'einheiten' and row.code in ['G', 'ML', 'STK']) %}
 {% set purpose = 'archivieren' if row.active else 'reaktivieren' %}
 <form method="post" action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose=purpose) }}" data-confirm="{{ 'Diesen Datensatz archivieren?' if row.active else 'Diesen Datensatz reaktivieren?' }}">
-{{ form_start(purpose) }}<button class="btn" type="submit">{{ icon('archive' if row.active else 'archive-off') }}{{ 'Archivieren' if row.active else 'Reaktivieren' }}</button></form>
+{{ form_start(purpose) }}<button class="btn" type="submit">{{ icon('archive' if row.active else 'archive-off') }}{{ 'Archivieren' if row.active else 'Reaktivieren' }}</button><p class="form-hint">{{ 'Diesen Datensatz archivieren?' if row.active else 'Diesen Datensatz reaktivieren?' }}</p></form>
 {% elif kind == 'einheiten' and row.code in ['G', 'ML', 'STK'] %}<p class="text-secondary">{{ icon('info-circle', class='text-secondary') }}Diese Basiseinheit bleibt dauerhaft aktiv.</p>{% endif %}
 {% endif %}
 {% endmacro %}
@@ -39,29 +44,37 @@
 {% set singular = {'zutaten': 'Zutat', 'einheiten': 'Einheit', 'kategorien': 'Kategorie', 'tags': 'Kennzeichnung', 'lagerorte': 'Lagerort'} %}
 {% if kind == 'lagerorte' %}<p class="text-secondary">{{ icon('info-circle', class='text-secondary') }}Kein Bestand erfasst. Lagerorte ordnen Zutaten zu; Bestandsbuchungen sind hier nicht verfügbar.</p>{% endif %}
 <nav class="mb-3" aria-label="Stammdatenbereiche"><ul class="nav nav-pills">
-{% for key, label in kinds.items() %}<li class="nav-item"><a class="nav-link gap-1{% if key == kind %} active{% endif %}"{% if key == kind %} aria-current="page"{% endif %} href="{{ url_for('admin.master_data_list', kind=query_kinds[key]) }}">{{ icon(kind_icons[key]) }}{{ 'Kennzeichnungen' if key == 'tags' else label }}</a></li>{% endfor %}
+{% for key, label in kinds.items() %}<li class="nav-item"><a class="nav-link gap-1{% if key == kind %} active{% endif %}"{% if key == kind %} aria-current="true"{% endif %} href="{{ url_for('admin.master_data_list', kind=query_kinds[key]) }}">{{ icon(kind_icons[key]) }}{{ 'Kennzeichnungen' if key == 'tags' else label }}</a></li>{% endfor %}
 </ul></nav>
-<div class="card grundlagen-list"><div class="card-header"><div><h2 class="card-title">{{ 'Kennzeichnungen' if kind == 'tags' else kinds[kind] }}</h2><p class="text-secondary mb-0">{{ rows|length }} Einträge auf dieser Seite</p></div>{% if can_write %}<div class="card-actions"><a class="btn btn-primary" href="{{ url_for('admin.master_data_new', kind=kind) }}">{{ icon('plus') }}Anlegen</a></div>{% endif %}</div>
+{% set filters_active = request.args.get('q') or request.args.get('category') or request.args.get('tag') or request.args.get('archived') == '1' %}
+<form class="admin-filter-bar mb-3 grundlagen-filter" method="get" action="{{ url_for('admin.master_data_list') }}" role="search">
+<input type="hidden" name="kind" value="{{ query_kinds[kind] }}">
+{% if kind == 'zutaten' %}
+<div><label class="form-label" for="q">Zutat suchen</label><input class="form-control" id="q" name="q" maxlength="200" value="{{ request.args.get('q', '') }}"></div>
+{% endif %}
+<details class="admin-compact-details grundlagen-filter-options"{% if filters_active %} open{% endif %}><summary>{{ icon_label('view.filter') }}</summary><div class="grundlagen-filter-fields">
+{% if kind == 'zutaten' %}
+{% for field, label, choices in [('category', 'Kategorie', categories), ('tag', 'Kennzeichnung', tags)] %}
+<div><label class="form-label" for="{{ field }}">{{ label }}</label><select class="form-select" id="{{ field }}" name="{{ field }}"><option value="">Alle</option>
+{% for choice in choices %}<option value="{{ choice.public_id }}"{% if request.args.get(field) == choice.public_id %} selected{% endif %}>{{ choice.name }}{% if not choice.active %} (archiviert){% endif %}</option>{% endfor %}
+</select></div>{% endfor %}{% endif %}
+<label class="form-check mb-0"><input class="form-check-input" type="checkbox" name="archived" value="1"{% if request.args.get('archived') == '1' %} checked{% endif %}><span class="form-check-label">{{ icon('archive', class='text-secondary') }}Archivierte einschliessen</span></label>
+</div></details>
+<button class="btn" type="submit">{{ icon_label('view.filter') }}</button>
+{% if filters_active %}<a class="btn" href="{{ url_for('admin.master_data_list', kind=query_kinds[kind]) }}">{{ icon_label('view.reset') }}</a>{% endif %}
+</form>
+<div class="card grundlagen-list"><div class="card-header"><h2 class="card-title">{{ 'Kennzeichnungen' if kind == 'tags' else kinds[kind] }}</h2></div>
 <div class="list-group list-group-flush">
 {% for item in rows %}<div class="list-group-item"><div class="row g-2 align-items-center"><div class="col">
 <a class="text-break" href="{{ url_for('admin.master_data_detail', kind=kind, public_id=item.public_id) }}">{{ item.display_name if kind == 'einheiten' else item.name }}</a>
-<div class="text-secondary">{{ icon('circle-check' if item.active else 'archive', class='text-secondary') }}{{ 'Aktiv' if item.active else 'Archiviert' }} · Version {{ item.row_version }}</div>
+<span class="badge bg-secondary-lt">{{ 'Aktiv' if item.active else 'Archiviert' }}</span>
 {% if kind == 'zutaten' %}<div class="text-secondary">{{ item.base_unit.display_name }} · {% for storage in item.storage_locations %}<a href="{{ url_for('admin.master_data_detail', kind='lagerorte', public_id=storage.public_id) }}">{{ storage.name }}</a>{{ ', ' if not loop.last else '' }}{% else %}{{ icon('alert-triangle', class='text-secondary') }}Lagerort fehlt{% endfor %}</div>
 {% if item.prepared_recipe %}<div><a href="{{ url_for('admin.recipe_revision', recipe_id=item.prepared_recipe.recipe_public_id, revision_id=item.prepared_recipe.revision_public_id) }}">{{ icon('tools-kitchen-2', class='text-secondary') }}{{ item.prepared_recipe.title }} · Stand {{ item.prepared_recipe.revision_number }}</a></div>{% endif %}{% endif %}</div>
-<div class="col-auto">{{ icon_link(url_for('admin.master_data_detail', kind=kind, public_id=item.public_id), (item.display_name if kind == 'einheiten' else item.name) ~ (' bearbeiten' if can_write else ' ansehen')) }}</div></div></div>
-{% else %}<div class="empty"><p class="empty-title">{{ icon('search', class='text-secondary') }}Keine passenden {{ 'Kennzeichnungen' if kind == 'tags' else kinds[kind] }}</p><p class="empty-subtitle text-secondary">Filter anpassen{% if can_write %} oder {{ singular[kind]|lower }} anlegen{% endif %}.</p></div>{% endfor %}
-</div><div class="card-footer">{{ pagination(page, has_next, prev_url, next_url, 'Stammdatenseiten') }}</div></div>
-{% set filters_active = request.args.get('q') or request.args.get('category') or request.args.get('tag') or request.args.get('archived') == '1' %}
-<details class="card mt-4"{% if filters_active %} open{% endif %}>{{ section_summary('Filter', 'search') }}<div class="card-body">
-<form method="get" action="{{ url_for('admin.master_data_list') }}">
-<input type="hidden" name="kind" value="{{ query_kinds[kind] }}"><div class="row g-3 align-items-end">
-{% if kind == 'zutaten' %}
-<div class="col-12 col-lg-4"><label class="form-label" for="q">Zutat suchen</label><div class="input-group"><span class="input-group-text">{{ icon('search') }}</span><input class="form-control" id="q" name="q" maxlength="200" value="{{ request.args.get('q', '') }}"></div></div>
-{% for field, label, choices in [('category', 'Kategorie', categories), ('tag', 'Kennzeichnung', tags)] %}
-<div class="col-12 col-lg-3"><label class="form-label" for="{{ field }}">{{ label }}</label><select class="form-select" id="{{ field }}" name="{{ field }}"><option value="">Alle</option>
-{% for choice in choices %}<option value="{{ choice.public_id }}"{% if request.args.get(field) == choice.public_id %} selected{% endif %}>{{ choice.name }}{% if not choice.active %} (archiviert){% endif %}</option>{% endfor %}
-</select></div>{% endfor %}{% endif %}
-<div class="col-12"><label class="form-check"><input class="form-check-input" type="checkbox" name="archived" value="1"{% if request.args.get('archived') == '1' %} checked{% endif %}><span class="form-check-label">{{ icon('archive', class='text-secondary') }}Archivierte einschliessen</span></label></div>
-<div class="col-12"><button class="btn" type="submit">{{ icon('search') }}Anwenden</button></div>
-</div></form></div></details>
+<div class="col-auto">{{ icon_button('actions.edit' if can_write else 'actions.open', href=url_for('admin.master_data_detail', kind=kind, public_id=item.public_id)) }}</div></div></div>
+{% else %}
+{% call empty_state('no_match', 'Keine passenden ' ~ ('Kennzeichnungen' if kind == 'tags' else kinds[kind]), 'Filter anpassen' if filters_active else ('Zutat anlegen' if kind == 'zutaten' else kinds[kind])) %}
+{% if filters_active %}<a class="btn" href="{{ url_for('admin.master_data_list', kind=query_kinds[kind]) }}">{{ icon_label('view.reset') }}</a>
+{% elif can_write %}<a class="btn" href="{{ url_for('admin.master_data_new', kind=kind) }}">{{ icon_label('actions.add') }}</a>{% endif %}
+{% endcall %}{% endfor %}
+</div>{% if page > 1 or has_next %}<div class="card-footer">{{ pagination(page, has_next, prev_url, next_url, 'Stammdatenseiten') }}</div>{% endif %}</div>
 {% endblock %}

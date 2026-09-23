@@ -1,6 +1,9 @@
+{% from 'admin/_macros.html' import page_header %}
+{% from 'ui/_semantic.html' import icon_button %}
 <!doctype html><html lang="de-CH"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ title|default('Grundlagen nicht verfügbar') }}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='admin-tabler.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='admin-grundlagen.css') }}">
-</head><body class="dishboard-admin"><main class="container-fluid py-5"><div class="card"><div class="card-body">
-<h1 class="card-title">{{ title|default('Grundlagen nicht verfügbar') }}</h1><p role="alert"><svg class="icon text-secondary" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='vendor/tabler-icons/tabler-icons.svg') }}#tabler-alert-triangle"></use></svg> {{ message|default('Die Stammdaten können momentan nicht geladen werden. Bitte versuchen Sie es später erneut.') }}</p>
-<a class="btn btn-primary" href="{{ url_for('admin.master_data_list') }}"><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='vendor/tabler-icons/tabler-icons.svg') }}#tabler-refresh"></use></svg>Erneut versuchen</a></div></div></main></body></html>
+</head><body class="dishboard-admin"><main class="container-fluid py-3">
+{{ page_header(t('navigation.ingredients.label'), description=title|default('Grundlagen nicht verfügbar'), status_items=[{'label': t('status.error.label'), 'value': t('status.blocked.label'), 'variant': 'danger'}]) }}
+<div class="card"><div class="card-body"><p role="alert"><svg class="icon text-secondary" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='vendor/tabler-icons/tabler-icons.svg') }}#tabler-alert-triangle"></use></svg> {{ message|default('Die Stammdaten können momentan nicht geladen werden. Bitte versuchen Sie es später erneut.') }}</p>
+{{ icon_button('actions.retry', href=url_for('admin.master_data_list')) }}</div></div></main></body></html>

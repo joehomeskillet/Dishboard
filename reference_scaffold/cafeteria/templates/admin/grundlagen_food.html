@@ -1,18 +1,24 @@
 {% extends 'admin/grundlagen.html' %}
-{% from 'admin/_macros.html' import page_header, pagination, icon %}
+{% from 'admin/_macros.html' import page_header, pagination, icon, disclosure_section, option_detail_group %}
+{% from 'ui/_semantic.html' import icon_label %}
 {% set workflow_nav = 'master_data' %}
 {% block title %}Zutat · Grundlagen{% endblock %}
-{% block page_header %}{{ page_header('Zutat bearbeiten' if row else 'Zutat anlegen') }}{% endblock %}
+{% block page_header %}
+{% set status_items = [] %}
+{% if row %}
+{% set _ = status_items.extend([
+  {'label': 'Status', 'value': 'Aktiv' if row.active else 'Archiviert', 'variant': 'neutral'},
+  {'label': 'Lagerort', 'value': row.storage_locations|map(attribute='name')|join(', ') or 'Lagerort fehlt', 'variant': 'neutral' if row.storage_locations else 'warning'},
+  {'label': 'Allergenangaben', 'value': 'Erfasst' if row.allergens else 'Allergenangaben nicht erfasst', 'variant': 'neutral' if row.allergens else 'warning'},
+  {'label': 'Allergenprüfung', 'value': 'Gespeicherte Angaben bestätigt' if row.allergen_review_status == 'checked' else 'Noch nicht bestätigt', 'variant': 'success' if row.allergen_review_status == 'checked' else 'warning'}
+]) %}
+{% endif %}
+{{ page_header(t('navigation.ingredients.label'), description='Zutat bearbeiten' if row else 'Zutat anlegen', status_items=status_items) }}
+{% endblock %}
 {% block content %}
 <a class="btn mb-3" href="{{ url_for('admin.master_data_list', kind=query_kinds[kind]) }}">{{ icon('arrow-left') }}Zur Liste</a>
 {{ errors() }}
-{% if row %}<section class="card mb-4" aria-labelledby="food-status-title"><div class="card-header gap-2">{{ icon('file-check') }}<h2 class="card-title mb-0" id="food-status-title">Gespeicherter Stand</h2></div><div class="card-body grundlagen-status">
-{{ status_summary() }}
-<p>{{ icon('archive', class='text-secondary') }}<strong>Lagerort:</strong> {% for storage in row.storage_locations %}{{ storage.name }}{{ ', ' if not loop.last else '' }}{% else %}{{ icon('alert-triangle', class='text-secondary') }}<span class="badge bg-yellow-lt">Lagerort fehlt</span> · Mindestens ein Lagerort ist Pflicht.{% endfor %}</p>
-<p>{{ icon('clipboard-check', class='text-secondary') }}<strong>Allergenangaben:</strong> {% if row.allergens %}Erfasst{% else %}{{ icon('alert-triangle', class='text-secondary') }}<span class="badge bg-yellow-lt">Allergenangaben nicht erfasst</span>{% endif %}</p>
-<p>{{ icon('circle-check' if row.allergen_review_status == 'checked' else 'clipboard-check', class='text-secondary') }}<strong>Allergenprüfung:</strong> {{ 'Gespeicherte Angaben bestätigt' if row.allergen_review_status == 'checked' else 'Noch nicht bestätigt' }}</p>
-</div></section>
-{% else %}<div class="alert alert-info" role="status">{{ icon('info-circle') }}<strong>Lagerort erforderlich:</strong> Mindestens ein Lagerort ist für jede Zutat Pflicht. Fehlt die Zuordnung, wird «Lagerort fehlt» angezeigt.</div>{% endif %}
+{% if not row %}<div class="alert alert-info" role="status">{{ icon('info-circle') }}<strong>Lagerort erforderlich:</strong> Mindestens ein Lagerort ist für jede Zutat Pflicht. Fehlt die Zuordnung, wird «Lagerort fehlt» angezeigt.</div>{% endif %}
 {% set core = 'stammdaten' if row else 'neu' %}
 {% if can_write %}
 <details class="card mb-4"{% if recipe_query or recipe_page > 1 %} open{% endif %}>{{ section_summary('Rezeptauswahl', 'search') }}
@@ -37,13 +43,14 @@
 </div>
 <div class="row g-3 mb-3">
 <div class="col-12 col-lg-6">
-<fieldset id="storage_location_public_ids" tabindex="-1"{% if error and error_field == 'storage_location_public_ids' %} aria-invalid="true" aria-describedby="master-error"{% endif %}>
+<fieldset class="grundlagen-choices" id="storage_location_public_ids" tabindex="-1"{% if error and error_field == 'storage_location_public_ids' %} aria-invalid="true" aria-describedby="master-error"{% endif %}>
 <legend class="h3">{{ icon('archive', class='text-secondary') }}Lagerorte</legend><p class="form-hint">Mindestens einen Lagerort auswählen.</p>
 {% for selected in values.storage_location_public_ids %}{% if selected not in storages|map(attribute='public_id')|list %}<label class="form-check"><input class="form-check-input" type="checkbox" name="storage_location_public_ids" value="{{ selected }}" checked><span class="form-check-label">{{ selected }} (ungültige Auswahl, bitte ersetzen)</span></label>{% endif %}{% endfor %}
 {% for storage in storages %}{% if storage.active or storage.public_id in values.storage_location_public_ids %}<label class="form-check" for="storage-{{ storage.public_id }}"><input class="form-check-input" type="checkbox" id="storage-{{ storage.public_id }}" name="storage_location_public_ids" value="{{ storage.public_id }}"{% if storage.public_id in values.storage_location_public_ids %} checked{% endif %}><span class="form-check-label">{{ storage.name }}{% if not storage.active %} (archiviert, bitte ersetzen){% endif %}</span></label>{% endif %}{% else %}<p>Noch keine Lagerorte vorhanden. Vor dem Anlegen einer Zutat einen Lagerort erfassen.</p>{% endfor %}
 <a href="{{ url_for('admin.master_data_list', kind='storage_locations') }}">{{ icon('archive') }}Lagerorte verwalten</a></fieldset>
 </div>
 <div class="col-12 col-lg-6">
+{% call disclosure_section(has_content=values.prepared_recipe_choice, has_error=error_field == 'prepared_recipe_choice') %}
 <div><label class="form-label" for="prepared_recipe_choice">{{ icon('tools-kitchen-2', class='text-secondary') }}Zubereitung aus einem Rezept <span class="form-label-description">optional</span></label>
 <select class="form-select" id="prepared_recipe_choice" name="prepared_recipe_choice" aria-describedby="prepared-hint{% if error and error_field == 'prepared_recipe_choice' %} master-error{% endif %}"{% if error and error_field == 'prepared_recipe_choice' %} aria-invalid="true"{% endif %}>
 <option value=""{% if not values.prepared_recipe_choice %} selected{% endif %}>Keine Rezeptverknüpfung</option>
@@ -53,17 +60,20 @@
 {% for revision in prepared_revisions %}{% set choice = revision.revision_public_id ~ ':' ~ revision.content_hash_sha256 %}<option value="{{ choice }}"{% if values.prepared_recipe_choice == choice %} selected{% endif %}>{{ revision.title }} · Stand {{ revision.revision_number }} · {{ '{:f}'.format(revision.yield_quantity) }} {{ revision.yield_unit_code }}{% if not revision.recipe_active %} (archiviertes Rezept, bestehende Auswahl){% endif %}</option>{% endfor %}
 </select><p class="form-hint" id="prepared-hint">Der gewählte festgeschriebene Stand bleibt zugeordnet. Spätere Rezeptänderungen ersetzen ihn nicht. Ausbeute und Basiseinheit müssen zusammenpassen.</p>
 <a href="{{ url_for('admin.recipes_list') }}">{{ icon('tools-kitchen-2') }}Rezepte öffnen</a></div>
+{% endcall %}
 </div>
 </div>
+{% call disclosure_section(has_content=values.get('density_g_per_ml') or values.get('piece_weight_g') or values.get('note'), has_error=error_field in ['density_g_per_ml', 'piece_weight_g', 'note']) %}
 <div class="row g-3 mb-3">
 <div class="col-12 col-lg-3">{{ input('density_g_per_ml', 'Dichte in g/ml (optional)') }}</div>
 <div class="col-12 col-lg-3">{{ input('piece_weight_g', 'Stückgewicht in g (optional)') }}</div>
 <div class="col-12 col-lg-6"><div class="mb-3"><label class="form-label" for="note">Notiz</label><textarea class="form-control" name="note" id="note" maxlength="500" rows="1">{{ values.get('note', '') }}</textarea></div></div>
 </div>
 <p class="form-hint mb-1">Dezimalzahlen mit Punkt eingeben. Archivierte Zuordnungen vor dem Speichern ausdrücklich ersetzen oder entfernen.</p>
+{% endcall %}
 <p class="form-hint mb-3">Speichert Stammdaten, Lagerorte und Zubereitung.{% if row %} Die folgenden Abschnitte haben eigene Speicheraktionen.{% endif %}</p>
 <div class="admin-compact-toolbar grundlagen-core-actions" data-sticky-form="food-core-form">
-<button class="btn btn-primary" type="submit" form="food-core-form">{{ icon('device-floppy') }}Zutat speichern</button></div></form>
+<button class="btn btn-primary" type="submit" form="food-core-form">{{ icon_label('actions.save') }}</button></div></form>
 {% else %}<h3>{{ row.name if row else 'Keine Schreibberechtigung' }}</h3>{% if row %}<p>{{ row.base_unit.display_name }}{% if not row.base_unit.active %} (archiviert){% endif %} · {{ row.category.name if row.category else 'Keine Kategorie' }}{% if row.category and not row.category.active %} (archiviert){% endif %}</p><dl><dt>Dichte in g/ml</dt><dd>{{ row.density_g_per_ml if row.density_g_per_ml is not none else 'Nicht erfasst' }}</dd><dt>Stückgewicht in g</dt><dd>{{ row.piece_weight_g if row.piece_weight_g is not none else 'Nicht erfasst' }}</dd></dl><p>{{ row.note }}</p>{% endif %}{% endif %}
 </div>{% if not row %}</details>{% else %}</div>{% endif %}
 {% if row %}
@@ -83,6 +93,7 @@
 <p>Kein Einkaufspreis erfasst. Fehlender Preis erscheint in Kalkulationen als unvollständig, nicht als 0.</p>
 {% endif %}
 {% if can_write %}
+{% call disclosure_section() %}
 <form method="post" action="{{ url_for('admin.food_price_save', public_id=row.public_id) }}">
 <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 {% if current.rev %}<input type="hidden" name="head_row_version" value="{{ current.rev.head_row_version }}">{% endif %}
@@ -91,32 +102,32 @@
 <div class="col-12 col-md-3"><label class="form-label" for="valid_to">Gültig bis (exklusiv)</label><input class="form-control" type="date" id="valid_to" name="valid_to"></div>
 <div class="col-12 col-md-2"><label class="form-label" for="unit_price">CHF je Einheit</label><input class="form-control" id="unit_price" name="unit_price" required inputmode="decimal"></div>
 <div class="col-12 col-md-2"><label class="form-label" for="unit_code">Einheit</label><input class="form-control" id="unit_code" name="unit_code" value="{{ row.base_unit.code if row.base_unit else 'KG' }}" required></div>
-<div class="col-12 col-md-2 d-flex align-items-end"><button class="btn btn-primary" type="submit">{{ icon('device-floppy') }}Preis speichern</button></div>
+<div class="col-12 col-md-2 d-flex align-items-end"><button class="btn" type="submit">{{ icon_label('actions.save') }}</button></div>
 </div>
 <p class="form-hint mt-2">Speichert eine neue unveränderliche Preisliste. Alte Stände bleiben erhalten.</p>
 </form>
+{% endcall %}
 {% endif %}
 </div></section>
 {% endif %}
 {% if row %}
-<div class="card mb-4"><div class="card-header gap-2">{{ icon('copy', class='text-secondary') }}<h2 class="card-title mb-0">Verknüpfungen</h2></div><div class="card-body">
+<details class="card mb-4">{{ section_summary('Verknüpfungen', 'copy') }}<div class="card-body">
 <dl><dt>Lagerorte</dt><dd>{% for storage in row.storage_locations %}<a href="{{ url_for('admin.master_data_detail', kind='lagerorte', public_id=storage.public_id) }}">{{ storage.name }}</a>{{ ', ' if not loop.last else '' }}{% else %}Lagerort fehlt{% endfor %}</dd>
 <dt>Bestand</dt><dd>{% for storage in row.storage_locations %}<a href="{{ url_for('admin.inventory_home', food_public_id=row.public_id, storage_public_id=storage.public_id) }}">{{ icon('archive') }}{{ storage.name }}</a>
 {% if stock.get(storage.public_id) and stock[storage.public_id].captured %} · {{ stock[storage.public_id].label }}{% else %} · <span>Kein Bestand erfasst</span>{% endif %}{{ ', ' if not loop.last else '' }}{% else %}<span>Kein Bestand erfasst</span>{% endfor %}</dd><dt>Zubereitung</dt><dd>{% if row.prepared_recipe %}<a href="{{ url_for('admin.recipe_revision', recipe_id=row.prepared_recipe.recipe_public_id, revision_id=row.prepared_recipe.revision_public_id) }}">{{ icon('tools-kitchen-2', class='text-secondary') }}{{ row.prepared_recipe.title }} · Stand {{ row.prepared_recipe.revision_number }}</a><br>Ausbeute: {{ '{:f}'.format(row.prepared_recipe.yield_quantity) }} {{ row.prepared_recipe.yield_unit_code }}{% if not row.prepared_recipe.recipe_active %} · Rezept archiviert{% endif %}
-<br><a href="{{ url_for('admin.recipe_revisions', recipe_id=row.prepared_recipe.recipe_public_id) }}">{{ icon('history') }}Rezeptverlauf</a>{% else %}Keine Rezeptverknüpfung{% endif %}</dd></dl></div></div>
+<br><a href="{{ url_for('admin.recipe_revisions', recipe_id=row.prepared_recipe.recipe_public_id) }}">{{ icon('history') }}Rezeptverlauf</a>{% else %}Keine Rezeptverknüpfung{% endif %}</dd></dl></div></details>
 <details class="card mb-4">{{ section_summary('Herkunft', 'file-import') }}<div class="card-body"><p>{{ 'Manuell erfasst' if row.source.kind == 'manual' else row.source.kind }}</p>{% for value in [row.source.reference, row.source.url, row.source.note, row.source.fetched_at] %}{% if value %}<p class="text-break">{{ value }}</p>{% endif %}{% endfor %}<p class="text-secondary">Ursprüngliche Herkunft bleibt erhalten.</p></div></details>
-<details class="card mb-4"{% if error_purpose == 'tags' %} open{% endif %}>{{ section_summary('Kennzeichnungen', 'clipboard-check') }}<div class="card-body">
+<details class="card mb-4"{% if error_purpose == 'tags' or values.tag_public_ids %} open{% endif %}>{{ section_summary('Kennzeichnungen', 'clipboard-check') }}<div class="card-body grundlagen-choices">
 {% if can_write %}<form method="post" action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose='tags') }}">{{ form_start('tags') }}
 {% for selected in values.tag_public_ids %}{% if selected not in tags|map(attribute='public_id')|list %}<label class="form-check"><input class="form-check-input" type="checkbox" name="tag_public_ids" value="{{ selected }}" checked><span class="form-check-label">{{ selected }} (ungültige Auswahl, bitte entfernen)</span></label>{% endif %}{% endfor %}
 {% for tag in tags %}{% if tag.active or tag.public_id in values.tag_public_ids %}<label class="form-check"><input class="form-check-input" type="checkbox" name="tag_public_ids" value="{{ tag.public_id }}"{% if tag.public_id in values.tag_public_ids %} checked{% endif %}><span class="form-check-label">{{ tag.name }}{% if not tag.active %} (archiviert, vor dem Speichern ausdrücklich entfernen){% endif %}</span></label>{% endif %}{% else %}<p>Keine Kennzeichnungen vorhanden.</p>{% endfor %}
 <p class="form-hint">Speichert nur Kennzeichnungen. Ohne Auswahl werden alle zugeordneten Kennzeichnungen entfernt. Dies bestätigt keine Allergenprüfung.</p><button class="btn" type="submit">{{ icon('device-floppy') }}Kennzeichnungen speichern</button></form>
 {% else %}{% for tag in row.tags %}<p>{{ tag.name }}</p>{% else %}<p>Keine Kennzeichnungen zugeordnet.</p>{% endfor %}{% endif %}</div></details>
-<details class="card mb-4"{% if error_purpose == 'metadaten' %} open{% endif %}>{{ section_summary('Allergene und Kostformen', 'alert-triangle') }}<div class="card-body">
+<details class="card mb-4"{% if error_purpose == 'metadaten' or row.allergens or values.labels %} open{% endif %}>{{ section_summary('Allergene und Kostformen', 'alert-triangle') }}<div class="card-body">
 <p>Nur ausdrücklich bestätigte Angaben erfassen. Fehlende Angaben bedeuten nicht «frei von».</p>
 {% if can_write %}<form method="post" action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose='metadaten') }}">{{ form_start('metadaten') }}
-<fieldset class="mb-4"><legend class="h3">Allergene</legend><div class="row g-3">{% for allergen in allergens %}<div class="col-12 col-lg-6"><label class="form-label" for="allergen_{{ allergen.code }}">{{ allergen.display_name }} ({{ allergen.code }})</label>
-<select class="form-select" id="allergen_{{ allergen.code }}" name="allergen_{{ allergen.code }}">{% for key, label in [('absent', 'Keine Angabe'), ('contains', 'Enthält'), ('may_contain', 'Kann enthalten')] %}<option value="{{ key }}"{% if values.get('allergen_' ~ allergen.code) == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>{% endfor %}</div></fieldset>
-<fieldset class="mb-3"><legend class="h3">Kostformen</legend>{% for label in labels %}<label class="form-check"><input class="form-check-input" type="checkbox" name="labels" value="{{ label.code }}"{% if label.code in values.labels %} checked{% endif %}><span class="form-check-label">{{ label.display_name }} ({{ label.code }})</span></label>{% endfor %}</fieldset>
+{{ option_detail_group(allergens, submitted=values, field_prefix='allergen_', choices=[('contains', 'Enthält'), ('may_contain', 'Kann enthalten')], errors={error_field: error} if error and error_purpose == 'metadaten' else {}) }}
+<fieldset class="mb-3 grundlagen-choices"><legend class="h3">Kostformen</legend>{% for label in labels %}<label class="form-check"><input class="form-check-input" type="checkbox" name="labels" value="{{ label.code }}"{% if label.code in values.labels %} checked{% endif %}><span class="form-check-label">{{ label.display_name }} ({{ label.code }})</span></label>{% endfor %}</fieldset>
 <p class="form-hint">Speichert die Allergene und Kostformen dieses Abschnitts. Die Allergenprüfung erfolgt separat.</p>
 <button class="btn" type="submit">{{ icon('device-floppy') }}Angaben speichern</button></form>
 {% else %}{% for code, presence in row.allergens %}<p>{{ code }}: {{ 'Enthält' if presence == 'contains' else 'Kann enthalten' }}</p>{% endfor %}{% for label in row.labels %}<p>{{ label }}</p>{% endfor %}{% endif %}
@@ -126,6 +137,6 @@
 {% if can_write %}<form method="post" action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose='allergenpruefung') }}">{{ form_start('allergenpruefung') }}
 <p class="form-hint">Ändert nur den Prüfstatus der gespeicherten Allergenangaben. Änderungen in anderen Abschnitten vorher dort speichern.</p>
 <input type="hidden" name="checked" value="{{ 'false' if row.allergen_review_status == 'checked' else 'true' }}"><button class="btn" type="submit">{{ icon('circle-check' if row.allergen_review_status != 'checked' else 'x') }}{{ 'Prüfung zurücknehmen' if row.allergen_review_status == 'checked' else 'Als geprüft bestätigen' }}</button></form>{% endif %}</div></details>
-<details class="card">{{ section_summary('Weitere Aktionen', 'dots') }}<div class="card-body">{{ status_actions() }}</div></details>
+{% call disclosure_section() %}{{ status_summary() }}{{ status_actions() }}{% endcall %}
 {% endif %}
 {% endblock %}
