@@ -10,11 +10,13 @@ from threading import Thread
 from unittest.mock import MagicMock
 
 import pytest
-from flask import Flask, redirect, request, send_from_directory
-from jinja2 import ChoiceLoader, DictLoader, Environment, FileSystemLoader
+from flask import Flask, redirect, render_template, request, send_from_directory
+from jinja2 import ChoiceLoader, DictLoader
 from werkzeug.serving import make_server
 
 from cafeteria.operations_settings import default_schedule
+from cafeteria.template_filters import register_template_filters
+from cafeteria.ui import register_ui
 from test_rendered_ui import browser  # noqa: F401
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -230,28 +232,30 @@ def test_invalid_origins_fail_before_credentials_or_browser(tmp_path, monkeypatc
 
 @pytest.mark.parametrize('width', [390, 1440])
 def test_ops_dom_audit_on_actual_operations_template_without_network(browser, width):  # noqa: F811
-    # Only the shell/macros are replaced; OPS forms are the real production template.
-    env = Environment(loader=ChoiceLoader([
-        DictLoader({
-            'admin/base_tabler.html': '{% block content %}{% endblock %}',
-            'admin/_macros.html': '{% macro icon(name, class="", label=none) %}{% endmacro %}'
-                                 '{% macro page_header(a,b) %}{% endmacro %}'
-                                 '{% macro flash_region(a) %}{% endmacro %}',
-        }), FileSystemLoader(ROOT / 'reference_scaffold/cafeteria/templates'),
-    ]), autoescape=True)
-    html = env.get_template('admin/operations.html').render(
-        url_for=lambda *_args, **_kwargs: tool.OPS_PATH, get_flashed_messages=lambda: [],
-        errors={}, values={}, preview=False, exceptions=[], timezone='Europe/Zurich',
-        today=date(2026, 9, 7), csrf='synthetic', schedule_csrf={'patient': 'synthetic', 'staff_guest': 'synthetic'},
-        operations_csrf={
-            profile: {action: 'synthetic' for action in ('save_name', 'save_weekend', 'load_exception', 'save_exception')}
-            for profile in ('patient', 'staff_guest')
-        },
-        area_names={'patient': 'Stationen', 'staff_guest': 'Restaurant'},
-        schedules={profile: default_schedule(profile) for profile in ('patient', 'staff_guest')},
-        day_names=('Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'),
-        meal_labels={'LUNCH': 'Mittag', 'DINNER': 'Abend'}, state_labels={'open': 'Offen', 'closed': 'Geschlossen'},
-    )
+    # Only the page shell is replaced; OPS forms, shared macros and the semantic UI layer are real.
+    app = Flask(__name__, template_folder=str(ROOT / 'reference_scaffold/cafeteria/templates'),
+                static_folder=str(ROOT / 'reference_scaffold/cafeteria/static'))
+    app.config.update(TESTING=True, UI_LOCALE='de')
+    register_template_filters(app)
+    register_ui(app)
+    app.jinja_loader = ChoiceLoader([
+        DictLoader({'admin/base_tabler.html': '{% block page_header %}{% endblock %}{% block content %}{% endblock %}'}),
+        app.jinja_loader,
+    ])
+    with app.test_request_context():
+        html = render_template('admin/operations.html',
+            url_for=lambda *_args, **_kwargs: tool.OPS_PATH, get_flashed_messages=lambda: [],
+            errors={}, values={}, preview=False, exceptions=[], timezone='Europe/Zurich',
+            today=date(2026, 9, 7), csrf='synthetic', schedule_csrf={'patient': 'synthetic', 'staff_guest': 'synthetic'},
+            operations_csrf={
+                profile: {action: 'synthetic' for action in ('save_name', 'save_weekend', 'load_exception', 'save_exception')}
+                for profile in ('patient', 'staff_guest')
+            },
+            area_names={'patient': 'Stationen', 'staff_guest': 'Restaurant'},
+            schedules={profile: default_schedule(profile) for profile in ('patient', 'staff_guest')},
+            day_names=('Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'),
+            meal_labels={'LUNCH': 'Mittag', 'DINNER': 'Abend'}, state_labels={'open': 'Offen', 'closed': 'Geschlossen'},
+        )
     with browser.new_context(viewport={'width': width, 'height': 844}) as context:
         page = context.new_page()
         page.set_content(f'<a href="{tool.OPS_PATH}" aria-current="page">Bereiche & Zeiten</a>' + html)

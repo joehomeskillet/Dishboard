@@ -93,12 +93,14 @@ def test_brand_editor_normal_state_and_viewports(
 
         expect(page.locator('h1.page-title')).to_have_text('Erscheinungsbild')
         expect(page.locator('.page-header-subtitle')).to_contain_text('Logo, Farben und Schrift')
-        expect(page.locator('.admin-page-header .btn-list')).to_have_count(0)
+        # The single primary action «Speichern» sits in the page header (form='brand-save').
+        expect(page.locator('.admin-page-header button[form="brand-save"]')).to_have_count(1)
 
-        expect(page.get_by_role('heading', name='Veröffentlichte Version', exact=True)).to_be_visible()
+        # Published version moved from a card heading into the shared status bar.
+        expect(page.locator('dl.admin-statusbar dt', has_text='Veröffentlicht')).to_be_visible()
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
-        expect(page.locator('.admin-area-tabs a[aria-current="page"]')).to_have_text('Erscheinungsbild')
-        expect(page.get_by_role('heading', name='Gespeicherte Vorschau · Version 1', exact=True)).to_be_visible()
+        expect(page.locator('.admin-nav-subitems [aria-current="page"]')).to_contain_text('Erscheinungsbild')
+        expect(page.get_by_role('heading', name='Vorschau', exact=True)).to_be_visible()
         expect(page.get_by_text('Live-Vorschau', exact=False)).to_have_count(0)
         expect(page.locator('.brand-color-swatch')).to_have_count(4)
         expect(page.locator('iframe.brand-preview-frame')).to_have_count(1)

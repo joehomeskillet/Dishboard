@@ -10412,7 +10412,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "b85fae69f282d587978946275c5c716f80145d69aaaa40554da413fcbc7bd149",
+      "sha256": "3552979a13c961a6e7eca88515e3b14e72163dbb4678b909ae9aacf6ab74a86e",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10720,7 +10720,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "57452569b57e258fe9d41861b85d3db14f37b03570695b50b3e084cc435a4763",
+      "sha256": "612bdf33cdd85a8e50660a5fa8f17fc237e4fbb61c12c73fd6fce75b16376f89",
       "used_by_endpoints": [
         "admin.branding_editor"
       ],
@@ -10739,7 +10739,7 @@
       "includes": [
         "_brand_logo.html"
       ],
-      "sha256": "286795810d68f3084f6d0b5cdd6bf80dfb8382524a4f217487267b7e2aa76ff6",
+      "sha256": "10cee33d3fdb41bf8ab924813b09d648d956a706b197fc577067c731f7f8deb4",
       "used_by_endpoints": [
         "admin.branding_preview"
       ],
@@ -11337,7 +11337,7 @@
         "admin/_macros.html",
         "admin/_workflow_sidebar.html"
       ],
-      "sha256": "2eb282a7f25deaabcc0fd45d71babcccae6d73ed0bdedf9e59525425f15691bf",
+      "sha256": "1c81dcfa0330ba8ba08fce6dc2d40e96a48b07dab6f8075a5c15199c9a15948f",
       "used_by_endpoints": [
         "admin.operations_settings"
       ],
