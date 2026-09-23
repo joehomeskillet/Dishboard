@@ -37,6 +37,26 @@
         if (event.target.closest('a[aria-disabled="true"]')) event.preventDefault();
     });
 
+    // Optional modal enhancement; without JS the open dialog lives in details.
+    document.querySelectorAll('.admin-hint[data-hint-mode="dialog"]').forEach(details => {
+        const dialog = details.querySelector('dialog');
+        const trigger = details.querySelector('summary');
+        const close = details.querySelector('[data-hint-close]');
+        if (!dialog || typeof dialog.showModal !== 'function') return;
+        dialog.removeAttribute('open');
+        close.hidden = false;
+        trigger.addEventListener('click', event => {
+            event.preventDefault();
+            details.open = true;
+            dialog.showModal();
+        });
+        close.addEventListener('click', () => dialog.close());
+        dialog.addEventListener('close', () => {
+            details.open = false;
+            trigger.focus();
+        });
+    });
+
     // Tabler already initializes these tooltips. Keep its instance and positioning.
     const iconActions = document.querySelectorAll('[data-admin-icon-action]');
     iconActions.forEach(link => {

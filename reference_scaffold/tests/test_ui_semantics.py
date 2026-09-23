@@ -294,3 +294,19 @@ def test_disclosure_project_keys_and_shared_labels(semantic_app, locale, options
     assert document.select_one('#custom summary').get_text(strip=True).startswith('Custom')
     assert document.select_one('#custom').has_attr('open')
     assert document.select_one('.admin-compact-actions summary').get_text(strip=True) == more
+
+
+@pytest.mark.parametrize('mode', ['tooltip', 'inline', 'dialog'])
+def test_hint_escapes_text_and_uses_caller_owned_description_id(semantic_app, mode):
+    from bs4 import BeautifulSoup
+
+    text = '<img src=x onerror=alert(1)>'
+    with semantic_app.test_request_context():
+        html = render_template_string("{% from 'admin/_macros.html' import hint %}{{ hint(text, 'help-name', mode) }}",
+                                      text=text, mode=mode)
+    document = BeautifulSoup(html, 'html.parser')
+    assert not document.select('img, script')
+    assert document.select_one('#help-name').get_text() == text
+    if mode != 'inline':
+        assert document.summary['aria-describedby'] == 'help-name'
+        assert document.summary['title'] == text

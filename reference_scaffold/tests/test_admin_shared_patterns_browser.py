@@ -223,6 +223,44 @@ def test_polish_loading_ignores_invalid_and_cancelled_submits():
     _run_polish_check(markup, verify)
 
 
+@pytest.mark.parametrize('javascript', [False, True])
+@pytest.mark.parametrize('width', [360, 1440])
+def test_polish_hint_modes_are_keyboard_reachable_and_keep_safety_inline(javascript, width):
+    markup = '''{% from 'admin/_macros.html' import hint, option_detail_group %}
+        {{ hint('Zusatzinformation', 'tip') }}
+        {{ hint('Sicherheitsinformation', 'safety', mode='inline') }}
+        {{ hint('Längere Erklärung', 'explanation', mode='dialog') }}
+        {{ option_detail_group([]) }}'''
+
+    def verify(page):
+        tip = page.locator('[aria-describedby="tip"]')
+        expect(tip).to_have_attribute('title', 'Zusatzinformation')
+        expect(page.locator('#tip')).to_be_hidden()
+        page.keyboard.press('Tab')
+        expect(tip).to_be_focused()
+        assert tip.evaluate('el => parseFloat(getComputedStyle(el).outlineWidth)') >= 2
+        page.keyboard.press('Enter')
+        expect(page.locator('#tip')).to_be_visible()
+        expect(page.locator('#safety')).to_be_visible()
+        expect(page.get_by_text('Nicht ausgewählt bedeutet nicht: allergenfrei bestätigt.', exact=True)).to_be_visible()
+        page.keyboard.press('Tab')
+        expect(page.locator('summary[aria-describedby="explanation"]')).to_be_focused()
+        page.keyboard.press('Enter')
+        expect(page.locator('#explanation')).to_be_visible()
+        if javascript:
+            expect(page.locator('dialog')).to_have_attribute('open', '')
+            assert page.locator('dialog').evaluate('el => el.matches(":modal")')
+            page.keyboard.press('Escape')
+            expect(page.locator('#explanation')).to_be_hidden()
+            expect(page.locator('summary[aria-describedby="explanation"]')).to_be_focused()
+        else:
+            page.keyboard.press('Enter')
+            expect(page.locator('#explanation')).to_be_hidden()
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+
+    _run_polish_check(markup, verify, width, javascript)
+
+
 def _page(shared_site, javascript=True, width=390, query=''):
     chromium, origin, cookie = shared_site
     context = chromium.new_context(java_script_enabled=javascript, viewport={'width': width, 'height': 900},

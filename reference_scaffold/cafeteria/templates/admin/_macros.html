@@ -74,6 +74,25 @@
 {%- endif -%}
 {%- endmacro %}
 
+{# New optional help defaults to a title + native details fallback. Callers own
+   a unique id; existing field hints and safety/allergen notices remain inline. #}
+{%- macro hint(text, id, mode='tooltip') -%}
+{%- if mode == 'inline' -%}
+<p class="form-hint" id="{{ id }}">{{ text }}</p>
+{%- else -%}
+<details class="admin-hint" data-hint-mode="{{ mode }}">
+  <summary class="admin-hint-trigger" title="{{ text }}" aria-describedby="{{ id }}" aria-label="{{ t(sem('status.info').label_key) }}">{{ icon('info-circle') }}<span class="visually-hidden">{{ t(sem('status.info').label_key) }}</span></summary>
+  {% if mode == 'dialog' %}
+  <dialog class="ui-sem-dialog" open aria-labelledby="{{ id }}-title" aria-describedby="{{ id }}">
+    <h3 id="{{ id }}-title">{{ t(sem('status.info').label_key) }}</h3>
+    <p id="{{ id }}">{{ text }}</p>
+    <button class="btn" type="button" data-hint-close hidden>{{ icon('x') }}{{ t(sem('actions.close').label_key) }}</button>
+  </dialog>
+  {% else %}<div class="form-hint" id="{{ id }}">{{ text }}</div>{% endif %}
+</details>
+{%- endif -%}
+{%- endmacro %}
+
 {# Group related fields in .admin-option-grid, one div per field: 1/2/3 columns
    at <768/768/1440px. Controls stay >=48px; errors remain beside their control. #}
 {%- macro field(name, label, value='', type='text', id=none, required=false, error=none, hint=none, readonly=false, disabled=false, autofocus=false, placeholder=none) -%}
