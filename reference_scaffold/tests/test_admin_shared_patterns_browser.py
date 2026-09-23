@@ -309,6 +309,61 @@ PAGE = '''<!doctype html><html lang="de"><head>
 {% endfor %}
 </main></body></html>'''
 
+
+@pytest.mark.parametrize('width', [360, 768, 1024, 1440])
+def test_statusbar_link_keyboard_focus_and_navigation(width):
+    from playwright.sync_api import sync_playwright
+
+    app = Flask('statusbar-links', template_folder=str(ROOT.parent / 'templates'),
+                static_folder=str(STATIC))
+    register_template_filters(app)
+    register_ui(app)
+
+    @app.route('/__statusbar__')
+    def statusbar_page():
+        return render_template_string('''<!doctype html><html lang="de"><head>
+        {% for file in ['tokens.css', 'vendor/tabler/tabler.min.css', 'admin-tabler.css'] %}
+        <link rel="stylesheet" href="{{ url_for('static', filename=file) }}">{% endfor %}
+        </head><body class="dishboard-admin">
+        {% from 'admin/_macros.html' import page_header %}
+        {{ page_header('Status', status_items=[
+            {'label': 'Prüfstand', 'value': 'Offen', 'variant': 'warning', 'href': '#existing'},
+            {'label': 'Menüs', 'value': 0}]) }}
+        <section id="existing">Vorhandenes Ziel</section></body></html>''')
+
+    server = make_server('127.0.0.1', 0, app, threaded=True)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with sync_playwright() as playwright:
+            chromium = playwright.chromium.launch(headless=True, args=['--no-sandbox'])
+            try:
+                page = chromium.new_page(java_script_enabled=False,
+                                         viewport={'width': width, 'height': 900})
+                origin = f'http://127.0.0.1:{server.server_port}'
+                assert page.goto(origin + '/__statusbar__').status == 200
+                link = page.get_by_role('link', name='Offen', exact=True)
+                expect(link).to_have_attribute('href', '#existing')
+                expect(page.locator('dd').nth(1).locator('a')).to_have_count(0)
+                expect(link).to_have_css('text-decoration-line', 'none')
+                assert link.evaluate('el => getComputedStyle(el).color === getComputedStyle(el.parentElement).color')
+                assert link.bounding_box()['height'] >= 48
+                page.keyboard.press('Tab')
+                expect(link).to_be_focused()
+                expect(link).to_have_css('text-decoration-line', 'underline')
+                assert link.evaluate('el => el.matches(":focus-visible")')
+                assert link.evaluate('el => parseFloat(getComputedStyle(el).outlineWidth)') >= 2
+                expect(link).to_have_css('outline-style', 'solid')
+                link.click()
+                expect(page).to_have_url(origin + '/__statusbar__#existing')
+                assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+            finally:
+                chromium.close()
+    finally:
+        server.shutdown()
+        thread.join(timeout=5)
+        server.server_close()
+
 def test_admin_icons_exist_and_render():
     from playwright.sync_api import sync_playwright
     

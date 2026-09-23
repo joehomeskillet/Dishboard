@@ -187,3 +187,23 @@ def test_registry_icons_in_sprite():
                 missing.append(item.resolved_icon)
             
     assert not missing, f"Missing icons in sprite: {missing}"
+
+
+def test_statusbar_without_href_preserves_markup(semantic_app):
+    with semantic_app.test_request_context():
+        html = render_template_string(
+            "{% from 'admin/_macros.html' import page_header %}"
+            "{{ page_header('Status', status_items=[{'label': 'Prüfstand', "
+            "'value': 'Offen', 'variant': 'warning', 'detail': '2 Angaben fehlen'}]) }}"
+        )
+    statusbar = html[html.index('<dl '):html.index('</dl>') + len('</dl>')]
+    print('STATUSBAR_NO_HREF=' + repr(statusbar))
+    assert statusbar == (
+        '<dl class="admin-statusbar" aria-label="Status">'
+        '<div class="admin-statusbar-item admin-statusbar-item--warning">\n'
+        '        <dt class="admin-statusbar-label">Prüfstand</dt>\n'
+        '        <dd class="admin-statusbar-value">\n'
+        '          <span class="admin-statusbar-value-text">Offen</span>'
+        '<span class="admin-statusbar-detail">2 Angaben fehlen</span></dd>\n'
+        '      </div></dl>'
+    )

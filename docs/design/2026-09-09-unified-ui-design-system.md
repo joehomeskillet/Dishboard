@@ -127,6 +127,8 @@ Editor-interne Tabs oder Stepper sind zulässig, wenn sie echte Bearbeitungsschr
 
 Eigene wiederverwendbare Komponente unter dem Seitenkopf. Nur entscheidungsrelevante Angaben (z. B. Prüfstand, offene Kartenprüfungen, fehlende Allergenangaben, Veröffentlichungsstatus, Zeitraum/KW). **Statuschips dürfen direkt filtern oder navigieren** — als Link mit sichtbarem Text, nicht nur als Farbindikator. Keine Dekoration ohne Informations- oder Aktionswert.
 
+**Statusbar-Ziele (Fundament 2):** `page_header(status_items=[…])` akzeptiert optional `href` je Eintrag. Das Ziel darf nur auf einen **vorhandenen Query-Parameter oder Anker** derselben oder einer bestehenden Seite zeigen; keine neuen Routen. Beispiel: `{'label': 'Gangprüfung', 'value': 'Offene Angaben', 'href': '#course-issues'}` auf einer Wochenplanseite mit vorhandenem `#course-issues`. Der Wert wird innerhalb des bestehenden `dd` als `.admin-statusbar-link` verlinkt, mit geerbter Wertfarbe, Unterstreichung bei Hover/Fokus, mindestens 2 px Fokus-Outline und 48 px Zielhöhe. Ohne Ziel bleibt die Ausgabe bytegleich; `dl/dt/dd`, Varianten, Text-vor-Farbe und maximal fünf Einträge bleiben erhalten.
+
 ### Bilder
 
 In operativen Planungs- und Listenansichten nur **kleine Thumbnails** mit festem Seitenverhältnis und Lazy Loading. Grosse Bilder nur in Vorschau oder Detail, wenn visuell relevant. Keine bildschirmfüllenden Food-Fotos in der Arbeitsplanung.

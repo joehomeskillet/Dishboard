@@ -523,6 +523,15 @@
   font-size: var(--app-font-size-small); font-weight: 600;
 }
 .dishboard-admin .admin-statusbar-value { margin: 0; color: inherit; font-weight: 700; }
+.dishboard-admin .admin-statusbar-link {
+  display: inline-flex; align-items: center; min-height: 48px;
+  color: inherit; text-decoration: none;
+}
+.dishboard-admin .admin-statusbar-link:hover,
+.dishboard-admin .admin-statusbar-link:focus { text-decoration: underline; }
+.dishboard-admin .admin-statusbar-link:focus-visible {
+  outline: 2px solid var(--app-focus); outline-offset: 2px;
+}
 .dishboard-admin .admin-statusbar-detail {
   display: block; margin-top: var(--app-space-1); color: inherit;
   font-size: var(--app-font-size-small); font-weight: 400;

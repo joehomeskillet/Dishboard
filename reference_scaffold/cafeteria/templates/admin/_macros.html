@@ -25,7 +25,7 @@
       <div class="admin-statusbar-item admin-statusbar-item--{{ item_variant }}">
         <dt class="admin-statusbar-label">{{ item_label }}</dt>
         <dd class="admin-statusbar-value">
-          <span class="admin-statusbar-value-text">{{ item_value }}</span>
+          {% if item.href|default(none) %}<a class="admin-statusbar-link" href="{{ item.href }}"><span class="admin-statusbar-value-text">{{ item_value }}</span></a>{% else %}<span class="admin-statusbar-value-text">{{ item_value }}</span>{% endif %}
           {%- if item.detail|default(none) is not none and item.detail|string|trim -%}
           <span class="admin-statusbar-detail">{{ item.detail }}</span>
           {%- endif -%}
