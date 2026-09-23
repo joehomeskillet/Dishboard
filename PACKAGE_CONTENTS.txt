@@ -782,12 +782,16 @@ reference_scaffold/cafeteria/shopping_list_reads.py
 reference_scaffold/cafeteria/shopping_list_store.py
 reference_scaffold/cafeteria/signage/__init__.py
 reference_scaffold/cafeteria/signage/routes.py
+reference_scaffold/cafeteria/static/admin-bestellung.css
 reference_scaffold/cafeteria/static/admin-branding.css
 reference_scaffold/cafeteria/static/admin-components.css
+reference_scaffold/cafeteria/static/admin-einkaufslisten.css
 reference_scaffold/cafeteria/static/admin-gerichtvorlagen.css
 reference_scaffold/cafeteria/static/admin-gerichtvorlagen.js
 reference_scaffold/cafeteria/static/admin-grundlagen.css
+reference_scaffold/cafeteria/static/admin-kalkulation.css
 reference_scaffold/cafeteria/static/admin-kitchen-calendar.css
+reference_scaffold/cafeteria/static/admin-lager.css
 reference_scaffold/cafeteria/static/admin-menu-collection.css
 reference_scaffold/cafeteria/static/admin-menu-editor.css
 reference_scaffold/cafeteria/static/admin-preview.css
