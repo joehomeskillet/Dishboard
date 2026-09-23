@@ -1495,6 +1495,36 @@ Tastatur, No-JS, 200-%-CSS-Zoom, POST-Feldvergleich, Vorschau, Speichern,
 Zurücksetzen und Fehlerzustand. AuthZ/CSRF-Regression:
 `tests/test_admin_display_settings.py` (unverändert).
 
+##### Modul Einstellungen – Schnittstellen (2026-09-20)
+
+Schnittstellen folgt M01/M15/M23/M25: ein Satz Kontext, genau eine Primäraktion
+«Anlegen» im Kopf und Statusbar aus `status.channels`. Je Kanal werden ausschliesslich
+`published` und der vorhandene Zeitraum `week_start`/`week_end` gezeigt. Erfolg
+bedeutet veröffentlicht, fehlende Veröffentlichung bleibt eine textliche Warnung.
+Revisionen, Schema-/API-/FHIR-Versionen und technische Endpunkte stehen gemeinsam
+unter «Weitere Optionen»; sie sind keine Statusslots. Ein globaler API-Gesamtzustand
+wird nicht erfunden. Die frühere offene Publikationstabelle ist ersetzt am
+2026-09-20 durch diese Statusbar und nachrangige technische Angaben.
+
+Schlüssel bleiben kompakte Tabellenzeilen, mobil priorisierte Listen ohne
+Horizontal-Scroll. «Details» ist die einzige direkte Zeilenaktion; Metadaten und
+Widerruf folgen darin. Widerruf verlangt einen nativen Bestätigungsschritt mit
+sichtbarem Text auch ohne JavaScript; die vorhandene JS-Rückfrage bleibt erhalten.
+Die Anlageaktion führt direkt zum ersten Feld im nativen Formularbereich,
+auch ohne JavaScript. Fehler und eingereichte Auswahl öffnen ihn serverseitig.
+Anlage bleibt ein Öffnen und ein Submit; technische Details sind kein Pflichtschritt.
+
+Feldnamen, Reihenfolge, Standardwerte, POST-Ziele und CSRF bleiben unverändert.
+Keine CAS-Felder hinzuerfinden. Der Klartextschlüssel und sein Einmalhinweis bleiben
+unverändert und werden nie in Screenshots aufgenommen. Neue Aktionslabels und
+Symbole nutzen die semantischen Makros, bestehende Fachtexte bleiben erhalten.
+Eigene Styles liegen ausschliesslich in `admin-settings-schnittstellen.css`;
+ein begrenztes `!important` überschreibt Tablers gleichrangige mobile Zellregel.
+Nachweis: `test_admin_api_page.py` mit eigenem Playwright-Start, vier Pflichtbreiten,
+48-px-Zielen, Tastaturfokus, nativen POSTs, Formularwertvergleich und No-JS.
+Schreibgeschützte Policy-Browsertests mit alten Struktur-/Aktionsnamen benötigen
+Anpassung durch ihren Besitzer; ihre fachlichen Assertions bleiben Pflicht.
+
 #### M16 — Erscheinungsbild: gespeicherten Entwurf eindeutig kennzeichnen
 
 Einstellungen links, dazugehörige Vorschau rechts. Keine nur behauptete Live-Aktualisierung.

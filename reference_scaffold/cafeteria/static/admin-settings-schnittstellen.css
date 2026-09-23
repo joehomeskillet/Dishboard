@@ -1,0 +1,36 @@
+.dishboard-admin [data-page="api"] [data-api-keys] td {
+  padding-block: var(--app-space-2);
+  overflow-wrap: anywhere;
+}
+
+.dishboard-admin [data-page="api"] .admin-api-key-details > summary {
+  margin-top: 0;
+}
+
+.dishboard-admin [data-page="api"] .admin-api-key-details[open] {
+  min-width: 0;
+}
+
+@media (max-width: 991.98px) {
+  .dishboard-admin [data-page="api"] [data-api-keys] tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--app-space-2) var(--app-space-3);
+    border-bottom: 1px solid var(--app-border);
+  }
+
+  .dishboard-admin [data-page="api"] [data-api-keys] td {
+    /* Tabler's mobile table padding is important; limit the override to this list. */
+    padding: var(--app-space-1) 0 !important;
+    border: 0;
+  }
+
+  .dishboard-admin [data-page="api"] [data-api-keys] td::before {
+    display: none;
+  }
+
+  .dishboard-admin [data-page="api"] [data-api-keys] td[data-label="Läuft ab"]::before {
+    display: inline;
+    content: attr(data-label) ": ";
+  }
+}
