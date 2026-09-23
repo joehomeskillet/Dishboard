@@ -103,7 +103,7 @@ def test_lager_statusbar_viewports_nojs_and_keyboard(b3, master_server, tmp_path
                         assert metric['primary'] == 1
                         assert metric['open'] == 0
                         if width == 1440:
-                            assert metric['row'] < 100
+                            assert metric['row'] <= 96
                         expect(page.locator('.admin-statusbar')).to_be_visible()
                         expect(page.locator('.admin-statusbar')).to_contain_text('Kein Bestand erfasst')
                         expect(page.locator('.admin-statusbar')).to_contain_text('Lagermehl')
