@@ -17,6 +17,7 @@ from cafeteria.admin import display_routes, workflow_routes  # noqa: F401
 from cafeteria.public import routes as public_routes
 from cafeteria.security import csrf_token
 from cafeteria.signage import routes as signage_routes
+from cafeteria.ui import register_ui
 from sqlalchemy.exc import SQLAlchemyError
 from test_admin_workflow_db import _patient_values, _save, _staff_values
 from test_admin_workflow_routes import (  # noqa: F401
@@ -39,6 +40,7 @@ def hub_app(database_engine, tmp_path, monkeypatch):  # noqa: F811
         TESTING=True, SECRET_KEY='output-hub-test', LAST_GOOD_DIR=str(tmp_path),
         DEMO_MODE=True, DEMO_TODAY='2026-09-02',
     )
+    register_ui(application)
     application.extensions['cafeteria_db'] = database_engine
     application.extensions['cafeteria_auth_issuer_db'] = database_engine
     auth = Blueprint('auth', __name__)
@@ -100,11 +102,11 @@ def test_hubs_use_existing_read_roles_and_link_all_real_targets(hub_app, databas
         assert len(set(screen_links)) == (2 if path == '/admin/screens' else 6)
         links = [link for link in links if link not in screen_links]
         if path == '/admin/vorlagen':
-            # area tabs (3) + noscript #output-* (2) + both families' print/public/content
+            # No horizontal area tabs; #output-* (2) + both families' print/public/content
             # links (10/16) + master-data cards (3) [+ admin recipe/drucklayout/details (6)];
             # admin also repeats each Vorlageneditor href once outside and inside «Frühere Versionen»
-            expected_links = 25 if role == 'Cafeteria.Admin' else 18
-            expected_unique_links = 23 if role == 'Cafeteria.Admin' else 18
+            expected_links = 22 if role == 'Cafeteria.Admin' else 15
+            expected_unique_links = 20 if role == 'Cafeteria.Admin' else 15
             assert '/admin/gerichtvorlagen' in links
             assert '/admin/rezepte' in links
             assert html.count('>Rezept drucken</a>') == 1
@@ -112,8 +114,9 @@ def test_hubs_use_existing_read_roles_and_link_all_real_targets(hub_app, databas
             expected_unique_links += 1
             assert {'/admin/grundlagen?kind=foods', '/admin/rezepte', '/admin/kochbuecher'} <= set(links)
         else:
-            expected_links = 15
-            expected_unique_links = 15
+            # Ten public destinations; module tabs and two area anchors are gone.
+            expected_links = 10
+            expected_unique_links = 10
         recipe_editor_links = [link for link in links if link.startswith('/admin/vorlagen/rezepte')]
         expected_recipe_links = (
             ['/admin/vorlagen/rezepte?template=standard&revision=1']
@@ -212,7 +215,14 @@ def test_selected_week_only_changes_saved_week_destinations(hub_app, database_en
     response = client.get('/admin/vorlagen?week=2026-09-07')
     assert response.status_code == 200
     links = MainLinks(response.get_data(as_text=True)).links
-    assert sum('week=2026-09-07' in link for link in links) == 5
+    # The removed module tab linked to preview; the four saved-week actions remain.
+    week_links = [link for link in links if 'week=2026-09-07' in link]
+    assert len(week_links) == 4
+    assert set(week_links) == {
+        '/admin/cafeteria?week=2026-09-07', '/admin/patienten?week=2026-09-07',
+        '/admin/cafeteria/preview/print?week=2026-09-07',
+        '/admin/patienten/preview/print?week=2026-09-07',
+    }
     assert '/druck/cafeteria/woche' in links and '/druck/patienten/woche' in links
 
 
@@ -241,6 +251,10 @@ def test_hubs_responsive_keyboard_and_native_week_selection(
                 expect(page.get_by_role('heading', level=1)).to_have_text(title)
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
                 if path == '/admin/screens':
+                    expect(page.locator('.screen-more-actions[open]')).to_have_count(0)
+                    for summary in page.locator('.screen-more-actions > summary').all():
+                        summary.click()
+                    expect(page.locator('.screen-more-actions[open]')).to_have_count(4)
                     controls = page.locator('main .screen-card .btn').all()
                 else:
                     controls = []
