@@ -6,34 +6,52 @@
 {% set ready = result and result.valid and import_token %}
 {% set invalid = result and not result.valid %}
 {% set family = 'patienten' if result and result.profile == 'patient' else 'cafeteria' %}
-{% set profile_label = 'Patientenplan' if family == 'patienten' else 'Cafeteria' %}
+{% set profile_label = 'Patientenplan' if result and result.profile == 'patient' else 'Cafeteria' if result and result.profile else none %}
 {% set profile = 'patient' if family == 'patienten' else 'staff_guest' %}
 {% set checked_week = result.week_start.isoformat() if ready else none %}
+{% set status_items = [] %}
+{% if ready %}
+  {% set _ = status_items.append({'label': 'Bereich', 'value': profile_label, 'variant': 'neutral'}) %}
+  {% set _ = status_items.append({'label': 'Woche', 'value': 'KW ' ~ result.week_start.isocalendar().week ~ ' · ab ' ~ result.week_start.strftime('%d.%m.%Y'), 'variant': 'neutral'}) %}
+  {% set _ = status_items.append({'label': 'Prüfung', 'value': 'Bereit', 'variant': 'success'}) %}
+  {% set _ = status_items.append({'label': 'Zeilen', 'value': result.rows, 'variant': 'neutral'}) %}
+  {% if result.warnings %}{% set _ = status_items.append({'label': 'Warnungen', 'value': result.warnings|length, 'variant': 'warning', 'href': '#csv-warnings'}) %}{% endif %}
+{% elif invalid %}
+  {% set _ = status_items.append({'label': 'Prüfung', 'value': 'Fehlerhaft', 'variant': 'danger', 'href': '#file-error'}) %}
+  {% if profile_label %}{% set _ = status_items.append({'label': 'Bereich', 'value': profile_label, 'variant': 'neutral'}) %}{% endif %}
+  {% if result.week_start %}{% set _ = status_items.append({'label': 'Woche', 'value': 'KW ' ~ result.week_start.isocalendar().week ~ ' · ab ' ~ result.week_start.strftime('%d.%m.%Y'), 'variant': 'neutral'}) %}{% endif %}
+{% else %}
+  {% set _ = status_items.append({'label': 'Prüfung', 'value': 'Offen', 'variant': 'neutral', 'href': '#csv-upload'}) %}
+{% endif %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-settings-import.css') }}">{% endblock %}
 {% block main_attributes %}data-state="{{ 'ready' if ready else 'error' if invalid else 'empty' }}"{% endblock %}
-{% block page_header %}{{ page_header('Daten importieren', profile_label) }}{% endblock %}
+{% block page_header %}
+{% call page_header('Daten importieren', 'Wochen-CSV prüfen und als Entwurf übernehmen.', status_items=status_items) %}
+{%- if ready -%}
+<button class="btn btn-primary" type="submit" form="csv-import">{{ icon('file-import') }}Geprüfte Datei importieren</button>
+{%- endif -%}
+{% endcall %}
+{% endblock %}
 {% block content %}
+<div class="csv-preview-layout">
   {% if ready %}
-  <section class="card mb-3 csv-preview-result admin-compact-section" aria-labelledby="csv-result-title" data-checked-profile="{{ result.profile }}" data-checked-week="{{ checked_week }}">
+  <section class="card csv-preview-result admin-compact-section" aria-labelledby="csv-result-title" data-checked-profile="{{ result.profile }}" data-checked-week="{{ checked_week }}">
     <div class="card-body">
       <div role="status">
         <h2 id="csv-result-title">{{ icon('file-check', class='me-2') }}Bereit zum Import</h2>
         <p class="csv-checked-identity mb-2" data-checked-identity>Geprüftes Ergebnis der zuletzt geprüften Datei, nicht einer neuen Auswahl.</p>
-        <p class="csv-target"><strong>{{ profile_label }}</strong><br>KW {{ result.week_start.isocalendar().week }} · ab {{ result.week_start.strftime('%d.%m.%Y') }}</p>
-        <p>{{ result.rows }} Datenzeilen geprüft</p>
+        <p>Die geprüfte Datei wird erst mit dem nächsten Schritt als Entwurf übernommen. «Geprüfte Datei importieren» gilt für dieses Ergebnis, nicht für eine neu ausgewählte Datei.</p>
         {% if result.warnings %}
-        <div class="alert alert-warning d-block text-break py-2" data-csv-warnings>
-          {{ icon('alert-triangle', class='me-2') }}
+        <div class="csv-warning-list" id="csv-warnings" data-csv-warnings>
           {% for warning in result.warnings %}
-          <span{% if not loop.last %} class="d-block mb-1"{% endif %}>{{ warning }}</span>
+          <p class="csv-warning-row">{{ icon('alert-triangle', class='me-2') }}<span>{{ warning }}</span></p>
           {% endfor %}
         </div>
         {% endif %}
       </div>
-      <p>Die geprüfte Datei wird erst mit dem nächsten Schritt als Entwurf übernommen. «Geprüfte Datei importieren» gilt für dieses Ergebnis, nicht für eine neu ausgewählte Datei.</p>
-      <form method="post" action="{{ url_for('admin.import_csv') }}">
+      <form id="csv-import" method="post" action="{{ url_for('admin.import_csv') }}">
         <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
         <input type="hidden" name="import_token" value="{{ import_token }}">
-        <button class="btn btn-primary" type="submit">{{ icon('file-import') }}Geprüfte Datei importieren</button>
       </form>
     </div>
   </section>
@@ -42,51 +60,39 @@
     <div class="card-body">
       <h2 id="csv-result-title">{{ icon('alert-triangle', class='me-2') }}Datei korrigieren</h2>
       <p>Korrigieren Sie die genannten Stellen in der CSV-Datei. Wählen Sie danach die korrigierte Datei erneut aus und prüfen Sie sie.</p>
-      <ul class="text-break mb-2">
+      <ul class="csv-issue-list">
         {% for issue in result.issues %}
-        <li><strong>Zeile {{ issue.line }}, Spalte {{ issue.column }}:</strong> {{ issue.message }}</li>
+        <li class="csv-issue-row"><strong>Zeile {{ issue.line }}, Spalte {{ issue.column }}:</strong> {{ issue.message }}</li>
         {% endfor %}
       </ul>
-      <details class="admin-compact-details">
-        <summary class="btn">{{ icon('chevron-right') }}Betroffene Stelle und Korrektur</summary>
-        <div class="admin-compact-detail-body">
-          <p class="mb-0">Die Meldungen oben stammen aus der bestehenden Dateiprüfung. Eine neue Dateiauswahl ersetzt dieses Ergebnis erst nach «Vorschau prüfen».</p>
-        </div>
-      </details>
     </div>
   </section>
   {% endif %}
 
-  <form method="post" action="{{ url_for('admin.import_preview') }}" enctype="multipart/form-data" class="card mb-3 admin-compact-form" id="csv-upload">
+  <form method="post" action="{{ url_for('admin.import_preview') }}" enctype="multipart/form-data" class="card admin-compact-form csv-upload-form" id="csv-upload">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
       <div class="card-body">
       <h2>{{ 'Andere Datei prüfen' if ready else 'CSV-Datei auswählen' }}</h2>
       <p>Die Vorschau speichert noch keinen Entwurf.</p>
-      <div class="row g-2 align-items-end mb-3">
-        <div class="col-12 col-md">
+      <div class="csv-upload-grid">
+        <div>
           <label class="form-label" for="file">{{ 'Korrigierte CSV-Datei' if invalid else 'CSV-Datei' }}</label>
           <input class="form-control{% if invalid %} is-invalid{% endif %}" id="file" name="file" type="file" accept=".csv,text/csv" required{% if invalid %} aria-invalid="true" aria-describedby="file-error"{% endif %}>
         </div>
-        <div class="col-12 col-md-auto">
-          <button class="btn{% if not ready %} btn-primary{% endif %}" type="submit">{{ icon('eye') }}Vorschau prüfen</button>
-        </div>
+        <button class="btn{% if not ready %} btn-primary{% endif %}" type="submit">{{ icon('eye') }}Vorschau prüfen</button>
       </div>
-      <details class="admin-compact-details">
-        <summary class="btn">{{ icon('chevron-right') }}Dateiformat und Erklärungen</summary>
+      <details class="admin-compact-details admin-disclosure" id="csv-more"{% if result or invalid %} open{% endif %}>
+        <summary>{{ icon('chevron-right') }}Weitere Optionen{% if result %}<span class="text-secondary"> · enthält Angaben</span>{% endif %}</summary>
         <div class="admin-compact-detail-body">
-          <p class="mb-0">Cafeteria und Patientenplan verwenden getrennte Formate. Eine Datei enthält genau einen Plan und eine Kalenderwoche.</p>
-        </div>
-      </details>
-      {% if result %}
-      <details class="admin-compact-details">
-        <summary class="btn">{{ icon('chevron-right') }}Technische Details</summary>
-        <div class="admin-compact-detail-body">
+          <p class="mb-2">Cafeteria und Patientenplan verwenden getrennte Formate. Eine Datei enthält genau einen Plan und eine Kalenderwoche.</p>
+          {% if result %}
           <p class="mb-1">Spalten der geprüften Datei:</p>
           <p class="text-break mb-0">{% if result.headers %}{{ result.headers|join(', ') }}{% else %}Keine Spalten gelesen.{% endif %}</p>
+          {% endif %}
         </div>
       </details>
-      {% endif %}
     </div>
   </form>
-  <a class="btn" href="{{ url_for('admin.' ~ family, week=result.week_start.isoformat()) if ready else url_for('admin.' ~ family) }}">{{ icon('arrow-left') }}Zurück zur Wochenübersicht</a>
+</div>
+  <a class="btn csv-back" href="{{ url_for('admin.' ~ family, week=result.week_start.isoformat()) if ready else url_for('admin.' ~ family) }}">{{ icon('arrow-left') }}Zurück zur Wochenübersicht</a>
 {% endblock %}

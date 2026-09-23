@@ -1516,6 +1516,12 @@ Strukturmuster für den bestehenden Importablauf. Vorschau und Import nur in der
 
 **Schutz:** Keine neue automatische Importfunktion, kein Wegklicken fachlicher Fehler und kein neuer Fortschrittsdienst. Rohdaten, Tokens oder interne Fehlerdetails nicht in normale Meldungen kopieren. Produktionsimporte sind keine zulässigen UI-Tests.
 
+##### Modul Einstellungen – Daten importieren (2026-09-20)
+
+Datenimport folgt M01/M17/M25. Seitentitel `Daten importieren` (Navigationspunkt), ein Satz Kontext, Statusbar aus vorhandenen Prüfergebnissen. Leer: `Prüfung` = `Offen` mit Ziel `#csv-upload`. Nach Vorschau: Bereich aus `result.profile` als Cafeteria/Patientenplan, Woche aus `result.week_start` (`KW n · ab TT.MM.JJJJ`), Prüfung `Bereit` (success) oder `Fehlerhaft` (danger, Ziel `#file-error`), `Zeilen` aus `result.rows`, `Warnungen` nur bei `result.warnings` (Ziel `#csv-warnings`). Keine Importrevision, keine internen Profilcodes (`staff_guest`/`patient`) als sichtbarer Text.
+
+Genau eine `.btn-primary` im `main`: «Vorschau prüfen» ohne gültiges Ergebnis, «Geprüfte Datei importieren» danach im Seitenkopf über `form="csv-import"`. Eine zweite Datei prüfen bleibt sekundär. Dateiformat und Spaltenköpfe stehen in `disclosure_section` «Weitere Optionen», offen bei Inhalt oder Fehler. Die Bereichswahl im M17-ASCII ist Komposition; das Profil kommt aus der CSV, kein neues Auswahlfeld. Rezeptimport bleibt unter Rezepte. Feldnamen `_csrf`, `file`, `import_token` und POST-Ziele `/import-preview` sowie `/import` bleiben byte-gleich. Modul-CSS nur in `admin-settings-import.css`. Nachweis: `tests/test_admin_csv_preview_ui.py` (eigener Playwright-Start, 360/768/1024/1440, No-JS, Tastatur, Statusbar, Überlauf), `tests/test_admin_csv_import.py`, `tests/test_csv_validation_followup.py`.
+
 #### M18 — Benutzer und ähnliche Verwaltungslisten
 
 Kompakte Verwaltung mit klarer Objektaktion; ausschliesslich vorhandene und erlaubte Daten zeigen.
