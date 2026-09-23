@@ -74,6 +74,8 @@
 {%- endif -%}
 {%- endmacro %}
 
+{# Group related fields in .admin-option-grid, one div per field: 1/2/3 columns
+   at <768/768/1440px. Controls stay >=48px; errors remain beside their control. #}
 {%- macro field(name, label, value='', type='text', id=none, required=false, error=none, hint=none, readonly=false, disabled=false, autofocus=false, placeholder=none) -%}
 {%- set field_id = id or name -%}
 {%- set desc_ids = [] -%}

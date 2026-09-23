@@ -77,6 +77,77 @@ def shared_site(monkeypatch, tmp_path, database_engine, browser):  # noqa: F811
         server.server_close()
 
 
+def _run_polish_check(markup, check, width=390, javascript=True):
+    # Own Playwright lifecycle on a separate thread from the module browser fixture.
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        executor.submit(_polish_check, markup, check, width, javascript).result(timeout=120)
+
+
+def _polish_check(markup, check, width, javascript):
+    from playwright.sync_api import sync_playwright
+
+    app = Flask('polish-patterns', template_folder=str(ROOT.parent / 'templates'), static_folder=str(STATIC))
+    app.config.update(TESTING=True, UI_LOCALE='de')
+    register_template_filters(app)
+    register_ui(app)
+
+    @app.route('/__polish__', methods=['GET', 'POST'])
+    def polish_page():
+        if request.method == 'POST':
+            return {key: request.form.getlist(key) for key in request.form}
+        return render_template_string('''<!doctype html><html lang="de"><head>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            {% for file in ['tokens.css', 'vendor/tabler/tabler.min.css', 'admin-tabler.css', 'ui-semantic.css'] %}
+            <link rel="stylesheet" href="{{ url_for('static', filename=file) }}">{% endfor %}
+            </head><body class="dishboard-admin"><main class="container-fluid">
+            ''' + markup + '''</main><script src="{{ url_for('static', filename='admin.js') }}"></script></body></html>''')
+
+    server = make_server('127.0.0.1', 0, app, threaded=True)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with sync_playwright() as playwright:
+            chromium = playwright.chromium.launch(headless=True, args=['--no-sandbox'])
+            try:
+                page = chromium.new_page(java_script_enabled=javascript, reduced_motion='reduce',
+                                         viewport={'width': width, 'height': 900})
+                assert page.goto(f'http://127.0.0.1:{server.server_port}/__polish__').status == 200
+                page.evaluate('document.fonts.ready')
+                check(page)
+            finally:
+                chromium.close()
+    finally:
+        server.shutdown()
+        thread.join(timeout=5)
+        server.server_close()
+
+
+@pytest.mark.parametrize('width,columns', [(360, 1), (768, 2), (1024, 2), (1440, 3), (1920, 3)])
+def test_polish_field_grid_targets_and_adjacent_error(width, columns):
+    markup = '''{% from 'admin/_macros.html' import field, select, check %}
+        <div class="admin-option-grid">
+          <div>{{ field('name', 'Name', error='Name fehlt') }}</div>
+          <div>{{ select('kind', 'Art', [('a', 'Standard')]) }}</div>
+          <div>{{ field('note', 'Notiz') }}</div>
+        </div>{{ check('choice', 'Auswahl') }}{{ check('radio', 'Option', type='radio') }}'''
+
+    def verify(page):
+        grid = page.locator('.admin-option-grid')
+        assert grid.evaluate('el => getComputedStyle(el).gridTemplateColumns.split(" ").length') == columns
+        for control in page.locator('.form-control, .form-select').all():
+            assert control.bounding_box()['height'] >= 48
+        for label in page.locator('.form-label').all():
+            expect(label).to_have_css('margin-bottom', '4px')
+        for row in page.locator('.form-check').all():
+            assert row.bounding_box()['height'] >= 44
+        expect(page.locator('#name')).to_have_attribute('aria-invalid', 'true')
+        expect(page.locator('#name')).to_have_attribute('aria-describedby', 'name-error')
+        expect(page.locator('#name + .invalid-feedback')).to_have_text('Name fehlt')
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+
+    _run_polish_check(markup, verify, width, javascript=False)
+
+
 def _page(shared_site, javascript=True, width=390, query=''):
     chromium, origin, cookie = shared_site
     context = chromium.new_context(java_script_enabled=javascript, viewport={'width': width, 'height': 900},

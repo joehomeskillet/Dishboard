@@ -379,7 +379,7 @@
 .dishboard-admin h1 { font-size: calc(var(--app-heading-size) * var(--app-font-scale)); line-height: var(--app-line-height-h1); }
 .dishboard-admin :is(h2, h3, .card-title) { font-size: calc(var(--app-font-size-title) * var(--app-font-scale)); line-height: var(--app-line-height-title); }
 .dishboard-admin :is(.form-label, .table, .nav-link, .page-link) { font-size: calc(var(--app-font-size-label) * var(--app-font-scale)); }
-.dishboard-admin .form-label { font-weight: 600; }
+.dishboard-admin .form-label { font-weight: 600; margin-bottom: var(--app-space-1); }
 /* Opt-in compact editing: shared spacing and disclosures, unchanged control sizes. */
 .dishboard-admin .admin-compact-form { min-width: 0; }
 .dishboard-admin .admin-compact-form .mb-3 { margin-bottom: var(--app-space-2) !important; }
@@ -448,6 +448,7 @@
 /* M21–M25 opt-in shared patterns; existing module rows retain their contracts. */
 .dishboard-admin .admin-option-group { min-width: 0; margin-bottom: var(--app-space-3); }
 .dishboard-admin .admin-option-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--app-space-2); }
+.dishboard-admin .admin-option-grid > * { min-width: 0; }
 .dishboard-admin .admin-option-row {
   display: flex; align-items: center; gap: var(--app-space-2); min-width: 0;
   padding: var(--app-space-1); border: 1px solid var(--app-border);
