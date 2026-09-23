@@ -71,7 +71,7 @@ def test_http_editor_preview_activation_inverted_palette_and_logo(live_branding,
         page.locator('#brand-text').fill('#ffffff')
         page.locator('#brand-font_body').select_option('carlito')
         page.locator('#brand-upload').set_input_files({'name': 'Logo.png', 'mimeType': 'image/png', 'buffer': _png((100, 100))})
-        page.get_by_role('button', name='Entwurf speichern & Vorschau').click()
+        page.get_by_role('button', name='Speichern').click()
         expect(page).to_have_url(origin + '/admin/design/marke?revision=2')
         preview = page.frame_locator('iframe')
         expect(preview.get_by_role('heading', name='Frisch zubereitet')).to_be_visible()
