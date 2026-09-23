@@ -173,6 +173,26 @@ def _symbol(control) -> str:
     return (control.locator('use').get_attribute('href') or '').rsplit('#tabler-', 1)[-1]
 
 
+def _open_archive_action(page):
+    # P2 keeps rare actions behind a native, keyboard-operable disclosure.
+    scroll_position = page.evaluate('[scrollX, scrollY]')
+    details = page.locator('details.admin-form-rare')
+    archive = details.get_by_role('link', name='Archivieren', exact=True, include_hidden=True)
+    expect(archive).to_have_count(1)
+    expect(archive).to_be_hidden()
+    summary = details.locator('summary')
+    expect(summary).to_contain_text('Weitere')
+    summary.focus()
+    page.keyboard.press('Enter')
+    expect(archive).to_be_visible()
+    page.keyboard.press('Tab')
+    expect(archive).to_be_focused()
+    assert _symbol(archive) == 'archive'
+    # Keyboard focus must not move the origin of density metrics/top captures.
+    page.evaluate('([x, y]) => window.scrollTo(x, y)', scroll_position)
+    return archive
+
+
 def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # noqa: F811
     page = browser.new_page(viewport={'width': 1440, 'height': 900})
     try:
@@ -238,7 +258,7 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         open_recipe = page.get_by_role('link', name='Testrezept öffnen', exact=True)
         assert _icon_control(open_recipe) == ('Testrezept öffnen', 'Öffnen')
         assert _symbol(open_recipe) == 'chevron-right'
-        archive = page.get_by_role('link', name='Archivieren', exact=True)
+        archive = _open_archive_action(page)
         assert archive.get_attribute('href') == '/admin/kochbuecher/book-1/status'
         assert _symbol(archive) == 'archive'
         assert page.locator('form[action="/admin/kochbuecher/book-1"] textarea[rows="2"]').count() == 1
@@ -427,6 +447,7 @@ def test_cookbook_list_and_editor_stay_compact_at_all_viewports(cookbook_server,
             expect(page.get_by_label('Position 1', exact=True)).to_have_value('1')
             expect(page.get_by_label('Rezept 1', exact=True)).to_have_value(cookbook_server['first'])
             expect(page.get_by_role('link', name='Alpha öffnen', exact=True)).to_be_visible()
+            expect(_open_archive_action(page)).to_have_attribute('href', path + '/status')
             expect(page.get_by_role('link', name='Archivieren', exact=True)).to_be_visible()
             _assert_page_width(page, width)
             _assert_core_controls(page)
@@ -575,6 +596,9 @@ def test_cookbook_pages_work_without_javascript_and_by_keyboard(
         assert _icon_control(open_recipe) == ('Beta öffnen', 'Öffnen')
         rings['recipe-link'] = _focus_ring(open_recipe)
         expect(position).to_have_value('5')
+        archive = _open_archive_action(page)
+        expect(archive).to_have_attribute('href', path + '/status')
+        rings['archive-link'] = _focus_ring(archive)
         assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 1')
         page.screenshot(path=str(EVIDENCE / f'kochbuch-editor-nojs-{label}.png'), full_page=True)
         (EVIDENCE / f'focus-rings-{label}.json').write_text(json.dumps(rings, indent=2))
@@ -646,6 +670,7 @@ def test_real_browser_zoom_keeps_cookbook_rows_and_labels(cookbook_server, brows
                         'button', name='Speichern', exact=True,
                     )).to_be_visible()
                     expect(page.get_by_role('link', name='Alpha öffnen', exact=True)).to_be_visible()
+                    expect(_open_archive_action(page)).to_have_attribute('href', path + '/status')
                     expect(page.get_by_role('link', name='Archivieren', exact=True)).to_be_visible()
                 captures = {'top': _native_viewport_capture(page, EVIDENCE / f'native-200-{name}.png')}
                 if name == 'list':
