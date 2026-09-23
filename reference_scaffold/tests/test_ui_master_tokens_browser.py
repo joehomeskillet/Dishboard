@@ -522,3 +522,32 @@ def test_polish_six_status_styles_have_text_icons_and_contrast(site, tmp_path):
             colors = _styles(node)
             assert contrast(_hex(colors['color']), _hex(colors['background-color'])) >= 4.5, (variant, colors)
     page.screenshot(path=str(tmp_path / 'polish-statuses-after.png'), full_page=True)
+
+
+def test_polish_heading_scale_flat_cards_and_header_budget(site, tmp_path):
+    page, app, _, _ = site
+    _goto(page, DISPLAY)
+    with app.test_request_context():
+        markup = render_template_string('''{% from 'admin/_macros.html' import page_header, actions %}
+          <header class="admin-page-header">{{ page_header('Menüs', description='Aktuelle Woche bearbeiten',
+            breadcrumbs=[('Wochenplan', '#week'), ('Menüs', none)],
+            actions=actions(primary={'label': 'Speichern', 'icon': 'device-floppy'}),
+            status_items=[{'label': 'Prüfstand', 'value': 'Offen', 'detail': '2 Angaben fehlen', 'href': '#review'}] * 5) }}</header>
+          <div class="card"><div class="card-body"><h2>Abschnitt</h2>
+            <div class="card"><div class="card-body"><h3>Details</h3>Inhalt</div></div>
+          </div></div>''')
+    page.locator('main').evaluate('(el, html) => el.innerHTML = html', markup)
+    values = page.locator('body').evaluate('''el => Object.fromEntries(
+        ['--app-font-size-h1', '--app-font-size-h2', '--app-font-size-h3', '--app-table-row-height']
+        .map(k => [k, getComputedStyle(el).getPropertyValue(k).trim()]))''')
+    assert values == {'--app-font-size-h1': '2.125rem', '--app-font-size-h2': '1.25rem',
+                      '--app-font-size-h3': '1.125rem', '--app-table-row-height': '56px'}
+    assert [float(_styles(page.locator(tag))['font-size'][:-2]) for tag in ['h1', 'h2', 'h3']] == [34, 20, 18]
+    nested = page.locator('.card .card')
+    assert nested.evaluate('el => ["Top", "Right", "Bottom", "Left"].every(s => getComputedStyle(el)["border" + s + "Width"] === "0px")')
+    expect(nested).to_have_css('box-shadow', 'none')
+    assert page.locator('.admin-page-header').bounding_box()['height'] <= 200, page.locator(
+        '.admin-page-header, .page-header, .page-header-row, .admin-statusbar, .admin-statusbar-item'
+    ).evaluate_all('els => els.map(el => ({class: el.className, height: el.offsetHeight, width: el.offsetWidth, padding: getComputedStyle(el).padding, margin: getComputedStyle(el).margin}))')
+    assert page.locator('.card').first.evaluate('el => parseFloat(getComputedStyle(el).borderTopWidth)') == 1
+    page.screenshot(path=str(tmp_path / 'polish-header-cards.png'), full_page=True)
