@@ -1,5 +1,5 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import page_header, icon %}
+{% from 'admin/_macros.html' import page_header, icon, disclosure_section %}
 {% set workflow_nav = 'import' %}
 {% set layout_variant = 'standard' %}
 {% block title %}Daten importieren{% endblock %}
@@ -11,17 +11,17 @@
 {% set checked_week = result.week_start.isoformat() if ready else none %}
 {% set status_items = [] %}
 {% if ready %}
-  {% set _ = status_items.append({'label': 'Bereich', 'value': profile_label, 'variant': 'neutral'}) %}
-  {% set _ = status_items.append({'label': 'Woche', 'value': 'KW ' ~ result.week_start.isocalendar().week ~ ' · ab ' ~ result.week_start.strftime('%d.%m.%Y'), 'variant': 'neutral'}) %}
+  {% set _ = status_items.append({'label': t('admin.area.label'), 'value': profile_label, 'variant': 'neutral'}) %}
+  {% set _ = status_items.append({'label': t('time.week.label'), 'value': 'KW ' ~ result.week_start.isocalendar().week ~ ' · ab ' ~ result.week_start.strftime('%d.%m.%Y'), 'variant': 'neutral'}) %}
   {% set _ = status_items.append({'label': 'Prüfung', 'value': 'Bereit', 'variant': 'success'}) %}
   {% set _ = status_items.append({'label': 'Zeilen', 'value': result.rows, 'variant': 'neutral'}) %}
   {% if result.warnings %}{% set _ = status_items.append({'label': 'Warnungen', 'value': result.warnings|length, 'variant': 'warning', 'href': '#csv-warnings'}) %}{% endif %}
 {% elif invalid %}
   {% set _ = status_items.append({'label': 'Prüfung', 'value': 'Fehlerhaft', 'variant': 'danger', 'href': '#file-error'}) %}
-  {% if profile_label %}{% set _ = status_items.append({'label': 'Bereich', 'value': profile_label, 'variant': 'neutral'}) %}{% endif %}
-  {% if result.week_start %}{% set _ = status_items.append({'label': 'Woche', 'value': 'KW ' ~ result.week_start.isocalendar().week ~ ' · ab ' ~ result.week_start.strftime('%d.%m.%Y'), 'variant': 'neutral'}) %}{% endif %}
+  {% if profile_label %}{% set _ = status_items.append({'label': t('admin.area.label'), 'value': profile_label, 'variant': 'neutral'}) %}{% endif %}
+  {% if result.week_start %}{% set _ = status_items.append({'label': t('time.week.label'), 'value': 'KW ' ~ result.week_start.isocalendar().week ~ ' · ab ' ~ result.week_start.strftime('%d.%m.%Y'), 'variant': 'neutral'}) %}{% endif %}
 {% else %}
-  {% set _ = status_items.append({'label': 'Prüfung', 'value': 'Offen', 'variant': 'neutral', 'href': '#csv-upload'}) %}
+  {% set _ = status_items.append({'label': 'Prüfung', 'value': t('status.pending.label'), 'variant': 'neutral', 'href': '#csv-upload'}) %}
 {% endif %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-settings-import.css') }}">{% endblock %}
 {% block main_attributes %}data-state="{{ 'ready' if ready else 'error' if invalid else 'empty' }}"{% endblock %}
@@ -81,16 +81,13 @@
         </div>
         <button class="btn{% if not ready %} btn-primary{% endif %}" type="submit">{{ icon('eye') }}Vorschau prüfen</button>
       </div>
-      <details class="admin-compact-details admin-disclosure" id="csv-more"{% if result or invalid %} open{% endif %}>
-        <summary>{{ icon('chevron-right') }}Weitere Optionen{% if result %}<span class="text-secondary"> · enthält Angaben</span>{% endif %}</summary>
-        <div class="admin-compact-detail-body">
+      {% call disclosure_section(id='csv-more', has_content=result, has_error=invalid) %}
           <p class="mb-2">Cafeteria und Patientenplan verwenden getrennte Formate. Eine Datei enthält genau einen Plan und eine Kalenderwoche.</p>
           {% if result %}
           <p class="mb-1">Spalten der geprüften Datei:</p>
           <p class="text-break mb-0">{% if result.headers %}{{ result.headers|join(', ') }}{% else %}Keine Spalten gelesen.{% endif %}</p>
           {% endif %}
-        </div>
-      </details>
+      {% endcall %}
     </div>
   </form>
 </div>

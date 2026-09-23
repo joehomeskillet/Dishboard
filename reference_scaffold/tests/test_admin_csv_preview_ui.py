@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 from flask import Flask
+from flask import render_template
 from jinja2 import ChoiceLoader, DictLoader
 from playwright.sync_api import Page, expect, sync_playwright
 from sqlalchemy import Engine, text
@@ -19,6 +20,8 @@ from test_admin_ux_browser import (  # noqa: F401
     admin_app, admin_engine, browser, live_server, page_context,
 )
 from test_rendered_ui import _login
+from cafeteria.template_filters import register_template_filters
+from cafeteria.ui import register_ui
 
 ROOT = Path(__file__).resolve().parents[2]
 BASE_REVISION = 'e89872e4483132bff74b7df05634e740af5d01e0'
@@ -28,6 +31,64 @@ SCHEMA_2_WARNING = 'Schema-2-Vollimport: Bestehende Beilagen werden auf «Keine�
 PREVIEW_FIELDS = ('_csrf', 'file')
 IMPORT_FIELDS = ('_csrf', 'import_token')
 VIEWPORTS = ((360, 800), (768, 1024), (1024, 768), (1440, 900))
+
+
+@pytest.mark.parametrize(('locale', 'pending', 'more'), (
+    ('de', 'Offen', 'Weitere Optionen'), ('en', 'Pending', 'More options'),
+))
+def test_csv_preview_registered_semantics(locale: str, pending: str, more: str) -> None:
+    application = Flask(__name__, template_folder=str(ROOT / 'reference_scaffold/cafeteria/templates'))
+    application.config.update(TESTING=True, UI_LOCALE=locale)
+    register_ui(application)
+    register_template_filters(application)
+    application.jinja_env.loader = ChoiceLoader([
+        DictLoader({'admin/base_tabler.html': '{% block page_header %}{% endblock %}{% block content %}{% endblock %}'}),
+        application.jinja_env.loader,
+    ])
+    for endpoint in ('import_preview', 'import_csv', 'cafeteria'):
+        application.add_url_rule('/' + endpoint, endpoint='admin.' + endpoint, view_func=lambda: '')
+    with application.test_request_context():
+        rendered = render_template(TEMPLATE, result=None, import_token=None, csrf_token=lambda: 'test-csrf')
+    assert pending in rendered
+    assert more in rendered
+    assert 'id="csv-more"' in rendered
+
+
+@pytest.mark.parametrize('width', (360, 1440))
+def test_csv_preview_review_evidence(
+    page_context: Page, tmp_path: Path, width: int,  # noqa: F811
+) -> None:
+    page = page_context
+    page.set_viewport_size({'width': width, 'height': 900 if width == 1440 else 800})
+    measurements = []
+    for state, source in (
+        ('empty', None), ('invalid', INVALID_CSV),
+        ('ready', 'menu_cafeteria_example.csv'),
+        ('warning', _schema_2_example('menu_cafeteria_example.csv')),
+    ):
+        page.goto('/admin/import-preview')
+        if source is not None:
+            _upload(page, source)
+        _assert_accessible_layout(page)
+        metric = _metrics(page)
+        assert metric['primary'] == 1, metric
+        assert metric['height'] <= (2000 if width == 360 else 1000), metric
+        rows = page.locator('.csv-upload-grid, .csv-issue-row, .csv-warning-row')
+        assert rows.count() > 0
+        if width == 1440:
+            for row in rows.all():
+                box = row.bounding_box()
+                assert box is not None and 0 < box['height'] <= 96, box
+        if state in ('ready', 'warning'):
+            expect(page.locator('.admin-statusbar-item').filter(
+                has=page.get_by_text('Zeilen', exact=True),
+            ).locator('dd')).to_have_text('10')
+        expect(page.locator('#csv-more')).to_have_attribute('class', 'admin-compact-details admin-disclosure')
+        assert page.locator('#csv-more[open]').count() == (0 if state == 'empty' else 1)
+        page.evaluate('document.activeElement.blur(); window.scrollTo(0, 0)')
+        page.screenshot(path=str(tmp_path / f'after-{state}-{width}.png'), full_page=True)
+        measurements.append(dict(state=state, width=width, **metric))
+    (tmp_path / f'measurements-{width}.json').write_text(json.dumps(measurements), encoding='utf-8')
 
 
 def _schema_2_example(filename: str) -> bytes:
@@ -117,15 +178,13 @@ def _metrics(page: Page) -> dict[str, object]:
 
 def _assert_accessible_layout(page: Page) -> None:
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-    controls = page.locator('main a, main button, main input:not([type="hidden"])')
+    controls = page.locator('main a:visible, main button:visible, main input:not([type="hidden"]):visible, main summary:visible')
     for control in controls.all():
         if control.get_attribute('type') in {'checkbox', 'radio'}:
             control = control.locator('xpath=ancestor::label')
         box = control.bounding_box()
         assert box is not None and box['height'] >= 48
-        classes = control.get_attribute('class') or ''
-        if 'admin-statusbar-link' not in classes:
-            assert box['width'] >= 48
+        assert box['width'] >= 48
     assert page.locator('link[href$="/app.css"]').count() == 0
     assert page.locator('main').count() == 1
     back = page.get_by_role('link', name='Zurück zur Wochenübersicht')
@@ -196,7 +255,7 @@ def test_csv_preview_ready_exposes_destination_before_import(
     expect(statusbar).to_contain_text(label)
     expect(statusbar).to_contain_text('KW 36 · ab 31.08.2026')
     expect(statusbar).to_contain_text('Bereit')
-    expect(statusbar).to_contain_text(str(rows))
+    expect(statusbar.locator('.admin-statusbar-item').filter(has=page.get_by_text('Zeilen', exact=True)).locator('dd')).to_have_text(str(rows))
     expect(page.get_by_role('status')).to_contain_text('Geprüftes Ergebnis der zuletzt geprüften Datei')
     assert 'staff_guest' not in page.locator('main').inner_text()
     assert 'Profil patient' not in page.locator('main').inner_text()
@@ -285,7 +344,7 @@ def test_native_csv_preview_and_draft_import_without_javascript(
 
         _upload(page, filename)
         expect(page.locator('main')).to_have_attribute('data-state', 'ready')
-        expect(page.locator('dl.admin-statusbar')).to_contain_text(str(rows))
+        expect(page.locator('.admin-statusbar-item').filter(has=page.get_by_text('Zeilen', exact=True)).locator('dd')).to_have_text(str(rows))
         expect(page.get_by_role('status')).to_contain_text('Geprüftes Ergebnis der zuletzt geprüften Datei')
         assert page.locator('form[action$="/import"] input').evaluate_all(
             'elements => elements.map(element => element.name)'
@@ -372,8 +431,7 @@ def test_csv_preview_frame_viewports_statusbar_nojs_keyboard(
                 assert metric['primary'] == 1, metric
                 expect(page.locator('dl.admin-statusbar')).to_contain_text('Fehlerhaft')
                 expect(page.locator('.csv-issue-row')).to_contain_text('Zeile 1, Spalte')
-                if metric['row']:
-                    assert float(metric['row']) <= 96, metric
+                assert 0 < float(metric['row']) <= 96, metric
                 assert _form_names(page, '#csv-upload') == list(PREVIEW_FIELDS)
 
                 _upload(page, 'menu_cafeteria_example.csv')
