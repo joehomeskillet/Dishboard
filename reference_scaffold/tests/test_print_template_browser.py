@@ -93,6 +93,9 @@ def test_real_editor_save_preview_activate_copy_restore(editor_app, editor_serve
         assert response is not None and response.status == 200
         assert "style-src 'self'; script-src 'self'" in response.headers['content-security-policy']
         expect(page.get_by_label('Vorlagenname', exact=True)).to_have_value('Standard')
+        expect(page.locator('.admin-statusbar')).to_be_visible()
+        expect(page.locator('.admin-statusbar-item')).to_have_count(3)
+        expect(page.locator('main .btn-primary')).to_have_count(1)
         _targets(page)
         page.locator('details[data-template-appearance] summary').click()
         page.locator('details[data-template-texts] summary').click()
@@ -166,3 +169,42 @@ def test_two_sessions_get_conflict_and_native_no_js_flow(editor_app, editor_serv
         expect(b.locator('[data-template-status-scope]')).to_contain_text('Version 3')
         _targets(b)
         b.screenshot(path=str(tmp_path / 'print-editor-second-session-no-js.png'), full_page=True)
+
+
+@pytest.mark.parametrize('width,javascript', [(360, False), (360, True), (768, True), (1024, True), (1440, True)])
+def test_hub_and_editor_statusbar_viewports_keyboard_and_no_js(
+    editor_app, editor_server, database_engine, browser, width, javascript, tmp_path: Path,  # noqa: F811
+) -> None:
+    client, _ = _login(editor_app, database_engine, ['Cafeteria.Admin'])
+    _save(database_engine, 'staff_guest', _staff_values())
+    _save(database_engine, 'patient', _patient_values())
+    with _context(browser, editor_server, client, width, javascript=javascript) as context:
+        page = context.new_page()
+        response = page.goto(f'/admin/vorlagen?week={DAY}')
+        assert response is not None and response.status == 200
+        expect(page.get_by_role('heading', level=1)).to_have_text('Vorlagen')
+        expect(page.locator('.admin-statusbar')).to_be_visible()
+        expect(page.locator('.admin-statusbar-item')).to_have_count(4)
+        expect(page.locator('main .btn-primary')).to_have_count(1)
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        _targets(page)
+        if width == 1440:
+            row_height = page.locator('#output-cafeteria [data-current-template]').evaluate(
+                'el => el.getBoundingClientRect().height'
+            )
+            assert row_height <= 96
+        week_submit = page.get_by_role('button', name='Woche anzeigen', exact=True)
+        week_submit.focus()
+        expect(week_submit).to_be_focused()
+        page.screenshot(path=str(tmp_path / f'vorlagen-hub-{width}-js{javascript}.png'), full_page=True)
+        editor = page.goto(f'/admin/vorlagen/cafeteria?week={DAY}')
+        assert editor is not None and editor.status == 200
+        expect(page.locator('.admin-statusbar')).to_be_visible()
+        expect(page.locator('.admin-statusbar-item')).to_have_count(3)
+        expect(page.locator('main .btn-primary')).to_have_count(1)
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        _targets(page)
+        page.get_by_label('Vorlagenname', exact=True).focus()
+        page.keyboard.press('Tab')
+        expect(page.locator('details[data-template-appearance] summary')).to_be_focused()
+        page.screenshot(path=str(tmp_path / f'vorlagen-editor-{width}-js{javascript}.png'), full_page=True)
