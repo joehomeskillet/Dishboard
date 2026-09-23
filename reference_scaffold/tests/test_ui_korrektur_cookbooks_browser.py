@@ -190,7 +190,8 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         view = rows.nth(1).get_by_role('link', name='Altes Buch öffnen', exact=True)
         expect(edit).to_contain_text('Bearbeiten')
         expect(view).to_contain_text('Öffnen')
-        assert (_symbol(edit), _symbol(view)) == ('pencil', 'chevron-right')
+        # actions.edit resolves to the vendored Tabler 'edit' symbol since the sprite package.
+        assert (_symbol(edit), _symbol(view)) == ('edit', 'chevron-right')
         # Active is the default; only archived rows carry a status badge, so "Aktiv" is not repeated per row.
         expect(rows.nth(0).locator('.badge')).to_have_count(0)
         expect(rows.nth(1).locator('.badge')).to_have_text('Archiviert')

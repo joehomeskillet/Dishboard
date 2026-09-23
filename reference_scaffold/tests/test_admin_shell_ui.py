@@ -202,7 +202,7 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
     elif page_kind == 'detail':
         expect(main).to_have_attribute('data-public-id', str(component['public_id']))
         expect(main.locator('[name="name"]')).to_have_value(component['name'])
-        primary = main.get_by_role('button', name='Baustein speichern', exact=True)
+        primary = main.get_by_role('button', name='Speichern', exact=True)
         for control_id in ('c-name', 'c-cat', 'c-origin'):
             label_box = main.locator(f'label[for="{control_id}"]').bounding_box()
             control_box = main.locator(f'#{control_id}').bounding_box()
@@ -213,15 +213,14 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         # The presence select only exists for a chosen allergen: measure it in that state, then restore.
         checkbox = first_allergen.locator('[name="allergen_code"]')
         presence = first_allergen.locator('[name^="allergen_presence__"]')
-        unselected = first_allergen.get_by_text('Nicht ausgewählt', exact=True)
+        # Unselected rows carry no per-row label any more; the safety hint stays once per group.
+        expect(main.locator('[id$="-allergen-hint"]').first).to_contain_text('allergenfrei')
         expect(checkbox).not_to_be_checked()
         expect(presence).to_be_hidden()
         expect(presence).to_be_enabled()
-        expect(unselected).to_be_visible()
         checkbox.check()
         expect(presence).to_be_visible()
         expect(presence).to_be_enabled()
-        expect(unselected).to_be_hidden()
         label_box = first_allergen.locator('label').first.bounding_box()
         select_box = presence.bounding_box()
         assert label_box is not None and select_box is not None
@@ -232,7 +231,6 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         checkbox.uncheck()
         expect(presence).to_be_hidden()
         expect(presence).to_be_enabled()
-        expect(unselected).to_be_visible()
 
     if page_kind == 'catalog' and shell == '.page':
         expect(primary).to_have_class(re.compile(r'\bcard-header\b'))
@@ -263,7 +261,7 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         expect(create_form).to_have_attribute('method', 'post')
         expect(create_form).to_have_attribute('action', f'/admin/{family}/komponenten')
         assert create_form.locator('[name="_csrf"]').input_value()
-        expect(create_form.get_by_role('button', name='Baustein erstellen', exact=True)).to_be_visible()
+        expect(create_form.get_by_role('button', name='Anlegen', exact=True)).to_be_visible()
         primary.focus()
         page.keyboard.press('Enter')
         expect(creation).not_to_have_attribute('open', '')

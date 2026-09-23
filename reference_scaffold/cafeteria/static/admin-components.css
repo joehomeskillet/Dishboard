@@ -69,3 +69,10 @@
   .component-row .component-status { grid-column: 2; grid-row: 2; }
   .component-edit-link { width: 100%; }
 }
+/* Desktop: a chosen allergen shows its presence beside the option, like the menu editor's option rows. */
+@media (min-width: 992px) {
+  .dishboard-admin .component-allergens .allergen-row:has([name="allergen_code"]:checked) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; column-gap: var(--app-space-2);
+  }
+  .dishboard-admin .component-allergens .allergen-row:has([name="allergen_code"]:checked) .component-allergen-presence .form-label { margin-bottom: 0; }
+}
