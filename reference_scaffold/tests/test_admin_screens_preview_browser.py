@@ -60,7 +60,7 @@ def _capture_card_visuals(page, name: str) -> Path:
 @pytest.mark.parametrize('width,height', [(1440, 900), (390, 844), (320, 844)])
 @pytest.mark.parametrize('javascript', [True, False])
 def test_card_visuals_tv_is_large_visible_and_native(
-    screen_app, screen_server, database_engine, browser, width, height, javascript,  # noqa: F811
+    screen_app, screen_server, database_engine, browser, width, height, javascript, tmp_path,  # noqa: F811
 ) -> None:
     client, _ = _login(screen_app, database_engine, ['Cafeteria.Admin'])
     cookie = client.get_cookie(screen_app.config['SESSION_COOKIE_NAME'])
@@ -69,9 +69,14 @@ def test_card_visuals_tv_is_large_visible_and_native(
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': screen_server}])
         page = context.new_page()
         assert page.goto('/admin/screens').status == 200
-        _capture_card_visuals(page, f'screens-{width}-{javascript}')
-        expect(page.locator('.screen-preview-details[open]')).to_have_count(2)
+        page.screenshot(path=str(tmp_path / f'screens-{width}-{javascript}-closed.png'), full_page=True)
+        expect(page.locator('.screen-preview-details[open]')).to_have_count(0)
         for card in page.locator('.screen-card').filter(has=page.locator('.screen-preview-signage')).all():
+            summary = card.locator('.screen-preview-details > summary')
+            summary.focus()
+            page.keyboard.press('Enter')
+            expect(card.locator('.screen-preview-details')).to_have_attribute('open', '')
+            expect(summary).to_be_focused()
             preview = card.locator('.tab-pane.active .screen-preview-signage')
             expect(preview).to_be_visible()
             box = preview.bounding_box()
@@ -84,6 +89,8 @@ def test_card_visuals_tv_is_large_visible_and_native(
             assert frame.evaluate('el => el.parentElement.inert')
             preview.scroll_into_view_if_needed()
             expect(frame.content_frame.locator('main')).to_be_visible()
+        expect(page.locator('.screen-preview-details[open]')).to_have_count(2)
+        page.screenshot(path=str(tmp_path / f'screens-{width}-{javascript}-open.png'), full_page=True)
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         expect(page.locator('iframe')).to_have_count(10)
         link = page.get_by_role('link', name='Mitarbeitende und externe Gäste Bildschirm Tagesplan öffnen', exact=True)
@@ -125,7 +132,7 @@ def screen_server(screen_app: Flask) -> Iterator[str]:
         server.server_close()
 
 
-@pytest.mark.parametrize('width,height', [(320, 844), (390, 844), (768, 1024), (1440, 900)])
+@pytest.mark.parametrize('width,height', [(320, 844), (390, 844), (768, 1024), (1024, 768), (1440, 900)])
 def test_real_screen_previews_switch_all_targets_without_frame_blocks(
     screen_app: Flask, screen_server: str, database_engine: Engine, browser: Browser,  # noqa: F811
     width: int, height: int, tmp_path: Path,
@@ -154,7 +161,8 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
         response = page.goto('/admin/screens')
         assert response is not None and response.status == 200
         assert "style-src 'self'; script-src 'self'" in response.headers['content-security-policy']
-        _capture_card_visuals(page, f'screens-initial-{width}')
+        page.screenshot(path=str(tmp_path / f'screens-initial-{width}.png'), full_page=True)
+        expect(page.locator('.screen-preview-details[open]')).to_have_count(0)
         expect(page.locator('.screen-card')).to_have_count(4)
         expect(page.locator('iframe')).to_have_count(10)
         expect(page.locator('.screen-browser-frame')).to_have_count(6)
@@ -229,19 +237,20 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
                 assert page.evaluate('document.activeElement.tagName') != 'IFRAME'
         assert loaded == TARGETS
         dimensions = page.locator('.screen-card').evaluate_all(
-            'cards => cards.map(card => ({width: card.offsetWidth, height: card.offsetHeight}))',
+            'cards => cards.map(card => ({top: card.offsetTop, width: card.offsetWidth, height: card.offsetHeight}))',
         )
-        for axis in (('width', 'height') if width >= 768 else ('width',)):
-            assert max(item[axis] for item in dimensions) - min(item[axis] for item in dimensions) <= 1
+        assert max(item['width'] for item in dimensions) - min(item['width'] for item in dimensions) <= 1
+        if width >= 768:
+            for top in {item['top'] for item in dimensions}:
+                row = [item for item in dimensions if item['top'] == top]
+                assert max(item['height'] for item in row) - min(item['height'] for item in row) <= 1, row
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         assert page.locator('main style, main [style]').count() == 0
         assert not failures
         page.get_by_role('heading', level=1).click()
         expect(page.locator('.screen-preview-details[open]')).to_have_count(4)
         if (width, height) in ((390, 844), (1440, 900)):
-            evidence = Path(__file__).resolve().parents[2] / '.claude/evidence/screens-browser-frame-0913'
-            evidence.mkdir(parents=True, exist_ok=True)
-            page.screenshot(path=str(evidence / f'admin-screens-{width}x{height}.png'), full_page=True)
+            page.screenshot(path=str(tmp_path / f'admin-screens-{width}x{height}.png'), full_page=True)
         page.screenshot(path=str(tmp_path / f'screens-preview-{width}.png'), full_page=True)
 
 
@@ -255,6 +264,15 @@ def test_full_views_remain_available_without_javascript(
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': screen_server}])
         page = context.new_page()
         page.goto('/admin/screens')
+        expect(page.locator('.screen-more-actions[open]')).to_have_count(0)
+        expect(page.locator('.screen-preview-details[open]')).to_have_count(0)
+        for card in page.locator('.screen-card').all():
+            expect(card.locator('.card-body > .btn-list > a')).to_be_visible()
+            for summary in card.locator('details > summary').all():
+                summary.focus()
+                page.keyboard.press('Enter')
+                expect(summary).to_be_focused()
+            expect(card.locator('details[open]')).to_have_count(2)
         screen_links = page.locator('.screens-grid a')
         for link in screen_links.all():
             expect(link).to_be_visible()
@@ -265,6 +283,7 @@ def test_full_views_remain_available_without_javascript(
         expect(page).to_have_url(f'{screen_server}/patienten/wochenplan/')
         expect(page.locator('main')).to_contain_text('Patientinnen und Patienten · Wochenübersicht')
         page.goto('/admin/screens')
+        page.locator('.screen-card[aria-labelledby="patient-public-title"] .screen-more-actions > summary').click()
         page.get_by_role('link', name='Patientinnen und Patienten Web Wochenplan ohne Bilder öffnen', exact=True).click()
         expect(page).to_have_url(f'{screen_server}/patienten/wochenplan/ohne-bilder/')
         expect(page.locator('.menu-photo, .card-img-top')).to_have_count(0)
