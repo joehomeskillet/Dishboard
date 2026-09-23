@@ -1,18 +1,23 @@
 from __future__ import annotations
 
 import re
+import json
 from datetime import date, timedelta
 from collections.abc import Iterator
 from pathlib import Path
+from threading import Thread
 
 import pytest
 from flask import Blueprint, Flask
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.pool import NullPool
+from playwright.sync_api import expect, sync_playwright
+from werkzeug.serving import make_server
 
 from cafeteria import db as database
 from cafeteria.admin import workflow_routes
 from cafeteria.security import csrf_token
+from cafeteria.ui import register_ui
 
 from test_admin_workflow_routes import (
     APP_PASSWORD,
@@ -71,6 +76,7 @@ def app(database_engine: Engine, tmp_path: Path) -> Flask:
     application = Flask(
         __name__,
         template_folder=str(ROOT / 'reference_scaffold' / 'cafeteria' / 'templates'),
+        static_folder=str(ROOT / 'reference_scaffold' / 'cafeteria' / 'static'),
     )
     application.config.update(
         SECRET_KEY='workflow-test-secret',
@@ -80,6 +86,7 @@ def app(database_engine: Engine, tmp_path: Path) -> Flask:
     )
     application.extensions['cafeteria_db'] = database_engine
     application.extensions['cafeteria_auth_issuer_db'] = database_engine
+    register_ui(application)
     return _register(application)
 
 
@@ -167,3 +174,137 @@ def test_page_render_contract(admin_client) -> None:
     assert '/fhir/metadata' in body
     assert re.search(r'<script[^>]*>[^<]+</script>', body, re.I) is None
     assert 'style=' not in body
+
+
+@pytest.mark.parametrize('javascript', [True, False], ids=['js', 'nojs'])
+def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript):
+    application = admin_client.application
+    server = make_server('127.0.0.1', 0, application, threaded=True)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    origin = f'http://127.0.0.1:{server.server_port}'
+    evidence = ROOT / '.claude/state/wp18-evidence'
+    evidence.mkdir(parents=True, exist_ok=True)
+    measurements = []
+    try:
+        with sync_playwright() as playwright:
+            with playwright.chromium.launch() as browser:
+                with browser.new_context(java_script_enabled=javascript, reduced_motion='reduce') as context:
+                    name = application.config['SESSION_COOKIE_NAME']
+                    cookie = admin_client.get_cookie(name)
+                    assert cookie is not None
+                    context.add_cookies([{'name': name, 'value': cookie.value, 'url': origin}])
+                    page = context.new_page()
+                    page.goto(origin + '/admin/api', wait_until='networkidle')
+                    expect(page.locator('[data-api-keys]')).to_contain_text('Noch keine API-Schlüssel')
+                    expect(page.locator('[data-api-keys] a[href="#api-key-label"]')).to_be_visible()
+                    expect(page.locator('main .btn-primary')).to_have_count(1)
+                    primary = page.locator('main .btn-primary')
+                    primary.focus()
+                    assert float(primary.evaluate('e => getComputedStyle(e).outlineWidth').removesuffix('px')) >= 2
+                    primary.press('Enter')
+                    expect(page.locator('#api-key-label')).to_be_visible()
+                    expect(page.locator('#api-key-label')).to_be_focused()
+                    initial = page.locator('#api-key-create').evaluate('e => [...new FormData(e)]')
+                    assert initial == [['_csrf', 'workflow-csrf'], ['label', ''],
+                                       ['expires_at', _create_form()['expires_at']]]
+                    page.locator('#api-key-label').fill('Küchenintegration')
+                    page.locator('#api-key-scope-preview').check()
+                    page.locator('#api-key-channel-cafeteria').check()
+                    page.locator('#api-key-channel-patienten').check()
+                    selected = page.locator('#api-key-create').evaluate('e => [...new FormData(e)]')
+                    assert selected == [['_csrf', 'workflow-csrf'], ['label', 'Küchenintegration'],
+                                        ['expires_at', _create_form()['expires_at']],
+                                        ['scopes', 'preview.read'], ['channels', 'cafeteria'],
+                                        ['channels', 'patienten']]
+                    summary = page.locator('#api-key-create-title')
+                    summary.focus()
+                    summary.press('Enter')
+                    summary.press('Enter')
+                    assert page.locator('#api-key-create').evaluate('e => [...new FormData(e)]') == selected
+                    with page.expect_response(lambda r: r.request.method == 'POST') as response:
+                        page.locator('#api-key-create button[type="submit"]').press('Enter')
+                    assert response.value.status == 303
+                    expect(page.locator('[data-new-key]')).to_be_visible()
+                    expect(page.locator('[data-new-key-hint]')).to_have_text('Dieser Schlüssel wird nur einmal angezeigt.')
+                    # Never capture or log the generated secret.
+                    page.reload(wait_until='networkidle')
+                    expect(page.locator('[data-new-key]')).to_have_count(0)
+                    for width, height in [(360, 844), (768, 1024), (1024, 768), (1440, 900)]:
+                        page.set_viewport_size({'width': width, 'height': height})
+                        page.evaluate('document.fonts.ready')
+                        expect(page.locator('main .btn-primary')).to_have_count(1)
+                        bar = page.locator('.admin-statusbar')
+                        expect(bar).to_be_visible()
+                        expect(bar.locator('.admin-statusbar-item')).to_have_count(2)
+                        assert bar.locator('dt').all_inner_texts() == ['Cafeteria', 'Patienten']
+                        expect(bar.locator('.admin-statusbar-item--warning')).to_have_count(2)
+                        assert bar.locator('.admin-statusbar-value-text').all_inner_texts() == [
+                            'Nicht veröffentlicht', 'Nicht veröffentlicht',
+                        ]
+                        expect(bar).not_to_contain_text('Revision')
+                        expect(page.locator('[data-api-technical]')).not_to_have_attribute('open', '')
+                        metrics = page.evaluate('''() => ({width: innerWidth,
+                            height: document.documentElement.scrollHeight,
+                            row: document.querySelector('[data-key-id]').getBoundingClientRect().height,
+                            primary: document.querySelectorAll('main .btn-primary').length,
+                            open: document.querySelectorAll('main details[open]').length,
+                            overflow: document.documentElement.scrollWidth - innerWidth})''')
+                        assert metrics['overflow'] <= 1, metrics
+                        assert metrics['row'] <= (96 if width >= 1024 else 280), metrics
+                        targets = page.locator('main :is(.btn, summary)').evaluate_all(
+                            'es => es.filter(e => e.checkVisibility()).map(e => e.getBoundingClientRect().height)')
+                        assert targets and min(targets) >= 48, targets
+                        measurements.append(metrics)
+                        page.screenshot(path=str(evidence / f'after-{javascript}-{width}.png'), full_page=True)
+                        page.locator('main .btn-primary').click()
+                        expect(page.locator('#api-key-label')).to_be_focused()
+                        # Checkbox labels are the full native 48px click targets; glyphs stay 20px.
+                        controls = page.locator('#api-key-create :is(.form-control, .form-check, button)').evaluate_all(
+                            'es => es.map(e => e.getBoundingClientRect().height)')
+                        assert controls and min(controls) >= 48, controls
+                        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+                        page.locator('#api-key-create-title').click()
+                    # Technical links remain reachable by keyboard, including without JS.
+                    technical = page.locator('[data-api-technical] > summary')
+                    technical.focus()
+                    technical.press('Enter')
+                    expect(page.get_by_role('heading', name='Technische Versionen')).to_be_visible()
+                    expect(page.locator('a[href="/api/v1/docs"]')).to_be_visible()
+                    technical.press('Enter')
+                    # Native details and confirmation preserve the revoke payload, including without JS.
+                    details = page.locator('.admin-api-key-details > summary')
+                    details.focus()
+                    details.press('Enter')
+                    revoke = page.locator('form[action$="/revoke"]')
+                    expect(revoke.locator('button')).not_to_be_visible()
+                    revoke.locator('summary').press('Enter')
+                    assert revoke.evaluate('e => [...new FormData(e)]') == [['_csrf', 'workflow-csrf']]
+                    if javascript:
+                        page.once('dialog', lambda dialog: dialog.dismiss())
+                        revoke.locator('button').click()
+                        expect(page.locator('[data-key-state="active"]')).to_have_count(1)
+                        page.once('dialog', lambda dialog: dialog.accept())
+                    with page.expect_response(lambda r: r.request.method == 'POST') as response:
+                        revoke.locator('button').press('Enter')
+                    assert response.value.status == 303
+                    expect(page.locator('[data-key-state="revoked"]')).to_be_visible()
+                    # Actual server validation retains choices and opens the failed form.
+                    page.locator('main .btn-primary').click()
+                    page.locator('#api-key-label').fill('Fehler bleibt sichtbar')
+                    page.locator('#api-key-channel-patienten').check()
+                    with page.expect_response(lambda r: r.request.method == 'POST') as response:
+                        page.locator('#api-key-create button').click()
+                    assert response.value.status == 400
+                    expect(page.locator('[data-api-create]')).to_have_attribute('open', '')
+                    expect(page.locator('.error-region')).to_be_visible()
+                    expect(page.locator('#api-key-label')).to_have_value('Fehler bleibt sichtbar')
+                    expect(page.locator('#api-key-channel-patienten')).to_be_checked()
+                    expect(page.locator('#api-key-scope-preview')).not_to_be_checked()
+                    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        (evidence / f'measurements-{javascript}.json').write_text(json.dumps(measurements, indent=2))
+        print('WP18 measurements:', json.dumps(measurements))
+    finally:
+        server.shutdown()
+        thread.join(timeout=5)
+        server.server_close()
