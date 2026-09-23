@@ -29,7 +29,7 @@
         <div class="btn-list mt-0">
           <a class="btn" href="{{ url_for(channel ~ '.' ~ periods[0][2]) }}" aria-label="{{ label }} {{ channel_label }} Tagesplan öffnen">{{ icon_label('actions.open') }}</a>
           <details class="screen-more-actions">
-            <summary class="btn">Weitere Aktionen</summary>
+            <summary class="btn">{{ icon_label('actions.more') }}</summary>
             <div class="btn-list">
           {% for period, period_label, target in periods[1:] %}
           <a class="btn" href="{{ url_for(channel ~ '.' ~ target) }}" aria-label="{{ label }} {{ channel_label }} {{ period_label }} öffnen">{{ icon('calendar-week') }}{{ 'Ohne Bilder' if period == 'week-no-images' else 'Wochenplan' }}</a>

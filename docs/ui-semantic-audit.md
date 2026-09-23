@@ -3,6 +3,33 @@
 Scope: shared presentation foundation. Source baseline `760ca1cc270f42c91c0e58dde24abe10caca0e96`.
 No module migration is implied by this inventory. Business values, rights and URLs stay with their owners.
 
+## Fundament 2 — 2026-09-23
+
+Current runtime registry: **184 unchanged customer seeds + 9 project additions = 193 keys**.
+This package adds only `ui.disclosure.details` and `ui.disclosure.more_options`;
+the seven earlier project keys remain. Both use the existing `chevron-right` sprite,
+neutral role, visible text, and complete DE/EN label/aria/tooltip messages.
+Customer CSV/JSON and the `len(seeds) == 184` assertion remain unchanged.
+
+| Surface / state | Migration | Evidence |
+|---|---|---|
+| Shared `page_header`, linked/unlinked status | Optional `href` inside `dd`; existing filter/anchor only | `test_statusbar_without_href_preserves_markup`, `test_statusbar_link_keyboard_focus_and_navigation`: byte equality, keyboard, visible focus, navigation, 360/768/1024/1440 px, no JS |
+| Admin shell, DE/EN | `ui_locale` from app context processor, fallback `de`; semantic CSS exactly once after admin CSS, before brand | `test_admin_shell_locale_and_single_semantic_stylesheet`; rendered/shell gates |
+| Standalone print-unavailable page | Its local semantic stylesheet remains required: no shell inheritance | Existing template inspected; no redundant link removed |
+| Shared `list_row` overflow | `actions.more` resolved by global `sem()`/`t()`; no cyclic macro import | `test_disclosure_project_keys_and_shared_labels`, shared-pattern browser gate |
+| Shared disclosure, closed/error/content | Default `ui.disclosure.more_options`; explicit title preserved | DE/EN render assertions and existing native disclosure browser checks |
+| Screens overflow / assignment details, existing permissions | `icon_label('actions.more')` / `ui.disclosure.details` | Screen-template browser gate; German labels unchanged |
+
+The older inventory below records the S1 baseline, not current migration status.
+Other module literals remain with their owners; this package does not translate
+all shell/navigation text or change business values, permissions, routes or form fields.
+
+Integration follow-up for the component owner: remove the redundant local
+`ui-semantic.css` links in `components.html` and `component_editor.html` when taking
+the global shell inclusion. The existing shell gate still expects “Baustein erstellen”
+and visible “Nicht ausgewählt”, while those unchanged component sources use
+`actions.add` and hide the unselected hint. This package does not change those tests.
+
 ## Shared components
 
 Each row records source location and proposed semantic candidate. Matches from current labels/icons

@@ -1,4 +1,4 @@
-/* Opt-in foundation. Shared shell inclusion belongs to its owning package. */
+/* Shared semantic foundation, loaded by the admin shell before brand overrides. */
 .ui-sem-label {
   display: inline-flex;
   align-items: center;
