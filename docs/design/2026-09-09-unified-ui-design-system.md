@@ -1467,6 +1467,34 @@ Die Übersicht zeigt je Bereich eine kompakte Zeile mit Wochenendbetrieb, aufkla
 
 Genau eine Primäraktion im `main`: «Anlegen» zum nativen Ausnahmeformular, nach Laden einer Ausnahme dessen «Speichern». Andere unabhängige Formulare behalten neutrale Speicheraktionen und ihre eigenen CSRF-/CAS-Felder. Hinweise stehen unter «Weitere Optionen», bei Inhalt oder Fehler offen. Leere, fehlerfreie Zeitfelder geschlossener Regeln werden kontextabhängig ausgeblendet, niemals deaktiviert oder geleert. Mobile Wochenvorgaben sind einspaltige Datensätze; Desktop zeigt gemeinsame Spaltenüberschriften statt wiederholter sichtbarer Labels. Zugängliche Feldlabels, native Bedienung ohne JavaScript, sichtbarer Fokus und 48-px-Ziele bleiben erhalten. Modul-CSS liegt in `admin-settings-bereiche.css`; gemeinsame Palette und Shell bleiben unverändert.
 
+##### Modul Einstellungen – Darstellung (2026-09-20)
+
+Darstellung verwendet M01, M24 und M25: Titel entspricht dem Navigationspunkt,
+ein Satz benennt die globale Wirkung. Die Statusbar zeigt den aktiven, aus dem
+Store gelesenen Stand oder ausdrücklich eine ungespeicherte Vorschau bzw. einen
+Validierungsfehler. Abstände und Menübilder stammen aus `display_values`; bei
+Vorschau/Fehler beschreiben sie die eingereichte Auswahl, nicht den gespeicherten
+Stand. Unbekannte Optionswerte werden weggelassen. Keine Revision oder erfundene
+Speicherzeit, kein Erfolgsstatus ohne bestätigten Schreibvorgang.
+
+Vier bestehende Selects bleiben in derselben Formularreihenfolge, mit denselben
+Namen und Werten. Zwei Spalten ab Tablet, eine auf dem Smartphone; keine zusätzliche
+Klickstrecke für Änderungen. Genau ein «Speichern» im Formularfuss, daneben die
+neutrale «Vorschau». Seltenes Zurücksetzen liegt mit dem bestehenden Folgenhinweis
+in nativen «Weitere Optionen»; bei Fehlern geöffnet. Aufklappen speichert nichts.
+CSRF bleibt direkt im Formular; dieses Modul hat keine CAS-/Versionsfelder.
+
+Die Beispielvorschau verwendet ein kleines, vollständig sichtbares Bild neben
+dem Text auf Desktop und davor auf Mobile. Allergen-/Prüftext bleibt auch bei
+ausgeblendeten Bildern sichtbar. Die Modul-CSS-Datei begrenzt nur das Beispielbild
+und ordnet dessen Inhalt; globale Dichte-Innenabstände, Tokens und 48-px-Ziele
+bleiben bestehen. Fachtexte ohne Registry-Schlüssel bleiben Bestandsbeschriftungen;
+Aktionen, Aufklappbeschriftung und neue Statussymbole nutzen die semantischen Makros.
+Nachweis: `tests/test_admin_display_browser.py` mit 360/768/1024/1440 px,
+Tastatur, No-JS, 200-%-CSS-Zoom, POST-Feldvergleich, Vorschau, Speichern,
+Zurücksetzen und Fehlerzustand. AuthZ/CSRF-Regression:
+`tests/test_admin_display_settings.py` (unverändert).
+
 #### M16 — Erscheinungsbild: gespeicherten Entwurf eindeutig kennzeichnen
 
 Einstellungen links, dazugehörige Vorschau rechts. Keine nur behauptete Live-Aktualisierung.

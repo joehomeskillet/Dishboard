@@ -1,0 +1,20 @@
+/* WP16: keep shared density insets and control targets; compact only the sample. */
+.display-form-actions .admin-form-footer {
+  padding: 0;
+  background: transparent;
+}
+.display-form-actions .admin-form-rare[open] { flex-basis: 100%; }
+.display-form-actions .admin-form-main { flex-wrap: wrap; }
+.display-preview-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--app-space-4);
+}
+.display-preview-content .menu-photo {
+  flex: 0 1 calc(var(--app-space-12) * 3);
+  max-width: calc(var(--app-space-12) * 3);
+  margin: 0;
+}
+.display-preview-text { flex: 1 1 16rem; min-width: 0; }
+.display-preview-text > p { margin-bottom: var(--app-space-2); }
