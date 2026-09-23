@@ -1461,6 +1461,12 @@ Generisches Muster für vorhandene Einstellungen; keine neuen Einstelloptionen d
 
 **Speichern:** Pro bestehendem Einstellformular eine passende Speicherhandlung; nicht unabhängige Endpoints in eine neue globale Transaktion zusammenlegen. Ein geöffneter Bereich mit Fehler bleibt offen. Sensible Schnittstellenwerte oder Schlüssel nicht in Zusammenfassungen und Screenshots offenlegen.
 
+##### Modul Einstellungen – Bereiche & Öffnungszeiten (2026-09-20)
+
+Die Übersicht zeigt je Bereich eine kompakte Zeile mit Wochenendbetrieb, aufklappbaren Wochenvorgaben und «Bearbeiten» zum bestehenden Formular. Die gemeinsame Statusbar enthält echte Bereichsnamen, Zeitzone und ausschliesslich tatsächlich fehlende Zeitangaben offener Regeln; deren Anker führt zum betreffenden Wochenformular. Revisionen, IDs und ein erfundener Publikationsstatus gehören nicht hinein.
+
+Genau eine Primäraktion im `main`: «Anlegen» zum nativen Ausnahmeformular, nach Laden einer Ausnahme dessen «Speichern». Andere unabhängige Formulare behalten neutrale Speicheraktionen und ihre eigenen CSRF-/CAS-Felder. Hinweise stehen unter «Weitere Optionen», bei Inhalt oder Fehler offen. Leere, fehlerfreie Zeitfelder geschlossener Regeln werden kontextabhängig ausgeblendet, niemals deaktiviert oder geleert. Mobile Wochenvorgaben sind einspaltige Datensätze; Desktop zeigt gemeinsame Spaltenüberschriften statt wiederholter sichtbarer Labels. Zugängliche Feldlabels, native Bedienung ohne JavaScript, sichtbarer Fokus und 48-px-Ziele bleiben erhalten. Modul-CSS liegt in `admin-settings-bereiche.css`; gemeinsame Palette und Shell bleiben unverändert.
+
 #### M16 — Erscheinungsbild: gespeicherten Entwurf eindeutig kennzeichnen
 
 Einstellungen links, dazugehörige Vorschau rechts. Keine nur behauptete Live-Aktualisierung.
