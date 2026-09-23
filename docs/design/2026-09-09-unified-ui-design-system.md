@@ -1708,6 +1708,33 @@ Speichern der Zuordnung bleibt sekundär. CSRF, CAS und gesendete Feldnamen blei
 unverändert. Nachweis: `test_ui_korrektur_cookbooks_browser.py`,
 `test_cookbook_routes.py`.
 
+##### Modul Lager (2026-09-20)
+
+Die Lagerseite folgt M01/M23/M25: Titel «Lager», ein Satz Kontext, Statusbar
+über `page_header(..., status_items=lager_status)`, kompakte Zuordnungstabelle
+und Buchungsformulare erst nach «Öffnen» einer Zeile. Die frühere Satzzeile zum
+Saldo und die drei gleichgewichtigen Buchungskarten sind ersetzt am 2026-09-20
+durch Statusbar plus eine Primärhandlung «Speichern» (Zugang/Abgang);
+Umbuchung und Zählung stehen in `disclosure_section` «Weitere Optionen».
+
+Statusslots aus vorhandenem Template-Kontext: gewählte Zutat
+(`selected.food_name`), Lagerort (`selected.storage_name`), Bestand
+(`balance_label` bzw. «Kein Bestand erfasst» aus `captured`) und bei Bedarf
+die Anzahl offener Zuordnungen (`slots` ohne `captured`). Letzte bestätigte
+Zählung, IDs und `row_version` werden nicht angezeigt; es gibt keine Quelle
+für eine Zählung im Route-Kontext. `success` bleibt ungenutzt, solange kein
+bestätigter Zielzustand geliefert wird. «Kein Bestand erfasst» ist der
+sichtbare Zustand, nie ein stilles 0.
+
+Genau eine `.btn-primary` im jeweiligen Kontext: Empty State verweist auf
+Zutaten (`admin.master_data_list`); nach Auswahl ist «Speichern» die
+Buchung. Zeilenaktion «Öffnen» ist neutral, die aktive Zeile trägt `active`
+und `aria-current="true"`. Mobil werden Tabellenzeilen zur Liste. Formulare
+nutzen 3 Spalten ab 1024 px. Feldnamen, POST-Ziele, CSRF-Felder und
+Standardwerte bleiben byte-gleich. Eigene Styles nur in `admin-lager.css`.
+Nachweis: `test_inventory_ui.py` (eigener Playwright-Start, 360/768/1024/1440,
+No-JS, Tastatur, Formularfeldvergleich).
+
 #### M26 — Wochenplan Cafeteria — kompakte Wochenplanung
 
 Kompakte Wochenplanung statt riesiger Einzelkarten; Zielmodell SDD v2 §5.1.
