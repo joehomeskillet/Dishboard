@@ -1433,6 +1433,37 @@ gespeicherte Woche und veröffentlichten Plan. Vorschauinhalt und Signage-Ausgab
 bleiben unverändert. Modulprüfungen erfassen 360/768/1024/1440 px, Karten-/Seitenhöhe,
 geschlossene Vorschauen, Feldreihenfolge, No-JS, Tastatur und echten 200-%-Zoom.
 
+##### Modul Vorlagen & Druck (2026-09-20)
+
+Die Übersicht «Vorlagen» folgt M01/M14/M23/M25: Titel entspricht dem bestehenden
+Seitentitel der Katalogtests; die Beschreibung nennt Druckvorlagen für gespeicherte
+Wochen und Rezeptrevisionen. Genau eine Primäraktion im `main` öffnet das PDF der
+gewählten Cafeteria-Woche. Bereichs-PDFs, veröffentlichter Plan und Editorlinks
+bleiben sekundär. Die Statusbar nutzt vorhandene Katalogwerte: Woche aus `week`,
+aktive Druckvorlage je Bereich aus `catalogs.*.active.name` (`success` nur für den
+aktivierten Stand), Rezeptvorlage aus `catalogs.rezepte.active.name`. Anker führen
+zur Wochenauswahl bzw. zum Bereichstab. IDs, Revisionsnummern und `row_version`
+gehören nicht in die Statusbar.
+
+Die früheren grossen Bereichskarten sind ersetzt am 2026-09-20 durch eine Filterzeile
+(Woche), Bereichstabs mit `active` und `aria-current="true"`, eine kompakte
+Aktiven-Zeile und nativ geschlossene «Frühere Versionen». Listenzeilen bleiben
+`li[data-template-id]` mit Name, einzeiligem Stand, Statusbadge und beschrifteter
+Zeilenaktion «Vorlageneditor öffnen». Rezept- und Gerichtvorlagen stehen in zwei
+Spalten ab 1024 px. Screen-Vorlagen sind kompakte Zeilen; Zutaten/Rezepte/Kochbücher
+liegen unter «Weitere Optionen».
+
+Der Editor trägt denselben Seitentitel. Statusbar: Bereich aus dem Profil, Aktiv/
+Nicht aktiv/Archiviert aus `document`/`template.archived` (`success` nur wenn die
+angezeigte Revision aktiv ist), Woche aus `week` bzw. Rezepttitel. Speichern ist
+die einzige Primäraktion; Aktivieren, Kopieren und Archivieren bleiben nachrangig.
+Archivieren behält die native Pflicht-Checkbox ausserhalb des POST-Formulars
+(`form="archive-form"`, ohne Feldnamen). Versteckte Felder `_csrf`, `version`,
+`revision`, `action` bleiben direkt im Formular. Layoutfelder bleiben vollständig
+im DOM und byte-gleich im POST. Modul-CSS: `admin-vorlagen-druck.css`. Nachweis:
+`test_print_template_browser.py`, `test_print_template_archive_browser.py`,
+`test_print_template_layout_forms.py` (360/768/1024/1440, No-JS, Tastatur).
+
 #### M15 — Einstellungen: kompakte Zusammenfassung, Bearbeitung bei Bedarf
 
 Generisches Muster für vorhandene Einstellungen; keine neuen Einstelloptionen daraus ableiten.
