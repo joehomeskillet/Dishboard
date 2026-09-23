@@ -1801,6 +1801,27 @@ Objektwähler benötigt ein eigenes Backend-Paket. Nachweise:
 `tests/test_admin_cost_routes.py` (360/768/1024/1440, No-JS, Tastatur, POST-Felder),
 `tests/test_shopping_cost.py`, `tests/test_recipe_cost_db.py`, `tests/test_cost_calc.py`.
 
+##### Modul Einstellungen – Erscheinungsbild (2026-09-20)
+
+Erscheinungsbild nutzt M01/M24/M25: Seitenkopf «Erscheinungsbild» mit einem Satz
+Kontext und genau einer Primäraktion «Speichern». Der frühere Veröffentlichungsblock
+im Inhalt ist am 2026-09-20 durch `page_header(..., status_items=...)` ersetzt.
+Zulässige Slots aus vorhandenem Template-Kontext: öffentliche Marke
+(`active_revision.name`, Variante success, Ziel `?revision=` der aktiven Version),
+ausgewählter Stand nur wenn er von der öffentlichen Version abweicht, Stand
+Aktiv / Früher aktiv / Entwurf, Aktivierungs- oder Erstellzeit wenn geliefert.
+Technische Versionsnummern, IDs und ungespeicherte Farbwerte sind keine Statusslots.
+
+Entwurf und gespeicherte Vorschau stehen ab 1024 px in zwei Spalten, mobil
+untereinander. Die Vorschau bleibt ein iframe der bestehenden Preview-Route, in
+kompakter Höhe. Aktivieren bleibt sekundär mit Bestätigungstext. Wiederherstellen,
+Versionsliste und Südhang-Standard liegen in nativem «Weitere Optionen».
+Formularfeldnamen, POST-Ziel, CSRF, CAS-`version`, `revision`, Logo-Upload und
+No-JS-Submit bleiben byte-gleich; die Speichern-Schaltfläche liegt im Kopf und
+gehört über das native `form`-Attribut zum selben Formular. Nachweise:
+`tests/test_ui_korrektur_branding_browser.py` (eigener Playwright-Start, 360/768/1024/1440,
+No-JS, Tastatur, Statusbar, Überlauf), `tests/test_branding_browser.py`.
+
 #### M26 — Wochenplan Cafeteria — kompakte Wochenplanung
 
 Kompakte Wochenplanung statt riesiger Einzelkarten; Zielmodell SDD v2 §5.1.

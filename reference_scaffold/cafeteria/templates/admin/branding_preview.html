@@ -8,10 +8,10 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='public.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='admin-branding.css') }}">
 <link rel="stylesheet" href="{{ url_for('admin.branding_preview_css', revision=brand.id) }}">
-</head><body class="public-page brand-preview-body"><main class="p-3 brand-preview-example">
-{{ brand_logo(brand, 'mb-3', alt=brand.name, preview=true) }}
+</head><body class="public-page brand-preview-body"><main class="p-2 brand-preview-example">
+{{ brand_logo(brand, 'mb-2', alt=brand.name, preview=true) }}
 <p class="text-secondary mb-2">Speiseplan Cafeteria · Guten Appetit</p>
-<h1 class="mb-3">Frisch zubereitet</h1>
+<h1 class="mb-2">Frisch zubereitet</h1>
 <article class="card"><div class="card-body">
 <h2 class="card-title mb-2">Pouletbrust an Kräutersauce</h2>
 <p class="mb-2">Kartoffelstock · Zucchetti mit Kräutern · Beilage nach Tagesangebot</p>

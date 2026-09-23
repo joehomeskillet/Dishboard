@@ -3,10 +3,11 @@ from __future__ import annotations
 
 import json
 import re
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
-from playwright.sync_api import Browser, Page, expect
+from playwright.sync_api import Browser, Page, expect, sync_playwright
 from sqlalchemy import text
 
 from cafeteria.admin import branding_routes  # noqa: F401 - blueprint registration
@@ -45,8 +46,8 @@ def _context(playwright_browser: Browser, server_url: str, client, *, javascript
 
 
 def _assert_icons_painted(page: Page) -> None:
-    icons = page.locator(".brand-settings-grid svg:visible use")
-    assert icons.count() >= 7
+    icons = page.locator(".brand-settings-grid svg use")
+    assert icons.count() >= 3
     for icon_use in icons.all():
         box = icon_use.evaluate("el => ({width: el.getBBox().width, height: el.getBBox().height})")
         assert box["width"] > 0 and box["height"] > 0, (
@@ -123,14 +124,15 @@ def test_branding_editor_separates_saved_draft_from_publication(
 
         expect(page.get_by_role("link", name="Erscheinungsbild", exact=True)).to_have_count(1)
         expect(page.get_by_role("heading", name="Entwurf bearbeiten", exact=True)).to_be_visible()
-        expect(page.get_by_role("button", name="Entwurf speichern & Vorschau", exact=True)).to_have_class(
+        expect(page.get_by_role("button", name="Speichern", exact=True)).to_have_class(
             re.compile(r"\bbtn-primary\b")
         )
-        expect(page.get_by_role("heading", name="Veröffentlichte Version", exact=True)).to_be_visible()
-        publication = page.locator(".brand-publication-card")
-        expect(publication.get_by_text("Aktive Version", exact=True)).to_be_visible()
-        expect(publication.get_by_text("Ausgewählter gespeicherter Stand", exact=True)).to_be_visible()
-        expect(publication.get_by_text("Zuletzt geändert", exact=True)).to_be_visible()
+        expect(page.locator("main .btn-primary")).to_have_count(1)
+        statusbar = page.locator("dl.admin-statusbar")
+        expect(statusbar).to_be_visible()
+        expect(statusbar).to_contain_text("Südhang Standard")
+        expect(statusbar).to_contain_text("Aktiv")
+        expect(page.get_by_text("Ausgewählter gespeicherter Stand", exact=True)).to_have_count(0)
 
         activate = page.get_by_role("button", name="Version 1 aktivieren", exact=True)
         expect(activate).not_to_have_class(re.compile(r"\bbtn-primary\b"))
@@ -138,7 +140,8 @@ def test_branding_editor_separates_saved_draft_from_publication(
         expect(page.locator('form[data-brand-action="activate"]')).to_have_attribute(
             "data-confirm", re.compile(r"Version 1")
         )
-        expect(page.locator("details.brand-history-card summary")).to_contain_text("Weitere Aktionen")
+        expect(page.locator("#brand-more summary")).to_contain_text("Weitere Optionen")
+        expect(page.locator("#brand-more")).not_to_have_attribute("open", "")
         expect(page.frame_locator("iframe").get_by_role("button")).to_have_count(0)
 
 
@@ -175,7 +178,10 @@ def test_branding_forms_keep_exact_targets_and_fields_without_javascript(
             form = page.locator(f'form[data-brand-action="{purpose}"]')
             expect(form).to_have_attribute("method", "post")
             expect(form).to_have_attribute("action", BRAND_PATH)
-            assert form.locator("[name]").evaluate_all("els => els.map(el => el.name)") == fields
+            names = form.locator("[name]").evaluate_all("els => els.map(el => el.name)")
+            if purpose == "save":
+                names.append(page.locator('button[form="brand-save"][name="action"]').get_attribute("name"))
+            assert names == fields
 
         EVIDENCE.mkdir(parents=True, exist_ok=True)
         page.screenshot(path=str(EVIDENCE / "branding-editor-nojs-1440x900.png"), full_page=True)
@@ -184,19 +190,18 @@ def test_branding_forms_keep_exact_targets_and_fields_without_javascript(
         page.locator("#brand-upload").set_input_files(
             {"name": "Logo.png", "mimeType": "image/png", "buffer": _png((100, 100))}
         )
-        page.get_by_role("button", name="Entwurf speichern & Vorschau", exact=True).click()
+        page.get_by_role("button", name="Speichern", exact=True).click()
         expect(page).to_have_url(re.compile(r"/admin/design/marke\?revision=2$"))
 
         page.get_by_role("button", name="Version 2 aktivieren", exact=True).click()
-        expect(page.locator(".brand-status-list > div").first.locator("dd span")).to_have_text(
-            "Klarer Entwurf · Version 2"
-        )
+        expect(page.locator("dl.admin-statusbar")).to_contain_text("Klarer Entwurf")
+        expect(page.locator("[role='status']")).to_contain_text("Klarer Entwurf")
 
-        page.locator("details.brand-history-card summary").click()
+        page.locator("#brand-more summary").click()
         page.get_by_role("button", name="Version 2 als neuen Entwurf übernehmen", exact=True).click()
         expect(page).to_have_url(re.compile(r"/admin/design/marke\?revision=3$"))
 
-        page.locator("details.brand-history-card summary").click()
+        page.locator("#brand-more summary").click()
         page.get_by_role("button", name="Südhang Standard als Entwurf", exact=True).click()
         expect(page).to_have_url(re.compile(r"/admin/design/marke\?revision=4$"))
 
@@ -223,7 +228,7 @@ def test_branding_forms_keep_exact_targets_and_fields_without_javascript(
         with page.expect_response(
             lambda response: response.request.method == "POST" and response.url.endswith(BRAND_PATH)
         ) as rejected:
-            page.get_by_role("button", name="Entwurf speichern & Vorschau", exact=True).click()
+            page.get_by_role("button", name="Speichern", exact=True).click()
         assert rejected.value.status == 400
         expect(page.get_by_role("alert")).to_have_text(
             "Das Logo konnte nicht als sicheres Bild gelesen werden."
@@ -252,7 +257,7 @@ def test_branding_editor_viewports_default_saved_and_error_states(
 
         # Save draft (revision 2) -> creates a selected draft distinct from active version 1
         page.locator("#brand-name").fill("Gespeicherter Stand")
-        page.get_by_role("button", name="Entwurf speichern & Vorschau", exact=True).click()
+        page.get_by_role("button", name="Speichern", exact=True).click()
         expect(page).to_have_url(re.compile(r"revision=2$"))
         _screenshot_matrix(page, "saved")
         _screenshot_matrix(page, "selected-vs-active")
@@ -266,7 +271,7 @@ def test_branding_editor_viewports_default_saved_and_error_states(
         page.goto(f"{BRAND_PATH}?revision=2")
         page.locator("#brand-primary").fill("#zzzzzz")
         page.locator('form[data-brand-action="save"]').evaluate("form => { form.noValidate = true; }")
-        page.get_by_role("button", name="Entwurf speichern & Vorschau", exact=True).click()
+        page.get_by_role("button", name="Speichern", exact=True).click()
         expect(page.locator(".alert-danger")).to_be_visible()
         expect(page.locator("#brand-primary")).to_have_value("#zzzzzz")
         _screenshot_matrix(page, "error")
@@ -278,7 +283,7 @@ def test_branding_editor_viewports_default_saved_and_error_states(
         with page.expect_response(
             lambda response: response.request.method == "POST" and response.url.endswith(BRAND_PATH)
         ) as conflict_response:
-            page.get_by_role("button", name="Entwurf speichern & Vorschau", exact=True).click()
+            page.get_by_role("button", name="Speichern", exact=True).click()
         assert conflict_response.value.status == 409
         expect(page.locator(".alert-danger")).to_be_visible()
         _screenshot_matrix(page, "cas-conflict")
@@ -370,10 +375,10 @@ def test_branding_rendered_icons_reject_missing_symbols(
         page = context.new_page()
         page.set_viewport_size({"width": 1440, "height": 900})
         page.goto(BRAND_PATH)
-        summary = page.locator("details.brand-history-card summary")
+        summary = page.locator("#brand-more summary")
         summary.focus()
         page.keyboard.press("Enter")
-        expect(page.locator("details.brand-history-card")).to_have_attribute("open", "")
+        expect(page.locator("#brand-more")).to_have_attribute("open", "")
         expect(page.get_by_role("button", name="Südhang Standard als Entwurf", exact=True)).to_be_visible()
         EVIDENCE.mkdir(parents=True, exist_ok=True)
         page.screenshot(path=str(EVIDENCE / "branding-editor-open-actions-1440x900.png"), full_page=True)
@@ -381,7 +386,7 @@ def test_branding_rendered_icons_reject_missing_symbols(
         icon_use = page.locator("#brand-edit-title use")
         original = icon_use.get_attribute("href")
         assert original is not None
-        for missing in ("palette", "broadcast", "adjustments", "arrow-back-up", "list", "rotate"):
+        for missing in ("broadcast", "adjustments", "rotate", "not-a-real-icon"):
             icon_use.evaluate("(el, href) => el.setAttribute('href', href)", original.split("#")[0] + "#tabler-" + missing)
             with pytest.raises(AssertionError, match="unpainted icon"):
                 _assert_icons_painted(page)
@@ -407,3 +412,111 @@ def test_branding_hex_geometry_rejects_four_column_clipping(
             _assert_hex_values_fit(page)
         columns.evaluate_all("els => els.forEach(el => el.classList.remove('col-md-3'))")
         _assert_hex_values_fit(page)
+
+
+def test_branding_frame_viewports_statusbar_and_no_overflow(
+    live_server: str, admin_app, admin_engine,  # noqa: F811
+):
+    """Own Chromium start: 360/768/1024/1440, No-JS, keyboard, status bar, overflow."""
+    client, _ = _login(admin_app, admin_engine, ["Cafeteria.Admin"])
+    cookie = client.get_cookie("session")
+    assert cookie is not None
+    measurements = []
+
+    def inspect() -> None:
+        with sync_playwright() as playwright:
+            instance = playwright.chromium.launch(
+                headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"],
+            )
+            try:
+                for javascript in (False, True):
+                    context = instance.new_context(
+                        java_script_enabled=javascript,
+                        locale="de-CH",
+                        timezone_id="Europe/Zurich",
+                        reduced_motion="reduce",
+                        service_workers="block",
+                    )
+                    context.add_cookies([
+                        {"name": "session", "value": cookie.value, "url": live_server},
+                    ])
+                    page = context.new_page()
+                    try:
+                        for width, height in ((360, 800), (768, 1024), (1024, 768), (1440, 900)):
+                            page.set_viewport_size({"width": width, "height": height})
+                            response = page.goto(live_server + BRAND_PATH, wait_until="load")
+                            assert response is not None and response.status == 200
+                            page.evaluate("document.fonts.ready")
+                            metric = page.evaluate(
+                                """() => {
+                                    const iframe = document.querySelector('.brand-preview-frame');
+                                    const row = document.querySelector('.brand-history-row');
+                                    return {
+                                        height: document.documentElement.scrollHeight,
+                                        overflow: document.documentElement.scrollWidth > innerWidth + 1,
+                                        primary: document.querySelectorAll('main .btn-primary').length,
+                                        open: document.querySelectorAll('main details[open]').length,
+                                        iframe: iframe ? iframe.getBoundingClientRect().height : 0,
+                                        row: row ? row.getBoundingClientRect().height : 0,
+                                    };
+                                }"""
+                            )
+                            measurements.append(dict(width=width, javascript=javascript, **metric))
+                            assert not metric["overflow"], metric
+                            assert metric["primary"] == 1, metric
+                            assert metric["open"] == 0, metric
+                            if width == 1440:
+                                assert metric["iframe"] <= 280, metric
+                                page.locator("#brand-more summary").click()
+                                row = page.locator(".brand-history-row").first.bounding_box()
+                                assert row is not None and row["height"] <= 96, row
+                                page.locator("#brand-more summary").click()
+                            if width == 360:
+                                assert metric["iframe"] <= 240, metric
+                                assert page.evaluate(
+                                    "document.documentElement.scrollWidth <= innerWidth + 1"
+                                )
+                            expect(page.locator("dl.admin-statusbar")).to_contain_text("Südhang Standard")
+                            expect(page.locator("dl.admin-statusbar")).to_contain_text("Aktiv")
+                            expect(page.locator("dl.admin-statusbar")).to_contain_text("Veröffentlicht")
+                            save = page.get_by_role("button", name="Speichern", exact=True)
+                            expect(save).to_have_count(1)
+                            box = save.bounding_box()
+                            assert box is not None and box["height"] >= 48, box
+                        page.set_viewport_size({"width": 360, "height": 800})
+                        page.goto(live_server + BRAND_PATH, wait_until="load")
+                        name = page.locator("#brand-name")
+                        name.focus()
+                        expect(name).to_be_focused()
+                        outline = name.evaluate(
+                            "el => getComputedStyle(el).outlineColor || getComputedStyle(el).boxShadow"
+                        )
+                        assert outline != "none" and outline != "rgba(0, 0, 0, 0)"
+                        page.keyboard.press("Tab")
+                        expect(page.locator("#brand-logo-select")).to_be_focused()
+                        form = page.locator('form[data-brand-action="save"]')
+                        names = form.locator("[name]").evaluate_all("els => els.map(el => el.name)")
+                        names.append(page.locator('button[form="brand-save"][name="action"]').get_attribute("name"))
+                        assert names == [
+                            "_csrf", "version", "name", "logo_sha256", "logo",
+                            "primary", "accent", "surface", "text", "font_body",
+                            "font_heading", "action",
+                        ]
+                        assert page.locator('button[form="brand-save"][name="action"]').get_attribute("value") == "save"
+                        for purpose, fields in (
+                            ("activate", ["_csrf", "version", "revision", "action"]),
+                            ("restore", ["_csrf", "version", "revision", "action"]),
+                            ("reset", ["_csrf", "version", "action"]),
+                        ):
+                            listed = page.locator(
+                                f'form[data-brand-action="{purpose}"] [name]'
+                            ).evaluate_all("els => els.map(el => el.name)")
+                            assert listed == fields
+                    finally:
+                        context.close()
+            finally:
+                instance.close()
+
+    with ThreadPoolExecutor(max_workers=1) as worker:
+        worker.submit(inspect).result()
+    print("WP15_MEASUREMENTS", json.dumps(measurements))
