@@ -71,6 +71,11 @@ def test_get_authorization_csrf_and_shape(client, app, database_engine):  # noqa
         timezone = connection.execute(text('SELECT timezone FROM cafeteria.locations WHERE active')).scalar_one()
     overview = re.search(r'id="operations-overview".*?</section>', body, re.S)
     assert overview is not None and f'Zeitzone: {timezone}' in overview.group()
+    statusbar = re.search(r'<dl class="admin-statusbar".*?</dl>', body, re.S)
+    assert statusbar and timezone in statusbar.group()
+    assert 'Zeiten nicht eingetragen' in statusbar.group()
+    assert 'href="#schedule-patient"' in statusbar.group()
+    assert 'revision' not in statusbar.group() and 'row_version' not in statusbar.group()
     assert 'aria-current="page"' in body
     valid = _get(client, 'name-patient')
     for form in ({**valid, '_csrf': 'wrong'}, {**valid, 'actor_id': '1'},
@@ -353,3 +358,122 @@ def test_exception_digest_format_is_rejected_without_writing(client, database_en
     with database_engine.connect() as connection:
         assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_services')).scalar_one() == 0
         assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_weeks')).scalar_one() == 0
+
+
+@pytest.mark.parametrize('javascript', [False, True])
+def test_operations_browser_compact_rows_payload_keyboard_and_360px(client, app, tmp_path, javascript):  # noqa: F811
+    """Real application, native forms and local assets; no pytest browser fixture."""
+    import json
+    from pathlib import Path
+    from threading import Thread
+
+    from playwright.sync_api import expect, sync_playwright
+    from werkzeug.serving import make_server
+
+    app.static_folder = str(Path(__file__).resolve().parents[1] / 'cafeteria/static')
+    server = make_server('127.0.0.1', 0, app, threaded=True)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    origin = f'http://127.0.0.1:{server.server_port}'
+    cookie = client.get_cookie('session')
+    measurements = []
+    try:
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=True, args=['--no-sandbox'])
+            context = browser.new_context(java_script_enabled=javascript)
+            context.add_cookies([{'name': 'session', 'value': cookie.value, 'url': origin}])
+            page = context.new_page()
+            for width in (360, 768, 1024, 1440):
+                page.set_viewport_size({'width': width, 'height': 900})
+                assert page.goto(origin + PATH).status == 200
+                page.evaluate('document.fonts.ready')
+                expect(page.locator('main .btn-primary')).to_have_count(1)
+                expect(page.locator('.admin-statusbar')).to_contain_text('Zeiten nicht eingetragen')
+                assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+                metrics = page.evaluate('''() => ({
+                    width: innerWidth, height: document.documentElement.scrollHeight,
+                    primary: document.querySelectorAll('main .btn-primary').length,
+                    open: document.querySelectorAll('main details[open]').length,
+                    overviewRow: document.querySelector('#operations-overview tbody tr').getBoundingClientRect().height
+                })''')
+                page.screenshot(path=str(tmp_path / f'wp14-default-{width}-js-{javascript}.png'), full_page=True)
+                page.locator('#operations-overview a[href="#schedule-patient"]').click()
+                expect(page.locator('#schedule-editor-patient')).to_have_attribute('open', '')
+                metrics['scheduleRow'] = page.locator('#schedule-patient tbody tr').first.bounding_box()['height']
+                assert metrics['scheduleRow'] < (515 if width < 1024 else 102)
+                for profile, meals in [('staff_guest', ['LUNCH']), ('patient', ['LUNCH', 'DINNER'])]:
+                    fields = page.locator(f'#schedule-{profile}').evaluate(
+                        'form => Object.fromEntries(new FormData(form))',
+                    )
+                    expected = {'_csrf', 'action', 'profile', 'revision'} | {
+                        f'slot_{day}_{meal}_{part}' for day in range(1, 8)
+                        for meal in meals for part in ('state', 'start', 'end', 'notice')
+                    }
+                    assert set(fields) == expected
+                    assert fields['action'] == 'save_schedule' and fields['profile'] == profile
+                    assert fields['revision'] == '0' and fields['_csrf']
+                    assert all(fields[f'slot_{day}_{meal}_{part}'] == ''
+                               for day in range(1, 8) for meal in meals for part in ('start', 'end'))
+                row = page.locator('#schedule-patient tbody tr').first
+                summary = row.locator('.operations-notice > summary')
+                row.locator('input[name="slot_1_LUNCH_end"]').focus()
+                # Chromium exposes hour/minute/period/picker as native tab stops.
+                for _ in range(4):
+                    page.keyboard.press('Tab')
+                    if summary.evaluate('el => el === document.activeElement'):
+                        break
+                expect(summary).to_be_focused()
+                assert summary.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
+                page.keyboard.press('Enter')
+                expect(row.locator('.operations-notice')).to_have_attribute('open', '')
+                page.keyboard.press('Tab')
+                expect(row.locator('input[name="slot_1_LUNCH_notice"]')).to_be_focused()
+                assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+                for control in page.locator('#schedule-patient :is(input:not([type=hidden]), select, button, summary):visible').all():
+                    size = control.bounding_box()
+                    assert size['height'] >= 48 and size['width'] >= 48, size
+                page.screenshot(path=str(tmp_path / f'wp14-{width}-js-{javascript}.png'), full_page=True)
+                measurements.append(metrics)
+            page.locator('#patient-slot_1_LUNCH_start').fill('14:00')
+            page.locator('#patient-slot_1_LUNCH_end').fill('13:00')
+            expected_payload = page.locator('#schedule-patient').evaluate(
+                'form => Object.fromEntries(new FormData(form))',
+            )
+            with page.expect_request(lambda req: req.method == 'POST' and req.url == origin + PATH) as sent:
+                page.locator('#schedule-patient button[type=submit]').click()
+            from urllib.parse import parse_qs
+            assert parse_qs(sent.value.post_data, keep_blank_values=True) == {
+                key: [value] for key, value in expected_payload.items()
+            }
+            expect(page.locator('#patient-slot_1_LUNCH_end')).to_have_attribute('aria-invalid', 'true')
+            expect(page.locator('#patient-slot_1_LUNCH_start')).to_have_value('14:00')
+            expect(page.locator('#schedule-editor-patient')).to_have_attribute('open', '')
+            page.goto(origin + PATH)
+            page.locator('main .btn-primary').click()
+            expect(page.locator('#exception-editor')).to_have_attribute('open', '')
+            expect(page.locator('#exception-load')).to_be_visible()
+            page.locator('#exception-load button').click()
+            expect(page.locator('main .btn-primary')).to_have_count(1)
+            expect(page.locator('#exception-save .btn-primary')).to_be_visible()
+            page.locator('#service_state').select_option('closed')
+            expect(page.locator('#service_start')).not_to_be_visible()
+            expect(page.locator('#service_end')).not_to_be_visible()
+            assert page.locator('#exception-save').evaluate(
+                'form => new FormData(form).get("service_start")',
+            ) == ''
+            page.locator('#service_state').select_option('open')
+            page.locator('#service_start').fill('11:30')
+            page.locator('#service_end').fill('13:00')
+            page.locator('#exception-save button[type=submit]').click()
+            expect(page.locator('.error-region')).to_have_count(0)
+            page.locator('#exception-editor > summary').click()
+            page.locator('#exception-load button').click()
+            expect(page.locator('#service_start')).to_have_value('11:30')
+            expect(page.locator('#service_end')).to_have_value('13:00')
+            print('WP14_METRICS', json.dumps({'javascript': javascript, 'viewports': measurements}))
+            context.close()
+            browser.close()
+    finally:
+        server.shutdown()
+        thread.join(timeout=5)
+        server.server_close()
