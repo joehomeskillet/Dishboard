@@ -166,6 +166,217 @@ Jede UI-Änderung ist konsistent mit bestehenden Komponenten, platzsparender als
 | Allergen-Detail | Inline-Detail direkt an der gewählten Option (M21): Formulare senden Allergen und Präsenz als indexgepaarte Wiederholfelder; das Detailfeld wird deaktiviert statt versteckt und bleibt im selben Container. |
 | Referenzbilder v2 | Die Ordner `accepted-settings/`, `current-modules/`, `current-weekplan/` und `generated-mockups/` fehlten in der Lieferung; bis zur Nachlieferung gilt für den Wochenplan der Text des SDD v2 §5–§6 als Zielmodell (M26–M30). |
 
+## Auftraggeber-Polish-Lauf (2026-09-23)
+
+Quelle: `docs/design/uiux-polish-2026-09-23/00_PROMPT_Global_UI_Polish_Run.md`. **Vorrang:** Design System v2 (M26–M30, Manifest §14–§15) und Semantic UI Language bleiben gültig; dieser Abschnitt präzisiert den app-weiten Polish-Lauf. **Leitsätze:** Einfachheit vor sichtbarer Funktionsfülle · Konsistenz vor Seitendesign · Bedienbarkeit vor Dekoration. **2–3-Sekunden-Regel:** Jede Ansicht beantwortet sofort Ort, Priorität, nächste Handlung und Zusatzinformation. **Phasen:** P0 Regelabbildung in der Designquelle · P1 App-weites Audit (lesen) · P2 Konsolidierung gemeinsamer Tokens/Komponenten · P3 Anwendung je Modul · P4 Abschlussprüfung mit Vorher/Nachher-Belegen. Definition of Done je Paket: v2-Checkliste (A31) **und** Abschlussprüfung §17 (unten).
+
+### R-Regeln (Polish-Lauf)
+
+#### Informationshierarchie (Prompt §3)
+
+| ID | Regel | Prüfbar durch: |
+|---|---|---|
+| R11 | Primär sichtbar: Seitentitel (`page_header` H1), aktueller Kontext (Statusbar/Breadcrumb), wichtigste Information und genau eine dominante Primäraktion im Kopf. | Screenshot 360/1024/1440 px: H1 + Statusbar + Primärbutton innerhalb des ersten Viewports ohne Scroll; `templates/admin/_macros.html:11` |
+| R12 | Sekundär: häufige Filter/Aktionen in `filter_bar` / Toolbar; Tertiär: Details, seltene Aktionen und technische Angaben nur in `disclosure_section`, `action_menu`, Tooltip oder Modal — nicht gleichwertig zu Primär. | DOM: tertiäre Blöcke in `<details>`/Overflow; keine dauerhaft offenen Detailfelder bei nicht ausgewählter Option (`admin-option-row .form-select:disabled`, `admin-tabler.css:453`) |
+| R13 | Tertiäre Inhalte dürfen visuell nicht dieselbe Prominenz wie Primär haben (kein gleich grosser Button, keine volle Card für Zusatzinfo). | Visuell: Tertiär nutzt `btn-ghost-*`, `disclosure_section` oder `action_menu`; höchstens ein `btn-primary` je Kontext |
+
+#### Aktionen (Prompt §4)
+
+| ID | Regel | Prüfbar durch: |
+|---|---|---|
+| R14 | Pro Bereich genau eine visuell dominante Primäraktion (`btn-primary` / `icon_button` role=primary); weitere als Secondary (`btn-outline-*`) oder Tertiary (`btn-ghost-*`, Icon+Text). | `git grep` je Template: höchstens ein `.btn-primary` im `page_header`-Aktionsbereich und je `form_footer` |
+| R15 | Destruktive Aktionen (`btn-danger`, Registry `role=danger`) nie gleich gestaltet wie normale Speichern/Öffnen-Aktionen; mit explizitem Label und Folgetext (`consequence_key`). | `status_badge_sem`/`icon_button` mit `actions.delete`: sichtbares Label + `ui-sem-consequence`; kein `btn-primary` für Löschen |
+| R16 | Kleine/häufige Aktionen als Icon+Text, `icon_button` oder `action_menu` — keine Reihe gleich starker Buttons. | Zeilenaktionen: `list_row` + maximal eine sichtbare Primärzeilenaktion; Rest in `action_menu` (`_semantic.html:56`) |
+
+#### Textreduktion (Prompt §5)
+
+| ID | Regel | Prüfbar durch: |
+|---|---|---|
+| R17 | Permanente Hilfetexte nur wenn ohne sie die Aufgabe scheitert; sonst Tooltip (`data-bs-title`), `disclosure_section` oder Entfernen. | Seiten ohne Absätze >120 Zeichen unterhalb des Titels ausser Validierungs-/Fehlerhinweisen |
+| R18 | Labels handlungsorientiert und kurz; bevorzugt Icon + kurzes Label statt Erklärungssatz. | Registry-Labels (`label_key`) ≤3 Wörter für Hauptaktionen; `test_ui_hardcoded_strings_report.py` Trend |
+
+#### Formulare (Prompt §6)
+
+| ID | Regel | Prüfbar durch: |
+|---|---|---|
+| R19 | Zusammengehörige Felder gruppieren (`admin-option-group`, `fieldset`, `disclosure_section`); keine isolierten Einzelfelder über volle Breite ohne Grund. | Formular-Grid: verwandte Inputs im selben Flex/Grid-Container (`admin-compact-line`, `admin-option-grid`) |
+| R20 | Mehrspaltigkeit ab **768 px** (2 Spalten), ab **1440 px** (3 Spalten) für Options-/Chip-Gruppen; unter 768 px einspaltig. | CSS Breakpoints `admin-tabler.css:475–479`; Browser 360 vs 768 vs 1440 px |
+| R21 | Validierung am Feld: `.is-invalid`, `.invalid-feedback` direkt am Control; Fehler öffnet betroffenes `disclosure_section` (`has_error=true`). | POST mit Fehler: Fokus auf erstes `.is-invalid`; geschlossenes Detail öffnet (`M19`, `disclosure_section` Makro) |
+
+#### Statusdarstellung (Prompt §7)
+
+| ID | Regel | Prüfbar durch: |
+|---|---|---|
+| R22 | Sechs konsistente Statusstile: neutral, aktiv, erfolgreich, Warnung, Fehler, Information — jeweils Icon + kurzer Text, keine grossen Warnboxen wenn Badge/Inline reicht. | Status nutzt `status_badge_sem` oder `admin-statusbar-item--*`; keine `.alert` für reinen Zeilenstatus |
+| R23 | Statusbar-Slots (`admin-statusbar-item--neutral/success/warning/danger`) nur für entscheidungsrelevante Werte (1–5 Slots). | `page_header` `status_items`: 1–5 `.admin-statusbar-item`; Varianten aus erlaubter Liste (`_macros.html:15`) |
+| R24 | Status nie nur durch Farbe: immer sichtbarer Text/Label; Registry-Schlüssel `status.*` mit `label_key`. | Axe/ manuell: Badge/Statusbar enthält Textnode; `data-semantic` gesetzt |
+
+#### Platznutzung (Prompt §8)
+
+| ID | Regel | Prüfbar durch: |
+|---|---|---|
+| R25 | Volle Arbeitsbreite: kein künstlicher `max-width`-Wrapper im Hauptbereich; Seitenpadding höchstens `--app-page-padding` (32/24/16 px). | Computed style `.admin-main`: `max-width: none`; padding = Token (`tokens.css:181–188`, `admin-tabler.css:48–49,549–552`) |
+| R26 | Obergrenzen Dichte: Listenzeile Padding vertikal `var(--app-space-2)` (8 px); Bedienelemente min-height **48 px**; Topbar `--app-topbar-min-height` **64 px**; Abschnittsabstand höchstens `var(--app-space-3)` (12 px) ausser bei Fehlerblöcken. | Messung DevTools: `.admin-list-row` padding; `.btn` min-height 48 (`admin-tabler.css:124,468`); `--app-topbar-min-height` (`tokens.css:173`) |
+| R27 | Keine leeren Riesen-Cards: Card-Innenabstand `--app-card-inset` (`var(--app-space-6)` compact / `var(--app-space-8)` comfortable), nicht weiter aufblähen. | `data-density` auf `.admin-main`; Card ohne Inhalt >50 % Leerfläche im Screenshot = Verstoß |
+
+#### Icons (Prompt §9)
+
+| ID | Regel | Prüfbar durch: |
+|---|---|---|
+| R28 | Icons nur über Registry/Sprite (`sem_icon`, `icon` Makro, `tabler-{{ name }}`); gleiche Semantik = gleiches Symbol projektweit. | `test_ui_semantics.py`: Registry-Keys, Assets, verbotene Icon-only-Aufrufe |
+| R29 | Wichtige Aktionen nicht icon-only ohne Erlaubnis (`icon_only_allowed=yes` in Registry); Navigation immer Icon + Text. | `icon_button` mit `icon_only=false` für `icon_only_allowed=no`; Sidebar-Links mit sichtbarem Text |
+
+#### Navigation (Prompt §10)
+
+| ID | Regel | Prüfbar durch: |
+|---|---|---|
+| R30 | Keine doppelte Navigation (Sidebar + horizontale Modul-Tabs); aktiver Bereich eindeutig (`admin-sidebar` active state, Einrückung Unterpunkte). | Kein zweites Nav-`<nav>` auf Modulebene; aktiver `.nav-link` mit Indikator (`admin-tabler.css:96–105`) |
+| R31 | Unterpunkte nur bei aktivem Hauptpunkt sichtbar; kompakte Einrückung, min-height 48 px. | Sidebar DOM: `.admin-nav-subitems` nur unter aktivem Oberpunkt |
+
+#### Responsive (Prompt §11)
+
+| ID | Regel | Prüfbar durch: |
+|---|---|---|
+| R32 | Desktop (≥992 px): volle Breite, Mehrspalten-Grids, Status+Toolbar sichtbar. | Viewport 1440 px: kein horizontaler Scroll; Grid ≥2 Spalten wo fachlich sinnvoll |
+| R33 | Tablet (768–991 px): Spalten reduzieren, Touch-Ziele 48 px, Filter umbrechen. | 768 px: `admin-filter-bar` wrap; Buttons min-height 48 |
+| R34 | Mobile (<768 px): lineare Struktur, unwichtige Details eingeklappt; Tabellen → Listen/Karten statt Miniatur-Desktop. | 360 px: keine Tabelle mit horizontalem Scroll ohne Umschaltmuster; Primäraktion im Kopf erreichbar |
+
+#### Interaktion (Prompt §12)
+
+| ID | Regel | Prüfbar durch: |
+|---|---|---|
+| R35 | Hover/Focus/Active für alle klickbaren Elemente: `:hover`, `:focus-visible` (2 px `--app-focus`), `:active` auf Links/Buttons (`admin-tabler.css:209–221,320`). | Tastatur-Tab durch Seite: sichtbarer Fokusring; Hover in Desktop-Screenshot |
+| R36 | Disabled klar unterscheidbar (`--tblr-btn-disabled-*`, `:disabled` Form-Controls mit `--app-surface-soft`). | `.btn:disabled` Kontrast; keine pointer-events auf aktiven Controls |
+| R37 | Loading/Success/Error-Feedback: Form `.is-invalid`/`.alert-*`; keine dekorativen Animationen. | Fehler-POST zeigt `.alert-danger` oder Feldfehler; Ladezustand zu prüfen (P1-Audit) |
+
+#### Accessibility (Prompt §13)
+
+| ID | Regel | Prüfbar durch: |
+|---|---|---|
+| R38 | Kontrast WCAG 2.2 AA auf Token-Kombinationen (Text/Status siehe §5 Palette — unverändert lassen). | `test_ui_master_tokens_browser.py`; manuell 200 % Zoom |
+| R39 | Tastatur: sinnvolle Tab-Reihenfolge, Skip-Link, Fokus nicht von Sticky-Leiste verdeckt (`admin-form-footer` wechselt bei Fokus zu `static`). | Tab-Flow-Test; `admin-tabler.css:481–483` |
+| R40 | Labels für alle Controls; Status mit Text; semantisches HTML (`<button>`, `<details>`, `aria-label` bei Icon-only). | axe-Scan; `aria-label` auf `icon_button` icon-only |
+
+#### Technik (Prompt §14)
+
+| ID | Regel | Prüfbar durch: |
+|---|---|---|
+| R41 | Kein neues Frontend-Framework; bestehende Templates/CSS/JS/Tabler wiederverwenden und vereinheitlichen. | Diff: keine neuen UI-Dependencies; Änderungen in `admin-tabler.css`, `_macros.html`, `_semantic.html` |
+| R42 | Neue Abstraktion nur wenn ≥2 Stellen vereinfacht; keine Migration als Nebenprodukt. | PR-Beschreibung nennt betroffene Makros; keine DB-/API-Änderung |
+
+### M-Muster — verbindliches Kleinst-Designsystem (Prompt §2)
+
+| ID | Baustein | heutige Umsetzung (Datei/Makro/Klasse) | Sollzustand | Lücke |
+|---|---|---|---|---|
+| M31 | Seitenabstände | `--app-page-padding` in `admin-tabler.css:48,497`; Tablet/Mobile `549–552` | 32/24/16 px nach Breakpoint, volle Breite | — |
+| M32 | Vertikale Abstände | `--app-space-1`…`--app-space-12` in `tokens.css:181–188` | Skala 4–48 px; Abschnitte ≤`--app-space-3` | — |
+| M33 | Horizontale Abstände | `gap: var(--app-space-2)` in Listen/Filter (`admin-tabler.css:461`) | Einheitlich `--app-space-2` in Toolbars | zu prüfen (P1-Audit) je Modul |
+| M34 | Grid | `admin-option-grid` 1/2/3 Spalten (`admin-tabler.css:439,475–479`) | Responsive Grid ab 768/1440 px | — |
+| M35 | Content-Breiten | Kein Shell-`max-width`; Preview `data-content-width` (`admin-tabler.css:546–547`) | Hauptarbeit immer `full` | — |
+| M36 | Schriftgrössen | `--app-font-size-*` `tokens.css:163–168`; Skalierung `--app-font-scale` | Body 1 rem, H1 2.125/1.75 rem mobil | — |
+| M37 | Schriftgewichte | Fira 400–700 `@font-face` `tokens.css:241–270` | Labels 600, Werte 700 in Statusbar | — |
+| M38 | Überschriftenhierarchie | `h1`/`h2`/`h3` in `admin-tabler.css:368–369`; `page_header` | Eine H1 je Seite, Titel > Card-Titel | — |
+| M39 | Farben | `.dishboard-admin` Token-Block `tokens.css:111–160` | Nur `--app-*` / `--sh-*` Aliase | Palettentabelle §5 unverändert |
+| M40 | Hintergrundflächen | `--app-bg`, `--app-surface`, `--app-surface-soft` | Canvas + weisse Arbeitsflächen | — |
+| M41 | Rahmen | `--app-border`, `--app-border-soft`; Cards/Inputs 1 px | Ruhige 1-px-Kanten, keine Doppelrahmen | — |
+| M42 | Radius | `--app-radius-control` 8 px, `--app-radius-card` 12 px (`tokens.css:177–178`) | Controls 8 px, Cards 12 px | — |
+| M43 | Schatten | `--app-card-shadow` (`tokens.css:189`) | Dezent, keine Schmuckschatten | — |
+| M44 | Buttons | Tabler `.btn-*` themed in `admin-tabler.css:135–162` | Primary/Outline/Ghost/Danger konsistent | — |
+| M45 | Icon-Buttons | `icon_button` in `_semantic.html:17`; `ui-sem-control` 48 px | 48 px, Tooltip+aria bei icon-only | — |
+| M46 | Badges | `.badge.bg-*-lt` `admin-tabler.css:265–312`; `status_badge_sem` | Icon + Text, Soft-Background | — |
+| M47 | Statusanzeigen | `admin-statusbar-*` `admin-tabler.css:509–545`; `status_bar` `_semantic.html:85` | 6 Stile; kompakt unter Titel | `--info`/`--active` in Statusbar fehlen |
+| M48 | Inputs | `.form-control` themed `admin-tabler.css:175–178` | 48 px Höhe, Fokus `--app-focus` | — |
+| M49 | Selects | `.form-select` gleiche Regeln | Wie Inputs | — |
+| M50 | Checkboxen/Radios | `.form-check-input` min-height 48 px | Inline in `admin-option-label` | — |
+| M51 | Tabellen | `.table` Token `admin-tabler.css:487` | Kompakte Zeilen, lesbare Header | Zeilenhöhe je Modul zu prüfen (P1-Audit) |
+| M52 | Cards | `.card` Spacer `admin-tabler.css:304–310` | `--app-card-inset`, kein Card-in-Card | — |
+| M53 | Dialoge | `confirm_dialog` `_semantic.html:74`; Tabler Modal | Bestätigung mit Folgetext | zu prüfen (P1-Audit) einheitliche Modal-Nutzung |
+| M54 | Dropdowns | Bootstrap Dropdown/Select; `action_menu` als `<details>` | Seltene Aktionen gebündelt | — |
+| M55 | Accordions | `disclosure_section` `_macros.html:445`; `admin-disclosure` | Natives `<details>`, auto-open bei Fehler | — |
+| M56 | Navigation | Sidebar `admin-sidebar`; `page_header` Breadcrumb | 3 Hauptpunkte, Kontext-Unterpunkte | — |
+| M57 | Tooltips | `data-bs-toggle="tooltip"` in `icon_link` `_macros.html:8` | Für icon-only und Zusatzinfo | Flächendeckung zu prüfen (P1-Audit) |
+| M58 | Leere Zustände | `empty_state` `_macros.html:248`; `empty_state_sem` `_semantic.html:65` | Art unterscheiden (keine Daten/Treffer/Recht) | — |
+| M59 | Ladezustände | zu prüfen (P1-Audit) | Tabler-Spinner/Button-disabled während Submit | kein gemeinsames Token/Makro dokumentiert |
+| M60 | Fehlermeldungen | `.alert-danger`, `.is-invalid` | Konkret am Feld + optional Alert | — |
+| M61 | Erfolgsmeldungen | `.alert-success` `admin-tabler.css:299` | Kurz, nach Aktion, nicht dauerhaft | — |
+| M62 | Warnungen | `.alert-warning`; Statusbar `--warning` | Badge/Inline vor grosser Box | — |
+| M63 | Information | `.alert-info`; `status.info` Registry | Neutral/informativ, nicht warnend | Statusbar-Variante `--info` fehlt |
+
+### A-Anti-Patterns (Prompt §1)
+
+| ID | Woran erkennbar | Ersatz |
+|---|---|---|
+| A32 | Grosse leere Randflächen, schmaler Inhaltssäule | R25: volle Breite + `--app-page-padding` |
+| A33 | Überhohe Blöcke/Cards mit wenig Inhalt | R27, M52: kompakte Zeilen/`admin-list-row` |
+| A34 | Zu viele gleichzeitig sichtbare Informationen | R11–R13: Primär/Sekundär/Tertiär trennen |
+| A35 | Inkonsistente Abstände zwischen gleichartigen Elementen | M31–M33: Token-Skala |
+| A36 | Inkonsistente Buttons (verschiedene Stile für gleiche Aktion) | R14, M44: Registry + `btn-*` Rollen |
+| A37 | Inkonsistente Formularfelder | M48–M50: gemeinsame `.form-*` Regeln |
+| A38 | Zu viele Rahmen/Boxen, Card-in-Card | R09, M52: eine Card-Ebene, Listen statt Karten-Reihen |
+| A39 | Wiederholte Information (Titel + Status + Hinweis identisch) | R17: ein Kanal pro Fakt |
+| A40 | Schlechte visuelle Hierarchie (alles gleich gross) | R11, M38: H1 > Titel > Body |
+| A41 | Unklare Hauptaktion (kein oder mehrere Primary) | R14, A26 |
+| A42 | Konkurrierende gleich starke Aktionen in einer Reihe | R16, `action_menu` |
+| A43 | Unnötiger permanenter Erklärungstext | R17, Tooltip/`disclosure_section` |
+| A44 | Lange Textwände unter dem Titel | R17, R18 |
+| A45 | Inkonsistente Icons für gleiche Bedeutung | R28, Semantic Registry |
+| A46 | Schlechtes Alignment (Labels/Felder/Aktionen) | Flex/Grid-Makros `list_row`, `form_footer` |
+| A47 | Schlechte Breitennutzung auf Desktop | R25, R32 |
+| A48 | Desktop-Layout nur verkleinert auf Mobile | R34, eigene Mobile-Struktur |
+| A49 | Informationen die einklappbar wären, dauerhaft offen | R12, `disclosure_section` |
+| A50 | Technisch funktionierend, aber unnötig kompliziert/altmodisch | Polish-Lauf §16: IA/Gruppierung, nicht nur Skin |
+
+### Abschlussprüfung §17 (je Ansicht)
+
+Vor Abnahme jede Ansicht anhand dieser zehn Fragen prüfen (ergänzt A31/v2-DoD, ersetzt sie nicht):
+
+1. Ist sofort klar, worum es geht?
+2. Ist die wichtigste Aktion sichtbar?
+3. Gibt es unnötige Informationen?
+4. Gibt es unnötigen Leerraum?
+5. Gibt es zu viele Buttons?
+6. Sind ähnliche Funktionen konsistent?
+7. Sind Statusinformationen verständlich?
+8. Ist die Ansicht auf Desktop gut genutzt?
+9. Ist sie auf Mobile sinnvoll bedienbar?
+10. Wirkt sie wie dieselbe Anwendung wie alle anderen Ansichten?
+
+Verbleibende Inkonsistenzen vor Merge selbst beheben oder als P1-Fund dokumentieren.
+
+### Icon-Zuordnung Prompt §9
+
+| Kategorie | Registry-Key / Tabler-Icon | Anmerkung |
+|---|---|---|
+| Hinzufügen/Anlegen | `actions.add` / `plus`, `actions.add_existing` / `circle-plus` | — |
+| Bearbeiten | `actions.edit` / `edit` | — |
+| Löschen | `actions.delete` / `trash` | immer mit Label |
+| Speichern | `actions.save` / `device-floppy` | — |
+| Zurück/Weiter | `actions.back` / `arrow-left`, `actions.next` / `arrow-right` | — |
+| Öffnen/Schliessen | `actions.open` / `chevron-right`, `actions.close` / `x` | — |
+| Prüfen/Bestätigen | `actions.confirm` / `check` | — |
+| Warnung/Fehler/Info | `status.warning` / `alert-triangle`, `status.error` / `circle-x`, `status.info` / `info-circle` | — |
+| Suche/Filter | `view.search` / `search`, `view.filter` / `filter` | — |
+| Sortierung | — | **Sprite-Bedarf:** kein `view.sort` in Registry |
+| Einstellungen | `navigation.settings` / `settings` | — |
+| Mehr | `actions.more` / `dots` | — |
+| Kalender | `time.date` / `calendar`, `time.week` / `calendar-week` | — |
+| Benutzer | `admin.user` / `user` | — |
+| Drucken/Download/Upload | `actions.print` / `printer`, `actions.download` / `download`, `actions.upload` / `upload` | — |
+| Sichtbarkeit | `actions.preview` / `eye`, `publish.hidden` / `eye-off` | kein dediziertes `view.visibility` |
+| Kopieren/Verschieben | `actions.copy` / `copy`, `actions.move` / `arrows-move` | — |
+
+### Offene Sprite-/Registry-Bedarfe aus §9
+
+- `view.sort` (Sortierung) — Tabler-Icon festlegen und Registry ergänzen
+- `view.visibility` (Sichtbarkeit umschalten) — oder bestehende `eye`/`eye-off`-Semantik dokumentieren
+- `status.neutral` als expliziter Registry-Eintrag (heute `secondary`/`inactive`)
+- `admin-statusbar-item--info` und `--active` CSS-Varianten für sechs Statusstile (R22)
+- Gemeinsames Ladezustands-Muster (Spinner/Button, R37, M59)
+
+### Nicht-Ziele
+
+Kein neues Frontend-Framework, keine technische Migration, keine fachlichen Änderungen, keine Datenbankmigration, kein Ersetzen der v2- oder Semantic-Pakete — nur Vereinheitlichung und Verdichtung im bestehenden Tabler/Flask-Stack.
+
 ## Auftraggeber-Paket Semantic UI Language (2026-09-20)
 
 Verbindliche Quelle: `docs/design/semantic-ui-language-2026-09-20/`, einschliesslich
@@ -274,16 +485,16 @@ Versteckte Warnungen, verlorene Werte und eine breite Hülle mit weiterhin riesi
 
 | ID | Regel | Konkrete Umsetzung |
 |---|---|---|
-| R01 | Volle Arbeitsbreite | Hauptbereich rechts der Navigation vollständig nutzen; keine schmalen inneren Gesamtwrapper und kein `100vw` über die Sidebar hinweg. |
-| R02 | Inhalt statt Verwaltungswand | Nach kompaktem Kopf und notwendiger Orientierung kommt die eigentliche Arbeit. Keine lange Strecke aus Hinweisen, Einrichtung und doppelten Aktionen davor. |
-| R03 | Kompakte wiederholte Objekte | Eine Arbeitszeile pro Zutat, Schritt, Baustein oder Zuordnung. Zusatzfelder nur bei Bedarf; nicht eine hohe offene Card je Objekt. *(präzisiert am 2026-09-20: siehe Auftraggeber-Ergänzung / Muster M21, M23)* |
+| R01 | Volle Arbeitsbreite | Hauptbereich rechts der Navigation vollständig nutzen; keine schmalen inneren Gesamtwrapper und kein `100vw` über die Sidebar hinweg. Verschärft durch Polish-Lauf: R25, R26. |
+| R02 | Inhalt statt Verwaltungswand | Nach kompaktem Kopf und notwendiger Orientierung kommt die eigentliche Arbeit. Keine lange Strecke aus Hinweisen, Einrichtung und doppelten Aktionen davor. Verschärft durch Polish-Lauf: R11. |
+| R03 | Kompakte wiederholte Objekte | Eine Arbeitszeile pro Zutat, Schritt, Baustein oder Zuordnung. Zusatzfelder nur bei Bedarf; nicht eine hohe offene Card je Objekt. *(präzisiert am 2026-09-20: siehe Auftraggeber-Ergänzung / Muster M21, M23)* Verschärft durch Polish-Lauf: R25, R27. |
 | R04 | Häufige Änderungen unmittelbar | Menge und Einheit direkt in der Zutatenübersicht ändern. Eine einfache Änderung darf keine zusätzliche Klickstrecke benötigen. |
-| R05 | Verständliche Symbole | Tabler-Icon plus kurzer sichtbarer Text für Navigation und Hauptaktionen. Gleiche Bedeutung überall gleich darstellen. |
-| R06 | Sichere Detailbereiche | Auf-/Zuklappen speichert und verwirft nichts. Neue oder fehlerhafte Einträge passend öffnen. Gefüllte Zusatzangaben im Kurztext erkennbar lassen. *(präzisiert am 2026-09-20: siehe Auftraggeber-Ergänzung / Muster M21, M25)* |
-| R07 | Wahrheitsgetreue Zustände | Gespeichert, geprüft und veröffentlicht unterscheiden. Fehlende Angaben nicht durch einen allgemeinen grünen Haken verdecken. *(Ersetzt am 2026-09-20 durch: Statusbar als globales Designsystem mit 1–5 echten Slots zentral unter dem Titel; die frühere Angabe 3–5 ist damit abgelöst. Warnungen immer mit Text, Farbe nie alleiniger Träger. Keine erfundenen Daten.)* |
-| R08 | Erreichbare Aktionen | Eine hervorgehobene Speicherhandlung je Formular, erreichbar ohne Scrollreise. Seltene Aktionen in einem beschrifteten Menü. *(Ersetzt am 2026-09-20 durch: Primäraktion standardmässig oben rechts im Seitenkopf. Bei langen Editoren ist eine kompakte sticky Aktionsleiste das zulässige Mittel.)* *(präzisiert am 2026-09-20: siehe Auftraggeber-Ergänzung / Muster M24)* |
-| R09 | Ruhige Gestaltung | Bestehende Farben, Schriften und Tokens behalten. Weniger verschachtelte Rahmen, klare Kanten, keine Schmuckkarten oder dekorativen Kennzahlen. |
-| R10 | Vollständiger Nachweis | Jede Seite prüfen. Ein Screenshot, HTTP 200, erfolgreicher Build oder Breitenwert ersetzt weder Interaktion noch Gesamtaudit. |
+| R05 | Verständliche Symbole | Tabler-Icon plus kurzer sichtbarer Text für Navigation und Hauptaktionen. Gleiche Bedeutung überall gleich darstellen. Verschärft durch Polish-Lauf: R28, R29. |
+| R06 | Sichere Detailbereiche | Auf-/Zuklappen speichert und verwirft nichts. Neue oder fehlerhafte Einträge passend öffnen. Gefüllte Zusatzangaben im Kurztext erkennbar lassen. *(präzisiert am 2026-09-20: siehe Auftraggeber-Ergänzung / Muster M21, M25)* Verschärft durch Polish-Lauf: R13, R21. |
+| R07 | Wahrheitsgetreue Zustände | Gespeichert, geprüft und veröffentlicht unterscheiden. Fehlende Angaben nicht durch einen allgemeinen grünen Haken verdecken. *(Ersetzt am 2026-09-20 durch: Statusbar als globales Designsystem mit 1–5 echten Slots zentral unter dem Titel; die frühere Angabe 3–5 ist damit abgelöst. Warnungen immer mit Text, Farbe nie alleiniger Träger. Keine erfundenen Daten.)* Verschärft durch Polish-Lauf: R22, R23, R24. |
+| R08 | Erreichbare Aktionen | Eine hervorgehobene Speicherhandlung je Formular, erreichbar ohne Scrollreise. Seltene Aktionen in einem beschrifteten Menü. *(Ersetzt am 2026-09-20 durch: Primäraktion standardmässig oben rechts im Seitenkopf. Bei langen Editoren ist eine kompakte sticky Aktionsleiste das zulässige Mittel.)* *(präzisiert am 2026-09-20: siehe Auftraggeber-Ergänzung / Muster M24)* Verschärft durch Polish-Lauf: R14, R15, R16. |
+| R09 | Ruhige Gestaltung | Bestehende Farben, Schriften und Tokens behalten. Weniger verschachtelte Rahmen, klare Kanten, keine Schmuckkarten oder dekorativen Kennzahlen. Verschärft durch Polish-Lauf: R25, R27. |
+| R10 | Vollständiger Nachweis | Jede Seite prüfen. Ein Screenshot, HTTP 200, erfolgreicher Build oder Breitenwert ersetzt weder Interaktion noch Gesamtaudit. Verschärft durch Polish-Lauf: Abschlussprüfung §17 (oben). |
 
 ## 2. Konkrete Stellungnahme zum bisherigen Stand
 
@@ -1864,8 +2075,8 @@ Nutze die vorhandenen Testmittel. Neue reine Entwicklungsabhängigkeiten nur im 
 | A23 | Vergleichbare Belege | Gleiche Daten/Viewports, echte Screenshots und nachvollziehbare Aufgabenmessung; Baselines nicht blind ersetzt. |
 | A24 | Zukunftsgate | Neue/geänderte UI-Routen und gemeinsame Komponenten sind mit passenden Inventar-, Funktions- und Browserprüfungen verbunden. |
 | A25 | Auswahl mit Detail nach Auswahl | Kein dauerhaft sichtbares Detailfeld bei nicht ausgewählter Option; Feldnamen, Werte, Standardwerte und Prüfstatus unverändert; «nicht ausgewählt» nie als «allergenfrei» (M21). |
-| A26 | Eine Primäraktion je Kontext | Pro Formular genau eine hervorgehobene Speicherhandlung; destruktive Aktionen links, seltene im «Weitere Aktionen»-Menü (M24, R08). |
-| A27 | Einheitliche Listenstruktur | Dieselbe Filterzeile und Zeilenaufbau in allen Modulen; Suche zuerst, «Filter zurücksetzen» nur bei Aktivität (M22, M23). |
+| A26 | Eine Primäraktion je Kontext | Pro Formular genau eine hervorgehobene Speicherhandlung; destruktive Aktionen links, seltene im «Weitere Aktionen»-Menü (M24, R08). Verschärft durch Polish-Lauf: R14, R15. |
+| A27 | Einheitliche Listenstruktur | Dieselbe Filterzeile und Zeilenaufbau in allen Modulen; Suche zuerst, «Filter zurücksetzen» nur bei Aktivität (M22, M23). Verschärft durch Polish-Lauf: R30, M33. |
 | A28 | Wochenplan Desktop-Dichte | Wochenplan-Ansichten bei 1440 px ohne grosse Leerflächen und ohne bildschirmfüllende Food-Fotos (M26–M30, SDD v2 §5). |
 | A29 | Nicht geplante Slots | Leere Planungspositionen als kompakte Add-Aktion («+ Suppe planen»), nicht als Fliesstext oder grosse Leerkarten. |
 | A30 | Statuschips mit Handlung | Statuschips mit sichtbarem Text; optional als Link zum Filtern oder Navigieren, nicht nur als Farbindikator. |
