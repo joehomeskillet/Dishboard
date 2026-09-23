@@ -10860,7 +10860,7 @@
         "_menu_image.html",
         "admin/_macros.html"
       ],
-      "sha256": "73b93ce66c65e2a806991c958248d0d0d6c00c1d6c5a127152153674ef43a2fe",
+      "sha256": "17b0e2b6b4ec28f480efeca53fdc6833332de9e00a83f1b9fdfce28c8b331a4e",
       "used_by_endpoints": [
         "admin.display_settings"
       ],
