@@ -103,6 +103,8 @@ def test_no_js_creation_channels_and_revoke_flow(admin_client, browser, width):
             context.add_cookies([{'name': name, 'value': cookie.value, 'url': origin}])
             page = context.new_page()
             page.goto(origin + '/admin/api')
+            # Technical versions are tertiary: they live behind «Weitere Optionen» (native details).
+            page.locator('[data-api-technical] > summary').click()
             expect(page.get_by_role('heading', name='Technische Versionen')).to_be_visible()
             expect(page.locator('[data-api-status]')).not_to_contain_text('Schema-Version')
             expect(page.locator('#api-key-channel-cafeteria')).not_to_be_checked()
@@ -112,12 +114,15 @@ def test_no_js_creation_channels_and_revoke_flow(admin_client, browser, width):
             page.get_by_label('Bezeichnung', exact=True).fill('Browser policy')
             page.locator('#api-key-scope-preview').check()
             page.locator('#api-key-channel-patienten').check()
-            page.get_by_role('button', name='Schlüssel erstellen').click()
+            page.locator('[data-api-create]').get_by_role('button', name='Anlegen', exact=True).click()
             expect(page.locator('[data-new-key]')).to_be_visible()
             row = page.locator('[data-api-keys] tbody tr')
             expect(row.locator('[data-label="Scopes / Kanäle"]')).to_contain_text('Patienten')
             expect(row.locator('[data-label="Scopes / Kanäle"]')).not_to_contain_text('Cafeteria')
-            row.get_by_role('button', name='Widerrufen').click()
+            # Destructive flow: row details → «Widerrufen» → explicit «Bestätigen».
+            row.locator('summary', has_text='Details').click()
+            row.locator('summary', has_text='Widerrufen').click()
+            row.get_by_role('button', name='Bestätigen', exact=True).click()
             expect(page.locator('[data-key-state="revoked"]')).to_be_visible()
             expect(page.locator('[data-new-key]')).to_have_count(0)
     finally:
