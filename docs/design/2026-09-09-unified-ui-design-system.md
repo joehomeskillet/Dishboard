@@ -1886,6 +1886,30 @@ gehört über das native `form`-Attribut zum selben Formular. Nachweise:
 `tests/test_ui_korrektur_branding_browser.py` (eigener Playwright-Start, 360/768/1024/1440,
 No-JS, Tastatur, Statusbar, Überlauf), `tests/test_branding_browser.py`.
 
+##### Modul Einstellungen – Benutzer & Zugriff (2026-09-20)
+
+Benutzer & Zugriff nutzt M01/M22/M23/M25. Die Anlage unter der Kontenliste ist
+ersetzt am 2026-09-20 durch eine Primäraktion «Anlegen» zur vorhandenen Anlageansicht;
+leere Listen bieten dieselbe Aktion neutral an. Rollen, Passwort und Kontostatus
+bleiben getrennte native Formulare mit unveränderter Bestätigung, CSRF und CAS.
+«Bearbeiten» öffnet die Rollen als einzige Primäraktion im Detail; bei einem
+Rollenfehler wird «Speichern» hervorgehoben. Passwortentzug und Deaktivierung
+bleiben klar destruktiv. Anmeldedaten und Auditlinks liegen unter
+«Weitere Optionen», Fehler öffnen weiterhin die betroffene Aktionsgruppe.
+
+Die Detail-Statusbar zeigt ausschliesslich `account.disabled_at`, die Rollen aus
+`account.roles`/`role_labels` und die zeitlich geprüfte Sperre aus `locked_until`
+und `now`. Liste und Anlage zeigen nur bei fehlender Schreibverfügbarkeit den
+Warnstatus «Nur lesen» aus `can_mutate`. Ereignislisten behaupten keinen Sitzungs- oder Abmeldestatus und
+erhalten keine dekorativen Zähler. Die Filter verwenden die gemeinsame
+`admin-filter-bar` ohne Suchfeld: Die bestehenden Routen erlauben keine Suche.
+Kontenzeilen nutzen ab 1024 px drei Spalten, Ereignistabellen mobil beschriftete
+Listen. Modul-CSS: `admin-settings-benutzer.css`; zentrale Tokens bleiben erhalten.
+
+Nachweise: `tests/test_ui_korrektur_users_browser.py` mit eigenem Playwright-Start,
+360/768/1024/1440 px, No-JS, Tastatur/Fokus, Statusbar, Dichtemessungen und nativen
+POST-Verträgen; unveränderte DB-/AuthZ-/CAS-Gates für Konten und Zugriffsereignisse.
+
 #### M26 — Wochenplan Cafeteria — kompakte Wochenplanung
 
 Kompakte Wochenplanung statt riesiger Einzelkarten; Zielmodell SDD v2 §5.1.

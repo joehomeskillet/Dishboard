@@ -5,12 +5,12 @@ import base64
 import json
 import struct
 from pathlib import Path
-from tempfile import TemporaryDirectory
+from tempfile import TemporaryDirectory, gettempdir
 from urllib.parse import parse_qs, urljoin, urlsplit
 from xml.etree import ElementTree
 
 import pytest
-from playwright.sync_api import expect
+from playwright.sync_api import expect, sync_playwright
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
@@ -19,11 +19,10 @@ from test_access_history_reads import _seed_history
 from test_admin_local_users_browser import _context, _layout, live_accounts
 from test_admin_local_users_routes import _create, admin_account
 from test_auth_routes import ACTOR_IDENTIFIER, auth_app
-from test_rendered_ui import browser
 
 __all__ = ["admin_account", "auth_app", "browser", "live_accounts"]
 
-EVIDENCE = Path(__file__).resolve().parents[2] / ".claude/evidence/density-users-0913/after"
+EVIDENCE = Path(gettempdir()) / "uiux-wp19-0920-evidence"
 VIEWPORTS = (
     (1440, 900, "1440x900"),
     (1024, 768, "1024x768"),
@@ -35,11 +34,75 @@ VIEWPORTS = (
 )
 
 
+@pytest.fixture(scope="session")
+def browser():
+    with sync_playwright() as playwright:
+        instance = playwright.chromium.launch(
+            headless=True, args=['--no-sandbox', '--disable-dev-shm-usage'],
+        )
+        yield instance
+        instance.close()
+
+
+@pytest.mark.parametrize('javascript', [True, False], ids=['js', 'nojs'])
+def test_wp19_measured_page_frame(live_accounts, browser, javascript):
+    origin, client, _, issuer = live_accounts
+    target = _create(issuer, 'ui.measure.target')
+    measurements = []
+    evidence = EVIDENCE / ('js' if javascript else 'nojs')
+    evidence.mkdir(parents=True, exist_ok=True)
+    with _context(browser, origin, client, javascript=javascript) as context:
+        page = context.new_page()
+        for width in (360, 768, 1024, 1440):
+            page.set_viewport_size({'width': width, 'height': 900})
+            for name, path in (
+                ('list', '/admin/benutzer'),
+                ('detail', f'/admin/benutzer/{target.public_id}'),
+                ('create', '/admin/benutzer/neu'),
+                ('events', '/admin/benutzer/protokoll'),
+                ('history', '/admin/benutzer/zugriffsverlauf'),
+            ):
+                _open(page, origin, path)
+                page.screenshot(path=str(evidence / f'{name}-{width}.png'), full_page=True)
+                metric = page.evaluate('''() => ({
+                    width: innerWidth, height: document.documentElement.scrollHeight,
+                    overflow: document.documentElement.scrollWidth > innerWidth,
+                    primary: document.querySelectorAll('main .btn-primary').length,
+                    open: document.querySelectorAll('main details[open]').length,
+                    row: document.querySelector('[data-account-row], tbody tr')?.getBoundingClientRect().height ?? null,
+                    contentHeight: document.querySelector('main').getBoundingClientRect().height,
+                })''')
+                assert not metric['overflow'], metric
+                assert metric['primary'] == 1, metric
+                if name == 'detail':
+                    expect(page.locator('.admin-statusbar')).to_be_visible()
+                    assert 'authz_version' not in page.locator('.admin-statusbar').inner_text()
+                    expect(page.locator('.admin-statusbar')).to_contain_text('Aktiv')
+                    expect(page.locator('.admin-statusbar')).to_contain_text('Editor')
+                    expect(page.locator('.admin-statusbar')).to_contain_text('Nicht vorübergehend gesperrt')
+                    primary = page.locator('main .btn-primary')
+                    assert primary.evaluate('el => getComputedStyle(el).backgroundColor') != page.locator('main .btn').first.evaluate('el => getComputedStyle(el).backgroundColor')
+                if name == 'list':
+                    assert metric['row'] <= (144 if width < 1024 else 96), metric
+                if name == 'events' and width < 1024:
+                    assert metric['row'] < 200, metric
+                measurements.append(dict(page=name, javascript=javascript, **metric))
+                first = page.locator('main a.btn:visible, main button:visible, main summary:visible').first
+                first.focus()
+                expect(first).to_be_focused()
+                assert first.evaluate('el => getComputedStyle(el).outlineStyle !== "none"')
+        (evidence / 'wp19-metrics.json').write_text(json.dumps(measurements, indent=2))
+        print('WP19_METRICS', json.dumps(measurements), 'EVIDENCE', evidence)
+
+
 def _open(page, origin: str, path: str):
     response = page.goto(origin + path, wait_until="networkidle")
     assert response is not None and response.status in {200, 400, 409}
     assert response.headers["cache-control"] == "no-store"
     _layout(page)
+    assert page.locator('main summary:visible').evaluate_all(
+        'els => els.every(el => el.getBoundingClientRect().height >= 47.5)',
+    )
     return response
 
 
@@ -97,14 +160,11 @@ def test_list_first_and_native_create_form_preserves_request_contract(
         page = context.new_page()
         _open(page, origin, "/admin/benutzer")
 
-        create = page.locator("#create-local-user")
-        expect(create).to_have_count(1)
-        assert not create.evaluate("details => details.open")
-        assert page.locator(".admin-area-tabs").count() == 1
-        assert page.locator("section[aria-labelledby=users-title]").evaluate(
-            "list => Boolean(list.compareDocumentPosition(document.querySelector('#create-local-user')) "
-            "& Node.DOCUMENT_POSITION_FOLLOWING)",
-        )
+        expect(page.locator("#create-local-user")).to_have_count(0)
+        assert page.locator(".admin-area-tabs").count() == 0
+        expect(page.locator('.admin-statusbar')).to_have_count(0)
+        expect(page.locator('main .btn-primary')).to_have_count(1)
+        expect(page.locator('main .btn-primary')).to_have_attribute('href', '/admin/benutzer/neu?page=1&status=all')
         first_row = page.locator("[data-account-row]").first
         expect(first_row).to_be_visible()
         box = first_row.bounding_box()
@@ -118,7 +178,9 @@ def test_list_first_and_native_create_form_preserves_request_contract(
         page.keyboard.press('Enter')
         assert not first_row.locator('details').evaluate('el => el.open')
 
-        create.locator("summary").click()
+        page.get_by_role('link', name='Anlegen', exact=True).click()
+        create = page.locator("#create-local-user")
+        expect(create).to_have_attribute('open', '')
         form = create.locator("form")
         assert urlsplit(form.get_attribute("action") or "").path == "/admin/benutzer"
         assert form.get_attribute("method").lower() == "post"
@@ -135,7 +197,7 @@ def test_list_first_and_native_create_form_preserves_request_contract(
         page.get_by_label("Neues Passwort", exact=True).fill("Valide!Wolken77Kette")
         page.get_by_label("Neues Passwort bestätigen", exact=True).fill("Valide!Wolken77Kette")
         with page.expect_request(lambda request: request.method == "POST") as sent:
-            page.get_by_role("button", name="Konto speichern", exact=True).click()
+            page.get_by_role("button", name="Speichern", exact=True).click()
         request = sent.value
         assert urlsplit(request.url).path == "/admin/benutzer"
         payload = parse_qs(request.post_data or "", keep_blank_values=True)
@@ -143,7 +205,12 @@ def test_list_first_and_native_create_form_preserves_request_contract(
             "_csrf", "return_page", "return_status", "username", "display_name",
             "roles", "password", "password_confirm",
         }
-        expect(page.get_by_role("heading", name=f"UI Vertrag {suffix}", exact=True)).to_be_visible()
+        assert payload['roles'] == ['Cafeteria.Editor']
+        assert payload['return_page'] == ['1'] and payload['return_status'] == ['all']
+        assert payload['username'] == [f'ui.contract.{suffix}']
+        assert payload['display_name'] == [f'UI Vertrag {suffix}']
+        assert payload['password'] == payload['password_confirm'] == ['Valide!Wolken77Kette']
+        expect(page.locator('.page-header-subtitle')).to_contain_text(f"UI Vertrag {suffix}")
 
 
 @pytest.mark.parametrize("javascript", [True, False], ids=["js", "nojs"])
@@ -162,7 +229,7 @@ def test_create_and_role_errors_open_correct_group_preserve_safe_values_and_focu
         page.get_by_label("Neues Passwort", exact=True).fill("Valide!Wolken77Kette")
         page.get_by_label("Neues Passwort bestätigen", exact=True).fill("Frische!Sterne92Tanne")
         with page.expect_navigation() as navigation:
-            page.get_by_role("button", name="Konto speichern", exact=True).click()
+            page.get_by_role("button", name="Speichern", exact=True).click()
         assert navigation.value.status == 400
         assert page.locator("#create-local-user").evaluate("details => details.open")
         expect(page.locator(".error-region")).to_be_focused()
@@ -175,7 +242,7 @@ def test_create_and_role_errors_open_correct_group_preserve_safe_values_and_focu
 
         _open(page, origin, f"/admin/benutzer/{target.public_id}")
         page.locator('#account-login-details summary').click()
-        expect(page.get_by_text("Nicht vorübergehend gesperrt", exact=True)).to_be_visible()
+        expect(page.locator('#account-login-details').get_by_text("Nicht vorübergehend gesperrt", exact=True)).to_be_visible()
         expect(page.get_by_text("Letzte lokale Passwortprüfung", exact=True)).to_be_visible()
         page.locator('#account-login-details summary').click()
         for selector in ("#roles-action", "#password-action", "#state-action"):
@@ -185,7 +252,7 @@ def test_create_and_role_errors_open_correct_group_preserve_safe_values_and_focu
             checkbox.uncheck()
         page.get_by_label("Rollenänderung für ui.error.target bestätigen", exact=True).check()
         with page.expect_navigation() as navigation:
-            page.get_by_role("button", name="Konto speichern", exact=True).click()
+            page.get_by_role("button", name="Speichern", exact=True).click()
         assert navigation.value.status == 400
         assert page.locator("#roles-action").evaluate("details => details.open")
         assert not page.locator("#password-action").evaluate("details => details.open")
@@ -211,15 +278,19 @@ def test_security_action_requests_keep_targets_and_fields(live_accounts, browser
         context.add_cookies([{"name": cookie_name, "value": cookie.value, "url": origin}])
         page = context.new_page()
         cases = (
-            ("#roles-action", "Konto speichern", "rollen", {"roles"}),
+            ("#roles-action", "Speichern", "rollen", {"roles"}),
             (
                 "#password-action", "Passwort zurücksetzen", "passwort",
                 {"password", "password_confirm"},
             ),
             ("#state-action", "Konto deaktivieren", "deaktivieren", set()),
+            ("#state-action", "Konto reaktivieren", "aktivieren", set()),
         )
         for selector, button, action, extra_fields in cases:
             _open(page, origin, f"/admin/benutzer/{target.public_id}")
+            expect(page.locator('main .btn-primary')).to_have_count(1)
+            if action == 'aktivieren':
+                expect(page.locator('.admin-statusbar')).to_contain_text('Deaktiviert')
             details = page.locator(selector)
             details.locator("summary").click()
             original = details.locator('input[type=hidden]').evaluate_all('els => els.map(el => [el.name, el.value])')
@@ -244,6 +315,9 @@ def test_security_action_requests_keep_targets_and_fields(live_accounts, browser
             assert set(payload) == {
                 "_csrf", "return_page", "return_status", "target_version", "confirm",
             } | extra_fields
+            assert payload['confirm'] == ['yes']
+            for name, value in original:
+                assert payload[name] == [value]
             if action == "rollen":
                 assert payload["roles"] == ["Cafeteria.Editor"]
 
@@ -288,7 +362,7 @@ def test_stale_roles_reopen_original_choice_without_silent_write(live_accounts, 
         details.locator('input[name=confirm]').check()
         csrf = details.locator('input[name=_csrf]').input_value()
         with page.expect_navigation() as navigation:
-            details.get_by_role('button', name='Konto speichern', exact=True).click()
+            details.get_by_role('button', name='Speichern', exact=True).click()
         assert navigation.value.status == 409
         assert details.evaluate('el => el.open')
         expect(page.locator('.error-region')).to_be_focused()
@@ -322,7 +396,7 @@ def test_empty_filtered_history_readonly_and_unavailable_are_distinct(
         page.get_by_role('button', name='Filtern', exact=True).click()
         expect(page.get_by_text('Keine lokalen Konten in dieser Auswahl.', exact=True)).to_be_visible()
         expect(page.get_by_label('Kontostatus', exact=True)).to_have_value('disabled')
-        page.get_by_role('link', name='Alle Konten anzeigen', exact=True).click()
+        page.get_by_role('link', name='Zurücksetzen', exact=True).first.click()
         expect(page.locator('[data-account-row]')).to_have_count(1)
         _open(page, origin, '/admin/benutzer/zugriffsverlauf')
         expect(page.get_by_text('Noch keine Zugriffsereignisse erfasst.', exact=True)).to_be_visible()
@@ -339,6 +413,9 @@ def test_empty_filtered_history_readonly_and_unavailable_are_distinct(
                            ('detail', f'/admin/benutzer/{target.public_id}')]:
             _open(page, origin, path)
             expect(page.get_by_role('status')).to_contain_text('Die Konten bleiben lesbar')
+            expect(page.locator('main .btn-primary')).to_have_count(1)
+            if name in ('local-users', 'create'):
+                expect(page.locator('.admin-statusbar')).to_contain_text('Nur lesen')
             for summary in page.locator('details > summary').all():
                 summary.click()
             for submit in page.locator('main form[method=post] button[type=submit]').all():
