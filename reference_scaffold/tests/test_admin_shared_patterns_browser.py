@@ -173,6 +173,56 @@ def test_polish_stack_table_reflows_without_losing_labels(width, tmp_path):
     _run_polish_check(markup, verify, width, javascript=False)
 
 
+def test_polish_loading_preserves_native_submitter_and_resets_on_pageshow():
+    markup = '''<iframe name="result" title="Ergebnis"></iframe>
+        <form id="editor" method="post" action="/__polish__" target="result" data-loading>
+          <input name="note" value="Behalten">
+          <button id="already-disabled" disabled>Gesperrt</button>
+        </form><button id="save" class="btn btn-primary" type="submit" form="editor"
+          name="intent" value="save" aria-busy="false"><span>Speichern</span></button>'''
+
+    def verify(page):
+        button = page.locator('#save')
+        button.click()
+        expect(button).to_be_disabled()
+        expect(button).to_have_attribute('aria-busy', 'true')
+        assert 'admin-btn-loading' in button.get_attribute('class').split()
+        expect(button.locator('span')).to_be_visible()
+        expect(button).to_have_text('Speichern')
+        expect(button).not_to_have_css('color', 'rgba(0, 0, 0, 0)')
+        assert button.evaluate('el => getComputedStyle(el, "::after").animationName') == 'none'
+        body = page.frame_locator('iframe').locator('body')
+        expect(body).to_contain_text('intent')
+        assert json.loads(body.inner_text()) == {'intent': ['save'], 'note': ['Behalten']}
+        page.evaluate('window.dispatchEvent(new PageTransitionEvent("pageshow", {persisted: true}))')
+        expect(button).to_be_enabled()
+        expect(button).to_have_attribute('aria-busy', 'false')
+        assert 'admin-btn-loading' not in button.get_attribute('class').split()
+        expect(page.locator('#already-disabled')).to_be_disabled()
+
+    _run_polish_check(markup, verify)
+
+
+def test_polish_loading_ignores_invalid_and_cancelled_submits():
+    markup = '''<form data-loading><input id="required" required name="name">
+        <button class="btn btn-primary">Speichern</button></form>'''
+
+    def verify(page):
+        button = page.get_by_role('button', name='Speichern')
+        button.click()
+        expect(button).to_be_enabled()
+        expect(button).not_to_have_attribute('aria-busy', 'true')
+        page.locator('#required').fill('Name')
+        page.evaluate('document.querySelector("form").addEventListener("submit", e => e.preventDefault())')
+        button.click()
+        # Wait past the deferred native-submit hook without an arbitrary sleep.
+        page.evaluate('new Promise(resolve => setTimeout(resolve, 0))')
+        expect(button).to_be_enabled()
+        expect(button).not_to_have_attribute('aria-busy', 'true')
+
+    _run_polish_check(markup, verify)
+
+
 def _page(shared_site, javascript=True, width=390, query=''):
     chromium, origin, cookie = shared_site
     context = chromium.new_context(java_script_enabled=javascript, viewport={'width': width, 'height': 900},

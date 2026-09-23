@@ -145,7 +145,7 @@
   --tblr-btn-bg: transparent; --tblr-btn-border-color: transparent;
   --tblr-btn-color: var(--app-neutral-text);
   --tblr-btn-hover-bg: var(--app-neutral-soft); --tblr-btn-hover-color: var(--app-text);
-  --tblr-btn-active-bg: var(--app-neutral-soft); --tblr-btn-active-color: var(--app-text);
+  --tblr-btn-active-bg: var(--app-border); --tblr-btn-active-color: var(--app-text);
 }
 .dishboard-admin .admin-form-danger { margin-inline-end: var(--app-space-4); }
 .dishboard-admin .admin-form-tertiary { display: flex; flex-wrap: wrap; gap: var(--app-space-2); }
@@ -173,6 +173,21 @@
   --tblr-btn-disabled-border-color: var(--app-danger-text);
 }
 .dishboard-admin .btn-list { gap: var(--app-space-2); }
+.dishboard-admin .btn-danger:hover { filter: brightness(var(--app-action-hover-brightness)); }
+.dishboard-admin .btn-danger:active { filter: brightness(var(--app-action-active-brightness)); }
+.dishboard-admin .btn:is(:disabled, [aria-disabled="true"]) { border-style: dashed; cursor: not-allowed; }
+.dishboard-admin a[aria-disabled="true"] { cursor: not-allowed; text-decoration: line-through; }
+.dishboard-admin .admin-btn-loading::after {
+  content: ''; width: 1em; height: 1em; flex: none;
+  margin-inline-start: var(--app-space-2);
+  border: var(--app-focus-width) solid currentColor; border-inline-end-color: transparent;
+  border-radius: var(--app-radius-pill); animation: admin-submit-spin .8s linear infinite;
+}
+@keyframes admin-submit-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .dishboard-admin .admin-btn-loading::after { animation: none; }
+  .dishboard-admin :is(.btn, a, .admin-list-actions *) { transition: none; }
+}
 .dishboard-admin .btn-list > * { margin: 0; }
 .dishboard-admin :is(.pagination, .nav-pills, .navbar-nav) { gap: 8px; }
 .dishboard-admin .nav-pills { --tblr-nav-link-color: var(--app-text-muted); --tblr-nav-link-hover-color: var(--app-primary-hover); }
@@ -329,7 +344,7 @@
 .dishboard-admin [data-menu-metadata] .labels { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 .dishboard-admin [data-menu-metadata] .label { padding: 4px 8px; border-radius: var(--sh-radius-sm); background: var(--sh-panel-soft); }
 .dishboard-admin [data-menu-metadata] :is(p, .label), .dishboard-admin .card-title { overflow-wrap: anywhere; }
-.dishboard-admin :is(a, button, summary, input, select, textarea, [tabindex]):focus-visible { outline: 2px solid var(--app-focus); outline-offset: 2px; }
+.dishboard-admin :is(a, button, summary, input, select, textarea, [tabindex]):focus-visible { outline: var(--app-focus-width) solid var(--app-focus); outline-offset: 2px; }
 .dishboard-admin .admin-sidebar :is(a, button, summary):focus-visible { outline-color: var(--app-surface); }
 .dishboard-admin .admin-nojs-nav { width: 100%; }
 .dishboard-admin .admin-nojs-nav > summary {

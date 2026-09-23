@@ -2,6 +2,41 @@
 (function() {
     'use strict';
 
+    // Opt-in native submissions: defer disabling until successful controls have
+    // been serialized, including the clicked submitter's name/value and overrides.
+    const loadingForms = new Map();
+    document.addEventListener('submit', event => {
+        const form = event.target;
+        if (!form.matches('form[data-loading]')) return;
+        if (loadingForms.has(form)) {
+            event.preventDefault();
+            return;
+        }
+        window.setTimeout(() => {
+            if (event.defaultPrevented || !form.isConnected) return;
+            const button = Array.from(form.elements).find(control =>
+                control.matches('button.btn-primary') && control.type === 'submit' && !control.disabled);
+            if (!button) return;
+            loadingForms.set(form, {button, busy: button.getAttribute('aria-busy'),
+                spinner: button.classList.contains('admin-btn-loading')});
+            button.disabled = true;
+            button.setAttribute('aria-busy', 'true');
+            button.classList.add('admin-btn-loading');
+        }, 0);
+    });
+    window.addEventListener('pageshow', () => {
+        loadingForms.forEach(({button, busy, spinner}) => {
+            button.disabled = false;
+            if (busy === null) button.removeAttribute('aria-busy');
+            else button.setAttribute('aria-busy', busy);
+            if (!spinner) button.classList.remove('admin-btn-loading');
+        });
+        loadingForms.clear();
+    });
+    document.addEventListener('click', event => {
+        if (event.target.closest('a[aria-disabled="true"]')) event.preventDefault();
+    });
+
     // Tabler already initializes these tooltips. Keep its instance and positioning.
     const iconActions = document.querySelectorAll('[data-admin-icon-action]');
     iconActions.forEach(link => {

@@ -551,3 +551,32 @@ def test_polish_heading_scale_flat_cards_and_header_budget(site, tmp_path):
     ).evaluate_all('els => els.map(el => ({class: el.className, height: el.offsetHeight, width: el.offsetWidth, padding: getComputedStyle(el).padding, margin: getComputedStyle(el).margin}))')
     assert page.locator('.card').first.evaluate('el => parseFloat(getComputedStyle(el).borderTopWidth)') == 1
     page.screenshot(path=str(tmp_path / 'polish-header-cards.png'), full_page=True)
+
+
+def test_polish_interaction_states_keep_focus_and_disabled_distinct(site):
+    page = site[0]
+    _goto(page, DISPLAY)
+    page.locator('main').evaluate('''el => el.innerHTML = `<div class="admin-list-actions">
+        <button class="btn btn-ghost" id="ghost">Bearbeiten</button>
+        <button class="btn btn-danger" id="danger">Löschen</button>
+        <button class="btn btn-primary" disabled>Gesperrt</button>
+        <a href="#target" aria-disabled="true">Nicht verfügbar</a></div>`''')
+    assert page.locator('body').evaluate('el => getComputedStyle(el).getPropertyValue("--app-focus-width").trim()') == '2px'
+    for selector in ['#ghost', '#danger']:
+        control = page.locator(selector)
+        before = control.evaluate('el => [getComputedStyle(el).backgroundColor, getComputedStyle(el).filter]')
+        control.hover()
+        hover = control.evaluate('el => [getComputedStyle(el).backgroundColor, getComputedStyle(el).filter]')
+        assert hover != before
+        page.mouse.down()
+        active = control.evaluate('el => [getComputedStyle(el).backgroundColor, getComputedStyle(el).filter]')
+        assert active != hover
+        page.mouse.move(0, 0)
+        page.mouse.up()
+        _focus(control)
+        assert float(_styles(control)['outline-width'][:-2]) >= 2
+    expect(page.locator('button:disabled')).to_have_css('border-top-style', 'dashed')
+    link = page.get_by_role('link', name='Nicht verfügbar')
+    link.focus()
+    page.keyboard.press('Enter')
+    assert urlsplit(page.url).fragment == ''
