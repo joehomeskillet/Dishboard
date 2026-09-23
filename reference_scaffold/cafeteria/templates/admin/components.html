@@ -8,7 +8,7 @@
 {% set errors = form_errors|default({}) %}
 {% set active_filters = filters|default(none) %}
 {% set filtered = query or category or (active_filters and (active_filters.usage or active_filters.allergen or active_filters.presence or active_filters.label or active_filters.origin or active_filters.status != 'active')) %}
-{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='ui-semantic.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='admin-components.css') }}">{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-components.css') }}">{% endblock %}
 {% block title %}Bausteine {{ 'Cafeteria' if profile == 'staff_guest' else 'Patienten' }}{% endblock %}
 {% block main_attributes %}data-family="{{ family }}" data-week="{{ week|default('') }}"{% endblock %}
 {% block page_header %}

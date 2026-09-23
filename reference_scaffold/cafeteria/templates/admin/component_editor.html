@@ -7,7 +7,7 @@
 {% set layout_variant = 'standard' %}
 {% set submitted = form_values|default({}) %}
 {% set errors = form_errors|default({}) %}
-{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='ui-semantic.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='admin-components.css') }}">{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-components.css') }}">{% endblock %}
 {% block title %}{{ component.name }}{% endblock %}
 {% block main_attributes %}data-family="{{ family }}" data-public-id="{{ component.public_id }}" data-profile-scope="{{ component.profile_scope }}" data-active="{{ '1' if component.active else '0' }}"{% endblock %}
 {% block page_header %}
