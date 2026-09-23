@@ -10253,7 +10253,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "5dfdd8f19c7f697290bf3dc204d001572ab28e586cb4ee51ba3f2c9aadda3685",
+      "sha256": "87a39bec23258c73671a503da06da5d4311659bfb0c3ea83d90ec7d8691b6de3",
       "used_by_endpoints": [
         "admin.access_history",
         "admin.api_overview",
@@ -10630,7 +10630,7 @@
         "admin/_macros.html",
         "admin/_workflow_sidebar.html"
       ],
-      "sha256": "11fa12a48812677964ed3e421b1387c5d407b56752ed2828e60c23fb636f5564",
+      "sha256": "63db3f1308ea943dac3a3f690e6b1954a853240c2a7ad7be27d0afbc5ea5f962",
       "used_by_endpoints": [
         "admin.access_history",
         "admin.api_overview",
@@ -10790,7 +10790,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "a770698ee66249b5678c91a97112b1daa46f2915779b0dc4c0929acd1e62b6ec",
+      "sha256": "040930c85581452e0a17dac8313d21afd8b05922a61c4b8e6490f9f971a32247",
       "used_by_endpoints": [
         "admin.component_detail"
       ],
@@ -10814,7 +10814,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "a0de1692951f91e56c0b4722a0f177a9abf89f690894db8523ac23bc6d2b6da2",
+      "sha256": "eea2ede33410ab5f64dd09558b17ad48a927c0e7ab9361e1a27223b06f07120a",
       "used_by_endpoints": [
         "admin.components_get"
       ],
@@ -11689,7 +11689,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "350e701226c0a2786953e92030d39f435152b8727e84c6639fcd3c01fcf131e8",
+      "sha256": "bf36bd8bb8d99b1ddad943cdacb753143774dfc2ab019d587cce23f27dbc6b30",
       "used_by_endpoints": [
         "admin.screen_template_assignment",
         "admin.screen_template_preview"
@@ -11736,7 +11736,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "dc48dba727a45491be178d9fd7f9f70dd97cfa32026f08f8b9a1b54093d0f00c",
+      "sha256": "6c59b1267c4377bd389b6aaff39bdacfa6d8b268c326291debe9763288ecf3de",
       "used_by_endpoints": [
         "admin.screens"
       ],
@@ -12387,7 +12387,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "24ad389571abe4b88843ed176997f747d043f173093115bbfbbb9187abd8ba76",
+      "sha256": "e28bad464512c089aaf61d06fc8f407c91ad81c19bfe8fc89bfe4b781e756557",
       "used_by_endpoints": [
         "admin.order_home"
       ],
@@ -12402,7 +12402,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "f93350097b5abf414fc43e473b3db8ac335ac746e4fcb0bf85babea1ff25ac18",
+      "sha256": "64936f068ac812780e0e6edc5423ff6df3314e6dd8b8e799c29b23d126c8ff35",
       "used_by_endpoints": [
         "admin.order_basket"
       ],
@@ -12417,7 +12417,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "5f453f079c67c02e17f06ce512d197220bd15aea65ad2f84049a9a7575e02f1f",
+      "sha256": "0352e385f3400682ca0757d2ae7ed4ef7402d669bc5e3c732254103214c1a514",
       "used_by_endpoints": [
         "admin.cost_home",
         "admin.cost_preview"
@@ -12433,7 +12433,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "5a3ffa1415a24e6cca1cc3ec413973827a037f158a1458b1afdc9711fccd29b0",
+      "sha256": "5638fe35990e0ac6b2f65ccb9d5b3f4be9dc5166b102bbcbbe7648eb41135edd",
       "used_by_endpoints": [
         "admin.inventory_home"
       ],
