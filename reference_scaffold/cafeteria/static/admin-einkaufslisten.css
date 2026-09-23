@@ -5,29 +5,6 @@
   width: 100%;
 }
 
-.dishboard-admin [data-shopping-lists] .shopping-create > summary {
-  width: fit-content;
-  max-width: 100%;
-  margin-left: auto;
-  min-height: var(--app-space-12);
-  min-width: var(--app-space-12);
-  cursor: pointer;
-  list-style: none;
-  white-space: normal;
-}
-
-.dishboard-admin [data-shopping-lists] .shopping-create > summary::-webkit-details-marker {
-  display: none;
-}
-
-.dishboard-admin [data-shopping-lists] .page-header-row:has(.shopping-create[open]) > .col-md-auto {
-  width: 100%;
-}
-
-.dishboard-admin [data-shopping-lists] .shopping-create[open] form {
-  margin-top: var(--app-space-3);
-}
-
 .dishboard-admin [data-shopping-lists] .shopping-create-fields {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -107,10 +84,6 @@
 
 .dishboard-admin [data-shopping-lists] .shopping-item-actions .btn {
   white-space: normal;
-}
-
-.dishboard-admin [data-shopping-lists] .shopping-delete-hint {
-  margin: 0;
 }
 
 .dishboard-admin [data-shopping-lists] .h3,
