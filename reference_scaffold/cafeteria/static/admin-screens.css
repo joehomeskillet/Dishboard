@@ -7,7 +7,7 @@
 
 .screens-overview {
   grid-auto-rows: auto;
-  align-items: start;
+  align-items: stretch;
   gap: var(--app-space-3);
 }
 
