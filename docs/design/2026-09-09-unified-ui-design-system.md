@@ -1716,6 +1716,25 @@ Nachbesserung 2026-09-23: H1 und Dokumenttitel bleiben auf Liste, Anlage, Editor
 
 Messnachweis: `test_dish_template_browser.py::test_rework_layout_measurements` prüft 360/390/1440 px, genau eine Primäraktion, sämtliche sichtbaren Aktionsziele mindestens 48 × 48 px, Desktop-Zeilen maximal 96 px, Überlauf und echte Statuswerte für aktive/archivierte Vorlagen mit/ohne Rezeptbindung. Bestehende Tests für Konflikte, Rezeptsuche mit Werterhalt, Leserechte, 320-px-Reflow und echten 200-%-Browserzoom bleiben erhalten. Vorher-/Nachherwerte und Gate-Ergebnis stehen im WP09-Nachbesserungsreport.
 
+##### Modul Kalkulation (2026-09-20)
+
+Kalkulation nutzt M01/M23/M25: Seitenkopf mit genau einer Primäraktion
+«Vorschau» ohne Ergebnis, danach «Bestätigen» für den unveränderlichen Beleg.
+Die Eingaben Art → Rezeptrevision → Stichtag stehen auf Desktop in drei Spalten,
+mobil untereinander. Die zusätzliche Menürevision liegt in «Weitere Optionen»;
+bei Menüauswahl wird der Bereich angeboten, bei vorhandener Zusatzangabe geöffnet.
+Feldnamen, Werte und native POST-Formulare bleiben unverändert, auch ohne JavaScript.
+
+Die Statusbar verwendet nur den tatsächlichen Vorschauzustand, den berechneten
+Stichtag, unvollständige Positionen und bei vollständiger Berechnung die Summe.
+Fehlende Preise oder Umrechnungen bleiben ausdrücklich unvollständig, niemals null
+CHF. Ergebniszeilen sind mobil Listen; technische Zutaten-IDs stehen nachrangig
+in «Weitere Optionen». Da der vorhandene Kontext keine Namen oder Objektauswahl
+liefert, bleibt die erforderliche Revisions-ID eine Eingabe. Ein benannter
+Objektwähler benötigt ein eigenes Backend-Paket. Nachweise:
+`tests/test_admin_cost_routes.py` (360/768/1024/1440, No-JS, Tastatur, POST-Felder),
+`tests/test_shopping_cost.py`, `tests/test_recipe_cost_db.py`, `tests/test_cost_calc.py`.
+
 #### M26 — Wochenplan Cafeteria — kompakte Wochenplanung
 
 Kompakte Wochenplanung statt riesiger Einzelkarten; Zielmodell SDD v2 §5.1.
