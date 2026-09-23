@@ -791,6 +791,7 @@ reference_scaffold/cafeteria/static/admin-screens.css
 reference_scaffold/cafeteria/static/admin-tabler.css
 reference_scaffold/cafeteria/static/admin-week-tabler.css
 reference_scaffold/cafeteria/static/admin-wochenplan-kern.css
+reference_scaffold/cafeteria/static/admin-wochenuebersicht.css
 reference_scaffold/cafeteria/static/admin.js
 reference_scaffold/cafeteria/static/api-docs.js
 reference_scaffold/cafeteria/static/app.css
@@ -1318,6 +1319,7 @@ reference_scaffold/tests/test_admin_workflow_db.py
 reference_scaffold/tests/test_admin_workflow_review_db.py
 reference_scaffold/tests/test_admin_workflow_routes.py
 reference_scaffold/tests/test_admin_workflow_snapshot_contract.py
+reference_scaffold/tests/test_allergen_presence_contract.py
 reference_scaffold/tests/test_api_backup_sequence_db.py
 reference_scaffold/tests/test_api_docs.py
 reference_scaffold/tests/test_api_key_policy.py
