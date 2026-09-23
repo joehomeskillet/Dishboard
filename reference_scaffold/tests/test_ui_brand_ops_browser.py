@@ -104,7 +104,7 @@ def test_brand_editor_normal_state_and_viewports(
         expect(page.get_by_text('Live-Vorschau', exact=False)).to_have_count(0)
         expect(page.locator('.brand-color-swatch')).to_have_count(4)
         expect(page.locator('iframe.brand-preview-frame')).to_have_count(1)
-        expect(page.locator('details.brand-history-card summary')).to_contain_text('Weitere Aktionen')
+        expect(page.locator('.brand-history-card #brand-history-title')).to_contain_text('Ausgewählten Stand übernehmen')
 
         _assert_no_overflow_and_min_targets(page)
         page.screenshot(path=str(tmp_path / f'brand-ops-editor-{width}x{height}.png'), full_page=True)
@@ -141,7 +141,7 @@ def test_operations_normal_state_and_viewports(
         _assert_page_container_width(page, width)
 
         expect(page.locator('h1.page-title')).to_have_text('Bereiche & Öffnungszeiten')
-        expect(page.locator('.page-header-subtitle')).to_contain_text('Ausgabe und Öffnungszeiten')
+        expect(page.locator('.page-header-subtitle')).to_contain_text('Wochenvorgaben gelten für neue Ausgaben')
         expect(page.locator('.text-secondary').first).to_contain_text('neue Ausgaben')
         expect(page.locator('#operations-overview')).to_be_visible()
         expect(page.locator('#exception-editor > summary')).to_be_visible()
@@ -231,6 +231,7 @@ def test_brand_ops_nojs_operations_save(
         page.goto(OPS_PATH)
         page.locator('#weekend-editor > summary').click()
         page.locator('#allows_weekend').check()
-        page.get_by_role('button', name='Wochenendbetrieb speichern', exact=True).click()
+        # Canonical verb: the weekend form's submit is «Speichern» inside its own editor.
+        page.locator('#weekend-editor').get_by_role('button', name='Speichern', exact=True).click()
         expect(page.locator('#allows_weekend')).to_be_checked()
         page.screenshot(path=str(tmp_path / 'brand-ops-nojs-weekend.png'), full_page=True)
