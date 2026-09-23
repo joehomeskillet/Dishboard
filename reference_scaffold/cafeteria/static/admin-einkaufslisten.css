@@ -1,0 +1,141 @@
+/* Shopping lists: compact rows, one primary, no document overflow. */
+
+.dishboard-admin [data-shopping-lists] .shopping-create {
+  min-width: 0;
+  width: 100%;
+}
+
+.dishboard-admin [data-shopping-lists] .shopping-create-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--app-space-2);
+}
+
+.dishboard-admin [data-shopping-lists] .shopping-filter {
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.dishboard-admin [data-shopping-lists] .shopping-filter .btn.active {
+  font-weight: 700;
+  border: 2px solid var(--app-primary);
+  background: var(--app-primary-soft);
+  color: var(--app-primary);
+}
+
+.dishboard-admin [data-shopping-lists] .shopping-list .admin-list-row {
+  padding-block: var(--app-space-1);
+  align-items: center;
+}
+
+.dishboard-admin [data-shopping-lists] .shopping-list .admin-compact-actions > summary {
+  min-width: var(--app-space-12);
+}
+
+.dishboard-admin [data-shopping-lists] .shopping-revision-row,
+.dishboard-admin [data-shopping-lists] .shopping-week-load .shopping-revision-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+  align-items: end;
+  min-width: 0;
+}
+
+.dishboard-admin [data-shopping-lists] .shopping-revision-row .form-select {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.dishboard-admin [data-shopping-lists] .shopping-compute-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--app-space-2);
+}
+
+.dishboard-admin [data-shopping-lists] .shopping-compute-grid .form-check {
+  margin: 0;
+  min-width: 0;
+}
+
+.dishboard-admin [data-shopping-lists] .shopping-result-table :is(th, td),
+.dishboard-admin [data-shopping-lists] .shopping-manual-table :is(th, td) {
+  padding: var(--app-space-1) var(--app-space-2);
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.dishboard-admin [data-shopping-lists] .shopping-item-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--app-space-2);
+  align-items: end;
+}
+
+.dishboard-admin [data-shopping-lists] .shopping-item-form .form-label {
+  margin-bottom: var(--app-space-1);
+}
+
+.dishboard-admin [data-shopping-lists] .shopping-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+  min-width: 0;
+}
+
+.dishboard-admin [data-shopping-lists] .shopping-item-actions .btn {
+  white-space: normal;
+}
+
+.dishboard-admin [data-shopping-lists] .h3,
+.dishboard-admin [data-shopping-lists] .h4 {
+  margin-bottom: var(--app-space-2);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 1024px) {
+  .dishboard-admin [data-shopping-lists] .shopping-create-fields {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .dishboard-admin [data-shopping-lists] .shopping-compute-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1440px) {
+  .dishboard-admin [data-shopping-lists] .shopping-compute-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dishboard-admin [data-shopping-lists] .shopping-item-grid {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.6fr) auto;
+  }
+
+  .dishboard-admin [data-shopping-lists] .shopping-item-form .shopping-item-grid .form-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .dishboard-admin [data-shopping-lists] .shopping-item-new .shopping-item-grid .form-label {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .dishboard-admin [data-shopping-lists] .shopping-result-table,
+  .dishboard-admin [data-shopping-lists] .shopping-manual-table {
+    width: 100%;
+  }
+
+  .dishboard-admin [data-shopping-lists] .shopping-revision-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
