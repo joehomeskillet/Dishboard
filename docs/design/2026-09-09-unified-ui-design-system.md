@@ -1384,6 +1384,23 @@ Seltene oder technische Angaben in nativem `<details>`; Kurztext zeigt vorhanden
 
 **Technischer Vertrag (2026-09-20):** `{% call disclosure_section(title='Weitere Optionen', id=none, open=false, has_content=false, has_error=false) %}…{% endcall %}` rendert `details.admin-compact-details.admin-disclosure` und `.admin-compact-detail-body`. `open`, `has_content` oder `has_error` öffnen serverseitig; `has_content` ergänzt «enthält Angaben» im Summary. Keine neuen `data-`-Attribute oder JavaScript-Abhängigkeit; native Tastaturbedienung erhält Formularwerte. Nachweis: `test_admin_shared_patterns_browser.py` für explizites Öffnen, Fehler/Inhalt, leeren geschlossenen Zustand, Fokus und responsive Zielgrössen mit und ohne JS.
 
+##### Modul Kochbücher (2026-09-20)
+
+Die Kochbuchliste verwendet M22/M23: eine Filterzeile (Suche, Archiv), kompakte
+Vollbreitenzeilen statt eines Kartenrasters, genau eine Primäraktion «Anlegen»
+im Seitenkopf und einen Empty State mit derselben Anlagehandlung. Die frühere
+dauerhaft sichtbare Anlage unter der Liste (`details#cookbook-create`) ist
+ersetzt am 2026-09-20 durch diese Primäraktion plus fokussierten Editor.
+
+Die Statusbar zeigt auf der Liste den Filterzustand (`include_archived` bzw.
+aktive Suche) und im Editor Objektstatus (`book.active`) sowie die Anzahl
+zugeordneter Rezepte (`book.recipe_public_ids`). `row_version`, IDs und
+Publikationswerte sind keine Statusslots; `row_version` bleibt verstecktes
+CAS-Feld im Formular. Archivieren liegt im Formularfuss bzw. im Bestätigungsdialog;
+Speichern der Zuordnung bleibt sekundär. CSRF, CAS und gesendete Feldnamen bleiben
+unverändert. Nachweis: `test_ui_korrektur_cookbooks_browser.py`,
+`test_cookbook_routes.py`.
+
 #### M26 — Wochenplan Cafeteria — kompakte Wochenplanung
 
 Kompakte Wochenplanung statt riesiger Einzelkarten; Zielmodell SDD v2 §5.1.

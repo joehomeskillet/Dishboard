@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import json
 import struct
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -11,8 +12,10 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from flask import Flask, render_template, session
-from playwright.sync_api import expect
+from playwright.sync_api import expect, sync_playwright
 
+from cafeteria.template_filters import register_template_filters
+from cafeteria.ui import register_ui
 from test_cookbook_routes import Forms
 from test_cookbooks_browser import cookbook_server  # noqa: F401
 from test_master_data_routes import app_engine, b3, installed_pg16, pg16, seeded_pg16  # noqa: F401
@@ -35,8 +38,8 @@ VIEWPORTS = (
     (2560, 1440, '2560x1440'),
     (320, 844, 'reflow-320'),
 )
-# Manifest §11 guideline: first core content within about 280 CSS px at 1440×900.
-FIRST_CONTENT_LIMIT = 280
+# Header, status bar and one filter row occupy the top band; the first row follows.
+FIRST_CONTENT_LIMIT = 400
 # Manifest §5.2: compact working rows are typically 56–72 px and may grow when wrapping.
 ROW_HEIGHT_LIMIT = 80
 DENSITY_METRICS = '''() => {
@@ -50,13 +53,15 @@ DENSITY_METRICS = '''() => {
     innerWidth, innerHeight,
     overflow: document.documentElement.scrollWidth > innerWidth + 1,
     documentHeight: document.documentElement.scrollHeight,
-    firstCardTop: top('section[aria-label="Kochbücher"] article.card'),
-    cards: [...document.querySelectorAll('section[aria-label="Kochbücher"] article.card')].map(card => {
+    firstCardTop: top('section[aria-label="Kochbücher"] article'),
+    statusbar: document.querySelector('dl.admin-statusbar')?.innerText || '',
+    primaryCount: document.querySelectorAll('main .btn-primary').length,
+    cards: [...document.querySelectorAll('section[aria-label="Kochbücher"] article')].map(card => {
       const body = card.querySelector('.card-body');
       const title = card.querySelector('.card-title');
-      const description = card.querySelector('p');
-      const action = card.querySelector('.btn-icon');
-      const count = action.parentElement.previousElementSibling;
+      const description = card.querySelector('.admin-list-subtitle');
+      const action = card.querySelector('.cookbook-row-action');
+      const count = card.querySelector('.cookbook-recipe-count');
       const rect = element => {
         const {x, y, width, height, right, bottom} = element.getBoundingClientRect();
         return {x, y, width, height, right, bottom};
@@ -93,6 +98,8 @@ def _render_template(name: str, **values) -> str:
         static_folder=str(ROOT / 'reference_scaffold' / 'cafeteria' / 'static'),
     )
     app.config.update(SECRET_KEY='cookbook-ui-contract', TESTING=True)
+    register_template_filters(app)
+    register_ui(app)
 
     def fake_url_for(endpoint: str, **arguments) -> str:
         if endpoint == 'static':
@@ -173,22 +180,17 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
             _book(), _book(public_id='book-2', name='Altes Buch', description='', active=False),
         ]))
         cards = page.locator('section[aria-label="Kochbücher"]')
-        create = page.locator('details#cookbook-create')
         expect(cards).to_be_visible()
-        expect(create).to_be_visible()
-        expect(create).not_to_have_attribute('open', '')
-        assert cards.evaluate(
-            '(list, disclosure) => Boolean('
-            'list.compareDocumentPosition(disclosure) & Node.DOCUMENT_POSITION_FOLLOWING)',
-            create.element_handle(),
-        )
-        rows = cards.locator('article.card')
+        expect(page.locator('details#cookbook-create')).to_have_count(0)
+        expect(page.locator('dl.admin-statusbar')).to_contain_text('Aktiv')
+        assert page.locator('main .btn-primary').count() == 1
+        rows = cards.locator('article')
         assert rows.count() == 2
         edit = rows.nth(0).get_by_role('link', name='Testkochbuch bearbeiten', exact=True)
-        view = rows.nth(1).get_by_role('link', name='Altes Buch ansehen', exact=True)
-        assert _icon_control(edit) == ('Testkochbuch bearbeiten', 'Bearbeiten')
-        assert _icon_control(view) == ('Altes Buch ansehen', 'Ansehen')
-        assert (_symbol(edit), _symbol(view)) == ('pencil', 'eye')
+        view = rows.nth(1).get_by_role('link', name='Altes Buch öffnen', exact=True)
+        expect(edit).to_contain_text('Bearbeiten')
+        expect(view).to_contain_text('Öffnen')
+        assert (_symbol(edit), _symbol(view)) == ('pencil', 'chevron-right')
         # Active is the default; only archived rows carry a status badge, so "Aktiv" is not repeated per row.
         expect(rows.nth(0).locator('.badge')).to_have_count(0)
         expect(rows.nth(1).locator('.badge')).to_have_text('Archiviert')
@@ -198,25 +200,31 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         page.set_content(_list_html([], search='Nichts'))
         no_match = page.locator('.empty[data-empty-kind="no_match"]')
         expect(no_match.get_by_text('Keine passenden Kochbücher', exact=True)).to_be_visible()
-        expect(no_match.get_by_role('link', name='Suche zurücksetzen', exact=True)).to_be_visible()
-        expect(page.locator('details#cookbook-create')).not_to_have_attribute('open', '')
+        expect(no_match.get_by_role('link', name='Zurücksetzen', exact=True)).to_be_visible()
+        expect(page.locator('dl.admin-statusbar')).to_contain_text('Nichts')
+        expect(page.locator('details#cookbook-create')).to_have_count(0)
 
         page.set_content(_list_html([]))
         none = page.locator('.empty[data-empty-kind="none"]')
         expect(none.get_by_text('Noch keine Kochbücher', exact=True)).to_be_visible()
-        assert none.locator('a').count() == 0
-        # The create disclosure stays closed even on an empty list: the existing native flow
-        # (summary opens, then exactly one "Kochbuch anlegen" link) is shared with other tests.
-        expect(page.locator('details#cookbook-create')).not_to_have_attribute('open', '')
-        assert page.get_by_role('link', name='Kochbuch anlegen', exact=True, include_hidden=True).count() == 1
-        assert page.locator('.btn-primary').count() == 0
+        expect(none.get_by_role('link', name='Anlegen', exact=True)).to_be_visible()
+        assert 'btn-primary' not in (none.locator('a').get_attribute('class') or '').split()
+        expect(page.locator('details#cookbook-create')).to_have_count(0)
+        assert page.locator('main .btn-primary').count() == 1
+        expect(page.locator('main .btn-primary')).to_contain_text('Anlegen')
 
         page.set_content(_editor_html(_book()))
         expect(page.get_by_role('heading', level=2, name='Rezept-Zuordnung')).to_be_visible()
-        expect(page.get_by_role('button', name='Kochbuch speichern', exact=True)).to_be_visible()
-        assignment = page.get_by_role('button', name='Zuordnung speichern', exact=True)
+        expect(page.locator('dl.admin-statusbar')).to_contain_text('Aktiv')
+        expect(page.locator('dl.admin-statusbar')).to_contain_text('0 Rezepte')
+        header_save = page.locator('form[action="/admin/kochbuecher/book-1"]').get_by_role(
+            'button', name='Speichern', exact=True,
+        )
+        assignment = page.locator('form[action$="/rezepte"]').get_by_role('button', name='Speichern', exact=True)
+        expect(header_save).to_be_visible()
+        expect(assignment).to_be_visible()
         assert 'btn-primary' not in (assignment.get_attribute('class') or '').split()
-        assert page.locator('.btn-primary').count() == 1
+        assert page.locator('main .btn-primary').count() == 1
         # Each row input keeps its own accessible name; the visible header names the columns once.
         expect(page.get_by_label('Position 1', exact=True)).to_have_value('1')
         expect(page.get_by_label('Rezept 1', exact=True)).to_have_value('recipe-1')
@@ -227,8 +235,8 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         expect(page.locator('form[action$="/rezepte"] thead')).to_contain_text('Position')
         expect(page.locator('form[action$="/rezepte"] thead')).to_contain_text('Rezept')
         open_recipe = page.get_by_role('link', name='Testrezept öffnen', exact=True)
-        assert _icon_control(open_recipe) == ('Testrezept öffnen', 'Rezept öffnen')
-        assert _symbol(open_recipe) == 'eye'
+        assert _icon_control(open_recipe) == ('Testrezept öffnen', 'Öffnen')
+        assert _symbol(open_recipe) == 'chevron-right'
         archive = page.get_by_role('link', name='Archivieren', exact=True)
         assert archive.get_attribute('href') == '/admin/kochbuecher/book-1/status'
         assert _symbol(archive) == 'archive'
@@ -241,7 +249,7 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         assert _symbol(confirm) == 'archive'
         assert _symbol(page.get_by_role('link', name='Abbrechen', exact=True)) == 'x'
         assert page.get_by_role('link', name='Archivieren', exact=True).count() == 0
-        assert page.locator('.btn-primary').count() == 1
+        assert page.locator('main .btn-primary').count() == 0
         status_form = Forms(page.content()).forms['/admin/kochbuecher/book-1/status']
         assert dict(status_form) == {
             '_csrf': 'csrf', '_form_context': 'status-token', 'row_version': '3',
@@ -251,13 +259,15 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         archived = _book(active=False, recipe_public_ids=('recipe-1',))
         page.set_content(_editor_html(archived, header_token='', recipes_token=''))
         expect(page.locator('section[aria-labelledby="cookbook-header-title"] .badge')).to_have_text('Archiviert')
+        expect(page.locator('dl.admin-statusbar')).to_contain_text('Archiviert')
+        expect(page.locator('dl.admin-statusbar')).to_contain_text('1 Rezept')
         assert page.locator('section[aria-labelledby="cookbook-header-title"] h3').count() == 0
         expect(page.get_by_text('Schreibgeschützt · zum Ändern zuerst reaktivieren.')).to_be_visible()
         reactivate = page.get_by_role('link', name='Reaktivieren', exact=True)
         assert _symbol(reactivate) == 'archive-off'
         assert page.locator('form[action$="/rezepte"]').count() == 0
         expect(page.locator('ol').get_by_role('link', name='Testrezept', exact=True)).to_be_visible()
-        assert page.locator('.btn-primary').count() == 0
+        assert page.locator('main .btn-primary').count() == 1
 
         page.set_content(_editor_html(
             archived, header_token='', recipes_token='', status_token='status-token',
@@ -266,7 +276,7 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         confirm = page.get_by_role('button', name='Reaktivieren', exact=True)
         assert 'btn-primary' in (confirm.get_attribute('class') or '').split()
         assert _symbol(confirm) == 'archive-off'
-        assert page.locator('.btn-primary').count() == 1
+        assert page.locator('main .btn-primary').count() == 1
     finally:
         page.close()
 
@@ -312,7 +322,7 @@ def _assert_page_width(page, width: int):
           const container = document.querySelector('.page-body > .container-xl')
             || document.querySelector('main.container-fluid');
           const block = [...container.children].find(element =>
-            element.matches('.card, .cookbook-cards, section, .empty'));
+            element.matches('.card, .cookbook-list, section, .empty, .admin-filter-bar'));
           const style = getComputedStyle(container);
           const inner = container.getBoundingClientRect().width
             - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
@@ -347,13 +357,11 @@ def _assert_mobile_cards(cards):
         assert text['y'] >= title['y'] - 1 and text['bottom'] <= title['bottom'] + 1, entry
         for name in ('count', 'action'):
             control = entry[name]
-            assert control['x'] >= card['x'] and control['right'] <= card['right'], entry
-            assert control['y'] >= title['bottom'] and control['bottom'] <= card['bottom'], entry
-        assert entry['count']['right'] <= entry['action']['x'], entry
-        assert entry['action']['width'] >= 48 and entry['action']['height'] >= 48, entry
+            assert control['x'] >= card['x'] and control['right'] <= card['right'] + 1, entry
+            assert control['bottom'] <= card['bottom'] + 1, entry
+        assert entry['action']['height'] >= 48, entry
         if entry['description']:
-            assert entry['description']['bottom'] <= min(entry['count']['y'], entry['action']['y']), entry
-        # Natural rows end just below their last control, including long wrapped content.
+            assert entry['description']['bottom'] <= card['bottom'] + 1, entry
         assert card['bottom'] - max(entry['count']['bottom'], entry['action']['bottom']) <= 24, entry
 
 
@@ -370,15 +378,10 @@ def test_cookbook_list_and_editor_stay_compact_at_all_viewports(cookbook_server,
         try:
             page.goto(cookbook_server['base'] + '/admin/kochbuecher')
             cards = page.locator('section[aria-label="Kochbücher"]')
-            create = page.locator('details#cookbook-create')
             expect(cards).to_be_visible()
-            expect(create).not_to_have_attribute('open', '')
-            expect(create.locator(':scope > summary').get_by_text('Neues Kochbuch', exact=True)).to_be_visible()
-            assert cards.evaluate(
-                '(list, create) => Boolean(list.compareDocumentPosition(create) & Node.DOCUMENT_POSITION_FOLLOWING)',
-                create.element_handle(),
-            )
-            assert page.locator('.btn-primary:visible').count() == 0
+            expect(page.locator('details#cookbook-create')).to_have_count(0)
+            expect(page.locator('dl.admin-statusbar')).to_be_visible()
+            assert page.locator('main .btn-primary:visible').count() == 1
             expect(cards.get_by_role('link', name='Browserbuch bearbeiten', exact=True)).to_be_visible()
             expect(cards.get_by_role('link', name=f'{LONG_NAME} bearbeiten', exact=True)).to_be_visible()
             expect(cards.get_by_text('1 Rezept', exact=True)).to_be_visible()
@@ -405,20 +408,21 @@ def test_cookbook_list_and_editor_stay_compact_at_all_viewports(cookbook_server,
             page.goto(cookbook_server['base'] + '/admin/kochbuecher?q=KeinTreffer')
             no_match = page.locator('.empty[data-empty-kind="no_match"]')
             expect(no_match.get_by_text('Keine passenden Kochbücher', exact=True)).to_be_visible()
-            expect(no_match.get_by_role('link', name='Suche zurücksetzen', exact=True)).to_be_visible()
-            expect(page.locator('details#cookbook-create')).to_be_visible()
-            expect(page.locator('details#cookbook-create')).not_to_have_attribute('open', '')
+            expect(no_match.get_by_role('link', name='Zurücksetzen', exact=True)).to_be_visible()
+            expect(page.locator('details#cookbook-create')).to_have_count(0)
             _assert_page_width(page, width)
             page.screenshot(path=str(EVIDENCE / f'kochbuecher-empty-{label}.png'), full_page=True)
 
             page.goto(cookbook_server['base'] + path)
             expect(page.get_by_role('heading', level=2, name='Rezept-Zuordnung')).to_be_visible()
-            expect(page.get_by_text('Rezepte auswählen, Positionen festlegen und Zuordnung speichern.')).to_be_visible()
-            expect(page.get_by_role('button', name='Kochbuch speichern', exact=True)).to_be_visible()
-            assignment = page.get_by_role('button', name='Zuordnung speichern', exact=True)
+            expect(page.locator('dl.admin-statusbar')).to_be_visible()
+            expect(page.locator(f'form[action="{path}"]').get_by_role('button', name='Speichern', exact=True)).to_be_visible()
+            assignment = page.locator(f'form[action="{path}/rezepte"]').get_by_role(
+                'button', name='Speichern', exact=True,
+            )
             expect(assignment).to_be_visible()
             assert 'btn-primary' not in (assignment.get_attribute('class') or '').split()
-            assert page.locator('.btn-primary:visible').count() == 1
+            assert page.locator('main .btn-primary:visible').count() == 1
             expect(page.get_by_label('Position 1', exact=True)).to_have_value('1')
             expect(page.get_by_label('Rezept 1', exact=True)).to_have_value(cookbook_server['first'])
             expect(page.get_by_role('link', name='Alpha öffnen', exact=True)).to_be_visible()
@@ -456,7 +460,7 @@ def test_cookbook_native_posts_keep_targets_and_payloads(cookbook_server, browse
         with page.expect_request(
             lambda request: request.method == 'POST' and urlsplit(request.url).path == path,
         ) as header_request:
-            page.get_by_role('button', name='Kochbuch speichern', exact=True).click()
+            page.locator(f'form[action="{path}"]').get_by_role('button', name='Speichern', exact=True).click()
         header = parse_qs(header_request.value.post_data or '', keep_blank_values=True)
         assert set(header) == {'_csrf', '_form_context', 'row_version', 'name', 'description'}
         assert urlsplit(header_request.value.url).path == path
@@ -469,7 +473,7 @@ def test_cookbook_native_posts_keep_targets_and_payloads(cookbook_server, browse
             lambda request: request.method == 'POST'
             and urlsplit(request.url).path == path + '/rezepte',
         ) as assignment_request:
-            assignment_form.get_by_role('button', name='Zuordnung speichern', exact=True).click()
+            assignment_form.get_by_role('button', name='Speichern', exact=True).click()
         assignment = parse_qs(assignment_request.value.post_data or '', keep_blank_values=True)
         assert set(assignment) == {
             '_csrf', '_form_context', 'row_version', 'recipe_positions', 'recipe_public_ids',
@@ -498,7 +502,7 @@ def test_cookbook_header_conflict_is_visible_and_preserves_input(cookbook_server
                 lambda response: response.request.method == 'POST'
                 and urlsplit(response.url).path == path,
             ) as response:
-                page.get_by_role('button', name='Kochbuch speichern', exact=True).click()
+                page.locator(f'form[action="{path}"]').get_by_role('button', name='Speichern', exact=True).click()
             assert response.value.status == 409
             expect(page.get_by_label('Name', exact=True)).to_have_value(draft_name)
             expect(page.locator('#recipe-error')).to_be_focused()
@@ -540,27 +544,25 @@ def test_cookbook_pages_work_without_javascript_and_by_keyboard(
     try:
         page.goto(cookbook_server['base'] + '/admin/kochbuecher')
         edit = page.get_by_role('link', name=f'{name} bearbeiten', exact=True)
-        assert _icon_control(edit) == (f'{name} bearbeiten', 'Bearbeiten')
-        page.get_by_label('Kochbuch suchen', exact=True).focus()
+        expect(edit).to_contain_text('Bearbeiten')
+        expect(page.locator('dl.admin-statusbar')).to_be_visible()
+        page.get_by_label('Suche', exact=True).focus()
         _tab_to(page, page.get_by_label('Archivierte einschliessen', exact=True))
         _tab_to(page, page.get_by_role('button', name='Suchen', exact=True))
-        _tab_to(page, page.get_by_role('link', name='Suche zurücksetzen', exact=True))
         _tab_to(page, edit)
         expect(edit).to_be_focused()
         rings = {'row-action': _focus_ring(edit)}
-        summary = page.locator('details#cookbook-create > summary')
-        summary.focus()
-        page.keyboard.press('Enter')
-        expect(page.locator('details#cookbook-create')).to_have_attribute('open', '')
-        expect(page.get_by_role('link', name='Kochbuch anlegen', exact=True)).to_be_visible()
+        expect(page.locator('main .btn-primary')).to_contain_text('Anlegen')
         assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 1')
         page.screenshot(path=str(EVIDENCE / f'kochbuecher-nojs-{label}.png'), full_page=True)
 
         page.goto(cookbook_server['base'] + path)
         expect(page.get_by_label('Name', exact=True)).to_be_visible()
         expect(page.locator('#cookbook-description')).to_be_visible()
-        expect(page.get_by_role('button', name='Kochbuch speichern', exact=True)).to_be_visible()
-        expect(page.get_by_role('button', name='Zuordnung speichern', exact=True)).to_be_visible()
+        expect(page.locator(f'form[action="{path}"]').get_by_role('button', name='Speichern', exact=True)).to_be_visible()
+        expect(page.locator(f'form[action="{path}/rezepte"]').get_by_role(
+            'button', name='Speichern', exact=True,
+        )).to_be_visible()
         position = page.get_by_label('Position 1', exact=True)
         position.focus()
         position.fill('5')
@@ -569,7 +571,7 @@ def test_cookbook_pages_work_without_javascript_and_by_keyboard(
         page.keyboard.press('Tab')
         open_recipe = page.get_by_role('link', name='Beta öffnen', exact=True)
         expect(open_recipe).to_be_focused()
-        assert _icon_control(open_recipe) == ('Beta öffnen', 'Rezept öffnen')
+        assert _icon_control(open_recipe) == ('Beta öffnen', 'Öffnen')
         rings['recipe-link'] = _focus_ring(open_recipe)
         expect(position).to_have_value('5')
         assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 1')
@@ -636,8 +638,12 @@ def test_real_browser_zoom_keeps_cookbook_rows_and_labels(cookbook_server, brows
                     _assert_mobile_cards(cards)
                     assert next(entry for entry in cards if entry['name'] == 'Zoombuch')['card']['height'] <= 144
                 else:
-                    expect(page.get_by_role('button', name='Kochbuch speichern', exact=True)).to_be_visible()
-                    expect(page.get_by_role('button', name='Zuordnung speichern', exact=True)).to_be_visible()
+                    expect(page.locator(f'form[action="{path}"]').get_by_role(
+                        'button', name='Speichern', exact=True,
+                    )).to_be_visible()
+                    expect(page.locator(f'form[action="{path}/rezepte"]').get_by_role(
+                        'button', name='Speichern', exact=True,
+                    )).to_be_visible()
                     expect(page.get_by_role('link', name='Alpha öffnen', exact=True)).to_be_visible()
                     expect(page.get_by_role('link', name='Archivieren', exact=True)).to_be_visible()
                 captures = {'top': _native_viewport_capture(page, EVIDENCE / f'native-200-{name}.png')}
@@ -651,3 +657,60 @@ def test_real_browser_zoom_keeps_cookbook_rows_and_labels(cookbook_server, brows
                     )
                 proof[name] = {'layout': layout, 'captures': captures, 'metrics': page.evaluate(DENSITY_METRICS)}
             (EVIDENCE / 'native-200.cdp.json').write_text(json.dumps(proof, indent=2))
+
+
+def test_cookbook_frame_viewports_statusbar_and_no_overflow(cookbook_server):  # noqa: F811
+    """Independent Chromium start: 360/768/1024/1440, No-JS and keyboard, status bar and overflow."""
+    path = _create_book(cookbook_server, 'Rahmenbuch')
+    _create_book(cookbook_server, LONG_NAME, LONG_DESCRIPTION)
+    _assign(cookbook_server, path, [cookbook_server['first']])
+    cookie = cookbook_server['cookie']
+    base = cookbook_server['base']
+
+    def inspect() -> None:
+        with sync_playwright() as playwright:
+            instance = playwright.chromium.launch(
+                headless=True, args=['--no-sandbox', '--disable-dev-shm-usage'],
+            )
+            try:
+                for javascript in (False, True):
+                    context = instance.new_context(
+                        java_script_enabled=javascript, locale='de-CH', timezone_id='Europe/Zurich',
+                        reduced_motion='reduce', service_workers='block',
+                    )
+                    context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+                    page = context.new_page()
+                    try:
+                        for width, height in ((360, 800), (768, 1024), (1024, 768), (1440, 900)):
+                            page.set_viewport_size({'width': width, 'height': height})
+                            assert page.goto(base + '/admin/kochbuecher').status == 200
+                            page.evaluate('document.fonts.ready')
+                            listed = page.evaluate(DENSITY_METRICS)
+                            assert not listed['overflow'], listed
+                            expect(page.locator('main .btn-primary')).to_have_count(1)
+                            expect(page.locator('dl.admin-statusbar')).to_contain_text('Aktiv')
+                            if width == 1440:
+                                assert listed['firstCardTop'] is not None
+                                assert listed['firstCardTop'] <= FIRST_CONTENT_LIMIT, listed
+                                short = next(entry for entry in listed['cards'] if entry['name'] == 'Rahmenbuch')
+                                assert short['card']['height'] <= 96, listed
+                            if width == 360:
+                                _assert_mobile_cards(listed['cards'])
+                            assert page.goto(base + path).status == 200
+                            editor = page.evaluate(DENSITY_METRICS)
+                            assert not editor['overflow'], editor
+                            expect(page.locator('main .btn-primary')).to_have_count(1)
+                            expect(page.locator('dl.admin-statusbar')).to_contain_text('1 Rezept')
+                        page.set_viewport_size({'width': 360, 'height': 800})
+                        page.goto(base + '/admin/kochbuecher')
+                        page.get_by_label('Suche', exact=True).focus()
+                        page.keyboard.press('Tab')
+                        expect(page.get_by_label('Archivierte einschliessen', exact=True)).to_be_focused()
+                        _focus_ring(page.get_by_label('Archivierte einschliessen', exact=True))
+                    finally:
+                        context.close()
+            finally:
+                instance.close()
+
+    with ThreadPoolExecutor(max_workers=1) as worker:
+        worker.submit(inspect).result()

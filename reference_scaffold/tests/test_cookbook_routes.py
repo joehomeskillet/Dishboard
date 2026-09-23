@@ -228,6 +228,7 @@ if os.environ.get('TEST_DATABASE_URL'):
         before = snapshot(owner)
         listed = client.get('/admin/kochbuecher')
         assert listed.status_code == 200 and listed.headers['Cache-Control'] == 'no-store'
+        assert 'admin-statusbar' in listed.text and 'Anlegen' in listed.text
         assert snapshot(owner) == before
         created = fields(client, '/admin/kochbuecher/neu')[1]
         created['name'] = 'Sammlung'
@@ -238,6 +239,7 @@ if os.environ.get('TEST_DATABASE_URL'):
         book_id = path.rsplit('/', 1)[1]
         page, header_form = fields(client, path)
         assert 'Originaltext' in page.text and 'Kochbuch' in page.text and 'Rezept-Zuordnung' in page.text
+        assert 'admin-statusbar' in page.text and '0 Rezepte' in page.text
         assert app.view_functions['admin.recipe_edit'].__module__ == 'cafeteria.admin.recipe_routes'
         assign = Forms(page.text).forms[path + '/rezepte']
         assign.setlist('recipe_public_ids', [second.public_id, first.public_id, '', '', ''])
