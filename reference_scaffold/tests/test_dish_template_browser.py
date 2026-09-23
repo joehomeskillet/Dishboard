@@ -37,6 +37,8 @@ def test_rework_layout_measurements(b3, master_server, browser, width, javascrip
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
         page = context.new_page()
         measurements = {}
+        console_errors = []
+        page.on('console', lambda message: console_errors.append(message.text) if message.type == 'error' else None)
         routes = [('empty', '/admin/gerichtvorlagen'), ('new', '/admin/gerichtvorlagen/neu')]
         for state, route in routes:
             _open(page, base, route)
@@ -94,6 +96,7 @@ def test_rework_layout_measurements(b3, master_server, browser, width, javascrip
                 assert all(height <= 96 for height in result['rows']), (state, result)
             for control in result['controls']:
                 assert control['width'] >= 48 and control['height'] >= 48, (state, control)
+        assert not console_errors, console_errors
 
 
 def _rework_measure(page, state, width):
