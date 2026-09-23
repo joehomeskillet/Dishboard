@@ -2,14 +2,22 @@
 {% from '_food_symbols.html' import symbol %}
 {% from 'admin/_macros.html' import icon, page_header, field, check, status %}
 {% from 'admin/_country_select.html' import country_select, countries %}
+{% from 'ui/_semantic.html' import icon_label %}
 {% set workflow_nav = 'components' %}
 {% set submitted = form_values|default({}) %}
 {% set errors = form_errors|default({}) %}
 {% set active_filters = filters|default(none) %}
-{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-components.css') }}">{% endblock %}
+{% set filtered = query or category or (active_filters and (active_filters.usage or active_filters.allergen or active_filters.presence or active_filters.label or active_filters.origin or active_filters.status != 'active')) %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='ui-semantic.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='admin-components.css') }}">{% endblock %}
 {% block title %}Bausteine {{ 'Cafeteria' if profile == 'staff_guest' else 'Patienten' }}{% endblock %}
 {% block main_attributes %}data-family="{{ family }}" data-week="{{ week|default('') }}"{% endblock %}
-{% block page_header %}{{ page_header('Bausteine', 'Cafeteria' if profile == 'staff_guest' else 'Patienten') }}{% endblock %}
+{% block page_header %}
+{% call page_header(t('navigation.components.label'), status_items=[
+  {'label': t('admin.area.label'), 'value': 'Cafeteria' if profile == 'staff_guest' else 'Patienten'}
+]) %}
+  <a class="btn btn-primary" href="#c-name" data-error-link>{{ icon_label('actions.add') }}</a>
+{% endcall %}
+{% endblock %}
 {% block content %}
 {% if errors %}
 <div class="alert alert-danger error-region" role="alert" tabindex="-1" autofocus>
@@ -23,8 +31,8 @@
 </div>
 {% endif %}
 
-<form method="get" action="/admin/{{ family }}/komponenten" class="search-form component-filter-toolbar card mb-3" aria-labelledby="component-filter-heading">
-  <div class="card-body py-3">
+<form method="get" action="/admin/{{ family }}/komponenten" class="search-form component-filter-toolbar admin-filter-bar mb-3" data-dirty-tracking="off" aria-labelledby="component-filter-heading">
+  <div>
     <h2 class="visually-hidden" id="component-filter-heading">Bausteine filtern</h2>
     <div class="component-filter-primary row g-2 align-items-end">
       <div class="col-12 col-lg-4">{{ field('q', 'Suche', value=query|default(''), type='search', id='f-q') }}</div>
@@ -45,8 +53,8 @@
         </select>
       </div>
       <div class="col-12 col-lg-4 d-flex flex-wrap gap-2 align-items-center component-filter-actions">
-        <button type="submit" class="btn btn-primary">{{ icon('search') }}Suchen</button>
-        <a class="btn btn-outline-secondary" href="/admin/{{ family }}/komponenten">{{ icon('refresh') }}Zurücksetzen</a>
+        <button type="submit" class="btn">{{ icon_label('view.search') }}</button>
+        {% if filtered %}<a class="btn btn-outline-secondary" href="/admin/{{ family }}/komponenten">{{ icon_label('view.reset') }}</a>{% endif %}
         <span id="component-result-count" class="text-secondary" role="status">{{ rows|length }} Treffer</span>
       </div>
     </div>
@@ -122,35 +130,36 @@
           <td class="component-markers">
             <span class="dishboard-cell-label">Kennzeichnungen</span>
             <div class="d-flex flex-wrap gap-1 align-items-center">
-              {% if row.labels %}{% for label in row.labels %}<span class="badge bg-secondary-lt">{{ label.name|default(label.code) }}</span>{% endfor %}{% endif %}
+              {% if row.labels %}{% for label in row.labels[:2] %}<span class="badge bg-secondary-lt">{{ label.name|default(label.code) }}</span>{% endfor %}{% endif %}
+              {% if row.labels|length > 2 %}<details class="component-label-overflow"><summary>+{{ row.labels|length - 2 }} <span class="visually-hidden">{{ t('actions.more.label') }}</span></summary><div>{% for label in row.labels[2:] %}<span class="badge bg-secondary-lt">{{ label.name|default(label.code) }}</span>{% endfor %}</div></details>{% endif %}
               {% if row.origin_country_code %}<span class="text-secondary">{{ symbol('countries', row.origin_country_code, true) }}{{ row.origin_country_code }}</span>{% else %}<span class="text-secondary">Herkunft nicht erfasst</span>{% endif %}
             </div>
             <div class="text-secondary small">{{ 'gemeinsam' if row.profile_scope == 'common' else 'nur Cafeteria' if row.profile_scope == 'staff_guest' else 'nur Patienten' }}</div>
           </td>
           <td class="usage"><span class="dishboard-cell-label">Verwendung</span>verwendet in {{ row.usage_count }} Gerichten</td>
           <td class="component-status"><span class="dishboard-cell-label">Status</span>{{ status('ready', 'Aktiv') if row.active else status('incomplete', 'archiviert') }}</td>
-          <td class="component-action"><span class="dishboard-cell-label">Aktion</span><a class="btn component-edit-link" href="/admin/{{ family }}/komponenten/{{ row.public_id }}">{{ icon('pencil') }}Bearbeiten</a></td>
+          <td class="component-action"><a class="btn component-edit-link" href="/admin/{{ family }}/komponenten/{{ row.public_id }}">{{ icon_label('actions.edit') }}</a></td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
   {% else %}
-  {% set filtered = query or category or (active_filters and (active_filters.usage or active_filters.allergen or active_filters.presence or active_filters.label or active_filters.origin or active_filters.status != 'active')) %}
   <div class="card"><div class="card-body py-3">
     <p class="mb-0">{{ icon('search' if filtered else 'components') }}{{ 'Keine Bausteine passen zu diesen Filtern.' if filtered else 'Noch keine aktiven Bausteine.' }}</p>
+    <a class="btn mt-2" href="{{ '/admin/' ~ family ~ '/komponenten' if filtered else '#c-name' }}"{% if not filtered %} data-error-link{% endif %}>{{ icon_label('view.reset' if filtered else 'actions.add') }}</a>
   </div></div>
   {% endif %}
 </div>
 
-<details id="create-component" class="card mt-3"{% if errors %} open{% endif %}>
+<details id="create-component" class="card mt-3"{% if errors or submitted %} open{% endif %}>
   <summary class="card-header dishboard-component-summary">{{ icon('plus') }}<span class="card-title mb-0">Baustein anlegen</span></summary>
   <div class="card-body">
     <form id="component-form" method="post" action="/admin/{{ family }}/komponenten">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
         <div class="row g-3 mb-3">
-          <div class="col-12">{{ field('name', 'Name', value=submitted.get('name', ''), id='c-name', required=true, error=errors.get('name')) }}</div>
-          <div class="col-12 col-md-6">
+          <div class="col-12 col-lg-4">{{ field('name', 'Name', value=submitted.get('name', ''), id='c-name', required=true, error=errors.get('name')) }}</div>
+          <div class="col-12 col-lg-4">
             <label class="form-label" for="c-cat">Kategorie</label>
             <select class="form-select{% if errors.get('category') %} is-invalid{% endif %}" id="c-cat" name="category" required{% if errors.get('category') %} aria-invalid="true" aria-describedby="c-cat-error"{% endif %}>
               <option value="">Bitte wählen</option>
@@ -160,7 +169,7 @@
             </select>
             {% if errors.get('category') %}<div class="invalid-feedback d-block field-error" id="c-cat-error">{{ errors['category'] }}</div>{% endif %}
           </div>
-          <div class="col-12 col-md-6">
+          <div class="col-12 col-lg-4">
             <label class="form-label" for="c-origin">Herkunft</label>
             {{ country_select('origin_country_code', submitted.get('origin_country_code', ''), 'c-origin', error=errors.get('origin_country_code')) }}
           </div>
@@ -180,7 +189,7 @@
           {% set l_codes = submitted.getlist('label_code') if submitted.getlist else submitted.get('label_code', []) %}
           <div class="row g-2">
             {% for label in labels|default([]) %}
-            <div class="col-12 col-md-6">{{ check('label_code', label.name|default(label.code), value=label.code, checked=label.code in l_codes, id='create-label-' ~ label.code) }}</div>
+            <div class="col-12 col-lg-4">{{ check('label_code', label.name|default(label.code), value=label.code, checked=label.code in l_codes, id='create-label-' ~ label.code) }}</div>
             {% endfor %}
           </div>
           </div>
@@ -212,7 +221,7 @@
           </div>
           </div>
         </fieldset>
-      <button type="submit" class="btn btn-primary">{{ icon('plus') }}Baustein erstellen</button>
+      <div class="admin-form-footer"><div class="admin-form-main"><button type="submit" class="btn">{{ icon_label('actions.add') }}</button></div></div>
     </form>
   </div>
 </details>

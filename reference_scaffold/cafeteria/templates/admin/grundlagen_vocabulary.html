@@ -1,21 +1,21 @@
 {% extends 'admin/grundlagen.html' %}
-{% from 'admin/_macros.html' import page_header, icon %}
+{% from 'admin/_macros.html' import page_header, icon, disclosure_section %}
+{% from 'ui/_semantic.html' import icon_label %}
 {% set workflow_nav = 'master_data' %}
 {% block title %}{{ 'Kennzeichnungen' if kind == 'tags' else kinds[kind] }} · Grundlagen{% endblock %}
-{% block page_header %}{{ page_header(('Kennzeichnung' if kind == 'tags' else kinds[kind]) ~ (' bearbeiten' if row else ' anlegen')) }}{% endblock %}
+{% block page_header %}{{ page_header(t('navigation.ingredients.label'), description=('Kennzeichnung' if kind == 'tags' else kinds[kind]) ~ (' bearbeiten' if row else ' anlegen'), status_items=[{'label': 'Status', 'value': 'Aktiv' if row.active else 'Archiviert', 'variant': 'neutral'}] if row else []) }}{% endblock %}
 {% block content %}
 {% set singular = {'kategorien': 'Kategorie', 'tags': 'Kennzeichnung', 'lagerorte': 'Lagerort'}[kind] %}
 {% set singular_icons = {'kategorien': 'dots', 'tags': 'clipboard-check', 'lagerorte': 'archive'} %}
 <a class="btn mb-3" href="{{ url_for('admin.master_data_list', kind=query_kinds[kind]) }}">{{ icon('arrow-left') }}{{ 'Zur Kennzeichnungsliste' if kind == 'tags' else 'Zur Liste' }}</a>{{ errors() }}
 {% if kind == 'lagerorte' %}<p class="text-secondary">{{ icon('info-circle', class='text-secondary') }}Kein Bestand erfasst. Vor dem Archivieren alle zugeordneten Zutaten ausdrücklich einem anderen Lagerort zuordnen.</p><p><a href="{{ url_for('admin.master_data_list', kind='foods') }}">{{ icon('components') }}Zutaten und Lagerzuordnungen</a></p>{% endif %}
-{% if row %}<div class="card mb-4"><div class="card-body">{{ status_summary() }}</div></div>{% endif %}
-{% if not row %}<details class="card mb-4" open>{{ section_summary(singular ~ ' anlegen', 'plus') }}<div class="card-body">{% else %}<div class="card mb-4"><div class="card-header gap-2">{{ icon(singular_icons[kind]) }}<h2 class="card-title mb-0">{{ singular }}</h2></div><div class="card-body">{% endif %}{% if row %}<p>Code: {{ row.code }} (unveränderlich)</p>{% endif %}
+{% if not row %}<details class="card mb-4" open>{{ section_summary(singular ~ ' anlegen', 'plus') }}<div class="card-body">{% else %}<div class="card mb-4"><div class="card-header gap-2">{{ icon(singular_icons[kind]) }}<h2 class="card-title mb-0">{{ singular }}</h2></div><div class="card-body">{% endif %}
 {% if can_write %}<form method="post" data-dirty-form action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose='name') if row else url_for('admin.master_data_new', kind=kind) }}">
 {{ form_start('name' if row else 'neu') }}<div class="row g-3">
 <div class="col-12{% if not row %} col-lg-6{% endif %}">{{ input('name', 'Name', true) }}</div>
 {% if not row %}<div class="col-12 col-lg-6">{{ input('code', 'Code (Grossbuchstaben, Ziffern, Unterstrich)', true) }}</div>{% endif %}
 </div>
 {% if kind in ['kategorien', 'lagerorte'] %}{{ input('sort_order', 'Reihenfolge (1 bis 9999)', true) }}{% endif %}
-<button class="btn btn-primary" type="submit">{{ icon('device-floppy') }}{{ singular }} speichern</button></form>{% else %}<p>{{ row.name if row else 'Keine Schreibberechtigung' }}</p>{% endif %}</div>{% if not row %}</details>{% else %}</div>{% endif %}
-{% if row %}<details class="card">{{ section_summary('Weitere Aktionen', 'dots') }}<div class="card-body">{{ status_actions() }}</div></details>{% endif %}
+<button class="btn btn-primary" type="submit">{{ icon_label('actions.save') }}</button></form>{% else %}<p>{{ row.name if row else 'Keine Schreibberechtigung' }}</p>{% endif %}</div>{% if not row %}</details>{% else %}</div>{% endif %}
+{% if row %}{% call disclosure_section() %}<p>Code: {{ row.code }} (unveränderlich)</p>{{ status_summary() }}{{ status_actions() }}{% endcall %}{% endif %}
 {% endblock %}

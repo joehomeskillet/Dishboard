@@ -1,30 +1,22 @@
-/* Mobile cards follow their own content height; desktop grid rows stay aligned. */
-.cookbook-cards {
+/* Compact cookbook rows use the shared list contract; assignment rows stay native. */
+.cookbook-list {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--tblr-spacer);
 }
-.cookbook-cards > div { min-width: 0; }
-
-.cookbook-disclosure > summary {
-  cursor: pointer;
-  min-height: 44px;
+.cookbook-list > .card { min-width: 0; }
+.dishboard-admin .cookbook-list-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--app-space-3);
+  padding: var(--app-space-3) var(--app-space-4);
 }
-
-.cookbook-assignment-intro {
-  color: var(--app-text-muted);
-}
-
-.cookbook-section-action {
-  margin-top: var(--tblr-spacer);
-}
-
-@media (min-width: 768px) {
-  .cookbook-cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-auto-rows: 1fr;
-  }
-}
-@media (min-width: 1200px) {
-  .cookbook-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cookbook-list-name { flex: 1 1 16rem; min-width: 0; }
+.cookbook-list-row .badge { white-space: normal; text-align: start; }
+.cookbook-recipe-count { white-space: nowrap; }
+.cookbook-list .empty { padding: var(--app-space-4); }
+.cookbook-assignment-table :is(th, td) { padding-block: var(--app-space-2); }
+.cookbook-section-action { margin-top: var(--app-space-3); }
+@media (max-width: 767.98px) {
+  .cookbook-list-name { flex-basis: 100%; }
 }

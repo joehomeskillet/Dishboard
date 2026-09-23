@@ -1,17 +1,28 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon %}
+{% from 'admin/_macros.html' import page_header, icon, form_footer, status_badge %}
+{% from 'ui/_semantic.html' import icon_label, sem_icon %}
 {% set workflow_nav = 'cookbooks' %}
 {% set creating = book is none %}
 {% set archived = book is not none and not book.active %}
-{% set header_open = can_write and (creating or book.active) %}
-{% set recipes_open = can_write and book is not none and book.active %}
+{% set header_open = can_write and (creating or book.active) and not status_action %}
+{% set recipes_open = can_write and book is not none and book.active and not status_action %}
 {% set reactivating = status_action == 'cookbook.reactivate' %}
+{% set editor_status = [] %}
+{% if book %}
+{% set _ = editor_status.append({'label': 'Status', 'value': t('status.active.label') if book.active else 'Archiviert', 'variant': 'warning' if not book.active else 'neutral'}) %}
+{% set recipe_count = book.recipe_public_ids|length %}
+{% set _ = editor_status.append({'label': 'Rezepte', 'value': (recipe_count ~ ' Rezept') if recipe_count == 1 else (recipe_count ~ ' Rezepte'), 'variant': 'warning' if recipe_count == 0 else 'neutral'}) %}
+{% endif %}
+{% set save_primary %}
+<button class="btn btn-primary" type="submit">{{ icon_label('actions.save') }}</button>
+{% endset %}
+{% set archive_rare %}
+{% if book and can_write %}<a class="btn btn-outline-danger" href="{{ url_for('admin.cookbook_status', cookbook_id=book.public_id) }}">{{ icon_label('actions.archive') }}</a>{% endif %}
+{% endset %}
 {% block title %}{{ 'Neues Kochbuch' if creating else book.name }} · Kochbücher{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='cookbook-admin.css') }}">{% endblock %}
 {% block page_header %}
-{% call page_header('Neues Kochbuch' if creating else book.name, 'Kochbuch bearbeiten' if book and can_write and book.active else ('Kochbuch ansehen' if book else 'Kochbuch anlegen')) %}
-<a class="btn" href="{{ url_for('admin.cookbooks_list') }}">{{ icon('arrow-left') }}Zurück zur Liste</a>
-{% endcall %}
+{{ page_header('Neues Kochbuch' if creating else book.name, 'Name und Beschreibung festlegen.' if creating else ('Archiviertes Kochbuch. Zum Ändern zuerst reaktivieren.' if archived else 'Name, Beschreibung und Rezept-Zuordnung bearbeiten.'), status_items=editor_status) }}
 {% endblock %}
 {% block content %}
 {% if status_action %}
@@ -25,8 +36,8 @@
       <input type="hidden" name="_form_context" value="{{ status_token }}">
       <input type="hidden" name="row_version" value="{{ book.row_version }}">
       <input type="hidden" name="status_action" value="{{ status_action }}">
-      <button class="btn{% if reactivating %} btn-primary{% else %} btn-outline-danger{% endif %}" type="submit">{{ icon('archive-off' if reactivating else 'archive') }}{{ 'Reaktivieren' if reactivating else 'Archivieren' }}</button>
-      <a class="btn" href="{{ url_for('admin.cookbook_edit', cookbook_id=book.public_id) }}">{{ icon('x') }}Abbrechen</a>
+      <button class="btn{% if reactivating %} btn-primary{% else %} btn-outline-danger{% endif %}" type="submit">{% if reactivating %}{{ icon('archive-off') }}Reaktivieren{% else %}{{ icon_label('actions.archive') }}{% endif %}</button>
+      <a class="btn" href="{{ url_for('admin.cookbook_edit', cookbook_id=book.public_id) }}">{{ icon_label('actions.cancel') }}</a>
     </form>
     {% endif %}
   </div>
@@ -37,11 +48,8 @@
     <div class="admin-compact-section-heading">
       <div class="d-flex flex-wrap align-items-center gap-2">
         <h2 id="cookbook-header-title">Kochbuchangaben</h2>
-        {% if book %}<span class="badge {{ 'bg-green-lt' if book.active else 'bg-secondary-lt' }}">{{ 'Aktiv' if book.active else 'Archiviert' }}</span>{% endif %}
+        {% if book %}{{ status_badge('active' if book.active else 'archived') }}{% endif %}
       </div>
-      {% if book and can_write and not status_action %}
-      <a class="btn{% if book.active %} btn-outline-danger{% endif %}" href="{{ url_for('admin.cookbook_status', cookbook_id=book.public_id) }}">{{ icon('archive' if book.active else 'archive-off') }}{{ 'Archivieren' if book.active else 'Reaktivieren' }}</a>
-      {% endif %}
     </div>
     {% if header_open %}
     <form method="post" action="{{ url_for('admin.cookbook_new') if creating else url_for('admin.cookbook_edit', cookbook_id=book.public_id) }}" class="admin-compact-form" aria-labelledby="cookbook-header-title">
@@ -58,11 +66,14 @@
           <textarea class="form-control" id="cookbook-description" name="description" rows="2" maxlength="2000">{{ '' if creating else book.description or '' }}</textarea>
         </div>
       </div>
-      <button class="btn btn-primary mt-2" type="submit">{{ icon('device-floppy') }}{{ 'Kochbuch anlegen' if creating else 'Kochbuch speichern' }}</button>
+      {{ form_footer(save_primary, url_for('admin.cookbooks_list'), rare=archive_rare if book else none) }}
     </form>
     {% elif book %}
     {% if book.description %}<p class="text-break mb-0">{{ book.description }}</p>{% else %}<p class="text-secondary mb-0">Keine Beschreibung</p>{% endif %}
     {% if archived %}<p class="form-hint mb-0 mt-2">{{ icon('archive') }} Schreibgeschützt · zum Ändern zuerst reaktivieren.</p>{% endif %}
+    {% if book and can_write and not status_action %}
+    <p class="mt-2 mb-0"><a class="btn{% if book.active %} btn-outline-danger{% else %} btn-primary{% endif %}" href="{{ url_for('admin.cookbook_status', cookbook_id=book.public_id) }}">{% if book.active %}{{ icon_label('actions.archive') }}{% else %}{{ icon('archive-off') }}Reaktivieren{% endif %}</a></p>
+    {% endif %}
     {% endif %}
   </div>
 </section>
@@ -70,13 +81,12 @@
 <section class="cookbook-assignment admin-compact-section" aria-labelledby="cookbook-recipes-title">
   <div class="admin-compact-section-heading"><h2 id="cookbook-recipes-title">Rezept-Zuordnung</h2></div>
   {% if recipes_open %}
-  <p class="cookbook-assignment-intro form-hint">Rezepte auswählen, Positionen festlegen und Zuordnung speichern.</p>
   <form method="post" action="{{ url_for('admin.cookbook_recipes', cookbook_id=book.public_id) }}" class="admin-compact-form" aria-labelledby="cookbook-recipes-title">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="_form_context" value="{{ recipes_token }}">
     <input type="hidden" name="row_version" value="{{ book.row_version }}">
     <div class="table-responsive">
-      <table class="table table-vcenter table-mobile-lg">
+      <table class="table table-vcenter table-mobile-lg cookbook-assignment-table">
         <thead>
           <tr><th scope="col" class="w-1">Position</th><th scope="col">Rezept</th></tr>
         </thead>
@@ -100,7 +110,7 @@
                   </select>
                 </div>
                 {% if row.url %}
-                <a class="btn btn-icon" href="{{ row.url }}" aria-label="{{ names.get(row.public_id, 'Rezept') }} öffnen" title="Rezept öffnen" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="Rezept öffnen">{{ icon('eye') }}</a>
+                <a class="btn btn-icon" href="{{ row.url }}" aria-label="{{ names.get(row.public_id, 'Rezept') }} öffnen" title="{{ t('actions.open.tooltip') }}" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ t('actions.open.tooltip') }}">{{ sem_icon('actions.open') }}</a>
                 {% endif %}
               </div>
             </td>
@@ -109,7 +119,7 @@
         </tbody>
       </table>
     </div>
-    <button class="btn cookbook-section-action" type="submit">{{ icon('device-floppy') }}Zuordnung speichern</button>
+    <button class="btn cookbook-section-action" type="submit">{{ icon_label('actions.save') }}</button>
   </form>
   {% elif book.recipe_public_ids %}
   <ol class="mb-0">

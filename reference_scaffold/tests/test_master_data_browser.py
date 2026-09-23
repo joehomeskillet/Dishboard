@@ -83,20 +83,21 @@ def test_native_food_save_conflict_archive_and_framework(b3, master_server, brow
         page.on('console', lambda message: errors.append(message.text) if message.type == 'error' else None)
         page.on('response', lambda response: responses.setdefault(urlsplit(response.url).path, []).append(response.status))
         page.goto(base + '/admin/grundlagen')
-        expect(page.get_by_role('heading', level=1)).to_have_text('Grundlagen')
+        expect(page.get_by_role('heading', level=1)).to_have_text('Zutaten')
         expect(page.get_by_text('Keine passenden Zutaten', exact=True)).to_be_visible()
-        page.get_by_role('link', name='Anlegen', exact=True).click()
+        page.locator('main .btn-primary').click()
         page.get_by_label('Name', exact=True).fill('Karotte Browser')
         page.get_by_label('Testlager', exact=True).check()
-        page.get_by_role('button', name='Zutat speichern', exact=True).click()
-        expect(page.get_by_role('heading', level=1)).to_have_text('Zutat bearbeiten')
+        page.locator('#food-core-form').get_by_role('button', name='Speichern', exact=True).click()
+        expect(page.get_by_role('heading', level=1)).to_have_text('Zutaten')
+        expect(page.locator('.page-header-subtitle')).to_have_text('Zutat bearbeiten')
         path = urlsplit(page.url).path
         core = page.locator('form[action$="/stammdaten"]')
         token = core.locator('input[name="_form_context"]').input_value()
         assert save(client, path, 'stammdaten', name='Andere Sitzung').status_code == 303
         page.get_by_label('Name', exact=True).fill('Mein ursprünglicher Entwurf')
         with page.expect_response(lambda response: response.request.method == 'POST') as outcome:
-            page.get_by_role('button', name='Zutat speichern', exact=True).click()
+            page.locator('#food-core-form').get_by_role('button', name='Speichern', exact=True).click()
         assert outcome.value.status == 409
         expect(page.locator('.error-region')).to_be_visible()
         expect(page.get_by_label('Name', exact=True)).to_have_value('Mein ursprünglicher Entwurf')
@@ -107,9 +108,9 @@ def test_native_food_save_conflict_archive_and_framework(b3, master_server, brow
         page.get_by_role('button', name='Als geprüft bestätigen').click()
         page.get_by_text('Allergenprüfung', exact=True).last.click()
         expect(page.get_by_role('button', name='Prüfung zurücknehmen')).to_be_visible()
-        page.get_by_text('Weitere Aktionen', exact=True).click()
+        page.locator('main details').filter(has=page.locator('form[action$="/archivieren"], form[action$="/reaktivieren"]')).locator('summary').first.click()
         page.get_by_role('button', name='Archivieren', exact=True).click()
-        page.get_by_text('Weitere Aktionen', exact=True).click()
+        page.locator('main details').filter(has=page.locator('form[action$="/archivieren"], form[action$="/reaktivieren"]')).locator('summary').first.click()
         expect(page.get_by_role('button', name='Reaktivieren', exact=True)).to_be_visible()
         page.get_by_role('button', name='Reaktivieren', exact=True).click()
         targets(page)
@@ -131,7 +132,7 @@ def test_native_food_save_conflict_archive_and_framework(b3, master_server, brow
         page.screenshot(path=str(screenshot), full_page=True)
         screenshot.chmod(0o600)
         page.get_by_role('link', name='Zur Liste', exact=True).click()
-        expect(page.get_by_role('link', name='Andere Sitzung bearbeiten')).to_be_visible()
+        expect(page.locator('.list-group-item').filter(has_text='Andere Sitzung').get_by_role('link', name='Bearbeiten', exact=True)).to_be_visible()
         targets(page)
 
 
@@ -150,13 +151,13 @@ def test_browser_vocabulary_unit_forms_and_error_focus(b3, master_server, browse
                 page.get_by_label('Dimension', exact=True).select_option('count')
                 page.get_by_label('Basisfaktor (bei kontextabhängiger Einheit leer lassen)', exact=True).fill('2')
             page.locator('main button[type="submit"]').click()
-            page.get_by_text('Weitere Aktionen', exact=True).click()
+            page.locator('main details').filter(has=page.locator('form[action$="/archivieren"], form[action$="/reaktivieren"]')).locator('summary').first.click()
             expect(page.get_by_role('button', name='Archivieren', exact=True)).to_be_visible()
             targets(page)
         page.goto(base + '/admin/grundlagen/zutaten/neu')
         page.get_by_label('Name', exact=True).fill('<unzulässig>')
         page.get_by_label('Testlager', exact=True).check()
-        page.get_by_role('button', name='Zutat speichern', exact=True).click()
+        page.locator('#food-core-form').get_by_role('button', name='Speichern', exact=True).click()
         expect(page.locator('.error-region')).to_be_visible()
         expect(page.get_by_label('Name', exact=True)).to_have_attribute('aria-invalid', 'true')
         expect(page.get_by_label('Name', exact=True)).to_be_focused()
@@ -177,6 +178,7 @@ def test_location_conflict_native_recovery(b3, master_server, browser, width, ja
         page.get_by_label('Name', exact=True).fill('Mein erhaltener Entwurf')
         page.get_by_label('Testlager', exact=True).check()
         note = page.get_by_label('Notiz', exact=True)
+        note.locator('xpath=ancestor::details[1]').locator('summary').click()
         # Follow the control after responsive layout instead of a stale wheel offset.
         note.focus()
         note.scroll_into_view_if_needed()
@@ -191,10 +193,11 @@ def test_location_conflict_native_recovery(b3, master_server, browser, width, ja
         before = snapshot(owner)
         with page.expect_response(lambda response: response.request.method == 'POST', timeout=60000) as outcome:
             form.get_by_role(
-                'button', name='Zutat speichern', exact=True,
+                'button', name='Speichern', exact=True,
             ).click(no_wait_after=True)
         assert outcome.value.status == 409
-        expect(page.get_by_role('heading', level=1)).to_have_text('Ursprüngliche Eingaben')
+        expect(page.get_by_role('heading', level=1)).to_have_text('Zutaten')
+        expect(page.locator('.page-header-subtitle')).to_have_text('Ursprüngliche Eingaben')
         expect(page.locator('#master-error')).to_be_focused()
         expect(page.get_by_label('Name', exact=True)).to_have_value('Mein erhaltener Entwurf')
         expect(page.get_by_label('Name', exact=True)).to_have_attribute('readonly', '')
@@ -250,7 +253,10 @@ def test_location_conflict_selections_are_visible_and_copyable(b3, master_server
         elif purpose == 'metadaten':
             for code in ['VEGETARIAN', 'VEGAN']:
                 form.locator(f'input[value="{code}"]').check()
-            form.locator('select[name="allergen_MILK"]').select_option('may_contain')
+            milk = form.locator('select[name="allergen_MILK"]')
+            if javascript:
+                form.locator('#allergen-milk').check()
+            milk.select_option('may_contain')
             expected = [('Kostform', 'Vegetarisch (VEGETARIAN)'), ('Kostform', 'Vegan (VEGAN)'),
                         ('Allergen · Milch (MILK)', 'Kann enthalten (may_contain)')]
         else:
@@ -262,7 +268,7 @@ def test_location_conflict_selections_are_visible_and_copyable(b3, master_server
         before = snapshot(owner)
         with page.expect_response(lambda response: response.request.method == 'POST') as outcome:
             if purpose == 'stammdaten':
-                page.get_by_role('button', name='Zutat speichern', exact=True).click()
+                page.locator('#food-core-form').get_by_role('button', name='Speichern', exact=True).click()
             else:
                 form.get_by_role('button').click()
         assert outcome.value.status == 409

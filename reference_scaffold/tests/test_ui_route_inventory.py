@@ -240,7 +240,7 @@ def _invalid_cases(recipe_path: str) -> list[dict]:
          'Preis muss als CHF-Betrag eingegeben werden.'),
         ('/admin/design/darstellung', 'admin_density', '#display-settings-form',
          'Darstellung speichern', 'admin-density-error', 'Bitte eine der angebotenen Optionen auswählen.'),
-        (recipe_path, 'prep_minutes', '#recipe-editor', 'Rezept speichern', 'recipe-error',
+        (recipe_path, 'prep_minutes', '#recipe-editor', 'Speichern', 'recipe-error',
          'Minuten müssen zwischen 0 und 10080 liegen.'),
     ]]
 

@@ -13,7 +13,7 @@ from test_rendered_ui import admin_app, admin_engine, browser  # noqa: F401
 
 
 @pytest.mark.parametrize('family,profile', [('cafeteria', 'staff_guest'), ('patienten', 'patient')])
-@pytest.mark.parametrize('width', [390, 820, 1440])
+@pytest.mark.parametrize('width', [360, 390, 820, 1440])
 def test_filter_controls_combine_reset_and_keep_exact_results(request, family, profile, width, tmp_path):
     page: Page = request.getfixturevalue('catalog_page')
     engine = request.getfixturevalue('admin_engine')
@@ -33,6 +33,10 @@ def test_filter_controls_combine_reset_and_keep_exact_results(request, family, p
     page.goto(path)
     form = page.get_by_role('form', name='Bausteine filtern')
     expect(form).to_be_visible()
+    expect(page.locator('main .btn-primary')).to_have_count(1)
+    expect(page.locator('.admin-statusbar')).to_contain_text('Cafeteria' if family == 'cafeteria' else 'Patienten')
+    expect(form.get_by_role('link', name='Zurücksetzen', exact=True)).to_have_count(0)
+    assert page.evaluate('document.documentElement.scrollWidth') <= width
     expect(page.locator('#component-result-count')).to_have_text('2 Treffer')
     _assert_component_controls_fit(page)
     params = {'q': 'Filterprobe', 'category': 'side', 'usage': 'used', 'allergen': 'GLUTEN',

@@ -8,9 +8,10 @@ from wsgiref.simple_server import make_server
 
 import pytest
 from flask import render_template
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page, expect, sync_playwright
 from sqlalchemy import text
 from werkzeug.datastructures import MultiDict
+from cafeteria.ui import register_ui
 
 from test_admin_workflow_routes import DATABASE_URL
 from test_rendered_ui import _login, admin_app, admin_engine, browser  # noqa: F401
@@ -42,7 +43,7 @@ def test_keyed_presence_swap_and_error_roundtrip(catalog_page, family, javascrip
             form.locator(f'[name="allergen_code"][value="{code}"]').check()
             form.locator(f'[name="allergen_presence__{code}"]').select_option(presence)
         with page.expect_response(lambda r: r.request.method == 'POST') as created:
-            form.get_by_role('button', name='Baustein erstellen', exact=True).click()
+            form.get_by_role('button', name='Anlegen', exact=True).click()
         assert created.value.status == 303
         page.wait_for_url(f'**{path}/*')
         form = page.locator('#component-form')
@@ -50,7 +51,7 @@ def test_keyed_presence_swap_and_error_roundtrip(catalog_page, family, javascrip
         form.locator('[name="allergen_code"][value="LUPIN"]').check()
         form.locator('[name="allergen_presence__LUPIN"]').select_option('may_contain')
         with page.expect_response(lambda r: r.request.method == 'POST') as saved:
-            form.get_by_role('button', name='Baustein speichern', exact=True).click()
+            form.get_by_role('button', name='Speichern', exact=True).click()
         assert saved.value.status == 303
         fields = parse_qs(saved.value.request.post_data)
         assert fields['allergen_code'] == ['GLUTEN', 'LUPIN']
@@ -73,7 +74,7 @@ def test_keyed_presence_swap_and_error_roundtrip(catalog_page, family, javascrip
 
         page.route('**' + path + '/*', invalid_presence, times=1)
         with page.expect_response(lambda r: r.request.method == 'POST') as invalid:
-            form.get_by_role('button', name='Baustein speichern', exact=True).click()
+            form.get_by_role('button', name='Speichern', exact=True).click()
         assert invalid.value.status == 400
         presence = page.locator('[name="allergen_presence__GLUTEN"]')
         expect(presence).to_have_value('invalid')
@@ -86,6 +87,7 @@ def test_keyed_presence_swap_and_error_roundtrip(catalog_page, family, javascrip
 @pytest.fixture
 def catalog_page(request: pytest.FixtureRequest) -> Iterator[Page]:
     application = request.getfixturevalue('admin_app')
+    register_ui(application)
     engine = request.getfixturevalue('admin_engine')
     client, _ = _login(application, engine, ['Cafeteria.Admin'])
     cookie = client.get_cookie('session')
@@ -94,7 +96,9 @@ def catalog_page(request: pytest.FixtureRequest) -> Iterator[Page]:
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
-        with request.getfixturevalue('browser').new_context(
+        with sync_playwright() as playwright, playwright.chromium.launch(
+            headless=True, args=['--no-sandbox', '--disable-dev-shm-usage'],
+        ) as instance, instance.new_context(
             base_url=f'http://127.0.0.1:{server.server_port}',
             reduced_motion='reduce',
         ) as context:
@@ -135,7 +139,7 @@ def test_catalog_native_forms_preserve_and_remove_metadata(
     milk.locator('[name="allergen_code"]').check()
     expect(milk.locator('select')).to_be_enabled()
     with page.expect_response(lambda response: response.request.method == 'POST') as created:
-        form.get_by_role('button', name='Baustein erstellen', exact=True).click()
+        form.get_by_role('button', name='Anlegen', exact=True).click()
     assert created.value.status == 303
     page.wait_for_url(f'**{list_path}/*')
     expect(page.locator('main')).to_have_attribute('data-profile-scope', profile)
@@ -157,9 +161,10 @@ def test_catalog_native_forms_preserve_and_remove_metadata(
     milk.locator('[name="allergen_code"]').uncheck()
     expect(milk.locator('select')).to_be_enabled()
     with page.expect_response(lambda response: response.request.method == 'POST') as saved:
-        detail.get_by_role('button', name='Baustein speichern', exact=True).click()
+        detail.get_by_role('button', name='Speichern', exact=True).click()
     assert saved.value.status == 303
-    expect(page.locator('h1')).to_have_text('Katalog-Browsertest bearbeitet')
+    expect(page.locator('h1')).to_have_text('Bausteine')
+    expect(page.locator('.page-header-subtitle')).to_have_text('Katalog-Browsertest bearbeitet')
     expect(detail.locator('[name="label_code"][value="VEGAN"]')).to_be_checked()
     expect(gluten.locator('select')).to_have_value('may_contain')
     expect(milk.locator('[name="allergen_code"]')).not_to_be_checked()
@@ -169,7 +174,7 @@ def test_catalog_native_forms_preserve_and_remove_metadata(
     gluten.locator('[name="allergen_code"]').uncheck()
     expect(gluten.locator('select')).to_be_enabled()
     with page.expect_response(lambda response: response.request.method == 'POST') as cleared:
-        detail.get_by_role('button', name='Baustein speichern', exact=True).click()
+        detail.get_by_role('button', name='Speichern', exact=True).click()
     assert cleared.value.status == 303
     page.wait_for_load_state()
     with engine.connect() as connection:
@@ -203,7 +208,7 @@ def test_catalog_table_cards_country_errors_and_archive_across_breakpoints(
     form.locator('[name="name"]').fill(long_name)
     form.locator('[name="category"]').select_option('side')
     form.locator('[name="origin_country_code"]').select_option('CH')
-    form.get_by_role('button', name='Baustein erstellen', exact=True).click()
+    form.get_by_role('button', name='Anlegen', exact=True).click()
     page.wait_for_url(f'**{list_path}/*')
     detail_path = page.url.split(page.url.split('/admin/')[0], 1)[1]
     public_id = page.locator('main').get_attribute('data-public-id')
@@ -239,13 +244,15 @@ def test_catalog_table_cards_country_errors_and_archive_across_breakpoints(
         if width in (360, 1200):
             page.screenshot(path=str(tmp_path / f'{family}-components-{width}.png'), full_page=True)
         page.goto(detail_path)
-        expect(page.locator('h1')).to_have_text(long_name)
+        expect(page.locator('h1')).to_have_text('Bausteine')
+        expect(page.locator('.page-header-subtitle')).to_have_text(long_name)
         expect(page.locator('#c-origin option:checked')).to_have_text('Schweiz')
         expect(page.locator('main')).to_have_attribute('data-family', family)
         _assert_component_controls_fit(page)
         if width in (360, 1200):
             page.screenshot(path=str(tmp_path / f'{family}-component-editor-{width}.png'), full_page=True)
 
+    page.locator('.component-secondary-actions summary').click()
     archive = page.get_by_role('button', name='Archivieren', exact=True)
     page.once('dialog', lambda dialog: dialog.dismiss())
     archive.click()
@@ -253,6 +260,7 @@ def test_catalog_table_cards_country_errors_and_archive_across_breakpoints(
     page.once('dialog', lambda dialog: dialog.accept())
     archive.click()
     page.wait_for_load_state()
+    page.locator('.component-secondary-actions summary').click()
     expect(page.get_by_role('button', name='Reaktivieren', exact=True)).to_be_visible()
     expect(page.locator('main')).to_have_attribute('data-active', '0')
     page.goto(list_path)

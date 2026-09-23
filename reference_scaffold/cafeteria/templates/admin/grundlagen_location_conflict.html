@@ -2,7 +2,7 @@
 {% from 'admin/_macros.html' import page_header, icon %}
 {% set workflow_nav = 'master_data' %}
 {% block title %}Standort geändert · Grundlagen{% endblock %}
-{% block page_header %}{{ page_header('Ursprüngliche Eingaben') }}{% endblock %}
+{% block page_header %}{{ page_header(t('navigation.ingredients.label'), description='Ursprüngliche Eingaben', status_items=[{'label': t('status.error.label'), 'value': message, 'variant': 'danger'}]) }}{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-grundlagen.css') }}">{% endblock %}
 {% block content %}
 <div class="alert alert-danger error-region" id="master-error" role="alert" tabindex="-1" autofocus>{{ icon('alert-triangle') }} {{ message }}</div>

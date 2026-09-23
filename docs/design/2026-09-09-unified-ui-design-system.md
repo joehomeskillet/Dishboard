@@ -646,6 +646,46 @@ Desktop; Sidebar links, gesamte verbleibende Breite rechts. Der Marker `>` steht
 
 **Responsive:** Unterhalb der bestehenden Sidebar-Schwelle wird die Navigation über „Menü“ geöffnet (als Drawer/kompakte Navigation zulässig). Ohne JavaScript bleibt die Mobilnavigation in einem nativen, standardmässig geschlossenen `details.admin-nojs-nav` mit 48 px hoher, fokussierbarer Summary «Menü»; Links und Unterpunkte werden erst nach dem Öffnen angezeigt. Sie darf das Formular nicht auf eine schmale Restfläche drücken. Für Login und öffentliche Ausgaben dieses Muster nicht blind erzwingen.
 
+##### Modul Zutaten / Grundlagen (2026-09-20)
+
+Die Grundlagen-Endpunkte bleiben unter dem Navigationstitel «Zutaten». Der
+Untertitel unterscheidet Anlage, Bearbeitung und Wiederherstellung; die lokale
+Stammdatenwahl bleibt als fachlicher Filter erhalten. Liste: eine Primäraktion
+«Anlegen» im Seitenkopf, Suche vor den Daten, zusätzliche Filter in einem nativen
+Aufklappbereich, aktive Auswahl mit `active` und `aria-current="true"`. Zeilen
+zeigen Name, Status und Zuordnung ohne technische Version; genau eine beschriftete
+Bearbeiten-/Öffnen-Aktion. Leere Ergebnisse bieten einen direkten nächsten Schritt.
+
+Der frühere offene Statusblock ist ersetzt am 2026-09-20 durch `page_header`
+mit `status_items`: Aktiv/Archiviert, vorhandene Lagerorte, Erfassungszustand der
+Allergene und separat deren gespeicherter Prüfstatus. Nur bestätigte Prüfung nutzt
+`success`; fehlende Angaben bleiben textuelle Warnungen. Listen zeigen den echten
+Archivfilter, keine scheinbare globale Anzahl. Version, IDs und Revisionen sind
+keine Statusslots. Fehlende Bestands-/Aufgabensummen werden nicht erfunden.
+
+Im Editor bleibt Stammdaten-Speichern die einzige Primäraktion.
+Speichern bleibt unterhalb von 1024 px im Dokumentfluss, damit ohne JavaScript
+kein Eingabefeld durch die Leiste verdeckt wird. Unabhängige
+Preis-, Kennzeichnungs- und Allergenformulare speichern weiterhin separat und
+neutral. Optionale Rezeptverknüpfung, Dichte, Stückgewicht und Notiz nutzen
+`disclosure_section` («Weitere Optionen»), geöffnet bei Inhalt oder Feldfehler.
+Technische Angaben und Archivierung sind nachrangig. Versteckte CAS-/CSRF-Felder
+bleiben direkt in ihren ursprünglichen Formularen.
+
+Allergene verwenden das gemeinsame `option_detail_group` mit `field_prefix='allergen_'`:
+`allergen_CODE=absent|contains|may_contain` bleibt der POST-Vertrag. Mit JavaScript
+erscheint das Präsenzfeld erst nach Auswahl; ohne JavaScript bleiben native Selects
+mit «Keine Angabe» erreichbar. Erfasste Allergene und fehlerhafte Angaben
+öffnen den zugehörigen Abschnitt serverseitig.
+`absent` heisst weiterhin «Keine Angabe», niemals «allergenfrei». Kostformen und
+Allergenbereiche nutzen mehrere Spalten ab 1024 px und eine Spalte mobil.
+
+Nachweis: `test_wp06_measured_layout_and_native_forms` misst 360/768/1024/1440 px
+mit und ohne JavaScript, Primäraktionen, Zeilen-/Seitenhöhe, Überlauf und
+Tastaturfokus. `test_wp06_allergen_payload_and_review_are_independent` vergleicht
+native POST-Felder vor/nach Auswahl und prüft den getrennten Prüfstatus. Bestehende
+Browsertests behalten CAS-, Standortkonflikt-, Recovery- und 48-px-Assertions.
+
 #### M02 — Rezepteditor: kompakter Ausgangszustand
 
 Desktop; vier Beispielzutaten, zwei Schritte. Der Seitenkopf enthält ein eindeutiges Objekt, nicht mehrfach denselben Titel.
@@ -1087,6 +1127,41 @@ Editormuster für einen zentralen Baustein. Beispielwerte sind Eingaben, keine f
 
 **Vertrag:** Vor dem Deaktivieren oder Ausblenden von Controls die POST-Semantik prüfen. Nur eine Darstellung ändern, keine Werte verlieren oder hidden/disabled-Verhalten neu erfinden. Der Verwendungszähler ist nur bei belegten Daten zulässig. Die Wirkung zentraler Änderungen auf bestehende Menüs anhand des Codes erklären; nicht als garantiert unveränderliche Vergangenheit ausgeben.
 
+##### Modul Bausteine (2026-09-20)
+
+M08/M13 folgen dem gemeinsamen Seitenrahmen: «Bausteine» als Titel, Objektname
+im Editor als Kontext. `page_header(status_items=...)` zeigt den Bereich aus
+`profile`/`family`; im Editor zusätzlich Aktiv-/Archivzustand aus `component.active`,
+Gültigkeit aus `component.profile_scope` und Verwendung aus `component.usage_count`.
+Verwendung erklärt die Reichweite zentraler Änderungen. Aktiv ist neutral,
+archiviert eine textliche Warnung; kein Slot bestätigt eine Allergenprüfung.
+Revisionen/IDs bleiben aus der Statusbar. Fehlende Prüf- oder Publikationsdaten
+werden nicht erfunden; zusätzliche Quellen benötigen ein separates Backend-WP.
+
+Die Liste hat eine dominante Aktion «Anlegen» im Kopf. Ihr bestehendes Ankerziel
+öffnet das native Anlageformular auch ohne JavaScript. Suchen, Formularsubmit und
+Zeilenaktionen bleiben neutral; gefüllte oder fehlerhafte Anlagen öffnen sich.
+Suche, Kategorie und Status stehen zuerst, Zusatzfilter in nativen Details;
+aktive Zusatzfilter bleiben in der Zusammenfassung sichtbar. Zurücksetzen erscheint
+nur bei aktiven Filtern. Leere Ergebnisse bieten eine passende direkte Folgeaktion.
+
+Die bisherigen hohen mobilen Karten sind ersetzt am 2026-09-20 durch kompakte,
+priorisierte Zeilen mit einer beschrifteten Bearbeiten-Aktion. Kennzeichnungen
+zeigen höchstens zwei Labels; weitere bleiben über «+n» vollständig erreichbar.
+Allergenauswahl nutzt ab 1024 px drei Spalten, mobil eine. Haken und Rahmen zeigen
+die Auswahl; Präsenz erscheint an der gewählten Option. Fehlende Auswahl bestätigt
+keine Allergenfreiheit. Feldnamen `allergen_code` und `allergen_presence__<CODE>`,
+Werte, Standardwerte, Reihenfolge und Aktivierung der Controls bleiben unverändert.
+
+Optionale Lebensmittelzuordnung liegt in «Weitere Optionen», bei Inhalt oder Fehler
+geöffnet. Archivieren/Reaktivieren samt Folgetext und Bestätigung liegt in «Weitere
+Aktionen». CSRF-/CAS-Felder bleiben direkt in ihren Formularen. Der Editor behält
+eine erreichbare Speicheraktion; No-JS, Fokus und 48-px-Ziele bleiben verbindlich.
+Neue Aktionslabels und Icons verwenden `ui/_semantic.html`; bestehende Fachtexte
+bleiben bis zur zentralen Übersetzungsmigration erhalten. Browsernachweise in den
+drei Komponenten-Testdateien umfassen 360/768/1024/1440 px, FormData-Parität,
+Tastatur, No-JS, Fehlereingaben und Archivierung. Die Route-Matrix aktualisiert WP20.
+
 #### M14 — Drucken und Vorschau: Arbeitsauftrag von Layoutverwaltung trennen
 
 Beispiel mit bewusst unterschiedlichen Zeiträumen für gewählte gespeicherte Woche und veröffentlichten Stand.
@@ -1404,6 +1479,23 @@ Seltene oder technische Angaben in nativem `<details>`; Kurztext zeigt vorhanden
 **Responsive:** Summary bleibt vollständig lesbar; Inhalt folgt dem gemeinsamen Formular-Grid.
 
 **Technischer Vertrag (2026-09-20):** `{% call disclosure_section(title='Weitere Optionen', id=none, open=false, has_content=false, has_error=false) %}…{% endcall %}` rendert `details.admin-compact-details.admin-disclosure` und `.admin-compact-detail-body`. `open`, `has_content` oder `has_error` öffnen serverseitig; `has_content` ergänzt «enthält Angaben» im Summary. Keine neuen `data-`-Attribute oder JavaScript-Abhängigkeit; native Tastaturbedienung erhält Formularwerte. Nachweis: `test_admin_shared_patterns_browser.py` für explizites Öffnen, Fehler/Inhalt, leeren geschlossenen Zustand, Fokus und responsive Zielgrössen mit und ohne JS.
+
+##### Modul Kochbücher (2026-09-20)
+
+Die Kochbuchliste verwendet M22/M23: eine Filterzeile (Suche, Archiv), kompakte
+Vollbreitenzeilen statt eines Kartenrasters, genau eine Primäraktion «Anlegen»
+im Seitenkopf und einen Empty State mit derselben Anlagehandlung. Die frühere
+dauerhaft sichtbare Anlage unter der Liste (`details#cookbook-create`) ist
+ersetzt am 2026-09-20 durch diese Primäraktion plus fokussierten Editor.
+
+Die Statusbar zeigt auf der Liste den Filterzustand (`include_archived` bzw.
+aktive Suche) und im Editor Objektstatus (`book.active`) sowie die Anzahl
+zugeordneter Rezepte (`book.recipe_public_ids`). `row_version`, IDs und
+Publikationswerte sind keine Statusslots; `row_version` bleibt verstecktes
+CAS-Feld im Formular. Archivieren liegt im Formularfuss bzw. im Bestätigungsdialog;
+Speichern der Zuordnung bleibt sekundär. CSRF, CAS und gesendete Feldnamen bleiben
+unverändert. Nachweis: `test_ui_korrektur_cookbooks_browser.py`,
+`test_cookbook_routes.py`.
 
 #### M26 — Wochenplan Cafeteria — kompakte Wochenplanung
 

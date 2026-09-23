@@ -1,5 +1,56 @@
 .grundlagen-list .list-group-item {
-  min-height: 4rem;
+  min-height: 3rem;
+  padding: var(--app-space-2) var(--app-space-3);
+}
+
+.grundlagen-list .list-group-item .col {
+  min-width: 0;
+}
+
+.grundlagen-list .list-group-item .badge {
+  margin-inline-start: var(--app-space-2);
+}
+
+.grundlagen-filter > div {
+  min-width: 0;
+  flex: 1 1 10rem;
+}
+
+.grundlagen-filter-options > summary {
+  min-height: 3rem;
+  cursor: pointer;
+}
+
+.grundlagen-filter-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+}
+
+.grundlagen-filter-fields > div {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.grundlagen-filter .form-check,
+.grundlagen-choices .form-check {
+  min-height: 3rem;
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-2);
+}
+
+@media (min-width: 64rem) {
+  .grundlagen-choices .form-check {
+    display: inline-flex;
+    margin-inline-end: var(--app-space-3);
+  }
+}
+
+.grundlagen-choices > a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--app-space-2);
 }
 
 details.card > summary.card-header {
@@ -42,7 +93,7 @@ details.card[open] > summary.card-header .grundlagen-accordion-marker {
   margin: 0;
 }
 
-@media (min-height: 700px) {
+@media (min-width: 64rem) and (min-height: 700px) {
   #food-core-form .grundlagen-core-actions:not(.is-static) {
     position: sticky;
     top: auto;

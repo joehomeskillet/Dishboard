@@ -104,8 +104,11 @@ def _capture_shell(page, name, *, title=None, native=False, viewport_only=False)
     expect(page.locator('.admin-area-tabs')).to_have_count(0)
     if title:
         heading = page.get_by_role('heading', level=1)
-        expect(heading).to_have_text(title)
+        expect(heading).to_have_text('Rezepte')
         assert heading.evaluate('el => el.scrollWidth <= el.clientWidth + 1')
+        subtitle = page.locator('.page-header-subtitle')
+        expect(subtitle).to_contain_text(title)
+        assert subtitle.evaluate('el => el.scrollWidth <= el.clientWidth + 1')
     glyphs = page.locator('.admin-sidebar use, .admin-page-header use, .admin-compact-toolbar use')
     visible = []
     for glyph in glyphs.all():
@@ -184,7 +187,7 @@ def test_real_browser_zoom_keeps_shell_navigation_and_long_title(site, tmp_path)
                 assert glyph.evaluate('el => el.getBoundingClientRect().width') >= 16
                 assert contrast(_hex(glyph.evaluate('el => getComputedStyle(el).backgroundColor')),
                                 _hex(colors[1])) >= 3
-                _capture_shell(page, f'native-200-{name}', title=LONG_TITLE if name == 'view' else None,
+                _capture_shell(page, f'native-200-{name}', title=LONG_TITLE if name in ('view', 'editor') else None,
                                native=True, viewport_only=name == 'editor')
                 proof = cdp.send('Page.getLayoutMetrics')
                 proof['focused_toggle'] = {'colors': colors, 'contrast': contrast(*map(_hex, colors))}
@@ -203,7 +206,7 @@ def test_low_height_recipe_focus_and_save_remain_reachable(site, javascript):  #
         expect(toolbar).to_have_css('position', 'static')
         title = page.get_by_label('Titel', exact=True)
         title.fill('')
-        save = page.get_by_role('button', name='Rezept speichern', exact=True)
+        save = page.get_by_role('button', name='Speichern', exact=True)
         requests = []
         page.on('request', lambda request: requests.append(request.method))
         save.click()
@@ -220,7 +223,7 @@ def test_low_height_recipe_focus_and_save_remain_reachable(site, javascript):  #
             const r = el.getBoundingClientRect();
             return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
         }''')
-        _capture_shell(page, f'low-height-focus-js{javascript}')
+        _capture_shell(page, f'low-height-focus-js{javascript}', title=LONG_TITLE)
     finally:
         page.context.close()
 
@@ -233,7 +236,7 @@ def test_shell_styles_statusbar_variants_and_contextual_subnav(site):  # noqa: F
         _goto(page, '/admin/cafeteria/menues')
         page.locator('.page-body > .container-xl').evaluate('''container => {
             container.insertAdjacentHTML('afterbegin', `
-              <dl class="admin-statusbar" aria-label="Status" data-style-probe>
+              <dl id="statusbar-variants" class="admin-statusbar" aria-label="Status">
                 <div class="admin-statusbar-item admin-statusbar-item--neutral"><dt class="admin-statusbar-label">Bereich</dt><dd class="admin-statusbar-value">Cafeteria</dd></div>
                 <div class="admin-statusbar-item admin-statusbar-item--success"><dt class="admin-statusbar-label">Status</dt><dd class="admin-statusbar-value">Betriebsbereit</dd></div>
                 <div class="admin-statusbar-item admin-statusbar-item--warning"><dt class="admin-statusbar-label">Prüfung</dt><dd class="admin-statusbar-value">Hinweis offen</dd></div>
@@ -241,8 +244,7 @@ def test_shell_styles_statusbar_variants_and_contextual_subnav(site):  # noqa: F
                 <div class="admin-statusbar-item admin-statusbar-item--neutral"><dt class="admin-statusbar-label">Kontext</dt><dd class="admin-statusbar-value">KW 38</dd></div>
               </dl>`);
         }''')
-        # The menus page carries its own status bar; the style probe is the injected one.
-        statusbar = page.locator('.admin-statusbar[data-style-probe]')
+        statusbar = page.locator('#statusbar-variants')
         expect(statusbar).to_have_css('display', 'grid')
         expect(statusbar.locator('.admin-statusbar-item')).to_have_count(5)
         variants = ('neutral', 'success', 'warning', 'danger')
