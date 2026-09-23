@@ -10412,7 +10412,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "3552979a13c961a6e7eca88515e3b14e72163dbb4678b909ae9aacf6ab74a86e",
+      "sha256": "b85fae69f282d587978946275c5c716f80145d69aaaa40554da413fcbc7bd149",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"

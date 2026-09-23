@@ -238,7 +238,7 @@ def test_weekend_editor_links_defaults_and_existing_services_survive_switch_off(
     week_dates = [(WEEK + timedelta(days=offset)).isoformat() for offset in range(7)]
     assert days == ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
     assert 'Wochenendbetrieb: Samstag und Sonntag sind im Raster.' in body
-    assert 'Montag–Sonntag' in body
+    # The grid itself proves the day range (days list above); the header no longer repeats it.
     assert len(slots) == 14 and {slot[0] for slot in slots} == set(week_dates)
     assert all(slot[1] == 'LUNCH' for slot in slots)
     assert body.count('von 2 Menükarten erfasst') == 7
@@ -254,7 +254,6 @@ def test_weekend_editor_links_defaults_and_existing_services_survive_switch_off(
     off_days, off_slots = _cafeteria_week_grid(off_body)
     assert off_days == ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
     assert {slot[0] for slot in off_slots} == set(week_dates[:6])
-    assert 'Montag–Samstag' in off_body
     for path in (saturday.replace('2026-09-05', '2026-09-07'),
                  saturday.replace('2026-09-05', '2026-08-30'),
                  saturday.replace('LUNCH', 'DINNER'), saturday.replace('MENU_1', 'INVALID')):

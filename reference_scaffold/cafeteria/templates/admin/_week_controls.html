@@ -40,7 +40,7 @@
 
 {% macro overview_header(heading, description) %}
   {% set items = [
-    {'label': 'Woche', 'value': 'KW ' ~ iso_week, 'detail': date_range ~ ' · ' ~ cells[0].day_label ~ '–' ~ cells[-1].day_label if cells else date_range},
+    {'label': 'Woche', 'value': 'KW ' ~ iso_week, 'detail': date_range},
     {'label': 'Wochenstatus', 'value': status_short, 'variant': 'success' if status == 'live' else ('warning' if publish_blocked or status == 'changed' else 'neutral')}
   ] %}
   {% if filled_slots %}

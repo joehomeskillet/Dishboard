@@ -796,6 +796,8 @@ reference_scaffold/cafeteria/static/admin-menu-collection.css
 reference_scaffold/cafeteria/static/admin-menu-editor.css
 reference_scaffold/cafeteria/static/admin-preview.css
 reference_scaffold/cafeteria/static/admin-screens.css
+reference_scaffold/cafeteria/static/admin-settings-bereiche.css
+reference_scaffold/cafeteria/static/admin-settings-darstellung.css
 reference_scaffold/cafeteria/static/admin-tabler.css
 reference_scaffold/cafeteria/static/admin-vorschau-bildschirme.css
 reference_scaffold/cafeteria/static/admin-week-tabler.css
