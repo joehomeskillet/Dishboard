@@ -23,7 +23,7 @@ from test_rendered_ui import browser  # noqa: F401
 EVIDENCE = Path(os.environ.get(
     'DISH_TEMPLATE_EVIDENCE_DIR', str(Path(__file__).resolve().parents[2] / '.claude/evidence/acc-template-0913'),
 ))
-ROUTE_VIEWPORTS = ((390, 844), (1440, 900))
+ROUTE_VIEWPORTS = ((360, 800), (390, 844), (1440, 900))
 SHARED_VIEWPORTS = ((1024, 768), (768, 1024), (1920, 1080), (2560, 1440))
 
 
@@ -98,6 +98,11 @@ def test_list_create_conflict_and_tabler(b3, master_server, browser, width, heig
             expect(page.get_by_text('Menü 1 · Gemeinsam', exact=True)).to_be_visible()
         expect(page.locator('.badge:visible').filter(has_text='Aktiv')).to_have_count(1)
         page.get_by_role('link', name='Browser Vorlage').click()
+        expect(page.get_by_label('Status', exact=True)).to_be_visible()
+        expect(page.get_by_label('Status', exact=True).locator('dt').filter(has_text='Status')).to_be_visible()
+        expect(page.get_by_label('Status', exact=True).locator('dd').filter(has_text='Aktiv')).to_be_visible()
+        expect(page.get_by_label('Status', exact=True).locator('dt').filter(has_text='Bereich')).to_be_visible()
+        expect(page.get_by_label('Status', exact=True).locator('dd').filter(has_text='Gemeinsam')).to_be_visible()
         path = urlsplit(page.url).path
         token = page.locator('input[name="updated_at"]').input_value()
         assert fields(client, path)['updated_at'] == token

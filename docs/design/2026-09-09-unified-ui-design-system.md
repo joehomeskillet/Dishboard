@@ -1405,6 +1405,10 @@ Seltene oder technische Angaben in nativem `<details>`; Kurztext zeigt vorhanden
 
 **Technischer Vertrag (2026-09-20):** `{% call disclosure_section(title='Weitere Optionen', id=none, open=false, has_content=false, has_error=false) %}…{% endcall %}` rendert `details.admin-compact-details.admin-disclosure` und `.admin-compact-detail-body`. `open`, `has_content` oder `has_error` öffnen serverseitig; `has_content` ergänzt «enthält Angaben» im Summary. Keine neuen `data-`-Attribute oder JavaScript-Abhängigkeit; native Tastaturbedienung erhält Formularwerte. Nachweis: `test_admin_shared_patterns_browser.py` für explizites Öffnen, Fehler/Inhalt, leeren geschlossenen Zustand, Fokus und responsive Zielgrössen mit und ohne JS.
 
+##### Modul Gerichtvorlagen (2026-09-20)
+
+Das Modul Gerichtvorlagen nutzt M22 (Filterzeile), M23 (Zeilenvertrag) und M24 (Formularfuss) anstelle eigener Custom-Controls. Die Haupttabelle trennt Rezept, Status und Planung auf dem Desktop, wird auf schmalen Viewports aber zu einer kompakten Zeile je Vorlage verdichtet. Der Anlage- und Editorbereich folgt dem gemeinsamen Formular-Grid, mit exakt einer Primäraktion im Formularfuss. Statuswerte (Aktiv, Bereich, Rezeptbindung) sind in die zentrale Statusbar verlegt, die Planungsziel-Vorschau verbleibt fokussiert im Einplanen-Kontext. Dauerhaft geöffnete Anlage- oder Suchformulare am Listenende sind durch die Primäraktion im Seitenkopf abgelöst.
+
 #### M26 — Wochenplan Cafeteria — kompakte Wochenplanung
 
 Kompakte Wochenplanung statt riesiger Einzelkarten; Zielmodell SDD v2 §5.1.
