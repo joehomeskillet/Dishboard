@@ -4,6 +4,7 @@ import base64
 from datetime import timedelta
 import json
 from pathlib import Path
+import re
 from tempfile import TemporaryDirectory
 
 import pytest
@@ -260,10 +261,11 @@ def test_week_management_ui_korrektur(live_branding, database_engine, browser, t
                 'Veröffentlicht', 'Noch nicht veröffentlicht', 'Prüfung offen', 'Unvollständig', 'Noch keine Menüs erfasst',
             ))
 
-            # 5. Exactly ONE primary action ("Woche öffnen"), secondary grouped
+            # 5. One direct row action; with n rows it is neutral, the page keeps a single primary action.
             primary_btn = first_row.locator('.week-actions .week-action-primary')
             expect(primary_btn).to_be_visible()
-            expect(primary_btn).to_have_class('btn btn-primary week-action-primary text-wrap')
+            expect(primary_btn).not_to_have_class(re.compile(r'\bbtn-primary\b'))
+            expect(page.locator('main .btn-primary')).to_have_count(1)
             expect(primary_btn).to_have_text('Öffnen')
             assert primary_btn.bounding_box()['height'] >= 48
 
@@ -275,15 +277,16 @@ def test_week_management_ui_korrektur(live_branding, database_engine, browser, t
                     assert btn.bounding_box()['height'] >= 48
 
             # The creation form is closed while selecting a week; copy effects open on demand.
-            expect(page.locator('.week-toolbar .profile-tabs')).to_be_visible()
+            expect(page.locator('.week-filter')).to_be_visible()
             expect(page.locator('#new-week-date')).to_be_hidden()
-            copy = first_row.locator('.week-copy')
+            copy = first_row.locator('.week-more')
             expect(copy.locator('p')).to_be_hidden()
             copy.locator('summary').focus()
             copy.locator('summary').press('Enter')
             expect(copy.locator('p')).to_contain_text('Quelle: 31.08.2026 → Ziel: 07.09.2026')
             expect(copy.locator('p')).to_contain_text('Ziel muss leer und unveröffentlicht sein')
-            expect(copy.get_by_role('link')).to_have_attribute('href', f'/admin/{family}/copy?week=2026-09-07')
+            expect(copy.get_by_role('link', name='Kopieren vorbereiten')).to_have_attribute(
+                'href', f'/admin/{family}/copy?week=2026-09-07')
             if width in (390, 1440):
                 _shot(page, f'{family}-wochen-copy-{width}x{height}')
 
@@ -307,7 +310,7 @@ def test_week_management_ui_korrektur(live_branding, database_engine, browser, t
         page.goto(f'{origin}/admin/{family}/wochen')
 
         # Details is collapsed by default
-        details = page.locator('details.card')
+        details = page.locator('details.week-create')
         expect(details).to_have_count(1)
         expect(page.locator('#new-week-date')).to_be_hidden()
 
@@ -339,7 +342,7 @@ def test_week_management_ui_korrektur(live_branding, database_engine, browser, t
         page.on('request', lambda request: requests.append(request.method))
         with database_engine.connect() as connection:
             before_copy = connection.execute(text('SELECT id,row_version FROM cafeteria.menu_weeks ORDER BY id')).all()
-        row.locator('.week-copy summary').click()
+        row.locator('.week-more summary').click()
         row.get_by_role('link', name='Kopieren vorbereiten').click()
         expect(page.locator('main')).to_have_attribute('data-source-week', '2026-08-31')
         expect(page.locator('main')).to_have_attribute('data-target-week', '2026-09-07')

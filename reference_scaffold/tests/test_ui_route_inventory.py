@@ -440,7 +440,8 @@ def _assert_states(application, matrix, manifest) -> None:
             assert {'Rezepte', 'Kochbücher'} <= nav
             assert admin_only <= nav if row['role'] == 'Cafeteria.Admin' else not admin_only & nav
         else:
-            assert nav == {'Wochenplan', 'Menüs & Bausteine', 'Vorschau & Bildschirme', 'Einstellungen'}
+            # Sub-items of the active area are part of the navigation since the shell package.
+            assert {'Wochenplan', 'Menüs & Bausteine', 'Vorschau & Bildschirme', 'Einstellungen'} <= nav
 
 
 @DATABASE_REQUIRED
