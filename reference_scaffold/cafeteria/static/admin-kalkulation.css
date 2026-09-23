@@ -1,0 +1,62 @@
+/* Scoped layout only; values, validation and native form submission stay intact. */
+.cost-calculation .card-body {
+  padding: var(--app-space-3);
+}
+
+.cost-calculation form.row {
+  margin: 0;
+}
+
+.cost-calculation .cost-extra:not(.cost-extra-filled) {
+  display: none;
+}
+
+.cost-calculation:has(#kind option[value="menu"]:checked) .cost-extra {
+  display: block;
+}
+
+/* Older browsers retain the optional field through native disclosure. */
+@supports not selector(:has(*)) {
+  .cost-calculation .cost-extra:not(.cost-extra-filled) {
+    display: block;
+  }
+}
+
+.cost-lines td {
+  padding: var(--app-space-2);
+  overflow-wrap: anywhere;
+}
+
+#cost-line-details li {
+  overflow-wrap: anywhere;
+}
+
+.cost-calculation .admin-disclosure > summary {
+  list-style: none;
+}
+
+@media (max-width: 767px) {
+  .cost-lines thead {
+    position: absolute;
+    clip-path: inset(50%);
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .cost-lines tbody {
+    display: block;
+  }
+
+  .cost-lines tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-block: var(--app-space-2);
+    border-bottom: var(--tblr-border-width) solid var(--tblr-border-color);
+  }
+
+  .cost-lines td {
+    padding: 0 var(--app-space-2);
+    border: 0;
+  }
+}

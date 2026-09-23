@@ -1,16 +1,37 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon %}
+{% from 'admin/_macros.html' import page_header, disclosure_section %}
+{% from 'ui/_semantic.html' import icon_label, icon_button, sem_icon %}
 {% set workflow_nav = 'cost' %}
 {% block title %}Kalkulation · Menüplanung{% endblock %}
-{% block page_header %}{{ page_header('Kalkulation') }}{% endblock %}
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='ui-semantic.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin-kalkulation.css') }}">
+{% endblock %}
+{% block page_header %}
+{% set status_items = [{'label': t('data.calculation.label'), 'value': t('status.pending.label'), 'variant': 'neutral'}] %}
+{% if projection %}
+  {% set incomplete = projection.lines|rejectattr('status', 'equalto', 'complete')|list|length %}
+  {% set status_items = [
+    {'label': 'Status', 'value': 'vollständig' if projection.complete else 'unvollständig', 'variant': 'success' if projection.complete else 'warning'},
+    {'label': 'Stichtag', 'value': as_of, 'variant': 'neutral'}
+  ] %}
+  {% if incomplete %}{% set _ = status_items.append({'label': t('recipe.ingredient.label'), 'value': incomplete ~ ' · ' ~ t('status.pending.label'), 'variant': 'warning'}) %}{% endif %}
+  {% if projection.complete and projection.total is not none %}{% set _ = status_items.append({'label': t('data.total.label'), 'value': projection.total ~ ' CHF', 'variant': 'neutral'}) %}{% endif %}
+{% endif %}
+{% call page_header(t('navigation.costing.label'), description='Bestätigen speichert einen unveränderlichen Beleg.' if projection else 'Vorschau schreibt nichts.', status_items=status_items) %}
+  {% if projection %}
+    {{ icon_button('actions.confirm', form='cost-confirm') }}
+  {% else %}
+    <button class="btn btn-primary" type="submit" form="cost-preview">{{ icon_label('actions.preview') }}</button>
+  {% endif %}
+{% endcall %}
+{% endblock %}
 {% block content %}
-<p class="text-secondary">Vorschau schreibt nichts. Fehlender Preis bleibt unvollständig, nie 0. Bestätigen speichert einen unveränderlichen Beleg.</p>
 
-<section class="card mb-4">
-  <div class="card-header"><h2 class="card-title">Projektion</h2></div>
-  <form method="post" action="{{ url_for('admin.cost_preview') }}" class="card-body row g-2">
+<section class="card mb-3 cost-calculation">
+  <form id="cost-preview" method="post" action="{{ url_for('admin.cost_preview') }}" class="card-body row g-2">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-    <div class="col-md-3"><label class="form-label" for="kind">Art</label>
+    <div class="col-md-4"><label class="form-label" for="kind">Art</label>
       <select class="form-select" id="kind" name="kind">
         <option value="recipe"{% if kind|default('recipe') == 'recipe' %} selected{% endif %}>Rezept</option>
         <option value="prepared"{% if kind|default('') == 'prepared' %} selected{% endif %}>Zubereitung</option>
@@ -20,39 +41,45 @@
     <div class="col-md-4"><label class="form-label" for="revision_public_id">Rezeptrevision-UUID</label>
       <input class="form-control" id="revision_public_id" name="revision_public_id" value="{{ revision_public_id|default('') }}" required>
     </div>
-    <div class="col-md-4"><label class="form-label" for="menu_revision_public_id">Weitere Menü-Revision</label>
-      <input class="form-control" id="menu_revision_public_id" name="menu_revision_public_id" value="{{ menu_revision_public_ids[0] if menu_revision_public_ids|default([]) else '' }}">
-    </div>
-    <div class="col-md-2"><label class="form-label" for="as_of">Stichtag</label>
+    <div class="col-md-4"><label class="form-label" for="as_of">Stichtag</label>
       <input class="form-control" id="as_of" name="as_of" type="date" value="{{ as_of }}" required>
     </div>
-    <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary" type="submit">{{ icon('search') }}Vorschau</button></div>
+    <div class="col-12 cost-extra{% if menu_revision_public_ids|default([]) %} cost-extra-filled{% endif %}">
+      {% call disclosure_section(id='cost-options', has_content=menu_revision_public_ids|default([])) %}
+        <label class="form-label" for="menu_revision_public_id">Weitere Menü-Revision</label>
+        <input class="form-control" id="menu_revision_public_id" name="menu_revision_public_id" value="{{ menu_revision_public_ids[0] if menu_revision_public_ids|default([]) else '' }}">
+      {% endcall %}
+    </div>
+    {% if projection %}<div class="col-12">{{ icon_button('actions.preview') }}</div>{% endif %}
   </form>
 </section>
 
 {% if projection %}
-<section class="card mb-4">
+<section class="card mb-3 cost-calculation">
   <div class="card-header"><h2 class="card-title">Ergebnis</h2></div>
   <div class="card-body">
-    {% if projection.complete %}
-      <p>Summe: {{ projection.total }} CHF</p>
-    {% else %}
+    {% if not projection.complete %}
       <p>Unvollständig — fehlender Preis oder fehlende Umrechnung, nicht als 0.</p>
     {% endif %}
-    <table class="table">
+    <table class="table cost-lines">
       <thead><tr><th>Zutat</th><th>Menge</th><th>Status</th><th>Betrag</th></tr></thead>
       <tbody>
       {% for line in projection.lines %}
         <tr>
-          <td>{{ line.food_public_id or 'ohne Zutat' }}</td>
+          <td>{{ t('recipe.ingredient.label') }} {{ loop.index }}{% if not line.food_public_id %} · ohne Zutat{% endif %}</td>
           <td>{% if line.quantity is not none %}{{ line.quantity }} {{ line.unit_code }}{% endif %}</td>
-          <td>{{ 'vollständig' if line.status == 'complete' else 'unvollständig' }}</td>
+          <td>{{ sem_icon('status.ok' if line.status == 'complete' else 'status.warning') }} {{ 'vollständig' if line.status == 'complete' else 'unvollständig' }}</td>
           <td>{% if line.amount is not none %}{{ line.amount }} CHF{% else %}—{% endif %}</td>
         </tr>
       {% endfor %}
       </tbody>
     </table>
-    <form method="post" action="{{ url_for('admin.cost_confirm') }}" class="mt-3">
+    {% call disclosure_section(id='cost-line-details') %}
+      <ol class="mb-0">
+      {% for line in projection.lines %}<li>{{ line.food_public_id or 'ohne Zutat' }}</li>{% endfor %}
+      </ol>
+    {% endcall %}
+    <form id="cost-confirm" method="post" action="{{ url_for('admin.cost_confirm') }}">
       <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
       <input type="hidden" name="kind" value="{{ kind|default('recipe') }}">
       <input type="hidden" name="revision_public_id" value="{{ revision_public_id|default('') }}">
@@ -64,9 +91,14 @@
         <input type="hidden" name="price_food_id" value="{{ food_id }}">
         <input type="hidden" name="price_revision_id" value="{{ revision_id }}">
       {% endfor %}
-      <button class="btn btn-primary" type="submit">Beleg bestätigen</button>
     </form>
   </div>
 </section>
+{% else %}
+<div class="cost-empty d-flex align-items-center flex-wrap gap-2">
+  {{ icon_label('actions.preview') }} · {{ t('status.pending.label') }}
+  <a class="btn" href="#kind">{{ icon_label('actions.edit') }}</a>
+</div>
 {% endif %}
+{% if not projection %}<p class="text-secondary mt-3 mb-0">Fehlender Preis bleibt unvollständig, nie 0.</p>{% endif %}
 {% endblock %}
