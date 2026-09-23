@@ -376,6 +376,21 @@ def test_viewports_and_real_routes(site, width, height, padding, tmp_path):
         page.screenshot(path=str(tmp_path / f'{path.rsplit("/", 1)[-1]}-{width}.png'), full_page=True)
 
 
+def _open_display_reset(page):
+    # Rare actions are collapsed by default; measure them after native disclosure.
+    reset = page.locator('#display-reset-btn')
+    expect(reset).to_be_hidden()
+    summary = page.locator('#display-more > summary')
+    summary.focus()
+    page.keyboard.press('Enter')
+    expect(reset).to_be_visible()
+    page.keyboard.press('Tab')
+    expect(reset).to_be_focused()
+    expect(reset).to_have_attribute('name', 'action')
+    expect(reset).to_have_attribute('value', 'reset')
+    expect(page.locator('#display-reset-hint')).to_be_visible()
+
+
 @pytest.mark.parametrize('width', [390, 1920])
 def test_persisted_options_and_preview(site, width, tmp_path):
     page, app, _, _ = site
@@ -392,6 +407,7 @@ def test_persisted_options_and_preview(site, width, tmp_path):
         for scope in ['.display-preview', '.admin-main']:
             if scope == '.admin-main':
                 page.locator('[name="action"][value="save"]').click()
+                _open_display_reset(page)
             container = page.locator(scope)
             for key, value in [('density', density), ('font-size', size), ('content-width', content), ('menu-images', images)]:
                 expect(container).to_have_attribute('data-' + key, value)
@@ -470,6 +486,7 @@ def test_no_js_keyboard_and_larger_text(site, width, tmp_path):
         _goto(no_js, DISPLAY)
         # Text-only 200% enlargement, in addition to the responsive viewport matrix.
         no_js.evaluate("document.documentElement.style.fontSize = '200%'")
+        _open_display_reset(no_js)
         assert no_js.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         for control in no_js.locator('.btn, .form-control, .form-select').all():
             assert control.evaluate('el => el.clientHeight >= el.scrollHeight - 1')
