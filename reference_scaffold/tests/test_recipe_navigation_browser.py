@@ -123,8 +123,36 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
         cards = page.locator('.recipe-card-grid article')
         boxes = [card.bounding_box() for card in cards.all()]
         assert len(boxes) == 4 and all(box is not None for box in boxes)
-        assert max(box['height'] for box in boxes) - min(box['height'] for box in boxes) <= 1
-        assert cards.locator('.card-body').evaluate_all('els => els.every(el => el.scrollHeight <= el.clientHeight + 1)')
+        rows = cards.locator('.recipe-list-row')
+        expect(rows).to_have_count(4)
+        assert rows.evaluate_all('''els => els.every(el =>
+            el.scrollHeight <= el.clientHeight + 1 && el.scrollWidth <= el.clientWidth + 1)''')
+        metrics = rows.evaluate_all('''els => els.map(el => {
+            const title = el.querySelector('h2');
+            const lineHeight = parseFloat(getComputedStyle(title).lineHeight);
+            return {height: el.closest('article').getBoundingClientRect().height,
+                titleLines: Math.round(title.getBoundingClientRect().height / lineHeight),
+                parts: [...el.children].map(child => ({height: child.getBoundingClientRect().height,
+                    top: child.getBoundingClientRect().top - el.getBoundingClientRect().top})),
+                padding: getComputedStyle(el).padding, gap: getComputedStyle(el).gap};
+        })''')
+        (tmp_path / f'recipe-rows-{width}-js{javascript}.json').write_text(json.dumps(metrics, indent=2))
+        if width >= 1024:
+            single_line = [row for row in metrics if row['titleLines'] == 1]
+            assert single_line
+            assert all(row['height'] <= 96 for row in single_line), metrics
+        for action in rows.locator('.btn:visible').all():
+            box = action.bounding_box()
+            assert box and box['width'] >= 48 and box['height'] >= 48, box
+        page.screenshot(path=str(tmp_path / f'recipe-list-{width}-js{javascript}.png'), full_page=True)
+        # Native disclosure grows only its own row, with and without JavaScript.
+        more = cards.first.locator('details > summary')
+        more.click()
+        expanded = [card.bounding_box() for card in cards.all()]
+        assert expanded[0]['height'] > boxes[0]['height']
+        assert all(abs(after['height'] - before['height']) <= 1
+                   for before, after in zip(boxes[1:], expanded[1:]))
+        more.click()
         editor = page.locator(f'main a[href="/admin/rezepte/{public_id}"]')
         expect(editor).to_have_text('Bearbeiten')
         expect(editor).to_have_attribute('aria-label', 'Suppe bearbeiten')
@@ -144,9 +172,11 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
         page.get_by_text('Weitere Aktionen', exact=True).click()
         page.get_by_role('link', name='Bilder verwalten', exact=True).click()
         active(page, 'Rezepte')
-        expect(page.get_by_role('heading', name='Rezeptbilder', exact=True)).to_be_visible()
+        expect(page.get_by_role('heading', level=1)).to_have_text('Rezepte')
+        expect(page.locator('.page-header-subtitle')).to_have_text('Suppe')
+        expect(page.get_by_role('heading', name='Gespeicherte Bilder', exact=True)).to_be_visible()
         assert not errors and not console_errors
-        image = page.get_by_role('link', name='Bild 1 in voller Größe öffnen')
+        image = page.get_by_role('link', name='Bild 1 in voller Grösse öffnen', exact=True)
         asset_url = base + image.get_attribute('href')
         with page.expect_response(lambda response: response.url == asset_url) as asset_response:
             image.click()
@@ -180,13 +210,13 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
         assert urlsplit(page.url).path.endswith('/revisionen/' + revision_id)
         active(page, 'Rezepte')
         page.get_by_role('link', name='Zur Rezept-History', exact=True).click()
-        page.get_by_role('link', name='Aktuellen Entwurf ansehen', exact=True).click()
+        page.get_by_role('link', name='Öffnen', exact=True).click()
         expect(page.get_by_text('Entwurf · nicht festgeschrieben', exact=True)).to_be_visible()
         page.get_by_role('link', name='Bearbeiten', exact=True).click()
         page.get_by_text('Weitere Aktionen', exact=True).click()
         page.get_by_role('link', name='Mengen berechnen', exact=True).click()
         active(page, 'Rezepte')
-        page.get_by_role('link', name='Rezept ansehen', exact=True).click()
+        page.get_by_role('link', name='Öffnen', exact=True).click()
         page.get_by_role('link', name='Bearbeiten', exact=True).click()
         page.get_by_text('Weitere Aktionen', exact=True).click()
         page.get_by_role('link', name='Archivieren', exact=True).click()
