@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from concurrent.futures import ThreadPoolExecutor
 from threading import Thread
 from urllib.parse import parse_qs, urlsplit
 
@@ -312,6 +313,12 @@ PAGE = '''<!doctype html><html lang="de"><head>
 
 @pytest.mark.parametrize('width', [360, 768, 1024, 1440])
 def test_statusbar_link_keyboard_focus_and_navigation(width):
+    # The module-scoped browser fixture owns the main thread's sync event loop.
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        executor.submit(_assert_statusbar_link_keyboard_focus_and_navigation, width).result(timeout=120)
+
+
+def _assert_statusbar_link_keyboard_focus_and_navigation(width):
     from playwright.sync_api import sync_playwright
 
     app = Flask('statusbar-links', template_folder=str(ROOT.parent / 'templates'),
@@ -365,6 +372,12 @@ def test_statusbar_link_keyboard_focus_and_navigation(width):
         server.server_close()
 
 def test_admin_icons_exist_and_render():
+    # Keep this independent Playwright start separate from the active fixture.
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        executor.submit(_assert_admin_icons_exist_and_render).result(timeout=120)
+
+
+def _assert_admin_icons_exist_and_render():
     from playwright.sync_api import sync_playwright
     
     app = Flask('semantic-browser2', template_folder=str(ROOT.parent / 'templates'),

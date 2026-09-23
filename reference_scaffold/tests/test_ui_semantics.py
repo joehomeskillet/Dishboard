@@ -224,3 +224,35 @@ def test_admin_shell_locale_and_single_semantic_stylesheet(semantic_app, locale)
     styles = [node['href'] for node in document.select('link[rel="stylesheet"]')]
     assert styles.count('/static/ui-semantic.css') == 1
     assert styles.index('/static/ui-semantic.css') == styles.index('/static/admin-tabler.css') + 1
+
+
+@pytest.mark.parametrize('locale,options,more', [
+    ('de', 'Weitere Optionen', 'Weitere Aktionen'),
+    ('en', 'More options', 'More actions'),
+])
+def test_disclosure_project_keys_and_shared_labels(semantic_app, locale, options, more):
+    from bs4 import BeautifulSoup
+
+    semantic_app.config['UI_LOCALE'] = locale
+    with semantic_app.test_request_context():
+        for key in ('ui.disclosure.details', 'ui.disclosure.more_options'):
+            item = sem(key)
+            assert item.resolved_icon == 'chevron-right'
+            assert not item.icon_only_allowed
+            for suffix in ('label', 'aria', 'tooltip'):
+                assert '⟦' not in translate(getattr(item, suffix + '_key'))
+        html = render_template_string('''
+            {% from 'admin/_macros.html' import disclosure_section, list_row %}
+            {% call disclosure_section(id='default') %}Optional{% endcall %}
+            {% call disclosure_section(title=t(sem('ui.disclosure.details').label_key), id='details', has_error=true) %}Error{% endcall %}
+            {% call disclosure_section(title='Custom', id='custom', has_content=true) %}Value{% endcall %}
+            {{ list_row('Name', 'Subtitle', 'active', {'label': 'Edit', 'href': '#edit'}, more_actions='Archive') }}
+        ''')
+    document = BeautifulSoup(html, 'html.parser')
+    assert document.select_one('#default summary').get_text(strip=True) == options
+    assert not document.select_one('#default').has_attr('open')
+    assert document.select_one('#details summary').get_text(strip=True) == 'Details'
+    assert document.select_one('#details').has_attr('open')
+    assert document.select_one('#custom summary').get_text(strip=True).startswith('Custom')
+    assert document.select_one('#custom').has_attr('open')
+    assert document.select_one('.admin-compact-actions summary').get_text(strip=True) == more

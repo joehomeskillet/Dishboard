@@ -390,6 +390,17 @@ Berechtigungen, URLs, Datenverträge und die bestehenden M21–M30 bleiben erhal
 sichtbaren Texte. Die 184 Seed-Semantiken bleiben erhalten; vollständige Nachrichten
 für zusätzliche Zustände werden zentral ergänzt, nicht in Templates erfunden.
 
+**Fundament 2 (2026-09-23):** Die Admin-Shell lädt `ui-semantic.css` einmal direkt
+nach `admin-tabler.css` und vor Marken-Stylesheets; `html.lang` folgt `ui_locale`
+(Fallback `de`). Die eigenständige Druck-Fehlerseite behält ihren eigenen CSS-Link.
+Die Projektschlüssel `ui.disclosure.details` («Details») und
+`ui.disclosure.more_options` («Weitere Optionen») gelten ausschliesslich für
+Aufklappbereiche, mit vorhandenem `chevron-right` und DE/EN-Label/Aria/Tooltip.
+Die 184 Auftraggeber-Seeds bleiben unverändert. `disclosure_section()` löst seinen
+Default zur Renderzeit auf; explizite Titel bleiben möglich. Overflow nutzt
+`actions.more` («Weitere Aktionen»). `_macros.html` verwendet `t()`/`sem()` direkt,
+weil `_semantic.html` diese Makros bereits importiert; kein Importzyklus.
+
 **Kanonische Verben:** Anlegen = neues Objekt; Hinzufügen = bestehendes Objekt
 zuordnen; Bearbeiten = ändern; **Öffnen ersetzt Ansehen** für reines Lesen;
 Speichern = persistieren; Bestätigen = Entscheidung bestätigen; Löschen = destruktiv

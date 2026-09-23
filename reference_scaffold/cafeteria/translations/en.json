@@ -571,5 +571,11 @@
   "view.reset.tooltip": "Reset",
   "view.search.aria": "Search",
   "view.search.label": "Search",
-  "view.search.tooltip": "Search"
+  "view.search.tooltip": "Search",
+  "ui.disclosure.details.label": "Details",
+  "ui.disclosure.details.aria": "Expand or collapse details",
+  "ui.disclosure.details.tooltip": "Expand or collapse details",
+  "ui.disclosure.more_options.label": "More options",
+  "ui.disclosure.more_options.aria": "Expand or collapse more options",
+  "ui.disclosure.more_options.tooltip": "Expand or collapse more options"
 }

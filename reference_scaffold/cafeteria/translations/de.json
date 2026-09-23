@@ -571,5 +571,11 @@
   "view.reset.tooltip": "Zurücksetzen",
   "view.search.aria": "Suchen",
   "view.search.label": "Suchen",
-  "view.search.tooltip": "Suchen"
+  "view.search.tooltip": "Suchen",
+  "ui.disclosure.details.label": "Details",
+  "ui.disclosure.details.aria": "Details ein- oder ausklappen",
+  "ui.disclosure.details.tooltip": "Details ein- oder ausklappen",
+  "ui.disclosure.more_options.label": "Weitere Optionen",
+  "ui.disclosure.more_options.aria": "Weitere Optionen ein- oder ausklappen",
+  "ui.disclosure.more_options.tooltip": "Weitere Optionen ein- oder ausklappen"
 }

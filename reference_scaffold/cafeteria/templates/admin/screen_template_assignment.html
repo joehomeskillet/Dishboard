@@ -10,7 +10,7 @@
 ] if active else []) }}{% endblock %}
 {% block content %}
 {% if active %}
-{% call disclosure_section(title='Details', id='screen-assignment-version') %}
+{% call disclosure_section(title=t(sem('ui.disclosure.details').label_key), id='screen-assignment-version') %}
   <p class="mb-0">{% if active.version == 0 %}Noch nicht gespeichert{% else %}Zuordnung {{ active.version }}{% endif %}</p>
 {% endcall %}
 {% endif %}

@@ -2099,5 +2099,27 @@
     "aria_key": "review.allergens_open.aria",
     "icon_only_allowed": false,
     "role": "warning"
+  },
+  {
+    "key": "ui.disclosure.details",
+    "category": "ui",
+    "ascii": "[>]",
+    "icon": "chevron-right",
+    "label_key": "ui.disclosure.details.label",
+    "tooltip_key": "ui.disclosure.details.tooltip",
+    "aria_key": "ui.disclosure.details.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "ui.disclosure.more_options",
+    "category": "ui",
+    "ascii": "[>]",
+    "icon": "chevron-right",
+    "label_key": "ui.disclosure.more_options.label",
+    "tooltip_key": "ui.disclosure.more_options.tooltip",
+    "aria_key": "ui.disclosure.more_options.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
   }
 ]

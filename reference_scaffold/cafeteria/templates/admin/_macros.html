@@ -427,7 +427,7 @@
   {% if markings or overflow %}<div class="admin-list-markings">{{ markings or '' }}{% if overflow %}<span class="badge" aria-label="{{ overflow }} weitere Kennzeichnungen">+{{ overflow }}</span>{% endif %}</div>{% endif %}
   <div class="admin-list-actions">
     {{ actions(secondary=[action]) }}
-    {% if more_actions %}<details class="admin-compact-actions"><summary>{{ icon('dots') }}Weitere Aktionen</summary>{{ more_actions }}</details>{% endif %}
+    {% if more_actions %}<details class="admin-compact-actions"><summary>{{ icon(sem('actions.more').resolved_icon) }}{{ t(sem('actions.more').label_key) }}</summary>{{ more_actions }}</details>{% endif %}
   </div>
 </div>
 {%- endmacro %}
@@ -442,9 +442,9 @@
 </div>
 {%- endmacro %}
 
-{%- macro disclosure_section(title='Weitere Optionen', id=none, open=false, has_content=false, has_error=false) -%}
+{%- macro disclosure_section(title=none, id=none, open=false, has_content=false, has_error=false) -%}
 <details class="admin-compact-details admin-disclosure"{% if id %} id="{{ id }}"{% endif %}{% if open or has_content or has_error %} open{% endif %}>
-  <summary>{{ icon('chevron-right') }}{{ title }}{% if has_content %}<span class="text-secondary"> · enthält Angaben</span>{% endif %}</summary>
+  <summary>{{ icon(sem('ui.disclosure.more_options').resolved_icon) }}{{ t(sem('ui.disclosure.more_options').label_key) if title is none else title }}{% if has_content %}<span class="text-secondary"> · enthält Angaben</span>{% endif %}</summary>
   <div class="admin-compact-detail-body">{{ caller() if caller else '' }}</div>
 </details>
 {%- endmacro %}
