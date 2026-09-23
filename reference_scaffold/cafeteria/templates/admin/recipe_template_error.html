@@ -1,5 +1,5 @@
 <!doctype html>
-{% from 'admin/_macros.html' import icon %}
+{% from 'admin/_macros.html' import icon, page_header %}
 <html lang="de-CH">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='admin-tabler.css') }}">
 </head>
 <body class="admin-body dishboard-admin"><main class="container-fluid py-4">
-  <h1>Rezeptvorlage · Anfrage prüfen</h1>
+  {{ page_header(t('navigation.recipes.label'), 'Rezeptvorlage · Anfrage prüfen', status_items=[{'label': t('actions.preview.label'), 'value': t('status.error.label'), 'variant': 'danger'}]) }}
   <div class="alert alert-warning" role="alert">{{ icon('alert-triangle') }}<span>{{ message }}</span></div>
   <a class="btn" href="{{ url_for('admin.recipe_print_template_editor') }}">{{ icon('arrow-left') }}Zum Rezeptvorlageneditor</a>
 </main></body>

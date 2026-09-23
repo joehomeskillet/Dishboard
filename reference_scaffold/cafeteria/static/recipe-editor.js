@@ -1,6 +1,19 @@
 /* Native POST remains the only recipe writer; disclosures never recreate fields. */
 (() => {
     'use strict';
+    // Presentation only: hidden target fields remain successful controls, including stale values.
+    document.querySelectorAll('[data-import-row]').forEach(row => {
+        const decision = row.querySelector('[name$=".duplicate_decision"]');
+        const target = row.querySelector('[data-duplicate-target]');
+        if (!decision || !target) return;
+        const update = () => {
+            target.hidden = decision.value !== 'skip_existing'
+                && ![...target.querySelectorAll('input')].some(input => input.value)
+                && !document.getElementById('recipe-import-error');
+        };
+        decision.addEventListener('change', update);
+        update();
+    });
     const form = document.getElementById('recipe-editor');
     if (!form) return;
     if (!form.querySelector('fieldset').disabled) form.classList.add('admin-compact-enhanced');

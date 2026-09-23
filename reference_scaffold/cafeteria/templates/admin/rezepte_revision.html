@@ -1,6 +1,7 @@
 {% extends 'admin/base_tabler.html' %}
 {% set layout_variant = 'standard' %}
-{% from 'admin/_macros.html' import page_header, icon %}
+{% from 'admin/_macros.html' import page_header, icon, disclosure_section %}
+{% from 'ui/_semantic.html' import icon_label %}
 {% from 'admin/rezepte_ansicht.html' import print_reference %}
 {% set workflow_nav = 'recipes' %}
 {% macro recorded(value) %}
@@ -11,8 +12,8 @@
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='recipe-document.css') }}">{% endblock %}
 {% block title %}{{ document.title }} · Gespeicherter Stand {{ revision.revision_number }}{% endblock %}
 {% block page_header %}
-{% call page_header(document.title, 'Unveränderlicher Revisionsstand ' ~ revision.revision_number,
-  breadcrumbs=[('Rezepte', url_for('admin.recipes_list')), ('Rezept-History', url_for('admin.recipe_revisions', recipe_id=recipe_id))]) %}
+{% call page_header(t('navigation.recipes.label'), document.title,
+  status_items=[{'label': t('recipe.recipe.label'), 'value': t('status.readonly.label'), 'variant': 'neutral'}]) %}
 <a class="btn" href="{{ url_for('admin.recipe_revisions', recipe_id=recipe_id) }}">{{ icon('arrow-left') }}Zur Rezept-History</a>
 <a class="btn" href="{{ scale_url }}">{{ icon('refresh') }}Mengen berechnen</a>
 <a class="btn btn-primary" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=revision.public_id, yield=document.yield.amount) }}">{{ icon('printer') }}PDF öffnen</a>
@@ -23,8 +24,7 @@
 {% include 'admin/_recipe_document.html' %}
 <div class="recipe-reading-actions mt-3">
 {{ print_reference(print_template) }}
-{% block recipe_metadata %}<details class="card mb-3">
-  <summary class="card-header">Technische Details</summary>
+{% block recipe_metadata %}{% call disclosure_section() %}
   <div class="card-body text-break">
     <dl class="row">
       <dt class="col-12 col-sm-4 col-md-3 text-secondary">Revision</dt><dd class="col-12 col-sm-8 col-md-9">{{ revision.revision_number }}</dd>
@@ -36,7 +36,7 @@
     <h3 class="h4">Vollständige Daten</h3>
     {{ recorded(revision.snapshot) }}
   </div>
-</details>
+{% endcall %}
 {% endblock %}
 </div>
 {% endblock %}
