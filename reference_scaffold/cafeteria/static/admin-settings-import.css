@@ -1,0 +1,84 @@
+/* WP17: compact CSV import; submitted fields stay enabled and named. */
+.dishboard-admin main .admin-statusbar-link,
+.dishboard-admin #csv-more > summary {
+  min-width: var(--app-space-12);
+  min-height: var(--app-space-12);
+}
+.dishboard-admin .csv-preview-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--app-space-3);
+  min-width: 0;
+}
+.dishboard-admin .csv-preview-result > .card-body,
+.dishboard-admin .csv-upload-form > .card-body,
+.dishboard-admin .error-region > .card-body {
+  padding: var(--app-space-3);
+}
+.dishboard-admin .csv-preview-result h2,
+.dishboard-admin .csv-upload-form h2,
+.dishboard-admin .error-region h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-2);
+  margin: 0 0 var(--app-space-2);
+  font-size: var(--app-font-size-title);
+}
+.dishboard-admin .csv-upload-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--app-space-2);
+  align-items: end;
+  margin-bottom: var(--app-space-2);
+}
+.dishboard-admin .csv-upload-grid .form-control {
+  min-width: 0;
+  width: 100%;
+}
+.dishboard-admin .csv-issue-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dishboard-admin .csv-issue-row {
+  min-height: var(--app-space-12);
+  padding: var(--app-space-2) 0;
+  border-bottom: 1px solid var(--app-border-soft);
+  overflow-wrap: anywhere;
+}
+.dishboard-admin .csv-warning-list {
+  display: grid;
+  gap: var(--app-space-1);
+}
+.dishboard-admin .csv-warning-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--app-space-2);
+  min-height: var(--app-space-12);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.dishboard-admin .csv-back {
+  margin-top: var(--app-space-3);
+}
+@media (min-width: 1024px) {
+  .dishboard-admin .csv-preview-layout:has(> :nth-child(2)) {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+@media (max-width: 767.98px) {
+  .dishboard-admin .csv-upload-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dishboard-admin .csv-upload-grid .btn {
+    width: 100%;
+  }
+}
+@supports not selector(:has(*)) {
+  .dishboard-admin .csv-preview-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

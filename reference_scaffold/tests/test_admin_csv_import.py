@@ -19,6 +19,8 @@ from cafeteria.admin import routes as admin_routes
 from cafeteria.csvio import snapshot_to_csv, validate_upload
 from cafeteria import db as database
 from cafeteria.security import csrf_token
+from cafeteria.template_filters import register_template_filters
+from cafeteria.ui import register_ui
 from cafeteria.workflow_partial_store import persist_week_header
 from cafeteria.workflow_snapshot import build_snapshot
 from cafeteria.course_store import load_week_courses, persist_service_courses
@@ -80,6 +82,9 @@ def app(database_engine: Engine, tmp_path: Path) -> Flask:
         DEMO_MODE=True,
         DEMO_TODAY='2026-09-02',
     )
+    # Production create_app registers these; the import preview uses t()/sem() and food symbols.
+    register_template_filters(application)
+    register_ui(application)
     application.extensions['cafeteria_db'] = database_engine
     application.extensions['cafeteria_auth_issuer_db'] = database_engine
     auth = Blueprint('auth', __name__)
