@@ -1,9 +1,14 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon %}
+{% from 'admin/_macros.html' import page_header, icon, form_footer %}
 {% set workflow_nav = 'dish_templates' %}
-{% block title %}Menü einplanen · Menüplanung{% endblock %}
+{% block title %}Gerichtvorlagen · Menüplanung{% endblock %}
 {% block page_header %}
-{% call page_header('Menü einplanen', description=values.title) %}
+{% set status_items = [] %}
+{% if values.area and values.week and values.meal %}
+  {% set _ = status_items.append({'label': 'Bereich', 'value': area_labels.get(values.area, values.area), 'variant': 'neutral'}) %}
+  {% set _ = status_items.append({'label': 'Mahlzeit', 'value': meals.get(values.meal, values.meal), 'variant': 'neutral'}) %}
+{% endif %}
+{% call page_header('Gerichtvorlagen', description='Als Menü einplanen · ' ~ values.title, status_items=status_items) %}
 <a class="btn" href="{{ url_for('admin.dish_template_edit', public_id=public_id) }}">{{ icon('arrow-left') }}Zur Vorlage</a>
 {% endcall %}
 {% endblock %}
@@ -66,30 +71,14 @@
       <button class="btn" type="submit" name="action" value="refresh">{{ icon('refresh') }}Ziel aktualisieren</button>
       <p class="form-hint mb-0">Nach Wechsel von Bereich oder Woche: verfügbare Tage und Mahlzeiten aktualisieren.</p>
     </div>
-    <p class="mt-3 mb-0" role="status">{{ icon('calendar-week', class='me-1') }}<span id="planning-summary">{{ values.title }} → {{ area_labels.get(values.area, values.area) }} · {{ summary_day }} · {{ meals.get(values.meal, values.meal) }} · {{ dict(types).get(values.option, values.option) }}</span></p>
+    <p class="mt-3 mb-0 text-break" role="status" id="planning-summary">{{ values.title }} → {{ area_labels.get(values.area, values.area) }} · {{ summary_day }} · {{ meals.get(values.meal, values.meal) }} · {{ dict(types).get(values.option, values.option) }}</p>
     <noscript><p class="form-hint">«Ziel aktualisieren» übernimmt Ihre Auswahl in die Zusammenfassung.</p></noscript>
     <p class="form-hint mt-2">Im nächsten Schritt können Sie die Menüangaben anpassen. Erst «Menü speichern» übernimmt das Menü in den Plan.</p>
-    <button class="btn btn-primary" type="submit" name="action" value="continue">{{ icon('chevron-right') }}Weiter zum Menü</button>
+    {{ form_footer(primary={'type': 'submit', 'name': 'action', 'value': 'continue', 'label': 'Weiter zum Menü', 'icon': 'chevron-right'}, cancel_url=url_for('admin.dish_template_edit', public_id=public_id)) }}
   </div>
 </form>
 {% else %}
 <a class="btn" href="{{ url_for('admin.dish_template_edit', public_id=public_id) }}">{{ icon('arrow-left') }}Vorlage prüfen</a>
 {% endif %}
 {% endblock %}
-{% block page_scripts %}
-<script>
-(() => {
-  const form = document.getElementById('planning-target');
-  if (!form) return;
-  const label = name => form.elements[name].selectedOptions[0]?.textContent || '';
-  const summary = document.getElementById('planning-summary');
-  form.addEventListener('change', () => {
-    const day = new Date(`${form.elements.week.value}T00:00:00Z`);
-    day.setUTCDate(day.getUTCDate() + Number(form.elements.day.value));
-    const date = Number.isNaN(day.getTime()) ? form.elements.week.value :
-      new Intl.DateTimeFormat('de-CH', {weekday:'long', day:'numeric', month:'long', year:'numeric', timeZone:'UTC'}).format(day);
-    summary.textContent = `${form.elements.title.value} → ${label('area')} · ${date} · ${label('meal')} · ${label('option')}`;
-  });
-})();
-</script>
-{% endblock %}
+{% block page_scripts %}<script src="{{ url_for('static', filename='admin-gerichtvorlagen.js') }}" defer></script>{% endblock %}
