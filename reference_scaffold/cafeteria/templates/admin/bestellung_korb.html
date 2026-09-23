@@ -1,54 +1,74 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon %}
+{% from 'admin/_macros.html' import page_header, disclosure_section %}
+{% from 'ui/_semantic.html' import icon_label, status_badge_sem %}
+{# Status labels only; no send action or state transition. #}
+{% set order_states = {'draft': 'publish.draft', 'abandoned': 'ui.order_abandoned', 'send_pending': 'ui.order_pending', 'sent': 'ui.order_sent', 'send_unknown': 'ui.order_unknown'} %}
 {% set workflow_nav = 'orders' %}
-{% block title %}Korb · Bestellung{% endblock %}
+{% set state_key = order_states.get(basket.status, 'status.unknown') %}
+{% set basket_status = [
+  {'label': t('order.cart.label'), 'value': status_badge_sem(state_key), 'variant': sem(state_key).role},
+  {'label': t('order.supplier.label'), 'value': basket.supplier_name, 'variant': 'neutral'},
+  {'label': t('ui.order_lines.label'), 'value': basket.lines|length, 'variant': 'warning' if not basket.lines else 'neutral'},
+] %}
+{% block title %}Bestellung · Menüplanung{% endblock %}
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='ui-semantic.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin-bestellung.css') }}">
+{% endblock %}
 {% block page_header %}
-{% call page_header('Korb ' ~ basket.supplier_name) %}
-<a class="btn" href="{{ url_for('admin.order_home') }}">{{ icon('arrow-left') }}Übersicht</a>
-<a class="btn" href="{{ url_for('admin.order_basket_csv', public_id=basket.public_id) }}">{{ icon('download') }}CSV herunterladen</a>
+{% call page_header(t('navigation.orders.label'), description=basket.supplier_name ~ '. ' ~ t('ui.order_description.label'), status_items=basket_status) %}
+<a class="btn" href="{{ url_for('admin.order_basket_csv', public_id=basket.public_id) }}">{{ icon_label('actions.download') }}</a>
 {% endcall %}
 {% endblock %}
 {% block content %}
-<p>Status: {{ basket.status }}. Vorschau und Download ändern den Status nicht.</p>
-<form method="post" action="{{ url_for('admin.order_basket_save', public_id=basket.public_id) }}">
+<div class="order-workspace">
+<form method="post" action="{{ url_for('admin.order_basket_save', public_id=basket.public_id) }}" class="order-basket-form">
 <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 <input type="hidden" name="row_version" value="{{ basket.row_version }}">
-<table class="table"><thead><tr><th>Artikel</th><th>Bestellmenge</th><th>Rohmenge</th><th>Gebinde</th></tr></thead><tbody>
+<table class="table table-vcenter table-mobile-lg order-lines">
+<thead><tr><th>Artikel</th><th>Bestellmenge</th><th>Rohmenge</th><th>Gebinde</th></tr></thead>
+<tbody>
 {% for line in basket.lines %}
 <tr>
-<td>{{ line.article_name }} ({{ line.article_code }})
+<td data-label="Artikel">{{ line.article_name }} ({{ line.article_code }})
 <input type="hidden" name="article_public_id" value="{{ line.article_public_id }}"></td>
-<td><input class="form-control" name="quantity" value="{{ line.quantity }}"></td>
-<td><input class="form-control" name="raw_quantity" value="{{ line.raw_quantity if line.raw_quantity is not none else '' }}" readonly>
-{% if line.raw_quantity is not none %}<span class="text-secondary">Rohmenge {{ line.raw_quantity }}</span>{% endif %}</td>
-<td>{{ line.pack_size }} {{ line.order_unit_code }}</td>
+<td data-label="Bestellmenge"><input class="form-control" name="quantity" value="{{ line.quantity }}"></td>
+<td data-label="Rohmenge"><input class="form-control" name="raw_quantity" value="{{ line.raw_quantity if line.raw_quantity is not none else '' }}" readonly></td>
+<td data-label="Gebinde">{{ line.pack_size }} {{ line.order_unit_code }}</td>
 </tr>
 {% endfor %}
 <tr>
-<td><select class="form-select" name="article_public_id">
-<option value="">Artikel hinzufügen</option>
+<td data-label="Artikel"><select class="form-select" name="article_public_id">
+<option value="">{{ t('actions.add_existing.label') }}</option>
 {% for row in articles %}<option value="{{ row.public_id }}">{{ row.name }}</option>{% endfor %}
 </select></td>
-<td><input class="form-control" name="quantity" placeholder="Menge"></td>
-<td><input class="form-control" name="raw_quantity" placeholder="Rohmenge"></td>
-<td></td>
+<td data-label="Bestellmenge"><input class="form-control" name="quantity" placeholder="Menge"></td>
+<td data-label="Rohmenge"><input class="form-control" name="raw_quantity" placeholder="Rohmenge"></td>
+<td data-label="Gebinde"></td>
 </tr>
-</tbody></table>
-<button class="btn btn-primary" type="submit">Korb speichern</button>
+</tbody>
+</table>
+<div class="admin-form-footer" data-sticky>
+<div class="admin-form-main">
+<a class="btn" href="{{ url_for('admin.order_home') }}">{{ icon_label('actions.cancel') }}</a>
+<button class="btn btn-primary" type="submit">{{ icon_label('actions.save') }}</button>
+</div>
+</div>
 </form>
-<section class="card mt-4">
-  <div class="card-header"><h2 class="card-title">Nettobedarf übernehmen</h2></div>
-  <form method="post" action="{{ url_for('admin.order_basket_from_demand', public_id=basket.public_id) }}" class="card-body row g-2">
-    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-    <input type="hidden" name="row_version" value="{{ basket.row_version }}">
-    <div class="col-md-6"><label class="form-label" for="demand_food">Zutat-UUID</label>
-      <input class="form-control" id="demand_food" name="food_public_id"></div>
-    <div class="col-md-3"><label class="form-label" for="need_quantity">Rohmenge</label>
-      <input class="form-control" id="need_quantity" name="need_quantity"></div>
-    <div class="col-md-3 d-flex align-items-end"><button class="btn" type="submit">In Entwurf übernehmen</button></div>
-    <p class="text-secondary mb-0">Gebinde runden nur die Bestellmenge. Es entsteht kein Journal und kein Sendauftrag.</p>
-  </form>
-</section>
-<h2 class="mt-4">CSV-Vorschau</h2>
-<pre class="bg-light p-3">{{ preview }}</pre>
+{% call disclosure_section(title=t('ui.order_more.label'), id='korb-weitere', open=false) %}
+<form method="post" action="{{ url_for('admin.order_basket_from_demand', public_id=basket.public_id) }}" class="row g-2">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<input type="hidden" name="row_version" value="{{ basket.row_version }}">
+<div class="col-12 col-md-6 col-xl-4"><label class="form-label" for="demand_food">Zutat-UUID</label>
+<input class="form-control" id="demand_food" name="food_public_id"></div>
+<div class="col-12 col-md-6 col-xl-4"><label class="form-label" for="need_quantity">Rohmenge</label>
+<input class="form-control" id="need_quantity" name="need_quantity"></div>
+<div class="col-12 col-md-auto d-flex align-items-end"><button class="btn" type="submit">{{ icon_label('actions.add_existing') }}</button></div>
+<p class="text-secondary mb-0">Gebinde runden nur die Bestellmenge. Es entsteht kein Journal und kein Sendauftrag.</p>
+</form>
+{% endcall %}
+{% call disclosure_section(title=t('actions.preview.label'), id='korb-vorschau', open=false) %}
+<pre class="order-preview">{{ preview }}</pre>
+{% endcall %}
+</div>
 {% endblock %}

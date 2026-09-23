@@ -2090,6 +2090,127 @@
     "role": "warning"
   },
   {
+    "key": "ui.order_articles",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "info-circle",
+    "label_key": "ui.order_articles.label",
+    "tooltip_key": "ui.order_articles.tooltip",
+    "aria_key": "ui.order_articles.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "ui.order_lines",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "info-circle",
+    "label_key": "ui.order_lines.label",
+    "tooltip_key": "ui.order_lines.tooltip",
+    "aria_key": "ui.order_lines.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "ui.order_description",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "info-circle",
+    "label_key": "ui.order_description.label",
+    "tooltip_key": "ui.order_description.tooltip",
+    "aria_key": "ui.order_description.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "ui.order_more",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "info-circle",
+    "label_key": "ui.order_more.label",
+    "tooltip_key": "ui.order_more.tooltip",
+    "aria_key": "ui.order_more.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "ui.order_empty_baskets",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "info-circle",
+    "label_key": "ui.order_empty_baskets.label",
+    "tooltip_key": "ui.order_empty_baskets.tooltip",
+    "aria_key": "ui.order_empty_baskets.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "ui.order_empty_suppliers",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "info-circle",
+    "label_key": "ui.order_empty_suppliers.label",
+    "tooltip_key": "ui.order_empty_suppliers.tooltip",
+    "aria_key": "ui.order_empty_suppliers.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "ui.order_empty_articles",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "info-circle",
+    "label_key": "ui.order_empty_articles.label",
+    "tooltip_key": "ui.order_empty_articles.tooltip",
+    "aria_key": "ui.order_empty_articles.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "ui.order_abandoned",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "info-circle",
+    "label_key": "ui.order_abandoned.label",
+    "tooltip_key": "ui.order_abandoned.tooltip",
+    "aria_key": "ui.order_abandoned.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "ui.order_pending",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "alert-triangle",
+    "label_key": "ui.order_pending.label",
+    "tooltip_key": "ui.order_pending.tooltip",
+    "aria_key": "ui.order_pending.aria",
+    "icon_only_allowed": false,
+    "role": "warning"
+  },
+  {
+    "key": "ui.order_sent",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "circle-check",
+    "label_key": "ui.order_sent.label",
+    "tooltip_key": "ui.order_sent.tooltip",
+    "aria_key": "ui.order_sent.aria",
+    "icon_only_allowed": false,
+    "role": "success"
+  },
+  {
+    "key": "ui.order_unknown",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "alert-triangle",
+    "label_key": "ui.order_unknown.label",
+    "tooltip_key": "ui.order_unknown.tooltip",
+    "aria_key": "ui.order_unknown.aria",
+    "icon_only_allowed": false,
+    "role": "warning"
+  },
+  {
     "key": "review.allergens_open",
     "category": "review",
     "ascii": "[i]",
