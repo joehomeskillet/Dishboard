@@ -432,10 +432,12 @@
 </div>
 {%- endmacro %}
 
-{%- macro form_footer(primary, cancel_url, rare=none, sticky=false, form_id=none) -%}
+{%- macro form_footer(primary, cancel_url, rare=none, sticky=false, form_id=none, secondary=none, danger=none) -%}
 <div class="admin-form-footer"{% if sticky %} data-sticky{% if form_id %} data-sticky-form="{{ form_id }}"{% endif %}{% endif %}>
-  {% if rare %}<div class="admin-form-rare">{{ rare }}</div>{% endif %}
+  {% if danger %}<div class="admin-form-danger">{{ danger }}</div>{% endif %}
+  {% if rare %}<details class="admin-form-rare admin-compact-actions"><summary class="btn btn-ghost">{{ icon(sem('actions.more').resolved_icon) }}{{ t(sem('actions.more').label_key) }}</summary><div class="admin-form-tertiary">{{ rare }}</div></details>{% endif %}
   <div class="admin-form-main">
+    {% if secondary %}{{ actions(secondary=secondary) }}{% endif %}
     <a class="btn" href="{{ cancel_url }}">{{ icon('x') }}Abbrechen</a>
     {{ actions(primary=primary) }}
   </div>

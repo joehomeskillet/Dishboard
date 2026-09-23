@@ -138,6 +138,17 @@
   white-space: normal;
 }
 .dishboard-admin .btn-icon { min-width: var(--app-space-12); }
+/* R14/R15: primary = filled, secondary = neutral/outline, tertiary = ghost,
+   destructive = danger with icon, label and an explicit consequence. */
+.dishboard-admin .btn-ghost,
+.dishboard-admin .admin-form-tertiary .btn:not(.btn-danger) {
+  --tblr-btn-bg: transparent; --tblr-btn-border-color: transparent;
+  --tblr-btn-color: var(--app-neutral-text);
+  --tblr-btn-hover-bg: var(--app-neutral-soft); --tblr-btn-hover-color: var(--app-text);
+  --tblr-btn-active-bg: var(--app-neutral-soft); --tblr-btn-active-color: var(--app-text);
+}
+.dishboard-admin .admin-form-danger { margin-inline-end: var(--app-space-4); }
+.dishboard-admin .admin-form-tertiary { display: flex; flex-wrap: wrap; gap: var(--app-space-2); }
 .dishboard-admin :is(.btn-primary, .btn-outline-primary, .btn-ghost-primary) {
   --tblr-btn-bg: var(--app-primary); --tblr-btn-border-color: var(--app-primary);
   --tblr-btn-color: var(--app-on-primary);

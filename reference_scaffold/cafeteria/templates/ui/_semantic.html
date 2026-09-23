@@ -72,6 +72,7 @@
 {%- endmacro %}
 
 {% macro confirm_dialog(key, consequence_key, confirm_key, id='semantic-confirm', open=false, name=none, value=none, form=none) -%}
+  {{- require_consequence(key, consequence_key) -}}{{- require_consequence(confirm_key, consequence_key) -}}
   <dialog class="ui-sem-dialog" id="{{ id }}" aria-labelledby="{{ id }}-title" aria-describedby="{{ id }}-consequence"{% if open %} open{% endif %}>
     <h2 id="{{ id }}-title">{{ icon_label(key) }}</h2>
     <p id="{{ id }}-consequence">{{ t(sem(consequence_key).label_key) }}</p>

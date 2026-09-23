@@ -268,6 +268,15 @@ Quelle: `docs/design/uiux-polish-2026-09-23/00_PROMPT_Global_UI_Polish_Run.md`. 
 
 ### M-Muster — verbindliches Kleinst-Designsystem (Prompt §2)
 
+**P2 Aktionsvertrag:** Primär `btn btn-primary` (genau eine je `main`, P3 prüft
+die Modul-Aufrufer), sekundär `btn` oder `btn-outline-*`, tertiär `btn btn-ghost`
+oder `icon_button` mit Kurztext bzw. erlaubtem Icon-only samt Tooltip. Destruktiv
+`btn btn-danger` mit Icon, Label und Folgetext; `confirm_dialog` prüft
+`consequence_key` vor Ausgabe für Titel- und Bestätigungsrolle. `form_footer`
+erhält zusätzlich `secondary` und `danger`: häufige Aktionen in `admin-form-main`,
+seltene in geschlossenem `details.admin-form-rare` mit `admin-form-tertiary`,
+destruktive separat in `admin-form-danger`. Bestehende Positionsargumente bleiben.
+
 | ID | Baustein | heutige Umsetzung (Datei/Makro/Klasse) | Sollzustand | Lücke |
 |---|---|---|---|---|
 | M31 | Seitenabstände | `--app-page-padding` in `admin-tabler.css:48,497`; Tablet/Mobile `549–552` | 32/24/16 px nach Breakpoint, volle Breite | — |

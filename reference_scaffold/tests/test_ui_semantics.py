@@ -174,6 +174,44 @@ def test_app_start_rejects_pseudo_outside_testing():
     with pytest.raises(SemanticError, match='xx'):
         register_ui(app)
 
+
+@pytest.mark.parametrize('call', [
+    "confirm_dialog('actions.delete', confirm_key='actions.delete')",
+    "confirm_dialog('actions.delete', none, 'actions.delete')",
+    "confirm_dialog('actions.confirm', '', 'actions.delete')",
+])
+def test_danger_confirmation_requires_consequence_before_render(semantic_app, call):
+    with semantic_app.test_request_context(), pytest.raises(SemanticError, match='consequence_key'):
+        render_template_string("{% from 'ui/_semantic.html' import confirm_dialog %}{{ " + call + " }}")
+
+
+def test_footer_action_levels_keep_form_contract(semantic_app):
+    from bs4 import BeautifulSoup
+
+    with semantic_app.test_request_context():
+        html = render_template_string('''
+            {% from 'admin/_macros.html' import form_footer %}
+            {% from 'ui/_semantic.html' import icon_button %}
+            {{ form_footer({'label': 'Speichern', 'name': 'intent', 'value': 'save', 'form': 'editor'},
+                '/cancel', rare=icon_button('actions.edit', href='#edit'),
+                secondary=[{'label': 'Vorschau', 'href': '#preview'}],
+                danger=icon_button('actions.delete', consequence_key='ui.request_failed')) }}
+        ''')
+    document = BeautifulSoup(html, 'html.parser')
+    primary = document.select('.btn-primary')
+    assert len(primary) == 1
+    assert (primary[0]['name'], primary[0]['value'], primary[0]['form']) == ('intent', 'save', 'editor')
+    assert document.select_one('.admin-form-main a[href="#preview"]')
+    assert document.select_one('.admin-form-main a[href="/cancel"]')
+    rare = document.select_one('details.admin-form-rare')
+    assert not rare.has_attr('open')
+    assert rare.select_one('summary.btn-ghost')
+    assert rare.select_one('a[href="#edit"]')
+    danger = document.select_one('.admin-form-danger')
+    assert danger.select_one('.btn-danger svg')
+    assert danger.select_one('.btn-danger span').get_text(strip=True) == 'Löschen'
+    assert danger.select_one('.ui-sem-consequence').get_text(strip=True)
+
 def test_registry_icons_in_sprite():
     from cafeteria.ui.semantics import load_registry, sprite_icons
     
