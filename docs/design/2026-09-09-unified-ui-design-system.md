@@ -1409,6 +1409,10 @@ Seltene oder technische Angaben in nativem `<details>`; Kurztext zeigt vorhanden
 
 Das Modul Gerichtvorlagen nutzt M22 (Filterzeile), M23 (Zeilenvertrag) und M24 (Formularfuss) anstelle eigener Custom-Controls. Die Haupttabelle trennt Rezept, Status und Planung auf dem Desktop, wird auf schmalen Viewports aber zu einer kompakten Zeile je Vorlage verdichtet. Der Anlage- und Editorbereich folgt dem gemeinsamen Formular-Grid, mit exakt einer Primäraktion im Formularfuss. Statuswerte (Aktiv, Bereich, Rezeptbindung) sind in die zentrale Statusbar verlegt, die Planungsziel-Vorschau verbleibt fokussiert im Einplanen-Kontext. Dauerhaft geöffnete Anlage- oder Suchformulare am Listenende sind durch die Primäraktion im Seitenkopf abgelöst.
 
+Nachbesserung 2026-09-23: H1 und Dokumenttitel bleiben auf Liste, Anlage, Editor und Einplanen «Gerichtvorlagen»; die konkrete Aufgabe steht in der Beschreibung. Liste und Leerzustand besitzen nur die Kopfaktion «Vorlage anlegen», Editoren nur «Speichern» als Primäraktion. Die Rezeptsuche bleibt im Anlageformular (`recipe_search`, nativer Such-Submit mit Werterhalt). Der Archivfilter nutzt einen Jinja-Block und den nativen «Filtern»-Submit ohne Change-Autosubmit. Mobile und Desktop-Planungsaktionen heissen gleich «Als Menü einplanen». Die Zusammenfassung `#planning-summary` bleibt sichtbar und wird ohne JavaScript über «Ziel aktualisieren» erneuert. Textlinks erhalten dieselben 48-px-Bedienziele wie die gemeinsamen Controls; Rezept-Metadaten stehen kompakt zusammen.
+
+Messnachweis: `test_dish_template_browser.py::test_rework_layout_measurements` prüft 360/390/1440 px, genau eine Primäraktion, sämtliche sichtbaren Aktionsziele mindestens 48 × 48 px, Desktop-Zeilen maximal 96 px, Überlauf und echte Statuswerte für aktive/archivierte Vorlagen mit/ohne Rezeptbindung. Bestehende Tests für Konflikte, Rezeptsuche mit Werterhalt, Leserechte, 320-px-Reflow und echten 200-%-Browserzoom bleiben erhalten. Vorher-/Nachherwerte und Gate-Ergebnis stehen im WP09-Nachbesserungsreport.
+
 #### M26 — Wochenplan Cafeteria — kompakte Wochenplanung
 
 Kompakte Wochenplanung statt riesiger Einzelkarten; Zielmodell SDD v2 §5.1.

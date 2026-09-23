@@ -11,7 +11,7 @@ import pytest
 from playwright.sync_api import expect
 
 from cafeteria.branding_config import contrast
-from test_dish_template_routes import COLUMNS, create, fields, snapshot
+from test_dish_template_routes import COLUMNS, create, fields, make_recipe, snapshot
 from test_recipe_freeze_v2_browser import proof
 from test_recipe_link_reads_db import seed_recipe_page
 from test_master_data_browser import master_server, targets  # noqa: F401
@@ -25,6 +25,97 @@ EVIDENCE = Path(os.environ.get(
 ))
 ROUTE_VIEWPORTS = ((360, 800), (390, 844), (1440, 900))
 SHARED_VIEWPORTS = ((1024, 768), (768, 1024), (1920, 1080), (2560, 1440))
+
+
+@pytest.mark.parametrize('width', [360, 390, 1440])
+@pytest.mark.parametrize('javascript', [False, True])
+def test_rework_layout_measurements(b3, master_server, browser, width, javascript):  # noqa: F811
+    _, owner, client, actor = b3
+    base, cookie = master_server
+    with browser.new_context(viewport={'width': width, 'height': 900},
+                             java_script_enabled=javascript, reduced_motion='reduce') as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        measurements = {}
+        routes = [('empty', '/admin/gerichtvorlagen'), ('new', '/admin/gerichtvorlagen/neu')]
+        for state, route in routes:
+            _open(page, base, route)
+            measurements[state] = _rework_measure(page, state, width)
+            if state == 'new':
+                expect(page.locator('[name="recipe_search"]')).to_be_visible()
+                expect(page.get_by_role('button', name='Rezepte suchen')).to_be_visible()
+        path = create(client, title='Messvorlage', menu_type_code='MENU_1', profile_scope='common')
+        for state, route in [('list', '/admin/gerichtvorlagen'), ('editor', path),
+                             ('planning', path + '/einplanen')]:
+            _open(page, base, route)
+            measurements[state] = _rework_measure(page, state, width)
+            if state == 'editor':
+                expect(page.locator('.admin-statusbar')).to_contain_text('Aktiv')
+                expect(page.locator('.admin-statusbar')).to_contain_text('Gemeinsam')
+                expect(page.locator('.admin-statusbar')).to_contain_text('Fehlt')
+            if state == 'planning':
+                summary = page.locator('#planning-summary')
+                expect(summary).to_be_visible()
+                expect(summary).to_contain_text('Messvorlage')
+                page.get_by_label('Menüart', exact=True).select_option('VEGGIE')
+                if not javascript:
+                    page.get_by_role('button', name='Ziel aktualisieren').click()
+                expect(summary).to_contain_text('Vegetarisch')
+                for name in ('area', 'meal', 'option'):
+                    selected = page.locator(f'#planning-target [name="{name}"] option:checked').inner_text()
+                    expect(summary).to_contain_text(selected)
+        recipe = make_recipe(owner, actor)
+        linked = create(client, title='Rezeptvorlage', recipe_public_id=recipe.public_id)
+        _open(page, base)
+        measurements['linked-list'] = _rework_measure(page, 'linked-list', width)
+        _open(page, base, linked)
+        measurements['linked-editor'] = _rework_measure(page, 'linked-editor', width)
+        expect(page.locator('.admin-statusbar')).to_contain_text('Gebunden')
+        expect(page.locator('.admin-statusbar')).to_contain_text('Gebundenes Rezept')
+        data = fields(client, path)
+        data['action'] = 'archive'
+        assert client.post(path, data=data).status_code == 303
+        _open(page, base)
+        expect(page.get_by_role('link', name='Messvorlage', exact=True)).to_have_count(0)
+        page.get_by_label('Archivierte einschliessen').check()
+        expect(page.get_by_role('link', name='Messvorlage', exact=True)).to_have_count(0)
+        page.get_by_role('button', name='Filtern', exact=True).click()
+        expect(page.get_by_role('link', name='Messvorlage', exact=True)).to_be_visible()
+        assert 'archived=1' in page.url
+        _open(page, base, path)
+        expect(page.locator('.admin-statusbar')).to_contain_text('Archiviert')
+        measurements['archived-editor'] = _rework_measure(page, 'archived-editor', width)
+        EVIDENCE.mkdir(parents=True, exist_ok=True)
+        (EVIDENCE / f'rework-{width}-js-{javascript}.json').write_text(json.dumps(measurements, indent=2))
+        for state, result in measurements.items():
+            assert result['primary'] == 1, (state, result)
+            assert result['scrollWidth'] <= width, (state, result)
+            if width == 1440:
+                assert all(height <= 96 for height in result['rows']), (state, result)
+            for control in result['controls']:
+                assert control['width'] >= 48 and control['height'] >= 48, (state, control)
+
+
+def _rework_measure(page, state, width):
+    expect(page.get_by_role('heading', level=1)).to_have_text('Gerichtvorlagen')
+    expect(page).to_have_title('Gerichtvorlagen · Menüplanung')
+    result = page.locator('main').evaluate('''main => {
+        const visible = e => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden';
+        const controls = [...main.querySelectorAll('a, button, input:not([type=hidden]), select, textarea')]
+            .filter(visible).map(e => {
+                const target = ['checkbox', 'radio'].includes(e.type) ? e.closest('label') || e : e;
+                const r = target.getBoundingClientRect();
+                return {name: e.getAttribute('aria-label') || e.textContent.trim() || e.name,
+                    width: r.width, height: r.height};
+            });
+        return {viewport: innerWidth, scrollWidth: document.documentElement.scrollWidth,
+            primary: main.querySelectorAll('.btn-primary').length,
+            rows: [...main.querySelectorAll('tbody tr')].map(e => e.getBoundingClientRect().height),
+            controls};
+    }''')
+    EVIDENCE.mkdir(parents=True, exist_ok=True)
+    page.screenshot(path=str(EVIDENCE / f'rework-{state}-{width}.png'), full_page=True)
+    return result
 
 
 def _open(context_page, base, path='/admin/gerichtvorlagen'):
@@ -78,7 +169,8 @@ def test_list_create_conflict_and_tabler(b3, master_server, browser, width, heig
             expect(page.get_by_role('columnheader', name=column)).to_have_count(0)
         expect(page.get_by_text('Noch keine Gerichtvorlagen')).to_be_visible()
         page.get_by_role('link', name='Vorlage anlegen').click()
-        expect(page.get_by_role('heading', name='Vorlage anlegen')).to_be_visible()
+        expect(page.get_by_role('heading', level=1)).to_have_text('Gerichtvorlagen')
+        expect(page.locator('.page-header')).to_contain_text('Vorlage anlegen')
         targets(page)
         _accessible_capture(page, f'new-{width}-js-{javascript}', methods=['GET'])
         page.get_by_label('Titel', exact=True).fill('Browser Vorlage')

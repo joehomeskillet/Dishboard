@@ -12,12 +12,12 @@
 {% macro recipe_state(item) %}
 {% if item.recipe_public_id %}
 <a class="text-break" href="{{ url_for('admin.recipe_view', recipe_id=item.recipe_public_id) }}">Rezept: {{ item.recipe_title }}</a>
-{% if not item.recipe_active %}<div>Rezept archiviert</div>{% endif %}
-<div class="text-secondary">{{ (item.revision_count ~ ' gespeicherte Stände') if item.revision_count else 'Noch kein gespeicherter Stand' }}</div>
+<div class="text-secondary">{% if not item.recipe_active %}Rezept archiviert · {% endif %}{{ (item.revision_count ~ ' gespeicherte Stände') if item.revision_count else 'Noch kein gespeicherter Stand' }} · In {{ item.menu_count }} Menüs verwendet</div>
 {% else %}Kein Rezept verknüpft{% endif %}
-<div class="text-secondary">In {{ item.menu_count }} Menüs verwendet</div>
+{% if not item.recipe_public_id %}<div class="text-secondary">In {{ item.menu_count }} Menüs verwendet</div>{% endif %}
 {% endmacro %}
-{% block title %}{{ 'Vorlage bearbeiten' if row else ('Vorlage anlegen' if editing else 'Gerichtvorlagen') }} · Menüplanung{% endblock %}
+{% block title %}Gerichtvorlagen · Menüplanung{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-gerichtvorlagen.css') }}">{% endblock %}
 {% block page_header %}
 {% set status_items = [] %}
 {% if row %}
@@ -37,7 +37,7 @@
     {% endif %}
   {% endif %}
 {% endif %}
-{% call page_header('Vorlage bearbeiten' if row else ('Vorlage anlegen' if editing else 'Gerichtvorlagen'), status_items=status_items) %}
+{% call page_header('Gerichtvorlagen', description=('Vorlage bearbeiten · ' ~ row.title) if row else ('Vorlage anlegen' if editing else none), status_items=status_items) %}
   {% if editing %}
     {% if row and row.active and can_write %}<a class="btn" href="{{ url_for('admin.dish_template_plan', public_id=row.public_id) }}">{{ icon('calendar-plus') }}Als Menü einplanen</a>{% endif %}
     <a class="btn" href="{{ url_for('admin.dish_templates_list') }}">{{ icon('arrow-left') }}Zur Vorlagenliste</a>
@@ -54,8 +54,10 @@
 </div>
 {% endif %}
 {% if not editing %}
-{% set filters = '<label class="form-check mb-0"><input class="form-check-input" type="checkbox" name="archived" value="1"' ~ (' checked' if include_archived else '') ~ ' onchange="this.form.submit()"><span class="form-check-label">Archivierte einschliessen</span></label>' %}
-{{ filter_bar(url_for('admin.dish_templates_list'), filters=filters|safe, active=include_archived) }}
+{% set filters %}
+<label class="form-check mb-0"><input class="form-check-input" type="checkbox" name="archived" value="1"{% if include_archived %} checked{% endif %}><span class="form-check-label">Archivierte einschliessen</span></label>
+{% endset %}
+{{ filter_bar(url_for('admin.dish_templates_list'), filters=filters, active=include_archived) }}
 {% if rows %}
 <div class="card mb-4">
   <div class="table-responsive">
@@ -82,7 +84,7 @@
               <div class="mt-1">{{ recipe_state(item) }}</div>
               <div class="mt-2 d-flex flex-wrap gap-2 align-items-center">
                 <span class="badge {{ 'bg-green-lt' if item.active else 'bg-secondary-lt' }}">{{ 'Aktiv' if item.active else 'Archiviert' }}</span>
-                {% if can_write and item.active %}<a class="btn btn-sm" href="{{ url_for('admin.dish_template_plan', public_id=item.public_id) }}">{{ icon('calendar-plus') }}Einplanen</a>{% endif %}
+                {% if can_write and item.active %}<a class="btn" href="{{ url_for('admin.dish_template_plan', public_id=item.public_id) }}">{{ icon('calendar-plus') }}Als Menü einplanen</a>{% endif %}
               </div>
             </div>
           </td>
@@ -99,7 +101,7 @@
   </div>
 </div>
 {% else %}
-{{ empty_state('none', 'Noch keine Gerichtvorlagen', 'Eine Vorlage anlegen, um ein Rezept für die Wochenplanung bereitzuhalten.', action='<a class="btn btn-primary" href="' ~ url_for('admin.dish_template_new') ~ '">' ~ icon('plus') ~ 'Vorlage anlegen</a>' if can_write else none) }}
+{{ empty_state('none', 'Noch keine Gerichtvorlagen', 'Eine Vorlage anlegen, um ein Rezept für die Wochenplanung bereitzuhalten.') }}
 {% endif %}
 {% elif row %}
 {% for item in rows if item.public_id == row.public_id %}<div class="mb-3">{{ recipe_state(item) }}</div>{% endfor %}
