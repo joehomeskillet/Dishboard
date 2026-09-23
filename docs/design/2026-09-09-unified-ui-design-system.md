@@ -277,41 +277,72 @@ erhält zusätzlich `secondary` und `danger`: häufige Aktionen in `admin-form-m
 seltene in geschlossenem `details.admin-form-rare` mit `admin-form-tertiary`,
 destruktive separat in `admin-form-danger`. Bestehende Positionsargumente bleiben.
 
+**P2 gemeinsame Klassen/Verträge:**
+- `admin-status--{neutral,active,success,warning,danger,info}` gilt für Badges und
+  Statusbar-Inhalte; `admin-statusbar-item--*` bleiben kompatible CSS-Aliase.
+  `status_badge_sem` und `status_bar` liefern Icon + sichtbaren Text. Legacy-
+  `page_header` ohne explizites Icon bleibt bytegleich; P3 ergänzt dort `icon`.
+- `admin-option-grid`: ein Wrapper je `field`/`select`, 1/2/3 Spalten unter
+  768/ab 768/ab 1440 px. Label-Abstand `--app-space-1`, Controls ≥48 px,
+  Checkbox-/Radio-Zeilen ≥44 px; `.is-invalid` mit zugeordneter `.invalid-feedback`.
+- `table.admin-table--stack`: semantische Header (`scope`) und `data-label` je
+  Datenzelle; unter 768 px gestapelte Zeilen. `--app-table-row-height: 56px`
+  ist Desktop-Standard; mehrzeilige Inhalte, Fehlermeldungen und 200%-Text dürfen
+  Zeilen vergrössern. Keine feste Clip-Höhe. P3 migriert die Modul-Tabellen.
+- `.card .card` ist flach ohne zweiten Rahmen/Schatten. H1/H2/H3 nutzen
+  `--app-font-size-h1`/`--app-font-size-h2`/`--app-font-size-h3` (34/20/18 px,
+  H1 mobil 28 px). Seitenkopf einschliesslich Statusbar ≤200 px bei 1440 px mit
+  kurzen Werten; lange Übersetzungen/Zoom bleiben vollständig lesbar.
+- `form[data-loading]` aktiviert beim nativen Submit `admin-btn-loading`,
+  `disabled` und `aria-busy` am Primärbutton, auch bei externer Form-Zuordnung.
+  Deaktivierung erfolgt nach Serialisierung von `name/value`; abgebrochene oder
+  ungültige Submits bleiben bedienbar. `pageshow` stellt den vorherigen Zustand
+  wieder her. AJAX-Aufrufer übernehmen ihren eigenen Abschluss-/Fehlerzustand.
+  Das Label bleibt sichtbar; Spinner nur während Submit, bei Reduced Motion statisch.
+  `--app-focus-width: 2px`, Hover-/Active-Tokens und gestrichelte Disabled-Ränder
+  sichern erkennbare Interaktion ohne verringerte Textdeckkraft.
+- `hint(text, id, mode='tooltip')`: eindeutige ID vom Aufrufer; Standard ist
+  `info-circle` mit `title`, `aria-describedby` und nativem `details`-Fallback.
+  `mode='dialog'` ergänzt ein modales Dialogfenster mit Escape/Fokusrückgabe;
+  ohne JS bleibt es im `details` erreichbar. `mode='inline'` für Sicherheits-
+  informationen. Bestehende `field(..., hint=...)` bleiben bis P3 kompatibel inline;
+  «Nicht ausgewählt bedeutet nicht: allergenfrei bestätigt.» bleibt immer sichtbar.
+
 | ID | Baustein | heutige Umsetzung (Datei/Makro/Klasse) | Sollzustand | Lücke |
 |---|---|---|---|---|
-| M31 | Seitenabstände | `--app-page-padding` in `admin-tabler.css:48,497`; Tablet/Mobile `549–552` | 32/24/16 px nach Breakpoint, volle Breite | — |
-| M32 | Vertikale Abstände | `--app-space-1`…`--app-space-12` in `tokens.css:181–188` | Skala 4–48 px; Abschnitte ≤`--app-space-3` | — |
-| M33 | Horizontale Abstände | `gap: var(--app-space-2)` in Listen/Filter (`admin-tabler.css:461`) | Einheitlich `--app-space-2` in Toolbars | zu prüfen (P1-Audit) je Modul |
-| M34 | Grid | `admin-option-grid` 1/2/3 Spalten (`admin-tabler.css:439,475–479`) | Responsive Grid ab 768/1440 px | — |
-| M35 | Content-Breiten | Kein Shell-`max-width`; Preview `data-content-width` (`admin-tabler.css:546–547`) | Hauptarbeit immer `full` | — |
-| M36 | Schriftgrössen | `--app-font-size-*` `tokens.css:163–168`; Skalierung `--app-font-scale` | Body 1 rem, H1 2.125/1.75 rem mobil | — |
-| M37 | Schriftgewichte | Fira 400–700 `@font-face` `tokens.css:241–270` | Labels 600, Werte 700 in Statusbar | — |
-| M38 | Überschriftenhierarchie | `h1`/`h2`/`h3` in `admin-tabler.css:368–369`; `page_header` | Eine H1 je Seite, Titel > Card-Titel | — |
-| M39 | Farben | `.dishboard-admin` Token-Block `tokens.css:111–160` | Nur `--app-*` / `--sh-*` Aliase | Palettentabelle §5 unverändert |
-| M40 | Hintergrundflächen | `--app-bg`, `--app-surface`, `--app-surface-soft` | Canvas + weisse Arbeitsflächen | — |
-| M41 | Rahmen | `--app-border`, `--app-border-soft`; Cards/Inputs 1 px | Ruhige 1-px-Kanten, keine Doppelrahmen | — |
-| M42 | Radius | `--app-radius-control` 8 px, `--app-radius-card` 12 px (`tokens.css:177–178`) | Controls 8 px, Cards 12 px | — |
-| M43 | Schatten | `--app-card-shadow` (`tokens.css:189`) | Dezent, keine Schmuckschatten | — |
-| M44 | Buttons | Tabler `.btn-*` themed in `admin-tabler.css:135–162` | Primary/Outline/Ghost/Danger konsistent | — |
-| M45 | Icon-Buttons | `icon_button` in `_semantic.html:17`; `ui-sem-control` 48 px | 48 px, Tooltip+aria bei icon-only | — |
-| M46 | Badges | `.badge.bg-*-lt` `admin-tabler.css:265–312`; `status_badge_sem` | Icon + Text, Soft-Background | — |
-| M47 | Statusanzeigen | `admin-statusbar-*` `admin-tabler.css:509–545`; `status_bar` `_semantic.html:85` | 6 Stile; kompakt unter Titel | `--info`/`--active` in Statusbar fehlen |
-| M48 | Inputs | `.form-control` themed `admin-tabler.css:175–178` | 48 px Höhe, Fokus `--app-focus` | — |
-| M49 | Selects | `.form-select` gleiche Regeln | Wie Inputs | — |
-| M50 | Checkboxen/Radios | `.form-check-input` min-height 48 px | Inline in `admin-option-label` | — |
-| M51 | Tabellen | `.table` Token `admin-tabler.css:487` | Kompakte Zeilen, lesbare Header | Zeilenhöhe je Modul zu prüfen (P1-Audit) |
-| M52 | Cards | `.card` Spacer `admin-tabler.css:304–310` | `--app-card-inset`, kein Card-in-Card | — |
-| M53 | Dialoge | `confirm_dialog` `_semantic.html:74`; Tabler Modal | Bestätigung mit Folgetext | zu prüfen (P1-Audit) einheitliche Modal-Nutzung |
-| M54 | Dropdowns | Bootstrap Dropdown/Select; `action_menu` als `<details>` | Seltene Aktionen gebündelt | — |
-| M55 | Accordions | `disclosure_section` `_macros.html:445`; `admin-disclosure` | Natives `<details>`, auto-open bei Fehler | — |
-| M56 | Navigation | Sidebar `admin-sidebar`; `page_header` Breadcrumb | 3 Hauptpunkte, Kontext-Unterpunkte | — |
-| M57 | Tooltips | `data-bs-toggle="tooltip"` in `icon_link` `_macros.html:8` | Für icon-only und Zusatzinfo | Flächendeckung zu prüfen (P1-Audit) |
-| M58 | Leere Zustände | `empty_state` `_macros.html:248`; `empty_state_sem` `_semantic.html:65` | Art unterscheiden (keine Daten/Treffer/Recht) | — |
-| M59 | Ladezustände | zu prüfen (P1-Audit) | Tabler-Spinner/Button-disabled während Submit | kein gemeinsames Token/Makro dokumentiert |
-| M60 | Fehlermeldungen | `.alert-danger`, `.is-invalid` | Konkret am Feld + optional Alert | — |
-| M61 | Erfolgsmeldungen | `.alert-success` `admin-tabler.css:299` | Kurz, nach Aktion, nicht dauerhaft | — |
-| M62 | Warnungen | `.alert-warning`; Statusbar `--warning` | Badge/Inline vor grosser Box | — |
-| M63 | Information | `.alert-info`; `status.info` Registry | Neutral/informativ, nicht warnend | Statusbar-Variante `--info` fehlt |
+| M31 | Seitenabstände | `--app-page-padding` in `admin-tabler.css:48,497`; Tablet/Mobile `549–552` | 32/24/16 px nach Breakpoint, volle Breite | Erledigt: bestehende Padding-/Breiten-Gates; Modulprüfung P3 offen |
+| M32 | Vertikale Abstände | `--app-space-1`…`--app-space-12` in `tokens.css:181–188` | Skala 4–48 px; Abschnitte ≤`--app-space-3` | Erledigt: gemeinsame Token-Abstände; Abschnittsmigration P3 offen |
+| M33 | Horizontale Abstände | `gap: var(--app-space-2)` in Listen/Filter (`admin-tabler.css:461`) | Einheitlich `--app-space-2` in Toolbars | Erledigt: btn-list/Toolbar-Gaps über --app-space-2; P3 offen |
+| M34 | Grid | `admin-option-grid` 1/2/3 Spalten (`admin-tabler.css:439,475–479`) | Responsive Grid ab 768/1440 px | Erledigt: Grid 1/2/3 bei 360/768/1024/1440/1920 px geprüft |
+| M35 | Content-Breiten | Kein Shell-`max-width`; Preview `data-content-width` (`admin-tabler.css:546–547`) | Hauptarbeit immer `full` | Erledigt: gemeinsame Shell unverändert; P3-Seitenprüfung offen |
+| M36 | Schriftgrössen | `--app-font-size-*` `tokens.css:163–168`; Skalierung `--app-font-scale` | Body 1 rem, H1 2.125/1.75 rem mobil | Erledigt: H1/H2/H3-Tokens und Skalierung geprüft |
+| M37 | Schriftgewichte | Fira 400–700 `@font-face` `tokens.css:241–270` | Labels 600, Werte 700 in Statusbar | Erledigt: Fira-/Label-Vertrag erhalten |
+| M38 | Überschriftenhierarchie | `h1`/`h2`/`h3` in `admin-tabler.css:368–369`; `page_header` | Eine H1 je Seite, Titel > Card-Titel | Erledigt: H1 34/28, H2 20, H3 18 px; Kopf mit Status <=200 px bei 1440 |
+| M39 | Farben | `.dishboard-admin` Token-Block `tokens.css:111–160` | Nur `--app-*` / `--sh-*` Aliase | Erledigt: Palette unverändert; sechs Statuskontraste >=4.5:1 |
+| M40 | Hintergrundflächen | `--app-bg`, `--app-surface`, `--app-surface-soft` | Canvas + weisse Arbeitsflächen | Erledigt: vorhandene Flächentokens wiederverwendet |
+| M41 | Rahmen | `--app-border`, `--app-border-soft`; Cards/Inputs 1 px | Ruhige 1-px-Kanten, keine Doppelrahmen | Erledigt: verschachtelte Cards ohne zweiten Rahmen |
+| M42 | Radius | `--app-radius-control` 8 px, `--app-radius-card` 12 px (`tokens.css:177–178`) | Controls 8 px, Cards 12 px | Erledigt: bestehende Radius-Tokens erhalten |
+| M43 | Schatten | `--app-card-shadow` (`tokens.css:189`) | Dezent, keine Schmuckschatten | Erledigt: verschachtelte Cards ohne Schatten |
+| M44 | Buttons | Tabler `.btn-*` themed in `admin-tabler.css:135–162` | Primary/Outline/Ghost/Danger konsistent | Erledigt: vier Aktionsstufen; genau eine Primäraktion je main in P3 prüfen |
+| M45 | Icon-Buttons | `icon_button` in `_semantic.html:17`; `ui-sem-control` 48 px | 48 px, Tooltip+aria bei icon-only | Erledigt: bestehender 48-px-/Tooltip-/Aria-Vertrag erhalten |
+| M46 | Badges | `.badge.bg-*-lt` `admin-tabler.css:265–312`; `status_badge_sem` | Icon + Text, Soft-Background | Erledigt: status_badge_sem nutzt admin-status--* mit Icon und Text |
+| M47 | Statusanzeigen | `admin-statusbar-*` `admin-tabler.css:509–545`; `status_bar` `_semantic.html:85` | 6 Stile; kompakt unter Titel | Erledigt: sechs Stile samt --info/--active; semantische Icons; Legacy ohne Icon unverändert |
+| M48 | Inputs | `.form-control` themed `admin-tabler.css:175–178` | 48 px Höhe, Fokus `--app-focus` | Erledigt: >=48 px, 4-px-Labelabstand und feldnahe Fehler geprüft |
+| M49 | Selects | `.form-select` gleiche Regeln | Wie Inputs | Erledigt: >=48 px und Grid geprüft |
+| M50 | Checkboxen/Radios | `.form-check-input` min-height 48 px | Inline in `admin-option-label` | Erledigt: Checkbox-/Radio-Zeilen >=44 px (bestehend 48 px) geprüft |
+| M51 | Tabellen | `.table` Token `admin-tabler.css:487` | Kompakte Zeilen, lesbare Header | Erledigt: admin-table--stack und 56-px-Zeilentoken; Modulübernahme P3 offen |
+| M52 | Cards | `.card` Spacer `admin-tabler.css:304–310` | `--app-card-inset`, kein Card-in-Card | Erledigt: .card .card ohne Rahmen/Schatten; Strukturabbau in P3 offen |
+| M53 | Dialoge | `confirm_dialog` `_semantic.html:74`; Tabler Modal | Bestätigung mit Folgetext | Erledigt: danger verlangt consequence_key; bestehende Modul-Modals in P3 prüfen |
+| M54 | Dropdowns | Bootstrap Dropdown/Select; `action_menu` als `<details>` | Seltene Aktionen gebündelt | Erledigt: seltene Footer-Aktionen in geschlossenem details; P3 offen |
+| M55 | Accordions | `disclosure_section` `_macros.html:445`; `admin-disclosure` | Natives `<details>`, auto-open bei Fehler | Erledigt: native Fehler-/Inhaltsöffnung bleibt regressionsgeprüft |
+| M56 | Navigation | Sidebar `admin-sidebar`; `page_header` Breadcrumb | 3 Hauptpunkte, Kontext-Unterpunkte | Offen P3: Seiten-/Navigationsprüfung; Shell in P2 unverändert |
+| M57 | Tooltips | `data-bs-toggle="tooltip"` in `icon_link` `_macros.html:8` | Für icon-only und Zusatzinfo | Erledigt: hint(text, id, mode) mit Tooltip-/Details-Fallback; P3-Migration offen |
+| M58 | Leere Zustände | `empty_state` `_macros.html:248`; `empty_state_sem` `_semantic.html:65` | Art unterscheiden (keine Daten/Treffer/Recht) | Erledigt: bestehende differenzierte Leerzustände erhalten; Modulaudit P3 offen |
+| M59 | Ladezustände | zu prüfen (P1-Audit) | Tabler-Spinner/Button-disabled während Submit | Erledigt: form[data-loading], admin-btn-loading, pageshow-Reset; P3-Opt-in offen |
+| M60 | Fehlermeldungen | `.alert-danger`, `.is-invalid` | Konkret am Feld + optional Alert | Erledigt: is-invalid + invalid-feedback am Feld; Fehlertexte bleiben Modulbesitz |
+| M61 | Erfolgsmeldungen | `.alert-success` `admin-tabler.css:299` | Kurz, nach Aktion, nicht dauerhaft | Erledigt: vorhandene Erfolgsstile erhalten; tatsächliches Aktionsfeedback in P3 prüfen |
+| M62 | Warnungen | `.alert-warning`; Statusbar `--warning` | Badge/Inline vor grosser Box | Erledigt: gemeinsamer Warning-Stil mit Icon/Text; P3-Einsatz offen |
+| M63 | Information | `.alert-info`; `status.info` Registry | Neutral/informativ, nicht warnend | Erledigt: status.info und admin-statusbar-item--info; P3-Einsatz offen |
 
 ### A-Anti-Patterns (Prompt §1)
 
@@ -380,9 +411,10 @@ Verbleibende Inkonsistenzen vor Merge selbst beheben oder als P1-Fund dokumentie
 
 - `view.sort` (Sortierung) — Tabler-Icon festlegen und Registry ergänzen
 - `view.visibility` (Sichtbarkeit umschalten) — oder bestehende `eye`/`eye-off`-Semantik dokumentieren
-- `status.neutral` als expliziter Registry-Eintrag (heute `secondary`/`inactive`)
-- `admin-statusbar-item--info` und `--active` CSS-Varianten für sechs Statusstile (R22)
-- Gemeinsames Ladezustands-Muster (Spinner/Button, R37, M59)
+- Erledigt P2: `status.neutral` mit vorhandenem `circle-dashed`; `circle-dot` ist
+  im ausgelieferten Sprite nicht enthalten. Bestehende Status-Seeds bleiben erhalten.
+- Erledigt P2: `admin-statusbar-item--info` und `--active` (R22).
+- Erledigt P2: gemeinsames Submit-Lademuster (R37, M59); Modul-Opt-in bleibt P3.
 
 ### Nicht-Ziele
 
@@ -421,6 +453,16 @@ immer mit übersetztem `title` und `aria-label`; sonst Icon + kurzes Label.
 Destruktive Aktionen benötigen Icon + explizites Label + Folgetext. Navigation bleibt
 Icon + Text. Status besitzt sichtbaren Text; Farbe ergänzt nur. Bedienziele mindestens
 48 × 48 px, sichtbarer Tastaturfokus, native Bedienbarkeit ohne JavaScript.
+
+**Polish P2 (2026-09-23):** 184 unveränderte Seeds + 10 Projektschlüssel = 194.
+Neu `status.neutral` mit DE/EN-Label/Aria/Tooltip und vorhandenem `circle-dashed`.
+`status.active` und `status.info` bleiben unverändert; ihre Präsentation nutzt
+`admin-status--active` bzw. `admin-status--info`. Rollen-/Registry-Schema bleibt
+gleich. Erfolgreich/Warnung/Fehler werden aus der Rolle abgeleitet; andere Rollen
+bleiben neutral. Sechs Statusstile haben sichtbaren Text und Kontrast ≥4.5:1.
+`confirm_dialog` prüft die Konsequenz für Titel- und Bestätigungsrolle, bevor
+Dialog-Markup ausgegeben wird. Semantische Statusbar-Aufrufer liefern das Icon;
+Legacy-Aufrufer behalten ihren bestehenden Markup-Vertrag bis zur P3-Migration.
 
 **Symbolreihenfolge:** Kostform → Allergene → Eigenschaften → Prüf-/Status.
 Fehlende und ungeprüfte Allergendaten erhalten einen eigenen Texthinweis. Sie sind
