@@ -10882,7 +10882,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "0e1b834b82199295db829be96afb39065756fc6aca1cce0c8efb0ed97ec92c97",
+      "sha256": "91b1d10f314ab4f1b28e2597ebcca80e9a6b5e5e0fc4ecfbe87088583a4b6b1c",
       "used_by_endpoints": [
         "admin.dish_template_plan",
         "admin.dish_template_plan_post"
@@ -10906,7 +10906,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "7e8edc3fa148b05e7f1efd51ef360462a5917d7097523624cfc566866288f137",
+      "sha256": "cf0ea9cfd1469873d46844a665f996694de057ff7cebb3b1928b692328096c65",
       "used_by_endpoints": [
         "admin.dish_template_create",
         "admin.dish_template_edit",
