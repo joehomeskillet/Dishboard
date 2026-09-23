@@ -1,90 +1,136 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon %}
+{% from 'admin/_macros.html' import page_header, empty_state, disclosure_section %}
+{% from 'ui/_semantic.html' import icon_label, icon_button %}
 {% set workflow_nav = 'inventory' %}
-{% block title %}Lager · Menüplanung{% endblock %}
+{% set lager_status = [] %}
+{% set uncaptured_count = slots|rejectattr('captured')|list|length %}
+{% if selected %}
+{% set _ = lager_status.append({'label': t('navigation.ingredients.label'), 'value': selected.food_name, 'variant': 'neutral'}) %}
+{% set _ = lager_status.append({'label': t('stock.location.label'), 'value': selected.storage_name, 'variant': 'neutral'}) %}
+{% if captured %}
+{% set _ = lager_status.append({'label': t('stock.stock.label'), 'value': balance_label, 'variant': 'neutral'}) %}
+{% else %}
+{% set _ = lager_status.append({'label': t('stock.stock.label'), 'value': 'Kein Bestand erfasst', 'variant': 'warning'}) %}
+{% endif %}
+{% elif captured %}
+{% set _ = lager_status.append({'label': t('stock.stock.label'), 'value': balance_label, 'variant': 'neutral'}) %}
+{% else %}
+{% set _ = lager_status.append({'label': t('stock.stock.label'), 'value': 'Kein Bestand erfasst', 'variant': 'warning'}) %}
+{% endif %}
+{% if uncaptured_count %}
+{% set _ = lager_status.append({'label': 'Ohne Bestand', 'value': uncaptured_count, 'variant': 'warning'}) %}
+{% endif %}
+{% block title %}{{ t('navigation.stock.label') }} · Menüplanung{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='ui-semantic.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='admin-lager.css') }}">{% endblock %}
 {% block page_header %}
-{{ page_header('Lager', description='Zutaten und Lagerorte kommen aus Grundlagen. Ohne Journal und ohne bestätigte Zählung gibt es keinen Saldo 0.') }}
+{{ page_header(t('navigation.stock.label'), description='Zuordnungen kommen aus Zutaten. Ohne Journal und ohne bestätigte Zählung gibt es keinen Saldo 0.', status_items=lager_status) }}
 {% endblock %}
 {% block content %}
-<p>{% if selected %}{{ selected.food_name }} · {{ selected.storage_name }}: {% if captured %}{{ balance_label }}{% else %}Kein Bestand erfasst{% endif %}{% elif captured %}{{ balance_label }}{% else %}Ohne gewählte Zuordnung kein Saldo.{% endif %}</p>
-
-<section class="card mb-4">
-  <div class="card-header"><h2 class="card-title">Zuordnungen aus Grundlagen</h2></div>
-  <div class="card-body">
-    {% if slots %}
-    <table class="table">
-      <thead><tr><th>Zutat</th><th>Lagerort</th><th>Bestand</th><th>Aktion</th></tr></thead>
-      <tbody>
-      {% for slot in slots %}
-        <tr{% if selected and slot.food_public_id == selected.food_public_id and slot.storage_public_id == selected.storage_public_id %} class="table-active"{% endif %}>
-          <td><a href="{{ url_for('admin.master_data_detail', kind='zutaten', public_id=slot.food_public_id) }}">{{ slot.food_name }}</a></td>
-          <td>{{ slot.storage_name }}</td>
-          <td>{% if slot.captured %}{{ slot.label }}{% else %}Kein Bestand erfasst{% endif %}</td>
-          <td><a class="btn" href="{{ url_for('admin.inventory_home', food_public_id=slot.food_public_id, storage_public_id=slot.storage_public_id) }}">{{ icon('archive') }}Öffnen</a></td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <p>Keine aktive Zutat mit Lagerort in Grundlagen. Zuerst in <a href="{{ url_for('admin.master_data_list', kind='zutaten') }}">Grundlagen</a> zuordnen.</p>
-    {% endif %}
-  </div>
+{% if slots %}
+<section class="lager-slots" aria-labelledby="lager-slots-heading">
+  <h2 class="lager-section-title" id="lager-slots-heading">Zuordnungen</h2>
+  <table class="table lager-table">
+    <thead><tr><th>Zutat</th><th>Lagerort</th><th>Bestand</th><th>Aktion</th></tr></thead>
+    <tbody>
+    {% for slot in slots %}
+      {% set current = selected and slot.food_public_id == selected.food_public_id and slot.storage_public_id == selected.storage_public_id %}
+      <tr class="lager-row{% if current %} table-active{% endif %}">
+        <td data-label="Zutat"><a href="{{ url_for('admin.master_data_detail', kind='zutaten', public_id=slot.food_public_id) }}">{{ slot.food_name }}</a></td>
+        <td data-label="Lagerort">{{ slot.storage_name }}</td>
+        <td data-label="Bestand">{% if slot.captured %}{{ slot.label }}{% else %}<span class="badge bg-warning-lt">Kein Bestand erfasst</span>{% endif %}</td>
+        <td class="lager-row-action" data-label="Aktion">
+          <a class="btn{% if current %} active{% endif %}" href="{{ url_for('admin.inventory_home', food_public_id=slot.food_public_id, storage_public_id=slot.storage_public_id) }}"{% if current %} aria-current="true"{% endif %}>{{ icon_label('actions.open') }}</a>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
 </section>
 
 {% if selected %}
-<section class="card mb-4">
-  <div class="card-header"><h2 class="card-title">Zugang / Abgang</h2></div>
-  <form method="post" action="{{ url_for('admin.inventory_move') }}" class="card-body row g-2">
+<section class="lager-move" aria-labelledby="lager-move-heading">
+  <h2 class="lager-section-title" id="lager-move-heading">Zugang / Abgang</h2>
+  <form method="post" action="{{ url_for('admin.inventory_move') }}" class="lager-form" id="lager-move-form">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="food_public_id" value="{{ selected.food_public_id }}">
     <input type="hidden" name="storage_public_id" value="{{ selected.storage_public_id }}">
-    <div class="col-md-4"><p class="mb-0"><strong>{{ selected.food_name }}</strong><br><span class="text-secondary">{{ selected.storage_name }}</span></p></div>
-    <div class="col-md-2"><label class="form-label" for="kind">Art</label>
-      <select class="form-select" id="kind" name="kind">
-        <option value="receipt">Zugang</option>
-        <option value="issue">Abgang</option>
-        <option value="correction">Korrektur</option>
-      </select>
+    <div class="lager-form-grid">
+      <div>
+        <label class="form-label" for="kind">Art</label>
+        <select class="form-select" id="kind" name="kind">
+          <option value="receipt">Zugang</option>
+          <option value="issue">Abgang</option>
+          <option value="correction">Korrektur</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label" for="quantity">Menge</label>
+        <input class="form-control" id="quantity" name="quantity" required>
+      </div>
+      <div>
+        <label class="form-label" for="unit_code">Einheit</label>
+        <input class="form-control" id="unit_code" name="unit_code" value="{{ unit_code }}" required>
+      </div>
     </div>
-    <div class="col-md-2"><label class="form-label" for="quantity">Menge</label><input class="form-control" id="quantity" name="quantity" required></div>
-    <div class="col-md-2"><label class="form-label" for="unit_code">Einheit</label><input class="form-control" id="unit_code" name="unit_code" value="{{ unit_code }}" required></div>
-    <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary" type="submit">Buchen</button></div>
+    <div class="lager-form-actions">{{ icon_button('actions.save') }}</div>
   </form>
 </section>
 
-<section class="card mb-4">
-  <div class="card-header"><h2 class="card-title">Umbuchung</h2></div>
-  <form method="post" action="{{ url_for('admin.inventory_transfer') }}" class="card-body row g-2">
+{% call disclosure_section(title='Weitere Optionen', id='lager-more') %}
+<section class="lager-transfer" aria-labelledby="lager-transfer-heading">
+  <h2 class="lager-section-title" id="lager-transfer-heading">Umbuchung</h2>
+  <form method="post" action="{{ url_for('admin.inventory_transfer') }}" class="lager-form" id="lager-transfer-form">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="food_public_id" value="{{ selected.food_public_id }}">
     <input type="hidden" name="source_storage_public_id" value="{{ selected.storage_public_id }}">
-    <div class="col-md-3"><p class="mb-0">Von <strong>{{ selected.storage_name }}</strong></p></div>
-    <div class="col-md-3"><label class="form-label" for="dest_storage_public_id">Nach Lagerort</label>
-      <select class="form-select" id="dest_storage_public_id" name="dest_storage_public_id" required>
-        {% for dest_id, dest_name in dests %}
-          {% if dest_id != selected.storage_public_id %}
-          <option value="{{ dest_id }}">{{ dest_name }}</option>
-          {% endif %}
-        {% endfor %}
-      </select>
+    <div class="lager-form-grid">
+      <div>
+        <label class="form-label" for="dest_storage_public_id">Nach Lagerort</label>
+        <select class="form-select" id="dest_storage_public_id" name="dest_storage_public_id" required>
+          {% for dest_id, dest_name in dests %}
+            {% if dest_id != selected.storage_public_id %}
+            <option value="{{ dest_id }}">{{ dest_name }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="form-label" for="transfer_qty">Menge</label>
+        <input class="form-control" id="transfer_qty" name="quantity" required>
+      </div>
+      <div>
+        <label class="form-label" for="transfer_unit">Einheit</label>
+        <input class="form-control" id="transfer_unit" name="unit_code" value="{{ unit_code }}" required>
+      </div>
     </div>
-    <div class="col-md-2"><label class="form-label" for="transfer_qty">Menge</label><input class="form-control" id="transfer_qty" name="quantity" required></div>
-    <div class="col-md-2"><label class="form-label" for="transfer_unit">Einheit</label><input class="form-control" id="transfer_unit" name="unit_code" value="{{ unit_code }}" required></div>
-    <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary" type="submit">Umbuchen</button></div>
+    <div class="lager-form-actions"><button class="btn" type="submit">{{ icon_label('actions.move') }}</button></div>
   </form>
 </section>
 
-<section class="card">
-  <div class="card-header"><h2 class="card-title">Zählung</h2></div>
-  <form method="post" action="{{ url_for('admin.inventory_count') }}" class="card-body row g-2">
+<section class="lager-count" aria-labelledby="lager-count-heading">
+  <h2 class="lager-section-title" id="lager-count-heading">Zählung</h2>
+  <form method="post" action="{{ url_for('admin.inventory_count') }}" class="lager-form" id="lager-count-form">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="food_public_id" value="{{ selected.food_public_id }}">
     <input type="hidden" name="storage_public_id" value="{{ selected.storage_public_id }}">
-    <div class="col-md-4"><p class="mb-0"><strong>{{ selected.food_name }}</strong><br><span class="text-secondary">{{ selected.storage_name }}</span></p></div>
-    <div class="col-md-3"><label class="form-label" for="counted_quantity">Gezählte Menge</label><input class="form-control" id="counted_quantity" name="counted_quantity" required></div>
-    <div class="col-md-3"><label class="form-label" for="count_unit">Einheit</label><input class="form-control" id="count_unit" name="unit_code" value="{{ unit_code }}" required></div>
-    <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary" type="submit">Zählung bestätigen</button></div>
+    <div class="lager-form-grid">
+      <div>
+        <label class="form-label" for="counted_quantity">Gezählte Menge</label>
+        <input class="form-control" id="counted_quantity" name="counted_quantity" required>
+      </div>
+      <div>
+        <label class="form-label" for="count_unit">Einheit</label>
+        <input class="form-control" id="count_unit" name="unit_code" value="{{ unit_code }}" required>
+      </div>
+    </div>
+    <div class="lager-form-actions"><button class="btn" type="submit">{{ icon_label('actions.confirm') }}</button></div>
   </form>
 </section>
+{% endcall %}
+{% endif %}
+{% else %}
+{% call empty_state('none', 'Keine Zuordnung vorhanden', 'Zuerst in Zutaten eine aktive Zutat einem Lagerort zuordnen.') %}
+<a class="btn btn-primary" href="{{ url_for('admin.master_data_list', kind='zutaten') }}">{{ icon_label('navigation.ingredients') }}</a>
+{% endcall %}
 {% endif %}
 {% endblock %}
