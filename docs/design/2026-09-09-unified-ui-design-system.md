@@ -1087,6 +1087,41 @@ Editormuster für einen zentralen Baustein. Beispielwerte sind Eingaben, keine f
 
 **Vertrag:** Vor dem Deaktivieren oder Ausblenden von Controls die POST-Semantik prüfen. Nur eine Darstellung ändern, keine Werte verlieren oder hidden/disabled-Verhalten neu erfinden. Der Verwendungszähler ist nur bei belegten Daten zulässig. Die Wirkung zentraler Änderungen auf bestehende Menüs anhand des Codes erklären; nicht als garantiert unveränderliche Vergangenheit ausgeben.
 
+##### Modul Bausteine (2026-09-20)
+
+M08/M13 folgen dem gemeinsamen Seitenrahmen: «Bausteine» als Titel, Objektname
+im Editor als Kontext. `page_header(status_items=...)` zeigt den Bereich aus
+`profile`/`family`; im Editor zusätzlich Aktiv-/Archivzustand aus `component.active`,
+Gültigkeit aus `component.profile_scope` und Verwendung aus `component.usage_count`.
+Verwendung erklärt die Reichweite zentraler Änderungen. Aktiv ist neutral,
+archiviert eine textliche Warnung; kein Slot bestätigt eine Allergenprüfung.
+Revisionen/IDs bleiben aus der Statusbar. Fehlende Prüf- oder Publikationsdaten
+werden nicht erfunden; zusätzliche Quellen benötigen ein separates Backend-WP.
+
+Die Liste hat eine dominante Aktion «Anlegen» im Kopf. Ihr bestehendes Ankerziel
+öffnet das native Anlageformular auch ohne JavaScript. Suchen, Formularsubmit und
+Zeilenaktionen bleiben neutral; gefüllte oder fehlerhafte Anlagen öffnen sich.
+Suche, Kategorie und Status stehen zuerst, Zusatzfilter in nativen Details;
+aktive Zusatzfilter bleiben in der Zusammenfassung sichtbar. Zurücksetzen erscheint
+nur bei aktiven Filtern. Leere Ergebnisse bieten eine passende direkte Folgeaktion.
+
+Die bisherigen hohen mobilen Karten sind ersetzt am 2026-09-20 durch kompakte,
+priorisierte Zeilen mit einer beschrifteten Bearbeiten-Aktion. Kennzeichnungen
+zeigen höchstens zwei Labels; weitere bleiben über «+n» vollständig erreichbar.
+Allergenauswahl nutzt ab 1024 px drei Spalten, mobil eine. Haken und Rahmen zeigen
+die Auswahl; Präsenz erscheint an der gewählten Option. Fehlende Auswahl bestätigt
+keine Allergenfreiheit. Feldnamen `allergen_code` und `allergen_presence__<CODE>`,
+Werte, Standardwerte, Reihenfolge und Aktivierung der Controls bleiben unverändert.
+
+Optionale Lebensmittelzuordnung liegt in «Weitere Optionen», bei Inhalt oder Fehler
+geöffnet. Archivieren/Reaktivieren samt Folgetext und Bestätigung liegt in «Weitere
+Aktionen». CSRF-/CAS-Felder bleiben direkt in ihren Formularen. Der Editor behält
+eine erreichbare Speicheraktion; No-JS, Fokus und 48-px-Ziele bleiben verbindlich.
+Neue Aktionslabels und Icons verwenden `ui/_semantic.html`; bestehende Fachtexte
+bleiben bis zur zentralen Übersetzungsmigration erhalten. Browsernachweise in den
+drei Komponenten-Testdateien umfassen 360/768/1024/1440 px, FormData-Parität,
+Tastatur, No-JS, Fehlereingaben und Archivierung. Die Route-Matrix aktualisiert WP20.
+
 #### M14 — Drucken und Vorschau: Arbeitsauftrag von Layoutverwaltung trennen
 
 Beispiel mit bewusst unterschiedlichen Zeiträumen für gewählte gespeicherte Woche und veröffentlichten Stand.
