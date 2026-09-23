@@ -498,3 +498,27 @@ def test_cached_legacy_brand_response_cannot_recolor_admin(site):
     _assert_color(page.locator('button.btn-primary'), '#ffffff', '#a3164d')
     assert _styles(page.locator('h1'))['font-family'].startswith('"Fira Sans"')
     assert _styles(page.locator('.admin-sidebar'))['background-color'] == 'rgb(23, 60, 63)'
+
+
+def test_polish_six_status_styles_have_text_icons_and_contrast(site, tmp_path):
+    page, app, _, _ = site
+    _goto(page, DISPLAY)
+    keys = ['status.neutral', 'status.active', 'status.success', 'status.warning', 'status.error', 'status.info']
+    variants = ['neutral', 'active', 'success', 'warning', 'danger', 'info']
+    with app.test_request_context():
+        markup = render_template_string('''
+            {% from 'ui/_semantic.html' import status_badge_sem, status_bar %}
+            {% for key in keys %}{{ status_badge_sem(key) }}{% endfor %}
+            {% for key in keys %}{{ status_bar('navigation.menus', [{'key': key, 'value': 0}]) }}{% endfor %}
+        ''', keys=keys)
+    page.locator('main').evaluate('(el, html) => el.innerHTML = html', markup)
+    for key, variant in zip(keys, variants, strict=True):
+        badge = page.locator(f'.badge[data-semantic="{key}"]')
+        expect(badge).to_have_class(re.compile(rf'admin-status--{variant}(?:\s|$)'))
+        for node in [badge, page.locator(f'.admin-statusbar-item--{variant}')]:
+            assert node.inner_text().strip()
+            expect(node.locator('svg')).to_have_count(1)
+            assert node.locator('svg use').evaluate('el => el.getBBox().width > 0')
+            colors = _styles(node)
+            assert contrast(_hex(colors['color']), _hex(colors['background-color'])) >= 4.5, (variant, colors)
+    page.screenshot(path=str(tmp_path / 'polish-statuses-after.png'), full_page=True)

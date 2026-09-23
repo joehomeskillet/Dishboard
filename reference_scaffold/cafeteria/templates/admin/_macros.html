@@ -12,7 +12,7 @@
 {%- if title and title|trim -%}
 {%- set action_content = caller() if caller else actions -%}
 {%- set subtitle = description if description is not none else pretitle -%}
-{%- set allowed_status_variants = ['neutral', 'success', 'warning', 'danger'] -%}
+{%- set allowed_status_variants = ['neutral', 'active', 'success', 'warning', 'danger', 'info'] -%}
 {%- set status = namespace(count=0) -%}
 {%- set status_content -%}
   {%- for item in status_items if item is mapping -%}
@@ -23,7 +23,7 @@
       {%- if item_variant not in allowed_status_variants -%}{%- set item_variant = 'neutral' -%}{%- endif -%}
       {%- set status.count = status.count + 1 -%}
       <div class="admin-statusbar-item admin-statusbar-item--{{ item_variant }}">
-        <dt class="admin-statusbar-label">{{ item_label }}</dt>
+        <dt class="admin-statusbar-label">{% if item.icon|default(none) %}{{ icon(item.icon) }}{% elif item_variant in ['active', 'info'] %}{{ icon('circle-check' if item_variant == 'active' else 'info-circle') }}{% endif %}{{ item_label }}</dt>
         <dd class="admin-statusbar-value">
           {% if item.href|default(none) %}<a class="admin-statusbar-link" href="{{ item.href }}"><span class="admin-statusbar-value-text">{{ item_value }}</span></a>{% else %}<span class="admin-statusbar-value-text">{{ item_value }}</span>{% endif %}
           {%- if item.detail|default(none) is not none and item.detail|string|trim -%}

@@ -24,8 +24,8 @@
 
 {% macro status_badge_sem(key) -%}
   {%- set item = sem(key) -%}
-  {%- set color = {'success':'success', 'warning':'warning', 'danger':'danger'}.get(item.role, 'secondary') -%}
-  <span class="badge bg-{{ color }}-lt ui-sem-label" data-semantic="{{ key }}">{{ sem_icon(key) }}<span>{{ t(item.label_key) }}</span></span>
+  {%- set variant = {'status.active': 'active', 'status.info': 'info'}.get(key, {'success':'success', 'warning':'warning', 'danger':'danger'}.get(item.role, 'neutral')) -%}
+  <span class="badge admin-status--{{ variant }} ui-sem-label" data-semantic="{{ key }}">{{ sem_icon(key) }}<span>{{ t(item.label_key) }}</span></span>
 {%- endmacro %}
 
 {% macro diet_icon(key) -%}{{ icon_label(key) }}{%- endmacro %}
@@ -86,7 +86,9 @@
 {% macro status_bar(title_key, items=[], description_key=none, actions=none) -%}
   {% set translated = [] %}
   {% for item in items %}
-    {% set ignored = translated.append({'label': t(sem(item.key).label_key), 'value': item.value, 'detail': t(sem(item.detail_key).label_key) if item.detail_key|default(none) else none, 'variant': item.variant|default('neutral')}) %}
+    {% set entry = sem(item.key) %}
+    {% set variant = {'status.active': 'active', 'status.info': 'info'}.get(item.key, {'success':'success', 'warning':'warning', 'danger':'danger'}.get(entry.role, 'neutral')) %}
+    {% set ignored = translated.append({'label': t(entry.label_key), 'icon': entry.resolved_icon, 'value': item.value, 'detail': t(sem(item.detail_key).label_key) if item.detail_key|default(none) else none, 'variant': item.variant|default(variant), 'href': item.href|default(none)}) %}
   {% endfor %}
   {{ page_header(t(sem(title_key).label_key), description=t(sem(description_key).label_key) if description_key else none, actions=actions, status_items=translated) }}
 {%- endmacro %}

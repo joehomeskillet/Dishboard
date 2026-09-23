@@ -547,22 +547,37 @@
   display: block; margin-top: var(--app-space-1); color: inherit;
   font-size: var(--app-font-size-small); font-weight: 400;
 }
+.dishboard-admin .admin-status--neutral,
 .dishboard-admin .admin-statusbar-item--neutral {
   color: var(--app-neutral-text); background: var(--app-neutral-soft);
   border-left-color: var(--app-neutral-text);
 }
+.dishboard-admin .admin-status--success,
 .dishboard-admin .admin-statusbar-item--success {
   color: var(--app-success-text); background: var(--app-success-soft);
   border-left-color: var(--app-success-text);
 }
+.dishboard-admin .admin-status--warning,
 .dishboard-admin .admin-statusbar-item--warning {
   color: var(--app-warning-text); background: var(--app-warning-soft);
   border-left-color: var(--app-warning-text);
 }
+.dishboard-admin .admin-status--danger,
 .dishboard-admin .admin-statusbar-item--danger {
   color: var(--app-danger-text); background: var(--app-danger-soft);
   border-left-color: var(--app-danger-text);
 }
+.dishboard-admin .admin-status--info,
+.dishboard-admin .admin-statusbar-item--info {
+  color: var(--app-info-text); background: var(--app-info-soft);
+  border-left-color: var(--app-info-text);
+}
+.dishboard-admin .admin-status--active,
+.dishboard-admin .admin-statusbar-item--active {
+  color: var(--app-primary); background: var(--app-primary-soft);
+  border-left-color: var(--app-primary);
+}
+.dishboard-admin .admin-statusbar-label .icon { margin-inline-end: var(--app-space-1); }
 .dishboard-admin .display-preview[data-content-width="contained"] { max-width: var(--app-container-width); margin-inline: auto; }
 .dishboard-admin .display-preview[data-content-width="full"] { max-width: none; }
 @media (max-width: 991.98px) {
