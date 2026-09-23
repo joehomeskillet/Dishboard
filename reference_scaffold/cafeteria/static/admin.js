@@ -2,6 +2,61 @@
 (function() {
     'use strict';
 
+    // Opt-in native submissions: defer disabling until successful controls have
+    // been serialized, including the clicked submitter's name/value and overrides.
+    const loadingForms = new Map();
+    document.addEventListener('submit', event => {
+        const form = event.target;
+        if (!form.matches('form[data-loading]')) return;
+        if (loadingForms.has(form)) {
+            event.preventDefault();
+            return;
+        }
+        window.setTimeout(() => {
+            if (event.defaultPrevented || !form.isConnected) return;
+            const button = Array.from(form.elements).find(control =>
+                control.matches('button.btn-primary') && control.type === 'submit' && !control.disabled);
+            if (!button) return;
+            loadingForms.set(form, {button, busy: button.getAttribute('aria-busy'),
+                spinner: button.classList.contains('admin-btn-loading')});
+            button.disabled = true;
+            button.setAttribute('aria-busy', 'true');
+            button.classList.add('admin-btn-loading');
+        }, 0);
+    });
+    window.addEventListener('pageshow', () => {
+        loadingForms.forEach(({button, busy, spinner}) => {
+            button.disabled = false;
+            if (busy === null) button.removeAttribute('aria-busy');
+            else button.setAttribute('aria-busy', busy);
+            if (!spinner) button.classList.remove('admin-btn-loading');
+        });
+        loadingForms.clear();
+    });
+    document.addEventListener('click', event => {
+        if (event.target.closest('a[aria-disabled="true"]')) event.preventDefault();
+    });
+
+    // Optional modal enhancement; without JS the open dialog lives in details.
+    document.querySelectorAll('.admin-hint[data-hint-mode="dialog"]').forEach(details => {
+        const dialog = details.querySelector('dialog');
+        const trigger = details.querySelector('summary');
+        const close = details.querySelector('[data-hint-close]');
+        if (!dialog || typeof dialog.showModal !== 'function') return;
+        dialog.removeAttribute('open');
+        close.hidden = false;
+        trigger.addEventListener('click', event => {
+            event.preventDefault();
+            details.open = true;
+            dialog.showModal();
+        });
+        close.addEventListener('click', () => dialog.close());
+        dialog.addEventListener('close', () => {
+            details.open = false;
+            trigger.focus();
+        });
+    });
+
     // Tabler already initializes these tooltips. Keep its instance and positioning.
     const iconActions = document.querySelectorAll('[data-admin-icon-action]');
     iconActions.forEach(link => {

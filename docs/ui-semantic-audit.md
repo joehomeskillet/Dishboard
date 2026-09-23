@@ -3,9 +3,29 @@
 Scope: shared presentation foundation. Source baseline `760ca1cc270f42c91c0e58dde24abe10caca0e96`.
 No module migration is implied by this inventory. Business values, rights and URLs stay with their owners.
 
+## Polish P2 — 2026-09-23
+
+Current runtime registry: **184 unchanged customer seeds + 10 project additions = 194 keys**.
+Added `status.neutral` (`circle-dashed`, visible text, neutral role), with complete DE/EN
+label/aria/tooltip messages. Existing `status.active` and `status.info` stay unchanged.
+`status_badge_sem` maps to `admin-status--neutral/active/success/warning/danger/info`;
+`status_bar` derives the same style and adds the resolved icon to the label. Legacy
+statusbar markup without an icon remains unchanged; `--info` and `--active` are added.
+
+P2 shared coverage: four action levels in `form_footer`, required danger consequences,
+six status styles, field/grid targets, opt-in mobile stacked tables, flat nested cards,
+heading/header budget, native submit loading and keyboard/no-JS help modes.
+`hint(text, id, mode='tooltip')` uses caller-owned IDs and escapes text in every mode;
+existing field hints remain inline until module owners classify them in P3.
+No new translations beyond the three `status.neutral` messages per locale.
+Evidence: `test_ui_semantics.py`, `test_ui_master_tokens_browser.py`,
+`test_admin_shared_patterns_browser.py`, with semantic/shell regression gates.
+Remaining P3: exactly one primary per main, module table adoption, optional help
+migration, semantic status icons for legacy callers and existing action feedback.
+
 ## Fundament 2 — 2026-09-23
 
-Current runtime registry: **184 unchanged customer seeds + 9 project additions = 193 keys**.
+Runtime registry at Fundament 2: **184 unchanged customer seeds + 9 project additions = 193 keys**.
 This package adds only `ui.disclosure.details` and `ui.disclosure.more_options`;
 the seven earlier project keys remain. Both use the existing `chevron-right` sprite,
 neutral role, visible text, and complete DE/EN label/aria/tooltip messages.

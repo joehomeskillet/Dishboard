@@ -12,7 +12,7 @@
 {%- if title and title|trim -%}
 {%- set action_content = caller() if caller else actions -%}
 {%- set subtitle = description if description is not none else pretitle -%}
-{%- set allowed_status_variants = ['neutral', 'success', 'warning', 'danger'] -%}
+{%- set allowed_status_variants = ['neutral', 'active', 'success', 'warning', 'danger', 'info'] -%}
 {%- set status = namespace(count=0) -%}
 {%- set status_content -%}
   {%- for item in status_items if item is mapping -%}
@@ -23,7 +23,7 @@
       {%- if item_variant not in allowed_status_variants -%}{%- set item_variant = 'neutral' -%}{%- endif -%}
       {%- set status.count = status.count + 1 -%}
       <div class="admin-statusbar-item admin-statusbar-item--{{ item_variant }}">
-        <dt class="admin-statusbar-label">{{ item_label }}</dt>
+        <dt class="admin-statusbar-label">{% if item.icon|default(none) %}{{ icon(item.icon) }}{% elif item_variant in ['active', 'info'] %}{{ icon('circle-check' if item_variant == 'active' else 'info-circle') }}{% endif %}{{ item_label }}</dt>
         <dd class="admin-statusbar-value">
           {% if item.href|default(none) %}<a class="admin-statusbar-link" href="{{ item.href }}"><span class="admin-statusbar-value-text">{{ item_value }}</span></a>{% else %}<span class="admin-statusbar-value-text">{{ item_value }}</span>{% endif %}
           {%- if item.detail|default(none) is not none and item.detail|string|trim -%}
@@ -74,6 +74,27 @@
 {%- endif -%}
 {%- endmacro %}
 
+{# New optional help defaults to a title + native details fallback. Callers own
+   a unique id; existing field hints and safety/allergen notices remain inline. #}
+{%- macro hint(text, id, mode='tooltip') -%}
+{%- if mode == 'inline' -%}
+<p class="form-hint" id="{{ id }}">{{ text }}</p>
+{%- else -%}
+<details class="admin-hint" data-hint-mode="{{ mode }}">
+  <summary class="admin-hint-trigger" title="{{ text }}" aria-describedby="{{ id }}" aria-label="{{ t(sem('status.info').label_key) }}">{{ icon('info-circle') }}<span class="visually-hidden">{{ t(sem('status.info').label_key) }}</span></summary>
+  {% if mode == 'dialog' %}
+  <dialog class="ui-sem-dialog" open aria-labelledby="{{ id }}-title" aria-describedby="{{ id }}">
+    <h3 id="{{ id }}-title">{{ t(sem('status.info').label_key) }}</h3>
+    <p id="{{ id }}">{{ text }}</p>
+    <button class="btn" type="button" data-hint-close hidden>{{ icon('x') }}{{ t(sem('actions.close').label_key) }}</button>
+  </dialog>
+  {% else %}<div class="form-hint" id="{{ id }}">{{ text }}</div>{% endif %}
+</details>
+{%- endif -%}
+{%- endmacro %}
+
+{# Group related fields in .admin-option-grid, one div per field: 1/2/3 columns
+   at <768/768/1440px. Controls stay >=48px; errors remain beside their control. #}
 {%- macro field(name, label, value='', type='text', id=none, required=false, error=none, hint=none, readonly=false, disabled=false, autofocus=false, placeholder=none) -%}
 {%- set field_id = id or name -%}
 {%- set desc_ids = [] -%}
@@ -432,10 +453,12 @@
 </div>
 {%- endmacro %}
 
-{%- macro form_footer(primary, cancel_url, rare=none, sticky=false, form_id=none) -%}
+{%- macro form_footer(primary, cancel_url, rare=none, sticky=false, form_id=none, secondary=none, danger=none) -%}
 <div class="admin-form-footer"{% if sticky %} data-sticky{% if form_id %} data-sticky-form="{{ form_id }}"{% endif %}{% endif %}>
-  {% if rare %}<div class="admin-form-rare">{{ rare }}</div>{% endif %}
+  {% if danger %}<div class="admin-form-danger">{{ danger }}</div>{% endif %}
+  {% if rare %}<details class="admin-form-rare admin-compact-actions"><summary class="btn btn-ghost">{{ icon(sem('actions.more').resolved_icon) }}{{ t(sem('actions.more').label_key) }}</summary><div class="admin-form-tertiary">{{ rare }}</div></details>{% endif %}
   <div class="admin-form-main">
+    {% if secondary %}{{ actions(secondary=secondary) }}{% endif %}
     <a class="btn" href="{{ cancel_url }}">{{ icon('x') }}Abbrechen</a>
     {{ actions(primary=primary) }}
   </div>

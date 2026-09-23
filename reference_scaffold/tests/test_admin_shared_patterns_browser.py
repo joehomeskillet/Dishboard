@@ -77,6 +77,190 @@ def shared_site(monkeypatch, tmp_path, database_engine, browser):  # noqa: F811
         server.server_close()
 
 
+def _run_polish_check(markup, check, width=390, javascript=True):
+    # Own Playwright lifecycle on a separate thread from the module browser fixture.
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        executor.submit(_polish_check, markup, check, width, javascript).result(timeout=120)
+
+
+def _polish_check(markup, check, width, javascript):
+    from playwright.sync_api import sync_playwright
+
+    app = Flask('polish-patterns', template_folder=str(ROOT.parent / 'templates'), static_folder=str(STATIC))
+    app.config.update(TESTING=True, UI_LOCALE='de')
+    register_template_filters(app)
+    register_ui(app)
+
+    @app.route('/__polish__', methods=['GET', 'POST'])
+    def polish_page():
+        if request.method == 'POST':
+            return {key: request.form.getlist(key) for key in request.form}
+        return render_template_string('''<!doctype html><html lang="de"><head>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            {% for file in ['tokens.css', 'vendor/tabler/tabler.min.css', 'admin-tabler.css', 'ui-semantic.css'] %}
+            <link rel="stylesheet" href="{{ url_for('static', filename=file) }}">{% endfor %}
+            </head><body class="dishboard-admin"><main class="container-fluid">
+            ''' + markup + '''</main><script src="{{ url_for('static', filename='admin.js') }}"></script></body></html>''')
+
+    server = make_server('127.0.0.1', 0, app, threaded=True)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with sync_playwright() as playwright:
+            chromium = playwright.chromium.launch(headless=True, args=['--no-sandbox'])
+            try:
+                page = chromium.new_page(java_script_enabled=javascript, reduced_motion='reduce',
+                                         viewport={'width': width, 'height': 900})
+                assert page.goto(f'http://127.0.0.1:{server.server_port}/__polish__').status == 200
+                page.evaluate('document.fonts.ready')
+                check(page)
+            finally:
+                chromium.close()
+    finally:
+        server.shutdown()
+        thread.join(timeout=5)
+        server.server_close()
+
+
+@pytest.mark.parametrize('width,columns', [(360, 1), (768, 2), (1024, 2), (1440, 3), (1920, 3)])
+def test_polish_field_grid_targets_and_adjacent_error(width, columns):
+    markup = '''{% from 'admin/_macros.html' import field, select, check %}
+        <div class="admin-option-grid">
+          <div>{{ field('name', 'Name', error='Name fehlt') }}</div>
+          <div>{{ select('kind', 'Art', [('a', 'Standard')]) }}</div>
+          <div>{{ field('note', 'Notiz') }}</div>
+        </div>{{ check('choice', 'Auswahl') }}{{ check('radio', 'Option', type='radio') }}'''
+
+    def verify(page):
+        grid = page.locator('.admin-option-grid')
+        assert grid.evaluate('el => getComputedStyle(el).gridTemplateColumns.split(" ").length') == columns
+        for control in page.locator('.form-control, .form-select').all():
+            assert control.bounding_box()['height'] >= 48
+        for label in page.locator('.form-label').all():
+            expect(label).to_have_css('margin-bottom', '4px')
+        for row in page.locator('.form-check').all():
+            assert row.bounding_box()['height'] >= 44
+        expect(page.locator('#name')).to_have_attribute('aria-invalid', 'true')
+        expect(page.locator('#name')).to_have_attribute('aria-describedby', 'name-error')
+        expect(page.locator('#name + .invalid-feedback')).to_have_text('Name fehlt')
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+
+    _run_polish_check(markup, verify, width, javascript=False)
+
+
+@pytest.mark.parametrize('width', [360, 390, 767, 768, 1440])
+def test_polish_stack_table_reflows_without_losing_labels(width, tmp_path):
+    markup = '''<table class="table admin-table--stack">
+        <caption>Bestand</caption><thead><tr><th scope="col">Name</th><th scope="col">Aktion</th></tr></thead>
+        <tbody><tr><td data-label="Name">Reis</td><td data-label="Aktion"><button class="btn">Öffnen</button></td></tr>
+        <tr><td data-label="Name">EinLangerUngetrennterNameMitVielenZeichenFürDenMobilenUmbruch</td>
+        <td data-label="Aktion"><a class="btn" href="#detail">Details</a></td></tr></tbody></table>'''
+
+    def verify(page):
+        table = page.locator('table')
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        assert table.evaluate('el => el.scrollWidth <= el.clientWidth + 1')
+        expect(page.get_by_role('button', name='Öffnen')).to_be_visible()
+        if width < 768:
+            expect(table.locator('tbody tr').first).to_have_css('display', 'grid')
+            expect(table.locator('td').first).to_have_css('display', 'block')
+            assert table.locator('td').first.evaluate('el => getComputedStyle(el, "::before").content') == '"Name"'
+        else:
+            expect(table).to_have_css('display', 'table')
+            assert table.locator('tbody tr').first.bounding_box()['height'] <= 56
+        page.screenshot(path=str(tmp_path / f'polish-table-{width}.png'), full_page=True)
+
+    _run_polish_check(markup, verify, width, javascript=False)
+
+
+def test_polish_loading_preserves_native_submitter_and_resets_on_pageshow():
+    markup = '''<iframe name="result" title="Ergebnis"></iframe>
+        <form id="editor" method="post" action="/__polish__" target="result" data-loading>
+          <input name="note" value="Behalten">
+          <button id="already-disabled" disabled>Gesperrt</button>
+        </form><button id="save" class="btn btn-primary" type="submit" form="editor"
+          name="intent" value="save" aria-busy="false"><span>Speichern</span></button>'''
+
+    def verify(page):
+        button = page.locator('#save')
+        button.click()
+        expect(button).to_be_disabled()
+        expect(button).to_have_attribute('aria-busy', 'true')
+        assert 'admin-btn-loading' in button.get_attribute('class').split()
+        expect(button.locator('span')).to_be_visible()
+        expect(button).to_have_text('Speichern')
+        expect(button).not_to_have_css('color', 'rgba(0, 0, 0, 0)')
+        assert button.evaluate('el => getComputedStyle(el, "::after").animationName') == 'none'
+        body = page.frame_locator('iframe').locator('body')
+        expect(body).to_contain_text('intent')
+        assert json.loads(body.inner_text()) == {'intent': ['save'], 'note': ['Behalten']}
+        page.evaluate('window.dispatchEvent(new PageTransitionEvent("pageshow", {persisted: true}))')
+        expect(button).to_be_enabled()
+        expect(button).to_have_attribute('aria-busy', 'false')
+        assert 'admin-btn-loading' not in button.get_attribute('class').split()
+        expect(page.locator('#already-disabled')).to_be_disabled()
+
+    _run_polish_check(markup, verify)
+
+
+def test_polish_loading_ignores_invalid_and_cancelled_submits():
+    markup = '''<form data-loading><input id="required" required name="name">
+        <button class="btn btn-primary">Speichern</button></form>'''
+
+    def verify(page):
+        button = page.get_by_role('button', name='Speichern')
+        button.click()
+        expect(button).to_be_enabled()
+        expect(button).not_to_have_attribute('aria-busy', 'true')
+        page.locator('#required').fill('Name')
+        page.evaluate('document.querySelector("form").addEventListener("submit", e => e.preventDefault())')
+        button.click()
+        # Wait past the deferred native-submit hook without an arbitrary sleep.
+        page.evaluate('new Promise(resolve => setTimeout(resolve, 0))')
+        expect(button).to_be_enabled()
+        expect(button).not_to_have_attribute('aria-busy', 'true')
+
+    _run_polish_check(markup, verify)
+
+
+@pytest.mark.parametrize('javascript', [False, True])
+@pytest.mark.parametrize('width', [360, 1440])
+def test_polish_hint_modes_are_keyboard_reachable_and_keep_safety_inline(javascript, width):
+    markup = '''{% from 'admin/_macros.html' import hint, option_detail_group %}
+        {{ hint('Zusatzinformation', 'tip') }}
+        {{ hint('Sicherheitsinformation', 'safety', mode='inline') }}
+        {{ hint('Längere Erklärung', 'explanation', mode='dialog') }}
+        {{ option_detail_group([]) }}'''
+
+    def verify(page):
+        tip = page.locator('[aria-describedby="tip"]')
+        expect(tip).to_have_attribute('title', 'Zusatzinformation')
+        expect(page.locator('#tip')).to_be_hidden()
+        page.keyboard.press('Tab')
+        expect(tip).to_be_focused()
+        assert tip.evaluate('el => parseFloat(getComputedStyle(el).outlineWidth)') >= 2
+        page.keyboard.press('Enter')
+        expect(page.locator('#tip')).to_be_visible()
+        expect(page.locator('#safety')).to_be_visible()
+        expect(page.get_by_text('Nicht ausgewählt bedeutet nicht: allergenfrei bestätigt.', exact=True)).to_be_visible()
+        page.keyboard.press('Tab')
+        expect(page.locator('summary[aria-describedby="explanation"]')).to_be_focused()
+        page.keyboard.press('Enter')
+        expect(page.locator('#explanation')).to_be_visible()
+        if javascript:
+            expect(page.locator('dialog')).to_have_attribute('open', '')
+            assert page.locator('dialog').evaluate('el => el.matches(":modal")')
+            page.keyboard.press('Escape')
+            expect(page.locator('#explanation')).to_be_hidden()
+            expect(page.locator('summary[aria-describedby="explanation"]')).to_be_focused()
+        else:
+            page.keyboard.press('Enter')
+            expect(page.locator('#explanation')).to_be_hidden()
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+
+    _run_polish_check(markup, verify, width, javascript)
+
+
 def _page(shared_site, javascript=True, width=390, query=''):
     chromium, origin, cookie = shared_site
     context = chromium.new_context(java_script_enabled=javascript, viewport={'width': width, 'height': 900},

@@ -286,6 +286,17 @@
     "role": "primary"
   },
   {
+    "key": "status.neutral",
+    "category": "status",
+    "ascii": "[-]",
+    "icon": "circle-dashed",
+    "label_key": "status.neutral.label",
+    "tooltip_key": "status.neutral.tooltip",
+    "aria_key": "status.neutral.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
     "key": "status.ok",
     "category": "status",
     "ascii": "[OK]",
