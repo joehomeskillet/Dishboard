@@ -12,6 +12,7 @@ from flask import Blueprint, Flask
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.pool import NullPool
 
+from cafeteria.ui import register_ui
 from cafeteria import db as database
 from cafeteria import roles
 from cafeteria.admin import routes as admin_routes
@@ -71,6 +72,8 @@ def _register(application: Flask) -> Flask:
     application.register_blueprint(signage)
     application.register_blueprint(workflow_routes.bp)
     application.context_processor(lambda: {'csrf_token': csrf_token})
+    # Production create_app registers the semantic UI layer; templates use t()/sem().
+    register_ui(application)
     return application
 
 

@@ -6,7 +6,6 @@ from html import unescape
 import re
 
 import pytest
-from flask import render_template
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 from werkzeug.datastructures import MultiDict
@@ -389,7 +388,6 @@ def test_invalid_choices_remain_visible_with_original_form_and_legacy_navigation
     assert response.status_code == 400
     assert Forms(response.text).forms[path + '/metadaten'].getlist('labels') == ['UNKNOWN']
     assert snapshot(owner) == before
-    with app.test_request_context():
-        html = render_template('admin/_workflow_sidebar.html', family='cafeteria',
-                               workflow_nav='master_data', tabler_admin=False)
-    assert 'href="/admin/grundlagen" class="active" aria-current="page"' in html
+    # The sidebar sub-items come from the shared shell; assert them on a rendered page.
+    html = client.get('/admin/grundlagen').text
+    assert 'href="/admin/grundlagen" class="nav-link active" aria-current="page"' in html
