@@ -1113,6 +1113,27 @@ Beispiel mit bewusst unterschiedlichen Zeiträumen für gewählte gespeicherte W
 
 **Layoutverwaltung:** Für normales Drucken keine Versionsverwaltung durchlaufen. Entwurf ansehen und aktivieren bleiben getrennt. Keine neue PDF-Engine oder Vorschau-API. Patienten- und Cafeteriaausgaben behalten ihre eigene Preis- und Mahlzeitenlogik.
 
+##### Modul Vorschau & Bildschirme (2026-09-20)
+
+Die Bildschirmverwaltung zeigt kompakte Karten mit genau einer neutralen Direktaktion
+«Öffnen». Weitere Ausgabeziele stehen unter «Weitere Aktionen»; eingebettete Vorschauen
+sind standardmässig geschlossen und nativ per Tastatur auch ohne JavaScript erreichbar.
+Ab 1024 px stehen zwei Karten nebeneinander, mobil eine. Keine Geräteverfügbarkeit aus
+vorhandenen Ausgabelinks ableiten.
+
+`page_header(..., status_items=...)` zeigt die vorhandene Web-Wochenvorlage je Bereich
+aus `assignments`, beim Zuweisen die aktuelle Vorlage aus `active`. Vorgaben bleiben
+neutral; «Aktiv» bezeichnet nur eine gespeicherte Zuordnung. Versionen stehen geschlossen
+unter «Details», nicht in der Statusbar. Das Zuweisungsformular nutzt
+`disclosure_section` und `form_footer`; Fehler öffnen den Formularbereich. Versteckte
+Felder und deren Reihenfolge bleiben direkt im Formular unverändert.
+
+Die eigenständige gespeicherte Wochenvorschau nutzt denselben Seitenkopf und zeigt
+gewählte Woche und deren Veröffentlichungsstand. Sie bleibt skriptfrei und trennt
+gespeicherte Woche und veröffentlichten Plan. Vorschauinhalt und Signage-Ausgaben
+bleiben unverändert. Modulprüfungen erfassen 360/768/1024/1440 px, Karten-/Seitenhöhe,
+geschlossene Vorschauen, Feldreihenfolge, No-JS, Tastatur und echten 200-%-Zoom.
+
 #### M15 — Einstellungen: kompakte Zusammenfassung, Bearbeitung bei Bedarf
 
 Generisches Muster für vorhandene Einstellungen; keine neuen Einstelloptionen daraus ableiten.
